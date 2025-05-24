@@ -1,32 +1,51 @@
 #!/usr/bin/env bash
-set -eux  # segueix fallant en errors, però només si existeix la variable
+# ---------------------------------------------------------------------------
+#  Generic Codex/Codespaces bootstrap script
+#  → Installs a light dev tool-chain
+#  → Ensures origin = HTTPS with PAT
+#  → Installs project deps if present
+# ---------------------------------------------------------------------------
+set -euxo pipefail
 
-# 1) instal·la git si cal
-command -v git >/dev/null 2>&1 || { apt-get update -y && apt-get install -y git; }
+#--------- 0) Detect repo name ------------------------------------------------
+REPO_PATH="$(basename "$(pwd)")"                # e.g.  aleatorizador
+REMOTE_HTTPS="https://${GITHUB_TOKEN}@github.com/PlayNuzic/${REPO_PATH}.git"
 
-# 2) configura nom i email de l’usuari Codex
-git config --global user.name  "PlayNuzic-Codex"
-git config --global user.email "codex@playnuzic.local"
+#--------- 1) Base CLI / system packages -------------------------------------
+echo "⇒ apt-get update…"
+apt-get update -qq
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      git curl jq make bash-completion python3-pip python3-venv
 
-# 3) obté l’URL del repositori a partir del remote (si el clon ja existeix)
-REMOTE_URL="$(git config --get remote.origin.url || true)"
+#--------- 2) Node.js tool-chain ---------------------------------------------
+if ! command -v npm >/dev/null 2>&1; then
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
+fi
 
-# 4) genera l’URL HTTPS amb PAT
-if [ -n "${GITHUB_TOKEN-}" ]; then
-  # si no tenim remote o és SSH, refem l’URL
-  if [[ -z "$REMOTE_URL" || "$REMOTE_URL" == git@github.com:* ]]; then
-    REPO_PATH="$(basename "$(pwd)").git"                  # exemple: aleatorizador.git
-    REPO_HTTPS="https://${GITHUB_TOKEN}@github.com/PlayNuzic/${REPO_PATH}"
-    git remote remove origin 2>/dev/null || true
-    git remote add    origin "$REPO_HTTPS"
-  else
-    # només canviem el remote perquè porti el token
-    REPO_HTTPS="$(sed -E "s#https://.*@github#https://${GITHUB_TOKEN}@github#" <<<"$REMOTE_URL")"
-    git remote set-url origin "$REPO_HTTPS"
-  fi
+npm install -g --silent npm@latest yarn pnpm serve \
+                     eslint prettier typescript
+
+#--------- 3) Python extras ---------------------------------------------------
+pip install --no-cache-dir -U pip pipx virtualenv pytest
+
+#--------- 4) Fix remote origin ----------------------------------------------
+if git config --get remote.origin.url >/dev/null 2>&1; then
+  git remote set-url origin "${REMOTE_HTTPS}"
 else
-  echo "ERROR: la variable secreta GITHUB_TOKEN no està definida" >&2
-  exit 1
+  git remote add origin "${REMOTE_HTTPS}"
+fi
+
+#--------- 5) Project-specific deps ------------------------------------------
+if [[ -f package.json ]]; then
+  echo "⇒ npm ci / install…"
+  # sense auditories ni output verbós
+  npm install --no-audit --progress=false
+fi
+
+if [[ -f requirements.txt ]]; then
+  echo "⇒ pip install -r requirements.txt…"
+  pip install --no-cache-dir -r requirements.txt
 fi
 
 echo "✅ Entorn preparat. Pots fer git add / commit / push via HTTPS amb el token."
