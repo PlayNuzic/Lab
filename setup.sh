@@ -1,51 +1,27 @@
 #!/usr/bin/env bash
-# ---------------------------------------------------------------------------
-#  Generic Codex/Codespaces bootstrap script
-#  → Installs a light dev tool-chain
-#  → Ensures origin = HTTPS with PAT
-#  → Installs project deps if present
-# ---------------------------------------------------------------------------
 set -euxo pipefail
 
-#--------- 0) Detect repo name ------------------------------------------------
-REPO_PATH="$(basename "$(pwd)")"                # e.g.  aleatorizador
-REMOTE_HTTPS="https://${GITHUB_TOKEN}@github.com/PlayNuzic/${REPO_PATH}.git"
-
-#--------- 1) Base CLI / system packages -------------------------------------
-echo "⇒ apt-get update…"
+# 0. Instal·lació d’eines de base (molt lleugera)
 apt-get update -qq
-DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      git curl jq make bash-completion python3-pip python3-venv
+apt-get install -yqq git curl jq make bash-completion
 
-#--------- 2) Node.js tool-chain ---------------------------------------------
-if ! command -v npm >/dev/null 2>&1; then
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-  apt-get install -y nodejs
-fi
+# 1. Config Git amb nom+mail genèrics
+git config --global user.name  "PlayNuzic-Codex"
+git config --global user.email "codex@playnuzic.local"
 
-npm install -g --silent npm@latest yarn pnpm serve \
-                     eslint prettier typescript
-
-#--------- 3) Python extras ---------------------------------------------------
-pip install --no-cache-dir -U pip pipx virtualenv pytest
-
-#--------- 4) Fix remote origin ----------------------------------------------
-if git config --get remote.origin.url >/dev/null 2>&1; then
-  git remote set-url origin "${REMOTE_HTTPS}"
+# 2. Deixa ‘origin’ apuntant a HTTPS amb PAT
+REMOTE_URL="$(git config --get remote.origin.url || true)"
+if [[ -z "$REMOTE_URL" ]]; then
+  REPO_PATH=$(basename "$(pwd)")
+  REMOTE_URL="https://${GITHUB_TOKEN}@github.com/PlayNuzic/${REPO_PATH}.git"
+  git remote add origin "$REMOTE_URL"
 else
-  git remote add origin "${REMOTE_HTTPS}"
+  # substitueix token vell (si n’hi havia) pel nou
+  REMOTE_URL="${REMOTE_URL/https:\/\/ghp_[A-Za-z0-9]*/https://${GITHUB_TOKEN}}"
+  git remote set-url origin "$REMOTE_URL"
 fi
 
-#--------- 5) Project-specific deps ------------------------------------------
-if [[ -f package.json ]]; then
-  echo "⇒ npm ci / install…"
-  # sense auditories ni output verbós
-  npm install --no-audit --progress=false
-fi
+# 3. Habilita yarn/pnpm sense baixar-los
+corepack enable
 
-if [[ -f requirements.txt ]]; then
-  echo "⇒ pip install -r requirements.txt…"
-  pip install --no-cache-dir -r requirements.txt
-fi
-
-echo "✅ Entorn preparat. Pots fer git add / commit / push via HTTPS amb el token."
+echo "✅ Entorn preparat. Pots fer git add / commit / push (HTTPS amb PAT)."
