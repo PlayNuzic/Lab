@@ -1,20 +1,8 @@
-# AGENT.md
+### Secrets requerits
+| Nom            | Què conté                |
+|----------------|--------------------------|
+| `GITHUB_TOKEN` | PAT amb scope **repo**  |
 
-## 📦 Projecte
-**LAB**  
-Branca principal: **main**    <!-- o autocontenidas -->
-
-## 🔐 Secrets requerits
-
-| Nom del secret | Propòsit                                             |
-|----------------|------------------------------------------------------|
-| `SSH_KEY`      | Clau privada OpenSSH per poder clonar/push via `ssh.github.com:443` |
-
-> **On posar-lo?**  
-> OpenAI Code Agent ▸ **Environment ▸ Secrets** (no a Codespaces ni a Actions).
-
-## 🚀 Com posar-se en marxa
-```bash
-# Executa una sola vegada:
-chmod +x setup.sh
-./setup.sh          # configura SSH 443, deps, etc.
+### Setup
+Codex clona el repo (HTTPS) ➜ executa `setup.sh` ➜ el remote `origin` ja queda
+apuntant a HTTPS amb el token. No cal fer `git fetch/pull`.
