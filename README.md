@@ -20,27 +20,59 @@ git config --global --unset http.proxy  || true
 git config --global --unset https.proxy || true
 
 mkdir -p ~/.ssh
-cat > ~/.ssh/config <<'EOF'
+cat > ~/.ssh/config <<'CFG'
 Host github.com
   HostName ssh.github.com
   Port 443
   User git
   IdentityFile ~/.ssh/id_ed25519
   StrictHostKeyChecking no
-EOF
+CFG
 chmod 600 ~/.ssh/config
 
 # Comprova la connexió:
-   ssh -T git@github.com
+ssh -T git@github.com
 
 # Després, prepara l'entorn amb:
-   ./setup.sh
+./setup.sh
+```
+
+## Estructura
+
+El repositori es divideix en diversos espais lògics:
+
+- `apps/`: Conté cada mini-app amb la seva UI específica. Afegim un fitxer
+  `.gitkeep` perquè es versioni la carpeta.
+- `packages/`: Contindrà el codi compartit. Aquí s'espera afegir el repositori
+  `PlayNuzic/IndexLab` com a submòdul de Git sota la ruta
+  `packages/indexlab`.
+- `config/`: Configuracions comunes (ESLint, Prettier, TypeScript, etc.) per a
+  totes les apps i paquets.
+
+## Submòdul IndexLab
+
+Per incorporar el codi modular ja existent a `PlayNuzic/IndexLab` utilitza un
+submòdul:
+
+```bash
+git submodule add git@github.com:PlayNuzic/IndexLab.git packages/indexlab
+```
+
+Si el submòdul ja existeix, pots sincronitzar-lo amb la versió remota mitjançant:
+
+```bash
+git submodule update --remote packages/indexlab
+```
 
 ## Tests
 
-Before running tests, execute `./setup.sh` once per session to install all
-dependencies and configure Git. After that you can run the test suite with:
+Executa `./setup.sh` una vegada per sessió per instal·lar dependències i
+configurar Git. Després, llança la bateria de tests amb:
 
 ```bash
 npm test
 ```
+
+Cada mini-app i paquet hauria de definir els seus propis tests. Es recomana
+configurar fluxos de CI/CD que instal·lin dependències, executin els tests i
+despleguin només les apps afectades pels canvis.
