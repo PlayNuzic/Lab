@@ -30,32 +30,11 @@ Host github.com
 EOF
 chmod 600 ~/.ssh/config
 
-# Després el teu ./setup.sh o comandes git…
-chmod +x setup.sh
-./setup.sh
-```
+# Comprova la connexió:
+   ssh -T git@github.com
 
-Si la instal·lació amb `apt-get` falla per restriccions de xarxa, executa el
-script amb `SKIP_APT=1 ./setup.sh` i assegura't que la variable d'entorn
-`GITHUB_TOKEN` està definida.
-
-> **Atenció**: un cop acaba el `setup.sh`, la sessió perd accés a Internet;
-> per tant, totes les dependències han d’estar instal·lades dins del `setup.sh`.
-
-## Servir els fitxers HTML
-
-Els exemples del directori `apps` utilitzen mòduls ES. Si obres els fitxers
-`html` directament (`file://`), el navegador pot bloquejar-los perquè els
-mòduls requereixen un origen HTTP(S).
-
-Des del directori arrel del repositori pots executar un petit servidor amb:
-
-```bash
-npx http-server
-```
-
-A continuació obre al navegador l'URL que indiqui la comanda (habitualment
-`http://localhost:8080`).
+# Després, prepara l'entorn amb:
+   ./setup.sh
 
 ## Tests
 
