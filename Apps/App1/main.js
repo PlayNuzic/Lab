@@ -1,4 +1,3 @@
-import * as Tone from '../../node_modules/tone/build/Tone.js';
 import { TimelineAudio, soundNames } from '../../packages/audio/index.js';
 
 const audio = new TimelineAudio();
