@@ -1,13 +1,14 @@
 :root {
-  --bg-light: #f0f0f0;
-  --bg-dark: #121212;
-  --text-light: #000;
-  --text-dark: #fff;
-  --line-color: #444;
-  --color-lg: #2ecc71;
-  --color-v: #3498db;
-  --color-t: #e91e63;
-  --selection-color: #ff9900;
+  --bg-light: #EEE8D8;
+  --bg-dark: #43433B;
+  --text-light: #43433B;
+  --text-dark: #EEE8D8;
+  --color-lg: #5C7AEA; /* azul para Lg */
+  --color-v: #2E8B57; /* verde oscuro para V */
+  --color-t: #E57373; /* rojo para T */
+  --selection-color: #FFBB97;
+  --btn-bg-light: #FFECC0;
+  --btn-bg-dark: #7CD6B3;
 }
 
 body {
@@ -21,11 +22,13 @@ body {
 body[data-theme='light'] {
   background: var(--bg-light);
   color: var(--text-light);
+  --line-color: var(--text-light);
 }
 
 body[data-theme='dark'] {
   background: var(--bg-dark);
   color: var(--text-dark);
+  --line-color: var(--text-dark);
 }
 
 .top-bar {
@@ -39,6 +42,7 @@ body[data-theme='dark'] {
 .top-bar .menu {
   position: absolute;
   left: 10px;
+  top: 10px;
 }
 
 .menu summary {
@@ -50,6 +54,24 @@ body[data-theme='dark'] {
   flex-direction: column;
   gap: 10px;
   padding: 10px;
+}
+
+.menu[open] .options-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  border: 1px solid var(--line-color);
+  z-index: 1;
+}
+
+body[data-theme='light'] .menu[open] .options-content {
+  background: var(--bg-light);
+  color: var(--text-light);
+}
+
+body[data-theme='dark'] .menu[open] .options-content {
+  background: var(--bg-dark);
+  color: var(--text-dark);
 }
 
 .menu ul {
@@ -64,7 +86,18 @@ body[data-theme='dark'] {
   margin: 20px 0;
 }
 
-.circle {
+.param {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+}
+
+.param.lg { color: var(--color-lg); }
+.param.v { color: var(--color-v); }
+.param.t { color: var(--color-t); }
+
+.param .circle {
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -74,7 +107,7 @@ body[data-theme='dark'] {
   justify-content: center;
 }
 
-.circle input {
+.param .circle input {
   width: 100%;
   height: 100%;
   border: none;
@@ -85,39 +118,33 @@ body[data-theme='dark'] {
   outline: none;
 }
 
-.circle.lg { color: var(--color-lg); }
-.circle.v { color: var(--color-v); }
-.circle.t { color: var(--color-t); }
 
 .middle {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.controls {
+  display: flex;
   align-items: center;
   gap: 20px;
 }
-
-.play-container { position: relative; }
 
 .play {
   width: 80px;
   height: 80px;
   border-radius: 50%;
   border: 2px solid currentColor;
-  background: none;
   font-size: 2rem;
   cursor: pointer;
 }
 
 .loop {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  transform: translate(-25%,25%);
   width: 48px;
   height: 48px;
   border-radius: 50%;
   border: 2px solid currentColor;
-  background: none;
   font-size: 1.2rem;
   opacity: 0.7;
   cursor: pointer;
@@ -128,8 +155,38 @@ body[data-theme='dark'] {
   color: #fff;
 }
 
+body[data-theme='light'] .play,
+body[data-theme='light'] .loop {
+  background: var(--btn-bg-light);
+  color: var(--text-light);
+}
+
+body[data-theme='dark'] .play,
+body[data-theme='dark'] .loop {
+  background: var(--btn-bg-dark);
+  color: var(--text-dark);
+}
+
 .formula {
   font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fraction {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fraction .top {
+  border-bottom: 2px solid var(--line-color);
+  padding: 0 4px;
+}
+
+.fraction .bottom {
+  padding-top: 2px;
 }
 
 .timeline {

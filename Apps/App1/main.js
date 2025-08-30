@@ -80,7 +80,16 @@ function updateFormula(){
   const lg = inputLg.value || 'Lg';
   const v = inputV.value || 'V';
   const t = inputT.value || 'T';
-  formula.innerHTML = `<span style="color:var(--color-lg)">${lg}</span>/<span style="color:var(--color-v)">${v}</span> = <span style="color:var(--color-t)">${t}</span>/60`;
+  formula.innerHTML = `
+    <span class="fraction">
+      <span class="top" style="color:var(--color-lg)">${lg}</span>
+      <span class="bottom" style="color:var(--color-v)">${v}</span>
+    </span>
+    =
+    <span class="fraction">
+      <span class="top" style="color:var(--color-t)">${t}</span>
+      <span class="bottom">60</span>
+    </span>`;
 }
 
 function renderTimeline(){

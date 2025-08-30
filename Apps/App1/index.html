@@ -19,7 +19,7 @@
           </select>
         </label>
         <label><input type="checkbox" id="muteToggle" /> Silencio</label>
-        <label>Color selección <input type="color" id="selectColor" value="#ff9900" /></label>
+        <label>Color selección <input type="color" id="selectColor" value="#FFBB97" /></label>
         <label><input type="checkbox" id="showNumbers" /> Sucesión de Pulsos</label>
         <details>
           <summary>Sonidos</summary>
@@ -37,17 +37,26 @@
 
   <main>
     <section class="inputs">
-      <div class="circle lg"><input id="inputLg" type="number" min="1" step="1" placeholder="Lg" /></div>
-      <div class="circle v"><input id="inputV" type="number" min="1" step="0.001" placeholder="V" /></div>
-      <div class="circle t"><input id="inputT" type="number" min="1" step="0.001" placeholder="T" /></div>
+      <div class="param lg">
+        <span class="abbr">Lg</span>
+        <div class="circle"><input id="inputLg" type="number" min="1" step="1" /></div>
+      </div>
+      <div class="param v">
+        <span class="abbr">V</span>
+        <div class="circle"><input id="inputV" type="number" min="1" step="0.001" /></div>
+      </div>
+      <div class="param t">
+        <span class="abbr">T</span>
+        <div class="circle"><input id="inputT" type="number" min="1" step="0.001" /></div>
+      </div>
     </section>
 
     <section class="middle">
-      <div class="play-container">
-        <button id="playBtn" class="play">▶</button>
+      <div class="controls">
         <button id="loopBtn" class="loop">🔁</button>
+        <button id="playBtn" class="play">▶</button>
+        <div id="formula" class="formula"></div>
       </div>
-      <div id="formula" class="formula"></div>
     </section>
 
     <section class="timeline" id="timeline"></section>
