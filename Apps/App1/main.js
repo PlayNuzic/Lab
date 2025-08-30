@@ -1,4 +1,5 @@
 import { TimelineAudio, soundNames } from '../../packages/audio/index.js';
+// Using local header controls for App1 (no shared init)
 
 const audio = new TimelineAudio();
 const inputLg = document.getElementById('inputLg');
@@ -8,10 +9,10 @@ const formula = document.getElementById('formula');
 const timeline = document.getElementById('timeline');
 const playBtn = document.getElementById('playBtn');
 const loopBtn = document.getElementById('loopBtn');
+const showNumbers = document.getElementById('showNumbers');
 const muteToggle = document.getElementById('muteToggle');
 const themeSelect = document.getElementById('themeSelect');
 const selectColor = document.getElementById('selectColor');
-const showNumbers = document.getElementById('showNumbers');
 const baseSounds = document.getElementById('baseSounds');
 const accentSounds = document.getElementById('accentSounds');
 
@@ -20,6 +21,7 @@ const selectedPulses = new Set();
 let isPlaying = false;
 let loopEnabled = false;
 
+// Local header behavior (as before)
 function applyTheme(val){
   if(val === 'system'){
     const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -31,7 +33,6 @@ function applyTheme(val){
 
 applyTheme(themeSelect.value);
 themeSelect.addEventListener('change', e => applyTheme(e.target.value));
-
 muteToggle.addEventListener('change', e => audio.setMute(e.target.checked));
 selectColor.addEventListener('input', e => document.documentElement.style.setProperty('--selection-color', e.target.value));
 showNumbers.addEventListener('change', updateNumbers);
@@ -167,6 +168,7 @@ playBtn.addEventListener('click', () => {
     audio.stop();
     isPlaying = false;
     playBtn.textContent = '▶';
+    playBtn.classList.remove('active');
     pulses.forEach(p => p.classList.remove('active'));
     return;
   }
@@ -177,10 +179,12 @@ playBtn.addEventListener('click', () => {
   audio.schedule(lg, interval, selectedPulses, loopEnabled, highlightPulse);
   isPlaying = true;
   playBtn.textContent = '■';
+  playBtn.classList.add('active');
   if(!loopEnabled){
     Tone.Transport.scheduleOnce(() => {
       isPlaying = false;
       playBtn.textContent = '▶';
+      playBtn.classList.remove('active');
       pulses.forEach(p => p.classList.remove('active'));
     }, lg * interval);
   }

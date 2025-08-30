@@ -291,12 +291,19 @@ body[data-theme='dark'] .menu[open] .options-content {
   background: currentColor;
   transform: translate(-50%,-50%);
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 .pulse.selected {
   background: var(--selection-color);
 }
+@keyframes pulseFlash {
+  0% { transform: translate(-50%,-50%) scale(1); box-shadow: 0 0 0px var(--selection-color), 0 0 0px currentColor; }
+  50% { transform: translate(-50%,-50%) scale(1.6); box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor; }
+  100% { transform: translate(-50%,-50%) scale(1.2); box-shadow: 0 0 8px var(--selection-color), 0 0 12px currentColor; }
+}
 .pulse.active {
-  box-shadow: 0 0 10px currentColor;
+  animation: pulseFlash 0.35s ease-out;
+  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
 }
 
 .pulse-number {
@@ -323,7 +330,7 @@ body[data-theme='dark'] .menu[open] .options-content {
   border: 2px solid currentColor;
   cursor: pointer;
   background: transparent;
-  transition: color 0.3s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.3s ease;
 }
 
 /* Play */
@@ -342,7 +349,14 @@ body[data-theme='dark'] .menu[open] .options-content {
 }
 
 /* Loop actiu */
-.loop.active {
+/* Active states: highlight border instead of text color */
+.loop.active,
+.play.active {
+  border-color: var(--selection-color);
+  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+}
+/* Play active state highlights while playing */
+.play.active {
   color: var(--selection-color);
 }
 
@@ -359,7 +373,8 @@ body[data-theme='dark'] .loop {
 /* Hover */
 .play:hover,
 .loop:hover {
-  color: var(--selection-color);
+  border-color: var(--selection-color);
+  box-shadow: 0 0 8px var(--selection-color);
 }
 
 /* --- Responsive mòbil --- */

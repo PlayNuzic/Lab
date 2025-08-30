@@ -1,38 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;700&display=swap');
+
+/* Shared palette and typography (from App1) */
 :root {
-  --bg-body:   #2B1C4A;
-  --bg-card:   #EEE8D8;
-  --txt-main:  #333333;
-  --txt-sec:   #666666;
-  --accent:    #FFBB33;
+  --bg-light: #EEE8D8;
+  --bg-dark: #43433B;
+  --text-light: #43433B;
+  --text-dark: #EEE8D8;
+  --color-lg: #5C7AEA;
+  --color-v: #2E8B57;
+  --color-t: #E57373;
+  --selection-color: #FFBB97;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-body {
-  background: var(--bg-body);
-  color: var(--txt-main);
-  font-family: sans-serif;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  min-height:100vh;
-  padding:20px;
+
+/* Baseline: disable text selection across UI, allow in form fields */
+html, body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
-.card {
-  display:block;
-  background: var(--bg-card);
-  border-radius:8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  overflow:hidden;
-  max-width:360px;
-  width:100%;
-  text-decoration:none;
-  color: var(--txt-main);
+input, textarea, select {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
 }
-.card img {
-  display:block;
-  width:100%;
-  height:200px;
-  object-fit:cover;
+button, a, summary, label { -webkit-tap-highlight-color: transparent; }
+
+/* Theme containers (apps should set body[data-theme]) */
+body[data-theme='light'] {
+  background: var(--bg-light);
+  color: var(--text-light);
+  --line-color: var(--text-light);
+  font-family: 'Ubuntu', sans-serif;
 }
-.card-content { padding:16px; }
-.card-content h1 { font-size:1.5rem; margin-bottom:8px; }
-.card-content p { color: var(--txt-sec); margin-bottom:16px; }
+body[data-theme='dark'] {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+  --line-color: var(--text-dark);
+  font-family: 'Ubuntu', sans-serif;
+}
+
+/* Shared header: top bar and dropdown menu (mirrors App1) */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 10px;
+}
+
+.top-bar .menu {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  font-size: 2rem;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.menu summary {
+  cursor: pointer;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 2rem;
+}
+
+/* Hide marker for main menu */
+.menu > summary { list-style: none; cursor: pointer; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu > summary::marker { content: ''; }
+
+/* Menu options panel */
+.menu .options-content {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.5s ease, opacity 0.5s ease;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 300;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  padding: 10px;
+  border: 2px solid var(--line-color);
+  border-radius: 8px;
+  min-width: 220px;
+}
+
+.menu[open] .options-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1;
+  background: inherit;
+  max-height: 500px;
+  opacity: 1;
+}
+
+body[data-theme='light'] .menu[open] .options-content {
+  background: var(--bg-light);
+  color: var(--text-light);
+}
+
+body[data-theme='dark'] .menu[open] .options-content {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+.menu ul { list-style: none; padding-left: 0; }
+
+/* Submenus (e.g., Sonidos) */
+.menu .options-content details > summary {
+  font-size: 1rem;
+  font-weight: 400;
+  font-family: 'Ubuntu', sans-serif;
+  cursor: pointer;
+  margin: 8px 0;
+}
+
+/* Labels inside menu */
+.menu .options-content label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0;
+  font-size: 1rem;
+  font-weight: 400;
+  font-family: 'Ubuntu', sans-serif;
+  line-height: 1.4;
+  gap: 8px;
+}
+
+.menu .options-content select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid var(--line-color);
+  border-radius: 4px;
+  font-family: 'Ubuntu', sans-serif;
+  font-size: 0.9rem;
+}
+
+.menu .options-content .menu-separator {
+  margin: 8px 0;
+  border: none;
+  border-top: 2px solid var(--line-color);
+  opacity: 0.7;
+}
+
+.menu .options-content input[type="color"] { width: 33%; }
+.menu .options-content input[type="checkbox"] { width: 18px; height: 18px; order: 2; }
+.menu .options-content label[for="muteToggle"]::after { content: " 🔊"; }
