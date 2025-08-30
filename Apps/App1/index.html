@@ -6,21 +6,22 @@
   <title>Línea Temporal</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body data-theme="light">
+<body data-theme="system">
   <header class="top-bar">
     <details class="menu" id="optionsMenu">
       <summary>☰</summary>
       <div class="options-content">
-        <label>Tema:
+        <label for="themeSelect">Tema:
           <select id="themeSelect">
-            <option value="system">Sistema</option>
-            <option value="light" selected>Claro</option>
+            <option value="system" selected>Sistema</option>
+            <option value="light">Claro</option>
             <option value="dark">Oscuro</option>
           </select>
         </label>
-        <label><input type="checkbox" id="muteToggle" /> Silencio</label>
-        <label>Color selección <input type="color" id="selectColor" value="#FFBB97" /></label>
-        <label><input type="checkbox" id="showNumbers" /> Sucesión de Pulsos</label>
+        <label for="muteToggle">Silencio <input type="checkbox" id="muteToggle" /></label>
+        <label for="selectColor">Color selección <input type="color" id="selectColor" value="#FFBB97" /></label>
+        <label for="showNumbers">Sucesión de Pulsos <input type="checkbox" id="showNumbers" /></label>
+
         <details>
           <summary>Sonidos</summary>
           <div class="sound-group">
@@ -43,23 +44,24 @@
       </div>
       <div class="param v">
         <span class="abbr">V</span>
-        <div class="circle"><input id="inputV" type="number" min="1" step="0.001" /></div>
+        <div class="circle"><input id="inputV" type="number" min="1" step="1" /></div>
       </div>
       <div class="param t">
         <span class="abbr">T</span>
-        <div class="circle"><input id="inputT" type="number" min="1" step="0.001" /></div>
+        <div class="circle"><input id="inputT" type="number" min="1" step="1" /></div>
       </div>
     </section>
 
     <section class="middle">
-      <div class="controls">
-        <button id="loopBtn" class="loop">🔁</button>
-        <button id="playBtn" class="play">▶</button>
-        <div id="formula" class="formula"></div>
-      </div>
+      <div id="formula" class="formula"></div>
     </section>
 
     <section class="timeline" id="timeline"></section>
+
+    <div class="controls">
+      <button id="loopBtn" class="loop">🔁</button>
+      <button id="playBtn" class="play">▶</button>
+    </div>
   </main>
 
   <script type="module" src="main.js"></script>

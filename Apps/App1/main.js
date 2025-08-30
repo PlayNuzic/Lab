@@ -66,12 +66,12 @@ function handleInput(){
   const v = parseFloat(inputV.value);
   const t = parseFloat(inputT.value);
   if(!isNaN(lg) && !isNaN(v) && isNaN(t)){
-    inputT.value = ((lg / v) * 60).toFixed(3);
-  } else if(!isNaN(lg) && isNaN(v) && !isNaN(t)){
-    inputV.value = ((lg * 60) / t).toFixed(3);
-  } else if(isNaN(lg) && !isNaN(v) && !isNaN(t)){
-    inputLg.value = Math.round((v * t) / 60);
-  }
+  inputT.value = Math.round((lg / v) * 60);
+} else if(!isNaN(lg) && isNaN(v) && !isNaN(t)){
+  inputV.value = Math.round((lg * 60) / t);
+} else if(isNaN(lg) && !isNaN(v) && !isNaN(t)){
+  inputLg.value = Math.round((v * t) / 60);
+}
   updateFormula();
   renderTimeline();
 }
@@ -81,15 +81,15 @@ function updateFormula(){
   const v = inputV.value || 'V';
   const t = inputT.value || 'T';
   formula.innerHTML = `
-    <span class="fraction">
-      <span class="top" style="color:var(--color-lg)">${lg}</span>
-      <span class="bottom" style="color:var(--color-v)">${v}</span>
-    </span>
-    =
-    <span class="fraction">
-      <span class="top" style="color:var(--color-t)">${t}</span>
-      <span class="bottom">60</span>
-    </span>`;
+  <span class="fraction">
+    <span class="top lg">${lg}</span>
+    <span class="bottom v">${v}</span>
+  </span>
+  <span class="equal">=</span>
+  <span class="fraction">
+    <span class="top t">${t}</span>
+    <span class="bottom">60</span>
+  </span>`;
 }
 
 function renderTimeline(){
@@ -191,4 +191,33 @@ function highlightPulse(i){
   pulses.forEach(p => p.classList.remove('active'));
   const p = pulses[i];
   if(p) p.classList.add('active');
+}
+
+const menu = document.querySelector('.menu');
+const optionsContent = document.querySelector('.menu .options-content');
+
+if (menu && optionsContent) {
+  menu.addEventListener('toggle', () => {
+    if (menu.open) {
+      optionsContent.classList.add('opening');
+      optionsContent.classList.remove('closing');
+      optionsContent.style.maxHeight = optionsContent.scrollHeight + "px";
+
+      optionsContent.addEventListener('transitionend', () => {
+        optionsContent.classList.remove('opening');
+        optionsContent.style.maxHeight = "500px"; // estat estable
+      }, { once: true });
+
+    } else {
+      optionsContent.classList.add('closing');
+      optionsContent.classList.remove('opening');
+      optionsContent.style.maxHeight = optionsContent.scrollHeight + "px";
+      optionsContent.offsetHeight; // força reflow
+      optionsContent.style.maxHeight = "0px";
+
+      optionsContent.addEventListener('transitionend', () => {
+        optionsContent.classList.remove('closing');
+      }, { once: true });
+    }
+  });
 }

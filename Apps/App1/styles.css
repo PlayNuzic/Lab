@@ -1,19 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;700&display=swap');
+
 :root {
   --bg-light: #EEE8D8;
   --bg-dark: #43433B;
   --text-light: #43433B;
   --text-dark: #EEE8D8;
-  --color-lg: #5C7AEA; /* azul para Lg */
-  --color-v: #2E8B57; /* verde oscuro para V */
-  --color-t: #E57373; /* rojo para T */
+  --color-lg: #5C7AEA;
+  --color-v: #2E8B57;
+  --color-t: #E57373;
   --selection-color: #FFBB97;
-  --btn-bg-light: #FFECC0;
-  --btn-bg-dark: #7CD6B3;
 }
 
 body {
   margin: 0;
-  font-family: sans-serif;
+  font-family: 'Ubuntu', sans-serif;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -31,6 +31,7 @@ body[data-theme='dark'] {
   --line-color: var(--text-dark);
 }
 
+/* --- Top bar i menú --- */
 .top-bar {
   display: flex;
   align-items: center;
@@ -43,25 +44,51 @@ body[data-theme='dark'] {
   position: absolute;
   left: 10px;
   top: 10px;
+  font-size: 2rem;
+  padding: 12px;
+  cursor: pointer;
 }
 
 .menu summary {
   cursor: pointer;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 2rem;
 }
 
+/* Amaga només el triangle del menú principal */
+.menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.menu > summary::-webkit-details-marker { display: none; }
+.menu > summary::marker { content: ''; }
+
+/* Opcions del menú */
 .menu .options-content {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.5s ease, opacity 0.5s ease;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 300;
+  font-size: 0.9rem;
+  line-height: 1.4;
   padding: 10px;
+  border: 2px solid var(--line-color);
+  border-radius: 8px;
+  min-width: 220px;
 }
 
+/* Obertura menú */
 .menu[open] .options-content {
   position: absolute;
   top: 100%;
   left: 0;
-  border: 1px solid var(--line-color);
   z-index: 1;
+  background: inherit;
+  max-height: 500px;
+  opacity: 1;
 }
 
 body[data-theme='light'] .menu[open] .options-content {
@@ -79,122 +106,143 @@ body[data-theme='dark'] .menu[open] .options-content {
   padding-left: 0;
 }
 
+/* Submenús (ex. Sonidos) */
+.menu .options-content details > summary {
+  font-size: 1rem;
+  font-weight: 400;
+  font-family: 'Ubuntu', sans-serif;
+  cursor: pointer;
+  margin: 8px 0;
+}
+
+/* Labels del menú */
+.menu .options-content label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0;
+  font-size: 1rem;
+  font-weight: 400;
+  font-family: 'Ubuntu', sans-serif;
+  line-height: 1.4;
+  gap: 8px;
+}
+
+.menu .options-content select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid var(--line-color);
+  border-radius: 4px;
+  font-family: 'Ubuntu', sans-serif;
+  font-size: 0.9rem;
+}
+
+.menu .options-content input[type="color"] {
+  width: 33%;
+}
+
+.menu .options-content input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  order: 2;
+}
+
+.menu .options-content label[for="muteToggle"]::after {
+  content: " 🔊";
+}
+
+/* --- Inputs --- */
 .inputs {
   display: flex;
   justify-content: center;
-  gap: 20px;
-  margin: 20px 0;
+  gap: 26px;
+  margin: 50px 0 20px 0;
 }
 
 .param {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.1rem;
+  font-size: 1.45rem;
 }
-
 .param.lg { color: var(--color-lg); }
 .param.v { color: var(--color-v); }
 .param.t { color: var(--color-t); }
 
+.param .abbr {
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
 .param .circle {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   border: 2px solid currentColor;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
 .param .circle input {
   width: 100%;
   height: 100%;
   border: none;
   background: transparent;
   text-align: center;
-  font-size: 1rem;
+  font-size: 1.6rem;
   color: inherit;
   outline: none;
 }
 
-
+/* --- Fórmula --- */
 .middle {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
-}
-
-.controls {
-  display: flex;
   align-items: center;
-  gap: 20px;
-}
-
-.play {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  font-size: 2rem;
-  cursor: pointer;
-}
-
-.loop {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  font-size: 1.2rem;
-  opacity: 0.7;
-  cursor: pointer;
-}
-
-.loop.active {
-  background: var(--selection-color);
-  color: #fff;
-}
-
-body[data-theme='light'] .play,
-body[data-theme='light'] .loop {
-  background: var(--btn-bg-light);
-  color: var(--text-light);
-}
-
-body[data-theme='dark'] .play,
-body[data-theme='dark'] .loop {
-  background: var(--btn-bg-dark);
-  color: var(--text-dark);
+  position: relative;
+  margin-bottom: 5px;
 }
 
 .formula {
-  font-size: 1.5rem;
+  font-size: 3rem;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 20px;
 }
+.formula span {
+  display: flex;
+  align-items: center;
+}
+.formula .equal {
+  position: relative;
+  top: -5px;
+  line-height: 0.8;
+}
+.formula .lg { color: var(--color-lg); }
+.formula .v { color: var(--color-v); }
+.formula .t { color: var(--color-t); }
 
 .fraction {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
 }
-
 .fraction .top {
-  border-bottom: 2px solid var(--line-color);
-  padding: 0 4px;
+  border-bottom: 4px solid var(--line-color);
+  padding: 0 32px;
 }
-
 .fraction .bottom {
   padding-top: 2px;
 }
 
+/* --- Timeline --- */
 .timeline {
   position: relative;
   height: 80px;
-  margin: 40px;
+  margin: 20px 40px 20px 40px;
 }
-
 .timeline::before {
   content: "";
   position: absolute;
@@ -204,7 +252,6 @@ body[data-theme='dark'] .loop {
   height: 2px;
   background: var(--line-color);
 }
-
 .timeline .bar {
   position: absolute;
   top: 0;
@@ -212,7 +259,6 @@ body[data-theme='dark'] .loop {
   height: 100%;
   background: currentColor;
 }
-
 .timeline .label {
   position: absolute;
   top: 60%;
@@ -220,6 +266,7 @@ body[data-theme='dark'] .loop {
   font-size: 0.8rem;
 }
 
+/* --- Pulsos --- */
 .pulse {
   position: absolute;
   top: 50%;
@@ -230,11 +277,9 @@ body[data-theme='dark'] .loop {
   transform: translate(-50%,-50%);
   cursor: pointer;
 }
-
 .pulse.selected {
   background: var(--selection-color);
 }
-
 .pulse.active {
   box-shadow: 0 0 10px currentColor;
 }
@@ -245,4 +290,97 @@ body[data-theme='dark'] .loop {
   font-size: 0.75rem;
   transform: translateX(-50%);
   color: currentColor;
+}
+
+/* --- Controls --- */
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+/* Botons Play i Loop */
+.play,
+.loop {
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  cursor: pointer;
+  background: transparent;
+  transition: color 0.3s ease;
+}
+
+/* Play */
+.play {
+  width: 80px;
+  height: 80px;
+  font-size: 2rem;
+}
+
+/* Loop */
+.loop {
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
+  opacity: 0.7;
+}
+
+/* Loop actiu */
+.loop.active {
+  color: var(--selection-color);
+}
+
+/* Colors segons tema */
+body[data-theme='light'] .play,
+body[data-theme='light'] .loop {
+  color: var(--text-light);
+}
+body[data-theme='dark'] .play,
+body[data-theme='dark'] .loop {
+  color: var(--text-dark);
+}
+
+/* Hover */
+.play:hover,
+.loop:hover {
+  color: var(--selection-color);
+}
+
+/* --- Responsive mòbil --- */
+@media (max-width: 600px) {
+  .param .circle {
+    width: 60px;
+    height: 60px;
+  }
+  .param .circle input {
+    font-size: 1rem;
+  }
+  .formula {
+    font-size: 2rem;
+  }
+  .middle {
+    margin-bottom: 10px;
+  }
+  .play {
+    width: 55px;
+    height: 55px;
+    font-size: 1.3rem;
+  }
+  .loop {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+  .controls {
+    margin-top: 8px;
+    gap: 4px;
+  }
+  .timeline {
+    height: 40px;
+    margin: 15px;
+  }
+  .timeline .label {
+    font-size: 0.7rem;
+  }
 }
