@@ -5,7 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lab</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 40px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      margin: 0;
+      padding: 40px;
+      /* Disable text selection on the landing page UI */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+    /* Allow selection in inputs (if any) */
+    input, textarea, select {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      user-select: text;
+    }
     h1 { text-align: center; margin-bottom: 40px; }
     .grid { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
     .card { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; text-align: center; width: 200px; text-decoration: none; color: inherit; transition: box-shadow 0.2s; }
