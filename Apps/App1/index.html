@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Línea Temporal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-theme="light">
+  <header class="top-bar">
+    <details class="menu" id="optionsMenu">
+      <summary>☰</summary>
+      <div class="options-content">
+        <label>Tema:
+          <select id="themeSelect">
+            <option value="system">Sistema</option>
+            <option value="light" selected>Claro</option>
+            <option value="dark">Oscuro</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="muteToggle" /> Silencio</label>
+        <label>Color selección <input type="color" id="selectColor" value="#ff9900" /></label>
+        <label><input type="checkbox" id="showNumbers" /> Sucesión de Pulsos</label>
+        <details>
+          <summary>Sonidos</summary>
+          <div class="sound-group">
+            <p>Metrónomo</p>
+            <ul id="baseSounds"></ul>
+            <p>Acento</p>
+            <ul id="accentSounds"></ul>
+          </div>
+        </details>
+      </div>
+    </details>
+    <h1>Línea Temporal</h1>
+  </header>
+
+  <main>
+    <section class="inputs">
+      <div class="circle lg"><input id="inputLg" type="number" min="1" step="1" placeholder="Lg" /></div>
+      <div class="circle v"><input id="inputV" type="number" min="1" step="0.001" placeholder="V" /></div>
+      <div class="circle t"><input id="inputT" type="number" min="1" step="0.001" placeholder="T" /></div>
+    </section>
+
+    <section class="middle">
+      <div class="play-container">
+        <button id="playBtn" class="play">▶</button>
+        <button id="loopBtn" class="loop">🔁</button>
+      </div>
+      <div id="formula" class="formula"></div>
+    </section>
+
+    <section class="timeline" id="timeline"></section>
+  </main>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
