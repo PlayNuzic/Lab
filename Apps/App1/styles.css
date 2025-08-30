@@ -370,12 +370,12 @@ body[data-theme='dark'] .loop {
   color: var(--text-dark);
 }
 
-/* Hover */
-.play:hover,
+/* Hover eliminat */
+/*.play:hover,
 .loop:hover {
   border-color: var(--selection-color);
   box-shadow: 0 0 8px var(--selection-color);
-}
+}/*
 
 /* --- Responsive mòbil --- */
 @media (max-width: 600px) {
