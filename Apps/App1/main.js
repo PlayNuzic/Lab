@@ -9,6 +9,7 @@ const formula = document.getElementById('formula');
 const timeline = document.getElementById('timeline');
 const playBtn = document.getElementById('playBtn');
 const loopBtn = document.getElementById('loopBtn');
+const resetBtn = document.getElementById('resetBtn');
 const showNumbers = document.getElementById('showNumbers');
 const muteToggle = document.getElementById('muteToggle');
 const themeSelect = document.getElementById('themeSelect');
@@ -40,6 +41,10 @@ showNumbers.addEventListener('change', updateNumbers);
 loopBtn.addEventListener('click', () => {
   loopEnabled = !loopEnabled;
   loopBtn.classList.toggle('active', loopEnabled);
+});
+
+resetBtn.addEventListener('click', () => {
+  window.location.reload();
 });
 
 function buildSoundList(listElem, groupName, setter, defaultName){
