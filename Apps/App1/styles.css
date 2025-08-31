@@ -323,7 +323,7 @@ body[data-theme='dark'] .menu[open] .options-content {
   margin-top: 20px;
 }
 
-/* Botons Play i Loop */
+/* Estil base de tots els botons */
 .play,
 .loop,
 .reset {
@@ -331,27 +331,15 @@ body[data-theme='dark'] .menu[open] .options-content {
   border: 2px solid currentColor;
   cursor: pointer;
   background: transparent;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.3s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.3s ease, transform 0.1s ease;
 }
 
-/* Play */
+/* Mides específiques */
 .play {
   width: 80px;
   height: 80px;
   font-size: 2rem;
 }
-
-.play svg {
-  width: 50%;   /* més petit */
-  height: 50%;
-  fill: currentColor;
-  pointer-events: none;
-  display: block;
-  margin: auto; /* centra la icona dins del cercle */
-}
-
-/* Loop */
-
 .loop,
 .reset {
   width: 48px;
@@ -360,25 +348,39 @@ body[data-theme='dark'] .menu[open] .options-content {
   opacity: 0.7;
 }
 
-/* Icona SVG dins dels botons petits */
+/* Icones SVG dins els botons */
+.play svg {
+  width: 50%;
+  height: 50%;
+  fill: currentColor;
+  pointer-events: none;
+  display: block;
+  margin: auto;
+}
 .loop svg,
 .reset svg {
   width: 70%;
   height: 70%;
-  fill: currentColor;   /* agafa el color del text/botó */
-  pointer-events: none; /* evita que bloquegi el clic */
+  fill: currentColor;
+  pointer-events: none;
 }
 
-/* Loop actiu */
-/* Active states: highlight border instead of text color */
-.loop.active,
-.play.active {
+/* Efecte de click (apretar + il·luminació només per Reset) */
+.reset:active {
+  transform: scale(0.9);
+  color: var(--selection-color);
   border-color: var(--selection-color);
   box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
 }
-/* Play active state highlights while playing */
+/* Estats actius */
 .play.active {
   color: var(--selection-color);
+  border-color: var(--selection-color);
+  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+}
+.loop.active {
+  border-color: var(--selection-color);
+  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
 }
 
 /* Colors segons tema */
@@ -391,13 +393,6 @@ body[data-theme='dark'] .play,
 body[data-theme='dark'] .loop,
 body[data-theme='dark'] .reset {
   color: var(--text-dark);
-}
-
-.play:hover,
-.loop:hover,
-.reset:hover {
-  border-color: var(--selection-color);
-  box-shadow: 0 0 8px var(--selection-color);
 }
 
 /* --- Responsive mòbil --- */
