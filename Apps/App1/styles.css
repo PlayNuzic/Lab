@@ -167,12 +167,15 @@ body[data-theme='dark'] .menu[open] .options-content {
   content: " 🔊";
 }
 
-/* --- Inputs --- */
+/* Inputs (Lg, V, T) */
 .inputs {
   display: flex;
   justify-content: center;
   gap: 26px;
-  margin: 50px 0 20px 0;
+  margin-top: 40px;   /* puja/baixa tota la línia de cercles */
+  margin-bottom: 20px;
+  position: relative;
+  left: -20px; /* mou tota la línia de cercles a l'esquerra */
 }
 
 .param {
@@ -308,19 +311,18 @@ body[data-theme='dark'] .menu[open] .options-content {
 
 .pulse-number {
   position: absolute;
-  top: 65%;
-  font-size: 0.75rem;
-  transform: translateX(-50%);
+  top: 85%;
+  font-size: 1.6rem;
   color: currentColor;
+  transform: translateX(-50%); /* centrat sota el punt */
 }
 
-/* --- Controls --- */
 .controls {
   display: flex;
   justify-content: center;
   align-items: flex-end;
   gap: 6px;
-  margin-top: 20px;
+  margin-top: 70px; /* abaixem els botons uns 50px */
 }
 
 /* Estil base de tots els botons */

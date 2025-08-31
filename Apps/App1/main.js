@@ -102,20 +102,7 @@ function renderTimeline(){
   pulses = [];
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0) return;
-  const start = document.createElement('div');
-  start.className = 'bar';
-  start.style.left = '0%';
-  timeline.appendChild(start);
-  const end = document.createElement('div');
-  end.className = 'bar';
-  end.style.left = '100%';
-  timeline.appendChild(end);
-  const label = document.createElement('div');
-  label.className = 'label';
-  label.style.left = '100%';
-  label.style.color = 'var(--color-lg)';
-  label.textContent = lg;
-  timeline.appendChild(label);
+
   for(let i=0; i<lg; i++){
     const p = document.createElement('div');
     p.className = 'pulse';
@@ -125,10 +112,23 @@ function renderTimeline(){
     p.addEventListener('click', () => togglePulse(i));
     if(selectedPulses.has(i)){
       p.classList.add('selected');
-      if(showNumbers.checked) showNumber(i, percent);
     }
     timeline.appendChild(p);
     pulses.push(p);
+
+    // barres verticals extrems
+    if (i === 0 || i === lg-1) {
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      bar.style.left = percent + '%';
+      timeline.appendChild(bar);
+    }
+  }
+
+  // sempre pintem 0 i últim
+  if (pulses.length > 0) {
+    showNumber(0, parseFloat(pulses[0].style.left), true);
+    showNumber(pulses.length-1, parseFloat(pulses[pulses.length-1].style.left), true);
   }
 }
 
@@ -144,12 +144,17 @@ function togglePulse(i){
   }
 }
 
-function showNumber(i, percent){
+function showNumber(i, percent, always){
   const n = document.createElement('div');
   n.className = 'pulse-number';
   n.dataset.index = i;
   n.style.left = percent + '%';
   n.textContent = i;
+
+  // Excepcions
+  if (i === 0) n.style.transform = 'translateX(40%)';      // separa el 0
+  if (i === pulses.length-1) n.style.transform = 'translateX(-140%)'; // separa l’últim
+
   timeline.appendChild(n);
 }
 
@@ -160,10 +165,18 @@ function removeNumber(i){
 
 function updateNumbers(){
   document.querySelectorAll('.pulse-number').forEach(n => n.remove());
+  if(pulses.length === 0) return;
+
+  // sempre 0 i últim
+  showNumber(0, parseFloat(pulses[0].style.left), true);
+  showNumber(pulses.length-1, parseFloat(pulses[pulses.length-1].style.left), true);
+
+  // la resta només si està activat i seleccionat
   if(showNumbers.checked){
-    selectedPulses.forEach(i => {
-      const percent = parseFloat(pulses[i].style.left);
-      showNumber(i, percent);
+    pulses.forEach((p, i) => {
+      if(i !== 0 && i !== pulses.length-1 && selectedPulses.has(i)){
+        showNumber(i, parseFloat(p.style.left), false);
+      }
     });
   }
 }
