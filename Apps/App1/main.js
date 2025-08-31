@@ -164,27 +164,36 @@ function updateNumbers(){
 }
 
 playBtn.addEventListener('click', () => {
-  if(isPlaying){
+  const iconPlay = playBtn.querySelector('.icon-play');
+  const iconStop = playBtn.querySelector('.icon-stop');
+
+  if (isPlaying) {
     audio.stop();
     isPlaying = false;
-    playBtn.textContent = '▶';
     playBtn.classList.remove('active');
+    iconPlay.style.display = 'block';
+    iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
     return;
   }
+
   const lg = parseInt(inputLg.value);
   const v = parseFloat(inputV.value);
-  if(isNaN(lg) || isNaN(v)) return;
+  if (isNaN(lg) || isNaN(v)) return;
+
   const interval = 60 / v;
   audio.schedule(lg, interval, selectedPulses, loopEnabled, highlightPulse);
   isPlaying = true;
-  playBtn.textContent = '■';
   playBtn.classList.add('active');
-  if(!loopEnabled){
+  iconPlay.style.display = 'none';
+  iconStop.style.display = 'block';
+
+  if (!loopEnabled) {
     Tone.Transport.scheduleOnce(() => {
       isPlaying = false;
-      playBtn.textContent = '▶';
       playBtn.classList.remove('active');
+      iconPlay.style.display = 'block';
+      iconStop.style.display = 'none';
       pulses.forEach(p => p.classList.remove('active'));
     }, lg * interval);
   }

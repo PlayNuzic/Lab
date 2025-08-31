@@ -63,8 +63,21 @@
     <section class="timeline" id="timeline"></section>
 
     <div class="controls">
-      <button id="loopBtn" class="loop">🔁</button>
-      <button id="playBtn" class="play">▶</button>
+    <button id="loopBtn" class="loop" aria-label="Loop">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
+    <path d="M370.7 133.3C338 100.6 297.9 85.3 256 85.3c-84.6 0-154.7 61.4-169.3 141.3H32l74.7 74.7 74.7-74.7H117.3c13.3-56.9 64.4-100 126.7-100 36.5 0 70.6 14.2 96.3 39.9l30.4-30.2zm70.6 152.1l-74.7-74.7-74.7 74.7h42.1c-13.3 56.9-64.4 100-126.7 100-36.5 0-70.6-14.2-96.3-39.9l-30.4 30.2C174 411.4 214.1 426.7 256 426.7c84.6 0 154.7-61.4 169.3-141.3h42.1z"/>
+  </svg>
+</button>
+     <button id="playBtn" class="play" aria-label="Play">
+  <!-- Icona Play (triangle) -->
+  <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
+    <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
+  </svg>
+  <!-- Icona Stop (quadrat) -->
+  <svg class="icon-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" style="display:none">
+    <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
+  </svg>
+</button>
     </div>
   </main>
   <!-- Load Tone.js as a global before module scripts -->

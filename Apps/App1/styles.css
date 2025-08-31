@@ -340,12 +340,29 @@ body[data-theme='dark'] .menu[open] .options-content {
   font-size: 2rem;
 }
 
+.play svg {
+  width: 50%;   /* més petit */
+  height: 50%;
+  fill: currentColor;
+  pointer-events: none;
+  display: block;
+  margin: auto; /* centra la icona dins del cercle */
+}
+
 /* Loop */
 .loop {
   width: 48px;
   height: 48px;
   font-size: 1.2rem;
   opacity: 0.7;
+}
+
+/* Icona SVG dins del botó Loop */
+.loop svg {
+  width: 70%;
+  height: 70%;
+  fill: currentColor;   /* agafa el color del text/botó */
+  pointer-events: none; /* evita que bloquegi el clic */
 }
 
 /* Loop actiu */
