@@ -103,21 +103,21 @@ function renderTimeline(){
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0) return;
 
-  for(let i=0; i<lg; i++){
+  for (let i = 0; i <= lg; i++) {
     const p = document.createElement('div');
     p.className = 'pulse';
-    const percent = lg > 1 ? (i/(lg-1))*100 : 0;
+    const percent = lg > 0 ? (i / lg) * 100 : 0; // distribute 0..Lg evenly across 0%..100%
     p.style.left = percent + '%';
     p.dataset.index = i;
     p.addEventListener('click', () => togglePulse(i));
-    if(selectedPulses.has(i)){
+    if (selectedPulses.has(i)) {
       p.classList.add('selected');
     }
     timeline.appendChild(p);
     pulses.push(p);
 
-    // barres verticals extrems
-    if (i === 0 || i === lg-1) {
+    // barres verticals extrems (0 i Lg)
+    if (i === 0 || i === lg) {
       const bar = document.createElement('div');
       bar.className = 'bar';
       bar.style.left = percent + '%';
@@ -218,9 +218,20 @@ playBtn.addEventListener('click', () => {
 });
 
 function highlightPulse(i){
+  // esborra il·luminació anterior
   pulses.forEach(p => p.classList.remove('active'));
-  const p = pulses[i];
-  if(p) p.classList.add('active');
+
+  if (!pulses || pulses.length === 0) return;
+
+  // il·lumina el pols actual
+  const current = pulses[i];
+  if (current) current.classList.add('active');
+
+  // si hi ha loop i som al primer pols, també il·lumina l’últim
+  if (loopEnabled && i === 0) {
+    const last = pulses[pulses.length - 1];
+    if (last) last.classList.add('active');
+  }
 }
 
 const menu = document.querySelector('.menu');
