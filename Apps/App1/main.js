@@ -21,6 +21,7 @@ let pulses = [];
 const selectedPulses = new Set();
 let isPlaying = false;
 let loopEnabled = false;
+let isUpdating = false;     // evita bucles de 'input' reentrants
 
 // Local header behavior (as before)
 function applyTheme(val){
@@ -66,25 +67,120 @@ buildSoundList(accentSounds, 'accentSound', name => audio.setAccent(name), 'clic
 [inputLg, inputV, inputT].forEach(el => el.addEventListener('input', handleInput));
 updateFormula();
 
-function handleInput(){
-  const lg = parseFloat(inputLg.value);
-  const v = parseFloat(inputV.value);
-  const t = parseFloat(inputT.value);
-  if(!isNaN(lg) && !isNaN(v) && isNaN(t)){
-  inputT.value = Math.round((lg / v) * 60);
-} else if(!isNaN(lg) && isNaN(v) && !isNaN(t)){
-  inputV.value = Math.round((lg * 60) / t);
-} else if(isNaN(lg) && !isNaN(v) && !isNaN(t)){
-  inputLg.value = Math.round((v * t) / 60);
+function setValue(input, value){
+  isUpdating = true;
+  input.value = String(value);
+  input.dataset.auto = '1';    // marquem que aquest valor l'ha posat el codi
+  isUpdating = false;
 }
+
+function parseNum(val){
+  if (typeof val !== 'string') return Number(val);
+  let s = val.trim();
+  // Si hi ha coma i no hi ha punt: format català “1.234,56” → traiem punts (milers) i passem coma a punt
+  if (s.includes(',') && !s.includes('.')) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    // En la resta de casos, NO esborrem punts (poden ser decimals); només canviem comes per punts
+    s = s.replace(/,/g, '.');
+  }
+  const n = parseFloat(s);
+    return isNaN(n) ? NaN : n;
+}
+function formatSec(n){
+  // arrodonim a 2 decimals però sense forçar-los si són .00
+  const rounded = Math.round(Number(n) * 100) / 100;
+  return rounded.toLocaleString('ca-ES', {
+     minimumFractionDigits: 0,
+     maximumFractionDigits: 2
+   }); 
+}
+
+function handleInput(e){
+  const lg = parseNum(inputLg.value);
+  const v  = parseNum(inputV.value);
+  const t  = parseNum(inputT.value);
+  const src = e && e.target ? e.target.id : '';
+
+  // criteri de “valor informat” (mateix que tens ara)
+  const hasLg = !isNaN(lg) && lg > 0;
+  const hasV  = !isNaN(v)  && v  > 0;
+  const hasT  = !isNaN(t)  && t  > 0;
+
+  // tallafocs reentrància i marcatges auto/manual
+  if (isUpdating) return;
+  if (e && e.target) delete e.target.dataset.auto;
+
+  // comptem quants camps estan informats
+  const knownCount = (hasLg ? 1 : 0) + (hasV ? 1 : 0) + (hasT ? 1 : 0);
+  const twoKnown   = knownCount === 2;
+  const threeKnown = knownCount === 3;
+
+  // helpers (escriuen valor i marquen dataset.auto per no re-entrar)
+  const calcT = () => {
+    if (!(hasLg && hasV)) return;
+    const tSeconds = (lg / v) * 60;
+    const rounded  = Math.round(tSeconds * 100) / 100; // 2 decimals màxim
+    setValue(inputT, rounded);                          // punt a l'input; la fórmula ja mostra coma
+  };
+  const calcV = () => {
+    if (!(hasLg && hasT) || t === 0) return;
+    const vBpm     = (lg * 60) / t;
+    const vRounded = Math.round(vBpm * 100) / 100;
+    setValue(inputV, vRounded);
+  };
+  const calcLg = () => {
+    if (!(hasV && hasT)) return;
+    const lgCount = (v * t) / 60;
+    setValue(inputLg, Math.round(lgCount)); // Lg enter
+  };
+
+  // decisió
+  if (twoKnown) {
+    // sempre calcula la tercera que falta
+    if (!hasT)      calcT();
+    else if (!hasV) calcV();
+    else if (!hasLg)calcLg();
+  } else if (threeKnown) {
+    // si n'hi ha exactament una d’auto, recalcula només aquella
+    const autoT  = inputT.dataset.auto === '1';
+    const autoV  = inputV.dataset.auto === '1';
+    const autoLg = inputLg.dataset.auto === '1';
+    const autoCount = (autoT?1:0) + (autoV?1:0) + (autoLg?1:0);
+
+    if (autoCount === 1) {
+      if (autoT)      calcT();
+      else if (autoV) calcV();
+      else if (autoLg)calcLg();
+    } else {
+      // sense 'auto' clara: protegeix el camp editat i calcula amb la parella natural
+      if (src === 'inputT') {
+        if (hasV)      calcLg();
+        else if (hasLg)calcV();
+      } else if (src === 'inputV') {
+        if (hasT)      calcLg();
+        else if (hasLg)calcT();
+      } else if (src === 'inputLg') {
+        if (hasV)      calcT();
+        else if (hasT) calcV();
+      } else {
+        // cas indeterminat: ordre natural Lg+V → T
+        calcT();
+      }
+    }
+  }
+
   updateFormula();
   renderTimeline();
 }
 
 function updateFormula(){
+  const tNum = parseNum(inputT.value);
+  const tStr = isNaN(tNum)
+    ? (inputT.value || 'T')
+    : formatSec(tNum).replace('.', ',');
   const lg = inputLg.value || 'Lg';
-  const v = inputV.value || 'V';
-  const t = inputT.value || 'T';
+  const v  = inputV.value || 'V';
   formula.innerHTML = `
   <span class="fraction">
     <span class="top lg">${lg}</span>
@@ -92,7 +188,7 @@ function updateFormula(){
   </span>
   <span class="equal">=</span>
   <span class="fraction">
-    <span class="top t">${t}</span>
+    <span class="top t">${tStr}</span>
     <span class="bottom">60</span>
   </span>`;
 }
