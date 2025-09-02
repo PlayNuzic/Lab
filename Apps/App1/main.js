@@ -289,6 +289,8 @@ function updateNumbers(){
 
 playBtn.addEventListener('click', async () => {
   await Tone.start();
+  await audio.ready();
+
   const iconPlay = playBtn.querySelector('.icon-play');
   const iconStop = playBtn.querySelector('.icon-stop');
 
