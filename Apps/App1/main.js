@@ -216,6 +216,10 @@ function handleInput(e){
   updateFormula();
   renderTimeline();
   updateAutoIndicator();
+  // Si canvia Lg mentre està sonant, refresquem la selecció viva filtrant 0 i lg
+if (isPlaying && typeof audio.setSelected === 'function') {
+  audio.setSelected(selectedForAudioFromState());
+}
 }
 
 function updateFormula(){
@@ -282,6 +286,10 @@ function togglePulse(i){
     pulses[i].classList.add('selected');
     if(showNumbers.checked) showNumber(i, parseFloat(pulses[i].style.left));
   }
+  // Actualitza l'àudio en temps real si està sonant
+if (isPlaying && typeof audio.setSelected === 'function') {
+  audio.setSelected(selectedForAudioFromState());
+}
 }
 
 function showNumber(i, percent, always){
