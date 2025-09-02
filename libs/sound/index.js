@@ -103,6 +103,10 @@ const SOUND_URLS = {
 
 export const soundNames = Object.keys(SOUND_URLS);
 
+/**
+ * Gestor d'àudio per a línies de temps rítmiques. Carrega els sons necessaris
+ * i permet programar pulsacions amb accentuacions i repeticions.
+ */
 export class TimelineAudio {
   constructor() {
     this.baseKey = 'click2';
@@ -163,6 +167,12 @@ export class TimelineAudio {
     return this._readyPromise;
   }
 
+  /**
+   * Ajusta els paràmetres de planificació interna.
+   * @param {Object} opts
+   * @param {number} [opts.lookAhead] temps amb què es programa per avançat
+   * @param {number} [opts.updateInterval] interval d'actualització del context
+   */
   setScheduling({ lookAhead, updateInterval } = {}) {
     if (typeof lookAhead === 'number') this.lookAhead = Math.max(0, lookAhead);
     if (typeof updateInterval === 'number') this.updateInterval = Math.max(0.005, updateInterval);
@@ -175,6 +185,10 @@ export class TimelineAudio {
     } catch {}
   }
 
+  /**
+   * Aplica una configuració predefinida de planificació.
+   * @param {('desktop'|'balanced'|'mobile')} profile
+   */
   setSchedulingProfile(profile) {
     const map = {
       desktop: { lookAhead: 0.02, updateInterval: 0.01 },
@@ -184,15 +198,28 @@ export class TimelineAudio {
     this.setScheduling(map[profile] || map.balanced);
   }
 
+  /**
+   * Defineix les pulsacions seleccionades que es destacaran.
+   * Accepta un array o un Set d'índexs.
+   * @param {number[]|Set<number>} indices
+   */
   setSelected(indices) {
     const next = (indices instanceof Set) ? indices : new Set(Array.isArray(indices) ? indices : []);
     this.selectedRef = next;
   }
 
+  /**
+   * Activa o desactiva la repetició en bucle de la seqüència.
+   * @param {boolean} enabled
+   */
   setLoop(enabled) {
     this.loopRef = !!enabled;
   }
 
+  /**
+   * Carrega el so base utilitzat per a les pulsacions normals.
+   * @param {string} key identificador del so
+   */
   async setBase(key) {
     if (this.baseKey === key) return;
     this.baseKey = key;
@@ -204,6 +231,10 @@ export class TimelineAudio {
     this.samplers.base = await this._createSampler(key);
   }
 
+  /**
+   * Carrega el so utilitzat per a les pulsacions accentuades.
+   * @param {string} key identificador del so
+   */
   async setAccent(key) {
     if (this.accentKey === key) return;
     this.accentKey = key;
@@ -226,6 +257,15 @@ export class TimelineAudio {
     _setMute(mute);
   }
 
+  /**
+   * Comença la reproducció del metrònom configurat.
+   * @param {number} totalPulses nombre total de pulsacions del compàs
+   * @param {number} interval durada en segons de cada pulsació
+   * @param {Iterable<number>} [selectedPulses] pulsacions seleccionades
+   * @param {boolean} [loop] si s'ha de repetir en bucle
+   * @param {Function} [onPulse] callback en cada pulsació
+   * @param {Function} [onComplete] callback en finalitzar
+   */
   play(totalPulses, interval, selectedPulses, loop, onPulse, onComplete) {
     if (!this.isReady) {
       console.warn('Audio not ready');
@@ -283,6 +323,9 @@ export class TimelineAudio {
     catch { Tone.Transport.start(); }
   }
 
+  /**
+   * Atura la reproducció i neteja qualsevol planificació pendent.
+   */
   stop() {
     this.isPlaying = false;
     this.currentScheduleId++;
