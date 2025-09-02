@@ -102,16 +102,8 @@
   transform: translateX(-50%); /* centrat sota el punt */
 }
 
-
 /* --- Responsive mòbil --- */
 @media (max-width: 600px) {
-  .param .circle {
-    width: 60px;
-    height: 60px;
-  }
-  .param .circle input {
-    font-size: 1rem;
-  }
   .formula {
     font-size: 2rem;
   }
@@ -126,3 +118,4 @@
     font-size: 0.7rem;
   }
 }
+
