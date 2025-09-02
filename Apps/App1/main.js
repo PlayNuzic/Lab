@@ -1,25 +1,26 @@
-import { TimelineAudio, soundNames } from '../../packages/audio/index.js';
+import { TimelineAudio, soundNames } from '../../libs/sound/index.js';
+import { ensureAudio } from '../../libs/sound/index.js';
 // Using local header controls for App1 (no shared init)
 
-const audio = new TimelineAudio();
-// Perfil de scheduling per defecte segons dispositiu (funciona encara que no es carregui header.js)
-(() => {
+let audio;
+let pendingScheduling = null;
+const defaultProfile = (() => {
   const ua = navigator.userAgent || '';
   const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobi/i.test(ua)
     || Math.min(window.innerWidth, window.innerHeight) <= 600;
-  if (typeof audio.setSchedulingProfile === 'function') {
-    audio.setSchedulingProfile(mobile ? 'mobile' : 'desktop');
-  }
+  return mobile ? 'mobile' : 'desktop';
 })();
 
 // Rep canvis del header compartit (futures apps també)
 window.addEventListener('sharedui:scheduling', (e) => {
   const { lookAhead, updateInterval, profile } = e.detail || {};
-  if (typeof audio.setScheduling === 'function'
+  if (audio && typeof audio.setScheduling === 'function'
       && (typeof lookAhead === 'number' || typeof updateInterval === 'number')) {
     audio.setScheduling({ lookAhead, updateInterval });
-  } else if (typeof audio.setSchedulingProfile === 'function' && profile) {
+  } else if (audio && typeof audio.setSchedulingProfile === 'function' && profile) {
     audio.setSchedulingProfile(profile);
+  } else {
+    pendingScheduling = { lookAhead, updateInterval, profile };
   }
 });
 const inputLg = document.getElementById('inputLg');
@@ -100,18 +101,49 @@ function populateSoundSelect(selectElem, setter, defaultName){
     selectElem.appendChild(opt);
   });
   selectElem.value = defaultName;
-  setter(defaultName);
-  selectElem.addEventListener('change', () => setter(selectElem.value));
+  selectElem.addEventListener('change', async () => {
+    const a = await initAudio();
+    if (selectElem === baseSoundSelect) await a.setBase(selectElem.value);
+    else if (selectElem === accentSoundSelect) await a.setAccent(selectElem.value);
+  });
 }
 
-populateSoundSelect(baseSoundSelect, name => audio.setBase(name), 'click2');
-populateSoundSelect(accentSoundSelect, name => audio.setAccent(name), 'click3');
-audio.setBase(baseSoundSelect.value);
-audio.setAccent(accentSoundSelect.value);
+populateSoundSelect(baseSoundSelect, 'click2');
+populateSoundSelect(accentSoundSelect, 'click3');
 
 // Preview buttons
-if (previewBaseBtn) previewBaseBtn.addEventListener('click', () => audio.preview(baseSoundSelect.value));
-if (previewAccentBtn) previewAccentBtn.addEventListener('click', () => audio.preview(accentSoundSelect.value));
+if (previewBaseBtn) previewBaseBtn.addEventListener('click', async () => {
+  const a = await initAudio();
+  a.preview(baseSoundSelect.value);
+});
+if (previewAccentBtn) previewAccentBtn.addEventListener('click', async () => {
+  const a = await initAudio();
+  a.preview(accentSoundSelect.value);
+});
+
+async function initAudio(){
+  if(audio) return audio;
+  await ensureAudio();
+  audio = new TimelineAudio();
+  await audio.ready();
+  audio.setBase(baseSoundSelect.value);
+  audio.setAccent(accentSoundSelect.value);
+  if(pendingScheduling){
+    const { lookAhead, updateInterval, profile } = pendingScheduling;
+    if (typeof audio.setScheduling === 'function'
+        && (typeof lookAhead === 'number' || typeof updateInterval === 'number')) {
+      audio.setScheduling({ lookAhead, updateInterval });
+    } else if (typeof audio.setSchedulingProfile === 'function' && profile) {
+      audio.setSchedulingProfile(profile);
+    }
+    pendingScheduling = null;
+  } else {
+    if(typeof audio.setSchedulingProfile === 'function'){
+      audio.setSchedulingProfile(defaultProfile);
+    }
+  }
+  return audio;
+}
 
 // Mostrar unitats quan s'edita cada paràmetre
 function bindUnit(input, unit){
