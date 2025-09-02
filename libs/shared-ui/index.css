@@ -171,6 +171,96 @@ body[data-theme='dark'] .menu[open] .options-content {
 .menu .options-content input[type="checkbox"] { width: 18px; height: 18px; order: 2; }
 .menu .options-content label[for="muteToggle"]::after { content: " 🔊"; }
 
+/* Circular input parameters (Lg, V, T) */
+.inputs {
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+  margin-top: 40px;   /* puja/baixa tota la línia de cercles */
+  margin-bottom: 20px;
+  position: relative;
+  left: -20px; /* mou tota la línia de cercles a l'esquerra */
+}
+
+.param {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.45rem;
+}
+.param.lg { color: var(--color-lg); }
+.param.v { color: var(--color-v); }
+.param.t { color: var(--color-t); }
+
+.param .abbr {
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.param .circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.param .circle input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 1.6rem;
+  color: inherit;
+  outline: none;
+}
+
+.param .circle .unit {
+  position: absolute;
+  top: calc(-40px - 1.8rem);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: inherit;
+  display: none;
+  pointer-events: none;
+}
+
+.param .circle .led {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+}
+
+.param .circle .led.on {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Responsive adjustments for circular inputs */
+@media (max-width: 600px) {
+  .param .circle {
+    width: 60px;
+    height: 60px;
+  }
+  .param .circle input {
+    font-size: 1rem;
+  }
+}
+
 /* Control buttons (play, loop, reset) */
 .controls {
   display: flex;
