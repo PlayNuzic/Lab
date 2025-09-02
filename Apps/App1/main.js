@@ -62,6 +62,7 @@ const selectedPulses = new Set();
 let isPlaying = false;
 let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
+let tapTimes = [];
 
 // Local header behavior (as before)
 function applyTheme(val){
