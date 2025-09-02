@@ -217,6 +217,24 @@ export class TimelineAudio {
   }
 
   /**
+   * Actualitza el tempo de reproducció.
+   * @param {number} bpm valors en BPM
+   */
+  setTempo(bpm) {
+    if (typeof bpm !== 'number' || bpm <= 0) return;
+    try {
+      if (Tone.Transport && Tone.Transport.bpm) {
+        const tBpm = Tone.Transport.bpm;
+        if (typeof tBpm.rampTo === 'function') {
+          tBpm.rampTo(bpm, 0.01);
+        } else {
+          tBpm.value = bpm;
+        }
+      }
+    } catch {}
+  }
+
+  /**
    * Carrega el so base utilitzat per a les pulsacions normals.
    * @param {string} key identificador del so
    */
