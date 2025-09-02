@@ -277,19 +277,45 @@ function renderTimeline(){
 }
 
 function togglePulse(i){
-  if(selectedPulses.has(i)){
-    selectedPulses.delete(i);
-    pulses[i].classList.remove('selected');
-    removeNumber(i);
+  const lg = parseInt(inputLg.value);
+
+  // En mode loop, 0 i Lg es comporten com un parell vinculat
+  if (loopEnabled && !isNaN(lg) && (i === 0 || i === lg)) {
+    const anySelected = selectedPulses.has(0) || selectedPulses.has(lg);
+    const shouldSelect = !anySelected; // si algun no està seleccionat → seleccionem tots dos; si ja ho estan → deseleccionem tots dos
+
+    [0, lg].forEach((k) => {
+      if (shouldSelect) {
+        selectedPulses.add(k);
+        if (pulses[k]) pulses[k].classList.add('selected');
+      } else {
+        selectedPulses.delete(k);
+        if (pulses[k]) pulses[k].classList.remove('selected');
+      }
+    });
+
+    // Els números 0 i Lg es mostren sempre; assegurem consistència visual
+    updateNumbers();
+
   } else {
-    selectedPulses.add(i);
-    pulses[i].classList.add('selected');
-    if(showNumbers.checked) showNumber(i, parseFloat(pulses[i].style.left));
+    // Comportament existent per a la resta de polsos
+    if (selectedPulses.has(i)) {
+      selectedPulses.delete(i);
+      if (pulses[i]) pulses[i].classList.remove('selected');
+      removeNumber(i);
+    } else {
+      selectedPulses.add(i);
+      if (pulses[i]) pulses[i].classList.add('selected');
+      if (showNumbers.checked && pulses[i]) {
+        showNumber(i, parseFloat(pulses[i].style.left));
+      }
+    }
   }
-  // Actualitza l'àudio en temps real si està sonant
-if (isPlaying && typeof audio.setSelected === 'function') {
-  audio.setSelected(selectedForAudioFromState());
-}
+
+  // Actualitza l'àudio en temps real si està sonant (filtrant 0 i Lg)
+  if (isPlaying && typeof audio.setSelected === 'function') {
+    audio.setSelected(selectedForAudioFromState());
+  }
 }
 
 function showNumber(i, percent, always){
