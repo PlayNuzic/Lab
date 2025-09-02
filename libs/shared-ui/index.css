@@ -150,3 +150,102 @@ body[data-theme='dark'] .menu[open] .options-content {
 .menu .options-content input[type="color"] { width: 33%; }
 .menu .options-content input[type="checkbox"] { width: 18px; height: 18px; order: 2; }
 .menu .options-content label[for="muteToggle"]::after { content: " 🔊"; }
+
+/* Control buttons (play, loop, reset) */
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: 70px; /* abaixem els botons uns 50px */
+}
+
+/* Base styles for all control buttons */
+.play,
+.loop,
+.reset {
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  cursor: pointer;
+  background: transparent;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.3s ease, transform 0.1s ease;
+}
+
+/* Specific sizes */
+.play {
+  width: 80px;
+  height: 80px;
+  font-size: 2rem;
+}
+.loop,
+.reset {
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
+  opacity: 0.7;
+}
+
+/* Inline SVG icons */
+.play svg {
+  width: 50%;
+  height: 50%;
+  fill: currentColor;
+  pointer-events: none;
+  display: block;
+  margin: auto;
+}
+.loop svg,
+.reset svg {
+  width: 70%;
+  height: 70%;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+/* Click effect (press + highlight only for Reset) */
+.reset:active {
+  transform: scale(0.9);
+  color: var(--selection-color);
+  border-color: var(--selection-color);
+  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+}
+/* Active states */
+.play.active {
+  color: var(--selection-color);
+  border-color: var(--selection-color);
+  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+}
+.loop.active {
+  border-color: var(--selection-color);
+  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+}
+
+/* Theme-specific colors */
+body[data-theme='light'] .play,
+body[data-theme='light'] .loop,
+body[data-theme='light'] .reset {
+  color: var(--text-light);
+}
+body[data-theme='dark'] .play,
+body[data-theme='dark'] .loop,
+body[data-theme='dark'] .reset {
+  color: var(--text-dark);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .play {
+    width: 55px;
+    height: 55px;
+    font-size: 1.3rem;
+  }
+  .loop {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+  .controls {
+    margin-top: 8px;
+    gap: 4px;
+  }
+}

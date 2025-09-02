@@ -277,7 +277,8 @@ function updateNumbers(){
   }
 }
 
-playBtn.addEventListener('click', () => {
+playBtn.addEventListener('click', async () => {
+  await Tone.start();
   const iconPlay = playBtn.querySelector('.icon-play');
   const iconStop = playBtn.querySelector('.icon-stop');
 
@@ -303,12 +304,14 @@ playBtn.addEventListener('click', () => {
   iconStop.style.display = 'block';
 
   if (!loopEnabled) {
-    Tone.Transport.scheduleOnce(() => {
-      isPlaying = false;
-      playBtn.classList.remove('active');
-      iconPlay.style.display = 'block';
-      iconStop.style.display = 'none';
-      pulses.forEach(p => p.classList.remove('active'));
+    Tone.Transport.scheduleOnce(t => {
+      Tone.Draw.schedule(() => {
+        isPlaying = false;
+        playBtn.classList.remove('active');
+        iconPlay.style.display = 'block';
+        iconStop.style.display = 'none';
+        pulses.forEach(p => p.classList.remove('active'));
+      }, t);
     }, lg * interval);
   }
 });
