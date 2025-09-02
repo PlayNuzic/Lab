@@ -43,6 +43,15 @@ const previewBaseBtn = document.getElementById('previewBaseBtn');
 const previewAccentBtn = document.getElementById('previewAccentBtn');
 
 let pulses = [];
+// --- Selecció viva per a l'àudio (filtrada: sense 0 ni lg) ---
+function selectedForAudioFromState() {
+  const lg = parseInt(inputLg.value);
+  const set = new Set();
+  if (!isNaN(lg) && lg > 0) {
+    selectedPulses.forEach((i) => { if (i > 0 && i < lg) set.add(i); });
+  }
+  return set;
+}
 const selectedPulses = new Set();
 let isPlaying = false;
 let loopEnabled = false;
