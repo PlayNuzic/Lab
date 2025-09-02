@@ -33,6 +33,7 @@ export class TimelineAudio {
     // Scheduling (look-ahead i interval per a plataformes diverses)
     this.lookAhead = 0.03;       // 30ms: perfil equilibrat
     this.updateInterval = 0.015; // 15ms
+    this.selectedRef = new Set(); // selecció viva, actualitzable en temps real
     
     // Carregar samplers inicialment
     this._readyPromise = this._initialize();
@@ -75,27 +76,33 @@ export class TimelineAudio {
     return this._readyPromise;
   }
   
-setScheduling({ lookAhead, updateInterval } = {}) {
-  if (typeof lookAhead === 'number') this.lookAhead = Math.max(0, lookAhead);
-  if (typeof updateInterval === 'number') this.updateInterval = Math.max(0.005, updateInterval);
-  // Apliquem al context de Tone si existeix
-  try {
-    const ctx = (typeof Tone.getContext === 'function') ? Tone.getContext() : Tone.context;
-    if (ctx) {
-      if (typeof ctx.lookAhead !== 'undefined') ctx.lookAhead = this.lookAhead;
-      if (typeof ctx.updateInterval !== 'undefined') ctx.updateInterval = this.updateInterval;
-    }
-  } catch {}
-}
+  setScheduling({ lookAhead, updateInterval } = {}) {
+    if (typeof lookAhead === 'number') this.lookAhead = Math.max(0, lookAhead);
+    if (typeof updateInterval === 'number') this.updateInterval = Math.max(0.005, updateInterval);
+    // Apliquem al context de Tone si existeix
+    try {
+      const ctx = (typeof Tone.getContext === 'function') ? Tone.getContext() : Tone.context;
+      if (ctx) {
+        if (typeof ctx.lookAhead !== 'undefined') ctx.lookAhead = this.lookAhead;
+        if (typeof ctx.updateInterval !== 'undefined') ctx.updateInterval = this.updateInterval;
+      }
+    } catch {}
+  }
 
-setSchedulingProfile(profile) {
-  const map = {
-    desktop:  { lookAhead: 0.02, updateInterval: 0.01 },
-    balanced: { lookAhead: 0.03, updateInterval: 0.015 },
-    mobile:   { lookAhead: 0.06, updateInterval: 0.03 },
-  };
-  this.setScheduling(map[profile] || map.balanced);
-}
+  setSchedulingProfile(profile) {
+    const map = {
+      desktop:  { lookAhead: 0.02, updateInterval: 0.01 },
+      balanced: { lookAhead: 0.03, updateInterval: 0.015 },
+      mobile:   { lookAhead: 0.06, updateInterval: 0.03 },
+    };
+    this.setScheduling(map[profile] || map.balanced);
+  }
+
+  setSelected(indices) {
+    // Accepta Set, Array o null
+    const next = (indices instanceof Set) ? indices : new Set(Array.isArray(indices) ? indices : []);
+    this.selectedRef = next;
+  }
 
   async setBase(key) {
     if (this.baseKey === key) return;
