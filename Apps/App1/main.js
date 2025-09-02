@@ -109,6 +109,34 @@ resetBtn.addEventListener('click', () => {
   window.location.reload();
 });
 
+tapBtn.addEventListener('click', () => {
+  const now = performance.now();
+  if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 2000) {
+    tapTimes = [];
+  }
+  tapTimes.push(now);
+  if (tapTimes.length < 3) {
+    tapHelp.style.display = 'block';
+    return;
+  }
+
+  tapHelp.style.display = 'none';
+  const intervals = [];
+  for (let i = 1; i < tapTimes.length; i++) {
+    intervals.push(tapTimes[i] - tapTimes[i - 1]);
+  }
+  const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+  const bpm = Math.round((60000 / avg) * 100) / 100;
+  inputV.value = String(bpm);
+  delete inputV.dataset.auto;
+  inputV.dispatchEvent(new Event('input'));
+
+  if (isPlaying && audio && typeof audio.setTempo === 'function') {
+    audio.setTempo(bpm);
+  }
+  if (tapTimes.length > 8) tapTimes.shift();
+});
+
 function populateSoundSelect(selectElem, defaultName){
   if(!selectElem) return;
   // Clear existing options
