@@ -304,28 +304,39 @@ playBtn.addEventListener('click', async () => {
     return;
   }
 
-  const lg = parseInt(inputLg.value);
-  const v = parseFloat(inputV.value);
-  if (isNaN(lg) || isNaN(v)) return;
+  // Estat net abans d’arrencar
+  audio.stop();
+  pulses.forEach(p => p.classList.remove('active'));
 
-  // Ensure audio engine uses current menu selections before scheduling
-  audio.setBase(baseSoundSelect.value);
-  audio.setAccent(accentSoundSelect.value);
+  const lg = parseInt(inputLg.value);
+  const v  = parseFloat(inputV.value);
+  if (isNaN(lg) || isNaN(v) || lg <= 0 || v <= 0) return;
+
+  // Sons segons el menú
+  await audio.setBase(baseSoundSelect.value);
+  await audio.setAccent(accentSoundSelect.value);
 
   const interval = 60 / v;
-  audio.schedule(lg, interval, selectedPulses, loopEnabled, highlightPulse, () => {
+
+  // Filtra la selecció per a l'àudio: 0 és sempre accent i 'lg' coincideix amb 0 temporalment.
+  const selectedForAudio = new Set([...selectedPulses].filter(i => i > 0 && i < lg));
+
+  const onFinish = () => {
+    // Mode no loop: final net i una sola ruta de parada
     isPlaying = false;
     playBtn.classList.remove('active');
     iconPlay.style.display = 'block';
     iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
-  });
+    audio.stop();
+  };
+
+  audio.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
+
   isPlaying = true;
   playBtn.classList.add('active');
   iconPlay.style.display = 'none';
   iconStop.style.display = 'block';
-
-  // UI end handled through audio.schedule onComplete callback when loop is disabled
 });
 
 function highlightPulse(i){
