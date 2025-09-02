@@ -214,6 +214,18 @@ body[data-theme='dark'] .menu[open] .options-content {
   outline: none;
 }
 
+.param .circle .unit {
+  position: absolute;
+  top: calc(-40px - 1.8rem);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: inherit;
+  display: none;
+  pointer-events: none;
+}
+
 .param .circle .led {
   position: absolute;
   top: -20px;
