@@ -252,6 +252,9 @@ body[data-theme='dark'] .menu[open] .options-content {
 
 /* Responsive adjustments for circular inputs */
 @media (max-width: 600px) {
+  .inputs {
+    left: 0;
+  }
   .param .circle {
     width: 60px;
     height: 60px;
@@ -359,4 +362,30 @@ body[data-theme='dark'] .reset {
     margin-top: 8px;
     gap: 4px;
   }
+}
+
+
+/* ---- Timeline layering & hit‑testing (shared) ---- */
+.timeline { position: relative; }
+/* Lines / grids must be visually behind and non-interactive */
+.timeline .lines,
+.timeline .grid,
+.timeline .grid-lines,
+.timeline .hline,
+.timeline .baseline,
+.timeline svg .grid,
+.timeline svg .lines {
+  pointer-events: none;
+  z-index: 0;
+}
+/* Pulses sit above and remain clickable */
+.timeline .pulses {
+  position: relative; /* container for absolutely positioned pulses */
+  z-index: 2;
+  pointer-events: auto;
+}
+.timeline .pulse {
+  /* no position override here: respect app's absolute layout */
+  z-index: 2;
+  pointer-events: auto;
 }
