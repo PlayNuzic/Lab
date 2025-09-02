@@ -73,15 +73,31 @@ function applyTheme(val){
 
 applyTheme(themeSelect.value);
 themeSelect.addEventListener('change', e => applyTheme(e.target.value));
-muteToggle.addEventListener('change', e => audio.setMute(e.target.checked));
+muteToggle.addEventListener('change', async e => (await initAudio()).setMute(e.target.checked));
 selectColor.addEventListener('input', e => document.documentElement.style.setProperty('--selection-color', e.target.value));
 showNumbers.addEventListener('change', updateNumbers);
 
 loopBtn.addEventListener('click', () => {
   loopEnabled = !loopEnabled;
   loopBtn.classList.toggle('active', loopEnabled);
+  const lg = parseInt(inputLg.value);
+  if (!isNaN(lg)) {
+    [0, lg].forEach((k) => {
+      if (loopEnabled) {
+        selectedPulses.add(k);
+        if (pulses[k]) pulses[k].classList.add('selected');
+      } else {
+        selectedPulses.delete(k);
+        if (pulses[k]) pulses[k].classList.remove('selected');
+      }
+    });
+    updateNumbers();
+    if (isPlaying && typeof audio.setSelected === 'function') {
+      audio.setSelected(selectedForAudioFromState());
+    }
+  }
   // Sincronitza amb el motor en temps real si està sonant
-  if (isPlaying && typeof audio.setLoop === 'function') {
+  if (isPlaying && audio && typeof audio.setLoop === 'function') {
     audio.setLoop(loopEnabled);
   }
 });
@@ -267,7 +283,7 @@ function handleInput(e){
   renderTimeline();
   updateAutoIndicator();
   // Si canvia Lg mentre està sonant, refresquem la selecció viva filtrant 0 i lg
-if (isPlaying && typeof audio.setSelected === 'function') {
+if (isPlaying && audio && typeof audio.setSelected === 'function') {
   audio.setSelected(selectedForAudioFromState());
 }
 }
@@ -363,7 +379,7 @@ function togglePulse(i){
   }
 
   // Actualitza l'àudio en temps real si està sonant (filtrant 0 i Lg)
-  if (isPlaying && typeof audio.setSelected === 'function') {
+  if (isPlaying && audio && typeof audio.setSelected === 'function') {
     audio.setSelected(selectedForAudioFromState());
   }
 }
@@ -412,8 +428,7 @@ function updateAutoIndicator(){
 }
 
 playBtn.addEventListener('click', async () => {
-  await Tone.start();
-  await audio.ready();
+  const audio = await initAudio();
 
   const iconPlay = playBtn.querySelector('.icon-play');
   const iconStop = playBtn.querySelector('.icon-stop');
