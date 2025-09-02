@@ -106,7 +106,7 @@ resetBtn.addEventListener('click', () => {
   window.location.reload();
 });
 
-function populateSoundSelect(selectElem, setter, defaultName){
+function populateSoundSelect(selectElem, defaultName){
   if(!selectElem) return;
   // Clear existing options
   selectElem.innerHTML = '';
