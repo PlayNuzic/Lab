@@ -135,6 +135,10 @@ export class TimelineAudio {
     
     // Opcional: BPM coherent amb l'interval (per si s'usa duració relativa a futur)
     try { Tone.Transport.bpm.value = 60 / interval; } catch {}
+    // Durada del clic basada en BPM (constant en segons, no en valors musicals).
+    // Clampejada per mantenir transitori consistent a tempos extrems.
+    const bpm = 60 / interval;
+    const clickDur = Math.max(0.025, Math.min(0.12, interval / 4)); // ~1/16 de negra, 25–120ms
     
     let i = 0;
     // Un sol scheduler periòdic amb "guard-first" per evitar l'event de frontera
@@ -158,7 +162,7 @@ export class TimelineAudio {
       const pulseType = (step === 0) ? 'accent' : (selected.has(step) ? 'selected' : 'base');
       const sampler = this.samplers[pulseType];
       if (sampler) {
-        try { sampler.triggerAttackRelease('C3', '8n', t); } catch {}
+        try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}
       }
       
       if (typeof onPulse === 'function') {
