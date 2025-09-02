@@ -1,4 +1,4 @@
-
+// TimelineAudio.js - Sistema d'àudio professional per metrònom
 const SAMPLE_BASE_URL = new URL('./samples/', import.meta.url);
 const SOUND_URLS = {
   click1: new URL('click1.wav', SAMPLE_BASE_URL).href,
