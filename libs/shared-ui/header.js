@@ -1,5 +1,38 @@
 // Shared UI header for Lab: mirrors App1 header behavior
 
+// --- Scheduling helpers (look-ahead y updateInterval) ---
+function detectDeviceProfile() {
+  const ua = (navigator && navigator.userAgent) ? navigator.userAgent : '';
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobi/i.test(ua);
+  const isSmallScreen = (typeof window !== 'undefined')
+    ? Math.min(window.innerWidth, window.innerHeight) <= 600
+    : false;
+  return (isMobileUA || isSmallScreen) ? 'mobile' : 'desktop';
+}
+
+function applySchedulingProfile(profile) {
+  const profiles = {
+    desktop:  { lookAhead: 0.02, updateInterval: 0.01 },
+    balanced: { lookAhead: 0.03, updateInterval: 0.015 },
+    mobile:   { lookAhead: 0.06, updateInterval: 0.03 },
+  };
+  const p = profiles[profile] || profiles.balanced;
+
+  // Si Tone está disponible, aplicamos también al contexto global (opcional)
+  try {
+    const ctx = (typeof Tone !== 'undefined')
+      ? (typeof Tone.getContext === 'function' ? Tone.getContext() : Tone.context)
+      : null;
+    if (ctx) {
+      if (typeof ctx.lookAhead !== 'undefined') ctx.lookAhead = p.lookAhead;
+      if (typeof ctx.updateInterval !== 'undefined') ctx.updateInterval = p.updateInterval;
+    }
+  } catch {}
+
+  // Notificamos a las apps (cada app puede aplicarlo a su motor)
+  window.dispatchEvent(new CustomEvent('sharedui:scheduling', { detail: { profile, ...p } }));
+}
+
 function applyTheme(value) {
   const v = value || 'system';
   if (v === 'system') {
@@ -59,6 +92,7 @@ function wireControls(root) {
   const themeSelect = root.querySelector('#themeSelect');
   const muteToggle = root.querySelector('#muteToggle');
   const selectColor = root.querySelector('#selectColor');
+  const schedSelect = root.querySelector('#schedProfileSelect');
 
   if (themeSelect) {
     applyTheme(themeSelect.value);
@@ -77,6 +111,18 @@ function wireControls(root) {
   if (muteToggle) {
     setMute(muteToggle.checked);
     muteToggle.addEventListener('change', (e) => setMute(e.target.checked));
+  }
+
+  // Scheduling profile (nuevo)
+  if (schedSelect) {
+    const def = detectDeviceProfile();
+    // Després (força el valor per defecte segons dispositiu)
+    schedSelect.value = def;       // 'mobile' o 'desktop' segons detectDeviceProfile()
+    applySchedulingProfile(def);
+    schedSelect.addEventListener('change', (e) => applySchedulingProfile(e.target.value));
+  } else {
+    // Fallback: aplica perfil por defecto aunque el header no tenga el select
+    applySchedulingProfile(detectDeviceProfile());
   }
 }
 
@@ -99,6 +145,13 @@ export function renderHeader({ title = 'App', mount } = {}) {
     <details class="menu" id="optionsMenu">
       <summary>☰</summary>
       <div class="options-content">
+        <label for="schedProfileSelect">Rendimiento:
+          <select id="schedProfileSelect">
+            <option value="mobile">Móvil</option>
+            <option value="balanced" selected>Equilibrado</option>
+            <option value="desktop">Escritorio</option>
+          </select>
+        </label>
         <label for="themeSelect">Tema:
           <select id="themeSelect">
             <option value="system" selected>Sistema</option>

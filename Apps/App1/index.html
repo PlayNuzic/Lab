@@ -12,6 +12,13 @@
     <details class="menu" id="optionsMenu">
       <summary>☰</summary>
       <div class="options-content">
+        <label for="schedProfileSelect">Rendimiento:
+          <select id="schedProfileSelect">
+            <option value="mobile">Móvil</option>
+            <option value="balanced" selected>Equilibrado</option>
+            <option value="desktop">Escritorio</option>
+          </select>
+        </label>
   <label for="themeSelect">Tema:
     <select id="themeSelect">
       <option value="system" selected>Sistema</option>
@@ -96,6 +103,12 @@
   </main>
   <!-- Load Tone.js as a global before module scripts -->
   <script src="../../libs/vendor/Tone.js"></script>
-  <script type="module" src="main.js"></script>
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    // Wire shared header controls (scheduling/theme/mute/color)
+    initHeader();
+    // Load the app afterwards
+    import './main.js';
+  </script>
 </body>
 </html>
