@@ -113,6 +113,17 @@ audio.setAccent(accentSoundSelect.value);
 if (previewBaseBtn) previewBaseBtn.addEventListener('click', () => audio.preview(baseSoundSelect.value));
 if (previewAccentBtn) previewAccentBtn.addEventListener('click', () => audio.preview(accentSoundSelect.value));
 
+// Mostrar unitats quan s'edita cada paràmetre
+function bindUnit(input, unit){
+  if(!input || !unit) return;
+  input.addEventListener('focus', () => { unit.style.display = 'block'; });
+  input.addEventListener('blur', () => { unit.style.display = 'none'; });
+}
+
+bindUnit(inputLg, unitLg);
+bindUnit(inputV, unitV);
+bindUnit(inputT, unitT);
+
 [inputLg, inputV, inputT].forEach(el => el.addEventListener('input', handleInput));
 updateFormula();
 updateAutoIndicator();
