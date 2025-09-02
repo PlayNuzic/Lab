@@ -25,6 +25,9 @@ window.addEventListener('sharedui:scheduling', (e) => {
 const inputLg = document.getElementById('inputLg');
 const inputV = document.getElementById('inputV');
 const inputT = document.getElementById('inputT');
+const ledLg = document.getElementById('ledLg');
+const ledV = document.getElementById('ledV');
+const ledT = document.getElementById('ledT');
 const formula = document.getElementById('formula');
 const timeline = document.getElementById('timeline');
 const playBtn = document.getElementById('playBtn');
@@ -96,6 +99,7 @@ if (previewAccentBtn) previewAccentBtn.addEventListener('click', () => audio.pre
 
 [inputLg, inputV, inputT].forEach(el => el.addEventListener('input', handleInput));
 updateFormula();
+updateAutoIndicator();
 
 function setValue(input, value){
   isUpdating = true;
@@ -202,6 +206,7 @@ function handleInput(e){
 
   updateFormula();
   renderTimeline();
+  updateAutoIndicator();
 }
 
 function updateFormula(){
@@ -305,6 +310,12 @@ function updateNumbers(){
       }
     });
   }
+}
+
+function updateAutoIndicator(){
+  ledLg?.classList.toggle('on', inputLg.dataset.auto === '1');
+  ledV?.classList.toggle('on', inputV.dataset.auto === '1');
+  ledT?.classList.toggle('on', inputT.dataset.auto === '1');
 }
 
 playBtn.addEventListener('click', async () => {

@@ -2,7 +2,7 @@
   "name": "lab",
   "private": true,
   "workspaces": [
-    "apps/*",
+    "Apps/*",
     "packages/*"
   ],
   "version": "1.0.0",

@@ -41,8 +41,7 @@ ssh -T git@github.com
 
 El repositori es divideix en diversos espais lògics:
 
-- `apps/`: Conté cada mini-app amb la seva UI específica. Afegim un fitxer
-  `.gitkeep` perquè es versioni la carpeta.
+- `Apps/`: Conté cada mini-app amb la seva UI específica.
 - `packages/`: Contindrà el codi compartit. Aquí s'espera afegir el repositori
   `PlayNuzic/IndexLab` com a submòdul de Git sota la ruta
   `packages/indexlab`.

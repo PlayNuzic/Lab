@@ -201,6 +201,7 @@ body[data-theme='dark'] .menu[open] .options-content {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 .param .circle input {
   width: 100%;
@@ -211,6 +212,25 @@ body[data-theme='dark'] .menu[open] .options-content {
   font-size: 1.6rem;
   color: inherit;
   outline: none;
+}
+
+.param .circle .led {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+}
+
+.param .circle .led.on {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* --- Fórmula --- */
