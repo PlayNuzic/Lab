@@ -79,6 +79,10 @@ showNumbers.addEventListener('change', updateNumbers);
 loopBtn.addEventListener('click', () => {
   loopEnabled = !loopEnabled;
   loopBtn.classList.toggle('active', loopEnabled);
+  // Sincronitza amb el motor en temps real si està sonant
+  if (isPlaying && typeof audio.setLoop === 'function') {
+    audio.setLoop(loopEnabled);
+  }
 });
 
 resetBtn.addEventListener('click', () => {

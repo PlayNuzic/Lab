@@ -34,6 +34,7 @@ export class TimelineAudio {
     this.lookAhead = 0.03;       // 30ms: perfil equilibrat
     this.updateInterval = 0.015; // 15ms
     this.selectedRef = new Set(); // selecció viva, actualitzable en temps real
+    this.loopRef = false; // estat de loop en viu
     
     // Carregar samplers inicialment
     this._readyPromise = this._initialize();
@@ -104,6 +105,10 @@ export class TimelineAudio {
     this.selectedRef = next;
   }
 
+  setLoop(enabled) {
+    this.loopRef = !!enabled;
+  }
+
   async setBase(key) {
     if (this.baseKey === key) return;
     this.baseKey = key;
@@ -164,6 +169,8 @@ export class TimelineAudio {
     
     // Selecció viva: permet actualitzar mentre reprodueix
     this.selectedRef = new Set(selectedPulses ? Array.from(selectedPulses) : []);
+    // Estat de loop en viu (permet canviar durant la reproducció)
+    this.loopRef = !!loop;
     
     // Opcional: BPM coherent amb l'interval (per si s'usa duració relativa a futur)
     try { Tone.Transport.bpm.value = 60 / interval; } catch {}
@@ -179,7 +186,7 @@ export class TimelineAudio {
       if (scheduleId !== this.currentScheduleId) return;
       
       // Guard-first: si no hi ha loop i ja hem completat tots els polsos, no disparem res més
-      if (!loop && i >= totalPulses) {
+      if (!this.loopRef && i >= totalPulses) {
         if (typeof onComplete === 'function') {
           // Notifiquem la UI abans de stop(); sense comprobació de scheduleId,
           // perquè aquest stop() invalidarà currentScheduleId.
@@ -205,7 +212,7 @@ export class TimelineAudio {
       }
       
       // Increment; si hi ha loop, utilitza i cíclic per estabilitat visual
-      i = loop ? (step + 1) : (i + 1);
+      i = this.loopRef ? (step + 1) : (i + 1);
     }, interval, 0);
     
     this.isPlaying = true;
