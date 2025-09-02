@@ -140,6 +140,26 @@ body[data-theme='dark'] .menu[open] .options-content {
   font-size: 0.9rem;
 }
 
+/* Preview row for sound selects */
+.menu .options-content .preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.menu .options-content .preview-row select { flex: 1; }
+.menu .options-content .preview-btn {
+  padding: 4px 8px;
+  border: 1px solid var(--line-color);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.menu .options-content .preview-btn:hover {
+  border-color: var(--selection-color);
+  color: var(--selection-color);
+}
+
 .menu .options-content .menu-separator {
   margin: 8px 0;
   border: none;
@@ -239,7 +259,8 @@ body[data-theme='dark'] .reset {
     height: 55px;
     font-size: 1.3rem;
   }
-  .loop {
+  .loop,
+  .reset {
     width: 32px;
     height: 32px;
     font-size: 0.9rem;

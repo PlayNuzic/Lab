@@ -3,7 +3,10 @@ const SAMPLE_BASE_URL = new URL('./samples/', import.meta.url);
 const SOUND_URLS = {
   click1: new URL('click1.wav', SAMPLE_BASE_URL).href,
   click2: new URL('click2.wav', SAMPLE_BASE_URL).href,
-  click3: new URL('click3.wav', SAMPLE_BASE_URL).href
+  click3: new URL('click3.wav', SAMPLE_BASE_URL).href,
+  click4: new URL('click4.wav', SAMPLE_BASE_URL).href,
+  click5: new URL('click5.wav', SAMPLE_BASE_URL).href,
+  click6: new URL('click6.wav', SAMPLE_BASE_URL).href,
 };
 
 export const soundNames = Object.keys(SOUND_URLS);
@@ -53,8 +56,11 @@ export class TimelineAudio {
     sampler.triggerAttackRelease('C3', '8n', time);
   }
 
-  schedule(pulses, interval, selectedSet, loop = false, cb) {
-    Tone.Transport.cancel();
+  schedule(pulses, interval, selectedSet, loop = false, cb, onComplete) {
+    // Ensure a clean transport state before (re)scheduling
+    try { Tone.Transport.stop(); } catch {}
+    try { Tone.Transport.cancel(); } catch {}
+    // Schedule events from timeline origin
     for (let i = 0; i < pulses; i++) {
       const time = i * interval;
       const type = i === 0 ? 'accent' : selectedSet.has(i) ? 'selected' : 'base';
@@ -65,7 +71,22 @@ export class TimelineAudio {
     }
     Tone.Transport.loop = loop;
     Tone.Transport.loopEnd = pulses * interval;
-    Tone.Transport.start();
+    const end = pulses * interval;
+    // Notify UI precisely at the end when not looping
+    if (!loop && typeof onComplete === 'function') {
+      Tone.Transport.scheduleOnce(t => {
+        try { Tone.Draw.schedule(() => onComplete(), t); } catch {}
+      }, end);
+    }
+    // Start from offset 0 so the next runs always play, even after a non-loop finish
+    Tone.Transport.start(undefined, 0);
+    // If not looping, stop transport right after the last event to avoid drifting position
+    if (!loop) {
+      Tone.Transport.scheduleOnce(() => {
+        try { Tone.Transport.stop(); } catch {}
+        try { Tone.Transport.cancel(); } catch {}
+      }, end + 0.001);
+    }
   }
 
   stop() {
@@ -75,6 +96,14 @@ export class TimelineAudio {
 
   async preview(key) {
     await Tone.start();
-    new Tone.Sampler({ urls: { C3: SOUND_URLS[key] }, onload: s => s.triggerAttackRelease('C3') }).toDestination();
+    let sampler;
+    sampler = new Tone.Sampler({
+      urls: { C3: SOUND_URLS[key] },
+      onload: () => {
+        try { sampler.triggerAttackRelease('C3', '8n'); } catch {}
+        // dispose after short delay to free resources
+        setTimeout(() => { try { sampler.dispose(); } catch {} }, 1000);
+      }
+    }).toDestination();
   }
 }

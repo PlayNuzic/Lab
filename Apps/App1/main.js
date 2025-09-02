@@ -14,8 +14,10 @@ const showNumbers = document.getElementById('showNumbers');
 const muteToggle = document.getElementById('muteToggle');
 const themeSelect = document.getElementById('themeSelect');
 const selectColor = document.getElementById('selectColor');
-const baseSounds = document.getElementById('baseSounds');
-const accentSounds = document.getElementById('accentSounds');
+const baseSoundSelect = document.getElementById('baseSoundSelect');
+const accentSoundSelect = document.getElementById('accentSoundSelect');
+const previewBaseBtn = document.getElementById('previewBaseBtn');
+const previewAccentBtn = document.getElementById('previewAccentBtn');
 
 let pulses = [];
 const selectedPulses = new Set();
@@ -48,21 +50,29 @@ resetBtn.addEventListener('click', () => {
   window.location.reload();
 });
 
-function buildSoundList(listElem, groupName, setter, defaultName){
+function populateSoundSelect(selectElem, setter, defaultName){
+  if(!selectElem) return;
+  // Clear existing options
+  selectElem.innerHTML = '';
   soundNames.forEach(name => {
-    const li = document.createElement('li');
-    const checked = name === defaultName ? 'checked' : '';
-    li.innerHTML = `<input type="radio" name="${groupName}" value="${name}" ${checked}> <span class="sound-name">${name}</span>`;
-    const radio = li.querySelector('input');
-    const span = li.querySelector('.sound-name');
-    span.addEventListener('click', () => audio.preview(name));
-    radio.addEventListener('change', () => setter(name));
-    listElem.appendChild(li);
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    selectElem.appendChild(opt);
   });
+  selectElem.value = defaultName;
+  setter(defaultName);
+  selectElem.addEventListener('change', () => setter(selectElem.value));
 }
 
-buildSoundList(baseSounds, 'baseSound', name => audio.setBase(name), 'click1');
-buildSoundList(accentSounds, 'accentSound', name => audio.setAccent(name), 'click2');
+populateSoundSelect(baseSoundSelect, name => audio.setBase(name), 'click2');
+populateSoundSelect(accentSoundSelect, name => audio.setAccent(name), 'click3');
+audio.setBase(baseSoundSelect.value);
+audio.setAccent(accentSoundSelect.value);
+
+// Preview buttons
+if (previewBaseBtn) previewBaseBtn.addEventListener('click', () => audio.preview(baseSoundSelect.value));
+if (previewAccentBtn) previewAccentBtn.addEventListener('click', () => audio.preview(accentSoundSelect.value));
 
 [inputLg, inputV, inputT].forEach(el => el.addEventListener('input', handleInput));
 updateFormula();
@@ -296,24 +306,24 @@ playBtn.addEventListener('click', async () => {
   const v = parseFloat(inputV.value);
   if (isNaN(lg) || isNaN(v)) return;
 
+  // Ensure audio engine uses current menu selections before scheduling
+  audio.setBase(baseSoundSelect.value);
+  audio.setAccent(accentSoundSelect.value);
+
   const interval = 60 / v;
-  audio.schedule(lg, interval, selectedPulses, loopEnabled, highlightPulse);
+  audio.schedule(lg, interval, selectedPulses, loopEnabled, highlightPulse, () => {
+    isPlaying = false;
+    playBtn.classList.remove('active');
+    iconPlay.style.display = 'block';
+    iconStop.style.display = 'none';
+    pulses.forEach(p => p.classList.remove('active'));
+  });
   isPlaying = true;
   playBtn.classList.add('active');
   iconPlay.style.display = 'none';
   iconStop.style.display = 'block';
 
-  if (!loopEnabled) {
-    Tone.Transport.scheduleOnce(t => {
-      Tone.Draw.schedule(() => {
-        isPlaying = false;
-        playBtn.classList.remove('active');
-        iconPlay.style.display = 'block';
-        iconStop.style.display = 'none';
-        pulses.forEach(p => p.classList.remove('active'));
-      }, t);
-    }, lg * interval);
-  }
+  // UI end handled through audio.schedule onComplete callback when loop is disabled
 });
 
 function highlightPulse(i){
