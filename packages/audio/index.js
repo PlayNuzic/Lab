@@ -162,8 +162,8 @@ export class TimelineAudio {
     try { Tone.Transport.position = 0; } catch {}
     Tone.Transport.loop = false;
     
-    // Congela la selecció per coherència durant el play
-    const selected = new Set(selectedPulses ? Array.from(selectedPulses) : []);
+    // Selecció viva: permet actualitzar mentre reprodueix
+    this.selectedRef = new Set(selectedPulses ? Array.from(selectedPulses) : []);
     
     // Opcional: BPM coherent amb l'interval (per si s'usa duració relativa a futur)
     try { Tone.Transport.bpm.value = 60 / interval; } catch {}
@@ -191,7 +191,8 @@ export class TimelineAudio {
       }
       
       const step = i % totalPulses;
-      const pulseType = (step === 0) ? 'accent' : (selected.has(step) ? 'selected' : 'base');
+      const isAccent = (step === 0) || this.selectedRef.has(step); // viu: reflecteix canvis en temps real
+      const pulseType = isAccent ? 'accent' : 'base';
       const sampler = this.samplers[pulseType];
       if (sampler) {
         try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}
