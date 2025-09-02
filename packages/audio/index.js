@@ -13,97 +13,211 @@ export const soundNames = Object.keys(SOUND_URLS);
 
 export class TimelineAudio {
   constructor() {
-    this.baseKey = 'click1';
-    this.accentKey = 'click2';
-    this.selectKey = 'click3';
-    this.base = null;
-    this.accent = null;
-    this.selected = null;
-    this.loadSamplers();
+    // Configuració inicial
+    this.baseKey = 'click2';
+    this.accentKey = 'click3';
+    
+    // Samplers
+    this.samplers = {
+      base: null,
+      accent: null,
+      selected: null
+    };
+    
+    // Control d'estat
+    this.isReady = false;
+    this.isPlaying = false;
+    this.currentScheduleId = 0;
+    this._repeatId = null;
+    this._stopId = null;
+    
+    // Carregar samplers inicialment
+    this._readyPromise = this._initialize();
   }
-
-  async loadSampler(key) {
-    return new Promise(resolve => {
+  
+  async _initialize() {
+    try {
+      await this._loadAllSamplers();
+      this.isReady = true;
+    } catch (error) {
+      console.error('Error initializing audio:', error);
+      throw error;
+    }
+  }
+  
+  async _loadAllSamplers() {
+    const [base, accent, selected] = await Promise.all([
+      this._createSampler(this.baseKey),
+      this._createSampler(this.accentKey),
+      this._createSampler(this.baseKey) // selected usa el mateix so que base inicialment
+    ]);
+    
+    this.samplers.base = base;
+    this.samplers.accent = accent;
+    this.samplers.selected = selected;
+  }
+  
+  async _createSampler(soundKey) {
+    return new Promise((resolve, reject) => {
       const sampler = new Tone.Sampler({
-        urls: { C3: SOUND_URLS[key] },
-        onload: () => resolve(sampler)
+        urls: { C3: SOUND_URLS[soundKey] },
+        onload: () => resolve(sampler),
+        onerror: (error) => reject(error)
       }).toDestination();
     });
   }
-
-  async loadSamplers() {
-    this.base = await this.loadSampler(this.baseKey);
-    this.accent = await this.loadSampler(this.accentKey);
-    this.selected = await this.loadSampler(this.selectKey);
+  
+  // Public API
+  async ready() {
+    return this._readyPromise;
   }
-
+  
   async setBase(key) {
+    if (this.baseKey === key) return;
     this.baseKey = key;
-    this.base = await this.loadSampler(key);
+    
+    // Dispose old sampler
+    if (this.samplers.base) {
+      this.samplers.base.dispose();
+    }
+    
+    // Load new sampler
+    this.samplers.base = await this._createSampler(key);
   }
-
+  
   async setAccent(key) {
+    if (this.accentKey === key) return;
     this.accentKey = key;
-    this.accent = await this.loadSampler(key);
+    
+    // Dispose old sampler
+    if (this.samplers.accent) {
+      this.samplers.accent.dispose();
+    }
+    
+    // Load new sampler
+    this.samplers.accent = await this._createSampler(key);
   }
-
+  
   setMute(mute) {
     Tone.Destination.mute = mute;
   }
-
-  trigger(type, time) {
-    const sampler = type === 'accent' ? this.accent : type === 'selected' ? this.selected : this.base;
-    sampler.triggerAttackRelease('C3', '8n', time);
+  
+  /**
+   * Programa una seqüència de polsos
+   * @param {number} totalPulses - Nombre total de polsos (Lg)
+   * @param {number} interval - Interval entre polsos en segons (60/V)
+   * @param {Set} selectedPulses - Polsos seleccionats
+   * @param {boolean} loop - Mode loop
+   * @param {Function} onPulse - Callback per cada pols (índex)
+   * @param {Function} onComplete - Callback quan acaba (només no-loop)
+   */
+  play(totalPulses, interval, selectedPulses, loop, onPulse, onComplete) {
+    if (!this.isReady) {
+      console.warn('Audio not ready');
+      return;
+    }
+    
+    // Atura qualsevol reproducció anterior i neteja
+    this.stop();
+    
+    // Invalida callbacks antics
+    this.currentScheduleId++;
+    const scheduleId = this.currentScheduleId;
+    
+    // Assegura Transport net i no en loop (gestió pròpia del loop)
+    try { Tone.Transport.cancel(); } catch {}
+    try { Tone.Transport.stop(); } catch {}
+    try { Tone.Transport.position = 0; } catch {}
+    Tone.Transport.loop = false;
+    
+    // Congela la selecció per coherència durant el play
+    const selected = new Set(selectedPulses ? Array.from(selectedPulses) : []);
+    
+    // Opcional: BPM coherent amb l'interval (per si s'usa duració relativa a futur)
+    try { Tone.Transport.bpm.value = 60 / interval; } catch {}
+    
+    let i = 0;
+    // Un sol scheduler periòdic amb "guard-first" per evitar l'event de frontera
+    this._repeatId = Tone.Transport.scheduleRepeat((t) => {
+      // Invalida si hi ha hagut un nou play/stop
+      if (scheduleId !== this.currentScheduleId) return;
+      
+      // Guard-first: si no hi ha loop i ja hem completat tots els polsos, no disparem res més
+      if (!loop && i >= totalPulses) {
+        if (typeof onComplete === 'function') {
+          // Notifiquem la UI abans de stop(); sense comprobació de scheduleId,
+          // perquè aquest stop() invalidarà currentScheduleId.
+          Tone.Draw.schedule(onComplete, t);
+        }
+        // Atura i neteja completament
+        this.stop();
+        return;
+      }
+      
+      const step = i % totalPulses;
+      const pulseType = (step === 0) ? 'accent' : (selected.has(step) ? 'selected' : 'base');
+      const sampler = this.samplers[pulseType];
+      if (sampler) {
+        try { sampler.triggerAttackRelease('C3', '8n', t); } catch {}
+      }
+      
+      if (typeof onPulse === 'function') {
+        Tone.Draw.schedule(() => {
+          if (scheduleId === this.currentScheduleId) onPulse(step);
+        }, t);
+      }
+      
+      // Increment; si hi ha loop, utilitza i cíclic per estabilitat visual
+      i = loop ? (step + 1) : (i + 1);
+    }, interval, 0);
+    
+    this.isPlaying = true;
+    // Petit look-ahead per estabilitat
+    try { Tone.Transport.start('+0.01'); } catch { Tone.Transport.start(); }
   }
-
-  schedule(pulses, interval, selectedSet, loop = false, cb, onComplete) {
-    // Ensure a clean transport state before (re)scheduling
+  
+  stop() {
+    this.isPlaying = false;
+    // Invalida qualsevol callback pendent
+    this.currentScheduleId++;
+    
+    // Neteja de schedulers
+    if (this._repeatId != null) {
+      try { Tone.Transport.clear(this._repeatId); } catch {}
+      this._repeatId = null;
+    }
+    if (this._stopId != null) {
+      try { Tone.Transport.clear(this._stopId); } catch {}
+      this._stopId = null;
+    }
+    
+    // Atura i cancel·la tot el Transport
     try { Tone.Transport.stop(); } catch {}
     try { Tone.Transport.cancel(); } catch {}
-    // Schedule events from timeline origin
-    for (let i = 0; i < pulses; i++) {
-      const time = i * interval;
-      const type = i === 0 ? 'accent' : selectedSet.has(i) ? 'selected' : 'base';
-      Tone.Transport.schedule(t => {
-        this.trigger(type, t);
-        if (cb) Tone.Draw.schedule(() => cb(i), t);
-      }, time);
-    }
-    Tone.Transport.loop = loop;
-    Tone.Transport.loopEnd = pulses * interval;
-    const end = pulses * interval;
-    // Notify UI precisely at the end when not looping
-    if (!loop && typeof onComplete === 'function') {
-      Tone.Transport.scheduleOnce(t => {
-        try { Tone.Draw.schedule(() => onComplete(), t); } catch {}
-      }, end);
-    }
-    // Start from offset 0 so the next runs always play, even after a non-loop finish
-    Tone.Transport.start(undefined, 0);
-    // If not looping, stop transport right after the last event to avoid drifting position
-    if (!loop) {
-      Tone.Transport.scheduleOnce(() => {
-        try { Tone.Transport.stop(); } catch {}
-        try { Tone.Transport.cancel(); } catch {}
-      }, end + 0.001);
-    }
+    try { Tone.Transport.position = 0; } catch {}
   }
-
-  stop() {
-    Tone.Transport.stop();
-    Tone.Transport.cancel();
-  }
-
-  async preview(key) {
+  
+  async preview(soundKey) {
+    if (!SOUND_URLS[soundKey]) {
+      console.warn(`Sound ${soundKey} not found`);
+      return;
+    }
+    
     await Tone.start();
-    let sampler;
-    sampler = new Tone.Sampler({
-      urls: { C3: SOUND_URLS[key] },
-      onload: () => {
-        try { sampler.triggerAttackRelease('C3', '8n'); } catch {}
-        // dispose after short delay to free resources
-        setTimeout(() => { try { sampler.dispose(); } catch {} }, 1000);
-      }
-    }).toDestination();
+    
+    // Crear sampler temporal
+    const sampler = await this._createSampler(soundKey);
+    sampler.triggerAttackRelease('C3', '8n');
+    
+    // Dispose després d'un segon
+    setTimeout(() => sampler.dispose(), 1000);
+  }
+  
+  // Cleanup
+  dispose() {
+    this.stop();
+    Object.values(this.samplers).forEach(sampler => {
+      if (sampler) sampler.dispose();
+    });
   }
 }
