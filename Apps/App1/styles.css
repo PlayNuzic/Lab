@@ -174,12 +174,8 @@
 .timeline.circular {
   width: 320px;
   height: 320px;
-  margin: 60px auto;
+  margin: 0 auto;
   border-radius: 50%;
-}
-
-.timeline.circular .bar {
-  display: none;
 }
 
 .timeline.circular::after {
