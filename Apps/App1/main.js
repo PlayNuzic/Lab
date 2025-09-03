@@ -476,8 +476,7 @@ function animateTimelineCircle(isCircular){
       guide.style.opacity = '1';
 
       const rect = timeline.getBoundingClientRect();
-      const pulseRadius = (pulses[0]?.offsetWidth || 12) / 2;
-      const radius = Math.min(rect.width, rect.height) / 2 - pulseRadius;
+      const radius = Math.min(rect.width, rect.height) / 2;
       const cx = rect.width / 2;
       const cy = rect.height / 2;
 
