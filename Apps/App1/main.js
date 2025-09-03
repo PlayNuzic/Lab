@@ -91,7 +91,6 @@ circularTimelineToggle?.addEventListener('change', e => {
 loopBtn.addEventListener('click', () => {
   loopEnabled = !loopEnabled;
   loopBtn.classList.toggle('active', loopEnabled);
-  timeline.classList.toggle('looped', loopEnabled);
   const lg = parseInt(inputLg.value);
   if (!isNaN(lg)) {
     [0, lg].forEach((k) => {
