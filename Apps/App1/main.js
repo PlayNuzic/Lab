@@ -477,11 +477,13 @@ function animateTimelineCircle(isCircular, opts = {}){
       guide.style.transform = 'translate(-50%, -50%)';
       guide.style.opacity = '1';
 
-      const rect = timeline.getBoundingClientRect();
-      const radius = Math.min(rect.width, rect.height) / 2;
-      const cx = rect.width / 2;
-      const cy = rect.height / 2;
+      // Geometria basada en el TIMELINE (anella real) perquè els polsos intersequin la línia
+      const tRect = timeline.getBoundingClientRect();
+      const cx = tRect.width / 2;
+      const cy = tRect.height / 2;
+      const radius = Math.min(tRect.width, tRect.height) / 2 - 1; // centre del pols gairebé sobre la línia (border=2)
 
+      // Polsos sobre la línia del cercle
       pulses.forEach((p, i) => {
         const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
         const x = cx + radius * Math.cos(angle);
@@ -571,15 +573,16 @@ function showNumber(i){
     n.style.transform = 'translate(-50%, -50%)';
 
     if (i === 0 || i === lg) {
-      n.classList.add('vertical');
-      // forcem verticalitat per si el CSS no ha carregat encara
-      n.style.writingMode = 'vertical-rl';
-      n.style.textOrientation = 'mixed';
-      n.style.top = y + 'px';            // mateixa alçada que el pols
-      n.style.zIndex = (i === 0) ? '3' : '2';
-    } else {
-      n.style.top = y + 'px';
-    }
+  n.classList.add('vertical');
+  // forcem verticalitat per si el CSS no ha carregat encara
+  n.style.writingMode = 'vertical-rl';
+  n.style.textOrientation = 'mixed';
+  n.style.top = (y + 8) + 'px'; // CORREGIDO: menos desplazamiento
+  n.style.zIndex = (i === 0) ? '3' : '2';
+} else {
+  n.style.top = y + 'px';
+}
+
   } else {
     const percent = (i / (pulses.length - 1)) * 100;
     n.style.left = percent + '%';
