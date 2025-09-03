@@ -89,16 +89,6 @@
   font-size: 0.8rem;
 }
 
-.timeline.looped {
-  height: 300px;
-}
-.timeline.looped::before,
-.timeline.looped .bar {
-  opacity: 0;
-}
-.timeline.looped::after {
-  opacity: 1;
-}
 
 /* --- Pulsos --- */
 .pulse {
