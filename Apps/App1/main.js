@@ -461,35 +461,46 @@ function animateTimelineCircle(isCircular){
       guide.style.opacity = '0';
       wrapper.appendChild(guide);
     }
-    // Centre i radi de la guia calculats sobre el WRAPPER + mateix desplaçament vertical del cercle (CIRCLE_Y_OFFSET)
-    const wRect = wrapper.getBoundingClientRect();
-    const gcx = wRect.width / 2;
-    const gcy = wRect.height / 2 + CIRCLE_Y_OFFSET;
-    const gRadius = Math.min(wRect.width, wRect.height) / 2 - 10;
-    guide.style.left = gcx + 'px';
-    guide.style.top = gcy + 'px';
-    guide.style.width = (gRadius * 2) + 'px';
-    guide.style.height = (gRadius * 2) + 'px';
-    guide.style.transform = 'translate(-50%, -50%)';
-    // fade-in un cop recol·locada
-    requestAnimationFrame(() => { guide.style.opacity = '1'; });
-    const rect = timeline.getBoundingClientRect();
-    const radius = Math.min(rect.width, rect.height) / 2 - 10;
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
 
-    pulses.forEach((p, i) => {
-      const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
-      const x = cx + radius * Math.cos(angle);
-      const y = cy + radius * Math.sin(angle);
-      p.style.left = x + 'px';
-      p.style.top = y + 'px';
-      p.style.transform = 'translate(-50%, -50%)';
+    // Recol·loca un cop aplicades les classes circulars
+    requestAnimationFrame(() => {
+      const wRect = wrapper.getBoundingClientRect();
+      const gcx = wRect.width / 2;
+      const gcy = wRect.height / 2;
+      const gRadius = Math.min(wRect.width, wRect.height) / 2 - 10;
+      guide.style.left = gcx + 'px';
+      guide.style.top = gcy + 'px';
+      guide.style.width = (gRadius * 2) + 'px';
+      guide.style.height = (gRadius * 2) + 'px';
+      guide.style.transform = 'translate(-50%, -50%)';
+      guide.style.opacity = '1';
+
+      const rect = timeline.getBoundingClientRect();
+      const pulseRadius = (pulses[0]?.offsetWidth || 12) / 2;
+      const radius = Math.min(rect.width, rect.height) / 2 - pulseRadius;
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+
+      pulses.forEach((p, i) => {
+        const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
+        const x = cx + radius * Math.cos(angle);
+        const y = cy + radius * Math.sin(angle);
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        p.style.transform = 'translate(-50%, -50%)';
+      });
+
+      const barHeight = rect.height / 3;
+      bars.forEach((bar) => {
+        bar.style.display = 'block';
+        bar.style.left = '50%';
+        bar.style.top = '100%';
+        bar.style.height = barHeight + 'px';
+        bar.style.transform = 'translate(-50%, -100%)';
+      });
+
+      updateNumbers();
     });
-    bars.forEach((bar) => {
-      bar.style.display = 'none';
-    });
-    updateNumbers();
   } else {
     timelineWrapper.classList.remove('circular');
     timeline.classList.remove('circular');
