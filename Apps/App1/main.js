@@ -108,16 +108,11 @@ loopBtn.addEventListener('click', () => {
       audio.setSelected(selectedForAudioFromState());
     }
   }
-  positionPulses(lg);
   // Sincronitza amb el motor en temps real si està sonant
   if (isPlaying && audio && typeof audio.setLoop === 'function') {
     audio.setLoop(loopEnabled);
   }
-  if (loopEnabled && circularTimeline) {
-    animateTimelineCircle(true);
-  } else {
-    animateTimelineCircle(false);
-  }
+  animateTimelineCircle(loopEnabled && circularTimeline);
 });
 
 resetBtn.addEventListener('click', () => {
@@ -427,15 +422,7 @@ function renderTimeline(){
       timeline.appendChild(bar);
     }
   }
-
-  positionPulses(lg);
-  // sempre pintem 0 i últim en mode línia
-  if (!loopEnabled && pulses.length > 0) {
-    const firstLeft = parseFloat(pulses[0].style.left);
-    const lastLeft = parseFloat(pulses[pulses.length-1].style.left);
-    showNumber(0, firstLeft, true);
-    showNumber(pulses.length-1, lastLeft, true);
-  }
+  animateTimelineCircle(loopEnabled && circularTimeline);
 }
 
 function togglePulse(i){
@@ -514,6 +501,10 @@ function animateTimelineCircle(isCircular){
     guide.style.transform = 'translate(-50%, -50%)';
     // fade-in un cop recol·locada
     requestAnimationFrame(() => { guide.style.opacity = '1'; });
+    const rect = timeline.getBoundingClientRect();
+    const radius = Math.min(rect.width, rect.height) / 2 - 10;
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
 
     pulses.forEach((p, i) => {
       const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
@@ -523,16 +514,8 @@ function animateTimelineCircle(isCircular){
       p.style.top = y + 'px';
       p.style.transform = 'translate(-50%, -50%)';
     });
-    bars.forEach((bar, idx) => {
-      const i = idx === 0 ? 0 : lg;
-      const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
-      const x = cx + radius * Math.cos(angle);
-      const y = cy + radius * Math.sin(angle);
-      bar.style.left = x + 'px';
-      bar.style.top = y + 'px';
-      bar.style.height = radius + 'px';
-      bar.style.transform = 'translate(-50%, -104%) rotate(' + (angle + Math.PI / 2) + 'rad) scaleY(0.33)';
-      bar.style.transformOrigin = '50% 100%';
+    bars.forEach((bar) => {
+      bar.style.display = 'none';
     });
     updateNumbers();
   } else {
@@ -549,6 +532,7 @@ function animateTimelineCircle(isCircular){
       p.style.transform = 'translate(-50%, -50%)';
     });
     bars.forEach((bar, idx) => {
+      bar.style.display = 'block';
       const i = idx === 0 ? 0 : lg;
       const percent = (i / lg) * 100;
       bar.style.left = percent + '%';
