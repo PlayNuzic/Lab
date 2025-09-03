@@ -356,7 +356,7 @@ body[data-theme='dark'] .menu[open] .options-content {
 
 /* Click effect (press + highlight only for Reset) */
 .reset:active {
-  transform: translate(50%, -50%) scale(0.9);
+  transform: translate(-50%, -50%) scale(0.9);
   color: var(--selection-color);
   border-color: var(--selection-color);
   box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
