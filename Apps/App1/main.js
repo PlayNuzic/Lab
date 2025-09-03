@@ -33,6 +33,7 @@ const unitLg = document.getElementById('unitLg');
 const unitV = document.getElementById('unitV');
 const unitT = document.getElementById('unitT');
 const formula = document.getElementById('formula');
+const timelineWrapper = document.getElementById('timelineWrapper');
 const timeline = document.getElementById('timeline');
 const playBtn = document.getElementById('playBtn');
 const loopBtn = document.getElementById('loopBtn');
@@ -40,6 +41,7 @@ const resetBtn = document.getElementById('resetBtn');
 const tapBtn = document.getElementById('tapTempoBtn');
 const tapHelp = document.getElementById('tapHelp');
 const showNumbers = document.getElementById('showNumbers');
+const circularTimelineToggle = document.getElementById('circularTimelineToggle');
 const muteToggle = document.getElementById('muteToggle');
 const themeSelect = document.getElementById('themeSelect');
 const selectColor = document.getElementById('selectColor');
@@ -63,6 +65,8 @@ let isPlaying = false;
 let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
+let circularTimeline = false;
+const CIRCLE_Y_OFFSET = 80; // px: baixa el cercle per rodejar els botons
 
 // Local header behavior (as before)
 function applyTheme(val){
@@ -79,10 +83,15 @@ themeSelect.addEventListener('change', e => applyTheme(e.target.value));
 muteToggle.addEventListener('change', async e => (await initAudio()).setMute(e.target.checked));
 selectColor.addEventListener('input', e => document.documentElement.style.setProperty('--selection-color', e.target.value));
 showNumbers.addEventListener('change', updateNumbers);
+circularTimelineToggle?.addEventListener('change', e => {
+  circularTimeline = e.target.checked;
+  animateTimelineCircle(loopEnabled && circularTimeline);
+});
 
 loopBtn.addEventListener('click', () => {
   loopEnabled = !loopEnabled;
   loopBtn.classList.toggle('active', loopEnabled);
+  timeline.classList.toggle('looped', loopEnabled);
   const lg = parseInt(inputLg.value);
   if (!isNaN(lg)) {
     [0, lg].forEach((k) => {
@@ -99,9 +108,15 @@ loopBtn.addEventListener('click', () => {
       audio.setSelected(selectedForAudioFromState());
     }
   }
+  positionPulses(lg);
   // Sincronitza amb el motor en temps real si està sonant
   if (isPlaying && audio && typeof audio.setLoop === 'function') {
     audio.setLoop(loopEnabled);
+  }
+  if (loopEnabled && circularTimeline) {
+    animateTimelineCircle(true);
+  } else {
+    animateTimelineCircle(false);
   }
 });
 
@@ -310,13 +325,63 @@ function handleInput(e){
     }
   }
 
+    // Manté el cercle del timeline si el loop està actiu
+  if (loopEnabled && hasLg) {
+    const prevLg = pulses.length ? pulses.length - 1 : null;
+    // Esborra l'antic Lg si ha canviat
+    if (prevLg !== null && prevLg !== lg) selectedPulses.delete(prevLg);
+    // Elimina seleccions fora del nou rang
+    [...selectedPulses].forEach(i => { if (i < 0 || i > lg) selectedPulses.delete(i); });
+    // Garanteix que 0 i el nou Lg estiguin seleccionats
+    selectedPulses.add(0);
+    selectedPulses.add(lg);
+  }
+
+
+
   updateFormula();
   renderTimeline();
   updateAutoIndicator();
   // Si canvia Lg mentre està sonant, refresquem la selecció viva filtrant 0 i lg
-if (isPlaying && audio && typeof audio.setSelected === 'function') {
-  audio.setSelected(selectedForAudioFromState());
+  if (isPlaying && audio) {
+    const lgNow = parseInt(inputLg.value);
+    const vNow  = parseFloat(inputV.value);
+    if (typeof audio.setSelected === 'function') {
+      audio.setSelected(selectedForAudioFromState());
+    }
+    if (typeof audio.setTotal === 'function' && !isNaN(lgNow) && lgNow > 0) {
+      audio.setTotal(lgNow);
+    }
+    if (typeof audio.setTempo === 'function' && !isNaN(vNow) && vNow > 0) {
+      audio.setTempo(vNow);
+    }
+  }
 }
+
+function positionPulses(lg){
+  const count = typeof lg === 'number' ? lg : (pulses.length ? pulses.length - 1 : 0);
+  if (count <= 0) return;
+  if (loopEnabled) {
+    const radius = timeline.offsetWidth / 2;
+    pulses.forEach((p, i) => {
+      const angle = (i / count) * 2 * Math.PI;
+      const x = radius + radius * Math.sin(angle);
+      const y = radius - radius * Math.cos(angle);
+      p.style.left = x + 'px';
+      p.style.top = y + 'px';
+    });
+  } else {
+    pulses.forEach((p, i) => {
+      const percent = (i / count) * 100;
+      p.style.left = percent + '%';
+      p.style.top = '50%';
+    });
+    const bars = timeline.querySelectorAll('.bar');
+    bars.forEach((bar, idx) => {
+      const percent = idx === 0 ? 0 : 100;
+      bar.style.left = percent + '%';
+    });
+  }
 }
 
 function updateFormula(){
@@ -347,8 +412,6 @@ function renderTimeline(){
   for (let i = 0; i <= lg; i++) {
     const p = document.createElement('div');
     p.className = 'pulse';
-    const percent = lg > 0 ? (i / lg) * 100 : 0; // distribute 0..Lg evenly across 0%..100%
-    p.style.left = percent + '%';
     p.dataset.index = i;
     p.addEventListener('click', () => togglePulse(i));
     if (selectedPulses.has(i)) {
@@ -361,15 +424,17 @@ function renderTimeline(){
     if (i === 0 || i === lg) {
       const bar = document.createElement('div');
       bar.className = 'bar';
-      bar.style.left = percent + '%';
       timeline.appendChild(bar);
     }
   }
 
-  // sempre pintem 0 i últim
-  if (pulses.length > 0) {
-    showNumber(0, parseFloat(pulses[0].style.left), true);
-    showNumber(pulses.length-1, parseFloat(pulses[pulses.length-1].style.left), true);
+  positionPulses(lg);
+  // sempre pintem 0 i últim en mode línia
+  if (!loopEnabled && pulses.length > 0) {
+    const firstLeft = parseFloat(pulses[0].style.left);
+    const lastLeft = parseFloat(pulses[pulses.length-1].style.left);
+    showNumber(0, firstLeft, true);
+    showNumber(pulses.length-1, lastLeft, true);
   }
 }
 
@@ -404,7 +469,7 @@ function togglePulse(i){
       selectedPulses.add(i);
       if (pulses[i]) pulses[i].classList.add('selected');
       if (showNumbers.checked && pulses[i]) {
-        showNumber(i, parseFloat(pulses[i].style.left));
+        showNumber(i);
       }
     }
   }
@@ -415,16 +480,125 @@ function togglePulse(i){
   }
 }
 
-function showNumber(i, percent, always){
+function animateTimelineCircle(isCircular){
+  const lg = pulses.length - 1;
+  const bars = timeline.querySelectorAll('.bar');
+  if (lg <= 0) return;
+  if (isCircular) {
+    timelineWrapper.classList.add('circular');
+    timeline.classList.add('circular');
+    // Guia circular: ANCORADA al centre del WRAPPER per evitar desplaçaments
+    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
+    let guide = wrapper.querySelector('.circle-guide');
+    if (!guide) {
+      guide = document.createElement('div');
+      guide.className = 'circle-guide';
+      // estils mínims inline (per si el CSS no ha carregat)
+      guide.style.position = 'absolute';
+      guide.style.border = '2px solid var(--timeline-line, #EDE6D3)';
+      guide.style.borderRadius = '50%';
+      guide.style.pointerEvents = 'none';
+      guide.style.transition = 'opacity 300ms ease';
+      guide.style.opacity = '0';
+      wrapper.appendChild(guide);
+    }
+    // Centre i radi de la guia calculats sobre el WRAPPER + mateix desplaçament vertical del cercle (CIRCLE_Y_OFFSET)
+    const wRect = wrapper.getBoundingClientRect();
+    const gcx = wRect.width / 2;
+    const gcy = wRect.height / 2 + CIRCLE_Y_OFFSET;
+    const gRadius = Math.min(wRect.width, wRect.height) / 2 - 10;
+    guide.style.left = gcx + 'px';
+    guide.style.top = gcy + 'px';
+    guide.style.width = (gRadius * 2) + 'px';
+    guide.style.height = (gRadius * 2) + 'px';
+    guide.style.transform = 'translate(-50%, -50%)';
+    // fade-in un cop recol·locada
+    requestAnimationFrame(() => { guide.style.opacity = '1'; });
+
+    pulses.forEach((p, i) => {
+      const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
+      const x = cx + radius * Math.cos(angle);
+      const y = cy + radius * Math.sin(angle);
+      p.style.left = x + 'px';
+      p.style.top = y + 'px';
+      p.style.transform = 'translate(-50%, -50%)';
+    });
+    bars.forEach((bar, idx) => {
+      const i = idx === 0 ? 0 : lg;
+      const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
+      const x = cx + radius * Math.cos(angle);
+      const y = cy + radius * Math.sin(angle);
+      bar.style.left = x + 'px';
+      bar.style.top = y + 'px';
+      bar.style.height = radius + 'px';
+      bar.style.transform = 'translate(-50%, -104%) rotate(' + (angle + Math.PI / 2) + 'rad) scaleY(0.33)';
+      bar.style.transformOrigin = '50% 100%';
+    });
+    updateNumbers();
+  } else {
+    timelineWrapper.classList.remove('circular');
+    timeline.classList.remove('circular');
+    // Oculta la guia circular (fade-out)
+    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
+    const guide = wrapper.querySelector('.circle-guide');
+    if (guide) guide.style.opacity = '0';
+    pulses.forEach((p, i) => {
+      const percent = (i / lg) * 100;
+      p.style.left = percent + '%';
+      p.style.top = '50%';
+      p.style.transform = 'translate(-50%, -50%)';
+    });
+    bars.forEach((bar, idx) => {
+      const i = idx === 0 ? 0 : lg;
+      const percent = (i / lg) * 100;
+      bar.style.left = percent + '%';
+      bar.style.top = '0';
+      bar.style.height = '100%';
+      bar.style.transform = '';
+    });
+    updateNumbers();
+  }
+}
+
+function showNumber(i){
   const n = document.createElement('div');
   n.className = 'pulse-number';
   n.dataset.index = i;
-  n.style.left = percent + '%';
   n.textContent = i;
 
-  // Excepcions
-  if (i === 0) n.style.transform = 'translateX(40%)';      // separa el 0
-  if (i === pulses.length-1) n.style.transform = 'translateX(-140%)'; // separa l’últim
+  if (timeline.classList.contains('circular')) {
+    const lg = pulses.length - 1;
+    const rect = timeline.getBoundingClientRect();
+    const radius = Math.min(rect.width, rect.height) / 2 - 10;
+    const offset = 20;
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
+    const x = cx + (radius + offset) * Math.cos(angle);
+    let y = cy + (radius + offset) * Math.sin(angle);
+    // Desplaça els números cap avall perquè coincideixin amb el cercle
+    y += CIRCLE_Y_OFFSET;
+
+    const xShift = (i === 0) ? -16 : (i === lg ? 16 : 0); // 0 a l'esquerra, Lg a la dreta
+    n.style.left = (x + xShift) + 'px';
+    n.style.transform = 'translate(-50%, -50%)';
+
+    if (i === 0 || i === lg) {
+      n.classList.add('vertical');
+      // forcem verticalitat per si el CSS no ha carregat encara
+      n.style.writingMode = 'vertical-rl';
+      n.style.textOrientation = 'mixed';
+      n.style.top = y + 'px';            // mateixa alçada que el pols
+      n.style.zIndex = (i === 0) ? '3' : '2';
+    } else {
+      n.style.top = y + 'px';
+    }
+  } else {
+    const percent = (i / (pulses.length - 1)) * 100;
+    n.style.left = percent + '%';
+    if (i === 0) n.style.transform = 'translateX(40%)';
+    if (i === pulses.length - 1) n.style.transform = 'translateX(-140%)';
+  }
 
   timeline.appendChild(n);
 }
@@ -439,14 +613,14 @@ function updateNumbers(){
   if(pulses.length === 0) return;
 
   // sempre 0 i últim
-  showNumber(0, parseFloat(pulses[0].style.left), true);
-  showNumber(pulses.length-1, parseFloat(pulses[pulses.length-1].style.left), true);
+  showNumber(0);
+  showNumber(pulses.length-1);
 
   // la resta només si està activat i seleccionat
   if(showNumbers.checked){
     pulses.forEach((p, i) => {
       if(i !== 0 && i !== pulses.length-1 && selectedPulses.has(i)){
-        showNumber(i, parseFloat(p.style.left), false);
+        showNumber(i);
       }
     });
   }
