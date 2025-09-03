@@ -83,6 +83,7 @@ function wireMenu(detailsEl) {
         content.style.maxHeight = '';
       }, { once: true });
     } else {
+      document.removeEventListener('click', handleOutside);
       content.classList.add('closing');
       content.classList.remove('opening');
       content.style.maxHeight = content.scrollHeight + 'px';
