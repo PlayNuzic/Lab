@@ -241,3 +241,7 @@
 
 /* els punts són el primer pla interactiu */
 .timeline .pulse { z-index: 5; pointer-events: auto; }
+
+
+/* Dark theme reinforcement: hide circular guide to avoid double ring */
+body[data-theme='dark'] .circle-guide { opacity: 0 !important; }
