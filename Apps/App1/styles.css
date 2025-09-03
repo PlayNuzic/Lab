@@ -225,3 +225,24 @@
   border-radius: 0;
 }
 
+/* Evita el "cercle petit" quan s'activa el mode circular */
+.timeline.circular { transition: none !important; }
+
+/* Classe per recalcular sense animacions (quan canvies Lg/V/T/Tap) */
+.timeline.no-anim .pulse,
+.timeline.no-anim .bar,
+.timeline.no-anim .pulse-number,
+.timeline.no-anim::before,
+.timeline.no-anim::after {
+  transition: none !important;
+}
+
+/* el traç del cercle i la línia base no han de capturar clics */
+.timeline::before,
+.timeline::after { pointer-events: none !important; z-index: 0; }
+
+/* les barres tampoc */
+.timeline .bar { pointer-events: none !important; z-index: 1; }
+
+/* els punts són el primer pla interactiu */
+.timeline .pulse { z-index: 5 !important; pointer-events: auto !important; }

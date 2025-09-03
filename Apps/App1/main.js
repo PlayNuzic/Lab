@@ -394,7 +394,7 @@ function renderTimeline(){
       timeline.appendChild(bar);
     }
   }
-  animateTimelineCircle(loopEnabled && circularTimeline);
+  animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
 }
 
 function togglePulse(i){
@@ -439,13 +439,15 @@ function togglePulse(i){
   }
 }
 
-function animateTimelineCircle(isCircular){
+function animateTimelineCircle(isCircular, opts = {}){
+  const silent = !!opts.silent;
   const lg = pulses.length - 1;
   const bars = timeline.querySelectorAll('.bar');
   if (lg <= 0) return;
   if (isCircular) {
     timelineWrapper.classList.add('circular');
     timeline.classList.add('circular');
+    if (silent) timeline.classList.add('no-anim');
     // Guia circular: ANCORADA al centre del WRAPPER per evitar desplaçaments
     const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
     let guide = wrapper.querySelector('.circle-guide');
@@ -489,16 +491,36 @@ function animateTimelineCircle(isCircular){
         p.style.transform = 'translate(-50%, -50%)';
       });
 
-      const barHeight = rect.height / 3;
-      bars.forEach((bar) => {
-        bar.style.display = 'block';
-        bar.style.left = '50%';
-        bar.style.top = '100%';
-        bar.style.height = barHeight + 'px';
-        bar.style.transform = 'translate(-50%, -100%)';
-      });
+    // Barres 0/Lg: llargada més curta i centrada en la circumferència
+  bars.forEach((bar, idx) => {
+  const step = (idx === 0) ? 0 : lg;
+  const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
+  const bx = cx + radius * Math.cos(angle);
+  const by = cy + radius * Math.sin(angle);
+
+  // CORREGIDO: Barra más corta (25% en lugar de 50%) y centrada
+  const barLen = Math.min(tRect.width, tRect.height) * 0.25;
+  const intersectPx = barLen / 2; // La mitad intersecta hacia dentro
+
+  // Centra la barra: mitad hacia fuera, mitad hacia dentro
+  const topPx = by - intersectPx;
+
+  bar.style.display = 'block';
+  // ample de .bar = 2px -> resta 1px per centrar sense translate
+  bar.style.left = (bx - 1) + 'px';
+  bar.style.top = topPx + 'px';
+  bar.style.height = barLen + 'px';
+  bar.style.transformOrigin = '50% 50%'; // CORREGIDO: centrada
+  // Només rotate; res de translate/scale per no desancorar la base
+  bar.style.transform = 'rotate(' + (angle + Math.PI/2) + 'rad)';
+});
 
       updateNumbers();
+      if (silent) {
+  // força reflow per aplicar els estils sense transicions i neteja la flag
+  void timeline.offsetHeight;
+  timeline.classList.remove('no-anim');
+}
     });
   } else {
     timelineWrapper.classList.remove('circular');
@@ -521,6 +543,7 @@ function animateTimelineCircle(isCircular){
       bar.style.top = '0';
       bar.style.height = '100%';
       bar.style.transform = '';
+      bar.style.transformOrigin = '';
     });
     updateNumbers();
   }
