@@ -353,32 +353,6 @@ function handleInput(e){
   }
 }
 
-function positionPulses(lg){
-  const count = typeof lg === 'number' ? lg : (pulses.length ? pulses.length - 1 : 0);
-  if (count <= 0) return;
-  if (loopEnabled) {
-    const radius = timeline.offsetWidth / 2;
-    pulses.forEach((p, i) => {
-      const angle = (i / count) * 2 * Math.PI;
-      const x = radius + radius * Math.sin(angle);
-      const y = radius - radius * Math.cos(angle);
-      p.style.left = x + 'px';
-      p.style.top = y + 'px';
-    });
-  } else {
-    pulses.forEach((p, i) => {
-      const percent = (i / count) * 100;
-      p.style.left = percent + '%';
-      p.style.top = '50%';
-    });
-    const bars = timeline.querySelectorAll('.bar');
-    bars.forEach((bar, idx) => {
-      const percent = idx === 0 ? 0 : 100;
-      bar.style.left = percent + '%';
-    });
-  }
-}
-
 function updateFormula(){
   const tNum = parseNum(inputT.value);
   const tStr = isNaN(tNum)
