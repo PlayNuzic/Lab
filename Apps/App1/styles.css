@@ -146,19 +146,6 @@
 
 /* --- Control buttons positioning --- */
 
-/* Default controls container */
-.controls {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  margin-top: calc(70px + var(--controls-offset-y)); /* Se usa el offset global */
-  width: 200px;
-  height: 200px;
-  margin-left: auto;
-  margin-right: auto;
-}
 
 /* Force controls container position in circular mode */
 .timeline-wrapper.circular > .controls {
@@ -172,130 +159,9 @@
   margin: 0 ;
 }
 
-/* Base styles for all control buttons */
-.play,
-.loop,
-.reset,
-.tap {
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  cursor: pointer;
-  background: transparent;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.3s ease, transform 0.1s ease;
-}
-
-/* Central play button */
-.play {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80px;
-  height: 80px;
-  font-size: 2rem;
-  z-index: 2;
-}
-
-/* Positioning buttons around the play button using precise angles */
-.tap {
-  position: absolute;
-  top: calc(50% + 80px);
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
-  opacity: 0.7;
-}
-
-.loop {
-  position: absolute;
-  top: 65%;
-  left: calc(50% - 60px);
-  transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
-  opacity: 0.7;
-}
-
-.reset {
-  position: absolute;
-  top: 65%;
-  left: calc(50% + 60px);
-  transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
-  opacity: 0.7;
-}
-
-/* Inline SVG icons */
-.play svg {
-  width: 50%;
-  height: 50%;
-  fill: currentColor;
-  pointer-events: none;
-  display: block;
-  margin: auto;
-}
-.loop svg,
-.reset svg,
-.tap svg {
-  width: 70%;
-  height: 70%;
-  fill: currentColor;
-  pointer-events: none;
-}
-
-/* Click effect (press + highlight only for Reset) */
-.reset:active {
-  transform: translate(-50%, -50%) scale(0.9);
-  color: var(--selection-color);
-  border-color: var(--selection-color);
-  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
-}
-
-/* Active states */
-.play.active {
-  color: var(--selection-color);
-  border-color: var(--selection-color);
-  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
-}
-.loop.active {
-  border-color: var(--selection-color);
-  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
-}
-
-/* Theme-specific colors */
-body[data-theme='light'] .play,
-body[data-theme='light'] .loop,
-body[data-theme='light'] .reset,
-body[data-theme='light'] .tap {
-  color: var(--text-light);
-}
-body[data-theme='dark'] .play,
-body[data-theme='dark'] .loop,
-body[data-theme='dark'] .reset,
-body[data-theme='dark'] .tap {
-  color: var(--text-dark);
-}
-
-.controls .tap-help {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: inherit;
-  display: none;
-  pointer-events: none;
-}
 
 /* --- Responsive mòbil --- */
 @media (max-width: 600px) {
-  :root { --controls-offset-y: -32px; }
   
   .formula {
     font-size: 2rem;
@@ -310,42 +176,12 @@ body[data-theme='dark'] .tap {
     margin: 15px;
   }
   
-  .controls {
-    width: 150px;
-    height: 150px;
-    margin-top: calc(40px + var(--controls-offset-y)); /* Se usa el offset global */
-  }
   
   .timeline-wrapper.circular > .controls {
-    width: 240px !important;
-    height: 240px !important;
+    width: 240px;
+    height: 240px;
   }
   
-  .play {
-    width: 55px;
-    height: 55px;
-    font-size: 1.3rem;
-  }
-  
-  .loop,
-  .reset,
-  .tap {
-    width: 32px;
-    height: 32px;
-    font-size: 0.9rem;
-  }
-  
-  .tap {
-    top: calc(50% + 60px);
-  }
-  
-  .loop {
-    left: calc(50% - 60px);
-  }
-  
-  .reset {
-    left: calc(50% + 60px);
-  }
 }
 
 /* --- Circle guide (visualizes straight line "bent" into a circle) --- */
