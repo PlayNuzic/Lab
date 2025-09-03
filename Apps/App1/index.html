@@ -32,6 +32,7 @@
   <hr class="menu-separator" />
 
   <label for="showNumbers">Sucesión de Pulsos <input type="checkbox" id="showNumbers" /></label>
+  <label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle" /></label>
 
   <details>
     <summary>Sonidos</summary>
@@ -76,7 +77,8 @@
       <div id="formula" class="formula"></div>
     </section>
 
-    <section class="timeline" id="timeline"></section>
+    <section class="timeline-wrapper" id="timelineWrapper">
+      <section class="timeline" id="timeline"></section>
 
       <div class="controls">
       <button id="loopBtn" class="loop" aria-label="Loop">
@@ -139,7 +141,8 @@
     <path d="M256 32C114.6 32 0 146.6 0 288h64c0-97.2 78.8-176 176-176 43 0 82.5 15.3 113.1 40.8L304 224h208V16L454.6 73.4C408.4 29.3 335.1 0 256 0z"/>
   </svg>
 </button>
-    </div>
+      </div>
+    </section>
   </main>
   <!-- Load Tone.js as a global before module scripts -->
   <script src="../../libs/vendor/Tone.js"></script>
