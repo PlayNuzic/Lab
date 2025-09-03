@@ -60,6 +60,11 @@ describe('TimelineAudio', () => {
     expect(Tone.Transport.bpm.value).toBe(150);
   });
 
+  test('setTotal updates totalRef', () => {
+    audio.setTotal(8);
+    expect(audio.totalRef).toBe(8);
+  });
+
   test('setSchedulingProfile applies presets', () => {
     audio.setSchedulingProfile('mobile');
     expect(audio.lookAhead).toBeCloseTo(0.06);

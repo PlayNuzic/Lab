@@ -127,6 +127,9 @@ export class TimelineAudio {
     this.updateInterval = 0.015;
     this.selectedRef = new Set();
     this.loopRef = false;
+    this.totalRef = 0;
+    this.pulseIndex = 0;
+    this.onCompleteRef = null;
 
     this._readyPromise = this._initialize();
   }
@@ -303,23 +306,26 @@ export class TimelineAudio {
     this.selectedRef = new Set(selectedPulses ? Array.from(selectedPulses) : []);
     this.loopRef = !!loop;
 
+    this.totalRef = totalPulses;
+    this.intervalRef = interval;
+    this.onCompleteRef = onComplete;
+    this.pulseIndex = 0;
+
     try { Tone.Transport.bpm.value = 60 / interval; } catch {}
-    const bpm = 60 / interval;
     const clickDur = Math.max(0.025, Math.min(0.12, interval / 4));
 
-    let i = 0;
     this._repeatId = Tone.Transport.scheduleRepeat((t) => {
       if (scheduleId !== this.currentScheduleId) return;
 
-      if (!this.loopRef && i >= totalPulses) {
-        if (typeof onComplete === 'function') {
-          Tone.Draw.schedule(onComplete, t);
+      if (!this.loopRef && this.pulseIndex >= this.totalRef) {
+        if (typeof this.onCompleteRef === 'function') {
+          Tone.Draw.schedule(this.onCompleteRef, t);
         }
         this.stop();
         return;
       }
 
-      const step = i % totalPulses;
+      const step = this.pulseIndex % this.totalRef;
       const isAccent = (step === 0) || this.selectedRef.has(step);
       const pulseType = isAccent ? 'accent' : 'base';
       const sampler = this.samplers[pulseType];
@@ -333,12 +339,22 @@ export class TimelineAudio {
         }, t);
       }
 
-      i = this.loopRef ? (step + 1) : (i + 1);
+      this.pulseIndex = this.loopRef ? (step + 1) : (this.pulseIndex + 1);
     }, interval, 0);
 
     this.isPlaying = true;
     try { Tone.Transport.start('+' + this.lookAhead.toFixed(3)); }
     catch { Tone.Transport.start(); }
+  }
+
+  /**
+   * Actualitza el nombre total de pulsacions del compàs.
+   * @param {number} totalPulses
+   */
+  setTotal(totalPulses) {
+    if (typeof totalPulses === 'number' && totalPulses > 0) {
+      this.totalRef = totalPulses;
+    }
   }
 
   /**
