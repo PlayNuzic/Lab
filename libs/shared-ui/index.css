@@ -271,7 +271,7 @@ body[data-theme='dark'] .menu[open] .options-content {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 70px;
+  margin-top: calc(70px + var(--controls-offset-y));
   width: 200px;
   height: 200px;
   margin-left: auto;
@@ -389,10 +389,12 @@ body[data-theme='dark'] .tap {
 
 /* Responsive adjustments */
 @media (max-width: 600px) {
+  :root { --controls-offset-y: -32px; }
+
   .controls {
     width: 150px;
     height: 150px;
-    margin-top: 40px;
+    margin-top: calc(40px + var(--controls-offset-y));
   }
   
   .play {
@@ -411,20 +413,15 @@ body[data-theme='dark'] .tap {
   
   /* Reduce el radio en móvil */
   .tap {
-    top: calc(50% + 45px);
+    top: calc(50% + 60px);
   }
-  
+
   .loop {
-    left: calc(50% - 45px);
+    left: calc(50% - 60px);
   }
-  
+
   .reset {
-    left: calc(50% + 45px);
-  }
-  
-  /* Ajusta el transform del reset en móvil también */
-  .reset:active {
-    transform: translate(50%, -50%) scale(0.9);
+    left: calc(50% + 60px);
   }
 }
 
