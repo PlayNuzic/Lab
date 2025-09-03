@@ -518,6 +518,14 @@ function animateTimelineCircle(isCircular, opts = {}){
 });
 
       updateNumbers();
+      // Apaga la guia circular un cop dibuixada l'anella real (evita doble cercle en mode fosc)
+      if (!silent) {
+        setTimeout(() => {
+          if (guide && wrapper.contains(guide)) {
+            guide.style.opacity = '0';
+          }
+        }, 400);
+      }
       if (silent) {
   // força reflow per aplicar els estils sense transicions i neteja la flag
   void timeline.offsetHeight;
