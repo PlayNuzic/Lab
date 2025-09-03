@@ -94,14 +94,17 @@
   cursor: pointer;
   transition: left 0.4s ease, top 0.4s ease, transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
+
 .pulse.selected {
   background: var(--selection-color);
 }
+
 @keyframes pulseFlash {
   0% { transform: translate(-50%,-50%) scale(1); box-shadow: 0 0 0px var(--selection-color), 0 0 0px currentColor; }
   50% { transform: translate(-50%,-50%) scale(1.6); box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor; }
   100% { transform: translate(-50%,-50%) scale(1.2); box-shadow: 0 0 8px var(--selection-color), 0 0 12px currentColor; }
 }
+
 .pulse.active {
   animation: pulseFlash 0.35s ease-out;
   box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
@@ -116,9 +119,9 @@
   transition: transform 0.6s ease, left 0.6s ease, top 0.6s ease;
 }
 
-.pulse-number.vertical{
+.pulse-number.vertical {
   writing-mode: vertical-rl;
-  text-orientation: mixed; /* “Lg” en vertical natural */
+  text-orientation: mixed; /* "Lg" en vertical natural */
   line-height: 1;
 }
 
