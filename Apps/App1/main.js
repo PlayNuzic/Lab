@@ -557,31 +557,28 @@ function showNumber(i){
   n.dataset.index = i;
   n.textContent = i;
 
-  if (timeline.classList.contains('circular')) {
-    const lg = pulses.length - 1;
-    const rect = timeline.getBoundingClientRect();
-    const radius = Math.min(rect.width, rect.height) / 2 - 10;
-    const offset = 20;
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
-    const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
-    const x = cx + (radius + offset) * Math.cos(angle);
-    let y = cy + (radius + offset) * Math.sin(angle);
+   if (timeline.classList.contains('circular')) {
+     const lg = pulses.length - 1;
+     const rect = timeline.getBoundingClientRect();
+     const radius = Math.min(rect.width, rect.height) / 2 - 10;
+     const offset = 20;
+     const cx = rect.width / 2;
+     const cy = rect.height / 2;
+     const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
+     const x = cx + (radius + offset) * Math.cos(angle);
+     let y = cy + (radius + offset) * Math.sin(angle);
 
-    const xShift = (i === 0) ? -16 : (i === lg ? 16 : 0); // 0 a l'esquerra, Lg a la dreta
-    n.style.left = (x + xShift) + 'px';
-    n.style.transform = 'translate(-50%, -50%)';
+     const xShift = (i === 0) ? -16 : (i === lg ? 16 : 0); // 0 a l'esquerra, Lg a la dreta
+     n.style.left = (x + xShift) + 'px';
+     n.style.transform = 'translate(-50%, -50%)';
 
-    if (i === 0 || i === lg) {
-  n.classList.add('vertical');
-  // forcem verticalitat per si el CSS no ha carregat encara
-  n.style.writingMode = 'vertical-rl';
-  n.style.textOrientation = 'mixed';
-  n.style.top = (y + 8) + 'px'; // CORREGIDO: menos desplazamiento
-  n.style.zIndex = (i === 0) ? '3' : '2';
-} else {
-  n.style.top = y + 'px';
-}
+     if (i === 0 || i === lg) {
+       // No fem cap forçat de verticalitat; deixem que el CSS determini l'estil
+       n.style.top = (y + 8) + 'px';
+       n.style.zIndex = (i === 0) ? '3' : '2';
+     } else {
+       n.style.top = y + 'px';
+     }
 
   } else {
     const percent = (i / (pulses.length - 1)) * 100;
