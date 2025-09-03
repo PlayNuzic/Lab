@@ -153,10 +153,6 @@
   transform: translate(-50%, -50%);
 }
 
-.timeline.circular .pulse-number.vertical {
-  writing-mode: vertical-rl;
-}
-
 /* --- Responsive mòbil --- */
 @media (max-width: 600px) {
   .formula {
