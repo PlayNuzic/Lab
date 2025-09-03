@@ -66,7 +66,7 @@ let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
-const CIRCLE_Y_OFFSET = 80; // px: baixa el cercle per rodejar els botons
+const CIRCLE_Y_OFFSET = 0; // el cercle ja està centrat al CSS
 
 // Local header behavior (as before)
 function applyTheme(val){
@@ -576,8 +576,6 @@ function showNumber(i){
     const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
     const x = cx + (radius + offset) * Math.cos(angle);
     let y = cy + (radius + offset) * Math.sin(angle);
-    // Desplaça els números cap avall perquè coincideixin amb el cercle
-    y += CIRCLE_Y_OFFSET;
 
     const xShift = (i === 0) ? -16 : (i === lg ? 16 : 0); // 0 a l'esquerra, Lg a la dreta
     n.style.left = (x + xShift) + 'px';
