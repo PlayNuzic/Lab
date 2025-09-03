@@ -2,6 +2,7 @@
 
 /* Shared palette and typography (from App1) */
 :root {
+  --controls-offset-y: -25px;
   --bg-light: #EEE8D8;
   --bg-dark: #43433B;
   --text-light: #43433B;

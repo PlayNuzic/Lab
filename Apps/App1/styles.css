@@ -1,4 +1,7 @@
+:root { --controls-offset-y: -25px; } /* ajusta-ho al gust */
+
 /* --- Fórmula --- */
+
 .middle {
   display: flex;
   justify-content: center;
