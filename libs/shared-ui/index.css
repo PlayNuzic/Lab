@@ -356,11 +356,12 @@ body[data-theme='dark'] .menu[open] .options-content {
 
 /* Click effect (press + highlight only for Reset) */
 .reset:active {
-  transform: scale(0.9);
+  transform: translate(50%, -50%) scale(0.9);
   color: var(--selection-color);
   border-color: var(--selection-color);
   box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
 }
+
 /* Active states */
 .play.active {
   color: var(--selection-color);
@@ -407,19 +408,24 @@ body[data-theme='dark'] .tap {
     height: 32px;
     font-size: 0.9rem;
   }
-  .controls {
-    margin-top: 8px;
-    gap: 4px;
+  
+  /* Reduce el radio en móvil */
+  .tap {
+    top: calc(50% + 45px);
   }
-}
-
-/* Stack play and tap tempo vertically */
-.play-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  position: relative;
+  
+  .loop {
+    left: calc(50% - 45px);
+  }
+  
+  .reset {
+    left: calc(50% + 45px);
+  }
+  
+  /* Ajusta el transform del reset en móvil también */
+  .reset:active {
+    transform: translate(50%, -50%) scale(0.9);
+  }
 }
 
 .controls .tap-help {
@@ -433,7 +439,6 @@ body[data-theme='dark'] .tap {
   display: none;
   pointer-events: none;
 }
-
 
 /* ---- Timeline layering & hit‑testing (shared) ---- */
 .timeline { position: relative; }
