@@ -132,7 +132,7 @@
 
 .timeline-wrapper.circular {
   width: 320px;
-  height: 440px;   /* abans 320px */
+  height: 320px;
   margin: 20px auto;
 }
 
