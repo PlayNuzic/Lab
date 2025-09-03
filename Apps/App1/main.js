@@ -66,7 +66,6 @@ let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
-const CIRCLE_Y_OFFSET = 0; // el cercle ja està centrat al CSS
 
 // Local header behavior (as before)
 function applyTheme(val){
