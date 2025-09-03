@@ -17,15 +17,18 @@
   justify-content: center;
   gap: 20px;
 }
+
 .formula span {
   display: flex;
   align-items: center;
 }
+
 .formula .equal {
   position: relative;
   top: -5px;
   line-height: 0.8;
 }
+
 .formula .lg { color: var(--color-lg); }
 .formula .v { color: var(--color-v); }
 .formula .t { color: var(--color-t); }

@@ -267,11 +267,15 @@ body[data-theme='dark'] .menu[open] .options-content {
 
 /* Control buttons (play, loop, reset, tap tempo) */
 .controls {
+  position: relative;
   display: flex;
   justify-content: center;
-  align-items: flex-end;
-  gap: 6px;
-  margin-top: 70px; /* abaixem els botons uns 50px */
+  align-items: center;
+  margin-top: 70px;
+  width: 200px;
+  height: 200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Base styles for all control buttons */
@@ -286,15 +290,46 @@ body[data-theme='dark'] .menu[open] .options-content {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.3s ease, transform 0.1s ease;
 }
 
-/* Specific sizes */
+/* Central play button */
 .play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 80px;
   height: 80px;
   font-size: 2rem;
+  z-index: 2;
 }
-.loop,
-.reset,
+
+/* Positioning buttons around the play button using precise angles */
 .tap {
+  position: absolute;
+  top: calc(50% + 80px); /* Radio de 60px hacia abajo */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
+  opacity: 0.7;
+}
+
+.loop {
+  position: absolute;
+  top: 75%;
+  left: calc(50% - 80px); /* Radio de 80px hacia la izquierda */
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
+  opacity: 0.7;
+}
+
+.reset {
+  position: absolute;
+  top: 75%;
+  left: calc(50% + 80px); /* Radio de 80px hacia la derecha */
+  transform: translate(-50%, -50%);
   width: 48px;
   height: 48px;
   font-size: 1.2rem;
@@ -353,11 +388,18 @@ body[data-theme='dark'] .tap {
 
 /* Responsive adjustments */
 @media (max-width: 600px) {
+  .controls {
+    width: 150px;
+    height: 150px;
+    margin-top: 40px;
+  }
+  
   .play {
     width: 55px;
     height: 55px;
     font-size: 1.3rem;
   }
+  
   .loop,
   .reset,
   .tap {
