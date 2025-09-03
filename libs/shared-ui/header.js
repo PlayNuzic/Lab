@@ -65,8 +65,16 @@ function wireMenu(detailsEl) {
   const content = detailsEl.querySelector('.options-content');
   if (!content) return;
 
+  // Close the menu if user clicks outside while it's open
+  const handleOutside = (e) => {
+    if (detailsEl.open && !detailsEl.contains(e.target)) {
+      detailsEl.removeAttribute('open');
+    }
+  };
+
   detailsEl.addEventListener('toggle', () => {
     if (detailsEl.open) {
+      document.addEventListener('click', handleOutside);
       content.classList.add('opening');
       content.classList.remove('closing');
       content.style.maxHeight = content.scrollHeight + 'px';
