@@ -128,11 +128,51 @@
   margin: 20px auto;
 }
 
+
+/* Controls positioned inside the circle with Play at the center */
 .timeline-wrapper.circular .controls {
   position: absolute;
   top: 50%;
   left: 50%;
+  width: 100%;
+  height: 100%;
   transform: translate(-50%, -50%);
+}
+
+.timeline-wrapper.circular #playBtn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.timeline-wrapper.circular #loopBtn,
+.timeline-wrapper.circular #tapTempoBtn,
+.timeline-wrapper.circular #resetBtn {
+  position: absolute;
+  bottom: 10%;
+}
+
+.timeline-wrapper.circular #loopBtn {
+  left: 25%;
+  transform: translate(-50%, 0);
+}
+
+.timeline-wrapper.circular #tapTempoBtn {
+  left: 50%;
+  transform: translate(-50%, 0);
+}
+
+.timeline-wrapper.circular #resetBtn {
+  right: 25%;
+  transform: translate(50%, 0);
+}
+
+.timeline-wrapper.circular #tapHelp {
+  position: absolute;
+  bottom: calc(10% + 40px);
+  left: 50%;
+  transform: translate(-50%, 0);
 }
 
 /* --- Responsive mòbil --- */
