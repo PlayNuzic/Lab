@@ -212,8 +212,6 @@ loopBtn.addEventListener('click', () => {
   const lg = parseInt(inputLg.value);
   if (!isNaN(lg)) {
     ensurePulseMemory(lg);
-    pulseMemory[0] = loopEnabled;
-    pulseMemory[lg] = loopEnabled;
     // Rebuild visible selection from memory and refresh labels
     syncSelectedFromMemory();
     updateNumbers();
@@ -439,14 +437,10 @@ function handleInput(e){
     }
   }
 
-  // Manté el cercle del timeline si el loop està actiu
-  if (loopEnabled && hasLg) {
-    const prevLg = pulses.length ? pulses.length - 1 : null;
-    ensurePulseMemory(lg);
-    if (prevLg !== null && prevLg !== lg) pulseMemory[prevLg] = false;
-    pulseMemory[0] = true;
-    pulseMemory[lg] = true;
-  }
+  // Manté el cercle del timeline si el loop està actiu (sense tocar memòria)
+if (loopEnabled && hasLg) {
+  ensurePulseMemory(lg);
+}
 
   updateFormula();
   renderTimeline();
@@ -531,10 +525,6 @@ function renderTimeline(){
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0) return;
   ensurePulseMemory(lg);
-  if (loopEnabled) {
-    pulseMemory[0] = true;
-    pulseMemory[lg] = true;
-  }
 
   for (let i = 0; i <= lg; i++) {
     const p = document.createElement('div');
