@@ -489,14 +489,25 @@ function updateFormula(){
 function syncSelectedFromMemory() {
   const lg = parseInt(inputLg.value);
   if (isNaN(lg) || lg <= 0) return;
+
   selectedPulses.clear();
-  for (let i = 0; i <= lg && i < pulseMemory.length; i++) {
+
+  // 1) Persistència: només índexs interns (1..lg-1)
+  const maxIdx = Math.min(lg - 1, pulseMemory.length - 1);
+  for (let i = 1; i <= maxIdx; i++) {
     if (pulseMemory[i]) selectedPulses.add(i);
   }
+
+  // 2) Extrems: efímers (derivats del loop)
+  if (loopEnabled) {
+    selectedPulses.add(0);
+    selectedPulses.add(lg);
+  }
+
+  // Aplica al DOM
   pulses.forEach((p, idx) => {
     if (!p) return;
-    if (selectedPulses.has(idx)) p.classList.add('selected');
-    else p.classList.remove('selected');
+    p.classList.toggle('selected', selectedPulses.has(idx));
   });
 }
 
