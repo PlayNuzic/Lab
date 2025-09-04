@@ -516,17 +516,29 @@ function setPulseSelected(i, shouldSelect) {
   const lg = parseInt(inputLg.value);
   if (isNaN(lg) || lg < 0) return;
   ensurePulseMemory(Math.max(i, lg));
-  if (loopEnabled && (i === 0 || i === lg)) {
-    pulseMemory[0] = shouldSelect;
-    pulseMemory[lg] = shouldSelect;
+
+  if (i === 0 || i === lg) {
+    // Extrems: controlen loopEnabled (estat efímer)
+    loopEnabled = !!shouldSelect;
+    loopBtn.classList.toggle('active', loopEnabled);
   } else {
     pulseMemory[i] = shouldSelect;
   }
+
   syncSelectedFromMemory();
   updateNumbers();
-  if (isPlaying && audio && typeof audio.setSelected === 'function') {
-    audio.setSelected(selectedForAudioFromState());
+
+  if (isPlaying && audio) {
+    if (typeof audio.setSelected === 'function') {
+      // Àudio sempre sense 0/Lg
+      audio.setSelected(selectedForAudioFromState());
+    }
+    if (typeof audio.setLoop === 'function') {
+      audio.setLoop(loopEnabled);
+    }
   }
+
+  animateTimelineCircle(loopEnabled && circularTimeline);
 }
 
 function renderTimeline(){
@@ -592,13 +604,13 @@ function renderTimeline(){
 
 function togglePulse(i){
   const lg = parseInt(inputLg.value);
-  if (!isNaN(lg) && loopEnabled && (i === 0 || i === lg)) {
-    const anySelected = !!(pulseMemory[0] || pulseMemory[lg]);
-    const shouldSelect = !anySelected;
-    setPulseSelected(i, shouldSelect);
+  if (isNaN(lg)) return;
+
+  if (i === 0 || i === lg) {
+    // Click a l’extrem → commuta el loop
+    setPulseSelected(i, !loopEnabled);
   } else {
-    const shouldSelect = !pulseMemory[i];
-    setPulseSelected(i, shouldSelect);
+    setPulseSelected(i, !pulseMemory[i]);
   }
 }
 
