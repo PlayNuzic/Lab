@@ -642,16 +642,19 @@ function removeNumber(i){
 
 function updateNumbers(){
   document.querySelectorAll('.pulse-number').forEach(n => n.remove());
-  if(pulses.length === 0) return;
+  if (pulses.length === 0) return;
 
-  // sempre 0 i últim
+  const lgForNumbers = pulses.length - 1;
+  const tooDense = lgForNumbers >= NUMBER_HIDE_THRESHOLD;
+
+  // sempre 0 i últim (inclús quan és massa dens)
   showNumber(0);
-  showNumber(pulses.length-1);
+  showNumber(lgForNumbers);
 
-  // la resta només si està activat i seleccionat
-  if(showNumbers.checked){
+  // la resta només si no és massa dens i està activat
+  if (!tooDense && showNumbers.checked) {
     pulses.forEach((p, i) => {
-      if(i !== 0 && i !== pulses.length-1 && selectedPulses.has(i)){
+      if (i !== 0 && i !== lgForNumbers && selectedPulses.has(i)) {
         showNumber(i);
       }
     });
