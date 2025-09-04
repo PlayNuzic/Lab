@@ -595,30 +595,41 @@ function animateTimelineCircle(isCircular, opts = {}){
         p.style.transform = 'translate(-50%, -50%)';
       });
 
-    // Barres 0/Lg: llargada més curta i centrada en la circumferència
-  bars.forEach((bar, idx) => {
-  const step = (idx === 0) ? 0 : lg;
-  const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
-  const bx = cx + radius * Math.cos(angle);
-  const by = cy + radius * Math.sin(angle);
+      // Position hit targets over the pulse centers
+      pulseHits.forEach((h, i) => {
+        const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
+        const x = cx + radius * Math.cos(angle);
+        const y = cy + radius * Math.sin(angle);
+        h.style.left = x + 'px';
+        h.style.top = y + 'px';
+        h.style.transform = 'translate(-50%, -50%)';
+      });
 
-  // CORREGIDO: Barra más corta (25% en lugar de 50%) y centrada
-  const barLen = Math.min(tRect.width, tRect.height) * 0.25;
-  const intersectPx = barLen / 2; // La mitad intersecta hacia dentro
+      // Barres 0/Lg: llargada més curta i centrada en la circumferència
+      bars.forEach((bar, idx) => {
+        const step = (idx === 0) ? 0 : lg;
+        const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
+        const bx = cx + radius * Math.cos(angle);
+        const by = cy + radius * Math.sin(angle);
 
-  // Centra la barra: mitad hacia fuera, mitad hacia dentro
-  const topPx = by - intersectPx;
+        // CORREGIDO: Barra más corta (25% en lugar de 50%) y centrada
+        const barLen = Math.min(tRect.width, tRect.height) * 0.25;
+        const intersectPx = barLen / 2; // La mitad intersecta hacia dentro
 
-  bar.style.display = 'block';
-  // ample de .bar = 2px -> resta 1px per centrar sense translate
-  bar.style.left = (bx - 1) + 'px';
-  bar.style.top = topPx + 'px';
-  bar.style.height = barLen + 'px';
-  bar.style.transformOrigin = '50% 50%'; // CORREGIDO: centrada
-  // Només rotate; res de translate/scale per no desancorar la base
-  bar.style.transform = 'rotate(' + (angle + Math.PI/2) + 'rad)';
-});
+        // Centra la barra: mitad hacia fuera, mitad hacia dentro
+        const topPx = by - intersectPx;
 
+        bar.style.display = 'block';
+        // ample de .bar = 2px -> resta 1px per centrar sense translate
+        bar.style.left = (bx - 1) + 'px';
+        bar.style.top = topPx + 'px';
+        bar.style.height = barLen + 'px';
+        bar.style.transformOrigin = '50% 50%'; // CORREGIDO: centrada
+        // Només rotate; res de translate/scale per no desancorar la base
+        bar.style.transform = 'rotate(' + (angle + Math.PI/2) + 'rad)';
+      });
+
+      syncSelectedFromMemory();
       updateNumbers();
       // Apaga la guia circular un cop dibuixada l'anella real (evita doble cercle en mode fosc)
       if (!silent) {
@@ -629,10 +640,10 @@ function animateTimelineCircle(isCircular, opts = {}){
         }, 400);
       }
       if (silent) {
-  // força reflow per aplicar els estils sense transicions i neteja la flag
-  void timeline.offsetHeight;
-  timeline.classList.remove('no-anim');
-}
+        // força reflow per aplicar els estils sense transicions i neteja la flag
+        void timeline.offsetHeight;
+        timeline.classList.remove('no-anim');
+      }
     });
   } else {
     timelineWrapper.classList.remove('circular');
@@ -647,6 +658,12 @@ function animateTimelineCircle(isCircular, opts = {}){
       p.style.top = '50%';
       p.style.transform = 'translate(-50%, -50%)';
     });
+    pulseHits.forEach((h, i) => {
+      const percent = (i / lg) * 100;
+      h.style.left = percent + '%';
+      h.style.top = '50%';
+      h.style.transform = 'translate(-50%, -50%)';
+    });
     bars.forEach((bar, idx) => {
       bar.style.display = 'block';
       const i = idx === 0 ? 0 : lg;
@@ -657,6 +674,7 @@ function animateTimelineCircle(isCircular, opts = {}){
       bar.style.transform = '';
       bar.style.transformOrigin = '';
     });
+    syncSelectedFromMemory();
     updateNumbers();
   }
 }
