@@ -75,7 +75,7 @@ function selectedForAudioFromState() {
   const lg = parseInt(inputLg.value);
   const set = new Set();
   if (!isNaN(lg) && lg > 0) {
-    selectedPulses.forEach((i) => { if (i > 0 && i < lg) set.add(i); });
+    selectionMemory.forEach((i) => { if (i > 0 && i < lg) set.add(i); });
   }
   return set;
 }
@@ -160,13 +160,13 @@ loopBtn.addEventListener('click', () => {
   if (!isNaN(lg)) {
     [0, lg].forEach((k) => {
       if (loopEnabled) {
-        selectedPulses.add(k);
-        if (pulses[k]) pulses[k].classList.add('selected');
+        selectionMemory.add(k);
       } else {
-        selectedPulses.delete(k);
-        if (pulses[k]) pulses[k].classList.remove('selected');
+        selectionMemory.delete(k);
       }
     });
+    // Rebuild visible selection from memory and refresh labels
+    syncSelectedFromMemory();
     updateNumbers();
     if (isPlaying && typeof audio.setSelected === 'function') {
       audio.setSelected(selectedForAudioFromState());
@@ -384,15 +384,13 @@ function handleInput(e){
     }
   }
 
-    // Manté el cercle del timeline si el loop està actiu
+  // Manté el cercle del timeline si el loop està actiu
   if (loopEnabled && hasLg) {
-  const prevLg = pulses.length ? pulses.length - 1 : null;
-  // Esborra l'antic Lg si ha canviat
-  if (prevLg !== null && prevLg !== lg) selectedPulses.delete(prevLg);
-  // Garanteix que 0 i el nou Lg estiguin seleccionats
-  selectedPulses.add(0);
-  selectedPulses.add(lg);
-}
+    const prevLg = pulses.length ? pulses.length - 1 : null;
+    if (prevLg !== null && prevLg !== lg) selectionMemory.delete(prevLg);
+    selectionMemory.add(0);
+    selectionMemory.add(lg);
+  }
 
   updateFormula();
   renderTimeline();
