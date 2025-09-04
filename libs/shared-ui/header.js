@@ -182,7 +182,7 @@ export function renderHeader({ title = 'App', mount } = {}) {
             <option value="dark">Oscuro</option>
           </select>
         </label>
-        <label for="hoverToggle">Hovers <input type="checkbox" id="hoverToggle" checked /></label>
+        <label for="hoverToggle">Etiquetas de ayuda <input type="checkbox" id="hoverToggle" checked /></label>
         <label for="muteToggle">Silencio <input type="checkbox" id="muteToggle" /></label>
         <label for="selectColor">Color selección <input type="color" id="selectColor" value="#FFBB97" /></label>
         <hr class="menu-separator" />
