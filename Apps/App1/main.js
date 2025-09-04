@@ -598,12 +598,15 @@ function showNumber(i){
   n.className = 'pulse-number';
   n.dataset.index = i;
   n.textContent = i;
+  const _lgForFont = pulses.length - 1;
+  const fontRem = computeNumberFontRem(_lgForFont);
+  n.style.fontSize = fontRem + 'rem';
 
    if (timeline.classList.contains('circular')) {
      const lg = pulses.length - 1;
      const rect = timeline.getBoundingClientRect();
      const radius = Math.min(rect.width, rect.height) / 2 - 10;
-     const offset = 20;
+     const offset = NUMBER_CIRCLE_OFFSET;
      const cx = rect.width / 2;
      const cy = rect.height / 2;
      const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
