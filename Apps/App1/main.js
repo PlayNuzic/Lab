@@ -455,19 +455,17 @@ function togglePulse(i){
     updateNumbers();
 
   } else {
-    // Comportament existent per a la resta de polsos
-    if (selectedPulses.has(i)) {
-      selectedPulses.delete(i);
-      if (pulses[i]) pulses[i].classList.remove('selected');
-      removeNumber(i);
-    } else {
-      selectedPulses.add(i);
-      if (pulses[i]) pulses[i].classList.add('selected');
-      if (showNumbers.checked && pulses[i]) {
-        showNumber(i);
-      }
-    }
+  // Toggle bàsic i recalcula etiquetes segons llindar i preferència
+  if (selectedPulses.has(i)) {
+    selectedPulses.delete(i);
+    if (pulses[i]) pulses[i].classList.remove('selected');
+  } else {
+    selectedPulses.add(i);
+    if (pulses[i]) pulses[i].classList.add('selected');
   }
+  // Recalcula totes les etiquetes (0 i Lg sempre; resta si no és massa dens i checkbox actiu)
+  updateNumbers();
+}
 
   // Actualitza l'àudio en temps real si està sonant (filtrant 0 i Lg)
   if (isPlaying && audio && typeof audio.setSelected === 'function') {
