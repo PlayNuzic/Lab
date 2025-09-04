@@ -155,17 +155,46 @@ function applyTheme(val){
   } else {
     document.body.dataset.theme = val;
   }
+  saveOpt('theme', val);
 }
 
+const storedTheme = loadOpt('theme');
+if (storedTheme) themeSelect.value = storedTheme;
 applyTheme(themeSelect.value);
 themeSelect.addEventListener('change', e => applyTheme(e.target.value));
-muteToggle.addEventListener('change', async e => (await initAudio()).setMute(e.target.checked));
-selectColor.addEventListener('input', e => document.documentElement.style.setProperty('--selection-color', e.target.value));
-showNumbers.addEventListener('change', updateNumbers);
+
+const storedMute = loadOpt('mute');
+if (storedMute) muteToggle.checked = storedMute === '1';
+muteToggle.addEventListener('change', async e => {
+  saveOpt('mute', e.target.checked ? '1' : '0');
+  (await initAudio()).setMute(e.target.checked);
+});
+
+const storedColor = loadOpt('color');
+if (storedColor) {
+  selectColor.value = storedColor;
+  document.documentElement.style.setProperty('--selection-color', storedColor);
+}
+selectColor.addEventListener('input', e => {
+  document.documentElement.style.setProperty('--selection-color', e.target.value);
+  saveOpt('color', e.target.value);
+});
+
+showNumbers.checked = loadOpt('showNumbers') === '1';
+showNumbers.addEventListener('change', e => {
+  saveOpt('showNumbers', e.target.checked ? '1' : '0');
+  updateNumbers();
+});
+updateNumbers();
+
+circularTimelineToggle.checked = loadOpt('circular') === '1';
+circularTimeline = circularTimelineToggle.checked;
 circularTimelineToggle?.addEventListener('change', e => {
   circularTimeline = e.target.checked;
+  saveOpt('circular', e.target.checked ? '1' : '0');
   animateTimelineCircle(loopEnabled && circularTimeline);
 });
+animateTimelineCircle(loopEnabled && circularTimeline);
 
 loopBtn.addEventListener('click', () => {
   loopEnabled = !loopEnabled;
