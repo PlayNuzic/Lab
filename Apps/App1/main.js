@@ -430,9 +430,49 @@ function updateFormula(){
   </span>`;
 }
 
+// Rebuild selectedPulses (visible set) from selectionMemory and current Lg, then apply DOM classes
+function syncSelectedFromMemory() {
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) return;
+  selectedPulses.clear();
+  selectionMemory.forEach((i) => {
+    if (i >= 0 && i <= lg) selectedPulses.add(i);
+  });
+  if (loopEnabled) {
+    selectedPulses.add(0);
+    selectedPulses.add(lg);
+  }
+  pulses.forEach((p, idx) => {
+    if (!p) return;
+    if (selectedPulses.has(idx)) p.classList.add('selected');
+    else p.classList.remove('selected');
+  });
+}
+
+// Deterministically set selection state for index i, respecting 0/Lg pairing when loopEnabled
+function setPulseSelected(i, shouldSelect) {
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg < 0) return;
+  if (loopEnabled && (i === 0 || i === lg)) {
+    [0, lg].forEach((k) => {
+      if (shouldSelect) selectionMemory.add(k);
+      else selectionMemory.delete(k);
+    });
+  } else {
+    if (shouldSelect) selectionMemory.add(i);
+    else selectionMemory.delete(i);
+  }
+  syncSelectedFromMemory();
+  updateNumbers();
+  if (isPlaying && audio && typeof audio.setSelected === 'function') {
+    audio.setSelected(selectedForAudioFromState());
+  }
+}
+
 function renderTimeline(){
   timeline.innerHTML = '';
   pulses = [];
+  pulseHits = [];
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0) return;
 
@@ -440,16 +480,7 @@ function renderTimeline(){
     const p = document.createElement('div');
     p.className = 'pulse';
     p.dataset.index = i;
-    p.addEventListener('click', () => togglePulse(i));
-p.addEventListener('pointerenter', () => {
-  if (isDragging && lastDragIndex !== i) {
-    lastDragIndex = i;
-    togglePulse(i);
-  }
-});
-if (selectedPulses.has(i)) {
-  p.classList.add('selected');
-}
+    // No listeners here: handled by hit targets
     timeline.appendChild(p);
     pulses.push(p);
 
@@ -459,47 +490,54 @@ if (selectedPulses.has(i)) {
       bar.className = 'bar';
       timeline.appendChild(bar);
     }
+
+    // Click/drag hit target (bigger than the visual dot)
+    const hit = document.createElement('div');
+    hit.className = 'pulse-hit';
+    hit.dataset.index = i;
+    hit.style.position = 'absolute';
+    hit.style.pointerEvents = 'auto';
+    hit.style.borderRadius = '50%';
+    hit.style.background = 'transparent';
+    hit.style.zIndex = '6'; // above pulses and bars
+
+    const hitSize = computeHitSizePx(lg);
+    hit.style.width = hitSize + 'px';
+    hit.style.height = hitSize + 'px';
+
+    // listeners on the hit target
+    hit.addEventListener('click', (ev) => {
+      if (suppressClickIndex === i) {
+        suppressClickIndex = null;
+        ev.preventDefault();
+        ev.stopPropagation();
+        return; // already applied on pointerdown
+      }
+      togglePulse(i);
+    });
+    hit.addEventListener('pointerenter', () => {
+      if (isDragging && lastDragIndex !== i) {
+        lastDragIndex = i;
+        setPulseSelected(i, dragMode === 'select');
+      }
+    });
+
+    timeline.appendChild(hit);
+    pulseHits.push(hit);
   }
+  syncSelectedFromMemory();
   animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
 }
 
 function togglePulse(i){
   const lg = parseInt(inputLg.value);
-
-  // En mode loop, 0 i Lg es comporten com un parell vinculat
-  if (loopEnabled && !isNaN(lg) && (i === 0 || i === lg)) {
-    const anySelected = selectedPulses.has(0) || selectedPulses.has(lg);
-    const shouldSelect = !anySelected; // si algun no està seleccionat → seleccionem tots dos; si ja ho estan → deseleccionem tots dos
-
-    [0, lg].forEach((k) => {
-      if (shouldSelect) {
-        selectedPulses.add(k);
-        if (pulses[k]) pulses[k].classList.add('selected');
-      } else {
-        selectedPulses.delete(k);
-        if (pulses[k]) pulses[k].classList.remove('selected');
-      }
-    });
-
-    // Els números 0 i Lg es mostren sempre; assegurem consistència visual
-    updateNumbers();
-
+  if (!isNaN(lg) && loopEnabled && (i === 0 || i === lg)) {
+    const anySelected = selectionMemory.has(0) || selectionMemory.has(lg);
+    const shouldSelect = !anySelected;
+    setPulseSelected(i, shouldSelect);
   } else {
-  // Toggle bàsic i recalcula etiquetes segons llindar i preferència
-  if (selectedPulses.has(i)) {
-    selectedPulses.delete(i);
-    if (pulses[i]) pulses[i].classList.remove('selected');
-  } else {
-    selectedPulses.add(i);
-    if (pulses[i]) pulses[i].classList.add('selected');
-  }
-  // Recalcula totes les etiquetes (0 i Lg sempre; resta si no és massa dens i checkbox actiu)
-  updateNumbers();
-}
-
-  // Actualitza l'àudio en temps real si està sonant (filtrant 0 i Lg)
-  if (isPlaying && audio && typeof audio.setSelected === 'function') {
-    audio.setSelected(selectedForAudioFromState());
+    const shouldSelect = !selectionMemory.has(i);
+    setPulseSelected(i, shouldSelect);
   }
 }
 
