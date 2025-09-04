@@ -411,9 +411,15 @@ function renderTimeline(){
     p.className = 'pulse';
     p.dataset.index = i;
     p.addEventListener('click', () => togglePulse(i));
-    if (selectedPulses.has(i)) {
-      p.classList.add('selected');
-    }
+p.addEventListener('pointerenter', () => {
+  if (isDragging && lastDragIndex !== i) {
+    lastDragIndex = i;
+    togglePulse(i);
+  }
+});
+if (selectedPulses.has(i)) {
+  p.classList.add('selected');
+}
     timeline.appendChild(p);
     pulses.push(p);
 
