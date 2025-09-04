@@ -254,7 +254,7 @@ tapBtn.addEventListener('click', () => {
   if (tapTimes.length > 8) tapTimes.shift();
 });
 
-function populateSoundSelect(selectElem, defaultName){
+function populateSoundSelect(selectElem, defaultName, storeName){
   if(!selectElem) return;
   // Clear existing options
   selectElem.innerHTML = '';
@@ -269,11 +269,14 @@ function populateSoundSelect(selectElem, defaultName){
     const a = await initAudio();
     if (selectElem === baseSoundSelect) await a.setBase(selectElem.value);
     else if (selectElem === accentSoundSelect) await a.setAccent(selectElem.value);
+    if(storeName) saveOpt(storeName, selectElem.value);
   });
 }
 
-populateSoundSelect(baseSoundSelect, 'click2');
-populateSoundSelect(accentSoundSelect, 'click3');
+const storedBase = loadOpt('baseSound') || 'click2';
+const storedAccent = loadOpt('accentSound') || 'click3';
+populateSoundSelect(baseSoundSelect, storedBase, 'baseSound');
+populateSoundSelect(accentSoundSelect, storedAccent, 'accentSound');
 
 // Preview buttons
 if (previewBaseBtn) previewBaseBtn.addEventListener('click', async () => {
