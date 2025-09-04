@@ -99,6 +99,7 @@ function wireMenu(detailsEl) {
 
 function wireControls(root) {
   const themeSelect = root.querySelector('#themeSelect');
+  const hoverToggle = root.querySelector('#hoverToggle');
   const muteToggle = root.querySelector('#muteToggle');
   const selectColor = root.querySelector('#selectColor');
   const schedSelect = root.querySelector('#schedProfileSelect');
@@ -108,6 +109,19 @@ function wireControls(root) {
     themeSelect.addEventListener('change', (e) => applyTheme(e.target.value));
   } else {
     applyTheme('system');
+  }
+
+  if (hoverToggle) {
+    window.__hoversEnabled = hoverToggle.checked;
+    hoverToggle.addEventListener('change', (e) => {
+      window.__hoversEnabled = e.target.checked;
+      if (!e.target.checked) {
+        document.querySelectorAll('.hover-tip').forEach(t => t.classList.remove('show'));
+      }
+      window.dispatchEvent(new CustomEvent('sharedui:hover', { detail: { value: e.target.checked } }));
+    });
+  } else {
+    window.__hoversEnabled = true;
   }
 
   if (selectColor) {
