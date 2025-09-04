@@ -1,4 +1,4 @@
-export function attachHover(el, { text = '', color = '#fff', background = 'rgba(0,0,0,0.8)', size = '0.75rem' } = {}) {
+export function attachHover(el, { text = '', color = '#fff', background = 'rgba(0,0,0,0.6)', size = '0.75rem' } = {}) {
   if (!el) return;
   const tip = document.createElement('div');
   tip.className = 'hover-tip';
@@ -6,6 +6,7 @@ export function attachHover(el, { text = '', color = '#fff', background = 'rgba(
   document.body.appendChild(tip);
 
   function show() {
+    if (window.__hoversEnabled === false) return;
     tip.textContent = text;
     tip.style.background = background;
     tip.style.color = color;
