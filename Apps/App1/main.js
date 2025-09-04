@@ -82,6 +82,24 @@ let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
+// --- Drag selection state ---
+let isDragging = false;
+let lastDragIndex = null;
+
+// Start drag on the timeline area
+timeline.addEventListener('pointerdown', () => {
+  isDragging = true;
+  lastDragIndex = null;
+});
+// End/Cancel drag globally
+document.addEventListener('pointerup', () => {
+  isDragging = false;
+  lastDragIndex = null;
+});
+document.addEventListener('pointercancel', () => {
+  isDragging = false;
+  lastDragIndex = null;
+});
 
 // Local header behavior (as before)
 function applyTheme(val){
