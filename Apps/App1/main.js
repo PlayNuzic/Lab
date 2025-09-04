@@ -861,11 +861,12 @@ function highlightPulse(i){
   if (!pulses || pulses.length === 0) return;
 
   // il·lumina el pols actual
-  const current = pulses[i];
+  const idx = i % pulses.length;
+  const current = pulses[idx];
   if (current) current.classList.add('active');
 
   // si hi ha loop i som al primer pols, també il·lumina l’últim
-  if (loopEnabled && i === 0) {
+  if (loopEnabled && idx === 0) {
     const last = pulses[pulses.length - 1];
     if (last) last.classList.add('active');
   }
