@@ -114,7 +114,7 @@ timeline.addEventListener('pointerdown', (e) => {
 document.addEventListener('pointerup', () => {
   isDragging = false;
   lastDragIndex = null;
-  suppressClickIndex = null;
+  // Do not clear suppressClickIndex here; allow click handler to consume it
 });
 document.addEventListener('pointercancel', () => {
   isDragging = false;
