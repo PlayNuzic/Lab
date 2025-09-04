@@ -85,6 +85,13 @@ body[data-theme='dark'] {
   border: 2px solid var(--line-color);
   border-radius: 8px;
   min-width: 220px;
+  background: var(--bg-light);
+  color: var(--text-light);
+}
+
+body[data-theme='dark'] .menu .options-content {
+  background: var(--bg-dark);
+  color: var(--text-dark);
 }
 
 .menu[open] .options-content {
@@ -92,19 +99,8 @@ body[data-theme='dark'] {
   top: 100%;
   left: 0;
   z-index: 1;
-  background: inherit;
   max-height: 500px;
   opacity: 1;
-}
-
-body[data-theme='light'] .menu[open] .options-content {
-  background: var(--bg-light);
-  color: var(--text-light);
-}
-
-body[data-theme='dark'] .menu[open] .options-content {
-  background: var(--bg-dark);
-  color: var(--text-dark);
 }
 
 .menu ul { list-style: none; padding-left: 0; }
@@ -171,6 +167,7 @@ body[data-theme='dark'] .menu[open] .options-content {
 .menu .options-content input[type="color"] { width: 33%; }
 .menu .options-content input[type="checkbox"] { width: 18px; height: 18px; order: 2; }
 .menu .options-content label[for="muteToggle"]::after { content: " 🔊"; }
+.menu .options-content label[for="hoverToggle"]::after { content: " 💬"; }
 
 /* Circular input parameters (Lg, V, T) */
 .inputs {
