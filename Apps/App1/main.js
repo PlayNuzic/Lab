@@ -1,5 +1,6 @@
 import { TimelineAudio, soundNames } from '../../libs/sound/index.js';
 import { ensureAudio } from '../../libs/sound/index.js';
+import { attachHover } from '../../libs/shared-ui/hover.js';
 // Using local header controls for App1 (no shared init)
 
 let audio;
