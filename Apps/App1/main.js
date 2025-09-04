@@ -55,6 +55,15 @@ let pulses = [];
 // Hit targets (separate from the visual dots) and drag mode
 let pulseHits = [];
 let dragMode = 'select'; // 'select' | 'deselect'
+// --- Selection memory across Lg changes ---
+let pulseMemory = []; // index -> selected
+
+function ensurePulseMemory(size) {
+  if (size >= pulseMemory.length) {
+    for (let i = pulseMemory.length; i <= size; i++) pulseMemory[i] = false;
+  }
+}
+
 // Font scaling for pulse numbers: tuned for Lg=30 -> ~1.6rem
 function computeNumberFontRem(lg) {
   const BASE_REM = 1.3;   // ideal size at Lg=30
@@ -76,7 +85,9 @@ function selectedForAudioFromState() {
   const lg = parseInt(inputLg.value);
   const set = new Set();
   if (!isNaN(lg) && lg > 0) {
-    selectionMemory.forEach((i) => { if (i > 0 && i < lg) set.add(i); });
+    for (let i = 1; i < lg && i < pulseMemory.length; i++) {
+      if (pulseMemory[i]) set.add(i);
+    }
   }
   return set;
 }
@@ -86,8 +97,6 @@ let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
-// --- Selection memory across Lg changes ---
-const selectionMemory = new Set();   // persisteix índexs més enllà de l’Lg actual
 let suppressClickIndex = null;       // per evitar doble-toggle en drag start
 // --- Drag selection state ---
 let isDragging = false;
@@ -102,7 +111,8 @@ timeline.addEventListener('pointerdown', (e) => {
   if (target && typeof target.dataset.index !== 'undefined') {
     const idx = parseInt(target.dataset.index, 10);
     if (!Number.isNaN(idx)) {
-      dragMode = selectionMemory.has(idx) ? 'deselect' : 'select';
+      ensurePulseMemory(idx);
+      dragMode = pulseMemory[idx] ? 'deselect' : 'select';
       // APLICAR acció immediata sobre el primer pols sota el cursor
       setPulseSelected(idx, dragMode === 'select');
       // Evitar que el clic de mouseup inverteixi el que acabem de fer
@@ -201,13 +211,9 @@ loopBtn.addEventListener('click', () => {
   loopBtn.classList.toggle('active', loopEnabled);
   const lg = parseInt(inputLg.value);
   if (!isNaN(lg)) {
-    [0, lg].forEach((k) => {
-      if (loopEnabled) {
-        selectionMemory.add(k);
-      } else {
-        selectionMemory.delete(k);
-      }
-    });
+    ensurePulseMemory(lg);
+    pulseMemory[0] = loopEnabled;
+    pulseMemory[lg] = loopEnabled;
     // Rebuild visible selection from memory and refresh labels
     syncSelectedFromMemory();
     updateNumbers();
@@ -223,6 +229,7 @@ loopBtn.addEventListener('click', () => {
 });
 
 resetBtn.addEventListener('click', () => {
+  pulseMemory = [];
   window.location.reload();
 });
 
@@ -433,9 +440,10 @@ function handleInput(e){
   // Manté el cercle del timeline si el loop està actiu
   if (loopEnabled && hasLg) {
     const prevLg = pulses.length ? pulses.length - 1 : null;
-    if (prevLg !== null && prevLg !== lg) selectionMemory.delete(prevLg);
-    selectionMemory.add(0);
-    selectionMemory.add(lg);
+    ensurePulseMemory(lg);
+    if (prevLg !== null && prevLg !== lg) pulseMemory[prevLg] = false;
+    pulseMemory[0] = true;
+    pulseMemory[lg] = true;
   }
 
   updateFormula();
@@ -481,17 +489,13 @@ function updateFormula(){
   attachHover(formula.querySelector('.bottom:not(.v)'), { text: 'segundos' });
 }
 
-// Rebuild selectedPulses (visible set) from selectionMemory and current Lg, then apply DOM classes
+// Rebuild selectedPulses (visible set) from pulseMemory and current Lg, then apply DOM classes
 function syncSelectedFromMemory() {
   const lg = parseInt(inputLg.value);
   if (isNaN(lg) || lg <= 0) return;
   selectedPulses.clear();
-  selectionMemory.forEach((i) => {
-    if (i >= 0 && i <= lg) selectedPulses.add(i);
-  });
-  if (loopEnabled) {
-    selectedPulses.add(0);
-    selectedPulses.add(lg);
+  for (let i = 0; i <= lg && i < pulseMemory.length; i++) {
+    if (pulseMemory[i]) selectedPulses.add(i);
   }
   pulses.forEach((p, idx) => {
     if (!p) return;
@@ -504,14 +508,12 @@ function syncSelectedFromMemory() {
 function setPulseSelected(i, shouldSelect) {
   const lg = parseInt(inputLg.value);
   if (isNaN(lg) || lg < 0) return;
+  ensurePulseMemory(Math.max(i, lg));
   if (loopEnabled && (i === 0 || i === lg)) {
-    [0, lg].forEach((k) => {
-      if (shouldSelect) selectionMemory.add(k);
-      else selectionMemory.delete(k);
-    });
+    pulseMemory[0] = shouldSelect;
+    pulseMemory[lg] = shouldSelect;
   } else {
-    if (shouldSelect) selectionMemory.add(i);
-    else selectionMemory.delete(i);
+    pulseMemory[i] = shouldSelect;
   }
   syncSelectedFromMemory();
   updateNumbers();
@@ -526,9 +528,10 @@ function renderTimeline(){
   pulseHits = [];
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0) return;
+  ensurePulseMemory(lg);
   if (loopEnabled) {
-    selectionMemory.add(0);
-    selectionMemory.add(lg);
+    pulseMemory[0] = true;
+    pulseMemory[lg] = true;
   }
 
   for (let i = 0; i <= lg; i++) {
@@ -587,11 +590,11 @@ function renderTimeline(){
 function togglePulse(i){
   const lg = parseInt(inputLg.value);
   if (!isNaN(lg) && loopEnabled && (i === 0 || i === lg)) {
-    const anySelected = selectionMemory.has(0) || selectionMemory.has(lg);
+    const anySelected = !!(pulseMemory[0] || pulseMemory[lg]);
     const shouldSelect = !anySelected;
     setPulseSelected(i, shouldSelect);
   } else {
-    const shouldSelect = !selectionMemory.has(i);
+    const shouldSelect = !pulseMemory[i];
     setPulseSelected(i, shouldSelect);
   }
 }
