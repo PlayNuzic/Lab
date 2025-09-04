@@ -478,6 +478,7 @@ function updateFormula(){
   attachHover(formula.querySelector('.top.lg'), { text: 'Pulsos' });
   attachHover(formula.querySelector('.bottom.v'), { text: 'PulsosPorMinuto' });
   attachHover(formula.querySelector('.top.t'), { text: 'segundos' });
+  attachHover(formula.querySelector('.bottom:not(.v)'), { text: 'segundos' });
 }
 
 // Rebuild selectedPulses (visible set) from selectionMemory and current Lg, then apply DOM classes
