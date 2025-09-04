@@ -526,6 +526,10 @@ function renderTimeline(){
   pulseHits = [];
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0) return;
+  if (loopEnabled) {
+    selectionMemory.add(0);
+    selectionMemory.add(lg);
+  }
 
   for (let i = 0; i <= lg; i++) {
     const p = document.createElement('div');
