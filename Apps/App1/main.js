@@ -134,6 +134,19 @@ function computeHitSizePx(lg){
 }
 
 
+// Hovers for LEDs and controls
+attachHover(ledLg, { text: 'Lg calculado automáticamente' });
+attachHover(ledV, { text: 'V calculado automáticamente' });
+attachHover(ledT, { text: 'T calculado automáticamente' });
+attachHover(playBtn, { text: 'Play / Stop' });
+attachHover(loopBtn, { text: 'Loop' });
+attachHover(tapBtn, { text: 'Tap Tempo' });
+attachHover(resetBtn, { text: 'Reset App' });
+
+const storeKey = (k) => `app1:${k}`;
+const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
+const loadOpt = (k) => { try { return localStorage.getItem(storeKey(k)); } catch { return null; } };
+
 // Local header behavior (as before)
 function applyTheme(val){
   if(val === 'system'){
