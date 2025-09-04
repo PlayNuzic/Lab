@@ -51,6 +51,9 @@ const previewBaseBtn = document.getElementById('previewBaseBtn');
 const previewAccentBtn = document.getElementById('previewAccentBtn');
 
 let pulses = [];
+// Hit targets (separate from the visual dots) and drag mode
+let pulseHits = [];
+let dragMode = 'select'; // 'select' | 'deselect'
 // Font scaling for pulse numbers: tuned for Lg=30 -> ~1.6rem
 function computeNumberFontRem(lg) {
   const BASE_REM = 1.3;   // ideal size at Lg=30
@@ -82,24 +85,53 @@ let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
+// --- Selection memory across Lg changes ---
+const selectionMemory = new Set();   // persisteix índexs més enllà de l’Lg actual
+let suppressClickIndex = null;       // per evitar doble-toggle en drag start
 // --- Drag selection state ---
 let isDragging = false;
 let lastDragIndex = null;
 
-// Start drag on the timeline area
-timeline.addEventListener('pointerdown', () => {
+// Start drag on the timeline area and decide drag mode based on first pulse under pointer
+timeline.addEventListener('pointerdown', (e) => {
   isDragging = true;
   lastDragIndex = null;
+  dragMode = 'select';
+  const target = e.target.closest('.pulse-hit, .pulse');
+  if (target && typeof target.dataset.index !== 'undefined') {
+    const idx = parseInt(target.dataset.index, 10);
+    if (!Number.isNaN(idx)) {
+      dragMode = selectionMemory.has(idx) ? 'deselect' : 'select';
+      // APLICAR acció immediata sobre el primer pols sota el cursor
+      setPulseSelected(idx, dragMode === 'select');
+      // Evitar que el clic de mouseup inverteixi el que acabem de fer
+      suppressClickIndex = idx;
+    }
+  }
 });
 // End/Cancel drag globally
 document.addEventListener('pointerup', () => {
   isDragging = false;
   lastDragIndex = null;
+  suppressClickIndex = null;
 });
 document.addEventListener('pointercancel', () => {
   isDragging = false;
   lastDragIndex = null;
+  suppressClickIndex = null; 
 });
+// Compute clickable hit target size for timeline pulses
+function computeHitSizePx(lg){
+  const refLg = 30;          // comfortable at 30
+  const base = 32;           // px at Lg=30
+  const k = 0.5;             // perceptual (sqrt) scaling
+  const minPx = 14;          // never smaller
+  const maxPx = 44;          // never larger
+  const safe = Math.max(1, Number(lg) || 1);
+  const scale = Math.pow(refLg / safe, k);
+  return Math.max(minPx, Math.min(maxPx, Math.round(base * scale)));
+}
+
 
 // Local header behavior (as before)
 function applyTheme(val){
