@@ -461,3 +461,22 @@ body[data-theme='dark'] .tap {
   z-index: 2;
   pointer-events: auto;
 }
+
+/* Shared hover tooltip */
+.hover-tip {
+  position: fixed;
+  pointer-events: none;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  transform: translate(-50%, -100%);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1000;
+}
+.hover-tip.show {
+  opacity: 1;
+}
