@@ -239,7 +239,9 @@ tapBtn.addEventListener('click', () => {
     tapTimes = [];
   }
   tapTimes.push(now);
-  if (tapTimes.length < 3) {
+  const remaining = 3 - tapTimes.length;
+  if (remaining > 0) {
+    tapHelp.textContent = remaining === 2 ? '2 clicks más' : '1 click más solamente';
     tapHelp.style.display = 'block';
     return;
   }
