@@ -354,17 +354,13 @@ function handleInput(e){
 
     // Manté el cercle del timeline si el loop està actiu
   if (loopEnabled && hasLg) {
-    const prevLg = pulses.length ? pulses.length - 1 : null;
-    // Esborra l'antic Lg si ha canviat
-    if (prevLg !== null && prevLg !== lg) selectedPulses.delete(prevLg);
-    // Elimina seleccions fora del nou rang
-    [...selectedPulses].forEach(i => { if (i < 0 || i > lg) selectedPulses.delete(i); });
-    // Garanteix que 0 i el nou Lg estiguin seleccionats
-    selectedPulses.add(0);
-    selectedPulses.add(lg);
-  }
-
-
+  const prevLg = pulses.length ? pulses.length - 1 : null;
+  // Esborra l'antic Lg si ha canviat
+  if (prevLg !== null && prevLg !== lg) selectedPulses.delete(prevLg);
+  // Garanteix que 0 i el nou Lg estiguin seleccionats
+  selectedPulses.add(0);
+  selectedPulses.add(lg);
+}
 
   updateFormula();
   renderTimeline();
