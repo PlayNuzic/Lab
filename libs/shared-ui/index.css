@@ -238,14 +238,13 @@ body[data-theme='dark'] .menu .options-content {
   height: 10px;
   border-radius: 50%;
   background: currentColor;
-  opacity: 0;
-  visibility: hidden;
+  opacity: 0.3;
   transition: opacity 0.2s ease;
+  cursor: pointer;
 }
 
 .param .circle .led.on {
   opacity: 1;
-  visibility: visible;
 }
 
 /* Responsive adjustments for circular inputs */
