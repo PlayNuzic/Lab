@@ -269,7 +269,6 @@ tapBtn.addEventListener('click', () => {
   const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
   const bpm = Math.round((60000 / avg) * 100) / 100;
   inputV.value = String(bpm);
-  delete inputV.dataset.auto;
   inputV.dispatchEvent(new Event('input'));
 
   if (isPlaying && audio && typeof audio.setTempo === 'function') {
@@ -354,7 +353,6 @@ updateAutoIndicator();
 function setValue(input, value){
   isUpdating = true;
   input.value = String(value);
-  input.dataset.auto = '1';    // marquem que aquest valor l'ha posat el codi
   isUpdating = false;
 }
 
@@ -393,14 +391,13 @@ function handleInput(e){
 
   // tallafocs reentrància i marcatges auto/manual
   if (isUpdating) return;
-  if (e && e.target) delete e.target.dataset.auto;
 
   // comptem quants camps estan informats
   const knownCount = (hasLg ? 1 : 0) + (hasV ? 1 : 0) + (hasT ? 1 : 0);
   const twoKnown   = knownCount === 2;
   const threeKnown = knownCount === 3;
 
-  // helpers (escriuen valor i marquen dataset.auto per no re-entrar)
+  // helpers (escriuen valor)
   const calcT = () => {
     if (!(hasLg && hasV)) return;
     const tSeconds = (lg / v) * 60;
@@ -425,39 +422,16 @@ function handleInput(e){
     if (!hasT)      calcT();
     else if (!hasV) calcV();
     else if (!hasLg)calcLg();
-  } else if (threeKnown) {
-    // si n'hi ha exactament una d’auto, recalcula només aquella
-    const autoT  = inputT.dataset.auto === '1';
-    const autoV  = inputV.dataset.auto === '1';
-    const autoLg = inputLg.dataset.auto === '1';
-    const autoCount = (autoT?1:0) + (autoV?1:0) + (autoLg?1:0);
-
-    if (autoCount === 1) {
-      if (autoT)      calcT();
-      else if (autoV) calcV();
-      else if (autoLg)calcLg();
-    } else {
-      // sense 'auto' clara: protegeix el camp editat i calcula amb la parella natural
-      if (src === 'inputT') {
-        if (hasV)      calcLg();
-        else if (hasLg)calcV();
-      } else if (src === 'inputV') {
-        if (hasT)      calcLg();
-        else if (hasLg)calcT();
-      } else if (src === 'inputLg') {
-        if (hasV)      calcT();
-        else if (hasT) calcV();
-      } else {
-        // cas indeterminat: ordre natural Lg+V → T
-        calcT();
-      }
-    }
+  } else if (threeKnown && autoTarget) {
+    if (autoTarget === 'T')      calcT();
+    else if (autoTarget === 'V') calcV();
+    else if (autoTarget === 'Lg')calcLg();
   }
 
   // Manté el cercle del timeline si el loop està actiu (sense tocar memòria)
-if (loopEnabled && hasLg) {
-  ensurePulseMemory(lg);
-}
+  if (loopEnabled && hasLg) {
+    ensurePulseMemory(lg);
+  }
 
   updateFormula();
   renderTimeline();
