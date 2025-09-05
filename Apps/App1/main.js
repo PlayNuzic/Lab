@@ -98,6 +98,7 @@ let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
 let suppressClickIndex = null;       // per evitar doble-toggle en drag start
+let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 // --- Drag selection state ---
 let isDragging = false;
 let lastDragIndex = null;
@@ -145,13 +146,29 @@ function computeHitSizePx(lg){
 
 
 // Hovers for LEDs and controls
-attachHover(ledLg, { text: 'Lg calculado automáticamente' });
-attachHover(ledV, { text: 'V calculado automáticamente' });
-attachHover(ledT, { text: 'T calculado automáticamente' });
+attachHover(ledLg, { text: 'Recalcula "Lg"' });
+attachHover(ledV, { text: 'Recalcula "V"' });
+attachHover(ledT, { text: 'Recalcula "T"' });
 attachHover(playBtn, { text: 'Play / Stop' });
 attachHover(loopBtn, { text: 'Loop' });
 attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
+
+function setAuto(target) {
+  autoTarget = autoTarget === target ? null : target;
+  delete inputLg.dataset.auto;
+  delete inputV.dataset.auto;
+  delete inputT.dataset.auto;
+  if (autoTarget === 'Lg') inputLg.dataset.auto = '1';
+  else if (autoTarget === 'V') inputV.dataset.auto = '1';
+  else if (autoTarget === 'T') inputT.dataset.auto = '1';
+  updateAutoIndicator();
+  handleInput();
+}
+
+ledLg?.addEventListener('click', () => setAuto('Lg'));
+ledV?.addEventListener('click', () => setAuto('V'));
+ledT?.addEventListener('click', () => setAuto('T'));
 
 const storeKey = (k) => `app1:${k}`;
 const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
