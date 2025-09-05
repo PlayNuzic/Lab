@@ -365,6 +365,49 @@ bindUnit(inputT, unitT);
 updateFormula();
 updateAutoIndicator();
 
+const inputToLed = new Map([
+  [inputLg, ledLg],
+  [inputV, ledV],
+  [inputT, ledT],
+]);
+
+const autoTip = document.createElement('div');
+autoTip.className = 'hover-tip auto-tip-below';
+autoTip.textContent = 'LED marcado para recalcular. Seleccione otro LED para recalcular su valor';
+document.body.appendChild(autoTip);
+let autoTipTimeout = null;
+
+function showAutoTip(input){
+  const rect = input.getBoundingClientRect();
+  autoTip.style.left = rect.left + rect.width / 2 + 'px';
+  // Show below the input (use bottom instead of top)
+  autoTip.style.top = rect.bottom + window.scrollY + 'px';
+  autoTip.classList.add('show');
+  clearTimeout(autoTipTimeout);
+  // Display twice as long as before
+  autoTipTimeout = setTimeout(() => autoTip.classList.remove('show'), 4000);
+}
+
+function flashOtherLeds(excludeInput){
+  const excludeLed = inputToLed.get(excludeInput);
+  [ledLg, ledV, ledT].forEach(led => {
+    if (led && led !== excludeLed) {
+      led.classList.add('flash');
+      setTimeout(() => led.classList.remove('flash'), 800);
+    }
+  });
+}
+
+[inputLg, inputV, inputT].forEach(input => {
+  input.addEventListener('beforeinput', (e) => {
+    if (input.dataset.auto === '1') {
+      showAutoTip(input);
+      flashOtherLeds(input);
+      e.preventDefault();
+    }
+  });
+});
+
 function setValue(input, value){
   isUpdating = true;
   input.value = String(value);
