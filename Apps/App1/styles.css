@@ -245,3 +245,24 @@
 
 /* Dark theme reinforcement: hide circular guide to avoid double ring */
 body[data-theme='dark'] .circle-guide { opacity: 0 !important; }
+
+.param .circle .led.flash {
+  /* Triple flash within same 0.8s window */
+  animation: ledRecalcFlash 0.8s linear;
+}
+
+@keyframes ledRecalcFlash {
+  0%   { opacity: 0.3; }
+  10%  { opacity: 1; }
+  20%  { opacity: 0.3; }
+  45%  { opacity: 1; }
+  55%  { opacity: 0.3; }
+  80%  { opacity: 1; }
+  90%  { opacity: 0.3; }
+  100% { opacity: 0.3; }
+}
+
+/* Position the auto-calculation tip below the input */
+.hover-tip.auto-tip-below {
+  transform: translate(-50%, 8px);
+}
