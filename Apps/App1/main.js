@@ -155,6 +155,10 @@ attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
 
 function setAuto(target) {
+<<<<<<< Updated upstream
+=======
+  // Toggle behavior for user clicks
+>>>>>>> Stashed changes
   autoTarget = autoTarget === target ? null : target;
   delete inputLg.dataset.auto;
   delete inputV.dataset.auto;
@@ -166,6 +170,23 @@ function setAuto(target) {
   handleInput();
 }
 
+<<<<<<< Updated upstream
+=======
+// Set autoTarget explicitly (no toggle). Used when computing the 3rd value from 2 known.
+function setAutoExact(target, opts = {}){
+  const { recalc = false } = opts;
+  autoTarget = target;
+  delete inputLg.dataset.auto;
+  delete inputV.dataset.auto;
+  delete inputT.dataset.auto;
+  if (autoTarget === 'Lg') inputLg.dataset.auto = '1';
+  else if (autoTarget === 'V') inputV.dataset.auto = '1';
+  else if (autoTarget === 'T') inputT.dataset.auto = '1';
+  updateAutoIndicator();
+  if (recalc) handleInput();
+}
+
+>>>>>>> Stashed changes
 ledLg?.addEventListener('click', () => setAuto('Lg'));
 ledV?.addEventListener('click', () => setAuto('V'));
 ledT?.addEventListener('click', () => setAuto('T'));
