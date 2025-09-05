@@ -155,10 +155,7 @@ attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
 
 function setAuto(target) {
-<<<<<<< Updated upstream
-=======
   // Toggle behavior for user clicks
->>>>>>> Stashed changes
   autoTarget = autoTarget === target ? null : target;
   delete inputLg.dataset.auto;
   delete inputV.dataset.auto;
@@ -170,8 +167,6 @@ function setAuto(target) {
   handleInput();
 }
 
-<<<<<<< Updated upstream
-=======
 // Set autoTarget explicitly (no toggle). Used when computing the 3rd value from 2 known.
 function setAutoExact(target, opts = {}){
   const { recalc = false } = opts;
@@ -186,7 +181,6 @@ function setAutoExact(target, opts = {}){
   if (recalc) handleInput();
 }
 
->>>>>>> Stashed changes
 ledLg?.addEventListener('click', () => setAuto('Lg'));
 ledV?.addEventListener('click', () => setAuto('V'));
 ledT?.addEventListener('click', () => setAuto('T'));
@@ -439,12 +433,6 @@ function handleInput(e){
 
   // decisió
   if (twoKnown) {
-<<<<<<< Updated upstream
-    // sempre calcula la tercera que falta
-    if (!hasT)      calcT();
-    else if (!hasV) calcV();
-    else if (!hasLg)calcLg();
-=======
     // sempre calcula la tercera que falta i fixa l'autoTarget a aquest camp
     if (!hasT) {
       calcT();
@@ -458,7 +446,6 @@ function handleInput(e){
       calcLg();
       if (autoTarget !== 'Lg') setAutoExact('Lg');
     }
->>>>>>> Stashed changes
   } else if (threeKnown && autoTarget) {
     if (autoTarget === 'T')      calcT();
     else if (autoTarget === 'V') calcV();
