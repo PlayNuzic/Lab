@@ -283,8 +283,8 @@ tapBtn.addEventListener('click', () => {
   }
   const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
   const bpm = Math.round((60000 / avg) * 100) / 100;
-  inputV.value = String(bpm);
-  inputV.dispatchEvent(new Event('input'));
+  setValue(inputV, bpm);
+  handleInput({ target: inputV });
 
   if (isPlaying && audio && typeof audio.setTempo === 'function') {
     audio.setTempo(bpm);
