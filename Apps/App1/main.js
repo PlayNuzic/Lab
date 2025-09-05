@@ -439,10 +439,26 @@ function handleInput(e){
 
   // decisió
   if (twoKnown) {
+<<<<<<< Updated upstream
     // sempre calcula la tercera que falta
     if (!hasT)      calcT();
     else if (!hasV) calcV();
     else if (!hasLg)calcLg();
+=======
+    // sempre calcula la tercera que falta i fixa l'autoTarget a aquest camp
+    if (!hasT) {
+      calcT();
+      if (autoTarget !== 'T') setAutoExact('T');
+    }
+    else if (!hasV) {
+      calcV();
+      if (autoTarget !== 'V') setAutoExact('V');
+    }
+    else if (!hasLg) {
+      calcLg();
+      if (autoTarget !== 'Lg') setAutoExact('Lg');
+    }
+>>>>>>> Stashed changes
   } else if (threeKnown && autoTarget) {
     if (autoTarget === 'T')      calcT();
     else if (autoTarget === 'V') calcV();
