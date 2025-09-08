@@ -739,6 +739,7 @@ function renderTimeline(){
     hit.style.borderRadius = '50%';
     hit.style.background = 'transparent';
     hit.style.zIndex = '6'; // above pulses and bars
+    hit.style.cursor = 'pointer';
 
     const hitSize = computeHitSizePx(lg);
     hit.style.width = hitSize + 'px';
