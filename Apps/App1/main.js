@@ -99,6 +99,8 @@ let tapTimes = [];
 let circularTimeline = false;
 let suppressClickIndex = null;       // per evitar doble-toggle en drag start
 let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
+// Track manual selection recency (oldest -> newest among the two manual LEDs)
+let manualHistory = [];
 // --- Drag selection state ---
 let isDragging = false;
 let lastDragIndex = null;
@@ -146,25 +148,76 @@ function computeHitSizePx(lg){
 
 
 // Hovers for LEDs and controls
-attachHover(ledLg, { text: 'Recalcula "Lg"' });
-attachHover(ledV, { text: 'Recalcula "V"' });
-attachHover(ledT, { text: 'Recalcula "T"' });
+// LEDs ahora indican los campos editables; el apagado se recalcula
+attachHover(ledLg, { text: 'Entrada manual de "Lg"' });
+attachHover(ledV, { text: 'Entrada manual de "V"' });
+attachHover(ledT, { text: 'Entrada manual de "T"' });
 attachHover(playBtn, { text: 'Play / Stop' });
 attachHover(loopBtn, { text: 'Loop' });
 attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
 
+// Helper: current manual keys from DOM (those whose LED should be ON)
+function getManualKeys(){
+  const keys = [];
+  if (inputLg.dataset.auto !== '1') keys.push('Lg');
+  if (inputV.dataset.auto !== '1') keys.push('V');
+  if (inputT.dataset.auto !== '1') keys.push('T');
+  return keys;
+}
+
+// Keep manualHistory consistent with current DOM state while preserving existing order when possible
+function syncManualHistory(){
+  const manual = new Set(getManualKeys());
+  // Keep only still-manual keys, preserving order
+  manualHistory = manualHistory.filter(k => manual.has(k));
+  // Add any missing manual keys at the end (treated as most-recent without better info)
+  ['Lg','V','T'].forEach(k => { if (manual.has(k) && !manualHistory.includes(k)) manualHistory.push(k); });
+  // Clamp to at most 2
+  if (manualHistory.length > 2) manualHistory = manualHistory.slice(-2);
+}
+
+// New behavior: clicking a LED selects it as MANUAL. We always keep exactly 2 manuals; the other goes AUTO.
 function setAuto(target) {
-  // Toggle behavior for user clicks
-  autoTarget = autoTarget === target ? null : target;
-  delete inputLg.dataset.auto;
-  delete inputV.dataset.auto;
-  delete inputT.dataset.auto;
-  if (autoTarget === 'Lg') inputLg.dataset.auto = '1';
-  else if (autoTarget === 'V') inputV.dataset.auto = '1';
-  else if (autoTarget === 'T') inputT.dataset.auto = '1';
-  updateAutoIndicator();
-  handleInput();
+  // Ensure history reflects DOM before changing
+  syncManualHistory();
+
+  const inputs = { Lg: inputLg, V: inputV, T: inputT };
+  const isManual = inputs[target].dataset.auto !== '1';
+
+  // If target is already manual, just mark it as the latest selected (affects which one turns off next time)
+  if (isManual) {
+    manualHistory = manualHistory.filter(k => k !== target);
+    manualHistory.push(target);
+    updateAutoIndicator();
+    return;
+  }
+
+  // Target is currently AUTO -> make it MANUAL, turning OFF the last turned-on manual to keep 2
+  const currentManual = getManualKeys();
+  if (currentManual.length === 0) {
+    // Fallback: if something odd happened, choose an arbitrary other manual so we end with 2
+    const other = ['Lg','V','T'].find(k => k !== target) || 'Lg';
+    const autoKey = ['Lg','V','T'].find(k => k !== target && k !== other) || 'T';
+    setAutoExact(autoKey, { recalc: true });
+    manualHistory = [other, target];
+    return;
+  }
+  if (currentManual.length === 1) {
+    const otherManual = currentManual[0];
+    const autoKey = ['Lg','V','T'].find(k => k !== otherManual && k !== target);
+    setAutoExact(autoKey, { recalc: true });
+    manualHistory = [otherManual, target];
+    return;
+  }
+  // Normal case: 2 manuals present
+  syncManualHistory();
+  const toTurnOff = manualHistory.length ? manualHistory[manualHistory.length - 1] : currentManual[currentManual.length - 1];
+  const otherManual = currentManual.find(k => k !== toTurnOff);
+  // Set the one to turn off as AUTO; recalc so its value is derived
+  setAutoExact(toTurnOff, { recalc: true });
+  // Update manual recency: older stays, target becomes newest
+  manualHistory = [otherManual, target];
 }
 
 // Set autoTarget explicitly (no toggle). Used when computing the 3rd value from 2 known.
@@ -373,7 +426,7 @@ const inputToLed = new Map([
 
 const autoTip = document.createElement('div');
 autoTip.className = 'hover-tip auto-tip-below';
-autoTip.textContent = 'LED marcado para recalcular. Seleccione otro LED para recalcular su valor';
+autoTip.textContent = 'Introduce valores en los otros dos círculos, o selecciona este LED para editar el valor';
 document.body.appendChild(autoTip);
 let autoTipTimeout = null;
 
@@ -879,9 +932,10 @@ function updateNumbers(){
 }
 
 function updateAutoIndicator(){
-  ledLg?.classList.toggle('on', inputLg.dataset.auto === '1');
-  ledV?.classList.toggle('on', inputV.dataset.auto === '1');
-  ledT?.classList.toggle('on', inputT.dataset.auto === '1');
+  // Los LEDs encendidos son los campos editables; el apagado se recalcula
+  ledLg?.classList.toggle('on', inputLg.dataset.auto !== '1');
+  ledV?.classList.toggle('on', inputV.dataset.auto !== '1');
+  ledT?.classList.toggle('on', inputT.dataset.auto !== '1');
 }
 
 playBtn.addEventListener('click', async () => {

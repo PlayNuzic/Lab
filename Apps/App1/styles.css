@@ -266,3 +266,28 @@ body[data-theme='dark'] .circle-guide { opacity: 0 !important; }
 .hover-tip.auto-tip-below {
   transform: translate(-50%, 8px);
 }
+
+/* Expand LED click target without changing its visual size */
+.param .circle .led {
+  position: absolute; /* ensure containing block for ::before */
+  z-index: 2;
+}
+.param .circle .led::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent; /* keep original visual size; only grow hit area */
+  cursor: inherit; /* keep pointer cursor */
+}
+
+@media (max-width: 600px) {
+  .param .circle .led::before {
+    width: 32px;
+    height: 32px;
+  }
+}
