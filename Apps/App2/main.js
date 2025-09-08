@@ -1040,7 +1040,11 @@ function highlightPulse(i){
   // il·lumina el pols actual
   const idx = i % pulses.length;
   const current = pulses[idx];
-  if (current) current.classList.add('active');
+  if (current) {
+    // Força un reflow perquè l'animació es reiniciï encara que es repeteixi el mateix pols
+    void current.offsetWidth;
+    current.classList.add('active');
+  }
 
   // si hi ha loop i som al primer pols, també il·lumina l’últim
   if (loopEnabled && idx === 0) {
