@@ -48,7 +48,6 @@ const loopBtn = document.getElementById('loopBtn');
 const resetBtn = document.getElementById('resetBtn');
 const tapBtn = document.getElementById('tapTempoBtn');
 const tapHelp = document.getElementById('tapHelp');
-const showNumbers = document.getElementById('showNumbers');
 const circularTimelineToggle = document.getElementById('circularTimelineToggle');
 // Mute is managed by the shared header (#muteBtn)
 const themeSelect = document.getElementById('themeSelect');
@@ -279,11 +278,6 @@ selectColor.addEventListener('input', e => {
   saveOpt('color', e.target.value);
 });
 
-showNumbers.checked = loadOpt('showNumbers') === '1';
-showNumbers.addEventListener('change', e => {
-  saveOpt('showNumbers', e.target.checked ? '1' : '0');
-  updateNumbers();
-});
 updateNumbers();
 
 circularTimelineToggle.checked = loadOpt('circular') === '1';
@@ -981,7 +975,7 @@ function updateNumbers(){
   showNumber(lgForNumbers);
 
   // la resta només si no és massa dens i està activat
-  if (!tooDense && showNumbers.checked) {
+  if (!tooDense) {
     pulses.forEach((p, i) => {
       if (i !== 0 && i !== lgForNumbers && selectedPulses.has(i)) {
         showNumber(i);
