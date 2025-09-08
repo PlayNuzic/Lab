@@ -511,7 +511,11 @@ body[data-theme='dark'] .tap {
     height: 32px;
     font-size: 0.9rem;
   }
-  
+
+  .top-bar h1 {
+    font-size: 1.5rem;
+  }
+
   /* Reduce el radio en móvil */
   .tap {
     top: calc(50% + 60px);
