@@ -1,7 +1,7 @@
 import { TimelineAudio, soundNames } from '../../libs/sound/index.js';
 import { ensureAudio } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
-import { computeHitSizePx, solidMenuBackground } from './utils.js';
+import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -68,18 +68,6 @@ function ensurePulseMemory(size) {
   if (size >= pulseMemory.length) {
     for (let i = pulseMemory.length; i <= size; i++) pulseMemory[i] = false;
   }
-}
-
-// Font scaling for pulse numbers: tuned for Lg=30 -> ~1.6rem
-function computeNumberFontRem(lg) {
-  const BASE_REM = 1.3;   // ideal size at Lg=30
-  const TARGET   = 30;    // reference Lg
-  const K        = 0.5;   // perceptual exponent (sqrt scaling)
-  const MIN_REM  = 1.0;   // clamp min size
-  const MAX_REM  = 2.4;   // clamp max size
-  const safeLg   = Math.max(1, Number(lg) || 1);
-  const scale    = Math.pow(TARGET / safeLg, K);
-  return Math.max(MIN_REM, Math.min(MAX_REM, BASE_REM * scale));
 }
 
 // UI thresholds for number rendering

@@ -5,165 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Línea Temporal</title>
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="/favicon.ico" />
-
 </head>
 <body data-theme="system">
-  <header class="top-bar">
-    <details class="menu" id="optionsMenu">
-      <summary>☰</summary>
-      <div class="options-content">
-        <label for="themeSelect">Tema:
-          <select id="themeSelect">
-            <option value="system" selected>Sistema</option>
-            <option value="light">Claro</option>
-            <option value="dark">Oscuro</option>
-          </select>
-        </label>
-        <label for="hoverToggle">Etiquetas de ayuda <input type="checkbox" id="hoverToggle" checked /></label>
-        <label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle" /></label>
-
-        <details>
-          <summary>Sonidos</summary>
-          <div class="sound-group">
-            <p>Metrónomo</p>
-            <div class="preview-row">
-              <label for="baseSoundSelect" style="display:none"></label>
-              <select id="baseSoundSelect"></select>
-              <button type="button" id="previewBaseBtn" class="preview-btn">Escuchar</button>
-            </div>
-            <p>Acento</p>
-            <div class="preview-row">
-              <label for="accentSoundSelect" style="display:none"></label>
-              <select id="accentSoundSelect"></select>
-              <button type="button" id="previewAccentBtn" class="preview-btn">Escuchar</button>
-            </div>
-          </div>
-        </details>
-        <label for="schedProfileSelect">Rendimiento:
-          <select id="schedProfileSelect">
-            <option value="mobile">Móvil</option>
-            <option value="balanced" selected>Equilibrado</option>
-            <option value="desktop">Escritorio</option>
-          </select>
-        </label>
-</div>
-    </details>
-    <h1>Línea Temporal</h1>
-    <button id="muteBtn" class="sound" aria-label="Sonido"></button>
-  </header>
-
-  <main>
-    <section class="inputs">
-      <div class="param lg">
-        <span class="abbr">Lg</span>
-        <div class="circle"><span class="unit" id="unitLg">Pulsos</span><span class="led" id="ledLg"></span><input id="inputLg" type="number" min="1" step="1" />
-          <div class="spinner">
-            <button id="inputLgUp" class="spin up" type="button" aria-label="Incrementar Lg"></button>
-            <button id="inputLgDown" class="spin down" type="button" aria-label="Decrementar Lg"></button>
-          </div>
-        </div>
-      </div>
-      <div class="param v">
-        <span class="abbr">V</span>
-        <div class="circle"><span class="unit" id="unitV">BPM</span><span class="led" id="ledV"></span><input id="inputV" type="number" min="1" step="1" />
-          <div class="spinner">
-            <button id="inputVUp" class="spin up" type="button" aria-label="Incrementar V"></button>
-            <button id="inputVDown" class="spin down" type="button" aria-label="Decrementar V"></button>
-          </div>
-        </div>
-      </div>
-      <div class="param t">
-        <span class="abbr">T</span>
-        <div class="circle"><span class="unit" id="unitT">segundos</span><span class="led" id="ledT"></span><input id="inputT" type="text"
-       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="decimal">
-       <div class="spinner">
-         <button id="inputTUp" class="spin up" type="button" aria-label="Incrementar T"></button>
-         <button id="inputTDown" class="spin down" type="button" aria-label="Decrementar T"></button>
-       </div></div>
-      </div>
-    </section>
-
-    <section class="middle">
-      <div id="formula" class="formula"></div>
-    </section>
-
-    <section class="timeline-wrapper" id="timelineWrapper">
-      <section class="timeline" id="timeline"></section>
-
-      <div class="controls">
-      <button id="loopBtn" class="loop" aria-label="Loop">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
-    <path d="M370.7 133.3C338 100.6 297.9 85.3 256 85.3c-84.6 0-154.7 61.4-169.3 141.3H32l74.7 74.7 74.7-74.7H117.3c13.3-56.9 64.4-100 126.7-100 36.5 0 70.6 14.2 96.3 39.9l30.4-30.2zm70.6 152.1l-74.7-74.7-74.7 74.7h42.1c-13.3 56.9-64.4 100-126.7 100-36.5 0-70.6-14.2-96.3-39.9l-30.4 30.2C174 411.4 214.1 426.7 256 426.7c84.6 0 154.7-61.4 169.3-141.3h42.1z"/>
-      </svg>
-  </button>
-      <div class="play-group">
-     <button id="playBtn" class="play" aria-label="Play">
-  <!-- Icona Play (triangle) -->
-  <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
-    <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
-  </svg>
-  <!-- Icona Stop (quadrat) -->
-  <svg class="icon-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" style="display:none">
-    <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
-  </svg>
-</button>
-     <button id="tapTempoBtn" class="tap" aria-label="Tap Tempo">
-  <svg
-  xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 512 512"
-  width="512" height="512"
-  role="img" aria-labelledby="tapTempoTitle tapTempoDesc"
->
-  <title id="tapTempoTitle">Tap Tempo</title>
-  <desc id="tapTempoDesc">Cercle de botó amb un dit que toca i ones de tap a sobre</desc>
-
-  <!-- Estil general -->
-  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24">
-    <!-- Botó (contorn) -->
-    <circle cx="256" cy="256" r="224" />
-
-    <!-- Ones de tap (ripple) a sobre del dit -->
-    <!-- Arc exterior -->
-    <path d="M176 128a160 160 0 0 1 160 0" />
-    <!-- Arc mitjà -->
-    <path d="M200 156a120 120 0 0 1 112 0" />
-    <!-- Arc interior -->
-    <path d="M224 180a80 80 0 0 1 64 0" />
-
-    <!-- Punt de tap (objectiu) -->
-    <circle cx="256" cy="192" r="10" fill="currentColor" stroke="none"/>
-
-    <!-- Dit (traç gruixut per destacar) -->
-    <line x1="256" y1="360" x2="256" y2="200" stroke-width="48" />
-
-    <!-- Palma simplificada (suport del dit) -->
-    <path d="M256 360
-             c 40 0 70 18 90 46
-             M256 360
-             c -40 0 -70 18 -90 46" />
-  </g>
-</svg>
-     </button>
-     <span id="tapHelp" class="tap-help">Se necesitan 3 clicks</span>
-     </div>
-     <button id="resetBtn" class="reset" aria-label="Reset">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
-    <path d="M256 32C114.6 32 0 146.6 0 288h64c0-97.2 78.8-176 176-176 43 0 82.5 15.3 113.1 40.8L304 224h208V16L454.6 73.4C408.4 29.3 335.1 0 256 0z"/>
-  </svg>
-</button>
-      </div>
-    </section>
-  </main>
+  <div id="app-root"></div>
   <!-- Load Tone.js as a global before module scripts -->
   <script src="../../libs/vendor/Tone.js"></script>
   <script type="module">
     import { initHeader } from '../../libs/shared-ui/header.js';
-    // Wire shared header controls (scheduling/theme/mute/color)
+    import { renderApp } from '../../libs/app-common/template.js';
+    renderApp({ root: document.getElementById('app-root'), title: 'Línea Temporal', showSelectColor: false });
     initHeader();
-    // Load the app afterwards
-    import './main.js';
+    import('./main.js');
   </script>
 </body>
 </html>

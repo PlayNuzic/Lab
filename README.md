@@ -42,7 +42,9 @@ ssh -T git@github.com
 El repositori es divideix en diversos espais lògics:
 
 - `Apps/`: Conté cada mini-app amb la seva UI específica.
-  - `App1/`: utilitats com `computeHitSizePx` i `solidMenuBackground` tenen tests dedicats.
+  - `App1/`
+  - `App2/`
+- `libs/app-common/`: utilitats comunes com `computeHitSizePx`, `computeNumberFontRem` i `solidMenuBackground` tenen tests dedicats.
 - `packages/`: Contindrà el codi compartit. Aquí s'espera afegir el repositori
   `PlayNuzic/IndexLab` com a submòdul de Git sota la ruta
   `packages/indexlab`.

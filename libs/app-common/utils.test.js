@@ -2,13 +2,19 @@
  * @jest-environment jsdom
  */
 import { describe, test, expect } from '@jest/globals';
-import { computeHitSizePx, solidMenuBackground } from './utils.js';
+import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 
-describe('App1 utils', () => {
+describe('Common utils', () => {
   test('computeHitSizePx scales and clamps values', () => {
     expect(computeHitSizePx(30)).toBe(32);
     expect(computeHitSizePx(1)).toBe(44);
     expect(computeHitSizePx(1000)).toBe(14);
+  });
+
+  test('computeNumberFontRem returns size between 1 and 2.4 rem', () => {
+    expect(computeNumberFontRem(30)).toBeCloseTo(1.3);
+    expect(computeNumberFontRem(1)).toBe(2.4);
+    expect(computeNumberFontRem(1000)).toBe(1.0);
   });
 
   test('solidMenuBackground applies theme colors', () => {
