@@ -56,9 +56,9 @@
 
 .timeline {
   position: relative;
-  width: 100%;
+  width: calc(100% - 40px);
   height: 80px;
-  margin: 20px auto;
+  margin: 20px;
   transition: width 0.4s ease, height 0.4s ease;
 }
 
@@ -125,7 +125,7 @@
 
 .pulse-number {
   position: absolute;
-  top: 85%;
+  top: 92%;
   font-size: 1.6rem;
   color: currentColor;
   transform: translateX(-50%); /* centrat sota el punt */
@@ -173,7 +173,8 @@
 
   .timeline {
     height: 40px;
-    margin: 15px;
+    width: calc(100% - 40px);
+    margin: 15px 20px;
   }
   
   

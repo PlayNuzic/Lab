@@ -853,8 +853,8 @@ function animateTimelineCircle(isCircular, opts = {}){
       const i = idx === 0 ? 0 : lg;
       const percent = (i / lg) * 100;
       bar.style.left = percent + '%';
-      bar.style.top = '0';
-      bar.style.height = '100%';
+      bar.style.top = '10%';
+      bar.style.height = '80%';
       bar.style.transform = '';
       bar.style.transformOrigin = '';
     });
@@ -898,8 +898,6 @@ function showNumber(i){
   } else {
     const percent = (i / (pulses.length - 1)) * 100;
     n.style.left = percent + '%';
-    if (i === 0) n.style.transform = 'translateX(40%)';
-    if (i === pulses.length - 1) n.style.transform = 'translateX(-140%)';
   }
 
   timeline.appendChild(n);
