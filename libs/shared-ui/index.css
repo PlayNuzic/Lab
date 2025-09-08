@@ -64,6 +64,27 @@ body[data-theme='dark'] {
   cursor: pointer;
 }
 
+.top-bar .sound {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  /* same hit area as menu */
+  padding: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;      /* remove grey background */
+  border: none;                 /* remove default button border */
+  color: var(--line-color);     /* use theme contrast color */
+}
+
+.top-bar .sound svg {
+  width: 2rem;                  /* scale icon to match menu size */
+  height: 2rem;
+  display: block;
+}
+
 .menu summary {
   cursor: pointer;
   font-family: 'Ubuntu', sans-serif;

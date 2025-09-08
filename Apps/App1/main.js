@@ -49,7 +49,7 @@ const resetBtn = document.getElementById('resetBtn');
 const tapBtn = document.getElementById('tapTempoBtn');
 const tapHelp = document.getElementById('tapHelp');
 const circularTimelineToggle = document.getElementById('circularTimelineToggle');
-const muteToggle = document.getElementById('muteToggle');
+// Mute is handled by shared header (#muteBtn). Listen for events instead.
 const themeSelect = document.getElementById('themeSelect');
 const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
@@ -196,12 +196,21 @@ if (storedTheme) themeSelect.value = storedTheme;
 applyTheme(themeSelect.value);
 themeSelect.addEventListener('change', e => applyTheme(e.target.value));
 
-const storedMute = loadOpt('mute');
-if (storedMute) muteToggle.checked = storedMute === '1';
-muteToggle.addEventListener('change', async e => {
-  saveOpt('mute', e.target.checked ? '1' : '0');
-  (await initAudio()).setMute(e.target.checked);
+// Persist and apply mute from shared header
+document.addEventListener('sharedui:mute', async (e) => {
+  const val = !!(e && e.detail && e.detail.value);
+  saveOpt('mute', val ? '1' : '0');
+  const a = await initAudio();
+  if (a && typeof a.setMute === 'function') a.setMute(val);
 });
+
+// Restore previous mute preference on load by toggling the shared button
+(() => {
+  try{
+    const saved = loadOpt('mute');
+    if (saved === '1') document.getElementById('muteBtn')?.click();
+  }catch{}
+})();
 
 updateNumbers();
 
@@ -567,12 +576,13 @@ function renderTimeline(){
     const p = document.createElement('div');
     p.className = 'pulse';
     p.dataset.index = i;
+    if (i === 0 || i === lg) p.classList.add('endpoint');
     timeline.appendChild(p);
     pulses.push(p);
 
     if (i === 0 || i === lg) {
       const bar = document.createElement('div');
-      bar.className = 'bar';
+      bar.className = 'bar endpoint';
       timeline.appendChild(bar);
     }
   }
@@ -709,6 +719,7 @@ function showNumber(i){
   const _lgForFont = pulses.length - 1;
   const fontRem = computeNumberFontRem(_lgForFont);
   n.style.fontSize = fontRem + 'rem';
+  if (i === 0 || i === _lgForFont) n.classList.add('endpoint');
 
    if (timeline.classList.contains('circular')) {
      const lg = pulses.length - 1;
