@@ -1,7 +1,7 @@
 import { TimelineAudio, soundNames } from '../../libs/sound/index.js';
 import { ensureAudio } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
-import { computeHitSizePx, solidMenuBackground } from './utils.js';
+import { solidMenuBackground } from './utils.js';
 // Using local header controls for App1 (no shared init)
 
 let audio;
@@ -48,28 +48,15 @@ const loopBtn = document.getElementById('loopBtn');
 const resetBtn = document.getElementById('resetBtn');
 const tapBtn = document.getElementById('tapTempoBtn');
 const tapHelp = document.getElementById('tapHelp');
-const showNumbers = document.getElementById('showNumbers');
 const circularTimelineToggle = document.getElementById('circularTimelineToggle');
 const muteToggle = document.getElementById('muteToggle');
 const themeSelect = document.getElementById('themeSelect');
-const selectColor = document.getElementById('selectColor');
 const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
 const previewBaseBtn = document.getElementById('previewBaseBtn');
 const previewAccentBtn = document.getElementById('previewAccentBtn');
 
 let pulses = [];
-// Hit targets (separate from the visual dots) and drag mode
-let pulseHits = [];
-let dragMode = 'select'; // 'select' | 'deselect'
-// --- Selection memory across Lg changes ---
-let pulseMemory = []; // index -> selected
-
-function ensurePulseMemory(size) {
-  if (size >= pulseMemory.length) {
-    for (let i = pulseMemory.length; i <= size; i++) pulseMemory[i] = false;
-  }
-}
 
 // Font scaling for pulse numbers: tuned for Lg=30 -> ~1.6rem
 function computeNumberFontRem(lg) {
@@ -87,60 +74,15 @@ function computeNumberFontRem(lg) {
 const NUMBER_HIDE_THRESHOLD = 100;   // from this Lg and above, hide numbers
 const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
 
-// --- Selecció viva per a l'àudio (filtrada: sense 0 ni lg) ---
-function selectedForAudioFromState() {
-  const lg = parseInt(inputLg.value);
-  const set = new Set();
-  if (!isNaN(lg) && lg > 0) {
-    for (let i = 1; i < lg && i < pulseMemory.length; i++) {
-      if (pulseMemory[i]) set.add(i);
-    }
-  }
-  return set;
-}
-const selectedPulses = new Set();
 let isPlaying = false;
 let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
-let suppressClickIndex = null;       // per evitar doble-toggle en drag start
 let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 // Track manual selection recency (oldest -> newest among the two manual LEDs)
 let manualHistory = [];
-// --- Drag selection state ---
-let isDragging = false;
-let lastDragIndex = null;
 
-// Start drag on the timeline area and decide drag mode based on first pulse under pointer
-timeline.addEventListener('pointerdown', (e) => {
-  isDragging = true;
-  lastDragIndex = null;
-  dragMode = 'select';
-  const target = e.target.closest('.pulse-hit, .pulse');
-  if (target && typeof target.dataset.index !== 'undefined') {
-    const idx = parseInt(target.dataset.index, 10);
-    if (!Number.isNaN(idx)) {
-      ensurePulseMemory(idx);
-      dragMode = pulseMemory[idx] ? 'deselect' : 'select';
-      // APLICAR acció immediata sobre el primer pols sota el cursor
-      setPulseSelected(idx, dragMode === 'select');
-      // Evitar que el clic de mouseup inverteixi el que acabem de fer
-      suppressClickIndex = idx;
-    }
-  }
-});
-// End/Cancel drag globally
-document.addEventListener('pointerup', () => {
-  isDragging = false;
-  lastDragIndex = null;
-  // Do not clear suppressClickIndex here; allow click handler to consume it
-});
-document.addEventListener('pointercancel', () => {
-  isDragging = false;
-  lastDragIndex = null;
-  suppressClickIndex = null; 
-});
 // Hovers for LEDs and controls
 // LEDs ahora indican los campos editables; el apagado se recalcula
 attachHover(ledLg, { text: 'Entrada manual de "Lg"' });
@@ -261,21 +203,6 @@ muteToggle.addEventListener('change', async e => {
   (await initAudio()).setMute(e.target.checked);
 });
 
-const storedColor = loadOpt('color');
-if (storedColor) {
-  selectColor.value = storedColor;
-  document.documentElement.style.setProperty('--selection-color', storedColor);
-}
-selectColor.addEventListener('input', e => {
-  document.documentElement.style.setProperty('--selection-color', e.target.value);
-  saveOpt('color', e.target.value);
-});
-
-showNumbers.checked = loadOpt('showNumbers') === '1';
-showNumbers.addEventListener('change', e => {
-  saveOpt('showNumbers', e.target.checked ? '1' : '0');
-  updateNumbers();
-});
 updateNumbers();
 
 circularTimelineToggle.checked = loadOpt('circular') === '1';
@@ -290,17 +217,6 @@ animateTimelineCircle(loopEnabled && circularTimeline);
 loopBtn.addEventListener('click', () => {
   loopEnabled = !loopEnabled;
   loopBtn.classList.toggle('active', loopEnabled);
-  const lg = parseInt(inputLg.value);
-  if (!isNaN(lg)) {
-    ensurePulseMemory(lg);
-    // Rebuild visible selection from memory and refresh labels
-    syncSelectedFromMemory();
-    updateNumbers();
-    if (isPlaying && typeof audio.setSelected === 'function') {
-      audio.setSelected(selectedForAudioFromState());
-    }
-  }
-  // Sincronitza amb el motor en temps real si està sonant
   if (isPlaying && audio && typeof audio.setLoop === 'function') {
     audio.setLoop(loopEnabled);
   }
@@ -308,7 +224,6 @@ loopBtn.addEventListener('click', () => {
 });
 
 resetBtn.addEventListener('click', () => {
-  pulseMemory = [];
   window.location.reload();
 });
 
@@ -601,11 +516,6 @@ function handleInput(e){
     else if (autoTarget === 'Lg')calcLg();
   }
 
-  // Manté el cercle del timeline si el loop està actiu (sense tocar memòria)
-  if (loopEnabled && hasLg) {
-    ensurePulseMemory(lg);
-  }
-
   updateFormula();
   renderTimeline();
   updateAutoIndicator();
@@ -613,9 +523,6 @@ function handleInput(e){
   if (isPlaying && audio) {
     const lgNow = parseInt(inputLg.value);
     const vNow  = parseFloat(inputV.value);
-    if (typeof audio.setSelected === 'function') {
-      audio.setSelected(selectedForAudioFromState());
-    }
     if (typeof audio.setTotal === 'function' && !isNaN(lgNow) && lgNow > 0) {
       audio.setTotal(lgNow);
     }
@@ -649,133 +556,28 @@ function updateFormula(){
   attachHover(formula.querySelector('.bottom:not(.v)'), { text: 'segundos' });
 }
 
-// Rebuild selectedPulses (visible set) from pulseMemory and current Lg, then apply DOM classes
-function syncSelectedFromMemory() {
-  const lg = parseInt(inputLg.value);
-  if (isNaN(lg) || lg <= 0) return;
-
-  selectedPulses.clear();
-
-  // 1) Persistència: només índexs interns (1..lg-1)
-  const maxIdx = Math.min(lg - 1, pulseMemory.length - 1);
-  for (let i = 1; i <= maxIdx; i++) {
-    if (pulseMemory[i]) selectedPulses.add(i);
-  }
-
-  // 2) Extrems: efímers (derivats del loop)
-  if (loopEnabled) {
-    selectedPulses.add(0);
-    selectedPulses.add(lg);
-  }
-
-  // Aplica al DOM
-  pulses.forEach((p, idx) => {
-    if (!p) return;
-    p.classList.toggle('selected', selectedPulses.has(idx));
-  });
-}
-
-// Deterministically set selection state for index i, respecting 0/Lg pairing when loopEnabled
-function setPulseSelected(i, shouldSelect) {
-  const lg = parseInt(inputLg.value);
-  if (isNaN(lg) || lg < 0) return;
-  ensurePulseMemory(Math.max(i, lg));
-
-  if (i === 0 || i === lg) {
-    // Extrems: controlen loopEnabled (estat efímer)
-    loopEnabled = !!shouldSelect;
-    loopBtn.classList.toggle('active', loopEnabled);
-  } else {
-    pulseMemory[i] = shouldSelect;
-  }
-
-  syncSelectedFromMemory();
-  updateNumbers();
-
-  if (isPlaying && audio) {
-    if (typeof audio.setSelected === 'function') {
-      // Àudio sempre sense 0/Lg
-      audio.setSelected(selectedForAudioFromState());
-    }
-    if (typeof audio.setLoop === 'function') {
-      audio.setLoop(loopEnabled);
-    }
-  }
-
-  animateTimelineCircle(loopEnabled && circularTimeline);
-}
 
 function renderTimeline(){
   timeline.innerHTML = '';
   pulses = [];
-  pulseHits = [];
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0) return;
-  ensurePulseMemory(lg);
 
   for (let i = 0; i <= lg; i++) {
     const p = document.createElement('div');
     p.className = 'pulse';
     p.dataset.index = i;
-    // No listeners here: handled by hit targets
     timeline.appendChild(p);
     pulses.push(p);
 
-    // barres verticals extrems (0 i Lg)
     if (i === 0 || i === lg) {
       const bar = document.createElement('div');
       bar.className = 'bar';
       timeline.appendChild(bar);
     }
-
-    // Click/drag hit target (bigger than the visual dot)
-    const hit = document.createElement('div');
-    hit.className = 'pulse-hit';
-    hit.dataset.index = i;
-    hit.style.position = 'absolute';
-    hit.style.pointerEvents = 'auto';
-    hit.style.borderRadius = '50%';
-    hit.style.background = 'transparent';
-    hit.style.zIndex = '6'; // above pulses and bars
-
-    const hitSize = computeHitSizePx(lg);
-    hit.style.width = hitSize + 'px';
-    hit.style.height = hitSize + 'px';
-
-    // listeners on the hit target
-    hit.addEventListener('click', (ev) => {
-      if (suppressClickIndex === i) {
-        suppressClickIndex = null;
-        ev.preventDefault();
-        ev.stopPropagation();
-        return; // already applied on pointerdown
-      }
-      togglePulse(i);
-    });
-    hit.addEventListener('pointerenter', () => {
-      if (isDragging && lastDragIndex !== i) {
-        lastDragIndex = i;
-        setPulseSelected(i, dragMode === 'select');
-      }
-    });
-
-    timeline.appendChild(hit);
-    pulseHits.push(hit);
   }
-  syncSelectedFromMemory();
   animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
-}
-
-function togglePulse(i){
-  const lg = parseInt(inputLg.value);
-  if (isNaN(lg)) return;
-
-  if (i === 0 || i === lg) {
-    // Click a l’extrem → commuta el loop
-    setPulseSelected(i, !loopEnabled);
-  } else {
-    setPulseSelected(i, !pulseMemory[i]);
-  }
+  updateNumbers();
 }
 
 function animateTimelineCircle(isCircular, opts = {}){
@@ -832,15 +634,6 @@ function animateTimelineCircle(isCircular, opts = {}){
         p.style.transform = 'translate(-50%, -50%)';
       });
 
-      // Position hit targets over the pulse centers
-      pulseHits.forEach((h, i) => {
-        const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
-        h.style.left = x + 'px';
-        h.style.top = y + 'px';
-        h.style.transform = 'translate(-50%, -50%)';
-      });
 
       // Barres 0/Lg: llargada més curta i centrada en la circumferència
       bars.forEach((bar, idx) => {
@@ -866,7 +659,6 @@ function animateTimelineCircle(isCircular, opts = {}){
         bar.style.transform = 'rotate(' + (angle + Math.PI/2) + 'rad)';
       });
 
-      syncSelectedFromMemory();
       updateNumbers();
       // Apaga la guia circular un cop dibuixada l'anella real (evita doble cercle en mode fosc)
       if (!silent) {
@@ -895,12 +687,6 @@ function animateTimelineCircle(isCircular, opts = {}){
       p.style.top = '50%';
       p.style.transform = 'translate(-50%, -50%)';
     });
-    pulseHits.forEach((h, i) => {
-      const percent = (i / lg) * 100;
-      h.style.left = percent + '%';
-      h.style.top = '50%';
-      h.style.transform = 'translate(-50%, -50%)';
-    });
     bars.forEach((bar, idx) => {
       bar.style.display = 'block';
       const i = idx === 0 ? 0 : lg;
@@ -911,7 +697,6 @@ function animateTimelineCircle(isCircular, opts = {}){
       bar.style.transform = '';
       bar.style.transformOrigin = '';
     });
-    syncSelectedFromMemory();
     updateNumbers();
   }
 }
@@ -968,17 +753,13 @@ function updateNumbers(){
   const lgForNumbers = pulses.length - 1;
   const tooDense = lgForNumbers >= NUMBER_HIDE_THRESHOLD;
 
-  // sempre 0 i últim (inclús quan és massa dens)
   showNumber(0);
   showNumber(lgForNumbers);
 
-  // la resta només si no és massa dens i està activat
-  if (!tooDense && showNumbers.checked) {
-    pulses.forEach((p, i) => {
-      if (i !== 0 && i !== lgForNumbers && selectedPulses.has(i)) {
-        showNumber(i);
-      }
-    });
+  if (!tooDense) {
+    for (let i = 1; i < lgForNumbers; i++) {
+      showNumber(i);
+    }
   }
 }
 
@@ -1020,7 +801,7 @@ playBtn.addEventListener('click', async () => {
   const interval = 60 / v;
 
   // Filtra la selecció per a l'àudio: 0 és sempre accent i 'lg' coincideix amb 0 temporalment.
-  const selectedForAudio = new Set([...selectedPulses].filter(i => i > 0 && i < lg));
+  const selectedForAudio = new Set();
 
   const onFinish = () => {
     // Mode no loop: final net i una sola ruta de parada

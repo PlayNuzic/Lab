@@ -108,10 +108,6 @@
   transition: left 0.4s ease, top 0.4s ease, transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
-.pulse.selected {
-  background: var(--selection-color);
-}
-
 @keyframes pulseFlash {
   0% { transform: translate(-50%,-50%) scale(1); box-shadow: 0 0 0px var(--selection-color), 0 0 0px currentColor; }
   50% { transform: translate(-50%,-50%) scale(1.6); box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor; }
