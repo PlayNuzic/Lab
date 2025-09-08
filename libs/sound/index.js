@@ -242,14 +242,19 @@ export class TimelineAudio {
    * @param {string} key identificador del so
    */
   async setBase(key) {
-    if (this.baseKey === key) return;
-    this.baseKey = key;
-
-    if (this.samplers.base) {
-      this.samplers.base.dispose();
+    if (!key) return;
+    this._baseReqId = (this._baseReqId || 0) + 1;
+    const reqId = this._baseReqId;
+    const prev = this.samplers.base;
+    try {
+      const sampler = await this._createSampler(key);
+      if (reqId !== this._baseReqId) { sampler.dispose(); return; }
+      this.baseKey = key;
+      this.samplers.base = sampler;
+      if (prev) prev.dispose();
+    } catch (e) {
+      console.warn('Failed to set base sound', e);
     }
-
-    this.samplers.base = await this._createSampler(key);
   }
 
   /**
@@ -257,14 +262,19 @@ export class TimelineAudio {
    * @param {string} key identificador del so
    */
   async setAccent(key) {
-    if (this.accentKey === key) return;
-    this.accentKey = key;
-
-    if (this.samplers.accent) {
-      this.samplers.accent.dispose();
+    if (!key) return;
+    this._accentReqId = (this._accentReqId || 0) + 1;
+    const reqId = this._accentReqId;
+    const prev = this.samplers.accent;
+    try {
+      const sampler = await this._createSampler(key);
+      if (reqId !== this._accentReqId) { sampler.dispose(); return; }
+      this.accentKey = key;
+      this.samplers.accent = sampler;
+      if (prev) prev.dispose();
+    } catch (e) {
+      console.warn('Failed to set accent sound', e);
     }
-
-    this.samplers.accent = await this._createSampler(key);
   }
 
   async setSelectedSound(key) {
@@ -399,4 +409,3 @@ export class TimelineAudio {
     });
   }
 }
-

@@ -90,12 +90,13 @@ body[data-theme='dark'] {
   border: 2px solid var(--line-color);
   border-radius: 8px;
   min-width: 220px;
-  background: var(--bg-light);
+  /* Force solid background using theme vars (avoid any inherited transparency) */
+  background-color: var(--bg-light) !important;
   color: var(--text-light);
 }
 
 body[data-theme='dark'] .menu .options-content {
-  background: var(--bg-dark);
+  background-color: var(--bg-dark) !important;
   color: var(--text-dark);
 }
 
@@ -103,7 +104,8 @@ body[data-theme='dark'] .menu .options-content {
   position: absolute;
   top: 100%;
   left: 0;
-  z-index: 1;
+  /* Must sit above timeline pulses and other UI (they use z-index up to 6) */
+  z-index: 1000;
   max-height: 500px;
   opacity: 1;
 }

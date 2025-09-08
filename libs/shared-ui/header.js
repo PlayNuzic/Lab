@@ -65,16 +65,33 @@ function wireMenu(detailsEl) {
   const content = detailsEl.querySelector('.options-content');
   if (!content) return;
 
-  // Close the menu if user clicks outside while it's open
+  // Close the menu if user interacts outside while it's open
+  // Use pointerdown to avoid interfering with native <select> popups
   const handleOutside = (e) => {
-    if (detailsEl.open && !detailsEl.contains(e.target)) {
+    const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+    const inside = detailsEl.contains(e.target) || (path.length && path.includes(detailsEl));
+    if (detailsEl.open && !inside) {
       detailsEl.removeAttribute('open');
     }
   };
 
+  function solidMenuBackground(panel){
+    if(!panel) return;
+    const theme = document.body?.dataset?.theme || 'light';
+    const rootStyles = getComputedStyle(document.documentElement);
+    const bgVar = theme === 'dark' ? '--bg-dark' : '--bg-light';
+    const txtVar = theme === 'dark' ? '--text-dark' : '--text-light';
+    const bg = rootStyles.getPropertyValue(bgVar).trim() || getComputedStyle(document.body).backgroundColor;
+    const txt = rootStyles.getPropertyValue(txtVar).trim() || getComputedStyle(document.body).color;
+    panel.style.backgroundColor = bg;
+    panel.style.color = txt;
+    panel.style.backgroundImage = 'none';
+  }
+
   detailsEl.addEventListener('toggle', () => {
     if (detailsEl.open) {
-      document.addEventListener('click', handleOutside);
+      document.addEventListener('pointerdown', handleOutside);
+      solidMenuBackground(content);
       content.classList.add('opening');
       content.classList.remove('closing');
       content.style.maxHeight = content.scrollHeight + 'px';
@@ -83,7 +100,7 @@ function wireMenu(detailsEl) {
         content.style.maxHeight = '';
       }, { once: true });
     } else {
-      document.removeEventListener('click', handleOutside);
+      document.removeEventListener('pointerdown', handleOutside);
       content.classList.add('closing');
       content.classList.remove('opening');
       content.style.maxHeight = content.scrollHeight + 'px';
@@ -94,6 +111,11 @@ function wireMenu(detailsEl) {
         content.style.maxHeight = '';
       }, { once: true });
     }
+  });
+
+  // Re-apply if theme changes while menu is open
+  window.addEventListener('sharedui:theme', () => {
+    if (detailsEl.open) solidMenuBackground(content);
   });
 }
 

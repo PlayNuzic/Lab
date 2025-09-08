@@ -257,6 +257,8 @@ function applyTheme(val){
     document.body.dataset.theme = val;
   }
   saveOpt('theme', val);
+  // Notify shared listeners so dependent UI can refresh colors on the fly
+  try { window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: val } })); } catch {}
 }
 
 const storedTheme = loadOpt('theme');
@@ -1071,9 +1073,26 @@ function highlightPulse(i){
 const menu = document.querySelector('.menu');
 const optionsContent = document.querySelector('.menu .options-content');
 
+function solidMenuBackground(panel){
+  if(!panel) return;
+  // Resolve background using theme variables to avoid any transparent computed styles
+  const theme = document.body?.dataset?.theme || 'light';
+  const rootStyles = getComputedStyle(document.documentElement);
+  const bgVar = theme === 'dark' ? '--bg-dark' : '--bg-light';
+  const txtVar = theme === 'dark' ? '--text-dark' : '--text-light';
+  const bg = rootStyles.getPropertyValue(bgVar).trim() || getComputedStyle(document.body).backgroundColor;
+  const txt = rootStyles.getPropertyValue(txtVar).trim() || getComputedStyle(document.body).color;
+  panel.style.backgroundColor = bg;
+  panel.style.color = txt;
+  // Ensure no background-image sneaks in
+  panel.style.backgroundImage = 'none';
+}
+
 if (menu && optionsContent) {
   menu.addEventListener('toggle', () => {
     if (menu.open) {
+      // enforce solid background on open
+      solidMenuBackground(optionsContent);
       optionsContent.classList.add('opening');
       optionsContent.classList.remove('closing');
       optionsContent.style.maxHeight = optionsContent.scrollHeight + "px";
@@ -1094,5 +1113,10 @@ if (menu && optionsContent) {
         optionsContent.classList.remove('closing');
       }, { once: true });
     }
+  });
+
+  // Also re-apply if theme changes while menu is open
+  window.addEventListener('sharedui:theme', () => {
+    if (menu.open) solidMenuBackground(optionsContent);
   });
 }
