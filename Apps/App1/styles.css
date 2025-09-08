@@ -268,6 +268,15 @@ body[data-theme='dark'] .circle-guide { opacity: 0 !important; }
   transform: translate(-50%, 8px);
 }
 
+/* Hide native number spinners (we use custom ones inside the circles) */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+/* Ensure text doesn’t overlap custom spinner in Lg and V as well */
+.param.lg .circle input,
+.param.v  .circle input { padding-right: 24px; }
+
 /* Expand LED click target without changing its visual size */
 .param .circle .led {
   position: absolute; /* ensure containing block for ::before */

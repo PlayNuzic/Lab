@@ -61,16 +61,30 @@
     <section class="inputs">
       <div class="param lg">
         <span class="abbr">Lg</span>
-        <div class="circle"><span class="unit" id="unitLg">Pulsos</span><span class="led" id="ledLg"></span><input id="inputLg" type="number" min="1" step="1" /></div>
+        <div class="circle"><span class="unit" id="unitLg">Pulsos</span><span class="led" id="ledLg"></span><input id="inputLg" type="number" min="1" step="1" />
+          <div class="spinner">
+            <button id="inputLgUp" class="spin up" type="button" aria-label="Incrementar Lg"></button>
+            <button id="inputLgDown" class="spin down" type="button" aria-label="Decrementar Lg"></button>
+          </div>
+        </div>
       </div>
       <div class="param v">
         <span class="abbr">V</span>
-        <div class="circle"><span class="unit" id="unitV">BPM</span><span class="led" id="ledV"></span><input id="inputV" type="number" min="1" step="1" /></div>
+        <div class="circle"><span class="unit" id="unitV">BPM</span><span class="led" id="ledV"></span><input id="inputV" type="number" min="1" step="1" />
+          <div class="spinner">
+            <button id="inputVUp" class="spin up" type="button" aria-label="Incrementar V"></button>
+            <button id="inputVDown" class="spin down" type="button" aria-label="Decrementar V"></button>
+          </div>
+        </div>
       </div>
       <div class="param t">
         <span class="abbr">T</span>
         <div class="circle"><span class="unit" id="unitT">segundos</span><span class="led" id="ledT"></span><input id="inputT" type="text"
-       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="decimal"></div>
+       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="decimal">
+       <div class="spinner">
+         <button id="inputTUp" class="spin up" type="button" aria-label="Incrementar T"></button>
+         <button id="inputTDown" class="spin down" type="button" aria-label="Decrementar T"></button>
+       </div></div>
       </div>
     </section>
 

@@ -217,6 +217,57 @@ body[data-theme='dark'] .menu .options-content {
   outline: none;
 }
 
+/* Custom spinner for text-based numeric inputs (e.g., T) */
+.param .circle .spinner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;    /* center vertically */
+  align-items: center;        /* center horizontally */
+  gap: 2px;                   /* arrows close together */
+}
+
+.param .circle .spinner .spin {
+  flex: 0 0 12px;             /* compact height per arrow */
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.param .circle .spinner .spin::before {
+  content: '';
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+.param .circle .spinner .spin.up::before {
+  border-bottom: 6px solid currentColor; /* smaller arrow */
+}
+
+.param .circle .spinner .spin.down::before {
+  border-top: 6px solid currentColor;    /* smaller arrow */
+}
+
+.param .circle .spinner .spin:active {
+  color: var(--selection-color);
+}
+
+/* Ensure input text doesn't overlap spinner */
+.param.t .circle input {
+  padding-right: 24px;
+}
+
 .param .circle .unit {
   position: absolute;
   top: calc(-40px - 1.8rem);
@@ -258,6 +309,10 @@ body[data-theme='dark'] .menu .options-content {
   }
   .param .circle input {
     font-size: 1rem;
+  }
+  .param .circle .spinner { width: 18px; gap: 1px; }
+  .param.t .circle input {
+    padding-right: 18px;
   }
 }
 

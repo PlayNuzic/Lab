@@ -27,6 +27,12 @@ window.addEventListener('sharedui:scheduling', (e) => {
 const inputLg = document.getElementById('inputLg');
 const inputV = document.getElementById('inputV');
 const inputT = document.getElementById('inputT');
+const inputTUp = document.getElementById('inputTUp');
+const inputTDown = document.getElementById('inputTDown');
+const inputVUp = document.getElementById('inputVUp');
+const inputVDown = document.getElementById('inputVDown');
+const inputLgUp = document.getElementById('inputLgUp');
+const inputLgDown = document.getElementById('inputLgDown');
 const ledLg = document.getElementById('ledLg');
 const ledV = document.getElementById('ledV');
 const ledT = document.getElementById('ledT');
@@ -486,8 +492,65 @@ function formatSec(n){
   return rounded.toLocaleString('ca-ES', {
      minimumFractionDigits: 0,
      maximumFractionDigits: 2
-   }); 
+   });
 }
+
+function adjustT(delta){
+  const current = parseNum(inputT.value);
+  const base = isNaN(current) ? 0 : current;
+  // Step scaling: <10 => 0.1, >=10 => 1
+  const step = base < 10 ? 0.1 : 1;
+  let next = base + delta * step;
+  // Avoid FP errors: round to 1 decimal when using 0.1 steps
+  if (step === 0.1) next = Math.round(next * 10) / 10;
+  next = Math.max(0, next);
+  setValue(inputT, next);
+  inputT.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+// Guard: if LED is off (auto), show tip and do nothing
+function guardManual(input){
+  if (input?.dataset?.auto === '1'){
+    showAutoTip(input);
+    flashOtherLeds(input);
+    return false;
+  }
+  return true;
+}
+
+// Long‑press auto‑repeat for spinner buttons
+function addRepeatPress(el, fn, guardInput){
+  if (!el) return;
+  let t=null, r=null;
+  const start = (ev) => {
+    // When LED is off (auto), show help and do nothing
+    if (guardInput && !guardManual(guardInput)) { ev.preventDefault(); return; }
+    fn();
+    t = setTimeout(() => { r = setInterval(fn, 80); }, 320);
+    ev.preventDefault();
+  };
+  const stop = () => { clearTimeout(t); clearInterval(r); t=r=null; };
+  el.addEventListener('mousedown', start);
+  el.addEventListener('touchstart', start, { passive:false });
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>el.addEventListener(ev, stop));
+  // Also stop if released outside the button
+  document.addEventListener('mouseup', stop);
+  document.addEventListener('touchend', stop);
+}
+
+addRepeatPress(inputTUp,   () => adjustT(1),  inputT);
+addRepeatPress(inputTDown, () => adjustT(-1), inputT);
+
+// Unified spinner behavior for number inputs (V, Lg)
+function stepAndDispatch(input, dir){
+  if (!input) return;
+  if (dir > 0) input.stepUp(); else input.stepDown();
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+addRepeatPress(inputVUp,   () => stepAndDispatch(inputV, +1),  inputV);
+addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1),  inputV);
+addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), inputLg);
+addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), inputLg);
 
 function handleInput(e){
   const lg = parseNum(inputLg.value);
