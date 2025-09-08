@@ -219,13 +219,6 @@ export function renderHeader({ title = 'App', mount } = {}) {
     <details class="menu" id="optionsMenu">
       <summary>☰</summary>
       <div class="options-content">
-        <label for="schedProfileSelect">Rendimiento:
-          <select id="schedProfileSelect">
-            <option value="mobile">Móvil</option>
-            <option value="balanced" selected>Equilibrado</option>
-            <option value="desktop">Escritorio</option>
-          </select>
-        </label>
         <label for="themeSelect">Tema:
           <select id="themeSelect">
             <option value="system" selected>Sistema</option>
@@ -235,6 +228,13 @@ export function renderHeader({ title = 'App', mount } = {}) {
         </label>
         <label for="hoverToggle">Etiquetas de ayuda <input type="checkbox" id="hoverToggle" checked /></label>
         <label for="selectColor">Color selección <input type="color" id="selectColor" value="#FFBB97" /></label>
+        <label for="schedProfileSelect">Rendimiento:
+          <select id="schedProfileSelect">
+            <option value="mobile">Móvil</option>
+            <option value="balanced" selected>Equilibrado</option>
+            <option value="desktop">Escritorio</option>
+          </select>
+        </label>
         <hr class="menu-separator" />
       </div>
     </details>

@@ -14,6 +14,38 @@
     <details class="menu" id="optionsMenu">
       <summary>☰</summary>
       <div class="options-content">
+        <label for="themeSelect">Tema:
+          <select id="themeSelect">
+            <option value="system" selected>Sistema</option>
+            <option value="light">Claro</option>
+            <option value="dark">Oscuro</option>
+          </select>
+        </label>
+        <label for="hoverToggle">Etiquetas de ayuda <input type="checkbox" id="hoverToggle" checked /></label>
+        <label for="selectColor">Color selección <input type="color" id="selectColor" value="#FFBB97" /></label>
+
+        <hr class="menu-separator" />
+
+        <label for="showNumbers">Sucesión de Pulsos <input type="checkbox" id="showNumbers" /></label>
+        <label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle" /></label>
+
+        <details>
+          <summary>Sonidos</summary>
+          <div class="sound-group">
+            <p>Metrónomo</p>
+            <div class="preview-row">
+              <label for="baseSoundSelect" style="display:none"></label>
+              <select id="baseSoundSelect"></select>
+              <button type="button" id="previewBaseBtn" class="preview-btn">Escuchar</button>
+            </div>
+            <p>Acento</p>
+            <div class="preview-row">
+              <label for="accentSoundSelect" style="display:none"></label>
+              <select id="accentSoundSelect"></select>
+              <button type="button" id="previewAccentBtn" class="preview-btn">Escuchar</button>
+            </div>
+          </div>
+        </details>
         <label for="schedProfileSelect">Rendimiento:
           <select id="schedProfileSelect">
             <option value="mobile">Móvil</option>
@@ -21,38 +53,6 @@
             <option value="desktop">Escritorio</option>
           </select>
         </label>
-  <label for="themeSelect">Tema:
-    <select id="themeSelect">
-      <option value="system" selected>Sistema</option>
-      <option value="light">Claro</option>
-      <option value="dark">Oscuro</option>
-    </select>
-  </label>
-  <label for="hoverToggle">Etiquetas de ayuda <input type="checkbox" id="hoverToggle" checked /></label>
-  <label for="selectColor">Color selección <input type="color" id="selectColor" value="#FFBB97" /></label>
-
-  <hr class="menu-separator" />
-
-  <label for="showNumbers">Sucesión de Pulsos <input type="checkbox" id="showNumbers" /></label>
-  <label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle" /></label>
-
-  <details>
-    <summary>Sonidos</summary>
-    <div class="sound-group">
-      <p>Metrónomo</p>
-      <div class="preview-row">
-        <label for="baseSoundSelect" style="display:none"></label>
-        <select id="baseSoundSelect"></select>
-        <button type="button" id="previewBaseBtn" class="preview-btn">Escuchar</button>
-      </div>
-      <p>Acento</p>
-      <div class="preview-row">
-        <label for="accentSoundSelect" style="display:none"></label>
-        <select id="accentSoundSelect"></select>
-        <button type="button" id="previewAccentBtn" class="preview-btn">Escuchar</button>
-      </div>
-    </div>
-  </details>
 </div>
     </details>
     <h1>Sucesión de Pulsos</h1>
