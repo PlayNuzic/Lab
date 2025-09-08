@@ -32,6 +32,8 @@ Des del directori arrel del repositori, executa:
 npm test
 ```
 
+Algunes apps defineixen els seus propis tests i utilitats, com `Apps/App1`.
+
 ## Documentació de cartes
 
 Consulta `docs/cards-transformations.md` per a les darreres funcions de permutació de targetes.

@@ -1,6 +1,7 @@
 import { TimelineAudio, soundNames } from '../../libs/sound/index.js';
 import { ensureAudio } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
+import { computeHitSizePx, solidMenuBackground } from './utils.js';
 // Using local header controls for App1 (no shared init)
 
 let audio;
@@ -140,19 +141,6 @@ document.addEventListener('pointercancel', () => {
   lastDragIndex = null;
   suppressClickIndex = null; 
 });
-// Compute clickable hit target size for timeline pulses
-function computeHitSizePx(lg){
-  const refLg = 30;          // comfortable at 30
-  const base = 32;           // px at Lg=30
-  const k = 0.5;             // perceptual (sqrt) scaling
-  const minPx = 14;          // never smaller
-  const maxPx = 44;          // never larger
-  const safe = Math.max(1, Number(lg) || 1);
-  const scale = Math.pow(refLg / safe, k);
-  return Math.max(minPx, Math.min(maxPx, Math.round(base * scale)));
-}
-
-
 // Hovers for LEDs and controls
 // LEDs ahora indican los campos editables; el apagado se recalcula
 attachHover(ledLg, { text: 'Entrada manual de "Lg"' });
@@ -1072,21 +1060,6 @@ function highlightPulse(i){
 
 const menu = document.querySelector('.menu');
 const optionsContent = document.querySelector('.menu .options-content');
-
-function solidMenuBackground(panel){
-  if(!panel) return;
-  // Resolve background using theme variables to avoid any transparent computed styles
-  const theme = document.body?.dataset?.theme || 'light';
-  const rootStyles = getComputedStyle(document.documentElement);
-  const bgVar = theme === 'dark' ? '--bg-dark' : '--bg-light';
-  const txtVar = theme === 'dark' ? '--text-dark' : '--text-light';
-  const bg = rootStyles.getPropertyValue(bgVar).trim() || getComputedStyle(document.body).backgroundColor;
-  const txt = rootStyles.getPropertyValue(txtVar).trim() || getComputedStyle(document.body).color;
-  panel.style.backgroundColor = bg;
-  panel.style.color = txt;
-  // Ensure no background-image sneaks in
-  panel.style.backgroundImage = 'none';
-}
 
 if (menu && optionsContent) {
   menu.addEventListener('toggle', () => {
