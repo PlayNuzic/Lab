@@ -27,6 +27,11 @@ input, textarea, select {
 }
 button, a, summary, label { -webkit-tap-highlight-color: transparent; }
 
+/* Hide native number spinners (custom arrows used instead) */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
 /* Theme containers (apps should set body[data-theme]) */
 body[data-theme='light'] {
   background: var(--bg-light);
@@ -264,7 +269,9 @@ body[data-theme='dark'] .menu .options-content {
 }
 
 /* Ensure input text doesn't overlap spinner */
-.param.t .circle input {
+.param.lg .circle input,
+.param.v  .circle input,
+.param.t  .circle input {
   padding-right: 24px;
 }
 
@@ -292,6 +299,20 @@ body[data-theme='dark'] .menu .options-content {
   opacity: 0.3;
   transition: opacity 0.2s ease;
   cursor: pointer;
+  z-index: 2;
+}
+
+.param .circle .led::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  cursor: inherit;
 }
 
 .param .circle .led.on {
@@ -311,8 +332,14 @@ body[data-theme='dark'] .menu .options-content {
     font-size: 1rem;
   }
   .param .circle .spinner { width: 18px; gap: 1px; }
-  .param.t .circle input {
+  .param.lg .circle input,
+  .param.v  .circle input,
+  .param.t  .circle input {
     padding-right: 18px;
+  }
+  .param .circle .led::before {
+    width: 32px;
+    height: 32px;
   }
 }
 

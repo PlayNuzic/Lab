@@ -268,36 +268,3 @@ body[data-theme='dark'] .circle-guide { opacity: 0 !important; }
   transform: translate(-50%, 8px);
 }
 
-/* Hide native number spinners (we use custom ones inside the circles) */
-input[type=number]::-webkit-outer-spin-button,
-input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-input[type=number] { -moz-appearance: textfield; appearance: textfield; }
-
-/* Ensure text doesn’t overlap custom spinner in Lg and V as well */
-.param.lg .circle input,
-.param.v  .circle input { padding-right: 24px; }
-
-/* Expand LED click target without changing its visual size */
-.param .circle .led {
-  position: absolute; /* ensure containing block for ::before */
-  z-index: 2;
-}
-.param .circle .led::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: transparent; /* keep original visual size; only grow hit area */
-  cursor: inherit; /* keep pointer cursor */
-}
-
-@media (max-width: 600px) {
-  .param .circle .led::before {
-    width: 32px;
-    height: 32px;
-  }
-}
