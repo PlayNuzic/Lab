@@ -104,7 +104,7 @@
   border-radius: 50%;
   background: currentColor;
   transform: translate(-50%,-50%);
-  cursor: pointer;
+  cursor: default;
   transition: left 0.4s ease, top 0.4s ease, transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
@@ -237,7 +237,12 @@
 .timeline .bar { pointer-events: none; z-index: 1; }
 
 /* els punts són el primer pla interactiu */
-.timeline .pulse { z-index: 5; pointer-events: auto; }
+.timeline .pulse { z-index: 5; pointer-events: none; }
+
+/* Cursor neutral en toda la línea temporal visual */
+.timeline,
+.timeline .pulse,
+.timeline .pulse-number { cursor: default; }
 
 
 /* Dark theme reinforcement: hide circular guide to avoid double ring */
@@ -263,4 +268,3 @@ body[data-theme='dark'] .circle-guide { opacity: 0 !important; }
 .hover-tip.auto-tip-below {
   transform: translate(-50%, 8px);
 }
-
