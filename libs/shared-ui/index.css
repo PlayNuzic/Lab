@@ -127,7 +127,8 @@ body[data-theme='dark'] .menu .options-content {
   left: 0;
   /* Must sit above timeline pulses and other UI (they use z-index up to 6) */
   z-index: 1000;
-  max-height: 500px;
+  max-height: 100vh;
+  overflow-y: auto;
   opacity: 1;
 }
 
