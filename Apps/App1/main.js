@@ -2,6 +2,7 @@ import { TimelineAudio, soundNames } from '../../libs/sound/index.js';
 import { ensureAudio } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { solidMenuBackground, computeNumberFontRem } from './utils.js';
+import { randomize } from '../../libs/random/index.js';
 // Using local header controls for App1 (no shared init)
 
 let audio;
@@ -55,6 +56,8 @@ const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
 const previewBaseBtn = document.getElementById('previewBaseBtn');
 const previewAccentBtn = document.getElementById('previewAccentBtn');
+const randomBtn = document.getElementById('randomBtn');
+const randomMenu = document.getElementById('randomMenu');
 
 let pulses = [];
 
@@ -71,6 +74,12 @@ let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 // Track manual selection recency (oldest -> newest among the two manual LEDs)
 let manualHistory = [];
 
+const randomDefaults = {
+  Lg: { enabled: true, range: [1, 16] },
+  V: { enabled: true, range: [40, 200] },
+  T: { enabled: true, range: [1, 60] }
+};
+
 // Hovers for LEDs and controls
 // LEDs ahora indican los campos editables; el apagado se recalcula
 attachHover(ledLg, { text: 'Entrada manual de "Lg"' });
@@ -80,6 +89,7 @@ attachHover(playBtn, { text: 'Play / Stop' });
 attachHover(loopBtn, { text: 'Loop' });
 attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
+if (randomBtn) attachHover(randomBtn, { text: 'Aleatorio' });
 
 // Helper: current manual keys from DOM (those whose LED should be ON)
 function getManualKeys(){
@@ -841,6 +851,91 @@ function highlightPulse(i){
     if (last) last.classList.add('active');
   }
 }
+
+function getRandomConfig(){
+  if (!randomMenu) return randomDefaults;
+  const cfg = {
+    Lg: {
+      enabled: randomMenu.querySelector('#randLg')?.checked ?? randomDefaults.Lg.enabled,
+      range: [
+        parseFloat(randomMenu.querySelector('#randLgMin')?.value) || randomDefaults.Lg.range[0],
+        parseFloat(randomMenu.querySelector('#randLgMax')?.value) || randomDefaults.Lg.range[1]
+      ]
+    },
+    V: {
+      enabled: randomMenu.querySelector('#randV')?.checked ?? randomDefaults.V.enabled,
+      range: [
+        parseFloat(randomMenu.querySelector('#randVMin')?.value) || randomDefaults.V.range[0],
+        parseFloat(randomMenu.querySelector('#randVMax')?.value) || randomDefaults.V.range[1]
+      ]
+    },
+    T: {
+      enabled: randomMenu.querySelector('#randT')?.checked ?? randomDefaults.T.enabled,
+      range: [
+        parseFloat(randomMenu.querySelector('#randTMin')?.value) || randomDefaults.T.range[0],
+        parseFloat(randomMenu.querySelector('#randTMax')?.value) || randomDefaults.T.range[1]
+      ]
+    }
+  };
+  return cfg;
+}
+
+function applyRandom(){
+  const values = randomize(getRandomConfig());
+  if (values.Lg !== undefined) {
+    inputLg.value = values.Lg;
+    inputLg.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (values.V !== undefined) {
+    inputV.value = values.V;
+    inputV.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (values.T !== undefined) {
+    inputT.value = values.T.toFixed(2);
+    inputT.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}
+
+function openRandomMenu(){
+  if (!randomMenu) return;
+  randomMenu.style.display = 'block';
+  randomMenu.focus();
+}
+
+function closeRandomMenu(){
+  if (!randomMenu) return;
+  randomMenu.style.display = 'none';
+}
+
+if (randomBtn) {
+  let pressTimer;
+  let longPress = false;
+
+  const start = () => {
+    longPress = false;
+    pressTimer = setTimeout(() => {
+      longPress = true;
+      openRandomMenu();
+    }, 500);
+  };
+
+  const cancel = (apply) => {
+    clearTimeout(pressTimer);
+    if (!longPress && apply) applyRandom();
+  };
+
+  randomBtn.addEventListener('mousedown', start);
+  randomBtn.addEventListener('touchstart', start);
+  randomBtn.addEventListener('mouseup', () => cancel(true));
+  randomBtn.addEventListener('mouseleave', () => cancel(false));
+  randomBtn.addEventListener('touchend', () => cancel(true));
+  randomBtn.addEventListener('touchcancel', () => cancel(false));
+}
+
+randomMenu?.addEventListener('change', closeRandomMenu);
+randomMenu?.addEventListener('focusout', (e) => {
+  if (!randomMenu.contains(e.relatedTarget)) closeRandomMenu();
+});
 
 const menu = document.querySelector('.menu');
 const optionsContent = document.querySelector('.menu .options-content');
