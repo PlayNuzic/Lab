@@ -535,6 +535,12 @@ getEditEl()?.addEventListener('keydown', (e) => {
     sanitizePulseSeq();
     return;
   }
+  // Allow only digits and navigation keys (no spaces typed)
+  const allowed = new Set(['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab']);
+  if (!/^[0-9]$/.test(e.key) && !allowed.has(e.key)) {
+    e.preventDefault();
+    return;
+  }
   if (e.key === 'Backspace' || e.key === 'Delete') {
     const el = getEditEl();
     const node = el && el.firstChild;
@@ -552,6 +558,97 @@ getEditEl()?.addEventListener('keydown', (e) => {
   }
 });
 getEditEl()?.addEventListener('blur', sanitizePulseSeq);
+// Ensure a gap exists at caret when clicking or navigating
+getEditEl()?.addEventListener('mouseup', ()=>{
+  setTimeout(()=>{
+    const el = getEditEl(); if(!el) return;
+    const sel = window.getSelection && window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const rng = sel.getRangeAt(0);
+    if (!el.contains(rng.startContainer)) return;
+    const node = el.firstChild || el;
+    let text = node.textContent || '';
+    let pos = rng.startOffset;
+    const len = text.length;
+    const isDigit = (c)=> c >= '0' && c <= '9';
+    const left  = pos>0   ? text[pos-1] : null;
+    const right = pos<len ? text[pos]   : null;
+    if (left !== ' ' && right !== ' ' && (isDigit(left||'') || isDigit(right||''))){
+      text = text.slice(0,pos) + ' ' + text.slice(pos);
+      node.textContent = text;
+      pos += 1;
+      setPulseSeqSelection(pos,pos);
+    }
+  });
+});
+getEditEl()?.addEventListener('keyup', (e)=>{
+  if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
+    const el = getEditEl(); if(!el) return;
+    const sel = window.getSelection && window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const rng = sel.getRangeAt(0);
+    if (!el.contains(rng.startContainer)) return;
+    const node = el.firstChild || el;
+    let text = node.textContent || '';
+    let pos = rng.startOffset;
+    const len = text.length;
+    const isDigit = (c)=> c >= '0' && c <= '9';
+    const left  = pos>0   ? text[pos-1] : null;
+    const right = pos<len ? text[pos]   : null;
+    if (left !== ' ' && right !== ' ' && (isDigit(left||'') || isDigit(right||''))){
+      text = text.slice(0,pos) + ' ' + text.slice(pos);
+      node.textContent = text;
+      pos += 1;
+      setPulseSeqSelection(pos,pos);
+    }
+  }
+});
+getEditEl()?.addEventListener('focus', ()=>{
+  // Create a gap at caret if needed on focus
+  setTimeout(()=>{
+    const el = getEditEl(); if(!el) return;
+    const sel = window.getSelection && window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const rng = sel.getRangeAt(0);
+    if (!el.contains(rng.startContainer)) return;
+    const node = el.firstChild || el;
+    let text = node.textContent || '';
+    let pos = rng.startOffset;
+    const len = text.length;
+    const isDigit = (c)=> c >= '0' && c <= '9';
+    const left  = pos>0   ? text[pos-1] : null;
+    const right = pos<len ? text[pos]   : null;
+    if (left !== ' ' && right !== ' ' && (isDigit(left||'') || isDigit(right||''))){
+      text = text.slice(0,pos) + ' ' + text.slice(pos);
+      node.textContent = text;
+      pos += 1;
+      setPulseSeqSelection(pos,pos);
+    }
+  });
+});
+// Snap caret to nearest gap on click and arrow navigation
+getEditEl()?.addEventListener('mouseup', () => setTimeout(()=>{
+  const el=getEditEl(); if(!el) return; const node=el.firstChild||el; const text=node.textContent||'';
+  const desired = (function(){ const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; return s.getRangeAt(0).startOffset; })();
+  const allowed=[0,...[...text].map((ch,i)=>ch===' '?i+1:null).filter(x=>x!=null),text.length];
+  let best=allowed[0],bestD=Math.abs(desired-best); allowed.forEach(p=>{const d=Math.abs(desired-p); if(d<bestD){best=p; bestD=d;}});
+  setPulseSeqSelection(best,best);
+}));
+getEditEl()?.addEventListener('keyup', (e)=>{
+  if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
+    const el=getEditEl(); if(!el) return; const node=el.firstChild||el; const text=node.textContent||'';
+    const desired = (function(){ const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; return s.getRangeAt(0).startOffset; })();
+    const allowed=[0,...[...text].map((ch,i)=>ch===' '?i+1:null).filter(x=>x!=null),text.length];
+    let best=allowed[0],bestD=Math.abs(desired-best); allowed.forEach(p=>{const d=Math.abs(desired-p); if(d<bestD){best=p; bestD=d;}});
+    setPulseSeqSelection(best,best);
+  }
+});
+getEditEl()?.addEventListener('focus', ()=>{
+  const el=getEditEl(); if(!el) return; const node=el.firstChild||el; const text=node.textContent||'';
+  const allowed=[0,...[...text].map((ch,i)=>ch===' '?i+1:null).filter(x=>x!=null),text.length];
+  const target = allowed.includes(text.length)?text.length:allowed[allowed.length-1];
+  setPulseSeqSelection(target,target);
+});
 
 const inputToLed = new Map([
   [inputLg, ledLg],
@@ -680,13 +777,21 @@ function sanitizePulseSeq(){
       nums.push(n);
     }
   }
+  // Expand Lg if any number is >= current Lg
+  if (nums.length) {
+    const maxN = Math.max(...nums);
+    if (!isNaN(lg) && maxN >= lg) {
+      setValue(inputLg, maxN + 1);
+    }
+  }
+  const newLg = parseInt(inputLg.value);
+  if (!isNaN(newLg)) ensurePulseMemory(newLg);
   nums.sort((a,b) => a - b);
-  const out = (isNaN(lg) ? nums : nums.filter(n => n < lg)).join(' ');
+  const out = (isNaN(newLg) ? nums : nums.filter(n => n < newLg)).join(' ');
   setPulseSeqText(out);
-  if (!isNaN(lg)) {
-    ensurePulseMemory(lg);
-    for (let i = 1; i < lg; i++) pulseMemory[i] = false;
-    nums.forEach(n => { if (n < lg) pulseMemory[n] = true; });
+  if (!isNaN(newLg)) {
+    for (let i = 1; i < newLg; i++) pulseMemory[i] = false;
+    nums.forEach(n => { if (n < newLg) pulseMemory[n] = true; });
     syncSelectedFromMemory();
     updateNumbers();
   }
@@ -1165,14 +1270,15 @@ playBtn.addEventListener('click', async () => {
     iconPlay.style.display = 'block';
     iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
-    setPulseSeqSelection(getPulseSeqText().length, getPulseSeqText().length);
+    const edStop = getEditEl();
+    if (edStop) edStop.classList.remove('playing');
     return;
   }
 
   // Estat net abans d’arrencar
   audio.stop();
   pulses.forEach(p => p.classList.remove('active'));
-  setPulseSeqSelection(getPulseSeqText().length, getPulseSeqText().length);
+  // no selection to avoid caret
 
   const lg = parseInt(inputLg.value);
   const v  = parseFloat(inputV.value);
@@ -1194,7 +1300,6 @@ playBtn.addEventListener('click', async () => {
     iconPlay.style.display = 'block';
     iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
-     setPulseSeqSelection(getPulseSeqText().length, getPulseSeqText().length);
     audio.stop();
     const ed = getEditEl();
     if (ed) ed.classList.remove('playing');
