@@ -29,7 +29,7 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
               <select id="baseSoundSelect"></select>
               <button type="button" id="previewBaseBtn" class="preview-btn">Escuchar</button>
             </div>
-            <p>Acento</p>
+            <p>Pulso</p>
             <div class="preview-row">
               <label for="accentSoundSelect" style="display:none"></label>
               <select id="accentSoundSelect"></select>
@@ -103,9 +103,9 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
 </button>
       <div id="randomMenu" class="random-menu options-content">${randomMenuContent}</div>
       <button id="loopBtn" class="loop" aria-label="Loop">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
-    <path d="M370.7 133.3C338 100.6 297.9 85.3 256 85.3c-84.6 0-154.7 61.4-169.3 141.3H32l74.7 74.7 74.7-74.7H117.3c13.3-56.9 64.4-100 126.7-100 36.5 0 70.6 14.2 96.3 39.9l30.4-30.2zm70.6 152.1l-74.7-74.7-74.7 74.7h42.1c-13.3 56.9-64.4 100-126.7 100-36.5 0-70.6-14.2-96.3-39.9l-30.4 30.2C174 411.4 214.1 426.7 256 426.7c84.6 0 154.7-61.4 169.3-141.3h42.1z"/>
-      </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.2 -5.2 62.4 62.4" fill="currentColor" transform="matrix(-1 0 0 -1 0 0)">
+    <path d="M47.2,32.6c0,0.1,0,0.1-0.1,0.2c-0.3,0.9-0.5,1.8-0.9,2.6c-0.4,0.9-0.8,1.9-1.3,2.7c-1,1.8-2.2,3.4-3.6,4.8 c-1.4,1.4-3,2.7-4.7,3.7c-1.7,1-3.6,1.9-5.6,2.4c-2,0.6-4.1,0.8-6.2,0.8C12.3,50,2,39.7,2,27.1S12.3,4.2,24.9,4.2 c4.3,0,8.3,1.2,11.7,3.2c0,0,0,0,0,0c1.7,1,3.2,2.2,4.5,3.5c0.4,0.3,0.7,0.6,1,1c0.8,0.6,1.3,0.2,1.3-0.8V3.6C43.4,2.8,44.2,2,45,2 h3.2c0.9,0,1.6,0.8,1.7,1.6v19.6c0,0.8-0.6,1.4-1.4,1.4H28.9c-0.9,0-1.5-0.6-1.5-1.5v-3.3c0-0.9,0.8-1.6,1.6-1.6h7.5 c0.6,0,1.2-0.2,1.4-0.5c-2.9-4-7.6-6.6-13-6.6c-8.9,0-16,7.2-16,16s7.2,16,16,16c7,0,12.9-4.4,15.1-10.6c0,0,0.3-1.4,1.4-1.4 c1.1,0,3.8,0,4.6,0c0.7,0,1.3,0.5,1.3,1.2C47.2,32.4,47.2,32.5,47.2,32.6z"/>
+  </svg>
   </button>
       <div class="play-group">
      <button id="playBtn" class="play" aria-label="Play">
@@ -128,8 +128,8 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
      <span id="tapHelp" class="tap-help">Se necesitan 3 clicks</span>
      </div>
      <button id="resetBtn" class="reset" aria-label="Reset">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
-    <path d="M256 32C114.6 32 0 146.6 0 288h64c0-97.2 78.8-176 176-176 43 0 82.5 15.3 113.1 40.8L304 224h208V16L454.6 73.4C408.4 29.3 335.1 0 256 0z"/>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 25" fill="none">
+    <path d="M18 7L7 18M7 7L18 18" stroke="currentColor" stroke-width="1.2"/>
   </svg>
 </button>
       </div>
