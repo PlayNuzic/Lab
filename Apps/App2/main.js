@@ -39,7 +39,8 @@ const ledT = document.getElementById('ledT');
 const unitLg = document.getElementById('unitLg');
 const unitV = document.getElementById('unitV');
 const unitT = document.getElementById('unitT');
-const pulseSeq = document.getElementById('pulseSeq');
+// Pulse sequence UI element (contenteditable div in template)
+const pulseSeqEl = document.getElementById('pulseSeq');
 const formula = document.getElementById('formula');
 const timelineWrapper = document.getElementById('timelineWrapper');
 const timeline = document.getElementById('timeline');
@@ -55,15 +56,6 @@ const tapHelp = document.getElementById('tapHelp');
 const circularTimelineToggle = document.getElementById('circularTimelineToggle');
 const randomBtn = document.getElementById('randomBtn');
 const randomMenu = document.getElementById('randomMenu');
-let pulseSeq = document.getElementById('pulseSeq');
-if (!pulseSeq) {
-  pulseSeq = document.createElement('input');
-  pulseSeq.type = 'text';
-  pulseSeq.id = 'pulseSeq';
-  pulseSeq.placeholder = 'Pulsos (ej: 1 3 5)';
-  pulseSeq.autocomplete = 'off';
-  timelineWrapper.parentNode.insertBefore(pulseSeq, timelineWrapper);
-}
 const randLgToggle = document.getElementById('randLgToggle');
 const randLgMin = document.getElementById('randLgMin');
 const randLgMax = document.getElementById('randLgMax');
@@ -141,10 +133,9 @@ applyRandomConfig(randomConfig);
   randPulsesToggle, randomCount, randomDensity
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
-pulseSeq.addEventListener('input', handlePulseSeqInput);
+pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
 
 let pulses = [];
-let pulseSeq = [];
 // Hit targets (separate from the visual dots) and drag mode
 let pulseHits = [];
 let dragMode = 'select'; // 'select' | 'deselect'
@@ -179,6 +170,41 @@ let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
+
+// Helpers for #pulseSeq (supports contenteditable div or input fallback)
+function getPulseSeqText(){
+  if(!pulseSeqEl) return '';
+  return (pulseSeqEl instanceof HTMLInputElement) ? (pulseSeqEl.value || '') : (pulseSeqEl.textContent || '');
+}
+function setPulseSeqText(str){
+  if(!pulseSeqEl) return;
+  const s = String(str);
+  if(pulseSeqEl instanceof HTMLInputElement) pulseSeqEl.value = s;
+  else pulseSeqEl.textContent = s;
+}
+function setPulseSeqSelection(start, end){
+  if(!pulseSeqEl) return;
+  if(pulseSeqEl instanceof HTMLInputElement){
+    try{ pulseSeqEl.setSelectionRange(start, end); }catch{}
+    return;
+  }
+  try{
+    const sel = window.getSelection();
+    const range = document.createRange();
+    let node = pulseSeqEl.firstChild;
+    if(!node){
+      node = document.createTextNode('');
+      pulseSeqEl.appendChild(node);
+    }
+    const len = node.textContent.length;
+    const s = Math.max(0, Math.min(start, len));
+    const e = Math.max(0, Math.min(end, len));
+    range.setStart(node, s);
+    range.setEnd(node, e);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }catch{}
+}
 function updateTIndicatorText(value) {
   tIndicator.textContent = `T: ${value}`;
 }
@@ -243,7 +269,7 @@ attachHover(resetBtn, { text: 'Reset App' });
 attachHover(randomBtn, { text: 'Aleatorizar parámetros' });
 
 
-const storeKey = (k) => `app1:${k}`;
+const storeKey = (k) => `app2:${k}`;
 const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
 const loadOpt = (k) => { try { return localStorage.getItem(storeKey(k)); } catch { return null; } };
 
@@ -395,9 +421,9 @@ function randomize() {
         const d = isNaN(density) ? 0.5 : Math.max(0, Math.min(1, density));
         available.forEach(i => { if (Math.random() < d) selected.add(i); });
       }
-      pulseSeq = Array.from(selected).sort((a, b) => a - b);
+      const seq = Array.from(selected).sort((a, b) => a - b);
       for (let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
-      pulseSeq.forEach(i => { pulseMemory[i] = true; });
+      seq.forEach(i => { pulseMemory[i] = true; });
       syncSelectedFromMemory();
       updateNumbers();
       if (isPlaying && audio && typeof audio.setSelected === 'function') {
@@ -484,13 +510,13 @@ bindUnit(inputT, unitT);
 [inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
 handleInput();
 
-pulseSeq?.addEventListener('keydown', (e) => {
+pulseSeqEl?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     sanitizePulseSeq();
   }
 });
-pulseSeq?.addEventListener('blur', sanitizePulseSeq);
+pulseSeqEl?.addEventListener('blur', sanitizePulseSeq);
 
 const inputToLed = new Map([
   [inputLg, ledLg],
@@ -606,9 +632,10 @@ addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), inputLg);
 addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), inputLg);
 
 function sanitizePulseSeq(){
-  if (!pulseSeq) return;
+  if (!pulseSeqEl) return;
   const lg = parseInt(inputLg.value);
-  const matches = pulseSeq.textContent.match(/\d+/g) || [];
+  const text = getPulseSeqText();
+  const matches = text.match(/\d+/g) || [];
   const seen = new Set();
   const nums = [];
   for (const m of matches) {
@@ -619,7 +646,8 @@ function sanitizePulseSeq(){
     }
   }
   nums.sort((a,b) => a - b);
-  pulseSeq.textContent = (isNaN(lg) ? nums : nums.filter(n => n < lg)).join(' ');
+  const out = (isNaN(lg) ? nums : nums.filter(n => n < lg)).join(' ');
+  setPulseSeqText(out);
   if (!isNaN(lg)) {
     ensurePulseMemory(lg);
     for (let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
@@ -730,10 +758,10 @@ function updateFormula(){
 }
 
 function updatePulseSeqField(){
-  if(!pulseSeq) return;
+  if(!pulseSeqEl) return;
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0){
-    pulseSeq.value = '';
+    setPulseSeqText('');
     pulseSeqRanges = {};
     return;
   }
@@ -751,7 +779,7 @@ function updatePulseSeqField(){
     pos += str.length + 1;
     return str;
   });
-  pulseSeq.value = parts.join(' ');
+  setPulseSeqText(parts.join(' '));
 }
 
 // Rebuild selectedPulses (visible set) from pulseMemory and current Lg, then apply DOM classes
@@ -791,12 +819,12 @@ function handlePulseSeqInput(){
   }
   ensurePulseMemory(lg);
   for(let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
-  const nums = pulseSeq.value.trim().split(/\s+/)
+  const nums = getPulseSeqText().trim().split(/\s+/)
     .map(n => parseInt(n,10))
     .filter(n => !isNaN(n) && n > 0 && n < lg);
   nums.sort((a,b) => a - b);
   nums.forEach(n => { pulseMemory[n] = true; });
-  pulseSeq.value = nums.join(' ');
+  setPulseSeqText(nums.join(' '));
   renderTimeline();
   updateNumbers();
   if (isPlaying && audio && typeof audio.setSelected === 'function') {
@@ -1133,14 +1161,14 @@ playBtn.addEventListener('click', async () => {
     iconPlay.style.display = 'block';
     iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
-    pulseSeq?.setSelectionRange(pulseSeq.value.length, pulseSeq.value.length);
+    setPulseSeqSelection(getPulseSeqText().length, getPulseSeqText().length);
     return;
   }
 
   // Estat net abans d’arrencar
   audio.stop();
   pulses.forEach(p => p.classList.remove('active'));
-  pulseSeq?.setSelectionRange(pulseSeq.value.length, pulseSeq.value.length);
+  setPulseSeqSelection(getPulseSeqText().length, getPulseSeqText().length);
 
   const lg = parseInt(inputLg.value);
   const v  = parseFloat(inputV.value);
@@ -1162,7 +1190,7 @@ playBtn.addEventListener('click', async () => {
     iconPlay.style.display = 'block';
     iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
-     pulseSeq?.setSelectionRange(pulseSeq.value.length, pulseSeq.value.length);
+     setPulseSeqSelection(getPulseSeqText().length, getPulseSeqText().length);
     audio.stop();
   };
 
@@ -1195,12 +1223,12 @@ function highlightPulse(i){
     if (last) last.classList.add('active');
   }
 
-  if (pulseSeq) {
+  if (pulseSeqEl) {
     const range = pulseSeqRanges[idx];
     if (range) {
-      pulseSeq.setSelectionRange(range[0], range[1]);
+      setPulseSeqSelection(range[0], range[1]);
     } else {
-      pulseSeq.setSelectionRange(pulseSeq.value.length, pulseSeq.value.length);
+      setPulseSeqSelection(getPulseSeqText().length, getPulseSeqText().length);
     }
   }
 }
