@@ -70,9 +70,6 @@ const randLgMax = document.getElementById('randLgMax');
 const randVToggle = document.getElementById('randVToggle');
 const randVMin = document.getElementById('randVMin');
 const randVMax = document.getElementById('randVMax');
-const randTToggle = document.getElementById('randTToggle');
-const randTMin = document.getElementById('randTMin');
-const randTMax = document.getElementById('randTMax');
 const randPulsesToggle = document.getElementById('randPulsesToggle');
 const randomCount = document.getElementById('randomCount');
 const randomDensity = document.getElementById('randomDensity');
@@ -87,7 +84,6 @@ const previewAccentBtn = document.getElementById('previewAccentBtn');
 const randomDefaults = {
   Lg: { enabled: true, range: [1, 100] },
   V: { enabled: true, range: [1, 1000] },
-  T: { enabled: true, range: [0.1, 100000] },
   Pulses: { enabled: true, count: '', density: 0.5 }
 };
 
@@ -115,9 +111,6 @@ function applyRandomConfig(cfg) {
   randVToggle.checked = cfg.V.enabled;
   randVMin.value = cfg.V.range[0];
   randVMax.value = cfg.V.range[1];
-  randTToggle.checked = cfg.T.enabled;
-  randTMin.value = cfg.T.range[0];
-  randTMax.value = cfg.T.range[1];
   randPulsesToggle.checked = cfg.Pulses.enabled;
   randomCount.value = cfg.Pulses.count;
   randomDensity.value = cfg.Pulses.density;
@@ -132,10 +125,6 @@ function updateRandomConfig() {
     enabled: randVToggle.checked,
     range: [Number(randVMin.value) || 1, Number(randVMax.value) || 1]
   };
-  randomConfig.T = {
-    enabled: randTToggle.checked,
-    range: [Number(randTMin.value) || 0, Number(randTMax.value) || 0]
-  };
   randomConfig.Pulses = {
     enabled: randPulsesToggle.checked,
     count: randomCount.value,
@@ -149,13 +138,13 @@ applyRandomConfig(randomConfig);
 [
   randLgToggle, randLgMin, randLgMax,
   randVToggle, randVMin, randVMax,
-  randTToggle, randTMin, randTMax,
   randPulsesToggle, randomCount, randomDensity
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
 pulseSeq.addEventListener('input', handlePulseSeqInput);
 
 let pulses = [];
+let pulseSeq = [];
 // Hit targets (separate from the visual dots) and drag mode
 let pulseHits = [];
 let dragMode = 'select'; // 'select' | 'deselect'
@@ -388,15 +377,6 @@ function randomize() {
     setValue(inputV, v);
     handleInput({ target: inputV });
   }
-  if (randTToggle?.checked) {
-    const min = Number(randTMin.value);
-    const max = Number(randTMax.value);
-    const lo = isNaN(min) ? 0 : min;
-    const hi = isNaN(max) ? lo : max;
-    const val = lo + Math.random() * Math.max(0, hi - lo);
-    setValue(inputT, val.toFixed(2));
-    handleInput({ target: inputT });
-  }
   if (randPulsesToggle?.checked) {
     const lg = parseInt(inputLg.value);
     if (!isNaN(lg) && lg > 0) {
@@ -415,8 +395,9 @@ function randomize() {
         const d = isNaN(density) ? 0.5 : Math.max(0, Math.min(1, density));
         available.forEach(i => { if (Math.random() < d) selected.add(i); });
       }
+      pulseSeq = Array.from(selected).sort((a, b) => a - b);
       for (let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
-      selected.forEach(i => { pulseMemory[i] = true; });
+      pulseSeq.forEach(i => { pulseMemory[i] = true; });
       syncSelectedFromMemory();
       updateNumbers();
       if (isPlaying && audio && typeof audio.setSelected === 'function') {
