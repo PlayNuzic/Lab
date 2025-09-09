@@ -46,7 +46,6 @@ const timelineWrapper = document.getElementById('timelineWrapper');
 const timeline = document.getElementById('timeline');
 const tIndicator = document.createElement('div');
 tIndicator.id = 'tIndicator';
-tIndicator.style.color = 'red';
 timeline.appendChild(tIndicator);
 const playBtn = document.getElementById('playBtn');
 const loopBtn = document.getElementById('loopBtn');
@@ -171,31 +170,45 @@ let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
 
-// Helpers for #pulseSeq (supports contenteditable div or input fallback)
+// Build structured markup for the pulse sequence so only inner numbers are editable
+function setupPulseSeqMarkup(){
+  if (!pulseSeqEl) return;
+  if (pulseSeqEl.querySelector('.pz.edit')) return; // already prepared
+  const initial = (pulseSeqEl.textContent || '').trim();
+  pulseSeqEl.textContent = '';
+  const mk = (cls, txt) => { const s = document.createElement('span'); s.className = 'pz ' + cls; if (txt!=null) s.textContent = txt; return s; };
+  pulseSeqEl.append(
+    mk('prefix','P('),
+    mk('zero','0'),
+    (()=>{ const e = mk('edit', initial); e.contentEditable = 'true'; return e; })(),
+    mk('lg',''),
+    mk('suffix',')')
+  );
+}
+setupPulseSeqMarkup();
+
+// Helpers for #pulseSeq (use inner span .pz.edit)
+function getEditEl(){
+  if(!pulseSeqEl) return null;
+  return pulseSeqEl.querySelector('.pz.edit') || pulseSeqEl;
+}
 function getPulseSeqText(){
-  if(!pulseSeqEl) return '';
-  return (pulseSeqEl instanceof HTMLInputElement) ? (pulseSeqEl.value || '') : (pulseSeqEl.textContent || '');
+  const el = getEditEl();
+  return el ? (el.textContent || '') : '';
 }
 function setPulseSeqText(str){
-  if(!pulseSeqEl) return;
-  const s = String(str);
-  if(pulseSeqEl instanceof HTMLInputElement) pulseSeqEl.value = s;
-  else pulseSeqEl.textContent = s;
+  const el = getEditEl();
+  if(!el) return;
+  el.textContent = String(str);
 }
 function setPulseSeqSelection(start, end){
-  if(!pulseSeqEl) return;
-  if(pulseSeqEl instanceof HTMLInputElement){
-    try{ pulseSeqEl.setSelectionRange(start, end); }catch{}
-    return;
-  }
+  const el = getEditEl();
+  if(!el) return;
   try{
     const sel = window.getSelection();
     const range = document.createRange();
-    let node = pulseSeqEl.firstChild;
-    if(!node){
-      node = document.createTextNode('');
-      pulseSeqEl.appendChild(node);
-    }
+    let node = el.firstChild;
+    if(!node){ node = document.createTextNode(''); el.appendChild(node); }
     const len = node.textContent.length;
     const s = Math.max(0, Math.min(start, len));
     const e = Math.max(0, Math.min(end, len));
@@ -210,18 +223,19 @@ function updateTIndicatorText(value) {
 }
 
 function updateTIndicatorPosition() {
+  if (!timeline) return;
+  tIndicator.style.position = 'absolute';
   if (circularTimeline) {
-    tIndicator.style.position = 'absolute';
     tIndicator.style.left = '50%';
     tIndicator.style.top = 'calc(100% + 10px)';
     tIndicator.style.transform = 'translateX(-50%)';
   } else {
-    tIndicator.style.position = '';
-    tIndicator.style.left = '';
-    tIndicator.style.top = '';
-    tIndicator.style.transform = '';
+    const rect = timeline.getBoundingClientRect();
+    tIndicator.style.left = (rect.width - 8) + 'px';
+    tIndicator.style.top = '50%';
+    tIndicator.style.transform = 'translate(-100%, -50%)';
   }
-  timeline.appendChild(tIndicator);
+  if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
 }
 let suppressClickIndex = null;       // per evitar doble-toggle en drag start
 // --- Drag selection state ---
@@ -386,9 +400,11 @@ tapBtn.addEventListener('click', () => {
 
 // --- Aleatorización de parámetros y pulsos ---
 function randomInt(min, max) {
-  const lo = Number(min);
-  const hi = Number(max);
-  if (isNaN(lo) || isNaN(hi) || hi < lo) return lo;
+  let lo = Number(min);
+  let hi = Number(max);
+  if (isNaN(lo)) lo = 1;
+  if (isNaN(hi)) hi = lo;
+  if (hi < lo) [lo, hi] = [hi, lo];
   return Math.floor(Math.random() * (hi - lo + 1)) + lo;
 }
 
@@ -512,13 +528,13 @@ bindUnit(inputT, unitT);
 [inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
 handleInput();
 
-pulseSeqEl?.addEventListener('keydown', (e) => {
+getEditEl()?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     sanitizePulseSeq();
   }
 });
-pulseSeqEl?.addEventListener('blur', sanitizePulseSeq);
+getEditEl()?.addEventListener('blur', sanitizePulseSeq);
 
 const inputToLed = new Map([
   [inputLg, ledLg],
@@ -659,7 +675,7 @@ function sanitizePulseSeq(){
   }
 }
 
-function handleInput(e){
+function handleInput(){
   const lg = parseNum(inputLg.value);
   const v  = parseNum(inputV.value);
   const hasLg = !isNaN(lg) && lg > 0;
@@ -667,46 +683,15 @@ function handleInput(e){
 
   if (isUpdating) return;
 
+  // Always recalc T from Lg and V
   if (hasLg && hasV) {
     const tSeconds = (lg / v) * 60;
-    const rounded  = Math.round(tSeconds * 100) / 100; // 2 decimals màxim
-    if (inputT) setValue(inputT, rounded);              // si existeix input T
+    const rounded  = Math.round(tSeconds * 100) / 100;
+    if (inputT) setValue(inputT, rounded);
     updateTIndicatorText(rounded);
-  };
-  const calcV = () => {
-    if (!(hasLg && hasT) || t === 0) return;
-    const vBpm     = (lg * 60) / t;
-    const vRounded = Math.round(vBpm * 100) / 100;
-    setValue(inputV, vRounded);
-  };
-  const calcLg = () => {
-    if (!(hasV && hasT)) return;
-    const lgCount = (v * t) / 60;
-    setValue(inputLg, Math.round(lgCount)); // Lg enter
-  };
-
-  // decisió
-  if (twoKnown) {
-    // sempre calcula la tercera que falta i fixa l'autoTarget a aquest camp
-    if (!hasT) {
-      calcT();
-      if (autoTarget !== 'T') setAutoExact('T');
-    }
-    else if (!hasV) {
-      calcV();
-      if (autoTarget !== 'V') setAutoExact('V');
-    }
-    else if (!hasLg) {
-      calcLg();
-      if (autoTarget !== 'Lg') setAutoExact('Lg');
-    }
-  } else if (threeKnown && autoTarget) {
-    if (autoTarget === 'T')      calcT();
-    else if (autoTarget === 'V') calcV();
-    else if (autoTarget === 'Lg')calcLg();
   }
 
-  // Manté el cercle del timeline si el loop està actiu (sense tocar memòria)
+  // Keep loop memory size stable
   if (loopEnabled && hasLg) {
     ensurePulseMemory(lg);
   }
@@ -729,7 +714,7 @@ function handleInput(e){
       audio.setTempo(vNow);
     }
   }
-  if (hasT && inputT) {
+  if (inputT) {
     updateTIndicatorText(parseNum(inputT.value));
   }
 }
@@ -764,11 +749,11 @@ function updatePulseSeqField(){
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0){
     setPulseSeqText('');
-    try{ pulseSeqEl.removeAttribute('data-lg'); }catch{}
+    try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=''; }catch{}
     pulseSeqRanges = {};
     return;
   }
-  try{ pulseSeqEl.setAttribute('data-lg', String(lg)); }catch{}
+  try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=String(lg); }catch{}
   const arr = [];
   const limit = Math.min(pulseMemory.length, lg);
   for(let i = 1; i < limit; i++){

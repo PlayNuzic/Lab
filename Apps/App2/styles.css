@@ -8,27 +8,26 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   margin: 0 auto;
   overflow: auto;
 }
 
-/* Visual wrapper for P(0 ... Lg) using pseudo-elements */
-#pulseSeq::before {
-  content: "P(0 ";
-  color: var(--color-lg);
-}
-#pulseSeq::after {
-  content: " " attr(data-lg) ")";
-  color: var(--color-lg);
-}
+#pulseSeq .prefix,
+#pulseSeq .suffix { color: inherit; }
+#pulseSeq .zero,
+#pulseSeq .lg { color: var(--color-lg); }
+#pulseSeq .edit { outline: none; white-space: pre; }
 
 #tIndicator {
   display: inline-block;
-  padding: 4px 8px;
-  border: 1px solid var(--line-color);
-  color: red;
+  padding: 2px 8px;
+  border: 2px solid var(--color-t);
+  border-radius: 6px;
+  color: var(--color-t);
   text-align: center;
+  font-weight: 700;
+  background: transparent;
 }
 
 @media (max-width: 600px) {
