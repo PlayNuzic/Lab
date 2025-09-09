@@ -55,6 +55,15 @@ const tapHelp = document.getElementById('tapHelp');
 const circularTimelineToggle = document.getElementById('circularTimelineToggle');
 const randomBtn = document.getElementById('randomBtn');
 const randomMenu = document.getElementById('randomMenu');
+let pulseSeq = document.getElementById('pulseSeq');
+if (!pulseSeq) {
+  pulseSeq = document.createElement('input');
+  pulseSeq.type = 'text';
+  pulseSeq.id = 'pulseSeq';
+  pulseSeq.placeholder = 'Pulsos (ej: 1 3 5)';
+  pulseSeq.autocomplete = 'off';
+  timelineWrapper.parentNode.insertBefore(pulseSeq, timelineWrapper);
+}
 const randLgToggle = document.getElementById('randLgToggle');
 const randLgMin = document.getElementById('randLgMin');
 const randLgMax = document.getElementById('randLgMax');
@@ -144,12 +153,15 @@ applyRandomConfig(randomConfig);
   randPulsesToggle, randomCount, randomDensity
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
+pulseSeq.addEventListener('input', handlePulseSeqInput);
+
 let pulses = [];
 // Hit targets (separate from the visual dots) and drag mode
 let pulseHits = [];
 let dragMode = 'select'; // 'select' | 'deselect'
 // --- Selection memory across Lg changes ---
 let pulseMemory = []; // index -> selected
+let pulseSeqRanges = {};
 
 function ensurePulseMemory(size) {
   if (size >= pulseMemory.length) {
@@ -736,6 +748,31 @@ function updateFormula(){
   attachHover(formula.querySelector('.bottom:not(.v)'), { text: 'segundos' });
 }
 
+function updatePulseSeqField(){
+  if(!pulseSeq) return;
+  const lg = parseInt(inputLg.value);
+  if(isNaN(lg) || lg <= 0){
+    pulseSeq.value = '';
+    pulseSeqRanges = {};
+    return;
+  }
+  const arr = [];
+  const limit = Math.min(pulseMemory.length, lg);
+  for(let i = 1; i < limit; i++){
+    if(pulseMemory[i]) arr.push(i);
+  }
+  arr.sort((a,b) => a - b);
+  pulseSeqRanges = {};
+  let pos = 0;
+  const parts = arr.map(num => {
+    const str = String(num);
+    pulseSeqRanges[num] = [pos, pos + str.length];
+    pos += str.length + 1;
+    return str;
+  });
+  pulseSeq.value = parts.join(' ');
+}
+
 // Rebuild selectedPulses (visible set) from pulseMemory and current Lg, then apply DOM classes
 function syncSelectedFromMemory() {
   const lg = parseInt(inputLg.value);
@@ -760,23 +797,30 @@ function syncSelectedFromMemory() {
     if (!p) return;
     p.classList.toggle('selected', selectedPulses.has(idx));
   });
-  syncPulseSeqFromMemory();
+  updatePulseSeqField();
 }
 
-function syncPulseSeqFromMemory() {
-  if (!pulseSeq || document.activeElement === pulseSeq) return;
+function handlePulseSeqInput(){
   const lg = parseInt(inputLg.value);
   if (isNaN(lg) || lg <= 0) {
-    pulseSeq.textContent = '';
+    pulseMemory = [];
+    renderTimeline();
+    updateNumbers();
     return;
   }
-  const maxIdx = Math.min(lg - 1, pulseMemory.length - 1);
-  const nums = [];
-  for (let i = 1; i <= maxIdx; i++) {
-    if (pulseMemory[i]) nums.push(i);
+  ensurePulseMemory(lg);
+  for(let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
+  const nums = pulseSeq.value.trim().split(/\s+/)
+    .map(n => parseInt(n,10))
+    .filter(n => !isNaN(n) && n > 0 && n < lg);
+  nums.sort((a,b) => a - b);
+  nums.forEach(n => { pulseMemory[n] = true; });
+  pulseSeq.value = nums.join(' ');
+  renderTimeline();
+  updateNumbers();
+  if (isPlaying && audio && typeof audio.setSelected === 'function') {
+    audio.setSelected(selectedForAudioFromState());
   }
-  nums.sort((a, b) => a - b);
-  pulseSeq.textContent = nums.join(' ');
 }
 
 // Deterministically set selection state for index i, respecting 0/Lg pairing when loopEnabled
@@ -1108,12 +1152,14 @@ playBtn.addEventListener('click', async () => {
     iconPlay.style.display = 'block';
     iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
+    pulseSeq?.setSelectionRange(pulseSeq.value.length, pulseSeq.value.length);
     return;
   }
 
   // Estat net abans d’arrencar
   audio.stop();
   pulses.forEach(p => p.classList.remove('active'));
+  pulseSeq?.setSelectionRange(pulseSeq.value.length, pulseSeq.value.length);
 
   const lg = parseInt(inputLg.value);
   const v  = parseFloat(inputV.value);
@@ -1135,6 +1181,7 @@ playBtn.addEventListener('click', async () => {
     iconPlay.style.display = 'block';
     iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
+     pulseSeq?.setSelectionRange(pulseSeq.value.length, pulseSeq.value.length);
     audio.stop();
   };
 
@@ -1165,6 +1212,15 @@ function highlightPulse(i){
   if (loopEnabled && idx === 0) {
     const last = pulses[pulses.length - 1];
     if (last) last.classList.add('active');
+  }
+
+  if (pulseSeq) {
+    const range = pulseSeqRanges[idx];
+    if (range) {
+      pulseSeq.setSelectionRange(range[0], range[1]);
+    } else {
+      pulseSeq.setSelectionRange(pulseSeq.value.length, pulseSeq.value.length);
+    }
   }
 }
 
