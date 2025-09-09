@@ -546,22 +546,22 @@ body[data-theme='dark'] .random {
 
   /* Reduce el radio en mòbil i situa els botons sota el play */
   .loop {
-    top: calc(50% + 50px);
-    left: calc(50% - 65px);
+    top: calc(50% + 35px);
+    left: 50%;
   }
 
   .random {
-    top: calc(50% + 65px);
-    left: calc(50% - 65px);
+    top: calc(50% + 0px);
+    left: calc(50% - 50px);
   }
 
   .reset {
-    top: calc(50% + 50px);
-    left: calc(50% + 65px);
+    top: calc(50% + 0px);
+    left: calc(50% + 50px);
   }
 
   .tap {
-    top: calc(50% + 65px);
+    top: calc(50% + 35px);
     left: 50%;
   }
 }
