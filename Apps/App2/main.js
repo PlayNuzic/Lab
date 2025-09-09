@@ -132,7 +132,8 @@ applyRandomConfig(randomConfig);
   randPulsesToggle, randomCount, randomDensity
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
-pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
+// No actualitza la memòria a cada tecleig: es confirma amb Enter o blur
+// pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
 
 let pulses = [];
 // Hit targets (separate from the visual dots) and drag mode
@@ -438,7 +439,7 @@ function randomize() {
         available.forEach(i => { if (Math.random() < d) selected.add(i); });
       }
       const seq = Array.from(selected).sort((a, b) => a - b);
-      for (let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
+      for (let i = 1; i < lg; i++) pulseMemory[i] = false;
       seq.forEach(i => { pulseMemory[i] = true; });
       syncSelectedFromMemory();
       updateNumbers();
@@ -684,7 +685,7 @@ function sanitizePulseSeq(){
   setPulseSeqText(out);
   if (!isNaN(lg)) {
     ensurePulseMemory(lg);
-    for (let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
+    for (let i = 1; i < lg; i++) pulseMemory[i] = false;
     nums.forEach(n => { if (n < lg) pulseMemory[n] = true; });
     syncSelectedFromMemory();
     updateNumbers();
@@ -714,7 +715,7 @@ function handleInput(){
 
   updateFormula();
   renderTimeline();
-  sanitizePulseSeq();
+  updatePulseSeqField();
   updateAutoIndicator();
 
   if (isPlaying && audio) {
@@ -823,7 +824,7 @@ function handlePulseSeqInput(){
     return;
   }
   ensurePulseMemory(lg);
-  for(let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
+  for(let i = 1; i < lg; i++) pulseMemory[i] = false;
   const nums = getPulseSeqText().trim().split(/\s+/)
     .map(n => parseInt(n,10))
     .filter(n => !isNaN(n) && n > 0 && n < lg);
@@ -1195,6 +1196,8 @@ playBtn.addEventListener('click', async () => {
     pulses.forEach(p => p.classList.remove('active'));
      setPulseSeqSelection(getPulseSeqText().length, getPulseSeqText().length);
     audio.stop();
+    const ed = getEditEl();
+    if (ed) ed.classList.remove('playing');
   };
 
   audio.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
@@ -1203,6 +1206,8 @@ playBtn.addEventListener('click', async () => {
   playBtn.classList.add('active');
   iconPlay.style.display = 'none';
   iconStop.style.display = 'block';
+  const ed = getEditEl();
+  if (ed) { ed.classList.add('playing'); ed.blur(); }
 });
 
 function highlightPulse(i){

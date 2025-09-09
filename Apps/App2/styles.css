@@ -18,6 +18,7 @@
 #pulseSeq .zero,
 #pulseSeq .lg { color: var(--color-lg); user-select: none; }
 #pulseSeq .edit { outline: none; white-space: pre; }
+#pulseSeq .edit.playing { caret-color: transparent; }
 
 #tIndicator {
   display: inline-block;
