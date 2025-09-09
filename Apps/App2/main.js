@@ -42,6 +42,10 @@ const unitT = document.getElementById('unitT');
 const formula = document.getElementById('formula');
 const timelineWrapper = document.getElementById('timelineWrapper');
 const timeline = document.getElementById('timeline');
+const tIndicator = document.createElement('div');
+tIndicator.id = 'tIndicator';
+tIndicator.style.color = 'red';
+timeline.appendChild(tIndicator);
 const playBtn = document.getElementById('playBtn');
 const loopBtn = document.getElementById('loopBtn');
 const resetBtn = document.getElementById('resetBtn');
@@ -173,6 +177,24 @@ let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
+function updateTIndicatorText(value) {
+  tIndicator.textContent = `T: ${value}`;
+}
+
+function updateTIndicatorPosition() {
+  if (circularTimeline) {
+    tIndicator.style.position = 'absolute';
+    tIndicator.style.left = '50%';
+    tIndicator.style.top = 'calc(100% + 10px)';
+    tIndicator.style.transform = 'translateX(-50%)';
+  } else {
+    tIndicator.style.position = '';
+    tIndicator.style.left = '';
+    tIndicator.style.top = '';
+    tIndicator.style.transform = '';
+  }
+  timeline.appendChild(tIndicator);
+}
 let suppressClickIndex = null;       // per evitar doble-toggle en drag start
 // --- Drag selection state ---
 let isDragging = false;
@@ -270,10 +292,13 @@ updateNumbers();
 
 circularTimelineToggle.checked = loadOpt('circular') === '1';
 circularTimeline = circularTimelineToggle.checked;
+updateTIndicatorPosition();
+updateTIndicatorText(parseNum(inputT.value) || '');
 circularTimelineToggle?.addEventListener('change', e => {
   circularTimeline = e.target.checked;
   saveOpt('circular', e.target.checked ? '1' : '0');
   animateTimelineCircle(loopEnabled && circularTimeline);
+  updateTIndicatorPosition();
 });
 animateTimelineCircle(loopEnabled && circularTimeline);
 
@@ -588,12 +613,44 @@ function handleInput(e){
 
   if (hasLg && hasV) {
     const tSeconds = (lg / v) * 60;
-    const rounded  = Math.round(tSeconds * 100) / 100;
-    setValue(inputT, rounded);
-  } else {
-    setValue(inputT, '');
+    const rounded  = Math.round(tSeconds * 100) / 100; // 2 decimals màxim
+    setValue(inputT, rounded);                          // punt a l'input; la fórmula ja mostra coma
+    updateTIndicatorText(rounded);
+  };
+  const calcV = () => {
+    if (!(hasLg && hasT) || t === 0) return;
+    const vBpm     = (lg * 60) / t;
+    const vRounded = Math.round(vBpm * 100) / 100;
+    setValue(inputV, vRounded);
+  };
+  const calcLg = () => {
+    if (!(hasV && hasT)) return;
+    const lgCount = (v * t) / 60;
+    setValue(inputLg, Math.round(lgCount)); // Lg enter
+  };
+
+  // decisió
+  if (twoKnown) {
+    // sempre calcula la tercera que falta i fixa l'autoTarget a aquest camp
+    if (!hasT) {
+      calcT();
+      if (autoTarget !== 'T') setAutoExact('T');
+    }
+    else if (!hasV) {
+      calcV();
+      if (autoTarget !== 'V') setAutoExact('V');
+    }
+    else if (!hasLg) {
+      calcLg();
+      if (autoTarget !== 'Lg') setAutoExact('Lg');
+    }
+  } else if (threeKnown && autoTarget) {
+    if (autoTarget === 'T')      calcT();
+    else if (autoTarget === 'V') calcV();
+    else if (autoTarget === 'Lg')calcLg();
   }
 
+  // Manté el cercle del timeline si el loop està actiu (sense tocar memòria)
   if (loopEnabled && hasLg) {
     ensurePulseMemory(lg);
   }
@@ -614,6 +671,9 @@ function handleInput(e){
     if (typeof audio.setTempo === 'function' && !isNaN(vNow) && vNow > 0) {
       audio.setTempo(vNow);
     }
+  }
+  if (hasT) {
+    updateTIndicatorText(parseNum(inputT.value));
   }
 }
 
@@ -757,6 +817,7 @@ function renderTimeline(){
   }
   syncSelectedFromMemory();
   animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
+  updateTIndicatorPosition();
 }
 
 function togglePulse(i){
