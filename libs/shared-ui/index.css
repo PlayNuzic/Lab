@@ -544,7 +544,7 @@ body[data-theme='dark'] .random {
     font-size: 1.5rem;
   }
 
-  /* Reduce el radio en mòbil i situa els botons sota el play */
+  /* Reduce el radio en mòbil i situa els botons al voltant del play */
   .loop {
     top: calc(50% + 35px);
     left: calc(50% - 30px);
