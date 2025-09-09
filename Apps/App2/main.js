@@ -2,6 +2,7 @@ import { TimelineAudio, soundNames } from '../../libs/sound/index.js';
 import { ensureAudio } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
+import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -51,6 +52,16 @@ const tapHelp = document.getElementById('tapHelp');
 const circularTimelineToggle = document.getElementById('circularTimelineToggle');
 const randomBtn = document.getElementById('randomBtn');
 const randomMenu = document.getElementById('randomMenu');
+const randLgToggle = document.getElementById('randLgToggle');
+const randLgMin = document.getElementById('randLgMin');
+const randLgMax = document.getElementById('randLgMax');
+const randVToggle = document.getElementById('randVToggle');
+const randVMin = document.getElementById('randVMin');
+const randVMax = document.getElementById('randVMax');
+const randTToggle = document.getElementById('randTToggle');
+const randTMin = document.getElementById('randTMin');
+const randTMax = document.getElementById('randTMax');
+const randPulsesToggle = document.getElementById('randPulsesToggle');
 const randomCount = document.getElementById('randomCount');
 const randomDensity = document.getElementById('randomDensity');
 // Mute is managed by the shared header (#muteBtn)
@@ -141,7 +152,7 @@ attachHover(playBtn, { text: 'Play / Stop' });
 attachHover(loopBtn, { text: 'Loop' });
 attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
-attachHover(randomBtn, { text: 'Aleatorizar pulsos' });
+attachHover(randomBtn, { text: 'Aleatorizar parámetros' });
 
 // Helper: current manual keys from DOM (those whose LED should be ON)
 function getManualKeys(){
@@ -336,67 +347,64 @@ tapBtn.addEventListener('click', () => {
   if (tapTimes.length > 8) tapTimes.shift();
 });
 
-// --- Aleatorización de pulsos ---
-let randomPressTimer = null;
-
-function toggleRandomMenu(force) {
-  const shouldOpen = typeof force === 'boolean' ? force : !randomMenu.classList.contains('open');
-  randomMenu.classList.toggle('open', shouldOpen);
-  if (shouldOpen) solidMenuBackground(randomMenu);
+// --- Aleatorización de parámetros y pulsos ---
+function randomInt(min, max) {
+  const lo = Number(min);
+  const hi = Number(max);
+  if (isNaN(lo) || isNaN(hi) || hi < lo) return lo;
+  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
 }
 
 function randomize() {
-  const lg = parseInt(inputLg.value);
-  if (isNaN(lg) || lg <= 0) return;
-  ensurePulseMemory(lg);
-
-  const count = parseInt(randomCount.value);
-  const density = parseFloat(randomDensity.value);
-  const selected = new Set();
-  const available = [];
-  for (let i = 1; i < lg; i++) available.push(i);
-
-  if (!isNaN(count) && count > 0) {
-    while (selected.size < Math.min(count, available.length)) {
-      const idx = available[Math.floor(Math.random() * available.length)];
-      selected.add(idx);
-    }
-  } else {
-    const d = isNaN(density) ? 0.5 : Math.max(0, Math.min(1, density));
-    available.forEach(i => { if (Math.random() < d) selected.add(i); });
+  if (randLgToggle?.checked) {
+    const v = randomInt(randLgMin.value, randLgMax.value);
+    setValue(inputLg, v);
+    handleInput({ target: inputLg });
   }
-
-  for (let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
-  selected.forEach(i => { pulseMemory[i] = true; });
-
-  syncSelectedFromMemory();
-  updateNumbers();
-  if (isPlaying && audio && typeof audio.setSelected === 'function') {
-    audio.setSelected(selectedForAudioFromState());
+  if (randVToggle?.checked) {
+    const v = randomInt(randVMin.value, randVMax.value);
+    setValue(inputV, v);
+    handleInput({ target: inputV });
+  }
+  if (randTToggle?.checked) {
+    const min = Number(randTMin.value);
+    const max = Number(randTMax.value);
+    const lo = isNaN(min) ? 0 : min;
+    const hi = isNaN(max) ? lo : max;
+    const val = lo + Math.random() * Math.max(0, hi - lo);
+    setValue(inputT, val.toFixed(2));
+    handleInput({ target: inputT });
+  }
+  if (randPulsesToggle?.checked) {
+    const lg = parseInt(inputLg.value);
+    if (!isNaN(lg) && lg > 0) {
+      ensurePulseMemory(lg);
+      const count = parseInt(randomCount.value);
+      const density = parseFloat(randomDensity.value);
+      const selected = new Set();
+      const available = [];
+      for (let i = 1; i < lg; i++) available.push(i);
+      if (!isNaN(count) && count > 0) {
+        while (selected.size < Math.min(count, available.length)) {
+          const idx = available[Math.floor(Math.random() * available.length)];
+          selected.add(idx);
+        }
+      } else {
+        const d = isNaN(density) ? 0.5 : Math.max(0, Math.min(1, density));
+        available.forEach(i => { if (Math.random() < d) selected.add(i); });
+      }
+      for (let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
+      selected.forEach(i => { pulseMemory[i] = true; });
+      syncSelectedFromMemory();
+      updateNumbers();
+      if (isPlaying && audio && typeof audio.setSelected === 'function') {
+        audio.setSelected(selectedForAudioFromState());
+      }
+    }
   }
 }
 
-randomBtn.addEventListener('pointerdown', () => {
-  randomPressTimer = setTimeout(() => {
-    toggleRandomMenu();
-    randomPressTimer = null;
-  }, 600);
-});
-
-randomBtn.addEventListener('pointerup', () => {
-  if (randomPressTimer) {
-    clearTimeout(randomPressTimer);
-    randomPressTimer = null;
-    randomize();
-  }
-});
-
-randomBtn.addEventListener('pointerleave', () => {
-  if (randomPressTimer) {
-    clearTimeout(randomPressTimer);
-    randomPressTimer = null;
-  }
-});
+initRandomMenu(randomBtn, randomMenu, randomize);
 
 function populateSoundSelect(selectElem, defaultName, storeName){
   if(!selectElem) return;

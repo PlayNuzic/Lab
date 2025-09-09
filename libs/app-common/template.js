@@ -89,13 +89,11 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
 
       <div class="controls">
       <button id="randomBtn" class="random" aria-label="Random">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
-    <path d="M416 0H96C43 0 0 43 0 96v320c0 53 43 96 96 96h320c53 0 96-43 96-96V96c0-53-43-96-96-96zm-272 96v64h-64V96h64zm0 112v64h-64v-64h64zm0 112v64h-64v-64h64zm112-224v64h-64V96h64zm0 224v64h-64v-64h64zm112-224v64h-64V96h64zm0 112v64h-64v-64h64zm0 112v64h-64v-64h64z"/>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor">
+    <path d="M422.2 133.5L241 7c-20.2-14-46.8-14-67 0L25.8 133.5C9.5 144.9 0 164 0 184.4V441.6C0 483.4 33 512 74.8 512h298.3c41.7 0 74.8-28.6 74.8-70.4V184.4c0-20.4-9.5-39.5-25.7-50.9zM224 302.3L32 192l192-110.3L416 192 224 302.3z"/>
   </svg>
 </button>
-      <details id="randomMenu" class="menu">
-        <div class="options-content">${randomMenuContent}</div>
-      </details>
+      <div id="randomMenu" class="random-menu options-content">${randomMenuContent}</div>
       <button id="loopBtn" class="loop" aria-label="Loop">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
     <path d="M370.7 133.3C338 100.6 297.9 85.3 256 85.3c-84.6 0-154.7 61.4-169.3 141.3H32l74.7 74.7 74.7-74.7H117.3c13.3-56.9 64.4-100 126.7-100 36.5 0 70.6 14.2 96.3 39.9l30.4-30.2zm70.6 152.1l-74.7-74.7-74.7 74.7h42.1c-13.3 56.9-64.4 100-126.7 100-36.5 0-70.6-14.2-96.3-39.9l-30.4 30.2C174 411.4 214.1 426.7 256 426.7c84.6 0 154.7-61.4 169.3-141.3h42.1z"/>

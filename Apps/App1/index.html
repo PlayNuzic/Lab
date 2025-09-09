@@ -16,7 +16,25 @@
   <script type="module">
     import { initHeader } from '../../libs/shared-ui/header.js';
     import { renderApp } from '../../libs/app-common/template.js';
-    renderApp({ root: document.getElementById('app-root'), title: 'Línea Temporal', showSelectColor: false });
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Línea Temporal',
+      showSelectColor: false,
+      randomMenuContent: `
+        <label><input type="checkbox" id="randLgToggle"/> Lg
+          <input id="randLgMin" type="number" placeholder="Min" />
+          <input id="randLgMax" type="number" placeholder="Max" />
+        </label>
+        <label><input type="checkbox" id="randVToggle"/> V
+          <input id="randVMin" type="number" placeholder="Min" />
+          <input id="randVMax" type="number" placeholder="Max" />
+        </label>
+        <label><input type="checkbox" id="randTToggle"/> T
+          <input id="randTMin" type="number" placeholder="Min" />
+          <input id="randTMax" type="number" placeholder="Max" />
+        </label>
+      `
+    });
     initHeader();
     import('./main.js');
   </script>
