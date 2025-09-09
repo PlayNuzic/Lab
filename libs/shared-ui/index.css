@@ -408,8 +408,8 @@ body[data-theme='dark'] .menu .options-content {
 /* Positioning buttons around the play button using precise angles */
 .tap {
   position: absolute;
-  top: calc(50% + 80px); /* Radio de 60px hacia abajo */
-  left: 50%;
+  top: calc(50% + 80px);
+  left: calc(50% + 80px);
   transform: translate(-50%, -50%);
   width: 48px;
   height: 48px;
@@ -419,8 +419,8 @@ body[data-theme='dark'] .menu .options-content {
 
 .loop {
   position: absolute;
-  top: 75%;
-  left: calc(50% - 80px); /* Radio de 80px hacia la izquierda */
+  top: calc(50% - 80px);
+  left: calc(50% - 80px);
   transform: translate(-50%, -50%);
   width: 48px;
   height: 48px;
@@ -430,8 +430,8 @@ body[data-theme='dark'] .menu .options-content {
 
 .random {
   position: absolute;
-  top: 25%;
-  left: calc(50% - 80px);
+  top: calc(50% - 80px);
+  left: calc(50% + 80px);
   transform: translate(-50%, -50%);
   width: 48px;
   height: 48px;
@@ -441,8 +441,8 @@ body[data-theme='dark'] .menu .options-content {
 
 .reset {
   position: absolute;
-  top: 75%;
-  left: calc(50% + 80px); /* Radio de 80px hacia la derecha */
+  top: calc(50% + 80px);
+  left: calc(50% - 80px);
   transform: translate(-50%, -50%);
   width: 48px;
   height: 48px;
@@ -539,29 +539,32 @@ body[data-theme='dark'] .random {
   }
 
   /* Reduce el radio en móvil */
-  .tap {
-    top: calc(50% + 60px);
-  }
-
   .loop {
+    top: calc(50% - 60px);
     left: calc(50% - 60px);
   }
 
   .random {
-    top: 25%;
-    left: calc(50% - 60px);
+    top: calc(50% - 60px);
+    left: calc(50% + 60px);
   }
 
   .reset {
+    top: calc(50% + 60px);
+    left: calc(50% - 60px);
+  }
+
+  .tap {
+    top: calc(50% + 60px);
     left: calc(50% + 60px);
   }
 }
 
 .controls .tap-help {
   position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
+  top: calc(50% + 80px + 24px);
+  left: calc(50% + 80px);
+  transform: translate(-50%, -50%);
   background: rgba(0,0,0,0.6);
   color: #fff;
   padding: 4px 8px;
@@ -570,6 +573,13 @@ body[data-theme='dark'] .random {
   white-space: nowrap;
   display: none;
   pointer-events: none;
+}
+
+@media (max-width: 600px) {
+  .controls .tap-help {
+    top: calc(50% + 60px + 20px);
+    left: calc(50% + 60px);
+  }
 }
 
 /* ---- Timeline layering & hit‑testing (shared) ---- */

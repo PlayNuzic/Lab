@@ -72,6 +72,75 @@ const accentSoundSelect = document.getElementById('accentSoundSelect');
 const previewBaseBtn = document.getElementById('previewBaseBtn');
 const previewAccentBtn = document.getElementById('previewAccentBtn');
 
+const randomDefaults = {
+  Lg: { enabled: true, range: [1, 100] },
+  V: { enabled: true, range: [1, 1000] },
+  T: { enabled: true, range: [0.1, 100000] },
+  Pulses: { enabled: true, count: '', density: 0.5 }
+};
+
+const RANDOM_STORE_KEY = 'random';
+
+function loadRandomConfig() {
+  try {
+    const raw = loadOpt(RANDOM_STORE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRandomConfig(cfg) {
+  try { saveOpt(RANDOM_STORE_KEY, JSON.stringify(cfg)); } catch {}
+}
+
+const randomConfig = { ...randomDefaults, ...loadRandomConfig() };
+
+function applyRandomConfig(cfg) {
+  randLgToggle.checked = cfg.Lg.enabled;
+  randLgMin.value = cfg.Lg.range[0];
+  randLgMax.value = cfg.Lg.range[1];
+  randVToggle.checked = cfg.V.enabled;
+  randVMin.value = cfg.V.range[0];
+  randVMax.value = cfg.V.range[1];
+  randTToggle.checked = cfg.T.enabled;
+  randTMin.value = cfg.T.range[0];
+  randTMax.value = cfg.T.range[1];
+  randPulsesToggle.checked = cfg.Pulses.enabled;
+  randomCount.value = cfg.Pulses.count;
+  randomDensity.value = cfg.Pulses.density;
+}
+
+function updateRandomConfig() {
+  randomConfig.Lg = {
+    enabled: randLgToggle.checked,
+    range: [Number(randLgMin.value) || 1, Number(randLgMax.value) || 1]
+  };
+  randomConfig.V = {
+    enabled: randVToggle.checked,
+    range: [Number(randVMin.value) || 1, Number(randVMax.value) || 1]
+  };
+  randomConfig.T = {
+    enabled: randTToggle.checked,
+    range: [Number(randTMin.value) || 0, Number(randTMax.value) || 0]
+  };
+  randomConfig.Pulses = {
+    enabled: randPulsesToggle.checked,
+    count: randomCount.value,
+    density: Number(randomDensity.value) || 0
+  };
+  saveRandomConfig(randomConfig);
+}
+
+applyRandomConfig(randomConfig);
+
+[
+  randLgToggle, randLgMin, randLgMax,
+  randVToggle, randVMin, randVMax,
+  randTToggle, randTMin, randTMax,
+  randPulsesToggle, randomCount, randomDensity
+].forEach(el => el?.addEventListener('change', updateRandomConfig));
+
 let pulses = [];
 // Hit targets (separate from the visual dots) and drag mode
 let pulseHits = [];

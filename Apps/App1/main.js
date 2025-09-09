@@ -84,10 +84,63 @@ let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 let manualHistory = [];
 
 const randomDefaults = {
-  Lg: { enabled: true, range: [1, 16] },
-  V: { enabled: true, range: [40, 200] },
-  T: { enabled: true, range: [1, 60] }
+  Lg: { enabled: true, range: [1, 100] },
+  V: { enabled: true, range: [1, 1000] },
+  T: { enabled: true, range: [1, 10000] }
 };
+
+const RANDOM_STORE_KEY = 'random';
+
+function loadRandomConfig() {
+  try {
+    const raw = loadOpt(RANDOM_STORE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRandomConfig(cfg) {
+  try { saveOpt(RANDOM_STORE_KEY, JSON.stringify(cfg)); } catch {}
+}
+
+const randomConfig = { ...randomDefaults, ...loadRandomConfig() };
+
+function applyRandomConfig(cfg) {
+  randLgToggle.checked = cfg.Lg.enabled;
+  randLgMin.value = cfg.Lg.range[0];
+  randLgMax.value = cfg.Lg.range[1];
+  randVToggle.checked = cfg.V.enabled;
+  randVMin.value = cfg.V.range[0];
+  randVMax.value = cfg.V.range[1];
+  randTToggle.checked = cfg.T.enabled;
+  randTMin.value = cfg.T.range[0];
+  randTMax.value = cfg.T.range[1];
+}
+
+function updateRandomConfig() {
+  randomConfig.Lg = {
+    enabled: randLgToggle.checked,
+    range: [Number(randLgMin.value) || 1, Number(randLgMax.value) || 1]
+  };
+  randomConfig.V = {
+    enabled: randVToggle.checked,
+    range: [Number(randVMin.value) || 1, Number(randVMax.value) || 1]
+  };
+  randomConfig.T = {
+    enabled: randTToggle.checked,
+    range: [Number(randTMin.value) || 0, Number(randTMax.value) || 0]
+  };
+  saveRandomConfig(randomConfig);
+}
+
+applyRandomConfig(randomConfig);
+
+[
+  randLgToggle, randLgMin, randLgMax,
+  randVToggle, randVMin, randVMax,
+  randTToggle, randTMin, randTMax
+].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
 // Hovers for LEDs and controls
 // LEDs ahora indican los campos editables; el apagado se recalcula

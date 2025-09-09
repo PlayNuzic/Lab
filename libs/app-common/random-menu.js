@@ -39,4 +39,8 @@ export function initRandomMenu(button, menu, onRandomize, longPress = 500) {
     if (e.target === menu || menu.contains(e.target) || e.target === button) return;
     toggleMenu(false);
   });
+
+  window.addEventListener('sharedui:theme', () => {
+    if (menu.classList.contains('open')) solidMenuBackground(menu);
+  });
 }

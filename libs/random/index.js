@@ -1,22 +1,22 @@
 import { randInt } from '../utils/index.js';
 
-export function randomize(options = {}) {
+export const DEFAULT_RANGES = {
+  Lg: { min: 1, max: 100 },
+  V: { min: 1, max: 1000 },
+  T: { min: 1, max: 10000 }
+};
+
+export function randomize(ranges = DEFAULT_RANGES) {
   const result = {};
-
-  if (options.Lg?.enabled) {
-    const [min, max] = options.Lg.range;
-    result.Lg = randInt(min, max);
+  for (const [key, { min, max }] of Object.entries(ranges)) {
+    const lo = Number(min);
+    const hi = Number(max);
+    if (Number.isNaN(lo) || Number.isNaN(hi)) continue;
+    if (key === 'T') {
+      result[key] = Math.random() * (hi - lo) + lo;
+    } else {
+      result[key] = randInt(lo, hi);
+    }
   }
-
-  if (options.V?.enabled) {
-    const [min, max] = options.V.range;
-    result.V = randInt(min, max);
-  }
-
-  if (options.T?.enabled) {
-    const [min, max] = options.T.range;
-    result.T = Math.random() * (max - min) + min;
-  }
-
   return result;
 }
