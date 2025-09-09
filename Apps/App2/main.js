@@ -39,6 +39,7 @@ const ledT = document.getElementById('ledT');
 const unitLg = document.getElementById('unitLg');
 const unitV = document.getElementById('unitV');
 const unitT = document.getElementById('unitT');
+const pulseSeq = document.getElementById('pulseSeq');
 const formula = document.getElementById('formula');
 const timelineWrapper = document.getElementById('timelineWrapper');
 const timeline = document.getElementById('timeline');
@@ -490,6 +491,14 @@ bindUnit(inputT, unitT);
 [inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
 handleInput();
 
+pulseSeq?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    sanitizePulseSeq();
+  }
+});
+pulseSeq?.addEventListener('blur', sanitizePulseSeq);
+
 const inputToLed = new Map([
   [inputLg, ledLg],
   [inputV, ledV],
@@ -603,6 +612,30 @@ addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1),  inputV);
 addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), inputLg);
 addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), inputLg);
 
+function sanitizePulseSeq(){
+  if (!pulseSeq) return;
+  const lg = parseInt(inputLg.value);
+  const matches = pulseSeq.textContent.match(/\d+/g) || [];
+  const seen = new Set();
+  const nums = [];
+  for (const m of matches) {
+    const n = parseInt(m, 10);
+    if (n > 0 && (!isNaN(lg) ? n < lg : true) && !seen.has(n)) {
+      seen.add(n);
+      nums.push(n);
+    }
+  }
+  nums.sort((a,b) => a - b);
+  pulseSeq.textContent = (isNaN(lg) ? nums : nums.filter(n => n < lg)).join(' ');
+  if (!isNaN(lg)) {
+    ensurePulseMemory(lg);
+    for (let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
+    nums.forEach(n => { if (n < lg) pulseMemory[n] = true; });
+    syncSelectedFromMemory();
+    updateNumbers();
+  }
+}
+
 function handleInput(e){
   const lg = parseNum(inputLg.value);
   const v  = parseNum(inputV.value);
@@ -657,6 +690,7 @@ function handleInput(e){
 
   updateFormula();
   renderTimeline();
+  sanitizePulseSeq();
   updateAutoIndicator();
 
   if (isPlaying && audio) {
@@ -678,6 +712,7 @@ function handleInput(e){
 }
 
 function updateFormula(){
+  if (!formula) return;
   const tNum = parseNum(inputT.value);
   const tStr = isNaN(tNum)
     ? (inputT.value || 'T')
@@ -725,6 +760,23 @@ function syncSelectedFromMemory() {
     if (!p) return;
     p.classList.toggle('selected', selectedPulses.has(idx));
   });
+  syncPulseSeqFromMemory();
+}
+
+function syncPulseSeqFromMemory() {
+  if (!pulseSeq || document.activeElement === pulseSeq) return;
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) {
+    pulseSeq.textContent = '';
+    return;
+  }
+  const maxIdx = Math.min(lg - 1, pulseMemory.length - 1);
+  const nums = [];
+  for (let i = 1; i <= maxIdx; i++) {
+    if (pulseMemory[i]) nums.push(i);
+  }
+  nums.sort((a, b) => a - b);
+  pulseSeq.textContent = nums.join(' ');
 }
 
 // Deterministically set selection state for index i, respecting 0/Lg pairing when loopEnabled

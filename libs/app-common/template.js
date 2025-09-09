@@ -1,4 +1,4 @@
-export function renderApp({ root, title, showSelectColor = false, randomMenuContent = '', hideT = false, hideLeds = false }) {
+export function renderApp({ root, title, showSelectColor = false, randomMenuContent = '', pulseSequence = false, hideT = false, hideLeds = false }) {
   if (!root) throw new Error('root element required');
   document.title = title;
   const selectColor = showSelectColor ? `
@@ -84,7 +84,7 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
       </section>
 
     <section class="middle">
-      <div id="formula" class="formula"></div>
+      ${pulseSequence ? '<div id="pulseSeq" contenteditable="true"></div>' : '<div id="formula" class="formula"></div>'}
     </section>
 
     <section class="timeline-wrapper" id="timelineWrapper">
