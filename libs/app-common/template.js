@@ -1,4 +1,4 @@
-export function renderApp({ root, title, showSelectColor = false }) {
+export function renderApp({ root, title, showSelectColor = false, randomMenuContent = '' }) {
   if (!root) throw new Error('root element required');
   document.title = title;
   const selectColor = showSelectColor ? `
@@ -88,6 +88,14 @@ export function renderApp({ root, title, showSelectColor = false }) {
       <section class="timeline" id="timeline"></section>
 
       <div class="controls">
+      <button id="randomBtn" class="random" aria-label="Random">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
+    <path d="M416 0H96C43 0 0 43 0 96v320c0 53 43 96 96 96h320c53 0 96-43 96-96V96c0-53-43-96-96-96zm-272 96v64h-64V96h64zm0 112v64h-64v-64h64zm0 112v64h-64v-64h64zm112-224v64h-64V96h64zm0 224v64h-64v-64h64zm112-224v64h-64V96h64zm0 112v64h-64v-64h64zm0 112v64h-64v-64h64z"/>
+  </svg>
+</button>
+      <details id="randomMenu" class="menu">
+        <div class="options-content">${randomMenuContent}</div>
+      </details>
       <button id="loopBtn" class="loop" aria-label="Loop">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor">
     <path d="M370.7 133.3C338 100.6 297.9 85.3 256 85.3c-84.6 0-154.7 61.4-169.3 141.3H32l74.7 74.7 74.7-74.7H117.3c13.3-56.9 64.4-100 126.7-100 36.5 0 70.6 14.2 96.3 39.9l30.4-30.2zm70.6 152.1l-74.7-74.7-74.7 74.7h42.1c-13.3 56.9-64.4 100-126.7 100-36.5 0-70.6-14.2-96.3-39.9l-30.4 30.2C174 411.4 214.1 426.7 256 426.7c84.6 0 154.7-61.4 169.3-141.3h42.1z"/>
