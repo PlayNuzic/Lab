@@ -547,7 +547,7 @@ body[data-theme='dark'] .random {
   /* Reduce el radio en mòbil i situa els botons sota el play */
   .loop {
     top: calc(50% + 35px);
-    left: 50%;
+    left: calc(50% - 10px);
   }
 
   .random {
@@ -562,7 +562,7 @@ body[data-theme='dark'] .random {
 
   .tap {
     top: calc(50% + 35px);
-    left: 50%;
+    left: calc(50% + 10px);
   }
 }
 
