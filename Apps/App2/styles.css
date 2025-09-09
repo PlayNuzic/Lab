@@ -13,6 +13,16 @@
   overflow: auto;
 }
 
+/* Visual wrapper for P(0 ... Lg) using pseudo-elements */
+#pulseSeq::before {
+  content: "P(0 ";
+  color: var(--color-lg);
+}
+#pulseSeq::after {
+  content: " " attr(data-lg) ")";
+  color: var(--color-lg);
+}
+
 #tIndicator {
   display: inline-block;
   padding: 4px 8px;
@@ -26,4 +36,3 @@
     font-size: 2rem;
   }
 }
-

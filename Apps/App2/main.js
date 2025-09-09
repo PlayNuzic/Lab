@@ -321,7 +321,7 @@ updateNumbers();
 circularTimelineToggle.checked = loadOpt('circular') === '1';
 circularTimeline = circularTimelineToggle.checked;
 updateTIndicatorPosition();
-updateTIndicatorText(parseNum(inputT.value) || '');
+updateTIndicatorText(parseNum(inputT?.value ?? '') || '');
 circularTimelineToggle?.addEventListener('change', e => {
   circularTimeline = e.target.checked;
   saveOpt('circular', e.target.checked ? '1' : '0');
@@ -500,8 +500,10 @@ function bindUnit(input, unit){
   input.addEventListener('blur', () => { unit.style.display = 'none'; });
 }
 
-inputT.readOnly = true;
-inputT.dataset.auto = '1';
+if (inputT) {
+  inputT.readOnly = true;
+  inputT.dataset.auto = '1';
+}
 
 bindUnit(inputLg, unitLg);
 bindUnit(inputV, unitV);
@@ -551,7 +553,7 @@ function flashOtherLeds(excludeInput){
   });
 }
 
-[inputLg, inputV, inputT].forEach(input => {
+[inputLg, inputV, inputT].filter(Boolean).forEach(input => {
   input.addEventListener('beforeinput', (e) => {
     if (input.dataset.auto === '1') {
       showAutoTip(input);
@@ -668,7 +670,7 @@ function handleInput(e){
   if (hasLg && hasV) {
     const tSeconds = (lg / v) * 60;
     const rounded  = Math.round(tSeconds * 100) / 100; // 2 decimals màxim
-    setValue(inputT, rounded);                          // punt a l'input; la fórmula ja mostra coma
+    if (inputT) setValue(inputT, rounded);              // si existeix input T
     updateTIndicatorText(rounded);
   };
   const calcV = () => {
@@ -727,16 +729,16 @@ function handleInput(e){
       audio.setTempo(vNow);
     }
   }
-  if (hasT) {
+  if (hasT && inputT) {
     updateTIndicatorText(parseNum(inputT.value));
   }
 }
 
 function updateFormula(){
   if (!formula) return;
-  const tNum = parseNum(inputT.value);
+  const tNum = parseNum(inputT?.value ?? '');
   const tStr = isNaN(tNum)
-    ? (inputT.value || 'T')
+    ? ((inputT?.value ?? '') || 'T')
     : formatSec(tNum).replace('.', ',');
   const lg = inputLg.value || 'Lg';
   const v  = inputV.value || 'V';
@@ -762,9 +764,11 @@ function updatePulseSeqField(){
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0){
     setPulseSeqText('');
+    try{ pulseSeqEl.removeAttribute('data-lg'); }catch{}
     pulseSeqRanges = {};
     return;
   }
+  try{ pulseSeqEl.setAttribute('data-lg', String(lg)); }catch{}
   const arr = [];
   const limit = Math.min(pulseMemory.length, lg);
   for(let i = 1; i < limit; i++){
@@ -1145,7 +1149,7 @@ function updateAutoIndicator(){
   // Los LEDs encendidos son los campos editables; el apagado se recalcula
   ledLg?.classList.toggle('on', inputLg.dataset.auto !== '1');
   ledV?.classList.toggle('on', inputV.dataset.auto !== '1');
-  ledT?.classList.toggle('on', inputT.dataset.auto !== '1');
+  ledT?.classList.toggle('on', (inputT?.dataset?.auto) !== '1');
 }
 
 playBtn.addEventListener('click', async () => {
