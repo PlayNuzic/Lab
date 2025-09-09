@@ -14,9 +14,9 @@
 }
 
 #pulseSeq .prefix,
-#pulseSeq .suffix { color: inherit; }
+#pulseSeq .suffix { color: inherit; user-select: none; }
 #pulseSeq .zero,
-#pulseSeq .lg { color: var(--color-lg); }
+#pulseSeq .lg { color: var(--color-lg); user-select: none; }
 #pulseSeq .edit { outline: none; white-space: pre; }
 
 #tIndicator {

@@ -84,7 +84,7 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
       </section>
 
     <section class="middle">
-      ${pulseSequence ? '<div id="pulseSeq" contenteditable="true"></div>' : '<div id="formula" class="formula"></div>'}
+      ${pulseSequence ? '<div id="pulseSeq"></div>' : '<div id="formula" class="formula"></div>'}
     </section>
 
     <section class="timeline-wrapper" id="timelineWrapper">

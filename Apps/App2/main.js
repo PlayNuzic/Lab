@@ -532,6 +532,22 @@ getEditEl()?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     sanitizePulseSeq();
+    return;
+  }
+  if (e.key === 'Backspace' || e.key === 'Delete') {
+    const el = getEditEl();
+    const node = el && el.firstChild;
+    const len = node ? (node.textContent || '').length : 0;
+    const sel = window.getSelection && window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const rng = sel.getRangeAt(0);
+    if (!el.contains(rng.startContainer)) return;
+    const start = rng.startOffset;
+    const end = rng.endOffset;
+    if ((e.key === 'Backspace' && start === 0 && end === 0) ||
+        (e.key === 'Delete' && start === len && end === len)) {
+      e.preventDefault();
+    }
   }
 });
 getEditEl()?.addEventListener('blur', sanitizePulseSeq);
@@ -1120,14 +1136,12 @@ function updateNumbers(){
   showNumber(0);
   showNumber(lgForNumbers);
 
-  // la resta només si no és massa dens i està activat
-  if (!tooDense) {
-    pulses.forEach((p, i) => {
-      if (i !== 0 && i !== lgForNumbers && selectedPulses.has(i)) {
-        showNumber(i);
-      }
-    });
-  }
+  // En App2: només els seleccionats (sense 0 ni Lg)
+  pulses.forEach((p, i) => {
+    if (i !== 0 && i !== lgForNumbers && selectedPulses.has(i)) {
+      showNumber(i);
+    }
+  });
 }
 
 function updateAutoIndicator(){
