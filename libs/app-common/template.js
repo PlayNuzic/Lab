@@ -1,10 +1,20 @@
-export function renderApp({ root, title, showSelectColor = false, randomMenuContent = '' }) {
+export function renderApp({ root, title, showSelectColor = false, randomMenuContent = '', hideT = false, hideLeds = false }) {
   if (!root) throw new Error('root element required');
   document.title = title;
   const selectColor = showSelectColor ? `
         <label for="selectColor">Color selección <input type="color" id="selectColor" value="#FFBB97" /></label>
         <hr class="menu-separator" />
         ` : '';
+  const led = id => hideLeds ? '' : `<span class="led" id="${id}"></span>`;
+  const tParam = hideT ? '' : `
+        <div class="param t">
+          <span class="abbr">T</span>
+          <div class="circle"><span class="unit" id="unitT">segundos</span>${led('ledT')}<input id="inputT" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="decimal">
+            <div class="spinner">
+              <button id="inputTUp" class="spin up" type="button" aria-label="Incrementar T"></button>
+              <button id="inputTDown" class="spin down" type="button" aria-label="Decrementar T"></button>
+            </div></div>
+        </div>`;
   root.innerHTML = `
   <header class="top-bar">
     <details class="menu" id="optionsMenu">
@@ -52,33 +62,26 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
 
   <main>
     <section class="inputs">
-      <div class="param lg">
-        <span class="abbr">Lg</span>
-        <div class="circle"><span class="unit" id="unitLg">Pulsos</span><span class="led" id="ledLg"></span><input id="inputLg" type="number" min="1" step="1" />
-          <div class="spinner">
-            <button id="inputLgUp" class="spin up" type="button" aria-label="Incrementar Lg"></button>
-            <button id="inputLgDown" class="spin down" type="button" aria-label="Decrementar Lg"></button>
+        <div class="param lg">
+          <span class="abbr">Lg</span>
+          <div class="circle"><span class="unit" id="unitLg">Pulsos</span>${led('ledLg')}<input id="inputLg" type="number" min="1" step="1" />
+            <div class="spinner">
+              <button id="inputLgUp" class="spin up" type="button" aria-label="Incrementar Lg"></button>
+              <button id="inputLgDown" class="spin down" type="button" aria-label="Decrementar Lg"></button>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="param v">
-        <span class="abbr">V</span>
-        <div class="circle"><span class="unit" id="unitV">BPM</span><span class="led" id="ledV"></span><input id="inputV" type="number" min="1" step="1" />
-          <div class="spinner">
-            <button id="inputVUp" class="spin up" type="button" aria-label="Incrementar V"></button>
-            <button id="inputVDown" class="spin down" type="button" aria-label="Decrementar V"></button>
+        <div class="param v">
+          <span class="abbr">V</span>
+          <div class="circle"><span class="unit" id="unitV">BPM</span>${led('ledV')}<input id="inputV" type="number" min="1" step="1" />
+            <div class="spinner">
+              <button id="inputVUp" class="spin up" type="button" aria-label="Incrementar V"></button>
+              <button id="inputVDown" class="spin down" type="button" aria-label="Decrementar V"></button>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="param t">
-        <span class="abbr">T</span>
-        <div class="circle"><span class="unit" id="unitT">segundos</span><span class="led" id="ledT"></span><input id="inputT" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="decimal">
-          <div class="spinner">
-            <button id="inputTUp" class="spin up" type="button" aria-label="Incrementar T"></button>
-            <button id="inputTDown" class="spin down" type="button" aria-label="Decrementar T"></button>
-          </div></div>
-      </div>
-    </section>
+        ${tParam}
+      </section>
 
     <section class="middle">
       <div id="formula" class="formula"></div>

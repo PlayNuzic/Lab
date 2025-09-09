@@ -37,8 +37,12 @@
           <input id="randomCount" type="number" min="0" placeholder="Nº" />
           <input id="randomDensity" type="number" min="0" max="1" step="0.01" value="0.5" placeholder="Densidad" />
         </label>
-      `
+      `,
+      hideT: true,
+      hideLeds: true
     });
+    document.querySelectorAll('.led').forEach(el => el.remove());
+    document.querySelector('.inputs').style.left = '0';
 
     initHeader();
     import('./main.js');
