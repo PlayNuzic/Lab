@@ -49,6 +49,10 @@ const resetBtn = document.getElementById('resetBtn');
 const tapBtn = document.getElementById('tapTempoBtn');
 const tapHelp = document.getElementById('tapHelp');
 const circularTimelineToggle = document.getElementById('circularTimelineToggle');
+const randomBtn = document.getElementById('randomBtn');
+const randomMenu = document.getElementById('randomMenu');
+const randomCount = document.getElementById('randomCount');
+const randomDensity = document.getElementById('randomDensity');
 // Mute is managed by the shared header (#muteBtn)
 const themeSelect = document.getElementById('themeSelect');
 const selectColor = document.getElementById('selectColor');
@@ -137,6 +141,7 @@ attachHover(playBtn, { text: 'Play / Stop' });
 attachHover(loopBtn, { text: 'Loop' });
 attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
+attachHover(randomBtn, { text: 'Aleatorizar pulsos' });
 
 // Helper: current manual keys from DOM (those whose LED should be ON)
 function getManualKeys(){
@@ -329,6 +334,68 @@ tapBtn.addEventListener('click', () => {
     audio.setTempo(bpm);
   }
   if (tapTimes.length > 8) tapTimes.shift();
+});
+
+// --- Aleatorización de pulsos ---
+let randomPressTimer = null;
+
+function toggleRandomMenu(force) {
+  const shouldOpen = typeof force === 'boolean' ? force : !randomMenu.classList.contains('open');
+  randomMenu.classList.toggle('open', shouldOpen);
+  if (shouldOpen) solidMenuBackground(randomMenu);
+}
+
+function randomize() {
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) return;
+  ensurePulseMemory(lg);
+
+  const count = parseInt(randomCount.value);
+  const density = parseFloat(randomDensity.value);
+  const selected = new Set();
+  const available = [];
+  for (let i = 1; i < lg; i++) available.push(i);
+
+  if (!isNaN(count) && count > 0) {
+    while (selected.size < Math.min(count, available.length)) {
+      const idx = available[Math.floor(Math.random() * available.length)];
+      selected.add(idx);
+    }
+  } else {
+    const d = isNaN(density) ? 0.5 : Math.max(0, Math.min(1, density));
+    available.forEach(i => { if (Math.random() < d) selected.add(i); });
+  }
+
+  for (let i = 1; i < pulseMemory.length; i++) pulseMemory[i] = false;
+  selected.forEach(i => { pulseMemory[i] = true; });
+
+  syncSelectedFromMemory();
+  updateNumbers();
+  if (isPlaying && audio && typeof audio.setSelected === 'function') {
+    audio.setSelected(selectedForAudioFromState());
+  }
+}
+
+randomBtn.addEventListener('pointerdown', () => {
+  randomPressTimer = setTimeout(() => {
+    toggleRandomMenu();
+    randomPressTimer = null;
+  }, 600);
+});
+
+randomBtn.addEventListener('pointerup', () => {
+  if (randomPressTimer) {
+    clearTimeout(randomPressTimer);
+    randomPressTimer = null;
+    randomize();
+  }
+});
+
+randomBtn.addEventListener('pointerleave', () => {
+  if (randomPressTimer) {
+    clearTimeout(randomPressTimer);
+    randomPressTimer = null;
+  }
 });
 
 function populateSoundSelect(selectElem, defaultName, storeName){

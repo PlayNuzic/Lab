@@ -17,6 +17,21 @@
     import { initHeader } from '../../libs/shared-ui/header.js';
     import { renderApp } from '../../libs/app-common/template.js';
     renderApp({ root: document.getElementById('app-root'), title: 'Sucesión de Pulsos', showSelectColor: true });
+
+    // Insertar botón y menú de aleatorización
+    const controls = document.querySelector('.controls');
+    if (controls) {
+      controls.insertAdjacentHTML('beforeend', `
+        <div class="random-group">
+          <button id="randomBtn" class="random" aria-label="Aleatorizar">🎲</button>
+          <div id="randomMenu" class="random-menu hidden">
+            <label>Nº pulsos <input id="randomCount" type="number" min="0" /></label>
+            <label>Densidad <input id="randomDensity" type="number" min="0" max="1" step="0.01" value="0.5" /></label>
+          </div>
+        </div>
+      `);
+    }
+
     initHeader();
     import('./main.js');
   </script>

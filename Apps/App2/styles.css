@@ -2,3 +2,9 @@
 .pulse { cursor: pointer; }
 .timeline .pulse { pointer-events: auto; }
 .pulse.selected { background: var(--selection-color); }
+
+/* Botón y menú de aleatorización */
+.random-group { position: relative; }
+.random-menu { display: none; position: absolute; top: -150%; right: 0; padding: 0.5rem; border: 1px solid var(--fg, #333); border-radius: 4px; background: var(--bg, #fff); }
+.random-menu.open { display: block; }
+.random-menu label { display: block; font-size: 0.8rem; margin: 0.25rem 0; }
