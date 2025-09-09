@@ -150,14 +150,12 @@
 
 /* Force controls container position in circular mode */
 .timeline-wrapper.circular > .controls {
-  position: absolute ;
-  top: 50% ;
-  left: 50% ;
-  width: 320px ;
-  height: 320px ;
-  transform: translate(-50%, calc(-50% + var(--controls-offset-y)));
-  z-index: 3 ; /* ensure above timeline */
-  margin: 0 ;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3; /* ensure above timeline */
+  margin: 0;
 }
 
 
@@ -178,11 +176,6 @@
     margin: 15px 20px;
   }
   
-  
-  .timeline-wrapper.circular > .controls {
-    width: 240px;
-    height: 240px;
-  }
   
 }
 
