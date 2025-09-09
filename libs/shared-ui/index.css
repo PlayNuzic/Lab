@@ -551,12 +551,12 @@ body[data-theme='dark'] .random {
   }
 
   .random {
-    top: calc(50% + 0px);
+    top: calc(50% + 35px);
     left: calc(50% - 50px);
   }
 
   .reset {
-    top: calc(50% + 0px);
+    top: calc(50% + 35px);
     left: calc(50% + 50px);
   }
 
