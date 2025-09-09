@@ -45,6 +45,7 @@ El repositori es divideix en diversos espais lògics:
   - `App1/`
   - `App2/`
 - `libs/app-common/`: utilitats comunes com `computeHitSizePx`, `computeNumberFontRem` i `solidMenuBackground` tenen tests dedicats.
+- `libs/random/`: generació de paràmetres aleatoris per a Lg, V, T o Pulsos.
 - `packages/`: Contindrà el codi compartit. Aquí s'espera afegir el repositori
   `PlayNuzic/IndexLab` com a submòdul de Git sota la ruta
   `packages/indexlab`.
