@@ -277,35 +277,34 @@ function updateTIndicatorPosition() {
 function revealTAfter(ms = 900) {
   tIndicator.style.visibility = 'hidden';
   const deadline = performance.now() + 2500; // hard cap to avoid infinite loop
-  const trackDur = 620; // follow anchor for this long while hidden
+  let start = null;
 
-  const tryShow = () => {
+  const step = () => {
     const lgVal = parseInt(inputLg.value);
     const anchor = timeline.querySelector(`.pulse-number[data-index="${lgVal}"]`);
+
     if (anchor) {
-      const t0 = performance.now();
-      const step = () => {
-        updateTIndicatorPosition();
-        if (performance.now() - t0 < trackDur) {
-          requestAnimationFrame(step);
-        }
-      };
-      requestAnimationFrame(step);
-      setTimeout(() => {
+      if (start === null) start = performance.now();
+      updateTIndicatorPosition();
+      if (performance.now() - start >= ms) {
         updateTIndicatorPosition();
         tIndicator.style.visibility = 'visible';
-      }, Math.max(ms, trackDur));
-      return; // done
+      } else {
+        requestAnimationFrame(step);
+      }
+      return;
     }
+
     if (performance.now() < deadline) {
-      requestAnimationFrame(tryShow);
+      requestAnimationFrame(step);
     } else {
       // last resort: position once and show (should rarely happen)
       updateTIndicatorPosition();
       tIndicator.style.visibility = 'visible';
     }
   };
-  requestAnimationFrame(tryShow);
+
+  requestAnimationFrame(step);
 }
 let suppressClickIndex = null;       // per evitar doble-toggle en drag start
 // --- Drag selection state ---
