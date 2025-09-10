@@ -276,26 +276,25 @@ function updateTIndicatorPosition() {
 }
 function revealTAfter(ms = 900) {
   tIndicator.style.visibility = 'hidden';
-  const start = performance.now();
-  const deadline = start + 2500; // hard cap to avoid infinite loop
-  // Track position during the settle window so the final frame is correct
-  const trackFor = (durMs) => {
-    const t0 = performance.now();
-    const step = () => {
-      updateTIndicatorPosition();
-      if (performance.now() - t0 < durMs) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  };
+  const deadline = performance.now() + 2500; // hard cap to avoid infinite loop
+  const trackDur = 620; // follow anchor for this long while hidden
+
   const tryShow = () => {
     const lgVal = parseInt(inputLg.value);
     const anchor = timeline.querySelector(`.pulse-number[data-index="${lgVal}"]`);
     if (anchor) {
-      // follow for the transition window (0.6s) but remain hidden
-      trackFor(620);
-      // and reveal on the next frame
-      requestAnimationFrame(() => updateTIndicatorPosition());
-      tIndicator.style.visibility = 'visible';
+      const t0 = performance.now();
+      const step = () => {
+        updateTIndicatorPosition();
+        if (performance.now() - t0 < trackDur) {
+          requestAnimationFrame(step);
+        }
+      };
+      requestAnimationFrame(step);
+      setTimeout(() => {
+        updateTIndicatorPosition();
+        tIndicator.style.visibility = 'visible';
+      }, Math.max(ms, trackDur));
       return; // done
     }
     if (performance.now() < deadline) {
@@ -306,7 +305,7 @@ function revealTAfter(ms = 900) {
       tIndicator.style.visibility = 'visible';
     }
   };
-  setTimeout(() => requestAnimationFrame(tryShow), ms);
+  requestAnimationFrame(tryShow);
 }
 let suppressClickIndex = null;       // per evitar doble-toggle en drag start
 // --- Drag selection state ---
