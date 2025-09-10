@@ -197,6 +197,13 @@ function setupPulseSeqMarkup(){
 }
 setupPulseSeqMarkup();
 
+// Highlight overlay for pulse sequence numbers during playback
+const pulseSeqHighlight = document.createElement('div');
+if (pulseSeqEl) {
+  pulseSeqHighlight.id = 'pulseSeqHighlight';
+  pulseSeqEl.appendChild(pulseSeqHighlight);
+}
+
 // Helpers for #pulseSeq (use inner span .pz.edit)
 function getEditEl(){
   if(!pulseSeqEl) return null;
@@ -1337,6 +1344,7 @@ playBtn.addEventListener('click', async () => {
       try { edStop.blur(); } catch {}
       try { const sel = window.getSelection && window.getSelection(); sel && sel.removeAllRanges && sel.removeAllRanges(); } catch {}
     }
+    if (pulseSeqHighlight) pulseSeqHighlight.style.display = 'none';
     return;
   }
 
@@ -1373,6 +1381,7 @@ playBtn.addEventListener('click', async () => {
       try { ed.blur(); } catch {}
       try { const sel = window.getSelection && window.getSelection(); sel && sel.removeAllRanges && sel.removeAllRanges(); } catch {}
     }
+    if (pulseSeqHighlight) pulseSeqHighlight.style.display = 'none';
   };
 
   audio.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
@@ -1408,13 +1417,30 @@ function highlightPulse(i){
     const last = pulses[pulses.length - 1];
     if (last) last.classList.add('active');
   }
-
-  if (pulseSeqEl) {
+  if (pulseSeqHighlight && pulseSeqEl) {
     const range = pulseSeqRanges[idx];
     if (range) {
-      setPulseSeqSelection(range[0], range[1]);
+      const el = getEditEl();
+      const node = el && el.firstChild;
+      if (node) {
+        const r = document.createRange();
+        r.setStart(node, range[0]);
+        r.setEnd(node, range[1]);
+        const rect = r.getBoundingClientRect();
+        const parent = pulseSeqEl.getBoundingClientRect();
+        const cx = rect.left - parent.left + rect.width / 2;
+        const cy = rect.top - parent.top + rect.height / 2;
+        const size = Math.max(rect.width, rect.height);
+        pulseSeqHighlight.style.width = size + 'px';
+        pulseSeqHighlight.style.height = size + 'px';
+        pulseSeqHighlight.style.left = cx + 'px';
+        pulseSeqHighlight.style.top = cy + 'px';
+        pulseSeqHighlight.classList.remove('active');
+        void pulseSeqHighlight.offsetWidth;
+        pulseSeqHighlight.classList.add('active');
+      }
     } else {
-      setPulseSeqSelection(getPulseSeqText().length, getPulseSeqText().length);
+      pulseSeqHighlight.style.display = 'none';
     }
   }
 }

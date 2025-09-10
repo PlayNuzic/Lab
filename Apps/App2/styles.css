@@ -11,6 +11,7 @@
   gap: 12px;
   margin: 0 auto;
   overflow: auto;
+  position: relative;
 }
 
 #pulseSeq .prefix,
@@ -19,6 +20,22 @@
 #pulseSeq .lg { color: var(--color-lg); user-select: none; }
 #pulseSeq .edit { outline: none; white-space: pre; }
 #pulseSeq .edit.playing { caret-color: transparent; }
+
+#pulseSeqHighlight {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--selection-color);
+  color: var(--selection-color);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  display: none;
+}
+
+#pulseSeqHighlight.active {
+  animation: pulseFlash 0.35s ease-out;
+  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
+  display: block;
+}
 
 #tIndicator {
   position: absolute; /* positioned by JS relative to Lg label */
