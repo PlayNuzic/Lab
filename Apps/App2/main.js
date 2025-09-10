@@ -731,10 +731,11 @@ function sanitizePulseSeq(opts = {}){
   const seen = new Set();
   const nums = [];
   let hadTooBig = false;
+  let firstTooBig = null;
   for (const m of matches) {
     const n = parseInt(m, 10);
     if (n > 0 && !seen.has(n)) {
-      if (!isNaN(lg) && n >= lg) { hadTooBig = true; continue; }
+      if (!isNaN(lg) && n >= lg) { hadTooBig = true; if(firstTooBig===null) firstTooBig=n; continue; }
       seen.add(n);
       nums.push(n);
     }
@@ -761,11 +762,13 @@ function sanitizePulseSeq(opts = {}){
       const el = getEditEl();
       const tip = document.createElement('div');
       tip.className = 'hover-tip';
-      tip.textContent = `El número introducido es mayor que la Lg. Elige un número menor que ${lg}`;
+      const bad = firstTooBig != null ? firstTooBig : '';
+      tip.innerHTML = `El número <strong>${bad}</strong> introducido es mayor que la <span style=\"color: var(--color-lg); font-weight: 700;\">Lg</span>. Elige un número menor que <strong>${lg}</strong>`;
       document.body.appendChild(tip);
       const rect = el.getBoundingClientRect();
       tip.style.left = rect.left + rect.width/2 + 'px';
       tip.style.top = (rect.bottom + window.scrollY + 40) + 'px';
+      tip.style.fontSize = '0.95rem';
       tip.style.fontSize = '0.95rem';
       tip.classList.add('show');
       setTimeout(()=>{ tip.classList.remove('show'); try{ document.body.removeChild(tip);}catch{} }, 3000);
