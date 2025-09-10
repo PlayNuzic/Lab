@@ -565,8 +565,8 @@ getEditEl()?.addEventListener('keydown', (e) => {
     sanitizePulseSeq();
     return;
   }
-  // Allow only digits and navigation keys (no spaces typed)
-  const allowed = new Set(['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab']);
+  // Allow only digits, navigation keys y espacio (para introducir varios pulsos)
+  const allowed = new Set(['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab',' ']);
   if (!/^[0-9]$/.test(e.key) && !allowed.has(e.key)) {
     e.preventDefault();
     return;
@@ -745,7 +745,8 @@ function sanitizePulseSeq(){
   const newLg = parseInt(inputLg.value);
   if (!isNaN(newLg)) ensurePulseMemory(newLg);
   nums.sort((a,b) => a - b);
-  const out = (isNaN(newLg) ? nums : nums.filter(n => n < newLg)).join(' ');
+  // Normalización: exactamente DOS espacios entre números
+  const out = (isNaN(newLg) ? nums : nums.filter(n => n < newLg)).join('  ');
   setPulseSeqText(out);
   if (!isNaN(newLg)) {
     for (let i = 1; i < newLg; i++) pulseMemory[i] = false;
