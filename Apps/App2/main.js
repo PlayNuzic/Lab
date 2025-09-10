@@ -436,7 +436,9 @@ loopBtn.addEventListener('click', () => {
   if (isPlaying && audio && typeof audio.setLoop === 'function') {
     audio.setLoop(loopEnabled);
   }
+  tIndicator.style.visibility = 'hidden';
   animateTimelineCircle(loopEnabled && circularTimeline);
+  revealTAfter(650);
 });
 
 resetBtn.addEventListener('click', () => {
