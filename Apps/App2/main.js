@@ -219,6 +219,36 @@ function setPulseSeqSelection(start, end){
     sel.addRange(range);
   }catch{}
 }
+
+// Move caret to nearest token boundary and ensure there is a gap there.
+function adjustCaretToBoundaryAndEnsureGap(){
+  const el = getEditEl(); if(!el) return;
+  const sel = window.getSelection && window.getSelection();
+  if(!sel || sel.rangeCount===0) return;
+  const rng = sel.getRangeAt(0);
+  if(!el.contains(rng.startContainer)) return;
+  const node = el.firstChild || el;
+  let text = node.textContent || '';
+  let pos = rng.startOffset;
+
+  // Tokenize numbers
+  const tokens=[]; const re=/\d+/g; let m;
+  while((m=re.exec(text))){ tokens.push({s:m.index,e:m.index+m[0].length}); }
+  // If inside a token, snap to nearest boundary
+  for(const t of tokens){ if(pos>t.s && pos<t.e){ const dl=pos-t.s, dr=t.e-pos; pos = (dr<=dl)?t.e:t.s; break; } }
+
+  // Ensure single gap at boundary (don't split inside numbers)
+  const left  = pos>0 ? text[pos-1] : null;
+  const right = pos<text.length ? text[pos] : null;
+  const isDigit=(c)=> c>='0' && c<='9';
+  const needGap = (left!==' ' && right!==' ' && (isDigit(left||'') || isDigit(right||'')));
+  if(needGap){ text = text.slice(0,pos)+' '+text.slice(pos); node.textContent=text; pos+=1; }
+
+  setPulseSeqSelection(pos,pos);
+
+  // Visual hint of the gap position
+  try{ let hint = el.querySelector('#gapHint'); if(!hint){ hint=document.createElement('span'); hint.id='gapHint'; hint.className='gap-hint'; el.appendChild(hint);} const r=document.createRange(); const n=el.firstChild||el; const p=Math.max(0,Math.min(pos,(n.textContent||'').length)); r.setStart(n,p); r.setEnd(n,p); const rect=r.getBoundingClientRect(); const base=el.getBoundingClientRect(); hint.style.left=(rect.left-base.left)+'px'; hint.style.bottom='-4px'; hint.style.opacity='0.35'; clearTimeout(hint._t); hint._t=setTimeout(()=>{hint.style.opacity='0.15';},800); }catch{}
+}
 function updateTIndicatorText(value) {
   tIndicator.textContent = `T: ${value}`;
 }
@@ -559,72 +589,13 @@ getEditEl()?.addEventListener('keydown', (e) => {
 });
 getEditEl()?.addEventListener('blur', sanitizePulseSeq);
 // Ensure a gap exists at caret when clicking or navigating
-getEditEl()?.addEventListener('mouseup', ()=>{
-  setTimeout(()=>{
-    const el = getEditEl(); if(!el) return;
-    const sel = window.getSelection && window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const rng = sel.getRangeAt(0);
-    if (!el.contains(rng.startContainer)) return;
-    const node = el.firstChild || el;
-    let text = node.textContent || '';
-    let pos = rng.startOffset;
-    const len = text.length;
-    const isDigit = (c)=> c >= '0' && c <= '9';
-    const left  = pos>0   ? text[pos-1] : null;
-    const right = pos<len ? text[pos]   : null;
-    if (left !== ' ' && right !== ' ' && (isDigit(left||'') || isDigit(right||''))){
-      text = text.slice(0,pos) + ' ' + text.slice(pos);
-      node.textContent = text;
-      pos += 1;
-      setPulseSeqSelection(pos,pos);
-    }
-  });
-});
+getEditEl()?.addEventListener('mouseup', ()=> setTimeout(adjustCaretToBoundaryAndEnsureGap));
 getEditEl()?.addEventListener('keyup', (e)=>{
-  if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
-    const el = getEditEl(); if(!el) return;
-    const sel = window.getSelection && window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const rng = sel.getRangeAt(0);
-    if (!el.contains(rng.startContainer)) return;
-    const node = el.firstChild || el;
-    let text = node.textContent || '';
-    let pos = rng.startOffset;
-    const len = text.length;
-    const isDigit = (c)=> c >= '0' && c <= '9';
-    const left  = pos>0   ? text[pos-1] : null;
-    const right = pos<len ? text[pos]   : null;
-    if (left !== ' ' && right !== ' ' && (isDigit(left||'') || isDigit(right||''))){
-      text = text.slice(0,pos) + ' ' + text.slice(pos);
-      node.textContent = text;
-      pos += 1;
-      setPulseSeqSelection(pos,pos);
-    }
-  }
+  if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) adjustCaretToBoundaryAndEnsureGap();
 });
 getEditEl()?.addEventListener('focus', ()=>{
   // Create a gap at caret if needed on focus
-  setTimeout(()=>{
-    const el = getEditEl(); if(!el) return;
-    const sel = window.getSelection && window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const rng = sel.getRangeAt(0);
-    if (!el.contains(rng.startContainer)) return;
-    const node = el.firstChild || el;
-    let text = node.textContent || '';
-    let pos = rng.startOffset;
-    const len = text.length;
-    const isDigit = (c)=> c >= '0' && c <= '9';
-    const left  = pos>0   ? text[pos-1] : null;
-    const right = pos<len ? text[pos]   : null;
-    if (left !== ' ' && right !== ' ' && (isDigit(left||'') || isDigit(right||''))){
-      text = text.slice(0,pos) + ' ' + text.slice(pos);
-      node.textContent = text;
-      pos += 1;
-      setPulseSeqSelection(pos,pos);
-    }
-  });
+  setTimeout(adjustCaretToBoundaryAndEnsureGap);
 });
 // Snap caret to nearest gap on click and arrow navigation
 getEditEl()?.addEventListener('mouseup', () => setTimeout(()=>{
@@ -778,10 +749,12 @@ function sanitizePulseSeq(){
     }
   }
   // Expand Lg if any number is >= current Lg
+  let increased = false;
   if (nums.length) {
     const maxN = Math.max(...nums);
     if (!isNaN(lg) && maxN >= lg) {
       setValue(inputLg, maxN + 1);
+      increased = true;
     }
   }
   const newLg = parseInt(inputLg.value);
@@ -794,6 +767,10 @@ function sanitizePulseSeq(){
     nums.forEach(n => { if (n < newLg) pulseMemory[n] = true; });
     syncSelectedFromMemory();
     updateNumbers();
+  }
+  if (increased) {
+    // Recalcular dependencias (timeline, T, etc.)
+    handleInput();
   }
 }
 
