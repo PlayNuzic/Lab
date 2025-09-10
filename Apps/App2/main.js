@@ -226,22 +226,34 @@ function caretPos(){ const el=getEditEl(); if(!el) return 0; const s=window.getS
 function moveCaretToNearestMidpoint(){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); let best=mids[0],d=Math.abs(p-best); for(const m of mids){const dd=Math.abs(p-m); if(dd<d){best=m; d=dd;}} setPulseSeqSelection(best,best); }
 function moveCaretStep(dir){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); if(dir>0){ for(const m of mids){ if(m>p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[mids.length-1],mids[mids.length-1]); } else { for(let i=mids.length-1;i>=0;i--){ const m=mids[i]; if(m<p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[0],mids[0]); } }
 function updateTIndicatorText(value) {
-  tIndicator.textContent = `T: ${value}`;
+  // Only the number, no prefix
+  if (value === '' || value == null) { tIndicator.textContent = ''; return; }
+  const n = Number(value);
+  if (!Number.isFinite(n)) { tIndicator.textContent = String(value); return; }
+  // keep same rounding used for input T
+  const rounded = Math.round(n * 100) / 10;
+  tIndicator.textContent = String(rounded);
 }
 
 function updateTIndicatorPosition() {
   if (!timeline) return;
-  tIndicator.style.position = 'absolute';
-  if (circularTimeline) {
-    tIndicator.style.left = '50%';
-    tIndicator.style.top = 'calc(100% + 10px)';
-    tIndicator.style.transform = 'translateX(-50%)';
-  } else {
-    const rect = timeline.getBoundingClientRect();
-    tIndicator.style.left = (rect.width - 8) + 'px';
-    tIndicator.style.top = '50%';
-    tIndicator.style.transform = 'translate(-100%, -50%)';
-  }
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) { tIndicator.style.display = 'none'; return; }
+
+  // Find the Lg label element and anchor 15px below it
+  const anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
+  const tlRect = timeline.getBoundingClientRect();
+  if (!anchor) { tIndicator.style.display = 'none'; return; }
+
+  const aRect = anchor.getBoundingClientRect();
+  const centerX = aRect.left + aRect.width / 2 - tlRect.left;
+  const topY = aRect.bottom - tlRect.top + 15; // 15px separation below
+
+  tIndicator.style.display = 'flex';
+  tIndicator.style.left = `${centerX}px`;
+  tIndicator.style.top = `${topY}px`;
+  tIndicator.style.transform = 'translate(-50%, 0)';
+
   if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
 }
 let suppressClickIndex = null;       // per evitar doble-toggle en drag start
@@ -349,6 +361,8 @@ circularTimelineToggle?.addEventListener('change', e => {
   animateTimelineCircle(loopEnabled && circularTimeline);
   updateTIndicatorPosition();
 });
+// Keep T indicator anchored on window resizes
+window.addEventListener('resize', updateTIndicatorPosition);
 animateTimelineCircle(loopEnabled && circularTimeline);
 
 loopBtn.addEventListener('click', () => {

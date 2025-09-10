@@ -21,14 +21,20 @@
 #pulseSeq .edit.playing { caret-color: transparent; }
 
 #tIndicator {
-  display: inline-block;
-  padding: 2px 8px;
+  position: absolute; /* positioned by JS relative to Lg label */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
   border: 2px solid var(--color-t);
-  border-radius: 6px;
+  border-radius: 50%;
   color: var(--color-t);
   text-align: center;
   font-weight: 700;
   background: transparent;
+  pointer-events: none; /* purely visual */
+  font-size: 0.9rem;
 }
 
 @media (max-width: 600px) {
