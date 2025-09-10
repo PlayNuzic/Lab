@@ -583,7 +583,12 @@ function __updateGapHint(){
 }
 getEditEl()?.addEventListener('mouseup', ()=> setTimeout(moveCaretToNearestMidpoint,0));
 getEditEl()?.addEventListener('keyup', (e)=>{ if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) { e.preventDefault?.(); moveCaretStep(e.key==='ArrowLeft'||e.key==='Home'?-1:1);} });
-getEditEl()?.addEventListener('focus', ()=> setTimeout(moveCaretToNearestMidpoint,0));
+getEditEl()?.addEventListener('focus', ()=> setTimeout(()=>{
+  const el = getEditEl(); if(!el) return;
+  const node = el.firstChild || el; let text = node.textContent || '';
+  if(text.length === 0){ text = '  '; node.textContent = text; }
+  moveCaretToNearestMidpoint();
+},0));
 
 const inputToLed = new Map([
   [inputLg, ledLg],
@@ -726,7 +731,8 @@ function sanitizePulseSeq(){
   nums.sort((a,b) => a - b);
   // Normalización: exactamente DOS espacios entre números
   // Normaliza a dos espacios entre números
-  const out = (isNaN(newLg) ? nums : nums.filter(n => n < newLg)).join('  ');
+  const joined = (isNaN(newLg) ? nums : nums.filter(n => n < newLg)).join('  ');
+  const out = '  ' + joined + '  ';
   setPulseSeqText(out);
   if (!isNaN(newLg)) {
     for (let i = 1; i < newLg; i++) pulseMemory[i] = false;
@@ -829,11 +835,12 @@ function updatePulseSeqField(){
   let pos = 0;
   const parts = arr.map(num => {
     const str = String(num);
-    pulseSeqRanges[num] = [pos, pos + str.length];
-    pos += str.length + 2; // dos espacios como separador
+    pulseSeqRanges[num] = [pos + 2, pos + 2 + str.length];
+    pos += str.length + 2; // acumulado interno; offset global de 2 al inicio
     return str;
   });
-  setPulseSeqText(parts.join('  '));
+  // añade dos espacios al inicio y al final para tener midpoints en extremos
+  setPulseSeqText((parts.length? '  ' : '  ') + parts.join('  ') + (parts.length? '  ' : '  '));
 }
 
 // Rebuild selectedPulses (visible set) from pulseMemory and current Lg, then apply DOM classes
