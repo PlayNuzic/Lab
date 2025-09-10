@@ -56,3 +56,8 @@
 .timeline-wrapper.circular > .controls {
   transform: translate(-50%, calc(-50% - 20px)) !important; /* was -40px */
 }
+
+/* 5) Lower unit label by 20px when shown on input focus */
+.param .circle .unit {
+  top: calc(-20px - 1.8rem);
+}
