@@ -1344,7 +1344,7 @@ playBtn.addEventListener('click', async () => {
       try { edStop.blur(); } catch {}
       try { const sel = window.getSelection && window.getSelection(); sel && sel.removeAllRanges && sel.removeAllRanges(); } catch {}
     }
-    if (pulseSeqHighlight) pulseSeqHighlight.style.display = 'none';
+    if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
     return;
   }
 
@@ -1381,12 +1381,11 @@ playBtn.addEventListener('click', async () => {
       try { ed.blur(); } catch {}
       try { const sel = window.getSelection && window.getSelection(); sel && sel.removeAllRanges && sel.removeAllRanges(); } catch {}
     }
-    if (pulseSeqHighlight) pulseSeqHighlight.style.display = 'none';
+    if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
   };
 
-  audio.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
-
   isPlaying = true;
+  audio.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
   playBtn.classList.add('active');
   iconPlay.style.display = 'none';
   iconStop.style.display = 'block';
@@ -1440,7 +1439,7 @@ function highlightPulse(i){
         pulseSeqHighlight.classList.add('active');
       }
     } else {
-      pulseSeqHighlight.style.display = 'none';
+      pulseSeqHighlight.classList.remove('active');
     }
   }
 }
