@@ -231,7 +231,7 @@ function updateTIndicatorText(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) { tIndicator.textContent = String(value); return; }
   // keep same rounding used for input T
-  const rounded = Math.round(n * 100) / 10;
+  const rounded = Math.round(n * 100) / 100;
   tIndicator.textContent = String(rounded);
 }
 
@@ -243,10 +243,24 @@ function updateTIndicatorPosition() {
   // Find the Lg label element and anchor 15px below it
   const anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
   const tlRect = timeline.getBoundingClientRect();
-  if (!anchor) { tIndicator.style.display = 'none'; return; }
+  const circular = timeline.classList.contains('circular');
+
+  if (!anchor) {
+    // Fallback: place below center (approximate) so it never disappears
+    const offsetX = circular ? -16 : 0; // align with vertical bar in circular
+    const cx = tlRect.width / 2 + offsetX;
+    const y = tlRect.height + 15;
+    tIndicator.style.display = 'flex';
+    tIndicator.style.left = `${cx}px`;
+    tIndicator.style.top = `${y}px`;
+    tIndicator.style.transform = 'translate(-50%, 0)';
+    if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
+    return;
+  }
 
   const aRect = anchor.getBoundingClientRect();
-  const centerX = aRect.left + aRect.width / 2 - tlRect.left;
+  const offsetX = circular ? -16 : 0; // compensate Lg label x-shift in circle
+  const centerX = aRect.left + aRect.width / 2 - tlRect.left + offsetX;
   const topY = aRect.bottom - tlRect.top + 15; // 15px separation below
 
   tIndicator.style.display = 'flex';
@@ -360,6 +374,8 @@ circularTimelineToggle?.addEventListener('change', e => {
   saveOpt('circular', e.target.checked ? '1' : '0');
   animateTimelineCircle(loopEnabled && circularTimeline);
   updateTIndicatorPosition();
+  // Re-apply after transition (numbers move ~0.6s)
+  setTimeout(updateTIndicatorPosition, 700);
 });
 // Keep T indicator anchored on window resizes
 window.addEventListener('resize', updateTIndicatorPosition);
@@ -1137,6 +1153,9 @@ function animateTimelineCircle(isCircular, opts = {}){
 
       syncSelectedFromMemory();
       updateNumbers();
+      // Ensure T indicator anchors after circle layout is ready
+      updateTIndicatorPosition();
+      setTimeout(updateTIndicatorPosition, 700);
       // Apaga la guia circular un cop dibuixada l'anella real (evita doble cercle en mode fosc)
       if (!silent) {
         setTimeout(() => {
@@ -1182,6 +1201,8 @@ function animateTimelineCircle(isCircular, opts = {}){
     });
     syncSelectedFromMemory();
     updateNumbers();
+    updateTIndicatorPosition();
+    setTimeout(updateTIndicatorPosition, 700);
   }
 }
 
@@ -1247,6 +1268,8 @@ function updateNumbers(){
       showNumber(i);
     }
   });
+  // Re-anchor T to the (possibly) re-generated Lg label
+  try { updateTIndicatorPosition(); } catch {}
 }
 
 function updateAutoIndicator(){
