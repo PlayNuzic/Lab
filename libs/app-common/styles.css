@@ -60,6 +60,7 @@
   height: 80px;
   margin: 20px;
   transition: width 0.4s ease, height 0.4s ease;
+  z-index: 1; /* keep above helper guide ring */
 }
 
 .timeline::before {
@@ -187,12 +188,13 @@
 
 /* --- Circle guide (visualizes straight line "bent" into a circle) --- */
 .circle-guide {
-  position: absolute;
+  position: absolute; /* will be overridden to fixed via JS */
   border: 2px solid var(--line-color);
   border-radius: 50%;
   opacity: 0;
   transition: opacity 0.6s ease;
   pointer-events: none;
+  z-index: 0; /* keep behind timeline/pulses */
 }
 
 /* --- Circular timeline overrides (ensure full-size circle; hide straight line) --- */

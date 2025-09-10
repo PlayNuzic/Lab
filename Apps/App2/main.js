@@ -47,6 +47,8 @@ const timeline = document.getElementById('timeline');
 const tIndicator = document.createElement('div');
 tIndicator.id = 'tIndicator';
 timeline.appendChild(tIndicator);
+// Start hidden to avoid flicker during first layout
+tIndicator.style.visibility = 'hidden';
 const playBtn = document.getElementById('playBtn');
 const loopBtn = document.getElementById('loopBtn');
 const resetBtn = document.getElementById('resetBtn');
@@ -149,6 +151,13 @@ function ensurePulseMemory(size) {
   }
 }
 
+// Clear all persistent pulse selection (memory beyond current Lg too)
+function clearPersistentPulses(){
+  pulseMemory = [];
+  try { selectedPulses.clear(); } catch {}
+  /* Keep UI consistent; will be rebuilt by subsequent calls */
+  updatePulseSeqField();
+}
 // UI thresholds for number rendering
 const NUMBER_HIDE_THRESHOLD = 100;   // from this Lg and above, hide numbers
 const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
@@ -238,37 +247,59 @@ function updateTIndicatorText(value) {
 function updateTIndicatorPosition() {
   if (!timeline) return;
   const lg = parseInt(inputLg.value);
-  if (isNaN(lg) || lg <= 0) { tIndicator.style.display = 'none'; return; }
+  if (isNaN(lg) || lg <= 0) { return; }
 
   // Find the Lg label element and anchor 15px below it
   const anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
   const tlRect = timeline.getBoundingClientRect();
   const circular = timeline.classList.contains('circular');
 
-  if (!anchor) {
-    // Fallback: place below center (approximate) so it never disappears
-    const offsetX = circular ? -16 : 0; // align with vertical bar in circular
-    const cx = tlRect.width / 2 + offsetX;
-    const y = tlRect.height + 15;
-    tIndicator.style.display = 'flex';
-    tIndicator.style.left = `${cx}px`;
-    tIndicator.style.top = `${y}px`;
-    tIndicator.style.transform = 'translate(-50%, 0)';
-    if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
-    return;
-  }
+  if (!anchor) { return; }
 
   const aRect = anchor.getBoundingClientRect();
   const offsetX = circular ? -16 : 0; // compensate Lg label x-shift in circle
   const centerX = aRect.left + aRect.width / 2 - tlRect.left + offsetX;
   const topY = aRect.bottom - tlRect.top + 15; // 15px separation below
 
-  tIndicator.style.display = 'flex';
   tIndicator.style.left = `${centerX}px`;
   tIndicator.style.top = `${topY}px`;
   tIndicator.style.transform = 'translate(-50%, 0)';
 
   if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
+}
+function revealTAfter(ms = 900) {
+  tIndicator.style.visibility = 'hidden';
+  const start = performance.now();
+  const deadline = start + 2500; // hard cap to avoid infinite loop
+  // Track position during the settle window so the final frame is correct
+  const trackFor = (durMs) => {
+    const t0 = performance.now();
+    const step = () => {
+      updateTIndicatorPosition();
+      if (performance.now() - t0 < durMs) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+  const tryShow = () => {
+    const lgVal = parseInt(inputLg.value);
+    const anchor = timeline.querySelector(`.pulse-number[data-index="${lgVal}"]`);
+    if (anchor) {
+      // follow for the transition window (0.6s) but remain hidden
+      trackFor(620);
+      // and reveal on the next frame
+      requestAnimationFrame(() => updateTIndicatorPosition());
+      tIndicator.style.visibility = 'visible';
+      return; // done
+    }
+    if (performance.now() < deadline) {
+      requestAnimationFrame(tryShow);
+    } else {
+      // last resort: position once and show (should rarely happen)
+      updateTIndicatorPosition();
+      tIndicator.style.visibility = 'visible';
+    }
+  };
+  setTimeout(() => requestAnimationFrame(tryShow), ms);
 }
 let suppressClickIndex = null;       // per evitar doble-toggle en drag start
 // --- Drag selection state ---
@@ -369,13 +400,15 @@ circularTimelineToggle.checked = loadOpt('circular') === '1';
 circularTimeline = circularTimelineToggle.checked;
 updateTIndicatorPosition();
 updateTIndicatorText(parseNum(inputT?.value ?? '') || '');
+revealTAfter(350);
+
 circularTimelineToggle?.addEventListener('change', e => {
   circularTimeline = e.target.checked;
   saveOpt('circular', e.target.checked ? '1' : '0');
+  tIndicator.style.visibility = 'hidden';
   animateTimelineCircle(loopEnabled && circularTimeline);
-  updateTIndicatorPosition();
-  // Re-apply after transition (numbers move ~0.6s)
-  setTimeout(updateTIndicatorPosition, 700);
+  // Reveal after transitions without following the animation
+  revealTAfter(650);
 });
 // Keep T indicator anchored on window resizes
 window.addEventListener('resize', updateTIndicatorPosition);
@@ -457,6 +490,8 @@ function randomize() {
     handleInput({ target: inputV });
   }
   if (randPulsesToggle?.checked) {
+    // Reset persistent selection memory so old pulses don't reappear when Lg grows
+    clearPersistentPulses();
     const lg = parseInt(inputLg.value);
     if (!isNaN(lg) && lg > 0) {
       ensurePulseMemory(lg);
@@ -1074,38 +1109,47 @@ function animateTimelineCircle(isCircular, opts = {}){
     if (silent) timeline.classList.add('no-anim');
     // Guia circular: ANCORADA al centre del WRAPPER per evitar desplaçaments
     const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    let guide = wrapper.querySelector('.circle-guide');
+    let guide = document.querySelector('.circle-guide');
     if (!guide) {
       guide = document.createElement('div');
       guide.className = 'circle-guide';
       // estils mínims inline (per si el CSS no ha carregat)
-      guide.style.position = 'absolute';
+      guide.style.position = 'fixed';
       guide.style.border = '2px solid var(--timeline-line, #EDE6D3)';
       guide.style.borderRadius = '50%';
       guide.style.pointerEvents = 'none';
       guide.style.transition = 'opacity 300ms ease';
       guide.style.opacity = '0';
-      wrapper.appendChild(guide);
+      guide.style.zIndex = '0';
+      document.body.appendChild(guide);
     }
 
     // Recol·loca un cop aplicades les classes circulars
     requestAnimationFrame(() => {
-      const wRect = wrapper.getBoundingClientRect();
-      const gcx = wRect.width / 2;
-      const gcy = wRect.height / 2;
-      const gRadius = Math.min(wRect.width, wRect.height) / 2 - 10;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const gcx = vw / 2;
+      const gcy = vh / 2;
+      // Size similar to timeline circle but safe even before layout settles
+      const tRect = timeline.getBoundingClientRect();
+      const baseSize = Math.min(
+        Math.min(vw, vh) * 0.6,
+        Math.max(tRect.width, 320),
+        Math.max(tRect.height, 320)
+      );
+      const gRadius = baseSize / 2 - 10;
       guide.style.left = gcx + 'px';
       guide.style.top = gcy + 'px';
       guide.style.width = (gRadius * 2) + 'px';
       guide.style.height = (gRadius * 2) + 'px';
       guide.style.transform = 'translate(-50%, -50%)';
-      guide.style.opacity = '1';
+      guide.style.opacity = '0'; // keep invisible; used only as a positioning helper
 
       // Geometria basada en el TIMELINE (anella real) perquè els polsos intersequin la línia
-      const tRect = timeline.getBoundingClientRect();
-      const cx = tRect.width / 2;
-      const cy = tRect.height / 2;
-      const radius = Math.min(tRect.width, tRect.height) / 2 - 1; // centre del pols gairebé sobre la línia (border=2)
+      const tRect2 = timeline.getBoundingClientRect();
+      const cx = tRect2.width / 2;
+      const cy = tRect2.height / 2;
+      const radius = Math.min(tRect2.width, tRect2.height) / 2 - 1; // centre del pols gairebé sobre la línia (border=2)
 
       // Polsos sobre la línia del cercle
       pulses.forEach((p, i) => {
@@ -1135,7 +1179,7 @@ function animateTimelineCircle(isCircular, opts = {}){
         const by = cy + radius * Math.sin(angle);
 
         // CORREGIDO: Barra más corta (25% en lugar de 50%) y centrada
-        const barLen = Math.min(tRect.width, tRect.height) * 0.25;
+        const barLen = Math.min(tRect2.width, tRect2.height) * 0.25;
         const intersectPx = barLen / 2; // La mitad intersecta hacia dentro
 
         // Centra la barra: mitad hacia fuera, mitad hacia dentro
@@ -1153,9 +1197,6 @@ function animateTimelineCircle(isCircular, opts = {}){
 
       syncSelectedFromMemory();
       updateNumbers();
-      // Ensure T indicator anchors after circle layout is ready
-      updateTIndicatorPosition();
-      setTimeout(updateTIndicatorPosition, 700);
       // Apaga la guia circular un cop dibuixada l'anella real (evita doble cercle en mode fosc)
       if (!silent) {
         setTimeout(() => {
@@ -1175,7 +1216,7 @@ function animateTimelineCircle(isCircular, opts = {}){
     timeline.classList.remove('circular');
     // Oculta la guia circular (fade-out)
     const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = wrapper.querySelector('.circle-guide');
+    const guide = document.querySelector('.circle-guide');
     if (guide) guide.style.opacity = '0';
     pulses.forEach((p, i) => {
       const percent = (i / lg) * 100;
@@ -1201,8 +1242,6 @@ function animateTimelineCircle(isCircular, opts = {}){
     });
     syncSelectedFromMemory();
     updateNumbers();
-    updateTIndicatorPosition();
-    setTimeout(updateTIndicatorPosition, 700);
   }
 }
 
