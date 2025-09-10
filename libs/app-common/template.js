@@ -33,13 +33,13 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
         <details>
           <summary>Sonidos</summary>
           <div class="sound-group">
-            <p>Metrónomo</p>
+            <p>Pulso</p>
             <div class="preview-row">
               <label for="baseSoundSelect" style="display:none"></label>
               <select id="baseSoundSelect"></select>
               <button type="button" id="previewBaseBtn" class="preview-btn">Escuchar</button>
             </div>
-            <p>Pulso</p>
+            <p>Acento</p>
             <div class="preview-row">
               <label for="accentSoundSelect" style="display:none"></label>
               <select id="accentSoundSelect"></select>
