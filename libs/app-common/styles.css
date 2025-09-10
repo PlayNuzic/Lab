@@ -176,8 +176,13 @@
     width: calc(100% - 40px);
     margin: 15px 20px;
   }
-  
-  
+
+  body {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+
 }
 
 /* --- Circle guide (visualizes straight line "bent" into a circle) --- */
