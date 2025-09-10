@@ -1252,7 +1252,11 @@ playBtn.addEventListener('click', async () => {
     iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
     const edStop = getEditEl();
-    if (edStop) edStop.classList.remove('playing');
+    if (edStop) {
+      edStop.classList.remove('playing');
+      try { edStop.blur(); } catch {}
+      try { const sel = window.getSelection && window.getSelection(); sel && sel.removeAllRanges && sel.removeAllRanges(); } catch {}
+    }
     return;
   }
 
@@ -1283,7 +1287,12 @@ playBtn.addEventListener('click', async () => {
     pulses.forEach(p => p.classList.remove('active'));
     audio.stop();
     const ed = getEditEl();
-    if (ed) ed.classList.remove('playing');
+    if (ed) {
+      ed.classList.remove('playing');
+      // Oculta siempre el caret y limpia la selección al terminar
+      try { ed.blur(); } catch {}
+      try { const sel = window.getSelection && window.getSelection(); sel && sel.removeAllRanges && sel.removeAllRanges(); } catch {}
+    }
   };
 
   audio.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
@@ -1297,6 +1306,9 @@ playBtn.addEventListener('click', async () => {
 });
 
 function highlightPulse(i){
+  // Si no està en reproducció, no tornem a canviar seleccions ni highlights
+  if (!isPlaying) return;
+
   // esborra il·luminació anterior
   pulses.forEach(p => p.classList.remove('active'));
 
