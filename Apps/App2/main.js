@@ -597,19 +597,6 @@ getEditEl()?.addEventListener('keydown', (e) => {
 });
 getEditEl()?.addEventListener('blur', sanitizePulseSeq);
 // Visual gap hint under caret (does not modify text)
-function __updateGapHint(){
-  const el = getEditEl(); if(!el) return;
-  const sel = window.getSelection && window.getSelection();
-  if(!sel || sel.rangeCount===0) return;
-  const rng = sel.getRangeAt(0); if(!el.contains(rng.startContainer)) return;
-  const n = el.firstChild || el;
-  const p = Math.max(0, Math.min(rng.startOffset, (n.textContent||'').length));
-  let hint = el.querySelector('#gapHint');
-  if(!hint){ hint=document.createElement('span'); hint.id='gapHint'; hint.className='gap-hint'; el.appendChild(hint); }
-  const r=document.createRange(); r.setStart(n,p); r.setEnd(n,p);
-  const rect=r.getBoundingClientRect(); const base=el.getBoundingClientRect();
-  hint.style.left=(rect.left-base.left)+'px'; hint.style.bottom='-4px'; hint.style.opacity='0.25';
-}
 getEditEl()?.addEventListener('mouseup', ()=> setTimeout(moveCaretToNearestMidpoint,0));
 // (Sin manejador en keyup para evitar doble salto)
 getEditEl()?.addEventListener('focus', ()=> setTimeout(()=>{
@@ -735,43 +722,49 @@ addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), inputLg);
 function sanitizePulseSeq(){
   if (!pulseSeqEl) return;
   const lg = parseInt(inputLg.value);
+  // Guarda posición del caret antes de normalizar
+  const caretBefore = (()=>{ const el=getEditEl(); if(!el) return 0; const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; const r=s.getRangeAt(0); if(!el.contains(r.startContainer)) return 0; return r.startOffset; })();
   const text = getPulseSeqText();
   const matches = text.match(/\d+/g) || [];
   const seen = new Set();
   const nums = [];
+  let hadTooBig = false;
   for (const m of matches) {
     const n = parseInt(m, 10);
-    if (n > 0 && (!isNaN(lg) ? n < lg : true) && !seen.has(n)) {
+    if (n > 0 && !seen.has(n)) {
+      if (!isNaN(lg) && n >= lg) { hadTooBig = true; continue; }
       seen.add(n);
       nums.push(n);
     }
   }
-  // Expand Lg if any number is >= current Lg
-  let increased = false;
-  if (nums.length) {
-    const maxN = Math.max(...nums);
-    if (!isNaN(lg) && maxN >= lg) {
-      setValue(inputLg, maxN + 1);
-      increased = true;
-    }
-  }
-  const newLg = parseInt(inputLg.value);
-  if (!isNaN(newLg)) ensurePulseMemory(newLg);
+  if (!isNaN(lg)) ensurePulseMemory(lg);
   nums.sort((a,b) => a - b);
-  // Normalización: exactamente DOS espacios entre números
-  // Normaliza a dos espacios entre números
-  const joined = (isNaN(newLg) ? nums : nums.filter(n => n < newLg)).join('  ');
+  const joined = (isNaN(lg) ? nums : nums.filter(n => n < lg)).join('  ');
   const out = '  ' + joined + '  ';
   setPulseSeqText(out);
-  if (!isNaN(newLg)) {
-    for (let i = 1; i < newLg; i++) pulseMemory[i] = false;
-    nums.forEach(n => { if (n < newLg) pulseMemory[n] = true; });
+  if (!isNaN(lg)) {
+    for (let i = 1; i < lg; i++) pulseMemory[i] = false;
+    nums.forEach(n => { if (n < lg) pulseMemory[n] = true; });
     syncSelectedFromMemory();
     updateNumbers();
   }
-  if (increased) {
-    // Recalcular dependencias (timeline, T, etc.)
-    handleInput();
+  // Restaurar caret (clamp seguro)
+  const pos = Math.min(out.length, caretBefore);
+  setPulseSeqSelection(pos, pos);
+  // Mensaje temporal si hubo números mayores que Lg
+  if (hadTooBig && !isNaN(lg)) {
+    try{
+      const el = getEditEl();
+      const tip = document.createElement('div');
+      tip.className = 'hover-tip';
+      tip.textContent = `El número introducido es mayor que la Lg. Elige un número menor que ${lg}`;
+      document.body.appendChild(tip);
+      const rect = el.getBoundingClientRect();
+      tip.style.left = rect.left + rect.width/2 + 'px';
+      tip.style.top = rect.bottom + window.scrollY + 'px';
+      tip.classList.add('show');
+      setTimeout(()=>{ tip.classList.remove('show'); try{ document.body.removeChild(tip);}catch{} }, 3000);
+    }catch{}
   }
 }
 
