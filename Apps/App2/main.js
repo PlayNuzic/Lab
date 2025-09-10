@@ -199,9 +199,12 @@ setupPulseSeqMarkup();
 
 // Highlight overlay for pulse sequence numbers during playback
 const pulseSeqHighlight = document.createElement('div');
+const pulseSeqHighlight2 = document.createElement('div');
 if (pulseSeqEl) {
   pulseSeqHighlight.id = 'pulseSeqHighlight';
+  pulseSeqHighlight2.id = 'pulseSeqHighlight2';
   pulseSeqEl.appendChild(pulseSeqHighlight);
+  pulseSeqEl.appendChild(pulseSeqHighlight2);
 }
 
 // Helpers for #pulseSeq (use inner span .pz.edit)
@@ -1345,6 +1348,7 @@ playBtn.addEventListener('click', async () => {
       try { const sel = window.getSelection && window.getSelection(); sel && sel.removeAllRanges && sel.removeAllRanges(); } catch {}
     }
     if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
+    if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
     return;
   }
 
@@ -1382,6 +1386,7 @@ playBtn.addEventListener('click', async () => {
       try { const sel = window.getSelection && window.getSelection(); sel && sel.removeAllRanges && sel.removeAllRanges(); } catch {}
     }
     if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
+    if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
   };
 
   isPlaying = true;
@@ -1416,30 +1421,53 @@ function highlightPulse(i){
     const last = pulses[pulses.length - 1];
     if (last) last.classList.add('active');
   }
-  if (pulseSeqHighlight && pulseSeqEl) {
-    const range = pulseSeqRanges[idx];
-    if (range) {
-      const el = getEditEl();
-      const node = el && el.firstChild;
-      if (node) {
-        const r = document.createRange();
-        r.setStart(node, range[0]);
-        r.setEnd(node, range[1]);
-        const rect = r.getBoundingClientRect();
-        const parent = pulseSeqEl.getBoundingClientRect();
-        const cx = rect.left - parent.left + rect.width / 2;
-        const cy = rect.top - parent.top + rect.height / 2;
-        const size = Math.max(rect.width, rect.height) * 0.75;
-        pulseSeqHighlight.style.width = size + 'px';
-        pulseSeqHighlight.style.height = size + 'px';
-        pulseSeqHighlight.style.left = cx + 'px';
-        pulseSeqHighlight.style.top = cy + 'px';
-        pulseSeqHighlight.classList.remove('active');
-        void pulseSeqHighlight.offsetWidth;
-        pulseSeqHighlight.classList.add('active');
+  if (pulseSeqEl) {
+    const parent = pulseSeqEl.getBoundingClientRect();
+    const place = (rect, el) => {
+      if (!rect || !el) return;
+      const cx = rect.left - parent.left + rect.width / 2;
+      const cy = rect.top - parent.top + rect.height / 2;
+      const size = Math.max(rect.width, rect.height) * 0.75;
+      el.style.width = size + 'px';
+      el.style.height = size + 'px';
+      el.style.left = cx + 'px';
+      el.style.top = cy + 'px';
+      el.classList.remove('active');
+      void el.offsetWidth;
+      el.classList.add('active');
+    };
+
+    if (idx === 0) {
+      const z = pulseSeqEl.querySelector('.pz.zero');
+      if (z) place(z.getBoundingClientRect(), pulseSeqHighlight);
+      else pulseSeqHighlight.classList.remove('active');
+      if (loopEnabled) {
+        const l = pulseSeqEl.querySelector('.pz.lg');
+        if (l) place(l.getBoundingClientRect(), pulseSeqHighlight2);
+        else pulseSeqHighlight2.classList.remove('active');
+      } else {
+        pulseSeqHighlight2.classList.remove('active');
       }
+    } else if (idx === pulses.length - 1) {
+      const l = pulseSeqEl.querySelector('.pz.lg');
+      if (l) place(l.getBoundingClientRect(), pulseSeqHighlight);
+      else pulseSeqHighlight.classList.remove('active');
+      pulseSeqHighlight2.classList.remove('active');
     } else {
-      pulseSeqHighlight.classList.remove('active');
+      pulseSeqHighlight2.classList.remove('active');
+      const range = pulseSeqRanges[idx];
+      if (range) {
+        const el = getEditEl();
+        const node = el && el.firstChild;
+        if (node) {
+          const r = document.createRange();
+          r.setStart(node, range[0]);
+          r.setEnd(node, range[1]);
+          place(r.getBoundingClientRect(), pulseSeqHighlight);
+        }
+      } else {
+        pulseSeqHighlight.classList.remove('active');
+      }
     }
   }
 }

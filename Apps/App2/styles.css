@@ -21,7 +21,8 @@
 #pulseSeq .edit { outline: none; white-space: pre; }
 #pulseSeq .edit.playing { caret-color: transparent; }
 
-#pulseSeqHighlight {
+#pulseSeqHighlight,
+#pulseSeqHighlight2 {
   position: absolute;
   border-radius: 50%;
   background: var(--selection-color);
@@ -32,7 +33,8 @@
   display: none;
 }
 
-#pulseSeqHighlight.active {
+#pulseSeqHighlight.active,
+#pulseSeqHighlight2.active {
   animation: pulseFlash 0.35s ease-out;
   box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
   display: block;
