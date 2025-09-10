@@ -6,11 +6,15 @@
 #pulseSeq {
   font-size: 3rem;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   gap: 12px;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 20px;
   margin: 0 auto;
-  overflow: auto;
+  overflow-x: auto;
   position: relative;
 }
 
