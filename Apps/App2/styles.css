@@ -17,17 +17,7 @@
 #pulseSeq .suffix { color: inherit; user-select: none; }
 #pulseSeq .zero,
 #pulseSeq .lg { color: var(--color-lg); user-select: none; }
-#pulseSeq .edit { outline: none; white-space: pre; position: relative; }
-#pulseSeq .gap-hint {
-  position: absolute;
-  width: 0.6ch;
-  height: 2px;
-  background: var(--selection-color);
-  border-radius: 1px;
-  opacity: 0.15;
-  pointer-events: none;
-  transition: opacity .15s ease;
-}
+#pulseSeq .edit { outline: none; white-space: pre; }
 #pulseSeq .edit.playing { caret-color: transparent; }
 
 #tIndicator {

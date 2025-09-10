@@ -220,35 +220,11 @@ function setPulseSeqSelection(start, end){
   }catch{}
 }
 
-// Move caret to nearest token boundary and ensure there is a gap there.
-function adjustCaretToBoundaryAndEnsureGap(){
-  const el = getEditEl(); if(!el) return;
-  const sel = window.getSelection && window.getSelection();
-  if(!sel || sel.rangeCount===0) return;
-  const rng = sel.getRangeAt(0);
-  if(!el.contains(rng.startContainer)) return;
-  const node = el.firstChild || el;
-  let text = node.textContent || '';
-  let pos = rng.startOffset;
-
-  // Tokenize numbers
-  const tokens=[]; const re=/\d+/g; let m;
-  while((m=re.exec(text))){ tokens.push({s:m.index,e:m.index+m[0].length}); }
-  // If inside a token, snap to nearest boundary
-  for(const t of tokens){ if(pos>t.s && pos<t.e){ const dl=pos-t.s, dr=t.e-pos; pos = (dr<=dl)?t.e:t.s; break; } }
-
-  // Ensure single gap at boundary (don't split inside numbers)
-  const left  = pos>0 ? text[pos-1] : null;
-  const right = pos<text.length ? text[pos] : null;
-  const isDigit=(c)=> c>='0' && c<='9';
-  const needGap = (left!==' ' && right!==' ' && (isDigit(left||'') || isDigit(right||'')));
-  if(needGap){ text = text.slice(0,pos)+' '+text.slice(pos); node.textContent=text; pos+=1; }
-
-  setPulseSeqSelection(pos,pos);
-
-  // Visual hint of the gap position
-  try{ let hint = el.querySelector('#gapHint'); if(!hint){ hint=document.createElement('span'); hint.id='gapHint'; hint.className='gap-hint'; el.appendChild(hint);} const r=document.createRange(); const n=el.firstChild||el; const p=Math.max(0,Math.min(pos,(n.textContent||'').length)); r.setStart(n,p); r.setEnd(n,p); const rect=r.getBoundingClientRect(); const base=el.getBoundingClientRect(); hint.style.left=(rect.left-base.left)+'px'; hint.style.bottom='-4px'; hint.style.opacity='0.35'; clearTimeout(hint._t); hint._t=setTimeout(()=>{hint.style.opacity='0.15';},800); }catch{}
-}
+// Caret movement entre midpoints (dos espacios)
+function getMidpoints(text){ const a=[]; for(let i=1;i<text.length;i++) if(text[i-1]===' '&&text[i]===' ') a.push(i); return a; }
+function caretPos(){ const el=getEditEl(); if(!el) return 0; const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; const r=s.getRangeAt(0); if(!el.contains(r.startContainer)) return 0; return r.startOffset; }
+function moveCaretToNearestMidpoint(){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); let best=mids[0],d=Math.abs(p-best); for(const m of mids){const dd=Math.abs(p-m); if(dd<d){best=m; d=dd;}} setPulseSeqSelection(best,best); }
+function moveCaretStep(dir){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); if(dir>0){ for(const m of mids){ if(m>p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[mids.length-1],mids[mids.length-1]); } else { for(let i=mids.length-1;i>=0;i--){ const m=mids[i]; if(m<p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[0],mids[0]); } }
 function updateTIndicatorText(value) {
   tIndicator.textContent = `T: ${value}`;
 }
@@ -565,8 +541,11 @@ getEditEl()?.addEventListener('keydown', (e) => {
     sanitizePulseSeq();
     return;
   }
+  if (e.key === 'ArrowLeft' || e.key === 'Home') { e.preventDefault(); moveCaretStep(-1); return; }
+  if (e.key === 'ArrowRight' || e.key === 'End') { e.preventDefault(); moveCaretStep(1); return; }
   // Allow only digits, navigation keys y espacio (para introducir varios pulsos)
   const allowed = new Set(['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab',' ']);
+  if (e.key === ' ') { e.preventDefault(); moveCaretStep(1); return; }
   if (!/^[0-9]$/.test(e.key) && !allowed.has(e.key)) {
     e.preventDefault();
     return;
@@ -602,9 +581,9 @@ function __updateGapHint(){
   const rect=r.getBoundingClientRect(); const base=el.getBoundingClientRect();
   hint.style.left=(rect.left-base.left)+'px'; hint.style.bottom='-4px'; hint.style.opacity='0.25';
 }
-getEditEl()?.addEventListener('mouseup', ()=> setTimeout(__updateGapHint,0));
-getEditEl()?.addEventListener('keyup', (e)=>{ if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) __updateGapHint(); });
-getEditEl()?.addEventListener('focus', ()=> setTimeout(__updateGapHint,0));
+getEditEl()?.addEventListener('mouseup', ()=> setTimeout(moveCaretToNearestMidpoint,0));
+getEditEl()?.addEventListener('keyup', (e)=>{ if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) { e.preventDefault?.(); moveCaretStep(e.key==='ArrowLeft'||e.key==='Home'?-1:1);} });
+getEditEl()?.addEventListener('focus', ()=> setTimeout(moveCaretToNearestMidpoint,0));
 
 const inputToLed = new Map([
   [inputLg, ledLg],
@@ -746,6 +725,7 @@ function sanitizePulseSeq(){
   if (!isNaN(newLg)) ensurePulseMemory(newLg);
   nums.sort((a,b) => a - b);
   // Normalización: exactamente DOS espacios entre números
+  // Normaliza a dos espacios entre números
   const out = (isNaN(newLg) ? nums : nums.filter(n => n < newLg)).join('  ');
   setPulseSeqText(out);
   if (!isNaN(newLg)) {
@@ -850,10 +830,10 @@ function updatePulseSeqField(){
   const parts = arr.map(num => {
     const str = String(num);
     pulseSeqRanges[num] = [pos, pos + str.length];
-    pos += str.length + 1;
+    pos += str.length + 2; // dos espacios como separador
     return str;
   });
-  setPulseSeqText(parts.join(' '));
+  setPulseSeqText(parts.join('  '));
 }
 
 // Rebuild selectedPulses (visible set) from pulseMemory and current Lg, then apply DOM classes
