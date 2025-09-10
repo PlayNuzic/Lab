@@ -751,10 +751,14 @@ function sanitizePulseSeq(opts = {}){
     syncSelectedFromMemory();
     updateNumbers();
   }
-  // Restaurar caret (clamp seguro). En confirmación (enter/blur), solo si hubo números > Lg
+  // Restaurar caret en una posición segura (entre espacios dobles)
+  // - Si hubo números > Lg o es tecleo normal, recolocamos el caret
+  // - Además, lo ajustamos explícitamente al midpoint más cercano para que no quede pegado a un número
   const pos = Math.min(out.length, caretBefore);
   if (hadTooBig || !(opts.causedBy === 'enter' || opts.causedBy === 'blur')) {
     setPulseSeqSelection(pos, pos);
+    // Asegura separación: salta al midpoint más cercano tras normalizar
+    try { moveCaretToNearestMidpoint(); } catch {}
   }
   // Mensaje temporal si hubo números mayores que Lg
   if (hadTooBig && !isNaN(lg)) {
