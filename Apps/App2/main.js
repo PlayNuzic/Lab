@@ -538,9 +538,11 @@ handleInput();
 getEditEl()?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    sanitizePulseSeq();
-    // Oculta el caret al confirmar
-    try { getEditEl()?.blur(); } catch {}
+    const res = sanitizePulseSeq({ causedBy: 'enter' });
+    // Oculta el caret al confirmar excepto si hubo números > Lg
+    if (!res || !res.hadTooBig) {
+      try { getEditEl()?.blur(); } catch {}
+    }
     return;
   }
   if (e.key === 'ArrowLeft' || e.key === 'Home') { e.preventDefault(); moveCaretStep(-1); return; }
@@ -595,7 +597,7 @@ getEditEl()?.addEventListener('keydown', (e) => {
     return;
   }
 });
-getEditEl()?.addEventListener('blur', sanitizePulseSeq);
+getEditEl()?.addEventListener('blur', () => sanitizePulseSeq({ causedBy: 'blur' }));
 // Visual gap hint under caret (does not modify text)
 getEditEl()?.addEventListener('mouseup', ()=> setTimeout(moveCaretToNearestMidpoint,0));
 // (Sin manejador en keyup para evitar doble salto)
@@ -719,7 +721,7 @@ addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1),  inputV);
 addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), inputLg);
 addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), inputLg);
 
-function sanitizePulseSeq(){
+function sanitizePulseSeq(opts = {}){
   if (!pulseSeqEl) return;
   const lg = parseInt(inputLg.value);
   // Guarda posición del caret antes de normalizar
@@ -748,9 +750,11 @@ function sanitizePulseSeq(){
     syncSelectedFromMemory();
     updateNumbers();
   }
-  // Restaurar caret (clamp seguro)
+  // Restaurar caret (clamp seguro). En confirmación (enter/blur), solo si hubo números > Lg
   const pos = Math.min(out.length, caretBefore);
-  setPulseSeqSelection(pos, pos);
+  if (hadTooBig || !(opts.causedBy === 'enter' || opts.causedBy === 'blur')) {
+    setPulseSeqSelection(pos, pos);
+  }
   // Mensaje temporal si hubo números mayores que Lg
   if (hadTooBig && !isNaN(lg)) {
     try{
@@ -761,11 +765,13 @@ function sanitizePulseSeq(){
       document.body.appendChild(tip);
       const rect = el.getBoundingClientRect();
       tip.style.left = rect.left + rect.width/2 + 'px';
-      tip.style.top = rect.bottom + window.scrollY + 'px';
+      tip.style.top = (rect.bottom + window.scrollY + 40) + 'px';
+      tip.style.fontSize = '0.95rem';
       tip.classList.add('show');
       setTimeout(()=>{ tip.classList.remove('show'); try{ document.body.removeChild(tip);}catch{} }, 3000);
     }catch{}
   }
+  return { hadTooBig };
 }
 
 function handleInput(){
