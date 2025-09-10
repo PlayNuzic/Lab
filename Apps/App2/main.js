@@ -539,31 +539,60 @@ getEditEl()?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     sanitizePulseSeq();
+    // Oculta el caret al confirmar
+    try { getEditEl()?.blur(); } catch {}
     return;
   }
   if (e.key === 'ArrowLeft' || e.key === 'Home') { e.preventDefault(); moveCaretStep(-1); return; }
   if (e.key === 'ArrowRight' || e.key === 'End') { e.preventDefault(); moveCaretStep(1); return; }
-  // Allow only digits, navigation keys y espacio (para introducir varios pulsos)
+  // Allow only digits, navegación y espacio (para introducir varios pulsos)
   const allowed = new Set(['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab',' ']);
-  if (e.key === ' ') { e.preventDefault(); moveCaretStep(1); return; }
   if (!/^[0-9]$/.test(e.key) && !allowed.has(e.key)) {
     e.preventDefault();
     return;
   }
-  if (e.key === 'Backspace' || e.key === 'Delete') {
-    const el = getEditEl();
-    const node = el && el.firstChild;
-    const len = node ? (node.textContent || '').length : 0;
-    const sel = window.getSelection && window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const rng = sel.getRangeAt(0);
-    if (!el.contains(rng.startContainer)) return;
-    const start = rng.startOffset;
-    const end = rng.endOffset;
-    if ((e.key === 'Backspace' && start === 0 && end === 0) ||
-        (e.key === 'Delete' && start === len && end === len)) {
-      e.preventDefault();
-    }
+  if (e.key === 'Backspace') {
+    // Borrar con una pulsación el número a la izquierda + un espacio
+    e.preventDefault();
+    const el = getEditEl(); if(!el) return; const node = el.firstChild || el; let text = node.textContent || '';
+    const sel = window.getSelection && window.getSelection(); if(!sel||sel.rangeCount===0) return; const rng = sel.getRangeAt(0); if(!el.contains(rng.startContainer)) return;
+    let pos = rng.startOffset; if(pos<=0 || text.length===0) return;
+    // Si no estamos en midpoint, ajusta al más cercano (sin modificar texto)
+    const mids = getMidpoints(text); if(mids.length){ let best=mids[0],d=Math.abs(pos-best); for(const m of mids){const dd=Math.abs(pos-m); if(dd<d){best=m; d=dd;}} pos=best; }
+    // Buscamos el token a la izquierda del midpoint
+    let i = pos-1; while(i>=0 && text[i]===' ') i--; if(i<0) return; // no hay número a la izquierda
+    if(!(text[i]>='0' && text[i]<='9')) return;
+    const endNum = i+1; let j=i; while(j>=0 && text[j]>='0' && text[j]<='9') j--; const startNum = j+1;
+    // Construimos: izquierda hasta startNum + '  ' + derecha saltando el espacio derecho del midpoint
+    const left = text.slice(0,startNum);
+    const right = text.slice(pos+1); // saltar un espacio (el derecho del midpoint)
+    const out = (left + '  ' + right);
+    node.textContent = out;
+    // Colocamos caret en el nuevo midpoint
+    const caret = left.length + 1; // centro de '  '
+    setPulseSeqSelection(caret, caret);
+    return;
+  }
+  if (e.key === 'Delete') {
+    // Borrar con una pulsación el número a la derecha + un espacio
+    e.preventDefault();
+    const el = getEditEl(); if(!el) return; const node = el.firstChild || el; let text = node.textContent || '';
+    const sel = window.getSelection && window.getSelection(); if(!sel||sel.rangeCount===0) return; const rng = sel.getRangeAt(0); if(!el.contains(rng.startContainer)) return;
+    let pos = rng.startOffset; if(pos>=text.length) return;
+    // Ajusta al midpoint más cercano (sin cambiar texto)
+    const mids = getMidpoints(text); if(mids.length){ let best=mids[0],d=Math.abs(pos-best); for(const m of mids){const dd=Math.abs(pos-m); if(dd<d){best=m; d=dd;}} pos=best; }
+    // Buscar número a la derecha del midpoint
+    let k = pos; while(k<text.length && text[k]===' ') k++;
+    const isD=(c)=> c>='0'&&c<='9';
+    if(k>=text.length || !isD(text[k])) return;
+    let end=k; while(end<text.length && isD(text[end])) end++;
+    // Espacios tras el número: saltar hasta 2 para no duplicar separadores
+    let s=0; while(end+s<text.length && text[end+s]===' ') s++;
+    const left = text.slice(0, pos-1); // elimina el espacio izquierdo del midpoint
+    const right = text.slice(end + Math.min(s,2));
+    node.textContent = left + '  ' + right;
+    const caret = left.length + 1; setPulseSeqSelection(caret, caret);
+    return;
   }
 });
 getEditEl()?.addEventListener('blur', sanitizePulseSeq);
@@ -582,7 +611,7 @@ function __updateGapHint(){
   hint.style.left=(rect.left-base.left)+'px'; hint.style.bottom='-4px'; hint.style.opacity='0.25';
 }
 getEditEl()?.addEventListener('mouseup', ()=> setTimeout(moveCaretToNearestMidpoint,0));
-getEditEl()?.addEventListener('keyup', (e)=>{ if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) { e.preventDefault?.(); moveCaretStep(e.key==='ArrowLeft'||e.key==='Home'?-1:1);} });
+// (Sin manejador en keyup para evitar doble salto)
 getEditEl()?.addEventListener('focus', ()=> setTimeout(()=>{
   const el = getEditEl(); if(!el) return;
   const node = el.firstChild || el; let text = node.textContent || '';
