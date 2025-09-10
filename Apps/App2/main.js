@@ -1429,7 +1429,7 @@ function highlightPulse(i){
         const parent = pulseSeqEl.getBoundingClientRect();
         const cx = rect.left - parent.left + rect.width / 2;
         const cy = rect.top - parent.top + rect.height / 2;
-        const size = Math.max(rect.width, rect.height);
+        const size = Math.max(rect.width, rect.height) * 0.75;
         pulseSeqHighlight.style.width = size + 'px';
         pulseSeqHighlight.style.height = size + 'px';
         pulseSeqHighlight.style.left = cx + 'px';
