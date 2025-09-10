@@ -588,38 +588,23 @@ getEditEl()?.addEventListener('keydown', (e) => {
   }
 });
 getEditEl()?.addEventListener('blur', sanitizePulseSeq);
-// Ensure a gap exists at caret when clicking or navigating
-getEditEl()?.addEventListener('mouseup', ()=> setTimeout(adjustCaretToBoundaryAndEnsureGap));
-getEditEl()?.addEventListener('keyup', (e)=>{
-  if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) adjustCaretToBoundaryAndEnsureGap();
-});
-getEditEl()?.addEventListener('focus', ()=>{
-  // Create a gap at caret if needed on focus
-  setTimeout(adjustCaretToBoundaryAndEnsureGap);
-});
-// Snap caret to nearest gap on click and arrow navigation
-getEditEl()?.addEventListener('mouseup', () => setTimeout(()=>{
-  const el=getEditEl(); if(!el) return; const node=el.firstChild||el; const text=node.textContent||'';
-  const desired = (function(){ const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; return s.getRangeAt(0).startOffset; })();
-  const allowed=[0,...[...text].map((ch,i)=>ch===' '?i+1:null).filter(x=>x!=null),text.length];
-  let best=allowed[0],bestD=Math.abs(desired-best); allowed.forEach(p=>{const d=Math.abs(desired-p); if(d<bestD){best=p; bestD=d;}});
-  setPulseSeqSelection(best,best);
-}));
-getEditEl()?.addEventListener('keyup', (e)=>{
-  if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
-    const el=getEditEl(); if(!el) return; const node=el.firstChild||el; const text=node.textContent||'';
-    const desired = (function(){ const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; return s.getRangeAt(0).startOffset; })();
-    const allowed=[0,...[...text].map((ch,i)=>ch===' '?i+1:null).filter(x=>x!=null),text.length];
-    let best=allowed[0],bestD=Math.abs(desired-best); allowed.forEach(p=>{const d=Math.abs(desired-p); if(d<bestD){best=p; bestD=d;}});
-    setPulseSeqSelection(best,best);
-  }
-});
-getEditEl()?.addEventListener('focus', ()=>{
-  const el=getEditEl(); if(!el) return; const node=el.firstChild||el; const text=node.textContent||'';
-  const allowed=[0,...[...text].map((ch,i)=>ch===' '?i+1:null).filter(x=>x!=null),text.length];
-  const target = allowed.includes(text.length)?text.length:allowed[allowed.length-1];
-  setPulseSeqSelection(target,target);
-});
+// Visual gap hint under caret (does not modify text)
+function __updateGapHint(){
+  const el = getEditEl(); if(!el) return;
+  const sel = window.getSelection && window.getSelection();
+  if(!sel || sel.rangeCount===0) return;
+  const rng = sel.getRangeAt(0); if(!el.contains(rng.startContainer)) return;
+  const n = el.firstChild || el;
+  const p = Math.max(0, Math.min(rng.startOffset, (n.textContent||'').length));
+  let hint = el.querySelector('#gapHint');
+  if(!hint){ hint=document.createElement('span'); hint.id='gapHint'; hint.className='gap-hint'; el.appendChild(hint); }
+  const r=document.createRange(); r.setStart(n,p); r.setEnd(n,p);
+  const rect=r.getBoundingClientRect(); const base=el.getBoundingClientRect();
+  hint.style.left=(rect.left-base.left)+'px'; hint.style.bottom='-4px'; hint.style.opacity='0.25';
+}
+getEditEl()?.addEventListener('mouseup', ()=> setTimeout(__updateGapHint,0));
+getEditEl()?.addEventListener('keyup', (e)=>{ if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) __updateGapHint(); });
+getEditEl()?.addEventListener('focus', ()=> setTimeout(__updateGapHint,0));
 
 const inputToLed = new Map([
   [inputLg, ledLg],
@@ -790,8 +775,8 @@ function handleInput(){
     updateTIndicatorText(rounded);
   }
 
-  // Keep loop memory size stable
-  if (loopEnabled && hasLg) {
+  // Ensure memory capacity always (preserve selections when Lg crece manualmente)
+  if (hasLg) {
     ensurePulseMemory(lg);
   }
 
