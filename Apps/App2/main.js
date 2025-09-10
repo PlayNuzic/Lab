@@ -231,7 +231,7 @@ function updateTIndicatorText(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) { tIndicator.textContent = String(value); return; }
   // keep same rounding used for input T
-  const rounded = Math.round(n * 100) / 100;
+  const rounded = Math.round(n * 10) / 10;
   tIndicator.textContent = String(rounded);
 }
 
