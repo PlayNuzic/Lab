@@ -864,13 +864,22 @@ function sanitizePulseSeq(opts = {}){
     try{
       const el = getEditEl();
       const tip = document.createElement('div');
-      tip.className = 'hover-tip';
+      tip.className = 'hover-tip auto-tip-below';
       const bad = firstTooBig != null ? firstTooBig : '';
       tip.innerHTML = `El número <strong>${bad}</strong> introducido es mayor que la <span style=\"color: var(--color-lg); font-weight: 700;\">Lg</span>. Elige un número menor que <strong>${lg}</strong>`;
       document.body.appendChild(tip);
-      const rect = el.getBoundingClientRect();
-      tip.style.left = rect.left + rect.width/2 + 'px';
-      tip.style.top = (rect.bottom + window.scrollY + 40) + 'px';
+      let rect = null;
+      const sel = window.getSelection && window.getSelection();
+      if(sel && sel.rangeCount){
+        const r = sel.getRangeAt(0).cloneRange();
+        if(el && el.contains(r.startContainer)){
+          r.collapse(false);
+          rect = r.getBoundingClientRect();
+        }
+      }
+      if(!rect) rect = el.getBoundingClientRect();
+      tip.style.left = rect.left + 'px';
+      tip.style.top = (rect.bottom + window.scrollY) + 'px';
       tip.style.fontSize = '0.95rem';
       tip.style.fontSize = '0.95rem';
       tip.classList.add('show');
