@@ -65,7 +65,9 @@ const randVMin = document.getElementById('randVMin');
 const randVMax = document.getElementById('randVMax');
 const randPulsesToggle = document.getElementById('randPulsesToggle');
 const randomCount = document.getElementById('randomCount');
-const randomDensity = document.getElementById('randomDensity');
+const randTToggle = document.getElementById('randTToggle');
+const randTMin = document.getElementById('randTMin');
+const randTMax = document.getElementById('randTMax');
 // Mute is managed by the shared header (#muteBtn)
 const themeSelect = document.getElementById('themeSelect');
 const selectColor = document.getElementById('selectColor');
@@ -77,7 +79,8 @@ const previewAccentBtn = document.getElementById('previewAccentBtn');
 const randomDefaults = {
   Lg: { enabled: true, range: [1, 100] },
   V: { enabled: true, range: [1, 1000] },
-  Pulses: { enabled: true, count: '', density: 0.5 }
+  T: { enabled: true, range: [0.1, 100000] },
+  Pulses: { enabled: true, count: '' }
 };
 
 const RANDOM_STORE_KEY = 'random';
@@ -104,9 +107,11 @@ function applyRandomConfig(cfg) {
   randVToggle.checked = cfg.V.enabled;
   randVMin.value = cfg.V.range[0];
   randVMax.value = cfg.V.range[1];
-  randPulsesToggle.checked = cfg.Pulses.enabled;
-  randomCount.value = cfg.Pulses.count;
-  randomDensity.value = cfg.Pulses.density;
+  if (randTToggle) randTToggle.checked = cfg.T.enabled;
+  if (randTMin) randTMin.value = cfg.T.range[0];
+  if (randTMax) randTMax.value = cfg.T.range[1];
+    randPulsesToggle.checked = cfg.Pulses.enabled;
+    randomCount.value = cfg.Pulses.count;
 }
 
 function updateRandomConfig() {
@@ -118,11 +123,17 @@ function updateRandomConfig() {
     enabled: randVToggle.checked,
     range: [Number(randVMin.value) || 1, Number(randVMax.value) || 1]
   };
-  randomConfig.Pulses = {
-    enabled: randPulsesToggle.checked,
-    count: randomCount.value,
-    density: Number(randomDensity.value) || 0
+  randomConfig.T = {
+    enabled: randTToggle ? randTToggle.checked : (randomConfig.T?.enabled ?? true),
+    range: [
+      randTMin ? (Number(randTMin.value) || randomConfig.T?.range?.[0] || 0) : (randomConfig.T?.range?.[0] || 0),
+      randTMax ? (Number(randTMax.value) || randomConfig.T?.range?.[1] || 0) : (randomConfig.T?.range?.[1] || 0)
+    ]
   };
+    randomConfig.Pulses = {
+      enabled: randPulsesToggle.checked,
+      count: randomCount.value
+    };
   saveRandomConfig(randomConfig);
 }
 
@@ -131,7 +142,8 @@ applyRandomConfig(randomConfig);
 [
   randLgToggle, randLgMin, randLgMax,
   randVToggle, randVMin, randVMax,
-  randPulsesToggle, randomCount, randomDensity
+  randTToggle, randTMin, randTMax,
+  randPulsesToggle, randomCount
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
 // No actualitza la memòria a cada tecleig: es confirma amb Enter o blur
@@ -355,6 +367,17 @@ attachHover(loopBtn, { text: 'Loop' });
 attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
 attachHover(randomBtn, { text: 'Aleatorizar parámetros' });
+attachHover(randLgToggle, { text: 'Aleatorizar Lg' });
+attachHover(randLgMin, { text: 'Mínimo Lg' });
+attachHover(randLgMax, { text: 'Máximo Lg' });
+attachHover(randVToggle, { text: 'Aleatorizar V' });
+attachHover(randVMin, { text: 'Mínimo V' });
+attachHover(randVMax, { text: 'Máximo V' });
+attachHover(randTToggle, { text: 'Aleatorizar T' });
+attachHover(randTMin, { text: 'Mínimo T' });
+attachHover(randTMax, { text: 'Máximo T' });
+attachHover(randPulsesToggle, { text: 'Aleatorizar pulsos' });
+attachHover(randomCount, { text: 'Máximo de pulsos a seleccionar' });
 
 
 const storeKey = (k) => `app2:${k}`;
@@ -508,7 +531,6 @@ function randomize() {
     if (!isNaN(lg) && lg > 0) {
       ensurePulseMemory(lg);
       const count = parseInt(randomCount.value);
-      const density = parseFloat(randomDensity.value);
       const selected = new Set();
       const available = [];
       for (let i = 1; i < lg; i++) available.push(i);
@@ -518,7 +540,7 @@ function randomize() {
           selected.add(idx);
         }
       } else {
-        const d = isNaN(density) ? 0.5 : Math.max(0, Math.min(1, density));
+        const d = 0.5;
         available.forEach(i => { if (Math.random() < d) selected.add(i); });
       }
       const seq = Array.from(selected).sort((a, b) => a - b);

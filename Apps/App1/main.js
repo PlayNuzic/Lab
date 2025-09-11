@@ -152,6 +152,15 @@ attachHover(loopBtn, { text: 'Loop' });
 attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
 attachHover(randomBtn, { text: 'Aleatorizar parámetros' });
+attachHover(randLgToggle, { text: 'Aleatorizar Lg' });
+attachHover(randLgMin, { text: 'Mínimo Lg' });
+attachHover(randLgMax, { text: 'Máximo Lg' });
+attachHover(randVToggle, { text: 'Aleatorizar V' });
+attachHover(randVMin, { text: 'Mínimo V' });
+attachHover(randVMax, { text: 'Máximo V' });
+attachHover(randTToggle, { text: 'Aleatorizar T' });
+attachHover(randTMin, { text: 'Mínimo T' });
+attachHover(randTMax, { text: 'Máximo T' });
 
 initRandomMenu(randomBtn, randomMenu, randomize);
 
