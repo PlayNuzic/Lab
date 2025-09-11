@@ -20,7 +20,6 @@ function applySchedulingProfile(profile) {
         mobile: { lookAhead: 0.06, updateInterval: 0.03 },
     };
     const p = profiles[profile] || profiles.balanced;
-    // Si Tone está disponible, aplicamos también al contexto global (opcional)
     try {
         const ctx = (typeof Tone !== 'undefined')
             ? (typeof Tone.getContext === 'function' ? Tone.getContext() : Tone.context)
@@ -30,7 +29,6 @@ function applySchedulingProfile(profile) {
             if (typeof ctx.updateInterval !== 'undefined') ctx.updateInterval = p.updateInterval;
         }
     } catch {}
-    // Notificamos a las apps (cada app puede aplicarlo a su motor)
     window.dispatchEvent(new CustomEvent('sharedui:scheduling', { detail: { profile, ...p } }));
 }
 
@@ -66,8 +64,6 @@ function wireMenu(detailsEl) {
     const content = detailsEl.querySelector('.options-content');
     if (!content) return;
     
-    // Close the menu if user interacts outside while it's open
-    // Use pointerdown to avoid interfering with native popups
     const handleOutside = (e) => {
         const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
         const inside = detailsEl.contains(e.target) || (path.length && path.includes(detailsEl));
@@ -105,7 +101,7 @@ function wireMenu(detailsEl) {
             content.classList.add('closing');
             content.classList.remove('opening');
             content.style.maxHeight = content.scrollHeight + 'px';
-            content.offsetHeight; // force reflow
+            content.offsetHeight;
             content.style.maxHeight = '0px';
             content.addEventListener('transitionend', () => {
                 content.classList.remove('closing');
@@ -114,7 +110,6 @@ function wireMenu(detailsEl) {
         }
     });
     
-    // Re-apply if theme changes while menu is open
     window.addEventListener('sharedui:theme', () => {
         if (detailsEl.open) solidMenuBackground(content);
     });
@@ -133,6 +128,17 @@ function wireControls(root) {
     let previousVolume = 1;
     let hideTimeout = null;
     let muted = false;
+    
+    // ICONOS ORIGINALES (movidos aquí para estar disponibles globalmente)
+    const speakerOn = `<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M-1.6,148.8h121.4L302.4,0v512L119.8,363.2H-1.6V148.8z M371.1,124.6c35.9,35.9,54.2,79.5,54.9,130.9 c0,49.3-18.3,91.5-54.9,126.7l-36.9-38c25.3-25.3,38-55.2,38-89.7c0-35.2-12.7-65.8-38-91.8L371.1,124.6z M434.4,62.3 c52.8,52.8,79.2,116.5,79.2,191.1c0,74.6-26.4,138.6-79.2,192.1l-39.1-39.1c42.2-41.5,63.3-92.4,63.3-152.5 c0-60.2-21.1-111.4-63.3-153.6L434.4,62.3z"/></svg>`;
+    const speakerOff = `<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M32.78,5.62c-7.5-7.5-19.65-7.5-27.15,0c-7.5,7.5-7.5,19.66,0,27.15l107.98,107.99H57.6 c-31.81,0-57.6,25.79-57.6,57.6v115.15c0,31.81,25.79,57.6,57.6,57.6h94.2c4.7,0,9.24,1.72,12.76,4.85L279.54,478.2 c20.64,18.35,53.26,3.7,53.26-23.91v-94.33l146.42,146.42c7.5,7.5,19.66,7.5,27.15,0c7.5-7.5,7.5-19.66,0-27.15L32.78,5.62z M387.61,306.16l29.13,29.13c11.82-23.92,18.46-50.86,18.46-79.29c0-30.8-7.79-59.84-21.51-85.2c-5.05-9.32-16.7-12.79-26.02-7.74 c-9.33,5.05-12.79,16.7-7.75,26.03c10.76,19.88,16.89,42.66,16.89,66.92C396.8,273.69,393.55,290.59,387.61,306.16z M445.13,363.68 l27.99,27.99C497.76,352.33,512,305.81,512,256c0-56.99-18.64-109.68-50.16-152.23c-6.31-8.52-18.34-10.31-26.86-4 c-8.52,6.31-10.31,18.33-4,26.86c26.78,36.16,42.62,80.89,42.62,129.37C473.6,295.19,463.25,331.93,445.13,363.68z M192.51,111.05 L332.8,251.34V57.6c0-27.61-32.63-42.26-53.26-23.91L192.51,111.05z"/></svg>`;
+
+    // Función de actualización de icono (movida aquí para estar disponible globalmente)
+    function updateMuteIcon() {
+        if (muteBtn) {
+            muteBtn.innerHTML = muted ? speakerOff : speakerOn;
+        }
+    }
 
     if (volumeSlider) {
         const initial = typeof getVolume === 'function' ? getVolume() : 1;
@@ -140,17 +146,15 @@ function wireControls(root) {
         setVolume(initial);
         previousVolume = initial;
 
-        // Función para mostrar el slider con animación
         function showSlider() {
             clearTimeout(hideTimeout);
             volumeSlider.style.display = 'block';
-            // Para animacion suave, forzamos reflow para que el cambio de clase tenga efecto
-            void volumeSlider.offsetWidth;
+            // Forzar reflow antes de aplicar la animación
+            volumeSlider.offsetHeight;
             volumeSlider.classList.remove('hide');
             volumeSlider.classList.add('show');
         }
 
-        // Función para ocultar el slider con animación
         function hideSlider() {
             volumeSlider.classList.remove('show');
             volumeSlider.classList.add('hide');
@@ -158,16 +162,14 @@ function wireControls(root) {
                 if (volumeSlider.classList.contains('hide')) {
                     volumeSlider.style.display = 'none';
                 }
-            }, 300); // Coincide con la duración de la transición CSS
+            }, 300);
         }
 
-        // Función para programar ocultación con delay
         function scheduleHide() {
             clearTimeout(hideTimeout);
             hideTimeout = setTimeout(hideSlider, 500);
         }
 
-        // Eventos para mostrar/ocultar el slider
         if (soundWrapper) {
             soundWrapper.addEventListener('mouseenter', showSlider);
             soundWrapper.addEventListener('mouseleave', scheduleHide);
@@ -175,7 +177,6 @@ function wireControls(root) {
             soundWrapper.addEventListener('focusout', scheduleHide);
         }
 
-        // Evento para cambios de volumen
         volumeSlider.addEventListener('input', (e) => {
             const v = parseFloat(e.target.value);
             
@@ -183,18 +184,17 @@ function wireControls(root) {
             if (muted && v > 0) {
                 muted = false;
                 setMute(false);
-                // Actualiza icono inmediatamente
-                update();
+                // Actualizar icono inmediatamente
+                updateMuteIcon();
             }
 
             if (!muted) {
-                previousVolume = v; // Solo guardamos si no estamos muteados
+                previousVolume = v;
             }
             setVolume(v);
             window.dispatchEvent(new CustomEvent('sharedui:volume', { detail: { value: v } }));
         });
 
-        // Ocultar slider al soltar el ratón después de cambiar volumen
         volumeSlider.addEventListener('mouseup', scheduleHide);
         volumeSlider.addEventListener('touchend', scheduleHide);
 
@@ -230,32 +230,20 @@ function wireControls(root) {
     }
 
     if (muteBtn) {
-        // ICONOS ORIGINALES RECUPERADOS (sin tachado = ON, con tachado = OFF)
-        const speakerOn = `<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M-1.6,148.8h121.4L302.4,0v512L119.8,363.2H-1.6V148.8z M371.1,124.6c35.9,35.9,54.2,79.5,54.9,130.9 c0,49.3-18.3,91.5-54.9,126.7l-36.9-38c25.3-25.3,38-55.2,38-89.7c0-35.2-12.7-65.8-38-91.8L371.1,124.6z M434.4,62.3 c52.8,52.8,79.2,116.5,79.2,191.1c0,74.6-26.4,138.6-79.2,192.1l-39.1-39.1c42.2-41.5,63.3-92.4,63.3-152.5 c0-60.2-21.1-111.4-63.3-153.6L434.4,62.3z"/></svg>`;
-        
-        const speakerOff = `<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M32.78,5.62c-7.5-7.5-19.65-7.5-27.15,0c-7.5,7.5-7.5,19.66,0,27.15l107.98,107.99H57.6 c-31.81,0-57.6,25.79-57.6,57.6v115.15c0,31.81,25.79,57.6,57.6,57.6h94.2c4.7,0,9.24,1.72,12.76,4.85L279.54,478.2 c20.64,18.35,53.26,3.7,53.26-23.91v-94.33l146.42,146.42c7.5,7.5,19.66,7.5,27.15,0c7.5-7.5,7.5-19.66,0-27.15L32.78,5.62z M387.61,306.16l29.13,29.13c11.82-23.92,18.46-50.86,18.46-79.29c0-30.8-7.79-59.84-21.51-85.2c-5.05-9.32-16.7-12.79-26.02-7.74 c-9.33,5.05-12.79,16.7-7.75,26.03c10.76,19.88,16.89,42.66,16.89,66.92C396.8,273.69,393.55,290.59,387.61,306.16z M445.13,363.68 l27.99,27.99C497.76,352.33,512,305.81,512,256c0-56.99-18.64-109.68-50.16-152.23c-6.31-8.52-18.34-10.31-26.86-4 c-8.52,6.31-10.31,18.33-4,26.86c26.78,36.16,42.62,80.89,42.62,129.37C473.6,295.19,463.25,331.93,445.13,363.68z M192.51,111.05 L332.8,251.34V57.6c0-27.61-32.63-42.26-53.26-23.91L192.51,111.05z"/></svg>`;
-
-        function update() {
-            muteBtn.innerHTML = muted ? speakerOff : speakerOn;
-        }
-
-        update();
+        updateMuteIcon(); // Inicializar el icono
 
         muteBtn.addEventListener('click', () => {
             muted = !muted;
             
             if (muted) {
-                // Guardar volumen actual antes de mutear
                 if (volumeSlider && volumeSlider.value > 0) {
                     previousVolume = parseFloat(volumeSlider.value);
                 }
-                // Actualizar slider visual a 0
                 if (volumeSlider) {
                     volumeSlider.value = 0;
                 }
                 setVolume(0);
             } else {
-                // Restaurar volumen anterior
                 if (volumeSlider) {
                     volumeSlider.value = previousVolume;
                 }
@@ -263,24 +251,20 @@ function wireControls(root) {
             }
             
             setMute(muted);
-            update();
+            updateMuteIcon();
             
-            // Ocultar slider después de hacer clic en mute
             if (volumeSlider && soundWrapper) {
                 scheduleHide();
             }
         });
     }
 
-    // Scheduling profile (nuevo)
     if (schedSelect) {
         const def = detectDeviceProfile();
-        // Després (força el valor per defecte segons dispositiu)
-        schedSelect.value = def; // 'mobile' o 'desktop' segons detectDeviceProfile()
+        schedSelect.value = def;
         applySchedulingProfile(def);
         schedSelect.addEventListener('change', (e) => applySchedulingProfile(e.target.value));
     } else {
-        // Fallback: aplica perfil por defecto aunque el header no tenga el select
         applySchedulingProfile(detectDeviceProfile());
     }
 }

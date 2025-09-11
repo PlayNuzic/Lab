@@ -72,46 +72,45 @@ body[data-theme='dark'] {
     right: 10px;
     top: 10px;
     display: flex;
-    flex-direction: column; /* stack button above, slider below */
-    align-items: center; /* center horizontally */
+    flex-direction: column;
+    align-items: center;
 }
 
 .top-bar .sound {
-    /* same hit area as menu */
     padding: 12px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: transparent; /* remove grey background */
-    border: none; /* remove default button border */
-    color: var(--line-color); /* use theme contrast color */
+    background: transparent;
+    border: none;
+    color: var(--line-color);
     order: 0;
 }
 
 .top-bar .sound-wrapper svg {
-    width: 2rem; /* scale icon to match menu size */
+    width: 2rem;
     height: 2rem;
     display: block;
 }
 
 .top-bar .sound-wrapper #volumeSlider {
     display: none;
-    margin-right: 0; /* no horizontal spacing in column layout */
-    margin-top: 8px; /* spacing below the button */
+    margin-right: 0;
+    margin-top: 8px;
     width: 4px;
     height: 80px;
     writing-mode: bt-lr;
     -webkit-appearance: slider-vertical;
     appearance: slider-vertical;
-    order: 1; /* ensure slider is below */
-    /* Añadimos propiedades para la animación */
+    order: 1;
+    /* Propiedades para la animación */
     transform: scaleY(0);
     transform-origin: top center;
     transition: transform 0.3s ease-out;
 }
 
-/* Estados de animación para mostrar/ocultar */
+/* Estados de animación controlados completamente por JavaScript */
 .top-bar .sound-wrapper #volumeSlider.show {
     transform: scaleY(1);
 }
@@ -120,12 +119,12 @@ body[data-theme='dark'] {
     transform: scaleY(0);
 }
 
-/* Mantenemos los triggers existentes pero los refinamos */
-.top-bar .sound-wrapper:hover #volumeSlider,
+/* REMOVEMOS los triggers CSS que interfieren con la animación JavaScript */
+/* .top-bar .sound-wrapper:hover #volumeSlider,
 .top-bar .sound-wrapper:focus-within #volumeSlider {
     display: block;
     transform: scaleY(1);
-}
+} */
 
 .menu summary {
     cursor: pointer;
@@ -153,7 +152,6 @@ body[data-theme='dark'] {
     border: 2px solid var(--line-color);
     border-radius: 8px;
     min-width: 220px;
-    /* Force solid background using theme vars (avoid any inherited transparency) */
     background-color: var(--bg-light) !important;
     color: var(--text-light);
 }
@@ -167,7 +165,6 @@ body[data-theme='dark'] .menu .options-content {
     position: absolute;
     top: 100%;
     left: 0;
-    /* Must sit above timeline pulses and other UI (they use z-index up to 6) */
     z-index: 1000;
     max-height: 100vh;
     overflow-y: auto;
@@ -248,10 +245,10 @@ body[data-theme='dark'] .menu .options-content {
     display: flex;
     justify-content: center;
     gap: 26px;
-    margin-top: 40px; /* puja/baixa tota la línia de cercles */
+    margin-top: 40px;
     margin-bottom: 20px;
     position: relative;
-    left: -20px; /* mou tota la línia de cercles a l'esquerra */
+    left: -20px;
 }
 
 .param {
@@ -301,13 +298,13 @@ body[data-theme='dark'] .menu .options-content {
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center; /* center vertically */
-    align-items: center; /* center horizontally */
-    gap: 2px; /* arrows close together */
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
 }
 
 .param .circle .spinner .spin {
-    flex: 0 0 12px; /* compact height per arrow */
+    flex: 0 0 12px;
     width: 100%;
     background: transparent;
     border: none;
@@ -327,11 +324,11 @@ body[data-theme='dark'] .menu .options-content {
 }
 
 .param .circle .spinner .spin.up::before {
-    border-bottom: 6px solid currentColor; /* smaller arrow */
+    border-bottom: 6px solid currentColor;
 }
 
 .param .circle .spinner .spin.down::before {
-    border-top: 6px solid currentColor; /* smaller arrow */
+    border-top: 6px solid currentColor;
 }
 
 .param .circle .spinner .spin:active {
@@ -598,7 +595,6 @@ body[data-theme='dark'] .random {
         font-size: 1.5rem;
     }
     
-    /* Reduce el radio en mòbil i situa els botons al voltant del play */
     .loop {
         top: calc(50% + 35px);
         left: calc(50% - 30px);
@@ -645,7 +641,6 @@ body[data-theme='dark'] .random {
 /* ---- Timeline layering & hit‑testing (shared) ---- */
 .timeline { position: relative; }
 
-/* Lines / grids must be visually behind and non-interactive */
 .timeline .lines,
 .timeline .grid,
 .timeline .grid-lines,
@@ -657,15 +652,13 @@ body[data-theme='dark'] .random {
     z-index: 0;
 }
 
-/* Pulses sit above and remain clickable */
 .timeline .pulses {
-    position: relative; /* container for absolutely positioned pulses */
+    position: relative;
     z-index: 2;
     pointer-events: auto;
 }
 
 .timeline .pulse {
-    /* no position override here: respect app's absolute layout */
     z-index: 2;
     pointer-events: auto;
 }
