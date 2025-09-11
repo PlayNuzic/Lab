@@ -1,4 +1,5 @@
 // Shared UI header for Lab: mirrors App1 header behavior
+import { setVolume, getVolume } from '../sound/index.js';
 
 // --- Scheduling helpers (look-ahead y updateInterval) ---
 function detectDeviceProfile() {
@@ -120,11 +121,25 @@ function wireMenu(detailsEl) {
 }
 
 function wireControls(root) {
+  const volumeSlider = root.querySelector('#volumeSlider');
   const themeSelect = root.querySelector('#themeSelect');
   const hoverToggle = root.querySelector('#hoverToggle');
   const muteBtn = root.querySelector('#muteBtn');
   const selectColor = root.querySelector('#selectColor');
   const schedSelect = root.querySelector('#schedProfileSelect');
+
+  if (volumeSlider) {
+    const initial = typeof getVolume === 'function' ? getVolume() : 1;
+    volumeSlider.value = initial;
+    setVolume(initial);
+    volumeSlider.addEventListener('input', (e) => {
+      const v = parseFloat(e.target.value);
+      setVolume(v);
+      window.dispatchEvent(new CustomEvent('sharedui:volume', { detail: { value: v } }));
+    });
+  } else {
+    setVolume(1);
+  }
 
   if (themeSelect) {
     applyTheme(themeSelect.value);
@@ -219,6 +234,9 @@ export function renderHeader({ title = 'App', mount } = {}) {
     <details class="menu" id="optionsMenu">
       <summary>☰</summary>
       <div class="options-content">
+        <label for="volumeSlider">Volumen:
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
+        </label>
         <label for="themeSelect">Tema:
           <select id="themeSelect">
             <option value="system" selected>Sistema</option>

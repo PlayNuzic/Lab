@@ -27,12 +27,13 @@ function createToneMock() {
     Transport: transport,
     Draw: { schedule: jest.fn() },
     getContext: jest.fn(() => ({ lookAhead: 0, updateInterval: 0 })),
+    Destination: { mute: false, volume: { value: 0 } },
   };
 }
 
 global.Tone = createToneMock();
 
-import { TimelineAudio } from './index.js';
+import { TimelineAudio, setVolume, getVolume } from './index.js';
 
 describe('TimelineAudio', () => {
   let audio;
@@ -63,6 +64,12 @@ describe('TimelineAudio', () => {
   test('setTotal updates totalRef', () => {
     audio.setTotal(8);
     expect(audio.totalRef).toBe(8);
+  });
+
+  test('setVolume updates Destination volume', () => {
+    setVolume(0.5);
+    expect(Tone.Destination.volume.value).toBeCloseTo(-6.02, 2);
+    expect(getVolume()).toBeCloseTo(0.5);
   });
 
   test('setSchedulingProfile applies presets', () => {

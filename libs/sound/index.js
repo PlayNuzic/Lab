@@ -1,11 +1,20 @@
 let synth;
 let audioReady;
 let muted = false;
+let volume = 1;
 
 function _setMute(val) {
   muted = !!val;
   if (typeof Tone !== 'undefined' && Tone.Destination) {
     Tone.Destination.mute = muted;
+  }
+}
+
+function _setVolume(val) {
+  const v = Math.max(0, Math.min(1, Number(val)));
+  volume = v;
+  if (typeof Tone !== 'undefined' && Tone.Destination && Tone.Destination.volume) {
+    try { Tone.Destination.volume.value = v > 0 ? (20 * Math.log10(v)) : -Infinity; } catch {}
   }
 }
 
@@ -18,6 +27,14 @@ export function ensureAudio() {
 
 export function setMute(val) {
   _setMute(val);
+}
+
+export function setVolume(val) {
+  _setVolume(val);
+}
+
+export function getVolume() {
+  return volume;
 }
 
 export function toggleMute() {
@@ -57,6 +74,7 @@ export async function init(type = 'piano') {
     synth = new Tone.PolySynth(Tone.Synth).toDestination();
   }
   _setMute(muted);
+  _setVolume(volume);
 }
 
 export function playNote(midi, duration = 1.5) {
