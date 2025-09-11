@@ -2,29 +2,31 @@
 
 /* Shared palette and typography (from App1) */
 :root {
-  --controls-offset-y: -25px;
-  --bg-light: #EEE8D8;
-  --bg-dark: #43433B;
-  --text-light: #43433B;
-  --text-dark: #EEE8D8;
-  --color-lg: #5C7AEA;
-  --color-v: #2E8B57;
-  --color-t: #E57373;
-  --selection-color: #FFBB97;
+    --controls-offset-y: -25px;
+    --bg-light: #EEE8D8;
+    --bg-dark: #43433B;
+    --text-light: #43433B;
+    --text-dark: #EEE8D8;
+    --color-lg: #5C7AEA;
+    --color-v: #2E8B57;
+    --color-t: #E57373;
+    --selection-color: #FFBB97;
 }
 
 /* Baseline: disable text selection across UI, allow in form fields */
 html, body {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
+
 input, textarea, select {
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    user-select: text;
 }
+
 button, a, summary, label { -webkit-tap-highlight-color: transparent; }
 
 /* Hide native number spinners (custom arrows used instead) */
@@ -34,86 +36,102 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
 /* Theme containers (apps should set body[data-theme]) */
 body[data-theme='light'] {
-  background: var(--bg-light);
-  color: var(--text-light);
-  --line-color: var(--text-light);
-  font-family: 'Ubuntu', sans-serif;
+    background: var(--bg-light);
+    color: var(--text-light);
+    --line-color: var(--text-light);
+    font-family: 'Ubuntu', sans-serif;
 }
+
 body[data-theme='dark'] {
-  background: var(--bg-dark);
-  color: var(--text-dark);
-  --line-color: var(--text-dark);
-  font-family: 'Ubuntu', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-dark);
+    --line-color: var(--text-dark);
+    font-family: 'Ubuntu', sans-serif;
 }
 
 /* Shared header: top bar and dropdown menu (mirrors App1) */
 .top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 10px;
 }
 
 .top-bar .menu {
-  position: absolute;
-  left: 10px;
-  top: 10px;
-  font-size: 2rem;
-  padding: 12px;
-  cursor: pointer;
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    font-size: 2rem;
+    padding: 12px;
+    cursor: pointer;
 }
 
 .top-bar .sound-wrapper {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  display: flex;
-  flex-direction: column;     /* stack button above, slider below */
-  align-items: center;        /* center horizontally */
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    display: flex;
+    flex-direction: column; /* stack button above, slider below */
+    align-items: center; /* center horizontally */
 }
 
 .top-bar .sound {
-  /* same hit area as menu */
-  padding: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;      /* remove grey background */
-  border: none;                 /* remove default button border */
-  color: var(--line-color);     /* use theme contrast color */
-  order: 0;
+    /* same hit area as menu */
+    padding: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent; /* remove grey background */
+    border: none; /* remove default button border */
+    color: var(--line-color); /* use theme contrast color */
+    order: 0;
 }
 
 .top-bar .sound-wrapper svg {
-  width: 2rem;                  /* scale icon to match menu size */
-  height: 2rem;
-  display: block;
+    width: 2rem; /* scale icon to match menu size */
+    height: 2rem;
+    display: block;
 }
 
 .top-bar .sound-wrapper #volumeSlider {
-  display: none;
-  margin-right: 0;           /* no horizontal spacing in column layout */
-  margin-top: 8px;           /* spacing below the button */
-  width: 4px;
-  height: 80px;
-  writing-mode: bt-lr;
-  -webkit-appearance: slider-vertical;
-  appearance: slider-vertical;
-  order: 1;                  /* ensure slider is below */
+    display: none;
+    margin-right: 0; /* no horizontal spacing in column layout */
+    margin-top: 8px; /* spacing below the button */
+    width: 4px;
+    height: 80px;
+    writing-mode: bt-lr;
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+    order: 1; /* ensure slider is below */
+    /* Añadimos propiedades para la animación */
+    transform: scaleY(0);
+    transform-origin: top center;
+    transition: transform 0.3s ease-out;
 }
 
+/* Estados de animación para mostrar/ocultar */
+.top-bar .sound-wrapper #volumeSlider.show {
+    display: block;
+    transform: scaleY(1);
+}
+
+.top-bar .sound-wrapper #volumeSlider.hide {
+    transform: scaleY(0);
+}
+
+/* Mantenemos los triggers existentes pero los refinamos */
 .top-bar .sound-wrapper:hover #volumeSlider,
 .top-bar .sound-wrapper:focus-within #volumeSlider {
-  display: block;
+    display: block;
 }
 
 .menu summary {
-  cursor: pointer;
-  font-family: 'Ubuntu', sans-serif;
-  font-weight: 700;
-  font-size: 2rem;
+    cursor: pointer;
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 700;
+    font-size: 2rem;
 }
 
 /* Hide marker for main menu */
@@ -123,98 +141,101 @@ body[data-theme='dark'] {
 
 /* Menu options panel */
 .menu .options-content {
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition: max-height 0.5s ease, opacity 0.5s ease;
-  font-family: 'Ubuntu', sans-serif;
-  font-weight: 300;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  padding: 10px;
-  border: 2px solid var(--line-color);
-  border-radius: 8px;
-  min-width: 220px;
-  /* Force solid background using theme vars (avoid any inherited transparency) */
-  background-color: var(--bg-light) !important;
-  color: var(--text-light);
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.5s ease, opacity 0.5s ease;
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 300;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    padding: 10px;
+    border: 2px solid var(--line-color);
+    border-radius: 8px;
+    min-width: 220px;
+    /* Force solid background using theme vars (avoid any inherited transparency) */
+    background-color: var(--bg-light) !important;
+    color: var(--text-light);
 }
 
 body[data-theme='dark'] .menu .options-content {
-  background-color: var(--bg-dark) !important;
-  color: var(--text-dark);
+    background-color: var(--bg-dark) !important;
+    color: var(--text-dark);
 }
 
 .menu[open] .options-content {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  /* Must sit above timeline pulses and other UI (they use z-index up to 6) */
-  z-index: 1000;
-  max-height: 100vh;
-  overflow-y: auto;
-  opacity: 1;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    /* Must sit above timeline pulses and other UI (they use z-index up to 6) */
+    z-index: 1000;
+    max-height: 100vh;
+    overflow-y: auto;
+    opacity: 1;
 }
 
 .menu ul { list-style: none; padding-left: 0; }
 
 /* Submenus (e.g., Sonidos) */
 .menu .options-content details > summary {
-  font-size: 1rem;
-  font-weight: 400;
-  font-family: 'Ubuntu', sans-serif;
-  cursor: pointer;
-  margin: 8px 0;
+    font-size: 1rem;
+    font-weight: 400;
+    font-family: 'Ubuntu', sans-serif;
+    cursor: pointer;
+    margin: 8px 0;
 }
 
 /* Labels inside menu */
 .menu .options-content label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 8px 0;
-  font-size: 1rem;
-  font-weight: 400;
-  font-family: 'Ubuntu', sans-serif;
-  line-height: 1.4;
-  gap: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 8px 0;
+    font-size: 1rem;
+    font-weight: 400;
+    font-family: 'Ubuntu', sans-serif;
+    line-height: 1.4;
+    gap: 8px;
 }
 
 .menu .options-content select {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 4px;
-  border: 1px solid var(--line-color);
-  border-radius: 4px;
-  font-family: 'Ubuntu', sans-serif;
-  font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px;
+    border: 1px solid var(--line-color);
+    border-radius: 4px;
+    font-family: 'Ubuntu', sans-serif;
+    font-size: 0.9rem;
 }
 
 /* Preview row for sound selects */
 .menu .options-content .preview-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
+
 .menu .options-content .preview-row select { flex: 1; }
+
 .menu .options-content .preview-btn {
-  padding: 4px 8px;
-  border: 1px solid var(--line-color);
-  border-radius: 4px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
+    padding: 4px 8px;
+    border: 1px solid var(--line-color);
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
 }
+
 .menu .options-content .preview-btn:hover {
-  border-color: var(--selection-color);
-  color: var(--selection-color);
+    border-color: var(--selection-color);
+    color: var(--selection-color);
 }
 
 .menu .options-content .menu-separator {
-  margin: 8px 0;
-  border: none;
-  border-top: 2px solid var(--line-color);
-  opacity: 0.7;
+    margin: 8px 0;
+    border: none;
+    border-top: 2px solid var(--line-color);
+    opacity: 0.7;
 }
 
 .menu .options-content input[type="color"] { width: 33%; }
@@ -224,184 +245,190 @@ body[data-theme='dark'] .menu .options-content {
 
 /* Circular input parameters (Lg, V, T) */
 .inputs {
-  display: flex;
-  justify-content: center;
-  gap: 26px;
-  margin-top: 40px;   /* puja/baixa tota la línia de cercles */
-  margin-bottom: 20px;
-  position: relative;
-  left: -20px; /* mou tota la línia de cercles a l'esquerra */
+    display: flex;
+    justify-content: center;
+    gap: 26px;
+    margin-top: 40px; /* puja/baixa tota la línia de cercles */
+    margin-bottom: 20px;
+    position: relative;
+    left: -20px; /* mou tota la línia de cercles a l'esquerra */
 }
 
 .param {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 1.45rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.45rem;
 }
+
 .param.lg { color: var(--color-lg); }
 .param.v { color: var(--color-v); }
 .param.t { color: var(--color-t); }
 
 .param .abbr {
-  font-size: 1.8rem;
-  font-weight: 600;
+    font-size: 1.8rem;
+    font-weight: 600;
 }
 
 .param .circle {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
 }
 
 .param .circle input {
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-  text-align: center;
-  font-size: 1.6rem;
-  color: inherit;
-  outline: none;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 1.6rem;
+    color: inherit;
+    outline: none;
 }
 
 /* Custom spinner for text-based numeric inputs (e.g., T) */
 .param .circle .spinner {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 24px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;    /* center vertically */
-  align-items: center;        /* center horizontally */
-  gap: 2px;                   /* arrows close together */
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 24px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* center vertically */
+    align-items: center; /* center horizontally */
+    gap: 2px; /* arrows close together */
 }
 
 .param .circle .spinner .spin {
-  flex: 0 0 12px;             /* compact height per arrow */
-  width: 100%;
-  background: transparent;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 0;
+    flex: 0 0 12px; /* compact height per arrow */
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
 }
 
 .param .circle .spinner .spin::before {
-  content: '';
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
+    content: '';
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
 }
 
 .param .circle .spinner .spin.up::before {
-  border-bottom: 6px solid currentColor; /* smaller arrow */
+    border-bottom: 6px solid currentColor; /* smaller arrow */
 }
 
 .param .circle .spinner .spin.down::before {
-  border-top: 6px solid currentColor;    /* smaller arrow */
+    border-top: 6px solid currentColor; /* smaller arrow */
 }
 
 .param .circle .spinner .spin:active {
-  color: var(--selection-color);
+    color: var(--selection-color);
 }
 
 /* Ensure input text doesn't overlap spinner */
 .param.lg .circle input,
-.param.v  .circle input,
-.param.t  .circle input {
-  padding-right: 24px;
+.param.v .circle input,
+.param.t .circle input {
+    padding-right: 24px;
 }
 
 .param .circle .unit {
-  position: absolute;
-  top: calc(-40px - 1.8rem);
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: inherit;
-  display: none;
-  pointer-events: none;
+    position: absolute;
+    top: calc(-40px - 1.8rem);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: inherit;
+    display: none;
+    pointer-events: none;
 }
 
 .param .circle .led {
-  position: absolute;
-  top: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
-  cursor: pointer;
-  z-index: 2;
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+    z-index: 2;
 }
 
 .param .circle .led::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: transparent;
-  cursor: inherit;
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: transparent;
+    cursor: inherit;
 }
 
 .param .circle .led.on {
-  opacity: 1;
+    opacity: 1;
 }
 
 /* Responsive adjustments for circular inputs */
 @media (max-width: 600px) {
-  .inputs {
-    left: 0;
-  }
-  .param .circle {
-    width: 60px;
-    height: 60px;
-  }
-  .param .circle input {
-    font-size: 1rem;
-  }
-  .param .circle .spinner { width: 18px; gap: 1px; }
-  .param.lg .circle input,
-  .param.v  .circle input,
-  .param.t  .circle input {
-    padding-right: 18px;
-  }
-  .param .circle .led::before {
-    width: 32px;
-    height: 32px;
-  }
+    .inputs {
+        left: 0;
+    }
+    
+    .param .circle {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .param .circle input {
+        font-size: 1rem;
+    }
+    
+    .param .circle .spinner { width: 18px; gap: 1px; }
+    
+    .param.lg .circle input,
+    .param.v .circle input,
+    .param.t .circle input {
+        padding-right: 18px;
+    }
+    
+    .param .circle .led::before {
+        width: 32px;
+        height: 32px;
+    }
 }
 
 /* Control buttons (play, loop, reset, tap tempo) */
 .controls {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: calc(70px + var(--controls-offset-y));
-  width: 200px;
-  height: 200px;
-  margin-left: auto;
-  margin-right: auto;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: calc(70px + var(--controls-offset-y));
+    width: 200px;
+    height: 200px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* Base styles for all control buttons */
@@ -410,117 +437,119 @@ body[data-theme='dark'] .menu .options-content {
 .reset,
 .tap,
 .random {
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  cursor: pointer;
-  background: transparent;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.3s ease, transform 0.1s ease;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    cursor: pointer;
+    background: transparent;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.3s ease, transform 0.1s ease;
 }
 
 /* Central play button */
 .play {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80px;
-  height: 80px;
-  font-size: 2rem;
-  z-index: 2;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
+    z-index: 2;
 }
 
 /* Positioning buttons around the play button using precise angles */
 .tap {
-  position: absolute;
-  top: calc(50% + 65px);
-  left: calc(50% + 30px);
-  transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
-  opacity: 0.7;
+    position: absolute;
+    top: calc(50% + 65px);
+    left: calc(50% + 30px);
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    opacity: 0.7;
 }
 
 .loop {
-  position: absolute;
-  top: calc(50% + 65px);
-  left: calc(50% - 30px);
-  transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
-  opacity: 0.7;
+    position: absolute;
+    top: calc(50% + 65px);
+    left: calc(50% - 30px);
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    opacity: 0.7;
 }
 
 .random {
-  position: absolute;
-  top: calc(50% + 20px);
-  left: calc(50% - 70px);
-  transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
-  opacity: 0.7;
+    position: absolute;
+    top: calc(50% + 20px);
+    left: calc(50% - 70px);
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    opacity: 0.7;
 }
 
 .reset {
-  position: absolute;
-  top: calc(50% + 20px);
-  left: calc(50% + 70px);
-  transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
-  opacity: 0.7;
+    position: absolute;
+    top: calc(50% + 20px);
+    left: calc(50% + 70px);
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    opacity: 0.7;
 }
 
 /* Inline SVG icons */
 .play svg {
-  width: 50%;
-  height: 50%;
-  fill: currentColor;
-  pointer-events: none;
-  display: block;
-  margin: auto;
+    width: 50%;
+    height: 50%;
+    fill: currentColor;
+    pointer-events: none;
+    display: block;
+    margin: auto;
 }
+
 .loop svg,
 .tap svg,
 .random svg {
-  width: 100%;
-  height: 100%;
-  fill: currentColor;
-  pointer-events: none;
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+    pointer-events: none;
 }
 
 .reset svg {
-  width: 105%;
-  height: 110%;
-  fill: currentColor;
-  pointer-events: none;
+    width: 105%;
+    height: 110%;
+    fill: currentColor;
+    pointer-events: none;
 }
 
 /* Click effect (press + highlight only for Reset) */
 .reset:active {
-  transform: translate(-50%, -50%) scale(0.9);
-  color: var(--selection-color);
-  border-color: var(--selection-color);
-  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+    transform: translate(-50%, -50%) scale(0.9);
+    color: var(--selection-color);
+    border-color: var(--selection-color);
+    box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
 }
 
 /* Active states */
 .play.active {
-  color: var(--selection-color);
-  border-color: var(--selection-color);
-  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+    color: var(--selection-color);
+    border-color: var(--selection-color);
+    box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
 }
+
 .loop.active {
-  border-color: var(--selection-color);
-  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+    border-color: var(--selection-color);
+    box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
 }
 
 .random.active {
-  border-color: var(--selection-color);
-  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+    border-color: var(--selection-color);
+    box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
 }
 
 /* Theme-specific colors */
@@ -529,91 +558,93 @@ body[data-theme='light'] .loop,
 body[data-theme='light'] .reset,
 body[data-theme='light'] .tap,
 body[data-theme='light'] .random {
-  color: var(--text-light);
+    color: var(--text-light);
 }
+
 body[data-theme='dark'] .play,
 body[data-theme='dark'] .loop,
 body[data-theme='dark'] .reset,
 body[data-theme='dark'] .tap,
 body[data-theme='dark'] .random {
-  color: var(--text-dark);
+    color: var(--text-dark);
 }
 
 /* Responsive adjustments */
 @media (max-width: 600px) {
-  :root { --controls-offset-y: -32px; }
-
-  .controls {
-    width: 150px;
-    height: 150px;
-    margin-top: calc(40px + var(--controls-offset-y));
-  }
-  
-  .play {
-    width: 55px;
-    height: 55px;
-    font-size: 1.3rem;
-  }
-  
-  .loop,
-  .reset,
-  .tap,
-  .random {
-    width: 32px;
-    height: 32px;
-    font-size: 0.9rem;
-  }
-
-  .top-bar h1 {
-    font-size: 1.5rem;
-  }
-
-  /* Reduce el radio en mòbil i situa els botons al voltant del play */
-  .loop {
-    top: calc(50% + 35px);
-    left: calc(50% - 30px);
-  }
-
-  .random {
-    top: calc(50% + 0px);
-    left: calc(50% - 50px);
-  }
-
-  .reset {
-    top: calc(50% + 0px);
-    left: calc(50% + 50px);
-  }
-
-  .tap {
-    top: calc(50% + 35px);
-    left: calc(50% + 30px);
-  }
+    :root { --controls-offset-y: -32px; }
+    
+    .controls {
+        width: 150px;
+        height: 150px;
+        margin-top: calc(40px + var(--controls-offset-y));
+    }
+    
+    .play {
+        width: 55px;
+        height: 55px;
+        font-size: 1.3rem;
+    }
+    
+    .loop,
+    .reset,
+    .tap,
+    .random {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    .top-bar h1 {
+        font-size: 1.5rem;
+    }
+    
+    /* Reduce el radio en mòbil i situa els botons al voltant del play */
+    .loop {
+        top: calc(50% + 35px);
+        left: calc(50% - 30px);
+    }
+    
+    .random {
+        top: calc(50% + 0px);
+        left: calc(50% - 50px);
+    }
+    
+    .reset {
+        top: calc(50% + 0px);
+        left: calc(50% + 50px);
+    }
+    
+    .tap {
+        top: calc(50% + 35px);
+        left: calc(50% + 30px);
+    }
 }
 
 .controls .tap-help {
-  position: absolute;
-  top: calc(50% + 80px + 24px);
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0,0,0,0.6);
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  display: none;
-  pointer-events: none;
+    position: absolute;
+    top: calc(50% + 80px + 24px);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    display: none;
+    pointer-events: none;
 }
 
 @media (max-width: 600px) {
-  .controls .tap-help {
-    top: calc(50% + 65px + 20px);
-    left: 50%;
-  }
+    .controls .tap-help {
+        top: calc(50% + 65px + 20px);
+        left: 50%;
+    }
 }
 
 /* ---- Timeline layering & hit‑testing (shared) ---- */
 .timeline { position: relative; }
+
 /* Lines / grids must be visually behind and non-interactive */
 .timeline .lines,
 .timeline .grid,
@@ -622,36 +653,39 @@ body[data-theme='dark'] .random {
 .timeline .baseline,
 .timeline svg .grid,
 .timeline svg .lines {
-  pointer-events: none;
-  z-index: 0;
+    pointer-events: none;
+    z-index: 0;
 }
+
 /* Pulses sit above and remain clickable */
 .timeline .pulses {
-  position: relative; /* container for absolutely positioned pulses */
-  z-index: 2;
-  pointer-events: auto;
+    position: relative; /* container for absolutely positioned pulses */
+    z-index: 2;
+    pointer-events: auto;
 }
+
 .timeline .pulse {
-  /* no position override here: respect app's absolute layout */
-  z-index: 2;
-  pointer-events: auto;
+    /* no position override here: respect app's absolute layout */
+    z-index: 2;
+    pointer-events: auto;
 }
 
 /* Shared hover tooltip */
 .hover-tip {
-  position: fixed;
-  pointer-events: none;
-  background: rgba(0,0,0,0.6);
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  transform: translate(-50%, -100%);
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  z-index: 1000;
+    position: fixed;
+    pointer-events: none;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    transform: translate(-50%, -100%);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 1000;
 }
+
 .hover-tip.show {
-  opacity: 1;
+    opacity: 1;
 }
