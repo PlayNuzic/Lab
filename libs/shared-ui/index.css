@@ -69,7 +69,8 @@ body[data-theme='dark'] {
   right: 10px;
   top: 10px;
   display: flex;
-  align-items: center;
+  flex-direction: column;     /* stack button above, slider below */
+  align-items: center;        /* center horizontally */
 }
 
 .top-bar .sound {
@@ -82,6 +83,7 @@ body[data-theme='dark'] {
   background: transparent;      /* remove grey background */
   border: none;                 /* remove default button border */
   color: var(--line-color);     /* use theme contrast color */
+  order: 0;
 }
 
 .top-bar .sound-wrapper svg {
@@ -92,12 +94,14 @@ body[data-theme='dark'] {
 
 .top-bar .sound-wrapper #volumeSlider {
   display: none;
-  margin-right: 8px;
+  margin-right: 0;           /* no horizontal spacing in column layout */
+  margin-top: 8px;           /* spacing below the button */
   width: 4px;
   height: 80px;
   writing-mode: bt-lr;
   -webkit-appearance: slider-vertical;
   appearance: slider-vertical;
+  order: 1;                  /* ensure slider is below */
 }
 
 .top-bar .sound-wrapper:hover #volumeSlider,
