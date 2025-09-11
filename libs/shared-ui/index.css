@@ -113,7 +113,6 @@ body[data-theme='dark'] {
 
 /* Estados de animación para mostrar/ocultar */
 .top-bar .sound-wrapper #volumeSlider.show {
-    display: block;
     transform: scaleY(1);
 }
 
@@ -125,6 +124,7 @@ body[data-theme='dark'] {
 .top-bar .sound-wrapper:hover #volumeSlider,
 .top-bar .sound-wrapper:focus-within #volumeSlider {
     display: block;
+    transform: scaleY(1);
 }
 
 .menu summary {
