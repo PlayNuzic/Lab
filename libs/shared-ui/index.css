@@ -64,10 +64,15 @@ body[data-theme='dark'] {
   cursor: pointer;
 }
 
-.top-bar .sound {
+.top-bar .sound-wrapper {
   position: absolute;
   right: 10px;
   top: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.top-bar .sound {
   /* same hit area as menu */
   padding: 12px;
   cursor: pointer;
@@ -79,9 +84,24 @@ body[data-theme='dark'] {
   color: var(--line-color);     /* use theme contrast color */
 }
 
-.top-bar .sound svg {
+.top-bar .sound-wrapper svg {
   width: 2rem;                  /* scale icon to match menu size */
   height: 2rem;
+  display: block;
+}
+
+.top-bar .sound-wrapper #volumeSlider {
+  display: none;
+  margin-right: 8px;
+  width: 4px;
+  height: 80px;
+  writing-mode: bt-lr;
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+}
+
+.top-bar .sound-wrapper:hover #volumeSlider,
+.top-bar .sound-wrapper:focus-within #volumeSlider {
   display: block;
 }
 

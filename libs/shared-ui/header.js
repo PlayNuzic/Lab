@@ -234,9 +234,6 @@ export function renderHeader({ title = 'App', mount } = {}) {
     <details class="menu" id="optionsMenu">
       <summary>☰</summary>
       <div class="options-content">
-        <label for="volumeSlider">Volumen:
-          <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
-        </label>
         <label for="themeSelect">Tema:
           <select id="themeSelect">
             <option value="system" selected>Sistema</option>
@@ -257,7 +254,10 @@ export function renderHeader({ title = 'App', mount } = {}) {
       </div>
     </details>
     <h1>${title}</h1>
-    <button id="muteBtn" class="sound" aria-label="Sonido"></button>
+    <div class="sound-wrapper">
+      <button id="muteBtn" class="sound" aria-label="Sonido"></button>
+      <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
+    </div>
   `;
   container.prepend(header);
   const menu = header.querySelector('details.menu');
