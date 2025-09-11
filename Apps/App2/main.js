@@ -1458,19 +1458,21 @@ function highlightPulse(i){
     };
 
     const rect = getRect(idx);
+    let newScrollLeft = pulseSeqEl.scrollLeft;
     if (rect) {
       const absLeft = rect.left - parentRect.left + pulseSeqEl.scrollLeft;
       const target = absLeft - (pulseSeqEl.clientWidth - rect.width) / 2;
       const maxScroll = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
-      pulseSeqEl.scrollLeft = Math.max(0, Math.min(target, maxScroll));
+      newScrollLeft = Math.max(0, Math.min(target, maxScroll));
+      pulseSeqEl.scrollLeft = newScrollLeft;
       if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
     }
 
     const parent = pulseSeqEl.getBoundingClientRect();
     const place = (r, el) => {
       if (!r || !el) return;
-      const cx = r.left - parent.left + r.width / 2;
-      const cy = r.top - parent.top + r.height / 2;
+      const cx = r.left - parent.left + newScrollLeft + r.width / 2;
+      const cy = r.top - parent.top + pulseSeqEl.scrollTop + r.height / 2;
       const size = Math.max(r.width, r.height) * 0.75;
       el.style.width = size + 'px';
       el.style.height = size + 'px';
