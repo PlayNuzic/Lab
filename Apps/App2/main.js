@@ -180,6 +180,7 @@ let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
 // Progress is now driven directly from audio callbacks
+// Progress is now driven directly from audio callbacks
 
 // Build structured markup for the pulse sequence so only inner numbers are editable
 function setupPulseSeqMarkup(){
@@ -1432,17 +1433,45 @@ function highlightPulse(i){
     if (last) last.classList.add('active');
   }
   if (pulseSeqEl) {
-    const maxScroll = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
-    const progress = (pulses.length > 1) ? (idx / (pulses.length - 1)) : 0;
-    pulseSeqEl.scrollLeft = maxScroll * progress;
-    if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
+    const parentRect = pulseSeqEl.getBoundingClientRect();
+    const getRect = (index) => {
+      if (index === 0) {
+        const z = pulseSeqEl.querySelector('.pz.zero');
+        return z ? z.getBoundingClientRect() : null;
+      }
+      if (index === pulses.length - 1) {
+        const l = pulseSeqEl.querySelector('.pz.lg');
+        return l ? l.getBoundingClientRect() : null;
+      }
+      const range = pulseSeqRanges[index];
+      if (range) {
+        const el = getEditEl();
+        const node = el && el.firstChild;
+        if (node) {
+          const r = document.createRange();
+          r.setStart(node, range[0]);
+          r.setEnd(node, range[1]);
+          return r.getBoundingClientRect();
+        }
+      }
+      return null;
+    };
+
+    const rect = getRect(idx);
+    if (rect) {
+      const absLeft = rect.left - parentRect.left + pulseSeqEl.scrollLeft;
+      const target = absLeft - (pulseSeqEl.clientWidth - rect.width) / 2;
+      const maxScroll = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
+      pulseSeqEl.scrollLeft = Math.max(0, Math.min(target, maxScroll));
+      if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
+    }
 
     const parent = pulseSeqEl.getBoundingClientRect();
-    const place = (rect, el) => {
-      if (!rect || !el) return;
-      const cx = rect.left - parent.left + rect.width / 2;
-      const cy = rect.top - parent.top + rect.height / 2;
-      const size = Math.max(rect.width, rect.height) * 0.75;
+    const place = (r, el) => {
+      if (!r || !el) return;
+      const cx = r.left - parent.left + r.width / 2;
+      const cy = r.top - parent.top + r.height / 2;
+      const size = Math.max(r.width, r.height) * 0.75;
       el.style.width = size + 'px';
       el.style.height = size + 'px';
       el.style.left = cx + 'px';
@@ -1452,37 +1481,16 @@ function highlightPulse(i){
       el.classList.add('active');
     };
 
-    if (idx === 0) {
-      const z = pulseSeqEl.querySelector('.pz.zero');
-      if (z) place(z.getBoundingClientRect(), pulseSeqHighlight);
-      else pulseSeqHighlight.classList.remove('active');
-      if (loopEnabled) {
-        const l = pulseSeqEl.querySelector('.pz.lg');
-        if (l) place(l.getBoundingClientRect(), pulseSeqHighlight2);
-        else pulseSeqHighlight2.classList.remove('active');
-      } else {
-        pulseSeqHighlight2.classList.remove('active');
-      }
-    } else if (idx === pulses.length - 1) {
-      const l = pulseSeqEl.querySelector('.pz.lg');
-      if (l) place(l.getBoundingClientRect(), pulseSeqHighlight);
-      else pulseSeqHighlight.classList.remove('active');
-      pulseSeqHighlight2.classList.remove('active');
+    const currentRect = getRect(idx);
+    if (currentRect) place(currentRect, pulseSeqHighlight);
+    else pulseSeqHighlight.classList.remove('active');
+
+    if (idx === 0 && loopEnabled) {
+      const lastRect = getRect(pulses.length - 1);
+      if (lastRect) place(lastRect, pulseSeqHighlight2);
+      else pulseSeqHighlight2.classList.remove('active');
     } else {
       pulseSeqHighlight2.classList.remove('active');
-      const range = pulseSeqRanges[idx];
-      if (range) {
-        const el = getEditEl();
-        const node = el && el.firstChild;
-        if (node) {
-          const r = document.createRange();
-          r.setStart(node, range[0]);
-          r.setEnd(node, range[1]);
-          place(r.getBoundingClientRect(), pulseSeqHighlight);
-        }
-      } else {
-        pulseSeqHighlight.classList.remove('active');
-      }
     }
   }
 }
