@@ -179,6 +179,7 @@ let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
+let playStartTime = 0;
 
 // Build structured markup for the pulse sequence so only inner numbers are editable
 function setupPulseSeqMarkup(){
@@ -1328,6 +1329,27 @@ function updateAutoIndicator(){
   ledT?.classList.toggle('on', (inputT?.dataset?.auto) !== '1');
 }
 
+function syncTimelineScroll(){
+  if (!pulseSeqEl || !timelineWrapper) return;
+  const maxSeq = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
+  const maxTl = timelineWrapper.scrollWidth - timelineWrapper.clientWidth;
+  if (maxSeq <= 0) return;
+  const ratio = pulseSeqEl.scrollLeft / maxSeq;
+  timelineWrapper.scrollLeft = maxTl * ratio;
+}
+
+function syncPulseSeqWithAudio(){
+  if (!pulseSeqEl || !audio || !audio.duration) return;
+  const elapsed = (performance.now() - playStartTime) / 1000;
+  audio.currentTime = loopEnabled
+    ? (elapsed % audio.duration)
+    : Math.min(elapsed, audio.duration);
+  const maxScroll = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
+  pulseSeqEl.scrollLeft = maxScroll * (audio.currentTime / audio.duration);
+  if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
+  if (isPlaying) requestAnimationFrame(syncPulseSeqWithAudio);
+}
+
 playBtn.addEventListener('click', async () => {
   const audio = await initAudio();
 
@@ -1389,8 +1411,12 @@ playBtn.addEventListener('click', async () => {
     if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
   };
 
+  audio.duration = lg * interval;
+  audio.currentTime = 0;
+  playStartTime = performance.now();
   isPlaying = true;
   audio.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
+  requestAnimationFrame(syncPulseSeqWithAudio);
   playBtn.classList.add('active');
   iconPlay.style.display = 'none';
   iconStop.style.display = 'block';
