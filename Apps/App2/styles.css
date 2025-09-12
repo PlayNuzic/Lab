@@ -4,18 +4,18 @@
 .pulse.selected { background: var(--selection-color); }
 
 #pulseSeq {
-  font-size: 3rem;
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 12px;
-  width: fit-content;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: 0 20px;
-  margin: 0 auto;
-  overflow-x: auto;
-  position: relative;
+font-size: 3rem;
+display: flex;
+justify-content: flex-start;
+align-items: center;
+gap: 12px;
+width: fit-content;
+max-width: 100%;
+box-sizing: border-box;
+padding: 0 20px;
+margin: 0 auto;
+overflow-x: auto;
+position: relative;
 }
 
 #pulseSeq .prefix,
@@ -27,50 +27,49 @@
 
 #pulseSeqHighlight,
 #pulseSeqHighlight2 {
-  position: absolute;
-  border-radius: 50%;
-  background: var(--selection-color);
-  color: var(--selection-color);
-  opacity: 0.5;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  display: none;
+position: absolute;
+border-radius: 50%;
+background: var(--selection-color);
+color: var(--selection-color);
+opacity: 0.5;
+pointer-events: none;
+transform: translate(-50%, -50%);
+display: none;
 }
 
 #pulseSeqHighlight.active,
 #pulseSeqHighlight2.active {
-  animation: pulseFlash 0.35s ease-out;
-  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
-  display: block;
+animation: pulseFlash 0.35s ease-out;
+box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
+display: block;
 }
 
 #tIndicator {
-  position: absolute; /* positioned by JS relative to Lg label */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 50px;
-  height: 50px;
-  border: 2px solid var(--color-t);
-  border-radius: 50%;
-  color: var(--color-t);
-  text-align: center;
-  font-weight: 700;
-  background: transparent;
-  pointer-events: none; /* purely visual */
-  font-size: 0.9rem;
+position: absolute; /* positioned by JS relative to Lg label */
+display: flex;
+align-items: center;
+justify-content: center;
+width: 40px; /* Reduced from 50px */
+height: 40px; /* Reduced from 50px */
+border: 2px solid var(--color-t);
+border-radius: 50%;
+color: var(--color-t);
+text-align: center;
+font-weight: 700;
+background: transparent;
+pointer-events: none; /* purely visual */
+font-size: 0.9rem; /* Keep same font size */
 }
 
 @media (max-width: 600px) {
-  #pulseSeq {
-    font-size: 2rem;
-  }
+#pulseSeq {
+font-size: 2rem;
 }
 
 /* Layout adjustments requested for App2 */
 /* 1) Raise inputs section by 25px (from shared 40px to 15) */
 .inputs {
-  margin-top: 25px !important;
+margin-top: 25px !important;
 }
 
 /* 2) Keep pulse sequence where it is — no changes needed to #pulseSeq */
@@ -79,15 +78,16 @@
 
 /* 3) Lower circular timeline by 90px */
 .timeline-wrapper.circular {
-  margin-top: 90px !important; /* was 20px in shared styles */
+margin-top: 90px !important; /* was 20px in shared styles */
 }
 
 /* 4) Lower controls inside circular wrapper (40px via wrapper - 20px here) */
 .timeline-wrapper.circular > .controls {
-  transform: translate(-50%, calc(-50% - 20px)) !important; /* was -40px */
+transform: translate(-50%, calc(-50% - 20px)) !important; /* was -40px */
 }
 
 /* 5) Lower unit label by 20px when shown on input focus */
 .param .circle .unit {
-  top: calc(-20px - 1.8rem);
+top: calc(-20px - 1.8rem);
+}
 }

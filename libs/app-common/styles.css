@@ -1,31 +1,29 @@
-
 /* --- Fórmula --- */
-
 .middle {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  margin-bottom: 5px;
+display: flex;
+justify-content: center;
+align-items: center;
+position: relative;
+margin-bottom: 5px;
 }
 
 .formula {
-  font-size: 3rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
+font-size: 3rem;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 20px;
 }
 
 .formula span {
-  display: flex;
-  align-items: center;
+display: flex;
+align-items: center;
 }
 
 .formula .equal {
-  position: relative;
-  top: -5px;
-  line-height: 0.8;
+position: relative;
+top: -5px;
+line-height: 0.8;
 }
 
 .formula .lg { color: var(--color-lg); }
@@ -33,194 +31,165 @@
 .formula .t { color: var(--color-t); }
 
 .fraction {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
+display: inline-flex;
+flex-direction: column;
+align-items: center;
 }
 
 .fraction .top {
-  border-bottom: 4px solid var(--line-color);
-  padding: 0 32px;
+border-bottom: 4px solid var(--line-color);
+padding: 0 32px;
 }
 
 .fraction .bottom {
-  padding-top: 2px;
+padding-top: 2px;
 }
 
 /* --- Timeline --- */
-
 .timeline-wrapper {
-  position: relative;
-  width: 100%;
+position: relative;
+width: 100%;
 }
 
 .timeline {
-  position: relative;
-  width: calc(100% - 40px);
-  height: 80px;
-  margin: 20px;
-  transition: width 0.4s ease, height 0.4s ease;
-  z-index: 1; /* keep above helper guide ring */
+position: relative;
+width: calc(100% - 40px);
+height: 80px;
+margin: 20px;
+transition: width 0.4s ease, height 0.4s ease;
+z-index: 1; /* keep above helper guide ring */
 }
 
 .timeline::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: var(--line-color);
-  transform: translateY(-50%) scaleX(1);
-  transform-origin: 50% 50%;
-  transition: opacity 0.6s ease, transform 0.6s ease;
+content: "";
+position: absolute;
+top: 50%;
+left: 0;
+width: 100%;
+height: 2px;
+background: var(--line-color);
+transform: translateY(-50%) scaleX(1);
+transform-origin: 50% 50%;
+transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
 .timeline::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 2px solid var(--line-color);
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.4s ease;
+content: "";
+position: absolute;
+inset: 0;
+border: 2px solid var(--line-color);
+border-radius: 50%;
+opacity: 0;
+transition: opacity 0.4s ease;
 }
 
 .timeline .bar {
-  position: absolute;
-  top: 0;
-  width: 2px;
-  height: 100%;
-  background: currentColor;
-  transition: transform 0.6s ease, left 0.6s ease, top 0.6s ease, height 0.6s ease;
+position: absolute;
+top: 0;
+width: 2px;
+height: 100%;
+background: currentColor;
+transition: transform 0.6s ease, left 0.6s ease, top 0.6s ease, height 0.6s ease;
 }
 
 /* --- Pulsos --- */
-
 .pulse {
-  position: absolute;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: currentColor;
-  transform: translate(-50%,-50%);
-  cursor: default;
-  transition: left 0.4s ease, top 0.4s ease, transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+position: absolute;
+top: 50%;
+width: 12px;
+height: 12px;
+border-radius: 50%;
+background: currentColor;
+transform: translate(-50%,-50%);
+cursor: default;
+transition: left 0.4s ease, top 0.4s ease, transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 @keyframes pulseFlash {
-  0% { transform: translate(-50%,-50%) scale(1); box-shadow: 0 0 0px var(--selection-color), 0 0 0px currentColor; }
-  50% { transform: translate(-50%,-50%) scale(1.6); box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor; }
-  100% { transform: translate(-50%,-50%) scale(1.2); box-shadow: 0 0 8px var(--selection-color), 0 0 12px currentColor; }
+0% { transform: translate(-50%,-50%) scale(1); box-shadow: 0 0 0px var(--selection-color), 0 0 0px currentColor; }
+50% { transform: translate(-50%,-50%) scale(1.6); box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor; }
+100% { transform: translate(-50%,-50%) scale(1.2); box-shadow: 0 0 8px var(--selection-color), 0 0 12px currentColor; }
 }
 
 .pulse.active {
-  animation: pulseFlash 0.35s ease-out;
-  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
+animation: pulseFlash 0.35s ease-out;
+box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
 }
 
 .pulse-number {
-  position: absolute;
-  top: 92%;
-  font-size: 1.6rem;
-  color: currentColor;
-  transform: translateX(-50%); /* centrat sota el punt */
-  transition: transform 0.6s ease, left 0.6s ease, top 0.6s ease;
+position: absolute;
+top: 92%;
+font-size: 1.6rem;
+color: currentColor;
+transform: translateX(-50%); /* centrat sota el punt */
+transition: transform 0.6s ease, left 0.6s ease, top 0.6s ease;
+z-index: 10; /* Higher z-index to avoid clipping */
 }
 
 .pulse-number.vertical {
-  writing-mode: vertical-rl;
-  text-orientation: mixed; /* "Lg" en vertical natural */
-  line-height: 1;
+writing-mode: vertical-rl;
+text-orientation: mixed; /* "Lg" en vertical natural */
+line-height: 1;
 }
 
 .pulse.endpoint,
 .pulse-number.endpoint {
-  color: var(--selection-color);
+color: var(--selection-color);
 }
 
 .timeline-wrapper.circular {
-  width: 320px;
-  height: 320px;
-  margin: 20px auto;
+width: 320px;
+height: 320px;
+margin: 20px auto;
 }
 
 /* --- Control buttons positioning --- */
-
-
 /* Force controls container position in circular mode */
 .timeline-wrapper.circular > .controls {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  /* Shift controls 30px upward in circular mode */
-  transform: translate(-50%, calc(-50% - 40px));
-  z-index: 3; /* ensure above timeline */
-  margin: 0;
-}
-
-
-/* --- Responsive mòbil --- */
-@media (max-width: 600px) {
-  
-  .formula {
-    font-size: 2rem;
-  }
-
-  .middle {
-    margin-bottom: 10px;
-  }
-
-  .timeline {
-    height: 40px;
-    width: calc(100% - 40px);
-    margin: 15px 20px;
-  }
-
-  body {
-    padding-left: 20px;
-    padding-right: 20px;
-  }
-
-
+position: absolute;
+top: 50%;
+left: 50%;
+/* Shift controls 30px upward in circular mode */
+transform: translate(-50%, calc(-50% - 40px));
+z-index: 3; /* ensure above timeline */
+margin: 0;
 }
 
 /* --- Circle guide (visualizes straight line "bent" into a circle) --- */
 .circle-guide {
-  position: absolute; /* will be overridden to fixed via JS */
-  border: 2px solid var(--line-color);
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-  pointer-events: none;
-  z-index: 0; /* keep behind timeline/pulses */
+position: absolute; /* will be overridden to fixed via JS */
+border: 2px solid var(--line-color);
+border-radius: 50%;
+opacity: 0;
+transition: opacity 0.6s ease;
+pointer-events: none;
+z-index: 0; /* keep behind timeline/pulses */
 }
 
 /* --- Circular timeline overrides (ensure full-size circle; hide straight line) --- */
 .timeline.circular {
-  width: 320px;
-  height: 320px;
-  margin: 0 auto;
-  border-radius: 50%;
+width: 320px;
+height: 320px;
+margin: 0 auto;
+border-radius: 50%;
 }
 
 .timeline.circular::after {
-  opacity: 1;
+opacity: 1;
 }
 
 .timeline.circular::before {
-  opacity: 0;
-  transform: translateY(-50%) scaleX(0);
-  transform-origin: 50% 50%;
-  transition: opacity 0.6s ease, transform 0.6s ease;
-  background: var(--line-color);
-  height: 2px;
-  width: 100%;
-  top: 50%;
-  left: 0;
-  border: none;
-  border-radius: 0;
+opacity: 0;
+transform: translateY(-50%) scaleX(0);
+transform-origin: 50% 50%;
+transition: opacity 0.6s ease, transform 0.6s ease;
+background: var(--line-color);
+height: 2px;
+width: 100%;
+top: 50%;
+left: 0;
+border: none;
+border-radius: 0;
 }
 
 /* Evita el "cercle petit" quan s'activa el mode circular */
@@ -232,16 +201,14 @@
 .timeline.no-anim .pulse-number,
 .timeline.no-anim::before,
 .timeline.no-anim::after {
-  transition: none;
+transition: none;
 }
 
 /* el traç del cercle i la línia base no han de capturar clics */
 .timeline::before,
 .timeline::after { pointer-events: none; z-index: 0; }
-
 /* les barres tampoc */
 .timeline .bar { pointer-events: none; z-index: 1; }
-
 /* els punts són el primer pla interactiu */
 .timeline .pulse { z-index: 5; pointer-events: none; }
 
@@ -252,86 +219,122 @@
 
 /* --- Random menu modal --- */
 .random-menu {
-  display: none;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 1rem;
-  border: 2px solid var(--line-color);
-  border-radius: 8px;
-  z-index: 10;
-  max-height: 80vh;
-  overflow-y: auto;
-  background-color: var(--bg-light);
-  color: var(--text-light);
+display: none;
+position: fixed;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+padding: 1rem;
+border: 2px solid var(--line-color);
+border-radius: 8px;
+z-index: 10;
+max-height: 80vh;
+overflow-y: auto;
+background-color: var(--bg-light);
+color: var(--text-light);
 }
 
 .random-menu.open {
-  display: block;
+display: block;
 }
 
 .random-menu label {
-    display: flex;
-    align-items: center;
-    margin: calc(0.5rem + 5px) 0;
-    gap: 0.25rem;
-  }
-
-  .random-menu input[type="number"],
-  .random-menu input[type="text"] {
-    height: calc(1.5em + 5px);
-    width: 4rem;
-  }
-
-  .random-menu input[type=number]::-webkit-outer-spin-button,
-  .random-menu input[type=number]::-webkit-inner-spin-button {
-    -webkit-appearance: auto;
-    margin: 0;
-  }
-  .random-menu input[type=number] {
-    -moz-appearance: auto;
-    appearance: auto;
-  }
-
-  .random-menu-title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0 0 1rem 0;
-    font-size: 1.2rem;
-  }
-  .random-menu-title svg {
-    width: 1em;
-    height: 1em;
-  }
-
-body[data-theme='dark'] .random-menu {
-  background-color: var(--bg-dark);
-  color: var(--text-dark);
+display: flex;
+align-items: center;
+margin: calc(0.5rem + 5px) 0;
+gap: 0.25rem;
 }
 
+.random-menu input[type="number"],
+.random-menu input[type="text"] {
+height: calc(1.5em + 5px);
+width: 4rem;
+}
+
+.random-menu input[type=number]::-webkit-outer-spin-button,
+.random-menu input[type=number]::-webkit-inner-spin-button {
+-webkit-appearance: auto;
+margin: 0;
+}
+
+.random-menu input[type=number] {
+-moz-appearance: auto;
+appearance: auto;
+}
+
+.random-menu-title {
+display: flex;
+align-items: center;
+gap: 0.5rem;
+margin: 0 0 1rem 0;
+font-size: 1.2rem;
+}
+
+.random-menu-title svg {
+width: 1em;
+height: 1em;
+}
+
+body[data-theme='dark'] .random-menu {
+background-color: var(--bg-dark);
+color: var(--text-dark);
+}
 
 /* Dark theme reinforcement: hide circular guide to avoid double ring */
 body[data-theme='dark'] .circle-guide { opacity: 0 !important; }
 
 .param .circle .led.flash {
-  /* Triple flash within same 0.8s window */
-  animation: ledRecalcFlash 0.8s linear;
+/* Triple flash within same 0.8s window */
+animation: ledRecalcFlash 0.8s linear;
 }
 
 @keyframes ledRecalcFlash {
-  0%   { opacity: 0.3; }
-  10%  { opacity: 1; }
-  20%  { opacity: 0.3; }
-  45%  { opacity: 1; }
-  55%  { opacity: 0.3; }
-  80%  { opacity: 1; }
-  90%  { opacity: 0.3; }
-  100% { opacity: 0.3; }
+0% { opacity: 0.3; }
+10% { opacity: 1; }
+20% { opacity: 0.3; }
+45% { opacity: 1; }
+55% { opacity: 0.3; }
+80% { opacity: 1; }
+90% { opacity: 0.3; }
+100% { opacity: 0.3; }
 }
 
 /* Position the auto-calculation tip below the input */
 .hover-tip.auto-tip-below {
-  transform: translate(-50%, 8px);
+transform: translate(-50%, 8px);
+}
+
+/* --- Responsive móvil --- */
+@media (max-width: 600px) {
+.formula {
+font-size: 2rem;
+}
+
+.middle {
+margin-bottom: 10px;
+}
+
+.timeline {
+height: 40px;
+width: calc(100% - 40px);
+margin: 15px 20px;
+}
+
+body {
+padding-left: 20px;
+padding-right: 20px;
+}
+
+/* Circular timeline smaller for mobile */
+.timeline-wrapper.circular {
+width: 280px; /* smaller for mobile */
+height: 280px;
+margin: 25px auto; /* added margin for pulse number visibility */
+}
+
+.timeline.circular {
+width: 280px;
+height: 280px;
+margin: 5px auto; /* small margin for pulse number visibility */
+}
 }
