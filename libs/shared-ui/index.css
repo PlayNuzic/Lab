@@ -542,13 +542,13 @@ justify-content: space-between; /* Spread icons to edges */
 
 .top-bar .menu {
 left: 0px; /* Menu icon at left edge */
-padding: 8px 12px;
+padding: 8px 3px;
 font-size: 1.8rem;
 }
 
 .top-bar .sound-wrapper {
 right: 0px; /* Sound icon at right edge */
-padding: 8px 12px;
+padding: 8px 3px;
 }
 
 /* Disable volume slider completely on small screens */
