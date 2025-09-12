@@ -531,7 +531,10 @@ color: var(--text-dark);
 
 /* Responsive adjustments for circular inputs */
 @media (max-width: 600px) {
-:root { --controls-offset-y: -32px; }
+:root { 
+  --controls-offset-y: -32px; 
+  --topbar-side-gap: 56px; /* reserve space so title never sits under icons */
+}
 
 /* Header adjustments for small screens */
 .top-bar {
@@ -602,8 +605,13 @@ height: 32px;
 font-size: 0.9rem;
 }
 
+/* Header title stays centered and clear of the icons */
 .top-bar h1 {
-font-size: 1.5rem;
+  margin: 0;
+  width: 100%;
+  text-align: center;
+  padding: 0 var(--topbar-side-gap);
+  font-size: 1.5rem;
 }
 
 .loop {
