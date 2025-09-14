@@ -142,7 +142,7 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
     <path d="M128,68.396c32.939,0,59.733,26.795,59.733,59.733c0,4.71,3.823,8.533,8.533,8.533s8.533-3.823,8.533-8.533 c0-42.342-34.458-76.8-76.8-76.8s-76.8,34.458-76.8,76.8c0,27.443,14.797,52.975,38.622,66.645 c1.34,0.768,2.799,1.135,4.232,1.135c2.961,0,5.837-1.536,7.415-4.292c2.347-4.087,0.93-9.301-3.157-11.639 c-18.534-10.633-30.046-30.507-30.046-51.849C68.267,95.191,95.061,68.396,128,68.396z"/>
   </svg>
      </button>
-     <span id="tapHelp" class="tap-help">Se necesitan 3 clicks</span>
+          <span id="tapHelp" class="tap-help" style="display:none;">Se necesitan 3 clicks</span>
      </div>
      <button id="resetBtn" class="reset" aria-label="Reset">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 25" fill="none">
