@@ -1077,6 +1077,8 @@ function renderTimeline(){
   for (let i = 0; i <= lg; i++) {
     const p = document.createElement('div');
     p.className = 'pulse';
+    if (i === 0) p.classList.add('zero');
+    else if (i === lg) p.classList.add('lg');
     p.dataset.index = i;
     // No listeners here: handled by hit targets
     timeline.appendChild(p);
@@ -1094,32 +1096,38 @@ function renderTimeline(){
     hit.className = 'pulse-hit';
     hit.dataset.index = i;
     hit.style.position = 'absolute';
-    hit.style.pointerEvents = 'auto';
     hit.style.borderRadius = '50%';
     hit.style.background = 'transparent';
     hit.style.zIndex = '6'; // above pulses and bars
-    hit.style.cursor = 'pointer';
 
     const hitSize = computeHitSizePx(lg);
     hit.style.width = hitSize + 'px';
     hit.style.height = hitSize + 'px';
 
-    // listeners on the hit target
-    hit.addEventListener('click', (ev) => {
-      if (suppressClickIndex === i) {
-        suppressClickIndex = null;
-        ev.preventDefault();
-        ev.stopPropagation();
-        return; // already applied on pointerdown
-      }
-      togglePulse(i);
-    });
-    hit.addEventListener('pointerenter', () => {
-      if (isDragging && lastDragIndex !== i) {
-        lastDragIndex = i;
-        setPulseSelected(i, dragMode === 'select');
-      }
-    });
+    if (i === 0 || i === lg) {
+      // Extrems no interactius
+      hit.style.pointerEvents = 'none';
+      hit.style.cursor = 'default';
+    } else {
+      hit.style.pointerEvents = 'auto';
+      hit.style.cursor = 'pointer';
+      // listeners on the hit target
+      hit.addEventListener('click', (ev) => {
+        if (suppressClickIndex === i) {
+          suppressClickIndex = null;
+          ev.preventDefault();
+          ev.stopPropagation();
+          return; // already applied on pointerdown
+        }
+        togglePulse(i);
+      });
+      hit.addEventListener('pointerenter', () => {
+        if (isDragging && lastDragIndex !== i) {
+          lastDragIndex = i;
+          setPulseSelected(i, dragMode === 'select');
+        }
+      });
+    }
 
     timeline.appendChild(hit);
     pulseHits.push(hit);
@@ -1134,11 +1142,10 @@ function togglePulse(i){
   if (isNaN(lg)) return;
 
   if (i === 0 || i === lg) {
-    // Click a l’extrem → commuta el loop
-    setPulseSelected(i, !loopEnabled);
-  } else {
-    setPulseSelected(i, !pulseMemory[i]);
+    // Extrems no interactius
+    return;
   }
+  setPulseSelected(i, !pulseMemory[i]);
 }
 
 function animateTimelineCircle(isCircular, opts = {}){
@@ -1291,6 +1298,9 @@ function animateTimelineCircle(isCircular, opts = {}){
 function showNumber(i){
   const n = document.createElement('div');
   n.className = 'pulse-number';
+  if (i === 0) n.classList.add('zero');
+  const lg = pulses.length - 1;
+  if (i === lg) n.classList.add('lg');
   n.dataset.index = i;
   n.textContent = i;
   const _lgForFont = pulses.length - 1;
@@ -1298,7 +1308,6 @@ function showNumber(i){
   n.style.fontSize = fontRem + 'rem';
 
    if (timeline.classList.contains('circular')) {
-     const lg = pulses.length - 1;
      const rect = timeline.getBoundingClientRect();
      const radius = Math.min(rect.width, rect.height) / 2 - 10;
      const offset = NUMBER_CIRCLE_OFFSET;

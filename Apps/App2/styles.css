@@ -2,6 +2,16 @@
 .pulse { cursor: pointer; }
 .timeline .pulse { pointer-events: auto; }
 .pulse.selected { background: var(--selection-color); }
+.pulse.zero,
+.pulse.lg {
+  color: var(--color-lg);
+  cursor: default;
+  pointer-events: none;
+}
+.pulse-number.zero,
+.pulse-number.lg {
+  color: var(--color-lg);
+}
 
 #pulseSeq {
 font-size: 3rem;
