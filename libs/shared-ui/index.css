@@ -428,6 +428,22 @@ font-size: 1.2rem;
 opacity: 0.7;
 }
 
+/* Tooltip positioning for tap tempo help */
+.tap + .tap-help {
+  position: absolute;
+  top: calc(50% + 65px + 48px + 8px);
+  left: calc(50% + 30px);
+  transform: translate(-50%, 0);
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  display: none;
+  pointer-events: none;
+}
+
 .loop {
 position: absolute;
 top: calc(50% + 65px);
@@ -634,19 +650,9 @@ top: calc(50% + 35px);
 left: calc(50% + 30px);
 }
 
-.controls .tap-help {
-position: absolute;
-top: calc(50% + 65px + 20px);
-left: 50%;
-transform: translate(-50%, -50%);
-background: rgba(0,0,0,0.6);
-color: #fff;
-padding: 4px 8px;
-border-radius: 4px;
-font-size: 0.75rem;
-white-space: nowrap;
-display: none;
-pointer-events: none;
+.tap + .tap-help {
+  top: calc(50% + 35px + 32px + 8px);
+  left: calc(50% + 30px);
 }
 }
 
