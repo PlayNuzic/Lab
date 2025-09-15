@@ -59,6 +59,30 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
     panel.style.display = 'block';
   }
 
+  function isOpen() {
+    return panel.style.display === 'block';
+  }
+
+  function indexOf(val){
+    const i = soundNames.indexOf(val);
+    return i < 0 ? 0 : i;
+  }
+
+  async function previewPending(){
+    try {
+      const a = await getAudio();
+      if (a && typeof a.preview === 'function') a.preview(pending);
+    } catch {}
+  }
+
+  async function movePending(delta){
+    const idx = indexOf(pending);
+    const next = (idx + delta + soundNames.length) % soundNames.length;
+    pending = soundNames[next];
+    updateListHighlight();
+    await previewPending();
+  }
+
   async function commitSelection() {
     if (pending === selected) return; // nothing to commit
     selected = pending;
@@ -88,6 +112,41 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
     }
   });
 
+  // Keyboard navigation (Arrow keys) and commit shortcuts
+  function onKeyDown(e){
+    const k = e.key;
+    if (k === 'ArrowDown' || k === 'ArrowRight') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isOpen()) openPanel();
+      movePending(+1);
+    } else if (k === 'ArrowUp' || k === 'ArrowLeft') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isOpen()) openPanel();
+      movePending(-1);
+    } else if (k === 'Enter') {
+      // Commit current pending like pressing "Salir"
+      e.preventDefault();
+      e.stopPropagation();
+      if (isOpen()) {
+        commitAndClose();
+      } else {
+        openPanel();
+      }
+    } else if (k === 'Escape') {
+      // Only close our dropdown, keep the whole options menu open
+      if (isOpen()) {
+        e.preventDefault();
+        e.stopPropagation();
+        panel.style.display = 'none';
+      }
+    }
+  }
+  // Listen on both the toggle and the container for reliability
+  toggle.addEventListener('keydown', onKeyDown);
+  container.addEventListener('keydown', onKeyDown);
+
   // Preview on item click; do not commit until exit/outside
   list.addEventListener('pointerdown', e => { e.stopPropagation(); });
   list.addEventListener('click', async e => {
@@ -96,10 +155,7 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
     e.stopPropagation();
     pending = li.dataset.value;
     updateListHighlight();
-    try {
-      const a = await getAudio();
-      if (a && typeof a.preview === 'function') a.preview(pending);
-    } catch {}
+    previewPending();
   });
 
   exitBtn.addEventListener('pointerdown', e => { e.stopPropagation(); });
