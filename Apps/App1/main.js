@@ -54,8 +54,14 @@ const circularTimelineToggle = document.getElementById('circularTimelineToggle')
 const themeSelect = document.getElementById('themeSelect');
 const baseSoundSelect = document.getElementById('baseSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
-const previewBaseBtn = document.getElementById('previewBaseBtn');
-const previewStartBtn = document.getElementById('previewStartBtn');
+// Update audio instance when sound options change
+window.addEventListener('sharedui:sound', async (e) => {
+  if (!audio) return;
+  const { type, value } = e.detail || {};
+  if (type === 'baseSound') await audio.setBase(value);
+  else if (type === 'accentSound') await audio.setAccent(value);
+  else if (type === 'startSound') await audio.setStart(value);
+});
 const randomBtn = document.getElementById('randomBtn');
 const randomMenu = document.getElementById('randomMenu');
 const randLgToggle = document.getElementById('randLgToggle');
@@ -360,15 +366,7 @@ const storedStart = loadOpt('startSound') || 'click2';
 populateSoundSelect(baseSoundSelect, storedBase, 'baseSound');
 populateSoundSelect(startSoundSelect, storedStart, 'startSound');
 
-// Preview buttons
-if (previewBaseBtn) previewBaseBtn.addEventListener('click', async () => {
-  const a = await initAudio();
-  a.preview(baseSoundSelect.value);
-});
-if (previewStartBtn) previewStartBtn.addEventListener('click', async () => {
-  const a = await initAudio();
-  a.preview(startSoundSelect.value);
-});
+// Preview on sound change handled by shared header
 
 async function initAudio(){
   if(audio) return audio;

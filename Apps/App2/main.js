@@ -74,9 +74,15 @@ const selectColor = document.getElementById('selectColor');
 const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
-const previewBaseBtn = document.getElementById('previewBaseBtn');
-const previewAccentBtn = document.getElementById('previewAccentBtn');
-const previewStartBtn = document.getElementById('previewStartBtn');
+
+// Update audio instance when sound options change
+window.addEventListener('sharedui:sound', async (e) => {
+  if (!audio) return;
+  const { type, value } = e.detail || {};
+  if (type === 'baseSound') await audio.setBase(value);
+  else if (type === 'accentSound') await audio.setAccent(value);
+  else if (type === 'startSound') await audio.setStart(value);
+});
 
 const randomDefaults = {
   Lg: { enabled: true, range: [1, 100] },
@@ -586,19 +592,7 @@ populateSoundSelect(baseSoundSelect, storedBase, 'baseSound');
 populateSoundSelect(accentSoundSelect, storedAccent, 'accentSound');
 populateSoundSelect(startSoundSelect, storedStart, 'startSound');
 
-// Preview buttons
-if (previewBaseBtn) previewBaseBtn.addEventListener('click', async () => {
-  const a = await initAudio();
-  a.preview(baseSoundSelect.value);
-});
-if (previewAccentBtn) previewAccentBtn.addEventListener('click', async () => {
-  const a = await initAudio();
-  a.preview(accentSoundSelect.value);
-});
-if (previewStartBtn) previewStartBtn.addEventListener('click', async () => {
-  const a = await initAudio();
-  a.preview(startSoundSelect.value);
-});
+// Preview on sound change handled by shared header
 
 async function initAudio(){
   if(audio) return audio;

@@ -113,6 +113,13 @@ function wireMenu(detailsEl) {
     window.addEventListener('sharedui:theme', () => {
         if (detailsEl.open) solidMenuBackground(content);
     });
+
+    content.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            detailsEl.removeAttribute('open');
+            document.removeEventListener('pointerdown', handleOutside);
+        }
+    });
 }
 
 function wireControls(root) {
@@ -126,9 +133,6 @@ function wireControls(root) {
     const baseSoundSelect = root.querySelector('#baseSoundSelect');
     const accentSoundSelect = root.querySelector('#accentSoundSelect');
     const startSoundSelect = root.querySelector('#startSoundSelect');
-    const previewBaseBtn = root.querySelector('#previewBaseBtn');
-    const previewAccentBtn = root.querySelector('#previewAccentBtn');
-    const previewStartBtn = root.querySelector('#previewStartBtn');
 
     let soundAudio;
     async function getAudio(){
@@ -151,13 +155,15 @@ function wireControls(root) {
         });
         const stored = localStorage.getItem(key);
         if(stored && soundNames.includes(stored)) select.value = stored;
-        select.addEventListener('change', async () => {
+        select.addEventListener('input', async () => {
             const a = await getAudio();
-            if (select === baseSoundSelect) await a.setBase(select.value);
-            else if (select === accentSoundSelect) await a.setAccent(select.value);
-            else if (select === startSoundSelect) await a.setStart(select.value);
-            localStorage.setItem(key, select.value);
-            window.dispatchEvent(new CustomEvent('sharedui:sound', { detail: { type: key, value: select.value } }));
+            const val = select.value;
+            if (select === baseSoundSelect) await a.setBase(val);
+            else if (select === accentSoundSelect) await a.setAccent(val);
+            else if (select === startSoundSelect) await a.setStart(val);
+            localStorage.setItem(key, val);
+            window.dispatchEvent(new CustomEvent('sharedui:sound', { detail: { type: key, value: val } }));
+            a.preview(val);
         });
     }
 
@@ -165,18 +171,6 @@ function wireControls(root) {
     populateSound(accentSoundSelect, 'accentSound');
     populateSound(startSoundSelect, 'startSound');
 
-    if(previewBaseBtn) previewBaseBtn.addEventListener('click', async ()=>{
-        const a = await getAudio();
-        a.preview(baseSoundSelect.value);
-    });
-    if(previewAccentBtn) previewAccentBtn.addEventListener('click', async ()=>{
-        const a = await getAudio();
-        a.preview(accentSoundSelect.value);
-    });
-    if(previewStartBtn) previewStartBtn.addEventListener('click', async ()=>{
-        const a = await getAudio();
-        a.preview(startSoundSelect.value);
-    });
 
     // Variables para gestionar el estado del volumen
     let previousVolume = 1;
@@ -359,19 +353,16 @@ export function renderHeader({ title = 'App', mount } = {}) {
                     <div class="preview-row">
                       <label for="baseSoundSelect" style="display:none"></label>
                       <select id="baseSoundSelect"></select>
-                      <button type="button" id="previewBaseBtn" class="preview-btn">Escuchar</button>
                     </div>
                     <p>Acento</p>
                     <div class="preview-row">
                       <label for="accentSoundSelect" style="display:none"></label>
                       <select id="accentSoundSelect"></select>
-                      <button type="button" id="previewAccentBtn" class="preview-btn">Escuchar</button>
                     </div>
                     <p>Inicio</p>
                     <div class="preview-row">
                       <label for="startSoundSelect" style="display:none"></label>
                       <select id="startSoundSelect"></select>
-                      <button type="button" id="previewStartBtn" class="preview-btn">Escuchar</button>
                     </div>
                   </div>
                 </details>
