@@ -2,6 +2,10 @@ import { soundNames, soundLabels } from '../sound/index.js';
 
 export function initSoundDropdown(container, { storageKey, eventType, getAudio, apply }) {
   if (!container) return;
+  // Prevent double enhancement (e.g., if both header and app try to init)
+  if (container.dataset.enhanced === '1') return;
+  container.dataset.enhanced = '1';
+
   container.classList.add('custom-dropdown');
 
   const toggle = document.createElement('button');
@@ -18,6 +22,7 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
     const li = document.createElement('li');
     li.dataset.value = name;
     li.textContent = soundLabels[name] || name;
+    li.tabIndex = -1; // keep focus transitions inside the menu
     list.appendChild(li);
   });
   panel.appendChild(list);
@@ -32,35 +37,82 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
 
   const stored = (() => { try { return localStorage.getItem(storageKey); } catch { return null; } })();
   let selected = (stored && soundNames.includes(stored)) ? stored : soundNames[0];
+  let pending = selected; // preview selection while panel is open
 
-  function updateUI() {
+  function updateLabel() {
     toggle.textContent = soundLabels[selected] || selected;
-    [...list.children].forEach(li => li.classList.toggle('selected', li.dataset.value === selected));
     container.dataset.value = selected;
   }
-  updateUI();
 
-  toggle.addEventListener('click', e => {
-    e.stopPropagation();
-    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-  });
+  function updateListHighlight() {
+    const children = [...list.children];
+    children.forEach(li => li.classList.remove('selected', 'pending'));
+    // Highlight the current pending choice
+    children.forEach(li => {
+      if (li.dataset.value === pending) li.classList.add('selected');
+    });
+  }
 
-  list.addEventListener('click', async e => {
-    const li = e.target.closest('li');
-    if (!li) return;
-    e.stopPropagation();
-    selected = li.dataset.value;
-    updateUI();
+  function openPanel() {
+    pending = selected;
+    updateListHighlight();
+    panel.style.display = 'block';
+  }
+
+  async function commitSelection() {
+    if (pending === selected) return; // nothing to commit
+    selected = pending;
+    updateLabel();
     try { localStorage.setItem(storageKey, selected); } catch {}
     const a = await getAudio();
     await apply(a, selected);
     if (a && typeof a.preview === 'function') a.preview(selected);
     window.dispatchEvent(new CustomEvent('sharedui:sound', { detail: { type: eventType, value: selected } }));
+  }
+
+  async function commitAndClose() {
+    await commitSelection();
+    panel.style.display = 'none';
+  }
+
+  updateLabel();
+
+  // Toggle open/close without affecting the outer menu state
+  toggle.addEventListener('pointerdown', e => { e.stopPropagation(); });
+  toggle.addEventListener('click', e => {
+    e.stopPropagation();
+    if (panel.style.display === 'block') {
+      panel.style.display = 'none';
+    } else {
+      openPanel();
+    }
   });
 
-  function closePanel() { panel.style.display = 'none'; }
-  exitBtn.addEventListener('click', closePanel);
-  document.addEventListener('click', e => {
-    if (!container.contains(e.target)) closePanel();
+  // Preview on item click; do not commit until exit/outside
+  list.addEventListener('pointerdown', e => { e.stopPropagation(); });
+  list.addEventListener('click', async e => {
+    const li = e.target.closest('li');
+    if (!li) return;
+    e.stopPropagation();
+    pending = li.dataset.value;
+    updateListHighlight();
+    try {
+      const a = await getAudio();
+      if (a && typeof a.preview === 'function') a.preview(pending);
+    } catch {}
   });
+
+  exitBtn.addEventListener('pointerdown', e => { e.stopPropagation(); });
+  exitBtn.addEventListener('click', async e => {
+    e.stopPropagation();
+    await commitAndClose();
+  });
+
+  // Close on outside click; commit the last previewed option
+  const onDocClick = async (e) => {
+    if (!container.contains(e.target)) {
+      await commitAndClose();
+    }
+  };
+  document.addEventListener('click', onDocClick, true);
 }

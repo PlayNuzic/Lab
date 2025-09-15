@@ -66,10 +66,14 @@ function wireMenu(detailsEl) {
     if (!content) return;
     
     const handleFocusOut = (e) => {
-        if (detailsEl.open && !detailsEl.contains(e.relatedTarget)) {
-            detailsEl.removeAttribute('open');
-            content.removeEventListener('focusout', handleFocusOut);
-        }
+        // Do not close the whole options menu when focus leaves a non-focusable
+        // child (e.relatedTarget can be null on clicks to <li>, etc.).
+        const next = e.relatedTarget;
+        if (!detailsEl.open) return;
+        if (!next) return; // keep menu open – interaction likely inside
+        if (detailsEl.contains(next)) return; // still inside the menu
+        detailsEl.removeAttribute('open');
+        content.removeEventListener('focusout', handleFocusOut);
     };
     
     function solidMenuBackground(panel){
