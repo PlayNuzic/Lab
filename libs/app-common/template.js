@@ -1,4 +1,4 @@
-export function renderApp({ root, title, showSelectColor = false, randomMenuContent = '', pulseSequence = false, hideT = false, hideLeds = false }) {
+export function renderApp({ root, title, showSelectColor = false, randomMenuContent = '', pulseSequence = false, hideT = false, hideLeds = false, showAccent = true }) {
   if (!root) throw new Error('root element required');
   document.title = title;
   const selectColor = showSelectColor ? `
@@ -39,12 +39,13 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
               <select id="baseSoundSelect"></select>
               <button type="button" id="previewBaseBtn" class="preview-btn">Escuchar</button>
             </div>
+            ${showAccent ? `
             <p>Acento</p>
             <div class="preview-row">
-              <label for="accentSoundSelect" style="display:none"></label>
-              <select id="accentSoundSelect"></select>
-              <button type="button" id="previewAccentBtn" class="preview-btn">Escuchar</button>
-            </div>
+              <label for=\"accentSoundSelect\" style=\"display:none\"></label>
+              <select id=\"accentSoundSelect\"></select>
+              <button type=\"button\" id=\"previewAccentBtn\" class=\"preview-btn\">Escuchar</button>
+            </div>` : ''}
             <p>Inicio</p>
             <div class="preview-row">
               <label for="startSoundSelect" style="display:none"></label>
