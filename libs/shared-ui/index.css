@@ -238,6 +238,10 @@ opacity: 0.7;
 .menu .options-content label[for="hoverToggle"]::after { content: " 💬"; }
 
 /* Circular input parameters (Lg, V, T) */
+/* Keep spacing consistent between Sonidos and Rendimiento when Sonidos is expanded */
+.menu .options-content details[open] {
+  margin-bottom: 24px;
+}
 .inputs {
 display: flex;
 justify-content: center;
