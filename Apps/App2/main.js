@@ -205,8 +205,8 @@ function setupPulseSeqMarkup(){
     mk('prefix','P('),
     mk('zero','0'),
     (()=>{ const e = mk('edit', initial); e.contentEditable = 'true'; return e; })(),
-    mk('lg',''),
-    mk('suffix',')')
+    mk('suffix',')'),
+    mk('lg','')
   );
 }
 setupPulseSeqMarkup();
