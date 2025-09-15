@@ -64,11 +64,10 @@ function wireMenu(detailsEl) {
     const content = detailsEl.querySelector('.options-content');
     if (!content) return;
     
-    const handleOutside = (e) => {
-        const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
-        const inside = detailsEl.contains(e.target) || (path.length && path.includes(detailsEl));
-        if (detailsEl.open && !inside) {
+    const handleFocusOut = (e) => {
+        if (detailsEl.open && !detailsEl.contains(e.relatedTarget)) {
             detailsEl.removeAttribute('open');
+            content.removeEventListener('focusout', handleFocusOut);
         }
     };
     
@@ -87,17 +86,16 @@ function wireMenu(detailsEl) {
     
     detailsEl.addEventListener('toggle', () => {
         if (detailsEl.open) {
-            document.addEventListener('pointerdown', handleOutside);
             solidMenuBackground(content);
             content.classList.add('opening');
             content.classList.remove('closing');
             content.style.maxHeight = content.scrollHeight + 'px';
+            content.addEventListener('focusout', handleFocusOut);
             content.addEventListener('transitionend', () => {
                 content.classList.remove('opening');
                 content.style.maxHeight = '';
             }, { once: true });
         } else {
-            document.removeEventListener('pointerdown', handleOutside);
             content.classList.add('closing');
             content.classList.remove('opening');
             content.style.maxHeight = content.scrollHeight + 'px';
@@ -107,6 +105,7 @@ function wireMenu(detailsEl) {
                 content.classList.remove('closing');
                 content.style.maxHeight = '';
             }, { once: true });
+            content.removeEventListener('focusout', handleFocusOut);
         }
     });
     
@@ -115,9 +114,9 @@ function wireMenu(detailsEl) {
     });
 
     content.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
+        if (e.key === 'Escape' || e.key === 'Enter') {
             detailsEl.removeAttribute('open');
-            document.removeEventListener('pointerdown', handleOutside);
+            content.removeEventListener('focusout', handleFocusOut);
         }
     });
 }
