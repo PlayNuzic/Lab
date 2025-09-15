@@ -1,7 +1,8 @@
 /* App2 specific overrides */
 .pulse { cursor: pointer; }
 .timeline .pulse { pointer-events: auto; }
-.pulse.selected { background: var(--selection-color); }
+/* Selected pulses use selection color, except endpoints 0/Lg which must keep Lg color */
+.pulse.selected:not(.zero):not(.lg) { background: var(--selection-color); }
 .pulse.zero,
 .pulse.lg {
   color: var(--color-lg);
