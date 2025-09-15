@@ -216,8 +216,13 @@ cursor: pointer;
 }
 
 .menu .options-content .preview-btn:hover {
-border-color: var(--selection-color);
-color: var(--selection-color);
+  border-color: var(--selection-color);
+  color: var(--selection-color);
+}
+
+/* spacing for sound selector labels */
+.menu .options-content .sound-group p {
+  margin: 0.5rem 0 0.25rem;
 }
 
 .menu .options-content .menu-separator {

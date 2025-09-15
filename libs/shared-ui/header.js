@@ -1,6 +1,6 @@
 // Shared UI header for Lab: mirrors App1 header behavior
 
-import { setVolume, getVolume } from '../sound/index.js';
+import { setVolume, getVolume, TimelineAudio, soundNames, soundLabels, ensureAudio } from '../sound/index.js';
 
 // --- Scheduling helpers (look-ahead y updateInterval) ---
 
@@ -123,6 +123,60 @@ function wireControls(root) {
     const selectColor = root.querySelector('#selectColor');
     const schedSelect = root.querySelector('#schedProfileSelect');
     const soundWrapper = root.querySelector('.sound-wrapper');
+    const baseSoundSelect = root.querySelector('#baseSoundSelect');
+    const accentSoundSelect = root.querySelector('#accentSoundSelect');
+    const startSoundSelect = root.querySelector('#startSoundSelect');
+    const previewBaseBtn = root.querySelector('#previewBaseBtn');
+    const previewAccentBtn = root.querySelector('#previewAccentBtn');
+    const previewStartBtn = root.querySelector('#previewStartBtn');
+
+    let soundAudio;
+    async function getAudio(){
+        if(!soundAudio){
+            await ensureAudio();
+            soundAudio = new TimelineAudio();
+            await soundAudio.ready();
+        }
+        return soundAudio;
+    }
+
+    function populateSound(select, key){
+        if(!select) return;
+        select.innerHTML='';
+        soundNames.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = soundLabels[name] || name;
+            select.appendChild(opt);
+        });
+        const stored = localStorage.getItem(key);
+        if(stored && soundNames.includes(stored)) select.value = stored;
+        select.addEventListener('change', async () => {
+            const a = await getAudio();
+            if (select === baseSoundSelect) await a.setBase(select.value);
+            else if (select === accentSoundSelect) await a.setAccent(select.value);
+            else if (select === startSoundSelect) await a.setStart(select.value);
+            localStorage.setItem(key, select.value);
+            window.dispatchEvent(new CustomEvent('sharedui:sound', { detail: { type: key, value: select.value } }));
+        });
+    }
+
+    populateSound(baseSoundSelect, 'baseSound');
+    populateSound(accentSoundSelect, 'accentSound');
+    populateSound(startSoundSelect, 'startSound');
+
+    if(previewBaseBtn) previewBaseBtn.addEventListener('click', async ()=>{
+        const a = await getAudio();
+        a.preview(baseSoundSelect.value);
+    });
+    if(previewAccentBtn) previewAccentBtn.addEventListener('click', async ()=>{
+        const a = await getAudio();
+        a.preview(accentSoundSelect.value);
+    });
+    if(previewStartBtn) previewStartBtn.addEventListener('click', async ()=>{
+        const a = await getAudio();
+        a.preview(startSoundSelect.value);
+    });
 
     // Variables para gestionar el estado del volumen
     let previousVolume = 1;
@@ -298,6 +352,29 @@ export function renderHeader({ title = 'App', mount } = {}) {
                 <input type="checkbox" id="hoverToggle" checked>
                 <label for="selectColor">Color selección</label>
                 <input type="color" id="selectColor" value="#FFBB97">
+                <details>
+                  <summary>Sonidos</summary>
+                  <div class="sound-group">
+                    <p>Pulso</p>
+                    <div class="preview-row">
+                      <label for="baseSoundSelect" style="display:none"></label>
+                      <select id="baseSoundSelect"></select>
+                      <button type="button" id="previewBaseBtn" class="preview-btn">Escuchar</button>
+                    </div>
+                    <p>Acento</p>
+                    <div class="preview-row">
+                      <label for="accentSoundSelect" style="display:none"></label>
+                      <select id="accentSoundSelect"></select>
+                      <button type="button" id="previewAccentBtn" class="preview-btn">Escuchar</button>
+                    </div>
+                    <p>Inicio</p>
+                    <div class="preview-row">
+                      <label for="startSoundSelect" style="display:none"></label>
+                      <select id="startSoundSelect"></select>
+                      <button type="button" id="previewStartBtn" class="preview-btn">Escuchar</button>
+                    </div>
+                  </div>
+                </details>
                 <hr class="menu-separator">
                 <label for="schedProfileSelect">Rendimiento:</label>
                 <select id="schedProfileSelect">

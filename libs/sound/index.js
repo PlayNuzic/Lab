@@ -117,9 +117,25 @@ const SOUND_URLS = {
   click4: new URL('click4.wav', SAMPLE_BASE_URL).href,
   click5: new URL('click5.wav', SAMPLE_BASE_URL).href,
   click6: new URL('click6.wav', SAMPLE_BASE_URL).href,
+  click7: new URL('click7.wav', SAMPLE_BASE_URL).href,
+  click8: new URL('click8.wav', SAMPLE_BASE_URL).href,
+  click9: new URL('click9.wav', SAMPLE_BASE_URL).href,
+  click10: new URL('click10.wav', SAMPLE_BASE_URL).href,
 };
 
 export const soundNames = Object.keys(SOUND_URLS);
+export const soundLabels = {
+  click1: 'Click Base',
+  click2: 'Click Acento',
+  click3: 'Sticks',
+  click4: 'Pandereta',
+  click5: 'Shake',
+  click6: 'Triángulo',
+  click7: 'Bombo',
+  click8: 'Caja',
+  click9: 'Hi-Hat',
+  click10: 'Ride',
+};
 
 /**
  * Gestor d'àudio per a línies de temps rítmiques. Carrega els sons necessaris
@@ -127,12 +143,14 @@ export const soundNames = Object.keys(SOUND_URLS);
  */
 export class TimelineAudio {
   constructor() {
-    this.baseKey = 'click2';
-    this.accentKey = 'click3';
+    this.baseKey = 'click1';
+    this.accentKey = 'click2';
+    this.startKey = 'click3';
 
     this.samplers = {
       base: null,
       accent: null,
+      start: null,
       selected: null
     };
 
@@ -163,14 +181,16 @@ export class TimelineAudio {
   }
 
   async _loadAllSamplers() {
-    const [base, accent, selected] = await Promise.all([
+    const [base, accent, start, selected] = await Promise.all([
       this._createSampler(this.baseKey),
       this._createSampler(this.accentKey),
+      this._createSampler(this.startKey),
       this._createSampler(this.baseKey)
     ]);
 
     this.samplers.base = base;
     this.samplers.accent = accent;
+    this.samplers.start = start;
     this.samplers.selected = selected;
   }
 
@@ -295,6 +315,26 @@ export class TimelineAudio {
     }
   }
 
+  /**
+   * Carrega el so utilitzat per al pols inicial.
+   * @param {string} key identificador del so
+   */
+  async setStart(key) {
+    if (!key) return;
+    this._startReqId = (this._startReqId || 0) + 1;
+    const reqId = this._startReqId;
+    const prev = this.samplers.start;
+    try {
+      const sampler = await this._createSampler(key);
+      if (reqId !== this._startReqId) { sampler.dispose(); return; }
+      this.startKey = key;
+      this.samplers.start = sampler;
+      if (prev) prev.dispose();
+    } catch (e) {
+      console.warn('Failed to set start sound', e);
+    }
+  }
+
   async setSelectedSound(key) {
     if (this.samplers.selected) {
       this.samplers.selected.dispose();
@@ -354,8 +394,9 @@ export class TimelineAudio {
       }
 
       const step = this.pulseIndex % this.totalRef;
-      const isAccent = (step === 0) || this.selectedRef.has(step);
-      const pulseType = isAccent ? 'accent' : 'base';
+      let pulseType = 'base';
+      if (step === 0) pulseType = 'start';
+      else if (this.selectedRef.has(step)) pulseType = 'accent';
       const sampler = this.samplers[pulseType];
       if (sampler) {
         try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}

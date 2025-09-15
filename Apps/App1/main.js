@@ -1,4 +1,4 @@
-import { TimelineAudio, soundNames } from '../../libs/sound/index.js';
+import { TimelineAudio, soundNames, soundLabels } from '../../libs/sound/index.js';
 import { ensureAudio } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { solidMenuBackground, computeNumberFontRem } from './utils.js';
@@ -53,9 +53,9 @@ const circularTimelineToggle = document.getElementById('circularTimelineToggle')
 // Mute is handled by shared header (#muteBtn). Listen for events instead.
 const themeSelect = document.getElementById('themeSelect');
 const baseSoundSelect = document.getElementById('baseSoundSelect');
-const accentSoundSelect = document.getElementById('accentSoundSelect');
+const startSoundSelect = document.getElementById('startSoundSelect');
 const previewBaseBtn = document.getElementById('previewBaseBtn');
-const previewAccentBtn = document.getElementById('previewAccentBtn');
+const previewStartBtn = document.getElementById('previewStartBtn');
 const randomBtn = document.getElementById('randomBtn');
 const randomMenu = document.getElementById('randomMenu');
 const randLgToggle = document.getElementById('randLgToggle');
@@ -343,31 +343,31 @@ function populateSoundSelect(selectElem, defaultName, storeName){
   soundNames.forEach(name => {
     const opt = document.createElement('option');
     opt.value = name;
-    opt.textContent = name;
+    opt.textContent = soundLabels[name] || name;
     selectElem.appendChild(opt);
   });
   selectElem.value = defaultName;
   selectElem.addEventListener('change', async () => {
     const a = await initAudio();
     if (selectElem === baseSoundSelect) await a.setBase(selectElem.value);
-    else if (selectElem === accentSoundSelect) await a.setAccent(selectElem.value);
+    else if (selectElem === startSoundSelect) await a.setStart(selectElem.value);
     if(storeName) saveOpt(storeName, selectElem.value);
   });
 }
 
-const storedBase = loadOpt('baseSound') || 'click2';
-const storedAccent = loadOpt('accentSound') || 'click3';
+const storedBase = loadOpt('baseSound') || 'click1';
+const storedStart = loadOpt('startSound') || 'click2';
 populateSoundSelect(baseSoundSelect, storedBase, 'baseSound');
-populateSoundSelect(accentSoundSelect, storedAccent, 'accentSound');
+populateSoundSelect(startSoundSelect, storedStart, 'startSound');
 
 // Preview buttons
 if (previewBaseBtn) previewBaseBtn.addEventListener('click', async () => {
   const a = await initAudio();
   a.preview(baseSoundSelect.value);
 });
-if (previewAccentBtn) previewAccentBtn.addEventListener('click', async () => {
+if (previewStartBtn) previewStartBtn.addEventListener('click', async () => {
   const a = await initAudio();
-  a.preview(accentSoundSelect.value);
+  a.preview(startSoundSelect.value);
 });
 
 async function initAudio(){
@@ -376,7 +376,7 @@ async function initAudio(){
   audio = new TimelineAudio();
   await audio.ready();
   audio.setBase(baseSoundSelect.value);
-  audio.setAccent(accentSoundSelect.value);
+  audio.setStart(startSoundSelect.value);
   if(pendingScheduling){
     const { lookAhead, updateInterval, profile } = pendingScheduling;
     if (typeof audio.setScheduling === 'function'
@@ -878,7 +878,7 @@ playBtn.addEventListener('click', async () => {
 
   // Sons segons el menú
   await audio.setBase(baseSoundSelect.value);
-  await audio.setAccent(accentSoundSelect.value);
+  await audio.setStart(startSoundSelect.value);
 
   const interval = 60 / v;
 

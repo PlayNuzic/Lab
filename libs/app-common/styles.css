@@ -271,8 +271,13 @@ font-size: 1.2rem;
 }
 
 .random-menu-title svg {
-width: 1em;
-height: 1em;
+  width: 1em;
+  height: 1em;
+}
+
+/* spacing for sound selector labels */
+.menu .options-content .sound-group p {
+  margin: 0.5rem 0 0.25rem;
 }
 
 body[data-theme='dark'] .random-menu {
