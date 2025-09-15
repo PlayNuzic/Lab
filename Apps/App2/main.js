@@ -282,14 +282,16 @@ function updateTIndicatorPosition() {
   if (isNaN(lg) || lg <= 0) { return; }
 
   // Find the Lg label element and anchor 15px below it
-  const anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
+  let anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
+  if (!anchor) anchor = timeline.querySelector('.pulse.lg');
   const tlRect = timeline.getBoundingClientRect();
   const circular = timeline.classList.contains('circular');
 
   if (!anchor) { return; }
 
   const aRect = anchor.getBoundingClientRect();
-  const offsetX = circular ? -16 : 0; // compensate Lg label x-shift in circle
+  const isLabel = anchor.classList.contains('pulse-number');
+  const offsetX = circular && isLabel ? -16 : 0; // compensate label shift in circle
   const centerX = aRect.left + aRect.width / 2 - tlRect.left + offsetX;
   const topY = aRect.bottom - tlRect.top + 15; // 15px separation below
 
@@ -306,7 +308,8 @@ function revealTAfter(ms = 900) {
 
   const step = () => {
     const lgVal = parseInt(inputLg.value);
-    const anchor = timeline.querySelector(`.pulse-number[data-index="${lgVal}"]`);
+    let anchor = timeline.querySelector(`.pulse-number[data-index="${lgVal}"]`);
+    if (!anchor) anchor = timeline.querySelector('.pulse.lg');
 
     if (anchor) {
       if (start === null) start = performance.now();
@@ -1352,8 +1355,12 @@ function updateNumbers(){
 
   const lgForNumbers = pulses.length - 1;
   const tooDense = lgForNumbers >= NUMBER_HIDE_THRESHOLD;
+  if (tooDense) {
+    try { updateTIndicatorPosition(); } catch {}
+    return;
+  }
 
-  // sempre 0 i últim (inclús quan és massa dens)
+  // sempre 0 i últim
   showNumber(0);
   showNumber(lgForNumbers);
 
