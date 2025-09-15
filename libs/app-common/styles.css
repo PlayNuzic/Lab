@@ -134,7 +134,7 @@ line-height: 1;
 
 .pulse.endpoint,
 .pulse-number.endpoint {
-color: var(--selection-color);
+  color: var(--color-lg);
 }
 
 .timeline-wrapper.circular {
