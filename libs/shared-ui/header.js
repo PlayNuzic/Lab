@@ -65,15 +65,30 @@ function wireMenu(detailsEl) {
     const content = detailsEl.querySelector('.options-content');
     if (!content) return;
     
+    let lastPointerDownInside = false;
+    const trackPointerDown = (event) => {
+        lastPointerDownInside = detailsEl.contains(event.target);
+    };
+
+    const attachPointerTracker = () => {
+        document.addEventListener('pointerdown', trackPointerDown, true);
+    };
+
+    const detachPointerTracker = () => {
+        document.removeEventListener('pointerdown', trackPointerDown, true);
+        lastPointerDownInside = false;
+    };
+
     const handleFocusOut = (e) => {
         // Do not close the whole options menu when focus leaves a non-focusable
         // child (e.relatedTarget can be null on clicks to <li>, etc.).
         const next = e.relatedTarget;
         if (!detailsEl.open) return;
-        if (!next) return; // keep menu open – interaction likely inside
-        if (detailsEl.contains(next)) return; // still inside the menu
+        if (next && detailsEl.contains(next)) return; // still inside the menu
+        if (!next && lastPointerDownInside) return; // interaction stayed inside
         detailsEl.removeAttribute('open');
         content.removeEventListener('focusout', handleFocusOut);
+        detachPointerTracker();
     };
     
     function solidMenuBackground(panel){
@@ -96,6 +111,7 @@ function wireMenu(detailsEl) {
             content.classList.remove('closing');
             content.style.maxHeight = content.scrollHeight + 'px';
             content.addEventListener('focusout', handleFocusOut);
+            attachPointerTracker();
             content.addEventListener('transitionend', () => {
                 content.classList.remove('opening');
                 content.style.maxHeight = '';
@@ -111,6 +127,7 @@ function wireMenu(detailsEl) {
                 content.style.maxHeight = '';
             }, { once: true });
             content.removeEventListener('focusout', handleFocusOut);
+            detachPointerTracker();
         }
     });
     
@@ -122,6 +139,7 @@ function wireMenu(detailsEl) {
         if (e.key === 'Escape' || e.key === 'Enter') {
             detailsEl.removeAttribute('open');
             content.removeEventListener('focusout', handleFocusOut);
+            detachPointerTracker();
         }
     });
 }
