@@ -380,7 +380,9 @@ export class TimelineAudio {
     this.pulseIndex = 0;
 
     try { Tone.Transport.bpm.value = 60 / interval; } catch {}
-    const clickDur = Math.max(0.025, Math.min(0.12, interval / 4));
+    const fadeOut = Math.min(0.05, interval / 2);
+    const clickDur = Math.max(0.01, interval - fadeOut);
+    Object.values(this.samplers).forEach(s => { if (s) s.release = fadeOut; });
 
     this._repeatId = Tone.Transport.scheduleRepeat((t) => {
       if (scheduleId !== this.currentScheduleId) return;

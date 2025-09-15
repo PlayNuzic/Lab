@@ -94,4 +94,14 @@ describe('TimelineAudio', () => {
     expect(Tone.Transport.clear).toHaveBeenCalledWith(1);
     expect(audio.isPlaying).toBe(false);
   });
+
+  test('play uses interval-based duration with fade out', () => {
+    audio.play(4, 0.5);
+    const repeatCb = Tone.Transport.scheduleRepeat.mock.calls[0][0];
+    repeatCb(0);
+    const fade = Math.min(0.05, 0.5 / 2);
+    const dur = 0.5 - fade;
+    expect(audio.samplers.start.release).toBeCloseTo(fade, 5);
+    expect(audio.samplers.start.triggerAttackRelease).toHaveBeenCalledWith('C3', dur, 0);
+  });
 });
