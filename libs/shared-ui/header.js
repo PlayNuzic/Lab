@@ -1,6 +1,7 @@
 // Shared UI header for Lab: mirrors App1 header behavior
 
-import { setVolume, getVolume, TimelineAudio, soundNames, soundLabels, ensureAudio } from '../sound/index.js';
+import { setVolume, getVolume, TimelineAudio, ensureAudio } from '../sound/index.js';
+import { initSoundDropdown } from './sound-dropdown.js';
 
 // --- Scheduling helpers (look-ahead y updateInterval) ---
 
@@ -143,32 +144,24 @@ function wireControls(root) {
         return soundAudio;
     }
 
-    function populateSound(select, key){
-        if(!select) return;
-        select.innerHTML='';
-        soundNames.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = soundLabels[name] || name;
-            select.appendChild(opt);
-        });
-        const stored = localStorage.getItem(key);
-        if(stored && soundNames.includes(stored)) select.value = stored;
-        select.addEventListener('input', async () => {
-            const a = await getAudio();
-            const val = select.value;
-            if (select === baseSoundSelect) await a.setBase(val);
-            else if (select === accentSoundSelect) await a.setAccent(val);
-            else if (select === startSoundSelect) await a.setStart(val);
-            localStorage.setItem(key, val);
-            window.dispatchEvent(new CustomEvent('sharedui:sound', { detail: { type: key, value: val } }));
-            a.preview(val);
-        });
-    }
-
-    populateSound(baseSoundSelect, 'baseSound');
-    populateSound(accentSoundSelect, 'accentSound');
-    populateSound(startSoundSelect, 'startSound');
+    initSoundDropdown(baseSoundSelect, {
+        storageKey: 'baseSound',
+        eventType: 'baseSound',
+        getAudio,
+        apply: (a, val) => a.setBase(val)
+    });
+    initSoundDropdown(accentSoundSelect, {
+        storageKey: 'accentSound',
+        eventType: 'accentSound',
+        getAudio,
+        apply: (a, val) => a.setAccent(val)
+    });
+    initSoundDropdown(startSoundSelect, {
+        storageKey: 'startSound',
+        eventType: 'startSound',
+        getAudio,
+        apply: (a, val) => a.setStart(val)
+    });
 
 
     // Variables para gestionar el estado del volumen

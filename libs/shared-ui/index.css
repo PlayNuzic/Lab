@@ -189,13 +189,78 @@ gap: 8px;
 }
 
 .menu .options-content select {
-width: 100%;
-box-sizing: border-box;
-padding: 4px;
-border: 1px solid var(--line-color);
-border-radius: 4px;
-font-family: 'Ubuntu', sans-serif;
-font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid var(--line-color);
+  border-radius: 4px;
+  font-family: 'Ubuntu', sans-serif;
+  font-size: 0.9rem;
+}
+
+/* Custom dropdown for sound previews */
+.menu .options-content .custom-dropdown { position: relative; width: 100%; }
+.custom-dropdown .dropdown-toggle {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid var(--line-color);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font-family: 'Ubuntu', sans-serif;
+  font-size: 0.9rem;
+  position: relative;
+}
+.custom-dropdown .dropdown-toggle::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 4px 0 4px;
+  border-style: solid;
+  border-color: currentColor transparent transparent transparent;
+}
+.custom-dropdown .dropdown-panel {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-top: 2px;
+  border: 1px solid var(--line-color);
+  border-radius: 4px;
+  background-color: var(--bg-light);
+  color: var(--text-light);
+  z-index: 1000;
+}
+body[data-theme='dark'] .custom-dropdown .dropdown-panel {
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+}
+.custom-dropdown .dropdown-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+.custom-dropdown .dropdown-panel li {
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.custom-dropdown .dropdown-panel li.selected { background: var(--selection-color); }
+.custom-dropdown .dropdown-exit {
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  border-top: 1px solid var(--line-color);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 0 0 4px 4px;
 }
 
 /* Preview row for sound selects */
@@ -205,7 +270,7 @@ align-items: center;
 gap: 8px;
 }
 
-.menu .options-content .preview-row select { flex: 1; }
+.menu .options-content .preview-row .custom-dropdown { flex: 1; }
 .menu .options-content .preview-btn {
 padding: 4px 8px;
 border: 1px solid var(--line-color);

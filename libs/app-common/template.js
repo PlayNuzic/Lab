@@ -36,18 +36,18 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
             <p>Pulso</p>
             <div class="preview-row">
               <label for="baseSoundSelect" style="display:none"></label>
-              <select id="baseSoundSelect"></select>
+              <div id="baseSoundSelect"></div>
             </div>
             ${showAccent ? `
             <p>Acento</p>
             <div class="preview-row">
               <label for=\"accentSoundSelect\" style=\"display:none\"></label>
-              <select id=\"accentSoundSelect\"></select>
+              <div id=\"accentSoundSelect\"></div>
             </div>` : ''}
             <p>Inicio</p>
             <div class="preview-row">
               <label for="startSoundSelect" style="display:none"></label>
-              <select id="startSoundSelect"></select>
+              <div id="startSoundSelect"></div>
             </div>
           </div>
         </details>

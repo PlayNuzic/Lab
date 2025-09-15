@@ -1,5 +1,6 @@
-import { TimelineAudio, soundNames, soundLabels } from '../../libs/sound/index.js';
+import { TimelineAudio } from '../../libs/sound/index.js';
 import { ensureAudio } from '../../libs/sound/index.js';
+import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
@@ -568,32 +569,24 @@ function randomize() {
 
 initRandomMenu(randomBtn, randomMenu, randomize);
 
-function populateSoundSelect(selectElem, defaultName, storeName){
-  if(!selectElem) return;
-  // Clear existing options
-  selectElem.innerHTML = '';
-  soundNames.forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = soundLabels[name] || name;
-    selectElem.appendChild(opt);
-  });
-  selectElem.value = defaultName;
-  selectElem.addEventListener('change', async () => {
-    const a = await initAudio();
-    if (selectElem === baseSoundSelect) await a.setBase(selectElem.value);
-    else if (selectElem === accentSoundSelect) await a.setAccent(selectElem.value);
-    else if (selectElem === startSoundSelect) await a.setStart(selectElem.value);
-    if(storeName) saveOpt(storeName, selectElem.value);
-  });
-}
-
-const storedBase = loadOpt('baseSound') || 'click1';
-const storedAccent = loadOpt('accentSound') || 'click2';
-const storedStart = loadOpt('startSound') || 'click3';
-populateSoundSelect(baseSoundSelect, storedBase, 'baseSound');
-populateSoundSelect(accentSoundSelect, storedAccent, 'accentSound');
-populateSoundSelect(startSoundSelect, storedStart, 'startSound');
+initSoundDropdown(baseSoundSelect, {
+  storageKey: storeKey('baseSound'),
+  eventType: 'baseSound',
+  getAudio: initAudio,
+  apply: (a, val) => a.setBase(val)
+});
+initSoundDropdown(accentSoundSelect, {
+  storageKey: storeKey('accentSound'),
+  eventType: 'accentSound',
+  getAudio: initAudio,
+  apply: (a, val) => a.setAccent(val)
+});
+initSoundDropdown(startSoundSelect, {
+  storageKey: storeKey('startSound'),
+  eventType: 'startSound',
+  getAudio: initAudio,
+  apply: (a, val) => a.setStart(val)
+});
 
 // Preview on sound change handled by shared header
 
@@ -602,9 +595,9 @@ async function initAudio(){
   await ensureAudio();
   audio = new TimelineAudio();
   await audio.ready();
-  audio.setBase(baseSoundSelect.value);
-  audio.setAccent(accentSoundSelect.value);
-  audio.setStart(startSoundSelect.value);
+  audio.setBase(baseSoundSelect.dataset.value);
+  audio.setAccent(accentSoundSelect.dataset.value);
+  audio.setStart(startSoundSelect.dataset.value);
   if(pendingScheduling){
     const { lookAhead, updateInterval, profile } = pendingScheduling;
     if (typeof audio.setScheduling === 'function'
@@ -1424,10 +1417,10 @@ playBtn.addEventListener('click', async () => {
   if (isNaN(lg) || isNaN(v) || lg <= 0 || v <= 0) return;
 
   // Sons segons el menú
-  await audio.setBase(baseSoundSelect.value);
-  await audio.setAccent(accentSoundSelect.value);
-  await audio.setStart(startSoundSelect.value);
-  await audio.setStart(startSoundSelect.value);
+  await audio.setBase(baseSoundSelect.dataset.value);
+  await audio.setAccent(accentSoundSelect.dataset.value);
+  await audio.setStart(startSoundSelect.dataset.value);
+  await audio.setStart(startSoundSelect.dataset.value);
 
   const interval = 60 / v;
 
