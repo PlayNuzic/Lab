@@ -171,6 +171,7 @@ export class TimelineAudio {
     this.pulseIndex = 0;
     this.onCompleteRef = null;
     this._onPulseRef = null;
+    this._remainingPulses = Infinity;
     this._cyclePart = null;
     this._cycleConfig = null;
     this._clickDur = 0.05;
@@ -267,19 +268,21 @@ export class TimelineAudio {
    * @param {boolean} enabled
    */
   setLoop(enabled) {
-    this.loopRef = !!enabled;
+    const next = !!enabled;
+    const prev = this.loopRef;
+    this.loopRef = next;
     if (this._cyclePart) {
       this._cyclePart.loop = this.loopRef;
     }
-    if (this.isPlaying && this._cycleConfig) {
-      const cfg = this._cycleConfig;
-      this.updateCycleConfig({
-        numerator: cfg && Number.isFinite(cfg.numerator) ? cfg.numerator : null,
-        denominator: cfg && Number.isFinite(cfg.denominator) ? cfg.denominator : null,
-        totalPulses: cfg && Number.isFinite(cfg.totalPulses) ? cfg.totalPulses : null,
-        interval: cfg && Number.isFinite(cfg.interval) ? cfg.interval : null,
-        onTick: cfg && typeof cfg.onCycle === 'function' ? cfg.onCycle : null
-      });
+    if (!this.loopRef) {
+      this._refreshPulsePhase(this.intervalRef, { clampToCycle: true });
+      const total = Number.isFinite(this.totalRef) && this.totalRef > 0 ? this.totalRef : 1;
+      const currentStep = total ? (this.pulseIndex % total) : 0;
+      let remaining = total - currentStep;
+      if (!Number.isFinite(remaining) || remaining <= 0) remaining = total;
+      this._remainingPulses = remaining;
+    } else if (!prev && this.loopRef) {
+      this._remainingPulses = Infinity;
     }
   }
 
@@ -299,7 +302,7 @@ export class TimelineAudio {
         }
       }
     } catch {}
-    this._refreshPulsePhase(60 / bpm);
+    this._refreshPulsePhase(60 / bpm, { clampToCycle: this.loopRef });
   }
 
   /**
@@ -444,6 +447,7 @@ export class TimelineAudio {
     this.onCompleteRef = onComplete;
     this._onPulseRef = typeof onPulse === 'function' ? onPulse : null;
     this.pulseIndex = 0;
+    this._remainingPulses = this.loopRef ? Infinity : totalPulses;
     const hasLookAhead = Number.isFinite(this.lookAhead) ? this.lookAhead : 0;
     const ctxNow = (typeof Tone !== 'undefined' && Tone && typeof Tone.now === 'function') ? Tone.now() : null;
 
@@ -456,7 +460,7 @@ export class TimelineAudio {
     this._repeatId = Tone.Transport.scheduleRepeat((t) => {
       if (scheduleId !== this.currentScheduleId) return;
 
-      if (!this.loopRef && this.pulseIndex >= this.totalRef) {
+      if (!this.loopRef && this._remainingPulses <= 0) {
         if (typeof this.onCompleteRef === 'function') {
           Tone.Draw.schedule(this.onCompleteRef, t);
         }
@@ -480,6 +484,9 @@ export class TimelineAudio {
       }
 
       this.pulseIndex = this.loopRef ? (step + 1) : (this.pulseIndex + 1);
+      if (!this.loopRef && Number.isFinite(this._remainingPulses)) {
+        this._remainingPulses -= 1;
+      }
     }, interval, 0);
 
     const cycleOpts = options.cycle || null;
@@ -531,7 +538,14 @@ export class TimelineAudio {
   setTotal(totalPulses) {
     if (typeof totalPulses === 'number' && totalPulses > 0) {
       this.totalRef = totalPulses;
-      this._refreshPulsePhase();
+      this._refreshPulsePhase(this.intervalRef, { clampToCycle: this.loopRef });
+      if (!this.loopRef) {
+        const total = Number.isFinite(this.totalRef) && this.totalRef > 0 ? this.totalRef : 1;
+        const current = this.pulseIndex % total;
+        let remaining = total - current;
+        if (!Number.isFinite(remaining) || remaining <= 0) remaining = total;
+        this._remainingPulses = remaining;
+      }
     }
   }
 
@@ -543,6 +557,7 @@ export class TimelineAudio {
     this.currentScheduleId++;
     this._startContextTime = null;
     this._onPulseRef = null;
+    this._remainingPulses = Infinity;
 
     if (this._repeatId != null) {
       try { Tone.Transport.clear(this._repeatId); } catch {}
@@ -612,7 +627,7 @@ export class TimelineAudio {
     return 0;
   }
 
-  _refreshPulsePhase(intervalHint) {
+  _refreshPulsePhase(intervalHint, { clampToCycle = false } = {}) {
     if (!this.isPlaying) return;
     const interval = Number.isFinite(intervalHint) && intervalHint > 0
       ? intervalHint
@@ -622,7 +637,11 @@ export class TimelineAudio {
     const elapsed = this._computeElapsedSeconds(interval);
     if (!Number.isFinite(elapsed)) return;
     const pulsesElapsed = Math.max(0, Math.floor((elapsed / interval) + 1e-6));
-    this.pulseIndex = pulsesElapsed;
+    if (clampToCycle && Number.isFinite(this.totalRef) && this.totalRef > 0) {
+      this.pulseIndex = pulsesElapsed % this.totalRef;
+    } else {
+      this.pulseIndex = pulsesElapsed;
+    }
   }
 
   _configureCyclePart({ numerator, denominator, totalPulses, interval, onCycle, scheduleId, offset = 0, startAt = 0 } = {}) {
@@ -663,19 +682,19 @@ export class TimelineAudio {
     const subInterval = (validNum * stepInterval) / validDen;
     const events = [];
     const wrap = !!this.loopRef;
-    const safeOffset = Math.max(0, Number(offset) || 0);
+    const rawOffset = Math.max(0, Number(offset) || 0);
+    const offsetNormalized = totalDuration > 0
+      ? ((rawOffset % totalDuration) + totalDuration) % totalDuration
+      : 0;
+    const startDelay = (offsetNormalized === 0 || totalDuration === 0)
+      ? 0
+      : (totalDuration - offsetNormalized);
 
     for (let cycleIndex = 0; cycleIndex < cycles; cycleIndex++) {
       const cycleStart = cycleIndex * validNum * stepInterval;
       for (let sub = 0; sub < validDen; sub++) {
         const baseTime = cycleStart + sub * subInterval;
-        let eventTime = baseTime - safeOffset;
-        if (wrap) {
-          while (eventTime < 0) eventTime += totalDuration;
-          eventTime = eventTime % totalDuration;
-        } else if (eventTime < 0) {
-          continue;
-        }
+        const eventTime = baseTime;
         events.push([eventTime, {
           cycleIndex,
           subdivisionIndex: sub,
@@ -725,7 +744,8 @@ export class TimelineAudio {
       }, events);
       part.loop = wrap;
       part.loopEnd = totalDuration;
-      part.start(startAt);
+      const launchAt = (Number.isFinite(startAt) ? startAt : 0) + (startDelay || 0);
+      part.start(launchAt);
       this._cyclePart = part;
       this._cycleConfig = {
         numerator: validNum,
@@ -793,7 +813,7 @@ export class TimelineAudio {
     }
 
     const elapsed = this._computeElapsedSeconds(effectiveInterval);
-    this._refreshPulsePhase(effectiveInterval);
+    this._refreshPulsePhase(effectiveInterval, { clampToCycle: this.loopRef });
     let startAt = this._getTransportSeconds();
     if (!Number.isFinite(startAt)) {
       startAt = elapsed;
