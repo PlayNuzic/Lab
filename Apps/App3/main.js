@@ -3,9 +3,20 @@ import { attachHover } from '../../libs/shared-ui/hover.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
+import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 
 let audio;
-let pendingScheduling = null;
+const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
+window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
+bindSharedSoundEvents({
+  getAudio: () => audio,
+  mapping: {
+    baseSound: 'setBase',
+    startSound: 'setStart',
+    cycleStartSound: 'setCycleStart',
+    cycleSound: 'setCycle'
+  }
+});
 let isPlaying = false;
 let loopEnabled = false;
 let circularTimeline = false;
@@ -226,38 +237,9 @@ async function initAudio() {
   await ensureAudio();
   audio = new TimelineAudio();
   await audio.ready();
-  if (pendingScheduling) {
-    if (typeof pendingScheduling.lookAhead === 'number' || typeof pendingScheduling.updateInterval === 'number') {
-      audio.setScheduling(pendingScheduling);
-    }
-    if (pendingScheduling.profile) {
-      audio.setSchedulingProfile(pendingScheduling.profile);
-    }
-    pendingScheduling = null;
-  }
+  schedulingBridge.applyTo(audio);
   return audio;
 }
-
-window.addEventListener('sharedui:scheduling', (e) => {
-  const { lookAhead, updateInterval, profile } = e.detail || {};
-  if (audio && typeof audio.setScheduling === 'function' && (typeof lookAhead === 'number' || typeof updateInterval === 'number')) {
-    audio.setScheduling({ lookAhead, updateInterval });
-  } else if (audio && typeof audio.setSchedulingProfile === 'function' && profile) {
-    audio.setSchedulingProfile(profile);
-  } else {
-    pendingScheduling = { lookAhead, updateInterval, profile };
-  }
-});
-
-window.addEventListener('sharedui:sound', async (e) => {
-  if (!audio) return;
-  const { type, value } = e.detail || {};
-  if (!value) return;
-  if (type === 'baseSound') await audio.setBase(value);
-  else if (type === 'startSound') await audio.setStart(value);
-  else if (type === 'cycleStartSound') await audio.setCycleStart(value);
-  else if (type === 'cycleSound') await audio.setCycle(value);
-});
 
 function bindUnit(input, unit) {
   if (!input || !unit) return;
@@ -703,7 +685,6 @@ function handleInput() {
       });
     }
     syncVisualState();
-    if (isPlaying) restartPlayback();
   }
 }
 
@@ -880,24 +861,6 @@ function syncVisualState() {
   } else if (lastCycleState) {
     highlightCycle(lastCycleState);
   }
-}
-
-async function restartPlayback() {
-  const lg = getLg();
-  const v = getV();
-  if (!Number.isFinite(lg) || lg <= 0 || !Number.isFinite(v) || v <= 0) return;
-  const audioInstance = await initAudio();
-  audioInstance.stop();
-  isPlaying = false;
-  clearHighlights();
-  const iconPlay = playBtn.querySelector('.icon-play');
-  const iconStop = playBtn.querySelector('.icon-stop');
-  if (iconPlay && iconStop) {
-    iconPlay.style.display = 'block';
-    iconStop.style.display = 'none';
-  }
-  await startPlayback();
-  syncVisualState();
 }
 
 async function startPlayback() {

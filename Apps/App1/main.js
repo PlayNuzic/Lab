@@ -4,27 +4,18 @@ import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
+import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 // Using local header controls for App1 (no shared init)
 
 let audio;
-let pendingScheduling = null;
-const defaultProfile = (() => {
-  const ua = navigator.userAgent || '';
-  const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobi/i.test(ua)
-    || Math.min(window.innerWidth, window.innerHeight) <= 600;
-  return mobile ? 'mobile' : 'desktop';
-})();
-
-// Rep canvis del header compartit (futures apps també)
-window.addEventListener('sharedui:scheduling', (e) => {
-  const { lookAhead, updateInterval, profile } = e.detail || {};
-  if (audio && typeof audio.setScheduling === 'function'
-      && (typeof lookAhead === 'number' || typeof updateInterval === 'number')) {
-    audio.setScheduling({ lookAhead, updateInterval });
-  } else if (audio && typeof audio.setSchedulingProfile === 'function' && profile) {
-    audio.setSchedulingProfile(profile);
-  } else {
-    pendingScheduling = { lookAhead, updateInterval, profile };
+const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
+window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
+bindSharedSoundEvents({
+  getAudio: () => audio,
+  mapping: {
+    baseSound: 'setBase',
+    accentSound: 'setAccent',
+    startSound: 'setStart'
   }
 });
 const inputLg = document.getElementById('inputLg');
@@ -55,14 +46,6 @@ const circularTimelineToggle = document.getElementById('circularTimelineToggle')
 const themeSelect = document.getElementById('themeSelect');
 const baseSoundSelect = document.getElementById('baseSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
-// Update audio instance when sound options change
-window.addEventListener('sharedui:sound', async (e) => {
-  if (!audio) return;
-  const { type, value } = e.detail || {};
-  if (type === 'baseSound') await audio.setBase(value);
-  else if (type === 'accentSound') await audio.setAccent(value);
-  else if (type === 'startSound') await audio.setStart(value);
-});
 const randomBtn = document.getElementById('randomBtn');
 const randomMenu = document.getElementById('randomMenu');
 const randLgToggle = document.getElementById('randLgToggle');
@@ -368,20 +351,7 @@ async function initAudio(){
   await audio.ready();
   audio.setBase(baseSoundSelect.dataset.value);
   audio.setStart(startSoundSelect.dataset.value);
-  if(pendingScheduling){
-    const { lookAhead, updateInterval, profile } = pendingScheduling;
-    if (typeof audio.setScheduling === 'function'
-        && (typeof lookAhead === 'number' || typeof updateInterval === 'number')) {
-      audio.setScheduling({ lookAhead, updateInterval });
-    } else if (typeof audio.setSchedulingProfile === 'function' && profile) {
-      audio.setSchedulingProfile(profile);
-    }
-    pendingScheduling = null;
-  } else {
-    if(typeof audio.setSchedulingProfile === 'function'){
-      audio.setSchedulingProfile(defaultProfile);
-    }
-  }
+  schedulingBridge.applyTo(audio);
   return audio;
 }
 
