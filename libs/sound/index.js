@@ -173,6 +173,7 @@ export class TimelineAudio {
     this._cyclePart = null;
     this._cycleConfig = null;
     this._clickDur = 0.05;
+    this._startContextTime = null;
 
     this._readyPromise = this._initialize();
   }
@@ -427,6 +428,8 @@ export class TimelineAudio {
     this.intervalRef = interval;
     this.onCompleteRef = onComplete;
     this.pulseIndex = 0;
+    const hasLookAhead = Number.isFinite(this.lookAhead) ? this.lookAhead : 0;
+    const ctxNow = (typeof Tone !== 'undefined' && Tone && typeof Tone.now === 'function') ? Tone.now() : null;
 
     try { Tone.Transport.bpm.value = 60 / interval; } catch {}
     const fadeOut = Math.min(0.05, interval / 2);
@@ -481,8 +484,28 @@ export class TimelineAudio {
     }
 
     this.isPlaying = true;
-    try { Tone.Transport.start('+' + this.lookAhead.toFixed(3)); }
-    catch { Tone.Transport.start(); }
+    let started = false;
+    let appliedLookAhead = false;
+    try {
+      Tone.Transport.start('+' + hasLookAhead.toFixed(3));
+      started = true;
+      appliedLookAhead = hasLookAhead > 0;
+    } catch {
+      try {
+        Tone.Transport.start();
+        started = true;
+      } catch {}
+    }
+    if (started) {
+      const startDelay = appliedLookAhead ? hasLookAhead : 0;
+      let inferred = ctxNow;
+      if (inferred == null && typeof Tone !== 'undefined' && Tone && typeof Tone.now === 'function') {
+        inferred = Tone.now();
+      }
+      this._startContextTime = inferred != null ? inferred + startDelay : null;
+    } else {
+      this._startContextTime = null;
+    }
   }
 
   /**
@@ -501,6 +524,7 @@ export class TimelineAudio {
   stop() {
     this.isPlaying = false;
     this.currentScheduleId++;
+    this._startContextTime = null;
 
     if (this._repeatId != null) {
       try { Tone.Transport.clear(this._repeatId); } catch {}
@@ -524,6 +548,50 @@ export class TimelineAudio {
       this._cyclePart = null;
     }
     this._cycleConfig = null;
+  }
+
+  _getTransportSeconds() {
+    try {
+      if (Tone && Tone.Transport) {
+        const secondsProp = Tone.Transport.seconds;
+        if (typeof secondsProp === 'number' && Number.isFinite(secondsProp)) {
+          return secondsProp;
+        }
+        if (typeof secondsProp === 'function') {
+          const value = secondsProp.call(Tone.Transport);
+          if (Number.isFinite(value)) return value;
+        }
+      }
+    } catch {}
+    return null;
+  }
+
+  _computeElapsedSeconds(intervalHint) {
+    const transportSeconds = this._getTransportSeconds();
+    if (Number.isFinite(transportSeconds)) {
+      return Math.max(0, transportSeconds);
+    }
+
+    if (typeof Tone !== 'undefined' && Tone && typeof Tone.now === 'function' && Number.isFinite(this._startContextTime)) {
+      const diff = Tone.now() - this._startContextTime;
+      if (Number.isFinite(diff)) {
+        return Math.max(0, diff);
+      }
+    }
+
+    const interval = Number.isFinite(intervalHint) && intervalHint > 0
+      ? intervalHint
+      : (Number.isFinite(this.intervalRef) && this.intervalRef > 0 ? this.intervalRef : null);
+
+    if (interval) {
+      const total = Number.isFinite(this.totalRef) && this.totalRef > 0 ? this.totalRef : null;
+      const pulsesPlayed = this.loopRef && total
+        ? (this.pulseIndex % total)
+        : this.pulseIndex;
+      return Math.max(0, pulsesPlayed * interval);
+    }
+
+    return 0;
   }
 
   _configureCyclePart({ numerator, denominator, totalPulses, interval, onCycle, scheduleId, offset = 0, startAt = 0 } = {}) {
@@ -655,13 +723,19 @@ export class TimelineAudio {
 
     const effectiveNum = Number.isFinite(numerator) ? numerator : (this._cycleConfig ? this._cycleConfig.numerator : numerator);
     const effectiveDen = Number.isFinite(denominator) ? denominator : (this._cycleConfig ? this._cycleConfig.denominator : denominator);
+    const effectiveTotal = Number.isFinite(totalPulses) && totalPulses > 0
+      ? totalPulses
+      : (this._cycleConfig && Number.isFinite(this._cycleConfig.totalPulses) ? this._cycleConfig.totalPulses : this.totalRef);
+    const effectiveInterval = Number.isFinite(interval) && interval > 0
+      ? interval
+      : (this._cycleConfig && Number.isFinite(this._cycleConfig.interval) ? this._cycleConfig.interval : this.intervalRef);
 
     if (!this.isPlaying) {
       this._cycleConfig = {
         numerator: Number.isFinite(effectiveNum) ? effectiveNum : null,
         denominator: Number.isFinite(effectiveDen) ? effectiveDen : null,
-        totalPulses: this.totalRef,
-        interval: this.intervalRef,
+        totalPulses: Number.isFinite(effectiveTotal) ? effectiveTotal : null,
+        interval: Number.isFinite(effectiveInterval) ? effectiveInterval : null,
         onCycle: handler || null
       };
       return;
@@ -672,28 +746,28 @@ export class TimelineAudio {
       this._cycleConfig = {
         numerator: Number.isFinite(effectiveNum) ? effectiveNum : null,
         denominator: Number.isFinite(effectiveDen) ? effectiveDen : null,
-        totalPulses: this.totalRef,
-        interval: this.intervalRef,
+        totalPulses: Number.isFinite(effectiveTotal) ? effectiveTotal : null,
+        interval: Number.isFinite(effectiveInterval) ? effectiveInterval : null,
         onCycle: handler || null
       };
       return;
     }
 
-    const totalRef = this.totalRef || 1;
-    const currentStep = this.loopRef
-      ? (this.pulseIndex % totalRef)
-      : Math.min(this.pulseIndex, totalRef);
-    const offset = Math.max(0, currentStep) * (this.intervalRef || 0);
+    const elapsed = this._computeElapsedSeconds(effectiveInterval);
+    let startAt = this._getTransportSeconds();
+    if (!Number.isFinite(startAt)) {
+      startAt = elapsed;
+    }
 
     this._configureCyclePart({
       numerator: effectiveNum,
       denominator: effectiveDen,
-      totalPulses: this.totalRef,
-      interval: this.intervalRef,
+      totalPulses: effectiveTotal,
+      interval: effectiveInterval,
       onCycle: handler,
       scheduleId: this.currentScheduleId,
-      offset,
-      startAt: Tone.Transport.seconds
+      offset: elapsed,
+      startAt
     });
   }
 
