@@ -441,7 +441,10 @@ selectColor.addEventListener('input', e => {
 
 updateNumbers();
 
-circularTimelineToggle.checked = loadOpt('circular') === '1';
+circularTimelineToggle.checked = (() => {
+  const stored = loadOpt('circular');
+  return stored == null ? true : stored === '1';
+})();
 circularTimeline = circularTimelineToggle.checked;
 updateTIndicatorPosition();
 updateTIndicatorText(parseNum(inputT?.value ?? '') || '');

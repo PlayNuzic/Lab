@@ -172,6 +172,7 @@ export class TimelineAudio {
     this.onCompleteRef = null;
     this._cyclePart = null;
     this._cycleConfig = null;
+    this._clickDur = 0.05;
 
     this._readyPromise = this._initialize();
   }
@@ -416,12 +417,7 @@ export class TimelineAudio {
     try { Tone.Transport.cancel(); } catch {}
     try { Tone.Transport.stop(); } catch {}
     try { Tone.Transport.position = 0; } catch {}
-    if (this._cyclePart) {
-      try { this._cyclePart.stop(); } catch {}
-      try { this._cyclePart.dispose(); } catch {}
-      this._cyclePart = null;
-    }
-    this._cycleConfig = null;
+    this._disposeCyclePart();
     Tone.Transport.loop = false;
 
     this.selectedRef = new Set(selectedPulses ? Array.from(selectedPulses) : []);
@@ -435,6 +431,7 @@ export class TimelineAudio {
     try { Tone.Transport.bpm.value = 60 / interval; } catch {}
     const fadeOut = Math.min(0.05, interval / 2);
     const clickDur = Math.max(0.01, interval - fadeOut);
+    this._clickDur = clickDur;
     Object.values(this.samplers).forEach(s => { if (s) s.release = fadeOut; });
 
     this._repeatId = Tone.Transport.scheduleRepeat((t) => {
@@ -468,63 +465,19 @@ export class TimelineAudio {
 
     const cycleOpts = options.cycle || null;
     if (cycleOpts && typeof cycleOpts === 'object') {
-      const rawNum = Math.floor(Number(cycleOpts.numerator));
-      const rawDen = Math.floor(Number(cycleOpts.denominator));
-      const numerator = Number.isFinite(rawNum) && rawNum > 0 ? rawNum : 0;
-      const denominator = Number.isFinite(rawDen) && rawDen > 0 ? rawDen : 0;
-      const cycles = numerator > 0 ? Math.floor(totalPulses / numerator) : 0;
-      if (numerator > 0 && denominator > 0 && cycles > 0) {
-        const totalDuration = totalPulses * interval;
-        const subInterval = (numerator * interval) / denominator;
-        const events = [];
-        for (let cycleIndex = 0; cycleIndex < cycles; cycleIndex++) {
-          const cycleStart = cycleIndex * numerator * interval;
-          for (let sub = 0; sub < denominator; sub++) {
-            const time = cycleStart + sub * subInterval;
-            events.push([time, {
-              cycleIndex,
-              subdivisionIndex: sub,
-              totalSubdivisions: denominator,
-              numerator,
-              denominator,
-              absoluteIndex: cycleIndex * denominator + sub,
-              totalCycles: cycles
-            }]);
-          }
-        }
-        if (events.length) {
-          const onCycle = typeof cycleOpts.onTick === 'function'
-            ? cycleOpts.onTick
-            : (typeof cycleOpts.onCycle === 'function' ? cycleOpts.onCycle : null);
-          try {
-            const part = new Tone.Part((t, payload) => {
-              if (scheduleId !== this.currentScheduleId) return;
-              const isCycleStart = payload && payload.subdivisionIndex === 0;
-              let sampler = null;
-              if (isCycleStart) {
-                sampler = this.samplers.cycleStart || this.samplers.cycle || this.samplers.accent || this.samplers.base;
-              } else {
-                sampler = this.samplers.cycle || this.samplers.accent || this.samplers.base;
-              }
-              if (sampler) {
-                try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}
-              }
-              if (onCycle) {
-                Tone.Draw.schedule(() => {
-                  if (scheduleId === this.currentScheduleId) onCycle(payload);
-                }, t);
-              }
-            }, events);
-            part.loop = !!this.loopRef;
-            part.loopEnd = totalDuration;
-            part.start(0);
-            this._cyclePart = part;
-            this._cycleConfig = { numerator, denominator, cycles };
-          } catch (err) {
-            console.warn('Failed to schedule cycle loop', err);
-          }
-        }
-      }
+      const onCycle = typeof cycleOpts.onTick === 'function'
+        ? cycleOpts.onTick
+        : (typeof cycleOpts.onCycle === 'function' ? cycleOpts.onCycle : null);
+      this._configureCyclePart({
+        numerator: cycleOpts.numerator,
+        denominator: cycleOpts.denominator,
+        totalPulses,
+        interval,
+        onCycle,
+        scheduleId,
+        offset: 0,
+        startAt: 0
+      });
     }
 
     this.isPlaying = true;
@@ -557,16 +510,191 @@ export class TimelineAudio {
       try { Tone.Transport.clear(this._stopId); } catch {}
       this._stopId = null;
     }
+    this._disposeCyclePart();
+
+    try { Tone.Transport.stop(); } catch {}
+    try { Tone.Transport.cancel(); } catch {}
+    try { Tone.Transport.position = 0; } catch {}
+  }
+
+  _disposeCyclePart() {
     if (this._cyclePart) {
       try { this._cyclePart.stop(); } catch {}
       try { this._cyclePart.dispose(); } catch {}
       this._cyclePart = null;
     }
     this._cycleConfig = null;
+  }
 
-    try { Tone.Transport.stop(); } catch {}
-    try { Tone.Transport.cancel(); } catch {}
-    try { Tone.Transport.position = 0; } catch {}
+  _configureCyclePart({ numerator, denominator, totalPulses, interval, onCycle, scheduleId, offset = 0, startAt = 0 } = {}) {
+    this._disposeCyclePart();
+
+    const num = Math.floor(Number(numerator));
+    const den = Math.floor(Number(denominator));
+    const validNum = Number.isFinite(num) && num > 0 ? num : 0;
+    const validDen = Number.isFinite(den) && den > 0 ? den : 0;
+    const total = Number.isFinite(totalPulses) && totalPulses > 0 ? totalPulses : this.totalRef;
+    const stepInterval = Number.isFinite(interval) && interval > 0 ? interval : this.intervalRef;
+
+    if (!validNum || !validDen || !total || !stepInterval) {
+      this._cycleConfig = {
+        numerator: validNum || null,
+        denominator: validDen || null,
+        totalPulses: total || null,
+        interval: stepInterval || null,
+        onCycle: typeof onCycle === 'function' ? onCycle : null
+      };
+      return;
+    }
+
+    const cycles = Math.floor(total / validNum);
+    if (cycles <= 0) {
+      this._cycleConfig = {
+        numerator: validNum,
+        denominator: validDen,
+        totalPulses: total,
+        interval: stepInterval,
+        onCycle: typeof onCycle === 'function' ? onCycle : null,
+        cycles: 0
+      };
+      return;
+    }
+
+    const totalDuration = total * stepInterval;
+    const subInterval = (validNum * stepInterval) / validDen;
+    const events = [];
+    const wrap = !!this.loopRef;
+    const safeOffset = Math.max(0, Number(offset) || 0);
+
+    for (let cycleIndex = 0; cycleIndex < cycles; cycleIndex++) {
+      const cycleStart = cycleIndex * validNum * stepInterval;
+      for (let sub = 0; sub < validDen; sub++) {
+        const baseTime = cycleStart + sub * subInterval;
+        let eventTime = baseTime - safeOffset;
+        if (wrap) {
+          while (eventTime < 0) eventTime += totalDuration;
+          eventTime = eventTime % totalDuration;
+        } else if (eventTime < 0) {
+          continue;
+        }
+        events.push([eventTime, {
+          cycleIndex,
+          subdivisionIndex: sub,
+          totalSubdivisions: validDen,
+          numerator: validNum,
+          denominator: validDen,
+          absoluteIndex: cycleIndex * validDen + sub,
+          totalCycles: cycles
+        }]);
+      }
+    }
+
+    if (!events.length) {
+      this._cycleConfig = {
+        numerator: validNum,
+        denominator: validDen,
+        totalPulses: total,
+        interval: stepInterval,
+        onCycle: typeof onCycle === 'function' ? onCycle : null,
+        cycles
+      };
+      return;
+    }
+
+    events.sort((a, b) => a[0] - b[0]);
+    const handler = typeof onCycle === 'function' ? onCycle : null;
+    const clickDur = this._clickDur || Math.max(0.01, stepInterval - Math.min(0.05, stepInterval / 2));
+
+    try {
+      const part = new Tone.Part((t, payload) => {
+        if (scheduleId != null && scheduleId !== this.currentScheduleId) return;
+        const isCycleStart = payload && payload.subdivisionIndex === 0;
+        let sampler = null;
+        if (isCycleStart) {
+          sampler = this.samplers.cycleStart || this.samplers.cycle || this.samplers.accent || this.samplers.base;
+        } else {
+          sampler = this.samplers.cycle || this.samplers.accent || this.samplers.base;
+        }
+        if (sampler) {
+          try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}
+        }
+        if (handler) {
+          Tone.Draw.schedule(() => {
+            if (scheduleId == null || scheduleId === this.currentScheduleId) handler(payload);
+          }, t);
+        }
+      }, events);
+      part.loop = wrap;
+      part.loopEnd = totalDuration;
+      part.start(startAt);
+      this._cyclePart = part;
+      this._cycleConfig = {
+        numerator: validNum,
+        denominator: validDen,
+        totalPulses: total,
+        interval: stepInterval,
+        onCycle: handler,
+        cycles
+      };
+    } catch (err) {
+      console.warn('Failed to schedule cycle loop', err);
+    }
+  }
+
+  updateCycleConfig({ numerator, denominator, totalPulses, interval, onTick, onCycle } = {}) {
+    if (typeof totalPulses === 'number' && totalPulses > 0) {
+      this.totalRef = totalPulses;
+    }
+    if (typeof interval === 'number' && interval > 0) {
+      this.intervalRef = interval;
+    }
+
+    const handler = typeof onTick === 'function'
+      ? onTick
+      : (typeof onCycle === 'function' ? onCycle : (this._cycleConfig && typeof this._cycleConfig.onCycle === 'function' ? this._cycleConfig.onCycle : null));
+
+    const effectiveNum = Number.isFinite(numerator) ? numerator : (this._cycleConfig ? this._cycleConfig.numerator : numerator);
+    const effectiveDen = Number.isFinite(denominator) ? denominator : (this._cycleConfig ? this._cycleConfig.denominator : denominator);
+
+    if (!this.isPlaying) {
+      this._cycleConfig = {
+        numerator: Number.isFinite(effectiveNum) ? effectiveNum : null,
+        denominator: Number.isFinite(effectiveDen) ? effectiveDen : null,
+        totalPulses: this.totalRef,
+        interval: this.intervalRef,
+        onCycle: handler || null
+      };
+      return;
+    }
+
+    if (!Number.isFinite(effectiveNum) || effectiveNum <= 0 || !Number.isFinite(effectiveDen) || effectiveDen <= 0) {
+      this._disposeCyclePart();
+      this._cycleConfig = {
+        numerator: Number.isFinite(effectiveNum) ? effectiveNum : null,
+        denominator: Number.isFinite(effectiveDen) ? effectiveDen : null,
+        totalPulses: this.totalRef,
+        interval: this.intervalRef,
+        onCycle: handler || null
+      };
+      return;
+    }
+
+    const totalRef = this.totalRef || 1;
+    const currentStep = this.loopRef
+      ? (this.pulseIndex % totalRef)
+      : Math.min(this.pulseIndex, totalRef);
+    const offset = Math.max(0, currentStep) * (this.intervalRef || 0);
+
+    this._configureCyclePart({
+      numerator: effectiveNum,
+      denominator: effectiveDen,
+      totalPulses: this.totalRef,
+      interval: this.intervalRef,
+      onCycle: handler,
+      scheduleId: this.currentScheduleId,
+      offset,
+      startAt: Tone.Transport.seconds
+    });
   }
 
   async preview(soundKey) {

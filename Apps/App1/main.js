@@ -292,7 +292,10 @@ document.addEventListener('sharedui:mute', async (e) => {
 
 updateNumbers();
 
-circularTimelineToggle.checked = loadOpt('circular') === '1';
+circularTimelineToggle.checked = (() => {
+  const stored = loadOpt('circular');
+  return stored == null ? true : stored === '1';
+})();
 circularTimeline = circularTimelineToggle.checked;
 circularTimelineToggle?.addEventListener('change', e => {
   circularTimeline = e.target.checked;

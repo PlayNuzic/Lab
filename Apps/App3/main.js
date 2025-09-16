@@ -11,7 +11,6 @@ let loopEnabled = false;
 let circularTimeline = false;
 let isUpdating = false;
 let tapTimes = [];
-let tapTimeout = null;
 
 const NUMBER_HIDE_THRESHOLD = 100;
 const NUMBER_CIRCLE_OFFSET = 28;
@@ -102,27 +101,57 @@ function initFractionEditor() {
   const container = document.createElement('div');
   container.className = 'fraction-editor';
 
+  const createField = ({ wrapperClass, placeholder, ariaUp, ariaDown }) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = `fraction-field ${wrapperClass}`;
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '1';
+    input.step = '1';
+    input.placeholder = placeholder;
+    input.value = '';
+    input.className = wrapperClass;
+    wrapper.appendChild(input);
+
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+    const up = document.createElement('button');
+    up.type = 'button';
+    up.className = 'spin up';
+    if (ariaUp) up.setAttribute('aria-label', ariaUp);
+    const down = document.createElement('button');
+    down.type = 'button';
+    down.className = 'spin down';
+    if (ariaDown) down.setAttribute('aria-label', ariaDown);
+    spinner.appendChild(up);
+    spinner.appendChild(down);
+    wrapper.appendChild(spinner);
+
+    return { wrapper, input, up, down };
+  };
+
   const top = document.createElement('div');
   top.className = 'top';
-  numeratorInput = document.createElement('input');
-  numeratorInput.type = 'number';
-  numeratorInput.min = '1';
-  numeratorInput.step = '1';
-  numeratorInput.className = 'numerator';
-  numeratorInput.placeholder = 'n';
-  numeratorInput.value = '';
-  top.appendChild(numeratorInput);
+  const numeratorField = createField({
+    wrapperClass: 'numerator',
+    placeholder: 'n',
+    ariaUp: 'Incrementar numerador',
+    ariaDown: 'Decrementar numerador'
+  });
+  numeratorInput = numeratorField.input;
+  top.appendChild(numeratorField.wrapper);
 
   const bottom = document.createElement('div');
   bottom.className = 'bottom';
-  denominatorInput = document.createElement('input');
-  denominatorInput.type = 'number';
-  denominatorInput.min = '1';
-  denominatorInput.step = '1';
-  denominatorInput.className = 'denominator';
-  denominatorInput.placeholder = 'd';
-  denominatorInput.value = '';
-  bottom.appendChild(denominatorInput);
+  const denominatorField = createField({
+    wrapperClass: 'denominator',
+    placeholder: 'd',
+    ariaUp: 'Incrementar denominador',
+    ariaDown: 'Decrementar denominador'
+  });
+  denominatorInput = denominatorField.input;
+  bottom.appendChild(denominatorField.wrapper);
 
   container.appendChild(top);
   container.appendChild(bottom);
@@ -154,6 +183,11 @@ function initFractionEditor() {
 
   enforceInt(numeratorInput);
   enforceInt(denominatorInput);
+
+  numeratorField.up.addEventListener('click', () => adjustInput(numeratorInput, +1));
+  numeratorField.down.addEventListener('click', () => adjustInput(numeratorInput, -1));
+  denominatorField.up.addEventListener('click', () => adjustInput(denominatorInput, +1));
+  denominatorField.down.addEventListener('click', () => adjustInput(denominatorInput, -1));
 }
 
 initFractionEditor();
@@ -240,6 +274,45 @@ attachHover(resetBtn, { text: 'Reset App' });
 attachHover(circularTimelineToggle, { text: 'Línea temporal circular' });
 attachHover(themeSelect, { text: 'Tema' });
 
+function applyTheme(value) {
+  const val = value || 'system';
+  if (val === 'system') {
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.dataset.theme = dark ? 'dark' : 'light';
+  } else {
+    document.body.dataset.theme = val;
+  }
+  saveOpt('theme', val);
+  try {
+    window.dispatchEvent(new CustomEvent('sharedui:theme', {
+      detail: { value: document.body.dataset.theme, raw: val }
+    }));
+  } catch {}
+}
+
+if (themeSelect) {
+  const storedTheme = loadOpt('theme');
+  if (storedTheme) themeSelect.value = storedTheme;
+  applyTheme(themeSelect.value);
+  themeSelect.addEventListener('change', (e) => applyTheme(e.target.value));
+}
+
+document.addEventListener('sharedui:mute', async (e) => {
+  const val = !!(e && e.detail && e.detail.value);
+  saveOpt('mute', val ? '1' : '0');
+  const instance = await initAudio();
+  if (instance && typeof instance.setMute === 'function') {
+    instance.setMute(val);
+  }
+});
+
+(function restoreMutePreference() {
+  try {
+    const saved = loadOpt('mute');
+    if (saved === '1') document.getElementById('muteBtn')?.click();
+  } catch {}
+})();
+
 function getLg() {
   return parseIntSafe(inputLg.value);
 }
@@ -260,6 +333,7 @@ function getFraction() {
 function updateTIndicatorText(value) {
   if (value === '' || value == null) {
     tIndicator.textContent = '';
+    tIndicator.style.visibility = 'hidden';
     return;
   }
   const n = Number(value);
@@ -272,16 +346,19 @@ function updateTIndicatorText(value) {
 }
 
 function updateTIndicatorPosition() {
+  if (!timeline) return;
   const lg = getLg();
   if (!Number.isFinite(lg) || lg <= 0) return;
   let anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
-  if (!anchor) anchor = timeline.querySelector('.pulse.endpoint');
+  if (!anchor) anchor = timeline.querySelector(`.pulse[data-index="${lg}"]`);
+  if (!anchor) anchor = pulses[pulses.length - 1] || null;
   if (!anchor) return;
   const tlRect = timeline.getBoundingClientRect();
   const aRect = anchor.getBoundingClientRect();
   const circular = timeline.classList.contains('circular');
+  const isLabel = anchor.classList.contains('pulse-number');
   let offsetX = 0;
-  if (circular && anchor.classList.contains('pulse-number')) {
+  if (circular && isLabel) {
     const anchorIndex = parseIntSafe(anchor.dataset.index);
     if (anchorIndex === 0) offsetX = -16;
     else if (anchorIndex === lg) offsetX = 16;
@@ -292,21 +369,40 @@ function updateTIndicatorPosition() {
   tIndicator.style.top = `${topY}px`;
   tIndicator.style.transform = 'translate(-50%, 0)';
   if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
-  if (tIndicator.textContent) tIndicator.style.visibility = 'visible';
 }
 
 function revealTAfter(ms = 900) {
   tIndicator.style.visibility = 'hidden';
-  const start = performance.now();
-  const check = () => {
-    updateTIndicatorPosition();
-    if (performance.now() - start >= ms) {
-      tIndicator.style.visibility = 'visible';
+  const deadline = performance.now() + 2500;
+  let start = null;
+
+  const step = () => {
+    const lgVal = getLg();
+    let anchor = timeline.querySelector(`.pulse-number[data-index="${lgVal}"]`);
+    if (!anchor) anchor = timeline.querySelector(`.pulse[data-index="${lgVal}"]`);
+    if (!anchor) anchor = pulses[pulses.length - 1] || null;
+
+    if (anchor) {
+      if (start === null) start = performance.now();
+      updateTIndicatorPosition();
+      if (performance.now() - start >= ms) {
+        updateTIndicatorPosition();
+        tIndicator.style.visibility = tIndicator.textContent ? 'visible' : 'hidden';
+      } else {
+        requestAnimationFrame(step);
+      }
+      return;
+    }
+
+    if (performance.now() < deadline) {
+      requestAnimationFrame(step);
     } else {
-      requestAnimationFrame(check);
+      updateTIndicatorPosition();
+      tIndicator.style.visibility = tIndicator.textContent ? 'visible' : 'hidden';
     }
   };
-  requestAnimationFrame(check);
+
+  requestAnimationFrame(step);
 }
 
 function clearHighlights() {
@@ -441,12 +537,14 @@ function layoutTimeline(opts = {}) {
       const tRect = timeline.getBoundingClientRect();
       const cx = tRect.width / 2;
       const cy = tRect.height / 2;
-      const radius = Math.min(tRect.width, tRect.height) / 2 - 6;
+      const radius = Math.min(tRect.width, tRect.height) / 2 - 1;
 
       pulses.forEach((pulse, idx) => {
         const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-        pulse.style.left = `${cx + radius * Math.cos(angle)}px`;
-        pulse.style.top = `${cy + radius * Math.sin(angle)}px`;
+        const px = cx + radius * Math.cos(angle);
+        const py = cy + radius * Math.sin(angle);
+        pulse.style.left = `${px}px`;
+        pulse.style.top = `${py}px`;
         pulse.style.transform = 'translate(-50%, -50%)';
       });
 
@@ -455,11 +553,12 @@ function layoutTimeline(opts = {}) {
         const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
         const bx = cx + radius * Math.cos(angle);
         const by = cy + radius * Math.sin(angle);
-        const length = Math.min(tRect.width, tRect.height) * 0.22;
+        const barLen = Math.min(tRect.width, tRect.height) * 0.25;
+        const topPx = by - barLen / 2;
         bar.style.display = 'block';
         bar.style.left = `${bx - 1}px`;
-        bar.style.top = `${by - length / 2}px`;
-        bar.style.height = `${length}px`;
+        bar.style.top = `${topPx}px`;
+        bar.style.height = `${barLen}px`;
         bar.style.transformOrigin = '50% 50%';
         bar.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
       });
@@ -579,8 +678,27 @@ function handleInput() {
   }
   renderTimeline();
   if (isPlaying && audio) {
+    if (Number.isFinite(lg) && lg > 0 && typeof audio.setTotal === 'function') {
+      audio.setTotal(lg);
+    }
     if (Number.isFinite(v) && v > 0 && typeof audio.setTempo === 'function') {
       audio.setTempo(v);
+    }
+    if (typeof audio.updateCycleConfig === 'function') {
+      const { numerator, denominator } = getFraction();
+      const validLg = Number.isFinite(lg) && lg > 0;
+      const validV = Number.isFinite(v) && v > 0;
+      const hasCycle = validLg
+        && Number.isFinite(numerator) && numerator > 0
+        && Number.isFinite(denominator) && denominator > 0
+        && Math.floor(lg / numerator) > 0;
+      audio.updateCycleConfig({
+        numerator: hasCycle ? numerator : null,
+        denominator: hasCycle ? denominator : null,
+        totalPulses: validLg ? lg : undefined,
+        interval: validV ? 60 / v : undefined,
+        onTick: hasCycle ? highlightCycle : undefined
+      });
     }
   }
 }
@@ -840,28 +958,37 @@ resetBtn.addEventListener('click', () => {
 
 function tapTempo() {
   const now = performance.now();
-  tapTimes.push(now);
-  tapTimes = tapTimes.slice(-6);
-  if (tapTimes.length >= 2) {
-    const intervals = [];
-    for (let i = 1; i < tapTimes.length; i++) {
-      intervals.push(tapTimes[i] - tapTimes[i - 1]);
-    }
-    const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    if (avg > 0) {
-      const bpm = Math.max(20, Math.min(400, Math.round(60000 / avg)));
-      setValue(inputV, bpm);
-      handleInput();
-    }
-  }
-  if (tapHelp) {
-    tapHelp.style.display = tapTimes.length < 3 ? 'inline' : 'none';
-  }
-  clearTimeout(tapTimeout);
-  tapTimeout = setTimeout(() => {
+  if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 2000) {
     tapTimes = [];
-    if (tapHelp) tapHelp.style.display = 'inline';
-  }, 2500);
+  }
+  tapTimes.push(now);
+  const remaining = 3 - tapTimes.length;
+  if (remaining > 0) {
+    if (tapHelp) {
+      tapHelp.textContent = remaining === 2 ? '2 clicks más' : '1 click más solamente';
+      tapHelp.style.display = 'block';
+    }
+    return;
+  }
+
+  if (tapHelp) {
+    tapHelp.style.display = 'none';
+  }
+
+  const intervals = [];
+  for (let i = 1; i < tapTimes.length; i++) {
+    intervals.push(tapTimes[i] - tapTimes[i - 1]);
+  }
+  const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+  if (avg > 0) {
+    const bpm = Math.round((60000 / avg) * 100) / 100;
+    setValue(inputV, bpm);
+    handleInput();
+    if (isPlaying && audio && typeof audio.setTempo === 'function') {
+      audio.setTempo(bpm);
+    }
+  }
+  if (tapTimes.length > 8) tapTimes.shift();
 }
 
 tapBtn.addEventListener('click', tapTempo);
@@ -873,8 +1000,9 @@ function setCircular(value) {
   layoutTimeline();
 }
 
-const storedCircular = loadOpt('circular') === '1';
-setCircular(storedCircular);
+const storedCircularRaw = loadOpt('circular');
+const initialCircular = storedCircularRaw == null ? true : storedCircularRaw === '1';
+setCircular(initialCircular);
 
 circularTimelineToggle.addEventListener('change', () => {
   setCircular(circularTimelineToggle.checked);
@@ -882,25 +1010,25 @@ circularTimelineToggle.addEventListener('change', () => {
 
 function setupSoundDropdowns() {
   initSoundDropdown(baseSoundSelect, {
-    storageKey: 'baseSound',
+    storageKey: storeKey('baseSound'),
     eventType: 'baseSound',
     getAudio: initAudio,
     apply: (a, val) => a.setBase(val)
   });
   initSoundDropdown(startSoundSelect, {
-    storageKey: 'startSound',
+    storageKey: storeKey('startSound'),
     eventType: 'startSound',
     getAudio: initAudio,
     apply: (a, val) => a.setStart(val)
   });
   initSoundDropdown(cycleStartSoundSelect, {
-    storageKey: 'cycleStartSound',
+    storageKey: storeKey('cycleStartSound'),
     eventType: 'cycleStartSound',
     getAudio: initAudio,
     apply: (a, val) => (a && typeof a.setCycleStart === 'function' ? a.setCycleStart(val) : undefined)
   });
   initSoundDropdown(cycleSoundSelect, {
-    storageKey: 'cycleSound',
+    storageKey: storeKey('cycleSound'),
     eventType: 'cycleSound',
     getAudio: initAudio,
     apply: (a, val) => a.setCycle(val)
@@ -915,9 +1043,10 @@ function applyInitialState() {
   setValue(numeratorInput, '');
   setValue(denominatorInput, '');
   tapTimes = [];
-  clearTimeout(tapTimeout);
-  tapTimeout = null;
-  if (tapHelp) tapHelp.style.display = 'inline';
+  if (tapHelp) {
+    tapHelp.textContent = 'Se necesitan 3 clicks';
+    tapHelp.style.display = 'none';
+  }
   handleInput();
 }
 
@@ -945,9 +1074,10 @@ function initDefaults() {
   setValue(denominatorInput, Number.isFinite(storedD) && storedD > 0 ? storedD : '');
   handleInput();
   tapTimes = [];
-  clearTimeout(tapTimeout);
-  tapTimeout = null;
-  if (tapHelp) tapHelp.style.display = 'inline';
+  if (tapHelp) {
+    tapHelp.textContent = 'Se necesitan 3 clicks';
+    tapHelp.style.display = 'none';
+  }
 }
 
 initDefaults();
