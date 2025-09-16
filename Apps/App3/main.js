@@ -102,6 +102,8 @@ let cycleMarkers = [];
 let cycleLabels = [];
 let lastPulseStep = null;
 let lastCycleState = null;
+const T_INDICATOR_TRANSITION_DELAY = 650;
+let tIndicatorRevealTimeout = null;
 
 const tIndicator = document.createElement('div');
 tIndicator.id = 'tIndicator';
@@ -330,13 +332,13 @@ function updateTIndicatorText(value) {
 }
 
 function updateTIndicatorPosition() {
-  if (!timeline) return;
+  if (!timeline) return false;
   const lg = getLg();
-  if (!Number.isFinite(lg) || lg <= 0) return;
+  if (!Number.isFinite(lg) || lg <= 0) return false;
   let anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
   if (!anchor) anchor = timeline.querySelector(`.pulse[data-index="${lg}"]`);
   if (!anchor) anchor = pulses[pulses.length - 1] || null;
-  if (!anchor) return;
+  if (!anchor) return false;
   const tlRect = timeline.getBoundingClientRect();
   const aRect = anchor.getBoundingClientRect();
   const circular = timeline.classList.contains('circular');
@@ -353,40 +355,33 @@ function updateTIndicatorPosition() {
   tIndicator.style.top = `${topY}px`;
   tIndicator.style.transform = 'translate(-50%, 0)';
   if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
+  return true;
 }
 
-function revealTAfter(ms = 900) {
+function scheduleTIndicatorReveal(delay = 0) {
+  if (!tIndicator) return;
+  if (tIndicatorRevealTimeout) {
+    clearTimeout(tIndicatorRevealTimeout);
+    tIndicatorRevealTimeout = null;
+  }
+
+  const ms = Math.max(0, Number(delay) || 0);
+  if (ms === 0) {
+    requestAnimationFrame(() => {
+      const anchored = updateTIndicatorPosition();
+      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
+    });
+    return;
+  }
+
   tIndicator.style.visibility = 'hidden';
-  const deadline = performance.now() + 2500;
-  let start = null;
-
-  const step = () => {
-    const lgVal = getLg();
-    let anchor = timeline.querySelector(`.pulse-number[data-index="${lgVal}"]`);
-    if (!anchor) anchor = timeline.querySelector(`.pulse[data-index="${lgVal}"]`);
-    if (!anchor) anchor = pulses[pulses.length - 1] || null;
-
-    if (anchor) {
-      if (start === null) start = performance.now();
-      updateTIndicatorPosition();
-      if (performance.now() - start >= ms) {
-        updateTIndicatorPosition();
-        tIndicator.style.visibility = tIndicator.textContent ? 'visible' : 'hidden';
-      } else {
-        requestAnimationFrame(step);
-      }
-      return;
-    }
-
-    if (performance.now() < deadline) {
-      requestAnimationFrame(step);
-    } else {
-      updateTIndicatorPosition();
-      tIndicator.style.visibility = tIndicator.textContent ? 'visible' : 'hidden';
-    }
-  };
-
-  requestAnimationFrame(step);
+  tIndicatorRevealTimeout = setTimeout(() => {
+    tIndicatorRevealTimeout = null;
+    requestAnimationFrame(() => {
+      const anchored = updateTIndicatorPosition();
+      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
+    });
+  }, ms);
 }
 
 function clearHighlights() {
@@ -489,6 +484,10 @@ function layoutTimeline(opts = {}) {
   const silent = !!opts.silent;
   const lg = pulses.length - 1;
   const useCircular = circularTimeline && loopEnabled;
+  const wasCircular = timeline.classList.contains('circular');
+  const desiredCircular = !!useCircular;
+  const delay = (!silent && wasCircular !== desiredCircular) ? T_INDICATOR_TRANSITION_DELAY : 0;
+  scheduleTIndicatorReveal(delay);
 
   if (lg <= 0) {
     timelineWrapper.classList.remove('circular');
@@ -496,11 +495,10 @@ function layoutTimeline(opts = {}) {
     const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
     const guide = wrapper.querySelector('.circle-guide');
     if (guide) guide.style.opacity = '0';
-    updateTIndicatorPosition();
     return;
   }
 
-  if (useCircular) {
+  if (desiredCircular) {
     timelineWrapper.classList.add('circular');
     timeline.classList.add('circular');
     if (silent) timeline.classList.add('no-anim');
@@ -646,8 +644,6 @@ function layoutTimeline(opts = {}) {
       label.style.transform = 'translate(-50%, 0)';
     });
   }
-
-  updateTIndicatorPosition();
 }
 
 function handleInput() {
@@ -914,7 +910,7 @@ async function startPlayback() {
     iconPlay.style.display = 'none';
     iconStop.style.display = 'block';
   }
-  revealTAfter();
+  scheduleTIndicatorReveal(0);
   syncVisualState();
 }
 

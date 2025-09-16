@@ -182,6 +182,8 @@ let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
+const T_INDICATOR_TRANSITION_DELAY = 650;
+let tIndicatorRevealHandle = null;
 // Progress is now driven directly from audio callbacks
 // Progress is now driven directly from audio callbacks
 
@@ -260,9 +262,9 @@ function updateTIndicatorText(value) {
 }
 
 function updateTIndicatorPosition() {
-  if (!timeline) return;
+  if (!timeline) return false;
   const lg = parseInt(inputLg.value);
-  if (isNaN(lg) || lg <= 0) { return; }
+  if (isNaN(lg) || lg <= 0) { return false; }
 
   // Find the Lg label element and anchor 15px below it
   let anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
@@ -270,7 +272,7 @@ function updateTIndicatorPosition() {
   const tlRect = timeline.getBoundingClientRect();
   const circular = timeline.classList.contains('circular');
 
-  if (!anchor) { return; }
+  if (!anchor) { return false; }
 
   const aRect = anchor.getBoundingClientRect();
   const isLabel = anchor.classList.contains('pulse-number');
@@ -283,39 +285,32 @@ function updateTIndicatorPosition() {
   tIndicator.style.transform = 'translate(-50%, 0)';
 
   if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
+  return true;
 }
-function revealTAfter(ms = 900) {
+function scheduleTIndicatorReveal(delay = 0) {
+  if (!tIndicator) return;
+  if (tIndicatorRevealHandle) {
+    clearTimeout(tIndicatorRevealHandle);
+    tIndicatorRevealHandle = null;
+  }
+
+  const ms = Math.max(0, Number(delay) || 0);
+  if (ms === 0) {
+    requestAnimationFrame(() => {
+      const anchored = updateTIndicatorPosition();
+      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
+    });
+    return;
+  }
+
   tIndicator.style.visibility = 'hidden';
-  const deadline = performance.now() + 2500; // hard cap to avoid infinite loop
-  let start = null;
-
-  const step = () => {
-    const lgVal = parseInt(inputLg.value);
-    let anchor = timeline.querySelector(`.pulse-number[data-index="${lgVal}"]`);
-    if (!anchor) anchor = timeline.querySelector('.pulse.lg');
-
-    if (anchor) {
-      if (start === null) start = performance.now();
-      updateTIndicatorPosition();
-      if (performance.now() - start >= ms) {
-        updateTIndicatorPosition();
-        tIndicator.style.visibility = 'visible';
-      } else {
-        requestAnimationFrame(step);
-      }
-      return;
-    }
-
-    if (performance.now() < deadline) {
-      requestAnimationFrame(step);
-    } else {
-      // last resort: position once and show (should rarely happen)
-      updateTIndicatorPosition();
-      tIndicator.style.visibility = 'visible';
-    }
-  };
-
-  requestAnimationFrame(step);
+  tIndicatorRevealHandle = setTimeout(() => {
+    tIndicatorRevealHandle = null;
+    requestAnimationFrame(() => {
+      const anchored = updateTIndicatorPosition();
+      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
+    });
+  }, ms);
 }
 let suppressClickIndex = null;       // per evitar doble-toggle en drag start
 // --- Drag selection state ---
@@ -430,15 +425,12 @@ circularTimelineToggle.checked = (() => {
 circularTimeline = circularTimelineToggle.checked;
 updateTIndicatorPosition();
 updateTIndicatorText(parseNum(inputT?.value ?? '') || '');
-revealTAfter(350);
+scheduleTIndicatorReveal(350);
 
 circularTimelineToggle?.addEventListener('change', e => {
   circularTimeline = e.target.checked;
   saveOpt('circular', e.target.checked ? '1' : '0');
-  tIndicator.style.visibility = 'hidden';
   animateTimelineCircle(loopEnabled && circularTimeline);
-  // Reveal after transitions without following the animation
-  revealTAfter(650);
 });
 // Keep T indicator anchored on window resizes
 window.addEventListener('resize', updateTIndicatorPosition);
@@ -461,9 +453,7 @@ loopBtn.addEventListener('click', () => {
   if (isPlaying && audio && typeof audio.setLoop === 'function') {
     audio.setLoop(loopEnabled);
   }
-  tIndicator.style.visibility = 'hidden';
   animateTimelineCircle(loopEnabled && circularTimeline);
-  revealTAfter(650);
 });
 
 resetBtn.addEventListener('click', () => {
@@ -1122,10 +1112,15 @@ function togglePulse(i){
 
 function animateTimelineCircle(isCircular, opts = {}){
   const silent = !!opts.silent;
+  const desiredCircular = !!isCircular;
+  const wasCircular = timeline.classList.contains('circular');
+  const delay = (!silent && wasCircular !== desiredCircular) ? T_INDICATOR_TRANSITION_DELAY : 0;
+  scheduleTIndicatorReveal(delay);
+
   const lg = pulses.length - 1;
   const bars = timeline.querySelectorAll('.bar');
   if (lg <= 0) return;
-  if (isCircular) {
+  if (desiredCircular) {
     timelineWrapper.classList.add('circular');
     timeline.classList.add('circular');
     if (silent) timeline.classList.add('no-anim');
