@@ -703,6 +703,7 @@ function handleInput() {
       });
     }
     syncVisualState();
+    if (isPlaying) restartPlayback();
   }
 }
 
@@ -879,6 +880,24 @@ function syncVisualState() {
   } else if (lastCycleState) {
     highlightCycle(lastCycleState);
   }
+}
+
+async function restartPlayback() {
+  const lg = getLg();
+  const v = getV();
+  if (!Number.isFinite(lg) || lg <= 0 || !Number.isFinite(v) || v <= 0) return;
+  const audioInstance = await initAudio();
+  audioInstance.stop();
+  isPlaying = false;
+  clearHighlights();
+  const iconPlay = playBtn.querySelector('.icon-play');
+  const iconStop = playBtn.querySelector('.icon-stop');
+  if (iconPlay && iconStop) {
+    iconPlay.style.display = 'block';
+    iconStop.style.display = 'none';
+  }
+  await startPlayback();
+  syncVisualState();
 }
 
 async function startPlayback() {
