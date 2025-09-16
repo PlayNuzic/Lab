@@ -284,6 +284,17 @@ export class TimelineAudio {
     } else if (!prev && this.loopRef) {
       this._remainingPulses = Infinity;
     }
+
+    if (this.isPlaying && this._cycleConfig) {
+      const cfg = this._cycleConfig;
+      this.updateCycleConfig({
+        numerator: Number.isFinite(cfg.numerator) ? cfg.numerator : null,
+        denominator: Number.isFinite(cfg.denominator) ? cfg.denominator : null,
+        totalPulses: Number.isFinite(cfg.totalPulses) ? cfg.totalPulses : null,
+        interval: Number.isFinite(cfg.interval) ? cfg.interval : null,
+        onTick: cfg && typeof cfg.onCycle === 'function' ? cfg.onCycle : null
+      });
+    }
   }
 
   /**
@@ -686,15 +697,18 @@ export class TimelineAudio {
     const offsetNormalized = totalDuration > 0
       ? ((rawOffset % totalDuration) + totalDuration) % totalDuration
       : 0;
-    const startDelay = (offsetNormalized === 0 || totalDuration === 0)
-      ? 0
-      : (totalDuration - offsetNormalized);
 
     for (let cycleIndex = 0; cycleIndex < cycles; cycleIndex++) {
       const cycleStart = cycleIndex * validNum * stepInterval;
       for (let sub = 0; sub < validDen; sub++) {
         const baseTime = cycleStart + sub * subInterval;
-        const eventTime = baseTime;
+        let eventTime = baseTime - offsetNormalized;
+        if (wrap) {
+          while (eventTime < 0) eventTime += totalDuration;
+          eventTime = eventTime % totalDuration;
+        } else if (eventTime < 0) {
+          continue;
+        }
         events.push([eventTime, {
           cycleIndex,
           subdivisionIndex: sub,
@@ -744,7 +758,7 @@ export class TimelineAudio {
       }, events);
       part.loop = wrap;
       part.loopEnd = totalDuration;
-      const launchAt = (Number.isFinite(startAt) ? startAt : 0) + (startDelay || 0);
+      const launchAt = Number.isFinite(startAt) ? startAt : 0;
       part.start(launchAt);
       this._cyclePart = part;
       this._cycleConfig = {
@@ -814,6 +828,13 @@ export class TimelineAudio {
 
     const elapsed = this._computeElapsedSeconds(effectiveInterval);
     this._refreshPulsePhase(effectiveInterval, { clampToCycle: this.loopRef });
+    if (!this.loopRef && Number.isFinite(this.totalRef) && this.totalRef > 0) {
+      const total = this.totalRef;
+      const current = this.pulseIndex % total;
+      let remaining = total - current;
+      if (!Number.isFinite(remaining) || remaining <= 0) remaining = total;
+      this._remainingPulses = remaining;
+    }
     let startAt = this._getTransportSeconds();
     if (!Number.isFinite(startAt)) {
       startAt = elapsed;
