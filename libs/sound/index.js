@@ -170,6 +170,7 @@ export class TimelineAudio {
     this.totalRef = 0;
     this.pulseIndex = 0;
     this.onCompleteRef = null;
+    this._onPulseRef = null;
     this._cyclePart = null;
     this._cycleConfig = null;
     this._clickDur = 0.05;
@@ -267,6 +268,19 @@ export class TimelineAudio {
    */
   setLoop(enabled) {
     this.loopRef = !!enabled;
+    if (this._cyclePart) {
+      this._cyclePart.loop = this.loopRef;
+    }
+    if (this.isPlaying && this._cycleConfig) {
+      const cfg = this._cycleConfig;
+      this.updateCycleConfig({
+        numerator: cfg && Number.isFinite(cfg.numerator) ? cfg.numerator : null,
+        denominator: cfg && Number.isFinite(cfg.denominator) ? cfg.denominator : null,
+        totalPulses: cfg && Number.isFinite(cfg.totalPulses) ? cfg.totalPulses : null,
+        interval: cfg && Number.isFinite(cfg.interval) ? cfg.interval : null,
+        onTick: cfg && typeof cfg.onCycle === 'function' ? cfg.onCycle : null
+      });
+    }
   }
 
   /**
@@ -285,6 +299,7 @@ export class TimelineAudio {
         }
       }
     } catch {}
+    this._refreshPulsePhase(60 / bpm);
   }
 
   /**
@@ -427,6 +442,7 @@ export class TimelineAudio {
     this.totalRef = totalPulses;
     this.intervalRef = interval;
     this.onCompleteRef = onComplete;
+    this._onPulseRef = typeof onPulse === 'function' ? onPulse : null;
     this.pulseIndex = 0;
     const hasLookAhead = Number.isFinite(this.lookAhead) ? this.lookAhead : 0;
     const ctxNow = (typeof Tone !== 'undefined' && Tone && typeof Tone.now === 'function') ? Tone.now() : null;
@@ -457,9 +473,9 @@ export class TimelineAudio {
         try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}
       }
 
-      if (typeof onPulse === 'function') {
+      if (this._onPulseRef) {
         Tone.Draw.schedule(() => {
-          if (scheduleId === this.currentScheduleId) onPulse(step);
+          if (scheduleId === this.currentScheduleId) this._onPulseRef(step);
         }, t);
       }
 
@@ -515,6 +531,7 @@ export class TimelineAudio {
   setTotal(totalPulses) {
     if (typeof totalPulses === 'number' && totalPulses > 0) {
       this.totalRef = totalPulses;
+      this._refreshPulsePhase();
     }
   }
 
@@ -525,6 +542,7 @@ export class TimelineAudio {
     this.isPlaying = false;
     this.currentScheduleId++;
     this._startContextTime = null;
+    this._onPulseRef = null;
 
     if (this._repeatId != null) {
       try { Tone.Transport.clear(this._repeatId); } catch {}
@@ -592,6 +610,19 @@ export class TimelineAudio {
     }
 
     return 0;
+  }
+
+  _refreshPulsePhase(intervalHint) {
+    if (!this.isPlaying) return;
+    const interval = Number.isFinite(intervalHint) && intervalHint > 0
+      ? intervalHint
+      : (Number.isFinite(this.intervalRef) && this.intervalRef > 0 ? this.intervalRef : null);
+    if (!interval) return;
+
+    const elapsed = this._computeElapsedSeconds(interval);
+    if (!Number.isFinite(elapsed)) return;
+    const pulsesElapsed = Math.max(0, Math.floor((elapsed / interval) + 1e-6));
+    this.pulseIndex = pulsesElapsed;
   }
 
   _configureCyclePart({ numerator, denominator, totalPulses, interval, onCycle, scheduleId, offset = 0, startAt = 0 } = {}) {
@@ -730,6 +761,14 @@ export class TimelineAudio {
       ? interval
       : (this._cycleConfig && Number.isFinite(this._cycleConfig.interval) ? this._cycleConfig.interval : this.intervalRef);
 
+    if (Number.isFinite(effectiveInterval) && effectiveInterval > 0) {
+      this.intervalRef = effectiveInterval;
+      const fade = Math.min(0.05, effectiveInterval / 2);
+      const dur = Math.max(0.01, effectiveInterval - fade);
+      this._clickDur = dur;
+      Object.values(this.samplers).forEach(s => { if (s) s.release = fade; });
+    }
+
     if (!this.isPlaying) {
       this._cycleConfig = {
         numerator: Number.isFinite(effectiveNum) ? effectiveNum : null,
@@ -754,6 +793,7 @@ export class TimelineAudio {
     }
 
     const elapsed = this._computeElapsedSeconds(effectiveInterval);
+    this._refreshPulsePhase(effectiveInterval);
     let startAt = this._getTransportSeconds();
     if (!Number.isFinite(startAt)) {
       startAt = elapsed;
