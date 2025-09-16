@@ -39,6 +39,9 @@ const loadOpt = (key) => {
 const saveOpt = (key, value) => {
   try { localStorage.setItem(storeKey(key), value); } catch {}
 };
+const clearOpt = (key) => {
+  try { localStorage.removeItem(storeKey(key)); } catch {}
+};
 
 const inputLg = document.getElementById('inputLg');
 const inputV = document.getElementById('inputV');
@@ -76,6 +79,7 @@ const randComplexToggle = document.getElementById('randComplexToggle');
 
 const baseSoundSelect = document.getElementById('baseSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
+const cycleStartSoundSelect = document.getElementById('cycleStartSoundSelect');
 const cycleSoundSelect = document.getElementById('cycleSoundSelect');
 const themeSelect = document.getElementById('themeSelect');
 
@@ -105,7 +109,8 @@ function initFractionEditor() {
   numeratorInput.min = '1';
   numeratorInput.step = '1';
   numeratorInput.className = 'numerator';
-  numeratorInput.value = defaults.numerator;
+  numeratorInput.placeholder = 'n';
+  numeratorInput.value = '';
   top.appendChild(numeratorInput);
 
   const bottom = document.createElement('div');
@@ -115,7 +120,8 @@ function initFractionEditor() {
   denominatorInput.min = '1';
   denominatorInput.step = '1';
   denominatorInput.className = 'denominator';
-  denominatorInput.value = defaults.denominator;
+  denominatorInput.placeholder = 'd';
+  denominatorInput.value = '';
   bottom.appendChild(denominatorInput);
 
   container.appendChild(top);
@@ -138,9 +144,10 @@ function initFractionEditor() {
     input.addEventListener('blur', () => {
       let val = parseInt(input.value, 10);
       if (!Number.isFinite(val) || val <= 0) {
-        val = input === numeratorInput ? defaults.numerator : defaults.denominator;
+        input.value = '';
+      } else {
+        input.value = String(val);
       }
-      input.value = String(val);
       handleInput();
     });
   };
@@ -164,7 +171,8 @@ function parseFloatSafe(val) {
 function setValue(input, value) {
   if (!input) return;
   isUpdating = true;
-  input.value = String(value);
+  const normalized = value == null || Number.isNaN(value) ? '' : String(value);
+  input.value = normalized;
   isUpdating = false;
 }
 
@@ -211,6 +219,7 @@ window.addEventListener('sharedui:sound', async (e) => {
   if (!value) return;
   if (type === 'baseSound') await audio.setBase(value);
   else if (type === 'startSound') await audio.setStart(value);
+  else if (type === 'cycleStartSound') await audio.setCycleStart(value);
   else if (type === 'cycleSound') await audio.setCycle(value);
 });
 
@@ -243,8 +252,8 @@ function getFraction() {
   const n = parseIntSafe(numeratorInput.value);
   const d = parseIntSafe(denominatorInput.value);
   return {
-    numerator: Number.isFinite(n) && n > 0 ? n : defaults.numerator,
-    denominator: Number.isFinite(d) && d > 0 ? d : defaults.denominator
+    numerator: Number.isFinite(n) && n > 0 ? n : null,
+    denominator: Number.isFinite(d) && d > 0 ? d : null
   };
 }
 
@@ -255,11 +264,11 @@ function updateTIndicatorText(value) {
   }
   const n = Number(value);
   if (!Number.isFinite(n)) {
-    tIndicator.textContent = String(value);
+    tIndicator.textContent = `T: ${String(value)}`;
     return;
   }
   const rounded = Math.round(n * 10) / 10;
-  tIndicator.textContent = String(rounded);
+  tIndicator.textContent = `T: ${rounded}`;
 }
 
 function updateTIndicatorPosition() {
@@ -271,7 +280,12 @@ function updateTIndicatorPosition() {
   const tlRect = timeline.getBoundingClientRect();
   const aRect = anchor.getBoundingClientRect();
   const circular = timeline.classList.contains('circular');
-  const offsetX = circular && anchor.classList.contains('pulse-number') ? -18 : 0;
+  let offsetX = 0;
+  if (circular && anchor.classList.contains('pulse-number')) {
+    const anchorIndex = parseIntSafe(anchor.dataset.index);
+    if (anchorIndex === 0) offsetX = -16;
+    else if (anchorIndex === lg) offsetX = 16;
+  }
   const centerX = aRect.left + aRect.width / 2 - tlRect.left + offsetX;
   const topY = aRect.bottom - tlRect.top + 15;
   tIndicator.style.left = `${centerX}px`;
@@ -329,9 +343,12 @@ function renderTimeline() {
   }
 
   const { numerator, denominator } = getFraction();
-  if (numerator > 0 && denominator > 0) {
+  if (Number.isFinite(numerator) && Number.isFinite(denominator) && numerator > 0 && denominator > 0) {
     const cycles = Math.floor(lg / numerator);
-    const labelFormatter = (cycleIndex, subdivision) => `${cycleIndex}.${subdivision}`;
+    const labelFormatter = (cycleIndex, subdivision) => {
+      const base = cycleIndex * numerator;
+      return subdivision === 0 ? String(base) : `${base}.${subdivision}`;
+    };
     for (let c = 0; c < cycles; c++) {
       for (let s = 0; s < denominator; s++) {
         const marker = document.createElement('div');
@@ -391,8 +408,19 @@ function updatePulseNumbers() {
 function layoutTimeline(opts = {}) {
   const silent = !!opts.silent;
   const lg = pulses.length - 1;
-  if (lg <= 0) return;
-  if (circularTimeline) {
+  const useCircular = circularTimeline && loopEnabled;
+
+  if (lg <= 0) {
+    timelineWrapper.classList.remove('circular');
+    timeline.classList.remove('circular');
+    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
+    const guide = wrapper.querySelector('.circle-guide');
+    if (guide) guide.style.opacity = '0';
+    updateTIndicatorPosition();
+    return;
+  }
+
+  if (useCircular) {
     timelineWrapper.classList.add('circular');
     timeline.classList.add('circular');
     if (silent) timeline.classList.add('no-anim');
@@ -437,12 +465,15 @@ function layoutTimeline(opts = {}) {
       });
 
       const numbers = timeline.querySelectorAll('.pulse-number');
-      numbers.forEach((label) => {
+      numbers.forEach(label => {
         const idx = parseIntSafe(label.dataset.index);
         const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
         const innerRadius = radius - NUMBER_CIRCLE_OFFSET;
-        const x = cx + innerRadius * Math.cos(angle);
-        const y = cy + innerRadius * Math.sin(angle);
+        let x = cx + innerRadius * Math.cos(angle);
+        let y = cy + innerRadius * Math.sin(angle);
+        if (idx === 0) x -= 16;
+        else if (idx === lg) x += 16;
+        if (idx === 0 || idx === lg) y += 8;
         label.style.left = `${x}px`;
         label.style.top = `${y}px`;
         label.style.transform = 'translate(-50%, -50%)';
@@ -455,8 +486,8 @@ function layoutTimeline(opts = {}) {
         const my = cy + radius * Math.sin(angle);
         marker.style.left = `${mx}px`;
         marker.style.top = `${my}px`;
-        marker.style.transformOrigin = '50% 100%';
-        marker.style.transform = `translate(-50%, -100%) rotate(${angle + Math.PI / 2}rad)`;
+        marker.style.transformOrigin = '50% 50%';
+        marker.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
       });
 
       const labelOffset = 36;
@@ -485,12 +516,17 @@ function layoutTimeline(opts = {}) {
   } else {
     timelineWrapper.classList.remove('circular');
     timeline.classList.remove('circular');
+    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
+    const guide = wrapper.querySelector('.circle-guide');
+    if (guide) guide.style.opacity = '0';
+
     pulses.forEach((pulse, idx) => {
       const percent = (idx / lg) * 100;
       pulse.style.left = `${percent}%`;
       pulse.style.top = '50%';
       pulse.style.transform = 'translate(-50%, -50%)';
     });
+
     bars.forEach((bar, idx) => {
       const step = idx === 0 ? 0 : lg;
       const percent = (step / lg) * 100;
@@ -500,6 +536,7 @@ function layoutTimeline(opts = {}) {
       bar.style.height = '70%';
       bar.style.transform = '';
     });
+
     const numbers = timeline.querySelectorAll('.pulse-number');
     numbers.forEach(label => {
       const idx = parseIntSafe(label.dataset.index);
@@ -508,6 +545,7 @@ function layoutTimeline(opts = {}) {
       label.style.top = '-28px';
       label.style.transform = 'translate(-50%, 0)';
     });
+
     cycleMarkers.forEach(marker => {
       const pos = Number(marker.dataset.position);
       const percent = (pos / lg) * 100;
@@ -516,6 +554,7 @@ function layoutTimeline(opts = {}) {
       marker.style.transformOrigin = '50% 50%';
       marker.style.transform = 'translate(-50%, -50%)';
     });
+
     cycleLabels.forEach(label => {
       const pos = Number(label.dataset.position);
       const percent = (pos / lg) * 100;
@@ -524,6 +563,7 @@ function layoutTimeline(opts = {}) {
       label.style.transform = 'translate(-50%, 0)';
     });
   }
+
   updateTIndicatorPosition();
 }
 
@@ -564,8 +604,10 @@ function adjustInput(input, delta) {
   el.addEventListener('blur', () => {
     const val = el === inputV ? parseFloatSafe(el.value) : parseIntSafe(el.value);
     if (!Number.isFinite(val) || val <= 0) {
-      const fallback = el === inputLg ? defaults.Lg : defaults.V;
-      setValue(el, fallback);
+      setValue(el, '');
+    } else {
+      const normalized = Math.max(1, Math.round(val));
+      setValue(el, normalized);
     }
     handleInput();
   });
@@ -702,11 +744,15 @@ async function startPlayback() {
   const v = getV();
   const { numerator, denominator } = getFraction();
   if (!Number.isFinite(lg) || !Number.isFinite(v) || lg <= 0 || v <= 0) return;
-  const hasCycle = numerator > 0 && denominator > 0 && Math.floor(lg / numerator) > 0;
+  const hasCycle = Number.isFinite(numerator) && Number.isFinite(denominator)
+    && numerator > 0 && denominator > 0 && Math.floor(lg / numerator) > 0;
 
   const audioInstance = await initAudio();
   await audioInstance.setBase(baseSoundSelect?.dataset.value || baseSoundSelect?.value);
   await audioInstance.setStart(startSoundSelect?.dataset.value || startSoundSelect?.value);
+  if (audioInstance.setCycleStart) {
+    await audioInstance.setCycleStart(cycleStartSoundSelect?.dataset.value || cycleStartSoundSelect?.value);
+  }
   await audioInstance.setCycle(cycleSoundSelect?.dataset.value || cycleSoundSelect?.value);
 
   const interval = 60 / v;
@@ -770,22 +816,20 @@ loopBtn.addEventListener('click', () => {
   if (audio && typeof audio.setLoop === 'function') {
     audio.setLoop(loopEnabled);
   }
+  layoutTimeline();
 });
 
 resetBtn.addEventListener('click', () => {
-  setValue(inputLg, defaults.Lg);
-  setValue(inputV, defaults.V);
-  setValue(numeratorInput, defaults.numerator);
-  setValue(denominatorInput, defaults.denominator);
+  ['Lg', 'V', 'n', 'd'].forEach(clearOpt);
   loopEnabled = false;
   loopBtn.classList.remove('active');
   circularTimeline = false;
   circularTimelineToggle.checked = false;
   saveOpt('circular', '0');
-  handleInput();
-  clearHighlights();
   if (audio) audio.stop();
   isPlaying = false;
+  clearHighlights();
+  applyInitialState();
   const iconPlay = playBtn.querySelector('.icon-play');
   const iconStop = playBtn.querySelector('.icon-stop');
   if (iconPlay && iconStop) {
@@ -849,6 +893,12 @@ function setupSoundDropdowns() {
     getAudio: initAudio,
     apply: (a, val) => a.setStart(val)
   });
+  initSoundDropdown(cycleStartSoundSelect, {
+    storageKey: 'cycleStartSound',
+    eventType: 'cycleStartSound',
+    getAudio: initAudio,
+    apply: (a, val) => (a && typeof a.setCycleStart === 'function' ? a.setCycleStart(val) : undefined)
+  });
   initSoundDropdown(cycleSoundSelect, {
     storageKey: 'cycleSound',
     eventType: 'cycleSound',
@@ -859,16 +909,45 @@ function setupSoundDropdowns() {
 
 setupSoundDropdowns();
 
+function applyInitialState() {
+  setValue(inputLg, '');
+  setValue(inputV, '');
+  setValue(numeratorInput, '');
+  setValue(denominatorInput, '');
+  tapTimes = [];
+  clearTimeout(tapTimeout);
+  tapTimeout = null;
+  if (tapHelp) tapHelp.style.display = 'inline';
+  handleInput();
+}
+
 function initDefaults() {
   const storedLg = parseIntSafe(loadOpt('Lg'));
-  const storedV = parseIntSafe(loadOpt('V'));
+  const storedV = parseFloatSafe(loadOpt('V'));
   const storedN = parseIntSafe(loadOpt('n'));
   const storedD = parseIntSafe(loadOpt('d'));
-  setValue(inputLg, Number.isFinite(storedLg) && storedLg > 0 ? storedLg : defaults.Lg);
-  setValue(inputV, Number.isFinite(storedV) && storedV > 0 ? storedV : defaults.V);
-  setValue(numeratorInput, Number.isFinite(storedN) && storedN > 0 ? storedN : defaults.numerator);
-  setValue(denominatorInput, Number.isFinite(storedD) && storedD > 0 ? storedD : defaults.denominator);
+  const hasStored = (
+    (Number.isFinite(storedLg) && storedLg > 0)
+    || (Number.isFinite(storedV) && storedV > 0)
+    || (Number.isFinite(storedN) && storedN > 0)
+    || (Number.isFinite(storedD) && storedD > 0)
+  );
+
+  if (!hasStored) {
+    applyInitialState();
+    return;
+  }
+
+  setValue(inputLg, Number.isFinite(storedLg) && storedLg > 0 ? storedLg : '');
+  const validV = Number.isFinite(storedV) && storedV > 0 ? Math.round(storedV) : '';
+  setValue(inputV, validV);
+  setValue(numeratorInput, Number.isFinite(storedN) && storedN > 0 ? storedN : '');
+  setValue(denominatorInput, Number.isFinite(storedD) && storedD > 0 ? storedD : '');
   handleInput();
+  tapTimes = [];
+  clearTimeout(tapTimeout);
+  tapTimeout = null;
+  if (tapHelp) tapHelp.style.display = 'inline';
 }
 
 initDefaults();
@@ -876,7 +955,9 @@ initDefaults();
 [inputLg, inputV, numeratorInput, denominatorInput].forEach((el, idx) => {
   el.addEventListener('change', () => {
     const keys = ['Lg', 'V', 'n', 'd'];
-    saveOpt(keys[idx], el.value);
+    const raw = typeof el.value === 'string' ? el.value.trim() : el.value;
+    if (raw === '' || raw == null) clearOpt(keys[idx]);
+    else saveOpt(keys[idx], raw);
   });
 });
 

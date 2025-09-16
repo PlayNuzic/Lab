@@ -147,13 +147,15 @@ export class TimelineAudio {
     this.accentKey = 'click2';
     this.startKey = 'click3';
     this.cycleKey = 'click4';
+    this.cycleStartKey = 'click5';
 
     this.samplers = {
       base: null,
       accent: null,
       start: null,
       selected: null,
-      cycle: null
+      cycle: null,
+      cycleStart: null
     };
 
     this.isReady = false;
@@ -185,12 +187,13 @@ export class TimelineAudio {
   }
 
   async _loadAllSamplers() {
-    const [base, accent, start, selected, cycle] = await Promise.all([
+    const [base, accent, start, selected, cycle, cycleStart] = await Promise.all([
       this._createSampler(this.baseKey),
       this._createSampler(this.accentKey),
       this._createSampler(this.startKey),
       this._createSampler(this.baseKey),
-      this._createSampler(this.cycleKey)
+      this._createSampler(this.cycleKey),
+      this._createSampler(this.cycleStartKey)
     ]);
 
     this.samplers.base = base;
@@ -198,6 +201,7 @@ export class TimelineAudio {
     this.samplers.start = start;
     this.samplers.selected = selected;
     this.samplers.cycle = cycle;
+    this.samplers.cycleStart = cycleStart;
   }
 
   async _createSampler(soundKey) {
@@ -357,6 +361,22 @@ export class TimelineAudio {
     }
   }
 
+  async setCycleStart(key) {
+    if (!key) return;
+    this._cycleStartReqId = (this._cycleStartReqId || 0) + 1;
+    const reqId = this._cycleStartReqId;
+    const prev = this.samplers.cycleStart;
+    try {
+      const sampler = await this._createSampler(key);
+      if (reqId !== this._cycleStartReqId) { sampler.dispose(); return; }
+      this.cycleStartKey = key;
+      this.samplers.cycleStart = sampler;
+      if (prev) prev.dispose();
+    } catch (e) {
+      console.warn('Failed to set cycle start sound', e);
+    }
+  }
+
   async setSelectedSound(key) {
     if (this.samplers.selected) {
       this.samplers.selected.dispose();
@@ -479,7 +499,13 @@ export class TimelineAudio {
           try {
             const part = new Tone.Part((t, payload) => {
               if (scheduleId !== this.currentScheduleId) return;
-              const sampler = this.samplers.cycle || this.samplers.accent || this.samplers.base;
+              const isCycleStart = payload && payload.subdivisionIndex === 0;
+              let sampler = null;
+              if (isCycleStart) {
+                sampler = this.samplers.cycleStart || this.samplers.cycle || this.samplers.accent || this.samplers.base;
+              } else {
+                sampler = this.samplers.cycle || this.samplers.accent || this.samplers.base;
+              }
               if (sampler) {
                 try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}
               }

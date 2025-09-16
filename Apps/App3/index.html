@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ciclos Fraccionados</title>
+  <title>Fraciones Temporales</title>
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="styles.css" />
@@ -18,7 +18,7 @@
     import { renderApp } from '../../libs/app-common/template.js';
     renderApp({
       root: document.getElementById('app-root'),
-      title: 'Ciclos Fraccionados',
+      title: 'Fraciones Temporales',
       showSelectColor: false,
       showAccent: false,
       randomMenuContent: `
@@ -48,19 +48,37 @@
     if (inputsSection) inputsSection.style.left = '0';
     const soundGroup = document.querySelector('.sound-group');
     if (soundGroup) {
-      const p = document.createElement('p');
-      p.textContent = 'Ciclo';
-      soundGroup.appendChild(p);
-      const row = document.createElement('div');
-      row.className = 'preview-row';
+      const labels = soundGroup.querySelectorAll('p');
+      const startLabel = labels?.[1];
+      if (startLabel) startLabel.textContent = 'Inicio Pulso';
+
+      const cycleStartTitle = document.createElement('p');
+      cycleStartTitle.textContent = 'Inicio Ciclo';
+      soundGroup.appendChild(cycleStartTitle);
+      const cycleStartRow = document.createElement('div');
+      cycleStartRow.className = 'preview-row';
+      const cycleStartHiddenLabel = document.createElement('label');
+      cycleStartHiddenLabel.setAttribute('for', 'cycleStartSoundSelect');
+      cycleStartHiddenLabel.style.display = 'none';
+      cycleStartRow.appendChild(cycleStartHiddenLabel);
+      const cycleStartSlot = document.createElement('div');
+      cycleStartSlot.id = 'cycleStartSoundSelect';
+      cycleStartRow.appendChild(cycleStartSlot);
+      soundGroup.appendChild(cycleStartRow);
+
+      const cycleTitle = document.createElement('p');
+      cycleTitle.textContent = 'Ciclo';
+      soundGroup.appendChild(cycleTitle);
+      const cycleRow = document.createElement('div');
+      cycleRow.className = 'preview-row';
       const hiddenLabel = document.createElement('label');
       hiddenLabel.setAttribute('for', 'cycleSoundSelect');
       hiddenLabel.style.display = 'none';
-      row.appendChild(hiddenLabel);
+      cycleRow.appendChild(hiddenLabel);
       const slot = document.createElement('div');
       slot.id = 'cycleSoundSelect';
-      row.appendChild(slot);
-      soundGroup.appendChild(row);
+      cycleRow.appendChild(slot);
+      soundGroup.appendChild(cycleRow);
     }
 
     initHeader();

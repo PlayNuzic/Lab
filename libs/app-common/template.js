@@ -44,7 +44,7 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
               <label for=\"accentSoundSelect\" style=\"display:none\"></label>
               <div id=\"accentSoundSelect\"></div>
             </div>` : ''}
-            <p>Inicio</p>
+            <p>Inicio Pulso</p>
             <div class="preview-row">
               <label for="startSoundSelect" style="display:none"></label>
               <div id="startSoundSelect"></div>
