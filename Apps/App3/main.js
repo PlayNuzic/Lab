@@ -89,6 +89,8 @@ let pulses = [];
 let bars = [];
 let cycleMarkers = [];
 let cycleLabels = [];
+let lastPulseStep = null;
+let lastCycleState = null;
 
 const tIndicator = document.createElement('div');
 tIndicator.id = 'tIndicator';
@@ -700,6 +702,7 @@ function handleInput() {
         onTick: hasCycle ? highlightCycle : undefined
       });
     }
+    syncVisualState();
   }
 }
 
@@ -830,15 +833,19 @@ initRandomMenu(randomBtn, randomMenu, randomize);
 function highlightPulse(index) {
   if (!isPlaying) return;
   pulses.forEach(p => p.classList.remove('active'));
-  const lg = pulses.length;
-  if (!lg) return;
-  const idx = index % lg;
-  const pulse = pulses[idx];
+  const total = pulses.length > 1 ? pulses.length - 1 : 0;
+  if (total <= 0) return;
+  const raw = Number.isFinite(index) ? index : 0;
+  const normalized = loopEnabled
+    ? ((raw % total) + total) % total
+    : Math.max(0, Math.min(raw, total - 1));
+  lastPulseStep = normalized;
+  const pulse = pulses[normalized];
   if (pulse) {
     void pulse.offsetWidth;
     pulse.classList.add('active');
   }
-  if (loopEnabled && idx === 0) {
+  if (loopEnabled && normalized === 0) {
     const last = pulses[pulses.length - 1];
     if (last) last.classList.add('active');
   }
@@ -846,6 +853,7 @@ function highlightPulse(index) {
 
 function highlightCycle({ cycleIndex, subdivisionIndex }) {
   if (!isPlaying) return;
+  lastCycleState = { cycleIndex, subdivisionIndex };
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   const marker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === cycleIndex && Number(m.dataset.subdivision) === subdivisionIndex);
@@ -855,6 +863,22 @@ function highlightCycle({ cycleIndex, subdivisionIndex }) {
     marker.classList.add('active');
   }
   if (label) label.classList.add('active');
+}
+
+function syncVisualState() {
+  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
+  const state = audio.getVisualState();
+  if (state && Number.isFinite(state.step)) {
+    highlightPulse(state.step);
+  } else if (lastPulseStep != null) {
+    highlightPulse(lastPulseStep);
+  }
+
+  if (state && state.cycle && Number.isFinite(state.cycle.cycleIndex) && Number.isFinite(state.cycle.subdivisionIndex)) {
+    highlightCycle(state.cycle);
+  } else if (lastCycleState) {
+    highlightCycle(lastCycleState);
+  }
 }
 
 async function startPlayback() {
@@ -884,6 +908,8 @@ async function startPlayback() {
       iconStop.style.display = 'none';
     }
     clearHighlights();
+    lastPulseStep = null;
+    lastCycleState = null;
     audioInstance.stop();
   };
 
@@ -907,6 +933,7 @@ async function startPlayback() {
     iconStop.style.display = 'block';
   }
   revealTAfter();
+  syncVisualState();
 }
 
 playBtn.addEventListener('click', async () => {
@@ -916,6 +943,8 @@ playBtn.addEventListener('click', async () => {
     isPlaying = false;
     playBtn.classList.remove('active');
     clearHighlights();
+    lastPulseStep = null;
+    lastCycleState = null;
     const iconPlay = playBtn.querySelector('.icon-play');
     const iconStop = playBtn.querySelector('.icon-stop');
     if (iconPlay && iconStop) {
@@ -935,6 +964,7 @@ loopBtn.addEventListener('click', () => {
     audio.setLoop(loopEnabled);
   }
   layoutTimeline();
+  syncVisualState();
 });
 
 resetBtn.addEventListener('click', () => {

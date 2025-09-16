@@ -638,6 +638,32 @@ export class TimelineAudio {
     return 0;
   }
 
+  getVisualState() {
+    if (!this.isPlaying) return null;
+    const interval = this.intervalRef;
+    const total = this.totalRef;
+    if (!Number.isFinite(interval) || interval <= 0 || !Number.isFinite(total) || total <= 0) {
+      return null;
+    }
+
+    const elapsed = this._computeElapsedSeconds(interval);
+    if (!Number.isFinite(elapsed)) return null;
+
+    const pulsesFloat = elapsed / interval;
+    let step;
+    if (this.loopRef) {
+      const modulo = total;
+      const normalized = ((pulsesFloat % modulo) + modulo) % modulo;
+      step = Math.floor(normalized + 1e-6);
+    } else {
+      const clamped = Math.min(pulsesFloat, total - 1 + 1e-6);
+      step = Math.floor(Math.max(0, clamped));
+    }
+
+    if (!Number.isFinite(step)) step = 0;
+    return { step };
+  }
+
   _refreshPulsePhase(intervalHint, { clampToCycle = false } = {}) {
     if (!this.isPlaying) return;
     const interval = Number.isFinite(intervalHint) && intervalHint > 0
