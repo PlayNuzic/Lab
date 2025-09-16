@@ -146,12 +146,14 @@ export class TimelineAudio {
     this.baseKey = 'click1';
     this.accentKey = 'click2';
     this.startKey = 'click3';
+    this.cycleKey = 'click4';
 
     this.samplers = {
       base: null,
       accent: null,
       start: null,
-      selected: null
+      selected: null,
+      cycle: null
     };
 
     this.isReady = false;
@@ -166,6 +168,8 @@ export class TimelineAudio {
     this.totalRef = 0;
     this.pulseIndex = 0;
     this.onCompleteRef = null;
+    this._cyclePart = null;
+    this._cycleConfig = null;
 
     this._readyPromise = this._initialize();
   }
@@ -181,17 +185,19 @@ export class TimelineAudio {
   }
 
   async _loadAllSamplers() {
-    const [base, accent, start, selected] = await Promise.all([
+    const [base, accent, start, selected, cycle] = await Promise.all([
       this._createSampler(this.baseKey),
       this._createSampler(this.accentKey),
       this._createSampler(this.startKey),
-      this._createSampler(this.baseKey)
+      this._createSampler(this.baseKey),
+      this._createSampler(this.cycleKey)
     ]);
 
     this.samplers.base = base;
     this.samplers.accent = accent;
     this.samplers.start = start;
     this.samplers.selected = selected;
+    this.samplers.cycle = cycle;
   }
 
   async _createSampler(soundKey) {
@@ -335,6 +341,22 @@ export class TimelineAudio {
     }
   }
 
+  async setCycle(key) {
+    if (!key) return;
+    this._cycleReqId = (this._cycleReqId || 0) + 1;
+    const reqId = this._cycleReqId;
+    const prev = this.samplers.cycle;
+    try {
+      const sampler = await this._createSampler(key);
+      if (reqId !== this._cycleReqId) { sampler.dispose(); return; }
+      this.cycleKey = key;
+      this.samplers.cycle = sampler;
+      if (prev) prev.dispose();
+    } catch (e) {
+      console.warn('Failed to set cycle sound', e);
+    }
+  }
+
   async setSelectedSound(key) {
     if (this.samplers.selected) {
       this.samplers.selected.dispose();
@@ -355,7 +377,12 @@ export class TimelineAudio {
    * @param {Function} [onPulse] callback en cada pulsació
    * @param {Function} [onComplete] callback en finalitzar
    */
-  play(totalPulses, interval, selectedPulses, loop, onPulse, onComplete) {
+  play(totalPulses, interval, selectedPulses, loop, onPulse, onComplete, options) {
+    if (typeof onComplete === 'object' && typeof options === 'undefined') {
+      options = onComplete;
+      onComplete = undefined;
+    }
+    options = options || {};
     if (!this.isReady) {
       console.warn('Audio not ready');
       return;
@@ -369,6 +396,12 @@ export class TimelineAudio {
     try { Tone.Transport.cancel(); } catch {}
     try { Tone.Transport.stop(); } catch {}
     try { Tone.Transport.position = 0; } catch {}
+    if (this._cyclePart) {
+      try { this._cyclePart.stop(); } catch {}
+      try { this._cyclePart.dispose(); } catch {}
+      this._cyclePart = null;
+    }
+    this._cycleConfig = null;
     Tone.Transport.loop = false;
 
     this.selectedRef = new Set(selectedPulses ? Array.from(selectedPulses) : []);
@@ -413,6 +446,61 @@ export class TimelineAudio {
       this.pulseIndex = this.loopRef ? (step + 1) : (this.pulseIndex + 1);
     }, interval, 0);
 
+    const cycleOpts = options.cycle || null;
+    if (cycleOpts && typeof cycleOpts === 'object') {
+      const rawNum = Math.floor(Number(cycleOpts.numerator));
+      const rawDen = Math.floor(Number(cycleOpts.denominator));
+      const numerator = Number.isFinite(rawNum) && rawNum > 0 ? rawNum : 0;
+      const denominator = Number.isFinite(rawDen) && rawDen > 0 ? rawDen : 0;
+      const cycles = numerator > 0 ? Math.floor(totalPulses / numerator) : 0;
+      if (numerator > 0 && denominator > 0 && cycles > 0) {
+        const totalDuration = totalPulses * interval;
+        const subInterval = (numerator * interval) / denominator;
+        const events = [];
+        for (let cycleIndex = 0; cycleIndex < cycles; cycleIndex++) {
+          const cycleStart = cycleIndex * numerator * interval;
+          for (let sub = 0; sub < denominator; sub++) {
+            const time = cycleStart + sub * subInterval;
+            events.push([time, {
+              cycleIndex,
+              subdivisionIndex: sub,
+              totalSubdivisions: denominator,
+              numerator,
+              denominator,
+              absoluteIndex: cycleIndex * denominator + sub,
+              totalCycles: cycles
+            }]);
+          }
+        }
+        if (events.length) {
+          const onCycle = typeof cycleOpts.onTick === 'function'
+            ? cycleOpts.onTick
+            : (typeof cycleOpts.onCycle === 'function' ? cycleOpts.onCycle : null);
+          try {
+            const part = new Tone.Part((t, payload) => {
+              if (scheduleId !== this.currentScheduleId) return;
+              const sampler = this.samplers.cycle || this.samplers.accent || this.samplers.base;
+              if (sampler) {
+                try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}
+              }
+              if (onCycle) {
+                Tone.Draw.schedule(() => {
+                  if (scheduleId === this.currentScheduleId) onCycle(payload);
+                }, t);
+              }
+            }, events);
+            part.loop = !!this.loopRef;
+            part.loopEnd = totalDuration;
+            part.start(0);
+            this._cyclePart = part;
+            this._cycleConfig = { numerator, denominator, cycles };
+          } catch (err) {
+            console.warn('Failed to schedule cycle loop', err);
+          }
+        }
+      }
+    }
+
     this.isPlaying = true;
     try { Tone.Transport.start('+' + this.lookAhead.toFixed(3)); }
     catch { Tone.Transport.start(); }
@@ -443,6 +531,12 @@ export class TimelineAudio {
       try { Tone.Transport.clear(this._stopId); } catch {}
       this._stopId = null;
     }
+    if (this._cyclePart) {
+      try { this._cyclePart.stop(); } catch {}
+      try { this._cyclePart.dispose(); } catch {}
+      this._cyclePart = null;
+    }
+    this._cycleConfig = null;
 
     try { Tone.Transport.stop(); } catch {}
     try { Tone.Transport.cancel(); } catch {}

@@ -1,0 +1,139 @@
+:root {
+  --cycle-color: var(--color-v);
+}
+
+.middle {
+  margin-bottom: 20px;
+}
+
+.formula {
+  gap: 32px;
+}
+
+.fraction-editor {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.fraction-editor .top,
+.fraction-editor .bottom {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.fraction-editor .top {
+  border-bottom: 4px solid var(--line-color);
+  padding: 0 24px;
+}
+
+.fraction-editor input {
+  width: 80px;
+  text-align: center;
+  font-size: 3rem;
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  outline: none;
+}
+
+.fraction-editor input:focus {
+  border-bottom: 2px solid var(--selection-color);
+}
+
+.fraction-editor .numerator {
+  color: var(--color-lg);
+}
+
+.fraction-editor .denominator {
+  color: var(--cycle-color);
+}
+
+.random-menu .complex-option {
+  justify-content: flex-start;
+}
+
+.timeline {
+  --cycle-color: var(--cycle-color);
+}
+
+.cycle-marker {
+  position: absolute;
+  width: 2px;
+  height: 36px;
+  background: var(--cycle-color);
+  transform: translate(-50%, -50%);
+  opacity: 0.85;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.cycle-marker.active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scaleY(1.3);
+  box-shadow: 0 0 10px var(--cycle-color);
+}
+
+.cycle-label {
+  position: absolute;
+  color: var(--cycle-color);
+  font-size: 1.2rem;
+  transform: translate(-50%, 0);
+  pointer-events: none;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.cycle-label.active {
+  color: var(--selection-color);
+  font-weight: 600;
+}
+
+.pulse-number {
+  top: -35%;
+  font-weight: 600;
+}
+
+.timeline.circular .pulse-number {
+  top: 50%;
+}
+
+.timeline.circular .cycle-marker {
+  height: 22px;
+  width: 3px;
+}
+
+.timeline.circular .cycle-marker.active {
+  transform: translate(-50%, -50%) scale(1.4);
+}
+
+.timeline.circular .cycle-label {
+  font-size: 1rem;
+}
+
+#tIndicator {
+  background: transparent;
+  color: var(--color-t);
+  border-color: var(--color-t);
+}
+
+@media (max-width: 600px) {
+  .fraction-editor input {
+    font-size: 2.2rem;
+    width: 64px;
+  }
+
+  .fraction-editor .top {
+    padding: 0 16px;
+  }
+
+  .cycle-marker {
+    height: 28px;
+  }
+
+  .cycle-label {
+    font-size: 1rem;
+  }
+}

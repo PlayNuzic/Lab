@@ -155,6 +155,7 @@ function wireControls(root) {
     const baseSoundSelect = root.querySelector('#baseSoundSelect');
     const accentSoundSelect = root.querySelector('#accentSoundSelect');
     const startSoundSelect = root.querySelector('#startSoundSelect');
+    const cycleSoundSelect = root.querySelector('#cycleSoundSelect');
 
     let soundAudio;
     async function getAudio(){
@@ -183,6 +184,13 @@ function wireControls(root) {
         eventType: 'startSound',
         getAudio,
         apply: (a, val) => a.setStart(val)
+    });
+
+    initSoundDropdown(cycleSoundSelect, {
+        storageKey: 'cycleSound',
+        eventType: 'cycleSound',
+        getAudio,
+        apply: (a, val) => a.setCycle(val)
     });
 
 

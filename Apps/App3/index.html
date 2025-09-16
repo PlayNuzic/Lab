@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ciclos Fraccionados</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="/favicon.ico" />
+</head>
+<body data-theme="system">
+  <div id="app-root"></div>
+  <!-- Load Tone.js as a global before module scripts -->
+  <script src="../../libs/vendor/Tone.js"></script>
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Ciclos Fraccionados',
+      showSelectColor: false,
+      showAccent: false,
+      randomMenuContent: `
+        <label><input type="checkbox" id="randLgToggle"/> Lg
+          <input id="randLgMin" type="number" placeholder="Min" />
+          <input id="randLgMax" type="number" placeholder="Max" />
+        </label>
+        <label><input type="checkbox" id="randVToggle"/> V
+          <input id="randVMin" type="number" placeholder="Min" />
+          <input id="randVMax" type="number" placeholder="Max" />
+        </label>
+        <label><input type="checkbox" id="randNToggle"/> n
+          <input id="randNMin" type="number" placeholder="Min" />
+          <input id="randNMax" type="number" placeholder="Max" />
+        </label>
+        <label><input type="checkbox" id="randDToggle"/> d
+          <input id="randDMin" type="number" placeholder="Min" />
+          <input id="randDMax" type="number" placeholder="Max" />
+        </label>
+        <label class="complex-option"><input type="checkbox" id="randComplexToggle"/> Permitir fracciones complejas</label>
+      `,
+      hideT: true,
+      hideLeds: true
+    });
+    document.querySelectorAll('.led').forEach(el => el.remove());
+    const inputsSection = document.querySelector('.inputs');
+    if (inputsSection) inputsSection.style.left = '0';
+    const soundGroup = document.querySelector('.sound-group');
+    if (soundGroup) {
+      const p = document.createElement('p');
+      p.textContent = 'Ciclo';
+      soundGroup.appendChild(p);
+      const row = document.createElement('div');
+      row.className = 'preview-row';
+      const hiddenLabel = document.createElement('label');
+      hiddenLabel.setAttribute('for', 'cycleSoundSelect');
+      hiddenLabel.style.display = 'none';
+      row.appendChild(hiddenLabel);
+      const slot = document.createElement('div');
+      slot.id = 'cycleSoundSelect';
+      row.appendChild(slot);
+      soundGroup.appendChild(row);
+    }
+
+    initHeader();
+    import('./main.js');
+  </script>
+</body>
+</html>
