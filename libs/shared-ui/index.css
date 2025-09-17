@@ -469,57 +469,73 @@ margin-right: auto;
 }
 
 .control-sound-toggles {
-position: absolute;
-top: 60%;
-left: 70%;
-transform: translateX(-50%) translateY(calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-gap))));
-width: calc(var(--control-toggle-size) * 2 + var(--control-toggle-gap));
-height: var(--control-toggle-size);
-display: flex;
-justify-content: center;
-align-items: flex-end;
-gap: var(--control-toggle-gap);
-pointer-events: none;
-z-index: 4;
+  position: absolute;
+  top: 60%;
+  left: 70%;
+  transform: translateX(-50%) translateY(calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-gap))));
+  width: calc(var(--control-toggle-size) * 2 + var(--control-toggle-gap));
+  height: var(--control-toggle-size);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.control-sound-toggle-container {
+  position: absolute;
+  bottom: 0;
+  width: var(--control-toggle-size);
+  height: var(--control-toggle-size);
+  pointer-events: none;
+}
+
+.control-sound-toggle-container--pulse {
+  left: calc(var(--pulse-offset-x, 0px));
+  bottom: var(--pulse-offset-y, 0px);
+  transform: translateX(var(--pulse-translate-x, 0)) translateY(var(--pulse-translate-y, 0));
+}
+
+.control-sound-toggle-container--cycle {
+  left: calc(var(--control-toggle-size) + var(--control-toggle-gap) + var(--cycle-offset-x, 0px));
+  bottom: var(--cycle-offset-y, 0px);
+  transform: translateX(var(--cycle-translate-x, 0)) translateY(var(--cycle-translate-y, 0));
 }
 
 .control-sound-toggle {
-pointer-events: auto;
-background: none;
-border: none;
-padding: 0;
-margin: 0;
-width: var(--control-toggle-size);
-height: var(--control-toggle-size);
-flex: 0 0 var(--control-toggle-size);
-display: flex;
-align-items: center;
-justify-content: center;
-cursor: pointer;
-transition: transform 0.1s ease;
-color: inherit;
---control-toggle-color: currentColor;
---control-toggle-active-color: var(--selection-color);
+  pointer-events: auto;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  width: var(--control-toggle-size);
+  height: var(--control-toggle-size);
+  flex: 0 0 var(--control-toggle-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+  color: inherit;
+  --control-toggle-color: currentColor;
+  --control-toggle-active-color: var(--selection-color);
 }
 
 .control-sound-toggle:active {
-transform: scale(0.98);
+  transform: scale(0.98);
 }
 
 .control-sound-toggle__svg {
-width: 100%;
-height: 100%;
-display: block;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .control-sound-toggle__shape {
-fill: var(--control-toggle-color);
-stroke: currentColor;
-stroke-opacity: 0.45;
-stroke-width: 2;
-opacity: 0.35;
-filter: none;
-transition: opacity 0.25s ease, filter 0.25s ease, fill 0.25s ease, stroke 0.25s ease;
+  fill: var(--control-toggle-color);
+  stroke: currentColor;
+  stroke-opacity: 0.45;
+  stroke-width: 2;
+  opacity: 0.35;
+  filter: none;
+  transition: opacity 0.25s ease, filter 0.25s ease, fill 0.25s ease, stroke 0.25s ease;
 }
 
 .control-sound-toggle__label {

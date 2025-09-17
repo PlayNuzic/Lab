@@ -29,30 +29,34 @@ export function renderApp({
   const soundToggleMarkup = (showPulseToggle || showCycleToggle) ? `
       <div class="control-sound-toggles" role="group" aria-label="Controles de sonido">
         ${showPulseToggle ? `
-        <button id="pulseToggleBtn" class="control-sound-toggle control-sound-toggle--pulse active" type="button" aria-pressed="true" aria-label="Alternar pulso">
-          <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
-            <defs>
-              <path id="controlPulseLabelPath" d="M 22 96 A 78 78 0 0 1 96 22" />
-            </defs>
-            <path class="control-sound-toggle__shape" d="M 0 100 A 100 100 0 0 1 100 0 L 100 36 A 64 64 0 0 0 36 100 Z" />
-            <text class="control-sound-toggle__label" dy="12">
-              <textPath href="#controlPulseLabelPath" startOffset="50%" text-anchor="middle">Pulso</textPath>
-            </text>
-          </svg>
-        </button>
+        <div class="control-sound-toggle-container control-sound-toggle-container--pulse">
+          <button id="pulseToggleBtn" class="control-sound-toggle control-sound-toggle--pulse active" type="button" aria-pressed="true" aria-label="Alternar pulso">
+            <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+              <defs>
+                <path id="controlPulseLabelPath" d="M 22 96 A 78 78 0 0 1 96 22" />
+              </defs>
+              <path class="control-sound-toggle__shape" d="M 0 100 A 100 100 0 0 1 100 0 L 100 36 A 64 64 0 0 0 36 100 Z" />
+              <text class="control-sound-toggle__label" dy="12">
+                <textPath href="#controlPulseLabelPath" startOffset="50%" text-anchor="middle">Pulso</textPath>
+              </text>
+            </svg>
+          </button>
+        </div>
         ` : ''}
         ${showCycleToggle ? `
-        <button id="cycleToggleBtn" class="control-sound-toggle control-sound-toggle--cycle active" type="button" aria-pressed="true" aria-label="Alternar ciclo">
-          <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
-            <defs>
-              <path id="controlCycleLabelPath" d="M 104 22 A 78 78 0 0 1 178 96" />
-            </defs>
-            <path class="control-sound-toggle__shape" d="M 100 0 A 100 100 0 0 1 200 100 L 164 100 A 64 64 0 0 0 100 36 Z" />
-            <text class="control-sound-toggle__label" dy="12">
-              <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">Fracción</textPath>
-            </text>
-          </svg>
-        </button>
+        <div class="control-sound-toggle-container control-sound-toggle-container--cycle">
+          <button id="cycleToggleBtn" class="control-sound-toggle control-sound-toggle--cycle active" type="button" aria-pressed="true" aria-label="Alternar ciclo">
+            <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+              <defs>
+                <path id="controlCycleLabelPath" d="M 104 22 A 78 78 0 0 1 178 96" />
+              </defs>
+              <path class="control-sound-toggle__shape" d="M 100 0 A 100 100 0 0 1 200 100 L 164 100 A 64 64 0 0 0 100 36 Z" />
+              <text class="control-sound-toggle__label" dy="12">
+                <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">Fracción</textPath>
+              </text>
+            </svg>
+          </button>
+        </div>
         ` : ''}
       </div>
   ` : '';
