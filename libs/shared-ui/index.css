@@ -13,8 +13,9 @@
 --color-t: #E57373;
 --selection-color: #FFBB97;
 --play-button-size: 80px;
---control-toggle-size: 150px;
---control-toggle-gap: 2px;
+--control-toggle-size: 100px;
+--control-toggle-width: 150px;
+--control-toggle-gap: -5px;
 }
 
 /* Baseline: disable text selection across UI, allow in form fields */
@@ -470,10 +471,10 @@ margin-right: auto;
 
 .control-sound-toggles {
   position: absolute;
-  top: 52%;
+  top: 48%;
   left:85%;
   transform: translateX(-50%) translateY(calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-gap))));
-  width: calc(var(--control-toggle-size) * 2 + var(--control-toggle-gap));
+  width: calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap));
   height: var(--control-toggle-size);
   pointer-events: none;
   z-index: 4;
@@ -482,7 +483,7 @@ margin-right: auto;
 .control-sound-toggle-container {
   position: absolute;
   bottom: 0;
-  width: var(--control-toggle-size);
+  width: var(--control-toggle-width);
   height: var(--control-toggle-size);
   pointer-events: none;
 }
@@ -494,7 +495,7 @@ margin-right: auto;
 }
 
 .control-sound-toggle-container--cycle {
-  left: calc(var(--control-toggle-size) + var(--control-toggle-gap) + var(--cycle-offset-x, -140px));
+  left: calc(var(--control-toggle-width) + var(--control-toggle-gap) + var(--cycle-offset-x, -140px));
   bottom: var(--cycle-offset-y, 0px);
   transform: translateX(var(--cycle-translate-x, 0)) translateY(var(--cycle-translate-y, 0));
 }
@@ -505,9 +506,9 @@ margin-right: auto;
   border: none;
   padding: 0;
   margin: 0;
-  width: var(--control-toggle-size);
+  width: var(--control-toggle-width);
   height: var(--control-toggle-size);
-  flex: 0 0 var(--control-toggle-size);
+  flex: 0 0 var(--control-toggle-width);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -539,15 +540,17 @@ margin-right: auto;
 }
 
 .control-sound-toggle__label {
-font-family: 'Ubuntu', sans-serif;
-font-weight: 550;
-font-size: 22px;
-letter-spacing: 2px;
-fill: var(--control-toggle-label-color, currentColor);
-opacity: 0.65;
-text-transform: uppercase;
-dominant-baseline: text-top;
-transition: fill 0.25s ease, opacity 0.25s ease;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 550;
+  font-size: 18px;
+  letter-spacing: 3px;
+  fill: var(--control-toggle-label-color, currentColor);
+  opacity: 0.65;
+  text-transform: uppercase;
+  dominant-baseline: ideographic;
+  transform: translateY(-6px);
+  transform-box: fill-box;
+  transition: fill 0.25s ease, opacity 0.25s ease;
 }
 
 .control-sound-toggle.active .control-sound-toggle__shape {
