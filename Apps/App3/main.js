@@ -993,8 +993,26 @@ function tapTempo() {
     const bpm = Math.round((60000 / avg) * 100) / 100;
     setValue(inputV, bpm);
     handleInput();
-    if (isPlaying && audio && typeof audio.setTempo === 'function') {
-      audio.setTempo(bpm);
+    if (isPlaying && audio) {
+      if (typeof audio.setTempo === 'function') {
+        audio.setTempo(bpm);
+      }
+      if (typeof audio.updateCycleConfig === 'function') {
+        const lg = getLg();
+        const { numerator, denominator } = getFraction();
+        const validLg = Number.isFinite(lg) && lg > 0;
+        const validV = Number.isFinite(bpm) && bpm > 0;
+        const hasCycle = Number.isFinite(numerator) && numerator > 0
+          && Number.isFinite(denominator) && denominator > 0
+          && validLg && Math.floor(lg / numerator) > 0;
+        audio.updateCycleConfig({
+          numerator: hasCycle ? numerator : null,
+          denominator: hasCycle ? denominator : null,
+          totalPulses: validLg ? lg : undefined,
+          interval: validV ? 60 / bpm : undefined,
+          onTick: hasCycle ? highlightCycle : undefined
+        });
+      }
     }
   }
   if (tapTimes.length > 8) tapTimes.shift();
