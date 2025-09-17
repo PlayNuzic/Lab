@@ -540,13 +540,13 @@ margin-right: auto;
 
 .control-sound-toggle__label {
 font-family: 'Ubuntu', sans-serif;
-font-weight: 700;
-font-size: 25px;
-letter-spacing: 3px;
+font-weight: 550;
+font-size: 22px;
+letter-spacing: 2px;
 fill: var(--control-toggle-label-color, currentColor);
 opacity: 0.65;
 text-transform: uppercase;
-dominant-baseline: middle;
+dominant-baseline: text-top;
 transition: fill 0.25s ease, opacity 0.25s ease;
 }
 
