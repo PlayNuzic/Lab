@@ -150,7 +150,7 @@ position: absolute;
 top: 50%;
 left: 50%;
 /* Shift controls 30px upward in circular mode */
-transform: translate(-50%, calc(-50% - 40px));
+transform: translate(-50%, calc(-50% - 5px));
 z-index: 3; /* ensure above timeline */
 margin: 0;
 }

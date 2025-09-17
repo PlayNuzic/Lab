@@ -13,8 +13,8 @@
 --color-t: #E57373;
 --selection-color: #FFBB97;
 --play-button-size: 80px;
---control-toggle-size: 100px;
---control-toggle-gap: 12px;
+--control-toggle-size: 150px;
+--control-toggle-gap: 2px;
 }
 
 /* Baseline: disable text selection across UI, allow in form fields */
@@ -470,8 +470,8 @@ margin-right: auto;
 
 .control-sound-toggles {
   position: absolute;
-  top: 60%;
-  left: 70%;
+  top: 52%;
+  left:85%;
   transform: translateX(-50%) translateY(calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-gap))));
   width: calc(var(--control-toggle-size) * 2 + var(--control-toggle-gap));
   height: var(--control-toggle-size);
@@ -494,7 +494,7 @@ margin-right: auto;
 }
 
 .control-sound-toggle-container--cycle {
-  left: calc(var(--control-toggle-size) + var(--control-toggle-gap) + var(--cycle-offset-x, 0px));
+  left: calc(var(--control-toggle-size) + var(--control-toggle-gap) + var(--cycle-offset-x, -140px));
   bottom: var(--cycle-offset-y, 0px);
   transform: translateX(var(--cycle-translate-x, 0)) translateY(var(--cycle-translate-y, 0));
 }
@@ -734,7 +734,7 @@ color: var(--text-dark);
   --topbar-side-gap: 56px; /* reserve space so title never sits under icons */
   --play-button-size: 55px;
   --control-toggle-size: 100px;
-  --control-toggle-gap: 8px;
+  --control-toggle-gap: 2px;
 }
 
 /* Header adjustments for small screens */

@@ -95,7 +95,7 @@ margin-top: 90px !important; /* was 20px in shared styles */
 
 /* 4) Lower controls inside circular wrapper (40px via wrapper - 20px here) */
 .timeline-wrapper.circular > .controls {
-transform: translate(-50%, calc(-50% - 20px)) !important; /* was -40px */
+transform: translate(-50%, calc(-50% - 90px)) !important; /* was -40px */
 }
 
 /* 5) Lower unit label by 20px when shown on input focus */
