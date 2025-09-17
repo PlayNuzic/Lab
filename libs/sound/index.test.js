@@ -1,15 +1,29 @@
 import { jest } from '@jest/globals';
 
 function createToneMock() {
+  let repeatId = 0;
+  const repeats = new Map();
   const transport = {
-    scheduleRepeat: jest.fn(() => 1),
+    scheduleRepeat: jest.fn((cb, interval) => {
+      repeatId += 1;
+      repeats.set(repeatId, { cb, interval });
+      return repeatId;
+    }),
     start: jest.fn(),
     stop: jest.fn(),
     cancel: jest.fn(),
-    clear: jest.fn(),
-    bpm: { value: 0 },
+    clear: jest.fn((id) => {
+      repeats.delete(id);
+    }),
+    bpm: {
+      value: 0,
+      rampTo: jest.fn(function (value) {
+        this.value = value;
+      })
+    },
     loop: false,
     position: 0,
+    seconds: 0,
   };
   const samplerFactory = jest.fn((opts = {}) => {
     const sampler = {
@@ -22,12 +36,26 @@ function createToneMock() {
     }, 0);
     return sampler;
   });
+  const partFactory = jest.fn((cb = () => {}, events = []) => {
+    const part = {
+      callback: cb,
+      events,
+      start: jest.fn(),
+      stop: jest.fn(),
+      dispose: jest.fn(),
+      loop: false,
+      loopEnd: 0,
+    };
+    return part;
+  });
   return {
     Sampler: samplerFactory,
     Transport: transport,
     Draw: { schedule: jest.fn() },
     getContext: jest.fn(() => ({ lookAhead: 0, updateInterval: 0 })),
     Destination: { mute: false, volume: { value: 0 } },
+    Part: partFactory,
+    now: jest.fn(() => transport.seconds),
   };
 }
 
@@ -103,5 +131,53 @@ describe('TimelineAudio', () => {
     const dur = 0.5 - fade;
     expect(audio.samplers.start.release).toBeCloseTo(fade, 5);
     expect(audio.samplers.start.triggerAttackRelease).toHaveBeenCalledWith('C3', dur, 0);
+  });
+
+  test('updateCycleConfig keeps pulses aligned when adjusting during playback', () => {
+    const onCycle = jest.fn();
+    const onPulse = jest.fn();
+    audio.play(8, 0.5, undefined, true, onPulse, undefined, { cycle: { numerator: 2, denominator: 2, onTick: onCycle } });
+
+    const repeatCb = Tone.Transport.scheduleRepeat.mock.calls[0][0];
+
+    Tone.Transport.seconds = 0;
+    repeatCb(0);
+    Tone.Transport.seconds = 0.5;
+    repeatCb(0.5);
+    Tone.Transport.seconds = 1.0;
+    repeatCb(1.0);
+    expect(audio.pulseIndex).toBe(3);
+
+    Tone.Transport.seconds = 1.25;
+    audio.updateCycleConfig({
+      numerator: 2,
+      denominator: 2,
+      totalPulses: 8,
+      interval: 0.5,
+      onTick: onCycle,
+    });
+    expect(audio.pulseIndex).toBe(3);
+
+    Tone.Transport.seconds = 1.5;
+    repeatCb(1.5);
+    Tone.Transport.seconds = 2.0;
+    repeatCb(2.0);
+    Tone.Transport.seconds = 2.5;
+    repeatCb(2.5);
+    Tone.Transport.seconds = 3.0;
+    repeatCb(3.0);
+    Tone.Transport.seconds = 3.5;
+    repeatCb(3.5);
+    expect(audio.pulseIndex).toBe(8);
+
+    Tone.Transport.seconds = 3.75;
+    audio.updateCycleConfig({
+      numerator: 2,
+      denominator: 2,
+      totalPulses: 8,
+      interval: 0.5,
+      onTick: onCycle,
+    });
+    expect(audio.pulseIndex).toBe(0);
   });
 });

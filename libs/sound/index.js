@@ -176,6 +176,9 @@ export class TimelineAudio {
     this._cycleConfig = null;
     this._clickDur = 0.05;
     this._startContextTime = null;
+    this._hasTriggeredPulse = false;
+    this._emittedPulses = 0;
+    this._lastPulseSeconds = null;
 
     this._readyPromise = this._initialize();
   }
@@ -458,6 +461,9 @@ export class TimelineAudio {
     this.onCompleteRef = onComplete;
     this._onPulseRef = typeof onPulse === 'function' ? onPulse : null;
     this.pulseIndex = 0;
+    this._hasTriggeredPulse = false;
+    this._emittedPulses = 0;
+    this._lastPulseSeconds = null;
     this._remainingPulses = this.loopRef ? Infinity : totalPulses;
     const hasLookAhead = Number.isFinite(this.lookAhead) ? this.lookAhead : 0;
     const ctxNow = (typeof Tone !== 'undefined' && Tone && typeof Tone.now === 'function') ? Tone.now() : null;
@@ -493,6 +499,15 @@ export class TimelineAudio {
           if (scheduleId === this.currentScheduleId) this._onPulseRef(step);
         }, t);
       }
+
+      this._hasTriggeredPulse = true;
+      if (Number.isFinite(t)) {
+        this._lastPulseSeconds = t;
+      } else {
+        const inferred = this._getTransportSeconds();
+        if (Number.isFinite(inferred)) this._lastPulseSeconds = inferred;
+      }
+      this._emittedPulses = (this._emittedPulses || 0) + 1;
 
       this.pulseIndex = this.loopRef ? (step + 1) : (this.pulseIndex + 1);
       if (!this.loopRef && Number.isFinite(this._remainingPulses)) {
@@ -569,6 +584,9 @@ export class TimelineAudio {
     this._startContextTime = null;
     this._onPulseRef = null;
     this._remainingPulses = Infinity;
+    this._hasTriggeredPulse = false;
+    this._emittedPulses = 0;
+    this._lastPulseSeconds = null;
 
     if (this._repeatId != null) {
       try { Tone.Transport.clear(this._repeatId); } catch {}
@@ -673,7 +691,20 @@ export class TimelineAudio {
 
     const elapsed = this._computeElapsedSeconds(interval);
     if (!Number.isFinite(elapsed)) return;
-    const pulsesElapsed = Math.max(0, Math.floor((elapsed / interval) + 1e-6));
+    const ratio = elapsed / interval;
+    const base = Math.max(0, Math.floor(ratio + 1e-6));
+    const emitted = Number.isFinite(this._emittedPulses) ? this._emittedPulses : 0;
+    let pulsesElapsed = base;
+    if (emitted > pulsesElapsed) {
+      pulsesElapsed = emitted;
+    } else if ((emitted > 0 || pulsesElapsed > 0) && (ratio - base) > 1e-6) {
+      pulsesElapsed = base + 1;
+    }
+
+    if (!this.loopRef && Number.isFinite(this.totalRef) && this.totalRef > 0) {
+      pulsesElapsed = Math.min(pulsesElapsed, this.totalRef);
+    }
+
     if (clampToCycle && Number.isFinite(this.totalRef) && this.totalRef > 0) {
       this.pulseIndex = pulsesElapsed % this.totalRef;
     } else {
