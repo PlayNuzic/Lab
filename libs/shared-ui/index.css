@@ -12,6 +12,9 @@
 --color-v: #2E8B57;
 --color-t: #E57373;
 --selection-color: #FFBB97;
+--play-button-size: 80px;
+--control-toggle-size: 110px;
+--control-toggle-gap: 1px;
 }
 
 /* Baseline: disable text selection across UI, allow in form fields */
@@ -467,14 +470,15 @@ margin-right: auto;
 
 .control-sound-toggles {
 position: absolute;
-top: 20px;
+top: 50%;
 left: 50%;
-transform: translate(-50%, -45%);
-width: 220px;
-height: 120px;
+transform: translateX(-50%) translateY(calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-gap))));
+width: calc(var(--control-toggle-size) * 2 + var(--control-toggle-gap));
+height: var(--control-toggle-size);
 display: flex;
-justify-content: space-between;
+justify-content: center;
 align-items: flex-end;
+gap: var(--control-toggle-gap);
 pointer-events: none;
 z-index: 4;
 }
@@ -485,13 +489,17 @@ background: none;
 border: none;
 padding: 0;
 margin: 0;
-width: 110px;
-height: 110px;
+width: var(--control-toggle-size);
+height: var(--control-toggle-size);
+flex: 0 0 var(--control-toggle-size);
 display: flex;
 align-items: center;
 justify-content: center;
 cursor: pointer;
 transition: transform 0.1s ease;
+color: inherit;
+--control-toggle-color: currentColor;
+--control-toggle-active-color: var(--selection-color);
 }
 
 .control-sound-toggle:active {
@@ -505,12 +513,13 @@ display: block;
 }
 
 .control-sound-toggle__shape {
-fill: var(--control-toggle-color, var(--selection-color));
-stroke: rgba(0, 0, 0, 0.35);
+fill: var(--control-toggle-color);
+stroke: currentColor;
+stroke-opacity: 0.45;
 stroke-width: 2;
 opacity: 0.35;
 filter: none;
-transition: opacity 0.25s ease, filter 0.25s ease;
+transition: opacity 0.25s ease, filter 0.25s ease, fill 0.25s ease, stroke 0.25s ease;
 }
 
 .control-sound-toggle__label {
@@ -518,28 +527,34 @@ font-family: 'Ubuntu', sans-serif;
 font-weight: 700;
 font-size: 18px;
 letter-spacing: 3px;
-fill: var(--control-toggle-text-color, #111);
-opacity: 0.55;
+fill: var(--control-toggle-label-color, currentColor);
+opacity: 0.65;
 text-transform: uppercase;
+dominant-baseline: middle;
+transition: fill 0.25s ease, opacity 0.25s ease;
 }
 
 .control-sound-toggle.active .control-sound-toggle__shape {
 opacity: 1;
-filter: drop-shadow(0 8px 18px var(--control-toggle-shadow, rgba(0, 0, 0, 0.35)));
+fill: var(--control-toggle-active-color);
+stroke: var(--control-toggle-active-color);
+filter: drop-shadow(0 0 22px var(--control-toggle-active-color));
 }
 
 .control-sound-toggle.active .control-sound-toggle__label {
-opacity: 0.85;
+opacity: 0.95;
+fill: var(--control-toggle-active-color);
+text-shadow: 0 0 8px var(--control-toggle-active-color);
 }
 
 .control-sound-toggle--pulse {
---control-toggle-color: var(--control-toggle-pulse-color, var(--color-v));
---control-toggle-shadow: var(--control-toggle-pulse-shadow, rgba(46, 139, 87, 0.5));
+--control-toggle-color: var(--control-toggle-pulse-color, currentColor);
+--control-toggle-active-color: var(--control-toggle-pulse-active-color, var(--selection-color));
 }
 
 .control-sound-toggle--cycle {
---control-toggle-color: var(--control-toggle-cycle-color, var(--color-t));
---control-toggle-shadow: var(--control-toggle-cycle-shadow, rgba(229, 115, 115, 0.5));
+--control-toggle-color: var(--control-toggle-cycle-color, currentColor);
+--control-toggle-active-color: var(--control-toggle-cycle-active-color, var(--selection-color));
 }
 
 /* Base styles for all control buttons */
@@ -561,8 +576,8 @@ position: absolute;
 top: 50%;
 left: 50%;
 transform: translate(-50%, -50%);
-width: 80px;
-height: 80px;
+width: var(--play-button-size);
+height: var(--play-button-size);
 font-size: 2rem;
 z-index: 2;
 }
@@ -701,6 +716,9 @@ color: var(--text-dark);
 :root {
   --controls-offset-y: -32px;
   --topbar-side-gap: 56px; /* reserve space so title never sits under icons */
+  --play-button-size: 55px;
+  --control-toggle-size: 100px;
+  --control-toggle-gap: 8px;
 }
 
 /* Header adjustments for small screens */
@@ -714,18 +732,6 @@ margin: 0; /* Remove any margin */
 left: 0px; /* Menu icon at left edge */
 padding: 8px 3px;
 font-size: 1.8rem;
-}
-
-.control-sound-toggles {
-  width: 200px;
-  height: 110px;
-  top: 18px;
-  transform: translate(-50%, -42%);
-}
-
-.control-sound-toggle {
-  width: 100px;
-  height: 100px;
 }
 
 .control-sound-toggle__label {
@@ -775,8 +781,6 @@ margin-top: calc(40px + var(--controls-offset-y));
 }
 
 .play {
-width: 55px;
-height: 55px;
 font-size: 1.3rem;
 }
 
