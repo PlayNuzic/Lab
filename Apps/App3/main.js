@@ -342,7 +342,7 @@ function updateTIndicatorPosition() {
   const tlRect = timeline.getBoundingClientRect();
   const aRect = anchor.getBoundingClientRect();
   const circular = timeline.classList.contains('circular');
-  const offsetY = circular ? 50 : -80;
+  const offsetY = circular ? 50 : -90;
   const centerX = aRect.left + aRect.width / 2 - tlRect.left;
   const topY = aRect.bottom - tlRect.top + offsetY;
   tIndicator.style.left = `${centerX}px`;
