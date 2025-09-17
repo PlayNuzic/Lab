@@ -451,7 +451,6 @@ function renderTimeline() {
   updatePulseNumbers();
   layoutTimeline({ silent: true });
   clearHighlights();
-  updateTIndicatorPosition();
 }
 
 function showNumber(i) {
@@ -487,7 +486,7 @@ function layoutTimeline(opts = {}) {
   const wasCircular = timeline.classList.contains('circular');
   const desiredCircular = !!useCircular;
   const delay = (!silent && wasCircular !== desiredCircular) ? T_INDICATOR_TRANSITION_DELAY : 0;
-  scheduleTIndicatorReveal(delay);
+  const queueIndicatorUpdate = () => scheduleTIndicatorReveal(delay);
 
   if (lg <= 0) {
     timelineWrapper.classList.remove('circular');
@@ -495,6 +494,7 @@ function layoutTimeline(opts = {}) {
     const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
     const guide = wrapper.querySelector('.circle-guide');
     if (guide) guide.style.opacity = '0';
+    queueIndicatorUpdate();
     return;
   }
 
@@ -589,6 +589,8 @@ function layoutTimeline(opts = {}) {
       guide.style.transform = 'translate(-50%, -50%)';
       guide.style.opacity = '0';
 
+      queueIndicatorUpdate();
+
       if (silent) {
         void timeline.offsetHeight;
         timeline.classList.remove('no-anim');
@@ -643,6 +645,8 @@ function layoutTimeline(opts = {}) {
       label.style.top = 'calc(100% + 12px)';
       label.style.transform = 'translate(-50%, 0)';
     });
+
+    queueIndicatorUpdate();
   }
 }
 
