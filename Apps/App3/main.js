@@ -342,15 +342,9 @@ function updateTIndicatorPosition() {
   const tlRect = timeline.getBoundingClientRect();
   const aRect = anchor.getBoundingClientRect();
   const circular = timeline.classList.contains('circular');
-  const isLabel = anchor.classList.contains('pulse-number');
-  let offsetX = 0;
-  if (circular && isLabel) {
-    const anchorIndex = parseIntSafe(anchor.dataset.index);
-    if (anchorIndex === 0) offsetX = -16;
-    else if (anchorIndex === lg) offsetX = 16;
-  }
-  const centerX = aRect.left + aRect.width / 2 - tlRect.left + offsetX;
-  const topY = aRect.bottom - tlRect.top + 15;
+  const offsetY = circular ? 50 : -80;
+  const centerX = aRect.left + aRect.width / 2 - tlRect.left;
+  const topY = aRect.bottom - tlRect.top + offsetY;
   tIndicator.style.left = `${centerX}px`;
   tIndicator.style.top = `${topY}px`;
   tIndicator.style.transform = 'translate(-50%, 0)';
