@@ -53,9 +53,9 @@ width: 100%;
 
 .timeline {
 position: relative;
-width: calc(100% - 60px);
+width: calc(100% - 40px);
 height: 80px;
-margin: 20px;
+margin: 20px auto;
 transition: width 0.4s ease, height 0.4s ease;
 z-index: 1; /* keep above helper guide ring */
 }
@@ -322,7 +322,7 @@ margin-bottom: 10px;
 .timeline {
 height: 40px;
 width: calc(100% - 40px);
-margin: 15px 20px;
+margin: 15px auto;
 }
 
 body {
