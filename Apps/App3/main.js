@@ -654,6 +654,8 @@ function handleInput() {
   } else {
     updateTIndicatorText('');
   }
+    // Activa el botó Loop només si hi ha un Lg vàlid
+  loopBtn.disabled = !(Number.isFinite(lg) && lg > 0);
   renderTimeline();
   if (isPlaying && audio) {
     if (Number.isFinite(lg) && lg > 0 && typeof audio.setTotal === 'function') {
@@ -947,9 +949,10 @@ resetBtn.addEventListener('click', () => {
   ['Lg', 'V', 'n', 'd'].forEach(clearOpt);
   loopEnabled = false;
   loopBtn.classList.remove('active');
-  circularTimeline = false;
-  circularTimelineToggle.checked = false;
-  saveOpt('circular', '0');
+    loopBtn.disabled = true;   // desactiva el botó Loop en fer reset
+  // circularTimeline = false;
+  // circularTimelineToggle.checked = false;
+  // saveOpt('circular', '0');
   if (audio) audio.stop();
   isPlaying = false;
   clearHighlights();
