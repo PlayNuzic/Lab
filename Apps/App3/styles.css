@@ -15,7 +15,7 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  color: var(--color-lg);
+  color: var(--line-color);
 }
 
 .fraction-editor .top,
