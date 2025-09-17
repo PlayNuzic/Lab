@@ -16,6 +16,7 @@
 --control-toggle-size: 100px;
 --control-toggle-width: 150px;
 --control-toggle-gap: -5px;
+--control-toggle-overlap: 16px;
 }
 
 /* Baseline: disable text selection across UI, allow in form fields */
@@ -472,7 +473,7 @@ margin-right: auto;
 .control-sound-toggles {
   position: absolute;
   top: 48%;
-  left:85%;
+  left:50%;
   transform: translateX(-50%) translateY(calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-gap))));
   width: calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap));
   height: var(--control-toggle-size);
@@ -495,13 +496,13 @@ margin-right: auto;
 }
 
 .control-sound-toggle-container--cycle {
-  left: calc(var(--control-toggle-width) + var(--control-toggle-gap) + var(--cycle-offset-x, -140px));
+  left: calc(var(--control-toggle-width) + var(--control-toggle-gap) + var(--cycle-offset-x, -160px));
   bottom: var(--cycle-offset-y, 0px);
   transform: translateX(var(--cycle-translate-x, 0)) translateY(var(--cycle-translate-y, 0));
 }
 
 .control-sound-toggle {
-  pointer-events: auto;
+  pointer-events: none;
   background: none;
   border: none;
   padding: 0;
@@ -517,6 +518,8 @@ margin-right: auto;
   color: inherit;
   --control-toggle-color: currentColor;
   --control-toggle-active-color: var(--selection-color);
+  -webkit-clip-path: var(--control-toggle-clip-path, none);
+          clip-path: var(--control-toggle-clip-path, none);
 }
 
 .control-sound-toggle:active {
@@ -527,6 +530,7 @@ margin-right: auto;
   width: 100%;
   height: 100%;
   display: block;
+  overflow: visible;
 }
 
 .control-sound-toggle__shape {
@@ -537,6 +541,7 @@ margin-right: auto;
   opacity: 0.35;
   filter: none;
   transition: opacity 0.25s ease, filter 0.25s ease, fill 0.25s ease, stroke 0.25s ease;
+  pointer-events: auto;
 }
 
 .control-sound-toggle__label {
@@ -551,6 +556,8 @@ margin-right: auto;
   transform: translateY(-6px);
   transform-box: fill-box;
   transition: fill 0.25s ease, opacity 0.25s ease;
+  pointer-events: none;
+  text-anchor: middle;
 }
 
 .control-sound-toggle.active .control-sound-toggle__shape {
@@ -569,11 +576,13 @@ text-shadow: 0 0 8px var(--control-toggle-active-color);
 .control-sound-toggle--pulse {
 --control-toggle-color: var(--control-toggle-pulse-color, currentColor);
 --control-toggle-active-color: var(--control-toggle-pulse-active-color, var(--selection-color));
+--control-toggle-clip-path: path('M 2% 83% A 50% 83% 0 0 1 50% 2% L 50% 32% A 30% 53% 0 0 0 20% 83% Z');
 }
 
 .control-sound-toggle--cycle {
 --control-toggle-color: var(--control-toggle-cycle-color, currentColor);
 --control-toggle-active-color: var(--control-toggle-cycle-active-color, var(--selection-color));
+--control-toggle-clip-path: path('M 50% 2% A 50% 83% 0 0 1 98% 83% L 80% 83% A 30% 53% 0 0 0 50% 32% Z');
 }
 
 /* Base styles for all control buttons */
@@ -738,6 +747,7 @@ color: var(--text-dark);
   --play-button-size: 55px;
   --control-toggle-size: 100px;
   --control-toggle-gap: 2px;
+  --control-toggle-overlap: 10px;
 }
 
 /* Header adjustments for small screens */
