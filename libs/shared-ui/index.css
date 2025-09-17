@@ -473,7 +473,7 @@ margin-right: auto;
 .control-sound-toggles {
   position: absolute;
   top: 48%;
-  left:50%;
+  left:85%;
   transform: translateX(-50%) translateY(calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-gap))));
   width: calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap));
   height: var(--control-toggle-size);
@@ -496,7 +496,7 @@ margin-right: auto;
 }
 
 .control-sound-toggle-container--cycle {
-  left: calc(var(--control-toggle-width) + var(--control-toggle-gap) + var(--cycle-offset-x, -160px));
+  left: calc(var(--control-toggle-width) + var(--control-toggle-gap) + var(--cycle-offset-x, -140px));
   bottom: var(--cycle-offset-y, 0px);
   transform: translateX(var(--cycle-translate-x, 0)) translateY(var(--cycle-translate-y, 0));
 }
