@@ -179,6 +179,8 @@ export class TimelineAudio {
     this._hasTriggeredPulse = false;
     this._emittedPulses = 0;
     this._lastPulseSeconds = null;
+    this._pulseEnabled = true;
+    this._cycleEnabled = true;
 
     this._readyPromise = this._initialize();
   }
@@ -418,6 +420,14 @@ export class TimelineAudio {
     this.samplers.selected = await this._createSampler(key);
   }
 
+  setPulseEnabled(value) {
+    this._pulseEnabled = value !== false;
+  }
+
+  setCycleEnabled(value) {
+    this._cycleEnabled = value !== false;
+  }
+
   setMute(mute) {
     _setMute(mute);
   }
@@ -490,7 +500,7 @@ export class TimelineAudio {
       if (step === 0) pulseType = 'start';
       else if (this.selectedRef.has(step)) pulseType = 'accent';
       const sampler = this.samplers[pulseType];
-      if (sampler) {
+      if (sampler && this._pulseEnabled) {
         try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}
       }
 
@@ -804,7 +814,7 @@ export class TimelineAudio {
         } else {
           sampler = this.samplers.cycle || this.samplers.accent || this.samplers.base;
         }
-        if (sampler) {
+        if (sampler && this._cycleEnabled) {
           try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}
         }
         if (handler) {

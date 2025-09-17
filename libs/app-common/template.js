@@ -1,4 +1,15 @@
-export function renderApp({ root, title, showSelectColor = false, randomMenuContent = '', pulseSequence = false, hideT = false, hideLeds = false, showAccent = true }) {
+export function renderApp({
+  root,
+  title,
+  showSelectColor = false,
+  randomMenuContent = '',
+  pulseSequence = false,
+  hideT = false,
+  hideLeds = false,
+  showAccent = true,
+  showPulseToggle = false,
+  showCycleToggle = false
+}) {
   if (!root) throw new Error('root element required');
   document.title = title;
   const selectColor = showSelectColor ? `
@@ -15,6 +26,37 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
               <button id="inputTDown" class="spin down" type="button" aria-label="Decrementar T"></button>
             </div></div>
         </div>`;
+  const soundToggleMarkup = (showPulseToggle || showCycleToggle) ? `
+      <div class="control-sound-toggles" role="group" aria-label="Controles de sonido">
+        ${showPulseToggle ? `
+        <button id="pulseToggleBtn" class="control-sound-toggle control-sound-toggle--pulse active" type="button" aria-pressed="true" aria-label="Alternar pulso">
+          <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+            <defs>
+              <path id="controlPulseLabelPath" d="M 6 100 A 94 94 0 0 1 100 6" />
+            </defs>
+            <path class="control-sound-toggle__shape" d="M 0 100 A 100 100 0 0 1 100 0 L 100 36 A 64 64 0 0 0 36 100 Z" />
+            <text class="control-sound-toggle__label" dy="-4">
+              <textPath href="#controlPulseLabelPath" startOffset="50%" text-anchor="middle">Pulso</textPath>
+            </text>
+          </svg>
+        </button>
+        ` : ''}
+        ${showCycleToggle ? `
+        <button id="cycleToggleBtn" class="control-sound-toggle control-sound-toggle--cycle active" type="button" aria-pressed="true" aria-label="Alternar ciclo">
+          <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+            <defs>
+              <path id="controlCycleLabelPath" d="M 100 6 A 94 94 0 0 1 194 100" />
+            </defs>
+            <path class="control-sound-toggle__shape" d="M 100 0 A 100 100 0 0 1 200 100 L 164 100 A 64 64 0 0 0 100 36 Z" />
+            <text class="control-sound-toggle__label" dy="-4">
+              <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">Fracción</textPath>
+            </text>
+          </svg>
+        </button>
+        ` : ''}
+      </div>
+  ` : '';
+
   root.innerHTML = `
   <header class="top-bar">
     <details class="menu" id="optionsMenu">
@@ -98,6 +140,7 @@ export function renderApp({ root, title, showSelectColor = false, randomMenuCont
       <section class="timeline" id="timeline"></section>
 
       <div class="controls">
+      ${soundToggleMarkup}
       <button id="randomBtn" class="random" aria-label="Random">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor" stroke="currentColor">
     <path d="M449.531,105.602L288.463,8.989C278.473,2.994,267.235,0,256.01,0c-11.238,0-22.483,2.994-32.466,8.989 L62.475,105.602c-19.012,11.406-30.647,31.949-30.647,54.117v192.562c0,22.168,11.635,42.711,30.647,54.117l161.069,96.613 c9.982,5.988,21.228,8.989,32.466,8.989c11.226,0,22.463-3.001,32.453-8.989l161.069-96.613 c19.013-11.406,30.64-31.95,30.64-54.117V159.719C480.172,137.551,468.544,117.008,449.531,105.602z M250.599,492.733 c-6.028-0.745-11.929-2.713-17.32-5.949L72.209,390.171c-13.306-7.989-21.456-22.369-21.456-37.89V159.719 c0-6.022,1.235-11.862,3.518-17.234l196.328,117.76V492.733z M59.669,133.114c3.364-4.464,7.593-8.318,12.54-11.286l161.069-96.613 c6.995-4.196,14.85-6.29,22.731-6.29c7.868,0,15.724,2.095,22.718,6.29l161.069,96.613c4.942,2.968,9.184,6.821,12.54,11.286 L256.01,250.881L59.669,133.114z M461.253,352.281c0,15.521-8.15,29.901-21.456,37.89l-161.069,96.613 c-5.397,3.236-11.292,5.204-17.32,5.949V260.246l196.328-117.76c2.282,5.371,3.518,11.212,3.518,17.234V352.281z"/>

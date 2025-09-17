@@ -465,6 +465,83 @@ margin-left: auto;
 margin-right: auto;
 }
 
+.control-sound-toggles {
+position: absolute;
+top: 20px;
+left: 50%;
+transform: translate(-50%, -45%);
+width: 220px;
+height: 120px;
+display: flex;
+justify-content: space-between;
+align-items: flex-end;
+pointer-events: none;
+z-index: 4;
+}
+
+.control-sound-toggle {
+pointer-events: auto;
+background: none;
+border: none;
+padding: 0;
+margin: 0;
+width: 110px;
+height: 110px;
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+transition: transform 0.1s ease;
+}
+
+.control-sound-toggle:active {
+transform: scale(0.98);
+}
+
+.control-sound-toggle__svg {
+width: 100%;
+height: 100%;
+display: block;
+}
+
+.control-sound-toggle__shape {
+fill: var(--control-toggle-color, var(--selection-color));
+stroke: rgba(0, 0, 0, 0.35);
+stroke-width: 2;
+opacity: 0.35;
+filter: none;
+transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+.control-sound-toggle__label {
+font-family: 'Ubuntu', sans-serif;
+font-weight: 700;
+font-size: 18px;
+letter-spacing: 3px;
+fill: var(--control-toggle-text-color, #111);
+opacity: 0.55;
+text-transform: uppercase;
+}
+
+.control-sound-toggle.active .control-sound-toggle__shape {
+opacity: 1;
+filter: drop-shadow(0 8px 18px var(--control-toggle-shadow, rgba(0, 0, 0, 0.35)));
+}
+
+.control-sound-toggle.active .control-sound-toggle__label {
+opacity: 0.85;
+}
+
+.control-sound-toggle--pulse {
+--control-toggle-color: var(--control-toggle-pulse-color, var(--color-v));
+--control-toggle-shadow: var(--control-toggle-pulse-shadow, rgba(46, 139, 87, 0.5));
+}
+
+.control-sound-toggle--cycle {
+--control-toggle-color: var(--control-toggle-cycle-color, var(--color-t));
+--control-toggle-shadow: var(--control-toggle-cycle-shadow, rgba(229, 115, 115, 0.5));
+}
+
 /* Base styles for all control buttons */
 .play,
 .loop,
@@ -621,8 +698,8 @@ color: var(--text-dark);
 
 /* Responsive adjustments for circular inputs */
 @media (max-width: 600px) {
-:root { 
-  --controls-offset-y: -32px; 
+:root {
+  --controls-offset-y: -32px;
   --topbar-side-gap: 56px; /* reserve space so title never sits under icons */
 }
 
@@ -637,6 +714,23 @@ margin: 0; /* Remove any margin */
 left: 0px; /* Menu icon at left edge */
 padding: 8px 3px;
 font-size: 1.8rem;
+}
+
+.control-sound-toggles {
+  width: 200px;
+  height: 110px;
+  top: 18px;
+  transform: translate(-50%, -42%);
+}
+
+.control-sound-toggle {
+  width: 100px;
+  height: 100px;
+}
+
+.control-sound-toggle__label {
+  font-size: 16px;
+  letter-spacing: 2px;
 }
 
 .top-bar .sound-wrapper {

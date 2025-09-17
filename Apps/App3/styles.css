@@ -1,5 +1,10 @@
 :root {
   --cycle-color: var(--color-v);
+  --control-toggle-pulse-color: var(--color-v);
+  --control-toggle-pulse-shadow: rgba(46, 139, 87, 0.55);
+  --control-toggle-cycle-color: var(--color-t);
+  --control-toggle-cycle-shadow: rgba(229, 115, 115, 0.55);
+  --control-toggle-text-color: #111;
 }
 
 .middle {

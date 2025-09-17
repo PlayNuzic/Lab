@@ -92,6 +92,8 @@ const startSoundSelect = document.getElementById('startSoundSelect');
 const cycleStartSoundSelect = document.getElementById('cycleStartSoundSelect');
 const cycleSoundSelect = document.getElementById('cycleSoundSelect');
 const themeSelect = document.getElementById('themeSelect');
+const pulseToggleBtn = document.getElementById('pulseToggleBtn');
+const cycleToggleBtn = document.getElementById('cycleToggleBtn');
 
 let numeratorInput;
 let denominatorInput;
@@ -104,6 +106,10 @@ let lastPulseStep = null;
 let lastCycleState = null;
 const T_INDICATOR_TRANSITION_DELAY = 650;
 let tIndicatorRevealTimeout = null;
+let pulseAudioEnabled = true;
+let cycleAudioEnabled = true;
+const PULSE_AUDIO_KEY = 'pulseAudio';
+const CYCLE_AUDIO_KEY = 'cycleAudio';
 
 const tIndicator = document.createElement('div');
 tIndicator.id = 'tIndicator';
@@ -240,6 +246,12 @@ async function initAudio() {
   audio = new TimelineAudio();
   await audio.ready();
   schedulingBridge.applyTo(audio);
+  if (typeof audio.setPulseEnabled === 'function') {
+    audio.setPulseEnabled(pulseAudioEnabled);
+  }
+  if (typeof audio.setCycleEnabled === 'function') {
+    audio.setCycleEnabled(cycleAudioEnabled);
+  }
   return audio;
 }
 
@@ -259,6 +271,64 @@ attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
 attachHover(circularTimelineToggle, { text: 'Línea temporal circular' });
 attachHover(themeSelect, { text: 'Tema' });
+if (pulseToggleBtn) {
+  attachHover(pulseToggleBtn, { text: 'Activar o silenciar el pulso' });
+}
+if (cycleToggleBtn) {
+  attachHover(cycleToggleBtn, { text: 'Activar o silenciar el ciclo' });
+}
+
+function syncToggleButton(button, enabled) {
+  if (!button) return;
+  button.classList.toggle('active', enabled);
+  button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+  button.dataset.state = enabled ? 'on' : 'off';
+}
+
+function setPulseAudio(value, { persist = true } = {}) {
+  const enabled = value !== false;
+  pulseAudioEnabled = enabled;
+  syncToggleButton(pulseToggleBtn, enabled);
+  if (persist) {
+    saveOpt(PULSE_AUDIO_KEY, enabled ? '1' : '0');
+  }
+  if (audio && typeof audio.setPulseEnabled === 'function') {
+    audio.setPulseEnabled(enabled);
+  }
+}
+
+function setCycleAudio(value, { persist = true } = {}) {
+  const enabled = value !== false;
+  cycleAudioEnabled = enabled;
+  syncToggleButton(cycleToggleBtn, enabled);
+  if (persist) {
+    saveOpt(CYCLE_AUDIO_KEY, enabled ? '1' : '0');
+  }
+  if (audio && typeof audio.setCycleEnabled === 'function') {
+    audio.setCycleEnabled(enabled);
+  }
+}
+
+const storedPulseAudio = loadOpt(PULSE_AUDIO_KEY);
+if (storedPulseAudio === '0') {
+  setPulseAudio(false, { persist: false });
+} else {
+  setPulseAudio(true, { persist: false });
+}
+const storedCycleAudio = loadOpt(CYCLE_AUDIO_KEY);
+if (storedCycleAudio === '0') {
+  setCycleAudio(false, { persist: false });
+} else {
+  setCycleAudio(true, { persist: false });
+}
+
+pulseToggleBtn?.addEventListener('click', () => {
+  setPulseAudio(!pulseAudioEnabled);
+});
+
+cycleToggleBtn?.addEventListener('click', () => {
+  setCycleAudio(!cycleAudioEnabled);
+});
 
 function applyTheme(value) {
   const val = value || 'system';
@@ -949,10 +1019,13 @@ resetBtn.addEventListener('click', () => {
   ['Lg', 'V', 'n', 'd'].forEach(clearOpt);
   loopEnabled = false;
   loopBtn.classList.remove('active');
-    loopBtn.disabled = true;   // desactiva el botó Loop en fer reset
-  // circularTimeline = false;
-  // circularTimelineToggle.checked = false;
-  // saveOpt('circular', '0');
+  circularTimeline = false;
+  circularTimelineToggle.checked = false;
+  saveOpt('circular', '0');
+  setPulseAudio(true, { persist: false });
+  setCycleAudio(true, { persist: false });
+  clearOpt(PULSE_AUDIO_KEY);
+  clearOpt(CYCLE_AUDIO_KEY);
   if (audio) audio.stop();
   isPlaying = false;
   clearHighlights();
