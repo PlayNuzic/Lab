@@ -396,12 +396,22 @@ export class TimelineAudio {
       }
 
       const step = this.pulseIndex % this.totalRef;
-      let pulseType = 'base';
-      if (step === 0) pulseType = 'start';
-      else if (this.selectedRef.has(step)) pulseType = 'accent';
-      const sampler = this.samplers[pulseType];
-      if (sampler) {
+
+      const play = (type) => {
+        const sampler = this.samplers[type];
+        if (!sampler) return;
         try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}
+      };
+
+      // Always play the base pulse first
+      play('base');
+
+      if (step === 0) {
+        play('start');
+      }
+
+      if (this.selectedRef.has(step)) {
+        play('accent');
       }
 
       if (typeof onPulse === 'function') {
