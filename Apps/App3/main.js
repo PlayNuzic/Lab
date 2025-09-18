@@ -216,6 +216,11 @@ function initFractionEditor() {
   numeratorField.down.addEventListener('click', () => adjustInput(numeratorInput, -1));
   denominatorField.up.addEventListener('click', () => adjustInput(denominatorInput, +1));
   denominatorField.down.addEventListener('click', () => adjustInput(denominatorInput, -1));
+
+  addRepeatPress(numeratorField.up, () => adjustInput(numeratorInput, +1));
+  addRepeatPress(numeratorField.down, () => adjustInput(numeratorInput, -1));
+  addRepeatPress(denominatorField.up, () => adjustInput(denominatorInput, +1));
+  addRepeatPress(denominatorField.down, () => adjustInput(denominatorInput, -1));
 }
 
 initFractionEditor();
