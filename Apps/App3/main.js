@@ -110,6 +110,8 @@ let pulseAudioEnabled = true;
 let cycleAudioEnabled = true;
 const PULSE_AUDIO_KEY = 'pulseAudio';
 const CYCLE_AUDIO_KEY = 'cycleAudio';
+let hasStoredPulsePref = false;
+let hasStoredCyclePref = false;
 
 const tIndicator = document.createElement('div');
 tIndicator.id = 'tIndicator';
@@ -291,6 +293,7 @@ function setPulseAudio(value, { persist = true } = {}) {
   syncToggleButton(pulseToggleBtn, enabled);
   if (persist) {
     saveOpt(PULSE_AUDIO_KEY, enabled ? '1' : '0');
+    hasStoredPulsePref = true;
   }
   if (audio && typeof audio.setPulseEnabled === 'function') {
     audio.setPulseEnabled(enabled);
@@ -303,6 +306,7 @@ function setCycleAudio(value, { persist = true } = {}) {
   syncToggleButton(cycleToggleBtn, enabled);
   if (persist) {
     saveOpt(CYCLE_AUDIO_KEY, enabled ? '1' : '0');
+    hasStoredCyclePref = true;
   }
   if (audio && typeof audio.setCycleEnabled === 'function') {
     audio.setCycleEnabled(enabled);
@@ -311,14 +315,24 @@ function setCycleAudio(value, { persist = true } = {}) {
 
 const storedPulseAudio = loadOpt(PULSE_AUDIO_KEY);
 if (storedPulseAudio === '0') {
+  hasStoredPulsePref = true;
   setPulseAudio(false, { persist: false });
+} else if (storedPulseAudio === '1') {
+  hasStoredPulsePref = true;
+  setPulseAudio(true, { persist: false });
 } else {
+  hasStoredPulsePref = false;
   setPulseAudio(true, { persist: false });
 }
 const storedCycleAudio = loadOpt(CYCLE_AUDIO_KEY);
 if (storedCycleAudio === '0') {
+  hasStoredCyclePref = true;
   setCycleAudio(false, { persist: false });
+} else if (storedCycleAudio === '1') {
+  hasStoredCyclePref = true;
+  setCycleAudio(true, { persist: false });
 } else {
+  hasStoredCyclePref = false;
   setCycleAudio(true, { persist: false });
 }
 
@@ -1026,6 +1040,8 @@ resetBtn.addEventListener('click', () => {
   setCycleAudio(true, { persist: false });
   clearOpt(PULSE_AUDIO_KEY);
   clearOpt(CYCLE_AUDIO_KEY);
+  hasStoredPulsePref = false;
+  hasStoredCyclePref = false;
   if (audio) audio.stop();
   isPlaying = false;
   clearHighlights();
@@ -1142,6 +1158,12 @@ function applyInitialState() {
   setValue(inputV, '');
   setValue(numeratorInput, '');
   setValue(denominatorInput, '');
+  if (!hasStoredPulsePref) {
+    setPulseAudio(true, { persist: false });
+  }
+  if (!hasStoredCyclePref) {
+    setCycleAudio(true, { persist: false });
+  }
   tapTimes = [];
   if (tapHelp) {
     tapHelp.textContent = 'Se necesitan 3 clicks';

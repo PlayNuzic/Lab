@@ -503,8 +503,10 @@ export class TimelineAudio {
         try { sampler.triggerAttackRelease('C3', clickDur, t); } catch {}
       };
 
-      // Always play the base pulse first
-      play('base');
+      // Always play the base pulse first unless it has been muted explicitly
+      if (this._pulseEnabled) {
+        play('base');
+      }
 
       if (step === 0) {
         play('start');
