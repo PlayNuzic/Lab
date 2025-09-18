@@ -79,13 +79,13 @@ export function renderApp({
         <details>
           <summary>Sonidos</summary>
           <div class="sound-group">
-            <p>Pulso Base</p>
+            <p>Pulso</p>
             <div class="preview-row">
               <label for="baseSoundSelect" style="display:none"></label>
               <div id="baseSoundSelect"></div>
             </div>
             ${showAccent ? `
-            <p>Acento Base</p>
+            <p>Pulso 0</p>
             <div class="preview-row">
               <label for=\"accentSoundSelect\" style=\"display:none\"></label>
               <div id=\"accentSoundSelect\"></div>
