@@ -179,7 +179,6 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
       if (longPressFired) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        longPressFired = false;
       }
     });
 

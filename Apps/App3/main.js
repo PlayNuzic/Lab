@@ -1,4 +1,4 @@
-import { TimelineAudio, ensureAudio, getMixer } from '../../libs/sound/index.js';
+import { TimelineAudio, ensureAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { computeNumberFontRem } from './utils.js';
@@ -381,6 +381,21 @@ initMixerMenu({
     { id: 'subdivision', label: 'Fracción', allowSolo: true },
     { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
   ]
+});
+
+subscribeMixer((snapshot) => {
+  if (!snapshot || !Array.isArray(snapshot.channels)) return;
+  const findChannel = (id) => snapshot.channels.find(channel => channel.id === id);
+
+  const syncFromChannel = (channelState, setter, current) => {
+    if (!channelState) return;
+    const shouldEnable = !channelState.muted;
+    if (current === shouldEnable) return;
+    setter(shouldEnable);
+  };
+
+  syncFromChannel(findChannel('pulse'), setPulseAudio, pulseAudioEnabled);
+  syncFromChannel(findChannel('subdivision'), setCycleAudio, cycleAudioEnabled);
 });
 
 function applyTheme(value) {
