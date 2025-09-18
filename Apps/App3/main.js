@@ -22,9 +22,20 @@ let circularTimeline = false;
 let isUpdating = false;
 let tapTimes = [];
 
-const NUMBER_HIDE_THRESHOLD = 100;
-const FRACTION_HIDE_THRESHOLD = 100;
+const PULSE_NUMBER_HIDE_THRESHOLD = 71;
+const SUBDIVISION_HIDE_THRESHOLD = 41;
 const NUMBER_CIRCLE_OFFSET = 28;
+
+const computeSubdivisionFontRem = (lg) => {
+  const BASE_REM = 1.2;
+  const TARGET = 24;
+  const K = 0.75;
+  const MIN_REM = 0.75;
+  const safeLg = Math.max(1, Number(lg) || 1);
+  if (safeLg <= TARGET) return BASE_REM;
+  const scale = Math.pow(TARGET / safeLg, K);
+  return Math.max(MIN_REM, BASE_REM * scale);
+};
 
 const defaults = {
   Lg: 8,
@@ -483,6 +494,8 @@ function renderTimeline() {
 
   const lg = getLg();
   if (!Number.isFinite(lg) || lg <= 0) return;
+  const numberFontRem = computeNumberFontRem(lg);
+  const subdivisionFontRem = computeSubdivisionFontRem(lg);
 
   for (let i = 0; i <= lg; i++) {
     const pulse = document.createElement('div');
@@ -502,11 +515,9 @@ function renderTimeline() {
   const { numerator, denominator } = getFraction();
   if (Number.isFinite(numerator) && Number.isFinite(denominator) && numerator > 0 && denominator > 0) {
     const cycles = Math.floor(lg / numerator);
+    const hideFractionLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
     const labelFormatter = (cycleIndex, subdivision) => {
       const base = cycleIndex * numerator;
-      if (subdivision > 0 && base >= FRACTION_HIDE_THRESHOLD) {
-        return null;
-      }
       return subdivision === 0 ? String(base) : `.${subdivision}`;
     };
     for (let c = 0; c < cycles; c++) {
@@ -521,14 +532,18 @@ function renderTimeline() {
         timeline.appendChild(marker);
         cycleMarkers.push(marker);
 
+        if (hideFractionLabels) continue;
         const formatted = labelFormatter(c, s);
         if (formatted != null) {
           const label = document.createElement('div');
           label.className = 'cycle-label';
+          if (s === 0) label.classList.add('cycle-label--integer');
+          if (c === 0 && s === 0) label.classList.add('cycle-label--origin');
           label.dataset.cycleIndex = String(c);
           label.dataset.subdivision = String(s);
           label.dataset.position = String(position);
           label.textContent = formatted;
+          label.style.fontSize = `${subdivisionFontRem}rem`;
           timeline.appendChild(label);
           cycleLabels.push(label);
         }
@@ -541,14 +556,14 @@ function renderTimeline() {
   clearHighlights();
 }
 
-function showNumber(i) {
+function showNumber(i, fontRem) {
   const label = document.createElement('div');
   label.className = 'pulse-number';
   label.dataset.index = i;
   label.textContent = i;
   const lg = pulses.length - 1;
-  const fontRem = computeNumberFontRem(lg);
-  label.style.fontSize = `${fontRem}rem`;
+  const sizeRem = typeof fontRem === 'number' ? fontRem : computeNumberFontRem(lg);
+  label.style.fontSize = `${sizeRem}rem`;
   if (i === 0 || i === lg) label.classList.add('endpoint');
   timeline.appendChild(label);
 }
@@ -557,13 +572,12 @@ function updatePulseNumbers() {
   timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
   if (!pulses.length) return;
   const lg = pulses.length - 1;
-  const tooDense = lg >= NUMBER_HIDE_THRESHOLD;
-  showNumber(0);
-  showNumber(lg);
-  if (!tooDense) {
-    for (let i = 1; i < lg; i++) {
-      showNumber(i);
-    }
+  if (lg >= PULSE_NUMBER_HIDE_THRESHOLD) return;
+  const fontRem = computeNumberFontRem(lg);
+  showNumber(0, fontRem);
+  showNumber(lg, fontRem);
+  for (let i = 1; i < lg; i++) {
+    showNumber(i, fontRem);
   }
 }
 

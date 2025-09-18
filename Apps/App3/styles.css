@@ -140,7 +140,16 @@
   transition: color 0.3s ease, transform 0.3s ease;
 }
 
-.cycle-label.active {
+.cycle-label--integer {
+  color: var(--selection-color);
+}
+
+.cycle-label--origin {
+  color: var(--color-lg);
+  font-weight: 600;
+}
+
+.cycle-label.active:not(.cycle-label--origin) {
   color: var(--selection-color);
   font-weight: 600;
 }
