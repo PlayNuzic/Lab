@@ -13,7 +13,6 @@ bindSharedSoundEvents({
   mapping: {
     baseSound: 'setBase',
     startSound: 'setStart',
-    cycleStartSound: 'setCycleStart',
     cycleSound: 'setCycle'
   }
 });
@@ -24,6 +23,7 @@ let isUpdating = false;
 let tapTimes = [];
 
 const NUMBER_HIDE_THRESHOLD = 100;
+const FRACTION_HIDE_THRESHOLD = 100;
 const NUMBER_CIRCLE_OFFSET = 28;
 
 const defaults = {
@@ -89,7 +89,6 @@ const randComplexToggle = document.getElementById('randComplexToggle');
 
 const baseSoundSelect = document.getElementById('baseSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
-const cycleStartSoundSelect = document.getElementById('cycleStartSoundSelect');
 const cycleSoundSelect = document.getElementById('cycleSoundSelect');
 const themeSelect = document.getElementById('themeSelect');
 const pulseToggleBtn = document.getElementById('pulseToggleBtn');
@@ -505,7 +504,10 @@ function renderTimeline() {
     const cycles = Math.floor(lg / numerator);
     const labelFormatter = (cycleIndex, subdivision) => {
       const base = cycleIndex * numerator;
-      return subdivision === 0 ? String(base) : `${base}.${subdivision}`;
+      if (subdivision > 0 && base >= FRACTION_HIDE_THRESHOLD) {
+        return null;
+      }
+      return subdivision === 0 ? String(base) : `.${subdivision}`;
     };
     for (let c = 0; c < cycles; c++) {
       for (let s = 0; s < denominator; s++) {
@@ -519,14 +521,17 @@ function renderTimeline() {
         timeline.appendChild(marker);
         cycleMarkers.push(marker);
 
-        const label = document.createElement('div');
-        label.className = 'cycle-label';
-        label.dataset.cycleIndex = String(c);
-        label.dataset.subdivision = String(s);
-        label.dataset.position = String(position);
-        label.textContent = labelFormatter(c, s);
-        timeline.appendChild(label);
-        cycleLabels.push(label);
+        const formatted = labelFormatter(c, s);
+        if (formatted != null) {
+          const label = document.createElement('div');
+          label.className = 'cycle-label';
+          label.dataset.cycleIndex = String(c);
+          label.dataset.subdivision = String(s);
+          label.dataset.position = String(position);
+          label.textContent = formatted;
+          timeline.appendChild(label);
+          cycleLabels.push(label);
+        }
       }
     }
   }
@@ -1026,9 +1031,6 @@ async function startPlayback() {
   const audioInstance = await initAudio();
   await audioInstance.setBase(baseSoundSelect?.dataset.value || baseSoundSelect?.value);
   await audioInstance.setStart(startSoundSelect?.dataset.value || startSoundSelect?.value);
-  if (audioInstance.setCycleStart) {
-    await audioInstance.setCycleStart(cycleStartSoundSelect?.dataset.value || cycleStartSoundSelect?.value);
-  }
   await audioInstance.setCycle(cycleSoundSelect?.dataset.value || cycleSoundSelect?.value);
 
   const interval = 60 / v;
@@ -1208,12 +1210,6 @@ function setupSoundDropdowns() {
     eventType: 'startSound',
     getAudio: initAudio,
     apply: (a, val) => a.setStart(val)
-  });
-  initSoundDropdown(cycleStartSoundSelect, {
-    storageKey: storeKey('cycleStartSound'),
-    eventType: 'cycleStartSound',
-    getAudio: initAudio,
-    apply: (a, val) => (a && typeof a.setCycleStart === 'function' ? a.setCycleStart(val) : undefined)
   });
   initSoundDropdown(cycleSoundSelect, {
     storageKey: storeKey('cycleSound'),

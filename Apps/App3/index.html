@@ -54,20 +54,6 @@
       const startLabel = labels?.[1];
       if (startLabel) startLabel.textContent = 'Inicio Pulso';
 
-      const cycleStartTitle = document.createElement('p');
-      cycleStartTitle.textContent = 'Inicio Ciclo';
-      soundGroup.appendChild(cycleStartTitle);
-      const cycleStartRow = document.createElement('div');
-      cycleStartRow.className = 'preview-row';
-      const cycleStartHiddenLabel = document.createElement('label');
-      cycleStartHiddenLabel.setAttribute('for', 'cycleStartSoundSelect');
-      cycleStartHiddenLabel.style.display = 'none';
-      cycleStartRow.appendChild(cycleStartHiddenLabel);
-      const cycleStartSlot = document.createElement('div');
-      cycleStartSlot.id = 'cycleStartSoundSelect';
-      cycleStartRow.appendChild(cycleStartSlot);
-      soundGroup.appendChild(cycleStartRow);
-
       const cycleTitle = document.createElement('p');
       cycleTitle.textContent = 'Subdivisión';
       soundGroup.appendChild(cycleTitle);
