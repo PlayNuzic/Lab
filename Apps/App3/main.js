@@ -212,11 +212,6 @@ function initFractionEditor() {
   enforceInt(numeratorInput);
   enforceInt(denominatorInput);
 
-  numeratorField.up.addEventListener('click', () => adjustInput(numeratorInput, +1));
-  numeratorField.down.addEventListener('click', () => adjustInput(numeratorInput, -1));
-  denominatorField.up.addEventListener('click', () => adjustInput(denominatorInput, +1));
-  denominatorField.down.addEventListener('click', () => adjustInput(denominatorInput, -1));
-
   addRepeatPress(numeratorField.up, () => adjustInput(numeratorInput, +1));
   addRepeatPress(numeratorField.down, () => adjustInput(numeratorInput, -1));
   addRepeatPress(denominatorField.up, () => adjustInput(denominatorInput, +1));
@@ -811,7 +806,6 @@ function addRepeatPress(el, fn) {
   if (!el) return;
   let timeoutId = null;
   let intervalId = null;
-  let skipClick = false;
 
   const clearTimers = () => {
     if (timeoutId) {
@@ -825,9 +819,9 @@ function addRepeatPress(el, fn) {
   };
 
   const start = (event) => {
-    skipClick = true;
-    fn();
+    if (event.type === 'mousedown' && event.button !== 0) return;
     clearTimers();
+    fn();
     timeoutId = setTimeout(() => {
       intervalId = setInterval(fn, 80);
     }, 320);
@@ -836,11 +830,6 @@ function addRepeatPress(el, fn) {
 
   const stop = () => {
     clearTimers();
-    if (skipClick) {
-      setTimeout(() => {
-        skipClick = false;
-      }, 0);
-    }
   };
 
   el.addEventListener('mousedown', start);
@@ -850,13 +839,12 @@ function addRepeatPress(el, fn) {
   });
   document.addEventListener('mouseup', stop);
   document.addEventListener('touchend', stop);
-  el.addEventListener('click', (event) => {
-    if (skipClick) {
-      skipClick = false;
+
+  el.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      return;
+      fn();
     }
-    fn();
   });
 }
 
