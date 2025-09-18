@@ -868,11 +868,6 @@ function addRepeatPress(el, fn) {
   });
 });
 
-inputLgUp?.addEventListener('click', () => adjustInput(inputLg, +1));
-inputLgDown?.addEventListener('click', () => adjustInput(inputLg, -1));
-inputVUp?.addEventListener('click', () => adjustInput(inputV, +1));
-inputVDown?.addEventListener('click', () => adjustInput(inputV, -1));
-
 addRepeatPress(inputLgUp, () => adjustInput(inputLg, +1));
 addRepeatPress(inputLgDown, () => adjustInput(inputLg, -1));
 addRepeatPress(inputVUp, () => adjustInput(inputV, +1));
