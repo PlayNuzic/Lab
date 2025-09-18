@@ -18,6 +18,12 @@ body[data-theme='dark'] {
   gap: 32px;
 }
 
+.fraction-editor-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
 .fraction-editor {
   display: inline-flex;
   flex-direction: column;
@@ -109,6 +115,52 @@ body[data-theme='dark'] {
   color: var(--selection-color);
 }
 
+.fraction-ghost {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 68px;
+  color: var(--line-color);
+  opacity: 0.25;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+
+.fraction-ghost__numerator,
+.fraction-ghost__denominator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.fraction-ghost__number {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.fraction-ghost__bar {
+  width: 52px;
+  height: 3px;
+  background: currentColor;
+  margin: 6px 0;
+  opacity: 0.6;
+}
+
+.fraction-ghost--hidden {
+  opacity: 0;
+  transform: translateX(-12px) scale(0.94);
+  visibility: hidden;
+}
+
+.fraction-ghost--visible {
+  opacity: 0.45;
+  transform: translateX(0) scale(1);
+  visibility: visible;
+}
+
 .fraction-field input:placeholder-shown ~ .spinner {
   opacity: 0;
   pointer-events: none;
@@ -166,6 +218,25 @@ body[data-theme='dark'] {
 .pulse-number {
   top: -35%;
   font-weight: 600;
+}
+
+.pulse-number--flash {
+  animation: pulse-number-flash 0.48s ease;
+}
+
+@keyframes pulse-number-flash {
+  0% {
+    color: var(--selection-color);
+    text-shadow: 0 0 10px var(--selection-color);
+  }
+  60% {
+    color: var(--selection-color);
+    text-shadow: 0 0 6px var(--selection-color);
+  }
+  100% {
+    color: inherit;
+    text-shadow: none;
+  }
 }
 
 .timeline.circular .pulse-number {

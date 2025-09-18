@@ -115,6 +115,14 @@ if (globalMixer) {
 
 let numeratorInput;
 let denominatorInput;
+let ghostFractionContainer;
+let ghostNumeratorText;
+let ghostDenominatorText;
+const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
+const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
+let currentFractionInfo = createEmptyFractionInfo();
+let pulseNumberLabels = [];
+const pulseFlashTimeouts = new Map();
 
 let pulses = [];
 let bars = [];
@@ -146,6 +154,36 @@ function initFractionEditor() {
   formula.innerHTML = '';
   const container = document.createElement('div');
   container.className = 'fraction-editor';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'fraction-editor-wrapper';
+
+  ghostFractionContainer = document.createElement('div');
+  ghostFractionContainer.className = 'fraction-ghost fraction-ghost--hidden';
+  ghostFractionContainer.setAttribute('aria-hidden', 'true');
+
+  const ghostNumeratorWrapper = document.createElement('div');
+  ghostNumeratorWrapper.className = 'fraction-ghost__numerator';
+  ghostNumeratorText = document.createElement('span');
+  ghostNumeratorText.className = 'fraction-ghost__number';
+  ghostNumeratorWrapper.appendChild(ghostNumeratorText);
+
+  const ghostBar = document.createElement('div');
+  ghostBar.className = 'fraction-ghost__bar';
+
+  const ghostDenominatorWrapper = document.createElement('div');
+  ghostDenominatorWrapper.className = 'fraction-ghost__denominator';
+  ghostDenominatorText = document.createElement('span');
+  ghostDenominatorText.className = 'fraction-ghost__number';
+  ghostDenominatorWrapper.appendChild(ghostDenominatorText);
+
+  ghostFractionContainer.appendChild(ghostNumeratorWrapper);
+  ghostFractionContainer.appendChild(ghostBar);
+  ghostFractionContainer.appendChild(ghostDenominatorWrapper);
+
+  wrapper.appendChild(ghostFractionContainer);
+  wrapper.appendChild(container);
+  formula.appendChild(wrapper);
 
   const createField = ({ wrapperClass, placeholder, ariaUp, ariaDown }) => {
     const wrapper = document.createElement('div');
@@ -201,10 +239,11 @@ function initFractionEditor() {
 
   container.appendChild(top);
   container.appendChild(bottom);
-  formula.appendChild(container);
 
-  attachHover(numeratorInput, { text: 'Numerador (pulsos por ciclo)' });
-  attachHover(denominatorInput, { text: 'Denominador (subdivisiones)' });
+  numeratorInput.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
+  denominatorInput.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
+  attachHover(numeratorInput, { text: DEFAULT_NUMERATOR_HOVER_TEXT });
+  attachHover(denominatorInput, { text: DEFAULT_DENOMINATOR_HOVER_TEXT });
 
   const enforceInt = (input) => {
     input.addEventListener('input', () => {
@@ -246,6 +285,89 @@ function parseIntSafe(val) {
 function parseFloatSafe(val) {
   const n = Number.parseFloat(val);
   return Number.isFinite(n) ? n : NaN;
+}
+
+function createEmptyFractionInfo() {
+  return {
+    numerator: null,
+    denominator: null,
+    reducedNumerator: null,
+    reducedDenominator: null,
+    isMultiple: false,
+    multipleFactor: 1
+  };
+}
+
+function gcd(a, b) {
+  let x = Math.abs(Number(a));
+  let y = Math.abs(Number(b));
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) {
+    return Number.isFinite(x) && x > 0 ? x : Number.isFinite(y) && y > 0 ? y : 1;
+  }
+  while (y !== 0) {
+    const temp = x % y;
+    x = y;
+    y = temp;
+  }
+  return x || 1;
+}
+
+function computeFractionInfo(numerator, denominator) {
+  const info = createEmptyFractionInfo();
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || numerator <= 0 || denominator <= 0) {
+    return info;
+  }
+  info.numerator = numerator;
+  info.denominator = denominator;
+  const divisor = gcd(numerator, denominator);
+  if (divisor <= 1) {
+    return info;
+  }
+  info.reducedNumerator = numerator / divisor;
+  info.reducedDenominator = denominator / divisor;
+  info.isMultiple = true;
+  info.multipleFactor = denominator / info.reducedDenominator;
+  return info;
+}
+
+function buildReductionHoverText(info) {
+  if (!info || !info.isMultiple) return '';
+  const accentEvery = Math.max(1, Math.round(info.multipleFactor));
+  const noun = accentEvery === 1 ? 'subdivisión' : 'subdivisiones';
+  return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}; se repite ${accentEvery} veces la misma estructura sonora.`;
+}
+
+function updateFractionGhost(info) {
+  if (!ghostFractionContainer || !ghostNumeratorText || !ghostDenominatorText) return;
+  if (!info || !info.isMultiple) {
+    ghostFractionContainer.classList.add('fraction-ghost--hidden');
+    ghostFractionContainer.classList.remove('fraction-ghost--visible');
+    ghostNumeratorText.textContent = '';
+    ghostDenominatorText.textContent = '';
+    return;
+  }
+  ghostNumeratorText.textContent = info.reducedNumerator;
+  ghostDenominatorText.textContent = info.reducedDenominator;
+  ghostFractionContainer.classList.remove('fraction-ghost--hidden');
+  ghostFractionContainer.classList.add('fraction-ghost--visible');
+}
+
+function updateFractionHover(info) {
+  if (!numeratorInput || !denominatorInput) return;
+  if (info && info.isMultiple) {
+    const message = buildReductionHoverText(info);
+    numeratorInput.dataset.hoverText = message;
+    denominatorInput.dataset.hoverText = message;
+  } else {
+    numeratorInput.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
+    denominatorInput.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
+  }
+}
+
+function updateFractionUI(numerator, denominator) {
+  currentFractionInfo = computeFractionInfo(numerator, denominator);
+  updateFractionGhost(currentFractionInfo);
+  updateFractionHover(currentFractionInfo);
 }
 
 function setValue(input, value) {
@@ -520,9 +642,15 @@ function clearHighlights() {
   pulses.forEach(p => p.classList.remove('active'));
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
+  pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
+  pulseFlashTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+  pulseFlashTimeouts.clear();
 }
 
 function renderTimeline() {
+  pulseFlashTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+  pulseFlashTimeouts.clear();
+  pulseNumberLabels = [];
   pulses = [];
   cycleMarkers = [];
   cycleLabels = [];
@@ -605,10 +733,12 @@ function showNumber(i, fontRem) {
   label.style.fontSize = `${sizeRem}rem`;
   if (i === 0 || i === lg) label.classList.add('endpoint');
   timeline.appendChild(label);
+  pulseNumberLabels.push(label);
 }
 
 function updatePulseNumbers() {
   timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
+  pulseNumberLabels = [];
   if (!pulses.length) return;
   const lg = pulses.length - 1;
   if (lg >= PULSE_NUMBER_HIDE_THRESHOLD) return;
@@ -796,6 +926,8 @@ function handleInput() {
   const lg = getLg();
   const v = getV();
   const { numerator, denominator } = getFraction();
+
+  updateFractionUI(numerator, denominator);
 
   if (Number.isFinite(lg) && Number.isFinite(v) && lg > 0 && v > 0) {
     const tSeconds = (lg / v) * 60;
@@ -1043,6 +1175,26 @@ function highlightPulse(index) {
   }
 }
 
+function flashPulseNumber(index) {
+  if (!pulseNumberLabels.length) return;
+  const numericIndex = Number(index);
+  if (!Number.isFinite(numericIndex)) return;
+  const target = pulseNumberLabels.find(label => Number.parseInt(label.dataset.index, 10) === numericIndex);
+  if (!target) return;
+  if (pulseFlashTimeouts.has(target)) {
+    clearTimeout(pulseFlashTimeouts.get(target));
+    pulseFlashTimeouts.delete(target);
+  }
+  target.classList.remove('pulse-number--flash');
+  void target.offsetWidth;
+  target.classList.add('pulse-number--flash');
+  const timeoutId = setTimeout(() => {
+    target.classList.remove('pulse-number--flash');
+    pulseFlashTimeouts.delete(target);
+  }, 480);
+  pulseFlashTimeouts.set(target, timeoutId);
+}
+
 function highlightCycle({ cycleIndex, subdivisionIndex }) {
   if (!isPlaying) return;
   lastCycleState = { cycleIndex, subdivisionIndex };
@@ -1055,6 +1207,20 @@ function highlightCycle({ cycleIndex, subdivisionIndex }) {
     marker.classList.add('active');
   }
   if (label) label.classList.add('active');
+
+  if (marker && currentFractionInfo && currentFractionInfo.isMultiple && currentFractionInfo.multipleFactor > 1) {
+    const normalizedSubdivision = Number(subdivisionIndex);
+    if (Number.isFinite(normalizedSubdivision)) {
+      const accentEvery = Math.max(1, Math.round(currentFractionInfo.multipleFactor));
+      if (accentEvery > 0 && normalizedSubdivision % accentEvery === 0) {
+        const positionValue = Number(marker.dataset.position);
+        const approxIndex = Math.round(positionValue);
+        if (Number.isFinite(positionValue) && Math.abs(positionValue - approxIndex) < 1e-6) {
+          flashPulseNumber(approxIndex);
+        }
+      }
+    }
+  }
 }
 
 function syncVisualState() {

@@ -7,10 +7,15 @@ export function attachHover(el, { text = '', color = '#fff', background = 'rgba(
 
   function show() {
     if (window.__hoversEnabled === false) return;
-    tip.textContent = text;
-    tip.style.background = background;
-    tip.style.color = color;
-    tip.style.fontSize = size;
+    const resolvedText = el.dataset.hoverText ?? text;
+    if (!resolvedText) {
+      hide();
+      return;
+    }
+    tip.textContent = resolvedText;
+    tip.style.background = el.dataset.hoverBackground ?? background;
+    tip.style.color = el.dataset.hoverColor ?? color;
+    tip.style.fontSize = el.dataset.hoverSize ?? size;
     const rect = el.getBoundingClientRect();
     tip.style.left = rect.left + rect.width / 2 + 'px';
     tip.style.top = rect.top + window.scrollY + 'px';
