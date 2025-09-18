@@ -380,7 +380,7 @@ attachHover(randTToggle, { text: 'Aleatorizar T' });
 attachHover(randTMin, { text: 'Mínimo T' });
 attachHover(randTMax, { text: 'Máximo T' });
 attachHover(randPulsesToggle, { text: 'Aleatorizar pulsos' });
-attachHover(randomCount, { text: 'Máximo de pulsos a seleccionar' });
+attachHover(randomCount, { text: 'Cantidad de pulsos a seleccionar (vacío = aleatorio, 0 = ninguno)' });
 
 
 const storeKey = (k) => `app2:${k}`;
@@ -534,19 +534,23 @@ function randomize() {
       const rawCount = typeof randomCount.value === 'string' ? randomCount.value.trim() : '';
       const available = [];
       for (let i = 1; i < lg; i++) available.push(i);
-      let count = parseInt(rawCount, 10);
-      if (rawCount === '') {
-        count = available.length;
-      }
       const selected = new Set();
-      if (!isNaN(count) && count > 0) {
-        while (selected.size < Math.min(count, available.length)) {
-          const idx = available[Math.floor(Math.random() * available.length)];
-          selected.add(idx);
-        }
+      if (rawCount === '') {
+        const density = 0.5;
+        available.forEach(i => { if (Math.random() < density) selected.add(i); });
       } else {
-        const d = 0.5;
-        available.forEach(i => { if (Math.random() < d) selected.add(i); });
+        const parsed = Number.parseInt(rawCount, 10);
+        if (Number.isNaN(parsed)) {
+          const density = 0.5;
+          available.forEach(i => { if (Math.random() < density) selected.add(i); });
+        } else if (parsed > 0) {
+          const target = Math.min(parsed, available.length);
+          while (selected.size < target) {
+            const idx = available[Math.floor(Math.random() * available.length)];
+            selected.add(idx);
+          }
+        }
+        // For parsed <= 0, keep selection empty (0 pulses)
       }
       const seq = Array.from(selected).sort((a, b) => a - b);
       for (let i = 1; i < lg; i++) pulseMemory[i] = false;
