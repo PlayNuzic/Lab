@@ -79,22 +79,23 @@ export function renderApp({
         <details>
           <summary>Sonidos</summary>
           <div class="sound-group">
+            <p>Pulso 0</p>
+            <div class="preview-row">
+              <label for="startSoundSelect" style="display:none"></label>
+              <div id="startSoundSelect"></div>
+            </div>          
             <p>Pulso</p>
             <div class="preview-row">
               <label for="baseSoundSelect" style="display:none"></label>
               <div id="baseSoundSelect"></div>
-            </div>
+            </div>            
             ${showAccent ? `
-            <p>Pulso 0</p>
+            <p>Seleccionado</p>
             <div class="preview-row">
               <label for=\"accentSoundSelect\" style=\"display:none\"></label>
               <div id=\"accentSoundSelect\"></div>
             </div>` : ''}
-            <p>Inicio Base</p>
-            <div class="preview-row">
-              <label for="startSoundSelect" style="display:none"></label>
-              <div id="startSoundSelect"></div>
-            </div>
+
           </div>
         </details>
         <label for="schedProfileSelect">Rendimiento:
