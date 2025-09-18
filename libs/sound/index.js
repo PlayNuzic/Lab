@@ -1,21 +1,16 @@
+import { AudioMixer } from './mixer.js';
+
+const mixer = new AudioMixer();
+
 let synth;
 let audioReady;
-let muted = false;
-let volume = 1;
 
 function _setMute(val) {
-  muted = !!val;
-  if (typeof Tone !== 'undefined' && Tone.Destination) {
-    Tone.Destination.mute = muted;
-  }
+  mixer.setMasterMute(val);
 }
 
 function _setVolume(val) {
-  const v = Math.max(0, Math.min(1, Number(val)));
-  volume = v;
-  if (typeof Tone !== 'undefined' && Tone.Destination && Tone.Destination.volume) {
-    try { Tone.Destination.volume.value = v > 0 ? (20 * Math.log10(v)) : -Infinity; } catch {}
-  }
+  mixer.setMasterVolume(val);
 }
 
 export function ensureAudio() {
@@ -34,16 +29,47 @@ export function setVolume(val) {
 }
 
 export function getVolume() {
-  return volume;
+  return mixer.getMasterVolume();
 }
 
 export function toggleMute() {
-  _setMute(!muted);
-  return muted;
+  return mixer.toggleMasterMute();
 }
 
 export function isMuted() {
-  return muted;
+  return mixer.isMasterMuted();
+}
+
+export function getMixer() {
+  return mixer;
+}
+
+export function subscribeMixer(listener) {
+  return mixer.subscribe(listener);
+}
+
+export function setChannelVolume(channelId, value) {
+  mixer.setChannelVolume(channelId, value);
+}
+
+export function setChannelMute(channelId, value) {
+  mixer.setChannelMute(channelId, value);
+}
+
+export function toggleChannelMute(channelId) {
+  mixer.toggleChannelMute(channelId);
+}
+
+export function setChannelSolo(channelId, value) {
+  mixer.setChannelSolo(channelId, value);
+}
+
+export function toggleChannelSolo(channelId) {
+  mixer.toggleChannelSolo(channelId);
+}
+
+export function getChannelState(channelId) {
+  return mixer.getChannelState(channelId);
 }
 
 export async function init(type = 'piano') {
@@ -54,41 +80,59 @@ export async function init(type = 'piano') {
       urls[`C${o}`] = `C${o}.mp3`;
       urls[`F#${o}`] = `Fs${o}.mp3`;
     }
+    const destination = mixer.getDestination();
     synth = new Tone.Sampler({
       urls,
       release: 1,
       baseUrl: "https://tonejs.github.io/audio/salamander/"
-    }).toDestination();
+    });
+    if (destination && typeof synth.connect === 'function') {
+      try { synth.connect(destination); } catch { synth.toDestination(); }
+    } else {
+      synth = synth.toDestination();
+    }
     try {
       await Tone.loaded();
     } catch (e) {
       console.error('Error carregant mostres:', e);
     }
   } else if (type === 'woodblocks') {
+    const destination = mixer.getDestination();
     synth = new Tone.MembraneSynth({
       octaves: 2,
       pitchDecay: 0.01,
       envelope: { attack: 0.001, decay: 0.1, sustain: 0.001, release: 0.01 }
-    }).toDestination();
+    });
+    if (destination && typeof synth.connect === 'function') {
+      try { synth.connect(destination); } catch { synth.toDestination(); }
+    } else {
+      synth = synth.toDestination();
+    }
   } else {
-    synth = new Tone.PolySynth(Tone.Synth).toDestination();
+    const destination = mixer.getDestination();
+    synth = new Tone.PolySynth(Tone.Synth);
+    if (destination && typeof synth.connect === 'function') {
+      try { synth.connect(destination); } catch { synth.toDestination(); }
+    } else {
+      synth = synth.toDestination();
+    }
   }
-  _setMute(muted);
-  _setVolume(volume);
+  _setMute(mixer.isMasterMuted());
+  _setVolume(mixer.getMasterVolume());
 }
 
 export function playNote(midi, duration = 1.5) {
-  if (!synth || muted) return;
+  if (!synth || mixer.isMasterMuted()) return;
   synth.triggerAttackRelease(Tone.Frequency(midi, 'midi'), duration);
 }
 
 export function playChord(midis, duration = 1.5) {
-  if (!synth || muted) return;
+  if (!synth || mixer.isMasterMuted()) return;
   synth.triggerAttackRelease(midis.map(n => Tone.Frequency(n, 'midi')), duration);
 }
 
 export function playMelody(midis, duration = 1.5, gap = 0.2) {
-  if (!synth || muted) return;
+  if (!synth || mixer.isMasterMuted()) return;
   midis.forEach((n, i) => {
     setTimeout(() => {
       synth.triggerAttackRelease(Tone.Frequency(n, 'midi'), duration);
@@ -97,7 +141,7 @@ export function playMelody(midis, duration = 1.5, gap = 0.2) {
 }
 
 export function playRhythm(permutation, bpm) {
-  if (!synth || muted) return;
+  if (!synth || mixer.isMasterMuted()) return;
   const iT = permutation.reduce((a, b) => a + b, 0);
   const beatDur = 60 / (bpm || 120);
   const unit = beatDur / iT;
@@ -156,6 +200,19 @@ export class TimelineAudio {
       cycle: null
     };
 
+    this.mixer = mixer;
+    this._channelAssignments = {
+      base: 'pulse',
+      accent: 'pulse',
+      start: 'pulse',
+      cycle: 'subdivision',
+      selected: 'pulse'
+    };
+    if (this.mixer) {
+      this.mixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso' });
+      this.mixer.registerChannel('subdivision', { allowSolo: true, label: 'Fracción' });
+    }
+
     this.isReady = false;
     this.isPlaying = false;
     this.currentScheduleId = 0;
@@ -195,11 +252,11 @@ export class TimelineAudio {
 
   async _loadAllSamplers() {
     const [base, accent, start, selected, cycle] = await Promise.all([
-      this._createSampler(this.baseKey),
-      this._createSampler(this.accentKey),
-      this._createSampler(this.startKey),
-      this._createSampler(this.baseKey),
-      this._createSampler(this.cycleKey)
+      this._createSampler(this.baseKey, 'base'),
+      this._createSampler(this.accentKey, 'accent'),
+      this._createSampler(this.startKey, 'start'),
+      this._createSampler(this.baseKey, 'selected'),
+      this._createSampler(this.cycleKey, 'cycle')
     ]);
 
     this.samplers.base = base;
@@ -209,14 +266,47 @@ export class TimelineAudio {
     this.samplers.cycle = cycle;
   }
 
-  async _createSampler(soundKey) {
+  async _createSampler(soundKey, type = 'base') {
     return new Promise((resolve, reject) => {
-      const sampler = new Tone.Sampler({
-        urls: { C3: SOUND_URLS[soundKey] },
-        onload: () => resolve(sampler),
-        onerror: (error) => reject(error)
-      }).toDestination();
+      let sampler;
+      try {
+        sampler = new Tone.Sampler({
+          urls: { C3: SOUND_URLS[soundKey] },
+          onload: () => {
+            try { this._routeSampler(sampler, type); } catch {}
+            resolve(sampler);
+          },
+          onerror: (error) => reject(error)
+        });
+      } catch (error) {
+        reject(error);
+        return;
+      }
+      this._routeSampler(sampler, type);
     });
+  }
+
+  _resolveChannelId(type) {
+    if (!type) return null;
+    return this._channelAssignments[type] || null;
+  }
+
+  _routeSampler(sampler, type) {
+    if (!sampler) return sampler;
+    const channelId = this._resolveChannelId(type);
+    if (!channelId) {
+      try { if (typeof sampler.toDestination === 'function') sampler.toDestination(); } catch {}
+      return sampler;
+    }
+    const node = this.mixer?.getChannelNode(channelId);
+    if (node && typeof sampler.connect === 'function') {
+      try {
+        sampler.connect(node);
+        return sampler;
+      } catch {}
+    }
+    try { if (typeof sampler.toDestination === 'function') sampler.toDestination(); } catch {}
+    return sampler;
   }
 
   async ready() {
@@ -327,7 +417,7 @@ export class TimelineAudio {
     const reqId = this._baseReqId;
     const prev = this.samplers.base;
     try {
-      const sampler = await this._createSampler(key);
+      const sampler = await this._createSampler(key, 'base');
       if (reqId !== this._baseReqId) { sampler.dispose(); return; }
       this.baseKey = key;
       this.samplers.base = sampler;
@@ -347,7 +437,7 @@ export class TimelineAudio {
     const reqId = this._accentReqId;
     const prev = this.samplers.accent;
     try {
-      const sampler = await this._createSampler(key);
+      const sampler = await this._createSampler(key, 'accent');
       if (reqId !== this._accentReqId) { sampler.dispose(); return; }
       this.accentKey = key;
       this.samplers.accent = sampler;
@@ -367,7 +457,7 @@ export class TimelineAudio {
     const reqId = this._startReqId;
     const prev = this.samplers.start;
     try {
-      const sampler = await this._createSampler(key);
+      const sampler = await this._createSampler(key, 'start');
       if (reqId !== this._startReqId) { sampler.dispose(); return; }
       this.startKey = key;
       this.samplers.start = sampler;
@@ -383,7 +473,7 @@ export class TimelineAudio {
     const reqId = this._cycleReqId;
     const prev = this.samplers.cycle;
     try {
-      const sampler = await this._createSampler(key);
+      const sampler = await this._createSampler(key, 'cycle');
       if (reqId !== this._cycleReqId) { sampler.dispose(); return; }
       this.cycleKey = key;
       this.samplers.cycle = sampler;
@@ -397,19 +487,31 @@ export class TimelineAudio {
     if (this.samplers.selected) {
       this.samplers.selected.dispose();
     }
-    this.samplers.selected = await this._createSampler(key);
+    this.samplers.selected = await this._createSampler(key, 'selected');
   }
 
   setPulseEnabled(value) {
-    this._pulseEnabled = value !== false;
+    const enabled = value !== false;
+    this._pulseEnabled = enabled;
+    if (this.mixer) {
+      this.mixer.setChannelMute('pulse', !enabled);
+    }
   }
 
   setCycleEnabled(value) {
-    this._cycleEnabled = value !== false;
+    const enabled = value !== false;
+    this._cycleEnabled = enabled;
+    if (this.mixer) {
+      this.mixer.setChannelMute('subdivision', !enabled);
+    }
   }
 
   setMute(mute) {
     _setMute(mute);
+  }
+
+  getMixer() {
+    return this.mixer;
   }
 
   /**
@@ -913,7 +1015,7 @@ export class TimelineAudio {
 
     await Tone.start();
 
-    const sampler = await this._createSampler(soundKey);
+    const sampler = await this._createSampler(soundKey, 'selected');
     sampler.triggerAttackRelease('C3', '8n');
 
     setTimeout(() => sampler.dispose(), 1000);

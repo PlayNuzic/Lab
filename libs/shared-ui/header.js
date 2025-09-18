@@ -268,6 +268,38 @@ function wireControls(root) {
         volumeSlider.addEventListener('mouseup', scheduleHide);
         volumeSlider.addEventListener('touchend', scheduleHide);
 
+        const handleVolumeEvent = (event) => {
+            const detail = event?.detail;
+            if (!detail || typeof detail.value !== 'number') return;
+            const v = Math.max(0, Math.min(1, detail.value));
+            if (volumeSlider) {
+                volumeSlider.value = v;
+            }
+            if (!muted) {
+                previousVolume = v;
+            }
+        };
+
+        const handleMuteEvent = (event) => {
+            const value = !!(event?.detail?.value);
+            muted = value;
+            updateMuteIcon();
+            if (volumeSlider) {
+                if (muted) {
+                    const current = parseFloat(volumeSlider.value);
+                    if (!Number.isNaN(current) && current > 0) {
+                        previousVolume = current;
+                    }
+                    volumeSlider.value = 0;
+                } else {
+                    volumeSlider.value = previousVolume;
+                }
+            }
+        };
+
+        window.addEventListener('sharedui:volume', handleVolumeEvent);
+        window.addEventListener('sharedui:mute', handleMuteEvent);
+
     } else {
         setVolume(1);
     }

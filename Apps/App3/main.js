@@ -1,9 +1,10 @@
-import { TimelineAudio, ensureAudio } from '../../libs/sound/index.js';
+import { TimelineAudio, ensureAudio, getMixer } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
+import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 
 let audio;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
@@ -79,6 +80,7 @@ const playBtn = document.getElementById('playBtn');
 const loopBtn = document.getElementById('loopBtn');
 const randomBtn = document.getElementById('randomBtn');
 const randomMenu = document.getElementById('randomMenu');
+const mixerMenu = document.getElementById('mixerMenu');
 const tapBtn = document.getElementById('tapTempoBtn');
 const tapHelp = document.getElementById('tapHelp');
 const resetBtn = document.getElementById('resetBtn');
@@ -104,6 +106,12 @@ const cycleSoundSelect = document.getElementById('cycleSoundSelect');
 const themeSelect = document.getElementById('themeSelect');
 const pulseToggleBtn = document.getElementById('pulseToggleBtn');
 const cycleToggleBtn = document.getElementById('cycleToggleBtn');
+
+const globalMixer = getMixer();
+if (globalMixer) {
+  globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso/Pulso 0' });
+  globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Fracción' });
+}
 
 let numeratorInput;
 let denominatorInput;
@@ -310,6 +318,9 @@ function setPulseAudio(value, { persist = true } = {}) {
     saveOpt(PULSE_AUDIO_KEY, enabled ? '1' : '0');
     hasStoredPulsePref = true;
   }
+  if (globalMixer) {
+    globalMixer.setChannelMute('pulse', !enabled);
+  }
   if (audio && typeof audio.setPulseEnabled === 'function') {
     audio.setPulseEnabled(enabled);
   }
@@ -322,6 +333,9 @@ function setCycleAudio(value, { persist = true } = {}) {
   if (persist) {
     saveOpt(CYCLE_AUDIO_KEY, enabled ? '1' : '0');
     hasStoredCyclePref = true;
+  }
+  if (globalMixer) {
+    globalMixer.setChannelMute('subdivision', !enabled);
   }
   if (audio && typeof audio.setCycleEnabled === 'function') {
     audio.setCycleEnabled(enabled);
@@ -357,6 +371,16 @@ pulseToggleBtn?.addEventListener('click', () => {
 
 cycleToggleBtn?.addEventListener('click', () => {
   setCycleAudio(!cycleAudioEnabled);
+});
+
+initMixerMenu({
+  menu: mixerMenu,
+  triggers: [pulseToggleBtn, cycleToggleBtn],
+  channels: [
+    { id: 'pulse', label: 'Pulso/Pulso 0', allowSolo: true },
+    { id: 'subdivision', label: 'Fracción', allowSolo: true },
+    { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
+  ]
 });
 
 function applyTheme(value) {

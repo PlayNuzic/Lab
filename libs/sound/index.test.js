@@ -3,6 +3,8 @@ import { jest } from '@jest/globals';
 function createToneMock() {
   let repeatId = 0;
   const repeats = new Map();
+  const destination = { mute: false, volume: { value: 0 }, connect: jest.fn() };
+  const volumeNodes = [];
   const transport = {
     scheduleRepeat: jest.fn((cb, interval) => {
       repeatId += 1;
@@ -25,11 +27,32 @@ function createToneMock() {
     position: 0,
     seconds: 0,
   };
+  class VolumeNode {
+    constructor(db = 0) {
+      this.volume = { value: db };
+      this.mute = false;
+      this.disposed = false;
+      this.destination = null;
+      this.connect = jest.fn((destination) => {
+        this.destination = destination;
+        return destination;
+      });
+      this.toDestination = jest.fn(() => {
+        this.destination = destination;
+        return this;
+      });
+      this.dispose = jest.fn(() => {
+        this.disposed = true;
+      });
+      volumeNodes.push(this);
+    }
+  }
   const samplerFactory = jest.fn((opts = {}) => {
     const sampler = {
       toDestination: () => sampler,
       dispose: jest.fn(),
       triggerAttackRelease: jest.fn(),
+      connect: jest.fn(() => sampler),
     };
     setTimeout(() => {
       if (typeof opts.onload === 'function') opts.onload();
@@ -50,18 +73,20 @@ function createToneMock() {
   });
   return {
     Sampler: samplerFactory,
+    Volume: VolumeNode,
     Transport: transport,
     Draw: { schedule: jest.fn() },
     getContext: jest.fn(() => ({ lookAhead: 0, updateInterval: 0 })),
-    Destination: { mute: false, volume: { value: 0 } },
+    Destination: destination,
     Part: partFactory,
     now: jest.fn(() => transport.seconds),
+    __volumeNodes: volumeNodes,
   };
 }
 
 global.Tone = createToneMock();
 
-import { TimelineAudio, setVolume, getVolume } from './index.js';
+import { TimelineAudio, setVolume, getVolume, getMixer } from './index.js';
 
 describe('TimelineAudio', () => {
   let audio;
@@ -94,9 +119,11 @@ describe('TimelineAudio', () => {
     expect(audio.totalRef).toBe(8);
   });
 
-  test('setVolume updates Destination volume', () => {
+  test('setVolume updates mixer master node', () => {
     setVolume(0.5);
-    expect(Tone.Destination.volume.value).toBeCloseTo(-6.02, 2);
+    const masterNode = getMixer().master.node;
+    expect(masterNode).toBeTruthy();
+    expect(masterNode.volume.value).toBeCloseTo(-6.02, 2);
     expect(getVolume()).toBeCloseTo(0.5);
   });
 
@@ -121,6 +148,24 @@ describe('TimelineAudio', () => {
     audio.stop();
     expect(Tone.Transport.clear).toHaveBeenCalledWith(1);
     expect(audio.isPlaying).toBe(false);
+  });
+
+  test('setPulseEnabled syncs with mixer channel mute', () => {
+    const mixer = audio.getMixer();
+    expect(mixer.getChannelState('pulse').muted).toBe(false);
+    audio.setPulseEnabled(false);
+    expect(audio.getMixer().getChannelState('pulse').muted).toBe(true);
+    audio.setPulseEnabled(true);
+    expect(audio.getMixer().getChannelState('pulse').muted).toBe(false);
+  });
+
+  test('setCycleEnabled syncs with mixer channel mute', () => {
+    const mixer = audio.getMixer();
+    expect(mixer.getChannelState('subdivision').muted).toBe(false);
+    audio.setCycleEnabled(false);
+    expect(mixer.getChannelState('subdivision').muted).toBe(true);
+    audio.setCycleEnabled(true);
+    expect(mixer.getChannelState('subdivision').muted).toBe(false);
   });
 
   test('play uses interval-based duration with fade out', () => {
