@@ -1208,16 +1208,12 @@ function highlightCycle({ cycleIndex, subdivisionIndex }) {
   }
   if (label) label.classList.add('active');
 
-  if (marker && currentFractionInfo && currentFractionInfo.isMultiple && currentFractionInfo.multipleFactor > 1) {
-    const normalizedSubdivision = Number(subdivisionIndex);
-    if (Number.isFinite(normalizedSubdivision)) {
-      const accentEvery = Math.max(1, Math.round(currentFractionInfo.multipleFactor));
-      if (accentEvery > 0 && normalizedSubdivision % accentEvery === 0) {
-        const positionValue = Number(marker.dataset.position);
-        const approxIndex = Math.round(positionValue);
-        if (Number.isFinite(positionValue) && Math.abs(positionValue - approxIndex) < 1e-6) {
-          flashPulseNumber(approxIndex);
-        }
+  if (marker) {
+    const positionValue = Number(marker.dataset.position);
+    if (Number.isFinite(positionValue)) {
+      const approxIndex = Math.round(positionValue);
+      if (Math.abs(positionValue - approxIndex) < 1e-6) {
+        flashPulseNumber(approxIndex);
       }
     }
   }
