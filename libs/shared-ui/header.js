@@ -14,6 +14,7 @@ function detectDeviceProfile() {
     return (isMobileUA || isSmallScreen) ? 'mobile' : 'desktop';
 }
 
+// TODO[audit]: reason=validate Tone.js context exposes lookAhead/updateInterval on all supported builds
 function applySchedulingProfile(profile) {
     const profiles = {
         desktop: { lookAhead: 0.02, updateInterval: 0.01 },
@@ -371,6 +372,11 @@ function wireControls(root) {
     }
 }
 
+/**
+ * Initializes the shared header controls for an already rendered layout.
+ * @returns {{ header: HTMLElement, menu: HTMLDetailsElement } | undefined} References to the mounted header elements, if found.
+ * @remarks Falls back to rendering a default header if no markup is present.
+ */
 export function initHeader() {
     const header = document.querySelector('header.top-bar');
     const menu = document.querySelector('header.top-bar details.menu');
@@ -382,6 +388,12 @@ export function initHeader() {
     return renderHeader({ title: document.title || 'App' });
 }
 
+/**
+ * Renders the shared header structure inside the provided container.
+ * @param {{ title?: string, mount?: HTMLElement }} [options] Configuration for the rendered header.
+ * @returns {{ header: HTMLElement, menu: HTMLDetailsElement }} Created header references for further customization.
+ * @remarks When `mount` is omitted the header is prepended to `document.body`.
+ */
 export function renderHeader({ title = 'App', mount } = {}) {
     const container = mount || document.body;
     const header = document.createElement('header');

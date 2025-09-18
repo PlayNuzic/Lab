@@ -37,6 +37,7 @@ const computeSubdivisionFontRem = (lg) => {
   const scale = Math.pow(TARGET / safeLg, K);
   return Math.max(MIN_REM, BASE_REM * scale);
 };
+// TODO[audit]: reason=duplicated scaling amb computeNumberFontRem; estudiar extracció comuna
 
 const defaults = {
   Lg: 8,

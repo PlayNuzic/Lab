@@ -4,6 +4,7 @@ import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
+import { toRange } from '../../libs/app-common/range.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 // Using local header controls for App1 (no shared init)
 
@@ -78,17 +79,6 @@ const randomDefaults = {
   V: { enabled: true, range: [40, 320] },
   T: { enabled: true, range: [0.1, 10] }
 };
-
-function toNumber(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function toRange(minValue, maxValue, defaults) {
-  const min = toNumber(minValue, defaults[0]);
-  const max = toNumber(maxValue, defaults[1]);
-  return min <= max ? [min, max] : [max, min];
-}
 
 const RANDOM_STORE_KEY = 'random';
 

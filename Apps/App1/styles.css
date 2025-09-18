@@ -1,1 +1,6 @@
+/**
+ * @block app1-overrides
+ * @rol Conté sobreescriptures visuals pròpies de l'App1.
+ * @dep libs/shared-ui/index.css
+ */
 /* App1 specific styles (overrides) */

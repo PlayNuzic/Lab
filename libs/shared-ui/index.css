@@ -2,6 +2,11 @@
 
 /* Shared palette and typography (from App1) */
 
+/**
+ * @block shared-root-tokens
+ * @rol Define la paleta bàsica i mides comunes per a totes les apps.
+ * @dep App1 palette baseline
+ */
 :root {
 --controls-offset-y: -25px;
 --bg-light: #EEE8D8;
@@ -19,6 +24,11 @@
 --control-toggle-overlap: 16px;
 }
 
+/**
+ * @block shared-responsive-tokens
+ * @rol Reajusta tokens per pantalles petites.
+ * @dep shared-root-tokens
+ */
 @media (max-width: 600px) {
   :root {
     --play-button-size: 68px;
@@ -48,6 +58,11 @@ input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
+/**
+ * @block shared-theme-shell
+ * @rol Aplica els colors segons el tema actiu.
+ * @dep shared-root-tokens
+ */
 /* Theme containers (apps should set body[data-theme]) */
 body[data-theme='light'] {
 background: var(--bg-light);
@@ -63,6 +78,11 @@ color: var(--text-dark);
 font-family: 'Ubuntu', sans-serif;
 }
 
+/**
+ * @block shared-header
+ * @rol Estilitza la barra superior i el menú d'opcions.
+ * @dep shared-theme-shell
+ */
 /* Shared header: top bar and dropdown menu (mirrors App1) */
 .top-bar {
 display: flex;
@@ -108,6 +128,11 @@ height: 2rem;
 display: block;
 }
 
+/**
+ * @block shared-volume-slider
+ * @rol Controla la transició vertical del slider de volum.
+ * @dep shared-header
+ */
 .top-bar .sound-wrapper #volumeSlider {
 display: none;
 margin-right: 0;
@@ -146,6 +171,11 @@ font-size: 2rem;
 .menu > summary::marker { content: ''; }
 
 /* Menu options panel */
+/**
+ * @block shared-menu-panel
+ * @rol Defineix el panell principal del menú desplegable.
+ * @dep shared-header
+ */
 .menu .options-content {
 overflow: hidden;
 max-height: 0;
@@ -178,6 +208,7 @@ overflow-y: auto;
 opacity: 1;
 }
 
+/* TODO[audit-css]: reason=verificar ús de .menu ul després del refactor de llistes */
 .menu ul { list-style: none; padding-left: 0; }
 
 /* Submenus (e.g., Sonidos) */
