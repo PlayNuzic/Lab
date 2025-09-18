@@ -5,6 +5,8 @@ import { computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { fromLgAndTempo, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
+import { computeNextZero } from '../../libs/app-common/audio-schedule.js';
 
 let audio;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
@@ -26,18 +28,6 @@ let tapTimes = [];
 const PULSE_NUMBER_HIDE_THRESHOLD = 71;
 const SUBDIVISION_HIDE_THRESHOLD = 41;
 const NUMBER_CIRCLE_OFFSET = 28;
-
-const computeSubdivisionFontRem = (lg) => {
-  const BASE_REM = 1.2;
-  const TARGET = 24;
-  const K = 0.75;
-  const MIN_REM = 0.75;
-  const safeLg = Math.max(1, Number(lg) || 1);
-  if (safeLg <= TARGET) return BASE_REM;
-  const scale = Math.pow(TARGET / safeLg, K);
-  return Math.max(MIN_REM, BASE_REM * scale);
-};
-// TODO[audit]: reason=duplicated scaling amb computeNumberFontRem; estudiar extracció comuna
 
 const defaults = {
   Lg: 8,
@@ -681,42 +671,39 @@ function renderTimeline() {
   }
 
   const { numerator, denominator } = getFraction();
-  if (Number.isFinite(numerator) && Number.isFinite(denominator) && numerator > 0 && denominator > 0) {
-    const cycles = Math.floor(lg / numerator);
+  const grid = gridFromOrigin({ lg, numerator, denominator });
+  if (grid.cycles > 0 && grid.subdivisions.length) {
     const hideFractionLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
     const labelFormatter = (cycleIndex, subdivision) => {
       const base = cycleIndex * numerator;
       return subdivision === 0 ? String(base) : `.${subdivision}`;
     };
-    for (let c = 0; c < cycles; c++) {
-      for (let s = 0; s < denominator; s++) {
-        const marker = document.createElement('div');
-        marker.className = 'cycle-marker';
-        if (s === 0) marker.classList.add('start');
-        const position = c * numerator + (s * numerator) / denominator;
-        marker.dataset.cycleIndex = String(c);
-        marker.dataset.subdivision = String(s);
-        marker.dataset.position = String(position);
-        timeline.appendChild(marker);
-        cycleMarkers.push(marker);
+    grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
+      const marker = document.createElement('div');
+      marker.className = 'cycle-marker';
+      if (subdivisionIndex === 0) marker.classList.add('start');
+      marker.dataset.cycleIndex = String(cycleIndex);
+      marker.dataset.subdivision = String(subdivisionIndex);
+      marker.dataset.position = String(position);
+      timeline.appendChild(marker);
+      cycleMarkers.push(marker);
 
-        if (hideFractionLabels) continue;
-        const formatted = labelFormatter(c, s);
-        if (formatted != null) {
-          const label = document.createElement('div');
-          label.className = 'cycle-label';
-          if (s === 0) label.classList.add('cycle-label--integer');
-          if (c === 0 && s === 0) label.classList.add('cycle-label--origin');
-          label.dataset.cycleIndex = String(c);
-          label.dataset.subdivision = String(s);
-          label.dataset.position = String(position);
-          label.textContent = formatted;
-          label.style.fontSize = `${subdivisionFontRem}rem`;
-          timeline.appendChild(label);
-          cycleLabels.push(label);
-        }
+      if (hideFractionLabels) return;
+      const formatted = labelFormatter(cycleIndex, subdivisionIndex);
+      if (formatted != null) {
+        const label = document.createElement('div');
+        label.className = 'cycle-label';
+        if (subdivisionIndex === 0) label.classList.add('cycle-label--integer');
+        if (cycleIndex === 0 && subdivisionIndex === 0) label.classList.add('cycle-label--origin');
+        label.dataset.cycleIndex = String(cycleIndex);
+        label.dataset.subdivision = String(subdivisionIndex);
+        label.dataset.position = String(position);
+        label.textContent = formatted;
+        label.style.fontSize = `${subdivisionFontRem}rem`;
+        timeline.appendChild(label);
+        cycleLabels.push(label);
       }
-    }
+    });
   }
 
   updatePulseNumbers();
@@ -930,9 +917,9 @@ function handleInput() {
 
   updateFractionUI(numerator, denominator);
 
-  if (Number.isFinite(lg) && Number.isFinite(v) && lg > 0 && v > 0) {
-    const tSeconds = (lg / v) * 60;
-    updateTIndicatorText(tSeconds);
+  const tempoInfo = fromLgAndTempo(lg, v);
+  if (tempoInfo.duration != null) {
+    updateTIndicatorText(tempoInfo.duration);
   } else {
     updateTIndicatorText('');
   }
@@ -1263,9 +1250,15 @@ function highlightCycle(payload = {}) {
   if (marker) {
     const positionValue = Number(marker.dataset.position);
     if (Number.isFinite(positionValue)) {
-      const approxIndex = Math.round(positionValue);
-      if (Math.abs(positionValue - approxIndex) < 1e-6) {
-        flashPulseNumber(approxIndex);
+      const zeroInfo = computeNextZero({ now: positionValue, period: 1, lookAhead: 0 });
+      if (zeroInfo) {
+        const tolerance = 1e-6;
+        const diffPrev = Math.abs(positionValue - zeroInfo.previousTime);
+        const diffNext = Math.abs(zeroInfo.eventTime - positionValue);
+        if (diffPrev < tolerance || diffNext < tolerance) {
+          const approxIndex = Math.round(positionValue);
+          flashPulseNumber(approxIndex);
+        }
       }
     }
   }

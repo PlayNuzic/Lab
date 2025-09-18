@@ -5,6 +5,7 @@ import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
+import { toRange as sharedToRange } from '../../libs/app-common/range.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -84,6 +85,7 @@ function toRange(minValue, maxValue, defaults) {
   const max = toNumber(maxValue, defaults[1]);
   return min <= max ? [min, max] : [max, min];
 }
+// TODO[audit]: migrar la resta d'usos a libs/app-common/range.js
 
 const RANDOM_STORE_KEY = 'random';
 
@@ -102,6 +104,10 @@ function saveRandomConfig(cfg) {
 
 const randomConfig = { ...randomDefaults, ...loadRandomConfig() };
 
+/**
+ * Apply stored random configuration values to the associated DOM controls.
+ * @param {Record<string, any>} cfg
+ */
 function applyRandomConfig(cfg) {
   randLgToggle.checked = cfg.Lg.enabled;
   randLgMin.value = cfg.Lg.range[0];
@@ -109,15 +115,20 @@ function applyRandomConfig(cfg) {
   randVToggle.checked = cfg.V.enabled;
   randVMin.value = cfg.V.range[0];
   randVMax.value = cfg.V.range[1];
-  if (randTToggle) randTToggle.checked = cfg.T.enabled;
-  if (randTMin) randTMin.value = cfg.T.range[0];
-  if (randTMax) randTMax.value = cfg.T.range[1];
+  if (cfg.T) {
+    if (randTToggle) randTToggle.checked = cfg.T.enabled;
+    if (randTMin) randTMin.value = cfg.T.range[0];
+    if (randTMax) randTMax.value = cfg.T.range[1];
+  }
   if (randPulsesToggle && randomCount) {
     randPulsesToggle.checked = cfg.Pulses.enabled;
     randomCount.value = cfg.Pulses.count ?? '';
   }
 }
 
+/**
+ * Persist the current random menu configuration back to storage.
+ */
 function updateRandomConfig() {
   randomConfig.Lg = {
     enabled: randLgToggle.checked,
@@ -125,13 +136,15 @@ function updateRandomConfig() {
   };
   randomConfig.V = {
     enabled: randVToggle.checked,
-    range: toRange(randVMin?.value, randVMax?.value, randomDefaults.V.range)
+    range: sharedToRange(randVMin?.value, randVMax?.value, randomDefaults.V.range)
   };
   const previousTRange = randomConfig.T?.range ?? randomDefaults.T.range;
   const previousTEnabled = randomConfig.T?.enabled ?? randomDefaults.T.enabled;
   randomConfig.T = {
     enabled: randTToggle ? randTToggle.checked : previousTEnabled,
-    range: toRange(randTMin?.value, randTMax?.value, previousTRange)
+    range: (randTMin && randTMax)
+      ? toRange(randTMin?.value, randTMax?.value, previousTRange)
+      : previousTRange
   };
   if (randPulsesToggle && randomCount) {
     randomConfig.Pulses = {
@@ -512,6 +525,9 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (hi - lo + 1)) + lo;
 }
 
+/**
+ * Apply random values within the configured ranges and update inputs accordingly.
+ */
 function randomize() {
   if (randLgToggle?.checked) {
     const [lo, hi] = toRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range);

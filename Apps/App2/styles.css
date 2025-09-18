@@ -1,4 +1,8 @@
 /* App2 specific overrides */
+
+/**
+ * Timeline pulse overrides to support selection and interactive hit areas.
+ */
 .pulse { cursor: pointer; }
 .timeline .pulse { pointer-events: auto; }
 /* Selected pulses use selection color, except endpoints 0/Lg which must keep Lg color */
@@ -14,6 +18,9 @@
   color: var(--color-lg);
 }
 
+/**
+ * Editable pulse sequence container positioned above the timeline.
+ */
 #pulseSeq {
 font-size: 3rem;
 display: flex;
@@ -37,6 +44,9 @@ position: relative;
 #pulseSeq .edit { outline: none; white-space: pre; }
 #pulseSeq .edit.playing { caret-color: transparent; }
 
+/**
+ * Pulse sequence highlight overlays following the current playback position.
+ */
 #pulseSeqHighlight,
 #pulseSeqHighlight2 {
 position: absolute;
@@ -56,6 +66,9 @@ box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
 display: block;
 }
 
+/**
+ * Circular indicator for displaying total cycle duration (T value).
+ */
 #tIndicator {
 position: absolute; /* positioned by JS relative to Lg label */
 display: flex;
@@ -73,6 +86,9 @@ pointer-events: none; /* purely visual */
 font-size: 0.9rem; /* Keep same font size */
 }
 
+/**
+ * Layout adjustments for timeline wrapper and controls on narrow screens.
+ */
 @media (max-width: 600px) {
 #pulseSeq {
 font-size: 2rem;

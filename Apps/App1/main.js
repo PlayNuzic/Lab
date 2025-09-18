@@ -7,6 +7,7 @@ import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 // Using local header controls for App1 (no shared init)
+// TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
 let audio;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
