@@ -1195,9 +1195,60 @@ function flashPulseNumber(index) {
   pulseFlashTimeouts.set(target, timeoutId);
 }
 
-function highlightCycle({ cycleIndex, subdivisionIndex }) {
+function highlightCycle(payload = {}) {
   if (!isPlaying) return;
-  lastCycleState = { cycleIndex, subdivisionIndex };
+  const {
+    cycleIndex: rawCycleIndex,
+    subdivisionIndex: rawSubdivisionIndex,
+    numerator: payloadNumerator,
+    denominator: payloadDenominator,
+    totalCycles: payloadTotalCycles,
+    totalSubdivisions: payloadTotalSubdivisions
+  } = payload;
+
+  const cycleIndex = Number(rawCycleIndex);
+  const subdivisionIndex = Number(rawSubdivisionIndex);
+  if (!Number.isFinite(cycleIndex) || !Number.isFinite(subdivisionIndex)) return;
+
+  const expectedNumerator = Number.isFinite(lastStructureSignature.numerator)
+    ? lastStructureSignature.numerator
+    : null;
+  const expectedDenominator = Number.isFinite(lastStructureSignature.denominator)
+    ? lastStructureSignature.denominator
+    : null;
+  const expectedLg = Number.isFinite(lastStructureSignature.lg)
+    ? lastStructureSignature.lg
+    : null;
+
+  if (expectedNumerator == null || expectedDenominator == null || expectedLg == null) {
+    return;
+  }
+
+  if (Number.isFinite(payloadNumerator) && payloadNumerator !== expectedNumerator) {
+    return;
+  }
+  if (Number.isFinite(payloadDenominator) && payloadDenominator !== expectedDenominator) {
+    return;
+  }
+
+  const expectedCycles = Math.floor(expectedLg / expectedNumerator);
+  if (!Number.isFinite(expectedCycles) || expectedCycles <= 0) {
+    return;
+  }
+  if (Number.isFinite(payloadTotalCycles) && payloadTotalCycles !== expectedCycles) {
+    return;
+  }
+
+  const nextState = {
+    cycleIndex,
+    subdivisionIndex,
+    numerator: Number.isFinite(payloadNumerator) ? payloadNumerator : expectedNumerator,
+    denominator: Number.isFinite(payloadDenominator) ? payloadDenominator : expectedDenominator,
+    totalCycles: Number.isFinite(payloadTotalCycles) ? payloadTotalCycles : expectedCycles,
+    totalSubdivisions: Number.isFinite(payloadTotalSubdivisions) ? payloadTotalSubdivisions : expectedDenominator
+  };
+  lastCycleState = nextState;
+
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   const marker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === cycleIndex && Number(m.dataset.subdivision) === subdivisionIndex);
