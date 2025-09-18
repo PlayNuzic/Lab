@@ -14,7 +14,7 @@ import {
 const DEFAULT_LONG_PRESS = 500;
 
 function createLetterIcon(letter) {
-  return `\n    <svg aria-hidden="true" viewBox="0 0 40 40" focusable="false">\n      <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle"\n            font-family="inherit" font-size="24">${letter}</text>\n    </svg>\n  `;
+  return `\n    <svg aria-hidden="true" viewBox="0 0 40 40" focusable="false">\n      <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle"\n            font-family="inherit" font-size="48" fill="currentColor">${letter}</text>\n    </svg>\n  `;
 }
 
 function clamp01(value) {

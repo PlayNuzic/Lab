@@ -356,6 +356,7 @@ color: var(--text-light);
   height: 44px;
   border-radius: 50%;
   border: 2px solid currentColor;
+  color: inherit;
   background: transparent;
   display: flex;
   align-items: center;
@@ -365,8 +366,13 @@ color: var(--text-light);
 }
 
 .mixer-action svg {
+  color: inherit;
   width: 60%;
   height: 60%;
+  fill: currentColor;
+}
+
+.mixer-action svg text {
   fill: currentColor;
 }
 

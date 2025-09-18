@@ -2,6 +2,14 @@
   --cycle-color: var(--color-v);
 }
 
+body[data-theme='light'] {
+  --fraction-spinner-color: var(--text-light);
+}
+
+body[data-theme='dark'] {
+  --fraction-spinner-color: var(--text-dark);
+}
+
 .middle {
   margin-bottom: 60px;
 }
@@ -66,7 +74,7 @@
   justify-content: center;
   gap: 2px;
   width: 24px;
-  color: var(--fraction-spinner-color, #9da3ad);
+  color: var(--fraction-spinner-color, var(--line-color));
   transition: opacity 0.2s ease;
 }
 
