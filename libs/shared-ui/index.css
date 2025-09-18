@@ -19,6 +19,15 @@
 --control-toggle-overlap: 16px;
 }
 
+@media (max-width: 600px) {
+  :root {
+    --play-button-size: 68px;
+    --control-toggle-size: clamp(68px, 36vw, 90px);
+    --control-toggle-width: clamp(100px, 70vw, 140px);
+    --control-toggle-gap: -12px;
+  }
+}
+
 /* Baseline: disable text selection across UI, allow in form fields */
 html, body {
 -webkit-user-select: none;
@@ -481,6 +490,15 @@ margin-right: auto;
   z-index: 4;
 }
 
+@media (max-width: 600px) {
+  .control-sound-toggles {
+    left: 50%;
+    top: 52%;
+    transform: translate(-50%, calc(-50% - 12px));
+    width: min(92vw, calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap)));
+  }
+}
+
 .control-sound-toggle-container {
   position: absolute;
   bottom: 0;
@@ -578,6 +596,14 @@ margin-right: auto;
   paint-order: stroke fill;
   stroke: var(--control-toggle-label-outline-color, transparent);
   stroke-width: var(--control-toggle-label-outline-width, 0);
+}
+
+@media (max-width: 600px) {
+  .control-sound-toggle__label {
+    font-size: 15px;
+    letter-spacing: 2px;
+    transform: translateY(-10px);
+  }
 }
 
 .control-sound-toggle.active .control-sound-toggle__shape {
