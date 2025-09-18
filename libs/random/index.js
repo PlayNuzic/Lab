@@ -1,9 +1,9 @@
 import { randInt } from '../utils/index.js';
 
 export const DEFAULT_RANGES = {
-  Lg: { min: 1, max: 100 },
-  V: { min: 1, max: 1000 },
-  T: { min: 1, max: 10000 }
+  Lg: { min: 2, max: 30 },
+  V: { min: 40, max: 320 },
+  T: { min: 0.1, max: 10 }
 };
 
 export function randomize(ranges = DEFAULT_RANGES) {

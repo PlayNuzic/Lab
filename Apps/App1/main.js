@@ -74,10 +74,21 @@ let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 let manualHistory = [];
 
 const randomDefaults = {
-  Lg: { enabled: true, range: [1, 100] },
-  V: { enabled: true, range: [1, 1000] },
-  T: { enabled: true, range: [1, 10000] }
+  Lg: { enabled: true, range: [2, 30] },
+  V: { enabled: true, range: [40, 320] },
+  T: { enabled: true, range: [0.1, 10] }
 };
+
+function toNumber(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toRange(minValue, maxValue, defaults) {
+  const min = toNumber(minValue, defaults[0]);
+  const max = toNumber(maxValue, defaults[1]);
+  return min <= max ? [min, max] : [max, min];
+}
 
 const RANDOM_STORE_KEY = 'random';
 
@@ -111,15 +122,15 @@ function applyRandomConfig(cfg) {
 function updateRandomConfig() {
   randomConfig.Lg = {
     enabled: randLgToggle.checked,
-    range: [Number(randLgMin.value) || 1, Number(randLgMax.value) || 1]
+    range: toRange(randLgMin.value, randLgMax.value, randomDefaults.Lg.range)
   };
   randomConfig.V = {
     enabled: randVToggle.checked,
-    range: [Number(randVMin.value) || 1, Number(randVMax.value) || 1]
+    range: toRange(randVMin.value, randVMax.value, randomDefaults.V.range)
   };
   randomConfig.T = {
     enabled: randTToggle.checked,
-    range: [Number(randTMin.value) || 0, Number(randTMax.value) || 0]
+    range: toRange(randTMin.value, randTMax.value, randomDefaults.T.range)
   };
   saveRandomConfig(randomConfig);
 }
@@ -887,28 +898,27 @@ function highlightPulse(i){
 }
 
 function randomInt(min, max) {
-  const lo = Number(min);
-  const hi = Number(max);
-  if (isNaN(lo) || isNaN(hi) || hi < lo) return lo;
+  const lo = Math.ceil(min);
+  const hi = Math.floor(max);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) return lo;
   return Math.floor(Math.random() * (hi - lo + 1)) + lo;
 }
 
 function randomize() {
   if (randLgToggle?.checked) {
-    const v = randomInt(randLgMin.value, randLgMax.value);
+    const [lo, hi] = toRange(randLgMin.value, randLgMax.value, randomDefaults.Lg.range);
+    const v = randomInt(lo, hi);
     setValue(inputLg, v);
     handleInput({ target: inputLg });
   }
   if (randVToggle?.checked) {
-    const v = randomInt(randVMin.value, randVMax.value);
+    const [lo, hi] = toRange(randVMin.value, randVMax.value, randomDefaults.V.range);
+    const v = randomInt(lo, hi);
     setValue(inputV, v);
     handleInput({ target: inputV });
   }
   if (randTToggle?.checked) {
-    const min = Number(randTMin.value);
-    const max = Number(randTMax.value);
-    const lo = isNaN(min) ? 0 : min;
-    const hi = isNaN(max) ? lo : max;
+    const [lo, hi] = toRange(randTMin.value, randTMax.value, randomDefaults.T.range);
     const val = lo + Math.random() * Math.max(0, hi - lo);
     setValue(inputT, val.toFixed(2));
     handleInput({ target: inputT });

@@ -34,10 +34,10 @@ const defaults = {
 };
 
 const randomDefaults = {
-  Lg: { enabled: true, range: [3, 16] },
-  V: { enabled: true, range: [60, 180] },
-  n: { enabled: true, range: [1, 4] },
-  d: { enabled: true, range: [2, 8] },
+  Lg: { enabled: true, range: [2, 30] },
+  V: { enabled: true, range: [40, 320] },
+  n: { enabled: true, range: [1, 9] },
+  d: { enabled: true, range: [1, 9] },
   allowComplex: false
 };
 

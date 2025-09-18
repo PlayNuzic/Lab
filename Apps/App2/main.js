@@ -68,11 +68,22 @@ const accentSoundSelect = document.getElementById('accentSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
 
 const randomDefaults = {
-  Lg: { enabled: true, range: [1, 100] },
-  V: { enabled: true, range: [1, 1000] },
-  T: { enabled: true, range: [0.1, 100000] },
+  Lg: { enabled: true, range: [2, 30] },
+  V: { enabled: true, range: [40, 320] },
+  T: { enabled: true, range: [0.1, 10] },
   Pulses: { enabled: true, count: '' }
 };
+
+function toNumber(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toRange(minValue, maxValue, defaults) {
+  const min = toNumber(minValue, defaults[0]);
+  const max = toNumber(maxValue, defaults[1]);
+  return min <= max ? [min, max] : [max, min];
+}
 
 const RANDOM_STORE_KEY = 'random';
 
@@ -101,30 +112,33 @@ function applyRandomConfig(cfg) {
   if (randTToggle) randTToggle.checked = cfg.T.enabled;
   if (randTMin) randTMin.value = cfg.T.range[0];
   if (randTMax) randTMax.value = cfg.T.range[1];
+  if (randPulsesToggle && randomCount) {
     randPulsesToggle.checked = cfg.Pulses.enabled;
-    randomCount.value = cfg.Pulses.count;
+    randomCount.value = cfg.Pulses.count ?? '';
+  }
 }
 
 function updateRandomConfig() {
   randomConfig.Lg = {
     enabled: randLgToggle.checked,
-    range: [Number(randLgMin.value) || 1, Number(randLgMax.value) || 1]
+    range: toRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range)
   };
   randomConfig.V = {
     enabled: randVToggle.checked,
-    range: [Number(randVMin.value) || 1, Number(randVMax.value) || 1]
+    range: toRange(randVMin?.value, randVMax?.value, randomDefaults.V.range)
   };
+  const previousTRange = randomConfig.T?.range ?? randomDefaults.T.range;
+  const previousTEnabled = randomConfig.T?.enabled ?? randomDefaults.T.enabled;
   randomConfig.T = {
-    enabled: randTToggle ? randTToggle.checked : (randomConfig.T?.enabled ?? true),
-    range: [
-      randTMin ? (Number(randTMin.value) || randomConfig.T?.range?.[0] || 0) : (randomConfig.T?.range?.[0] || 0),
-      randTMax ? (Number(randTMax.value) || randomConfig.T?.range?.[1] || 0) : (randomConfig.T?.range?.[1] || 0)
-    ]
+    enabled: randTToggle ? randTToggle.checked : previousTEnabled,
+    range: toRange(randTMin?.value, randTMax?.value, previousTRange)
   };
+  if (randPulsesToggle && randomCount) {
     randomConfig.Pulses = {
       enabled: randPulsesToggle.checked,
       count: randomCount.value
     };
+  }
   saveRandomConfig(randomConfig);
 }
 
@@ -492,22 +506,22 @@ tapBtn.addEventListener('click', () => {
 
 // --- Aleatorización de parámetros y pulsos ---
 function randomInt(min, max) {
-  let lo = Number(min);
-  let hi = Number(max);
-  if (isNaN(lo)) lo = 1;
-  if (isNaN(hi)) hi = lo;
-  if (hi < lo) [lo, hi] = [hi, lo];
+  const lo = Math.ceil(min);
+  const hi = Math.floor(max);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) return lo;
   return Math.floor(Math.random() * (hi - lo + 1)) + lo;
 }
 
 function randomize() {
   if (randLgToggle?.checked) {
-    const v = randomInt(randLgMin.value, randLgMax.value);
+    const [lo, hi] = toRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range);
+    const v = randomInt(lo, hi);
     setValue(inputLg, v);
     handleInput({ target: inputLg });
   }
   if (randVToggle?.checked) {
-    const v = randomInt(randVMin.value, randVMax.value);
+    const [lo, hi] = toRange(randVMin?.value, randVMax?.value, randomDefaults.V.range);
+    const v = randomInt(lo, hi);
     setValue(inputV, v);
     handleInput({ target: inputV });
   }
@@ -517,10 +531,14 @@ function randomize() {
     const lg = parseInt(inputLg.value);
     if (!isNaN(lg) && lg > 0) {
       ensurePulseMemory(lg);
-      const count = parseInt(randomCount.value);
-      const selected = new Set();
+      const rawCount = typeof randomCount.value === 'string' ? randomCount.value.trim() : '';
       const available = [];
       for (let i = 1; i < lg; i++) available.push(i);
+      let count = parseInt(rawCount, 10);
+      if (rawCount === '') {
+        count = available.length;
+      }
+      const selected = new Set();
       if (!isNaN(count) && count > 0) {
         while (selected.size < Math.min(count, available.length)) {
           const idx = available[Math.floor(Math.random() * available.length)];
