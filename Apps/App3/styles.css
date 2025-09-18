@@ -88,6 +88,7 @@ body[data-theme='dark'] {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: inherit;
 }
 
 .fraction-field .spinner .spin::before {
