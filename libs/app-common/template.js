@@ -35,7 +35,7 @@ export function renderApp({
               <defs>
                 <path id="controlPulseLabelPath" d="M 22 96 A 78 78 0 0 1 96 22" />
               </defs>
-              <path class="control-sound-toggle__shape" d="M 0 100 A 100 100 0 0 1 100 0 L 100 36 A 64 64 0 0 0 36 100 Z" />
+              <path class="control-sound-toggle__shape" d="M -14 100 A 114 114 0 0 1 100 -14 L 100 36 A 64 64 0 0 0 36 100 Z" />
               <text class="control-sound-toggle__label" dy="12">
                 <textPath href="#controlPulseLabelPath" startOffset="50%" text-anchor="middle">Pulso</textPath>
               </text>
@@ -50,7 +50,7 @@ export function renderApp({
               <defs>
                 <path id="controlCycleLabelPath" d="M 104 22 A 78 78 0 0 1 178 96" />
               </defs>
-              <path class="control-sound-toggle__shape" d="M 100 0 A 100 100 0 0 1 200 100 L 164 100 A 64 64 0 0 0 100 36 Z" />
+              <path class="control-sound-toggle__shape" d="M 100 -14 A 114 114 0 0 1 214 100 L 164 100 A 64 64 0 0 0 100 36 Z" />
               <text class="control-sound-toggle__label" dy="12">
                 <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">Fracción</textPath>
               </text>

@@ -518,11 +518,13 @@ margin-right: auto;
   color: inherit;
   --control-toggle-color: currentColor;
   --control-toggle-active-color: var(--selection-color);
-  --control-toggle-active-opacity: 0.65;
+  --control-toggle-active-opacity: 0.9;
   --control-toggle-active-fill: var(--control-toggle-active-color);
   --control-toggle-active-outline: var(--control-toggle-active-color);
   --control-toggle-active-outline-opacity: var(--control-toggle-active-opacity);
   --control-toggle-active-glow: var(--control-toggle-active-color);
+  --control-toggle-stroke-width: 2.25;
+  --control-toggle-active-stroke-width: 6;
   -webkit-clip-path: var(--control-toggle-clip-path, none);
           clip-path: var(--control-toggle-clip-path, none);
 }
@@ -548,12 +550,14 @@ margin-right: auto;
 
 .control-sound-toggle__shape {
   fill: var(--control-toggle-color);
+  fill-opacity: 0.35;
   stroke: currentColor;
-  stroke-opacity: 0.45;
-  stroke-width: 2;
-  opacity: 0.35;
+  stroke-opacity: 0.5;
+  stroke-width: var(--control-toggle-stroke-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
   filter: none;
-  transition: opacity 0.25s ease, filter 0.25s ease, fill 0.25s ease, stroke 0.25s ease, stroke-opacity 0.25s ease;
+  transition: fill-opacity 0.25s ease, filter 0.25s ease, stroke 0.25s ease, stroke-opacity 0.25s ease, stroke-width 0.25s ease;
   pointer-events: auto;
 }
 
@@ -577,11 +581,11 @@ margin-right: auto;
 }
 
 .control-sound-toggle.active .control-sound-toggle__shape {
-opacity: var(--control-toggle-active-opacity);
-fill: var(--control-toggle-active-fill);
-stroke: var(--control-toggle-active-outline);
-stroke-opacity: var(--control-toggle-active-outline-opacity);
-filter: drop-shadow(0 0 14px var(--control-toggle-active-glow));
+  fill-opacity: 0.35;
+  stroke: var(--control-toggle-active-outline);
+  stroke-opacity: var(--control-toggle-active-outline-opacity);
+  stroke-width: var(--control-toggle-active-stroke-width);
+  filter: drop-shadow(0 0 14px var(--control-toggle-active-glow));
 }
 
 .control-sound-toggle.active .control-sound-toggle__label {
@@ -590,15 +594,15 @@ fill: var(--control-toggle-label-color, currentColor);
 }
 
 .control-sound-toggle--pulse {
---control-toggle-color: var(--control-toggle-pulse-color, currentColor);
---control-toggle-active-color: var(--control-toggle-pulse-active-color, var(--selection-color));
---control-toggle-clip-path: path('M 2% 83% A 50% 83% 0 0 1 50% 2% L 50% 32% A 30% 53% 0 0 0 20% 83% Z');
+  --control-toggle-color: var(--control-toggle-pulse-color, currentColor);
+  --control-toggle-active-color: var(--control-toggle-pulse-active-color, var(--selection-color));
+  --control-toggle-clip-path: path('M -7% 83% A 57% 95% 0 0 1 50% -12% L 50% 30% A 32% 53% 0 0 0 18% 83% Z');
 }
 
 .control-sound-toggle--cycle {
---control-toggle-color: var(--control-toggle-cycle-color, currentColor);
---control-toggle-active-color: var(--control-toggle-cycle-active-color, var(--selection-color));
---control-toggle-clip-path: path('M 50% 2% A 50% 83% 0 0 1 98% 83% L 80% 83% A 30% 53% 0 0 0 50% 32% Z');
+  --control-toggle-color: var(--control-toggle-cycle-color, currentColor);
+  --control-toggle-active-color: var(--control-toggle-cycle-active-color, var(--selection-color));
+  --control-toggle-clip-path: path('M 50% -12% A 57% 95% 0 0 1 107% 83% L 82% 83% A 32% 53% 0 0 0 50% 30% Z');
 }
 
 /* Base styles for all control buttons */
@@ -713,12 +717,15 @@ fill: currentColor;
 pointer-events: none;
 }
 
-/* Click effect (press + highlight only for Reset) */
-.reset:active {
-transform: translate(-50%, -50%) scale(0.9);
-color: var(--selection-color);
-border-color: var(--selection-color);
-box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+/* Click effect (press + highlight for circular controls) */
+.loop:active,
+.reset:active,
+.random:active,
+.tap:active {
+  transform: translate(-50%, -50%) scale(0.9);
+  color: var(--selection-color);
+  border-color: var(--selection-color);
+  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
 }
 
 /* Active states */
