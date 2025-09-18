@@ -334,7 +334,7 @@ function buildReductionHoverText(info) {
   if (!info || !info.isMultiple) return '';
   const accentEvery = Math.max(1, Math.round(info.multipleFactor));
   const noun = accentEvery === 1 ? 'subdivisión' : 'subdivisiones';
-  return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}. Se repite ${accentEvery} veces la misma estructura sonora.`;
+  return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}. Se repite ${accentEvery} veces la misma subdivisión en cada fracción ${info.numerator}/${info.denominator}.`;
 }
 
 function updateFractionGhost(info) {
