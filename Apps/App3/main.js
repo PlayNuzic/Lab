@@ -104,6 +104,11 @@ let cycleMarkers = [];
 let cycleLabels = [];
 let lastPulseStep = null;
 let lastCycleState = null;
+let lastStructureSignature = {
+  lg: null,
+  numerator: null,
+  denominator: null
+};
 const T_INDICATOR_TRANSITION_DELAY = 650;
 let tIndicatorRevealTimeout = null;
 let pulseAudioEnabled = true;
@@ -732,33 +737,54 @@ function handleInput() {
   if (isUpdating) return;
   const lg = getLg();
   const v = getV();
+  const { numerator, denominator } = getFraction();
+
   if (Number.isFinite(lg) && Number.isFinite(v) && lg > 0 && v > 0) {
     const tSeconds = (lg / v) * 60;
     updateTIndicatorText(tSeconds);
   } else {
     updateTIndicatorText('');
   }
-    // Activa el botó Loop només si hi ha un Lg vàlid
+
   loopBtn.disabled = !(Number.isFinite(lg) && lg > 0);
-  renderTimeline();
+
+  const normalizedLg = Number.isFinite(lg) && lg > 0 ? lg : null;
+  const normalizedNumerator = Number.isFinite(numerator) && numerator > 0 ? numerator : null;
+  const normalizedDenominator = Number.isFinite(denominator) && denominator > 0 ? denominator : null;
+  const structureChanged = (
+    normalizedLg !== lastStructureSignature.lg
+    || normalizedNumerator !== lastStructureSignature.numerator
+    || normalizedDenominator !== lastStructureSignature.denominator
+  );
+
+  if (structureChanged) {
+    lastStructureSignature = {
+      lg: normalizedLg,
+      numerator: normalizedNumerator,
+      denominator: normalizedDenominator
+    };
+    renderTimeline();
+  } else {
+    layoutTimeline({ silent: true });
+  }
+
   if (isPlaying && audio) {
-    if (Number.isFinite(lg) && lg > 0 && typeof audio.setTotal === 'function') {
+    const validLg = Number.isFinite(lg) && lg > 0;
+    const validV = Number.isFinite(v) && v > 0;
+    if (validLg && typeof audio.setTotal === 'function') {
       audio.setTotal(lg);
     }
-    if (Number.isFinite(v) && v > 0 && typeof audio.setTempo === 'function') {
+    if (validV && typeof audio.setTempo === 'function') {
       audio.setTempo(v);
     }
     if (typeof audio.updateCycleConfig === 'function') {
-      const { numerator, denominator } = getFraction();
-      const validLg = Number.isFinite(lg) && lg > 0;
-      const validV = Number.isFinite(v) && v > 0;
       const hasCycle = validLg
-        && Number.isFinite(numerator) && numerator > 0
-        && Number.isFinite(denominator) && denominator > 0
-        && Math.floor(lg / numerator) > 0;
+        && normalizedNumerator != null
+        && normalizedDenominator != null
+        && Math.floor(lg / normalizedNumerator) > 0;
       audio.updateCycleConfig({
-        numerator: hasCycle ? numerator : null,
-        denominator: hasCycle ? denominator : null,
+        numerator: hasCycle ? normalizedNumerator : null,
+        denominator: hasCycle ? normalizedDenominator : null,
         totalPulses: validLg ? lg : undefined,
         interval: validV ? 60 / v : undefined,
         onTick: hasCycle ? highlightCycle : undefined
@@ -774,6 +800,59 @@ function adjustInput(input, delta) {
   const next = Number.isFinite(current) ? Math.max(1, current + delta) : delta > 0 ? 1 : 1;
   setValue(input, next);
   handleInput();
+}
+
+function addRepeatPress(el, fn) {
+  if (!el) return;
+  let timeoutId = null;
+  let intervalId = null;
+  let skipClick = false;
+
+  const clearTimers = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    if (intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+    }
+  };
+
+  const start = (event) => {
+    skipClick = true;
+    fn();
+    clearTimers();
+    timeoutId = setTimeout(() => {
+      intervalId = setInterval(fn, 80);
+    }, 320);
+    event.preventDefault();
+  };
+
+  const stop = () => {
+    clearTimers();
+    if (skipClick) {
+      setTimeout(() => {
+        skipClick = false;
+      }, 0);
+    }
+  };
+
+  el.addEventListener('mousedown', start);
+  el.addEventListener('touchstart', start, { passive: false });
+  ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach((name) => {
+    el.addEventListener(name, stop);
+  });
+  document.addEventListener('mouseup', stop);
+  document.addEventListener('touchend', stop);
+  el.addEventListener('click', (event) => {
+    if (skipClick) {
+      skipClick = false;
+      event.preventDefault();
+      return;
+    }
+    fn();
+  });
 }
 
 [inputLg, inputV].forEach(el => {
@@ -800,6 +879,11 @@ inputLgUp?.addEventListener('click', () => adjustInput(inputLg, +1));
 inputLgDown?.addEventListener('click', () => adjustInput(inputLg, -1));
 inputVUp?.addEventListener('click', () => adjustInput(inputV, +1));
 inputVDown?.addEventListener('click', () => adjustInput(inputV, -1));
+
+addRepeatPress(inputLgUp, () => adjustInput(inputLg, +1));
+addRepeatPress(inputLgDown, () => adjustInput(inputLg, -1));
+addRepeatPress(inputVUp, () => adjustInput(inputV, +1));
+addRepeatPress(inputVDown, () => adjustInput(inputV, -1));
 
 function randomInt(min, max) {
   const lo = Math.ceil(min);
