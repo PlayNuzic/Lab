@@ -1,5 +1,4 @@
-import { TimelineAudio } from '../../libs/sound/index.js';
-import { ensureAudio } from '../../libs/sound/index.js';
+import { TimelineAudio, ensureAudio } from '../../libs/sound/index.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
@@ -8,6 +7,7 @@ import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-co
 import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo } from '../../libs/app-common/subdivision.js';
 import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
+import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -21,6 +21,7 @@ bindSharedSoundEvents({
     startSound: 'setStart'
   }
 });
+let pulseAudioEnabled = true;
 const inputLg = document.getElementById('inputLg');
 const inputV = document.getElementById('inputV');
 const inputT = document.getElementById('inputT');
@@ -599,6 +600,13 @@ async function initAudio(){
   await ensureAudio();
   audio = new TimelineAudio();
   await audio.ready();
+    // Ensure accent channel is registered and routed separately for the mixer
+  if (audio.mixer && typeof audio.mixer.registerChannel === 'function') {
+    audio.mixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
+  }
+  if (audio._channelAssignments) {
+    audio._channelAssignments.accent = 'accent';
+  }
   audio.setBase(baseSoundSelect.dataset.value);
   audio.setAccent(accentSoundSelect.dataset.value);
   audio.setStart(startSoundSelect.dataset.value);
@@ -1634,3 +1642,35 @@ if (menu && optionsContent) {
     if (menu.open) solidMenuBackground(optionsContent);
   });
 }
+// Initialize mixer UI and sync pulse/accent audio toggles
+const pulseToggleBtn = document.getElementById('pulseToggleBtn');
+const mixerMenu = document.getElementById('mixerMenu');
+
+pulseToggleBtn?.addEventListener('click', async () => {
+  const enabled = !pulseAudioEnabled;
+  pulseAudioEnabled = enabled;
+  try {
+    const audioInstance = await initAudio();
+    if (audioInstance) {
+      if (typeof audioInstance.setPulseEnabled === 'function') {
+        audioInstance.setPulseEnabled(enabled);
+      }
+      if (audioInstance.mixer && typeof audioInstance.mixer.setChannelMute === 'function') {
+        // quan els polsos estan ON, el canal “Seleccionado” (accent) es manté amb mute = false
+        audioInstance.mixer.setChannelMute('accent', !enabled);
+      }
+    }
+  } catch {}
+  pulseToggleBtn.setAttribute('aria-pressed', String(enabled));
+  pulseToggleBtn.classList.toggle('active', enabled);
+});
+
+initMixerMenu({
+  menu: mixerMenu,
+  triggers: [pulseToggleBtn],
+  channels: [
+    { id: 'pulse',  label: 'Pulso/Pulso 0', allowSolo: true },
+    { id: 'accent', label: 'Seleccionado',  allowSolo: true },
+    { id: 'master', label: 'Master',        allowSolo: false, isMaster: true }
+  ]
+});

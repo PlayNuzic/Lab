@@ -100,7 +100,7 @@ const cycleToggleBtn = document.getElementById('cycleToggleBtn');
 const globalMixer = getMixer();
 if (globalMixer) {
   globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso/Pulso 0' });
-  globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Fracción' });
+  globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivisión' });
 }
 
 let numeratorInput;
@@ -511,7 +511,7 @@ initMixerMenu({
   triggers: [pulseToggleBtn, cycleToggleBtn],
   channels: [
     { id: 'pulse', label: 'Pulso/Pulso 0', allowSolo: true },
-    { id: 'subdivision', label: 'Fracción', allowSolo: true },
+    { id: 'subdivision', label: 'Subdivisión', allowSolo: true },
     { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
   ]
 });
