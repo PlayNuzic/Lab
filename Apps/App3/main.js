@@ -117,8 +117,6 @@ let pulses = [];
 let bars = [];
 let cycleMarkers = [];
 let cycleLabels = [];
-let lastPulseStep = null;
-let lastCycleState = null;
 let lastStructureSignature = {
   lg: null,
   numerator: null,
@@ -1195,7 +1193,6 @@ function highlightPulse(index) {
   const normalized = loopEnabled
     ? ((raw % total) + total) % total
     : Math.max(0, Math.min(raw, total - 1));
-  lastPulseStep = normalized;
   const pulse = pulses[normalized];
   if (pulse) {
     void pulse.offsetWidth;
@@ -1258,16 +1255,6 @@ function highlightCycle(payload = {}) {
     return;
   }
 
-  const nextState = {
-    cycleIndex,
-    subdivisionIndex,
-    numerator: Number.isFinite(payloadNumerator) ? payloadNumerator : expectedNumerator,
-    denominator: Number.isFinite(payloadDenominator) ? payloadDenominator : expectedDenominator,
-    totalCycles: Number.isFinite(payloadTotalCycles) ? payloadTotalCycles : expectedCycles,
-    totalSubdivisions: Number.isFinite(payloadTotalSubdivisions) ? payloadTotalSubdivisions : expectedDenominator
-  };
-  lastCycleState = nextState;
-
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   const marker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === cycleIndex && Number(m.dataset.subdivision) === subdivisionIndex);
@@ -1286,14 +1273,10 @@ function syncVisualState() {
   const state = audio.getVisualState();
   if (state && Number.isFinite(state.step)) {
     highlightPulse(state.step);
-  } else if (lastPulseStep != null) {
-    highlightPulse(lastPulseStep);
   }
 
   if (state && state.cycle && Number.isFinite(state.cycle.cycleIndex) && Number.isFinite(state.cycle.subdivisionIndex)) {
     highlightCycle(state.cycle);
-  } else if (lastCycleState) {
-    highlightCycle(lastCycleState);
   }
 }
 
@@ -1327,8 +1310,6 @@ async function startPlayback() {
       iconStop.style.display = 'none';
     }
     clearHighlights();
-    lastPulseStep = null;
-    lastCycleState = null;
     audioInstance.stop();
   };
 
@@ -1362,8 +1343,6 @@ playBtn.addEventListener('click', async () => {
     isPlaying = false;
     playBtn.classList.remove('active');
     clearHighlights();
-    lastPulseStep = null;
-    lastCycleState = null;
     const iconPlay = playBtn.querySelector('.icon-play');
     const iconStop = playBtn.querySelector('.icon-stop');
     if (iconPlay && iconStop) {

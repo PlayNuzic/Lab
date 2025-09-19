@@ -353,6 +353,9 @@ export class TimelineAudio {
 
     this._lastStep = null;
     this._lastPulseTime = null;
+    this._lastAbsoluteStep = null;
+    this._pulseCounter = -1;
+    this._lastCycleState = null;
 
     this.selectedRef = new Set();
 
@@ -435,6 +438,9 @@ export class TimelineAudio {
     }
     this._fallbackGain = null;
     this.isReady = false;
+    this._lastAbsoluteStep = null;
+    this._pulseCounter = -1;
+    this._lastCycleState = null;
   }
 
   async _ensureContext() {
@@ -771,6 +777,9 @@ export class TimelineAudio {
     this.selectedRef = toSet(selectedPulses);
     this._onPulseRef = (typeof onPulse === 'function') ? onPulse : null;
     this.onCompleteRef = (typeof onComplete === 'function') ? onComplete : null;
+    this._pulseCounter = -1;
+    this._lastAbsoluteStep = null;
+    this._lastCycleState = null;
 
     const cyc = options?.cycle;
     this._cycleConfig = (cyc && Number.isFinite(+cyc.numerator) && Number.isFinite(+cyc.denominator))
@@ -804,6 +813,9 @@ export class TimelineAudio {
     this._stopAllPlayers();
     this._lastStep = null;
     this._lastPulseTime = null;
+    this._lastAbsoluteStep = null;
+    this._pulseCounter = -1;
+    this._lastCycleState = null;
   }
 
   setTempo(bpm, opts = {}) {
@@ -833,7 +845,12 @@ export class TimelineAudio {
   }
 
   getVisualState() {
-    return (this._lastStep != null) ? { step: this._lastStep } : null;
+    if (this._lastStep == null) return null;
+    const state = { step: this._lastStep };
+    if (this._lastCycleState && Number.isFinite(this._lastCycleState.cycleIndex) && Number.isFinite(this._lastCycleState.subdivisionIndex)) {
+      state.cycle = { ...this._lastCycleState };
+    }
+    return state;
   }
 
   setVoices(voices = []) {
@@ -900,13 +917,13 @@ export class TimelineAudio {
       this._schedulePlayerStart(key, when);
     };
 
-    this._stepTime = (stepIndex) => {
-      if (this._lastStep == null || this._lastPulseTime == null) return null;
-      const deltaSteps = stepIndex - this._lastStep;
+    this._stepTime = (absoluteStep) => {
+      if (this._lastAbsoluteStep == null || this._lastPulseTime == null) return null;
+      const deltaSteps = absoluteStep - this._lastAbsoluteStep;
       return this._lastPulseTime + deltaSteps * this.intervalRef;
     };
 
-    let scheduledStep = -1;
+    let scheduledStep = this._lastAbsoluteStep ?? -1;
 
     const tick = () => {
       if (!this.isPlaying) return;
@@ -915,29 +932,42 @@ export class TimelineAudio {
       const intv = this.intervalRef;
       if (intv <= 0) return;
 
-      const last = (this._lastStep != null) ? this._lastStep : 0;
-      let n = Math.max(last, scheduledStep + 1);
+      const baseStep = (this._lastAbsoluteStep != null) ? this._lastAbsoluteStep : null;
+      if (baseStep == null) return;
+      let n = Math.max(baseStep, scheduledStep + 1);
 
       while (true) {
         const when = this._stepTime(n);
         if (when == null || when > horizon) break;
 
-        const isStart = (n % this.totalRef) === 0;
-        const isSelected = this.selectedRef.has(n % this.totalRef);
+        const stepMod = (this.totalRef > 0)
+          ? ((n % this.totalRef) + this.totalRef) % this.totalRef
+          : n;
+        const isStart = stepMod === 0;
+        const isSelected = this.selectedRef.has(stepMod);
 
         let triggered = false;
         if (this._buffers && this._buffers.size) {
           if (isStart && !this._pulseMutedForFallback && this._buffers.has('start')) {
             triggerPlayer('start', when);
             triggered = true;
-          } else if (isSelected && this._buffers.has('seleccionados')) {
+          }
+
+          const baseKey = (() => {
+            if (!this._buffers || this._buffers.size === 0 || this._pulseMutedForFallback) return null;
+            if (isStart && this._buffers.has('pulso0')) return 'pulso0';
+            if (this._buffers.has('pulso')) return 'pulso';
+            if (this._buffers.has('pulso0')) return 'pulso0';
+            return null;
+          })();
+
+          if (baseKey) {
+            triggerPlayer(baseKey, when);
+            triggered = true;
+          }
+
+          if (isSelected && this._buffers.has('seleccionados')) {
             triggerPlayer('seleccionados', when);
-            triggered = true;
-          } else if (!this._pulseMutedForFallback && this._buffers.has('pulso')) {
-            triggerPlayer('pulso', when);
-            triggered = true;
-          } else if (!this._pulseMutedForFallback && this._buffers.has('pulso0')) {
-            triggerPlayer('pulso0', when);
             triggered = true;
           }
         }
@@ -971,9 +1001,21 @@ export class TimelineAudio {
     const now = this._ctx?.currentTime ?? 0;
     if (msg.type === 'pulse') {
       this._lastStep = msg.step;
+      this._pulseCounter = (this._pulseCounter ?? -1) + 1;
+      this._lastAbsoluteStep = this._pulseCounter;
       this._lastPulseTime = now;
       if (typeof this._onPulseRef === 'function') this._onPulseRef(msg.step);
     } else if (msg.type === 'cycle') {
+      if (msg.payload && typeof msg.payload === 'object') {
+        this._lastCycleState = {
+          cycleIndex: Number(msg.payload.cycleIndex),
+          subdivisionIndex: Number(msg.payload.subdivisionIndex),
+          numerator: Number(msg.payload.numerator),
+          denominator: Number(msg.payload.denominator),
+          totalCycles: Number(msg.payload.totalCycles),
+          totalSubdivisions: Number(msg.payload.totalSubdivisions)
+        };
+      }
       if (this._cycleConfig?.onCycle) this._cycleConfig.onCycle(msg.payload);
       if (!this._cycleMutedForFallback && this._buffers?.has('cycle')) {
         this._schedulePlayerStart('cycle', now + 0.001);
