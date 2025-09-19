@@ -1252,15 +1252,12 @@ function highlightCycle(payload = {}) {
     if (Number.isFinite(positionValue)) {
       const zeroInfo = computeNextZero({ now: positionValue, period: 1, lookAhead: 0 });
       if (zeroInfo) {
-        /**
-         * @deprecated Legacy tolerance guard kept for older scheduling math.
-         * Migrated to libs/app-common/audio-schedule.js (computeNextZero).
-         */
-        const tolerance = 1e-6;
-        const diffPrev = Math.abs(positionValue - zeroInfo.previousTime);
-        const diffNext = Math.abs(zeroInfo.eventTime - positionValue);
-        if (diffPrev < tolerance || diffNext < tolerance) {
-          const approxIndex = Math.round(positionValue);
+        const epsilon = Math.max(1e-6, Math.abs(positionValue) * 1e-6);
+        const matchesPrev = Math.abs(positionValue - zeroInfo.previousTime) <= epsilon;
+        const matchesNext = Math.abs(zeroInfo.eventTime - positionValue) <= epsilon;
+        if (matchesPrev || matchesNext) {
+          const reference = matchesNext ? zeroInfo.eventTime : zeroInfo.previousTime;
+          const approxIndex = Math.round(reference);
           flashPulseNumber(approxIndex);
         }
       }

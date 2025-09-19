@@ -7,6 +7,7 @@ import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
+import { fromLgAndTempo } from '../../libs/app-common/subdivision.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
@@ -532,9 +533,10 @@ function handleInput(e){
   // helpers (escriuen valor)
   const calcT = () => {
     if (!(hasLg && hasV)) return;
-    const tSeconds = (lg / v) * 60;
-    const rounded  = Math.round(tSeconds * 100) / 100; // 2 decimals màxim
-    setValue(inputT, rounded);                          // punt a l'input; la fórmula ja mostra coma
+    const info = fromLgAndTempo(lg, v);
+    if (!info || info.duration == null) return;
+    const rounded = Math.round(info.duration * 100) / 100; // 2 decimals màxim
+    setValue(inputT, rounded);                              // punt a l'input; la fórmula ja mostra coma
   };
   const calcV = () => {
     if (!(hasLg && hasT) || t === 0) return;
@@ -576,12 +578,17 @@ function handleInput(e){
   if (isPlaying && audio) {
     const lgNow = parseInt(inputLg.value);
     const vNow  = parseFloat(inputV.value);
+    let shouldResync = false;
     if (typeof audio.setTotal === 'function' && !isNaN(lgNow) && lgNow > 0) {
       audio.setTotal(lgNow);
+      shouldResync = true;
     }
     if (typeof audio.setTempo === 'function' && !isNaN(vNow) && vNow > 0) {
       audio.setTempo(vNow);
-      // TODO[audit]: aplicar computeResyncDelay als altres canvis en calent quan hi hagi proves específiques.
+      shouldResync = true;
+    }
+    if (shouldResync && Number.isFinite(vNow) && vNow > 0) {
+      scheduleTapResync(vNow);
     }
   }
 }
@@ -881,7 +888,11 @@ async function startPlayback(providedAudio) {
   await audioInstance.setBase(baseSoundSelect.dataset.value);
   await audioInstance.setStart(startSoundSelect.dataset.value);
 
-  const interval = 60 / v;
+  const timing = fromLgAndTempo(lg, v);
+  if (!timing || timing.interval == null) {
+    return false;
+  }
+  const interval = timing.interval;
   const selectedForAudio = new Set();
 
   const onFinish = () => {

@@ -5,7 +5,7 @@ import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { toRange as sharedToRange } from '../../libs/app-common/range.js';
+import { toRange } from '../../libs/app-common/range.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -75,18 +75,6 @@ const randomDefaults = {
   Pulses: { enabled: true, count: '' }
 };
 
-function toNumber(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function toRange(minValue, maxValue, defaults) {
-  const min = toNumber(minValue, defaults[0]);
-  const max = toNumber(maxValue, defaults[1]);
-  return min <= max ? [min, max] : [max, min];
-}
-// TODO[audit]: migrar la resta d'usos a libs/app-common/range.js
-
 const RANDOM_STORE_KEY = 'random';
 
 function loadRandomConfig() {
@@ -132,11 +120,11 @@ function applyRandomConfig(cfg) {
 function updateRandomConfig() {
   randomConfig.Lg = {
     enabled: randLgToggle.checked,
-    range: sharedToRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range)
+    range: toRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range)
   };
   randomConfig.V = {
     enabled: randVToggle.checked,
-    range: sharedToRange(randVMin?.value, randVMax?.value, randomDefaults.V.range)
+    range: toRange(randVMin?.value, randVMax?.value, randomDefaults.V.range)
   };
   const previousTRange = randomConfig.T?.range ?? randomDefaults.T.range;
   const previousTEnabled = randomConfig.T?.enabled ?? randomDefaults.T.enabled;
@@ -146,7 +134,6 @@ function updateRandomConfig() {
       ? toRange(randTMin?.value, randTMax?.value, previousTRange)
       : previousTRange
   };
-  // TODO[audit]: migrar la resta de normalitzadors locals a libs/app-common/range.js.
   if (randPulsesToggle && randomCount) {
     randomConfig.Pulses = {
       enabled: randPulsesToggle.checked,
