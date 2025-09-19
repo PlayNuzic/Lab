@@ -376,6 +376,12 @@ function clampRange(min, max, fallbackMin, fallbackMax) {
   return [lo, hi];
 }
 
+/**
+ * Prepara i retorna l'única instància `TimelineAudio` utilitzada per App3.
+ *
+ * @returns {Promise<TimelineAudio>} audio configurat amb les preferències actuals.
+ * @remarks Es crida abans de reproduir o quan el menú de sons necessita llistats. Depèn de WebAudio i `bindSharedSoundEvents`; habilita PulseMemory = 1..Lg-1 amb re-sync via `computeNextZero`. Efectes: crea listeners i ajusta estats del mixer global.
+ */
 async function initAudio() {
   if (audio) return audio;
   await ensureAudio();
@@ -421,6 +427,14 @@ function syncToggleButton(button, enabled) {
   button.dataset.state = enabled ? 'on' : 'off';
 }
 
+/**
+ * Actualitza la preferència d'àudio per al canal de polsos i sincronitza UI/Storage.
+ *
+ * @param {boolean} value estat desitjat.
+ * @param {{ persist?: boolean }} [options] control sobre la persistència a `localStorage`.
+ * @returns {void}
+ * @remarks Es crida per botons, mixer global o estat inicial. Depèn de DOM, `localStorage` i mixer compartit; cap càlcul PulseMemory més enllà d'habilitar 0/Lg derivats a l'àudio.
+ */
 function setPulseAudio(value, { persist = true } = {}) {
   const enabled = value !== false;
   pulseAudioEnabled = enabled;
@@ -437,6 +451,14 @@ function setPulseAudio(value, { persist = true } = {}) {
   }
 }
 
+/**
+ * Sincronitza el canal d'àudio de subdivisions amb la UI i l'emmagatzematge.
+ *
+ * @param {boolean} value estat desitjat.
+ * @param {{ persist?: boolean }} [options] configura si es desa a `localStorage`.
+ * @returns {void}
+ * @remarks Invocat per UI, mixer o arrencada. Depèn de DOM i mixer; comparteix supòsits PulseMemory 1..Lg-1 i 0/Lg derivats.
+ */
 function setCycleAudio(value, { persist = true } = {}) {
   const enabled = value !== false;
   cycleAudioEnabled = enabled;
@@ -732,6 +754,13 @@ function updatePulseNumbers() {
   }
 }
 
+/**
+ * Distribueix els polsos i marques en mode lineal o circular segons l'estat actual.
+ *
+ * @param {{ silent?: boolean }} [opts] permet saltar animacions en re-renderitzats silenciosos.
+ * @returns {void}
+ * @remarks Es crida després de canvis d'inputs, resize i toggle circular. Depèn del DOM; PulseMemory 1..Lg-1 informant posicions mentre 0/Lg es deriva per sincronitzar `highlightPulse` i `computeNextZero`.
+ */
 function layoutTimeline(opts = {}) {
   const silent = !!opts.silent;
   const lg = pulses.length - 1;
@@ -1076,6 +1105,12 @@ function applyRandomConfig(cfg) {
   randComplexToggle.checked = cfg.allowComplex;
 }
 
+/**
+ * Serialitza la configuració actual del menú aleatori i la desa.
+ *
+ * @returns {void}
+ * @remarks Es crida per cada canvi al menú random. Depèn de DOM i `localStorage`; garanteix que els valors generats mantinguin PulseMemory dins 1..Lg-1 (0/Lg derivats es recalculen a `randomize`).
+ */
 function updateRandomConfig() {
   randomConfig = {
     Lg: {
@@ -1109,6 +1144,12 @@ applyRandomConfig(randomConfig);
   randComplexToggle
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
+/**
+ * Assigna valors aleatoris dins dels rangs configurats als camps Lg, V i fraccions.
+ *
+ * @returns {void}
+ * @remarks Es dispara des del menú aleatori. Depèn del DOM; reutilitza `handleInput` per validar PulseMemory 1..Lg-1 i re-sync 0/Lg via càlculs derivats.
+ */
 function randomize() {
   const cfg = randomConfig;
   if (cfg.Lg.enabled) {
@@ -1136,6 +1177,13 @@ function randomize() {
 
 initRandomMenu(randomBtn, randomMenu, randomize);
 
+/**
+ * Activa el pols visual corresponent durant la reproducció.
+ *
+ * @param {number} index index de pols rebut des de l'àudio.
+ * @returns {void}
+ * @remarks Cridat per `TimelineAudio` en cada tick. Depèn del DOM per afegir classes; espera PulseMemory normalitzada (1..Lg-1) i deriva 0/Lg en mode loop.
+ */
 function highlightPulse(index) {
   if (!isPlaying) return;
   pulses.forEach(p => p.classList.remove('active'));
@@ -1157,6 +1205,13 @@ function highlightPulse(index) {
   }
 }
 
+/**
+ * Ressalta la fracció de cicle activa en funció dels ticks de subdivisions.
+ *
+ * @param {{ cycleIndex?: number, subdivisionIndex?: number, numerator?: number, denominator?: number, totalCycles?: number, totalSubdivisions?: number }} [payload]
+ * @returns {void}
+ * @remarks Cridat des d'`TimelineAudio` quan hi ha subdivisions. Depèn del DOM; assumeix PulseMemory coherent (1..Lg-1) i valida 0/Lg derivats abans de pintar.
+ */
 function highlightCycle(payload = {}) {
   if (!isPlaying) return;
   const {
@@ -1240,6 +1295,12 @@ function syncVisualState() {
   }
 }
 
+/**
+ * Configura els sons seleccionats i inicia la seqüència principal de pulsos.
+ *
+ * @returns {Promise<void>}
+ * @remarks Es crida quan l'usuari prem Play. Depèn de DOM (per llegir inputs) i WebAudio (`TimelineAudio`). Gestiona PulseMemory 1..Lg-1, i confia en `computeNextZero`/`highlightCycle` per re-sync 0/Lg. Side-effects: manipula botons i esdeveniments visuals.
+ */
 async function startPlayback() {
   const lg = getLg();
   const v = getV();
@@ -1403,6 +1464,13 @@ function tapTempo() {
 
 tapBtn.addEventListener('click', tapTempo);
 
+/**
+ * Actualitza el mode de presentació circular i conserva la preferència.
+ *
+ * @param {boolean} value nou estat per la línia temporal circular.
+ * @returns {void}
+ * @remarks Invocat en arrencada i per l'interruptor. Depèn del DOM i `localStorage`; força recalcul de PulseMemory 1..Lg-1 a `layoutTimeline`.
+ */
 function setCircular(value) {
   circularTimeline = value;
   circularTimelineToggle.checked = value;
@@ -1418,6 +1486,12 @@ circularTimelineToggle.addEventListener('change', () => {
   setCircular(circularTimelineToggle.checked);
 });
 
+/**
+ * Inicialitza els desplegables de sons per pulso, inici i cicle.
+ *
+ * @returns {void}
+ * @remarks Es crida un cop hi ha DOM disponible. Depèn de `initSoundDropdown` (DOM+Audio). Manté supòsits PulseMemory en delegar la sincronització a `TimelineAudio`.
+ */
 function setupSoundDropdowns() {
   initSoundDropdown(baseSoundSelect, {
     storageKey: storeKey('baseSound'),
@@ -1441,6 +1515,12 @@ function setupSoundDropdowns() {
 
 setupSoundDropdowns();
 
+/**
+ * Restaura valors buits i preferències per defecte quan no hi ha estat guardat.
+ *
+ * @returns {void}
+ * @remarks S'executa durant el bootstrap i quan l'usuari fa reset. Depèn de DOM i `localStorage`; sincronitza toggles d'àudio sense alterar PulseMemory.
+ */
 function applyInitialState() {
   setValue(inputLg, '');
   setValue(inputV, '');
@@ -1460,6 +1540,12 @@ function applyInitialState() {
   handleInput();
 }
 
+/**
+ * Llegeix estat guardat (Lg, V, fraccions) i el carrega en la UI.
+ *
+ * @returns {void}
+ * @remarks Es crida una vegada a l'inici. Depèn de `localStorage` i DOM; prepara el context perquè `computeNextZero` pugui re-sync amb valors coherents.
+ */
 function initDefaults() {
   const storedLg = parseIntSafe(loadOpt('Lg'));
   const storedV = parseFloatSafe(loadOpt('V'));

@@ -507,6 +507,11 @@ margin-left: auto;
 margin-right: auto;
 }
 
+/*
+  @block .control-sound-toggles
+  @rol Orbita contenidora dels toggles de so al voltant del Play
+  @dep --control-toggle-*, layout .controls
+*/
 .control-sound-toggles {
   position: absolute;
   top: 48%;
@@ -547,6 +552,11 @@ margin-right: auto;
   transform: translateX(var(--cycle-translate-x, 0)) translateY(var(--cycle-translate-y, 0));
 }
 
+/*
+  @block .control-sound-toggle
+  @rol Semicercle (Pulso/Fracció) al voltant del Play
+  @dep --control-toggle-*, --line-color; hit-area delegada al <path>
+*/
 .control-sound-toggle {
   pointer-events: none;
   background: none;

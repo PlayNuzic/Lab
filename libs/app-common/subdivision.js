@@ -11,6 +11,7 @@ function toFiniteNumber(value) {
  * @param {number} lg total number of pulses.
  * @param {number} tempo beats per minute.
  * @returns {{ pulses: number|null, tempo: number|null, interval: number|null, duration: number|null }}
+ * @remarks PulseMemory = 1..Lg-1; 0/Lg derivats; re-sync a 0 amb `computeNextZero`. No depèn de DOM ni Audio; sense efectes laterals.
  */
 export function fromLgAndTempo(lg, tempo) {
   const pulses = toFiniteNumber(lg);
@@ -32,6 +33,7 @@ export function fromLgAndTempo(lg, tempo) {
  *
  * @param {{ lg: number, numerator: number, denominator: number, offset?: number }} params
  * @returns {{ cycles: number, subdivisions: Array<{ cycleIndex: number, subdivisionIndex: number, position: number, absoluteIndex: number }>, numerator: number|null, denominator: number|null }}
+ * @remarks PulseMemory = 1..Lg-1; 0/Lg derivats; combina amb `gridFromOrigin` + `computeNextZero` per sincronitzar visuals. No DOM; només càlcul pur.
  */
 export function gridFromOrigin({ lg, numerator, denominator, offset = 0 }) {
   const totalPulses = toFiniteNumber(lg);
@@ -72,8 +74,9 @@ export function gridFromOrigin({ lg, numerator, denominator, offset = 0 }) {
 /**
  * Scale subdivision labels so they remain legible for large Lg values.
  *
- * @param {number} lg
- * @returns {number}
+ * @param {number} lg total pulses (Lg) que controlen la mida.
+ * @returns {number} mida de font en rem adaptada al nombre de pulsos.
+ * @remarks Sense dependències (DOM només per consumir el valor retornat); cap efecte lateral.
  */
 export function computeSubdivisionFontRem(lg) {
   const BASE_REM = 1.2;

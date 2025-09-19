@@ -374,8 +374,9 @@ function wireControls(root) {
 
 /**
  * Initializes the shared header controls for an already rendered layout.
+ *
  * @returns {{ header: HTMLElement, menu: HTMLDetailsElement } | undefined} References to the mounted header elements, if found.
- * @remarks Falls back to rendering a default header if no markup is present.
+ * @remarks Desencadena events `sharedui:*` (DOM) i crea àudios de prova via `TimelineAudio` quan s'obren els desplegables. Cap PulseMemory aquí; delega el re-sync a `computeNextZero` des d'App3. Es crida durant l'arrencada de cada app que ja té markup.
  */
 export function initHeader() {
     const header = document.querySelector('header.top-bar');
@@ -390,9 +391,10 @@ export function initHeader() {
 
 /**
  * Renders the shared header structure inside the provided container.
+ *
  * @param {{ title?: string, mount?: HTMLElement }} [options] Configuration for the rendered header.
  * @returns {{ header: HTMLElement, menu: HTMLDetailsElement }} Created header references for further customization.
- * @remarks When `mount` is omitted the header is prepended to `document.body`.
+ * @remarks Depèn de DOM per injectar markup i d'Audio opcional quan els selects invoquen `TimelineAudio`. Sense efectes laterals fora del DOM i events `sharedui:*`. PulseMemory = 1..Lg-1; 0/Lg derivats gestionats per apps consumidores.
  */
 export function renderHeader({ title = 'App', mount } = {}) {
     const container = mount || document.body;

@@ -8,8 +8,9 @@ function normalizeNumber(value, fallback = 0) {
 /**
  * Compute timing information for the next downbeat relative to `now`.
  *
- * @param {{ now: number, period: number, lookAhead?: number }} params
- * @returns {{ previousTime: number, eventTime: number, scheduleTime: number }|null}
+ * @param {{ now: number, period: number, lookAhead?: number }} params temps actual i període en pulsos.
+ * @returns {{ previousTime: number, eventTime: number, scheduleTime: number }|null} timestamps en pulsos per sincronitzar programacions.
+ * @remarks PulseMemory = 1..Lg-1; 0/Lg derivats; re-sync a 0 amb `computeNextZero`. Sense dependències DOM/Audio; sense efectes laterals.
  */
 export function computeNextZero({ now, period, lookAhead = 0 }) {
   const safePeriod = normalizeNumber(period, null);
@@ -40,8 +41,9 @@ export function computeNextZero({ now, period, lookAhead = 0 }) {
  * Compute how long to wait before re-anchoring a running sequence so the next
  * cycle starts exactly on the downbeat (step index 0).
  *
- * @param {{ stepIndex: number, totalPulses: number, bpm: number }} params
- * @returns {{ delaySeconds: number, targetStepIndex: number }|null}
+ * @param {{ stepIndex: number, totalPulses: number, bpm: number }} params estat actual en pulsos i tempo.
+ * @returns {{ delaySeconds: number, targetStepIndex: number }|null} retard en segons i index objectiu.
+ * @remarks PulseMemory = 1..Lg-1; 0/Lg derivats; usa `computeNextZero` per re-sync a 0. No toca DOM; només càlcul.
  */
 export function computeResyncDelay({ stepIndex, totalPulses, bpm }) {
   const total = normalizeNumber(totalPulses, null);
