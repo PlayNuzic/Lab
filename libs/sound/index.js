@@ -36,6 +36,12 @@ let audioReadyPromise = null;
 let toneStartPromise = null;
 const workletModulePromises = new WeakMap();
 
+function sameAudioContext(a, b) {
+  const ctxA = normalizeAudioContext(a);
+  const ctxB = normalizeAudioContext(b);
+  return !!ctxA && ctxA === ctxB;
+}
+
 function isBaseAudioContext(ctx) {
   if (!ctx) return false;
   const global = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
@@ -318,7 +324,38 @@ export class TimelineAudio {
     return this;
   }
 
+  _teardownAudioGraph() {
+    if (this._node) {
+      try { this._node.disconnect(); } catch {}
+      try { this._node.port.onmessage = null; } catch {}
+    }
+    this._node = null;
+
+    Object.keys(this._bus).forEach((key) => {
+      const node = this._bus[key];
+      if (node) {
+        try { node.disconnect(); } catch {}
+      }
+      this._bus[key] = null;
+    });
+
+    if (this._players?.dispose) {
+      try { this._players.dispose(); } catch {}
+    }
+    this._players = null;
+    this._fallbackGain = null;
+    this.isReady = false;
+  }
+
   async _ensureContext() {
+    const preferredToneCtx = resolveToneContext();
+    const existingCtx = normalizeAudioContext(this._ctx);
+    const desiredCtx = preferredToneCtx || existingCtx || null;
+
+    if (this._node && desiredCtx && this._ctx && this._ctx !== desiredCtx) {
+      this._teardownAudioGraph();
+    }
+
     if (this._node) return;
     if (this._ensureContextPromise) {
       await this._ensureContextPromise;
@@ -330,9 +367,9 @@ export class TimelineAudio {
       : null;
 
     const buildContext = async () => {
-      const preferExisting = normalizeAudioContext(this._ctx);
       const toneCtx = resolveToneContext();
-      let ctx = preferExisting || toneCtx || null;
+      const preferExisting = normalizeAudioContext(this._ctx);
+      let ctx = toneCtx || preferExisting || null;
 
       if (!ctx && this._ctx && this._ctx !== preferExisting) {
         const normalized = normalizeAudioContext(this._ctx);
@@ -433,8 +470,13 @@ export class TimelineAudio {
     const connectSafe = (key, dest) => {
       try {
         const player = this._players.player(key);
-        player.disconnect();
-        if (dest) player.connect(dest);
+        if (!player) return;
+        if (dest && sameAudioContext(dest, player)) {
+          try { player.disconnect(); } catch {}
+          player.connect(dest);
+        } else if (typeof player.toDestination === 'function') {
+          player.toDestination();
+        }
       } catch {}
     };
 
@@ -529,9 +571,11 @@ export class TimelineAudio {
     await ensureAudio();
     try {
       const player = new Tone.Player({ url, autostart: false });
-      if (this._bus.pulso) {
-        player.connect(this._bus.pulso);
-      } else {
+      const bus = this._bus.pulso;
+      if (bus && sameAudioContext(bus, player)) {
+        try { player.disconnect(); } catch {}
+        player.connect(bus);
+      } else if (typeof player.toDestination === 'function') {
         player.toDestination();
       }
       await player.load(url);
