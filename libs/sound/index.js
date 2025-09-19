@@ -32,15 +32,15 @@ export const soundLabels = {
 };
 
 const mixer = new AudioMixer({ masterLabel: 'Master' });
+const PLAYER_KEYS = ['pulso', 'pulso0', 'seleccionados', 'start', 'cycle'];
 let audioReadyPromise = null;
 let toneStartPromise = null;
 const workletModulePromises = new WeakMap();
-
-function sameAudioContext(a, b) {
-  const ctxA = normalizeAudioContext(a);
-  const ctxB = normalizeAudioContext(b);
-  return !!ctxA && ctxA === ctxB;
-}
+const bufferCacheByContext = new WeakMap();
+const arrayBufferCache = new Map();
+let previewContext = null;
+let previewGain = null;
+const previewSources = new Set();
 
 function isBaseAudioContext(ctx) {
   if (!ctx) return false;
@@ -198,6 +198,92 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function getContextBufferCache(ctx) {
+  if (!ctx) return null;
+  let cache = bufferCacheByContext.get(ctx);
+  if (!cache) {
+    cache = new Map();
+    bufferCacheByContext.set(ctx, cache);
+  }
+  return cache;
+}
+
+async function fetchSampleArrayBuffer(url) {
+  if (!url) return null;
+  const globalObj = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
+  const fetchFn = (typeof fetch === 'function') ? fetch : globalObj?.fetch;
+  if (typeof fetchFn !== 'function') throw new Error('fetch not available');
+  let pending = arrayBufferCache.get(url);
+  if (!pending) {
+    pending = fetchFn(url).then((response) => {
+      if (!response.ok) throw new Error(`Failed to load sample ${url}`);
+      return response.arrayBuffer();
+    });
+    arrayBufferCache.set(url, pending);
+  }
+  const data = await pending;
+  return data.slice ? data.slice(0) : data;
+}
+
+function decodeAudioBuffer(ctx, arrayBuffer) {
+  if (!ctx || !arrayBuffer) return Promise.reject(new Error('AudioContext or buffer missing'));
+  return new Promise((resolve, reject) => {
+    try {
+      const copy = arrayBuffer.slice ? arrayBuffer.slice(0) : arrayBuffer;
+      const result = ctx.decodeAudioData(copy, resolve, reject);
+      if (result && typeof result.then === 'function') {
+        result.then(resolve, reject);
+      }
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function loadBufferForContext(ctx, url) {
+  if (!ctx || !url) return null;
+  const cache = getContextBufferCache(ctx);
+  if (!cache) return null;
+  let pending = cache.get(url);
+  if (!pending) {
+    pending = (async () => {
+      const arrayBuffer = await fetchSampleArrayBuffer(url);
+      return decodeAudioBuffer(ctx, arrayBuffer);
+    })();
+    cache.set(url, pending);
+  }
+  try {
+    return await pending;
+  } catch (error) {
+    cache.delete(url);
+    throw error;
+  }
+}
+
+async function getPreviewContext() {
+  const globalObj = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
+  const Ctor = globalObj?.AudioContext || globalObj?.webkitAudioContext;
+  if (!Ctor) throw new Error('AudioContext not available');
+
+  if (!previewContext || previewContext.state === 'closed') {
+    previewContext = new Ctor({ latencyHint: 'interactive' });
+    previewGain = null;
+    previewSources.clear();
+  }
+
+  if (previewContext.state === 'suspended') {
+    try { await previewContext.resume(); } catch {}
+  }
+
+  if (!previewGain) {
+    previewGain = previewContext.createGain();
+    previewGain.gain.value = 0.8;
+    previewGain.connect(previewContext.destination);
+  }
+
+  return previewContext;
+}
+
 function resolveToUrl(value) {
   if (!value) return null;
   if (SOUND_URLS[value]) return SOUND_URLS[value];
@@ -279,10 +365,12 @@ export class TimelineAudio {
 
     this._bus = { master: null, pulso: null, seleccionados: null, cycle: null };
 
-    this._players = null;
     this._sampleMap = null;
 
     this._fallbackGain = null;
+
+    this._buffers = new Map();
+    this._activeSources = new Set();
 
     this._tapTimes = [];
 
@@ -339,10 +427,12 @@ export class TimelineAudio {
       this._bus[key] = null;
     });
 
-    if (this._players?.dispose) {
-      try { this._players.dispose(); } catch {}
+    this._stopAllPlayers();
+    if (this._buffers) this._buffers.clear();
+    if (this._activeSources) this._activeSources.clear();
+    if (this._fallbackGain) {
+      try { this._fallbackGain.disconnect(); } catch {}
     }
-    this._players = null;
     this._fallbackGain = null;
     this.isReady = false;
   }
@@ -427,14 +517,7 @@ export class TimelineAudio {
       this._node.connect(this._bus.master);
       this._node.port.onmessage = (e) => this._handleClockMessage(e.data);
 
-      if (typeof Tone === 'undefined') {
-        const g = ctx.createGain();
-        g.gain.value = 0.0;
-        g.connect(this._bus.pulso);
-        this._fallbackGain = g;
-      } else {
-        this._fallbackGain = null;
-      }
+      this._refreshFallbackGain();
 
       if (this._pendingMixerState) {
         this._applyMixerState(this._pendingMixerState);
@@ -452,39 +535,25 @@ export class TimelineAudio {
   }
 
   async _initPlayers() {
-    if (typeof Tone === 'undefined') return;
     this._sampleMap = await loadSampleMap();
     this._applySampleMap(this._sampleMap);
 
-    const sources = {};
-    ['pulso', 'pulso0', 'seleccionados', 'start', 'cycle'].forEach((key) => {
+    if (!this._ctx) return;
+
+    const buffers = new Map();
+    await Promise.all(PLAYER_KEYS.map(async (key) => {
       const { key: resolved, url } = normalizeSound(this._soundAssignments[key], this._defaultAssignments[key]);
       this._soundAssignments[key] = resolved;
-      if (url) sources[key] = url;
-    });
-
-    if (!Object.keys(sources).length) return;
-
-    this._players = new Tone.Players(sources);
-
-    const connectSafe = (key, dest) => {
+      if (!url) return;
       try {
-        const player = this._players.player(key);
-        if (!player) return;
-        if (dest && sameAudioContext(dest, player)) {
-          try { player.disconnect(); } catch {}
-          player.connect(dest);
-        } else if (typeof player.toDestination === 'function') {
-          player.toDestination();
-        }
-      } catch {}
-    };
+        const buffer = await loadBufferForContext(this._ctx, url);
+        if (buffer) buffers.set(key, { url, buffer });
+      } catch (error) {
+        console.warn(`Failed to load buffer for ${key}`, error);
+      }
+    }));
 
-    connectSafe('pulso', this._bus.pulso);
-    connectSafe('pulso0', this._bus.pulso);
-    connectSafe('seleccionados', this._bus.seleccionados);
-    connectSafe('start', this._bus.pulso);
-    connectSafe('cycle', this._bus.cycle);
+    this._buffers = buffers;
   }
 
   _applySampleMap(map) {
@@ -530,18 +599,74 @@ export class TimelineAudio {
     applyGain(this._bus.cycle, 'subdivision');
   }
 
+  _stopAllPlayers() {
+    if (!this._activeSources) return;
+    for (const source of Array.from(this._activeSources)) {
+      try { source.stop(0); } catch {}
+      try { source.disconnect(); } catch {}
+      this._activeSources.delete(source);
+    }
+  }
+
+  _refreshFallbackGain() {
+    if (!this._ctx || !this._bus?.pulso) return;
+    const hasPulseBuffer = this._buffers?.has('pulso') || this._buffers?.has('pulso0');
+    if (!hasPulseBuffer) {
+      if (!this._fallbackGain) {
+        const g = this._ctx.createGain();
+        g.gain.value = 1.0;
+        g.connect(this._bus.pulso);
+        this._fallbackGain = g;
+      }
+    } else if (this._fallbackGain) {
+      try { this._fallbackGain.disconnect(); } catch {}
+      this._fallbackGain = null;
+    }
+  }
+
+  _resolveBusForSampleKey(key) {
+    if (key === 'seleccionados') return this._bus.seleccionados;
+    if (key === 'cycle') return this._bus.cycle;
+    return this._bus.pulso;
+  }
+
+  _schedulePlayerStart(key, when) {
+    if (!this._ctx || !this._buffers) return;
+    const entry = this._buffers.get(key);
+    if (!entry?.buffer) return;
+    try {
+      const ctx = this._ctx;
+      const source = ctx.createBufferSource();
+      source.buffer = entry.buffer;
+      source.onended = () => {
+        this._activeSources.delete(source);
+        try { source.disconnect(); } catch {}
+      };
+      const destination = this._resolveBusForSampleKey(key) || this._bus.master;
+      if (destination) source.connect(destination);
+      const startTime = Math.max(ctx.currentTime, when);
+      source.start(startTime);
+      this._activeSources.add(source);
+    } catch {}
+  }
+
   async _setSound(key, soundKey, fallbackKey) {
     this._soundAssignments[key] = soundKey || fallbackKey || this._soundAssignments[key];
-    if (!this._players) return;
+    if (!this._ctx) return;
+    if (!this._buffers) this._buffers = new Map();
     const { key: resolved, url } = normalizeSound(this._soundAssignments[key], fallbackKey || this._defaultAssignments[key]);
     this._soundAssignments[key] = resolved;
-    if (!url) return;
+    if (!url) {
+      this._buffers.delete(key);
+      return;
+    }
     try {
-      const player = this._players.player(key);
-      await player.load(url);
+      const buffer = await loadBufferForContext(this._ctx, url);
+      if (buffer) this._buffers.set(key, { url, buffer });
     } catch (error) {
       console.warn(`Failed to set sound ${soundKey} for ${key}`, error);
     }
+    this._refreshFallbackGain();
   }
 
   async setBase(key) {
@@ -567,20 +692,28 @@ export class TimelineAudio {
 
   async preview(soundKey) {
     const { url } = normalizeSound(soundKey, this._defaultAssignments.pulso);
-    if (!url || typeof Tone === 'undefined') return;
+    if (!url) return;
     await ensureAudio();
     try {
-      const player = new Tone.Player({ url, autostart: false });
-      const bus = this._bus.pulso;
-      if (bus && sameAudioContext(bus, player)) {
-        try { player.disconnect(); } catch {}
-        player.connect(bus);
-      } else if (typeof player.toDestination === 'function') {
-        player.toDestination();
+      const ctx = await getPreviewContext();
+      const buffer = await loadBufferForContext(ctx, url);
+      if (!buffer) return;
+      for (const src of Array.from(previewSources)) {
+        try { src.stop(0); } catch {}
       }
-      await player.load(url);
-      player.start('+0.01');
-      setTimeout(() => { try { player.dispose(); } catch {} }, 800);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.onended = () => {
+        previewSources.delete(source);
+        try { source.disconnect(); } catch {}
+      };
+      const destination = previewGain || ctx.destination;
+      if (destination) source.connect(destination);
+      const startTime = ctx.currentTime + 0.01;
+      const stopTime = startTime + Math.max(0.05, buffer.duration + 0.05);
+      source.start(startTime);
+      source.stop(stopTime);
+      previewSources.add(source);
     } catch (error) {
       console.warn('Failed to preview sound', error);
     }
@@ -668,6 +801,9 @@ export class TimelineAudio {
       this._schedulerId = null;
     }
     this._node?.port?.postMessage({ action: 'stop' });
+    this._stopAllPlayers();
+    this._lastStep = null;
+    this._lastPulseTime = null;
   }
 
   setTempo(bpm, opts = {}) {
@@ -760,8 +896,8 @@ export class TimelineAudio {
     };
 
     const triggerPlayer = (key, when) => {
-      if (!this._players) return;
-      try { this._players.player(key).start(when); } catch {}
+      if (!this._buffers?.has(key)) return;
+      this._schedulePlayerStart(key, when);
     };
 
     this._stepTime = (stepIndex) => {
@@ -789,17 +925,24 @@ export class TimelineAudio {
         const isStart = (n % this.totalRef) === 0;
         const isSelected = this.selectedRef.has(n % this.totalRef);
 
-        if (this._players) {
-          if (isStart && !this._pulseMutedForFallback && this._players.player('start')) {
+        let triggered = false;
+        if (this._buffers && this._buffers.size) {
+          if (isStart && !this._pulseMutedForFallback && this._buffers.has('start')) {
             triggerPlayer('start', when);
-          } else if (isSelected && this._players.player('seleccionados')) {
+            triggered = true;
+          } else if (isSelected && this._buffers.has('seleccionados')) {
             triggerPlayer('seleccionados', when);
-          } else if (!this._pulseMutedForFallback && this._players.player('pulso')) {
+            triggered = true;
+          } else if (!this._pulseMutedForFallback && this._buffers.has('pulso')) {
             triggerPlayer('pulso', when);
-          } else if (!this._pulseMutedForFallback && this._players.player('pulso0')) {
+            triggered = true;
+          } else if (!this._pulseMutedForFallback && this._buffers.has('pulso0')) {
             triggerPlayer('pulso0', when);
+            triggered = true;
           }
-        } else if (!this._pulseMutedForFallback) {
+        }
+
+        if (!triggered && !this._pulseMutedForFallback) {
           const f = isStart ? 1400 : (isSelected ? 1100 : 900);
           triggerBeep(when, f);
         }
@@ -832,8 +975,8 @@ export class TimelineAudio {
       if (typeof this._onPulseRef === 'function') this._onPulseRef(msg.step);
     } else if (msg.type === 'cycle') {
       if (this._cycleConfig?.onCycle) this._cycleConfig.onCycle(msg.payload);
-      if (!this._cycleMutedForFallback && this._players?.player('cycle')) {
-        try { this._players.player('cycle').start(now + 0.001); } catch {}
+      if (!this._cycleMutedForFallback && this._buffers?.has('cycle')) {
+        this._schedulePlayerStart('cycle', now + 0.001);
       }
     } else if (msg.type === 'voice') {
       // future hook

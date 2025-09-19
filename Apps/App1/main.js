@@ -591,8 +591,8 @@ function handleInput(e){
       audio.setTempo(vNow);
       shouldResync = true;
     }
-    if (shouldResync && Number.isFinite(vNow) && vNow > 0) {
-      scheduleTapResync(vNow);
+    if (shouldResync) {
+      cancelTapResync();
     }
   }
 }
