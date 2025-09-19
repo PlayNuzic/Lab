@@ -546,3 +546,23 @@ height: 280px;
 margin: 5px auto; /* small margin for pulse number visibility */
 }
 }
+/* nuzic: rendimiento audio */
+.nuzic-audio-perf-panel {
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  background: var(--panel, #f9f9fb);
+  font-size: 14px;
+}
+.nuzic-audio-perf-panel .perf-row {
+  display: flex; align-items: center; gap: 10px;
+  margin: 6px 0;
+}
+.nuzic-audio-perf-panel .perf-row.readonly span {
+  padding: 2px 8px; background: #eee; border-radius: 6px;
+}
+.nuzic-audio-perf-panel label { min-width: 210px; font-weight: 600; }
+.nuzic-audio-perf-panel input[type="number"] { width: 120px; }
+.nuzic-audio-perf-panel input[type="range"] { flex: 1; }
+.nuzic-audio-perf-panel .perf-foot { margin-top: 6px; color: #666; font-size: 12px; }
