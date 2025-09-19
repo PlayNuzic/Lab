@@ -125,9 +125,22 @@ describe('loop resize keeps circular selection', () => {
     const ensureAudioMock = jest.fn(() => Promise.resolve(audioInstance));
     const timelineCtor = jest.fn(() => audioInstance);
 
+    const fakeChannelState = { id: 'pulse', label: 'Pulso', volume: 1, muted: false, solo: false, allowSolo: true, effectiveMuted: false };
+    const fakeMixer = { registerChannel: jest.fn(), getChannelState: jest.fn(() => fakeChannelState) };
     jest.unstable_mockModule('../../sound/index.js', () => ({
       TimelineAudio: timelineCtor,
       ensureAudio: ensureAudioMock,
+      subscribeMixer: jest.fn(() => () => {}),
+      setChannelVolume: jest.fn(),
+      setChannelMute: jest.fn(),
+      toggleChannelSolo: jest.fn(),
+      setChannelSolo: jest.fn(),
+      setVolume: jest.fn(),
+      getVolume: jest.fn(() => 1),
+      setMute: jest.fn(),
+      isMuted: jest.fn(() => false),
+      getChannelState: jest.fn(() => fakeChannelState),
+      getMixer: jest.fn(() => fakeMixer)
     }));
     jest.unstable_mockModule('../../shared-ui/sound-dropdown.js', () => ({
       initSoundDropdown: jest.fn(),

@@ -11,26 +11,41 @@ export async function loadSampleMap() {
   // 2) Defaults (ajusta nombres si difieren en tu árbol de /samples)
   const DEFAULT_SAMPLE_MAP = {
     // Grupo Pulso = Pulso + Pulso 0 (ambas rutas se mezclan en el mismo bus)
-    pulso: 'libs/sound/samples/pulso.wav',
-    pulso0: 'libs/sound/samples/pulso0.wav',
+    pulso: 'click1',
+    pulso0: 'click1',
 
     // Pulsos seleccionados (acentos individuales de usuario)
-    seleccionados: 'libs/sound/samples/seleccionados.wav',
+    seleccionados: 'click2',
 
     // Sonidos adicionales opcionales (inicio de vuelta / subdivisión de ciclo)
-    start: 'libs/sound/samples/start.wav',
-    cycle: 'libs/sound/samples/cycle.wav'
+    start: 'click3',
+    cycle: 'click4'
   };
   return normalizeMap(DEFAULT_SAMPLE_MAP);
 }
 
+function normalizeValue(value) {
+  if (!value) return null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const looksLikePath = /[\/]/.test(trimmed) || /\.[a-z0-9]+$/i.test(trimmed);
+  if (!looksLikePath) return trimmed;
+  try {
+    return new URL(trimmed, import.meta.url).href;
+  } catch {
+    return trimmed;
+  }
+}
+
 function normalizeMap(map) {
   // estandarizamos claves
+  const base = normalizeValue(map.pulso || map.base || map.click);
   return {
-    pulso: map.pulso || map.base || map.click || null,
-    pulso0: map.pulso0 || map.baseAlt || null,
-    seleccionados: map.seleccionados || map.selected || map.accent || null,
-    start: map.start || null,
-    cycle: map.cycle || null
+    pulso: base,
+    pulso0: normalizeValue(map.pulso0 || map.baseAlt) || base,
+    seleccionados: normalizeValue(map.seleccionados || map.selected || map.accent),
+    start: normalizeValue(map.start),
+    cycle: normalizeValue(map.cycle)
   };
 }

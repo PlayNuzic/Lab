@@ -90,7 +90,8 @@ export class AudioMixer {
       try {
         const node = new Tone.Volume(toDecibels(channel.volume));
         node.mute = this._computeEffectiveMute(channel);
-        ensureConnect(node, masterNode || Tone.Destination);
+        const destination = (typeof Tone !== 'undefined' && Tone?.Destination) ? Tone.Destination : null;
+        ensureConnect(node, masterNode || destination);
         channel.node = node;
         return node;
       } catch {}
@@ -108,7 +109,7 @@ export class AudioMixer {
     const node = this._ensureMasterNode();
     if (node?.volume) {
       try { node.volume.value = toDecibels(this.master.volume); } catch {}
-    } else if (Tone?.Destination?.volume) {
+    } else if (typeof Tone !== 'undefined' && Tone?.Destination?.volume) {
       try { Tone.Destination.volume.value = toDecibels(this.master.volume); } catch {}
     }
   }
@@ -125,7 +126,7 @@ export class AudioMixer {
     if (this.master.node) {
       try { this.master.node.mute = !!this.master.muted; } catch {}
     }
-    if (!this.master.node && Tone?.Destination) {
+    if (!this.master.node && typeof Tone !== 'undefined' && Tone?.Destination) {
       try { Tone.Destination.mute = !!this.master.muted; } catch {}
     }
     for (const channel of this.channels.values()) {

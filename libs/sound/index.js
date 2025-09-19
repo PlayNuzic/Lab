@@ -1,110 +1,269 @@
-// libs/sound/index.js
-// TimelineAudio (motor híbrido): AudioWorklet = reloj; main = disparo de samples.
-// API compatible (play/stop/setTempo/updateCycleConfig/setTotal), con extras:
-//   - setVoices/addVoice/removeVoice (polirritmos arbitrarios)
-//   - configurePerformance({ requestedSampleRate, scheduleHorizonMs })  // schedulerIntervalMs es lectura
-// Integración de samples desde libs/sound/samples/ + buses de mixer: Master, Pulso, P.Seleccionados.
-
 import { loadSampleMap } from './sample-map.js';
+import { AudioMixer } from './mixer.js';
 
 /* global Tone */
-function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+const SAMPLE_BASE_URL = new URL('./samples/', import.meta.url);
+const SOUND_URLS = {
+  click1: new URL('click1.wav', SAMPLE_BASE_URL).href,
+  click2: new URL('click2.wav', SAMPLE_BASE_URL).href,
+  click3: new URL('click3.wav', SAMPLE_BASE_URL).href,
+  click4: new URL('click4.wav', SAMPLE_BASE_URL).href,
+  click5: new URL('click5.wav', SAMPLE_BASE_URL).href,
+  click6: new URL('click6.wav', SAMPLE_BASE_URL).href,
+  click7: new URL('click7.wav', SAMPLE_BASE_URL).href,
+  click8: new URL('click8.wav', SAMPLE_BASE_URL).href,
+  click9: new URL('click9.wav', SAMPLE_BASE_URL).href,
+  click10: new URL('click10.wav', SAMPLE_BASE_URL).href
+};
+
+export const soundNames = Object.keys(SOUND_URLS);
+export const soundLabels = {
+  click1: 'Click Base',
+  click2: 'Click Acento',
+  click3: 'Sticks',
+  click4: 'Pandereta',
+  click5: 'Shake',
+  click6: 'Triángulo',
+  click7: 'Bombo',
+  click8: 'Caja',
+  click9: 'Hi-Hat',
+  click10: 'Ride'
+};
+
+const mixer = new AudioMixer({ masterLabel: 'Master' });
+let audioReadyPromise = null;
+
+export function ensureAudio() {
+  if (!audioReadyPromise) {
+    if (typeof Tone !== 'undefined' && typeof Tone.start === 'function') {
+      try {
+        audioReadyPromise = Promise.resolve(Tone.start());
+      } catch {
+        audioReadyPromise = Promise.resolve();
+      }
+    } else if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) {
+      try {
+        const Ctor = window.AudioContext || window.webkitAudioContext;
+        const ctx = new Ctor({ latencyHint: 'interactive' });
+        ctx.close?.();
+      } catch {}
+      audioReadyPromise = Promise.resolve();
+    } else {
+      audioReadyPromise = Promise.resolve();
+    }
+  }
+  return audioReadyPromise;
+}
+
+function clamp01(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  if (num <= 0) return 0;
+  if (num >= 1) return 1;
+  return num;
+}
+
+export function setVolume(value) {
+  mixer.setMasterVolume(clamp01(value));
+}
+
+export function getVolume() {
+  return mixer.getMasterVolume();
+}
+
+export function setMute(value) {
+  mixer.setMasterMute(!!value);
+}
+
+export function toggleMute() {
+  return mixer.toggleMasterMute();
+}
+
+export function isMuted() {
+  return mixer.isMasterMuted();
+}
+
+export function getMixer() {
+  return mixer;
+}
+
+export function subscribeMixer(listener) {
+  return mixer.subscribe(listener);
+}
+
+export function setChannelVolume(channelId, value) {
+  mixer.setChannelVolume(channelId, value);
+}
+
+export function setChannelMute(channelId, value) {
+  mixer.setChannelMute(channelId, value);
+}
+
+export function toggleChannelMute(channelId) {
+  mixer.toggleChannelMute(channelId);
+}
+
+export function setChannelSolo(channelId, value) {
+  mixer.setChannelSolo(channelId, value);
+}
+
+export function toggleChannelSolo(channelId) {
+  mixer.toggleChannelSolo(channelId);
+}
+
+export function getChannelState(channelId) {
+  return mixer.getChannelState(channelId);
+}
+
+const SCHEDULING_PRESETS = {
+  desktop: { lookAhead: 0.02, updateInterval: 0.01 },
+  balanced: { lookAhead: 0.03, updateInterval: 0.015 },
+  mobile: { lookAhead: 0.06, updateInterval: 0.03 }
+};
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function resolveToUrl(value) {
+  if (!value) return null;
+  if (SOUND_URLS[value]) return SOUND_URLS[value];
+  if (typeof value === 'string') {
+    try {
+      return new URL(value, SAMPLE_BASE_URL).href;
+    } catch {
+      return value;
+    }
+  }
+  return null;
+}
+
+function normalizeSound(value, fallback) {
+  const spec = value || fallback;
+  const url = resolveToUrl(spec);
+  return { key: spec || fallback, url };
+}
+
+function toSet(indices) {
+  if (indices instanceof Set) return new Set(indices);
+  if (Array.isArray(indices)) return new Set(indices);
+  if (indices == null) return new Set();
+  return new Set(indices);
+}
 
 export class TimelineAudio {
   constructor() {
     this.isReady = false;
     this.isPlaying = false;
 
-    // Parámetros musicales
-    this.totalRef = 0;              // nº pulsos/medida
-    this.intervalRef = 0;           // seg/pulso = 60/BPM
+    this.totalRef = 0;
+    this.intervalRef = 0;
     this.loopRef = true;
 
-    // Callbacks
     this._onPulseRef = null;
     this.onCompleteRef = null;
-    this._cycleConfig = null;       // { numerator, denominator, onCycle }
+    this._cycleConfig = null;
 
-    // UI
     this._lastStep = null;
     this._lastPulseTime = null;
 
-    // Selecciones de usuario (acentos)
     this.selectedRef = new Set();
 
-    // WebAudio / Worklet / scheduler
     this._ctx = null;
     this._node = null;
     this._schedulerId = null;
-    this._lookAheadSec = 0.12;      // horizonte de programación
-    this._schedulerEverySec = 0.02; // adaptativo (lectura sugerida ~20ms)
+    this._lookAheadSec = 0.12;
+    this._schedulerEverySec = 0.02;
+    this._schedulerOverrideSec = null;
 
-    // Buses de mezcla (Master, Pulso, Seleccionados)
-    this._bus = { master: null, pulso: null, seleccionados: null };
+    this._bus = { master: null, pulso: null, seleccionados: null, cycle: null };
 
-    // Players Tone (si está cargado)
-    this._players = null;           // Tone.Players
-    this._sampleMap = null;         // rutas resueltas
+    this._players = null;
+    this._sampleMap = null;
 
-    // Fallback synth si no hay Tone
     this._fallbackGain = null;
 
-    // Tap-tempo
     this._tapTimes = [];
 
-    // Exponer motor para el menú de “Rendimiento Audio”
+    this._defaultAssignments = {
+      pulso: 'click1',
+      pulso0: 'click1',
+      seleccionados: 'click2',
+      start: 'click3',
+      cycle: 'click4'
+    };
+    this._soundAssignments = { ...this._defaultAssignments };
+    this._channelAssignments = {
+      base: 'pulse',
+      accent: 'accent',
+      start: 'pulse',
+      cycle: 'subdivision',
+      selected: 'accent'
+    };
+
+    this.mixer = mixer;
+    mixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso' });
+    mixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
+    mixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivisión' });
+
+    this._pendingMixerState = null;
+    this._pulseMutedForFallback = false;
+    this._cycleMutedForFallback = false;
+
+    this._unsubscribeMixer = mixer.subscribe((state) => this._applyMixerState(state));
+
     try { window.NuzicAudioEngine = this; } catch {}
   }
 
-  // ---- init ---------------------------------------------------------------
+  async ready() {
+    await ensureAudio();
+    await this._ensureContext();
+    return this;
+  }
 
   async _ensureContext() {
     if (this._ctx) return;
 
-    // 1) Contexto (nota: el navegador puede ignorar el sampleRate solicitado)
-    this._ctx = (typeof Tone !== 'undefined' && Tone?.context?.rawContext)
-      ? Tone.context.rawContext
-      : new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    const toneCtx = (typeof Tone !== 'undefined') && Tone?.context?.rawContext;
+    if (toneCtx) {
+      this._ctx = Tone.context.rawContext;
+    } else {
+      const Ctor = (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext))
+        ? (window.AudioContext || window.webkitAudioContext)
+        : null;
+      if (!Ctor) throw new Error('AudioContext not available');
+      this._ctx = new Ctor({ latencyHint: 'interactive' });
+    }
 
-    // 2) Worklet
     await this._ctx.audioWorklet.addModule(new URL('./timeline-processor.js', import.meta.url));
     this._node = new AudioWorkletNode(this._ctx, 'timeline-processor');
 
-    // 3) Buses de mezcla
     this._bus.master = this._ctx.createGain();
     this._bus.pulso = this._ctx.createGain();
     this._bus.seleccionados = this._ctx.createGain();
+    this._bus.cycle = this._ctx.createGain();
+
     this._bus.pulso.connect(this._bus.master);
     this._bus.seleccionados.connect(this._bus.master);
+    this._bus.cycle.connect(this._bus.master);
     this._bus.master.connect(this._ctx.destination);
 
-    // 4) Players de samples (si Tone está presente)
     await this._initPlayers();
 
-    // 5) Conexión Node
     this._node.connect(this._bus.master);
     this._node.port.onmessage = (e) => this._handleClockMessage(e.data);
 
-    // 6) Fallback synth si no hay Tone
     if (typeof Tone === 'undefined') {
       const g = this._ctx.createGain();
       g.gain.value = 0.0;
-      g.connect(this._bus.pulso); // mismo bus de pulso
+      g.connect(this._bus.pulso);
       this._fallbackGain = g;
     }
 
-    // 7) Integración con mixer.js si expone registro de buses
-    try {
-      const Mixer = await import('./mixer.js');
-      const reg = Mixer?.registerExternalBuses || Mixer?.default?.registerExternalBuses;
-      if (typeof reg === 'function') {
-        reg({
-          master: this._bus.master,
-          pulso: this._bus.pulso,
-          seleccionados: this._bus.seleccionados
-        }, this._ctx);
-      }
-    } catch { /* si no existe mixer.js o no exporta, seguimos */ }
+    if (this._pendingMixerState) {
+      this._applyMixerState(this._pendingMixerState);
+    }
 
     this.isReady = true;
   }
@@ -112,30 +271,164 @@ export class TimelineAudio {
   async _initPlayers() {
     if (typeof Tone === 'undefined') return;
     this._sampleMap = await loadSampleMap();
+    this._applySampleMap(this._sampleMap);
 
     const sources = {};
-    if (this._sampleMap.pulso) sources.pulso = this._sampleMap.pulso;
-    if (this._sampleMap.pulso0) sources.pulso0 = this._sampleMap.pulso0;
-    if (this._sampleMap.seleccionados) sources.seleccionados = this._sampleMap.seleccionados;
-    if (this._sampleMap.start) sources.start = this._sampleMap.start;
-    if (this._sampleMap.cycle) sources.cycle = this._sampleMap.cycle;
+    ['pulso', 'pulso0', 'seleccionados', 'start', 'cycle'].forEach((key) => {
+      const { key: resolved, url } = normalizeSound(this._soundAssignments[key], this._defaultAssignments[key]);
+      this._soundAssignments[key] = resolved;
+      if (url) sources[key] = url;
+    });
 
-    if (Object.keys(sources).length === 0) return;
+    if (!Object.keys(sources).length) return;
 
-    this._players = new Tone.Players(sources).toDestination();
+    this._players = new Tone.Players(sources);
 
-    // Reenrutamos cada player a su bus correspondiente
     const connectSafe = (key, dest) => {
-      try { this._players.player(key).connect(dest); } catch {}
+      try {
+        const player = this._players.player(key);
+        player.disconnect();
+        if (dest) player.connect(dest);
+      } catch {}
     };
+
     connectSafe('pulso', this._bus.pulso);
     connectSafe('pulso0', this._bus.pulso);
     connectSafe('seleccionados', this._bus.seleccionados);
     connectSafe('start', this._bus.pulso);
-    connectSafe('cycle', this._bus.pulso);
+    connectSafe('cycle', this._bus.cycle);
   }
 
-  // ---- API pública (compat) -----------------------------------------------
+  _applySampleMap(map) {
+    if (!map) return;
+    if (map.pulso) this._soundAssignments.pulso = map.pulso;
+    this._soundAssignments.pulso0 = map.pulso0 || this._soundAssignments.pulso;
+    if (map.seleccionados) this._soundAssignments.seleccionados = map.seleccionados;
+    if (map.start) this._soundAssignments.start = map.start;
+    if (map.cycle) this._soundAssignments.cycle = map.cycle;
+  }
+
+  _applyMixerState(state) {
+    this._pendingMixerState = state;
+    if (!state || !this._bus.master) return;
+
+    const channels = new Map((state.channels || []).map(ch => [ch.id, ch]));
+    const masterMuted = !!state.master?.effectiveMuted;
+    const masterVolume = state.master?.volume ?? 1;
+
+    this._pulseMutedForFallback = masterMuted || !!channels.get('pulse')?.effectiveMuted;
+    this._cycleMutedForFallback = masterMuted || !!channels.get('subdivision')?.effectiveMuted;
+
+    const applyGain = (node, channelId) => {
+      if (!node) return;
+      const ch = channels.get(channelId);
+      const vol = ch?.volume ?? 1;
+      const muted = masterMuted || !!ch?.effectiveMuted;
+      try { node.gain.value = muted ? 0 : vol; } catch {}
+    };
+
+    try { this._bus.master.gain.value = masterMuted ? 0 : masterVolume; } catch {}
+    applyGain(this._bus.pulso, 'pulse');
+    applyGain(this._bus.seleccionados, 'accent');
+    applyGain(this._bus.cycle, 'subdivision');
+  }
+
+  async _setSound(key, soundKey, fallbackKey) {
+    this._soundAssignments[key] = soundKey || fallbackKey || this._soundAssignments[key];
+    if (!this._players) return;
+    const { key: resolved, url } = normalizeSound(this._soundAssignments[key], fallbackKey || this._defaultAssignments[key]);
+    this._soundAssignments[key] = resolved;
+    if (!url) return;
+    try {
+      const player = this._players.player(key);
+      await player.load(url);
+    } catch (error) {
+      console.warn(`Failed to set sound ${soundKey} for ${key}`, error);
+    }
+  }
+
+  async setBase(key) {
+    await this.ready();
+    await this._setSound('pulso', key, this._defaultAssignments.pulso);
+    await this._setSound('pulso0', key, this._defaultAssignments.pulso0);
+  }
+
+  async setAccent(key) {
+    await this.ready();
+    await this._setSound('seleccionados', key, this._defaultAssignments.seleccionados);
+  }
+
+  async setStart(key) {
+    await this.ready();
+    await this._setSound('start', key, this._defaultAssignments.start);
+  }
+
+  async setCycle(key) {
+    await this.ready();
+    await this._setSound('cycle', key, this._defaultAssignments.cycle);
+  }
+
+  async preview(soundKey) {
+    const { url } = normalizeSound(soundKey, this._defaultAssignments.pulso);
+    if (!url || typeof Tone === 'undefined') return;
+    await ensureAudio();
+    try {
+      const player = new Tone.Player({ url, autostart: false });
+      if (this._bus.pulso) {
+        player.connect(this._bus.pulso);
+      } else {
+        player.toDestination();
+      }
+      await player.load(url);
+      player.start('+0.01');
+      setTimeout(() => { try { player.dispose(); } catch {} }, 800);
+    } catch (error) {
+      console.warn('Failed to preview sound', error);
+    }
+  }
+
+  setSelected(indices) {
+    this.selectedRef = toSet(indices);
+    this._adaptSchedulerInterval();
+  }
+
+  setLoop(enabled) {
+    this.loopRef = !!enabled;
+    this._node?.port?.postMessage({ action: 'setLoop', loop: this.loopRef });
+  }
+
+  setScheduling({ lookAhead, updateInterval } = {}) {
+    if (Number.isFinite(lookAhead) && lookAhead > 0) {
+      this._lookAheadSec = clamp(lookAhead, 0.01, 0.5);
+    }
+    if (Number.isFinite(updateInterval) && updateInterval > 0) {
+      this._schedulerOverrideSec = clamp(updateInterval, 0.005, 0.1);
+    } else if (updateInterval === null) {
+      this._schedulerOverrideSec = null;
+    }
+    this._adaptSchedulerInterval();
+  }
+
+  setSchedulingProfile(profile) {
+    const preset = SCHEDULING_PRESETS[profile] || SCHEDULING_PRESETS.balanced;
+    this.setScheduling(preset);
+  }
+
+  setPulseEnabled(enabled) {
+    mixer.setChannelMute('pulse', !enabled);
+  }
+
+  setCycleEnabled(enabled) {
+    mixer.setChannelMute('subdivision', !enabled);
+  }
+
+  setMute(value) {
+    setMute(value);
+  }
+
+  getMixer() {
+    return mixer;
+  }
 
   async play(totalPulses, intervalSec, selectedPulses, loop, onPulse, onComplete, options = {}) {
     await this._ensureContext();
@@ -143,7 +436,7 @@ export class TimelineAudio {
     this.totalRef = Math.max(1, +totalPulses || 1);
     this.intervalRef = Math.max(1e-6, +intervalSec || 0.5);
     this.loopRef = !!loop;
-    this.selectedRef = new Set(Array.isArray(selectedPulses) ? selectedPulses : (selectedPulses || []));
+    this.selectedRef = toSet(selectedPulses);
     this._onPulseRef = (typeof onPulse === 'function') ? onPulse : null;
     this.onCompleteRef = (typeof onComplete === 'function') ? onComplete : null;
 
@@ -152,7 +445,6 @@ export class TimelineAudio {
       ? { numerator: +cyc.numerator, denominator: +cyc.denominator, onCycle: (cyc.onCycle || null) }
       : null;
 
-    // Arranca reloj
     this._node.port.postMessage({
       action: 'start',
       total: this.totalRef,
@@ -162,7 +454,6 @@ export class TimelineAudio {
       denominator: this._cycleConfig?.denominator || 0
     });
 
-    // Scheduler de audio
     this._startScheduler();
     this.isPlaying = true;
   }
@@ -181,7 +472,7 @@ export class TimelineAudio {
   }
 
   setTempo(bpm, opts = {}) {
-    const align = opts.align || 'nextPulse';   // 'immediate' | 'nextPulse'
+    const align = opts.align || 'nextPulse';
     const rampMs = Number.isFinite(opts.rampMs) ? Math.max(0, +opts.rampMs) : 80;
     const interval = 60 / Math.max(1e-6, +bpm || 120);
 
@@ -210,37 +501,39 @@ export class TimelineAudio {
     return (this._lastStep != null) ? { step: this._lastStep } : null;
   }
 
-  // ---- Polirritmos (voces arbitrarias) -----------------------------------
+  setVoices(voices = []) {
+    this._node?.port?.postMessage({ action: 'setVoices', voices });
+  }
 
-  setVoices(voices = []) { this._node?.port?.postMessage({ action: 'setVoices', voices }); }
-  addVoice(voice) { if (voice && voice.id) this._node?.port?.postMessage({ action: 'addVoice', voice }); }
-  removeVoice(id) { if (id) this._node?.port?.postMessage({ action: 'removeVoice', id }); }
+  addVoice(voice) {
+    if (voice && voice.id) this._node?.port?.postMessage({ action: 'addVoice', voice });
+  }
 
-  // ---- Rendimiento (para el menú compartido) ------------------------------
+  removeVoice(id) {
+    if (id) this._node?.port?.postMessage({ action: 'removeVoice', id });
+  }
 
   async configurePerformance({ requestedSampleRate, scheduleHorizonMs } = {}) {
-    // El SR SOLO se aplica si aún no hay contexto. Si ya existe, solo informativo.
     if (requestedSampleRate && !this._ctx) {
-      this._ctx = new (window.AudioContext || window.webkitAudioContext)({
-        latencyHint: 'interactive',
-        sampleRate: +requestedSampleRate
-      });
-      // re‑ejecuta init con este contexto
-      await this._ensureContext();
+      const Ctor = (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext))
+        ? (window.AudioContext || window.webkitAudioContext)
+        : null;
+      if (Ctor) {
+        this._ctx = new Ctor({ latencyHint: 'interactive', sampleRate: +requestedSampleRate });
+        await this._ensureContext();
+      }
     }
     if (Number.isFinite(+scheduleHorizonMs)) {
       this._lookAheadSec = clamp(+scheduleHorizonMs / 1000, 0.02, 0.4);
-      this._adaptSchedulerInterval(); // interval auto en función de streams
+      this._adaptSchedulerInterval();
     }
     return {
       requestedSampleRate: requestedSampleRate || null,
       actualSampleRate: this._ctx ? this._ctx.sampleRate : null,
       scheduleHorizonMs: Math.round(this._lookAheadSec * 1000),
-      schedulerIntervalMs: Math.round(this._schedulerEverySec * 1000) // solo lectura
+      schedulerIntervalMs: Math.round(this._schedulerEverySec * 1000)
     };
   }
-
-  // ---- Interna: scheduler de audio (disparo de samples) -------------------
 
   _startScheduler() {
     if (!this._ctx) return;
@@ -248,13 +541,11 @@ export class TimelineAudio {
     const scheduleHorizon = () => ctx.currentTime + this._lookAheadSec;
     const clickDur = Math.max(0.01, this.intervalRef * 0.8);
 
-    // Limpia anterior
     if (this._schedulerId != null) clearInterval(this._schedulerId);
     this._adaptSchedulerInterval();
 
-    // Funciones de disparo
     const triggerBeep = (when, freq = 1000, gain = 0.3, dur = clickDur) => {
-      if (!this._fallbackGain) return;
+      if (!this._fallbackGain || this._pulseMutedForFallback) return;
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.type = 'square';
@@ -272,14 +563,12 @@ export class TimelineAudio {
       try { this._players.player(key).start(when); } catch {}
     };
 
-    // Cálculo de tiempo absoluto de un step n usando la última marca de Worklet
     this._stepTime = (stepIndex) => {
       if (this._lastStep == null || this._lastPulseTime == null) return null;
       const deltaSteps = stepIndex - this._lastStep;
       return this._lastPulseTime + deltaSteps * this.intervalRef;
     };
 
-    // Cursor de steps programados
     let scheduledStep = -1;
 
     const tick = () => {
@@ -296,16 +585,20 @@ export class TimelineAudio {
         const when = this._stepTime(n);
         if (when == null || when > horizon) break;
 
-        // ¿acento/selección?
         const isStart = (n % this.totalRef) === 0;
         const isSelected = this.selectedRef.has(n % this.totalRef);
 
         if (this._players) {
-          if (isStart && this._players.player('start')) triggerPlayer('start', when);
-          else if (isSelected && this._players.player('seleccionados')) triggerPlayer('seleccionados', when);
-          else if (this._players.player('pulso')) triggerPlayer('pulso', when);
-          else if (this._players.player('pulso0')) triggerPlayer('pulso0', when);
-        } else {
+          if (isStart && !this._pulseMutedForFallback && this._players.player('start')) {
+            triggerPlayer('start', when);
+          } else if (isSelected && this._players.player('seleccionados')) {
+            triggerPlayer('seleccionados', when);
+          } else if (!this._pulseMutedForFallback && this._players.player('pulso')) {
+            triggerPlayer('pulso', when);
+          } else if (!this._pulseMutedForFallback && this._players.player('pulso0')) {
+            triggerPlayer('pulso0', when);
+          }
+        } else if (!this._pulseMutedForFallback) {
           const f = isStart ? 1400 : (isSelected ? 1100 : 900);
           triggerBeep(when, f);
         }
@@ -319,8 +612,10 @@ export class TimelineAudio {
   }
 
   _adaptSchedulerInterval() {
-    // Heurística: cuanto más streams activos (pulso, seleccionados, ciclo, voces),
-    // más corto el intervalo (hasta 10 ms); pocos streams → 20–30 ms.
+    if (this._schedulerOverrideSec != null) {
+      this._schedulerEverySec = this._schedulerOverrideSec;
+      return;
+    }
     const streams =
       1 + (this.selectedRef.size > 0 ? 1 : 0) +
       (this._cycleConfig?.denominator ? 1 : 0);
@@ -328,29 +623,24 @@ export class TimelineAudio {
     this._schedulerEverySec = ms / 1000;
   }
 
-  // ---- Reloj: mensajes de Worklet -----------------------------------------
-
   _handleClockMessage(msg) {
-    const now = this._ctx.currentTime;
+    const now = this._ctx?.currentTime ?? 0;
     if (msg.type === 'pulse') {
       this._lastStep = msg.step;
       this._lastPulseTime = now;
       if (typeof this._onPulseRef === 'function') this._onPulseRef(msg.step);
     } else if (msg.type === 'cycle') {
       if (this._cycleConfig?.onCycle) this._cycleConfig.onCycle(msg.payload);
-      // Si hay sample específico de ciclo:
-      if (this._players?.player('cycle')) {
+      if (!this._cycleMutedForFallback && this._players?.player('cycle')) {
         try { this._players.player('cycle').start(now + 0.001); } catch {}
       }
     } else if (msg.type === 'voice') {
-      // Gancho futuro: mapear voces a samples específicos si lo deseáis
+      // future hook
     } else if (msg.type === 'done') {
       if (typeof this.onCompleteRef === 'function') this.onCompleteRef();
       this.stop();
     }
   }
-
-  // ---- Utilidades ---------------------------------------------------------
 
   tap(nowMs = performance.now()) {
     this._tapTimes.push(nowMs);

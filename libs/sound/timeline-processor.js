@@ -112,6 +112,10 @@ class TimelineProcessor extends AudioWorkletProcessor {
         if (msg && msg.id) this.voices.delete(msg.id);
         break;
       }
+      case 'setLoop': {
+        this.loop = !!msg.loop;
+        break;
+      }
       default: break;
     }
   }
