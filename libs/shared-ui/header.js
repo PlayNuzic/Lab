@@ -151,7 +151,6 @@ function wireControls(root) {
     const hoverToggle = root.querySelector('#hoverToggle');
     const muteBtn = root.querySelector('#muteBtn');
     const selectColor = root.querySelector('#selectColor');
-    const schedSelect = root.querySelector('#schedProfileSelect');
     const soundWrapper = root.querySelector('.sound-wrapper');
     const baseSoundSelect = root.querySelector('#baseSoundSelect');
     const accentSoundSelect = root.querySelector('#accentSoundSelect');
@@ -363,14 +362,7 @@ function wireControls(root) {
         });
     }
 
-    if (schedSelect) {
-        const def = detectDeviceProfile();
-        schedSelect.value = def;
-        applySchedulingProfile(def);
-        schedSelect.addEventListener('change', (e) => applySchedulingProfile(e.target.value));
-    } else {
-        applySchedulingProfile(detectDeviceProfile());
-    }
+    applySchedulingProfile(detectDeviceProfile());
 }
 
 /**
@@ -436,12 +428,6 @@ export function renderHeader({ title = 'App', mount } = {}) {
                   </div>
                 </details>
                 <hr class="menu-separator">
-                <label for="schedProfileSelect">Rendimiento:</label>
-                <select id="schedProfileSelect">
-                    <option value="mobile">Móvil</option>
-                    <option value="balanced">Equilibrado</option>
-                    <option value="desktop">Escritorio</option>
-                </select>
             </div>
         </details>
         <h1>${title}</h1>

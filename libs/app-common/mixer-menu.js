@@ -147,6 +147,14 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     menuOpen = false;
   }
 
+  const toggleMenu = () => {
+    if (menuOpen) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  };
+
   function clearTimer() {
     if (longPressTimer) {
       clearTimeout(longPressTimer);
@@ -197,6 +205,9 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     if (triggerButtons.some(btn => btn.contains(event.target))) return;
     closeMenu();
   });
+
+  const handleExternalToggle = () => toggleMenu();
+  document.addEventListener('nuzic:mixer:toggle', handleExternalToggle);
 
   menu.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
@@ -304,6 +315,17 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     }
   });
 
-  return { close: closeMenu, open: openMenu };
+  const api = {
+    open: openMenu,
+    close: closeMenu,
+    toggle: toggleMenu,
+    isOpen: () => menuOpen
+  };
+
+  if (typeof window !== 'undefined') {
+    try { window.NuzicMixer = api; } catch {}
+  }
+
+  return api;
 }
 

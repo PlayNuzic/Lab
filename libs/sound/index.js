@@ -33,6 +33,23 @@ export const soundLabels = {
 
 const mixer = new AudioMixer({ masterLabel: 'Master' });
 let audioReadyPromise = null;
+const workletModulePromises = new WeakMap();
+
+function isBaseAudioContext(ctx) {
+  if (!ctx) return false;
+  const global = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
+  if (!global) return false;
+  const constructors = [
+    global.AudioContext,
+    global.webkitAudioContext,
+    global.OfflineAudioContext,
+    global.webkitOfflineAudioContext,
+    global.BaseAudioContext
+  ].filter((Ctor) => typeof Ctor === 'function');
+  return constructors.some((Ctor) => {
+    try { return ctx instanceof Ctor; } catch { return false; }
+  });
+}
 
 export function ensureAudio() {
   if (!audioReadyPromise) {
@@ -147,9 +164,7 @@ function normalizeSound(value, fallback) {
 
 function normalizeAudioContext(ctx) {
   if (!ctx) return null;
-  if (typeof ctx.createGain === 'function' && typeof ctx.audioWorklet !== 'undefined') {
-    return ctx;
-  }
+  if (isBaseAudioContext(ctx)) return ctx;
   if (ctx.rawContext && ctx.rawContext !== ctx) {
     const raw = normalizeAudioContext(ctx.rawContext);
     if (raw) return raw;
@@ -241,6 +256,8 @@ export class TimelineAudio {
     this._pulseMutedForFallback = false;
     this._cycleMutedForFallback = false;
 
+    this._ensureContextPromise = null;
+
     this._unsubscribeMixer = mixer.subscribe((state) => this._applyMixerState(state));
 
     try { window.NuzicAudioEngine = this; } catch {}
@@ -254,63 +271,98 @@ export class TimelineAudio {
 
   async _ensureContext() {
     if (this._node) return;
+    if (this._ensureContextPromise) {
+      await this._ensureContextPromise;
+      return;
+    }
 
     const FallbackCtor = (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext))
       ? (window.AudioContext || window.webkitAudioContext)
       : null;
 
-    if (!this._ctx) {
+    const buildContext = async () => {
+      const preferExisting = normalizeAudioContext(this._ctx);
       const toneCtx = resolveToneContext();
-      if (toneCtx) {
-        this._ctx = toneCtx;
-      } else {
+      let ctx = preferExisting || toneCtx || null;
+
+      if (!ctx && this._ctx && this._ctx !== preferExisting) {
+        const normalized = normalizeAudioContext(this._ctx);
+        if (normalized) ctx = normalized;
+      }
+
+      if (!ctx && FallbackCtor) {
+        ctx = new FallbackCtor({ latencyHint: 'interactive' });
+      }
+
+      if (!ctx || !isBaseAudioContext(ctx)) {
         if (!FallbackCtor) throw new Error('AudioContext not available');
-        this._ctx = new FallbackCtor({ latencyHint: 'interactive' });
+        ctx = new FallbackCtor({ latencyHint: 'interactive' });
       }
-    } else {
-      const normalized = normalizeAudioContext(this._ctx) || resolveToneContext();
-      if (normalized) {
-        this._ctx = normalized;
-      } else if (FallbackCtor) {
-        this._ctx = new FallbackCtor({ latencyHint: 'interactive' });
+
+      if (!ctx || !isBaseAudioContext(ctx) || typeof ctx.audioWorklet === 'undefined' ||
+          typeof ctx.audioWorklet.addModule !== 'function') {
+        throw new Error('AudioWorklet not available');
       }
+
+      this._ctx = ctx;
+
+      let modulePromise = workletModulePromises.get(ctx);
+      if (!modulePromise) {
+        modulePromise = ctx.audioWorklet.addModule(new URL('./timeline-processor.js', import.meta.url));
+        workletModulePromises.set(ctx, modulePromise);
+      }
+
+      try {
+        await modulePromise;
+      } catch (err) {
+        const message = String(err?.message || '');
+        const alreadyRegistered = err?.name === 'NotSupportedError' && /already registered/i.test(message);
+        if (!alreadyRegistered) {
+          workletModulePromises.delete(ctx);
+          throw err;
+        }
+        workletModulePromises.set(ctx, Promise.resolve());
+      }
+
+      this._node = new AudioWorkletNode(ctx, 'timeline-processor');
+
+      this._bus.master = ctx.createGain();
+      this._bus.pulso = ctx.createGain();
+      this._bus.seleccionados = ctx.createGain();
+      this._bus.cycle = ctx.createGain();
+
+      this._bus.pulso.connect(this._bus.master);
+      this._bus.seleccionados.connect(this._bus.master);
+      this._bus.cycle.connect(this._bus.master);
+      this._bus.master.connect(ctx.destination);
+
+      await this._initPlayers();
+
+      this._node.connect(this._bus.master);
+      this._node.port.onmessage = (e) => this._handleClockMessage(e.data);
+
+      if (typeof Tone === 'undefined') {
+        const g = ctx.createGain();
+        g.gain.value = 0.0;
+        g.connect(this._bus.pulso);
+        this._fallbackGain = g;
+      } else {
+        this._fallbackGain = null;
+      }
+
+      if (this._pendingMixerState) {
+        this._applyMixerState(this._pendingMixerState);
+      }
+
+      this.isReady = true;
+    };
+
+    this._ensureContextPromise = buildContext();
+    try {
+      await this._ensureContextPromise;
+    } finally {
+      this._ensureContextPromise = null;
     }
-
-    if (!this._ctx || typeof this._ctx.createGain !== 'function' || typeof this._ctx.audioWorklet === 'undefined') {
-      if (!FallbackCtor) throw new Error('AudioContext not available');
-      this._ctx = new FallbackCtor({ latencyHint: 'interactive' });
-    }
-
-    await this._ctx.audioWorklet.addModule(new URL('./timeline-processor.js', import.meta.url));
-    this._node = new AudioWorkletNode(this._ctx, 'timeline-processor');
-
-    this._bus.master = this._ctx.createGain();
-    this._bus.pulso = this._ctx.createGain();
-    this._bus.seleccionados = this._ctx.createGain();
-    this._bus.cycle = this._ctx.createGain();
-
-    this._bus.pulso.connect(this._bus.master);
-    this._bus.seleccionados.connect(this._bus.master);
-    this._bus.cycle.connect(this._bus.master);
-    this._bus.master.connect(this._ctx.destination);
-
-    await this._initPlayers();
-
-    this._node.connect(this._bus.master);
-    this._node.port.onmessage = (e) => this._handleClockMessage(e.data);
-
-    if (typeof Tone === 'undefined') {
-      const g = this._ctx.createGain();
-      g.gain.value = 0.0;
-      g.connect(this._bus.pulso);
-      this._fallbackGain = g;
-    }
-
-    if (this._pendingMixerState) {
-      this._applyMixerState(this._pendingMixerState);
-    }
-
-    this.isReady = true;
   }
 
   async _initPlayers() {

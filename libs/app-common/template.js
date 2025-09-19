@@ -98,13 +98,6 @@ export function renderApp({
 
           </div>
         </details>
-        <label for="schedProfileSelect">Rendimiento:
-          <select id="schedProfileSelect">
-            <option value="mobile">Móvil</option>
-            <option value="balanced" selected>Equilibrado</option>
-            <option value="desktop">Escritorio</option>
-          </select>
-        </label>
       </div>
     </details>
     <h1>${title}</h1>
