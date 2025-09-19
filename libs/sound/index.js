@@ -33,6 +33,7 @@ export const soundLabels = {
 
 const mixer = new AudioMixer({ masterLabel: 'Master' });
 let audioReadyPromise = null;
+let toneStartPromise = null;
 const workletModulePromises = new WeakMap();
 
 function isBaseAudioContext(ctx) {
@@ -51,26 +52,74 @@ function isBaseAudioContext(ctx) {
   });
 }
 
-export function ensureAudio() {
-  if (!audioReadyPromise) {
-    if (typeof Tone !== 'undefined' && typeof Tone.start === 'function') {
-      try {
-        audioReadyPromise = Promise.resolve(Tone.start());
-      } catch {
-        audioReadyPromise = Promise.resolve();
+function getToneContext() {
+  return resolveToneContext();
+}
+
+function isRunning(ctx) {
+  return !!ctx && typeof ctx.state === 'string' && ctx.state === 'running';
+}
+
+async function startToneAudio() {
+  if (typeof Tone === 'undefined') return false;
+  const contextBefore = getToneContext();
+  if (isRunning(contextBefore)) return true;
+  if (typeof Tone.start === 'function') {
+    try {
+      await Tone.start();
+    } catch (error) {
+      if (error && (error.name === 'InvalidAccessError' || error.name === 'NotAllowedError' || error.name === 'DOMException')) {
+        return false;
       }
-    } else if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) {
-      try {
-        const Ctor = window.AudioContext || window.webkitAudioContext;
-        const ctx = new Ctor({ latencyHint: 'interactive' });
-        ctx.close?.();
-      } catch {}
-      audioReadyPromise = Promise.resolve();
-    } else {
-      audioReadyPromise = Promise.resolve();
+      throw error;
     }
   }
-  return audioReadyPromise;
+  let context = getToneContext();
+  if (isRunning(context)) return true;
+  if (context && typeof context.resume === 'function') {
+    try {
+      await context.resume();
+    } catch (error) {
+      if (error && (error.name === 'InvalidAccessError' || error.name === 'NotAllowedError' || error.name === 'DOMException')) {
+        return false;
+      }
+      throw error;
+    }
+  }
+  context = getToneContext();
+  return isRunning(context);
+}
+
+export async function ensureAudio() {
+  if (typeof Tone !== 'undefined') {
+    if (!toneStartPromise) {
+      toneStartPromise = (async () => {
+        try {
+          return await startToneAudio();
+        } finally {
+          toneStartPromise = null;
+        }
+      })();
+    }
+    const started = await toneStartPromise;
+    if (started) return;
+  }
+
+  if (!audioReadyPromise) {
+    audioReadyPromise = (async () => {
+      if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) {
+        try {
+          const Ctor = window.AudioContext || window.webkitAudioContext;
+          const ctx = new Ctor({ latencyHint: 'interactive' });
+          await ctx.close?.();
+        } catch {}
+      }
+    })().finally(() => {
+      audioReadyPromise = null;
+    });
+  }
+
+  await audioReadyPromise;
 }
 
 function clamp01(value) {
