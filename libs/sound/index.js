@@ -398,11 +398,20 @@ export class TimelineAudio {
 
   _applySampleMap(map) {
     if (!map) return;
-    if (map.pulso) this._soundAssignments.pulso = map.pulso;
-    this._soundAssignments.pulso0 = map.pulso0 || this._soundAssignments.pulso;
-    if (map.seleccionados) this._soundAssignments.seleccionados = map.seleccionados;
-    if (map.start) this._soundAssignments.start = map.start;
-    if (map.cycle) this._soundAssignments.cycle = map.cycle;
+    const defaults = this._defaultAssignments;
+    if (map.pulso) defaults.pulso = map.pulso;
+    if (map.pulso0) defaults.pulso0 = map.pulso0;
+    if (map.seleccionados) defaults.seleccionados = map.seleccionados;
+    if (map.start) defaults.start = map.start;
+    if (map.cycle) defaults.cycle = map.cycle;
+    defaults.pulso0 = defaults.pulso0 || defaults.pulso;
+
+    const assignments = this._soundAssignments;
+    assignments.pulso = defaults.pulso;
+    assignments.pulso0 = map.pulso0 || assignments.pulso;
+    if (map.seleccionados) assignments.seleccionados = map.seleccionados;
+    if (map.start) assignments.start = map.start;
+    if (map.cycle) assignments.cycle = map.cycle;
   }
 
   _applyMixerState(state) {

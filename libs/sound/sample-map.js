@@ -4,8 +4,10 @@
 export async function loadSampleMap() {
   // 1) Intento: manifest propio del repo (si existe). Debe exportar DEFAULT_SAMPLE_MAP.
   try {
-    const mod = await import('./samples/manifest.js');
-    if (mod && mod.DEFAULT_SAMPLE_MAP) return normalizeMap(mod.DEFAULT_SAMPLE_MAP);
+    const manifestUrl = new URL('./samples/manifest.js', import.meta.url);
+    const mod = await import(manifestUrl.href);
+    const map = mod?.DEFAULT_SAMPLE_MAP || mod?.default;
+    if (map) return normalizeMap(map);
   } catch { /* no manifest, seguimos */ }
 
   // 2) Defaults (ajusta nombres si difieren en tu árbol de /samples)
@@ -39,13 +41,14 @@ function normalizeValue(value) {
 }
 
 function normalizeMap(map) {
+  const source = (map && typeof map === 'object') ? map : {};
   // estandarizamos claves
-  const base = normalizeValue(map.pulso || map.base || map.click);
+  const base = normalizeValue(source.pulso || source.base || source.click);
   return {
     pulso: base,
-    pulso0: normalizeValue(map.pulso0 || map.baseAlt) || base,
-    seleccionados: normalizeValue(map.seleccionados || map.selected || map.accent),
-    start: normalizeValue(map.start),
-    cycle: normalizeValue(map.cycle)
+    pulso0: normalizeValue(source.pulso0 || source.baseAlt) || base,
+    seleccionados: normalizeValue(source.seleccionados || source.selected || source.accent),
+    start: normalizeValue(source.start),
+    cycle: normalizeValue(source.cycle)
   };
 }
