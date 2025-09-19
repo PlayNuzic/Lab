@@ -406,9 +406,13 @@ function applyTheme(val){
 }
 
 const storedTheme = loadOpt('theme');
-if (storedTheme) themeSelect.value = storedTheme;
-applyTheme(themeSelect.value);
-themeSelect.addEventListener('change', e => applyTheme(e.target.value));
+if (themeSelect) {
+  if (storedTheme) themeSelect.value = storedTheme;
+  applyTheme(themeSelect.value || 'system');
+  themeSelect.addEventListener('change', e => applyTheme(e.target.value));
+} else {
+  applyTheme(storedTheme || 'system');
+}
 
 document.addEventListener('sharedui:mute', async (e) => {
   const val = !!(e && e.detail && e.detail.value);

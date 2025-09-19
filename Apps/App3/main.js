@@ -547,11 +547,13 @@ function applyTheme(value) {
   } catch {}
 }
 
+const storedTheme = loadOpt('theme');
 if (themeSelect) {
-  const storedTheme = loadOpt('theme');
   if (storedTheme) themeSelect.value = storedTheme;
-  applyTheme(themeSelect.value);
+  applyTheme(themeSelect.value || 'system');
   themeSelect.addEventListener('change', (e) => applyTheme(e.target.value));
+} else {
+  applyTheme(storedTheme || 'system');
 }
 
 document.addEventListener('sharedui:mute', async (e) => {
@@ -1388,9 +1390,7 @@ resetBtn.addEventListener('click', () => {
   ['Lg', 'V', 'n', 'd'].forEach(clearOpt);
   loopEnabled = false;
   loopBtn.classList.remove('active');
-  circularTimeline = false;
-  circularTimelineToggle.checked = false;
-  saveOpt('circular', '0');
+  setCircular(false);
   setPulseAudio(true, { persist: false });
   setCycleAudio(true, { persist: false });
   clearOpt(PULSE_AUDIO_KEY);
@@ -1473,7 +1473,9 @@ tapBtn.addEventListener('click', tapTempo);
  */
 function setCircular(value) {
   circularTimeline = value;
-  circularTimelineToggle.checked = value;
+  if (circularTimelineToggle) {
+    circularTimelineToggle.checked = value;
+  }
   saveOpt('circular', value ? '1' : '0');
   layoutTimeline();
 }
@@ -1482,9 +1484,11 @@ const storedCircularRaw = loadOpt('circular');
 const initialCircular = storedCircularRaw == null ? true : storedCircularRaw === '1';
 setCircular(initialCircular);
 
-circularTimelineToggle.addEventListener('change', () => {
-  setCircular(circularTimelineToggle.checked);
-});
+if (circularTimelineToggle) {
+  circularTimelineToggle.addEventListener('change', () => {
+    setCircular(circularTimelineToggle.checked);
+  });
+}
 
 /**
  * Inicialitza els desplegables de sons per pulso, inici i cicle.

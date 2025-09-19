@@ -547,22 +547,71 @@ margin: 5px auto; /* small margin for pulse number visibility */
 }
 }
 /* nuzic: rendimiento audio */
-.nuzic-audio-perf-panel {
-  margin: 8px 0 12px;
+.menu .options-content details.nuzic-audio-perf {
+  margin-top: 12px;
+}
+
+.menu .options-content details.nuzic-audio-perf > summary {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.menu .options-content .nuzic-audio-perf-panel {
+  margin: 6px 0 12px;
   padding: 10px 12px;
-  border: 1px solid var(--border, #ddd);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 8px;
-  background: var(--panel, #f9f9fb);
+  background: rgba(0, 0, 0, 0.04);
   font-size: 14px;
+  color: inherit;
 }
+
+body[data-theme='dark'] .menu .options-content .nuzic-audio-perf-panel {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .nuzic-audio-perf-panel .perf-row {
-  display: flex; align-items: center; gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 6px 0;
+  flex-wrap: wrap;
 }
+
 .nuzic-audio-perf-panel .perf-row.readonly span {
-  padding: 2px 8px; background: #eee; border-radius: 6px;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  font-weight: 600;
 }
-.nuzic-audio-perf-panel label { min-width: 210px; font-weight: 600; }
-.nuzic-audio-perf-panel input[type="number"] { width: 120px; }
-.nuzic-audio-perf-panel input[type="range"] { flex: 1; }
-.nuzic-audio-perf-panel .perf-foot { margin-top: 6px; color: #666; font-size: 12px; }
+
+body[data-theme='dark'] .nuzic-audio-perf-panel .perf-row.readonly span {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.nuzic-audio-perf-panel label {
+  min-width: 160px;
+  font-weight: 600;
+  flex: 1 1 160px;
+}
+
+.nuzic-audio-perf-panel input[type="number"] {
+  width: 120px;
+}
+
+.nuzic-audio-perf-panel input[type="range"] {
+  flex: 1;
+}
+
+.nuzic-audio-perf-panel .perf-foot {
+  margin-top: 6px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 12px;
+}
+
+body[data-theme='dark'] .nuzic-audio-perf-panel .perf-foot {
+  color: rgba(255, 255, 255, 0.7);
+}

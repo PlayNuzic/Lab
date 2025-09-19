@@ -199,6 +199,7 @@ function wireControls(root) {
     let previousVolume = 1;
     let hideTimeout = null;
     let muted = false;
+    let scheduleHide = () => {};
     
     // ICONOS ORIGINALES (movidos aquí para estar disponibles globalmente)
     const speakerOn = `<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M-1.6,148.8h121.4L302.4,0v512L119.8,363.2H-1.6V148.8z M371.1,124.6c35.9,35.9,54.2,79.5,54.9,130.9 c0,49.3-18.3,91.5-54.9,126.7l-36.9-38c25.3-25.3,38-55.2,38-89.7c0-35.2-12.7-65.8-38-91.8L371.1,124.6z M434.4,62.3 c52.8,52.8,79.2,116.5,79.2,191.1c0,74.6-26.4,138.6-79.2,192.1l-39.1-39.1c42.2-41.5,63.3-92.4,63.3-152.5 c0-60.2-21.1-111.4-63.3-153.6L434.4,62.3z"/></svg>`;
@@ -236,10 +237,10 @@ function wireControls(root) {
             }, 300);
         }
 
-        function scheduleHide() {
+        scheduleHide = function scheduleHide() {
             clearTimeout(hideTimeout);
             hideTimeout = setTimeout(hideSlider, 500);
-        }
+        };
 
         if (soundWrapper) {
             soundWrapper.addEventListener('mouseenter', showSlider);
@@ -355,7 +356,7 @@ function wireControls(root) {
             
             setMute(muted);
             updateMuteIcon();
-            
+
             if (volumeSlider && soundWrapper) {
                 scheduleHide();
             }

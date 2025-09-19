@@ -145,6 +145,36 @@ function normalizeSound(value, fallback) {
   return { key: spec || fallback, url };
 }
 
+function normalizeAudioContext(ctx) {
+  if (!ctx) return null;
+  if (typeof ctx.createGain === 'function' && typeof ctx.audioWorklet !== 'undefined') {
+    return ctx;
+  }
+  if (ctx.rawContext && ctx.rawContext !== ctx) {
+    const raw = normalizeAudioContext(ctx.rawContext);
+    if (raw) return raw;
+  }
+  if (ctx.context && ctx.context !== ctx) {
+    const nested = normalizeAudioContext(ctx.context);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function resolveToneContext() {
+  if (typeof Tone === 'undefined') return null;
+  const candidates = [];
+  if (typeof Tone.getContext === 'function') {
+    try { candidates.push(Tone.getContext()); } catch {}
+  }
+  if (Tone?.context) candidates.push(Tone.context);
+  for (const candidate of candidates) {
+    const resolved = normalizeAudioContext(candidate);
+    if (resolved) return resolved;
+  }
+  return null;
+}
+
 function toSet(indices) {
   if (indices instanceof Set) return new Set(indices);
   if (Array.isArray(indices)) return new Set(indices);
@@ -223,17 +253,32 @@ export class TimelineAudio {
   }
 
   async _ensureContext() {
-    if (this._ctx) return;
+    if (this._node) return;
 
-    const toneCtx = (typeof Tone !== 'undefined') && Tone?.context?.rawContext;
-    if (toneCtx) {
-      this._ctx = Tone.context.rawContext;
+    const FallbackCtor = (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext))
+      ? (window.AudioContext || window.webkitAudioContext)
+      : null;
+
+    if (!this._ctx) {
+      const toneCtx = resolveToneContext();
+      if (toneCtx) {
+        this._ctx = toneCtx;
+      } else {
+        if (!FallbackCtor) throw new Error('AudioContext not available');
+        this._ctx = new FallbackCtor({ latencyHint: 'interactive' });
+      }
     } else {
-      const Ctor = (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext))
-        ? (window.AudioContext || window.webkitAudioContext)
-        : null;
-      if (!Ctor) throw new Error('AudioContext not available');
-      this._ctx = new Ctor({ latencyHint: 'interactive' });
+      const normalized = normalizeAudioContext(this._ctx) || resolveToneContext();
+      if (normalized) {
+        this._ctx = normalized;
+      } else if (FallbackCtor) {
+        this._ctx = new FallbackCtor({ latencyHint: 'interactive' });
+      }
+    }
+
+    if (!this._ctx || typeof this._ctx.createGain !== 'function' || typeof this._ctx.audioWorklet === 'undefined') {
+      if (!FallbackCtor) throw new Error('AudioContext not available');
+      this._ctx = new FallbackCtor({ latencyHint: 'interactive' });
     }
 
     await this._ctx.audioWorklet.addModule(new URL('./timeline-processor.js', import.meta.url));
@@ -514,12 +559,14 @@ export class TimelineAudio {
   }
 
   async configurePerformance({ requestedSampleRate, scheduleHorizonMs } = {}) {
-    if (requestedSampleRate && !this._ctx) {
+    if (requestedSampleRate && !this._node) {
       const Ctor = (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext))
         ? (window.AudioContext || window.webkitAudioContext)
         : null;
       if (Ctor) {
         this._ctx = new Ctor({ latencyHint: 'interactive', sampleRate: +requestedSampleRate });
+        this._node = null;
+        this._fallbackGain = null;
         await this._ensureContext();
       }
     }
