@@ -6,6 +6,7 @@ import { solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
+import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
@@ -74,6 +75,7 @@ let circularTimeline = false;
 let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 // Track manual selection recency (oldest -> newest among the two manual LEDs)
 let manualHistory = [];
+let tapResyncTimer = null;
 
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
@@ -299,6 +301,7 @@ loopBtn.addEventListener('click', () => {
 });
 
 resetBtn.addEventListener('click', () => {
+  cancelTapResync();
   window.location.reload();
 });
 
@@ -310,23 +313,30 @@ tapBtn.addEventListener('click', () => {
   tapTimes.push(now);
   const remaining = 3 - tapTimes.length;
   if (remaining > 0) {
-    tapHelp.textContent = remaining === 2 ? '2 clicks más' : '1 click más solamente';
-    tapHelp.style.display = 'block';
+    if (tapHelp) {
+      tapHelp.textContent = remaining === 2 ? '2 clicks más' : '1 click más solamente';
+      tapHelp.style.display = 'block';
+    }
     return;
   }
 
-  tapHelp.style.display = 'none';
+  if (tapHelp) {
+    tapHelp.style.display = 'none';
+  }
   const intervals = [];
   for (let i = 1; i < tapTimes.length; i++) {
     intervals.push(tapTimes[i] - tapTimes[i - 1]);
   }
   const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-  const bpm = Math.round((60000 / avg) * 100) / 100;
-  setValue(inputV, bpm);
-  handleInput({ target: inputV });
+  if (avg > 0) {
+    const bpm = Math.round((60000 / avg) * 100) / 100;
+    setValue(inputV, bpm);
+    handleInput({ target: inputV });
 
-  if (isPlaying && audio && typeof audio.setTempo === 'function') {
-    audio.setTempo(bpm);
+    if (isPlaying && audio && typeof audio.setTempo === 'function') {
+      audio.setTempo(bpm);
+      scheduleTapResync(bpm);
+    }
   }
   if (tapTimes.length > 8) tapTimes.shift();
 });
@@ -571,6 +581,7 @@ function handleInput(e){
     }
     if (typeof audio.setTempo === 'function' && !isNaN(vNow) && vNow > 0) {
       audio.setTempo(vNow);
+      // TODO[audit]: aplicar computeResyncDelay als altres canvis en calent quan hi hagi proves específiques.
     }
   }
 }
@@ -815,55 +826,101 @@ function updateAutoIndicator(){
   ledT?.classList.toggle('on', inputT.dataset.auto !== '1');
 }
 
-playBtn.addEventListener('click', async () => {
-  const audio = await initAudio();
+function cancelTapResync() {
+  if (tapResyncTimer != null) {
+    clearTimeout(tapResyncTimer);
+    tapResyncTimer = null;
+  }
+}
 
-  const iconPlay = playBtn.querySelector('.icon-play');
-  const iconStop = playBtn.querySelector('.icon-stop');
+function scheduleTapResync(bpm) {
+  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
+  const lg = parseInt(inputLg.value);
+  if (!Number.isFinite(lg) || lg <= 0) return;
+  const state = audio.getVisualState();
+  const step = state && Number.isFinite(state.step) ? state.step : null;
+  if (!Number.isFinite(step)) return;
 
-  if (isPlaying) {
-    audio.stop();
+  const info = computeResyncDelay({ stepIndex: step, totalPulses: lg, bpm });
+  if (!info) return;
+
+  cancelTapResync();
+
+  const run = () => {
+    tapResyncTimer = null;
+    if (!isPlaying) return;
+    startPlayback(audio).catch(() => {});
+  };
+
+  if (!Number.isFinite(info.delaySeconds) || info.delaySeconds <= 0) {
+    run();
+    return;
+  }
+
+  tapResyncTimer = setTimeout(run, info.delaySeconds * 1000);
+}
+
+async function startPlayback(providedAudio) {
+  const lg = parseInt(inputLg.value);
+  const v = parseFloat(inputV.value);
+  if (!Number.isFinite(lg) || !Number.isFinite(v) || lg <= 0 || v <= 0) {
+    return false;
+  }
+
+  const audioInstance = providedAudio || await initAudio();
+  if (!audioInstance) return false;
+
+  cancelTapResync();
+
+  const iconPlay = playBtn?.querySelector('.icon-play');
+  const iconStop = playBtn?.querySelector('.icon-stop');
+
+  audioInstance.stop();
+  pulses.forEach(p => p.classList.remove('active'));
+
+  await audioInstance.setBase(baseSoundSelect.dataset.value);
+  await audioInstance.setStart(startSoundSelect.dataset.value);
+
+  const interval = 60 / v;
+  const selectedForAudio = new Set();
+
+  const onFinish = () => {
     isPlaying = false;
     playBtn.classList.remove('active');
-    iconPlay.style.display = 'block';
-    iconStop.style.display = 'none';
+    if (iconPlay) iconPlay.style.display = 'block';
+    if (iconStop) iconStop.style.display = 'none';
+    pulses.forEach(p => p.classList.remove('active'));
+    cancelTapResync();
+    audioInstance.stop();
+  };
+
+  audioInstance.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
+
+  isPlaying = true;
+  playBtn.classList.add('active');
+  if (iconPlay) iconPlay.style.display = 'none';
+  if (iconStop) iconStop.style.display = 'block';
+
+  return true;
+}
+
+playBtn.addEventListener('click', async () => {
+  const audioInstance = await initAudio();
+  const iconPlay = playBtn?.querySelector('.icon-play');
+  const iconStop = playBtn?.querySelector('.icon-stop');
+
+  if (isPlaying) {
+    cancelTapResync();
+    audioInstance.stop();
+    isPlaying = false;
+    playBtn.classList.remove('active');
+    if (iconPlay) iconPlay.style.display = 'block';
+    if (iconStop) iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
     return;
   }
 
-  // Estat net abans d’arrencar
-  audio.stop();
-  pulses.forEach(p => p.classList.remove('active'));
-
-  const lg = parseInt(inputLg.value);
-  const v  = parseFloat(inputV.value);
-  if (isNaN(lg) || isNaN(v) || lg <= 0 || v <= 0) return;
-
-  // Sons segons el menú
-  await audio.setBase(baseSoundSelect.dataset.value);
-  await audio.setStart(startSoundSelect.dataset.value);
-
-  const interval = 60 / v;
-
-  // Filtra la selecció per a l'àudio: 0 és sempre accent i 'lg' coincideix amb 0 temporalment.
-  const selectedForAudio = new Set();
-
-  const onFinish = () => {
-    // Mode no loop: final net i una sola ruta de parada
-    isPlaying = false;
-    playBtn.classList.remove('active');
-    iconPlay.style.display = 'block';
-    iconStop.style.display = 'none';
-    pulses.forEach(p => p.classList.remove('active'));
-    audio.stop();
-  };
-
-  audio.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
-
-  isPlaying = true;
-  playBtn.classList.add('active');
-  iconPlay.style.display = 'none';
-  iconStop.style.display = 'block';
+  await startPlayback(audioInstance);
 });
 
 function highlightPulse(i){

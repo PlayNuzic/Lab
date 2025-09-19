@@ -36,4 +36,33 @@ export function computeNextZero({ now, period, lookAhead = 0 }) {
   };
 }
 
+/**
+ * Compute how long to wait before re-anchoring a running sequence so the next
+ * cycle starts exactly on the downbeat (step index 0).
+ *
+ * @param {{ stepIndex: number, totalPulses: number, bpm: number }} params
+ * @returns {{ delaySeconds: number, targetStepIndex: number }|null}
+ */
+export function computeResyncDelay({ stepIndex, totalPulses, bpm }) {
+  const total = normalizeNumber(totalPulses, null);
+  const currentStep = normalizeNumber(stepIndex, null);
+  const tempo = normalizeNumber(bpm, null);
+  if (total == null || total <= 0) return null;
+  if (currentStep == null || currentStep < 0) return null;
+  if (tempo == null || tempo <= 0) return null;
+
+  const zeroInfo = computeNextZero({ now: currentStep, period: total, lookAhead: 0 });
+  if (!zeroInfo) return null;
+
+  const stepsUntilZero = Math.max(0, zeroInfo.eventTime - currentStep);
+  const intervalSeconds = 60 / tempo;
+  const delaySeconds = stepsUntilZero * intervalSeconds;
+  const target = total > 0 ? ((zeroInfo.eventTime % total) + total) % total : 0;
+
+  return {
+    delaySeconds,
+    targetStepIndex: target
+  };
+}
+
 export const __testing__ = { normalizeNumber, DEFAULT_EPSILON };

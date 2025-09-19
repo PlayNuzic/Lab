@@ -1252,6 +1252,10 @@ function highlightCycle(payload = {}) {
     if (Number.isFinite(positionValue)) {
       const zeroInfo = computeNextZero({ now: positionValue, period: 1, lookAhead: 0 });
       if (zeroInfo) {
+        /**
+         * @deprecated Legacy tolerance guard kept for older scheduling math.
+         * Migrated to libs/app-common/audio-schedule.js (computeNextZero).
+         */
         const tolerance = 1e-6;
         const diffPrev = Math.abs(positionValue - zeroInfo.previousTime);
         const diffNext = Math.abs(zeroInfo.eventTime - positionValue);

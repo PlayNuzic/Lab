@@ -132,7 +132,7 @@ function applyRandomConfig(cfg) {
 function updateRandomConfig() {
   randomConfig.Lg = {
     enabled: randLgToggle.checked,
-    range: toRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range)
+    range: sharedToRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range)
   };
   randomConfig.V = {
     enabled: randVToggle.checked,
@@ -146,6 +146,7 @@ function updateRandomConfig() {
       ? toRange(randTMin?.value, randTMax?.value, previousTRange)
       : previousTRange
   };
+  // TODO[audit]: migrar la resta de normalitzadors locals a libs/app-common/range.js.
   if (randPulsesToggle && randomCount) {
     randomConfig.Pulses = {
       enabled: randPulsesToggle.checked,
