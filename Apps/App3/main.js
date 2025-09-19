@@ -6,7 +6,6 @@ import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { fromLgAndTempo, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
-import { computeNextZero } from '../../libs/app-common/audio-schedule.js';
 
 let audio;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
@@ -113,7 +112,6 @@ const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
 const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
 let currentFractionInfo = createEmptyFractionInfo();
 let pulseNumberLabels = [];
-const pulseFlashTimeouts = new Map();
 
 let pulses = [];
 let bars = [];
@@ -634,13 +632,9 @@ function clearHighlights() {
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
-  pulseFlashTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
-  pulseFlashTimeouts.clear();
 }
 
 function renderTimeline() {
-  pulseFlashTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
-  pulseFlashTimeouts.clear();
   pulseNumberLabels = [];
   pulses = [];
   cycleMarkers = [];
@@ -1163,26 +1157,6 @@ function highlightPulse(index) {
   }
 }
 
-function flashPulseNumber(index) {
-  if (!pulseNumberLabels.length) return;
-  const numericIndex = Number(index);
-  if (!Number.isFinite(numericIndex)) return;
-  const target = pulseNumberLabels.find(label => Number.parseInt(label.dataset.index, 10) === numericIndex);
-  if (!target) return;
-  if (pulseFlashTimeouts.has(target)) {
-    clearTimeout(pulseFlashTimeouts.get(target));
-    pulseFlashTimeouts.delete(target);
-  }
-  target.classList.remove('pulse-number--flash');
-  void target.offsetWidth;
-  target.classList.add('pulse-number--flash');
-  const timeoutId = setTimeout(() => {
-    target.classList.remove('pulse-number--flash');
-    pulseFlashTimeouts.delete(target);
-  }, 480);
-  pulseFlashTimeouts.set(target, timeoutId);
-}
-
 function highlightCycle(payload = {}) {
   if (!isPlaying) return;
   const {
@@ -1247,22 +1221,7 @@ function highlightCycle(payload = {}) {
   }
   if (label) label.classList.add('active');
 
-  if (marker) {
-    const positionValue = Number(marker.dataset.position);
-    if (Number.isFinite(positionValue)) {
-      const zeroInfo = computeNextZero({ now: positionValue, period: 1, lookAhead: 0 });
-      if (zeroInfo) {
-        const epsilon = Math.max(1e-6, Math.abs(positionValue) * 1e-6);
-        const matchesPrev = Math.abs(positionValue - zeroInfo.previousTime) <= epsilon;
-        const matchesNext = Math.abs(zeroInfo.eventTime - positionValue) <= epsilon;
-        if (matchesPrev || matchesNext) {
-          const reference = matchesNext ? zeroInfo.eventTime : zeroInfo.previousTime;
-          const approxIndex = Math.round(reference);
-          flashPulseNumber(approxIndex);
-        }
-      }
-    }
-  }
+  // Migration 2024-05: removed deprecated tolerance flash (cycle-to-pulse) now handled via direct cycle highlights.
 }
 
 function syncVisualState() {

@@ -14,3 +14,6 @@
 
 ## Candidats a obsolet
 - [ ] Consolidar les còpies locals de `toRange` (TODO[audit] a range.js) començant per `Apps/App2`.
+
+## Notes de migració
+- 2024-05: `Apps/App2` reutilitza `fromLgAndTempo` i `computeResyncDelay` per substituir càlculs locals i re-sincronitzacions.

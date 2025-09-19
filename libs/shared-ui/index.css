@@ -208,9 +208,6 @@ overflow-y: auto;
 opacity: 1;
 }
 
-/* TODO[audit-css]: reason=verificar ús de .menu ul després del refactor de llistes */
-.menu ul { list-style: none; padding-left: 0; }
-
 /* Submenus (e.g., Sonidos) */
 .menu .options-content details > summary {
 font-size: 1rem;

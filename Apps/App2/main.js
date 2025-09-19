@@ -6,6 +6,8 @@ import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './u
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { toRange } from '../../libs/app-common/range.js';
+import { fromLgAndTempo } from '../../libs/app-common/subdivision.js';
+import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -198,6 +200,7 @@ let isUpdating = false;     // evita bucles de 'input' reentrants
 let tapTimes = [];
 let circularTimeline = false;
 const T_INDICATOR_TRANSITION_DELAY = 650;
+let pendingZeroResync = null;
 let tIndicatorRevealHandle = null;
 // Progress is now driven directly from audio callbacks
 // Progress is now driven directly from audio callbacks
@@ -885,13 +888,18 @@ function handleInput(){
 
   if (isUpdating) return;
 
-  // Always recalc T from Lg and V
+  let indicatorValue = '';
   if (hasLg && hasV) {
-    const tSeconds = (lg / v) * 60;
-    const rounded  = Math.round(tSeconds * 100) / 100;
-    if (inputT) setValue(inputT, rounded);
-    updateTIndicatorText(rounded);
+    const timing = fromLgAndTempo(lg, v);
+    if (timing && timing.duration != null) {
+      const rounded = Math.round(timing.duration * 100) / 100;
+      if (inputT) setValue(inputT, rounded);
+      indicatorValue = rounded;
+    }
+  } else if (inputT) {
+    indicatorValue = parseNum(inputT.value);
   }
+  updateTIndicatorText(indicatorValue);
 
   // Ensure memory capacity always (preserve selections when Lg crece manualmente)
   if (hasLg) {
@@ -909,15 +917,18 @@ function handleInput(){
     if (typeof audio.setSelected === 'function') {
       audio.setSelected(selectedForAudioFromState());
     }
-    if (typeof audio.setTotal === 'function' && !isNaN(lgNow) && lgNow > 0) {
+    let shouldResync = false;
+    if (typeof audio.setTotal === 'function' && Number.isFinite(lgNow) && lgNow > 0) {
       audio.setTotal(lgNow);
+      shouldResync = true;
     }
-    if (typeof audio.setTempo === 'function' && !isNaN(vNow) && vNow > 0) {
+    if (typeof audio.setTempo === 'function' && Number.isFinite(vNow) && vNow > 0) {
       audio.setTempo(vNow);
+      shouldResync = true;
     }
-  }
-  if (inputT) {
-    updateTIndicatorText(parseNum(inputT.value));
+    if (shouldResync && Number.isFinite(lgNow) && lgNow > 0 && Number.isFinite(vNow) && vNow > 0) {
+      scheduleZeroResync(vNow);
+    }
   }
 }
 
@@ -1367,6 +1378,116 @@ function updateAutoIndicator(){
   ledT?.classList.toggle('on', (inputT?.dataset?.auto) !== '1');
 }
 
+function cancelZeroResync() {
+  if (pendingZeroResync != null) {
+    clearTimeout(pendingZeroResync);
+    pendingZeroResync = null;
+  }
+}
+
+async function scheduleZeroResync(bpm) {
+  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
+  const lg = parseInt(inputLg.value);
+  if (!Number.isFinite(lg) || lg <= 0) return;
+  const state = audio.getVisualState();
+  const step = state && Number.isFinite(state.step) ? state.step : null;
+  if (!Number.isFinite(step)) return;
+
+  const info = computeResyncDelay({ stepIndex: step, totalPulses: lg, bpm });
+  if (!info) return;
+
+  cancelZeroResync();
+
+  const run = async () => {
+    pendingZeroResync = null;
+    if (!isPlaying) return;
+    try {
+      const instance = await initAudio();
+      await startPlayback(instance);
+    } catch {}
+  };
+
+  if (!Number.isFinite(info.delaySeconds) || info.delaySeconds <= 0) {
+    run();
+    return;
+  }
+
+  pendingZeroResync = setTimeout(run, info.delaySeconds * 1000);
+}
+
+function handlePlaybackStop(audioInstance) {
+  cancelZeroResync();
+  const iconPlay = playBtn?.querySelector('.icon-play');
+  const iconStop = playBtn?.querySelector('.icon-stop');
+  isPlaying = false;
+  playBtn?.classList.remove('active');
+  if (iconPlay) iconPlay.style.display = 'block';
+  if (iconStop) iconStop.style.display = 'none';
+  pulses.forEach(p => p.classList.remove('active'));
+  if (audioInstance && typeof audioInstance.stop === 'function') {
+    try { audioInstance.stop(); } catch {}
+  }
+  const ed = getEditEl();
+  if (ed) {
+    ed.classList.remove('playing');
+    try { ed.blur(); } catch {}
+    try {
+      const sel = window.getSelection && window.getSelection();
+      sel && sel.removeAllRanges && sel.removeAllRanges();
+    } catch {}
+  }
+  if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
+  if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+}
+
+async function startPlayback(providedAudio) {
+  const lg = parseInt(inputLg.value);
+  const v  = parseFloat(inputV.value);
+  if (!Number.isFinite(lg) || !Number.isFinite(v) || lg <= 0 || v <= 0) {
+    return false;
+  }
+
+  const audioInstance = providedAudio || await initAudio();
+  if (!audioInstance) return false;
+
+  cancelZeroResync();
+
+  audioInstance.stop();
+  pulses.forEach(p => p.classList.remove('active'));
+
+  await audioInstance.setBase(baseSoundSelect.dataset.value);
+  await audioInstance.setAccent(accentSoundSelect.dataset.value);
+  await audioInstance.setStart(startSoundSelect.dataset.value);
+
+  const timing = fromLgAndTempo(lg, v);
+  if (!timing || timing.interval == null) {
+    return false;
+  }
+
+  const interval = timing.interval;
+  const selectedForAudio = selectedForAudioFromState();
+  const iconPlay = playBtn?.querySelector('.icon-play');
+  const iconStop = playBtn?.querySelector('.icon-stop');
+
+  const onFinish = () => {
+    handlePlaybackStop(audioInstance);
+  };
+
+  audioInstance.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
+
+  isPlaying = true;
+  playBtn?.classList.add('active');
+  if (iconPlay) iconPlay.style.display = 'none';
+  if (iconStop) iconStop.style.display = 'block';
+  const ed = getEditEl();
+  if (ed) {
+    ed.classList.add('playing');
+    try { ed.blur(); } catch {}
+  }
+
+  return true;
+}
+
 function syncTimelineScroll(){
   if (!pulseSeqEl || !timelineWrapper) return;
   const maxSeq = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
@@ -1377,75 +1498,17 @@ function syncTimelineScroll(){
 }
 
 playBtn.addEventListener('click', async () => {
-  const audio = await initAudio();
+  try {
+    const audioInstance = await initAudio();
+    if (!audioInstance) return;
 
-  const iconPlay = playBtn.querySelector('.icon-play');
-  const iconStop = playBtn.querySelector('.icon-stop');
-
-  if (isPlaying) {
-    audio.stop();
-    isPlaying = false;
-    playBtn.classList.remove('active');
-    iconPlay.style.display = 'block';
-    iconStop.style.display = 'none';
-    pulses.forEach(p => p.classList.remove('active'));
-    const edStop = getEditEl();
-    if (edStop) {
-      edStop.classList.remove('playing');
-      try { edStop.blur(); } catch {}
-      try { const sel = window.getSelection && window.getSelection(); sel && sel.removeAllRanges && sel.removeAllRanges(); } catch {}
+    if (isPlaying) {
+      handlePlaybackStop(audioInstance);
+      return;
     }
-    if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
-    if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
-    return;
-  }
 
-  // Estat net abans d’arrencar
-  audio.stop();
-  pulses.forEach(p => p.classList.remove('active'));
-  // no selection to avoid caret
-
-  const lg = parseInt(inputLg.value);
-  const v  = parseFloat(inputV.value);
-  if (isNaN(lg) || isNaN(v) || lg <= 0 || v <= 0) return;
-
-  // Sons segons el menú
-  await audio.setBase(baseSoundSelect.dataset.value);
-  await audio.setAccent(accentSoundSelect.dataset.value);
-  await audio.setStart(startSoundSelect.dataset.value);
-  await audio.setStart(startSoundSelect.dataset.value);
-
-  const interval = 60 / v;
-
-  // Filtra la selecció per a l'àudio: 0 és sempre accent i 'lg' coincideix amb 0 temporalment.
-  const selectedForAudio = new Set([...selectedPulses].filter(i => i > 0 && i < lg));
-
-  const onFinish = () => {
-    // Mode no loop: final net i una sola ruta de parada
-    isPlaying = false;
-    playBtn.classList.remove('active');
-    iconPlay.style.display = 'block';
-    iconStop.style.display = 'none';
-    pulses.forEach(p => p.classList.remove('active'));
-    audio.stop();
-    const ed = getEditEl();
-    if (ed) {
-      ed.classList.remove('playing');
-      // Oculta siempre el caret y limpia la selección al terminar
-      try { ed.blur(); } catch {}
-      try { const sel = window.getSelection && window.getSelection(); sel && sel.removeAllRanges && sel.removeAllRanges(); } catch {}
-    }
-    if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
-    if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
-  };
-
-  isPlaying = true;
-  audio.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
-  playBtn.classList.add('active');
-  iconPlay.style.display = 'none';
-  iconStop.style.display = 'block';
-  const ed = getEditEl();
-  if (ed) { ed.classList.add('playing'); ed.blur(); }
+    await startPlayback(audioInstance);
+  } catch {}
 });
 
 function highlightPulse(i){
