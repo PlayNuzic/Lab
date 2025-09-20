@@ -20,7 +20,6 @@ bindSharedSoundEvents({
     startSound: 'setStart'
   }
 });
-let pulseAudioEnabled = true;
 const inputLg = document.getElementById('inputLg');
 const inputV = document.getElementById('inputV');
 const inputT = document.getElementById('inputT');
@@ -1643,32 +1642,13 @@ if (menu && optionsContent) {
     if (menu.open) solidMenuBackground(optionsContent);
   });
 }
-// Initialize mixer UI and sync pulse/accent audio toggles
-const pulseToggleBtn = document.getElementById('pulseToggleBtn');
+// Initialize mixer UI and sync accent/master controls
 const mixerMenu = document.getElementById('mixerMenu');
-
-pulseToggleBtn?.addEventListener('click', async () => {
-  const enabled = !pulseAudioEnabled;
-  pulseAudioEnabled = enabled;
-  try {
-    const audioInstance = await initAudio();
-    if (audioInstance) {
-      if (typeof audioInstance.setPulseEnabled === 'function') {
-        audioInstance.setPulseEnabled(enabled);
-      }
-      if (audioInstance.mixer && typeof audioInstance.mixer.setChannelMute === 'function') {
-        // quan els polsos estan ON, el canal “Seleccionado” (accent) es manté amb mute = false
-        audioInstance.mixer.setChannelMute('accent', !enabled);
-      }
-    }
-  } catch {}
-  pulseToggleBtn.setAttribute('aria-pressed', String(enabled));
-  pulseToggleBtn.classList.toggle('active', enabled);
-});
+const mixerTriggers = [playBtn, loopBtn];
 
 initMixerMenu({
   menu: mixerMenu,
-  triggers: [pulseToggleBtn],
+  triggers: mixerTriggers,
   channels: [
     { id: 'pulse',  label: 'Pulso/Pulso 0', allowSolo: true },
     { id: 'accent', label: 'Seleccionado',  allowSolo: true },
