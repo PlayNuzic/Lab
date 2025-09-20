@@ -381,6 +381,9 @@ export class TimelineAudio {
     this._tapMinCount = 3;
     this._tapMaxHistory = 8;
 
+    this._pendingTempo = null;
+    this._setScheduledStep = null;
+
     this._defaultAssignments = {
       pulso: 'click1',
       pulso0: 'click1',
@@ -446,6 +449,8 @@ export class TimelineAudio {
     this._zeroOffset = null;
     this._pulseCounter = -1;
     this._lastCycleState = null;
+    this._pendingTempo = null;
+    this._setScheduledStep = null;
   }
 
   async _ensureContext() {
@@ -814,6 +819,7 @@ export class TimelineAudio {
     this._startScheduler();
     this.isPlaying = true;
     this.resetTapTempo();
+    this._pendingTempo = null;
   }
 
   stop() {
@@ -835,15 +841,30 @@ export class TimelineAudio {
     this._pulseCounter = -1;
     this._lastCycleState = null;
     this.resetTapTempo();
+    this._pendingTempo = null;
+    this._setScheduledStep = null;
   }
 
   setTempo(bpm, opts = {}) {
     if (!Number.isFinite(+bpm) || bpm <= 0) return;
-    const align = opts.align || 'nextPulse';
+    const requestedAlign = typeof opts.align === 'string' ? opts.align : 'nextPulse';
+    const align = (requestedAlign === 'immediate' || requestedAlign === 'cycle')
+      ? requestedAlign
+      : 'nextPulse';
     const rampMs = Number.isFinite(opts.rampMs) ? Math.max(0, +opts.rampMs) : 80;
     const interval = 60 / Math.max(1e-6, +bpm || 120);
 
-    this.intervalRef = interval;
+    if (!this.isPlaying || align === 'immediate') {
+      this.intervalRef = interval;
+      this._pendingTempo = null;
+    } else {
+      this._pendingTempo = this._computePendingTempo({ interval, align });
+      if (typeof this._setScheduledStep === 'function') {
+        const baseStep = Number.isFinite(this._lastAbsoluteStep) ? this._lastAbsoluteStep : -1;
+        this._setScheduledStep(baseStep);
+      }
+    }
+
     this._node?.port?.postMessage({ action: 'setTempo', bpm: +bpm, interval, align, rampMs });
   }
 
@@ -957,11 +978,35 @@ export class TimelineAudio {
 
     this._stepTime = (absoluteStep) => {
       if (this._lastAbsoluteStep == null || this._lastPulseTime == null) return null;
-      const deltaSteps = absoluteStep - this._lastAbsoluteStep;
-      return this._lastPulseTime + deltaSteps * this.intervalRef;
+      if (!Number.isFinite(absoluteStep)) return null;
+      const baseStep = this._lastAbsoluteStep;
+      if (absoluteStep <= baseStep) return this._lastPulseTime;
+
+      const pending = this._pendingTempo;
+      const hasPending = pending && Number.isFinite(pending.interval) && pending.interval > 0;
+      let time = this._lastPulseTime;
+      let currentInterval = this.intervalRef;
+
+      for (let step = baseStep + 1; step <= absoluteStep; step++) {
+        if (hasPending) {
+          const threshold = pending.effectiveStep;
+          if (Number.isFinite(threshold) && (step - 1) >= threshold) {
+            currentInterval = pending.interval;
+          }
+        }
+        time += currentInterval;
+      }
+      return time;
     };
 
     let scheduledStep = this._lastAbsoluteStep ?? -1;
+    this._setScheduledStep = (value) => {
+      if (Number.isFinite(value)) {
+        scheduledStep = value;
+      } else {
+        scheduledStep = this._lastAbsoluteStep ?? -1;
+      }
+    };
 
     const tick = () => {
       if (!this.isPlaying) return;
@@ -1057,6 +1102,7 @@ export class TimelineAudio {
       if (Number.isFinite(msg.interval)) {
         this.intervalRef = msg.interval;
       }
+      this._evaluatePendingTempo();
       if (typeof this._onPulseRef === 'function') this._onPulseRef(msg.step);
     } else if (msg.type === 'cycle') {
       if (msg.payload && typeof msg.payload === 'object') {
@@ -1078,6 +1124,63 @@ export class TimelineAudio {
     } else if (msg.type === 'done') {
       if (typeof this.onCompleteRef === 'function') this.onCompleteRef();
       this.stop();
+    }
+  }
+
+  _computePendingTempo({ interval, align }) {
+    if (!Number.isFinite(interval) || interval <= 0) return null;
+    if (!this.isPlaying) return null;
+
+    const lastStep = Number.isFinite(this._lastAbsoluteStep) ? this._lastAbsoluteStep : null;
+    if (align === 'nextPulse') {
+      if (lastStep == null) return null;
+      return {
+        interval,
+        align,
+        effectiveStep: lastStep + 1
+      };
+    }
+
+    if (align === 'cycle') {
+      const numerator = Number.isFinite(this._cycleConfig?.numerator) ? this._cycleConfig.numerator : null;
+      if (lastStep == null || !(numerator > 0)) {
+        if (lastStep == null) return null;
+        return {
+          interval,
+          align: 'nextPulse',
+          effectiveStep: lastStep + 1
+        };
+      }
+      let firstStep = Math.floor((lastStep + 1) / numerator) * numerator;
+      if (firstStep <= lastStep) firstStep += numerator;
+      const lastOldStep = firstStep - 1;
+      return {
+        interval,
+        align,
+        effectiveStep: lastOldStep
+      };
+    }
+
+    return null;
+  }
+
+  _evaluatePendingTempo() {
+    if (!this._pendingTempo) return;
+    const pending = this._pendingTempo;
+    if (!Number.isFinite(pending.interval) || pending.interval <= 0) {
+      this._pendingTempo = null;
+      return;
+    }
+
+    const absoluteStep = Number.isFinite(this._lastAbsoluteStep) ? this._lastAbsoluteStep : null;
+    if (absoluteStep == null) return;
+    if (Number.isFinite(pending.effectiveStep) && absoluteStep < pending.effectiveStep) {
+      return;
+    }
+
+    const tolerance = Math.max(1e-6, pending.interval * 1e-3);
+    if (Math.abs(this.intervalRef - pending.interval) <= tolerance) {
+      this._pendingTempo = null;
     }
   }
 
