@@ -409,7 +409,7 @@ export function renderHeader({ title = 'App', mount } = {}) {
                 <input type="color" id="selectColor" value="#FFBB97">
                 <details>
                   <summary>Sonidos</summary>
-                  <div class="sound-group">
+                  <div class="sound-group menu-surface">
                     <p>Pulso</p>
                     <div class="preview-row">
                       <label for="baseSoundSelect" style="display:none"></label>

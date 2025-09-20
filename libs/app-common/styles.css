@@ -225,13 +225,12 @@ top: 50%;
 left: 50%;
 transform: translate(-50%, -50%);
 padding: 1rem;
-border: 2px solid var(--line-color);
 border-radius: 8px;
 z-index: 10;
 max-height: 80vh;
 overflow-y: auto;
-background-color: var(--bg-light);
 color: var(--text-light);
+backdrop-filter: blur(10px);
 }
 
 .random-menu.open {
@@ -484,7 +483,6 @@ font-size: 1.2rem;
 }
 
 body[data-theme='dark'] .random-menu {
-background-color: var(--bg-dark);
 color: var(--text-dark);
 }
 
@@ -556,21 +554,46 @@ margin: 5px auto; /* small margin for pulse number visibility */
   display: flex;
   align-items: center;
   gap: 6px;
+  cursor: pointer;
+}
+
+.menu .options-content details.nuzic-audio-perf > summary::after {
+  content: '';
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  display: inline-block;
+  padding: 3px;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+  margin-left: auto;
+}
+
+.menu .options-content details.nuzic-audio-perf[open] > summary::after {
+  transform: rotate(135deg);
+}
+
+.menu-surface {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 8px;
+  background: transparent;
+}
+
+body[data-theme='dark'] .menu-surface {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.menu .options-content .menu-surface {
+  margin: 6px 0 12px;
+}
+
+.menu .options-content .sound-group.menu-surface {
+  padding: 10px 12px;
 }
 
 .menu .options-content .nuzic-audio-perf-panel {
-  margin: 6px 0 12px;
   padding: 10px 12px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.04);
   font-size: 14px;
   color: inherit;
-}
-
-body[data-theme='dark'] .menu .options-content .nuzic-audio-perf-panel {
-  border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .nuzic-audio-perf-panel .perf-row {
@@ -598,8 +621,8 @@ body[data-theme='dark'] .nuzic-audio-perf-panel .perf-row.readonly span {
   flex: 1 1 160px;
 }
 
-.nuzic-audio-perf-panel input[type="number"] {
-  width: 120px;
+.nuzic-audio-perf-panel select {
+  min-width: 140px;
 }
 
 .nuzic-audio-perf-panel input[type="range"] {
