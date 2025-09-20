@@ -22,7 +22,6 @@ let isPlaying = false;
 let loopEnabled = false;
 let circularTimeline = false;
 let isUpdating = false;
-let tapTimes = [];
 
 const PULSE_NUMBER_HIDE_THRESHOLD = 71;
 const SUBDIVISION_HIDE_THRESHOLD = 41;
@@ -972,23 +971,17 @@ function handleInput() {
   if (isPlaying && audio) {
     const validLg = Number.isFinite(lg) && lg > 0;
     const validV = Number.isFinite(v) && v > 0;
-    if (validLg && typeof audio.setTotal === 'function') {
-      audio.setTotal(lg);
-    }
-    if (validV && typeof audio.setTempo === 'function') {
-      audio.setTempo(v);
-    }
-    if (typeof audio.updateCycleConfig === 'function') {
-      const hasCycle = validLg
-        && normalizedNumerator != null
-        && normalizedDenominator != null
-        && Math.floor(lg / normalizedNumerator) > 0;
-      audio.updateCycleConfig({
-        numerator: hasCycle ? normalizedNumerator : null,
-        denominator: hasCycle ? normalizedDenominator : null,
+    const hasCycle = validLg
+      && normalizedNumerator != null
+      && normalizedDenominator != null
+      && Math.floor(lg / normalizedNumerator) > 0;
+    if (typeof audio.updateTransport === 'function') {
+      audio.updateTransport({
         totalPulses: validLg ? lg : undefined,
-        interval: validV ? 60 / v : undefined,
-        onTick: hasCycle ? highlightCycle : undefined
+        bpm: validV ? v : undefined,
+        cycle: hasCycle
+          ? { numerator: normalizedNumerator, denominator: normalizedDenominator, onTick: highlightCycle }
+          : { numerator: null, denominator: null, onTick: null }
       });
     }
     syncVisualState();
@@ -1377,6 +1370,9 @@ resetBtn.addEventListener('click', () => {
   hasStoredPulsePref = false;
   hasStoredCyclePref = false;
   if (audio) audio.stop();
+  if (audio && typeof audio.resetTapTempo === 'function') {
+    audio.resetTapTempo();
+  }
   isPlaying = false;
   clearHighlights();
   applyInitialState();
@@ -1388,60 +1384,37 @@ resetBtn.addEventListener('click', () => {
   }
 });
 
-function tapTempo() {
-  const now = performance.now();
-  if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 2000) {
-    tapTimes = [];
-  }
-  tapTimes.push(now);
-  const remaining = 3 - tapTimes.length;
-  if (remaining > 0) {
+async function tapTempo() {
+  try {
+    const audioInstance = await initAudio();
+    const result = audioInstance.tapTempo(performance.now());
+    if (!result) return;
+
+    if (result.remaining > 0) {
+      if (tapHelp) {
+        tapHelp.textContent = result.remaining === 2 ? '2 clicks más' : '1 click más solamente';
+        tapHelp.style.display = 'block';
+      }
+      return;
+    }
+
     if (tapHelp) {
-      tapHelp.textContent = remaining === 2 ? '2 clicks más' : '1 click más solamente';
-      tapHelp.style.display = 'block';
+      tapHelp.style.display = 'none';
     }
-    return;
-  }
 
-  if (tapHelp) {
-    tapHelp.style.display = 'none';
-  }
-
-  const intervals = [];
-  for (let i = 1; i < tapTimes.length; i++) {
-    intervals.push(tapTimes[i] - tapTimes[i - 1]);
-  }
-  const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-  if (avg > 0) {
-    const bpm = Math.round((60000 / avg) * 100) / 100;
-    setValue(inputV, bpm);
-    handleInput();
-    if (isPlaying && audio) {
-      if (typeof audio.setTempo === 'function') {
-        audio.setTempo(bpm);
-      }
-      if (typeof audio.updateCycleConfig === 'function') {
-        const lg = getLg();
-        const { numerator, denominator } = getFraction();
-        const validLg = Number.isFinite(lg) && lg > 0;
-        const validV = Number.isFinite(bpm) && bpm > 0;
-        const hasCycle = Number.isFinite(numerator) && numerator > 0
-          && Number.isFinite(denominator) && denominator > 0
-          && validLg && Math.floor(lg / numerator) > 0;
-        audio.updateCycleConfig({
-          numerator: hasCycle ? numerator : null,
-          denominator: hasCycle ? denominator : null,
-          totalPulses: validLg ? lg : undefined,
-          interval: validV ? 60 / bpm : undefined,
-          onTick: hasCycle ? highlightCycle : undefined
-        });
-      }
+    if (Number.isFinite(result.bpm) && result.bpm > 0) {
+      const bpm = Math.round(result.bpm * 100) / 100;
+      setValue(inputV, bpm);
+      handleInput();
     }
+  } catch (error) {
+    console.warn('Tap tempo failed', error);
   }
-  if (tapTimes.length > 8) tapTimes.shift();
 }
 
-tapBtn.addEventListener('click', tapTempo);
+if (tapBtn) {
+  tapBtn.addEventListener('click', () => { tapTempo(); });
+}
 
 /**
  * Actualitza el mode de presentació circular i conserva la preferència.
@@ -1515,7 +1488,9 @@ function applyInitialState() {
   if (!hasStoredCyclePref) {
     setCycleAudio(true, { persist: false });
   }
-  tapTimes = [];
+  if (audio && typeof audio.resetTapTempo === 'function') {
+    audio.resetTapTempo();
+  }
   if (tapHelp) {
     tapHelp.textContent = 'Se necesitan 3 clicks';
     tapHelp.style.display = 'none';
@@ -1552,7 +1527,9 @@ function initDefaults() {
   setValue(numeratorInput, Number.isFinite(storedN) && storedN > 0 ? storedN : '');
   setValue(denominatorInput, Number.isFinite(storedD) && storedD > 0 ? storedD : '');
   handleInput();
-  tapTimes = [];
+  if (audio && typeof audio.resetTapTempo === 'function') {
+    audio.resetTapTempo();
+  }
   if (tapHelp) {
     tapHelp.textContent = 'Se necesitan 3 clicks';
     tapHelp.style.display = 'none';

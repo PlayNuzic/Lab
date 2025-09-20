@@ -376,6 +376,9 @@ export class TimelineAudio {
     this._activeSources = new Set();
 
     this._tapTimes = [];
+    this._tapWindowMs = 2000;
+    this._tapMinCount = 3;
+    this._tapMaxHistory = 8;
 
     this._defaultAssignments = {
       pulso: 'click1',
@@ -797,6 +800,7 @@ export class TimelineAudio {
 
     this._startScheduler();
     this.isPlaying = true;
+    this.resetTapTempo();
   }
 
   stop() {
@@ -816,15 +820,17 @@ export class TimelineAudio {
     this._lastAbsoluteStep = null;
     this._pulseCounter = -1;
     this._lastCycleState = null;
+    this.resetTapTempo();
   }
 
   setTempo(bpm, opts = {}) {
+    if (!Number.isFinite(+bpm) || bpm <= 0) return;
     const align = opts.align || 'nextPulse';
     const rampMs = Number.isFinite(opts.rampMs) ? Math.max(0, +opts.rampMs) : 80;
     const interval = 60 / Math.max(1e-6, +bpm || 120);
 
     this.intervalRef = interval;
-    this._node?.port?.postMessage({ action: 'setBpm', bpm: +bpm, interval, align, rampMs });
+    this._node?.port?.postMessage({ action: 'setTempo', bpm: +bpm, interval, align, rampMs });
   }
 
   setTotal(totalPulses) {
@@ -851,6 +857,24 @@ export class TimelineAudio {
       state.cycle = { ...this._lastCycleState };
     }
     return state;
+  }
+
+  updateTransport({ totalPulses, bpm, cycle, align = 'nextPulse', rampMs = 80 } = {}) {
+    if (Number.isFinite(+totalPulses) && +totalPulses > 0) {
+      this.setTotal(+totalPulses);
+    }
+    if (Number.isFinite(+bpm) && +bpm > 0) {
+      this.setTempo(+bpm, { align, rampMs });
+    }
+    if (cycle && typeof cycle === 'object') {
+      const payload = {
+        numerator: Number.isFinite(+cycle.numerator) ? +cycle.numerator : null,
+        denominator: Number.isFinite(+cycle.denominator) ? +cycle.denominator : null,
+        onTick: cycle.onTick,
+        onCycle: cycle.onCycle
+      };
+      this.updateCycleConfig(payload);
+    }
   }
 
   setVoices(voices = []) {
@@ -1004,6 +1028,9 @@ export class TimelineAudio {
       this._pulseCounter = (this._pulseCounter ?? -1) + 1;
       this._lastAbsoluteStep = this._pulseCounter;
       this._lastPulseTime = now;
+      if (Number.isFinite(msg.interval)) {
+        this.intervalRef = msg.interval;
+      }
       if (typeof this._onPulseRef === 'function') this._onPulseRef(msg.step);
     } else if (msg.type === 'cycle') {
       if (msg.payload && typeof msg.payload === 'object') {
@@ -1028,18 +1055,52 @@ export class TimelineAudio {
     }
   }
 
-  tap(nowMs = performance.now()) {
-    this._tapTimes.push(nowMs);
-    if (this._tapTimes.length > 6) this._tapTimes.shift();
-    if (this._tapTimes.length < 2) return null;
+  resetTapTempo() {
+    this._tapTimes = [];
+  }
 
-    const deltas = [];
-    for (let i = 1; i < this._tapTimes.length; i++) deltas.push(this._tapTimes[i] - this._tapTimes[i - 1]);
-    if (!deltas.length) return null;
+  tapTempo(nowMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()), options = {}) {
+    const maxInterval = Number.isFinite(options.windowMs) ? Math.max(0, options.windowMs) : this._tapWindowMs;
+    const minTaps = Number.isFinite(options.minTaps) ? Math.max(2, options.minTaps) : this._tapMinCount;
+    const maxHistory = Number.isFinite(options.maxHistory) ? Math.max(minTaps, options.maxHistory) : this._tapMaxHistory;
 
-    const avg = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+    const threshold = maxInterval;
+    const filtered = [];
+    for (const time of this._tapTimes) {
+      if (nowMs - time <= threshold) filtered.push(time);
+    }
+    filtered.push(nowMs);
+    while (filtered.length > maxHistory) filtered.shift();
+    this._tapTimes = filtered;
+
+    const taps = filtered.length;
+    const remaining = Math.max(0, minTaps - taps);
+
+    if (taps < 2) {
+      return { bpm: null, taps, remaining, applied: false };
+    }
+
+    const intervals = [];
+    for (let i = 1; i < filtered.length; i++) {
+      intervals.push(filtered[i] - filtered[i - 1]);
+    }
+    if (!intervals.length) {
+      return { bpm: null, taps, remaining, applied: false };
+    }
+
+    const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
     const bpm = 60000 / Math.max(1, avg);
-    return bpm;
+
+    const shouldApply = options.apply == null ? this.isPlaying : !!options.apply;
+    let applied = false;
+    if (shouldApply && Number.isFinite(bpm) && bpm > 0) {
+      const align = options.align || 'nextPulse';
+      const rampMs = Number.isFinite(options.rampMs) ? Math.max(0, options.rampMs) : 80;
+      this.setTempo(bpm, { align, rampMs });
+      applied = true;
+    }
+
+    return { bpm, taps, remaining, applied };
   }
 }
 

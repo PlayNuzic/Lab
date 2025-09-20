@@ -198,7 +198,6 @@ const selectedPulses = new Set();
 let isPlaying = false;
 let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
-let tapTimes = [];
 let circularTimeline = false;
 const T_INDICATOR_TRANSITION_DELAY = 650;
 let pendingZeroResync = null;
@@ -486,34 +485,37 @@ resetBtn.addEventListener('click', () => {
   window.location.reload();
 });
 
-tapBtn.addEventListener('click', () => {
-  const now = performance.now();
-  if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 2000) {
-    tapTimes = [];
-  }
-  tapTimes.push(now);
-  const remaining = 3 - tapTimes.length;
-  if (remaining > 0) {
-    tapHelp.textContent = remaining === 2 ? '2 clicks más' : '1 click más solamente';
-    tapHelp.style.display = 'block';
-    return;
-  }
+async function handleTapTempo() {
+  try {
+    const audioInstance = await initAudio();
+    const result = audioInstance.tapTempo(performance.now());
+    if (!result) return;
 
+    if (result.remaining > 0) {
+      tapHelp.textContent = result.remaining === 2 ? '2 clicks más' : '1 click más solamente';
+      tapHelp.style.display = 'block';
+      return;
+    }
+
+    tapHelp.style.display = 'none';
+    if (Number.isFinite(result.bpm) && result.bpm > 0) {
+      const bpm = Math.round(result.bpm * 100) / 100;
+      setValue(inputV, bpm);
+      handleInput({ target: inputV });
+    }
+  } catch (error) {
+    console.warn('Tap tempo failed', error);
+  }
+}
+
+if (tapBtn) {
+  tapBtn.addEventListener('click', () => { handleTapTempo(); });
+}
+
+if (tapHelp) {
+  tapHelp.textContent = 'Se necesitan 3 clicks';
   tapHelp.style.display = 'none';
-  const intervals = [];
-  for (let i = 1; i < tapTimes.length; i++) {
-    intervals.push(tapTimes[i] - tapTimes[i - 1]);
-  }
-  const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-  const bpm = Math.round((60000 / avg) * 100) / 100;
-  setValue(inputV, bpm);
-  handleInput({ target: inputV });
-
-  if (isPlaying && audio && typeof audio.setTempo === 'function') {
-    audio.setTempo(bpm);
-  }
-  if (tapTimes.length > 8) tapTimes.shift();
-});
+}
 
 // --- Aleatorización de parámetros y pulsos ---
 function randomInt(min, max) {
@@ -931,16 +933,15 @@ function handleInput(){
     if (typeof audio.setSelected === 'function') {
       audio.setSelected(selectedForAudioFromState());
     }
-    let shouldResync = false;
-    if (typeof audio.setTotal === 'function' && Number.isFinite(lgNow) && lgNow > 0) {
-      audio.setTotal(lgNow);
-      shouldResync = true;
+    const validLg = Number.isFinite(lgNow) && lgNow > 0;
+    const validV = Number.isFinite(vNow) && vNow > 0;
+    if (typeof audio.updateTransport === 'function' && (validLg || validV)) {
+      audio.updateTransport({
+        totalPulses: validLg ? lgNow : undefined,
+        bpm: validV ? vNow : undefined
+      });
     }
-    if (typeof audio.setTempo === 'function' && Number.isFinite(vNow) && vNow > 0) {
-      audio.setTempo(vNow);
-      shouldResync = true;
-    }
-    if (shouldResync && Number.isFinite(lgNow) && lgNow > 0 && Number.isFinite(vNow) && vNow > 0) {
+    if (validLg && validV) {
       scheduleZeroResync(vNow);
     }
   }

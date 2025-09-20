@@ -10,29 +10,31 @@ class TimelineProcessor extends AudioWorkletProcessor {
 
     // Estado base
     this.active = false;
-    this.intervalSamples = 0;   // duración del pulso (60/BPM * sr)
-    this.totalPulses = 0;
     this.loop = false;
+    this.totalBeats = 0;
 
-    // Fase y contadores
-    this.pulseCountdown = 0.0;  // decrementa por muestra; cuando <=0 emite "pulse"
-    this.step = 0;              // índice de pulso (0..total-1)
-    this.measureElapsed = 0;    // muestras transcurridas dentro de la medida (para "cycle")
+    // Parámetros de tempo
+    this.secondsPerBeat = 0;      // duración actual d'un pols en segons
+    this.targetSpb = 0;           // objectiu de la rampa (segons per pols)
+    this.rampSamplesLeft = 0;     // mostres restants per completar la rampa
+    this.rampStep = 0;            // increment de spb per mostra
+    this.pendingTempoChange = null; // { targetSpb, rampSamples, align }
 
-    // Ciclo (compat API antigua)
+    // Fase i contadors
+    this.secondsPerSample = 1 / this.sr;
+    this.pulseCountdownBeats = 0; // decrementa per mostra; quan <=0 emet "pulse"
+    this.currentStep = 0;         // índex del pols (0..total-1)
+    this.measurePhaseBeats = 0;   // beats transcorreguts dins la mesura
+
+    // Ciclo (compat API antiga)
     this.cycleNum = 0;          // acento cada N pulsos
     this.cycleDen = 0;          // subdivisiones dentro del ciclo
-    this.cycleEvents = [];      // [[timeSecDentroMedida, payload], ...]
+    this.cycleEvents = [];      // [{ beat, payload }, ...]
     this.nextCycleIndex = 0;
 
     // Voces polirrítmicas arbitrarias
-    // Map<string, {id, num, den, tick, countdown, subIndex}>
+    // Map<string, {id, num, den, periodBeats, countdownBeats, subIndex}>
     this.voices = new Map();
-
-    // Cambios de tempo (rampa)
-    this.rampRemaining = 0;       // muestras restantes de rampa
-    this.targetInterval = 0;      // intervalo objetivo en muestras
-    this.alignAtNextPulse = false;// aplicar al próximo pulso
 
     this.port.onmessage = (e) => this._onMessage(e.data);
   }
@@ -53,40 +55,27 @@ class TimelineProcessor extends AudioWorkletProcessor {
       case 'updateInterval': {
         const intervalSec = +msg.interval;
         if (intervalSec > 0) {
-          this.intervalSamples = intervalSec * this.sr;
-          this._recomputeVoiceTicks();
-          this._recomputeCycleEvents();
+          this._scheduleTempoChange({ targetSpb: intervalSec, rampSamples: 0, align: 'immediate' });
         }
         break;
       }
-      case 'setBpm': {
+      case 'setBpm':
+      case 'setTempo': {
         const intervalSec = msg.interval ? +msg.interval : (msg.bpm ? 60 / (+msg.bpm) : 0);
-        const align = msg.align || 'nextPulse';       // 'immediate' | 'nextPulse'
+        const align = (msg.align === 'immediate' || msg.align === 'cycle') ? msg.align
+          : 'nextPulse';
         const rampMs = Math.max(0, +msg.rampMs || 0);
         if (intervalSec > 0) {
-          const target = intervalSec * this.sr;
-          if (align === 'nextPulse') {
-            this.alignAtNextPulse = true;
-            this.targetInterval = target;
-            this.rampRemaining = Math.round((rampMs / 1000) * this.sr);
-          } else {
-            this.alignAtNextPulse = false;
-            this.targetInterval = target;
-            this.rampRemaining = Math.round((rampMs / 1000) * this.sr);
-            if (this.rampRemaining === 0) {
-              this.intervalSamples = this.targetInterval;
-              this._recomputeVoiceTicks();
-              this._recomputeCycleEvents();
-            }
-          }
+          const rampSamples = Math.round((rampMs / 1000) * this.sr);
+          this._scheduleTempoChange({ targetSpb: intervalSec, rampSamples, align });
         }
         break;
       }
       case 'updateTotal': {
         const total = +msg.total;
         if (Number.isFinite(total) && total > 0) {
-          this.totalPulses = total;
-          if (this.loop && this.step >= this.totalPulses) this.step %= this.totalPulses;
+          this.totalBeats = total;
+          if (this.loop && this.currentStep >= this.totalBeats) this.currentStep %= this.totalBeats;
           this._recomputeCycleEvents();
         }
         break;
@@ -121,93 +110,136 @@ class TimelineProcessor extends AudioWorkletProcessor {
   }
 
   _start(total, intervalSec, cycNum, cycDen) {
-    this.totalPulses = Math.max(0, +total || 0);
-    this.intervalSamples = Math.max(0, (+intervalSec || 0) * this.sr);
-    this.pulseCountdown = 0.0;
-    this.step = 0;
-    this.measureElapsed = 0;
+    this.totalBeats = Math.max(0, +total || 0);
+    this.secondsPerBeat = Math.max(1e-6, +intervalSec || 0.5);
+    this.targetSpb = this.secondsPerBeat;
+    this.rampSamplesLeft = 0;
+    this.rampStep = 0;
+    this.pendingTempoChange = null;
+
+    this.pulseCountdownBeats = 0;
+    this.currentStep = 0;
+    this.measurePhaseBeats = 0;
     this.cycleNum = Math.max(0, +cycNum || 0);
     this.cycleDen = Math.max(0, +cycDen || 0);
     this._recomputeCycleEvents();
-    this._recomputeVoiceTicks();
-    this.rampRemaining = 0;
-    this.alignAtNextPulse = false;
-    this.active = (this.totalPulses > 0 && this.intervalSamples > 0);
+    this._resetVoicesCountdown();
+
+    this.active = (this.totalBeats > 0 && this.secondsPerBeat > 0);
   }
 
   _addVoice(v) {
     if (!v || !v.id) return;
     const num = Math.max(1, +v.numerator || 1);
     const den = Math.max(1, +v.denominator || 1);
-    const tick = (this.intervalSamples * num) / den;
+    const periodBeats = num / den;
     this.voices.set(v.id, {
       id: String(v.id),
       num, den,
-      tick,
-      countdown: 0.0,
+      periodBeats,
+      countdownBeats: 0.0,
       subIndex: 0
     });
   }
 
-  _recomputeVoiceTicks() {
+  _resetVoicesCountdown() {
     for (const voice of this.voices.values()) {
-      voice.tick = (this.intervalSamples * voice.num) / voice.den;
+      voice.countdownBeats = 0.0;
+      voice.subIndex = 0;
     }
   }
 
   _recomputeCycleEvents() {
     this.cycleEvents = [];
     this.nextCycleIndex = 0;
-    if (!this.cycleNum || !this.cycleDen || !this.totalPulses || !this.intervalSamples) return;
+    if (!this.cycleNum || !this.cycleDen || !this.totalBeats) return;
 
-    const intervalSec = this.intervalSamples / this.sr;
-    const totalDuration = this.totalPulses * intervalSec;
-    const cycles = Math.floor(this.totalPulses / this.cycleNum);
+    const cycles = Math.floor(this.totalBeats / this.cycleNum);
     if (cycles <= 0) return;
 
-    const cycleDur = this.cycleNum * intervalSec;
-    const subDur = cycleDur / this.cycleDen;
+    const cycleBeats = this.cycleNum;
+    const subBeats = cycleBeats / this.cycleDen;
     for (let ci = 0; ci < cycles; ci++) {
-      const startT = ci * cycleDur;
+      const startBeat = ci * cycleBeats;
       for (let s = 0; s < this.cycleDen; s++) {
-        const t = startT + s * subDur;
-        if (t < totalDuration) {
-          this.cycleEvents.push([t, {
+        const beat = startBeat + s * subBeats;
+        if (beat < this.totalBeats) {
+          this.cycleEvents.push({
+            beat,
             cycleIndex: ci,
             subdivisionIndex: s,
             totalSubdivisions: this.cycleDen,
             numerator: this.cycleNum,
             denominator: this.cycleDen,
             totalCycles: cycles
-          }]);
+          });
         }
       }
     }
   }
 
-  _tickBasePulse() {
-    this.port.postMessage({ type: 'pulse', step: this.step });
+  _emitPulse() {
+    this.port.postMessage({ type: 'pulse', step: this.currentStep, interval: this.secondsPerBeat });
 
-    if (!this.loop && this.step + 1 >= this.totalPulses) {
+    if (!this.loop && this.currentStep + 1 >= this.totalBeats) {
       this.port.postMessage({ type: 'done' });
       this.active = false;
       return;
     }
-    this.step = this.loop ? ((this.step + 1) % this.totalPulses) : (this.step + 1);
-    if (this.loop && this.step === 0) {
-      this.measureElapsed = 0;
-      this.nextCycleIndex = 0;
-    }
-    this.pulseCountdown += this.intervalSamples;
 
-    if (this.alignAtNextPulse && this.targetInterval > 0) {
-      if (this.rampRemaining === 0) {
-        this.intervalSamples = this.targetInterval;
-        this._recomputeVoiceTicks();
-        this._recomputeCycleEvents();
-      }
-      this.alignAtNextPulse = false;
+    if (this.pendingTempoChange && this.pendingTempoChange.align === 'nextPulse') {
+      this._applyPendingTempoChange();
     }
+
+    this.currentStep = this.loop && this.totalBeats > 0
+      ? (this.currentStep + 1) % this.totalBeats
+      : (this.currentStep + 1);
+
+    if (this.loop && this.currentStep === 0) {
+      this.measurePhaseBeats = 0;
+      this.nextCycleIndex = 0;
+      if (this.pendingTempoChange && this.pendingTempoChange.align === 'cycle') {
+        this._applyPendingTempoChange();
+      }
+    }
+  }
+
+  _applyPendingTempoChange() {
+    if (!this.pendingTempoChange) return;
+    const change = this.pendingTempoChange;
+    this.pendingTempoChange = null;
+    this._beginTempoRamp(change);
+  }
+
+  _scheduleTempoChange({ targetSpb, rampSamples, align }) {
+    if (!(targetSpb > 0)) return;
+    const normalizedAlign = align === 'cycle' ? 'cycle'
+      : (align === 'immediate' ? 'immediate' : 'nextPulse');
+    const change = {
+      targetSpb,
+      rampSamples: Math.max(0, Number.isFinite(rampSamples) ? rampSamples : 0),
+      align: normalizedAlign
+    };
+    if (!this.active || change.align === 'immediate') {
+      this._beginTempoRamp(change);
+    } else {
+      this.pendingTempoChange = change;
+    }
+  }
+
+  _beginTempoRamp({ targetSpb, rampSamples }) {
+    if (!(targetSpb > 0)) return;
+    const startSpb = this.secondsPerBeat || targetSpb;
+    this.targetSpb = targetSpb;
+    if (!Number.isFinite(rampSamples) || rampSamples <= 0) {
+      this.secondsPerBeat = this.targetSpb;
+      this.rampSamplesLeft = 0;
+      this.rampStep = 0;
+      return;
+    }
+
+    this.rampSamplesLeft = rampSamples;
+    this.rampStep = (this.targetSpb - startSpb) / rampSamples;
   }
 
   process(inputs, outputs) {
@@ -217,25 +249,45 @@ class TimelineProcessor extends AudioWorkletProcessor {
 
     const block = 128;
     for (let i = 0; i < block; i++) {
-      if (!this.alignAtNextPulse && this.rampRemaining > 0) {
-        const delta = this.targetInterval - this.intervalSamples;
-        const step = delta / this.rampRemaining;
-        this.intervalSamples += step;
-        this.rampRemaining--;
-        if (this.rampRemaining === 0) {
-          this.intervalSamples = this.targetInterval;
-          this._recomputeVoiceTicks();
-          this._recomputeCycleEvents();
+      if (this.rampSamplesLeft > 0) {
+        this.secondsPerBeat += this.rampStep;
+        this.rampSamplesLeft--;
+        if (this.rampSamplesLeft <= 0) {
+          this.secondsPerBeat = this.targetSpb;
+          this.rampStep = 0;
         }
       }
 
-      if (this.pulseCountdown <= 0) this._tickBasePulse();
+      const beatsPerSample = this.secondsPerSample / this.secondsPerBeat;
+
+      if (this.pendingTempoChange && this.pendingTempoChange.align === 'immediate') {
+        this._applyPendingTempoChange();
+      }
+
+      this.pulseCountdownBeats -= beatsPerSample;
+      this.measurePhaseBeats += beatsPerSample;
+
+      if (this.loop && this.totalBeats > 0) {
+        while (this.measurePhaseBeats >= this.totalBeats) {
+          this.measurePhaseBeats -= this.totalBeats;
+          this.nextCycleIndex = 0;
+          if (this.pendingTempoChange && this.pendingTempoChange.align === 'cycle') {
+            this._applyPendingTempoChange();
+          }
+        }
+      }
+
+      while (this.pulseCountdownBeats <= 1e-9) {
+        this._emitPulse();
+        if (!this.active) return true;
+        this.pulseCountdownBeats += 1;
+      }
 
       if (this.cycleEvents.length) {
-        const currentSec = this.measureElapsed / this.sr;
         while (this.nextCycleIndex < this.cycleEvents.length &&
-               currentSec >= this.cycleEvents[this.nextCycleIndex][0] - 1e-9) {
-          this.port.postMessage({ type: 'cycle', payload: this.cycleEvents[this.nextCycleIndex][1] });
+               this.measurePhaseBeats >= this.cycleEvents[this.nextCycleIndex].beat - 1e-9) {
+          const payload = this.cycleEvents[this.nextCycleIndex];
+          this.port.postMessage({ type: 'cycle', payload });
           this.nextCycleIndex++;
           if (this.loop && this.nextCycleIndex >= this.cycleEvents.length) {
             this.nextCycleIndex = 0;
@@ -245,20 +297,17 @@ class TimelineProcessor extends AudioWorkletProcessor {
 
       if (this.voices.size) {
         for (const voice of this.voices.values()) {
-          if (voice.countdown <= 0) {
+          voice.countdownBeats -= beatsPerSample;
+          if (voice.countdownBeats <= 1e-9) {
             this.port.postMessage({
               type: 'voice',
               id: voice.id,
               index: voice.subIndex++
             });
-            voice.countdown += voice.tick;
+            voice.countdownBeats += voice.periodBeats;
           }
-          voice.countdown -= 1;
         }
       }
-
-      this.pulseCountdown -= 1;
-      this.measureElapsed += 1;
     }
     return true;
   }

@@ -71,7 +71,6 @@ const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
 let isPlaying = false;
 let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
-let tapTimes = [];
 let circularTimeline = false;
 let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 // Track manual selection recency (oldest -> newest among the two manual LEDs)
@@ -312,41 +311,45 @@ resetBtn.addEventListener('click', () => {
   window.location.reload();
 });
 
-tapBtn.addEventListener('click', () => {
-  const now = performance.now();
-  if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 2000) {
-    tapTimes = [];
-  }
-  tapTimes.push(now);
-  const remaining = 3 - tapTimes.length;
-  if (remaining > 0) {
+async function handleTapTempo() {
+  try {
+    const audioInstance = await initAudio();
+    const result = audioInstance.tapTempo(performance.now());
+    if (!result) return;
+
+    if (result.remaining > 0) {
+      if (tapHelp) {
+        tapHelp.textContent = result.remaining === 2 ? '2 clicks más' : '1 click más solamente';
+        tapHelp.style.display = 'block';
+      }
+      return;
+    }
+
     if (tapHelp) {
-      tapHelp.textContent = remaining === 2 ? '2 clicks más' : '1 click más solamente';
-      tapHelp.style.display = 'block';
+      tapHelp.style.display = 'none';
     }
-    return;
-  }
 
-  if (tapHelp) {
-    tapHelp.style.display = 'none';
-  }
-  const intervals = [];
-  for (let i = 1; i < tapTimes.length; i++) {
-    intervals.push(tapTimes[i] - tapTimes[i - 1]);
-  }
-  const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-  if (avg > 0) {
-    const bpm = Math.round((60000 / avg) * 100) / 100;
-    setValue(inputV, bpm);
-    handleInput({ target: inputV });
-
-    if (isPlaying && audio && typeof audio.setTempo === 'function') {
-      audio.setTempo(bpm);
-      scheduleTapResync(bpm);
+    if (Number.isFinite(result.bpm) && result.bpm > 0) {
+      const bpm = Math.round(result.bpm * 100) / 100;
+      setValue(inputV, bpm);
+      handleInput({ target: inputV });
+      if (isPlaying) {
+        scheduleTapResync(bpm);
+      }
     }
+  } catch (error) {
+    console.warn('Tap tempo failed', error);
   }
-  if (tapTimes.length > 8) tapTimes.shift();
-});
+}
+
+if (tapBtn) {
+  tapBtn.addEventListener('click', () => { handleTapTempo(); });
+}
+
+if (tapHelp) {
+  tapHelp.textContent = 'Se necesitan 3 clicks';
+  tapHelp.style.display = 'none';
+}
 
 initSoundDropdown(baseSoundSelect, {
   storageKey: storeKey('baseSound'),
@@ -581,19 +584,16 @@ function handleInput(e){
   renderTimeline();
   updateAutoIndicator();
   // Si canvia Lg mentre està sonant, refresquem la selecció viva filtrant 0 i lg
-  if (isPlaying && audio) {
+  if (isPlaying && audio && typeof audio.updateTransport === 'function') {
     const lgNow = parseInt(inputLg.value);
     const vNow  = parseFloat(inputV.value);
-    let shouldResync = false;
-    if (typeof audio.setTotal === 'function' && !isNaN(lgNow) && lgNow > 0) {
-      audio.setTotal(lgNow);
-      shouldResync = true;
-    }
-    if (typeof audio.setTempo === 'function' && !isNaN(vNow) && vNow > 0) {
-      audio.setTempo(vNow);
-      shouldResync = true;
-    }
-    if (shouldResync) {
+    const validLg = Number.isFinite(lgNow) && lgNow > 0;
+    const validV = Number.isFinite(vNow) && vNow > 0;
+    if (validLg || validV) {
+      audio.updateTransport({
+        totalPulses: validLg ? lgNow : undefined,
+        bpm: validV ? vNow : undefined
+      });
       cancelTapResync();
     }
   }
