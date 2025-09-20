@@ -354,6 +354,7 @@ export class TimelineAudio {
     this._lastStep = null;
     this._lastPulseTime = null;
     this._lastAbsoluteStep = null;
+    this._zeroOffset = null;
     this._pulseCounter = -1;
     this._lastCycleState = null;
 
@@ -442,6 +443,7 @@ export class TimelineAudio {
     this._fallbackGain = null;
     this.isReady = false;
     this._lastAbsoluteStep = null;
+    this._zeroOffset = null;
     this._pulseCounter = -1;
     this._lastCycleState = null;
   }
@@ -818,6 +820,7 @@ export class TimelineAudio {
     this._lastStep = null;
     this._lastPulseTime = null;
     this._lastAbsoluteStep = null;
+    this._zeroOffset = null;
     this._pulseCounter = -1;
     this._lastCycleState = null;
     this.resetTapTempo();
@@ -964,11 +967,9 @@ export class TimelineAudio {
         const when = this._stepTime(n);
         if (when == null || when > horizon) break;
 
-        const stepMod = (this.totalRef > 0)
-          ? ((n % this.totalRef) + this.totalRef) % this.totalRef
-          : n;
-        const isStart = stepMod === 0;
-        const isSelected = this.selectedRef.has(stepMod);
+        const stepIndex = this._resolveStepIndex(n);
+        const isStart = stepIndex === 0;
+        const isSelected = this.selectedRef.has(stepIndex);
 
         let triggered = false;
         if (this._buffers && this._buffers.size) {
@@ -1009,6 +1010,17 @@ export class TimelineAudio {
     this._schedulerId = setInterval(tick, Math.round(this._schedulerEverySec * 1000));
   }
 
+  _resolveStepIndex(absoluteStep) {
+    const total = this.totalRef > 0 ? this.totalRef : 0;
+    if (!total || !Number.isFinite(absoluteStep)) {
+      return Number.isFinite(absoluteStep) ? absoluteStep : 0;
+    }
+    const offset = Number.isFinite(this._zeroOffset) ? this._zeroOffset : 0;
+    const relative = absoluteStep - offset;
+    const mod = ((relative % total) + total) % total;
+    return mod;
+  }
+
   _adaptSchedulerInterval() {
     if (this._schedulerOverrideSec != null) {
       this._schedulerEverySec = this._schedulerOverrideSec;
@@ -1028,6 +1040,9 @@ export class TimelineAudio {
       this._pulseCounter = (this._pulseCounter ?? -1) + 1;
       this._lastAbsoluteStep = this._pulseCounter;
       this._lastPulseTime = now;
+      if (Number.isFinite(this._lastAbsoluteStep) && Number.isFinite(this._lastStep)) {
+        this._zeroOffset = this._lastAbsoluteStep - this._lastStep;
+      }
       if (Number.isFinite(msg.interval)) {
         this.intervalRef = msg.interval;
       }
