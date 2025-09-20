@@ -350,6 +350,7 @@ export class TimelineAudio {
     this._onPulseRef = null;
     this.onCompleteRef = null;
     this._cycleConfig = null;
+    this._patternBeats = null;
 
     this._lastStep = null;
     this._lastPulseTime = null;
@@ -449,6 +450,7 @@ export class TimelineAudio {
     this._zeroOffset = null;
     this._pulseCounter = -1;
     this._lastCycleState = null;
+    this._patternBeats = null;
     this._pendingTempo = null;
     this._setScheduledStep = null;
   }
@@ -807,13 +809,27 @@ export class TimelineAudio {
       this._cycleConfig = null;
     }
 
+    const patternOpt = Number.isFinite(options?.patternBeats) && options.patternBeats > 0
+      ? +options.patternBeats
+      : null;
+    if (patternOpt != null) {
+      this._patternBeats = patternOpt;
+    } else if (!(Number.isFinite(this._patternBeats) && this._patternBeats > 0)) {
+      this._patternBeats = null;
+    }
+
+    const effectivePattern = Number.isFinite(this._patternBeats) && this._patternBeats > 0
+      ? this._patternBeats
+      : this.totalRef;
+
     this._node.port.postMessage({
       action: 'start',
       total: this.totalRef,
       interval: this.intervalRef,
       loop: this.loopRef,
       numerator: this._cycleConfig?.numerator || 0,
-      denominator: this._cycleConfig?.denominator || 0
+      denominator: this._cycleConfig?.denominator || 0,
+      pattern: effectivePattern
     });
 
     this._startScheduler();
@@ -873,6 +889,13 @@ export class TimelineAudio {
     this._node?.port?.postMessage({ action: 'updateTotal', total: this.totalRef });
   }
 
+  setPattern(patternBeats) {
+    const pattern = Number.isFinite(+patternBeats) && +patternBeats > 0 ? +patternBeats : null;
+    this._patternBeats = pattern != null ? pattern : null;
+    const payload = pattern != null ? pattern : 0;
+    this._node?.port?.postMessage({ action: 'updatePattern', pattern: payload });
+  }
+
   updateCycleConfig({ numerator, denominator, onTick, onCycle } = {}) {
     const handler = (typeof onTick === 'function') ? onTick
                   : (typeof onCycle === 'function') ? onCycle
@@ -894,12 +917,15 @@ export class TimelineAudio {
     return state;
   }
 
-  updateTransport({ totalPulses, bpm, cycle, align = 'nextPulse', rampMs = 80 } = {}) {
+  updateTransport({ totalPulses, bpm, cycle, patternBeats, align = 'nextPulse', rampMs = 80 } = {}) {
     if (Number.isFinite(+totalPulses) && +totalPulses > 0) {
       this.setTotal(+totalPulses);
     }
     if (Number.isFinite(+bpm) && +bpm > 0) {
       this.setTempo(+bpm, { align, rampMs });
+    }
+    if (Number.isFinite(+patternBeats) && +patternBeats > 0) {
+      this.setPattern(+patternBeats);
     }
     if (cycle && typeof cycle === 'object') {
       const payload = {

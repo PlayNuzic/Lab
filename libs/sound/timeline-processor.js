@@ -36,6 +36,8 @@ class TimelineProcessor extends AudioWorkletProcessor {
     // Map<string, {id, num, den, periodBeats, countdownBeats, subIndex}>
     this.voices = new Map();
 
+    this.patternBeats = 0;
+
     this.port.onmessage = (e) => this._onMessage(e.data);
   }
 
@@ -45,7 +47,7 @@ class TimelineProcessor extends AudioWorkletProcessor {
         const total = +msg.total || 0;
         const interval = +msg.interval || 0;
         this.loop = !!msg.loop;
-        this._start(total, interval, msg.numerator, msg.denominator);
+        this._start(total, interval, msg.numerator, msg.denominator, msg.pattern);
         break;
       }
       case 'stop': {
@@ -86,6 +88,10 @@ class TimelineProcessor extends AudioWorkletProcessor {
         this._recomputeCycleEvents();
         break;
       }
+      case 'updatePattern': {
+        this._updatePattern(msg.pattern);
+        break;
+      }
       case 'setVoices': {
         this.voices.clear();
         if (Array.isArray(msg.voices)) {
@@ -109,7 +115,7 @@ class TimelineProcessor extends AudioWorkletProcessor {
     }
   }
 
-  _start(total, intervalSec, cycNum, cycDen) {
+  _start(total, intervalSec, cycNum, cycDen, pattern) {
     this.totalBeats = Math.max(0, +total || 0);
     this.secondsPerBeat = Math.max(1e-6, +intervalSec || 0.5);
     this.targetSpb = this.secondsPerBeat;
@@ -122,10 +128,19 @@ class TimelineProcessor extends AudioWorkletProcessor {
     this.measurePhaseBeats = 0;
     this.cycleNum = Math.max(0, +cycNum || 0);
     this.cycleDen = Math.max(0, +cycDen || 0);
-    this._recomputeCycleEvents();
+    this._updatePattern(pattern, { fallback: this.totalBeats });
     this._resetVoicesCountdown();
 
     this.active = (this.totalBeats > 0 && this.secondsPerBeat > 0);
+  }
+
+  _updatePattern(pattern, { fallback } = {}) {
+    const fallbackValue = Number.isFinite(fallback) && fallback > 0
+      ? fallback
+      : (this.totalBeats > 0 ? this.totalBeats : 0);
+    const next = Number.isFinite(+pattern) && +pattern > 0 ? +pattern : fallbackValue;
+    this.patternBeats = next;
+    this._recomputeCycleEvents();
   }
 
   _addVoice(v) {
@@ -152,9 +167,12 @@ class TimelineProcessor extends AudioWorkletProcessor {
   _recomputeCycleEvents() {
     this.cycleEvents = [];
     this.nextCycleIndex = 0;
-    if (!this.cycleNum || !this.cycleDen || !this.totalBeats) return;
+    if (!this.cycleNum || !this.cycleDen) return;
 
-    const cycles = Math.floor(this.totalBeats / this.cycleNum);
+    const total = this.patternBeats || this.totalBeats;
+    if (!total) return;
+
+    const cycles = Math.floor(total / this.cycleNum);
     if (cycles <= 0) return;
 
     const cycleBeats = this.cycleNum;
@@ -163,7 +181,7 @@ class TimelineProcessor extends AudioWorkletProcessor {
       const startBeat = ci * cycleBeats;
       for (let s = 0; s < this.cycleDen; s++) {
         const beat = startBeat + s * subBeats;
-        if (beat < this.totalBeats) {
+        if (beat < total) {
           this.cycleEvents.push({
             beat,
             cycleIndex: ci,
@@ -179,10 +197,10 @@ class TimelineProcessor extends AudioWorkletProcessor {
 
     if (this.cycleEvents.length) {
       const epsilon = 1e-9;
-      const total = this.totalBeats || 0;
+      const totalBeats = this.patternBeats || this.totalBeats || 0;
       let phase = this.measurePhaseBeats || 0;
-      if (this.loop && total > 0) {
-        phase %= total;
+      if (this.loop && totalBeats > 0) {
+        phase %= totalBeats;
       }
       phase = Math.max(0, phase);
 

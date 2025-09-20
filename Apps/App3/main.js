@@ -403,6 +403,15 @@ function updateAudioTotal(total) {
   }
 }
 
+function updateAudioPattern(pattern) {
+  if (!audio || pattern == null) return;
+  if (typeof audio.setPattern === 'function') {
+    audio.setPattern(pattern);
+  } else if (typeof audio.updateTransport === 'function') {
+    audio.updateTransport({ patternBeats: pattern });
+  }
+}
+
 function updateAudioTempo(bpm, options = {}) {
   if (!audio || !Number.isFinite(bpm) || bpm <= 0) return;
   if (typeof audio.setTempo === 'function') {
@@ -1010,6 +1019,10 @@ function handleInput() {
       && normalizedDenominator != null
       && Math.floor(normalizedLg / normalizedNumerator) > 0;
 
+    if (normalizedLg != null) {
+      updateAudioPattern(normalizedLg);
+    }
+
     if (isPlaying) {
       if (playbackTotal != null) updateAudioTotal(playbackTotal);
       if (validV) {
@@ -1391,7 +1404,9 @@ async function startPlayback() {
     loopEnabled,
     highlightPulse,
     onFinish,
-    hasCycle ? { cycle: { numerator, denominator, onTick: highlightCycle } } : undefined
+    hasCycle
+      ? { cycle: { numerator, denominator, onTick: highlightCycle }, patternBeats: lg }
+      : { patternBeats: lg }
   );
 
   isPlaying = true;

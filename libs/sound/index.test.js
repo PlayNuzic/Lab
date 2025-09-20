@@ -79,6 +79,16 @@ describe('TimelineAudio (new engine)', () => {
     expect(workletMock.port.postMessage).toHaveBeenCalledWith({ action: 'setLoop', loop: false });
   });
 
+  test('setPattern posts updatePattern message', async () => {
+    const audio = new TimelineAudio();
+    await audio.ready();
+    workletMock.port.postMessage.mockClear();
+    audio.setPattern(7);
+    expect(workletMock.port.postMessage).toHaveBeenCalledWith({ action: 'updatePattern', pattern: 7 });
+    audio.setPattern(null);
+    expect(workletMock.port.postMessage).toHaveBeenCalledWith({ action: 'updatePattern', pattern: 0 });
+  });
+
   test('setSelected stores selection as Set', () => {
     const audio = new TimelineAudio();
     audio.setSelected([1, 3, 5]);
