@@ -230,8 +230,6 @@ class TimelineProcessor extends AudioWorkletProcessor {
       : (this.currentStep + 1);
 
     if (this.loop && this.currentStep === 0) {
-      this.measurePhaseBeats = 0;
-      this.nextCycleIndex = 0;
       if (this.pendingTempoChange && this.pendingTempoChange.align === 'cycle') {
         this._applyPendingTempoChange();
       }
