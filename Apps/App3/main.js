@@ -6,7 +6,6 @@ import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { fromLgAndTempo, gridFromOrigin, computeSubdivisionFontRem, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
-import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 
 let audio;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
@@ -23,7 +22,6 @@ let isPlaying = false;
 let loopEnabled = false;
 let circularTimeline = false;
 let isUpdating = false;
-let pendingCycleSync = null;
 
 const PULSE_NUMBER_HIDE_THRESHOLD = 71;
 const SUBDIVISION_HIDE_THRESHOLD = 41;
@@ -396,13 +394,6 @@ async function initAudio() {
   return audio;
 }
 
-function clearPendingCycleSync() {
-  if (pendingCycleSync?.timeoutId != null) {
-    clearTimeout(pendingCycleSync.timeoutId);
-  }
-  pendingCycleSync = null;
-}
-
 function updateAudioTotal(total) {
   if (!audio || total == null) return;
   if (typeof audio.setTotal === 'function') {
@@ -434,46 +425,6 @@ function applyCycleConfig({ numerator, denominator, onTick }) {
       }
     });
   }
-}
-
-function scheduleCycleResync({ numerator, denominator, totalPulses, bpm }) {
-  if (!audio) return;
-  const hasCycle = Number.isFinite(numerator) && numerator > 0
-    && Number.isFinite(denominator) && denominator > 0;
-  if (!hasCycle) {
-    clearPendingCycleSync();
-    applyCycleConfig({ numerator: 0, denominator: 0, onTick: null });
-    return;
-  }
-
-  const validTotal = Number.isFinite(totalPulses) && totalPulses > 0;
-  const validBpm = Number.isFinite(bpm) && bpm > 0;
-  const canSync = isPlaying && loopEnabled && validTotal && validBpm
-    && typeof audio.getVisualState === 'function';
-
-  if (!canSync) {
-    clearPendingCycleSync();
-    applyCycleConfig({ numerator, denominator, onTick: highlightCycle });
-    return;
-  }
-
-  const state = audio.getVisualState();
-  const stepIndex = Number.isFinite(state?.step) ? state.step : 0;
-  const info = computeResyncDelay({ stepIndex, totalPulses, bpm });
-  const delaySeconds = info?.delaySeconds;
-
-  if (!Number.isFinite(delaySeconds) || delaySeconds <= 1e-3) {
-    clearPendingCycleSync();
-    applyCycleConfig({ numerator, denominator, onTick: highlightCycle });
-    return;
-  }
-
-  clearPendingCycleSync();
-  const timeoutId = setTimeout(() => {
-    pendingCycleSync = null;
-    applyCycleConfig({ numerator, denominator, onTick: highlightCycle });
-  }, delaySeconds * 1000);
-  pendingCycleSync = { timeoutId };
 }
 
 function bindUnit(input, unit) {
@@ -1065,25 +1016,14 @@ function handleInput() {
         updateAudioTempo(v, { align: loopEnabled ? 'cycle' : 'nextPulse' });
       }
 
-      if (hasCycle && loopEnabled) {
-        scheduleCycleResync({
-          numerator: normalizedNumerator,
-          denominator: normalizedDenominator,
-          totalPulses: playbackTotal != null ? playbackTotal : normalizedLg,
-          bpm: v
-        });
+      if (hasCycle) {
+        applyCycleConfig({ numerator: normalizedNumerator, denominator: normalizedDenominator, onTick: highlightCycle });
       } else {
-        clearPendingCycleSync();
-        applyCycleConfig({
-          numerator: hasCycle ? normalizedNumerator : 0,
-          denominator: hasCycle ? normalizedDenominator : 0,
-          onTick: hasCycle ? highlightCycle : null
-        });
+        applyCycleConfig({ numerator: 0, denominator: 0, onTick: null });
       }
 
       syncVisualState();
     } else {
-      clearPendingCycleSync();
       if (hasCycle) {
         applyCycleConfig({ numerator: normalizedNumerator, denominator: normalizedDenominator, onTick: highlightCycle });
       } else {
@@ -1352,16 +1292,44 @@ function highlightCycle(payload = {}) {
   if (Number.isFinite(payloadTotalCycles) && payloadTotalCycles !== expectedCycles) {
     return;
   }
+  if (Number.isFinite(payloadTotalSubdivisions) && payloadTotalSubdivisions !== expectedDenominator) {
+    return;
+  }
+
+  const clampIndex = (value, maxExclusive) => {
+    if (!Number.isFinite(value)) return null;
+    if (loopEnabled) {
+      if (maxExclusive <= 0) return null;
+      const span = maxExclusive;
+      return ((value % span) + span) % span;
+    }
+    if (maxExclusive <= 0) return null;
+    return Math.max(0, Math.min(value, maxExclusive - 1));
+  };
+
+  const normalizedCycleIndex = clampIndex(cycleIndex, expectedCycles);
+  const normalizedSubdivisionIndex = clampIndex(subdivisionIndex, expectedDenominator);
+  if (!Number.isFinite(normalizedCycleIndex) || !Number.isFinite(normalizedSubdivisionIndex)) {
+    return;
+  }
 
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
-  const marker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === cycleIndex && Number(m.dataset.subdivision) === subdivisionIndex);
-  const label = cycleLabels.find(l => Number(l.dataset.cycleIndex) === cycleIndex && Number(l.dataset.subdivision) === subdivisionIndex);
+  const marker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === normalizedCycleIndex && Number(m.dataset.subdivision) === normalizedSubdivisionIndex);
+  const label = cycleLabels.find(l => Number(l.dataset.cycleIndex) === normalizedCycleIndex && Number(l.dataset.subdivision) === normalizedSubdivisionIndex);
   if (marker) {
     void marker.offsetWidth;
     marker.classList.add('active');
   }
   if (label) label.classList.add('active');
+
+  if (loopEnabled && normalizedCycleIndex === 0 && normalizedSubdivisionIndex === 0 && expectedCycles > 0) {
+    const lastCycleIndex = expectedCycles - 1;
+    const lastMarker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === lastCycleIndex && Number(m.dataset.subdivision) === 0);
+    const lastLabel = cycleLabels.find(l => Number(l.dataset.cycleIndex) === lastCycleIndex && Number(l.dataset.subdivision) === 0);
+    if (lastMarker) lastMarker.classList.add('active');
+    if (lastLabel) lastLabel.classList.add('active');
+  }
 
   // Migration 2024-05: removed deprecated tolerance flash (cycle-to-pulse) now handled via direct cycle highlights.
 }
@@ -1411,13 +1379,10 @@ async function startPlayback() {
     }
     clearHighlights();
     audioInstance.stop();
-    clearPendingCycleSync();
   };
 
   const iconPlay = playBtn.querySelector('.icon-play');
   const iconStop = playBtn.querySelector('.icon-stop');
-
-  clearPendingCycleSync();
 
   audioInstance.play(
     playbackTotal,
@@ -1446,7 +1411,6 @@ playBtn.addEventListener('click', async () => {
     isPlaying = false;
     playBtn.classList.remove('active');
     clearHighlights();
-    clearPendingCycleSync();
     const iconPlay = playBtn.querySelector('.icon-play');
     const iconStop = playBtn.querySelector('.icon-stop');
     if (iconPlay && iconStop) {
@@ -1481,7 +1445,6 @@ resetBtn.addEventListener('click', () => {
   clearOpt(CYCLE_AUDIO_KEY);
   hasStoredPulsePref = false;
   hasStoredCyclePref = false;
-  clearPendingCycleSync();
   if (audio) audio.stop();
   if (audio && typeof audio.resetTapTempo === 'function') {
     audio.resetTapTempo();
