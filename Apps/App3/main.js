@@ -545,9 +545,11 @@ cycleToggleBtn?.addEventListener('click', () => {
   setCycleAudio(!cycleAudioEnabled);
 });
 
+const mixerTriggers = [playBtn].filter(Boolean);
+
 initMixerMenu({
   menu: mixerMenu,
-  triggers: [pulseToggleBtn, cycleToggleBtn],
+  triggers: mixerTriggers,
   channels: [
     { id: 'pulse', label: 'Pulso/Pulso 0', allowSolo: true },
     { id: 'subdivision', label: 'Subdivisión', allowSolo: true },
