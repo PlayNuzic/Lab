@@ -10,6 +10,35 @@ body[data-theme='dark'] {
   --fraction-spinner-color: var(--text-dark);
 }
 
+body.app3 {
+  --pulse-offset-x: 0px;
+  --pulse-offset-y: 0px;
+  --cycle-offset-x: -124px;
+  --cycle-offset-y: 0px;
+}
+
+@media (max-width: 600px) {
+  body.app3 {
+    --control-toggle-size: clamp(56px, 30vw, 76px);
+    --control-toggle-width: clamp(88px, 40vw, 120px);
+    --control-toggle-gap: -28px;
+    --pulse-offset-x: -12px;
+    --cycle-offset-x: -92px;
+  }
+
+  body.app3 .control-sound-toggles {
+    top: 58%;
+    transform: translate(-50%, calc(-50% - 6px));
+    width: min(84vw, calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap)));
+  }
+
+  body.app3 .control-sound-toggle__label {
+    font-size: 12px;
+    letter-spacing: 1.4px;
+    transform: translateY(-6px);
+  }
+}
+
 .middle {
   margin-bottom: 60px;
 }
