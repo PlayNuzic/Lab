@@ -156,6 +156,8 @@ function wireControls(root) {
     const accentSoundSelect = root.querySelector('#accentSoundSelect');
     const startSoundSelect = root.querySelector('#startSoundSelect');
     const cycleSoundSelect = root.querySelector('#cycleSoundSelect');
+    const factoryResetBtn = root.querySelector('#factoryResetBtn');
+    const optionsMenu = root.querySelector('#optionsMenu');
 
     let soundAudio;
     async function getAudio(){
@@ -192,6 +194,23 @@ function wireControls(root) {
         getAudio,
         apply: (a, val) => a.setCycle(val)
     });
+
+    if (factoryResetBtn) {
+        factoryResetBtn.addEventListener('click', () => {
+            const message = 'Se eliminarán las preferencias guardadas y la app se recargará. ¿Quieres continuar?';
+            const proceed = typeof window !== 'undefined' && typeof window.confirm === 'function'
+                ? window.confirm(message)
+                : true;
+            if (!proceed) return;
+            if (optionsMenu) {
+                optionsMenu.removeAttribute('open');
+            }
+            factoryResetBtn.blur();
+            window.dispatchEvent(new CustomEvent('sharedui:factoryreset', {
+                detail: { confirmed: true, source: 'shared-header' }
+            }));
+        });
+    }
 
 
     // Variables para gestionar el estado del volumen
@@ -407,6 +426,8 @@ export function renderHeader({ title = 'App', mount } = {}) {
                 <input type="checkbox" id="hoverToggle" checked>
                 <label for="selectColor">Color selección</label>
                 <input type="color" id="selectColor" value="#FFBB97">
+                <label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle"></label>
+                <button type="button" id="factoryResetBtn" class="factory-reset">Volver a ajustes de fábrica</button>
                 <details>
                   <summary>Sonidos</summary>
                   <div class="sound-group menu-surface">

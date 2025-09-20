@@ -72,7 +72,7 @@ const startSoundSelect = document.getElementById('startSoundSelect');
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
   V: { enabled: true, range: [40, 320] },
-  T: { enabled: true, range: [0.1, 10] },
+  T: { enabled: true, range: [0.1, 20] },
   Pulses: { enabled: true, count: '' }
 };
 
@@ -389,6 +389,26 @@ attachHover(randomCount, { text: 'Cantidad de pulsos a seleccionar (vacío = ale
 const storeKey = (k) => `app2:${k}`;
 const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
 const loadOpt = (k) => { try { return localStorage.getItem(storeKey(k)); } catch { return null; } };
+
+function clearStoredPreferences() {
+  try {
+    const prefix = 'app2:';
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+  } catch {}
+}
+
+let factoryResetPending = false;
+window.addEventListener('sharedui:factoryreset', () => {
+  if (factoryResetPending) return;
+  factoryResetPending = true;
+  clearStoredPreferences();
+  window.location.reload();
+});
 
 // Local header behavior (as before)
 function applyTheme(val){

@@ -39,7 +39,7 @@ const randomDefaults = {
   V: { enabled: true, range: [40, 320] },
   n: { enabled: true, range: [1, 9] },
   d: { enabled: true, range: [1, 9] },
-  allowComplex: false
+  allowComplex: true
 };
 
 const storePrefix = 'app3';
@@ -53,6 +53,28 @@ const saveOpt = (key, value) => {
 const clearOpt = (key) => {
   try { localStorage.removeItem(storeKey(key)); } catch {}
 };
+
+function clearStoredPreferences() {
+  try {
+    const prefix = `${storePrefix}::`;
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+  } catch {}
+}
+
+let factoryResetPending = false;
+window.addEventListener('sharedui:factoryreset', () => {
+  if (factoryResetPending) return;
+  factoryResetPending = true;
+  clearStoredPreferences();
+  setPulseAudio(true, { persist: false });
+  setCycleAudio(true, { persist: false });
+  window.location.reload();
+});
 
 const inputLg = document.getElementById('inputLg');
 const inputV = document.getElementById('inputV');
