@@ -52,7 +52,7 @@ export function renderApp({
               </defs>
               <path class="control-sound-toggle__shape" d="M 100 -14 A 114 114 0 0 1 214 100 L 164 100 A 64 64 0 0 0 100 36 Z" />
               <text class="control-sound-toggle__label" dy="12">
-                <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">_Fracción</textPath>
+                <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">Subdiv</textPath>
               </text>
             </svg>
           </button>
