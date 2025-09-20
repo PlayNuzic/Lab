@@ -289,9 +289,6 @@ class TimelineProcessor extends AudioWorkletProcessor {
           const payload = this.cycleEvents[this.nextCycleIndex];
           this.port.postMessage({ type: 'cycle', payload });
           this.nextCycleIndex++;
-          if (this.loop && this.nextCycleIndex >= this.cycleEvents.length) {
-            this.nextCycleIndex = 0;
-          }
         }
       }
 

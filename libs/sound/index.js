@@ -787,9 +787,20 @@ export class TimelineAudio {
     this._lastCycleState = null;
 
     const cyc = options?.cycle;
-    this._cycleConfig = (cyc && Number.isFinite(+cyc.numerator) && Number.isFinite(+cyc.denominator))
-      ? { numerator: +cyc.numerator, denominator: +cyc.denominator, onCycle: (cyc.onCycle || null) }
-      : null;
+    if (cyc && Number.isFinite(+cyc.numerator) && Number.isFinite(+cyc.denominator)) {
+      const handler = (typeof cyc.onTick === 'function')
+        ? cyc.onTick
+        : (typeof cyc.onCycle === 'function')
+          ? cyc.onCycle
+          : null;
+      this._cycleConfig = {
+        numerator: +cyc.numerator,
+        denominator: +cyc.denominator,
+        onCycle: handler
+      };
+    } else {
+      this._cycleConfig = null;
+    }
 
     this._node.port.postMessage({
       action: 'start',
