@@ -1,17 +1,29 @@
 ## Propòsit
-- Compartir components visuals i lògica comuna del capçal compartit entre apps.
-- Centralitzar tokens de tema perquè el cicle de disseny sigui coherent.
+- Compartir components visuals i lògica comuna del capçal i menús entre les apps.
+- Centralitzar tokens de tema perquè el disseny i els efectes de hover siguin coherents.
 
-## API pública
-- `header.js`: `initHeader`, `renderHeader` per integrar el top-bar.
-- `index.css`: tokens `:root` i blocs `@block` que altres apps poden reutilitzar.
-- `sound-dropdown.js`, `hover.js` (veure arxius) per wiring d'interaccions.
+## Mòduls destacats
+- `header.js`: inicialitza el top-bar compartit, aplica temes, gestiona volum/mute,
+  envia esdeveniments `sharedui:*` i sincronitza `TimelineAudio` (sons base/accent/start/cycle).
+- `sound-dropdown.js`: construeix els desplegables de selecció de so reutilitzats
+  per App1-3.
+- `hover.js`: helper per mostrar textos contextuals (tooltip-like) a controls.
+- `performance-audio-menu.js`: instal·la un menú de rendiment dins la capçalera per
+  ajustar `scheduleHorizon` i _sample rate_ del motor (via `window.NuzicAudioEngine`).
+- `index.css`: defineix tokens `:root`, estils del top-bar, menús, efectes i helpers
+  (`@layer`/`@block`).
 
-## Flux principal
-1. Carrega `index.css` per tenir els tokens i estils base.
-2. Invoca `renderHeader` o `initHeader` segons si hi ha markup preexistent.
-3. Els events `sharedui:*` es propaguen cap a les apps perquè sincronitzin estat.
+## Notes d'ús
+- Moltes funcions envien esdeveniments personalitzats (`sharedui:scheduling`,
+  `sharedui:theme`, `sharedui:selectioncolor`, etc.). Les apps han d'escoltar-los via
+  `window.addEventListener` o `createSchedulingBridge`.
+- El menú principal usa `<details>` amb `solidMenuBackground` (de `libs/app-common`).
+  Si afegeixes contingut, mantén l'accessibilitat (`role="menu"`, focus, teclat).
 
-## Candidats a obsolet
-- [ ] Revisar `.menu ul` (index.css) segons TODO[audit-css] per si es pot eliminar.
-- [ ] Validar suport de `Tone.js` per `lookAhead/updateInterval` (header.js) abans de dependències futures.
+## Tests
+Aquest paquet no té tests propis. Qualsevol canvi que afecti el comportament compartit
+s'ha de validar executant la suite global:
+
+```bash
+npm test
+```

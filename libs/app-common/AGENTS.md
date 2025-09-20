@@ -1,19 +1,30 @@
 ## Propòsit
-- Agrupar utilitats compartides entre Apps (menús, audio bridges, càlculs bàsics).
-- Evitar duplicació de lògica present en múltiples apps del Lab.
+- Agrupar utilitats compartides entre Apps (menús, bridges d'àudio, mixer i càlculs
+  de subdivisions) per evitar duplicació de lògica.
+- Servir com a capa d'abstracció entre la UI i el motor `TimelineAudio`.
 
-## API pública
-- `audio.js`: bridge de scheduling i binding d'events `sharedui:*`.
-- `random-menu.js`: inicialització de menús aleatoris.
-- `range.js`: helpers `toNumber`, `toRange` per normalitzar configuracions.
+## Mòduls destacats
+- `audio.js`: detecta perfils _desktop/mobile_, crea el pont de scheduling i propaga
+  esdeveniments `sharedui:sound` cap al motor.
+- `audio-schedule.js`: càlcul de proper zero i normalització de temps (`computeNextZero`).
+- `mixer-menu.js` i `mixer-longpress.js`: UI accessòria per controlar canals del mixer.
+- `random-menu.js`: desplegable comú per aleatoritzar paràmetres amb `localStorage`.
+- `range.js` / `utils.js`: helpers numèrics (`toRange`, `toNumber`, `computeHitSizePx`, ...).
+- `subdivision.js`: càlculs de subdivisions, fonts i grid per timelines.
+- `template.js` i `styles.css`: fragments d'HTML/CSS reutilitzables.
 
-## Flux principal
-1. Les apps importen els helpers requerits (`createSchedulingBridge`, `toRange`, etc.).
-2. Cada helper encapsula accés a storage o DOM segons l'àrea (audio, menús, rangs).
-3. Els tests a `*.test.js` asseguren que la regressió comuna queda coberta amb Jest.
+## Tests
+- Existeix cobertura amb Jest a `range.test.js`, `utils.test.js` i la carpeta
+  `__tests__/` (subdivisions, audio-schedule, loop-resize, tap-resync).
+- Els tests assumeixen entorn Node amb DOM simulat (`document.createElement`, etc.).
+  Mockeja APIs del navegador quan calgui.
+- Executa les proves des de l'arrel del repositori:
 
-## Candidats a obsolet
-- [ ] Consolidar les còpies locals de `toRange` (TODO[audit] a range.js) començant per `Apps/App2`.
+```bash
+npm test
+```
 
 ## Notes de migració
-- 2024-05: `Apps/App2` reutilitza `fromLgAndTempo` i `computeResyncDelay` per substituir càlculs locals i re-sincronitzacions.
+- 2024-05: `Apps/App2` reutilitza `fromLgAndTempo` i `computeResyncDelay` per substituir
+  càlculs locals i re-sincronitzacions.
+- Mantén els TODO[audit] per identificar codis duplicats (ex. consolidar `toRange`).
