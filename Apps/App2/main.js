@@ -203,6 +203,8 @@ let circularTimeline = false;
 const T_INDICATOR_TRANSITION_DELAY = 650;
 let pendingZeroResync = null;
 let tIndicatorRevealHandle = null;
+let visualSyncHandle = null;
+let lastVisualStep = null;
 // Progress is now driven directly from audio callbacks
 // Progress is now driven directly from audio callbacks
 
@@ -1436,6 +1438,7 @@ function handlePlaybackStop(audioInstance) {
   if (iconPlay) iconPlay.style.display = 'block';
   if (iconStop) iconStop.style.display = 'none';
   pulses.forEach(p => p.classList.remove('active'));
+  stopVisualSync();
   if (audioInstance && typeof audioInstance.stop === 'function') {
     try { audioInstance.stop(); } catch {}
   }
@@ -1464,6 +1467,7 @@ async function startPlayback(providedAudio) {
 
   cancelZeroResync();
 
+  stopVisualSync();
   audioInstance.stop();
   pulses.forEach(p => p.classList.remove('active'));
 
@@ -1486,6 +1490,9 @@ async function startPlayback(providedAudio) {
   };
 
   audioInstance.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
+
+  syncVisualState();
+  startVisualSync();
 
   isPlaying = true;
   playBtn?.classList.add('active');
@@ -1609,6 +1616,37 @@ function highlightPulse(i){
       pulseSeqHighlight2.classList.remove('active');
     }
   }
+
+  if (Number.isFinite(i)) {
+    lastVisualStep = Number(i);
+  }
+}
+
+function stopVisualSync() {
+  if (visualSyncHandle != null) {
+    cancelAnimationFrame(visualSyncHandle);
+    visualSyncHandle = null;
+  }
+  lastVisualStep = null;
+}
+
+function syncVisualState() {
+  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
+  const state = audio.getVisualState();
+  if (!state || !Number.isFinite(state.step)) return;
+  if (lastVisualStep === state.step) return;
+  highlightPulse(state.step);
+}
+
+function startVisualSync() {
+  stopVisualSync();
+  const step = () => {
+    visualSyncHandle = null;
+    if (!isPlaying || !audio) return;
+    syncVisualState();
+    visualSyncHandle = requestAnimationFrame(step);
+  };
+  visualSyncHandle = requestAnimationFrame(step);
 }
 
 const menu = document.querySelector('.menu');

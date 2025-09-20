@@ -77,6 +77,8 @@ let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 // Track manual selection recency (oldest -> newest among the two manual LEDs)
 let manualHistory = [];
 let tapResyncTimer = null;
+let visualSyncHandle = null;
+let lastVisualStep = null;
 
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
@@ -886,6 +888,7 @@ async function startPlayback(providedAudio) {
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
 
+  stopVisualSync();
   audioInstance.stop();
   pulses.forEach(p => p.classList.remove('active'));
 
@@ -906,10 +909,14 @@ async function startPlayback(providedAudio) {
     if (iconStop) iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
     cancelTapResync();
+    stopVisualSync();
     audioInstance.stop();
   };
 
   audioInstance.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
+
+  syncVisualState();
+  startVisualSync();
 
   isPlaying = true;
   playBtn.classList.add('active');
@@ -926,6 +933,7 @@ playBtn.addEventListener('click', async () => {
 
   if (isPlaying) {
     cancelTapResync();
+    stopVisualSync();
     audioInstance.stop();
     isPlaying = false;
     playBtn.classList.remove('active');
@@ -958,6 +966,37 @@ function highlightPulse(i){
     const last = pulses[pulses.length - 1];
     if (last) last.classList.add('active');
   }
+
+  if (Number.isFinite(i)) {
+    lastVisualStep = Number(i);
+  }
+}
+
+function stopVisualSync() {
+  if (visualSyncHandle != null) {
+    cancelAnimationFrame(visualSyncHandle);
+    visualSyncHandle = null;
+  }
+  lastVisualStep = null;
+}
+
+function syncVisualState() {
+  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
+  const state = audio.getVisualState();
+  if (!state || !Number.isFinite(state.step)) return;
+  if (lastVisualStep === state.step) return;
+  highlightPulse(state.step);
+}
+
+function startVisualSync() {
+  stopVisualSync();
+  const step = () => {
+    visualSyncHandle = null;
+    if (!isPlaying || !audio) return;
+    syncVisualState();
+    visualSyncHandle = requestAnimationFrame(step);
+  };
+  visualSyncHandle = requestAnimationFrame(step);
 }
 
 function randomInt(min, max) {
