@@ -1,4 +1,4 @@
-import { computeSubdivisionFontRem, fromLgAndTempo, gridFromOrigin, __testing__ } from '../subdivision.js';
+import { computeSubdivisionFontRem, fromLgAndTempo, gridFromOrigin, toPlaybackPulseCount, __testing__ } from '../subdivision.js';
 
 const { toFiniteNumber } = __testing__;
 
@@ -63,5 +63,23 @@ describe('toFiniteNumber', () => {
 
   test('returns number when finite', () => {
     expect(toFiniteNumber('12')).toBe(12);
+  });
+});
+
+describe('toPlaybackPulseCount', () => {
+  test('returns null when pulses are invalid', () => {
+    expect(toPlaybackPulseCount(null, true)).toBeNull();
+    expect(toPlaybackPulseCount(undefined, false)).toBeNull();
+    expect(toPlaybackPulseCount(-1, false)).toBeNull();
+  });
+
+  test('preserves total pulses when loop is enabled', () => {
+    expect(toPlaybackPulseCount(8, true)).toBe(8);
+    expect(toPlaybackPulseCount(3, true)).toBe(3);
+  });
+
+  test('adds the terminal pulse when loop is disabled', () => {
+    expect(toPlaybackPulseCount(8, false)).toBe(9);
+    expect(toPlaybackPulseCount(1, false)).toBe(2);
   });
 });

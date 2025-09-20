@@ -176,6 +176,22 @@ class TimelineProcessor extends AudioWorkletProcessor {
         }
       }
     }
+
+    if (this.cycleEvents.length) {
+      const epsilon = 1e-9;
+      const total = this.totalBeats || 0;
+      let phase = this.measurePhaseBeats || 0;
+      if (this.loop && total > 0) {
+        phase %= total;
+      }
+      phase = Math.max(0, phase);
+
+      let idx = 0;
+      while (idx < this.cycleEvents.length && this.cycleEvents[idx].beat < phase - epsilon) {
+        idx++;
+      }
+      this.nextCycleIndex = idx;
+    }
   }
 
   _emitPulse() {

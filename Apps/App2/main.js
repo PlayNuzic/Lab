@@ -5,7 +5,7 @@ import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './u
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { toRange } from '../../libs/app-common/range.js';
-import { fromLgAndTempo } from '../../libs/app-common/subdivision.js';
+import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 // Using local header controls for App2 (no shared init)
 
@@ -933,8 +933,9 @@ function handleInput(){
     const validLg = Number.isFinite(lgNow) && lgNow > 0;
     const validV = Number.isFinite(vNow) && vNow > 0;
     if (typeof audio.updateTransport === 'function' && (validLg || validV)) {
+      const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
       audio.updateTransport({
-        totalPulses: validLg ? lgNow : undefined,
+        totalPulses: playbackTotal != null ? playbackTotal : undefined,
         bpm: validV ? vNow : undefined
       });
     }
@@ -1439,6 +1440,10 @@ async function startPlayback(providedAudio) {
   }
 
   const interval = timing.interval;
+  const playbackTotal = toPlaybackPulseCount(lg, loopEnabled);
+  if (playbackTotal == null) {
+    return false;
+  }
   const selectedForAudio = selectedForAudioFromState();
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
@@ -1447,7 +1452,7 @@ async function startPlayback(providedAudio) {
     handlePlaybackStop(audioInstance);
   };
 
-  audioInstance.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
+  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
 
   syncVisualState();
   startVisualSync();

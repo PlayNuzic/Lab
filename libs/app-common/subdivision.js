@@ -29,6 +29,20 @@ export function fromLgAndTempo(lg, tempo) {
 }
 
 /**
+ * Normalize the number of pulses that should be scheduled for playback.
+ *
+ * @param {number} lg total pulses (Lg) defined by the subdivision.
+ * @param {boolean} loopEnabled whether playback loops back to the origin.
+ * @returns {number|null} pulses to schedule, including the final downbeat when loop is off.
+ * @remarks PulseMemory = 1..Lg-1; 0/Lg derivats; afegeix el pols final quan `loopEnabled` és fals per mantenir l'audio alineat.
+ */
+export function toPlaybackPulseCount(lg, loopEnabled) {
+  const total = toFiniteNumber(lg);
+  if (total == null || total <= 0) return null;
+  return loopEnabled ? total : total + 1;
+}
+
+/**
  * Build subdivision positions starting from the origin.
  *
  * @param {{ lg: number, numerator: number, denominator: number, offset?: number }} params

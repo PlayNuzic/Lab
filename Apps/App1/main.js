@@ -6,7 +6,7 @@ import { solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { fromLgAndTempo } from '../../libs/app-common/subdivision.js';
+import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
@@ -587,8 +587,9 @@ function handleInput(e){
     const validLg = Number.isFinite(lgNow) && lgNow > 0;
     const validV = Number.isFinite(vNow) && vNow > 0;
     if (validLg || validV) {
+      const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
       audio.updateTransport({
-        totalPulses: validLg ? lgNow : undefined,
+        totalPulses: playbackTotal != null ? playbackTotal : undefined,
         bpm: validV ? vNow : undefined
       });
       cancelTapResync();
@@ -861,6 +862,10 @@ async function startPlayback(providedAudio) {
     return false;
   }
   const interval = timing.interval;
+  const playbackTotal = toPlaybackPulseCount(lg, loopEnabled);
+  if (playbackTotal == null) {
+    return false;
+  }
   const selectedForAudio = new Set();
 
   const onFinish = () => {
@@ -873,7 +878,7 @@ async function startPlayback(providedAudio) {
     audioInstance.stop();
   };
 
-  audioInstance.play(lg, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
+  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
 
   syncVisualState();
   startVisualSync();
