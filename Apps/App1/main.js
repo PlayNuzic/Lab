@@ -6,7 +6,6 @@ import { solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { fromLgAndTempo } from '../../libs/app-common/subdivision.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
@@ -75,7 +74,6 @@ let circularTimeline = false;
 let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 // Track manual selection recency (oldest -> newest among the two manual LEDs)
 let manualHistory = [];
-let tapResyncTimer = null;
 let visualSyncHandle = null;
 let lastVisualStep = null;
 
@@ -307,7 +305,6 @@ loopBtn.addEventListener('click', () => {
 });
 
 resetBtn.addEventListener('click', () => {
-  cancelTapResync();
   window.location.reload();
 });
 
@@ -839,40 +836,6 @@ function updateAutoIndicator(){
   ledT?.classList.toggle('on', inputT.dataset.auto !== '1');
 }
 
-function cancelTapResync() {
-  if (tapResyncTimer != null) {
-    clearTimeout(tapResyncTimer);
-    tapResyncTimer = null;
-  }
-}
-
-function scheduleTapResync(bpm) {
-  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
-  const lg = parseInt(inputLg.value);
-  if (!Number.isFinite(lg) || lg <= 0) return;
-  const state = audio.getVisualState();
-  const step = state && Number.isFinite(state.step) ? state.step : null;
-  if (!Number.isFinite(step)) return;
-
-  const info = computeResyncDelay({ stepIndex: step, totalPulses: lg, bpm });
-  if (!info) return;
-
-  cancelTapResync();
-
-  const run = () => {
-    tapResyncTimer = null;
-    if (!isPlaying) return;
-    startPlayback(audio).catch(() => {});
-  };
-
-  if (!Number.isFinite(info.delaySeconds) || info.delaySeconds <= 0) {
-    run();
-    return;
-  }
-
-  tapResyncTimer = setTimeout(run, info.delaySeconds * 1000);
-}
-
 async function startPlayback(providedAudio) {
   const lg = parseInt(inputLg.value);
   const v = parseFloat(inputV.value);
@@ -882,8 +845,6 @@ async function startPlayback(providedAudio) {
 
   const audioInstance = providedAudio || await initAudio();
   if (!audioInstance) return false;
-
-  cancelTapResync();
 
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
@@ -908,7 +869,6 @@ async function startPlayback(providedAudio) {
     if (iconPlay) iconPlay.style.display = 'block';
     if (iconStop) iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
-    cancelTapResync();
     stopVisualSync();
     audioInstance.stop();
   };
@@ -932,7 +892,6 @@ playBtn.addEventListener('click', async () => {
   const iconStop = playBtn?.querySelector('.icon-stop');
 
   if (isPlaying) {
-    cancelTapResync();
     stopVisualSync();
     audioInstance.stop();
     isPlaying = false;

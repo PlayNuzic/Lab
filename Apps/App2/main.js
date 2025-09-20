@@ -6,7 +6,6 @@ import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo } from '../../libs/app-common/subdivision.js';
-import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 // Using local header controls for App2 (no shared init)
 
@@ -200,7 +199,6 @@ let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let circularTimeline = false;
 const T_INDICATOR_TRANSITION_DELAY = 650;
-let pendingZeroResync = null;
 let tIndicatorRevealHandle = null;
 let visualSyncHandle = null;
 let lastVisualStep = null;
@@ -1393,45 +1391,7 @@ function updateAutoIndicator(){
   ledT?.classList.toggle('on', (inputT?.dataset?.auto) !== '1');
 }
 
-function cancelZeroResync() {
-  if (pendingZeroResync != null) {
-    clearTimeout(pendingZeroResync);
-    pendingZeroResync = null;
-  }
-}
-
-async function scheduleZeroResync(bpm) {
-  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
-  const lg = parseInt(inputLg.value);
-  if (!Number.isFinite(lg) || lg <= 0) return;
-  const state = audio.getVisualState();
-  const step = state && Number.isFinite(state.step) ? state.step : null;
-  if (!Number.isFinite(step)) return;
-
-  const info = computeResyncDelay({ stepIndex: step, totalPulses: lg, bpm });
-  if (!info) return;
-
-  cancelZeroResync();
-
-  const run = async () => {
-    pendingZeroResync = null;
-    if (!isPlaying) return;
-    try {
-      const instance = await initAudio();
-      await startPlayback(instance);
-    } catch {}
-  };
-
-  if (!Number.isFinite(info.delaySeconds) || info.delaySeconds <= 0) {
-    run();
-    return;
-  }
-
-  pendingZeroResync = setTimeout(run, info.delaySeconds * 1000);
-}
-
 function handlePlaybackStop(audioInstance) {
-  cancelZeroResync();
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
   isPlaying = false;
@@ -1465,8 +1425,6 @@ async function startPlayback(providedAudio) {
 
   const audioInstance = providedAudio || await initAudio();
   if (!audioInstance) return false;
-
-  cancelZeroResync();
 
   stopVisualSync();
   audioInstance.stop();
