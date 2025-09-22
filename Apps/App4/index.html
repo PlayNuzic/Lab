@@ -26,6 +26,19 @@
       showSelectColor: true,
       showAccent: true,
       pulseSequence: true,
+      randomMenuContent: `
+        <label><input type="checkbox" id="randLgToggle"/> Lg
+          <input id="randLgMin" type="number" placeholder="Min" />
+          <input id="randLgMax" type="number" placeholder="Max" />
+        </label>
+        <label><input type="checkbox" id="randVToggle"/> V
+          <input id="randVMin" type="number" placeholder="Min" />
+          <input id="randVMax" type="number" placeholder="Max" />
+        </label>
+        <label><input type="checkbox" id="randPulsesToggle"/> Pulsos
+          <input id="randomCount" type="number" min="0" placeholder="Random" />
+        </label>
+      `,
       hideT: true,
       hideLeds: true,
       showPulseToggle: true,

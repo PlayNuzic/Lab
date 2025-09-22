@@ -10,7 +10,9 @@ import {
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { fromLgAndTempo } from '../../libs/app-common/subdivision.js';
+import { toRange } from '../../libs/app-common/range.js';
 
 const APP_ID = 'app4';
 const STORE_KEY = (key) => `${APP_ID}::${key}`;
@@ -41,7 +43,17 @@ const selectors = {
   denominatorInput: () => document.getElementById('fractionDenominator'),
   denominatorUp: () => document.getElementById('fractionDenominatorUp'),
   denominatorDown: () => document.getElementById('fractionDenominatorDown'),
-  pulseSeqContainer: () => document.getElementById('pulseSeq')
+  pulseSeqContainer: () => document.getElementById('pulseSeq'),
+  randomBtn: () => document.getElementById('randomBtn'),
+  randomMenu: () => document.getElementById('randomMenu'),
+  randLgToggle: () => document.getElementById('randLgToggle'),
+  randLgMin: () => document.getElementById('randLgMin'),
+  randLgMax: () => document.getElementById('randLgMax'),
+  randVToggle: () => document.getElementById('randVToggle'),
+  randVMin: () => document.getElementById('randVMin'),
+  randVMax: () => document.getElementById('randVMax'),
+  randPulsesToggle: () => document.getElementById('randPulsesToggle'),
+  randomCount: () => document.getElementById('randomCount')
 };
 
 const FRACTION_IDS = {
@@ -56,6 +68,29 @@ const FRACTION_IDS = {
 
 let audio = null;
 let mixerSyncGuard = false;
+
+const RANDOM_STORE_KEY = STORE_KEY('random');
+
+const randomDefaults = {
+  Lg: { enabled: true, range: [2, 30] },
+  V: { enabled: true, range: [40, 320] },
+  Pulses: { enabled: true, count: '' }
+};
+
+const randomElements = {
+  button: null,
+  menu: null,
+  randLgToggle: null,
+  randLgMin: null,
+  randLgMax: null,
+  randVToggle: null,
+  randVMin: null,
+  randVMax: null,
+  randPulsesToggle: null,
+  randomCount: null
+};
+
+let randomConfig = mergeRandomConfig(loadRandomConfig());
 
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
@@ -182,6 +217,100 @@ function clearStoredParams() {
   keys.forEach((key) => {
     try { localStorage.removeItem(STORE_KEY(key)); } catch {}
   });
+}
+
+function mergeRandomConfig(stored) {
+  const source = stored && typeof stored === 'object' ? stored : {};
+  return {
+    Lg: { ...randomDefaults.Lg, ...(source.Lg && typeof source.Lg === 'object' ? source.Lg : {}) },
+    V: { ...randomDefaults.V, ...(source.V && typeof source.V === 'object' ? source.V : {}) },
+    Pulses: { ...randomDefaults.Pulses, ...(source.Pulses && typeof source.Pulses === 'object' ? source.Pulses : {}) }
+  };
+}
+
+function loadRandomConfig() {
+  try {
+    const raw = localStorage.getItem(RANDOM_STORE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRandomConfig(cfg) {
+  try {
+    localStorage.setItem(RANDOM_STORE_KEY, JSON.stringify(cfg));
+  } catch {}
+}
+
+function collectRandomElements() {
+  randomElements.button = selectors.randomBtn();
+  randomElements.menu = selectors.randomMenu();
+  randomElements.randLgToggle = selectors.randLgToggle();
+  randomElements.randLgMin = selectors.randLgMin();
+  randomElements.randLgMax = selectors.randLgMax();
+  randomElements.randVToggle = selectors.randVToggle();
+  randomElements.randVMin = selectors.randVMin();
+  randomElements.randVMax = selectors.randVMax();
+  randomElements.randPulsesToggle = selectors.randPulsesToggle();
+  randomElements.randomCount = selectors.randomCount();
+}
+
+function applyRandomConfigToInputs(cfg = randomConfig) {
+  const lgRange = Array.isArray(cfg?.Lg?.range) ? cfg.Lg.range : randomDefaults.Lg.range;
+  const vRange = Array.isArray(cfg?.V?.range) ? cfg.V.range : randomDefaults.V.range;
+  if (randomElements.randLgToggle) randomElements.randLgToggle.checked = !!cfg?.Lg?.enabled;
+  if (randomElements.randLgMin) randomElements.randLgMin.value = lgRange?.[0] ?? '';
+  if (randomElements.randLgMax) randomElements.randLgMax.value = lgRange?.[1] ?? '';
+  if (randomElements.randVToggle) randomElements.randVToggle.checked = !!cfg?.V?.enabled;
+  if (randomElements.randVMin) randomElements.randVMin.value = vRange?.[0] ?? '';
+  if (randomElements.randVMax) randomElements.randVMax.value = vRange?.[1] ?? '';
+  if (randomElements.randPulsesToggle) randomElements.randPulsesToggle.checked = !!cfg?.Pulses?.enabled;
+  if (randomElements.randomCount) randomElements.randomCount.value = cfg?.Pulses?.count ?? '';
+}
+
+function persistRandomConfig() {
+  randomConfig = {
+    Lg: {
+      enabled: !!randomElements.randLgToggle?.checked,
+      range: toRange(
+        randomElements.randLgMin?.value,
+        randomElements.randLgMax?.value,
+        randomDefaults.Lg.range
+      )
+    },
+    V: {
+      enabled: !!randomElements.randVToggle?.checked,
+      range: toRange(
+        randomElements.randVMin?.value,
+        randomElements.randVMax?.value,
+        randomDefaults.V.range
+      )
+    },
+    Pulses: {
+      enabled: !!randomElements.randPulsesToggle?.checked,
+      count: typeof randomElements.randomCount?.value === 'string'
+        ? randomElements.randomCount.value.trim()
+        : ''
+    }
+  };
+  saveRandomConfig(randomConfig);
+}
+
+function setNumberInputValue(input, value) {
+  if (!input || !Number.isFinite(value)) return;
+  input.value = String(value);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function randomInt(min, max) {
+  const lo = Math.ceil(min);
+  const hi = Math.floor(max);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) return lo;
+  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
 }
 
 function computePulseValue(pulse, denominator) {
@@ -668,6 +797,66 @@ function clearPulseHelp() {
   pulseSeqElements.help.classList.remove('show');
 }
 
+function randomize() {
+  if (randomElements.randLgToggle?.checked) {
+    const [lo, hi] = toRange(
+      randomElements.randLgMin?.value,
+      randomElements.randLgMax?.value,
+      randomDefaults.Lg.range
+    );
+    const nextLg = randomInt(lo, hi);
+    setNumberInputValue(selectors.inputLg(), nextLg);
+  }
+
+  if (randomElements.randVToggle?.checked) {
+    const [lo, hi] = toRange(
+      randomElements.randVMin?.value,
+      randomElements.randVMax?.value,
+      randomDefaults.V.range
+    );
+    const nextV = randomInt(lo, hi);
+    setNumberInputValue(selectors.inputV(), nextV);
+  }
+
+  if (randomElements.randPulsesToggle?.checked) {
+    const lgValue = toPositiveInt(selectors.inputLg()?.value);
+    const available = [];
+    if (Number.isFinite(lgValue) && lgValue > 1) {
+      for (let i = 1; i < lgValue; i++) available.push(i);
+    }
+
+    const rawCount = typeof randomElements.randomCount?.value === 'string'
+      ? randomElements.randomCount.value.trim()
+      : '';
+
+    const selected = new Set();
+    if (!rawCount) {
+      const density = 0.5;
+      available.forEach((idx) => { if (Math.random() < density) selected.add(idx); });
+    } else {
+      const parsed = Number.parseInt(rawCount, 10);
+      if (Number.isNaN(parsed)) {
+        const density = 0.5;
+        available.forEach((idx) => { if (Math.random() < density) selected.add(idx); });
+      } else if (parsed > 0) {
+        const target = Math.min(parsed, available.length);
+        while (selected.size < target) {
+          const idx = available[Math.floor(Math.random() * available.length)];
+          selected.add(idx);
+        }
+      }
+    }
+
+    const pulses = Array.from(selected)
+      .sort((a, b) => a - b)
+      .map((base) => ({ base, numerator: null }));
+    state.pulses = normalizePulseList(pulses);
+    persistPulses();
+    renderPulseSequence();
+    clearPulseHelp();
+  }
+}
+
 function parsePulseTokens(text) {
   const raw = (text || '').trim();
   if (!raw) return { pulses: [] };
@@ -917,6 +1106,32 @@ function initSoundMenus() {
   });
 }
 
+function initRandomization() {
+  collectRandomElements();
+  if (!randomElements.button || !randomElements.menu) return;
+
+  applyRandomConfigToInputs(randomConfig);
+  persistRandomConfig();
+
+  const persist = () => persistRandomConfig();
+  [
+    randomElements.randLgToggle,
+    randomElements.randLgMin,
+    randomElements.randLgMax,
+    randomElements.randVToggle,
+    randomElements.randVMin,
+    randomElements.randVMax,
+    randomElements.randPulsesToggle,
+    randomElements.randomCount
+  ].forEach((element) => {
+    element?.addEventListener('change', persist);
+  });
+
+  randomElements.randomCount?.addEventListener('input', persist);
+
+  initRandomMenu(randomElements.button, randomElements.menu, randomize);
+}
+
 function init() {
   document.body.dataset.appId = APP_ID;
   setupParameterInputs();
@@ -924,6 +1139,7 @@ function init() {
   updateFractionDisplay();
   updateLgDisplay();
   renderPulseSequence();
+  initRandomization();
   initSoundMenus();
   initMixerMenuForApp();
   syncSelectedChannel();
