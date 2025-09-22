@@ -1,4 +1,4 @@
-import { TimelineAudio, ensureAudio } from '../../libs/sound/index.js';
+import { TimelineAudio, ensureAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
@@ -67,12 +67,24 @@ const randomCount = document.getElementById('randomCount');
 const randTToggle = document.getElementById('randTToggle');
 const randTMin = document.getElementById('randTMin');
 const randTMax = document.getElementById('randTMax');
+const randNToggle = document.getElementById('randNToggle');
+const randNMin = document.getElementById('randNMin');
+const randNMax = document.getElementById('randNMax');
+const randDToggle = document.getElementById('randDToggle');
+const randDMin = document.getElementById('randDMin');
+const randDMax = document.getElementById('randDMax');
+const randComplexToggle = document.getElementById('randComplexToggle');
 // Mute is managed by the shared header (#muteBtn)
 const themeSelect = document.getElementById('themeSelect');
 const selectColor = document.getElementById('selectColor');
 const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
+const pulseToggleBtn = document.getElementById('pulseToggleBtn');
+const selectedToggleBtn = document.getElementById('selectedToggleBtn');
+const cycleToggleBtn = document.getElementById('cycleToggleBtn');
+
+const globalMixer = getMixer();
 
 const FRACTION_NUMERATOR_KEY = 'n';
 const FRACTION_DENOMINATOR_KEY = 'd';
@@ -94,7 +106,10 @@ const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
   V: { enabled: true, range: [40, 320] },
   T: { enabled: true, range: [0.1, 20] },
-  Pulses: { enabled: true, count: '' }
+  Pulses: { enabled: true, count: '' },
+  n: { enabled: true, range: [1, 9] },
+  d: { enabled: true, range: [1, 9] },
+  allowComplex: true
 };
 
 const RANDOM_STORE_KEY = 'random';
@@ -114,21 +129,43 @@ function saveRandomConfig(cfg) {
 
 const randomConfig = { ...randomDefaults, ...loadRandomConfig() };
 
+function toIntRange(minInput, maxInput, fallback) {
+  const fallbackRange = Array.isArray(fallback) ? fallback : [1, 1];
+  const [lo, hi] = toRange(minInput, maxInput, fallbackRange);
+  const normalizedLo = Number.isFinite(lo) ? Math.max(1, Math.round(lo)) : fallbackRange[0];
+  const normalizedHiRaw = Number.isFinite(hi) ? Math.round(hi) : fallbackRange[1];
+  const normalizedHi = Math.max(normalizedLo, Math.max(1, normalizedHiRaw));
+  return [normalizedLo, normalizedHi];
+}
+
 /**
  * Apply stored random configuration values to the associated DOM controls.
  * @param {Record<string, any>} cfg
  */
 function applyRandomConfig(cfg) {
-  randLgToggle.checked = cfg.Lg.enabled;
-  randLgMin.value = cfg.Lg.range[0];
-  randLgMax.value = cfg.Lg.range[1];
-  randVToggle.checked = cfg.V.enabled;
-  randVMin.value = cfg.V.range[0];
-  randVMax.value = cfg.V.range[1];
+  if (randLgToggle) randLgToggle.checked = cfg.Lg.enabled;
+  if (randLgMin) randLgMin.value = cfg.Lg.range[0];
+  if (randLgMax) randLgMax.value = cfg.Lg.range[1];
+  if (randVToggle) randVToggle.checked = cfg.V.enabled;
+  if (randVMin) randVMin.value = cfg.V.range[0];
+  if (randVMax) randVMax.value = cfg.V.range[1];
   if (cfg.T) {
     if (randTToggle) randTToggle.checked = cfg.T.enabled;
     if (randTMin) randTMin.value = cfg.T.range[0];
     if (randTMax) randTMax.value = cfg.T.range[1];
+  }
+  if (cfg.n && randNToggle && randNMin && randNMax) {
+    randNToggle.checked = cfg.n.enabled;
+    randNMin.value = cfg.n.range[0];
+    randNMax.value = cfg.n.range[1];
+  }
+  if (cfg.d && randDToggle && randDMin && randDMax) {
+    randDToggle.checked = cfg.d.enabled;
+    randDMin.value = cfg.d.range[0];
+    randDMax.value = cfg.d.range[1];
+  }
+  if (typeof cfg.allowComplex === 'boolean' && randComplexToggle) {
+    randComplexToggle.checked = cfg.allowComplex;
   }
   if (randPulsesToggle && randomCount) {
     randPulsesToggle.checked = cfg.Pulses.enabled;
@@ -156,6 +193,25 @@ function updateRandomConfig() {
       ? toRange(randTMin?.value, randTMax?.value, previousTRange)
       : previousTRange
   };
+  const previousNRange = randomConfig.n?.range ?? randomDefaults.n.range;
+  randomConfig.n = {
+    enabled: randNToggle ? randNToggle.checked : (randomConfig.n?.enabled ?? randomDefaults.n.enabled),
+    range: (randNMin && randNMax)
+      ? toIntRange(randNMin.value, randNMax.value, previousNRange)
+      : previousNRange
+  };
+  const previousDRange = randomConfig.d?.range ?? randomDefaults.d.range;
+  randomConfig.d = {
+    enabled: randDToggle ? randDToggle.checked : (randomConfig.d?.enabled ?? randomDefaults.d.enabled),
+    range: (randDMin && randDMax)
+      ? toIntRange(randDMin.value, randDMax.value, previousDRange)
+      : previousDRange
+  };
+  if (randComplexToggle) {
+    randomConfig.allowComplex = randComplexToggle.checked;
+  } else if (typeof randomConfig.allowComplex !== 'boolean') {
+    randomConfig.allowComplex = randomDefaults.allowComplex;
+  }
   if (randPulsesToggle && randomCount) {
     randomConfig.Pulses = {
       enabled: randPulsesToggle.checked,
@@ -171,6 +227,9 @@ applyRandomConfig(randomConfig);
   randLgToggle, randLgMin, randLgMax,
   randVToggle, randVMin, randVMax,
   randTToggle, randTMin, randTMax,
+  randNToggle, randNMin, randNMax,
+  randDToggle, randDMin, randDMax,
+  randComplexToggle,
   randPulsesToggle, randomCount
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
@@ -202,6 +261,15 @@ function gcd(a, b) {
     y = temp;
   }
   return x || 1;
+}
+
+function lcm(a, b) {
+  const x = Math.abs(Math.round(Number(a) || 0));
+  const y = Math.abs(Math.round(Number(b) || 0));
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) {
+    return 1;
+  }
+  return Math.abs((x / gcd(x, y)) * y) || 1;
 }
 
 function computeFractionInfo(numerator, denominator) {
@@ -477,6 +545,7 @@ let fractionalPulseSelections = [];
 let pulseSeqFractionNumeratorEl = null;
 let pulseSeqFractionDenominatorEl = null;
 let lastFractionGap = null;
+let currentAudioResolution = 1;
 
 function ensurePulseMemory(size) {
   if (size >= pulseMemory.length) {
@@ -574,15 +643,79 @@ function setFractionSelected(info, shouldSelect) {
   rebuildFractionSelections();
 }
 
-// --- Selecció viva per a l'àudio (filtrada: sense 0 ni lg) ---
-function selectedForAudioFromState() {
+function computeAudioSchedulingState() {
   const lg = parseInt(inputLg.value);
+  const v = parseFloat(inputV.value);
+  const { numerator, denominator } = getFraction();
+
+  const validLg = Number.isFinite(lg) && lg > 0;
+  const validV = Number.isFinite(v) && v > 0;
+
+  const grid = gridFromOrigin({ lg: validLg ? lg : 0, numerator, denominator });
+  const denominators = new Set([1]);
+  if (Number.isFinite(grid.denominator) && grid.denominator > 0) {
+    denominators.add(Math.round(grid.denominator));
+  }
+  fractionalPulseSelections.forEach((item) => {
+    if (!item) return;
+    const den = Number(item.denominator);
+    if (Number.isFinite(den) && den > 0) {
+      denominators.add(Math.round(den));
+    }
+  });
+
+  let resolution = 1;
+  denominators.forEach((den) => {
+    resolution = Math.max(1, Math.round(lcm(resolution, Math.max(1, den))));
+  });
+
+  const playbackTotal = validLg ? toPlaybackPulseCount(lg, loopEnabled) : null;
+  const totalPulses = playbackTotal != null ? playbackTotal * resolution : null;
+  const interval = validV ? (60 / v) / resolution : null;
+  const patternBeats = validLg ? lg * resolution : null;
+
+  const cycleNumerator = Number.isFinite(grid?.numerator) && grid.numerator > 0 ? grid.numerator : null;
+  const cycleDenominator = Number.isFinite(grid?.denominator) && grid.denominator > 0 ? grid.denominator : null;
+  const hasCycle = grid && grid.cycles > 0 && cycleNumerator != null && cycleDenominator != null;
+  const cycleConfig = hasCycle
+    ? { numerator: cycleNumerator * resolution, denominator: cycleDenominator, onTick: highlightCycle }
+    : null;
+
+  return {
+    resolution,
+    totalPulses,
+    interval,
+    patternBeats,
+    cycleConfig,
+    validLg,
+    validV,
+    grid
+  };
+}
+
+// --- Selecció viva per a l'àudio (filtrada: sense 0 ni lg) ---
+function selectedForAudioFromState({ resolution } = {}) {
+  const lg = parseInt(inputLg.value);
+  const scale = Number.isFinite(resolution) && resolution > 0
+    ? Math.max(1, Math.round(resolution))
+    : Math.max(1, Math.round(currentAudioResolution));
   const set = new Set();
-  if (!isNaN(lg) && lg > 0) {
-    for (let i = 1; i < lg && i < pulseMemory.length; i++) {
-      if (pulseMemory[i]) set.add(i);
+  if (!Number.isFinite(lg) || lg <= 0) {
+    return set;
+  }
+  const maxIdx = Math.min(lg, pulseMemory.length - 1);
+  for (let i = 1; i <= maxIdx; i++) {
+    if (pulseMemory[i]) {
+      set.add(i * scale);
     }
   }
+  const epsilon = 1e-6;
+  fractionalPulseSelections.forEach((item) => {
+    if (!item || !Number.isFinite(item.value)) return;
+    if (item.value <= 0 || item.value >= lg) return;
+    const scaled = Math.round(item.value * scale + epsilon);
+    set.add(scaled);
+  });
   return set;
 }
 const selectedPulses = new Set();
@@ -905,6 +1038,16 @@ attachHover(randTMin, { text: 'Mínimo T' });
 attachHover(randTMax, { text: 'Máximo T' });
 attachHover(randPulsesToggle, { text: 'Aleatorizar pulsos' });
 attachHover(randomCount, { text: 'Cantidad de pulsos a seleccionar (vacío = aleatorio, 0 = ninguno)' });
+attachHover(randNToggle, { text: 'Aleatorizar numerador' });
+attachHover(randNMin, { text: 'Mínimo numerador' });
+attachHover(randNMax, { text: 'Máximo numerador' });
+attachHover(randDToggle, { text: 'Aleatorizar denominador' });
+attachHover(randDMin, { text: 'Mínimo denominador' });
+attachHover(randDMax, { text: 'Máximo denominador' });
+attachHover(randComplexToggle, { text: 'Permitir fracciones complejas' });
+if (pulseToggleBtn) attachHover(pulseToggleBtn, { text: 'Activar o silenciar el pulso' });
+if (selectedToggleBtn) attachHover(selectedToggleBtn, { text: 'Activar o silenciar la selección' });
+if (cycleToggleBtn) attachHover(cycleToggleBtn, { text: 'Activar o silenciar la subdivisión' });
 
 
 const STORE_PREFIX = 'app4:';
@@ -912,6 +1055,112 @@ const storeKey = (k) => `${STORE_PREFIX}${k}`;
 const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
 const loadOpt = (k) => { try { return localStorage.getItem(storeKey(k)); } catch { return null; } };
 const clearOpt = (k) => { try { localStorage.removeItem(storeKey(k)); } catch {} };
+
+const PULSE_AUDIO_KEY = 'pulseAudio';
+const SELECTED_AUDIO_KEY = 'selectedAudio';
+const CYCLE_AUDIO_KEY = 'cycleAudio';
+
+let pulseAudioEnabled = true;
+let selectedAudioEnabled = true;
+let cycleAudioEnabled = true;
+
+function syncToggleButton(button, enabled) {
+  if (!button) return;
+  button.classList.toggle('active', enabled);
+  button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+  button.dataset.state = enabled ? 'on' : 'off';
+}
+
+function setPulseAudio(value, { persist = true } = {}) {
+  const enabled = value !== false;
+  pulseAudioEnabled = enabled;
+  syncToggleButton(pulseToggleBtn, enabled);
+  if (persist) {
+    saveOpt(PULSE_AUDIO_KEY, enabled ? '1' : '0');
+  }
+  if (globalMixer) {
+    globalMixer.setChannelMute('pulse', !enabled);
+  }
+  if (audio && typeof audio.setPulseEnabled === 'function') {
+    audio.setPulseEnabled(enabled);
+  }
+}
+
+function setSelectedAudio(value, { persist = true } = {}) {
+  const enabled = value !== false;
+  selectedAudioEnabled = enabled;
+  syncToggleButton(selectedToggleBtn, enabled);
+  if (persist) {
+    saveOpt(SELECTED_AUDIO_KEY, enabled ? '1' : '0');
+  }
+  if (globalMixer) {
+    globalMixer.setChannelMute('accent', !enabled);
+  }
+}
+
+function setCycleAudio(value, { persist = true } = {}) {
+  const enabled = value !== false;
+  cycleAudioEnabled = enabled;
+  syncToggleButton(cycleToggleBtn, enabled);
+  if (persist) {
+    saveOpt(CYCLE_AUDIO_KEY, enabled ? '1' : '0');
+  }
+  if (globalMixer) {
+    globalMixer.setChannelMute('subdivision', !enabled);
+  }
+  if (audio && typeof audio.setCycleEnabled === 'function') {
+    audio.setCycleEnabled(enabled);
+  }
+}
+
+const storedPulseAudio = loadOpt(PULSE_AUDIO_KEY);
+if (storedPulseAudio === '0') {
+  setPulseAudio(false, { persist: false });
+} else {
+  setPulseAudio(true, { persist: false });
+}
+
+const storedSelectedAudio = loadOpt(SELECTED_AUDIO_KEY);
+if (storedSelectedAudio === '0') {
+  setSelectedAudio(false, { persist: false });
+} else {
+  setSelectedAudio(true, { persist: false });
+}
+
+const storedCycleAudio = loadOpt(CYCLE_AUDIO_KEY);
+if (storedCycleAudio === '0') {
+  setCycleAudio(false, { persist: false });
+} else {
+  setCycleAudio(true, { persist: false });
+}
+
+pulseToggleBtn?.addEventListener('click', () => {
+  setPulseAudio(!pulseAudioEnabled);
+});
+
+selectedToggleBtn?.addEventListener('click', () => {
+  setSelectedAudio(!selectedAudioEnabled);
+});
+
+cycleToggleBtn?.addEventListener('click', () => {
+  setCycleAudio(!cycleAudioEnabled);
+});
+
+subscribeMixer((snapshot) => {
+  if (!snapshot || !Array.isArray(snapshot.channels)) return;
+  const findChannel = (id) => snapshot.channels.find(channel => channel.id === id);
+
+  const syncFromChannel = (channelState, setter, current) => {
+    if (!channelState) return;
+    const shouldEnable = !channelState.muted;
+    if (current === shouldEnable) return;
+    setter(shouldEnable);
+  };
+
+  syncFromChannel(findChannel('pulse'), setPulseAudio, pulseAudioEnabled);
+  syncFromChannel(findChannel('accent'), setSelectedAudio, selectedAudioEnabled);
+  syncFromChannel(findChannel('subdivision'), setCycleAudio, cycleAudioEnabled);
+});
 
 function clearStoredPreferences() {
   try {
@@ -1071,25 +1320,48 @@ function randomInt(min, max) {
  * Apply random values within the configured ranges and update inputs accordingly.
  */
 function randomize() {
-  if (randLgToggle?.checked) {
-    const [lo, hi] = toRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range);
-    const v = randomInt(lo, hi);
-    setValue(inputLg, v);
+  const cfg = randomConfig || randomDefaults;
+  if (cfg.Lg?.enabled && inputLg) {
+    const [lo, hi] = cfg.Lg.range ?? randomDefaults.Lg.range;
+    const value = randomInt(lo, hi);
+    setValue(inputLg, value);
     handleInput({ target: inputLg });
   }
-  if (randVToggle?.checked) {
-    const [lo, hi] = toRange(randVMin?.value, randVMax?.value, randomDefaults.V.range);
-    const v = randomInt(lo, hi);
-    setValue(inputV, v);
+  if (cfg.V?.enabled && inputV) {
+    const [lo, hi] = cfg.V.range ?? randomDefaults.V.range;
+    const value = randomInt(lo, hi);
+    setValue(inputV, value);
     handleInput({ target: inputV });
   }
-  if (randPulsesToggle?.checked) {
+  let fractionChanged = false;
+  if (cfg.n?.enabled && numeratorInput) {
+    let [min, max] = cfg.n.range ?? randomDefaults.n.range;
+    if (!cfg.allowComplex) {
+      min = 1;
+      max = 1;
+    }
+    const value = Math.max(1, randomInt(min, max));
+    setValue(numeratorInput, value);
+    fractionChanged = true;
+  }
+  if (cfg.d?.enabled && denominatorInput) {
+    const [min, max] = cfg.d.range ?? randomDefaults.d.range;
+    const value = Math.max(1, randomInt(min, max));
+    setValue(denominatorInput, value);
+    fractionChanged = true;
+  }
+  if (fractionChanged) {
+    persistFractionField(numeratorInput, FRACTION_NUMERATOR_KEY);
+    persistFractionField(denominatorInput, FRACTION_DENOMINATOR_KEY);
+    handleInput();
+  }
+  if (cfg.Pulses?.enabled) {
     // Reset persistent selection memory so old pulses don't reappear when Lg grows
     clearPersistentPulses();
     const lg = parseInt(inputLg.value);
     if (!isNaN(lg) && lg > 0) {
       ensurePulseMemory(lg);
-      const rawCount = typeof randomCount.value === 'string' ? randomCount.value.trim() : '';
+      const rawCount = randomCount && typeof randomCount.value === 'string' ? randomCount.value.trim() : '';
       const available = [];
       for (let i = 1; i < lg; i++) available.push(i);
       const selected = new Set();
@@ -1161,6 +1433,15 @@ async function initAudio(){
   audio.setAccent(accentSoundSelect.dataset.value);
   audio.setStart(startSoundSelect.dataset.value);
   schedulingBridge.applyTo(audio);
+  if (typeof audio.setPulseEnabled === 'function') {
+    audio.setPulseEnabled(pulseAudioEnabled);
+  }
+  if (typeof audio.setCycleEnabled === 'function') {
+    audio.setCycleEnabled(cycleAudioEnabled);
+  }
+  if (typeof audio.setLoop === 'function') {
+    audio.setLoop(loopEnabled);
+  }
   return audio;
 }
 
@@ -1637,21 +1918,29 @@ function handleInput(){
   updateAutoIndicator();
 
   if (isPlaying && audio) {
-    const lgNow = parseInt(inputLg.value);
-    const vNow  = parseFloat(inputV.value);
+    const scheduling = computeAudioSchedulingState();
+    currentAudioResolution = Math.max(1, Math.round(scheduling.resolution || 1));
     if (typeof audio.setSelected === 'function') {
-      audio.setSelected(selectedForAudioFromState());
+      audio.setSelected(selectedForAudioFromState({ resolution: currentAudioResolution }));
     }
-    const validLg = Number.isFinite(lgNow) && lgNow > 0;
-    const validV = Number.isFinite(vNow) && vNow > 0;
-    if (typeof audio.updateTransport === 'function' && (validLg || validV)) {
-      const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
-      audio.updateTransport({
-        totalPulses: playbackTotal != null ? playbackTotal : undefined,
-        bpm: validV ? vNow : undefined
-      });
+    const vNow = parseFloat(inputV.value);
+    const transportPayload = {};
+    if (scheduling.totalPulses != null) {
+      transportPayload.totalPulses = scheduling.totalPulses;
     }
-    if (validLg && validV) {
+    if (scheduling.validV && Number.isFinite(vNow) && vNow > 0) {
+      transportPayload.bpm = vNow * currentAudioResolution;
+    }
+    if (scheduling.patternBeats != null) {
+      transportPayload.patternBeats = scheduling.patternBeats;
+    }
+    if (scheduling.cycleConfig) {
+      transportPayload.cycle = scheduling.cycleConfig;
+    }
+    if (typeof audio.updateTransport === 'function' && (scheduling.validLg || scheduling.validV)) {
+      audio.updateTransport(transportPayload);
+    }
+    if (scheduling.validLg && scheduling.validV && Number.isFinite(vNow) && vNow > 0) {
       scheduleZeroResync(vNow);
     }
   }
@@ -2234,6 +2523,7 @@ function handlePlaybackStop(audioInstance) {
   if (audioInstance && typeof audioInstance.stop === 'function') {
     try { audioInstance.stop(); } catch {}
   }
+  currentAudioResolution = 1;
   const ed = getEditEl();
   if (ed) {
     ed.classList.remove('playing');
@@ -2265,17 +2555,12 @@ async function startPlayback(providedAudio) {
   await audioInstance.setAccent(accentSoundSelect.dataset.value);
   await audioInstance.setStart(startSoundSelect.dataset.value);
 
-  const timing = fromLgAndTempo(lg, v);
-  if (!timing || timing.interval == null) {
+  const scheduling = computeAudioSchedulingState();
+  if (scheduling.interval == null || scheduling.totalPulses == null) {
     return false;
   }
-
-  const interval = timing.interval;
-  const playbackTotal = toPlaybackPulseCount(lg, loopEnabled);
-  if (playbackTotal == null) {
-    return false;
-  }
-  const selectedForAudio = selectedForAudioFromState();
+  currentAudioResolution = Math.max(1, Math.round(scheduling.resolution || 1));
+  const selectedForAudio = selectedForAudioFromState({ resolution: currentAudioResolution });
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
 
@@ -2283,7 +2568,23 @@ async function startPlayback(providedAudio) {
     handlePlaybackStop(audioInstance);
   };
 
-  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
+  const playOptions = {};
+  if (scheduling.patternBeats != null) {
+    playOptions.patternBeats = scheduling.patternBeats;
+  }
+  if (scheduling.cycleConfig) {
+    playOptions.cycle = scheduling.cycleConfig;
+  }
+
+  audioInstance.play(
+    scheduling.totalPulses,
+    scheduling.interval,
+    selectedForAudio,
+    loopEnabled,
+    highlightPulse,
+    onFinish,
+    playOptions
+  );
 
   syncVisualState();
   startVisualSync();
@@ -2333,8 +2634,19 @@ function highlightPulse(i){
 
   if (!pulses || pulses.length === 0) return;
 
+  const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
+  const total = pulses.length;
+  const baseLength = Math.max(1, total - 1);
+  const rawStep = Number(i);
+  const normalized = Number.isFinite(rawStep) ? Math.floor(rawStep / resolution) : 0;
+  let idx;
+  if (loopEnabled) {
+    idx = baseLength > 0 ? ((normalized % baseLength) + baseLength) % baseLength : 0;
+  } else {
+    idx = Math.max(0, Math.min(normalized, total - 1));
+  }
+
   // il·lumina el pols actual
-  const idx = i % pulses.length;
   const current = pulses[idx];
   if (current) {
     // Força un reflow perquè l'animació es reiniciï encara que es repeteixi el mateix pols
@@ -2487,6 +2799,7 @@ initMixerMenu({
   triggers: mixerTriggers,
   channels: [
     { id: 'pulse',  label: 'Pulso/Pulso 0', allowSolo: true },
+    { id: 'subdivision', label: 'Subdivisión',  allowSolo: true },
     { id: 'accent', label: 'Seleccionado',  allowSolo: true },
     { id: 'master', label: 'Master',        allowSolo: false, isMaster: true }
   ]
