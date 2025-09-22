@@ -2,6 +2,7 @@ import { TimelineAudio, ensureAudio } from '../../libs/sound/index.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
+import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { toRange } from '../../libs/app-common/range.js';
@@ -72,6 +73,22 @@ const selectColor = document.getElementById('selectColor');
 const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
+
+const FRACTION_NUMERATOR_KEY = 'n';
+const FRACTION_DENOMINATOR_KEY = 'd';
+const fractionDefaults = {
+  numerator: 2,
+  denominator: 3
+};
+
+let numeratorInput;
+let denominatorInput;
+let ghostFractionContainer;
+let ghostNumeratorText;
+let ghostDenominatorText;
+const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
+const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
+let currentFractionInfo = createEmptyFractionInfo();
 
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
@@ -157,6 +174,279 @@ applyRandomConfig(randomConfig);
   randPulsesToggle, randomCount
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
+function parseIntSafe(val) {
+  const n = Number.parseInt(val, 10);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function createEmptyFractionInfo() {
+  return {
+    numerator: null,
+    denominator: null,
+    reducedNumerator: null,
+    reducedDenominator: null,
+    isMultiple: false,
+    multipleFactor: 1
+  };
+}
+
+function gcd(a, b) {
+  let x = Math.abs(Number(a));
+  let y = Math.abs(Number(b));
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) {
+    return Number.isFinite(x) && x > 0 ? x : Number.isFinite(y) && y > 0 ? y : 1;
+  }
+  while (y !== 0) {
+    const temp = x % y;
+    x = y;
+    y = temp;
+  }
+  return x || 1;
+}
+
+function computeFractionInfo(numerator, denominator) {
+  const info = createEmptyFractionInfo();
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || numerator <= 0 || denominator <= 0) {
+    return info;
+  }
+  info.numerator = numerator;
+  info.denominator = denominator;
+  const divisor = gcd(numerator, denominator);
+  if (divisor <= 1) {
+    return info;
+  }
+  info.reducedNumerator = numerator / divisor;
+  info.reducedDenominator = denominator / divisor;
+  info.isMultiple = true;
+  info.multipleFactor = denominator / info.reducedDenominator;
+  return info;
+}
+
+function buildReductionHoverText(info) {
+  if (!info || !info.isMultiple) return '';
+  const accentEvery = Math.max(1, Math.round(info.multipleFactor));
+  const noun = accentEvery === 1 ? 'subdivisión' : 'subdivisiones';
+  return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}. Se repite ${accentEvery} veces la misma subdivisión en cada fracción ${info.numerator}/${info.denominator}.`;
+}
+
+function updateFractionGhost(info) {
+  if (!ghostFractionContainer || !ghostNumeratorText || !ghostDenominatorText) return;
+  if (!info || !info.isMultiple) {
+    ghostFractionContainer.classList.add('fraction-ghost--hidden');
+    ghostFractionContainer.classList.remove('fraction-ghost--visible');
+    ghostNumeratorText.textContent = '';
+    ghostDenominatorText.textContent = '';
+    return;
+  }
+  ghostNumeratorText.textContent = info.reducedNumerator;
+  ghostDenominatorText.textContent = info.reducedDenominator;
+  ghostFractionContainer.classList.remove('fraction-ghost--hidden');
+  ghostFractionContainer.classList.add('fraction-ghost--visible');
+}
+
+function updateFractionHover(info) {
+  if (!numeratorInput || !denominatorInput) return;
+  if (info && info.isMultiple) {
+    const message = buildReductionHoverText(info);
+    numeratorInput.dataset.hoverText = message;
+    denominatorInput.dataset.hoverText = message;
+  } else {
+    numeratorInput.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
+    denominatorInput.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
+  }
+}
+
+function updateFractionUI(numerator, denominator) {
+  currentFractionInfo = computeFractionInfo(numerator, denominator);
+  updateFractionGhost(currentFractionInfo);
+  updateFractionHover(currentFractionInfo);
+}
+
+function persistFractionField(input, key) {
+  if (!input || !key) return;
+  const value = parseIntSafe(input.value);
+  if (!Number.isFinite(value) || value <= 0) {
+    clearOpt(key);
+    return;
+  }
+  saveOpt(key, String(value));
+}
+
+function adjustInput(input, delta) {
+  if (!input) return;
+  const current = parseIntSafe(input.value);
+  const next = Number.isFinite(current) ? Math.max(1, current + delta) : 1;
+  setValue(input, next);
+  handleInput();
+  if (input === numeratorInput) {
+    persistFractionField(input, FRACTION_NUMERATOR_KEY);
+  } else if (input === denominatorInput) {
+    persistFractionField(input, FRACTION_DENOMINATOR_KEY);
+  }
+}
+
+function initFractionEditor() {
+  const slot = document.getElementById(FRACTION_INLINE_SLOT_ID);
+  if (!slot) return;
+  slot.innerHTML = '';
+  slot.classList.add('fraction-inline-slot');
+
+  const container = document.createElement('div');
+  container.className = 'fraction-editor';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'fraction-editor-wrapper';
+
+  ghostFractionContainer = document.createElement('div');
+  ghostFractionContainer.className = 'fraction-ghost fraction-ghost--hidden';
+  ghostFractionContainer.setAttribute('aria-hidden', 'true');
+
+  const ghostNumeratorWrapper = document.createElement('div');
+  ghostNumeratorWrapper.className = 'fraction-ghost__numerator';
+  ghostNumeratorText = document.createElement('span');
+  ghostNumeratorText.className = 'fraction-ghost__number';
+  ghostNumeratorWrapper.appendChild(ghostNumeratorText);
+
+  const ghostBar = document.createElement('div');
+  ghostBar.className = 'fraction-ghost__bar';
+
+  const ghostDenominatorWrapper = document.createElement('div');
+  ghostDenominatorWrapper.className = 'fraction-ghost__denominator';
+  ghostDenominatorText = document.createElement('span');
+  ghostDenominatorText.className = 'fraction-ghost__number';
+  ghostDenominatorWrapper.appendChild(ghostDenominatorText);
+
+  ghostFractionContainer.appendChild(ghostNumeratorWrapper);
+  ghostFractionContainer.appendChild(ghostBar);
+  ghostFractionContainer.appendChild(ghostDenominatorWrapper);
+
+  wrapper.appendChild(ghostFractionContainer);
+  wrapper.appendChild(container);
+  slot.appendChild(wrapper);
+
+  const createField = ({ wrapperClass, placeholder, ariaUp, ariaDown }) => {
+    const fieldWrapper = document.createElement('div');
+    fieldWrapper.className = `fraction-field ${wrapperClass}`;
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '1';
+    input.step = '1';
+    input.placeholder = placeholder;
+    input.value = '';
+    input.className = wrapperClass;
+    fieldWrapper.appendChild(input);
+
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+    const up = document.createElement('button');
+    up.type = 'button';
+    up.className = 'spin up';
+    if (ariaUp) up.setAttribute('aria-label', ariaUp);
+    const down = document.createElement('button');
+    down.type = 'button';
+    down.className = 'spin down';
+    if (ariaDown) down.setAttribute('aria-label', ariaDown);
+    spinner.appendChild(up);
+    spinner.appendChild(down);
+    fieldWrapper.appendChild(spinner);
+
+    return { wrapper: fieldWrapper, input, up, down };
+  };
+
+  const top = document.createElement('div');
+  top.className = 'top';
+  const numeratorField = createField({
+    wrapperClass: 'numerator',
+    placeholder: 'n',
+    ariaUp: 'Incrementar numerador',
+    ariaDown: 'Decrementar numerador'
+  });
+  numeratorInput = numeratorField.input;
+  top.appendChild(numeratorField.wrapper);
+
+  const bottom = document.createElement('div');
+  bottom.className = 'bottom';
+  const denominatorField = createField({
+    wrapperClass: 'denominator',
+    placeholder: 'd',
+    ariaUp: 'Incrementar denominador',
+    ariaDown: 'Decrementar denominador'
+  });
+  denominatorInput = denominatorField.input;
+  bottom.appendChild(denominatorField.wrapper);
+
+  container.appendChild(top);
+  container.appendChild(bottom);
+
+  if (numeratorInput) {
+    numeratorInput.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
+    attachHover(numeratorInput, { text: DEFAULT_NUMERATOR_HOVER_TEXT });
+  }
+  if (denominatorInput) {
+    denominatorInput.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
+    attachHover(denominatorInput, { text: DEFAULT_DENOMINATOR_HOVER_TEXT });
+  }
+
+  const enforceInt = (input, storageKey) => {
+    if (!input) return;
+    const normalize = () => {
+      let val = parseIntSafe(input.value);
+      if (!Number.isFinite(val) || val <= 0) {
+        input.value = '';
+      } else {
+        input.value = String(val);
+      }
+      persistFractionField(input, storageKey);
+      handleInput();
+    };
+    input.addEventListener('input', normalize);
+    input.addEventListener('blur', normalize);
+  };
+
+  enforceInt(numeratorInput, FRACTION_NUMERATOR_KEY);
+  enforceInt(denominatorInput, FRACTION_DENOMINATOR_KEY);
+
+  addRepeatPress(numeratorField.up, () => adjustInput(numeratorInput, +1));
+  addRepeatPress(numeratorField.down, () => adjustInput(numeratorInput, -1));
+  addRepeatPress(denominatorField.up, () => adjustInput(denominatorInput, +1));
+  addRepeatPress(denominatorField.down, () => adjustInput(denominatorInput, -1));
+}
+
+function getFraction() {
+  const rawNumerator = numeratorInput ? parseIntSafe(numeratorInput.value) : NaN;
+  const rawDenominator = denominatorInput ? parseIntSafe(denominatorInput.value) : NaN;
+  return {
+    numerator: Number.isFinite(rawNumerator) && rawNumerator > 0 ? rawNumerator : null,
+    denominator: Number.isFinite(rawDenominator) && rawDenominator > 0 ? rawDenominator : null
+  };
+}
+
+function initFractionState() {
+  if (!numeratorInput || !denominatorInput) return;
+  const storedNumerator = parseIntSafe(loadOpt(FRACTION_NUMERATOR_KEY));
+  const storedDenominator = parseIntSafe(loadOpt(FRACTION_DENOMINATOR_KEY));
+
+  const numerator = Number.isFinite(storedNumerator) && storedNumerator > 0
+    ? storedNumerator
+    : fractionDefaults.numerator;
+  const denominator = Number.isFinite(storedDenominator) && storedDenominator > 0
+    ? storedDenominator
+    : fractionDefaults.denominator;
+
+  setValue(numeratorInput, numerator);
+  setValue(denominatorInput, denominator);
+
+  if (!(Number.isFinite(storedNumerator) && storedNumerator > 0)) {
+    saveOpt(FRACTION_NUMERATOR_KEY, String(numerator));
+  }
+  if (!(Number.isFinite(storedDenominator) && storedDenominator > 0)) {
+    saveOpt(FRACTION_DENOMINATOR_KEY, String(denominator));
+  }
+
+  updateFractionUI(numerator, denominator);
+}
+
 // No actualitza la memòria a cada tecleig: es confirma amb Enter o blur
 // pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
 
@@ -224,6 +514,7 @@ function setupPulseSeqMarkup(){
   );
 }
 setupPulseSeqMarkup();
+initFractionEditor();
 
 // Highlight overlay for pulse sequence numbers during playback
 const pulseSeqHighlight = document.createElement('div');
@@ -391,13 +682,15 @@ attachHover(randPulsesToggle, { text: 'Aleatorizar pulsos' });
 attachHover(randomCount, { text: 'Cantidad de pulsos a seleccionar (vacío = aleatorio, 0 = ninguno)' });
 
 
-const storeKey = (k) => `app2:${k}`;
+const STORE_PREFIX = 'app4:';
+const storeKey = (k) => `${STORE_PREFIX}${k}`;
 const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
 const loadOpt = (k) => { try { return localStorage.getItem(storeKey(k)); } catch { return null; } };
+const clearOpt = (k) => { try { localStorage.removeItem(storeKey(k)); } catch {} };
 
 function clearStoredPreferences() {
   try {
-    const prefix = 'app2:';
+    const prefix = STORE_PREFIX;
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -414,6 +707,8 @@ window.addEventListener('sharedui:factoryreset', () => {
   clearStoredPreferences();
   window.location.reload();
 });
+
+initFractionState();
 
 // Local header behavior (as before)
 function applyTheme(val){
@@ -925,6 +1220,9 @@ function handleInput(){
   const hasV  = !isNaN(v)  && v  > 0;
 
   if (isUpdating) return;
+
+  const { numerator, denominator } = getFraction();
+  updateFractionUI(numerator, denominator);
 
   let indicatorValue = '';
   if (hasLg && hasV) {
