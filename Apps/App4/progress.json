@@ -1,0 +1,9 @@
+{
+  "step": 1,
+  "done": [
+    "Tarjeta de App4 añadida en la landing",
+    "Base de la app generada con placeholder y gancho Play"
+  ],
+  "next": "Integrar motor de audio y mixer (Iteración 2)",
+  "notes": "Estructura inicial lista, esperando wiring de audio y menús."
+}

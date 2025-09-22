@@ -1,0 +1,56 @@
+body.app4 {
+  --unit-label-offset: -20px;
+}
+
+.app4-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 24px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--line-color);
+  max-width: 420px;
+  margin: 0 auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+body[data-theme='dark'] .app4-placeholder {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.app4-placeholder h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  letter-spacing: 0.02em;
+}
+
+.app4-placeholder p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.app4-placeholder__status {
+  font-size: 0.95rem;
+  opacity: 0.75;
+}
+
+@media (max-width: 600px) {
+  .app4-placeholder {
+    padding: 18px;
+    gap: 10px;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+  }
+
+  .app4-placeholder h2 {
+    font-size: 1.5rem;
+  }
+
+  .app4-placeholder p {
+    font-size: 1rem;
+  }
+}
