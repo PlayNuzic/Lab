@@ -10,6 +10,8 @@ import {
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { initRandomMenu } from '../../libs/app-common/random-menu.js';
+import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo, computeSubdivisionFontRem, gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { computeHitSizePx, computeNumberFontRem } from '../../libs/app-common/utils.js';
 
@@ -25,6 +27,10 @@ const DEFAULT_PARAMS = Object.freeze({
 
 const selectors = {
   playBtn: () => document.getElementById('playBtn'),
+  loopBtn: () => document.getElementById('loopBtn'),
+  resetBtn: () => document.getElementById('resetBtn'),
+  tapTempoBtn: () => document.getElementById('tapTempoBtn'),
+  tapHelp: () => document.getElementById('tapHelp'),
   baseSoundSelect: () => document.getElementById('baseSoundSelect'),
   selectedSoundSelect: () => document.getElementById('accentSoundSelect'),
   startSoundSelect: () => document.getElementById('startSoundSelect'),
@@ -43,6 +49,16 @@ const selectors = {
   denominatorInput: () => document.getElementById('fractionDenominator'),
   denominatorUp: () => document.getElementById('fractionDenominatorUp'),
   denominatorDown: () => document.getElementById('fractionDenominatorDown'),
+  randomBtn: () => document.getElementById('randomBtn'),
+  randomMenu: () => document.getElementById('randomMenu'),
+  randLgToggle: () => document.getElementById('randLgToggle'),
+  randLgMin: () => document.getElementById('randLgMin'),
+  randLgMax: () => document.getElementById('randLgMax'),
+  randVToggle: () => document.getElementById('randVToggle'),
+  randVMin: () => document.getElementById('randVMin'),
+  randVMax: () => document.getElementById('randVMax'),
+  randPulsesToggle: () => document.getElementById('randPulsesToggle'),
+  randomCount: () => document.getElementById('randomCount'),
   pulseSeqContainer: () => document.getElementById('pulseSeq'),
   timelineWrapper: () => document.getElementById('timelineWrapper'),
   timeline: () => document.getElementById('timeline'),
@@ -63,6 +79,7 @@ const FRACTION_IDS = {
 let audio = null;
 let mixerSyncGuard = false;
 let selectedChannelEnabled = true;
+let lastHighlightedStep = null;
 
 const RANDOM_STORE_KEY = STORE_KEY('random');
 
@@ -108,16 +125,22 @@ const pulseSeqElements = {
   help: null
 };
 
+const initialParams = loadStoredParams();
+
 const state = {
-  params: loadStoredParams(),
-  pulses: normalizePulseList(loadStoredPulses()),
+  params: initialParams,
+  pulses: normalizePulseList(loadStoredPulses(), {
+    denominator: initialParams.denominator,
+    lg: initialParams.Lg
+  }),
   isPlaying: false,
   audioReady: false,
   pendingAudioSync: false,
   selectedIntegers: new Set(),
   selectedFractionals: new Set(),
   selectionAudioEnabled: true,
-  circularTimeline: false
+  circularTimeline: false,
+  loopEnabled: false
 };
 
 const PULSE_NUMBER_HIDE_THRESHOLD = 71;
@@ -157,6 +180,13 @@ function getValidDenominator() {
 
 function fractionKey(base, numerator) {
   return `fraction:${base}:${numerator}`;
+}
+
+function getNormalizationOptions() {
+  return {
+    denominator: getValidDenominator(),
+    lg: getValidLg()
+  };
 }
 
 function buildFractionKey(pulse) {
@@ -558,6 +588,53 @@ function renderPulseHits(lg) {
   });
 }
 
+function clearHighlights() {
+  timelineState.pulses.forEach((pulse) => {
+    if (pulse) pulse.classList.remove('active');
+  });
+  timelineState.integerHits.forEach((entry) => {
+    if (entry?.hit) entry.hit.classList.remove('active');
+    if (entry?.pulse) entry.pulse.classList.remove('active');
+  });
+  timelineState.fractionHits.forEach((entry) => {
+    if (entry?.marker) entry.marker.classList.remove('active');
+    if (entry?.hit) entry.hit.classList.remove('active');
+  });
+}
+
+function highlightStep(step) {
+  const lg = getValidLg();
+  const denominator = getValidDenominator();
+  if (!Number.isFinite(step) || !Number.isFinite(lg) || lg <= 0 || !Number.isFinite(denominator) || denominator <= 0) {
+    return;
+  }
+
+  const total = Math.max(1, Math.round(lg * denominator));
+  const normalized = ((Number(step) % total) + total) % total;
+  const base = Math.floor(normalized / denominator);
+  const numerator = normalized % denominator;
+
+  clearHighlights();
+
+  const pulseEl = Array.isArray(timelineState.pulses) ? timelineState.pulses[base] : null;
+  if (pulseEl) {
+    pulseEl.classList.add('active');
+  }
+
+  if (numerator === 0) {
+    const hitEntry = timelineState.integerHits.get(base);
+    if (hitEntry?.hit) hitEntry.hit.classList.add('active');
+    if (hitEntry?.pulse) hitEntry.pulse.classList.add('active');
+  } else {
+    const key = fractionKey(base, numerator);
+    const fractionEntry = timelineState.fractionHits.get(key);
+    if (fractionEntry?.marker) fractionEntry.marker.classList.add('active');
+    if (fractionEntry?.hit) fractionEntry.hit.classList.add('active');
+  }
+
+  lastHighlightedStep = normalized;
+}
+
 function renderTimeline(opts = {}) {
   const timeline = selectors.timeline();
   const wrapper = selectors.timelineWrapper();
@@ -610,7 +687,11 @@ function renderTimeline(opts = {}) {
   renderCycleMarkers({ lg, numerator, denominator });
   updatePulseNumbers(lg);
   renderPulseHits(lg);
+  clearHighlights();
   layoutTimeline({ silent: opts.silent });
+  if (state.isPlaying && lastHighlightedStep != null) {
+    highlightStep(lastHighlightedStep);
+  }
   updateSelectionVisuals();
 }
 
@@ -798,6 +879,7 @@ function layoutTimeline(opts = {}) {
 }
 
 window.addEventListener('sharedui:factoryreset', () => {
+  stopPlayback();
   clearStoredParams();
   state.params = loadStoredParams();
   state.pulses = [];
@@ -805,6 +887,15 @@ window.addEventListener('sharedui:factoryreset', () => {
   clearSelectionState();
   state.selectionAudioEnabled = true;
   updateSelectionToggleVisual(true);
+  state.loopEnabled = false;
+  lastHighlightedStep = null;
+  const loopBtn = selectors.loopBtn();
+  if (loopBtn) loopBtn.classList.remove('active');
+  const tapHelp = selectors.tapHelp();
+  if (tapHelp) {
+    tapHelp.textContent = 'Se necesitan 3 clicks';
+    tapHelp.style.display = 'none';
+  }
   applyParamsToInputs();
   updateFractionDisplay();
   updateLgDisplay();
@@ -1002,10 +1093,10 @@ function computePulseValue(pulse, denominator) {
   return base + numerator / d;
 }
 
-function normalizePulseList(list) {
+function normalizePulseList(list, { denominator, lg } = {}) {
   if (!Array.isArray(list)) return [];
-  const denominator = state?.params?.denominator;
-  const lg = state?.params?.Lg;
+  const d = Number.isFinite(denominator) && denominator > 0 ? denominator : null;
+  const limitLg = Number.isFinite(lg) && lg > 0 ? lg : null;
   const seen = new Set();
   const normalized = [];
 
@@ -1016,12 +1107,12 @@ function normalizePulseList(list) {
     const numerator = Number.isFinite(rawNumerator) ? Math.max(1, Math.round(rawNumerator)) : null;
 
     if (numerator != null) {
-      if (!Number.isFinite(denominator) || denominator <= 0) return;
-      if (numerator >= denominator) return;
-      if (Number.isFinite(lg) && lg > 0 && base >= lg) return;
+      if (!Number.isFinite(d) || d <= 0) return;
+      if (numerator >= d) return;
+      if (Number.isFinite(limitLg) && limitLg > 0 && base >= limitLg) return;
     } else {
       if (base <= 0) return;
-      if (Number.isFinite(lg) && lg > 0 && base >= lg) return;
+      if (Number.isFinite(limitLg) && limitLg > 0 && base >= limitLg) return;
     }
 
     const key = `${base}:${numerator ?? ''}`;
@@ -1031,7 +1122,7 @@ function normalizePulseList(list) {
   });
 
   normalized.sort((a, b) => {
-    const diff = computePulseValue(a, denominator) - computePulseValue(b, denominator);
+    const diff = computePulseValue(a, d) - computePulseValue(b, d);
     if (Math.abs(diff) < 1e-6) return 0;
     return diff < 0 ? -1 : 1;
   });
@@ -1290,14 +1381,14 @@ function handleParamInput(key, input, { coerce = false } = {}) {
   persistParam(key, parsed);
   let shouldRenderTimeline = false;
   if (key === 'denominator') {
-    state.pulses = normalizePulseList(state.pulses);
+    state.pulses = normalizePulseList(state.pulses, getNormalizationOptions());
     pruneSelection();
     renderPulseSequence();
     persistPulses();
     shouldRenderTimeline = true;
   }
   if (key === 'Lg') {
-    state.pulses = normalizePulseList(state.pulses);
+    state.pulses = normalizePulseList(state.pulses, getNormalizationOptions());
     pruneSelection();
     renderPulseSequence();
     persistPulses();
@@ -1540,10 +1631,11 @@ function randomize() {
     const pulses = Array.from(selected)
       .sort((a, b) => a - b)
       .map((base) => ({ base, numerator: null }));
-    state.pulses = normalizePulseList(pulses);
+    state.pulses = normalizePulseList(pulses, getNormalizationOptions());
     persistPulses();
     renderPulseSequence();
     clearPulseHelp();
+    renderTimeline({ silent: true });
   }
 }
 
@@ -1611,7 +1703,7 @@ function confirmPulseSequence({ reason } = {}) {
     return false;
   }
 
-  const normalized = normalizePulseList(parsed.pulses);
+  const normalized = normalizePulseList(parsed.pulses, getNormalizationOptions());
   state.pulses = normalized;
   pruneSelection();
   persistPulses();
@@ -1694,8 +1786,31 @@ async function startPlayback() {
   const interval = timing.interval / denominator;
   const selectedSet = getSelectedPlaybackSet();
 
+  const cycleNumerator = Number(state.params?.numerator);
+  const cycleDenominator = Number(state.params?.denominator);
+  const hasCycle = Number.isFinite(cycleNumerator)
+    && Number.isFinite(cycleDenominator)
+    && cycleNumerator > 0
+    && cycleDenominator > 0;
+  const cycleConfig = hasCycle ? { numerator: cycleNumerator, denominator: cycleDenominator } : null;
+
+  clearHighlights();
+  lastHighlightedStep = null;
+
+  try { instance.setLoop?.(state.loopEnabled); } catch {}
   instance.stop();
-  await instance.play(totalSteps, interval, selectedSet, true);
+  await instance.play(
+    totalSteps,
+    interval,
+    selectedSet,
+    !!state.loopEnabled,
+    handleAudioPulse,
+    handleAudioComplete,
+    {
+      patternBeats: Lg,
+      ...(cycleConfig ? { cycle: cycleConfig } : {})
+    }
+  );
 
   state.isPlaying = true;
   updatePlayVisual(true);
@@ -1703,10 +1818,28 @@ async function startPlayback() {
 }
 
 function stopPlayback() {
-  if (!audio) return;
-  try { audio.stop(); } catch {}
+  if (audio) {
+    try { audio.stop(); } catch {}
+  }
   state.isPlaying = false;
+  lastHighlightedStep = null;
   updatePlayVisual(false);
+  clearHighlights();
+}
+
+function handleAudioPulse(step) {
+  try {
+    highlightStep(step);
+  } catch (error) {
+    console.warn('No se pudo resaltar el pulso en App4', error);
+  }
+}
+
+function handleAudioComplete() {
+  state.isPlaying = false;
+  lastHighlightedStep = null;
+  updatePlayVisual(false);
+  clearHighlights();
 }
 
 function updatePlayVisual(isPlaying) {
@@ -1722,6 +1855,72 @@ function updatePlayVisual(isPlaying) {
   } else {
     pulseSeqElements.edit?.classList.add('playing');
   }
+}
+
+function initLoopControl() {
+  const loopBtn = selectors.loopBtn();
+  if (!loopBtn) return;
+  loopBtn.classList.toggle('active', !!state.loopEnabled);
+  loopBtn.addEventListener('click', () => {
+    state.loopEnabled = !state.loopEnabled;
+    loopBtn.classList.toggle('active', state.loopEnabled);
+    if (audio && typeof audio.setLoop === 'function') {
+      try { audio.setLoop(state.loopEnabled); } catch {}
+    }
+  });
+}
+
+function initResetControl() {
+  const resetBtn = selectors.resetBtn();
+  if (!resetBtn) return;
+  resetBtn.addEventListener('click', () => {
+    stopPlayback();
+    state.loopEnabled = false;
+    const loopBtn = selectors.loopBtn();
+    if (loopBtn) loopBtn.classList.remove('active');
+    if (audio && typeof audio.resetTapTempo === 'function') {
+      try { audio.resetTapTempo(); } catch {}
+    }
+    window.dispatchEvent(new CustomEvent('sharedui:factoryreset'));
+  });
+}
+
+function initTapTempo() {
+  const tapBtn = selectors.tapTempoBtn();
+  const tapHelp = selectors.tapHelp();
+  if (tapHelp) {
+    tapHelp.textContent = 'Se necesitan 3 clicks';
+    tapHelp.style.display = 'none';
+  }
+  if (!tapBtn) return;
+  tapBtn.addEventListener('click', async () => {
+    try {
+      const instance = await initAudio();
+      if (!instance || typeof instance.tapTempo !== 'function') return;
+      const result = instance.tapTempo(typeof performance !== 'undefined' ? performance.now() : Date.now());
+      if (!result) return;
+
+      if (result.remaining > 0) {
+        if (tapHelp) {
+          tapHelp.textContent = result.remaining === 2 ? '2 clicks más' : '1 click más solamente';
+          tapHelp.style.display = 'block';
+        }
+        return;
+      }
+
+      if (tapHelp) {
+        tapHelp.style.display = 'none';
+        tapHelp.textContent = 'Se necesitan 3 clicks';
+      }
+
+      if (Number.isFinite(result.bpm) && result.bpm > 0) {
+        const bpm = Math.round(result.bpm * 100) / 100;
+        setNumberInputValue(selectors.inputV(), bpm);
+      }
+    } catch (error) {
+      console.warn('Tap tempo falló en App4', error);
+    }
+  });
 }
 
 function wirePlayButton() {
@@ -1916,6 +2115,10 @@ function init() {
   initMixerMenuForApp();
   initSelectedToggle();
   syncSelectedChannel();
+  initRandomization();
+  initLoopControl();
+  initResetControl();
+  initTapTempo();
   wirePlayButton();
   window.addEventListener('resize', () => layoutTimeline({ silent: true }));
 }

@@ -107,6 +107,15 @@ body.app4 {
   background: var(--selection-color);
 }
 
+.fraction-pulse.active {
+  animation: pulseFlash 0.35s ease-out;
+  box-shadow: 0 0 10px var(--selection-color), 0 0 14px currentColor;
+}
+
+.fraction-hit.active {
+  box-shadow: 0 0 0 2px var(--selection-color);
+}
+
 .pulse-hit,
 .fraction-hit {
   position: absolute;
