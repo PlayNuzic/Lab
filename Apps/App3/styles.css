@@ -11,7 +11,7 @@ body[data-theme='dark'] {
 }
 
 body.app3 {
-  --pulse-offset-x: 0px;
+  --pulse-offset-x: 2px;
   --pulse-offset-y: 0px;
   --cycle-offset-x: -138px;
   --cycle-offset-y: 0px;
