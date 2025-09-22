@@ -38,11 +38,15 @@ const pulseSeqEl = document.getElementById('pulseSeq');
 const formula = document.getElementById('formula');
 const timelineWrapper = document.getElementById('timelineWrapper');
 const timeline = document.getElementById('timeline');
-const tIndicator = document.createElement('div');
-tIndicator.id = 'tIndicator';
-timeline.appendChild(tIndicator);
-// Start hidden to avoid flicker during first layout
-tIndicator.style.visibility = 'hidden';
+const shouldRenderTIndicator = Boolean(inputT);
+const tIndicator = shouldRenderTIndicator ? (() => {
+  const indicator = document.createElement('div');
+  indicator.id = 'tIndicator';
+  // Start hidden to avoid flicker during first layout
+  indicator.style.visibility = 'hidden';
+  timeline.appendChild(indicator);
+  return indicator;
+})() : null;
 const playBtn = document.getElementById('playBtn');
 const loopBtn = document.getElementById('loopBtn');
 const resetBtn = document.getElementById('resetBtn');
@@ -269,6 +273,7 @@ function caretPos(){ const el=getEditEl(); if(!el) return 0; const s=window.getS
 function moveCaretToNearestMidpoint(){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); let best=mids[0],d=Math.abs(p-best); for(const m of mids){const dd=Math.abs(p-m); if(dd<d){best=m; d=dd;}} setPulseSeqSelection(best,best); }
 function moveCaretStep(dir){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); if(dir>0){ for(const m of mids){ if(m>p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[mids.length-1],mids[mids.length-1]); } else { for(let i=mids.length-1;i>=0;i--){ const m=mids[i]; if(m<p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[0],mids[0]); } }
 function updateTIndicatorText(value) {
+  if (!tIndicator) return;
   // Only the number, no prefix
   if (value === '' || value == null) { tIndicator.textContent = ''; return; }
   const n = Number(value);
@@ -279,7 +284,7 @@ function updateTIndicatorText(value) {
 }
 
 function updateTIndicatorPosition() {
-  if (!timeline) return false;
+  if (!timeline || !tIndicator) return false;
   const lg = parseInt(inputLg.value);
   if (isNaN(lg) || lg <= 0) { return false; }
 

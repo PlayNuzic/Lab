@@ -152,10 +152,14 @@ const CYCLE_AUDIO_KEY = 'cycleAudio';
 let hasStoredPulsePref = false;
 let hasStoredCyclePref = false;
 
-const tIndicator = document.createElement('div');
-tIndicator.id = 'tIndicator';
-tIndicator.style.visibility = 'hidden';
-timeline.appendChild(tIndicator);
+const shouldRenderTIndicator = Boolean(document.querySelector('.param.t'));
+const tIndicator = shouldRenderTIndicator ? (() => {
+  const indicator = document.createElement('div');
+  indicator.id = 'tIndicator';
+  indicator.style.visibility = 'hidden';
+  timeline.appendChild(indicator);
+  return indicator;
+})() : null;
 
 function initFractionEditor() {
   if (!formula) return;
@@ -653,6 +657,7 @@ function getFraction() {
 }
 
 function updateTIndicatorText(value) {
+  if (!tIndicator) return;
   if (value === '' || value == null) {
     tIndicator.textContent = '';
     tIndicator.style.visibility = 'hidden';
@@ -668,7 +673,7 @@ function updateTIndicatorText(value) {
 }
 
 function updateTIndicatorPosition() {
-  if (!timeline) return false;
+  if (!timeline || !tIndicator) return false;
   const lg = getLg();
   if (!Number.isFinite(lg) || lg <= 0) return false;
   let anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
@@ -729,7 +734,7 @@ function renderTimeline() {
   bars = [];
   const savedIndicator = tIndicator;
   timeline.innerHTML = '';
-  timeline.appendChild(savedIndicator);
+  if (savedIndicator) timeline.appendChild(savedIndicator);
 
   const lg = getLg();
   if (!Number.isFinite(lg) || lg <= 0) return;
