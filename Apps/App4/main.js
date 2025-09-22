@@ -10,9 +10,8 @@ import {
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
-import { initRandomMenu } from '../../libs/app-common/random-menu.js';
-import { fromLgAndTempo } from '../../libs/app-common/subdivision.js';
-import { toRange } from '../../libs/app-common/range.js';
+import { fromLgAndTempo, computeSubdivisionFontRem, gridFromOrigin } from '../../libs/app-common/subdivision.js';
+import { computeHitSizePx, computeNumberFontRem } from '../../libs/app-common/utils.js';
 
 const APP_ID = 'app4';
 const STORE_KEY = (key) => `${APP_ID}::${key}`;
@@ -45,16 +44,10 @@ const selectors = {
   denominatorUp: () => document.getElementById('fractionDenominatorUp'),
   denominatorDown: () => document.getElementById('fractionDenominatorDown'),
   pulseSeqContainer: () => document.getElementById('pulseSeq'),
-  randomBtn: () => document.getElementById('randomBtn'),
-  randomMenu: () => document.getElementById('randomMenu'),
-  randLgToggle: () => document.getElementById('randLgToggle'),
-  randLgMin: () => document.getElementById('randLgMin'),
-  randLgMax: () => document.getElementById('randLgMax'),
-  randVToggle: () => document.getElementById('randVToggle'),
-  randVMin: () => document.getElementById('randVMin'),
-  randVMax: () => document.getElementById('randVMax'),
-  randPulsesToggle: () => document.getElementById('randPulsesToggle'),
-  randomCount: () => document.getElementById('randomCount')
+  timelineWrapper: () => document.getElementById('timelineWrapper'),
+  timeline: () => document.getElementById('timeline'),
+  circularToggle: () => document.getElementById('circularTimelineToggle'),
+  controlsToggleGroup: () => document.querySelector('.control-sound-toggles')
 };
 
 const FRACTION_IDS = {
@@ -120,19 +113,703 @@ const state = {
   pulses: normalizePulseList(loadStoredPulses()),
   isPlaying: false,
   audioReady: false,
-  pendingAudioSync: false
+  pendingAudioSync: false,
+  selectedIntegers: new Set(),
+  selectedFractionals: new Set(),
+  selectionAudioEnabled: true,
+  circularTimeline: false
 };
+
+const PULSE_NUMBER_HIDE_THRESHOLD = 71;
+const SUBDIVISION_HIDE_THRESHOLD = 41;
+const NUMBER_CIRCLE_OFFSET = 28;
+
+const timelineState = {
+  pulses: [],
+  bars: [],
+  numberLabels: [],
+  cycleMarkers: [],
+  cycleLabels: [],
+  integerHits: new Map(),
+  fractionHits: new Map(),
+  fractionMarkers: [],
+  fractionLabels: [],
+  tIndicator: null
+};
+
+const selectionDrag = {
+  active: false,
+  mode: 'select',
+  suppressedKey: null,
+  lastSignature: null,
+  type: null
+};
+
+function getValidLg() {
+  const lg = Number(state.params?.Lg);
+  return Number.isFinite(lg) && lg > 0 ? lg : null;
+}
+
+function getValidDenominator() {
+  const denominator = Number(state.params?.denominator);
+  return Number.isFinite(denominator) && denominator > 0 ? denominator : 1;
+}
+
+function fractionKey(base, numerator) {
+  return `fraction:${base}:${numerator}`;
+}
+
+function buildFractionKey(pulse) {
+  if (!pulse || !Number.isFinite(pulse.base) || !Number.isFinite(pulse.numerator)) return null;
+  return fractionKey(pulse.base, pulse.numerator);
+}
+
+function selectionSignature(type, key) {
+  return `${type}:${key}`;
+}
+
+function isIntegerSelected(index) {
+  return state.selectedIntegers.has(index);
+}
+
+function isFractionSelected(key) {
+  return state.selectedFractionals.has(key);
+}
+
+function clearSelectionState() {
+  state.selectedIntegers.clear();
+  state.selectedFractionals.clear();
+  updateSelectionVisuals();
+  syncSelectionAudio();
+}
+
+function pruneSelection() {
+  const validIntegers = new Set();
+  const validFractions = new Set();
+
+  state.pulses.forEach((pulse) => {
+    if (!pulse) return;
+    if (pulse.numerator != null) {
+      const key = buildFractionKey(pulse);
+      if (key) validFractions.add(key);
+    } else {
+      const base = Number(pulse.base);
+      if (Number.isFinite(base)) validIntegers.add(base);
+    }
+  });
+
+  Array.from(state.selectedIntegers).forEach((index) => {
+    if (!validIntegers.has(index) || index < 0 || index > getValidLg()) {
+      state.selectedIntegers.delete(index);
+    }
+  });
+
+  Array.from(state.selectedFractionals).forEach((key) => {
+    if (!validFractions.has(key)) {
+      state.selectedFractionals.delete(key);
+    }
+  });
+
+  updateSelectionVisuals();
+  syncSelectionAudio();
+}
+
+function getSelectedPlaybackSet() {
+  const denominator = getValidDenominator();
+  const lg = getValidLg();
+  if (!lg) return new Set();
+  const scale = Math.max(1, denominator);
+  const playbackSet = new Set();
+
+  state.selectedIntegers.forEach((index) => {
+    if (!Number.isFinite(index)) return;
+    if (index < 0 || index > lg) return;
+    playbackSet.add(index * scale);
+  });
+
+  state.selectedFractionals.forEach((key) => {
+    const [, baseStr, numeratorStr] = key.split(':');
+    const base = Number(baseStr);
+    const numerator = Number(numeratorStr);
+    if (!Number.isFinite(base) || !Number.isFinite(numerator)) return;
+    if (base < 0 || base > lg) return;
+    if (numerator <= 0 || numerator >= scale) return;
+    playbackSet.add(base * scale + numerator);
+  });
+
+  return playbackSet;
+}
+
+function syncSelectionAudio() {
+  if (!audio) return;
+  try {
+    audio.setSelected(getSelectedPlaybackSet());
+  } catch {}
+}
+
+function updateSelectionVisuals() {
+  timelineState.integerHits.forEach((entry, index) => {
+    const selected = isIntegerSelected(index);
+    if (entry?.hit) {
+      entry.hit.classList.toggle('selected', selected);
+    }
+    if (entry?.pulse) {
+      entry.pulse.classList.toggle('selected', selected);
+    }
+  });
+
+  timelineState.fractionHits.forEach((entry, key) => {
+    const selected = isFractionSelected(key);
+    if (entry?.hit) {
+      entry.hit.classList.toggle('selected', selected);
+    }
+    if (entry?.marker) {
+      entry.marker.classList.toggle('selected', selected);
+    }
+  });
+}
+
+function updateSelectionToggleVisual(enabled) {
+  const button = document.getElementById('selectedToggleBtn');
+  if (!button) return;
+  const isEnabled = !!enabled;
+  button.classList.toggle('active', isEnabled);
+  button.setAttribute('aria-pressed', isEnabled ? 'true' : 'false');
+}
+
+function initSelectionToggle() {
+  const group = selectors.controlsToggleGroup();
+  if (!group) return;
+
+  let container = group.querySelector('.control-sound-toggle-container--selected');
+  if (!container) {
+    container = document.createElement('div');
+    container.className = 'control-sound-toggle-container control-sound-toggle-container--selected';
+    container.innerHTML = `
+      <button id="selectedToggleBtn" class="control-sound-toggle control-sound-toggle--selected active" type="button" aria-pressed="true" aria-label="Alternar seleccionados">
+        <span class="control-sound-toggle__label-text">Sel</span>
+      </button>
+    `;
+    group.appendChild(container);
+  }
+
+  const button = container.querySelector('#selectedToggleBtn');
+  if (!button) return;
+  if (!button.dataset.app4SelBound) {
+    button.addEventListener('click', () => {
+      const next = !state.selectionAudioEnabled;
+      state.selectionAudioEnabled = next;
+      updateSelectionToggleVisual(next);
+      try {
+        setChannelMute('selected', !next);
+      } catch {}
+    });
+    button.dataset.app4SelBound = '1';
+  }
+
+  updateSelectionToggleVisual(state.selectionAudioEnabled);
+}
+
+function bindSelectionDocumentHandlers() {
+  if (bindSelectionDocumentHandlers._bound) return;
+  const reset = () => {
+    selectionDrag.active = false;
+    selectionDrag.lastSignature = null;
+    selectionDrag.type = null;
+    selectionDrag.suppressedKey = null;
+  };
+  document.addEventListener('pointerup', reset);
+  document.addEventListener('pointercancel', reset);
+  bindSelectionDocumentHandlers._bound = true;
+}
+
+function isSelected(type, key) {
+  return type === 'integer' ? isIntegerSelected(Number(key)) : isFractionSelected(String(key));
+}
+
+function setPulseSelected(type, key, shouldSelect) {
+  const select = !!shouldSelect;
+  let changed = false;
+  if (type === 'integer') {
+    const index = Number(key);
+    if (!Number.isFinite(index)) return;
+    if (select) {
+      if (!state.selectedIntegers.has(index)) {
+        state.selectedIntegers.add(index);
+        changed = true;
+      }
+    } else if (state.selectedIntegers.delete(index)) {
+      changed = true;
+    }
+  } else {
+    const signature = String(key);
+    if (select) {
+      if (!state.selectedFractionals.has(signature)) {
+        state.selectedFractionals.add(signature);
+        changed = true;
+      }
+    } else if (state.selectedFractionals.delete(signature)) {
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    updateSelectionVisuals();
+    syncSelectionAudio();
+  }
+}
+
+function togglePulseSelected(type, key) {
+  const currentlySelected = isSelected(type, key);
+  setPulseSelected(type, key, !currentlySelected);
+}
+
+function handleSelectionPointerDown(event, type, key) {
+  if (event.button != null && event.button !== 0) return;
+  selectionDrag.active = true;
+  selectionDrag.type = type;
+  selectionDrag.mode = isSelected(type, key) ? 'deselect' : 'select';
+  const signature = selectionSignature(type, key);
+  selectionDrag.lastSignature = signature;
+  selectionDrag.suppressedKey = signature;
+  setPulseSelected(type, key, selectionDrag.mode === 'select');
+  event.preventDefault();
+}
+
+function handleSelectionPointerEnter(event, type, key) {
+  if (!selectionDrag.active || selectionDrag.type !== type) return;
+  const signature = selectionSignature(type, key);
+  if (signature === selectionDrag.lastSignature) return;
+  selectionDrag.lastSignature = signature;
+  setPulseSelected(type, key, selectionDrag.mode === 'select');
+}
+
+function handleSelectionClick(event, type, key) {
+  const signature = selectionSignature(type, key);
+  if (selectionDrag.suppressedKey === signature) {
+    selectionDrag.suppressedKey = null;
+    event.preventDefault();
+    return;
+  }
+  togglePulseSelected(type, key);
+}
+
+function bindSelectionHandlers(element, type, key) {
+  if (!element || element.dataset.app4SelBound) return;
+  element.addEventListener('pointerdown', (event) => handleSelectionPointerDown(event, type, key));
+  element.addEventListener('pointerenter', (event) => handleSelectionPointerEnter(event, type, key));
+  element.addEventListener('click', (event) => handleSelectionClick(event, type, key));
+  element.dataset.app4SelBound = '1';
+}
+
+function renderCycleMarkers({ lg, numerator, denominator }) {
+  const timeline = selectors.timeline();
+  if (!timeline) return;
+
+  timelineState.cycleMarkers.forEach((marker) => marker.remove());
+  timelineState.cycleLabels.forEach((label) => label.remove());
+  timelineState.cycleMarkers = [];
+  timelineState.cycleLabels = [];
+
+  const grid = gridFromOrigin({ lg, numerator, denominator });
+  if (!grid || grid.cycles <= 0 || !Array.isArray(grid.subdivisions) || grid.subdivisions.length === 0) return;
+
+  const hideLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
+  const fontRem = computeSubdivisionFontRem(lg);
+  const labelFormatter = (cycleIndex, subdivision) => {
+    const base = cycleIndex * (grid.numerator ?? 0);
+    return subdivision === 0 ? String(base) : `.${subdivision}`;
+  };
+
+  grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
+    const marker = document.createElement('div');
+    marker.className = 'cycle-marker';
+    if (subdivisionIndex === 0) marker.classList.add('start');
+    marker.dataset.cycleIndex = String(cycleIndex);
+    marker.dataset.subdivision = String(subdivisionIndex);
+    marker.dataset.position = String(position);
+    timeline.appendChild(marker);
+    timelineState.cycleMarkers.push(marker);
+
+    if (hideLabels) return;
+    const formatted = labelFormatter(cycleIndex, subdivisionIndex);
+    if (formatted == null) return;
+    const label = document.createElement('div');
+    label.className = 'cycle-label';
+    if (subdivisionIndex === 0) label.classList.add('cycle-label--integer');
+    if (cycleIndex === 0 && subdivisionIndex === 0) label.classList.add('cycle-label--origin');
+    label.dataset.cycleIndex = String(cycleIndex);
+    label.dataset.subdivision = String(subdivisionIndex);
+    label.dataset.position = String(position);
+    label.textContent = formatted;
+    label.style.fontSize = `${fontRem}rem`;
+    timeline.appendChild(label);
+    timelineState.cycleLabels.push(label);
+  });
+}
+
+function showPulseNumber(index, lg, fontRem) {
+  const timeline = selectors.timeline();
+  if (!timeline) return;
+  const label = document.createElement('div');
+  label.className = 'pulse-number';
+  label.dataset.index = String(index);
+  label.textContent = index;
+  label.style.fontSize = `${fontRem}rem`;
+  if (index === 0 || index === lg) label.classList.add('endpoint');
+  timeline.appendChild(label);
+  timelineState.numberLabels.push(label);
+}
+
+function updatePulseNumbers(lg) {
+  const timeline = selectors.timeline();
+  if (!timeline) return;
+  timelineState.numberLabels.forEach((label) => label.remove());
+  timelineState.numberLabels = [];
+  if (!Number.isFinite(lg) || lg <= 0 || lg >= PULSE_NUMBER_HIDE_THRESHOLD) return;
+  const fontRem = computeNumberFontRem(lg);
+  for (let i = 0; i <= lg; i++) {
+    showPulseNumber(i, lg, fontRem);
+  }
+}
+
+function createIntegerHit(index, pulseEl, lg) {
+  const timeline = selectors.timeline();
+  if (!timeline || !pulseEl) return null;
+  const hitSize = computeHitSizePx(lg);
+  const hit = document.createElement('div');
+  hit.className = 'pulse-hit';
+  hit.dataset.type = 'integer';
+  hit.dataset.index = String(index);
+  hit.style.width = `${hitSize}px`;
+  hit.style.height = `${hitSize}px`;
+  timeline.appendChild(hit);
+  bindSelectionHandlers(hit, 'integer', index);
+  const entry = { hit, pulse: pulseEl };
+  timelineState.integerHits.set(index, entry);
+  return entry;
+}
+
+function createFractionalHit({ key, base, numerator, lg }) {
+  const timeline = selectors.timeline();
+  if (!timeline) return null;
+  const marker = document.createElement('div');
+  marker.className = 'fraction-pulse';
+  marker.dataset.base = String(base);
+  marker.dataset.numerator = String(numerator);
+  timeline.appendChild(marker);
+  timelineState.fractionMarkers.push(marker);
+
+  const hitSize = computeHitSizePx(lg) * 0.75;
+  const hit = document.createElement('div');
+  hit.className = 'fraction-hit';
+  hit.dataset.type = 'fractional';
+  hit.dataset.key = key;
+  hit.style.width = `${hitSize}px`;
+  hit.style.height = `${hitSize}px`;
+  timeline.appendChild(hit);
+  bindSelectionHandlers(hit, 'fractional', key);
+  const entry = { marker, hit, pulse: { base, numerator } };
+  timelineState.fractionHits.set(key, entry);
+  return entry;
+}
+
+function renderPulseHits(lg) {
+  const timeline = selectors.timeline();
+  if (!timeline) return;
+
+  timeline.querySelectorAll('.pulse-hit').forEach((el) => el.remove());
+  timeline.querySelectorAll('.fraction-hit').forEach((el) => el.remove());
+  timelineState.fractionMarkers.forEach((marker) => marker.remove());
+  timelineState.fractionLabels.forEach((label) => label.remove());
+  timelineState.integerHits.clear();
+  timelineState.fractionHits.clear();
+  timelineState.fractionMarkers = [];
+  timelineState.fractionLabels = [];
+
+  timelineState.pulses.forEach((pulse) => {
+    if (pulse) {
+      pulse.classList.remove('has-pulse');
+      pulse.classList.remove('selected');
+    }
+  });
+
+  const denominator = getValidDenominator();
+
+  state.pulses.forEach((pulse) => {
+    if (!pulse) return;
+    const base = Number(pulse.base);
+    if (!Number.isFinite(base)) return;
+    if (pulse.numerator == null) {
+      if (base < 0 || base > lg) return;
+      const pulseEl = timelineState.pulses[base];
+      if (!pulseEl) return;
+      pulseEl.classList.add('has-pulse');
+      createIntegerHit(base, pulseEl, lg);
+    } else {
+      const numerator = Number(pulse.numerator);
+      if (!Number.isFinite(numerator)) return;
+      if (numerator <= 0 || numerator >= denominator) return;
+      if (base < 0 || base > lg) return;
+      const key = buildFractionKey(pulse);
+      if (!key) return;
+      createFractionalHit({ key, base, numerator, lg });
+    }
+  });
+}
+
+function renderTimeline(opts = {}) {
+  const timeline = selectors.timeline();
+  const wrapper = selectors.timelineWrapper();
+  if (!timeline || !wrapper) return;
+
+  const indicator = timelineState.tIndicator && timeline.contains(timelineState.tIndicator)
+    ? timelineState.tIndicator
+    : null;
+
+  timeline.innerHTML = '';
+  timelineState.pulses = [];
+  timelineState.bars = [];
+  timelineState.numberLabels = [];
+  timelineState.cycleMarkers = [];
+  timelineState.cycleLabels = [];
+  timelineState.integerHits.clear();
+  timelineState.fractionHits.clear();
+  timelineState.fractionMarkers = [];
+  timelineState.fractionLabels = [];
+
+  if (indicator) {
+    timeline.appendChild(indicator);
+    timelineState.tIndicator = indicator;
+  }
+
+  const lg = getValidLg();
+  if (!lg) {
+    wrapper.classList.remove('circular');
+    timeline.classList.remove('circular');
+    return;
+  }
+
+  for (let i = 0; i <= lg; i++) {
+    const pulse = document.createElement('div');
+    pulse.className = 'pulse';
+    pulse.dataset.index = String(i);
+    if (i === 0 || i === lg) pulse.classList.add('endpoint');
+    timeline.appendChild(pulse);
+    timelineState.pulses.push(pulse);
+
+    if (i === 0 || i === lg) {
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      timeline.appendChild(bar);
+      timelineState.bars.push(bar);
+    }
+  }
+
+  const { numerator, denominator } = state.params || {};
+  renderCycleMarkers({ lg, numerator, denominator });
+  updatePulseNumbers(lg);
+  renderPulseHits(lg);
+  layoutTimeline({ silent: opts.silent });
+  updateSelectionVisuals();
+}
+
+function layoutTimeline(opts = {}) {
+  const wrapper = selectors.timelineWrapper();
+  const timeline = selectors.timeline();
+  if (!wrapper || !timeline) return;
+  const lg = getValidLg();
+  if (!Number.isFinite(lg) || lg <= 0) {
+    wrapper.classList.remove('circular');
+    timeline.classList.remove('circular');
+    return;
+  }
+
+  const useCircular = !!state.circularTimeline;
+  if (useCircular) {
+    wrapper.classList.add('circular');
+    timeline.classList.add('circular');
+    const rect = timeline.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const radius = Math.min(rect.width, rect.height) / 2 - 1;
+
+    timelineState.pulses.forEach((pulse, idx) => {
+      const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
+      const px = cx + radius * Math.cos(angle);
+      const py = cy + radius * Math.sin(angle);
+      pulse.style.left = `${px}px`;
+      pulse.style.top = `${py}px`;
+      pulse.style.transform = 'translate(-50%, -50%)';
+    });
+
+    timelineState.bars.forEach((bar, idx) => {
+      const step = idx === 0 ? 0 : lg;
+      const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
+      const bx = cx + radius * Math.cos(angle);
+      const by = cy + radius * Math.sin(angle);
+      const length = Math.min(rect.width, rect.height) * 0.25;
+      bar.style.display = 'block';
+      bar.style.left = `${bx - 1}px`;
+      bar.style.top = `${by - length / 2}px`;
+      bar.style.height = `${length}px`;
+      bar.style.transformOrigin = '50% 50%';
+      bar.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
+    });
+
+    timelineState.numberLabels.forEach((label) => {
+      const idx = Number(label.dataset.index);
+      const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
+      const innerRadius = radius - NUMBER_CIRCLE_OFFSET;
+      const x = cx + innerRadius * Math.cos(angle);
+      const y = cy + innerRadius * Math.sin(angle);
+      label.style.left = `${x}px`;
+      label.style.top = `${y}px`;
+      label.style.transform = 'translate(-50%, -50%)';
+    });
+
+    timelineState.cycleMarkers.forEach((marker) => {
+      const position = Number(marker.dataset.position);
+      const angle = (position / lg) * 2 * Math.PI + Math.PI / 2;
+      const x = cx + radius * Math.cos(angle);
+      const y = cy + radius * Math.sin(angle);
+      marker.style.left = `${x}px`;
+      marker.style.top = `${y}px`;
+      marker.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
+    });
+
+    const labelOffset = 36;
+    timelineState.cycleLabels.forEach((label) => {
+      const position = Number(label.dataset.position);
+      const angle = (position / lg) * 2 * Math.PI + Math.PI / 2;
+      const x = cx + (radius + labelOffset) * Math.cos(angle);
+      const y = cy + (radius + labelOffset) * Math.sin(angle);
+      label.style.left = `${x}px`;
+      label.style.top = `${y}px`;
+      label.style.transform = 'translate(-50%, -50%)';
+    });
+
+    timelineState.integerHits.forEach((entry, idx) => {
+      if (!entry?.hit) return;
+      const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
+      const x = cx + radius * Math.cos(angle);
+      const y = cy + radius * Math.sin(angle);
+      entry.hit.style.left = `${x}px`;
+      entry.hit.style.top = `${y}px`;
+      entry.hit.style.transform = 'translate(-50%, -50%)';
+    });
+
+    const denominator = getValidDenominator();
+    timelineState.fractionHits.forEach((entry) => {
+      const base = Number(entry?.pulse?.base);
+      const numerator = Number(entry?.pulse?.numerator);
+      if (!Number.isFinite(base) || !Number.isFinite(numerator)) return;
+      const value = base + numerator / denominator;
+      const angle = (value / lg) * 2 * Math.PI + Math.PI / 2;
+      const x = cx + radius * Math.cos(angle);
+      const y = cy + radius * Math.sin(angle);
+      if (entry.marker) {
+        entry.marker.style.left = `${x}px`;
+        entry.marker.style.top = `${y}px`;
+        entry.marker.style.transform = 'translate(-50%, -50%)';
+      }
+      if (entry.hit) {
+        entry.hit.style.left = `${x}px`;
+        entry.hit.style.top = `${y}px`;
+        entry.hit.style.transform = 'translate(-50%, -50%)';
+      }
+    });
+  } else {
+    wrapper.classList.remove('circular');
+    timeline.classList.remove('circular');
+
+    timelineState.pulses.forEach((pulse, idx) => {
+      const percent = (idx / lg) * 100;
+      pulse.style.left = `${percent}%`;
+      pulse.style.top = '50%';
+      pulse.style.transform = 'translate(-50%, -50%)';
+    });
+
+    timelineState.bars.forEach((bar, idx) => {
+      const step = idx === 0 ? 0 : lg;
+      const percent = (step / lg) * 100;
+      bar.style.display = 'block';
+      bar.style.left = `${percent}%`;
+      bar.style.top = '15%';
+      bar.style.height = '70%';
+      bar.style.transform = '';
+    });
+
+    timelineState.numberLabels.forEach((label) => {
+      const idx = Number(label.dataset.index);
+      const percent = (idx / lg) * 100;
+      label.style.left = `${percent}%`;
+      label.style.top = '-28px';
+      label.style.transform = 'translate(-50%, 0)';
+    });
+
+    timelineState.cycleMarkers.forEach((marker) => {
+      const position = Number(marker.dataset.position);
+      const percent = (position / lg) * 100;
+      marker.style.left = `${percent}%`;
+      marker.style.top = '50%';
+      marker.style.transform = 'translate(-50%, -50%)';
+    });
+
+    timelineState.cycleLabels.forEach((label) => {
+      const position = Number(label.dataset.position);
+      const percent = (position / lg) * 100;
+      label.style.left = `${percent}%`;
+      label.style.top = 'calc(100% + 12px)';
+      label.style.transform = 'translate(-50%, 0)';
+    });
+
+    timelineState.integerHits.forEach((entry, idx) => {
+      if (!entry?.hit) return;
+      const percent = (idx / lg) * 100;
+      entry.hit.style.left = `${percent}%`;
+      entry.hit.style.top = '50%';
+      entry.hit.style.transform = 'translate(-50%, -50%)';
+    });
+
+    const denominator = getValidDenominator();
+    timelineState.fractionHits.forEach((entry) => {
+      const base = Number(entry?.pulse?.base);
+      const numerator = Number(entry?.pulse?.numerator);
+      if (!Number.isFinite(base) || !Number.isFinite(numerator)) return;
+      const value = base + numerator / denominator;
+      const percent = (value / lg) * 100;
+      if (entry.marker) {
+        entry.marker.style.left = `${percent}%`;
+        entry.marker.style.top = '50%';
+        entry.marker.style.transform = 'translate(-50%, -50%)';
+      }
+      if (entry.hit) {
+        entry.hit.style.left = `${percent}%`;
+        entry.hit.style.top = '50%';
+        entry.hit.style.transform = 'translate(-50%, -50%)';
+      }
+    });
+  }
+
+  if (!opts.silent) {
+    updateSelectionVisuals();
+  }
+}
 
 window.addEventListener('sharedui:factoryreset', () => {
   clearStoredParams();
   state.params = loadStoredParams();
   state.pulses = [];
   persistPulses();
+  clearSelectionState();
+  state.selectionAudioEnabled = true;
+  updateSelectionToggleVisual(true);
   applyParamsToInputs();
   updateFractionDisplay();
   updateLgDisplay();
   renderPulseSequence();
-  setSelectedChannelEnabled(true);
+  renderTimeline();
   scheduleParamSync();
 });
 
@@ -611,19 +1288,28 @@ function handleParamInput(key, input, { coerce = false } = {}) {
   if (state.params[key] === parsed) return;
   state.params[key] = parsed;
   persistParam(key, parsed);
+  let shouldRenderTimeline = false;
   if (key === 'denominator') {
     state.pulses = normalizePulseList(state.pulses);
+    pruneSelection();
     renderPulseSequence();
     persistPulses();
+    shouldRenderTimeline = true;
   }
   if (key === 'Lg') {
     state.pulses = normalizePulseList(state.pulses);
+    pruneSelection();
     renderPulseSequence();
     persistPulses();
     updateLgDisplay();
+    shouldRenderTimeline = true;
   }
   if (key === 'numerator' || key === 'denominator') {
     updateFractionDisplay();
+    shouldRenderTimeline = true;
+  }
+  if (shouldRenderTimeline) {
+    renderTimeline({ silent: true });
   }
   scheduleParamSync();
 }
@@ -639,8 +1325,9 @@ function applyParamsToAudio(target = audio) {
   if (!instance || !state.audioReady) return false;
 
   const { Lg, V, numerator, denominator } = state.params;
+  const denom = getValidDenominator();
   const payload = {};
-  if (Number.isFinite(Lg) && Lg > 0) payload.totalPulses = Lg;
+  if (Number.isFinite(Lg) && Lg > 0) payload.totalPulses = Lg * denom;
   if (Number.isFinite(V) && V > 0) payload.bpm = V;
   const cycle = {};
   if (Number.isFinite(numerator) && numerator > 0) cycle.numerator = numerator;
@@ -926,8 +1613,10 @@ function confirmPulseSequence({ reason } = {}) {
 
   const normalized = normalizePulseList(parsed.pulses);
   state.pulses = normalized;
+  pruneSelection();
   persistPulses();
   renderPulseSequence();
+  renderTimeline({ silent: true });
   clearPulseHelp();
   if (reason === 'enter' && pulseSeqElements.edit) {
     try { pulseSeqElements.edit.blur(); } catch {}
@@ -984,6 +1673,7 @@ async function initAudio() {
   schedulingBridge.applyTo(audio);
   state.audioReady = true;
   applyParamsToAudio(audio);
+  syncSelectionAudio();
   return audio;
 }
 
@@ -999,8 +1689,13 @@ async function startPlayback() {
   const timing = fromLgAndTempo(Lg, V);
   if (!timing || !Number.isFinite(timing.interval)) return false;
 
+  const denominator = getValidDenominator();
+  const totalSteps = Math.max(1, Math.round(Lg * denominator));
+  const interval = timing.interval / denominator;
+  const selectedSet = getSelectedPlaybackSet();
+
   instance.stop();
-  await instance.play(Lg, timing.interval, new Set(), true);
+  await instance.play(totalSteps, interval, selectedSet, true);
 
   state.isPlaying = true;
   updatePlayVisual(true);
@@ -1139,6 +1834,9 @@ function syncSelectedChannel() {
       if (!accent || !!accent.solo !== !!selected.solo) {
         setChannelSolo('accent', !!selected.solo);
       }
+      const enabled = !selected.muted;
+      state.selectionAudioEnabled = enabled;
+      updateSelectionToggleVisual(enabled);
     } finally {
       mixerSyncGuard = false;
     }
@@ -1203,12 +1901,23 @@ function init() {
   updateFractionDisplay();
   updateLgDisplay();
   renderPulseSequence();
-  initRandomization();
+  bindSelectionDocumentHandlers();
+  initSelectionToggle();
+  const circularToggle = selectors.circularToggle();
+  if (circularToggle) {
+    state.circularTimeline = !!circularToggle.checked;
+    circularToggle.addEventListener('change', () => {
+      state.circularTimeline = !!circularToggle.checked;
+      layoutTimeline();
+    });
+  }
+  renderTimeline({ silent: true });
   initSoundMenus();
   initMixerMenuForApp();
   initSelectedToggle();
   syncSelectedChannel();
   wirePlayButton();
+  window.addEventListener('resize', () => layoutTimeline({ silent: true }));
 }
 
 window.addEventListener('DOMContentLoaded', init);
