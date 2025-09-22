@@ -1,10 +1,11 @@
 {
-  "step": 2,
+  "step": 3,
   "done": [
     "Tarjeta de App4 añadida en la landing",
     "Base de la app generada con placeholder y gancho Play",
-    "Motor de audio conectado con menús de sonido y mixer sincronizado"
+    "Motor de audio conectado con menús de sonido y mixer sincronizado",
+    "Inputs Lg, n/d y V maquetados con spinners reutilizables"
   ],
-  "next": "Maquetar inputs Lg n/d V y enlazar spinners (Iteración 3)",
-  "notes": "El mixer ofrece canales Pulso, Seleccionados y Master; falta UI de parámetros principales."
+  "next": "Implementar almacenamiento y sincronización de parámetros con el motor (Iteración 4)",
+  "notes": "Los campos principales ya existen pero todavía no aplican cambios sobre el audio ni sobre la UI dinámica."
 }

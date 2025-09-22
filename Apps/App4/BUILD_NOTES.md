@@ -10,5 +10,9 @@
 - Configurado el mixer global con canales Pulso/Pulso 0, Seleccionados y Master accesibles vía long-press.
 - Sincronizado el canal "Seleccionados" del mixer con el bus interno de acentos del motor.
 
+## Iteración 3
+- Añadidos los controles principales para Lg, fracción n/d y V con maquetación propia y spinners reutilizables.
+- Normalización básica de los campos numéricos asegurando valores positivos y repetición en pulsadores.
+
 ## Próximos pasos
-- Iteración 3: maquetar los inputs Lg, fracción n/d y V con sus spinners reutilizando la lógica compartida.
+- Iteración 4: conectar los parámetros maquetados con el estado interno y el motor de audio.

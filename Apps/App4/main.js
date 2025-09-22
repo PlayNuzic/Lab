@@ -40,8 +40,242 @@ const selectors = {
   baseSoundSelect: () => document.getElementById('baseSoundSelect'),
   selectedSoundSelect: () => document.getElementById('accentSoundSelect'),
   startSoundSelect: () => document.getElementById('startSoundSelect'),
-  mixerMenu: () => document.getElementById('mixerMenu')
+  mixerMenu: () => document.getElementById('mixerMenu'),
+  inputLg: () => document.getElementById('inputLg'),
+  inputLgUp: () => document.getElementById('inputLgUp'),
+  inputLgDown: () => document.getElementById('inputLgDown'),
+  inputV: () => document.getElementById('inputV'),
+  inputVUp: () => document.getElementById('inputVUp'),
+  inputVDown: () => document.getElementById('inputVDown'),
+  fractionParam: () => document.getElementById('fractionParam'),
+  numeratorInput: () => document.getElementById('fractionNumerator'),
+  numeratorUp: () => document.getElementById('fractionNumeratorUp'),
+  numeratorDown: () => document.getElementById('fractionNumeratorDown'),
+  denominatorInput: () => document.getElementById('fractionDenominator'),
+  denominatorUp: () => document.getElementById('fractionDenominatorUp'),
+  denominatorDown: () => document.getElementById('fractionDenominatorDown')
 };
+
+const FRACTION_IDS = {
+  container: 'fractionParam',
+  numerator: 'fractionNumerator',
+  numeratorUp: 'fractionNumeratorUp',
+  numeratorDown: 'fractionNumeratorDown',
+  denominator: 'fractionDenominator',
+  denominatorUp: 'fractionDenominatorUp',
+  denominatorDown: 'fractionDenominatorDown'
+};
+
+function createFractionField({ inputId, upId, downId, placeholder, ariaUp, ariaDown }) {
+  const field = document.createElement('div');
+  field.className = 'fraction-field';
+
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.id = inputId;
+  input.min = '1';
+  input.step = '1';
+  input.placeholder = placeholder;
+  input.inputMode = 'numeric';
+  field.appendChild(input);
+
+  const spinner = document.createElement('div');
+  spinner.className = 'spinner';
+
+  const up = document.createElement('button');
+  up.type = 'button';
+  up.id = upId;
+  up.className = 'spin up';
+  if (ariaUp) up.setAttribute('aria-label', ariaUp);
+  spinner.appendChild(up);
+
+  const down = document.createElement('button');
+  down.type = 'button';
+  down.id = downId;
+  down.className = 'spin down';
+  if (ariaDown) down.setAttribute('aria-label', ariaDown);
+  spinner.appendChild(down);
+
+  field.appendChild(spinner);
+
+  return { field, input, up, down };
+}
+
+function renderFractionControls() {
+  const inputs = document.querySelector('.inputs');
+  if (!inputs || document.getElementById(FRACTION_IDS.container)) return;
+
+  const fractionParam = document.createElement('div');
+  fractionParam.className = 'param fraction';
+  fractionParam.id = FRACTION_IDS.container;
+
+  const abbr = document.createElement('span');
+  abbr.className = 'abbr';
+  abbr.textContent = 'n/d';
+  fractionParam.appendChild(abbr);
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'fraction-wrapper';
+
+  const topRow = document.createElement('div');
+  topRow.className = 'fraction-row fraction-row--top';
+  const numerator = createFractionField({
+    inputId: FRACTION_IDS.numerator,
+    upId: FRACTION_IDS.numeratorUp,
+    downId: FRACTION_IDS.numeratorDown,
+    placeholder: 'n',
+    ariaUp: 'Incrementar numerador',
+    ariaDown: 'Decrementar numerador'
+  });
+  topRow.appendChild(numerator.field);
+
+  const divider = document.createElement('div');
+  divider.className = 'fraction-divider';
+  divider.setAttribute('aria-hidden', 'true');
+
+  const bottomRow = document.createElement('div');
+  bottomRow.className = 'fraction-row fraction-row--bottom';
+  const denominator = createFractionField({
+    inputId: FRACTION_IDS.denominator,
+    upId: FRACTION_IDS.denominatorUp,
+    downId: FRACTION_IDS.denominatorDown,
+    placeholder: 'd',
+    ariaUp: 'Incrementar denominador',
+    ariaDown: 'Decrementar denominador'
+  });
+  bottomRow.appendChild(denominator.field);
+
+  wrapper.append(topRow, divider, bottomRow);
+  fractionParam.appendChild(wrapper);
+
+  const vParam = document.querySelector('.param.v');
+  if (vParam) {
+    inputs.insertBefore(fractionParam, vParam);
+  } else {
+    inputs.appendChild(fractionParam);
+  }
+}
+
+function addRepeatPress(el, fn) {
+  if (!el) return;
+  let timeoutId = null;
+  let intervalId = null;
+
+  const clearTimers = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    if (intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+    }
+  };
+
+  const start = (event) => {
+    if (event.type === 'mousedown' && event.button !== 0) return;
+    clearTimers();
+    fn();
+    timeoutId = setTimeout(() => {
+      intervalId = setInterval(fn, 80);
+    }, 320);
+    event.preventDefault();
+  };
+
+  const stop = () => {
+    clearTimers();
+  };
+
+  el.addEventListener('mousedown', start);
+  el.addEventListener('touchstart', start, { passive: false });
+  ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach((name) => {
+    el.addEventListener(name, stop);
+  });
+  document.addEventListener('mouseup', stop);
+  document.addEventListener('touchend', stop);
+
+  el.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      fn();
+    }
+  });
+}
+
+function sanitizeDigits(value) {
+  return value.replace(/[^0-9]/g, '');
+}
+
+function bindPositiveIntegerInput(input) {
+  if (!input || input.dataset.app4IntBound === '1') return;
+  input.addEventListener('input', () => {
+    const digits = sanitizeDigits(input.value);
+    if (digits !== input.value) input.value = digits;
+  });
+  input.addEventListener('blur', () => {
+    const parsed = Number.parseInt(input.value, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      input.value = '';
+    } else {
+      input.value = String(parsed);
+    }
+  });
+  input.dataset.app4IntBound = '1';
+}
+
+function stepNumberInput(input, delta) {
+  if (!input) return;
+  const parsed = Number.parseInt(input.value, 10);
+  let next = Number.isFinite(parsed) ? parsed + delta : delta > 0 ? 1 : 1;
+  if (next < 1) next = 1;
+  input.value = String(next);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function bindSpinnerButtons({ input, up, down }) {
+  if (!input) return;
+  if (up && !up.dataset.app4SpinnerBound) {
+    addRepeatPress(up, () => stepNumberInput(input, +1));
+    up.dataset.app4SpinnerBound = '1';
+  }
+  if (down && !down.dataset.app4SpinnerBound) {
+    addRepeatPress(down, () => stepNumberInput(input, -1));
+    down.dataset.app4SpinnerBound = '1';
+  }
+}
+
+function setupParameterInputs() {
+  renderFractionControls();
+
+  const inputLg = selectors.inputLg();
+  const inputV = selectors.inputV();
+  const numerator = selectors.numeratorInput();
+  const denominator = selectors.denominatorInput();
+
+  [inputLg, inputV, numerator, denominator].forEach(bindPositiveIntegerInput);
+
+  bindSpinnerButtons({
+    input: inputLg,
+    up: selectors.inputLgUp(),
+    down: selectors.inputLgDown()
+  });
+  bindSpinnerButtons({
+    input: inputV,
+    up: selectors.inputVUp(),
+    down: selectors.inputVDown()
+  });
+  bindSpinnerButtons({
+    input: numerator,
+    up: selectors.numeratorUp(),
+    down: selectors.numeratorDown()
+  });
+  bindSpinnerButtons({
+    input: denominator,
+    up: selectors.denominatorUp(),
+    down: selectors.denominatorDown()
+  });
+}
 
 function createPlaceholder() {
   const middleSection = document.querySelector('.middle');
@@ -186,6 +420,7 @@ function init() {
   initSoundMenus();
   initMixerMenuForApp();
   syncSelectedChannel();
+  setupParameterInputs();
 }
 
 window.addEventListener('DOMContentLoaded', init);
