@@ -573,6 +573,12 @@ margin-right: auto;
   transform: translateX(var(--pulse-translate-x, 0)) translateY(var(--pulse-translate-y, 0));
 }
 
+.control-sound-toggle-container--selected {
+  left: calc(var(--selected-offset-x, 0px));
+  bottom: var(--selected-offset-y, 0px);
+  transform: translateX(var(--selected-translate-x, 0)) translateY(var(--selected-translate-y, 0));
+}
+
 .control-sound-toggle-container--cycle {
   left: calc(var(--control-toggle-width) + var(--control-toggle-gap) + var(--cycle-offset-x, -140px));
   bottom: var(--cycle-offset-y, 0px);
@@ -669,6 +675,11 @@ margin-right: auto;
     letter-spacing: 2px;
     transform: translateY(-10px);
   }
+
+  .control-sound-toggle--selected .control-sound-toggle__label {
+    letter-spacing: 1.5px;
+    transform: translateY(-8px);
+  }
 }
 
 .control-sound-toggle.active .control-sound-toggle__shape {
@@ -688,6 +699,17 @@ fill: var(--control-toggle-label-color, currentColor);
   --control-toggle-color: var(--control-toggle-pulse-color, currentColor);
   --control-toggle-active-color: var(--control-toggle-pulse-active-color, var(--selection-color));
   --control-toggle-clip-path: path('M -7% 83% A 57% 95% 0 0 1 50% -12% L 50% 30% A 32% 53% 0 0 0 18% 83% Z');
+}
+
+.control-sound-toggle--selected {
+  --control-toggle-color: var(--control-toggle-selected-color, currentColor);
+  --control-toggle-active-color: var(--control-toggle-selected-active-color, var(--selection-color));
+  --control-toggle-clip-path: path('M 18% 83% A 32% 53% 0 0 1 82% 83% L 62% 83% A 22% 45% 0 0 0 38% 83% Z');
+}
+
+.control-sound-toggle--selected .control-sound-toggle__label {
+  letter-spacing: 2px;
+  transform: translateY(-12px);
 }
 
 .control-sound-toggle--cycle {

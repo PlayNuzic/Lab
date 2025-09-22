@@ -638,3 +638,31 @@ body[data-theme='dark'] .nuzic-audio-perf-panel .perf-row.readonly span {
 body[data-theme='dark'] .nuzic-audio-perf-panel .perf-foot {
   color: rgba(255, 255, 255, 0.7);
 }
+
+/* --- Sound toggle layout extensions --- */
+.control-sound-toggles--three {
+  left: 50%;
+  transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-gap))));
+  width: calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2);
+}
+
+.control-sound-toggles--three .control-sound-toggle-container--pulse {
+  left: calc(var(--pulse-offset-x, 0px));
+}
+
+.control-sound-toggles--three .control-sound-toggle-container--selected {
+  left: calc(var(--control-toggle-width) + var(--control-toggle-gap) + var(--selected-offset-x, 0px));
+  bottom: var(--selected-offset-y, 0px);
+  transform: translateX(var(--selected-translate-x, 0)) translateY(var(--selected-translate-y, 0));
+}
+
+.control-sound-toggles--three .control-sound-toggle-container--cycle {
+  left: calc((var(--control-toggle-width) + var(--control-toggle-gap)) * 2 + var(--cycle-offset-x, -140px));
+}
+
+@media (max-width: 600px) {
+  .control-sound-toggles--three {
+    transform: translate(-50%, calc(-50% - 12px));
+    width: min(92vw, calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2));
+  }
+}

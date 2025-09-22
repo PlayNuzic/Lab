@@ -8,7 +8,8 @@ export function renderApp({
   hideLeds = false,
   showAccent = true,
   showPulseToggle = false,
-  showCycleToggle = false
+  showCycleToggle = false,
+  showSelectedToggle = false
 }) {
   if (!root) throw new Error('root element required');
   document.title = title;
@@ -26,9 +27,9 @@ export function renderApp({
               <button id="inputTDown" class="spin down" type="button" aria-label="Decrementar T"></button>
             </div></div>
         </div>`;
-  const soundToggleMarkup = (showPulseToggle || showCycleToggle) ? `
-      <div class="control-sound-toggles" role="group" aria-label="Controles de sonido">
-        ${showPulseToggle ? `
+  const toggleMarkup = [];
+  if (showPulseToggle) {
+    toggleMarkup.push(`
         <div class="control-sound-toggle-container control-sound-toggle-container--pulse">
           <button id="pulseToggleBtn" class="control-sound-toggle control-sound-toggle--pulse active" type="button" aria-pressed="true" aria-label="Alternar pulso">
             <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
@@ -41,9 +42,26 @@ export function renderApp({
               </text>
             </svg>
           </button>
-        </div>
-        ` : ''}
-        ${showCycleToggle ? `
+        </div>`);
+  }
+  if (showSelectedToggle) {
+    toggleMarkup.push(`
+        <div class="control-sound-toggle-container control-sound-toggle-container--selected">
+          <button id="selectedToggleBtn" class="control-sound-toggle control-sound-toggle--selected active" type="button" aria-pressed="true" aria-label="Alternar seleccionados">
+            <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+              <defs>
+                <path id="controlSelectedLabelPath" d="M 70 28 A 70 70 0 0 1 130 28" />
+              </defs>
+              <path class="control-sound-toggle__shape" d="M 36 100 A 114 114 0 0 1 164 100 L 128 100 A 64 64 0 0 0 72 100 Z" />
+              <text class="control-sound-toggle__label" dy="10">
+                <textPath href="#controlSelectedLabelPath" startOffset="50%" text-anchor="middle">Sel</textPath>
+              </text>
+            </svg>
+          </button>
+        </div>`);
+  }
+  if (showCycleToggle) {
+    toggleMarkup.push(`
         <div class="control-sound-toggle-container control-sound-toggle-container--cycle">
           <button id="cycleToggleBtn" class="control-sound-toggle control-sound-toggle--cycle active" type="button" aria-pressed="true" aria-label="Alternar ciclo">
             <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
@@ -56,8 +74,14 @@ export function renderApp({
               </text>
             </svg>
           </button>
-        </div>
-        ` : ''}
+        </div>`);
+  }
+
+  const toggleCount = toggleMarkup.length;
+  const toggleContainerClass = toggleCount === 3 ? ' control-sound-toggles--three' : '';
+  const soundToggleMarkup = toggleCount ? `
+      <div class="control-sound-toggles${toggleContainerClass}" role="group" aria-label="Controles de sonido">
+${toggleMarkup.join('\n')}
       </div>
   ` : '';
 

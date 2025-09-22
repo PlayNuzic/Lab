@@ -31,6 +31,7 @@ const selectors = {
   startSoundSelect: () => document.getElementById('startSoundSelect'),
   mixerMenu: () => document.getElementById('mixerMenu'),
   inputs: () => document.querySelector('.inputs'),
+  selectedToggleBtn: () => document.getElementById('selectedToggleBtn'),
   inputLg: () => document.getElementById('inputLg'),
   inputLgUp: () => document.getElementById('inputLgUp'),
   inputLgDown: () => document.getElementById('inputLgDown'),
@@ -68,6 +69,7 @@ const FRACTION_IDS = {
 
 let audio = null;
 let mixerSyncGuard = false;
+let selectedChannelEnabled = true;
 
 const RANDOM_STORE_KEY = STORE_KEY('random');
 
@@ -130,6 +132,7 @@ window.addEventListener('sharedui:factoryreset', () => {
   updateFractionDisplay();
   updateLgDisplay();
   renderPulseSequence();
+  setSelectedChannelEnabled(true);
   scheduleParamSync();
 });
 
@@ -1057,6 +1060,64 @@ function initMixerMenuForApp() {
   });
 }
 
+function syncToggleButton(button, enabled) {
+  if (!button) return;
+  const isActive = enabled !== false;
+  button.classList.toggle('active', isActive);
+  button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  button.dataset.state = isActive ? 'on' : 'off';
+}
+
+function updateSelectedToggleUI(enabled) {
+  selectedChannelEnabled = enabled !== false;
+  syncToggleButton(selectors.selectedToggleBtn(), selectedChannelEnabled);
+}
+
+function setSelectedChannelEnabled(value) {
+  const enabled = value !== false;
+  const already = selectedChannelEnabled === enabled;
+  ensureMixerChannels();
+  updateSelectedToggleUI(enabled);
+  if (already) return;
+
+  const shouldMute = !enabled;
+  mixerSyncGuard = true;
+  try {
+    setChannelMute('selected', shouldMute);
+    setChannelMute('accent', shouldMute);
+    if (shouldMute) {
+      setChannelSolo('selected', false);
+      setChannelSolo('accent', false);
+    } else {
+      const mixer = getMixer();
+      const selectedState = mixer?.getChannelState?.('selected');
+      if (selectedState) {
+        setChannelSolo('accent', !!selectedState.solo);
+      }
+    }
+  } finally {
+    mixerSyncGuard = false;
+  }
+}
+
+function initSelectedToggle() {
+  const button = selectors.selectedToggleBtn();
+  if (!button) return;
+
+  ensureMixerChannels();
+  const mixer = getMixer();
+  const selectedState = mixer?.getChannelState?.('selected');
+  if (selectedState) {
+    updateSelectedToggleUI(!selectedState.muted);
+  } else {
+    updateSelectedToggleUI(selectedChannelEnabled);
+  }
+
+  button.addEventListener('click', () => {
+    setSelectedChannelEnabled(!selectedChannelEnabled);
+  });
+}
+
 function syncSelectedChannel() {
   subscribeMixer((snapshot) => {
     if (!snapshot || mixerSyncGuard) return;
@@ -1064,6 +1125,9 @@ function syncSelectedChannel() {
     const selected = channels.find((ch) => ch.id === 'selected');
     const accent = channels.find((ch) => ch.id === 'accent');
     if (!selected) return;
+
+    updateSelectedToggleUI(!selected.muted);
+
     mixerSyncGuard = true;
     try {
       if (!accent || Math.abs((accent.volume ?? 1) - (selected.volume ?? 1)) > 1e-4) {
@@ -1142,6 +1206,7 @@ function init() {
   initRandomization();
   initSoundMenus();
   initMixerMenuForApp();
+  initSelectedToggle();
   syncSelectedChannel();
   wirePlayButton();
 }
