@@ -13,7 +13,7 @@ body[data-theme='dark'] {
 body.app3 {
   --pulse-offset-x: 2px;
   --pulse-offset-y: 0px;
-  --cycle-offset-x: -138px;
+  --cycle-offset-x: -6px;
   --cycle-offset-y: 0px;
   --unit-label-offset: -20px;
 }
@@ -24,12 +24,19 @@ body.app3 {
     --control-toggle-width: clamp(88px, 40vw, 120px);
     --control-toggle-gap: -28px;
     --pulse-offset-x: -12px;
-    --cycle-offset-x: -92px;
+    --cycle-offset-x: -6px;
   }
 
   body.app3 .control-sound-toggles {
     top: 58%;
     transform: translate(-50%, calc(-50% - 6px));
+  }
+
+  body.app3 .control-sound-toggles:has(.control-sound-toggle-container--selected) {
+    width: min(90vw, calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2));
+  }
+
+  body.app3 .control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) {
     width: min(84vw, calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap)));
   }
 
