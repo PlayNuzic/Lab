@@ -9,6 +9,7 @@
  */
 :root {
 --controls-offset-y: -25px;
+--unit-label-offset: -40px;
 --bg-light: #EEE8D8;
 --bg-dark: #43433B;
 --text-light: #43433B;
@@ -478,7 +479,7 @@ padding-right: 24px;
 
 .param .circle .unit {
   position: absolute;
-  top: calc(-40px - 1.7rem);
+  top: calc(var(--unit-label-offset, -40px) - 1.7rem);
   left: 50%;
   transform: translateX(-50%);
   font-size: 1.7rem;

@@ -1,5 +1,9 @@
 /* App2 specific overrides */
 
+body {
+--unit-label-offset: -20px;
+}
+
 /**
  * Timeline pulse overrides to support selection and interactive hit areas.
  */
@@ -115,7 +119,7 @@ transform: translate(-50%, calc(-50% - 90px)) !important; /* was -40px */
 }
 
 /* 5) Lower unit label by 20px when shown on input focus */
-.param .circle .unit {
-top: calc(-20px - 1.8rem);
-}
+  .param .circle .unit {
+  top: calc(var(--unit-label-offset, -20px) - 1.8rem);
+  }
 }
