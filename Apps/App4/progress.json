@@ -1,12 +1,11 @@
 {
   "step": 4,
   "done": [
-    "Tarjeta de App4 añadida en la landing",
-    "Base de la app generada con placeholder y gancho Play",
-    "Motor de audio conectado con menús de sonido y mixer sincronizado",
-    "Inputs Lg, n/d y V maquetados con spinners reutilizables",
-    "Parámetros Lg, n/d y V persistidos y sincronizados con el motor de audio"
+    "Tarjeta de App4 añadida en la landing principal",
+    "Motor de audio preparado con canales Pulso/Seleccionados/Master y menús de sonido",
+    "Controles Lg, fracción n/d y V con spinners y persistencia local",
+    "Editor de pulsos fraccionados con validaciones y orden estable"
   ],
-  "next": "Definir la lógica de pulsos fraccionados y primer feedback visual (Iteración 5)",
-  "notes": "Los parámetros ya afectan al motor y quedan guardados, pero la UI sigue siendo un placeholder sin representar la estructura fraccionada."
+  "next": "Iteración 5 — Timeline y selección de pulsos",
+  "notes": "El motor responde a los parámetros almacenados y el editor de pulsos guarda estado; falta renderizar el timeline y la interacción de selección."
 }

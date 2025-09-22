@@ -1,22 +1,22 @@
 # Pulsos Fraccionados — Build Notes
 
 ## Iteración 1
-- Estructura base creada reutilizando el template compartido.
-- Tarjeta añadida en la landing principal para abrir App4.
-- Bootstrap inicial con placeholder visual y preparación para inicializar audio tras Play.
+- Creada la tarjeta de App4 en la landing principal y enlazada a la nueva app.
+- Se reutiliza el template compartido con cabecera común y menú lateral.
 
 ## Iteración 2
-- Integrado el motor híbrido de audio con instancia propia y menú de sonidos basado en los 10 samples.
-- Configurado el mixer global con canales Pulso/Pulso 0, Seleccionados y Master accesibles vía long-press.
-- Sincronizado el canal "Seleccionados" del mixer con el bus interno de acentos del motor.
+- Instanciado el motor híbrido `TimelineAudio` al pulsar Play con política de autoplay estándar.
+- Configurado el mixer global con canales `pulse`, `selected` y `master`, accesibles mediante long-press en Play.
+- Menús de sonido conectados a los 10 samples del sample-map y sincronizados con el motor.
 
 ## Iteración 3
-- Añadidos los controles principales para Lg, fracción n/d y V con maquetación propia y spinners reutilizables.
-- Normalización básica de los campos numéricos asegurando valores positivos y repetición en pulsadores.
+- Maquetación de los controles principales: Lg, fracción `n/d` y tempo `V` con spinners reutilizables.
+- Persistencia y restauración automática de los parámetros desde `localStorage` (`app4::*`).
 
 ## Iteración 4
-- Persistencia local de Lg, n/d y V, restaurando valores por defecto cuando no hay datos.
-- Sincronización automática de los parámetros con el motor (`updateTransport`) y soporte para `factory reset`.
+- Editor de pulsos fraccionados similar al de App2 con soporte para fracciones (`k.f` y `.f`).
+- Validación contextual cuando el numerador supera el denominador y orden estable con deduplicación.
+- Los valores confirmados quedan sincronizados con almacenamiento local y preparados para etapas posteriores.
 
 ## Próximos pasos
-- Iteración 5: definir la lógica de pulsos fraccionados y comenzar a mostrar el feedback visual correspondiente.
+- Iteración 5: timeline y selección visual de pulsos enteros/fraccionados.
