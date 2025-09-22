@@ -250,9 +250,13 @@ function updateFractionHover(info) {
     const message = buildReductionHoverText(info);
     numeratorInput.dataset.hoverText = message;
     denominatorInput.dataset.hoverText = message;
+    if (pulseSeqFractionNumeratorEl) pulseSeqFractionNumeratorEl.dataset.hoverText = message;
+    if (pulseSeqFractionDenominatorEl) pulseSeqFractionDenominatorEl.dataset.hoverText = message;
   } else {
     numeratorInput.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
     denominatorInput.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
+    if (pulseSeqFractionNumeratorEl) pulseSeqFractionNumeratorEl.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
+    if (pulseSeqFractionDenominatorEl) pulseSeqFractionDenominatorEl.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
   }
 }
 
@@ -260,6 +264,10 @@ function updateFractionUI(numerator, denominator) {
   currentFractionInfo = computeFractionInfo(numerator, denominator);
   updateFractionGhost(currentFractionInfo);
   updateFractionHover(currentFractionInfo);
+  updatePulseSeqFractionDisplay(numerator, denominator);
+  if (fractionalPulseSelections.length > 0) {
+    sanitizePulseSeq({ causedBy: 'fraction-change', skipCaret: true });
+  }
 }
 
 function persistFractionField(input, key) {
@@ -457,6 +465,10 @@ let dragMode = 'select'; // 'select' | 'deselect'
 // --- Selection memory across Lg changes ---
 let pulseMemory = []; // index -> selected
 let pulseSeqRanges = {};
+let fractionalPulseSelections = [];
+let pulseSeqFractionNumeratorEl = null;
+let pulseSeqFractionDenominatorEl = null;
+let lastFractionGap = null;
 
 function ensurePulseMemory(size) {
   if (size >= pulseMemory.length) {
@@ -469,6 +481,7 @@ function clearPersistentPulses(){
   pulseMemory = [];
   try { selectedPulses.clear(); } catch {}
   /* Keep UI consistent; will be rebuilt by subsequent calls */
+  fractionalPulseSelections = [];
   updatePulseSeqField();
 }
 // UI thresholds for number rendering
@@ -504,14 +517,52 @@ function setupPulseSeqMarkup(){
   if (pulseSeqEl.querySelector('.pz.edit')) return; // already prepared
   const initial = (pulseSeqEl.textContent || '').trim();
   pulseSeqEl.textContent = '';
-  const mk = (cls, txt) => { const s = document.createElement('span'); s.className = 'pz ' + cls; if (txt!=null) s.textContent = txt; return s; };
-  pulseSeqEl.append(
-    mk('prefix','Pulsos ('),
-    mk('zero','0'),
-    (()=>{ const e = mk('edit', initial); e.contentEditable = 'true'; return e; })(),
-    mk('suffix',')'),
-    mk('lg','')
-  );
+  const mk = (cls, txt) => {
+    const s = document.createElement('span');
+    s.className = 'pz ' + cls;
+    if (txt != null) s.textContent = txt;
+    return s;
+  };
+
+  const prefix = mk('prefix', 'Pfr (');
+
+  const fractionWrapper = document.createElement('span');
+  fractionWrapper.className = 'pz fraction';
+  const fraction = document.createElement('span');
+  fraction.className = 'fraction';
+  const fractionTop = document.createElement('span');
+  fractionTop.className = 'top';
+  pulseSeqFractionNumeratorEl = document.createElement('span');
+  pulseSeqFractionNumeratorEl.className = 'fraction-number numerator';
+  pulseSeqFractionNumeratorEl.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
+  fractionTop.appendChild(pulseSeqFractionNumeratorEl);
+  const fractionBottom = document.createElement('span');
+  fractionBottom.className = 'bottom';
+  pulseSeqFractionDenominatorEl = document.createElement('span');
+  pulseSeqFractionDenominatorEl.className = 'fraction-number denominator';
+  pulseSeqFractionDenominatorEl.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
+  fractionBottom.appendChild(pulseSeqFractionDenominatorEl);
+  fraction.appendChild(fractionTop);
+  fraction.appendChild(fractionBottom);
+  fractionWrapper.appendChild(fraction);
+
+  attachHover(fractionTop, { text: DEFAULT_NUMERATOR_HOVER_TEXT });
+  attachHover(fractionBottom, { text: DEFAULT_DENOMINATOR_HOVER_TEXT });
+
+  const spacer = mk('spacer', '');
+  spacer.textContent = ' ';
+
+  const zero = mk('zero', '0');
+  const edit = (() => {
+    const e = mk('edit', initial);
+    e.contentEditable = 'true';
+    return e;
+  })();
+  const suffix = mk('suffix', ')');
+  const lgLabel = mk('lg', '');
+
+  pulseSeqEl.append(prefix, fractionWrapper, spacer, zero, edit, suffix, lgLabel);
+  updatePulseSeqFractionDisplay(null, null);
 }
 setupPulseSeqMarkup();
 initFractionEditor();
@@ -556,6 +607,17 @@ function setPulseSeqSelection(start, end){
     sel.removeAllRanges();
     sel.addRange(range);
   }catch{}
+}
+
+function updatePulseSeqFractionDisplay(numerator, denominator) {
+  const validNumerator = Number.isFinite(numerator) && numerator > 0 ? numerator : 'n';
+  const validDenominator = Number.isFinite(denominator) && denominator > 0 ? denominator : 'd';
+  if (pulseSeqFractionNumeratorEl) {
+    pulseSeqFractionNumeratorEl.textContent = String(validNumerator);
+  }
+  if (pulseSeqFractionDenominatorEl) {
+    pulseSeqFractionDenominatorEl.textContent = String(validDenominator);
+  }
 }
 
 // Caret movement entre midpoints (dos espacios)
@@ -1144,73 +1206,231 @@ addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1),  inputV);
 addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), inputLg);
 addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), inputLg);
 
-function sanitizePulseSeq(opts = {}){
-  if (!pulseSeqEl) return;
-  const lg = parseInt(inputLg.value);
-  // Guarda posición del caret antes de normalizar
-  const caretBefore = (()=>{ const el=getEditEl(); if(!el) return 0; const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; const r=s.getRangeAt(0); if(!el.contains(r.startContainer)) return 0; return r.startOffset; })();
-  const text = getPulseSeqText();
-  const matches = text.match(/\d+/g) || [];
-  const seen = new Set();
-  const nums = [];
-  let hadTooBig = false;
-  let firstTooBig = null;
-  for (const m of matches) {
-    const n = parseInt(m, 10);
-    if (n > 0 && !seen.has(n)) {
-      if (!isNaN(lg) && n >= lg) { hadTooBig = true; if(firstTooBig===null) firstTooBig=n; continue; }
-      seen.add(n);
-      nums.push(n);
-    }
-  }
-  if (!isNaN(lg)) ensurePulseMemory(lg);
-  nums.sort((a,b) => a - b);
-  const joined = (isNaN(lg) ? nums : nums.filter(n => n < lg)).join('  ');
-  const out = '  ' + joined + '  ';
-  setPulseSeqText(out);
-  if (!isNaN(lg)) {
-    for (let i = 1; i < lg; i++) pulseMemory[i] = false;
-    nums.forEach(n => { if (n < lg) pulseMemory[n] = true; });
-    syncSelectedFromMemory();
-    updateNumbers();
-  }
-  // Restaurar caret en una posición segura (entre espacios dobles)
-  // - Si hubo números > Lg o es tecleo normal, recolocamos el caret
-  // - Además, lo ajustamos explícitamente al midpoint más cercano para que no quede pegado a un número
-  const pos = Math.min(out.length, caretBefore);
-  if (hadTooBig || !(opts.causedBy === 'enter' || opts.causedBy === 'blur')) {
-    setPulseSeqSelection(pos, pos);
-    // Asegura separación: salta al midpoint más cercano tras normalizar
-    try { moveCaretToNearestMidpoint(); } catch {}
-  }
-  // Mensaje temporal si hubo números mayores que Lg
-  if (hadTooBig && !isNaN(lg)) {
-    try{
-      const el = getEditEl();
-      const tip = document.createElement('div');
-      tip.className = 'hover-tip auto-tip-below';
-      const bad = firstTooBig != null ? firstTooBig : '';
-      tip.innerHTML = `El número <strong>${bad}</strong> introducido es mayor que la <span style=\"color: var(--color-lg); font-weight: 700;\">Lg</span>. Elige un número menor que <strong>${lg}</strong>`;
-      document.body.appendChild(tip);
-      let rect = null;
-      const sel = window.getSelection && window.getSelection();
-      if(sel && sel.rangeCount){
-        const r = sel.getRangeAt(0).cloneRange();
-        if(el && el.contains(r.startContainer)){
-          r.collapse(false);
-          rect = r.getBoundingClientRect();
-        }
+function showPulseSeqAutoTip(html) {
+  try {
+    const el = getEditEl();
+    if (!el) return;
+    const tip = document.createElement('div');
+    tip.className = 'hover-tip auto-tip-below';
+    tip.innerHTML = html;
+    document.body.appendChild(tip);
+    let rect = null;
+    const sel = window.getSelection && window.getSelection();
+    if (sel && sel.rangeCount) {
+      const r = sel.getRangeAt(0).cloneRange();
+      if (el.contains(r.startContainer)) {
+        r.collapse(false);
+        rect = r.getBoundingClientRect();
       }
-      if(!rect) rect = el.getBoundingClientRect();
+    }
+    if (!rect) rect = el.getBoundingClientRect();
+    if (rect) {
       tip.style.left = rect.left + 'px';
       tip.style.top = (rect.bottom + window.scrollY) + 'px';
-      tip.style.fontSize = '0.95rem';
-      tip.style.fontSize = '0.95rem';
-      tip.classList.add('show');
-      setTimeout(()=>{ tip.classList.remove('show'); try{ document.body.removeChild(tip);}catch{} }, 3000);
-    }catch{}
+    }
+    tip.style.fontSize = '0.95rem';
+    tip.classList.add('show');
+    setTimeout(() => {
+      tip.classList.remove('show');
+      try { document.body.removeChild(tip); } catch {}
+    }, 3000);
+  } catch {}
+}
+
+function resolvePulseSeqGap(position, lg) {
+  const ranges = Object.entries(pulseSeqRanges)
+    .map(([key, range]) => ({ key, range, num: Number(key) }))
+    .filter(entry => Number.isFinite(entry.num) && Number.isInteger(entry.num))
+    .sort((a, b) => a.range[0] - b.range[0]);
+
+  let base = null;
+  let next = null;
+  let index = 0;
+  for (let i = 0; i < ranges.length; i++) {
+    const { num, range } = ranges[i];
+    if (position > range[1]) {
+      base = num;
+      index = i + 1;
+      continue;
+    }
+    if (position <= range[0]) {
+      next = num;
+      break;
+    }
   }
-  return { hadTooBig };
+  if (base == null) base = 0;
+  if (next == null && Number.isFinite(lg)) next = lg;
+  return { base, next, index };
+}
+
+function sanitizePulseSeq(opts = {}){
+  if (!pulseSeqEl) return { hadTooBig: false, hadFractionTooBig: false };
+  const lg = parseInt(inputLg.value);
+  const caretBefore = (() => {
+    const el = getEditEl();
+    if (!el) return 0;
+    const s = window.getSelection && window.getSelection();
+    if (!s || s.rangeCount === 0) return 0;
+    const r = s.getRangeAt(0);
+    if (!el.contains(r.startContainer)) return 0;
+    return r.startOffset;
+  })();
+  const text = getPulseSeqText();
+  const tokenRegex = /(\d+\.\d+|\.\d+|\d+)/g;
+  const tokens = [];
+  let match;
+  while ((match = tokenRegex.exec(text)) !== null) {
+    tokens.push({ raw: match[0], start: match.index });
+  }
+
+  const ints = [];
+  const seenInts = new Set();
+  let hadTooBig = false;
+  let firstTooBig = null;
+
+  const fractions = [];
+  const seenFractionKeys = new Set();
+  let hadFractionTooBig = false;
+  let firstFractionTooBig = null;
+
+  const { denominator: rawDenominator } = getFraction();
+  const denomValue = Number.isFinite(rawDenominator) && rawDenominator > 0 ? rawDenominator : null;
+
+  const caretGap = resolvePulseSeqGap(caretBefore, lg);
+  lastFractionGap = caretGap;
+
+  const toDisplayString = (base, digits) => `${base}.${digits}`;
+
+  for (const token of tokens) {
+    const raw = token.raw;
+    if (raw.includes('.')) {
+      if (raw.startsWith('.')) {
+        if (!denomValue) continue;
+        const digits = raw.slice(1);
+        if (!digits) continue;
+        const fracNumerator = Number.parseInt(digits, 10);
+        if (!Number.isFinite(fracNumerator) || fracNumerator <= 0) continue;
+        if (fracNumerator >= denomValue) {
+          hadFractionTooBig = true;
+          if (firstFractionTooBig == null) firstFractionTooBig = digits;
+          continue;
+        }
+        const gap = resolvePulseSeqGap(token.start, lg);
+        const base = Number.isFinite(gap.base) ? gap.base : 0;
+        const next = Number.isFinite(gap.next) ? gap.next : (Number.isFinite(lg) ? lg : Infinity);
+        if (!Number.isFinite(base)) continue;
+        if (!Number.isNaN(lg) && base >= lg) continue;
+        const value = base + fracNumerator / denomValue;
+        if (value <= base) continue;
+        if (Number.isFinite(next) && value >= next) continue;
+        if (!Number.isNaN(lg) && value >= lg) continue;
+        const key = `fraction:${base}+${fracNumerator}`;
+        if (!seenFractionKeys.has(key)) {
+          seenFractionKeys.add(key);
+          fractions.push({
+            base,
+            numerator: fracNumerator,
+            denominator: denomValue,
+            value,
+            display: toDisplayString(base, digits),
+            key
+          });
+        }
+      } else {
+        const [intPart, fractionDigitsRaw] = raw.split('.', 2);
+        const intVal = Number.parseInt(intPart, 10);
+        if (!Number.isFinite(intVal) || intVal < 0) continue;
+        if (!denomValue) continue;
+        const digits = fractionDigitsRaw ?? '';
+        if (!digits) continue;
+        const fracNumerator = Number.parseInt(digits, 10);
+        if (!Number.isFinite(fracNumerator) || fracNumerator <= 0) continue;
+        if (fracNumerator >= denomValue) {
+          hadFractionTooBig = true;
+          if (firstFractionTooBig == null) firstFractionTooBig = digits;
+          continue;
+        }
+        const value = intVal + fracNumerator / denomValue;
+        if (!Number.isNaN(lg) && value >= lg) {
+          hadTooBig = true;
+          if (firstTooBig == null) firstTooBig = `${intVal}.${digits}`;
+          continue;
+        }
+        const key = `fraction:${intVal}+${fracNumerator}`;
+        if (!seenFractionKeys.has(key)) {
+          seenFractionKeys.add(key);
+          fractions.push({
+            base: intVal,
+            numerator: fracNumerator,
+            denominator: denomValue,
+            value,
+            display: toDisplayString(intVal, digits),
+            key
+          });
+        }
+      }
+    } else {
+      const n = Number.parseInt(raw, 10);
+      if (!Number.isFinite(n) || n <= 0) continue;
+      if (!Number.isNaN(lg) && n >= lg) {
+        hadTooBig = true;
+        if (firstTooBig == null) firstTooBig = n;
+        continue;
+      }
+      if (!seenInts.has(n)) {
+        seenInts.add(n);
+        ints.push(n);
+      }
+    }
+  }
+
+  ints.sort((a, b) => a - b);
+  fractions.sort((a, b) => a.value - b.value);
+  fractionalPulseSelections = fractions;
+
+  const hasValidLg = Number.isFinite(lg) && lg > 0;
+
+  if (hasValidLg) {
+    ensurePulseMemory(lg);
+    for (let i = 1; i < lg; i++) pulseMemory[i] = false;
+    ints.forEach(n => { if (n < lg) pulseMemory[n] = true; });
+    syncSelectedFromMemory();
+    updateNumbers();
+  } else {
+    const combined = [
+      ...ints.map(n => ({ value: n, display: String(n), key: String(n) })),
+      ...fractions.map(f => ({ value: f.value, display: f.display, key: f.key }))
+    ].sort((a, b) => a.value - b.value);
+    pulseSeqRanges = {};
+    let pos = 0;
+    const parts = combined.map(entry => {
+      const start = pos + 2;
+      const end = start + entry.display.length;
+      pulseSeqRanges[entry.key] = [start, end];
+      pos += entry.display.length + 2;
+      return entry.display;
+    });
+    setPulseSeqText('  ' + parts.join('  ') + '  ');
+  }
+
+  const outText = getPulseSeqText();
+  const pos = Math.min(outText.length, caretBefore);
+  const editEl = getEditEl();
+  const isEditActive = editEl && document.activeElement === editEl;
+  if (!opts.skipCaret && isEditActive && (hadTooBig || !(opts.causedBy === 'enter' || opts.causedBy === 'blur'))) {
+    setPulseSeqSelection(pos, pos);
+    try { moveCaretToNearestMidpoint(); } catch {}
+  }
+
+  if (hadTooBig && !Number.isNaN(lg)) {
+    const bad = firstTooBig != null ? firstTooBig : '';
+    showPulseSeqAutoTip(`El número <strong>${bad}</strong> introducido es mayor que la <span style="color: var(--color-lg); font-weight: 700;">Lg</span>. Elige un número menor que <strong>${lg}</strong>`);
+  }
+  if (hadFractionTooBig && denomValue) {
+    showPulseSeqAutoTip(`La parte fraccionaria <strong>${firstFractionTooBig}</strong> excede el denominador (<strong>${denomValue}</strong>). Usa un valor menor que <strong>${denomValue}</strong>.`);
+  }
+
+  return { hadTooBig, hadFractionTooBig };
 }
 
 function handleInput(){
@@ -1303,22 +1523,36 @@ function updatePulseSeqField(){
     return;
   }
   try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=String(lg); }catch{}
-  const arr = [];
+  const entries = [];
   const limit = Math.min(pulseMemory.length, lg);
   for(let i = 1; i < limit; i++){
-    if(pulseMemory[i]) arr.push(i);
+    if(pulseMemory[i]) {
+      entries.push({ type: 'int', value: i, display: String(i), key: String(i) });
+    }
   }
-  arr.sort((a,b) => a - b);
+  const validFractionals = fractionalPulseSelections
+    .filter(item => item && Number.isFinite(item.value))
+    .filter(item => item.value > 0 && item.value < lg);
+  validFractionals.forEach(item => {
+    entries.push({
+      type: 'fraction',
+      value: item.value,
+      display: item.display,
+      key: item.key
+    });
+  });
+  entries.sort((a, b) => a.value - b.value);
   pulseSeqRanges = {};
   let pos = 0;
-  const parts = arr.map(num => {
-    const str = String(num);
-    pulseSeqRanges[num] = [pos + 2, pos + 2 + str.length];
-    pos += str.length + 2; // acumulado interno; offset global de 2 al inicio
+  const parts = entries.map(entry => {
+    const str = entry.display;
+    const start = pos + 2;
+    const end = start + str.length;
+    pulseSeqRanges[entry.key] = [start, end];
+    pos += str.length + 2;
     return str;
   });
-  // añade dos espacios al inicio y al final para tener midpoints en extremos
-  setPulseSeqText((parts.length? '  ' : '  ') + parts.join('  ') + (parts.length? '  ' : '  '));
+  setPulseSeqText('  ' + parts.join('  ') + '  ');
 }
 
 // Rebuild selectedPulses (visible set) from pulseMemory and current Lg, then apply DOM classes
