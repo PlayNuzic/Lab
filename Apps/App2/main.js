@@ -216,7 +216,7 @@ function setupPulseSeqMarkup(){
   pulseSeqEl.textContent = '';
   const mk = (cls, txt) => { const s = document.createElement('span'); s.className = 'pz ' + cls; if (txt!=null) s.textContent = txt; return s; };
   pulseSeqEl.append(
-    mk('prefix','P('),
+    mk('prefix','Pulsos ('),
     mk('zero','0'),
     (()=>{ const e = mk('edit', initial); e.contentEditable = 'true'; return e; })(),
     mk('suffix',')'),
