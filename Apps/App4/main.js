@@ -6,7 +6,7 @@ import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { toRange } from '../../libs/app-common/range.js';
-import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
+import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 // Using local header controls for App2 (no shared init)
 
@@ -459,8 +459,16 @@ function initFractionState() {
 // pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
 
 let pulses = [];
-// Hit targets (separate from the visual dots) and drag mode
+let pulseNumberLabels = [];
+let cycleMarkers = [];
+let cycleLabels = [];
+let bars = [];
 let pulseHits = [];
+let cycleMarkerHits = [];
+const fractionalSelectionState = new Map();
+const selectedFractionKeys = new Set();
+const fractionHitMap = new Map();
+// Hit targets (separate from the visual dots) and drag mode
 let dragMode = 'select'; // 'select' | 'deselect'
 // --- Selection memory across Lg changes ---
 let pulseMemory = []; // index -> selected
@@ -481,12 +489,90 @@ function clearPersistentPulses(){
   pulseMemory = [];
   try { selectedPulses.clear(); } catch {}
   /* Keep UI consistent; will be rebuilt by subsequent calls */
+  fractionalSelectionState.clear();
+  selectedFractionKeys.clear();
   fractionalPulseSelections = [];
   updatePulseSeqField();
+  applyFractionSelectionClasses();
 }
 // UI thresholds for number rendering
-const NUMBER_HIDE_THRESHOLD = 100;   // from this Lg and above, hide numbers
+const PULSE_NUMBER_HIDE_THRESHOLD = 71;
+const SUBDIVISION_HIDE_THRESHOLD = 41;
 const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
+
+function makeFractionKey(base, numerator, denominator) {
+  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
+    return null;
+  }
+  return `${base}+${numerator}/${denominator}`;
+}
+
+function fractionValue(base, numerator, denominator) {
+  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
+    return NaN;
+  }
+  return base + numerator / denominator;
+}
+
+function fractionDisplay(base, numerator) {
+  const safeBase = Number.isFinite(base) ? base : 0;
+  const safeNumerator = Number.isFinite(numerator) ? numerator : 0;
+  return `${safeBase}.${safeNumerator}`;
+}
+
+function getFractionInfoFromElement(el) {
+  if (!el) return null;
+  const base = parseIntSafe(el.dataset.baseIndex);
+  const numerator = parseIntSafe(el.dataset.fractionNumerator);
+  const denominator = parseIntSafe(el.dataset.fractionDenominator);
+  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
+    return null;
+  }
+  const key = el.dataset.fractionKey || makeFractionKey(base, numerator, denominator);
+  if (!key) return null;
+  const value = Number.isFinite(parseFloat(el.dataset.value))
+    ? parseFloat(el.dataset.value)
+    : fractionValue(base, numerator, denominator);
+  const display = el.dataset.display || fractionDisplay(base, numerator);
+  return { type: 'fraction', base, numerator, denominator, key, value, display };
+}
+
+function applyFractionSelectionClasses() {
+  cycleMarkers.forEach(marker => {
+    const key = marker.dataset.fractionKey;
+    if (!key) {
+      marker.classList.remove('selected');
+      return;
+    }
+    marker.classList.toggle('selected', selectedFractionKeys.has(key));
+  });
+}
+
+function rebuildFractionSelections(opts = {}) {
+  selectedFractionKeys.clear();
+  fractionalPulseSelections = Array.from(fractionalSelectionState.values())
+    .filter(item => item && Number.isFinite(item.value))
+    .sort((a, b) => a.value - b.value);
+  fractionalPulseSelections.forEach(item => selectedFractionKeys.add(item.key));
+  applyFractionSelectionClasses();
+  if (!opts.skipUpdateField) {
+    updatePulseSeqField();
+  }
+}
+
+function setFractionSelected(info, shouldSelect) {
+  if (!info || !info.key) return;
+  const { key, base, numerator, denominator } = info;
+  const value = Number.isFinite(info.value) ? info.value : fractionValue(base, numerator, denominator);
+  if (!Number.isFinite(value)) return;
+  if (shouldSelect) {
+    const display = info.display || fractionDisplay(base, numerator);
+    fractionalSelectionState.set(key, { base, numerator, denominator, value, display, key });
+  } else {
+    fractionalSelectionState.delete(key);
+  }
+  rebuildFractionSelections();
+}
 
 // --- Selecció viva per a l'àudio (filtrada: sense 0 ni lg) ---
 function selectedForAudioFromState() {
@@ -687,39 +773,116 @@ function scheduleTIndicatorReveal(delay = 0) {
     });
   }, ms);
 }
-let suppressClickIndex = null;       // per evitar doble-toggle en drag start
+let suppressClickKey = null;       // avoid double-toggle on drag start
 // --- Drag selection state ---
 let isDragging = false;
-let lastDragIndex = null;
+let lastDragKey = null;
 
-// Start drag on the timeline area and decide drag mode based on first pulse under pointer
+function getSelectionInfo(target) {
+  if (!target) return null;
+  if (typeof target.dataset.index !== 'undefined') {
+    const idx = parseIntSafe(target.dataset.index);
+    if (Number.isFinite(idx)) {
+      return { type: 'int', index: idx, selectionKey: `pulse:${idx}` };
+    }
+  }
+  if (target.dataset.fractionKey) {
+    const info = getFractionInfoFromElement(target);
+    if (info) {
+      return { ...info, selectionKey: `fraction:${info.key}` };
+    }
+  }
+  return null;
+}
+
+function isSelectionActive(info) {
+  if (!info) return false;
+  if (info.type === 'fraction') {
+    return fractionalSelectionState.has(info.key);
+  }
+  if (info.type === 'int') {
+    const lg = parseIntSafe(inputLg.value);
+    if (!Number.isFinite(lg)) return false;
+    if (info.index === 0 || info.index === lg) {
+      return loopEnabled;
+    }
+    ensurePulseMemory(Math.max(info.index, lg));
+    return !!pulseMemory[info.index];
+  }
+  return false;
+}
+
+function applySelectionInfo(info, shouldSelect) {
+  if (!info) return;
+  if (info.type === 'fraction') {
+    setFractionSelected(info, shouldSelect);
+  } else if (info.type === 'int') {
+    setPulseSelected(info.index, shouldSelect);
+  }
+}
+
+function toggleSelectionInfo(info) {
+  if (!info) return;
+  const active = isSelectionActive(info);
+  applySelectionInfo(info, !active);
+}
+
+function attachSelectionListeners(el) {
+  if (!el) return;
+  el.addEventListener('click', (ev) => {
+    const info = getSelectionInfo(ev.currentTarget);
+    if (!info) return;
+    if (suppressClickKey === info.selectionKey) {
+      suppressClickKey = null;
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
+    toggleSelectionInfo(info);
+  });
+  el.addEventListener('pointerenter', () => {
+    if (!isDragging) return;
+    const info = getSelectionInfo(el);
+    if (!info || lastDragKey === info.selectionKey) return;
+    lastDragKey = info.selectionKey;
+    applySelectionInfo(info, dragMode === 'select');
+  });
+}
+
+// Start drag on the timeline area and decide drag mode based on first target under pointer
 timeline.addEventListener('pointerdown', (e) => {
   isDragging = true;
-  lastDragIndex = null;
+  lastDragKey = null;
   dragMode = 'select';
-  const target = e.target.closest('.pulse-hit, .pulse');
-  if (target && typeof target.dataset.index !== 'undefined') {
-    const idx = parseInt(target.dataset.index, 10);
-    if (!Number.isNaN(idx)) {
-      ensurePulseMemory(idx);
-      dragMode = pulseMemory[idx] ? 'deselect' : 'select';
-      // APLICAR acció immediata sobre el primer pols sota el cursor
-      setPulseSelected(idx, dragMode === 'select');
-      // Evitar que el clic de mouseup inverteixi el que acabem de fer
-      suppressClickIndex = idx;
+  const target = e.target.closest('.pulse-hit, .pulse, .fraction-hit, .cycle-marker');
+  const info = getSelectionInfo(target);
+  if (info) {
+    if (info.type === 'int') {
+      const lg = parseIntSafe(inputLg.value);
+      if (!Number.isFinite(lg) || info.index === 0 || info.index === lg) {
+        suppressClickKey = null;
+        lastDragKey = null;
+        isDragging = false;
+        return;
+      }
+      ensurePulseMemory(Math.max(info.index, lg));
     }
+    dragMode = isSelectionActive(info) ? 'deselect' : 'select';
+    applySelectionInfo(info, dragMode === 'select');
+    suppressClickKey = info.selectionKey;
+    lastDragKey = info.selectionKey;
   }
 });
 // End/Cancel drag globally
 document.addEventListener('pointerup', () => {
   isDragging = false;
-  lastDragIndex = null;
-  // Do not clear suppressClickIndex here; allow click handler to consume it
+  lastDragKey = null;
+  // Do not clear suppressClickKey here; allow click handler to consume it
 });
 document.addEventListener('pointercancel', () => {
   isDragging = false;
-  lastDragIndex = null;
-  suppressClickIndex = null; 
+  lastDragKey = null;
+  suppressClickKey = null;
 });
 // Hovers for LEDs and controls
 // LEDs ahora indican los campos editables; el apagado se recalcula
@@ -819,7 +982,7 @@ selectColor.addEventListener('input', e => {
   saveOpt('color', e.target.value);
 });
 
-updateNumbers();
+updatePulseNumbers();
 
 circularTimelineToggle.checked = (() => {
   const stored = loadOpt('circular');
@@ -833,11 +996,11 @@ scheduleTIndicatorReveal(350);
 circularTimelineToggle?.addEventListener('change', e => {
   circularTimeline = e.target.checked;
   saveOpt('circular', e.target.checked ? '1' : '0');
-  animateTimelineCircle(loopEnabled && circularTimeline);
+  layoutTimeline();
 });
 // Keep T indicator anchored on window resizes
 window.addEventListener('resize', updateTIndicatorPosition);
-animateTimelineCircle(loopEnabled && circularTimeline);
+layoutTimeline();
 
 loopBtn.addEventListener('click', () => {
   loopEnabled = !loopEnabled;
@@ -847,7 +1010,7 @@ loopBtn.addEventListener('click', () => {
     ensurePulseMemory(lg);
     // Rebuild visible selection from memory and refresh labels
     syncSelectedFromMemory();
-    updateNumbers();
+    updatePulseNumbers();
     if (isPlaying && typeof audio.setSelected === 'function') {
       audio.setSelected(selectedForAudioFromState());
     }
@@ -856,7 +1019,7 @@ loopBtn.addEventListener('click', () => {
   if (isPlaying && audio && typeof audio.setLoop === 'function') {
     audio.setLoop(loopEnabled);
   }
-  animateTimelineCircle(loopEnabled && circularTimeline);
+  layoutTimeline();
 });
 
 resetBtn.addEventListener('click', () => {
@@ -951,7 +1114,7 @@ function randomize() {
       for (let i = 1; i < lg; i++) pulseMemory[i] = false;
       seq.forEach(i => { pulseMemory[i] = true; });
       syncSelectedFromMemory();
-      updateNumbers();
+      updatePulseNumbers();
       if (isPlaying && audio && typeof audio.setSelected === 'function') {
         audio.setSelected(selectedForAudioFromState());
       }
@@ -1324,7 +1487,8 @@ function sanitizePulseSeq(opts = {}){
         if (value <= base) continue;
         if (Number.isFinite(next) && value >= next) continue;
         if (!Number.isNaN(lg) && value >= lg) continue;
-        const key = `fraction:${base}+${fracNumerator}`;
+        const key = makeFractionKey(base, fracNumerator, denomValue);
+        if (!key) continue;
         if (!seenFractionKeys.has(key)) {
           seenFractionKeys.add(key);
           fractions.push({
@@ -1356,7 +1520,8 @@ function sanitizePulseSeq(opts = {}){
           if (firstTooBig == null) firstTooBig = `${intVal}.${digits}`;
           continue;
         }
-        const key = `fraction:${intVal}+${fracNumerator}`;
+        const key = makeFractionKey(intVal, fracNumerator, denomValue);
+        if (!key) continue;
         if (!seenFractionKeys.has(key)) {
           seenFractionKeys.add(key);
           fractions.push({
@@ -1386,7 +1551,11 @@ function sanitizePulseSeq(opts = {}){
 
   ints.sort((a, b) => a - b);
   fractions.sort((a, b) => a.value - b.value);
-  fractionalPulseSelections = fractions;
+  fractionalSelectionState.clear();
+  fractions.forEach(entry => {
+    fractionalSelectionState.set(entry.key, entry);
+  });
+  rebuildFractionSelections({ skipUpdateField: true });
 
   const hasValidLg = Number.isFinite(lg) && lg > 0;
 
@@ -1395,7 +1564,7 @@ function sanitizePulseSeq(opts = {}){
     for (let i = 1; i < lg; i++) pulseMemory[i] = false;
     ints.forEach(n => { if (n < lg) pulseMemory[n] = true; });
     syncSelectedFromMemory();
-    updateNumbers();
+    updatePulseNumbers();
   } else {
     const combined = [
       ...ints.map(n => ({ value: n, display: String(n), key: String(n) })),
@@ -1579,6 +1748,7 @@ function syncSelectedFromMemory() {
     if (!p) return;
     p.classList.toggle('selected', selectedPulses.has(idx));
   });
+  applyFractionSelectionClasses();
   updatePulseSeqField();
 }
 
@@ -1587,7 +1757,6 @@ function handlePulseSeqInput(){
   if (isNaN(lg) || lg <= 0) {
     pulseMemory = [];
     renderTimeline();
-    updateNumbers();
     return;
   }
   ensurePulseMemory(lg);
@@ -1599,7 +1768,6 @@ function handlePulseSeqInput(){
   nums.forEach(n => { pulseMemory[n] = true; });
   setPulseSeqText(nums.join(' '));
   renderTimeline();
-  updateNumbers();
   if (isPlaying && audio && typeof audio.setSelected === 'function') {
     audio.setSelected(selectedForAudioFromState());
   }
@@ -1620,7 +1788,7 @@ function setPulseSelected(i, shouldSelect) {
   }
 
   syncSelectedFromMemory();
-  updateNumbers();
+  updatePulseNumbers();
 
   if (isPlaying && audio) {
     if (typeof audio.setSelected === 'function') {
@@ -1632,205 +1800,349 @@ function setPulseSelected(i, shouldSelect) {
     }
   }
 
-  animateTimelineCircle(loopEnabled && circularTimeline);
+  layoutTimeline();
 }
 
-function renderTimeline(){
-  timeline.innerHTML = '';
+
+function clearHighlights() {
+  pulses.forEach(p => p.classList.remove('active'));
+  cycleMarkers.forEach(m => m.classList.remove('active'));
+  cycleLabels.forEach(l => l.classList.remove('active'));
+  pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
+}
+
+function renderTimeline() {
+  pulseNumberLabels = [];
   pulses = [];
   pulseHits = [];
-  const lg = parseInt(inputLg.value);
-  if(isNaN(lg) || lg <= 0) return;
-  ensurePulseMemory(lg);
+  cycleMarkers = [];
+  cycleMarkerHits = [];
+  cycleLabels = [];
+  bars = [];
+  fractionHitMap.clear();
+  const savedIndicator = tIndicator;
+  timeline.innerHTML = '';
+  if (savedIndicator) timeline.appendChild(savedIndicator);
+
+  const lg = parseIntSafe(inputLg.value);
+  if (!Number.isFinite(lg) || lg <= 0) return;
+
+  const numberFontRem = computeNumberFontRem(lg);
+  const subdivisionFontRem = computeSubdivisionFontRem(lg);
 
   for (let i = 0; i <= lg; i++) {
-    const p = document.createElement('div');
-    p.className = 'pulse';
-    if (i === 0) p.classList.add('zero');
-    else if (i === lg) p.classList.add('lg');
-    p.dataset.index = i;
-    // No listeners here: handled by hit targets
-    timeline.appendChild(p);
-    pulses.push(p);
+    const pulse = document.createElement('div');
+    pulse.className = 'pulse';
+    if (i === 0) pulse.classList.add('zero');
+    else if (i === lg) pulse.classList.add('lg');
+    pulse.dataset.index = String(i);
+    timeline.appendChild(pulse);
+    pulses.push(pulse);
 
-    // barres verticals extrems (0 i Lg)
     if (i === 0 || i === lg) {
       const bar = document.createElement('div');
       bar.className = 'bar';
       timeline.appendChild(bar);
+      bars.push(bar);
     }
 
-    // Click/drag hit target (bigger than the visual dot)
     const hit = document.createElement('div');
     hit.className = 'pulse-hit';
-    hit.dataset.index = i;
+    hit.dataset.index = String(i);
+    hit.dataset.selectionKey = `pulse:${i}`;
     hit.style.position = 'absolute';
     hit.style.borderRadius = '50%';
     hit.style.background = 'transparent';
-    hit.style.zIndex = '6'; // above pulses and bars
-
+    hit.style.zIndex = '6';
     const hitSize = computeHitSizePx(lg);
-    hit.style.width = hitSize + 'px';
-    hit.style.height = hitSize + 'px';
-
+    hit.style.width = `${hitSize}px`;
+    hit.style.height = `${hitSize}px`;
     if (i === 0 || i === lg) {
-      // Extrems no interactius
       hit.style.pointerEvents = 'none';
       hit.style.cursor = 'default';
     } else {
       hit.style.pointerEvents = 'auto';
       hit.style.cursor = 'pointer';
-      // listeners on the hit target
-      hit.addEventListener('click', (ev) => {
-        if (suppressClickIndex === i) {
-          suppressClickIndex = null;
-          ev.preventDefault();
-          ev.stopPropagation();
-          return; // already applied on pointerdown
-        }
-        togglePulse(i);
-      });
-      hit.addEventListener('pointerenter', () => {
-        if (isDragging && lastDragIndex !== i) {
-          lastDragIndex = i;
-          setPulseSelected(i, dragMode === 'select');
-        }
-      });
+      attachSelectionListeners(hit);
     }
-
     timeline.appendChild(hit);
     pulseHits.push(hit);
   }
+
+  const { numerator, denominator } = getFraction();
+  const grid = gridFromOrigin({ lg, numerator, denominator });
+  const validFractionKeys = new Set();
+  if (grid.cycles > 0 && grid.subdivisions.length) {
+    const hideFractionLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
+    const numeratorPerCycle = grid.numerator ?? numerator ?? 0;
+    const labelFormatter = (cycleIndex, subdivisionIndex) => {
+      const base = cycleIndex * numeratorPerCycle;
+      return subdivisionIndex === 0 ? String(base) : `.${subdivisionIndex}`;
+    };
+    const denominatorValue = grid.denominator ?? denominator ?? 0;
+    grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
+      const marker = document.createElement('div');
+      marker.className = 'cycle-marker';
+      if (subdivisionIndex === 0) marker.classList.add('start');
+      marker.dataset.cycleIndex = String(cycleIndex);
+      marker.dataset.subdivision = String(subdivisionIndex);
+      marker.dataset.position = String(position);
+      timeline.appendChild(marker);
+      cycleMarkers.push(marker);
+
+      if (subdivisionIndex === 0) {
+        const baseIndex = cycleIndex * numeratorPerCycle;
+        if (Number.isFinite(baseIndex)) marker.dataset.index = String(baseIndex);
+      }
+
+      if (subdivisionIndex > 0 && denominatorValue > 0) {
+        let baseIndex = Math.floor(position);
+        let fracNumerator = Math.round((position - baseIndex) * denominatorValue);
+        if (fracNumerator >= denominatorValue) {
+          const carry = Math.floor(fracNumerator / denominatorValue);
+          baseIndex += carry;
+          fracNumerator -= carry * denominatorValue;
+        }
+        if (fracNumerator > 0) {
+          const key = makeFractionKey(baseIndex, fracNumerator, denominatorValue);
+          if (key) {
+            const value = fractionValue(baseIndex, fracNumerator, denominatorValue);
+            const display = fractionDisplay(baseIndex, fracNumerator);
+            marker.dataset.baseIndex = String(baseIndex);
+            marker.dataset.fractionNumerator = String(fracNumerator);
+            marker.dataset.fractionDenominator = String(denominatorValue);
+            marker.dataset.fractionKey = key;
+            marker.dataset.selectionKey = `fraction:${key}`;
+            marker.dataset.value = String(value);
+            marker.dataset.display = display;
+            marker.style.cursor = 'pointer';
+            attachSelectionListeners(marker);
+            validFractionKeys.add(key);
+
+            const hit = document.createElement('div');
+            hit.className = 'fraction-hit';
+            hit.dataset.baseIndex = marker.dataset.baseIndex;
+            hit.dataset.fractionNumerator = marker.dataset.fractionNumerator;
+            hit.dataset.fractionDenominator = marker.dataset.fractionDenominator;
+            hit.dataset.fractionKey = key;
+            hit.dataset.selectionKey = `fraction:${key}`;
+            hit.dataset.value = String(value);
+            hit.dataset.display = display;
+            hit.style.position = 'absolute';
+            hit.style.borderRadius = '50%';
+            hit.style.background = 'transparent';
+            hit.style.zIndex = '6';
+            const fracHitSize = computeHitSizePx(lg) * 0.75;
+            hit.style.width = `${fracHitSize}px`;
+            hit.style.height = `${fracHitSize}px`;
+            hit.style.pointerEvents = 'auto';
+            hit.style.cursor = 'pointer';
+            attachSelectionListeners(hit);
+            timeline.appendChild(hit);
+            cycleMarkerHits.push(hit);
+            fractionHitMap.set(key, hit);
+          }
+        }
+      }
+
+      if (hideFractionLabels) return;
+      const formatted = labelFormatter(cycleIndex, subdivisionIndex);
+      if (formatted != null) {
+        const label = document.createElement('div');
+        label.className = 'cycle-label';
+        if (subdivisionIndex === 0) label.classList.add('cycle-label--integer');
+        if (cycleIndex === 0 && subdivisionIndex === 0) label.classList.add('cycle-label--origin');
+        label.dataset.cycleIndex = String(cycleIndex);
+        label.dataset.subdivision = String(subdivisionIndex);
+        label.dataset.position = String(position);
+        label.textContent = formatted;
+        label.style.fontSize = `${subdivisionFontRem}rem`;
+        timeline.appendChild(label);
+        cycleLabels.push(label);
+      }
+    });
+  }
+
+  let removedFraction = false;
+  fractionalSelectionState.forEach((_, key) => {
+    if (!validFractionKeys.has(key)) {
+      fractionalSelectionState.delete(key);
+      removedFraction = true;
+    }
+  });
+  if (removedFraction) {
+    rebuildFractionSelections({ skipUpdateField: true });
+  }
+
+  updatePulseNumbers();
+  layoutTimeline({ silent: true });
   syncSelectedFromMemory();
-  animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
-  updateTIndicatorPosition();
+  applyFractionSelectionClasses();
+  clearHighlights();
 }
 
-function togglePulse(i){
-  const lg = parseInt(inputLg.value);
-  if (isNaN(lg)) return;
+function showNumber(i, fontRem) {
+  const label = document.createElement('div');
+  label.className = 'pulse-number';
+  label.dataset.index = i;
+  label.textContent = i;
+  const lg = pulses.length - 1;
+  const sizeRem = typeof fontRem === 'number' ? fontRem : computeNumberFontRem(lg);
+  label.style.fontSize = `${sizeRem}rem`;
+  if (i === 0 || i === lg) label.classList.add('endpoint');
+  timeline.appendChild(label);
+  pulseNumberLabels.push(label);
+}
 
-  if (i === 0 || i === lg) {
-    // Extrems no interactius
+function updatePulseNumbers() {
+  timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
+  pulseNumberLabels = [];
+  if (!pulses.length) return;
+  const lg = pulses.length - 1;
+  if (lg >= PULSE_NUMBER_HIDE_THRESHOLD) return;
+  const fontRem = computeNumberFontRem(lg);
+  showNumber(0, fontRem);
+  showNumber(lg, fontRem);
+  for (let i = 1; i < lg; i++) {
+    showNumber(i, fontRem);
+  }
+}
+
+/**
+ * Distribueix els polsos i marques en mode lineal o circular segons l'estat actual.
+ *
+ * @param {{ silent?: boolean }} [opts] permet saltar animacions en re-renderitzats silenciosos.
+ * @returns {void}
+ */
+function layoutTimeline(opts = {}) {
+  const silent = !!opts.silent;
+  const lg = pulses.length - 1;
+  const useCircular = circularTimeline && loopEnabled;
+  const wasCircular = timeline.classList.contains('circular');
+  const desiredCircular = !!useCircular;
+  const delay = (!silent && wasCircular !== desiredCircular) ? T_INDICATOR_TRANSITION_DELAY : 0;
+  const queueIndicatorUpdate = () => scheduleTIndicatorReveal(delay);
+
+  if (lg <= 0) {
+    timelineWrapper.classList.remove('circular');
+    timeline.classList.remove('circular');
+    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
+    const guide = wrapper.querySelector('.circle-guide');
+    if (guide) guide.style.opacity = '0';
+    queueIndicatorUpdate();
     return;
   }
-  setPulseSelected(i, !pulseMemory[i]);
-}
 
-function animateTimelineCircle(isCircular, opts = {}){
-  const silent = !!opts.silent;
-  const desiredCircular = !!isCircular;
-  const wasCircular = timeline.classList.contains('circular');
-  const delay = (!silent && wasCircular !== desiredCircular) ? T_INDICATOR_TRANSITION_DELAY : 0;
-  scheduleTIndicatorReveal(delay);
-
-  const lg = pulses.length - 1;
-  const bars = timeline.querySelectorAll('.bar');
-  if (lg <= 0) return;
   if (desiredCircular) {
     timelineWrapper.classList.add('circular');
     timeline.classList.add('circular');
     if (silent) timeline.classList.add('no-anim');
-    // Guia circular: ANCORADA al centre del WRAPPER per evitar desplaçaments
     const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    let guide = document.querySelector('.circle-guide');
+    let guide = wrapper.querySelector('.circle-guide');
     if (!guide) {
       guide = document.createElement('div');
       guide.className = 'circle-guide';
-      // estils mínims inline (per si el CSS no ha carregat)
-      guide.style.position = 'fixed';
-      guide.style.border = '2px solid var(--timeline-line, #EDE6D3)';
+      guide.style.position = 'absolute';
+      guide.style.border = '2px solid var(--line-color)';
       guide.style.borderRadius = '50%';
       guide.style.pointerEvents = 'none';
-      guide.style.transition = 'opacity 300ms ease';
       guide.style.opacity = '0';
-      guide.style.zIndex = '0';
-      document.body.appendChild(guide);
+      wrapper.appendChild(guide);
     }
 
-    // Recol·loca un cop aplicades les classes circulars
     requestAnimationFrame(() => {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const gcx = vw / 2;
-      const gcy = vh / 2;
-      // Size similar to timeline circle but safe even before layout settles
       const tRect = timeline.getBoundingClientRect();
-      const baseSize = Math.min(
-        Math.min(vw, vh) * 0.6,
-        Math.max(tRect.width, 320),
-        Math.max(tRect.height, 320)
-      );
-      const gRadius = baseSize / 2 - 10;
-      guide.style.left = gcx + 'px';
-      guide.style.top = gcy + 'px';
-      guide.style.width = (gRadius * 2) + 'px';
-      guide.style.height = (gRadius * 2) + 'px';
-      guide.style.transform = 'translate(-50%, -50%)';
-      guide.style.opacity = '0'; // keep invisible; used only as a positioning helper
+      const cx = tRect.width / 2;
+      const cy = tRect.height / 2;
+      const radius = Math.min(tRect.width, tRect.height) / 2 - 1;
 
-      // Geometria basada en el TIMELINE (anella real) perquè els polsos intersequin la línia
-      const tRect2 = timeline.getBoundingClientRect();
-      const cx = tRect2.width / 2;
-      const cy = tRect2.height / 2;
-      const radius = Math.min(tRect2.width, tRect2.height) / 2 - 1; // centre del pols gairebé sobre la línia (border=2)
-
-      // Polsos sobre la línia del cercle
-      pulses.forEach((p, i) => {
-        const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
-        p.style.left = x + 'px';
-        p.style.top = y + 'px';
-        p.style.transform = 'translate(-50%, -50%)';
+      pulses.forEach((pulse, idx) => {
+        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
+        const px = cx + radius * Math.cos(angle);
+        const py = cy + radius * Math.sin(angle);
+        pulse.style.left = `${px}px`;
+        pulse.style.top = `${py}px`;
+        pulse.style.transform = 'translate(-50%, -50%)';
       });
 
-      // Position hit targets over the pulse centers
-      pulseHits.forEach((h, i) => {
-        const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
-        h.style.left = x + 'px';
-        h.style.top = y + 'px';
-        h.style.transform = 'translate(-50%, -50%)';
+      pulseHits.forEach((hit, idx) => {
+        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
+        const hx = cx + radius * Math.cos(angle);
+        const hy = cy + radius * Math.sin(angle);
+        hit.style.left = `${hx}px`;
+        hit.style.top = `${hy}px`;
+        hit.style.transform = 'translate(-50%, -50%)';
       });
 
-      // Barres 0/Lg: llargada més curta i centrada en la circumferència
       bars.forEach((bar, idx) => {
-        const step = (idx === 0) ? 0 : lg;
+        const step = idx === 0 ? 0 : lg;
         const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
         const bx = cx + radius * Math.cos(angle);
         const by = cy + radius * Math.sin(angle);
-
-        // CORREGIDO: Barra más corta (25% en lugar de 50%) y centrada
-        const barLen = Math.min(tRect2.width, tRect2.height) * 0.25;
-        const intersectPx = barLen / 2; // La mitad intersecta hacia dentro
-
-        // Centra la barra: mitad hacia fuera, mitad hacia dentro
-        const topPx = by - intersectPx;
-
+        const barLen = Math.min(tRect.width, tRect.height) * 0.25;
+        const topPx = by - barLen / 2;
         bar.style.display = 'block';
-        // ample de .bar = 2px -> resta 1px per centrar sense translate
-        bar.style.left = (bx - 1) + 'px';
-        bar.style.top = topPx + 'px';
-        bar.style.height = barLen + 'px';
-        bar.style.transformOrigin = '50% 50%'; // CORREGIDO: centrada
-        // Només rotate; res de translate/scale per no desancorar la base
-        bar.style.transform = 'rotate(' + (angle + Math.PI/2) + 'rad)';
+        bar.style.left = `${bx - 1}px`;
+        bar.style.top = `${topPx}px`;
+        bar.style.height = `${barLen}px`;
+        bar.style.transformOrigin = '50% 50%';
+        bar.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
       });
 
-      syncSelectedFromMemory();
-      updateNumbers();
-      // Apaga la guia circular un cop dibuixada l'anella real (evita doble cercle en mode fosc)
-      if (!silent) {
-        setTimeout(() => {
-          if (guide && wrapper.contains(guide)) {
-            guide.style.opacity = '0';
-          }
-        }, 400);
-      }
+      const numbers = timeline.querySelectorAll('.pulse-number');
+      numbers.forEach(label => {
+        const idx = parseIntSafe(label.dataset.index);
+        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
+        const innerRadius = radius - NUMBER_CIRCLE_OFFSET;
+        let x = cx + innerRadius * Math.cos(angle);
+        let y = cy + innerRadius * Math.sin(angle);
+        if (idx === 0) x -= 16;
+        else if (idx === lg) x += 16;
+        if (idx === 0 || idx === lg) y += 8;
+        label.style.left = `${x}px`;
+        label.style.top = `${y}px`;
+        label.style.transform = 'translate(-50%, -50%)';
+      });
+
+      cycleMarkers.forEach(marker => {
+        const pos = Number(marker.dataset.position);
+        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
+        const mx = cx + radius * Math.cos(angle);
+        const my = cy + radius * Math.sin(angle);
+        marker.style.left = `${mx}px`;
+        marker.style.top = `${my}px`;
+        marker.style.transformOrigin = '50% 50%';
+        marker.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
+        const key = marker.dataset.fractionKey;
+        if (key && fractionHitMap.has(key)) {
+          const hit = fractionHitMap.get(key);
+          hit.style.left = `${mx}px`;
+          hit.style.top = `${my}px`;
+          hit.style.transform = 'translate(-50%, -50%)';
+        }
+      });
+
+      const labelOffset = 36;
+      cycleLabels.forEach(label => {
+        const pos = Number(label.dataset.position);
+        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
+        const lx = cx + (radius + labelOffset) * Math.cos(angle);
+        const ly = cy + (radius + labelOffset) * Math.sin(angle);
+        label.style.left = `${lx}px`;
+        label.style.top = `${ly}px`;
+        label.style.transform = 'translate(-50%, -50%)';
+      });
+
+      guide.style.left = `${cx}px`;
+      guide.style.top = `${cy}px`;
+      guide.style.width = `${radius * 2}px`;
+      guide.style.height = `${radius * 2}px`;
+      guide.style.transform = 'translate(-50%, -50%)';
+      guide.style.opacity = '0';
+
+      queueIndicatorUpdate();
+
       if (silent) {
-        // força reflow per aplicar els estils sense transicions i neteja la flag
         void timeline.offsetHeight;
         timeline.classList.remove('no-anim');
       }
@@ -1838,107 +2150,69 @@ function animateTimelineCircle(isCircular, opts = {}){
   } else {
     timelineWrapper.classList.remove('circular');
     timeline.classList.remove('circular');
-    // Oculta la guia circular (fade-out)
     const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = document.querySelector('.circle-guide');
+    const guide = wrapper.querySelector('.circle-guide');
     if (guide) guide.style.opacity = '0';
-    pulses.forEach((p, i) => {
-      const percent = (i / lg) * 100;
-      p.style.left = percent + '%';
-      p.style.top = '50%';
-      p.style.transform = 'translate(-50%, -50%)';
+
+    pulses.forEach((pulse, idx) => {
+      const percent = (idx / lg) * 100;
+      pulse.style.left = `${percent}%`;
+      pulse.style.top = '50%';
+      pulse.style.transform = 'translate(-50%, -50%)';
     });
-    pulseHits.forEach((h, i) => {
-      const percent = (i / lg) * 100;
-      h.style.left = percent + '%';
-      h.style.top = '50%';
-      h.style.transform = 'translate(-50%, -50%)';
+
+    pulseHits.forEach((hit, idx) => {
+      const percent = (idx / lg) * 100;
+      hit.style.left = `${percent}%`;
+      hit.style.top = '50%';
+      hit.style.transform = 'translate(-50%, -50%)';
     });
+
     bars.forEach((bar, idx) => {
+      const step = idx === 0 ? 0 : lg;
+      const percent = (step / lg) * 100;
       bar.style.display = 'block';
-      const i = idx === 0 ? 0 : lg;
-      const percent = (i / lg) * 100;
-      bar.style.left = percent + '%';
-      bar.style.top = '10%';
-      bar.style.height = '80%';
+      bar.style.left = `${percent}%`;
+      bar.style.top = '15%';
+      bar.style.height = '70%';
       bar.style.transform = '';
-      bar.style.transformOrigin = '';
     });
-    syncSelectedFromMemory();
-    updateNumbers();
+
+    const numbers = timeline.querySelectorAll('.pulse-number');
+    numbers.forEach(label => {
+      const idx = parseIntSafe(label.dataset.index);
+      const percent = (idx / lg) * 100;
+      label.style.left = `${percent}%`;
+      label.style.top = '-28px';
+      label.style.transform = 'translate(-50%, 0)';
+    });
+
+    cycleMarkers.forEach(marker => {
+      const pos = Number(marker.dataset.position);
+      const percent = (pos / lg) * 100;
+      marker.style.left = `${percent}%`;
+      marker.style.top = '50%';
+      marker.style.transformOrigin = '50% 50%';
+      marker.style.transform = 'translate(-50%, -50%)';
+      const key = marker.dataset.fractionKey;
+      if (key && fractionHitMap.has(key)) {
+        const hit = fractionHitMap.get(key);
+        hit.style.left = `${percent}%`;
+        hit.style.top = '50%';
+        hit.style.transform = 'translate(-50%, -50%)';
+      }
+    });
+
+    cycleLabels.forEach(label => {
+      const pos = Number(label.dataset.position);
+      const percent = (pos / lg) * 100;
+      label.style.left = `${percent}%`;
+      label.style.top = 'calc(100% + 12px)';
+      label.style.transform = 'translate(-50%, 0)';
+    });
+
+    queueIndicatorUpdate();
   }
-}
-
-function showNumber(i){
-  const n = document.createElement('div');
-  n.className = 'pulse-number';
-  if (i === 0) n.classList.add('zero');
-  const lg = pulses.length - 1;
-  if (i === lg) n.classList.add('lg');
-  n.dataset.index = i;
-  n.textContent = i;
-  const _lgForFont = pulses.length - 1;
-  const fontRem = computeNumberFontRem(_lgForFont);
-  n.style.fontSize = fontRem + 'rem';
-
-   if (timeline.classList.contains('circular')) {
-     const rect = timeline.getBoundingClientRect();
-     const radius = Math.min(rect.width, rect.height) / 2 - 10;
-     const offset = NUMBER_CIRCLE_OFFSET;
-     const cx = rect.width / 2;
-     const cy = rect.height / 2;
-     const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
-     const x = cx + (radius + offset) * Math.cos(angle);
-     let y = cy + (radius + offset) * Math.sin(angle);
-
-     const xShift = (i === 0) ? -16 : (i === lg ? 16 : 0); // 0 a l'esquerra, Lg a la dreta
-     n.style.left = (x + xShift) + 'px';
-     n.style.transform = 'translate(-50%, -50%)';
-
-     if (i === 0 || i === lg) {
-       // No fem cap forçat de verticalitat; deixem que el CSS determini l'estil
-       n.style.top = (y + 8) + 'px';
-       n.style.zIndex = (i === 0) ? '3' : '2';
-     } else {
-       n.style.top = y + 'px';
-     }
-
-  } else {
-    const percent = (i / (pulses.length - 1)) * 100;
-    n.style.left = percent + '%';
-  }
-
-  timeline.appendChild(n);
-}
-
-function removeNumber(i){
-  const el = timeline.querySelector(`.pulse-number[data-index="${i}"]`);
-  if(el) el.remove();
-}
-
-function updateNumbers(){
-  document.querySelectorAll('.pulse-number').forEach(n => n.remove());
-  if (pulses.length === 0) return;
-
-  const lgForNumbers = pulses.length - 1;
-  const tooDense = lgForNumbers >= NUMBER_HIDE_THRESHOLD;
-  if (tooDense) {
-    try { updateTIndicatorPosition(); } catch {}
-    return;
-  }
-
-  // sempre 0 i últim
-  showNumber(0);
-  showNumber(lgForNumbers);
-
-  // En App2: només els seleccionats (sense 0 ni Lg)
-  pulses.forEach((p, i) => {
-    if (i !== 0 && i !== lgForNumbers && selectedPulses.has(i)) {
-      showNumber(i);
-    }
-  });
-  // Re-anchor T to the (possibly) re-generated Lg label
-  try { updateTIndicatorPosition(); } catch {}
 }
 
 function updateAutoIndicator(){
