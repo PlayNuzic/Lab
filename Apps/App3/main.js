@@ -589,9 +589,9 @@ subscribeMixer((snapshot) => {
 
   const syncFromChannel = (channelState, setter, current) => {
     if (!channelState) return;
-    const shouldEnable = !channelState.muted;
+    const shouldEnable = !channelState.effectiveMuted;
     if (current === shouldEnable) return;
-    setter(shouldEnable);
+    setter(shouldEnable, { persist: false });
   };
 
   syncFromChannel(findChannel('pulse'), setPulseAudio, pulseAudioEnabled);

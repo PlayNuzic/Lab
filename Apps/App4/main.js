@@ -1151,9 +1151,9 @@ subscribeMixer((snapshot) => {
 
   const syncFromChannel = (channelState, setter, current) => {
     if (!channelState) return;
-    const shouldEnable = !channelState.muted;
+    const shouldEnable = !channelState.effectiveMuted;
     if (current === shouldEnable) return;
-    setter(shouldEnable);
+    setter(shouldEnable, { persist: false });
   };
 
   syncFromChannel(findChannel('pulse'), setPulseAudio, pulseAudioEnabled);
@@ -2519,7 +2519,7 @@ function handlePlaybackStop(audioInstance) {
   playBtn?.classList.remove('active');
   if (iconPlay) iconPlay.style.display = 'block';
   if (iconStop) iconStop.style.display = 'none';
-  pulses.forEach(p => p.classList.remove('active'));
+  clearHighlights();
   stopVisualSync();
   if (audioInstance && typeof audioInstance.stop === 'function') {
     try { audioInstance.stop(); } catch {}
@@ -2550,7 +2550,7 @@ async function startPlayback(providedAudio) {
 
   stopVisualSync();
   audioInstance.stop();
-  pulses.forEach(p => p.classList.remove('active'));
+  clearHighlights();
 
   await audioInstance.setBase(baseSoundSelect.dataset.value);
   await audioInstance.setAccent(accentSoundSelect.dataset.value);
@@ -2608,6 +2608,8 @@ async function startPlayback(providedAudio) {
     try { ed.blur(); } catch {}
   }
 
+  scheduleTIndicatorReveal(0);
+
   return true;
 }
 
@@ -2622,7 +2624,6 @@ function syncTimelineScroll(){
 
 playBtn.addEventListener('click', async () => {
   try {
-    await ensureAudio();
     const audioInstance = await initAudio();
     if (!audioInstance) return;
 
@@ -2631,6 +2632,7 @@ playBtn.addEventListener('click', async () => {
       return;
     }
 
+    clearHighlights();
     const started = await startPlayback(audioInstance);
     if (!started) {
       handlePlaybackStop(audioInstance);
