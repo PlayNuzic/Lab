@@ -1,16 +1,27 @@
 // libs/app-common/mixer-longpress.js
 // Long-press (o click derecho) sobre el botón "play" para abrir el mixer.
-// Abre el mixer llamando a window.NuzicMixer.toggle() si existe,
-// o emite el evento 'nuzic:mixer:toggle' para que lo capture vuestro mixer.
+// Abre el mixer llamando a window.NuzicMixer.open() si existe,
+// o emite el evento 'nuzic:mixer:open' para que lo capture vuestro mixer.
 
 (function () {
   const LONG_MS = 600;
 
   function openMixer() {
-    if (window.NuzicMixer && typeof window.NuzicMixer.toggle === 'function') {
-      try { window.NuzicMixer.toggle(); return; } catch {}
+    const mixer = window.NuzicMixer;
+    if (mixer && typeof mixer === 'object') {
+      if (typeof mixer.open === 'function') {
+        try { mixer.open(); return; } catch {}
+      }
+      if (typeof mixer.toggle === 'function') {
+        const isOpen = typeof mixer.isOpen === 'function'
+          ? (() => { try { return !!mixer.isOpen(); } catch { return false; } })()
+          : false;
+        if (!isOpen) {
+          try { mixer.toggle(); return; } catch {}
+        }
+      }
     }
-    document.dispatchEvent(new CustomEvent('nuzic:mixer:toggle'));
+    document.dispatchEvent(new CustomEvent('nuzic:mixer:open'));
   }
 
   // Heurística para localizar el botón de play en App2/App3

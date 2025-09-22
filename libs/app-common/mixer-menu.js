@@ -207,7 +207,9 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   });
 
   const handleExternalToggle = () => toggleMenu();
+  const handleExternalOpen = () => openMenu();
   document.addEventListener('nuzic:mixer:toggle', handleExternalToggle);
+  document.addEventListener('nuzic:mixer:open', handleExternalOpen);
 
   menu.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
