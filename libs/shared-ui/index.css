@@ -477,15 +477,15 @@ padding-right: 24px;
 }
 
 .param .circle .unit {
-position: absolute;
-top: calc(-40px - 1.8rem);
-left: 50%;
-transform: translateX(-50%);
-font-size: 1.8rem;
-font-weight: 600;
-color: inherit;
-display: none;
-pointer-events: none;
+  position: absolute;
+  top: calc(-40px - 1.7rem);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: inherit;
+  display: block !important;
+  pointer-events: none;
 }
 
 .param .circle .led {
