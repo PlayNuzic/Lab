@@ -22,6 +22,73 @@ body {
   color: var(--color-lg);
 }
 
+.cycle-marker {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--line-color);
+  background: var(--bg-light);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+}
+
+body[data-theme='dark'] .cycle-marker {
+  background: var(--bg-dark);
+}
+
+.cycle-marker.start {
+  border-color: var(--color-lg);
+}
+
+.cycle-marker.selected,
+.cycle-marker.active {
+  background: var(--selection-color);
+  border-color: var(--selection-color);
+  box-shadow: 0 0 12px var(--selection-color);
+  opacity: 1;
+}
+
+.cycle-label {
+  position: absolute;
+  color: var(--line-color);
+  font-size: 1.1rem;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: color 0.25s ease, transform 0.25s ease;
+}
+
+.cycle-label--integer {
+  color: var(--selection-color);
+}
+
+.cycle-label--origin {
+  color: var(--color-lg);
+  font-weight: 600;
+}
+
+.cycle-label.active:not(.cycle-label--origin) {
+  color: var(--selection-color);
+  font-weight: 600;
+}
+
+.fraction-field input:placeholder-shown ~ .spinner {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.timeline.circular .cycle-marker {
+  width: 14px;
+  height: 14px;
+}
+
+.timeline.circular .cycle-label {
+  font-size: 1rem;
+}
+
 /**
  * Editable pulse sequence container positioned above the timeline.
  */
@@ -41,8 +108,26 @@ position: relative;
 }
 
 #pulseSeq .prefix,
-#pulseSeq .suffix { color: inherit; user-select: none; }
-#pulseSeq .suffix { margin-left: -12px; margin-right: 12px; }
+#pulseSeq .suffix,
+#pulseSeq .open,
+#pulseSeq .suffix-spacer { color: inherit; user-select: none; }
+#pulseSeq .suffix { margin: 0; }
+#pulseSeq .suffix-spacer { margin-right: 12px; }
+#pulseSeq .fraction {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25em;
+  user-select: none;
+}
+#pulseSeq .fraction-number {
+  min-width: 1.2ch;
+  text-align: center;
+}
+#pulseSeq .fraction-slash {
+  opacity: 0.7;
+  font-size: 0.85em;
+  transform: translateY(0.05em);
+}
 #pulseSeq .zero,
 #pulseSeq .lg { color: var(--color-lg); user-select: none; }
 #pulseSeq .edit { outline: none; white-space: pre; }

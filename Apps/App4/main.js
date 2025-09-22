@@ -89,8 +89,8 @@ const globalMixer = getMixer();
 const FRACTION_NUMERATOR_KEY = 'n';
 const FRACTION_DENOMINATOR_KEY = 'd';
 const fractionDefaults = {
-  numerator: 2,
-  denominator: 3
+  numerator: null,
+  denominator: null
 };
 
 let numeratorInput;
@@ -510,14 +510,16 @@ function initFractionState() {
     ? storedDenominator
     : fractionDefaults.denominator;
 
-  setValue(numeratorInput, numerator);
-  setValue(denominatorInput, denominator);
+  isUpdating = true;
+  numeratorInput.value = Number.isFinite(numerator) && numerator > 0 ? String(numerator) : '';
+  denominatorInput.value = Number.isFinite(denominator) && denominator > 0 ? String(denominator) : '';
+  isUpdating = false;
 
-  if (!(Number.isFinite(storedNumerator) && storedNumerator > 0)) {
-    saveOpt(FRACTION_NUMERATOR_KEY, String(numerator));
+  if (!(Number.isFinite(numerator) && numerator > 0)) {
+    clearOpt(FRACTION_NUMERATOR_KEY);
   }
-  if (!(Number.isFinite(storedDenominator) && storedDenominator > 0)) {
-    saveOpt(FRACTION_DENOMINATOR_KEY, String(denominator));
+  if (!(Number.isFinite(denominator) && denominator > 0)) {
+    clearOpt(FRACTION_DENOMINATOR_KEY);
   }
 
   updateFractionUI(numerator, denominator);
@@ -743,34 +745,30 @@ function setupPulseSeqMarkup(){
     return s;
   };
 
-  const prefix = mk('prefix', 'Pfr (');
+  const prefix = mk('prefix', 'Pfr ');
 
   const fractionWrapper = document.createElement('span');
   fractionWrapper.className = 'pz fraction';
-  const fraction = document.createElement('span');
-  fraction.className = 'fraction';
-  const fractionTop = document.createElement('span');
-  fractionTop.className = 'top';
   pulseSeqFractionNumeratorEl = document.createElement('span');
   pulseSeqFractionNumeratorEl.className = 'fraction-number numerator';
   pulseSeqFractionNumeratorEl.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
-  fractionTop.appendChild(pulseSeqFractionNumeratorEl);
-  const fractionBottom = document.createElement('span');
-  fractionBottom.className = 'bottom';
+  const fractionSlash = document.createElement('span');
+  fractionSlash.className = 'fraction-slash';
+  fractionSlash.textContent = '/';
   pulseSeqFractionDenominatorEl = document.createElement('span');
   pulseSeqFractionDenominatorEl.className = 'fraction-number denominator';
   pulseSeqFractionDenominatorEl.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
-  fractionBottom.appendChild(pulseSeqFractionDenominatorEl);
-  fraction.appendChild(fractionTop);
-  fraction.appendChild(fractionBottom);
-  fractionWrapper.appendChild(fraction);
+  fractionWrapper.append(
+    pulseSeqFractionNumeratorEl,
+    fractionSlash,
+    pulseSeqFractionDenominatorEl
+  );
 
-  attachHover(fractionTop, { text: DEFAULT_NUMERATOR_HOVER_TEXT });
-  attachHover(fractionBottom, { text: DEFAULT_DENOMINATOR_HOVER_TEXT });
+  attachHover(pulseSeqFractionNumeratorEl, { text: DEFAULT_NUMERATOR_HOVER_TEXT });
+  attachHover(pulseSeqFractionDenominatorEl, { text: DEFAULT_DENOMINATOR_HOVER_TEXT });
 
-  const spacer = mk('spacer', '');
-  spacer.textContent = ' ';
-
+  const spacer = mk('spacer', ' ');
+  const openParen = mk('open', '(');
   const zero = mk('zero', '0');
   const edit = (() => {
     const e = mk('edit', initial);
@@ -778,9 +776,10 @@ function setupPulseSeqMarkup(){
     return e;
   })();
   const suffix = mk('suffix', ')');
+  const suffixSpacer = mk('suffix-spacer', ' ');
   const lgLabel = mk('lg', '');
 
-  pulseSeqEl.append(prefix, fractionWrapper, spacer, zero, edit, suffix, lgLabel);
+  pulseSeqEl.append(prefix, fractionWrapper, spacer, openParen, zero, edit, suffix, suffixSpacer, lgLabel);
   updatePulseSeqFractionDisplay(null, null);
 }
 setupPulseSeqMarkup();
@@ -1478,7 +1477,7 @@ getEditEl()?.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight' || e.key === 'End') { e.preventDefault(); moveCaretStep(1); return; }
   // Allow only digits, navegación y espacio (para introducir varios pulsos)
   const allowed = new Set(['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab',' ']);
-  if (!/^[0-9]$/.test(e.key) && !allowed.has(e.key)) {
+  if (!/^[0-9]$/.test(e.key) && e.key !== '.' && !allowed.has(e.key)) {
     e.preventDefault();
     return;
   }
@@ -1540,8 +1539,8 @@ getEditEl()?.addEventListener('focus', ()=> setTimeout(()=>{
 const inputToLed = new Map([
   [inputLg, ledLg],
   [inputV, ledV],
-  [inputT, ledT],
-]);
+  [inputT, ledT]
+].filter(([input, led]) => input && led));
 
 const autoTip = document.createElement('div');
 autoTip.className = 'hover-tip auto-tip-below';
@@ -1562,7 +1561,9 @@ function showAutoTip(input){
 
 function flashOtherLeds(excludeInput){
   const excludeLed = inputToLed.get(excludeInput);
-  [ledLg, ledV, ledT].forEach(led => {
+  const leds = [ledLg, ledV];
+  if (ledT) leds.push(ledT);
+  leds.forEach(led => {
     if (led && led !== excludeLed) {
       led.classList.add('flash');
       setTimeout(() => led.classList.remove('flash'), 800);
@@ -2576,6 +2577,14 @@ async function startPlayback(providedAudio) {
     playOptions.cycle = scheduling.cycleConfig;
   }
 
+  if (typeof audioInstance.setSelected === 'function') {
+    audioInstance.setSelected(selectedForAudio);
+  }
+
+  if (typeof audioInstance.setLoop === 'function') {
+    audioInstance.setLoop(loopEnabled);
+  }
+
   audioInstance.play(
     scheduling.totalPulses,
     scheduling.interval,
@@ -2613,6 +2622,7 @@ function syncTimelineScroll(){
 
 playBtn.addEventListener('click', async () => {
   try {
+    await ensureAudio();
     const audioInstance = await initAudio();
     if (!audioInstance) return;
 
@@ -2621,7 +2631,10 @@ playBtn.addEventListener('click', async () => {
       return;
     }
 
-    await startPlayback(audioInstance);
+    const started = await startPlayback(audioInstance);
+    if (!started) {
+      handlePlaybackStop(audioInstance);
+    }
   } catch {}
 });
 
