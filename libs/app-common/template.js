@@ -1,3 +1,8 @@
+export const FRACTION_INLINE_SLOT_ID = 'fractionInlineSlot';
+export const PULSE_TOGGLE_BTN_ID = 'pulseToggleBtn';
+export const SELECTED_TOGGLE_BTN_ID = 'selectedToggleBtn';
+export const CYCLE_TOGGLE_BTN_ID = 'cycleToggleBtn';
+
 export function renderApp({
   root,
   title,
@@ -8,7 +13,9 @@ export function renderApp({
   hideLeds = false,
   showAccent = true,
   showPulseToggle = false,
-  showCycleToggle = false
+  showSelectedToggle = false,
+  showCycleToggle = false,
+  inlineFractionSlot = false
 }) {
   if (!root) throw new Error('root element required');
   document.title = title;
@@ -26,11 +33,11 @@ export function renderApp({
               <button id="inputTDown" class="spin down" type="button" aria-label="Decrementar T"></button>
             </div></div>
         </div>`;
-  const soundToggleMarkup = (showPulseToggle || showCycleToggle) ? `
-      <div class="control-sound-toggles" role="group" aria-label="Controles de sonido">
-        ${showPulseToggle ? `
-        <div class="control-sound-toggle-container control-sound-toggle-container--pulse">
-          <button id="pulseToggleBtn" class="control-sound-toggle control-sound-toggle--pulse active" type="button" aria-pressed="true" aria-label="Alternar pulso">
+  const toggleMarkup = [];
+
+  if (showPulseToggle) {
+    toggleMarkup.push(`<div class="control-sound-toggle-container control-sound-toggle-container--pulse">
+          <button id="${PULSE_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--pulse active" type="button" aria-pressed="true" aria-label="Alternar pulso">
             <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
               <defs>
                 <path id="controlPulseLabelPath" d="M 22 96 A 78 78 0 0 1 96 22" />
@@ -41,25 +48,51 @@ export function renderApp({
               </text>
             </svg>
           </button>
-        </div>
-        ` : ''}
-        ${showCycleToggle ? `
-        <div class="control-sound-toggle-container control-sound-toggle-container--cycle">
-          <button id="cycleToggleBtn" class="control-sound-toggle control-sound-toggle--cycle active" type="button" aria-pressed="true" aria-label="Alternar ciclo">
+        </div>`);
+  }
+
+  if (showSelectedToggle) {
+    toggleMarkup.push(`<div class="control-sound-toggle-container control-sound-toggle-container--selected">
+          <button id="${SELECTED_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--selected active" type="button" aria-pressed="true" aria-label="Alternar seleccionado">
+            <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+              <defs>
+                <path id="controlSelectedLabelPath" d="M 46 96 A 54 54 0 0 1 154 96" />
+              </defs>
+              <path class="control-sound-toggle__shape" d="M 36 100 A 64 64 0 0 1 100 36 A 64 64 0 0 1 164 100 Z" />
+              <text class="control-sound-toggle__label" dy="12">
+                <textPath href="#controlSelectedLabelPath" startOffset="50%" text-anchor="middle">Sel</textPath>
+              </text>
+            </svg>
+          </button>
+        </div>`);
+  }
+
+  if (showCycleToggle) {
+    toggleMarkup.push(`<div class="control-sound-toggle-container control-sound-toggle-container--cycle">
+          <button id="${CYCLE_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--cycle active" type="button" aria-pressed="true" aria-label="Alternar subdivisión">
             <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
               <defs>
                 <path id="controlCycleLabelPath" d="M 104 22 A 78 78 0 0 1 178 96" />
               </defs>
               <path class="control-sound-toggle__shape" d="M 100 -14 A 114 114 0 0 1 214 100 L 164 100 A 64 64 0 0 0 100 36 Z" />
               <text class="control-sound-toggle__label" dy="12">
-                <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">Subdiv</textPath>
+                <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">SubD</textPath>
               </text>
             </svg>
           </button>
+        </div>`);
+  }
+
+  const togglesMarkup = toggleMarkup.map(markup => `          ${markup}`).join('\n');
+  const soundToggleMarkup = toggleMarkup.length ? `
+        <div class="control-sound-toggles" role="group" aria-label="Controles de sonido">
+${togglesMarkup}
         </div>
-        ` : ''}
-      </div>
-  ` : '';
+    ` : '';
+
+  const fractionInlineSlotMarkup = inlineFractionSlot ? `
+        <div id="${FRACTION_INLINE_SLOT_ID}"></div>
+        ` : '';
 
   root.innerHTML = `
   <header class="top-bar">
@@ -119,6 +152,7 @@ export function renderApp({
             </div>
           </div>
         </div>
+        ${fractionInlineSlotMarkup}
         <div class="param v">
           <span class="abbr">V</span>
           <div class="circle"><span class="unit" id="unitV">BPM</span>${led('ledV')}<input id="inputV" type="number" min="1" step="1" />
