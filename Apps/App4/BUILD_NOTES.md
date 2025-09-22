@@ -14,5 +14,9 @@
 - Añadidos los controles principales para Lg, fracción n/d y V con maquetación propia y spinners reutilizables.
 - Normalización básica de los campos numéricos asegurando valores positivos y repetición en pulsadores.
 
+## Iteración 4
+- Persistencia local de Lg, n/d y V, restaurando valores por defecto cuando no hay datos.
+- Sincronización automática de los parámetros con el motor (`updateTransport`) y soporte para `factory reset`.
+
 ## Próximos pasos
-- Iteración 4: conectar los parámetros maquetados con el estado interno y el motor de audio.
+- Iteración 5: definir la lógica de pulsos fraccionados y comenzar a mostrar el feedback visual correspondiente.

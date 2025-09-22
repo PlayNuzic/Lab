@@ -14,6 +14,64 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 const APP_STORAGE_PREFIX = 'app4';
 const STORE_KEY = (key) => `${APP_STORAGE_PREFIX}::${key}`;
 
+const DEFAULT_PARAMS = Object.freeze({
+  Lg: 8,
+  V: 120,
+  numerator: 3,
+  denominator: 2
+});
+
+function toPositiveInt(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
+function loadStoredParam(key) {
+  try {
+    const raw = localStorage.getItem(STORE_KEY(key));
+    const parsed = toPositiveInt(raw);
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function loadStoredParams() {
+  const base = { ...DEFAULT_PARAMS };
+  const overrides = {
+    Lg: loadStoredParam('Lg'),
+    V: loadStoredParam('V'),
+    numerator: loadStoredParam('numerator'),
+    denominator: loadStoredParam('denominator')
+  };
+  Object.entries(overrides).forEach(([key, value]) => {
+    if (Number.isFinite(value) && value > 0) {
+      base[key] = value;
+    }
+  });
+  return base;
+}
+
+function persistParam(key, value) {
+  const storageKey = STORE_KEY(key);
+  try {
+    if (!Number.isFinite(value) || value <= 0) {
+      localStorage.removeItem(storageKey);
+    } else {
+      localStorage.setItem(storageKey, String(value));
+    }
+  } catch {}
+}
+
+function clearStoredParams() {
+  ['Lg', 'V', 'numerator', 'denominator'].forEach((key) => {
+    try {
+      localStorage.removeItem(STORE_KEY(key));
+    } catch {}
+  });
+}
+
 let audio = null;
 let mixerSyncGuard = false;
 
@@ -32,8 +90,17 @@ bindSharedSoundEvents({
 
 const state = {
   isPlaying: false,
-  audioReady: false
+  audioReady: false,
+  params: loadStoredParams(),
+  pendingAudioSync: false
 };
+
+window.addEventListener('sharedui:factoryreset', () => {
+  clearStoredParams();
+  state.params = loadStoredParams();
+  applyParamsToInputs();
+  scheduleParamSync();
+});
 
 const selectors = {
   playBtn: () => document.getElementById('playBtn'),
@@ -275,6 +342,113 @@ function setupParameterInputs() {
     up: selectors.denominatorUp(),
     down: selectors.denominatorDown()
   });
+
+  applyParamsToInputs();
+  bindParameterStateSync();
+  scheduleParamSync();
+}
+
+function applyParamsToInputs() {
+  const { Lg, V, numerator, denominator } = state.params;
+  const bindings = [
+    { input: selectors.inputLg(), value: Lg },
+    { input: selectors.inputV(), value: V },
+    { input: selectors.numeratorInput(), value: numerator },
+    { input: selectors.denominatorInput(), value: denominator }
+  ];
+  bindings.forEach(({ input, value }) => {
+    if (!input) return;
+    const nextValue = Number.isFinite(value) && value > 0 ? String(value) : '';
+    if (input.value !== nextValue) {
+      input.value = nextValue;
+    }
+  });
+}
+
+function bindParameterStateSync() {
+  const bindings = [
+    { key: 'Lg', getter: selectors.inputLg },
+    { key: 'V', getter: selectors.inputV },
+    { key: 'numerator', getter: selectors.numeratorInput },
+    { key: 'denominator', getter: selectors.denominatorInput }
+  ];
+
+  bindings.forEach(({ key, getter }) => {
+    const input = getter();
+    if (!input || input.dataset.app4ParamBound === '1') return;
+
+    const handle = (opts = {}) => handleParamInput(key, input, opts);
+    input.addEventListener('input', () => handle());
+    input.addEventListener('change', () => handle({ coerce: true }));
+    input.addEventListener('blur', () => handle({ coerce: true }));
+    input.dataset.app4ParamBound = '1';
+  });
+}
+
+function handleParamInput(key, input, { coerce = false } = {}) {
+  if (!input) return;
+  const rawValue = input.value;
+  const parsed = toPositiveInt(rawValue);
+  if (!Number.isFinite(parsed)) {
+    if (coerce) {
+      const fallback = state.params[key];
+      const fallbackValue = Number.isFinite(fallback) && fallback > 0 ? String(fallback) : '';
+      if (fallbackValue !== rawValue) {
+        input.value = fallbackValue;
+      }
+    }
+    return;
+  }
+
+  if (state.params[key] === parsed) return;
+  state.params[key] = parsed;
+  persistParam(key, parsed);
+  scheduleParamSync();
+}
+
+function scheduleParamSync() {
+  const applied = applyParamsToAudio();
+  state.pendingAudioSync = !applied;
+  return applied;
+}
+
+function applyParamsToAudio(target = audio) {
+  const instance = target || audio;
+  if (!instance) return false;
+  if (!state.audioReady && instance === audio) return false;
+
+  const { Lg, V, numerator, denominator } = state.params;
+  const total = Number.isFinite(Lg) && Lg > 0 ? Lg : null;
+  const tempo = Number.isFinite(V) && V > 0 ? V : null;
+  const cycle = {};
+  if (Number.isFinite(numerator) && numerator > 0) cycle.numerator = numerator;
+  if (Number.isFinite(denominator) && denominator > 0) cycle.denominator = denominator;
+
+  const payload = {};
+  if (total != null) payload.totalPulses = total;
+  if (tempo != null) payload.bpm = tempo;
+  if (Object.keys(cycle).length > 0) payload.cycle = cycle;
+
+  let applied = false;
+  if (typeof instance.updateTransport === 'function' && Object.keys(payload).length > 0) {
+    instance.updateTransport(payload);
+    applied = true;
+  } else {
+    if (total != null && typeof instance.setTotal === 'function') {
+      instance.setTotal(total);
+      applied = true;
+    }
+    if (tempo != null && typeof instance.setTempo === 'function') {
+      instance.setTempo(tempo);
+      applied = true;
+    }
+    if (Object.keys(cycle).length > 0 && typeof instance.updateCycleConfig === 'function') {
+      instance.updateCycleConfig(cycle);
+      applied = true;
+    }
+  }
+
+  return applied;
 }
 
 function createPlaceholder() {
@@ -331,6 +505,7 @@ async function initAudio() {
   }
   schedulingBridge.applyTo(audio);
   state.audioReady = true;
+  scheduleParamSync();
   return audio;
 }
 
