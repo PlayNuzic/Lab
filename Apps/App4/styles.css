@@ -1,0 +1,125 @@
+/* App2 specific overrides */
+
+body {
+--unit-label-offset: -20px;
+}
+
+/**
+ * Timeline pulse overrides to support selection and interactive hit areas.
+ */
+.pulse { cursor: pointer; }
+.timeline .pulse { pointer-events: auto; }
+/* Selected pulses use selection color, except endpoints 0/Lg which must keep Lg color */
+.pulse.selected:not(.zero):not(.lg) { background: var(--selection-color); }
+.pulse.zero,
+.pulse.lg {
+  color: var(--color-lg);
+  cursor: default;
+  pointer-events: none;
+}
+.pulse-number.zero,
+.pulse-number.lg {
+  color: var(--color-lg);
+}
+
+/**
+ * Editable pulse sequence container positioned above the timeline.
+ */
+#pulseSeq {
+font-size: 3rem;
+display: flex;
+justify-content: flex-start;
+align-items: center;
+gap: 12px;
+width: fit-content;
+max-width: 100%;
+box-sizing: border-box;
+padding: 0 20px;
+margin: 0 auto;
+overflow-x: auto;
+position: relative;
+}
+
+#pulseSeq .prefix,
+#pulseSeq .suffix { color: inherit; user-select: none; }
+#pulseSeq .suffix { margin-left: -12px; margin-right: 12px; }
+#pulseSeq .zero,
+#pulseSeq .lg { color: var(--color-lg); user-select: none; }
+#pulseSeq .edit { outline: none; white-space: pre; }
+#pulseSeq .edit.playing { caret-color: transparent; }
+
+/**
+ * Pulse sequence highlight overlays following the current playback position.
+ */
+#pulseSeqHighlight,
+#pulseSeqHighlight2 {
+position: absolute;
+border-radius: 50%;
+background: var(--selection-color);
+color: var(--selection-color);
+opacity: 0.5;
+pointer-events: none;
+transform: translate(-50%, -50%);
+display: none;
+}
+
+#pulseSeqHighlight.active,
+#pulseSeqHighlight2.active {
+animation: pulseFlash 0.35s ease-out;
+box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
+display: block;
+}
+
+/**
+ * Circular indicator for displaying total cycle duration (T value).
+ */
+#tIndicator {
+position: absolute; /* positioned by JS relative to Lg label */
+display: flex;
+align-items: center;
+justify-content: center;
+width: 40px; /* Reduced from 50px */
+height: 40px; /* Reduced from 50px */
+border: 2px solid var(--color-t);
+border-radius: 50%;
+color: var(--color-t);
+text-align: center;
+font-weight: 700;
+background: transparent;
+pointer-events: none; /* purely visual */
+font-size: 0.9rem; /* Keep same font size */
+}
+
+/**
+ * Layout adjustments for timeline wrapper and controls on narrow screens.
+ */
+@media (max-width: 600px) {
+#pulseSeq {
+font-size: 2rem;
+}
+
+/* Layout adjustments requested for App2 */
+/* 1) Raise inputs section by 25px (from shared 40px to 15) */
+.inputs {
+margin-top: 25px !important;
+}
+
+/* 2) Keep pulse sequence where it is — no changes needed to #pulseSeq */
+/* Compensate inputs shift so #pulseSeq stays in place */
+.middle { margin-top: 40px; }
+
+/* 3) Lower circular timeline by 90px */
+.timeline-wrapper.circular {
+margin-top: 90px !important; /* was 20px in shared styles */
+}
+
+/* 4) Lower controls inside circular wrapper (40px via wrapper - 20px here) */
+.timeline-wrapper.circular > .controls {
+transform: translate(-50%, calc(-50% - 90px)) !important; /* was -40px */
+}
+
+/* 5) Lower unit label by 20px when shown on input focus */
+  .param .circle .unit {
+  top: calc(var(--unit-label-offset, -20px) - 1.8rem);
+  }
+}
