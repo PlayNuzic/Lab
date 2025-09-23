@@ -684,6 +684,15 @@ function fractionDisplay(base, numerator, denominator, { cycleIndex, subdivision
         subdivision -= carry * den;
       }
     }
+    const baseIndex = Number.isFinite(value)
+      ? Math.floor(value + FRACTION_POSITION_EPSILON)
+      : (Number.isFinite(safeBase) ? Math.floor(safeBase) : null);
+    if (Number.isFinite(baseIndex)) {
+      if (subdivision === 0) {
+        return String(baseIndex);
+      }
+      return `${baseIndex}.${subdivision}`;
+    }
     return `${cycle}.${subdivision}`;
   }
 
@@ -2495,13 +2504,23 @@ function renderTimeline() {
     const hideFractionLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
     const numeratorPerCycle = normalizedNumerator ?? 0;
     const labelFormatter = ({ cycleIndex, subdivisionIndex, position }) => {
-      const base = cycleIndex * numeratorPerCycle;
+      const base = Math.floor(position + FRACTION_POSITION_EPSILON);
       if (subdivisionIndex === 0) {
         return Number.isFinite(base) ? String(base) : null;
       }
       const snapPulse = nearestPulseIndex(position);
       if (snapPulse != null) {
         return String(snapPulse);
+      }
+      if (Number.isFinite(base)) {
+        return `${base}.${subdivisionIndex}`;
+      }
+      const normalizedCycle = Number.isFinite(cycleIndex) ? Math.floor(cycleIndex) : null;
+      if (normalizedCycle != null && Number.isFinite(numeratorPerCycle)) {
+        const integerBase = normalizedCycle * numeratorPerCycle;
+        if (Number.isFinite(integerBase)) {
+          return `${integerBase}.${subdivisionIndex}`;
+        }
       }
       return `${cycleIndex}.${subdivisionIndex}`;
     };
