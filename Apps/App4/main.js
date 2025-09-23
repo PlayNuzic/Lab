@@ -563,6 +563,12 @@ let pulseSeqFractionDenominatorEl = null;
 let lastFractionGap = null;
 let currentAudioResolution = 1;
 const FRACTION_POSITION_EPSILON = 1e-6;
+
+function nearestPulseIndex(value) {
+  if (!Number.isFinite(value)) return null;
+  const nearest = Math.round(value);
+  return Math.abs(value - nearest) < FRACTION_POSITION_EPSILON ? nearest : null;
+}
 const voiceHighlightHandlers = new Map();
 
 function ensurePulseMemory(size) {
@@ -637,10 +643,15 @@ function fractionDisplay(base, numerator, denominator, { cycleIndex, subdivision
         return Number.isFinite(activeNumerator) && activeNumerator > 0 ? activeNumerator : null;
       })();
 
+  const value = den ? safeBase + safeNumerator / den : safeBase;
+  const maybePulse = nearestPulseIndex(value);
+  if (maybePulse != null) {
+    return String(maybePulse);
+  }
+
   if (den && resolvedPulsesPerCycle) {
     let cycle = Number.isFinite(cycleIndex) && cycleIndex >= 0 ? Math.floor(cycleIndex) : null;
     let subdivision = Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0 ? Math.floor(subdivisionIndex) : null;
-    const value = safeBase + safeNumerator / den;
     if (cycle == null || subdivision == null) {
       const cycleFloat = value / resolvedPulsesPerCycle;
       cycle = Math.floor(cycleFloat + FRACTION_POSITION_EPSILON);
@@ -2465,9 +2476,16 @@ function renderTimeline() {
   if (grid.cycles > 0 && grid.subdivisions.length && normalizedNumerator && normalizedDenominator) {
     const hideFractionLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
     const numeratorPerCycle = normalizedNumerator ?? 0;
-    const labelFormatter = (cycleIndex, subdivisionIndex) => {
+    const labelFormatter = ({ cycleIndex, subdivisionIndex, position }) => {
       const base = cycleIndex * numeratorPerCycle;
-      return subdivisionIndex === 0 ? String(base) : `${cycleIndex}.${subdivisionIndex}`;
+      if (subdivisionIndex === 0) {
+        return Number.isFinite(base) ? String(base) : null;
+      }
+      const snapPulse = nearestPulseIndex(position);
+      if (snapPulse != null) {
+        return String(snapPulse);
+      }
+      return `${cycleIndex}.${subdivisionIndex}`;
     };
     const denominatorValue = normalizedDenominator ?? 0;
     grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
@@ -2483,6 +2501,11 @@ function renderTimeline() {
       if (subdivisionIndex === 0) {
         const baseIndex = cycleIndex * numeratorPerCycle;
         if (Number.isFinite(baseIndex)) marker.dataset.index = String(baseIndex);
+      } else {
+        const snapPulse = nearestPulseIndex(position);
+        if (snapPulse != null) {
+          marker.dataset.index = String(snapPulse);
+        }
       }
 
       if (subdivisionIndex > 0 && denominatorValue > 0) {
@@ -2540,7 +2563,7 @@ function renderTimeline() {
       }
 
       if (hideFractionLabels) return;
-      const formatted = labelFormatter(cycleIndex, subdivisionIndex);
+      const formatted = labelFormatter({ cycleIndex, subdivisionIndex, position });
       if (formatted != null) {
         const label = document.createElement('div');
         label.className = 'cycle-label';
