@@ -815,6 +815,7 @@ const T_INDICATOR_TRANSITION_DELAY = 650;
 let tIndicatorRevealHandle = null;
 let visualSyncHandle = null;
 let lastVisualStep = null;
+let lastNormalizedStep = null;
 // Progress is now driven directly from audio callbacks
 // Progress is now driven directly from audio callbacks
 
@@ -2296,6 +2297,7 @@ function clearHighlights() {
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
+  lastNormalizedStep = null;
 }
 
 function renderTimeline() {
@@ -2943,25 +2945,71 @@ function highlightCycle(payload = {}) {
   }
 }
 
-function highlightPulse(i){
+function highlightPulse(payload){
   // Si no està en reproducció, no tornem a canviar seleccions ni highlights
   if (!isPlaying) return;
+
+  if (!pulses || pulses.length === 0) {
+    lastNormalizedStep = null;
+    return;
+  }
+
+  const total = pulses.length;
+  const baseLength = Math.max(1, total - 1);
+
+  let rawStepValue = null;
+  let providedResolution = null;
+  if (payload && typeof payload === 'object') {
+    const candidate = Number.isFinite(payload.rawStep) ? Number(payload.rawStep) : Number(payload.step);
+    rawStepValue = Number.isFinite(candidate) ? candidate : null;
+    if (Number.isFinite(payload.resolution)) {
+      providedResolution = Number(payload.resolution);
+    }
+  } else {
+    const candidate = Number(payload);
+    rawStepValue = Number.isFinite(candidate) ? candidate : null;
+  }
+
+  const normalizedResolution = Number.isFinite(providedResolution) && providedResolution > 0
+    ? Math.max(1, Math.round(providedResolution))
+    : Math.max(1, Math.round(currentAudioResolution || 1));
+
+  if (Number.isFinite(providedResolution) && providedResolution > 0) {
+    const rounded = Math.max(1, Math.round(providedResolution));
+    if (rounded !== currentAudioResolution) {
+      currentAudioResolution = rounded;
+    }
+  }
+
+  const normalizedIndex = Number.isFinite(rawStepValue)
+    ? Math.floor(rawStepValue / normalizedResolution)
+    : null;
+
+  if (normalizedIndex == null) {
+    lastNormalizedStep = null;
+    if (Number.isFinite(rawStepValue)) {
+      lastVisualStep = rawStepValue;
+    }
+    return;
+  }
+
+  if (lastNormalizedStep === normalizedIndex) {
+    if (Number.isFinite(rawStepValue)) {
+      lastVisualStep = rawStepValue;
+    }
+    return;
+  }
+
+  lastNormalizedStep = normalizedIndex;
 
   // esborra il·luminació anterior
   pulses.forEach(p => p.classList.remove('active'));
 
-  if (!pulses || pulses.length === 0) return;
-
-  const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
-  const total = pulses.length;
-  const baseLength = Math.max(1, total - 1);
-  const rawStep = Number(i);
-  const normalized = Number.isFinite(rawStep) ? Math.floor(rawStep / resolution) : 0;
   let idx;
   if (loopEnabled) {
-    idx = baseLength > 0 ? ((normalized % baseLength) + baseLength) % baseLength : 0;
+    idx = baseLength > 0 ? ((normalizedIndex % baseLength) + baseLength) % baseLength : 0;
   } else {
-    idx = Math.max(0, Math.min(normalized, total - 1));
+    idx = Math.max(0, Math.min(normalizedIndex, total - 1));
   }
 
   // il·lumina el pols actual
@@ -3041,8 +3089,8 @@ function highlightPulse(i){
     }
   }
 
-  if (Number.isFinite(i)) {
-    lastVisualStep = Number(i);
+  if (Number.isFinite(rawStepValue)) {
+    lastVisualStep = rawStepValue;
   }
 }
 
@@ -3052,6 +3100,7 @@ function stopVisualSync() {
     visualSyncHandle = null;
   }
   lastVisualStep = null;
+  lastNormalizedStep = null;
 }
 
 function syncVisualState() {
@@ -3060,7 +3109,7 @@ function syncVisualState() {
   if (!state) return;
 
   if (Number.isFinite(state.step) && lastVisualStep !== state.step) {
-    highlightPulse(state.step);
+    highlightPulse(state);
   }
 
   if (state.cycle && Number.isFinite(state.cycle.cycleIndex) && Number.isFinite(state.cycle.subdivisionIndex)) {
