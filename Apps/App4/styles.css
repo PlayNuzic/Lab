@@ -1,7 +1,13 @@
 /* App2 specific overrides */
 
 body {
---unit-label-offset: -20px;
+  --unit-label-offset: -20px;
+  --pulse-offset-x: 0px;
+  --pulse-offset-y: 0px;
+  --selected-offset-x: 0px;
+  --selected-offset-y: 0px;
+  --cycle-offset-x: 0px;
+  --cycle-offset-y: 0px;
 }
 
 /**
