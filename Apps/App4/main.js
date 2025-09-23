@@ -563,6 +563,7 @@ let pulseSeqFractionDenominatorEl = null;
 let lastFractionGap = null;
 let currentAudioResolution = 1;
 const FRACTION_POSITION_EPSILON = 1e-6;
+const voiceHighlightHandlers = new Map();
 
 function ensurePulseMemory(size) {
   if (size >= pulseMemory.length) {
@@ -745,16 +746,24 @@ function computeAudioSchedulingState() {
   });
 
   const playbackTotal = validLg ? toPlaybackPulseCount(lg, loopEnabled) : null;
-  const totalPulses = playbackTotal != null ? playbackTotal * resolution : null;
-  const interval = validV ? (60 / v) / resolution : null;
-  const patternBeats = validLg ? lg * resolution : null;
+  const totalPulses = playbackTotal != null ? playbackTotal : null;
+  const interval = validV ? (60 / v) : null;
+  const patternBeats = validLg ? lg : null;
 
   const cycleNumerator = Number.isFinite(grid?.numerator) && grid.numerator > 0 ? grid.numerator : null;
   const cycleDenominator = Number.isFinite(grid?.denominator) && grid.denominator > 0 ? grid.denominator : null;
   const hasCycle = grid && grid.cycles > 0 && cycleNumerator != null && cycleDenominator != null;
   const cycleConfig = hasCycle
-    ? { numerator: cycleNumerator * resolution, denominator: cycleDenominator, onTick: highlightCycle }
+    ? { numerator: cycleNumerator, denominator: cycleDenominator, onTick: highlightCycle }
     : null;
+
+  const voices = [];
+  if (hasCycle) {
+    const period = cycleNumerator / cycleDenominator;
+    if (Number.isFinite(period) && Math.abs(period - Math.round(period)) > 1e-6) {
+      voices.push({ id: `cycle-${cycleNumerator}x${cycleDenominator}`, numerator: cycleNumerator, denominator: cycleDenominator });
+    }
+  }
 
   return {
     resolution,
@@ -762,49 +771,120 @@ function computeAudioSchedulingState() {
     interval,
     patternBeats,
     cycleConfig,
+    voices,
     validLg,
     validV,
-    grid
+    grid,
+    lg
   };
 }
 
 // --- Selecció viva per a l'àudio (filtrada: sense 0 ni lg) ---
-function selectedForAudioFromState({ resolution } = {}) {
-  const lg = parseInt(inputLg.value);
-  const scale = Number.isFinite(resolution) && resolution > 0
-    ? Math.max(1, Math.round(resolution))
-    : Math.max(1, Math.round(currentAudioResolution));
+function selectedForAudioFromState({ scheduling } = {}) {
+  const state = scheduling || computeAudioSchedulingState();
+  const scale = Number.isFinite(state?.resolution) && state.resolution > 0
+    ? Math.max(1, Math.round(state.resolution))
+    : 1;
+  const lg = Number.isFinite(state?.lg) ? state.lg : parseInt(inputLg.value);
   const baseSet = new Set();
+  const cycleSet = new Set();
   const fractionSet = new Set();
   const combinedSet = new Set();
   if (!Number.isFinite(lg) || lg <= 0) {
-    return { base: baseSet, fraction: fractionSet, combined: combinedSet, resolution: scale };
+    return { base: baseSet, cycle: cycleSet, fraction: fractionSet, combined: combinedSet, resolution: scale };
   }
   const maxIdx = Math.min(lg, pulseMemory.length - 1);
   for (let i = 1; i <= maxIdx; i++) {
     if (pulseMemory[i]) {
-      const step = i * scale;
-      baseSet.add(step);
-      combinedSet.add(step);
+      baseSet.add(i);
+      combinedSet.add(i * scale);
     }
   }
   const epsilon = 1e-6;
+  if (state?.grid?.subdivisions?.length) {
+    state.grid.subdivisions.forEach((subdivision) => {
+      const pos = Number(subdivision?.position);
+      if (!Number.isFinite(pos) || pos <= 0 || pos >= lg) return;
+      cycleSet.add(pos);
+      const scaled = Math.round(pos * scale);
+      if (Math.abs(scaled / scale - pos) <= epsilon) {
+        combinedSet.add(scaled);
+      }
+    });
+  }
   fractionalPulseSelections.forEach((item) => {
     if (!item || !Number.isFinite(item.value)) return;
     if (item.value <= 0 || item.value >= lg) return;
-    const scaled = Math.round(item.value * scale + epsilon);
-    fractionSet.add(scaled);
-    combinedSet.add(scaled);
+    fractionSet.add(item.value);
+    const scaled = Math.round(item.value * scale);
+    if (Math.abs(scaled / scale - item.value) <= epsilon) {
+      combinedSet.add(scaled);
+    }
   });
-  return { base: baseSet, fraction: fractionSet, combined: combinedSet, resolution: scale };
+  return { base: baseSet, cycle: cycleSet, fraction: fractionSet, combined: combinedSet, resolution: scale };
 }
 
-function applySelectionToAudio({ resolution, instance } = {}) {
+function applySelectionToAudio({ scheduling, instance } = {}) {
   const target = instance || audio;
   if (!target || typeof target.setSelected !== 'function') return null;
-  const selection = selectedForAudioFromState({ resolution });
-  target.setSelected(selection.combined);
+  const selection = selectedForAudioFromState({ scheduling });
+  target.setSelected({ values: selection.combined, resolution: selection.resolution });
   return selection;
+}
+
+function updateVoiceHandlers({ scheduling } = {}) {
+  voiceHighlightHandlers.clear();
+  if (!scheduling || !Array.isArray(scheduling.voices)) return;
+  const voices = scheduling.voices;
+  const grid = scheduling.grid;
+  const cycles = Number.isFinite(grid?.cycles) ? grid.cycles : null;
+  voices.forEach((voice) => {
+    if (!voice || !voice.id) return;
+    const numerator = Number(voice.numerator);
+    const denominator = Number(voice.denominator);
+    if (!(Number.isFinite(numerator) && numerator > 0 && Number.isFinite(denominator) && denominator > 0)) {
+      return;
+    }
+    if (voice.id.startsWith('cycle-') && Number.isFinite(cycles) && cycles > 0) {
+      const handler = createCycleVoiceHandler({ numerator, denominator, cycles });
+      if (handler) voiceHighlightHandlers.set(voice.id, handler);
+    }
+  });
+}
+
+function createCycleVoiceHandler({ numerator, denominator, cycles }) {
+  const totalCycles = Math.max(1, Math.floor(cycles));
+  const epsilon = 1e-6;
+  return ({ index } = {}) => {
+    if (!isPlaying) return;
+    const rawIndex = Number(index);
+    if (!Number.isFinite(rawIndex) || rawIndex < 0) return;
+    const perCycle = Math.max(1, Math.floor(denominator));
+    const cycleIndex = totalCycles > 0
+      ? Math.floor(Math.floor(rawIndex / perCycle) % totalCycles)
+      : Math.floor(rawIndex / perCycle);
+    const subdivisionIndex = ((rawIndex % perCycle) + perCycle) % perCycle;
+    const fractionalStep = numerator * cycleIndex + (numerator / perCycle) * subdivisionIndex;
+    if (Math.abs(fractionalStep - Math.round(fractionalStep)) <= epsilon) {
+      return;
+    }
+    highlightCycle({
+      cycleIndex,
+      subdivisionIndex,
+      numerator,
+      denominator: perCycle,
+      totalCycles,
+      totalSubdivisions: perCycle
+    });
+  };
+}
+
+function handleVoiceEvent(event = {}) {
+  if (!event || !event.id) return;
+  const handler = voiceHighlightHandlers.get(event.id);
+  if (typeof handler === 'function') {
+    handler(event);
+  }
 }
 const selectedPulses = new Set();
 let isPlaying = false;
@@ -1571,6 +1651,9 @@ async function initAudio(){
       instance.setBase(baseSoundSelect.dataset.value);
       instance.setAccent(accentSoundSelect.dataset.value);
       instance.setStart(startSoundSelect.dataset.value);
+      if (typeof instance.setVoiceHandler === 'function') {
+        instance.setVoiceHandler(handleVoiceEvent);
+      }
       schedulingBridge.applyTo(instance);
       if (typeof instance.setPulseEnabled === 'function') {
         instance.setPulseEnabled(pulseAudioEnabled);
@@ -2123,15 +2206,19 @@ function handleInput(){
 
   if (isPlaying && audio) {
     const scheduling = computeAudioSchedulingState();
-    currentAudioResolution = Math.max(1, Math.round(scheduling.resolution || 1));
-    applySelectionToAudio({ resolution: currentAudioResolution });
+    applySelectionToAudio({ scheduling });
+    currentAudioResolution = 1;
+    updateVoiceHandlers({ scheduling });
+    if (typeof audio.setVoices === 'function') {
+      audio.setVoices(scheduling.voices || []);
+    }
     const vNow = parseFloat(inputV.value);
     const transportPayload = {};
     if (scheduling.totalPulses != null) {
       transportPayload.totalPulses = scheduling.totalPulses;
     }
     if (scheduling.validV && Number.isFinite(vNow) && vNow > 0) {
-      transportPayload.bpm = vNow * currentAudioResolution;
+      transportPayload.bpm = vNow;
     }
     if (scheduling.patternBeats != null) {
       transportPayload.patternBeats = scheduling.patternBeats;
@@ -2777,11 +2864,15 @@ async function startPlayback(providedAudio) {
   if (scheduling.interval == null || scheduling.totalPulses == null) {
     return false;
   }
-  currentAudioResolution = Math.max(1, Math.round(scheduling.resolution || 1));
   const selectionForAudio = applySelectionToAudio({
-    resolution: currentAudioResolution,
+    scheduling,
     instance: audioInstance
-  }) || selectedForAudioFromState({ resolution: currentAudioResolution });
+  }) || selectedForAudioFromState({ scheduling });
+  currentAudioResolution = 1;
+  updateVoiceHandlers({ scheduling });
+  if (typeof audioInstance.setVoices === 'function') {
+    audioInstance.setVoices(scheduling.voices || []);
+  }
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
 
@@ -2796,9 +2887,7 @@ async function startPlayback(providedAudio) {
   if (scheduling.cycleConfig) {
     playOptions.cycle = scheduling.cycleConfig;
   }
-  if (Number.isFinite(scheduling.resolution)) {
-    playOptions.baseResolution = scheduling.resolution;
-  }
+  playOptions.baseResolution = 1;
 
   if (typeof audioInstance.setLoop === 'function') {
     audioInstance.setLoop(loopEnabled);

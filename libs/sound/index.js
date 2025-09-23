@@ -378,6 +378,7 @@ export class TimelineAudio {
     this.loopRef = true;
 
     this._onPulseRef = null;
+    this._onVoiceRef = null;
     this.onCompleteRef = null;
     this._cycleConfig = null;
     this._patternBeats = null;
@@ -390,6 +391,8 @@ export class TimelineAudio {
     this._lastCycleState = null;
 
     this.selectedRef = new Set();
+    this._selectedResolution = 1;
+    this._voiceDefs = new Map();
     this._baseResolution = 1;
     this.baseResolution = 1;
 
@@ -784,7 +787,29 @@ export class TimelineAudio {
   }
 
   setSelected(indices) {
-    this.selectedRef = toSet(indices);
+    let resolution = 1;
+    let values = indices;
+    const isIterableSet = (candidate) => Array.isArray(candidate) || candidate instanceof Set;
+    if (indices && typeof indices === 'object' && !(indices instanceof Set) && !Array.isArray(indices)) {
+      const {
+        values: providedValues,
+        indices: providedIndices,
+        steps,
+        resolution: providedResolution
+      } = indices;
+      if (isIterableSet(providedValues)) {
+        values = providedValues;
+      } else if (isIterableSet(providedIndices)) {
+        values = providedIndices;
+      } else if (isIterableSet(steps)) {
+        values = steps;
+      }
+      if (Number.isFinite(providedResolution) && providedResolution > 0) {
+        resolution = Math.max(1, Math.round(providedResolution));
+      }
+    }
+    this.selectedRef = toSet(values);
+    this._selectedResolution = resolution;
     this._adaptSchedulerInterval();
   }
 
@@ -998,15 +1023,43 @@ export class TimelineAudio {
   }
 
   setVoices(voices = []) {
+    const map = new Map();
+    if (Array.isArray(voices)) {
+      voices.forEach((voice) => {
+        if (!voice || !voice.id) return;
+        const numerator = Number(voice.numerator);
+        const denominator = Number(voice.denominator);
+        map.set(voice.id, {
+          numerator: Number.isFinite(numerator) ? numerator : null,
+          denominator: Number.isFinite(denominator) ? denominator : null
+        });
+      });
+    }
+    this._voiceDefs = map;
     this._node?.port?.postMessage({ action: 'setVoices', voices });
   }
 
+  setVoiceHandler(handler) {
+    this._onVoiceRef = (typeof handler === 'function') ? handler : null;
+  }
+
   addVoice(voice) {
-    if (voice && voice.id) this._node?.port?.postMessage({ action: 'addVoice', voice });
+    if (voice && voice.id) {
+      const numerator = Number(voice.numerator);
+      const denominator = Number(voice.denominator);
+      this._voiceDefs.set(voice.id, {
+        numerator: Number.isFinite(numerator) ? numerator : null,
+        denominator: Number.isFinite(denominator) ? denominator : null
+      });
+      this._node?.port?.postMessage({ action: 'addVoice', voice });
+    }
   }
 
   removeVoice(id) {
-    if (id) this._node?.port?.postMessage({ action: 'removeVoice', id });
+    if (id) {
+      this._voiceDefs.delete(id);
+      this._node?.port?.postMessage({ action: 'removeVoice', id });
+    }
   }
 
   async configurePerformance({ requestedSampleRate, scheduleHorizonMs } = {}) {
@@ -1111,8 +1164,12 @@ export class TimelineAudio {
         const stepIndex = this._resolveStepIndex(n);
         const isStart = stepIndex === 0;
         const resolution = Math.max(1, Math.round(this._baseResolution || 1));
-        const isBaseStep = Number.isFinite(stepIndex) && (stepIndex % resolution === 0);
-        const isSelected = this.selectedRef.has(stepIndex);
+        const isBaseStep = Number.isFinite(stepIndex) && (resolution <= 1 || (stepIndex % resolution === 0));
+        const selectionResolution = Math.max(1, Math.round(this._selectedResolution || 1));
+        const selectionIndex = selectionResolution === 1
+          ? stepIndex
+          : Math.round(stepIndex * selectionResolution);
+        const isSelected = this.selectedRef.has(selectionIndex);
 
         let triggered = false;
         if (this._buffers && this._buffers.size) {
@@ -1207,7 +1264,25 @@ export class TimelineAudio {
         this._schedulePlayerStart('cycle', now + 0.001);
       }
     } else if (msg.type === 'voice') {
-      // future hook
+      const payload = { id: msg.id, index: msg.index };
+      if (typeof this._onVoiceRef === 'function') {
+        this._onVoiceRef(payload);
+      }
+      const def = payload.id ? this._voiceDefs?.get(payload.id) : null;
+      if (def && this._buffers?.has('seleccionados')) {
+        const numerator = Number(def.numerator);
+        const denominator = Number(def.denominator);
+        const idx = Number(payload.index);
+        if (Number.isFinite(numerator) && numerator > 0 && Number.isFinite(idx)) {
+          const perCycle = Math.max(1, Number.isFinite(denominator) ? Math.floor(denominator) : 1);
+          const cycleIndex = Math.floor(idx / perCycle);
+          const subdivisionIndex = ((idx % perCycle) + perCycle) % perCycle;
+          const fractionalStep = numerator * cycleIndex + (numerator / perCycle) * subdivisionIndex;
+          if (Math.abs(fractionalStep - Math.round(fractionalStep)) > 1e-6) {
+            this._schedulePlayerStart('seleccionados', now + 0.001);
+          }
+        }
+      }
     } else if (msg.type === 'done') {
       if (typeof this.onCompleteRef === 'function') this.onCompleteRef();
       this.stop();

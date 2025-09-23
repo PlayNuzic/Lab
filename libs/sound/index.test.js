@@ -129,6 +129,13 @@ describe('TimelineAudio (new engine)', () => {
     expect(Array.from(audio.selectedRef)).toEqual([1, 3, 5]);
   });
 
+  test('setSelected accepts resolution payloads', () => {
+    const audio = new TimelineAudio();
+    audio.setSelected({ values: [2, 4], resolution: 6 });
+    expect(Array.from(audio.selectedRef)).toEqual([2, 4]);
+    expect(audio._selectedResolution).toBe(6);
+  });
+
   test('play respects baseResolution for base pulses while keeping accents', async () => {
     const scheduledTicks = [];
     const originalSetInterval = global.setInterval;
@@ -179,6 +186,47 @@ describe('TimelineAudio (new engine)', () => {
     } finally {
       if (audio) audio.stop();
       if (scheduleSpy) scheduleSpy.mockRestore();
+      global.setInterval = originalSetInterval;
+      global.clearInterval = originalClearInterval;
+    }
+  });
+
+  test('voice handler receives events', async () => {
+    const audio = new TimelineAudio();
+    await audio.ready();
+    const handler = jest.fn();
+    audio.setVoiceHandler(handler);
+    audio._handleClockMessage({ type: 'voice', id: 'cycle-4x3', index: 2 });
+    expect(handler).toHaveBeenCalledWith({ id: 'cycle-4x3', index: 2 });
+  });
+
+  test('voice events schedule accent for fractional subdivisions', () => {
+    const audio = new TimelineAudio();
+    audio._schedulePlayerStart = jest.fn();
+    audio._buffers = new Map([['seleccionados', { buffer: {} }]]);
+    audio.setVoices([{ id: 'cycle-4x3', numerator: 4, denominator: 3 }]);
+    audio._handleClockMessage({ type: 'voice', id: 'cycle-4x3', index: 1 });
+    expect(audio._schedulePlayerStart).toHaveBeenCalled();
+    const [key, when] = audio._schedulePlayerStart.mock.calls[0];
+    expect(key).toBe('seleccionados');
+    expect(typeof when).toBe('number');
+  });
+
+  test('play keeps interval tied to base pulses', async () => {
+    const scheduledTicks = [];
+    const originalSetInterval = global.setInterval;
+    const originalClearInterval = global.clearInterval;
+    global.setInterval = jest.fn((fn) => { scheduledTicks.push(fn); return 123; });
+    global.clearInterval = jest.fn();
+
+    try {
+      const audio = new TimelineAudio();
+      audio._initPlayers = jest.fn().mockResolvedValue();
+      await audio.ready();
+      audio.setSelected({ values: [2, 4], resolution: 4 });
+      await audio.play(8, 0.3, new Set([8]), false, null, null, { baseResolution: 1 });
+      expect(audio.intervalRef).toBeCloseTo(0.3);
+    } finally {
       global.setInterval = originalSetInterval;
       global.clearInterval = originalClearInterval;
     }
