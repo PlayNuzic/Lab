@@ -548,6 +548,7 @@ let pulseSeqFractionNumeratorEl = null;
 let pulseSeqFractionDenominatorEl = null;
 let lastFractionGap = null;
 let currentAudioResolution = 1;
+const FRACTION_POSITION_EPSILON = 1e-6;
 
 function ensurePulseMemory(size) {
   if (size >= pulseMemory.length) {
@@ -585,9 +586,63 @@ function fractionValue(base, numerator, denominator) {
   return base + numerator / denominator;
 }
 
-function fractionDisplay(base, numerator) {
+function cycleNotationToFraction(cycleIndex, subdivisionIndex, pulsesPerCycle, denominator) {
+  if (!(Number.isFinite(cycleIndex) && cycleIndex >= 0)) return null;
+  if (!(Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0)) return null;
+  if (!(Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0)) return null;
+  if (!(Number.isFinite(denominator) && denominator > 0)) return null;
+
+  const step = pulsesPerCycle / denominator;
+  const rawValue = cycleIndex * pulsesPerCycle + subdivisionIndex * step;
+  let base = Math.floor(rawValue + FRACTION_POSITION_EPSILON);
+  let fractional = rawValue - base;
+  if (fractional < FRACTION_POSITION_EPSILON) {
+    return null;
+  }
+  let numerator = Math.round(fractional * denominator);
+  if (numerator <= 0) {
+    return null;
+  }
+  while (numerator >= denominator) {
+    numerator -= denominator;
+    base += 1;
+  }
+  const value = base + numerator / denominator;
+  return { base, numerator, value };
+}
+
+function fractionDisplay(base, numerator, denominator, { cycleIndex, subdivisionIndex, pulsesPerCycle } = {}) {
   const safeBase = Number.isFinite(base) ? base : 0;
   const safeNumerator = Number.isFinite(numerator) ? numerator : 0;
+  const den = Number.isFinite(denominator) && denominator > 0 ? denominator : null;
+  const resolvedPulsesPerCycle = Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0
+    ? pulsesPerCycle
+    : (() => {
+        const { numerator: activeNumerator } = getFraction();
+        return Number.isFinite(activeNumerator) && activeNumerator > 0 ? activeNumerator : null;
+      })();
+
+  if (den && resolvedPulsesPerCycle) {
+    let cycle = Number.isFinite(cycleIndex) && cycleIndex >= 0 ? Math.floor(cycleIndex) : null;
+    let subdivision = Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0 ? Math.floor(subdivisionIndex) : null;
+    const value = safeBase + safeNumerator / den;
+    if (cycle == null || subdivision == null) {
+      const cycleFloat = value / resolvedPulsesPerCycle;
+      cycle = Math.floor(cycleFloat + FRACTION_POSITION_EPSILON);
+      const cycleStart = cycle * resolvedPulsesPerCycle;
+      const step = resolvedPulsesPerCycle / den;
+      const normalized = (value - cycleStart) / step;
+      subdivision = Math.floor(normalized + FRACTION_POSITION_EPSILON);
+      if (subdivision < 0) subdivision = 0;
+      if (subdivision >= den) {
+        const carry = Math.floor(subdivision / den);
+        cycle += carry;
+        subdivision -= carry * den;
+      }
+    }
+    return `${cycle}.${subdivision}`;
+  }
+
   return `${safeBase}.${safeNumerator}`;
 }
 
@@ -604,7 +659,7 @@ function getFractionInfoFromElement(el) {
   const value = Number.isFinite(parseFloat(el.dataset.value))
     ? parseFloat(el.dataset.value)
     : fractionValue(base, numerator, denominator);
-  const display = el.dataset.display || fractionDisplay(base, numerator);
+  const display = el.dataset.display || fractionDisplay(base, numerator, denominator);
   return { type: 'fraction', base, numerator, denominator, key, value, display };
 }
 
@@ -623,6 +678,10 @@ function rebuildFractionSelections(opts = {}) {
   selectedFractionKeys.clear();
   fractionalPulseSelections = Array.from(fractionalSelectionState.values())
     .filter(item => item && Number.isFinite(item.value))
+    .map(item => ({
+      ...item,
+      display: fractionDisplay(item.base, item.numerator, item.denominator)
+    }))
     .sort((a, b) => a.value - b.value);
   fractionalPulseSelections.forEach(item => selectedFractionKeys.add(item.key));
   applyFractionSelectionClasses();
@@ -637,7 +696,7 @@ function setFractionSelected(info, shouldSelect) {
   const value = Number.isFinite(info.value) ? info.value : fractionValue(base, numerator, denominator);
   if (!Number.isFinite(value)) return;
   if (shouldSelect) {
-    const display = info.display || fractionDisplay(base, numerator);
+    const display = info.display || fractionDisplay(base, numerator, denominator);
     fractionalSelectionState.set(key, { base, numerator, denominator, value, display, key });
   } else {
     fractionalSelectionState.delete(key);
@@ -701,14 +760,18 @@ function selectedForAudioFromState({ resolution } = {}) {
   const scale = Number.isFinite(resolution) && resolution > 0
     ? Math.max(1, Math.round(resolution))
     : Math.max(1, Math.round(currentAudioResolution));
-  const set = new Set();
+  const baseSet = new Set();
+  const fractionSet = new Set();
+  const combinedSet = new Set();
   if (!Number.isFinite(lg) || lg <= 0) {
-    return set;
+    return { base: baseSet, fraction: fractionSet, combined: combinedSet, resolution: scale };
   }
   const maxIdx = Math.min(lg, pulseMemory.length - 1);
   for (let i = 1; i <= maxIdx; i++) {
     if (pulseMemory[i]) {
-      set.add(i * scale);
+      const step = i * scale;
+      baseSet.add(step);
+      combinedSet.add(step);
     }
   }
   const epsilon = 1e-6;
@@ -716,9 +779,10 @@ function selectedForAudioFromState({ resolution } = {}) {
     if (!item || !Number.isFinite(item.value)) return;
     if (item.value <= 0 || item.value >= lg) return;
     const scaled = Math.round(item.value * scale + epsilon);
-    set.add(scaled);
+    fractionSet.add(scaled);
+    combinedSet.add(scaled);
   });
-  return set;
+  return { base: baseSet, fraction: fractionSet, combined: combinedSet, resolution: scale };
 }
 const selectedPulses = new Set();
 let isPlaying = false;
@@ -1145,20 +1209,69 @@ cycleToggleBtn?.addEventListener('click', () => {
   setCycleAudio(!cycleAudioEnabled);
 });
 
+const soloMutedChannels = new Set();
+let lastSoloActive = false;
+
 subscribeMixer((snapshot) => {
   if (!snapshot || !Array.isArray(snapshot.channels)) return;
   const findChannel = (id) => snapshot.channels.find(channel => channel.id === id);
+  const soloActive = snapshot.channels.some(channel => channel.solo);
+
+  const setters = new Map([
+    ['pulse', setPulseAudio],
+    ['accent', setSelectedAudio],
+    ['subdivision', setCycleAudio]
+  ]);
+
+  const currentStates = {
+    pulse: pulseAudioEnabled,
+    accent: selectedAudioEnabled,
+    subdivision: cycleAudioEnabled
+  };
 
   const syncFromChannel = (channelState, setter, current) => {
     if (!channelState) return;
-    const shouldEnable = !channelState.effectiveMuted;
+    const channelId = channelState.id;
+    const forcedBySolo = soloActive && !channelState.solo && channelState.effectiveMuted && !channelState.muted;
+    if (forcedBySolo) {
+      if (!soloMutedChannels.has(channelId)) {
+        soloMutedChannels.add(channelId);
+        setter(false, { persist: false });
+      }
+      return;
+    }
+
+    if (!soloActive && soloMutedChannels.has(channelId)) {
+      soloMutedChannels.delete(channelId);
+      setter(true, { persist: false });
+      return;
+    }
+
+    if (soloActive && soloMutedChannels.has(channelId)) {
+      return;
+    }
+
+    const shouldEnable = !channelState.muted;
     if (current === shouldEnable) return;
     setter(shouldEnable, { persist: false });
   };
 
-  syncFromChannel(findChannel('pulse'), setPulseAudio, pulseAudioEnabled);
-  syncFromChannel(findChannel('accent'), setSelectedAudio, selectedAudioEnabled);
-  syncFromChannel(findChannel('subdivision'), setCycleAudio, cycleAudioEnabled);
+  ['pulse', 'accent', 'subdivision'].forEach((id) => {
+    const channel = findChannel(id);
+    const setter = setters.get(id);
+    const current = currentStates[id];
+    if (setter) syncFromChannel(channel, setter, current);
+  });
+
+  if (!soloActive && lastSoloActive && soloMutedChannels.size) {
+    soloMutedChannels.forEach((id) => {
+      const setter = setters.get(id);
+      if (setter) setter(true, { persist: false });
+    });
+    soloMutedChannels.clear();
+  }
+
+  lastSoloActive = soloActive;
 });
 
 function clearStoredPreferences() {
@@ -1260,7 +1373,8 @@ loopBtn.addEventListener('click', () => {
     syncSelectedFromMemory();
     updatePulseNumbers();
     if (isPlaying && typeof audio.setSelected === 'function') {
-      audio.setSelected(selectedForAudioFromState());
+      const selection = selectedForAudioFromState();
+      audio.setSelected(selection.fraction);
     }
   }
   // Sincronitza amb el motor en temps real si està sonant
@@ -1387,7 +1501,8 @@ function randomize() {
       syncSelectedFromMemory();
       updatePulseNumbers();
       if (isPlaying && audio && typeof audio.setSelected === 'function') {
-        audio.setSelected(selectedForAudioFromState());
+        const selection = selectedForAudioFromState();
+        audio.setSelected(selection.fraction);
       }
     }
   }
@@ -1490,9 +1605,19 @@ getEditEl()?.addEventListener('keydown', (e) => {
     // Si no estamos en midpoint, ajusta al más cercano (sin modificar texto)
     const mids = getMidpoints(text); if(mids.length){ let best=mids[0],d=Math.abs(pos-best); for(const m of mids){const dd=Math.abs(pos-m); if(dd<d){best=m; d=dd;}} pos=best; }
     // Buscamos el token a la izquierda del midpoint
-    let i = pos-1; while(i>=0 && text[i]===' ') i--; if(i<0) return; // no hay número a la izquierda
-    if(!(text[i]>='0' && text[i]<='9')) return;
-    const endNum = i+1; let j=i; while(j>=0 && text[j]>='0' && text[j]<='9') j--; const startNum = j+1;
+    const isDigit = (c) => c >= '0' && c <= '9';
+    let i = pos - 1;
+    while (i >= 0 && text[i] === ' ') i--;
+    if (i < 0) return; // no hay número a la izquierda
+    if (!(isDigit(text[i]) || text[i] === '.')) return;
+    const endNum = i + 1;
+    let startNum = i;
+    while (startNum >= 0 && isDigit(text[startNum])) startNum--;
+    if (startNum >= 0 && text[startNum] === '.') {
+      startNum--;
+      while (startNum >= 0 && isDigit(text[startNum])) startNum--;
+    }
+    startNum = Math.max(0, startNum + 1);
     // Construimos: izquierda hasta startNum + '  ' + derecha saltando el espacio derecho del midpoint
     const left = text.slice(0,startNum);
     const right = text.slice(pos+1); // saltar un espacio (el derecho del midpoint)
@@ -1512,10 +1637,29 @@ getEditEl()?.addEventListener('keydown', (e) => {
     // Ajusta al midpoint más cercano (sin cambiar texto)
     const mids = getMidpoints(text); if(mids.length){ let best=mids[0],d=Math.abs(pos-best); for(const m of mids){const dd=Math.abs(pos-m); if(dd<d){best=m; d=dd;}} pos=best; }
     // Buscar número a la derecha del midpoint
+    const isDigit = (c) => c >= '0' && c <= '9';
     let k = pos; while(k<text.length && text[k]===' ') k++;
-    const isD=(c)=> c>='0'&&c<='9';
-    if(k>=text.length || !isD(text[k])) return;
-    let end=k; while(end<text.length && isD(text[end])) end++;
+    if (k >= text.length) return;
+    if (!(isDigit(text[k]) || text[k] === '.')) return;
+    let end = k;
+    let dotConsumed = false;
+    if (text[end] === '.') {
+      dotConsumed = true;
+      end++;
+    }
+    while (end < text.length) {
+      const ch = text[end];
+      if (isDigit(ch)) {
+        end++;
+        continue;
+      }
+      if (ch === '.' && !dotConsumed) {
+        dotConsumed = true;
+        end++;
+        continue;
+      }
+      break;
+    }
     // Espacios tras el número: saltar hasta 2 para no duplicar separadores
     let s=0; while(end+s<text.length && text[end+s]===' ') s++;
     const left = text.slice(0, pos-1); // elimina el espacio izquierdo del midpoint
@@ -1738,13 +1882,12 @@ function sanitizePulseSeq(opts = {}){
   let hadFractionTooBig = false;
   let firstFractionTooBig = null;
 
-  const { denominator: rawDenominator } = getFraction();
+  const { numerator: rawNumerator, denominator: rawDenominator } = getFraction();
   const denomValue = Number.isFinite(rawDenominator) && rawDenominator > 0 ? rawDenominator : null;
+  const numeratorValue = Number.isFinite(rawNumerator) && rawNumerator > 0 ? rawNumerator : null;
 
   const caretGap = resolvePulseSeqGap(caretBefore, lg);
   lastFractionGap = caretGap;
-
-  const toDisplayString = (base, digits) => `${base}.${digits}`;
 
   for (const token of tokens) {
     const raw = token.raw;
@@ -1778,7 +1921,7 @@ function sanitizePulseSeq(opts = {}){
             numerator: fracNumerator,
             denominator: denomValue,
             value,
-            display: toDisplayString(base, digits),
+            display: fractionDisplay(base, fracNumerator, denomValue),
             key
           });
         }
@@ -1789,29 +1932,56 @@ function sanitizePulseSeq(opts = {}){
         if (!denomValue) continue;
         const digits = fractionDigitsRaw ?? '';
         if (!digits) continue;
-        const fracNumerator = Number.parseInt(digits, 10);
-        if (!Number.isFinite(fracNumerator) || fracNumerator <= 0) continue;
-        if (fracNumerator >= denomValue) {
+        const subdivisionIndex = Number.parseInt(digits, 10);
+        if (!Number.isFinite(subdivisionIndex) || subdivisionIndex <= 0) continue;
+        if (subdivisionIndex >= denomValue) {
           hadFractionTooBig = true;
           if (firstFractionTooBig == null) firstFractionTooBig = digits;
           continue;
         }
-        const value = intVal + fracNumerator / denomValue;
+        let normalizedBase = null;
+        let normalizedNumerator = null;
+        let value = null;
+        let displayOverride = null;
+        if (Number.isFinite(numeratorValue) && numeratorValue > 0) {
+          const mapping = cycleNotationToFraction(intVal, subdivisionIndex, numeratorValue, denomValue);
+          if (!mapping) continue;
+          normalizedBase = mapping.base;
+          normalizedNumerator = mapping.numerator;
+          value = mapping.value;
+          displayOverride = {
+            cycleIndex: intVal,
+            subdivisionIndex,
+            pulsesPerCycle: numeratorValue
+          };
+        } else {
+          const fallbackNumerator = Number.parseInt(digits, 10);
+          if (!Number.isFinite(fallbackNumerator) || fallbackNumerator <= 0) continue;
+          if (fallbackNumerator >= denomValue) {
+            hadFractionTooBig = true;
+            if (firstFractionTooBig == null) firstFractionTooBig = digits;
+            continue;
+          }
+          normalizedBase = intVal;
+          normalizedNumerator = fallbackNumerator;
+          value = intVal + fallbackNumerator / denomValue;
+        }
+        if (!Number.isFinite(value)) continue;
         if (!Number.isNaN(lg) && value >= lg) {
           hadTooBig = true;
           if (firstTooBig == null) firstTooBig = `${intVal}.${digits}`;
           continue;
         }
-        const key = makeFractionKey(intVal, fracNumerator, denomValue);
+        const key = makeFractionKey(normalizedBase, normalizedNumerator, denomValue);
         if (!key) continue;
         if (!seenFractionKeys.has(key)) {
           seenFractionKeys.add(key);
           fractions.push({
-            base: intVal,
-            numerator: fracNumerator,
+            base: normalizedBase,
+            numerator: normalizedNumerator,
             denominator: denomValue,
             value,
-            display: toDisplayString(intVal, digits),
+            display: fractionDisplay(normalizedBase, normalizedNumerator, denomValue, displayOverride || undefined),
             key
           });
         }
@@ -1922,7 +2092,8 @@ function handleInput(){
     const scheduling = computeAudioSchedulingState();
     currentAudioResolution = Math.max(1, Math.round(scheduling.resolution || 1));
     if (typeof audio.setSelected === 'function') {
-      audio.setSelected(selectedForAudioFromState({ resolution: currentAudioResolution }));
+      const selection = selectedForAudioFromState({ resolution: currentAudioResolution });
+      audio.setSelected(selection.fraction);
     }
     const vNow = parseFloat(inputV.value);
     const transportPayload = {};
@@ -2059,7 +2230,8 @@ function handlePulseSeqInput(){
   setPulseSeqText(nums.join(' '));
   renderTimeline();
   if (isPlaying && audio && typeof audio.setSelected === 'function') {
-    audio.setSelected(selectedForAudioFromState());
+    const selection = selectedForAudioFromState();
+    audio.setSelected(selection.fraction);
   }
 }
 
@@ -2083,7 +2255,8 @@ function setPulseSelected(i, shouldSelect) {
   if (isPlaying && audio) {
     if (typeof audio.setSelected === 'function') {
       // Àudio sempre sense 0/Lg
-      audio.setSelected(selectedForAudioFromState());
+      const selection = selectedForAudioFromState();
+      audio.setSelected(selection.fraction);
     }
     if (typeof audio.setLoop === 'function') {
       audio.setLoop(loopEnabled);
@@ -2167,7 +2340,7 @@ function renderTimeline() {
     const numeratorPerCycle = grid.numerator ?? numerator ?? 0;
     const labelFormatter = (cycleIndex, subdivisionIndex) => {
       const base = cycleIndex * numeratorPerCycle;
-      return subdivisionIndex === 0 ? String(base) : `.${subdivisionIndex}`;
+      return subdivisionIndex === 0 ? String(base) : `${cycleIndex}.${subdivisionIndex}`;
     };
     const denominatorValue = grid.denominator ?? denominator ?? 0;
     grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
@@ -2197,7 +2370,11 @@ function renderTimeline() {
           const key = makeFractionKey(baseIndex, fracNumerator, denominatorValue);
           if (key) {
             const value = fractionValue(baseIndex, fracNumerator, denominatorValue);
-            const display = fractionDisplay(baseIndex, fracNumerator);
+            const display = fractionDisplay(baseIndex, fracNumerator, denominatorValue, {
+              cycleIndex,
+              subdivisionIndex,
+              pulsesPerCycle: numeratorPerCycle
+            });
             marker.dataset.baseIndex = String(baseIndex);
             marker.dataset.fractionNumerator = String(fracNumerator);
             marker.dataset.fractionDenominator = String(denominatorValue);
@@ -2561,7 +2738,7 @@ async function startPlayback(providedAudio) {
     return false;
   }
   currentAudioResolution = Math.max(1, Math.round(scheduling.resolution || 1));
-  const selectedForAudio = selectedForAudioFromState({ resolution: currentAudioResolution });
+  const selectionForAudio = selectedForAudioFromState({ resolution: currentAudioResolution });
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
 
@@ -2578,7 +2755,7 @@ async function startPlayback(providedAudio) {
   }
 
   if (typeof audioInstance.setSelected === 'function') {
-    audioInstance.setSelected(selectedForAudio);
+    audioInstance.setSelected(selectionForAudio.fraction);
   }
 
   if (typeof audioInstance.setLoop === 'function') {
@@ -2588,7 +2765,7 @@ async function startPlayback(providedAudio) {
   audioInstance.play(
     scheduling.totalPulses,
     scheduling.interval,
-    selectedForAudio,
+    selectionForAudio.fraction,
     loopEnabled,
     highlightPulse,
     onFinish,
