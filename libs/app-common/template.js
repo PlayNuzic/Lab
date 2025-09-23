@@ -42,7 +42,7 @@ export function renderApp({
               <defs>
                 <path id="controlPulseLabelPath" d="M 22 96 A 78 78 0 0 1 96 22" />
               </defs>
-              <path class="control-sound-toggle__shape" d="M -14 100 A 114 114 0 0 1 100 -14 L 100 36 A 64 64 0 0 0 36 100 Z" />
+              <path class="control-sound-toggle__shape" d="M 20 100 A 80 80 0 0 1 100 20 L 100 40 A 60 60 0 0 0 40 100 Z" />
               <text class="control-sound-toggle__label" dy="12">
                 <textPath href="#controlPulseLabelPath" startOffset="50%" text-anchor="middle">Pulso</textPath>
               </text>
@@ -58,7 +58,7 @@ export function renderApp({
               <defs>
                 <path id="controlSelectedLabelPath" d="M 46 96 A 54 54 0 0 1 154 96" />
               </defs>
-              <path class="control-sound-toggle__shape" d="M 36 100 A 64 64 0 0 1 100 36 A 64 64 0 0 1 164 100 Z" />
+              <path class="control-sound-toggle__shape" d="M 60 20 A 80 80 0 0 1 140 20 L 140 40 A 60 60 0 0 0 60 40 Z" />
               <text class="control-sound-toggle__label" dy="12">
                 <textPath href="#controlSelectedLabelPath" startOffset="50%" text-anchor="middle">Sel</textPath>
               </text>
@@ -74,7 +74,7 @@ export function renderApp({
               <defs>
                 <path id="controlCycleLabelPath" d="M 104 22 A 78 78 0 0 1 178 96" />
               </defs>
-              <path class="control-sound-toggle__shape" d="M 100 -14 A 114 114 0 0 1 214 100 L 164 100 A 64 64 0 0 0 100 36 Z" />
+              <path class="control-sound-toggle__shape" d="M 100 20 A 80 80 0 0 1 180 100 L 160 100 A 60 60 0 0 0 100 40 Z" />
               <text class="control-sound-toggle__label" dy="12">
                 <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">SubD</textPath>
               </text>
