@@ -390,6 +390,8 @@ export class TimelineAudio {
     this._lastCycleState = null;
 
     this.selectedRef = new Set();
+    this._baseResolution = 1;
+    this.baseResolution = 1;
 
     this._ctx = null;
     this._node = null;
@@ -808,6 +810,10 @@ export class TimelineAudio {
     this.setScheduling(preset);
   }
 
+  getBaseResolution() {
+    return Math.max(1, Math.round(this._baseResolution || 1));
+  }
+
   setPulseEnabled(enabled) {
     mixer.setChannelMute('pulse', !enabled);
   }
@@ -836,6 +842,15 @@ export class TimelineAudio {
     this._pulseCounter = -1;
     this._lastAbsoluteStep = null;
     this._lastCycleState = null;
+
+    const resolutionOpt = Number.isFinite(options?.baseResolution)
+      ? options.baseResolution
+      : Number.isFinite(options?.resolution)
+        ? options.resolution
+        : 1;
+    const normalizedResolution = Math.max(1, Math.round(resolutionOpt || 1));
+    this._baseResolution = normalizedResolution;
+    this.baseResolution = normalizedResolution;
 
     const cyc = options?.cycle;
     if (cyc && Number.isFinite(+cyc.numerator) && Number.isFinite(+cyc.denominator)) {
@@ -1095,6 +1110,8 @@ export class TimelineAudio {
 
         const stepIndex = this._resolveStepIndex(n);
         const isStart = stepIndex === 0;
+        const resolution = Math.max(1, Math.round(this._baseResolution || 1));
+        const isBaseStep = Number.isFinite(stepIndex) && (stepIndex % resolution === 0);
         const isSelected = this.selectedRef.has(stepIndex);
 
         let triggered = false;
@@ -1112,7 +1129,7 @@ export class TimelineAudio {
             return null;
           })();
 
-          if (baseKey) {
+          if (baseKey && isBaseStep) {
             triggerPlayer(baseKey, when);
             triggered = true;
           }
@@ -1123,7 +1140,7 @@ export class TimelineAudio {
           }
         }
 
-        if (!triggered && !this._pulseMutedForFallback) {
+        if (!triggered && !this._pulseMutedForFallback && (isBaseStep || isSelected)) {
           const f = isStart ? 1400 : (isSelected ? 1100 : 900);
           triggerBeep(when, f);
         }

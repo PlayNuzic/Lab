@@ -20,8 +20,39 @@ describe('TimelineAudio (new engine)', () => {
 
     class FakeGainNode {
       constructor() {
-        this.gain = { value: 1 };
-        this.connect = jest.fn();
+        this.gain = {
+          value: 1,
+          setValueAtTime: jest.fn(),
+          linearRampToValueAtTime: jest.fn()
+        };
+      }
+
+      connect(node) {
+        this._connected = node;
+        return node;
+      }
+    }
+
+    class FakeOscillatorNode {
+      constructor() {
+        this.frequency = { setValueAtTime: jest.fn() };
+        this.type = 'sine';
+        this.start = jest.fn();
+        this.stop = jest.fn();
+      }
+
+      connect(node) {
+        this._connected = node;
+        return node;
+      }
+    }
+
+    class FakeBufferSourceNode {
+      constructor() {
+        this.connect = jest.fn((node) => node);
+        this.start = jest.fn();
+        this.stop = jest.fn();
+        this.onended = null;
       }
     }
 
@@ -34,6 +65,8 @@ describe('TimelineAudio (new engine)', () => {
           gainNodes.push(node);
           return node;
         });
+        this.createOscillator = jest.fn(() => new FakeOscillatorNode());
+        this.createBufferSource = jest.fn(() => new FakeBufferSourceNode());
         this.destination = {};
         this.currentTime = 0;
         this.sampleRate = 48000;
@@ -94,6 +127,61 @@ describe('TimelineAudio (new engine)', () => {
     audio.setSelected([1, 3, 5]);
     expect(audio.selectedRef instanceof Set).toBe(true);
     expect(Array.from(audio.selectedRef)).toEqual([1, 3, 5]);
+  });
+
+  test('play respects baseResolution for base pulses while keeping accents', async () => {
+    const scheduledTicks = [];
+    const originalSetInterval = global.setInterval;
+    const originalClearInterval = global.clearInterval;
+    global.setInterval = jest.fn((fn) => {
+      scheduledTicks.push(fn);
+      return 123;
+    });
+    global.clearInterval = jest.fn();
+
+    let scheduleSpy;
+    let audio;
+    try {
+      audio = new TimelineAudio();
+      audio._initPlayers = jest.fn().mockResolvedValue();
+      await audio.ready();
+
+      audio._buffers = new Map([
+        ['pulso', { buffer: {} }],
+        ['pulso0', { buffer: {} }],
+        ['seleccionados', { buffer: {} }]
+      ]);
+
+      scheduleSpy = jest.spyOn(audio, '_schedulePlayerStart').mockImplementation(() => {});
+
+      audio._lookAheadSec = 2;
+
+      await audio.play(12, 0.5, new Set([4]), false, null, null, { baseResolution: 3 });
+
+      expect(audio.baseResolution).toBe(3);
+      expect(audio.getBaseResolution()).toBe(3);
+
+      audio._lastAbsoluteStep = 0;
+      audio._lastPulseTime = audio._ctx.currentTime;
+      audio._zeroOffset = 0;
+
+      const tick = scheduledTicks[0];
+      expect(typeof tick).toBe('function');
+      tick();
+
+      const pulsoCalls = scheduleSpy.mock.calls.filter(([key]) => key === 'pulso');
+      const pulso0Calls = scheduleSpy.mock.calls.filter(([key]) => key === 'pulso0');
+      const accentCalls = scheduleSpy.mock.calls.filter(([key]) => key === 'seleccionados');
+
+      expect(pulsoCalls.length).toBe(1);
+      expect(pulso0Calls.length).toBe(1);
+      expect(accentCalls.length).toBe(1);
+    } finally {
+      if (audio) audio.stop();
+      if (scheduleSpy) scheduleSpy.mockRestore();
+      global.setInterval = originalSetInterval;
+      global.clearInterval = originalClearInterval;
+    }
   });
 
   test('setSchedulingProfile applies preset values', () => {

@@ -2794,6 +2794,9 @@ async function startPlayback(providedAudio) {
   if (scheduling.cycleConfig) {
     playOptions.cycle = scheduling.cycleConfig;
   }
+  if (Number.isFinite(scheduling.resolution)) {
+    playOptions.baseResolution = scheduling.resolution;
+  }
 
   if (typeof audioInstance.setLoop === 'function') {
     audioInstance.setLoop(loopEnabled);
