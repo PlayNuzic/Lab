@@ -4,8 +4,8 @@ body {
   --unit-label-offset: -20px;
   --pulse-offset-x: -75px;
   --pulse-offset-y: 0px;
-  --selected-offset-x: -205px;
-  --selected-offset-y: -14px;
+  --selected-offset-x: -220px;
+  --selected-offset-y: -2px;
   --cycle-offset-x: -365px;
   --cycle-offset-y: 0px;
 }
