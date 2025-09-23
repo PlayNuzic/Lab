@@ -2164,7 +2164,7 @@ function sanitizePulseSeq(opts = {}){
     showPulseSeqAutoTip(`El número <strong>${bad}</strong> introducido es mayor que la <span style="color: var(--color-lg); font-weight: 700;">Lg</span>. Elige un número menor que <strong>${lg}</strong>`);
   }
   if (hadFractionTooBig && denomValue) {
-    showPulseSeqAutoTip(`La parte fraccionaria <strong>${firstFractionTooBig}</strong> excede el denominador (<strong>${denomValue}</strong>). Usa un valor menor que <strong>${denomValue}</strong>.`);
+    showPulseSeqAutoTip(`La fracción <strong>${firstFractionTooBig}</strong> supera <strong>d</strong> (<strong>${denomValue}</strong>). Recuerda que <strong>n</strong> debe ser menor que <strong>d</strong>.`);
   }
 
   return { hadTooBig, hadFractionTooBig };
