@@ -919,15 +919,14 @@ function setupPulseSeqMarkup(){
   pulseSeqFractionNumeratorEl = document.createElement('span');
   pulseSeqFractionNumeratorEl.className = 'fraction-number numerator';
   pulseSeqFractionNumeratorEl.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
-  const fractionSlash = document.createElement('span');
-  fractionSlash.className = 'fraction-slash';
-  fractionSlash.textContent = '/';
+  const fractionBar = document.createElement('span');
+  fractionBar.className = 'fraction-bar';
   pulseSeqFractionDenominatorEl = document.createElement('span');
   pulseSeqFractionDenominatorEl.className = 'fraction-number denominator';
   pulseSeqFractionDenominatorEl.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
   fractionWrapper.append(
     pulseSeqFractionNumeratorEl,
-    fractionSlash,
+    fractionBar,
     pulseSeqFractionDenominatorEl
   );
 

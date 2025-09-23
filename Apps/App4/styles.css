@@ -121,18 +121,28 @@ position: relative;
 #pulseSeq .suffix-spacer { margin-right: 12px; }
 #pulseSeq .fraction {
   display: inline-flex;
-  align-items: baseline;
-  gap: 0.25em;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3em;
   user-select: none;
+  line-height: 1;
+  vertical-align: middle;
+  min-width: 2.2ch;
+  padding: 0 0.2em;
 }
 #pulseSeq .fraction-number {
-  min-width: 1.2ch;
+  min-width: 1.8ch;
   text-align: center;
+  line-height: 1;
 }
-#pulseSeq .fraction-slash {
-  opacity: 0.7;
-  font-size: 0.85em;
-  transform: translateY(0.05em);
+#pulseSeq .fraction-bar {
+  display: block;
+  width: 100%;
+  height: 0.18em;
+  background: currentColor;
+  border-radius: 999px;
+  opacity: 0.8;
 }
 #pulseSeq .zero,
 #pulseSeq .lg { color: var(--color-lg); user-select: none; }
