@@ -11,6 +11,17 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
+
+// Inicialització de l'àudio - soluciona problema del botó play intermitent
+(async function initAudio() {
+  try {
+    audio = await ensureAudio();
+    console.log('Audio inicialitzat correctament a App4');
+  } catch (error) {
+    console.error('Error inicialitzant àudio a App4:', error);
+  }
+})();
+
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
 bindSharedSoundEvents({
