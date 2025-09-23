@@ -21,7 +21,7 @@
 --play-button-size: 80px;
 --control-toggle-size: 100px;
 --control-toggle-width: 150px;
---control-toggle-gap: -5px;
+--control-toggle-gap: -2px;
 --control-toggle-overlap: 16px;
 }
 
@@ -541,10 +541,10 @@ margin-right: auto;
 */
 .control-sound-toggles {
   position: absolute;
-  top: 48%;
-  left: 50%;
+  top: 50%;
+  left: 85%;
   transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-gap))));
-  width: calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2);
+  width: calc(var(--control-toggle-width)  + var(--control-toggle-gap));
   height: var(--control-toggle-size);
   pointer-events: none;
   z-index: 4;
