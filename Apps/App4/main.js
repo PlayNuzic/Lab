@@ -1697,8 +1697,8 @@ getEditEl()?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     const res = sanitizePulseSeq({ causedBy: 'enter' });
-    // Oculta el caret al confirmar excepto si hubo números > Lg
-    if (!res || !res.hadTooBig) {
+    // Oculta el caret al confirmar excepto si hubo números > Lg o fracciones inválidas
+    if (!res || (!res.hadTooBig && !res.hadFractionTooBig)) {
       try { getEditEl()?.blur(); } catch {}
     }
     return;
@@ -2153,7 +2153,8 @@ function sanitizePulseSeq(opts = {}){
   const pos = Math.min(outText.length, caretBefore);
   const editEl = getEditEl();
   const isEditActive = editEl && document.activeElement === editEl;
-  if (!opts.skipCaret && isEditActive && (hadTooBig || !(opts.causedBy === 'enter' || opts.causedBy === 'blur'))) {
+  const shouldKeepCaret = hadTooBig || hadFractionTooBig || !(opts.causedBy === 'enter' || opts.causedBy === 'blur');
+  if (!opts.skipCaret && isEditActive && shouldKeepCaret) {
     setPulseSeqSelection(pos, pos);
     try { moveCaretToNearestMidpoint(); } catch {}
   }
