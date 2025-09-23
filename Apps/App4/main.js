@@ -88,6 +88,11 @@ const selectedToggleBtn = document.getElementById('selectedToggleBtn');
 const cycleToggleBtn = document.getElementById('cycleToggleBtn');
 
 const globalMixer = getMixer();
+if (globalMixer) {
+  globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso/Pulso 0' });
+  globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivisión' });
+  globalMixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
+}
 
 const FRACTION_NUMERATOR_KEY = 'n';
 const FRACTION_DENOMINATOR_KEY = 'd';
@@ -787,6 +792,14 @@ function selectedForAudioFromState({ resolution } = {}) {
   });
   return { base: baseSet, fraction: fractionSet, combined: combinedSet, resolution: scale };
 }
+
+function applySelectionToAudio({ resolution, instance } = {}) {
+  const target = instance || audio;
+  if (!target || typeof target.setSelected !== 'function') return null;
+  const selection = selectedForAudioFromState({ resolution });
+  target.setSelected(selection.combined);
+  return selection;
+}
 const selectedPulses = new Set();
 let isPlaying = false;
 let loopEnabled = false;
@@ -1375,9 +1388,8 @@ loopBtn.addEventListener('click', () => {
     // Rebuild visible selection from memory and refresh labels
     syncSelectedFromMemory();
     updatePulseNumbers();
-    if (isPlaying && typeof audio.setSelected === 'function') {
-      const selection = selectedForAudioFromState();
-      audio.setSelected(selection.fraction);
+    if (isPlaying) {
+      applySelectionToAudio();
     }
   }
   // Sincronitza amb el motor en temps real si està sonant
@@ -1503,9 +1515,8 @@ function randomize() {
       seq.forEach(i => { pulseMemory[i] = true; });
       syncSelectedFromMemory();
       updatePulseNumbers();
-      if (isPlaying && audio && typeof audio.setSelected === 'function') {
-        const selection = selectedForAudioFromState();
-        audio.setSelected(selection.fraction);
+      if (isPlaying) {
+        applySelectionToAudio();
       }
     }
   }
@@ -2094,10 +2105,7 @@ function handleInput(){
   if (isPlaying && audio) {
     const scheduling = computeAudioSchedulingState();
     currentAudioResolution = Math.max(1, Math.round(scheduling.resolution || 1));
-    if (typeof audio.setSelected === 'function') {
-      const selection = selectedForAudioFromState({ resolution: currentAudioResolution });
-      audio.setSelected(selection.fraction);
-    }
+    applySelectionToAudio({ resolution: currentAudioResolution });
     const vNow = parseFloat(inputV.value);
     const transportPayload = {};
     if (scheduling.totalPulses != null) {
@@ -2232,9 +2240,8 @@ function handlePulseSeqInput(){
   nums.forEach(n => { pulseMemory[n] = true; });
   setPulseSeqText(nums.join(' '));
   renderTimeline();
-  if (isPlaying && audio && typeof audio.setSelected === 'function') {
-    const selection = selectedForAudioFromState();
-    audio.setSelected(selection.fraction);
+  if (isPlaying) {
+    applySelectionToAudio();
   }
 }
 
@@ -2256,11 +2263,7 @@ function setPulseSelected(i, shouldSelect) {
   updatePulseNumbers();
 
   if (isPlaying && audio) {
-    if (typeof audio.setSelected === 'function') {
-      // Àudio sempre sense 0/Lg
-      const selection = selectedForAudioFromState();
-      audio.setSelected(selection.fraction);
-    }
+    applySelectionToAudio();
     if (typeof audio.setLoop === 'function') {
       audio.setLoop(loopEnabled);
     }
@@ -2741,7 +2744,10 @@ async function startPlayback(providedAudio) {
     return false;
   }
   currentAudioResolution = Math.max(1, Math.round(scheduling.resolution || 1));
-  const selectionForAudio = selectedForAudioFromState({ resolution: currentAudioResolution });
+  const selectionForAudio = applySelectionToAudio({
+    resolution: currentAudioResolution,
+    instance: audioInstance
+  }) || selectedForAudioFromState({ resolution: currentAudioResolution });
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
 
@@ -2757,10 +2763,6 @@ async function startPlayback(providedAudio) {
     playOptions.cycle = scheduling.cycleConfig;
   }
 
-  if (typeof audioInstance.setSelected === 'function') {
-    audioInstance.setSelected(selectionForAudio.fraction);
-  }
-
   if (typeof audioInstance.setLoop === 'function') {
     audioInstance.setLoop(loopEnabled);
   }
@@ -2768,7 +2770,7 @@ async function startPlayback(providedAudio) {
   audioInstance.play(
     scheduling.totalPulses,
     scheduling.interval,
-    selectionForAudio.fraction,
+    selectionForAudio.combined,
     loopEnabled,
     highlightPulse,
     onFinish,
