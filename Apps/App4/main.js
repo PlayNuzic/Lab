@@ -108,6 +108,8 @@ let ghostFractionContainer;
 let ghostNumeratorText;
 let ghostDenominatorText;
 let fractionPlaceholderEl;
+let numeratorFieldWrapper;
+let denominatorFieldWrapper;
 const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
 const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
 let currentFractionInfo = createEmptyFractionInfo();
@@ -322,12 +324,19 @@ function updateFractionGhost(info) {
   ghostFractionContainer.classList.add('fraction-ghost--visible');
 }
 
+function setFractionFieldEmptyState(wrapper, isEmpty) {
+  if (!wrapper) return;
+  wrapper.classList.toggle('fraction-field--empty', !!isEmpty);
+}
+
 function updateFractionPlaceholder(numerator, denominator) {
   if (!fractionPlaceholderEl) return;
   const hasNumerator = Number.isFinite(numerator) && numerator > 0;
   const hasDenominator = Number.isFinite(denominator) && denominator > 0;
   const showPlaceholder = !(hasNumerator || hasDenominator);
   fractionPlaceholderEl.classList.toggle('fraction-placeholder--visible', showPlaceholder);
+  setFractionFieldEmptyState(numeratorFieldWrapper, !hasNumerator);
+  setFractionFieldEmptyState(denominatorFieldWrapper, !hasDenominator);
 }
 
 function updateFractionHover(info) {
@@ -419,15 +428,15 @@ function initFractionEditor() {
   wrapper.appendChild(container);
   slot.appendChild(wrapper);
 
-  const createField = ({ wrapperClass, placeholder, ariaUp, ariaDown }) => {
+  const createField = ({ wrapperClass, ariaUp, ariaDown }) => {
     const fieldWrapper = document.createElement('div');
     fieldWrapper.className = `fraction-field ${wrapperClass}`;
+    fieldWrapper.classList.add('fraction-field--empty');
 
     const input = document.createElement('input');
     input.type = 'number';
     input.min = '1';
     input.step = '1';
-    input.placeholder = placeholder;
     input.value = '';
     input.className = wrapperClass;
     fieldWrapper.appendChild(input);
@@ -453,22 +462,22 @@ function initFractionEditor() {
   top.className = 'top';
   const numeratorField = createField({
     wrapperClass: 'numerator',
-    placeholder: 'n',
     ariaUp: 'Incrementar numerador',
     ariaDown: 'Decrementar numerador'
   });
   numeratorInput = numeratorField.input;
+  numeratorFieldWrapper = numeratorField.wrapper;
   top.appendChild(numeratorField.wrapper);
 
   const bottom = document.createElement('div');
   bottom.className = 'bottom';
   const denominatorField = createField({
     wrapperClass: 'denominator',
-    placeholder: 'd',
     ariaUp: 'Incrementar denominador',
     ariaDown: 'Decrementar denominador'
   });
   denominatorInput = denominatorField.input;
+  denominatorFieldWrapper = denominatorField.wrapper;
   bottom.appendChild(denominatorField.wrapper);
 
   container.appendChild(top);
@@ -1525,6 +1534,8 @@ loopBtn.addEventListener('click', () => {
 
 resetBtn.addEventListener('click', () => {
   pulseMemory = [];
+  clearOpt(FRACTION_NUMERATOR_KEY);
+  clearOpt(FRACTION_DENOMINATOR_KEY);
   window.location.reload();
 });
 

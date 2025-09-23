@@ -81,7 +81,7 @@ body[data-theme='dark'] .cycle-marker {
   font-weight: 600;
 }
 
-.fraction-field input:placeholder-shown ~ .spinner {
+.fraction-field--empty .spinner {
   opacity: 0;
   pointer-events: none;
 }
