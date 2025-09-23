@@ -58,7 +58,7 @@ export function renderApp({
               <defs>
                 <path id="controlSelectedLabelPath" d="M 46 96 A 54 54 0 0 1 154 96" />
               </defs>
-              <path class="control-sound-toggle__shape" d="M 60 20 A 80 80 0 0 1 140 20 L 140 40 A 60 60 0 0 0 60 40 Z" />
+              <path class="control-sound-toggle__shape" d="M 20 -5 A 85 85 0 0 1 140 20 L 130 55 A 70 70 0 0 0 45 38 Z" />
               <text class="control-sound-toggle__label" dy="12">
                 <textPath href="#controlSelectedLabelPath" startOffset="50%" text-anchor="middle">Sel</textPath>
               </text>
