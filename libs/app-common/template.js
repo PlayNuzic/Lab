@@ -40,11 +40,11 @@ export function renderApp({
           <button id="${PULSE_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--pulse active" type="button" aria-pressed="true" aria-label="Alternar pulso">
             <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
               <defs>
-                <path id="controlPulseLabelPath" d="M 22 96 A 78 78 0 0 1 46 66" />
+                <path id="controlPulseLabelPath" d="M 15 129 A 90 90 0 0 1 64 56" />
               </defs>
               <path class="control-sound-toggle__shape" d="M -10 100 A 120 120 0 0 1 40 15 L 70 55 A 70 70 0 0 0 40 100 Z" />
-              <text class="control-sound-toggle__label" dy="12">
-                <textPath href="#controlPulseLabelPath" startOffset="50%" text-anchor="middle">PULS</textPath>
+              <text class="control-sound-toggle__label" dy="2" style="font-size:15px;font-weight:700;letter-spacing:1px">
+                <textPath href="#controlPulseLabelPath" startOffset="55%" text-anchor="middle">Pulso</textPath>
               </text>
             </svg>
           </button>
@@ -57,11 +57,11 @@ export function renderApp({
             <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
               <defs>
                 <!-- Corba per al text centrada al segment del mig -->
-                <path id="controlSelectedLabelPath" d="M 70 38 A 60 60 0 0 1 130 38" />
+                <path id="controlSelectedLabelPath" d="M 70 46 A 68 68 0 0 1 130 46" />
               </defs>
               <!-- Segment central: corona circular simètrica segons l'esbós -->
               <path class="control-sound-toggle__shape" d="M 42 9 A 120 120 0 0 1 158 9 L 129 49 A 70 70 0 0 0 72 50 Z" />
-              <text class="control-sound-toggle__label" dy="12">
+              <text class="control-sound-toggle__label" dy="2" style="font-size:15px;font-weight:700;letter-spacing:1px">
                 <textPath href="#controlSelectedLabelPath" startOffset="50%" text-anchor="middle">SEL</textPath>
               </text>
             </svg>
@@ -74,11 +74,11 @@ export function renderApp({
           <button id="${CYCLE_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--cycle active" type="button" aria-pressed="true" aria-label="Alternar subdivisión">
             <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
               <defs>
-                <path id="controlCycleLabelPath" d="M 104 22 A 78 78 0 0 1 178 96" />
+                <path id="controlCycleLabelPath" d="M 152 66 A 76 76 0 0 1 175 96" />
               </defs>
               <path class="control-sound-toggle__shape" d="M 210 100 A 120 120 0 0 0 160 15 L 130 55 A 70 70 0 0 1 160 100 Z" />
-              <text class="control-sound-toggle__label" dy="12">
-                <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">SUBD</textPath>
+              <text class="control-sound-toggle__label" dy="2" style="font-size:15px;font-weight:700;letter-spacing:1px">
+                <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">Sub</textPath>
               </text>
             </svg>
           </button>
