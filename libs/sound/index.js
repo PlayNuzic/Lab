@@ -66,6 +66,36 @@ function isRunning(ctx) {
   return !!ctx && typeof ctx.state === 'string' && ctx.state === 'running';
 }
 
+function isNotAllowedError(error) {
+  if (!error) return false;
+  const name = error.name;
+  if (name === 'NotAllowedError' || name === 'InvalidAccessError' || name === 'SecurityError') {
+    return true;
+  }
+  if (name === 'DOMException') {
+    const code = typeof error.code === 'number' ? error.code : null;
+    if (code === 11) return true; // NotAllowedError on some browsers
+  }
+  const message = typeof error.message === 'string' ? error.message.toLowerCase() : '';
+  if (!message) return false;
+  return message.includes('not allowed') || message.includes('user gesture');
+}
+
+async function tryResumeContext(ctx) {
+  if (!ctx || typeof ctx.resume !== 'function') return false;
+  if (ctx.state === 'running') return true;
+  if (ctx.state === 'closed') return false;
+  try {
+    await ctx.resume();
+    return ctx.state === 'running';
+  } catch (error) {
+    if (isNotAllowedError(error)) {
+      return false;
+    }
+    throw error;
+  }
+}
+
 async function startToneAudio() {
   if (typeof Tone === 'undefined') return false;
   const contextBefore = getToneContext();
@@ -460,11 +490,21 @@ export class TimelineAudio {
     const existingCtx = normalizeAudioContext(this._ctx);
     const desiredCtx = preferredToneCtx || existingCtx || null;
 
+    if (desiredCtx) {
+      await tryResumeContext(desiredCtx);
+    }
+
     if (this._node && desiredCtx && this._ctx && this._ctx !== desiredCtx) {
       this._teardownAudioGraph();
     }
 
-    if (this._node) return;
+    if (this._node) {
+      const activeCtx = normalizeAudioContext(this._ctx) || desiredCtx || null;
+      if (activeCtx) {
+        await tryResumeContext(activeCtx);
+      }
+      return;
+    }
     if (this._ensureContextPromise) {
       await this._ensureContextPromise;
       return;
@@ -499,6 +539,8 @@ export class TimelineAudio {
       }
 
       this._ctx = ctx;
+
+      await tryResumeContext(ctx);
 
       let modulePromise = workletModulePromises.get(ctx);
       if (!modulePromise) {
@@ -540,6 +582,8 @@ export class TimelineAudio {
       if (this._pendingMixerState) {
         this._applyMixerState(this._pendingMixerState);
       }
+
+      await tryResumeContext(ctx);
 
       this.isReady = true;
     };

@@ -1,4 +1,4 @@
-import { TimelineAudio, ensureAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { TimelineAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
@@ -11,6 +11,7 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
+let audioInitPromise = null;
 
 
 
@@ -1546,31 +1547,43 @@ initSoundDropdown(startSoundSelect, {
 // Preview on sound change handled by shared header
 
 async function initAudio(){
-  if(audio) return audio;
-  await ensureAudio();
-  audio = new TimelineAudio();
-  await audio.ready();
-    // Ensure accent channel is registered and routed separately for the mixer
-  if (audio.mixer && typeof audio.mixer.registerChannel === 'function') {
-    audio.mixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
+  if (audio) {
+    await audio.ready();
+    return audio;
   }
-  if (audio._channelAssignments) {
-    audio._channelAssignments.accent = 'accent';
+  if (!audioInitPromise) {
+    audioInitPromise = (async () => {
+      const instance = new TimelineAudio();
+      await instance.ready();
+      // Ensure accent channel is registered and routed separately for the mixer
+      if (instance.mixer && typeof instance.mixer.registerChannel === 'function') {
+        instance.mixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
+      }
+      if (instance._channelAssignments) {
+        instance._channelAssignments.accent = 'accent';
+      }
+      instance.setBase(baseSoundSelect.dataset.value);
+      instance.setAccent(accentSoundSelect.dataset.value);
+      instance.setStart(startSoundSelect.dataset.value);
+      schedulingBridge.applyTo(instance);
+      if (typeof instance.setPulseEnabled === 'function') {
+        instance.setPulseEnabled(pulseAudioEnabled);
+      }
+      if (typeof instance.setCycleEnabled === 'function') {
+        instance.setCycleEnabled(cycleAudioEnabled);
+      }
+      if (typeof instance.setLoop === 'function') {
+        instance.setLoop(loopEnabled);
+      }
+      audio = instance;
+      return instance;
+    })();
   }
-  audio.setBase(baseSoundSelect.dataset.value);
-  audio.setAccent(accentSoundSelect.dataset.value);
-  audio.setStart(startSoundSelect.dataset.value);
-  schedulingBridge.applyTo(audio);
-  if (typeof audio.setPulseEnabled === 'function') {
-    audio.setPulseEnabled(pulseAudioEnabled);
+  try {
+    return await audioInitPromise;
+  } finally {
+    audioInitPromise = null;
   }
-  if (typeof audio.setCycleEnabled === 'function') {
-    audio.setCycleEnabled(cycleAudioEnabled);
-  }
-  if (typeof audio.setLoop === 'function') {
-    audio.setLoop(loopEnabled);
-  }
-  return audio;
 }
 
 // Mostrar unitats quan s'edita cada paràmetre
