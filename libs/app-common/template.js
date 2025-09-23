@@ -40,9 +40,9 @@ export function renderApp({
           <button id="${PULSE_TOGGLE_BTN_ID}" class="control-sound-toggle control-sound-toggle--pulse active" type="button" aria-pressed="true" aria-label="Alternar pulso">
             <svg class="control-sound-toggle__svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
               <defs>
-                <path id="controlPulseLabelPath" d="M 22 96 A 78 78 0 0 1 96 22" />
+                <path id="controlPulseLabelPath" d="M 22 96 A 78 78 0 0 1 46 66" />
               </defs>
-              <path class="control-sound-toggle__shape" d="M 20 100 A 80 80 0 0 1 100 20 L 100 40 A 60 60 0 0 0 40 100 Z" />
+              <path class="control-sound-toggle__shape" d="M -10 100 A 120 120 0 0 1 40 15 L 70 55 A 70 70 0 0 0 40 100 Z" />
               <text class="control-sound-toggle__label" dy="12">
                 <textPath href="#controlPulseLabelPath" startOffset="50%" text-anchor="middle">Pulso</textPath>
               </text>
@@ -74,7 +74,7 @@ export function renderApp({
               <defs>
                 <path id="controlCycleLabelPath" d="M 104 22 A 78 78 0 0 1 178 96" />
               </defs>
-              <path class="control-sound-toggle__shape" d="M 100 20 A 80 80 0 0 1 180 100 L 160 100 A 60 60 0 0 0 100 40 Z" />
+              <path class="control-sound-toggle__shape" d="M 210 100 A 120 120 0 0 0 160 15 L 130 55 A 70 70 0 0 1 160 100 Z" />
               <text class="control-sound-toggle__label" dy="12">
                 <textPath href="#controlCycleLabelPath" startOffset="50%" text-anchor="middle">SubD</textPath>
               </text>

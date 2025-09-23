@@ -2,11 +2,11 @@
 
 body {
   --unit-label-offset: -20px;
-  --pulse-offset-x: 0px;
+  --pulse-offset-x: -75px;
   --pulse-offset-y: 0px;
-  --selected-offset-x: 0px;
-  --selected-offset-y: 0px;
-  --cycle-offset-x: 0px;
+  --selected-offset-x: -220px;
+  --selected-offset-y: -14px;
+  --cycle-offset-x: -360px;
   --cycle-offset-y: 0px;
 }
 
