@@ -107,6 +107,7 @@ let denominatorInput;
 let ghostFractionContainer;
 let ghostNumeratorText;
 let ghostDenominatorText;
+let fractionPlaceholderEl;
 const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
 const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
 let currentFractionInfo = createEmptyFractionInfo();
@@ -321,6 +322,14 @@ function updateFractionGhost(info) {
   ghostFractionContainer.classList.add('fraction-ghost--visible');
 }
 
+function updateFractionPlaceholder(numerator, denominator) {
+  if (!fractionPlaceholderEl) return;
+  const hasNumerator = Number.isFinite(numerator) && numerator > 0;
+  const hasDenominator = Number.isFinite(denominator) && denominator > 0;
+  const showPlaceholder = !(hasNumerator || hasDenominator);
+  fractionPlaceholderEl.classList.toggle('fraction-placeholder--visible', showPlaceholder);
+}
+
 function updateFractionHover(info) {
   if (!numeratorInput || !denominatorInput) return;
   if (info && info.isMultiple) {
@@ -339,6 +348,7 @@ function updateFractionHover(info) {
 
 function updateFractionUI(numerator, denominator) {
   currentFractionInfo = computeFractionInfo(numerator, denominator);
+  updateFractionPlaceholder(numerator, denominator);
   updateFractionGhost(currentFractionInfo);
   updateFractionHover(currentFractionInfo);
   updatePulseSeqFractionDisplay(numerator, denominator);
@@ -464,6 +474,12 @@ function initFractionEditor() {
   container.appendChild(top);
   container.appendChild(bottom);
 
+  fractionPlaceholderEl = document.createElement('div');
+  fractionPlaceholderEl.className = 'fraction-placeholder';
+  fractionPlaceholderEl.textContent = 'n/d';
+  fractionPlaceholderEl.setAttribute('aria-hidden', 'true');
+  container.appendChild(fractionPlaceholderEl);
+
   if (numeratorInput) {
     numeratorInput.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
     attachHover(numeratorInput, { text: DEFAULT_NUMERATOR_HOVER_TEXT });
@@ -496,6 +512,8 @@ function initFractionEditor() {
   addRepeatPress(numeratorField.down, () => adjustInput(numeratorInput, -1));
   addRepeatPress(denominatorField.up, () => adjustInput(denominatorInput, +1));
   addRepeatPress(denominatorField.down, () => adjustInput(denominatorInput, -1));
+
+  updateFractionPlaceholder(null, null);
 }
 
 function getFraction() {

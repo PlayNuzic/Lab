@@ -20,7 +20,7 @@ export function renderApp({
   if (!root) throw new Error('root element required');
   document.title = title;
   const selectColor = showSelectColor ? `
-        <label for="selectColor">Color selección <input type="color" id="selectColor" value="#FFBB97" /></label>
+        <label for="selectColor">Color selección <input type="color" id="selectColor" value="#F97C39" /></label>
         <hr class="menu-separator" />
         ` : '';
   const led = id => hideLeds ? '' : `<span class="led" id="${id}"></span>`;

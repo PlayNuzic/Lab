@@ -46,7 +46,7 @@ function applyTheme(value) {
 }
 
 function setSelectionColor(value) {
-    const v = value || '#FFBB97';
+    const v = value || '#F97C39';
     document.documentElement.style.setProperty('--selection-color', v);
     window.dispatchEvent(new CustomEvent('sharedui:selectioncolor', { detail: { value: v } }));
 }
@@ -345,7 +345,7 @@ function wireControls(root) {
     }
 
     if (selectColor) {
-        const initial = selectColor.value || getComputedStyle(document.documentElement).getPropertyValue('--selection-color').trim() || '#FFBB97';
+        const initial = selectColor.value || getComputedStyle(document.documentElement).getPropertyValue('--selection-color').trim() || '#F97C39';
         selectColor.value = initial;
         setSelectionColor(initial);
         selectColor.addEventListener('input', (e) => setSelectionColor(e.target.value));
@@ -425,7 +425,7 @@ export function renderHeader({ title = 'App', mount } = {}) {
                 <label for="hoverToggle">Etiquetas de ayuda</label>
                 <input type="checkbox" id="hoverToggle" checked>
                 <label for="selectColor">Color selección</label>
-                <input type="color" id="selectColor" value="#FFBB97">
+                <input type="color" id="selectColor" value="#F97C39">
                 <label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle"></label>
                 <button type="button" id="factoryResetBtn" class="factory-reset">Volver a ajustes de fábrica</button>
                 <details>
