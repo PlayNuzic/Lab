@@ -2064,7 +2064,7 @@ function sanitizePulseSeq(opts = {}){
         if (!Number.isFinite(fracNumerator) || fracNumerator <= 0) continue;
         if (fracNumerator >= denomValue) {
           hadFractionTooBig = true;
-          if (firstFractionTooBig == null) firstFractionTooBig = digits;
+          if (firstFractionTooBig == null) firstFractionTooBig = raw;
           continue;
         }
         const gap = resolvePulseSeqGap(token.start, lg);
@@ -2100,7 +2100,7 @@ function sanitizePulseSeq(opts = {}){
         if (!Number.isFinite(subdivisionIndex) || subdivisionIndex <= 0) continue;
         if (subdivisionIndex >= denomValue) {
           hadFractionTooBig = true;
-          if (firstFractionTooBig == null) firstFractionTooBig = digits;
+          if (firstFractionTooBig == null) firstFractionTooBig = raw;
           continue;
         }
         let normalizedBase = null;
@@ -2123,7 +2123,7 @@ function sanitizePulseSeq(opts = {}){
           if (!Number.isFinite(fallbackNumerator) || fallbackNumerator <= 0) continue;
           if (fallbackNumerator >= denomValue) {
             hadFractionTooBig = true;
-            if (firstFractionTooBig == null) firstFractionTooBig = digits;
+            if (firstFractionTooBig == null) firstFractionTooBig = raw;
             continue;
           }
           normalizedBase = intVal;
@@ -2213,7 +2213,9 @@ function sanitizePulseSeq(opts = {}){
     showPulseSeqAutoTip(`El número <strong>${bad}</strong> introducido es mayor que la <span style="color: var(--color-lg); font-weight: 700;">Lg</span>. Elige un número menor que <strong>${lg}</strong>`);
   }
   if (hadFractionTooBig && denomValue) {
-    showPulseSeqAutoTip(`La fracción <strong>${firstFractionTooBig}</strong> supera <strong>d</strong> (<strong>${denomValue}</strong>). Recuerda que <strong>n</strong> debe ser menor que <strong>d</strong>.`);
+    const fractionLabelRaw = firstFractionTooBig != null ? String(firstFractionTooBig) : '';
+    const fractionLabel = fractionLabelRaw.trim() || fractionLabelRaw;
+    showPulseSeqAutoTip(`El Pfr '<strong>${fractionLabel}</strong>' es mayor que la fracción. Introduce un número menor que 'd'.`);
   }
 
   return { hadTooBig, hadFractionTooBig };
