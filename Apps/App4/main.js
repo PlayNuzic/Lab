@@ -541,6 +541,11 @@ let pulses = [];
 let pulseNumberLabels = [];
 let cycleMarkers = [];
 let cycleLabels = [];
+let lastStructureSignature = {
+  lg: null,
+  numerator: null,
+  denominator: null
+};
 let bars = [];
 let pulseHits = [];
 let cycleMarkerHits = [];
@@ -2353,15 +2358,29 @@ function renderTimeline() {
 
   const { numerator, denominator } = getFraction();
   const grid = gridFromOrigin({ lg, numerator, denominator });
+  const normalizedLg = Number.isFinite(lg) && lg > 0 ? lg : null;
+  const normalizedNumerator = Number.isFinite(grid?.numerator) && grid.numerator > 0
+    ? grid.numerator
+    : (Number.isFinite(numerator) && numerator > 0 ? numerator : null);
+  const normalizedDenominator = Number.isFinite(grid?.denominator) && grid.denominator > 0
+    ? grid.denominator
+    : (Number.isFinite(denominator) && denominator > 0 ? denominator : null);
+
+  lastStructureSignature = {
+    lg: normalizedLg,
+    numerator: normalizedNumerator,
+    denominator: normalizedDenominator
+  };
+
   const validFractionKeys = new Set();
-  if (grid.cycles > 0 && grid.subdivisions.length) {
+  if (grid.cycles > 0 && grid.subdivisions.length && normalizedNumerator && normalizedDenominator) {
     const hideFractionLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
-    const numeratorPerCycle = grid.numerator ?? numerator ?? 0;
+    const numeratorPerCycle = normalizedNumerator ?? 0;
     const labelFormatter = (cycleIndex, subdivisionIndex) => {
       const base = cycleIndex * numeratorPerCycle;
       return subdivisionIndex === 0 ? String(base) : `${cycleIndex}.${subdivisionIndex}`;
     };
-    const denominatorValue = grid.denominator ?? denominator ?? 0;
+    const denominatorValue = normalizedDenominator ?? 0;
     grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
       const marker = document.createElement('div');
       marker.className = 'cycle-marker';
@@ -2835,6 +2854,92 @@ playBtn.addEventListener('click', async () => {
   } catch {}
 });
 
+function highlightCycle(payload = {}) {
+  if (!isPlaying) return;
+  const {
+    cycleIndex: rawCycleIndex,
+    subdivisionIndex: rawSubdivisionIndex,
+    numerator: payloadNumerator,
+    denominator: payloadDenominator,
+    totalCycles: payloadTotalCycles,
+    totalSubdivisions: payloadTotalSubdivisions
+  } = payload;
+
+  const cycleIndex = Number(rawCycleIndex);
+  const subdivisionIndex = Number(rawSubdivisionIndex);
+  if (!Number.isFinite(cycleIndex) || !Number.isFinite(subdivisionIndex)) return;
+
+  const expectedNumerator = Number.isFinite(lastStructureSignature.numerator)
+    ? lastStructureSignature.numerator
+    : null;
+  const expectedDenominator = Number.isFinite(lastStructureSignature.denominator)
+    ? lastStructureSignature.denominator
+    : null;
+  const expectedLg = Number.isFinite(lastStructureSignature.lg)
+    ? lastStructureSignature.lg
+    : null;
+
+  if (expectedNumerator == null || expectedDenominator == null || expectedLg == null) {
+    return;
+  }
+
+  if (Number.isFinite(payloadNumerator) && payloadNumerator !== expectedNumerator) {
+    return;
+  }
+  if (Number.isFinite(payloadDenominator) && payloadDenominator !== expectedDenominator) {
+    return;
+  }
+
+  const expectedCycles = Math.floor(expectedLg / expectedNumerator);
+  if (!Number.isFinite(expectedCycles) || expectedCycles <= 0) {
+    return;
+  }
+
+  if (Number.isFinite(payloadTotalCycles) && payloadTotalCycles !== expectedCycles) {
+    return;
+  }
+  if (Number.isFinite(payloadTotalSubdivisions) && payloadTotalSubdivisions !== expectedDenominator) {
+    return;
+  }
+
+  const clampIndex = (value, maxExclusive) => {
+    if (!Number.isFinite(value)) return null;
+    if (loopEnabled) {
+      if (maxExclusive <= 0) return null;
+      const span = maxExclusive;
+      return ((value % span) + span) % span;
+    }
+    if (maxExclusive <= 0) return null;
+    return Math.max(0, Math.min(value, maxExclusive - 1));
+  };
+
+  const normalizedCycleIndex = clampIndex(cycleIndex, expectedCycles);
+  const normalizedSubdivisionIndex = clampIndex(subdivisionIndex, expectedDenominator);
+  if (!Number.isFinite(normalizedCycleIndex) || !Number.isFinite(normalizedSubdivisionIndex)) {
+    return;
+  }
+
+  cycleMarkers.forEach(m => m.classList.remove('active'));
+  cycleLabels.forEach(l => l.classList.remove('active'));
+  const marker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === normalizedCycleIndex
+    && Number(m.dataset.subdivision) === normalizedSubdivisionIndex);
+  const label = cycleLabels.find(l => Number(l.dataset.cycleIndex) === normalizedCycleIndex
+    && Number(l.dataset.subdivision) === normalizedSubdivisionIndex);
+  if (marker) {
+    void marker.offsetWidth;
+    marker.classList.add('active');
+  }
+  if (label) label.classList.add('active');
+
+  if (loopEnabled && normalizedCycleIndex === 0 && normalizedSubdivisionIndex === 0 && expectedCycles > 0) {
+    const lastCycleIndex = expectedCycles - 1;
+    const lastMarker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === lastCycleIndex && Number(m.dataset.subdivision) === 0);
+    const lastLabel = cycleLabels.find(l => Number(l.dataset.cycleIndex) === lastCycleIndex && Number(l.dataset.subdivision) === 0);
+    if (lastMarker) lastMarker.classList.add('active');
+    if (lastLabel) lastLabel.classList.add('active');
+  }
+}
+
 function highlightPulse(i){
   // Si no està en reproducció, no tornem a canviar seleccions ni highlights
   if (!isPlaying) return;
@@ -2949,9 +3054,15 @@ function stopVisualSync() {
 function syncVisualState() {
   if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
   const state = audio.getVisualState();
-  if (!state || !Number.isFinite(state.step)) return;
-  if (lastVisualStep === state.step) return;
-  highlightPulse(state.step);
+  if (!state) return;
+
+  if (Number.isFinite(state.step) && lastVisualStep !== state.step) {
+    highlightPulse(state.step);
+  }
+
+  if (state.cycle && Number.isFinite(state.cycle.cycleIndex) && Number.isFinite(state.cycle.subdivisionIndex)) {
+    highlightCycle(state.cycle);
+  }
 }
 
 function startVisualSync() {
