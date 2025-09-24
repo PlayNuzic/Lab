@@ -2702,24 +2702,26 @@ function renderTimeline() {
     const hideFractionLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
     const numeratorPerCycle = normalizedNumerator ?? 0;
     const labelFormatter = ({ cycleIndex, subdivisionIndex, position }) => {
-      const base = Math.floor(position + FRACTION_POSITION_EPSILON);
-      if (subdivisionIndex === 0) {
-        return Number.isFinite(base) ? String(base) : null;
-      }
-      const snapPulse = nearestPulseIndex(position);
-      if (snapPulse != null) {
-        return String(snapPulse);
-      }
-      if (Number.isFinite(base)) {
-        return `${base}.${subdivisionIndex}`;
-      }
+      const normalizedPositionBase = Number.isFinite(position)
+        ? Math.floor(position + FRACTION_POSITION_EPSILON)
+        : null;
       const normalizedCycle = Number.isFinite(cycleIndex) ? Math.floor(cycleIndex) : null;
-      if (normalizedCycle != null && Number.isFinite(numeratorPerCycle)) {
-        const integerBase = normalizedCycle * numeratorPerCycle;
-        if (Number.isFinite(integerBase)) {
-          return `${integerBase}.${subdivisionIndex}`;
-        }
+      const hasCycleBase = normalizedCycle != null && Number.isFinite(numeratorPerCycle);
+      const cycleBase = hasCycleBase ? normalizedCycle * numeratorPerCycle : null;
+
+      if (subdivisionIndex === 0) {
+        if (Number.isFinite(cycleBase)) return String(cycleBase);
+        return Number.isFinite(normalizedPositionBase) ? String(normalizedPositionBase) : null;
       }
+
+      if (Number.isFinite(cycleBase)) {
+        return `${cycleBase}.${subdivisionIndex}`;
+      }
+
+      if (Number.isFinite(normalizedPositionBase)) {
+        return `${normalizedPositionBase}.${subdivisionIndex}`;
+      }
+
       return `${cycleIndex}.${subdivisionIndex}`;
     };
     const denominatorValue = normalizedDenominator ?? 0;
