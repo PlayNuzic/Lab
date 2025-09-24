@@ -2318,32 +2318,33 @@ function sanitizePulseSeq(opts = {}){
           if (firstFractionTooBig == null) firstFractionTooBig = raw;
           continue;
         }
-        let normalizedBase = null;
-        let normalizedNumerator = null;
-        let value = null;
+        let normalizedBase = intVal;
+        let normalizedNumerator = subdivisionIndex;
+        let value = intVal + subdivisionIndex / denomValue;
         let displayOverride = null;
         if (Number.isFinite(numeratorValue) && numeratorValue > 0) {
+          const totalCycles = Number.isFinite(lg) && lg > 0 && numeratorValue > 0
+            ? Math.ceil(lg / numeratorValue)
+            : null;
           const mapping = cycleNotationToFraction(intVal, subdivisionIndex, numeratorValue, denomValue);
-          if (!mapping) continue;
-          normalizedBase = mapping.base;
-          normalizedNumerator = mapping.numerator;
-          value = mapping.value;
-          displayOverride = {
-            cycleIndex: intVal,
-            subdivisionIndex,
-            pulsesPerCycle: numeratorValue
-          };
-        } else {
-          const fallbackNumerator = Number.parseInt(digits, 10);
-          if (!Number.isFinite(fallbackNumerator) || fallbackNumerator <= 0) continue;
-          if (fallbackNumerator >= denomValue) {
-            hadFractionTooBig = true;
-            if (firstFractionTooBig == null) firstFractionTooBig = raw;
-            continue;
+          const canUseCycleNotation = Boolean(
+            mapping &&
+            Number.isFinite(mapping.value) &&
+            (!Number.isFinite(lg) || mapping.value < lg) &&
+            Number.isFinite(totalCycles) &&
+            totalCycles > 0 &&
+            intVal < totalCycles
+          );
+          if (canUseCycleNotation) {
+            normalizedBase = mapping.base;
+            normalizedNumerator = mapping.numerator;
+            value = mapping.value;
+            displayOverride = {
+              cycleIndex: intVal,
+              subdivisionIndex,
+              pulsesPerCycle: numeratorValue
+            };
           }
-          normalizedBase = intVal;
-          normalizedNumerator = fallbackNumerator;
-          value = intVal + fallbackNumerator / denomValue;
         }
         if (!Number.isFinite(value)) continue;
         if (!Number.isNaN(lg) && value >= lg) {
@@ -2396,6 +2397,7 @@ function sanitizePulseSeq(opts = {}){
     ints.forEach(n => { if (n < lg) pulseMemory[n] = true; });
     syncSelectedFromMemory();
     updatePulseNumbers();
+    layoutTimeline({ silent: true });
   } else {
     const combined = [
       ...ints.map(n => ({ value: n, display: String(n), key: String(n) })),

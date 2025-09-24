@@ -105,30 +105,25 @@ header.top-bar h1 .top-bar-title-button:active {
 
 .cycle-marker {
   position: absolute;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid var(--line-color);
-  background: var(--bg-light);
+  width: 4px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--line-color);
   transform: translate(-50%, -50%);
   pointer-events: auto;
   cursor: pointer;
-  opacity: 0.85;
-  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-}
-
-body[data-theme='dark'] .cycle-marker {
-  background: var(--bg-dark);
+  opacity: 0.8;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
 }
 
 .cycle-marker.start {
-  border-color: var(--color-lg);
+  background: var(--color-lg);
+  opacity: 1;
 }
 
 .cycle-marker.selected,
 .cycle-marker.active {
   background: var(--selection-color);
-  border-color: var(--selection-color);
   box-shadow: 0 0 12px var(--selection-color);
   opacity: 1;
 }
@@ -233,8 +228,8 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .timeline.circular .cycle-marker {
-  width: 14px;
-  height: 14px;
+  width: 4px;
+  height: 30px;
 }
 
 .timeline.circular .cycle-label {
