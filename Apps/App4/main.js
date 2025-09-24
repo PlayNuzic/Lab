@@ -636,6 +636,7 @@ function clearPersistentPulses(){
 const PULSE_NUMBER_HIDE_THRESHOLD = 71;
 const SUBDIVISION_HIDE_THRESHOLD = 41;
 const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
+const MIN_SUBDIVISION_LABEL_SPACING_PX = 10;
 
 function makeFractionKey(base, numerator, denominator) {
   if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
@@ -1667,6 +1668,7 @@ function randomize() {
       seq.forEach(i => { pulseMemory[i] = true; });
       syncSelectedFromMemory();
       updatePulseNumbers();
+      layoutTimeline({ silent: true });
       if (isPlaying) {
         applySelectionToAudio();
       }
@@ -2044,7 +2046,7 @@ function buildTitleInfoContent() {
     fragment.append(hint);
   }
 
-  if (hasTempo) {
+  if (hasTempo && !(hasLg && hasT)) {
     const baseLine = document.createElement('p');
     baseLine.className = 'top-bar-info-tip__line';
     const baseLabel = document.createElement('strong');
@@ -2796,6 +2798,15 @@ function renderTimeline() {
         label.dataset.subdivision = String(subdivisionIndex);
         label.dataset.position = String(position);
         label.textContent = formatted;
+        label.dataset.fullText = String(formatted);
+        const decimalIndex = typeof formatted === 'string' ? formatted.indexOf('.') : -1;
+        if (decimalIndex > -1 && decimalIndex < formatted.length - 1) {
+          const fractionalPart = formatted.slice(decimalIndex + 1);
+          if (fractionalPart.length > 0) {
+            label.dataset.isDecimal = '1';
+            label.dataset.compactText = `.${fractionalPart}`;
+          }
+        }
         label.style.fontSize = `${subdivisionFontRem}rem`;
         timeline.appendChild(label);
         cycleLabels.push(label);
@@ -2973,6 +2984,8 @@ function layoutTimeline(opts = {}) {
         label.style.transform = 'translate(-50%, -50%)';
       });
 
+      restoreCycleLabelDisplay();
+
       guide.style.left = `${cx}px`;
       guide.style.top = `${cy}px`;
       guide.style.width = `${radius * 2}px`;
@@ -3051,8 +3064,87 @@ function layoutTimeline(opts = {}) {
       label.style.transform = 'translate(-50%, 0)';
     });
 
+    applyCycleLabelCompaction({ lg });
+
     queueIndicatorUpdate();
   }
+}
+
+function restoreCycleLabelDisplay() {
+  cycleLabels.forEach(label => {
+    if (!label) return;
+    const full = label.dataset.fullText;
+    if (typeof full === 'string') {
+      label.textContent = full;
+    }
+    label.classList.remove('cycle-label--compact');
+  });
+}
+
+function applyCycleLabelCompaction({ lg }) {
+  if (!timeline || !Array.isArray(cycleLabels)) return;
+  if (!Number.isFinite(lg) || lg <= 0) {
+    restoreCycleLabelDisplay();
+    return;
+  }
+  const width = timeline.clientWidth || timeline.getBoundingClientRect().width;
+  if (!Number.isFinite(width) || width <= 0) {
+    restoreCycleLabelDisplay();
+    return;
+  }
+
+  const sorted = [...cycleLabels].filter(Boolean).sort((a, b) => {
+    const aPos = Number(a.dataset.position);
+    const bPos = Number(b.dataset.position);
+    if (!Number.isFinite(aPos) && !Number.isFinite(bPos)) return 0;
+    if (!Number.isFinite(aPos)) return 1;
+    if (!Number.isFinite(bPos)) return -1;
+    return aPos - bPos;
+  });
+
+  sorted.forEach((label, idx) => {
+    const full = typeof label.dataset.fullText === 'string' ? label.dataset.fullText : label.textContent;
+    const compact = label.dataset.compactText;
+    let useCompact = false;
+
+    if (label.dataset.isDecimal === '1' && typeof compact === 'string') {
+      const currentPos = Number(label.dataset.position);
+      if (Number.isFinite(currentPos)) {
+        const currentPx = (currentPos / lg) * width;
+
+        const prevLabel = sorted[idx - 1];
+        let prevPx = null;
+        if (prevLabel) {
+          const prevPos = Number(prevLabel.dataset.position);
+          if (Number.isFinite(prevPos)) {
+            prevPx = (prevPos / lg) * width;
+          }
+        }
+
+        const nextLabel = sorted[idx + 1];
+        let nextPx = null;
+        if (nextLabel) {
+          const nextPos = Number(nextLabel.dataset.position);
+          if (Number.isFinite(nextPos)) {
+            nextPx = (nextPos / lg) * width;
+          }
+        }
+
+        if ((prevPx != null && currentPx - prevPx < MIN_SUBDIVISION_LABEL_SPACING_PX)
+          || (nextPx != null && nextPx - currentPx < MIN_SUBDIVISION_LABEL_SPACING_PX)) {
+          useCompact = true;
+        }
+      }
+    }
+
+    if (useCompact) {
+      label.textContent = compact;
+      label.classList.add('cycle-label--compact');
+    } else {
+      label.textContent = full || '';
+      label.classList.remove('cycle-label--compact');
+    }
+  });
 }
 
 function updateAutoIndicator(){
