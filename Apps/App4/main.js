@@ -627,6 +627,7 @@ let cycleMarkerHits = [];
 const fractionalSelectionState = new Map();
 const selectedFractionKeys = new Set();
 const fractionHitMap = new Map();
+const fractionLabelLookup = new Map();
 // Hit targets (separate from the visual dots) and drag mode
 let dragMode = 'select'; // 'select' | 'deselect'
 // --- Selection memory across Lg changes ---
@@ -676,6 +677,33 @@ function makeFractionKey(base, numerator, denominator) {
   return `${base}+${numerator}/${denominator}`;
 }
 
+function registerFractionLabel(label, info) {
+  if (!label || !info || !info.key) return;
+  const normalized = String(label).trim();
+  if (!normalized) return;
+  const bucket = fractionLabelLookup.get(normalized);
+  if (!bucket) {
+    fractionLabelLookup.set(normalized, [info]);
+    return;
+  }
+  if (!bucket.some(entry => entry && entry.key === info.key)) {
+    bucket.push(info);
+  }
+}
+
+function getFractionInfoByLabel(label, opts = {}) {
+  if (!label) return null;
+  const normalized = String(label).trim();
+  if (!normalized) return null;
+  const bucket = fractionLabelLookup.get(normalized);
+  if (!bucket || bucket.length === 0) return null;
+  if (opts && Number.isFinite(opts.base)) {
+    const match = bucket.find(entry => Number.isFinite(entry.base) && entry.base === opts.base);
+    if (match) return match;
+  }
+  return bucket[0] ?? null;
+}
+
 function fractionValue(base, numerator, denominator) {
   if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
     return NaN;
@@ -709,60 +737,74 @@ function cycleNotationToFraction(cycleIndex, subdivisionIndex, pulsesPerCycle, d
 }
 
 function fractionDisplay(base, numerator, denominator, { cycleIndex, subdivisionIndex, pulsesPerCycle } = {}) {
-  const safeBase = Number.isFinite(base) ? base : 0;
-  const safeNumerator = Number.isFinite(numerator) ? numerator : 0;
-  const den = Number.isFinite(denominator) && denominator > 0 ? denominator : null;
+  const safeBaseValue = Number.isFinite(base) ? Number(base) : 0;
+  const safeNumeratorValue = Number.isFinite(numerator) ? Number(numerator) : 0;
+  const den = Number.isFinite(denominator) && denominator > 0 ? Math.floor(denominator) : null;
   const resolvedPulsesPerCycle = Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0
-    ? pulsesPerCycle
+    ? Math.floor(pulsesPerCycle)
     : (() => {
         const { numerator: activeNumerator } = getFraction();
-        return Number.isFinite(activeNumerator) && activeNumerator > 0 ? activeNumerator : null;
+        return Number.isFinite(activeNumerator) && activeNumerator > 0 ? Math.floor(activeNumerator) : null;
       })();
 
-  const value = den ? safeBase + safeNumerator / den : safeBase;
+  const value = den ? safeBaseValue + safeNumeratorValue / den : safeBaseValue;
   const maybePulse = nearestPulseIndex(value);
   if (maybePulse != null) {
     return String(maybePulse);
   }
 
+  let resolvedCycle = Number.isFinite(cycleIndex) && cycleIndex >= 0 ? Math.floor(cycleIndex) : null;
+  let resolvedSubdivision = Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0
+    ? Math.floor(subdivisionIndex)
+    : null;
+
   if (den && resolvedPulsesPerCycle) {
-    const hasExplicitCycle = Number.isFinite(cycleIndex) && cycleIndex >= 0;
-    const hasExplicitSubdivision = Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0;
-    let cycle = hasExplicitCycle ? Math.floor(cycleIndex) : null;
-    let subdivision = hasExplicitSubdivision ? Math.floor(subdivisionIndex) : null;
-    if (cycle == null || subdivision == null) {
-      const cycleFloat = value / resolvedPulsesPerCycle;
-      cycle = Math.floor(cycleFloat + FRACTION_POSITION_EPSILON);
-      const cycleStart = cycle * resolvedPulsesPerCycle;
+    const safeValue = Number.isFinite(value) ? value : safeBaseValue;
+    if (resolvedCycle == null) {
+      resolvedCycle = Math.floor((safeValue + FRACTION_POSITION_EPSILON) / resolvedPulsesPerCycle);
+    }
+    if (resolvedSubdivision == null) {
+      const cycleStart = resolvedCycle * resolvedPulsesPerCycle;
       const step = resolvedPulsesPerCycle / den;
-      const normalized = (value - cycleStart) / step;
-      subdivision = Math.floor(normalized + FRACTION_POSITION_EPSILON);
-      if (subdivision < 0) subdivision = 0;
-      if (subdivision >= den) {
-        const carry = Math.floor(subdivision / den);
-        cycle += carry;
-        subdivision -= carry * den;
+      const normalized = (safeValue - cycleStart) / step;
+      let computed = Math.round(normalized);
+      if (!Number.isFinite(computed)) computed = 0;
+      if (computed < 0) computed = 0;
+      if (computed >= den) {
+        const carry = Math.floor(computed / den);
+        resolvedCycle += carry;
+        computed -= carry * den;
       }
-    }
-    const baseIndex = Number.isFinite(value)
-      ? Math.floor(value + FRACTION_POSITION_EPSILON)
-      : (Number.isFinite(safeBase) ? Math.floor(safeBase) : null);
-    const preferCycleNotation = hasExplicitCycle && hasExplicitSubdivision && subdivision > 0;
-    if (Number.isFinite(baseIndex)) {
-      if (subdivision === 0) {
-        return String(baseIndex);
-      }
-      if (preferCycleNotation && Number.isFinite(cycle)) {
-        return `${cycle}.${subdivision}`;
-      }
-      return `${baseIndex}.${subdivision}`;
-    }
-    if (Number.isFinite(cycle) && Number.isFinite(subdivision)) {
-      return `${cycle}.${subdivision}`;
+      resolvedSubdivision = computed;
     }
   }
 
-  return `${safeBase}.${safeNumerator}`;
+  if (resolvedSubdivision == null && den && safeNumeratorValue > 0) {
+    resolvedSubdivision = Math.floor(safeNumeratorValue % den);
+    if (resolvedSubdivision <= 0) {
+      resolvedSubdivision = Math.floor(safeNumeratorValue);
+    }
+  }
+
+  let baseIndex = Number.isFinite(safeBaseValue) ? Math.floor(safeBaseValue) : null;
+  if (Number.isFinite(resolvedCycle) && Number.isFinite(resolvedPulsesPerCycle)) {
+    baseIndex = resolvedCycle * resolvedPulsesPerCycle;
+  } else if (!Number.isFinite(baseIndex) && Number.isFinite(value)) {
+    baseIndex = Math.floor(value + FRACTION_POSITION_EPSILON);
+  }
+
+  if (Number.isFinite(baseIndex)) {
+    if (den && Number.isFinite(resolvedSubdivision) && resolvedSubdivision > 0) {
+      return `${baseIndex}.${resolvedSubdivision}`;
+    }
+    return String(baseIndex);
+  }
+
+  if (den && safeNumeratorValue > 0) {
+    return `${safeBaseValue}.${safeNumeratorValue}`;
+  }
+
+  return String(safeBaseValue);
 }
 
 function getFractionInfoFromElement(el) {
@@ -2334,6 +2376,7 @@ function sanitizePulseSeq(opts = {}){
   for (const token of tokens) {
     const raw = token.raw;
     if (raw.includes('.')) {
+      let matchedFraction = null;
       if (raw.startsWith('.')) {
         if (!denomValue) continue;
         const digits = raw.slice(1);
@@ -2350,6 +2393,25 @@ function sanitizePulseSeq(opts = {}){
         const next = Number.isFinite(gap.next) ? gap.next : (Number.isFinite(lg) ? lg : Infinity);
         if (!Number.isFinite(base)) continue;
         if (!Number.isNaN(lg) && base >= lg) continue;
+        const labelCandidate = `${base}.${digits}`;
+        matchedFraction = getFractionInfoByLabel(labelCandidate, { base });
+        if (matchedFraction && matchedFraction.key) {
+          if (!seenFractionKeys.has(matchedFraction.key)) {
+            seenFractionKeys.add(matchedFraction.key);
+            fractions.push({
+              base: matchedFraction.base,
+              numerator: matchedFraction.numerator,
+              denominator: matchedFraction.denominator,
+              value: matchedFraction.value,
+              display: matchedFraction.display,
+              key: matchedFraction.key,
+              cycleIndex: matchedFraction.cycleIndex,
+              subdivisionIndex: matchedFraction.subdivisionIndex,
+              pulsesPerCycle: matchedFraction.pulsesPerCycle
+            });
+          }
+          continue;
+        }
         const value = base + fracNumerator / denomValue;
         if (value <= base) continue;
         if (Number.isFinite(next) && value >= next) continue;
@@ -2384,6 +2446,7 @@ function sanitizePulseSeq(opts = {}){
           if (firstFractionTooBig == null) firstFractionTooBig = raw;
           continue;
         }
+        matchedFraction = getFractionInfoByLabel(raw) || getFractionInfoByLabel(`${intVal}.${subdivisionIndex}`);
         let normalizedBase = intVal;
         let normalizedNumerator = subdivisionIndex;
         let value = intVal + subdivisionIndex / denomValue;
@@ -2421,6 +2484,21 @@ function sanitizePulseSeq(opts = {}){
         const key = makeFractionKey(normalizedBase, normalizedNumerator, denomValue);
         if (!key) continue;
         if (!seenFractionKeys.has(key)) {
+          if (matchedFraction && matchedFraction.key === key) {
+            seenFractionKeys.add(key);
+            fractions.push({
+              base: matchedFraction.base,
+              numerator: matchedFraction.numerator,
+              denominator: matchedFraction.denominator,
+              value: matchedFraction.value,
+              display: matchedFraction.display,
+              key: matchedFraction.key,
+              cycleIndex: matchedFraction.cycleIndex,
+              subdivisionIndex: matchedFraction.subdivisionIndex,
+              pulsesPerCycle: matchedFraction.pulsesPerCycle
+            });
+            continue;
+          }
           seenFractionKeys.add(key);
           const overrideCycleIndex = Number.isFinite(displayOverride?.cycleIndex) && displayOverride.cycleIndex >= 0
             ? Math.floor(displayOverride.cycleIndex)
@@ -2750,6 +2828,7 @@ function renderTimeline() {
   cycleLabels = [];
   bars = [];
   fractionHitMap.clear();
+  fractionLabelLookup.clear();
   const savedIndicator = tIndicator;
   timeline.innerHTML = '';
   if (savedIndicator) timeline.appendChild(savedIndicator);
@@ -2921,6 +3000,22 @@ function renderTimeline() {
             timeline.appendChild(hit);
             cycleMarkerHits.push(hit);
             fractionHitMap.set(key, hit);
+
+            const labelInfo = {
+              key,
+              base: baseIndex,
+              numerator: fracNumerator,
+              denominator: denominatorValue,
+              value,
+              display,
+              cycleIndex,
+              subdivisionIndex,
+              pulsesPerCycle: numeratorPerCycle
+            };
+            registerFractionLabel(display, labelInfo);
+            if (Number.isFinite(cycleIndex) && Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0) {
+              registerFractionLabel(`${cycleIndex}.${subdivisionIndex}`, labelInfo);
+            }
           }
         }
       }
