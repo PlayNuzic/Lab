@@ -32,10 +32,11 @@
  */
 @media (max-width: 600px) {
   :root {
-    --play-button-size: 68px;
-    --control-toggle-size: clamp(68px, 36vw, 90px);
-    --control-toggle-width: clamp(100px, 70vw, 140px);
-    --control-toggle-gap: -12px;
+    --play-button-size: clamp(56px, 22vw, 70px);
+    --control-toggle-size: clamp(60px, 32vw, 82px);
+    --control-toggle-width: clamp(92px, 58vw, 124px);
+    --control-toggle-gap: -28px;
+    --control-toggle-overlap: 20px;
   }
 }
 
@@ -85,30 +86,32 @@ font-family: 'Ubuntu', sans-serif;
  * @dep shared-theme-shell
  */
 /* Shared header: top bar and dropdown menu (mirrors App1) */
+
 .top-bar {
 display: flex;
 align-items: center;
 justify-content: center;
 position: relative;
-padding: 10px;
+padding: 10px 0;
 }
 
 .top-bar .menu {
 position: absolute;
-left: 10px;
-top: 10px;
+left: 0;
+top: 0;
 font-size: 2rem;
-padding: 12px;
+padding: 12px 6px;
 cursor: pointer;
 }
 
 .top-bar .sound-wrapper {
 position: absolute;
-right: 10px;
-top: 10px;
+right: 0;
+top: 0;
 display: flex;
 flex-direction: column;
 align-items: center;
+padding: 12px 6px;
 }
 
 .top-bar .sound {
@@ -539,12 +542,13 @@ margin-right: auto;
   @rol Orbita contenidora dels toggles de so al voltant del Play
   @dep --control-toggle-*, layout .controls
 */
+
 .control-sound-toggles {
   position: absolute;
   top: 50%;
-  left: 85%;
-  transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-gap))));
-  width: calc(var(--control-toggle-width)  + var(--control-toggle-gap));
+  left: 50%;
+  transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-overlap))));
+  width: calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2);
   height: var(--control-toggle-size);
   pointer-events: none;
   z-index: 4;
@@ -556,14 +560,13 @@ margin-right: auto;
 
 @media (max-width: 600px) {
   .control-sound-toggles {
-    left: 50%;
-    top: 52%;
-    transform: translate(-50%, calc(-50% - 12px));
-    width: min(92vw, calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2));
+    top: 50%;
+    transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + 12px)));
+    width: min(90vw, calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2));
   }
 
   .control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) {
-    width: min(86vw, calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap)));
+    width: min(84vw, calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap)));
   }
 }
 
@@ -683,9 +686,9 @@ margin-right: auto;
 
 @media (max-width: 600px) {
   .control-sound-toggle__label {
-    font-size: 15px;
-    letter-spacing: 2px;
-    transform: translateY(-10px);
+    font-size: 13px;
+    letter-spacing: 1.6px;
+    transform: translateY(-8px);
   }
 }
 
@@ -885,35 +888,23 @@ color: var(--text-dark);
 /* Responsive adjustments for circular inputs */
 @media (max-width: 600px) {
 :root {
-  --controls-offset-y: -32px;
-  --topbar-side-gap: 56px; /* reserve space so title never sits under icons */
-  --play-button-size: 55px;
-  --control-toggle-size: 100px;
-  --control-toggle-gap: 2px;
-  --control-toggle-overlap: 10px;
+  --controls-offset-y: -30px;
+  --topbar-side-gap: 48px; /* reserve space so title never sits under icons */
+  --unit-label-offset: -22px;
 }
 
 /* Header adjustments for small screens */
 .top-bar {
-padding: 10px 0; /* Remove lateral padding, icons at screen edges */
-margin: 0; /* Remove any margin */
-/*justify-content: space-between; /* Spread icons to edges */
+margin: 0;
 }
 
 .top-bar .menu {
-left: 0px; /* Menu icon at left edge */
-padding: 8px 3px;
-font-size: 1.8rem;
-}
-
-.control-sound-toggle__label {
-  font-size: 16px;
-  letter-spacing: 2px;
+padding: 10px 4px;
+font-size: 1.7rem;
 }
 
 .top-bar .sound-wrapper {
-right: 0px; /* Sound icon at right edge */
-padding: 8px 3px;
+padding: 10px 4px;
 }
 
 /* Disable volume slider completely on small screens */
@@ -923,37 +914,54 @@ display: none !important;
 
 .inputs {
 left: 0;
+gap: 18px;
+margin-top: 28px;
+}
+
+.param {
+gap: 6px;
+font-size: 1.22rem;
+}
+
+.param .abbr {
+font-size: 1.45rem;
 }
 
 .param .circle {
-width: 60px;
-height: 60px;
+width: 56px;
+height: 56px;
 }
 
 .param .circle input {
-font-size: 1rem;
+font-size: 0.95rem;
 }
 
-.param .circle .spinner { width: 18px; gap: 1px; }
+.param .circle .spinner { width: 16px; gap: 0; }
 .param.lg .circle input,
 .param.v .circle input,
 .param.t .circle input {
-padding-right: 18px;
+padding-right: 16px;
+}
+
+.param .circle .unit {
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  top: calc(var(--unit-label-offset, -32px) - 1.35rem);
 }
 
 .param .circle .led::before {
-width: 32px;
-height: 32px;
+width: 28px;
+height: 28px;
 }
 
 .controls {
-width: 150px;
-height: 150px;
-margin-top: calc(40px + var(--controls-offset-y));
+width: calc(var(--play-button-size) * 2.4);
+height: calc(var(--play-button-size) * 2.4);
+margin-top: calc(36px + var(--controls-offset-y));
 }
 
 .play {
-font-size: 1.3rem;
+font-size: 1.2rem;
 }
 
 .loop,
@@ -962,7 +970,7 @@ font-size: 1.3rem;
 .random {
 width: 32px;
 height: 32px;
-font-size: 0.9rem;
+font-size: 0.85rem;
 }
 
 /* Header title stays centered and clear of the icons */
@@ -971,32 +979,32 @@ font-size: 0.9rem;
   width: 100%;
   text-align: center;
   padding: 0 var(--topbar-side-gap);
-  font-size: 1.5rem;
+  font-size: 1.45rem;
 }
 
 .loop {
-top: calc(50% + 35px);
-left: calc(50% - 30px);
+top: calc(50% + var(--play-button-size) * 0.75);
+left: calc(50% - var(--play-button-size) * 0.92);
 }
 
 .random {
-top: calc(50% + 0px);
-left: calc(50% - 50px);
+top: calc(50% + var(--play-button-size) * 0.1);
+left: calc(50% - var(--play-button-size) * 1.18);
 }
 
 .reset {
-top: calc(50% + 0px);
-left: calc(50% + 50px);
+top: calc(50% + var(--play-button-size) * 0.1);
+left: calc(50% + var(--play-button-size) * 1.18);
 }
 
 .tap {
-top: calc(50% + 35px);
-left: calc(50% + 30px);
+top: calc(50% + var(--play-button-size) * 0.75);
+left: calc(50% + var(--play-button-size) * 0.92);
 }
 
 .tap + .tap-help {
-  top: calc(50% + 35px + 32px + 8px);
-  left: calc(50% + 30px);
+  top: calc(50% + var(--play-button-size) * 0.75 + 32px + 8px);
+  left: calc(50% + var(--play-button-size) * 0.92);
 }
 }
 

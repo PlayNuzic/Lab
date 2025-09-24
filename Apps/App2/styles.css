@@ -95,7 +95,9 @@ font-size: 0.9rem; /* Keep same font size */
  */
 @media (max-width: 600px) {
 #pulseSeq {
-font-size: 2rem;
+font-size: 1.75rem;
+gap: 8px;
+padding: 0 12px;
 }
 
 /* Layout adjustments requested for App2 */
@@ -122,4 +124,8 @@ transform: translate(-50%, calc(-50% - 90px)) !important; /* was -40px */
   .param .circle .unit {
   top: calc(var(--unit-label-offset, -20px) - 1.8rem);
   }
+
+body {
+  --unit-label-offset: -20px;
+}
 }

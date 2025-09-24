@@ -341,13 +341,16 @@ font-size: 0.9rem; /* Keep same font size */
  */
 @media (max-width: 600px) {
 #pulseSeq {
-font-size: 2rem;
+font-size: 1.7rem;
+gap: 8px;
+padding: 0 12px;
 }
 
 /* Layout adjustments requested for App2 */
 /* 1) Raise inputs section by 25px (from shared 40px to 15) */
 .inputs {
 margin-top: 25px !important;
+gap: 14px;
 }
 
 /* 2) Keep pulse sequence where it is — no changes needed to #pulseSeq */
@@ -368,4 +371,16 @@ transform: translate(-50%, calc(-50% - 90px)) !important; /* was -40px */
   .param .circle .unit {
   top: calc(var(--unit-label-offset, -20px) - 1.8rem);
   }
+
+body {
+  --unit-label-offset: -20px;
+  --pulse-offset-x: -18px;
+  --selected-offset-x: -142px;
+  --cycle-offset-x: -266px;
+}
+
+.fraction-editor-wrapper {
+  transform: scale(0.9);
+  transform-origin: center top;
+}
 }
