@@ -1,7 +1,7 @@
 /* App2 specific overrides */
 
 body {
---unit-label-offset: -20px;
+--unit-label-offset: 0px;
 }
 
 /**
@@ -125,7 +125,4 @@ transform: translate(-50%, calc(-50% - 90px)) !important; /* was -40px */
   top: calc(var(--unit-label-offset, -20px) - 1.8rem);
   }
 
-body {
-  --unit-label-offset: -20px;
-}
 }

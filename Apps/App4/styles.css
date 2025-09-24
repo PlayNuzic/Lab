@@ -1,7 +1,7 @@
 /* App2 specific overrides */
 
 body {
-  --unit-label-offset: -20px;
+  --unit-label-offset: 0px;
   --pulse-offset-x: 0px;
   --pulse-offset-y: 0px;
   --selected-offset-x: -145px;
