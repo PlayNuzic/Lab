@@ -87,6 +87,17 @@ const startSoundSelect = document.getElementById('startSoundSelect');
 const pulseToggleBtn = document.getElementById('pulseToggleBtn');
 const selectedToggleBtn = document.getElementById('selectedToggleBtn');
 const cycleToggleBtn = document.getElementById('cycleToggleBtn');
+const titleHeading = document.querySelector('header.top-bar h1');
+let titleButton = null;
+if (titleHeading) {
+  titleButton = document.createElement('button');
+  titleButton.type = 'button';
+  titleButton.id = 'appTitleBtn';
+  titleButton.className = 'top-bar-title-button';
+  titleButton.textContent = titleHeading.textContent || '';
+  titleHeading.textContent = '';
+  titleHeading.appendChild(titleButton);
+}
 
 const globalMixer = getMixer();
 if (globalMixer) {
@@ -1921,6 +1932,157 @@ function formatSec(n){
      minimumFractionDigits: 0,
      maximumFractionDigits: 2
    });
+}
+
+function formatBpmValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  const rounded = Math.round(numeric * 100) / 100;
+  return rounded.toLocaleString('ca-ES', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+}
+
+function formatInteger(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  return Math.round(numeric).toLocaleString('ca-ES');
+}
+
+const TITLE_INFO_HIDE_DELAY_MS = 3600;
+let titleInfoTipEl = null;
+let titleInfoTipHideHandle = null;
+
+function ensureTitleInfoTip() {
+  if (titleInfoTipEl) return titleInfoTipEl;
+  const tip = document.createElement('div');
+  tip.className = 'hover-tip auto-tip-below top-bar-info-tip';
+  document.body.appendChild(tip);
+  titleInfoTipEl = tip;
+  return tip;
+}
+
+function hideTitleInfoTip() {
+  if (titleInfoTipHideHandle) {
+    clearTimeout(titleInfoTipHideHandle);
+    titleInfoTipHideHandle = null;
+  }
+  if (titleInfoTipEl) {
+    titleInfoTipEl.classList.remove('show');
+  }
+}
+
+function showTitleInfoTip(contentFragment, anchor) {
+  if (!anchor) return;
+  const tip = ensureTitleInfoTip();
+  if (contentFragment) {
+    tip.replaceChildren(contentFragment);
+  }
+  const rect = anchor.getBoundingClientRect();
+  tip.style.left = rect.left + rect.width / 2 + 'px';
+  tip.style.top = rect.bottom + window.scrollY + 'px';
+  tip.classList.add('show');
+  if (titleInfoTipHideHandle) {
+    clearTimeout(titleInfoTipHideHandle);
+  }
+  titleInfoTipHideHandle = setTimeout(() => {
+    if (titleInfoTipEl) {
+      titleInfoTipEl.classList.remove('show');
+    }
+    titleInfoTipHideHandle = null;
+  }, TITLE_INFO_HIDE_DELAY_MS);
+}
+
+function buildTitleInfoContent() {
+  const fragment = document.createDocumentFragment();
+
+  const lgValue = parseIntSafe(inputLg?.value);
+  const hasLg = Number.isFinite(lgValue) && lgValue > 0;
+  const activeFractions = fractionalPulseSelections
+    .filter(item => item && Number.isFinite(item.value));
+
+  if (hasLg) {
+    const line = document.createElement('p');
+    line.className = 'top-bar-info-tip__line';
+    const label = document.createElement('strong');
+    label.textContent = `Pfr en Lg ${formatInteger(lgValue)}:`;
+    line.append(label, ' ', String(activeFractions.length));
+    fragment.append(line);
+
+    const displays = activeFractions
+      .map(item => typeof item.display === 'string' ? item.display.trim() : '')
+      .filter(Boolean);
+    if (displays.length) {
+      const chips = document.createElement('div');
+      chips.className = 'top-bar-info-tip__chips';
+      displays.forEach(display => {
+        const chip = document.createElement('span');
+        chip.className = 'top-bar-info-tip__chip';
+        chip.textContent = display;
+        chips.append(chip);
+      });
+      fragment.append(chips);
+    } else {
+      const hint = document.createElement('p');
+      hint.className = 'top-bar-info-tip__hint';
+      hint.textContent = 'No hay pulsos fraccionados activos.';
+      fragment.append(hint);
+    }
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__line';
+    hint.textContent = 'Define una Lg válida para contar los Pfr.';
+    fragment.append(hint);
+  }
+
+  const tempoValue = parseNum(inputV?.value ?? '');
+  const { numerator, denominator } = getFraction();
+  const hasTempo = Number.isFinite(tempoValue) && tempoValue > 0;
+  const hasNumerator = Number.isFinite(numerator) && numerator > 0;
+  const hasDenominator = Number.isFinite(denominator) && denominator > 0;
+
+  if (hasTempo) {
+    const baseLine = document.createElement('p');
+    baseLine.className = 'top-bar-info-tip__line';
+    const baseLabel = document.createElement('strong');
+    baseLabel.textContent = 'V base:';
+    baseLine.append(baseLabel, ' ', `${formatBpmValue(tempoValue)} BPM`);
+    fragment.append(baseLine);
+  }
+
+  if (hasTempo && hasNumerator && hasDenominator) {
+    const fractionLine = document.createElement('p');
+    fractionLine.className = 'top-bar-info-tip__line';
+    const fractionLabel = document.createElement('strong');
+    fractionLabel.textContent = `V ${numerator}/${denominator}:`;
+    const fractionTempo = tempoValue * (denominator / numerator);
+    fractionLine.append(fractionLabel, ' ', `${formatBpmValue(fractionTempo)} BPM`);
+    fragment.append(fractionLine);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Completa V, n y d para obtener la velocidad de la fracción.';
+    fragment.append(hint);
+  }
+
+  return fragment;
+}
+
+if (titleButton) {
+  titleButton.addEventListener('click', () => {
+    const content = buildTitleInfoContent();
+    if (!content) return;
+    showTitleInfoTip(content, titleButton);
+  });
+  titleButton.addEventListener('blur', hideTitleInfoTip);
+  titleButton.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' || event.key === 'Esc') {
+      hideTitleInfoTip();
+    }
+  });
+  window.addEventListener('scroll', hideTitleInfoTip, { passive: true });
+  window.addEventListener('resize', hideTitleInfoTip);
 }
 
 // Guard: if LED is off (auto), show tip and do nothing

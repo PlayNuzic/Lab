@@ -10,6 +10,81 @@ body {
   --cycle-offset-y: 0px;
 }
 
+header.top-bar h1 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+header.top-bar h1 .top-bar-title-button {
+  width: 100%;
+  margin: 0;
+  padding: 0 var(--topbar-side-gap);
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-size: 1.5rem;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: color 0.2s ease, transform 0.12s ease, text-shadow 0.25s ease;
+}
+
+header.top-bar h1 .top-bar-title-button:hover {
+  text-shadow: 0 0 6px var(--selection-color);
+}
+
+header.top-bar h1 .top-bar-title-button:focus-visible {
+  outline: 2px solid var(--selection-color);
+  outline-offset: 4px;
+}
+
+header.top-bar h1 .top-bar-title-button:active {
+  transform: scale(0.96);
+  color: var(--selection-color);
+  text-shadow: 0 0 10px var(--selection-color);
+}
+
+.top-bar-info-tip {
+  white-space: normal;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 8px 12px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.top-bar-info-tip__line {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.top-bar-info-tip__line + .top-bar-info-tip__line {
+  margin-top: 4px;
+}
+
+.top-bar-info-tip__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.top-bar-info-tip__chip {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.top-bar-info-tip__hint {
+  margin: 6px 0 0;
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+
 /**
  * Timeline pulse overrides to support selection and interactive hit areas.
  */
