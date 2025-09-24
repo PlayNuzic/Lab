@@ -15,7 +15,7 @@ body.app3 {
   --pulse-offset-y: 0px;
   --cycle-offset-x: -213px;
   --cycle-offset-y: 0px;
-  --unit-label-offset: 0px;
+  --unit-label-offset: -20px;
 }
 
 @media (max-width: 600px) {

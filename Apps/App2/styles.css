@@ -1,7 +1,7 @@
 /* App2 specific overrides */
 
 body {
---unit-label-offset: 0px;
+--unit-label-offset: -20px;
 }
 
 /**
