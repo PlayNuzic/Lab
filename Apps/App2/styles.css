@@ -21,6 +21,9 @@ body {
 .pulse-number.lg {
   color: var(--color-lg);
 }
+.pulse-number.selected:not(.zero):not(.lg) {
+  color: var(--selection-color);
+}
 
 /**
  * Editable pulse sequence container positioned above the timeline.

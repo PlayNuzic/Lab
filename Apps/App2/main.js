@@ -1337,12 +1337,16 @@ function animateTimelineCircle(isCircular, opts = {}){
   }
 }
 
-function showNumber(i){
+function showNumber(i, options = {}){
+  const { selected = false } = options;
   const n = document.createElement('div');
   n.className = 'pulse-number';
   if (i === 0) n.classList.add('zero');
   const lg = pulses.length - 1;
   if (i === lg) n.classList.add('lg');
+  if (selected && i !== 0 && i !== lg) {
+    n.classList.add('selected');
+  }
   n.dataset.index = i;
   n.textContent = i;
   const _lgForFont = pulses.length - 1;
@@ -1395,16 +1399,11 @@ function updateNumbers(){
     return;
   }
 
-  // sempre 0 i últim
-  showNumber(0);
-  showNumber(lgForNumbers);
-
-  // En App2: només els seleccionats (sense 0 ni Lg)
-  pulses.forEach((p, i) => {
-    if (i !== 0 && i !== lgForNumbers && selectedPulses.has(i)) {
-      showNumber(i);
-    }
-  });
+  for (let i = 0; i <= lgForNumbers; i++) {
+    const isEndpoint = i === 0 || i === lgForNumbers;
+    const isSelected = !isEndpoint && selectedPulses.has(i);
+    showNumber(i, { selected: isSelected });
+  }
   // Re-anchor T to the (possibly) re-generated Lg label
   try { updateTIndicatorPosition(); } catch {}
 }
