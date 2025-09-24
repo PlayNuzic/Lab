@@ -90,12 +90,13 @@ body[data-theme='dark'] .cycle-marker {
   position: relative;
 }
 
-.fraction-placeholder {
+.fraction-field-placeholder {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 2.4rem;
+  inset: 0 28px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
   font-weight: 500;
   color: var(--line-color);
   opacity: 0;
@@ -105,7 +106,7 @@ body[data-theme='dark'] .cycle-marker {
   letter-spacing: 0.05em;
 }
 
-.fraction-placeholder--visible {
+.fraction-field-placeholder--visible {
   opacity: 0.45;
 }
 

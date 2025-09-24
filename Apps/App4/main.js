@@ -107,9 +107,10 @@ let denominatorInput;
 let ghostFractionContainer;
 let ghostNumeratorText;
 let ghostDenominatorText;
-let fractionPlaceholderEl;
 let numeratorFieldWrapper;
 let denominatorFieldWrapper;
+let numeratorFieldPlaceholder;
+let denominatorFieldPlaceholder;
 const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
 const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
 let currentFractionInfo = createEmptyFractionInfo();
@@ -324,19 +325,20 @@ function updateFractionGhost(info) {
   ghostFractionContainer.classList.add('fraction-ghost--visible');
 }
 
-function setFractionFieldEmptyState(wrapper, isEmpty) {
+function setFractionFieldEmptyState(wrapper, placeholder, isEmpty) {
   if (!wrapper) return;
-  wrapper.classList.toggle('fraction-field--empty', !!isEmpty);
+  const empty = !!isEmpty;
+  wrapper.classList.toggle('fraction-field--empty', empty);
+  if (placeholder) {
+    placeholder.classList.toggle('fraction-field-placeholder--visible', empty);
+  }
 }
 
-function updateFractionPlaceholder(numerator, denominator) {
-  if (!fractionPlaceholderEl) return;
+function updateFractionFieldState(numerator, denominator) {
   const hasNumerator = Number.isFinite(numerator) && numerator > 0;
   const hasDenominator = Number.isFinite(denominator) && denominator > 0;
-  const showPlaceholder = !(hasNumerator || hasDenominator);
-  fractionPlaceholderEl.classList.toggle('fraction-placeholder--visible', showPlaceholder);
-  setFractionFieldEmptyState(numeratorFieldWrapper, !hasNumerator);
-  setFractionFieldEmptyState(denominatorFieldWrapper, !hasDenominator);
+  setFractionFieldEmptyState(numeratorFieldWrapper, numeratorFieldPlaceholder, !hasNumerator);
+  setFractionFieldEmptyState(denominatorFieldWrapper, denominatorFieldPlaceholder, !hasDenominator);
 }
 
 function updateFractionHover(info) {
@@ -357,7 +359,7 @@ function updateFractionHover(info) {
 
 function updateFractionUI(numerator, denominator) {
   currentFractionInfo = computeFractionInfo(numerator, denominator);
-  updateFractionPlaceholder(numerator, denominator);
+  updateFractionFieldState(numerator, denominator);
   updateFractionGhost(currentFractionInfo);
   updateFractionHover(currentFractionInfo);
   updatePulseSeqFractionDisplay(numerator, denominator);
@@ -428,7 +430,7 @@ function initFractionEditor() {
   wrapper.appendChild(container);
   slot.appendChild(wrapper);
 
-  const createField = ({ wrapperClass, ariaUp, ariaDown }) => {
+  const createField = ({ wrapperClass, ariaUp, ariaDown, placeholder }) => {
     const fieldWrapper = document.createElement('div');
     fieldWrapper.className = `fraction-field ${wrapperClass}`;
     fieldWrapper.classList.add('fraction-field--empty');
@@ -440,6 +442,12 @@ function initFractionEditor() {
     input.value = '';
     input.className = wrapperClass;
     fieldWrapper.appendChild(input);
+
+    const placeholderEl = document.createElement('div');
+    placeholderEl.className = 'fraction-field-placeholder fraction-field-placeholder--visible';
+    placeholderEl.textContent = placeholder;
+    placeholderEl.setAttribute('aria-hidden', 'true');
+    fieldWrapper.appendChild(placeholderEl);
 
     const spinner = document.createElement('div');
     spinner.className = 'spinner';
@@ -455,7 +463,7 @@ function initFractionEditor() {
     spinner.appendChild(down);
     fieldWrapper.appendChild(spinner);
 
-    return { wrapper: fieldWrapper, input, up, down };
+    return { wrapper: fieldWrapper, input, up, down, placeholder: placeholderEl };
   };
 
   const top = document.createElement('div');
@@ -463,10 +471,12 @@ function initFractionEditor() {
   const numeratorField = createField({
     wrapperClass: 'numerator',
     ariaUp: 'Incrementar numerador',
-    ariaDown: 'Decrementar numerador'
+    ariaDown: 'Decrementar numerador',
+    placeholder: 'n'
   });
   numeratorInput = numeratorField.input;
   numeratorFieldWrapper = numeratorField.wrapper;
+  numeratorFieldPlaceholder = numeratorField.placeholder;
   top.appendChild(numeratorField.wrapper);
 
   const bottom = document.createElement('div');
@@ -474,20 +484,16 @@ function initFractionEditor() {
   const denominatorField = createField({
     wrapperClass: 'denominator',
     ariaUp: 'Incrementar denominador',
-    ariaDown: 'Decrementar denominador'
+    ariaDown: 'Decrementar denominador',
+    placeholder: 'd'
   });
   denominatorInput = denominatorField.input;
   denominatorFieldWrapper = denominatorField.wrapper;
+  denominatorFieldPlaceholder = denominatorField.placeholder;
   bottom.appendChild(denominatorField.wrapper);
 
   container.appendChild(top);
   container.appendChild(bottom);
-
-  fractionPlaceholderEl = document.createElement('div');
-  fractionPlaceholderEl.className = 'fraction-placeholder';
-  fractionPlaceholderEl.textContent = 'n/d';
-  fractionPlaceholderEl.setAttribute('aria-hidden', 'true');
-  container.appendChild(fractionPlaceholderEl);
 
   if (numeratorInput) {
     numeratorInput.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
@@ -522,7 +528,7 @@ function initFractionEditor() {
   addRepeatPress(denominatorField.up, () => adjustInput(denominatorInput, +1));
   addRepeatPress(denominatorField.down, () => adjustInput(denominatorInput, -1));
 
-  updateFractionPlaceholder(null, null);
+  updateFractionFieldState(null, null);
 }
 
 function getFraction() {
