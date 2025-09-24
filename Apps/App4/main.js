@@ -115,9 +115,7 @@ const fractionDefaults = {
 
 let numeratorInput;
 let denominatorInput;
-let ghostFractionContainer;
-let ghostNumeratorText;
-let ghostDenominatorText;
+let fractionInfoBubble;
 let numeratorFieldWrapper;
 let denominatorFieldWrapper;
 let numeratorFieldPlaceholder;
@@ -321,19 +319,18 @@ function buildReductionHoverText(info) {
   return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}. Se repite ${accentEvery} veces la misma subdivisión en cada fracción ${info.numerator}/${info.denominator}.`;
 }
 
-function updateFractionGhost(info) {
-  if (!ghostFractionContainer || !ghostNumeratorText || !ghostDenominatorText) return;
+function updateFractionInfoBubble(info) {
+  if (!fractionInfoBubble) return;
   if (!info || !info.isMultiple) {
-    ghostFractionContainer.classList.add('fraction-ghost--hidden');
-    ghostFractionContainer.classList.remove('fraction-ghost--visible');
-    ghostNumeratorText.textContent = '';
-    ghostDenominatorText.textContent = '';
+    fractionInfoBubble.classList.add('fraction-info-bubble--hidden');
+    fractionInfoBubble.classList.remove('fraction-info-bubble--visible');
+    fractionInfoBubble.textContent = '';
     return;
   }
-  ghostNumeratorText.textContent = info.reducedNumerator;
-  ghostDenominatorText.textContent = info.reducedDenominator;
-  ghostFractionContainer.classList.remove('fraction-ghost--hidden');
-  ghostFractionContainer.classList.add('fraction-ghost--visible');
+  solidMenuBackground(fractionInfoBubble);
+  fractionInfoBubble.textContent = buildReductionHoverText(info);
+  fractionInfoBubble.classList.remove('fraction-info-bubble--hidden');
+  fractionInfoBubble.classList.add('fraction-info-bubble--visible');
 }
 
 function setFractionFieldEmptyState(wrapper, placeholder, isEmpty) {
@@ -371,7 +368,7 @@ function updateFractionHover(info) {
 function updateFractionUI(numerator, denominator) {
   currentFractionInfo = computeFractionInfo(numerator, denominator);
   updateFractionFieldState(numerator, denominator);
-  updateFractionGhost(currentFractionInfo);
+  updateFractionInfoBubble(currentFractionInfo);
   updateFractionHover(currentFractionInfo);
   updatePulseSeqFractionDisplay(numerator, denominator);
   if (fractionalPulseSelections.length > 0) {
@@ -413,33 +410,15 @@ function initFractionEditor() {
 
   const wrapper = document.createElement('div');
   wrapper.className = 'fraction-editor-wrapper';
-
-  ghostFractionContainer = document.createElement('div');
-  ghostFractionContainer.className = 'fraction-ghost fraction-ghost--hidden';
-  ghostFractionContainer.setAttribute('aria-hidden', 'true');
-
-  const ghostNumeratorWrapper = document.createElement('div');
-  ghostNumeratorWrapper.className = 'fraction-ghost__numerator';
-  ghostNumeratorText = document.createElement('span');
-  ghostNumeratorText.className = 'fraction-ghost__number';
-  ghostNumeratorWrapper.appendChild(ghostNumeratorText);
-
-  const ghostBar = document.createElement('div');
-  ghostBar.className = 'fraction-ghost__bar';
-
-  const ghostDenominatorWrapper = document.createElement('div');
-  ghostDenominatorWrapper.className = 'fraction-ghost__denominator';
-  ghostDenominatorText = document.createElement('span');
-  ghostDenominatorText.className = 'fraction-ghost__number';
-  ghostDenominatorWrapper.appendChild(ghostDenominatorText);
-
-  ghostFractionContainer.appendChild(ghostNumeratorWrapper);
-  ghostFractionContainer.appendChild(ghostBar);
-  ghostFractionContainer.appendChild(ghostDenominatorWrapper);
-
-  wrapper.appendChild(ghostFractionContainer);
   wrapper.appendChild(container);
   slot.appendChild(wrapper);
+
+  fractionInfoBubble = document.createElement('div');
+  fractionInfoBubble.className = 'fraction-info-bubble fraction-info-bubble--hidden';
+  fractionInfoBubble.setAttribute('role', 'status');
+  fractionInfoBubble.setAttribute('aria-live', 'polite');
+  solidMenuBackground(fractionInfoBubble);
+  wrapper.appendChild(fractionInfoBubble);
 
   const createField = ({ wrapperClass, ariaUp, ariaDown, placeholder }) => {
     const fieldWrapper = document.createElement('div');

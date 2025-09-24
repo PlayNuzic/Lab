@@ -161,8 +161,52 @@ body[data-theme='dark'] .cycle-marker {
   pointer-events: none;
 }
 
+.fraction-editor-wrapper {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0px;
+}
+
 .fraction-editor {
   position: relative;
+}
+
+.fraction-info-bubble {
+  position: absolute;
+  top: 150%;
+  left: 140%;
+  transform: translate(-50%, calc(-100% - 12px));
+  padding: 8px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  text-align: start;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  max-width: min(480px, 90vw);
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+
+body[data-theme='dark'] .fraction-info-bubble {
+  border-color: rgba(238, 232, 216, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.fraction-info-bubble--hidden {
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, calc(-100% - 2px)) scale(0.95);
+}
+
+.fraction-info-bubble--visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, calc(-100% - 12px)) scale(1);
 }
 
 .fraction-field-placeholder {
