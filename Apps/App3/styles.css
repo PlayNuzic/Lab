@@ -154,6 +154,9 @@ body.app3 {
 }
 
 .fraction-ghost {
+  position: relative;
+  top: -2px;
+  left: -10px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -163,6 +166,7 @@ body.app3 {
   opacity: 0.25;
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  scale: 1.45;
 }
 
 .fraction-ghost__numerator,
@@ -174,14 +178,14 @@ body.app3 {
 }
 
 .fraction-ghost__number {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 500;
   letter-spacing: 0.02em;
 }
 
 .fraction-ghost__bar {
   width: 52px;
-  height: 3px;
+  height: 4px;
   background: currentColor;
   margin: 6px 0;
   opacity: 0.6;
