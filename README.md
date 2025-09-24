@@ -1,5 +1,6 @@
 # Lab
 Investigación y desarrollo del método Nuzic
+
 ## Entorn OpenAI Codex
 
 Es pot fer push directament des de l’entorn de Codex:
@@ -37,6 +38,22 @@ ssh -T git@github.com
 ./setup.sh
 ```
 
+## Funciones destacadas
+
+- **`createSchedulingBridge` (`libs/app-common/audio.js`)**: centraliza la recepción
+de eventos `sharedui:scheduling`, aplica `lookAhead`/`updateInterval` en cuanto el
+motor `TimelineAudio` existe y conserva la última configuración pendiente si la UI
+se monta antes que el audio.
+- **`bindSharedSoundEvents` (`libs/app-common/audio.js`)**: despacha eventos
+`sharedui:sound` hacia los métodos mapeados (`setBase`, `setAccent`, `setStart`, …)
+respetando valores nulos y liberando el listener al desmontar.
+- **`ensureAudio` (`libs/sound/index.js`)**: intenta iniciar `Tone.js` y, si el
+navegador bloquea el autoplay, crea/cierran contextos nativos para desbloquear la
+interfaz sin lanzar errores.
+- **Menú de rendimiento (`libs/shared-ui/performance-audio-menu.js`)**: script de
+carga opcional que muestra _lookAhead_ y _updateInterval_ efectivos para validar la
+configuración aplicada por el bridge de scheduling.
+
 ## Estructura
 
 El repositori es divideix en diversos espais lògics:
@@ -44,13 +61,20 @@ El repositori es divideix en diversos espais lògics:
 - `Apps/`: Conté cada mini-app amb la seva UI específica.
   - `App1/`
   - `App2/`
-- `libs/app-common/`: utilitats comunes com `computeHitSizePx`, `computeNumberFontRem` i `solidMenuBackground` tenen tests dedicats.
+  - `App3/`
+  - `App4/` · Pulsos fraccionados amb editor `n/d`, menú aleatori i menú de rendiment.
+- `libs/app-common/`: utilitats comunes com `computeHitSizePx`, `computeNumberFontRem`
+  i `solidMenuBackground` tenen tests dedicats. Inclou també el bridge de audio,
+  menús de mixer/aleatorietat i càlculs de subdivisions.
+- `libs/sound/`: motor `TimelineAudio`, mixer global, `ensureAudio` i càrrega de mostres.
+- `libs/shared-ui/`: capçalera, dropdowns de sons, _hover_ compartit i menú flotant de rendiment.
 - `libs/random/`: generació de paràmetres aleatoris per a Lg, V, T o Pulsos.
-- `packages/`: Contindrà el codi compartit. Aquí s'espera afegir el repositori
-  `PlayNuzic/IndexLab` com a submòdul de Git sota la ruta
-  `packages/indexlab`.
 - `config/`: Configuracions comunes (ESLint, Prettier, TypeScript, etc.) per a
   totes les apps i paquets.
+
+Cada app disposa del seu propi `README.md` quan cal documentar fluxos específics
+(p. ex. `Apps/App4/README.md` detalla la seva estructura de dades i integració
+d'àudio).
 
 ## Submòdul IndexLab
 
@@ -76,6 +100,8 @@ configurar Git. Després, llança la bateria de tests amb:
 npm test
 ```
 
-Cada mini-app i paquet hauria de definir els seus propis tests. Es recomana
-configurar fluxos de CI/CD que instal·lin dependències, executin els tests i
-despleguin només les apps afectades pels canvis.
+La suite de Jest cobreix els mòduls compartits (`libs/app-common`, `libs/sound`,
+`libs/shared-ui`, …) i valida que les rutes d'import, el desbloqueig d'àudio
+(autoplay) i els menús compartits continuïn funcionant després de cada canvi.
+Cada mini-app hauria de definir els seus propis tests complementaris quan
+afegeixi lògica específica.

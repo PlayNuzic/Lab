@@ -17,6 +17,9 @@ describe('TimelineAudio (new engine)', () => {
   beforeEach(() => {
     gainNodes = [];
     global.window = global.window || globalThis;
+    global.fetch = jest.fn(() =>
+      Promise.reject(Object.assign(new Error('fetch failed'), { name: 'TypeError' }))
+    );
 
     class FakeGainNode {
       constructor() {
@@ -89,6 +92,7 @@ describe('TimelineAudio (new engine)', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    delete global.fetch;
   });
 
   test('ensureAudio resolves without Tone', async () => {
