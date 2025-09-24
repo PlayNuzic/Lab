@@ -94,35 +94,48 @@ font-size: 0.9rem; /* Keep same font size */
  * Layout adjustments for timeline wrapper and controls on narrow screens.
  */
 @media (max-width: 600px) {
-#pulseSeq {
-font-size: 1.75rem;
-gap: 8px;
-padding: 0 12px;
-}
-
-/* Layout adjustments requested for App2 */
-/* 1) Raise inputs section by 25px (from shared 40px to 15) */
-.inputs {
-margin-top: 25px !important;
-}
-
-/* 2) Keep pulse sequence where it is — no changes needed to #pulseSeq */
-/* Compensate inputs shift so #pulseSeq stays in place */
-.middle { margin-top: 40px; }
-
-/* 3) Lower circular timeline by 90px */
-.timeline-wrapper.circular {
-margin-top: 90px !important; /* was 20px in shared styles */
-}
-
-/* 4) Lower controls inside circular wrapper (40px via wrapper - 20px here) */
-.timeline-wrapper.circular > .controls {
-transform: translate(-50%, calc(-50% - 90px)) !important; /* was -40px */
-}
-
-/* 5) Lower unit label by 20px when shown on input focus */
-  .param .circle .unit {
-  top: calc(var(--unit-label-offset, -20px) - 1.8rem);
+  #pulseSeq {
+    font-size: 1.75rem;
+    gap: 8px;
+    padding: 0 12px;
   }
 
+  /* Layout adjustments requested for App2 */
+  /* 1) Raise inputs section by 25px (from shared 40px to 15) */
+  .inputs {
+    margin-top: 25px !important;
+  }
+
+  /* 2) Keep pulse sequence where it is — no changes needed to #pulseSeq */
+  /* Compensate inputs shift so #pulseSeq stays in place */
+  .middle {
+    margin-top: 40px;
+  }
+
+  /* 3) Lower circular timeline by 90px */
+  .timeline-wrapper.circular {
+    margin-top: 90px !important; /* was 20px in shared styles */
+  }
+
+  /* 4) Lower controls inside circular wrapper (40px via wrapper - 20px here) */
+  .timeline-wrapper.circular > .controls {
+    transform: translate(-50%, calc(-50% - 90px)) !important; /* was -40px */
+  }
+
+  /* 5) Lower unit label by 20px when shown on input focus */
+  .param .circle .unit {
+    top: calc(var(--unit-label-offset, -20px) - 1.8rem);
+  }
+
+  .hover-tip {
+    font-size: 0.9rem;
+    padding: 6px 10px;
+    max-width: min(240px, 90vw);
+    white-space: normal;
+    text-align: center;
+  }
+
+  .hover-tip.auto-tip-below {
+    transform: translate(-50%, 14px);
+  }
 }

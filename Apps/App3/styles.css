@@ -27,6 +27,7 @@ body.app3 {
     --pulse-offset-y: 40px;
     --cycle-offset-x: -91px;
     --cycle-offset-y: 40px;
+    --unit-label-offset: 72px;
   }
 
   body.app3 .control-sound-toggles {
@@ -46,6 +47,22 @@ body.app3 {
     font-size: 12px;
     letter-spacing: 1.4px;
     transform: translateY(-6px);
+  }
+
+  .param .circle .unit {
+    top: calc(var(--unit-label-offset, -32px) - 1.45rem);
+  }
+
+  .hover-tip {
+    font-size: 0.9rem;
+    padding: 6px 10px;
+    max-width: min(240px, 90vw);
+    white-space: normal;
+    text-align: center;
+  }
+
+  .hover-tip.auto-tip-below {
+    transform: translate(-50%, 14px);
   }
 }
 
