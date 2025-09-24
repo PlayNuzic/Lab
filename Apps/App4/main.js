@@ -122,7 +122,11 @@ let numeratorFieldPlaceholder;
 let denominatorFieldPlaceholder;
 const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
 const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
+const FRACTION_HOVER_NUMERATOR_TYPE = 'numerator';
+const FRACTION_HOVER_DENOMINATOR_TYPE = 'denominator';
 let currentFractionInfo = createEmptyFractionInfo();
+let currentFractionMultipleMessage = '';
+let fractionInfoHideTimer = null;
 
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
@@ -319,18 +323,86 @@ function buildReductionHoverText(info) {
   return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}. Se repite ${accentEvery} veces la misma subdivisión en cada fracción ${info.numerator}/${info.denominator}.`;
 }
 
-function updateFractionInfoBubble(info) {
-  if (!fractionInfoBubble) return;
-  if (!info || !info.isMultiple) {
-    fractionInfoBubble.classList.add('fraction-info-bubble--hidden');
-    fractionInfoBubble.classList.remove('fraction-info-bubble--visible');
-    fractionInfoBubble.textContent = '';
-    return;
+function clearFractionInfoHideTimer() {
+  if (fractionInfoHideTimer) {
+    clearTimeout(fractionInfoHideTimer);
+    fractionInfoHideTimer = null;
   }
+}
+
+function hideFractionInfoBubble({ clearMessage = false } = {}) {
+  if (!fractionInfoBubble) return;
+  clearFractionInfoHideTimer();
+  fractionInfoBubble.classList.add('fraction-info-bubble--hidden');
+  fractionInfoBubble.classList.remove('fraction-info-bubble--visible');
+  if (clearMessage) {
+    fractionInfoBubble.textContent = '';
+  }
+}
+
+function showFractionInfoBubble({ message, autoHide = false } = {}) {
+  if (!fractionInfoBubble) return;
+  const resolvedMessage = message || currentFractionMultipleMessage;
+  if (!resolvedMessage) return;
+  clearFractionInfoHideTimer();
   solidMenuBackground(fractionInfoBubble);
-  fractionInfoBubble.textContent = buildReductionHoverText(info);
+  fractionInfoBubble.textContent = resolvedMessage;
   fractionInfoBubble.classList.remove('fraction-info-bubble--hidden');
   fractionInfoBubble.classList.add('fraction-info-bubble--visible');
+  if (autoHide) {
+    fractionInfoHideTimer = setTimeout(() => {
+      hideFractionInfoBubble();
+    }, 3000);
+  }
+}
+
+function getDefaultFractionHoverText(target) {
+  if (!target || !target.dataset) return '';
+  if (target.dataset.fractionHoverType === FRACTION_HOVER_NUMERATOR_TYPE) {
+    return DEFAULT_NUMERATOR_HOVER_TEXT;
+  }
+  if (target.dataset.fractionHoverType === FRACTION_HOVER_DENOMINATOR_TYPE) {
+    return DEFAULT_DENOMINATOR_HOVER_TEXT;
+  }
+  return '';
+}
+
+function handleFractionHoverEnter(event) {
+  const target = event?.currentTarget || null;
+  const message = currentFractionMultipleMessage || getDefaultFractionHoverText(target);
+  if (!message) return;
+  showFractionInfoBubble({ message });
+}
+
+function handleFractionHoverLeave() {
+  if (!fractionInfoBubble) return;
+  hideFractionInfoBubble();
+}
+
+function registerFractionHoverTarget(target, { useFocus = false } = {}) {
+  if (!target) return;
+  target.addEventListener('mouseenter', handleFractionHoverEnter);
+  target.addEventListener('mouseleave', handleFractionHoverLeave);
+  if (useFocus) {
+    target.addEventListener('focus', handleFractionHoverEnter);
+    target.addEventListener('blur', handleFractionHoverLeave);
+  }
+}
+
+function updateFractionInfoBubble(info, { reveal = false } = {}) {
+  if (!fractionInfoBubble) return;
+  clearFractionInfoHideTimer();
+  if (!info || !info.isMultiple) {
+    currentFractionMultipleMessage = '';
+    hideFractionInfoBubble({ clearMessage: true });
+    return;
+  }
+  currentFractionMultipleMessage = buildReductionHoverText(info);
+  if (reveal) {
+    showFractionInfoBubble({ message: currentFractionMultipleMessage, autoHide: true });
+  } else if (fractionInfoBubble.classList.contains('fraction-info-bubble--visible')) {
+    showFractionInfoBubble({ message: currentFractionMultipleMessage });
+  }
 }
 
 function setFractionFieldEmptyState(wrapper, placeholder, isEmpty) {
@@ -349,27 +421,10 @@ function updateFractionFieldState(numerator, denominator) {
   setFractionFieldEmptyState(denominatorFieldWrapper, denominatorFieldPlaceholder, !hasDenominator);
 }
 
-function updateFractionHover(info) {
-  if (!numeratorInput || !denominatorInput) return;
-  if (info && info.isMultiple) {
-    const message = buildReductionHoverText(info);
-    numeratorInput.dataset.hoverText = message;
-    denominatorInput.dataset.hoverText = message;
-    if (pulseSeqFractionNumeratorEl) pulseSeqFractionNumeratorEl.dataset.hoverText = message;
-    if (pulseSeqFractionDenominatorEl) pulseSeqFractionDenominatorEl.dataset.hoverText = message;
-  } else {
-    numeratorInput.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
-    denominatorInput.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
-    if (pulseSeqFractionNumeratorEl) pulseSeqFractionNumeratorEl.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
-    if (pulseSeqFractionDenominatorEl) pulseSeqFractionDenominatorEl.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
-  }
-}
-
 function updateFractionUI(numerator, denominator) {
   currentFractionInfo = computeFractionInfo(numerator, denominator);
   updateFractionFieldState(numerator, denominator);
-  updateFractionInfoBubble(currentFractionInfo);
-  updateFractionHover(currentFractionInfo);
+  updateFractionInfoBubble(currentFractionInfo, { reveal: true });
   updatePulseSeqFractionDisplay(numerator, denominator);
   if (fractionalPulseSelections.length > 0) {
     sanitizePulseSeq({ causedBy: 'fraction-change', skipCaret: true });
@@ -424,6 +479,7 @@ function initFractionEditor() {
     const fieldWrapper = document.createElement('div');
     fieldWrapper.className = `fraction-field ${wrapperClass}`;
     fieldWrapper.classList.add('fraction-field--empty');
+    fieldWrapper.dataset.fractionHoverType = wrapperClass;
 
     const input = document.createElement('input');
     input.type = 'number';
@@ -431,6 +487,7 @@ function initFractionEditor() {
     input.step = '1';
     input.value = '';
     input.className = wrapperClass;
+    input.dataset.fractionHoverType = wrapperClass;
     fieldWrapper.appendChild(input);
 
     const placeholderEl = document.createElement('div');
@@ -468,6 +525,8 @@ function initFractionEditor() {
   numeratorFieldWrapper = numeratorField.wrapper;
   numeratorFieldPlaceholder = numeratorField.placeholder;
   top.appendChild(numeratorField.wrapper);
+  registerFractionHoverTarget(numeratorField.wrapper);
+  registerFractionHoverTarget(numeratorInput, { useFocus: true });
 
   const bottom = document.createElement('div');
   bottom.className = 'bottom';
@@ -481,18 +540,11 @@ function initFractionEditor() {
   denominatorFieldWrapper = denominatorField.wrapper;
   denominatorFieldPlaceholder = denominatorField.placeholder;
   bottom.appendChild(denominatorField.wrapper);
+  registerFractionHoverTarget(denominatorField.wrapper);
+  registerFractionHoverTarget(denominatorInput, { useFocus: true });
 
   container.appendChild(top);
   container.appendChild(bottom);
-
-  if (numeratorInput) {
-    numeratorInput.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
-    attachHover(numeratorInput, { text: DEFAULT_NUMERATOR_HOVER_TEXT });
-  }
-  if (denominatorInput) {
-    denominatorInput.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
-    attachHover(denominatorInput, { text: DEFAULT_DENOMINATOR_HOVER_TEXT });
-  }
 
   const enforceInt = (input, storageKey) => {
     if (!input) return;
@@ -962,20 +1014,19 @@ function setupPulseSeqMarkup(){
   fractionWrapper.className = 'pz fraction';
   pulseSeqFractionNumeratorEl = document.createElement('span');
   pulseSeqFractionNumeratorEl.className = 'fraction-number numerator';
-  pulseSeqFractionNumeratorEl.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
+  pulseSeqFractionNumeratorEl.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
   const fractionBar = document.createElement('span');
   fractionBar.className = 'fraction-bar';
   pulseSeqFractionDenominatorEl = document.createElement('span');
   pulseSeqFractionDenominatorEl.className = 'fraction-number denominator';
-  pulseSeqFractionDenominatorEl.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
+  pulseSeqFractionDenominatorEl.dataset.fractionHoverType = FRACTION_HOVER_DENOMINATOR_TYPE;
   fractionWrapper.append(
     pulseSeqFractionNumeratorEl,
     fractionBar,
     pulseSeqFractionDenominatorEl
   );
-
-  attachHover(pulseSeqFractionNumeratorEl, { text: DEFAULT_NUMERATOR_HOVER_TEXT });
-  attachHover(pulseSeqFractionDenominatorEl, { text: DEFAULT_DENOMINATOR_HOVER_TEXT });
+  registerFractionHoverTarget(pulseSeqFractionNumeratorEl);
+  registerFractionHoverTarget(pulseSeqFractionDenominatorEl);
 
   const spacer = mk('spacer', ' ');
   const openParen = mk('open', '(');
