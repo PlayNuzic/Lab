@@ -189,6 +189,7 @@ body[data-theme='dark'] .cycle-marker {
   font-size: 1.1rem;
   line-height: 1.4;
   max-width: min(280px, 85vw);
+  white-space: pre-line;
   pointer-events: none;
   z-index: 1;
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
