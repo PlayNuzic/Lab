@@ -1925,16 +1925,7 @@ function parseNum(val){
   const n = parseFloat(s);
     return isNaN(n) ? NaN : n;
 }
-function formatSec(n){
-  // arrodonim a 2 decimals però sense forçar-los si són .00
-  const rounded = Math.round(Number(n) * 100) / 100;
-  return rounded.toLocaleString('ca-ES', {
-     minimumFractionDigits: 0,
-     maximumFractionDigits: 2
-   });
-}
-
-function formatBpmValue(value) {
+function formatNumberValue(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return '';
   const rounded = Math.round(numeric * 100) / 100;
@@ -1944,15 +1935,21 @@ function formatBpmValue(value) {
   });
 }
 
+function formatSec(n){
+  return formatNumberValue(n);
+}
+
+function formatBpmValue(value) {
+  return formatNumberValue(value);
+}
+
 function formatInteger(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return '';
   return Math.round(numeric).toLocaleString('ca-ES');
 }
 
-const TITLE_INFO_HIDE_DELAY_MS = 3600;
 let titleInfoTipEl = null;
-let titleInfoTipHideHandle = null;
 
 function ensureTitleInfoTip() {
   if (titleInfoTipEl) return titleInfoTipEl;
@@ -1964,10 +1961,6 @@ function ensureTitleInfoTip() {
 }
 
 function hideTitleInfoTip() {
-  if (titleInfoTipHideHandle) {
-    clearTimeout(titleInfoTipHideHandle);
-    titleInfoTipHideHandle = null;
-  }
   if (titleInfoTipEl) {
     titleInfoTipEl.classList.remove('show');
   }
@@ -1983,15 +1976,6 @@ function showTitleInfoTip(contentFragment, anchor) {
   tip.style.left = rect.left + rect.width / 2 + 'px';
   tip.style.top = rect.bottom + window.scrollY + 'px';
   tip.classList.add('show');
-  if (titleInfoTipHideHandle) {
-    clearTimeout(titleInfoTipHideHandle);
-  }
-  titleInfoTipHideHandle = setTimeout(() => {
-    if (titleInfoTipEl) {
-      titleInfoTipEl.classList.remove('show');
-    }
-    titleInfoTipHideHandle = null;
-  }, TITLE_INFO_HIDE_DELAY_MS);
 }
 
 function buildTitleInfoContent() {
@@ -1999,36 +1983,30 @@ function buildTitleInfoContent() {
 
   const lgValue = parseIntSafe(inputLg?.value);
   const hasLg = Number.isFinite(lgValue) && lgValue > 0;
-  const activeFractions = fractionalPulseSelections
-    .filter(item => item && Number.isFinite(item.value));
+  const { numerator, denominator } = getFraction();
+  const hasNumerator = Number.isFinite(numerator) && numerator > 0;
+  const hasDenominator = Number.isFinite(denominator) && denominator > 0;
+  const tValue = parseNum(inputT?.value ?? '');
+  const hasT = Number.isFinite(tValue) && tValue > 0;
 
   if (hasLg) {
-    const line = document.createElement('p');
-    line.className = 'top-bar-info-tip__line';
-    const label = document.createElement('strong');
-    label.textContent = `Pfr en Lg ${formatInteger(lgValue)}:`;
-    line.append(label, ' ', String(activeFractions.length));
-    fragment.append(line);
+    const pulsesLine = document.createElement('p');
+    pulsesLine.className = 'top-bar-info-tip__line';
+    const pulsesLabel = document.createElement('strong');
+    pulsesLabel.textContent = 'Pulsos fraccionados (Lg):';
+    pulsesLine.append(pulsesLabel, ' ', formatInteger(lgValue));
+    fragment.append(pulsesLine);
 
-    const displays = activeFractions
-      .map(item => typeof item.display === 'string' ? item.display.trim() : '')
-      .filter(Boolean);
-    if (displays.length) {
-      const chips = document.createElement('div');
-      chips.className = 'top-bar-info-tip__chips';
-      displays.forEach(display => {
-        const chip = document.createElement('span');
-        chip.className = 'top-bar-info-tip__chip';
-        chip.textContent = display;
-        chips.append(chip);
-      });
-      fragment.append(chips);
-    } else {
-      const hint = document.createElement('p');
-      hint.className = 'top-bar-info-tip__hint';
-      hint.textContent = 'No hay pulsos fraccionados activos.';
-      fragment.append(hint);
+    if (hasNumerator && hasDenominator) {
+      const fractionalLg = (lgValue * denominator) / numerator;
+      const lgLine = document.createElement('p');
+      lgLine.className = 'top-bar-info-tip__line';
+      const lgLabel = document.createElement('strong');
+      lgLabel.textContent = 'Lg fraccionada (Lg·d/n):';
+      lgLine.append(lgLabel, ' ', formatNumberValue(fractionalLg));
+      fragment.append(lgLine);
     }
+
   } else {
     const hint = document.createElement('p');
     hint.className = 'top-bar-info-tip__line';
@@ -2037,10 +2015,34 @@ function buildTitleInfoContent() {
   }
 
   const tempoValue = parseNum(inputV?.value ?? '');
-  const { numerator, denominator } = getFraction();
   const hasTempo = Number.isFinite(tempoValue) && tempoValue > 0;
-  const hasNumerator = Number.isFinite(numerator) && numerator > 0;
-  const hasDenominator = Number.isFinite(denominator) && denominator > 0;
+
+  if (hasT) {
+    const tLine = document.createElement('p');
+    tLine.className = 'top-bar-info-tip__line';
+    const tLabel = document.createElement('strong');
+    tLabel.textContent = 'Tiempo transcurrido (T):';
+    tLine.append(tLabel, ' ', `${formatNumberValue(tValue)} s`);
+    fragment.append(tLine);
+  }
+
+  if (hasLg && hasT) {
+    const derivedTempo = (lgValue / tValue) * 60;
+    const baseFormulaLine = document.createElement('p');
+    baseFormulaLine.className = 'top-bar-info-tip__line';
+    const baseFormulaLabel = document.createElement('strong');
+    baseFormulaLabel.textContent = 'V base';
+    baseFormulaLine.append(
+      baseFormulaLabel,
+      ` = (${formatInteger(lgValue)} / ${formatNumberValue(tValue)})·60 = ${formatBpmValue(derivedTempo)} BPM`
+    );
+    fragment.append(baseFormulaLine);
+  } else if (hasLg && !hasT) {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Completa T para calcular la fórmula de V base.';
+    fragment.append(hint);
+  }
 
   if (hasTempo) {
     const baseLine = document.createElement('p');
@@ -2052,13 +2054,16 @@ function buildTitleInfoContent() {
   }
 
   if (hasTempo && hasNumerator && hasDenominator) {
-    const fractionLine = document.createElement('p');
-    fractionLine.className = 'top-bar-info-tip__line';
-    const fractionLabel = document.createElement('strong');
-    fractionLabel.textContent = `V ${numerator}/${denominator}:`;
     const fractionTempo = tempoValue * (denominator / numerator);
-    fractionLine.append(fractionLabel, ' ', `${formatBpmValue(fractionTempo)} BPM`);
-    fragment.append(fractionLine);
+    const fractionFormulaLine = document.createElement('p');
+    fractionFormulaLine.className = 'top-bar-info-tip__line';
+    const fractionFormulaLabel = document.createElement('strong');
+    fractionFormulaLabel.textContent = `V ${numerator}/${denominator}`;
+    fractionFormulaLine.append(
+      fractionFormulaLabel,
+      ` = (${formatBpmValue(tempoValue)}·${denominator})/${numerator} = ${formatBpmValue(fractionTempo)} BPM`
+    );
+    fragment.append(fractionFormulaLine);
   } else {
     const hint = document.createElement('p');
     hint.className = 'top-bar-info-tip__hint';
