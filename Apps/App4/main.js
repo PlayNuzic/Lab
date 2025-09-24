@@ -726,8 +726,10 @@ function fractionDisplay(base, numerator, denominator, { cycleIndex, subdivision
   }
 
   if (den && resolvedPulsesPerCycle) {
-    let cycle = Number.isFinite(cycleIndex) && cycleIndex >= 0 ? Math.floor(cycleIndex) : null;
-    let subdivision = Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0 ? Math.floor(subdivisionIndex) : null;
+    const hasExplicitCycle = Number.isFinite(cycleIndex) && cycleIndex >= 0;
+    const hasExplicitSubdivision = Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0;
+    let cycle = hasExplicitCycle ? Math.floor(cycleIndex) : null;
+    let subdivision = hasExplicitSubdivision ? Math.floor(subdivisionIndex) : null;
     if (cycle == null || subdivision == null) {
       const cycleFloat = value / resolvedPulsesPerCycle;
       cycle = Math.floor(cycleFloat + FRACTION_POSITION_EPSILON);
@@ -745,13 +747,19 @@ function fractionDisplay(base, numerator, denominator, { cycleIndex, subdivision
     const baseIndex = Number.isFinite(value)
       ? Math.floor(value + FRACTION_POSITION_EPSILON)
       : (Number.isFinite(safeBase) ? Math.floor(safeBase) : null);
+    const preferCycleNotation = hasExplicitCycle && hasExplicitSubdivision && subdivision > 0;
     if (Number.isFinite(baseIndex)) {
       if (subdivision === 0) {
         return String(baseIndex);
       }
+      if (preferCycleNotation && Number.isFinite(cycle)) {
+        return `${cycle}.${subdivision}`;
+      }
       return `${baseIndex}.${subdivision}`;
     }
-    return `${cycle}.${subdivision}`;
+    if (Number.isFinite(cycle) && Number.isFinite(subdivision)) {
+      return `${cycle}.${subdivision}`;
+    }
   }
 
   return `${safeBase}.${safeNumerator}`;
@@ -770,8 +778,29 @@ function getFractionInfoFromElement(el) {
   const value = Number.isFinite(parseFloat(el.dataset.value))
     ? parseFloat(el.dataset.value)
     : fractionValue(base, numerator, denominator);
-  const display = el.dataset.display || fractionDisplay(base, numerator, denominator);
-  return { type: 'fraction', base, numerator, denominator, key, value, display };
+  const rawCycleIndex = parseIntSafe(el.dataset.cycleIndex);
+  const rawSubdivisionIndex = parseIntSafe(el.dataset.subdivision);
+  const rawPulsesPerCycle = parseIntSafe(el.dataset.pulsesPerCycle);
+  const override = {
+    cycleIndex: Number.isFinite(rawCycleIndex) ? rawCycleIndex : undefined,
+    subdivisionIndex: Number.isFinite(rawSubdivisionIndex) ? rawSubdivisionIndex : undefined,
+    pulsesPerCycle: Number.isFinite(rawPulsesPerCycle) && rawPulsesPerCycle > 0
+      ? rawPulsesPerCycle
+      : undefined
+  };
+  const display = el.dataset.display || fractionDisplay(base, numerator, denominator, override);
+  return {
+    type: 'fraction',
+    base,
+    numerator,
+    denominator,
+    key,
+    value,
+    display,
+    cycleIndex: Number.isFinite(rawCycleIndex) ? rawCycleIndex : null,
+    subdivisionIndex: Number.isFinite(rawSubdivisionIndex) ? rawSubdivisionIndex : null,
+    pulsesPerCycle: Number.isFinite(rawPulsesPerCycle) && rawPulsesPerCycle > 0 ? rawPulsesPerCycle : null
+  };
 }
 
 function applyFractionSelectionClasses() {
@@ -789,10 +818,21 @@ function rebuildFractionSelections(opts = {}) {
   selectedFractionKeys.clear();
   fractionalPulseSelections = Array.from(fractionalSelectionState.values())
     .filter(item => item && Number.isFinite(item.value))
-    .map(item => ({
-      ...item,
-      display: fractionDisplay(item.base, item.numerator, item.denominator)
-    }))
+    .map(item => {
+      const cycleIndex = Number.isFinite(item?.cycleIndex) ? item.cycleIndex : null;
+      const subdivisionIndex = Number.isFinite(item?.subdivisionIndex) ? item.subdivisionIndex : null;
+      const pulsesPerCycle = Number.isFinite(item?.pulsesPerCycle) && item.pulsesPerCycle > 0
+        ? item.pulsesPerCycle
+        : null;
+      return {
+        ...item,
+        display: fractionDisplay(item.base, item.numerator, item.denominator, {
+          cycleIndex,
+          subdivisionIndex,
+          pulsesPerCycle
+        })
+      };
+    })
     .sort((a, b) => a.value - b.value);
   fractionalPulseSelections.forEach(item => selectedFractionKeys.add(item.key));
   applyFractionSelectionClasses();
@@ -807,8 +847,31 @@ function setFractionSelected(info, shouldSelect) {
   const value = Number.isFinite(info.value) ? info.value : fractionValue(base, numerator, denominator);
   if (!Number.isFinite(value)) return;
   if (shouldSelect) {
-    const display = info.display || fractionDisplay(base, numerator, denominator);
-    fractionalSelectionState.set(key, { base, numerator, denominator, value, display, key });
+    const cycleIndex = Number.isFinite(info.cycleIndex) && info.cycleIndex >= 0
+      ? Math.floor(info.cycleIndex)
+      : null;
+    const subdivisionIndex = Number.isFinite(info.subdivisionIndex) && info.subdivisionIndex >= 0
+      ? Math.floor(info.subdivisionIndex)
+      : null;
+    const pulsesPerCycle = Number.isFinite(info.pulsesPerCycle) && info.pulsesPerCycle > 0
+      ? info.pulsesPerCycle
+      : null;
+    const display = info.display || fractionDisplay(base, numerator, denominator, {
+      cycleIndex,
+      subdivisionIndex,
+      pulsesPerCycle
+    });
+    fractionalSelectionState.set(key, {
+      base,
+      numerator,
+      denominator,
+      value,
+      display,
+      key,
+      cycleIndex,
+      subdivisionIndex,
+      pulsesPerCycle
+    });
   } else {
     fractionalSelectionState.delete(key);
   }
@@ -2301,7 +2364,10 @@ function sanitizePulseSeq(opts = {}){
             denominator: denomValue,
             value,
             display: fractionDisplay(base, fracNumerator, denomValue),
-            key
+            key,
+            cycleIndex: null,
+            subdivisionIndex: null,
+            pulsesPerCycle: null
           });
         }
       } else {
@@ -2356,13 +2422,25 @@ function sanitizePulseSeq(opts = {}){
         if (!key) continue;
         if (!seenFractionKeys.has(key)) {
           seenFractionKeys.add(key);
+          const overrideCycleIndex = Number.isFinite(displayOverride?.cycleIndex) && displayOverride.cycleIndex >= 0
+            ? Math.floor(displayOverride.cycleIndex)
+            : null;
+          const overrideSubdivisionIndex = Number.isFinite(displayOverride?.subdivisionIndex) && displayOverride.subdivisionIndex >= 0
+            ? Math.floor(displayOverride.subdivisionIndex)
+            : null;
+          const overridePulsesPerCycle = Number.isFinite(displayOverride?.pulsesPerCycle) && displayOverride.pulsesPerCycle > 0
+            ? displayOverride.pulsesPerCycle
+            : null;
           fractions.push({
             base: normalizedBase,
             numerator: normalizedNumerator,
             denominator: denomValue,
             value,
             display: fractionDisplay(normalizedBase, normalizedNumerator, denomValue, displayOverride || undefined),
-            key
+            key,
+            cycleIndex: overrideCycleIndex,
+            subdivisionIndex: overrideSubdivisionIndex,
+            pulsesPerCycle: overridePulsesPerCycle
           });
         }
       }
@@ -2594,6 +2672,14 @@ function syncSelectedFromMemory() {
     if (!p) return;
     p.classList.toggle('selected', selectedPulses.has(idx));
   });
+  const lgIndex = pulses.length - 1;
+  pulseNumberLabels.forEach((label) => {
+    if (!label) return;
+    const idx = parseIntSafe(label.dataset.index);
+    if (!Number.isFinite(idx)) return;
+    const isEndpoint = idx === 0 || idx === lgIndex;
+    label.classList.toggle('selected', selectedPulses.has(idx) && !isEndpoint);
+  });
   applyFractionSelectionClasses();
   updatePulseSeqField();
 }
@@ -2764,6 +2850,9 @@ function renderTimeline() {
       marker.dataset.cycleIndex = String(cycleIndex);
       marker.dataset.subdivision = String(subdivisionIndex);
       marker.dataset.position = String(position);
+      if (Number.isFinite(numeratorPerCycle) && numeratorPerCycle > 0) {
+        marker.dataset.pulsesPerCycle = String(numeratorPerCycle);
+      }
       timeline.appendChild(marker);
       cycleMarkers.push(marker);
 
@@ -2808,12 +2897,17 @@ function renderTimeline() {
             const hit = document.createElement('div');
             hit.className = 'fraction-hit';
             hit.dataset.baseIndex = marker.dataset.baseIndex;
+            hit.dataset.cycleIndex = marker.dataset.cycleIndex;
+            hit.dataset.subdivision = marker.dataset.subdivision;
             hit.dataset.fractionNumerator = marker.dataset.fractionNumerator;
             hit.dataset.fractionDenominator = marker.dataset.fractionDenominator;
             hit.dataset.fractionKey = key;
             hit.dataset.selectionKey = `fraction:${key}`;
             hit.dataset.value = String(value);
             hit.dataset.display = display;
+            if (Number.isFinite(numeratorPerCycle) && numeratorPerCycle > 0) {
+              hit.dataset.pulsesPerCycle = String(numeratorPerCycle);
+            }
             hit.style.position = 'absolute';
             hit.style.borderRadius = '50%';
             hit.style.background = 'transparent';
