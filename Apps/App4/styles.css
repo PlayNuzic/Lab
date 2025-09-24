@@ -340,6 +340,15 @@ font-size: 0.9rem; /* Keep same font size */
  * Layout adjustments for timeline wrapper and controls on narrow screens.
  */
 @media (max-width: 600px) {
+body {
+  --pulse-offset-x: 40px;
+  --pulse-offset-y: -17px;
+  --selected-offset-x: -50px;
+  --selected-offset-y: -18px;
+  --cycle-offset-x: -140px;
+  --cycle-offset-y: -17px;
+}
+
 #pulseSeq {
 font-size: 1.7rem;
 gap: 8px;
@@ -355,16 +364,16 @@ gap: 14px;
 
 /* 2) Keep pulse sequence where it is — no changes needed to #pulseSeq */
 /* Compensate inputs shift so #pulseSeq stays in place */
-.middle { margin-top: 40px; }
+.middle { margin-top: 20px; }
 
-/* 3) Lower circular timeline by 90px */
+/* 3) Lower circular timeline by 50px */
 .timeline-wrapper.circular {
-margin-top: 90px !important; /* was 20px in shared styles */
+margin-top: 50px !important; /* was 20px in shared styles */
 }
 
 /* 4) Lower controls inside circular wrapper (40px via wrapper - 20px here) */
 .timeline-wrapper.circular > .controls {
-transform: translate(-50%, calc(-50% - 90px)) !important; /* was -40px */
+transform: translate(-50%, -50%) !important; /* was -40px */
 }
 
 /* 5) Lower unit label by 20px when shown on input focus */

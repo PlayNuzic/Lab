@@ -23,8 +23,10 @@ body.app3 {
     --control-toggle-size: clamp(56px, 30vw, 76px);
     --control-toggle-width: clamp(88px, 40vw, 120px);
     --control-toggle-gap: -28px;
-    --pulse-offset-x: -12px;
-    --cycle-offset-x: -6px;
+    --pulse-offset-x: -8px;
+    --pulse-offset-y: 40px;
+    --cycle-offset-x: -91px;
+    --cycle-offset-y: 40px;
   }
 
   body.app3 .control-sound-toggles {

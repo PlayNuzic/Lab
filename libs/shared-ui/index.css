@@ -8,7 +8,7 @@
  * @dep App1 palette baseline
  */
 :root {
---controls-offset-y: -25px;
+--controls-offset-y: 45px;
 --unit-label-offset: -40px;
 --bg-light: #EEE8D8;
 --bg-dark: #43433B;
@@ -530,7 +530,7 @@ position: relative;
 display: flex;
 justify-content: center;
 align-items: center;
-margin-top: calc(70px + var(--controls-offset-y));
+margin-top: var(--controls-offset-y);
 width: 200px;
 height: 200px;
 margin-left: auto;
@@ -561,6 +561,7 @@ margin-right: auto;
 @media (max-width: 600px) {
   .control-sound-toggles {
     top: 50%;
+    left: 80%;
     transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + 12px)));
     width: min(90vw, calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2));
   }
@@ -888,7 +889,7 @@ color: var(--text-dark);
 /* Responsive adjustments for circular inputs */
 @media (max-width: 600px) {
 :root {
-  --controls-offset-y: -30px;
+  --controls-offset-y: 36px;
   --topbar-side-gap: 48px; /* reserve space so title never sits under icons */
   --unit-label-offset: -22px;
 }
@@ -957,7 +958,7 @@ height: 28px;
 .controls {
 width: calc(var(--play-button-size) * 2.4);
 height: calc(var(--play-button-size) * 2.4);
-margin-top: calc(36px + var(--controls-offset-y));
+margin-top: calc(0px + var(--controls-offset-y));
 }
 
 .play {
@@ -984,27 +985,27 @@ font-size: 0.85rem;
 
 .loop {
 top: calc(50% + var(--play-button-size) * 0.75);
-left: calc(50% - var(--play-button-size) * 0.92);
+left: calc(73% - var(--play-button-size) * 0.92);
 }
 
 .random {
-top: calc(50% + var(--play-button-size) * 0.1);
-left: calc(50% - var(--play-button-size) * 1.18);
+top: calc(55% + var(--play-button-size) * 0.1);
+left: calc(65% - var(--play-button-size) * 1.18);
 }
 
 .reset {
-top: calc(50% + var(--play-button-size) * 0.1);
-left: calc(50% + var(--play-button-size) * 1.18);
+top: calc(55% + var(--play-button-size) * 0.1);
+left: calc(35% + var(--play-button-size) * 1.18);
 }
 
 .tap {
 top: calc(50% + var(--play-button-size) * 0.75);
-left: calc(50% + var(--play-button-size) * 0.92);
+left: calc(27% + var(--play-button-size) * 0.92);
 }
 
 .tap + .tap-help {
   top: calc(50% + var(--play-button-size) * 0.75 + 32px + 8px);
-  left: calc(50% + var(--play-button-size) * 0.92);
+  left: calc(29% + var(--play-button-size) * 0.92);
 }
 }
 
