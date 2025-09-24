@@ -2,11 +2,11 @@
 
 body {
   --unit-label-offset: -20px;
-  --pulse-offset-x: -75px;
+  --pulse-offset-x: 0px;
   --pulse-offset-y: 0px;
-  --selected-offset-x: -220px;
+  --selected-offset-x: -145px;
   --selected-offset-y: -2px;
-  --cycle-offset-x: -365px;
+  --cycle-offset-x: -290px;
   --cycle-offset-y: 0px;
 }
 
@@ -372,12 +372,6 @@ transform: translate(-50%, calc(-50% - 90px)) !important; /* was -40px */
   top: calc(var(--unit-label-offset, -20px) - 1.8rem);
   }
 
-body {
-  --unit-label-offset: -20px;
-  --pulse-offset-x: -18px;
-  --selected-offset-x: -142px;
-  --cycle-offset-x: -266px;
-}
 
 .fraction-editor-wrapper {
   transform: scale(0.9);

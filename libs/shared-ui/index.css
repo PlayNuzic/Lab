@@ -545,8 +545,8 @@ margin-right: auto;
 
 .control-sound-toggles {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 59%;
+  left: 122%;
   transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-overlap))));
   width: calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2);
   height: var(--control-toggle-size);
