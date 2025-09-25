@@ -1214,7 +1214,7 @@ function updatePulseSeqVisualLayer(text) {
   if (!pulseSeqVisualEl) return;
   const normalized = typeof text === 'string' ? text : '';
   const fragment = document.createDocumentFragment();
-  const tokenRegex = /(\d+\.\d+|\.\d+|\d+)/g;
+  const tokenRegex = /\d+\.\d+|\.\d+|\d+/g;
   let lastIndex = 0;
   normalized.replace(tokenRegex, (match, offset) => {
     if (offset > lastIndex) {
@@ -2395,7 +2395,7 @@ function sanitizePulseSeq(opts = {}){
     return r.startOffset;
   })();
   const text = getPulseSeqText();
-  const tokenRegex = /(\d+\.\d+|\.\d+|\d+)/g;
+  const tokenRegex = /\d+\.\d+|\.\d+|\d+/g;
   const tokens = [];
   let match;
   while ((match = tokenRegex.exec(text)) !== null) {

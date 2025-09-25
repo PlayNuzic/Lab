@@ -307,9 +307,6 @@ position: relative;
   caret-color: var(--pulse-seq-caret-color, var(--line-color));
   min-height: 1.2em;
 }
-#pulseSeq .edit:focus {
-  color: inherit;
-}
 #pulseSeq .edit.playing { caret-color: transparent; }
 #pulseSeq .edit-display {
   position: absolute;
@@ -326,9 +323,6 @@ position: relative;
   min-height: 100%;
   min-width: 100%;
   transition: opacity 0.2s ease;
-}
-#pulseSeq .edit:focus + .edit-display {
-  opacity: 0;
 }
 #pulseSeq .edit-display .pulse-seq-token {
   display: inline-block;
