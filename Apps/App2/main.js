@@ -914,7 +914,7 @@ function buildTitleInfoContent() {
   } else {
     const hint = document.createElement('p');
     hint.className = 'top-bar-info-tip__hint';
-    hint.textContent = 'Completa V o T junto con Lg para calcular la velocidad base.';
+    hint.textContent = 'Completa V y Lg para calcular la velocidad base.';
     fragment.append(hint);
   }
 
