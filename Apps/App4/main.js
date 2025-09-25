@@ -636,6 +636,7 @@ let pulseSeqRanges = {};
 let fractionalPulseSelections = [];
 let pulseSeqFractionNumeratorEl = null;
 let pulseSeqFractionDenominatorEl = null;
+let pulseSeqVisualEl = null;
 let lastFractionGap = null;
 let currentAudioResolution = 1;
 const FRACTION_POSITION_EPSILON = 1e-6;
@@ -831,6 +832,7 @@ function getFractionInfoFromElement(el) {
       : undefined
   };
   const display = el.dataset.display || fractionDisplay(base, numerator, denominator, override);
+  const rawLabel = typeof el.dataset.rawLabel === 'string' ? el.dataset.rawLabel : null;
   return {
     type: 'fraction',
     base,
@@ -839,6 +841,7 @@ function getFractionInfoFromElement(el) {
     key,
     value,
     display,
+    rawLabel,
     cycleIndex: Number.isFinite(rawCycleIndex) ? rawCycleIndex : null,
     subdivisionIndex: Number.isFinite(rawSubdivisionIndex) ? rawSubdivisionIndex : null,
     pulsesPerCycle: Number.isFinite(rawPulsesPerCycle) && rawPulsesPerCycle > 0 ? rawPulsesPerCycle : null
@@ -866,8 +869,10 @@ function rebuildFractionSelections(opts = {}) {
       const pulsesPerCycle = Number.isFinite(item?.pulsesPerCycle) && item.pulsesPerCycle > 0
         ? item.pulsesPerCycle
         : null;
+      const rawLabel = typeof item?.rawLabel === 'string' ? item.rawLabel.trim() : '';
       return {
         ...item,
+        rawLabel,
         display: fractionDisplay(item.base, item.numerator, item.denominator, {
           cycleIndex,
           subdivisionIndex,
@@ -898,6 +903,7 @@ function setFractionSelected(info, shouldSelect) {
     const pulsesPerCycle = Number.isFinite(info.pulsesPerCycle) && info.pulsesPerCycle > 0
       ? info.pulsesPerCycle
       : null;
+    const rawLabel = typeof info.rawLabel === 'string' ? info.rawLabel.trim() : '';
     const display = info.display || fractionDisplay(base, numerator, denominator, {
       cycleIndex,
       subdivisionIndex,
@@ -912,7 +918,8 @@ function setFractionSelected(info, shouldSelect) {
       key,
       cycleIndex,
       subdivisionIndex,
-      pulsesPerCycle
+      pulsesPerCycle,
+      rawLabel
     });
   } else {
     fractionalSelectionState.delete(key);
@@ -1136,17 +1143,25 @@ function setupPulseSeqMarkup(){
   const spacer = mk('spacer', ' ');
   const openParen = mk('open', '(');
   const zero = mk('zero', '0');
+  const editWrapper = mk('edit-wrapper', null);
   const edit = (() => {
     const e = mk('edit', initial);
     e.contentEditable = 'true';
     return e;
   })();
+  editWrapper.append(edit);
+  pulseSeqVisualEl = document.createElement('span');
+  pulseSeqVisualEl.className = 'pz edit-display';
+  pulseSeqVisualEl.setAttribute('aria-hidden', 'true');
+  editWrapper.append(pulseSeqVisualEl);
   const suffix = mk('suffix', ')');
   const suffixSpacer = mk('suffix-spacer', ' ');
   const lgLabel = mk('lg', '');
 
-  pulseSeqEl.append(prefix, fractionWrapper, spacer, openParen, zero, edit, suffix, suffixSpacer, lgLabel);
+  pulseSeqEl.append(prefix, fractionWrapper, spacer, openParen, zero, editWrapper, suffix, suffixSpacer, lgLabel);
   updatePulseSeqFractionDisplay(null, null);
+  updatePulseSeqVisualLayer(initial);
+  edit.addEventListener('input', () => updatePulseSeqVisualLayer(getPulseSeqText()));
 }
 setupPulseSeqMarkup();
 initFractionEditor();
@@ -1173,7 +1188,9 @@ function getPulseSeqText(){
 function setPulseSeqText(str){
   const el = getEditEl();
   if(!el) return;
-  el.textContent = String(str);
+  const value = String(str);
+  el.textContent = value;
+  updatePulseSeqVisualLayer(value);
 }
 function setPulseSeqSelection(start, end){
   const el = getEditEl();
@@ -1191,6 +1208,35 @@ function setPulseSeqSelection(start, end){
     sel.removeAllRanges();
     sel.addRange(range);
   }catch{}
+}
+
+function updatePulseSeqVisualLayer(text) {
+  if (!pulseSeqVisualEl) return;
+  const normalized = typeof text === 'string' ? text : '';
+  const fragment = document.createDocumentFragment();
+  const tokenRegex = /(\d+\.\d+|\.\d+|\d+)/g;
+  let lastIndex = 0;
+  normalized.replace(tokenRegex, (match, offset) => {
+    if (offset > lastIndex) {
+      fragment.append(document.createTextNode(normalized.slice(lastIndex, offset)));
+    }
+    const span = document.createElement('span');
+    span.className = 'pulse-seq-token';
+    if (match.includes('.')) {
+      span.classList.add('pulse-seq-token--fraction');
+    } else {
+      span.classList.add('pulse-seq-token--integer');
+    }
+    span.textContent = match;
+    fragment.append(span);
+    lastIndex = offset + match.length;
+    return match;
+  });
+  if (lastIndex < normalized.length) {
+    fragment.append(document.createTextNode(normalized.slice(lastIndex)));
+  }
+  pulseSeqVisualEl.textContent = '';
+  pulseSeqVisualEl.append(fragment);
 }
 
 function updatePulseSeqFractionDisplay(numerator, denominator) {
@@ -2375,6 +2421,7 @@ function sanitizePulseSeq(opts = {}){
 
   for (const token of tokens) {
     const raw = token.raw;
+    const normalizedRaw = typeof raw === 'string' ? raw.trim() : '';
     if (raw.includes('.')) {
       let matchedFraction = null;
       if (raw.startsWith('.')) {
@@ -2398,7 +2445,7 @@ function sanitizePulseSeq(opts = {}){
         if (matchedFraction && matchedFraction.key) {
           if (!seenFractionKeys.has(matchedFraction.key)) {
             seenFractionKeys.add(matchedFraction.key);
-            fractions.push({
+            const entry = {
               base: matchedFraction.base,
               numerator: matchedFraction.numerator,
               denominator: matchedFraction.denominator,
@@ -2407,8 +2454,13 @@ function sanitizePulseSeq(opts = {}){
               key: matchedFraction.key,
               cycleIndex: matchedFraction.cycleIndex,
               subdivisionIndex: matchedFraction.subdivisionIndex,
-              pulsesPerCycle: matchedFraction.pulsesPerCycle
-            });
+              pulsesPerCycle: matchedFraction.pulsesPerCycle,
+              rawLabel: normalizedRaw || (typeof matchedFraction.rawLabel === 'string' ? matchedFraction.rawLabel : '')
+            };
+            fractions.push(entry);
+            if (entry.rawLabel) {
+              registerFractionLabel(entry.rawLabel, entry);
+            }
           }
           continue;
         }
@@ -2420,7 +2472,7 @@ function sanitizePulseSeq(opts = {}){
         if (!key) continue;
         if (!seenFractionKeys.has(key)) {
           seenFractionKeys.add(key);
-          fractions.push({
+          const entry = {
             base,
             numerator: fracNumerator,
             denominator: denomValue,
@@ -2429,8 +2481,13 @@ function sanitizePulseSeq(opts = {}){
             key,
             cycleIndex: null,
             subdivisionIndex: null,
-            pulsesPerCycle: null
-          });
+            pulsesPerCycle: null,
+            rawLabel: normalizedRaw
+          };
+          fractions.push(entry);
+          if (entry.rawLabel) {
+            registerFractionLabel(entry.rawLabel, entry);
+          }
         }
       } else {
         const [intPart, fractionDigitsRaw] = raw.split('.', 2);
@@ -2486,7 +2543,7 @@ function sanitizePulseSeq(opts = {}){
         if (!seenFractionKeys.has(key)) {
           if (matchedFraction && matchedFraction.key === key) {
             seenFractionKeys.add(key);
-            fractions.push({
+            const entry = {
               base: matchedFraction.base,
               numerator: matchedFraction.numerator,
               denominator: matchedFraction.denominator,
@@ -2495,8 +2552,13 @@ function sanitizePulseSeq(opts = {}){
               key: matchedFraction.key,
               cycleIndex: matchedFraction.cycleIndex,
               subdivisionIndex: matchedFraction.subdivisionIndex,
-              pulsesPerCycle: matchedFraction.pulsesPerCycle
-            });
+              pulsesPerCycle: matchedFraction.pulsesPerCycle,
+              rawLabel: normalizedRaw || (typeof matchedFraction.rawLabel === 'string' ? matchedFraction.rawLabel : '')
+            };
+            fractions.push(entry);
+            if (entry.rawLabel) {
+              registerFractionLabel(entry.rawLabel, entry);
+            }
             continue;
           }
           seenFractionKeys.add(key);
@@ -2509,7 +2571,7 @@ function sanitizePulseSeq(opts = {}){
           const overridePulsesPerCycle = Number.isFinite(displayOverride?.pulsesPerCycle) && displayOverride.pulsesPerCycle > 0
             ? displayOverride.pulsesPerCycle
             : null;
-          fractions.push({
+          const entry = {
             base: normalizedBase,
             numerator: normalizedNumerator,
             denominator: denomValue,
@@ -2518,8 +2580,13 @@ function sanitizePulseSeq(opts = {}){
             key,
             cycleIndex: overrideCycleIndex,
             subdivisionIndex: overrideSubdivisionIndex,
-            pulsesPerCycle: overridePulsesPerCycle
-          });
+            pulsesPerCycle: overridePulsesPerCycle,
+            rawLabel: normalizedRaw
+          };
+          fractions.push(entry);
+          if (entry.rawLabel) {
+            registerFractionLabel(entry.rawLabel, entry);
+          }
         }
       }
     } else {
@@ -2557,7 +2624,11 @@ function sanitizePulseSeq(opts = {}){
   } else {
     const combined = [
       ...ints.map(n => ({ value: n, display: String(n), key: String(n) })),
-      ...fractions.map(f => ({ value: f.value, display: f.display, key: f.key }))
+      ...fractions.map(f => {
+        const rawLabel = typeof f.rawLabel === 'string' ? f.rawLabel : '';
+        const preferred = rawLabel ? rawLabel : f.display;
+        return { value: f.value, display: preferred, key: f.key };
+      })
     ].sort((a, b) => a.value - b.value);
     pulseSeqRanges = {};
     let pos = 0;
@@ -2705,10 +2776,13 @@ function updatePulseSeqField(){
     .filter(item => item && Number.isFinite(item.value))
     .filter(item => item.value > 0 && item.value < lg);
   validFractionals.forEach(item => {
+    const normalizedRaw = typeof item.rawLabel === 'string' ? item.rawLabel.trim() : '';
+    const preferredDisplay = normalizedRaw ? normalizedRaw : item.display;
     entries.push({
       type: 'fraction',
       value: item.value,
-      display: item.display,
+      display: preferredDisplay,
+      rawLabel: normalizedRaw,
       key: item.key
     });
   });
@@ -3001,6 +3075,14 @@ function renderTimeline() {
             cycleMarkerHits.push(hit);
             fractionHitMap.set(key, hit);
 
+            const storedSelection = fractionalSelectionState.get(key);
+            const storedRawLabel = typeof storedSelection?.rawLabel === 'string'
+              ? storedSelection.rawLabel.trim()
+              : '';
+            if (storedRawLabel) {
+              marker.dataset.rawLabel = storedRawLabel;
+              hit.dataset.rawLabel = storedRawLabel;
+            }
             const labelInfo = {
               key,
               base: baseIndex,
@@ -3010,9 +3092,13 @@ function renderTimeline() {
               display,
               cycleIndex,
               subdivisionIndex,
-              pulsesPerCycle: numeratorPerCycle
+              pulsesPerCycle: numeratorPerCycle,
+              rawLabel: storedRawLabel
             };
             registerFractionLabel(display, labelInfo);
+            if (storedRawLabel) {
+              registerFractionLabel(storedRawLabel, labelInfo);
+            }
             if (Number.isFinite(cycleIndex) && Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0) {
               registerFractionLabel(`${cycleIndex}.${subdivisionIndex}`, labelInfo);
             }
