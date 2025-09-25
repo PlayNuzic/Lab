@@ -254,7 +254,7 @@ width: fit-content;
 max-width: 100%;
 box-sizing: border-box;
 padding: 0 20px;
-margin: 0 auto;
+margin: 20px auto;
 overflow-x: auto;
 position: relative;
 }
