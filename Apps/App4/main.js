@@ -1216,6 +1216,14 @@ function setPulseSeqSelection(start, end){
   }catch{}
 }
 
+function normalizePulseSeqEditGaps(text) {
+  if (typeof text !== 'string') return '  ';
+  const trimmed = text.trim();
+  if (!trimmed) return '  ';
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  return tokens.length ? `  ${tokens.join('  ')}  ` : '  ';
+}
+
 function updatePulseSeqVisualLayer(text) {
   if (!pulseSeqVisualEl) return;
   const normalized = typeof text === 'string' ? text : '';
@@ -1966,6 +1974,27 @@ getEditEl()?.addEventListener('keydown', (e) => {
     e.preventDefault();
     return;
   }
+  if (e.key === ' ') {
+    e.preventDefault();
+    const el = getEditEl(); if (!el) return; const node = el.firstChild || el; let text = node.textContent || '';
+    const sel = window.getSelection && window.getSelection(); if(!sel||sel.rangeCount===0) return; const rng = sel.getRangeAt(0); if(!el.contains(rng.startContainer)) return;
+    const pos = Math.max(0, Math.min(rng.startOffset, text.length));
+    const left = text.slice(0, pos);
+    const right = text.slice(pos);
+    const out = left + '  ' + right;
+    const normalizedOut = normalizePulseSeqEditGaps(out);
+    node.textContent = normalizedOut;
+    updatePulseSeqVisualLayer(normalizedOut);
+    const mids = getMidpoints(normalizedOut);
+    if (mids.length) {
+      const target = mids.find(m => m >= pos + 1) ?? mids[mids.length - 1];
+      setPulseSeqSelection(target, target);
+      try { moveCaretToNearestMidpoint(); } catch {}
+    } else {
+      setPulseSeqSelection(0, 0);
+    }
+    return;
+  }
   if (e.key === 'Backspace') {
     // Borrar con una pulsación el número a la izquierda + un espacio
     e.preventDefault();
@@ -1992,10 +2021,12 @@ getEditEl()?.addEventListener('keydown', (e) => {
     const left = text.slice(0,startNum);
     const right = text.slice(pos+1); // saltar un espacio (el derecho del midpoint)
     const out = (left + '  ' + right);
-    node.textContent = out;
-    // Colocamos caret en el nuevo midpoint
-    const caret = left.length + 1; // centro de '  '
+    const normalizedOut = normalizePulseSeqEditGaps(out);
+    node.textContent = normalizedOut;
+    updatePulseSeqVisualLayer(normalizedOut);
+    const caret = Math.min(normalizedOut.length, left.length + 1);
     setPulseSeqSelection(caret, caret);
+    try { moveCaretToNearestMidpoint(); } catch {}
     return;
   }
   if (e.key === 'Delete') {
@@ -2034,8 +2065,13 @@ getEditEl()?.addEventListener('keydown', (e) => {
     let s=0; while(end+s<text.length && text[end+s]===' ') s++;
     const left = text.slice(0, pos-1); // elimina el espacio izquierdo del midpoint
     const right = text.slice(end + Math.min(s,2));
-    node.textContent = left + '  ' + right;
-    const caret = left.length + 1; setPulseSeqSelection(caret, caret);
+    const out = left + '  ' + right;
+    const normalizedOut = normalizePulseSeqEditGaps(out);
+    node.textContent = normalizedOut;
+    updatePulseSeqVisualLayer(normalizedOut);
+    const caret = Math.min(normalizedOut.length, left.length + 1);
+    setPulseSeqSelection(caret, caret);
+    try { moveCaretToNearestMidpoint(); } catch {}
     return;
   }
 });
@@ -2046,7 +2082,14 @@ getEditEl()?.addEventListener('mouseup', ()=> setTimeout(moveCaretToNearestMidpo
 getEditEl()?.addEventListener('focus', ()=> setTimeout(()=>{
   const el = getEditEl(); if(!el) return;
   const node = el.firstChild || el; let text = node.textContent || '';
-  if(text.length === 0){ text = '  '; node.textContent = text; }
+  if(text.length === 0){
+    text = '  ';
+  } else {
+    const normalized = normalizePulseSeqEditGaps(text);
+    if (normalized !== text) text = normalized;
+  }
+  node.textContent = text;
+  updatePulseSeqVisualLayer(text);
   moveCaretToNearestMidpoint();
 },0));
 
