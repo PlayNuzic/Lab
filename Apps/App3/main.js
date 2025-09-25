@@ -117,6 +117,18 @@ const cycleSoundSelect = document.getElementById('cycleSoundSelect');
 const themeSelect = document.getElementById('themeSelect');
 const pulseToggleBtn = document.getElementById('pulseToggleBtn');
 const cycleToggleBtn = document.getElementById('cycleToggleBtn');
+const inputT = document.getElementById('inputT');
+const titleHeading = document.querySelector('header.top-bar h1');
+let titleButton = null;
+if (titleHeading) {
+  titleButton = document.createElement('button');
+  titleButton.type = 'button';
+  titleButton.id = 'appTitleBtn';
+  titleButton.className = 'top-bar-title-button';
+  titleButton.textContent = titleHeading.textContent || '';
+  titleHeading.textContent = '';
+  titleHeading.appendChild(titleButton);
+}
 
 const globalMixer = getMixer();
 if (globalMixer) {
@@ -297,6 +309,32 @@ function parseIntSafe(val) {
 function parseFloatSafe(val) {
   const n = Number.parseFloat(val);
   return Number.isFinite(n) ? n : NaN;
+}
+
+function formatInteger(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  return Math.round(numeric).toLocaleString('ca-ES');
+}
+
+function formatNumberValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  const rounded = Math.round(numeric * 100) / 100;
+  return rounded.toLocaleString('ca-ES', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+}
+
+function formatBpmValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  const rounded = Math.round(numeric * 10) / 10;
+  return rounded.toLocaleString('ca-ES', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1
+  });
 }
 
 function createEmptyFractionInfo() {
@@ -654,6 +692,162 @@ function getFraction() {
     numerator: Number.isFinite(n) && n > 0 ? n : null,
     denominator: Number.isFinite(d) && d > 0 ? d : null
   };
+}
+
+let titleInfoTipEl = null;
+
+function ensureTitleInfoTip() {
+  if (titleInfoTipEl) return titleInfoTipEl;
+  const tip = document.createElement('div');
+  tip.className = 'hover-tip auto-tip-below top-bar-info-tip';
+  document.body.appendChild(tip);
+  titleInfoTipEl = tip;
+  return tip;
+}
+
+function hideTitleInfoTip() {
+  if (titleInfoTipEl) {
+    titleInfoTipEl.classList.remove('show');
+  }
+}
+
+function showTitleInfoTip(contentFragment, anchor) {
+  if (!anchor) return;
+  const tip = ensureTitleInfoTip();
+  if (contentFragment) {
+    tip.replaceChildren(contentFragment);
+  }
+  const rect = anchor.getBoundingClientRect();
+  tip.style.left = rect.left + rect.width / 2 + 'px';
+  tip.style.top = rect.bottom + window.scrollY + 'px';
+  tip.classList.add('show');
+}
+
+function buildTitleInfoContent() {
+  const fragment = document.createDocumentFragment();
+
+  const lgValue = getLg();
+  const hasLg = Number.isFinite(lgValue) && lgValue > 0;
+  const { numerator, denominator } = getFraction();
+  const hasNumerator = Number.isFinite(numerator) && numerator > 0;
+  const hasDenominator = Number.isFinite(denominator) && denominator > 0;
+  const hasFraction = hasNumerator && hasDenominator;
+
+  if (hasLg) {
+    const lgLine = document.createElement('p');
+    lgLine.className = 'top-bar-info-tip__line';
+    const lgLabel = document.createElement('strong');
+    lgLabel.textContent = 'Pulsos enteros (Lg):';
+    lgLine.append(lgLabel, ' ', formatInteger(lgValue));
+    fragment.append(lgLine);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Define una Lg válida para obtener las fórmulas.';
+    fragment.append(hint);
+  }
+
+  const tempoValue = getV();
+  const hasTempo = Number.isFinite(tempoValue) && tempoValue > 0;
+  const tValue = inputT ? parseFloatSafe(inputT.value) : NaN;
+  const hasT = Number.isFinite(tValue) && tValue > 0;
+  const derivedTFromTempo = hasLg && hasTempo ? (lgValue * 60) / tempoValue : null;
+  const tempoFromT = hasLg && hasT ? (lgValue / tValue) * 60 : null;
+  const effectiveTempo = hasTempo ? tempoValue : tempoFromT;
+  const tForBaseFormula = hasT ? tValue : derivedTFromTempo;
+
+  if (effectiveTempo != null && hasLg && tForBaseFormula != null) {
+    const baseFormulaLine = document.createElement('p');
+    baseFormulaLine.className = 'top-bar-info-tip__line';
+    const baseLabel = document.createElement('strong');
+    baseLabel.textContent = 'V base';
+    baseFormulaLine.append(
+      baseLabel,
+      ` = (${formatInteger(lgValue)} / ${formatNumberValue(tForBaseFormula)})·60 = ${formatBpmValue(effectiveTempo)} BPM`
+    );
+    fragment.append(baseFormulaLine);
+  } else if (hasTempo) {
+    const baseLine = document.createElement('p');
+    baseLine.className = 'top-bar-info-tip__line';
+    const baseLabel = document.createElement('strong');
+    baseLabel.textContent = 'V base:';
+    baseLine.append(baseLabel, ' ', `${formatBpmValue(tempoValue)} BPM`);
+    fragment.append(baseLine);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Completa Lg y V para calcular la velocidad base.';
+    fragment.append(hint);
+  }
+
+  if (hasLg && hasFraction) {
+    const fractionalLg = (lgValue * denominator) / numerator;
+    const pfrLine = document.createElement('p');
+    pfrLine.className = 'top-bar-info-tip__line';
+    const pfrLabel = document.createElement('strong');
+    pfrLabel.textContent = 'Pfr (Lg·d/n)';
+    const pfrFormula = ` = (${formatInteger(lgValue)}·${formatInteger(denominator)})/${formatInteger(numerator)} = ${formatNumberValue(fractionalLg)}`;
+    pfrLine.append(pfrLabel, pfrFormula);
+    fragment.append(pfrLine);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Completa n y d para calcular los pulsos fraccionados.';
+    fragment.append(hint);
+  }
+
+  if (effectiveTempo != null && hasFraction) {
+    const fractionTempo = effectiveTempo * (denominator / numerator);
+    const fractionFormulaLine = document.createElement('p');
+    fractionFormulaLine.className = 'top-bar-info-tip__line';
+    const fractionLabel = document.createElement('strong');
+    fractionLabel.textContent = `V ${numerator}/${denominator}`;
+    const fractionFormula = ` = (${formatBpmValue(effectiveTempo)}·${formatInteger(denominator)})/${formatInteger(numerator)} = ${formatBpmValue(fractionTempo)} BPM`;
+    fractionFormulaLine.append(fractionLabel, fractionFormula);
+    fragment.append(fractionFormulaLine);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Introduce V, n y d para obtener la velocidad de la fracción.';
+    fragment.append(hint);
+  }
+
+  if (hasLg && hasTempo && derivedTFromTempo != null) {
+    const tFormulaLine = document.createElement('p');
+    tFormulaLine.className = 'top-bar-info-tip__line';
+    const tFormulaLabel = document.createElement('strong');
+    tFormulaLabel.textContent = 'T';
+    tFormulaLine.append(
+      tFormulaLabel,
+      ` = (${formatInteger(lgValue)} / ${formatBpmValue(tempoValue)})·60 = ${formatNumberValue(derivedTFromTempo)} s`
+    );
+    fragment.append(tFormulaLine);
+  } else if (hasT) {
+    const tLine = document.createElement('p');
+    tLine.className = 'top-bar-info-tip__line';
+    const tLabel = document.createElement('strong');
+    tLabel.textContent = 'T:';
+    tLine.append(tLabel, ' ', `${formatNumberValue(tValue)} s`);
+    fragment.append(tLine);
+  }
+
+  return fragment;
+}
+
+if (titleButton) {
+  titleButton.addEventListener('click', () => {
+    const content = buildTitleInfoContent();
+    if (!content) return;
+    showTitleInfoTip(content, titleButton);
+  });
+  titleButton.addEventListener('blur', hideTitleInfoTip);
+  titleButton.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' || event.key === 'Esc') {
+      hideTitleInfoTip();
+    }
+  });
+  window.addEventListener('scroll', hideTitleInfoTip, { passive: true });
+  window.addEventListener('resize', hideTitleInfoTip);
 }
 
 function updateTIndicatorText(value) {
