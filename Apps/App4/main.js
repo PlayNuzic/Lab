@@ -3739,11 +3739,15 @@ async function startPlayback(providedAudio) {
   }
 
   const selectionValuesForAudio = selectionForAudio.audio ?? selectionForAudio.combined;
+  const selectionPayload = {
+    values: selectionValuesForAudio,
+    resolution: selectionForAudio.resolution
+  };
 
   audioInstance.play(
     scheduling.totalPulses,
     scheduling.interval,
-    selectionValuesForAudio,
+    selectionPayload,
     loopEnabled,
     highlightPulse,
     onFinish,

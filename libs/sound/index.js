@@ -861,7 +861,29 @@ export class TimelineAudio {
     this.totalRef = Math.max(1, +totalPulses || 1);
     this.intervalRef = Math.max(1e-6, +intervalSec || 0.5);
     this.loopRef = !!loop;
-    this.selectedRef = toSet(selectedPulses);
+    let selectionValues = selectedPulses;
+    let selectionResolution = this._selectedResolution || 1;
+    const isIterableSet = (candidate) => Array.isArray(candidate) || candidate instanceof Set;
+    if (selectedPulses && typeof selectedPulses === 'object' && !(selectedPulses instanceof Set) && !Array.isArray(selectedPulses)) {
+      const {
+        values: providedValues,
+        indices: providedIndices,
+        steps,
+        resolution: providedResolution
+      } = selectedPulses;
+      if (isIterableSet(providedValues)) {
+        selectionValues = providedValues;
+      } else if (isIterableSet(providedIndices)) {
+        selectionValues = providedIndices;
+      } else if (isIterableSet(steps)) {
+        selectionValues = steps;
+      }
+      if (Number.isFinite(providedResolution) && providedResolution > 0) {
+        selectionResolution = Math.max(1, Math.round(providedResolution));
+      }
+    }
+    this.selectedRef = toSet(selectionValues);
+    this._selectedResolution = selectionResolution;
     this._onPulseRef = (typeof onPulse === 'function') ? onPulse : null;
     this.onCompleteRef = (typeof onComplete === 'function') ? onComplete : null;
     this._pulseCounter = -1;
@@ -920,6 +942,7 @@ export class TimelineAudio {
     this.isPlaying = true;
     this.resetTapTempo();
     this._pendingTempo = null;
+    this._adaptSchedulerInterval();
   }
 
   stop() {
