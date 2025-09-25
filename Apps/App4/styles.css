@@ -307,7 +307,13 @@ position: relative;
   caret-color: var(--pulse-seq-caret-color, var(--line-color));
   min-height: 1.2em;
 }
+#pulseSeq.editing .edit {
+  color: inherit;
+}
 #pulseSeq .edit.playing { caret-color: transparent; }
+#pulseSeq.editing .edit-display {
+  opacity: 0;
+}
 #pulseSeq .edit-display {
   position: absolute;
   inset: 0;

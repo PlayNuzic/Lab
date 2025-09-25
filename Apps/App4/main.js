@@ -1149,6 +1149,12 @@ function setupPulseSeqMarkup(){
     e.contentEditable = 'true';
     return e;
   })();
+  edit.addEventListener('focus', () => {
+    pulseSeqEl.classList.add('editing');
+  });
+  edit.addEventListener('blur', () => {
+    pulseSeqEl.classList.remove('editing');
+  });
   editWrapper.append(edit);
   pulseSeqVisualEl = document.createElement('span');
   pulseSeqVisualEl.className = 'pz edit-display';
@@ -2509,27 +2515,49 @@ function sanitizePulseSeq(opts = {}){
         let value = intVal + subdivisionIndex / denomValue;
         let displayOverride = null;
         if (Number.isFinite(numeratorValue) && numeratorValue > 0) {
-          const totalCycles = Number.isFinite(lg) && lg > 0 && numeratorValue > 0
-            ? Math.ceil(lg / numeratorValue)
+          const cycleCapacity = Number.isFinite(lg) && lg > 0
+            ? Math.floor(lg / numeratorValue)
             : null;
           const mapping = cycleNotationToFraction(intVal, subdivisionIndex, numeratorValue, denomValue);
-          const canUseCycleNotation = Boolean(
-            mapping &&
-            Number.isFinite(mapping.value) &&
-            (!Number.isFinite(lg) || mapping.value < lg) &&
-            Number.isFinite(totalCycles) &&
-            totalCycles > 0 &&
-            intVal < totalCycles
-          );
-          if (canUseCycleNotation) {
-            normalizedBase = mapping.base;
-            normalizedNumerator = mapping.numerator;
-            value = mapping.value;
-            displayOverride = {
-              cycleIndex: intVal,
-              subdivisionIndex,
-              pulsesPerCycle: numeratorValue
-            };
+          if (mapping) {
+            let canonicalBase = Number.isFinite(mapping.base)
+              ? Math.floor(mapping.base + FRACTION_POSITION_EPSILON)
+              : null;
+            let canonicalNumerator = Number.isFinite(mapping.numerator)
+              ? Math.round(mapping.numerator)
+              : null;
+            if (Number.isFinite(canonicalNumerator) && canonicalNumerator >= denomValue) {
+              const carry = Math.floor(canonicalNumerator / denomValue);
+              canonicalNumerator -= carry * denomValue;
+              if (Number.isFinite(canonicalBase)) {
+                canonicalBase += carry;
+              }
+            }
+            const numeratorValid = Number.isFinite(canonicalNumerator) && canonicalNumerator > 0 && canonicalNumerator < denomValue;
+            const baseValid = Number.isFinite(canonicalBase);
+            const canonicalValue = baseValid && numeratorValid
+              ? fractionValue(canonicalBase, canonicalNumerator, denomValue)
+              : NaN;
+            const withinLg = Number.isFinite(canonicalValue)
+              ? (!Number.isFinite(lg) || canonicalValue < lg - FRACTION_POSITION_EPSILON)
+              : false;
+            const cycleBase = Number.isFinite(numeratorValue) ? intVal * numeratorValue : NaN;
+            const cycleOriginValid = Number.isFinite(cycleBase)
+              ? (!Number.isFinite(lg) || cycleBase < lg)
+              : true;
+            const withinCapacity = Number.isFinite(cycleCapacity)
+              ? (cycleCapacity > 0 && intVal < cycleCapacity)
+              : true;
+            if (baseValid && numeratorValid && Number.isFinite(canonicalValue) && withinLg && cycleOriginValid && withinCapacity) {
+              normalizedBase = canonicalBase;
+              normalizedNumerator = canonicalNumerator;
+              value = canonicalValue;
+              displayOverride = {
+                cycleIndex: intVal,
+                subdivisionIndex,
+                pulsesPerCycle: numeratorValue
+              };
+            }
           }
         }
         if (!Number.isFinite(value)) continue;
@@ -3098,6 +3126,18 @@ function renderTimeline() {
             registerFractionLabel(display, labelInfo);
             if (storedRawLabel) {
               registerFractionLabel(storedRawLabel, labelInfo);
+            }
+            const cycleLabel = Number.isFinite(cycleIndex) && cycleIndex >= 0
+              ? `${Math.floor(cycleIndex)}.${subdivisionIndex}`
+              : null;
+            if (cycleLabel) {
+              registerFractionLabel(cycleLabel, labelInfo);
+            }
+            const absoluteLabel = Number.isFinite(labelInfo.base) && Number.isFinite(labelInfo.numerator)
+              ? `${labelInfo.base}.${labelInfo.numerator}`
+              : null;
+            if (absoluteLabel) {
+              registerFractionLabel(absoluteLabel, labelInfo);
             }
             if (Number.isFinite(cycleIndex) && Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0) {
               registerFractionLabel(`${cycleIndex}.${subdivisionIndex}`, labelInfo);
