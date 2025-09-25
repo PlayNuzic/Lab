@@ -1864,6 +1864,86 @@ function randomize() {
       syncSelectedFromMemory();
       updatePulseNumbers();
       layoutTimeline({ silent: true });
+
+      const fractionOptions = [];
+      fractionHitMap.forEach((el, key) => {
+        if (!el || !key) return;
+        const base = parseIntSafe(el.dataset.baseIndex);
+        const numerator = parseIntSafe(el.dataset.fractionNumerator);
+        const denominator = parseIntSafe(el.dataset.fractionDenominator);
+        const value = Number.parseFloat(el.dataset.value);
+        if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) return;
+        if (!Number.isFinite(value) || value <= 0 || value >= lg) return;
+        if (nearestPulseIndex(value) != null) return;
+        const cycleIndex = parseIntSafe(el.dataset.cycleIndex);
+        const subdivisionIndex = parseIntSafe(el.dataset.subdivision);
+        const pulsesPerCycle = parseIntSafe(el.dataset.pulsesPerCycle);
+        const rawLabel = typeof el.dataset.rawLabel === 'string' ? el.dataset.rawLabel : '';
+        const display = el.dataset.display || null;
+        fractionOptions.push({
+          key,
+          base,
+          numerator,
+          denominator,
+          value,
+          display,
+          cycleIndex: Number.isFinite(cycleIndex) ? cycleIndex : null,
+          subdivisionIndex: Number.isFinite(subdivisionIndex) ? subdivisionIndex : null,
+          pulsesPerCycle: Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0 ? pulsesPerCycle : null,
+          rawLabel
+        });
+      });
+
+      const fractionSelection = [];
+      if (fractionOptions.length) {
+        if (rawCount === '') {
+          const density = 0.5;
+          fractionOptions.forEach(info => { if (Math.random() < density) fractionSelection.push(info); });
+        } else {
+          const parsed = Number.parseInt(rawCount, 10);
+          if (Number.isNaN(parsed)) {
+            const density = 0.5;
+            fractionOptions.forEach(info => { if (Math.random() < density) fractionSelection.push(info); });
+          } else if (parsed > 0) {
+            const pool = [...fractionOptions];
+            const targetFractions = Math.min(parsed, pool.length);
+            while (fractionSelection.length < targetFractions && pool.length) {
+              const idx = Math.floor(Math.random() * pool.length);
+              fractionSelection.push(pool.splice(idx, 1)[0]);
+            }
+          }
+        }
+      }
+
+      fractionalSelectionState.clear();
+      fractionSelection.forEach(info => {
+        const value = Number.isFinite(info.value) ? info.value : fractionValue(info.base, info.numerator, info.denominator);
+        if (!Number.isFinite(value) || value <= 0 || value >= lg) return;
+        const cycleIndex = Number.isFinite(info.cycleIndex) && info.cycleIndex >= 0 ? Math.floor(info.cycleIndex) : null;
+        const subdivisionIndex = Number.isFinite(info.subdivisionIndex) && info.subdivisionIndex >= 0
+          ? Math.floor(info.subdivisionIndex)
+          : null;
+        const pulsesPerCycle = Number.isFinite(info.pulsesPerCycle) && info.pulsesPerCycle > 0 ? info.pulsesPerCycle : null;
+        const rawLabel = typeof info.rawLabel === 'string' ? info.rawLabel.trim() : '';
+        const display = info.display || fractionDisplay(info.base, info.numerator, info.denominator, {
+          cycleIndex,
+          subdivisionIndex,
+          pulsesPerCycle
+        });
+        fractionalSelectionState.set(info.key, {
+          base: info.base,
+          numerator: info.numerator,
+          denominator: info.denominator,
+          value,
+          display,
+          key: info.key,
+          cycleIndex,
+          subdivisionIndex,
+          pulsesPerCycle,
+          rawLabel
+        });
+      });
+      rebuildFractionSelections();
       if (isPlaying) {
         applySelectionToAudio();
       }
@@ -2468,6 +2548,24 @@ function sanitizePulseSeq(opts = {}){
   const caretGap = resolvePulseSeqGap(caretBefore, lg);
   lastFractionGap = caretGap;
 
+  const pushFractionEntry = (entry) => {
+    if (!entry) return;
+    const value = Number(entry.value);
+    if (!Number.isFinite(value)) return;
+    const nearest = nearestPulseIndex(value);
+    if (nearest != null) {
+      if (!seenInts.has(nearest)) {
+        seenInts.add(nearest);
+        ints.push(nearest);
+      }
+      return;
+    }
+    fractions.push(entry);
+    if (entry.rawLabel) {
+      registerFractionLabel(entry.rawLabel, entry);
+    }
+  };
+
   for (const token of tokens) {
     const raw = token.raw;
     const normalizedRaw = typeof raw === 'string' ? raw.trim() : '';
@@ -2506,10 +2604,7 @@ function sanitizePulseSeq(opts = {}){
               pulsesPerCycle: matchedFraction.pulsesPerCycle,
               rawLabel: normalizedRaw || (typeof matchedFraction.rawLabel === 'string' ? matchedFraction.rawLabel : '')
             };
-            fractions.push(entry);
-            if (entry.rawLabel) {
-              registerFractionLabel(entry.rawLabel, entry);
-            }
+            pushFractionEntry(entry);
           }
           continue;
         }
@@ -2533,10 +2628,7 @@ function sanitizePulseSeq(opts = {}){
             pulsesPerCycle: null,
             rawLabel: normalizedRaw
           };
-          fractions.push(entry);
-          if (entry.rawLabel) {
-            registerFractionLabel(entry.rawLabel, entry);
-          }
+          pushFractionEntry(entry);
         }
       } else {
         const [intPart, fractionDigitsRaw] = raw.split('.', 2);
@@ -2626,10 +2718,7 @@ function sanitizePulseSeq(opts = {}){
               pulsesPerCycle: matchedFraction.pulsesPerCycle,
               rawLabel: normalizedRaw || (typeof matchedFraction.rawLabel === 'string' ? matchedFraction.rawLabel : '')
             };
-            fractions.push(entry);
-            if (entry.rawLabel) {
-              registerFractionLabel(entry.rawLabel, entry);
-            }
+            pushFractionEntry(entry);
             continue;
           }
           seenFractionKeys.add(key);
@@ -2654,10 +2743,7 @@ function sanitizePulseSeq(opts = {}){
             pulsesPerCycle: overridePulsesPerCycle,
             rawLabel: normalizedRaw
           };
-          fractions.push(entry);
-          if (entry.rawLabel) {
-            registerFractionLabel(entry.rawLabel, entry);
-          }
+          pushFractionEntry(entry);
         }
       }
     } else {
