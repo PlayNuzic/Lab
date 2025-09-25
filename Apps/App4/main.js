@@ -998,14 +998,24 @@ function selectedForAudioFromState({ scheduling } = {}) {
   const cycleSet = new Set();
   const fractionSet = new Set();
   const combinedSet = new Set();
+  const audioSet = new Set();
   if (!Number.isFinite(lg) || lg <= 0) {
-    return { base: baseSet, cycle: cycleSet, fraction: fractionSet, combined: combinedSet, resolution: scale };
+    return {
+      base: baseSet,
+      cycle: cycleSet,
+      fraction: fractionSet,
+      combined: combinedSet,
+      resolution: scale,
+      audio: audioSet
+    };
   }
   const maxIdx = Math.min(lg, pulseMemory.length - 1);
   for (let i = 1; i <= maxIdx; i++) {
     if (pulseMemory[i]) {
       baseSet.add(i);
-      combinedSet.add(i * scale);
+      const scaled = i * scale;
+      combinedSet.add(scaled);
+      audioSet.add(scaled);
     }
   }
   const epsilon = 1e-6;
@@ -1027,16 +1037,25 @@ function selectedForAudioFromState({ scheduling } = {}) {
     const scaled = Math.round(item.value * scale);
     if (Math.abs(scaled / scale - item.value) <= epsilon) {
       combinedSet.add(scaled);
+      audioSet.add(scaled);
     }
   });
-  return { base: baseSet, cycle: cycleSet, fraction: fractionSet, combined: combinedSet, resolution: scale };
+  return {
+    base: baseSet,
+    cycle: cycleSet,
+    fraction: fractionSet,
+    combined: combinedSet,
+    resolution: scale,
+    audio: audioSet
+  };
 }
 
 function applySelectionToAudio({ scheduling, instance } = {}) {
   const target = instance || audio;
   if (!target || typeof target.setSelected !== 'function') return null;
   const selection = selectedForAudioFromState({ scheduling });
-  target.setSelected({ values: selection.combined, resolution: selection.resolution });
+  const audioValues = selection.audio ?? selection.combined;
+  target.setSelected({ values: audioValues, resolution: selection.resolution });
   return selection;
 }
 
@@ -3719,10 +3738,12 @@ async function startPlayback(providedAudio) {
     audioInstance.setLoop(loopEnabled);
   }
 
+  const selectionValuesForAudio = selectionForAudio.audio ?? selectionForAudio.combined;
+
   audioInstance.play(
     scheduling.totalPulses,
     scheduling.interval,
-    selectionForAudio.combined,
+    selectionValuesForAudio,
     loopEnabled,
     highlightPulse,
     onFinish,
