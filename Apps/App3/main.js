@@ -1,7 +1,7 @@
 import { TimelineAudio, ensureAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
-import { computeNumberFontRem } from './utils.js';
+import { computeNumberFontRem, solidMenuBackground } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
@@ -141,9 +141,18 @@ let denominatorInput;
 let ghostFractionContainer;
 let ghostNumeratorText;
 let ghostDenominatorText;
+let fractionInfoBubble;
+let numeratorFieldWrapper;
+let denominatorFieldWrapper;
+let numeratorFieldPlaceholder;
+let denominatorFieldPlaceholder;
 const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
 const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
+const FRACTION_HOVER_NUMERATOR_TYPE = 'numerator';
+const FRACTION_HOVER_DENOMINATOR_TYPE = 'denominator';
 let currentFractionInfo = createEmptyFractionInfo();
+let currentFractionMultipleMessage = '';
+let fractionInfoHideTimer = null;
 let pulseNumberLabels = [];
 
 let pulses = [];
@@ -181,7 +190,6 @@ function initFractionEditor() {
 
   const wrapper = document.createElement('div');
   wrapper.className = 'fraction-editor-wrapper';
-
   ghostFractionContainer = document.createElement('div');
   ghostFractionContainer.className = 'fraction-ghost fraction-ghost--hidden';
   ghostFractionContainer.setAttribute('aria-hidden', 'true');
@@ -201,26 +209,39 @@ function initFractionEditor() {
   ghostDenominatorText.className = 'fraction-ghost__number';
   ghostDenominatorWrapper.appendChild(ghostDenominatorText);
 
-  ghostFractionContainer.appendChild(ghostNumeratorWrapper);
-  ghostFractionContainer.appendChild(ghostBar);
-  ghostFractionContainer.appendChild(ghostDenominatorWrapper);
+  ghostFractionContainer.append(ghostNumeratorWrapper, ghostBar, ghostDenominatorWrapper);
 
   wrapper.appendChild(ghostFractionContainer);
   wrapper.appendChild(container);
   formula.appendChild(wrapper);
 
+  fractionInfoBubble = document.createElement('div');
+  fractionInfoBubble.className = 'fraction-info-bubble fraction-info-bubble--hidden';
+  fractionInfoBubble.setAttribute('role', 'status');
+  fractionInfoBubble.setAttribute('aria-live', 'polite');
+  solidMenuBackground(fractionInfoBubble);
+  wrapper.appendChild(fractionInfoBubble);
+
   const createField = ({ wrapperClass, placeholder, ariaUp, ariaDown }) => {
-    const wrapper = document.createElement('div');
-    wrapper.className = `fraction-field ${wrapperClass}`;
+    const fieldWrapper = document.createElement('div');
+    fieldWrapper.className = `fraction-field ${wrapperClass}`;
+    fieldWrapper.classList.add('fraction-field--empty');
+    fieldWrapper.dataset.fractionHoverType = wrapperClass;
 
     const input = document.createElement('input');
     input.type = 'number';
     input.min = '1';
     input.step = '1';
-    input.placeholder = placeholder;
     input.value = '';
     input.className = wrapperClass;
-    wrapper.appendChild(input);
+    input.dataset.fractionHoverType = wrapperClass;
+    fieldWrapper.appendChild(input);
+
+    const placeholderEl = document.createElement('div');
+    placeholderEl.className = 'fraction-field-placeholder fraction-field-placeholder--visible';
+    placeholderEl.textContent = placeholder;
+    placeholderEl.setAttribute('aria-hidden', 'true');
+    fieldWrapper.appendChild(placeholderEl);
 
     const spinner = document.createElement('div');
     spinner.className = 'spinner';
@@ -234,9 +255,9 @@ function initFractionEditor() {
     if (ariaDown) down.setAttribute('aria-label', ariaDown);
     spinner.appendChild(up);
     spinner.appendChild(down);
-    wrapper.appendChild(spinner);
+    fieldWrapper.appendChild(spinner);
 
-    return { wrapper, input, up, down };
+    return { wrapper: fieldWrapper, input, up, down, placeholder: placeholderEl };
   };
 
   const top = document.createElement('div');
@@ -248,7 +269,11 @@ function initFractionEditor() {
     ariaDown: 'Decrementar numerador'
   });
   numeratorInput = numeratorField.input;
+  numeratorFieldWrapper = numeratorField.wrapper;
+  numeratorFieldPlaceholder = numeratorField.placeholder;
   top.appendChild(numeratorField.wrapper);
+  registerFractionHoverTarget(numeratorField.wrapper);
+  registerFractionHoverTarget(numeratorInput, { useFocus: true });
 
   const bottom = document.createElement('div');
   bottom.className = 'bottom';
@@ -259,15 +284,14 @@ function initFractionEditor() {
     ariaDown: 'Decrementar denominador'
   });
   denominatorInput = denominatorField.input;
+  denominatorFieldWrapper = denominatorField.wrapper;
+  denominatorFieldPlaceholder = denominatorField.placeholder;
   bottom.appendChild(denominatorField.wrapper);
+  registerFractionHoverTarget(denominatorField.wrapper);
+  registerFractionHoverTarget(denominatorInput, { useFocus: true });
 
   container.appendChild(top);
   container.appendChild(bottom);
-
-  numeratorInput.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
-  denominatorInput.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
-  attachHover(numeratorInput, { text: DEFAULT_NUMERATOR_HOVER_TEXT });
-  attachHover(denominatorInput, { text: DEFAULT_DENOMINATOR_HOVER_TEXT });
 
   const enforceInt = (input) => {
     input.addEventListener('input', () => {
@@ -297,6 +321,8 @@ function initFractionEditor() {
   addRepeatPress(numeratorField.down, () => adjustInput(numeratorInput, -1));
   addRepeatPress(denominatorField.up, () => adjustInput(denominatorInput, +1));
   addRepeatPress(denominatorField.down, () => adjustInput(denominatorInput, -1));
+
+  updateFractionFieldState(null, null);
 }
 
 initFractionEditor();
@@ -387,6 +413,103 @@ function buildReductionHoverText(info) {
   return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}. Se repite ${accentEvery} veces la misma subdivisión en cada fracción ${info.numerator}/${info.denominator}.`;
 }
 
+function clearFractionInfoHideTimer() {
+  if (fractionInfoHideTimer) {
+    clearTimeout(fractionInfoHideTimer);
+    fractionInfoHideTimer = null;
+  }
+}
+
+function hideFractionInfoBubble({ clearMessage = false } = {}) {
+  if (!fractionInfoBubble) return;
+  clearFractionInfoHideTimer();
+  fractionInfoBubble.classList.add('fraction-info-bubble--hidden');
+  fractionInfoBubble.classList.remove('fraction-info-bubble--visible');
+  if (clearMessage) {
+    fractionInfoBubble.textContent = '';
+  }
+}
+
+function showFractionInfoBubble({ message, autoHide = false } = {}) {
+  if (!fractionInfoBubble) return;
+  const resolvedMessage = message || currentFractionMultipleMessage;
+  if (!resolvedMessage) return;
+  clearFractionInfoHideTimer();
+  solidMenuBackground(fractionInfoBubble);
+  fractionInfoBubble.textContent = resolvedMessage;
+  fractionInfoBubble.classList.remove('fraction-info-bubble--hidden');
+  fractionInfoBubble.classList.add('fraction-info-bubble--visible');
+  if (autoHide) {
+    fractionInfoHideTimer = setTimeout(() => {
+      hideFractionInfoBubble();
+    }, 3000);
+  }
+}
+
+function getDefaultFractionHoverText(target) {
+  if (!target || !target.dataset) return '';
+  if (target.dataset.fractionHoverType === FRACTION_HOVER_NUMERATOR_TYPE) {
+    return DEFAULT_NUMERATOR_HOVER_TEXT;
+  }
+  if (target.dataset.fractionHoverType === FRACTION_HOVER_DENOMINATOR_TYPE) {
+    return DEFAULT_DENOMINATOR_HOVER_TEXT;
+  }
+  return '';
+}
+
+function handleFractionHoverEnter(event) {
+  const target = event?.currentTarget || null;
+  const message = currentFractionMultipleMessage || getDefaultFractionHoverText(target);
+  if (!message) return;
+  showFractionInfoBubble({ message });
+}
+
+function handleFractionHoverLeave() {
+  hideFractionInfoBubble();
+}
+
+function registerFractionHoverTarget(target, { useFocus = false } = {}) {
+  if (!target) return;
+  target.addEventListener('mouseenter', handleFractionHoverEnter);
+  target.addEventListener('mouseleave', handleFractionHoverLeave);
+  if (useFocus) {
+    target.addEventListener('focus', handleFractionHoverEnter);
+    target.addEventListener('blur', handleFractionHoverLeave);
+  }
+}
+
+function setFractionFieldEmptyState(wrapper, placeholder, isEmpty) {
+  if (!wrapper) return;
+  const empty = !!isEmpty;
+  wrapper.classList.toggle('fraction-field--empty', empty);
+  if (placeholder) {
+    placeholder.classList.toggle('fraction-field-placeholder--visible', empty);
+  }
+}
+
+function updateFractionFieldState(numerator, denominator) {
+  const hasNumerator = Number.isFinite(numerator) && numerator > 0;
+  const hasDenominator = Number.isFinite(denominator) && denominator > 0;
+  setFractionFieldEmptyState(numeratorFieldWrapper, numeratorFieldPlaceholder, !hasNumerator);
+  setFractionFieldEmptyState(denominatorFieldWrapper, denominatorFieldPlaceholder, !hasDenominator);
+}
+
+function updateFractionInfoBubble(info, { reveal = false } = {}) {
+  if (!fractionInfoBubble) return;
+  clearFractionInfoHideTimer();
+  if (!info || !info.isMultiple) {
+    currentFractionMultipleMessage = '';
+    hideFractionInfoBubble({ clearMessage: true });
+    return;
+  }
+  currentFractionMultipleMessage = buildReductionHoverText(info);
+  if (reveal) {
+    showFractionInfoBubble({ message: currentFractionMultipleMessage, autoHide: true });
+  } else if (fractionInfoBubble.classList.contains('fraction-info-bubble--visible')) {
+    showFractionInfoBubble({ message: currentFractionMultipleMessage });
+  }
+}
+
 function updateFractionGhost(info) {
   if (!ghostFractionContainer || !ghostNumeratorText || !ghostDenominatorText) return;
   if (!info || !info.isMultiple) {
@@ -402,22 +525,11 @@ function updateFractionGhost(info) {
   ghostFractionContainer.classList.add('fraction-ghost--visible');
 }
 
-function updateFractionHover(info) {
-  if (!numeratorInput || !denominatorInput) return;
-  if (info && info.isMultiple) {
-    const message = buildReductionHoverText(info);
-    numeratorInput.dataset.hoverText = message;
-    denominatorInput.dataset.hoverText = message;
-  } else {
-    numeratorInput.dataset.hoverText = DEFAULT_NUMERATOR_HOVER_TEXT;
-    denominatorInput.dataset.hoverText = DEFAULT_DENOMINATOR_HOVER_TEXT;
-  }
-}
-
 function updateFractionUI(numerator, denominator) {
   currentFractionInfo = computeFractionInfo(numerator, denominator);
+  updateFractionFieldState(numerator, denominator);
+  updateFractionInfoBubble(currentFractionInfo, { reveal: true });
   updateFractionGhost(currentFractionInfo);
-  updateFractionHover(currentFractionInfo);
 }
 
 function setValue(input, value) {
