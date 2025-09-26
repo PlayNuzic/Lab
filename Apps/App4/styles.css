@@ -173,8 +173,8 @@ header.top-bar h1 .top-bar-title-button:active {
 }
 
 .fraction-field--empty .spinner {
-  opacity: 0;
-  pointer-events: none;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .fraction-editor-wrapper {
@@ -272,6 +272,7 @@ box-sizing: border-box;
 padding: 0 20px;
 margin: 20px auto;
 overflow-x: auto;
+overflow-y: visible;
 position: relative;
 }
 
@@ -298,10 +299,6 @@ position: relative;
   text-align: center;
   line-height: 1;
 }
-#pulseSeq .fraction-bar {
-  display: none;
-}
-
 .fraction-inline-container {
   position: relative;
   display: inline-flex;
@@ -326,6 +323,18 @@ position: relative;
   justify-content: center;
   gap: 0.28em;
   z-index: 1;
+}
+
+.fraction-editor--inline .fraction-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.8ch;
+  max-width: 80px;
+  min-height: 0.18em;
+  height: 0.18em;
+  background: currentColor;
+  border-radius: 999px;
 }
 
 .fraction-editor--inline .top,
@@ -360,6 +369,7 @@ position: relative;
 
 .fraction-editor-wrapper--inline .fraction-info-bubble {
   left: 50%;
+  z-index: 4;
 }
 
 .fraction-ghost {

@@ -482,10 +482,13 @@ function initFractionEditor() {
 
   wrapperHost.innerHTML = '';
   wrapperHost.classList.add('fraction-inline-container');
+  wrapperHost.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
 
   const wrapper = document.createElement('span');
   wrapper.className = 'fraction-editor-wrapper fraction-editor-wrapper--inline';
+  wrapper.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
   wrapperHost.appendChild(wrapper);
+  registerFractionHoverTarget(wrapper);
 
   ghostFractionContainer = document.createElement('div');
   ghostFractionContainer.className = 'fraction-ghost fraction-ghost--hidden';
@@ -510,9 +513,11 @@ function initFractionEditor() {
 
   const container = document.createElement('div');
   container.className = 'fraction-editor fraction-editor--inline';
+  container.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
 
   wrapper.appendChild(ghostFractionContainer);
   wrapper.appendChild(container);
+  registerFractionHoverTarget(container);
 
   fractionInfoBubble = document.createElement('div');
   fractionInfoBubble.className = 'fraction-info-bubble fraction-info-bubble--hidden';
@@ -589,7 +594,14 @@ function initFractionEditor() {
   registerFractionHoverTarget(denominatorField.wrapper);
   registerFractionHoverTarget(denominatorInput, { useFocus: true });
 
+  const bar = document.createElement('div');
+  bar.className = 'fraction-bar';
+  bar.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
+  bar.setAttribute('aria-hidden', 'true');
+  registerFractionHoverTarget(bar);
+
   container.appendChild(top);
+  container.appendChild(bar);
   container.appendChild(bottom);
 
   pulseSeqFractionNumeratorEl = numeratorInput;
