@@ -133,6 +133,22 @@ header.top-bar h1 .top-bar-title-button:active {
   opacity: 1;
 }
 
+.cycle-marker.fraction-active {
+  background: var(--selection-color);
+  box-shadow: 0 0 16px var(--selection-color);
+  opacity: 1;
+}
+
+.fraction-hit {
+  transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+}
+
+.fraction-hit.fraction-active {
+  background: var(--selection-color);
+  box-shadow: 0 0 16px var(--selection-color);
+  opacity: 0.6;
+}
+
 .cycle-label {
   position: absolute;
   color: var(--line-color);
@@ -440,6 +456,10 @@ position: relative;
 #pulseSeq .edit-display .pulse-seq-token {
   display: inline-block;
   line-height: 1;
+}
+#pulseSeq .edit-display .pulse-seq-token--active {
+  color: var(--selection-color);
+  text-shadow: 0 0 16px var(--selection-color);
 }
 #pulseSeq .edit-display .pulse-seq-token--fraction {
   font-size: 0.84em;

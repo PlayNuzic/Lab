@@ -677,6 +677,7 @@ let cycleMarkerHits = [];
 const fractionalSelectionState = new Map();
 const selectedFractionKeys = new Set();
 const fractionHitMap = new Map();
+const fractionMarkerMap = new Map();
 const fractionLabelLookup = new Map();
 // Hit targets (separate from the visual dots) and drag mode
 let dragMode = 'select'; // 'select' | 'deselect'
@@ -684,6 +685,9 @@ let dragMode = 'select'; // 'select' | 'deselect'
 let pulseMemory = []; // index -> selected
 let pulseSeqRanges = {};
 let fractionalPulseSelections = [];
+let pulseSeqEntryOrder = [];
+const pulseSeqEntryLookup = new Map();
+const pulseSeqTokenMap = new Map();
 let pulseSeqFractionNumeratorEl = null;
 let pulseSeqFractionDenominatorEl = null;
 let pulseSeqVisualEl = null;
@@ -691,6 +695,8 @@ let pulseSeqEditWrapper = null;
 let pulseSeqSpacingAdjustHandle = null;
 let lastFractionGap = null;
 let currentAudioResolution = 1;
+let lastFractionHighlightKey = null;
+let lastHighlightSignature = null;
 const FRACTION_POSITION_EPSILON = 1e-6;
 const TEXT_NODE_TYPE = (typeof Node !== 'undefined' && Node.TEXT_NODE) || 3;
 const raf = (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
@@ -1325,7 +1331,31 @@ function updatePulseSeqVisualLayer(text) {
   }
   pulseSeqVisualEl.textContent = '';
   pulseSeqVisualEl.append(fragment);
+  syncPulseSeqTokenMap();
   schedulePulseSeqSpacingAdjust();
+}
+
+function syncPulseSeqTokenMap() {
+  pulseSeqTokenMap.clear();
+  if (!pulseSeqVisualEl) return;
+  const tokens = pulseSeqVisualEl.querySelectorAll('.pulse-seq-token');
+  pulseSeqEntryOrder.forEach((key, index) => {
+    if (!key) return;
+    const token = tokens[index];
+    if (!token) return;
+    token.dataset.entryKey = key;
+    pulseSeqTokenMap.set(key, token);
+    const info = pulseSeqEntryLookup.get(key);
+    if (!info) return;
+    if (info.type === 'fraction') {
+      token.dataset.fractionKey = key;
+      if (Number.isFinite(info.value)) {
+        token.dataset.value = String(info.value);
+      }
+    } else if (info.type === 'int') {
+      token.dataset.index = String(info.value);
+    }
+  });
 }
 
 function schedulePulseSeqSpacingAdjust() {
@@ -2916,6 +2946,13 @@ function sanitizePulseSeq(opts = {}){
       })
     ].sort((a, b) => a.value - b.value);
     pulseSeqRanges = {};
+    pulseSeqEntryOrder = combined.map(entry => entry.key);
+    pulseSeqEntryLookup.clear();
+    combined.forEach((entry) => {
+      if (!entry || !entry.key) return;
+      const type = entry.display.includes('.') ? 'fraction' : 'int';
+      pulseSeqEntryLookup.set(entry.key, { ...entry, type });
+    });
     let pos = 0;
     const parts = combined.map(entry => {
       const start = pos + 2;
@@ -3047,6 +3084,9 @@ function updatePulseSeqField(){
     setPulseSeqText('');
     try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=''; }catch{}
     pulseSeqRanges = {};
+    pulseSeqEntryOrder = [];
+    pulseSeqEntryLookup.clear();
+    pulseSeqTokenMap.clear();
     return;
   }
   try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=String(lg); }catch{}
@@ -3072,6 +3112,12 @@ function updatePulseSeqField(){
     });
   });
   entries.sort((a, b) => a.value - b.value);
+  pulseSeqEntryOrder = entries.map(entry => entry.key);
+  pulseSeqEntryLookup.clear();
+  entries.forEach((entry) => {
+    if (!entry || !entry.key) return;
+    pulseSeqEntryLookup.set(entry.key, entry);
+  });
   pulseSeqRanges = {};
   let pos = 0;
   const parts = entries.map(entry => {
@@ -3175,6 +3221,9 @@ function clearHighlights() {
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
+  if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
+  if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+  clearFractionHighlight();
   lastNormalizedStep = null;
 }
 
@@ -3186,7 +3235,9 @@ function renderTimeline() {
   cycleMarkerHits = [];
   cycleLabels = [];
   bars = [];
+  clearFractionHighlight();
   fractionHitMap.clear();
+  fractionMarkerMap.clear();
   fractionLabelLookup.clear();
   const savedIndicator = tIndicator;
   timeline.innerHTML = '';
@@ -3331,6 +3382,7 @@ function renderTimeline() {
             marker.style.cursor = 'pointer';
             attachSelectionListeners(marker);
             validFractionKeys.add(key);
+            fractionMarkerMap.set(key, marker);
 
             const hit = document.createElement('div');
             hit.className = 'fraction-hit';
@@ -3830,10 +3882,51 @@ async function startPlayback(providedAudio) {
   const resolvedSelectionResolution = Number.isFinite(selectionForAudio?.resolution)
     ? Math.max(1, Math.round(selectionForAudio.resolution))
     : 1;
-  currentAudioResolution = resolvedSelectionResolution;
-  updateVoiceHandlers({ scheduling });
+  const effectiveResolution = Math.max(1, resolvedSelectionResolution);
+  const normalizedLg = Number.isFinite(scheduling?.lg) ? scheduling.lg : lg;
+  let effectiveInterval = scheduling.interval;
+  let effectiveTotal = scheduling.totalPulses;
+  let effectivePatternBeats = Number.isFinite(scheduling?.patternBeats)
+    ? scheduling.patternBeats
+    : null;
+  let cycleConfig = scheduling.cycleConfig ? { ...scheduling.cycleConfig } : null;
+  let voices = Array.isArray(scheduling.voices)
+    ? scheduling.voices.map((voice) => ({ ...voice }))
+    : [];
+
+  if (Number.isFinite(normalizedLg) && normalizedLg > 0 && effectiveResolution > 1) {
+    const scaledBase = normalizedLg * effectiveResolution;
+    if (loopEnabled) {
+      effectiveTotal = Math.max(1, Math.round(scaledBase));
+    } else {
+      effectiveTotal = Math.max(1, Math.round(scaledBase + 1));
+    }
+    if (Number.isFinite(scheduling.interval)) {
+      effectiveInterval = scheduling.interval / effectiveResolution;
+    }
+    if (Number.isFinite(effectivePatternBeats)) {
+      effectivePatternBeats = Math.max(1, Math.round(effectivePatternBeats * effectiveResolution));
+    }
+    if (cycleConfig && Number.isFinite(cycleConfig.numerator)) {
+      cycleConfig = { ...cycleConfig, numerator: Math.max(1, Math.round(cycleConfig.numerator * effectiveResolution)) };
+    }
+    voices = voices.map((voice) => {
+      if (!voice || !Number.isFinite(voice.numerator)) return voice;
+      return { ...voice, numerator: Math.max(1, Math.round(voice.numerator * effectiveResolution)) };
+    });
+  }
+
+  if (!Number.isFinite(effectiveInterval) || effectiveInterval <= 0) {
+    return false;
+  }
+  if (!Number.isFinite(effectiveTotal) || effectiveTotal <= 0) {
+    return false;
+  }
+
+  currentAudioResolution = effectiveResolution;
+  updateVoiceHandlers({ scheduling: { ...scheduling, voices } });
   if (typeof audioInstance.setVoices === 'function') {
-    audioInstance.setVoices(scheduling.voices || []);
+    audioInstance.setVoices(voices);
   }
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
@@ -3843,13 +3936,13 @@ async function startPlayback(providedAudio) {
   };
 
   const playOptions = {};
-  if (scheduling.patternBeats != null) {
-    playOptions.patternBeats = scheduling.patternBeats;
+  if (effectivePatternBeats != null) {
+    playOptions.patternBeats = effectivePatternBeats;
   }
-  if (scheduling.cycleConfig) {
-    playOptions.cycle = scheduling.cycleConfig;
+  if (cycleConfig) {
+    playOptions.cycle = cycleConfig;
   }
-  playOptions.baseResolution = 1;
+  playOptions.baseResolution = effectiveResolution;
 
   if (typeof audioInstance.setLoop === 'function') {
     audioInstance.setLoop(loopEnabled);
@@ -3858,12 +3951,12 @@ async function startPlayback(providedAudio) {
   const selectionValuesForAudio = selectionForAudio.audio ?? selectionForAudio.combined;
   const selectionPayload = {
     values: selectionValuesForAudio,
-    resolution: resolvedSelectionResolution
+    resolution: effectiveResolution
   };
 
   audioInstance.play(
-    scheduling.totalPulses,
-    scheduling.interval,
+    effectiveTotal,
+    effectiveInterval,
     selectionPayload,
     loopEnabled,
     highlightPulse,
@@ -4002,11 +4095,127 @@ function highlightCycle(payload = {}) {
   }
 }
 
+function getPulseSeqRectForKey(key) {
+  if (!pulseSeqEl || !key) return null;
+  const token = pulseSeqTokenMap.get(key);
+  if (token && typeof token.getBoundingClientRect === 'function') {
+    return token.getBoundingClientRect();
+  }
+  const range = pulseSeqRanges[key];
+  if (range && Array.isArray(range)) {
+    const el = getEditEl();
+    const node = el && el.firstChild;
+    if (node) {
+      try {
+        const r = document.createRange();
+        const start = Math.max(0, Number(range[0]) || 0);
+        const end = Math.max(start, Number(range[1]) || start);
+        r.setStart(node, start);
+        r.setEnd(node, end);
+        return r.getBoundingClientRect();
+      } catch {}
+    }
+  }
+  return null;
+}
+
+function getPulseSeqRectForIndex(index) {
+  if (!pulseSeqEl || !Number.isFinite(index)) return null;
+  const idx = Math.round(index);
+  if (idx === 0) {
+    const z = pulseSeqEl.querySelector('.pz.zero');
+    return z ? z.getBoundingClientRect() : null;
+  }
+  if (pulses && idx === pulses.length - 1) {
+    const l = pulseSeqEl.querySelector('.pz.lg');
+    return l ? l.getBoundingClientRect() : null;
+  }
+  return getPulseSeqRectForKey(String(idx));
+}
+
+function scrollPulseSeqToRect(rect) {
+  if (!pulseSeqEl || !rect) return pulseSeqEl ? pulseSeqEl.scrollLeft : 0;
+  const parentRect = pulseSeqEl.getBoundingClientRect();
+  const absLeft = rect.left - parentRect.left + pulseSeqEl.scrollLeft;
+  const target = absLeft - (pulseSeqEl.clientWidth - rect.width) / 2;
+  const maxScroll = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
+  const newScrollLeft = Math.max(0, Math.min(target, maxScroll));
+  pulseSeqEl.scrollLeft = newScrollLeft;
+  if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
+  return newScrollLeft;
+}
+
+function placePulseSeqHighlight(rect, highlightEl, newScrollLeft) {
+  if (!pulseSeqEl || !rect || !highlightEl) return;
+  const parent = pulseSeqEl.getBoundingClientRect();
+  const scrollLeft = Number.isFinite(newScrollLeft) ? newScrollLeft : pulseSeqEl.scrollLeft;
+  const cx = rect.left - parent.left + scrollLeft + rect.width / 2;
+  const cy = rect.top - parent.top + pulseSeqEl.scrollTop + rect.height / 2;
+  const size = Math.max(rect.width, rect.height) * 0.75;
+  highlightEl.style.width = `${size}px`;
+  highlightEl.style.height = `${size}px`;
+  highlightEl.style.left = `${cx}px`;
+  highlightEl.style.top = `${cy}px`;
+  highlightEl.classList.remove('active');
+  void highlightEl.offsetWidth;
+  highlightEl.classList.add('active');
+}
+
+function clearFractionHighlight() {
+  if (!lastFractionHighlightKey) return;
+  const prevMarker = fractionMarkerMap.get(lastFractionHighlightKey);
+  if (prevMarker) prevMarker.classList.remove('fraction-active');
+  const prevHit = fractionHitMap.get(lastFractionHighlightKey);
+  if (prevHit) prevHit.classList.remove('fraction-active');
+  const prevToken = pulseSeqTokenMap.get(lastFractionHighlightKey);
+  if (prevToken) prevToken.classList.remove('pulse-seq-token--active');
+  lastFractionHighlightKey = null;
+}
+
+function applyFractionHighlight(key) {
+  if (!key) {
+    clearFractionHighlight();
+    return;
+  }
+  if (lastFractionHighlightKey === key) return;
+  clearFractionHighlight();
+  const marker = fractionMarkerMap.get(key);
+  if (marker) marker.classList.add('fraction-active');
+  const hit = fractionHitMap.get(key);
+  if (hit) hit.classList.add('fraction-active');
+  const token = pulseSeqTokenMap.get(key);
+  if (token) token.classList.add('pulse-seq-token--active');
+  lastFractionHighlightKey = key;
+}
+
+function findFractionMatch(value, epsilon = FRACTION_POSITION_EPSILON) {
+  if (!Number.isFinite(value)) return null;
+  for (const item of fractionalPulseSelections) {
+    if (!item || !Number.isFinite(item.value) || !item.key) continue;
+    if (Math.abs(item.value - value) <= epsilon) {
+      return item;
+    }
+  }
+  for (const [key, hit] of fractionHitMap.entries()) {
+    if (!key || !hit) continue;
+    const hitValue = Number.parseFloat(hit.dataset?.value);
+    if (!Number.isFinite(hitValue)) continue;
+    if (Math.abs(hitValue - value) <= epsilon) {
+      return { key, value: hitValue };
+    }
+  }
+  return null;
+}
+
 function highlightPulse(payload){
   if (!isPlaying) return;
 
   if (!pulses || pulses.length === 0) {
     lastNormalizedStep = null;
+    lastHighlightSignature = null;
+    clearFractionHighlight();
+    if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
+    if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
     return;
   }
 
@@ -4030,106 +4239,106 @@ function highlightPulse(payload){
 
   if (!Number.isFinite(rawStepValue)) {
     lastNormalizedStep = null;
+    lastHighlightSignature = null;
     return;
   }
 
-  const total = pulses.length > 1 ? pulses.length - 1 : 0;
-  if (total <= 0) {
+  const baseCount = pulses.length > 1 ? pulses.length - 1 : 0;
+  if (baseCount <= 0) {
     lastNormalizedStep = null;
+    lastHighlightSignature = null;
     return;
   }
 
+  const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
+  const scaledSpan = baseCount * resolution;
   const rawIndex = Math.round(rawStepValue);
-  const normalizedIndex = loopEnabled
-    ? ((rawIndex % total) + total) % total
-    : Math.max(0, Math.min(rawIndex, total));
 
-  if (lastNormalizedStep === normalizedIndex && lastVisualStep === rawStepValue) {
+  let normalizedScaled = rawIndex;
+  if (loopEnabled) {
+    if (scaledSpan <= 0) return;
+    normalizedScaled = ((rawIndex % scaledSpan) + scaledSpan) % scaledSpan;
+  } else {
+    const maxStep = scaledSpan;
+    normalizedScaled = Math.max(0, Math.min(rawIndex, maxStep));
+  }
+
+  const normalizedValue = resolution > 0 ? normalizedScaled / resolution : normalizedScaled;
+  const nearestInt = Math.round(normalizedValue);
+  const epsilon = FRACTION_POSITION_EPSILON;
+  const isIntegerStep = Math.abs(normalizedValue - nearestInt) <= epsilon
+    && nearestInt >= 0
+    && nearestInt <= baseCount;
+
+  let highlightType = 'int';
+  let fractionMatch = null;
+  if (!isIntegerStep) {
+    fractionMatch = findFractionMatch(normalizedValue, epsilon);
+    if (fractionMatch && fractionMatch.key) {
+      highlightType = 'fraction';
+    }
+  }
+
+  const signature = highlightType === 'fraction'
+    ? `f:${fractionMatch ? fractionMatch.key : ''}:${normalizedScaled}`
+    : `i:${nearestInt}:${normalizedScaled}`;
+  if (lastHighlightSignature === signature && lastVisualStep === rawStepValue) {
     return;
   }
 
-  lastNormalizedStep = normalizedIndex;
+  lastHighlightSignature = signature;
+  lastNormalizedStep = normalizedScaled;
   lastVisualStep = rawStepValue;
 
   pulses.forEach(p => p.classList.remove('active'));
 
-  const idx = normalizedIndex;
-  const current = pulses[idx];
-  if (current) {
-    void current.offsetWidth;
-    current.classList.add('active');
-  }
+  let newScrollLeft = pulseSeqEl ? pulseSeqEl.scrollLeft : 0;
 
-  if (loopEnabled && idx === 0) {
-    const last = pulses[pulses.length - 1];
-    if (last) last.classList.add('active');
-  }
-  if (pulseSeqEl) {
-    const parentRect = pulseSeqEl.getBoundingClientRect();
-    const getRect = (index) => {
-      if (index === 0) {
-        const z = pulseSeqEl.querySelector('.pz.zero');
-        return z ? z.getBoundingClientRect() : null;
+  if (highlightType === 'fraction' && fractionMatch && fractionMatch.key) {
+    applyFractionHighlight(fractionMatch.key);
+    if (pulseSeqEl) {
+      const rect = getPulseSeqRectForKey(fractionMatch.key);
+      if (rect) {
+        newScrollLeft = scrollPulseSeqToRect(rect);
+        placePulseSeqHighlight(rect, pulseSeqHighlight, newScrollLeft);
+      } else if (pulseSeqHighlight) {
+        pulseSeqHighlight.classList.remove('active');
       }
-      if (index === pulses.length - 1) {
-        const l = pulseSeqEl.querySelector('.pz.lg');
-        return l ? l.getBoundingClientRect() : null;
+      if (pulseSeqHighlight2) {
+        pulseSeqHighlight2.classList.remove('active');
       }
-      const range = pulseSeqRanges[index];
-      if (range) {
-        const el = getEditEl();
-        const node = el && el.firstChild;
-        if (node) {
-          const r = document.createRange();
-          r.setStart(node, range[0]);
-          r.setEnd(node, range[1]);
-          return r.getBoundingClientRect();
+    }
+  } else {
+    applyFractionHighlight(null);
+    const idx = Math.max(0, Math.min(nearestInt, baseCount));
+    const current = pulses[idx];
+    if (current) {
+      void current.offsetWidth;
+      current.classList.add('active');
+    }
+    if (loopEnabled && idx === 0) {
+      const last = pulses[pulses.length - 1];
+      if (last) last.classList.add('active');
+    }
+    if (pulseSeqEl) {
+      const rect = getPulseSeqRectForIndex(idx);
+      if (rect) {
+        newScrollLeft = scrollPulseSeqToRect(rect);
+        placePulseSeqHighlight(rect, pulseSeqHighlight, newScrollLeft);
+      } else if (pulseSeqHighlight) {
+        pulseSeqHighlight.classList.remove('active');
+      }
+      if (idx === 0 && loopEnabled) {
+        const lastRect = getPulseSeqRectForIndex(pulses.length - 1);
+        if (lastRect) {
+          placePulseSeqHighlight(lastRect, pulseSeqHighlight2, newScrollLeft);
+        } else if (pulseSeqHighlight2) {
+          pulseSeqHighlight2.classList.remove('active');
         }
+      } else if (pulseSeqHighlight2) {
+        pulseSeqHighlight2.classList.remove('active');
       }
-      return null;
-    };
-
-    const rect = getRect(idx);
-    let newScrollLeft = pulseSeqEl.scrollLeft;
-    if (rect) {
-      const absLeft = rect.left - parentRect.left + pulseSeqEl.scrollLeft;
-      const target = absLeft - (pulseSeqEl.clientWidth - rect.width) / 2;
-      const maxScroll = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
-      newScrollLeft = Math.max(0, Math.min(target, maxScroll));
-      pulseSeqEl.scrollLeft = newScrollLeft;
-      if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
     }
-
-    const parent = pulseSeqEl.getBoundingClientRect();
-    const place = (r, el) => {
-      if (!r || !el) return;
-      const cx = r.left - parent.left + newScrollLeft + r.width / 2;
-      const cy = r.top - parent.top + pulseSeqEl.scrollTop + r.height / 2;
-      const size = Math.max(r.width, r.height) * 0.75;
-      el.style.width = size + 'px';
-      el.style.height = size + 'px';
-      el.style.left = cx + 'px';
-      el.style.top = cy + 'px';
-      el.classList.remove('active');
-      void el.offsetWidth;
-      el.classList.add('active');
-    };
-
-    const currentRect = getRect(idx);
-    if (currentRect) place(currentRect, pulseSeqHighlight);
-    else pulseSeqHighlight.classList.remove('active');
-
-    if (idx === 0 && loopEnabled) {
-      const lastRect = getRect(pulses.length - 1);
-      if (lastRect) place(lastRect, pulseSeqHighlight2);
-      else pulseSeqHighlight2.classList.remove('active');
-    } else {
-      pulseSeqHighlight2.classList.remove('active');
-    }
-  }
-
-  if (Number.isFinite(rawStepValue)) {
-    lastVisualStep = rawStepValue;
   }
 }
 
