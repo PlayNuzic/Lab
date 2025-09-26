@@ -358,8 +358,8 @@ position: relative;
 
 .fraction-editor--inline input {
   width: 3.6ch;
-  font-size: 3.75rem;
-  font-weight: 600;
+  font-size: 3rem;
+  font-weight: 500;
   padding-right: 32px;
 }
 
