@@ -708,7 +708,9 @@ let pulseSeqSpacingAdjustHandle = null;
 let lastFractionGap = null;
 let currentAudioResolution = 1;
 let lastFractionHighlightKey = null;
-let lastHighlightSignature = null;
+let lastHighlightType = null;
+let lastHighlightIntIndex = null;
+let lastHighlightFractionKey = null;
 const FRACTION_POSITION_EPSILON = 1e-6;
 const TEXT_NODE_TYPE = (typeof Node !== 'undefined' && Node.TEXT_NODE) || 3;
 const raf = (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
@@ -3247,6 +3249,9 @@ function clearHighlights() {
   if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
   clearFractionHighlight();
   lastNormalizedStep = null;
+  lastHighlightType = null;
+  lastHighlightIntIndex = null;
+  lastHighlightFractionKey = null;
 }
 
 function renderTimeline() {
@@ -4234,7 +4239,9 @@ function highlightPulse(payload){
 
   if (!pulses || pulses.length === 0) {
     lastNormalizedStep = null;
-    lastHighlightSignature = null;
+    lastHighlightType = null;
+    lastHighlightIntIndex = null;
+    lastHighlightFractionKey = null;
     clearFractionHighlight();
     if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
     if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
@@ -4261,14 +4268,18 @@ function highlightPulse(payload){
 
   if (!Number.isFinite(rawStepValue)) {
     lastNormalizedStep = null;
-    lastHighlightSignature = null;
+    lastHighlightType = null;
+    lastHighlightIntIndex = null;
+    lastHighlightFractionKey = null;
     return;
   }
 
   const baseCount = pulses.length > 1 ? pulses.length - 1 : 0;
   if (baseCount <= 0) {
     lastNormalizedStep = null;
-    lastHighlightSignature = null;
+    lastHighlightType = null;
+    lastHighlightIntIndex = null;
+    lastHighlightFractionKey = null;
     return;
   }
 
@@ -4301,14 +4312,30 @@ function highlightPulse(payload){
     }
   }
 
-  const signature = highlightType === 'fraction'
-    ? `f:${fractionMatch ? fractionMatch.key : ''}:${normalizedScaled}`
-    : `i:${nearestInt}:${normalizedScaled}`;
-  if (lastHighlightSignature === signature && lastVisualStep === rawStepValue) {
+  const fractionKey = fractionMatch && fractionMatch.key ? fractionMatch.key : null;
+  const idx = Math.max(0, Math.min(nearestInt, baseCount));
+  const loopWrapped = Number.isFinite(lastNormalizedStep) && normalizedScaled < lastNormalizedStep;
+
+  let shouldUpdate = false;
+  if (highlightType === 'fraction') {
+    shouldUpdate = loopWrapped
+      || lastHighlightType !== 'fraction'
+      || fractionKey !== lastHighlightFractionKey;
+  } else {
+    shouldUpdate = loopWrapped
+      || lastHighlightType !== 'int'
+      || idx !== lastHighlightIntIndex;
+  }
+
+  if (!shouldUpdate) {
+    lastNormalizedStep = normalizedScaled;
+    lastVisualStep = rawStepValue;
     return;
   }
 
-  lastHighlightSignature = signature;
+  lastHighlightType = highlightType;
+  lastHighlightIntIndex = highlightType === 'int' ? idx : null;
+  lastHighlightFractionKey = highlightType === 'fraction' ? fractionKey : null;
   lastNormalizedStep = normalizedScaled;
   lastVisualStep = rawStepValue;
 
@@ -4316,10 +4343,10 @@ function highlightPulse(payload){
 
   let newScrollLeft = pulseSeqEl ? pulseSeqEl.scrollLeft : 0;
 
-  if (highlightType === 'fraction' && fractionMatch && fractionMatch.key) {
-    applyFractionHighlight(fractionMatch.key);
+  if (highlightType === 'fraction' && fractionKey) {
+    applyFractionHighlight(fractionKey);
     if (pulseSeqEl) {
-      const rect = getPulseSeqRectForKey(fractionMatch.key);
+      const rect = getPulseSeqRectForKey(fractionKey);
       if (rect) {
         newScrollLeft = scrollPulseSeqToRect(rect);
         placePulseSeqHighlight(rect, pulseSeqHighlight, newScrollLeft);
@@ -4371,6 +4398,9 @@ function stopVisualSync() {
   }
   lastVisualStep = null;
   lastNormalizedStep = null;
+  lastHighlightType = null;
+  lastHighlightIntIndex = null;
+  lastHighlightFractionKey = null;
 }
 
 function syncVisualState() {
