@@ -1135,7 +1135,7 @@ function applySelectionToAudio({ scheduling, instance } = {}) {
   if (!target || typeof target.setSelected !== 'function') return null;
   const selection = selectedForAudioFromState({ scheduling });
   const audioValues = selection.audio ?? selection.combined;
-  target.setSelected({ values: audioValues, resolution: selection.resolution });
+  target.setSelected({ values: audioValues, resolution: 1 });
   if (Number.isFinite(selection?.resolution)) {
     currentAudioResolution = Math.max(1, Math.round(selection.resolution));
   }
@@ -2814,21 +2814,29 @@ function sanitizePulseSeq(opts = {}){
           if (firstFractionTooBig == null) firstFractionTooBig = raw;
           continue;
         }
-        matchedFraction = getFractionInfoByLabel(raw) || getFractionInfoByLabel(`${intVal}.${subdivisionIndex}`);
-        let normalizedBase = intVal;
-        let normalizedNumerator = subdivisionIndex;
-        let value = intVal + subdivisionIndex / denomValue;
-        let displayOverride = null;
-        if (Number.isFinite(numeratorValue) && numeratorValue > 0) {
-          const cycleCapacity = Number.isFinite(lg) && lg > 0
-            ? Math.floor(lg / numeratorValue)
+      matchedFraction = getFractionInfoByLabel(raw) || getFractionInfoByLabel(`${intVal}.${subdivisionIndex}`);
+      let normalizedBase = intVal;
+      let normalizedNumerator = subdivisionIndex;
+      let value = intVal + subdivisionIndex / denomValue;
+      let displayOverride = null;
+      if (Number.isFinite(numeratorValue) && numeratorValue > 0) {
+        const cycleCapacity = Number.isFinite(lg) && lg > 0
+          ? Math.floor(lg / numeratorValue)
+          : null;
+        const rawCycle = intVal / numeratorValue;
+        const cycleIndexFromBase = Number.isFinite(rawCycle)
+          ? Math.round(rawCycle)
+          : null;
+        const isCycleApproxInteger = Number.isFinite(cycleIndexFromBase)
+          && Math.abs(rawCycle - cycleIndexFromBase) <= FRACTION_POSITION_EPSILON;
+        const mapping = isCycleApproxInteger
+          ? cycleNotationToFraction(cycleIndexFromBase, subdivisionIndex, numeratorValue, denomValue)
+          : null;
+        if (mapping) {
+          let canonicalBase = Number.isFinite(mapping.base)
+            ? Math.floor(mapping.base + FRACTION_POSITION_EPSILON)
             : null;
-          const mapping = cycleNotationToFraction(intVal, subdivisionIndex, numeratorValue, denomValue);
-          if (mapping) {
-            let canonicalBase = Number.isFinite(mapping.base)
-              ? Math.floor(mapping.base + FRACTION_POSITION_EPSILON)
-              : null;
-            let canonicalNumerator = Number.isFinite(mapping.numerator)
+          let canonicalNumerator = Number.isFinite(mapping.numerator)
               ? Math.round(mapping.numerator)
               : null;
             if (Number.isFinite(canonicalNumerator) && canonicalNumerator >= denomValue) {
@@ -2846,19 +2854,21 @@ function sanitizePulseSeq(opts = {}){
             const withinLg = Number.isFinite(canonicalValue)
               ? (!Number.isFinite(lg) || canonicalValue < lg - FRACTION_POSITION_EPSILON)
               : false;
-            const cycleBase = Number.isFinite(numeratorValue) ? intVal * numeratorValue : NaN;
+            const cycleBase = Number.isFinite(cycleIndexFromBase) && Number.isFinite(numeratorValue)
+              ? cycleIndexFromBase * numeratorValue
+              : NaN;
             const cycleOriginValid = Number.isFinite(cycleBase)
               ? (!Number.isFinite(lg) || cycleBase < lg)
               : true;
             const withinCapacity = Number.isFinite(cycleCapacity)
-              ? (cycleCapacity > 0 && intVal < cycleCapacity)
+              ? (cycleCapacity > 0 && Number.isFinite(cycleIndexFromBase) && cycleIndexFromBase < cycleCapacity)
               : true;
             if (baseValid && numeratorValid && Number.isFinite(canonicalValue) && withinLg && cycleOriginValid && withinCapacity) {
               normalizedBase = canonicalBase;
               normalizedNumerator = canonicalNumerator;
               value = canonicalValue;
               displayOverride = {
-                cycleIndex: intVal,
+                cycleIndex: isCycleApproxInteger ? cycleIndexFromBase : null,
                 subdivisionIndex,
                 pulsesPerCycle: numeratorValue
               };
@@ -3963,7 +3973,7 @@ async function startPlayback(providedAudio) {
   const selectionValuesForAudio = selectionForAudio.audio ?? selectionForAudio.combined;
   const selectionPayload = {
     values: selectionValuesForAudio,
-    resolution: effectiveResolution
+    resolution: 1
   };
 
   audioInstance.play(
