@@ -4,3 +4,10 @@
  * @dep libs/shared-ui/index.css
  */
 /* App1 specific styles (overrides) */
+body {
+  --unit-label-offset: -40px;
+}
+@media (max-width: 600px) {
+body {
+  --unit-label-offset: 80px;
+}}

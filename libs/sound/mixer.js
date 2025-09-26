@@ -121,6 +121,51 @@ export class AudioMixer {
     }
   }
 
+  _applySoloOverride(channel, type) {
+    if (!channel) return false;
+
+    const currentType = channel._soloOverride?.type || null;
+    let changed = false;
+
+    if (!type) {
+      if (currentType) {
+        const previous = channel._soloOverride?.prevMuted;
+        channel._soloOverride = null;
+        if (previous !== undefined && channel.muted !== previous) {
+          channel.muted = previous;
+          changed = true;
+        }
+      }
+      return changed;
+    }
+
+    if (currentType && currentType !== type) {
+      const previous = channel._soloOverride?.prevMuted;
+      channel._soloOverride = null;
+      if (previous !== undefined && channel.muted !== previous) {
+        channel.muted = previous;
+        changed = true;
+      }
+    }
+
+    const forcedMute = type === 'mute';
+    if (!channel._soloOverride) {
+      channel._soloOverride = { type, prevMuted: channel.muted };
+    } else {
+      if (channel.muted !== forcedMute) {
+        channel._soloOverride.prevMuted = channel.muted;
+      }
+      channel._soloOverride.type = type;
+    }
+
+    if (channel.muted !== forcedMute) {
+      channel.muted = forcedMute;
+      changed = true;
+    }
+
+    return changed;
+  }
+
   _refreshMutes() {
     const hasSolo = this._hasSolo();
     if (this.master.node) {
@@ -129,13 +174,27 @@ export class AudioMixer {
     if (!this.master.node && typeof Tone !== 'undefined' && Tone?.Destination) {
       try { Tone.Destination.mute = !!this.master.muted; } catch {}
     }
+    let changed = false;
     for (const channel of this.channels.values()) {
+      if (hasSolo) {
+        const overrideType = channel.solo ? 'unmute' : 'mute';
+        if (this._applySoloOverride(channel, overrideType)) {
+          changed = true;
+        }
+      } else if (this._applySoloOverride(channel, null)) {
+        changed = true;
+      }
+
       const effective = !!(this.master.muted || channel.muted || (hasSolo && !channel.solo));
-      channel.effectiveMuted = effective;
+      if (channel.effectiveMuted !== effective) {
+        channel.effectiveMuted = effective;
+        changed = true;
+      }
       if (channel.node) {
         try { channel.node.mute = effective; } catch {}
       }
     }
+    return changed;
   }
 
   _emit() {
@@ -167,6 +226,7 @@ export class AudioMixer {
         node: null,
         effectiveMuted: false
       };
+      channel._soloOverride = null;
       this.channels.set(id, channel);
       this._channelOrder.push(id);
       changed = true;
@@ -189,17 +249,18 @@ export class AudioMixer {
       }
       if (typeof options.muted === 'boolean' && options.muted !== channel.muted) {
         channel.muted = options.muted;
-        this._refreshMutes();
         changed = true;
       }
       if (typeof options.solo === 'boolean' && options.solo !== channel.solo) {
         channel.solo = options.solo;
-        this._refreshMutes();
         changed = true;
       }
     }
 
     this._ensureChannelNode(channel);
+    if (this._refreshMutes()) {
+      changed = true;
+    }
     if (changed) this._emit();
     return channel;
   }
@@ -256,7 +317,26 @@ export class AudioMixer {
     if (!channel || channel.allowSolo === false) return;
     const solo = !!value;
     if (solo === channel.solo) return;
-    channel.solo = solo;
+    let changed = false;
+    if (solo) {
+      for (const other of this.channels.values()) {
+        if (other === channel) continue;
+        if (other.solo) {
+          other.solo = false;
+          changed = true;
+        }
+      }
+    }
+    if (solo !== channel.solo) {
+      channel.solo = solo;
+      changed = true;
+    }
+    if (!changed) {
+      if (this._refreshMutes()) {
+        this._emit();
+      }
+      return;
+    }
     this._refreshMutes();
     this._emit();
   }

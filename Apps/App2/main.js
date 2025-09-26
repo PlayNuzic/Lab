@@ -72,6 +72,17 @@ const selectColor = document.getElementById('selectColor');
 const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
+const titleHeading = document.querySelector('header.top-bar h1');
+let titleButton = null;
+if (titleHeading) {
+  titleButton = document.createElement('button');
+  titleButton.type = 'button';
+  titleButton.id = 'appTitleBtn';
+  titleButton.className = 'top-bar-title-button';
+  titleButton.textContent = titleHeading.textContent || '';
+  titleHeading.textContent = '';
+  titleHeading.appendChild(titleButton);
+}
 
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
@@ -796,7 +807,169 @@ function parseNum(val){
     s = s.replace(/,/g, '.');
   }
   const n = parseFloat(s);
-    return isNaN(n) ? NaN : n;
+  return isNaN(n) ? NaN : n;
+}
+
+function formatInteger(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  return Math.round(numeric).toLocaleString('ca-ES');
+}
+
+function formatNumberValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  const rounded = Math.round(numeric * 100) / 100;
+  return rounded.toLocaleString('ca-ES', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+}
+
+function formatBpmValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  const rounded = Math.round(numeric * 10) / 10;
+  return rounded.toLocaleString('ca-ES', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1
+  });
+}
+
+let titleInfoTipEl = null;
+
+function ensureTitleInfoTip() {
+  if (titleInfoTipEl) return titleInfoTipEl;
+  const tip = document.createElement('div');
+  tip.className = 'hover-tip auto-tip-below top-bar-info-tip';
+  document.body.appendChild(tip);
+  titleInfoTipEl = tip;
+  return tip;
+}
+
+function hideTitleInfoTip() {
+  if (titleInfoTipEl) {
+    titleInfoTipEl.classList.remove('show');
+  }
+}
+
+function showTitleInfoTip(contentFragment, anchor) {
+  if (!anchor) return;
+  const tip = ensureTitleInfoTip();
+  if (contentFragment) {
+    tip.replaceChildren(contentFragment);
+  }
+  const rect = anchor.getBoundingClientRect();
+  tip.style.left = rect.left + rect.width / 2 + 'px';
+  tip.style.top = rect.bottom + window.scrollY + 'px';
+  tip.classList.add('show');
+}
+
+function buildTitleInfoContent() {
+  const fragment = document.createDocumentFragment();
+
+  const lgValue = parseNum(inputLg?.value ?? '');
+  const hasLg = Number.isFinite(lgValue) && lgValue > 0;
+
+  if (hasLg) {
+    const lgLine = document.createElement('p');
+    lgLine.className = 'top-bar-info-tip__line';
+    const lgLabel = document.createElement('strong');
+    lgLabel.textContent = 'Lg:';
+    lgLine.append(lgLabel, ' ', formatInteger(lgValue));
+    fragment.append(lgLine);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Introduce una Lg mayor que 0 para activar los cálculos.';
+    fragment.append(hint);
+  }
+
+  const tempoValue = parseNum(inputV?.value ?? '');
+  const hasTempo = Number.isFinite(tempoValue) && tempoValue > 0;
+  const tValue = parseNum(inputT?.value ?? '');
+  const hasT = Number.isFinite(tValue) && tValue > 0;
+  const derivedTFromTempo = hasLg && hasTempo ? (lgValue * 60) / tempoValue : null;
+  const tempoFromT = hasLg && hasT ? (lgValue / tValue) * 60 : null;
+  const effectiveTempo = hasTempo ? tempoValue : tempoFromT;
+  const tForFormula = hasT ? tValue : derivedTFromTempo;
+
+  if (effectiveTempo != null && hasLg && tForFormula != null) {
+    const baseFormulaLine = document.createElement('p');
+    baseFormulaLine.className = 'top-bar-info-tip__line';
+    const baseLabel = document.createElement('strong');
+    baseLabel.textContent = 'V base';
+    baseFormulaLine.append(
+      baseLabel,
+      ` = (${formatInteger(lgValue)} / ${formatNumberValue(tForFormula)})·60 = ${formatBpmValue(effectiveTempo)} BPM`
+    );
+    fragment.append(baseFormulaLine);
+  } else if (effectiveTempo != null) {
+    const baseLine = document.createElement('p');
+    baseLine.className = 'top-bar-info-tip__line';
+    const baseLabel = document.createElement('strong');
+    baseLabel.textContent = 'V base:';
+    baseLine.append(baseLabel, ' ', `${formatBpmValue(effectiveTempo)} BPM`);
+    fragment.append(baseLine);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Completa V y Lg para calcular la velocidad base.';
+    fragment.append(hint);
+  }
+
+  if (hasLg && hasTempo && derivedTFromTempo != null) {
+    const tFormulaLine = document.createElement('p');
+    tFormulaLine.className = 'top-bar-info-tip__line';
+    const tFormulaLabel = document.createElement('strong');
+    tFormulaLabel.textContent = 'T';
+    tFormulaLine.append(
+      tFormulaLabel,
+      ` = (${formatInteger(lgValue)} / ${formatBpmValue(tempoValue)})·60 = ${formatNumberValue(derivedTFromTempo)} s`
+    );
+    fragment.append(tFormulaLine);
+  } else if (hasT) {
+    const tLine = document.createElement('p');
+    tLine.className = 'top-bar-info-tip__line';
+    const tLabel = document.createElement('strong');
+    tLabel.textContent = 'T:';
+    tLine.append(tLabel, ' ', `${formatNumberValue(tValue)} s`);
+    fragment.append(tLine);
+  }
+
+  const selectedForAudio = selectedForAudioFromState();
+  const selectedCount = selectedForAudio ? selectedForAudio.size : 0;
+  const selectedLine = document.createElement('p');
+  selectedLine.className = 'top-bar-info-tip__line';
+  const selectedLabel = document.createElement('strong');
+  selectedLabel.textContent = 'Pulsos seleccionados:';
+  selectedLine.append(selectedLabel, ' ', formatInteger(selectedCount));
+  fragment.append(selectedLine);
+
+  if (selectedCount > 0) {
+    const reminder = document.createElement('p');
+    reminder.className = 'top-bar-info-tip__hint';
+    reminder.textContent = 'Los pulsos seleccionados no incluyen los extremos 0 y Lg.';
+    fragment.append(reminder);
+  }
+
+  return fragment;
+}
+
+if (titleButton) {
+  titleButton.addEventListener('click', () => {
+    const content = buildTitleInfoContent();
+    if (!content) return;
+    showTitleInfoTip(content, titleButton);
+  });
+  titleButton.addEventListener('blur', hideTitleInfoTip);
+  titleButton.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' || event.key === 'Esc') {
+      hideTitleInfoTip();
+    }
+  });
+  window.addEventListener('scroll', hideTitleInfoTip, { passive: true });
+  window.addEventListener('resize', hideTitleInfoTip);
 }
 function formatSec(n){
   // arrodonim a 2 decimals però sense forçar-los si són .00
@@ -1337,12 +1510,16 @@ function animateTimelineCircle(isCircular, opts = {}){
   }
 }
 
-function showNumber(i){
+function showNumber(i, options = {}){
+  const { selected = false } = options;
   const n = document.createElement('div');
   n.className = 'pulse-number';
   if (i === 0) n.classList.add('zero');
   const lg = pulses.length - 1;
   if (i === lg) n.classList.add('lg');
+  if (selected && i !== 0 && i !== lg) {
+    n.classList.add('selected');
+  }
   n.dataset.index = i;
   n.textContent = i;
   const _lgForFont = pulses.length - 1;
@@ -1395,16 +1572,11 @@ function updateNumbers(){
     return;
   }
 
-  // sempre 0 i últim
-  showNumber(0);
-  showNumber(lgForNumbers);
-
-  // En App2: només els seleccionats (sense 0 ni Lg)
-  pulses.forEach((p, i) => {
-    if (i !== 0 && i !== lgForNumbers && selectedPulses.has(i)) {
-      showNumber(i);
-    }
-  });
+  for (let i = 0; i <= lgForNumbers; i++) {
+    const isEndpoint = i === 0 || i === lgForNumbers;
+    const isSelected = !isEndpoint && selectedPulses.has(i);
+    showNumber(i, { selected: isSelected });
+  }
   // Re-anchor T to the (possibly) re-generated Lg label
   try { updateTIndicatorPosition(); } catch {}
 }

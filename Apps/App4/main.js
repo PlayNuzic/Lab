@@ -1,817 +1,3718 @@
-import {
-  TimelineAudio,
-  ensureAudio,
-  getMixer,
-  subscribeMixer,
-  setChannelVolume,
-  setChannelMute,
-  setChannelSolo
-} from '../../libs/sound/index.js';
+import { TimelineAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
-import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { attachHover } from '../../libs/shared-ui/hover.js';
+import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
+import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { toRange } from '../../libs/app-common/range.js';
-import { fromLgAndTempo, computeSubdivisionFontRem, gridFromOrigin } from '../../libs/app-common/subdivision.js';
-import { computeHitSizePx, computeNumberFontRem } from '../../libs/app-common/utils.js';
+import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
+import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+// Using local header controls for App2 (no shared init)
 
-const APP_ID = 'app4';
-const STORE_KEY = (key) => `${APP_ID}::${key}`;
+let audio;
+let audioInitPromise = null;
 
-const DEFAULT_PARAMS = Object.freeze({
-  Lg: 8,
-  V: 120,
-  numerator: 3,
-  denominator: 2
-});
 
-const selectors = {
-  playBtn: () => document.getElementById('playBtn'),
-  loopBtn: () => document.getElementById('loopBtn'),
-  resetBtn: () => document.getElementById('resetBtn'),
-  tapTempoBtn: () => document.getElementById('tapTempoBtn'),
-  tapHelp: () => document.getElementById('tapHelp'),
-  baseSoundSelect: () => document.getElementById('baseSoundSelect'),
-  selectedSoundSelect: () => document.getElementById('accentSoundSelect'),
-  startSoundSelect: () => document.getElementById('startSoundSelect'),
-  mixerMenu: () => document.getElementById('mixerMenu'),
-  inputs: () => document.querySelector('.inputs'),
-  selectedToggleBtn: () => document.getElementById('selectedToggleBtn'),
-  inputLg: () => document.getElementById('inputLg'),
-  inputLgUp: () => document.getElementById('inputLgUp'),
-  inputLgDown: () => document.getElementById('inputLgDown'),
-  inputV: () => document.getElementById('inputV'),
-  inputVUp: () => document.getElementById('inputVUp'),
-  inputVDown: () => document.getElementById('inputVDown'),
-  numeratorInput: () => document.getElementById('fractionNumerator'),
-  numeratorUp: () => document.getElementById('fractionNumeratorUp'),
-  numeratorDown: () => document.getElementById('fractionNumeratorDown'),
-  denominatorInput: () => document.getElementById('fractionDenominator'),
-  denominatorUp: () => document.getElementById('fractionDenominatorUp'),
-  denominatorDown: () => document.getElementById('fractionDenominatorDown'),
-  randomBtn: () => document.getElementById('randomBtn'),
-  randomMenu: () => document.getElementById('randomMenu'),
-  randLgToggle: () => document.getElementById('randLgToggle'),
-  randLgMin: () => document.getElementById('randLgMin'),
-  randLgMax: () => document.getElementById('randLgMax'),
-  randVToggle: () => document.getElementById('randVToggle'),
-  randVMin: () => document.getElementById('randVMin'),
-  randVMax: () => document.getElementById('randVMax'),
-  randPulsesToggle: () => document.getElementById('randPulsesToggle'),
-  randomCount: () => document.getElementById('randomCount'),
-  pulseSeqContainer: () => document.getElementById('pulseSeq'),
-  timelineWrapper: () => document.getElementById('timelineWrapper'),
-  timeline: () => document.getElementById('timeline'),
-  circularToggle: () => document.getElementById('circularTimelineToggle'),
-  controlsToggleGroup: () => document.querySelector('.control-sound-toggles')
-};
-
-const FRACTION_IDS = {
-  container: 'fractionParam',
-  numerator: 'fractionNumerator',
-  numeratorUp: 'fractionNumeratorUp',
-  numeratorDown: 'fractionNumeratorDown',
-  denominator: 'fractionDenominator',
-  denominatorUp: 'fractionDenominatorUp',
-  denominatorDown: 'fractionDenominatorDown'
-};
-
-let audio = null;
-let mixerSyncGuard = false;
-let selectedChannelEnabled = true;
-let lastHighlightedStep = null;
-
-const RANDOM_STORE_KEY = STORE_KEY('random');
-
-const randomDefaults = {
-  Lg: { enabled: true, range: [2, 30] },
-  V: { enabled: true, range: [40, 320] },
-  Pulses: { enabled: true, count: '' }
-};
-
-const randomElements = {
-  button: null,
-  menu: null,
-  randLgToggle: null,
-  randLgMin: null,
-  randLgMax: null,
-  randVToggle: null,
-  randVMin: null,
-  randVMax: null,
-  randPulsesToggle: null,
-  randomCount: null
-};
-
-let randomConfig = mergeRandomConfig(loadRandomConfig());
 
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
-
 bindSharedSoundEvents({
   getAudio: () => audio,
   mapping: {
     baseSound: 'setBase',
-    selectedSound: 'setAccent',
+    accentSound: 'setAccent',
     startSound: 'setStart',
     cycleSound: 'setCycle'
   }
 });
-
-const pulseSeqElements = {
-  edit: null,
-  lg: null,
-  fractionNumerator: null,
-  fractionDenominator: null,
-  help: null
-};
-
-const initialParams = loadStoredParams();
-
-const state = {
-  params: initialParams,
-  pulses: normalizePulseList(loadStoredPulses(), {
-    denominator: initialParams.denominator,
-    lg: initialParams.Lg
-  }),
-  isPlaying: false,
-  audioReady: false,
-  pendingAudioSync: false,
-  selectedIntegers: new Set(),
-  selectedFractionals: new Set(),
-  selectionAudioEnabled: true,
-  circularTimeline: false,
-  loopEnabled: false
-};
-
-const PULSE_NUMBER_HIDE_THRESHOLD = 71;
-const SUBDIVISION_HIDE_THRESHOLD = 41;
-const NUMBER_CIRCLE_OFFSET = 28;
-
-const timelineState = {
-  pulses: [],
-  bars: [],
-  numberLabels: [],
-  cycleMarkers: [],
-  cycleLabels: [],
-  integerHits: new Map(),
-  fractionHits: new Map(),
-  fractionMarkers: [],
-  fractionLabels: [],
-  tIndicator: null
-};
-
-const selectionDrag = {
-  active: false,
-  mode: 'select',
-  suppressedKey: null,
-  lastSignature: null,
-  type: null
-};
-
-function getValidLg() {
-  const lg = Number(state.params?.Lg);
-  return Number.isFinite(lg) && lg > 0 ? lg : null;
+const inputLg = document.getElementById('inputLg');
+const inputV = document.getElementById('inputV');
+const inputT = document.getElementById('inputT');
+const inputVUp = document.getElementById('inputVUp');
+const inputVDown = document.getElementById('inputVDown');
+const inputLgUp = document.getElementById('inputLgUp');
+const inputLgDown = document.getElementById('inputLgDown');
+const ledLg = document.getElementById('ledLg');
+const ledV = document.getElementById('ledV');
+const ledT = document.getElementById('ledT');
+const unitLg = document.getElementById('unitLg');
+const unitV = document.getElementById('unitV');
+const unitT = document.getElementById('unitT');
+// Pulse sequence UI element (contenteditable div in template)
+const pulseSeqEl = document.getElementById('pulseSeq');
+const formula = document.getElementById('formula');
+const timelineWrapper = document.getElementById('timelineWrapper');
+const timeline = document.getElementById('timeline');
+const shouldRenderTIndicator = Boolean(inputT);
+const tIndicator = shouldRenderTIndicator ? (() => {
+  const indicator = document.createElement('div');
+  indicator.id = 'tIndicator';
+  // Start hidden to avoid flicker during first layout
+  indicator.style.visibility = 'hidden';
+  timeline.appendChild(indicator);
+  return indicator;
+})() : null;
+const playBtn = document.getElementById('playBtn');
+const loopBtn = document.getElementById('loopBtn');
+const resetBtn = document.getElementById('resetBtn');
+const tapBtn = document.getElementById('tapTempoBtn');
+const tapHelp = document.getElementById('tapHelp');
+const circularTimelineToggle = document.getElementById('circularTimelineToggle');
+const randomBtn = document.getElementById('randomBtn');
+const randomMenu = document.getElementById('randomMenu');
+const randLgToggle = document.getElementById('randLgToggle');
+const randLgMin = document.getElementById('randLgMin');
+const randLgMax = document.getElementById('randLgMax');
+const randVToggle = document.getElementById('randVToggle');
+const randVMin = document.getElementById('randVMin');
+const randVMax = document.getElementById('randVMax');
+const randPulsesToggle = document.getElementById('randPulsesToggle');
+const randomCount = document.getElementById('randomCount');
+const randTToggle = document.getElementById('randTToggle');
+const randTMin = document.getElementById('randTMin');
+const randTMax = document.getElementById('randTMax');
+const randNToggle = document.getElementById('randNToggle');
+const randNMin = document.getElementById('randNMin');
+const randNMax = document.getElementById('randNMax');
+const randDToggle = document.getElementById('randDToggle');
+const randDMin = document.getElementById('randDMin');
+const randDMax = document.getElementById('randDMax');
+const randComplexToggle = document.getElementById('randComplexToggle');
+// Mute is managed by the shared header (#muteBtn)
+const themeSelect = document.getElementById('themeSelect');
+const selectColor = document.getElementById('selectColor');
+const baseSoundSelect = document.getElementById('baseSoundSelect');
+const accentSoundSelect = document.getElementById('accentSoundSelect');
+const startSoundSelect = document.getElementById('startSoundSelect');
+const cycleSoundSelect = document.getElementById('cycleSoundSelect');
+const pulseToggleBtn = document.getElementById('pulseToggleBtn');
+const selectedToggleBtn = document.getElementById('selectedToggleBtn');
+const cycleToggleBtn = document.getElementById('cycleToggleBtn');
+const titleHeading = document.querySelector('header.top-bar h1');
+let titleButton = null;
+if (titleHeading) {
+  titleButton = document.createElement('button');
+  titleButton.type = 'button';
+  titleButton.id = 'appTitleBtn';
+  titleButton.className = 'top-bar-title-button';
+  titleButton.textContent = titleHeading.textContent || '';
+  titleHeading.textContent = '';
+  titleHeading.appendChild(titleButton);
 }
 
-function getValidDenominator() {
-  const denominator = Number(state.params?.denominator);
-  return Number.isFinite(denominator) && denominator > 0 ? denominator : 1;
+const globalMixer = getMixer();
+if (globalMixer) {
+  globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso/Pulso 0' });
+  globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivisión' });
+  globalMixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
 }
 
-function fractionKey(base, numerator) {
-  return `fraction:${base}:${numerator}`;
+const FRACTION_NUMERATOR_KEY = 'n';
+const FRACTION_DENOMINATOR_KEY = 'd';
+const fractionDefaults = {
+  numerator: null,
+  denominator: null
+};
+
+let numeratorInput;
+let denominatorInput;
+let fractionInfoBubble;
+let numeratorFieldWrapper;
+let denominatorFieldWrapper;
+let numeratorFieldPlaceholder;
+let denominatorFieldPlaceholder;
+let pulseSeqFractionWrapper = null;
+let ghostFractionContainer = null;
+let ghostNumeratorText = null;
+let ghostDenominatorText = null;
+const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
+const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
+const FRACTION_HOVER_NUMERATOR_TYPE = 'numerator';
+const FRACTION_HOVER_DENOMINATOR_TYPE = 'denominator';
+let currentFractionInfo = createEmptyFractionInfo();
+let currentFractionMultipleMessage = '';
+let fractionInfoHideTimer = null;
+
+const randomDefaults = {
+  Lg: { enabled: true, range: [2, 30] },
+  V: { enabled: true, range: [40, 320] },
+  T: { enabled: true, range: [0.1, 20] },
+  Pulses: { enabled: true, count: '' },
+  n: { enabled: true, range: [1, 9] },
+  d: { enabled: true, range: [1, 9] },
+  allowComplex: true
+};
+
+const RANDOM_STORE_KEY = 'random';
+
+function loadRandomConfig() {
+  try {
+    const raw = loadOpt(RANDOM_STORE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
 }
 
-function getNormalizationOptions() {
+function saveRandomConfig(cfg) {
+  try { saveOpt(RANDOM_STORE_KEY, JSON.stringify(cfg)); } catch {}
+}
+
+const randomConfig = { ...randomDefaults, ...loadRandomConfig() };
+
+function toIntRange(minInput, maxInput, fallback) {
+  const fallbackRange = Array.isArray(fallback) ? fallback : [1, 1];
+  const [lo, hi] = toRange(minInput, maxInput, fallbackRange);
+  const normalizedLo = Number.isFinite(lo) ? Math.max(1, Math.round(lo)) : fallbackRange[0];
+  const normalizedHiRaw = Number.isFinite(hi) ? Math.round(hi) : fallbackRange[1];
+  const normalizedHi = Math.max(normalizedLo, Math.max(1, normalizedHiRaw));
+  return [normalizedLo, normalizedHi];
+}
+
+/**
+ * Apply stored random configuration values to the associated DOM controls.
+ * @param {Record<string, any>} cfg
+ */
+function applyRandomConfig(cfg) {
+  if (randLgToggle) randLgToggle.checked = cfg.Lg.enabled;
+  if (randLgMin) randLgMin.value = cfg.Lg.range[0];
+  if (randLgMax) randLgMax.value = cfg.Lg.range[1];
+  if (randVToggle) randVToggle.checked = cfg.V.enabled;
+  if (randVMin) randVMin.value = cfg.V.range[0];
+  if (randVMax) randVMax.value = cfg.V.range[1];
+  if (cfg.T) {
+    if (randTToggle) randTToggle.checked = cfg.T.enabled;
+    if (randTMin) randTMin.value = cfg.T.range[0];
+    if (randTMax) randTMax.value = cfg.T.range[1];
+  }
+  if (cfg.n && randNToggle && randNMin && randNMax) {
+    randNToggle.checked = cfg.n.enabled;
+    randNMin.value = cfg.n.range[0];
+    randNMax.value = cfg.n.range[1];
+  }
+  if (cfg.d && randDToggle && randDMin && randDMax) {
+    randDToggle.checked = cfg.d.enabled;
+    randDMin.value = cfg.d.range[0];
+    randDMax.value = cfg.d.range[1];
+  }
+  if (typeof cfg.allowComplex === 'boolean' && randComplexToggle) {
+    randComplexToggle.checked = cfg.allowComplex;
+  }
+  if (randPulsesToggle && randomCount) {
+    randPulsesToggle.checked = cfg.Pulses.enabled;
+    randomCount.value = cfg.Pulses.count ?? '';
+  }
+}
+
+/**
+ * Persist the current random menu configuration back to storage.
+ */
+function updateRandomConfig() {
+  randomConfig.Lg = {
+    enabled: randLgToggle.checked,
+    range: toRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range)
+  };
+  randomConfig.V = {
+    enabled: randVToggle.checked,
+    range: toRange(randVMin?.value, randVMax?.value, randomDefaults.V.range)
+  };
+  const previousTRange = randomConfig.T?.range ?? randomDefaults.T.range;
+  const previousTEnabled = randomConfig.T?.enabled ?? randomDefaults.T.enabled;
+  randomConfig.T = {
+    enabled: randTToggle ? randTToggle.checked : previousTEnabled,
+    range: (randTMin && randTMax)
+      ? toRange(randTMin?.value, randTMax?.value, previousTRange)
+      : previousTRange
+  };
+  const previousNRange = randomConfig.n?.range ?? randomDefaults.n.range;
+  randomConfig.n = {
+    enabled: randNToggle ? randNToggle.checked : (randomConfig.n?.enabled ?? randomDefaults.n.enabled),
+    range: (randNMin && randNMax)
+      ? toIntRange(randNMin.value, randNMax.value, previousNRange)
+      : previousNRange
+  };
+  const previousDRange = randomConfig.d?.range ?? randomDefaults.d.range;
+  randomConfig.d = {
+    enabled: randDToggle ? randDToggle.checked : (randomConfig.d?.enabled ?? randomDefaults.d.enabled),
+    range: (randDMin && randDMax)
+      ? toIntRange(randDMin.value, randDMax.value, previousDRange)
+      : previousDRange
+  };
+  if (randComplexToggle) {
+    randomConfig.allowComplex = randComplexToggle.checked;
+  } else if (typeof randomConfig.allowComplex !== 'boolean') {
+    randomConfig.allowComplex = randomDefaults.allowComplex;
+  }
+  if (randPulsesToggle && randomCount) {
+    randomConfig.Pulses = {
+      enabled: randPulsesToggle.checked,
+      count: randomCount.value
+    };
+  }
+  saveRandomConfig(randomConfig);
+}
+
+applyRandomConfig(randomConfig);
+
+[
+  randLgToggle, randLgMin, randLgMax,
+  randVToggle, randVMin, randVMax,
+  randTToggle, randTMin, randTMax,
+  randNToggle, randNMin, randNMax,
+  randDToggle, randDMin, randDMax,
+  randComplexToggle,
+  randPulsesToggle, randomCount
+].forEach(el => el?.addEventListener('change', updateRandomConfig));
+
+function parseIntSafe(val) {
+  const n = Number.parseInt(val, 10);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function createEmptyFractionInfo() {
   return {
-    denominator: getValidDenominator(),
-    lg: getValidLg()
+    numerator: null,
+    denominator: null,
+    reducedNumerator: null,
+    reducedDenominator: null,
+    isMultiple: false,
+    multipleFactor: 1
   };
 }
 
-function buildFractionKey(pulse) {
-  if (!pulse || !Number.isFinite(pulse.base) || !Number.isFinite(pulse.numerator)) return null;
-  return fractionKey(pulse.base, pulse.numerator);
+function gcd(a, b) {
+  let x = Math.abs(Number(a));
+  let y = Math.abs(Number(b));
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) {
+    return Number.isFinite(x) && x > 0 ? x : Number.isFinite(y) && y > 0 ? y : 1;
+  }
+  while (y !== 0) {
+    const temp = x % y;
+    x = y;
+    y = temp;
+  }
+  return x || 1;
 }
 
-function selectionSignature(type, key) {
-  return `${type}:${key}`;
+function lcm(a, b) {
+  const x = Math.abs(Math.round(Number(a) || 0));
+  const y = Math.abs(Math.round(Number(b) || 0));
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) {
+    return 1;
+  }
+  return Math.abs((x / gcd(x, y)) * y) || 1;
 }
 
-function isIntegerSelected(index) {
-  return state.selectedIntegers.has(index);
+function computeFractionInfo(numerator, denominator) {
+  const info = createEmptyFractionInfo();
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || numerator <= 0 || denominator <= 0) {
+    return info;
+  }
+  info.numerator = numerator;
+  info.denominator = denominator;
+  const divisor = gcd(numerator, denominator);
+  if (divisor <= 1) {
+    return info;
+  }
+  info.reducedNumerator = numerator / divisor;
+  info.reducedDenominator = denominator / divisor;
+  info.isMultiple = true;
+  info.multipleFactor = denominator / info.reducedDenominator;
+  return info;
 }
 
-function isFractionSelected(key) {
-  return state.selectedFractionals.has(key);
+function buildReductionHoverText(info) {
+  if (!info || !info.isMultiple) return '';
+  const accentEvery = Math.max(1, Math.round(info.multipleFactor));
+  const noun = accentEvery === 1 ? 'subdivisión' : 'subdivisiones';
+  return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}.\nSe repite ${accentEvery} veces la misma subdivisión en cada fracción ${info.numerator}/${info.denominator}.`;
 }
 
-function clearSelectionState() {
-  state.selectedIntegers.clear();
-  state.selectedFractionals.clear();
-  updateSelectionVisuals();
-  syncSelectionAudio();
+function updateFractionGhost(info) {
+  if (!ghostFractionContainer || !ghostNumeratorText || !ghostDenominatorText) return;
+  if (!info || !info.isMultiple) {
+    ghostFractionContainer.classList.add('fraction-ghost--hidden');
+    ghostFractionContainer.classList.remove('fraction-ghost--visible');
+    ghostNumeratorText.textContent = '';
+    ghostDenominatorText.textContent = '';
+    return;
+  }
+  ghostNumeratorText.textContent = info.reducedNumerator;
+  ghostDenominatorText.textContent = info.reducedDenominator;
+  ghostFractionContainer.classList.remove('fraction-ghost--hidden');
+  ghostFractionContainer.classList.add('fraction-ghost--visible');
 }
 
-function pruneSelection() {
-  const validIntegers = new Set();
-  const validFractions = new Set();
+function clearFractionInfoHideTimer() {
+  if (fractionInfoHideTimer) {
+    clearTimeout(fractionInfoHideTimer);
+    fractionInfoHideTimer = null;
+  }
+}
 
-  state.pulses.forEach((pulse) => {
-    if (!pulse) return;
-    if (pulse.numerator != null) {
-      const key = buildFractionKey(pulse);
-      if (key) validFractions.add(key);
+function hideFractionInfoBubble({ clearMessage = false } = {}) {
+  if (!fractionInfoBubble) return;
+  clearFractionInfoHideTimer();
+  fractionInfoBubble.classList.add('fraction-info-bubble--hidden');
+  fractionInfoBubble.classList.remove('fraction-info-bubble--visible');
+  if (clearMessage) {
+    fractionInfoBubble.textContent = '';
+  }
+}
+
+function showFractionInfoBubble({ message, autoHide = false } = {}) {
+  if (!fractionInfoBubble) return;
+  const resolvedMessage = message || currentFractionMultipleMessage;
+  if (!resolvedMessage) return;
+  clearFractionInfoHideTimer();
+  solidMenuBackground(fractionInfoBubble);
+  fractionInfoBubble.textContent = resolvedMessage;
+  fractionInfoBubble.classList.remove('fraction-info-bubble--hidden');
+  fractionInfoBubble.classList.add('fraction-info-bubble--visible');
+  if (autoHide) {
+    fractionInfoHideTimer = setTimeout(() => {
+      hideFractionInfoBubble();
+    }, 3000);
+  }
+}
+
+function getDefaultFractionHoverText(target) {
+  if (!target || !target.dataset) return '';
+  if (target.dataset.fractionHoverType === FRACTION_HOVER_NUMERATOR_TYPE) {
+    return DEFAULT_NUMERATOR_HOVER_TEXT;
+  }
+  if (target.dataset.fractionHoverType === FRACTION_HOVER_DENOMINATOR_TYPE) {
+    return DEFAULT_DENOMINATOR_HOVER_TEXT;
+  }
+  return '';
+}
+
+function handleFractionHoverEnter(event) {
+  const target = event?.currentTarget || null;
+  const message = currentFractionMultipleMessage || getDefaultFractionHoverText(target);
+  if (!message) return;
+  showFractionInfoBubble({ message });
+}
+
+function handleFractionHoverLeave() {
+  if (!fractionInfoBubble) return;
+  hideFractionInfoBubble();
+}
+
+function registerFractionHoverTarget(target, { useFocus = false } = {}) {
+  if (!target) return;
+  target.addEventListener('mouseenter', handleFractionHoverEnter);
+  target.addEventListener('mouseleave', handleFractionHoverLeave);
+  if (useFocus) {
+    target.addEventListener('focus', handleFractionHoverEnter);
+    target.addEventListener('blur', handleFractionHoverLeave);
+  }
+}
+
+function updateFractionInfoBubble(info, { reveal = false } = {}) {
+  if (!fractionInfoBubble) return;
+  clearFractionInfoHideTimer();
+  if (!info || !info.isMultiple) {
+    currentFractionMultipleMessage = '';
+    hideFractionInfoBubble({ clearMessage: true });
+    return;
+  }
+  currentFractionMultipleMessage = buildReductionHoverText(info);
+  if (reveal) {
+    showFractionInfoBubble({ message: currentFractionMultipleMessage, autoHide: true });
+  } else if (fractionInfoBubble.classList.contains('fraction-info-bubble--visible')) {
+    showFractionInfoBubble({ message: currentFractionMultipleMessage });
+  }
+}
+
+function setFractionFieldEmptyState(wrapper, placeholder, isEmpty) {
+  if (!wrapper) return;
+  const empty = !!isEmpty;
+  wrapper.classList.toggle('fraction-field--empty', empty);
+  if (placeholder) {
+    placeholder.classList.toggle('fraction-field-placeholder--visible', empty);
+  }
+}
+
+function updateFractionFieldState(numerator, denominator) {
+  const hasNumerator = Number.isFinite(numerator) && numerator > 0;
+  const hasDenominator = Number.isFinite(denominator) && denominator > 0;
+  setFractionFieldEmptyState(numeratorFieldWrapper, numeratorFieldPlaceholder, !hasNumerator);
+  setFractionFieldEmptyState(denominatorFieldWrapper, denominatorFieldPlaceholder, !hasDenominator);
+}
+
+function updateFractionUI(numerator, denominator) {
+  currentFractionInfo = computeFractionInfo(numerator, denominator);
+  updatePulseSeqFractionDisplay(numerator, denominator);
+  updateFractionFieldState(numerator, denominator);
+  updateFractionInfoBubble(currentFractionInfo, { reveal: true });
+  updateFractionGhost(currentFractionInfo);
+  if (fractionalPulseSelections.length > 0) {
+    sanitizePulseSeq({ causedBy: 'fraction-change', skipCaret: true });
+  }
+}
+
+function persistFractionField(input, key) {
+  if (!input || !key) return;
+  const value = parseIntSafe(input.value);
+  if (!Number.isFinite(value) || value <= 0) {
+    clearOpt(key);
+    return;
+  }
+  saveOpt(key, String(value));
+}
+
+function adjustInput(input, delta) {
+  if (!input) return;
+  const current = parseIntSafe(input.value);
+  const next = Number.isFinite(current) ? Math.max(1, current + delta) : 1;
+  setValue(input, next);
+  handleInput();
+  if (input === numeratorInput) {
+    persistFractionField(input, FRACTION_NUMERATOR_KEY);
+  } else if (input === denominatorInput) {
+    persistFractionField(input, FRACTION_DENOMINATOR_KEY);
+  }
+}
+
+function initFractionEditor() {
+  if (!pulseSeqEl) return;
+  const wrapperHost = pulseSeqFractionWrapper || pulseSeqEl.querySelector('.fraction');
+  if (!wrapperHost) return;
+
+  wrapperHost.innerHTML = '';
+  wrapperHost.classList.add('fraction-inline-container');
+  wrapperHost.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
+
+  const wrapper = document.createElement('span');
+  wrapper.className = 'fraction-editor-wrapper fraction-editor-wrapper--inline';
+  wrapper.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
+  wrapperHost.appendChild(wrapper);
+  registerFractionHoverTarget(wrapper);
+
+  ghostFractionContainer = document.createElement('div');
+  ghostFractionContainer.className = 'fraction-ghost fraction-ghost--hidden';
+  ghostFractionContainer.setAttribute('aria-hidden', 'true');
+
+  const ghostNumeratorWrapper = document.createElement('div');
+  ghostNumeratorWrapper.className = 'fraction-ghost__numerator';
+  ghostNumeratorText = document.createElement('span');
+  ghostNumeratorText.className = 'fraction-ghost__number';
+  ghostNumeratorWrapper.appendChild(ghostNumeratorText);
+
+  const ghostBar = document.createElement('div');
+  ghostBar.className = 'fraction-ghost__bar';
+
+  const ghostDenominatorWrapper = document.createElement('div');
+  ghostDenominatorWrapper.className = 'fraction-ghost__denominator';
+  ghostDenominatorText = document.createElement('span');
+  ghostDenominatorText.className = 'fraction-ghost__number';
+  ghostDenominatorWrapper.appendChild(ghostDenominatorText);
+
+  ghostFractionContainer.append(ghostNumeratorWrapper, ghostBar, ghostDenominatorWrapper);
+
+  const container = document.createElement('div');
+  container.className = 'fraction-editor fraction-editor--inline';
+  container.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
+
+  wrapper.appendChild(ghostFractionContainer);
+  wrapper.appendChild(container);
+  registerFractionHoverTarget(container);
+
+  fractionInfoBubble = document.createElement('div');
+  fractionInfoBubble.className = 'fraction-info-bubble fraction-info-bubble--hidden';
+  fractionInfoBubble.setAttribute('role', 'status');
+  fractionInfoBubble.setAttribute('aria-live', 'polite');
+  solidMenuBackground(fractionInfoBubble);
+  wrapper.appendChild(fractionInfoBubble);
+
+  const createField = ({ wrapperClass, ariaUp, ariaDown, placeholder }) => {
+    const fieldWrapper = document.createElement('div');
+    fieldWrapper.className = `fraction-field ${wrapperClass}`;
+    fieldWrapper.classList.add('fraction-field--empty');
+    fieldWrapper.dataset.fractionHoverType = wrapperClass;
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '1';
+    input.step = '1';
+    input.value = '';
+    input.className = wrapperClass;
+    input.dataset.fractionHoverType = wrapperClass;
+    fieldWrapper.appendChild(input);
+
+    const placeholderEl = document.createElement('div');
+    placeholderEl.className = 'fraction-field-placeholder fraction-field-placeholder--visible';
+    placeholderEl.textContent = placeholder;
+    placeholderEl.setAttribute('aria-hidden', 'true');
+    fieldWrapper.appendChild(placeholderEl);
+
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+    const up = document.createElement('button');
+    up.type = 'button';
+    up.className = 'spin up';
+    if (ariaUp) up.setAttribute('aria-label', ariaUp);
+    const down = document.createElement('button');
+    down.type = 'button';
+    down.className = 'spin down';
+    if (ariaDown) down.setAttribute('aria-label', ariaDown);
+    spinner.appendChild(up);
+    spinner.appendChild(down);
+    fieldWrapper.appendChild(spinner);
+
+    return { wrapper: fieldWrapper, input, up, down, placeholder: placeholderEl };
+  };
+
+  const top = document.createElement('div');
+  top.className = 'top';
+  const numeratorField = createField({
+    wrapperClass: 'numerator',
+    ariaUp: 'Incrementar numerador',
+    ariaDown: 'Decrementar numerador',
+    placeholder: 'n'
+  });
+  numeratorInput = numeratorField.input;
+  numeratorFieldWrapper = numeratorField.wrapper;
+  numeratorFieldPlaceholder = numeratorField.placeholder;
+  top.appendChild(numeratorField.wrapper);
+  registerFractionHoverTarget(numeratorField.wrapper);
+  registerFractionHoverTarget(numeratorInput, { useFocus: true });
+
+  const bottom = document.createElement('div');
+  bottom.className = 'bottom';
+  const denominatorField = createField({
+    wrapperClass: 'denominator',
+    ariaUp: 'Incrementar denominador',
+    ariaDown: 'Decrementar denominador',
+    placeholder: 'd'
+  });
+  denominatorInput = denominatorField.input;
+  denominatorFieldWrapper = denominatorField.wrapper;
+  denominatorFieldPlaceholder = denominatorField.placeholder;
+  bottom.appendChild(denominatorField.wrapper);
+  registerFractionHoverTarget(denominatorField.wrapper);
+  registerFractionHoverTarget(denominatorInput, { useFocus: true });
+
+  const bar = document.createElement('div');
+  bar.className = 'fraction-bar';
+  bar.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
+  bar.setAttribute('aria-hidden', 'true');
+  registerFractionHoverTarget(bar);
+
+  container.appendChild(top);
+  container.appendChild(bar);
+  container.appendChild(bottom);
+
+  pulseSeqFractionNumeratorEl = numeratorInput;
+  pulseSeqFractionDenominatorEl = denominatorInput;
+  registerFractionHoverTarget(wrapperHost);
+
+  const enforceInt = (input, storageKey) => {
+    if (!input) return;
+    const normalize = () => {
+      let val = parseIntSafe(input.value);
+      if (!Number.isFinite(val) || val <= 0) {
+        input.value = '';
+      } else {
+        input.value = String(val);
+      }
+      persistFractionField(input, storageKey);
+      handleInput();
+    };
+    input.addEventListener('input', normalize);
+    input.addEventListener('blur', normalize);
+  };
+
+  enforceInt(numeratorInput, FRACTION_NUMERATOR_KEY);
+  enforceInt(denominatorInput, FRACTION_DENOMINATOR_KEY);
+
+  addRepeatPress(numeratorField.up, () => adjustInput(numeratorInput, +1));
+  addRepeatPress(numeratorField.down, () => adjustInput(numeratorInput, -1));
+  addRepeatPress(denominatorField.up, () => adjustInput(denominatorInput, +1));
+  addRepeatPress(denominatorField.down, () => adjustInput(denominatorInput, -1));
+
+  updateFractionFieldState(null, null);
+}
+
+function getFraction() {
+  const rawNumerator = numeratorInput ? parseIntSafe(numeratorInput.value) : NaN;
+  const rawDenominator = denominatorInput ? parseIntSafe(denominatorInput.value) : NaN;
+  return {
+    numerator: Number.isFinite(rawNumerator) && rawNumerator > 0 ? rawNumerator : null,
+    denominator: Number.isFinite(rawDenominator) && rawDenominator > 0 ? rawDenominator : null
+  };
+}
+
+function initFractionState() {
+  if (!numeratorInput || !denominatorInput) return;
+  const storedNumerator = parseIntSafe(loadOpt(FRACTION_NUMERATOR_KEY));
+  const storedDenominator = parseIntSafe(loadOpt(FRACTION_DENOMINATOR_KEY));
+
+  const numerator = Number.isFinite(storedNumerator) && storedNumerator > 0
+    ? storedNumerator
+    : fractionDefaults.numerator;
+  const denominator = Number.isFinite(storedDenominator) && storedDenominator > 0
+    ? storedDenominator
+    : fractionDefaults.denominator;
+
+  isUpdating = true;
+  numeratorInput.value = Number.isFinite(numerator) && numerator > 0 ? String(numerator) : '';
+  denominatorInput.value = Number.isFinite(denominator) && denominator > 0 ? String(denominator) : '';
+  isUpdating = false;
+
+  if (!(Number.isFinite(numerator) && numerator > 0)) {
+    clearOpt(FRACTION_NUMERATOR_KEY);
+  }
+  if (!(Number.isFinite(denominator) && denominator > 0)) {
+    clearOpt(FRACTION_DENOMINATOR_KEY);
+  }
+
+  updateFractionUI(numerator, denominator);
+}
+
+// No actualitza la memòria a cada tecleig: es confirma amb Enter o blur
+// pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
+
+let pulses = [];
+let pulseNumberLabels = [];
+let cycleMarkers = [];
+let cycleLabels = [];
+let lastStructureSignature = {
+  lg: null,
+  numerator: null,
+  denominator: null
+};
+let bars = [];
+let pulseHits = [];
+let cycleMarkerHits = [];
+const fractionalSelectionState = new Map();
+const selectedFractionKeys = new Set();
+const fractionHitMap = new Map();
+const fractionMarkerMap = new Map();
+const fractionLabelLookup = new Map();
+// Hit targets (separate from the visual dots) and drag mode
+let dragMode = 'select'; // 'select' | 'deselect'
+// --- Selection memory across Lg changes ---
+let pulseMemory = []; // index -> selected
+let pulseSeqRanges = {};
+let fractionalPulseSelections = [];
+let pulseSeqEntryOrder = [];
+const pulseSeqEntryLookup = new Map();
+const pulseSeqTokenMap = new Map();
+let pulseSeqFractionNumeratorEl = null;
+let pulseSeqFractionDenominatorEl = null;
+let pulseSeqVisualEl = null;
+let pulseSeqEditWrapper = null;
+let pulseSeqSpacingAdjustHandle = null;
+let lastFractionGap = null;
+let currentAudioResolution = 1;
+let lastFractionHighlightKey = null;
+let lastHighlightSignature = null;
+const FRACTION_POSITION_EPSILON = 1e-6;
+const TEXT_NODE_TYPE = (typeof Node !== 'undefined' && Node.TEXT_NODE) || 3;
+const raf = (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
+  ? (cb) => window.requestAnimationFrame(cb)
+  : (cb) => setTimeout(cb, 16);
+const caf = (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function')
+  ? (id) => window.cancelAnimationFrame(id)
+  : (id) => clearTimeout(id);
+
+function nearestPulseIndex(value) {
+  if (!Number.isFinite(value)) return null;
+  const nearest = Math.round(value);
+  return Math.abs(value - nearest) < FRACTION_POSITION_EPSILON ? nearest : null;
+}
+const voiceHighlightHandlers = new Map();
+
+function ensurePulseMemory(size) {
+  if (size >= pulseMemory.length) {
+    for (let i = pulseMemory.length; i <= size; i++) pulseMemory[i] = false;
+  }
+}
+
+// Clear all persistent pulse selection (memory beyond current Lg too)
+function clearPersistentPulses(){
+  pulseMemory = [];
+  try { selectedPulses.clear(); } catch {}
+  /* Keep UI consistent; will be rebuilt by subsequent calls */
+  fractionalSelectionState.clear();
+  selectedFractionKeys.clear();
+  fractionalPulseSelections = [];
+  updatePulseSeqField();
+  applyFractionSelectionClasses();
+}
+// UI thresholds for number rendering
+const PULSE_NUMBER_HIDE_THRESHOLD = 71;
+const SUBDIVISION_HIDE_THRESHOLD = 41;
+const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
+const MIN_SUBDIVISION_LABEL_SPACING_PX = 40;
+
+function makeFractionKey(base, numerator, denominator) {
+  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
+    return null;
+  }
+  return `${base}+${numerator}/${denominator}`;
+}
+
+function registerFractionLabel(label, info) {
+  if (!label || !info || !info.key) return;
+  const normalized = String(label).trim();
+  if (!normalized) return;
+  const bucket = fractionLabelLookup.get(normalized);
+  if (!bucket) {
+    fractionLabelLookup.set(normalized, [info]);
+    return;
+  }
+  if (!bucket.some(entry => entry && entry.key === info.key)) {
+    bucket.push(info);
+  }
+}
+
+function getFractionInfoByLabel(label, opts = {}) {
+  if (!label) return null;
+  const normalized = String(label).trim();
+  if (!normalized) return null;
+  const bucket = fractionLabelLookup.get(normalized);
+  if (!bucket || bucket.length === 0) return null;
+  if (opts && Number.isFinite(opts.base)) {
+    const match = bucket.find(entry => Number.isFinite(entry.base) && entry.base === opts.base);
+    if (match) return match;
+  }
+  return bucket[0] ?? null;
+}
+
+function fractionValue(base, numerator, denominator) {
+  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
+    return NaN;
+  }
+  return base + numerator / denominator;
+}
+
+function cycleNotationToFraction(cycleIndex, subdivisionIndex, pulsesPerCycle, denominator) {
+  if (!(Number.isFinite(cycleIndex) && cycleIndex >= 0)) return null;
+  if (!(Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0)) return null;
+  if (!(Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0)) return null;
+  if (!(Number.isFinite(denominator) && denominator > 0)) return null;
+
+  const step = pulsesPerCycle / denominator;
+  const rawValue = cycleIndex * pulsesPerCycle + subdivisionIndex * step;
+  let base = Math.floor(rawValue + FRACTION_POSITION_EPSILON);
+  let fractional = rawValue - base;
+  if (fractional < FRACTION_POSITION_EPSILON) {
+    return null;
+  }
+  let numerator = Math.round(fractional * denominator);
+  if (numerator <= 0) {
+    return null;
+  }
+  while (numerator >= denominator) {
+    numerator -= denominator;
+    base += 1;
+  }
+  const value = base + numerator / denominator;
+  return { base, numerator, value };
+}
+
+function fractionDisplay(base, numerator, denominator, { cycleIndex, subdivisionIndex, pulsesPerCycle } = {}) {
+  const safeBaseValue = Number.isFinite(base) ? Number(base) : 0;
+  const safeNumeratorValue = Number.isFinite(numerator) ? Number(numerator) : 0;
+  const den = Number.isFinite(denominator) && denominator > 0 ? Math.floor(denominator) : null;
+  const resolvedPulsesPerCycle = Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0
+    ? Math.floor(pulsesPerCycle)
+    : (() => {
+        const { numerator: activeNumerator } = getFraction();
+        return Number.isFinite(activeNumerator) && activeNumerator > 0 ? Math.floor(activeNumerator) : null;
+      })();
+
+  const value = den ? safeBaseValue + safeNumeratorValue / den : safeBaseValue;
+  const maybePulse = nearestPulseIndex(value);
+  if (maybePulse != null) {
+    return String(maybePulse);
+  }
+
+  let resolvedCycle = Number.isFinite(cycleIndex) && cycleIndex >= 0 ? Math.floor(cycleIndex) : null;
+  let resolvedSubdivision = Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0
+    ? Math.floor(subdivisionIndex)
+    : null;
+
+  if (den && resolvedPulsesPerCycle) {
+    const safeValue = Number.isFinite(value) ? value : safeBaseValue;
+    if (resolvedCycle == null) {
+      resolvedCycle = Math.floor((safeValue + FRACTION_POSITION_EPSILON) / resolvedPulsesPerCycle);
+    }
+    if (resolvedSubdivision == null) {
+      const cycleStart = resolvedCycle * resolvedPulsesPerCycle;
+      const step = resolvedPulsesPerCycle / den;
+      const normalized = (safeValue - cycleStart) / step;
+      let computed = Math.round(normalized);
+      if (!Number.isFinite(computed)) computed = 0;
+      if (computed < 0) computed = 0;
+      if (computed >= den) {
+        const carry = Math.floor(computed / den);
+        resolvedCycle += carry;
+        computed -= carry * den;
+      }
+      resolvedSubdivision = computed;
+    }
+  }
+
+  if (resolvedSubdivision == null && den && safeNumeratorValue > 0) {
+    resolvedSubdivision = Math.floor(safeNumeratorValue % den);
+    if (resolvedSubdivision <= 0) {
+      resolvedSubdivision = Math.floor(safeNumeratorValue);
+    }
+  }
+
+  let baseIndex = Number.isFinite(safeBaseValue) ? Math.floor(safeBaseValue) : null;
+  if (Number.isFinite(resolvedCycle) && Number.isFinite(resolvedPulsesPerCycle)) {
+    baseIndex = resolvedCycle * resolvedPulsesPerCycle;
+  } else if (!Number.isFinite(baseIndex) && Number.isFinite(value)) {
+    baseIndex = Math.floor(value + FRACTION_POSITION_EPSILON);
+  }
+
+  if (Number.isFinite(baseIndex)) {
+    if (den && Number.isFinite(resolvedSubdivision) && resolvedSubdivision > 0) {
+      return `${baseIndex}.${resolvedSubdivision}`;
+    }
+    return String(baseIndex);
+  }
+
+  if (den && safeNumeratorValue > 0) {
+    return `${safeBaseValue}.${safeNumeratorValue}`;
+  }
+
+  return String(safeBaseValue);
+}
+
+function getFractionInfoFromElement(el) {
+  if (!el) return null;
+  const base = parseIntSafe(el.dataset.baseIndex);
+  const numerator = parseIntSafe(el.dataset.fractionNumerator);
+  const denominator = parseIntSafe(el.dataset.fractionDenominator);
+  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
+    return null;
+  }
+  const key = el.dataset.fractionKey || makeFractionKey(base, numerator, denominator);
+  if (!key) return null;
+  const value = Number.isFinite(parseFloat(el.dataset.value))
+    ? parseFloat(el.dataset.value)
+    : fractionValue(base, numerator, denominator);
+  const rawCycleIndex = parseIntSafe(el.dataset.cycleIndex);
+  const rawSubdivisionIndex = parseIntSafe(el.dataset.subdivision);
+  const rawPulsesPerCycle = parseIntSafe(el.dataset.pulsesPerCycle);
+  const override = {
+    cycleIndex: Number.isFinite(rawCycleIndex) ? rawCycleIndex : undefined,
+    subdivisionIndex: Number.isFinite(rawSubdivisionIndex) ? rawSubdivisionIndex : undefined,
+    pulsesPerCycle: Number.isFinite(rawPulsesPerCycle) && rawPulsesPerCycle > 0
+      ? rawPulsesPerCycle
+      : undefined
+  };
+  const display = el.dataset.display || fractionDisplay(base, numerator, denominator, override);
+  const rawLabel = typeof el.dataset.rawLabel === 'string' ? el.dataset.rawLabel : null;
+  return {
+    type: 'fraction',
+    base,
+    numerator,
+    denominator,
+    key,
+    value,
+    display,
+    rawLabel,
+    cycleIndex: Number.isFinite(rawCycleIndex) ? rawCycleIndex : null,
+    subdivisionIndex: Number.isFinite(rawSubdivisionIndex) ? rawSubdivisionIndex : null,
+    pulsesPerCycle: Number.isFinite(rawPulsesPerCycle) && rawPulsesPerCycle > 0 ? rawPulsesPerCycle : null
+  };
+}
+
+function applyFractionSelectionClasses() {
+  cycleMarkers.forEach(marker => {
+    const key = marker.dataset.fractionKey;
+    if (!key) {
+      marker.classList.remove('selected');
+      return;
+    }
+    marker.classList.toggle('selected', selectedFractionKeys.has(key));
+  });
+}
+
+function rebuildFractionSelections(opts = {}) {
+  selectedFractionKeys.clear();
+  fractionalPulseSelections = Array.from(fractionalSelectionState.values())
+    .filter(item => item && Number.isFinite(item.value))
+    .map(item => {
+      const cycleIndex = Number.isFinite(item?.cycleIndex) ? item.cycleIndex : null;
+      const subdivisionIndex = Number.isFinite(item?.subdivisionIndex) ? item.subdivisionIndex : null;
+      const pulsesPerCycle = Number.isFinite(item?.pulsesPerCycle) && item.pulsesPerCycle > 0
+        ? item.pulsesPerCycle
+        : null;
+      const rawLabel = typeof item?.rawLabel === 'string' ? item.rawLabel.trim() : '';
+      return {
+        ...item,
+        rawLabel,
+        display: fractionDisplay(item.base, item.numerator, item.denominator, {
+          cycleIndex,
+          subdivisionIndex,
+          pulsesPerCycle
+        })
+      };
+    })
+    .sort((a, b) => a.value - b.value);
+  fractionalPulseSelections.forEach(item => selectedFractionKeys.add(item.key));
+  applyFractionSelectionClasses();
+  if (!opts.skipUpdateField) {
+    updatePulseSeqField();
+  }
+}
+
+function setFractionSelected(info, shouldSelect) {
+  if (!info || !info.key) return;
+  const { key, base, numerator, denominator } = info;
+  const value = Number.isFinite(info.value) ? info.value : fractionValue(base, numerator, denominator);
+  if (!Number.isFinite(value)) return;
+  if (shouldSelect) {
+    const cycleIndex = Number.isFinite(info.cycleIndex) && info.cycleIndex >= 0
+      ? Math.floor(info.cycleIndex)
+      : null;
+    const subdivisionIndex = Number.isFinite(info.subdivisionIndex) && info.subdivisionIndex >= 0
+      ? Math.floor(info.subdivisionIndex)
+      : null;
+    const pulsesPerCycle = Number.isFinite(info.pulsesPerCycle) && info.pulsesPerCycle > 0
+      ? info.pulsesPerCycle
+      : null;
+    const rawLabel = typeof info.rawLabel === 'string' ? info.rawLabel.trim() : '';
+    const display = info.display || fractionDisplay(base, numerator, denominator, {
+      cycleIndex,
+      subdivisionIndex,
+      pulsesPerCycle
+    });
+    fractionalSelectionState.set(key, {
+      base,
+      numerator,
+      denominator,
+      value,
+      display,
+      key,
+      cycleIndex,
+      subdivisionIndex,
+      pulsesPerCycle,
+      rawLabel
+    });
+  } else {
+    fractionalSelectionState.delete(key);
+  }
+  rebuildFractionSelections();
+}
+
+function computeAudioSchedulingState() {
+  const lg = parseInt(inputLg.value);
+  const v = parseFloat(inputV.value);
+  const { numerator, denominator } = getFraction();
+
+  const validLg = Number.isFinite(lg) && lg > 0;
+  const validV = Number.isFinite(v) && v > 0;
+
+  const grid = gridFromOrigin({ lg: validLg ? lg : 0, numerator, denominator });
+  const denominators = new Set([1]);
+  fractionalPulseSelections.forEach((item) => {
+    if (!item) return;
+    const den = Number(item.denominator);
+    if (Number.isFinite(den) && den > 0) {
+      denominators.add(Math.round(den));
+    }
+  });
+
+  const hasCycle = Boolean(
+    validLg
+    && Number.isFinite(numerator)
+    && Number.isFinite(denominator)
+    && numerator > 0
+    && denominator > 0
+    && Math.floor(lg / numerator) > 0
+  );
+
+  if (hasCycle) {
+    denominators.add(Math.round(denominator));
+  }
+
+  let resolution = 1;
+  denominators.forEach((den) => {
+    resolution = Math.max(1, Math.round(lcm(resolution, Math.max(1, den))));
+  });
+
+  const playbackTotal = validLg ? toPlaybackPulseCount(lg, loopEnabled) : null;
+  const totalPulses = playbackTotal != null ? playbackTotal : null;
+  const interval = validV ? (60 / v) : null;
+  const patternBeats = validLg ? lg : null;
+
+  const cycleNumerator = hasCycle ? numerator : null;
+  const cycleDenominator = hasCycle ? denominator : null;
+  const cycleConfig = hasCycle
+    ? { numerator: cycleNumerator, denominator: cycleDenominator, onTick: highlightCycle }
+    : null;
+
+  const voices = [];
+
+  return {
+    resolution,
+    totalPulses,
+    interval,
+    patternBeats,
+    cycleConfig,
+    voices,
+    validLg,
+    validV,
+    grid,
+    lg
+  };
+}
+
+// --- Selecció viva per a l'àudio (filtrada: sense 0 ni lg) ---
+function selectedForAudioFromState({ scheduling } = {}) {
+  const state = scheduling || computeAudioSchedulingState();
+  const scale = Number.isFinite(state?.resolution) && state.resolution > 0
+    ? Math.max(1, Math.round(state.resolution))
+    : 1;
+  const lg = Number.isFinite(state?.lg) ? state.lg : parseInt(inputLg.value);
+  const baseSet = new Set();
+  const cycleSet = new Set();
+  const fractionSet = new Set();
+  const combinedSet = new Set();
+  const audioSet = new Set();
+  if (!Number.isFinite(lg) || lg <= 0) {
+    return {
+      base: baseSet,
+      cycle: cycleSet,
+      fraction: fractionSet,
+      combined: combinedSet,
+      resolution: scale,
+      audio: audioSet
+    };
+  }
+  const maxIdx = Math.min(lg, pulseMemory.length - 1);
+  for (let i = 1; i <= maxIdx; i++) {
+    if (pulseMemory[i]) {
+      baseSet.add(i);
+      const scaled = i * scale;
+      combinedSet.add(scaled);
+      audioSet.add(scaled);
+    }
+  }
+  const epsilon = 1e-6;
+  if (state?.grid?.subdivisions?.length) {
+    state.grid.subdivisions.forEach((subdivision) => {
+      const pos = Number(subdivision?.position);
+      if (!Number.isFinite(pos) || pos <= 0 || pos >= lg) return;
+      cycleSet.add(pos);
+      const scaled = Math.round(pos * scale);
+      if (Math.abs(scaled / scale - pos) <= epsilon) {
+        combinedSet.add(scaled);
+      }
+    });
+  }
+  fractionalPulseSelections.forEach((item) => {
+    if (!item || !Number.isFinite(item.value)) return;
+    if (item.value <= 0 || item.value >= lg) return;
+    fractionSet.add(item.value);
+    const scaled = Math.round(item.value * scale);
+    if (Math.abs(scaled / scale - item.value) <= epsilon) {
+      combinedSet.add(scaled);
+      audioSet.add(scaled);
+    }
+  });
+  return {
+    base: baseSet,
+    cycle: cycleSet,
+    fraction: fractionSet,
+    combined: combinedSet,
+    resolution: scale,
+    audio: audioSet
+  };
+}
+
+function applySelectionToAudio({ scheduling, instance } = {}) {
+  const target = instance || audio;
+  if (!target || typeof target.setSelected !== 'function') return null;
+  const selection = selectedForAudioFromState({ scheduling });
+  const audioValues = selection.audio ?? selection.combined;
+  target.setSelected({ values: audioValues, resolution: 1 });
+  if (Number.isFinite(selection?.resolution)) {
+    currentAudioResolution = Math.max(1, Math.round(selection.resolution));
+  }
+  return selection;
+}
+
+function updateVoiceHandlers({ scheduling } = {}) {
+  voiceHighlightHandlers.clear();
+  if (!scheduling || !Array.isArray(scheduling.voices)) return;
+  const voices = scheduling.voices;
+  const grid = scheduling.grid;
+  const cycles = Number.isFinite(grid?.cycles) ? grid.cycles : null;
+  voices.forEach((voice) => {
+    if (!voice || !voice.id) return;
+    const numerator = Number(voice.numerator);
+    const denominator = Number(voice.denominator);
+    if (!(Number.isFinite(numerator) && numerator > 0 && Number.isFinite(denominator) && denominator > 0)) {
+      return;
+    }
+    if (voice.id.startsWith('cycle-') && Number.isFinite(cycles) && cycles > 0) {
+      const handler = createCycleVoiceHandler({ numerator, denominator, cycles });
+      if (handler) voiceHighlightHandlers.set(voice.id, handler);
+    }
+  });
+}
+
+function createCycleVoiceHandler({ numerator, denominator, cycles }) {
+  const totalCycles = Math.max(1, Math.floor(cycles));
+  const epsilon = 1e-6;
+  return ({ index } = {}) => {
+    if (!isPlaying) return;
+    const rawIndex = Number(index);
+    if (!Number.isFinite(rawIndex) || rawIndex < 0) return;
+    const perCycle = Math.max(1, Math.floor(denominator));
+    const cycleIndex = totalCycles > 0
+      ? Math.floor(Math.floor(rawIndex / perCycle) % totalCycles)
+      : Math.floor(rawIndex / perCycle);
+    const subdivisionIndex = ((rawIndex % perCycle) + perCycle) % perCycle;
+    const fractionalStep = numerator * cycleIndex + (numerator / perCycle) * subdivisionIndex;
+    if (Math.abs(fractionalStep - Math.round(fractionalStep)) <= epsilon) {
+      return;
+    }
+    highlightCycle({
+      cycleIndex,
+      subdivisionIndex,
+      numerator,
+      denominator: perCycle,
+      totalCycles,
+      totalSubdivisions: perCycle
+    });
+  };
+}
+
+function handleVoiceEvent(event = {}) {
+  if (!event || !event.id) return;
+  const handler = voiceHighlightHandlers.get(event.id);
+  if (typeof handler === 'function') {
+    handler(event);
+  }
+}
+const selectedPulses = new Set();
+let isPlaying = false;
+let loopEnabled = false;
+let isUpdating = false;     // evita bucles de 'input' reentrants
+let circularTimeline = false;
+const T_INDICATOR_TRANSITION_DELAY = 650;
+let tIndicatorRevealHandle = null;
+let visualSyncHandle = null;
+let lastVisualStep = null;
+let lastNormalizedStep = null;
+// Progress is now driven directly from audio callbacks
+// Progress is now driven directly from audio callbacks
+
+// Build structured markup for the pulse sequence so only inner numbers are editable
+function setupPulseSeqMarkup(){
+  if (!pulseSeqEl) return;
+  if (pulseSeqEl.querySelector('.pz.edit')) return; // already prepared
+  const initial = (pulseSeqEl.textContent || '').trim();
+  pulseSeqEl.textContent = '';
+  const mk = (cls, txt) => {
+    const s = document.createElement('span');
+    s.className = 'pz ' + cls;
+    if (txt != null) s.textContent = txt;
+    return s;
+  };
+
+  const prefix = mk('prefix', 'Pfr ');
+
+  const fractionWrapper = document.createElement('span');
+  fractionWrapper.className = 'pz fraction fraction-inline-container';
+  pulseSeqFractionWrapper = fractionWrapper;
+  pulseSeqFractionNumeratorEl = null;
+  pulseSeqFractionDenominatorEl = null;
+
+  const spacer = mk('spacer', ' ');
+  const openParen = mk('open', '(');
+  const zero = mk('zero', '0');
+  const editWrapper = mk('edit-wrapper', null);
+  pulseSeqEditWrapper = editWrapper;
+  const edit = (() => {
+    const e = mk('edit', initial);
+    e.contentEditable = 'true';
+    return e;
+  })();
+  edit.addEventListener('focus', () => {
+    pulseSeqEl.classList.add('editing');
+  });
+  edit.addEventListener('blur', () => {
+    pulseSeqEl.classList.remove('editing');
+  });
+  editWrapper.append(edit);
+  pulseSeqVisualEl = document.createElement('span');
+  pulseSeqVisualEl.className = 'pz edit-display';
+  pulseSeqVisualEl.setAttribute('aria-hidden', 'true');
+  editWrapper.append(pulseSeqVisualEl);
+  const suffix = mk('suffix', ')');
+  const suffixSpacer = mk('suffix-spacer', ' ');
+  const lgLabel = mk('lg', '');
+
+  pulseSeqEl.append(prefix, fractionWrapper, spacer, openParen, zero, editWrapper, suffix, suffixSpacer, lgLabel);
+  updatePulseSeqFractionDisplay(null, null);
+  updatePulseSeqVisualLayer(initial);
+  edit.addEventListener('input', () => updatePulseSeqVisualLayer(getPulseSeqText()));
+}
+setupPulseSeqMarkup();
+initFractionEditor();
+
+// Highlight overlay for pulse sequence numbers during playback
+const pulseSeqHighlight = document.createElement('div');
+const pulseSeqHighlight2 = document.createElement('div');
+if (pulseSeqEl) {
+  pulseSeqHighlight.id = 'pulseSeqHighlight';
+  pulseSeqHighlight2.id = 'pulseSeqHighlight2';
+  pulseSeqEl.appendChild(pulseSeqHighlight);
+  pulseSeqEl.appendChild(pulseSeqHighlight2);
+}
+
+// Helpers for #pulseSeq (use inner span .pz.edit)
+function getEditEl(){
+  if(!pulseSeqEl) return null;
+  return pulseSeqEl.querySelector('.pz.edit') || pulseSeqEl;
+}
+function getPulseSeqText(){
+  const el = getEditEl();
+  return el ? (el.textContent || '') : '';
+}
+function setPulseSeqText(str){
+  const el = getEditEl();
+  if(!el) return;
+  const value = String(str);
+  el.textContent = value;
+  updatePulseSeqVisualLayer(value);
+}
+function setPulseSeqSelection(start, end){
+  const el = getEditEl();
+  if(!el) return;
+  try{
+    const sel = window.getSelection();
+    const range = document.createRange();
+    let node = el.firstChild;
+    if(!node){ node = document.createTextNode(''); el.appendChild(node); }
+    const len = node.textContent.length;
+    const s = Math.max(0, Math.min(start, len));
+    const e = Math.max(0, Math.min(end, len));
+    range.setStart(node, s);
+    range.setEnd(node, e);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }catch{}
+}
+
+function normalizePulseSeqEditGaps(text) {
+  if (typeof text !== 'string') return '  ';
+  const trimmed = text.trim();
+  if (!trimmed) return '  ';
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  return tokens.length ? `  ${tokens.join('  ')}  ` : '  ';
+}
+
+function updatePulseSeqVisualLayer(text) {
+  if (!pulseSeqVisualEl) return;
+  const normalized = typeof text === 'string' ? text : '';
+  const displayText = normalized.replace(/\s+$/u, '');
+  const fragment = document.createDocumentFragment();
+  const tokenRegex = /\d+\.\d+|\.\d+|\d+/g;
+  let lastIndex = 0;
+  displayText.replace(tokenRegex, (match, offset) => {
+    if (offset > lastIndex) {
+      fragment.append(document.createTextNode(displayText.slice(lastIndex, offset)));
+    }
+    const span = document.createElement('span');
+    span.className = 'pulse-seq-token';
+    if (match.includes('.')) {
+      span.classList.add('pulse-seq-token--fraction');
     } else {
-      const base = Number(pulse.base);
-      if (Number.isFinite(base)) validIntegers.add(base);
+      span.classList.add('pulse-seq-token--integer');
     }
+    span.textContent = match;
+    fragment.append(span);
+    lastIndex = offset + match.length;
+    return match;
   });
-
-  Array.from(state.selectedIntegers).forEach((index) => {
-    if (!validIntegers.has(index) || index < 0 || index > getValidLg()) {
-      state.selectedIntegers.delete(index);
-    }
-  });
-
-  Array.from(state.selectedFractionals).forEach((key) => {
-    if (!validFractions.has(key)) {
-      state.selectedFractionals.delete(key);
-    }
-  });
-
-  updateSelectionVisuals();
-  syncSelectionAudio();
+  if (lastIndex < displayText.length) {
+    fragment.append(document.createTextNode(displayText.slice(lastIndex)));
+  }
+  pulseSeqVisualEl.textContent = '';
+  pulseSeqVisualEl.append(fragment);
+  syncPulseSeqTokenMap();
+  schedulePulseSeqSpacingAdjust();
 }
 
-function getSelectedPlaybackSet() {
-  const denominator = getValidDenominator();
-  const lg = getValidLg();
-  if (!lg) return new Set();
-  const scale = Math.max(1, denominator);
-  const playbackSet = new Set();
-
-  state.selectedIntegers.forEach((index) => {
-    if (!Number.isFinite(index)) return;
-    if (index < 0 || index > lg) return;
-    playbackSet.add(index * scale);
+function syncPulseSeqTokenMap() {
+  pulseSeqTokenMap.clear();
+  if (!pulseSeqVisualEl) return;
+  const tokens = pulseSeqVisualEl.querySelectorAll('.pulse-seq-token');
+  pulseSeqEntryOrder.forEach((key, index) => {
+    if (!key) return;
+    const token = tokens[index];
+    if (!token) return;
+    token.dataset.entryKey = key;
+    pulseSeqTokenMap.set(key, token);
+    const info = pulseSeqEntryLookup.get(key);
+    if (!info) return;
+    if (info.type === 'fraction') {
+      token.dataset.fractionKey = key;
+      if (Number.isFinite(info.value)) {
+        token.dataset.value = String(info.value);
+      }
+    } else if (info.type === 'int') {
+      token.dataset.index = String(info.value);
+    }
   });
-
-  state.selectedFractionals.forEach((key) => {
-    const [, baseStr, numeratorStr] = key.split(':');
-    const base = Number(baseStr);
-    const numerator = Number(numeratorStr);
-    if (!Number.isFinite(base) || !Number.isFinite(numerator)) return;
-    if (base < 0 || base > lg) return;
-    if (numerator <= 0 || numerator >= scale) return;
-    playbackSet.add(base * scale + numerator);
-  });
-
-  return playbackSet;
 }
 
-function syncSelectionAudio() {
-  if (!audio) return;
+function schedulePulseSeqSpacingAdjust() {
+  if (!pulseSeqEditWrapper) return;
+  if (pulseSeqSpacingAdjustHandle != null) {
+    caf(pulseSeqSpacingAdjustHandle);
+  }
+  pulseSeqSpacingAdjustHandle = raf(() => {
+    pulseSeqSpacingAdjustHandle = null;
+    adjustPulseSeqSpacing();
+  });
+}
+
+function adjustPulseSeqSpacing() {
+  if (!pulseSeqEditWrapper) return;
+  const edit = getEditEl();
+  const node = edit && edit.firstChild;
+  if (!node || node.nodeType !== TEXT_NODE_TYPE) {
+    pulseSeqEditWrapper.style.removeProperty('--pulse-seq-trailing-offset');
+    return;
+  }
+  const text = node.textContent || '';
+  let trailingSpaces = 0;
+  for (let i = text.length - 1; i >= 0; i--) {
+    if (text[i] === ' ') trailingSpaces++;
+    else break;
+  }
+  if (trailingSpaces <= 0) {
+    pulseSeqEditWrapper.style.removeProperty('--pulse-seq-trailing-offset');
+    return;
+  }
   try {
-    audio.setSelected(getSelectedPlaybackSet());
+    const range = document.createRange();
+    range.setStart(node, Math.max(0, text.length - trailingSpaces));
+    range.setEnd(node, text.length);
+    const rect = range.getBoundingClientRect();
+    const width = rect ? rect.width : 0;
+    if (!Number.isFinite(width) || width <= 0) {
+      pulseSeqEditWrapper.style.removeProperty('--pulse-seq-trailing-offset');
+      return;
+    }
+    pulseSeqEditWrapper.style.setProperty('--pulse-seq-trailing-offset', `${-width}px`);
+  } catch {
+    pulseSeqEditWrapper.style.removeProperty('--pulse-seq-trailing-offset');
+  }
+}
+
+function updatePulseSeqFractionDisplay(numerator, denominator) {
+  if (numeratorInput) {
+    numeratorInput.value = Number.isFinite(numerator) && numerator > 0 ? String(numerator) : '';
+  }
+  if (denominatorInput) {
+    denominatorInput.value = Number.isFinite(denominator) && denominator > 0 ? String(denominator) : '';
+  }
+}
+
+// Caret movement entre midpoints (dos espacios)
+function getMidpoints(text){ const a=[]; for(let i=1;i<text.length;i++) if(text[i-1]===' '&&text[i]===' ') a.push(i); return a; }
+function caretPos(){ const el=getEditEl(); if(!el) return 0; const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; const r=s.getRangeAt(0); if(!el.contains(r.startContainer)) return 0; return r.startOffset; }
+function moveCaretToNearestMidpoint(){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); let best=mids[0],d=Math.abs(p-best); for(const m of mids){const dd=Math.abs(p-m); if(dd<d){best=m; d=dd;}} setPulseSeqSelection(best,best); }
+function moveCaretStep(dir){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); if(dir>0){ for(const m of mids){ if(m>p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[mids.length-1],mids[mids.length-1]); } else { for(let i=mids.length-1;i>=0;i--){ const m=mids[i]; if(m<p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[0],mids[0]); } }
+function updateTIndicatorText(value) {
+  if (!tIndicator) return;
+  // Only the number, no prefix
+  if (value === '' || value == null) { tIndicator.textContent = ''; return; }
+  const n = Number(value);
+  if (!Number.isFinite(n)) { tIndicator.textContent = String(value); return; }
+  // keep same rounding used for input T
+  const rounded = Math.round(n * 10) / 10;
+  tIndicator.textContent = String(rounded);
+}
+
+function updateTIndicatorPosition() {
+  if (!timeline || !tIndicator) return false;
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) { return false; }
+
+  // Find the Lg label element and anchor 15px below it
+  let anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
+  if (!anchor) anchor = timeline.querySelector('.pulse.lg');
+  const tlRect = timeline.getBoundingClientRect();
+  const circular = timeline.classList.contains('circular');
+
+  if (!anchor) { return false; }
+
+  const aRect = anchor.getBoundingClientRect();
+  const isLabel = anchor.classList.contains('pulse-number');
+  const offsetX = circular && isLabel ? -16 : 0; // compensate label shift in circle
+  const centerX = aRect.left + aRect.width / 2 - tlRect.left + offsetX;
+  const topY = aRect.bottom - tlRect.top + 15; // 15px separation below
+
+  tIndicator.style.left = `${centerX}px`;
+  tIndicator.style.top = `${topY}px`;
+  tIndicator.style.transform = 'translate(-50%, 0)';
+
+  if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
+  return true;
+}
+function scheduleTIndicatorReveal(delay = 0) {
+  if (!tIndicator) return;
+  if (tIndicatorRevealHandle) {
+    clearTimeout(tIndicatorRevealHandle);
+    tIndicatorRevealHandle = null;
+  }
+
+  const ms = Math.max(0, Number(delay) || 0);
+  if (ms === 0) {
+    requestAnimationFrame(() => {
+      const anchored = updateTIndicatorPosition();
+      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
+    });
+    return;
+  }
+
+  tIndicator.style.visibility = 'hidden';
+  tIndicatorRevealHandle = setTimeout(() => {
+    tIndicatorRevealHandle = null;
+    requestAnimationFrame(() => {
+      const anchored = updateTIndicatorPosition();
+      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
+    });
+  }, ms);
+}
+let suppressClickKey = null;       // avoid double-toggle on drag start
+// --- Drag selection state ---
+let isDragging = false;
+let lastDragKey = null;
+
+function getSelectionInfo(target) {
+  if (!target) return null;
+  if (typeof target.dataset.index !== 'undefined') {
+    const idx = parseIntSafe(target.dataset.index);
+    if (Number.isFinite(idx)) {
+      return { type: 'int', index: idx, selectionKey: `pulse:${idx}` };
+    }
+  }
+  if (target.dataset.fractionKey) {
+    const info = getFractionInfoFromElement(target);
+    if (info) {
+      return { ...info, selectionKey: `fraction:${info.key}` };
+    }
+  }
+  return null;
+}
+
+function isSelectionActive(info) {
+  if (!info) return false;
+  if (info.type === 'fraction') {
+    return fractionalSelectionState.has(info.key);
+  }
+  if (info.type === 'int') {
+    const lg = parseIntSafe(inputLg.value);
+    if (!Number.isFinite(lg)) return false;
+    if (info.index === 0 || info.index === lg) {
+      return loopEnabled;
+    }
+    ensurePulseMemory(Math.max(info.index, lg));
+    return !!pulseMemory[info.index];
+  }
+  return false;
+}
+
+function applySelectionInfo(info, shouldSelect) {
+  if (!info) return;
+  if (info.type === 'fraction') {
+    setFractionSelected(info, shouldSelect);
+  } else if (info.type === 'int') {
+    setPulseSelected(info.index, shouldSelect);
+  }
+}
+
+function toggleSelectionInfo(info) {
+  if (!info) return;
+  const active = isSelectionActive(info);
+  applySelectionInfo(info, !active);
+}
+
+function attachSelectionListeners(el) {
+  if (!el) return;
+  el.addEventListener('click', (ev) => {
+    const info = getSelectionInfo(ev.currentTarget);
+    if (!info) return;
+    if (suppressClickKey === info.selectionKey) {
+      suppressClickKey = null;
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
+    toggleSelectionInfo(info);
+  });
+  el.addEventListener('pointerenter', () => {
+    if (!isDragging) return;
+    const info = getSelectionInfo(el);
+    if (!info || lastDragKey === info.selectionKey) return;
+    lastDragKey = info.selectionKey;
+    applySelectionInfo(info, dragMode === 'select');
+  });
+}
+
+// Start drag on the timeline area and decide drag mode based on first target under pointer
+timeline.addEventListener('pointerdown', (e) => {
+  isDragging = true;
+  lastDragKey = null;
+  dragMode = 'select';
+  const target = e.target.closest('.pulse-hit, .pulse, .fraction-hit, .cycle-marker');
+  const info = getSelectionInfo(target);
+  if (info) {
+    if (info.type === 'int') {
+      const lg = parseIntSafe(inputLg.value);
+      if (!Number.isFinite(lg) || info.index === 0 || info.index === lg) {
+        suppressClickKey = null;
+        lastDragKey = null;
+        isDragging = false;
+        return;
+      }
+      ensurePulseMemory(Math.max(info.index, lg));
+    }
+    dragMode = isSelectionActive(info) ? 'deselect' : 'select';
+    applySelectionInfo(info, dragMode === 'select');
+    suppressClickKey = info.selectionKey;
+    lastDragKey = info.selectionKey;
+  }
+});
+// End/Cancel drag globally
+document.addEventListener('pointerup', () => {
+  isDragging = false;
+  lastDragKey = null;
+  // Do not clear suppressClickKey here; allow click handler to consume it
+});
+document.addEventListener('pointercancel', () => {
+  isDragging = false;
+  lastDragKey = null;
+  suppressClickKey = null;
+});
+// Hovers for LEDs and controls
+// LEDs ahora indican los campos editables; el apagado se recalcula
+attachHover(ledLg, { text: 'Entrada manual de "Lg"' });
+attachHover(ledV, { text: 'Entrada manual de "V"' });
+attachHover(ledT, { text: 'Valor calculado de "T"' });
+attachHover(playBtn, { text: 'Play / Stop' });
+attachHover(loopBtn, { text: 'Loop' });
+attachHover(tapBtn, { text: 'Tap Tempo' });
+attachHover(resetBtn, { text: 'Reset App' });
+attachHover(randomBtn, { text: 'Aleatorizar parámetros' });
+attachHover(randLgToggle, { text: 'Aleatorizar Lg' });
+attachHover(randLgMin, { text: 'Mínimo Lg' });
+attachHover(randLgMax, { text: 'Máximo Lg' });
+attachHover(randVToggle, { text: 'Aleatorizar V' });
+attachHover(randVMin, { text: 'Mínimo V' });
+attachHover(randVMax, { text: 'Máximo V' });
+attachHover(randTToggle, { text: 'Aleatorizar T' });
+attachHover(randTMin, { text: 'Mínimo T' });
+attachHover(randTMax, { text: 'Máximo T' });
+attachHover(randPulsesToggle, { text: 'Aleatorizar pulsos' });
+attachHover(randomCount, { text: 'Cantidad de pulsos a seleccionar (vacío = aleatorio, 0 = ninguno)' });
+attachHover(randNToggle, { text: 'Aleatorizar numerador' });
+attachHover(randNMin, { text: 'Mínimo numerador' });
+attachHover(randNMax, { text: 'Máximo numerador' });
+attachHover(randDToggle, { text: 'Aleatorizar denominador' });
+attachHover(randDMin, { text: 'Mínimo denominador' });
+attachHover(randDMax, { text: 'Máximo denominador' });
+attachHover(randComplexToggle, { text: 'Permitir fracciones complejas' });
+if (pulseToggleBtn) attachHover(pulseToggleBtn, { text: 'Activar o silenciar el pulso' });
+if (selectedToggleBtn) attachHover(selectedToggleBtn, { text: 'Activar o silenciar la selección' });
+if (cycleToggleBtn) attachHover(cycleToggleBtn, { text: 'Activar o silenciar la subdivisión' });
+
+
+const STORE_PREFIX = 'app4:';
+const storeKey = (k) => `${STORE_PREFIX}${k}`;
+const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
+const loadOpt = (k) => { try { return localStorage.getItem(storeKey(k)); } catch { return null; } };
+const clearOpt = (k) => { try { localStorage.removeItem(storeKey(k)); } catch {} };
+
+const PULSE_AUDIO_KEY = 'pulseAudio';
+const SELECTED_AUDIO_KEY = 'selectedAudio';
+const CYCLE_AUDIO_KEY = 'cycleAudio';
+
+let pulseAudioEnabled = true;
+let selectedAudioEnabled = true;
+let cycleAudioEnabled = true;
+
+function syncToggleButton(button, enabled) {
+  if (!button) return;
+  button.classList.toggle('active', enabled);
+  button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+  button.dataset.state = enabled ? 'on' : 'off';
+}
+
+function setPulseAudio(value, { persist = true } = {}) {
+  const enabled = value !== false;
+  pulseAudioEnabled = enabled;
+  syncToggleButton(pulseToggleBtn, enabled);
+  if (persist) {
+    saveOpt(PULSE_AUDIO_KEY, enabled ? '1' : '0');
+  }
+  if (globalMixer) {
+    globalMixer.setChannelMute('pulse', !enabled);
+  }
+  if (audio && typeof audio.setPulseEnabled === 'function') {
+    audio.setPulseEnabled(enabled);
+  }
+}
+
+function setSelectedAudio(value, { persist = true } = {}) {
+  const enabled = value !== false;
+  selectedAudioEnabled = enabled;
+  syncToggleButton(selectedToggleBtn, enabled);
+  if (persist) {
+    saveOpt(SELECTED_AUDIO_KEY, enabled ? '1' : '0');
+  }
+  if (globalMixer) {
+    globalMixer.setChannelMute('accent', !enabled);
+  }
+}
+
+function setCycleAudio(value, { persist = true } = {}) {
+  const enabled = value !== false;
+  cycleAudioEnabled = enabled;
+  syncToggleButton(cycleToggleBtn, enabled);
+  if (persist) {
+    saveOpt(CYCLE_AUDIO_KEY, enabled ? '1' : '0');
+  }
+  if (globalMixer) {
+    globalMixer.setChannelMute('subdivision', !enabled);
+  }
+  if (audio && typeof audio.setCycleEnabled === 'function') {
+    audio.setCycleEnabled(enabled);
+  }
+}
+
+const storedPulseAudio = loadOpt(PULSE_AUDIO_KEY);
+if (storedPulseAudio === '0') {
+  setPulseAudio(false, { persist: false });
+} else {
+  setPulseAudio(true, { persist: false });
+}
+
+const storedSelectedAudio = loadOpt(SELECTED_AUDIO_KEY);
+if (storedSelectedAudio === '0') {
+  setSelectedAudio(false, { persist: false });
+} else {
+  setSelectedAudio(true, { persist: false });
+}
+
+const storedCycleAudio = loadOpt(CYCLE_AUDIO_KEY);
+if (storedCycleAudio === '0') {
+  setCycleAudio(false, { persist: false });
+} else {
+  setCycleAudio(true, { persist: false });
+}
+
+pulseToggleBtn?.addEventListener('click', () => {
+  setPulseAudio(!pulseAudioEnabled);
+});
+
+selectedToggleBtn?.addEventListener('click', () => {
+  setSelectedAudio(!selectedAudioEnabled);
+});
+
+cycleToggleBtn?.addEventListener('click', () => {
+  setCycleAudio(!cycleAudioEnabled);
+});
+
+const soloMutedChannels = new Set();
+let lastSoloActive = false;
+
+subscribeMixer((snapshot) => {
+  if (!snapshot || !Array.isArray(snapshot.channels)) return;
+  const findChannel = (id) => snapshot.channels.find(channel => channel.id === id);
+  const soloActive = snapshot.channels.some(channel => channel.solo);
+
+  const setters = new Map([
+    ['pulse', setPulseAudio],
+    ['accent', setSelectedAudio],
+    ['subdivision', setCycleAudio]
+  ]);
+
+  const currentStates = {
+    pulse: pulseAudioEnabled,
+    accent: selectedAudioEnabled,
+    subdivision: cycleAudioEnabled
+  };
+
+  const syncFromChannel = (channelState, setter, current) => {
+    if (!channelState) return;
+    const channelId = channelState.id;
+    const forcedBySolo = soloActive && !channelState.solo && channelState.effectiveMuted && !channelState.muted;
+    if (forcedBySolo) {
+      if (!soloMutedChannels.has(channelId)) {
+        soloMutedChannels.add(channelId);
+        setter(false, { persist: false });
+      }
+      return;
+    }
+
+    if (!soloActive && soloMutedChannels.has(channelId)) {
+      soloMutedChannels.delete(channelId);
+      setter(true, { persist: false });
+      return;
+    }
+
+    if (soloActive && soloMutedChannels.has(channelId)) {
+      return;
+    }
+
+    const shouldEnable = !channelState.muted;
+    if (current === shouldEnable) return;
+    setter(shouldEnable, { persist: false });
+  };
+
+  ['pulse', 'accent', 'subdivision'].forEach((id) => {
+    const channel = findChannel(id);
+    const setter = setters.get(id);
+    const current = currentStates[id];
+    if (setter) syncFromChannel(channel, setter, current);
+  });
+
+  if (!soloActive && lastSoloActive && soloMutedChannels.size) {
+    soloMutedChannels.forEach((id) => {
+      const setter = setters.get(id);
+      if (setter) setter(true, { persist: false });
+    });
+    soloMutedChannels.clear();
+  }
+
+  lastSoloActive = soloActive;
+});
+
+function clearStoredPreferences() {
+  try {
+    const prefix = STORE_PREFIX;
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
   } catch {}
 }
 
-function updateSelectionVisuals() {
-  timelineState.integerHits.forEach((entry, index) => {
-    const selected = isIntegerSelected(index);
-    if (entry?.hit) {
-      entry.hit.classList.toggle('selected', selected);
-    }
-    if (entry?.pulse) {
-      entry.pulse.classList.toggle('selected', selected);
-    }
-  });
+let factoryResetPending = false;
+window.addEventListener('sharedui:factoryreset', () => {
+  if (factoryResetPending) return;
+  factoryResetPending = true;
+  clearStoredPreferences();
+  window.location.reload();
+});
 
-  timelineState.fractionHits.forEach((entry, key) => {
-    const selected = isFractionSelected(key);
-    if (entry?.hit) {
-      entry.hit.classList.toggle('selected', selected);
-    }
-    if (entry?.marker) {
-      entry.marker.classList.toggle('selected', selected);
-    }
-  });
-}
+initFractionState();
 
-function updateSelectionToggleVisual(enabled) {
-  const button = document.getElementById('selectedToggleBtn');
-  if (!button) return;
-  const isEnabled = !!enabled;
-  button.classList.toggle('active', isEnabled);
-  button.setAttribute('aria-pressed', isEnabled ? 'true' : 'false');
-}
-
-function initSelectionToggle() {
-  const group = selectors.controlsToggleGroup();
-  if (!group) return;
-
-  let container = group.querySelector('.control-sound-toggle-container--selected');
-  if (!container) {
-    container = document.createElement('div');
-    container.className = 'control-sound-toggle-container control-sound-toggle-container--selected';
-    container.innerHTML = `
-      <button id="selectedToggleBtn" class="control-sound-toggle control-sound-toggle--selected active" type="button" aria-pressed="true" aria-label="Alternar seleccionados">
-        <span class="control-sound-toggle__label-text">Sel</span>
-      </button>
-    `;
-    group.appendChild(container);
-  }
-
-  const button = container.querySelector('#selectedToggleBtn');
-  if (!button) return;
-  if (!button.dataset.app4SelBound) {
-    button.addEventListener('click', () => {
-      const next = !state.selectionAudioEnabled;
-      state.selectionAudioEnabled = next;
-      updateSelectionToggleVisual(next);
-      try {
-        setChannelMute('selected', !next);
-      } catch {}
-    });
-    button.dataset.app4SelBound = '1';
-  }
-
-  updateSelectionToggleVisual(state.selectionAudioEnabled);
-}
-
-function bindSelectionDocumentHandlers() {
-  if (bindSelectionDocumentHandlers._bound) return;
-  const reset = () => {
-    selectionDrag.active = false;
-    selectionDrag.lastSignature = null;
-    selectionDrag.type = null;
-    selectionDrag.suppressedKey = null;
-  };
-  document.addEventListener('pointerup', reset);
-  document.addEventListener('pointercancel', reset);
-  bindSelectionDocumentHandlers._bound = true;
-}
-
-function isSelected(type, key) {
-  return type === 'integer' ? isIntegerSelected(Number(key)) : isFractionSelected(String(key));
-}
-
-function setPulseSelected(type, key, shouldSelect) {
-  const select = !!shouldSelect;
-  let changed = false;
-  if (type === 'integer') {
-    const index = Number(key);
-    if (!Number.isFinite(index)) return;
-    if (select) {
-      if (!state.selectedIntegers.has(index)) {
-        state.selectedIntegers.add(index);
-        changed = true;
-      }
-    } else if (state.selectedIntegers.delete(index)) {
-      changed = true;
-    }
+// Local header behavior (as before)
+function applyTheme(val){
+  if(val === 'system'){
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.dataset.theme = dark ? 'dark' : 'light';
   } else {
-    const signature = String(key);
-    if (select) {
-      if (!state.selectedFractionals.has(signature)) {
-        state.selectedFractionals.add(signature);
-        changed = true;
-      }
-    } else if (state.selectedFractionals.delete(signature)) {
-      changed = true;
+    document.body.dataset.theme = val;
+  }
+  saveOpt('theme', val);
+  // Notify shared listeners so dependent UI can refresh colors on the fly
+  try { window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: val } })); } catch {}
+}
+
+const storedTheme = loadOpt('theme');
+if (themeSelect) {
+  if (storedTheme) themeSelect.value = storedTheme;
+  applyTheme(themeSelect.value || 'system');
+  themeSelect.addEventListener('change', e => applyTheme(e.target.value));
+} else {
+  applyTheme(storedTheme || 'system');
+}
+
+document.addEventListener('sharedui:mute', async (e) => {
+  const val = !!(e && e.detail && e.detail.value);
+  saveOpt('mute', val ? '1' : '0');
+  const a = await initAudio();
+  if (a && typeof a.setMute === 'function') a.setMute(val);
+});
+
+// Restore previous mute preference on load
+(() => {
+  try{
+    const saved = loadOpt('mute');
+    if (saved === '1') document.getElementById('muteBtn')?.click();
+  }catch{}
+})();
+
+const storedColor = loadOpt('color');
+if (storedColor) {
+  selectColor.value = storedColor;
+  document.documentElement.style.setProperty('--selection-color', storedColor);
+}
+selectColor.addEventListener('input', e => {
+  document.documentElement.style.setProperty('--selection-color', e.target.value);
+  saveOpt('color', e.target.value);
+});
+
+updatePulseNumbers();
+
+circularTimelineToggle.checked = (() => {
+  const stored = loadOpt('circular');
+  return stored == null ? true : stored === '1';
+})();
+circularTimeline = circularTimelineToggle.checked;
+updateTIndicatorPosition();
+updateTIndicatorText(parseNum(inputT?.value ?? '') || '');
+scheduleTIndicatorReveal(350);
+
+circularTimelineToggle?.addEventListener('change', e => {
+  circularTimeline = e.target.checked;
+  saveOpt('circular', e.target.checked ? '1' : '0');
+  layoutTimeline();
+});
+// Keep T indicator anchored on window resizes
+window.addEventListener('resize', updateTIndicatorPosition);
+window.addEventListener('resize', schedulePulseSeqSpacingAdjust);
+layoutTimeline();
+
+loopBtn.addEventListener('click', () => {
+  loopEnabled = !loopEnabled;
+  loopBtn.classList.toggle('active', loopEnabled);
+  const lg = parseInt(inputLg.value);
+  if (!isNaN(lg)) {
+    ensurePulseMemory(lg);
+    // Rebuild visible selection from memory and refresh labels
+    syncSelectedFromMemory();
+    updatePulseNumbers();
+    if (isPlaying) {
+      applySelectionToAudio();
     }
   }
+  // Sincronitza amb el motor en temps real si està sonant
+  if (isPlaying && audio && typeof audio.setLoop === 'function') {
+    audio.setLoop(loopEnabled);
+  }
+  layoutTimeline();
+});
 
-  if (changed) {
-    updateSelectionVisuals();
-    syncSelectionAudio();
+resetBtn.addEventListener('click', () => {
+  pulseMemory = [];
+  clearOpt(FRACTION_NUMERATOR_KEY);
+  clearOpt(FRACTION_DENOMINATOR_KEY);
+  window.location.reload();
+});
+
+async function handleTapTempo() {
+  try {
+    const audioInstance = await initAudio();
+    const result = audioInstance.tapTempo(performance.now());
+    if (!result) return;
+
+    if (result.remaining > 0) {
+      tapHelp.textContent = result.remaining === 2 ? '2 clicks más' : '1 click más solamente';
+      tapHelp.style.display = 'block';
+      return;
+    }
+
+    tapHelp.style.display = 'none';
+    if (Number.isFinite(result.bpm) && result.bpm > 0) {
+      const bpm = Math.round(result.bpm * 100) / 100;
+      setValue(inputV, bpm);
+      handleInput({ target: inputV });
+    }
+  } catch (error) {
+    console.warn('Tap tempo failed', error);
   }
 }
 
-function togglePulseSelected(type, key) {
-  const currentlySelected = isSelected(type, key);
-  setPulseSelected(type, key, !currentlySelected);
+if (tapBtn) {
+  tapBtn.addEventListener('click', () => { handleTapTempo(); });
 }
 
-function handleSelectionPointerDown(event, type, key) {
-  if (event.button != null && event.button !== 0) return;
-  selectionDrag.active = true;
-  selectionDrag.type = type;
-  selectionDrag.mode = isSelected(type, key) ? 'deselect' : 'select';
-  const signature = selectionSignature(type, key);
-  selectionDrag.lastSignature = signature;
-  selectionDrag.suppressedKey = signature;
-  setPulseSelected(type, key, selectionDrag.mode === 'select');
-  event.preventDefault();
+if (tapHelp) {
+  tapHelp.textContent = 'Se necesitan 3 clicks';
+  tapHelp.style.display = 'none';
 }
 
-function handleSelectionPointerEnter(event, type, key) {
-  if (!selectionDrag.active || selectionDrag.type !== type) return;
-  const signature = selectionSignature(type, key);
-  if (signature === selectionDrag.lastSignature) return;
-  selectionDrag.lastSignature = signature;
-  setPulseSelected(type, key, selectionDrag.mode === 'select');
+// --- Aleatorización de parámetros y pulsos ---
+function randomInt(min, max) {
+  const lo = Math.ceil(min);
+  const hi = Math.floor(max);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) return lo;
+  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
 }
 
-function handleSelectionClick(event, type, key) {
-  const signature = selectionSignature(type, key);
-  if (selectionDrag.suppressedKey === signature) {
-    selectionDrag.suppressedKey = null;
-    event.preventDefault();
+/**
+ * Apply random values within the configured ranges and update inputs accordingly.
+ */
+function randomize() {
+  const cfg = randomConfig || randomDefaults;
+  if (cfg.Lg?.enabled && inputLg) {
+    const [lo, hi] = cfg.Lg.range ?? randomDefaults.Lg.range;
+    const value = randomInt(lo, hi);
+    setValue(inputLg, value);
+    handleInput({ target: inputLg });
+  }
+  if (cfg.V?.enabled && inputV) {
+    const [lo, hi] = cfg.V.range ?? randomDefaults.V.range;
+    const value = randomInt(lo, hi);
+    setValue(inputV, value);
+    handleInput({ target: inputV });
+  }
+  let fractionChanged = false;
+  if (cfg.n?.enabled && numeratorInput) {
+    let [min, max] = cfg.n.range ?? randomDefaults.n.range;
+    if (!cfg.allowComplex) {
+      min = 1;
+      max = 1;
+    }
+    const value = Math.max(1, randomInt(min, max));
+    setValue(numeratorInput, value);
+    fractionChanged = true;
+  }
+  if (cfg.d?.enabled && denominatorInput) {
+    const [min, max] = cfg.d.range ?? randomDefaults.d.range;
+    const value = Math.max(1, randomInt(min, max));
+    setValue(denominatorInput, value);
+    fractionChanged = true;
+  }
+  if (fractionChanged) {
+    persistFractionField(numeratorInput, FRACTION_NUMERATOR_KEY);
+    persistFractionField(denominatorInput, FRACTION_DENOMINATOR_KEY);
+    handleInput();
+  }
+  if (cfg.Pulses?.enabled) {
+    // Reset persistent selection memory so old pulses don't reappear when Lg grows
+    clearPersistentPulses();
+    const lg = parseInt(inputLg.value);
+    if (!isNaN(lg) && lg > 0) {
+      ensurePulseMemory(lg);
+      const rawCount = randomCount && typeof randomCount.value === 'string' ? randomCount.value.trim() : '';
+      const available = [];
+      for (let i = 1; i < lg; i++) available.push(i);
+      const selected = new Set();
+      if (rawCount === '') {
+        const density = 0.5;
+        available.forEach(i => { if (Math.random() < density) selected.add(i); });
+      } else {
+        const parsed = Number.parseInt(rawCount, 10);
+        if (Number.isNaN(parsed)) {
+          const density = 0.5;
+          available.forEach(i => { if (Math.random() < density) selected.add(i); });
+        } else if (parsed > 0) {
+          const target = Math.min(parsed, available.length);
+          while (selected.size < target) {
+            const idx = available[Math.floor(Math.random() * available.length)];
+            selected.add(idx);
+          }
+        }
+        // For parsed <= 0, keep selection empty (0 pulses)
+      }
+      const seq = Array.from(selected).sort((a, b) => a - b);
+      for (let i = 1; i < lg; i++) pulseMemory[i] = false;
+      seq.forEach(i => { pulseMemory[i] = true; });
+      syncSelectedFromMemory();
+      updatePulseNumbers();
+      layoutTimeline({ silent: true });
+
+      const fractionOptions = [];
+      fractionHitMap.forEach((el, key) => {
+        if (!el || !key) return;
+        const base = parseIntSafe(el.dataset.baseIndex);
+        const numerator = parseIntSafe(el.dataset.fractionNumerator);
+        const denominator = parseIntSafe(el.dataset.fractionDenominator);
+        const value = Number.parseFloat(el.dataset.value);
+        if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) return;
+        if (!Number.isFinite(value) || value <= 0 || value >= lg) return;
+        if (nearestPulseIndex(value) != null) return;
+        const cycleIndex = parseIntSafe(el.dataset.cycleIndex);
+        const subdivisionIndex = parseIntSafe(el.dataset.subdivision);
+        const pulsesPerCycle = parseIntSafe(el.dataset.pulsesPerCycle);
+        const rawLabel = typeof el.dataset.rawLabel === 'string' ? el.dataset.rawLabel : '';
+        const display = el.dataset.display || null;
+        fractionOptions.push({
+          key,
+          base,
+          numerator,
+          denominator,
+          value,
+          display,
+          cycleIndex: Number.isFinite(cycleIndex) ? cycleIndex : null,
+          subdivisionIndex: Number.isFinite(subdivisionIndex) ? subdivisionIndex : null,
+          pulsesPerCycle: Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0 ? pulsesPerCycle : null,
+          rawLabel
+        });
+      });
+
+      const fractionSelection = [];
+      if (fractionOptions.length) {
+        if (rawCount === '') {
+          const density = 0.5;
+          fractionOptions.forEach(info => { if (Math.random() < density) fractionSelection.push(info); });
+        } else {
+          const parsed = Number.parseInt(rawCount, 10);
+          if (Number.isNaN(parsed)) {
+            const density = 0.5;
+            fractionOptions.forEach(info => { if (Math.random() < density) fractionSelection.push(info); });
+          } else if (parsed > 0) {
+            const pool = [...fractionOptions];
+            const targetFractions = Math.min(parsed, pool.length);
+            while (fractionSelection.length < targetFractions && pool.length) {
+              const idx = Math.floor(Math.random() * pool.length);
+              fractionSelection.push(pool.splice(idx, 1)[0]);
+            }
+          }
+        }
+      }
+
+      fractionalSelectionState.clear();
+      fractionSelection.forEach(info => {
+        const value = Number.isFinite(info.value) ? info.value : fractionValue(info.base, info.numerator, info.denominator);
+        if (!Number.isFinite(value) || value <= 0 || value >= lg) return;
+        const cycleIndex = Number.isFinite(info.cycleIndex) && info.cycleIndex >= 0 ? Math.floor(info.cycleIndex) : null;
+        const subdivisionIndex = Number.isFinite(info.subdivisionIndex) && info.subdivisionIndex >= 0
+          ? Math.floor(info.subdivisionIndex)
+          : null;
+        const pulsesPerCycle = Number.isFinite(info.pulsesPerCycle) && info.pulsesPerCycle > 0 ? info.pulsesPerCycle : null;
+        const rawLabel = typeof info.rawLabel === 'string' ? info.rawLabel.trim() : '';
+        const display = info.display || fractionDisplay(info.base, info.numerator, info.denominator, {
+          cycleIndex,
+          subdivisionIndex,
+          pulsesPerCycle
+        });
+        fractionalSelectionState.set(info.key, {
+          base: info.base,
+          numerator: info.numerator,
+          denominator: info.denominator,
+          value,
+          display,
+          key: info.key,
+          cycleIndex,
+          subdivisionIndex,
+          pulsesPerCycle,
+          rawLabel
+        });
+      });
+      rebuildFractionSelections();
+      if (isPlaying) {
+        applySelectionToAudio();
+      }
+    }
+  }
+}
+
+initRandomMenu(randomBtn, randomMenu, randomize);
+
+initSoundDropdown(baseSoundSelect, {
+  storageKey: storeKey('baseSound'),
+  eventType: 'baseSound',
+  getAudio: initAudio,
+  apply: (a, val) => a.setBase(val)
+});
+initSoundDropdown(accentSoundSelect, {
+  storageKey: storeKey('accentSound'),
+  eventType: 'accentSound',
+  getAudio: initAudio,
+  apply: (a, val) => a.setAccent(val)
+});
+initSoundDropdown(startSoundSelect, {
+  storageKey: storeKey('startSound'),
+  eventType: 'startSound',
+  getAudio: initAudio,
+  apply: (a, val) => a.setStart(val)
+});
+initSoundDropdown(cycleSoundSelect, {
+  storageKey: storeKey('cycleSound'),
+  eventType: 'cycleSound',
+  getAudio: initAudio,
+  apply: (a, val) => a.setCycle(val)
+});
+
+// Preview on sound change handled by shared header
+
+async function initAudio(){
+  if (audio) {
+    await audio.ready();
+    return audio;
+  }
+  if (!audioInitPromise) {
+    audioInitPromise = (async () => {
+      const instance = new TimelineAudio();
+      await instance.ready();
+      // Ensure accent channel is registered and routed separately for the mixer
+      if (instance.mixer && typeof instance.mixer.registerChannel === 'function') {
+        instance.mixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
+      }
+      if (instance._channelAssignments) {
+        instance._channelAssignments.accent = 'accent';
+      }
+      instance.setBase(baseSoundSelect.dataset.value);
+      instance.setAccent(accentSoundSelect.dataset.value);
+      instance.setStart(startSoundSelect.dataset.value);
+      if (cycleSoundSelect) {
+        instance.setCycle(cycleSoundSelect.dataset.value);
+      }
+      if (typeof instance.setVoiceHandler === 'function') {
+        instance.setVoiceHandler(handleVoiceEvent);
+      }
+      schedulingBridge.applyTo(instance);
+      if (typeof instance.setPulseEnabled === 'function') {
+        instance.setPulseEnabled(pulseAudioEnabled);
+      }
+      if (typeof instance.setCycleEnabled === 'function') {
+        instance.setCycleEnabled(cycleAudioEnabled);
+      }
+      if (typeof instance.setLoop === 'function') {
+        instance.setLoop(loopEnabled);
+      }
+      audio = instance;
+      return instance;
+    })();
+  }
+  try {
+    return await audioInitPromise;
+  } finally {
+    audioInitPromise = null;
+  }
+}
+
+// Mostrar unitats quan s'edita cada paràmetre
+function bindUnit(input, unit){
+  if(!input || !unit) return;
+  input.addEventListener('focus', () => { unit.style.display = 'block'; });
+  input.addEventListener('blur', () => { unit.style.display = 'none'; });
+}
+
+if (inputT) {
+  inputT.readOnly = true;
+  inputT.dataset.auto = '1';
+}
+
+bindUnit(inputLg, unitLg);
+bindUnit(inputV, unitV);
+bindUnit(inputT, unitT);
+
+[inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
+handleInput();
+
+getEditEl()?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const res = sanitizePulseSeq({ causedBy: 'enter' });
+    // Oculta el caret al confirmar excepto si hubo números > Lg o fracciones inválidas
+    if (!res || (!res.hadTooBig && !res.hadFractionTooBig)) {
+      try { getEditEl()?.blur(); } catch {}
+    }
     return;
   }
-  togglePulseSelected(type, key);
+  if (e.key === 'ArrowLeft' || e.key === 'Home') { e.preventDefault(); moveCaretStep(-1); return; }
+  if (e.key === 'ArrowRight' || e.key === 'End') { e.preventDefault(); moveCaretStep(1); return; }
+  // Allow only digits, navegación y espacio (para introducir varios pulsos)
+  const allowed = new Set(['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab',' ']);
+  if (!/^[0-9]$/.test(e.key) && e.key !== '.' && !allowed.has(e.key)) {
+    e.preventDefault();
+    return;
+  }
+  if (e.key === ' ') {
+    e.preventDefault();
+    const el = getEditEl(); if (!el) return; const node = el.firstChild || el; let text = node.textContent || '';
+    const sel = window.getSelection && window.getSelection(); if(!sel||sel.rangeCount===0) return; const rng = sel.getRangeAt(0); if(!el.contains(rng.startContainer)) return;
+    const pos = Math.max(0, Math.min(rng.startOffset, text.length));
+    const left = text.slice(0, pos);
+    const right = text.slice(pos);
+    const out = left + '  ' + right;
+    const normalizedOut = normalizePulseSeqEditGaps(out);
+    node.textContent = normalizedOut;
+    updatePulseSeqVisualLayer(normalizedOut);
+    const mids = getMidpoints(normalizedOut);
+    if (mids.length) {
+      const target = mids.find(m => m >= pos + 1) ?? mids[mids.length - 1];
+      setPulseSeqSelection(target, target);
+      try { moveCaretToNearestMidpoint(); } catch {}
+    } else {
+      setPulseSeqSelection(0, 0);
+    }
+    return;
+  }
+  if (e.key === 'Backspace') {
+    // Borrar con una pulsación el número a la izquierda + un espacio
+    e.preventDefault();
+    const el = getEditEl(); if(!el) return; const node = el.firstChild || el; let text = node.textContent || '';
+    const sel = window.getSelection && window.getSelection(); if(!sel||sel.rangeCount===0) return; const rng = sel.getRangeAt(0); if(!el.contains(rng.startContainer)) return;
+    let pos = rng.startOffset; if(pos<=0 || text.length===0) return;
+    // Si no estamos en midpoint, ajusta al más cercano (sin modificar texto)
+    const mids = getMidpoints(text); if(mids.length){ let best=mids[0],d=Math.abs(pos-best); for(const m of mids){const dd=Math.abs(pos-m); if(dd<d){best=m; d=dd;}} pos=best; }
+    // Buscamos el token a la izquierda del midpoint
+    const isDigit = (c) => c >= '0' && c <= '9';
+    let i = pos - 1;
+    while (i >= 0 && text[i] === ' ') i--;
+    if (i < 0) return; // no hay número a la izquierda
+    if (!(isDigit(text[i]) || text[i] === '.')) return;
+    const endNum = i + 1;
+    let startNum = i;
+    while (startNum >= 0 && isDigit(text[startNum])) startNum--;
+    if (startNum >= 0 && text[startNum] === '.') {
+      startNum--;
+      while (startNum >= 0 && isDigit(text[startNum])) startNum--;
+    }
+    startNum = Math.max(0, startNum + 1);
+    // Construimos: izquierda hasta startNum + '  ' + derecha saltando el espacio derecho del midpoint
+    const left = text.slice(0,startNum);
+    const right = text.slice(pos+1); // saltar un espacio (el derecho del midpoint)
+    const out = (left + '  ' + right);
+    const normalizedOut = normalizePulseSeqEditGaps(out);
+    node.textContent = normalizedOut;
+    updatePulseSeqVisualLayer(normalizedOut);
+    const caret = Math.min(normalizedOut.length, left.length + 1);
+    setPulseSeqSelection(caret, caret);
+    try { moveCaretToNearestMidpoint(); } catch {}
+    return;
+  }
+  if (e.key === 'Delete') {
+    // Borrar con una pulsación el número a la derecha + un espacio
+    e.preventDefault();
+    const el = getEditEl(); if(!el) return; const node = el.firstChild || el; let text = node.textContent || '';
+    const sel = window.getSelection && window.getSelection(); if(!sel||sel.rangeCount===0) return; const rng = sel.getRangeAt(0); if(!el.contains(rng.startContainer)) return;
+    let pos = rng.startOffset; if(pos>=text.length) return;
+    // Ajusta al midpoint más cercano (sin cambiar texto)
+    const mids = getMidpoints(text); if(mids.length){ let best=mids[0],d=Math.abs(pos-best); for(const m of mids){const dd=Math.abs(pos-m); if(dd<d){best=m; d=dd;}} pos=best; }
+    // Buscar número a la derecha del midpoint
+    const isDigit = (c) => c >= '0' && c <= '9';
+    let k = pos; while(k<text.length && text[k]===' ') k++;
+    if (k >= text.length) return;
+    if (!(isDigit(text[k]) || text[k] === '.')) return;
+    let end = k;
+    let dotConsumed = false;
+    if (text[end] === '.') {
+      dotConsumed = true;
+      end++;
+    }
+    while (end < text.length) {
+      const ch = text[end];
+      if (isDigit(ch)) {
+        end++;
+        continue;
+      }
+      if (ch === '.' && !dotConsumed) {
+        dotConsumed = true;
+        end++;
+        continue;
+      }
+      break;
+    }
+    // Espacios tras el número: saltar hasta 2 para no duplicar separadores
+    let s=0; while(end+s<text.length && text[end+s]===' ') s++;
+    const left = text.slice(0, pos-1); // elimina el espacio izquierdo del midpoint
+    const right = text.slice(end + Math.min(s,2));
+    const out = left + '  ' + right;
+    const normalizedOut = normalizePulseSeqEditGaps(out);
+    node.textContent = normalizedOut;
+    updatePulseSeqVisualLayer(normalizedOut);
+    const caret = Math.min(normalizedOut.length, left.length + 1);
+    setPulseSeqSelection(caret, caret);
+    try { moveCaretToNearestMidpoint(); } catch {}
+    return;
+  }
+});
+getEditEl()?.addEventListener('blur', () => sanitizePulseSeq({ causedBy: 'blur' }));
+// Visual gap hint under caret (does not modify text)
+getEditEl()?.addEventListener('mouseup', ()=> setTimeout(moveCaretToNearestMidpoint,0));
+// (Sin manejador en keyup para evitar doble salto)
+getEditEl()?.addEventListener('focus', ()=> setTimeout(()=>{
+  const el = getEditEl(); if(!el) return;
+  const node = el.firstChild || el; let text = node.textContent || '';
+  if(text.length === 0){
+    text = '  ';
+  } else {
+    const normalized = normalizePulseSeqEditGaps(text);
+    if (normalized !== text) text = normalized;
+  }
+  node.textContent = text;
+  updatePulseSeqVisualLayer(text);
+  moveCaretToNearestMidpoint();
+},0));
+
+const inputToLed = new Map([
+  [inputLg, ledLg],
+  [inputV, ledV],
+  [inputT, ledT]
+].filter(([input, led]) => input && led));
+
+const autoTip = document.createElement('div');
+autoTip.className = 'hover-tip auto-tip-below';
+autoTip.textContent = 'Introduce valores en los otros dos círculos';
+document.body.appendChild(autoTip);
+let autoTipTimeout = null;
+
+function showAutoTip(input){
+  const rect = input.getBoundingClientRect();
+  autoTip.style.left = rect.left + rect.width / 2 + 'px';
+  // Show below the input (use bottom instead of top)
+  autoTip.style.top = rect.bottom + window.scrollY + 'px';
+  autoTip.classList.add('show');
+  clearTimeout(autoTipTimeout);
+  // Display twice as long as before
+  autoTipTimeout = setTimeout(() => autoTip.classList.remove('show'), 4000);
 }
 
-function bindSelectionHandlers(element, type, key) {
-  if (!element || element.dataset.app4SelBound) return;
-  element.addEventListener('pointerdown', (event) => handleSelectionPointerDown(event, type, key));
-  element.addEventListener('pointerenter', (event) => handleSelectionPointerEnter(event, type, key));
-  element.addEventListener('click', (event) => handleSelectionClick(event, type, key));
-  element.dataset.app4SelBound = '1';
-}
-
-function renderCycleMarkers({ lg, numerator, denominator }) {
-  const timeline = selectors.timeline();
-  if (!timeline) return;
-
-  timelineState.cycleMarkers.forEach((marker) => marker.remove());
-  timelineState.cycleLabels.forEach((label) => label.remove());
-  timelineState.cycleMarkers = [];
-  timelineState.cycleLabels = [];
-
-  const grid = gridFromOrigin({ lg, numerator, denominator });
-  if (!grid || grid.cycles <= 0 || !Array.isArray(grid.subdivisions) || grid.subdivisions.length === 0) return;
-
-  const hideLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
-  const fontRem = computeSubdivisionFontRem(lg);
-  const labelFormatter = (cycleIndex, subdivision) => {
-    const base = cycleIndex * (grid.numerator ?? 0);
-    return subdivision === 0 ? String(base) : `.${subdivision}`;
-  };
-
-  grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
-    const marker = document.createElement('div');
-    marker.className = 'cycle-marker';
-    if (subdivisionIndex === 0) marker.classList.add('start');
-    marker.dataset.cycleIndex = String(cycleIndex);
-    marker.dataset.subdivision = String(subdivisionIndex);
-    marker.dataset.position = String(position);
-    timeline.appendChild(marker);
-    timelineState.cycleMarkers.push(marker);
-
-    if (hideLabels) return;
-    const formatted = labelFormatter(cycleIndex, subdivisionIndex);
-    if (formatted == null) return;
-    const label = document.createElement('div');
-    label.className = 'cycle-label';
-    if (subdivisionIndex === 0) label.classList.add('cycle-label--integer');
-    if (cycleIndex === 0 && subdivisionIndex === 0) label.classList.add('cycle-label--origin');
-    label.dataset.cycleIndex = String(cycleIndex);
-    label.dataset.subdivision = String(subdivisionIndex);
-    label.dataset.position = String(position);
-    label.textContent = formatted;
-    label.style.fontSize = `${fontRem}rem`;
-    timeline.appendChild(label);
-    timelineState.cycleLabels.push(label);
+function flashOtherLeds(excludeInput){
+  const excludeLed = inputToLed.get(excludeInput);
+  const leds = [ledLg, ledV];
+  if (ledT) leds.push(ledT);
+  leds.forEach(led => {
+    if (led && led !== excludeLed) {
+      led.classList.add('flash');
+      setTimeout(() => led.classList.remove('flash'), 800);
+    }
   });
 }
 
-function showPulseNumber(index, lg, fontRem) {
-  const timeline = selectors.timeline();
-  if (!timeline) return;
-  const label = document.createElement('div');
-  label.className = 'pulse-number';
-  label.dataset.index = String(index);
-  label.textContent = index;
-  label.style.fontSize = `${fontRem}rem`;
-  if (index === 0 || index === lg) label.classList.add('endpoint');
-  timeline.appendChild(label);
-  timelineState.numberLabels.push(label);
+[inputLg, inputV, inputT].filter(Boolean).forEach(input => {
+  input.addEventListener('beforeinput', (e) => {
+    if (input.dataset.auto === '1') {
+      showAutoTip(input);
+      flashOtherLeds(input);
+      e.preventDefault();
+    }
+  });
+});
+
+function setValue(input, value){
+  isUpdating = true;
+  input.value = String(value);
+  isUpdating = false;
 }
 
-function updatePulseNumbers(lg) {
-  const timeline = selectors.timeline();
-  if (!timeline) return;
-  timelineState.numberLabels.forEach((label) => label.remove());
-  timelineState.numberLabels = [];
-  if (!Number.isFinite(lg) || lg <= 0 || lg >= PULSE_NUMBER_HIDE_THRESHOLD) return;
-  const fontRem = computeNumberFontRem(lg);
-  for (let i = 0; i <= lg; i++) {
-    showPulseNumber(i, lg, fontRem);
+function parseNum(val){
+  if (typeof val !== 'string') return Number(val);
+  let s = val.trim();
+  // Si hi ha coma i no hi ha punt: format català “1.234,56” → traiem punts (milers) i passem coma a punt
+  if (s.includes(',') && !s.includes('.')) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    // En la resta de casos, NO esborrem punts (poden ser decimals); només canviem comes per punts
+    s = s.replace(/,/g, '.');
+  }
+  const n = parseFloat(s);
+    return isNaN(n) ? NaN : n;
+}
+function formatNumberValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  const rounded = Math.round(numeric * 100) / 100;
+  return rounded.toLocaleString('ca-ES', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+}
+
+function formatSec(n){
+  return formatNumberValue(n);
+}
+
+function formatBpmValue(value) {
+  return formatNumberValue(value);
+}
+
+function formatInteger(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  return Math.round(numeric).toLocaleString('ca-ES');
+}
+
+let titleInfoTipEl = null;
+
+function ensureTitleInfoTip() {
+  if (titleInfoTipEl) return titleInfoTipEl;
+  const tip = document.createElement('div');
+  tip.className = 'hover-tip auto-tip-below top-bar-info-tip';
+  document.body.appendChild(tip);
+  titleInfoTipEl = tip;
+  return tip;
+}
+
+function hideTitleInfoTip() {
+  if (titleInfoTipEl) {
+    titleInfoTipEl.classList.remove('show');
   }
 }
 
-function createIntegerHit(index, pulseEl, lg) {
-  const timeline = selectors.timeline();
-  if (!timeline || !pulseEl) return null;
-  const hitSize = computeHitSizePx(lg);
-  const hit = document.createElement('div');
-  hit.className = 'pulse-hit';
-  hit.dataset.type = 'integer';
-  hit.dataset.index = String(index);
-  hit.style.width = `${hitSize}px`;
-  hit.style.height = `${hitSize}px`;
-  timeline.appendChild(hit);
-  bindSelectionHandlers(hit, 'integer', index);
-  const entry = { hit, pulse: pulseEl };
-  timelineState.integerHits.set(index, entry);
-  return entry;
+function showTitleInfoTip(contentFragment, anchor) {
+  if (!anchor) return;
+  const tip = ensureTitleInfoTip();
+  if (contentFragment) {
+    tip.replaceChildren(contentFragment);
+  }
+  const rect = anchor.getBoundingClientRect();
+  tip.style.left = rect.left + rect.width / 2 + 'px';
+  tip.style.top = rect.bottom + window.scrollY + 'px';
+  tip.classList.add('show');
 }
 
-function createFractionalHit({ key, base, numerator, lg }) {
-  const timeline = selectors.timeline();
-  if (!timeline) return null;
-  const marker = document.createElement('div');
-  marker.className = 'fraction-pulse';
-  marker.dataset.base = String(base);
-  marker.dataset.numerator = String(numerator);
-  timeline.appendChild(marker);
-  timelineState.fractionMarkers.push(marker);
+function buildTitleInfoContent() {
+  const fragment = document.createDocumentFragment();
 
-  const hitSize = computeHitSizePx(lg) * 0.75;
-  const hit = document.createElement('div');
-  hit.className = 'fraction-hit';
-  hit.dataset.type = 'fractional';
-  hit.dataset.key = key;
-  hit.style.width = `${hitSize}px`;
-  hit.style.height = `${hitSize}px`;
-  timeline.appendChild(hit);
-  bindSelectionHandlers(hit, 'fractional', key);
-  const entry = { marker, hit, pulse: { base, numerator } };
-  timelineState.fractionHits.set(key, entry);
-  return entry;
+  const lgValue = parseIntSafe(inputLg?.value);
+  const hasLg = Number.isFinite(lgValue) && lgValue > 0;
+  const { numerator, denominator } = getFraction();
+  const hasNumerator = Number.isFinite(numerator) && numerator > 0;
+  const hasDenominator = Number.isFinite(denominator) && denominator > 0;
+  const tValue = parseNum(inputT?.value ?? '');
+  const hasT = Number.isFinite(tValue) && tValue > 0;
+
+  if (hasLg) {
+    const pulsesLine = document.createElement('p');
+    pulsesLine.className = 'top-bar-info-tip__line';
+    const pulsesLabel = document.createElement('strong');
+    pulsesLabel.textContent = 'Pulsos enteros (Lg):';
+    pulsesLine.append(pulsesLabel, ' ', formatInteger(lgValue));
+    fragment.append(pulsesLine);
+
+    if (hasNumerator && hasDenominator) {
+      const fractionalLg = (lgValue * denominator) / numerator;
+      const lgLine = document.createElement('p');
+      lgLine.className = 'top-bar-info-tip__line';
+      const lgLabel = document.createElement('strong');
+      lgLabel.textContent = 'Pulsos fraccionados (Lg·d/n):';
+      lgLine.append(lgLabel, ' ', formatNumberValue(fractionalLg));
+      fragment.append(lgLine);
+    }
+
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__line';
+    hint.textContent = 'Define una Lg válida para contar los Pfr.';
+    fragment.append(hint);
+  }
+
+  const tempoValue = parseNum(inputV?.value ?? '');
+  const hasTempo = Number.isFinite(tempoValue) && tempoValue > 0;
+  const derivedTFromTempo = hasLg && hasTempo ? (lgValue * 60) / tempoValue : null;
+  const tempoFromT = hasLg && hasT ? (lgValue / tValue) * 60 : null;
+  const effectiveTempo = hasTempo ? tempoValue : tempoFromT;
+  const tForBaseFormula = hasT ? tValue : derivedTFromTempo;
+
+  if (hasLg && tForBaseFormula != null && effectiveTempo != null) {
+    const baseFormulaLine = document.createElement('p');
+    baseFormulaLine.className = 'top-bar-info-tip__line';
+    const baseFormulaLabel = document.createElement('strong');
+    baseFormulaLabel.textContent = 'V base';
+    baseFormulaLine.append(
+      baseFormulaLabel,
+      ` = (${formatInteger(lgValue)} / ${formatNumberValue(tForBaseFormula)})·60 = ${formatBpmValue(effectiveTempo)} BPM`
+    );
+    fragment.append(baseFormulaLine);
+  } else if (effectiveTempo != null) {
+    const baseLine = document.createElement('p');
+    baseLine.className = 'top-bar-info-tip__line';
+    const baseLabel = document.createElement('strong');
+    baseLabel.textContent = 'V base:';
+    baseLine.append(baseLabel, ' ', `${formatBpmValue(effectiveTempo)} BPM`);
+    fragment.append(baseLine);
+  } else if (hasLg && !hasTempo) {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Completa V para calcular la fórmula de V base.';
+    fragment.append(hint);
+  }
+
+  if (effectiveTempo != null && hasNumerator && hasDenominator) {
+    const fractionTempo = effectiveTempo * (denominator / numerator);
+    const fractionFormulaLine = document.createElement('p');
+    fractionFormulaLine.className = 'top-bar-info-tip__line';
+    const fractionFormulaLabel = document.createElement('strong');
+    fractionFormulaLabel.textContent = `V ${numerator}/${denominator}`;
+    fractionFormulaLine.append(
+      fractionFormulaLabel,
+      ` = (${formatBpmValue(effectiveTempo)}·${denominator})/${numerator} = ${formatBpmValue(fractionTempo)} BPM`
+    );
+    fragment.append(fractionFormulaLine);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Completa V, n y d para obtener la velocidad de la fracción.';
+    fragment.append(hint);
+  }
+
+
+    if (hasLg && hasTempo && derivedTFromTempo != null) {
+    const tFormulaLine = document.createElement('p');
+    tFormulaLine.className = 'top-bar-info-tip__line';
+    const tFormulaLabel = document.createElement('strong');
+    tFormulaLabel.textContent = 'T';
+    tFormulaLine.append(
+      tFormulaLabel,
+      ` = (${formatInteger(lgValue)} / ${formatBpmValue(tempoValue)})·60 = ${formatNumberValue(derivedTFromTempo)} s`
+    );
+    fragment.append(tFormulaLine);
+  } else if (hasT) {
+    const tLine = document.createElement('p');
+    tLine.className = 'top-bar-info-tip__line';
+    const tLabel = document.createElement('strong');
+    tLabel.textContent = 'T:';
+    tLine.append(tLabel, ' ', `${formatNumberValue(tValue)} s`);
+    fragment.append(tLine);
+  }   return fragment;
 }
 
-function renderPulseHits(lg) {
-  const timeline = selectors.timeline();
-  if (!timeline) return;
-
-  timeline.querySelectorAll('.pulse-hit').forEach((el) => el.remove());
-  timeline.querySelectorAll('.fraction-hit').forEach((el) => el.remove());
-  timelineState.fractionMarkers.forEach((marker) => marker.remove());
-  timelineState.fractionLabels.forEach((label) => label.remove());
-  timelineState.integerHits.clear();
-  timelineState.fractionHits.clear();
-  timelineState.fractionMarkers = [];
-  timelineState.fractionLabels = [];
-
-  timelineState.pulses.forEach((pulse) => {
-    if (pulse) {
-      pulse.classList.remove('has-pulse');
-      pulse.classList.remove('selected');
+if (titleButton) {
+  titleButton.addEventListener('click', () => {
+    const content = buildTitleInfoContent();
+    if (!content) return;
+    showTitleInfoTip(content, titleButton);
+  });
+  titleButton.addEventListener('blur', hideTitleInfoTip);
+  titleButton.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' || event.key === 'Esc') {
+      hideTitleInfoTip();
     }
   });
+  window.addEventListener('scroll', hideTitleInfoTip, { passive: true });
+  window.addEventListener('resize', hideTitleInfoTip);
+}
 
-  const denominator = getValidDenominator();
+// Guard: if LED is off (auto), show tip and do nothing
+function guardManual(input){
+  if (input?.dataset?.auto === '1'){
+    showAutoTip(input);
+    flashOtherLeds(input);
+    return false;
+  }
+  return true;
+}
 
-  state.pulses.forEach((pulse) => {
-    if (!pulse) return;
-    const base = Number(pulse.base);
-    if (!Number.isFinite(base)) return;
-    if (pulse.numerator == null) {
-      if (base < 0 || base > lg) return;
-      const pulseEl = timelineState.pulses[base];
-      if (!pulseEl) return;
-      pulseEl.classList.add('has-pulse');
-      createIntegerHit(base, pulseEl, lg);
+// Long‑press auto‑repeat for spinner buttons
+function addRepeatPress(el, fn, guardInput){
+  if (!el) return;
+  let t=null, r=null;
+  const start = (ev) => {
+    // When LED is off (auto), show help and do nothing
+    if (guardInput && !guardManual(guardInput)) { ev.preventDefault(); return; }
+    fn();
+    t = setTimeout(() => { r = setInterval(fn, 80); }, 320);
+    ev.preventDefault();
+  };
+  const stop = () => { clearTimeout(t); clearInterval(r); t=r=null; };
+  el.addEventListener('mousedown', start);
+  el.addEventListener('touchstart', start, { passive:false });
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>el.addEventListener(ev, stop));
+  // Also stop if released outside the button
+  document.addEventListener('mouseup', stop);
+  document.addEventListener('touchend', stop);
+}
+
+
+// Unified spinner behavior for number inputs (V, Lg)
+function stepAndDispatch(input, dir){
+  if (!input) return;
+  if (dir > 0) input.stepUp(); else input.stepDown();
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+addRepeatPress(inputVUp,   () => stepAndDispatch(inputV, +1),  inputV);
+addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1),  inputV);
+addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), inputLg);
+addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), inputLg);
+
+function showPulseSeqAutoTip(html) {
+  try {
+    const el = getEditEl();
+    if (!el) return;
+    const tip = document.createElement('div');
+    tip.className = 'hover-tip auto-tip-below';
+    tip.innerHTML = html;
+    document.body.appendChild(tip);
+    let rect = null;
+    const sel = window.getSelection && window.getSelection();
+    if (sel && sel.rangeCount) {
+      const r = sel.getRangeAt(0).cloneRange();
+      if (el.contains(r.startContainer)) {
+        r.collapse(false);
+        rect = r.getBoundingClientRect();
+      }
+    }
+    if (!rect) rect = el.getBoundingClientRect();
+    if (rect) {
+      tip.style.left = rect.left + 'px';
+      tip.style.top = (rect.bottom + window.scrollY) + 'px';
+    }
+    tip.style.fontSize = '0.95rem';
+    tip.classList.add('show');
+    setTimeout(() => {
+      tip.classList.remove('show');
+      try { document.body.removeChild(tip); } catch {}
+    }, 3000);
+  } catch {}
+}
+
+function resolvePulseSeqGap(position, lg) {
+  const ranges = Object.entries(pulseSeqRanges)
+    .map(([key, range]) => ({ key, range, num: Number(key) }))
+    .filter(entry => Number.isFinite(entry.num) && Number.isInteger(entry.num))
+    .sort((a, b) => a.range[0] - b.range[0]);
+
+  let base = null;
+  let next = null;
+  let index = 0;
+  for (let i = 0; i < ranges.length; i++) {
+    const { num, range } = ranges[i];
+    if (position > range[1]) {
+      base = num;
+      index = i + 1;
+      continue;
+    }
+    if (position <= range[0]) {
+      next = num;
+      break;
+    }
+  }
+  if (base == null) base = 0;
+  if (next == null && Number.isFinite(lg)) next = lg;
+  return { base, next, index };
+}
+
+function sanitizePulseSeq(opts = {}){
+  if (!pulseSeqEl) return { hadTooBig: false, hadFractionTooBig: false };
+  const lg = parseInt(inputLg.value);
+  const caretBefore = (() => {
+    const el = getEditEl();
+    if (!el) return 0;
+    const s = window.getSelection && window.getSelection();
+    if (!s || s.rangeCount === 0) return 0;
+    const r = s.getRangeAt(0);
+    if (!el.contains(r.startContainer)) return 0;
+    return r.startOffset;
+  })();
+  const text = getPulseSeqText();
+  const tokenRegex = /\d+\.\d+|\.\d+|\d+/g;
+  const tokens = [];
+  let match;
+  while ((match = tokenRegex.exec(text)) !== null) {
+    tokens.push({ raw: match[0], start: match.index });
+  }
+
+  const ints = [];
+  const seenInts = new Set();
+  let hadTooBig = false;
+  let firstTooBig = null;
+
+  const fractions = [];
+  const seenFractionKeys = new Set();
+  let hadFractionTooBig = false;
+  let firstFractionTooBig = null;
+
+  const { numerator: rawNumerator, denominator: rawDenominator } = getFraction();
+  const denomValue = Number.isFinite(rawDenominator) && rawDenominator > 0 ? rawDenominator : null;
+  const numeratorValue = Number.isFinite(rawNumerator) && rawNumerator > 0 ? rawNumerator : null;
+
+  const caretGap = resolvePulseSeqGap(caretBefore, lg);
+  lastFractionGap = caretGap;
+
+  const pushFractionEntry = (entry) => {
+    if (!entry) return;
+    const value = Number(entry.value);
+    if (!Number.isFinite(value)) return;
+    const nearest = nearestPulseIndex(value);
+    if (nearest != null) {
+      if (!seenInts.has(nearest)) {
+        seenInts.add(nearest);
+        ints.push(nearest);
+      }
+      return;
+    }
+    fractions.push(entry);
+    if (entry.rawLabel) {
+      registerFractionLabel(entry.rawLabel, entry);
+    }
+  };
+
+  for (const token of tokens) {
+    const raw = token.raw;
+    const normalizedRaw = typeof raw === 'string' ? raw.trim() : '';
+    if (raw.includes('.')) {
+      let matchedFraction = null;
+      if (raw.startsWith('.')) {
+        if (!denomValue) continue;
+        const digits = raw.slice(1);
+        if (!digits) continue;
+        const fracNumerator = Number.parseInt(digits, 10);
+        if (!Number.isFinite(fracNumerator) || fracNumerator <= 0) continue;
+        if (fracNumerator >= denomValue) {
+          hadFractionTooBig = true;
+          if (firstFractionTooBig == null) firstFractionTooBig = raw;
+          continue;
+        }
+        const gap = resolvePulseSeqGap(token.start, lg);
+        const base = Number.isFinite(gap.base) ? gap.base : 0;
+        const next = Number.isFinite(gap.next) ? gap.next : (Number.isFinite(lg) ? lg : Infinity);
+        if (!Number.isFinite(base)) continue;
+        if (!Number.isNaN(lg) && base >= lg) continue;
+        const labelCandidate = `${base}.${digits}`;
+        matchedFraction = getFractionInfoByLabel(labelCandidate, { base });
+        if (matchedFraction && matchedFraction.key) {
+          if (!seenFractionKeys.has(matchedFraction.key)) {
+            seenFractionKeys.add(matchedFraction.key);
+            const entry = {
+              base: matchedFraction.base,
+              numerator: matchedFraction.numerator,
+              denominator: matchedFraction.denominator,
+              value: matchedFraction.value,
+              display: matchedFraction.display,
+              key: matchedFraction.key,
+              cycleIndex: matchedFraction.cycleIndex,
+              subdivisionIndex: matchedFraction.subdivisionIndex,
+              pulsesPerCycle: matchedFraction.pulsesPerCycle,
+              rawLabel: normalizedRaw || (typeof matchedFraction.rawLabel === 'string' ? matchedFraction.rawLabel : '')
+            };
+            pushFractionEntry(entry);
+          }
+          continue;
+        }
+        const value = base + fracNumerator / denomValue;
+        if (value <= base) continue;
+        if (Number.isFinite(next) && value >= next) continue;
+        if (!Number.isNaN(lg) && value >= lg) continue;
+        const key = makeFractionKey(base, fracNumerator, denomValue);
+        if (!key) continue;
+        if (!seenFractionKeys.has(key)) {
+          seenFractionKeys.add(key);
+          const entry = {
+            base,
+            numerator: fracNumerator,
+            denominator: denomValue,
+            value,
+            display: fractionDisplay(base, fracNumerator, denomValue),
+            key,
+            cycleIndex: null,
+            subdivisionIndex: null,
+            pulsesPerCycle: null,
+            rawLabel: normalizedRaw
+          };
+          pushFractionEntry(entry);
+        }
+      } else {
+        const [intPart, fractionDigitsRaw] = raw.split('.', 2);
+        const intVal = Number.parseInt(intPart, 10);
+        if (!Number.isFinite(intVal) || intVal < 0) continue;
+        if (!denomValue) continue;
+        const digits = fractionDigitsRaw ?? '';
+        if (!digits) continue;
+        const subdivisionIndex = Number.parseInt(digits, 10);
+        if (!Number.isFinite(subdivisionIndex) || subdivisionIndex <= 0) continue;
+        if (subdivisionIndex >= denomValue) {
+          hadFractionTooBig = true;
+          if (firstFractionTooBig == null) firstFractionTooBig = raw;
+          continue;
+        }
+      matchedFraction = getFractionInfoByLabel(raw) || getFractionInfoByLabel(`${intVal}.${subdivisionIndex}`);
+      let normalizedBase = intVal;
+      let normalizedNumerator = subdivisionIndex;
+      let value = intVal + subdivisionIndex / denomValue;
+      let displayOverride = null;
+      if (Number.isFinite(numeratorValue) && numeratorValue > 0) {
+        const cycleCapacity = Number.isFinite(lg) && lg > 0
+          ? Math.floor(lg / numeratorValue)
+          : null;
+        const rawCycle = intVal / numeratorValue;
+        const cycleIndexFromBase = Number.isFinite(rawCycle)
+          ? Math.round(rawCycle)
+          : null;
+        const isCycleApproxInteger = Number.isFinite(cycleIndexFromBase)
+          && Math.abs(rawCycle - cycleIndexFromBase) <= FRACTION_POSITION_EPSILON;
+        const mapping = isCycleApproxInteger
+          ? cycleNotationToFraction(cycleIndexFromBase, subdivisionIndex, numeratorValue, denomValue)
+          : null;
+        if (mapping) {
+          let canonicalBase = Number.isFinite(mapping.base)
+            ? Math.floor(mapping.base + FRACTION_POSITION_EPSILON)
+            : null;
+          let canonicalNumerator = Number.isFinite(mapping.numerator)
+              ? Math.round(mapping.numerator)
+              : null;
+            if (Number.isFinite(canonicalNumerator) && canonicalNumerator >= denomValue) {
+              const carry = Math.floor(canonicalNumerator / denomValue);
+              canonicalNumerator -= carry * denomValue;
+              if (Number.isFinite(canonicalBase)) {
+                canonicalBase += carry;
+              }
+            }
+            const numeratorValid = Number.isFinite(canonicalNumerator) && canonicalNumerator > 0 && canonicalNumerator < denomValue;
+            const baseValid = Number.isFinite(canonicalBase);
+            const canonicalValue = baseValid && numeratorValid
+              ? fractionValue(canonicalBase, canonicalNumerator, denomValue)
+              : NaN;
+            const withinLg = Number.isFinite(canonicalValue)
+              ? (!Number.isFinite(lg) || canonicalValue < lg - FRACTION_POSITION_EPSILON)
+              : false;
+            const cycleBase = Number.isFinite(cycleIndexFromBase) && Number.isFinite(numeratorValue)
+              ? cycleIndexFromBase * numeratorValue
+              : NaN;
+            const cycleOriginValid = Number.isFinite(cycleBase)
+              ? (!Number.isFinite(lg) || cycleBase < lg)
+              : true;
+            const withinCapacity = Number.isFinite(cycleCapacity)
+              ? (cycleCapacity > 0 && Number.isFinite(cycleIndexFromBase) && cycleIndexFromBase < cycleCapacity)
+              : true;
+            if (baseValid && numeratorValid && Number.isFinite(canonicalValue) && withinLg && cycleOriginValid && withinCapacity) {
+              normalizedBase = canonicalBase;
+              normalizedNumerator = canonicalNumerator;
+              value = canonicalValue;
+              displayOverride = {
+                cycleIndex: isCycleApproxInteger ? cycleIndexFromBase : null,
+                subdivisionIndex,
+                pulsesPerCycle: numeratorValue
+              };
+            }
+          }
+        }
+        if (!Number.isFinite(value)) continue;
+        if (!Number.isNaN(lg) && value >= lg) {
+          hadTooBig = true;
+          if (firstTooBig == null) firstTooBig = `${intVal}.${digits}`;
+          continue;
+        }
+        const key = makeFractionKey(normalizedBase, normalizedNumerator, denomValue);
+        if (!key) continue;
+        if (!seenFractionKeys.has(key)) {
+          if (matchedFraction && matchedFraction.key === key) {
+            seenFractionKeys.add(key);
+            const entry = {
+              base: matchedFraction.base,
+              numerator: matchedFraction.numerator,
+              denominator: matchedFraction.denominator,
+              value: matchedFraction.value,
+              display: matchedFraction.display,
+              key: matchedFraction.key,
+              cycleIndex: matchedFraction.cycleIndex,
+              subdivisionIndex: matchedFraction.subdivisionIndex,
+              pulsesPerCycle: matchedFraction.pulsesPerCycle,
+              rawLabel: normalizedRaw || (typeof matchedFraction.rawLabel === 'string' ? matchedFraction.rawLabel : '')
+            };
+            pushFractionEntry(entry);
+            continue;
+          }
+          seenFractionKeys.add(key);
+          const overrideCycleIndex = Number.isFinite(displayOverride?.cycleIndex) && displayOverride.cycleIndex >= 0
+            ? Math.floor(displayOverride.cycleIndex)
+            : null;
+          const overrideSubdivisionIndex = Number.isFinite(displayOverride?.subdivisionIndex) && displayOverride.subdivisionIndex >= 0
+            ? Math.floor(displayOverride.subdivisionIndex)
+            : null;
+          const overridePulsesPerCycle = Number.isFinite(displayOverride?.pulsesPerCycle) && displayOverride.pulsesPerCycle > 0
+            ? displayOverride.pulsesPerCycle
+            : null;
+          const entry = {
+            base: normalizedBase,
+            numerator: normalizedNumerator,
+            denominator: denomValue,
+            value,
+            display: fractionDisplay(normalizedBase, normalizedNumerator, denomValue, displayOverride || undefined),
+            key,
+            cycleIndex: overrideCycleIndex,
+            subdivisionIndex: overrideSubdivisionIndex,
+            pulsesPerCycle: overridePulsesPerCycle,
+            rawLabel: normalizedRaw
+          };
+          pushFractionEntry(entry);
+        }
+      }
     } else {
-      const numerator = Number(pulse.numerator);
-      if (!Number.isFinite(numerator)) return;
-      if (numerator <= 0 || numerator >= denominator) return;
-      if (base < 0 || base > lg) return;
-      const key = buildFractionKey(pulse);
-      if (!key) return;
-      createFractionalHit({ key, base, numerator, lg });
+      const n = Number.parseInt(raw, 10);
+      if (!Number.isFinite(n) || n <= 0) continue;
+      if (!Number.isNaN(lg) && n >= lg) {
+        hadTooBig = true;
+        if (firstTooBig == null) firstTooBig = n;
+        continue;
+      }
+      if (!seenInts.has(n)) {
+        seenInts.add(n);
+        ints.push(n);
+      }
     }
+  }
+
+  ints.sort((a, b) => a - b);
+  fractions.sort((a, b) => a.value - b.value);
+  fractionalSelectionState.clear();
+  fractions.forEach(entry => {
+    fractionalSelectionState.set(entry.key, entry);
   });
+  rebuildFractionSelections({ skipUpdateField: true });
+
+  const hasValidLg = Number.isFinite(lg) && lg > 0;
+
+  if (hasValidLg) {
+    ensurePulseMemory(lg);
+    for (let i = 1; i < lg; i++) pulseMemory[i] = false;
+    ints.forEach(n => { if (n < lg) pulseMemory[n] = true; });
+    syncSelectedFromMemory();
+    updatePulseNumbers();
+    layoutTimeline({ silent: true });
+  } else {
+    const combined = [
+      ...ints.map(n => ({ value: n, display: String(n), key: String(n) })),
+      ...fractions.map(f => {
+        const rawLabel = typeof f.rawLabel === 'string' ? f.rawLabel : '';
+        const preferred = rawLabel ? rawLabel : f.display;
+        return { value: f.value, display: preferred, key: f.key };
+      })
+    ].sort((a, b) => a.value - b.value);
+    pulseSeqRanges = {};
+    pulseSeqEntryOrder = combined.map(entry => entry.key);
+    pulseSeqEntryLookup.clear();
+    combined.forEach((entry) => {
+      if (!entry || !entry.key) return;
+      const type = entry.display.includes('.') ? 'fraction' : 'int';
+      pulseSeqEntryLookup.set(entry.key, { ...entry, type });
+    });
+    let pos = 0;
+    const parts = combined.map(entry => {
+      const start = pos + 2;
+      const end = start + entry.display.length;
+      pulseSeqRanges[entry.key] = [start, end];
+      pos += entry.display.length + 2;
+      return entry.display;
+    });
+    setPulseSeqText('  ' + parts.join('  ') + '  ');
+  }
+
+  const outText = getPulseSeqText();
+  const pos = Math.min(outText.length, caretBefore);
+  const editEl = getEditEl();
+  const isEditActive = editEl && document.activeElement === editEl;
+  const shouldKeepCaret = hadTooBig || hadFractionTooBig || !(opts.causedBy === 'enter' || opts.causedBy === 'blur');
+  if (!opts.skipCaret && isEditActive && shouldKeepCaret) {
+    setPulseSeqSelection(pos, pos);
+    try { moveCaretToNearestMidpoint(); } catch {}
+  }
+
+  if (hadTooBig && !Number.isNaN(lg)) {
+    const bad = firstTooBig != null ? firstTooBig : '';
+    showPulseSeqAutoTip(`El número <strong>${bad}</strong> introducido es mayor que la <span style="color: var(--color-lg); font-weight: 700;">Lg</span>. Elige un número menor que <strong>${lg}</strong>`);
+  }
+  if (hadFractionTooBig && denomValue) {
+    const fractionLabelRaw = firstFractionTooBig != null ? String(firstFractionTooBig) : '';
+    const fractionLabel = fractionLabelRaw.trim() || fractionLabelRaw;
+    showPulseSeqAutoTip(`El Pfr '<strong>${fractionLabel}</strong>' es mayor que la fracción. Introduce un número menor que 'd'.`);
+  }
+
+  return { hadTooBig, hadFractionTooBig };
 }
+
+function handleInput(){
+  const lg = parseNum(inputLg.value);
+  const v  = parseNum(inputV.value);
+  const hasLg = !isNaN(lg) && lg > 0;
+  const hasV  = !isNaN(v)  && v  > 0;
+
+  if (isUpdating) return;
+
+  const { numerator, denominator } = getFraction();
+  updateFractionUI(numerator, denominator);
+
+  let indicatorValue = '';
+  if (hasLg && hasV) {
+    const timing = fromLgAndTempo(lg, v);
+    if (timing && timing.duration != null) {
+      const rounded = Math.round(timing.duration * 100) / 100;
+      if (inputT) setValue(inputT, rounded);
+      indicatorValue = rounded;
+    }
+  } else if (inputT) {
+    indicatorValue = parseNum(inputT.value);
+  }
+  updateTIndicatorText(indicatorValue);
+
+  // Ensure memory capacity always (preserve selections when Lg crece manualmente)
+  if (hasLg) {
+    ensurePulseMemory(lg);
+  }
+
+  updateFormula();
+  renderTimeline();
+  updatePulseSeqField();
+  updateAutoIndicator();
+
+  if (isPlaying && audio) {
+    const scheduling = computeAudioSchedulingState();
+    applySelectionToAudio({ scheduling });
+    currentAudioResolution = 1;
+    updateVoiceHandlers({ scheduling });
+    if (typeof audio.setVoices === 'function') {
+      audio.setVoices(scheduling.voices || []);
+    }
+    const vNow = parseFloat(inputV.value);
+    const transportPayload = {};
+    if (scheduling.totalPulses != null) {
+      transportPayload.totalPulses = scheduling.totalPulses;
+    }
+    if (scheduling.validV && Number.isFinite(vNow) && vNow > 0) {
+      transportPayload.bpm = vNow;
+    }
+    if (scheduling.patternBeats != null) {
+      transportPayload.patternBeats = scheduling.patternBeats;
+    }
+    if (scheduling.cycleConfig) {
+      transportPayload.cycle = scheduling.cycleConfig;
+    }
+    if (typeof audio.updateTransport === 'function' && (scheduling.validLg || scheduling.validV)) {
+      audio.updateTransport(transportPayload);
+    }
+    if (scheduling.validLg && scheduling.validV && Number.isFinite(vNow) && vNow > 0) {
+      scheduleZeroResync(vNow);
+    }
+  }
+}
+
+function updateFormula(){
+  if (!formula) return;
+  const tNum = parseNum(inputT?.value ?? '');
+  const tStr = isNaN(tNum)
+    ? ((inputT?.value ?? '') || 'T')
+    : formatSec(tNum).replace('.', ',');
+  const lg = inputLg.value || 'Lg';
+  const v  = inputV.value || 'V';
+  formula.innerHTML = `
+  <span class="fraction">
+    <span class="top lg">${lg}</span>
+    <span class="bottom v">${v}</span>
+  </span>
+  <span class="equal">=</span>
+  <span class="fraction">
+    <span class="top t">${tStr}</span>
+    <span class="bottom">60</span>
+  </span>`;
+
+  attachHover(formula.querySelector('.top.lg'), { text: 'Pulsos' });
+  attachHover(formula.querySelector('.bottom.v'), { text: 'PulsosPorMinuto' });
+  attachHover(formula.querySelector('.top.t'), { text: 'segundos' });
+  attachHover(formula.querySelector('.bottom:not(.v)'), { text: 'segundos' });
+}
+
+function updatePulseSeqField(){
+  if(!pulseSeqEl) return;
+  const lg = parseInt(inputLg.value);
+  if(isNaN(lg) || lg <= 0){
+    setPulseSeqText('');
+    try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=''; }catch{}
+    pulseSeqRanges = {};
+    pulseSeqEntryOrder = [];
+    pulseSeqEntryLookup.clear();
+    pulseSeqTokenMap.clear();
+    return;
+  }
+  try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=String(lg); }catch{}
+  const entries = [];
+  const limit = Math.min(pulseMemory.length, lg);
+  for(let i = 1; i < limit; i++){
+    if(pulseMemory[i]) {
+      entries.push({ type: 'int', value: i, display: String(i), key: String(i) });
+    }
+  }
+  const validFractionals = fractionalPulseSelections
+    .filter(item => item && Number.isFinite(item.value))
+    .filter(item => item.value > 0 && item.value < lg);
+  validFractionals.forEach(item => {
+    const normalizedRaw = typeof item.rawLabel === 'string' ? item.rawLabel.trim() : '';
+    const preferredDisplay = normalizedRaw ? normalizedRaw : item.display;
+    entries.push({
+      type: 'fraction',
+      value: item.value,
+      display: preferredDisplay,
+      rawLabel: normalizedRaw,
+      key: item.key
+    });
+  });
+  entries.sort((a, b) => a.value - b.value);
+  pulseSeqEntryOrder = entries.map(entry => entry.key);
+  pulseSeqEntryLookup.clear();
+  entries.forEach((entry) => {
+    if (!entry || !entry.key) return;
+    pulseSeqEntryLookup.set(entry.key, entry);
+  });
+  pulseSeqRanges = {};
+  let pos = 0;
+  const parts = entries.map(entry => {
+    const str = entry.display;
+    const start = pos + 2;
+    const end = start + str.length;
+    pulseSeqRanges[entry.key] = [start, end];
+    pos += str.length + 2;
+    return str;
+  });
+  setPulseSeqText('  ' + parts.join('  ') + '  ');
+}
+
+// Rebuild selectedPulses (visible set) from pulseMemory and current Lg, then apply DOM classes
+function syncSelectedFromMemory() {
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) return;
+
+  selectedPulses.clear();
+
+  // 1) Persistència: només índexs interns (1..lg-1)
+  const maxIdx = Math.min(lg - 1, pulseMemory.length - 1);
+  for (let i = 1; i <= maxIdx; i++) {
+    if (pulseMemory[i]) selectedPulses.add(i);
+  }
+
+  // 2) Extrems: efímers (derivats del loop)
+  if (loopEnabled) {
+    selectedPulses.add(0);
+    selectedPulses.add(lg);
+  }
+
+  // Aplica al DOM
+  pulses.forEach((p, idx) => {
+    if (!p) return;
+    p.classList.toggle('selected', selectedPulses.has(idx));
+  });
+  const lgIndex = pulses.length - 1;
+  pulseNumberLabels.forEach((label) => {
+    if (!label) return;
+    const idx = parseIntSafe(label.dataset.index);
+    if (!Number.isFinite(idx)) return;
+    const isEndpoint = idx === 0 || idx === lgIndex;
+    label.classList.toggle('selected', selectedPulses.has(idx) && !isEndpoint);
+  });
+  applyFractionSelectionClasses();
+  updatePulseSeqField();
+}
+
+function handlePulseSeqInput(){
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) {
+    pulseMemory = [];
+    renderTimeline();
+    return;
+  }
+  ensurePulseMemory(lg);
+  for(let i = 1; i < lg; i++) pulseMemory[i] = false;
+  const nums = getPulseSeqText().trim().split(/\s+/)
+    .map(n => parseInt(n,10))
+    .filter(n => !isNaN(n) && n > 0 && n < lg);
+  nums.sort((a,b) => a - b);
+  nums.forEach(n => { pulseMemory[n] = true; });
+  setPulseSeqText(nums.join(' '));
+  renderTimeline();
+  if (isPlaying) {
+    applySelectionToAudio();
+  }
+}
+
+// Deterministically set selection state for index i, respecting 0/Lg pairing when loopEnabled
+function setPulseSelected(i, shouldSelect) {
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg < 0) return;
+  ensurePulseMemory(Math.max(i, lg));
+
+  if (i === 0 || i === lg) {
+    // Extrems: controlen loopEnabled (estat efímer)
+    loopEnabled = !!shouldSelect;
+    loopBtn.classList.toggle('active', loopEnabled);
+  } else {
+    pulseMemory[i] = shouldSelect;
+  }
+
+  syncSelectedFromMemory();
+  updatePulseNumbers();
+
+  if (isPlaying && audio) {
+    applySelectionToAudio();
+    if (typeof audio.setLoop === 'function') {
+      audio.setLoop(loopEnabled);
+    }
+  }
+
+  layoutTimeline();
+}
+
 
 function clearHighlights() {
-  timelineState.pulses.forEach((pulse) => {
-    if (pulse) pulse.classList.remove('active');
-  });
-  timelineState.integerHits.forEach((entry) => {
-    if (entry?.hit) entry.hit.classList.remove('active');
-    if (entry?.pulse) entry.pulse.classList.remove('active');
-  });
-  timelineState.fractionHits.forEach((entry) => {
-    if (entry?.marker) entry.marker.classList.remove('active');
-    if (entry?.hit) entry.hit.classList.remove('active');
-  });
+  pulses.forEach(p => p.classList.remove('active'));
+  cycleMarkers.forEach(m => m.classList.remove('active'));
+  cycleLabels.forEach(l => l.classList.remove('active'));
+  pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
+  if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
+  if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+  clearFractionHighlight();
+  lastNormalizedStep = null;
 }
 
-function highlightStep(step) {
-  const lg = getValidLg();
-  const denominator = getValidDenominator();
-  if (!Number.isFinite(step) || !Number.isFinite(lg) || lg <= 0 || !Number.isFinite(denominator) || denominator <= 0) {
-    return;
-  }
-
-  const total = Math.max(1, Math.round(lg * denominator));
-  const normalized = ((Number(step) % total) + total) % total;
-  const base = Math.floor(normalized / denominator);
-  const numerator = normalized % denominator;
-
-  clearHighlights();
-
-  const pulseEl = Array.isArray(timelineState.pulses) ? timelineState.pulses[base] : null;
-  if (pulseEl) {
-    pulseEl.classList.add('active');
-  }
-
-  if (numerator === 0) {
-    const hitEntry = timelineState.integerHits.get(base);
-    if (hitEntry?.hit) hitEntry.hit.classList.add('active');
-    if (hitEntry?.pulse) hitEntry.pulse.classList.add('active');
-  } else {
-    const key = fractionKey(base, numerator);
-    const fractionEntry = timelineState.fractionHits.get(key);
-    if (fractionEntry?.marker) fractionEntry.marker.classList.add('active');
-    if (fractionEntry?.hit) fractionEntry.hit.classList.add('active');
-  }
-
-  lastHighlightedStep = normalized;
-}
-
-function renderTimeline(opts = {}) {
-  const timeline = selectors.timeline();
-  const wrapper = selectors.timelineWrapper();
-  if (!timeline || !wrapper) return;
-
-  const indicator = timelineState.tIndicator && timeline.contains(timelineState.tIndicator)
-    ? timelineState.tIndicator
-    : null;
-
+function renderTimeline() {
+  pulseNumberLabels = [];
+  pulses = [];
+  pulseHits = [];
+  cycleMarkers = [];
+  cycleMarkerHits = [];
+  cycleLabels = [];
+  bars = [];
+  clearFractionHighlight();
+  fractionHitMap.clear();
+  fractionMarkerMap.clear();
+  fractionLabelLookup.clear();
+  const savedIndicator = tIndicator;
   timeline.innerHTML = '';
-  timelineState.pulses = [];
-  timelineState.bars = [];
-  timelineState.numberLabels = [];
-  timelineState.cycleMarkers = [];
-  timelineState.cycleLabels = [];
-  timelineState.integerHits.clear();
-  timelineState.fractionHits.clear();
-  timelineState.fractionMarkers = [];
-  timelineState.fractionLabels = [];
+  if (savedIndicator) timeline.appendChild(savedIndicator);
 
-  if (indicator) {
-    timeline.appendChild(indicator);
-    timelineState.tIndicator = indicator;
-  }
+  const lg = parseIntSafe(inputLg.value);
+  if (!Number.isFinite(lg) || lg <= 0) return;
 
-  const lg = getValidLg();
-  if (!lg) {
-    wrapper.classList.remove('circular');
-    timeline.classList.remove('circular');
-    return;
-  }
+  const numberFontRem = computeNumberFontRem(lg);
+  const subdivisionFontRem = computeSubdivisionFontRem(lg);
 
   for (let i = 0; i <= lg; i++) {
     const pulse = document.createElement('div');
     pulse.className = 'pulse';
+    if (i === 0) pulse.classList.add('zero');
+    else if (i === lg) pulse.classList.add('lg');
     pulse.dataset.index = String(i);
-    if (i === 0 || i === lg) pulse.classList.add('endpoint');
     timeline.appendChild(pulse);
-    timelineState.pulses.push(pulse);
+    pulses.push(pulse);
 
     if (i === 0 || i === lg) {
       const bar = document.createElement('div');
       bar.className = 'bar';
       timeline.appendChild(bar);
-      timelineState.bars.push(bar);
+      bars.push(bar);
     }
+
+    const hit = document.createElement('div');
+    hit.className = 'pulse-hit';
+    hit.dataset.index = String(i);
+    hit.dataset.selectionKey = `pulse:${i}`;
+    hit.style.position = 'absolute';
+    hit.style.borderRadius = '50%';
+    hit.style.background = 'transparent';
+    hit.style.zIndex = '6';
+    const hitSize = computeHitSizePx(lg);
+    hit.style.width = `${hitSize}px`;
+    hit.style.height = `${hitSize}px`;
+    if (i === 0 || i === lg) {
+      hit.style.pointerEvents = 'none';
+      hit.style.cursor = 'default';
+    } else {
+      hit.style.pointerEvents = 'auto';
+      hit.style.cursor = 'pointer';
+      attachSelectionListeners(hit);
+    }
+    timeline.appendChild(hit);
+    pulseHits.push(hit);
   }
 
-  const { numerator, denominator } = state.params || {};
-  renderCycleMarkers({ lg, numerator, denominator });
-  updatePulseNumbers(lg);
-  renderPulseHits(lg);
-  clearHighlights();
-  layoutTimeline({ silent: opts.silent });
-  if (state.isPlaying && lastHighlightedStep != null) {
-    highlightStep(lastHighlightedStep);
+  const { numerator, denominator } = getFraction();
+  const grid = gridFromOrigin({ lg, numerator, denominator });
+  const normalizedLg = Number.isFinite(lg) && lg > 0 ? lg : null;
+  const normalizedNumerator = Number.isFinite(grid?.numerator) && grid.numerator > 0
+    ? grid.numerator
+    : (Number.isFinite(numerator) && numerator > 0 ? numerator : null);
+  const normalizedDenominator = Number.isFinite(grid?.denominator) && grid.denominator > 0
+    ? grid.denominator
+    : (Number.isFinite(denominator) && denominator > 0 ? denominator : null);
+
+  lastStructureSignature = {
+    lg: normalizedLg,
+    numerator: normalizedNumerator,
+    denominator: normalizedDenominator
+  };
+
+  const validFractionKeys = new Set();
+  if (grid.cycles > 0 && grid.subdivisions.length && normalizedNumerator && normalizedDenominator) {
+    const hideFractionLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
+    const numeratorPerCycle = normalizedNumerator ?? 0;
+    const labelFormatter = ({ cycleIndex, subdivisionIndex, position }) => {
+      const normalizedPositionBase = Number.isFinite(position)
+        ? Math.floor(position + FRACTION_POSITION_EPSILON)
+        : null;
+      const normalizedCycle = Number.isFinite(cycleIndex) ? Math.floor(cycleIndex) : null;
+      const hasCycleBase = normalizedCycle != null && Number.isFinite(numeratorPerCycle);
+      const cycleBase = hasCycleBase ? normalizedCycle * numeratorPerCycle : null;
+
+      if (subdivisionIndex === 0) {
+        if (Number.isFinite(cycleBase)) return String(cycleBase);
+        return Number.isFinite(normalizedPositionBase) ? String(normalizedPositionBase) : null;
+      }
+
+      if (Number.isFinite(cycleBase)) {
+        return `${cycleBase}.${subdivisionIndex}`;
+      }
+
+      if (Number.isFinite(normalizedPositionBase)) {
+        return `${normalizedPositionBase}.${subdivisionIndex}`;
+      }
+
+      return `${cycleIndex}.${subdivisionIndex}`;
+    };
+    const denominatorValue = normalizedDenominator ?? 0;
+    grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
+      const marker = document.createElement('div');
+      marker.className = 'cycle-marker';
+      if (subdivisionIndex === 0) marker.classList.add('start');
+      marker.dataset.cycleIndex = String(cycleIndex);
+      marker.dataset.subdivision = String(subdivisionIndex);
+      marker.dataset.position = String(position);
+      if (Number.isFinite(numeratorPerCycle) && numeratorPerCycle > 0) {
+        marker.dataset.pulsesPerCycle = String(numeratorPerCycle);
+      }
+      timeline.appendChild(marker);
+      cycleMarkers.push(marker);
+
+      if (subdivisionIndex === 0) {
+        const baseIndex = cycleIndex * numeratorPerCycle;
+        if (Number.isFinite(baseIndex)) marker.dataset.index = String(baseIndex);
+      } else {
+        const snapPulse = nearestPulseIndex(position);
+        if (snapPulse != null) {
+          marker.dataset.index = String(snapPulse);
+        }
+      }
+
+      if (subdivisionIndex > 0 && denominatorValue > 0) {
+        let baseIndex = Math.floor(position);
+        let fracNumerator = Math.round((position - baseIndex) * denominatorValue);
+        if (fracNumerator >= denominatorValue) {
+          const carry = Math.floor(fracNumerator / denominatorValue);
+          baseIndex += carry;
+          fracNumerator -= carry * denominatorValue;
+        }
+        if (fracNumerator > 0) {
+          const key = makeFractionKey(baseIndex, fracNumerator, denominatorValue);
+          if (key) {
+            const value = fractionValue(baseIndex, fracNumerator, denominatorValue);
+            const display = fractionDisplay(baseIndex, fracNumerator, denominatorValue, {
+              cycleIndex,
+              subdivisionIndex,
+              pulsesPerCycle: numeratorPerCycle
+            });
+            marker.dataset.baseIndex = String(baseIndex);
+            marker.dataset.fractionNumerator = String(fracNumerator);
+            marker.dataset.fractionDenominator = String(denominatorValue);
+            marker.dataset.fractionKey = key;
+            marker.dataset.selectionKey = `fraction:${key}`;
+            marker.dataset.value = String(value);
+            marker.dataset.display = display;
+            marker.style.cursor = 'pointer';
+            attachSelectionListeners(marker);
+            validFractionKeys.add(key);
+            fractionMarkerMap.set(key, marker);
+
+            const hit = document.createElement('div');
+            hit.className = 'fraction-hit';
+            hit.dataset.baseIndex = marker.dataset.baseIndex;
+            hit.dataset.cycleIndex = marker.dataset.cycleIndex;
+            hit.dataset.subdivision = marker.dataset.subdivision;
+            hit.dataset.fractionNumerator = marker.dataset.fractionNumerator;
+            hit.dataset.fractionDenominator = marker.dataset.fractionDenominator;
+            hit.dataset.fractionKey = key;
+            hit.dataset.selectionKey = `fraction:${key}`;
+            hit.dataset.value = String(value);
+            hit.dataset.display = display;
+            if (Number.isFinite(numeratorPerCycle) && numeratorPerCycle > 0) {
+              hit.dataset.pulsesPerCycle = String(numeratorPerCycle);
+            }
+            hit.style.position = 'absolute';
+            hit.style.borderRadius = '50%';
+            hit.style.background = 'transparent';
+            hit.style.zIndex = '6';
+            const fracHitSize = computeHitSizePx(lg) * 0.75;
+            hit.style.width = `${fracHitSize}px`;
+            hit.style.height = `${fracHitSize}px`;
+            hit.style.pointerEvents = 'auto';
+            hit.style.cursor = 'pointer';
+            attachSelectionListeners(hit);
+            timeline.appendChild(hit);
+            cycleMarkerHits.push(hit);
+            fractionHitMap.set(key, hit);
+
+            const storedSelection = fractionalSelectionState.get(key);
+            const storedRawLabel = typeof storedSelection?.rawLabel === 'string'
+              ? storedSelection.rawLabel.trim()
+              : '';
+            if (storedRawLabel) {
+              marker.dataset.rawLabel = storedRawLabel;
+              hit.dataset.rawLabel = storedRawLabel;
+            }
+            const labelInfo = {
+              key,
+              base: baseIndex,
+              numerator: fracNumerator,
+              denominator: denominatorValue,
+              value,
+              display,
+              cycleIndex,
+              subdivisionIndex,
+              pulsesPerCycle: numeratorPerCycle,
+              rawLabel: storedRawLabel
+            };
+            registerFractionLabel(display, labelInfo);
+            if (storedRawLabel) {
+              registerFractionLabel(storedRawLabel, labelInfo);
+            }
+            const cycleLabel = Number.isFinite(cycleIndex) && cycleIndex >= 0
+              ? `${Math.floor(cycleIndex)}.${subdivisionIndex}`
+              : null;
+            if (cycleLabel) {
+              registerFractionLabel(cycleLabel, labelInfo);
+            }
+            const absoluteLabel = Number.isFinite(labelInfo.base) && Number.isFinite(labelInfo.numerator)
+              ? `${labelInfo.base}.${labelInfo.numerator}`
+              : null;
+            if (absoluteLabel) {
+              registerFractionLabel(absoluteLabel, labelInfo);
+            }
+            if (Number.isFinite(cycleIndex) && Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0) {
+              registerFractionLabel(`${cycleIndex}.${subdivisionIndex}`, labelInfo);
+            }
+          }
+        }
+      }
+
+      if (hideFractionLabels) return;
+      const formatted = labelFormatter({ cycleIndex, subdivisionIndex, position });
+      if (formatted != null) {
+        const label = document.createElement('div');
+        label.className = 'cycle-label';
+        if (subdivisionIndex === 0) label.classList.add('cycle-label--integer');
+        if (cycleIndex === 0 && subdivisionIndex === 0) label.classList.add('cycle-label--origin');
+        label.dataset.cycleIndex = String(cycleIndex);
+        label.dataset.subdivision = String(subdivisionIndex);
+        label.dataset.position = String(position);
+        label.textContent = formatted;
+        label.dataset.fullText = String(formatted);
+        const decimalIndex = typeof formatted === 'string' ? formatted.indexOf('.') : -1;
+        if (decimalIndex > -1 && decimalIndex < formatted.length - 1) {
+          const fractionalPart = formatted.slice(decimalIndex + 1);
+          if (fractionalPart.length > 0) {
+            label.dataset.isDecimal = '1';
+            label.dataset.compactText = `.${fractionalPart}`;
+          }
+        }
+        label.style.fontSize = `${subdivisionFontRem}rem`;
+        timeline.appendChild(label);
+        cycleLabels.push(label);
+      }
+    });
   }
-  updateSelectionVisuals();
+
+  let removedFraction = false;
+  fractionalSelectionState.forEach((_, key) => {
+    if (!validFractionKeys.has(key)) {
+      fractionalSelectionState.delete(key);
+      removedFraction = true;
+    }
+  });
+  if (removedFraction) {
+    rebuildFractionSelections({ skipUpdateField: true });
+  }
+
+  updatePulseNumbers();
+  layoutTimeline({ silent: true });
+  syncSelectedFromMemory();
+  applyFractionSelectionClasses();
+  clearHighlights();
 }
 
+function showNumber(i, fontRem) {
+  const label = document.createElement('div');
+  label.className = 'pulse-number';
+  label.dataset.index = i;
+  label.textContent = i;
+  const lg = pulses.length - 1;
+  const sizeRem = typeof fontRem === 'number' ? fontRem : computeNumberFontRem(lg);
+  label.style.fontSize = `${sizeRem}rem`;
+  if (i === 0 || i === lg) label.classList.add('endpoint');
+  timeline.appendChild(label);
+  pulseNumberLabels.push(label);
+}
+
+function updatePulseNumbers() {
+  timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
+  pulseNumberLabels = [];
+  if (!pulses.length) return;
+  const lg = pulses.length - 1;
+  if (lg >= PULSE_NUMBER_HIDE_THRESHOLD) return;
+  const fontRem = computeNumberFontRem(lg);
+  showNumber(0, fontRem);
+  showNumber(lg, fontRem);
+  for (let i = 1; i < lg; i++) {
+    showNumber(i, fontRem);
+  }
+}
+
+/**
+ * Distribueix els polsos i marques en mode lineal o circular segons l'estat actual.
+ *
+ * @param {{ silent?: boolean }} [opts] permet saltar animacions en re-renderitzats silenciosos.
+ * @returns {void}
+ */
 function layoutTimeline(opts = {}) {
-  const wrapper = selectors.timelineWrapper();
-  const timeline = selectors.timeline();
-  if (!wrapper || !timeline) return;
-  const lg = getValidLg();
-  if (!Number.isFinite(lg) || lg <= 0) {
-    wrapper.classList.remove('circular');
+  const silent = !!opts.silent;
+  const lg = pulses.length - 1;
+  const useCircular = circularTimeline && loopEnabled;
+  const wasCircular = timeline.classList.contains('circular');
+  const desiredCircular = !!useCircular;
+  const delay = (!silent && wasCircular !== desiredCircular) ? T_INDICATOR_TRANSITION_DELAY : 0;
+  const queueIndicatorUpdate = () => scheduleTIndicatorReveal(delay);
+
+  if (lg <= 0) {
+    timelineWrapper.classList.remove('circular');
     timeline.classList.remove('circular');
+    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
+    const guide = wrapper.querySelector('.circle-guide');
+    if (guide) guide.style.opacity = '0';
+    queueIndicatorUpdate();
     return;
   }
 
-  const useCircular = !!state.circularTimeline;
-  if (useCircular) {
-    wrapper.classList.add('circular');
+  if (desiredCircular) {
+    timelineWrapper.classList.add('circular');
     timeline.classList.add('circular');
-    const rect = timeline.getBoundingClientRect();
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
-    const radius = Math.min(rect.width, rect.height) / 2 - 1;
+    if (silent) timeline.classList.add('no-anim');
+    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
+    let guide = wrapper.querySelector('.circle-guide');
+    if (!guide) {
+      guide = document.createElement('div');
+      guide.className = 'circle-guide';
+      guide.style.position = 'absolute';
+      guide.style.border = '2px solid var(--line-color)';
+      guide.style.borderRadius = '50%';
+      guide.style.pointerEvents = 'none';
+      guide.style.opacity = '0';
+      wrapper.appendChild(guide);
+    }
 
-    timelineState.pulses.forEach((pulse, idx) => {
-      const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-      const px = cx + radius * Math.cos(angle);
-      const py = cy + radius * Math.sin(angle);
-      pulse.style.left = `${px}px`;
-      pulse.style.top = `${py}px`;
-      pulse.style.transform = 'translate(-50%, -50%)';
-    });
+    requestAnimationFrame(() => {
+      const tRect = timeline.getBoundingClientRect();
+      const cx = tRect.width / 2;
+      const cy = tRect.height / 2;
+      const radius = Math.min(tRect.width, tRect.height) / 2 - 1;
 
-    timelineState.bars.forEach((bar, idx) => {
-      const step = idx === 0 ? 0 : lg;
-      const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
-      const bx = cx + radius * Math.cos(angle);
-      const by = cy + radius * Math.sin(angle);
-      const length = Math.min(rect.width, rect.height) * 0.25;
-      bar.style.display = 'block';
-      bar.style.left = `${bx - 1}px`;
-      bar.style.top = `${by - length / 2}px`;
-      bar.style.height = `${length}px`;
-      bar.style.transformOrigin = '50% 50%';
-      bar.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
-    });
+      pulses.forEach((pulse, idx) => {
+        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
+        const px = cx + radius * Math.cos(angle);
+        const py = cy + radius * Math.sin(angle);
+        pulse.style.left = `${px}px`;
+        pulse.style.top = `${py}px`;
+        pulse.style.transform = 'translate(-50%, -50%)';
+      });
 
-    timelineState.numberLabels.forEach((label) => {
-      const idx = Number(label.dataset.index);
-      const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-      const innerRadius = radius - NUMBER_CIRCLE_OFFSET;
-      const x = cx + innerRadius * Math.cos(angle);
-      const y = cy + innerRadius * Math.sin(angle);
-      label.style.left = `${x}px`;
-      label.style.top = `${y}px`;
-      label.style.transform = 'translate(-50%, -50%)';
-    });
+      pulseHits.forEach((hit, idx) => {
+        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
+        const hx = cx + radius * Math.cos(angle);
+        const hy = cy + radius * Math.sin(angle);
+        hit.style.left = `${hx}px`;
+        hit.style.top = `${hy}px`;
+        hit.style.transform = 'translate(-50%, -50%)';
+      });
 
-    timelineState.cycleMarkers.forEach((marker) => {
-      const position = Number(marker.dataset.position);
-      const angle = (position / lg) * 2 * Math.PI + Math.PI / 2;
-      const x = cx + radius * Math.cos(angle);
-      const y = cy + radius * Math.sin(angle);
-      marker.style.left = `${x}px`;
-      marker.style.top = `${y}px`;
-      marker.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
-    });
+      bars.forEach((bar, idx) => {
+        const step = idx === 0 ? 0 : lg;
+        const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
+        const bx = cx + radius * Math.cos(angle);
+        const by = cy + radius * Math.sin(angle);
+        const barLen = Math.min(tRect.width, tRect.height) * 0.25;
+        const topPx = by - barLen / 2;
+        bar.style.display = 'block';
+        bar.style.left = `${bx - 1}px`;
+        bar.style.top = `${topPx}px`;
+        bar.style.height = `${barLen}px`;
+        bar.style.transformOrigin = '50% 50%';
+        bar.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
+      });
 
-    const labelOffset = 36;
-    timelineState.cycleLabels.forEach((label) => {
-      const position = Number(label.dataset.position);
-      const angle = (position / lg) * 2 * Math.PI + Math.PI / 2;
-      const x = cx + (radius + labelOffset) * Math.cos(angle);
-      const y = cy + (radius + labelOffset) * Math.sin(angle);
-      label.style.left = `${x}px`;
-      label.style.top = `${y}px`;
-      label.style.transform = 'translate(-50%, -50%)';
-    });
+      const numbers = timeline.querySelectorAll('.pulse-number');
+      numbers.forEach(label => {
+        const idx = parseIntSafe(label.dataset.index);
+        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
+        const innerRadius = radius - NUMBER_CIRCLE_OFFSET;
+        let x = cx + innerRadius * Math.cos(angle);
+        let y = cy + innerRadius * Math.sin(angle);
+        if (idx === 0) x -= 16;
+        else if (idx === lg) x += 16;
+        if (idx === 0 || idx === lg) y += 8;
+        label.style.left = `${x}px`;
+        label.style.top = `${y}px`;
+        label.style.transform = 'translate(-50%, -50%)';
+      });
 
-    timelineState.integerHits.forEach((entry, idx) => {
-      if (!entry?.hit) return;
-      const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-      const x = cx + radius * Math.cos(angle);
-      const y = cy + radius * Math.sin(angle);
-      entry.hit.style.left = `${x}px`;
-      entry.hit.style.top = `${y}px`;
-      entry.hit.style.transform = 'translate(-50%, -50%)';
-    });
+      cycleMarkers.forEach(marker => {
+        const pos = Number(marker.dataset.position);
+        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
+        const mx = cx + radius * Math.cos(angle);
+        const my = cy + radius * Math.sin(angle);
+        marker.style.left = `${mx}px`;
+        marker.style.top = `${my}px`;
+        marker.style.transformOrigin = '50% 50%';
+        marker.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
+        const key = marker.dataset.fractionKey;
+        if (key && fractionHitMap.has(key)) {
+          const hit = fractionHitMap.get(key);
+          hit.style.left = `${mx}px`;
+          hit.style.top = `${my}px`;
+          hit.style.transform = 'translate(-50%, -50%)';
+        }
+      });
 
-    const denominator = getValidDenominator();
-    timelineState.fractionHits.forEach((entry) => {
-      const base = Number(entry?.pulse?.base);
-      const numerator = Number(entry?.pulse?.numerator);
-      if (!Number.isFinite(base) || !Number.isFinite(numerator)) return;
-      const value = base + numerator / denominator;
-      const angle = (value / lg) * 2 * Math.PI + Math.PI / 2;
-      const x = cx + radius * Math.cos(angle);
-      const y = cy + radius * Math.sin(angle);
-      if (entry.marker) {
-        entry.marker.style.left = `${x}px`;
-        entry.marker.style.top = `${y}px`;
-        entry.marker.style.transform = 'translate(-50%, -50%)';
+      const labelOffset = 36;
+      cycleLabels.forEach(label => {
+        const pos = Number(label.dataset.position);
+        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
+        const lx = cx + (radius + labelOffset) * Math.cos(angle);
+        const ly = cy + (radius + labelOffset) * Math.sin(angle);
+        label.style.left = `${lx}px`;
+        label.style.top = `${ly}px`;
+        label.style.transform = 'translate(-50%, -50%)';
+      });
+
+      restoreCycleLabelDisplay();
+
+      guide.style.left = `${cx}px`;
+      guide.style.top = `${cy}px`;
+      guide.style.width = `${radius * 2}px`;
+      guide.style.height = `${radius * 2}px`;
+      guide.style.transform = 'translate(-50%, -50%)';
+      guide.style.opacity = '0';
+
+      queueIndicatorUpdate();
+
+      if (silent) {
+        void timeline.offsetHeight;
+        timeline.classList.remove('no-anim');
       }
-      if (entry.hit) {
-        entry.hit.style.left = `${x}px`;
-        entry.hit.style.top = `${y}px`;
-        entry.hit.style.transform = 'translate(-50%, -50%)';
-      }
     });
+    schedulePulseSeqSpacingAdjust();
   } else {
-    wrapper.classList.remove('circular');
+    timelineWrapper.classList.remove('circular');
     timeline.classList.remove('circular');
+    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
+    const guide = wrapper.querySelector('.circle-guide');
+    if (guide) guide.style.opacity = '0';
 
-    timelineState.pulses.forEach((pulse, idx) => {
+    pulses.forEach((pulse, idx) => {
       const percent = (idx / lg) * 100;
       pulse.style.left = `${percent}%`;
       pulse.style.top = '50%';
       pulse.style.transform = 'translate(-50%, -50%)';
     });
 
-    timelineState.bars.forEach((bar, idx) => {
+    pulseHits.forEach((hit, idx) => {
+      const percent = (idx / lg) * 100;
+      hit.style.left = `${percent}%`;
+      hit.style.top = '50%';
+      hit.style.transform = 'translate(-50%, -50%)';
+    });
+
+    bars.forEach((bar, idx) => {
       const step = idx === 0 ? 0 : lg;
       const percent = (step / lg) * 100;
       bar.style.display = 'block';
@@ -821,1306 +3722,728 @@ function layoutTimeline(opts = {}) {
       bar.style.transform = '';
     });
 
-    timelineState.numberLabels.forEach((label) => {
-      const idx = Number(label.dataset.index);
+    const numbers = timeline.querySelectorAll('.pulse-number');
+    numbers.forEach(label => {
+      const idx = parseIntSafe(label.dataset.index);
       const percent = (idx / lg) * 100;
       label.style.left = `${percent}%`;
       label.style.top = '-28px';
       label.style.transform = 'translate(-50%, 0)';
     });
 
-    timelineState.cycleMarkers.forEach((marker) => {
-      const position = Number(marker.dataset.position);
-      const percent = (position / lg) * 100;
+    cycleMarkers.forEach(marker => {
+      const pos = Number(marker.dataset.position);
+      const percent = (pos / lg) * 100;
       marker.style.left = `${percent}%`;
       marker.style.top = '50%';
+      marker.style.transformOrigin = '50% 50%';
       marker.style.transform = 'translate(-50%, -50%)';
+      const key = marker.dataset.fractionKey;
+      if (key && fractionHitMap.has(key)) {
+        const hit = fractionHitMap.get(key);
+        hit.style.left = `${percent}%`;
+        hit.style.top = '50%';
+        hit.style.transform = 'translate(-50%, -50%)';
+      }
     });
 
-    timelineState.cycleLabels.forEach((label) => {
-      const position = Number(label.dataset.position);
-      const percent = (position / lg) * 100;
+    cycleLabels.forEach(label => {
+      const pos = Number(label.dataset.position);
+      const percent = (pos / lg) * 100;
       label.style.left = `${percent}%`;
       label.style.top = 'calc(100% + 12px)';
       label.style.transform = 'translate(-50%, 0)';
     });
 
-    timelineState.integerHits.forEach((entry, idx) => {
-      if (!entry?.hit) return;
-      const percent = (idx / lg) * 100;
-      entry.hit.style.left = `${percent}%`;
-      entry.hit.style.top = '50%';
-      entry.hit.style.transform = 'translate(-50%, -50%)';
-    });
+    applyCycleLabelCompaction({ lg });
 
-    const denominator = getValidDenominator();
-    timelineState.fractionHits.forEach((entry) => {
-      const base = Number(entry?.pulse?.base);
-      const numerator = Number(entry?.pulse?.numerator);
-      if (!Number.isFinite(base) || !Number.isFinite(numerator)) return;
-      const value = base + numerator / denominator;
-      const percent = (value / lg) * 100;
-      if (entry.marker) {
-        entry.marker.style.left = `${percent}%`;
-        entry.marker.style.top = '50%';
-        entry.marker.style.transform = 'translate(-50%, -50%)';
-      }
-      if (entry.hit) {
-        entry.hit.style.left = `${percent}%`;
-        entry.hit.style.top = '50%';
-        entry.hit.style.transform = 'translate(-50%, -50%)';
-      }
-    });
+    queueIndicatorUpdate();
   }
+  schedulePulseSeqSpacingAdjust();
+}
 
-  if (!opts.silent) {
-    updateSelectionVisuals();
+function restoreCycleLabelDisplay() {
+  cycleLabels.forEach(label => {
+    if (!label) return;
+    const full = label.dataset.fullText;
+    if (typeof full === 'string') {
+      label.textContent = full;
+    }
+    label.classList.remove('cycle-label--compact');
+  });
+}
+
+function applyCycleLabelCompaction({ lg }) {
+  if (!timeline || !Array.isArray(cycleLabels)) return;
+  if (!Number.isFinite(lg) || lg <= 0) {
+    restoreCycleLabelDisplay();
+    return;
   }
-}
-
-window.addEventListener('sharedui:factoryreset', () => {
-  stopPlayback();
-  clearStoredParams();
-  state.params = loadStoredParams();
-  state.pulses = [];
-  persistPulses();
-  clearSelectionState();
-  state.selectionAudioEnabled = true;
-  updateSelectionToggleVisual(true);
-  state.loopEnabled = false;
-  lastHighlightedStep = null;
-  const loopBtn = selectors.loopBtn();
-  if (loopBtn) loopBtn.classList.remove('active');
-  const tapHelp = selectors.tapHelp();
-  if (tapHelp) {
-    tapHelp.textContent = 'Se necesitan 3 clicks';
-    tapHelp.style.display = 'none';
-  }
-  applyParamsToInputs();
-  updateFractionDisplay();
-  updateLgDisplay();
-  renderPulseSequence();
-  renderTimeline();
-  scheduleParamSync();
-});
-
-function toPositiveInt(value) {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return null;
-  return parsed;
-}
-
-function toNonNegativeInt(value) {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed < 0) return null;
-  return parsed;
-}
-
-function loadStoredParam(key) {
-  try {
-    const raw = localStorage.getItem(STORE_KEY(key));
-    const parsed = toPositiveInt(raw);
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function loadStoredParams() {
-  const base = { ...DEFAULT_PARAMS };
-  const overrides = {
-    Lg: loadStoredParam('Lg'),
-    V: loadStoredParam('V'),
-    numerator: loadStoredParam('numerator'),
-    denominator: loadStoredParam('denominator')
-  };
-  Object.entries(overrides).forEach(([key, value]) => {
-    if (Number.isFinite(value) && value > 0) {
-      base[key] = value;
-    }
-  });
-  return base;
-}
-
-function loadStoredPulses() {
-  try {
-    const raw = localStorage.getItem(STORE_KEY('pulses'));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((item) => {
-        if (!item || typeof item !== 'object') return null;
-        const base = toNonNegativeInt(item.base);
-        if (base == null) return null;
-        const numerator = toPositiveInt(item.numerator);
-        return { base, numerator: Number.isFinite(numerator) ? numerator : null };
-      })
-      .filter(Boolean);
-  } catch {
-    return [];
-  }
-}
-
-function persistParam(key, value) {
-  const storageKey = STORE_KEY(key);
-  try {
-    if (!Number.isFinite(value) || value <= 0) {
-      localStorage.removeItem(storageKey);
-    } else {
-      localStorage.setItem(storageKey, String(value));
-    }
-  } catch {}
-}
-
-function persistPulses() {
-  try {
-    const payload = state.pulses.map((pulse) => ({
-      base: pulse.base,
-      numerator: pulse.numerator != null ? pulse.numerator : null
-    }));
-    localStorage.setItem(STORE_KEY('pulses'), JSON.stringify(payload));
-  } catch {}
-}
-
-function clearStoredParams() {
-  const keys = ['Lg', 'V', 'numerator', 'denominator', 'pulses', 'baseSound', 'selectedSound', 'startSound'];
-  keys.forEach((key) => {
-    try { localStorage.removeItem(STORE_KEY(key)); } catch {}
-  });
-}
-
-function mergeRandomConfig(stored) {
-  const source = stored && typeof stored === 'object' ? stored : {};
-  return {
-    Lg: { ...randomDefaults.Lg, ...(source.Lg && typeof source.Lg === 'object' ? source.Lg : {}) },
-    V: { ...randomDefaults.V, ...(source.V && typeof source.V === 'object' ? source.V : {}) },
-    Pulses: { ...randomDefaults.Pulses, ...(source.Pulses && typeof source.Pulses === 'object' ? source.Pulses : {}) }
-  };
-}
-
-function loadRandomConfig() {
-  try {
-    const raw = localStorage.getItem(RANDOM_STORE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveRandomConfig(cfg) {
-  try {
-    localStorage.setItem(RANDOM_STORE_KEY, JSON.stringify(cfg));
-  } catch {}
-}
-
-function collectRandomElements() {
-  randomElements.button = selectors.randomBtn();
-  randomElements.menu = selectors.randomMenu();
-  randomElements.randLgToggle = selectors.randLgToggle();
-  randomElements.randLgMin = selectors.randLgMin();
-  randomElements.randLgMax = selectors.randLgMax();
-  randomElements.randVToggle = selectors.randVToggle();
-  randomElements.randVMin = selectors.randVMin();
-  randomElements.randVMax = selectors.randVMax();
-  randomElements.randPulsesToggle = selectors.randPulsesToggle();
-  randomElements.randomCount = selectors.randomCount();
-}
-
-function applyRandomConfigToInputs(cfg = randomConfig) {
-  const lgRange = Array.isArray(cfg?.Lg?.range) ? cfg.Lg.range : randomDefaults.Lg.range;
-  const vRange = Array.isArray(cfg?.V?.range) ? cfg.V.range : randomDefaults.V.range;
-  if (randomElements.randLgToggle) randomElements.randLgToggle.checked = !!cfg?.Lg?.enabled;
-  if (randomElements.randLgMin) randomElements.randLgMin.value = lgRange?.[0] ?? '';
-  if (randomElements.randLgMax) randomElements.randLgMax.value = lgRange?.[1] ?? '';
-  if (randomElements.randVToggle) randomElements.randVToggle.checked = !!cfg?.V?.enabled;
-  if (randomElements.randVMin) randomElements.randVMin.value = vRange?.[0] ?? '';
-  if (randomElements.randVMax) randomElements.randVMax.value = vRange?.[1] ?? '';
-  if (randomElements.randPulsesToggle) randomElements.randPulsesToggle.checked = !!cfg?.Pulses?.enabled;
-  if (randomElements.randomCount) randomElements.randomCount.value = cfg?.Pulses?.count ?? '';
-}
-
-function persistRandomConfig() {
-  randomConfig = {
-    Lg: {
-      enabled: !!randomElements.randLgToggle?.checked,
-      range: toRange(
-        randomElements.randLgMin?.value,
-        randomElements.randLgMax?.value,
-        randomDefaults.Lg.range
-      )
-    },
-    V: {
-      enabled: !!randomElements.randVToggle?.checked,
-      range: toRange(
-        randomElements.randVMin?.value,
-        randomElements.randVMax?.value,
-        randomDefaults.V.range
-      )
-    },
-    Pulses: {
-      enabled: !!randomElements.randPulsesToggle?.checked,
-      count: typeof randomElements.randomCount?.value === 'string'
-        ? randomElements.randomCount.value.trim()
-        : ''
-    }
-  };
-  saveRandomConfig(randomConfig);
-}
-
-function setNumberInputValue(input, value) {
-  if (!input || !Number.isFinite(value)) return;
-  input.value = String(value);
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-  input.dispatchEvent(new Event('change', { bubbles: true }));
-}
-
-function randomInt(min, max) {
-  const lo = Math.ceil(min);
-  const hi = Math.floor(max);
-  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) return lo;
-  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
-}
-
-function computePulseValue(pulse, denominator) {
-  if (!pulse) return 0;
-  const base = Number.isFinite(pulse.base) ? pulse.base : 0;
-  const numerator = Number.isFinite(pulse.numerator) ? pulse.numerator : null;
-  if (numerator == null) return base;
-  const d = Number.isFinite(denominator) && denominator > 0 ? denominator : 1;
-  return base + numerator / d;
-}
-
-function normalizePulseList(list, { denominator, lg } = {}) {
-  if (!Array.isArray(list)) return [];
-  const d = Number.isFinite(denominator) && denominator > 0 ? denominator : null;
-  const limitLg = Number.isFinite(lg) && lg > 0 ? lg : null;
-  const seen = new Set();
-  const normalized = [];
-
-  list.forEach((item) => {
-    if (!item) return;
-    const base = Math.max(0, Math.round(Number(item.base)) || 0);
-    const rawNumerator = Number(item.numerator);
-    const numerator = Number.isFinite(rawNumerator) ? Math.max(1, Math.round(rawNumerator)) : null;
-
-    if (numerator != null) {
-      if (!Number.isFinite(d) || d <= 0) return;
-      if (numerator >= d) return;
-      if (Number.isFinite(limitLg) && limitLg > 0 && base >= limitLg) return;
-    } else {
-      if (base <= 0) return;
-      if (Number.isFinite(limitLg) && limitLg > 0 && base >= limitLg) return;
-    }
-
-    const key = `${base}:${numerator ?? ''}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    normalized.push({ base, numerator: numerator != null ? numerator : null });
-  });
-
-  normalized.sort((a, b) => {
-    const diff = computePulseValue(a, d) - computePulseValue(b, d);
-    if (Math.abs(diff) < 1e-6) return 0;
-    return diff < 0 ? -1 : 1;
-  });
-
-  return normalized;
-}
-
-function renderFractionControls() {
-  const inputs = selectors.inputs();
-  if (!inputs || document.getElementById(FRACTION_IDS.container)) return;
-
-  const fractionParam = document.createElement('div');
-  fractionParam.className = 'param fraction';
-  fractionParam.id = FRACTION_IDS.container;
-
-  const abbr = document.createElement('span');
-  abbr.className = 'abbr';
-  abbr.textContent = 'n/d';
-  fractionParam.appendChild(abbr);
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'fraction-wrapper';
-
-  const topRow = document.createElement('div');
-  topRow.className = 'fraction-row fraction-row--top';
-  const numerator = createFractionField({
-    inputId: FRACTION_IDS.numerator,
-    upId: FRACTION_IDS.numeratorUp,
-    downId: FRACTION_IDS.numeratorDown,
-    placeholder: 'n',
-    ariaUp: 'Incrementar numerador',
-    ariaDown: 'Decrementar numerador'
-  });
-  topRow.appendChild(numerator.field);
-
-  const divider = document.createElement('div');
-  divider.className = 'fraction-divider';
-  divider.setAttribute('aria-hidden', 'true');
-
-  const bottomRow = document.createElement('div');
-  bottomRow.className = 'fraction-row fraction-row--bottom';
-  const denominator = createFractionField({
-    inputId: FRACTION_IDS.denominator,
-    upId: FRACTION_IDS.denominatorUp,
-    downId: FRACTION_IDS.denominatorDown,
-    placeholder: 'd',
-    ariaUp: 'Incrementar denominador',
-    ariaDown: 'Decrementar denominador'
-  });
-  bottomRow.appendChild(denominator.field);
-
-  wrapper.append(topRow, divider, bottomRow);
-  fractionParam.appendChild(wrapper);
-
-  const vParam = document.querySelector('.param.v');
-  if (vParam) {
-    inputs.insertBefore(fractionParam, vParam);
-  } else {
-    inputs.appendChild(fractionParam);
-  }
-}
-
-function createFractionField({ inputId, upId, downId, placeholder, ariaUp, ariaDown }) {
-  const field = document.createElement('div');
-  field.className = 'fraction-field';
-
-  const input = document.createElement('input');
-  input.type = 'number';
-  input.id = inputId;
-  input.min = '1';
-  input.step = '1';
-  input.placeholder = placeholder;
-  input.inputMode = 'numeric';
-  field.appendChild(input);
-
-  const spinner = document.createElement('div');
-  spinner.className = 'spinner';
-
-  const up = document.createElement('button');
-  up.type = 'button';
-  up.id = upId;
-  up.className = 'spin up';
-  if (ariaUp) up.setAttribute('aria-label', ariaUp);
-  spinner.appendChild(up);
-
-  const down = document.createElement('button');
-  down.type = 'button';
-  down.id = downId;
-  down.className = 'spin down';
-  if (ariaDown) down.setAttribute('aria-label', ariaDown);
-  spinner.appendChild(down);
-
-  field.appendChild(spinner);
-
-  return { field, input, up, down };
-}
-
-function addRepeatPress(element, fn) {
-  if (!element || typeof fn !== 'function') return;
-  let timeoutId = null;
-  let intervalId = null;
-
-  const clearTimers = () => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-    }
-    if (intervalId) {
-      clearInterval(intervalId);
-      intervalId = null;
-    }
-  };
-
-  const start = (event) => {
-    if (event.type === 'mousedown' && event.button !== 0) return;
-    fn();
-    timeoutId = setTimeout(() => {
-      intervalId = setInterval(fn, 80);
-    }, 320);
-    event.preventDefault();
-  };
-
-  const stop = () => {
-    clearTimers();
-  };
-
-  element.addEventListener('mousedown', start);
-  element.addEventListener('touchstart', start, { passive: false });
-  ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach((name) => {
-    element.addEventListener(name, stop);
-  });
-  document.addEventListener('mouseup', stop);
-  document.addEventListener('touchend', stop);
-
-  element.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      fn();
-    }
-  });
-}
-
-function bindPositiveIntegerInput(input) {
-  if (!input || input.dataset.app4IntBound === '1') return;
-  input.addEventListener('input', () => {
-    const digits = (input.value || '').replace(/[^0-9]/g, '');
-    if (digits !== input.value) input.value = digits;
-  });
-  input.addEventListener('blur', () => {
-    const parsed = Number.parseInt(input.value, 10);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      input.value = '';
-    } else {
-      input.value = String(parsed);
-    }
-  });
-  input.dataset.app4IntBound = '1';
-}
-
-function stepNumberInput(input, delta) {
-  if (!input) return;
-  const parsed = Number.parseInt(input.value, 10);
-  let next = Number.isFinite(parsed) ? parsed + delta : delta > 0 ? 1 : 1;
-  if (next < 1) next = 1;
-  input.value = String(next);
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-  input.dispatchEvent(new Event('change', { bubbles: true }));
-}
-
-function bindSpinnerButtons({ input, up, down }) {
-  if (!input) return;
-  if (up && !up.dataset.app4SpinnerBound) {
-    addRepeatPress(up, () => stepNumberInput(input, +1));
-    up.dataset.app4SpinnerBound = '1';
-  }
-  if (down && !down.dataset.app4SpinnerBound) {
-    addRepeatPress(down, () => stepNumberInput(input, -1));
-    down.dataset.app4SpinnerBound = '1';
-  }
-}
-
-function setupParameterInputs() {
-  renderFractionControls();
-
-  const lg = selectors.inputLg();
-  const v = selectors.inputV();
-  const numerator = selectors.numeratorInput();
-  const denominator = selectors.denominatorInput();
-
-  [lg, v, numerator, denominator].forEach(bindPositiveIntegerInput);
-
-  bindSpinnerButtons({ input: lg, up: selectors.inputLgUp(), down: selectors.inputLgDown() });
-  bindSpinnerButtons({ input: v, up: selectors.inputVUp(), down: selectors.inputVDown() });
-  bindSpinnerButtons({ input: numerator, up: selectors.numeratorUp(), down: selectors.numeratorDown() });
-  bindSpinnerButtons({ input: denominator, up: selectors.denominatorUp(), down: selectors.denominatorDown() });
-
-  applyParamsToInputs();
-  bindParameterStateSync();
-  scheduleParamSync();
-}
-
-function applyParamsToInputs() {
-  const { Lg, V, numerator, denominator } = state.params;
-  const bindings = [
-    { input: selectors.inputLg(), value: Lg },
-    { input: selectors.inputV(), value: V },
-    { input: selectors.numeratorInput(), value: numerator },
-    { input: selectors.denominatorInput(), value: denominator }
-  ];
-  bindings.forEach(({ input, value }) => {
-    if (!input) return;
-    const next = Number.isFinite(value) && value > 0 ? String(value) : '';
-    if (input.value !== next) {
-      input.value = next;
-    }
-  });
-}
-
-function bindParameterStateSync() {
-  const bindings = [
-    { key: 'Lg', getter: selectors.inputLg },
-    { key: 'V', getter: selectors.inputV },
-    { key: 'numerator', getter: selectors.numeratorInput },
-    { key: 'denominator', getter: selectors.denominatorInput }
-  ];
-
-  bindings.forEach(({ key, getter }) => {
-    const input = getter();
-    if (!input || input.dataset.app4ParamBound === '1') return;
-
-    const handle = (opts = {}) => handleParamInput(key, input, opts);
-    input.addEventListener('input', () => handle());
-    input.addEventListener('change', () => handle({ coerce: true }));
-    input.addEventListener('blur', () => handle({ coerce: true }));
-    input.dataset.app4ParamBound = '1';
-  });
-}
-
-function handleParamInput(key, input, { coerce = false } = {}) {
-  if (!input) return;
-  const rawValue = input.value;
-  const parsed = toPositiveInt(rawValue);
-  if (!Number.isFinite(parsed)) {
-    if (coerce) {
-      const fallback = state.params[key];
-      const fallbackValue = Number.isFinite(fallback) && fallback > 0 ? String(fallback) : '';
-      if (fallbackValue !== rawValue) {
-        input.value = fallbackValue;
-      }
-    }
+  const width = timeline.clientWidth || timeline.getBoundingClientRect().width;
+  if (!Number.isFinite(width) || width <= 0) {
+    restoreCycleLabelDisplay();
     return;
   }
 
-  if (state.params[key] === parsed) return;
-  state.params[key] = parsed;
-  persistParam(key, parsed);
-  let shouldRenderTimeline = false;
-  if (key === 'denominator') {
-    state.pulses = normalizePulseList(state.pulses, getNormalizationOptions());
-    pruneSelection();
-    renderPulseSequence();
-    persistPulses();
-    shouldRenderTimeline = true;
-  }
-  if (key === 'Lg') {
-    state.pulses = normalizePulseList(state.pulses, getNormalizationOptions());
-    pruneSelection();
-    renderPulseSequence();
-    persistPulses();
-    updateLgDisplay();
-    shouldRenderTimeline = true;
-  }
-  if (key === 'numerator' || key === 'denominator') {
-    updateFractionDisplay();
-    shouldRenderTimeline = true;
-  }
-  if (shouldRenderTimeline) {
-    renderTimeline({ silent: true });
-  }
-  scheduleParamSync();
-}
+  const sorted = [...cycleLabels].filter(Boolean).sort((a, b) => {
+    const aPos = Number(a.dataset.position);
+    const bPos = Number(b.dataset.position);
+    if (!Number.isFinite(aPos) && !Number.isFinite(bPos)) return 0;
+    if (!Number.isFinite(aPos)) return 1;
+    if (!Number.isFinite(bPos)) return -1;
+    return aPos - bPos;
+  });
 
-function scheduleParamSync() {
-  const applied = applyParamsToAudio();
-  state.pendingAudioSync = !applied;
-  return applied;
-}
+  sorted.forEach((label, idx) => {
+    const full = typeof label.dataset.fullText === 'string' ? label.dataset.fullText : label.textContent;
+    const compact = label.dataset.compactText;
+    let useCompact = false;
 
-function applyParamsToAudio(target = audio) {
-  const instance = target || audio;
-  if (!instance || !state.audioReady) return false;
+    if (label.dataset.isDecimal === '1' && typeof compact === 'string') {
+      const currentPos = Number(label.dataset.position);
+      if (Number.isFinite(currentPos)) {
+        const currentPx = (currentPos / lg) * width;
 
-  const { Lg, V, numerator, denominator } = state.params;
-  const denom = getValidDenominator();
-  const payload = {};
-  if (Number.isFinite(Lg) && Lg > 0) payload.totalPulses = Lg * denom;
-  if (Number.isFinite(V) && V > 0) payload.bpm = V;
-  const cycle = {};
-  if (Number.isFinite(numerator) && numerator > 0) cycle.numerator = numerator;
-  if (Number.isFinite(denominator) && denominator > 0) cycle.denominator = denominator;
-  if (Object.keys(cycle).length > 0) payload.cycle = cycle;
+        const prevLabel = sorted[idx - 1];
+        let prevPx = null;
+        if (prevLabel) {
+          const prevPos = Number(prevLabel.dataset.position);
+          if (Number.isFinite(prevPos)) {
+            prevPx = (prevPos / lg) * width;
+          }
+        }
 
-  if (Object.keys(payload).length === 0) return false;
-  if (typeof instance.updateTransport === 'function') {
-    instance.updateTransport(payload);
-    return true;
-  }
-  if (payload.totalPulses != null && typeof instance.setTotal === 'function') {
-    instance.setTotal(payload.totalPulses);
-  }
-  if (payload.bpm != null && typeof instance.setTempo === 'function') {
-    instance.setTempo(payload.bpm);
-  }
-  if (payload.cycle && typeof instance.updateCycleConfig === 'function') {
-    instance.updateCycleConfig(payload.cycle);
-  }
-  return true;
-}
+        const nextLabel = sorted[idx + 1];
+        let nextPx = null;
+        if (nextLabel) {
+          const nextPos = Number(nextLabel.dataset.position);
+          if (Number.isFinite(nextPos)) {
+            nextPx = (nextPos / lg) * width;
+          }
+        }
 
-function setupPulseSequence() {
-  const container = selectors.pulseSeqContainer();
-  if (!container) return;
-
-  container.textContent = '';
-
-  const prefix = document.createElement('span');
-  prefix.className = 'pz prefix';
-  prefix.textContent = 'Pfr';
-
-  const fraction = document.createElement('span');
-  fraction.className = 'fraction pulse-fraction';
-
-  const fractionTop = document.createElement('span');
-  fractionTop.className = 'top';
-  fractionTop.textContent = 'n';
-
-  const fractionBottom = document.createElement('span');
-  fractionBottom.className = 'bottom';
-  fractionBottom.textContent = 'd';
-
-  fraction.append(fractionTop, fractionBottom);
-
-  const parenOpen = document.createElement('span');
-  parenOpen.className = 'pz prefix';
-  parenOpen.textContent = '(';
-
-  const zero = document.createElement('span');
-  zero.className = 'pz zero';
-  zero.textContent = '0';
-
-  const edit = document.createElement('span');
-  edit.className = 'pz edit';
-  edit.contentEditable = 'true';
-  edit.spellcheck = false;
-  edit.inputMode = 'numeric';
-
-  const parenClose = document.createElement('span');
-  parenClose.className = 'pz suffix';
-  parenClose.textContent = ')';
-
-  const lgSpan = document.createElement('span');
-  lgSpan.className = 'pz lg';
-  lgSpan.textContent = 'Lg';
-
-  container.append(prefix, fraction, parenOpen, zero, edit, parenClose, lgSpan);
-
-  const help = document.createElement('div');
-  help.id = 'pulseSeqHelp';
-  help.setAttribute('role', 'status');
-  help.setAttribute('aria-live', 'polite');
-  container.insertAdjacentElement('afterend', help);
-
-  pulseSeqElements.edit = edit;
-  pulseSeqElements.lg = lgSpan;
-  pulseSeqElements.fractionNumerator = fractionTop;
-  pulseSeqElements.fractionDenominator = fractionBottom;
-  pulseSeqElements.help = help;
-
-  edit.addEventListener('keydown', handlePulseSeqKeydown);
-  edit.addEventListener('input', handlePulseSeqInput);
-  edit.addEventListener('blur', () => confirmPulseSequence({ reason: 'blur' }));
-  edit.addEventListener('paste', handlePulseSeqPaste);
-
-  renderPulseSequence();
-}
-
-function handlePulseSeqKeydown(event) {
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    confirmPulseSequence({ reason: 'enter' });
-    try { event.currentTarget?.blur(); } catch {}
-    return;
-  }
-  if (event.key === 'Escape') {
-    event.preventDefault();
-    renderPulseSequence();
-    clearPulseHelp();
-  }
-}
-
-function sanitizePulseText(text) {
-  return (text || '').replace(/[^0-9.\s]/g, ' ');
-}
-
-function handlePulseSeqInput() {
-  if (!pulseSeqElements.edit) return;
-  const sanitized = sanitizePulseText(pulseSeqElements.edit.textContent || '');
-  if (sanitized !== pulseSeqElements.edit.textContent) {
-    pulseSeqElements.edit.textContent = sanitized;
-  }
-}
-
-function handlePulseSeqPaste(event) {
-  event.preventDefault();
-  const text = (event.clipboardData || window.clipboardData)?.getData('text') || '';
-  const sanitized = sanitizePulseText(text);
-  document.execCommand('insertText', false, sanitized);
-}
-
-function getPulseSeqText() {
-  return pulseSeqElements.edit ? (pulseSeqElements.edit.textContent || '') : '';
-}
-
-function setPulseSeqText(str) {
-  if (!pulseSeqElements.edit) return;
-  pulseSeqElements.edit.textContent = str;
-}
-
-function formatPulseToken(pulse) {
-  if (!pulse) return '';
-  if (pulse.numerator != null) {
-    return `${pulse.base}.${pulse.numerator}`;
-  }
-  return String(pulse.base);
-}
-
-function renderPulseSequence() {
-  if (!pulseSeqElements.edit) return;
-  const tokens = state.pulses.map(formatPulseToken);
-  const text = tokens.length ? `  ${tokens.join('  ')}  ` : '  ';
-  setPulseSeqText(text);
-}
-
-function showPulseHelp(message) {
-  if (!pulseSeqElements.help) return;
-  pulseSeqElements.help.textContent = message;
-  pulseSeqElements.help.classList.add('show');
-}
-
-function clearPulseHelp() {
-  if (!pulseSeqElements.help) return;
-  pulseSeqElements.help.textContent = '';
-  pulseSeqElements.help.classList.remove('show');
-}
-
-function randomize() {
-  if (randomElements.randLgToggle?.checked) {
-    const [lo, hi] = toRange(
-      randomElements.randLgMin?.value,
-      randomElements.randLgMax?.value,
-      randomDefaults.Lg.range
-    );
-    const nextLg = randomInt(lo, hi);
-    setNumberInputValue(selectors.inputLg(), nextLg);
-  }
-
-  if (randomElements.randVToggle?.checked) {
-    const [lo, hi] = toRange(
-      randomElements.randVMin?.value,
-      randomElements.randVMax?.value,
-      randomDefaults.V.range
-    );
-    const nextV = randomInt(lo, hi);
-    setNumberInputValue(selectors.inputV(), nextV);
-  }
-
-  if (randomElements.randPulsesToggle?.checked) {
-    const lgValue = toPositiveInt(selectors.inputLg()?.value);
-    const available = [];
-    if (Number.isFinite(lgValue) && lgValue > 1) {
-      for (let i = 1; i < lgValue; i++) available.push(i);
-    }
-
-    const rawCount = typeof randomElements.randomCount?.value === 'string'
-      ? randomElements.randomCount.value.trim()
-      : '';
-
-    const selected = new Set();
-    if (!rawCount) {
-      const density = 0.5;
-      available.forEach((idx) => { if (Math.random() < density) selected.add(idx); });
-    } else {
-      const parsed = Number.parseInt(rawCount, 10);
-      if (Number.isNaN(parsed)) {
-        const density = 0.5;
-        available.forEach((idx) => { if (Math.random() < density) selected.add(idx); });
-      } else if (parsed > 0) {
-        const target = Math.min(parsed, available.length);
-        while (selected.size < target) {
-          const idx = available[Math.floor(Math.random() * available.length)];
-          selected.add(idx);
+        if ((prevPx != null && currentPx - prevPx < MIN_SUBDIVISION_LABEL_SPACING_PX)
+          || (nextPx != null && nextPx - currentPx < MIN_SUBDIVISION_LABEL_SPACING_PX)) {
+          useCompact = true;
         }
       }
     }
 
-    const pulses = Array.from(selected)
-      .sort((a, b) => a - b)
-      .map((base) => ({ base, numerator: null }));
-    state.pulses = normalizePulseList(pulses, getNormalizationOptions());
-    persistPulses();
-    renderPulseSequence();
-    clearPulseHelp();
-    renderTimeline({ silent: true });
-  }
-}
-
-function parsePulseTokens(text) {
-  const raw = (text || '').trim();
-  if (!raw) return { pulses: [] };
-
-  const tokens = raw.split(/\s+/).filter(Boolean);
-  const pulses = [];
-  let lastInteger = 0;
-
-  for (const token of tokens) {
-    if (!token) continue;
-    let base = null;
-    let numerator = null;
-
-    if (token.includes('.')) {
-      const [intPart, fracPart] = token.split('.');
-      if (!fracPart) {
-        return { error: `El Pfr '${token}' no es válido.` };
-      }
-      const parsedNumerator = Number.parseInt(fracPart, 10);
-      if (!Number.isFinite(parsedNumerator) || parsedNumerator <= 0) {
-        return { error: `El Pfr '${token}' no es válido.` };
-      }
-      if (!Number.isFinite(state.params.denominator) || state.params.denominator <= 0) {
-        return { error: 'Define la fracción n/d antes de añadir pulsos fraccionados.' };
-      }
-      if (parsedNumerator >= state.params.denominator) {
-        return {
-          error: `El Pfr '${token}' es mayor que la fracción. Introduce un número menor que '${state.params.denominator}'.`
-        };
-      }
-      numerator = parsedNumerator;
-      if (intPart === '') {
-        base = Number.isFinite(lastInteger) ? lastInteger : 0;
-      } else {
-        const parsedBase = Number.parseInt(intPart, 10);
-        if (!Number.isFinite(parsedBase)) {
-          return { error: `El Pfr '${token}' no es válido.` };
-        }
-        base = parsedBase;
-      }
+    if (useCompact) {
+      label.textContent = compact;
+      label.classList.add('cycle-label--compact');
     } else {
-      const parsedBase = Number.parseInt(token, 10);
-      if (!Number.isFinite(parsedBase)) continue;
-      base = parsedBase;
-      numerator = null;
-      lastInteger = base;
+      label.textContent = full || '';
+      label.classList.remove('cycle-label--compact');
     }
-
-    base = Math.max(0, Math.round(Number(base) || 0));
-    pulses.push({ base, numerator });
-  }
-
-  return { pulses };
+  });
 }
 
-function confirmPulseSequence({ reason } = {}) {
-  const text = sanitizePulseText(getPulseSeqText());
-  const parsed = parsePulseTokens(text);
-  if (parsed.error) {
-    showPulseHelp(parsed.error);
-    renderPulseSequence();
-    return false;
-  }
-
-  const normalized = normalizePulseList(parsed.pulses, getNormalizationOptions());
-  state.pulses = normalized;
-  pruneSelection();
-  persistPulses();
-  renderPulseSequence();
-  renderTimeline({ silent: true });
-  clearPulseHelp();
-  if (reason === 'enter' && pulseSeqElements.edit) {
-    try { pulseSeqElements.edit.blur(); } catch {}
-  }
-  return true;
+function updateAutoIndicator(){
+  // Los LEDs encendidos son los campos editables; el apagado se recalcula
+  ledLg?.classList.toggle('on', inputLg.dataset.auto !== '1');
+  ledV?.classList.toggle('on', inputV.dataset.auto !== '1');
+  ledT?.classList.toggle('on', (inputT?.dataset?.auto) !== '1');
 }
 
-function updateFractionDisplay() {
-  const numerator = state.params.numerator;
-  const denominator = state.params.denominator;
-  if (pulseSeqElements.fractionNumerator) {
-    pulseSeqElements.fractionNumerator.textContent = Number.isFinite(numerator) && numerator > 0 ? String(numerator) : 'n';
-  }
-  if (pulseSeqElements.fractionDenominator) {
-    pulseSeqElements.fractionDenominator.textContent = Number.isFinite(denominator) && denominator > 0 ? String(denominator) : 'd';
-  }
-}
-
-function updateLgDisplay() {
-  if (!pulseSeqElements.lg) return;
-  const { Lg } = state.params;
-  pulseSeqElements.lg.textContent = Number.isFinite(Lg) && Lg > 0 ? String(Lg) : 'Lg';
-}
-
-function ensureMixerChannels() {
-  const mixer = getMixer();
-  if (!mixer || ensureMixerChannels._done) return;
-  mixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso/Pulso 0' });
-  mixer.registerChannel('selected', { allowSolo: true, label: 'Seleccionados' });
-  ensureMixerChannels._done = true;
-}
-
-async function initAudio() {
-  if (audio) return audio;
-  await ensureAudio();
-  audio = new TimelineAudio();
-  await audio.ready();
-  ensureMixerChannels();
-
-  const baseSoundSelect = selectors.baseSoundSelect();
-  const selectedSoundSelect = selectors.selectedSoundSelect();
-  const startSoundSelect = selectors.startSoundSelect();
-
-  if (baseSoundSelect?.dataset.value) {
-    audio.setBase(baseSoundSelect.dataset.value);
-  }
-  if (selectedSoundSelect?.dataset.value) {
-    audio.setAccent(selectedSoundSelect.dataset.value);
-  }
-  if (startSoundSelect?.dataset.value) {
-    audio.setStart(startSoundSelect.dataset.value);
-  }
-
-  schedulingBridge.applyTo(audio);
-  state.audioReady = true;
-  applyParamsToAudio(audio);
-  syncSelectionAudio();
-  return audio;
-}
-
-async function startPlayback() {
-  const instance = await initAudio();
-  if (!instance) return false;
-
-  const { Lg, V } = state.params;
-  if (!Number.isFinite(Lg) || !Number.isFinite(V) || Lg <= 0 || V <= 0) {
-    return false;
-  }
-
-  const timing = fromLgAndTempo(Lg, V);
-  if (!timing || !Number.isFinite(timing.interval)) return false;
-
-  const denominator = getValidDenominator();
-  const totalSteps = Math.max(1, Math.round(Lg * denominator));
-  const interval = timing.interval / denominator;
-  const selectedSet = getSelectedPlaybackSet();
-
-  const cycleNumerator = Number(state.params?.numerator);
-  const cycleDenominator = Number(state.params?.denominator);
-  const hasCycle = Number.isFinite(cycleNumerator)
-    && Number.isFinite(cycleDenominator)
-    && cycleNumerator > 0
-    && cycleDenominator > 0;
-  const cycleConfig = hasCycle ? { numerator: cycleNumerator, denominator: cycleDenominator } : null;
-
+function handlePlaybackStop(audioInstance) {
+  const iconPlay = playBtn?.querySelector('.icon-play');
+  const iconStop = playBtn?.querySelector('.icon-stop');
+  isPlaying = false;
+  playBtn?.classList.remove('active');
+  if (iconPlay) iconPlay.style.display = 'block';
+  if (iconStop) iconStop.style.display = 'none';
   clearHighlights();
-  lastHighlightedStep = null;
+  stopVisualSync();
+  if (audioInstance && typeof audioInstance.stop === 'function') {
+    try { audioInstance.stop(); } catch {}
+  }
+  currentAudioResolution = 1;
+  const ed = getEditEl();
+  if (ed) {
+    ed.classList.remove('playing');
+    try { ed.blur(); } catch {}
+    try {
+      const sel = window.getSelection && window.getSelection();
+      sel && sel.removeAllRanges && sel.removeAllRanges();
+    } catch {}
+  }
+  if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
+  if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+}
 
-  try { instance.setLoop?.(state.loopEnabled); } catch {}
-  instance.stop();
-  await instance.play(
-    totalSteps,
-    interval,
-    selectedSet,
-    !!state.loopEnabled,
-    handleAudioPulse,
-    handleAudioComplete,
-    {
-      patternBeats: Lg,
-      ...(cycleConfig ? { cycle: cycleConfig } : {})
+async function startPlayback(providedAudio) {
+  const lg = parseInt(inputLg.value);
+  const v  = parseFloat(inputV.value);
+  if (!Number.isFinite(lg) || !Number.isFinite(v) || lg <= 0 || v <= 0) {
+    return false;
+  }
+
+  const audioInstance = providedAudio || await initAudio();
+  if (!audioInstance) return false;
+
+  stopVisualSync();
+  audioInstance.stop();
+  clearHighlights();
+
+  await audioInstance.setBase(baseSoundSelect.dataset.value);
+  await audioInstance.setAccent(accentSoundSelect.dataset.value);
+  await audioInstance.setStart(startSoundSelect.dataset.value);
+  if (cycleSoundSelect) {
+    await audioInstance.setCycle(cycleSoundSelect.dataset.value);
+  }
+
+  const scheduling = computeAudioSchedulingState();
+  if (scheduling.interval == null || scheduling.totalPulses == null) {
+    return false;
+  }
+  const selectionForAudio = applySelectionToAudio({
+    scheduling,
+    instance: audioInstance
+  }) || selectedForAudioFromState({ scheduling });
+  const resolvedSelectionResolution = Number.isFinite(selectionForAudio?.resolution)
+    ? Math.max(1, Math.round(selectionForAudio.resolution))
+    : 1;
+  const effectiveResolution = Math.max(1, resolvedSelectionResolution);
+  const normalizedLg = Number.isFinite(scheduling?.lg) ? scheduling.lg : lg;
+  let effectiveInterval = scheduling.interval;
+  let effectiveTotal = scheduling.totalPulses;
+  let effectivePatternBeats = Number.isFinite(scheduling?.patternBeats)
+    ? scheduling.patternBeats
+    : null;
+  let cycleConfig = scheduling.cycleConfig ? { ...scheduling.cycleConfig } : null;
+  let voices = Array.isArray(scheduling.voices)
+    ? scheduling.voices.map((voice) => ({ ...voice }))
+    : [];
+
+  if (Number.isFinite(normalizedLg) && normalizedLg > 0 && effectiveResolution > 1) {
+    const scaledBase = normalizedLg * effectiveResolution;
+    if (loopEnabled) {
+      effectiveTotal = Math.max(1, Math.round(scaledBase));
+    } else {
+      effectiveTotal = Math.max(1, Math.round(scaledBase + 1));
     }
+    if (Number.isFinite(scheduling.interval)) {
+      effectiveInterval = scheduling.interval / effectiveResolution;
+    }
+    if (Number.isFinite(effectivePatternBeats)) {
+      effectivePatternBeats = Math.max(1, Math.round(effectivePatternBeats * effectiveResolution));
+    }
+    if (cycleConfig && Number.isFinite(cycleConfig.numerator)) {
+      cycleConfig = { ...cycleConfig, numerator: Math.max(1, Math.round(cycleConfig.numerator * effectiveResolution)) };
+    }
+    voices = voices.map((voice) => {
+      if (!voice || !Number.isFinite(voice.numerator)) return voice;
+      return { ...voice, numerator: Math.max(1, Math.round(voice.numerator * effectiveResolution)) };
+    });
+  }
+
+  if (!Number.isFinite(effectiveInterval) || effectiveInterval <= 0) {
+    return false;
+  }
+  if (!Number.isFinite(effectiveTotal) || effectiveTotal <= 0) {
+    return false;
+  }
+
+  currentAudioResolution = effectiveResolution;
+  updateVoiceHandlers({ scheduling: { ...scheduling, voices } });
+  if (typeof audioInstance.setVoices === 'function') {
+    audioInstance.setVoices(voices);
+  }
+  const iconPlay = playBtn?.querySelector('.icon-play');
+  const iconStop = playBtn?.querySelector('.icon-stop');
+
+  const onFinish = () => {
+    handlePlaybackStop(audioInstance);
+  };
+
+  const playOptions = {};
+  if (effectivePatternBeats != null) {
+    playOptions.patternBeats = effectivePatternBeats;
+  }
+  if (cycleConfig) {
+    playOptions.cycle = cycleConfig;
+  }
+  playOptions.baseResolution = effectiveResolution;
+
+  if (typeof audioInstance.setLoop === 'function') {
+    audioInstance.setLoop(loopEnabled);
+  }
+
+  const selectionValuesForAudio = selectionForAudio.audio ?? selectionForAudio.combined;
+  const selectionPayload = {
+    values: selectionValuesForAudio,
+    resolution: 1
+  };
+
+  audioInstance.play(
+    effectiveTotal,
+    effectiveInterval,
+    selectionPayload,
+    loopEnabled,
+    highlightPulse,
+    onFinish,
+    playOptions
   );
 
-  state.isPlaying = true;
-  updatePlayVisual(true);
+  syncVisualState();
+  startVisualSync();
+
+  isPlaying = true;
+  playBtn?.classList.add('active');
+  if (iconPlay) iconPlay.style.display = 'none';
+  if (iconStop) iconStop.style.display = 'block';
+  const ed = getEditEl();
+  if (ed) {
+    ed.classList.add('playing');
+    try { ed.blur(); } catch {}
+  }
+
+  scheduleTIndicatorReveal(0);
+
   return true;
 }
 
-function stopPlayback() {
-  if (audio) {
-    try { audio.stop(); } catch {}
-  }
-  state.isPlaying = false;
-  lastHighlightedStep = null;
-  updatePlayVisual(false);
-  clearHighlights();
+function syncTimelineScroll(){
+  if (!pulseSeqEl || !timelineWrapper) return;
+  const maxSeq = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
+  const maxTl = timelineWrapper.scrollWidth - timelineWrapper.clientWidth;
+  if (maxSeq <= 0) return;
+  const ratio = pulseSeqEl.scrollLeft / maxSeq;
+  timelineWrapper.scrollLeft = maxTl * ratio;
 }
 
-function handleAudioPulse(step) {
+playBtn.addEventListener('click', async () => {
   try {
-    highlightStep(step);
-  } catch (error) {
-    console.warn('No se pudo resaltar el pulso en App4', error);
+    const audioInstance = await initAudio();
+    if (!audioInstance) return;
+
+    if (isPlaying) {
+      handlePlaybackStop(audioInstance);
+      return;
+    }
+
+    clearHighlights();
+    const started = await startPlayback(audioInstance);
+    if (!started) {
+      handlePlaybackStop(audioInstance);
+    }
+  } catch {}
+});
+
+function highlightCycle(payload = {}) {
+  if (!isPlaying) return;
+  const {
+    cycleIndex: rawCycleIndex,
+    subdivisionIndex: rawSubdivisionIndex,
+    numerator: payloadNumerator,
+    denominator: payloadDenominator,
+    totalCycles: payloadTotalCycles,
+    totalSubdivisions: payloadTotalSubdivisions
+  } = payload;
+
+  const cycleIndex = Number(rawCycleIndex);
+  const subdivisionIndex = Number(rawSubdivisionIndex);
+  if (!Number.isFinite(cycleIndex) || !Number.isFinite(subdivisionIndex)) return;
+
+  const expectedNumerator = Number.isFinite(lastStructureSignature.numerator)
+    ? lastStructureSignature.numerator
+    : null;
+  const expectedDenominator = Number.isFinite(lastStructureSignature.denominator)
+    ? lastStructureSignature.denominator
+    : null;
+  const expectedLg = Number.isFinite(lastStructureSignature.lg)
+    ? lastStructureSignature.lg
+    : null;
+
+  if (expectedNumerator == null || expectedDenominator == null || expectedLg == null) {
+    return;
+  }
+
+  if (Number.isFinite(payloadNumerator) && payloadNumerator !== expectedNumerator) {
+    return;
+  }
+  if (Number.isFinite(payloadDenominator) && payloadDenominator !== expectedDenominator) {
+    return;
+  }
+
+  const expectedCycles = Math.floor(expectedLg / expectedNumerator);
+  if (!Number.isFinite(expectedCycles) || expectedCycles <= 0) {
+    return;
+  }
+
+  if (Number.isFinite(payloadTotalCycles) && payloadTotalCycles !== expectedCycles) {
+    return;
+  }
+  if (Number.isFinite(payloadTotalSubdivisions) && payloadTotalSubdivisions !== expectedDenominator) {
+    return;
+  }
+
+  const clampIndex = (value, maxExclusive) => {
+    if (!Number.isFinite(value)) return null;
+    if (loopEnabled) {
+      if (maxExclusive <= 0) return null;
+      const span = maxExclusive;
+      return ((value % span) + span) % span;
+    }
+    if (maxExclusive <= 0) return null;
+    return Math.max(0, Math.min(value, maxExclusive - 1));
+  };
+
+  const normalizedCycleIndex = clampIndex(cycleIndex, expectedCycles);
+  const normalizedSubdivisionIndex = clampIndex(subdivisionIndex, expectedDenominator);
+  if (!Number.isFinite(normalizedCycleIndex) || !Number.isFinite(normalizedSubdivisionIndex)) {
+    return;
+  }
+
+  cycleMarkers.forEach(m => m.classList.remove('active'));
+  cycleLabels.forEach(l => l.classList.remove('active'));
+  const marker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === normalizedCycleIndex
+    && Number(m.dataset.subdivision) === normalizedSubdivisionIndex);
+  const label = cycleLabels.find(l => Number(l.dataset.cycleIndex) === normalizedCycleIndex
+    && Number(l.dataset.subdivision) === normalizedSubdivisionIndex);
+  if (marker) {
+    void marker.offsetWidth;
+    marker.classList.add('active');
+  }
+  if (label) label.classList.add('active');
+
+  if (loopEnabled && normalizedCycleIndex === 0 && normalizedSubdivisionIndex === 0 && expectedCycles > 0) {
+    const lastCycleIndex = expectedCycles - 1;
+    const lastMarker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === lastCycleIndex && Number(m.dataset.subdivision) === 0);
+    const lastLabel = cycleLabels.find(l => Number(l.dataset.cycleIndex) === lastCycleIndex && Number(l.dataset.subdivision) === 0);
+    if (lastMarker) lastMarker.classList.add('active');
+    if (lastLabel) lastLabel.classList.add('active');
   }
 }
 
-function handleAudioComplete() {
-  state.isPlaying = false;
-  lastHighlightedStep = null;
-  updatePlayVisual(false);
-  clearHighlights();
+function getPulseSeqRectForKey(key) {
+  if (!pulseSeqEl || !key) return null;
+  const token = pulseSeqTokenMap.get(key);
+  if (token && typeof token.getBoundingClientRect === 'function') {
+    return token.getBoundingClientRect();
+  }
+  const range = pulseSeqRanges[key];
+  if (range && Array.isArray(range)) {
+    const el = getEditEl();
+    const node = el && el.firstChild;
+    if (node) {
+      try {
+        const r = document.createRange();
+        const start = Math.max(0, Number(range[0]) || 0);
+        const end = Math.max(start, Number(range[1]) || start);
+        r.setStart(node, start);
+        r.setEnd(node, end);
+        return r.getBoundingClientRect();
+      } catch {}
+    }
+  }
+  return null;
 }
 
-function updatePlayVisual(isPlaying) {
-  const playBtn = selectors.playBtn();
-  if (!playBtn) return;
-  const iconPlay = playBtn.querySelector('.icon-play');
-  const iconStop = playBtn.querySelector('.icon-stop');
-  playBtn.classList.toggle('active', !!isPlaying);
-  if (iconPlay) iconPlay.style.display = isPlaying ? 'none' : 'block';
-  if (iconStop) iconStop.style.display = isPlaying ? 'block' : 'none';
-  if (!isPlaying) {
-    pulseSeqElements.edit?.classList.remove('playing');
+function getPulseSeqRectForIndex(index) {
+  if (!pulseSeqEl || !Number.isFinite(index)) return null;
+  const idx = Math.round(index);
+  if (idx === 0) {
+    const z = pulseSeqEl.querySelector('.pz.zero');
+    return z ? z.getBoundingClientRect() : null;
+  }
+  if (pulses && idx === pulses.length - 1) {
+    const l = pulseSeqEl.querySelector('.pz.lg');
+    return l ? l.getBoundingClientRect() : null;
+  }
+  return getPulseSeqRectForKey(String(idx));
+}
+
+function scrollPulseSeqToRect(rect) {
+  if (!pulseSeqEl || !rect) return pulseSeqEl ? pulseSeqEl.scrollLeft : 0;
+  const parentRect = pulseSeqEl.getBoundingClientRect();
+  const absLeft = rect.left - parentRect.left + pulseSeqEl.scrollLeft;
+  const target = absLeft - (pulseSeqEl.clientWidth - rect.width) / 2;
+  const maxScroll = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
+  const newScrollLeft = Math.max(0, Math.min(target, maxScroll));
+  pulseSeqEl.scrollLeft = newScrollLeft;
+  if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
+  return newScrollLeft;
+}
+
+function placePulseSeqHighlight(rect, highlightEl, newScrollLeft) {
+  if (!pulseSeqEl || !rect || !highlightEl) return;
+  const parent = pulseSeqEl.getBoundingClientRect();
+  const scrollLeft = Number.isFinite(newScrollLeft) ? newScrollLeft : pulseSeqEl.scrollLeft;
+  const cx = rect.left - parent.left + scrollLeft + rect.width / 2;
+  const cy = rect.top - parent.top + pulseSeqEl.scrollTop + rect.height / 2;
+  const size = Math.max(rect.width, rect.height) * 0.75;
+  highlightEl.style.width = `${size}px`;
+  highlightEl.style.height = `${size}px`;
+  highlightEl.style.left = `${cx}px`;
+  highlightEl.style.top = `${cy}px`;
+  highlightEl.classList.remove('active');
+  void highlightEl.offsetWidth;
+  highlightEl.classList.add('active');
+}
+
+function clearFractionHighlight() {
+  if (!lastFractionHighlightKey) return;
+  const prevMarker = fractionMarkerMap.get(lastFractionHighlightKey);
+  if (prevMarker) prevMarker.classList.remove('fraction-active');
+  const prevHit = fractionHitMap.get(lastFractionHighlightKey);
+  if (prevHit) prevHit.classList.remove('fraction-active');
+  const prevToken = pulseSeqTokenMap.get(lastFractionHighlightKey);
+  if (prevToken) prevToken.classList.remove('pulse-seq-token--active');
+  lastFractionHighlightKey = null;
+}
+
+function applyFractionHighlight(key) {
+  if (!key) {
+    clearFractionHighlight();
+    return;
+  }
+  if (lastFractionHighlightKey === key) return;
+  clearFractionHighlight();
+  const marker = fractionMarkerMap.get(key);
+  if (marker) marker.classList.add('fraction-active');
+  const hit = fractionHitMap.get(key);
+  if (hit) hit.classList.add('fraction-active');
+  const token = pulseSeqTokenMap.get(key);
+  if (token) token.classList.add('pulse-seq-token--active');
+  lastFractionHighlightKey = key;
+}
+
+function findFractionMatch(value, epsilon = FRACTION_POSITION_EPSILON) {
+  if (!Number.isFinite(value)) return null;
+  for (const item of fractionalPulseSelections) {
+    if (!item || !Number.isFinite(item.value) || !item.key) continue;
+    if (Math.abs(item.value - value) <= epsilon) {
+      return item;
+    }
+  }
+  for (const [key, hit] of fractionHitMap.entries()) {
+    if (!key || !hit) continue;
+    const hitValue = Number.parseFloat(hit.dataset?.value);
+    if (!Number.isFinite(hitValue)) continue;
+    if (Math.abs(hitValue - value) <= epsilon) {
+      return { key, value: hitValue };
+    }
+  }
+  return null;
+}
+
+function highlightPulse(payload){
+  if (!isPlaying) return;
+
+  if (!pulses || pulses.length === 0) {
+    lastNormalizedStep = null;
+    lastHighlightSignature = null;
+    clearFractionHighlight();
+    if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
+    if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+    return;
+  }
+
+  let rawStepValue = null;
+  if (payload && typeof payload === 'object') {
+    if (Number.isFinite(payload.step)) {
+      rawStepValue = Number(payload.step);
+    } else if (Number.isFinite(payload.rawStep)) {
+      rawStepValue = Number(payload.rawStep);
+    }
+    if (Number.isFinite(payload.resolution) && payload.resolution > 0) {
+      const rounded = Math.max(1, Math.round(payload.resolution));
+      if (rounded !== currentAudioResolution) {
+        currentAudioResolution = rounded;
+      }
+    }
   } else {
-    pulseSeqElements.edit?.classList.add('playing');
+    const candidate = Number(payload);
+    rawStepValue = Number.isFinite(candidate) ? candidate : null;
   }
-}
 
-function initLoopControl() {
-  const loopBtn = selectors.loopBtn();
-  if (!loopBtn) return;
-  loopBtn.classList.toggle('active', !!state.loopEnabled);
-  loopBtn.addEventListener('click', () => {
-    state.loopEnabled = !state.loopEnabled;
-    loopBtn.classList.toggle('active', state.loopEnabled);
-    if (audio && typeof audio.setLoop === 'function') {
-      try { audio.setLoop(state.loopEnabled); } catch {}
-    }
-  });
-}
-
-function initResetControl() {
-  const resetBtn = selectors.resetBtn();
-  if (!resetBtn) return;
-  resetBtn.addEventListener('click', () => {
-    stopPlayback();
-    state.loopEnabled = false;
-    const loopBtn = selectors.loopBtn();
-    if (loopBtn) loopBtn.classList.remove('active');
-    if (audio && typeof audio.resetTapTempo === 'function') {
-      try { audio.resetTapTempo(); } catch {}
-    }
-    window.dispatchEvent(new CustomEvent('sharedui:factoryreset'));
-  });
-}
-
-function initTapTempo() {
-  const tapBtn = selectors.tapTempoBtn();
-  const tapHelp = selectors.tapHelp();
-  if (tapHelp) {
-    tapHelp.textContent = 'Se necesitan 3 clicks';
-    tapHelp.style.display = 'none';
+  if (!Number.isFinite(rawStepValue)) {
+    lastNormalizedStep = null;
+    lastHighlightSignature = null;
+    return;
   }
-  if (!tapBtn) return;
-  tapBtn.addEventListener('click', async () => {
-    try {
-      const instance = await initAudio();
-      if (!instance || typeof instance.tapTempo !== 'function') return;
-      const result = instance.tapTempo(typeof performance !== 'undefined' ? performance.now() : Date.now());
-      if (!result) return;
 
-      if (result.remaining > 0) {
-        if (tapHelp) {
-          tapHelp.textContent = result.remaining === 2 ? '2 clicks más' : '1 click más solamente';
-          tapHelp.style.display = 'block';
+  const baseCount = pulses.length > 1 ? pulses.length - 1 : 0;
+  if (baseCount <= 0) {
+    lastNormalizedStep = null;
+    lastHighlightSignature = null;
+    return;
+  }
+
+  const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
+  const scaledSpan = baseCount * resolution;
+  const rawIndex = Math.round(rawStepValue);
+
+  let normalizedScaled = rawIndex;
+  if (loopEnabled) {
+    if (scaledSpan <= 0) return;
+    normalizedScaled = ((rawIndex % scaledSpan) + scaledSpan) % scaledSpan;
+  } else {
+    const maxStep = scaledSpan;
+    normalizedScaled = Math.max(0, Math.min(rawIndex, maxStep));
+  }
+
+  const normalizedValue = resolution > 0 ? normalizedScaled / resolution : normalizedScaled;
+  const nearestInt = Math.round(normalizedValue);
+  const epsilon = FRACTION_POSITION_EPSILON;
+  const isIntegerStep = Math.abs(normalizedValue - nearestInt) <= epsilon
+    && nearestInt >= 0
+    && nearestInt <= baseCount;
+
+  let highlightType = 'int';
+  let fractionMatch = null;
+  if (!isIntegerStep) {
+    fractionMatch = findFractionMatch(normalizedValue, epsilon);
+    if (fractionMatch && fractionMatch.key) {
+      highlightType = 'fraction';
+    }
+  }
+
+  const signature = highlightType === 'fraction'
+    ? `f:${fractionMatch ? fractionMatch.key : ''}:${normalizedScaled}`
+    : `i:${nearestInt}:${normalizedScaled}`;
+  if (lastHighlightSignature === signature && lastVisualStep === rawStepValue) {
+    return;
+  }
+
+  lastHighlightSignature = signature;
+  lastNormalizedStep = normalizedScaled;
+  lastVisualStep = rawStepValue;
+
+  pulses.forEach(p => p.classList.remove('active'));
+
+  let newScrollLeft = pulseSeqEl ? pulseSeqEl.scrollLeft : 0;
+
+  if (highlightType === 'fraction' && fractionMatch && fractionMatch.key) {
+    applyFractionHighlight(fractionMatch.key);
+    if (pulseSeqEl) {
+      const rect = getPulseSeqRectForKey(fractionMatch.key);
+      if (rect) {
+        newScrollLeft = scrollPulseSeqToRect(rect);
+        placePulseSeqHighlight(rect, pulseSeqHighlight, newScrollLeft);
+      } else if (pulseSeqHighlight) {
+        pulseSeqHighlight.classList.remove('active');
+      }
+      if (pulseSeqHighlight2) {
+        pulseSeqHighlight2.classList.remove('active');
+      }
+    }
+  } else {
+    applyFractionHighlight(null);
+    const idx = Math.max(0, Math.min(nearestInt, baseCount));
+    const current = pulses[idx];
+    if (current) {
+      void current.offsetWidth;
+      current.classList.add('active');
+    }
+    if (loopEnabled && idx === 0) {
+      const last = pulses[pulses.length - 1];
+      if (last) last.classList.add('active');
+    }
+    if (pulseSeqEl) {
+      const rect = getPulseSeqRectForIndex(idx);
+      if (rect) {
+        newScrollLeft = scrollPulseSeqToRect(rect);
+        placePulseSeqHighlight(rect, pulseSeqHighlight, newScrollLeft);
+      } else if (pulseSeqHighlight) {
+        pulseSeqHighlight.classList.remove('active');
+      }
+      if (idx === 0 && loopEnabled) {
+        const lastRect = getPulseSeqRectForIndex(pulses.length - 1);
+        if (lastRect) {
+          placePulseSeqHighlight(lastRect, pulseSeqHighlight2, newScrollLeft);
+        } else if (pulseSeqHighlight2) {
+          pulseSeqHighlight2.classList.remove('active');
         }
-        return;
+      } else if (pulseSeqHighlight2) {
+        pulseSeqHighlight2.classList.remove('active');
       }
-
-      if (tapHelp) {
-        tapHelp.style.display = 'none';
-        tapHelp.textContent = 'Se necesitan 3 clicks';
-      }
-
-      if (Number.isFinite(result.bpm) && result.bpm > 0) {
-        const bpm = Math.round(result.bpm * 100) / 100;
-        setNumberInputValue(selectors.inputV(), bpm);
-      }
-    } catch (error) {
-      console.warn('Tap tempo falló en App4', error);
     }
-  });
+  }
 }
 
-function wirePlayButton() {
-  const playBtn = selectors.playBtn();
-  if (!playBtn) return;
-  playBtn.addEventListener('click', async () => {
-    try {
-      if (state.isPlaying) {
-        stopPlayback();
-        return;
-      }
-      await startPlayback();
-    } catch (error) {
-      console.error('No se pudo iniciar la reproducción en App4', error);
-    }
-  });
+function stopVisualSync() {
+  if (visualSyncHandle != null) {
+    cancelAnimationFrame(visualSyncHandle);
+    visualSyncHandle = null;
+  }
+  lastVisualStep = null;
+  lastNormalizedStep = null;
 }
 
-function initMixerMenuForApp() {
-  const mixerMenu = selectors.mixerMenu();
-  const playBtn = selectors.playBtn();
-  ensureMixerChannels();
-  initMixerMenu({
-    menu: mixerMenu,
-    triggers: [playBtn].filter(Boolean),
-    channels: [
-      { id: 'pulse', label: 'Pulso/Pulso 0', allowSolo: true },
-      { id: 'selected', label: 'Seleccionados', allowSolo: true },
-      { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
-    ]
-  });
+function syncVisualState() {
+  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
+  const state = audio.getVisualState();
+  if (!state) return;
+
+  if (Number.isFinite(state.step) && lastVisualStep !== state.step) {
+    highlightPulse(state);
+  }
+
+  if (state.cycle && Number.isFinite(state.cycle.cycleIndex) && Number.isFinite(state.cycle.subdivisionIndex)) {
+    highlightCycle(state.cycle);
+  }
 }
 
-function syncToggleButton(button, enabled) {
-  if (!button) return;
-  const isActive = enabled !== false;
-  button.classList.toggle('active', isActive);
-  button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-  button.dataset.state = isActive ? 'on' : 'off';
+function startVisualSync() {
+  stopVisualSync();
+  const step = () => {
+    visualSyncHandle = null;
+    if (!isPlaying || !audio) return;
+    syncVisualState();
+    visualSyncHandle = requestAnimationFrame(step);
+  };
+  visualSyncHandle = requestAnimationFrame(step);
 }
 
-function updateSelectedToggleUI(enabled) {
-  selectedChannelEnabled = enabled !== false;
-  syncToggleButton(selectors.selectedToggleBtn(), selectedChannelEnabled);
-}
+const menu = document.querySelector('.menu');
+const optionsContent = document.querySelector('.menu .options-content');
 
-function setSelectedChannelEnabled(value) {
-  const enabled = value !== false;
-  const already = selectedChannelEnabled === enabled;
-  ensureMixerChannels();
-  updateSelectedToggleUI(enabled);
-  if (already) return;
+if (menu && optionsContent) {
+  menu.addEventListener('toggle', () => {
+    if (menu.open) {
+      // enforce solid background on open
+      solidMenuBackground(optionsContent);
+      optionsContent.classList.add('opening');
+      optionsContent.classList.remove('closing');
+      optionsContent.style.maxHeight = optionsContent.scrollHeight + "px";
 
-  const shouldMute = !enabled;
-  mixerSyncGuard = true;
-  try {
-    setChannelMute('selected', shouldMute);
-    setChannelMute('accent', shouldMute);
-    if (shouldMute) {
-      setChannelSolo('selected', false);
-      setChannelSolo('accent', false);
+      optionsContent.addEventListener('transitionend', () => {
+        optionsContent.classList.remove('opening');
+        optionsContent.style.maxHeight = "500px"; // estat estable
+      }, { once: true });
+
     } else {
-      const mixer = getMixer();
-      const selectedState = mixer?.getChannelState?.('selected');
-      if (selectedState) {
-        setChannelSolo('accent', !!selectedState.solo);
-      }
-    }
-  } finally {
-    mixerSyncGuard = false;
-  }
-}
+      optionsContent.classList.add('closing');
+      optionsContent.classList.remove('opening');
+      optionsContent.style.maxHeight = optionsContent.scrollHeight + "px";
+      optionsContent.offsetHeight; // força reflow
+      optionsContent.style.maxHeight = "0px";
 
-function initSelectedToggle() {
-  const button = selectors.selectedToggleBtn();
-  if (!button) return;
-
-  ensureMixerChannels();
-  const mixer = getMixer();
-  const selectedState = mixer?.getChannelState?.('selected');
-  if (selectedState) {
-    updateSelectedToggleUI(!selectedState.muted);
-  } else {
-    updateSelectedToggleUI(selectedChannelEnabled);
-  }
-
-  button.addEventListener('click', () => {
-    setSelectedChannelEnabled(!selectedChannelEnabled);
-  });
-}
-
-function syncSelectedChannel() {
-  subscribeMixer((snapshot) => {
-    if (!snapshot || mixerSyncGuard) return;
-    const channels = Array.isArray(snapshot.channels) ? snapshot.channels : [];
-    const selected = channels.find((ch) => ch.id === 'selected');
-    const accent = channels.find((ch) => ch.id === 'accent');
-    if (!selected) return;
-
-    updateSelectedToggleUI(!selected.muted);
-
-    mixerSyncGuard = true;
-    try {
-      if (!accent || Math.abs((accent.volume ?? 1) - (selected.volume ?? 1)) > 1e-4) {
-        setChannelVolume('accent', selected.volume ?? 1);
-      }
-      if (!accent || !!accent.muted !== !!selected.muted) {
-        setChannelMute('accent', !!selected.muted);
-      }
-      if (!accent || !!accent.solo !== !!selected.solo) {
-        setChannelSolo('accent', !!selected.solo);
-      }
-      const enabled = !selected.muted;
-      state.selectionAudioEnabled = enabled;
-      updateSelectionToggleVisual(enabled);
-    } finally {
-      mixerSyncGuard = false;
+      optionsContent.addEventListener('transitionend', () => {
+        optionsContent.classList.remove('closing');
+      }, { once: true });
     }
   });
-}
 
-function initSoundMenus() {
-  const baseSoundSelect = selectors.baseSoundSelect();
-  const selectedSoundSelect = selectors.selectedSoundSelect();
-  const startSoundSelect = selectors.startSoundSelect();
-
-  initSoundDropdown(baseSoundSelect, {
-    storageKey: STORE_KEY('baseSound'),
-    eventType: 'baseSound',
-    getAudio: initAudio,
-    apply: (instance, value) => instance?.setBase(value)
-  });
-  initSoundDropdown(selectedSoundSelect, {
-    storageKey: STORE_KEY('selectedSound'),
-    eventType: 'selectedSound',
-    getAudio: initAudio,
-    apply: (instance, value) => instance?.setAccent(value)
-  });
-  initSoundDropdown(startSoundSelect, {
-    storageKey: STORE_KEY('startSound'),
-    eventType: 'startSound',
-    getAudio: initAudio,
-    apply: (instance, value) => instance?.setStart(value)
+  // Also re-apply if theme changes while menu is open
+  window.addEventListener('sharedui:theme', () => {
+    if (menu.open) solidMenuBackground(optionsContent);
   });
 }
+// Initialize mixer UI and sync accent/master controls
+const mixerMenu = document.getElementById('mixerMenu');
+const mixerTriggers = [playBtn];
 
-function initRandomization() {
-  collectRandomElements();
-  if (!randomElements.button || !randomElements.menu) return;
-
-  applyRandomConfigToInputs(randomConfig);
-  persistRandomConfig();
-
-  const persist = () => persistRandomConfig();
-  [
-    randomElements.randLgToggle,
-    randomElements.randLgMin,
-    randomElements.randLgMax,
-    randomElements.randVToggle,
-    randomElements.randVMin,
-    randomElements.randVMax,
-    randomElements.randPulsesToggle,
-    randomElements.randomCount
-  ].forEach((element) => {
-    element?.addEventListener('change', persist);
-  });
-
-  randomElements.randomCount?.addEventListener('input', persist);
-
-  initRandomMenu(randomElements.button, randomElements.menu, randomize);
-}
-
-function init() {
-  document.body.dataset.appId = APP_ID;
-  setupParameterInputs();
-  setupPulseSequence();
-  updateFractionDisplay();
-  updateLgDisplay();
-  renderPulseSequence();
-  bindSelectionDocumentHandlers();
-  initSelectionToggle();
-  const circularToggle = selectors.circularToggle();
-  if (circularToggle) {
-    state.circularTimeline = !!circularToggle.checked;
-    circularToggle.addEventListener('change', () => {
-      state.circularTimeline = !!circularToggle.checked;
-      layoutTimeline();
-    });
-  }
-  renderTimeline({ silent: true });
-  initSoundMenus();
-  initMixerMenuForApp();
-  initSelectedToggle();
-  syncSelectedChannel();
-  initRandomization();
-  initLoopControl();
-  initResetControl();
-  initTapTempo();
-  wirePlayButton();
-  window.addEventListener('resize', () => layoutTimeline({ silent: true }));
-}
-
-window.addEventListener('DOMContentLoaded', init);
+initMixerMenu({
+  menu: mixerMenu,
+  triggers: mixerTriggers,
+  channels: [
+    { id: 'pulse',  label: 'Pulso/Pulso 0', allowSolo: true },
+    { id: 'subdivision', label: 'Subdivisión',  allowSolo: true },
+    { id: 'accent', label: 'Seleccionado',  allowSolo: true },
+    { id: 'master', label: 'Master',        allowSolo: false, isMaster: true }
+  ]
+});

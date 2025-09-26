@@ -66,6 +66,36 @@ function isRunning(ctx) {
   return !!ctx && typeof ctx.state === 'string' && ctx.state === 'running';
 }
 
+function isNotAllowedError(error) {
+  if (!error) return false;
+  const name = error.name;
+  if (name === 'NotAllowedError' || name === 'InvalidAccessError' || name === 'SecurityError') {
+    return true;
+  }
+  if (name === 'DOMException') {
+    const code = typeof error.code === 'number' ? error.code : null;
+    if (code === 11) return true; // NotAllowedError on some browsers
+  }
+  const message = typeof error.message === 'string' ? error.message.toLowerCase() : '';
+  if (!message) return false;
+  return message.includes('not allowed') || message.includes('user gesture');
+}
+
+async function tryResumeContext(ctx) {
+  if (!ctx || typeof ctx.resume !== 'function') return false;
+  if (ctx.state === 'running') return true;
+  if (ctx.state === 'closed') return false;
+  try {
+    await ctx.resume();
+    return ctx.state === 'running';
+  } catch (error) {
+    if (isNotAllowedError(error)) {
+      return false;
+    }
+    throw error;
+  }
+}
+
 async function startToneAudio() {
   if (typeof Tone === 'undefined') return false;
   const contextBefore = getToneContext();
@@ -348,6 +378,7 @@ export class TimelineAudio {
     this.loopRef = true;
 
     this._onPulseRef = null;
+    this._onVoiceRef = null;
     this.onCompleteRef = null;
     this._cycleConfig = null;
     this._patternBeats = null;
@@ -360,6 +391,10 @@ export class TimelineAudio {
     this._lastCycleState = null;
 
     this.selectedRef = new Set();
+    this._selectedResolution = 1;
+    this._voiceDefs = new Map();
+    this._baseResolution = 1;
+    this.baseResolution = 1;
 
     this._ctx = null;
     this._node = null;
@@ -460,11 +495,21 @@ export class TimelineAudio {
     const existingCtx = normalizeAudioContext(this._ctx);
     const desiredCtx = preferredToneCtx || existingCtx || null;
 
+    if (desiredCtx) {
+      await tryResumeContext(desiredCtx);
+    }
+
     if (this._node && desiredCtx && this._ctx && this._ctx !== desiredCtx) {
       this._teardownAudioGraph();
     }
 
-    if (this._node) return;
+    if (this._node) {
+      const activeCtx = normalizeAudioContext(this._ctx) || desiredCtx || null;
+      if (activeCtx) {
+        await tryResumeContext(activeCtx);
+      }
+      return;
+    }
     if (this._ensureContextPromise) {
       await this._ensureContextPromise;
       return;
@@ -499,6 +544,8 @@ export class TimelineAudio {
       }
 
       this._ctx = ctx;
+
+      await tryResumeContext(ctx);
 
       let modulePromise = workletModulePromises.get(ctx);
       if (!modulePromise) {
@@ -540,6 +587,8 @@ export class TimelineAudio {
       if (this._pendingMixerState) {
         this._applyMixerState(this._pendingMixerState);
       }
+
+      await tryResumeContext(ctx);
 
       this.isReady = true;
     };
@@ -738,7 +787,29 @@ export class TimelineAudio {
   }
 
   setSelected(indices) {
-    this.selectedRef = toSet(indices);
+    let resolution = 1;
+    let values = indices;
+    const isIterableSet = (candidate) => Array.isArray(candidate) || candidate instanceof Set;
+    if (indices && typeof indices === 'object' && !(indices instanceof Set) && !Array.isArray(indices)) {
+      const {
+        values: providedValues,
+        indices: providedIndices,
+        steps,
+        resolution: providedResolution
+      } = indices;
+      if (isIterableSet(providedValues)) {
+        values = providedValues;
+      } else if (isIterableSet(providedIndices)) {
+        values = providedIndices;
+      } else if (isIterableSet(steps)) {
+        values = steps;
+      }
+      if (Number.isFinite(providedResolution) && providedResolution > 0) {
+        resolution = Math.max(1, Math.round(providedResolution));
+      }
+    }
+    this.selectedRef = toSet(values);
+    this._selectedResolution = resolution;
     this._adaptSchedulerInterval();
   }
 
@@ -764,6 +835,10 @@ export class TimelineAudio {
     this.setScheduling(preset);
   }
 
+  getBaseResolution() {
+    return Math.max(1, Math.round(this._baseResolution || 1));
+  }
+
   setPulseEnabled(enabled) {
     mixer.setChannelMute('pulse', !enabled);
   }
@@ -786,12 +861,43 @@ export class TimelineAudio {
     this.totalRef = Math.max(1, +totalPulses || 1);
     this.intervalRef = Math.max(1e-6, +intervalSec || 0.5);
     this.loopRef = !!loop;
-    this.selectedRef = toSet(selectedPulses);
+    let selectionValues = selectedPulses;
+    let selectionResolution = this._selectedResolution || 1;
+    const isIterableSet = (candidate) => Array.isArray(candidate) || candidate instanceof Set;
+    if (selectedPulses && typeof selectedPulses === 'object' && !(selectedPulses instanceof Set) && !Array.isArray(selectedPulses)) {
+      const {
+        values: providedValues,
+        indices: providedIndices,
+        steps,
+        resolution: providedResolution
+      } = selectedPulses;
+      if (isIterableSet(providedValues)) {
+        selectionValues = providedValues;
+      } else if (isIterableSet(providedIndices)) {
+        selectionValues = providedIndices;
+      } else if (isIterableSet(steps)) {
+        selectionValues = steps;
+      }
+      if (Number.isFinite(providedResolution) && providedResolution > 0) {
+        selectionResolution = Math.max(1, Math.round(providedResolution));
+      }
+    }
+    this.selectedRef = toSet(selectionValues);
+    this._selectedResolution = selectionResolution;
     this._onPulseRef = (typeof onPulse === 'function') ? onPulse : null;
     this.onCompleteRef = (typeof onComplete === 'function') ? onComplete : null;
     this._pulseCounter = -1;
     this._lastAbsoluteStep = null;
     this._lastCycleState = null;
+
+    const resolutionOpt = Number.isFinite(options?.baseResolution)
+      ? options.baseResolution
+      : Number.isFinite(options?.resolution)
+        ? options.resolution
+        : 1;
+    const normalizedResolution = Math.max(1, Math.round(resolutionOpt || 1));
+    this._baseResolution = normalizedResolution;
+    this.baseResolution = normalizedResolution;
 
     const cyc = options?.cycle;
     if (cyc && Number.isFinite(+cyc.numerator) && Number.isFinite(+cyc.denominator)) {
@@ -836,6 +942,7 @@ export class TimelineAudio {
     this.isPlaying = true;
     this.resetTapTempo();
     this._pendingTempo = null;
+    this._adaptSchedulerInterval();
   }
 
   stop() {
@@ -939,15 +1046,43 @@ export class TimelineAudio {
   }
 
   setVoices(voices = []) {
+    const map = new Map();
+    if (Array.isArray(voices)) {
+      voices.forEach((voice) => {
+        if (!voice || !voice.id) return;
+        const numerator = Number(voice.numerator);
+        const denominator = Number(voice.denominator);
+        map.set(voice.id, {
+          numerator: Number.isFinite(numerator) ? numerator : null,
+          denominator: Number.isFinite(denominator) ? denominator : null
+        });
+      });
+    }
+    this._voiceDefs = map;
     this._node?.port?.postMessage({ action: 'setVoices', voices });
   }
 
+  setVoiceHandler(handler) {
+    this._onVoiceRef = (typeof handler === 'function') ? handler : null;
+  }
+
   addVoice(voice) {
-    if (voice && voice.id) this._node?.port?.postMessage({ action: 'addVoice', voice });
+    if (voice && voice.id) {
+      const numerator = Number(voice.numerator);
+      const denominator = Number(voice.denominator);
+      this._voiceDefs.set(voice.id, {
+        numerator: Number.isFinite(numerator) ? numerator : null,
+        denominator: Number.isFinite(denominator) ? denominator : null
+      });
+      this._node?.port?.postMessage({ action: 'addVoice', voice });
+    }
   }
 
   removeVoice(id) {
-    if (id) this._node?.port?.postMessage({ action: 'removeVoice', id });
+    if (id) {
+      this._voiceDefs.delete(id);
+      this._node?.port?.postMessage({ action: 'removeVoice', id });
+    }
   }
 
   async configurePerformance({ requestedSampleRate, scheduleHorizonMs } = {}) {
@@ -1051,7 +1186,13 @@ export class TimelineAudio {
 
         const stepIndex = this._resolveStepIndex(n);
         const isStart = stepIndex === 0;
-        const isSelected = this.selectedRef.has(stepIndex);
+        const resolution = Math.max(1, Math.round(this._baseResolution || 1));
+        const isBaseStep = Number.isFinite(stepIndex) && (resolution <= 1 || (stepIndex % resolution === 0));
+        const selectionResolution = Math.max(1, Math.round(this._selectedResolution || 1));
+        const selectionIndex = selectionResolution === 1
+          ? stepIndex
+          : Math.round(stepIndex * selectionResolution);
+        const isSelected = this.selectedRef.has(selectionIndex);
 
         let triggered = false;
         if (this._buffers && this._buffers.size) {
@@ -1068,7 +1209,7 @@ export class TimelineAudio {
             return null;
           })();
 
-          if (baseKey) {
+          if (baseKey && isBaseStep) {
             triggerPlayer(baseKey, when);
             triggered = true;
           }
@@ -1079,7 +1220,7 @@ export class TimelineAudio {
           }
         }
 
-        if (!triggered && !this._pulseMutedForFallback) {
+        if (!triggered && !this._pulseMutedForFallback && (isBaseStep || isSelected)) {
           const f = isStart ? 1400 : (isSelected ? 1100 : 900);
           triggerBeep(when, f);
         }
@@ -1146,7 +1287,25 @@ export class TimelineAudio {
         this._schedulePlayerStart('cycle', now + 0.001);
       }
     } else if (msg.type === 'voice') {
-      // future hook
+      const payload = { id: msg.id, index: msg.index };
+      if (typeof this._onVoiceRef === 'function') {
+        this._onVoiceRef(payload);
+      }
+      const def = payload.id ? this._voiceDefs?.get(payload.id) : null;
+      if (def && this._buffers?.has('seleccionados')) {
+        const numerator = Number(def.numerator);
+        const denominator = Number(def.denominator);
+        const idx = Number(payload.index);
+        if (Number.isFinite(numerator) && numerator > 0 && Number.isFinite(idx)) {
+          const perCycle = Math.max(1, Number.isFinite(denominator) ? Math.floor(denominator) : 1);
+          const cycleIndex = Math.floor(idx / perCycle);
+          const subdivisionIndex = ((idx % perCycle) + perCycle) % perCycle;
+          const fractionalStep = numerator * cycleIndex + (numerator / perCycle) * subdivisionIndex;
+          if (Math.abs(fractionalStep - Math.round(fractionalStep)) > 1e-6) {
+            this._schedulePlayerStart('seleccionados', now + 0.001);
+          }
+        }
+      }
     } else if (msg.type === 'done') {
       if (typeof this.onCompleteRef === 'function') this.onCompleteRef();
       this.stop();
