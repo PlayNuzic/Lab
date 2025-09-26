@@ -59,6 +59,31 @@
     const inputs = document.querySelector('.inputs');
     if (inputs) inputs.style.left = '0';
 
+    const soundGroup = document.querySelector('.sound-group');
+    if (soundGroup) {
+      const labels = soundGroup.querySelectorAll('p');
+      const startLabel = labels?.[1];
+      if (startLabel) startLabel.textContent = 'Pulso';
+
+      const cycleTitle = document.createElement('p');
+      cycleTitle.textContent = 'Subdivisión';
+      soundGroup.appendChild(cycleTitle);
+
+      const cycleRow = document.createElement('div');
+      cycleRow.className = 'preview-row';
+
+      const hiddenLabel = document.createElement('label');
+      hiddenLabel.setAttribute('for', 'cycleSoundSelect');
+      hiddenLabel.style.display = 'none';
+      cycleRow.appendChild(hiddenLabel);
+
+      const slot = document.createElement('div');
+      slot.id = 'cycleSoundSelect';
+      cycleRow.appendChild(slot);
+
+      soundGroup.appendChild(cycleRow);
+    }
+
     initHeader();
     import('./main.js');
   </script>

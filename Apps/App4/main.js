@@ -22,7 +22,8 @@ bindSharedSoundEvents({
   mapping: {
     baseSound: 'setBase',
     accentSound: 'setAccent',
-    startSound: 'setStart'
+    startSound: 'setStart',
+    cycleSound: 'setCycle'
   }
 });
 const inputLg = document.getElementById('inputLg');
@@ -84,6 +85,7 @@ const selectColor = document.getElementById('selectColor');
 const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
+const cycleSoundSelect = document.getElementById('cycleSoundSelect');
 const pulseToggleBtn = document.getElementById('pulseToggleBtn');
 const selectedToggleBtn = document.getElementById('selectedToggleBtn');
 const cycleToggleBtn = document.getElementById('cycleToggleBtn');
@@ -1056,6 +1058,9 @@ function applySelectionToAudio({ scheduling, instance } = {}) {
   const selection = selectedForAudioFromState({ scheduling });
   const audioValues = selection.audio ?? selection.combined;
   target.setSelected({ values: audioValues, resolution: selection.resolution });
+  if (Number.isFinite(selection?.resolution)) {
+    currentAudioResolution = Math.max(1, Math.round(selection.resolution));
+  }
   return selection;
 }
 
@@ -1990,6 +1995,12 @@ initSoundDropdown(startSoundSelect, {
   getAudio: initAudio,
   apply: (a, val) => a.setStart(val)
 });
+initSoundDropdown(cycleSoundSelect, {
+  storageKey: storeKey('cycleSound'),
+  eventType: 'cycleSound',
+  getAudio: initAudio,
+  apply: (a, val) => a.setCycle(val)
+});
 
 // Preview on sound change handled by shared header
 
@@ -2012,6 +2023,9 @@ async function initAudio(){
       instance.setBase(baseSoundSelect.dataset.value);
       instance.setAccent(accentSoundSelect.dataset.value);
       instance.setStart(startSoundSelect.dataset.value);
+      if (cycleSoundSelect) {
+        instance.setCycle(cycleSoundSelect.dataset.value);
+      }
       if (typeof instance.setVoiceHandler === 'function') {
         instance.setVoiceHandler(handleVoiceEvent);
       }
@@ -3704,6 +3718,9 @@ async function startPlayback(providedAudio) {
   await audioInstance.setBase(baseSoundSelect.dataset.value);
   await audioInstance.setAccent(accentSoundSelect.dataset.value);
   await audioInstance.setStart(startSoundSelect.dataset.value);
+  if (cycleSoundSelect) {
+    await audioInstance.setCycle(cycleSoundSelect.dataset.value);
+  }
 
   const scheduling = computeAudioSchedulingState();
   if (scheduling.interval == null || scheduling.totalPulses == null) {
@@ -3713,7 +3730,10 @@ async function startPlayback(providedAudio) {
     scheduling,
     instance: audioInstance
   }) || selectedForAudioFromState({ scheduling });
-  currentAudioResolution = 1;
+  const resolvedSelectionResolution = Number.isFinite(selectionForAudio?.resolution)
+    ? Math.max(1, Math.round(selectionForAudio.resolution))
+    : 1;
+  currentAudioResolution = resolvedSelectionResolution;
   updateVoiceHandlers({ scheduling });
   if (typeof audioInstance.setVoices === 'function') {
     audioInstance.setVoices(scheduling.voices || []);
@@ -3741,7 +3761,7 @@ async function startPlayback(providedAudio) {
   const selectionValuesForAudio = selectionForAudio.audio ?? selectionForAudio.combined;
   const selectionPayload = {
     values: selectionValuesForAudio,
-    resolution: selectionForAudio.resolution
+    resolution: resolvedSelectionResolution
   };
 
   audioInstance.play(
