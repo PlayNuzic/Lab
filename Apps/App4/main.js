@@ -640,6 +640,7 @@ let pulseSeqFractionNumeratorEl = null;
 let pulseSeqFractionDenominatorEl = null;
 let pulseSeqVisualEl = null;
 let pulseSeqEditWrapper = null;
+let pulseSeqSpacingAdjustHandle = null;
 let lastFractionGap = null;
 let currentAudioResolution = 1;
 const FRACTION_POSITION_EPSILON = 1e-6;
@@ -1290,8 +1291,6 @@ function updatePulseSeqVisualLayer(text) {
   pulseSeqVisualEl.append(fragment);
   schedulePulseSeqSpacingAdjust();
 }
-
-let pulseSeqSpacingAdjustHandle = null;
 
 function schedulePulseSeqSpacingAdjust() {
   if (!pulseSeqEditWrapper) return;
