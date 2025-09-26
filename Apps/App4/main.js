@@ -639,9 +639,17 @@ let fractionalPulseSelections = [];
 let pulseSeqFractionNumeratorEl = null;
 let pulseSeqFractionDenominatorEl = null;
 let pulseSeqVisualEl = null;
+let pulseSeqEditWrapper = null;
 let lastFractionGap = null;
 let currentAudioResolution = 1;
 const FRACTION_POSITION_EPSILON = 1e-6;
+const TEXT_NODE_TYPE = (typeof Node !== 'undefined' && Node.TEXT_NODE) || 3;
+const raf = (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
+  ? (cb) => window.requestAnimationFrame(cb)
+  : (cb) => setTimeout(cb, 16);
+const caf = (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function')
+  ? (id) => window.cancelAnimationFrame(id)
+  : (id) => clearTimeout(id);
 
 function nearestPulseIndex(value) {
   if (!Number.isFinite(value)) return null;
@@ -939,9 +947,6 @@ function computeAudioSchedulingState() {
 
   const grid = gridFromOrigin({ lg: validLg ? lg : 0, numerator, denominator });
   const denominators = new Set([1]);
-  if (Number.isFinite(grid.denominator) && grid.denominator > 0) {
-    denominators.add(Math.round(grid.denominator));
-  }
   fractionalPulseSelections.forEach((item) => {
     if (!item) return;
     const den = Number(item.denominator);
@@ -949,6 +954,19 @@ function computeAudioSchedulingState() {
       denominators.add(Math.round(den));
     }
   });
+
+  const hasCycle = Boolean(
+    validLg
+    && Number.isFinite(numerator)
+    && Number.isFinite(denominator)
+    && numerator > 0
+    && denominator > 0
+    && Math.floor(lg / numerator) > 0
+  );
+
+  if (hasCycle) {
+    denominators.add(Math.round(denominator));
+  }
 
   let resolution = 1;
   denominators.forEach((den) => {
@@ -960,20 +978,13 @@ function computeAudioSchedulingState() {
   const interval = validV ? (60 / v) : null;
   const patternBeats = validLg ? lg : null;
 
-  const cycleNumerator = Number.isFinite(grid?.numerator) && grid.numerator > 0 ? grid.numerator : null;
-  const cycleDenominator = Number.isFinite(grid?.denominator) && grid.denominator > 0 ? grid.denominator : null;
-  const hasCycle = grid && grid.cycles > 0 && cycleNumerator != null && cycleDenominator != null;
+  const cycleNumerator = hasCycle ? numerator : null;
+  const cycleDenominator = hasCycle ? denominator : null;
   const cycleConfig = hasCycle
     ? { numerator: cycleNumerator, denominator: cycleDenominator, onTick: highlightCycle }
     : null;
 
   const voices = [];
-  if (hasCycle) {
-    const period = cycleNumerator / cycleDenominator;
-    if (Number.isFinite(period) && Math.abs(period - Math.round(period)) > 1e-6) {
-      voices.push({ id: `cycle-${cycleNumerator}x${cycleDenominator}`, numerator: cycleNumerator, denominator: cycleDenominator });
-    }
-  }
 
   return {
     resolution,
@@ -1168,6 +1179,7 @@ function setupPulseSeqMarkup(){
   const openParen = mk('open', '(');
   const zero = mk('zero', '0');
   const editWrapper = mk('edit-wrapper', null);
+  pulseSeqEditWrapper = editWrapper;
   const edit = (() => {
     const e = mk('edit', initial);
     e.contentEditable = 'true';
@@ -1251,12 +1263,13 @@ function normalizePulseSeqEditGaps(text) {
 function updatePulseSeqVisualLayer(text) {
   if (!pulseSeqVisualEl) return;
   const normalized = typeof text === 'string' ? text : '';
+  const displayText = normalized.replace(/\s+$/u, '');
   const fragment = document.createDocumentFragment();
   const tokenRegex = /\d+\.\d+|\.\d+|\d+/g;
   let lastIndex = 0;
-  normalized.replace(tokenRegex, (match, offset) => {
+  displayText.replace(tokenRegex, (match, offset) => {
     if (offset > lastIndex) {
-      fragment.append(document.createTextNode(normalized.slice(lastIndex, offset)));
+      fragment.append(document.createTextNode(displayText.slice(lastIndex, offset)));
     }
     const span = document.createElement('span');
     span.className = 'pulse-seq-token';
@@ -1270,11 +1283,59 @@ function updatePulseSeqVisualLayer(text) {
     lastIndex = offset + match.length;
     return match;
   });
-  if (lastIndex < normalized.length) {
-    fragment.append(document.createTextNode(normalized.slice(lastIndex)));
+  if (lastIndex < displayText.length) {
+    fragment.append(document.createTextNode(displayText.slice(lastIndex)));
   }
   pulseSeqVisualEl.textContent = '';
   pulseSeqVisualEl.append(fragment);
+  schedulePulseSeqSpacingAdjust();
+}
+
+let pulseSeqSpacingAdjustHandle = null;
+
+function schedulePulseSeqSpacingAdjust() {
+  if (!pulseSeqEditWrapper) return;
+  if (pulseSeqSpacingAdjustHandle != null) {
+    caf(pulseSeqSpacingAdjustHandle);
+  }
+  pulseSeqSpacingAdjustHandle = raf(() => {
+    pulseSeqSpacingAdjustHandle = null;
+    adjustPulseSeqSpacing();
+  });
+}
+
+function adjustPulseSeqSpacing() {
+  if (!pulseSeqEditWrapper) return;
+  const edit = getEditEl();
+  const node = edit && edit.firstChild;
+  if (!node || node.nodeType !== TEXT_NODE_TYPE) {
+    pulseSeqEditWrapper.style.removeProperty('--pulse-seq-trailing-offset');
+    return;
+  }
+  const text = node.textContent || '';
+  let trailingSpaces = 0;
+  for (let i = text.length - 1; i >= 0; i--) {
+    if (text[i] === ' ') trailingSpaces++;
+    else break;
+  }
+  if (trailingSpaces <= 0) {
+    pulseSeqEditWrapper.style.removeProperty('--pulse-seq-trailing-offset');
+    return;
+  }
+  try {
+    const range = document.createRange();
+    range.setStart(node, Math.max(0, text.length - trailingSpaces));
+    range.setEnd(node, text.length);
+    const rect = range.getBoundingClientRect();
+    const width = rect ? rect.width : 0;
+    if (!Number.isFinite(width) || width <= 0) {
+      pulseSeqEditWrapper.style.removeProperty('--pulse-seq-trailing-offset');
+      return;
+    }
+    pulseSeqEditWrapper.style.setProperty('--pulse-seq-trailing-offset', `${-width}px`);
+  } catch {
+    pulseSeqEditWrapper.style.removeProperty('--pulse-seq-trailing-offset');
+  }
 }
 
 function updatePulseSeqFractionDisplay(numerator, denominator) {
@@ -1747,6 +1808,7 @@ circularTimelineToggle?.addEventListener('change', e => {
 });
 // Keep T indicator anchored on window resizes
 window.addEventListener('resize', updateTIndicatorPosition);
+window.addEventListener('resize', schedulePulseSeqSpacingAdjust);
 layoutTimeline();
 
 loopBtn.addEventListener('click', () => {
@@ -3521,6 +3583,7 @@ function layoutTimeline(opts = {}) {
         timeline.classList.remove('no-anim');
       }
     });
+    schedulePulseSeqSpacingAdjust();
   } else {
     timelineWrapper.classList.remove('circular');
     timeline.classList.remove('circular');
@@ -3589,6 +3652,7 @@ function layoutTimeline(opts = {}) {
 
     queueIndicatorUpdate();
   }
+  schedulePulseSeqSpacingAdjust();
 }
 
 function restoreCycleLabelDisplay() {
@@ -3906,7 +3970,6 @@ function highlightCycle(payload = {}) {
 }
 
 function highlightPulse(payload){
-  // Si no està en reproducció, no tornem a canviar seleccions ni highlights
   if (!isPlaying) return;
 
   if (!pulses || pulses.length === 0) {
@@ -3914,73 +3977,56 @@ function highlightPulse(payload){
     return;
   }
 
-  const total = pulses.length;
-  const baseLength = Math.max(1, total - 1);
-
   let rawStepValue = null;
-  let providedResolution = null;
   if (payload && typeof payload === 'object') {
-    const candidate = Number.isFinite(payload.rawStep) ? Number(payload.rawStep) : Number(payload.step);
-    rawStepValue = Number.isFinite(candidate) ? candidate : null;
-    if (Number.isFinite(payload.resolution)) {
-      providedResolution = Number(payload.resolution);
+    if (Number.isFinite(payload.step)) {
+      rawStepValue = Number(payload.step);
+    } else if (Number.isFinite(payload.rawStep)) {
+      rawStepValue = Number(payload.rawStep);
+    }
+    if (Number.isFinite(payload.resolution) && payload.resolution > 0) {
+      const rounded = Math.max(1, Math.round(payload.resolution));
+      if (rounded !== currentAudioResolution) {
+        currentAudioResolution = rounded;
+      }
     }
   } else {
     const candidate = Number(payload);
     rawStepValue = Number.isFinite(candidate) ? candidate : null;
   }
 
-  const normalizedResolution = Number.isFinite(providedResolution) && providedResolution > 0
-    ? Math.max(1, Math.round(providedResolution))
-    : Math.max(1, Math.round(currentAudioResolution || 1));
-
-  if (Number.isFinite(providedResolution) && providedResolution > 0) {
-    const rounded = Math.max(1, Math.round(providedResolution));
-    if (rounded !== currentAudioResolution) {
-      currentAudioResolution = rounded;
-    }
-  }
-
-  const normalizedIndex = Number.isFinite(rawStepValue)
-    ? Math.floor(rawStepValue / normalizedResolution)
-    : null;
-
-  if (normalizedIndex == null) {
+  if (!Number.isFinite(rawStepValue)) {
     lastNormalizedStep = null;
-    if (Number.isFinite(rawStepValue)) {
-      lastVisualStep = rawStepValue;
-    }
     return;
   }
 
-  if (lastNormalizedStep === normalizedIndex) {
-    if (Number.isFinite(rawStepValue)) {
-      lastVisualStep = rawStepValue;
-    }
+  const total = pulses.length > 1 ? pulses.length - 1 : 0;
+  if (total <= 0) {
+    lastNormalizedStep = null;
+    return;
+  }
+
+  const rawIndex = Math.round(rawStepValue);
+  const normalizedIndex = loopEnabled
+    ? ((rawIndex % total) + total) % total
+    : Math.max(0, Math.min(rawIndex, total));
+
+  if (lastNormalizedStep === normalizedIndex && lastVisualStep === rawStepValue) {
     return;
   }
 
   lastNormalizedStep = normalizedIndex;
+  lastVisualStep = rawStepValue;
 
-  // esborra il·luminació anterior
   pulses.forEach(p => p.classList.remove('active'));
 
-  let idx;
-  if (loopEnabled) {
-    idx = baseLength > 0 ? ((normalizedIndex % baseLength) + baseLength) % baseLength : 0;
-  } else {
-    idx = Math.max(0, Math.min(normalizedIndex, total - 1));
-  }
-
-  // il·lumina el pols actual
+  const idx = normalizedIndex;
   const current = pulses[idx];
   if (current) {
-    // Força un reflow perquè l'animació es reiniciï encara que es repeteixi el mateix pols
     void current.offsetWidth;
     current.classList.add('active');
   }
 
-  // si hi ha loop i som al primer pols, també il·lumina l’últim
   if (loopEnabled && idx === 0) {
     const last = pulses[pulses.length - 1];
     if (last) last.classList.add('active');

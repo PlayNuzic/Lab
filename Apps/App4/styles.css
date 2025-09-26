@@ -297,6 +297,7 @@ position: relative;
   position: relative;
   display: inline-flex;
   align-items: stretch;
+  margin-right: var(--pulse-seq-trailing-offset, 0);
 }
 #pulseSeq .edit {
   outline: none;
