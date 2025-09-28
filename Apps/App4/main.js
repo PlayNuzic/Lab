@@ -480,6 +480,12 @@ function initFractionEditor() {
   const wrapperHost = pulseSeqFractionWrapper || pulseSeqEl.querySelector('.fraction');
   if (!wrapperHost) return;
 
+  // Idempotent guard: if already initialized, do nothing
+  if (wrapperHost.querySelector('.fraction-editor')) {
+    wrapperHost.dataset.inited = '1';
+    return;
+  }
+  // First-time init only
   wrapperHost.innerHTML = '';
   wrapperHost.classList.add('fraction-inline-container');
   wrapperHost.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
@@ -633,6 +639,8 @@ function initFractionEditor() {
   addRepeatPress(denominatorField.down, () => adjustInput(denominatorInput, -1));
 
   updateFractionFieldState(null, null);
+  // Mark as initialized to prevent future re-inits
+  try { wrapperHost.dataset.inited = '1'; } catch {}
 }
 
 function getFraction() {
@@ -1214,6 +1222,7 @@ let lastNormalizedStep = null;
 // Build structured markup for the pulse sequence so only inner numbers are editable
 function setupPulseSeqMarkup(){
   if (!pulseSeqEl) return;
+  if (pulseSeqEl && pulseSeqEl.dataset.seqInited === '1') return;
   if (pulseSeqEl.querySelector('.pz.edit')) return; // already prepared
   const initial = (pulseSeqEl.textContent || '').trim();
   pulseSeqEl.textContent = '';
@@ -1258,6 +1267,7 @@ function setupPulseSeqMarkup(){
   const lgLabel = mk('lg', '');
 
   pulseSeqEl.append(prefix, fractionWrapper, spacer, openParen, zero, editWrapper, suffix, suffixSpacer, lgLabel);
+  try { pulseSeqEl.dataset.seqInited = '1'; } catch {}
   updatePulseSeqFractionDisplay(null, null);
   updatePulseSeqVisualLayer(initial);
   edit.addEventListener('input', () => updatePulseSeqVisualLayer(getPulseSeqText()));
@@ -1266,13 +1276,19 @@ setupPulseSeqMarkup();
 initFractionEditor();
 
 // Highlight overlay for pulse sequence numbers during playback
-const pulseSeqHighlight = document.createElement('div');
-const pulseSeqHighlight2 = document.createElement('div');
 if (pulseSeqEl) {
-  pulseSeqHighlight.id = 'pulseSeqHighlight';
-  pulseSeqHighlight2.id = 'pulseSeqHighlight2';
-  pulseSeqEl.appendChild(pulseSeqHighlight);
-  pulseSeqEl.appendChild(pulseSeqHighlight2);
+  let pulseSeqHighlight = document.getElementById('pulseSeqHighlight');
+  if (!pulseSeqHighlight) {
+    pulseSeqHighlight = document.createElement('div');
+    pulseSeqHighlight.id = 'pulseSeqHighlight';
+    pulseSeqEl.appendChild(pulseSeqHighlight);
+  }
+  let pulseSeqHighlight2 = document.getElementById('pulseSeqHighlight2');
+  if (!pulseSeqHighlight2) {
+    pulseSeqHighlight2 = document.createElement('div');
+    pulseSeqHighlight2.id = 'pulseSeqHighlight2';
+    pulseSeqEl.appendChild(pulseSeqHighlight2);
+  }
 }
 
 // Helpers for #pulseSeq (use inner span .pz.edit)

@@ -195,7 +195,7 @@ header.top-bar h1 .top-bar-title-button:active {
   top: 0%;
   left: 47%;
   width: 280px;
-  transform: translate(0, -50%);
+  /* transform: translate(0, -50%); */
   transform: translate(-50%, calc(-100% - 12px));
   padding: 8px 18px;
   border-radius: 16px;
@@ -206,6 +206,7 @@ header.top-bar h1 .top-bar-title-button:active {
   line-height: 1.4;
   max-width: min(280px, 85vw);
   white-space: pre-line;
+  color: var(--fg, var(--line-color, #222)) !important;
   pointer-events: none;
   z-index: 1;
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
@@ -214,6 +215,7 @@ header.top-bar h1 .top-bar-title-button:active {
 body[data-theme='dark'] .fraction-info-bubble {
   border-color: rgba(238, 232, 216, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  color: #EEE !important;
 }
 
 .fraction-info-bubble--hidden {
@@ -563,3 +565,4 @@ transform: translate(-50%, -50%) !important; /* was -40px */
   }
 
 
+</style>
