@@ -132,6 +132,20 @@ const randomDefaults = {
   allowComplex: true
 };
 
+const STORE_PREFIX = 'app4:';
+function storeKey(k) {
+  return `${STORE_PREFIX}${k}`;
+}
+function saveOpt(k, v) {
+  try { localStorage.setItem(storeKey(k), v); } catch {}
+}
+function loadOpt(k) {
+  try { return localStorage.getItem(storeKey(k)); } catch { return null; }
+}
+function clearOpt(k) {
+  try { localStorage.removeItem(storeKey(k)); } catch {}
+}
+
 const RANDOM_STORE_KEY = 'random';
 
 function loadRandomConfig() {
@@ -1323,12 +1337,6 @@ if (pulseToggleBtn) attachHover(pulseToggleBtn, { text: 'Activar o silenciar el 
 if (selectedToggleBtn) attachHover(selectedToggleBtn, { text: 'Activar o silenciar la selección' });
 if (cycleToggleBtn) attachHover(cycleToggleBtn, { text: 'Activar o silenciar la subdivisión' });
 
-
-const STORE_PREFIX = 'app4:';
-const storeKey = (k) => `${STORE_PREFIX}${k}`;
-const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
-const loadOpt = (k) => { try { return localStorage.getItem(storeKey(k)); } catch { return null; } };
-const clearOpt = (k) => { try { localStorage.removeItem(storeKey(k)); } catch {} };
 
 const PULSE_AUDIO_KEY = 'pulseAudio';
 const SELECTED_AUDIO_KEY = 'selectedAudio';
