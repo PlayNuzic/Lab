@@ -3369,6 +3369,12 @@ function renderTimeline() {
       if (Number.isFinite(numeratorPerCycle) && numeratorPerCycle > 0) {
         marker.dataset.pulsesPerCycle = String(numeratorPerCycle);
       }
+      if (Number.isFinite(lg) && lg > 0) {
+        const percent = (position / lg) * 100;
+        marker.style.left = `${percent}%`;
+        marker.style.top = '50%';
+        marker.style.transform = 'translate(-50%, -50%)';
+      }
       timeline.appendChild(marker);
       cycleMarkers.push(marker);
 
@@ -3432,6 +3438,12 @@ function renderTimeline() {
             const fracHitSize = computeHitSizePx(lg) * 0.75;
             hit.style.width = `${fracHitSize}px`;
             hit.style.height = `${fracHitSize}px`;
+            if (Number.isFinite(lg) && lg > 0) {
+              const percent = (position / lg) * 100;
+              hit.style.left = `${percent}%`;
+              hit.style.top = '50%';
+              hit.style.transform = 'translate(-50%, -50%)';
+            }
             hit.style.pointerEvents = 'auto';
             hit.style.cursor = 'pointer';
             attachSelectionListeners(hit);
@@ -3503,6 +3515,12 @@ function renderTimeline() {
           }
         }
         label.style.fontSize = `${subdivisionFontRem}rem`;
+        if (Number.isFinite(lg) && lg > 0) {
+          const percent = (position / lg) * 100;
+          label.style.left = `${percent}%`;
+          label.style.top = 'calc(100% + 12px)';
+          label.style.transform = 'translate(-50%, 0)';
+        }
         timeline.appendChild(label);
         cycleLabels.push(label);
       }
@@ -3535,6 +3553,12 @@ function showNumber(i, fontRem) {
   const lg = pulses.length - 1;
   const sizeRem = typeof fontRem === 'number' ? fontRem : computeNumberFontRem(lg);
   label.style.fontSize = `${sizeRem}rem`;
+  if (lg > 0) {
+    const percent = (i / lg) * 100;
+    label.style.left = `${percent}%`;
+    label.style.top = '-28px';
+    label.style.transform = 'translate(-50%, 0)';
+  }
   if (i === 0 || i === lg) label.classList.add('endpoint');
   timeline.appendChild(label);
   pulseNumberLabels.push(label);
