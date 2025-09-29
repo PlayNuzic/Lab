@@ -7,6 +7,8 @@ import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
+import { bindRhythmElements } from '../../libs/app-common/dom.js';
+import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
@@ -21,45 +23,60 @@ bindSharedSoundEvents({
     startSound: 'setStart'
   }
 });
-const inputLg = document.getElementById('inputLg');
-const inputV = document.getElementById('inputV');
-const inputT = document.getElementById('inputT');
-const inputTUp = document.getElementById('inputTUp');
-const inputTDown = document.getElementById('inputTDown');
-const inputVUp = document.getElementById('inputVUp');
-const inputVDown = document.getElementById('inputVDown');
-const inputLgUp = document.getElementById('inputLgUp');
-const inputLgDown = document.getElementById('inputLgDown');
-const ledLg = document.getElementById('ledLg');
-const ledV = document.getElementById('ledV');
-const ledT = document.getElementById('ledT');
-const unitLg = document.getElementById('unitLg');
-const unitV = document.getElementById('unitV');
-const unitT = document.getElementById('unitT');
-const formula = document.getElementById('formula');
-const timelineWrapper = document.getElementById('timelineWrapper');
-const timeline = document.getElementById('timeline');
-const playBtn = document.getElementById('playBtn');
-const loopBtn = document.getElementById('loopBtn');
-const resetBtn = document.getElementById('resetBtn');
-const tapBtn = document.getElementById('tapTempoBtn');
-const tapHelp = document.getElementById('tapHelp');
-const circularTimelineToggle = document.getElementById('circularTimelineToggle');
+// Bind all DOM elements using new utilities
+const { elements, leds, ledHelpers } = bindRhythmElements({
+  inputLg: 'inputLg',
+  inputV: 'inputV',
+  inputT: 'inputT',
+  inputTUp: 'inputTUp',
+  inputTDown: 'inputTDown',
+  inputVUp: 'inputVUp',
+  inputVDown: 'inputVDown',
+  inputLgUp: 'inputLgUp',
+  inputLgDown: 'inputLgDown',
+  ledLg: 'ledLg',
+  ledV: 'ledV',
+  ledT: 'ledT',
+  unitLg: 'unitLg',
+  unitV: 'unitV',
+  unitT: 'unitT',
+  formula: 'formula',
+  timelineWrapper: 'timelineWrapper',
+  timeline: 'timeline',
+  playBtn: 'playBtn',
+  loopBtn: 'loopBtn',
+  resetBtn: 'resetBtn',
+  tapBtn: 'tapTempoBtn',
+  tapHelp: 'tapHelp',
+  circularTimelineToggle: 'circularTimelineToggle',
+  themeSelect: 'themeSelect',
+  baseSoundSelect: 'baseSoundSelect',
+  startSoundSelect: 'startSoundSelect',
+  randomBtn: 'randomBtn',
+  randomMenu: 'randomMenu',
+  randLgToggle: 'randLgToggle',
+  randLgMin: 'randLgMin',
+  randLgMax: 'randLgMax',
+  randVToggle: 'randVToggle',
+  randVMin: 'randVMin',
+  randVMax: 'randVMax',
+  randTToggle: 'randTToggle',
+  randTMin: 'randTMin',
+  randTMax: 'randTMax'
+});
+
+// Create LED managers for Lg, V, T parameters
+const ledManagers = createRhythmLEDManagers(leds);
+
+// Extract commonly used elements for backward compatibility
+const { inputLg, inputV, inputT, inputTUp, inputTDown, inputVUp, inputVDown,
+        inputLgUp, inputLgDown, ledLg, ledV, ledT, unitLg, unitV, unitT,
+        formula, timelineWrapper, timeline, playBtn, loopBtn, resetBtn,
+        tapBtn, tapHelp, circularTimelineToggle, themeSelect, baseSoundSelect,
+        startSoundSelect, randomBtn, randomMenu, randLgToggle, randLgMin, randLgMax,
+        randVToggle, randVMin, randVMax, randTToggle, randTMin, randTMax } = elements;
+
 // Mute is handled by shared header (#muteBtn). Listen for events instead.
-const themeSelect = document.getElementById('themeSelect');
-const baseSoundSelect = document.getElementById('baseSoundSelect');
-const startSoundSelect = document.getElementById('startSoundSelect');
-const randomBtn = document.getElementById('randomBtn');
-const randomMenu = document.getElementById('randomMenu');
-const randLgToggle = document.getElementById('randLgToggle');
-const randLgMin = document.getElementById('randLgMin');
-const randLgMax = document.getElementById('randLgMax');
-const randVToggle = document.getElementById('randVToggle');
-const randVMin = document.getElementById('randVMin');
-const randVMax = document.getElementById('randVMax');
-const randTToggle = document.getElementById('randTToggle');
-const randTMin = document.getElementById('randTMin');
-const randTMax = document.getElementById('randTMax');
 
 let pulses = [];
 
@@ -231,6 +248,12 @@ function setAutoExact(target, opts = {}){
   if (autoTarget === 'Lg') inputLg.dataset.auto = '1';
   else if (autoTarget === 'V') inputV.dataset.auto = '1';
   else if (autoTarget === 'T') inputT.dataset.auto = '1';
+
+  // Update LED managers to reflect auto state
+  ledHelpers.setLedAuto('Lg', autoTarget === 'Lg');
+  ledHelpers.setLedAuto('V', autoTarget === 'V');
+  ledHelpers.setLedAuto('T', autoTarget === 'T');
+
   updateAutoIndicator();
   if (recalc) handleInput();
 }
@@ -852,9 +875,13 @@ function updateNumbers(){
 
 function updateAutoIndicator(){
   // Los LEDs encendidos son los campos editables; el apagado se recalcula
-  ledLg?.classList.toggle('on', inputLg.dataset.auto !== '1');
-  ledV?.classList.toggle('on', inputV.dataset.auto !== '1');
-  ledT?.classList.toggle('on', inputT.dataset.auto !== '1');
+  // Using LED helpers for consistent state management
+  ledHelpers.setLedActive('Lg', inputLg.dataset.auto !== '1');
+  ledHelpers.setLedActive('V', inputV.dataset.auto !== '1');
+  ledHelpers.setLedActive('T', inputT.dataset.auto !== '1');
+
+  // Sync LED managers with input states
+  syncLEDsWithInputs(ledManagers, elements);
 }
 
 async function startPlayback(providedAudio) {

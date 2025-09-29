@@ -144,8 +144,10 @@ margin-top: 8px;
 width: 4px;
 height: 80px;
 writing-mode: bt-lr;
--webkit-appearance: slider-vertical;
-appearance: slider-vertical;
+writing-mode: vertical-lr;
+direction: rtl;
+-webkit-appearance: none;
+appearance: none;
 order: 1;
 /* Propiedades para la animación */
 transform: scaleY(0);

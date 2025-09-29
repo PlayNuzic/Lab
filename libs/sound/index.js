@@ -126,6 +126,25 @@ async function startToneAudio() {
   return isRunning(context);
 }
 
+/**
+ * Enhanced ensureAudio function that minimizes console warnings
+ * Only attempts to start audio context on user interaction
+ */
+export async function ensureAudioSilent() {
+  if (typeof Tone === 'undefined') {
+    console.warn('Tone.js not available - audio features disabled');
+    return false;
+  }
+
+  const context = getToneContext();
+  if (isRunning(context)) {
+    return true; // Already running
+  }
+
+  // Don't try to start automatically - wait for user interaction
+  return false;
+}
+
 export async function ensureAudio() {
   if (typeof Tone !== 'undefined') {
     if (!toneStartPromise) {
