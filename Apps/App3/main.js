@@ -10,6 +10,8 @@ import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMut
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { fromLgAndTempo, gridFromOrigin, computeSubdivisionFontRem, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
+import { parseIntSafe, parseFloatSafe } from '../../libs/app-common/number.js';
+import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
 
 let audio;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
@@ -188,16 +190,6 @@ function initFractionEditorController() {
 
 initFractionEditorController();
 
-function parseIntSafe(val) {
-  const n = Number.parseInt(val, 10);
-  return Number.isFinite(n) ? n : NaN;
-}
-
-function parseFloatSafe(val) {
-  const n = Number.parseFloat(val);
-  return Number.isFinite(n) ? n : NaN;
-}
-
 function formatInteger(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return '';
@@ -230,15 +222,6 @@ function setValue(input, value) {
   const normalized = value == null || Number.isNaN(value) ? '' : String(value);
   input.value = normalized;
   isUpdating = false;
-}
-
-function clampRange(min, max, fallbackMin, fallbackMax) {
-  let lo = Number(min);
-  let hi = Number(max);
-  if (!Number.isFinite(lo)) lo = fallbackMin;
-  if (!Number.isFinite(hi)) hi = fallbackMax;
-  if (hi < lo) [lo, hi] = [hi, lo];
-  return [lo, hi];
 }
 
 /**
@@ -935,19 +918,13 @@ let randomConfig = (() => {
 })();
 
 function applyRandomConfig(cfg) {
-  randLgToggle.checked = cfg.Lg.enabled;
-  randLgMin.value = cfg.Lg.range[0];
-  randLgMax.value = cfg.Lg.range[1];
-  randVToggle.checked = cfg.V.enabled;
-  randVMin.value = cfg.V.range[0];
-  randVMax.value = cfg.V.range[1];
-  randNToggle.checked = cfg.n.enabled;
-  randNMin.value = cfg.n.range[0];
-  randNMax.value = cfg.n.range[1];
-  randDToggle.checked = cfg.d.enabled;
-  randDMin.value = cfg.d.range[0];
-  randDMax.value = cfg.d.range[1];
-  randComplexToggle.checked = cfg.allowComplex;
+  applyBaseRandomConfig(cfg, {
+    Lg: { toggle: randLgToggle, min: randLgMin, max: randLgMax },
+    V: { toggle: randVToggle, min: randVMin, max: randVMax },
+    n: { toggle: randNToggle, min: randNMin, max: randNMax },
+    d: { toggle: randDToggle, min: randDMin, max: randDMax },
+    allowComplex: randComplexToggle
+  });
 }
 
 /**
@@ -957,25 +934,13 @@ function applyRandomConfig(cfg) {
  * @remarks Es crida per cada canvi al menú random. Depèn de DOM i `localStorage`; garanteix que els valors generats mantinguin PulseMemory dins 1..Lg-1 (0/Lg derivats es recalculen a `randomize`).
  */
 function updateRandomConfig() {
-  randomConfig = {
-    Lg: {
-      enabled: randLgToggle.checked,
-      range: clampRange(randLgMin.value, randLgMax.value, randomDefaults.Lg.range[0], randomDefaults.Lg.range[1])
-    },
-    V: {
-      enabled: randVToggle.checked,
-      range: clampRange(randVMin.value, randVMax.value, randomDefaults.V.range[0], randomDefaults.V.range[1])
-    },
-    n: {
-      enabled: randNToggle.checked,
-      range: clampRange(randNMin.value, randNMax.value, randomDefaults.n.range[0], randomDefaults.n.range[1])
-    },
-    d: {
-      enabled: randDToggle.checked,
-      range: clampRange(randDMin.value, randDMax.value, randomDefaults.d.range[0], randomDefaults.d.range[1])
-    },
-    allowComplex: randComplexToggle.checked
-  };
+  randomConfig = updateBaseRandomConfig(randomConfig, {
+    Lg: { toggle: randLgToggle, min: randLgMin, max: randLgMax },
+    V: { toggle: randVToggle, min: randVMin, max: randVMax },
+    n: { toggle: randNToggle, min: randNMin, max: randNMax, integer: true, minValue: 1 },
+    d: { toggle: randDToggle, min: randDMin, max: randDMax, integer: true, minValue: 1 },
+    allowComplex: randComplexToggle
+  }, randomDefaults);
   saveOpt('random', JSON.stringify(randomConfig));
 }
 

@@ -13,6 +13,7 @@ import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
 import { randomize as randomizeValues } from '../../libs/random/index.js';
 import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
+import { parseIntSafe, gcd, lcm } from '../../libs/app-common/number.js';
 import {
   FRACTION_POSITION_EPSILON,
   TEXT_NODE_TYPE,
@@ -229,7 +230,7 @@ function updateRandomConfig() {
 
 applyRandomConfig();
 
-[
+[ 
   randLgToggle, randLgMin, randLgMax,
   randVToggle, randVMin, randVMax,
   randTToggle, randTMin, randTMax,
@@ -238,34 +239,6 @@ applyRandomConfig();
   randComplexToggle,
   randPulsesToggle, randomCount
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
-
-function parseIntSafe(val) {
-  const n = Number.parseInt(val, 10);
-  return Number.isFinite(n) ? n : NaN;
-}
-
-function gcd(a, b) {
-  let x = Math.abs(Number(a));
-  let y = Math.abs(Number(b));
-  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) {
-    return Number.isFinite(x) && x > 0 ? x : Number.isFinite(y) && y > 0 ? y : 1;
-  }
-  while (y !== 0) {
-    const temp = x % y;
-    x = y;
-    y = temp;
-  }
-  return x || 1;
-}
-
-function lcm(a, b) {
-  const x = Math.abs(Math.round(Number(a) || 0));
-  const y = Math.abs(Math.round(Number(b) || 0));
-  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) {
-    return 1;
-  }
-  return Math.abs((x / gcd(x, y)) * y) || 1;
-}
 
 function getFraction() {
   if (!fractionEditorController) {

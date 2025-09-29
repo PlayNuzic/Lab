@@ -1,4 +1,5 @@
 import { solidMenuBackground as deprecatedSolidMenuBackground } from './utils.js';
+import { parsePositiveInt, gcd } from './number.js';
 
 const FRACTION_HOVER_NUMERATOR_TYPE = 'numerator';
 const FRACTION_HOVER_DENOMINATOR_TYPE = 'denominator';
@@ -20,11 +21,6 @@ const DEFAULT_LABELS = {
 
 const CONTROLLER_SYMBOL = Symbol('fractionEditorController');
 
-function parsePositiveInt(value) {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
 export function createEmptyFractionInfo() {
   return {
     numerator: null,
@@ -34,20 +30,6 @@ export function createEmptyFractionInfo() {
     isMultiple: false,
     multipleFactor: 1
   };
-}
-
-function gcd(a, b) {
-  let x = Math.abs(Number(a));
-  let y = Math.abs(Number(b));
-  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) {
-    return Number.isFinite(x) && x > 0 ? x : Number.isFinite(y) && y > 0 ? y : 1;
-  }
-  while (y !== 0) {
-    const temp = x % y;
-    x = y;
-    y = temp;
-  }
-  return x || 1;
 }
 
 function computeFractionInfo(numerator, denominator) {

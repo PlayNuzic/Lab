@@ -1,6 +1,8 @@
 // Fraction selection and randomization logic unique to App4.
 // Encapsulates mutable state for fractional hits along with helpers used by main.js.
 
+import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
+
 export const FRACTION_POSITION_EPSILON = 1e-6;
 export const TEXT_NODE_TYPE = (typeof Node !== 'undefined' && Node.TEXT_NODE) || 3;
 
@@ -303,144 +305,34 @@ export function saveRandomConfig(writeValue, cfg) {
 
 export function applyRandomConfig(cfg, controls = {}) {
   if (!cfg) return;
-  const {
-    randLgToggle,
-    randLgMin,
-    randLgMax,
-    randVToggle,
-    randVMin,
-    randVMax,
-    randTToggle,
-    randTMin,
-    randTMax,
-    randNToggle,
-    randNMin,
-    randNMax,
-    randDToggle,
-    randDMin,
-    randDMax,
-    randComplexToggle,
-    randPulsesToggle,
-    randomCount
-  } = controls;
-  if (cfg.Lg) {
-    if (randLgToggle) randLgToggle.checked = cfg.Lg.enabled;
-    if (randLgMin) randLgMin.value = cfg.Lg.range[0];
-    if (randLgMax) randLgMax.value = cfg.Lg.range[1];
+  applyBaseRandomConfig(cfg, {
+    Lg: { toggle: controls.randLgToggle, min: controls.randLgMin, max: controls.randLgMax },
+    V: { toggle: controls.randVToggle, min: controls.randVMin, max: controls.randVMax },
+    T: { toggle: controls.randTToggle, min: controls.randTMin, max: controls.randTMax },
+    n: { toggle: controls.randNToggle, min: controls.randNMin, max: controls.randNMax },
+    d: { toggle: controls.randDToggle, min: controls.randDMin, max: controls.randDMax },
+    allowComplex: controls.randComplexToggle
+  });
+  if (cfg.Pulses && controls.randPulsesToggle && controls.randomCount) {
+    controls.randPulsesToggle.checked = cfg.Pulses.enabled;
+    controls.randomCount.value = cfg.Pulses.count ?? '';
   }
-  if (cfg.V) {
-    if (randVToggle) randVToggle.checked = cfg.V.enabled;
-    if (randVMin) randVMin.value = cfg.V.range[0];
-    if (randVMax) randVMax.value = cfg.V.range[1];
-  }
-  if (cfg.T) {
-    if (randTToggle) randTToggle.checked = cfg.T.enabled;
-    if (randTMin) randTMin.value = cfg.T.range[0];
-    if (randTMax) randTMax.value = cfg.T.range[1];
-  }
-  if (cfg.n) {
-    if (randNToggle) randNToggle.checked = cfg.n.enabled;
-    if (randNMin) randNMin.value = cfg.n.range[0];
-    if (randNMax) randNMax.value = cfg.n.range[1];
-  }
-  if (cfg.d) {
-    if (randDToggle) randDToggle.checked = cfg.d.enabled;
-    if (randDMin) randDMin.value = cfg.d.range[0];
-    if (randDMax) randDMax.value = cfg.d.range[1];
-  }
-  if (typeof cfg.allowComplex === 'boolean' && randComplexToggle) {
-    randComplexToggle.checked = cfg.allowComplex;
-  }
-  if (cfg.Pulses && randPulsesToggle && randomCount) {
-    randPulsesToggle.checked = cfg.Pulses.enabled;
-    randomCount.value = cfg.Pulses.count ?? '';
-  }
-}
-
-export function toIntRange(minInput, maxInput, fallback) {
-  const fallbackRange = Array.isArray(fallback) ? fallback : [1, 1];
-  const [lo, hi] = toRange(minInput, maxInput, fallbackRange);
-  const normalizedLo = Number.isFinite(lo) ? Math.max(1, Math.round(lo)) : fallbackRange[0];
-  const normalizedHiRaw = Number.isFinite(hi) ? Math.round(hi) : fallbackRange[1];
-  const normalizedHi = Math.max(normalizedLo, Math.max(1, normalizedHiRaw));
-  return [normalizedLo, normalizedHi];
-}
-
-function toRange(minInput, maxInput, fallbackRange) {
-  const min = Number.parseFloat(minInput);
-  const max = Number.parseFloat(maxInput);
-  if (!Number.isFinite(min) && !Number.isFinite(max)) {
-    return fallbackRange;
-  }
-  if (!Number.isFinite(min)) return [fallbackRange[0], Math.max(fallbackRange[0], max)];
-  if (!Number.isFinite(max)) return [Math.max(fallbackRange[0], min), fallbackRange[1]];
-  const lo = Math.min(min, max);
-  const hi = Math.max(min, max);
-  return [lo, hi];
 }
 
 export function updateRandomConfig(randomConfig, controls = {}, defaults = randomDefaults) {
   if (!randomConfig) return randomConfig;
-  const {
-    randLgToggle,
-    randLgMin,
-    randLgMax,
-    randVToggle,
-    randVMin,
-    randVMax,
-    randTToggle,
-    randTMin,
-    randTMax,
-    randNToggle,
-    randNMin,
-    randNMax,
-    randDToggle,
-    randDMin,
-    randDMax,
-    randComplexToggle,
-    randPulsesToggle,
-    randomCount
-  } = controls;
-
-  randomConfig.Lg = {
-    enabled: !!randLgToggle?.checked,
-    range: toRange(randLgMin?.value, randLgMax?.value, defaults.Lg.range)
-  };
-  randomConfig.V = {
-    enabled: !!randVToggle?.checked,
-    range: toRange(randVMin?.value, randVMax?.value, defaults.V.range)
-  };
-  const previousTRange = randomConfig.T?.range ?? defaults.T.range;
-  const previousTEnabled = randomConfig.T?.enabled ?? defaults.T.enabled;
-  randomConfig.T = {
-    enabled: randTToggle ? randTToggle.checked : previousTEnabled,
-    range: (randTMin && randTMax)
-      ? toRange(randTMin.value, randTMax.value, previousTRange)
-      : previousTRange
-  };
-  const previousNRange = randomConfig.n?.range ?? defaults.n.range;
-  randomConfig.n = {
-    enabled: randNToggle ? randNToggle.checked : (randomConfig.n?.enabled ?? defaults.n.enabled),
-    range: (randNMin && randNMax)
-      ? toIntRange(randNMin.value, randNMax.value, previousNRange)
-      : previousNRange
-  };
-  const previousDRange = randomConfig.d?.range ?? defaults.d.range;
-  randomConfig.d = {
-    enabled: randDToggle ? randDToggle.checked : (randomConfig.d?.enabled ?? defaults.d.enabled),
-    range: (randDMin && randDMax)
-      ? toIntRange(randDMin.value, randDMax.value, previousDRange)
-      : previousDRange
-  };
-  if (randComplexToggle) {
-    randomConfig.allowComplex = randComplexToggle.checked;
-  } else if (typeof randomConfig.allowComplex !== 'boolean') {
-    randomConfig.allowComplex = defaults.allowComplex;
-  }
-  if (randPulsesToggle && randomCount) {
+  updateBaseRandomConfig(randomConfig, {
+    Lg: { toggle: controls.randLgToggle, min: controls.randLgMin, max: controls.randLgMax },
+    V: { toggle: controls.randVToggle, min: controls.randVMin, max: controls.randVMax },
+    T: { toggle: controls.randTToggle, min: controls.randTMin, max: controls.randTMax },
+    n: { toggle: controls.randNToggle, min: controls.randNMin, max: controls.randNMax, integer: true, minValue: 1 },
+    d: { toggle: controls.randDToggle, min: controls.randDMin, max: controls.randDMax, integer: true, minValue: 1 },
+    allowComplex: controls.randComplexToggle
+  }, defaults);
+  if (controls.randPulsesToggle && controls.randomCount) {
     randomConfig.Pulses = {
-      enabled: randPulsesToggle.checked,
-      count: randomCount.value
+      enabled: !!controls.randPulsesToggle.checked,
+      count: controls.randomCount.value
     };
   }
   return randomConfig;
