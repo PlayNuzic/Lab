@@ -43,6 +43,7 @@ import {
 
 let audio;
 let audioInitPromise = null;
+let pendingMute = null;
 
 
 
@@ -1235,11 +1236,13 @@ if (themeSelect) {
   applyTheme(storedTheme || 'system');
 }
 
-document.addEventListener('sharedui:mute', async (e) => {
+document.addEventListener('sharedui:mute', (e) => {
   const val = !!(e && e.detail && e.detail.value);
   saveOpt('mute', val ? '1' : '0');
-  const a = await initAudio();
-  if (a && typeof a.setMute === 'function') a.setMute(val);
+  pendingMute = val;
+  if (audio && typeof audio.setMute === 'function') {
+    audio.setMute(val);
+  }
 });
 
 // Restore previous mute preference on load
@@ -1504,6 +1507,9 @@ async function initAudio(){
       }
       if (typeof instance.setLoop === 'function') {
         instance.setLoop(loopEnabled);
+      }
+      if (pendingMute != null && typeof instance.setMute === 'function') {
+        instance.setMute(pendingMute);
       }
       audio = instance;
       return instance;

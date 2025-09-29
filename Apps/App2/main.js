@@ -14,6 +14,7 @@ import { createPulseMemoryLoopController } from '../../libs/app-common/loop-cont
 // Using local header controls for App2 (no shared init)
 
 let audio;
+let pendingMute = null;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
 bindSharedSoundEvents({
@@ -393,11 +394,13 @@ if (themeSelect) {
   applyTheme(storedTheme || 'system');
 }
 
-document.addEventListener('sharedui:mute', async (e) => {
+document.addEventListener('sharedui:mute', (e) => {
   const val = !!(e && e.detail && e.detail.value);
   saveOpt('mute', val ? '1' : '0');
-  const a = await initAudio();
-  if (a && typeof a.setMute === 'function') a.setMute(val);
+  pendingMute = val;
+  if (audio && typeof audio.setMute === 'function') {
+    audio.setMute(val);
+  }
 });
 
 // Restore previous mute preference on load
@@ -577,6 +580,9 @@ const _baseInitAudio = createRhythmAudioInitializer({
 async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
+    if (pendingMute != null && typeof audio.setMute === 'function') {
+      audio.setMute(pendingMute);
+    }
   }
   return audio;
 }

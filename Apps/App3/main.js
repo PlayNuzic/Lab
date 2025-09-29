@@ -16,6 +16,7 @@ import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-co
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 
 let audio;
+let pendingMute = null;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
 bindSharedSoundEvents({
@@ -226,6 +227,9 @@ async function initAudio() {
       const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
       audio.setCycleEnabled(cycleEnabled);
     }
+    if (pendingMute != null && typeof audio.setMute === 'function') {
+      audio.setMute(pendingMute);
+    }
   }
   return audio;
 }
@@ -378,12 +382,12 @@ if (themeSelect) {
   applyTheme(storedTheme || 'system');
 }
 
-document.addEventListener('sharedui:mute', async (e) => {
+document.addEventListener('sharedui:mute', (e) => {
   const val = !!(e && e.detail && e.detail.value);
   saveOpt('mute', val ? '1' : '0');
-  const instance = await initAudio();
-  if (instance && typeof instance.setMute === 'function') {
-    instance.setMute(val);
+  pendingMute = val;
+  if (audio && typeof audio.setMute === 'function') {
+    audio.setMute(val);
   }
 });
 
