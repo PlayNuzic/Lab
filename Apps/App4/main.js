@@ -507,10 +507,11 @@ function applySelectionToAudio({ scheduling, instance } = {}) {
   if (!target || typeof target.setSelected !== 'function') return null;
   const selection = selectedForAudioFromState({ scheduling });
   const audioValues = selection.audio ?? selection.combined;
-  target.setSelected({ values: audioValues, resolution: 1 });
-  if (Number.isFinite(selection?.resolution)) {
-    currentAudioResolution = Math.max(1, Math.round(selection.resolution));
-  }
+  const resolvedSelectionResolution = Number.isFinite(selection?.resolution)
+    ? Math.max(1, Math.round(selection.resolution))
+    : 1;
+  target.setSelected({ values: audioValues, resolution: resolvedSelectionResolution });
+  currentAudioResolution = resolvedSelectionResolution;
   return selection;
 }
 
@@ -2387,25 +2388,67 @@ function handleInput(){
 
   if (isPlaying && audio) {
     const scheduling = computeAudioSchedulingState();
-    applySelectionToAudio({ scheduling });
-    currentAudioResolution = 1;
-    updateVoiceHandlers({ scheduling });
+    const selectionForAudio = applySelectionToAudio({ scheduling })
+      || selectedForAudioFromState({ scheduling });
+    const resolvedSelectionResolution = Number.isFinite(selectionForAudio?.resolution)
+      ? Math.max(1, Math.round(selectionForAudio.resolution))
+      : 1;
+    const schedulingResolution = Number.isFinite(scheduling?.resolution)
+      ? Math.max(1, Math.round(scheduling.resolution))
+      : 1;
+    const effectiveResolution = Math.max(1, resolvedSelectionResolution, schedulingResolution);
+    const normalizedLg = Number.isFinite(scheduling?.lg) ? scheduling.lg : parseInt(inputLg.value);
+
+    let effectiveTotal = scheduling.totalPulses != null ? scheduling.totalPulses : null;
+    let effectivePatternBeats = scheduling.patternBeats != null ? scheduling.patternBeats : null;
+    let effectiveCycleConfig = scheduling.cycleConfig ? { ...scheduling.cycleConfig } : null;
+    let effectiveVoices = Array.isArray(scheduling.voices)
+      ? scheduling.voices.map((voice) => (voice ? { ...voice } : voice))
+      : [];
+
+    if (Number.isFinite(normalizedLg) && normalizedLg > 0 && effectiveResolution > 1) {
+      const scaledBase = normalizedLg * effectiveResolution;
+      effectiveTotal = loopEnabled
+        ? Math.max(1, Math.round(scaledBase))
+        : Math.max(1, Math.round(scaledBase + 1));
+      if (Number.isFinite(effectivePatternBeats)) {
+        effectivePatternBeats = Math.max(1, Math.round(effectivePatternBeats * effectiveResolution));
+      }
+      if (effectiveCycleConfig && Number.isFinite(effectiveCycleConfig.numerator)) {
+        effectiveCycleConfig = {
+          ...effectiveCycleConfig,
+          numerator: Math.max(1, Math.round(effectiveCycleConfig.numerator * effectiveResolution))
+        };
+      }
+      effectiveVoices = effectiveVoices.map((voice) => {
+        if (!voice || !Number.isFinite(voice.numerator)) return voice;
+        return {
+          ...voice,
+          numerator: Math.max(1, Math.round(voice.numerator * effectiveResolution))
+        };
+      });
+    }
+
+    currentAudioResolution = effectiveResolution;
+    updateVoiceHandlers({ scheduling: { ...scheduling, voices: effectiveVoices } });
     if (typeof audio.setVoices === 'function') {
-      audio.setVoices(scheduling.voices || []);
+      audio.setVoices(effectiveVoices);
+    }
+
+    const transportPayload = {};
+    if (effectiveTotal != null) {
+      transportPayload.totalPulses = effectiveTotal;
     }
     const vNow = parseFloat(inputV.value);
-    const transportPayload = {};
-    if (scheduling.totalPulses != null) {
-      transportPayload.totalPulses = scheduling.totalPulses;
-    }
     if (scheduling.validV && Number.isFinite(vNow) && vNow > 0) {
-      transportPayload.bpm = vNow;
+      const scaledBpm = effectiveResolution > 1 ? vNow * effectiveResolution : vNow;
+      transportPayload.bpm = scaledBpm;
     }
-    if (scheduling.patternBeats != null) {
-      transportPayload.patternBeats = scheduling.patternBeats;
+    if (effectivePatternBeats != null) {
+      transportPayload.patternBeats = effectivePatternBeats;
     }
-    if (scheduling.cycleConfig) {
-      transportPayload.cycle = scheduling.cycleConfig;
+    if (effectiveCycleConfig) {
+      transportPayload.cycle = effectiveCycleConfig;
     }
     if (typeof audio.updateTransport === 'function' && (scheduling.validLg || scheduling.validV)) {
       audio.updateTransport(transportPayload);
@@ -3022,7 +3065,10 @@ async function startPlayback(providedAudio) {
   const resolvedSelectionResolution = Number.isFinite(selectionForAudio?.resolution)
     ? Math.max(1, Math.round(selectionForAudio.resolution))
     : 1;
-  const effectiveResolution = Math.max(1, resolvedSelectionResolution);
+  const schedulingResolution = Number.isFinite(scheduling?.resolution)
+    ? Math.max(1, Math.round(scheduling.resolution))
+    : 1;
+  const effectiveResolution = Math.max(1, resolvedSelectionResolution, schedulingResolution);
   const normalizedLg = Number.isFinite(scheduling?.lg) ? scheduling.lg : lg;
   let effectiveInterval = scheduling.interval;
   let effectiveTotal = scheduling.totalPulses;
@@ -3091,7 +3137,7 @@ async function startPlayback(providedAudio) {
   const selectionValuesForAudio = selectionForAudio.audio ?? selectionForAudio.combined;
   const selectionPayload = {
     values: selectionValuesForAudio,
-    resolution: 1
+    resolution: effectiveResolution
   };
 
   audioInstance.play(
