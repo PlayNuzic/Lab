@@ -34,6 +34,7 @@ export class LEDManager {
   setActive(isActive) {
     this.isActive = isActive;
     this.element.classList.toggle('led-active', isActive);
+    this.element.classList.toggle('on', isActive);
   }
 
   /**
@@ -61,6 +62,7 @@ export class LEDManager {
 
     const hasAutoDataset = inputElement.hasAttribute('data-auto');
     this.setAuto(hasAutoDataset);
+    this.setActive(!hasAutoDataset);
   }
 
   /**
