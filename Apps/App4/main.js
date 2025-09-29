@@ -55,6 +55,43 @@ let pulseSeqFractionNumeratorEl = null;
 let pulseSeqFractionDenominatorEl = null;
 let pulseSeqVisualEl = null;
 let pulseSeqEditWrapper = null;
+let pulses = [];
+let pulseNumberLabels = [];
+let cycleMarkers = [];
+let cycleLabels = [];
+let lastStructureSignature = {
+  lg: null,
+  numerator: null,
+  denominator: null
+};
+let bars = [];
+let pulseHits = [];
+let cycleMarkerHits = [];
+const fractionalSelectionState = new Map();
+const selectedFractionKeys = new Set();
+const fractionHitMap = new Map();
+const fractionMarkerMap = new Map();
+const fractionLabelLookup = new Map();
+let pulseSeqRanges = {};
+let fractionalPulseSelections = [];
+let pulseSeqEntryOrder = [];
+const pulseSeqEntryLookup = new Map();
+const pulseSeqTokenMap = new Map();
+let pulseSeqSpacingAdjustHandle = null;
+let lastFractionGap = null;
+let currentAudioResolution = 1;
+let lastFractionHighlightKey = null;
+let lastHighlightType = null;
+let lastHighlightIntIndex = null;
+let lastHighlightFractionKey = null;
+const FRACTION_POSITION_EPSILON = 1e-6;
+const TEXT_NODE_TYPE = (typeof Node !== 'undefined' && Node.TEXT_NODE) || 3;
+const raf = (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
+  ? (cb) => window.requestAnimationFrame(cb)
+  : (cb) => setTimeout(cb, 16);
+const caf = (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function')
+  ? (handle) => window.cancelAnimationFrame(handle)
+  : (handle) => clearTimeout(handle);
 
 if (fractionInlineSlot) {
   fractionInlineSlot.classList.add('fraction-inline-slot');
@@ -381,46 +418,6 @@ function initFractionEditorController() {
 
 // No actualitza la memòria a cada tecleig: es confirma amb Enter o blur
 // pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
-
-let pulses = [];
-let pulseNumberLabels = [];
-let cycleMarkers = [];
-let cycleLabels = [];
-let lastStructureSignature = {
-  lg: null,
-  numerator: null,
-  denominator: null
-};
-let bars = [];
-let pulseHits = [];
-let cycleMarkerHits = [];
-const fractionalSelectionState = new Map();
-const selectedFractionKeys = new Set();
-const fractionHitMap = new Map();
-const fractionMarkerMap = new Map();
-const fractionLabelLookup = new Map();
-// Hit targets (separate from the visual dots) and drag mode
-// --- Selection memory across Lg changes ---
-let pulseSeqRanges = {};
-let fractionalPulseSelections = [];
-let pulseSeqEntryOrder = [];
-const pulseSeqEntryLookup = new Map();
-const pulseSeqTokenMap = new Map();
-let pulseSeqSpacingAdjustHandle = null;
-let lastFractionGap = null;
-let currentAudioResolution = 1;
-let lastFractionHighlightKey = null;
-let lastHighlightType = null;
-let lastHighlightIntIndex = null;
-let lastHighlightFractionKey = null;
-const FRACTION_POSITION_EPSILON = 1e-6;
-const TEXT_NODE_TYPE = (typeof Node !== 'undefined' && Node.TEXT_NODE) || 3;
-const raf = (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
-  ? (cb) => window.requestAnimationFrame(cb)
-  : (cb) => setTimeout(cb, 16);
-const caf = (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function')
-  ? (id) => window.cancelAnimationFrame(id)
-  : (id) => clearTimeout(id);
 
 function nearestPulseIndex(value) {
   if (!Number.isFinite(value)) return null;
