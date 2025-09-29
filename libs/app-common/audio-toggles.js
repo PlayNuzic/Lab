@@ -81,7 +81,12 @@ export function initAudioToggles({
       } catch {}
     }
 
-    if (entry.mixerChannel && mixer && typeof mixer.setChannelMute === 'function') {
+    if (
+      source !== 'mixer' &&
+      entry.mixerChannel &&
+      mixer &&
+      typeof mixer.setChannelMute === 'function'
+    ) {
       try {
         mixer.setChannelMute(entry.mixerChannel, !enabled);
       } catch {}
