@@ -10,6 +10,7 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import createFractionEditor, { createEmptyFractionInfo } from '../../libs/app-common/fraction-editor.js';
 import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
 import { randomize as randomizeValues } from '../../libs/random/index.js';
+import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -43,6 +44,15 @@ const unitV = document.getElementById('unitV');
 const unitT = document.getElementById('unitT');
 // Pulse sequence UI element (contenteditable div in template)
 const pulseSeqEl = document.getElementById('pulseSeq');
+const pulseSeqController = createPulseSeqController();
+const pulseMemoryApi = pulseSeqController.memory;
+const pulseMemory = pulseMemoryApi.data;
+const { editEl: pulseSeqEditEl } = pulseSeqController.mount({
+  root: pulseSeqEl,
+  markupBuilder: buildPulseSeqMarkup,
+  onTextSet: (value) => updatePulseSeqVisualLayer(value)
+});
+const dragController = pulseSeqController.drag;
 const formula = document.getElementById('formula');
 const timelineWrapper = document.getElementById('timelineWrapper');
 const timeline = document.getElementById('timeline');
@@ -385,9 +395,7 @@ const fractionHitMap = new Map();
 const fractionMarkerMap = new Map();
 const fractionLabelLookup = new Map();
 // Hit targets (separate from the visual dots) and drag mode
-let dragMode = 'select'; // 'select' | 'deselect'
 // --- Selection memory across Lg changes ---
-let pulseMemory = []; // index -> selected
 let pulseSeqRanges = {};
 let fractionalPulseSelections = [];
 let pulseSeqEntryOrder = [];
@@ -421,14 +429,12 @@ function nearestPulseIndex(value) {
 const voiceHighlightHandlers = new Map();
 
 function ensurePulseMemory(size) {
-  if (size >= pulseMemory.length) {
-    for (let i = pulseMemory.length; i <= size; i++) pulseMemory[i] = false;
-  }
+  pulseMemoryApi.ensure(size);
 }
 
 // Clear all persistent pulse selection (memory beyond current Lg too)
 function clearPersistentPulses(){
-  pulseMemory = [];
+  pulseMemoryApi.clear();
   try { selectedPulses.clear(); } catch {}
   /* Keep UI consistent; will be rebuilt by subsequent calls */
   fractionalSelectionState.clear();
@@ -905,17 +911,14 @@ let lastNormalizedStep = null;
 // Progress is now driven directly from audio callbacks
 
 // Build structured markup for the pulse sequence so only inner numbers are editable
-function setupPulseSeqMarkup(){
-  if (!pulseSeqEl) return;
-  if (pulseSeqEl && pulseSeqEl.dataset.seqInited === '1') return;
-  if (pulseSeqEl.querySelector('.pz.edit')) return; // already prepared
-  const initial = (pulseSeqEl.textContent || '').trim();
-  pulseSeqEl.textContent = '';
+function buildPulseSeqMarkup({ root, initialText }) {
+  if (!root) return { editEl: null };
+  root.textContent = '';
   const mk = (cls, txt) => {
-    const s = document.createElement('span');
-    s.className = 'pz ' + cls;
-    if (txt != null) s.textContent = txt;
-    return s;
+    const span = document.createElement('span');
+    span.className = `pz ${cls}`;
+    if (txt != null) span.textContent = txt;
+    return span;
   };
 
   const prefix = mk('prefix', 'Pfr ');
@@ -942,16 +945,13 @@ function setupPulseSeqMarkup(){
   const zero = mk('zero', '0');
   const editWrapper = mk('edit-wrapper', null);
   pulseSeqEditWrapper = editWrapper;
-  const edit = (() => {
-    const e = mk('edit', initial);
-    e.contentEditable = 'true';
-    return e;
-  })();
+  const edit = mk('edit', initialText);
+  edit.contentEditable = 'true';
   edit.addEventListener('focus', () => {
-    pulseSeqEl.classList.add('editing');
+    root.classList.add('editing');
   });
   edit.addEventListener('blur', () => {
-    pulseSeqEl.classList.remove('editing');
+    root.classList.remove('editing');
   });
   editWrapper.append(edit);
   pulseSeqVisualEl = document.createElement('span');
@@ -962,63 +962,29 @@ function setupPulseSeqMarkup(){
   const suffixSpacer = mk('suffix-spacer', ' ');
   const lgLabel = mk('lg', '');
 
-  pulseSeqEl.append(prefix, fractionDisplay, spacer, openParen, zero, editWrapper, suffix, suffixSpacer, lgLabel);
-  try { pulseSeqEl.dataset.seqInited = '1'; } catch {}
+  root.append(prefix, fractionDisplay, spacer, openParen, zero, editWrapper, suffix, suffixSpacer, lgLabel);
   updatePulseSeqFractionDisplay(null, null);
-  updatePulseSeqVisualLayer(initial);
+  updatePulseSeqVisualLayer(initialText);
   edit.addEventListener('input', () => updatePulseSeqVisualLayer(getPulseSeqText()));
+  return { editEl: edit };
 }
-setupPulseSeqMarkup();
 initFractionEditorController();
 
 // Highlight overlay for pulse sequence numbers during playback
-if (pulseSeqEl) {
-  let pulseSeqHighlight = document.getElementById('pulseSeqHighlight');
-  if (!pulseSeqHighlight) {
-    pulseSeqHighlight = document.createElement('div');
-    pulseSeqHighlight.id = 'pulseSeqHighlight';
-    pulseSeqEl.appendChild(pulseSeqHighlight);
-  }
-  let pulseSeqHighlight2 = document.getElementById('pulseSeqHighlight2');
-  if (!pulseSeqHighlight2) {
-    pulseSeqHighlight2 = document.createElement('div');
-    pulseSeqHighlight2.id = 'pulseSeqHighlight2';
-    pulseSeqEl.appendChild(pulseSeqHighlight2);
-  }
-}
+// Highlight overlays are managed by the shared pulse sequence controller
 
 // Helpers for #pulseSeq (use inner span .pz.edit)
-function getEditEl(){
-  if(!pulseSeqEl) return null;
-  return pulseSeqEl.querySelector('.pz.edit') || pulseSeqEl;
+function getEditEl() {
+  return pulseSeqController.getEditElement();
 }
-function getPulseSeqText(){
-  const el = getEditEl();
-  return el ? (el.textContent || '') : '';
+function getPulseSeqText() {
+  return pulseSeqController.getText();
 }
-function setPulseSeqText(str){
-  const el = getEditEl();
-  if(!el) return;
-  const value = String(str);
-  el.textContent = value;
-  updatePulseSeqVisualLayer(value);
+function setPulseSeqText(str) {
+  pulseSeqController.setText(str);
 }
-function setPulseSeqSelection(start, end){
-  const el = getEditEl();
-  if(!el) return;
-  try{
-    const sel = window.getSelection();
-    const range = document.createRange();
-    let node = el.firstChild;
-    if(!node){ node = document.createTextNode(''); el.appendChild(node); }
-    const len = node.textContent.length;
-    const s = Math.max(0, Math.min(start, len));
-    const e = Math.max(0, Math.min(end, len));
-    range.setStart(node, s);
-    range.setEnd(node, e);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }catch{}
+function setPulseSeqSelection(start, end) {
+  pulseSeqController.setSelectionRange(start, end);
 }
 
 function normalizePulseSeqEditGaps(text) {
@@ -1158,9 +1124,12 @@ function updatePulseSeqFractionDisplay(numerator, denominator, { silent = false 
 
 // Caret movement entre midpoints (dos espacios)
 function getMidpoints(text){ const a=[]; for(let i=1;i<text.length;i++) if(text[i-1]===' '&&text[i]===' ') a.push(i); return a; }
-function caretPos(){ const el=getEditEl(); if(!el) return 0; const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; const r=s.getRangeAt(0); if(!el.contains(r.startContainer)) return 0; return r.startOffset; }
-function moveCaretToNearestMidpoint(){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); let best=mids[0],d=Math.abs(p-best); for(const m of mids){const dd=Math.abs(p-m); if(dd<d){best=m; d=dd;}} setPulseSeqSelection(best,best); }
-function moveCaretStep(dir){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); if(dir>0){ for(const m of mids){ if(m>p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[mids.length-1],mids[mids.length-1]); } else { for(let i=mids.length-1;i>=0;i--){ const m=mids[i]; if(m<p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[0],mids[0]); } }
+function moveCaretToNearestMidpoint() {
+  pulseSeqController.moveCaretToNearestMidpoint();
+}
+function moveCaretStep(dir) {
+  pulseSeqController.moveCaretStep(dir);
+}
 function updateTIndicatorText(value) {
   if (!tIndicator) return;
   // Only the number, no prefix
@@ -1223,23 +1192,21 @@ function scheduleTIndicatorReveal(delay = 0) {
     });
   }, ms);
 }
-let suppressClickKey = null;       // avoid double-toggle on drag start
-// --- Drag selection state ---
-let isDragging = false;
-let lastDragKey = null;
 
 function getSelectionInfo(target) {
   if (!target) return null;
   if (typeof target.dataset.index !== 'undefined') {
     const idx = parseIntSafe(target.dataset.index);
     if (Number.isFinite(idx)) {
-      return { type: 'int', index: idx, selectionKey: `pulse:${idx}` };
+      const key = `pulse:${idx}`;
+      return { type: 'int', index: idx, selectionKey: key, key };
     }
   }
   if (target.dataset.fractionKey) {
     const info = getFractionInfoFromElement(target);
     if (info) {
-      return { ...info, selectionKey: `fraction:${info.key}` };
+      const key = `fraction:${info.key}`;
+      return { ...info, selectionKey: key, key };
     }
   }
   return null;
@@ -1282,8 +1249,7 @@ function attachSelectionListeners(el) {
   el.addEventListener('click', (ev) => {
     const info = getSelectionInfo(ev.currentTarget);
     if (!info) return;
-    if (suppressClickKey === info.selectionKey) {
-      suppressClickKey = null;
+    if (dragController.consumeSuppressClick(info.selectionKey)) {
       ev.preventDefault();
       ev.stopPropagation();
       return;
@@ -1291,48 +1257,31 @@ function attachSelectionListeners(el) {
     toggleSelectionInfo(info);
   });
   el.addEventListener('pointerenter', () => {
-    if (!isDragging) return;
     const info = getSelectionInfo(el);
-    if (!info || lastDragKey === info.selectionKey) return;
-    lastDragKey = info.selectionKey;
-    applySelectionInfo(info, dragMode === 'select');
+    if (!info) return;
+    dragController.handleEnter(info);
   });
 }
 
-// Start drag on the timeline area and decide drag mode based on first target under pointer
-timeline.addEventListener('pointerdown', (e) => {
-  isDragging = true;
-  lastDragKey = null;
-  dragMode = 'select';
-  const target = e.target.closest('.pulse-hit, .pulse, .fraction-hit, .cycle-marker');
-  const info = getSelectionInfo(target);
-  if (info) {
+dragController.attach({
+  timeline,
+  resolveTarget: ({ target }) => {
+    const base = target?.closest('.pulse-hit, .pulse, .fraction-hit, .cycle-marker');
+    const info = getSelectionInfo(base);
+    if (!info) return null;
     if (info.type === 'int') {
       const lg = parseIntSafe(inputLg.value);
       if (!Number.isFinite(lg) || info.index === 0 || info.index === lg) {
-        suppressClickKey = null;
-        lastDragKey = null;
-        isDragging = false;
-        return;
+        return null;
       }
       ensurePulseMemory(Math.max(info.index, lg));
     }
-    dragMode = isSelectionActive(info) ? 'deselect' : 'select';
-    applySelectionInfo(info, dragMode === 'select');
-    suppressClickKey = info.selectionKey;
-    lastDragKey = info.selectionKey;
-  }
-});
-// End/Cancel drag globally
-document.addEventListener('pointerup', () => {
-  isDragging = false;
-  lastDragKey = null;
-  // Do not clear suppressClickKey here; allow click handler to consume it
-});
-document.addEventListener('pointercancel', () => {
-  isDragging = false;
-  lastDragKey = null;
-  suppressClickKey = null;
+    return info;
+  },
+  applySelection: (info, shouldSelect) => {
+    applySelectionInfo(info, shouldSelect);
+  },
+  isSelectionActive: (info) => isSelectionActive(info)
 });
 // Hovers for LEDs and controls
 // LEDs ahora indican los campos editables; el apagado se recalcula
@@ -1631,7 +1580,7 @@ loopBtn.addEventListener('click', () => {
 });
 
 resetBtn.addEventListener('click', () => {
-  pulseMemory = [];
+  pulseMemoryApi.clear();
   clearOpt(FRACTION_NUMERATOR_KEY);
   clearOpt(FRACTION_DENOMINATOR_KEY);
   window.location.reload();
@@ -2938,7 +2887,7 @@ function syncSelectedFromMemory() {
 function handlePulseSeqInput(){
   const lg = parseInt(inputLg.value);
   if (isNaN(lg) || lg <= 0) {
-    pulseMemory = [];
+    pulseMemoryApi.clear();
     renderTimeline();
     return;
   }
@@ -2989,8 +2938,7 @@ function clearHighlights() {
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
-  if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
-  if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+  pulseSeqController.clearActive();
   clearFractionHighlight();
   lastNormalizedStep = null;
   lastHighlightType = null;
@@ -3641,8 +3589,7 @@ function handlePlaybackStop(audioInstance) {
       sel && sel.removeAllRanges && sel.removeAllRanges();
     } catch {}
   }
-  if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
-  if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+  pulseSeqController.clearActive();
 }
 
 async function startPlayback(providedAudio) {
@@ -3928,6 +3875,8 @@ function getPulseSeqRectForIndex(index) {
   return getPulseSeqRectForKey(String(idx));
 }
 
+pulseSeqController.setRectResolver(getPulseSeqRectForIndex);
+
 function scrollPulseSeqToRect(rect) {
   if (!pulseSeqEl || !rect) return pulseSeqEl ? pulseSeqEl.scrollLeft : 0;
   const parentRect = pulseSeqEl.getBoundingClientRect();
@@ -3938,22 +3887,6 @@ function scrollPulseSeqToRect(rect) {
   pulseSeqEl.scrollLeft = newScrollLeft;
   if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
   return newScrollLeft;
-}
-
-function placePulseSeqHighlight(rect, highlightEl, newScrollLeft) {
-  if (!pulseSeqEl || !rect || !highlightEl) return;
-  const parent = pulseSeqEl.getBoundingClientRect();
-  const scrollLeft = Number.isFinite(newScrollLeft) ? newScrollLeft : pulseSeqEl.scrollLeft;
-  const cx = rect.left - parent.left + scrollLeft + rect.width / 2;
-  const cy = rect.top - parent.top + pulseSeqEl.scrollTop + rect.height / 2;
-  const size = Math.max(rect.width, rect.height) * 0.75;
-  highlightEl.style.width = `${size}px`;
-  highlightEl.style.height = `${size}px`;
-  highlightEl.style.left = `${cx}px`;
-  highlightEl.style.top = `${cy}px`;
-  highlightEl.classList.remove('active');
-  void highlightEl.offsetWidth;
-  highlightEl.classList.add('active');
 }
 
 function clearFractionHighlight() {
@@ -4011,8 +3944,7 @@ function highlightPulse(payload){
     lastHighlightIntIndex = null;
     lastHighlightFractionKey = null;
     clearFractionHighlight();
-    if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
-    if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+    pulseSeqController.clearActive();
     return;
   }
 
@@ -4117,13 +4049,15 @@ function highlightPulse(payload){
       const rect = getPulseSeqRectForKey(fractionKey);
       if (rect) {
         newScrollLeft = scrollPulseSeqToRect(rect);
-        placePulseSeqHighlight(rect, pulseSeqHighlight, newScrollLeft);
-      } else if (pulseSeqHighlight) {
-        pulseSeqHighlight.classList.remove('active');
+        pulseSeqController.setActiveIndex(0, {
+          rect,
+          scrollLeft: newScrollLeft
+        });
+      } else {
+        pulseSeqController.clearActive();
       }
-      if (pulseSeqHighlight2) {
-        pulseSeqHighlight2.classList.remove('active');
-      }
+    } else {
+      pulseSeqController.clearActive();
     }
   } else {
     applyFractionHighlight(null);
@@ -4139,22 +4073,25 @@ function highlightPulse(payload){
     }
     if (pulseSeqEl) {
       const rect = getPulseSeqRectForIndex(idx);
+      let trailingRect = null;
+      let trailingIndex = null;
+      if (idx === 0 && loopEnabled) {
+        trailingIndex = pulses.length - 1;
+        trailingRect = getPulseSeqRectForIndex(trailingIndex);
+      }
       if (rect) {
         newScrollLeft = scrollPulseSeqToRect(rect);
-        placePulseSeqHighlight(rect, pulseSeqHighlight, newScrollLeft);
-      } else if (pulseSeqHighlight) {
-        pulseSeqHighlight.classList.remove('active');
+        pulseSeqController.setActiveIndex(idx, {
+          rect,
+          trailingIndex,
+          trailingRect,
+          scrollLeft: newScrollLeft
+        });
+      } else {
+        pulseSeqController.clearActive();
       }
-      if (idx === 0 && loopEnabled) {
-        const lastRect = getPulseSeqRectForIndex(pulses.length - 1);
-        if (lastRect) {
-          placePulseSeqHighlight(lastRect, pulseSeqHighlight2, newScrollLeft);
-        } else if (pulseSeqHighlight2) {
-          pulseSeqHighlight2.classList.remove('active');
-        }
-      } else if (pulseSeqHighlight2) {
-        pulseSeqHighlight2.classList.remove('active');
-      }
+    } else {
+      pulseSeqController.clearActive();
     }
   }
 }
