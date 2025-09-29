@@ -510,7 +510,7 @@ function applySelectionToAudio({ scheduling, instance } = {}) {
   const resolvedSelectionResolution = Number.isFinite(selection?.resolution)
     ? Math.max(1, Math.round(selection.resolution))
     : 1;
-  target.setSelected({ values: audioValues, resolution: resolvedSelectionResolution });
+  target.setSelected({ values: audioValues, resolution: 1 });
   currentAudioResolution = resolvedSelectionResolution;
   return selection;
 }
@@ -3137,7 +3137,7 @@ async function startPlayback(providedAudio) {
   const selectionValuesForAudio = selectionForAudio.audio ?? selectionForAudio.combined;
   const selectionPayload = {
     values: selectionValuesForAudio,
-    resolution: effectiveResolution
+    resolution: 1
   };
 
   audioInstance.play(
