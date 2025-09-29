@@ -8,6 +8,8 @@ import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
+import { bindRhythmElements } from '../../libs/app-common/dom.js';
+import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -21,21 +23,66 @@ bindSharedSoundEvents({
     startSound: 'setStart'
   }
 });
-const inputLg = document.getElementById('inputLg');
-const inputV = document.getElementById('inputV');
-const inputT = document.getElementById('inputT');
-const inputVUp = document.getElementById('inputVUp');
-const inputVDown = document.getElementById('inputVDown');
-const inputLgUp = document.getElementById('inputLgUp');
-const inputLgDown = document.getElementById('inputLgDown');
-const ledLg = document.getElementById('ledLg');
-const ledV = document.getElementById('ledV');
-const ledT = document.getElementById('ledT');
-const unitLg = document.getElementById('unitLg');
-const unitV = document.getElementById('unitV');
-const unitT = document.getElementById('unitT');
+// Bind all DOM elements using new utilities
+const { elements, leds, ledHelpers } = bindRhythmElements({
+  inputLg: 'inputLg',
+  inputV: 'inputV',
+  inputT: 'inputT',
+  inputVUp: 'inputVUp',
+  inputVDown: 'inputVDown',
+  inputLgUp: 'inputLgUp',
+  inputLgDown: 'inputLgDown',
+  ledLg: 'ledLg',
+  ledV: 'ledV',
+  ledT: 'ledT',
+  unitLg: 'unitLg',
+  unitV: 'unitV',
+  unitT: 'unitT',
+  // App2-specific elements
+  pulseSeq: 'pulseSeq',
+  formula: 'formula',
+  timelineWrapper: 'timelineWrapper',
+  timeline: 'timeline',
+  playBtn: 'playBtn',
+  loopBtn: 'loopBtn',
+  resetBtn: 'resetBtn',
+  tapBtn: 'tapTempoBtn',
+  tapHelp: 'tapHelp',
+  circularTimelineToggle: 'circularTimelineToggle',
+  randomBtn: 'randomBtn',
+  randomMenu: 'randomMenu',
+  randLgToggle: 'randLgToggle',
+  randLgMin: 'randLgMin',
+  randLgMax: 'randLgMax',
+  randVToggle: 'randVToggle',
+  randVMin: 'randVMin',
+  randVMax: 'randVMax',
+  randPulsesToggle: 'randPulsesToggle',
+  randomCount: 'randomCount',
+  randTToggle: 'randTToggle',
+  randTMin: 'randTMin',
+  randTMax: 'randTMax',
+  themeSelect: 'themeSelect',
+  selectColor: 'selectColor',
+  baseSoundSelect: 'baseSoundSelect',
+  accentSoundSelect: 'accentSoundSelect',
+  startSoundSelect: 'startSoundSelect'
+});
+
+// Create LED managers for Lg, V, T parameters
+const ledManagers = createRhythmLEDManagers(leds);
+
+// Extract commonly used elements for backward compatibility
+const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
+        ledLg, ledV, ledT, unitLg, unitV, unitT, formula, timelineWrapper,
+        timeline, playBtn, loopBtn, resetBtn, tapBtn, tapHelp,
+        circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
+        randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
+        randTToggle, randTMin, randTMax, themeSelect, selectColor, baseSoundSelect,
+        accentSoundSelect, startSoundSelect } = elements;
+
 // Pulse sequence UI element (contenteditable div in template)
-const pulseSeqEl = document.getElementById('pulseSeq');
+const pulseSeqEl = elements.pulseSeq;
 const pulseSeqController = createPulseSeqController();
 const pulseMemoryApi = pulseSeqController.memory;
 const pulseMemory = pulseMemoryApi.data;
@@ -58,9 +105,7 @@ function moveCaretToNearestMidpoint() {
 function moveCaretStep(dir) {
   pulseSeqController.moveCaretStep(dir);
 }
-const formula = document.getElementById('formula');
-const timelineWrapper = document.getElementById('timelineWrapper');
-const timeline = document.getElementById('timeline');
+// T indicator setup (App2-specific functionality)
 const shouldRenderTIndicator = Boolean(inputT);
 const tIndicator = shouldRenderTIndicator ? (() => {
   const indicator = document.createElement('div');
@@ -70,31 +115,6 @@ const tIndicator = shouldRenderTIndicator ? (() => {
   timeline.appendChild(indicator);
   return indicator;
 })() : null;
-const playBtn = document.getElementById('playBtn');
-const loopBtn = document.getElementById('loopBtn');
-const resetBtn = document.getElementById('resetBtn');
-const tapBtn = document.getElementById('tapTempoBtn');
-const tapHelp = document.getElementById('tapHelp');
-const circularTimelineToggle = document.getElementById('circularTimelineToggle');
-const randomBtn = document.getElementById('randomBtn');
-const randomMenu = document.getElementById('randomMenu');
-const randLgToggle = document.getElementById('randLgToggle');
-const randLgMin = document.getElementById('randLgMin');
-const randLgMax = document.getElementById('randLgMax');
-const randVToggle = document.getElementById('randVToggle');
-const randVMin = document.getElementById('randVMin');
-const randVMax = document.getElementById('randVMax');
-const randPulsesToggle = document.getElementById('randPulsesToggle');
-const randomCount = document.getElementById('randomCount');
-const randTToggle = document.getElementById('randTToggle');
-const randTMin = document.getElementById('randTMin');
-const randTMax = document.getElementById('randTMax');
-// Mute is managed by the shared header (#muteBtn)
-const themeSelect = document.getElementById('themeSelect');
-const selectColor = document.getElementById('selectColor');
-const baseSoundSelect = document.getElementById('baseSoundSelect');
-const accentSoundSelect = document.getElementById('accentSoundSelect');
-const startSoundSelect = document.getElementById('startSoundSelect');
 const titleHeading = document.querySelector('header.top-bar h1');
 let titleButton = null;
 if (titleHeading) {

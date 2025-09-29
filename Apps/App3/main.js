@@ -12,6 +12,7 @@ import { fromLgAndTempo, gridFromOrigin, computeSubdivisionFontRem, toPlaybackPu
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 import { parseIntSafe, parseFloatSafe } from '../../libs/app-common/number.js';
 import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
+import { bindRhythmElements } from '../../libs/app-common/dom.js';
 
 let audio;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
@@ -59,48 +60,61 @@ registerFactoryReset({
   }
 });
 
-const inputLg = document.getElementById('inputLg');
-const inputV = document.getElementById('inputV');
-const inputLgUp = document.getElementById('inputLgUp');
-const inputLgDown = document.getElementById('inputLgDown');
-const inputVUp = document.getElementById('inputVUp');
-const inputVDown = document.getElementById('inputVDown');
-const unitLg = document.getElementById('unitLg');
-const unitV = document.getElementById('unitV');
-const formula = document.getElementById('formula');
-const timelineWrapper = document.getElementById('timelineWrapper');
-const timeline = document.getElementById('timeline');
-const playBtn = document.getElementById('playBtn');
-const loopBtn = document.getElementById('loopBtn');
-const randomBtn = document.getElementById('randomBtn');
-const randomMenu = document.getElementById('randomMenu');
-const mixerMenu = document.getElementById('mixerMenu');
-const tapBtn = document.getElementById('tapTempoBtn');
-const tapHelp = document.getElementById('tapHelp');
-const resetBtn = document.getElementById('resetBtn');
-const circularTimelineToggle = document.getElementById('circularTimelineToggle');
+// Bind all DOM elements using new utilities
+const { elements } = bindRhythmElements({
+  inputLg: 'inputLg',
+  inputV: 'inputV',
+  inputT: 'inputT',
+  inputLgUp: 'inputLgUp',
+  inputLgDown: 'inputLgDown',
+  inputVUp: 'inputVUp',
+  inputVDown: 'inputVDown',
+  unitLg: 'unitLg',
+  unitV: 'unitV',
+  formula: 'formula',
+  timelineWrapper: 'timelineWrapper',
+  timeline: 'timeline',
+  playBtn: 'playBtn',
+  loopBtn: 'loopBtn',
+  randomBtn: 'randomBtn',
+  randomMenu: 'randomMenu',
+  mixerMenu: 'mixerMenu',
+  tapBtn: 'tapTempoBtn',
+  tapHelp: 'tapHelp',
+  resetBtn: 'resetBtn',
+  circularTimelineToggle: 'circularTimelineToggle',
+  // App3-specific random controls
+  randLgToggle: 'randLgToggle',
+  randLgMin: 'randLgMin',
+  randLgMax: 'randLgMax',
+  randVToggle: 'randVToggle',
+  randVMin: 'randVMin',
+  randVMax: 'randVMax',
+  randNToggle: 'randNToggle',
+  randNMin: 'randNMin',
+  randNMax: 'randNMax',
+  randDToggle: 'randDToggle',
+  randDMin: 'randDMin',
+  randDMax: 'randDMax',
+  randComplexToggle: 'randComplexToggle',
+  // Sound selects
+  baseSoundSelect: 'baseSoundSelect',
+  startSoundSelect: 'startSoundSelect',
+  cycleSoundSelect: 'cycleSoundSelect',
+  themeSelect: 'themeSelect',
+  // Toggle buttons
+  pulseToggleBtn: 'pulseToggleBtn',
+  cycleToggleBtn: 'cycleToggleBtn'
+});
 
-const randLgToggle = document.getElementById('randLgToggle');
-const randLgMin = document.getElementById('randLgMin');
-const randLgMax = document.getElementById('randLgMax');
-const randVToggle = document.getElementById('randVToggle');
-const randVMin = document.getElementById('randVMin');
-const randVMax = document.getElementById('randVMax');
-const randNToggle = document.getElementById('randNToggle');
-const randNMin = document.getElementById('randNMin');
-const randNMax = document.getElementById('randNMax');
-const randDToggle = document.getElementById('randDToggle');
-const randDMin = document.getElementById('randDMin');
-const randDMax = document.getElementById('randDMax');
-const randComplexToggle = document.getElementById('randComplexToggle');
-
-const baseSoundSelect = document.getElementById('baseSoundSelect');
-const startSoundSelect = document.getElementById('startSoundSelect');
-const cycleSoundSelect = document.getElementById('cycleSoundSelect');
-const themeSelect = document.getElementById('themeSelect');
-const pulseToggleBtn = document.getElementById('pulseToggleBtn');
-const cycleToggleBtn = document.getElementById('cycleToggleBtn');
-const inputT = document.getElementById('inputT');
+// Extract commonly used elements for backward compatibility
+const { inputLg, inputV, inputT, inputLgUp, inputLgDown, inputVUp, inputVDown,
+        unitLg, unitV, formula, timelineWrapper, timeline, playBtn, loopBtn,
+        randomBtn, randomMenu, mixerMenu, tapBtn, tapHelp, resetBtn,
+        circularTimelineToggle, randLgToggle, randLgMin, randLgMax, randVToggle,
+        randVMin, randVMax, randNToggle, randNMin, randNMax, randDToggle,
+        randDMin, randDMax, randComplexToggle, baseSoundSelect, startSoundSelect,
+        cycleSoundSelect, themeSelect, pulseToggleBtn, cycleToggleBtn } = elements;
 const titleHeading = document.querySelector('header.top-bar h1');
 let titleButton = null;
 if (titleHeading) {

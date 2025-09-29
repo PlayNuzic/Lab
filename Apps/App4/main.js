@@ -14,6 +14,8 @@ import { randomize as randomizeValues } from '../../libs/random/index.js';
 import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 import { parseIntSafe, gcd, lcm } from '../../libs/app-common/number.js';
+import { bindRhythmElements } from '../../libs/app-common/dom.js';
+import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import {
   FRACTION_POSITION_EPSILON,
   TEXT_NODE_TYPE,
@@ -54,21 +56,73 @@ bindSharedSoundEvents({
     cycleSound: 'setCycle'
   }
 });
-const inputLg = document.getElementById('inputLg');
-const inputV = document.getElementById('inputV');
-const inputT = document.getElementById('inputT');
-const inputVUp = document.getElementById('inputVUp');
-const inputVDown = document.getElementById('inputVDown');
-const inputLgUp = document.getElementById('inputLgUp');
-const inputLgDown = document.getElementById('inputLgDown');
-const ledLg = document.getElementById('ledLg');
-const ledV = document.getElementById('ledV');
-const ledT = document.getElementById('ledT');
-const unitLg = document.getElementById('unitLg');
-const unitV = document.getElementById('unitV');
-const unitT = document.getElementById('unitT');
-// Pulse sequence UI element (contenteditable div in template)
-const pulseSeqEl = document.getElementById('pulseSeq');
+// Bind all DOM elements using new utilities
+const { elements, leds, ledHelpers } = bindRhythmElements({
+  inputLg: 'inputLg',
+  inputV: 'inputV',
+  inputT: 'inputT',
+  inputVUp: 'inputVUp',
+  inputVDown: 'inputVDown',
+  inputLgUp: 'inputLgUp',
+  inputLgDown: 'inputLgDown',
+  ledLg: 'ledLg',
+  ledV: 'ledV',
+  ledT: 'ledT',
+  unitLg: 'unitLg',
+  unitV: 'unitV',
+  unitT: 'unitT',
+  // App4-specific elements
+  pulseSeq: 'pulseSeq',
+  formula: 'formula',
+  timelineWrapper: 'timelineWrapper',
+  timeline: 'timeline',
+  playBtn: 'playBtn',
+  loopBtn: 'loopBtn',
+  resetBtn: 'resetBtn',
+  tapBtn: 'tapTempoBtn',
+  tapHelp: 'tapHelp',
+  circularTimelineToggle: 'circularTimelineToggle',
+  randomBtn: 'randomBtn',
+  randomMenu: 'randomMenu',
+  // Random controls
+  randLgToggle: 'randLgToggle',
+  randLgMin: 'randLgMin',
+  randLgMax: 'randLgMax',
+  randVToggle: 'randVToggle',
+  randVMin: 'randVMin',
+  randVMax: 'randVMax',
+  randPulsesToggle: 'randPulsesToggle',
+  randomCount: 'randomCount',
+  randTToggle: 'randTToggle',
+  randTMin: 'randTMin',
+  randTMax: 'randTMax',
+  // Sound controls
+  baseSoundSelect: 'baseSoundSelect',
+  accentSoundSelect: 'accentSoundSelect',
+  startSoundSelect: 'startSoundSelect',
+  cycleSoundSelect: 'cycleSoundSelect',
+  themeSelect: 'themeSelect',
+  // Toggle buttons
+  pulseToggleBtn: 'pulseToggleBtn',
+  selectedToggleBtn: 'selectedToggleBtn',
+  cycleToggleBtn: 'cycleToggleBtn'
+});
+
+// Create LED managers for Lg, V, T parameters
+const ledManagers = createRhythmLEDManagers(leds);
+
+// Extract commonly used elements for backward compatibility
+const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
+        ledLg, ledV, ledT, unitLg, unitV, unitT, formula, timelineWrapper,
+        timeline, playBtn, loopBtn, resetBtn, tapBtn, tapHelp,
+        circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
+        randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
+        randTToggle, randTMin, randTMax, baseSoundSelect, accentSoundSelect,
+        startSoundSelect, cycleSoundSelect, themeSelect, pulseToggleBtn,
+        selectedToggleBtn, cycleToggleBtn } = elements;
+
+// App4-specific elements
+const pulseSeqEl = elements.pulseSeq;
 const fractionInlineSlot = document.getElementById(FRACTION_INLINE_SLOT_ID);
 
 let numeratorInput;
@@ -116,9 +170,8 @@ const { editEl: pulseSeqEditEl } = pulseSeqController.mount({
   onTextSet: (value) => updatePulseSeqVisualLayer(value)
 });
 const dragController = pulseSeqController.drag;
-const formula = document.getElementById('formula');
-const timelineWrapper = document.getElementById('timelineWrapper');
-const timeline = document.getElementById('timeline');
+
+// T indicator setup (App4-specific functionality)
 const shouldRenderTIndicator = Boolean(inputT);
 const tIndicator = shouldRenderTIndicator ? (() => {
   const indicator = document.createElement('div');
@@ -128,42 +181,15 @@ const tIndicator = shouldRenderTIndicator ? (() => {
   timeline.appendChild(indicator);
   return indicator;
 })() : null;
-const playBtn = document.getElementById('playBtn');
-const loopBtn = document.getElementById('loopBtn');
-const resetBtn = document.getElementById('resetBtn');
-const tapBtn = document.getElementById('tapTempoBtn');
-const tapHelp = document.getElementById('tapHelp');
-const circularTimelineToggle = document.getElementById('circularTimelineToggle');
-const randomBtn = document.getElementById('randomBtn');
-const randomMenu = document.getElementById('randomMenu');
-const randLgToggle = document.getElementById('randLgToggle');
-const randLgMin = document.getElementById('randLgMin');
-const randLgMax = document.getElementById('randLgMax');
-const randVToggle = document.getElementById('randVToggle');
-const randVMin = document.getElementById('randVMin');
-const randVMax = document.getElementById('randVMax');
-const randPulsesToggle = document.getElementById('randPulsesToggle');
-const randomCount = document.getElementById('randomCount');
-const randTToggle = document.getElementById('randTToggle');
-const randTMin = document.getElementById('randTMin');
-const randTMax = document.getElementById('randTMax');
+// App4-specific additional elements
+const randComplexToggle = document.getElementById('randComplexToggle');
+const selectColor = document.getElementById('selectColor');
 const randNToggle = document.getElementById('randNToggle');
 const randNMin = document.getElementById('randNMin');
 const randNMax = document.getElementById('randNMax');
 const randDToggle = document.getElementById('randDToggle');
 const randDMin = document.getElementById('randDMin');
 const randDMax = document.getElementById('randDMax');
-const randComplexToggle = document.getElementById('randComplexToggle');
-// Mute is managed by the shared header (#muteBtn)
-const themeSelect = document.getElementById('themeSelect');
-const selectColor = document.getElementById('selectColor');
-const baseSoundSelect = document.getElementById('baseSoundSelect');
-const accentSoundSelect = document.getElementById('accentSoundSelect');
-const startSoundSelect = document.getElementById('startSoundSelect');
-const cycleSoundSelect = document.getElementById('cycleSoundSelect');
-const pulseToggleBtn = document.getElementById('pulseToggleBtn');
-const selectedToggleBtn = document.getElementById('selectedToggleBtn');
-const cycleToggleBtn = document.getElementById('cycleToggleBtn');
 const titleHeading = document.querySelector('header.top-bar h1');
 let titleButton = null;
 if (titleHeading) {
