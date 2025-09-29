@@ -8,6 +8,7 @@ import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import createFractionEditor, { createEmptyFractionInfo } from '../../libs/app-common/fraction-editor.js';
+import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
 import { randomize as randomizeValues } from '../../libs/random/index.js';
 // Using local header controls for App2 (no shared init)
 
@@ -87,7 +88,7 @@ const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
 const cycleSoundSelect = document.getElementById('cycleSoundSelect');
-const fractionInlineSlot = document.getElementById('fractionInlineSlot');
+const fractionInlineSlot = document.getElementById(FRACTION_INLINE_SLOT_ID);
 const pulseToggleBtn = document.getElementById('pulseToggleBtn');
 const selectedToggleBtn = document.getElementById('selectedToggleBtn');
 const cycleToggleBtn = document.getElementById('cycleToggleBtn');
@@ -328,6 +329,7 @@ function initFractionEditorController() {
   fractionEditorController = null;
 
   const controller = createFractionEditor({
+    mode: 'inline',
     host,
     defaults: fractionDefaults,
     storage: {

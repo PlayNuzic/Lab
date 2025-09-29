@@ -5,6 +5,21 @@ const FRACTION_HOVER_DENOMINATOR_TYPE = 'denominator';
 const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
 const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
 
+const DEFAULT_LABELS = {
+  numerator: {
+    placeholder: 'n',
+    ariaUp: 'Incrementar numerador',
+    ariaDown: 'Decrementar numerador'
+  },
+  denominator: {
+    placeholder: 'd',
+    ariaUp: 'Incrementar denominador',
+    ariaDown: 'Decrementar denominador'
+  }
+};
+
+const CONTROLLER_SYMBOL = Symbol('fractionEditorController');
+
 function parsePositiveInt(value) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
@@ -57,7 +72,7 @@ function buildReductionHoverText(info) {
   if (!info || !info.isMultiple) return '';
   const accentEvery = Math.max(1, Math.round(info.multipleFactor));
   const noun = accentEvery === 1 ? 'subdivisión' : 'subdivisiones';
-  return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}.\nSe repite ${accentEvery} veces la misma ${noun} en cada fracción ${info.numerator}/${info.denominator}.`;
+  return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}. Se repite ${accentEvery} veces la misma ${noun} en cada fracción ${info.numerator}/${info.denominator}.`;
 }
 
 function noop() {}
@@ -67,7 +82,24 @@ function ensureBackground(fn) {
   return (el) => { if (el) deprecatedSolidMenuBackground(el); };
 }
 
+function mergeLabels(labels = {}) {
+  return {
+    numerator: { ...DEFAULT_LABELS.numerator, ...(labels.numerator ?? {}) },
+    denominator: { ...DEFAULT_LABELS.denominator, ...(labels.denominator ?? {}) }
+  };
+}
+
+function assignAria(button, label) {
+  if (!button) return;
+  if (label) {
+    button.setAttribute('aria-label', label);
+  } else {
+    button.removeAttribute('aria-label');
+  }
+}
+
 export function createFractionEditor({
+  mode = 'inline',
   host,
   defaults = {},
   storage = {},
@@ -75,9 +107,18 @@ export function createFractionEditor({
   applyMenuBackground,
   onChange = noop,
   hoverTexts = {},
+  labels = {},
   autoHideMs = 3000
 } = {}) {
   const safeHost = host ?? null;
+  if (!safeHost) return null;
+
+  if (safeHost[CONTROLLER_SYMBOL]) {
+    return safeHost[CONTROLLER_SYMBOL];
+  }
+
+  const isInline = mode === 'inline';
+  const fieldLabels = mergeLabels(labels);
   const load = typeof storage.load === 'function' ? storage.load : noop;
   const save = typeof storage.save === 'function' ? storage.save : noop;
   const clear = typeof storage.clear === 'function' ? storage.clear : noop;
@@ -99,6 +140,10 @@ export function createFractionEditor({
       container: null,
       numerator: null,
       denominator: null
+    },
+    fields: {
+      numerator: { wrapper: null, placeholder: null },
+      denominator: { wrapper: null, placeholder: null }
     }
   };
 
@@ -124,6 +169,12 @@ export function createFractionEditor({
     if (clearMessage) bubble.textContent = '';
   }
 
+  function getDefaultHoverText(type) {
+    return type === FRACTION_HOVER_DENOMINATOR_TYPE
+      ? (hoverTexts.denominator ?? DEFAULT_DENOMINATOR_HOVER_TEXT)
+      : (hoverTexts.numerator ?? DEFAULT_NUMERATOR_HOVER_TEXT);
+  }
+
   function showInfo({ message, autoHide = false } = {}) {
     const bubble = elements.infoBubble;
     if (!bubble) return;
@@ -145,10 +196,7 @@ export function createFractionEditor({
     if (!target) return;
     target.addEventListener('mouseenter', (event) => {
       const type = event?.currentTarget?.dataset?.fractionHoverType;
-      const defaultText = type === FRACTION_HOVER_DENOMINATOR_TYPE
-        ? (hoverTexts.denominator ?? DEFAULT_DENOMINATOR_HOVER_TEXT)
-        : (hoverTexts.numerator ?? DEFAULT_NUMERATOR_HOVER_TEXT);
-      showInfo({ message: currentMessage || defaultText });
+      showInfo({ message: currentMessage || getDefaultHoverText(type) });
     });
     target.addEventListener('mouseleave', () => {
       hideInfo();
@@ -156,10 +204,7 @@ export function createFractionEditor({
     if (useFocus) {
       target.addEventListener('focus', (event) => {
         const type = event?.currentTarget?.dataset?.fractionHoverType;
-        const defaultText = type === FRACTION_HOVER_DENOMINATOR_TYPE
-          ? (hoverTexts.denominator ?? DEFAULT_DENOMINATOR_HOVER_TEXT)
-          : (hoverTexts.numerator ?? DEFAULT_NUMERATOR_HOVER_TEXT);
-        showInfo({ message: currentMessage || defaultText });
+        showInfo({ message: currentMessage || getDefaultHoverText(type) });
       });
       target.addEventListener('blur', () => {
         hideInfo();
@@ -188,7 +233,9 @@ export function createFractionEditor({
     }
   }
 
-  function updateFieldState(wrapper, placeholder, isEmpty) {
+  function updateFieldState(field, isEmpty) {
+    const wrapper = elements.fields[field]?.wrapper;
+    const placeholder = elements.fields[field]?.placeholder;
     if (!wrapper) return;
     const empty = !!isEmpty;
     wrapper.classList.toggle('fraction-field--empty', empty);
@@ -232,16 +279,8 @@ export function createFractionEditor({
   }
 
   function applyState({ reveal = false, cause = 'set', persist = true, silent = false } = {}) {
-    updateFieldState(
-      elements.wrapper?.querySelector('.fraction-field.numerator'),
-      elements.wrapper?.querySelector('.fraction-field.numerator .fraction-field-placeholder'),
-      !Number.isFinite(currentValues.numerator) || currentValues.numerator <= 0
-    );
-    updateFieldState(
-      elements.wrapper?.querySelector('.fraction-field.denominator'),
-      elements.wrapper?.querySelector('.fraction-field.denominator .fraction-field-placeholder'),
-      !Number.isFinite(currentValues.denominator) || currentValues.denominator <= 0
-    );
+    updateFieldState('numerator', !Number.isFinite(currentValues.numerator) || currentValues.numerator <= 0);
+    updateFieldState('denominator', !Number.isFinite(currentValues.denominator) || currentValues.denominator <= 0);
 
     currentInfo = computeFractionInfo(currentValues.numerator, currentValues.denominator);
     updateGhost(currentInfo);
@@ -291,24 +330,24 @@ export function createFractionEditor({
     setFraction({ [field]: next }, { cause: 'spinner' });
   }
 
-  function createField({ wrapperClass, placeholder }) {
+  function createField(field, labelOptions) {
     const fieldWrapper = document.createElement('div');
-    fieldWrapper.className = `fraction-field ${wrapperClass}`;
+    fieldWrapper.className = `fraction-field ${field}`;
     fieldWrapper.classList.add('fraction-field--empty');
-    fieldWrapper.dataset.fractionHoverType = wrapperClass;
+    fieldWrapper.dataset.fractionHoverType = field;
 
     const input = document.createElement('input');
     input.type = 'number';
     input.min = '1';
     input.step = '1';
     input.value = '';
-    input.className = wrapperClass;
-    input.dataset.fractionHoverType = wrapperClass;
+    input.className = field;
+    input.dataset.fractionHoverType = field;
     fieldWrapper.appendChild(input);
 
     const placeholderEl = document.createElement('div');
     placeholderEl.className = 'fraction-field-placeholder fraction-field-placeholder--visible';
-    placeholderEl.textContent = placeholder;
+    placeholderEl.textContent = labelOptions.placeholder ?? '';
     placeholderEl.setAttribute('aria-hidden', 'true');
     fieldWrapper.appendChild(placeholderEl);
 
@@ -317,22 +356,40 @@ export function createFractionEditor({
     const up = document.createElement('button');
     up.type = 'button';
     up.className = 'spin up';
+    assignAria(up, labelOptions.ariaUp);
     const down = document.createElement('button');
     down.type = 'button';
     down.className = 'spin down';
-    spinner.appendChild(up);
-    spinner.appendChild(down);
+    assignAria(down, labelOptions.ariaDown);
+    spinner.append(up, down);
     fieldWrapper.appendChild(spinner);
 
     return { wrapper: fieldWrapper, input, placeholder: placeholderEl, up, down };
+  }
+
+  function attachField(fieldKey, fieldElements) {
+    elements.fields[fieldKey] = {
+      wrapper: fieldElements.wrapper,
+      placeholder: fieldElements.placeholder
+    };
+
+    registerHoverTarget(fieldElements.wrapper);
+    registerHoverTarget(fieldElements.input, { useFocus: true });
+
+    fieldElements.input.addEventListener('input', () => handleInputChange(fieldKey, 'input'));
+    fieldElements.input.addEventListener('blur', () => handleInputChange(fieldKey, 'blur'));
+
+    attachRepeat(fieldElements.up, () => adjustInput(fieldKey, +1));
+    attachRepeat(fieldElements.down, () => adjustInput(fieldKey, -1));
   }
 
   function refresh(options = {}) {
     return applyState({ ...options, silent: true, persist: false });
   }
 
-  if (safeHost) {
-    safeHost.textContent = '';
+  safeHost.replaceChildren();
+
+  if (isInline) {
     safeHost.classList.add('fraction-inline-container');
     safeHost.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
 
@@ -341,7 +398,6 @@ export function createFractionEditor({
     wrapper.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
     elements.wrapper = wrapper;
     safeHost.appendChild(wrapper);
-    registerHoverTarget(wrapper);
 
     const ghostContainer = document.createElement('div');
     ghostContainer.className = 'fraction-ghost fraction-ghost--hidden';
@@ -366,10 +422,9 @@ export function createFractionEditor({
     const container = document.createElement('div');
     container.className = 'fraction-editor fraction-editor--inline';
     container.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
-    wrapper.appendChild(ghostContainer);
-    wrapper.appendChild(container);
+    wrapper.append(ghostContainer);
+    wrapper.append(container);
     elements.container = container;
-    registerHoverTarget(container);
 
     const infoBubble = document.createElement('div');
     infoBubble.className = 'fraction-info-bubble fraction-info-bubble--hidden';
@@ -381,7 +436,7 @@ export function createFractionEditor({
 
     const top = document.createElement('div');
     top.className = 'top';
-    const numeratorField = createField({ wrapperClass: 'numerator', placeholder: 'n' });
+    const numeratorField = createField('numerator', fieldLabels.numerator);
     top.appendChild(numeratorField.wrapper);
     container.appendChild(top);
 
@@ -393,7 +448,7 @@ export function createFractionEditor({
 
     const bottom = document.createElement('div');
     bottom.className = 'bottom';
-    const denominatorField = createField({ wrapperClass: 'denominator', placeholder: 'd' });
+    const denominatorField = createField('denominator', fieldLabels.denominator);
     bottom.appendChild(denominatorField.wrapper);
     container.appendChild(bottom);
 
@@ -401,47 +456,99 @@ export function createFractionEditor({
     elements.denominator = denominatorField.input;
 
     registerHoverTarget(safeHost);
-    registerHoverTarget(numeratorField.wrapper);
-    registerHoverTarget(denominatorField.wrapper);
-    registerHoverTarget(numeratorField.input, { useFocus: true });
-    registerHoverTarget(denominatorField.input, { useFocus: true });
+    registerHoverTarget(wrapper);
+    registerHoverTarget(container);
     registerHoverTarget(bar);
 
-    numeratorField.input.addEventListener('input', () => handleInputChange('numerator', 'input'));
-    numeratorField.input.addEventListener('blur', () => handleInputChange('numerator', 'blur'));
-    denominatorField.input.addEventListener('input', () => handleInputChange('denominator', 'input'));
-    denominatorField.input.addEventListener('blur', () => handleInputChange('denominator', 'blur'));
+    attachField('numerator', numeratorField);
+    attachField('denominator', denominatorField);
+  } else {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'fraction-editor-wrapper';
+    elements.wrapper = wrapper;
+    safeHost.appendChild(wrapper);
 
-    attachRepeat(numeratorField.up, () => adjustInput('numerator', +1));
-    attachRepeat(numeratorField.down, () => adjustInput('numerator', -1));
-    attachRepeat(denominatorField.up, () => adjustInput('denominator', +1));
-    attachRepeat(denominatorField.down, () => adjustInput('denominator', -1));
+    const ghostContainer = document.createElement('div');
+    ghostContainer.className = 'fraction-ghost fraction-ghost--hidden';
+    ghostContainer.setAttribute('aria-hidden', 'true');
+    const ghostNumeratorWrapper = document.createElement('div');
+    ghostNumeratorWrapper.className = 'fraction-ghost__numerator';
+    const ghostNumeratorText = document.createElement('span');
+    ghostNumeratorText.className = 'fraction-ghost__number';
+    ghostNumeratorWrapper.appendChild(ghostNumeratorText);
+    const ghostBar = document.createElement('div');
+    ghostBar.className = 'fraction-ghost__bar';
+    const ghostDenominatorWrapper = document.createElement('div');
+    ghostDenominatorWrapper.className = 'fraction-ghost__denominator';
+    const ghostDenominatorText = document.createElement('span');
+    ghostDenominatorText.className = 'fraction-ghost__number';
+    ghostDenominatorWrapper.appendChild(ghostDenominatorText);
+    ghostContainer.append(ghostNumeratorWrapper, ghostBar, ghostDenominatorWrapper);
+    elements.ghost.container = ghostContainer;
+    elements.ghost.numerator = ghostNumeratorText;
+    elements.ghost.denominator = ghostDenominatorText;
 
-    const storedNumerator = parsePositiveInt(load(numeratorKey));
-    const storedDenominator = parsePositiveInt(load(denominatorKey));
-    const initialNumerator = storedNumerator ?? parsePositiveInt(defaults.numerator);
-    const initialDenominator = storedDenominator ?? parsePositiveInt(defaults.denominator);
+    const container = document.createElement('div');
+    container.className = 'fraction-editor';
+    container.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
+    wrapper.append(ghostContainer);
+    wrapper.append(container);
+    elements.container = container;
 
-    setFraction({ numerator: initialNumerator, denominator: initialDenominator }, {
-      reveal: false,
-      persist: false,
-      silent: true,
-      cause: 'init'
-    });
+    const infoBubble = document.createElement('div');
+    infoBubble.className = 'fraction-info-bubble fraction-info-bubble--hidden';
+    infoBubble.setAttribute('role', 'status');
+    infoBubble.setAttribute('aria-live', 'polite');
+    applyBackground(infoBubble);
+    wrapper.appendChild(infoBubble);
+    elements.infoBubble = infoBubble;
 
-    if (storedNumerator == null) clear(numeratorKey);
-    if (storedDenominator == null) clear(denominatorKey);
+    const top = document.createElement('div');
+    top.className = 'top';
+    const numeratorField = createField('numerator', fieldLabels.numerator);
+    top.appendChild(numeratorField.wrapper);
+    container.appendChild(top);
 
-    applyState({ reveal: false, persist: false, cause: 'init', silent: true });
-    onChange({
-      numerator: currentValues.numerator,
-      denominator: currentValues.denominator,
-      info: currentInfo,
-      cause: 'init'
-    });
+    const bottom = document.createElement('div');
+    bottom.className = 'bottom';
+    const denominatorField = createField('denominator', fieldLabels.denominator);
+    bottom.appendChild(denominatorField.wrapper);
+    container.appendChild(bottom);
+
+    elements.numerator = numeratorField.input;
+    elements.denominator = denominatorField.input;
+
+    registerHoverTarget(wrapper);
+    registerHoverTarget(container);
+
+    attachField('numerator', numeratorField);
+    attachField('denominator', denominatorField);
   }
 
-  return {
+  const storedNumerator = parsePositiveInt(load(numeratorKey));
+  const storedDenominator = parsePositiveInt(load(denominatorKey));
+  const initialNumerator = storedNumerator ?? parsePositiveInt(defaults.numerator);
+  const initialDenominator = storedDenominator ?? parsePositiveInt(defaults.denominator);
+
+  setFraction({ numerator: initialNumerator, denominator: initialDenominator }, {
+    reveal: false,
+    persist: false,
+    silent: true,
+    cause: 'init'
+  });
+
+  if (storedNumerator == null) clear(numeratorKey);
+  if (storedDenominator == null) clear(denominatorKey);
+
+  applyState({ reveal: false, persist: false, cause: 'init', silent: true });
+  onChange({
+    numerator: currentValues.numerator,
+    denominator: currentValues.denominator,
+    info: currentInfo,
+    cause: 'init'
+  });
+
+  const controller = {
     elements,
     getFraction() {
       return { ...currentValues };
@@ -456,8 +563,12 @@ export function createFractionEditor({
     destroy() {
       clearHideTimer();
       currentMessage = '';
+      delete safeHost[CONTROLLER_SYMBOL];
     }
   };
+
+  safeHost[CONTROLLER_SYMBOL] = controller;
+  return controller;
 }
 
 export default createFractionEditor;

@@ -28,6 +28,7 @@ describe('fraction-editor', () => {
   test('initializes inputs with defaults and reports initial change', () => {
     const changes = [];
     createFractionEditor({
+      mode: 'inline',
       host: container,
       defaults: { numerator: 3, denominator: 7 },
       storage: {
@@ -51,6 +52,7 @@ describe('fraction-editor', () => {
   test('normalizes input changes and updates info bubble text', () => {
     const changes = [];
     const editor = createFractionEditor({
+      mode: 'inline',
       host: container,
       defaults: { numerator: 2, denominator: 4 },
       storage: {
@@ -81,6 +83,7 @@ describe('fraction-editor', () => {
   test('setFraction allows programmatic updates without notifying when silent', () => {
     const onChange = jest.fn();
     const editor = createFractionEditor({
+      mode: 'inline',
       host: container,
       storage: {
         load: () => null,
@@ -109,5 +112,35 @@ describe('fraction-editor', () => {
       isMultiple: false,
       multipleFactor: 1
     });
+  });
+
+  test('block mode mounts without duplicating markup and supports destroy', () => {
+    const blockHost = document.createElement('div');
+    document.body.appendChild(blockHost);
+    const controller = createFractionEditor({
+      mode: 'block',
+      host: blockHost,
+      defaults: { numerator: 5, denominator: 8 },
+      storage: {
+        load: () => null,
+        save: jest.fn(),
+        clear: jest.fn(),
+        numeratorKey: 'n',
+        denominatorKey: 'd'
+      }
+    });
+
+    expect(blockHost.querySelectorAll('.fraction-editor').length).toBe(1);
+    const inputs = blockHost.querySelectorAll('input');
+    expect(inputs).toHaveLength(2);
+    expect(inputs[0].value).toBe('5');
+    expect(inputs[1].value).toBe('8');
+
+    const second = createFractionEditor({ mode: 'block', host: blockHost });
+    expect(second).toBe(controller);
+
+    controller.destroy();
+    const third = createFractionEditor({ mode: 'block', host: blockHost });
+    expect(third).not.toBe(controller);
   });
 });
