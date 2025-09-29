@@ -155,6 +155,12 @@ const APP_SPECIFIC_ELEMENTS = {
     ledT: 'ledT',
     unitT: 'unitT',
     formula: 'formula',
+    randLgToggle: 'randLgToggle',
+    randLgMin: 'randLgMin',
+    randLgMax: 'randLgMax',
+    randVToggle: 'randVToggle',
+    randVMin: 'randVMin',
+    randVMax: 'randVMax',
     randTToggle: 'randTToggle',
     randTMin: 'randTMin',
     randTMax: 'randTMax'
