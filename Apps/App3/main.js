@@ -9,6 +9,7 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { fromLgAndTempo, gridFromOrigin, computeSubdivisionFontRem, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
+import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 
 let audio;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
@@ -669,6 +670,24 @@ function scheduleTIndicatorReveal(delay = 0) {
   }, ms);
 }
 
+const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
+  timeline,
+  timelineWrapper,
+  getLg: () => (pulses.length > 0 ? pulses.length - 1 : 0),
+  getPulses: () => pulses,
+  getBars: () => bars,
+  getCycleMarkers: () => cycleMarkers,
+  getCycleLabels: () => cycleLabels,
+  getPulseNumberLabels: () => pulseNumberLabels,
+  setPulseNumberLabels: (labels) => { pulseNumberLabels = labels; },
+  computeNumberFontRem,
+  pulseNumberHideThreshold: PULSE_NUMBER_HIDE_THRESHOLD,
+  numberCircleOffset: NUMBER_CIRCLE_OFFSET,
+  isCircularEnabled: () => circularTimeline && loopEnabled,
+  scheduleIndicatorReveal: scheduleTIndicatorReveal,
+  tIndicatorTransitionDelay: T_INDICATOR_TRANSITION_DELAY
+});
+
 function clearHighlights() {
   pulses.forEach(p => p.classList.remove('active'));
   cycleMarkers.forEach(m => m.classList.remove('active'));
@@ -745,211 +764,6 @@ function renderTimeline() {
   updatePulseNumbers();
   layoutTimeline({ silent: true });
   clearHighlights();
-}
-
-function showNumber(i, fontRem) {
-  const label = document.createElement('div');
-  label.className = 'pulse-number';
-  label.dataset.index = i;
-  label.textContent = i;
-  const lg = pulses.length - 1;
-  const sizeRem = typeof fontRem === 'number' ? fontRem : computeNumberFontRem(lg);
-  label.style.fontSize = `${sizeRem}rem`;
-  if (i === 0 || i === lg) label.classList.add('endpoint');
-  timeline.appendChild(label);
-  pulseNumberLabels.push(label);
-}
-
-function updatePulseNumbers() {
-  timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
-  pulseNumberLabels = [];
-  if (!pulses.length) return;
-  const lg = pulses.length - 1;
-  if (lg >= PULSE_NUMBER_HIDE_THRESHOLD) return;
-  const fontRem = computeNumberFontRem(lg);
-  showNumber(0, fontRem);
-  showNumber(lg, fontRem);
-  for (let i = 1; i < lg; i++) {
-    showNumber(i, fontRem);
-  }
-}
-
-/**
- * Distribueix els polsos i marques en mode lineal o circular segons l'estat actual.
- *
- * @param {{ silent?: boolean }} [opts] permet saltar animacions en re-renderitzats silenciosos.
- * @returns {void}
- * @remarks Es crida després de canvis d'inputs, resize i toggle circular. Depèn del DOM; PulseMemory 1..Lg-1 informant posicions mentre 0/Lg es deriva per sincronitzar `highlightPulse` i `computeNextZero`.
- */
-function layoutTimeline(opts = {}) {
-  const silent = !!opts.silent;
-  const lg = pulses.length - 1;
-  const useCircular = circularTimeline && loopEnabled;
-  const wasCircular = timeline.classList.contains('circular');
-  const desiredCircular = !!useCircular;
-  const delay = (!silent && wasCircular !== desiredCircular) ? T_INDICATOR_TRANSITION_DELAY : 0;
-  const queueIndicatorUpdate = () => scheduleTIndicatorReveal(delay);
-
-  if (lg <= 0) {
-    timelineWrapper.classList.remove('circular');
-    timeline.classList.remove('circular');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = wrapper.querySelector('.circle-guide');
-    if (guide) guide.style.opacity = '0';
-    queueIndicatorUpdate();
-    return;
-  }
-
-  if (desiredCircular) {
-    timelineWrapper.classList.add('circular');
-    timeline.classList.add('circular');
-    if (silent) timeline.classList.add('no-anim');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    let guide = wrapper.querySelector('.circle-guide');
-    if (!guide) {
-      guide = document.createElement('div');
-      guide.className = 'circle-guide';
-      guide.style.position = 'absolute';
-      guide.style.border = '2px solid var(--line-color)';
-      guide.style.borderRadius = '50%';
-      guide.style.pointerEvents = 'none';
-      guide.style.opacity = '0';
-      wrapper.appendChild(guide);
-    }
-
-    requestAnimationFrame(() => {
-      const tRect = timeline.getBoundingClientRect();
-      const cx = tRect.width / 2;
-      const cy = tRect.height / 2;
-      const radius = Math.min(tRect.width, tRect.height) / 2 - 1;
-
-      pulses.forEach((pulse, idx) => {
-        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-        const px = cx + radius * Math.cos(angle);
-        const py = cy + radius * Math.sin(angle);
-        pulse.style.left = `${px}px`;
-        pulse.style.top = `${py}px`;
-        pulse.style.transform = 'translate(-50%, -50%)';
-      });
-
-      bars.forEach((bar, idx) => {
-        const step = idx === 0 ? 0 : lg;
-        const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
-        const bx = cx + radius * Math.cos(angle);
-        const by = cy + radius * Math.sin(angle);
-        const barLen = Math.min(tRect.width, tRect.height) * 0.25;
-        const topPx = by - barLen / 2;
-        bar.style.display = 'block';
-        bar.style.left = `${bx - 1}px`;
-        bar.style.top = `${topPx}px`;
-        bar.style.height = `${barLen}px`;
-        bar.style.transformOrigin = '50% 50%';
-        bar.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
-      });
-
-      const numbers = timeline.querySelectorAll('.pulse-number');
-      numbers.forEach(label => {
-        const idx = parseIntSafe(label.dataset.index);
-        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-        const innerRadius = radius - NUMBER_CIRCLE_OFFSET;
-        let x = cx + innerRadius * Math.cos(angle);
-        let y = cy + innerRadius * Math.sin(angle);
-        if (idx === 0) x -= 16;
-        else if (idx === lg) x += 16;
-        if (idx === 0 || idx === lg) y += 8;
-        label.style.left = `${x}px`;
-        label.style.top = `${y}px`;
-        label.style.transform = 'translate(-50%, -50%)';
-      });
-
-      cycleMarkers.forEach(marker => {
-        const pos = Number(marker.dataset.position);
-        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
-        const mx = cx + radius * Math.cos(angle);
-        const my = cy + radius * Math.sin(angle);
-        marker.style.left = `${mx}px`;
-        marker.style.top = `${my}px`;
-        marker.style.transformOrigin = '50% 50%';
-        marker.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
-      });
-
-      const labelOffset = 36;
-      cycleLabels.forEach(label => {
-        const pos = Number(label.dataset.position);
-        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
-        const lx = cx + (radius + labelOffset) * Math.cos(angle);
-        const ly = cy + (radius + labelOffset) * Math.sin(angle);
-        label.style.left = `${lx}px`;
-        label.style.top = `${ly}px`;
-        label.style.transform = 'translate(-50%, -50%)';
-      });
-
-      guide.style.left = `${cx}px`;
-      guide.style.top = `${cy}px`;
-      guide.style.width = `${radius * 2}px`;
-      guide.style.height = `${radius * 2}px`;
-      guide.style.transform = 'translate(-50%, -50%)';
-      guide.style.opacity = '0';
-
-      queueIndicatorUpdate();
-
-      if (silent) {
-        void timeline.offsetHeight;
-        timeline.classList.remove('no-anim');
-      }
-    });
-  } else {
-    timelineWrapper.classList.remove('circular');
-    timeline.classList.remove('circular');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = wrapper.querySelector('.circle-guide');
-    if (guide) guide.style.opacity = '0';
-
-    pulses.forEach((pulse, idx) => {
-      const percent = (idx / lg) * 100;
-      pulse.style.left = `${percent}%`;
-      pulse.style.top = '50%';
-      pulse.style.transform = 'translate(-50%, -50%)';
-    });
-
-    bars.forEach((bar, idx) => {
-      const step = idx === 0 ? 0 : lg;
-      const percent = (step / lg) * 100;
-      bar.style.display = 'block';
-      bar.style.left = `${percent}%`;
-      bar.style.top = '15%';
-      bar.style.height = '70%';
-      bar.style.transform = '';
-    });
-
-    const numbers = timeline.querySelectorAll('.pulse-number');
-    numbers.forEach(label => {
-      const idx = parseIntSafe(label.dataset.index);
-      const percent = (idx / lg) * 100;
-      label.style.left = `${percent}%`;
-      label.style.top = '-28px';
-      label.style.transform = 'translate(-50%, 0)';
-    });
-
-    cycleMarkers.forEach(marker => {
-      const pos = Number(marker.dataset.position);
-      const percent = (pos / lg) * 100;
-      marker.style.left = `${percent}%`;
-      marker.style.top = '50%';
-      marker.style.transformOrigin = '50% 50%';
-      marker.style.transform = 'translate(-50%, -50%)';
-    });
-
-    cycleLabels.forEach(label => {
-      const pos = Number(label.dataset.position);
-      const percent = (pos / lg) * 100;
-      label.style.left = `${percent}%`;
-      label.style.top = 'calc(100% + 12px)';
-      label.style.transform = 'translate(-50%, 0)';
-    });
-
-    queueIndicatorUpdate();
-  }
 }
 
 function handleInput() {

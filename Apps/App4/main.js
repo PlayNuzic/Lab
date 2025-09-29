@@ -12,6 +12,7 @@ import createFractionEditor, { createEmptyFractionInfo } from '../../libs/app-co
 import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
 import { randomize as randomizeValues } from '../../libs/random/index.js';
 import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
+import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 import {
   FRACTION_POSITION_EPSILON,
   TEXT_NODE_TYPE,
@@ -889,6 +890,91 @@ function scheduleTIndicatorReveal(delay = 0) {
     });
   }, ms);
 }
+
+const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
+  timeline,
+  timelineWrapper,
+  getLg: () => (pulses.length > 0 ? pulses.length - 1 : 0),
+  getPulses: () => pulses,
+  getBars: () => bars,
+  getCycleMarkers: () => cycleMarkers,
+  getCycleLabels: () => cycleLabels,
+  getPulseNumberLabels: () => pulseNumberLabels,
+  setPulseNumberLabels: (labels) => { pulseNumberLabels = labels; },
+  computeNumberFontRem,
+  pulseNumberHideThreshold: PULSE_NUMBER_HIDE_THRESHOLD,
+  numberCircleOffset: NUMBER_CIRCLE_OFFSET,
+  isCircularEnabled: () => circularTimeline && loopEnabled,
+  scheduleIndicatorReveal: scheduleTIndicatorReveal,
+  tIndicatorTransitionDelay: T_INDICATOR_TRANSITION_DELAY,
+  requestAnimationFrame: raf,
+  callbacks: {
+    onAfterCircularLayout: (context) => {
+      const { centerX, centerY, radius, angleForIndex, angleForPosition, cycleMarkers: markerList } = context;
+
+      pulseHits.forEach((hit, idx) => {
+        if (!hit) return;
+        const angle = angleForIndex(idx);
+        const hx = centerX + radius * Math.cos(angle);
+        const hy = centerY + radius * Math.sin(angle);
+        hit.style.left = `${hx}px`;
+        hit.style.top = `${hy}px`;
+        hit.style.transform = 'translate(-50%, -50%)';
+      });
+
+      markerList.forEach((marker) => {
+        if (!marker) return;
+        const key = marker.dataset && marker.dataset.fractionKey;
+        if (!key || !fractionStore.hitMap.has(key)) return;
+        const pos = Number(marker.dataset.position);
+        if (!Number.isFinite(pos)) return;
+        const angle = angleForPosition(pos);
+        const mx = centerX + radius * Math.cos(angle);
+        const my = centerY + radius * Math.sin(angle);
+        const hit = fractionStore.hitMap.get(key);
+        if (hit) {
+          hit.style.left = `${mx}px`;
+          hit.style.top = `${my}px`;
+          hit.style.transform = 'translate(-50%, -50%)';
+        }
+      });
+
+      restoreCycleLabelDisplay();
+      schedulePulseSeqSpacingAdjust();
+    },
+    onAfterLinearLayout: (context) => {
+      const { percentForIndex, percentForPosition, cycleMarkers: markerList, lg } = context;
+
+      pulseHits.forEach((hit, idx) => {
+        if (!hit) return;
+        const percent = percentForIndex(idx);
+        hit.style.left = `${percent}%`;
+        hit.style.top = '50%';
+        hit.style.transform = 'translate(-50%, -50%)';
+      });
+
+      markerList.forEach((marker) => {
+        if (!marker) return;
+        const key = marker.dataset && marker.dataset.fractionKey;
+        if (!key || !fractionStore.hitMap.has(key)) return;
+        const pos = Number(marker.dataset.position);
+        if (!Number.isFinite(pos)) return;
+        const percent = percentForPosition(pos);
+        const hit = fractionStore.hitMap.get(key);
+        if (hit) {
+          hit.style.left = `${percent}%`;
+          hit.style.top = '50%';
+          hit.style.transform = 'translate(-50%, -50%)';
+        }
+      });
+
+      applyCycleLabelCompaction({ lg });
+    },
+    onAfterLayout: () => {
+      schedulePulseSeqSpacingAdjust();
+    }
+  }
+});
 
 function getSelectionInfo(target) {
   if (!target) return null;
@@ -2820,252 +2906,6 @@ function renderTimeline() {
   syncSelectedFromMemory();
   applyFractionSelectionClasses();
   clearHighlights();
-}
-
-function showNumber(i, fontRem) {
-  const label = document.createElement('div');
-  label.className = 'pulse-number';
-  label.dataset.index = i;
-  label.textContent = i;
-  const lg = pulses.length - 1;
-  const sizeRem = typeof fontRem === 'number' ? fontRem : computeNumberFontRem(lg);
-  label.style.fontSize = `${sizeRem}rem`;
-  if (lg > 0) {
-    const percent = (i / lg) * 100;
-    label.style.left = `${percent}%`;
-    label.style.top = '-28px';
-    label.style.transform = 'translate(-50%, 0)';
-  }
-  if (i === 0 || i === lg) label.classList.add('endpoint');
-  timeline.appendChild(label);
-  pulseNumberLabels.push(label);
-}
-
-function updatePulseNumbers() {
-  timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
-  pulseNumberLabels = [];
-  if (!pulses.length) return;
-  const lg = pulses.length - 1;
-  if (lg >= PULSE_NUMBER_HIDE_THRESHOLD) return;
-  const fontRem = computeNumberFontRem(lg);
-  showNumber(0, fontRem);
-  showNumber(lg, fontRem);
-  for (let i = 1; i < lg; i++) {
-    showNumber(i, fontRem);
-  }
-}
-
-/**
- * Distribueix els polsos i marques en mode lineal o circular segons l'estat actual.
- *
- * @param {{ silent?: boolean }} [opts] permet saltar animacions en re-renderitzats silenciosos.
- * @returns {void}
- */
-function layoutTimeline(opts = {}) {
-  const silent = !!opts.silent;
-  const lg = pulses.length - 1;
-  const useCircular = circularTimeline && loopEnabled;
-  const wasCircular = timeline.classList.contains('circular');
-  const desiredCircular = !!useCircular;
-  const delay = (!silent && wasCircular !== desiredCircular) ? T_INDICATOR_TRANSITION_DELAY : 0;
-  const queueIndicatorUpdate = () => scheduleTIndicatorReveal(delay);
-
-  if (lg <= 0) {
-    timelineWrapper.classList.remove('circular');
-    timeline.classList.remove('circular');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = wrapper.querySelector('.circle-guide');
-    if (guide) guide.style.opacity = '0';
-    queueIndicatorUpdate();
-    return;
-  }
-
-  if (desiredCircular) {
-    timelineWrapper.classList.add('circular');
-    timeline.classList.add('circular');
-    if (silent) timeline.classList.add('no-anim');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    let guide = wrapper.querySelector('.circle-guide');
-    if (!guide) {
-      guide = document.createElement('div');
-      guide.className = 'circle-guide';
-      guide.style.position = 'absolute';
-      guide.style.border = '2px solid var(--line-color)';
-      guide.style.borderRadius = '50%';
-      guide.style.pointerEvents = 'none';
-      guide.style.opacity = '0';
-      wrapper.appendChild(guide);
-    }
-
-    requestAnimationFrame(() => {
-      const tRect = timeline.getBoundingClientRect();
-      const cx = tRect.width / 2;
-      const cy = tRect.height / 2;
-      const radius = Math.min(tRect.width, tRect.height) / 2 - 1;
-
-      pulses.forEach((pulse, idx) => {
-        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-        const px = cx + radius * Math.cos(angle);
-        const py = cy + radius * Math.sin(angle);
-        pulse.style.left = `${px}px`;
-        pulse.style.top = `${py}px`;
-        pulse.style.transform = 'translate(-50%, -50%)';
-      });
-
-      pulseHits.forEach((hit, idx) => {
-        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-        const hx = cx + radius * Math.cos(angle);
-        const hy = cy + radius * Math.sin(angle);
-        hit.style.left = `${hx}px`;
-        hit.style.top = `${hy}px`;
-        hit.style.transform = 'translate(-50%, -50%)';
-      });
-
-      bars.forEach((bar, idx) => {
-        const step = idx === 0 ? 0 : lg;
-        const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
-        const bx = cx + radius * Math.cos(angle);
-        const by = cy + radius * Math.sin(angle);
-        const barLen = Math.min(tRect.width, tRect.height) * 0.25;
-        const topPx = by - barLen / 2;
-        bar.style.display = 'block';
-        bar.style.left = `${bx - 1}px`;
-        bar.style.top = `${topPx}px`;
-        bar.style.height = `${barLen}px`;
-        bar.style.transformOrigin = '50% 50%';
-        bar.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
-      });
-
-      const numbers = timeline.querySelectorAll('.pulse-number');
-      numbers.forEach(label => {
-        const idx = parseIntSafe(label.dataset.index);
-        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-        const innerRadius = radius - NUMBER_CIRCLE_OFFSET;
-        let x = cx + innerRadius * Math.cos(angle);
-        let y = cy + innerRadius * Math.sin(angle);
-        if (idx === 0) x -= 16;
-        else if (idx === lg) x += 16;
-        if (idx === 0 || idx === lg) y += 8;
-        label.style.left = `${x}px`;
-        label.style.top = `${y}px`;
-        label.style.transform = 'translate(-50%, -50%)';
-      });
-
-      cycleMarkers.forEach(marker => {
-        const pos = Number(marker.dataset.position);
-        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
-        const mx = cx + radius * Math.cos(angle);
-        const my = cy + radius * Math.sin(angle);
-        marker.style.left = `${mx}px`;
-        marker.style.top = `${my}px`;
-        marker.style.transformOrigin = '50% 50%';
-        marker.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
-        const key = marker.dataset.fractionKey;
-        if (key && fractionStore.hitMap.has(key)) {
-          const hit = fractionStore.hitMap.get(key);
-          hit.style.left = `${mx}px`;
-          hit.style.top = `${my}px`;
-          hit.style.transform = 'translate(-50%, -50%)';
-        }
-      });
-
-      const labelOffset = 36;
-      cycleLabels.forEach(label => {
-        const pos = Number(label.dataset.position);
-        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
-        const lx = cx + (radius + labelOffset) * Math.cos(angle);
-        const ly = cy + (radius + labelOffset) * Math.sin(angle);
-        label.style.left = `${lx}px`;
-        label.style.top = `${ly}px`;
-        label.style.transform = 'translate(-50%, -50%)';
-      });
-
-      restoreCycleLabelDisplay();
-
-      guide.style.left = `${cx}px`;
-      guide.style.top = `${cy}px`;
-      guide.style.width = `${radius * 2}px`;
-      guide.style.height = `${radius * 2}px`;
-      guide.style.transform = 'translate(-50%, -50%)';
-      guide.style.opacity = '0';
-
-      queueIndicatorUpdate();
-
-      if (silent) {
-        void timeline.offsetHeight;
-        timeline.classList.remove('no-anim');
-      }
-    });
-    schedulePulseSeqSpacingAdjust();
-  } else {
-    timelineWrapper.classList.remove('circular');
-    timeline.classList.remove('circular');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = wrapper.querySelector('.circle-guide');
-    if (guide) guide.style.opacity = '0';
-
-    pulses.forEach((pulse, idx) => {
-      const percent = (idx / lg) * 100;
-      pulse.style.left = `${percent}%`;
-      pulse.style.top = '50%';
-      pulse.style.transform = 'translate(-50%, -50%)';
-    });
-
-    pulseHits.forEach((hit, idx) => {
-      const percent = (idx / lg) * 100;
-      hit.style.left = `${percent}%`;
-      hit.style.top = '50%';
-      hit.style.transform = 'translate(-50%, -50%)';
-    });
-
-    bars.forEach((bar, idx) => {
-      const step = idx === 0 ? 0 : lg;
-      const percent = (step / lg) * 100;
-      bar.style.display = 'block';
-      bar.style.left = `${percent}%`;
-      bar.style.top = '15%';
-      bar.style.height = '70%';
-      bar.style.transform = '';
-    });
-
-    const numbers = timeline.querySelectorAll('.pulse-number');
-    numbers.forEach(label => {
-      const idx = parseIntSafe(label.dataset.index);
-      const percent = (idx / lg) * 100;
-      label.style.left = `${percent}%`;
-      label.style.top = '-28px';
-      label.style.transform = 'translate(-50%, 0)';
-    });
-
-    cycleMarkers.forEach(marker => {
-      const pos = Number(marker.dataset.position);
-      const percent = (pos / lg) * 100;
-      marker.style.left = `${percent}%`;
-      marker.style.top = '50%';
-      marker.style.transformOrigin = '50% 50%';
-      marker.style.transform = 'translate(-50%, -50%)';
-      const key = marker.dataset.fractionKey;
-      if (key && fractionStore.hitMap.has(key)) {
-        const hit = fractionStore.hitMap.get(key);
-        hit.style.left = `${percent}%`;
-        hit.style.top = '50%';
-        hit.style.transform = 'translate(-50%, -50%)';
-      }
-    });
-
-    cycleLabels.forEach(label => {
-      const pos = Number(label.dataset.position);
-      const percent = (pos / lg) * 100;
-      label.style.left = `${percent}%`;
-      label.style.top = 'calc(100% + 12px)';
-      label.style.transform = 'translate(-50%, 0)';
-    });
-
-    applyCycleLabelCompaction({ lg });
-
-    queueIndicatorUpdate();
-  }
-  schedulePulseSeqSpacingAdjust();
 }
 
 function restoreCycleLabelDisplay() {
