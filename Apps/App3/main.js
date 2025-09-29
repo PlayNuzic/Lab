@@ -795,30 +795,33 @@ function handleInput() {
       && normalizedNumerator != null
       && normalizedDenominator != null
       && Math.floor(normalizedLg / normalizedNumerator) > 0;
+    const cycleConfig = hasCycle
+      ? { numerator: normalizedNumerator, denominator: normalizedDenominator, onTick: highlightCycle }
+      : { numerator: 0, denominator: 0, onTick: null };
+    const supportsUnifiedTransport = typeof audio.updateTransport === 'function';
 
-    if (normalizedLg != null) {
+    if (normalizedLg != null && (!supportsUnifiedTransport || !isPlaying)) {
       updateAudioPattern(normalizedLg);
     }
 
     if (isPlaying) {
-      if (playbackTotal != null) updateAudioTotal(playbackTotal);
-      if (validV) {
-        updateAudioTempo(v, { align: loopEnabled ? 'cycle' : 'nextPulse' });
-      }
-
-      if (hasCycle) {
-        applyCycleConfig({ numerator: normalizedNumerator, denominator: normalizedDenominator, onTick: highlightCycle });
+      if (supportsUnifiedTransport) {
+        const payload = { align: 'nextPulse', cycle: cycleConfig };
+        if (playbackTotal != null) payload.totalPulses = playbackTotal;
+        if (validV) payload.bpm = v;
+        if (normalizedLg != null) payload.patternBeats = normalizedLg;
+        audio.updateTransport(payload);
       } else {
-        applyCycleConfig({ numerator: 0, denominator: 0, onTick: null });
+        if (playbackTotal != null) updateAudioTotal(playbackTotal);
+        if (validV) {
+          updateAudioTempo(v, { align: 'nextPulse' });
+        }
+        applyCycleConfig(cycleConfig);
       }
 
       syncVisualState();
     } else {
-      if (hasCycle) {
-        applyCycleConfig({ numerator: normalizedNumerator, denominator: normalizedDenominator, onTick: highlightCycle });
-      } else {
-        applyCycleConfig({ numerator: 0, denominator: 0, onTick: null });
-      }
+      applyCycleConfig(cycleConfig);
     }
   }
 }
