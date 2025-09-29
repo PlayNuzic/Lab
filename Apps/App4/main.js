@@ -4,13 +4,34 @@ import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import createFractionEditor, { createEmptyFractionInfo } from '../../libs/app-common/fraction-editor.js';
 import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
 import { randomize as randomizeValues } from '../../libs/random/index.js';
 import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
+import {
+  FRACTION_POSITION_EPSILON,
+  TEXT_NODE_TYPE,
+  fractionDefaults,
+  randomDefaults,
+  createFractionSelectionStore,
+  makeFractionKey,
+  registerFractionLabel as registerFractionLabelInStore,
+  getFractionInfoByLabel as getFractionInfoByLabelFromStore,
+  fractionValue as computeFractionValue,
+  cycleNotationToFraction as computeCycleNotationToFraction,
+  fractionDisplay as formatFractionDisplay,
+  extractFractionInfoFromElement,
+  applyFractionSelectionClasses as applyFractionSelectionClassesModule,
+  rebuildFractionSelections as rebuildFractionSelectionsModule,
+  setFractionSelected as setFractionSelectedModule,
+  loadRandomConfig,
+  saveRandomConfig,
+  applyRandomConfig as applyRandomConfigModule,
+  updateRandomConfig as updateRandomConfigModule,
+  applyRandomFractionSelection
+} from './fraction-selection.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -67,25 +88,9 @@ let lastStructureSignature = {
 let bars = [];
 let pulseHits = [];
 let cycleMarkerHits = [];
-const fractionalSelectionState = new Map();
-const selectedFractionKeys = new Set();
-const fractionHitMap = new Map();
-const fractionMarkerMap = new Map();
-const fractionLabelLookup = new Map();
+const fractionStore = createFractionSelectionStore();
 let pulseSeqRanges = {};
-let fractionalPulseSelections = [];
-let pulseSeqEntryOrder = [];
-const pulseSeqEntryLookup = new Map();
-const pulseSeqTokenMap = new Map();
-let pulseSeqSpacingAdjustHandle = null;
-let lastFractionGap = null;
 let currentAudioResolution = 1;
-let lastFractionHighlightKey = null;
-let lastHighlightType = null;
-let lastHighlightIntIndex = null;
-let lastHighlightFractionKey = null;
-const FRACTION_POSITION_EPSILON = 1e-6;
-const TEXT_NODE_TYPE = (typeof Node !== 'undefined' && Node.TEXT_NODE) || 3;
 const raf = (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
   ? (cb) => window.requestAnimationFrame(cb)
   : (cb) => setTimeout(cb, 16);
@@ -176,20 +181,6 @@ if (globalMixer) {
 
 const FRACTION_NUMERATOR_KEY = 'n';
 const FRACTION_DENOMINATOR_KEY = 'd';
-const fractionDefaults = {
-  numerator: null,
-  denominator: null
-};
-
-const randomDefaults = {
-  Lg: { enabled: true, range: [2, 30] },
-  V: { enabled: true, range: [40, 320] },
-  T: { enabled: true, range: [0.1, 20] },
-  Pulses: { enabled: true, count: '' },
-  n: { enabled: true, range: [1, 9] },
-  d: { enabled: true, range: [1, 9] },
-  allowComplex: true
-};
 
 const STORE_PREFIX = 'app4:';
 function storeKey(k) {
@@ -205,116 +196,46 @@ function clearOpt(k) {
   try { localStorage.removeItem(storeKey(k)); } catch {}
 }
 
-const RANDOM_STORE_KEY = 'random';
+const randomControls = {
+  randLgToggle,
+  randLgMin,
+  randLgMax,
+  randVToggle,
+  randVMin,
+  randVMax,
+  randTToggle,
+  randTMin,
+  randTMax,
+  randNToggle,
+  randNMin,
+  randNMax,
+  randDToggle,
+  randDMin,
+  randDMax,
+  randComplexToggle,
+  randPulsesToggle,
+  randomCount
+};
 
-function loadRandomConfig() {
-  try {
-    const raw = loadOpt(RANDOM_STORE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
+const randomConfig = {
+  ...randomDefaults,
+  ...loadRandomConfig(() => loadOpt(RANDOM_STORE_KEY))
+};
+
+function persistRandomConfig() {
+  saveRandomConfig((value) => saveOpt(RANDOM_STORE_KEY, value), randomConfig);
 }
 
-function saveRandomConfig(cfg) {
-  try { saveOpt(RANDOM_STORE_KEY, JSON.stringify(cfg)); } catch {}
+function applyRandomConfig() {
+  applyRandomConfigModule(randomConfig, randomControls);
 }
 
-const randomConfig = { ...randomDefaults, ...loadRandomConfig() };
-
-function toIntRange(minInput, maxInput, fallback) {
-  const fallbackRange = Array.isArray(fallback) ? fallback : [1, 1];
-  const [lo, hi] = toRange(minInput, maxInput, fallbackRange);
-  const normalizedLo = Number.isFinite(lo) ? Math.max(1, Math.round(lo)) : fallbackRange[0];
-  const normalizedHiRaw = Number.isFinite(hi) ? Math.round(hi) : fallbackRange[1];
-  const normalizedHi = Math.max(normalizedLo, Math.max(1, normalizedHiRaw));
-  return [normalizedLo, normalizedHi];
-}
-
-/**
- * Apply stored random configuration values to the associated DOM controls.
- * @param {Record<string, any>} cfg
- */
-function applyRandomConfig(cfg) {
-  if (randLgToggle) randLgToggle.checked = cfg.Lg.enabled;
-  if (randLgMin) randLgMin.value = cfg.Lg.range[0];
-  if (randLgMax) randLgMax.value = cfg.Lg.range[1];
-  if (randVToggle) randVToggle.checked = cfg.V.enabled;
-  if (randVMin) randVMin.value = cfg.V.range[0];
-  if (randVMax) randVMax.value = cfg.V.range[1];
-  if (cfg.T) {
-    if (randTToggle) randTToggle.checked = cfg.T.enabled;
-    if (randTMin) randTMin.value = cfg.T.range[0];
-    if (randTMax) randTMax.value = cfg.T.range[1];
-  }
-  if (cfg.n && randNToggle && randNMin && randNMax) {
-    randNToggle.checked = cfg.n.enabled;
-    randNMin.value = cfg.n.range[0];
-    randNMax.value = cfg.n.range[1];
-  }
-  if (cfg.d && randDToggle && randDMin && randDMax) {
-    randDToggle.checked = cfg.d.enabled;
-    randDMin.value = cfg.d.range[0];
-    randDMax.value = cfg.d.range[1];
-  }
-  if (typeof cfg.allowComplex === 'boolean' && randComplexToggle) {
-    randComplexToggle.checked = cfg.allowComplex;
-  }
-  if (randPulsesToggle && randomCount) {
-    randPulsesToggle.checked = cfg.Pulses.enabled;
-    randomCount.value = cfg.Pulses.count ?? '';
-  }
-}
-
-/**
- * Persist the current random menu configuration back to storage.
- */
 function updateRandomConfig() {
-  randomConfig.Lg = {
-    enabled: randLgToggle.checked,
-    range: toRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range)
-  };
-  randomConfig.V = {
-    enabled: randVToggle.checked,
-    range: toRange(randVMin?.value, randVMax?.value, randomDefaults.V.range)
-  };
-  const previousTRange = randomConfig.T?.range ?? randomDefaults.T.range;
-  const previousTEnabled = randomConfig.T?.enabled ?? randomDefaults.T.enabled;
-  randomConfig.T = {
-    enabled: randTToggle ? randTToggle.checked : previousTEnabled,
-    range: (randTMin && randTMax)
-      ? toRange(randTMin?.value, randTMax?.value, previousTRange)
-      : previousTRange
-  };
-  const previousNRange = randomConfig.n?.range ?? randomDefaults.n.range;
-  randomConfig.n = {
-    enabled: randNToggle ? randNToggle.checked : (randomConfig.n?.enabled ?? randomDefaults.n.enabled),
-    range: (randNMin && randNMax)
-      ? toIntRange(randNMin.value, randNMax.value, previousNRange)
-      : previousNRange
-  };
-  const previousDRange = randomConfig.d?.range ?? randomDefaults.d.range;
-  randomConfig.d = {
-    enabled: randDToggle ? randDToggle.checked : (randomConfig.d?.enabled ?? randomDefaults.d.enabled),
-    range: (randDMin && randDMax)
-      ? toIntRange(randDMin.value, randDMax.value, previousDRange)
-      : previousDRange
-  };
-  if (randComplexToggle) {
-    randomConfig.allowComplex = randComplexToggle.checked;
-  } else if (typeof randomConfig.allowComplex !== 'boolean') {
-    randomConfig.allowComplex = randomDefaults.allowComplex;
-  }
-  if (randPulsesToggle && randomCount) {
-    randomConfig.Pulses = {
-      enabled: randPulsesToggle.checked,
-      count: randomCount.value
-    };
-  }
-  saveRandomConfig(randomConfig);
+  updateRandomConfigModule(randomConfig, randomControls);
+  persistRandomConfig();
 }
 
-applyRandomConfig(randomConfig);
+applyRandomConfig();
 
 [
   randLgToggle, randLgMin, randLgMax,
@@ -396,7 +317,7 @@ function initFractionEditorController() {
     onChange: ({ numerator, denominator, info, cause }) => {
       currentFractionInfo = info || createEmptyFractionInfo();
       updatePulseSeqFractionDisplay(numerator, denominator, { silent: true });
-      if (fractionalPulseSelections.length > 0) {
+      if (fractionStore.pulseSelections.length > 0) {
         sanitizePulseSeq({ causedBy: 'fraction-change', skipCaret: true });
       }
       if (!isUpdating && cause !== 'init') {
@@ -435,9 +356,9 @@ function clearPersistentPulses(){
   pulseMemoryApi.clear();
   try { selectedPulses.clear(); } catch {}
   /* Keep UI consistent; will be rebuilt by subsequent calls */
-  fractionalSelectionState.clear();
-  selectedFractionKeys.clear();
-  fractionalPulseSelections = [];
+  fractionStore.selectionState.clear();
+  fractionStore.selectedFractionKeys.clear();
+  fractionStore.pulseSelections = [];
   updatePulseSeqField();
   applyFractionSelectionClasses();
 }
@@ -447,260 +368,47 @@ const SUBDIVISION_HIDE_THRESHOLD = 41;
 const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
 const MIN_SUBDIVISION_LABEL_SPACING_PX = 40;
 
-function makeFractionKey(base, numerator, denominator) {
-  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
-    return null;
-  }
-  return `${base}+${numerator}/${denominator}`;
-}
-
 function registerFractionLabel(label, info) {
-  if (!label || !info || !info.key) return;
-  const normalized = String(label).trim();
-  if (!normalized) return;
-  const bucket = fractionLabelLookup.get(normalized);
-  if (!bucket) {
-    fractionLabelLookup.set(normalized, [info]);
-    return;
-  }
-  if (!bucket.some(entry => entry && entry.key === info.key)) {
-    bucket.push(info);
-  }
+  registerFractionLabelInStore(fractionStore, label, info);
 }
 
 function getFractionInfoByLabel(label, opts = {}) {
-  if (!label) return null;
-  const normalized = String(label).trim();
-  if (!normalized) return null;
-  const bucket = fractionLabelLookup.get(normalized);
-  if (!bucket || bucket.length === 0) return null;
-  if (opts && Number.isFinite(opts.base)) {
-    const match = bucket.find(entry => Number.isFinite(entry.base) && entry.base === opts.base);
-    if (match) return match;
-  }
-  return bucket[0] ?? null;
+  return getFractionInfoByLabelFromStore(fractionStore, label, opts);
 }
 
 function fractionValue(base, numerator, denominator) {
-  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
-    return NaN;
-  }
-  return base + numerator / denominator;
+  return computeFractionValue(base, numerator, denominator);
 }
 
 function cycleNotationToFraction(cycleIndex, subdivisionIndex, pulsesPerCycle, denominator) {
-  if (!(Number.isFinite(cycleIndex) && cycleIndex >= 0)) return null;
-  if (!(Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0)) return null;
-  if (!(Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0)) return null;
-  if (!(Number.isFinite(denominator) && denominator > 0)) return null;
-
-  const step = pulsesPerCycle / denominator;
-  const rawValue = cycleIndex * pulsesPerCycle + subdivisionIndex * step;
-  let base = Math.floor(rawValue + FRACTION_POSITION_EPSILON);
-  let fractional = rawValue - base;
-  if (fractional < FRACTION_POSITION_EPSILON) {
-    return null;
-  }
-  let numerator = Math.round(fractional * denominator);
-  if (numerator <= 0) {
-    return null;
-  }
-  while (numerator >= denominator) {
-    numerator -= denominator;
-    base += 1;
-  }
-  const value = base + numerator / denominator;
-  return { base, numerator, value };
+  return computeCycleNotationToFraction(cycleIndex, subdivisionIndex, pulsesPerCycle, denominator);
 }
 
-function fractionDisplay(base, numerator, denominator, { cycleIndex, subdivisionIndex, pulsesPerCycle } = {}) {
-  const safeBaseValue = Number.isFinite(base) ? Number(base) : 0;
-  const safeNumeratorValue = Number.isFinite(numerator) ? Number(numerator) : 0;
-  const den = Number.isFinite(denominator) && denominator > 0 ? Math.floor(denominator) : null;
-  const resolvedPulsesPerCycle = Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0
-    ? Math.floor(pulsesPerCycle)
-    : (() => {
-        const { numerator: activeNumerator } = getFraction();
-        return Number.isFinite(activeNumerator) && activeNumerator > 0 ? Math.floor(activeNumerator) : null;
-      })();
-
-  const value = den ? safeBaseValue + safeNumeratorValue / den : safeBaseValue;
-  const maybePulse = nearestPulseIndex(value);
-  if (maybePulse != null) {
-    return String(maybePulse);
-  }
-
-  let resolvedCycle = Number.isFinite(cycleIndex) && cycleIndex >= 0 ? Math.floor(cycleIndex) : null;
-  let resolvedSubdivision = Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0
-    ? Math.floor(subdivisionIndex)
-    : null;
-
-  if (den && resolvedPulsesPerCycle) {
-    const safeValue = Number.isFinite(value) ? value : safeBaseValue;
-    if (resolvedCycle == null) {
-      resolvedCycle = Math.floor((safeValue + FRACTION_POSITION_EPSILON) / resolvedPulsesPerCycle);
-    }
-    if (resolvedSubdivision == null) {
-      const cycleStart = resolvedCycle * resolvedPulsesPerCycle;
-      const step = resolvedPulsesPerCycle / den;
-      const normalized = (safeValue - cycleStart) / step;
-      let computed = Math.round(normalized);
-      if (!Number.isFinite(computed)) computed = 0;
-      if (computed < 0) computed = 0;
-      if (computed >= den) {
-        const carry = Math.floor(computed / den);
-        resolvedCycle += carry;
-        computed -= carry * den;
-      }
-      resolvedSubdivision = computed;
-    }
-  }
-
-  if (resolvedSubdivision == null && den && safeNumeratorValue > 0) {
-    resolvedSubdivision = Math.floor(safeNumeratorValue % den);
-    if (resolvedSubdivision <= 0) {
-      resolvedSubdivision = Math.floor(safeNumeratorValue);
-    }
-  }
-
-  let baseIndex = Number.isFinite(safeBaseValue) ? Math.floor(safeBaseValue) : null;
-  if (Number.isFinite(resolvedCycle) && Number.isFinite(resolvedPulsesPerCycle)) {
-    baseIndex = resolvedCycle * resolvedPulsesPerCycle;
-  } else if (!Number.isFinite(baseIndex) && Number.isFinite(value)) {
-    baseIndex = Math.floor(value + FRACTION_POSITION_EPSILON);
-  }
-
-  if (Number.isFinite(baseIndex)) {
-    if (den && Number.isFinite(resolvedSubdivision) && resolvedSubdivision > 0) {
-      return `${baseIndex}.${resolvedSubdivision}`;
-    }
-    return String(baseIndex);
-  }
-
-  if (den && safeNumeratorValue > 0) {
-    return `${safeBaseValue}.${safeNumeratorValue}`;
-  }
-
-  return String(safeBaseValue);
+function fractionDisplay(base, numerator, denominator, override = {}) {
+  return formatFractionDisplay(base, numerator, denominator, override);
 }
 
 function getFractionInfoFromElement(el) {
-  if (!el) return null;
-  const base = parseIntSafe(el.dataset.baseIndex);
-  const numerator = parseIntSafe(el.dataset.fractionNumerator);
-  const denominator = parseIntSafe(el.dataset.fractionDenominator);
-  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
-    return null;
-  }
-  const key = el.dataset.fractionKey || makeFractionKey(base, numerator, denominator);
-  if (!key) return null;
-  const value = Number.isFinite(parseFloat(el.dataset.value))
-    ? parseFloat(el.dataset.value)
-    : fractionValue(base, numerator, denominator);
-  const rawCycleIndex = parseIntSafe(el.dataset.cycleIndex);
-  const rawSubdivisionIndex = parseIntSafe(el.dataset.subdivision);
-  const rawPulsesPerCycle = parseIntSafe(el.dataset.pulsesPerCycle);
-  const override = {
-    cycleIndex: Number.isFinite(rawCycleIndex) ? rawCycleIndex : undefined,
-    subdivisionIndex: Number.isFinite(rawSubdivisionIndex) ? rawSubdivisionIndex : undefined,
-    pulsesPerCycle: Number.isFinite(rawPulsesPerCycle) && rawPulsesPerCycle > 0
-      ? rawPulsesPerCycle
-      : undefined
-  };
-  const display = el.dataset.display || fractionDisplay(base, numerator, denominator, override);
-  const rawLabel = typeof el.dataset.rawLabel === 'string' ? el.dataset.rawLabel : null;
-  return {
-    type: 'fraction',
-    base,
-    numerator,
-    denominator,
-    key,
-    value,
-    display,
-    rawLabel,
-    cycleIndex: Number.isFinite(rawCycleIndex) ? rawCycleIndex : null,
-    subdivisionIndex: Number.isFinite(rawSubdivisionIndex) ? rawSubdivisionIndex : null,
-    pulsesPerCycle: Number.isFinite(rawPulsesPerCycle) && rawPulsesPerCycle > 0 ? rawPulsesPerCycle : null
-  };
+  return extractFractionInfoFromElement(el, parseIntSafe);
 }
 
 function applyFractionSelectionClasses() {
-  cycleMarkers.forEach(marker => {
-    const key = marker.dataset.fractionKey;
-    if (!key) {
-      marker.classList.remove('selected');
-      return;
-    }
-    marker.classList.toggle('selected', selectedFractionKeys.has(key));
-  });
+  applyFractionSelectionClassesModule(fractionStore, cycleMarkers);
 }
 
 function rebuildFractionSelections(opts = {}) {
-  selectedFractionKeys.clear();
-  fractionalPulseSelections = Array.from(fractionalSelectionState.values())
-    .filter(item => item && Number.isFinite(item.value))
-    .map(item => {
-      const cycleIndex = Number.isFinite(item?.cycleIndex) ? item.cycleIndex : null;
-      const subdivisionIndex = Number.isFinite(item?.subdivisionIndex) ? item.subdivisionIndex : null;
-      const pulsesPerCycle = Number.isFinite(item?.pulsesPerCycle) && item.pulsesPerCycle > 0
-        ? item.pulsesPerCycle
-        : null;
-      const rawLabel = typeof item?.rawLabel === 'string' ? item.rawLabel.trim() : '';
-      return {
-        ...item,
-        rawLabel,
-        display: fractionDisplay(item.base, item.numerator, item.denominator, {
-          cycleIndex,
-          subdivisionIndex,
-          pulsesPerCycle
-        })
-      };
-    })
-    .sort((a, b) => a.value - b.value);
-  fractionalPulseSelections.forEach(item => selectedFractionKeys.add(item.key));
-  applyFractionSelectionClasses();
-  if (!opts.skipUpdateField) {
-    updatePulseSeqField();
-  }
+  fractionStore.pulseSelections = rebuildFractionSelectionsModule(fractionStore, {
+    updatePulseSeqField,
+    cycleMarkers,
+    skipUpdateField: opts.skipUpdateField
+  });
 }
 
 function setFractionSelected(info, shouldSelect) {
-  if (!info || !info.key) return;
-  const { key, base, numerator, denominator } = info;
-  const value = Number.isFinite(info.value) ? info.value : fractionValue(base, numerator, denominator);
-  if (!Number.isFinite(value)) return;
-  if (shouldSelect) {
-    const cycleIndex = Number.isFinite(info.cycleIndex) && info.cycleIndex >= 0
-      ? Math.floor(info.cycleIndex)
-      : null;
-    const subdivisionIndex = Number.isFinite(info.subdivisionIndex) && info.subdivisionIndex >= 0
-      ? Math.floor(info.subdivisionIndex)
-      : null;
-    const pulsesPerCycle = Number.isFinite(info.pulsesPerCycle) && info.pulsesPerCycle > 0
-      ? info.pulsesPerCycle
-      : null;
-    const rawLabel = typeof info.rawLabel === 'string' ? info.rawLabel.trim() : '';
-    const display = info.display || fractionDisplay(base, numerator, denominator, {
-      cycleIndex,
-      subdivisionIndex,
-      pulsesPerCycle
-    });
-    fractionalSelectionState.set(key, {
-      base,
-      numerator,
-      denominator,
-      value,
-      display,
-      key,
-      cycleIndex,
-      subdivisionIndex,
-      pulsesPerCycle,
-      rawLabel
-    });
-  } else {
-    fractionalSelectionState.delete(key);
-  }
-  rebuildFractionSelections();
+  setFractionSelectedModule(fractionStore, info, shouldSelect, {
+    updatePulseSeqField,
+    cycleMarkers
+  });
 }
 
 function computeAudioSchedulingState() {
@@ -713,7 +421,7 @@ function computeAudioSchedulingState() {
 
   const grid = gridFromOrigin({ lg: validLg ? lg : 0, numerator, denominator });
   const denominators = new Set([1]);
-  fractionalPulseSelections.forEach((item) => {
+  fractionStore.pulseSelections.forEach((item) => {
     if (!item) return;
     const den = Number(item.denominator);
     if (Number.isFinite(den) && den > 0) {
@@ -809,7 +517,7 @@ function selectedForAudioFromState({ scheduling } = {}) {
       }
     });
   }
-  fractionalPulseSelections.forEach((item) => {
+  fractionStore.pulseSelections.forEach((item) => {
     if (!item || !Number.isFinite(item.value)) return;
     if (item.value <= 0 || item.value >= lg) return;
     fractionSet.add(item.value);
@@ -1026,16 +734,16 @@ function updatePulseSeqVisualLayer(text) {
 }
 
 function syncPulseSeqTokenMap() {
-  pulseSeqTokenMap.clear();
+  fractionStore.pulseSeqTokenMap.clear();
   if (!pulseSeqVisualEl) return;
   const tokens = pulseSeqVisualEl.querySelectorAll('.pulse-seq-token');
-  pulseSeqEntryOrder.forEach((key, index) => {
+  fractionStore.pulseSeqEntryOrder.forEach((key, index) => {
     if (!key) return;
     const token = tokens[index];
     if (!token) return;
     token.dataset.entryKey = key;
-    pulseSeqTokenMap.set(key, token);
-    const info = pulseSeqEntryLookup.get(key);
+    fractionStore.pulseSeqTokenMap.set(key, token);
+    const info = fractionStore.pulseSeqEntryLookup.get(key);
     if (!info) return;
     if (info.type === 'fraction') {
       token.dataset.fractionKey = key;
@@ -1050,11 +758,11 @@ function syncPulseSeqTokenMap() {
 
 function schedulePulseSeqSpacingAdjust() {
   if (!pulseSeqEditWrapper) return;
-  if (pulseSeqSpacingAdjustHandle != null) {
-    caf(pulseSeqSpacingAdjustHandle);
+  if (fractionStore.spacingAdjustHandle != null) {
+    caf(fractionStore.spacingAdjustHandle);
   }
-  pulseSeqSpacingAdjustHandle = raf(() => {
-    pulseSeqSpacingAdjustHandle = null;
+  fractionStore.spacingAdjustHandle = raf(() => {
+    fractionStore.spacingAdjustHandle = null;
     adjustPulseSeqSpacing();
   });
 }
@@ -1213,7 +921,7 @@ function getSelectionInfo(target) {
 function isSelectionActive(info) {
   if (!info) return false;
   if (info.type === 'fraction') {
-    return fractionalSelectionState.has(info.key);
+    return fractionStore.selectionState.has(info.key);
   }
   if (info.type === 'int') {
     const lg = parseIntSafe(inputLg.value);
@@ -1718,86 +1426,14 @@ function randomize() {
       updatePulseNumbers();
       layoutTimeline({ silent: true });
 
-      const fractionOptions = [];
-      fractionHitMap.forEach((el, key) => {
-        if (!el || !key) return;
-        const base = parseIntSafe(el.dataset.baseIndex);
-        const numerator = parseIntSafe(el.dataset.fractionNumerator);
-        const denominator = parseIntSafe(el.dataset.fractionDenominator);
-        const value = Number.parseFloat(el.dataset.value);
-        if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) return;
-        if (!Number.isFinite(value) || value <= 0 || value >= lg) return;
-        if (nearestPulseIndex(value) != null) return;
-        const cycleIndex = parseIntSafe(el.dataset.cycleIndex);
-        const subdivisionIndex = parseIntSafe(el.dataset.subdivision);
-        const pulsesPerCycle = parseIntSafe(el.dataset.pulsesPerCycle);
-        const rawLabel = typeof el.dataset.rawLabel === 'string' ? el.dataset.rawLabel : '';
-        const display = el.dataset.display || null;
-        fractionOptions.push({
-          key,
-          base,
-          numerator,
-          denominator,
-          value,
-          display,
-          cycleIndex: Number.isFinite(cycleIndex) ? cycleIndex : null,
-          subdivisionIndex: Number.isFinite(subdivisionIndex) ? subdivisionIndex : null,
-          pulsesPerCycle: Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0 ? pulsesPerCycle : null,
-          rawLabel
-        });
-      });
-
-      const fractionSelection = [];
-      if (fractionOptions.length) {
-        if (rawCount === '') {
-          const density = 0.5;
-          fractionOptions.forEach(info => { if (Math.random() < density) fractionSelection.push(info); });
-        } else {
-          const parsed = Number.parseInt(rawCount, 10);
-          if (Number.isNaN(parsed)) {
-            const density = 0.5;
-            fractionOptions.forEach(info => { if (Math.random() < density) fractionSelection.push(info); });
-          } else if (parsed > 0) {
-            const pool = [...fractionOptions];
-            const targetFractions = Math.min(parsed, pool.length);
-            while (fractionSelection.length < targetFractions && pool.length) {
-              const idx = Math.floor(Math.random() * pool.length);
-              fractionSelection.push(pool.splice(idx, 1)[0]);
-            }
-          }
-        }
-      }
-
-      fractionalSelectionState.clear();
-      fractionSelection.forEach(info => {
-        const value = Number.isFinite(info.value) ? info.value : fractionValue(info.base, info.numerator, info.denominator);
-        if (!Number.isFinite(value) || value <= 0 || value >= lg) return;
-        const cycleIndex = Number.isFinite(info.cycleIndex) && info.cycleIndex >= 0 ? Math.floor(info.cycleIndex) : null;
-        const subdivisionIndex = Number.isFinite(info.subdivisionIndex) && info.subdivisionIndex >= 0
-          ? Math.floor(info.subdivisionIndex)
-          : null;
-        const pulsesPerCycle = Number.isFinite(info.pulsesPerCycle) && info.pulsesPerCycle > 0 ? info.pulsesPerCycle : null;
-        const rawLabel = typeof info.rawLabel === 'string' ? info.rawLabel.trim() : '';
-        const display = info.display || fractionDisplay(info.base, info.numerator, info.denominator, {
-          cycleIndex,
-          subdivisionIndex,
-          pulsesPerCycle
-        });
-        fractionalSelectionState.set(info.key, {
-          base: info.base,
-          numerator: info.numerator,
-          denominator: info.denominator,
-          value,
-          display,
-          key: info.key,
-          cycleIndex,
-          subdivisionIndex,
-          pulsesPerCycle,
-          rawLabel
-        });
+      const applied = applyRandomFractionSelection(fractionStore, {
+        lg,
+        randomCountValue: rawCount,
+        parseIntSafe,
+        nearestPulseIndex
       });
       rebuildFractionSelections();
-      if (isPlaying) {
+      if (applied && isPlaying) {
         applySelectionToAudio();
       }
     }
@@ -2408,7 +2044,7 @@ function sanitizePulseSeq(opts = {}){
   const numeratorValue = Number.isFinite(rawNumerator) && rawNumerator > 0 ? rawNumerator : null;
 
   const caretGap = resolvePulseSeqGap(caretBefore, lg);
-  lastFractionGap = caretGap;
+  fractionStore.lastFractionGap = caretGap;
 
   const pushFractionEntry = (entry) => {
     if (!entry) return;
@@ -2635,9 +2271,9 @@ function sanitizePulseSeq(opts = {}){
 
   ints.sort((a, b) => a - b);
   fractions.sort((a, b) => a.value - b.value);
-  fractionalSelectionState.clear();
+  fractionStore.selectionState.clear();
   fractions.forEach(entry => {
-    fractionalSelectionState.set(entry.key, entry);
+    fractionStore.selectionState.set(entry.key, entry);
   });
   rebuildFractionSelections({ skipUpdateField: true });
 
@@ -2660,12 +2296,12 @@ function sanitizePulseSeq(opts = {}){
       })
     ].sort((a, b) => a.value - b.value);
     pulseSeqRanges = {};
-    pulseSeqEntryOrder = combined.map(entry => entry.key);
-    pulseSeqEntryLookup.clear();
+    fractionStore.pulseSeqEntryOrder = combined.map(entry => entry.key);
+    fractionStore.pulseSeqEntryLookup.clear();
     combined.forEach((entry) => {
       if (!entry || !entry.key) return;
       const type = entry.display.includes('.') ? 'fraction' : 'int';
-      pulseSeqEntryLookup.set(entry.key, { ...entry, type });
+      fractionStore.pulseSeqEntryLookup.set(entry.key, { ...entry, type });
     });
     let pos = 0;
     const parts = combined.map(entry => {
@@ -2796,9 +2432,9 @@ function updatePulseSeqField(){
     setPulseSeqText('');
     try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=''; }catch{}
     pulseSeqRanges = {};
-    pulseSeqEntryOrder = [];
-    pulseSeqEntryLookup.clear();
-    pulseSeqTokenMap.clear();
+    fractionStore.pulseSeqEntryOrder = [];
+    fractionStore.pulseSeqEntryLookup.clear();
+    fractionStore.pulseSeqTokenMap.clear();
     return;
   }
   try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=String(lg); }catch{}
@@ -2809,7 +2445,7 @@ function updatePulseSeqField(){
       entries.push({ type: 'int', value: i, display: String(i), key: String(i) });
     }
   }
-  const validFractionals = fractionalPulseSelections
+  const validFractionals = fractionStore.pulseSelections
     .filter(item => item && Number.isFinite(item.value))
     .filter(item => item.value > 0 && item.value < lg);
   validFractionals.forEach(item => {
@@ -2824,11 +2460,11 @@ function updatePulseSeqField(){
     });
   });
   entries.sort((a, b) => a.value - b.value);
-  pulseSeqEntryOrder = entries.map(entry => entry.key);
-  pulseSeqEntryLookup.clear();
+  fractionStore.pulseSeqEntryOrder = entries.map(entry => entry.key);
+  fractionStore.pulseSeqEntryLookup.clear();
   entries.forEach((entry) => {
     if (!entry || !entry.key) return;
-    pulseSeqEntryLookup.set(entry.key, entry);
+    fractionStore.pulseSeqEntryLookup.set(entry.key, entry);
   });
   pulseSeqRanges = {};
   let pos = 0;
@@ -2936,9 +2572,9 @@ function clearHighlights() {
   pulseSeqController.clearActive();
   clearFractionHighlight();
   lastNormalizedStep = null;
-  lastHighlightType = null;
-  lastHighlightIntIndex = null;
-  lastHighlightFractionKey = null;
+  fractionStore.lastHighlightType = null;
+  fractionStore.lastHighlightIntIndex = null;
+  fractionStore.lastHighlightFractionKey = null;
 }
 
 function renderTimeline() {
@@ -2950,9 +2586,9 @@ function renderTimeline() {
   cycleLabels = [];
   bars = [];
   clearFractionHighlight();
-  fractionHitMap.clear();
-  fractionMarkerMap.clear();
-  fractionLabelLookup.clear();
+  fractionStore.hitMap.clear();
+  fractionStore.markerMap.clear();
+  fractionStore.labelLookup.clear();
   const savedIndicator = tIndicator;
   timeline.innerHTML = '';
   if (savedIndicator) timeline.appendChild(savedIndicator);
@@ -3102,7 +2738,7 @@ function renderTimeline() {
             marker.style.cursor = 'pointer';
             attachSelectionListeners(marker);
             validFractionKeys.add(key);
-            fractionMarkerMap.set(key, marker);
+            fractionStore.markerMap.set(key, marker);
 
             const hit = document.createElement('div');
             hit.className = 'fraction-hit';
@@ -3136,9 +2772,9 @@ function renderTimeline() {
             attachSelectionListeners(hit);
             timeline.appendChild(hit);
             cycleMarkerHits.push(hit);
-            fractionHitMap.set(key, hit);
+            fractionStore.hitMap.set(key, hit);
 
-            const storedSelection = fractionalSelectionState.get(key);
+            const storedSelection = fractionStore.selectionState.get(key);
             const storedRawLabel = typeof storedSelection?.rawLabel === 'string'
               ? storedSelection.rawLabel.trim()
               : '';
@@ -3215,9 +2851,9 @@ function renderTimeline() {
   }
 
   let removedFraction = false;
-  fractionalSelectionState.forEach((_, key) => {
+  fractionStore.selectionState.forEach((_, key) => {
     if (!validFractionKeys.has(key)) {
-      fractionalSelectionState.delete(key);
+      fractionStore.selectionState.delete(key);
       removedFraction = true;
     }
   });
@@ -3371,8 +3007,8 @@ function layoutTimeline(opts = {}) {
         marker.style.transformOrigin = '50% 50%';
         marker.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
         const key = marker.dataset.fractionKey;
-        if (key && fractionHitMap.has(key)) {
-          const hit = fractionHitMap.get(key);
+        if (key && fractionStore.hitMap.has(key)) {
+          const hit = fractionStore.hitMap.get(key);
           hit.style.left = `${mx}px`;
           hit.style.top = `${my}px`;
           hit.style.transform = 'translate(-50%, -50%)';
@@ -3455,8 +3091,8 @@ function layoutTimeline(opts = {}) {
       marker.style.transformOrigin = '50% 50%';
       marker.style.transform = 'translate(-50%, -50%)';
       const key = marker.dataset.fractionKey;
-      if (key && fractionHitMap.has(key)) {
-        const hit = fractionHitMap.get(key);
+      if (key && fractionStore.hitMap.has(key)) {
+        const hit = fractionStore.hitMap.get(key);
         hit.style.left = `${percent}%`;
         hit.style.top = '50%';
         hit.style.transform = 'translate(-50%, -50%)';
@@ -3834,7 +3470,7 @@ function highlightCycle(payload = {}) {
 
 function getPulseSeqRectForKey(key) {
   if (!pulseSeqEl || !key) return null;
-  const token = pulseSeqTokenMap.get(key);
+  const token = fractionStore.pulseSeqTokenMap.get(key);
   if (token && typeof token.getBoundingClientRect === 'function') {
     return token.getBoundingClientRect();
   }
@@ -3885,14 +3521,14 @@ function scrollPulseSeqToRect(rect) {
 }
 
 function clearFractionHighlight() {
-  if (!lastFractionHighlightKey) return;
-  const prevMarker = fractionMarkerMap.get(lastFractionHighlightKey);
+  if (!fractionStore.lastFractionHighlightKey) return;
+  const prevMarker = fractionStore.markerMap.get(fractionStore.lastFractionHighlightKey);
   if (prevMarker) prevMarker.classList.remove('fraction-active');
-  const prevHit = fractionHitMap.get(lastFractionHighlightKey);
+  const prevHit = fractionStore.hitMap.get(fractionStore.lastFractionHighlightKey);
   if (prevHit) prevHit.classList.remove('fraction-active');
-  const prevToken = pulseSeqTokenMap.get(lastFractionHighlightKey);
+  const prevToken = fractionStore.pulseSeqTokenMap.get(fractionStore.lastFractionHighlightKey);
   if (prevToken) prevToken.classList.remove('pulse-seq-token--active');
-  lastFractionHighlightKey = null;
+  fractionStore.lastFractionHighlightKey = null;
 }
 
 function applyFractionHighlight(key) {
@@ -3900,26 +3536,26 @@ function applyFractionHighlight(key) {
     clearFractionHighlight();
     return;
   }
-  if (lastFractionHighlightKey === key) return;
+  if (fractionStore.lastFractionHighlightKey === key) return;
   clearFractionHighlight();
-  const marker = fractionMarkerMap.get(key);
+  const marker = fractionStore.markerMap.get(key);
   if (marker) marker.classList.add('fraction-active');
-  const hit = fractionHitMap.get(key);
+  const hit = fractionStore.hitMap.get(key);
   if (hit) hit.classList.add('fraction-active');
-  const token = pulseSeqTokenMap.get(key);
+  const token = fractionStore.pulseSeqTokenMap.get(key);
   if (token) token.classList.add('pulse-seq-token--active');
-  lastFractionHighlightKey = key;
+  fractionStore.lastFractionHighlightKey = key;
 }
 
 function findFractionMatch(value, epsilon = FRACTION_POSITION_EPSILON) {
   if (!Number.isFinite(value)) return null;
-  for (const item of fractionalPulseSelections) {
+  for (const item of fractionStore.pulseSelections) {
     if (!item || !Number.isFinite(item.value) || !item.key) continue;
     if (Math.abs(item.value - value) <= epsilon) {
       return item;
     }
   }
-  for (const [key, hit] of fractionHitMap.entries()) {
+  for (const [key, hit] of fractionStore.hitMap.entries()) {
     if (!key || !hit) continue;
     const hitValue = Number.parseFloat(hit.dataset?.value);
     if (!Number.isFinite(hitValue)) continue;
@@ -3935,9 +3571,9 @@ function highlightPulse(payload){
 
   if (!pulses || pulses.length === 0) {
     lastNormalizedStep = null;
-    lastHighlightType = null;
-    lastHighlightIntIndex = null;
-    lastHighlightFractionKey = null;
+    fractionStore.lastHighlightType = null;
+    fractionStore.lastHighlightIntIndex = null;
+    fractionStore.lastHighlightFractionKey = null;
     clearFractionHighlight();
     pulseSeqController.clearActive();
     return;
@@ -3963,18 +3599,18 @@ function highlightPulse(payload){
 
   if (!Number.isFinite(rawStepValue)) {
     lastNormalizedStep = null;
-    lastHighlightType = null;
-    lastHighlightIntIndex = null;
-    lastHighlightFractionKey = null;
+    fractionStore.lastHighlightType = null;
+    fractionStore.lastHighlightIntIndex = null;
+    fractionStore.lastHighlightFractionKey = null;
     return;
   }
 
   const baseCount = pulses.length > 1 ? pulses.length - 1 : 0;
   if (baseCount <= 0) {
     lastNormalizedStep = null;
-    lastHighlightType = null;
-    lastHighlightIntIndex = null;
-    lastHighlightFractionKey = null;
+    fractionStore.lastHighlightType = null;
+    fractionStore.lastHighlightIntIndex = null;
+    fractionStore.lastHighlightFractionKey = null;
     return;
   }
 
@@ -4014,12 +3650,12 @@ function highlightPulse(payload){
   let shouldUpdate = false;
   if (highlightType === 'fraction') {
     shouldUpdate = loopWrapped
-      || lastHighlightType !== 'fraction'
-      || fractionKey !== lastHighlightFractionKey;
+      || fractionStore.lastHighlightType !== 'fraction'
+      || fractionKey !== fractionStore.lastHighlightFractionKey;
   } else {
     shouldUpdate = loopWrapped
-      || lastHighlightType !== 'int'
-      || idx !== lastHighlightIntIndex;
+      || fractionStore.lastHighlightType !== 'int'
+      || idx !== fractionStore.lastHighlightIntIndex;
   }
 
   if (!shouldUpdate) {
@@ -4028,9 +3664,9 @@ function highlightPulse(payload){
     return;
   }
 
-  lastHighlightType = highlightType;
-  lastHighlightIntIndex = highlightType === 'int' ? idx : null;
-  lastHighlightFractionKey = highlightType === 'fraction' ? fractionKey : null;
+  fractionStore.lastHighlightType = highlightType;
+  fractionStore.lastHighlightIntIndex = highlightType === 'int' ? idx : null;
+  fractionStore.lastHighlightFractionKey = highlightType === 'fraction' ? fractionKey : null;
   lastNormalizedStep = normalizedScaled;
   lastVisualStep = rawStepValue;
 
@@ -4098,9 +3734,9 @@ function stopVisualSync() {
   }
   lastVisualStep = null;
   lastNormalizedStep = null;
-  lastHighlightType = null;
-  lastHighlightIntIndex = null;
-  lastHighlightFractionKey = null;
+  fractionStore.lastHighlightType = null;
+  fractionStore.lastHighlightIntIndex = null;
+  fractionStore.lastHighlightFractionKey = null;
 }
 
 function syncVisualState() {
