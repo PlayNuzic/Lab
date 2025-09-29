@@ -5,6 +5,7 @@ import { computeNumberFontRem, solidMenuBackground } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { fromLgAndTempo, gridFromOrigin, computeSubdivisionFontRem, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 
@@ -43,38 +44,15 @@ const randomDefaults = {
   allowComplex: true
 };
 
-const storePrefix = 'app3';
-const storeKey = (key) => `${storePrefix}::${key}`;
-const loadOpt = (key) => {
-  try { return localStorage.getItem(storeKey(key)); } catch { return null; }
-};
-const saveOpt = (key, value) => {
-  try { localStorage.setItem(storeKey(key), value); } catch {}
-};
-const clearOpt = (key) => {
-  try { localStorage.removeItem(storeKey(key)); } catch {}
-};
+const preferenceStorage = createPreferenceStorage({ prefix: 'app3', separator: '::' });
+const { storeKey, load: loadOpt, save: saveOpt, clear: clearOpt } = preferenceStorage;
 
-function clearStoredPreferences() {
-  try {
-    const prefix = `${storePrefix}::`;
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) keysToRemove.push(key);
-    }
-    keysToRemove.forEach((key) => localStorage.removeItem(key));
-  } catch {}
-}
-
-let factoryResetPending = false;
-window.addEventListener('sharedui:factoryreset', () => {
-  if (factoryResetPending) return;
-  factoryResetPending = true;
-  clearStoredPreferences();
-  setPulseAudio(true, { persist: false });
-  setCycleAudio(true, { persist: false });
-  window.location.reload();
+registerFactoryReset({
+  storage: preferenceStorage,
+  onBeforeReload: () => {
+    setPulseAudio(true, { persist: false });
+    setCycleAudio(true, { persist: false });
+  }
 });
 
 const inputLg = document.getElementById('inputLg');
@@ -462,46 +440,13 @@ subscribeMixer((snapshot) => {
   syncFromChannel(findChannel('subdivision'), setCycleAudio, cycleAudioEnabled);
 });
 
-function applyTheme(value) {
-  const val = value || 'system';
-  if (val === 'system') {
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.body.dataset.theme = dark ? 'dark' : 'light';
-  } else {
-    document.body.dataset.theme = val;
-  }
-  saveOpt('theme', val);
-  try {
-    window.dispatchEvent(new CustomEvent('sharedui:theme', {
-      detail: { value: document.body.dataset.theme, raw: val }
-    }));
-  } catch {}
-}
+setupThemeSync({ storage: preferenceStorage, selectEl: themeSelect });
 
-const storedTheme = loadOpt('theme');
-if (themeSelect) {
-  if (storedTheme) themeSelect.value = storedTheme;
-  applyTheme(themeSelect.value || 'system');
-  themeSelect.addEventListener('change', (e) => applyTheme(e.target.value));
-} else {
-  applyTheme(storedTheme || 'system');
-}
-
-document.addEventListener('sharedui:mute', async (e) => {
-  const val = !!(e && e.detail && e.detail.value);
-  saveOpt('mute', val ? '1' : '0');
-  const instance = await initAudio();
-  if (instance && typeof instance.setMute === 'function') {
-    instance.setMute(val);
-  }
+setupMutePersistence({
+  storage: preferenceStorage,
+  getAudioInstance: () => initAudio(),
+  muteButton: document.getElementById('muteBtn')
 });
-
-(function restoreMutePreference() {
-  try {
-    const saved = loadOpt('mute');
-    if (saved === '1') document.getElementById('muteBtn')?.click();
-  } catch {}
-})();
 
 function getLg() {
   return parseIntSafe(inputLg.value);

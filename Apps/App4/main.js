@@ -6,6 +6,7 @@ import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor, { createEmptyFractionInfo } from '../../libs/app-common/fraction-editor.js';
 import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
 import { randomize as randomizeValues } from '../../libs/random/index.js';
@@ -182,19 +183,8 @@ if (globalMixer) {
 const FRACTION_NUMERATOR_KEY = 'n';
 const FRACTION_DENOMINATOR_KEY = 'd';
 
-const STORE_PREFIX = 'app4:';
-function storeKey(k) {
-  return `${STORE_PREFIX}${k}`;
-}
-function saveOpt(k, v) {
-  try { localStorage.setItem(storeKey(k), v); } catch {}
-}
-function loadOpt(k) {
-  try { return localStorage.getItem(storeKey(k)); } catch { return null; }
-}
-function clearOpt(k) {
-  try { localStorage.removeItem(storeKey(k)); } catch {}
-}
+const preferenceStorage = createPreferenceStorage({ prefix: 'app4', separator: ':' });
+const { storeKey, save: saveOpt, load: loadOpt, clear: clearOpt } = preferenceStorage;
 
 const randomControls = {
   randLgToggle,
@@ -1177,62 +1167,15 @@ subscribeMixer((snapshot) => {
   lastSoloActive = soloActive;
 });
 
-function clearStoredPreferences() {
-  try {
-    const prefix = STORE_PREFIX;
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) keysToRemove.push(key);
-    }
-    keysToRemove.forEach((key) => localStorage.removeItem(key));
-  } catch {}
-}
+registerFactoryReset({ storage: preferenceStorage });
 
-let factoryResetPending = false;
-window.addEventListener('sharedui:factoryreset', () => {
-  if (factoryResetPending) return;
-  factoryResetPending = true;
-  clearStoredPreferences();
-  window.location.reload();
+setupThemeSync({ storage: preferenceStorage, selectEl: themeSelect });
+
+setupMutePersistence({
+  storage: preferenceStorage,
+  getAudioInstance: () => initAudio(),
+  muteButton: document.getElementById('muteBtn')
 });
-
-// Local header behavior (as before)
-function applyTheme(val){
-  if(val === 'system'){
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.body.dataset.theme = dark ? 'dark' : 'light';
-  } else {
-    document.body.dataset.theme = val;
-  }
-  saveOpt('theme', val);
-  // Notify shared listeners so dependent UI can refresh colors on the fly
-  try { window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: val } })); } catch {}
-}
-
-const storedTheme = loadOpt('theme');
-if (themeSelect) {
-  if (storedTheme) themeSelect.value = storedTheme;
-  applyTheme(themeSelect.value || 'system');
-  themeSelect.addEventListener('change', e => applyTheme(e.target.value));
-} else {
-  applyTheme(storedTheme || 'system');
-}
-
-document.addEventListener('sharedui:mute', async (e) => {
-  const val = !!(e && e.detail && e.detail.value);
-  saveOpt('mute', val ? '1' : '0');
-  const a = await initAudio();
-  if (a && typeof a.setMute === 'function') a.setMute(val);
-});
-
-// Restore previous mute preference on load
-(() => {
-  try{
-    const saved = loadOpt('mute');
-    if (saved === '1') document.getElementById('muteBtn')?.click();
-  }catch{}
-})();
 
 const storedColor = loadOpt('color');
 if (storedColor) {
