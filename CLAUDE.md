@@ -25,6 +25,7 @@ This is a **monorepo** with **workspaces** for rhythm-based musical applications
 - **`led-manager.js`**: LED state management for rhythm parameters
 - **`events.js`**: Standardized event binding utilities
 - **`audio.js`**: Audio scheduling bridges and shared sound events
+- **`loop-control.js`**: **NEW** - Shared loop controllers for consistent audio sync
 - **`template.js`**: App template rendering system
 - **`utils.js`**: Math utilities (font size, hit size calculations)
 - **`preferences.js`**: Centralized preference storage
@@ -141,7 +142,61 @@ syncLEDsWithInputs(ledManagers, elements);
 4. **App4**: Multi-Fraction Selection - Advanced fraction management
 5. **SoundGrid**: Placeholder for future grid-based sound app
 
-### Technical Architecture
+## 🚨 **CRITICAL DEVELOPMENT PRINCIPLES**
+
+### **ALWAYS PRIORITIZE SHARED COMPONENTS**
+
+When implementing new features or fixing bugs, **ALWAYS** follow this hierarchy:
+
+1. **🔍 FIRST**: Check if a shared component already exists in `libs/app-common/`
+2. **🛠️ SECOND**: If no shared component exists, create one that can be reused
+3. **❌ LAST RESORT**: Only implement app-specific code when truly necessary
+
+### **Modular Component Usage Examples**
+
+#### **Loop Controllers** ⭐ NEW
+```javascript
+// ✅ CORRECT: Use shared loop controller
+import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
+
+const loopController = createPulseMemoryLoopController({
+  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  loopBtn: elements.loopBtn,
+  state: { get loopEnabled() { return loopEnabled; }, set loopEnabled(v) { loopEnabled = v; } },
+  ensurePulseMemory,
+  getLg: () => parseInt(inputLg.value),
+  isPlaying: () => isPlaying,
+  onToggle: (enabled) => {
+    syncSelectedFromMemory();
+    updateNumbers();
+    // app-specific callback logic
+  }
+});
+loopController.attach();
+
+// ❌ WRONG: Manual loop button event listeners
+loopBtn.addEventListener('click', () => {
+  loopEnabled = !loopEnabled;
+  // This creates duplicate code and potential audio sync bugs
+});
+```
+
+#### **Bug Fix Priority**
+When fixing bugs that affect multiple apps:
+
+1. **Create shared component** that handles the bug properly
+2. **Migrate all affected apps** to use the shared component
+3. **Verify consistent behavior** across all apps
+
+### **Testing Shared Components**
+
+All shared components MUST have corresponding tests in `/tests/`. Before creating new shared components:
+
+1. **Check existing tests**: `npm test`
+2. **Create test file**: `tests/[component-name].test.js`
+3. **Test critical paths**: Audio sync, DOM management, state persistence
+
+### **Technical Architecture**
 
 #### **Module System**
 - **ES6 modules** throughout with **type: "module"** in package.json
