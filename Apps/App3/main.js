@@ -4,6 +4,7 @@ import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { computeNumberFontRem, solidMenuBackground } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
+import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
@@ -131,12 +132,10 @@ let lastStructureSignature = {
 };
 const T_INDICATOR_TRANSITION_DELAY = 650;
 let tIndicatorRevealTimeout = null;
-let pulseAudioEnabled = true;
-let cycleAudioEnabled = true;
 const PULSE_AUDIO_KEY = 'pulseAudio';
 const CYCLE_AUDIO_KEY = 'cycleAudio';
-let hasStoredPulsePref = false;
-let hasStoredCyclePref = false;
+let pulseToggleController = null;
+let cycleToggleController = null;
 
 const shouldRenderTIndicator = Boolean(document.querySelector('.param.t'));
 const tIndicator = shouldRenderTIndicator ? (() => {
@@ -254,10 +253,12 @@ async function initAudio() {
   await audio.ready();
   schedulingBridge.applyTo(audio);
   if (typeof audio.setPulseEnabled === 'function') {
-    audio.setPulseEnabled(pulseAudioEnabled);
+    const pulseEnabled = pulseToggleController?.isEnabled() ?? true;
+    audio.setPulseEnabled(pulseEnabled);
   }
   if (typeof audio.setCycleEnabled === 'function') {
-    audio.setCycleEnabled(cycleAudioEnabled);
+    const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
+    audio.setCycleEnabled(cycleEnabled);
   }
   return audio;
 }
@@ -327,91 +328,51 @@ if (cycleToggleBtn) {
   attachHover(cycleToggleBtn, { text: 'Activar o silenciar el ciclo' });
 }
 
-function syncToggleButton(button, enabled) {
-  if (!button) return;
-  button.classList.toggle('active', enabled);
-  button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-  button.dataset.state = enabled ? 'on' : 'off';
-}
-
-/**
- * Actualitza la preferència d'àudio per al canal de polsos i sincronitza UI/Storage.
- *
- * @param {boolean} value estat desitjat.
- * @param {{ persist?: boolean }} [options] control sobre la persistència a `localStorage`.
- * @returns {void}
- * @remarks Es crida per botons, mixer global o estat inicial. Depèn de DOM, `localStorage` i mixer compartit; cap càlcul PulseMemory més enllà d'habilitar 0/Lg derivats a l'àudio.
- */
-function setPulseAudio(value, { persist = true } = {}) {
-  const enabled = value !== false;
-  pulseAudioEnabled = enabled;
-  syncToggleButton(pulseToggleBtn, enabled);
-  if (persist) {
-    saveOpt(PULSE_AUDIO_KEY, enabled ? '1' : '0');
-    hasStoredPulsePref = true;
-  }
-  if (globalMixer) {
-    globalMixer.setChannelMute('pulse', !enabled);
-  }
-  if (audio && typeof audio.setPulseEnabled === 'function') {
-    audio.setPulseEnabled(enabled);
-  }
-}
-
-/**
- * Sincronitza el canal d'àudio de subdivisions amb la UI i l'emmagatzematge.
- *
- * @param {boolean} value estat desitjat.
- * @param {{ persist?: boolean }} [options] configura si es desa a `localStorage`.
- * @returns {void}
- * @remarks Invocat per UI, mixer o arrencada. Depèn de DOM i mixer; comparteix supòsits PulseMemory 1..Lg-1 i 0/Lg derivats.
- */
-function setCycleAudio(value, { persist = true } = {}) {
-  const enabled = value !== false;
-  cycleAudioEnabled = enabled;
-  syncToggleButton(cycleToggleBtn, enabled);
-  if (persist) {
-    saveOpt(CYCLE_AUDIO_KEY, enabled ? '1' : '0');
-    hasStoredCyclePref = true;
-  }
-  if (globalMixer) {
-    globalMixer.setChannelMute('subdivision', !enabled);
-  }
-  if (audio && typeof audio.setCycleEnabled === 'function') {
-    audio.setCycleEnabled(enabled);
-  }
-}
-
-const storedPulseAudio = loadOpt(PULSE_AUDIO_KEY);
-if (storedPulseAudio === '0') {
-  hasStoredPulsePref = true;
-  setPulseAudio(false, { persist: false });
-} else if (storedPulseAudio === '1') {
-  hasStoredPulsePref = true;
-  setPulseAudio(true, { persist: false });
-} else {
-  hasStoredPulsePref = false;
-  setPulseAudio(true, { persist: false });
-}
-const storedCycleAudio = loadOpt(CYCLE_AUDIO_KEY);
-if (storedCycleAudio === '0') {
-  hasStoredCyclePref = true;
-  setCycleAudio(false, { persist: false });
-} else if (storedCycleAudio === '1') {
-  hasStoredCyclePref = true;
-  setCycleAudio(true, { persist: false });
-} else {
-  hasStoredCyclePref = false;
-  setCycleAudio(true, { persist: false });
-}
-
-pulseToggleBtn?.addEventListener('click', () => {
-  setPulseAudio(!pulseAudioEnabled);
+const audioToggleManager = initAudioToggles({
+  toggles: [
+    {
+      id: 'pulse',
+      button: pulseToggleBtn,
+      storageKey: PULSE_AUDIO_KEY,
+      mixerChannel: 'pulse',
+      defaultEnabled: true,
+      onChange: (enabled) => {
+        if (audio && typeof audio.setPulseEnabled === 'function') {
+          audio.setPulseEnabled(enabled);
+        }
+      }
+    },
+    {
+      id: 'cycle',
+      button: cycleToggleBtn,
+      storageKey: CYCLE_AUDIO_KEY,
+      mixerChannel: 'subdivision',
+      defaultEnabled: true,
+      onChange: (enabled) => {
+        if (audio && typeof audio.setCycleEnabled === 'function') {
+          audio.setCycleEnabled(enabled);
+        }
+      }
+    }
+  ],
+  storage: {
+    load: loadOpt,
+    save: saveOpt
+  },
+  mixer: globalMixer,
+  subscribeMixer
 });
 
-cycleToggleBtn?.addEventListener('click', () => {
-  setCycleAudio(!cycleAudioEnabled);
-});
+pulseToggleController = audioToggleManager.get('pulse') ?? null;
+cycleToggleController = audioToggleManager.get('cycle') ?? null;
+
+function setPulseAudio(value, options) {
+  pulseToggleController?.set(value, options);
+}
+
+function setCycleAudio(value, options) {
+  cycleToggleController?.set(value, options);
+}
 
 const mixerTriggers = [playBtn].filter(Boolean);
 
@@ -425,28 +386,46 @@ initMixerMenu({
   ]
 });
 
-subscribeMixer((snapshot) => {
-  if (!snapshot || !Array.isArray(snapshot.channels)) return;
-  const findChannel = (id) => snapshot.channels.find(channel => channel.id === id);
+function applyTheme(value) {
+  const val = value || 'system';
+  if (val === 'system') {
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.dataset.theme = dark ? 'dark' : 'light';
+  } else {
+    document.body.dataset.theme = val;
+  }
+  saveOpt('theme', val);
+  try {
+    window.dispatchEvent(new CustomEvent('sharedui:theme', {
+      detail: { value: document.body.dataset.theme, raw: val }
+    }));
+  } catch {}
+}
 
-  const syncFromChannel = (channelState, setter, current) => {
-    if (!channelState) return;
-    const shouldEnable = !channelState.effectiveMuted;
-    if (current === shouldEnable) return;
-    setter(shouldEnable, { persist: false });
-  };
+const storedTheme = loadOpt('theme');
+if (themeSelect) {
+  if (storedTheme) themeSelect.value = storedTheme;
+  applyTheme(themeSelect.value || 'system');
+  themeSelect.addEventListener('change', (e) => applyTheme(e.target.value));
+} else {
+  applyTheme(storedTheme || 'system');
+}
 
-  syncFromChannel(findChannel('pulse'), setPulseAudio, pulseAudioEnabled);
-  syncFromChannel(findChannel('subdivision'), setCycleAudio, cycleAudioEnabled);
+document.addEventListener('sharedui:mute', async (e) => {
+  const val = !!(e && e.detail && e.detail.value);
+  saveOpt('mute', val ? '1' : '0');
+  const instance = await initAudio();
+  if (instance && typeof instance.setMute === 'function') {
+    instance.setMute(val);
+  }
 });
 
-setupThemeSync({ storage: preferenceStorage, selectEl: themeSelect });
-
-setupMutePersistence({
-  storage: preferenceStorage,
-  getAudioInstance: () => initAudio(),
-  muteButton: document.getElementById('muteBtn')
-});
+(function restoreMutePreference() {
+  try {
+    const saved = loadOpt('mute');
+    if (saved === '1') document.getElementById('muteBtn')?.click();
+  } catch {}
+})();
 
 function getLg() {
   return parseIntSafe(inputLg.value);
@@ -1470,8 +1449,8 @@ resetBtn.addEventListener('click', () => {
   setCycleAudio(true, { persist: false });
   clearOpt(PULSE_AUDIO_KEY);
   clearOpt(CYCLE_AUDIO_KEY);
-  hasStoredPulsePref = false;
-  hasStoredCyclePref = false;
+  pulseToggleController?.markStored(false);
+  cycleToggleController?.markStored(false);
   if (audio) audio.stop();
   if (audio && typeof audio.resetTapTempo === 'function') {
     audio.resetTapTempo();
@@ -1594,10 +1573,10 @@ function applyInitialState() {
     setValue(numeratorInput, '');
     setValue(denominatorInput, '');
   }
-  if (!hasStoredPulsePref) {
+  if (!pulseToggleController || !pulseToggleController.hasStored()) {
     setPulseAudio(true, { persist: false });
   }
-  if (!hasStoredCyclePref) {
+  if (!cycleToggleController || !cycleToggleController.hasStored()) {
     setCycleAudio(true, { persist: false });
   }
   if (audio && typeof audio.resetTapTempo === 'function') {

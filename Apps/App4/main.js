@@ -6,6 +6,7 @@ import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor, { createEmptyFractionInfo } from '../../libs/app-common/fraction-editor.js';
 import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
@@ -1016,166 +1017,174 @@ const PULSE_AUDIO_KEY = 'pulseAudio';
 const SELECTED_AUDIO_KEY = 'selectedAudio';
 const CYCLE_AUDIO_KEY = 'cycleAudio';
 
-let pulseAudioEnabled = true;
-let selectedAudioEnabled = true;
-let cycleAudioEnabled = true;
-
-function syncToggleButton(button, enabled) {
-  if (!button) return;
-  button.classList.toggle('active', enabled);
-  button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-  button.dataset.state = enabled ? 'on' : 'off';
-}
-
-function setPulseAudio(value, { persist = true } = {}) {
-  const enabled = value !== false;
-  pulseAudioEnabled = enabled;
-  syncToggleButton(pulseToggleBtn, enabled);
-  if (persist) {
-    saveOpt(PULSE_AUDIO_KEY, enabled ? '1' : '0');
-  }
-  if (globalMixer) {
-    globalMixer.setChannelMute('pulse', !enabled);
-  }
-  if (audio && typeof audio.setPulseEnabled === 'function') {
-    audio.setPulseEnabled(enabled);
-  }
-}
-
-function setSelectedAudio(value, { persist = true } = {}) {
-  const enabled = value !== false;
-  selectedAudioEnabled = enabled;
-  syncToggleButton(selectedToggleBtn, enabled);
-  if (persist) {
-    saveOpt(SELECTED_AUDIO_KEY, enabled ? '1' : '0');
-  }
-  if (globalMixer) {
-    globalMixer.setChannelMute('accent', !enabled);
-  }
-}
-
-function setCycleAudio(value, { persist = true } = {}) {
-  const enabled = value !== false;
-  cycleAudioEnabled = enabled;
-  syncToggleButton(cycleToggleBtn, enabled);
-  if (persist) {
-    saveOpt(CYCLE_AUDIO_KEY, enabled ? '1' : '0');
-  }
-  if (globalMixer) {
-    globalMixer.setChannelMute('subdivision', !enabled);
-  }
-  if (audio && typeof audio.setCycleEnabled === 'function') {
-    audio.setCycleEnabled(enabled);
-  }
-}
-
-const storedPulseAudio = loadOpt(PULSE_AUDIO_KEY);
-if (storedPulseAudio === '0') {
-  setPulseAudio(false, { persist: false });
-} else {
-  setPulseAudio(true, { persist: false });
-}
-
-const storedSelectedAudio = loadOpt(SELECTED_AUDIO_KEY);
-if (storedSelectedAudio === '0') {
-  setSelectedAudio(false, { persist: false });
-} else {
-  setSelectedAudio(true, { persist: false });
-}
-
-const storedCycleAudio = loadOpt(CYCLE_AUDIO_KEY);
-if (storedCycleAudio === '0') {
-  setCycleAudio(false, { persist: false });
-} else {
-  setCycleAudio(true, { persist: false });
-}
-
-pulseToggleBtn?.addEventListener('click', () => {
-  setPulseAudio(!pulseAudioEnabled);
-});
-
-selectedToggleBtn?.addEventListener('click', () => {
-  setSelectedAudio(!selectedAudioEnabled);
-});
-
-cycleToggleBtn?.addEventListener('click', () => {
-  setCycleAudio(!cycleAudioEnabled);
-});
+let pulseToggleController = null;
+let selectedToggleController = null;
+let cycleToggleController = null;
 
 const soloMutedChannels = new Set();
 let lastSoloActive = false;
 
-subscribeMixer((snapshot) => {
-  if (!snapshot || !Array.isArray(snapshot.channels)) return;
-  const findChannel = (id) => snapshot.channels.find(channel => channel.id === id);
-  const soloActive = snapshot.channels.some(channel => channel.solo);
-
-  const setters = new Map([
-    ['pulse', setPulseAudio],
-    ['accent', setSelectedAudio],
-    ['subdivision', setCycleAudio]
-  ]);
-
-  const currentStates = {
-    pulse: pulseAudioEnabled,
-    accent: selectedAudioEnabled,
-    subdivision: cycleAudioEnabled
-  };
-
-  const syncFromChannel = (channelState, setter, current) => {
-    if (!channelState) return;
-    const channelId = channelState.id;
-    const forcedBySolo = soloActive && !channelState.solo && channelState.effectiveMuted && !channelState.muted;
-    if (forcedBySolo) {
-      if (!soloMutedChannels.has(channelId)) {
-        soloMutedChannels.add(channelId);
-        setter(false, { persist: false });
+const audioToggleManager = initAudioToggles({
+  toggles: [
+    {
+      id: 'pulse',
+      button: pulseToggleBtn,
+      storageKey: PULSE_AUDIO_KEY,
+      mixerChannel: 'pulse',
+      defaultEnabled: true,
+      onChange: (enabled) => {
+        if (audio && typeof audio.setPulseEnabled === 'function') {
+          audio.setPulseEnabled(enabled);
+        }
       }
-      return;
+    },
+    {
+      id: 'accent',
+      button: selectedToggleBtn,
+      storageKey: SELECTED_AUDIO_KEY,
+      mixerChannel: 'accent',
+      defaultEnabled: true
+    },
+    {
+      id: 'cycle',
+      button: cycleToggleBtn,
+      storageKey: CYCLE_AUDIO_KEY,
+      mixerChannel: 'subdivision',
+      defaultEnabled: true,
+      onChange: (enabled) => {
+        if (audio && typeof audio.setCycleEnabled === 'function') {
+          audio.setCycleEnabled(enabled);
+        }
+      }
     }
+  ],
+  storage: {
+    load: loadOpt,
+    save: saveOpt
+  },
+  mixer: globalMixer,
+  subscribeMixer,
+  onMixerSnapshot: ({ snapshot, channels, setFromMixer, getState }) => {
+    if (!snapshot || !Array.isArray(snapshot.channels)) return;
+    const soloActive = snapshot.channels.some((channel) => channel.solo);
+    const channelPairs = [
+      ['pulse', 'pulse'],
+      ['accent', 'accent'],
+      ['cycle', 'subdivision']
+    ];
+    const toggleByChannel = new Map(channelPairs.map(([toggleId, channelId]) => [channelId, toggleId]));
 
-    if (!soloActive && soloMutedChannels.has(channelId)) {
-      soloMutedChannels.delete(channelId);
-      setter(true, { persist: false });
-      return;
-    }
+    channelPairs.forEach(([toggleId, channelId]) => {
+      const channelState = channels.get(channelId);
+      if (!channelState) return;
+      const forcedBySolo = soloActive && !channelState.solo && channelState.effectiveMuted && !channelState.muted;
+      if (forcedBySolo) {
+        if (!soloMutedChannels.has(channelId)) {
+          soloMutedChannels.add(channelId);
+          setFromMixer(toggleId, false);
+        }
+        return;
+      }
 
-    if (soloActive && soloMutedChannels.has(channelId)) {
-      return;
-    }
+      if (!soloActive && soloMutedChannels.has(channelId)) {
+        soloMutedChannels.delete(channelId);
+        setFromMixer(toggleId, true);
+        return;
+      }
 
-    const shouldEnable = !channelState.muted;
-    if (current === shouldEnable) return;
-    setter(shouldEnable, { persist: false });
-  };
+      if (soloActive && soloMutedChannels.has(channelId)) {
+        return;
+      }
 
-  ['pulse', 'accent', 'subdivision'].forEach((id) => {
-    const channel = findChannel(id);
-    const setter = setters.get(id);
-    const current = currentStates[id];
-    if (setter) syncFromChannel(channel, setter, current);
-  });
-
-  if (!soloActive && lastSoloActive && soloMutedChannels.size) {
-    soloMutedChannels.forEach((id) => {
-      const setter = setters.get(id);
-      if (setter) setter(true, { persist: false });
+      const shouldEnable = !channelState.muted;
+      if (getState(toggleId) === shouldEnable) return;
+      setFromMixer(toggleId, shouldEnable);
     });
-    soloMutedChannels.clear();
+
+    if (!soloActive && lastSoloActive && soloMutedChannels.size) {
+      soloMutedChannels.forEach((channelId) => {
+        const toggleId = toggleByChannel.get(channelId);
+        if (toggleId) setFromMixer(toggleId, true);
+      });
+      soloMutedChannels.clear();
+    }
+
+    lastSoloActive = soloActive;
   }
-
-  lastSoloActive = soloActive;
 });
 
-registerFactoryReset({ storage: preferenceStorage });
+pulseToggleController = audioToggleManager.get('pulse') ?? null;
+selectedToggleController = audioToggleManager.get('accent') ?? null;
+cycleToggleController = audioToggleManager.get('cycle') ?? null;
 
-setupThemeSync({ storage: preferenceStorage, selectEl: themeSelect });
+function setPulseAudio(value, options) {
+  pulseToggleController?.set(value, options);
+}
 
-setupMutePersistence({
-  storage: preferenceStorage,
-  getAudioInstance: () => initAudio(),
-  muteButton: document.getElementById('muteBtn')
+function setSelectedAudio(value, options) {
+  selectedToggleController?.set(value, options);
+}
+
+function setCycleAudio(value, options) {
+  cycleToggleController?.set(value, options);
+}
+
+function clearStoredPreferences() {
+  try {
+    const prefix = STORE_PREFIX;
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+  } catch {}
+}
+
+let factoryResetPending = false;
+window.addEventListener('sharedui:factoryreset', () => {
+  if (factoryResetPending) return;
+  factoryResetPending = true;
+  clearStoredPreferences();
+  window.location.reload();
 });
+
+// Local header behavior (as before)
+function applyTheme(val){
+  if(val === 'system'){
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.dataset.theme = dark ? 'dark' : 'light';
+  } else {
+    document.body.dataset.theme = val;
+  }
+  saveOpt('theme', val);
+  // Notify shared listeners so dependent UI can refresh colors on the fly
+  try { window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: val } })); } catch {}
+}
+
+const storedTheme = loadOpt('theme');
+if (themeSelect) {
+  if (storedTheme) themeSelect.value = storedTheme;
+  applyTheme(themeSelect.value || 'system');
+  themeSelect.addEventListener('change', e => applyTheme(e.target.value));
+} else {
+  applyTheme(storedTheme || 'system');
+}
+
+document.addEventListener('sharedui:mute', async (e) => {
+  const val = !!(e && e.detail && e.detail.value);
+  saveOpt('mute', val ? '1' : '0');
+  const a = await initAudio();
+  if (a && typeof a.setMute === 'function') a.setMute(val);
+});
+
+// Restore previous mute preference on load
+(() => {
+  try{
+    const saved = loadOpt('mute');
+    if (saved === '1') document.getElementById('muteBtn')?.click();
+  }catch{}
+})();
 
 const storedColor = loadOpt('color');
 if (storedColor) {
@@ -1439,10 +1448,12 @@ async function initAudio(){
       }
       schedulingBridge.applyTo(instance);
       if (typeof instance.setPulseEnabled === 'function') {
-        instance.setPulseEnabled(pulseAudioEnabled);
+        const pulseEnabled = pulseToggleController?.isEnabled() ?? true;
+        instance.setPulseEnabled(pulseEnabled);
       }
       if (typeof instance.setCycleEnabled === 'function') {
-        instance.setCycleEnabled(cycleAudioEnabled);
+        const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
+        instance.setCycleEnabled(cycleEnabled);
       }
       if (typeof instance.setLoop === 'function') {
         instance.setLoop(loopEnabled);
