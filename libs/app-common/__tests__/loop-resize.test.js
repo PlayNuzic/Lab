@@ -150,6 +150,7 @@ describe('loop resize keeps circular selection', () => {
     }));
     jest.unstable_mockModule('../random-menu.js', () => ({
       initRandomMenu: jest.fn(),
+      mergeRandomConfig: jest.fn((defaults, stored) => ({ ...defaults, ...stored })),
     }));
     jest.unstable_mockModule('../audio.js', () => ({
       createSchedulingBridge: jest.fn(() => ({

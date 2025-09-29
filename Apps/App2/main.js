@@ -2,7 +2,7 @@ import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.j
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
-import { initRandomMenu } from '../../libs/app-common/random-menu.js';
+import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
@@ -132,7 +132,7 @@ function saveRandomConfig(cfg) {
   try { saveOpt(RANDOM_STORE_KEY, JSON.stringify(cfg)); } catch {}
 }
 
-const randomConfig = { ...randomDefaults, ...loadRandomConfig() };
+const randomConfig = mergeRandomConfig(randomDefaults, loadRandomConfig());
 
 /**
  * Apply stored random configuration values to the associated DOM controls.

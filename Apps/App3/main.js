@@ -3,7 +3,7 @@ import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.j
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { computeNumberFontRem, solidMenuBackground } from './utils.js';
-import { initRandomMenu } from '../../libs/app-common/random-menu.js';
+import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
@@ -897,9 +897,9 @@ function randomInt(min, max) {
 let randomConfig = (() => {
   try {
     const stored = loadOpt('random');
-    return stored ? { ...randomDefaults, ...JSON.parse(stored) } : { ...randomDefaults };
+    return mergeRandomConfig(randomDefaults, stored ? JSON.parse(stored) : {});
   } catch {
-    return { ...randomDefaults };
+    return mergeRandomConfig(randomDefaults, {});
   }
 })();
 
