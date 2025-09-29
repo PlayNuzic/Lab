@@ -325,6 +325,11 @@ export function createFractionEditor({
     input.value = '';
     input.className = field;
     input.dataset.fractionHoverType = field;
+
+    // Add id and name for accessibility
+    const uniqueId = `fraction-${field}-${Math.random().toString(36).substr(2, 9)}`;
+    input.id = uniqueId;
+    input.name = field;
     fieldWrapper.appendChild(input);
 
     const placeholderEl = document.createElement('div');

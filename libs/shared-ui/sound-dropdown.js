@@ -11,6 +11,13 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.className = 'dropdown-toggle';
+
+  // Transfer the ID from container to the focusable button for accessibility
+  if (container.id) {
+    toggle.id = container.id;
+    container.removeAttribute('id');
+  }
+
   container.appendChild(toggle);
 
   const panel = document.createElement('div');
