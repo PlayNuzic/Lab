@@ -29,15 +29,8 @@ export async function initRhythmApp({
   // Render app template
   renderApp({ title, ...templateConfig });
 
-  // Initialize audio with proper context handling
+  // Audio will be initialized lazily when needed (no immediate TimelineAudio creation)
   let audio;
-  try {
-    audio = new TimelineAudio();
-    await ensureAudioContextReady();
-  } catch (error) {
-    console.warn('Audio initialization deferred until user interaction:', error.message);
-    audio = new TimelineAudio();
-  }
 
   // Bind DOM elements with LED support
   const { elements, leds, ledHelpers } = bindRhythmElements(elementMap);
@@ -61,7 +54,7 @@ export async function initRhythmApp({
   initSharedUIComponents(elements);
 
   return {
-    audio,
+    // No audio instance returned - apps should use createRhythmAudioInitializer
     schedulingBridge,
     elements,
     leds,
@@ -79,29 +72,26 @@ async function ensureAudioContextReady() {
     throw new Error('Tone.js not loaded');
   }
 
-  // Check if context needs user interaction
-  if (Tone.context.state !== 'running') {
-    // Don't try to start context automatically - this causes warnings
-    // Instead, wait for user interaction
-    return new Promise((resolve) => {
-      const handleUserInteraction = async () => {
-        try {
-          await Tone.start();
-          document.removeEventListener('click', handleUserInteraction);
-          document.removeEventListener('keydown', handleUserInteraction);
-          resolve();
-        } catch (error) {
-          console.warn('Could not start audio context:', error);
-          resolve(); // Continue without audio
-        }
-      };
+  // Don't access Tone.context.state at all - this triggers AudioContext warnings
+  // Instead, just wait for user interaction before attempting to start
+  return new Promise((resolve) => {
+    const handleUserInteraction = async () => {
+      try {
+        await Tone.start();
+        document.removeEventListener('click', handleUserInteraction);
+        document.removeEventListener('keydown', handleUserInteraction);
+        resolve();
+      } catch (error) {
+        // If Tone.start() fails, it's likely already started or permission denied
+        // Either way, resolve to continue
+        console.warn('Could not start audio context:', error);
+        resolve();
+      }
+    };
 
-      document.addEventListener('click', handleUserInteraction, { once: true });
-      document.addEventListener('keydown', handleUserInteraction, { once: true });
-    });
-  }
-
-  return Promise.resolve();
+    document.addEventListener('click', handleUserInteraction, { once: true });
+    document.addEventListener('keydown', handleUserInteraction, { once: true });
+  });
 }
 
 /**

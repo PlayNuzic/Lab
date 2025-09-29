@@ -99,9 +99,6 @@ async function tryResumeContext(ctx) {
 async function startToneAudio() {
   if (typeof Tone === 'undefined') return false;
 
-  // Mark that we're about to explicitly start Tone
-  toneExplicitlyStarted = true;
-
   const contextBefore = getToneContext();
   if (isRunning(contextBefore)) return true;
   if (typeof Tone.start === 'function') {
@@ -370,28 +367,30 @@ function normalizeAudioContext(ctx) {
   return null;
 }
 
-// Track if Tone has been explicitly started to avoid premature access
-let toneExplicitlyStarted = false;
-
 function resolveToneContext() {
   if (typeof Tone === 'undefined') return null;
 
-  // Don't access Tone context properties until it has been explicitly started
-  // This prevents AudioContext warnings on page load
-  if (!toneExplicitlyStarted) {
-    return null;
+  // Only access Tone context if it already exists and is running
+  // This prevents premature AudioContext initialization
+  try {
+    if (Tone.context && Tone.context.state === 'running') {
+      const candidates = [];
+      if (typeof Tone.getContext === 'function') {
+        candidates.push(Tone.getContext());
+      }
+      if (Tone.context) {
+        candidates.push(Tone.context);
+      }
+
+      for (const candidate of candidates) {
+        const resolved = normalizeAudioContext(candidate);
+        if (resolved) return resolved;
+      }
+    }
+  } catch (error) {
+    // Ignore errors when checking Tone context
   }
 
-  const candidates = [];
-  if (typeof Tone.getContext === 'function') {
-    try { candidates.push(Tone.getContext()); } catch {}
-  }
-  if (Tone?.context) candidates.push(Tone.context);
-
-  for (const candidate of candidates) {
-    const resolved = normalizeAudioContext(candidate);
-    if (resolved) return resolved;
-  }
   return null;
 }
 
