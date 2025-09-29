@@ -1079,9 +1079,6 @@ function handleInput(){
         bpm: validV ? vNow : undefined
       });
     }
-    if (validLg && validV) {
-      scheduleZeroResync(vNow);
-    }
   }
 }
 

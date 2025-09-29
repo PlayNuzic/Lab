@@ -2761,9 +2761,6 @@ function handleInput(){
     if (typeof audio.updateTransport === 'function' && (scheduling.validLg || scheduling.validV)) {
       audio.updateTransport(transportPayload);
     }
-    if (scheduling.validLg && scheduling.validV && Number.isFinite(vNow) && vNow > 0) {
-      scheduleZeroResync(vNow);
-    }
   }
 }
 
