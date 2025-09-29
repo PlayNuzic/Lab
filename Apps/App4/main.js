@@ -44,6 +44,23 @@ const unitV = document.getElementById('unitV');
 const unitT = document.getElementById('unitT');
 // Pulse sequence UI element (contenteditable div in template)
 const pulseSeqEl = document.getElementById('pulseSeq');
+const fractionInlineSlot = document.getElementById(FRACTION_INLINE_SLOT_ID);
+
+let numeratorInput;
+let denominatorInput;
+let pulseSeqFractionWrapper = null;
+let fractionEditorController = null;
+let currentFractionInfo = createEmptyFractionInfo();
+let pulseSeqFractionNumeratorEl = null;
+let pulseSeqFractionDenominatorEl = null;
+let pulseSeqVisualEl = null;
+let pulseSeqEditWrapper = null;
+
+if (fractionInlineSlot) {
+  fractionInlineSlot.classList.add('fraction-inline-slot');
+  pulseSeqFractionWrapper = fractionInlineSlot;
+}
+
 const pulseSeqController = createPulseSeqController();
 const pulseMemoryApi = pulseSeqController.memory;
 const pulseMemory = pulseMemoryApi.data;
@@ -98,7 +115,6 @@ const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
 const cycleSoundSelect = document.getElementById('cycleSoundSelect');
-const fractionInlineSlot = document.getElementById(FRACTION_INLINE_SLOT_ID);
 const pulseToggleBtn = document.getElementById('pulseToggleBtn');
 const selectedToggleBtn = document.getElementById('selectedToggleBtn');
 const cycleToggleBtn = document.getElementById('cycleToggleBtn');
@@ -127,17 +143,6 @@ const fractionDefaults = {
   numerator: null,
   denominator: null
 };
-
-let numeratorInput;
-let denominatorInput;
-let pulseSeqFractionWrapper = null;
-let fractionEditorController = null;
-let currentFractionInfo = createEmptyFractionInfo();
-
-if (fractionInlineSlot) {
-  fractionInlineSlot.classList.add('fraction-inline-slot');
-  pulseSeqFractionWrapper = fractionInlineSlot;
-}
 
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
@@ -401,10 +406,6 @@ let fractionalPulseSelections = [];
 let pulseSeqEntryOrder = [];
 const pulseSeqEntryLookup = new Map();
 const pulseSeqTokenMap = new Map();
-let pulseSeqFractionNumeratorEl = null;
-let pulseSeqFractionDenominatorEl = null;
-let pulseSeqVisualEl = null;
-let pulseSeqEditWrapper = null;
 let pulseSeqSpacingAdjustHandle = null;
 let lastFractionGap = null;
 let currentAudioResolution = 1;
