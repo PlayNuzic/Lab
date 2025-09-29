@@ -16,6 +16,7 @@ import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js
 import { parseIntSafe, gcd, lcm } from '../../libs/app-common/number.js';
 import { bindRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
+import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
 import {
   FRACTION_POSITION_EPSILON,
   TEXT_NODE_TYPE,
@@ -110,6 +111,31 @@ const { elements, leds, ledHelpers } = bindRhythmElements({
 
 // Create LED managers for Lg, V, T parameters
 const ledManagers = createRhythmLEDManagers(leds);
+
+// State object for shared loop controller
+const appState = {
+  get loopEnabled() { return loopEnabled; },
+  set loopEnabled(v) { loopEnabled = v; }
+};
+
+// Create shared loop controller with pulse memory integration
+const loopController = createPulseMemoryLoopController({
+  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  loopBtn: elements.loopBtn,
+  state: appState,
+  ensurePulseMemory,
+  getLg: () => parseInt(inputLg.value),
+  isPlaying: () => isPlaying,
+  onToggle: (enabled) => {
+    // Rebuild visible selection from memory and refresh labels
+    syncSelectedFromMemory();
+    updatePulseNumbers();
+    if (isPlaying) {
+      applySelectionToAudio();
+    }
+    layoutTimeline();
+  }
+});
 
 // Extract commonly used elements for backward compatibility
 const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
@@ -1303,25 +1329,8 @@ window.addEventListener('resize', updateTIndicatorPosition);
 window.addEventListener('resize', schedulePulseSeqSpacingAdjust);
 layoutTimeline();
 
-loopBtn.addEventListener('click', () => {
-  loopEnabled = !loopEnabled;
-  loopBtn.classList.toggle('active', loopEnabled);
-  const lg = parseInt(inputLg.value);
-  if (!isNaN(lg)) {
-    ensurePulseMemory(lg);
-    // Rebuild visible selection from memory and refresh labels
-    syncSelectedFromMemory();
-    updatePulseNumbers();
-    if (isPlaying) {
-      applySelectionToAudio();
-    }
-  }
-  // Sincronitza amb el motor en temps real si està sonant
-  if (isPlaying && audio && typeof audio.setLoop === 'function') {
-    audio.setLoop(loopEnabled);
-  }
-  layoutTimeline();
-});
+// Initialize loop controller with shared component
+loopController.attach();
 
 resetBtn.addEventListener('click', () => {
   pulseMemoryApi.clear();
