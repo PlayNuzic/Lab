@@ -1,4 +1,5 @@
-import { TimelineAudio, ensureAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { computeNumberFontRem, solidMenuBackground } from './utils.js';
@@ -12,7 +13,7 @@ import { fromLgAndTempo, gridFromOrigin, computeSubdivisionFontRem, toPlaybackPu
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 import { parseIntSafe, parseFloatSafe } from '../../libs/app-common/number.js';
 import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
-import { bindRhythmElements } from '../../libs/app-common/dom.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 
 let audio;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
@@ -61,51 +62,8 @@ registerFactoryReset({
 });
 
 // Bind all DOM elements using new utilities
-const { elements } = bindRhythmElements({
-  inputLg: 'inputLg',
-  inputV: 'inputV',
-  inputT: 'inputT',
-  inputLgUp: 'inputLgUp',
-  inputLgDown: 'inputLgDown',
-  inputVUp: 'inputVUp',
-  inputVDown: 'inputVDown',
-  unitLg: 'unitLg',
-  unitV: 'unitV',
-  formula: 'formula',
-  timelineWrapper: 'timelineWrapper',
-  timeline: 'timeline',
-  playBtn: 'playBtn',
-  loopBtn: 'loopBtn',
-  randomBtn: 'randomBtn',
-  randomMenu: 'randomMenu',
-  mixerMenu: 'mixerMenu',
-  tapBtn: 'tapTempoBtn',
-  tapHelp: 'tapHelp',
-  resetBtn: 'resetBtn',
-  circularTimelineToggle: 'circularTimelineToggle',
-  // App3-specific random controls
-  randLgToggle: 'randLgToggle',
-  randLgMin: 'randLgMin',
-  randLgMax: 'randLgMax',
-  randVToggle: 'randVToggle',
-  randVMin: 'randVMin',
-  randVMax: 'randVMax',
-  randNToggle: 'randNToggle',
-  randNMin: 'randNMin',
-  randNMax: 'randNMax',
-  randDToggle: 'randDToggle',
-  randDMin: 'randDMin',
-  randDMax: 'randDMax',
-  randComplexToggle: 'randComplexToggle',
-  // Sound selects
-  baseSoundSelect: 'baseSoundSelect',
-  startSoundSelect: 'startSoundSelect',
-  cycleSoundSelect: 'cycleSoundSelect',
-  themeSelect: 'themeSelect',
-  // Toggle buttons
-  pulseToggleBtn: 'pulseToggleBtn',
-  cycleToggleBtn: 'cycleToggleBtn'
-});
+// Bind all DOM elements using app-specific utilities (App3 has LEDs, no inputT binding issues)
+const { elements } = bindAppRhythmElements('app3');
 
 // Extract commonly used elements for backward compatibility
 const { inputLg, inputV, inputT, inputLgUp, inputLgDown, inputVUp, inputVDown,
@@ -244,19 +202,30 @@ function setValue(input, value) {
  * @returns {Promise<TimelineAudio>} audio configurat amb les preferències actuals.
  * @remarks Es crida abans de reproduir o quan el menú de sons necessita llistats. Depèn de WebAudio i `bindSharedSoundEvents`; habilita PulseMemory = 1..Lg-1 amb re-sync via `computeNextZero`. Efectes: crea listeners i ajusta estats del mixer global.
  */
+// Create standardized audio initializer that avoids AudioContext warnings
+const _baseInitAudio = createRhythmAudioInitializer({
+  getSoundSelects: () => ({
+    baseSoundSelect: elements.baseSoundSelect,
+    startSoundSelect: elements.startSoundSelect,
+    cycleSoundSelect: elements.cycleSoundSelect
+  }),
+  schedulingBridge,
+  channels: [] // App3 doesn't use accent channel
+});
+
 async function initAudio() {
-  if (audio) return audio;
-  await ensureAudio();
-  audio = new TimelineAudio();
-  await audio.ready();
-  schedulingBridge.applyTo(audio);
-  if (typeof audio.setPulseEnabled === 'function') {
-    const pulseEnabled = pulseToggleController?.isEnabled() ?? true;
-    audio.setPulseEnabled(pulseEnabled);
-  }
-  if (typeof audio.setCycleEnabled === 'function') {
-    const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
-    audio.setCycleEnabled(cycleEnabled);
+  if (!audio) {
+    audio = await _baseInitAudio();
+
+    // Apply App3-specific audio toggles
+    if (typeof audio.setPulseEnabled === 'function') {
+      const pulseEnabled = pulseToggleController?.isEnabled() ?? true;
+      audio.setPulseEnabled(pulseEnabled);
+    }
+    if (typeof audio.setCycleEnabled === 'function') {
+      const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
+      audio.setCycleEnabled(cycleEnabled);
+    }
   }
   return audio;
 }

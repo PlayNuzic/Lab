@@ -14,7 +14,7 @@ import { randomize as randomizeValues } from '../../libs/random/index.js';
 import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 import { parseIntSafe, gcd, lcm } from '../../libs/app-common/number.js';
-import { bindRhythmElements } from '../../libs/app-common/dom.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
 import {
@@ -58,56 +58,8 @@ bindSharedSoundEvents({
   }
 });
 // Bind all DOM elements using new utilities
-const { elements, leds, ledHelpers } = bindRhythmElements({
-  inputLg: 'inputLg',
-  inputV: 'inputV',
-  inputT: 'inputT',
-  inputVUp: 'inputVUp',
-  inputVDown: 'inputVDown',
-  inputLgUp: 'inputLgUp',
-  inputLgDown: 'inputLgDown',
-  ledLg: 'ledLg',
-  ledV: 'ledV',
-  ledT: 'ledT',
-  unitLg: 'unitLg',
-  unitV: 'unitV',
-  unitT: 'unitT',
-  // App4-specific elements
-  pulseSeq: 'pulseSeq',
-  formula: 'formula',
-  timelineWrapper: 'timelineWrapper',
-  timeline: 'timeline',
-  playBtn: 'playBtn',
-  loopBtn: 'loopBtn',
-  resetBtn: 'resetBtn',
-  tapBtn: 'tapTempoBtn',
-  tapHelp: 'tapHelp',
-  circularTimelineToggle: 'circularTimelineToggle',
-  randomBtn: 'randomBtn',
-  randomMenu: 'randomMenu',
-  // Random controls
-  randLgToggle: 'randLgToggle',
-  randLgMin: 'randLgMin',
-  randLgMax: 'randLgMax',
-  randVToggle: 'randVToggle',
-  randVMin: 'randVMin',
-  randVMax: 'randVMax',
-  randPulsesToggle: 'randPulsesToggle',
-  randomCount: 'randomCount',
-  randTToggle: 'randTToggle',
-  randTMin: 'randTMin',
-  randTMax: 'randTMax',
-  // Sound controls
-  baseSoundSelect: 'baseSoundSelect',
-  accentSoundSelect: 'accentSoundSelect',
-  startSoundSelect: 'startSoundSelect',
-  cycleSoundSelect: 'cycleSoundSelect',
-  themeSelect: 'themeSelect',
-  // Toggle buttons
-  pulseToggleBtn: 'pulseToggleBtn',
-  selectedToggleBtn: 'selectedToggleBtn',
-  cycleToggleBtn: 'cycleToggleBtn'
-});
+// Bind all DOM elements using app-specific utilities (no warnings for missing elements)
+const { elements, leds, ledHelpers } = bindAppRhythmElements('app4');
 
 // Create LED managers for Lg, V, T parameters
 const ledManagers = createRhythmLEDManagers(leds);

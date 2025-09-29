@@ -1,5 +1,4 @@
-import { TimelineAudio } from '../../libs/sound/index.js';
-import { ensureAudio } from '../../libs/sound/index.js';
+import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { solidMenuBackground, computeNumberFontRem } from './utils.js';
@@ -7,7 +6,7 @@ import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
-import { bindRhythmElements } from '../../libs/app-common/dom.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
@@ -24,46 +23,8 @@ bindSharedSoundEvents({
   }
 });
 // Bind all DOM elements using new utilities
-const { elements, leds, ledHelpers } = bindRhythmElements({
-  inputLg: 'inputLg',
-  inputV: 'inputV',
-  inputT: 'inputT',
-  inputTUp: 'inputTUp',
-  inputTDown: 'inputTDown',
-  inputVUp: 'inputVUp',
-  inputVDown: 'inputVDown',
-  inputLgUp: 'inputLgUp',
-  inputLgDown: 'inputLgDown',
-  ledLg: 'ledLg',
-  ledV: 'ledV',
-  ledT: 'ledT',
-  unitLg: 'unitLg',
-  unitV: 'unitV',
-  unitT: 'unitT',
-  formula: 'formula',
-  timelineWrapper: 'timelineWrapper',
-  timeline: 'timeline',
-  playBtn: 'playBtn',
-  loopBtn: 'loopBtn',
-  resetBtn: 'resetBtn',
-  tapBtn: 'tapTempoBtn',
-  tapHelp: 'tapHelp',
-  circularTimelineToggle: 'circularTimelineToggle',
-  themeSelect: 'themeSelect',
-  baseSoundSelect: 'baseSoundSelect',
-  startSoundSelect: 'startSoundSelect',
-  randomBtn: 'randomBtn',
-  randomMenu: 'randomMenu',
-  randLgToggle: 'randLgToggle',
-  randLgMin: 'randLgMin',
-  randLgMax: 'randLgMax',
-  randVToggle: 'randVToggle',
-  randVMin: 'randVMin',
-  randVMax: 'randVMax',
-  randTToggle: 'randTToggle',
-  randTMin: 'randTMin',
-  randTMax: 'randTMax'
-});
+// Bind all DOM elements using app-specific utilities (App1 has all elements)
+const { elements, leds, ledHelpers } = bindAppRhythmElements('app1');
 
 // Create LED managers for Lg, V, T parameters
 const ledManagers = createRhythmLEDManagers(leds);
@@ -406,14 +367,20 @@ initSoundDropdown(startSoundSelect, {
 
 // Preview on sound change handled by shared header
 
-async function initAudio(){
-  if(audio) return audio;
-  await ensureAudio();
-  audio = new TimelineAudio();
-  await audio.ready();
-  audio.setBase(baseSoundSelect.dataset.value);
-  audio.setStart(startSoundSelect.dataset.value);
-  schedulingBridge.applyTo(audio);
+// Create standardized audio initializer that avoids AudioContext warnings
+const _baseInitAudio = createRhythmAudioInitializer({
+  getSoundSelects: () => ({
+    baseSoundSelect: elements.baseSoundSelect,
+    startSoundSelect: elements.startSoundSelect
+  }),
+  schedulingBridge,
+  channels: [] // App1 doesn't use accent channel
+});
+
+async function initAudio() {
+  if (!audio) {
+    audio = await _baseInitAudio();
+  }
   return audio;
 }
 

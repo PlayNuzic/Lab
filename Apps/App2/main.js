@@ -1,4 +1,4 @@
-import { TimelineAudio, ensureAudio } from '../../libs/sound/index.js';
+import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
@@ -8,7 +8,7 @@ import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
-import { bindRhythmElements } from '../../libs/app-common/dom.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
 // Using local header controls for App2 (no shared init)
@@ -24,51 +24,8 @@ bindSharedSoundEvents({
     startSound: 'setStart'
   }
 });
-// Bind all DOM elements using new utilities
-const { elements, leds, ledHelpers } = bindRhythmElements({
-  inputLg: 'inputLg',
-  inputV: 'inputV',
-  inputT: 'inputT',
-  inputVUp: 'inputVUp',
-  inputVDown: 'inputVDown',
-  inputLgUp: 'inputLgUp',
-  inputLgDown: 'inputLgDown',
-  ledLg: 'ledLg',
-  ledV: 'ledV',
-  ledT: 'ledT',
-  unitLg: 'unitLg',
-  unitV: 'unitV',
-  unitT: 'unitT',
-  // App2-specific elements
-  pulseSeq: 'pulseSeq',
-  formula: 'formula',
-  timelineWrapper: 'timelineWrapper',
-  timeline: 'timeline',
-  playBtn: 'playBtn',
-  loopBtn: 'loopBtn',
-  resetBtn: 'resetBtn',
-  tapBtn: 'tapTempoBtn',
-  tapHelp: 'tapHelp',
-  circularTimelineToggle: 'circularTimelineToggle',
-  randomBtn: 'randomBtn',
-  randomMenu: 'randomMenu',
-  randLgToggle: 'randLgToggle',
-  randLgMin: 'randLgMin',
-  randLgMax: 'randLgMax',
-  randVToggle: 'randVToggle',
-  randVMin: 'randVMin',
-  randVMax: 'randVMax',
-  randPulsesToggle: 'randPulsesToggle',
-  randomCount: 'randomCount',
-  randTToggle: 'randTToggle',
-  randTMin: 'randTMin',
-  randTMax: 'randTMax',
-  themeSelect: 'themeSelect',
-  selectColor: 'selectColor',
-  baseSoundSelect: 'baseSoundSelect',
-  accentSoundSelect: 'accentSoundSelect',
-  startSoundSelect: 'startSoundSelect'
-});
+// Bind all DOM elements using app-specific utilities (no warnings for missing elements)
+const { elements, leds, ledHelpers } = bindAppRhythmElements('app2');
 
 // Create LED managers for Lg, V, T parameters
 const ledManagers = createRhythmLEDManagers(leds);
@@ -111,7 +68,7 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
 const pulseSeqEl = elements.pulseSeq;
 const pulseSeqController = createPulseSeqController();
 const pulseMemoryApi = pulseSeqController.memory;
-const pulseMemory = pulseMemoryApi.data;
+let pulseMemory = pulseMemoryApi.data;
 const { editEl: pulseSeqEditEl } = pulseSeqController.mount({ root: pulseSeqEl });
 function getEditEl() {
   return pulseSeqController.getEditElement();
@@ -607,22 +564,20 @@ initSoundDropdown(startSoundSelect, {
 
 // Preview on sound change handled by shared header
 
-async function initAudio(){
-  if(audio) return audio;
-  await ensureAudio();
-  audio = new TimelineAudio();
-  await audio.ready();
-    // Ensure accent channel is registered and routed separately for the mixer
-  if (audio.mixer && typeof audio.mixer.registerChannel === 'function') {
-    audio.mixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
+// Create standardized audio initializer that avoids AudioContext warnings
+const _baseInitAudio = createRhythmAudioInitializer({
+  getSoundSelects: () => ({
+    baseSoundSelect: elements.baseSoundSelect,
+    accentSoundSelect: elements.accentSoundSelect,
+    startSoundSelect: elements.startSoundSelect
+  }),
+  schedulingBridge
+});
+
+async function initAudio() {
+  if (!audio) {
+    audio = await _baseInitAudio();
   }
-  if (audio._channelAssignments) {
-    audio._channelAssignments.accent = 'accent';
-  }
-  audio.setBase(baseSoundSelect.dataset.value);
-  audio.setAccent(accentSoundSelect.dataset.value);
-  audio.setStart(startSoundSelect.dataset.value);
-  schedulingBridge.applyTo(audio);
   return audio;
 }
 
