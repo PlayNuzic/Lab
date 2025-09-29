@@ -87,6 +87,7 @@ const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
 const cycleSoundSelect = document.getElementById('cycleSoundSelect');
+const fractionInlineSlot = document.getElementById('fractionInlineSlot');
 const pulseToggleBtn = document.getElementById('pulseToggleBtn');
 const selectedToggleBtn = document.getElementById('selectedToggleBtn');
 const cycleToggleBtn = document.getElementById('cycleToggleBtn');
@@ -121,6 +122,11 @@ let denominatorInput;
 let pulseSeqFractionWrapper = null;
 let fractionEditorController = null;
 let currentFractionInfo = createEmptyFractionInfo();
+
+if (fractionInlineSlot) {
+  fractionInlineSlot.classList.add('fraction-inline-slot');
+  pulseSeqFractionWrapper = fractionInlineSlot;
+}
 
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
@@ -912,9 +918,20 @@ function setupPulseSeqMarkup(){
 
   const prefix = mk('prefix', 'Pfr ');
 
-  const fractionWrapper = document.createElement('span');
-  fractionWrapper.className = 'pz fraction fraction-inline-container';
-  pulseSeqFractionWrapper = fractionWrapper;
+  const hostWrapper = pulseSeqFractionWrapper;
+  const fractionWrapper = hostWrapper ?? (() => {
+    const span = document.createElement('span');
+    span.className = 'pz fraction fraction-inline-container';
+    pulseSeqFractionWrapper = span;
+    return span;
+  })();
+  const fractionDisplay = hostWrapper && hostWrapper === fractionInlineSlot
+    ? (() => {
+      const placeholder = mk('fraction', '');
+      placeholder.classList.add('fraction-inline-placeholder');
+      return placeholder;
+    })()
+    : fractionWrapper;
   pulseSeqFractionNumeratorEl = null;
   pulseSeqFractionDenominatorEl = null;
 
@@ -943,7 +960,7 @@ function setupPulseSeqMarkup(){
   const suffixSpacer = mk('suffix-spacer', ' ');
   const lgLabel = mk('lg', '');
 
-  pulseSeqEl.append(prefix, fractionWrapper, spacer, openParen, zero, editWrapper, suffix, suffixSpacer, lgLabel);
+  pulseSeqEl.append(prefix, fractionDisplay, spacer, openParen, zero, editWrapper, suffix, suffixSpacer, lgLabel);
   try { pulseSeqEl.dataset.seqInited = '1'; } catch {}
   updatePulseSeqFractionDisplay(null, null);
   updatePulseSeqVisualLayer(initial);
@@ -1124,6 +1141,16 @@ function updatePulseSeqFractionDisplay(numerator, denominator, { silent = false 
   }
   if (denominatorInput) {
     denominatorInput.value = Number.isFinite(denominator) && denominator > 0 ? String(denominator) : '';
+  }
+  if (pulseSeqEl) {
+    const inlinePlaceholder = pulseSeqEl.querySelector('.fraction-inline-placeholder');
+    if (inlinePlaceholder) {
+      if (Number.isFinite(numerator) && numerator > 0 && Number.isFinite(denominator) && denominator > 0) {
+        inlinePlaceholder.textContent = `${numerator}/${denominator}`;
+      } else {
+        inlinePlaceholder.textContent = '—';
+      }
+    }
   }
 }
 
