@@ -6,6 +6,7 @@ import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-
 import { toRange } from '../../libs/app-common/range.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
+import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 // Using local header controls for App1 (no shared init)
@@ -54,6 +55,42 @@ let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 let manualHistory = [];
 let visualSyncHandle = null;
 let lastVisualStep = null;
+let tapResyncTimeout = null;
+
+function cancelTapResync() {
+  if (tapResyncTimeout != null) {
+    clearTimeout(tapResyncTimeout);
+    tapResyncTimeout = null;
+  }
+}
+
+function scheduleTapResync(bpm) {
+  cancelTapResync();
+  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
+
+  const state = audio.getVisualState();
+  const stepIndex = state && Number.isFinite(state.step) ? state.step : null;
+  if (stepIndex == null) return;
+
+  const lg = parseInt(inputLg.value, 10);
+  const totalPulses = Number.isFinite(lg) && lg > 0
+    ? toPlaybackPulseCount(lg, loopEnabled)
+    : null;
+  if (!Number.isFinite(totalPulses) || totalPulses <= 0) return;
+  if (!Number.isFinite(bpm) || bpm <= 0) return;
+
+  const resyncInfo = computeResyncDelay({ stepIndex, totalPulses, bpm });
+  if (!resyncInfo || !Number.isFinite(resyncInfo.delaySeconds)) return;
+
+  const delayMs = Math.max(0, resyncInfo.delaySeconds * 1000);
+  tapResyncTimeout = setTimeout(() => {
+    tapResyncTimeout = null;
+    if (!isPlaying) return;
+    Promise.resolve(startPlayback(audio)).catch(err => {
+      console.warn('Tap resync failed', err);
+    });
+  }, delayMs);
+}
 
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
@@ -309,6 +346,7 @@ loopBtn.addEventListener('click', () => {
 });
 
 resetBtn.addEventListener('click', () => {
+  cancelTapResync();
   window.location.reload();
 });
 
@@ -858,6 +896,8 @@ async function startPlayback(providedAudio) {
     return false;
   }
 
+  cancelTapResync();
+
   const audioInstance = providedAudio || await initAudio();
   if (!audioInstance) return false;
 
@@ -889,6 +929,7 @@ async function startPlayback(providedAudio) {
     if (iconStop) iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
     stopVisualSync();
+    cancelTapResync();
     audioInstance.stop();
   };
 
@@ -914,6 +955,7 @@ playBtn.addEventListener('click', async () => {
     stopVisualSync();
     audioInstance.stop();
     isPlaying = false;
+    cancelTapResync();
     playBtn.classList.remove('active');
     if (iconPlay) iconPlay.style.display = 'block';
     if (iconStop) iconStop.style.display = 'none';
