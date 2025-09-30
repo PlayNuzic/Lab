@@ -49,9 +49,19 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
   let selected = (stored && soundNames.includes(stored)) ? stored : fallbackDefault;
   let pending = selected; // preview selection while panel is open
 
+  function updateDataset(value) {
+    if (!value) {
+      delete container.dataset.value;
+      delete toggle.dataset.value;
+      return;
+    }
+    container.dataset.value = value;
+    toggle.dataset.value = value;
+  }
+
   function updateLabel() {
     toggle.textContent = soundLabels[selected] || selected;
-    container.dataset.value = selected;
+    updateDataset(selected);
   }
 
   // Initialize label and dataset with the loaded value
