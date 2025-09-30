@@ -285,6 +285,18 @@ function initFractionEditorController() {
     },
     addRepeatPress,
     applyMenuBackground: solidMenuBackground,
+    labels: {
+      numerator: {
+        placeholder: 'n',
+        ariaUp: 'Incrementar numerador',
+        ariaDown: 'Decrementar numerador'
+      },
+      denominator: {
+        placeholder: 'd',
+        ariaUp: 'Incrementar denominador',
+        ariaDown: 'Decrementar denominador'
+      }
+    },
     onChange: ({ numerator, denominator, info, cause }) => {
       currentFractionInfo = info || createEmptyFractionInfo();
       updatePulseSeqFractionDisplay(numerator, denominator, { silent: true });

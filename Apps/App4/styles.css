@@ -205,8 +205,7 @@ body.app4 .fraction-info-bubble {
   font-size: 1.1rem;
   line-height: 1.4;
   max-width: min(280px, 85vw);
-  white-space: pre-line;
-  color: var(--fg, var(--line-color, #222)) !important;
+  color: var(--fg, var(--line-color, #222));
   pointer-events: none;
   z-index: 1;
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
@@ -215,7 +214,6 @@ body.app4 .fraction-info-bubble {
 body.app4[data-theme='dark'] .fraction-info-bubble {
   border-color: rgba(238, 232, 216, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  color: #EEE !important;
 }
 
 body.app4 .fraction-info-bubble--hidden {
