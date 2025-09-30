@@ -2635,7 +2635,7 @@ function setPulseSelected(i, shouldSelect) {
     }
   }
 
-  layoutTimeline();
+  layoutTimeline({ silent: true });
 }
 
 
