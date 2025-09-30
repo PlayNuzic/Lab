@@ -696,12 +696,29 @@ export class TimelineAudio {
     if (map.cycle) defaults.cycle = map.cycle;
     defaults.pulso0 = defaults.pulso0 || defaults.pulso;
 
+    // Only apply sample map to _soundAssignments if they haven't been explicitly set
+    // (i.e., they still match the original defaults from constructor)
     const assignments = this._soundAssignments;
-    assignments.pulso = defaults.pulso;
-    assignments.pulso0 = map.pulso0 || assignments.pulso;
-    if (map.seleccionados) assignments.seleccionados = map.seleccionados;
-    if (map.start) assignments.start = map.start;
-    if (map.cycle) assignments.cycle = map.cycle;
+    const originalDefaults = {
+      pulso: 'click1',
+      pulso0: 'click1',
+      seleccionados: 'click2',
+      start: 'click3',
+      cycle: 'click4'
+    };
+
+    // Only overwrite if still at original default value (not user-set)
+    if (assignments.pulso === originalDefaults.pulso) assignments.pulso = defaults.pulso;
+    if (assignments.pulso0 === originalDefaults.pulso0) assignments.pulso0 = map.pulso0 || assignments.pulso;
+    if (assignments.seleccionados === originalDefaults.seleccionados && map.seleccionados) {
+      assignments.seleccionados = map.seleccionados;
+    }
+    if (assignments.start === originalDefaults.start && map.start) {
+      assignments.start = map.start;
+    }
+    if (assignments.cycle === originalDefaults.cycle && map.cycle) {
+      assignments.cycle = map.cycle;
+    }
   }
 
   _applyMixerState(state) {
