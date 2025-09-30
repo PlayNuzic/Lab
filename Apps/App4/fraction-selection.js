@@ -204,19 +204,41 @@ export function extractFractionInfoFromElement(el, parseIntFn) {
   };
 }
 
-export function applyFractionSelectionClasses(store, cycleMarkers = []) {
+export function applyFractionSelectionClasses(store, cycleMarkers = [], labels = []) {
   if (!store || !store.selectedFractionKeys) return;
+  const { selectedFractionKeys, hitMap, pulseSeqTokenMap } = store;
+  const isSelected = (key) => key != null && selectedFractionKeys.has(key);
+
   cycleMarkers.forEach(marker => {
-    const key = marker?.dataset?.fractionKey;
-    if (!key) {
-      marker?.classList.remove('selected');
-      return;
-    }
-    marker?.classList.toggle('selected', store.selectedFractionKeys.has(key));
+    if (!marker) return;
+    const key = marker.dataset?.fractionKey;
+    marker.classList.toggle('selected', isSelected(key));
   });
+
+  if (hitMap && typeof hitMap.forEach === 'function') {
+    hitMap.forEach((hit, key) => {
+      if (!hit) return;
+      hit.classList.toggle('selected', isSelected(key));
+    });
+  }
+
+  if (Array.isArray(labels)) {
+    labels.forEach(label => {
+      if (!label) return;
+      const key = label.dataset?.fractionKey;
+      label.classList.toggle('selected', isSelected(key));
+    });
+  }
+
+  if (pulseSeqTokenMap && typeof pulseSeqTokenMap.forEach === 'function') {
+    pulseSeqTokenMap.forEach((token, key) => {
+      if (!token) return;
+      token.classList.toggle('selected', isSelected(key));
+    });
+  }
 }
 
-export function rebuildFractionSelections(store, { updatePulseSeqField, cycleMarkers = [], skipUpdateField = false } = {}) {
+export function rebuildFractionSelections(store, { updatePulseSeqField, cycleMarkers = [], cycleLabels = [], skipUpdateField = false } = {}) {
   if (!store) return [];
   store.selectedFractionKeys.clear();
   store.pulseSelections = Array.from(store.selectionState.values())
@@ -240,14 +262,14 @@ export function rebuildFractionSelections(store, { updatePulseSeqField, cycleMar
     })
     .sort((a, b) => a.value - b.value);
   store.pulseSelections.forEach(item => store.selectedFractionKeys.add(item.key));
-  applyFractionSelectionClasses(store, cycleMarkers);
+  applyFractionSelectionClasses(store, cycleMarkers, cycleLabels);
   if (!skipUpdateField && typeof updatePulseSeqField === 'function') {
     updatePulseSeqField();
   }
   return store.pulseSelections;
 }
 
-export function setFractionSelected(store, info, shouldSelect, { updatePulseSeqField, cycleMarkers = [] } = {}) {
+export function setFractionSelected(store, info, shouldSelect, { updatePulseSeqField, cycleMarkers = [], cycleLabels = [] } = {}) {
   if (!store || !info || !info.key) return;
   const { key, base, numerator, denominator } = info;
   const value = Number.isFinite(info.value) ? info.value : fractionValue(base, numerator, denominator);
@@ -283,7 +305,7 @@ export function setFractionSelected(store, info, shouldSelect, { updatePulseSeqF
   } else {
     store.selectionState.delete(key);
   }
-  rebuildFractionSelections(store, { updatePulseSeqField, cycleMarkers });
+  rebuildFractionSelections(store, { updatePulseSeqField, cycleMarkers, cycleLabels });
 }
 
 export function loadRandomConfig(readValue) {

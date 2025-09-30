@@ -1,6 +1,6 @@
 import { soundNames, soundLabels } from '../sound/index.js';
 
-export function initSoundDropdown(container, { storageKey, eventType, getAudio, apply }) {
+export function initSoundDropdown(container, { storageKey, eventType, getAudio, apply, defaultValue }) {
   if (!container) return;
   // Prevent double enhancement (e.g., if both header and app try to init)
   if (container.dataset.enhanced === '1') return;
@@ -45,13 +45,27 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
   container.appendChild(panel);
 
   const stored = (() => { try { return localStorage.getItem(storageKey); } catch { return null; } })();
-  let selected = (stored && soundNames.includes(stored)) ? stored : soundNames[0];
+  const fallbackDefault = defaultValue && soundNames.includes(defaultValue) ? defaultValue : soundNames[0];
+  let selected = (stored && soundNames.includes(stored)) ? stored : fallbackDefault;
   let pending = selected; // preview selection while panel is open
+
+  function updateDataset(value) {
+    if (!value) {
+      delete container.dataset.value;
+      delete toggle.dataset.value;
+      return;
+    }
+    container.dataset.value = value;
+    toggle.dataset.value = value;
+  }
 
   function updateLabel() {
     toggle.textContent = soundLabels[selected] || selected;
-    container.dataset.value = selected;
+    updateDataset(selected);
   }
+
+  // Initialize label and dataset with the loaded value
+  updateLabel();
 
   function updateListHighlight() {
     const children = [...list.children];
@@ -80,7 +94,11 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
   async function previewPending(){
     try {
       const a = await getAudio();
-      if (a && typeof a.preview === 'function') a.preview(pending);
+      if (a && typeof apply === 'function') {
+        await apply(a, pending);
+        // Also trigger audio preview if the method exists
+        if (typeof a.preview === 'function') a.preview(pending);
+      }
     } catch {}
   }
 
@@ -97,10 +115,13 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
     selected = pending;
     updateLabel();
     try { localStorage.setItem(storageKey, selected); } catch {}
-    const a = await getAudio();
-    await apply(a, selected);
-    if (a && typeof a.preview === 'function') a.preview(selected);
+
+    // Emit event - this will update the app's audio instance via bindSharedSoundEvents
+    // The event is processed synchronously by bindSharedSoundEvents if audio exists
     window.dispatchEvent(new CustomEvent('sharedui:sound', { detail: { type: eventType, value: selected } }));
+
+    // If audio is not initialized yet, the change will be applied when initAudio() reads dataset.value
+    // If audio IS initialized, the event above already applied the change via bindSharedSoundEvents
   }
 
   async function commitAndClose() {

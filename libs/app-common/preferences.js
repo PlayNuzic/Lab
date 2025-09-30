@@ -81,6 +81,12 @@ export function registerFactoryReset({
     if (pending) return;
     pending = true;
     storage?.clearAll?.();
+
+    // Also clear shared sound preferences (no app prefix)
+    ['baseSound', 'accentSound', 'startSound', 'cycleSound'].forEach(key => {
+      try { localStorage.removeItem(key); } catch {}
+    });
+
     try {
       onBeforeReload?.();
     } catch {}

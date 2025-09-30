@@ -106,6 +106,21 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
 const pulseSeqEl = elements.pulseSeq;
 const fractionInlineSlot = document.getElementById(FRACTION_INLINE_SLOT_ID);
 
+function applyFractionInfoBackground(panel) {
+  if (!panel) return;
+  const theme = document.body?.dataset?.theme === 'dark' ? 'dark' : 'light';
+  const rootStyles = getComputedStyle(document.documentElement);
+  const textVar = theme === 'dark' ? '--text-dark' : '--text-light';
+  const fallbackText = rootStyles.getPropertyValue(textVar)?.trim() || (theme === 'dark' ? '#EEE8D8' : '#43433B');
+  panel.style.backgroundColor = theme === 'dark' ? 'rgba(40, 40, 40, 0.92)' : 'rgba(255, 255, 255, 0.9)';
+  panel.style.color = fallbackText;
+  panel.style.borderColor = theme === 'dark' ? 'rgba(238, 232, 216, 0.2)' : 'rgba(0, 0, 0, 0.08)';
+  panel.style.boxShadow = theme === 'dark'
+    ? '0 18px 36px rgba(0, 0, 0, 0.6)'
+    : '0 12px 28px rgba(0, 0, 0, 0.25)';
+  panel.style.backdropFilter = 'blur(8px)';
+}
+
 let numeratorInput;
 let denominatorInput;
 let pulseSeqFractionWrapper = null;
@@ -288,7 +303,7 @@ function initFractionEditorController() {
       denominatorKey: FRACTION_DENOMINATOR_KEY
     },
     addRepeatPress,
-    applyMenuBackground: solidMenuBackground,
+    applyMenuBackground: applyFractionInfoBackground,
     labels: {
       numerator: {
         placeholder: 'n',
@@ -414,13 +429,14 @@ function getFractionInfoFromElement(el) {
 }
 
 function applyFractionSelectionClasses() {
-  applyFractionSelectionClassesModule(fractionStore, cycleMarkers);
+  applyFractionSelectionClassesModule(fractionStore, cycleMarkers, cycleLabels);
 }
 
 function rebuildFractionSelections(opts = {}) {
   fractionStore.pulseSelections = rebuildFractionSelectionsModule(fractionStore, {
     updatePulseSeqField,
     cycleMarkers,
+    cycleLabels,
     skipUpdateField: opts.skipUpdateField
   });
 }
@@ -428,8 +444,12 @@ function rebuildFractionSelections(opts = {}) {
 function setFractionSelected(info, shouldSelect) {
   setFractionSelectedModule(fractionStore, info, shouldSelect, {
     updatePulseSeqField,
-    cycleMarkers
+    cycleMarkers,
+    cycleLabels
   });
+  if (isPlaying && audio) {
+    applySelectionToAudio();
+  }
 }
 
 function computeAudioSchedulingState() {
@@ -1446,24 +1466,49 @@ initRandomMenu(randomBtn, randomMenu, randomize);
 async function initAudio(){
   if (audio) {
     await audio.ready();
+    // Always update sounds from dropdowns to reflect any changes made while audio was initialized
+    if (baseSoundSelect?.dataset?.value) {
+      audio.setBase(baseSoundSelect.dataset.value);
+    }
+    if (accentSoundSelect?.dataset?.value) {
+      audio.setAccent(accentSoundSelect.dataset.value);
+    }
+    if (startSoundSelect?.dataset?.value) {
+      audio.setStart(startSoundSelect.dataset.value);
+    }
+    if (cycleSoundSelect?.dataset?.value) {
+      audio.setCycle(cycleSoundSelect.dataset.value);
+    }
     return audio;
   }
   if (!audioInitPromise) {
     audioInitPromise = (async () => {
       const instance = new TimelineAudio();
+
+      // Apply sound selections BEFORE ready() to prevent _initPlayers() from loading defaults
+      // This sets _soundAssignments before buffers are loaded
+      if (baseSoundSelect?.dataset?.value) {
+        instance._soundAssignments.pulso = baseSoundSelect.dataset.value;
+        instance._soundAssignments.pulso0 = baseSoundSelect.dataset.value;
+      }
+      if (accentSoundSelect?.dataset?.value) {
+        instance._soundAssignments.seleccionados = accentSoundSelect.dataset.value;
+      }
+      if (startSoundSelect?.dataset?.value) {
+        instance._soundAssignments.start = startSoundSelect.dataset.value;
+      }
+      if (cycleSoundSelect?.dataset?.value) {
+        instance._soundAssignments.cycle = cycleSoundSelect.dataset.value;
+      }
+
       await instance.ready();
+
       // Ensure accent channel is registered and routed separately for the mixer
       if (instance.mixer && typeof instance.mixer.registerChannel === 'function') {
         instance.mixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
       }
       if (instance._channelAssignments) {
         instance._channelAssignments.accent = 'accent';
-      }
-      instance.setBase(baseSoundSelect.dataset.value);
-      instance.setAccent(accentSoundSelect.dataset.value);
-      instance.setStart(startSoundSelect.dataset.value);
-      if (cycleSoundSelect) {
-        instance.setCycle(cycleSoundSelect.dataset.value);
       }
       if (typeof instance.setVoiceHandler === 'function') {
         instance.setVoiceHandler(handleVoiceEvent);
@@ -1485,6 +1530,8 @@ async function initAudio(){
         instance.setMute(true);
       }
       audio = instance;
+      // Expose audio instance for sound dropdown preview
+      if (typeof window !== 'undefined') window.__labAudio = audio;
       return instance;
     })();
   }
@@ -2268,9 +2315,7 @@ function sanitizePulseSeq(opts = {}){
     ensurePulseMemory(lg);
     for (let i = 1; i < lg; i++) pulseMemory[i] = false;
     ints.forEach(n => { if (n < lg) pulseMemory[n] = true; });
-    syncSelectedFromMemory();
-    updatePulseNumbers();
-    layoutTimeline({ silent: true });
+    renderTimeline();
   } else {
     const combined = [
       ...ints.map(n => ({ value: n, display: String(n), key: String(n) })),
@@ -2536,7 +2581,9 @@ function syncSelectedFromMemory() {
     const idx = parseIntSafe(label.dataset.index);
     if (!Number.isFinite(idx)) return;
     const isEndpoint = idx === 0 || idx === lgIndex;
+    const pulseIsLocked = !isEndpoint && Boolean(pulses[idx]?.classList.contains('non-selectable'));
     label.classList.toggle('selected', selectedPulses.has(idx) && !isEndpoint);
+    label.classList.toggle('non-selectable', pulseIsLocked);
   });
   applyFractionSelectionClasses();
   updatePulseSeqField();
@@ -2723,6 +2770,7 @@ function renderTimeline() {
     };
     const denominatorValue = normalizedDenominator ?? 0;
     grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
+      let fractionKey = null;
       const marker = document.createElement('div');
       marker.className = 'cycle-marker';
       if (subdivisionIndex === 0) marker.classList.add('start');
@@ -2762,6 +2810,7 @@ function renderTimeline() {
         if (fracNumerator > 0) {
           const key = makeFractionKey(baseIndex, fracNumerator, denominatorValue);
           if (key) {
+            fractionKey = key;
             const value = fractionValue(baseIndex, fracNumerator, denominatorValue);
             const display = fractionDisplay(baseIndex, fracNumerator, denominatorValue, {
               cycleIndex,
@@ -2867,6 +2916,9 @@ function renderTimeline() {
         label.dataset.cycleIndex = String(cycleIndex);
         label.dataset.subdivision = String(subdivisionIndex);
         label.dataset.position = String(position);
+        if (fractionKey) {
+          label.dataset.fractionKey = fractionKey;
+        }
         label.textContent = formatted;
         label.dataset.fullText = String(formatted);
         const decimalIndex = typeof formatted === 'string' ? formatted.indexOf('.') : -1;
@@ -3031,12 +3083,9 @@ async function startPlayback(providedAudio) {
   audioInstance.stop();
   clearHighlights();
 
-  await audioInstance.setBase(baseSoundSelect.dataset.value);
-  await audioInstance.setAccent(accentSoundSelect.dataset.value);
-  await audioInstance.setStart(startSoundSelect.dataset.value);
-  if (cycleSoundSelect) {
-    await audioInstance.setCycle(cycleSoundSelect.dataset.value);
-  }
+  // Sound selection is already applied by initAudio() from dataset.value
+  // and by bindSharedSoundEvents from sharedui:sound events
+  // No need to override here
 
   const scheduling = computeAudioSchedulingState();
   if (scheduling.interval == null || scheduling.totalPulses == null) {

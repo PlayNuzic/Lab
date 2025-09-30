@@ -364,6 +364,11 @@ function clearStoredPreferences() {
       if (key && key.startsWith(prefix)) keysToRemove.push(key);
     }
     keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+    // Also clear shared sound preferences (no app prefix)
+    ['baseSound', 'accentSound', 'startSound', 'cycleSound'].forEach(key => {
+      try { localStorage.removeItem(key); } catch {}
+    });
   } catch {}
 }
 
@@ -570,6 +575,8 @@ async function initAudio() {
     if (pendingMute != null && typeof audio.setMute === 'function') {
       audio.setMute(pendingMute);
     }
+    // Expose audio instance for sound dropdown preview
+    if (typeof window !== 'undefined') window.__labAudio = audio;
   }
   return audio;
 }
@@ -1539,9 +1546,9 @@ async function startPlayback(providedAudio) {
   audioInstance.stop();
   pulses.forEach(p => p.classList.remove('active'));
 
-  await audioInstance.setBase(baseSoundSelect.dataset.value);
-  await audioInstance.setAccent(accentSoundSelect.dataset.value);
-  await audioInstance.setStart(startSoundSelect.dataset.value);
+  // Sound selection is already applied by initAudio() from dataset.value
+  // and by bindSharedSoundEvents from sharedui:sound events
+  // No need to override here
 
   const timing = fromLgAndTempo(lg, v);
   if (!timing || timing.interval == null) {

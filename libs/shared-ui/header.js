@@ -1,6 +1,6 @@
 // Shared UI header for Lab: mirrors App1 header behavior
 
-import { setVolume, getVolume, TimelineAudio, ensureAudio } from '../sound/index.js';
+import { setVolume, getVolume } from '../sound/index.js';
 import { initSoundDropdown } from './sound-dropdown.js';
 
 // --- Scheduling helpers (look-ahead y updateInterval) ---
@@ -165,34 +165,34 @@ function wireControls(root) {
     const factoryResetBtn = root.querySelector('#factoryResetBtn');
     const optionsMenu = root.querySelector('#optionsMenu');
 
-    let soundAudio;
-    async function getAudio(){
-        if(!soundAudio){
-            await ensureAudio();
-            soundAudio = new TimelineAudio();
-            await soundAudio.ready();
-        }
-        return soundAudio;
-    }
+    // Get the app's audio instance for preview
+    // Apps expose their audio instance via window.__labAudio
+    const getAppAudio = async () => {
+        return (typeof window !== 'undefined' && window.__labAudio) ? window.__labAudio : null;
+    };
 
-    // Initialize standard sound dropdowns (present in all apps)
+    // Initialize standard sound dropdowns with factory default values
+    // These defaults match TimelineAudio._defaultAssignments
     initSoundDropdown(baseSoundSelect, {
         storageKey: 'baseSound',
         eventType: 'baseSound',
-        getAudio,
-        apply: (a, val) => a.setBase(val)
+        getAudio: getAppAudio,
+        apply: (a, val) => a?.setBase?.(val),
+        defaultValue: 'click1' // Click Base
     });
     initSoundDropdown(accentSoundSelect, {
         storageKey: 'accentSound',
         eventType: 'accentSound',
-        getAudio,
-        apply: (a, val) => a.setAccent(val)
+        getAudio: getAppAudio,
+        apply: (a, val) => a?.setAccent?.(val),
+        defaultValue: 'click2' // Click Acento
     });
     initSoundDropdown(startSoundSelect, {
         storageKey: 'startSound',
         eventType: 'startSound',
-        getAudio,
-        apply: (a, val) => a.setStart(val)
+        getAudio: getAppAudio,
+        apply: (a, val) => a?.setStart?.(val),
+        defaultValue: 'click3' // Sticks
     });
 
     // Initialize cycle sound dropdown if present (used in some apps like App3/App4)
@@ -200,8 +200,9 @@ function wireControls(root) {
         initSoundDropdown(cycleSoundSelect, {
             storageKey: 'cycleSound',
             eventType: 'cycleSound',
-            getAudio,
-            apply: (a, val) => a.setCycle(val)
+            getAudio: getAppAudio,
+            apply: (a, val) => a?.setCycle?.(val),
+            defaultValue: 'click4' // Pandereta
         });
     }
 

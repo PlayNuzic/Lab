@@ -118,6 +118,12 @@ header.top-bar h1 .top-bar-title-button:active {
   color: var(--color-lg);
 }
 
+.pulse-number.non-selectable {
+  opacity: 0.35;
+  color: var(--line-color);
+  filter: grayscale(0.5);
+}
+
 .pulse-number.selected:not(.zero):not(.lg) {
   color: var(--selection-color);
   text-shadow: 0 0 10px var(--selection-color);
@@ -158,6 +164,12 @@ header.top-bar h1 .top-bar-title-button:active {
   transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
 }
 
+.fraction-hit.selected {
+  background: var(--selection-color);
+  box-shadow: 0 0 16px var(--selection-color);
+  opacity: 0.75;
+}
+
 .fraction-hit.fraction-active {
   background: var(--selection-color);
   box-shadow: 0 0 16px var(--selection-color);
@@ -174,12 +186,18 @@ header.top-bar h1 .top-bar-title-button:active {
 }
 
 .cycle-label--integer {
-  color: var(--selection-color);
+  color: inherit;
 }
 
 .cycle-label--origin {
   color: var(--color-lg);
   font-weight: 600;
+}
+
+.cycle-label.selected {
+  color: var(--selection-color);
+  font-weight: 600;
+  text-shadow: 0 0 10px var(--selection-color);
 }
 
 .cycle-label.active:not(.cycle-label--origin) {
@@ -203,44 +221,6 @@ header.top-bar h1 .top-bar-title-button:active {
 
 .fraction-editor {
   position: relative;
-}
-
-.fraction-info-bubble {
-  position: absolute;
-  top: 0%;
-  left: 47%;
-  width: 280px;
-  transform: translate(0, -50%);
-  transform: translate(-50%, calc(-100% - 12px));
-  padding: 8px 18px;
-  border-radius: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  text-align: center;
-  font-size: 1.1rem;
-  line-height: 1.4;
-  max-width: min(280px, 85vw);
-  white-space: pre-line;
-  pointer-events: none;
-  z-index: 1;
-  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
-}
-
-body[data-theme='dark'] .fraction-info-bubble {
-  border-color: rgba(238, 232, 216, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-}
-
-.fraction-info-bubble--hidden {
-  opacity: 0;
-  visibility: hidden;
-  transform: translate(-50%, calc(-100% - 2px)) scale(0.95);
-}
-
-.fraction-info-bubble--visible {
-  opacity: 1;
-  visibility: visible;
-  transform: translate(-50%, calc(-100% - 12px)) scale(1);
 }
 
 .fraction-field-placeholder {
@@ -319,6 +299,7 @@ position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
 }
 
 .fraction-editor-wrapper--inline {
@@ -328,6 +309,7 @@ position: relative;
   align-items: center;
   justify-content: center;
   gap: 0.28em;
+  min-width: 0;
 }
 
 .fraction-editor--inline {
@@ -350,6 +332,7 @@ position: relative;
   height: 0.18em;
   background: currentColor;
   border-radius: 999px;
+  transition: width 0.2s ease;
 }
 
 .fraction-editor--inline .top,
@@ -382,9 +365,23 @@ position: relative;
   width: 28px;
 }
 
-.fraction-editor-wrapper--inline .fraction-info-bubble {
-  left: 50%;
-  z-index: 4;
+.fraction-inline-container .fraction-info-bubble {
+  top: 40px;
+  transform: translate(-50%, -100%);
+  z-index: 20;
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: var(--text-light);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+}
+
+body[data-theme='dark'] .fraction-inline-container .fraction-info-bubble {
+  background-color: rgba(40, 40, 40, 0.92);
+  color: var(--text-dark);
+  border-color: rgba(238, 232, 216, 0.2);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.6);
 }
 
 .fraction-ghost {
