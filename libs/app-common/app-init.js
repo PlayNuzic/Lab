@@ -4,7 +4,6 @@
  */
 
 import { TimelineAudio, ensureAudio } from '../sound/index.js';
-import { initSoundDropdown } from '../shared-ui/sound-dropdown.js';
 import { attachHover } from '../shared-ui/hover.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from './audio.js';
 import { renderApp } from './template.js';
@@ -95,20 +94,13 @@ async function ensureAudioContextReady() {
 }
 
 /**
- * Initialize shared UI components like sound dropdowns and hover effects
+ * Initialize shared UI components like hover effects
  * @param {Object} elements - Bound DOM elements
+ * @remarks Sound dropdowns are initialized by header.js via initHeader()
  */
 function initSharedUIComponents(elements) {
-  // Initialize sound dropdowns if present
-  if (elements.baseSoundSelect) {
-    initSoundDropdown(elements.baseSoundSelect);
-  }
-  if (elements.accentSoundSelect) {
-    initSoundDropdown(elements.accentSoundSelect);
-  }
-  if (elements.startSoundSelect) {
-    initSoundDropdown(elements.startSoundSelect);
-  }
+  // Sound dropdowns are initialized by header.js with proper configuration
+  // (storageKey, eventType, getAudio, apply) - no need to duplicate here
 
   // Attach hover effects to interactive elements
   const hoverElements = [

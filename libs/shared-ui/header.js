@@ -404,7 +404,9 @@ export function initHeader() {
         wireControls(header);
         return { header, menu };
     }
-    return renderHeader({ title: document.title || 'App' });
+    // If header doesn't exist, warn but don't auto-render to avoid duplication
+    console.warn('[initHeader] No header found. Call renderApp() or renderHeader() first.');
+    return undefined;
 }
 
 /**
