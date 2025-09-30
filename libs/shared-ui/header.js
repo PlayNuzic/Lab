@@ -165,17 +165,17 @@ function wireControls(root) {
     const factoryResetBtn = root.querySelector('#factoryResetBtn');
     const optionsMenu = root.querySelector('#optionsMenu');
 
-    let soundAudio;
+    // Create a temporary audio instance for preview only
+    // The actual app audio instance will receive changes via sharedui:sound events
     async function getAudio(){
-        if(!soundAudio){
-            await ensureAudio();
-            soundAudio = new TimelineAudio();
-            await soundAudio.ready();
-        }
-        return soundAudio;
+        await ensureAudio();
+        const tempAudio = new TimelineAudio();
+        await tempAudio.ready();
+        return tempAudio;
     }
 
     // Initialize standard sound dropdowns (present in all apps)
+    // These dropdowns emit 'sharedui:sound' events that apps listen to via bindSharedSoundEvents
     initSoundDropdown(baseSoundSelect, {
         storageKey: 'baseSound',
         eventType: 'baseSound',

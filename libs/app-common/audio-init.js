@@ -20,6 +20,22 @@ export function createAudioInitializer(config = {}) {
   async function initAudio() {
     if (audio) {
       await audio.ready();
+      // Always update sounds from dropdowns to reflect any changes made while audio was initialized
+      if (config.getSoundSelects) {
+        const selects = config.getSoundSelects();
+        if (selects.baseSoundSelect?.dataset?.value) {
+          audio.setBase(selects.baseSoundSelect.dataset.value);
+        }
+        if (selects.accentSoundSelect?.dataset?.value) {
+          audio.setAccent(selects.accentSoundSelect.dataset.value);
+        }
+        if (selects.startSoundSelect?.dataset?.value) {
+          audio.setStart(selects.startSoundSelect.dataset.value);
+        }
+        if (selects.cycleSoundSelect?.dataset?.value) {
+          audio.setCycle(selects.cycleSoundSelect.dataset.value);
+        }
+      }
       return audio;
     }
 

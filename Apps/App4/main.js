@@ -1446,6 +1446,19 @@ initRandomMenu(randomBtn, randomMenu, randomize);
 async function initAudio(){
   if (audio) {
     await audio.ready();
+    // Always update sounds from dropdowns to reflect any changes made while audio was initialized
+    if (baseSoundSelect?.dataset?.value) {
+      audio.setBase(baseSoundSelect.dataset.value);
+    }
+    if (accentSoundSelect?.dataset?.value) {
+      audio.setAccent(accentSoundSelect.dataset.value);
+    }
+    if (startSoundSelect?.dataset?.value) {
+      audio.setStart(startSoundSelect.dataset.value);
+    }
+    if (cycleSoundSelect?.dataset?.value) {
+      audio.setCycle(cycleSoundSelect.dataset.value);
+    }
     return audio;
   }
   if (!audioInitPromise) {
