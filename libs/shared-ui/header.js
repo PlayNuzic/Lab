@@ -171,24 +171,28 @@ function wireControls(root) {
         return (typeof window !== 'undefined' && window.__labAudio) ? window.__labAudio : null;
     };
 
-    // Initialize standard sound dropdowns (present in all apps)
+    // Initialize standard sound dropdowns with factory default values
+    // These defaults match TimelineAudio._defaultAssignments
     initSoundDropdown(baseSoundSelect, {
         storageKey: 'baseSound',
         eventType: 'baseSound',
         getAudio: getAppAudio,
-        apply: (a, val) => a?.setBase?.(val)
+        apply: (a, val) => a?.setBase?.(val),
+        defaultValue: 'click1' // Click Base
     });
     initSoundDropdown(accentSoundSelect, {
         storageKey: 'accentSound',
         eventType: 'accentSound',
         getAudio: getAppAudio,
-        apply: (a, val) => a?.setAccent?.(val)
+        apply: (a, val) => a?.setAccent?.(val),
+        defaultValue: 'click2' // Click Acento
     });
     initSoundDropdown(startSoundSelect, {
         storageKey: 'startSound',
         eventType: 'startSound',
         getAudio: getAppAudio,
-        apply: (a, val) => a?.setStart?.(val)
+        apply: (a, val) => a?.setStart?.(val),
+        defaultValue: 'click3' // Sticks
     });
 
     // Initialize cycle sound dropdown if present (used in some apps like App3/App4)
@@ -197,7 +201,8 @@ function wireControls(root) {
             storageKey: 'cycleSound',
             eventType: 'cycleSound',
             getAudio: getAppAudio,
-            apply: (a, val) => a?.setCycle?.(val)
+            apply: (a, val) => a?.setCycle?.(val),
+            defaultValue: 'click4' // Pandereta
         });
     }
 

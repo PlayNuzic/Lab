@@ -1,6 +1,6 @@
 import { soundNames, soundLabels } from '../sound/index.js';
 
-export function initSoundDropdown(container, { storageKey, eventType, getAudio, apply }) {
+export function initSoundDropdown(container, { storageKey, eventType, getAudio, apply, defaultValue }) {
   if (!container) return;
   // Prevent double enhancement (e.g., if both header and app try to init)
   if (container.dataset.enhanced === '1') return;
@@ -45,7 +45,8 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
   container.appendChild(panel);
 
   const stored = (() => { try { return localStorage.getItem(storageKey); } catch { return null; } })();
-  let selected = (stored && soundNames.includes(stored)) ? stored : soundNames[0];
+  const fallbackDefault = defaultValue && soundNames.includes(defaultValue) ? defaultValue : soundNames[0];
+  let selected = (stored && soundNames.includes(stored)) ? stored : fallbackDefault;
   let pending = selected; // preview selection while panel is open
 
   function updateLabel() {
