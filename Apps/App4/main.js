@@ -429,13 +429,14 @@ function getFractionInfoFromElement(el) {
 }
 
 function applyFractionSelectionClasses() {
-  applyFractionSelectionClassesModule(fractionStore, cycleMarkers);
+  applyFractionSelectionClassesModule(fractionStore, cycleMarkers, cycleLabels);
 }
 
 function rebuildFractionSelections(opts = {}) {
   fractionStore.pulseSelections = rebuildFractionSelectionsModule(fractionStore, {
     updatePulseSeqField,
     cycleMarkers,
+    cycleLabels,
     skipUpdateField: opts.skipUpdateField
   });
 }
@@ -443,7 +444,8 @@ function rebuildFractionSelections(opts = {}) {
 function setFractionSelected(info, shouldSelect) {
   setFractionSelectedModule(fractionStore, info, shouldSelect, {
     updatePulseSeqField,
-    cycleMarkers
+    cycleMarkers,
+    cycleLabels
   });
   if (isPlaying && audio) {
     applySelectionToAudio();
@@ -2760,6 +2762,7 @@ function renderTimeline() {
     };
     const denominatorValue = normalizedDenominator ?? 0;
     grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
+      let fractionKey = null;
       const marker = document.createElement('div');
       marker.className = 'cycle-marker';
       if (subdivisionIndex === 0) marker.classList.add('start');
@@ -2799,6 +2802,7 @@ function renderTimeline() {
         if (fracNumerator > 0) {
           const key = makeFractionKey(baseIndex, fracNumerator, denominatorValue);
           if (key) {
+            fractionKey = key;
             const value = fractionValue(baseIndex, fracNumerator, denominatorValue);
             const display = fractionDisplay(baseIndex, fracNumerator, denominatorValue, {
               cycleIndex,
@@ -2904,6 +2908,9 @@ function renderTimeline() {
         label.dataset.cycleIndex = String(cycleIndex);
         label.dataset.subdivision = String(subdivisionIndex);
         label.dataset.position = String(position);
+        if (fractionKey) {
+          label.dataset.fractionKey = fractionKey;
+        }
         label.textContent = formatted;
         label.dataset.fullText = String(formatted);
         const decimalIndex = typeof formatted === 'string' ? formatted.indexOf('.') : -1;

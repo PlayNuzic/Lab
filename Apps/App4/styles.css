@@ -158,6 +158,12 @@ header.top-bar h1 .top-bar-title-button:active {
   transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
 }
 
+.fraction-hit.selected {
+  background: var(--selection-color);
+  box-shadow: 0 0 16px var(--selection-color);
+  opacity: 0.75;
+}
+
 .fraction-hit.fraction-active {
   background: var(--selection-color);
   box-shadow: 0 0 16px var(--selection-color);
@@ -174,12 +180,18 @@ header.top-bar h1 .top-bar-title-button:active {
 }
 
 .cycle-label--integer {
-  color: var(--selection-color);
+  color: inherit;
 }
 
 .cycle-label--origin {
   color: var(--color-lg);
   font-weight: 600;
+}
+
+.cycle-label.selected {
+  color: var(--selection-color);
+  font-weight: 600;
+  text-shadow: 0 0 10px var(--selection-color);
 }
 
 .cycle-label.active:not(.cycle-label--origin) {
