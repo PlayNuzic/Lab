@@ -445,6 +445,9 @@ function setFractionSelected(info, shouldSelect) {
     updatePulseSeqField,
     cycleMarkers
   });
+  if (isPlaying && audio) {
+    applySelectionToAudio();
+  }
 }
 
 function computeAudioSchedulingState() {
@@ -2299,6 +2302,12 @@ function sanitizePulseSeq(opts = {}){
     syncSelectedFromMemory();
     updatePulseNumbers();
     layoutTimeline({ silent: true });
+    if (isPlaying && audio) {
+      applySelectionToAudio();
+      if (typeof audio.setLoop === 'function') {
+        audio.setLoop(loopEnabled);
+      }
+    }
   } else {
     const combined = [
       ...ints.map(n => ({ value: n, display: String(n), key: String(n) })),
