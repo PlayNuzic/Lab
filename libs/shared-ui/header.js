@@ -161,7 +161,6 @@ function wireControls(root) {
     const baseSoundSelect = root.querySelector('#baseSoundSelect');
     const accentSoundSelect = root.querySelector('#accentSoundSelect');
     const startSoundSelect = root.querySelector('#startSoundSelect');
-    const cycleSoundSelect = root.querySelector('#cycleSoundSelect');
     const factoryResetBtn = root.querySelector('#factoryResetBtn');
     const optionsMenu = root.querySelector('#optionsMenu');
 
@@ -175,6 +174,7 @@ function wireControls(root) {
         return soundAudio;
     }
 
+    // Initialize standard sound dropdowns (present in all apps)
     initSoundDropdown(baseSoundSelect, {
         storageKey: 'baseSound',
         eventType: 'baseSound',
@@ -194,12 +194,7 @@ function wireControls(root) {
         apply: (a, val) => a.setStart(val)
     });
 
-    initSoundDropdown(cycleSoundSelect, {
-        storageKey: 'cycleSound',
-        eventType: 'cycleSound',
-        getAudio,
-        apply: (a, val) => a.setCycle(val)
-    });
+    // Note: cycleSoundSelect is app-specific (App3/App4) and initialized in their main.js
 
     if (factoryResetBtn) {
         factoryResetBtn.addEventListener('click', () => {
