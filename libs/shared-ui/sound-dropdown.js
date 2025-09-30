@@ -6,6 +6,8 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
   if (container.dataset.enhanced === '1') return;
   container.dataset.enhanced = '1';
 
+  // Clear any existing content to prevent duplication
+  container.innerHTML = '';
   container.classList.add('custom-dropdown');
 
   const toggle = document.createElement('button');
