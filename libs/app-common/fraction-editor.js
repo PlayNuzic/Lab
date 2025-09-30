@@ -186,21 +186,35 @@ export function createFractionEditor({
 
   function registerHoverTarget(target, { useFocus = false } = {}) {
     if (!target) return;
+
+    function computeHoverMessage(el) {
+      const type = el?.dataset?.fractionHoverType;
+      return currentMessage || getDefaultHoverText(type);
+    }
+
+    function updateBubblePosition(evt) {
+      const bubble = elements.infoBubble;
+      if (!bubble || !evt) return;
+      // desfasament de 20 px cap amunt i 10 px cap a la dreta
+      bubble.style.left = (evt.clientX + 20) + 'px';
+      bubble.style.top  = (evt.clientY - 40) + 'px';
+    }
+
     target.addEventListener('mouseenter', (event) => {
-      const type = event?.currentTarget?.dataset?.fractionHoverType;
-      showInfo({ message: currentMessage || getDefaultHoverText(type) });
+      updateBubblePosition(event);
+      // IMPORTANT: no assignem a currentMessage aquí; així el tipus correcte
+      // (numerator/denominator) determina el text per defecte cada vegada
+      showInfo({ message: computeHoverMessage(event.currentTarget) });
     });
-    target.addEventListener('mouseleave', () => {
-      hideInfo();
-    });
+
+    target.addEventListener('mousemove', updateBubblePosition);
+    target.addEventListener('mouseleave', () => hideInfo());
+
     if (useFocus) {
       target.addEventListener('focus', (event) => {
-        const type = event?.currentTarget?.dataset?.fractionHoverType;
-        showInfo({ message: currentMessage || getDefaultHoverText(type) });
+        showInfo({ message: computeHoverMessage(event.currentTarget) });
       });
-      target.addEventListener('blur', () => {
-        hideInfo();
-      });
+      target.addEventListener('blur', () => hideInfo());
     }
   }
 
