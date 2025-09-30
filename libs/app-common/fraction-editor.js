@@ -118,6 +118,7 @@ export function createFractionEditor({
     numerator: null,
     denominator: null,
     infoBubble: null,
+    bar: null,
     ghost: {
       container: null,
       numerator: null,
@@ -134,6 +135,15 @@ export function createFractionEditor({
   let hideTimer = null;
   let isApplying = false;
   const currentValues = { numerator: null, denominator: null };
+  const inlineState = {
+    resizeObserver: null,
+    rafHandle: null,
+    rafCancel: null,
+    baseBarWidth: null,
+    minBarWidth: null,
+    hostPadding: null,
+    resizeListener: null
+  };
 
   function clearHideTimer() {
     if (hideTimer) {
@@ -192,6 +202,106 @@ export function createFractionEditor({
         hideInfo();
       });
     }
+  }
+
+  function scheduleInlineBarUpdate() {
+    if (!isInline) return;
+    if (inlineState.rafHandle != null) return;
+    const hasWindow = typeof window !== 'undefined';
+    const request = hasWindow && typeof window.requestAnimationFrame === 'function'
+      ? window.requestAnimationFrame.bind(window)
+      : (cb) => setTimeout(cb, 16);
+    const cancel = hasWindow && typeof window.cancelAnimationFrame === 'function'
+      ? window.cancelAnimationFrame.bind(window)
+      : (handle) => clearTimeout(handle);
+    inlineState.rafCancel = cancel;
+    inlineState.rafHandle = request(() => {
+      inlineState.rafHandle = null;
+      inlineState.rafCancel = null;
+      updateInlineBarWidth();
+    });
+  }
+
+  function updateInlineBarWidth() {
+    if (!isInline) return;
+    const bar = elements.bar;
+    const hostEl = elements.host;
+    const containerEl = elements.container;
+    if (!bar || !hostEl || !containerEl) return;
+    const getRect = (el) => (el && typeof el.getBoundingClientRect === 'function' ? el.getBoundingClientRect() : null);
+    const hostRect = getRect(hostEl);
+    const containerRect = getRect(containerEl);
+    if (!hostRect || hostRect.width <= 0 || !containerRect) return;
+
+    const numeratorWrapper = elements.fields.numerator?.wrapper;
+    const denominatorWrapper = elements.fields.denominator?.wrapper;
+    const numeratorRect = getRect(numeratorWrapper);
+    const denominatorRect = getRect(denominatorWrapper);
+    const widestField = Math.max(numeratorRect?.width ?? 0, denominatorRect?.width ?? 0, 0);
+
+    if (inlineState.baseBarWidth == null) {
+      let computedWidth = 0;
+      if (typeof window !== 'undefined' && typeof window.getComputedStyle === 'function') {
+        computedWidth = parseFloat(window.getComputedStyle(bar).width) || 0;
+      }
+      if (!computedWidth && typeof bar.getBoundingClientRect === 'function') {
+        computedWidth = bar.getBoundingClientRect().width || 0;
+      }
+      inlineState.baseBarWidth = computedWidth || containerRect.width || widestField || hostRect.width || 0;
+      if (!inlineState.baseBarWidth || inlineState.baseBarWidth <= 0) {
+        inlineState.baseBarWidth = 56;
+      }
+      inlineState.minBarWidth = Math.max(8, inlineState.baseBarWidth * 0.45);
+    }
+
+    if (inlineState.hostPadding == null) {
+      inlineState.hostPadding = Math.max(0, hostRect.width - containerRect.width);
+    }
+
+    const padding = inlineState.hostPadding ?? 0;
+    const availableWidth = Math.max(0, hostRect.width - padding);
+    if (!availableWidth) return;
+
+    const effectiveDefaultWidth = Math.max(inlineState.baseBarWidth || 0, widestField || 0, containerRect.width || 0);
+    const minWidth = Math.max(8, (inlineState.minBarWidth ?? inlineState.baseBarWidth * 0.45));
+
+    let targetWidth = effectiveDefaultWidth;
+    if (availableWidth < effectiveDefaultWidth) {
+      const lowerBound = Math.min(minWidth, availableWidth);
+      targetWidth = Math.max(lowerBound, Math.min(effectiveDefaultWidth, availableWidth));
+    }
+
+    if (!Number.isFinite(targetWidth) || targetWidth <= 0) return;
+
+    const shouldRemoveInlineWidth = inlineState.baseBarWidth != null
+      && Math.abs(targetWidth - inlineState.baseBarWidth) < 0.5
+      && effectiveDefaultWidth <= inlineState.baseBarWidth + 0.5;
+
+    if (shouldRemoveInlineWidth) {
+      if (bar.style.width) bar.style.removeProperty('width');
+      return;
+    }
+
+    bar.style.width = `${targetWidth}px`;
+  }
+
+  function setupInlineResizeObserver() {
+    if (!isInline) return;
+    if (inlineState.resizeObserver || typeof window === 'undefined' || typeof window.ResizeObserver !== 'function') return;
+    const observer = new window.ResizeObserver(() => scheduleInlineBarUpdate());
+    inlineState.resizeObserver = observer;
+    const targets = [
+      elements.host,
+      elements.wrapper,
+      elements.container,
+      elements.fields.numerator?.wrapper,
+      elements.fields.denominator?.wrapper
+    ];
+    targets.forEach((target) => {
+      if (target instanceof window.Element) {
+        observer.observe(target);
+      }
+    });
   }
 
   function setInputValue(input, value) {
@@ -267,6 +377,8 @@ export function createFractionEditor({
     currentInfo = computeFractionInfo(currentValues.numerator, currentValues.denominator);
     updateGhost(currentInfo);
     updateInfoBubble(currentInfo, { reveal });
+
+    if (isInline) scheduleInlineBarUpdate();
 
     if (persist) {
       persistValue('numerator', currentValues.numerator);
@@ -432,6 +544,7 @@ export function createFractionEditor({
     bar.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
     bar.setAttribute('aria-hidden', 'true');
     container.appendChild(bar);
+    elements.bar = bar;
 
     const bottom = document.createElement('div');
     bottom.className = 'bottom';
@@ -449,6 +562,14 @@ export function createFractionEditor({
 
     attachField('numerator', numeratorField);
     attachField('denominator', denominatorField);
+
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      inlineState.resizeListener = () => scheduleInlineBarUpdate();
+      window.addEventListener('resize', inlineState.resizeListener);
+    }
+
+    setupInlineResizeObserver();
+    scheduleInlineBarUpdate();
   } else {
     const wrapper = document.createElement('div');
     wrapper.className = 'fraction-editor-wrapper';
@@ -548,6 +669,19 @@ export function createFractionEditor({
     hideInfo,
     showInfo,
     destroy() {
+      if (inlineState.resizeObserver) {
+        inlineState.resizeObserver.disconnect();
+        inlineState.resizeObserver = null;
+      }
+      if (inlineState.rafHandle != null && inlineState.rafCancel) {
+        inlineState.rafCancel(inlineState.rafHandle);
+        inlineState.rafHandle = null;
+        inlineState.rafCancel = null;
+      }
+      if (inlineState.resizeListener && typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('resize', inlineState.resizeListener);
+        inlineState.resizeListener = null;
+      }
       clearHideTimer();
       currentMessage = '';
       delete safeHost[CONTROLLER_SYMBOL];

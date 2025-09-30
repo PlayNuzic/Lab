@@ -12,9 +12,12 @@ describe('fraction-editor', () => {
     ({ document } = dom.window);
     global.window = dom.window;
     global.document = document;
-    global.getComputedStyle = () => ({
+    const mockComputedStyle = () => ({
+      width: '64px',
       getPropertyValue: () => ''
     });
+    dom.window.getComputedStyle = mockComputedStyle;
+    global.getComputedStyle = mockComputedStyle;
     container = document.createElement('span');
     document.body.appendChild(container);
   });

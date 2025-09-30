@@ -281,6 +281,7 @@ position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
 }
 
 .fraction-editor-wrapper--inline {
@@ -290,6 +291,7 @@ position: relative;
   align-items: center;
   justify-content: center;
   gap: 0.28em;
+  min-width: 0;
 }
 
 .fraction-editor--inline {
@@ -312,6 +314,7 @@ position: relative;
   height: 0.18em;
   background: currentColor;
   border-radius: 999px;
+  transition: width 0.2s ease;
 }
 
 .fraction-editor--inline .top,
