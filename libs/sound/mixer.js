@@ -1,3 +1,7 @@
+import { waitForUserInteraction, hasUserInteracted } from './user-interaction.js';
+
+/* global Tone */
+
 const DEFAULT_MASTER_LABEL = 'Master';
 
 function clampVolume(value) {
@@ -43,6 +47,61 @@ export class AudioMixer {
     this.channels = new Map();
     this._channelOrder = [];
     this._listeners = new Set();
+    this._toneReady = hasUserInteracted();
+    this._toneSyncPending = false;
+
+    if (!this._toneReady) {
+      waitForUserInteraction().then(() => {
+        this._toneReady = true;
+        this._toneSyncPending = false;
+        this._syncToneState();
+      }).catch(() => {
+        this._toneSyncPending = false;
+      });
+    }
+  }
+
+  _hasUserGesture() {
+    if (this._toneReady) return true;
+    if (hasUserInteracted()) {
+      this._toneReady = true;
+      return true;
+    }
+    return false;
+  }
+
+  _canUseToneNodes() {
+    return this._hasUserGesture() && hasTone();
+  }
+
+  _scheduleToneSync() {
+    if (this._canUseToneNodes()) {
+      this._syncToneState();
+      return;
+    }
+    if (this._toneSyncPending) return;
+    this._toneSyncPending = true;
+    waitForUserInteraction().then(() => {
+      this._toneSyncPending = false;
+      this._toneReady = true;
+      this._syncToneState();
+    }).catch(() => {
+      this._toneSyncPending = false;
+    });
+  }
+
+  _syncToneState() {
+    if (!this._canUseToneNodes()) {
+      return;
+    }
+
+    this._ensureMasterNode();
+    this._applyMasterVolume();
+    for (const channel of this.channels.values()) {
+      this._ensureChannelNode(channel);
+      this._applyChannelVolume(channel);
+    }
+    this._refreshMutes();
   }
 
   _hasSolo() {
@@ -57,7 +116,10 @@ export class AudioMixer {
       return this.master.node;
     }
 
-    if (!hasTone()) return null;
+    if (!this._canUseToneNodes()) {
+      this._scheduleToneSync();
+      return null;
+    }
 
     if (hasToneVolume()) {
       try {
@@ -82,7 +144,10 @@ export class AudioMixer {
       return channel.node;
     }
 
-    if (!hasTone()) return null;
+    if (!this._canUseToneNodes()) {
+      this._scheduleToneSync();
+      return null;
+    }
 
     const masterNode = this._ensureMasterNode();
 
@@ -109,8 +174,10 @@ export class AudioMixer {
     const node = this._ensureMasterNode();
     if (node?.volume) {
       try { node.volume.value = toDecibels(this.master.volume); } catch {}
-    } else if (typeof Tone !== 'undefined' && Tone?.Destination?.volume) {
+    } else if (this._canUseToneNodes() && Tone?.Destination?.volume) {
       try { Tone.Destination.volume.value = toDecibels(this.master.volume); } catch {}
+    } else {
+      this._scheduleToneSync();
     }
   }
 
@@ -171,7 +238,8 @@ export class AudioMixer {
     if (this.master.node) {
       try { this.master.node.mute = !!this.master.muted; } catch {}
     }
-    if (!this.master.node && typeof Tone !== 'undefined' && Tone?.Destination) {
+    const canUseDestination = this._canUseToneNodes() && Tone?.Destination;
+    if (!this.master.node && canUseDestination) {
       try { Tone.Destination.mute = !!this.master.muted; } catch {}
     }
     let changed = false;
@@ -193,6 +261,9 @@ export class AudioMixer {
       if (channel.node) {
         try { channel.node.mute = effective; } catch {}
       }
+    }
+    if (!this.master.node && !canUseDestination) {
+      this._scheduleToneSync();
     }
     return changed;
   }
@@ -385,7 +456,13 @@ export class AudioMixer {
   }
 
   getDestination() {
-    return this._ensureMasterNode() || Tone?.Destination || null;
+    const node = this._ensureMasterNode();
+    if (node) return node;
+    if (this._canUseToneNodes()) {
+      return Tone?.Destination || null;
+    }
+    this._scheduleToneSync();
+    return null;
   }
 
   getState() {

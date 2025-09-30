@@ -1,5 +1,6 @@
 import { loadSampleMap } from './sample-map.js';
 import { AudioMixer } from './mixer.js';
+import { waitForUserInteraction, hasUserInteracted } from './user-interaction.js';
 
 /* global Tone */
 
@@ -42,34 +43,6 @@ const arrayBufferCache = new Map();
 let previewContext = null;
 let previewGain = null;
 const previewSources = new Set();
-
-// Track user interaction to prevent premature AudioContext initialization
-let hasUserInteracted = false;
-let userInteractionPromise = null;
-
-function waitForUserInteraction() {
-  if (hasUserInteracted) {
-    return Promise.resolve();
-  }
-
-  if (!userInteractionPromise) {
-    userInteractionPromise = new Promise((resolve) => {
-      const handleInteraction = () => {
-        hasUserInteracted = true;
-        document.removeEventListener('click', handleInteraction);
-        document.removeEventListener('keydown', handleInteraction);
-        document.removeEventListener('touchstart', handleInteraction);
-        resolve();
-      };
-
-      document.addEventListener('click', handleInteraction, { once: true });
-      document.addEventListener('keydown', handleInteraction, { once: true });
-      document.addEventListener('touchstart', handleInteraction, { once: true });
-    });
-  }
-
-  return userInteractionPromise;
-}
 
 function isBaseAudioContext(ctx) {
   if (!ctx) return false;
@@ -410,7 +383,7 @@ function resolveToneContext() {
 
   // Only try to access Tone context if user has interacted
   // This prevents premature AudioContext initialization warnings
-  if (!hasUserInteracted) {
+  if (!hasUserInteracted()) {
     return null;
   }
 
