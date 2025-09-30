@@ -97,14 +97,9 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
     selected = pending;
     updateLabel();
     try { localStorage.setItem(storageKey, selected); } catch {}
-    // Emit event first - this will update the app's audio instance via bindSharedSoundEvents
+    // Emit event to update the app's audio instance via bindSharedSoundEvents
+    // If audio is not initialized yet, the change will be applied when initAudio reads dataset.value
     window.dispatchEvent(new CustomEvent('sharedui:sound', { detail: { type: eventType, value: selected } }));
-    // Also apply to our temporary instance for preview (getAudio creates a temp instance in header.js)
-    try {
-      const a = await getAudio();
-      await apply(a, selected);
-      if (a && typeof a.preview === 'function') a.preview(selected);
-    } catch {}
   }
 
   async function commitAndClose() {
