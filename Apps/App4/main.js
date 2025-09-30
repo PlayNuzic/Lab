@@ -85,6 +85,10 @@ const loopController = createPulseMemoryLoopController({
       applySelectionToAudio();
     }
     layoutTimeline();
+    // Update totalPulses when loop changes during playback
+    if (isPlaying) {
+      handleInput();
+    }
   }
 });
 

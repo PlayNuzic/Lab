@@ -52,6 +52,10 @@ const loopController = createPulseMemoryLoopController({
       audio.setSelected(selectedForAudioFromState());
     }
     animateTimelineCircle(enabled && circularTimeline);
+    // Update totalPulses when loop changes during playback
+    if (isPlaying) {
+      handleInput();
+    }
   }
 });
 
