@@ -3079,12 +3079,9 @@ async function startPlayback(providedAudio) {
   audioInstance.stop();
   clearHighlights();
 
-  await audioInstance.setBase(baseSoundSelect.dataset.value);
-  await audioInstance.setAccent(accentSoundSelect.dataset.value);
-  await audioInstance.setStart(startSoundSelect.dataset.value);
-  if (cycleSoundSelect) {
-    await audioInstance.setCycle(cycleSoundSelect.dataset.value);
-  }
+  // Sound selection is already applied by initAudio() from dataset.value
+  // and by bindSharedSoundEvents from sharedui:sound events
+  // No need to override here
 
   const scheduling = computeAudioSchedulingState();
   if (scheduling.interval == null || scheduling.totalPulses == null) {

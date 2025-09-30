@@ -1151,9 +1151,9 @@ async function startPlayback() {
   if (playbackTotal == null) return;
 
   const audioInstance = await initAudio();
-  await audioInstance.setBase(baseSoundSelect?.dataset.value || baseSoundSelect?.value);
-  await audioInstance.setStart(startSoundSelect?.dataset.value || startSoundSelect?.value);
-  await audioInstance.setCycle(cycleSoundSelect?.dataset.value || cycleSoundSelect?.value);
+  // Sound selection is already applied by initAudio() from dataset.value
+  // and by bindSharedSoundEvents from sharedui:sound events
+  // No need to override here
 
   const interval = 60 / v;
   const onFinish = () => {

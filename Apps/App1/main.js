@@ -910,8 +910,9 @@ async function startPlayback(providedAudio) {
   audioInstance.stop();
   pulses.forEach(p => p.classList.remove('active'));
 
-  await audioInstance.setBase(baseSoundSelect.dataset.value);
-  await audioInstance.setStart(startSoundSelect.dataset.value);
+  // Sound selection is already applied by initAudio() from dataset.value
+  // and by bindSharedSoundEvents from sharedui:sound events
+  // No need to override here
 
   const timing = fromLgAndTempo(lg, v);
   if (!timing || timing.interval == null) {
