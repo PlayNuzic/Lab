@@ -332,6 +332,40 @@ function nearestPulseIndex(value) {
   const nearest = Math.round(value);
   return Math.abs(value - nearest) < FRACTION_POSITION_EPSILON ? nearest : null;
 }
+
+/**
+ * Determina si un pulso entero es seleccionable según la fracción activa.
+ *
+ * @param {number} index - Índice del pulso a verificar
+ * @param {number|null} numerator - Numerador de la fracción activa (n)
+ * @param {number|null} denominator - Denominador de la fracción activa (d)
+ * @param {number} lg - Longitud total de pulsos (Lg)
+ * @returns {boolean} true si el pulso es seleccionable
+ *
+ * Regla: Para una fracción n/d, solo son seleccionables los pulsos que coinciden
+ * con el inicio de cada ciclo de la fracción (múltiplos de n).
+ * Si no hay fracción válida, todos los pulsos son seleccionables.
+ */
+function isIntegerPulseSelectable(index, numerator, denominator, lg) {
+  // Validar entrada
+  if (!Number.isFinite(index) || !Number.isFinite(lg) || lg <= 0) {
+    return false;
+  }
+
+  // Los extremos (0 y Lg) siempre están controlados por Loop
+  if (index === 0 || index === lg) {
+    return false; // No seleccionables directamente, se controlan con loopEnabled
+  }
+
+  // Si no hay fracción válida, todos los pulsos intermedios son seleccionables
+  if (!Number.isFinite(numerator) || numerator <= 0 || !Number.isFinite(denominator) || denominator <= 0) {
+    return true;
+  }
+
+  // Solo son seleccionables los múltiplos del numerador
+  return index % numerator === 0;
+}
+
 const voiceHighlightHandlers = new Map();
 
 function ensurePulseMemory(size) {
@@ -962,6 +996,12 @@ function getSelectionInfo(target) {
   if (typeof target.dataset.index !== 'undefined') {
     const idx = parseIntSafe(target.dataset.index);
     if (Number.isFinite(idx)) {
+      // Validar que el pulso es seleccionable según la fracción activa
+      const lg = parseIntSafe(inputLg.value);
+      const { numerator, denominator } = getFraction();
+      if (!isIntegerPulseSelectable(idx, numerator, denominator, lg)) {
+        return null; // Bloquear pulsos no seleccionables
+      }
       const key = `pulse:${idx}`;
       return { type: 'int', index: idx, selectionKey: key, key };
     }
@@ -1037,6 +1077,11 @@ dragController.attach({
       const lg = parseIntSafe(inputLg.value);
       if (!Number.isFinite(lg) || info.index === 0 || info.index === lg) {
         return null;
+      }
+      // Validar que el pulso es seleccionable según la fracción activa
+      const { numerator, denominator } = getFraction();
+      if (!isIntegerPulseSelectable(info.index, numerator, denominator, lg)) {
+        return null; // Bloquear drag en pulsos no seleccionables
       }
       ensurePulseMemory(Math.max(info.index, lg));
     }
@@ -1341,8 +1386,17 @@ function randomize() {
     if (!isNaN(lg) && lg > 0) {
       ensurePulseMemory(lg);
       const rawCount = randomCount && typeof randomCount.value === 'string' ? randomCount.value.trim() : '';
+
+      // Obtener la fracción actual para filtrar pulsos seleccionables
+      const { numerator, denominator } = getFraction();
       const available = [];
-      for (let i = 1; i < lg; i++) available.push(i);
+      for (let i = 1; i < lg; i++) {
+        // Solo añadir pulsos que sean seleccionables según la fracción activa
+        if (isIntegerPulseSelectable(i, numerator, denominator, lg)) {
+          available.push(i);
+        }
+      }
+
       const selected = new Set();
       if (rawCount === '') {
         const density = 0.5;
@@ -1354,7 +1408,7 @@ function randomize() {
           available.forEach(i => { if (Math.random() < density) selected.add(i); });
         } else if (parsed > 0) {
           const target = Math.min(parsed, available.length);
-          while (selected.size < target) {
+          while (selected.size < target && available.length > 0) {
             const idx = available[Math.floor(Math.random() * available.length)];
             selected.add(idx);
           }
@@ -2188,6 +2242,11 @@ function sanitizePulseSeq(opts = {}){
         if (firstTooBig == null) firstTooBig = n;
         continue;
       }
+      // Validar que el pulso entero es seleccionable según la fracción activa
+      if (!isIntegerPulseSelectable(n, numeratorValue, denomValue, lg)) {
+        // Silenciosamente ignorar pulsos no seleccionables (no son errores)
+        continue;
+      }
       if (!seenInts.has(n)) {
         seenInts.add(n);
         ints.push(n);
@@ -2567,12 +2626,22 @@ function renderTimeline() {
   const numberFontRem = computeNumberFontRem(lg);
   const subdivisionFontRem = computeSubdivisionFontRem(lg);
 
+  // Obtener la fracción actual para determinar qué pulsos son seleccionables
+  const { numerator, denominator } = getFraction();
+
   for (let i = 0; i <= lg; i++) {
     const pulse = document.createElement('div');
     pulse.className = 'pulse';
     if (i === 0) pulse.classList.add('zero');
     else if (i === lg) pulse.classList.add('lg');
     pulse.dataset.index = String(i);
+
+    // Aplicar clase si el pulso no es seleccionable según la fracción activa
+    const selectable = isIntegerPulseSelectable(i, numerator, denominator, lg);
+    if (i !== 0 && i !== lg && !selectable) {
+      pulse.classList.add('non-selectable');
+    }
+
     timeline.appendChild(pulse);
     pulses.push(pulse);
 
@@ -2597,6 +2666,11 @@ function renderTimeline() {
     if (i === 0 || i === lg) {
       hit.style.pointerEvents = 'none';
       hit.style.cursor = 'default';
+    } else if (!selectable) {
+      // Pulsos no seleccionables: deshabilitar interacciones
+      hit.style.pointerEvents = 'none';
+      hit.style.cursor = 'not-allowed';
+      hit.classList.add('non-selectable');
     } else {
       hit.style.pointerEvents = 'auto';
       hit.style.cursor = 'pointer';
@@ -2605,8 +2679,6 @@ function renderTimeline() {
     timeline.appendChild(hit);
     pulseHits.push(hit);
   }
-
-  const { numerator, denominator } = getFraction();
   const grid = gridFromOrigin({ lg, numerator, denominator });
   const normalizedLg = Number.isFinite(lg) && lg > 0 ? lg : null;
   const normalizedNumerator = Number.isFinite(grid?.numerator) && grid.numerator > 0
