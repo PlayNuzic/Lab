@@ -273,6 +273,11 @@ function clearStoredPreferences() {
       if (key && key.startsWith(prefix)) keysToRemove.push(key);
     }
     keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+    // Also clear shared sound preferences (no app prefix)
+    ['baseSound', 'accentSound', 'startSound', 'cycleSound'].forEach(key => {
+      try { localStorage.removeItem(key); } catch {}
+    });
   } catch {}
 }
 

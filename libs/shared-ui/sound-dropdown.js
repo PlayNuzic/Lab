@@ -53,6 +53,9 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
     container.dataset.value = selected;
   }
 
+  // Initialize label and dataset with the loaded value
+  updateLabel();
+
   function updateListHighlight() {
     const children = [...list.children];
     children.forEach(li => li.classList.remove('selected', 'pending'));

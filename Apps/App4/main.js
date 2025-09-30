@@ -2303,15 +2303,7 @@ function sanitizePulseSeq(opts = {}){
     ensurePulseMemory(lg);
     for (let i = 1; i < lg; i++) pulseMemory[i] = false;
     ints.forEach(n => { if (n < lg) pulseMemory[n] = true; });
-    syncSelectedFromMemory();
-    updatePulseNumbers();
-    layoutTimeline({ silent: true });
-    if (isPlaying && audio) {
-      applySelectionToAudio();
-      if (typeof audio.setLoop === 'function') {
-        audio.setLoop(loopEnabled);
-      }
-    }
+    renderTimeline();
   } else {
     const combined = [
       ...ints.map(n => ({ value: n, display: String(n), key: String(n) })),
