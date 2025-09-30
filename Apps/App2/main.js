@@ -1,5 +1,4 @@
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
-import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
@@ -546,24 +545,8 @@ function randomize() {
 
 initRandomMenu(randomBtn, randomMenu, randomize);
 
-initSoundDropdown(baseSoundSelect, {
-  storageKey: storeKey('baseSound'),
-  eventType: 'baseSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setBase(val)
-});
-initSoundDropdown(accentSoundSelect, {
-  storageKey: storeKey('accentSound'),
-  eventType: 'accentSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setAccent(val)
-});
-initSoundDropdown(startSoundSelect, {
-  storageKey: storeKey('startSound'),
-  eventType: 'startSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setStart(val)
-});
+// Sound dropdowns initialized by header.js via initHeader()
+// No need to initialize here - header.js handles baseSoundSelect, accentSoundSelect, and startSoundSelect
 
 // Preview on sound change handled by shared header
 

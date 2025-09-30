@@ -1,5 +1,5 @@
 import { TimelineAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
-import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
+import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js'; // Only for cycleSoundSelect
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
@@ -1386,24 +1386,8 @@ function randomize() {
 
 initRandomMenu(randomBtn, randomMenu, randomize);
 
-initSoundDropdown(baseSoundSelect, {
-  storageKey: storeKey('baseSound'),
-  eventType: 'baseSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setBase(val)
-});
-initSoundDropdown(accentSoundSelect, {
-  storageKey: storeKey('accentSound'),
-  eventType: 'accentSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setAccent(val)
-});
-initSoundDropdown(startSoundSelect, {
-  storageKey: storeKey('startSound'),
-  eventType: 'startSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setStart(val)
-});
+// Sound dropdowns: baseSoundSelect, accentSoundSelect, and startSoundSelect are initialized by header.js
+// Only cycleSoundSelect needs initialization here as it's app-specific
 initSoundDropdown(cycleSoundSelect, {
   storageKey: storeKey('cycleSound'),
   eventType: 'cycleSound',

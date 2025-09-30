@@ -1295,23 +1295,16 @@ if (circularTimelineToggle) {
 
 /**
  * Inicialitza els desplegables de sons per pulso, inici i cicle.
+ * baseSoundSelect and startSoundSelect are initialized by header.js via initHeader().
+ * Only cycleSoundSelect needs to be initialized here as it's app-specific.
  *
  * @returns {void}
  * @remarks Es crida un cop hi ha DOM disponible. Depèn de `initSoundDropdown` (DOM+Audio). Manté supòsits PulseMemory en delegar la sincronització a `TimelineAudio`.
  */
 function setupSoundDropdowns() {
-  initSoundDropdown(baseSoundSelect, {
-    storageKey: storeKey('baseSound'),
-    eventType: 'baseSound',
-    getAudio: initAudio,
-    apply: (a, val) => a.setBase(val)
-  });
-  initSoundDropdown(startSoundSelect, {
-    storageKey: storeKey('startSound'),
-    eventType: 'startSound',
-    getAudio: initAudio,
-    apply: (a, val) => a.setStart(val)
-  });
+  // baseSoundSelect and startSoundSelect initialized by header.js - no need here
+
+  // cycleSoundSelect is app-specific, so we initialize it here
   initSoundDropdown(cycleSoundSelect, {
     storageKey: storeKey('cycleSound'),
     eventType: 'cycleSound',
