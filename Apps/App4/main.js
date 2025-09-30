@@ -43,7 +43,6 @@ import {
 
 let audio;
 let audioInitPromise = null;
-let pendingMute = null;
 
 
 
@@ -193,6 +192,15 @@ const FRACTION_DENOMINATOR_KEY = 'd';
 
 const preferenceStorage = createPreferenceStorage({ prefix: 'app4', separator: ':' });
 const { storeKey, save: saveOpt, load: loadOpt, clear: clearOpt } = preferenceStorage;
+const muteButton = document.getElementById('muteBtn');
+
+registerFactoryReset({ storage: preferenceStorage });
+setupThemeSync({ storage: preferenceStorage, selectEl: themeSelect });
+setupMutePersistence({
+  storage: preferenceStorage,
+  getAudioInstance: () => audio,
+  muteButton
+});
 
 const randomControls = {
   randLgToggle,
@@ -1187,65 +1195,6 @@ function setCycleAudio(value, options) {
   cycleToggleController?.set(value, options);
 }
 
-function clearStoredPreferences() {
-  try {
-    const prefix = STORE_PREFIX;
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) keysToRemove.push(key);
-    }
-    keysToRemove.forEach((key) => localStorage.removeItem(key));
-  } catch {}
-}
-
-let factoryResetPending = false;
-window.addEventListener('sharedui:factoryreset', () => {
-  if (factoryResetPending) return;
-  factoryResetPending = true;
-  clearStoredPreferences();
-  window.location.reload();
-});
-
-// Local header behavior (as before)
-function applyTheme(val){
-  if(val === 'system'){
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.body.dataset.theme = dark ? 'dark' : 'light';
-  } else {
-    document.body.dataset.theme = val;
-  }
-  saveOpt('theme', val);
-  // Notify shared listeners so dependent UI can refresh colors on the fly
-  try { window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: val } })); } catch {}
-}
-
-const storedTheme = loadOpt('theme');
-if (themeSelect) {
-  if (storedTheme) themeSelect.value = storedTheme;
-  applyTheme(themeSelect.value || 'system');
-  themeSelect.addEventListener('change', e => applyTheme(e.target.value));
-} else {
-  applyTheme(storedTheme || 'system');
-}
-
-document.addEventListener('sharedui:mute', (e) => {
-  const val = !!(e && e.detail && e.detail.value);
-  saveOpt('mute', val ? '1' : '0');
-  pendingMute = val;
-  if (audio && typeof audio.setMute === 'function') {
-    audio.setMute(val);
-  }
-});
-
-// Restore previous mute preference on load
-(() => {
-  try{
-    const saved = loadOpt('mute');
-    if (saved === '1') document.getElementById('muteBtn')?.click();
-  }catch{}
-})();
-
 const storedColor = loadOpt('color');
 if (storedColor) {
   selectColor.value = storedColor;
@@ -1501,8 +1450,9 @@ async function initAudio(){
       if (typeof instance.setLoop === 'function') {
         instance.setLoop(loopEnabled);
       }
-      if (pendingMute != null && typeof instance.setMute === 'function') {
-        instance.setMute(pendingMute);
+      const savedMute = loadOpt('mute');
+      if (savedMute === '1' && typeof instance.setMute === 'function') {
+        instance.setMute(true);
       }
       audio = instance;
       return instance;
