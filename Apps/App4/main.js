@@ -1484,19 +1484,31 @@ async function initAudio(){
   if (!audioInitPromise) {
     audioInitPromise = (async () => {
       const instance = new TimelineAudio();
+
+      // Apply sound selections BEFORE ready() to prevent _initPlayers() from loading defaults
+      // This sets _soundAssignments before buffers are loaded
+      if (baseSoundSelect?.dataset?.value) {
+        instance._soundAssignments.pulso = baseSoundSelect.dataset.value;
+        instance._soundAssignments.pulso0 = baseSoundSelect.dataset.value;
+      }
+      if (accentSoundSelect?.dataset?.value) {
+        instance._soundAssignments.seleccionados = accentSoundSelect.dataset.value;
+      }
+      if (startSoundSelect?.dataset?.value) {
+        instance._soundAssignments.start = startSoundSelect.dataset.value;
+      }
+      if (cycleSoundSelect?.dataset?.value) {
+        instance._soundAssignments.cycle = cycleSoundSelect.dataset.value;
+      }
+
       await instance.ready();
+
       // Ensure accent channel is registered and routed separately for the mixer
       if (instance.mixer && typeof instance.mixer.registerChannel === 'function') {
         instance.mixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
       }
       if (instance._channelAssignments) {
         instance._channelAssignments.accent = 'accent';
-      }
-      instance.setBase(baseSoundSelect.dataset.value);
-      instance.setAccent(accentSoundSelect.dataset.value);
-      instance.setStart(startSoundSelect.dataset.value);
-      if (cycleSoundSelect) {
-        instance.setCycle(cycleSoundSelect.dataset.value);
       }
       if (typeof instance.setVoiceHandler === 'function') {
         instance.setVoiceHandler(handleVoiceEvent);

@@ -42,6 +42,26 @@ export function createAudioInitializer(config = {}) {
     if (!audioInitPromise) {
       audioInitPromise = (async () => {
         const instance = new TimelineAudio();
+
+        // Apply sound selections BEFORE ready() to prevent _initPlayers() from loading defaults
+        // This sets _soundAssignments before buffers are loaded
+        if (config.getSoundSelects) {
+          const selects = config.getSoundSelects();
+          if (selects.baseSoundSelect?.dataset?.value) {
+            instance._soundAssignments.pulso = selects.baseSoundSelect.dataset.value;
+            instance._soundAssignments.pulso0 = selects.baseSoundSelect.dataset.value;
+          }
+          if (selects.accentSoundSelect?.dataset?.value) {
+            instance._soundAssignments.seleccionados = selects.accentSoundSelect.dataset.value;
+          }
+          if (selects.startSoundSelect?.dataset?.value) {
+            instance._soundAssignments.start = selects.startSoundSelect.dataset.value;
+          }
+          if (selects.cycleSoundSelect?.dataset?.value) {
+            instance._soundAssignments.cycle = selects.cycleSoundSelect.dataset.value;
+          }
+        }
+
         await instance.ready();
 
         // Register channels if specified
@@ -58,23 +78,6 @@ export function createAudioInitializer(config = {}) {
               instance._channelAssignments[channel.assignment] = channel.id;
             }
           });
-        }
-
-        // Apply sound selections if available
-        if (config.getSoundSelects) {
-          const selects = config.getSoundSelects();
-          if (selects.baseSoundSelect?.dataset?.value) {
-            instance.setBase(selects.baseSoundSelect.dataset.value);
-          }
-          if (selects.accentSoundSelect?.dataset?.value) {
-            instance.setAccent(selects.accentSoundSelect.dataset.value);
-          }
-          if (selects.startSoundSelect?.dataset?.value) {
-            instance.setStart(selects.startSoundSelect.dataset.value);
-          }
-          if (selects.cycleSoundSelect?.dataset?.value) {
-            instance.setCycle(selects.cycleSoundSelect.dataset.value);
-          }
         }
 
         // Apply scheduling bridge if provided
