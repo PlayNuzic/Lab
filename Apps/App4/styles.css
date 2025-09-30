@@ -118,6 +118,12 @@ header.top-bar h1 .top-bar-title-button:active {
   color: var(--color-lg);
 }
 
+.pulse-number.non-selectable {
+  opacity: 0.35;
+  color: var(--line-color);
+  filter: grayscale(0.5);
+}
+
 .pulse-number.selected:not(.zero):not(.lg) {
   color: var(--selection-color);
   text-shadow: 0 0 10px var(--selection-color);

@@ -2575,7 +2575,9 @@ function syncSelectedFromMemory() {
     const idx = parseIntSafe(label.dataset.index);
     if (!Number.isFinite(idx)) return;
     const isEndpoint = idx === 0 || idx === lgIndex;
+    const pulseIsLocked = !isEndpoint && Boolean(pulses[idx]?.classList.contains('non-selectable'));
     label.classList.toggle('selected', selectedPulses.has(idx) && !isEndpoint);
+    label.classList.toggle('non-selectable', pulseIsLocked);
   });
   applyFractionSelectionClasses();
   updatePulseSeqField();
