@@ -330,7 +330,21 @@ const audioToggleManager = initAudioToggles({
     save: saveOpt
   },
   mixer: globalMixer,
-  subscribeMixer
+  subscribeMixer,
+  onMixerSnapshot: ({ channels, setFromMixer, getState }) => {
+    if (!channels) return;
+    const channelPairs = [
+      ['pulse', 'pulse'],
+      ['cycle', 'subdivision']
+    ];
+    channelPairs.forEach(([toggleId, channelId]) => {
+      const channelState = channels.get(channelId);
+      if (!channelState) return;
+      const shouldEnable = !channelState.muted;
+      if (getState(toggleId) === shouldEnable) return;
+      setFromMixer(toggleId, shouldEnable);
+    });
+  }
 });
 
 pulseToggleController = audioToggleManager.get('pulse') ?? null;
