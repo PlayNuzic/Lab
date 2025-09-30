@@ -79,8 +79,8 @@ const loopController = createPulseMemoryLoopController({
   isPlaying: () => isPlaying,
   onToggle: (enabled) => {
     // Rebuild visible selection from memory and refresh labels
-    syncSelectedFromMemory();
     updatePulseNumbers();
+    syncSelectedFromMemory();
     if (isPlaying) {
       applySelectionToAudio();
     }
@@ -1029,8 +1029,8 @@ function getSelectionInfo(target) {
   if (target.dataset.fractionKey) {
     const info = getFractionInfoFromElement(target);
     if (info) {
-      const key = `fraction:${info.key}`;
-      return { ...info, selectionKey: key, key };
+      const selectionKey = `fraction:${info.key}`;
+      return { ...info, selectionKey };
     }
   }
   return null;
@@ -2624,8 +2624,8 @@ function setPulseSelected(i, shouldSelect) {
     pulseMemory[i] = shouldSelect;
   }
 
-  syncSelectedFromMemory();
   updatePulseNumbers();
+  syncSelectedFromMemory();
 
   if (isPlaying && audio) {
     applySelectionToAudio();
