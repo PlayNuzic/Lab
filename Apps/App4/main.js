@@ -96,7 +96,7 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
         timeline, playBtn, loopBtn, resetBtn, tapBtn, tapHelp,
         circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
-        randTToggle, randTMin, randTMax, baseSoundSelect, accentSoundSelect,
+        baseSoundSelect, accentSoundSelect,
         startSoundSelect, cycleSoundSelect, themeSelect, pulseToggleBtn,
         selectedToggleBtn, cycleToggleBtn } = elements;
 
@@ -201,9 +201,6 @@ const randomControls = {
   randVToggle,
   randVMin,
   randVMax,
-  randTToggle,
-  randTMin,
-  randTMax,
   randNToggle,
   randNMin,
   randNMax,
@@ -235,10 +232,9 @@ function updateRandomConfig() {
 
 applyRandomConfig();
 
-[ 
+[
   randLgToggle, randLgMin, randLgMax,
   randVToggle, randVMin, randVMax,
-  randTToggle, randTMin, randTMax,
   randNToggle, randNMin, randNMax,
   randDToggle, randDMin, randDMax,
   randComplexToggle,
@@ -1061,9 +1057,6 @@ attachHover(randLgMax, { text: 'Máximo Lg' });
 attachHover(randVToggle, { text: 'Aleatorizar V' });
 attachHover(randVMin, { text: 'Mínimo V' });
 attachHover(randVMax, { text: 'Máximo V' });
-attachHover(randTToggle, { text: 'Aleatorizar T' });
-attachHover(randTMin, { text: 'Mínimo T' });
-attachHover(randTMax, { text: 'Máximo T' });
 attachHover(randPulsesToggle, { text: 'Aleatorizar pulsos' });
 attachHover(randomCount, { text: 'Cantidad de pulsos a seleccionar (vacío = aleatorio, 0 = ninguno)' });
 attachHover(randNToggle, { text: 'Aleatorizar numerador' });
