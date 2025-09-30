@@ -345,6 +345,10 @@ loopBtn.addEventListener('click', () => {
     audio.setLoop(loopEnabled);
   }
   animateTimelineCircle(loopEnabled && circularTimeline);
+  // Update totalPulses when loop changes during playback
+  if (isPlaying) {
+    handleInput();
+  }
 });
 
 resetBtn.addEventListener('click', () => {
@@ -632,6 +636,7 @@ function handleInput(e){
     if (validLg || validV) {
       const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
       audio.updateTransport({
+        align: 'nextPulse',
         totalPulses: playbackTotal != null ? playbackTotal : undefined,
         bpm: validV ? vNow : undefined
       });

@@ -2343,7 +2343,7 @@ function handleInput(){
       audio.setVoices(effectiveVoices);
     }
 
-    const transportPayload = {};
+    const transportPayload = { align: 'nextPulse' };
     if (effectiveTotal != null) {
       transportPayload.totalPulses = effectiveTotal;
     }

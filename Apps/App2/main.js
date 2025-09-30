@@ -1048,6 +1048,7 @@ function handleInput(){
     if (typeof audio.updateTransport === 'function' && (validLg || validV)) {
       const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
       audio.updateTransport({
+        align: 'nextPulse',
         totalPulses: playbackTotal != null ? playbackTotal : undefined,
         bpm: validV ? vNow : undefined
       });
