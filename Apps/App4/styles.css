@@ -284,40 +284,18 @@ body.app4 #pulseSeq .open,
 body.app4 #pulseSeq .suffix-spacer { color: inherit; user-select: none; }
 body.app4 #pulseSeq .suffix { margin: 0; }
 body.app4 #pulseSeq .suffix-spacer { margin-right: 12px; }
-/**
- * Inline fraction helpers: support slot provided by renderApp (fraction-inline-container)
- * and App4 ghost/selection states.
- */
-body.app4 #pulseSeq .fraction {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  user-select: none;
-  line-height: 1;
-  vertical-align: middle;
-  min-width: 3.4ch;
-  padding: 0 0.2em;
-  font-size: 0.84em;
-}
-body.app4 #pulseSeq .fraction-inline-placeholder {
-  opacity: 0.7;
-}
-body.app4 #pulseSeq .fraction-number {
-  min-width: 2.2ch;
-  text-align: center;
-  line-height: 1;
-}
-body.app4 .fraction-inline-container,
-body.app4 #fractionInlineSlot,
-body.app4 .fraction-inline-slot {
+
+/* Fracción inline en pulseSeq */
+body.app4 #pulseSeq .fraction-inline-container,
+body.app4 #pulseSeq #fractionInlineSlot {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin: 0 0.3em;
 }
 
-body.app4 .fraction-editor-wrapper--inline {
+body.app4 #pulseSeq .fraction-editor-wrapper {
   position: relative;
   display: inline-flex;
   flex-direction: column;
@@ -326,7 +304,7 @@ body.app4 .fraction-editor-wrapper--inline {
   gap: 0.28em;
 }
 
-body.app4 .fraction-editor--inline {
+body.app4 #pulseSeq .fraction-editor {
   position: relative;
   display: inline-flex;
   flex-direction: column;
@@ -336,7 +314,7 @@ body.app4 .fraction-editor--inline {
   z-index: 1;
 }
 
-body.app4 .fraction-editor--inline .fraction-bar {
+body.app4 #pulseSeq .fraction-bar {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -348,37 +326,38 @@ body.app4 .fraction-editor--inline .fraction-bar {
   border-radius: 999px;
 }
 
-body.app4 .fraction-editor--inline .top,
-body.app4 .fraction-editor--inline .bottom {
+body.app4 #pulseSeq .fraction-editor .top,
+body.app4 #pulseSeq .fraction-editor .bottom {
   border: none;
   padding: 0;
   display: flex;
 }
 
-body.app4 .fraction-editor--inline .top {
+body.app4 #pulseSeq .fraction-editor .top {
   margin-bottom: 0.1em;
 }
 
-body.app4 .fraction-editor--inline .bottom {
+body.app4 #pulseSeq .fraction-editor .bottom {
   margin-top: 0.1em;
 }
 
-body.app4 .fraction-editor--inline .fraction-field {
+body.app4 #pulseSeq .fraction-field {
   min-width: 3.6ch;
 }
 
-body.app4 .fraction-editor--inline input {
+body.app4 #pulseSeq .fraction-field input {
   width: 3.6ch;
   font-size: 3rem;
   font-weight: 500;
   padding-right: 32px;
+  text-align: center;
 }
 
-body.app4 .fraction-editor-wrapper--inline .spinner {
+body.app4 #pulseSeq .fraction-editor-wrapper .spinner {
   width: 28px;
 }
 
-body.app4 .fraction-editor-wrapper--inline .fraction-info-bubble {
+body.app4 #pulseSeq .fraction-info-bubble {
   left: 50%;
   z-index: 4;
 }

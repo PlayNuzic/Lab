@@ -134,7 +134,6 @@ const caf = (typeof window !== 'undefined' && typeof window.cancelAnimationFrame
   : (handle) => clearTimeout(handle);
 
 if (fractionInlineSlot) {
-  fractionInlineSlot.classList.add('fraction-inline-slot');
   pulseSeqFractionWrapper = fractionInlineSlot;
 }
 
@@ -265,8 +264,7 @@ function refreshFractionUI(options = {}) {
 }
 
 function initFractionEditorController() {
-  if (!pulseSeqEl) return;
-  const host = pulseSeqFractionWrapper || pulseSeqEl.querySelector('.fraction');
+  const host = pulseSeqFractionWrapper || fractionInlineSlot;
   if (!host) return;
 
   if (fractionEditorController && typeof fractionEditorController.destroy === 'function') {
@@ -603,25 +601,20 @@ function buildPulseSeqMarkup({ root, initialText }) {
 
   const prefix = mk('prefix', 'Pfr ');
 
-  const hostWrapper = pulseSeqFractionWrapper;
+  const hostWrapper = fractionInlineSlot;
   const fractionWrapper = hostWrapper ?? (() => {
     const span = document.createElement('span');
     span.className = 'pz fraction fraction-inline-container';
     pulseSeqFractionWrapper = span;
     return span;
   })();
-  const fractionDisplay = hostWrapper && hostWrapper === fractionInlineSlot
-    ? (() => {
-      const placeholder = mk('fraction', '');
-      placeholder.classList.add('fraction-inline-placeholder');
-      return placeholder;
-    })()
+  const fractionDisplay = hostWrapper
+    ? hostWrapper
     : fractionWrapper;
   pulseSeqFractionNumeratorEl = null;
   pulseSeqFractionDenominatorEl = null;
 
-  const spacer = mk('spacer', ' ');
-  const openParen = mk('open', '(');
+  const openParen = mk('open', ' (');
   const zero = mk('zero', '0');
   const editWrapper = mk('edit-wrapper', null);
   pulseSeqEditWrapper = editWrapper;
@@ -642,7 +635,7 @@ function buildPulseSeqMarkup({ root, initialText }) {
   const suffixSpacer = mk('suffix-spacer', ' ');
   const lgLabel = mk('lg', '');
 
-  root.append(prefix, fractionDisplay, spacer, openParen, zero, editWrapper, suffix, suffixSpacer, lgLabel);
+  root.append(prefix, fractionDisplay, openParen, zero, editWrapper, suffix, suffixSpacer, lgLabel);
   updatePulseSeqFractionDisplay(null, null);
   updatePulseSeqVisualLayer(initialText);
   edit.addEventListener('input', () => updatePulseSeqVisualLayer(getPulseSeqText()));
@@ -789,16 +782,6 @@ function updatePulseSeqFractionDisplay(numerator, denominator, { silent = false 
   }
   if (denominatorInput) {
     denominatorInput.value = Number.isFinite(denominator) && denominator > 0 ? String(denominator) : '';
-  }
-  if (pulseSeqEl) {
-    const inlinePlaceholder = pulseSeqEl.querySelector('.fraction-inline-placeholder');
-    if (inlinePlaceholder) {
-      if (Number.isFinite(numerator) && numerator > 0 && Number.isFinite(denominator) && denominator > 0) {
-        inlinePlaceholder.textContent = `${numerator}/${denominator}`;
-      } else {
-        inlinePlaceholder.textContent = '—';
-      }
-    }
   }
 }
 
