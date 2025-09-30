@@ -1073,7 +1073,8 @@ function attachSelectionListeners(el) {
   el.addEventListener('click', (ev) => {
     const info = getSelectionInfo(ev.currentTarget);
     if (!info) return;
-    if (dragController.consumeSuppressClick(info.selectionKey)) {
+    const suppressionKey = info.selectionKey ?? info.key;
+    if (dragController.consumeSuppressClick(suppressionKey)) {
       ev.preventDefault();
       ev.stopPropagation();
       return;
