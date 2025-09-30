@@ -1,13 +1,21 @@
-import { TimelineAudio, ensureAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
-import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { computeNumberFontRem, solidMenuBackground } from './utils.js';
-import { initRandomMenu } from '../../libs/app-common/random-menu.js';
+import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
+import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
+import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { fromLgAndTempo, gridFromOrigin, computeSubdivisionFontRem, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
+import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
+import { parseIntSafe, parseFloatSafe } from '../../libs/app-common/number.js';
+import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 
 let audio;
+let pendingMute = null;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
 bindSharedSoundEvents({
@@ -42,82 +50,29 @@ const randomDefaults = {
   allowComplex: true
 };
 
-const storePrefix = 'app3';
-const storeKey = (key) => `${storePrefix}::${key}`;
-const loadOpt = (key) => {
-  try { return localStorage.getItem(storeKey(key)); } catch { return null; }
-};
-const saveOpt = (key, value) => {
-  try { localStorage.setItem(storeKey(key), value); } catch {}
-};
-const clearOpt = (key) => {
-  try { localStorage.removeItem(storeKey(key)); } catch {}
-};
+const preferenceStorage = createPreferenceStorage({ prefix: 'app3', separator: '::' });
+const { storeKey, load: loadOpt, save: saveOpt, clear: clearOpt } = preferenceStorage;
 
-function clearStoredPreferences() {
-  try {
-    const prefix = `${storePrefix}::`;
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) keysToRemove.push(key);
-    }
-    keysToRemove.forEach((key) => localStorage.removeItem(key));
-  } catch {}
-}
-
-let factoryResetPending = false;
-window.addEventListener('sharedui:factoryreset', () => {
-  if (factoryResetPending) return;
-  factoryResetPending = true;
-  clearStoredPreferences();
-  setPulseAudio(true, { persist: false });
-  setCycleAudio(true, { persist: false });
-  window.location.reload();
+registerFactoryReset({
+  storage: preferenceStorage,
+  onBeforeReload: () => {
+    setPulseAudio(true, { persist: false });
+    setCycleAudio(true, { persist: false });
+  }
 });
 
-const inputLg = document.getElementById('inputLg');
-const inputV = document.getElementById('inputV');
-const inputLgUp = document.getElementById('inputLgUp');
-const inputLgDown = document.getElementById('inputLgDown');
-const inputVUp = document.getElementById('inputVUp');
-const inputVDown = document.getElementById('inputVDown');
-const unitLg = document.getElementById('unitLg');
-const unitV = document.getElementById('unitV');
-const formula = document.getElementById('formula');
-const timelineWrapper = document.getElementById('timelineWrapper');
-const timeline = document.getElementById('timeline');
-const playBtn = document.getElementById('playBtn');
-const loopBtn = document.getElementById('loopBtn');
-const randomBtn = document.getElementById('randomBtn');
-const randomMenu = document.getElementById('randomMenu');
-const mixerMenu = document.getElementById('mixerMenu');
-const tapBtn = document.getElementById('tapTempoBtn');
-const tapHelp = document.getElementById('tapHelp');
-const resetBtn = document.getElementById('resetBtn');
-const circularTimelineToggle = document.getElementById('circularTimelineToggle');
+// Bind all DOM elements using new utilities
+// Bind all DOM elements using app-specific utilities (App3 has LEDs, no inputT binding issues)
+const { elements } = bindAppRhythmElements('app3');
 
-const randLgToggle = document.getElementById('randLgToggle');
-const randLgMin = document.getElementById('randLgMin');
-const randLgMax = document.getElementById('randLgMax');
-const randVToggle = document.getElementById('randVToggle');
-const randVMin = document.getElementById('randVMin');
-const randVMax = document.getElementById('randVMax');
-const randNToggle = document.getElementById('randNToggle');
-const randNMin = document.getElementById('randNMin');
-const randNMax = document.getElementById('randNMax');
-const randDToggle = document.getElementById('randDToggle');
-const randDMin = document.getElementById('randDMin');
-const randDMax = document.getElementById('randDMax');
-const randComplexToggle = document.getElementById('randComplexToggle');
-
-const baseSoundSelect = document.getElementById('baseSoundSelect');
-const startSoundSelect = document.getElementById('startSoundSelect');
-const cycleSoundSelect = document.getElementById('cycleSoundSelect');
-const themeSelect = document.getElementById('themeSelect');
-const pulseToggleBtn = document.getElementById('pulseToggleBtn');
-const cycleToggleBtn = document.getElementById('cycleToggleBtn');
-const inputT = document.getElementById('inputT');
+// Extract commonly used elements for backward compatibility
+const { inputLg, inputV, inputT, inputLgUp, inputLgDown, inputVUp, inputVDown,
+        unitLg, unitV, formula, timelineWrapper, timeline, playBtn, loopBtn,
+        randomBtn, randomMenu, mixerMenu, tapBtn, tapHelp, resetBtn,
+        circularTimelineToggle, randLgToggle, randLgMin, randLgMax, randVToggle,
+        randVMin, randVMax, randNToggle, randNMin, randNMax, randDToggle,
+        randDMin, randDMax, randComplexToggle, baseSoundSelect, startSoundSelect,
+        cycleSoundSelect, themeSelect, pulseToggleBtn, cycleToggleBtn } = elements;
 const titleHeading = document.querySelector('header.top-bar h1');
 let titleButton = null;
 if (titleHeading) {
@@ -138,21 +93,7 @@ if (globalMixer) {
 
 let numeratorInput;
 let denominatorInput;
-let ghostFractionContainer;
-let ghostNumeratorText;
-let ghostDenominatorText;
-let fractionInfoBubble;
-let numeratorFieldWrapper;
-let denominatorFieldWrapper;
-let numeratorFieldPlaceholder;
-let denominatorFieldPlaceholder;
-const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
-const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
-const FRACTION_HOVER_NUMERATOR_TYPE = 'numerator';
-const FRACTION_HOVER_DENOMINATOR_TYPE = 'denominator';
-let currentFractionInfo = createEmptyFractionInfo();
-let currentFractionMultipleMessage = '';
-let fractionInfoHideTimer = null;
+let fractionEditorController = null;
 let pulseNumberLabels = [];
 
 let pulses = [];
@@ -166,12 +107,10 @@ let lastStructureSignature = {
 };
 const T_INDICATOR_TRANSITION_DELAY = 650;
 let tIndicatorRevealTimeout = null;
-let pulseAudioEnabled = true;
-let cycleAudioEnabled = true;
 const PULSE_AUDIO_KEY = 'pulseAudio';
 const CYCLE_AUDIO_KEY = 'cycleAudio';
-let hasStoredPulsePref = false;
-let hasStoredCyclePref = false;
+let pulseToggleController = null;
+let cycleToggleController = null;
 
 const shouldRenderTIndicator = Boolean(document.querySelector('.param.t'));
 const tIndicator = shouldRenderTIndicator ? (() => {
@@ -182,160 +121,46 @@ const tIndicator = shouldRenderTIndicator ? (() => {
   return indicator;
 })() : null;
 
-function initFractionEditor() {
+function initFractionEditorController() {
   if (!formula) return;
-  formula.innerHTML = '';
-  const container = document.createElement('div');
-  container.className = 'fraction-editor';
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'fraction-editor-wrapper';
-  ghostFractionContainer = document.createElement('div');
-  ghostFractionContainer.className = 'fraction-ghost fraction-ghost--hidden';
-  ghostFractionContainer.setAttribute('aria-hidden', 'true');
-
-  const ghostNumeratorWrapper = document.createElement('div');
-  ghostNumeratorWrapper.className = 'fraction-ghost__numerator';
-  ghostNumeratorText = document.createElement('span');
-  ghostNumeratorText.className = 'fraction-ghost__number';
-  ghostNumeratorWrapper.appendChild(ghostNumeratorText);
-
-  const ghostBar = document.createElement('div');
-  ghostBar.className = 'fraction-ghost__bar';
-
-  const ghostDenominatorWrapper = document.createElement('div');
-  ghostDenominatorWrapper.className = 'fraction-ghost__denominator';
-  ghostDenominatorText = document.createElement('span');
-  ghostDenominatorText.className = 'fraction-ghost__number';
-  ghostDenominatorWrapper.appendChild(ghostDenominatorText);
-
-  ghostFractionContainer.append(ghostNumeratorWrapper, ghostBar, ghostDenominatorWrapper);
-
-  wrapper.appendChild(ghostFractionContainer);
-  wrapper.appendChild(container);
-  formula.appendChild(wrapper);
-
-  fractionInfoBubble = document.createElement('div');
-  fractionInfoBubble.className = 'fraction-info-bubble fraction-info-bubble--hidden';
-  fractionInfoBubble.setAttribute('role', 'status');
-  fractionInfoBubble.setAttribute('aria-live', 'polite');
-  solidMenuBackground(fractionInfoBubble);
-  wrapper.appendChild(fractionInfoBubble);
-
-  const createField = ({ wrapperClass, placeholder, ariaUp, ariaDown }) => {
-    const fieldWrapper = document.createElement('div');
-    fieldWrapper.className = `fraction-field ${wrapperClass}`;
-    fieldWrapper.classList.add('fraction-field--empty');
-    fieldWrapper.dataset.fractionHoverType = wrapperClass;
-
-    const input = document.createElement('input');
-    input.type = 'number';
-    input.min = '1';
-    input.step = '1';
-    input.value = '';
-    input.className = wrapperClass;
-    input.dataset.fractionHoverType = wrapperClass;
-    fieldWrapper.appendChild(input);
-
-    const placeholderEl = document.createElement('div');
-    placeholderEl.className = 'fraction-field-placeholder fraction-field-placeholder--visible';
-    placeholderEl.textContent = placeholder;
-    placeholderEl.setAttribute('aria-hidden', 'true');
-    fieldWrapper.appendChild(placeholderEl);
-
-    const spinner = document.createElement('div');
-    spinner.className = 'spinner';
-    const up = document.createElement('button');
-    up.type = 'button';
-    up.className = 'spin up';
-    if (ariaUp) up.setAttribute('aria-label', ariaUp);
-    const down = document.createElement('button');
-    down.type = 'button';
-    down.className = 'spin down';
-    if (ariaDown) down.setAttribute('aria-label', ariaDown);
-    spinner.appendChild(up);
-    spinner.appendChild(down);
-    fieldWrapper.appendChild(spinner);
-
-    return { wrapper: fieldWrapper, input, up, down, placeholder: placeholderEl };
-  };
-
-  const top = document.createElement('div');
-  top.className = 'top';
-  const numeratorField = createField({
-    wrapperClass: 'numerator',
-    placeholder: 'n',
-    ariaUp: 'Incrementar numerador',
-    ariaDown: 'Decrementar numerador'
-  });
-  numeratorInput = numeratorField.input;
-  numeratorFieldWrapper = numeratorField.wrapper;
-  numeratorFieldPlaceholder = numeratorField.placeholder;
-  top.appendChild(numeratorField.wrapper);
-  registerFractionHoverTarget(numeratorField.wrapper);
-  registerFractionHoverTarget(numeratorInput, { useFocus: true });
-
-  const bottom = document.createElement('div');
-  bottom.className = 'bottom';
-  const denominatorField = createField({
-    wrapperClass: 'denominator',
-    placeholder: 'd',
-    ariaUp: 'Incrementar denominador',
-    ariaDown: 'Decrementar denominador'
-  });
-  denominatorInput = denominatorField.input;
-  denominatorFieldWrapper = denominatorField.wrapper;
-  denominatorFieldPlaceholder = denominatorField.placeholder;
-  bottom.appendChild(denominatorField.wrapper);
-  registerFractionHoverTarget(denominatorField.wrapper);
-  registerFractionHoverTarget(denominatorInput, { useFocus: true });
-
-  container.appendChild(top);
-  container.appendChild(bottom);
-
-  const enforceInt = (input) => {
-    input.addEventListener('input', () => {
-      let val = parseInt(input.value, 10);
-      if (!Number.isFinite(val) || val <= 0) {
-        input.value = '';
-      } else {
-        input.value = String(val);
+  const controller = createFractionEditor({
+    mode: 'block',
+    host: formula,
+    defaults: { numerator: defaults.numerator, denominator: defaults.denominator },
+    storage: {
+      load: loadOpt,
+      save: saveOpt,
+      clear: clearOpt,
+      numeratorKey: 'n',
+      denominatorKey: 'd'
+    },
+    addRepeatPress,
+    applyMenuBackground: solidMenuBackground,
+    labels: {
+      numerator: {
+        placeholder: 'n',
+        ariaUp: 'Incrementar numerador',
+        ariaDown: 'Decrementar numerador'
+      },
+      denominator: {
+        placeholder: 'd',
+        ariaUp: 'Incrementar denominador',
+        ariaDown: 'Decrementar denominador'
       }
-      handleInput();
-    });
-    input.addEventListener('blur', () => {
-      let val = parseInt(input.value, 10);
-      if (!Number.isFinite(val) || val <= 0) {
-        input.value = '';
-      } else {
-        input.value = String(val);
+    },
+    onChange: ({ cause }) => {
+      if (!isUpdating && cause !== 'init') {
+        handleInput();
       }
-      handleInput();
-    });
-  };
+    }
+  });
 
-  enforceInt(numeratorInput);
-  enforceInt(denominatorInput);
-
-  addRepeatPress(numeratorField.up, () => adjustInput(numeratorInput, +1));
-  addRepeatPress(numeratorField.down, () => adjustInput(numeratorInput, -1));
-  addRepeatPress(denominatorField.up, () => adjustInput(denominatorInput, +1));
-  addRepeatPress(denominatorField.down, () => adjustInput(denominatorInput, -1));
-
-  updateFractionFieldState(null, null);
+  fractionEditorController = controller || null;
+  numeratorInput = controller?.elements?.numerator ?? null;
+  denominatorInput = controller?.elements?.denominator ?? null;
 }
 
-initFractionEditor();
-
-function parseIntSafe(val) {
-  const n = Number.parseInt(val, 10);
-  return Number.isFinite(n) ? n : NaN;
-}
-
-function parseFloatSafe(val) {
-  const n = Number.parseFloat(val);
-  return Number.isFinite(n) ? n : NaN;
-}
+initFractionEditorController();
 
 function formatInteger(value) {
   const numeric = Number(value);
@@ -363,175 +188,6 @@ function formatBpmValue(value) {
   });
 }
 
-function createEmptyFractionInfo() {
-  return {
-    numerator: null,
-    denominator: null,
-    reducedNumerator: null,
-    reducedDenominator: null,
-    isMultiple: false,
-    multipleFactor: 1
-  };
-}
-
-function gcd(a, b) {
-  let x = Math.abs(Number(a));
-  let y = Math.abs(Number(b));
-  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) {
-    return Number.isFinite(x) && x > 0 ? x : Number.isFinite(y) && y > 0 ? y : 1;
-  }
-  while (y !== 0) {
-    const temp = x % y;
-    x = y;
-    y = temp;
-  }
-  return x || 1;
-}
-
-function computeFractionInfo(numerator, denominator) {
-  const info = createEmptyFractionInfo();
-  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || numerator <= 0 || denominator <= 0) {
-    return info;
-  }
-  info.numerator = numerator;
-  info.denominator = denominator;
-  const divisor = gcd(numerator, denominator);
-  if (divisor <= 1) {
-    return info;
-  }
-  info.reducedNumerator = numerator / divisor;
-  info.reducedDenominator = denominator / divisor;
-  info.isMultiple = true;
-  info.multipleFactor = denominator / info.reducedDenominator;
-  return info;
-}
-
-function buildReductionHoverText(info) {
-  if (!info || !info.isMultiple) return '';
-  const accentEvery = Math.max(1, Math.round(info.multipleFactor));
-  const noun = accentEvery === 1 ? 'subdivisión' : 'subdivisiones';
-  return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}. Se repite ${accentEvery} veces la misma subdivisión en cada fracción ${info.numerator}/${info.denominator}.`;
-}
-
-function clearFractionInfoHideTimer() {
-  if (fractionInfoHideTimer) {
-    clearTimeout(fractionInfoHideTimer);
-    fractionInfoHideTimer = null;
-  }
-}
-
-function hideFractionInfoBubble({ clearMessage = false } = {}) {
-  if (!fractionInfoBubble) return;
-  clearFractionInfoHideTimer();
-  fractionInfoBubble.classList.add('fraction-info-bubble--hidden');
-  fractionInfoBubble.classList.remove('fraction-info-bubble--visible');
-  if (clearMessage) {
-    fractionInfoBubble.textContent = '';
-  }
-}
-
-function showFractionInfoBubble({ message, autoHide = false } = {}) {
-  if (!fractionInfoBubble) return;
-  const resolvedMessage = message || currentFractionMultipleMessage;
-  if (!resolvedMessage) return;
-  clearFractionInfoHideTimer();
-  solidMenuBackground(fractionInfoBubble);
-  fractionInfoBubble.textContent = resolvedMessage;
-  fractionInfoBubble.classList.remove('fraction-info-bubble--hidden');
-  fractionInfoBubble.classList.add('fraction-info-bubble--visible');
-  if (autoHide) {
-    fractionInfoHideTimer = setTimeout(() => {
-      hideFractionInfoBubble();
-    }, 3000);
-  }
-}
-
-function getDefaultFractionHoverText(target) {
-  if (!target || !target.dataset) return '';
-  if (target.dataset.fractionHoverType === FRACTION_HOVER_NUMERATOR_TYPE) {
-    return DEFAULT_NUMERATOR_HOVER_TEXT;
-  }
-  if (target.dataset.fractionHoverType === FRACTION_HOVER_DENOMINATOR_TYPE) {
-    return DEFAULT_DENOMINATOR_HOVER_TEXT;
-  }
-  return '';
-}
-
-function handleFractionHoverEnter(event) {
-  const target = event?.currentTarget || null;
-  const message = currentFractionMultipleMessage || getDefaultFractionHoverText(target);
-  if (!message) return;
-  showFractionInfoBubble({ message });
-}
-
-function handleFractionHoverLeave() {
-  hideFractionInfoBubble();
-}
-
-function registerFractionHoverTarget(target, { useFocus = false } = {}) {
-  if (!target) return;
-  target.addEventListener('mouseenter', handleFractionHoverEnter);
-  target.addEventListener('mouseleave', handleFractionHoverLeave);
-  if (useFocus) {
-    target.addEventListener('focus', handleFractionHoverEnter);
-    target.addEventListener('blur', handleFractionHoverLeave);
-  }
-}
-
-function setFractionFieldEmptyState(wrapper, placeholder, isEmpty) {
-  if (!wrapper) return;
-  const empty = !!isEmpty;
-  wrapper.classList.toggle('fraction-field--empty', empty);
-  if (placeholder) {
-    placeholder.classList.toggle('fraction-field-placeholder--visible', empty);
-  }
-}
-
-function updateFractionFieldState(numerator, denominator) {
-  const hasNumerator = Number.isFinite(numerator) && numerator > 0;
-  const hasDenominator = Number.isFinite(denominator) && denominator > 0;
-  setFractionFieldEmptyState(numeratorFieldWrapper, numeratorFieldPlaceholder, !hasNumerator);
-  setFractionFieldEmptyState(denominatorFieldWrapper, denominatorFieldPlaceholder, !hasDenominator);
-}
-
-function updateFractionInfoBubble(info, { reveal = false } = {}) {
-  if (!fractionInfoBubble) return;
-  clearFractionInfoHideTimer();
-  if (!info || !info.isMultiple) {
-    currentFractionMultipleMessage = '';
-    hideFractionInfoBubble({ clearMessage: true });
-    return;
-  }
-  currentFractionMultipleMessage = buildReductionHoverText(info);
-  if (reveal) {
-    showFractionInfoBubble({ message: currentFractionMultipleMessage, autoHide: true });
-  } else if (fractionInfoBubble.classList.contains('fraction-info-bubble--visible')) {
-    showFractionInfoBubble({ message: currentFractionMultipleMessage });
-  }
-}
-
-function updateFractionGhost(info) {
-  if (!ghostFractionContainer || !ghostNumeratorText || !ghostDenominatorText) return;
-  if (!info || !info.isMultiple) {
-    ghostFractionContainer.classList.add('fraction-ghost--hidden');
-    ghostFractionContainer.classList.remove('fraction-ghost--visible');
-    ghostNumeratorText.textContent = '';
-    ghostDenominatorText.textContent = '';
-    return;
-  }
-  ghostNumeratorText.textContent = info.reducedNumerator;
-  ghostDenominatorText.textContent = info.reducedDenominator;
-  ghostFractionContainer.classList.remove('fraction-ghost--hidden');
-  ghostFractionContainer.classList.add('fraction-ghost--visible');
-}
-
-function updateFractionUI(numerator, denominator) {
-  currentFractionInfo = computeFractionInfo(numerator, denominator);
-  updateFractionFieldState(numerator, denominator);
-  updateFractionInfoBubble(currentFractionInfo, { reveal: true });
-  updateFractionGhost(currentFractionInfo);
-}
-
 function setValue(input, value) {
   if (!input) return;
   isUpdating = true;
@@ -540,32 +196,39 @@ function setValue(input, value) {
   isUpdating = false;
 }
 
-function clampRange(min, max, fallbackMin, fallbackMax) {
-  let lo = Number(min);
-  let hi = Number(max);
-  if (!Number.isFinite(lo)) lo = fallbackMin;
-  if (!Number.isFinite(hi)) hi = fallbackMax;
-  if (hi < lo) [lo, hi] = [hi, lo];
-  return [lo, hi];
-}
-
 /**
  * Prepara i retorna l'única instància `TimelineAudio` utilitzada per App3.
  *
  * @returns {Promise<TimelineAudio>} audio configurat amb les preferències actuals.
  * @remarks Es crida abans de reproduir o quan el menú de sons necessita llistats. Depèn de WebAudio i `bindSharedSoundEvents`; habilita PulseMemory = 1..Lg-1 amb re-sync via `computeNextZero`. Efectes: crea listeners i ajusta estats del mixer global.
  */
+// Create standardized audio initializer that avoids AudioContext warnings
+const _baseInitAudio = createRhythmAudioInitializer({
+  getSoundSelects: () => ({
+    baseSoundSelect: elements.baseSoundSelect,
+    startSoundSelect: elements.startSoundSelect,
+    cycleSoundSelect: elements.cycleSoundSelect
+  }),
+  schedulingBridge,
+  channels: [] // App3 doesn't use accent channel
+});
+
 async function initAudio() {
-  if (audio) return audio;
-  await ensureAudio();
-  audio = new TimelineAudio();
-  await audio.ready();
-  schedulingBridge.applyTo(audio);
-  if (typeof audio.setPulseEnabled === 'function') {
-    audio.setPulseEnabled(pulseAudioEnabled);
-  }
-  if (typeof audio.setCycleEnabled === 'function') {
-    audio.setCycleEnabled(cycleAudioEnabled);
+  if (!audio) {
+    audio = await _baseInitAudio();
+
+    // Apply App3-specific audio toggles
+    if (typeof audio.setPulseEnabled === 'function') {
+      const pulseEnabled = pulseToggleController?.isEnabled() ?? true;
+      audio.setPulseEnabled(pulseEnabled);
+    }
+    if (typeof audio.setCycleEnabled === 'function') {
+      const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
+      audio.setCycleEnabled(cycleEnabled);
+    }
+    if (pendingMute != null && typeof audio.setMute === 'function') {
+      audio.setMute(pendingMute);
+    }
   }
   return audio;
 }
@@ -635,91 +298,51 @@ if (cycleToggleBtn) {
   attachHover(cycleToggleBtn, { text: 'Activar o silenciar el ciclo' });
 }
 
-function syncToggleButton(button, enabled) {
-  if (!button) return;
-  button.classList.toggle('active', enabled);
-  button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-  button.dataset.state = enabled ? 'on' : 'off';
-}
-
-/**
- * Actualitza la preferència d'àudio per al canal de polsos i sincronitza UI/Storage.
- *
- * @param {boolean} value estat desitjat.
- * @param {{ persist?: boolean }} [options] control sobre la persistència a `localStorage`.
- * @returns {void}
- * @remarks Es crida per botons, mixer global o estat inicial. Depèn de DOM, `localStorage` i mixer compartit; cap càlcul PulseMemory més enllà d'habilitar 0/Lg derivats a l'àudio.
- */
-function setPulseAudio(value, { persist = true } = {}) {
-  const enabled = value !== false;
-  pulseAudioEnabled = enabled;
-  syncToggleButton(pulseToggleBtn, enabled);
-  if (persist) {
-    saveOpt(PULSE_AUDIO_KEY, enabled ? '1' : '0');
-    hasStoredPulsePref = true;
-  }
-  if (globalMixer) {
-    globalMixer.setChannelMute('pulse', !enabled);
-  }
-  if (audio && typeof audio.setPulseEnabled === 'function') {
-    audio.setPulseEnabled(enabled);
-  }
-}
-
-/**
- * Sincronitza el canal d'àudio de subdivisions amb la UI i l'emmagatzematge.
- *
- * @param {boolean} value estat desitjat.
- * @param {{ persist?: boolean }} [options] configura si es desa a `localStorage`.
- * @returns {void}
- * @remarks Invocat per UI, mixer o arrencada. Depèn de DOM i mixer; comparteix supòsits PulseMemory 1..Lg-1 i 0/Lg derivats.
- */
-function setCycleAudio(value, { persist = true } = {}) {
-  const enabled = value !== false;
-  cycleAudioEnabled = enabled;
-  syncToggleButton(cycleToggleBtn, enabled);
-  if (persist) {
-    saveOpt(CYCLE_AUDIO_KEY, enabled ? '1' : '0');
-    hasStoredCyclePref = true;
-  }
-  if (globalMixer) {
-    globalMixer.setChannelMute('subdivision', !enabled);
-  }
-  if (audio && typeof audio.setCycleEnabled === 'function') {
-    audio.setCycleEnabled(enabled);
-  }
-}
-
-const storedPulseAudio = loadOpt(PULSE_AUDIO_KEY);
-if (storedPulseAudio === '0') {
-  hasStoredPulsePref = true;
-  setPulseAudio(false, { persist: false });
-} else if (storedPulseAudio === '1') {
-  hasStoredPulsePref = true;
-  setPulseAudio(true, { persist: false });
-} else {
-  hasStoredPulsePref = false;
-  setPulseAudio(true, { persist: false });
-}
-const storedCycleAudio = loadOpt(CYCLE_AUDIO_KEY);
-if (storedCycleAudio === '0') {
-  hasStoredCyclePref = true;
-  setCycleAudio(false, { persist: false });
-} else if (storedCycleAudio === '1') {
-  hasStoredCyclePref = true;
-  setCycleAudio(true, { persist: false });
-} else {
-  hasStoredCyclePref = false;
-  setCycleAudio(true, { persist: false });
-}
-
-pulseToggleBtn?.addEventListener('click', () => {
-  setPulseAudio(!pulseAudioEnabled);
+const audioToggleManager = initAudioToggles({
+  toggles: [
+    {
+      id: 'pulse',
+      button: pulseToggleBtn,
+      storageKey: PULSE_AUDIO_KEY,
+      mixerChannel: 'pulse',
+      defaultEnabled: true,
+      onChange: (enabled) => {
+        if (audio && typeof audio.setPulseEnabled === 'function') {
+          audio.setPulseEnabled(enabled);
+        }
+      }
+    },
+    {
+      id: 'cycle',
+      button: cycleToggleBtn,
+      storageKey: CYCLE_AUDIO_KEY,
+      mixerChannel: 'subdivision',
+      defaultEnabled: true,
+      onChange: (enabled) => {
+        if (audio && typeof audio.setCycleEnabled === 'function') {
+          audio.setCycleEnabled(enabled);
+        }
+      }
+    }
+  ],
+  storage: {
+    load: loadOpt,
+    save: saveOpt
+  },
+  mixer: globalMixer,
+  subscribeMixer
 });
 
-cycleToggleBtn?.addEventListener('click', () => {
-  setCycleAudio(!cycleAudioEnabled);
-});
+pulseToggleController = audioToggleManager.get('pulse') ?? null;
+cycleToggleController = audioToggleManager.get('cycle') ?? null;
+
+function setPulseAudio(value, options) {
+  pulseToggleController?.set(value, options);
+}
+
+function setCycleAudio(value, options) {
+  cycleToggleController?.set(value, options);
+}
 
 const mixerTriggers = [playBtn].filter(Boolean);
 
@@ -731,21 +354,6 @@ initMixerMenu({
     { id: 'subdivision', label: 'Subdivisión', allowSolo: true },
     { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
   ]
-});
-
-subscribeMixer((snapshot) => {
-  if (!snapshot || !Array.isArray(snapshot.channels)) return;
-  const findChannel = (id) => snapshot.channels.find(channel => channel.id === id);
-
-  const syncFromChannel = (channelState, setter, current) => {
-    if (!channelState) return;
-    const shouldEnable = !channelState.effectiveMuted;
-    if (current === shouldEnable) return;
-    setter(shouldEnable, { persist: false });
-  };
-
-  syncFromChannel(findChannel('pulse'), setPulseAudio, pulseAudioEnabled);
-  syncFromChannel(findChannel('subdivision'), setCycleAudio, cycleAudioEnabled);
 });
 
 function applyTheme(value) {
@@ -773,12 +381,12 @@ if (themeSelect) {
   applyTheme(storedTheme || 'system');
 }
 
-document.addEventListener('sharedui:mute', async (e) => {
+document.addEventListener('sharedui:mute', (e) => {
   const val = !!(e && e.detail && e.detail.value);
   saveOpt('mute', val ? '1' : '0');
-  const instance = await initAudio();
-  if (instance && typeof instance.setMute === 'function') {
-    instance.setMute(val);
+  pendingMute = val;
+  if (audio && typeof audio.setMute === 'function') {
+    audio.setMute(val);
   }
 });
 
@@ -798,8 +406,14 @@ function getV() {
 }
 
 function getFraction() {
-  const n = parseIntSafe(numeratorInput.value);
-  const d = parseIntSafe(denominatorInput.value);
+  if (fractionEditorController && typeof fractionEditorController.getFraction === 'function') {
+    const raw = fractionEditorController.getFraction();
+    const n = Number.isFinite(raw?.numerator) && raw.numerator > 0 ? raw.numerator : null;
+    const d = Number.isFinite(raw?.denominator) && raw.denominator > 0 ? raw.denominator : null;
+    return { numerator: n, denominator: d };
+  }
+  const n = parseIntSafe(numeratorInput?.value);
+  const d = parseIntSafe(denominatorInput?.value);
   return {
     numerator: Number.isFinite(n) && n > 0 ? n : null,
     denominator: Number.isFinite(d) && d > 0 ? d : null
@@ -1025,6 +639,24 @@ function scheduleTIndicatorReveal(delay = 0) {
   }, ms);
 }
 
+const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
+  timeline,
+  timelineWrapper,
+  getLg: () => (pulses.length > 0 ? pulses.length - 1 : 0),
+  getPulses: () => pulses,
+  getBars: () => bars,
+  getCycleMarkers: () => cycleMarkers,
+  getCycleLabels: () => cycleLabels,
+  getPulseNumberLabels: () => pulseNumberLabels,
+  setPulseNumberLabels: (labels) => { pulseNumberLabels = labels; },
+  computeNumberFontRem,
+  pulseNumberHideThreshold: PULSE_NUMBER_HIDE_THRESHOLD,
+  numberCircleOffset: NUMBER_CIRCLE_OFFSET,
+  isCircularEnabled: () => circularTimeline && loopEnabled,
+  scheduleIndicatorReveal: scheduleTIndicatorReveal,
+  tIndicatorTransitionDelay: T_INDICATOR_TRANSITION_DELAY
+});
+
 function clearHighlights() {
   pulses.forEach(p => p.classList.remove('active'));
   cycleMarkers.forEach(m => m.classList.remove('active'));
@@ -1103,218 +735,14 @@ function renderTimeline() {
   clearHighlights();
 }
 
-function showNumber(i, fontRem) {
-  const label = document.createElement('div');
-  label.className = 'pulse-number';
-  label.dataset.index = i;
-  label.textContent = i;
-  const lg = pulses.length - 1;
-  const sizeRem = typeof fontRem === 'number' ? fontRem : computeNumberFontRem(lg);
-  label.style.fontSize = `${sizeRem}rem`;
-  if (i === 0 || i === lg) label.classList.add('endpoint');
-  timeline.appendChild(label);
-  pulseNumberLabels.push(label);
-}
-
-function updatePulseNumbers() {
-  timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
-  pulseNumberLabels = [];
-  if (!pulses.length) return;
-  const lg = pulses.length - 1;
-  if (lg >= PULSE_NUMBER_HIDE_THRESHOLD) return;
-  const fontRem = computeNumberFontRem(lg);
-  showNumber(0, fontRem);
-  showNumber(lg, fontRem);
-  for (let i = 1; i < lg; i++) {
-    showNumber(i, fontRem);
-  }
-}
-
-/**
- * Distribueix els polsos i marques en mode lineal o circular segons l'estat actual.
- *
- * @param {{ silent?: boolean }} [opts] permet saltar animacions en re-renderitzats silenciosos.
- * @returns {void}
- * @remarks Es crida després de canvis d'inputs, resize i toggle circular. Depèn del DOM; PulseMemory 1..Lg-1 informant posicions mentre 0/Lg es deriva per sincronitzar `highlightPulse` i `computeNextZero`.
- */
-function layoutTimeline(opts = {}) {
-  const silent = !!opts.silent;
-  const lg = pulses.length - 1;
-  const useCircular = circularTimeline && loopEnabled;
-  const wasCircular = timeline.classList.contains('circular');
-  const desiredCircular = !!useCircular;
-  const delay = (!silent && wasCircular !== desiredCircular) ? T_INDICATOR_TRANSITION_DELAY : 0;
-  const queueIndicatorUpdate = () => scheduleTIndicatorReveal(delay);
-
-  if (lg <= 0) {
-    timelineWrapper.classList.remove('circular');
-    timeline.classList.remove('circular');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = wrapper.querySelector('.circle-guide');
-    if (guide) guide.style.opacity = '0';
-    queueIndicatorUpdate();
-    return;
-  }
-
-  if (desiredCircular) {
-    timelineWrapper.classList.add('circular');
-    timeline.classList.add('circular');
-    if (silent) timeline.classList.add('no-anim');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    let guide = wrapper.querySelector('.circle-guide');
-    if (!guide) {
-      guide = document.createElement('div');
-      guide.className = 'circle-guide';
-      guide.style.position = 'absolute';
-      guide.style.border = '2px solid var(--line-color)';
-      guide.style.borderRadius = '50%';
-      guide.style.pointerEvents = 'none';
-      guide.style.opacity = '0';
-      wrapper.appendChild(guide);
-    }
-
-    requestAnimationFrame(() => {
-      const tRect = timeline.getBoundingClientRect();
-      const cx = tRect.width / 2;
-      const cy = tRect.height / 2;
-      const radius = Math.min(tRect.width, tRect.height) / 2 - 1;
-
-      pulses.forEach((pulse, idx) => {
-        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-        const px = cx + radius * Math.cos(angle);
-        const py = cy + radius * Math.sin(angle);
-        pulse.style.left = `${px}px`;
-        pulse.style.top = `${py}px`;
-        pulse.style.transform = 'translate(-50%, -50%)';
-      });
-
-      bars.forEach((bar, idx) => {
-        const step = idx === 0 ? 0 : lg;
-        const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
-        const bx = cx + radius * Math.cos(angle);
-        const by = cy + radius * Math.sin(angle);
-        const barLen = Math.min(tRect.width, tRect.height) * 0.25;
-        const topPx = by - barLen / 2;
-        bar.style.display = 'block';
-        bar.style.left = `${bx - 1}px`;
-        bar.style.top = `${topPx}px`;
-        bar.style.height = `${barLen}px`;
-        bar.style.transformOrigin = '50% 50%';
-        bar.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
-      });
-
-      const numbers = timeline.querySelectorAll('.pulse-number');
-      numbers.forEach(label => {
-        const idx = parseIntSafe(label.dataset.index);
-        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-        const innerRadius = radius - NUMBER_CIRCLE_OFFSET;
-        let x = cx + innerRadius * Math.cos(angle);
-        let y = cy + innerRadius * Math.sin(angle);
-        if (idx === 0) x -= 16;
-        else if (idx === lg) x += 16;
-        if (idx === 0 || idx === lg) y += 8;
-        label.style.left = `${x}px`;
-        label.style.top = `${y}px`;
-        label.style.transform = 'translate(-50%, -50%)';
-      });
-
-      cycleMarkers.forEach(marker => {
-        const pos = Number(marker.dataset.position);
-        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
-        const mx = cx + radius * Math.cos(angle);
-        const my = cy + radius * Math.sin(angle);
-        marker.style.left = `${mx}px`;
-        marker.style.top = `${my}px`;
-        marker.style.transformOrigin = '50% 50%';
-        marker.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
-      });
-
-      const labelOffset = 36;
-      cycleLabels.forEach(label => {
-        const pos = Number(label.dataset.position);
-        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
-        const lx = cx + (radius + labelOffset) * Math.cos(angle);
-        const ly = cy + (radius + labelOffset) * Math.sin(angle);
-        label.style.left = `${lx}px`;
-        label.style.top = `${ly}px`;
-        label.style.transform = 'translate(-50%, -50%)';
-      });
-
-      guide.style.left = `${cx}px`;
-      guide.style.top = `${cy}px`;
-      guide.style.width = `${radius * 2}px`;
-      guide.style.height = `${radius * 2}px`;
-      guide.style.transform = 'translate(-50%, -50%)';
-      guide.style.opacity = '0';
-
-      queueIndicatorUpdate();
-
-      if (silent) {
-        void timeline.offsetHeight;
-        timeline.classList.remove('no-anim');
-      }
-    });
-  } else {
-    timelineWrapper.classList.remove('circular');
-    timeline.classList.remove('circular');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = wrapper.querySelector('.circle-guide');
-    if (guide) guide.style.opacity = '0';
-
-    pulses.forEach((pulse, idx) => {
-      const percent = (idx / lg) * 100;
-      pulse.style.left = `${percent}%`;
-      pulse.style.top = '50%';
-      pulse.style.transform = 'translate(-50%, -50%)';
-    });
-
-    bars.forEach((bar, idx) => {
-      const step = idx === 0 ? 0 : lg;
-      const percent = (step / lg) * 100;
-      bar.style.display = 'block';
-      bar.style.left = `${percent}%`;
-      bar.style.top = '15%';
-      bar.style.height = '70%';
-      bar.style.transform = '';
-    });
-
-    const numbers = timeline.querySelectorAll('.pulse-number');
-    numbers.forEach(label => {
-      const idx = parseIntSafe(label.dataset.index);
-      const percent = (idx / lg) * 100;
-      label.style.left = `${percent}%`;
-      label.style.top = '-28px';
-      label.style.transform = 'translate(-50%, 0)';
-    });
-
-    cycleMarkers.forEach(marker => {
-      const pos = Number(marker.dataset.position);
-      const percent = (pos / lg) * 100;
-      marker.style.left = `${percent}%`;
-      marker.style.top = '50%';
-      marker.style.transformOrigin = '50% 50%';
-      marker.style.transform = 'translate(-50%, -50%)';
-    });
-
-    cycleLabels.forEach(label => {
-      const pos = Number(label.dataset.position);
-      const percent = (pos / lg) * 100;
-      label.style.left = `${percent}%`;
-      label.style.top = 'calc(100% + 12px)';
-      label.style.transform = 'translate(-50%, 0)';
-    });
-
-    queueIndicatorUpdate();
-  }
-}
-
 function handleInput() {
   if (isUpdating) return;
   const lg = getLg();
   const v = getV();
   const { numerator, denominator } = getFraction();
-
-  updateFractionUI(numerator, denominator);
+  if (fractionEditorController && typeof fractionEditorController.refresh === 'function') {
+    fractionEditorController.refresh({ reveal: true });
+  }
 
   const tempoInfo = fromLgAndTempo(lg, v);
   if (tempoInfo.duration != null) {
@@ -1353,30 +781,33 @@ function handleInput() {
       && normalizedNumerator != null
       && normalizedDenominator != null
       && Math.floor(normalizedLg / normalizedNumerator) > 0;
+    const cycleConfig = hasCycle
+      ? { numerator: normalizedNumerator, denominator: normalizedDenominator, onTick: highlightCycle }
+      : { numerator: 0, denominator: 0, onTick: null };
+    const supportsUnifiedTransport = typeof audio.updateTransport === 'function';
 
-    if (normalizedLg != null) {
+    if (normalizedLg != null && (!supportsUnifiedTransport || !isPlaying)) {
       updateAudioPattern(normalizedLg);
     }
 
     if (isPlaying) {
-      if (playbackTotal != null) updateAudioTotal(playbackTotal);
-      if (validV) {
-        updateAudioTempo(v, { align: loopEnabled ? 'cycle' : 'nextPulse' });
-      }
-
-      if (hasCycle) {
-        applyCycleConfig({ numerator: normalizedNumerator, denominator: normalizedDenominator, onTick: highlightCycle });
+      if (supportsUnifiedTransport) {
+        const payload = { align: 'nextPulse', cycle: cycleConfig };
+        if (playbackTotal != null) payload.totalPulses = playbackTotal;
+        if (validV) payload.bpm = v;
+        if (normalizedLg != null) payload.patternBeats = normalizedLg;
+        audio.updateTransport(payload);
       } else {
-        applyCycleConfig({ numerator: 0, denominator: 0, onTick: null });
+        if (playbackTotal != null) updateAudioTotal(playbackTotal);
+        if (validV) {
+          updateAudioTempo(v, { align: 'nextPulse' });
+        }
+        applyCycleConfig(cycleConfig);
       }
 
       syncVisualState();
     } else {
-      if (hasCycle) {
-        applyCycleConfig({ numerator: normalizedNumerator, denominator: normalizedDenominator, onTick: highlightCycle });
-      } else {
-        applyCycleConfig({ numerator: 0, denominator: 0, onTick: null });
-      }
+      applyCycleConfig(cycleConfig);
     }
   }
 }
@@ -1469,26 +900,20 @@ function randomInt(min, max) {
 let randomConfig = (() => {
   try {
     const stored = loadOpt('random');
-    return stored ? { ...randomDefaults, ...JSON.parse(stored) } : { ...randomDefaults };
+    return mergeRandomConfig(randomDefaults, stored ? JSON.parse(stored) : {});
   } catch {
-    return { ...randomDefaults };
+    return mergeRandomConfig(randomDefaults, {});
   }
 })();
 
 function applyRandomConfig(cfg) {
-  randLgToggle.checked = cfg.Lg.enabled;
-  randLgMin.value = cfg.Lg.range[0];
-  randLgMax.value = cfg.Lg.range[1];
-  randVToggle.checked = cfg.V.enabled;
-  randVMin.value = cfg.V.range[0];
-  randVMax.value = cfg.V.range[1];
-  randNToggle.checked = cfg.n.enabled;
-  randNMin.value = cfg.n.range[0];
-  randNMax.value = cfg.n.range[1];
-  randDToggle.checked = cfg.d.enabled;
-  randDMin.value = cfg.d.range[0];
-  randDMax.value = cfg.d.range[1];
-  randComplexToggle.checked = cfg.allowComplex;
+  applyBaseRandomConfig(cfg, {
+    Lg: { toggle: randLgToggle, min: randLgMin, max: randLgMax },
+    V: { toggle: randVToggle, min: randVMin, max: randVMax },
+    n: { toggle: randNToggle, min: randNMin, max: randNMax },
+    d: { toggle: randDToggle, min: randDMin, max: randDMax },
+    allowComplex: randComplexToggle
+  });
 }
 
 /**
@@ -1498,25 +923,13 @@ function applyRandomConfig(cfg) {
  * @remarks Es crida per cada canvi al menú random. Depèn de DOM i `localStorage`; garanteix que els valors generats mantinguin PulseMemory dins 1..Lg-1 (0/Lg derivats es recalculen a `randomize`).
  */
 function updateRandomConfig() {
-  randomConfig = {
-    Lg: {
-      enabled: randLgToggle.checked,
-      range: clampRange(randLgMin.value, randLgMax.value, randomDefaults.Lg.range[0], randomDefaults.Lg.range[1])
-    },
-    V: {
-      enabled: randVToggle.checked,
-      range: clampRange(randVMin.value, randVMax.value, randomDefaults.V.range[0], randomDefaults.V.range[1])
-    },
-    n: {
-      enabled: randNToggle.checked,
-      range: clampRange(randNMin.value, randNMax.value, randomDefaults.n.range[0], randomDefaults.n.range[1])
-    },
-    d: {
-      enabled: randDToggle.checked,
-      range: clampRange(randDMin.value, randDMax.value, randomDefaults.d.range[0], randomDefaults.d.range[1])
-    },
-    allowComplex: randComplexToggle.checked
-  };
+  randomConfig = updateBaseRandomConfig(randomConfig, {
+    Lg: { toggle: randLgToggle, min: randLgMin, max: randLgMax },
+    V: { toggle: randVToggle, min: randVMin, max: randVMax },
+    n: { toggle: randNToggle, min: randNMin, max: randNMax, integer: true, minValue: 1 },
+    d: { toggle: randDToggle, min: randDMin, max: randDMax, integer: true, minValue: 1 },
+    allowComplex: randComplexToggle
+  }, randomDefaults);
   saveOpt('random', JSON.stringify(randomConfig));
 }
 
@@ -1546,17 +959,28 @@ function randomize() {
     const [min, max] = cfg.V.range;
     setValue(inputV, randomInt(min, max));
   }
+  const fractionUpdates = {};
   if (cfg.n.enabled) {
     let [min, max] = cfg.n.range;
     if (!cfg.allowComplex) {
       min = 1;
       max = 1;
     }
-    setValue(numeratorInput, Math.max(1, randomInt(min, max)));
+    fractionUpdates.numerator = Math.max(1, randomInt(min, max));
   }
   if (cfg.d.enabled) {
     const [min, max] = cfg.d.range;
-    setValue(denominatorInput, Math.max(1, randomInt(min, max)));
+    fractionUpdates.denominator = Math.max(1, randomInt(min, max));
+  }
+  if (fractionEditorController && Object.keys(fractionUpdates).length > 0) {
+    fractionEditorController.setFraction(fractionUpdates, { cause: 'randomize', persist: false, silent: true, reveal: true });
+  } else {
+    if (fractionUpdates.numerator != null) {
+      setValue(numeratorInput, fractionUpdates.numerator);
+    }
+    if (fractionUpdates.denominator != null) {
+      setValue(denominatorInput, fractionUpdates.denominator);
+    }
   }
   handleInput();
 }
@@ -1793,8 +1217,8 @@ resetBtn.addEventListener('click', () => {
   setCycleAudio(true, { persist: false });
   clearOpt(PULSE_AUDIO_KEY);
   clearOpt(CYCLE_AUDIO_KEY);
-  hasStoredPulsePref = false;
-  hasStoredCyclePref = false;
+  pulseToggleController?.markStored(false);
+  cycleToggleController?.markStored(false);
   if (audio) audio.stop();
   if (audio && typeof audio.resetTapTempo === 'function') {
     audio.resetTapTempo();
@@ -1869,33 +1293,13 @@ if (circularTimelineToggle) {
 }
 
 /**
- * Inicialitza els desplegables de sons per pulso, inici i cicle.
+ * Sound dropdowns are now initialized by header.js via initHeader().
+ * This includes baseSoundSelect, startSoundSelect, and cycleSoundSelect.
+ * No need for app-specific initialization anymore.
  *
- * @returns {void}
- * @remarks Es crida un cop hi ha DOM disponible. Depèn de `initSoundDropdown` (DOM+Audio). Manté supòsits PulseMemory en delegar la sincronització a `TimelineAudio`.
+ * @remarks All sound dropdowns (including cycleSoundSelect) are now managed centrally in header.js.
  */
-function setupSoundDropdowns() {
-  initSoundDropdown(baseSoundSelect, {
-    storageKey: storeKey('baseSound'),
-    eventType: 'baseSound',
-    getAudio: initAudio,
-    apply: (a, val) => a.setBase(val)
-  });
-  initSoundDropdown(startSoundSelect, {
-    storageKey: storeKey('startSound'),
-    eventType: 'startSound',
-    getAudio: initAudio,
-    apply: (a, val) => a.setStart(val)
-  });
-  initSoundDropdown(cycleSoundSelect, {
-    storageKey: storeKey('cycleSound'),
-    eventType: 'cycleSound',
-    getAudio: initAudio,
-    apply: (a, val) => a.setCycle(val)
-  });
-}
-
-setupSoundDropdowns();
+// Sound dropdowns initialized by header.js - no app-specific setup needed
 
 /**
  * Restaura valors buits i preferències per defecte quan no hi ha estat guardat.
@@ -1906,12 +1310,21 @@ setupSoundDropdowns();
 function applyInitialState() {
   setValue(inputLg, '');
   setValue(inputV, '');
-  setValue(numeratorInput, '');
-  setValue(denominatorInput, '');
-  if (!hasStoredPulsePref) {
+  if (fractionEditorController) {
+    fractionEditorController.setFraction({ numerator: null, denominator: null }, {
+      cause: 'reset',
+      persist: false,
+      silent: true,
+      reveal: false
+    });
+  } else {
+    setValue(numeratorInput, '');
+    setValue(denominatorInput, '');
+  }
+  if (!pulseToggleController || !pulseToggleController.hasStored()) {
     setPulseAudio(true, { persist: false });
   }
-  if (!hasStoredCyclePref) {
+  if (!cycleToggleController || !cycleToggleController.hasStored()) {
     setCycleAudio(true, { persist: false });
   }
   if (audio && typeof audio.resetTapTempo === 'function') {
@@ -1950,8 +1363,20 @@ function initDefaults() {
   setValue(inputLg, Number.isFinite(storedLg) && storedLg > 0 ? storedLg : '');
   const validV = Number.isFinite(storedV) && storedV > 0 ? Math.round(storedV) : '';
   setValue(inputV, validV);
-  setValue(numeratorInput, Number.isFinite(storedN) && storedN > 0 ? storedN : '');
-  setValue(denominatorInput, Number.isFinite(storedD) && storedD > 0 ? storedD : '');
+  if (fractionEditorController) {
+    fractionEditorController.setFraction({
+      numerator: Number.isFinite(storedN) && storedN > 0 ? storedN : null,
+      denominator: Number.isFinite(storedD) && storedD > 0 ? storedD : null
+    }, {
+      cause: 'restore',
+      persist: false,
+      silent: true,
+      reveal: true
+    });
+  } else {
+    setValue(numeratorInput, Number.isFinite(storedN) && storedN > 0 ? storedN : '');
+    setValue(denominatorInput, Number.isFinite(storedD) && storedD > 0 ? storedD : '');
+  }
   handleInput();
   if (audio && typeof audio.resetTapTempo === 'function') {
     audio.resetTapTempo();
@@ -1965,7 +1390,7 @@ function initDefaults() {
 initDefaults();
 
 [inputLg, inputV, numeratorInput, denominatorInput].forEach((el, idx) => {
-  el.addEventListener('change', () => {
+  el?.addEventListener('change', () => {
     const keys = ['Lg', 'V', 'n', 'd'];
     const raw = typeof el.value === 'string' ? el.value.trim() : el.value;
     if (raw === '' || raw == null) clearOpt(keys[idx]);

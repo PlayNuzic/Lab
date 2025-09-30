@@ -1,5 +1,6 @@
 import { loadSampleMap } from './sample-map.js';
 import { AudioMixer } from './mixer.js';
+import { waitForUserInteraction, hasUserInteracted } from './user-interaction.js';
 
 /* global Tone */
 
@@ -18,6 +19,7 @@ const SOUND_URLS = {
 };
 
 export const soundNames = Object.keys(SOUND_URLS);
+export { waitForUserInteraction };
 export const soundLabels = {
   click1: 'Click Base',
   click2: 'Click Acento',
@@ -98,6 +100,10 @@ async function tryResumeContext(ctx) {
 
 async function startToneAudio() {
   if (typeof Tone === 'undefined') return false;
+
+  // Wait for user interaction before attempting to start audio
+  await waitForUserInteraction();
+
   const contextBefore = getToneContext();
   if (isRunning(contextBefore)) return true;
   if (typeof Tone.start === 'function') {
@@ -126,7 +132,29 @@ async function startToneAudio() {
   return isRunning(context);
 }
 
+/**
+ * Enhanced ensureAudio function that minimizes console warnings
+ * Only attempts to start audio context on user interaction
+ */
+export async function ensureAudioSilent() {
+  if (typeof Tone === 'undefined') {
+    console.warn('Tone.js not available - audio features disabled');
+    return false;
+  }
+
+  const context = getToneContext();
+  if (isRunning(context)) {
+    return true; // Already running
+  }
+
+  // Don't try to start automatically - wait for user interaction
+  return false;
+}
+
 export async function ensureAudio() {
+  // Wait for user interaction before initializing any audio
+  await waitForUserInteraction();
+
   if (typeof Tone !== 'undefined') {
     if (!toneStartPromise) {
       toneStartPromise = (async () => {
@@ -291,6 +319,9 @@ async function loadBufferForContext(ctx, url) {
 }
 
 async function getPreviewContext() {
+  // Wait for user interaction before creating preview AudioContext
+  await waitForUserInteraction();
+
   const globalObj = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : null);
   const Ctor = globalObj?.AudioContext || globalObj?.webkitAudioContext;
   if (!Ctor) throw new Error('AudioContext not available');
@@ -349,15 +380,44 @@ function normalizeAudioContext(ctx) {
 
 function resolveToneContext() {
   if (typeof Tone === 'undefined') return null;
-  const candidates = [];
-  if (typeof Tone.getContext === 'function') {
-    try { candidates.push(Tone.getContext()); } catch {}
+
+  // Only try to access Tone context if user has interacted
+  // This prevents premature AudioContext initialization warnings
+  if (!hasUserInteracted()) {
+    return null;
   }
-  if (Tone?.context) candidates.push(Tone.context);
-  for (const candidate of candidates) {
-    const resolved = normalizeAudioContext(candidate);
-    if (resolved) return resolved;
+
+  try {
+    // Check if Tone context exists without accessing .state property
+    // which can trigger AudioContext creation
+    const candidates = [];
+
+    if (typeof Tone.getContext === 'function') {
+      try {
+        const ctx = Tone.getContext();
+        if (ctx && ctx.state === 'running') {
+          candidates.push(ctx);
+        }
+      } catch {
+        // Ignore context access errors
+      }
+    }
+
+    // Only access Tone.context if it already exists and is confirmed running
+    if (Tone.context && typeof Tone.context.state === 'string' && Tone.context.state === 'running') {
+      candidates.push(Tone.context);
+    }
+
+    for (const candidate of candidates) {
+      const resolved = normalizeAudioContext(candidate);
+      if (resolved && resolved.state === 'running') {
+        return resolved;
+      }
+    }
+  } catch (error) {
+    // Ignore errors when checking Tone context
   }
+
   return null;
 }
 
@@ -491,6 +551,9 @@ export class TimelineAudio {
   }
 
   async _ensureContext() {
+    // Wait for user interaction before creating any AudioContext
+    await waitForUserInteraction();
+
     const preferredToneCtx = resolveToneContext();
     const existingCtx = normalizeAudioContext(this._ctx);
     const desiredCtx = preferredToneCtx || existingCtx || null;

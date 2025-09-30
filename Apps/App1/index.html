@@ -22,17 +22,23 @@
       showSelectColor: true,
       showAccent: false,
       randomMenuContent: `
-        <label><input type="checkbox" id="randLgToggle"/> Lg
-          <input id="randLgMin" type="number" placeholder="Min" />
-          <input id="randLgMax" type="number" placeholder="Max" />
+        <label>
+          <input type="checkbox" id="randLgToggle" name="randLgToggle" aria-label="Aleatorizar Lg" />
+          <span aria-hidden="true">Lg</span>
+          <input id="randLgMin" name="randLgMin" type="number" placeholder="Min" aria-label="Valor mínimo de Lg" />
+          <input id="randLgMax" name="randLgMax" type="number" placeholder="Max" aria-label="Valor máximo de Lg" />
         </label>
-        <label><input type="checkbox" id="randVToggle"/> V
-          <input id="randVMin" type="number" placeholder="Min" />
-          <input id="randVMax" type="number" placeholder="Max" />
+        <label>
+          <input type="checkbox" id="randVToggle" name="randVToggle" aria-label="Aleatorizar V" />
+          <span aria-hidden="true">V</span>
+          <input id="randVMin" name="randVMin" type="number" placeholder="Min" aria-label="Valor mínimo de V" />
+          <input id="randVMax" name="randVMax" type="number" placeholder="Max" aria-label="Valor máximo de V" />
         </label>
-        <label><input type="checkbox" id="randTToggle"/> T
-          <input id="randTMin" type="number" placeholder="Min" />
-          <input id="randTMax" type="number" placeholder="Max" />
+        <label>
+          <input type="checkbox" id="randTToggle" name="randTToggle" aria-label="Aleatorizar T" />
+          <span aria-hidden="true">T</span>
+          <input id="randTMin" name="randTMin" type="number" placeholder="Min" aria-label="Valor mínimo de T" />
+          <input id="randTMax" name="randTMax" type="number" placeholder="Max" aria-label="Valor máximo de T" />
         </label>
       `
     });

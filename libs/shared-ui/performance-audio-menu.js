@@ -37,8 +37,8 @@
         <output id="nza-hz-out" for="nza-hz">--</output>
       </div>
       <div class="perf-row readonly">
-        <label>Scheduler Interval (ms)</label>
-        <span id="nza-int">--</span>
+        <span>Scheduler Interval (ms)</span>
+        <span id="nza-int" role="status" aria-live="polite">--</span>
       </div>
       <div class="perf-foot">Los cambios de Sample Rate solo aplican si el motor aún no inició.</div>
     `;

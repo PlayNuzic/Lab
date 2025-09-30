@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="/favicon.ico" />
 </head>
-<body data-theme="system">
+<body class="app4" data-theme="system">
   <div id="app-root"></div>
 
   <!-- Carga Tone.js como global antes de módulos -->
@@ -24,32 +24,45 @@
       root: document.getElementById('app-root'),
       title: 'Pulsos Fraccionados',
       pulseSequence: true,
-      inlineFractionSlot: false,
+      inlineFractionSlot: true,
       showSelectColor: true,
       showPulseToggle: true,
       showSelectedToggle: true,
       showCycleToggle: true,
       hideT: true,
       randomMenuContent: `
-        <label><input type="checkbox" id="randLgToggle"/> Lg
-          <input id="randLgMin" type="number" placeholder="Min" />
-          <input id="randLgMax" type="number" placeholder="Max" />
+        <label>
+          <input type="checkbox" id="randLgToggle" name="randLgToggle" aria-label="Aleatorizar Lg" />
+          <span aria-hidden="true">Lg</span>
+          <input id="randLgMin" name="randLgMin" type="number" placeholder="Min" aria-label="Valor mínimo de Lg" />
+          <input id="randLgMax" name="randLgMax" type="number" placeholder="Max" aria-label="Valor máximo de Lg" />
         </label>
-        <label><input type="checkbox" id="randVToggle"/> V
-          <input id="randVMin" type="number" placeholder="Min" />
-          <input id="randVMax" type="number" placeholder="Max" />
+        <label>
+          <input type="checkbox" id="randVToggle" name="randVToggle" aria-label="Aleatorizar V" />
+          <span aria-hidden="true">V</span>
+          <input id="randVMin" name="randVMin" type="number" placeholder="Min" aria-label="Valor mínimo de V" />
+          <input id="randVMax" name="randVMax" type="number" placeholder="Max" aria-label="Valor máximo de V" />
         </label>
-        <label><input type="checkbox" id="randNToggle"/> n
-          <input id="randNMin" type="number" min="1" placeholder="Min" />
-          <input id="randNMax" type="number" min="1" placeholder="Max" />
+        <label>
+          <input type="checkbox" id="randNToggle" name="randNToggle" aria-label="Aleatorizar numerador" />
+          <span aria-hidden="true">n</span>
+          <input id="randNMin" name="randNMin" type="number" min="1" placeholder="Min" aria-label="Valor mínimo de n" />
+          <input id="randNMax" name="randNMax" type="number" min="1" placeholder="Max" aria-label="Valor máximo de n" />
         </label>
-        <label><input type="checkbox" id="randDToggle"/> d
-          <input id="randDMin" type="number" min="1" placeholder="Min" />
-          <input id="randDMax" type="number" min="1" placeholder="Max" />
+        <label>
+          <input type="checkbox" id="randDToggle" name="randDToggle" aria-label="Aleatorizar denominador" />
+          <span aria-hidden="true">d</span>
+          <input id="randDMin" name="randDMin" type="number" min="1" placeholder="Min" aria-label="Valor mínimo de d" />
+          <input id="randDMax" name="randDMax" type="number" min="1" placeholder="Max" aria-label="Valor máximo de d" />
         </label>
-        <label class="complex-option"><input type="checkbox" id="randComplexToggle"/> Permitir fracciones complejas</label>
-        <label><input type="checkbox" id="randPulsesToggle"/> Pulsos
-          <input id="randomCount" type="number" min="0" placeholder="Random" />
+        <label class="complex-option">
+          <input type="checkbox" id="randComplexToggle" name="randComplexToggle" aria-label="Permitir fracciones complejas" />
+          <span>Permitir fracciones complejas</span>
+        </label>
+        <label>
+          <input type="checkbox" id="randPulsesToggle" name="randPulsesToggle" aria-label="Aleatorizar pulsos" />
+          <span aria-hidden="true">Pulsos</span>
+          <input id="randomCount" name="randomCount" type="number" min="0" placeholder="Random" aria-label="Número aleatorio de pulsos" />
         </label>
       `
     });

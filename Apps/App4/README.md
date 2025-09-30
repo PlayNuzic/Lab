@@ -22,7 +22,7 @@ App4 explora la generación de secuencias de pulsos fraccionarios sobre la timel
 
 - `pulseMemory` conserva las selecciones activas por índice y se restablece al aplicar aleatoriedad en Pulsos.
 - Las fracciones se almacenan con `persistFractionField` en `localStorage` (`app4:n`, `app4:d`).
-- La configuración del menú aleatorio se serializa en `app4:random` y utiliza `toRange`/`toIntRange` para normalizar los límites.
+- La configuración del menú aleatorio se serializa en `app4:random` y utiliza los helpers compartidos de `random-config` para normalizar los límites.
 - El estado del tema, color de selección y toggles de audio se guarda con `storeKey()` bajo el prefijo `app4:`.
 
 ## Importes relevantes

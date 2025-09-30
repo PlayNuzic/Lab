@@ -1,6 +1,6 @@
-/* App2 specific overrides */
+/* App4 layout tokens */
 
-body {
+body.app4 {
   --unit-label-offset: -20px;
   --pulse-offset-x: 0px;
   --pulse-offset-y: 0px;
@@ -10,13 +10,13 @@ body {
   --cycle-offset-y: 0px;
 }
 
-header.top-bar h1 {
+body.app4 header.top-bar h1 {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-header.top-bar h1 .top-bar-title-button {
+body.app4 header.top-bar h1 .top-bar-title-button {
   width: 100%;
   margin: 0;
   padding: 0 var(--topbar-side-gap);
@@ -30,22 +30,22 @@ header.top-bar h1 .top-bar-title-button {
   transition: color 0.2s ease, transform 0.12s ease, text-shadow 0.25s ease;
 }
 
-header.top-bar h1 .top-bar-title-button:hover {
+body.app4 header.top-bar h1 .top-bar-title-button:hover {
   text-shadow: 0 0 6px var(--selection-color);
 }
 
-header.top-bar h1 .top-bar-title-button:focus-visible {
+body.app4 header.top-bar h1 .top-bar-title-button:focus-visible {
   outline: 2px solid var(--selection-color);
   outline-offset: 4px;
 }
 
-header.top-bar h1 .top-bar-title-button:active {
+body.app4 header.top-bar h1 .top-bar-title-button:active {
   transform: scale(0.96);
   color: var(--selection-color);
   text-shadow: 0 0 10px var(--selection-color);
 }
 
-.top-bar-info-tip {
+body.app4 .top-bar-info-tip {
   white-space: normal;
   max-width: min(320px, calc(100vw - 32px));
   padding: 10px 14px;
@@ -53,16 +53,16 @@ header.top-bar h1 .top-bar-title-button:active {
   line-height: 2;
 }
 
-.top-bar-info-tip__line {
+body.app4 .top-bar-info-tip__line {
   margin: 0;
   font-size: 1.025rem;
 }
 
-.top-bar-info-tip__line + .top-bar-info-tip__line {
+body.app4 .top-bar-info-tip__line + .top-bar-info-tip__line {
   margin-top: 4px;
 }
 
-.top-bar-info-tip__chips {
+body.app4 .top-bar-info-tip__chips {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
@@ -70,7 +70,7 @@ header.top-bar h1 .top-bar-title-button:active {
   margin-top: 6px;
 }
 
-.top-bar-info-tip__chip {
+body.app4 .top-bar-info-tip__chip {
   background: rgba(255, 255, 255, 0.18);
   border-radius: 999px;
   padding: 3px 10px;
@@ -79,7 +79,7 @@ header.top-bar h1 .top-bar-title-button:active {
   letter-spacing: 0.03em;
 }
 
-.top-bar-info-tip__hint {
+body.app4 .top-bar-info-tip__hint {
   margin: 6px 0 0;
   font-size: 0.9rem;
   opacity: 0.85;
@@ -88,27 +88,27 @@ header.top-bar h1 .top-bar-title-button:active {
 /**
  * Timeline pulse overrides to support selection and interactive hit areas.
  */
-.pulse { cursor: pointer; }
-.timeline .pulse { pointer-events: auto; }
+body.app4 .pulse { cursor: pointer; }
+body.app4 .timeline .pulse { pointer-events: auto; }
 /* Selected pulses use selection color, except endpoints 0/Lg which must keep Lg color */
-.pulse.selected:not(.zero):not(.lg) { background: var(--selection-color); }
-.pulse.zero,
-.pulse.lg {
+body.app4 .pulse.selected:not(.zero):not(.lg) { background: var(--selection-color); }
+body.app4 .pulse.zero,
+body.app4 .pulse.lg {
   color: var(--color-lg);
   cursor: default;
   pointer-events: none;
 }
-.pulse-number.zero,
-.pulse-number.lg {
+body.app4 .pulse-number.zero,
+body.app4 .pulse-number.lg {
   color: var(--color-lg);
 }
 
-.pulse-number.selected:not(.zero):not(.lg) {
+body.app4 .pulse-number.selected:not(.zero):not(.lg) {
   color: var(--selection-color);
   text-shadow: 0 0 10px var(--selection-color);
 }
 
-.cycle-marker {
+body.app4 .cycle-marker {
   position: absolute;
   width: 4px;
   height: 26px;
@@ -121,35 +121,35 @@ header.top-bar h1 .top-bar-title-button:active {
   transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
 }
 
-.cycle-marker.start {
+body.app4 .cycle-marker.start {
   background: var(--color-lg);
   opacity: 1;
 }
 
-.cycle-marker.selected,
-.cycle-marker.active {
+body.app4 .cycle-marker.selected,
+body.app4 .cycle-marker.active {
   background: var(--selection-color);
   box-shadow: 0 0 12px var(--selection-color);
   opacity: 1;
 }
 
-.cycle-marker.fraction-active {
+body.app4 .cycle-marker.fraction-active {
   background: var(--selection-color);
   box-shadow: 0 0 16px var(--selection-color);
   opacity: 1;
 }
 
-.fraction-hit {
+body.app4 .fraction-hit {
   transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
 }
 
-.fraction-hit.fraction-active {
+body.app4 .fraction-hit.fraction-active {
   background: var(--selection-color);
   box-shadow: 0 0 16px var(--selection-color);
   opacity: 0.6;
 }
 
-.cycle-label {
+body.app4 .cycle-label {
   position: absolute;
   color: var(--line-color);
   font-size: 1.1rem;
@@ -158,26 +158,26 @@ header.top-bar h1 .top-bar-title-button:active {
   transition: color 0.25s ease, transform 0.25s ease;
 }
 
-.cycle-label--integer {
+body.app4 .cycle-label--integer {
   color: var(--selection-color);
 }
 
-.cycle-label--origin {
+body.app4 .cycle-label--origin {
   color: var(--color-lg);
   font-weight: 600;
 }
 
-.cycle-label.active:not(.cycle-label--origin) {
+body.app4 .cycle-label.active:not(.cycle-label--origin) {
   color: var(--selection-color);
   font-weight: 600;
 }
 
-.fraction-field--empty .spinner {
+body.app4 .fraction-field--empty .spinner {
   opacity: 1;
   pointer-events: auto;
 }
 
-.fraction-editor-wrapper {
+body.app4 .fraction-editor-wrapper {
   position: relative;
   display: inline-flex;
   flex-direction: column;
@@ -186,16 +186,16 @@ header.top-bar h1 .top-bar-title-button:active {
   padding-top: 0px;
 }
 
-.fraction-editor {
+body.app4 .fraction-editor {
   position: relative;
 }
 
-.fraction-info-bubble {
+body.app4 .fraction-info-bubble {
   position: absolute;
   top: 0%;
   left: 47%;
   width: 280px;
-  transform: translate(0, -50%);
+  /* transform: translate(0, -50%); */
   transform: translate(-50%, calc(-100% - 12px));
   padding: 8px 18px;
   border-radius: 16px;
@@ -205,30 +205,30 @@ header.top-bar h1 .top-bar-title-button:active {
   font-size: 1.1rem;
   line-height: 1.4;
   max-width: min(280px, 85vw);
-  white-space: pre-line;
+  color: var(--fg, var(--line-color, #222));
   pointer-events: none;
   z-index: 1;
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
 }
 
-body[data-theme='dark'] .fraction-info-bubble {
+body.app4[data-theme='dark'] .fraction-info-bubble {
   border-color: rgba(238, 232, 216, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
-.fraction-info-bubble--hidden {
+body.app4 .fraction-info-bubble--hidden {
   opacity: 0;
   visibility: hidden;
   transform: translate(-50%, calc(-100% - 2px)) scale(0.95);
 }
 
-.fraction-info-bubble--visible {
+body.app4 .fraction-info-bubble--visible {
   opacity: 1;
   visibility: visible;
   transform: translate(-50%, calc(-100% - 12px)) scale(1);
 }
 
-.fraction-field-placeholder {
+body.app4 .fraction-field-placeholder {
   position: absolute;
   inset: 0 28px 0 0;
   display: flex;
@@ -244,23 +244,23 @@ body[data-theme='dark'] .fraction-info-bubble {
   letter-spacing: 0.05em;
 }
 
-.fraction-field-placeholder--visible {
+body.app4 .fraction-field-placeholder--visible {
   opacity: 0.45;
 }
 
-.timeline.circular .cycle-marker {
+body.app4 .timeline.circular .cycle-marker {
   width: 4px;
   height: 30px;
 }
 
-.timeline.circular .cycle-label {
+body.app4 .timeline.circular .cycle-label {
   font-size: 1rem;
 }
 
 /**
  * Editable pulse sequence container positioned above the timeline.
  */
-#pulseSeq {
+body.app4 #pulseSeq {
 font-size: 3rem;
 display: flex;
 justify-content: flex-start;
@@ -276,37 +276,24 @@ overflow-y: visible;
 position: relative;
 }
 
-#pulseSeq .prefix,
-#pulseSeq .suffix,
-#pulseSeq .open,
-#pulseSeq .suffix-spacer { color: inherit; user-select: none; }
-#pulseSeq .suffix { margin: 0; }
-#pulseSeq .suffix-spacer { margin-right: 12px; }
-#pulseSeq .fraction {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  user-select: none;
-  line-height: 1;
-  vertical-align: middle;
-  min-width: 3.4ch;
-  padding: 0 0.2em;
-  font-size: 0.84em;
-}
-#pulseSeq .fraction-number {
-  min-width: 2.2ch;
-  text-align: center;
-  line-height: 1;
-}
-.fraction-inline-container {
+body.app4 #pulseSeq .prefix,
+body.app4 #pulseSeq .suffix,
+body.app4 #pulseSeq .open,
+body.app4 #pulseSeq .suffix-spacer { color: inherit; user-select: none; }
+body.app4 #pulseSeq .suffix { margin: 0; }
+body.app4 #pulseSeq .suffix-spacer { margin-right: 12px; }
+
+/* Fracción inline en pulseSeq */
+body.app4 #pulseSeq .fraction-inline-container,
+body.app4 #pulseSeq #fractionInlineSlot {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin: 0 0.3em;
 }
 
-.fraction-editor-wrapper--inline {
+body.app4 #pulseSeq .fraction-editor-wrapper {
   position: relative;
   display: inline-flex;
   flex-direction: column;
@@ -315,7 +302,7 @@ position: relative;
   gap: 0.28em;
 }
 
-.fraction-editor--inline {
+body.app4 #pulseSeq .fraction-editor {
   position: relative;
   display: inline-flex;
   flex-direction: column;
@@ -325,54 +312,56 @@ position: relative;
   z-index: 1;
 }
 
-.fraction-editor--inline .fraction-bar {
+body.app4 #pulseSeq .fraction-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 6.8ch;
-  max-width: 200px;
+  width: 3.5ch;
+  max-width: 70px;
   min-height: 0.18em;
   height: 0.18em;
   background: currentColor;
   border-radius: 999px;
 }
 
-.fraction-editor--inline .top,
-.fraction-editor--inline .bottom {
+body.app4 #pulseSeq .fraction-editor .top,
+body.app4 #pulseSeq .fraction-editor .bottom {
   border: none;
   padding: 0;
   display: flex;
 }
 
-.fraction-editor--inline .top {
+body.app4 #pulseSeq .fraction-editor .top {
   margin-bottom: 0.1em;
 }
 
-.fraction-editor--inline .bottom {
+body.app4 #pulseSeq .fraction-editor .bottom {
   margin-top: 0.1em;
 }
 
-.fraction-editor--inline .fraction-field {
+body.app4 #pulseSeq .fraction-field {
   min-width: 3.6ch;
 }
 
-.fraction-editor--inline input {
+body.app4 #pulseSeq .fraction-field input {
   width: 3.6ch;
   font-size: 3rem;
   font-weight: 500;
   padding-right: 32px;
+  text-align: center;
 }
 
-.fraction-editor-wrapper--inline .spinner {
+body.app4 #pulseSeq .fraction-editor-wrapper .spinner {
   width: 28px;
 }
 
-.fraction-editor-wrapper--inline .fraction-info-bubble {
+body.app4 #pulseSeq .fraction-info-bubble {
   left: 50%;
   z-index: 4;
 }
 
-.fraction-ghost {
+/* App4 inline ghost states shown when editing fractions */
+body.app4 .fraction-ghost {
   position: absolute;
   top: 50%;
   left: 10%;
@@ -389,21 +378,21 @@ position: relative;
   z-index: 0;
 }
 
-.fraction-ghost__numerator,
-.fraction-ghost__denominator {
+body.app4 .fraction-ghost__numerator,
+body.app4 .fraction-ghost__denominator {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
 }
 
-.fraction-ghost__number {
+body.app4 .fraction-ghost__number {
   font-size: 2.6rem;
   font-weight: 500;
   letter-spacing: 0.02em;
 }
 
-.fraction-ghost__bar {
+body.app4 .fraction-ghost__bar {
   width: 58px;
   height: 4px;
   background: currentColor;
@@ -412,26 +401,26 @@ position: relative;
   border-radius: 999px;
 }
 
-.fraction-ghost--hidden {
+body.app4 .fraction-ghost--hidden {
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.9);
   visibility: hidden;
 }
 
-.fraction-ghost--visible {
+body.app4 .fraction-ghost--visible {
   opacity: 0.4;
   transform: translate(-50%, -50%) scale(1.25);
   visibility: visible;
 }
-#pulseSeq .zero,
-#pulseSeq .lg { color: var(--color-lg); user-select: none; }
-#pulseSeq .edit-wrapper {
+body.app4 #pulseSeq .zero,
+body.app4 #pulseSeq .lg { color: var(--color-lg); user-select: none; }
+body.app4 #pulseSeq .edit-wrapper {
   position: relative;
   display: inline-flex;
   align-items: stretch;
   margin-right: var(--pulse-seq-trailing-offset, 0);
 }
-#pulseSeq .edit {
+body.app4 #pulseSeq .edit {
   outline: none;
   white-space: pre;
   position: relative;
@@ -440,14 +429,14 @@ position: relative;
   caret-color: var(--pulse-seq-caret-color, var(--line-color));
   min-height: 1.2em;
 }
-#pulseSeq.editing .edit {
+body.app4 #pulseSeq.editing .edit {
   color: inherit;
 }
-#pulseSeq .edit.playing { caret-color: transparent; }
-#pulseSeq.editing .edit-display {
+body.app4 #pulseSeq .edit.playing { caret-color: transparent; }
+body.app4 #pulseSeq.editing .edit-display {
   opacity: 0;
 }
-#pulseSeq .edit-display {
+body.app4 #pulseSeq .edit-display {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -463,23 +452,23 @@ position: relative;
   min-width: 100%;
   transition: opacity 0.2s ease;
 }
-#pulseSeq .edit-display .pulse-seq-token {
+body.app4 #pulseSeq .edit-display .pulse-seq-token {
   display: inline-block;
   line-height: 1;
 }
-#pulseSeq .edit-display .pulse-seq-token--active {
+body.app4 #pulseSeq .edit-display .pulse-seq-token--active {
   color: var(--selection-color);
   text-shadow: 0 0 16px var(--selection-color);
 }
-#pulseSeq .edit-display .pulse-seq-token--fraction {
+body.app4 #pulseSeq .edit-display .pulse-seq-token--fraction {
   font-size: 0.84em;
 }
 
 /**
  * Pulse sequence highlight overlays following the current playback position.
  */
-#pulseSeqHighlight,
-#pulseSeqHighlight2 {
+body.app4 #pulseSeqHighlight,
+body.app4 #pulseSeqHighlight2 {
 position: absolute;
 border-radius: 50%;
 background: var(--selection-color);
@@ -490,8 +479,8 @@ transform: translate(-50%, -50%);
 display: none;
 }
 
-#pulseSeqHighlight.active,
-#pulseSeqHighlight2.active {
+body.app4 #pulseSeqHighlight.active,
+body.app4 #pulseSeqHighlight2.active {
 animation: pulseFlash 0.35s ease-out;
 box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
 display: block;
@@ -500,7 +489,7 @@ display: block;
 /**
  * Circular indicator for displaying total cycle duration (T value).
  */
-#tIndicator {
+body.app4 #tIndicator {
 position: absolute; /* positioned by JS relative to Lg label */
 display: flex;
 align-items: center;
@@ -521,45 +510,48 @@ font-size: 0.9rem; /* Keep same font size */
  * Layout adjustments for timeline wrapper and controls on narrow screens.
  */
 @media (max-width: 600px) {
-body {
-  --pulse-offset-x: 40px;
-  --pulse-offset-y: -17px;
-  --selected-offset-x: -50px;
-  --selected-offset-y: -18px;
-  --cycle-offset-x: -140px;
-  --cycle-offset-y: -17px;
-}
-
-#pulseSeq {
-font-size: 1.7rem;
-gap: 8px;
-padding: 0 12px;
-}
-
-/* Layout adjustments requested for App2 */
-/* 1) Raise inputs section by 25px (from shared 40px to 15) */
-.inputs {
-margin-top: 25px !important;
-gap: 14px;
-}
-
-/* 2) Keep pulse sequence where it is — no changes needed to #pulseSeq */
-/* Compensate inputs shift so #pulseSeq stays in place */
-.middle { margin-top: 20px; }
-
-/* 3) Lower circular timeline by 50px */
-.timeline-wrapper.circular {
-margin-top: 50px !important; /* was 20px in shared styles */
-}
-
-/* 4) Lower controls inside circular wrapper (40px via wrapper - 20px here) */
-.timeline-wrapper.circular > .controls {
-transform: translate(-50%, -50%) !important; /* was -40px */
-}
-
-/* 5) Lower unit label by 20px when shown on input focus */
-  .param .circle .unit {
-  top: calc(var(--unit-label-offset, -20px) - 1.8rem);
+  body.app4 {
+    --pulse-offset-x: 40px;
+    --pulse-offset-y: -17px;
+    --selected-offset-x: -50px;
+    --selected-offset-y: -18px;
+    --cycle-offset-x: -140px;
+    --cycle-offset-y: -17px;
   }
+
+  body.app4 #pulseSeq {
+    font-size: 1.7rem;
+    gap: 8px;
+    padding: 0 12px;
+  }
+
+  /* Layout adjustments for App4 */
+  /* 1) Raise inputs section by 25px (from shared 40px to 15) */
+  body.app4 .inputs {
+    margin-top: 25px !important;
+    gap: 14px;
+  }
+
+  /* 2) Keep pulse sequence where it is — no changes needed to #pulseSeq */
+  /* Compensate inputs shift so #pulseSeq stays in place */
+  body.app4 .middle {
+    margin-top: 20px;
+  }
+
+  /* 3) Lower circular timeline by 50px */
+  body.app4 .timeline-wrapper.circular {
+    margin-top: 50px !important; /* was 20px in shared styles */
+  }
+
+  /* 4) Lower controls inside circular wrapper (40px via wrapper - 20px here) */
+  body.app4 .timeline-wrapper.circular > .controls {
+    transform: translate(-50%, -50%) !important; /* was -40px */
+  }
+
+  /* 5) Lower unit label by 20px when shown on input focus */
+  body.app4 .param .circle .unit {
+    top: calc(var(--unit-label-offset, -20px) - 1.8rem);
+  }
+}
 
 

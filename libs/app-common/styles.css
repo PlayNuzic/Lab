@@ -61,6 +61,7 @@ main > .inputs > * {
   align-items: center;
   justify-content: center;
   min-height: 100%;
+  position: relative;
 }
 
 #fractionInlineSlot .fraction-editor,
@@ -154,6 +155,7 @@ main > .inputs > * {
 .fraction-field .spinner .spin:active {
   color: var(--selection-color);
 }
+
 
 /* --- Timeline --- */
 .timeline-wrapper {

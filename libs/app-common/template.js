@@ -92,10 +92,6 @@ ${togglesMarkup}
         </div>
     ` : '';
 
-  const fractionInlineSlotMarkup = inlineFractionSlot ? `
-        <div id="${FRACTION_INLINE_SLOT_ID}"></div>
-        ` : '';
-
   root.innerHTML = `
   <header class="top-bar">
     <details class="menu" id="optionsMenu">
@@ -119,12 +115,12 @@ ${togglesMarkup}
             <div class="preview-row">
               <label for="startSoundSelect" style="display:none"></label>
               <div id="startSoundSelect"></div>
-            </div>          
+            </div>
             <p>Pulso</p>
             <div class="preview-row">
               <label for="baseSoundSelect" style="display:none"></label>
               <div id="baseSoundSelect"></div>
-            </div>            
+            </div>
             ${showAccent ? `
             <p>Seleccionado</p>
             <div class="preview-row">
@@ -154,7 +150,6 @@ ${togglesMarkup}
             </div>
           </div>
         </div>
-        ${fractionInlineSlotMarkup}
         <div class="param v">
           <span class="abbr">V</span>
           <div class="circle"><span class="unit" id="unitV">BPM</span>${led('ledV')}<input id="inputV" type="number" min="1" step="1" />

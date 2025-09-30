@@ -1,15 +1,19 @@
-import { TimelineAudio, ensureAudio } from '../../libs/sound/index.js';
-import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
+import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
-import { initRandomMenu } from '../../libs/app-common/random-menu.js';
+import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
+import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
+import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
+let pendingMute = null;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
 bindSharedSoundEvents({
@@ -20,24 +24,75 @@ bindSharedSoundEvents({
     startSound: 'setStart'
   }
 });
-const inputLg = document.getElementById('inputLg');
-const inputV = document.getElementById('inputV');
-const inputT = document.getElementById('inputT');
-const inputVUp = document.getElementById('inputVUp');
-const inputVDown = document.getElementById('inputVDown');
-const inputLgUp = document.getElementById('inputLgUp');
-const inputLgDown = document.getElementById('inputLgDown');
-const ledLg = document.getElementById('ledLg');
-const ledV = document.getElementById('ledV');
-const ledT = document.getElementById('ledT');
-const unitLg = document.getElementById('unitLg');
-const unitV = document.getElementById('unitV');
-const unitT = document.getElementById('unitT');
+// Bind all DOM elements using app-specific utilities (no warnings for missing elements)
+const { elements, leds, ledHelpers } = bindAppRhythmElements('app2');
+
+// Create LED managers for Lg, V, T parameters
+const ledManagers = createRhythmLEDManagers(leds);
+
+// State object for shared loop controller
+const appState = {
+  get loopEnabled() { return loopEnabled; },
+  set loopEnabled(v) { loopEnabled = v; }
+};
+
+// Create shared loop controller with pulse memory integration
+const loopController = createPulseMemoryLoopController({
+  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  loopBtn: elements.loopBtn,
+  state: appState,
+  ensurePulseMemory,
+  getLg: () => parseInt(inputLg.value),
+  isPlaying: () => isPlaying,
+  onToggle: (enabled) => {
+    // Rebuild visible selection from memory and refresh labels
+    syncSelectedFromMemory();
+    updateNumbers();
+    if (isPlaying && typeof audio?.setSelected === 'function') {
+      audio.setSelected(selectedForAudioFromState());
+    }
+    animateTimelineCircle(enabled && circularTimeline);
+    // Update totalPulses when loop changes during playback
+    if (isPlaying) {
+      handleInput();
+    }
+  }
+});
+
+// Extract commonly used elements for backward compatibility
+const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
+        ledLg, ledV, ledT, unitLg, unitV, unitT, formula, timelineWrapper,
+        timeline, playBtn, loopBtn, resetBtn, tapBtn, tapHelp,
+        circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
+        randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
+        randTToggle, randTMin, randTMax, themeSelect, selectColor, baseSoundSelect,
+        accentSoundSelect, startSoundSelect } = elements;
+
 // Pulse sequence UI element (contenteditable div in template)
-const pulseSeqEl = document.getElementById('pulseSeq');
-const formula = document.getElementById('formula');
-const timelineWrapper = document.getElementById('timelineWrapper');
-const timeline = document.getElementById('timeline');
+const pulseSeqEl = elements.pulseSeq;
+const pulseSeqController = createPulseSeqController();
+const pulseMemoryApi = pulseSeqController.memory;
+let pulseMemory = pulseMemoryApi.data;
+const { editEl: pulseSeqEditEl } = pulseSeqController.mount({ root: pulseSeqEl });
+function getEditEl() {
+  return pulseSeqController.getEditElement();
+}
+function getPulseSeqText() {
+  return pulseSeqController.getText();
+}
+function setPulseSeqText(str) {
+  pulseSeqController.setText(str);
+}
+function setPulseSeqSelection(start, end) {
+  pulseSeqController.setSelectionRange(start, end);
+}
+function moveCaretToNearestMidpoint() {
+  pulseSeqController.moveCaretToNearestMidpoint();
+}
+function moveCaretStep(dir) {
+  pulseSeqController.moveCaretStep(dir);
+}
+// T indicator setup (App2-specific functionality)
 const shouldRenderTIndicator = Boolean(inputT);
 const tIndicator = shouldRenderTIndicator ? (() => {
   const indicator = document.createElement('div');
@@ -47,31 +102,6 @@ const tIndicator = shouldRenderTIndicator ? (() => {
   timeline.appendChild(indicator);
   return indicator;
 })() : null;
-const playBtn = document.getElementById('playBtn');
-const loopBtn = document.getElementById('loopBtn');
-const resetBtn = document.getElementById('resetBtn');
-const tapBtn = document.getElementById('tapTempoBtn');
-const tapHelp = document.getElementById('tapHelp');
-const circularTimelineToggle = document.getElementById('circularTimelineToggle');
-const randomBtn = document.getElementById('randomBtn');
-const randomMenu = document.getElementById('randomMenu');
-const randLgToggle = document.getElementById('randLgToggle');
-const randLgMin = document.getElementById('randLgMin');
-const randLgMax = document.getElementById('randLgMax');
-const randVToggle = document.getElementById('randVToggle');
-const randVMin = document.getElementById('randVMin');
-const randVMax = document.getElementById('randVMax');
-const randPulsesToggle = document.getElementById('randPulsesToggle');
-const randomCount = document.getElementById('randomCount');
-const randTToggle = document.getElementById('randTToggle');
-const randTMin = document.getElementById('randTMin');
-const randTMax = document.getElementById('randTMax');
-// Mute is managed by the shared header (#muteBtn)
-const themeSelect = document.getElementById('themeSelect');
-const selectColor = document.getElementById('selectColor');
-const baseSoundSelect = document.getElementById('baseSoundSelect');
-const accentSoundSelect = document.getElementById('accentSoundSelect');
-const startSoundSelect = document.getElementById('startSoundSelect');
 const titleHeading = document.querySelector('header.top-bar h1');
 let titleButton = null;
 if (titleHeading) {
@@ -106,7 +136,7 @@ function saveRandomConfig(cfg) {
   try { saveOpt(RANDOM_STORE_KEY, JSON.stringify(cfg)); } catch {}
 }
 
-const randomConfig = { ...randomDefaults, ...loadRandomConfig() };
+const randomConfig = mergeRandomConfig(randomDefaults, loadRandomConfig());
 
 /**
  * Apply stored random configuration values to the associated DOM controls.
@@ -174,20 +204,16 @@ applyRandomConfig(randomConfig);
 let pulses = [];
 // Hit targets (separate from the visual dots) and drag mode
 let pulseHits = [];
-let dragMode = 'select'; // 'select' | 'deselect'
 // --- Selection memory across Lg changes ---
-let pulseMemory = []; // index -> selected
 let pulseSeqRanges = {};
 
 function ensurePulseMemory(size) {
-  if (size >= pulseMemory.length) {
-    for (let i = pulseMemory.length; i <= size; i++) pulseMemory[i] = false;
-  }
+  pulseMemoryApi.ensure(size);
 }
 
 // Clear all persistent pulse selection (memory beyond current Lg too)
 function clearPersistentPulses(){
-  pulseMemory = [];
+  pulseMemoryApi.clear();
   try { selectedPulses.clear(); } catch {}
   /* Keep UI consistent; will be rebuilt by subsequent calls */
   updatePulseSeqField();
@@ -219,70 +245,6 @@ let lastVisualStep = null;
 // Progress is now driven directly from audio callbacks
 // Progress is now driven directly from audio callbacks
 
-// Build structured markup for the pulse sequence so only inner numbers are editable
-function setupPulseSeqMarkup(){
-  if (!pulseSeqEl) return;
-  if (pulseSeqEl.querySelector('.pz.edit')) return; // already prepared
-  const initial = (pulseSeqEl.textContent || '').trim();
-  pulseSeqEl.textContent = '';
-  const mk = (cls, txt) => { const s = document.createElement('span'); s.className = 'pz ' + cls; if (txt!=null) s.textContent = txt; return s; };
-  pulseSeqEl.append(
-    mk('prefix','Pulsos ('),
-    mk('zero','0'),
-    (()=>{ const e = mk('edit', initial); e.contentEditable = 'true'; return e; })(),
-    mk('suffix',')'),
-    mk('lg','')
-  );
-}
-setupPulseSeqMarkup();
-
-// Highlight overlay for pulse sequence numbers during playback
-const pulseSeqHighlight = document.createElement('div');
-const pulseSeqHighlight2 = document.createElement('div');
-if (pulseSeqEl) {
-  pulseSeqHighlight.id = 'pulseSeqHighlight';
-  pulseSeqHighlight2.id = 'pulseSeqHighlight2';
-  pulseSeqEl.appendChild(pulseSeqHighlight);
-  pulseSeqEl.appendChild(pulseSeqHighlight2);
-}
-
-// Helpers for #pulseSeq (use inner span .pz.edit)
-function getEditEl(){
-  if(!pulseSeqEl) return null;
-  return pulseSeqEl.querySelector('.pz.edit') || pulseSeqEl;
-}
-function getPulseSeqText(){
-  const el = getEditEl();
-  return el ? (el.textContent || '') : '';
-}
-function setPulseSeqText(str){
-  const el = getEditEl();
-  if(!el) return;
-  el.textContent = String(str);
-}
-function setPulseSeqSelection(start, end){
-  const el = getEditEl();
-  if(!el) return;
-  try{
-    const sel = window.getSelection();
-    const range = document.createRange();
-    let node = el.firstChild;
-    if(!node){ node = document.createTextNode(''); el.appendChild(node); }
-    const len = node.textContent.length;
-    const s = Math.max(0, Math.min(start, len));
-    const e = Math.max(0, Math.min(end, len));
-    range.setStart(node, s);
-    range.setEnd(node, e);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }catch{}
-}
-
-// Caret movement entre midpoints (dos espacios)
-function getMidpoints(text){ const a=[]; for(let i=1;i<text.length;i++) if(text[i-1]===' '&&text[i]===' ') a.push(i); return a; }
-function caretPos(){ const el=getEditEl(); if(!el) return 0; const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; const r=s.getRangeAt(0); if(!el.contains(r.startContainer)) return 0; return r.startOffset; }
-function moveCaretToNearestMidpoint(){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); let best=mids[0],d=Math.abs(p-best); for(const m of mids){const dd=Math.abs(p-m); if(dd<d){best=m; d=dd;}} setPulseSeqSelection(best,best); }
-function moveCaretStep(dir){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); if(dir>0){ for(const m of mids){ if(m>p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[mids.length-1],mids[mids.length-1]); } else { for(let i=mids.length-1;i>=0;i--){ const m=mids[i]; if(m<p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[0],mids[0]); } }
 function updateTIndicatorText(value) {
   if (!tIndicator) return;
   // Only the number, no prefix
@@ -345,39 +307,26 @@ function scheduleTIndicatorReveal(delay = 0) {
     });
   }, ms);
 }
-let suppressClickIndex = null;       // per evitar doble-toggle en drag start
-// --- Drag selection state ---
-let isDragging = false;
-let lastDragIndex = null;
-
-// Start drag on the timeline area and decide drag mode based on first pulse under pointer
-timeline.addEventListener('pointerdown', (e) => {
-  isDragging = true;
-  lastDragIndex = null;
-  dragMode = 'select';
-  const target = e.target.closest('.pulse-hit, .pulse');
-  if (target && typeof target.dataset.index !== 'undefined') {
-    const idx = parseInt(target.dataset.index, 10);
-    if (!Number.isNaN(idx)) {
-      ensurePulseMemory(idx);
-      dragMode = pulseMemory[idx] ? 'deselect' : 'select';
-      // APLICAR acció immediata sobre el primer pols sota el cursor
-      setPulseSelected(idx, dragMode === 'select');
-      // Evitar que el clic de mouseup inverteixi el que acabem de fer
-      suppressClickIndex = idx;
-    }
+const dragController = pulseSeqController.drag;
+dragController.attach({
+  timeline,
+  resolveTarget: ({ target }) => {
+    if (!target) return null;
+    const hit = target.closest('.pulse-hit, .pulse');
+    if (!hit) return null;
+    const idx = Number.parseInt(hit.dataset?.index, 10);
+    if (!Number.isFinite(idx)) return null;
+    return { key: String(idx), index: idx };
+  },
+  applySelection: (info, shouldSelect) => {
+    if (!info || !Number.isFinite(info.index)) return;
+    setPulseSelected(info.index, shouldSelect);
+  },
+  isSelectionActive: (info) => {
+    if (!info || !Number.isFinite(info.index)) return false;
+    ensurePulseMemory(info.index);
+    return !!pulseMemory[info.index];
   }
-});
-// End/Cancel drag globally
-document.addEventListener('pointerup', () => {
-  isDragging = false;
-  lastDragIndex = null;
-  // Do not clear suppressClickIndex here; allow click handler to consume it
-});
-document.addEventListener('pointercancel', () => {
-  isDragging = false;
-  lastDragIndex = null;
-  suppressClickIndex = null; 
 });
 // Hovers for LEDs and controls
 // LEDs ahora indican los campos editables; el apagado se recalcula
@@ -448,11 +397,13 @@ if (themeSelect) {
   applyTheme(storedTheme || 'system');
 }
 
-document.addEventListener('sharedui:mute', async (e) => {
+document.addEventListener('sharedui:mute', (e) => {
   const val = !!(e && e.detail && e.detail.value);
   saveOpt('mute', val ? '1' : '0');
-  const a = await initAudio();
-  if (a && typeof a.setMute === 'function') a.setMute(val);
+  pendingMute = val;
+  if (audio && typeof audio.setMute === 'function') {
+    audio.setMute(val);
+  }
 });
 
 // Restore previous mute preference on load
@@ -493,25 +444,8 @@ circularTimelineToggle?.addEventListener('change', e => {
 window.addEventListener('resize', updateTIndicatorPosition);
 animateTimelineCircle(loopEnabled && circularTimeline);
 
-loopBtn.addEventListener('click', () => {
-  loopEnabled = !loopEnabled;
-  loopBtn.classList.toggle('active', loopEnabled);
-  const lg = parseInt(inputLg.value);
-  if (!isNaN(lg)) {
-    ensurePulseMemory(lg);
-    // Rebuild visible selection from memory and refresh labels
-    syncSelectedFromMemory();
-    updateNumbers();
-    if (isPlaying && typeof audio.setSelected === 'function') {
-      audio.setSelected(selectedForAudioFromState());
-    }
-  }
-  // Sincronitza amb el motor en temps real si està sonant
-  if (isPlaying && audio && typeof audio.setLoop === 'function') {
-    audio.setLoop(loopEnabled);
-  }
-  animateTimelineCircle(loopEnabled && circularTimeline);
-});
+// Initialize loop controller with shared component
+loopController.attach();
 
 resetBtn.addEventListener('click', () => {
   pulseMemory = [];
@@ -615,43 +549,28 @@ function randomize() {
 
 initRandomMenu(randomBtn, randomMenu, randomize);
 
-initSoundDropdown(baseSoundSelect, {
-  storageKey: storeKey('baseSound'),
-  eventType: 'baseSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setBase(val)
-});
-initSoundDropdown(accentSoundSelect, {
-  storageKey: storeKey('accentSound'),
-  eventType: 'accentSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setAccent(val)
-});
-initSoundDropdown(startSoundSelect, {
-  storageKey: storeKey('startSound'),
-  eventType: 'startSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setStart(val)
-});
+// Sound dropdowns initialized by header.js via initHeader()
+// No need to initialize here - header.js handles baseSoundSelect, accentSoundSelect, and startSoundSelect
 
 // Preview on sound change handled by shared header
 
-async function initAudio(){
-  if(audio) return audio;
-  await ensureAudio();
-  audio = new TimelineAudio();
-  await audio.ready();
-    // Ensure accent channel is registered and routed separately for the mixer
-  if (audio.mixer && typeof audio.mixer.registerChannel === 'function') {
-    audio.mixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
+// Create standardized audio initializer that avoids AudioContext warnings
+const _baseInitAudio = createRhythmAudioInitializer({
+  getSoundSelects: () => ({
+    baseSoundSelect: elements.baseSoundSelect,
+    accentSoundSelect: elements.accentSoundSelect,
+    startSoundSelect: elements.startSoundSelect
+  }),
+  schedulingBridge
+});
+
+async function initAudio() {
+  if (!audio) {
+    audio = await _baseInitAudio();
+    if (pendingMute != null && typeof audio.setMute === 'function') {
+      audio.setMute(pendingMute);
+    }
   }
-  if (audio._channelAssignments) {
-    audio._channelAssignments.accent = 'accent';
-  }
-  audio.setBase(baseSoundSelect.dataset.value);
-  audio.setAccent(accentSoundSelect.dataset.value);
-  audio.setStart(startSoundSelect.dataset.value);
-  schedulingBridge.applyTo(audio);
   return audio;
 }
 
@@ -1133,12 +1052,10 @@ function handleInput(){
     if (typeof audio.updateTransport === 'function' && (validLg || validV)) {
       const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
       audio.updateTransport({
+        align: 'nextPulse',
         totalPulses: playbackTotal != null ? playbackTotal : undefined,
         bpm: validV ? vNow : undefined
       });
-    }
-    if (validLg && validV) {
-      scheduleZeroResync(vNow);
     }
   }
 }
@@ -1323,8 +1240,7 @@ function renderTimeline(){
       hit.style.cursor = 'pointer';
       // listeners on the hit target
       hit.addEventListener('click', (ev) => {
-        if (suppressClickIndex === i) {
-          suppressClickIndex = null;
+        if (dragController.consumeSuppressClick(String(i))) {
           ev.preventDefault();
           ev.stopPropagation();
           return; // already applied on pointerdown
@@ -1332,10 +1248,7 @@ function renderTimeline(){
         togglePulse(i);
       });
       hit.addEventListener('pointerenter', () => {
-        if (isDragging && lastDragIndex !== i) {
-          lastDragIndex = i;
-          setPulseSelected(i, dragMode === 'select');
-        }
+        dragController.handleEnter({ key: String(i), index: i });
       });
     }
 
@@ -1609,8 +1522,7 @@ function handlePlaybackStop(audioInstance) {
       sel && sel.removeAllRanges && sel.removeAllRanges();
     } catch {}
   }
-  if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
-  if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+  pulseSeqController.clearActive();
 }
 
 async function startPlayback(providedAudio) {
@@ -1690,6 +1602,37 @@ playBtn.addEventListener('click', async () => {
   } catch {}
 });
 
+function getPulseSeqRect(index) {
+  if (!pulseSeqEl || !Number.isFinite(index)) return null;
+  const idx = Math.round(index);
+  if (idx === 0) {
+    const zero = pulseSeqEl.querySelector('.pz.zero');
+    return zero ? zero.getBoundingClientRect() : null;
+  }
+  if (pulses && idx === pulses.length - 1) {
+    const lgEl = pulseSeqEl.querySelector('.pz.lg');
+    return lgEl ? lgEl.getBoundingClientRect() : null;
+  }
+  const range = pulseSeqRanges[idx];
+  if (range && Array.isArray(range)) {
+    const edit = getEditEl();
+    const node = edit && edit.firstChild;
+    if (node) {
+      try {
+        const r = document.createRange();
+        const start = Math.max(0, Number(range[0]) || 0);
+        const end = Math.max(start, Number(range[1]) || start);
+        r.setStart(node, start);
+        r.setEnd(node, end);
+        return r.getBoundingClientRect();
+      } catch {}
+    }
+  }
+  return null;
+}
+
+pulseSeqController.setRectResolver(getPulseSeqRect);
+
 function highlightPulse(i){
   // Si no està en reproducció, no tornem a canviar seleccions ni highlights
   if (!isPlaying) return;
@@ -1714,33 +1657,10 @@ function highlightPulse(i){
     if (last) last.classList.add('active');
   }
   if (pulseSeqEl) {
-    const parentRect = pulseSeqEl.getBoundingClientRect();
-    const getRect = (index) => {
-      if (index === 0) {
-        const z = pulseSeqEl.querySelector('.pz.zero');
-        return z ? z.getBoundingClientRect() : null;
-      }
-      if (index === pulses.length - 1) {
-        const l = pulseSeqEl.querySelector('.pz.lg');
-        return l ? l.getBoundingClientRect() : null;
-      }
-      const range = pulseSeqRanges[index];
-      if (range) {
-        const el = getEditEl();
-        const node = el && el.firstChild;
-        if (node) {
-          const r = document.createRange();
-          r.setStart(node, range[0]);
-          r.setEnd(node, range[1]);
-          return r.getBoundingClientRect();
-        }
-      }
-      return null;
-    };
-
-    const rect = getRect(idx);
+    const rect = getPulseSeqRect(idx);
     let newScrollLeft = pulseSeqEl.scrollLeft;
     if (rect) {
+      const parentRect = pulseSeqEl.getBoundingClientRect();
       const absLeft = rect.left - parentRect.left + pulseSeqEl.scrollLeft;
       const target = absLeft - (pulseSeqEl.clientWidth - rect.width) / 2;
       const maxScroll = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
@@ -1749,31 +1669,22 @@ function highlightPulse(i){
       if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
     }
 
-    const parent = pulseSeqEl.getBoundingClientRect();
-    const place = (r, el) => {
-      if (!r || !el) return;
-      const cx = r.left - parent.left + newScrollLeft + r.width / 2;
-      const cy = r.top - parent.top + pulseSeqEl.scrollTop + r.height / 2;
-      const size = Math.max(r.width, r.height) * 0.75;
-      el.style.width = size + 'px';
-      el.style.height = size + 'px';
-      el.style.left = cx + 'px';
-      el.style.top = cy + 'px';
-      el.classList.remove('active');
-      void el.offsetWidth;
-      el.classList.add('active');
-    };
-
-    const currentRect = getRect(idx);
-    if (currentRect) place(currentRect, pulseSeqHighlight);
-    else pulseSeqHighlight.classList.remove('active');
-
+    let trailingIndex = null;
+    let trailingRect = null;
     if (idx === 0 && loopEnabled) {
-      const lastRect = getRect(pulses.length - 1);
-      if (lastRect) place(lastRect, pulseSeqHighlight2);
-      else pulseSeqHighlight2.classList.remove('active');
+      trailingIndex = pulses.length - 1;
+      trailingRect = getPulseSeqRect(trailingIndex);
+    }
+
+    if (rect) {
+      pulseSeqController.setActiveIndex(idx, {
+        rect,
+        trailingIndex,
+        trailingRect,
+        scrollLeft: newScrollLeft
+      });
     } else {
-      pulseSeqHighlight2.classList.remove('active');
+      pulseSeqController.clearActive();
     }
   }
 

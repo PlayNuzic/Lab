@@ -1,12 +1,43 @@
 import { TimelineAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
-import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
+import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
+import createFractionEditor, { createEmptyFractionInfo } from '../../libs/app-common/fraction-editor.js';
+import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
+import { randomize as randomizeValues } from '../../libs/random/index.js';
+import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
+import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
+import { parseIntSafe, gcd, lcm } from '../../libs/app-common/number.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
+import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
+import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
+import {
+  FRACTION_POSITION_EPSILON,
+  TEXT_NODE_TYPE,
+  fractionDefaults,
+  randomDefaults,
+  createFractionSelectionStore,
+  makeFractionKey,
+  registerFractionLabel as registerFractionLabelInStore,
+  getFractionInfoByLabel as getFractionInfoByLabelFromStore,
+  fractionValue as computeFractionValue,
+  cycleNotationToFraction as computeCycleNotationToFraction,
+  fractionDisplay as formatFractionDisplay,
+  extractFractionInfoFromElement,
+  applyFractionSelectionClasses as applyFractionSelectionClassesModule,
+  rebuildFractionSelections as rebuildFractionSelectionsModule,
+  setFractionSelected as setFractionSelectedModule,
+  loadRandomConfig,
+  saveRandomConfig,
+  applyRandomConfig as applyRandomConfigModule,
+  updateRandomConfig as updateRandomConfigModule,
+  applyRandomFractionSelection
+} from './fraction-selection.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -25,24 +56,102 @@ bindSharedSoundEvents({
     cycleSound: 'setCycle'
   }
 });
-const inputLg = document.getElementById('inputLg');
-const inputV = document.getElementById('inputV');
-const inputT = document.getElementById('inputT');
-const inputVUp = document.getElementById('inputVUp');
-const inputVDown = document.getElementById('inputVDown');
-const inputLgUp = document.getElementById('inputLgUp');
-const inputLgDown = document.getElementById('inputLgDown');
-const ledLg = document.getElementById('ledLg');
-const ledV = document.getElementById('ledV');
-const ledT = document.getElementById('ledT');
-const unitLg = document.getElementById('unitLg');
-const unitV = document.getElementById('unitV');
-const unitT = document.getElementById('unitT');
-// Pulse sequence UI element (contenteditable div in template)
-const pulseSeqEl = document.getElementById('pulseSeq');
-const formula = document.getElementById('formula');
-const timelineWrapper = document.getElementById('timelineWrapper');
-const timeline = document.getElementById('timeline');
+// Bind all DOM elements using new utilities
+// Bind all DOM elements using app-specific utilities (no warnings for missing elements)
+const { elements, leds, ledHelpers } = bindAppRhythmElements('app4');
+
+// Create LED managers for Lg, V, T parameters
+const ledManagers = createRhythmLEDManagers(leds);
+
+// State object for shared loop controller
+const appState = {
+  get loopEnabled() { return loopEnabled; },
+  set loopEnabled(v) { loopEnabled = v; }
+};
+
+// Create shared loop controller with pulse memory integration
+const loopController = createPulseMemoryLoopController({
+  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  loopBtn: elements.loopBtn,
+  state: appState,
+  ensurePulseMemory,
+  getLg: () => parseInt(inputLg.value),
+  isPlaying: () => isPlaying,
+  onToggle: (enabled) => {
+    // Rebuild visible selection from memory and refresh labels
+    syncSelectedFromMemory();
+    updatePulseNumbers();
+    if (isPlaying) {
+      applySelectionToAudio();
+    }
+    layoutTimeline();
+    // Update totalPulses when loop changes during playback
+    if (isPlaying) {
+      handleInput();
+    }
+  }
+});
+
+// Extract commonly used elements for backward compatibility
+const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
+        ledLg, ledV, ledT, unitLg, unitV, unitT, formula, timelineWrapper,
+        timeline, playBtn, loopBtn, resetBtn, tapBtn, tapHelp,
+        circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
+        randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
+        baseSoundSelect, accentSoundSelect,
+        startSoundSelect, cycleSoundSelect, themeSelect, pulseToggleBtn,
+        selectedToggleBtn, cycleToggleBtn } = elements;
+
+// App4-specific elements
+const pulseSeqEl = elements.pulseSeq;
+const fractionInlineSlot = document.getElementById(FRACTION_INLINE_SLOT_ID);
+
+let numeratorInput;
+let denominatorInput;
+let pulseSeqFractionWrapper = null;
+let fractionEditorController = null;
+let currentFractionInfo = createEmptyFractionInfo();
+let pulseSeqFractionNumeratorEl = null;
+let pulseSeqFractionDenominatorEl = null;
+let pulseSeqVisualEl = null;
+let pulseSeqEditWrapper = null;
+let pulses = [];
+let pulseNumberLabels = [];
+let cycleMarkers = [];
+let cycleLabels = [];
+let lastStructureSignature = {
+  lg: null,
+  numerator: null,
+  denominator: null
+};
+let bars = [];
+let pulseHits = [];
+let cycleMarkerHits = [];
+const fractionStore = createFractionSelectionStore();
+let pulseSeqRanges = {};
+let currentAudioResolution = 1;
+const raf = (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
+  ? (cb) => window.requestAnimationFrame(cb)
+  : (cb) => setTimeout(cb, 16);
+const caf = (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function')
+  ? (handle) => window.cancelAnimationFrame(handle)
+  : (handle) => clearTimeout(handle);
+
+if (fractionInlineSlot) {
+  pulseSeqFractionWrapper = fractionInlineSlot;
+}
+
+const pulseSeqController = createPulseSeqController();
+const pulseMemoryApi = pulseSeqController.memory;
+const pulseMemory = pulseMemoryApi.data;
+const { editEl: pulseSeqEditEl } = pulseSeqController.mount({
+  root: pulseSeqEl,
+  markupBuilder: buildPulseSeqMarkup,
+  onTextSet: (value) => updatePulseSeqVisualLayer(value)
+});
+const dragController = pulseSeqController.drag;
+
+// T indicator setup (App4-specific functionality)
 const shouldRenderTIndicator = Boolean(inputT);
 const tIndicator = shouldRenderTIndicator ? (() => {
   const indicator = document.createElement('div');
@@ -52,42 +161,15 @@ const tIndicator = shouldRenderTIndicator ? (() => {
   timeline.appendChild(indicator);
   return indicator;
 })() : null;
-const playBtn = document.getElementById('playBtn');
-const loopBtn = document.getElementById('loopBtn');
-const resetBtn = document.getElementById('resetBtn');
-const tapBtn = document.getElementById('tapTempoBtn');
-const tapHelp = document.getElementById('tapHelp');
-const circularTimelineToggle = document.getElementById('circularTimelineToggle');
-const randomBtn = document.getElementById('randomBtn');
-const randomMenu = document.getElementById('randomMenu');
-const randLgToggle = document.getElementById('randLgToggle');
-const randLgMin = document.getElementById('randLgMin');
-const randLgMax = document.getElementById('randLgMax');
-const randVToggle = document.getElementById('randVToggle');
-const randVMin = document.getElementById('randVMin');
-const randVMax = document.getElementById('randVMax');
-const randPulsesToggle = document.getElementById('randPulsesToggle');
-const randomCount = document.getElementById('randomCount');
-const randTToggle = document.getElementById('randTToggle');
-const randTMin = document.getElementById('randTMin');
-const randTMax = document.getElementById('randTMax');
+// App4-specific additional elements
+const randComplexToggle = document.getElementById('randComplexToggle');
+const selectColor = document.getElementById('selectColor');
 const randNToggle = document.getElementById('randNToggle');
 const randNMin = document.getElementById('randNMin');
 const randNMax = document.getElementById('randNMax');
 const randDToggle = document.getElementById('randDToggle');
 const randDMin = document.getElementById('randDMin');
 const randDMax = document.getElementById('randDMax');
-const randComplexToggle = document.getElementById('randComplexToggle');
-// Mute is managed by the shared header (#muteBtn)
-const themeSelect = document.getElementById('themeSelect');
-const selectColor = document.getElementById('selectColor');
-const baseSoundSelect = document.getElementById('baseSoundSelect');
-const accentSoundSelect = document.getElementById('accentSoundSelect');
-const startSoundSelect = document.getElementById('startSoundSelect');
-const cycleSoundSelect = document.getElementById('cycleSoundSelect');
-const pulseToggleBtn = document.getElementById('pulseToggleBtn');
-const selectedToggleBtn = document.getElementById('selectedToggleBtn');
-const cycleToggleBtn = document.getElementById('cycleToggleBtn');
 const titleHeading = document.querySelector('header.top-bar h1');
 let titleButton = null;
 if (titleHeading) {
@@ -109,616 +191,141 @@ if (globalMixer) {
 
 const FRACTION_NUMERATOR_KEY = 'n';
 const FRACTION_DENOMINATOR_KEY = 'd';
-const fractionDefaults = {
-  numerator: null,
-  denominator: null
+
+const preferenceStorage = createPreferenceStorage({ prefix: 'app4', separator: ':' });
+const { storeKey, save: saveOpt, load: loadOpt, clear: clearOpt } = preferenceStorage;
+const muteButton = document.getElementById('muteBtn');
+
+registerFactoryReset({ storage: preferenceStorage });
+setupThemeSync({ storage: preferenceStorage, selectEl: themeSelect });
+setupMutePersistence({
+  storage: preferenceStorage,
+  getAudioInstance: () => audio,
+  muteButton
+});
+
+const randomControls = {
+  randLgToggle,
+  randLgMin,
+  randLgMax,
+  randVToggle,
+  randVMin,
+  randVMax,
+  randNToggle,
+  randNMin,
+  randNMax,
+  randDToggle,
+  randDMin,
+  randDMax,
+  randComplexToggle,
+  randPulsesToggle,
+  randomCount
 };
 
-let numeratorInput;
-let denominatorInput;
-let fractionInfoBubble;
-let numeratorFieldWrapper;
-let denominatorFieldWrapper;
-let numeratorFieldPlaceholder;
-let denominatorFieldPlaceholder;
-let pulseSeqFractionWrapper = null;
-let ghostFractionContainer = null;
-let ghostNumeratorText = null;
-let ghostDenominatorText = null;
-const DEFAULT_NUMERATOR_HOVER_TEXT = 'Numerador (pulsos por ciclo)';
-const DEFAULT_DENOMINATOR_HOVER_TEXT = 'Denominador (subdivisiones)';
-const FRACTION_HOVER_NUMERATOR_TYPE = 'numerator';
-const FRACTION_HOVER_DENOMINATOR_TYPE = 'denominator';
-let currentFractionInfo = createEmptyFractionInfo();
-let currentFractionMultipleMessage = '';
-let fractionInfoHideTimer = null;
-
-const randomDefaults = {
-  Lg: { enabled: true, range: [2, 30] },
-  V: { enabled: true, range: [40, 320] },
-  T: { enabled: true, range: [0.1, 20] },
-  Pulses: { enabled: true, count: '' },
-  n: { enabled: true, range: [1, 9] },
-  d: { enabled: true, range: [1, 9] },
-  allowComplex: true
+const randomConfig = {
+  ...randomDefaults,
+  ...loadRandomConfig(() => loadOpt(RANDOM_STORE_KEY))
 };
 
-const RANDOM_STORE_KEY = 'random';
-
-function loadRandomConfig() {
-  try {
-    const raw = loadOpt(RANDOM_STORE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
+function persistRandomConfig() {
+  saveRandomConfig((value) => saveOpt(RANDOM_STORE_KEY, value), randomConfig);
 }
 
-function saveRandomConfig(cfg) {
-  try { saveOpt(RANDOM_STORE_KEY, JSON.stringify(cfg)); } catch {}
+function applyRandomConfig() {
+  applyRandomConfigModule(randomConfig, randomControls);
 }
 
-const randomConfig = { ...randomDefaults, ...loadRandomConfig() };
-
-function toIntRange(minInput, maxInput, fallback) {
-  const fallbackRange = Array.isArray(fallback) ? fallback : [1, 1];
-  const [lo, hi] = toRange(minInput, maxInput, fallbackRange);
-  const normalizedLo = Number.isFinite(lo) ? Math.max(1, Math.round(lo)) : fallbackRange[0];
-  const normalizedHiRaw = Number.isFinite(hi) ? Math.round(hi) : fallbackRange[1];
-  const normalizedHi = Math.max(normalizedLo, Math.max(1, normalizedHiRaw));
-  return [normalizedLo, normalizedHi];
-}
-
-/**
- * Apply stored random configuration values to the associated DOM controls.
- * @param {Record<string, any>} cfg
- */
-function applyRandomConfig(cfg) {
-  if (randLgToggle) randLgToggle.checked = cfg.Lg.enabled;
-  if (randLgMin) randLgMin.value = cfg.Lg.range[0];
-  if (randLgMax) randLgMax.value = cfg.Lg.range[1];
-  if (randVToggle) randVToggle.checked = cfg.V.enabled;
-  if (randVMin) randVMin.value = cfg.V.range[0];
-  if (randVMax) randVMax.value = cfg.V.range[1];
-  if (cfg.T) {
-    if (randTToggle) randTToggle.checked = cfg.T.enabled;
-    if (randTMin) randTMin.value = cfg.T.range[0];
-    if (randTMax) randTMax.value = cfg.T.range[1];
-  }
-  if (cfg.n && randNToggle && randNMin && randNMax) {
-    randNToggle.checked = cfg.n.enabled;
-    randNMin.value = cfg.n.range[0];
-    randNMax.value = cfg.n.range[1];
-  }
-  if (cfg.d && randDToggle && randDMin && randDMax) {
-    randDToggle.checked = cfg.d.enabled;
-    randDMin.value = cfg.d.range[0];
-    randDMax.value = cfg.d.range[1];
-  }
-  if (typeof cfg.allowComplex === 'boolean' && randComplexToggle) {
-    randComplexToggle.checked = cfg.allowComplex;
-  }
-  if (randPulsesToggle && randomCount) {
-    randPulsesToggle.checked = cfg.Pulses.enabled;
-    randomCount.value = cfg.Pulses.count ?? '';
-  }
-}
-
-/**
- * Persist the current random menu configuration back to storage.
- */
 function updateRandomConfig() {
-  randomConfig.Lg = {
-    enabled: randLgToggle.checked,
-    range: toRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range)
-  };
-  randomConfig.V = {
-    enabled: randVToggle.checked,
-    range: toRange(randVMin?.value, randVMax?.value, randomDefaults.V.range)
-  };
-  const previousTRange = randomConfig.T?.range ?? randomDefaults.T.range;
-  const previousTEnabled = randomConfig.T?.enabled ?? randomDefaults.T.enabled;
-  randomConfig.T = {
-    enabled: randTToggle ? randTToggle.checked : previousTEnabled,
-    range: (randTMin && randTMax)
-      ? toRange(randTMin?.value, randTMax?.value, previousTRange)
-      : previousTRange
-  };
-  const previousNRange = randomConfig.n?.range ?? randomDefaults.n.range;
-  randomConfig.n = {
-    enabled: randNToggle ? randNToggle.checked : (randomConfig.n?.enabled ?? randomDefaults.n.enabled),
-    range: (randNMin && randNMax)
-      ? toIntRange(randNMin.value, randNMax.value, previousNRange)
-      : previousNRange
-  };
-  const previousDRange = randomConfig.d?.range ?? randomDefaults.d.range;
-  randomConfig.d = {
-    enabled: randDToggle ? randDToggle.checked : (randomConfig.d?.enabled ?? randomDefaults.d.enabled),
-    range: (randDMin && randDMax)
-      ? toIntRange(randDMin.value, randDMax.value, previousDRange)
-      : previousDRange
-  };
-  if (randComplexToggle) {
-    randomConfig.allowComplex = randComplexToggle.checked;
-  } else if (typeof randomConfig.allowComplex !== 'boolean') {
-    randomConfig.allowComplex = randomDefaults.allowComplex;
-  }
-  if (randPulsesToggle && randomCount) {
-    randomConfig.Pulses = {
-      enabled: randPulsesToggle.checked,
-      count: randomCount.value
-    };
-  }
-  saveRandomConfig(randomConfig);
+  updateRandomConfigModule(randomConfig, randomControls);
+  persistRandomConfig();
 }
 
-applyRandomConfig(randomConfig);
+applyRandomConfig();
 
 [
   randLgToggle, randLgMin, randLgMax,
   randVToggle, randVMin, randVMax,
-  randTToggle, randTMin, randTMax,
   randNToggle, randNMin, randNMax,
   randDToggle, randDMin, randDMax,
   randComplexToggle,
   randPulsesToggle, randomCount
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
-function parseIntSafe(val) {
-  const n = Number.parseInt(val, 10);
-  return Number.isFinite(n) ? n : NaN;
-}
-
-function createEmptyFractionInfo() {
-  return {
-    numerator: null,
-    denominator: null,
-    reducedNumerator: null,
-    reducedDenominator: null,
-    isMultiple: false,
-    multipleFactor: 1
-  };
-}
-
-function gcd(a, b) {
-  let x = Math.abs(Number(a));
-  let y = Math.abs(Number(b));
-  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) {
-    return Number.isFinite(x) && x > 0 ? x : Number.isFinite(y) && y > 0 ? y : 1;
-  }
-  while (y !== 0) {
-    const temp = x % y;
-    x = y;
-    y = temp;
-  }
-  return x || 1;
-}
-
-function lcm(a, b) {
-  const x = Math.abs(Math.round(Number(a) || 0));
-  const y = Math.abs(Math.round(Number(b) || 0));
-  if (!Number.isFinite(x) || !Number.isFinite(y) || x === 0 || y === 0) {
-    return 1;
-  }
-  return Math.abs((x / gcd(x, y)) * y) || 1;
-}
-
-function computeFractionInfo(numerator, denominator) {
-  const info = createEmptyFractionInfo();
-  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || numerator <= 0 || denominator <= 0) {
-    return info;
-  }
-  info.numerator = numerator;
-  info.denominator = denominator;
-  const divisor = gcd(numerator, denominator);
-  if (divisor <= 1) {
-    return info;
-  }
-  info.reducedNumerator = numerator / divisor;
-  info.reducedDenominator = denominator / divisor;
-  info.isMultiple = true;
-  info.multipleFactor = denominator / info.reducedDenominator;
-  return info;
-}
-
-function buildReductionHoverText(info) {
-  if (!info || !info.isMultiple) return '';
-  const accentEvery = Math.max(1, Math.round(info.multipleFactor));
-  const noun = accentEvery === 1 ? 'subdivisión' : 'subdivisiones';
-  return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}.\nSe repite ${accentEvery} veces la misma subdivisión en cada fracción ${info.numerator}/${info.denominator}.`;
-}
-
-function updateFractionGhost(info) {
-  if (!ghostFractionContainer || !ghostNumeratorText || !ghostDenominatorText) return;
-  if (!info || !info.isMultiple) {
-    ghostFractionContainer.classList.add('fraction-ghost--hidden');
-    ghostFractionContainer.classList.remove('fraction-ghost--visible');
-    ghostNumeratorText.textContent = '';
-    ghostDenominatorText.textContent = '';
-    return;
-  }
-  ghostNumeratorText.textContent = info.reducedNumerator;
-  ghostDenominatorText.textContent = info.reducedDenominator;
-  ghostFractionContainer.classList.remove('fraction-ghost--hidden');
-  ghostFractionContainer.classList.add('fraction-ghost--visible');
-}
-
-function clearFractionInfoHideTimer() {
-  if (fractionInfoHideTimer) {
-    clearTimeout(fractionInfoHideTimer);
-    fractionInfoHideTimer = null;
-  }
-}
-
-function hideFractionInfoBubble({ clearMessage = false } = {}) {
-  if (!fractionInfoBubble) return;
-  clearFractionInfoHideTimer();
-  fractionInfoBubble.classList.add('fraction-info-bubble--hidden');
-  fractionInfoBubble.classList.remove('fraction-info-bubble--visible');
-  if (clearMessage) {
-    fractionInfoBubble.textContent = '';
-  }
-}
-
-function showFractionInfoBubble({ message, autoHide = false } = {}) {
-  if (!fractionInfoBubble) return;
-  const resolvedMessage = message || currentFractionMultipleMessage;
-  if (!resolvedMessage) return;
-  clearFractionInfoHideTimer();
-  solidMenuBackground(fractionInfoBubble);
-  fractionInfoBubble.textContent = resolvedMessage;
-  fractionInfoBubble.classList.remove('fraction-info-bubble--hidden');
-  fractionInfoBubble.classList.add('fraction-info-bubble--visible');
-  if (autoHide) {
-    fractionInfoHideTimer = setTimeout(() => {
-      hideFractionInfoBubble();
-    }, 3000);
-  }
-}
-
-function getDefaultFractionHoverText(target) {
-  if (!target || !target.dataset) return '';
-  if (target.dataset.fractionHoverType === FRACTION_HOVER_NUMERATOR_TYPE) {
-    return DEFAULT_NUMERATOR_HOVER_TEXT;
-  }
-  if (target.dataset.fractionHoverType === FRACTION_HOVER_DENOMINATOR_TYPE) {
-    return DEFAULT_DENOMINATOR_HOVER_TEXT;
-  }
-  return '';
-}
-
-function handleFractionHoverEnter(event) {
-  const target = event?.currentTarget || null;
-  const message = currentFractionMultipleMessage || getDefaultFractionHoverText(target);
-  if (!message) return;
-  showFractionInfoBubble({ message });
-}
-
-function handleFractionHoverLeave() {
-  if (!fractionInfoBubble) return;
-  hideFractionInfoBubble();
-}
-
-function registerFractionHoverTarget(target, { useFocus = false } = {}) {
-  if (!target) return;
-  target.addEventListener('mouseenter', handleFractionHoverEnter);
-  target.addEventListener('mouseleave', handleFractionHoverLeave);
-  if (useFocus) {
-    target.addEventListener('focus', handleFractionHoverEnter);
-    target.addEventListener('blur', handleFractionHoverLeave);
-  }
-}
-
-function updateFractionInfoBubble(info, { reveal = false } = {}) {
-  if (!fractionInfoBubble) return;
-  clearFractionInfoHideTimer();
-  if (!info || !info.isMultiple) {
-    currentFractionMultipleMessage = '';
-    hideFractionInfoBubble({ clearMessage: true });
-    return;
-  }
-  currentFractionMultipleMessage = buildReductionHoverText(info);
-  if (reveal) {
-    showFractionInfoBubble({ message: currentFractionMultipleMessage, autoHide: true });
-  } else if (fractionInfoBubble.classList.contains('fraction-info-bubble--visible')) {
-    showFractionInfoBubble({ message: currentFractionMultipleMessage });
-  }
-}
-
-function setFractionFieldEmptyState(wrapper, placeholder, isEmpty) {
-  if (!wrapper) return;
-  const empty = !!isEmpty;
-  wrapper.classList.toggle('fraction-field--empty', empty);
-  if (placeholder) {
-    placeholder.classList.toggle('fraction-field-placeholder--visible', empty);
-  }
-}
-
-function updateFractionFieldState(numerator, denominator) {
-  const hasNumerator = Number.isFinite(numerator) && numerator > 0;
-  const hasDenominator = Number.isFinite(denominator) && denominator > 0;
-  setFractionFieldEmptyState(numeratorFieldWrapper, numeratorFieldPlaceholder, !hasNumerator);
-  setFractionFieldEmptyState(denominatorFieldWrapper, denominatorFieldPlaceholder, !hasDenominator);
-}
-
-function updateFractionUI(numerator, denominator) {
-  currentFractionInfo = computeFractionInfo(numerator, denominator);
-  updatePulseSeqFractionDisplay(numerator, denominator);
-  updateFractionFieldState(numerator, denominator);
-  updateFractionInfoBubble(currentFractionInfo, { reveal: true });
-  updateFractionGhost(currentFractionInfo);
-  if (fractionalPulseSelections.length > 0) {
-    sanitizePulseSeq({ causedBy: 'fraction-change', skipCaret: true });
-  }
-}
-
-function persistFractionField(input, key) {
-  if (!input || !key) return;
-  const value = parseIntSafe(input.value);
-  if (!Number.isFinite(value) || value <= 0) {
-    clearOpt(key);
-    return;
-  }
-  saveOpt(key, String(value));
-}
-
-function adjustInput(input, delta) {
-  if (!input) return;
-  const current = parseIntSafe(input.value);
-  const next = Number.isFinite(current) ? Math.max(1, current + delta) : 1;
-  setValue(input, next);
-  handleInput();
-  if (input === numeratorInput) {
-    persistFractionField(input, FRACTION_NUMERATOR_KEY);
-  } else if (input === denominatorInput) {
-    persistFractionField(input, FRACTION_DENOMINATOR_KEY);
-  }
-}
-
-function initFractionEditor() {
-  if (!pulseSeqEl) return;
-  const wrapperHost = pulseSeqFractionWrapper || pulseSeqEl.querySelector('.fraction');
-  if (!wrapperHost) return;
-
-  wrapperHost.innerHTML = '';
-  wrapperHost.classList.add('fraction-inline-container');
-  wrapperHost.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
-
-  const wrapper = document.createElement('span');
-  wrapper.className = 'fraction-editor-wrapper fraction-editor-wrapper--inline';
-  wrapper.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
-  wrapperHost.appendChild(wrapper);
-  registerFractionHoverTarget(wrapper);
-
-  ghostFractionContainer = document.createElement('div');
-  ghostFractionContainer.className = 'fraction-ghost fraction-ghost--hidden';
-  ghostFractionContainer.setAttribute('aria-hidden', 'true');
-
-  const ghostNumeratorWrapper = document.createElement('div');
-  ghostNumeratorWrapper.className = 'fraction-ghost__numerator';
-  ghostNumeratorText = document.createElement('span');
-  ghostNumeratorText.className = 'fraction-ghost__number';
-  ghostNumeratorWrapper.appendChild(ghostNumeratorText);
-
-  const ghostBar = document.createElement('div');
-  ghostBar.className = 'fraction-ghost__bar';
-
-  const ghostDenominatorWrapper = document.createElement('div');
-  ghostDenominatorWrapper.className = 'fraction-ghost__denominator';
-  ghostDenominatorText = document.createElement('span');
-  ghostDenominatorText.className = 'fraction-ghost__number';
-  ghostDenominatorWrapper.appendChild(ghostDenominatorText);
-
-  ghostFractionContainer.append(ghostNumeratorWrapper, ghostBar, ghostDenominatorWrapper);
-
-  const container = document.createElement('div');
-  container.className = 'fraction-editor fraction-editor--inline';
-  container.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
-
-  wrapper.appendChild(ghostFractionContainer);
-  wrapper.appendChild(container);
-  registerFractionHoverTarget(container);
-
-  fractionInfoBubble = document.createElement('div');
-  fractionInfoBubble.className = 'fraction-info-bubble fraction-info-bubble--hidden';
-  fractionInfoBubble.setAttribute('role', 'status');
-  fractionInfoBubble.setAttribute('aria-live', 'polite');
-  solidMenuBackground(fractionInfoBubble);
-  wrapper.appendChild(fractionInfoBubble);
-
-  const createField = ({ wrapperClass, ariaUp, ariaDown, placeholder }) => {
-    const fieldWrapper = document.createElement('div');
-    fieldWrapper.className = `fraction-field ${wrapperClass}`;
-    fieldWrapper.classList.add('fraction-field--empty');
-    fieldWrapper.dataset.fractionHoverType = wrapperClass;
-
-    const input = document.createElement('input');
-    input.type = 'number';
-    input.min = '1';
-    input.step = '1';
-    input.value = '';
-    input.className = wrapperClass;
-    input.dataset.fractionHoverType = wrapperClass;
-    fieldWrapper.appendChild(input);
-
-    const placeholderEl = document.createElement('div');
-    placeholderEl.className = 'fraction-field-placeholder fraction-field-placeholder--visible';
-    placeholderEl.textContent = placeholder;
-    placeholderEl.setAttribute('aria-hidden', 'true');
-    fieldWrapper.appendChild(placeholderEl);
-
-    const spinner = document.createElement('div');
-    spinner.className = 'spinner';
-    const up = document.createElement('button');
-    up.type = 'button';
-    up.className = 'spin up';
-    if (ariaUp) up.setAttribute('aria-label', ariaUp);
-    const down = document.createElement('button');
-    down.type = 'button';
-    down.className = 'spin down';
-    if (ariaDown) down.setAttribute('aria-label', ariaDown);
-    spinner.appendChild(up);
-    spinner.appendChild(down);
-    fieldWrapper.appendChild(spinner);
-
-    return { wrapper: fieldWrapper, input, up, down, placeholder: placeholderEl };
-  };
-
-  const top = document.createElement('div');
-  top.className = 'top';
-  const numeratorField = createField({
-    wrapperClass: 'numerator',
-    ariaUp: 'Incrementar numerador',
-    ariaDown: 'Decrementar numerador',
-    placeholder: 'n'
-  });
-  numeratorInput = numeratorField.input;
-  numeratorFieldWrapper = numeratorField.wrapper;
-  numeratorFieldPlaceholder = numeratorField.placeholder;
-  top.appendChild(numeratorField.wrapper);
-  registerFractionHoverTarget(numeratorField.wrapper);
-  registerFractionHoverTarget(numeratorInput, { useFocus: true });
-
-  const bottom = document.createElement('div');
-  bottom.className = 'bottom';
-  const denominatorField = createField({
-    wrapperClass: 'denominator',
-    ariaUp: 'Incrementar denominador',
-    ariaDown: 'Decrementar denominador',
-    placeholder: 'd'
-  });
-  denominatorInput = denominatorField.input;
-  denominatorFieldWrapper = denominatorField.wrapper;
-  denominatorFieldPlaceholder = denominatorField.placeholder;
-  bottom.appendChild(denominatorField.wrapper);
-  registerFractionHoverTarget(denominatorField.wrapper);
-  registerFractionHoverTarget(denominatorInput, { useFocus: true });
-
-  const bar = document.createElement('div');
-  bar.className = 'fraction-bar';
-  bar.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
-  bar.setAttribute('aria-hidden', 'true');
-  registerFractionHoverTarget(bar);
-
-  container.appendChild(top);
-  container.appendChild(bar);
-  container.appendChild(bottom);
-
-  pulseSeqFractionNumeratorEl = numeratorInput;
-  pulseSeqFractionDenominatorEl = denominatorInput;
-  registerFractionHoverTarget(wrapperHost);
-
-  const enforceInt = (input, storageKey) => {
-    if (!input) return;
-    const normalize = () => {
-      let val = parseIntSafe(input.value);
-      if (!Number.isFinite(val) || val <= 0) {
-        input.value = '';
-      } else {
-        input.value = String(val);
-      }
-      persistFractionField(input, storageKey);
-      handleInput();
-    };
-    input.addEventListener('input', normalize);
-    input.addEventListener('blur', normalize);
-  };
-
-  enforceInt(numeratorInput, FRACTION_NUMERATOR_KEY);
-  enforceInt(denominatorInput, FRACTION_DENOMINATOR_KEY);
-
-  addRepeatPress(numeratorField.up, () => adjustInput(numeratorInput, +1));
-  addRepeatPress(numeratorField.down, () => adjustInput(numeratorInput, -1));
-  addRepeatPress(denominatorField.up, () => adjustInput(denominatorInput, +1));
-  addRepeatPress(denominatorField.down, () => adjustInput(denominatorInput, -1));
-
-  updateFractionFieldState(null, null);
-}
-
 function getFraction() {
-  const rawNumerator = numeratorInput ? parseIntSafe(numeratorInput.value) : NaN;
-  const rawDenominator = denominatorInput ? parseIntSafe(denominatorInput.value) : NaN;
-  return {
-    numerator: Number.isFinite(rawNumerator) && rawNumerator > 0 ? rawNumerator : null,
-    denominator: Number.isFinite(rawDenominator) && rawDenominator > 0 ? rawDenominator : null
-  };
+  if (!fractionEditorController) {
+    return { numerator: null, denominator: null };
+  }
+  return fractionEditorController.getFraction();
 }
 
-function initFractionState() {
-  if (!numeratorInput || !denominatorInput) return;
-  const storedNumerator = parseIntSafe(loadOpt(FRACTION_NUMERATOR_KEY));
-  const storedDenominator = parseIntSafe(loadOpt(FRACTION_DENOMINATOR_KEY));
-
-  const numerator = Number.isFinite(storedNumerator) && storedNumerator > 0
-    ? storedNumerator
-    : fractionDefaults.numerator;
-  const denominator = Number.isFinite(storedDenominator) && storedDenominator > 0
-    ? storedDenominator
-    : fractionDefaults.denominator;
-
-  isUpdating = true;
-  numeratorInput.value = Number.isFinite(numerator) && numerator > 0 ? String(numerator) : '';
-  denominatorInput.value = Number.isFinite(denominator) && denominator > 0 ? String(denominator) : '';
-  isUpdating = false;
-
-  if (!(Number.isFinite(numerator) && numerator > 0)) {
-    clearOpt(FRACTION_NUMERATOR_KEY);
+function refreshFractionUI(options = {}) {
+  if (!fractionEditorController) {
+    currentFractionInfo = createEmptyFractionInfo();
+    return currentFractionInfo;
   }
-  if (!(Number.isFinite(denominator) && denominator > 0)) {
-    clearOpt(FRACTION_DENOMINATOR_KEY);
-  }
+  currentFractionInfo = fractionEditorController.refresh(options);
+  return currentFractionInfo;
+}
 
-  updateFractionUI(numerator, denominator);
+function initFractionEditorController() {
+  const host = pulseSeqFractionWrapper || fractionInlineSlot;
+  if (!host) return;
+
+  if (fractionEditorController && typeof fractionEditorController.destroy === 'function') {
+    fractionEditorController.destroy();
+  }
+  fractionEditorController = null;
+
+  const controller = createFractionEditor({
+    mode: 'inline',
+    host,
+    defaults: fractionDefaults,
+    storage: {
+      load: loadOpt,
+      save: saveOpt,
+      clear: clearOpt,
+      numeratorKey: FRACTION_NUMERATOR_KEY,
+      denominatorKey: FRACTION_DENOMINATOR_KEY
+    },
+    addRepeatPress,
+    applyMenuBackground: solidMenuBackground,
+    labels: {
+      numerator: {
+        placeholder: 'n',
+        ariaUp: 'Incrementar numerador',
+        ariaDown: 'Decrementar numerador'
+      },
+      denominator: {
+        placeholder: 'd',
+        ariaUp: 'Incrementar denominador',
+        ariaDown: 'Decrementar denominador'
+      }
+    },
+    onChange: ({ numerator, denominator, info, cause }) => {
+      currentFractionInfo = info || createEmptyFractionInfo();
+      updatePulseSeqFractionDisplay(numerator, denominator, { silent: true });
+      if (fractionStore.pulseSelections.length > 0) {
+        sanitizePulseSeq({ causedBy: 'fraction-change', skipCaret: true });
+      }
+      if (!isUpdating && cause !== 'init') {
+        handleInput();
+      }
+    }
+  });
+
+  fractionEditorController = controller;
+  if (controller && controller.elements) {
+    const { numerator, denominator } = controller.elements;
+    numeratorInput = numerator;
+    denominatorInput = denominator;
+    pulseSeqFractionNumeratorEl = numerator;
+    pulseSeqFractionDenominatorEl = denominator;
+  }
+  refreshFractionUI({ reveal: false });
 }
 
 // No actualitza la memòria a cada tecleig: es confirma amb Enter o blur
 // pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
-
-let pulses = [];
-let pulseNumberLabels = [];
-let cycleMarkers = [];
-let cycleLabels = [];
-let lastStructureSignature = {
-  lg: null,
-  numerator: null,
-  denominator: null
-};
-let bars = [];
-let pulseHits = [];
-let cycleMarkerHits = [];
-const fractionalSelectionState = new Map();
-const selectedFractionKeys = new Set();
-const fractionHitMap = new Map();
-const fractionMarkerMap = new Map();
-const fractionLabelLookup = new Map();
-// Hit targets (separate from the visual dots) and drag mode
-let dragMode = 'select'; // 'select' | 'deselect'
-// --- Selection memory across Lg changes ---
-let pulseMemory = []; // index -> selected
-let pulseSeqRanges = {};
-let fractionalPulseSelections = [];
-let pulseSeqEntryOrder = [];
-const pulseSeqEntryLookup = new Map();
-const pulseSeqTokenMap = new Map();
-let pulseSeqFractionNumeratorEl = null;
-let pulseSeqFractionDenominatorEl = null;
-let pulseSeqVisualEl = null;
-let pulseSeqEditWrapper = null;
-let pulseSeqSpacingAdjustHandle = null;
-let lastFractionGap = null;
-let currentAudioResolution = 1;
-let lastFractionHighlightKey = null;
-let lastHighlightType = null;
-let lastHighlightIntIndex = null;
-let lastHighlightFractionKey = null;
-const FRACTION_POSITION_EPSILON = 1e-6;
-const TEXT_NODE_TYPE = (typeof Node !== 'undefined' && Node.TEXT_NODE) || 3;
-const raf = (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
-  ? (cb) => window.requestAnimationFrame(cb)
-  : (cb) => setTimeout(cb, 16);
-const caf = (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function')
-  ? (id) => window.cancelAnimationFrame(id)
-  : (id) => clearTimeout(id);
 
 function nearestPulseIndex(value) {
   if (!Number.isFinite(value)) return null;
@@ -728,19 +335,17 @@ function nearestPulseIndex(value) {
 const voiceHighlightHandlers = new Map();
 
 function ensurePulseMemory(size) {
-  if (size >= pulseMemory.length) {
-    for (let i = pulseMemory.length; i <= size; i++) pulseMemory[i] = false;
-  }
+  pulseMemoryApi.ensure(size);
 }
 
 // Clear all persistent pulse selection (memory beyond current Lg too)
 function clearPersistentPulses(){
-  pulseMemory = [];
+  pulseMemoryApi.clear();
   try { selectedPulses.clear(); } catch {}
   /* Keep UI consistent; will be rebuilt by subsequent calls */
-  fractionalSelectionState.clear();
-  selectedFractionKeys.clear();
-  fractionalPulseSelections = [];
+  fractionStore.selectionState.clear();
+  fractionStore.selectedFractionKeys.clear();
+  fractionStore.pulseSelections = [];
   updatePulseSeqField();
   applyFractionSelectionClasses();
 }
@@ -750,260 +355,47 @@ const SUBDIVISION_HIDE_THRESHOLD = 41;
 const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
 const MIN_SUBDIVISION_LABEL_SPACING_PX = 40;
 
-function makeFractionKey(base, numerator, denominator) {
-  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
-    return null;
-  }
-  return `${base}+${numerator}/${denominator}`;
-}
-
 function registerFractionLabel(label, info) {
-  if (!label || !info || !info.key) return;
-  const normalized = String(label).trim();
-  if (!normalized) return;
-  const bucket = fractionLabelLookup.get(normalized);
-  if (!bucket) {
-    fractionLabelLookup.set(normalized, [info]);
-    return;
-  }
-  if (!bucket.some(entry => entry && entry.key === info.key)) {
-    bucket.push(info);
-  }
+  registerFractionLabelInStore(fractionStore, label, info);
 }
 
 function getFractionInfoByLabel(label, opts = {}) {
-  if (!label) return null;
-  const normalized = String(label).trim();
-  if (!normalized) return null;
-  const bucket = fractionLabelLookup.get(normalized);
-  if (!bucket || bucket.length === 0) return null;
-  if (opts && Number.isFinite(opts.base)) {
-    const match = bucket.find(entry => Number.isFinite(entry.base) && entry.base === opts.base);
-    if (match) return match;
-  }
-  return bucket[0] ?? null;
+  return getFractionInfoByLabelFromStore(fractionStore, label, opts);
 }
 
 function fractionValue(base, numerator, denominator) {
-  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
-    return NaN;
-  }
-  return base + numerator / denominator;
+  return computeFractionValue(base, numerator, denominator);
 }
 
 function cycleNotationToFraction(cycleIndex, subdivisionIndex, pulsesPerCycle, denominator) {
-  if (!(Number.isFinite(cycleIndex) && cycleIndex >= 0)) return null;
-  if (!(Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0)) return null;
-  if (!(Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0)) return null;
-  if (!(Number.isFinite(denominator) && denominator > 0)) return null;
-
-  const step = pulsesPerCycle / denominator;
-  const rawValue = cycleIndex * pulsesPerCycle + subdivisionIndex * step;
-  let base = Math.floor(rawValue + FRACTION_POSITION_EPSILON);
-  let fractional = rawValue - base;
-  if (fractional < FRACTION_POSITION_EPSILON) {
-    return null;
-  }
-  let numerator = Math.round(fractional * denominator);
-  if (numerator <= 0) {
-    return null;
-  }
-  while (numerator >= denominator) {
-    numerator -= denominator;
-    base += 1;
-  }
-  const value = base + numerator / denominator;
-  return { base, numerator, value };
+  return computeCycleNotationToFraction(cycleIndex, subdivisionIndex, pulsesPerCycle, denominator);
 }
 
-function fractionDisplay(base, numerator, denominator, { cycleIndex, subdivisionIndex, pulsesPerCycle } = {}) {
-  const safeBaseValue = Number.isFinite(base) ? Number(base) : 0;
-  const safeNumeratorValue = Number.isFinite(numerator) ? Number(numerator) : 0;
-  const den = Number.isFinite(denominator) && denominator > 0 ? Math.floor(denominator) : null;
-  const resolvedPulsesPerCycle = Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0
-    ? Math.floor(pulsesPerCycle)
-    : (() => {
-        const { numerator: activeNumerator } = getFraction();
-        return Number.isFinite(activeNumerator) && activeNumerator > 0 ? Math.floor(activeNumerator) : null;
-      })();
-
-  const value = den ? safeBaseValue + safeNumeratorValue / den : safeBaseValue;
-  const maybePulse = nearestPulseIndex(value);
-  if (maybePulse != null) {
-    return String(maybePulse);
-  }
-
-  let resolvedCycle = Number.isFinite(cycleIndex) && cycleIndex >= 0 ? Math.floor(cycleIndex) : null;
-  let resolvedSubdivision = Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0
-    ? Math.floor(subdivisionIndex)
-    : null;
-
-  if (den && resolvedPulsesPerCycle) {
-    const safeValue = Number.isFinite(value) ? value : safeBaseValue;
-    if (resolvedCycle == null) {
-      resolvedCycle = Math.floor((safeValue + FRACTION_POSITION_EPSILON) / resolvedPulsesPerCycle);
-    }
-    if (resolvedSubdivision == null) {
-      const cycleStart = resolvedCycle * resolvedPulsesPerCycle;
-      const step = resolvedPulsesPerCycle / den;
-      const normalized = (safeValue - cycleStart) / step;
-      let computed = Math.round(normalized);
-      if (!Number.isFinite(computed)) computed = 0;
-      if (computed < 0) computed = 0;
-      if (computed >= den) {
-        const carry = Math.floor(computed / den);
-        resolvedCycle += carry;
-        computed -= carry * den;
-      }
-      resolvedSubdivision = computed;
-    }
-  }
-
-  if (resolvedSubdivision == null && den && safeNumeratorValue > 0) {
-    resolvedSubdivision = Math.floor(safeNumeratorValue % den);
-    if (resolvedSubdivision <= 0) {
-      resolvedSubdivision = Math.floor(safeNumeratorValue);
-    }
-  }
-
-  let baseIndex = Number.isFinite(safeBaseValue) ? Math.floor(safeBaseValue) : null;
-  if (Number.isFinite(resolvedCycle) && Number.isFinite(resolvedPulsesPerCycle)) {
-    baseIndex = resolvedCycle * resolvedPulsesPerCycle;
-  } else if (!Number.isFinite(baseIndex) && Number.isFinite(value)) {
-    baseIndex = Math.floor(value + FRACTION_POSITION_EPSILON);
-  }
-
-  if (Number.isFinite(baseIndex)) {
-    if (den && Number.isFinite(resolvedSubdivision) && resolvedSubdivision > 0) {
-      return `${baseIndex}.${resolvedSubdivision}`;
-    }
-    return String(baseIndex);
-  }
-
-  if (den && safeNumeratorValue > 0) {
-    return `${safeBaseValue}.${safeNumeratorValue}`;
-  }
-
-  return String(safeBaseValue);
+function fractionDisplay(base, numerator, denominator, override = {}) {
+  return formatFractionDisplay(base, numerator, denominator, override);
 }
 
 function getFractionInfoFromElement(el) {
-  if (!el) return null;
-  const base = parseIntSafe(el.dataset.baseIndex);
-  const numerator = parseIntSafe(el.dataset.fractionNumerator);
-  const denominator = parseIntSafe(el.dataset.fractionDenominator);
-  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
-    return null;
-  }
-  const key = el.dataset.fractionKey || makeFractionKey(base, numerator, denominator);
-  if (!key) return null;
-  const value = Number.isFinite(parseFloat(el.dataset.value))
-    ? parseFloat(el.dataset.value)
-    : fractionValue(base, numerator, denominator);
-  const rawCycleIndex = parseIntSafe(el.dataset.cycleIndex);
-  const rawSubdivisionIndex = parseIntSafe(el.dataset.subdivision);
-  const rawPulsesPerCycle = parseIntSafe(el.dataset.pulsesPerCycle);
-  const override = {
-    cycleIndex: Number.isFinite(rawCycleIndex) ? rawCycleIndex : undefined,
-    subdivisionIndex: Number.isFinite(rawSubdivisionIndex) ? rawSubdivisionIndex : undefined,
-    pulsesPerCycle: Number.isFinite(rawPulsesPerCycle) && rawPulsesPerCycle > 0
-      ? rawPulsesPerCycle
-      : undefined
-  };
-  const display = el.dataset.display || fractionDisplay(base, numerator, denominator, override);
-  const rawLabel = typeof el.dataset.rawLabel === 'string' ? el.dataset.rawLabel : null;
-  return {
-    type: 'fraction',
-    base,
-    numerator,
-    denominator,
-    key,
-    value,
-    display,
-    rawLabel,
-    cycleIndex: Number.isFinite(rawCycleIndex) ? rawCycleIndex : null,
-    subdivisionIndex: Number.isFinite(rawSubdivisionIndex) ? rawSubdivisionIndex : null,
-    pulsesPerCycle: Number.isFinite(rawPulsesPerCycle) && rawPulsesPerCycle > 0 ? rawPulsesPerCycle : null
-  };
+  return extractFractionInfoFromElement(el, parseIntSafe);
 }
 
 function applyFractionSelectionClasses() {
-  cycleMarkers.forEach(marker => {
-    const key = marker.dataset.fractionKey;
-    if (!key) {
-      marker.classList.remove('selected');
-      return;
-    }
-    marker.classList.toggle('selected', selectedFractionKeys.has(key));
-  });
+  applyFractionSelectionClassesModule(fractionStore, cycleMarkers);
 }
 
 function rebuildFractionSelections(opts = {}) {
-  selectedFractionKeys.clear();
-  fractionalPulseSelections = Array.from(fractionalSelectionState.values())
-    .filter(item => item && Number.isFinite(item.value))
-    .map(item => {
-      const cycleIndex = Number.isFinite(item?.cycleIndex) ? item.cycleIndex : null;
-      const subdivisionIndex = Number.isFinite(item?.subdivisionIndex) ? item.subdivisionIndex : null;
-      const pulsesPerCycle = Number.isFinite(item?.pulsesPerCycle) && item.pulsesPerCycle > 0
-        ? item.pulsesPerCycle
-        : null;
-      const rawLabel = typeof item?.rawLabel === 'string' ? item.rawLabel.trim() : '';
-      return {
-        ...item,
-        rawLabel,
-        display: fractionDisplay(item.base, item.numerator, item.denominator, {
-          cycleIndex,
-          subdivisionIndex,
-          pulsesPerCycle
-        })
-      };
-    })
-    .sort((a, b) => a.value - b.value);
-  fractionalPulseSelections.forEach(item => selectedFractionKeys.add(item.key));
-  applyFractionSelectionClasses();
-  if (!opts.skipUpdateField) {
-    updatePulseSeqField();
-  }
+  fractionStore.pulseSelections = rebuildFractionSelectionsModule(fractionStore, {
+    updatePulseSeqField,
+    cycleMarkers,
+    skipUpdateField: opts.skipUpdateField
+  });
 }
 
 function setFractionSelected(info, shouldSelect) {
-  if (!info || !info.key) return;
-  const { key, base, numerator, denominator } = info;
-  const value = Number.isFinite(info.value) ? info.value : fractionValue(base, numerator, denominator);
-  if (!Number.isFinite(value)) return;
-  if (shouldSelect) {
-    const cycleIndex = Number.isFinite(info.cycleIndex) && info.cycleIndex >= 0
-      ? Math.floor(info.cycleIndex)
-      : null;
-    const subdivisionIndex = Number.isFinite(info.subdivisionIndex) && info.subdivisionIndex >= 0
-      ? Math.floor(info.subdivisionIndex)
-      : null;
-    const pulsesPerCycle = Number.isFinite(info.pulsesPerCycle) && info.pulsesPerCycle > 0
-      ? info.pulsesPerCycle
-      : null;
-    const rawLabel = typeof info.rawLabel === 'string' ? info.rawLabel.trim() : '';
-    const display = info.display || fractionDisplay(base, numerator, denominator, {
-      cycleIndex,
-      subdivisionIndex,
-      pulsesPerCycle
-    });
-    fractionalSelectionState.set(key, {
-      base,
-      numerator,
-      denominator,
-      value,
-      display,
-      key,
-      cycleIndex,
-      subdivisionIndex,
-      pulsesPerCycle,
-      rawLabel
-    });
-  } else {
-    fractionalSelectionState.delete(key);
-  }
-  rebuildFractionSelections();
+  setFractionSelectedModule(fractionStore, info, shouldSelect, {
+    updatePulseSeqField,
+    cycleMarkers
+  });
 }
 
 function computeAudioSchedulingState() {
@@ -1016,7 +408,7 @@ function computeAudioSchedulingState() {
 
   const grid = gridFromOrigin({ lg: validLg ? lg : 0, numerator, denominator });
   const denominators = new Set([1]);
-  fractionalPulseSelections.forEach((item) => {
+  fractionStore.pulseSelections.forEach((item) => {
     if (!item) return;
     const den = Number(item.denominator);
     if (Number.isFinite(den) && den > 0) {
@@ -1112,7 +504,7 @@ function selectedForAudioFromState({ scheduling } = {}) {
       }
     });
   }
-  fractionalPulseSelections.forEach((item) => {
+  fractionStore.pulseSelections.forEach((item) => {
     if (!item || !Number.isFinite(item.value)) return;
     if (item.value <= 0 || item.value >= lg) return;
     fractionSet.add(item.value);
@@ -1137,10 +529,11 @@ function applySelectionToAudio({ scheduling, instance } = {}) {
   if (!target || typeof target.setSelected !== 'function') return null;
   const selection = selectedForAudioFromState({ scheduling });
   const audioValues = selection.audio ?? selection.combined;
+  const resolvedSelectionResolution = Number.isFinite(selection?.resolution)
+    ? Math.max(1, Math.round(selection.resolution))
+    : 1;
   target.setSelected({ values: audioValues, resolution: 1 });
-  if (Number.isFinite(selection?.resolution)) {
-    currentAudioResolution = Math.max(1, Math.round(selection.resolution));
-  }
+  currentAudioResolution = resolvedSelectionResolution;
   return selection;
 }
 
@@ -1212,41 +605,42 @@ let lastNormalizedStep = null;
 // Progress is now driven directly from audio callbacks
 
 // Build structured markup for the pulse sequence so only inner numbers are editable
-function setupPulseSeqMarkup(){
-  if (!pulseSeqEl) return;
-  if (pulseSeqEl.querySelector('.pz.edit')) return; // already prepared
-  const initial = (pulseSeqEl.textContent || '').trim();
-  pulseSeqEl.textContent = '';
+function buildPulseSeqMarkup({ root, initialText }) {
+  if (!root) return { editEl: null };
+  root.textContent = '';
   const mk = (cls, txt) => {
-    const s = document.createElement('span');
-    s.className = 'pz ' + cls;
-    if (txt != null) s.textContent = txt;
-    return s;
+    const span = document.createElement('span');
+    span.className = `pz ${cls}`;
+    if (txt != null) span.textContent = txt;
+    return span;
   };
 
   const prefix = mk('prefix', 'Pfr ');
 
-  const fractionWrapper = document.createElement('span');
-  fractionWrapper.className = 'pz fraction fraction-inline-container';
-  pulseSeqFractionWrapper = fractionWrapper;
+  const hostWrapper = fractionInlineSlot;
+  const fractionWrapper = hostWrapper ?? (() => {
+    const span = document.createElement('span');
+    span.className = 'pz fraction fraction-inline-container';
+    pulseSeqFractionWrapper = span;
+    return span;
+  })();
+  const fractionDisplay = hostWrapper
+    ? hostWrapper
+    : fractionWrapper;
   pulseSeqFractionNumeratorEl = null;
   pulseSeqFractionDenominatorEl = null;
 
-  const spacer = mk('spacer', ' ');
-  const openParen = mk('open', '(');
+  const openParen = mk('open', ' (');
   const zero = mk('zero', '0');
   const editWrapper = mk('edit-wrapper', null);
   pulseSeqEditWrapper = editWrapper;
-  const edit = (() => {
-    const e = mk('edit', initial);
-    e.contentEditable = 'true';
-    return e;
-  })();
+  const edit = mk('edit', initialText);
+  edit.contentEditable = 'true';
   edit.addEventListener('focus', () => {
-    pulseSeqEl.classList.add('editing');
+    root.classList.add('editing');
   });
   edit.addEventListener('blur', () => {
-    pulseSeqEl.classList.remove('editing');
+    root.classList.remove('editing');
   });
   editWrapper.append(edit);
   pulseSeqVisualEl = document.createElement('span');
@@ -1257,56 +651,29 @@ function setupPulseSeqMarkup(){
   const suffixSpacer = mk('suffix-spacer', ' ');
   const lgLabel = mk('lg', '');
 
-  pulseSeqEl.append(prefix, fractionWrapper, spacer, openParen, zero, editWrapper, suffix, suffixSpacer, lgLabel);
+  root.append(prefix, fractionDisplay, openParen, zero, editWrapper, suffix, suffixSpacer, lgLabel);
   updatePulseSeqFractionDisplay(null, null);
-  updatePulseSeqVisualLayer(initial);
+  updatePulseSeqVisualLayer(initialText);
   edit.addEventListener('input', () => updatePulseSeqVisualLayer(getPulseSeqText()));
+  return { editEl: edit };
 }
-setupPulseSeqMarkup();
-initFractionEditor();
+initFractionEditorController();
 
 // Highlight overlay for pulse sequence numbers during playback
-const pulseSeqHighlight = document.createElement('div');
-const pulseSeqHighlight2 = document.createElement('div');
-if (pulseSeqEl) {
-  pulseSeqHighlight.id = 'pulseSeqHighlight';
-  pulseSeqHighlight2.id = 'pulseSeqHighlight2';
-  pulseSeqEl.appendChild(pulseSeqHighlight);
-  pulseSeqEl.appendChild(pulseSeqHighlight2);
-}
+// Highlight overlays are managed by the shared pulse sequence controller
 
 // Helpers for #pulseSeq (use inner span .pz.edit)
-function getEditEl(){
-  if(!pulseSeqEl) return null;
-  return pulseSeqEl.querySelector('.pz.edit') || pulseSeqEl;
+function getEditEl() {
+  return pulseSeqController.getEditElement();
 }
-function getPulseSeqText(){
-  const el = getEditEl();
-  return el ? (el.textContent || '') : '';
+function getPulseSeqText() {
+  return pulseSeqController.getText();
 }
-function setPulseSeqText(str){
-  const el = getEditEl();
-  if(!el) return;
-  const value = String(str);
-  el.textContent = value;
-  updatePulseSeqVisualLayer(value);
+function setPulseSeqText(str) {
+  pulseSeqController.setText(str);
 }
-function setPulseSeqSelection(start, end){
-  const el = getEditEl();
-  if(!el) return;
-  try{
-    const sel = window.getSelection();
-    const range = document.createRange();
-    let node = el.firstChild;
-    if(!node){ node = document.createTextNode(''); el.appendChild(node); }
-    const len = node.textContent.length;
-    const s = Math.max(0, Math.min(start, len));
-    const e = Math.max(0, Math.min(end, len));
-    range.setStart(node, s);
-    range.setEnd(node, e);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }catch{}
+function setPulseSeqSelection(start, end) {
+  pulseSeqController.setSelectionRange(start, end);
 }
 
 function normalizePulseSeqEditGaps(text) {
@@ -1350,16 +717,16 @@ function updatePulseSeqVisualLayer(text) {
 }
 
 function syncPulseSeqTokenMap() {
-  pulseSeqTokenMap.clear();
+  fractionStore.pulseSeqTokenMap.clear();
   if (!pulseSeqVisualEl) return;
   const tokens = pulseSeqVisualEl.querySelectorAll('.pulse-seq-token');
-  pulseSeqEntryOrder.forEach((key, index) => {
+  fractionStore.pulseSeqEntryOrder.forEach((key, index) => {
     if (!key) return;
     const token = tokens[index];
     if (!token) return;
     token.dataset.entryKey = key;
-    pulseSeqTokenMap.set(key, token);
-    const info = pulseSeqEntryLookup.get(key);
+    fractionStore.pulseSeqTokenMap.set(key, token);
+    const info = fractionStore.pulseSeqEntryLookup.get(key);
     if (!info) return;
     if (info.type === 'fraction') {
       token.dataset.fractionKey = key;
@@ -1374,11 +741,11 @@ function syncPulseSeqTokenMap() {
 
 function schedulePulseSeqSpacingAdjust() {
   if (!pulseSeqEditWrapper) return;
-  if (pulseSeqSpacingAdjustHandle != null) {
-    caf(pulseSeqSpacingAdjustHandle);
+  if (fractionStore.spacingAdjustHandle != null) {
+    caf(fractionStore.spacingAdjustHandle);
   }
-  pulseSeqSpacingAdjustHandle = raf(() => {
-    pulseSeqSpacingAdjustHandle = null;
+  fractionStore.spacingAdjustHandle = raf(() => {
+    fractionStore.spacingAdjustHandle = null;
     adjustPulseSeqSpacing();
   });
 }
@@ -1417,7 +784,15 @@ function adjustPulseSeqSpacing() {
   }
 }
 
-function updatePulseSeqFractionDisplay(numerator, denominator) {
+function updatePulseSeqFractionDisplay(numerator, denominator, { silent = false } = {}) {
+  if (fractionEditorController) {
+    const updates = {};
+    if (numerator !== undefined) updates.numerator = numerator;
+    if (denominator !== undefined) updates.denominator = denominator;
+    fractionEditorController.setFraction(updates, { silent: true, persist: false });
+    if (!silent) refreshFractionUI({ reveal: true });
+    return;
+  }
   if (numeratorInput) {
     numeratorInput.value = Number.isFinite(numerator) && numerator > 0 ? String(numerator) : '';
   }
@@ -1428,9 +803,12 @@ function updatePulseSeqFractionDisplay(numerator, denominator) {
 
 // Caret movement entre midpoints (dos espacios)
 function getMidpoints(text){ const a=[]; for(let i=1;i<text.length;i++) if(text[i-1]===' '&&text[i]===' ') a.push(i); return a; }
-function caretPos(){ const el=getEditEl(); if(!el) return 0; const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; const r=s.getRangeAt(0); if(!el.contains(r.startContainer)) return 0; return r.startOffset; }
-function moveCaretToNearestMidpoint(){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); let best=mids[0],d=Math.abs(p-best); for(const m of mids){const dd=Math.abs(p-m); if(dd<d){best=m; d=dd;}} setPulseSeqSelection(best,best); }
-function moveCaretStep(dir){ const el=getEditEl(); if(!el) return; const n=el.firstChild||el; const t=n.textContent||''; const mids=getMidpoints(t); if(!mids.length) return; const p=caretPos(); if(dir>0){ for(const m of mids){ if(m>p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[mids.length-1],mids[mids.length-1]); } else { for(let i=mids.length-1;i>=0;i--){ const m=mids[i]; if(m<p){ setPulseSeqSelection(m,m); return; } } setPulseSeqSelection(mids[0],mids[0]); } }
+function moveCaretToNearestMidpoint() {
+  pulseSeqController.moveCaretToNearestMidpoint();
+}
+function moveCaretStep(dir) {
+  pulseSeqController.moveCaretStep(dir);
+}
 function updateTIndicatorText(value) {
   if (!tIndicator) return;
   // Only the number, no prefix
@@ -1493,23 +871,106 @@ function scheduleTIndicatorReveal(delay = 0) {
     });
   }, ms);
 }
-let suppressClickKey = null;       // avoid double-toggle on drag start
-// --- Drag selection state ---
-let isDragging = false;
-let lastDragKey = null;
+
+const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
+  timeline,
+  timelineWrapper,
+  getLg: () => (pulses.length > 0 ? pulses.length - 1 : 0),
+  getPulses: () => pulses,
+  getBars: () => bars,
+  getCycleMarkers: () => cycleMarkers,
+  getCycleLabels: () => cycleLabels,
+  getPulseNumberLabels: () => pulseNumberLabels,
+  setPulseNumberLabels: (labels) => { pulseNumberLabels = labels; },
+  computeNumberFontRem,
+  pulseNumberHideThreshold: PULSE_NUMBER_HIDE_THRESHOLD,
+  numberCircleOffset: NUMBER_CIRCLE_OFFSET,
+  isCircularEnabled: () => circularTimeline && loopEnabled,
+  scheduleIndicatorReveal: scheduleTIndicatorReveal,
+  tIndicatorTransitionDelay: T_INDICATOR_TRANSITION_DELAY,
+  requestAnimationFrame: raf,
+  callbacks: {
+    onAfterCircularLayout: (context) => {
+      const { centerX, centerY, radius, angleForIndex, angleForPosition, cycleMarkers: markerList } = context;
+
+      pulseHits.forEach((hit, idx) => {
+        if (!hit) return;
+        const angle = angleForIndex(idx);
+        const hx = centerX + radius * Math.cos(angle);
+        const hy = centerY + radius * Math.sin(angle);
+        hit.style.left = `${hx}px`;
+        hit.style.top = `${hy}px`;
+        hit.style.transform = 'translate(-50%, -50%)';
+      });
+
+      markerList.forEach((marker) => {
+        if (!marker) return;
+        const key = marker.dataset && marker.dataset.fractionKey;
+        if (!key || !fractionStore.hitMap.has(key)) return;
+        const pos = Number(marker.dataset.position);
+        if (!Number.isFinite(pos)) return;
+        const angle = angleForPosition(pos);
+        const mx = centerX + radius * Math.cos(angle);
+        const my = centerY + radius * Math.sin(angle);
+        const hit = fractionStore.hitMap.get(key);
+        if (hit) {
+          hit.style.left = `${mx}px`;
+          hit.style.top = `${my}px`;
+          hit.style.transform = 'translate(-50%, -50%)';
+        }
+      });
+
+      restoreCycleLabelDisplay();
+      schedulePulseSeqSpacingAdjust();
+    },
+    onAfterLinearLayout: (context) => {
+      const { percentForIndex, percentForPosition, cycleMarkers: markerList, lg } = context;
+
+      pulseHits.forEach((hit, idx) => {
+        if (!hit) return;
+        const percent = percentForIndex(idx);
+        hit.style.left = `${percent}%`;
+        hit.style.top = '50%';
+        hit.style.transform = 'translate(-50%, -50%)';
+      });
+
+      markerList.forEach((marker) => {
+        if (!marker) return;
+        const key = marker.dataset && marker.dataset.fractionKey;
+        if (!key || !fractionStore.hitMap.has(key)) return;
+        const pos = Number(marker.dataset.position);
+        if (!Number.isFinite(pos)) return;
+        const percent = percentForPosition(pos);
+        const hit = fractionStore.hitMap.get(key);
+        if (hit) {
+          hit.style.left = `${percent}%`;
+          hit.style.top = '50%';
+          hit.style.transform = 'translate(-50%, -50%)';
+        }
+      });
+
+      applyCycleLabelCompaction({ lg });
+    },
+    onAfterLayout: () => {
+      schedulePulseSeqSpacingAdjust();
+    }
+  }
+});
 
 function getSelectionInfo(target) {
   if (!target) return null;
   if (typeof target.dataset.index !== 'undefined') {
     const idx = parseIntSafe(target.dataset.index);
     if (Number.isFinite(idx)) {
-      return { type: 'int', index: idx, selectionKey: `pulse:${idx}` };
+      const key = `pulse:${idx}`;
+      return { type: 'int', index: idx, selectionKey: key, key };
     }
   }
   if (target.dataset.fractionKey) {
     const info = getFractionInfoFromElement(target);
     if (info) {
-      return { ...info, selectionKey: `fraction:${info.key}` };
+      const key = `fraction:${info.key}`;
+      return { ...info, selectionKey: key, key };
     }
   }
   return null;
@@ -1518,7 +979,7 @@ function getSelectionInfo(target) {
 function isSelectionActive(info) {
   if (!info) return false;
   if (info.type === 'fraction') {
-    return fractionalSelectionState.has(info.key);
+    return fractionStore.selectionState.has(info.key);
   }
   if (info.type === 'int') {
     const lg = parseIntSafe(inputLg.value);
@@ -1552,8 +1013,7 @@ function attachSelectionListeners(el) {
   el.addEventListener('click', (ev) => {
     const info = getSelectionInfo(ev.currentTarget);
     if (!info) return;
-    if (suppressClickKey === info.selectionKey) {
-      suppressClickKey = null;
+    if (dragController.consumeSuppressClick(info.selectionKey)) {
       ev.preventDefault();
       ev.stopPropagation();
       return;
@@ -1561,48 +1021,31 @@ function attachSelectionListeners(el) {
     toggleSelectionInfo(info);
   });
   el.addEventListener('pointerenter', () => {
-    if (!isDragging) return;
     const info = getSelectionInfo(el);
-    if (!info || lastDragKey === info.selectionKey) return;
-    lastDragKey = info.selectionKey;
-    applySelectionInfo(info, dragMode === 'select');
+    if (!info) return;
+    dragController.handleEnter(info);
   });
 }
 
-// Start drag on the timeline area and decide drag mode based on first target under pointer
-timeline.addEventListener('pointerdown', (e) => {
-  isDragging = true;
-  lastDragKey = null;
-  dragMode = 'select';
-  const target = e.target.closest('.pulse-hit, .pulse, .fraction-hit, .cycle-marker');
-  const info = getSelectionInfo(target);
-  if (info) {
+dragController.attach({
+  timeline,
+  resolveTarget: ({ target }) => {
+    const base = target?.closest('.pulse-hit, .pulse, .fraction-hit, .cycle-marker');
+    const info = getSelectionInfo(base);
+    if (!info) return null;
     if (info.type === 'int') {
       const lg = parseIntSafe(inputLg.value);
       if (!Number.isFinite(lg) || info.index === 0 || info.index === lg) {
-        suppressClickKey = null;
-        lastDragKey = null;
-        isDragging = false;
-        return;
+        return null;
       }
       ensurePulseMemory(Math.max(info.index, lg));
     }
-    dragMode = isSelectionActive(info) ? 'deselect' : 'select';
-    applySelectionInfo(info, dragMode === 'select');
-    suppressClickKey = info.selectionKey;
-    lastDragKey = info.selectionKey;
-  }
-});
-// End/Cancel drag globally
-document.addEventListener('pointerup', () => {
-  isDragging = false;
-  lastDragKey = null;
-  // Do not clear suppressClickKey here; allow click handler to consume it
-});
-document.addEventListener('pointercancel', () => {
-  isDragging = false;
-  lastDragKey = null;
-  suppressClickKey = null;
+    return info;
+  },
+  applySelection: (info, shouldSelect) => {
+    applySelectionInfo(info, shouldSelect);
+  },
+  isSelectionActive: (info) => isSelectionActive(info)
 });
 // Hovers for LEDs and controls
 // LEDs ahora indican los campos editables; el apagado se recalcula
@@ -1620,9 +1063,6 @@ attachHover(randLgMax, { text: 'Máximo Lg' });
 attachHover(randVToggle, { text: 'Aleatorizar V' });
 attachHover(randVMin, { text: 'Mínimo V' });
 attachHover(randVMax, { text: 'Máximo V' });
-attachHover(randTToggle, { text: 'Aleatorizar T' });
-attachHover(randTMin, { text: 'Mínimo T' });
-attachHover(randTMax, { text: 'Máximo T' });
 attachHover(randPulsesToggle, { text: 'Aleatorizar pulsos' });
 attachHover(randomCount, { text: 'Cantidad de pulsos a seleccionar (vacío = aleatorio, 0 = ninguno)' });
 attachHover(randNToggle, { text: 'Aleatorizar numerador' });
@@ -1637,225 +1077,121 @@ if (selectedToggleBtn) attachHover(selectedToggleBtn, { text: 'Activar o silenci
 if (cycleToggleBtn) attachHover(cycleToggleBtn, { text: 'Activar o silenciar la subdivisión' });
 
 
-const STORE_PREFIX = 'app4:';
-const storeKey = (k) => `${STORE_PREFIX}${k}`;
-const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
-const loadOpt = (k) => { try { return localStorage.getItem(storeKey(k)); } catch { return null; } };
-const clearOpt = (k) => { try { localStorage.removeItem(storeKey(k)); } catch {} };
-
 const PULSE_AUDIO_KEY = 'pulseAudio';
 const SELECTED_AUDIO_KEY = 'selectedAudio';
 const CYCLE_AUDIO_KEY = 'cycleAudio';
 
-let pulseAudioEnabled = true;
-let selectedAudioEnabled = true;
-let cycleAudioEnabled = true;
-
-function syncToggleButton(button, enabled) {
-  if (!button) return;
-  button.classList.toggle('active', enabled);
-  button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-  button.dataset.state = enabled ? 'on' : 'off';
-}
-
-function setPulseAudio(value, { persist = true } = {}) {
-  const enabled = value !== false;
-  pulseAudioEnabled = enabled;
-  syncToggleButton(pulseToggleBtn, enabled);
-  if (persist) {
-    saveOpt(PULSE_AUDIO_KEY, enabled ? '1' : '0');
-  }
-  if (globalMixer) {
-    globalMixer.setChannelMute('pulse', !enabled);
-  }
-  if (audio && typeof audio.setPulseEnabled === 'function') {
-    audio.setPulseEnabled(enabled);
-  }
-}
-
-function setSelectedAudio(value, { persist = true } = {}) {
-  const enabled = value !== false;
-  selectedAudioEnabled = enabled;
-  syncToggleButton(selectedToggleBtn, enabled);
-  if (persist) {
-    saveOpt(SELECTED_AUDIO_KEY, enabled ? '1' : '0');
-  }
-  if (globalMixer) {
-    globalMixer.setChannelMute('accent', !enabled);
-  }
-}
-
-function setCycleAudio(value, { persist = true } = {}) {
-  const enabled = value !== false;
-  cycleAudioEnabled = enabled;
-  syncToggleButton(cycleToggleBtn, enabled);
-  if (persist) {
-    saveOpt(CYCLE_AUDIO_KEY, enabled ? '1' : '0');
-  }
-  if (globalMixer) {
-    globalMixer.setChannelMute('subdivision', !enabled);
-  }
-  if (audio && typeof audio.setCycleEnabled === 'function') {
-    audio.setCycleEnabled(enabled);
-  }
-}
-
-const storedPulseAudio = loadOpt(PULSE_AUDIO_KEY);
-if (storedPulseAudio === '0') {
-  setPulseAudio(false, { persist: false });
-} else {
-  setPulseAudio(true, { persist: false });
-}
-
-const storedSelectedAudio = loadOpt(SELECTED_AUDIO_KEY);
-if (storedSelectedAudio === '0') {
-  setSelectedAudio(false, { persist: false });
-} else {
-  setSelectedAudio(true, { persist: false });
-}
-
-const storedCycleAudio = loadOpt(CYCLE_AUDIO_KEY);
-if (storedCycleAudio === '0') {
-  setCycleAudio(false, { persist: false });
-} else {
-  setCycleAudio(true, { persist: false });
-}
-
-pulseToggleBtn?.addEventListener('click', () => {
-  setPulseAudio(!pulseAudioEnabled);
-});
-
-selectedToggleBtn?.addEventListener('click', () => {
-  setSelectedAudio(!selectedAudioEnabled);
-});
-
-cycleToggleBtn?.addEventListener('click', () => {
-  setCycleAudio(!cycleAudioEnabled);
-});
+let pulseToggleController = null;
+let selectedToggleController = null;
+let cycleToggleController = null;
 
 const soloMutedChannels = new Set();
 let lastSoloActive = false;
 
-subscribeMixer((snapshot) => {
-  if (!snapshot || !Array.isArray(snapshot.channels)) return;
-  const findChannel = (id) => snapshot.channels.find(channel => channel.id === id);
-  const soloActive = snapshot.channels.some(channel => channel.solo);
-
-  const setters = new Map([
-    ['pulse', setPulseAudio],
-    ['accent', setSelectedAudio],
-    ['subdivision', setCycleAudio]
-  ]);
-
-  const currentStates = {
-    pulse: pulseAudioEnabled,
-    accent: selectedAudioEnabled,
-    subdivision: cycleAudioEnabled
-  };
-
-  const syncFromChannel = (channelState, setter, current) => {
-    if (!channelState) return;
-    const channelId = channelState.id;
-    const forcedBySolo = soloActive && !channelState.solo && channelState.effectiveMuted && !channelState.muted;
-    if (forcedBySolo) {
-      if (!soloMutedChannels.has(channelId)) {
-        soloMutedChannels.add(channelId);
-        setter(false, { persist: false });
+const audioToggleManager = initAudioToggles({
+  toggles: [
+    {
+      id: 'pulse',
+      button: pulseToggleBtn,
+      storageKey: PULSE_AUDIO_KEY,
+      mixerChannel: 'pulse',
+      defaultEnabled: true,
+      onChange: (enabled) => {
+        if (audio && typeof audio.setPulseEnabled === 'function') {
+          audio.setPulseEnabled(enabled);
+        }
       }
-      return;
+    },
+    {
+      id: 'accent',
+      button: selectedToggleBtn,
+      storageKey: SELECTED_AUDIO_KEY,
+      mixerChannel: 'accent',
+      defaultEnabled: true
+    },
+    {
+      id: 'cycle',
+      button: cycleToggleBtn,
+      storageKey: CYCLE_AUDIO_KEY,
+      mixerChannel: 'subdivision',
+      defaultEnabled: true,
+      onChange: (enabled) => {
+        if (audio && typeof audio.setCycleEnabled === 'function') {
+          audio.setCycleEnabled(enabled);
+        }
+      }
     }
+  ],
+  storage: {
+    load: loadOpt,
+    save: saveOpt
+  },
+  mixer: globalMixer,
+  subscribeMixer,
+  onMixerSnapshot: ({ snapshot, channels, setFromMixer, getState }) => {
+    if (!snapshot || !Array.isArray(snapshot.channels)) return;
+    const soloActive = snapshot.channels.some((channel) => channel.solo);
+    const channelPairs = [
+      ['pulse', 'pulse'],
+      ['accent', 'accent'],
+      ['cycle', 'subdivision']
+    ];
+    const toggleByChannel = new Map(channelPairs.map(([toggleId, channelId]) => [channelId, toggleId]));
 
-    if (!soloActive && soloMutedChannels.has(channelId)) {
-      soloMutedChannels.delete(channelId);
-      setter(true, { persist: false });
-      return;
-    }
+    channelPairs.forEach(([toggleId, channelId]) => {
+      const channelState = channels.get(channelId);
+      if (!channelState) return;
+      const forcedBySolo = soloActive && !channelState.solo && channelState.effectiveMuted && !channelState.muted;
+      if (forcedBySolo) {
+        if (!soloMutedChannels.has(channelId)) {
+          soloMutedChannels.add(channelId);
+          setFromMixer(toggleId, false);
+        }
+        return;
+      }
 
-    if (soloActive && soloMutedChannels.has(channelId)) {
-      return;
-    }
+      if (!soloActive && soloMutedChannels.has(channelId)) {
+        soloMutedChannels.delete(channelId);
+        setFromMixer(toggleId, true);
+        return;
+      }
 
-    const shouldEnable = !channelState.muted;
-    if (current === shouldEnable) return;
-    setter(shouldEnable, { persist: false });
-  };
+      if (soloActive && soloMutedChannels.has(channelId)) {
+        return;
+      }
 
-  ['pulse', 'accent', 'subdivision'].forEach((id) => {
-    const channel = findChannel(id);
-    const setter = setters.get(id);
-    const current = currentStates[id];
-    if (setter) syncFromChannel(channel, setter, current);
-  });
-
-  if (!soloActive && lastSoloActive && soloMutedChannels.size) {
-    soloMutedChannels.forEach((id) => {
-      const setter = setters.get(id);
-      if (setter) setter(true, { persist: false });
+      const shouldEnable = !channelState.muted;
+      if (getState(toggleId) === shouldEnable) return;
+      setFromMixer(toggleId, shouldEnable);
     });
-    soloMutedChannels.clear();
-  }
 
-  lastSoloActive = soloActive;
-});
-
-function clearStoredPreferences() {
-  try {
-    const prefix = STORE_PREFIX;
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) keysToRemove.push(key);
+    if (!soloActive && lastSoloActive && soloMutedChannels.size) {
+      soloMutedChannels.forEach((channelId) => {
+        const toggleId = toggleByChannel.get(channelId);
+        if (toggleId) setFromMixer(toggleId, true);
+      });
+      soloMutedChannels.clear();
     }
-    keysToRemove.forEach((key) => localStorage.removeItem(key));
-  } catch {}
-}
 
-let factoryResetPending = false;
-window.addEventListener('sharedui:factoryreset', () => {
-  if (factoryResetPending) return;
-  factoryResetPending = true;
-  clearStoredPreferences();
-  window.location.reload();
-});
-
-initFractionState();
-
-// Local header behavior (as before)
-function applyTheme(val){
-  if(val === 'system'){
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.body.dataset.theme = dark ? 'dark' : 'light';
-  } else {
-    document.body.dataset.theme = val;
+    lastSoloActive = soloActive;
   }
-  saveOpt('theme', val);
-  // Notify shared listeners so dependent UI can refresh colors on the fly
-  try { window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: val } })); } catch {}
-}
-
-const storedTheme = loadOpt('theme');
-if (themeSelect) {
-  if (storedTheme) themeSelect.value = storedTheme;
-  applyTheme(themeSelect.value || 'system');
-  themeSelect.addEventListener('change', e => applyTheme(e.target.value));
-} else {
-  applyTheme(storedTheme || 'system');
-}
-
-document.addEventListener('sharedui:mute', async (e) => {
-  const val = !!(e && e.detail && e.detail.value);
-  saveOpt('mute', val ? '1' : '0');
-  const a = await initAudio();
-  if (a && typeof a.setMute === 'function') a.setMute(val);
 });
 
-// Restore previous mute preference on load
-(() => {
-  try{
-    const saved = loadOpt('mute');
-    if (saved === '1') document.getElementById('muteBtn')?.click();
-  }catch{}
-})();
+pulseToggleController = audioToggleManager.get('pulse') ?? null;
+selectedToggleController = audioToggleManager.get('accent') ?? null;
+cycleToggleController = audioToggleManager.get('cycle') ?? null;
+
+function setPulseAudio(value, options) {
+  pulseToggleController?.set(value, options);
+}
+
+function setSelectedAudio(value, options) {
+  selectedToggleController?.set(value, options);
+}
+
+function setCycleAudio(value, options) {
+  cycleToggleController?.set(value, options);
+}
 
 const storedColor = loadOpt('color');
 if (storedColor) {
@@ -1888,28 +1224,11 @@ window.addEventListener('resize', updateTIndicatorPosition);
 window.addEventListener('resize', schedulePulseSeqSpacingAdjust);
 layoutTimeline();
 
-loopBtn.addEventListener('click', () => {
-  loopEnabled = !loopEnabled;
-  loopBtn.classList.toggle('active', loopEnabled);
-  const lg = parseInt(inputLg.value);
-  if (!isNaN(lg)) {
-    ensurePulseMemory(lg);
-    // Rebuild visible selection from memory and refresh labels
-    syncSelectedFromMemory();
-    updatePulseNumbers();
-    if (isPlaying) {
-      applySelectionToAudio();
-    }
-  }
-  // Sincronitza amb el motor en temps real si està sonant
-  if (isPlaying && audio && typeof audio.setLoop === 'function') {
-    audio.setLoop(loopEnabled);
-  }
-  layoutTimeline();
-});
+// Initialize loop controller with shared component
+loopController.attach();
 
 resetBtn.addEventListener('click', () => {
-  pulseMemory = [];
+  pulseMemoryApi.clear();
   clearOpt(FRACTION_NUMERATOR_KEY);
   clearOpt(FRACTION_DENOMINATOR_KEY);
   window.location.reload();
@@ -1948,52 +1267,73 @@ if (tapHelp) {
 }
 
 // --- Aleatorización de parámetros y pulsos ---
-function randomInt(min, max) {
-  const lo = Math.ceil(min);
-  const hi = Math.floor(max);
-  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) return lo;
-  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
-}
-
 /**
  * Apply random values within the configured ranges and update inputs accordingly.
  */
 function randomize() {
   const cfg = randomConfig || randomDefaults;
-  if (cfg.Lg?.enabled && inputLg) {
+  const randomRanges = {};
+  if (cfg.Lg?.enabled) {
     const [lo, hi] = cfg.Lg.range ?? randomDefaults.Lg.range;
-    const value = randomInt(lo, hi);
-    setValue(inputLg, value);
-    handleInput({ target: inputLg });
+    randomRanges.Lg = { min: lo, max: hi };
   }
-  if (cfg.V?.enabled && inputV) {
+  if (cfg.V?.enabled) {
     const [lo, hi] = cfg.V.range ?? randomDefaults.V.range;
-    const value = randomInt(lo, hi);
-    setValue(inputV, value);
-    handleInput({ target: inputV });
+    randomRanges.V = { min: lo, max: hi };
   }
-  let fractionChanged = false;
-  if (cfg.n?.enabled && numeratorInput) {
+  if (cfg.n?.enabled) {
     let [min, max] = cfg.n.range ?? randomDefaults.n.range;
     if (!cfg.allowComplex) {
       min = 1;
       max = 1;
     }
-    const value = Math.max(1, randomInt(min, max));
-    setValue(numeratorInput, value);
-    fractionChanged = true;
+    randomRanges.n = { min, max };
   }
-  if (cfg.d?.enabled && denominatorInput) {
+  if (cfg.d?.enabled) {
     const [min, max] = cfg.d.range ?? randomDefaults.d.range;
-    const value = Math.max(1, randomInt(min, max));
-    setValue(denominatorInput, value);
-    fractionChanged = true;
+    randomRanges.d = { min, max };
   }
-  if (fractionChanged) {
-    persistFractionField(numeratorInput, FRACTION_NUMERATOR_KEY);
-    persistFractionField(denominatorInput, FRACTION_DENOMINATOR_KEY);
+
+  const randomized = randomizeValues(randomRanges);
+
+  if (cfg.Lg?.enabled && inputLg) {
+    const [lo, hi] = cfg.Lg.range ?? randomDefaults.Lg.range;
+    const value = Math.max(lo, Math.min(hi, randomized.Lg ?? lo));
+    setValue(inputLg, value);
+    handleInput({ target: inputLg });
+  }
+  if (cfg.V?.enabled && inputV) {
+    const [lo, hi] = cfg.V.range ?? randomDefaults.V.range;
+    const value = Math.max(lo, Math.min(hi, randomized.V ?? lo));
+    setValue(inputV, value);
+    handleInput({ target: inputV });
+  }
+
+  const fractionUpdates = {};
+  if (cfg.n?.enabled) {
+    const [min, max] = cfg.n.range ?? randomDefaults.n.range;
+    const bounded = cfg.allowComplex ? [min, max] : [1, 1];
+    const randomValue = randomized.n ?? bounded[0];
+    fractionUpdates.numerator = Math.max(1, Math.min(bounded[1], randomValue));
+  }
+  if (cfg.d?.enabled) {
+    const [min, max] = cfg.d.range ?? randomDefaults.d.range;
+    const randomValue = randomized.d ?? min;
+    fractionUpdates.denominator = Math.max(1, Math.min(max, randomValue));
+  }
+  if (fractionEditorController && Object.keys(fractionUpdates).length > 0) {
+    fractionEditorController.setFraction(fractionUpdates, { cause: 'randomize' });
+  } else if (Object.keys(fractionUpdates).length > 0) {
+    if (fractionUpdates.numerator != null && numeratorInput) {
+      setValue(numeratorInput, fractionUpdates.numerator);
+    }
+    if (fractionUpdates.denominator != null && denominatorInput) {
+      setValue(denominatorInput, fractionUpdates.denominator);
+    }
+    refreshFractionUI({ reveal: true });
     handleInput();
   }
+
   if (cfg.Pulses?.enabled) {
     // Reset persistent selection memory so old pulses don't reappear when Lg grows
     clearPersistentPulses();
@@ -2028,86 +1368,14 @@ function randomize() {
       updatePulseNumbers();
       layoutTimeline({ silent: true });
 
-      const fractionOptions = [];
-      fractionHitMap.forEach((el, key) => {
-        if (!el || !key) return;
-        const base = parseIntSafe(el.dataset.baseIndex);
-        const numerator = parseIntSafe(el.dataset.fractionNumerator);
-        const denominator = parseIntSafe(el.dataset.fractionDenominator);
-        const value = Number.parseFloat(el.dataset.value);
-        if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) return;
-        if (!Number.isFinite(value) || value <= 0 || value >= lg) return;
-        if (nearestPulseIndex(value) != null) return;
-        const cycleIndex = parseIntSafe(el.dataset.cycleIndex);
-        const subdivisionIndex = parseIntSafe(el.dataset.subdivision);
-        const pulsesPerCycle = parseIntSafe(el.dataset.pulsesPerCycle);
-        const rawLabel = typeof el.dataset.rawLabel === 'string' ? el.dataset.rawLabel : '';
-        const display = el.dataset.display || null;
-        fractionOptions.push({
-          key,
-          base,
-          numerator,
-          denominator,
-          value,
-          display,
-          cycleIndex: Number.isFinite(cycleIndex) ? cycleIndex : null,
-          subdivisionIndex: Number.isFinite(subdivisionIndex) ? subdivisionIndex : null,
-          pulsesPerCycle: Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0 ? pulsesPerCycle : null,
-          rawLabel
-        });
-      });
-
-      const fractionSelection = [];
-      if (fractionOptions.length) {
-        if (rawCount === '') {
-          const density = 0.5;
-          fractionOptions.forEach(info => { if (Math.random() < density) fractionSelection.push(info); });
-        } else {
-          const parsed = Number.parseInt(rawCount, 10);
-          if (Number.isNaN(parsed)) {
-            const density = 0.5;
-            fractionOptions.forEach(info => { if (Math.random() < density) fractionSelection.push(info); });
-          } else if (parsed > 0) {
-            const pool = [...fractionOptions];
-            const targetFractions = Math.min(parsed, pool.length);
-            while (fractionSelection.length < targetFractions && pool.length) {
-              const idx = Math.floor(Math.random() * pool.length);
-              fractionSelection.push(pool.splice(idx, 1)[0]);
-            }
-          }
-        }
-      }
-
-      fractionalSelectionState.clear();
-      fractionSelection.forEach(info => {
-        const value = Number.isFinite(info.value) ? info.value : fractionValue(info.base, info.numerator, info.denominator);
-        if (!Number.isFinite(value) || value <= 0 || value >= lg) return;
-        const cycleIndex = Number.isFinite(info.cycleIndex) && info.cycleIndex >= 0 ? Math.floor(info.cycleIndex) : null;
-        const subdivisionIndex = Number.isFinite(info.subdivisionIndex) && info.subdivisionIndex >= 0
-          ? Math.floor(info.subdivisionIndex)
-          : null;
-        const pulsesPerCycle = Number.isFinite(info.pulsesPerCycle) && info.pulsesPerCycle > 0 ? info.pulsesPerCycle : null;
-        const rawLabel = typeof info.rawLabel === 'string' ? info.rawLabel.trim() : '';
-        const display = info.display || fractionDisplay(info.base, info.numerator, info.denominator, {
-          cycleIndex,
-          subdivisionIndex,
-          pulsesPerCycle
-        });
-        fractionalSelectionState.set(info.key, {
-          base: info.base,
-          numerator: info.numerator,
-          denominator: info.denominator,
-          value,
-          display,
-          key: info.key,
-          cycleIndex,
-          subdivisionIndex,
-          pulsesPerCycle,
-          rawLabel
-        });
+      const applied = applyRandomFractionSelection(fractionStore, {
+        lg,
+        randomCountValue: rawCount,
+        parseIntSafe,
+        nearestPulseIndex
       });
       rebuildFractionSelections();
-      if (isPlaying) {
+      if (applied && isPlaying) {
         applySelectionToAudio();
       }
     }
@@ -2116,30 +1384,8 @@ function randomize() {
 
 initRandomMenu(randomBtn, randomMenu, randomize);
 
-initSoundDropdown(baseSoundSelect, {
-  storageKey: storeKey('baseSound'),
-  eventType: 'baseSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setBase(val)
-});
-initSoundDropdown(accentSoundSelect, {
-  storageKey: storeKey('accentSound'),
-  eventType: 'accentSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setAccent(val)
-});
-initSoundDropdown(startSoundSelect, {
-  storageKey: storeKey('startSound'),
-  eventType: 'startSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setStart(val)
-});
-initSoundDropdown(cycleSoundSelect, {
-  storageKey: storeKey('cycleSound'),
-  eventType: 'cycleSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setCycle(val)
-});
+// All sound dropdowns (including cycleSoundSelect) are initialized by header.js via initHeader()
+// No app-specific initialization needed
 
 // Preview on sound change handled by shared header
 
@@ -2170,13 +1416,19 @@ async function initAudio(){
       }
       schedulingBridge.applyTo(instance);
       if (typeof instance.setPulseEnabled === 'function') {
-        instance.setPulseEnabled(pulseAudioEnabled);
+        const pulseEnabled = pulseToggleController?.isEnabled() ?? true;
+        instance.setPulseEnabled(pulseEnabled);
       }
       if (typeof instance.setCycleEnabled === 'function') {
-        instance.setCycleEnabled(cycleAudioEnabled);
+        const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
+        instance.setCycleEnabled(cycleEnabled);
       }
       if (typeof instance.setLoop === 'function') {
         instance.setLoop(loopEnabled);
+      }
+      const savedMute = loadOpt('mute');
+      if (savedMute === '1' && typeof instance.setMute === 'function') {
+        instance.setMute(true);
       }
       audio = instance;
       return instance;
@@ -2718,7 +1970,7 @@ function sanitizePulseSeq(opts = {}){
   const numeratorValue = Number.isFinite(rawNumerator) && rawNumerator > 0 ? rawNumerator : null;
 
   const caretGap = resolvePulseSeqGap(caretBefore, lg);
-  lastFractionGap = caretGap;
+  fractionStore.lastFractionGap = caretGap;
 
   const pushFractionEntry = (entry) => {
     if (!entry) return;
@@ -2945,9 +2197,9 @@ function sanitizePulseSeq(opts = {}){
 
   ints.sort((a, b) => a - b);
   fractions.sort((a, b) => a.value - b.value);
-  fractionalSelectionState.clear();
+  fractionStore.selectionState.clear();
   fractions.forEach(entry => {
-    fractionalSelectionState.set(entry.key, entry);
+    fractionStore.selectionState.set(entry.key, entry);
   });
   rebuildFractionSelections({ skipUpdateField: true });
 
@@ -2970,12 +2222,12 @@ function sanitizePulseSeq(opts = {}){
       })
     ].sort((a, b) => a.value - b.value);
     pulseSeqRanges = {};
-    pulseSeqEntryOrder = combined.map(entry => entry.key);
-    pulseSeqEntryLookup.clear();
+    fractionStore.pulseSeqEntryOrder = combined.map(entry => entry.key);
+    fractionStore.pulseSeqEntryLookup.clear();
     combined.forEach((entry) => {
       if (!entry || !entry.key) return;
       const type = entry.display.includes('.') ? 'fraction' : 'int';
-      pulseSeqEntryLookup.set(entry.key, { ...entry, type });
+      fractionStore.pulseSeqEntryLookup.set(entry.key, { ...entry, type });
     });
     let pos = 0;
     const parts = combined.map(entry => {
@@ -3020,7 +2272,8 @@ function handleInput(){
   if (isUpdating) return;
 
   const { numerator, denominator } = getFraction();
-  updateFractionUI(numerator, denominator);
+  updatePulseSeqFractionDisplay(numerator, denominator, { silent: true });
+  refreshFractionUI({ reveal: true });
 
   let indicatorValue = '';
   if (hasLg && hasV) {
@@ -3047,31 +2300,70 @@ function handleInput(){
 
   if (isPlaying && audio) {
     const scheduling = computeAudioSchedulingState();
-    applySelectionToAudio({ scheduling });
-    currentAudioResolution = 1;
-    updateVoiceHandlers({ scheduling });
+    const selectionForAudio = applySelectionToAudio({ scheduling })
+      || selectedForAudioFromState({ scheduling });
+    const resolvedSelectionResolution = Number.isFinite(selectionForAudio?.resolution)
+      ? Math.max(1, Math.round(selectionForAudio.resolution))
+      : 1;
+    const schedulingResolution = Number.isFinite(scheduling?.resolution)
+      ? Math.max(1, Math.round(scheduling.resolution))
+      : 1;
+    const effectiveResolution = Math.max(1, resolvedSelectionResolution, schedulingResolution);
+    const normalizedLg = Number.isFinite(scheduling?.lg) ? scheduling.lg : parseInt(inputLg.value);
+
+    let effectiveTotal = scheduling.totalPulses != null ? scheduling.totalPulses : null;
+    let effectivePatternBeats = scheduling.patternBeats != null ? scheduling.patternBeats : null;
+    let effectiveCycleConfig = scheduling.cycleConfig ? { ...scheduling.cycleConfig } : null;
+    let effectiveVoices = Array.isArray(scheduling.voices)
+      ? scheduling.voices.map((voice) => (voice ? { ...voice } : voice))
+      : [];
+
+    if (Number.isFinite(normalizedLg) && normalizedLg > 0 && effectiveResolution > 1) {
+      const scaledBase = normalizedLg * effectiveResolution;
+      effectiveTotal = loopEnabled
+        ? Math.max(1, Math.round(scaledBase))
+        : Math.max(1, Math.round(scaledBase + 1));
+      if (Number.isFinite(effectivePatternBeats)) {
+        effectivePatternBeats = Math.max(1, Math.round(effectivePatternBeats * effectiveResolution));
+      }
+      if (effectiveCycleConfig && Number.isFinite(effectiveCycleConfig.numerator)) {
+        effectiveCycleConfig = {
+          ...effectiveCycleConfig,
+          numerator: Math.max(1, Math.round(effectiveCycleConfig.numerator * effectiveResolution))
+        };
+      }
+      effectiveVoices = effectiveVoices.map((voice) => {
+        if (!voice || !Number.isFinite(voice.numerator)) return voice;
+        return {
+          ...voice,
+          numerator: Math.max(1, Math.round(voice.numerator * effectiveResolution))
+        };
+      });
+    }
+
+    currentAudioResolution = effectiveResolution;
+    updateVoiceHandlers({ scheduling: { ...scheduling, voices: effectiveVoices } });
     if (typeof audio.setVoices === 'function') {
-      audio.setVoices(scheduling.voices || []);
+      audio.setVoices(effectiveVoices);
+    }
+
+    const transportPayload = { align: 'nextPulse' };
+    if (effectiveTotal != null) {
+      transportPayload.totalPulses = effectiveTotal;
     }
     const vNow = parseFloat(inputV.value);
-    const transportPayload = {};
-    if (scheduling.totalPulses != null) {
-      transportPayload.totalPulses = scheduling.totalPulses;
-    }
     if (scheduling.validV && Number.isFinite(vNow) && vNow > 0) {
-      transportPayload.bpm = vNow;
+      const scaledBpm = effectiveResolution > 1 ? vNow * effectiveResolution : vNow;
+      transportPayload.bpm = scaledBpm;
     }
-    if (scheduling.patternBeats != null) {
-      transportPayload.patternBeats = scheduling.patternBeats;
+    if (effectivePatternBeats != null) {
+      transportPayload.patternBeats = effectivePatternBeats;
     }
-    if (scheduling.cycleConfig) {
-      transportPayload.cycle = scheduling.cycleConfig;
+    if (effectiveCycleConfig) {
+      transportPayload.cycle = effectiveCycleConfig;
     }
     if (typeof audio.updateTransport === 'function' && (scheduling.validLg || scheduling.validV)) {
       audio.updateTransport(transportPayload);
-    }
-    if (scheduling.validLg && scheduling.validV && Number.isFinite(vNow) && vNow > 0) {
-      scheduleZeroResync(vNow);
     }
   }
 }
@@ -3108,9 +2400,9 @@ function updatePulseSeqField(){
     setPulseSeqText('');
     try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=''; }catch{}
     pulseSeqRanges = {};
-    pulseSeqEntryOrder = [];
-    pulseSeqEntryLookup.clear();
-    pulseSeqTokenMap.clear();
+    fractionStore.pulseSeqEntryOrder = [];
+    fractionStore.pulseSeqEntryLookup.clear();
+    fractionStore.pulseSeqTokenMap.clear();
     return;
   }
   try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=String(lg); }catch{}
@@ -3121,7 +2413,7 @@ function updatePulseSeqField(){
       entries.push({ type: 'int', value: i, display: String(i), key: String(i) });
     }
   }
-  const validFractionals = fractionalPulseSelections
+  const validFractionals = fractionStore.pulseSelections
     .filter(item => item && Number.isFinite(item.value))
     .filter(item => item.value > 0 && item.value < lg);
   validFractionals.forEach(item => {
@@ -3136,11 +2428,11 @@ function updatePulseSeqField(){
     });
   });
   entries.sort((a, b) => a.value - b.value);
-  pulseSeqEntryOrder = entries.map(entry => entry.key);
-  pulseSeqEntryLookup.clear();
+  fractionStore.pulseSeqEntryOrder = entries.map(entry => entry.key);
+  fractionStore.pulseSeqEntryLookup.clear();
   entries.forEach((entry) => {
     if (!entry || !entry.key) return;
-    pulseSeqEntryLookup.set(entry.key, entry);
+    fractionStore.pulseSeqEntryLookup.set(entry.key, entry);
   });
   pulseSeqRanges = {};
   let pos = 0;
@@ -3194,7 +2486,7 @@ function syncSelectedFromMemory() {
 function handlePulseSeqInput(){
   const lg = parseInt(inputLg.value);
   if (isNaN(lg) || lg <= 0) {
-    pulseMemory = [];
+    pulseMemoryApi.clear();
     renderTimeline();
     return;
   }
@@ -3245,13 +2537,12 @@ function clearHighlights() {
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
-  if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
-  if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+  pulseSeqController.clearActive();
   clearFractionHighlight();
   lastNormalizedStep = null;
-  lastHighlightType = null;
-  lastHighlightIntIndex = null;
-  lastHighlightFractionKey = null;
+  fractionStore.lastHighlightType = null;
+  fractionStore.lastHighlightIntIndex = null;
+  fractionStore.lastHighlightFractionKey = null;
 }
 
 function renderTimeline() {
@@ -3263,9 +2554,9 @@ function renderTimeline() {
   cycleLabels = [];
   bars = [];
   clearFractionHighlight();
-  fractionHitMap.clear();
-  fractionMarkerMap.clear();
-  fractionLabelLookup.clear();
+  fractionStore.hitMap.clear();
+  fractionStore.markerMap.clear();
+  fractionStore.labelLookup.clear();
   const savedIndicator = tIndicator;
   timeline.innerHTML = '';
   if (savedIndicator) timeline.appendChild(savedIndicator);
@@ -3369,6 +2660,12 @@ function renderTimeline() {
       if (Number.isFinite(numeratorPerCycle) && numeratorPerCycle > 0) {
         marker.dataset.pulsesPerCycle = String(numeratorPerCycle);
       }
+      if (Number.isFinite(lg) && lg > 0) {
+        const percent = (position / lg) * 100;
+        marker.style.left = `${percent}%`;
+        marker.style.top = '50%';
+        marker.style.transform = 'translate(-50%, -50%)';
+      }
       timeline.appendChild(marker);
       cycleMarkers.push(marker);
 
@@ -3409,7 +2706,7 @@ function renderTimeline() {
             marker.style.cursor = 'pointer';
             attachSelectionListeners(marker);
             validFractionKeys.add(key);
-            fractionMarkerMap.set(key, marker);
+            fractionStore.markerMap.set(key, marker);
 
             const hit = document.createElement('div');
             hit.className = 'fraction-hit';
@@ -3432,14 +2729,20 @@ function renderTimeline() {
             const fracHitSize = computeHitSizePx(lg) * 0.75;
             hit.style.width = `${fracHitSize}px`;
             hit.style.height = `${fracHitSize}px`;
+            if (Number.isFinite(lg) && lg > 0) {
+              const percent = (position / lg) * 100;
+              hit.style.left = `${percent}%`;
+              hit.style.top = '50%';
+              hit.style.transform = 'translate(-50%, -50%)';
+            }
             hit.style.pointerEvents = 'auto';
             hit.style.cursor = 'pointer';
             attachSelectionListeners(hit);
             timeline.appendChild(hit);
             cycleMarkerHits.push(hit);
-            fractionHitMap.set(key, hit);
+            fractionStore.hitMap.set(key, hit);
 
-            const storedSelection = fractionalSelectionState.get(key);
+            const storedSelection = fractionStore.selectionState.get(key);
             const storedRawLabel = typeof storedSelection?.rawLabel === 'string'
               ? storedSelection.rawLabel.trim()
               : '';
@@ -3503,6 +2806,12 @@ function renderTimeline() {
           }
         }
         label.style.fontSize = `${subdivisionFontRem}rem`;
+        if (Number.isFinite(lg) && lg > 0) {
+          const percent = (position / lg) * 100;
+          label.style.left = `${percent}%`;
+          label.style.top = 'calc(100% + 12px)';
+          label.style.transform = 'translate(-50%, 0)';
+        }
         timeline.appendChild(label);
         cycleLabels.push(label);
       }
@@ -3510,9 +2819,9 @@ function renderTimeline() {
   }
 
   let removedFraction = false;
-  fractionalSelectionState.forEach((_, key) => {
+  fractionStore.selectionState.forEach((_, key) => {
     if (!validFractionKeys.has(key)) {
-      fractionalSelectionState.delete(key);
+      fractionStore.selectionState.delete(key);
       removedFraction = true;
     }
   });
@@ -3525,246 +2834,6 @@ function renderTimeline() {
   syncSelectedFromMemory();
   applyFractionSelectionClasses();
   clearHighlights();
-}
-
-function showNumber(i, fontRem) {
-  const label = document.createElement('div');
-  label.className = 'pulse-number';
-  label.dataset.index = i;
-  label.textContent = i;
-  const lg = pulses.length - 1;
-  const sizeRem = typeof fontRem === 'number' ? fontRem : computeNumberFontRem(lg);
-  label.style.fontSize = `${sizeRem}rem`;
-  if (i === 0 || i === lg) label.classList.add('endpoint');
-  timeline.appendChild(label);
-  pulseNumberLabels.push(label);
-}
-
-function updatePulseNumbers() {
-  timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
-  pulseNumberLabels = [];
-  if (!pulses.length) return;
-  const lg = pulses.length - 1;
-  if (lg >= PULSE_NUMBER_HIDE_THRESHOLD) return;
-  const fontRem = computeNumberFontRem(lg);
-  showNumber(0, fontRem);
-  showNumber(lg, fontRem);
-  for (let i = 1; i < lg; i++) {
-    showNumber(i, fontRem);
-  }
-}
-
-/**
- * Distribueix els polsos i marques en mode lineal o circular segons l'estat actual.
- *
- * @param {{ silent?: boolean }} [opts] permet saltar animacions en re-renderitzats silenciosos.
- * @returns {void}
- */
-function layoutTimeline(opts = {}) {
-  const silent = !!opts.silent;
-  const lg = pulses.length - 1;
-  const useCircular = circularTimeline && loopEnabled;
-  const wasCircular = timeline.classList.contains('circular');
-  const desiredCircular = !!useCircular;
-  const delay = (!silent && wasCircular !== desiredCircular) ? T_INDICATOR_TRANSITION_DELAY : 0;
-  const queueIndicatorUpdate = () => scheduleTIndicatorReveal(delay);
-
-  if (lg <= 0) {
-    timelineWrapper.classList.remove('circular');
-    timeline.classList.remove('circular');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = wrapper.querySelector('.circle-guide');
-    if (guide) guide.style.opacity = '0';
-    queueIndicatorUpdate();
-    return;
-  }
-
-  if (desiredCircular) {
-    timelineWrapper.classList.add('circular');
-    timeline.classList.add('circular');
-    if (silent) timeline.classList.add('no-anim');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    let guide = wrapper.querySelector('.circle-guide');
-    if (!guide) {
-      guide = document.createElement('div');
-      guide.className = 'circle-guide';
-      guide.style.position = 'absolute';
-      guide.style.border = '2px solid var(--line-color)';
-      guide.style.borderRadius = '50%';
-      guide.style.pointerEvents = 'none';
-      guide.style.opacity = '0';
-      wrapper.appendChild(guide);
-    }
-
-    requestAnimationFrame(() => {
-      const tRect = timeline.getBoundingClientRect();
-      const cx = tRect.width / 2;
-      const cy = tRect.height / 2;
-      const radius = Math.min(tRect.width, tRect.height) / 2 - 1;
-
-      pulses.forEach((pulse, idx) => {
-        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-        const px = cx + radius * Math.cos(angle);
-        const py = cy + radius * Math.sin(angle);
-        pulse.style.left = `${px}px`;
-        pulse.style.top = `${py}px`;
-        pulse.style.transform = 'translate(-50%, -50%)';
-      });
-
-      pulseHits.forEach((hit, idx) => {
-        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-        const hx = cx + radius * Math.cos(angle);
-        const hy = cy + radius * Math.sin(angle);
-        hit.style.left = `${hx}px`;
-        hit.style.top = `${hy}px`;
-        hit.style.transform = 'translate(-50%, -50%)';
-      });
-
-      bars.forEach((bar, idx) => {
-        const step = idx === 0 ? 0 : lg;
-        const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
-        const bx = cx + radius * Math.cos(angle);
-        const by = cy + radius * Math.sin(angle);
-        const barLen = Math.min(tRect.width, tRect.height) * 0.25;
-        const topPx = by - barLen / 2;
-        bar.style.display = 'block';
-        bar.style.left = `${bx - 1}px`;
-        bar.style.top = `${topPx}px`;
-        bar.style.height = `${barLen}px`;
-        bar.style.transformOrigin = '50% 50%';
-        bar.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
-      });
-
-      const numbers = timeline.querySelectorAll('.pulse-number');
-      numbers.forEach(label => {
-        const idx = parseIntSafe(label.dataset.index);
-        const angle = (idx / lg) * 2 * Math.PI + Math.PI / 2;
-        const innerRadius = radius - NUMBER_CIRCLE_OFFSET;
-        let x = cx + innerRadius * Math.cos(angle);
-        let y = cy + innerRadius * Math.sin(angle);
-        if (idx === 0) x -= 16;
-        else if (idx === lg) x += 16;
-        if (idx === 0 || idx === lg) y += 8;
-        label.style.left = `${x}px`;
-        label.style.top = `${y}px`;
-        label.style.transform = 'translate(-50%, -50%)';
-      });
-
-      cycleMarkers.forEach(marker => {
-        const pos = Number(marker.dataset.position);
-        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
-        const mx = cx + radius * Math.cos(angle);
-        const my = cy + radius * Math.sin(angle);
-        marker.style.left = `${mx}px`;
-        marker.style.top = `${my}px`;
-        marker.style.transformOrigin = '50% 50%';
-        marker.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
-        const key = marker.dataset.fractionKey;
-        if (key && fractionHitMap.has(key)) {
-          const hit = fractionHitMap.get(key);
-          hit.style.left = `${mx}px`;
-          hit.style.top = `${my}px`;
-          hit.style.transform = 'translate(-50%, -50%)';
-        }
-      });
-
-      const labelOffset = 36;
-      cycleLabels.forEach(label => {
-        const pos = Number(label.dataset.position);
-        const angle = (pos / lg) * 2 * Math.PI + Math.PI / 2;
-        const lx = cx + (radius + labelOffset) * Math.cos(angle);
-        const ly = cy + (radius + labelOffset) * Math.sin(angle);
-        label.style.left = `${lx}px`;
-        label.style.top = `${ly}px`;
-        label.style.transform = 'translate(-50%, -50%)';
-      });
-
-      restoreCycleLabelDisplay();
-
-      guide.style.left = `${cx}px`;
-      guide.style.top = `${cy}px`;
-      guide.style.width = `${radius * 2}px`;
-      guide.style.height = `${radius * 2}px`;
-      guide.style.transform = 'translate(-50%, -50%)';
-      guide.style.opacity = '0';
-
-      queueIndicatorUpdate();
-
-      if (silent) {
-        void timeline.offsetHeight;
-        timeline.classList.remove('no-anim');
-      }
-    });
-    schedulePulseSeqSpacingAdjust();
-  } else {
-    timelineWrapper.classList.remove('circular');
-    timeline.classList.remove('circular');
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = wrapper.querySelector('.circle-guide');
-    if (guide) guide.style.opacity = '0';
-
-    pulses.forEach((pulse, idx) => {
-      const percent = (idx / lg) * 100;
-      pulse.style.left = `${percent}%`;
-      pulse.style.top = '50%';
-      pulse.style.transform = 'translate(-50%, -50%)';
-    });
-
-    pulseHits.forEach((hit, idx) => {
-      const percent = (idx / lg) * 100;
-      hit.style.left = `${percent}%`;
-      hit.style.top = '50%';
-      hit.style.transform = 'translate(-50%, -50%)';
-    });
-
-    bars.forEach((bar, idx) => {
-      const step = idx === 0 ? 0 : lg;
-      const percent = (step / lg) * 100;
-      bar.style.display = 'block';
-      bar.style.left = `${percent}%`;
-      bar.style.top = '15%';
-      bar.style.height = '70%';
-      bar.style.transform = '';
-    });
-
-    const numbers = timeline.querySelectorAll('.pulse-number');
-    numbers.forEach(label => {
-      const idx = parseIntSafe(label.dataset.index);
-      const percent = (idx / lg) * 100;
-      label.style.left = `${percent}%`;
-      label.style.top = '-28px';
-      label.style.transform = 'translate(-50%, 0)';
-    });
-
-    cycleMarkers.forEach(marker => {
-      const pos = Number(marker.dataset.position);
-      const percent = (pos / lg) * 100;
-      marker.style.left = `${percent}%`;
-      marker.style.top = '50%';
-      marker.style.transformOrigin = '50% 50%';
-      marker.style.transform = 'translate(-50%, -50%)';
-      const key = marker.dataset.fractionKey;
-      if (key && fractionHitMap.has(key)) {
-        const hit = fractionHitMap.get(key);
-        hit.style.left = `${percent}%`;
-        hit.style.top = '50%';
-        hit.style.transform = 'translate(-50%, -50%)';
-      }
-    });
-
-    cycleLabels.forEach(label => {
-      const pos = Number(label.dataset.position);
-      const percent = (pos / lg) * 100;
-      label.style.left = `${percent}%`;
-      label.style.top = 'calc(100% + 12px)';
-      label.style.transform = 'translate(-50%, 0)';
-    });
-
-    applyCycleLabelCompaction({ lg });
-
-    queueIndicatorUpdate();
-  }
-  schedulePulseSeqSpacingAdjust();
 }
 
 function restoreCycleLabelDisplay() {
@@ -3873,8 +2942,7 @@ function handlePlaybackStop(audioInstance) {
       sel && sel.removeAllRanges && sel.removeAllRanges();
     } catch {}
   }
-  if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
-  if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+  pulseSeqController.clearActive();
 }
 
 async function startPlayback(providedAudio) {
@@ -3909,7 +2977,10 @@ async function startPlayback(providedAudio) {
   const resolvedSelectionResolution = Number.isFinite(selectionForAudio?.resolution)
     ? Math.max(1, Math.round(selectionForAudio.resolution))
     : 1;
-  const effectiveResolution = Math.max(1, resolvedSelectionResolution);
+  const schedulingResolution = Number.isFinite(scheduling?.resolution)
+    ? Math.max(1, Math.round(scheduling.resolution))
+    : 1;
+  const effectiveResolution = Math.max(1, resolvedSelectionResolution, schedulingResolution);
   const normalizedLg = Number.isFinite(scheduling?.lg) ? scheduling.lg : lg;
   let effectiveInterval = scheduling.interval;
   let effectiveTotal = scheduling.totalPulses;
@@ -4124,7 +3195,7 @@ function highlightCycle(payload = {}) {
 
 function getPulseSeqRectForKey(key) {
   if (!pulseSeqEl || !key) return null;
-  const token = pulseSeqTokenMap.get(key);
+  const token = fractionStore.pulseSeqTokenMap.get(key);
   if (token && typeof token.getBoundingClientRect === 'function') {
     return token.getBoundingClientRect();
   }
@@ -4160,6 +3231,8 @@ function getPulseSeqRectForIndex(index) {
   return getPulseSeqRectForKey(String(idx));
 }
 
+pulseSeqController.setRectResolver(getPulseSeqRectForIndex);
+
 function scrollPulseSeqToRect(rect) {
   if (!pulseSeqEl || !rect) return pulseSeqEl ? pulseSeqEl.scrollLeft : 0;
   const parentRect = pulseSeqEl.getBoundingClientRect();
@@ -4172,31 +3245,15 @@ function scrollPulseSeqToRect(rect) {
   return newScrollLeft;
 }
 
-function placePulseSeqHighlight(rect, highlightEl, newScrollLeft) {
-  if (!pulseSeqEl || !rect || !highlightEl) return;
-  const parent = pulseSeqEl.getBoundingClientRect();
-  const scrollLeft = Number.isFinite(newScrollLeft) ? newScrollLeft : pulseSeqEl.scrollLeft;
-  const cx = rect.left - parent.left + scrollLeft + rect.width / 2;
-  const cy = rect.top - parent.top + pulseSeqEl.scrollTop + rect.height / 2;
-  const size = Math.max(rect.width, rect.height) * 0.75;
-  highlightEl.style.width = `${size}px`;
-  highlightEl.style.height = `${size}px`;
-  highlightEl.style.left = `${cx}px`;
-  highlightEl.style.top = `${cy}px`;
-  highlightEl.classList.remove('active');
-  void highlightEl.offsetWidth;
-  highlightEl.classList.add('active');
-}
-
 function clearFractionHighlight() {
-  if (!lastFractionHighlightKey) return;
-  const prevMarker = fractionMarkerMap.get(lastFractionHighlightKey);
+  if (!fractionStore.lastFractionHighlightKey) return;
+  const prevMarker = fractionStore.markerMap.get(fractionStore.lastFractionHighlightKey);
   if (prevMarker) prevMarker.classList.remove('fraction-active');
-  const prevHit = fractionHitMap.get(lastFractionHighlightKey);
+  const prevHit = fractionStore.hitMap.get(fractionStore.lastFractionHighlightKey);
   if (prevHit) prevHit.classList.remove('fraction-active');
-  const prevToken = pulseSeqTokenMap.get(lastFractionHighlightKey);
+  const prevToken = fractionStore.pulseSeqTokenMap.get(fractionStore.lastFractionHighlightKey);
   if (prevToken) prevToken.classList.remove('pulse-seq-token--active');
-  lastFractionHighlightKey = null;
+  fractionStore.lastFractionHighlightKey = null;
 }
 
 function applyFractionHighlight(key) {
@@ -4204,26 +3261,26 @@ function applyFractionHighlight(key) {
     clearFractionHighlight();
     return;
   }
-  if (lastFractionHighlightKey === key) return;
+  if (fractionStore.lastFractionHighlightKey === key) return;
   clearFractionHighlight();
-  const marker = fractionMarkerMap.get(key);
+  const marker = fractionStore.markerMap.get(key);
   if (marker) marker.classList.add('fraction-active');
-  const hit = fractionHitMap.get(key);
+  const hit = fractionStore.hitMap.get(key);
   if (hit) hit.classList.add('fraction-active');
-  const token = pulseSeqTokenMap.get(key);
+  const token = fractionStore.pulseSeqTokenMap.get(key);
   if (token) token.classList.add('pulse-seq-token--active');
-  lastFractionHighlightKey = key;
+  fractionStore.lastFractionHighlightKey = key;
 }
 
 function findFractionMatch(value, epsilon = FRACTION_POSITION_EPSILON) {
   if (!Number.isFinite(value)) return null;
-  for (const item of fractionalPulseSelections) {
+  for (const item of fractionStore.pulseSelections) {
     if (!item || !Number.isFinite(item.value) || !item.key) continue;
     if (Math.abs(item.value - value) <= epsilon) {
       return item;
     }
   }
-  for (const [key, hit] of fractionHitMap.entries()) {
+  for (const [key, hit] of fractionStore.hitMap.entries()) {
     if (!key || !hit) continue;
     const hitValue = Number.parseFloat(hit.dataset?.value);
     if (!Number.isFinite(hitValue)) continue;
@@ -4239,12 +3296,11 @@ function highlightPulse(payload){
 
   if (!pulses || pulses.length === 0) {
     lastNormalizedStep = null;
-    lastHighlightType = null;
-    lastHighlightIntIndex = null;
-    lastHighlightFractionKey = null;
+    fractionStore.lastHighlightType = null;
+    fractionStore.lastHighlightIntIndex = null;
+    fractionStore.lastHighlightFractionKey = null;
     clearFractionHighlight();
-    if (pulseSeqHighlight) pulseSeqHighlight.classList.remove('active');
-    if (pulseSeqHighlight2) pulseSeqHighlight2.classList.remove('active');
+    pulseSeqController.clearActive();
     return;
   }
 
@@ -4268,18 +3324,18 @@ function highlightPulse(payload){
 
   if (!Number.isFinite(rawStepValue)) {
     lastNormalizedStep = null;
-    lastHighlightType = null;
-    lastHighlightIntIndex = null;
-    lastHighlightFractionKey = null;
+    fractionStore.lastHighlightType = null;
+    fractionStore.lastHighlightIntIndex = null;
+    fractionStore.lastHighlightFractionKey = null;
     return;
   }
 
   const baseCount = pulses.length > 1 ? pulses.length - 1 : 0;
   if (baseCount <= 0) {
     lastNormalizedStep = null;
-    lastHighlightType = null;
-    lastHighlightIntIndex = null;
-    lastHighlightFractionKey = null;
+    fractionStore.lastHighlightType = null;
+    fractionStore.lastHighlightIntIndex = null;
+    fractionStore.lastHighlightFractionKey = null;
     return;
   }
 
@@ -4319,12 +3375,12 @@ function highlightPulse(payload){
   let shouldUpdate = false;
   if (highlightType === 'fraction') {
     shouldUpdate = loopWrapped
-      || lastHighlightType !== 'fraction'
-      || fractionKey !== lastHighlightFractionKey;
+      || fractionStore.lastHighlightType !== 'fraction'
+      || fractionKey !== fractionStore.lastHighlightFractionKey;
   } else {
     shouldUpdate = loopWrapped
-      || lastHighlightType !== 'int'
-      || idx !== lastHighlightIntIndex;
+      || fractionStore.lastHighlightType !== 'int'
+      || idx !== fractionStore.lastHighlightIntIndex;
   }
 
   if (!shouldUpdate) {
@@ -4333,9 +3389,9 @@ function highlightPulse(payload){
     return;
   }
 
-  lastHighlightType = highlightType;
-  lastHighlightIntIndex = highlightType === 'int' ? idx : null;
-  lastHighlightFractionKey = highlightType === 'fraction' ? fractionKey : null;
+  fractionStore.lastHighlightType = highlightType;
+  fractionStore.lastHighlightIntIndex = highlightType === 'int' ? idx : null;
+  fractionStore.lastHighlightFractionKey = highlightType === 'fraction' ? fractionKey : null;
   lastNormalizedStep = normalizedScaled;
   lastVisualStep = rawStepValue;
 
@@ -4349,13 +3405,15 @@ function highlightPulse(payload){
       const rect = getPulseSeqRectForKey(fractionKey);
       if (rect) {
         newScrollLeft = scrollPulseSeqToRect(rect);
-        placePulseSeqHighlight(rect, pulseSeqHighlight, newScrollLeft);
-      } else if (pulseSeqHighlight) {
-        pulseSeqHighlight.classList.remove('active');
+        pulseSeqController.setActiveIndex(0, {
+          rect,
+          scrollLeft: newScrollLeft
+        });
+      } else {
+        pulseSeqController.clearActive();
       }
-      if (pulseSeqHighlight2) {
-        pulseSeqHighlight2.classList.remove('active');
-      }
+    } else {
+      pulseSeqController.clearActive();
     }
   } else {
     applyFractionHighlight(null);
@@ -4371,22 +3429,25 @@ function highlightPulse(payload){
     }
     if (pulseSeqEl) {
       const rect = getPulseSeqRectForIndex(idx);
+      let trailingRect = null;
+      let trailingIndex = null;
+      if (idx === 0 && loopEnabled) {
+        trailingIndex = pulses.length - 1;
+        trailingRect = getPulseSeqRectForIndex(trailingIndex);
+      }
       if (rect) {
         newScrollLeft = scrollPulseSeqToRect(rect);
-        placePulseSeqHighlight(rect, pulseSeqHighlight, newScrollLeft);
-      } else if (pulseSeqHighlight) {
-        pulseSeqHighlight.classList.remove('active');
+        pulseSeqController.setActiveIndex(idx, {
+          rect,
+          trailingIndex,
+          trailingRect,
+          scrollLeft: newScrollLeft
+        });
+      } else {
+        pulseSeqController.clearActive();
       }
-      if (idx === 0 && loopEnabled) {
-        const lastRect = getPulseSeqRectForIndex(pulses.length - 1);
-        if (lastRect) {
-          placePulseSeqHighlight(lastRect, pulseSeqHighlight2, newScrollLeft);
-        } else if (pulseSeqHighlight2) {
-          pulseSeqHighlight2.classList.remove('active');
-        }
-      } else if (pulseSeqHighlight2) {
-        pulseSeqHighlight2.classList.remove('active');
-      }
+    } else {
+      pulseSeqController.clearActive();
     }
   }
 }
@@ -4398,9 +3459,9 @@ function stopVisualSync() {
   }
   lastVisualStep = null;
   lastNormalizedStep = null;
-  lastHighlightType = null;
-  lastHighlightIntIndex = null;
-  lastHighlightFractionKey = null;
+  fractionStore.lastHighlightType = null;
+  fractionStore.lastHighlightIntIndex = null;
+  fractionStore.lastHighlightFractionKey = null;
 }
 
 function syncVisualState() {

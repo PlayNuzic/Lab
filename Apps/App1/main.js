@@ -1,16 +1,18 @@
-import { TimelineAudio } from '../../libs/sound/index.js';
-import { ensureAudio } from '../../libs/sound/index.js';
-import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
+import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { solidMenuBackground, computeNumberFontRem } from './utils.js';
-import { initRandomMenu } from '../../libs/app-common/random-menu.js';
+import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
+import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
+import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
 let audio;
+let pendingMute = null;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
 bindSharedSoundEvents({
@@ -21,45 +23,22 @@ bindSharedSoundEvents({
     startSound: 'setStart'
   }
 });
-const inputLg = document.getElementById('inputLg');
-const inputV = document.getElementById('inputV');
-const inputT = document.getElementById('inputT');
-const inputTUp = document.getElementById('inputTUp');
-const inputTDown = document.getElementById('inputTDown');
-const inputVUp = document.getElementById('inputVUp');
-const inputVDown = document.getElementById('inputVDown');
-const inputLgUp = document.getElementById('inputLgUp');
-const inputLgDown = document.getElementById('inputLgDown');
-const ledLg = document.getElementById('ledLg');
-const ledV = document.getElementById('ledV');
-const ledT = document.getElementById('ledT');
-const unitLg = document.getElementById('unitLg');
-const unitV = document.getElementById('unitV');
-const unitT = document.getElementById('unitT');
-const formula = document.getElementById('formula');
-const timelineWrapper = document.getElementById('timelineWrapper');
-const timeline = document.getElementById('timeline');
-const playBtn = document.getElementById('playBtn');
-const loopBtn = document.getElementById('loopBtn');
-const resetBtn = document.getElementById('resetBtn');
-const tapBtn = document.getElementById('tapTempoBtn');
-const tapHelp = document.getElementById('tapHelp');
-const circularTimelineToggle = document.getElementById('circularTimelineToggle');
+// Bind all DOM elements using new utilities
+// Bind all DOM elements using app-specific utilities (App1 has all elements)
+const { elements, leds, ledHelpers } = bindAppRhythmElements('app1');
+
+// Create LED managers for Lg, V, T parameters
+const ledManagers = createRhythmLEDManagers(leds);
+
+// Extract commonly used elements for backward compatibility
+const { inputLg, inputV, inputT, inputTUp, inputTDown, inputVUp, inputVDown,
+        inputLgUp, inputLgDown, ledLg, ledV, ledT, unitLg, unitV, unitT,
+        formula, timelineWrapper, timeline, playBtn, loopBtn, resetBtn,
+        tapBtn, tapHelp, circularTimelineToggle, themeSelect, baseSoundSelect,
+        startSoundSelect, randomBtn, randomMenu, randLgToggle, randLgMin, randLgMax,
+        randVToggle, randVMin, randVMax, randTToggle, randTMin, randTMax } = elements;
+
 // Mute is handled by shared header (#muteBtn). Listen for events instead.
-const themeSelect = document.getElementById('themeSelect');
-const baseSoundSelect = document.getElementById('baseSoundSelect');
-const startSoundSelect = document.getElementById('startSoundSelect');
-const randomBtn = document.getElementById('randomBtn');
-const randomMenu = document.getElementById('randomMenu');
-const randLgToggle = document.getElementById('randLgToggle');
-const randLgMin = document.getElementById('randLgMin');
-const randLgMax = document.getElementById('randLgMax');
-const randVToggle = document.getElementById('randVToggle');
-const randVMin = document.getElementById('randVMin');
-const randVMax = document.getElementById('randVMax');
-const randTToggle = document.getElementById('randTToggle');
-const randTMin = document.getElementById('randTMin');
-const randTMax = document.getElementById('randTMax');
 
 let pulses = [];
 
@@ -76,6 +55,42 @@ let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 let manualHistory = [];
 let visualSyncHandle = null;
 let lastVisualStep = null;
+let tapResyncTimeout = null;
+
+function cancelTapResync() {
+  if (tapResyncTimeout != null) {
+    clearTimeout(tapResyncTimeout);
+    tapResyncTimeout = null;
+  }
+}
+
+function scheduleTapResync(bpm) {
+  cancelTapResync();
+  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
+
+  const state = audio.getVisualState();
+  const stepIndex = state && Number.isFinite(state.step) ? state.step : null;
+  if (stepIndex == null) return;
+
+  const lg = parseInt(inputLg.value, 10);
+  const totalPulses = Number.isFinite(lg) && lg > 0
+    ? toPlaybackPulseCount(lg, loopEnabled)
+    : null;
+  if (!Number.isFinite(totalPulses) || totalPulses <= 0) return;
+  if (!Number.isFinite(bpm) || bpm <= 0) return;
+
+  const resyncInfo = computeResyncDelay({ stepIndex, totalPulses, bpm });
+  if (!resyncInfo || !Number.isFinite(resyncInfo.delaySeconds)) return;
+
+  const delayMs = Math.max(0, resyncInfo.delaySeconds * 1000);
+  tapResyncTimeout = setTimeout(() => {
+    tapResyncTimeout = null;
+    if (!isPlaying) return;
+    Promise.resolve(startPlayback(audio)).catch(err => {
+      console.warn('Tap resync failed', err);
+    });
+  }, delayMs);
+}
 
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
@@ -98,7 +113,7 @@ function saveRandomConfig(cfg) {
   try { saveOpt(RANDOM_STORE_KEY, JSON.stringify(cfg)); } catch {}
 }
 
-const randomConfig = { ...randomDefaults, ...loadRandomConfig() };
+const randomConfig = mergeRandomConfig(randomDefaults, loadRandomConfig());
 
 function applyRandomConfig(cfg) {
   randLgToggle.checked = cfg.Lg.enabled;
@@ -231,6 +246,12 @@ function setAutoExact(target, opts = {}){
   if (autoTarget === 'Lg') inputLg.dataset.auto = '1';
   else if (autoTarget === 'V') inputV.dataset.auto = '1';
   else if (autoTarget === 'T') inputT.dataset.auto = '1';
+
+  // Update LED managers to reflect auto state
+  ledHelpers.setLedAuto('Lg', autoTarget === 'Lg');
+  ledHelpers.setLedAuto('V', autoTarget === 'V');
+  ledHelpers.setLedAuto('T', autoTarget === 'T');
+
   updateAutoIndicator();
   if (recalc) handleInput();
 }
@@ -286,11 +307,13 @@ if (themeSelect) {
 }
 
 // Persist and apply mute from shared header
-document.addEventListener('sharedui:mute', async (e) => {
+document.addEventListener('sharedui:mute', (e) => {
   const val = !!(e && e.detail && e.detail.value);
   saveOpt('mute', val ? '1' : '0');
-  const a = await initAudio();
-  if (a && typeof a.setMute === 'function') a.setMute(val);
+  pendingMute = val;
+  if (audio && typeof audio.setMute === 'function') {
+    audio.setMute(val);
+  }
 });
 
 // Restore previous mute preference on load by toggling the shared button
@@ -322,9 +345,14 @@ loopBtn.addEventListener('click', () => {
     audio.setLoop(loopEnabled);
   }
   animateTimelineCircle(loopEnabled && circularTimeline);
+  // Update totalPulses when loop changes during playback
+  if (isPlaying) {
+    handleInput();
+  }
 });
 
 resetBtn.addEventListener('click', () => {
+  cancelTapResync();
   window.location.reload();
 });
 
@@ -368,29 +396,28 @@ if (tapHelp) {
   tapHelp.style.display = 'none';
 }
 
-initSoundDropdown(baseSoundSelect, {
-  storageKey: storeKey('baseSound'),
-  eventType: 'baseSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setBase(val)
-});
-initSoundDropdown(startSoundSelect, {
-  storageKey: storeKey('startSound'),
-  eventType: 'startSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setStart(val)
-});
+// Sound dropdowns initialized by header.js via initHeader()
+// No need to initialize here - header.js handles baseSoundSelect and startSoundSelect
 
 // Preview on sound change handled by shared header
 
-async function initAudio(){
-  if(audio) return audio;
-  await ensureAudio();
-  audio = new TimelineAudio();
-  await audio.ready();
-  audio.setBase(baseSoundSelect.dataset.value);
-  audio.setStart(startSoundSelect.dataset.value);
-  schedulingBridge.applyTo(audio);
+// Create standardized audio initializer that avoids AudioContext warnings
+const _baseInitAudio = createRhythmAudioInitializer({
+  getSoundSelects: () => ({
+    baseSoundSelect: elements.baseSoundSelect,
+    startSoundSelect: elements.startSoundSelect
+  }),
+  schedulingBridge,
+  channels: [] // App1 doesn't use accent channel
+});
+
+async function initAudio() {
+  if (!audio) {
+    audio = await _baseInitAudio();
+    if (pendingMute != null && typeof audio.setMute === 'function') {
+      audio.setMute(pendingMute);
+    }
+  }
   return audio;
 }
 
@@ -609,6 +636,7 @@ function handleInput(e){
     if (validLg || validV) {
       const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
       audio.updateTransport({
+        align: 'nextPulse',
         totalPulses: playbackTotal != null ? playbackTotal : undefined,
         bpm: validV ? vNow : undefined
       });
@@ -852,9 +880,13 @@ function updateNumbers(){
 
 function updateAutoIndicator(){
   // Los LEDs encendidos son los campos editables; el apagado se recalcula
-  ledLg?.classList.toggle('on', inputLg.dataset.auto !== '1');
-  ledV?.classList.toggle('on', inputV.dataset.auto !== '1');
-  ledT?.classList.toggle('on', inputT.dataset.auto !== '1');
+  // Using LED helpers for consistent state management
+  ledHelpers.setLedActive('Lg', inputLg.dataset.auto !== '1');
+  ledHelpers.setLedActive('V', inputV.dataset.auto !== '1');
+  ledHelpers.setLedActive('T', inputT.dataset.auto !== '1');
+
+  // Sync LED managers with input states
+  syncLEDsWithInputs(ledManagers, elements);
 }
 
 async function startPlayback(providedAudio) {
@@ -863,6 +895,8 @@ async function startPlayback(providedAudio) {
   if (!Number.isFinite(lg) || !Number.isFinite(v) || lg <= 0 || v <= 0) {
     return false;
   }
+
+  cancelTapResync();
 
   const audioInstance = providedAudio || await initAudio();
   if (!audioInstance) return false;
@@ -895,6 +929,7 @@ async function startPlayback(providedAudio) {
     if (iconStop) iconStop.style.display = 'none';
     pulses.forEach(p => p.classList.remove('active'));
     stopVisualSync();
+    cancelTapResync();
     audioInstance.stop();
   };
 
@@ -920,6 +955,7 @@ playBtn.addEventListener('click', async () => {
     stopVisualSync();
     audioInstance.stop();
     isPlaying = false;
+    cancelTapResync();
     playBtn.classList.remove('active');
     if (iconPlay) iconPlay.style.display = 'block';
     if (iconStop) iconStop.style.display = 'none';

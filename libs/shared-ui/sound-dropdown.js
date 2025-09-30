@@ -6,11 +6,20 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
   if (container.dataset.enhanced === '1') return;
   container.dataset.enhanced = '1';
 
+  // Clear any existing content to prevent duplication
+  container.innerHTML = '';
   container.classList.add('custom-dropdown');
 
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.className = 'dropdown-toggle';
+
+  // Transfer the ID from container to the focusable button for accessibility
+  if (container.id) {
+    toggle.id = container.id;
+    container.removeAttribute('id');
+  }
+
   container.appendChild(toggle);
 
   const panel = document.createElement('div');

@@ -22,15 +22,19 @@ function applySchedulingProfile(profile) {
         mobile: { lookAhead: 0.06, updateInterval: 0.03 },
     };
     const p = profiles[profile] || profiles.balanced;
+
+    // Only access Tone context if Tone is available and has been started
+    // This prevents AudioContext warnings on page load
     try {
-        const ctx = (typeof Tone !== 'undefined')
-            ? (typeof Tone.getContext === 'function' ? Tone.getContext() : Tone.context)
-            : null;
-        if (ctx) {
-            if (typeof ctx.lookAhead !== 'undefined') ctx.lookAhead = p.lookAhead;
-            if (typeof ctx.updateInterval !== 'undefined') ctx.updateInterval = p.updateInterval;
+        if (typeof Tone !== 'undefined' && Tone.context && Tone.context.state === 'running') {
+            const ctx = (typeof Tone.getContext === 'function') ? Tone.getContext() : Tone.context;
+            if (ctx) {
+                if (typeof ctx.lookAhead !== 'undefined') ctx.lookAhead = p.lookAhead;
+                if (typeof ctx.updateInterval !== 'undefined') ctx.updateInterval = p.updateInterval;
+            }
         }
     } catch {}
+
     window.dispatchEvent(new CustomEvent('sharedui:scheduling', { detail: { profile, ...p } }));
 }
 
@@ -54,7 +58,9 @@ function setSelectionColor(value) {
 function setMute(value) {
     const v = !!value;
     try {
-        if (typeof Tone !== 'undefined' && Tone.Destination) {
+        // Only access Tone.Destination if Tone context is already running
+        // This prevents AudioContext warnings on page load
+        if (typeof Tone !== 'undefined' && Tone.context && Tone.context.state === 'running' && Tone.Destination) {
             Tone.Destination.mute = v;
         }
     } catch {}
@@ -169,6 +175,7 @@ function wireControls(root) {
         return soundAudio;
     }
 
+    // Initialize standard sound dropdowns (present in all apps)
     initSoundDropdown(baseSoundSelect, {
         storageKey: 'baseSound',
         eventType: 'baseSound',
@@ -188,12 +195,15 @@ function wireControls(root) {
         apply: (a, val) => a.setStart(val)
     });
 
-    initSoundDropdown(cycleSoundSelect, {
-        storageKey: 'cycleSound',
-        eventType: 'cycleSound',
-        getAudio,
-        apply: (a, val) => a.setCycle(val)
-    });
+    // Initialize cycle sound dropdown if present (used in some apps like App3/App4)
+    if (cycleSoundSelect) {
+        initSoundDropdown(cycleSoundSelect, {
+            storageKey: 'cycleSound',
+            eventType: 'cycleSound',
+            getAudio,
+            apply: (a, val) => a.setCycle(val)
+        });
+    }
 
     if (factoryResetBtn) {
         factoryResetBtn.addEventListener('click', () => {
@@ -398,7 +408,9 @@ export function initHeader() {
         wireControls(header);
         return { header, menu };
     }
-    return renderHeader({ title: document.title || 'App' });
+    // If header doesn't exist, warn but don't auto-render to avoid duplication
+    console.warn('[initHeader] No header found. Call renderApp() or renderHeader() first.');
+    return undefined;
 }
 
 /**
