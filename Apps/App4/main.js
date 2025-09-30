@@ -106,6 +106,21 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
 const pulseSeqEl = elements.pulseSeq;
 const fractionInlineSlot = document.getElementById(FRACTION_INLINE_SLOT_ID);
 
+function applyFractionInfoBackground(panel) {
+  if (!panel) return;
+  const theme = document.body?.dataset?.theme === 'dark' ? 'dark' : 'light';
+  const rootStyles = getComputedStyle(document.documentElement);
+  const textVar = theme === 'dark' ? '--text-dark' : '--text-light';
+  const fallbackText = rootStyles.getPropertyValue(textVar)?.trim() || (theme === 'dark' ? '#EEE8D8' : '#43433B');
+  panel.style.backgroundColor = theme === 'dark' ? 'rgba(40, 40, 40, 0.92)' : 'rgba(255, 255, 255, 0.9)';
+  panel.style.color = fallbackText;
+  panel.style.borderColor = theme === 'dark' ? 'rgba(238, 232, 216, 0.2)' : 'rgba(0, 0, 0, 0.08)';
+  panel.style.boxShadow = theme === 'dark'
+    ? '0 18px 36px rgba(0, 0, 0, 0.6)'
+    : '0 12px 28px rgba(0, 0, 0, 0.25)';
+  panel.style.backdropFilter = 'blur(8px)';
+}
+
 let numeratorInput;
 let denominatorInput;
 let pulseSeqFractionWrapper = null;
@@ -288,7 +303,7 @@ function initFractionEditorController() {
       denominatorKey: FRACTION_DENOMINATOR_KEY
     },
     addRepeatPress,
-    applyMenuBackground: solidMenuBackground,
+    applyMenuBackground: applyFractionInfoBackground,
     labels: {
       numerator: {
         placeholder: 'n',
