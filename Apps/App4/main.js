@@ -1,5 +1,4 @@
 import { TimelineAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
-import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js'; // Only for cycleSoundSelect
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
@@ -1386,14 +1385,8 @@ function randomize() {
 
 initRandomMenu(randomBtn, randomMenu, randomize);
 
-// Sound dropdowns: baseSoundSelect, accentSoundSelect, and startSoundSelect are initialized by header.js
-// Only cycleSoundSelect needs initialization here as it's app-specific
-initSoundDropdown(cycleSoundSelect, {
-  storageKey: storeKey('cycleSound'),
-  eventType: 'cycleSound',
-  getAudio: initAudio,
-  apply: (a, val) => a.setCycle(val)
-});
+// All sound dropdowns (including cycleSoundSelect) are initialized by header.js via initHeader()
+// No app-specific initialization needed
 
 // Preview on sound change handled by shared header
 

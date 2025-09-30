@@ -1,7 +1,6 @@
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
-import { initSoundDropdown } from '../../libs/shared-ui/sound-dropdown.js';
 import { computeNumberFontRem, solidMenuBackground } from './utils.js';
 import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
@@ -1294,26 +1293,13 @@ if (circularTimelineToggle) {
 }
 
 /**
- * Inicialitza els desplegables de sons per pulso, inici i cicle.
- * baseSoundSelect and startSoundSelect are initialized by header.js via initHeader().
- * Only cycleSoundSelect needs to be initialized here as it's app-specific.
+ * Sound dropdowns are now initialized by header.js via initHeader().
+ * This includes baseSoundSelect, startSoundSelect, and cycleSoundSelect.
+ * No need for app-specific initialization anymore.
  *
- * @returns {void}
- * @remarks Es crida un cop hi ha DOM disponible. Depèn de `initSoundDropdown` (DOM+Audio). Manté supòsits PulseMemory en delegar la sincronització a `TimelineAudio`.
+ * @remarks All sound dropdowns (including cycleSoundSelect) are now managed centrally in header.js.
  */
-function setupSoundDropdowns() {
-  // baseSoundSelect and startSoundSelect initialized by header.js - no need here
-
-  // cycleSoundSelect is app-specific, so we initialize it here
-  initSoundDropdown(cycleSoundSelect, {
-    storageKey: storeKey('cycleSound'),
-    eventType: 'cycleSound',
-    getAudio: initAudio,
-    apply: (a, val) => a.setCycle(val)
-  });
-}
-
-setupSoundDropdowns();
+// Sound dropdowns initialized by header.js - no app-specific setup needed
 
 /**
  * Restaura valors buits i preferències per defecte quan no hi ha estat guardat.
