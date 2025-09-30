@@ -1518,6 +1518,8 @@ async function initAudio(){
         instance.setMute(true);
       }
       audio = instance;
+      // Expose audio instance for sound dropdown preview
+      if (typeof window !== 'undefined') window.__labAudio = audio;
       return instance;
     })();
   }

@@ -229,6 +229,8 @@ async function initAudio() {
     if (pendingMute != null && typeof audio.setMute === 'function') {
       audio.setMute(pendingMute);
     }
+    // Expose audio instance for sound dropdown preview
+    if (typeof window !== 'undefined') window.__labAudio = audio;
   }
   return audio;
 }

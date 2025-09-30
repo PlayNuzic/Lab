@@ -165,30 +165,30 @@ function wireControls(root) {
     const factoryResetBtn = root.querySelector('#factoryResetBtn');
     const optionsMenu = root.querySelector('#optionsMenu');
 
-    // Dropdowns don't need audio instances - they just emit events and update dataset.value
-    // The app's audio instance will receive changes via sharedui:sound events through bindSharedSoundEvents
-    // If audio is not yet initialized, changes are applied when initAudio() reads dataset.value
-    const noopGetAudio = async () => null;
-    const noopApply = () => {};
+    // Get the app's audio instance for preview
+    // Apps expose their audio instance via window.__labAudio
+    const getAppAudio = async () => {
+        return (typeof window !== 'undefined' && window.__labAudio) ? window.__labAudio : null;
+    };
 
     // Initialize standard sound dropdowns (present in all apps)
     initSoundDropdown(baseSoundSelect, {
         storageKey: 'baseSound',
         eventType: 'baseSound',
-        getAudio: noopGetAudio,
-        apply: noopApply
+        getAudio: getAppAudio,
+        apply: (a, val) => a?.setBase?.(val)
     });
     initSoundDropdown(accentSoundSelect, {
         storageKey: 'accentSound',
         eventType: 'accentSound',
-        getAudio: noopGetAudio,
-        apply: noopApply
+        getAudio: getAppAudio,
+        apply: (a, val) => a?.setAccent?.(val)
     });
     initSoundDropdown(startSoundSelect, {
         storageKey: 'startSound',
         eventType: 'startSound',
-        getAudio: noopGetAudio,
-        apply: noopApply
+        getAudio: getAppAudio,
+        apply: (a, val) => a?.setStart?.(val)
     });
 
     // Initialize cycle sound dropdown if present (used in some apps like App3/App4)
@@ -196,8 +196,8 @@ function wireControls(root) {
         initSoundDropdown(cycleSoundSelect, {
             storageKey: 'cycleSound',
             eventType: 'cycleSound',
-            getAudio: noopGetAudio,
-            apply: noopApply
+            getAudio: getAppAudio,
+            apply: (a, val) => a?.setCycle?.(val)
         });
     }
 
