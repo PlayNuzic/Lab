@@ -90,7 +90,8 @@ export function createFractionEditor({
   onChange = noop,
   hoverTexts = {},
   labels = {},
-  autoHideMs = 3000
+  autoHideMs = 3000,
+  startEmpty = false
 } = {}) {
   const safeHost = host ?? null;
   if (!safeHost) return null;
@@ -649,8 +650,13 @@ export function createFractionEditor({
 
   const storedNumerator = parsePositiveInt(load(numeratorKey));
   const storedDenominator = parsePositiveInt(load(denominatorKey));
-  const initialNumerator = storedNumerator ?? parsePositiveInt(defaults.numerator);
-  const initialDenominator = storedDenominator ?? parsePositiveInt(defaults.denominator);
+  const shouldStartEmpty = Boolean(startEmpty);
+  const initialNumerator = shouldStartEmpty
+    ? null
+    : (storedNumerator ?? parsePositiveInt(defaults.numerator));
+  const initialDenominator = shouldStartEmpty
+    ? null
+    : (storedDenominator ?? parsePositiveInt(defaults.denominator));
 
   setFraction({ numerator: initialNumerator, denominator: initialDenominator }, {
     reveal: false,
@@ -659,8 +665,8 @@ export function createFractionEditor({
     cause: 'init'
   });
 
-  if (storedNumerator == null) clear(numeratorKey);
-  if (storedDenominator == null) clear(denominatorKey);
+  if (shouldStartEmpty || storedNumerator == null) clear(numeratorKey);
+  if (shouldStartEmpty || storedDenominator == null) clear(denominatorKey);
 
   applyState({ reveal: false, persist: false, cause: 'init', silent: true });
   onChange({

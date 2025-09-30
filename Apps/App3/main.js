@@ -127,6 +127,7 @@ function initFractionEditorController() {
     mode: 'block',
     host: formula,
     defaults: { numerator: defaults.numerator, denominator: defaults.denominator },
+    startEmpty: true,
     storage: {
       load: loadOpt,
       save: saveOpt,

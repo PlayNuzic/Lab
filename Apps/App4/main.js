@@ -295,6 +295,7 @@ function initFractionEditorController() {
     mode: 'inline',
     host,
     defaults: fractionDefaults,
+    startEmpty: true,
     storage: {
       load: loadOpt,
       save: saveOpt,
