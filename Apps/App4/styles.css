@@ -205,44 +205,6 @@ header.top-bar h1 .top-bar-title-button:active {
   position: relative;
 }
 
-.fraction-info-bubble {
-  position: absolute;
-  top: 0%;
-  left: 47%;
-  width: 280px;
-  transform: translate(0, -50%);
-  transform: translate(-50%, calc(-100% - 12px));
-  padding: 8px 18px;
-  border-radius: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  text-align: center;
-  font-size: 1.1rem;
-  line-height: 1.4;
-  max-width: min(280px, 85vw);
-  white-space: pre-line;
-  pointer-events: none;
-  z-index: 1;
-  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
-}
-
-body[data-theme='dark'] .fraction-info-bubble {
-  border-color: rgba(238, 232, 216, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-}
-
-.fraction-info-bubble--hidden {
-  opacity: 0;
-  visibility: hidden;
-  transform: translate(-50%, calc(-100% - 2px)) scale(0.95);
-}
-
-.fraction-info-bubble--visible {
-  opacity: 1;
-  visibility: visible;
-  transform: translate(-50%, calc(-100% - 12px)) scale(1);
-}
-
 .fraction-field-placeholder {
   position: absolute;
   inset: 0 28px 0 0;
@@ -380,11 +342,6 @@ position: relative;
 
 .fraction-editor-wrapper--inline .spinner {
   width: 28px;
-}
-
-.fraction-editor-wrapper--inline .fraction-info-bubble {
-  left: 50%;
-  z-index: 4;
 }
 
 .fraction-ghost {
