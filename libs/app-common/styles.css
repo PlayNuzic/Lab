@@ -423,6 +423,26 @@ backdrop-filter: blur(10px);
   margin: 0;
 }
 
+.mixer-menu-draggable {
+  cursor: move;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.mixer-menu.dragging {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.mixer-menu-draggable:active {
+  cursor: grabbing;
+}
+
 .mixer-menu-title svg {
   width: 1.5em;
   height: 1em;

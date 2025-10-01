@@ -41,7 +41,7 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
 
   const titleId = menu.id ? `${menu.id}Title` : 'mixerMenuTitle';
   const title = document.createElement('h2');
-  title.className = 'mixer-menu-title';
+  title.className = 'mixer-menu-title mixer-menu-draggable';
   title.id = titleId;
   title.innerHTML = `Mezclador <svg aria-hidden="true" viewBox="0 0 64 40" focusable="false"><g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="36"></line><line x1="32" y1="4" x2="32" y2="36"></line><line x1="52" y1="4" x2="52" y2="36"></line><line x1="8" y1="20" x2="20" y2="20"></line><line x1="28" y1="28" x2="40" y2="28"></line><line x1="48" y1="12" x2="60" y2="12"></line></g></svg>`;
   menu.setAttribute('aria-labelledby', titleId);
@@ -133,11 +133,33 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   let longPressTimer = null;
   let longPressFired = false;
 
+  // Drag state
+  let dragState = {
+    isDragging: false,
+    pointerId: null,
+    startX: 0,
+    startY: 0,
+    menuX: null,
+    menuY: null,
+    initialMenuLeft: 0,
+    initialMenuTop: 0
+  };
+
+  function resetMenuPosition() {
+    menu.style.top = '';
+    menu.style.left = '';
+    menu.style.transform = '';
+    dragState.menuX = null;
+    dragState.menuY = null;
+  }
+
   function openMenu() {
     if (menuOpen) return;
     menu.classList.add('open');
     menuOpen = true;
     solidMenuBackground(menu);
+    // Reset position to center when opening
+    resetMenuPosition();
     try { menu.focus({ preventScroll: true }); } catch { menu.focus(); }
   }
 
@@ -161,6 +183,83 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
       longPressTimer = null;
     }
   }
+
+  // Drag functionality
+  const handlePointerMove = (event) => {
+    if (!dragState.isDragging) return;
+
+    event.preventDefault();
+
+    const deltaX = event.clientX - dragState.startX;
+    const deltaY = event.clientY - dragState.startY;
+
+    const newX = dragState.initialMenuLeft + deltaX;
+    const newY = dragState.initialMenuTop + deltaY;
+
+    dragState.menuX = newX;
+    dragState.menuY = newY;
+
+    menu.style.top = `${newY}px`;
+    menu.style.left = `${newX}px`;
+    menu.style.transform = 'none';
+  };
+
+  const handlePointerUp = () => {
+    if (dragState.isDragging) {
+      dragState.isDragging = false;
+      menu.classList.remove('dragging');
+      title.style.cursor = '';
+
+      // Release pointer capture
+      try {
+        title.releasePointerCapture(dragState.pointerId);
+      } catch (e) {
+        // Ignore errors if pointer capture wasn't set
+      }
+
+      // Remove event listeners
+      title.removeEventListener('pointermove', handlePointerMove);
+      title.removeEventListener('pointerup', handlePointerUp);
+      title.removeEventListener('pointercancel', handlePointerUp);
+    }
+  };
+
+  title.addEventListener('pointerdown', (event) => {
+    if (!menuOpen) return;
+    if (event.button && event.button !== 0) return; // Only left click
+
+    event.preventDefault();
+    event.stopPropagation(); // Prevent closing the menu
+
+    dragState.isDragging = true;
+    dragState.pointerId = event.pointerId;
+    dragState.startX = event.clientX;
+    dragState.startY = event.clientY;
+
+    const rect = menu.getBoundingClientRect();
+    dragState.initialMenuLeft = rect.left;
+    dragState.initialMenuTop = rect.top;
+
+    if (dragState.menuX === null) {
+      dragState.menuX = rect.left;
+      dragState.menuY = rect.top;
+    }
+
+    menu.classList.add('dragging');
+    title.style.cursor = 'grabbing';
+
+    // Set pointer capture for better drag handling
+    try {
+      title.setPointerCapture(event.pointerId);
+    } catch (e) {
+      // Fallback to document events if pointer capture fails
+    }
+
+    // Add move and up listeners
+    title.addEventListener('pointermove', handlePointerMove);
+    title.addEventListener('pointerup', handlePointerUp);
+    title.addEventListener('pointercancel', handlePointerUp);
+  });
 
   triggerButtons.forEach((btn) => {
     btn.addEventListener('pointerdown', (event) => {
