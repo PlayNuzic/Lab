@@ -1,38 +1,38 @@
 ## Propòsit
-- Experimentar amb seqüències de pulsos seleccionables sobre una timeline
-  lineal/circular compartida amb la resta d'apps.
-- Sincronitzar reproducció i seleccions amb el motor `TimelineAudio`, incloent
-  indicadors de temps (T) i menús de mixer locals.
+- Editar seqüències de polsos amb memòria, drag i mode loop sincronitzat.
+- Visualitzar timeline lineal/circular amb indicadors de temps (`T`).
+- Integrar mixer emergent i preferències de tema/selecció.
 
 ## Flux principal
-1. `createSchedulingBridge` i `bindSharedSoundEvents` connecten la capçalera
-   compartida amb el motor d'àudio (mute, canvis de so, perfils de _scheduling_).
-2. El formulari de pulsos (`pulseSeq`) permet definir seleccions manualment; el
-   codi suporta _drag_, _long press_ i memòria de selecció (`pulseMemory`).
-3. El menú aleatori (`initRandomMenu`) combina rangs per Lg/V/T i un comptador
-   opcional de pulsos; la configuració es desa sota el prefix `app2:`.
-4. `initMixerMenu` habilita el panell emergent del mixer per canalitzar volum/mute
-   (pulse/subdivision/master).
-5. L'indicador `tIndicator` es posiciona segons el temps calculat amb `fromLgAndTempo`
-   i `toPlaybackPulseCount` (libs/app-common/subdivision.js).
+1. `bindAppRhythmElements('app2')` + `createRhythmLEDManagers` configuren inputs,
+   LEDs i helpers d'estat auto/manual.
+2. `createSchedulingBridge` i `bindSharedSoundEvents` reaccionen a events
+   `sharedui:*` (mute, canvis de so, perfils de scheduling).
+3. `createRhythmAudioInitializer` crea `TimelineAudio` lazy. `pendingMute` assegura
+   que els canvis de mute compartits s'apliquen quan l'àudio està llest.
+4. `createPulseSeqController` governa el `contenteditable` de pulsos (text, caret,
+   selecció, memòria). `pulseMemory` persisteix l'estat entre sessions.
+5. `createPulseMemoryLoopController` sincronitza el botó de loop amb `TimelineAudio`
+   i reconstrueix la selecció visible quan es canvia l'estat.
+6. `initRandomMenu` + `mergeRandomConfig` gestionen Lg/V/T i el comptador de pulsos
+   extra. Resultats guardats a `localStorage` (`app2:random`).
+7. `initMixerMenu` registra canals `pulse`/`subdivision`/`master` i sincronitza
+   toggles locals amb el mixer global.
+8. L'indicador `tIndicator` es posiciona amb `fromLgAndTempo` i
+   `toPlaybackPulseCount`; es torna a calcular en `resize` i quan canvia Lg/V/T.
 
 ## Estat i emmagatzematge
-- `localStorage` prefix `app2:` guarda tema, mute, color de selecció, mode circular
-  i configuració del menú aleatori.
-- `pulseMemory` manté l'estat de selecció i es re-sincronitza amb `TimelineAudio`
-  quan es reprodueix en mode loop.
-- El toggle circular i la posició de l'indicador T es recalculen en `resize`.
+- `localStorage` prefix `app2:`: tema (`theme`), mute (`mute`), color de selecció
+  (`color`), mode circular (`circular`) i configuració aleatòria (`random`).
+- Estat local: `isPlaying`, `loopEnabled`, `circularTimeline`, `pendingMute`,
+  `pulseMemory` (Map), `selectedFromMemory` i configuracions de caret.
 
 ## Dependències compartides
-- `libs/sound/index.js` (TimelineAudio, ensureAudio, mixer i assignació de sons).
-- `libs/shared-ui/hover.js` i `sound-dropdown.js` per ajudar amb la UI.
-- `libs/app-common` (`audio.js`, `mixer-menu.js`, `random-menu.js`, `range.js`,
-  `subdivision.js`, `utils.js`).
+- `libs/app-common/` (`audio.js`, `audio-init.js`, `dom.js`, `led-manager.js`,
+  `loop-control.js`, `mixer-menu.js`, `random-menu.js`, `range.js`,
+  `subdivision.js`, `pulse-seq.js`, `utils.js`).
+- `libs/shared-ui/hover.js` (tooltips) i header global.
 
 ## Tests
-No hi ha suite específica per App2; confia en els tests compartits executant des de
-l'arrel:
-
-```bash
-npm test
-```
+No hi ha suite específica d'App2. Fia't de les proves compartides i executa
+`npm test` abans de pujar canvis.
