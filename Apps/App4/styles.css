@@ -578,7 +578,8 @@ transform: translate(-50%, -50%) !important; /* was -40px */
 /* 6) Scale down inline fraction editor for compact layouts */
 .fraction-inline-container {
   transform: scale(0.5);
-  transform-origin: top center;
+  transform-origin: center center;
+  vertical-align: middle;
 }
 
 
