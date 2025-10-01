@@ -242,9 +242,14 @@ function wireControls(root) {
     }
 
     if (volumeSlider) {
-        // Cargar volumen guardado desde localStorage
+        // Cargar volumen: si viene de reset mantener valor, si es recarga normal usar máximo
+        const isFromReset = sessionStorage.getItem('volumeResetFlag') === 'true';
+        sessionStorage.removeItem('volumeResetFlag'); // Limpiar flag
+
         const savedVolume = localStorage.getItem('masterVolume');
-        const initial = savedVolume !== null ? parseFloat(savedVolume) : (typeof getVolume === 'function' ? getVolume() : 1);
+        const initial = isFromReset && savedVolume !== null
+            ? parseFloat(savedVolume)
+            : (typeof getVolume === 'function' ? getVolume() : 1);
         volumeSlider.value = initial;
         setVolume(initial);
         previousVolume = initial;

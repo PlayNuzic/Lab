@@ -1249,6 +1249,7 @@ resetBtn.addEventListener('click', () => {
     iconPlay.style.display = 'block';
     iconStop.style.display = 'none';
   }
+  sessionStorage.setItem('volumeResetFlag', 'true');
 });
 
 async function tapTempo() {
