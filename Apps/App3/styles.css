@@ -102,6 +102,7 @@ header.top-bar h1 .top-bar-title-button:active {
     --pulse-offset-y: 40px;
     --cycle-offset-x: -91px;
     --cycle-offset-y: 40px;
+    --unit-label-offset: -5px;
   }
 
   body.app3 .control-sound-toggles {

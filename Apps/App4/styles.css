@@ -540,6 +540,7 @@ body {
   --selected-offset-y: -18px;
   --cycle-offset-x: -140px;
   --cycle-offset-y: -17px;
+  --unit-label-offset: 0px;
 }
 
 #pulseSeq {
@@ -548,7 +549,7 @@ gap: 8px;
 padding: 0 12px;
 }
 
-/* Layout adjustments requested for App2 */
+/* Layout adjustments requested for App4 */
 /* 1) Raise inputs section by 25px (from shared 40px to 15) */
 .inputs {
 margin-top: 25px !important;
@@ -564,14 +565,21 @@ gap: 14px;
 margin-top: 50px !important; /* was 20px in shared styles */
 }
 
-/* 4) Lower controls inside circular wrapper (40px via wrapper - 20px here) */
+/* 4) Align controls inside circular wrapper for compact view */
 .timeline-wrapper.circular > .controls {
 transform: translate(-50%, -50%) !important; /* was -40px */
 }
 
 /* 5) Lower unit label by 20px when shown on input focus */
   .param .circle .unit {
-  top: calc(var(--unit-label-offset, -20px) - 1.8rem);
+  top: calc(var(--unit-label-offset, -40px) - 1.8rem);
   }
+
+/* 6) Scale down inline fraction editor for compact layouts */
+.fraction-inline-container {
+  transform: scale(0.5);
+  transform-origin: center center;
+  vertical-align: middle;
+}
 
 
