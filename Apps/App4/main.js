@@ -1221,9 +1221,6 @@ dragController.attach({
 });
 // Hovers for LEDs and controls
 // LEDs ahora indican los campos editables; el apagado se recalcula
-attachHover(ledLg, { text: 'Entrada manual de "Lg"' });
-attachHover(ledV, { text: 'Entrada manual de "V"' });
-attachHover(ledT, { text: 'Valor calculado de "T"' });
 attachHover(playBtn, { text: 'Play / Stop' });
 attachHover(loopBtn, { text: 'Loop' });
 attachHover(tapBtn, { text: 'Tap Tempo' });
@@ -1806,51 +1803,6 @@ getEditEl()?.addEventListener('focus', ()=> setTimeout(()=>{
   moveCaretToNearestMidpoint();
 },0));
 
-const inputToLed = new Map([
-  [inputLg, ledLg],
-  [inputV, ledV],
-  [inputT, ledT]
-].filter(([input, led]) => input && led));
-
-const autoTip = document.createElement('div');
-autoTip.className = 'hover-tip auto-tip-below';
-autoTip.textContent = 'Introduce valores en los otros dos círculos';
-document.body.appendChild(autoTip);
-let autoTipTimeout = null;
-
-function showAutoTip(input){
-  const rect = input.getBoundingClientRect();
-  autoTip.style.left = rect.left + rect.width / 2 + 'px';
-  // Show below the input (use bottom instead of top)
-  autoTip.style.top = rect.bottom + window.scrollY + 'px';
-  autoTip.classList.add('show');
-  clearTimeout(autoTipTimeout);
-  // Display twice as long as before
-  autoTipTimeout = setTimeout(() => autoTip.classList.remove('show'), 4000);
-}
-
-function flashOtherLeds(excludeInput){
-  const excludeLed = inputToLed.get(excludeInput);
-  const leds = [ledLg, ledV];
-  if (ledT) leds.push(ledT);
-  leds.forEach(led => {
-    if (led && led !== excludeLed) {
-      led.classList.add('flash');
-      setTimeout(() => led.classList.remove('flash'), 800);
-    }
-  });
-}
-
-[inputLg, inputV, inputT].filter(Boolean).forEach(input => {
-  input.addEventListener('beforeinput', (e) => {
-    if (input.dataset.auto === '1') {
-      showAutoTip(input);
-      flashOtherLeds(input);
-      e.preventDefault();
-    }
-  });
-});
-
 function setValue(input, value){
   isUpdating = true;
   input.value = String(value);
@@ -2045,23 +1997,11 @@ if (titleButton) {
   window.addEventListener('resize', hideTitleInfoTip);
 }
 
-// Guard: if LED is off (auto), show tip and do nothing
-function guardManual(input){
-  if (input?.dataset?.auto === '1'){
-    showAutoTip(input);
-    flashOtherLeds(input);
-    return false;
-  }
-  return true;
-}
-
 // Long‑press auto‑repeat for spinner buttons
-function addRepeatPress(el, fn, guardInput){
+function addRepeatPress(el, fn){
   if (!el) return;
   let t=null, r=null;
   const start = (ev) => {
-    // When LED is off (auto), show help and do nothing
-    if (guardInput && !guardManual(guardInput)) { ev.preventDefault(); return; }
     fn();
     t = setTimeout(() => { r = setInterval(fn, 80); }, 320);
     ev.preventDefault();
@@ -2082,10 +2022,10 @@ function stepAndDispatch(input, dir){
   if (dir > 0) input.stepUp(); else input.stepDown();
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
-addRepeatPress(inputVUp,   () => stepAndDispatch(inputV, +1),  inputV);
-addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1),  inputV);
-addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), inputLg);
-addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), inputLg);
+addRepeatPress(inputVUp,   () => stepAndDispatch(inputV, +1));
+addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1));
+addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1));
+addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1));
 
 function showPulseSeqAutoTip(html) {
   try {
@@ -2599,10 +2539,6 @@ function updateFormula(){
     <span class="bottom">60</span>
   </span>`;
 
-  attachHover(formula.querySelector('.top.lg'), { text: 'Pulsos' });
-  attachHover(formula.querySelector('.bottom.v'), { text: 'PulsosPorMinuto' });
-  attachHover(formula.querySelector('.top.t'), { text: 'segundos' });
-  attachHover(formula.querySelector('.bottom:not(.v)'), { text: 'segundos' });
 }
 
 function updatePulseSeqField(){
