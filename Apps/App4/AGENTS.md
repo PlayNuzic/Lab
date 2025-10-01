@@ -1,38 +1,51 @@
 ## Propòsit
-- Experimentar amb seqüències de pulsos seleccionables sobre una timeline
-  lineal/circular compartida amb la resta d'apps.
-- Sincronitzar reproducció i seleccions amb el motor `TimelineAudio`, incloent
-  indicadors de temps (T) i menús de mixer locals.
+- Gestionar seleccions múltiples de fraccions rítmiques sobre la timeline
+  compartida (edita Lg/V/T i fraccions n/d amb memòria de selecció).
+- Combinar editor de fraccions inline, seqüenciador de polsos i randomització
+  avançada per generar patrons complexos.
 
 ## Flux principal
-1. `createSchedulingBridge` i `bindSharedSoundEvents` connecten la capçalera
-   compartida amb el motor d'àudio (mute, canvis de so, perfils de _scheduling_).
-2. El formulari de pulsos (`pulseSeq`) permet definir seleccions manualment; el
-   codi suporta _drag_, _long press_ i memòria de selecció (`pulseMemory`).
-3. El menú aleatori (`initRandomMenu`) combina rangs per Lg/V/T i un comptador
-   opcional de pulsos; la configuració es desa sota el prefix `app2:`.
-4. `initMixerMenu` habilita el panell emergent del mixer per canalitzar volum/mute
-   (pulse/subdivision/master).
-5. L'indicador `tIndicator` es posiciona segons el temps calculat amb `fromLgAndTempo`
-   i `toPlaybackPulseCount` (libs/app-common/subdivision.js).
+1. `bindAppRhythmElements('app4')` + `createRhythmLEDManagers` configuren inputs,
+   LEDs i helpers. El loop està integrat mitjançant
+   `createPulseMemoryLoopController` (reconstrueix seleccions en canviar d'estat).
+2. `createSchedulingBridge` + `bindSharedSoundEvents` connecten events `sharedui`.
+   `TimelineAudio` es crea amb `createRhythmAudioInitializer` quan cal.
+3. `createPreferenceStorage({ prefix: 'app4', separator: ':' })` concentra
+   localStorage (tema, mute, color, random i fraccions). `registerFactoryReset`,
+   `setupThemeSync` i `setupMutePersistence` gestionen estat global.
+4. `createPulseSeqController` munta el `contenteditable` de polsos (markup propi,
+   drag, caret). La memòria persistent ve de `pulseMemoryApi`.
+5. `fraction-selection.js` defineix `fractionStore`, `fractionMemory` i helpers
+   (`registerFractionLabel`, `applyFractionSelectionClasses`,
+   `rebuildFractionSelections`, `applyRandomFractionSelection`). Governen com es
+   projecten les fraccions sobre la seqüència i el layout.
+6. `createFractionEditor({ mode: 'inline' })` ocupa `FRACTION_INLINE_SLOT_ID` i
+   sincronitza la UI amb el `fractionStore`. Cada canvi invoca `handleInput` per
+   recalcular timeline, cicles i audio.
+7. `initRandomMenu` + helpers de `fraction-selection.js` gestionen randomització de
+   Lg/V/T, nombre de pulsos i fraccions (amb `allowComplex`).
+8. `getMixer()` registra canals `pulse`, `subdivision` i `accent`; `initMixerMenu`
+   i `initAudioToggles` sincronitzen toggles locals amb el mixer.
 
 ## Estat i emmagatzematge
-- `localStorage` prefix `app2:` guarda tema, mute, color de selecció, mode circular
-  i configuració del menú aleatori.
-- `pulseMemory` manté l'estat de selecció i es re-sincronitza amb `TimelineAudio`
-  quan es reprodueix en mode loop.
-- El toggle circular i la posició de l'indicador T es recalculen en `resize`.
+- `localStorage` gestionat via `preferenceStorage` (`app4:*`): fraccions (`n/d`),
+  configuració aleatòria, tema, mute, color de selecció i toggles d'àudio.
+- Estructures locals: `fractionStore`, `fractionMemory` (Map), `pulseMemoryApi`,
+  `pulses`, `pulseSeqRanges`, `cycleMarkers`, `cycleLabels`, `bars`,
+  `pulseHits`, `voiceHighlightHandlers`.
+- Flags: `isPlaying`, `loopEnabled`, `circularTimeline`, `isUpdating`,
+  `currentAudioResolution`.
 
 ## Dependències compartides
-- `libs/sound/index.js` (TimelineAudio, ensureAudio, mixer i assignació de sons).
-- `libs/shared-ui/hover.js` i `sound-dropdown.js` per ajudar amb la UI.
-- `libs/app-common` (`audio.js`, `mixer-menu.js`, `random-menu.js`, `range.js`,
-  `subdivision.js`, `utils.js`).
+- `libs/app-common/` (`audio.js`, `audio-init.js`, `dom.js`, `fraction-editor.js`,
+  `fraction-selection` helpers, `led-manager.js`, `loop-control.js`,
+  `mixer-menu.js`, `preferences.js`, `pulse-seq.js`, `random-menu.js`,
+  `random-config.js`, `subdivision.js`, `timeline-layout.js`, `number.js`).
+- `libs/shared-ui/hover.js` per tooltips i `performance-audio-menu` des de
+  `index.html`.
+- `libs/sound/index.js` per `TimelineAudio`, mixer i subscripcions.
 
 ## Tests
-No hi ha suite específica per App2; confia en els tests compartits executant des de
-l'arrel:
-
-```bash
-npm test
-```
+No hi ha suite específica. La lògica compartida està coberta per tests a
+`libs/app-common/` (pulse-seq, loop-control, fraction-editor, random-config).
+Executa `npm test` després de canvis per garantir-ne la integritat.

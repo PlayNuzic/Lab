@@ -454,6 +454,7 @@ loopController.attach();
 
 resetBtn.addEventListener('click', () => {
   pulseMemory = [];
+  sessionStorage.setItem('volumeResetFlag', 'true');
   window.location.reload();
 });
 

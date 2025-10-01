@@ -249,15 +249,19 @@ export function rebuildFractionSelections(store, { updatePulseSeqField, cycleMar
       const pulsesPerCycle = Number.isFinite(item?.pulsesPerCycle) && item.pulsesPerCycle > 0
         ? item.pulsesPerCycle
         : null;
+      const storedDisplay = typeof item?.display === 'string' ? item.display.trim() : '';
+      const fallbackDisplay = fractionDisplay(item.base, item.numerator, item.denominator, {
+        cycleIndex,
+        subdivisionIndex,
+        pulsesPerCycle
+      });
+      const normalizedDisplay = storedDisplay || fallbackDisplay;
       const rawLabel = typeof item?.rawLabel === 'string' ? item.rawLabel.trim() : '';
+      const effectiveRawLabel = rawLabel || normalizedDisplay;
       return {
         ...item,
-        rawLabel,
-        display: fractionDisplay(item.base, item.numerator, item.denominator, {
-          cycleIndex,
-          subdivisionIndex,
-          pulsesPerCycle
-        })
+        rawLabel: effectiveRawLabel,
+        display: normalizedDisplay
       };
     })
     .sort((a, b) => a.value - b.value);
@@ -285,11 +289,13 @@ export function setFractionSelected(store, info, shouldSelect, { updatePulseSeqF
       ? info.pulsesPerCycle
       : null;
     const rawLabel = typeof info.rawLabel === 'string' ? info.rawLabel.trim() : '';
-    const display = info.display || fractionDisplay(base, numerator, denominator, {
+    const displayInput = typeof info.display === 'string' ? info.display.trim() : '';
+    const display = displayInput || fractionDisplay(base, numerator, denominator, {
       cycleIndex,
       subdivisionIndex,
       pulsesPerCycle
     });
+    const effectiveRawLabel = rawLabel || display;
     store.selectionState.set(key, {
       base,
       numerator,
@@ -300,7 +306,7 @@ export function setFractionSelected(store, info, shouldSelect, { updatePulseSeqF
       cycleIndex,
       subdivisionIndex,
       pulsesPerCycle,
-      rawLabel
+      rawLabel: effectiveRawLabel
     });
   } else {
     store.selectionState.delete(key);
@@ -384,7 +390,7 @@ export function applyRandomFractionSelection(store, {
     const subdivisionIndex = parseIntSafe(el.dataset.subdivision);
     const pulsesPerCycle = parseIntSafe(el.dataset.pulsesPerCycle);
     const rawLabel = typeof el.dataset.rawLabel === 'string' ? el.dataset.rawLabel : '';
-    const display = el.dataset.display || null;
+    const display = typeof el.dataset.display === 'string' ? el.dataset.display.trim() : '';
     fractionOptions.push({
       key,
       base,
@@ -430,11 +436,13 @@ export function applyRandomFractionSelection(store, {
       : null;
     const pulsesPerCycle = Number.isFinite(info.pulsesPerCycle) && info.pulsesPerCycle > 0 ? info.pulsesPerCycle : null;
     const rawLabel = typeof info.rawLabel === 'string' ? info.rawLabel.trim() : '';
-    const display = info.display || fractionDisplay(info.base, info.numerator, info.denominator, {
+    const displayInput = typeof info.display === 'string' ? info.display.trim() : '';
+    const display = displayInput || fractionDisplay(info.base, info.numerator, info.denominator, {
       cycleIndex,
       subdivisionIndex,
       pulsesPerCycle
     });
+    const effectiveRawLabel = rawLabel || display;
     store.selectionState.set(info.key, {
       base: info.base,
       numerator: info.numerator,
@@ -445,7 +453,7 @@ export function applyRandomFractionSelection(store, {
       cycleIndex,
       subdivisionIndex,
       pulsesPerCycle,
-      rawLabel
+      rawLabel: effectiveRawLabel
     });
   });
   return fractionSelection.length > 0;

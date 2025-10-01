@@ -1,82 +1,61 @@
 ## Preparació de l'entorn
 
-Executa aquests passos a l'arrel del repositori cada nova sessió:
+Executa aquests passos a l'arrel del repositori a l'inici de cada sessió:
 
 ```bash
-unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
-git config --global --unset http.proxy  || true
-git config --global --unset https.proxy || true
-
-mkdir -p ~/.ssh
-cat > ~/.ssh/config <<'CFG'
-Host github.com
-  HostName ssh.github.com
-  Port 443
-  User git
-  IdentityFile ~/.ssh/id_ed25519
-  StrictHostKeyChecking no
-CFG
-chmod 600 ~/.ssh/config
-
-chmod +x setup.sh
 ./setup.sh
 ```
 
-El `setup.sh` configura el nom i correu de Git, força el _remote_ a SSH
-(github.com:443), habilita Corepack i instal·la les dependències de Node amb
-`npm ci` (Jest inclòs). Només cal executar-lo un cop per sessió.
+El `setup.sh` configura Git (usuari genèric i remote via SSH al port 443), habilita
+Corepack i instal·la totes les dependències de Node amb `npm ci` (inclòs Jest).
+Només cal llançar-lo un cop per sessió.
+
+> **Nota**: si l'entorn no permet descarregar paquets amb `apt-get`, torna a
+> executar-lo amb `SKIP_APT=1 ./setup.sh`.
 
 ## Estructura del projecte
 
-- `index.html` exposa una _landing_ minimalista amb enllaços a les apps.
-- `Apps/App1`, `Apps/App2`, `Apps/App3`, `Apps/App4` comparteixen gran part de la lògica de
-  timeline i àudio via `libs/` però mantenen HTML i estils propis.
-- `libs/` agrupa els mòduls reutilitzables:
-  - `app-common/`: càlculs de subdivisions, _helpers_ de rang, menús, mixer,
-    programació d'àudio, controladors de loop i temes.
-  - `sound/`: motor `TimelineAudio`, mixer global i càrrega de mostres.
-  - `shared-ui/`: capçalera, desplegables de so, sistemes de _hover_ i menú de
-    rendiment d'àudio.
-  - `random/`, `utils/`, `cards/`, etc. suporten funcionalitats concretes.
-- `config/` conté configuracions comunes (Jest, ESLint, etc.).
+### Visió general
+- `index.html` – Landing que enllaça totes les apps.
+- `Apps/` – Aplicacions independents (App1–App4) que comparteixen ~70% del codi.
+- `libs/` – Nucli compartit. Destaquen `app-common/`, `sound/`, `shared-ui/`,
+  `random/` i `utils/`. També hi ha paquets especialitzats (`notation/`,
+  `cards/`, `ear-training/`, `guide/`).
+- `setup.sh` – Inicialització de l'entorn (vegeu més amunt).
 
-## 🚨 **PRINCIPIS DE DESENVOLUPAMENT OBLIGATORIS**
+### Apps
+Cada app reutilitza components de `libs/app-common/` i del motor d'àudio comú.
 
-### **PRIORITZAR SEMPRE COMPONENTS COMPARTITS**
+| App | Propòsit | Punts clau |
+| --- | --- | --- |
+| **App1 · Temporal Formula** | Edició de Lg/V/T amb càlcul automàtic del tercer paràmetre. | `bindAppRhythmElements`, `createRhythmAudioInitializer`, menú aleatori modular i resync de tap via `computeResyncDelay`. |
+| **App2 · Pulse Sequence Editor** | Editor de seqüències de polsos amb memòria i loop. | `createPulseSeqController`, `createPulseMemoryLoopController`, mixer emergent, menú aleatori amb recompte de pulsos. |
+| **App3 · Fraction Editor** | Editor de fraccions rítmiques amb timeline sincronitzada. | `fraction-editor`, `preferences` (factory reset), `audio-toggles`, renderitzat amb `createTimelineRenderer`. |
+| **App4 · Multi-Fraction Selection** | Gestió de múltiples fraccions (selecció, memòria i randomització). | `fraction-selection` store, `pulse-seq`, `loop-control`, preferències compartides i menú aleatori enriquit. |
 
-Quan implementis noves funcionalitats o solucionis bugs, segueix SEMPRE aquesta jerarquia:
+### Llibreries compartides
 
-1. **🔍 PRIMER**: Comprova si ja existeix un component compartit a `libs/app-common/`
-2. **🛠️ SEGON**: Si no existeix cap component compartit, crea'n un que es pugui reutilitzar
-3. **❌ ÚLTIMA OPCIÓ**: Només implementa codi específic d'app quan sigui realment necessari
+- `libs/app-common/` – 32+ mòduls: inicialització (`app-init`, `audio-init`),
+  dom bindings (`dom`, `template`), gestió LED, loop controllers, editor de
+  fraccions, seqüenciador de polsos, timeline renderer, preferències i utilitats
+  (`number`, `range`, `utils`).
+- `libs/sound/` – Motor `TimelineAudio`, mixer global, `user-interaction` helper i
+  carregador de mostres (`sample-map`).
+- `libs/shared-ui/` – Capçalera comuna (`header`), dropdowns de so, menús de
+  rendiment i efectes `hover`.
+- `libs/random/`, `libs/utils/` – Utilitats de randomització i helpers genèrics.
 
-### **Exemples de Components Modulars Recents**
+## Principis de desenvolupament
 
-#### **Controladors de Loop** (Nou - 2024)
-- **Ubicació**: `libs/app-common/loop-control.js`
-- **Tipus**: `createLoopController`, `createRhythmLoopController`, `createPulseMemoryLoopController`
-- **Utilitzat a**: App2, App4
-- **Benefici**: Sincronització d'àudio consistent, eliminació de duplicació de codi
+1. **Prioritza sempre components compartits**: abans d'escriure codi en una app,
+   comprova si ja hi ha un mòdul reutilitzable a `libs/app-common/`.
+2. **Extén el nucli compartit**: si no existeix, crea'l perquè el puguin aprofitar
+   altres apps (documenta'l i afegeix tests).
+3. **Últim recurs**: codi específic d'una app només quan el comportament sigui
+   realment únic.
 
-#### **Gestió de DOM**
-- **Ubicació**: `libs/app-common/dom.js`
-- **Funcions**: `bindRhythmElements`, gestió automàtica de LEDs
-- **Utilitzat a**: Totes les apps
-- **Benefici**: Eliminació de múltiples `document.getElementById`
-
-#### **Gestió de LEDs**
-- **Ubicació**: `libs/app-common/led-manager.js`
-- **Funcions**: `createRhythmLEDManagers`, estat auto/manual
-- **Utilitzat a**: Totes les apps
-- **Benefici**: Comportament consistent de LEDs
-
-### **Protocol per a Bug Fixes**
-
-1. **Analitzar si el bug afecta múltiples apps**
-2. **Crear component compartit** que solucioni el problema correctament
-3. **Migrar totes les apps afectades** per utilitzar el component compartit
-4. **Verificar comportament consistent** a totes les apps
-5. **Escriure tests** per al nou component compartit
+Reforça la modularitat exposant APIs clares i evitant duplicats. Quan migris
+funcionalitat existent, actualitza els AGENTS corresponents.
 
 ## Execució de tests
 
@@ -86,6 +65,10 @@ Executa totes les proves amb Jest des de l'arrel:
 npm test
 ```
 
-Les suites cobreixen els mòduls compartits (`libs/app-common`, `libs/sound`,
-`libs/random`, `libs/utils`, …). Alguns tests simulen el DOM i WebAudio; assegura't
-que continuen passant després de modificar aquestes zones.
+- **Cobertura actual**: 15 test suites, 80 tests (vegeu `npx jest --listTests`).
+- **Cobertura clau**: `libs/app-common/__tests__/` (subdivisions, audio bridges,
+  loop resize, tap resync, fraction editor), `libs/app-common/*.{test.js}`
+  (audio-init, loop-control, range, utils), `libs/sound/*.test.js` (motor i
+  mixer) i `libs/random/index.test.js`.
+
+Mantén els tests verds després de qualsevol canvi en mòduls compartits o apps.

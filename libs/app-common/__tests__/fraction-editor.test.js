@@ -52,6 +52,37 @@ describe('fraction-editor', () => {
     expect(denominator.value).toBe('7');
   });
 
+  test('startEmpty ignores stored values, clears storage and shows placeholders', () => {
+    const load = jest.fn((key) => (key === 'n' ? '9' : key === 'd' ? '4' : null));
+    const clear = jest.fn();
+    const changes = [];
+    const editor = createFractionEditor({
+      mode: 'inline',
+      host: container,
+      defaults: { numerator: 6, denominator: 5 },
+      storage: {
+        load,
+        save: jest.fn(),
+        clear,
+        numeratorKey: 'n',
+        denominatorKey: 'd'
+      },
+      startEmpty: true,
+      onChange: (payload) => changes.push(payload)
+    });
+
+    expect(load).toHaveBeenCalledWith('n');
+    expect(load).toHaveBeenCalledWith('d');
+    expect(clear).toHaveBeenCalledWith('n');
+    expect(clear).toHaveBeenCalledWith('d');
+    expect(editor.getFraction()).toEqual({ numerator: null, denominator: null });
+    expect(changes[0]).toMatchObject({ numerator: null, denominator: null, cause: 'init' });
+    const numerator = container.querySelector('input.numerator');
+    const denominator = container.querySelector('input.denominator');
+    expect(numerator.value).toBe('');
+    expect(denominator.value).toBe('');
+  });
+
   test('normalizes input changes and updates info bubble text', () => {
     const changes = [];
     const editor = createFractionEditor({

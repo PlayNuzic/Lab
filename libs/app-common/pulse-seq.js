@@ -372,7 +372,7 @@ export default function createPulseSeqController(options = {}) {
       state.drag.dragMode = active ? 'deselect' : 'select';
       state.drag.isDragging = true;
       state.drag.lastKey = info.key;
-      state.drag.suppressKey = info.key;
+      state.drag.suppressKey = info.selectionKey ?? info.key;
       state.drag.applySelection?.(info, state.drag.dragMode === 'select');
       state.drag.onDragStart?.({ info, mode: state.drag.dragMode });
     };

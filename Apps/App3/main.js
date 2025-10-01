@@ -127,6 +127,7 @@ function initFractionEditorController() {
     mode: 'block',
     host: formula,
     defaults: { numerator: defaults.numerator, denominator: defaults.denominator },
+    startEmpty: true,
     storage: {
       load: loadOpt,
       save: saveOpt,
@@ -1248,6 +1249,7 @@ resetBtn.addEventListener('click', () => {
     iconPlay.style.display = 'block';
     iconStop.style.display = 'none';
   }
+  sessionStorage.setItem('volumeResetFlag', 'true');
 });
 
 async function tapTempo() {

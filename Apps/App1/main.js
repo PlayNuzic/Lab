@@ -358,6 +358,7 @@ loopBtn.addEventListener('click', () => {
 
 resetBtn.addEventListener('click', () => {
   cancelTapResync();
+  sessionStorage.setItem('volumeResetFlag', 'true');
   window.location.reload();
 });
 

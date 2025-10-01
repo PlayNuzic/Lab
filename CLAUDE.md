@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
-### Setup and Testing
-- **Run tests**: `npm test` - Execute Jest test suite with experimental VM modules
+### Setup and Environment
+- **Initial setup**: `./setup.sh` - Run once per session to install dependencies and configure Git
+- **Run tests**: `npm test` - Execute Jest test suite (24 test suites, 109 tests)
 - **Run specific test**: `npm test -- --testNamePattern="test name"`
+- **Serve files locally**: `npx http-server` - For testing with proper ES module support
 
 ## Project Architecture
 
@@ -19,21 +21,36 @@ This is a **monorepo** with **workspaces** for rhythm-based musical applications
 
 ### Core Libraries (`libs/`)
 
-#### **`libs/app-common/`** - Shared App Logic
-- **`app-init.js`**: Unified app initialization helper
+#### **`libs/app-common/`** - Shared App Logic (32 modules)
+Core initialization and management:
+- **`audio-init.js`**: Standardized audio initialization with warning suppression
+- **`app-init.js`**: Unified app initialization helper (deprecated in favor of modular approach)
 - **`dom.js`**: DOM utilities and element binding with LED support
 - **`led-manager.js`**: LED state management for rhythm parameters
-- **`events.js`**: Standardized event binding utilities
-- **`audio.js`**: Audio scheduling bridges and shared sound events
-- **`loop-control.js`**: **NEW** - Shared loop controllers for consistent audio sync
+- **`preferences.js`**: Centralized preference storage with factory reset support
 - **`template.js`**: App template rendering system
-- **`utils.js`**: Math utilities (font size, hit size calculations)
-- **`preferences.js`**: Centralized preference storage
-- **`fraction-editor.js`**: Reusable fraction editing components
-- **`mixer-menu.js`**: Audio mixer menu functionality
+
+Audio and timing:
+- **`audio.js`**: Audio scheduling bridges and shared sound events (`createSchedulingBridge`, `bindSharedSoundEvents`)
+- **`audio-schedule.js`**: Tap tempo resync delay calculations
+- **`audio-toggles.js`**: Audio channel toggle management with mixer integration
+- **`loop-control.js`**: Shared loop controllers (`createLoopController`, `createPulseMemoryLoopController`)
+- **`subdivision.js`**: Temporal subdivision calculations (`fromLgAndTempo`, `gridFromOrigin`, `toPlaybackPulseCount`)
+- **`timeline-layout.js`**: Timeline rendering utilities (circular/linear layouts)
+
+UI components and interaction:
+- **`fraction-editor.js`**: Reusable fraction editing components with full CRUD operations
+- **`pulse-seq.js`**: Pulse sequence controller with drag selection and memory management
+- **`mixer-menu.js`**: Audio mixer menu functionality with longpress support
+- **`mixer-longpress.js`**: Longpress interaction for mixer controls
 - **`random-menu.js`**: Randomization controls
-- **`subdivision.js`**: Temporal subdivision calculations
-- **`timeline-layout.js`**: Timeline rendering utilities
+- **`random-config.js`**: Random configuration management
+
+Utilities:
+- **`events.js`**: Standardized event binding utilities
+- **`number.js`**: Safe number parsing utilities
+- **`range.js`**: Range validation and clamping
+- **`utils.js`**: Math utilities (font size, hit size calculations)
 
 #### **`libs/shared-ui/`** - UI Components
 - **`header.js`**: Common header with audio controls
@@ -136,11 +153,33 @@ syncLEDsWithInputs(ledManagers, elements);
 
 ### Application Types
 
-1. **App1**: Temporal Formula - Basic rhythm timeline
-2. **App2**: Pulse Sequence - Editable pulse patterns
-3. **App3**: Fraction Editor - Complex rhythm fraction editing
-4. **App4**: Multi-Fraction Selection - Advanced fraction management
-5. **SoundGrid**: Placeholder for future grid-based sound app
+All apps share common architecture with rhythm parameters (Lg, V, T) and audio playback:
+
+1. **App1**: Temporal Formula
+   - Basic rhythm timeline with circular/linear visualization
+   - Three-parameter system with auto-calculation (one auto, two manual)
+   - Tap tempo with resync capability
+   - Features: Loop, random parameter generation, theme switching
+
+2. **App2**: Pulse Sequence Editor
+   - Editable pulse patterns with contenteditable sequence field
+   - Pulse memory persistence across Lg changes
+   - Drag selection for rapid pattern creation
+   - Synchronized timeline scrolling with visual highlighting
+   - Mixer controls for pulse/accent channels
+   - Features: Auto-sync between text field and visual timeline
+
+3. **App3**: Fraction Editor
+   - Complex rhythm fraction editing (n/d subdivisions)
+   - Visual cycle markers on timeline
+   - Dedicated fraction editor component with validation
+   - Cycle audio with subdivision tracking
+   - Features: Integer cycles, fractional pulses, visual subdivision labels
+
+4. **App4**: Multi-Fraction Selection (READ.md available)
+   - Advanced fraction management with multiple selections
+   - Detailed implementation documented in Apps/App4/README.md
+   - Complex pattern generation capabilities
 
 ## 🚨 **CRITICAL DEVELOPMENT PRINCIPLES**
 
@@ -190,11 +229,28 @@ When fixing bugs that affect multiple apps:
 
 ### **Testing Shared Components**
 
-All shared components MUST have corresponding tests in `/tests/`. Before creating new shared components:
+All shared components MUST have corresponding tests. Current test coverage:
 
+**Test locations**:
+- `libs/app-common/__tests__/` - Core app-common tests (subdivision, audio, fraction-editor, etc.)
+- `tests/` - Legacy tests and integration tests
+- 24 test suites, 109 passing tests
+
+**Key test files**:
+- `libs/app-common/__tests__/subdivision.test.js` - Temporal calculations
+- `libs/app-common/__tests__/audio.test.js` - Audio bridges and scheduling
+- `libs/app-common/__tests__/fraction-editor.test.js` - Fraction editing logic
+- `libs/app-common/__tests__/audio-toggles.test.js` - Toggle state management
+- `libs/app-common/__tests__/loop-resize.test.js` - Loop resizing behavior
+- `libs/app-common/__tests__/tap-resync.test.js` - Tap tempo resync logic
+- `libs/app-common/loop-control.test.js` - Loop controller components
+- `libs/app-common/range.test.js` - Range validation
+- `libs/app-common/utils.test.js` - Math utilities
+
+Before creating new shared components:
 1. **Check existing tests**: `npm test`
-2. **Create test file**: `tests/[component-name].test.js`
-3. **Test critical paths**: Audio sync, DOM management, state persistence
+2. **Create test file**: `libs/app-common/__tests__/[component-name].test.js`
+3. **Test critical paths**: Audio sync, DOM management, state persistence, edge cases
 
 ### **Technical Architecture**
 
@@ -223,10 +279,23 @@ All shared components MUST have corresponding tests in `/tests/`. Before creatin
 ### Development Patterns
 
 #### **Creating New Apps**
-1. Use `initRhythmApp()` for consistent setup
-2. Define element map with `createStandardElementMap()`
-3. Use `bindRhythmAppEvents()` for event handling
-4. Import utilities from `libs/app-common/`
+
+**Modern modular approach** (recommended for all new apps):
+1. Use `bindAppRhythmElements('appN')` from `dom.js` to bind DOM elements
+2. Use `createRhythmAudioInitializer()` from `audio-init.js` for audio setup
+3. Use `createSchedulingBridge()` and `bindSharedSoundEvents()` from `audio.js`
+4. Use specialized controllers:
+   - `createPulseMemoryLoopController()` for loop management
+   - `createFractionEditor()` for fraction inputs
+   - `createPulseSeqController()` for pulse sequence editing
+5. Import utilities from `libs/app-common/` as needed
+
+**Legacy monolithic approach** (being phased out):
+- `initRhythmApp()` from `app-init.js` (deprecated)
+- `createStandardElementMap()` (deprecated)
+- `bindRhythmAppEvents()` (deprecated)
+
+The modular approach provides better tree-shaking, clearer dependencies, and easier testing.
 
 #### **Common Element IDs**
 Standard rhythm apps use these element IDs:
@@ -237,9 +306,12 @@ Standard rhythm apps use these element IDs:
 - **Random**: `randLgToggle`, `randLgMin`, `randLgMax`
 
 #### **Audio Initialization**
-- Use `initRhythmApp()` to handle audio context warnings
-- Audio context starts only on user interaction
+- Use `createRhythmAudioInitializer()` to handle audio context warnings
+- Audio context starts only on user interaction (no warnings on page load)
 - Scheduling profiles auto-detected (mobile/desktop)
+- Sound selection handled by shared header (`header.js`)
+- Mixer integration via `initMixerMenu()` and `initAudioToggles()`
+- Tap tempo with resync capability via `computeResyncDelay()`
 
 #### **CSS and Styling**
 - **Base styles**: `libs/shared-ui/index.css`
@@ -248,9 +320,22 @@ Standard rhythm apps use these element IDs:
 - **Deprecated warnings fixed**: slider-vertical replaced with writing-mode
 
 ### Testing
-- **Jest** with jsdom environment
-- **ES modules** support via NODE_OPTIONS
-- **Test files**: `libs/app-common/__tests__/` and `*.test.js`
+
+Test infrastructure:
+- **Jest 29.x** with Node.js environment (`testEnvironment: 'node'`)
+- **ES modules** support via experimental VM modules
+- **24 test suites**, 109 passing tests
+- **Test locations**:
+  - `libs/app-common/__tests__/` - Core shared component tests
+  - `libs/sound/*.test.js` - Audio engine tests
+  - `libs/random/*.test.js`, `libs/utils/*.test.js` - Utility tests
+  - `tests/` - Legacy integration and domain-specific tests
+
+**Test patterns**:
+- Unit tests for pure functions (subdivision, range, number parsing)
+- Integration tests for complex components (fraction-editor, pulse-seq)
+- Audio behavior tests (audio-toggles, loop-control, tap-resync)
+- Edge case validation (loop-resize, audio-schedule)
 
 ### Console Warnings Resolution
 
@@ -264,23 +349,45 @@ Standard rhythm apps use these element IDs:
 - Use `ensureAudioSilent()` for warning-free audio checks
 - Handle audio context state in user interaction handlers
 
-### Scaling to 30+ Apps
+### Scaling and Code Reuse
 
-#### **Current Efficiency Gains**
-- **60-70% reduction** in duplicate code
-- **DOM queries**: Centralized through `bindRhythmElements()`
-- **Event handling**: Standardized patterns
-- **Initialization**: One-line app setup
+#### **Current Modularization Achievements**
+- **~70% code reduction** vs. monolithic apps
+- **32 shared modules** in `libs/app-common/`
+- **DOM queries**: Centralized through `bindAppRhythmElements()`
+- **Audio**: Unified initialization via `createRhythmAudioInitializer()`
+- **State management**: Shared preference storage and factory reset
+- **UI components**: Reusable controllers (fraction-editor, pulse-seq, loop-control)
 
-#### **Future App Categories**
-- **Distance apps**: Will use `libs/app-common/distance-calculator.js` (TBD)
-- **Multi-cycle apps**: Will use `libs/app-common/multi-cycle.js` (TBD)
-- **Sound apps**: Already supported with mixer, random controls, and audio engine
+#### **Shared Components Status**
+✅ **Production-ready**:
+- Audio initialization and scheduling
+- DOM element binding
+- LED management
+- Loop controllers (basic, rhythm, pulse-memory variants)
+- Fraction editor with validation
+- Pulse sequence editor with drag selection
+- Mixer menu and audio toggles
+- Random parameter generation
+- Timeline layout (circular/linear)
+- Tap tempo with resync
+- Preference storage with factory reset
+
+🚧 **In development** (see `libs/app-common/AGENTS.md`):
+- Advanced subdivision rendering
+- Multi-app state synchronization
 
 #### **Development Speed**
-- **Current apps**: 2-3 days per app
-- **With new utilities**: 4-6 hours per app
-- **Mature patterns**: 1-2 hours per app
+- **New app from scratch**: 4-6 hours (with mature patterns)
+- **New feature in existing app**: 1-2 hours
+- **Legacy refactor to modular**: 2-3 hours per app
+
+#### **Recommended Patterns**
+1. **Start with bindAppRhythmElements()** for DOM access
+2. **Use specialized controllers** instead of manual event listeners
+3. **Import only what you need** for better tree-shaking
+4. **Test shared components** before app-specific logic
+5. **Document new patterns** in AGENTS.md for future apps
 
 ### File Organization
 - **App structure**: HTML + styles.css + main.js + utils.js (re-export)

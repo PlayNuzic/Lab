@@ -236,6 +236,95 @@ describe('TimelineAudio (new engine)', () => {
     }
   });
 
+  test('cycle events reset to subdivision 0 after denominator change', async () => {
+    const previousSampleRate = global.sampleRate;
+    const previousProcessorBase = global.AudioWorkletProcessor;
+    const previousRegister = global.registerProcessor;
+
+    try {
+      global.sampleRate = 48000;
+      class FakeProcessorBase {
+        constructor() {
+          this.port = { postMessage: jest.fn(), onmessage: null };
+        }
+      }
+
+      let ProcessorCtor = null;
+      global.AudioWorkletProcessor = FakeProcessorBase;
+      global.registerProcessor = jest.fn((_, ctor) => { ProcessorCtor = ctor; });
+
+      await import('./timeline-processor.js');
+      expect(typeof ProcessorCtor).toBe('function');
+
+      const processor = new ProcessorCtor();
+      const cyclePayloads = [];
+      processor.port.postMessage = jest.fn((msg) => {
+        if (msg && msg.type === 'cycle') {
+          cyclePayloads.push(msg.payload);
+        }
+      });
+
+      processor.port.onmessage({
+        data: {
+          action: 'start',
+          total: 8,
+          interval: 0.5,
+          loop: true,
+          numerator: 4,
+          denominator: 4,
+          pattern: 8
+        }
+      });
+
+      const outputs = [[new Float32Array(128)]];
+      for (let i = 0; i < 200; i++) {
+        processor.process([], outputs);
+      }
+
+      processor.measurePhaseBeats = 5e-10;
+      processor.nextCycleIndex = processor.cycleEvents.length;
+
+      cyclePayloads.length = 0;
+
+      processor.port.onmessage({
+        data: {
+          action: 'updateCycle',
+          numerator: 4,
+          denominator: 6
+        }
+      });
+
+      expect(processor.nextCycleIndex).toBe(0);
+
+      let firstAfterChange = null;
+      for (let i = 0; i < 200 && !firstAfterChange; i++) {
+        processor.process([], outputs);
+        if (cyclePayloads.length) {
+          [firstAfterChange] = cyclePayloads;
+        }
+      }
+
+      expect(firstAfterChange).toBeTruthy();
+      expect(firstAfterChange.subdivisionIndex).toBe(0);
+    } finally {
+      if (previousSampleRate === undefined) {
+        delete global.sampleRate;
+      } else {
+        global.sampleRate = previousSampleRate;
+      }
+      if (previousProcessorBase === undefined) {
+        delete global.AudioWorkletProcessor;
+      } else {
+        global.AudioWorkletProcessor = previousProcessorBase;
+      }
+      if (previousRegister === undefined) {
+        delete global.registerProcessor;
+      } else {
+        global.registerProcessor = previousRegister;
+      }
+    }
+  });
+
   test('setSchedulingProfile applies preset values', () => {
     const audio = new TimelineAudio();
     audio.setSchedulingProfile('mobile');

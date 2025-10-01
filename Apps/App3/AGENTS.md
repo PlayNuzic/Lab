@@ -1,39 +1,43 @@
 ## Propòsit
-- Visualitzar i sonoritzar subdivisions rítmiques (fraccions n/d) sobre un timeline
-  lineal o circular compartit amb altres apps del Lab.
-- Exercir de banc de proves per PulseMemory, mixer compartit i sincronització amb
-  `computeNextZero` i `TimelineAudio`.
-
-## API pública
-- `main.js`: arrencada de la UI, integració amb `TimelineAudio`, gestió dels
-  esdeveniments `sharedui:*` i mixers.
-- `utils.js`: reexporta utilitats visuals (`computeHitSizePx`, `computeNumberFontRem`,
-  `solidMenuBackground`).
-- L'HTML associat (`Apps/App3/index.html`) carrega aquesta app amb bundler clàssic.
+- Representar fraccions rítmiques (n/d) amb timeline lineal/circular i audio.
+- Exercir de banc de proves del `fraction-editor` i de la integració amb mixer,
+  preferències i randomització compartida.
 
 ## Flux principal
-1. `createSchedulingBridge` i `bindSharedSoundEvents` uneixen el mixer global amb
-   la capçalera compartida (sons base/start/cycle, mute, perfils de scheduling).
-2. El formulari de fraccions munta editors accesibles (`fraction-editor`) i calcula
-   subdivisions via `gridFromOrigin`, `computeSubdivisionFontRem` i `toPlaybackPulseCount`.
-3. `initMixerMenu` registra canals `pulse` i `subdivision` al mixer compartit i
-   sincronitza controls locals (botons Pulse/Cycle) amb `TimelineAudio`.
-4. El menú aleatori (`initRandomMenu`) permet variar Lg/V i fraccions n/d; es
-   persisteix sota el prefix `app3::*` juntament amb preferències d'àudio i tema.
+1. `bindAppRhythmElements('app3')` prepara inputs i controls (inclosa la ranura
+   per al `fraction-editor`).
+2. `createPreferenceStorage({ prefix: 'app3', separator: '::' })` centralitza
+   localStorage (`storeKey`, `load`, `save`, `clear`). `registerFactoryReset`
+   reinicia l'estat i assegura que els canals d'àudio es desmutegen abans de
+   recarregar.
+3. `createRhythmAudioInitializer` inicialitza `TimelineAudio` i registra canals
+   `pulse`/`cycle` al mixer (`getMixer`, `subscribeMixer`).
+4. `createFractionEditor({ mode: 'block', defaults, storage, addRepeatPress })`
+   sincronitza inputs n/d amb la UI i truca `handleInput` quan canvien.
+5. `initAudioToggles` governa botons Pulse/Cycle (persistents) i els vincula amb
+   `initMixerMenu` i el mixer global.
+6. `createTimelineRenderer` + `gridFromOrigin` calculen subdivisions i layout
+   (cicles, barres, labels) tant per timeline lineal com circular.
+7. `initRandomMenu` amb `applyBaseRandomConfig`/`updateBaseRandomConfig` gestiona
+   randomització de Lg/V/n/d (`allowComplex`).
 
 ## Estat i emmagatzematge
-- `localStorage` (`app3::*`) guarda Lg/V, fraccions, configuració aleatòria i
-  preferències Pulse/Cycle (audio enable/disable, mixer, tema).
-- Variables locals controlen `isPlaying`, `loopEnabled`, `circularTimeline` i
-  caches per a marcatge de cicles, bars i labels.
-- `PulseMemory` calcula Lg-1 i sincronitza _highlights_ amb `computeNextZero`.
+- `localStorage` prefix `app3::`: valors Lg/V, fraccions, random, preferències
+  d'àudio (pulse/cycle), tema i configuració del mixer.
+- Flags locals: `isPlaying`, `loopEnabled`, `circularTimeline`, `isUpdating`,
+  `tIndicatorRevealTimeout`.
+- Caches locals: `pulseNumberLabels`, `cycleMarkers`, `cycleLabels`, `bars`,
+  `lastStructureSignature`.
 
-## Candidats a obsolets
-- [ ] Revisar `tapTempo` per eliminar lògica heretada de App1 quan arribi la migració
-  de `Tone.js`.
-- [ ] Consolidar `handleInput` amb flux reactiu compartit quan es porti App3 a un
-  framework modern.
+## Dependències compartides
+- `libs/app-common/` (`audio.js`, `audio-init.js`, `audio-toggles.js`, `dom.js`,
+  `fraction-editor.js`, `loop-control.js`, `mixer-menu.js`, `preferences.js`,
+  `random-config.js`, `random-menu.js`, `subdivision.js`, `timeline-layout.js`,
+  `number.js`).
+- `libs/shared-ui/hover.js` per tooltips.
+- `libs/sound/index.js` per mixer global.
 
 ## Tests
-No hi ha suite dedicada; confia en les proves dels mòduls compartits amb Jest. Executa
-`npm test` des de l'arrel abans de fer commit.
+No hi ha suite d'app dedicada. Les funcionalitats clau estan cobertes pels tests
+compartits (`fraction-editor`, `audio-toggles`, `subdivision`). Executa `npm test`
+per validar-los després de canvis.

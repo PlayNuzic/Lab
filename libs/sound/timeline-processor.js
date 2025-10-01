@@ -202,7 +202,11 @@ class TimelineProcessor extends AudioWorkletProcessor {
       if (this.loop && totalBeats > 0) {
         phase %= totalBeats;
       }
+      if (phase < 0 && this.loop && totalBeats > 0) {
+        phase += totalBeats;
+      }
       phase = Math.max(0, phase);
+      if (phase <= epsilon) phase = 0;
 
       let idx = 0;
       while (idx < this.cycleEvents.length && this.cycleEvents[idx].beat < phase - epsilon) {
@@ -300,13 +304,16 @@ class TimelineProcessor extends AudioWorkletProcessor {
       this.measurePhaseBeats += beatsPerSample;
 
       if (this.loop && this.totalBeats > 0) {
+        let wrapped = false;
         while (this.measurePhaseBeats >= this.totalBeats) {
           this.measurePhaseBeats -= this.totalBeats;
+          wrapped = true;
           this.nextCycleIndex = 0;
           if (this.pendingTempoChange && this.pendingTempoChange.align === 'cycle') {
             this._applyPendingTempoChange();
           }
         }
+        if (wrapped) this.measurePhaseBeats = 0;
       }
 
       while (this.pulseCountdownBeats <= 1e-9) {
