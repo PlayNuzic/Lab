@@ -1765,7 +1765,7 @@ if (menu && optionsContent) {
 }
 // Initialize mixer UI and sync accent/master controls
 const mixerMenu = document.getElementById('mixerMenu');
-const mixerTriggers = [playBtn];
+const mixerTriggers = [playBtn, tapBtn].filter(Boolean);
 
 initMixerMenu({
   menu: mixerMenu,

@@ -361,7 +361,7 @@ function setCycleAudio(value, options) {
   cycleToggleController?.set(value, options);
 }
 
-const mixerTriggers = [playBtn].filter(Boolean);
+const mixerTriggers = [playBtn, tapBtn].filter(Boolean);
 
 initMixerMenu({
   menu: mixerMenu,
