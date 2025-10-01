@@ -155,10 +155,19 @@ font-size: 0.9rem; /* Keep same font size */
  * Layout adjustments for timeline wrapper and controls on narrow screens.
  */
 @media (max-width: 600px) {
+body {
+  --unit-label-offset: 0px;
+}
+
 #pulseSeq {
-font-size: 1.75rem;
-gap: 8px;
+font-size: 1.25rem;
+gap: 6px;
 padding: 0 12px;
+}
+
+#pulseSeq .prefix {
+white-space: nowrap;
+flex-shrink: 0;
 }
 
 /* Layout adjustments requested for App2 */
@@ -176,14 +185,14 @@ margin-top: 25px !important;
 margin-top: 90px !important; /* was 20px in shared styles */
 }
 
-/* 4) Lower controls inside circular wrapper (40px via wrapper - 20px here) */
+/* 4) Lower controls inside circular wrapper (offset tuned for mobile) */
 .timeline-wrapper.circular > .controls {
-transform: translate(-50%, calc(-50% - 90px)) !important; /* was -40px */
+transform: translate(-50%, calc(-50% - 50px)) !important; /* was -40px */
 }
 
 /* 5) Lower unit label by 20px when shown on input focus */
   .param .circle .unit {
-  top: calc(var(--unit-label-offset, -20px) - 1.8rem);
+  top: calc(var(--unit-label-offset, -40px) - 1.8rem);
   }
 
 }
