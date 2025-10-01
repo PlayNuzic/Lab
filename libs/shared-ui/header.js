@@ -242,7 +242,9 @@ function wireControls(root) {
     }
 
     if (volumeSlider) {
-        const initial = typeof getVolume === 'function' ? getVolume() : 1;
+        // Cargar volumen guardado desde localStorage
+        const savedVolume = localStorage.getItem('masterVolume');
+        const initial = savedVolume !== null ? parseFloat(savedVolume) : (typeof getVolume === 'function' ? getVolume() : 1);
         volumeSlider.value = initial;
         setVolume(initial);
         previousVolume = initial;
@@ -280,7 +282,7 @@ function wireControls(root) {
 
         volumeSlider.addEventListener('input', (e) => {
             const v = parseFloat(e.target.value);
-            
+
             // Si estaba muteado y ahora se mueve el slider desde 0, activar sonido
             if (muted && v > 0) {
                 muted = false;
@@ -293,6 +295,8 @@ function wireControls(root) {
                 previousVolume = v;
             }
             setVolume(v);
+            // Guardar el volumen en localStorage
+            localStorage.setItem('masterVolume', v.toString());
             window.dispatchEvent(new CustomEvent('sharedui:volume', { detail: { value: v } }));
         });
 
@@ -367,7 +371,7 @@ function wireControls(root) {
 
         muteBtn.addEventListener('click', () => {
             muted = !muted;
-            
+
             if (muted) {
                 if (volumeSlider && volumeSlider.value > 0) {
                     previousVolume = parseFloat(volumeSlider.value);
@@ -381,8 +385,10 @@ function wireControls(root) {
                     volumeSlider.value = previousVolume;
                 }
                 setVolume(previousVolume);
+                // Guardar el volumen restaurado en localStorage
+                localStorage.setItem('masterVolume', previousVolume.toString());
             }
-            
+
             setMute(muted);
             updateMuteIcon();
 
