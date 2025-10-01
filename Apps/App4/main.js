@@ -2773,6 +2773,8 @@ function renderTimeline() {
     const denominatorValue = normalizedDenominator ?? 0;
     grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
       let fractionKey = null;
+      const formattedLabel = labelFormatter({ cycleIndex, subdivisionIndex, position });
+      let normalizedDisplay = null;
       const marker = document.createElement('div');
       marker.className = 'cycle-marker';
       if (subdivisionIndex === 0) marker.classList.add('start');
@@ -2814,18 +2816,24 @@ function renderTimeline() {
           if (key) {
             fractionKey = key;
             const value = fractionValue(baseIndex, fracNumerator, denominatorValue);
-            const display = fractionDisplay(baseIndex, fracNumerator, denominatorValue, {
+            const formattedDisplay = typeof formattedLabel === 'string'
+              ? formattedLabel.trim()
+              : (formattedLabel != null ? String(formattedLabel).trim() : '');
+            const fallbackDisplay = fractionDisplay(baseIndex, fracNumerator, denominatorValue, {
               cycleIndex,
               subdivisionIndex,
               pulsesPerCycle: numeratorPerCycle
             });
+            normalizedDisplay = formattedDisplay || (typeof fallbackDisplay === 'string'
+              ? fallbackDisplay
+              : String(fallbackDisplay ?? ''));
             marker.dataset.baseIndex = String(baseIndex);
             marker.dataset.fractionNumerator = String(fracNumerator);
             marker.dataset.fractionDenominator = String(denominatorValue);
             marker.dataset.fractionKey = key;
             marker.dataset.selectionKey = `fraction:${key}`;
             marker.dataset.value = String(value);
-            marker.dataset.display = display;
+            marker.dataset.display = normalizedDisplay;
             marker.style.cursor = 'pointer';
             attachSelectionListeners(marker);
             validFractionKeys.add(key);
@@ -2841,7 +2849,7 @@ function renderTimeline() {
             hit.dataset.fractionKey = key;
             hit.dataset.selectionKey = `fraction:${key}`;
             hit.dataset.value = String(value);
-            hit.dataset.display = display;
+            hit.dataset.display = normalizedDisplay;
             if (Number.isFinite(numeratorPerCycle) && numeratorPerCycle > 0) {
               hit.dataset.pulsesPerCycle = String(numeratorPerCycle);
             }
@@ -2869,9 +2877,10 @@ function renderTimeline() {
             const storedRawLabel = typeof storedSelection?.rawLabel === 'string'
               ? storedSelection.rawLabel.trim()
               : '';
-            if (storedRawLabel) {
-              marker.dataset.rawLabel = storedRawLabel;
-              hit.dataset.rawLabel = storedRawLabel;
+            const effectiveRawLabel = storedRawLabel || normalizedDisplay;
+            if (effectiveRawLabel) {
+              marker.dataset.rawLabel = effectiveRawLabel;
+              hit.dataset.rawLabel = effectiveRawLabel;
             }
             const labelInfo = {
               key,
@@ -2879,13 +2888,13 @@ function renderTimeline() {
               numerator: fracNumerator,
               denominator: denominatorValue,
               value,
-              display,
+              display: normalizedDisplay,
               cycleIndex,
               subdivisionIndex,
               pulsesPerCycle: numeratorPerCycle,
               rawLabel: storedRawLabel
             };
-            registerFractionLabel(display, labelInfo);
+            registerFractionLabel(normalizedDisplay, labelInfo);
             if (storedRawLabel) {
               registerFractionLabel(storedRawLabel, labelInfo);
             }
@@ -2909,7 +2918,9 @@ function renderTimeline() {
       }
 
       if (hideFractionLabels) return;
-      const formatted = labelFormatter({ cycleIndex, subdivisionIndex, position });
+      const formatted = formattedLabel != null
+        ? formattedLabel
+        : (normalizedDisplay != null ? normalizedDisplay : labelFormatter({ cycleIndex, subdivisionIndex, position }));
       if (formatted != null) {
         const label = document.createElement('div');
         label.className = 'cycle-label';
