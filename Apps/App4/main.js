@@ -143,6 +143,107 @@ let bars = [];
 let pulseHits = [];
 let cycleMarkerHits = [];
 const fractionStore = createFractionSelectionStore();
+const fractionMemory = new Map();
+
+function normalizeFractionMemoryPayload(info) {
+  if (!info || !info.key) return null;
+  const base = Number.isFinite(info.base) ? info.base : null;
+  const numerator = Number.isFinite(info.numerator) ? info.numerator : null;
+  const denominator = Number.isFinite(info.denominator) ? info.denominator : null;
+  const cycleIndex = Number.isFinite(info.cycleIndex) ? info.cycleIndex : null;
+  const subdivisionIndex = Number.isFinite(info.subdivisionIndex) ? info.subdivisionIndex : null;
+  const pulsesPerCycle = Number.isFinite(info.pulsesPerCycle) && info.pulsesPerCycle > 0
+    ? info.pulsesPerCycle
+    : null;
+  let value = Number.isFinite(info.value) ? info.value : null;
+  if (!Number.isFinite(value)
+    && Number.isFinite(base)
+    && Number.isFinite(numerator)
+    && Number.isFinite(denominator)
+    && denominator > 0) {
+    value = fractionValue(base, numerator, denominator);
+  }
+  const displayInput = typeof info.display === 'string' ? info.display : '';
+  const display = displayInput || (Number.isFinite(base)
+    && Number.isFinite(numerator)
+    && Number.isFinite(denominator)
+    && denominator > 0
+    ? fractionDisplay(base, numerator, denominator, {
+      cycleIndex,
+      subdivisionIndex,
+      pulsesPerCycle
+    })
+    : '');
+  const rawLabel = typeof info.rawLabel === 'string' ? info.rawLabel : '';
+  return {
+    key: info.key,
+    base,
+    numerator,
+    denominator,
+    value,
+    display,
+    rawLabel,
+    cycleIndex,
+    subdivisionIndex,
+    pulsesPerCycle
+  };
+}
+
+function rememberFractionSelectionInMemory(info, { suspended = false } = {}) {
+  const payload = normalizeFractionMemoryPayload(info);
+  if (!payload) return;
+  const existing = fractionMemory.get(payload.key) || {};
+  const entry = {
+    key: payload.key,
+    base: Number.isFinite(payload.base) ? payload.base : existing.base,
+    numerator: Number.isFinite(payload.numerator) ? payload.numerator : existing.numerator,
+    denominator: Number.isFinite(payload.denominator) ? payload.denominator : existing.denominator,
+    value: Number.isFinite(payload.value) ? payload.value : existing.value,
+    display: payload.display || existing.display || '',
+    rawLabel: payload.rawLabel || existing.rawLabel || '',
+    cycleIndex: Number.isFinite(payload.cycleIndex) ? payload.cycleIndex : existing.cycleIndex,
+    subdivisionIndex: Number.isFinite(payload.subdivisionIndex) ? payload.subdivisionIndex : existing.subdivisionIndex,
+    pulsesPerCycle: Number.isFinite(payload.pulsesPerCycle) ? payload.pulsesPerCycle : existing.pulsesPerCycle,
+    suspended: suspended === true
+  };
+  fractionMemory.set(payload.key, entry);
+}
+
+function markFractionSuspended(info) {
+  const payload = normalizeFractionMemoryPayload(info);
+  if (!payload) return;
+  const existing = fractionMemory.get(payload.key) || {};
+  const entry = {
+    key: payload.key,
+    base: Number.isFinite(payload.base) ? payload.base : existing.base,
+    numerator: Number.isFinite(payload.numerator) ? payload.numerator : existing.numerator,
+    denominator: Number.isFinite(payload.denominator) ? payload.denominator : existing.denominator,
+    value: Number.isFinite(payload.value) ? payload.value : existing.value,
+    display: payload.display || existing.display || '',
+    rawLabel: payload.rawLabel || existing.rawLabel || '',
+    cycleIndex: Number.isFinite(payload.cycleIndex) ? payload.cycleIndex : existing.cycleIndex,
+    subdivisionIndex: Number.isFinite(payload.subdivisionIndex) ? payload.subdivisionIndex : existing.subdivisionIndex,
+    pulsesPerCycle: Number.isFinite(payload.pulsesPerCycle) ? payload.pulsesPerCycle : existing.pulsesPerCycle,
+    suspended: true
+  };
+  fractionMemory.set(payload.key, entry);
+}
+
+function syncFractionMemoryWithSelections() {
+  const activeKeys = new Set();
+  if (Array.isArray(fractionStore.pulseSelections)) {
+    fractionStore.pulseSelections.forEach((item) => {
+      if (!item || !item.key) return;
+      activeKeys.add(item.key);
+      rememberFractionSelectionInMemory(item, { suspended: false });
+    });
+  }
+  fractionMemory.forEach((entry, key) => {
+    if (!activeKeys.has(key) && !(entry && entry.suspended)) {
+      fractionMemory.delete(key);
+    }
+  });
+}
 let pulseSeqRanges = {};
 let currentAudioResolution = 1;
 const raf = (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function')
@@ -391,6 +492,7 @@ function ensurePulseMemory(size) {
 // Clear all persistent pulse selection (memory beyond current Lg too)
 function clearPersistentPulses(){
   pulseMemoryApi.clear();
+  fractionMemory.clear();
   try { selectedPulses.clear(); } catch {}
   /* Keep UI consistent; will be rebuilt by subsequent calls */
   fractionStore.selectionState.clear();
@@ -434,12 +536,15 @@ function applyFractionSelectionClasses() {
 }
 
 function rebuildFractionSelections(opts = {}) {
-  fractionStore.pulseSelections = rebuildFractionSelectionsModule(fractionStore, {
+  const selections = rebuildFractionSelectionsModule(fractionStore, {
     updatePulseSeqField,
     cycleMarkers,
     cycleLabels,
     skipUpdateField: opts.skipUpdateField
   });
+  fractionStore.pulseSelections = selections;
+  syncFractionMemoryWithSelections();
+  return selections;
 }
 
 function setFractionSelected(info, shouldSelect) {
@@ -2956,14 +3061,42 @@ function renderTimeline() {
     });
   }
 
-  let removedFraction = false;
-  fractionStore.selectionState.forEach((_, key) => {
+  const invalidFractionEntries = [];
+  fractionStore.selectionState.forEach((entry, key) => {
     if (!validFractionKeys.has(key)) {
-      fractionStore.selectionState.delete(key);
-      removedFraction = true;
+      invalidFractionEntries.push({ key, entry });
     }
   });
-  if (removedFraction) {
+  if (invalidFractionEntries.length > 0) {
+    invalidFractionEntries.forEach(({ key, entry }) => {
+      fractionStore.selectionState.delete(key);
+      markFractionSuspended({ ...entry, key });
+    });
+  }
+
+  let restoredFraction = false;
+  validFractionKeys.forEach((key) => {
+    if (fractionStore.selectionState.has(key)) return;
+    const memoryEntry = fractionMemory.get(key);
+    if (!memoryEntry || memoryEntry.suspended !== true) return;
+    const restoredEntry = {
+      base: memoryEntry.base,
+      numerator: memoryEntry.numerator,
+      denominator: memoryEntry.denominator,
+      value: memoryEntry.value,
+      display: memoryEntry.display,
+      key,
+      cycleIndex: memoryEntry.cycleIndex,
+      subdivisionIndex: memoryEntry.subdivisionIndex,
+      pulsesPerCycle: memoryEntry.pulsesPerCycle,
+      rawLabel: memoryEntry.rawLabel
+    };
+    fractionStore.selectionState.set(key, restoredEntry);
+    rememberFractionSelectionInMemory({ ...restoredEntry, key }, { suspended: false });
+    restoredFraction = true;
+  });
+
+  if (invalidFractionEntries.length > 0 || restoredFraction) {
     rebuildFractionSelections({ skipUpdateField: true });
   }
 
