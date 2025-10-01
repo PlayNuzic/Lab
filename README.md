@@ -1,107 +1,206 @@
 # Lab
 Investigación y desarrollo del método Nuzic
 
-## Entorn OpenAI Codex
+**Monorepo modular** para aplicaciones rítmicas y temporales con ~70% de código compartido.
 
-Es pot fer push directament des de l’entorn de Codex:
-
-1. A **Settings → Environments** (del teu repo de GitHub) crea un entorn i
-   afegeix el secret `GITHUB_TOKEN` amb permisos **repo**.
-2. Usa el `setup.sh` del repo per preparar Git, Node i enganxar el token.
-3. Cada sessió de Codex quedarà llesta per a `git add`, `git commit` i
-   `git push` (via HTTPS amb PAT).
-
-Abans d'executar `setup.sh`, pots desactivar els proxies i forçar SSH sobre el
-port 443 per evitar bloquejos de xarxa. Un fragment habitual és:
+## 🚀 Quick Start
 
 ```bash
-# Prepara entorn sense proxy i SSH sobre 443
-unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
-git config --global --unset http.proxy  || true
-git config --global --unset https.proxy || true
-
-mkdir -p ~/.ssh
-cat > ~/.ssh/config <<'CFG'
-Host github.com
-  HostName ssh.github.com
-  Port 443
-  User git
-  IdentityFile ~/.ssh/id_ed25519
-  StrictHostKeyChecking no
-CFG
-chmod 600 ~/.ssh/config
-
-# Comprova la connexió:
-ssh -T git@github.com
-
-# Després, prepara l'entorn amb:
-./setup.sh
+./setup.sh  # Configurar Git, instalar dependencias (Jest incluido)
+npm test    # Ejecutar 24 test suites, 109 tests
+npx http-server  # Servir apps localmente
 ```
 
-## Funciones destacadas
+## 📁 Estructura del Proyecto
 
-- **`createSchedulingBridge` (`libs/app-common/audio.js`)**: centraliza la recepción
-de eventos `sharedui:scheduling`, aplica `lookAhead`/`updateInterval` en cuanto el
-motor `TimelineAudio` existe y conserva la última configuración pendiente si la UI
-se monta antes que el audio.
-- **`bindSharedSoundEvents` (`libs/app-common/audio.js`)**: despacha eventos
-`sharedui:sound` hacia los métodos mapeados (`setBase`, `setAccent`, `setStart`, …)
-respetando valores nulos y liberando el listener al desmontar.
-- **`ensureAudio` (`libs/sound/index.js`)**: intenta iniciar `Tone.js` y, si el
-navegador bloquea el autoplay, crea/cierran contextos nativos para desbloquear la
-interfaz sin lanzar errores.
-- **Menú de rendimiento (`libs/shared-ui/performance-audio-menu.js`)**: script de
-carga opcional que muestra _lookAhead_ y _updateInterval_ efectivos para validar la
-configuración aplicada por el bridge de scheduling.
+- **Apps/** - 4 aplicaciones rítmicas independientes (App1-App4)
+- **libs/** - 32+ módulos compartidos organizados por funcionalidad
+- **tests/** - Test suites con Jest (109 tests passing)
+- **setup.sh** - Script de inicialización del entorno
 
-## Estructura
+## 🎵 Aplicaciones
 
-El repositori es divideix en diversos espais lògics:
+### App1: Temporal Formula
+Timeline básico con cálculo automático de parámetros rítmicos (Lg, V, T). Sistema de tres parámetros donde uno se calcula automáticamente a partir de los otros dos.
 
-- `Apps/`: Conté cada mini-app amb la seva UI específica.
-  - `App1/`
-  - `App2/`
-  - `App3/`
-  - `App4/` · Pulsos fraccionados amb editor `n/d`, menú aleatori i menú de rendiment.
-- `libs/app-common/`: utilitats comunes com `computeHitSizePx`, `computeNumberFontRem`
-  i `solidMenuBackground` tenen tests dedicats. Inclou també el bridge de audio,
-  menús de mixer/aleatorietat i càlculs de subdivisions.
-- `libs/sound/`: motor `TimelineAudio`, mixer global, `ensureAudio` i càrrega de mostres.
-- `libs/shared-ui/`: capçalera, dropdowns de sons, _hover_ compartit i menú flotant de rendiment.
-- `libs/random/`: generació de paràmetres aleatoris per a Lg, V, T o Pulsos.
-- `config/`: Configuracions comunes (ESLint, Prettier, TypeScript, etc.) per a
-  totes les apps i paquets.
+**Features**: Loop, tap tempo con resync, visualización circular/lineal, randomización de parámetros.
 
-Cada app disposa del seu propi `README.md` quan cal documentar fluxos específics
-(p. ex. `Apps/App4/README.md` detalla la seva estructura de dades i integració
-d'àudio).
+### App2: Pulse Sequence Editor
+Editor interactivo de patrones de pulsos con campo de secuencia editable y memoria persistente.
 
-## Submòdul IndexLab
+**Features**: Drag selection, sincronización timeline/texto, mixer con canales pulse/accent, memoria de pulsos.
 
-Per incorporar el codi modular ja existent a `PlayNuzic/IndexLab` utilitza un
-submòdul:
+### App3: Fraction Editor
+Editor de fracciones rítmicas (n/d) con marcadores visuales de ciclos y subdivisiones.
 
+**Features**: Validación de fracciones, audio de ciclos, componente reutilizable de edición, visualización de subdivisiones.
+
+### App4: Multi-Fraction Selection
+Gestión avanzada de múltiples fracciones con generación de patrones complejos.
+
+**Documentación**: Ver `Apps/App4/README.md`
+
+## 🧩 Arquitectura Modular
+
+### libs/app-common/ (32 módulos)
+
+**Componentes de producción** ✅:
+- **Audio**: `audio-init.js`, `audio.js`, `audio-schedule.js`, `audio-toggles.js`
+- **UI**: `fraction-editor.js`, `pulse-seq.js`, `mixer-menu.js`, `timeline-layout.js`
+- **Gestión**: `dom.js`, `led-manager.js`, `preferences.js`, `loop-control.js`
+- **Utilidades**: `subdivision.js`, `number.js`, `range.js`, `utils.js`
+
+**Beneficios**:
+- ~70% reducción de código duplicado
+- Inicialización de audio sin warnings
+- Componentes UI reutilizables con tests
+- Gestión consistente de estado y preferencias
+
+### libs/sound/
+Motor de audio basado en Tone.js con clase `TimelineAudio`, mixer global y gestión de samples.
+
+### libs/shared-ui/
+Componentes UI compartidos: header, dropdowns de sonido, efectos hover, estilos base.
+
+### Otras bibliotecas
+- **notation/** - Integración VexFlow
+- **cards/** - Tarjetas interactivas nota-componente
+- **ear-training/** - Utilidades de entrenamiento auditivo
+- **vendor/** - Tone.js, VexFlow, chromatone-theory
+
+## 🧪 Testing
+
+**Cobertura actual**: 24 test suites, 109 tests pasados
+
+**Suites principales**:
+```
+libs/app-common/__tests__/    # Componentes compartidos
+├── subdivision.test.js        # Cálculos temporales
+├── audio.test.js              # Bridges de scheduling
+├── fraction-editor.test.js    # Editor de fracciones
+├── audio-toggles.test.js      # Gestión de toggles
+├── loop-resize.test.js        # Comportamiento de loop
+└── tap-resync.test.js         # Resync de tap tempo
+
+libs/app-common/*.test.js      # Tests unitarios
+libs/sound/*.test.js           # Motor de audio
+tests/                         # Tests legacy e integración
+```
+
+**Ejecutar tests**:
 ```bash
-git submodule add git@github.com:PlayNuzic/IndexLab.git packages/indexlab
+npm test                    # Todos los tests
+npm test -- subdivision     # Tests específicos
 ```
 
-Si el submòdul ja existeix, pots sincronitzar-lo amb la versió remota mitjançant:
+## 🛠️ Componentes Destacados
 
-```bash
-git submodule update --remote packages/indexlab
+### Controladores de Loop
+**Ubicación**: `libs/app-common/loop-control.js`
+
+Tres variantes para diferentes necesidades:
+- `createLoopController()` - Loop básico
+- `createRhythmLoopController()` - Con sincronización de audio
+- `createPulseMemoryLoopController()` - Con memoria de pulsos
+
+**Uso**: App2 (pulse-memory), App3 (rhythm)
+
+### Editor de Fracciones
+**Ubicación**: `libs/app-common/fraction-editor.js` (25K líneas)
+
+Component CRUD completo con validación, persistencia y modos inline/block.
+
+**API**: `createFractionEditor(config)`
+**Uso**: App3
+
+### Controlador de Secuencia de Pulsos
+**Ubicación**: `libs/app-common/pulse-seq.js` (13K líneas)
+
+Editor interactivo con drag selection y memoria persistente.
+
+**API**: `createPulseSeqController()`
+**Uso**: App2
+
+### Inicialización de Audio
+**Ubicación**: `libs/app-common/audio-init.js`
+
+Suprime warnings de AudioContext y gestiona selección de sonidos.
+
+**API**: `createRhythmAudioInitializer(config)`
+**Beneficio**: Zero warnings en consola
+
+## 📚 Desarrollo
+
+### Principios de Código Compartido
+
+🚨 **SIEMPRE priorizar componentes compartidos**:
+
+1. **🔍 PRIMERO**: Verificar si existe un componente compartido en `libs/app-common/`
+2. **🛠️ SEGUNDO**: Si no existe, crear uno reutilizable
+3. **❌ ÚLTIMO RECURSO**: Código específico de app solo cuando sea necesario
+
+### Patrones Recomendados
+
+**Inicialización moderna** (recomendado):
+```javascript
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
+import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
+
+// Bind DOM elements
+const { elements, leds, ledHelpers } = bindAppRhythmElements('app1');
+
+// Initialize audio
+const _baseInitAudio = createRhythmAudioInitializer({ /* config */ });
+const audio = await _baseInitAudio();
+
+// Attach loop controller
+const loopController = createPulseMemoryLoopController({ /* config */ });
+loopController.attach();
 ```
 
-## Tests
-
-Executa `./setup.sh` una vegada per sessió per instal·lar dependències i
-configurar Git. Després, llança la bateria de tests amb:
-
-```bash
-npm test
+**Patrón legacy** (en desuso):
+```javascript
+// initRhythmApp() - deprecated
+// createStandardElementMap() - deprecated
+// bindRhythmAppEvents() - deprecated
 ```
 
-La suite de Jest cobreix els mòduls compartits (`libs/app-common`, `libs/sound`,
-`libs/shared-ui`, …) i valida que les rutes d'import, el desbloqueig d'àudio
-(autoplay) i els menús compartits continuïn funcionant després de cada canvi.
-Cada mini-app hauria de definir els seus propis tests complementaris quan
-afegeixi lògica específica.
+### Crear Nueva App
+
+1. Usar `bindAppRhythmElements('appN')` para DOM
+2. Usar `createRhythmAudioInitializer()` para audio
+3. Importar controladores especializados según necesidad
+4. Escribir tests en `libs/app-common/__tests__/` para componentes compartidos
+
+### Velocidad de Desarrollo
+
+- **App nueva**: 4-6 horas (con patrones maduros)
+- **Feature nueva**: 1-2 horas
+- **Refactor legacy**: 2-3 horas por app
+
+## 🔧 Dependencias
+
+- **Tone.js 15.x** - Síntesis y timing de audio
+- **VexFlow 5.0.0** - Renderizado de notación musical
+- **Jest 29.x** - Framework de testing
+- **ES2022** - Características modernas de JavaScript
+
+## 📖 Documentación
+
+- **CLAUDE.md** - Guía completa para Claude Code con arquitectura y patrones
+- **AGENTS.md** - Documentación en catalán con detalles de implementación
+- **Apps/App4/README.md** - Documentación específica de App4
+- **libs/app-common/AGENTS.md** - Estado de componentes compartidos (si existe)
+
+## 🤝 Contribuir
+
+1. Ejecutar `./setup.sh` para configurar el entorno
+2. Ejecutar `npm test` antes de hacer commits
+3. Priorizar componentes compartidos sobre código duplicado
+4. Documentar nuevos patrones en AGENTS.md
+5. Escribir tests para nuevos componentes compartidos
+
+## 📝 Licencia
+
+Ver archivo LICENSE para detalles.
