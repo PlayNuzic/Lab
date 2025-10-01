@@ -13,7 +13,11 @@ function attachListeners() {
 
   if (!userInteractionPromise) {
     userInteractionPromise = new Promise((resolve) => {
-      const handleInteraction = () => {
+      const handleInteraction = (event) => {
+        if (event?.isTrusted === false) {
+          return;
+        }
+
         markInteraction();
         document.removeEventListener('click', handleInteraction);
         document.removeEventListener('keydown', handleInteraction);
@@ -21,9 +25,9 @@ function attachListeners() {
         resolve();
       };
 
-      document.addEventListener('click', handleInteraction, { once: true });
-      document.addEventListener('keydown', handleInteraction, { once: true });
-      document.addEventListener('touchstart', handleInteraction, { once: true });
+      document.addEventListener('click', handleInteraction);
+      document.addEventListener('keydown', handleInteraction);
+      document.addEventListener('touchstart', handleInteraction);
     });
   }
 
