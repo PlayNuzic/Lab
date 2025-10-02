@@ -3763,38 +3763,30 @@ function highlightPulse(payload){
         && lastPulseScrollCache.scrollLeft != null
         && Math.abs(pulseSeqEl.scrollLeft - lastPulseScrollCache.scrollLeft) < 0.5;
 
-      if (!scrollAligned) {
-        const rect = cacheMatches && lastPulseScrollCache.rect
-          ? lastPulseScrollCache.rect
-          : getPulseSeqRectForKey(fractionKey);
-        if (rect) {
-          newScrollLeft = scrollPulseSeqToRect(rect);
-          pulseSeqController.setActiveIndex(0, {
-            rect,
-            scrollLeft: newScrollLeft
-          });
-          lastPulseScrollCache = {
-            type: 'fraction',
-            index: null,
-            fractionKey,
-            trailingIndex: null,
-            rect,
-            trailingRect: null,
-            scrollLeft: newScrollLeft
-          };
-        } else {
-          pulseSeqController.clearActive();
-          resetPulseScrollCache();
-        }
-      } else {
+      const rect = cacheMatches && lastPulseScrollCache.rect
+        ? lastPulseScrollCache.rect
+        : getPulseSeqRectForKey(fractionKey);
+
+      if (rect) {
+        newScrollLeft = scrollAligned
+          ? pulseSeqEl.scrollLeft
+          : scrollPulseSeqToRect(rect);
+        pulseSeqController.setActiveIndex(0, {
+          rect,
+          scrollLeft: newScrollLeft
+        });
         lastPulseScrollCache = {
-          ...lastPulseScrollCache,
           type: 'fraction',
           index: null,
           fractionKey,
           trailingIndex: null,
-          scrollLeft: pulseSeqEl.scrollLeft
+          rect,
+          trailingRect: null,
+          scrollLeft: newScrollLeft
         };
+      } else {
+        pulseSeqController.clearActive();
+        resetPulseScrollCache();
       }
     } else {
       pulseSeqController.clearActive();
@@ -3831,46 +3823,38 @@ function highlightPulse(payload){
         && lastPulseScrollCache.scrollLeft != null
         && Math.abs(pulseSeqEl.scrollLeft - lastPulseScrollCache.scrollLeft) < 0.5;
 
-      if (!scrollAligned) {
-        const rect = cacheMatches && lastPulseScrollCache.rect
-          ? lastPulseScrollCache.rect
-          : getPulseSeqRectForIndex(targetIndex);
-        let trailingRect = null;
-        if (rect) {
-          if (trailingIndex != null) {
-            trailingRect = cacheMatches && lastPulseScrollCache.trailingRect
-              ? lastPulseScrollCache.trailingRect
-              : getPulseSeqRectForIndex(trailingIndex);
-          }
-          newScrollLeft = scrollPulseSeqToRect(rect);
-          pulseSeqController.setActiveIndex(targetIndex, {
-            rect,
-            trailingIndex,
-            trailingRect,
-            scrollLeft: newScrollLeft
-          });
-          lastPulseScrollCache = {
-            type: 'int',
-            index: targetIndex,
-            fractionKey: null,
-            trailingIndex,
-            rect,
-            trailingRect: trailingIndex != null ? trailingRect : null,
-            scrollLeft: newScrollLeft
-          };
-        } else {
-          pulseSeqController.clearActive();
-          resetPulseScrollCache();
-        }
-      } else {
+      const rect = cacheMatches && lastPulseScrollCache.rect
+        ? lastPulseScrollCache.rect
+        : getPulseSeqRectForIndex(targetIndex);
+      let trailingRect = null;
+      if (trailingIndex != null) {
+        trailingRect = cacheMatches && lastPulseScrollCache.trailingRect
+          ? lastPulseScrollCache.trailingRect
+          : getPulseSeqRectForIndex(trailingIndex);
+      }
+
+      if (rect) {
+        newScrollLeft = scrollAligned
+          ? pulseSeqEl.scrollLeft
+          : scrollPulseSeqToRect(rect);
+        pulseSeqController.setActiveIndex(targetIndex, {
+          rect,
+          trailingIndex,
+          trailingRect: trailingIndex != null ? trailingRect : null,
+          scrollLeft: newScrollLeft
+        });
         lastPulseScrollCache = {
-          ...lastPulseScrollCache,
           type: 'int',
           index: targetIndex,
           fractionKey: null,
           trailingIndex,
-          scrollLeft: pulseSeqEl.scrollLeft
+          rect,
+          trailingRect: trailingIndex != null ? trailingRect : null,
+          scrollLeft: newScrollLeft
         };
+      } else {
+        pulseSeqController.clearActive();
+        resetPulseScrollCache();
       }
     } else {
       pulseSeqController.clearActive();
