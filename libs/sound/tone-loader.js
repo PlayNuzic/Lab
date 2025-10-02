@@ -1,3 +1,5 @@
+import { hasUserInteracted } from './user-interaction.js';
+
 /**
  * Lazy loader for Tone.js that waits for user interaction before loading
  * This prevents AudioContext warnings on page load
@@ -5,6 +7,7 @@
 
 let toneLoadPromise = null;
 let toneLoaded = false;
+let scriptInjected = false;
 
 /**
  * Ensures Tone.js is loaded before using it
@@ -24,11 +27,29 @@ export async function ensureToneLoaded() {
 
   // Start loading Tone.js after user interaction
   toneLoadPromise = new Promise((resolve, reject) => {
+    if (typeof document === 'undefined') {
+      toneLoadPromise = null;
+      resolve(false);
+      return;
+    }
+
+    const eventTypes = ['click', 'keydown', 'touchstart'];
+    const listenerOptions = { capture: true };
+
+    const detachListeners = () => {
+      eventTypes.forEach((eventName) => {
+        document.removeEventListener(eventName, loadTone, listenerOptions);
+      });
+    };
+
     const loadTone = () => {
-      // Remove event listeners immediately to prevent multiple loads
-      document.removeEventListener('click', loadTone);
-      document.removeEventListener('keydown', loadTone);
-      document.removeEventListener('touchstart', loadTone);
+      detachListeners();
+
+      if (scriptInjected) {
+        return;
+      }
+
+      scriptInjected = true;
 
       // Create and inject script tag
       const script = document.createElement('script');
@@ -42,16 +63,26 @@ export async function ensureToneLoaded() {
 
       script.onerror = () => {
         toneLoadPromise = null; // Reset so it can be retried
+        scriptInjected = false;
         reject(new Error('Failed to load Tone.js from ' + scriptUrl));
       };
 
       document.head.appendChild(script);
     };
 
+    const hasActiveUserGesture =
+      (typeof navigator !== 'undefined' && navigator.userActivation?.isActive) ||
+      hasUserInteracted();
+
+    if (hasActiveUserGesture) {
+      loadTone();
+      return;
+    }
+
     // Wait for first user interaction before loading
-    document.addEventListener('click', loadTone, { once: true, capture: true });
-    document.addEventListener('keydown', loadTone, { once: true, capture: true });
-    document.addEventListener('touchstart', loadTone, { once: true, capture: true });
+    eventTypes.forEach((eventName) => {
+      document.addEventListener(eventName, loadTone, listenerOptions);
+    });
   });
 
   return toneLoadPromise;
