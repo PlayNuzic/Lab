@@ -95,8 +95,8 @@ describe('bindSharedSoundEvents', () => {
     const handler = listeners['sharedui:sound'];
     expect(typeof handler).toBe('function');
 
-    await handler({ detail: { type: 'baseSound', value: 'click1' } });
-    expect(audio.setBase).toHaveBeenCalledWith('click1');
+    await handler({ detail: { type: 'baseSound', value: 'click9' } });
+    expect(audio.setBase).toHaveBeenCalledWith('click9');
 
     unsubscribe();
     expect(target.removeEventListener).toHaveBeenCalledWith('sharedui:sound', handler);
@@ -120,12 +120,12 @@ describe('bindSharedSoundEvents', () => {
 
     const handler = listeners['sharedui:sound'];
 
-    await expect(handler({ detail: { type: 'baseSound', value: 'click1' } })).resolves.toBeUndefined();
+    await expect(handler({ detail: { type: 'baseSound', value: 'click9' } })).resolves.toBeUndefined();
 
     audio = { setBase: jest.fn(() => Promise.reject(new Error('boom'))) };
     await expect(handler({ detail: { type: 'baseSound', value: null } })).resolves.toBeUndefined();
-    await expect(handler({ detail: { type: 'unknown', value: 'click1' } })).resolves.toBeUndefined();
-    await expect(handler({ detail: { type: 'baseSound', value: 'click1' } })).resolves.toBeUndefined();
+    await expect(handler({ detail: { type: 'unknown', value: 'click9' } })).resolves.toBeUndefined();
+    await expect(handler({ detail: { type: 'baseSound', value: 'click9' } })).resolves.toBeUndefined();
     expect(audio.setBase).toHaveBeenCalledTimes(1);
 
     unsubscribe();

@@ -236,6 +236,10 @@ async function initAudio() {
   return audio;
 }
 
+if (typeof window !== 'undefined') {
+  window.__labInitAudio = initAudio;
+}
+
 function updateAudioTotal(total) {
   if (!audio || total == null) return;
   if (typeof audio.setTotal === 'function') {

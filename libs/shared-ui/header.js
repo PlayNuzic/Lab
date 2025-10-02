@@ -1,6 +1,7 @@
 // Shared UI header for Lab: mirrors App1 header behavior
 
 import { setVolume, getVolume } from '../sound/index.js';
+import { ensureToneLoaded } from '../sound/tone-loader.js';
 import { initSoundDropdown } from './sound-dropdown.js';
 
 // --- Scheduling helpers (look-ahead y updateInterval) ---
@@ -23,18 +24,8 @@ function applySchedulingProfile(profile) {
     };
     const p = profiles[profile] || profiles.balanced;
 
-    // Only access Tone context if Tone is available and has been started
-    // This prevents AudioContext warnings on page load
-    try {
-        if (typeof Tone !== 'undefined' && Tone.context && Tone.context.state === 'running') {
-            const ctx = (typeof Tone.getContext === 'function') ? Tone.getContext() : Tone.context;
-            if (ctx) {
-                if (typeof ctx.lookAhead !== 'undefined') ctx.lookAhead = p.lookAhead;
-                if (typeof ctx.updateInterval !== 'undefined') ctx.updateInterval = p.updateInterval;
-            }
-        }
-    } catch {}
-
+    // Dispatch the scheduling event - these settings will be applied when audio initializes
+    // Do NOT access Tone.context here as it triggers AudioContext creation warnings
     window.dispatchEvent(new CustomEvent('sharedui:scheduling', { detail: { profile, ...p } }));
 }
 
@@ -57,13 +48,8 @@ function setSelectionColor(value) {
 
 function setMute(value) {
     const v = !!value;
-    try {
-        // Only access Tone.Destination if Tone context is already running
-        // This prevents AudioContext warnings on page load
-        if (typeof Tone !== 'undefined' && Tone.context && Tone.context.state === 'running' && Tone.Destination) {
-            Tone.Destination.mute = v;
-        }
-    } catch {}
+    // Dispatch the mute event - this will be handled by the app's audio system when it's ready
+    // Do NOT access Tone.context or Tone.Destination here as it triggers AudioContext creation warnings
     window.dispatchEvent(new CustomEvent('sharedui:mute', { detail: { value: v } }));
 }
 
@@ -113,6 +99,7 @@ function wireMenu(detailsEl) {
     
     detailsEl.addEventListener('toggle', () => {
         if (detailsEl.open) {
+            ensureToneLoaded().catch(() => {});
             solidMenuBackground(content);
             content.classList.add('opening');
             content.classList.remove('closing');
@@ -168,7 +155,17 @@ function wireControls(root) {
     // Get the app's audio instance for preview
     // Apps expose their audio instance via window.__labAudio
     const getAppAudio = async () => {
-        return (typeof window !== 'undefined' && window.__labAudio) ? window.__labAudio : null;
+        if (typeof window === 'undefined') return null;
+        if (window.__labAudio) return window.__labAudio;
+        if (typeof window.__labInitAudio === 'function') {
+            try {
+                const audioInstance = await window.__labInitAudio();
+                return audioInstance || window.__labAudio || null;
+            } catch {
+                return window.__labAudio || null;
+            }
+        }
+        return null;
     };
 
     // Initialize standard sound dropdowns with factory default values
@@ -178,21 +175,21 @@ function wireControls(root) {
         eventType: 'baseSound',
         getAudio: getAppAudio,
         apply: (a, val) => a?.setBase?.(val),
-        defaultValue: 'click1' // Click Base
+        defaultValue: 'click9' // Hi-Hat
     });
     initSoundDropdown(accentSoundSelect, {
         storageKey: 'accentSound',
         eventType: 'accentSound',
         getAudio: getAppAudio,
         apply: (a, val) => a?.setAccent?.(val),
-        defaultValue: 'click2' // Click Acento
+        defaultValue: 'click8' // Caja
     });
     initSoundDropdown(startSoundSelect, {
         storageKey: 'startSound',
         eventType: 'startSound',
         getAudio: getAppAudio,
         apply: (a, val) => a?.setStart?.(val),
-        defaultValue: 'click3' // Sticks
+        defaultValue: 'click7' // Bombo
     });
 
     // Initialize cycle sound dropdown if present (used in some apps like App3/App4)
@@ -202,7 +199,7 @@ function wireControls(root) {
             eventType: 'cycleSound',
             getAudio: getAppAudio,
             apply: (a, val) => a?.setCycle?.(val),
-            defaultValue: 'click4' // Pandereta
+            defaultValue: 'click10' // Ride
         });
     }
 

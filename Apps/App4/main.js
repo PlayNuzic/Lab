@@ -1,8 +1,9 @@
-import { TimelineAudio, getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu } from '../../libs/app-common/random-menu.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
+import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
@@ -41,7 +42,6 @@ import {
 // Using local header controls for App2 (no shared init)
 
 let audio;
-let audioInitPromise = null;
 
 
 
@@ -1568,83 +1568,56 @@ initRandomMenu(randomBtn, randomMenu, randomize);
 
 // Preview on sound change handled by shared header
 
-async function initAudio(){
-  if (audio) {
-    await audio.ready();
-    // Always update sounds from dropdowns to reflect any changes made while audio was initialized
-    if (baseSoundSelect?.dataset?.value) {
-      audio.setBase(baseSoundSelect.dataset.value);
+// Create standardized audio initializer that avoids AudioContext warnings
+const _baseInitAudio = createRhythmAudioInitializer({
+  getSoundSelects: () => ({
+    baseSoundSelect: elements.baseSoundSelect,
+    startSoundSelect: elements.startSoundSelect,
+    accentSoundSelect: elements.accentSoundSelect,
+    cycleSoundSelect: elements.cycleSoundSelect
+  }),
+  schedulingBridge,
+  channels: [
+    {
+      id: 'accent',
+      options: { allowSolo: true, label: 'Seleccionado' },
+      assignment: 'accent'
     }
-    if (accentSoundSelect?.dataset?.value) {
-      audio.setAccent(accentSoundSelect.dataset.value);
-    }
-    if (startSoundSelect?.dataset?.value) {
-      audio.setStart(startSoundSelect.dataset.value);
-    }
-    if (cycleSoundSelect?.dataset?.value) {
-      audio.setCycle(cycleSoundSelect.dataset.value);
-    }
-    return audio;
-  }
-  if (!audioInitPromise) {
-    audioInitPromise = (async () => {
-      const instance = new TimelineAudio();
+  ]
+});
 
-      // Apply sound selections BEFORE ready() to prevent _initPlayers() from loading defaults
-      // This sets _soundAssignments before buffers are loaded
-      if (baseSoundSelect?.dataset?.value) {
-        instance._soundAssignments.pulso = baseSoundSelect.dataset.value;
-        instance._soundAssignments.pulso0 = baseSoundSelect.dataset.value;
-      }
-      if (accentSoundSelect?.dataset?.value) {
-        instance._soundAssignments.seleccionados = accentSoundSelect.dataset.value;
-      }
-      if (startSoundSelect?.dataset?.value) {
-        instance._soundAssignments.start = startSoundSelect.dataset.value;
-      }
-      if (cycleSoundSelect?.dataset?.value) {
-        instance._soundAssignments.cycle = cycleSoundSelect.dataset.value;
-      }
+async function initAudio() {
+  if (!audio) {
+    audio = await _baseInitAudio();
 
-      await instance.ready();
+    // Apply App4-specific configurations after initialization
+    if (typeof audio.setVoiceHandler === 'function') {
+      audio.setVoiceHandler(handleVoiceEvent);
+    }
+    if (typeof audio.setPulseEnabled === 'function') {
+      const pulseEnabled = pulseToggleController?.isEnabled() ?? true;
+      audio.setPulseEnabled(pulseEnabled);
+    }
+    if (typeof audio.setCycleEnabled === 'function') {
+      const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
+      audio.setCycleEnabled(cycleEnabled);
+    }
+    if (typeof audio.setLoop === 'function') {
+      audio.setLoop(loopEnabled);
+    }
+    const savedMute = loadOpt('mute');
+    if (savedMute === '1' && typeof audio.setMute === 'function') {
+      audio.setMute(true);
+    }
 
-      // Ensure accent channel is registered and routed separately for the mixer
-      if (instance.mixer && typeof instance.mixer.registerChannel === 'function') {
-        instance.mixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
-      }
-      if (instance._channelAssignments) {
-        instance._channelAssignments.accent = 'accent';
-      }
-      if (typeof instance.setVoiceHandler === 'function') {
-        instance.setVoiceHandler(handleVoiceEvent);
-      }
-      schedulingBridge.applyTo(instance);
-      if (typeof instance.setPulseEnabled === 'function') {
-        const pulseEnabled = pulseToggleController?.isEnabled() ?? true;
-        instance.setPulseEnabled(pulseEnabled);
-      }
-      if (typeof instance.setCycleEnabled === 'function') {
-        const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
-        instance.setCycleEnabled(cycleEnabled);
-      }
-      if (typeof instance.setLoop === 'function') {
-        instance.setLoop(loopEnabled);
-      }
-      const savedMute = loadOpt('mute');
-      if (savedMute === '1' && typeof instance.setMute === 'function') {
-        instance.setMute(true);
-      }
-      audio = instance;
-      // Expose audio instance for sound dropdown preview
-      if (typeof window !== 'undefined') window.__labAudio = audio;
-      return instance;
-    })();
+    // Expose audio instance for sound dropdown preview
+    if (typeof window !== 'undefined') window.__labAudio = audio;
   }
-  try {
-    return await audioInitPromise;
-  } finally {
-    audioInitPromise = null;
-  }
+  return audio;
+}
+
+if (typeof window !== 'undefined') {
+  window.__labInitAudio = initAudio;
 }
 
 // Mostrar unitats quan s'edita cada paràmetre
