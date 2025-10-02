@@ -3543,26 +3543,37 @@ function deactivatePulseNodes() {
   lastPulseActiveNodes = [];
 }
 
-function setPulseActiveNodes(nodes = [], { forceReflow = false } = {}) {
+function setPulseActiveNodes(nodes = [], { restartPrimary = false } = {}) {
   const filtered = Array.isArray(nodes)
     ? nodes.filter((node, index, arr) => node && node.classList && arr.indexOf(node) === index)
     : [];
 
-  const sameNodes = filtered.length === lastPulseActiveNodes.length
-    && filtered.every((node, idx) => node === lastPulseActiveNodes[idx]);
+  const prev = Array.isArray(lastPulseActiveNodes) ? lastPulseActiveNodes : [];
 
-  if (sameNodes && !forceReflow) {
-    return;
-  }
-
-  deactivatePulseNodes();
-
-  filtered.forEach((node) => {
+  // Remove any nodes that are no longer active
+  prev.forEach((node) => {
     if (!node || !node.classList) return;
-    if (forceReflow) {
-      void node.offsetWidth;
+    if (!filtered.includes(node)) {
+      node.classList.remove('active');
     }
-    node.classList.add('active');
+  });
+
+  filtered.forEach((node, idx) => {
+    if (!node || !node.classList) return;
+    const wasActive = prev.includes(node);
+    if (!wasActive) {
+      if (idx === 0) {
+        void node.offsetWidth;
+      }
+      node.classList.add('active');
+      return;
+    }
+
+    if (idx === 0 && restartPrimary) {
+      node.classList.remove('active');
+      void node.offsetWidth;
+      node.classList.add('active');
+    }
   });
 
   lastPulseActiveNodes = filtered;
@@ -3814,7 +3825,10 @@ function highlightPulse(payload){
         nodesToActivate.push(trailingNode);
       }
     }
-    setPulseActiveNodes(nodesToActivate, { forceReflow: true });
+    const restartPrimary = loopWrapped
+      && lastPulseHighlightState.type === 'int'
+      && lastPulseHighlightState.index === targetIndex;
+    setPulseActiveNodes(nodesToActivate, { restartPrimary });
     if (pulseSeqEl) {
       const cacheMatches = lastPulseScrollCache.type === 'int'
         && lastPulseScrollCache.index === targetIndex
