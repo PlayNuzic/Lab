@@ -1616,6 +1616,10 @@ async function initAudio() {
   return audio;
 }
 
+if (typeof window !== 'undefined') {
+  window.__labInitAudio = initAudio;
+}
+
 // Mostrar unitats quan s'edita cada paràmetre
 function bindUnit(input, unit){
   if(!input || !unit) return;

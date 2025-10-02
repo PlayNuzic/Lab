@@ -1,6 +1,7 @@
 // Shared UI header for Lab: mirrors App1 header behavior
 
 import { setVolume, getVolume } from '../sound/index.js';
+import { ensureToneLoaded } from '../sound/tone-loader.js';
 import { initSoundDropdown } from './sound-dropdown.js';
 
 // --- Scheduling helpers (look-ahead y updateInterval) ---
@@ -98,6 +99,7 @@ function wireMenu(detailsEl) {
     
     detailsEl.addEventListener('toggle', () => {
         if (detailsEl.open) {
+            ensureToneLoaded().catch(() => {});
             solidMenuBackground(content);
             content.classList.add('opening');
             content.classList.remove('closing');
@@ -153,7 +155,17 @@ function wireControls(root) {
     // Get the app's audio instance for preview
     // Apps expose their audio instance via window.__labAudio
     const getAppAudio = async () => {
-        return (typeof window !== 'undefined' && window.__labAudio) ? window.__labAudio : null;
+        if (typeof window === 'undefined') return null;
+        if (window.__labAudio) return window.__labAudio;
+        if (typeof window.__labInitAudio === 'function') {
+            try {
+                const audioInstance = await window.__labInitAudio();
+                return audioInstance || window.__labAudio || null;
+            } catch {
+                return window.__labAudio || null;
+            }
+        }
+        return null;
     };
 
     // Initialize standard sound dropdowns with factory default values
