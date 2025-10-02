@@ -156,7 +156,6 @@ const EMPTY_PULSE_SCROLL_CACHE = {
 };
 
 let lastPulseScrollCache = { ...EMPTY_PULSE_SCROLL_CACHE };
-let lastPulseActiveNodes = [];
 let lastPulseHighlightState = {
   type: null,
   index: null,
@@ -2693,7 +2692,6 @@ function setPulseSelected(i, shouldSelect) {
 
 
 function clearHighlights() {
-  deactivatePulseNodes();
   pulses.forEach(p => p.classList.remove('active'));
   resetCycleHighlightState();
   cycleMarkers.forEach(m => m.classList.remove('active'));
@@ -3448,7 +3446,20 @@ function highlightCycle(payload = {}) {
 
   deactivateCycleHighlight();
 
+  // Calculate adaptive animation duration based on subdivision tempo
+  const v = parseNum(inputV?.value ?? '');
+  const hasTempo = Number.isFinite(v) && v > 0;
+  let animDuration = 350; // Default 350ms
+
+  if (hasTempo && Number.isFinite(expectedDenominator) && expectedDenominator > 0) {
+    // Subdivision interval in ms = (60 / BPM) * 1000 / denominator
+    const subdivisionIntervalMs = (60 / v) * 1000 / expectedDenominator;
+    // Use 70% of the interval, clamped between 50ms (fast) and 500ms (slow)
+    animDuration = Math.max(50, Math.min(subdivisionIntervalMs * 0.7, 500));
+  }
+
   if (marker) {
+    marker.style.setProperty('--pulse-anim-duration', `${animDuration}ms`);
     void marker.offsetWidth;
     marker.classList.add('active');
   }
@@ -3456,6 +3467,7 @@ function highlightCycle(payload = {}) {
     label.classList.add('active');
   }
   if (trailingMarker && trailingMarker !== marker) {
+    trailingMarker.style.setProperty('--pulse-anim-duration', `${animDuration}ms`);
     trailingMarker.classList.add('active');
   }
   if (trailingLabel && trailingLabel !== label) {
@@ -3530,54 +3542,8 @@ function resetPulseScrollCache() {
   lastPulseScrollCache = { ...EMPTY_PULSE_SCROLL_CACHE };
 }
 
-function deactivatePulseNodes() {
-  if (!Array.isArray(lastPulseActiveNodes) || lastPulseActiveNodes.length === 0) {
-    lastPulseActiveNodes = [];
-    return;
-  }
-  lastPulseActiveNodes.forEach((node) => {
-    if (node && node.classList) {
-      node.classList.remove('active');
-    }
-  });
-  lastPulseActiveNodes = [];
-}
-
-function setPulseActiveNodes(nodes = [], { restartPrimary = false } = {}) {
-  const filtered = Array.isArray(nodes)
-    ? nodes.filter((node, index, arr) => node && node.classList && arr.indexOf(node) === index)
-    : [];
-
-  const prev = Array.isArray(lastPulseActiveNodes) ? lastPulseActiveNodes : [];
-
-  // Remove any nodes that are no longer active
-  prev.forEach((node) => {
-    if (!node || !node.classList) return;
-    if (!filtered.includes(node)) {
-      node.classList.remove('active');
-    }
-  });
-
-  filtered.forEach((node, idx) => {
-    if (!node || !node.classList) return;
-    const wasActive = prev.includes(node);
-    if (!wasActive) {
-      if (idx === 0) {
-        void node.offsetWidth;
-      }
-      node.classList.add('active');
-      return;
-    }
-
-    if (idx === 0 && restartPrimary) {
-      node.classList.remove('active');
-      void node.offsetWidth;
-      node.classList.add('active');
-    }
-  });
-
-  lastPulseActiveNodes = filtered;
-}
+// Removed complex setPulseActiveNodes and deactivatePulseNodes
+// Now using simple pattern from App1 directly in highlightPulse
 
 function setFractionHighlightKey(key) {
   if (lastFractionHighlightNodes.key === key) {
@@ -3643,7 +3609,7 @@ function findFractionMatch(value, epsilon = FRACTION_POSITION_EPSILON) {
 }
 
 function resetPulseHighlightState({ clearFraction = true } = {}) {
-  deactivatePulseNodes();
+  pulses.forEach(p => p.classList.remove('active'));
   if (clearFraction) {
     setFractionHighlightKey(null);
   }
@@ -3765,7 +3731,8 @@ function highlightPulse(payload){
   let newScrollLeft = pulseSeqEl ? pulseSeqEl.scrollLeft : 0;
 
   if (highlightType === 'fraction' && fractionKey) {
-    setPulseActiveNodes([]);
+    // Clear all pulse highlights for fractions too
+    pulses.forEach(p => p.classList.remove('active'));
     setFractionHighlightKey(fractionKey);
     if (pulseSeqEl) {
       const cacheMatches = lastPulseScrollCache.type === 'fraction'
@@ -3810,25 +3777,28 @@ function highlightPulse(payload){
       trailingIndex: null
     };
   } else {
+    // Clear all pulse highlights first (simple pattern from App1)
+    pulses.forEach(p => p.classList.remove('active'));
+
     setFractionHighlightKey(null);
     const targetIndex = idx;
     const current = pulses[targetIndex];
-    const nodesToActivate = [];
+
+    // Always trigger reflow before adding active (like App1)
     if (current) {
-      nodesToActivate.push(current);
+      void current.offsetWidth;
+      current.classList.add('active');
     }
+
+    // Add trailing pulse if looping back to 0
     let trailingIndex = null;
     if (loopEnabled && targetIndex === 0 && pulses.length > 0) {
       trailingIndex = pulses.length - 1;
-      const trailingNode = pulses[trailingIndex];
-      if (trailingNode) {
-        nodesToActivate.push(trailingNode);
+      const last = pulses[trailingIndex];
+      if (last) {
+        last.classList.add('active');  // No reflow for trailing
       }
     }
-    const restartPrimary = loopWrapped
-      && lastPulseHighlightState.type === 'int'
-      && lastPulseHighlightState.index === targetIndex;
-    setPulseActiveNodes(nodesToActivate, { restartPrimary });
     if (pulseSeqEl) {
       const cacheMatches = lastPulseScrollCache.type === 'int'
         && lastPulseScrollCache.index === targetIndex
