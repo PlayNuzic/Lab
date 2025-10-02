@@ -145,6 +145,43 @@ let cycleMarkerHits = [];
 const fractionStore = createFractionSelectionStore();
 const fractionMemory = new Map();
 
+const EMPTY_PULSE_SCROLL_CACHE = {
+  type: null,
+  index: null,
+  fractionKey: null,
+  trailingIndex: null,
+  rect: null,
+  trailingRect: null,
+  scrollLeft: null
+};
+
+let lastPulseScrollCache = { ...EMPTY_PULSE_SCROLL_CACHE };
+let lastPulseActiveNodes = [];
+let lastPulseHighlightState = {
+  type: null,
+  index: null,
+  fractionKey: null,
+  trailingIndex: null
+};
+
+let lastFractionHighlightNodes = {
+  key: null,
+  marker: null,
+  hit: null,
+  token: null
+};
+
+let lastCycleHighlightState = {
+  cycleIndex: null,
+  subdivisionIndex: null,
+  marker: null,
+  label: null,
+  trailingMarker: null,
+  trailingLabel: null,
+  trailingCycleIndex: null,
+  trailingSubdivisionIndex: null
+};
+
 function normalizeFractionMemoryPayload(info) {
   if (!info || !info.key) return null;
   const base = Number.isFinite(info.base) ? info.base : null;
@@ -2656,12 +2693,15 @@ function setPulseSelected(i, shouldSelect) {
 
 
 function clearHighlights() {
+  deactivatePulseNodes();
   pulses.forEach(p => p.classList.remove('active'));
+  resetCycleHighlightState();
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
   pulseSeqController.clearActive();
-  clearFractionHighlight();
+  setFractionHighlightKey(null);
+  resetPulseScrollCache();
   lastNormalizedStep = null;
   fractionStore.lastHighlightType = null;
   fractionStore.lastHighlightIntIndex = null;
@@ -2669,6 +2709,8 @@ function clearHighlights() {
 }
 
 function renderTimeline() {
+  resetPulseHighlightState({ clearFraction: false });
+  resetCycleHighlightState();
   pulseNumberLabels = [];
   pulses = [];
   pulseHits = [];
@@ -3284,6 +3326,32 @@ playBtn.addEventListener('click', async () => {
   } catch {}
 });
 
+function deactivateCycleHighlight() {
+  const seen = new Set();
+  const { marker, label, trailingMarker, trailingLabel } = lastCycleHighlightState;
+  [marker, label, trailingMarker, trailingLabel].forEach((node) => {
+    if (!node || seen.has(node)) return;
+    if (node.classList) {
+      node.classList.remove('active');
+    }
+    seen.add(node);
+  });
+}
+
+function resetCycleHighlightState() {
+  deactivateCycleHighlight();
+  lastCycleHighlightState = {
+    cycleIndex: null,
+    subdivisionIndex: null,
+    marker: null,
+    label: null,
+    trailingMarker: null,
+    trailingLabel: null,
+    trailingCycleIndex: null,
+    trailingSubdivisionIndex: null
+  };
+}
+
 function highlightCycle(payload = {}) {
   if (!isPlaying) return;
   const {
@@ -3349,25 +3417,61 @@ function highlightCycle(payload = {}) {
     return;
   }
 
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
-  const marker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === normalizedCycleIndex
-    && Number(m.dataset.subdivision) === normalizedSubdivisionIndex);
-  const label = cycleLabels.find(l => Number(l.dataset.cycleIndex) === normalizedCycleIndex
-    && Number(l.dataset.subdivision) === normalizedSubdivisionIndex);
+  const shouldHighlightTrailing = loopEnabled
+    && normalizedCycleIndex === 0
+    && normalizedSubdivisionIndex === 0
+    && expectedCycles > 0;
+  const trailingCycleIndex = shouldHighlightTrailing ? expectedCycles - 1 : null;
+  const trailingSubdivisionIndex = shouldHighlightTrailing ? 0 : null;
+
+  const highlightUnchanged = normalizedCycleIndex === lastCycleHighlightState.cycleIndex
+    && normalizedSubdivisionIndex === lastCycleHighlightState.subdivisionIndex
+    && trailingCycleIndex === lastCycleHighlightState.trailingCycleIndex
+    && trailingSubdivisionIndex === lastCycleHighlightState.trailingSubdivisionIndex;
+  if (highlightUnchanged) {
+    return;
+  }
+
+  const marker = cycleMarkers.find((m) => Number(m.dataset.cycleIndex) === normalizedCycleIndex
+    && Number(m.dataset.subdivision) === normalizedSubdivisionIndex) || null;
+  const label = cycleLabels.find((l) => Number(l.dataset.cycleIndex) === normalizedCycleIndex
+    && Number(l.dataset.subdivision) === normalizedSubdivisionIndex) || null;
+
+  const trailingMarker = shouldHighlightTrailing
+    ? cycleMarkers.find((m) => Number(m.dataset.cycleIndex) === trailingCycleIndex
+      && Number(m.dataset.subdivision) === trailingSubdivisionIndex) || null
+    : null;
+  const trailingLabel = shouldHighlightTrailing
+    ? cycleLabels.find((l) => Number(l.dataset.cycleIndex) === trailingCycleIndex
+      && Number(l.dataset.subdivision) === trailingSubdivisionIndex) || null
+    : null;
+
+  deactivateCycleHighlight();
+
   if (marker) {
     void marker.offsetWidth;
     marker.classList.add('active');
   }
-  if (label) label.classList.add('active');
-
-  if (loopEnabled && normalizedCycleIndex === 0 && normalizedSubdivisionIndex === 0 && expectedCycles > 0) {
-    const lastCycleIndex = expectedCycles - 1;
-    const lastMarker = cycleMarkers.find(m => Number(m.dataset.cycleIndex) === lastCycleIndex && Number(m.dataset.subdivision) === 0);
-    const lastLabel = cycleLabels.find(l => Number(l.dataset.cycleIndex) === lastCycleIndex && Number(l.dataset.subdivision) === 0);
-    if (lastMarker) lastMarker.classList.add('active');
-    if (lastLabel) lastLabel.classList.add('active');
+  if (label) {
+    label.classList.add('active');
   }
+  if (trailingMarker && trailingMarker !== marker) {
+    trailingMarker.classList.add('active');
+  }
+  if (trailingLabel && trailingLabel !== label) {
+    trailingLabel.classList.add('active');
+  }
+
+  lastCycleHighlightState = {
+    cycleIndex: normalizedCycleIndex,
+    subdivisionIndex: normalizedSubdivisionIndex,
+    marker,
+    label,
+    trailingMarker,
+    trailingLabel,
+    trailingCycleIndex,
+    trailingSubdivisionIndex
+  };
 }
 
 function getPulseSeqRectForKey(key) {
@@ -3422,31 +3526,90 @@ function scrollPulseSeqToRect(rect) {
   return newScrollLeft;
 }
 
-function clearFractionHighlight() {
-  if (!fractionStore.lastFractionHighlightKey) return;
-  const prevMarker = fractionStore.markerMap.get(fractionStore.lastFractionHighlightKey);
-  if (prevMarker) prevMarker.classList.remove('fraction-active');
-  const prevHit = fractionStore.hitMap.get(fractionStore.lastFractionHighlightKey);
-  if (prevHit) prevHit.classList.remove('fraction-active');
-  const prevToken = fractionStore.pulseSeqTokenMap.get(fractionStore.lastFractionHighlightKey);
-  if (prevToken) prevToken.classList.remove('pulse-seq-token--active');
-  fractionStore.lastFractionHighlightKey = null;
+function resetPulseScrollCache() {
+  lastPulseScrollCache = { ...EMPTY_PULSE_SCROLL_CACHE };
 }
 
-function applyFractionHighlight(key) {
-  if (!key) {
-    clearFractionHighlight();
+function deactivatePulseNodes() {
+  if (!Array.isArray(lastPulseActiveNodes) || lastPulseActiveNodes.length === 0) {
+    lastPulseActiveNodes = [];
     return;
   }
-  if (fractionStore.lastFractionHighlightKey === key) return;
-  clearFractionHighlight();
-  const marker = fractionStore.markerMap.get(key);
-  if (marker) marker.classList.add('fraction-active');
-  const hit = fractionStore.hitMap.get(key);
-  if (hit) hit.classList.add('fraction-active');
-  const token = fractionStore.pulseSeqTokenMap.get(key);
-  if (token) token.classList.add('pulse-seq-token--active');
+  lastPulseActiveNodes.forEach((node) => {
+    if (node && node.classList) {
+      node.classList.remove('active');
+    }
+  });
+  lastPulseActiveNodes = [];
+}
+
+function setPulseActiveNodes(nodes = [], { forceReflow = false } = {}) {
+  const filtered = Array.isArray(nodes)
+    ? nodes.filter((node, index, arr) => node && node.classList && arr.indexOf(node) === index)
+    : [];
+
+  const sameNodes = filtered.length === lastPulseActiveNodes.length
+    && filtered.every((node, idx) => node === lastPulseActiveNodes[idx]);
+
+  if (sameNodes && !forceReflow) {
+    return;
+  }
+
+  deactivatePulseNodes();
+
+  filtered.forEach((node) => {
+    if (!node || !node.classList) return;
+    if (forceReflow) {
+      void node.offsetWidth;
+    }
+    node.classList.add('active');
+  });
+
+  lastPulseActiveNodes = filtered;
+}
+
+function setFractionHighlightKey(key) {
+  if (lastFractionHighlightNodes.key === key) {
+    return;
+  }
+
+  const { marker, hit, token } = lastFractionHighlightNodes;
+  if (marker) marker.classList.remove('fraction-active');
+  if (hit && hit !== marker) hit.classList.remove('fraction-active');
+  if (token) token.classList.remove('pulse-seq-token--active');
+
+  lastFractionHighlightNodes = {
+    key: null,
+    marker: null,
+    hit: null,
+    token: null
+  };
+
+  if (!key) {
+    fractionStore.lastFractionHighlightKey = null;
+    return;
+  }
+
+  const nextMarker = fractionStore.markerMap.get(key) || null;
+  const nextHit = fractionStore.hitMap.get(key) || null;
+  const nextToken = fractionStore.pulseSeqTokenMap.get(key) || null;
+
+  if (nextMarker) nextMarker.classList.add('fraction-active');
+  if (nextHit && nextHit !== nextMarker) nextHit.classList.add('fraction-active');
+  if (nextToken) nextToken.classList.add('pulse-seq-token--active');
+
+  lastFractionHighlightNodes = {
+    key,
+    marker: nextMarker,
+    hit: nextHit,
+    token: nextToken
+  };
+
   fractionStore.lastFractionHighlightKey = key;
+}
+
+function clearFractionHighlight() {
+  setFractionHighlightKey(null);
 }
 
 function findFractionMatch(value, epsilon = FRACTION_POSITION_EPSILON) {
@@ -3468,6 +3631,20 @@ function findFractionMatch(value, epsilon = FRACTION_POSITION_EPSILON) {
   return null;
 }
 
+function resetPulseHighlightState({ clearFraction = true } = {}) {
+  deactivatePulseNodes();
+  if (clearFraction) {
+    setFractionHighlightKey(null);
+  }
+  lastPulseHighlightState = {
+    type: null,
+    index: null,
+    fractionKey: null,
+    trailingIndex: null
+  };
+  resetPulseScrollCache();
+}
+
 function highlightPulse(payload){
   if (!isPlaying) return;
 
@@ -3476,7 +3653,7 @@ function highlightPulse(payload){
     fractionStore.lastHighlightType = null;
     fractionStore.lastHighlightIntIndex = null;
     fractionStore.lastHighlightFractionKey = null;
-    clearFractionHighlight();
+    resetPulseHighlightState({ clearFraction: true });
     pulseSeqController.clearActive();
     return;
   }
@@ -3504,6 +3681,7 @@ function highlightPulse(payload){
     fractionStore.lastHighlightType = null;
     fractionStore.lastHighlightIntIndex = null;
     fractionStore.lastHighlightFractionKey = null;
+    resetPulseScrollCache();
     return;
   }
 
@@ -3513,6 +3691,7 @@ function highlightPulse(payload){
     fractionStore.lastHighlightType = null;
     fractionStore.lastHighlightIntIndex = null;
     fractionStore.lastHighlightFractionKey = null;
+    resetPulseScrollCache();
     return;
   }
 
@@ -3572,60 +3751,137 @@ function highlightPulse(payload){
   lastNormalizedStep = normalizedScaled;
   lastVisualStep = rawStepValue;
 
-  pulses.forEach(p => p.classList.remove('active'));
-
   let newScrollLeft = pulseSeqEl ? pulseSeqEl.scrollLeft : 0;
 
   if (highlightType === 'fraction' && fractionKey) {
-    applyFractionHighlight(fractionKey);
+    setPulseActiveNodes([]);
+    setFractionHighlightKey(fractionKey);
     if (pulseSeqEl) {
-      const rect = getPulseSeqRectForKey(fractionKey);
-      if (rect) {
-        newScrollLeft = scrollPulseSeqToRect(rect);
-        pulseSeqController.setActiveIndex(0, {
-          rect,
-          scrollLeft: newScrollLeft
-        });
+      const cacheMatches = lastPulseScrollCache.type === 'fraction'
+        && lastPulseScrollCache.fractionKey === fractionKey;
+      const scrollAligned = cacheMatches
+        && lastPulseScrollCache.scrollLeft != null
+        && Math.abs(pulseSeqEl.scrollLeft - lastPulseScrollCache.scrollLeft) < 0.5;
+
+      if (!scrollAligned) {
+        const rect = cacheMatches && lastPulseScrollCache.rect
+          ? lastPulseScrollCache.rect
+          : getPulseSeqRectForKey(fractionKey);
+        if (rect) {
+          newScrollLeft = scrollPulseSeqToRect(rect);
+          pulseSeqController.setActiveIndex(0, {
+            rect,
+            scrollLeft: newScrollLeft
+          });
+          lastPulseScrollCache = {
+            type: 'fraction',
+            index: null,
+            fractionKey,
+            trailingIndex: null,
+            rect,
+            trailingRect: null,
+            scrollLeft: newScrollLeft
+          };
+        } else {
+          pulseSeqController.clearActive();
+          resetPulseScrollCache();
+        }
       } else {
-        pulseSeqController.clearActive();
+        lastPulseScrollCache = {
+          ...lastPulseScrollCache,
+          type: 'fraction',
+          index: null,
+          fractionKey,
+          trailingIndex: null,
+          scrollLeft: pulseSeqEl.scrollLeft
+        };
       }
     } else {
       pulseSeqController.clearActive();
+      resetPulseScrollCache();
     }
+    lastPulseHighlightState = {
+      type: 'fraction',
+      index: null,
+      fractionKey,
+      trailingIndex: null
+    };
   } else {
-    applyFractionHighlight(null);
-    const idx = Math.max(0, Math.min(nearestInt, baseCount));
-    const current = pulses[idx];
+    setFractionHighlightKey(null);
+    const targetIndex = idx;
+    const current = pulses[targetIndex];
+    const nodesToActivate = [];
     if (current) {
-      void current.offsetWidth;
-      current.classList.add('active');
+      nodesToActivate.push(current);
     }
-    if (loopEnabled && idx === 0) {
-      const last = pulses[pulses.length - 1];
-      if (last) last.classList.add('active');
-    }
-    if (pulseSeqEl) {
-      const rect = getPulseSeqRectForIndex(idx);
-      let trailingRect = null;
-      let trailingIndex = null;
-      if (idx === 0 && loopEnabled) {
-        trailingIndex = pulses.length - 1;
-        trailingRect = getPulseSeqRectForIndex(trailingIndex);
+    let trailingIndex = null;
+    if (loopEnabled && targetIndex === 0 && pulses.length > 0) {
+      trailingIndex = pulses.length - 1;
+      const trailingNode = pulses[trailingIndex];
+      if (trailingNode) {
+        nodesToActivate.push(trailingNode);
       }
-      if (rect) {
-        newScrollLeft = scrollPulseSeqToRect(rect);
-        pulseSeqController.setActiveIndex(idx, {
-          rect,
-          trailingIndex,
-          trailingRect,
-          scrollLeft: newScrollLeft
-        });
+    }
+    setPulseActiveNodes(nodesToActivate, { forceReflow: true });
+    if (pulseSeqEl) {
+      const cacheMatches = lastPulseScrollCache.type === 'int'
+        && lastPulseScrollCache.index === targetIndex
+        && lastPulseScrollCache.trailingIndex === trailingIndex;
+      const scrollAligned = cacheMatches
+        && lastPulseScrollCache.scrollLeft != null
+        && Math.abs(pulseSeqEl.scrollLeft - lastPulseScrollCache.scrollLeft) < 0.5;
+
+      if (!scrollAligned) {
+        const rect = cacheMatches && lastPulseScrollCache.rect
+          ? lastPulseScrollCache.rect
+          : getPulseSeqRectForIndex(targetIndex);
+        let trailingRect = null;
+        if (rect) {
+          if (trailingIndex != null) {
+            trailingRect = cacheMatches && lastPulseScrollCache.trailingRect
+              ? lastPulseScrollCache.trailingRect
+              : getPulseSeqRectForIndex(trailingIndex);
+          }
+          newScrollLeft = scrollPulseSeqToRect(rect);
+          pulseSeqController.setActiveIndex(targetIndex, {
+            rect,
+            trailingIndex,
+            trailingRect,
+            scrollLeft: newScrollLeft
+          });
+          lastPulseScrollCache = {
+            type: 'int',
+            index: targetIndex,
+            fractionKey: null,
+            trailingIndex,
+            rect,
+            trailingRect: trailingIndex != null ? trailingRect : null,
+            scrollLeft: newScrollLeft
+          };
+        } else {
+          pulseSeqController.clearActive();
+          resetPulseScrollCache();
+        }
       } else {
-        pulseSeqController.clearActive();
+        lastPulseScrollCache = {
+          ...lastPulseScrollCache,
+          type: 'int',
+          index: targetIndex,
+          fractionKey: null,
+          trailingIndex,
+          scrollLeft: pulseSeqEl.scrollLeft
+        };
       }
     } else {
       pulseSeqController.clearActive();
+      resetPulseScrollCache();
     }
+    lastPulseHighlightState = {
+      type: 'int',
+      index: targetIndex,
+      fractionKey: null,
+      trailingIndex
+    };
   }
 }
 
