@@ -56,13 +56,17 @@ export function createAudioInitializer(config = {}) {
           const selects = config.getSoundSelects();
           if (selects.baseSoundSelect?.dataset?.value) {
             instance._soundAssignments.pulso = selects.baseSoundSelect.dataset.value;
-            instance._soundAssignments.pulso0 = selects.baseSoundSelect.dataset.value;
+            if (!selects.startSoundSelect?.dataset?.value) {
+              instance._soundAssignments.pulso0 = selects.baseSoundSelect.dataset.value;
+            }
           }
           if (selects.accentSoundSelect?.dataset?.value) {
             instance._soundAssignments.seleccionados = selects.accentSoundSelect.dataset.value;
           }
           if (selects.startSoundSelect?.dataset?.value) {
-            instance._soundAssignments.start = selects.startSoundSelect.dataset.value;
+            const startValue = selects.startSoundSelect.dataset.value;
+            instance._soundAssignments.start = startValue;
+            instance._soundAssignments.pulso0 = startValue;
           }
           if (selects.cycleSoundSelect?.dataset?.value) {
             instance._soundAssignments.cycle = selects.cycleSoundSelect.dataset.value;

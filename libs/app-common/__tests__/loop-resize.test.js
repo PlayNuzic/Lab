@@ -130,6 +130,7 @@ describe('loop resize keeps circular selection', () => {
     jest.unstable_mockModule('../../sound/index.js', () => ({
       TimelineAudio: timelineCtor,
       ensureAudio: ensureAudioMock,
+      waitForUserInteraction: jest.fn(() => Promise.resolve()),
       subscribeMixer: jest.fn(() => () => {}),
       setChannelVolume: jest.fn(),
       setChannelMute: jest.fn(),

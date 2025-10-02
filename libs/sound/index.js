@@ -485,11 +485,11 @@ export class TimelineAudio {
     this._setScheduledStep = null;
 
     this._defaultAssignments = {
-      pulso: 'click1',
-      pulso0: 'click1',
-      seleccionados: 'click2',
-      start: 'click3',
-      cycle: 'click4'
+      pulso: 'click9',
+      pulso0: 'click7',
+      seleccionados: 'click8',
+      start: 'click7',
+      cycle: 'click10'
     };
     this._soundAssignments = { ...this._defaultAssignments };
     this._channelAssignments = {
@@ -704,11 +704,11 @@ export class TimelineAudio {
     // (i.e., they still match the original defaults from constructor)
     const assignments = this._soundAssignments;
     const originalDefaults = {
-      pulso: 'click1',
-      pulso0: 'click1',
-      seleccionados: 'click2',
-      start: 'click3',
-      cycle: 'click4'
+      pulso: 'click9',
+      pulso0: 'click7',
+      seleccionados: 'click8',
+      start: 'click7',
+      cycle: 'click10'
     };
 
     // Only overwrite if still at original default value (not user-set)
@@ -834,6 +834,7 @@ export class TimelineAudio {
   async setStart(key) {
     await this.ready();
     await this._setSound('start', key, this._defaultAssignments.start);
+    await this._setSound('pulso0', key, this._defaultAssignments.pulso0);
   }
 
   async setCycle(key) {

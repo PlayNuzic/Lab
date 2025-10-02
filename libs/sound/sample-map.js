@@ -12,16 +12,16 @@ export async function loadSampleMap() {
 
   // 2) Defaults (ajusta nombres si difieren en tu árbol de /samples)
   const DEFAULT_SAMPLE_MAP = {
-    // Grupo Pulso = Pulso + Pulso 0 (ambas rutas se mezclan en el mismo bus)
-    pulso: 'click1',
-    pulso0: 'click1',
+    // Pulso principal (base) y Pulso 0 usan sonidos diferenciados por defecto
+    pulso: 'click9',
+    pulso0: 'click7',
 
-    // Pulsos seleccionados (acentos individuales de usuario)
-    seleccionados: 'click2',
+    // Pulsos seleccionados (acentos individuales del usuario)
+    seleccionados: 'click8',
 
     // Sonidos adicionales opcionales (inicio de vuelta / subdivisión de ciclo)
-    start: 'click3',
-    cycle: 'click4'
+    start: 'click7',
+    cycle: 'click10'
   };
   return normalizeMap(DEFAULT_SAMPLE_MAP);
 }

@@ -163,21 +163,21 @@ function wireControls(root) {
         eventType: 'baseSound',
         getAudio: getAppAudio,
         apply: (a, val) => a?.setBase?.(val),
-        defaultValue: 'click1' // Click Base
+        defaultValue: 'click9' // Hi-Hat
     });
     initSoundDropdown(accentSoundSelect, {
         storageKey: 'accentSound',
         eventType: 'accentSound',
         getAudio: getAppAudio,
         apply: (a, val) => a?.setAccent?.(val),
-        defaultValue: 'click2' // Click Acento
+        defaultValue: 'click8' // Caja
     });
     initSoundDropdown(startSoundSelect, {
         storageKey: 'startSound',
         eventType: 'startSound',
         getAudio: getAppAudio,
         apply: (a, val) => a?.setStart?.(val),
-        defaultValue: 'click3' // Sticks
+        defaultValue: 'click7' // Bombo
     });
 
     // Initialize cycle sound dropdown if present (used in some apps like App3/App4)
@@ -187,7 +187,7 @@ function wireControls(root) {
             eventType: 'cycleSound',
             getAudio: getAppAudio,
             apply: (a, val) => a?.setCycle?.(val),
-            defaultValue: 'click4' // Pandereta
+            defaultValue: 'click10' // Ride
         });
     }
 

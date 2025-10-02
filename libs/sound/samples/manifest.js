@@ -5,16 +5,16 @@
 // relativas dentro de este directorio (se resolverán como URLs absolutas).
 
 export const DEFAULT_SAMPLE_MAP = {
-  // Pulso principal y Pulso 0 comparten sample.
-  pulso: 'click1',
-  pulso0: 'click1',
+  // Pulso principal y Pulso 0 usan sonidos distintos por defecto.
+  pulso: 'click9',
+  pulso0: 'click7',
 
-  // Accentos individuales marcados por el usuario.
-  seleccionados: 'click2',
+  // Acentos individuales marcados por el usuario.
+  seleccionados: 'click8',
 
   // Inicio de compás y subdivisiones del ciclo.
-  start: 'click3',
-  cycle: 'click4'
+  start: 'click7',
+  cycle: 'click10'
 };
 
 // Permite sobrescribir dinámicamente desde fuera si fuese necesario.
