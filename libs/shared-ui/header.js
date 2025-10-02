@@ -23,18 +23,8 @@ function applySchedulingProfile(profile) {
     };
     const p = profiles[profile] || profiles.balanced;
 
-    // Only access Tone context if Tone is available and has been started
-    // This prevents AudioContext warnings on page load
-    try {
-        if (typeof Tone !== 'undefined' && Tone.context && Tone.context.state === 'running') {
-            const ctx = (typeof Tone.getContext === 'function') ? Tone.getContext() : Tone.context;
-            if (ctx) {
-                if (typeof ctx.lookAhead !== 'undefined') ctx.lookAhead = p.lookAhead;
-                if (typeof ctx.updateInterval !== 'undefined') ctx.updateInterval = p.updateInterval;
-            }
-        }
-    } catch {}
-
+    // Dispatch the scheduling event - these settings will be applied when audio initializes
+    // Do NOT access Tone.context here as it triggers AudioContext creation warnings
     window.dispatchEvent(new CustomEvent('sharedui:scheduling', { detail: { profile, ...p } }));
 }
 
@@ -57,13 +47,8 @@ function setSelectionColor(value) {
 
 function setMute(value) {
     const v = !!value;
-    try {
-        // Only access Tone.Destination if Tone context is already running
-        // This prevents AudioContext warnings on page load
-        if (typeof Tone !== 'undefined' && Tone.context && Tone.context.state === 'running' && Tone.Destination) {
-            Tone.Destination.mute = v;
-        }
-    } catch {}
+    // Dispatch the mute event - this will be handled by the app's audio system when it's ready
+    // Do NOT access Tone.context or Tone.Destination here as it triggers AudioContext creation warnings
     window.dispatchEvent(new CustomEvent('sharedui:mute', { detail: { value: v } }));
 }
 

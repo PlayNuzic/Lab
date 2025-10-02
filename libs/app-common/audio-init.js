@@ -3,7 +3,8 @@
  * Based on App4's successful approach that avoids AudioContext warnings
  */
 
-import { TimelineAudio } from '../sound/index.js';
+import { TimelineAudio, waitForUserInteraction } from '../sound/index.js';
+import { ensureToneLoaded } from '../sound/tone-loader.js';
 
 /**
  * Create a standardized audio initialization function that follows App4's pattern
@@ -41,6 +42,12 @@ export function createAudioInitializer(config = {}) {
 
     if (!audioInitPromise) {
       audioInitPromise = (async () => {
+        // Load Tone.js first (waits for user interaction internally)
+        await ensureToneLoaded();
+
+        // Wait for user interaction before creating AudioContext to avoid browser warnings
+        await waitForUserInteraction();
+
         const instance = new TimelineAudio();
 
         // Apply sound selections BEFORE ready() to prevent _initPlayers() from loading defaults

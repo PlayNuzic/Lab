@@ -1,6 +1,7 @@
 import { loadSampleMap } from './sample-map.js';
 import { AudioMixer } from './mixer.js';
 import { waitForUserInteraction, hasUserInteracted } from './user-interaction.js';
+import { ensureToneLoaded } from './tone-loader.js';
 
 /* global Tone */
 
@@ -99,6 +100,9 @@ async function tryResumeContext(ctx) {
 }
 
 async function startToneAudio() {
+  // Load Tone.js if not already loaded (waits for user interaction)
+  await ensureToneLoaded();
+
   if (typeof Tone === 'undefined') return false;
 
   // Wait for user interaction before attempting to start audio

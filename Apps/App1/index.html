@@ -11,8 +11,7 @@
 </head>
 <body data-theme="system">
   <div id="app-root"></div>
-  <!-- Load Tone.js as a global before module scripts -->
-  <script src="../../libs/vendor/Tone.js"></script>
+  <!-- Tone.js is now loaded lazily after user interaction via tone-loader.js -->
   <script type="module">
     import { initHeader } from '../../libs/shared-ui/header.js';
     import { renderApp } from '../../libs/app-common/template.js';
