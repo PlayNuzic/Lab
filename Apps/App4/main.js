@@ -3454,8 +3454,8 @@ function highlightCycle(payload = {}) {
   if (hasTempo && Number.isFinite(expectedDenominator) && expectedDenominator > 0) {
     // Subdivision interval in ms = (60 / BPM) * 1000 / denominator
     const subdivisionIntervalMs = (60 / v) * 1000 / expectedDenominator;
-    // Use 70% of the interval, clamped between 50ms (fast) and 500ms (slow)
-    animDuration = Math.max(50, Math.min(subdivisionIntervalMs * 0.7, 500));
+    // Use 80% of the interval for animation, clamped between 60ms (ultra-fast) and 400ms (slow)
+    animDuration = Math.max(60, Math.min(subdivisionIntervalMs * 0.8, 400));
   }
 
   if (marker) {
