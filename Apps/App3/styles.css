@@ -318,13 +318,17 @@ header.top-bar h1 .top-bar-title-button:active {
 .cycle-marker {
   position: absolute;
   width: 3px;
-  height: 24px;
+  height: 14px;
   background: var(--line-color);
   transform: translate(-50%, -50%);
   opacity: 0.75;
   border-radius: 2px;
   transition: opacity 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
   pointer-events: none;
+}
+
+.cycle-marker.start {
+  height: 30px;
 }
 
 .cycle-marker.active {
@@ -385,8 +389,12 @@ header.top-bar h1 .top-bar-title-button:active {
 }
 
 .timeline.circular .cycle-marker {
-  height: 26px;
+  height: 18px;
   width: 3px;
+}
+
+.timeline.circular .cycle-marker.start {
+  height: 36px;
 }
 
 .timeline.circular .cycle-label {
@@ -420,7 +428,11 @@ header.top-bar h1 .top-bar-title-button:active {
   }
 
   .cycle-marker {
-    height: 28px;
+    height: 16px;
+  }
+
+  .cycle-marker.start {
+    height: 32px;
   }
 
   .cycle-label {
