@@ -132,7 +132,7 @@ header.top-bar h1 .top-bar-title-button:active {
 .cycle-marker {
   position: absolute;
   width: 4px;
-  height: 26px;
+  height: 16px;
   border-radius: 999px;
   background: var(--line-color);
   transform: translate(-50%, -50%);
@@ -143,6 +143,7 @@ header.top-bar h1 .top-bar-title-button:active {
 }
 
 .cycle-marker.start {
+  height: 30px;
   background: var(--color-lg);
   opacity: 1;
 }
@@ -292,7 +293,11 @@ header.top-bar h1 .top-bar-title-button:active {
 
 .timeline.circular .cycle-marker {
   width: 4px;
-  height: 30px;
+  height: 20px;
+}
+
+.timeline.circular .cycle-marker.start {
+  height: 36px;
 }
 
 .timeline.circular .cycle-label {
