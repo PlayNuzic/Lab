@@ -3721,6 +3721,9 @@ function highlightPulse(payload){
     fractionMatch = findFractionMatch(normalizedValue, epsilon);
     if (fractionMatch && fractionMatch.key) {
       highlightType = 'fraction';
+    } else {
+      // Step is fractional but no matching fraction selected - ignore
+      return;
     }
   }
 
