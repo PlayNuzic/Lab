@@ -108,7 +108,19 @@ header.top-bar h1 .top-bar-title-button:active {
   filter: grayscale(0.5);
 }
 
+.pulse-hit {
+  transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+}
+
+.pulse-hit.selected {
+  background: var(--selection-color);
+  box-shadow: 0 0 16px var(--selection-color);
+  opacity: 0.75;
+}
+
 .pulse-hit.non-selectable {
+  background: transparent;
+  box-shadow: none;
   opacity: 0.2;
   cursor: not-allowed;
   pointer-events: none;

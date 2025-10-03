@@ -2624,16 +2624,24 @@ function syncSelectedFromMemory() {
   }
 
   // Aplica al DOM
+  const lgIndex = pulses.length > 0 ? pulses.length - 1 : null;
+
   pulses.forEach((p, idx) => {
     if (!p) return;
     p.classList.toggle('selected', selectedPulses.has(idx));
   });
-  const lgIndex = pulses.length - 1;
+  pulseHits.forEach((hit, idx) => {
+    if (!hit) return;
+    const isEndpoint = lgIndex != null && (idx === 0 || idx === lgIndex);
+    const pulseIsLocked = hit.classList.contains('non-selectable');
+    const shouldHighlight = selectedPulses.has(idx) && !isEndpoint && !pulseIsLocked;
+    hit.classList.toggle('selected', shouldHighlight);
+  });
   pulseNumberLabels.forEach((label) => {
     if (!label) return;
     const idx = parseIntSafe(label.dataset.index);
     if (!Number.isFinite(idx)) return;
-    const isEndpoint = idx === 0 || idx === lgIndex;
+    const isEndpoint = lgIndex != null && (idx === 0 || idx === lgIndex);
     const pulseIsLocked = !isEndpoint && Boolean(pulses[idx]?.classList.contains('non-selectable'));
     label.classList.toggle('selected', selectedPulses.has(idx) && !isEndpoint);
     label.classList.toggle('non-selectable', pulseIsLocked);
