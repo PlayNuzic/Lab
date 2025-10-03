@@ -152,6 +152,7 @@ header.top-bar h1 .top-bar-title-button:active {
   cursor: pointer;
   opacity: 0.8;
   transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+  z-index: 6;
 }
 
 .cycle-marker.start {

@@ -3647,9 +3647,36 @@ function highlightIntegerPulse(i) {
   }
 
   // If looping and at first pulse, also highlight last
+  let trailingIndex = null;
   if (loopEnabled && idx === 0) {
     const last = pulses[pulses.length - 1];
-    if (last) last.classList.add('active');
+    if (last) {
+      last.classList.add('active');
+      trailingIndex = pulses.length - 1;
+    }
+  }
+
+  // Also highlight the token in the pulse sequence
+  if (pulseSeqEl) {
+    const rect = getPulseSeqRectForIndex(idx);
+    let trailingRect = null;
+    if (trailingIndex != null) {
+      trailingRect = getPulseSeqRectForIndex(trailingIndex);
+    }
+
+    if (rect) {
+      const newScrollLeft = scrollPulseSeqToRect(rect);
+      pulseSeqController.setActiveIndex(idx, {
+        rect,
+        trailingIndex,
+        trailingRect: trailingIndex != null ? trailingRect : null,
+        scrollLeft: newScrollLeft
+      });
+    } else {
+      pulseSeqController.clearActive();
+    }
+  } else {
+    pulseSeqController.clearActive();
   }
 }
 

@@ -325,6 +325,7 @@ header.top-bar h1 .top-bar-title-button:active {
   border-radius: 2px;
   transition: opacity 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
   pointer-events: none;
+  z-index: 6;
 }
 
 .cycle-marker.start {
