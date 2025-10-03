@@ -186,9 +186,24 @@ header.top-bar h1 .top-bar-title-button:active {
   }
 }
 
+@keyframes fractionFlash {
+  0% {
+    box-shadow: 0 0 0px var(--selection-color);
+    opacity: 1;
+  }
+  40% {
+    box-shadow: 0 0 20px var(--selection-color);
+    opacity: 1;
+  }
+  100% {
+    box-shadow: 0 0 8px var(--selection-color);
+    opacity: 0.8;
+  }
+}
+
 .cycle-marker.fraction-active {
   background: var(--selection-color);
-  box-shadow: 0 0 16px var(--selection-color);
+  animation: fractionFlash 0.35s ease-out forwards;
   opacity: 1;
 }
 
@@ -204,7 +219,7 @@ header.top-bar h1 .top-bar-title-button:active {
 
 .fraction-hit.fraction-active {
   background: var(--selection-color);
-  box-shadow: 0 0 16px var(--selection-color);
+  animation: fractionFlash 0.35s ease-out forwards;
   opacity: 0.6;
 }
 

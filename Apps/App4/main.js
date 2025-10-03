@@ -3274,7 +3274,7 @@ async function startPlayback(providedAudio) {
     effectiveInterval,
     selectionPayload,
     loopEnabled,
-    highlightPulse,
+    null,
     onFinish,
     playOptions
   );
@@ -3622,6 +3622,29 @@ function resetPulseHighlightState({ clearFraction = true } = {}) {
   resetPulseScrollCache();
 }
 
+// Simple integer pulse highlight - follows App1 pattern exactly
+function highlightIntegerPulse(i) {
+  // Clear all pulse highlights
+  pulses.forEach(p => p.classList.remove('active'));
+
+  if (!pulses || pulses.length === 0) return;
+
+  // Highlight current pulse
+  const idx = i % pulses.length;
+  const current = pulses[idx];
+  if (current) {
+    // Force reflow so animation restarts (like App1)
+    void current.offsetWidth;
+    current.classList.add('active');
+  }
+
+  // If looping and at first pulse, also highlight last
+  if (loopEnabled && idx === 0) {
+    const last = pulses[pulses.length - 1];
+    if (last) last.classList.add('active');
+  }
+}
+
 function highlightPulse(payload){
   if (!isPlaying) return;
 
@@ -3674,15 +3697,15 @@ function highlightPulse(payload){
 
   const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
   const scaledSpan = baseCount * resolution;
-  const rawIndex = Math.round(rawStepValue);
 
-  let normalizedScaled = rawIndex;
+  // Normalize without premature rounding to maintain sub-frame precision
+  let normalizedScaled = rawStepValue;
   if (loopEnabled) {
     if (scaledSpan <= 0) return;
-    normalizedScaled = ((rawIndex % scaledSpan) + scaledSpan) % scaledSpan;
+    normalizedScaled = ((rawStepValue % scaledSpan) + scaledSpan) % scaledSpan;
   } else {
     const maxStep = scaledSpan;
-    normalizedScaled = Math.max(0, Math.min(rawIndex, maxStep));
+    normalizedScaled = Math.max(0, Math.min(rawStepValue, maxStep));
   }
 
   const normalizedValue = resolution > 0 ? normalizedScaled / resolution : normalizedScaled;
@@ -3707,12 +3730,10 @@ function highlightPulse(payload){
 
   let shouldUpdate = false;
   if (highlightType === 'fraction') {
-    shouldUpdate = loopWrapped
-      || fractionStore.lastHighlightType !== 'fraction'
+    shouldUpdate = fractionStore.lastHighlightType !== 'fraction'
       || fractionKey !== fractionStore.lastHighlightFractionKey;
   } else {
-    shouldUpdate = loopWrapped
-      || fractionStore.lastHighlightType !== 'int'
+    shouldUpdate = fractionStore.lastHighlightType !== 'int'
       || idx !== fractionStore.lastHighlightIntIndex;
   }
 
@@ -3868,9 +3889,25 @@ function stopVisualSync() {
 function syncVisualState() {
   if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
   const state = audio.getVisualState();
-  if (!state) return;
+  if (!state || !Number.isFinite(state.step)) return;
 
-  if (Number.isFinite(state.step) && lastVisualStep !== state.step) {
+  // Protection against duplicate calls - like App1
+  if (lastVisualStep === state.step) return;
+  lastVisualStep = state.step;
+
+  const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
+  const baseCount = pulses.length > 1 ? pulses.length - 1 : 0;
+
+  // Check if this is an integer step (divisible by resolution)
+  const isIntegerStep = state.step % resolution === 0;
+
+  if (isIntegerStep && baseCount > 0) {
+    // Use simple App1-style highlighting for integer pulses
+    // Divide by resolution to get the actual pulse index
+    const pulseIndex = state.step / resolution;
+    highlightIntegerPulse(pulseIndex);
+  } else {
+    // Use complex logic for fractional pulses
     highlightPulse(state);
   }
 
