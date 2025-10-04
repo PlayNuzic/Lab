@@ -1162,12 +1162,32 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.02);
+  background: #ffffff;
+  padding: 20px;
+  position: relative;
 }
 
 body[data-theme='dark'] .notation-panel__canvas {
   border-color: rgba(238, 232, 216, 0.25);
-  background: rgba(255, 255, 255, 0.04);
+  background: #ffffff;
+}
+
+.notation-playback-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--selection-color, #F97C39);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+  transform-origin: left center;
+}
+
+.notation-playback-cursor--active {
+  opacity: 0.75;
 }
 
 .notation-panel--inline.notation-panel--open {

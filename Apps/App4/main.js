@@ -3324,6 +3324,11 @@ function handlePlaybackStop(audioInstance) {
   if (audioInstance && typeof audioInstance.stop === 'function') {
     try { audioInstance.stop(); } catch {}
   }
+
+  // Resetear cursor de notación
+  if (notationRenderer && typeof notationRenderer.resetCursor === 'function') {
+    notationRenderer.resetCursor();
+  }
   currentAudioResolution = 1;
   const ed = getEditEl();
   if (ed) {
@@ -4096,6 +4101,14 @@ function syncVisualState() {
   // Protection against duplicate calls - like App1
   if (lastVisualStep === state.step) return;
   lastVisualStep = state.step;
+
+  // Actualizar cursor de notación
+  if (notationRenderer && typeof notationRenderer.updateCursor === 'function') {
+    const lg = parseInt(inputLg.value, 10);
+    const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
+    const progress = Number.isFinite(lg) && lg > 0 ? state.step / (lg * resolution) : 0;
+    notationRenderer.updateCursor(progress, isPlaying);
+  }
 
   const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
   const baseCount = pulses.length > 1 ? pulses.length - 1 : 0;

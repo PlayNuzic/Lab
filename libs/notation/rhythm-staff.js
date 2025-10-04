@@ -145,10 +145,19 @@ export function createRhythmStaff({ container } = {}) {
 
   let renderer = null;
   let context = null;
+  let cursorElement = null;
+  let staveInfo = null;
 
   const clear = () => {
     if (container) {
+      // Guardar cursor si existe
+      const existingCursor = container.querySelector('.notation-playback-cursor');
       container.innerHTML = '';
+      // Restaurar cursor
+      if (existingCursor) {
+        container.appendChild(existingCursor);
+        cursorElement = existingCursor;
+      }
     }
   };
 
@@ -156,6 +165,38 @@ export function createRhythmStaff({ container } = {}) {
     clear();
     renderer = null;
     context = null;
+    cursorElement = null;
+    staveInfo = null;
+  };
+
+  const ensureCursor = () => {
+    if (!cursorElement) {
+      cursorElement = document.createElement('div');
+      cursorElement.className = 'notation-playback-cursor';
+      container.appendChild(cursorElement);
+    }
+    return cursorElement;
+  };
+
+  const updateCursor = (progress = 0, isPlaying = false) => {
+    const cursor = ensureCursor();
+    if (!staveInfo || !isPlaying) {
+      cursor.classList.remove('notation-playback-cursor--active');
+      return;
+    }
+
+    cursor.classList.toggle('notation-playback-cursor--active', isPlaying);
+
+    // Calcular posición X del cursor basado en el progreso (0 a 1)
+    const startX = staveInfo.x;
+    const endX = staveInfo.x + staveInfo.width;
+    const cursorX = startX + (endX - startX) * progress;
+
+    cursor.style.transform = `translateX(${cursorX}px)`;
+  };
+
+  const resetCursor = () => {
+    updateCursor(0, false);
   };
 
   const render = (state = {}) => {
@@ -189,6 +230,14 @@ export function createRhythmStaff({ container } = {}) {
     stave.setBegBarType(BarlineType.SINGLE);
     stave.setEndBarType(BarlineType.SINGLE);
     stave.setContext(context).draw();
+
+    // Guardar información del stave para el cursor
+    staveInfo = {
+      x: stave.getX(),
+      y: stave.getY(),
+      width: stave.getWidth(),
+      height: stave.getHeight()
+    };
 
     if (!events.length) {
       return;
@@ -255,9 +304,16 @@ export function createRhythmStaff({ container } = {}) {
         const indices = Array.isArray(group?.noteIndices) ? group.noteIndices : [];
         createTuplet(indices, group);
       });
-    } else if (isComplexFraction(fraction)) {
-      const allIndices = entries.map((_, idx) => idx);
-      createTuplet(allIndices, fraction);
+    } else if (fraction) {
+      // Aplicar tuplet a todas las notas (no silencios)
+      const nonRestIndices = entries
+        .map((entry, idx) => ({ idx, entry }))
+        .filter(({ entry }) => !entry.event?.rest && entry.event?.type !== 'rest')
+        .map(({ idx }) => idx);
+
+      if (nonRestIndices.length > 0) {
+        createTuplet(nonRestIndices, fraction);
+      }
     }
 
     renderedTuplets.forEach((tuplet) => {
@@ -295,6 +351,8 @@ export function createRhythmStaff({ container } = {}) {
   return {
     render,
     destroy,
+    updateCursor,
+    resetCursor,
   };
 }
 
