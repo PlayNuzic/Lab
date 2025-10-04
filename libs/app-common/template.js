@@ -2,6 +2,10 @@ export const FRACTION_INLINE_SLOT_ID = 'fractionInlineSlot';
 export const PULSE_TOGGLE_BTN_ID = 'pulseToggleBtn';
 export const SELECTED_TOGGLE_BTN_ID = 'selectedToggleBtn';
 export const CYCLE_TOGGLE_BTN_ID = 'cycleToggleBtn';
+export const NOTATION_TOGGLE_BTN_ID = 'notationToggleBtn';
+export const NOTATION_PANEL_ID = 'notationPanel';
+export const NOTATION_CLOSE_BTN_ID = 'notationCloseBtn';
+export const NOTATION_CONTENT_ID = 'notationContent';
 
 export function renderApp({
   root,
@@ -15,7 +19,8 @@ export function renderApp({
   showPulseToggle = false,
   showSelectedToggle = false,
   showCycleToggle = false,
-  inlineFractionSlot = false
+  inlineFractionSlot = false,
+  showNotationToggle = false
 }) {
   if (!root) throw new Error('root element required');
   document.title = title;
@@ -92,6 +97,39 @@ ${togglesMarkup}
         </div>
     ` : '';
 
+  const notationToggleButton = showNotationToggle ? `
+      <button
+        id="${NOTATION_TOGGLE_BTN_ID}"
+        class="top-bar-notation-button"
+        type="button"
+        aria-label="Alternar partitura"
+        aria-pressed="false"
+        aria-expanded="false"
+        aria-controls="${NOTATION_PANEL_ID}"
+      >
+        <svg class="top-bar-notation-button__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" fill="currentColor" aria-hidden="true" focusable="false">
+          <path d="M18 2.5c-4.37 0-7.9 3.53-7.9 7.9 0 3.25 1.94 6.13 4.77 7.34-5.22 1.36-9.17 6.18-9.17 11.86 0 6.76 5.43 12.19 12.19 12.19 5.55 0 10.29-3.66 11.53-8.89.18-.76-.29-1.53-1.05-1.71l-2.07-.47c-.75-.17-1.49.3-1.67 1.05-.81 3.34-3.78 5.79-7.24 5.79-3.99 0-7.24-3.25-7.24-7.24 0-3.77 2.77-6.88 6.35-7.23v11.31c0 .82.66 1.48 1.48 1.48h1.79c.82 0 1.48-.66 1.48-1.48V7.02c0-2.58 2.1-4.68 4.68-4.68s4.68 2.1 4.68 4.68c0 2.28-1.62 4.29-3.85 4.62-.78.12-1.33.8-1.33 1.59v2.42c0 .91.8 1.61 1.7 1.48 4.61-.67 8.12-4.67 8.12-9.38C32.73 6.29 27.94 1.5 22.24 1.5c-3.07 0-5.86 1.35-7.76 3.5-.1-.99-.48-1.94-1.13-2.73-.65-.79-1.52-1.42-2.52-1.76-.77-.26-1.6.17-1.86.94-.26.77.17 1.6.94 1.86 1.33.45 2.22 1.68 2.22 3.08 0 1.8-1.46 3.27-3.27 3.27-1.8 0-3.27-1.47-3.27-3.27 0-.8.3-1.57.83-2.16.56-.63.5-1.59-.13-2.15-.63-.56-1.59-.5-2.15.13C3.29 3.95 2.6 5.58 2.6 7.35c0 3.4 2.48 6.24 5.74 6.84 1.54.27 3.11-.05 4.41-.88 1.31-.83 2.2-2.09 2.58-3.49.63-2.34-.2-4.71-2-6.21 1.26-.82 2.74-1.28 4.67-1.28z" />
+        </svg>
+      </button>
+  ` : '';
+
+  const notationPanelMarkup = showNotationToggle ? `
+  <aside id="${NOTATION_PANEL_ID}" class="notation-panel" aria-hidden="true" hidden>
+    <div class="notation-panel__scrim" data-notation-close></div>
+    <div class="notation-panel__dialog" role="dialog" aria-modal="true" aria-labelledby="notationPanelTitle" tabindex="-1">
+      <header class="notation-panel__header">
+        <h2 id="notationPanelTitle" class="notation-panel__title">Partitura</h2>
+        <button type="button" id="${NOTATION_CLOSE_BTN_ID}" class="notation-panel__close" data-notation-close aria-label="Cerrar partitura">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </header>
+      <div class="notation-panel__body">
+        <div id="${NOTATION_CONTENT_ID}" class="notation-panel__canvas" role="img" aria-label="Partitura musical"></div>
+      </div>
+    </div>
+  </aside>
+  ` : '';
+
   root.innerHTML = `
   <header class="top-bar">
     <details class="menu" id="optionsMenu">
@@ -132,7 +170,7 @@ ${togglesMarkup}
         </details>
       </div>
     </details>
-    <h1>${title}</h1>
+    <h1><span class="top-bar-title-text">${title}</span>${notationToggleButton}</h1>
     <div class="sound-wrapper">
       <button id="muteBtn" class="sound" aria-label="Sonido"></button>
       <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
@@ -140,6 +178,7 @@ ${togglesMarkup}
   </header>
 
   <main>
+    ${notationPanelMarkup}
     <section class="inputs">
         <div class="param lg">
           <span class="abbr">Lg</span>

@@ -10,6 +10,8 @@ import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
+import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
+import { createNotationPanelController } from '../../libs/app-common/notation-panel.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -66,7 +68,7 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
         circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
         randTToggle, randTMin, randTMax, themeSelect, selectColor, baseSoundSelect,
-        accentSoundSelect, startSoundSelect } = elements;
+        accentSoundSelect, startSoundSelect, notationPanel, notationCloseBtn } = elements;
 
 // Pulse sequence UI element (contenteditable div in template)
 const pulseSeqEl = elements.pulseSeq;
@@ -103,8 +105,16 @@ const tIndicator = shouldRenderTIndicator ? (() => {
   return indicator;
 })() : null;
 const titleHeading = document.querySelector('header.top-bar h1');
+const titleTextNode = titleHeading?.querySelector('.top-bar-title-text');
 let titleButton = null;
-if (titleHeading) {
+if (titleHeading && titleTextNode) {
+  titleButton = document.createElement('button');
+  titleButton.type = 'button';
+  titleButton.id = 'appTitleBtn';
+  titleButton.className = 'top-bar-title-button';
+  titleButton.textContent = titleTextNode.textContent?.trim() || '';
+  titleHeading.replaceChild(titleButton, titleTextNode);
+} else if (titleHeading) {
   titleButton = document.createElement('button');
   titleButton.type = 'button';
   titleButton.id = 'appTitleBtn';
@@ -113,6 +123,13 @@ if (titleHeading) {
   titleHeading.textContent = '';
   titleHeading.appendChild(titleButton);
 }
+const notationToggleBtn = document.getElementById(NOTATION_TOGGLE_BTN_ID);
+createNotationPanelController({
+  toggleButton: notationToggleBtn,
+  panel: notationPanel,
+  closeButton: notationCloseBtn,
+  appId: 'app2'
+});
 
 const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
@@ -337,6 +354,7 @@ attachHover(playBtn, { text: 'Play / Stop' });
 attachHover(loopBtn, { text: 'Loop' });
 attachHover(tapBtn, { text: 'Tap Tempo' });
 attachHover(resetBtn, { text: 'Reset App' });
+attachHover(notationToggleBtn, { text: 'Mostrar/ocultar partitura' });
 attachHover(randomBtn, { text: 'Aleatorizar parámetros' });
 attachHover(randLgToggle, { text: 'Aleatorizar Lg' });
 attachHover(randLgMin, { text: 'Mínimo Lg' });

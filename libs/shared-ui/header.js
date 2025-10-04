@@ -1,4 +1,9 @@
 // Shared UI header for Lab: mirrors App1 header behavior
+//
+// Event reference:
+// - sharedui:notationtoggle { detail: { open: boolean, appId?: string, source?: string } }
+//   Emitted by individual apps when the notation panel is opened or closed. Listen to this
+//   event to react to score visibility changes or to drive shared tooling.
 
 import { setVolume, getVolume } from '../sound/index.js';
 import { ensureToneLoaded } from '../sound/tone-loader.js';

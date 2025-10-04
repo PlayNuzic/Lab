@@ -176,7 +176,10 @@ const APP_SPECIFIC_ELEMENTS = {
     randVMin: 'randVMin',
     randVMax: 'randVMax',
     randPulsesToggle: 'randPulsesToggle',
-    randomCount: 'randomCount'
+    randomCount: 'randomCount',
+    notationPanel: 'notationPanel',
+    notationCloseBtn: 'notationCloseBtn',
+    notationContent: 'notationContent'
   },
   app3: {
     // App3: T is calculated internally, has LEDs and fraction controls
@@ -222,7 +225,10 @@ const APP_SPECIFIC_ELEMENTS = {
     // Audio toggle elements
     pulseToggleBtn: 'pulseToggleBtn',
     selectedToggleBtn: 'selectedToggleBtn',
-    cycleToggleBtn: 'cycleToggleBtn'
+    cycleToggleBtn: 'cycleToggleBtn',
+    notationPanel: 'notationPanel',
+    notationCloseBtn: 'notationCloseBtn',
+    notationContent: 'notationContent'
   }
 };
 
