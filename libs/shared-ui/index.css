@@ -1038,9 +1038,11 @@ body[data-theme='dark'] .top-bar-notation-button {
 }
 
 .top-bar-notation-button__icon {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.9rem;
+  height: 1.9rem;
   display: block;
+  fill: currentColor !important;
+  color: inherit !important;
 }
 
 .notation-panel {
@@ -1100,6 +1102,7 @@ body[data-theme='dark'] .top-bar-notation-button {
   border-radius: 14px;
   border-width: 1px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  background: white !important;
 }
 
 body[data-theme='dark'] .notation-panel__dialog {
@@ -1110,7 +1113,7 @@ body[data-theme='dark'] .notation-panel__dialog {
 }
 
 body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
-  background: rgba(36, 36, 36, 0.95);
+  background: white !important;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
@@ -1152,14 +1155,20 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
   flex: 1;
   padding: 0 24px 24px;
   overflow: auto;
+  background: white !important;
 }
 
 .notation-panel--inline .notation-panel__body {
   padding: 0 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .notation-panel__canvas {
   width: 100%;
+  max-width: fit-content;
   min-height: 260px;
   border-radius: 12px;
   border: 1px dashed rgba(0, 0, 0, 0.12);
@@ -1169,6 +1178,8 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
   background: #ffffff !important;
   padding: 20px;
   position: relative;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 body[data-theme='dark'] .notation-panel__canvas {
@@ -1178,6 +1189,8 @@ body[data-theme='dark'] .notation-panel__canvas {
 
 .notation-panel__canvas svg {
   background: transparent !important;
+  display: block;
+  margin: 0 auto;
 }
 
 .notation-playback-cursor {

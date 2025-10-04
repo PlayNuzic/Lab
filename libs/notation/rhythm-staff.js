@@ -151,12 +151,12 @@ export function createRhythmStaff({ container } = {}) {
   const clear = () => {
     if (container) {
       // Guardar cursor si existe antes de limpiar
-      const existingCursor = container.querySelector('.notation-playback-cursor');
-      if (existingCursor) {
-        existingCursor.remove();
-      }
+      const savedCursor = cursorElement;
       container.innerHTML = '';
-      cursorElement = null;
+      // Restaurar cursor después de limpiar
+      if (savedCursor && savedCursor.parentElement !== container) {
+        container.appendChild(savedCursor);
+      }
     }
   };
 
@@ -194,10 +194,12 @@ export function createRhythmStaff({ container } = {}) {
     const cursor = ensureCursor();
     if (!staveInfo || !isPlaying) {
       cursor.classList.remove('notation-playback-cursor--active');
+      cursor.style.opacity = '0';
       return;
     }
 
     cursor.classList.toggle('notation-playback-cursor--active', isPlaying);
+    cursor.style.opacity = '1';
 
     // Calcular posición X del cursor basado en el progreso (0 a 1)
     const startX = staveInfo.x;
@@ -271,7 +273,7 @@ export function createRhythmStaff({ container } = {}) {
 
       const note = new StaveNote(config);
       if (isRest) {
-        note.setStyle({ fillStyle: '#555', strokeStyle: '#555' });
+        note.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
       }
 
       return {
@@ -316,15 +318,26 @@ export function createRhythmStaff({ container } = {}) {
         const indices = Array.isArray(group?.noteIndices) ? group.noteIndices : [];
         createTuplet(indices, group);
       });
-    } else if (fraction) {
-      // Aplicar tuplet a todas las notas (no silencios)
-      const nonRestIndices = entries
-        .map((entry, idx) => ({ idx, entry }))
-        .filter(({ entry }) => !entry.event?.rest && entry.event?.type !== 'rest')
-        .map(({ idx }) => idx);
+    } else if (fraction && Number.isFinite(fraction.numerator) && fraction.numerator > 0) {
+      // Crear tuplets por ciclo en vez de todo el Lg
+      const cycleLength = Math.round(fraction.numerator);
+      const totalNotes = entries.length;
 
-      if (nonRestIndices.length > 0) {
-        createTuplet(nonRestIndices, fraction);
+      // Iterar por ciclos completos
+      for (let start = 0; start < totalNotes; start += cycleLength) {
+        const end = Math.min(start + cycleLength, totalNotes);
+        const cycleIndices = [];
+
+        // Recopilar TODOS los índices del ciclo (notas Y silencios)
+        // Los silencios cuentan para el tiempo del ciclo
+        for (let i = start; i < end; i++) {
+          cycleIndices.push(i);
+        }
+
+        // Crear tuplet solo si tenemos al menos 2 elementos Y es un ciclo completo
+        if (cycleIndices.length >= 2 && (end - start) === cycleLength) {
+          createTuplet(cycleIndices, fraction);
+        }
       }
     }
 
