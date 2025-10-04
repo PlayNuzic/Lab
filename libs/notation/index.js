@@ -178,3 +178,4 @@ export function drawKeySignature(container, scaleId, root){
 
 export * from './helpers.js';
 export { drawPentagram, drawIntervalEllipse } from './pentagram.js';
+export { createRhythmStaff } from './rhythm-staff.js';
