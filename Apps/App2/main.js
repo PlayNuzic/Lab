@@ -78,8 +78,8 @@ let notationRenderer = null;
 let notationPanelController = null;
 
 function inferNotationDenominator(lgValue) {
-  if (!Number.isFinite(lgValue) || lgValue <= 0) return 4;
-  return Math.max(2, Math.round(lgValue));
+  // App2 siempre usa negras (denominador 4)
+  return 4;
 }
 
 function buildNotationRenderState() {

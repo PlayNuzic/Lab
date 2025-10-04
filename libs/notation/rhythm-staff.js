@@ -32,9 +32,9 @@ const NAMED_DURATIONS = {
 };
 
 const REST_KEY = 'b/4';
-const DEFAULT_NOTE_KEY = 'b/3';
-const DOWNBEAT_KEY = 'd/3';
-const SELECTED_KEY = 'c/4';
+const DEFAULT_NOTE_KEY = 'b/4';
+const DOWNBEAT_KEY = 'd/4';
+const SELECTED_KEY = 'c/5';
 
 function denominatorToDuration(denominator) {
   const clean = Math.round(Number(denominator));
@@ -150,14 +150,13 @@ export function createRhythmStaff({ container } = {}) {
 
   const clear = () => {
     if (container) {
-      // Guardar cursor si existe
+      // Guardar cursor si existe antes de limpiar
       const existingCursor = container.querySelector('.notation-playback-cursor');
-      container.innerHTML = '';
-      // Restaurar cursor
       if (existingCursor) {
-        container.appendChild(existingCursor);
-        cursorElement = existingCursor;
+        existingCursor.remove();
       }
+      container.innerHTML = '';
+      cursorElement = null;
     }
   };
 
@@ -170,9 +169,22 @@ export function createRhythmStaff({ container } = {}) {
   };
 
   const ensureCursor = () => {
-    if (!cursorElement) {
+    if (!cursorElement || !cursorElement.parentElement) {
       cursorElement = document.createElement('div');
       cursorElement.className = 'notation-playback-cursor';
+      cursorElement.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 2px;
+        height: 100%;
+        background: var(--selection-color, #F97C39);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 10;
+        transform-origin: left center;
+      `;
       container.appendChild(cursorElement);
     }
     return cursorElement;

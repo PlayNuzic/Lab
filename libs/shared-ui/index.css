@@ -1011,9 +1011,13 @@ font-size: 0.85rem;
   border-radius: 999px;
   border: 2px solid transparent;
   background: transparent;
-  color: inherit;
+  color: var(--text-light);
   cursor: pointer;
   transition: color 0.2s ease, transform 0.12s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+body[data-theme='dark'] .top-bar-notation-button {
+  color: var(--text-dark);
 }
 
 .top-bar-notation-button:hover {
@@ -1162,14 +1166,18 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
+  background: #ffffff !important;
   padding: 20px;
   position: relative;
 }
 
 body[data-theme='dark'] .notation-panel__canvas {
   border-color: rgba(238, 232, 216, 0.25);
-  background: #ffffff;
+  background: #ffffff !important;
+}
+
+.notation-panel__canvas svg {
+  background: transparent !important;
 }
 
 .notation-playback-cursor {
