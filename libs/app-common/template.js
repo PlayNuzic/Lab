@@ -114,20 +114,36 @@ ${togglesMarkup}
   ` : '';
 
   const notationPanelMarkup = showNotationToggle ? `
-  <aside id="${NOTATION_PANEL_ID}" class="notation-panel" aria-hidden="true" hidden>
-    <div class="notation-panel__scrim" data-notation-close></div>
-    <div class="notation-panel__dialog" role="dialog" aria-modal="true" aria-labelledby="notationPanelTitle" tabindex="-1">
-      <header class="notation-panel__header">
-        <h2 id="notationPanelTitle" class="notation-panel__title">Partitura</h2>
-        <button type="button" id="${NOTATION_CLOSE_BTN_ID}" class="notation-panel__close" data-notation-close aria-label="Cerrar partitura">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </header>
-      <div class="notation-panel__body">
-        <div id="${NOTATION_CONTENT_ID}" class="notation-panel__canvas" role="img" aria-label="Partitura musical"></div>
+    <section
+      id="${NOTATION_PANEL_ID}"
+      class="notation-panel notation-panel--inline"
+      data-notation-inline="true"
+      aria-hidden="true"
+      hidden
+    >
+      <div class="notation-panel__dialog" role="region" aria-labelledby="notationPanelTitle">
+        <header class="notation-panel__header">
+          <h2 id="notationPanelTitle" class="notation-panel__title">Partitura</h2>
+          <button
+            type="button"
+            id="${NOTATION_CLOSE_BTN_ID}"
+            class="notation-panel__close"
+            data-notation-close
+            aria-label="Cerrar partitura"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </header>
+        <div class="notation-panel__body">
+          <div
+            id="${NOTATION_CONTENT_ID}"
+            class="notation-panel__canvas"
+            role="img"
+            aria-label="Partitura musical"
+          ></div>
+        </div>
       </div>
-    </div>
-  </aside>
+    </section>
   ` : '';
 
   root.innerHTML = `
@@ -178,7 +194,6 @@ ${togglesMarkup}
   </header>
 
   <main>
-    ${notationPanelMarkup}
     <section class="inputs">
         <div class="param lg">
           <span class="abbr">Lg</span>
@@ -199,11 +214,13 @@ ${togglesMarkup}
           </div>
         </div>
         ${tParam}
-      </section>
+    </section>
 
     <section class="middle">
       ${pulseSequence ? '<div id="pulseSeq"></div>' : '<div id="formula" class="formula"></div>'}
     </section>
+
+    ${notationPanelMarkup}
 
     <section class="timeline-wrapper" id="timelineWrapper">
       <section class="timeline" id="timeline"></section>

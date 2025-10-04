@@ -19,6 +19,8 @@ import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-comm
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
 import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 import { createNotationPanelController } from '../../libs/app-common/notation-panel.js';
+import { durationValueFromDenominator, buildPulseEvents } from '../../libs/app-common/notation-utils.js';
+import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
 import {
   FRACTION_POSITION_EPSILON,
   TEXT_NODE_TYPE,
@@ -102,7 +104,8 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
         baseSoundSelect, accentSoundSelect,
         startSoundSelect, cycleSoundSelect, themeSelect, pulseToggleBtn,
-        selectedToggleBtn, cycleToggleBtn, notationPanel, notationCloseBtn } = elements;
+        selectedToggleBtn, cycleToggleBtn, notationPanel, notationCloseBtn,
+        notationContent } = elements;
 
 // App4-specific elements
 const pulseSeqEl = elements.pulseSeq;
@@ -146,6 +149,142 @@ let pulseHits = [];
 let cycleMarkerHits = [];
 const fractionStore = createFractionSelectionStore();
 const fractionMemory = new Map();
+
+const notationContentEl = notationContent || null;
+let notationRenderer = null;
+let notationPanelController = null;
+
+function inferNotationDenominator(lgValue, fraction) {
+  if (fraction && Number.isFinite(fraction.denominator) && fraction.denominator > 0) {
+    return Math.max(1, Math.round(fraction.denominator));
+  }
+  if (!Number.isFinite(lgValue) || lgValue <= 0) return 4;
+  return Math.max(2, Math.round(lgValue));
+}
+
+function buildNotationRenderState() {
+  const lgValue = parseInt(inputLg.value, 10);
+  if (!Number.isFinite(lgValue) || lgValue <= 0) {
+    return null;
+  }
+
+  ensurePulseMemory(lgValue);
+  const baseSelected = new Set();
+  const maxIdx = Math.min(pulseMemory.length - 1, lgValue - 1);
+  for (let i = 1; i <= maxIdx; i++) {
+    if (pulseMemory[i]) baseSelected.add(i);
+  }
+
+  const fractionInfo = typeof getFraction === 'function' ? getFraction() : { numerator: null, denominator: null };
+  const fraction = (Number.isFinite(fractionInfo?.numerator) && Number.isFinite(fractionInfo?.denominator))
+    ? { numerator: fractionInfo.numerator, denominator: fractionInfo.denominator }
+    : null;
+
+  const denominatorValue = inferNotationDenominator(lgValue, fraction);
+  const baseDuration = durationValueFromDenominator(denominatorValue);
+  const events = buildPulseEvents({ lg: lgValue, selectedSet: baseSelected, duration: baseDuration });
+  const selectedValues = new Set([0]);
+  baseSelected.forEach((value) => selectedValues.add(value));
+
+  const fractionSelections = Array.isArray(fractionStore.pulseSelections) ? fractionStore.pulseSelections : [];
+  fractionSelections.forEach((item) => {
+    if (!item || !item.key) return;
+    const value = Number(item.value);
+    if (!Number.isFinite(value) || value <= 0 || value >= lgValue) return;
+    const itemDenominator = Number.isFinite(item.denominator) && item.denominator > 0
+      ? Math.round(item.denominator)
+      : denominatorValue;
+    const eventDuration = durationValueFromDenominator(itemDenominator);
+
+    if (Number.isInteger(value)) {
+      selectedValues.add(value);
+      const baseEvent = events.find((evt) => evt.pulseIndex === value);
+      if (baseEvent) {
+        baseEvent.selectionKey = item.key;
+        baseEvent.source = 'fraction';
+        baseEvent.duration = eventDuration;
+        baseEvent.rest = false;
+      }
+      return;
+    }
+
+    events.push({
+      pulseIndex: value,
+      duration: eventDuration,
+      rest: false,
+      selectionKey: item.key,
+      source: 'fraction'
+    });
+    selectedValues.add(value);
+  });
+
+  events.sort((a, b) => a.pulseIndex - b.pulseIndex);
+  const positions = events.map((event) => event.pulseIndex);
+  const selectedIndices = Array.from(selectedValues).sort((a, b) => a - b);
+
+  return {
+    lg: lgValue,
+    fraction,
+    events,
+    positions,
+    selectedIndices
+  };
+}
+
+function renderNotationIfVisible({ force = false } = {}) {
+  if (!notationContentEl) return;
+  if (!notationPanelController) return;
+  if (!force && !notationPanelController.isOpen) return;
+
+  if (!notationRenderer) {
+    notationRenderer = createRhythmStaff({ container: notationContentEl });
+  }
+
+  const state = buildNotationRenderState();
+  if (!state) {
+    notationRenderer.render({ lg: 0, rhythm: [] });
+    return;
+  }
+
+  notationRenderer.render({
+    lg: state.lg,
+    selectedIndices: state.selectedIndices,
+    fraction: state.fraction,
+    positions: state.positions,
+    rhythm: state.events
+  });
+}
+
+function handleNotationClick(event) {
+  if (!notationPanelController || !notationPanelController.isOpen) return;
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
+  const noteEl = target.closest('[data-pulse-index]');
+  if (!noteEl) return;
+  const pulseValue = Number.parseFloat(noteEl.dataset.pulseIndex);
+  if (!Number.isFinite(pulseValue)) return;
+  const selectionKey = noteEl.dataset.selectionKey;
+  if (selectionKey) {
+    const info = fractionStore.selectionState.get(selectionKey);
+    if (info) {
+      const currentlySelected = fractionStore.selectionState.has(selectionKey);
+      setFractionSelected(info, !currentlySelected);
+      renderNotationIfVisible({ force: true });
+    }
+    return;
+  }
+  if (!Number.isInteger(pulseValue)) return;
+  const lgValue = parseInt(inputLg.value, 10);
+  if (!Number.isFinite(lgValue) || lgValue <= 0) return;
+  if (pulseValue <= 0 || pulseValue >= lgValue) return;
+  ensurePulseMemory(lgValue);
+  const shouldSelect = !pulseMemory[pulseValue];
+  setPulseSelected(pulseValue, shouldSelect);
+}
+
+if (notationContentEl) {
+  notationContentEl.addEventListener('click', handleNotationClick);
+}
 
 const EMPTY_PULSE_SCROLL_CACHE = {
   type: null,
@@ -344,11 +483,12 @@ if (titleHeading && titleTextNode) {
   titleHeading.appendChild(titleButton);
 }
 const notationToggleBtn = document.getElementById(NOTATION_TOGGLE_BTN_ID);
-createNotationPanelController({
+notationPanelController = createNotationPanelController({
   toggleButton: notationToggleBtn,
   panel: notationPanel,
   closeButton: notationCloseBtn,
-  appId: 'app4'
+  appId: 'app4',
+  onOpen: () => renderNotationIfVisible({ force: true })
 });
 
 const globalMixer = getMixer();
@@ -553,6 +693,7 @@ function clearPersistentPulses(){
   fractionStore.pulseSelections = [];
   updatePulseSeqField();
   applyFractionSelectionClasses();
+  renderNotationIfVisible();
 }
 // UI thresholds for number rendering
 const PULSE_NUMBER_HIDE_THRESHOLD = 71;
@@ -597,6 +738,7 @@ function rebuildFractionSelections(opts = {}) {
   });
   fractionStore.pulseSelections = selections;
   syncFractionMemoryWithSelections();
+  renderNotationIfVisible();
   return selections;
 }
 
@@ -609,6 +751,7 @@ function setFractionSelected(info, shouldSelect) {
   if (isPlaying && audio) {
     applySelectionToAudio();
   }
+  renderNotationIfVisible();
 }
 
 function computeAudioSchedulingState() {
@@ -2666,6 +2809,7 @@ function syncSelectedFromMemory() {
   });
   applyFractionSelectionClasses();
   updatePulseSeqField();
+  renderNotationIfVisible();
 }
 
 function handlePulseSeqInput(){
@@ -2714,6 +2858,7 @@ function setPulseSelected(i, shouldSelect) {
   }
 
   layoutTimeline({ silent: true });
+  renderNotationIfVisible();
 }
 
 
@@ -3080,6 +3225,7 @@ function renderTimeline() {
   syncSelectedFromMemory();
   applyFractionSelectionClasses();
   clearHighlights();
+  renderNotationIfVisible();
 }
 
 function restoreCycleLabelDisplay() {

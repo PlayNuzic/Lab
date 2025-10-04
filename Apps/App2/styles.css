@@ -62,6 +62,14 @@ header.top-bar h1 .top-bar-title-button:active {
   opacity: 0.85;
 }
 
+main > .notation-panel--inline {
+  margin: clamp(16px, 4vw, 32px) auto 0;
+}
+
+main > .notation-panel--inline .notation-panel__canvas {
+  min-height: 220px;
+}
+
 /**
  * Timeline pulse overrides to support selection and interactive hit areas.
  */

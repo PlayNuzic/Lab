@@ -1049,7 +1049,23 @@ font-size: 0.85rem;
   z-index: 1050;
 }
 
+.notation-panel--inline {
+  position: static;
+  inset: auto;
+  display: none;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  margin: clamp(16px, 4vw, 28px) auto;
+  width: min(960px, 100%);
+  z-index: auto;
+}
+
 .notation-panel[hidden] {
+  display: none !important;
+}
+
+.notation-panel--inline[hidden] {
   display: none !important;
 }
 
@@ -1073,11 +1089,25 @@ font-size: 0.85rem;
   overflow: hidden;
 }
 
+.notation-panel--inline .notation-panel__dialog {
+  position: static;
+  width: 100%;
+  max-height: none;
+  border-radius: 14px;
+  border-width: 1px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
 body[data-theme='dark'] .notation-panel__dialog {
   background: rgba(40, 40, 40, 0.95);
   color: var(--text-dark);
   border-color: rgba(238, 232, 216, 0.18);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.65);
+}
+
+body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
+  background: rgba(36, 36, 36, 0.95);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
 .notation-panel__header {
@@ -1120,6 +1150,10 @@ body[data-theme='dark'] .notation-panel__dialog {
   overflow: auto;
 }
 
+.notation-panel--inline .notation-panel__body {
+  padding: 0 20px 24px;
+}
+
 .notation-panel__canvas {
   width: 100%;
   min-height: 260px;
@@ -1134,6 +1168,10 @@ body[data-theme='dark'] .notation-panel__dialog {
 body[data-theme='dark'] .notation-panel__canvas {
   border-color: rgba(238, 232, 216, 0.25);
   background: rgba(255, 255, 255, 0.04);
+}
+
+.notation-panel--inline.notation-panel--open {
+  display: block;
 }
 
 body.notation-open {

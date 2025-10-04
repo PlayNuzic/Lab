@@ -38,6 +38,7 @@ export function createNotationPanelController({
 
   const dialog = panel.querySelector('.notation-panel__dialog') || panel;
   const closeTriggers = Array.from(panel.querySelectorAll('[data-notation-close]'));
+  const isInline = panel.dataset?.notationInline === 'true' || panel.classList.contains('notation-panel--inline');
   let isOpen = false;
   let lastFocusedElement = null;
   const detailBase = { appId };
@@ -57,7 +58,9 @@ export function createNotationPanelController({
     toggleButton.classList.toggle('top-bar-notation-button--active', open);
     toggleButton.setAttribute('aria-pressed', open ? 'true' : 'false');
     toggleButton.setAttribute('aria-expanded', open ? 'true' : 'false');
-    document.body.classList.toggle('notation-open', open);
+    if (!isInline) {
+      document.body.classList.toggle('notation-open', open);
+    }
   }
 
   function focusInitial() {
@@ -128,16 +131,25 @@ export function createNotationPanelController({
   toggleButton.addEventListener('click', toggle);
   closeTriggers.forEach(el => el.addEventListener('click', () => close()));
 
-  panel.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      close();
-      return;
-    }
-    if (event.key === 'Tab') {
-      trapFocus(event);
-    }
-  });
+  if (!isInline) {
+    panel.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        close();
+        return;
+      }
+      if (event.key === 'Tab') {
+        trapFocus(event);
+      }
+    });
+  } else {
+    panel.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        close();
+      }
+    });
+  }
 
   window.addEventListener('sharedui:notationtoggle', (event) => {
     const detail = event.detail || {};

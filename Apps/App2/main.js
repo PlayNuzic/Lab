@@ -12,6 +12,8 @@ import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-comm
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
 import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 import { createNotationPanelController } from '../../libs/app-common/notation-panel.js';
+import { durationValueFromDenominator, buildPulseEvents } from '../../libs/app-common/notation-utils.js';
+import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
 // Using local header controls for App2 (no shared init)
 
 let audio;
@@ -68,7 +70,86 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
         circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
         randTToggle, randTMin, randTMax, themeSelect, selectColor, baseSoundSelect,
-        accentSoundSelect, startSoundSelect, notationPanel, notationCloseBtn } = elements;
+        accentSoundSelect, startSoundSelect, notationPanel, notationCloseBtn,
+        notationContent } = elements;
+
+const notationContentEl = notationContent || null;
+let notationRenderer = null;
+let notationPanelController = null;
+
+function inferNotationDenominator(lgValue) {
+  if (!Number.isFinite(lgValue) || lgValue <= 0) return 4;
+  return Math.max(2, Math.round(lgValue));
+}
+
+function buildNotationRenderState() {
+  const lgValue = parseInt(inputLg.value, 10);
+  if (!Number.isFinite(lgValue) || lgValue <= 0) {
+    return null;
+  }
+
+  ensurePulseMemory(lgValue);
+  const selectedSet = new Set();
+  const maxIdx = Math.min(pulseMemory.length - 1, lgValue - 1);
+  for (let i = 1; i <= maxIdx; i++) {
+    if (pulseMemory[i]) selectedSet.add(i);
+  }
+
+  const durationValue = durationValueFromDenominator(inferNotationDenominator(lgValue));
+  const events = buildPulseEvents({ lg: lgValue, selectedSet, duration: durationValue });
+  const positions = events.map((event) => event.pulseIndex);
+  const selectedIndices = Array.from(new Set([0, ...selectedSet])).sort((a, b) => a - b);
+
+  return {
+    lg: lgValue,
+    events,
+    positions,
+    selectedIndices
+  };
+}
+
+function renderNotationIfVisible({ force = false } = {}) {
+  if (!notationContentEl) return;
+  if (!notationPanelController) return;
+  if (!force && !notationPanelController.isOpen) return;
+
+  if (!notationRenderer) {
+    notationRenderer = createRhythmStaff({ container: notationContentEl });
+  }
+
+  const state = buildNotationRenderState();
+  if (!state) {
+    notationRenderer.render({ lg: 0, rhythm: [] });
+    return;
+  }
+
+  notationRenderer.render({
+    lg: state.lg,
+    selectedIndices: state.selectedIndices,
+    positions: state.positions,
+    rhythm: state.events
+  });
+}
+
+function handleNotationClick(event) {
+  if (!notationPanelController || !notationPanelController.isOpen) return;
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
+  const noteEl = target.closest('[data-pulse-index]');
+  if (!noteEl) return;
+  const pulseIndex = Number.parseInt(noteEl.dataset.pulseIndex, 10);
+  if (!Number.isFinite(pulseIndex)) return;
+  const lgValue = parseInt(inputLg.value, 10);
+  if (!Number.isFinite(lgValue) || lgValue <= 0) return;
+  if (pulseIndex <= 0 || pulseIndex >= lgValue) return;
+  ensurePulseMemory(lgValue);
+  const shouldSelect = !pulseMemory[pulseIndex];
+  setPulseSelected(pulseIndex, shouldSelect);
+}
+
+if (notationContentEl) {
+  notationContentEl.addEventListener('click', handleNotationClick);
+}
 
 // Pulse sequence UI element (contenteditable div in template)
 const pulseSeqEl = elements.pulseSeq;
@@ -124,11 +205,12 @@ if (titleHeading && titleTextNode) {
   titleHeading.appendChild(titleButton);
 }
 const notationToggleBtn = document.getElementById(NOTATION_TOGGLE_BTN_ID);
-createNotationPanelController({
+notationPanelController = createNotationPanelController({
   toggleButton: notationToggleBtn,
   panel: notationPanel,
   closeButton: notationCloseBtn,
-  appId: 'app2'
+  appId: 'app2',
+  onOpen: () => renderNotationIfVisible({ force: true })
 });
 
 const randomDefaults = {
@@ -1168,6 +1250,7 @@ function syncSelectedFromMemory() {
     p.classList.toggle('selected', selectedPulses.has(idx));
   });
   updatePulseSeqField();
+  renderNotationIfVisible();
 }
 
 function handlePulseSeqInput(){
@@ -1221,6 +1304,7 @@ function setPulseSelected(i, shouldSelect) {
   }
 
   animateTimelineCircle(loopEnabled && circularTimeline);
+  renderNotationIfVisible();
 }
 
 function renderTimeline(){
@@ -1288,6 +1372,7 @@ function renderTimeline(){
   syncSelectedFromMemory();
   animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
   updateTIndicatorPosition();
+  renderNotationIfVisible();
 }
 
 function togglePulse(i){

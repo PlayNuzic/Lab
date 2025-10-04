@@ -265,7 +265,7 @@ export function createRhythmStaff({ container } = {}) {
     });
 
     entries.forEach((entry, index) => {
-      const { note, pulseIndex } = entry;
+      const { note, pulseIndex, event } = entry;
       let element = note?.attrs?.el;
       if (!element && typeof note?.getSVGElement === 'function') {
         element = note.getSVGElement();
@@ -277,6 +277,16 @@ export function createRhythmStaff({ container } = {}) {
           element.dataset.selected = 'true';
         } else {
           delete element.dataset.selected;
+        }
+        if (event && event.selectionKey != null) {
+          element.dataset.selectionKey = String(event.selectionKey);
+        } else {
+          delete element.dataset.selectionKey;
+        }
+        if (event && event.source) {
+          element.dataset.source = String(event.source);
+        } else {
+          delete element.dataset.source;
         }
       }
     });

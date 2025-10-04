@@ -3,6 +3,10 @@ import { jest } from '@jest/globals';
 
 const originalRAF = global.requestAnimationFrame;
 
+if (typeof global.structuredClone !== 'function') {
+  global.structuredClone = (value) => JSON.parse(JSON.stringify(value));
+}
+
 beforeAll(() => {
   global.requestAnimationFrame = (cb) => cb();
   if (typeof global.PointerEvent === 'undefined') {

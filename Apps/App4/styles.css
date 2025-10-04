@@ -79,6 +79,14 @@ header.top-bar h1 .top-bar-title-button:active {
   letter-spacing: 0.03em;
 }
 
+main > .notation-panel--inline {
+  margin: clamp(18px, 4vw, 36px) auto 0;
+}
+
+main > .notation-panel--inline .notation-panel__canvas {
+  min-height: 240px;
+}
+
 .top-bar-info-tip__hint {
   margin: 6px 0 0;
   font-size: 0.9rem;
