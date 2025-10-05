@@ -382,16 +382,20 @@ export function createRhythmStaff({ container } = {}) {
       }
     }
 
-    const widthBase = Math.max(0, Number(lg) || fractionGrid?.subdivisions?.length || events.length);
-    const staveWidth = Math.max(220, HORIZONTAL_MARGIN * 2 + widthBase * 36);
+    const lgCount = Number.isFinite(Number(lg)) ? Number(lg) : 0;
+    const subdivisionCount = Number(fractionGrid?.subdivisions?.length) || 0;
+    const entryCount = entryList.length;
+    const widthBase = Math.max(0, lgCount, subdivisionCount, entryCount);
+    const innerStaveWidth = Math.max(220, widthBase * 36);
+    const totalWidth = innerStaveWidth + HORIZONTAL_MARGIN * 2;
 
     if (!renderer) {
       renderer = new Renderer(container, Renderer.Backends.SVG);
     }
-    renderer.resize(staveWidth + HORIZONTAL_MARGIN * 2, DEFAULT_HEIGHT);
+    renderer.resize(totalWidth, DEFAULT_HEIGHT);
     context = renderer.getContext();
 
-    const stave = new Stave(HORIZONTAL_MARGIN, 48, staveWidth);
+    const stave = new Stave(HORIZONTAL_MARGIN, 48, innerStaveWidth);
     stave.addClef('treble');
     stave.setBegBarType(BarlineType.SINGLE);
     stave.setEndBarType(BarlineType.SINGLE);
