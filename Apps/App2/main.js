@@ -137,7 +137,7 @@ function handleNotationClick(event) {
   if (!target) return;
   const noteEl = target.closest('[data-pulse-index]');
   if (!noteEl) return;
-  const pulseIndex = Number.parseInt(noteEl.dataset.pulseIndex, 10);
+  const pulseIndex = Number.parseFloat(noteEl.dataset.pulseIndex);
   if (!Number.isFinite(pulseIndex)) return;
   const lgValue = parseInt(inputLg.value, 10);
   if (!Number.isFinite(lgValue) || lgValue <= 0) return;

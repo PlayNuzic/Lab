@@ -188,6 +188,7 @@ export function createRhythmStaff({ container } = {}) {
   let context = null;
   let cursorElement = null;
   let staveInfo = null;
+  let lastRenderMeta = { positionLookup: new Map() };
 
   const clear = () => {
     if (!container) return;
@@ -292,14 +293,38 @@ export function createRhythmStaff({ container } = {}) {
 
     const entryBuckets = new Map();
     const entryList = [];
+    const positionLookup = new Map();
 
     const registerEntry = (entry) => {
       const key = makePositionKey(entry.pulseIndex);
       if (key != null) {
+        entry.positionKey = key;
         if (!entryBuckets.has(key)) {
           entryBuckets.set(key, []);
         }
         entryBuckets.get(key).push(entry);
+        const lookupKey = String(key);
+        if (!positionLookup.has(lookupKey)) {
+          positionLookup.set(lookupKey, {
+            pulseIndex: entry.pulseIndex,
+            event: entry.event || null,
+            generated: !!entry.generated,
+            selectionKey: entry.event?.selectionKey ?? null
+          });
+        } else {
+          const meta = positionLookup.get(lookupKey);
+          if (meta) {
+            meta.event = entry.event || meta.event || null;
+            if (meta.selectionKey == null && entry.event?.selectionKey != null) {
+              meta.selectionKey = entry.event.selectionKey;
+            }
+            if (entry.generated) {
+              meta.generated = true;
+            }
+          }
+        }
+      } else {
+        entry.positionKey = null;
       }
       entryList.push(entry);
       return entry;
@@ -567,6 +592,31 @@ export function createRhythmStaff({ container } = {}) {
       if (element) {
         element.dataset.noteIndex = String(index);
         element.dataset.pulseIndex = String(pulseIndex);
+        if (entry.positionKey != null) {
+          element.dataset.pulseIndexKey = String(entry.positionKey);
+        } else {
+          delete element.dataset.pulseIndexKey;
+        }
+        if (entry.generated) {
+          element.dataset.generated = 'true';
+        } else {
+          delete element.dataset.generated;
+        }
+        if (Number.isFinite(entry.tupletCycle)) {
+          element.dataset.tupletCycle = String(entry.tupletCycle);
+        } else {
+          delete element.dataset.tupletCycle;
+        }
+        if (Number.isFinite(entry.subdivisionIndex)) {
+          element.dataset.subdivisionIndex = String(entry.subdivisionIndex);
+        } else {
+          delete element.dataset.subdivisionIndex;
+        }
+        if (event && event.duration != null) {
+          element.dataset.duration = String(event.duration);
+        } else {
+          delete element.dataset.duration;
+        }
         if (selectedSet.has(pulseIndex)) {
           element.dataset.selected = 'true';
         } else {
@@ -585,6 +635,8 @@ export function createRhythmStaff({ container } = {}) {
       }
     });
 
+    lastRenderMeta = { positionLookup };
+
     resetCursor();
   };
 
@@ -593,6 +645,25 @@ export function createRhythmStaff({ container } = {}) {
     destroy,
     updateCursor,
     resetCursor,
+    resolvePulseIndexKey: (key) => {
+      if (key == null) return null;
+      const lookupKey = String(key);
+      const entry = lastRenderMeta.positionLookup.get(lookupKey);
+      return entry ? entry.pulseIndex : null;
+    },
+    getEntryMetadata: (key) => {
+      if (key == null) return null;
+      const lookupKey = String(key);
+      const entry = lastRenderMeta.positionLookup.get(lookupKey);
+      if (!entry) return null;
+      return {
+        positionKey: key,
+        pulseIndex: entry.pulseIndex,
+        event: entry.event || null,
+        generated: !!entry.generated,
+        selectionKey: entry.selectionKey || (entry.event?.selectionKey ?? null)
+      };
+    },
   };
 }
 

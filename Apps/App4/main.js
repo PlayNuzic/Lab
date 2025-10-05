@@ -28,6 +28,7 @@ import {
   randomDefaults,
   createFractionSelectionStore,
   makeFractionKey,
+  createFractionSelectionFromValue,
   registerFractionLabel as registerFractionLabelInStore,
   getFractionInfoByLabel as getFractionInfoByLabelFromStore,
   fractionValue as computeFractionValue,
@@ -182,11 +183,11 @@ function buildNotationRenderState() {
 
   const denominatorValue = inferNotationDenominator(lgValue, fraction);
   const baseDuration = durationValueFromDenominator(denominatorValue);
-  const events = buildPulseEvents({ lg: lgValue, selectedSet: baseSelected, duration: baseDuration });
   const selectedValues = new Set([0]);
   baseSelected.forEach((value) => selectedValues.add(value));
 
   const fractionSelections = Array.isArray(fractionStore.pulseSelections) ? fractionStore.pulseSelections : [];
+  const fractionalEvents = [];
   fractionSelections.forEach((item) => {
     if (!item || !item.key) return;
     const value = Number(item.value);
@@ -196,19 +197,7 @@ function buildNotationRenderState() {
       : denominatorValue;
     const eventDuration = durationValueFromDenominator(itemDenominator);
 
-    if (Number.isInteger(value)) {
-      selectedValues.add(value);
-      const baseEvent = events.find((evt) => evt.pulseIndex === value);
-      if (baseEvent) {
-        baseEvent.selectionKey = item.key;
-        baseEvent.source = 'fraction';
-        baseEvent.duration = eventDuration;
-        baseEvent.rest = false;
-      }
-      return;
-    }
-
-    events.push({
+    fractionalEvents.push({
       pulseIndex: value,
       duration: eventDuration,
       rest: false,
@@ -216,6 +205,13 @@ function buildNotationRenderState() {
       source: 'fraction'
     });
     selectedValues.add(value);
+  });
+
+  const events = buildPulseEvents({
+    lg: lgValue,
+    selectedSet: baseSelected,
+    duration: baseDuration,
+    fractionalSelections: fractionalEvents
   });
 
   events.sort((a, b) => a.pulseIndex - b.pulseIndex);
@@ -263,6 +259,9 @@ function handleNotationClick(event) {
   if (!noteEl) return;
   const pulseValue = Number.parseFloat(noteEl.dataset.pulseIndex);
   if (!Number.isFinite(pulseValue)) return;
+  const lgValue = parseInt(inputLg.value, 10);
+  if (!Number.isFinite(lgValue) || lgValue <= 0) return;
+  if (pulseValue <= 0 || pulseValue >= lgValue) return;
   const selectionKey = noteEl.dataset.selectionKey;
   if (selectionKey) {
     const info = fractionStore.selectionState.get(selectionKey);
@@ -273,13 +272,25 @@ function handleNotationClick(event) {
     }
     return;
   }
-  if (!Number.isInteger(pulseValue)) return;
-  const lgValue = parseInt(inputLg.value, 10);
-  if (!Number.isFinite(lgValue) || lgValue <= 0) return;
-  if (pulseValue <= 0 || pulseValue >= lgValue) return;
-  ensurePulseMemory(lgValue);
-  const shouldSelect = !pulseMemory[pulseValue];
-  setPulseSelected(pulseValue, shouldSelect);
+  if (Number.isInteger(pulseValue)) {
+    ensurePulseMemory(lgValue);
+    const shouldSelect = !pulseMemory[pulseValue];
+    setPulseSelected(pulseValue, shouldSelect);
+    return;
+  }
+
+  const { numerator, denominator } = getFraction();
+  const denominatorValue = Number.isFinite(denominator) && denominator > 0 ? Math.round(denominator) : null;
+  if (!denominatorValue) return;
+  const pulsesPerCycle = Number.isFinite(numerator) && numerator > 0 ? Number(numerator) : null;
+  const nextSelection = createFractionSelectionFromValue(pulseValue, {
+    denominator: denominatorValue,
+    pulsesPerCycle
+  });
+  if (!nextSelection) return;
+  if (nextSelection.value <= 0 || nextSelection.value >= lgValue) return;
+  const currentlySelected = fractionStore.selectionState.has(nextSelection.key);
+  setFractionSelected(nextSelection, !currentlySelected);
 }
 
 if (notationContentEl) {

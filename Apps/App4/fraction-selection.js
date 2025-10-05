@@ -48,6 +48,78 @@ export function makeFractionKey(base, numerator, denominator) {
   return `${base}+${numerator}/${denominator}`;
 }
 
+export function createFractionSelectionFromValue(value, options = {}) {
+  const safeValue = Number(value);
+  if (!Number.isFinite(safeValue)) return null;
+  const epsilon = Number.isFinite(options.epsilon) ? Number(options.epsilon) : FRACTION_POSITION_EPSILON;
+  const denominator = Number.isFinite(options.denominator) && options.denominator > 0
+    ? Math.round(options.denominator)
+    : null;
+  if (!denominator) return null;
+
+  const pulsesPerCycle = Number.isFinite(options.pulsesPerCycle) && options.pulsesPerCycle > 0
+    ? Number(options.pulsesPerCycle)
+    : null;
+
+  let base = Math.floor(safeValue + epsilon);
+  let fractional = safeValue - base;
+  if (fractional < epsilon) {
+    return null;
+  }
+
+  let numerator = Math.round(fractional * denominator);
+  while (numerator >= denominator && denominator > 0) {
+    numerator -= denominator;
+    base += 1;
+  }
+
+  if (numerator <= 0 || numerator >= denominator) {
+    return null;
+  }
+
+  const canonicalValue = base + numerator / denominator;
+
+  let cycleIndex = null;
+  let subdivisionIndex = null;
+  if (Number.isFinite(pulsesPerCycle) && pulsesPerCycle > 0) {
+    const step = pulsesPerCycle / denominator;
+    if (step > 0) {
+      cycleIndex = Math.floor((canonicalValue + epsilon) / pulsesPerCycle);
+      const cycleStart = cycleIndex * pulsesPerCycle;
+      const cycleOffset = canonicalValue - cycleStart;
+      subdivisionIndex = Math.round(cycleOffset / step);
+      if (subdivisionIndex >= denominator) {
+        subdivisionIndex = denominator - 1;
+      }
+      if (subdivisionIndex < 0) {
+        subdivisionIndex = 0;
+      }
+    }
+  }
+
+  const key = makeFractionKey(base, numerator, denominator);
+  if (!key) return null;
+
+  const display = fractionDisplay(base, numerator, denominator, {
+    cycleIndex,
+    subdivisionIndex,
+    pulsesPerCycle
+  });
+
+  return {
+    type: 'fraction',
+    base,
+    numerator,
+    denominator,
+    value: canonicalValue,
+    key,
+    cycleIndex,
+    subdivisionIndex,
+    pulsesPerCycle,
+    display
+  };
+}
+
 export function registerFractionLabel(store, label, info) {
   if (!store || !store.labelLookup) return;
   if (!label || !info || !info.key) return;

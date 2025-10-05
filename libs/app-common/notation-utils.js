@@ -1,4 +1,23 @@
 const DEFAULT_DURATION = '8';
+const PULSE_INDEX_KEY_SCALE = 1e6;
+
+function makePulseIndexKey(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.round(numeric * PULSE_INDEX_KEY_SCALE);
+}
+
+function normalizeSelectedSet(selectedSet) {
+  const normalized = new Set();
+  if (!selectedSet) return normalized;
+  if (selectedSet instanceof Set || typeof selectedSet[Symbol.iterator] === 'function') {
+    for (const value of selectedSet) {
+      const key = makePulseIndexKey(value);
+      if (key != null) normalized.add(key);
+    }
+  }
+  return normalized;
+}
 
 /**
  * Mapea un denominador de fracción a una duración VexFlow.
@@ -44,21 +63,78 @@ export function durationValueFromDenominator(denominator) {
   return '64';
 }
 
-export function buildPulseEvents({ lg, selectedSet = new Set(), duration = DEFAULT_DURATION, includeZero = true } = {}) {
+export function buildPulseEvents({
+  lg,
+  selectedSet = new Set(),
+  duration = DEFAULT_DURATION,
+  includeZero = true,
+  fractionalSelections = []
+} = {}) {
   const events = [];
   const safeLg = Number.isFinite(lg) && lg > 0 ? Math.floor(lg) : 0;
   if (safeLg <= 0) return events;
   const resolvedDuration = typeof duration === 'string' && duration.trim() ? duration.trim() : DEFAULT_DURATION;
+  const normalizedSelected = normalizeSelectedSet(selectedSet);
+  const entryLookup = new Map();
 
   for (let i = 0; i < safeLg; i++) {
+    const key = makePulseIndexKey(i);
     const isZero = i === 0;
-    const shouldRenderNote = (includeZero && isZero) || selectedSet.has(i);
-    events.push({
+    const shouldRenderNote = (includeZero && isZero) || normalizedSelected.has(key);
+    const entry = {
       pulseIndex: i,
       duration: resolvedDuration,
       rest: !shouldRenderNote
+    };
+    events.push(entry);
+    if (key != null) {
+      entryLookup.set(key, entry);
+    }
+  }
+
+  if (Array.isArray(fractionalSelections) && fractionalSelections.length > 0) {
+    fractionalSelections.forEach((raw) => {
+      const value = Number.isFinite(raw?.pulseIndex) ? Number(raw.pulseIndex)
+        : (Number.isFinite(raw?.value) ? Number(raw.value) : NaN);
+      if (!Number.isFinite(value)) return;
+      const key = makePulseIndexKey(value);
+      if (key == null) return;
+      const target = entryLookup.get(key);
+      if (target) {
+        target.rest = Boolean(raw?.rest);
+        if (raw?.duration != null) {
+          target.duration = raw.duration;
+        }
+        if (raw?.selectionKey != null) {
+          target.selectionKey = raw.selectionKey;
+        }
+        if (raw?.source != null) {
+          target.source = raw.source;
+        }
+        return;
+      }
+
+      const extra = {
+        pulseIndex: value,
+        duration: raw?.duration != null ? raw.duration : resolvedDuration,
+        rest: Boolean(raw?.rest),
+      };
+      if (raw?.selectionKey != null) {
+        extra.selectionKey = raw.selectionKey;
+      }
+      if (raw?.source != null) {
+        extra.source = raw.source;
+      }
+      events.push(extra);
+      entryLookup.set(key, extra);
     });
+
+    events.sort((a, b) => a.pulseIndex - b.pulseIndex);
   }
 
   return events;
+}
+
+export function makeFractionPulseKey(value) {
+  return makePulseIndexKey(value);
 }
