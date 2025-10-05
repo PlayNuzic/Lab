@@ -1,4 +1,4 @@
-import { Renderer, Stave, StaveNote, Voice, Formatter, Tuplet, BarlineType } from '../vendor/vexflow/entry/vexflow.js';
+import { Renderer, Stave, StaveNote, Voice, Formatter, Tuplet, BarlineType, Beam } from '../vendor/vexflow/entry/vexflow.js';
 
 const DEFAULT_HEIGHT = 200;
 const HORIZONTAL_MARGIN = 18;
@@ -35,6 +35,28 @@ const REST_KEY = 'b/4';
 const DEFAULT_NOTE_KEY = 'b/4';
 const DOWNBEAT_KEY = 'd/4';
 const SELECTED_KEY = 'c/5';
+
+const BEAMABLE_DURATIONS = new Set(['8', '16', '32', '64']);
+
+function sanitizeDurationForBeam(duration) {
+  if (!duration) return '';
+  return String(duration)
+    .replace(/r/gi, '')
+    .replace(/\./g, '')
+    .trim();
+}
+
+function shouldBeamNote(note) {
+  if (!note || typeof note.isRest !== 'function') {
+    return false;
+  }
+  if (note.isRest()) {
+    return false;
+  }
+  const rawDuration = typeof note.getDuration === 'function' ? note.getDuration() : '';
+  const baseDuration = sanitizeDurationForBeam(rawDuration);
+  return BEAMABLE_DURATIONS.has(baseDuration);
+}
 
 function denominatorToDuration(denominator) {
   const clean = Math.round(Number(denominator));
@@ -143,24 +165,43 @@ export function createRhythmStaff({ container } = {}) {
     throw new Error('createRhythmStaff requires a container element');
   }
 
+  container.classList.add('rhythm-staff-container');
+  if (typeof window !== 'undefined' && window.getComputedStyle) {
+    const computedPosition = window.getComputedStyle(container).position;
+    if (!computedPosition || computedPosition === 'static') {
+      container.style.position = 'relative';
+    }
+  } else if (!container.style.position) {
+    container.style.position = 'relative';
+  }
+
   let renderer = null;
   let context = null;
   let cursorElement = null;
   let staveInfo = null;
 
   const clear = () => {
-    if (container) {
-      // Guardar cursor si existe antes de limpiar
-      const savedCursor = cursorElement;
-      container.innerHTML = '';
-      // Restaurar cursor después de limpiar
-      if (savedCursor && savedCursor.parentElement !== container) {
-        container.appendChild(savedCursor);
+    if (!container) return;
+    if (context && typeof context.clear === 'function') {
+      context.clear();
+      return;
+    }
+    const svg = container.querySelector('svg');
+    if (svg) {
+      while (svg.lastChild) {
+        svg.removeChild(svg.lastChild);
       }
     }
   };
 
   const destroy = () => {
+    if (container) {
+      container.classList.remove('rhythm-staff-container');
+      const existingCursor = container.querySelector('.notation-playback-cursor');
+      if (existingCursor) {
+        existingCursor.remove();
+      }
+    }
     clear();
     renderer = null;
     context = null;
@@ -177,7 +218,7 @@ export function createRhythmStaff({ container } = {}) {
         top: 0;
         left: 0;
         width: 2px;
-        height: 100%;
+        height: 0;
         background: var(--selection-color, #F97C39);
         opacity: 0;
         pointer-events: none;
@@ -192,21 +233,24 @@ export function createRhythmStaff({ container } = {}) {
 
   const updateCursor = (progress = 0, isPlaying = false) => {
     const cursor = ensureCursor();
-    if (!staveInfo || !isPlaying) {
+    if (!staveInfo) {
       cursor.classList.remove('notation-playback-cursor--active');
       cursor.style.opacity = '0';
       return;
     }
 
-    cursor.classList.toggle('notation-playback-cursor--active', isPlaying);
-    cursor.style.opacity = '1';
+    const normalized = Number.isFinite(progress) ? Math.min(Math.max(progress, 0), 1) : 0;
+    const startX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
+    const endXBase = Number.isFinite(staveInfo.contentEndX)
+      ? staveInfo.contentEndX
+      : staveInfo.x + staveInfo.width;
+    const usableWidth = Math.max(0, endXBase - startX);
+    const cursorX = startX + usableWidth * normalized;
 
-    // Calcular posición X del cursor basado en el progreso (0 a 1)
-    const startX = staveInfo.x;
-    const endX = staveInfo.x + staveInfo.width;
-    const cursorX = startX + (endX - startX) * progress;
-
+    cursor.style.top = `${staveInfo.y}px`;
+    cursor.style.height = `${staveInfo.height}px`;
     cursor.style.transform = `translateX(${cursorX}px)`;
+    cursor.classList.toggle('notation-playback-cursor--active', isPlaying);
   };
 
   const resetCursor = () => {
@@ -254,6 +298,7 @@ export function createRhythmStaff({ container } = {}) {
     };
 
     if (!events.length) {
+      resetCursor();
       return;
     }
 
@@ -291,25 +336,69 @@ export function createRhythmStaff({ container } = {}) {
     formatter.joinVoices([voice]).format([voice], staveWidth - 40);
     voice.draw(context, stave);
 
+    const defaultX = stave.getX();
+    const defaultY = stave.getY();
+    const defaultWidth = stave.getWidth();
+    const defaultHeight = stave.getHeight();
+    const boundingBox = typeof stave.getBoundingBox === 'function' ? stave.getBoundingBox() : null;
+    const baseX = Number.isFinite(boundingBox?.x) ? boundingBox.x : defaultX;
+    const baseY = Number.isFinite(boundingBox?.y) ? boundingBox.y : defaultY;
+    const baseWidth = Number.isFinite(boundingBox?.w) ? boundingBox.w : defaultWidth;
+    const baseHeight = Number.isFinite(boundingBox?.h) ? boundingBox.h : defaultHeight;
+
+    const noteBoxes = entries
+      .map((entry) => (typeof entry.note?.getBoundingBox === 'function' ? entry.note.getBoundingBox() : null))
+      .filter((box) => box && Number.isFinite(box.x) && Number.isFinite(box.w) && Number.isFinite(box.y) && Number.isFinite(box.h));
+
+    const contentStartX = noteBoxes.length ? Math.min(...noteBoxes.map((box) => box.x)) : baseX;
+    const contentEndX = noteBoxes.length ? Math.max(...noteBoxes.map((box) => box.x + box.w)) : baseX + baseWidth;
+    const contentTop = noteBoxes.length ? Math.min(...noteBoxes.map((box) => box.y)) : baseY;
+    const contentBottom = noteBoxes.length ? Math.max(...noteBoxes.map((box) => box.y + box.h)) : baseY + baseHeight;
+
+    staveInfo = {
+      x: baseX,
+      y: contentTop,
+      width: baseWidth,
+      height: Math.max(baseHeight, contentBottom - contentTop),
+      contentStartX,
+      contentEndX,
+    };
+
     const renderedTuplets = [];
+    const tupletBeams = [];
     const noteLookup = entries.map((entry) => entry.note);
 
     const createTuplet = (noteIndices, ratio) => {
-      const tupletNotes = noteIndices
+      const normalizedIndices = Array.from(new Set(noteIndices)).sort((a, b) => a - b);
+      if (normalizedIndices.length < 2) return null;
+
+      const tupletNotes = normalizedIndices
         .map((idx) => noteLookup[idx])
         .filter((note) => note);
       if (tupletNotes.length < 2) return null;
 
-      const numerator = Number(ratio?.numerator) || tupletNotes.length;
-      const denominator = Number(ratio?.denominator) || numerator;
+      const resolvedNumerator = Number.isFinite(Number(ratio?.numerator)) && Number(ratio?.numerator) > 0
+        ? Number(ratio.numerator)
+        : tupletNotes.length;
+      const resolvedDenominator = Number.isFinite(Number(ratio?.denominator)) && Number(ratio?.denominator) > 0
+        ? Number(ratio.denominator)
+        : resolvedNumerator;
+
+      const showRatio = resolvedNumerator !== resolvedDenominator;
       const tuplet = new Tuplet(tupletNotes, {
-        numNotes: numerator,
-        notesOccupied: denominator,
-        ratioed: true,
+        numNotes: resolvedNumerator,
+        notesOccupied: resolvedDenominator,
+        ratioed: showRatio,
         location: Tuplet.LOCATION_TOP,
       });
       tuplet.setTupletLocation(Tuplet.LOCATION_TOP);
       renderedTuplets.push(tuplet);
+
+      const beamableNotes = tupletNotes.filter(shouldBeamNote);
+      if (beamableNotes.length > 1) {
+        tupletBeams.push(new Beam(beamableNotes));
+      }
+
       return tuplet;
     };
 
@@ -318,31 +407,39 @@ export function createRhythmStaff({ container } = {}) {
         const indices = Array.isArray(group?.noteIndices) ? group.noteIndices : [];
         createTuplet(indices, group);
       });
-    } else if (fraction && Number.isFinite(fraction.numerator) && fraction.numerator > 0) {
-      // Crear tuplets por ciclo en vez de todo el Lg
-      const cycleLength = Math.round(fraction.numerator);
-      const totalNotes = entries.length;
+    } else if (fraction) {
+      const numerator = Number(fraction?.numerator);
+      const denominator = Number(fraction?.denominator);
+      const groupSize = Number.isFinite(denominator) && denominator > 1
+        ? Math.floor(denominator)
+        : (Number.isFinite(numerator) && numerator > 1 ? Math.floor(numerator) : 0);
 
-      // Iterar por ciclos completos
-      for (let start = 0; start < totalNotes; start += cycleLength) {
-        const end = Math.min(start + cycleLength, totalNotes);
-        const cycleIndices = [];
+      if (groupSize > 1) {
+        const groups = new Map();
+        entries.forEach((entry, idx) => {
+          const pulseIndex = Number.isFinite(entry.pulseIndex) ? entry.pulseIndex : idx;
+          const key = Math.floor(pulseIndex / groupSize);
+          if (!groups.has(key)) {
+            groups.set(key, []);
+          }
+          groups.get(key).push(idx);
+        });
 
-        // Recopilar TODOS los índices del ciclo (notas Y silencios)
-        // Los silencios cuentan para el tiempo del ciclo
-        for (let i = start; i < end; i++) {
-          cycleIndices.push(i);
-        }
-
-        // Crear tuplet solo si tenemos al menos 2 elementos Y es un ciclo completo
-        if (cycleIndices.length >= 2 && (end - start) === cycleLength) {
-          createTuplet(cycleIndices, fraction);
-        }
+        groups.forEach((indices) => {
+          if (indices.length >= 2) {
+            createTuplet(indices, fraction);
+          }
+        });
       }
     }
 
     renderedTuplets.forEach((tuplet) => {
       tuplet.setContext(context).draw();
+    });
+
+    tupletBeams.forEach((beam) => {
+      beam.setContext(context);
+      beam.draw();
     });
 
     entries.forEach((entry, index) => {
@@ -371,6 +468,8 @@ export function createRhythmStaff({ container } = {}) {
         }
       }
     });
+
+    resetCursor();
   };
 
   return {

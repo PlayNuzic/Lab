@@ -1042,7 +1042,6 @@ body[data-theme='dark'] .top-bar-notation-button {
   height: 1.9rem;
   display: block;
   fill: currentColor !important;
-  color: inherit !important;
 }
 
 .notation-panel {
@@ -1059,8 +1058,9 @@ body[data-theme='dark'] .top-bar-notation-button {
   position: static;
   inset: auto;
   display: none;
-  align-items: stretch;
-  justify-content: stretch;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 0;
   margin: clamp(16px, 4vw, 28px) auto;
   width: min(960px, 100%);
@@ -1097,12 +1097,13 @@ body[data-theme='dark'] .top-bar-notation-button {
 
 .notation-panel--inline .notation-panel__dialog {
   position: static;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   max-height: none;
   border-radius: 14px;
   border-width: 1px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-  background: white !important;
+  margin: 0 auto;
 }
 
 body[data-theme='dark'] .notation-panel__dialog {
@@ -1167,8 +1168,8 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
 }
 
 .notation-panel__canvas {
-  width: 100%;
-  max-width: fit-content;
+  width: fit-content;
+  max-width: 100%;
   min-height: 260px;
   border-radius: 12px;
   border: 1px dashed rgba(0, 0, 0, 0.12);
@@ -1178,8 +1179,7 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
   background: #ffffff !important;
   padding: 20px;
   position: relative;
-  margin-left: auto !important;
-  margin-right: auto !important;
+  margin: 0 auto;
 }
 
 body[data-theme='dark'] .notation-panel__canvas {
@@ -1191,6 +1191,32 @@ body[data-theme='dark'] .notation-panel__canvas {
   background: transparent !important;
   display: block;
   margin: 0 auto;
+}
+
+.rhythm-staff-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  background: #ffffff !important;
+  margin: 0 auto;
+}
+
+.rhythm-staff-container .vf-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  background: inherit !important;
+}
+
+.rhythm-staff-container svg {
+  display: block;
+  height: auto;
+  max-width: 100%;
 }
 
 .notation-playback-cursor {
@@ -1212,7 +1238,7 @@ body[data-theme='dark'] .notation-panel__canvas {
 }
 
 .notation-panel--inline.notation-panel--open {
-  display: block;
+  display: flex;
 }
 
 body.notation-open {
