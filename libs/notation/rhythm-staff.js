@@ -1,4 +1,5 @@
 import { Renderer, Stave, StaveNote, Voice, Formatter, Tuplet, BarlineType, Beam } from '../vendor/vexflow/entry/vexflow.js';
+import { gridFromOrigin } from '../app-common/subdivision.js';
 
 const DEFAULT_HEIGHT = 200;
 const HORIZONTAL_MARGIN = 18;
@@ -37,6 +38,7 @@ const DOWNBEAT_KEY = 'd/4';
 const SELECTED_KEY = 'c/5';
 
 const BEAMABLE_DURATIONS = new Set(['8', '16', '32', '64']);
+const POSITION_SCALE = 1e6;
 
 function sanitizeDurationForBeam(duration) {
   if (!duration) return '';
@@ -56,6 +58,13 @@ function shouldBeamNote(note) {
   const rawDuration = typeof note.getDuration === 'function' ? note.getDuration() : '';
   const baseDuration = sanitizeDurationForBeam(rawDuration);
   return BEAMABLE_DURATIONS.has(baseDuration);
+}
+
+function makePositionKey(value) {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  return Math.round(value * POSITION_SCALE);
 }
 
 function denominatorToDuration(denominator) {
@@ -272,9 +281,108 @@ export function createRhythmStaff({ container } = {}) {
     clear();
 
     const pulses = Array.isArray(positions) ? positions : [];
-    const selectedSet = new Set(Array.isArray(selectedIndices) ? selectedIndices : []);
+    const selectedSet = new Set(
+      (Array.isArray(selectedIndices) ? selectedIndices : [])
+        .map((value) => {
+          const numeric = Number(value);
+          return Number.isFinite(numeric) ? numeric : null;
+        })
+        .filter((value) => value != null)
+    );
 
-    const widthBase = Math.max(0, Number(lg) || events.length);
+    const entryBuckets = new Map();
+    const entryList = [];
+
+    const registerEntry = (entry) => {
+      const key = makePositionKey(entry.pulseIndex);
+      if (key != null) {
+        if (!entryBuckets.has(key)) {
+          entryBuckets.set(key, []);
+        }
+        entryBuckets.get(key).push(entry);
+      }
+      entryList.push(entry);
+      return entry;
+    };
+
+    events.forEach((event, index) => {
+      const pulseIndex = Number.isFinite(event?.pulseIndex)
+        ? Number(event.pulseIndex)
+        : (Number.isFinite(pulses[index]) ? Number(pulses[index]) : index);
+
+      const isRest = !!event?.rest || event?.type === 'rest';
+      const duration = resolveDuration(event?.duration, isRest);
+
+      const config = {
+        clef: 'treble',
+        duration,
+        keys: isRest ? [REST_KEY] : [pickKeyForPulse(pulseIndex, selectedSet)],
+      };
+
+      const note = new StaveNote(config);
+      if (isRest) {
+        note.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
+      }
+
+      registerEntry({
+        event,
+        pulseIndex,
+        note,
+        originalIndex: index,
+      });
+    });
+
+    let fractionGrid = null;
+    const fractionNumerator = Number.isFinite(Number(fraction?.numerator)) && Number(fraction?.numerator) > 0
+      ? Number(fraction.numerator)
+      : null;
+    const fractionDenominator = Number.isFinite(Number(fraction?.denominator)) && Number(fraction?.denominator) > 0
+      ? Number(fraction.denominator)
+      : null;
+    if (fractionNumerator && fractionDenominator) {
+      fractionGrid = gridFromOrigin({ lg: Number(lg) || 0, numerator: fractionNumerator, denominator: fractionDenominator });
+      const baseDuration = denominatorToDuration(fractionDenominator) || '16';
+      const resolvedRestDuration = resolveDuration(baseDuration, true);
+
+      if (fractionGrid?.subdivisions?.length) {
+        fractionGrid.subdivisions.forEach(({ position, cycleIndex, subdivisionIndex }) => {
+          const key = makePositionKey(position);
+          if (key == null) return;
+          const existing = entryBuckets.get(key);
+          if (existing && existing.length) {
+            existing.forEach((entry) => {
+              if (entry.tupletCycle == null) entry.tupletCycle = cycleIndex;
+              if (entry.subdivisionIndex == null) entry.subdivisionIndex = subdivisionIndex;
+            });
+            return;
+          }
+
+          const restNote = new StaveNote({
+            clef: 'treble',
+            duration: resolvedRestDuration,
+            keys: [REST_KEY],
+          });
+          restNote.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
+
+          registerEntry({
+            event: {
+              pulseIndex: position,
+              duration: resolvedRestDuration,
+              rest: true,
+              generated: true,
+            },
+            pulseIndex: position,
+            note: restNote,
+            generated: true,
+            tupletCycle: cycleIndex,
+            subdivisionIndex,
+            originalIndex: events.length + entryList.length,
+          });
+        });
+      }
+    }
+
+    const widthBase = Math.max(0, Number(lg) || fractionGrid?.subdivisions?.length || events.length);
     const staveWidth = Math.max(220, HORIZONTAL_MARGIN * 2 + widthBase * 36);
 
     if (!renderer) {
@@ -297,35 +405,22 @@ export function createRhythmStaff({ container } = {}) {
       height: stave.getHeight()
     };
 
-    if (!events.length) {
+    if (!events.length && !entryList.length) {
       resetCursor();
       return;
     }
 
-    const entries = events.map((event, index) => {
-      const pulseIndex = Number.isFinite(event?.pulseIndex)
-        ? Number(event.pulseIndex)
-        : (Number.isFinite(pulses[index]) ? Number(pulses[index]) : index);
+    const entries = entryList
+      .slice()
+      .sort((a, b) => {
+        if (Number.isFinite(a.pulseIndex) && Number.isFinite(b.pulseIndex) && a.pulseIndex !== b.pulseIndex) {
+          return a.pulseIndex - b.pulseIndex;
+        }
+        return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+      });
 
-      const isRest = !!event?.rest || event?.type === 'rest';
-      const duration = resolveDuration(event?.duration, isRest);
-
-      const config = {
-        clef: 'treble',
-        duration,
-        keys: isRest ? [REST_KEY] : [pickKeyForPulse(pulseIndex, selectedSet)],
-      };
-
-      const note = new StaveNote(config);
-      if (isRest) {
-        note.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
-      }
-
-      return {
-        event,
-        pulseIndex,
-        note,
-      };
+    entries.forEach((entry, index) => {
+      entry.renderIndex = index;
     });
 
     const voice = new Voice({ numBeats: 4, beatValue: 4 });
@@ -377,21 +472,34 @@ export function createRhythmStaff({ container } = {}) {
         .filter((note) => note);
       if (tupletNotes.length < 2) return null;
 
-      const resolvedNumerator = Number.isFinite(Number(ratio?.numerator)) && Number(ratio?.numerator) > 0
-        ? Number(ratio.numerator)
-        : tupletNotes.length;
-      const resolvedDenominator = Number.isFinite(Number(ratio?.denominator)) && Number(ratio?.denominator) > 0
-        ? Number(ratio.denominator)
-        : resolvedNumerator;
+      const explicitNumNotes = Number.isFinite(Number(ratio?.numNotes)) && Number(ratio?.numNotes) > 0
+        ? Number(ratio.numNotes)
+        : null;
+      const explicitNotesOccupied = Number.isFinite(Number(ratio?.notesOccupied)) && Number(ratio?.notesOccupied) > 0
+        ? Number(ratio.notesOccupied)
+        : null;
 
-      const showRatio = resolvedNumerator !== resolvedDenominator;
+      const resolvedNumerator = explicitNumNotes
+        ?? (Number.isFinite(Number(ratio?.numerator)) && Number(ratio?.numerator) > 0 ? Number(ratio.numerator) : tupletNotes.length);
+      const resolvedDenominator = explicitNotesOccupied
+        ?? (Number.isFinite(Number(ratio?.denominator)) && Number(ratio?.denominator) > 0 ? Number(ratio.denominator) : resolvedNumerator);
+
+      const ratioed = typeof ratio?.ratioed === 'boolean'
+        ? ratio.ratioed
+        : resolvedNumerator !== resolvedDenominator;
+
+      const location = Number.isFinite(Number(ratio?.location)) ? Number(ratio.location) : Tuplet.LOCATION_TOP;
+
       const tuplet = new Tuplet(tupletNotes, {
         numNotes: resolvedNumerator,
         notesOccupied: resolvedDenominator,
-        ratioed: showRatio,
-        location: Tuplet.LOCATION_TOP,
+        ratioed,
+        location,
       });
       tuplet.setTupletLocation(Tuplet.LOCATION_TOP);
+      if (ratio?.bracketed === false && typeof tuplet.setBracketed === 'function') {
+        tuplet.setBracketed(false);
+      }
       renderedTuplets.push(tuplet);
 
       const beamableNotes = tupletNotes.filter(shouldBeamNote);
@@ -407,30 +515,39 @@ export function createRhythmStaff({ container } = {}) {
         const indices = Array.isArray(group?.noteIndices) ? group.noteIndices : [];
         createTuplet(indices, group);
       });
-    } else if (fraction) {
-      const numerator = Number(fraction?.numerator);
-      const denominator = Number(fraction?.denominator);
-      const groupSize = Number.isFinite(denominator) && denominator > 1
-        ? Math.floor(denominator)
-        : (Number.isFinite(numerator) && numerator > 1 ? Math.floor(numerator) : 0);
+    } else if (fractionGrid?.subdivisions?.length && fractionGrid.denominator > 1 && fractionGrid.numerator > 0) {
+      const indicesByPosition = new Map();
+      entries.forEach((entry) => {
+        const key = makePositionKey(entry.pulseIndex);
+        if (key == null) return;
+        if (!indicesByPosition.has(key)) {
+          indicesByPosition.set(key, []);
+        }
+        indicesByPosition.get(key).push(entry.renderIndex);
+      });
 
-      if (groupSize > 1) {
-        const groups = new Map();
-        entries.forEach((entry, idx) => {
-          const pulseIndex = Number.isFinite(entry.pulseIndex) ? entry.pulseIndex : idx;
-          const key = Math.floor(pulseIndex / groupSize);
-          if (!groups.has(key)) {
-            groups.set(key, []);
-          }
-          groups.get(key).push(idx);
-        });
+      const groupedByCycle = new Map();
+      fractionGrid.subdivisions.forEach(({ position, cycleIndex }) => {
+        const key = makePositionKey(position);
+        const indices = indicesByPosition.get(key);
+        if (!indices || !indices.length) return;
+        if (!groupedByCycle.has(cycleIndex)) {
+          groupedByCycle.set(cycleIndex, []);
+        }
+        const bucket = groupedByCycle.get(cycleIndex);
+        bucket.push(indices[0]);
+      });
 
-        groups.forEach((indices) => {
-          if (indices.length >= 2) {
-            createTuplet(indices, fraction);
-          }
+      groupedByCycle.forEach((indices) => {
+        if (!Array.isArray(indices) || indices.length < 2) return;
+        const sorted = Array.from(new Set(indices)).sort((a, b) => a - b);
+        if (sorted.length < 2) return;
+        createTuplet(sorted, {
+          numNotes: fractionGrid.denominator,
+          notesOccupied: fractionGrid.numerator,
+          ratioed: fractionGrid.denominator !== fractionGrid.numerator,
         });
-      }
+      });
     }
 
     renderedTuplets.forEach((tuplet) => {

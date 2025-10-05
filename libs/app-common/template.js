@@ -122,19 +122,7 @@ ${togglesMarkup}
       aria-hidden="true"
       hidden
     >
-      <div class="notation-panel__dialog" role="region" aria-labelledby="notationPanelTitle">
-        <header class="notation-panel__header">
-          <h2 id="notationPanelTitle" class="notation-panel__title">Partitura</h2>
-          <button
-            type="button"
-            id="${NOTATION_CLOSE_BTN_ID}"
-            class="notation-panel__close"
-            data-notation-close
-            aria-label="Cerrar partitura"
-          >
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </header>
+      <div class="notation-panel__dialog" role="region" aria-label="Partitura musical">
         <div class="notation-panel__body">
           <div
             id="${NOTATION_CONTENT_ID}"

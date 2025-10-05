@@ -1,3 +1,5 @@
+import { solidMenuBackground } from './utils.js';
+
 /**
  * Notation panel controller shared by rhythm apps.
  * Handles toggle button, focus management, accessibility and global events.
@@ -42,6 +44,13 @@ export function createNotationPanelController({
   let isOpen = false;
   let lastFocusedElement = null;
   const detailBase = { appId };
+
+  const backgroundTargets = [dialog, panel.querySelector('.notation-panel__body')]
+    .filter((el, index, list) => el && list.indexOf(el) === index);
+
+  function applySolidBackground() {
+    backgroundTargets.forEach((target) => solidMenuBackground(target));
+  }
 
   function dispatch(open, extras = {}) {
     try {
@@ -103,6 +112,7 @@ export function createNotationPanelController({
       ? document.activeElement
       : toggleButton;
     setPanelState(true);
+    applySolidBackground();
     focusInitial();
     if (typeof onOpen === 'function') onOpen();
     if (broadcast) dispatch(true);
@@ -160,6 +170,12 @@ export function createNotationPanelController({
       open({ broadcast: false });
     } else {
       close({ broadcast: false, restoreFocus: detail.restoreFocus !== false });
+    }
+  });
+
+  window.addEventListener('sharedui:theme', () => {
+    if (isOpen) {
+      applySolidBackground();
     }
   });
 
