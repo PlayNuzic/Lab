@@ -516,36 +516,31 @@ export function createRhythmStaff({ container } = {}) {
         createTuplet(indices, group);
       });
     } else if (fractionGrid?.subdivisions?.length && fractionGrid.denominator > 1 && fractionGrid.numerator > 0) {
-      const indicesByPosition = new Map();
-      entries.forEach((entry) => {
-        const key = makePositionKey(entry.pulseIndex);
-        if (key == null) return;
-        if (!indicesByPosition.has(key)) {
-          indicesByPosition.set(key, []);
-        }
-        indicesByPosition.get(key).push(entry.renderIndex);
-      });
-
+      // Agrupar entries directamente por su tupletCycle metadata
       const groupedByCycle = new Map();
-      fractionGrid.subdivisions.forEach(({ position, cycleIndex }) => {
-        const key = makePositionKey(position);
-        const indices = indicesByPosition.get(key);
-        if (!indices || !indices.length) return;
-        if (!groupedByCycle.has(cycleIndex)) {
-          groupedByCycle.set(cycleIndex, []);
+      entries.forEach((entry) => {
+        const cycleIdx = entry.tupletCycle;
+        if (!Number.isFinite(cycleIdx)) return;
+        if (!groupedByCycle.has(cycleIdx)) {
+          groupedByCycle.set(cycleIdx, []);
         }
-        const bucket = groupedByCycle.get(cycleIndex);
-        bucket.push(indices[0]);
+        groupedByCycle.get(cycleIdx).push(entry.renderIndex);
       });
 
+      // Crear tuplets validando longitud por ciclo
       groupedByCycle.forEach((indices) => {
         if (!Array.isArray(indices) || indices.length < 2) return;
         const sorted = Array.from(new Set(indices)).sort((a, b) => a - b);
         if (sorted.length < 2) return;
+
+        // Validar longitud esperada del ciclo
+        const expectedLength = fractionGrid.denominator;
+        const isCompleteCycle = sorted.length === expectedLength;
+
         createTuplet(sorted, {
-          numNotes: fractionGrid.denominator,
+          numNotes: isCompleteCycle ? fractionGrid.denominator : sorted.length,
           notesOccupied: fractionGrid.numerator,
-          ratioed: fractionGrid.denominator !== fractionGrid.numerator,
+          ratioed: !isCompleteCycle || fractionGrid.denominator !== fractionGrid.numerator,
         });
       });
     }

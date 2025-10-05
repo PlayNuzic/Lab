@@ -1195,7 +1195,7 @@ body[data-theme='dark'] .notation-panel__canvas {
 }
 
 .notation-panel__canvas svg {
-  background: transparent !important;
+  background: #ffffff !important;
   display: block;
   margin: 0 auto;
 }
