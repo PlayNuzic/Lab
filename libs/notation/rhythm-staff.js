@@ -457,7 +457,7 @@ export function createRhythmStaff({ container } = {}) {
     voice.addTickables(entries.map((entry) => entry.note));
 
     const formatter = new Formatter();
-    formatter.joinVoices([voice]).format([voice], staveWidth - 40);
+    formatter.joinVoices([voice]).format([voice], innerStaveWidth - 40);
     voice.draw(context, stave);
 
     const defaultX = stave.getX();
