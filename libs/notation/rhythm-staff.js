@@ -297,7 +297,7 @@ export function createRhythmStaff({ container } = {}) {
           const numeric = Number(value);
           return Number.isFinite(numeric) ? numeric : null;
         })
-        .filter((value) => value != null)
+        .filter((value) => value != null && (!isWholePulse(value) || value === 0))
     );
 
     const entryBuckets = new Map();
@@ -343,6 +343,10 @@ export function createRhythmStaff({ container } = {}) {
       const pulseIndex = Number.isFinite(event?.pulseIndex)
         ? Number(event.pulseIndex)
         : (Number.isFinite(pulses[index]) ? Number(pulses[index]) : index);
+
+      if (isWholePulse(pulseIndex) && pulseIndex !== 0) {
+        return;
+      }
 
       const isRest = !!event?.rest || event?.type === 'rest';
       const duration = resolveDuration(event?.duration, isRest);

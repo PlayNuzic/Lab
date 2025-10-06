@@ -1273,6 +1273,87 @@ body.notation-open {
   }
 }
 
+@media (min-width: 601px) {
+  .top-bar h1 {
+    gap: 0.75rem;
+    font-size: clamp(1.45rem, 1.6vw, 1.95rem);
+    align-items: center;
+  }
+
+  .top-bar-notation-button {
+    width: clamp(2.6rem, 3vw, 3.1rem);
+    height: clamp(2.6rem, 3vw, 3.1rem);
+    background: rgba(255, 255, 255, 0.22);
+    border-color: currentColor;
+    background: color-mix(in srgb, #ffffff 72%, transparent);
+    border-color: color-mix(in srgb, currentColor 35%, transparent);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+  }
+
+  body[data-theme='dark'] .top-bar-notation-button {
+    color: var(--text-light);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: currentColor;
+    background: color-mix(in srgb, #ffffff 18%, transparent);
+    border-color: color-mix(in srgb, #ffffff 32%, transparent);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
+  }
+
+  .top-bar-notation-button:hover {
+    background: rgba(255, 255, 255, 0.9);
+    background: color-mix(in srgb, #ffffff 80%, var(--selection-color) 20%);
+  }
+
+  .notation-panel {
+    padding: clamp(28px, 6vw, 48px);
+  }
+
+  .notation-panel__dialog {
+    width: min(840px, 70vw);
+    max-height: min(88vh, 720px);
+    border-radius: 24px;
+    background: #ffffff;
+    color: var(--text-light);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 48px 96px rgba(0, 0, 0, 0.22);
+  }
+
+  body[data-theme='dark'] .notation-panel__dialog {
+    background: #ffffff;
+    color: var(--text-light);
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 48px 110px rgba(0, 0, 0, 0.35);
+  }
+
+  .notation-panel__body {
+    padding: 0 clamp(28px, 4vw, 40px) clamp(28px, 4vw, 44px);
+    background: #ffffff;
+  }
+
+  .notation-panel__canvas {
+    padding: clamp(24px, 4vw, 36px);
+    border-radius: 18px;
+    border: 1px dashed rgba(0, 0, 0, 0.18);
+    background: #ffffff;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.16);
+  }
+
+  body[data-theme='dark'] .notation-panel__canvas {
+    border-color: rgba(0, 0, 0, 0.24);
+    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.28);
+  }
+
+  .notation-panel__canvas svg {
+    filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.12));
+  }
+
+  .rhythm-staff-container {
+    padding: clamp(12px, 2vw, 24px);
+    border-radius: 16px;
+    box-shadow: 0 26px 52px rgba(0, 0, 0, 0.12);
+  }
+}
+
 .loop {
 top: calc(50% + var(--play-button-size) * 0.75);
 left: calc(73% - var(--play-button-size) * 0.92);
