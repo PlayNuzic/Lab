@@ -324,8 +324,30 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       if (Number.isFinite(lastCursorX)) {
         targetX = lastCursorX;
       } else {
-        // Primera vez o después de reset - usar posición inicial
-        targetX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
+        // Primera vez o después de reset
+        if (currentPulse === 0) {
+          // Para pulso 0, buscar la primera nota renderizada
+          const firstEntry = Array.from(lastRenderMeta.positionLookup.values())
+            .sort((a, b) => (a.pulseIndex ?? 0) - (b.pulseIndex ?? 0))[0];
+
+          if (firstEntry?.noteElement) {
+            try {
+              const bbox = firstEntry.noteElement.getBBox();
+              if (bbox && Number.isFinite(bbox.x)) {
+                targetX = bbox.x;
+              }
+            } catch (e) {
+              // Fallback a inicio del stave
+              targetX = staveInfo.x;
+            }
+          } else {
+            // No hay notas - inicio del stave
+            targetX = staveInfo.x;
+          }
+        } else {
+          // Para otros pulsos sin entry, usar contentStartX o inicio del stave
+          targetX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
+        }
       }
     }
 
@@ -350,22 +372,26 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     const canvas = container.closest('.notation-panel__canvas');
     if (!canvas) return;
 
+    const cursor = ensureCursor();
+    if (!cursor) return;
+
+    // Usar posiciones reales del DOM para calcular scroll correcto
+    const cursorRect = cursor.getBoundingClientRect();
     const canvasRect = canvas.getBoundingClientRect();
-    const scrollLeft = canvas.scrollLeft;
+
+    // Posición del cursor relativa al viewport del canvas
+    const cursorViewportX = cursorRect.left - canvasRect.left;
     const clientWidth = canvas.clientWidth;
 
-    // Calcular posición absoluta del cursor respecto al contenedor
-    const cursorRelativeX = cursorX - HORIZONTAL_MARGIN;
-    const cursorViewportX = cursorRelativeX - scrollLeft;
+    // Margen de seguridad para mantener el cursor visible
+    const margin = 50;
 
-    // Si el cursor está fuera del viewport, ajustar scroll
-    const margin = 50; // Margen de seguridad
     if (cursorViewportX < margin) {
-      // Cursor muy a la izquierda, scroll hacia la izquierda
-      canvas.scrollLeft = Math.max(0, cursorRelativeX - margin);
+      // Cursor fuera a la izquierda - scroll hacia la izquierda
+      canvas.scrollLeft = Math.max(0, canvas.scrollLeft - (margin - cursorViewportX));
     } else if (cursorViewportX > clientWidth - margin) {
-      // Cursor muy a la derecha, scroll hacia la derecha
-      canvas.scrollLeft = cursorRelativeX - clientWidth + margin;
+      // Cursor fuera a la derecha - scroll hacia la derecha
+      canvas.scrollLeft = canvas.scrollLeft + (cursorViewportX - clientWidth + margin);
     }
   };
 
