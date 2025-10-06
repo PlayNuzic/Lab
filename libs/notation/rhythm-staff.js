@@ -416,10 +416,12 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
   };
 
   const resetCursor = () => {
-    // Usar requestAnimationFrame para asegurar que el DOM esté listo
+    // Reposicionar el cursor al inicio pero mantener su estado de visibilidad actual
     requestAnimationFrame(() => {
       updateSvgOffset();  // Re-calcular offset después del render
-      updateCursor(0, false);
+      const cursor = ensureCursor();
+      const isActive = cursor.classList.contains('notation-playback-cursor--active');
+      updateCursor(0, isActive);  // Mantener visibilidad actual
     });
   };
 

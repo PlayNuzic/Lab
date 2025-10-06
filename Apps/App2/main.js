@@ -213,17 +213,7 @@ notationPanelController = createNotationPanelController({
   panel: notationPanel,
   closeButton: notationCloseBtn,
   appId: 'app2',
-  onOpen: () => {
-    renderNotationIfVisible({ force: true });
-    // Asegurar que el cursor esté listo después del render
-    if (notationRenderer && !isPlaying) {
-      setTimeout(() => {
-        if (notationRenderer.resetCursor) {
-          notationRenderer.resetCursor();
-        }
-      }, 100);
-    }
-  }
+  onOpen: () => renderNotationIfVisible({ force: true })
 });
 
 const randomDefaults = {
