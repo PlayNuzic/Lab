@@ -79,7 +79,9 @@ function isWholePulse(value) {
 const PULSE_FILTERS = {
   fractional: (value) => !isWholePulse(value),
   whole: (value) => isWholePulse(value),
-  all: () => true
+  all: () => true,
+  // Este filtro necesita contexto adicional, se maneja especialmente en render()
+  'fractional-with-matching-whole': null
 };
 
 function normalizePulseFilter(filter) {
@@ -312,16 +314,62 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       pulseFilter: overridePulseFilter,
     } = state;
 
-    const shouldInclude = overridePulseFilter != null
-      ? createPulseInclusionChecker(overridePulseFilter)
-      : includePulse;
-
     const events = normalizeEvents(rhythm || state);
     const tuplets = normalizeTuplets(rhythm || state);
+    const pulses = Array.isArray(positions) ? positions : [];
+
+    // Detectar si necesitamos el filtro híbrido
+    const needsHybridFilter = overridePulseFilter === 'fractional-with-matching-whole'
+      || (overridePulseFilter == null && pulseFilter === 'fractional-with-matching-whole');
+
+    let shouldInclude;
+    if (needsHybridFilter) {
+      // Construir Set de posiciones fraccionadas existentes
+      const fractionalPositions = new Set();
+
+      // Agregar posiciones de eventos fraccionados
+      events.forEach((event, index) => {
+        const pulseIndex = Number.isFinite(event?.pulseIndex)
+          ? Number(event.pulseIndex)
+          : (Number.isFinite(pulses[index]) ? Number(pulses[index]) : index);
+        if (Number.isFinite(pulseIndex) && !isWholePulse(pulseIndex)) {
+          fractionalPositions.add(Math.floor(pulseIndex));
+        }
+      });
+
+      // Agregar posiciones de la fracción grid
+      const fractionNumerator = Number.isFinite(Number(fraction?.numerator)) && Number(fraction?.numerator) > 0
+        ? Number(fraction.numerator)
+        : null;
+      const fractionDenominator = Number.isFinite(Number(fraction?.denominator)) && Number(fraction?.denominator) > 0
+        ? Number(fraction.denominator)
+        : null;
+      if (fractionNumerator && fractionDenominator) {
+        const fractionGrid = gridFromOrigin({ lg: Number(lg) || 0, numerator: fractionNumerator, denominator: fractionDenominator });
+        if (fractionGrid?.subdivisions?.length) {
+          fractionGrid.subdivisions.forEach(({ position }) => {
+            if (Number.isFinite(position) && !isWholePulse(position)) {
+              fractionalPositions.add(Math.floor(position));
+            }
+          });
+        }
+      }
+
+      // Crear filtro que permite fraccionados + enteros que coincidan
+      shouldInclude = (value) => {
+        if (!Number.isFinite(value)) return false;
+        if (value === 0) return true;
+        if (!isWholePulse(value)) return true; // Todos los fraccionados
+        // Pulsos enteros solo si hay fraccionados en esa posición
+        return fractionalPositions.has(value);
+      };
+    } else {
+      shouldInclude = overridePulseFilter != null
+        ? createPulseInclusionChecker(overridePulseFilter)
+        : includePulse;
+    }
 
     clear();
-
-    const pulses = Array.isArray(positions) ? positions : [];
     const selectedSet = new Set();
     const rawSelected = Array.isArray(selectedIndices) ? selectedIndices : [];
     rawSelected.forEach((value) => {
@@ -623,6 +671,9 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       entries.forEach((entry) => {
         const cycleIdx = entry.tupletCycle;
         if (!Number.isFinite(cycleIdx)) return;
+        // Excluir GhostNotes generadas de los tuplets visibles
+        // Las GhostNotes son instancias de GhostNote, podemos usar instanceof
+        if (entry.note instanceof GhostNote) return;
         if (!groupedByCycle.has(cycleIdx)) {
           groupedByCycle.set(cycleIdx, []);
         }
