@@ -1686,6 +1686,9 @@ async function startPlayback(providedAudio) {
 
   audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
 
+  // Ensure notation is rendered before starting cursor updates
+  renderNotationIfVisible();
+
   syncVisualState();
   startVisualSync();
 

@@ -760,7 +760,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     const subdivisionCount = Number(fractionGrid?.subdivisions?.length) || 0;
     const entryCount = entryList.length;
     const widthBase = Math.max(0, lgCount, subdivisionCount, entryCount);
-    const innerStaveWidth = Math.max(220, widthBase * 36);
+    const innerStaveWidth = Math.max(320, widthBase * 56);
     const totalWidth = innerStaveWidth + HORIZONTAL_MARGIN * 2;
 
     if (!renderer) {
@@ -911,7 +911,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     voice.addTickables(entries.map((entry) => entry.note));
 
     const formatter = new Formatter();
-    formatter.joinVoices([voice]).format([voice], innerStaveWidth - 40);
+    formatter.joinVoices([voice]).format([voice], innerStaveWidth - 20);
 
     // Dibujar el voice (NO dibujará flags porque las notas ya tienen beam)
     voice.draw(context, stave);

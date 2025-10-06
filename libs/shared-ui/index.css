@@ -1205,7 +1205,7 @@ body[data-theme='dark'] .notation-panel__canvas {
 .notation-panel__canvas svg {
   background: #ffffff;
   display: block;
-  margin: 0 auto;
+  margin: 0;
   filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.12));
 }
 
@@ -1215,9 +1215,8 @@ body[data-theme='dark'] .notation-panel__canvas {
 
 .rhythm-staff-container {
   position: relative;
-  display: block;
-  width: fit-content;
-  margin: 0 auto;
+  display: inline-block;
+  min-width: 100%;
   background: transparent;
   padding: 0;
 }
@@ -1256,6 +1255,31 @@ body[data-theme='dark'] .notation-panel__canvas {
 
 body.notation-open {
   overflow: hidden;
+}
+
+/* Custom scrollbar for notation panel */
+.notation-panel__canvas::-webkit-scrollbar {
+  height: 10px;
+}
+
+.notation-panel__canvas::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 5px;
+}
+
+.notation-panel__canvas::-webkit-scrollbar-thumb {
+  background: var(--selection-color, #F97C39);
+  border-radius: 5px;
+}
+
+.notation-panel__canvas::-webkit-scrollbar-thumb:hover {
+  background: var(--selection-color, #F97C39);
+  opacity: 1;
+}
+
+.notation-panel__canvas {
+  scrollbar-width: thin;
+  scrollbar-color: var(--selection-color, #F97C39) rgba(0, 0, 0, 0.08);
 }
 
 @media (max-width: 600px) {
