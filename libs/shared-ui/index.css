@@ -1212,11 +1212,7 @@ body[data-theme='dark'] .notation-panel__canvas {
 }
 
 .rhythm-staff-container .vf-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  max-width: 100%;
+  display: contents;
   background: inherit !important;
 }
 

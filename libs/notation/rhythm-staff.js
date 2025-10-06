@@ -39,6 +39,7 @@ const SELECTED_KEY = 'c/5';
 
 const BEAMABLE_DURATIONS = new Set(['8', '16', '32', '64']);
 const POSITION_SCALE = 1e6;
+const WHOLE_PULSE_EPSILON = 1e-6;
 
 function sanitizeDurationForBeam(duration) {
   if (!duration) return '';
@@ -65,6 +66,14 @@ function makePositionKey(value) {
     return null;
   }
   return Math.round(value * POSITION_SCALE);
+}
+
+function isWholePulse(value) {
+  if (!Number.isFinite(value)) {
+    return false;
+  }
+  const nearestInteger = Math.round(value);
+  return Math.abs(value - nearestInteger) <= WHOLE_PULSE_EPSILON;
 }
 
 function denominatorToDuration(denominator) {
@@ -379,6 +388,10 @@ export function createRhythmStaff({ container } = {}) {
               if (entry.tupletCycle == null) entry.tupletCycle = cycleIndex;
               if (entry.subdivisionIndex == null) entry.subdivisionIndex = subdivisionIndex;
             });
+            return;
+          }
+
+          if (isWholePulse(position)) {
             return;
           }
 
