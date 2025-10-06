@@ -1833,9 +1833,8 @@ function syncVisualState() {
 
   // Actualizar cursor de notación
   if (notationRenderer && typeof notationRenderer.updateCursor === 'function') {
-    const lg = parseInt(inputLg.value, 10);
-    const progress = Number.isFinite(lg) && lg > 0 ? state.step / lg : 0;
-    notationRenderer.updateCursor(progress, isPlaying);
+    const index = Math.max(0, state.step);
+    notationRenderer.updateCursor(index, isPlaying);
   }
 }
 
