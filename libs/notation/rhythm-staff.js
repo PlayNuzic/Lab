@@ -858,21 +858,29 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       const explicitNotesOccupied = Number.isFinite(Number(ratio?.notesOccupied)) && Number(ratio?.notesOccupied) > 0
         ? Number(ratio.notesOccupied)
         : null;
+      const explicitDenominator = Number.isFinite(Number(ratio?.denominator)) && Number(ratio?.denominator) > 0
+        ? Number(ratio.denominator)
+        : null;
+      const explicitNumerator = Number.isFinite(Number(ratio?.numerator)) && Number(ratio?.numerator) > 0
+        ? Number(ratio.numerator)
+        : null;
 
-      const resolvedNumerator = explicitNumNotes
-        ?? (Number.isFinite(Number(ratio?.numerator)) && Number(ratio?.numerator) > 0 ? Number(ratio.numerator) : tupletNotes.length);
-      const resolvedDenominator = explicitNotesOccupied
-        ?? (Number.isFinite(Number(ratio?.denominator)) && Number(ratio?.denominator) > 0 ? Number(ratio.denominator) : resolvedNumerator);
+      const resolvedNumNotes = explicitDenominator
+        ?? explicitNumNotes
+        ?? tupletNotes.length;
+      const resolvedNotesOccupied = explicitNotesOccupied
+        ?? explicitNumerator
+        ?? resolvedNumNotes;
 
       const ratioed = typeof ratio?.ratioed === 'boolean'
         ? ratio.ratioed
-        : resolvedNumerator !== resolvedDenominator;
+        : resolvedNumNotes !== resolvedNotesOccupied;
 
       const location = Number.isFinite(Number(ratio?.location)) ? Number(ratio.location) : Tuplet.LOCATION_TOP;
 
       const tuplet = new Tuplet(tupletNotes, {
-        numNotes: resolvedNumerator,
-        notesOccupied: resolvedDenominator,
+        numNotes: resolvedNumNotes,
+        notesOccupied: resolvedNotesOccupied,
         ratioed,
         location,
       });
@@ -940,7 +948,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
           ? fractionTuplet.ratioed
           : shouldRatio;
         createTuplet(sorted, {
-          numNotes: isCompleteCycle ? fractionGrid.denominator : sorted.length,
+          denominator: fractionGrid.denominator,
           notesOccupied: fractionGrid.numerator,
           ratioed: ratioedOverride,
         });

@@ -187,7 +187,12 @@ function buildNotationRenderState() {
   const normalizedFraction = fraction ? { ...fraction, notation: fractionNotation } : null;
 
   const denominatorValue = inferNotationDenominator(lgValue, fraction);
-  const baseDuration = durationValueFromDenominator(denominatorValue);
+  let baseDuration = durationValueFromDenominator(denominatorValue);
+  const fractionNumeratorValue = Number.isFinite(fraction?.numerator) ? Math.floor(fraction.numerator) : null;
+  const fractionDenominatorValue = Number.isFinite(fraction?.denominator) ? Math.floor(fraction.denominator) : null;
+  if (fractionNumeratorValue && fractionDenominatorValue && fractionNumeratorValue === fractionDenominatorValue) {
+    baseDuration = 'q';
+  }
   const selectedValues = new Set([0]);
   baseSelected.forEach((value) => selectedValues.add(value));
 
@@ -1777,6 +1782,8 @@ function randomize() {
       }
     }
   }
+
+  renderNotationIfVisible();
 }
 
 initRandomMenu(randomBtn, randomMenu, randomize);
