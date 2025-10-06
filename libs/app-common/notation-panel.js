@@ -46,7 +46,7 @@ export function createNotationPanelController({
   const detailBase = { appId };
 
   const canvasEl = panel.querySelector('.notation-panel__canvas');
-  const backgroundTargets = [dialog]
+  const backgroundTargets = (isInline ? [] : [dialog])
     .filter((el, index, list) => el && list.indexOf(el) === index);
 
   function applySolidBackground() {
