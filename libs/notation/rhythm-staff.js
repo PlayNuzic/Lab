@@ -286,6 +286,9 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       return;
     }
 
+    // Remover opacity inline para que la clase CSS --active controle la opacidad
+    cursor.style.opacity = '';
+
     const normalized = Number.isFinite(progress) ? Math.min(Math.max(progress, 0), 1) : 0;
     const startX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
     const endXBase = Number.isFinite(staveInfo.contentEndX)
@@ -469,6 +472,44 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
           if (key == null) return;
           const existing = entryBuckets.get(key);
           if (existing && existing.length) {
+            // Buscar si hay un evento real (no generado) para esta posición
+            const realEvent = events.find(e => {
+              const eIndex = Number(e.pulseIndex);
+              return Number.isFinite(eIndex) && makePositionKey(eIndex) === key && !e.rest;
+            });
+
+            if (realEvent) {
+              // Hay un evento real seleccionado - eliminar entry generada y recrearla como nota
+              // 1. Remover de entryBuckets
+              entryBuckets.delete(key);
+
+              // 2. Marcar entry en entryList para NO renderizar
+              existing.forEach(entry => {
+                entry._shouldRemove = true;
+              });
+
+              // 3. Crear nueva entry con nota (no silencio)
+              const noteKey = pickKeyForPulse(position, selectedSet);
+              const noteDuration = resolveDuration(realEvent.duration, false);
+              const note = new StaveNote({
+                clef: 'treble',
+                duration: noteDuration,
+                keys: [noteKey],
+              });
+
+              registerEntry({
+                event: realEvent,
+                pulseIndex: position,
+                note,
+                generated: false,
+                tupletCycle: cycleIndex,
+                subdivisionIndex,
+                originalIndex: events.length + entryList.length,
+              });
+              return;
+            }
+
+            // Si no hay evento real, solo actualizar metadata del silencio existente
             existing.forEach((entry) => {
               if (entry.tupletCycle == null) entry.tupletCycle = cycleIndex;
               if (entry.subdivisionIndex == null) entry.subdivisionIndex = subdivisionIndex;
@@ -566,7 +607,9 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       return;
     }
 
+    // Filtrar entries marcadas para remover y luego ordenar
     const entries = entryList
+      .filter(entry => !entry._shouldRemove)
       .slice()
       .sort((a, b) => {
         if (Number.isFinite(a.pulseIndex) && Number.isFinite(b.pulseIndex) && a.pulseIndex !== b.pulseIndex) {
@@ -579,42 +622,8 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       entry.renderIndex = index;
     });
 
-    const voice = new Voice({ numBeats: 4, beatValue: 4 });
-    voice.setStrict(false);
-    voice.addTickables(entries.map((entry) => entry.note));
-
-    const formatter = new Formatter();
-    formatter.joinVoices([voice]).format([voice], innerStaveWidth - 40);
-    voice.draw(context, stave);
-
-    const defaultX = stave.getX();
-    const defaultY = stave.getY();
-    const defaultWidth = stave.getWidth();
-    const defaultHeight = stave.getHeight();
-    const boundingBox = typeof stave.getBoundingBox === 'function' ? stave.getBoundingBox() : null;
-    const baseX = Number.isFinite(boundingBox?.x) ? boundingBox.x : defaultX;
-    const baseY = Number.isFinite(boundingBox?.y) ? boundingBox.y : defaultY;
-    const baseWidth = Number.isFinite(boundingBox?.w) ? boundingBox.w : defaultWidth;
-    const baseHeight = Number.isFinite(boundingBox?.h) ? boundingBox.h : defaultHeight;
-
-    const noteBoxes = entries
-      .map((entry) => (typeof entry.note?.getBoundingBox === 'function' ? entry.note.getBoundingBox() : null))
-      .filter((box) => box && Number.isFinite(box.x) && Number.isFinite(box.w) && Number.isFinite(box.y) && Number.isFinite(box.h));
-
-    const contentStartX = noteBoxes.length ? Math.min(...noteBoxes.map((box) => box.x)) : baseX;
-    const contentEndX = noteBoxes.length ? Math.max(...noteBoxes.map((box) => box.x + box.w)) : baseX + baseWidth;
-    const contentTop = noteBoxes.length ? Math.min(...noteBoxes.map((box) => box.y)) : baseY;
-    const contentBottom = noteBoxes.length ? Math.max(...noteBoxes.map((box) => box.y + box.h)) : baseY + baseHeight;
-
-    staveInfo = {
-      x: baseX,
-      y: contentTop,
-      width: baseWidth,
-      height: Math.max(baseHeight, contentBottom - contentTop),
-      contentStartX,
-      contentEndX,
-    };
-
+    // Crear tuplets y beams ANTES de crear el voice
+    // para que VexFlow sepa que las notas tienen beam y no dibuje flags
     const renderedTuplets = [];
     const tupletBeams = [];
     const noteLookup = entries.map((entry) => entry.note);
@@ -660,14 +669,9 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
 
       const beamableNotes = tupletNotes.filter(shouldBeamNote);
       if (beamableNotes.length > 1) {
+        // El constructor de Beam automáticamente asigna el beam a las notas (llama setBeam)
         const beam = new Beam(beamableNotes);
         tupletBeams.push(beam);
-        // Asignar beam a cada nota para que VexFlow oculte sus flags individuales
-        beamableNotes.forEach((note) => {
-          if (note && typeof note.setBeam === 'function') {
-            note.setBeam(beam);
-          }
-        });
       }
 
       return tuplet;
@@ -711,6 +715,47 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       });
     }
 
+    // Ahora crear y formatear el voice (las notas ya tienen beams asignados)
+    const voice = new Voice({ numBeats: 4, beatValue: 4 });
+    voice.setStrict(false);
+    voice.addTickables(entries.map((entry) => entry.note));
+
+    const formatter = new Formatter();
+    formatter.joinVoices([voice]).format([voice], innerStaveWidth - 40);
+
+    // Dibujar el voice (NO dibujará flags porque las notas ya tienen beam)
+    voice.draw(context, stave);
+
+    // Calcular bounding boxes después de dibujar
+    const defaultX = stave.getX();
+    const defaultY = stave.getY();
+    const defaultWidth = stave.getWidth();
+    const defaultHeight = stave.getHeight();
+    const boundingBox = typeof stave.getBoundingBox === 'function' ? stave.getBoundingBox() : null;
+    const baseX = Number.isFinite(boundingBox?.x) ? boundingBox.x : defaultX;
+    const baseY = Number.isFinite(boundingBox?.y) ? boundingBox.y : defaultY;
+    const baseWidth = Number.isFinite(boundingBox?.w) ? boundingBox.w : defaultWidth;
+    const baseHeight = Number.isFinite(boundingBox?.h) ? boundingBox.h : defaultHeight;
+
+    const noteBoxes = entries
+      .map((entry) => (typeof entry.note?.getBoundingBox === 'function' ? entry.note.getBoundingBox() : null))
+      .filter((box) => box && Number.isFinite(box.x) && Number.isFinite(box.w) && Number.isFinite(box.y) && Number.isFinite(box.h));
+
+    const contentStartX = noteBoxes.length ? Math.min(...noteBoxes.map((box) => box.x)) : baseX;
+    const contentEndX = noteBoxes.length ? Math.max(...noteBoxes.map((box) => box.x + box.w)) : baseX + baseWidth;
+    const contentTop = noteBoxes.length ? Math.min(...noteBoxes.map((box) => box.y)) : baseY;
+    const contentBottom = noteBoxes.length ? Math.max(...noteBoxes.map((box) => box.y + box.h)) : baseY + baseHeight;
+
+    staveInfo = {
+      x: baseX,
+      y: contentTop,
+      width: baseWidth,
+      height: Math.max(baseHeight, contentBottom - contentTop),
+      contentStartX,
+      contentEndX,
+    };
+
+    // Ahora dibujar tuplets y beams
     renderedTuplets.forEach((tuplet) => {
       tuplet.setContext(context).draw();
     });
