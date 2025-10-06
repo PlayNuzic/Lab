@@ -1078,6 +1078,7 @@ body[data-theme='dark'] .top-bar-notation-button {
   margin: clamp(16px, 4vw, 28px) auto;
   max-width: 1200px;
   width: 100%;
+  overflow-x: auto;
   z-index: auto;
 }
 
