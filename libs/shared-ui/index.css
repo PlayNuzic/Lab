@@ -1048,7 +1048,7 @@ body[data-theme='dark'] .top-bar-notation-button {
   width: 70%;
   height: 70%;
   display: block;
-  fill: currentColor !important;
+  fill: currentColor;
 }
 
 .notation-panel {
@@ -1075,11 +1075,11 @@ body[data-theme='dark'] .top-bar-notation-button {
 }
 
 .notation-panel[hidden] {
-  display: none !important;
+  display: none;
 }
 
 .notation-panel--inline[hidden] {
-  display: none !important;
+  display: none;
 }
 
 .notation-panel__scrim {
@@ -1121,7 +1121,7 @@ body[data-theme='dark'] .notation-panel__dialog {
 }
 
 body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
-  background: white !important;
+  background: rgb(255, 255, 255);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
@@ -1163,7 +1163,7 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
   flex: 1;
   padding: 0 24px 24px;
   overflow: auto;
-  background: white !important;
+  background: rgb(255, 255, 255) ;
 }
 
 .notation-panel--inline .notation-panel__body {
@@ -1183,7 +1183,7 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff !important;
+  background: #ffffff;
   padding: 20px;
   position: relative;
   margin: 0 auto;
@@ -1191,11 +1191,11 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
 
 body[data-theme='dark'] .notation-panel__canvas {
   border-color: rgba(238, 232, 216, 0.25);
-  background: #ffffff !important;
+  background: #ffffff;
 }
 
 .notation-panel__canvas svg {
-  background: #ffffff !important;
+  background: #ffffff;
   display: block;
   margin: 0 auto;
 }
@@ -1207,13 +1207,13 @@ body[data-theme='dark'] .notation-panel__canvas {
   justify-content: center;
   width: fit-content;
   max-width: 100%;
-  background: #ffffff !important;
+  background: #ffffff;
   margin: 0 auto;
 }
 
 .rhythm-staff-container .vf-container {
   display: contents;
-  background: inherit !important;
+  background: inherit;
 }
 
 .rhythm-staff-container svg {
