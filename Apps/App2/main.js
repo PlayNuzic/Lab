@@ -1811,9 +1811,6 @@ function highlightPulse(i){
     }
   }
 
-  if (Number.isFinite(i)) {
-    lastVisualStep = Number(i);
-  }
 }
 
 function stopVisualSync() {
@@ -1829,6 +1826,7 @@ function syncVisualState() {
   const state = audio.getVisualState();
   if (!state || !Number.isFinite(state.step)) return;
   if (lastVisualStep === state.step) return;
+  lastVisualStep = state.step;
   highlightPulse(state.step);
 
   // Actualizar cursor de notación
