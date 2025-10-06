@@ -278,6 +278,8 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     return cursorElement;
   };
 
+  let lastCursorX = null; // Track last valid cursor position
+
   const updateCursor = (currentPulse = 0, isPlaying = false) => {
     const cursor = ensureCursor();
     if (!staveInfo) {
@@ -290,7 +292,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     cursor.style.opacity = '';
 
     // Buscar la nota correspondiente al pulso actual
-    let targetX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
+    let targetX = null;
 
     const pulseKey = String(makePositionKey(currentPulse));
     const entryMeta = lastRenderMeta.positionLookup.get(pulseKey);
@@ -303,25 +305,62 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
           targetX = bbox.x;
         }
       } catch (e) {
-        // getBBox puede fallar en algunos casos, fallback a interpolación
-        // basada en pulso
-        const lgCount = lastRenderMeta.lgCount || 1;
-        const normalized = Number.isFinite(currentPulse) && lgCount > 0
-          ? Math.min(Math.max(currentPulse / lgCount, 0), 1)
-          : 0;
-        const startX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
-        const endXBase = Number.isFinite(staveInfo.contentEndX)
-          ? staveInfo.contentEndX
-          : staveInfo.x + staveInfo.width;
-        const usableWidth = Math.max(0, endXBase - startX);
-        targetX = startX + usableWidth * normalized;
+        // getBBox puede fallar en algunos casos
       }
+    }
+
+    // Si no encontramos posición exacta, interpolar basándonos en pulso
+    if (!Number.isFinite(targetX)) {
+      const lgCount = lastRenderMeta.lgCount || 1;
+      const normalized = Number.isFinite(currentPulse) && lgCount > 0
+        ? Math.min(Math.max(currentPulse / lgCount, 0), 1)
+        : 0;
+      const startX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
+      const endXBase = Number.isFinite(staveInfo.contentEndX)
+        ? staveInfo.contentEndX
+        : staveInfo.x + staveInfo.width;
+      const usableWidth = Math.max(0, endXBase - startX);
+      targetX = startX + usableWidth * normalized;
+    }
+
+    // Actualizar última posición válida
+    if (Number.isFinite(targetX)) {
+      lastCursorX = targetX;
     }
 
     cursor.style.top = `${staveInfo.y}px`;
     cursor.style.height = `${staveInfo.height}px`;
     cursor.style.transform = `translateX(${targetX}px)`;
     cursor.classList.toggle('notation-playback-cursor--active', isPlaying);
+
+    // Auto-scroll para mantener el cursor visible
+    if (isPlaying && Number.isFinite(targetX)) {
+      scrollNotationToPosition(targetX);
+    }
+  };
+
+  const scrollNotationToPosition = (cursorX) => {
+    // Buscar el contenedor con scroll (.notation-panel__canvas)
+    const canvas = container.closest('.notation-panel__canvas');
+    if (!canvas) return;
+
+    const canvasRect = canvas.getBoundingClientRect();
+    const scrollLeft = canvas.scrollLeft;
+    const clientWidth = canvas.clientWidth;
+
+    // Calcular posición absoluta del cursor respecto al contenedor
+    const cursorRelativeX = cursorX - HORIZONTAL_MARGIN;
+    const cursorViewportX = cursorRelativeX - scrollLeft;
+
+    // Si el cursor está fuera del viewport, ajustar scroll
+    const margin = 50; // Margen de seguridad
+    if (cursorViewportX < margin) {
+      // Cursor muy a la izquierda, scroll hacia la izquierda
+      canvas.scrollLeft = Math.max(0, cursorRelativeX - margin);
+    } else if (cursorViewportX > clientWidth - margin) {
+      // Cursor muy a la derecha, scroll hacia la derecha
+      canvas.scrollLeft = cursorRelativeX - clientWidth + margin;
+    }
   };
 
   const resetCursor = () => {
@@ -630,11 +669,15 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
             keys: [noteKey],
           });
 
+          // Calcular el ciclo del tuplet para que este pulso entero se incluya en el tuplet correcto
+          const tupletCycle = fractionGrid ? Math.floor(pulseIndex / fractionGrid.denominator) : undefined;
+
           registerEntry({
             event,
             pulseIndex,
             note,
             generated: false,
+            tupletCycle,
             originalIndex: events.length + entryList.length,
           });
         }
@@ -650,11 +693,15 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
         keys: [noteKey],
       });
 
+      // Calcular el ciclo del tuplet para que este pulso entero se incluya en el tuplet correcto
+      const tupletCycle = fractionGrid ? Math.floor(pulseIndex / fractionGrid.denominator) : undefined;
+
       registerEntry({
         event,
         pulseIndex,
         note,
         generated: false,
+        tupletCycle,
         originalIndex: events.length + entryList.length,
       });
     });
