@@ -20,6 +20,7 @@ import { createPulseMemoryLoopController } from '../../libs/app-common/loop-cont
 import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 import { createNotationPanelController } from '../../libs/app-common/notation-panel.js';
 import { durationValueFromDenominator, buildPulseEvents } from '../../libs/app-common/notation-utils.js';
+import { resolveFractionNotation } from '../../libs/app-common/fraction-notation.js';
 import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
 import {
   FRACTION_POSITION_EPSILON,
@@ -180,6 +181,10 @@ function buildNotationRenderState() {
   const fraction = (Number.isFinite(fractionInfo?.numerator) && Number.isFinite(fractionInfo?.denominator))
     ? { numerator: fractionInfo.numerator, denominator: fractionInfo.denominator }
     : null;
+  const fractionNotation = fraction
+    ? resolveFractionNotation(fraction.numerator, fraction.denominator)
+    : null;
+  const normalizedFraction = fraction ? { ...fraction, notation: fractionNotation } : null;
 
   const denominatorValue = inferNotationDenominator(lgValue, fraction);
   const baseDuration = durationValueFromDenominator(denominatorValue);
@@ -195,14 +200,16 @@ function buildNotationRenderState() {
     const itemDenominator = Number.isFinite(item.denominator) && item.denominator > 0
       ? Math.round(item.denominator)
       : denominatorValue;
-    const eventDuration = durationValueFromDenominator(itemDenominator);
+    const notationInfo = resolveFractionNotation(item.numerator, itemDenominator);
+    const eventDuration = notationInfo.duration;
 
     fractionalEvents.push({
       pulseIndex: value,
       duration: eventDuration,
       rest: false,
       selectionKey: item.key,
-      source: 'fraction'
+      source: 'fraction',
+      dots: notationInfo.dots || 0
     });
     selectedValues.add(value);
   });
@@ -220,7 +227,7 @@ function buildNotationRenderState() {
 
   return {
     lg: lgValue,
-    fraction,
+    fraction: normalizedFraction,
     events,
     positions,
     selectedIndices

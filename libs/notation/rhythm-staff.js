@@ -1,5 +1,6 @@
 import { Renderer, Stave, StaveNote, Voice, Formatter, Tuplet, BarlineType, Beam, GhostNote, Stem } from '../vendor/vexflow/entry/vexflow.js';
 import { gridFromOrigin } from '../app-common/subdivision.js';
+import { resolveFractionNotation } from '../app-common/fraction-notation.js';
 
 const DEFAULT_HEIGHT = 200;
 const HORIZONTAL_MARGIN = 18;
@@ -40,6 +41,16 @@ const SELECTED_KEY = 'c/5';
 const BEAMABLE_DURATIONS = new Set(['8', '16', '32', '64']);
 const POSITION_SCALE = 1e6;
 const WHOLE_PULSE_EPSILON = 1e-6;
+
+function applyDotsToNote(note, dots) {
+  if (!note || typeof note.addDotToAll !== 'function') {
+    return;
+  }
+  const count = Number.isFinite(dots) ? Math.max(0, Math.floor(dots)) : 0;
+  for (let i = 0; i < count; i += 1) {
+    note.addDotToAll();
+  }
+}
 
 function sanitizeDurationForBeam(duration) {
   if (!duration) return '';
@@ -562,6 +573,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       if (isRest) {
         note.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
       }
+      applyDotsToNote(note, event?.dots);
 
       registerEntry({
         event,
@@ -578,10 +590,19 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     const fractionDenominator = Number.isFinite(Number(fraction?.denominator)) && Number(fraction?.denominator) > 0
       ? Number(fraction.denominator)
       : null;
+    const fractionNotation = fraction?.notation
+      ?? ((fractionNumerator && fractionDenominator)
+        ? resolveFractionNotation(fractionNumerator, fractionDenominator)
+        : null);
     if (fractionNumerator && fractionDenominator) {
       fractionGrid = gridFromOrigin({ lg: Number(lg) || 0, numerator: fractionNumerator, denominator: fractionDenominator });
-      const baseDuration = denominatorToDuration(fractionDenominator) || '16';
+      const baseDuration = fractionNotation?.duration
+        || denominatorToDuration(fractionDenominator)
+        || '16';
       const resolvedRestDuration = resolveDuration(baseDuration, true);
+      const restDots = Number.isFinite(fractionNotation?.dots) && fractionNotation.dots > 0
+        ? Math.floor(fractionNotation.dots)
+        : 0;
 
       if (fractionGrid?.subdivisions?.length) {
         fractionGrid.subdivisions.forEach(({ position, cycleIndex, subdivisionIndex }) => {
@@ -613,6 +634,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
                 duration: noteDuration,
                 keys: [noteKey],
               });
+              applyDotsToNote(note, realEvent?.dots);
 
               registerEntry({
                 event: realEvent,
@@ -646,6 +668,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
               keys: [REST_KEY],
             });
             restNote.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
+            applyDotsToNote(restNote, restDots);
 
             registerEntry({
               event: {
@@ -725,6 +748,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
             duration: noteDuration,
             keys: [noteKey],
           });
+          applyDotsToNote(note, event?.dots);
 
           // Calcular el ciclo del tuplet para que este pulso entero se incluya en el tuplet correcto
           // El numerator define el tamaño del ciclo (cada ciclo empieza cada N pulsos)
@@ -750,6 +774,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
         duration: noteDuration,
         keys: [noteKey],
       });
+      applyDotsToNote(note, event?.dots);
 
       // Calcular el ciclo del tuplet para que este pulso entero se incluya en el tuplet correcto
       // El numerator define el tamaño del ciclo (cada ciclo empieza cada N pulsos)
@@ -906,10 +931,18 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
         const expectedLength = fractionGrid.denominator;
         const isCompleteCycle = sorted.length === expectedLength;
 
+        const fractionTuplet = fractionNotation?.tuplet ?? null;
+        if (fractionTuplet?.show === false) {
+          return;
+        }
+        const shouldRatio = !isCompleteCycle || fractionGrid.denominator !== fractionGrid.numerator;
+        const ratioedOverride = typeof fractionTuplet?.ratioed === 'boolean'
+          ? fractionTuplet.ratioed
+          : shouldRatio;
         createTuplet(sorted, {
           numNotes: isCompleteCycle ? fractionGrid.denominator : sorted.length,
           notesOccupied: fractionGrid.numerator,
-          ratioed: !isCompleteCycle || fractionGrid.denominator !== fractionGrid.numerator,
+          ratioed: ratioedOverride,
         });
       });
     }
