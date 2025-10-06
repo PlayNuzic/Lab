@@ -1,4 +1,4 @@
-import { Renderer, Stave, StaveNote, Voice, Formatter, Tuplet, BarlineType, Beam, GhostNote } from '../vendor/vexflow/entry/vexflow.js';
+import { Renderer, Stave, StaveNote, Voice, Formatter, Tuplet, BarlineType, Beam, GhostNote, Stem } from '../vendor/vexflow/entry/vexflow.js';
 import { gridFromOrigin } from '../app-common/subdivision.js';
 
 const DEFAULT_HEIGHT = 200;
@@ -436,6 +436,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
               ? baseDuration.trim()
               : '16';
             const ghostNote = new GhostNote({ duration: ghostDuration || fallbackDuration });
+            ghostNote.setStemDirection(Stem.UP);
 
             registerEntry({
               event: {
