@@ -356,9 +356,18 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       lastCursorX = targetX;
     }
 
+    // Calcular offset del SVG si está centrado con margin auto
+    let svgOffsetX = 0;
+    const svgElement = container.querySelector('svg');
+    if (svgElement && container) {
+      const svgRect = svgElement.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      svgOffsetX = svgRect.left - containerRect.left;
+    }
+
     cursor.style.top = `${staveInfo.y}px`;
     cursor.style.height = `${staveInfo.height}px`;
-    cursor.style.transform = `translateX(${targetX}px)`;
+    cursor.style.transform = `translateX(${targetX + svgOffsetX}px)`;
     cursor.classList.toggle('notation-playback-cursor--active', isPlaying);
 
     // Auto-scroll para mantener el cursor visible
