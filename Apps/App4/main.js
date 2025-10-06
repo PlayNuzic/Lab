@@ -4118,10 +4118,9 @@ function syncVisualState() {
 
   // Actualizar cursor de notación
   if (notationRenderer && typeof notationRenderer.updateCursor === 'function') {
-    const lg = parseInt(inputLg.value, 10);
     const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
-    const progress = Number.isFinite(lg) && lg > 0 ? state.step / (lg * resolution) : 0;
-    notationRenderer.updateCursor(progress, isPlaying);
+    const currentPulse = Number.isFinite(state.step) && resolution > 0 ? state.step / resolution : 0;
+    notationRenderer.updateCursor(currentPulse, isPlaying);
   }
 
   const resolution = Math.max(1, Math.round(currentAudioResolution || 1));

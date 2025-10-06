@@ -278,7 +278,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     return cursorElement;
   };
 
-  const updateCursor = (progress = 0, isPlaying = false) => {
+  const updateCursor = (currentPulse = 0, isPlaying = false) => {
     const cursor = ensureCursor();
     if (!staveInfo) {
       cursor.classList.remove('notation-playback-cursor--active');
@@ -289,17 +289,38 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     // Remover opacity inline para que la clase CSS --active controle la opacidad
     cursor.style.opacity = '';
 
-    const normalized = Number.isFinite(progress) ? Math.min(Math.max(progress, 0), 1) : 0;
-    const startX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
-    const endXBase = Number.isFinite(staveInfo.contentEndX)
-      ? staveInfo.contentEndX
-      : staveInfo.x + staveInfo.width;
-    const usableWidth = Math.max(0, endXBase - startX);
-    const cursorX = startX + usableWidth * normalized;
+    // Buscar la nota correspondiente al pulso actual
+    let targetX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
+
+    const pulseKey = String(makePositionKey(currentPulse));
+    const entryMeta = lastRenderMeta.positionLookup.get(pulseKey);
+
+    if (entryMeta && entryMeta.noteElement) {
+      // Usar la posición real de la nota
+      try {
+        const bbox = entryMeta.noteElement.getBBox();
+        if (bbox && Number.isFinite(bbox.x)) {
+          targetX = bbox.x;
+        }
+      } catch (e) {
+        // getBBox puede fallar en algunos casos, fallback a interpolación
+        // basada en pulso
+        const lgCount = lastRenderMeta.lgCount || 1;
+        const normalized = Number.isFinite(currentPulse) && lgCount > 0
+          ? Math.min(Math.max(currentPulse / lgCount, 0), 1)
+          : 0;
+        const startX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
+        const endXBase = Number.isFinite(staveInfo.contentEndX)
+          ? staveInfo.contentEndX
+          : staveInfo.x + staveInfo.width;
+        const usableWidth = Math.max(0, endXBase - startX);
+        targetX = startX + usableWidth * normalized;
+      }
+    }
 
     cursor.style.top = `${staveInfo.y}px`;
     cursor.style.height = `${staveInfo.height}px`;
-    cursor.style.transform = `translateX(${cursorX}px)`;
+    cursor.style.transform = `translateX(${targetX}px)`;
     cursor.classList.toggle('notation-playback-cursor--active', isPlaying);
   };
 
@@ -575,6 +596,69 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       }
     }
 
+    // Post-procesamiento: agregar pulsos enteros seleccionados que no están en fractionGrid
+    events.forEach((event, index) => {
+      const pulseIndex = Number.isFinite(event?.pulseIndex)
+        ? Number(event.pulseIndex)
+        : (Number.isFinite(pulses[index]) ? Number(pulses[index]) : index);
+
+      // Solo procesar pulsos enteros seleccionados (no-rest, no-zero)
+      if (!isWholePulse(pulseIndex) || event.rest || pulseIndex === 0) {
+        return;
+      }
+
+      const key = makePositionKey(pulseIndex);
+      if (key == null) return;
+
+      // Verificar si ya existe una entry para este pulso
+      const existing = entryBuckets.get(key);
+      if (existing && existing.length) {
+        // Ya procesado - verificar si es silencio generado y debe actualizarse a nota
+        const isGeneratedRest = existing.some(e => e.generated && e.event?.rest);
+        if (isGeneratedRest) {
+          // Eliminar y recrear como nota
+          entryBuckets.delete(key);
+          existing.forEach(entry => {
+            entry._shouldRemove = true;
+          });
+
+          const noteKey = pickKeyForPulse(pulseIndex, selectedSet);
+          const noteDuration = resolveDuration(event.duration, false);
+          const note = new StaveNote({
+            clef: 'treble',
+            duration: noteDuration,
+            keys: [noteKey],
+          });
+
+          registerEntry({
+            event,
+            pulseIndex,
+            note,
+            generated: false,
+            originalIndex: events.length + entryList.length,
+          });
+        }
+        return;
+      }
+
+      // No existe - crear nueva entry para pulso entero seleccionado
+      const noteKey = pickKeyForPulse(pulseIndex, selectedSet);
+      const noteDuration = resolveDuration(event.duration, false);
+      const note = new StaveNote({
+        clef: 'treble',
+        duration: noteDuration,
+        keys: [noteKey],
+      });
+
+      registerEntry({
+        event,
+        pulseIndex,
+        note,
+        generated: false,
+        originalIndex: events.length + entryList.length,
+      });
+    });
+
     const lgCount = Number.isFinite(Number(lg)) ? Number(lg) : 0;
     const subdivisionCount = Number(fractionGrid?.subdivisions?.length) || 0;
     const entryCount = entryList.length;
@@ -814,10 +898,19 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
         } else {
           delete element.dataset.source;
         }
+
+        // Guardar referencia al elemento en positionLookup para el cursor
+        if (entry.positionKey != null) {
+          const lookupKey = String(entry.positionKey);
+          const meta = positionLookup.get(lookupKey);
+          if (meta) {
+            meta.noteElement = element;
+          }
+        }
       }
     });
 
-    lastRenderMeta = { positionLookup };
+    lastRenderMeta = { positionLookup, lgCount: lg };
 
     resetCursor();
   };
