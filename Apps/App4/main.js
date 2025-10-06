@@ -22,6 +22,8 @@ import { createNotationPanelController } from '../../libs/app-common/notation-pa
 import { durationValueFromDenominator, buildPulseEvents } from '../../libs/app-common/notation-utils.js';
 import { resolveFractionNotation } from '../../libs/app-common/fraction-notation.js';
 import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
+import { parseTokens, validateInteger, validateFraction, nearestPulseIndex, resolvePulseSeqGap } from '../../libs/app-common/pulse-seq-parser.js';
+import { createPulseSeqStateManager } from '../../libs/app-common/pulse-seq-state.js';
 import {
   FRACTION_POSITION_EPSILON,
   TEXT_NODE_TYPE,
@@ -468,6 +470,13 @@ if (fractionInlineSlot) {
 const pulseSeqController = createPulseSeqController();
 const pulseMemoryApi = pulseSeqController.memory;
 const pulseMemory = pulseMemoryApi.data;
+
+// Inicializar gestor de estado de pulseSeq (después de pulseMemoryApi)
+const pulseSeqStateManager = createPulseSeqStateManager({
+  fractionStore,
+  pulseMemoryApi
+});
+
 const { editEl: pulseSeqEditEl } = pulseSeqController.mount({
   root: pulseSeqEl,
   markupBuilder: buildPulseSeqMarkup,
@@ -668,11 +677,7 @@ function initFractionEditorController() {
 // No actualitza la memòria a cada tecleig: es confirma amb Enter o blur
 // pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
 
-function nearestPulseIndex(value) {
-  if (!Number.isFinite(value)) return null;
-  const nearest = Math.round(value);
-  return Math.abs(value - nearest) < FRACTION_POSITION_EPSILON ? nearest : null;
-}
+// nearestPulseIndex ahora se importa desde pulse-seq-parser.js
 
 /**
  * Determina si un pulso entero es seleccionable según la fracción activa.
@@ -2261,35 +2266,15 @@ function showPulseSeqAutoTip(html) {
   } catch {}
 }
 
-function resolvePulseSeqGap(position, lg) {
-  const ranges = Object.entries(pulseSeqRanges)
-    .map(([key, range]) => ({ key, range, num: Number(key) }))
-    .filter(entry => Number.isFinite(entry.num) && Number.isInteger(entry.num))
-    .sort((a, b) => a.range[0] - b.range[0]);
-
-  let base = null;
-  let next = null;
-  let index = 0;
-  for (let i = 0; i < ranges.length; i++) {
-    const { num, range } = ranges[i];
-    if (position > range[1]) {
-      base = num;
-      index = i + 1;
-      continue;
-    }
-    if (position <= range[0]) {
-      next = num;
-      break;
-    }
-  }
-  if (base == null) base = 0;
-  if (next == null && Number.isFinite(lg)) next = lg;
-  return { base, next, index };
-}
+// resolvePulseSeqGap ahora se importa desde pulse-seq-parser.js
 
 function sanitizePulseSeq(opts = {}){
   if (!pulseSeqEl) return { hadTooBig: false, hadFractionTooBig: false };
+
   const lg = parseInt(inputLg.value);
+  const text = getPulseSeqText();
+
+  // Guardar posición del caret
   const caretBefore = (() => {
     const el = getEditEl();
     if (!el) return 0;
@@ -2299,324 +2284,151 @@ function sanitizePulseSeq(opts = {}){
     if (!el.contains(r.startContainer)) return 0;
     return r.startOffset;
   })();
-  const text = getPulseSeqText();
-  const tokenRegex = /\d+\.\d+|\.\d+|\d+/g;
-  const tokens = [];
-  let match;
-  while ((match = tokenRegex.exec(text)) !== null) {
-    tokens.push({ raw: match[0], start: match.index });
-  }
 
-  const ints = [];
-  const seenInts = new Set();
-  let hadTooBig = false;
-  let firstTooBig = null;
+  // 1. PARSEAR TOKENS usando módulo
+  const tokens = parseTokens(text);
 
-  const fractions = [];
-  const seenFractionKeys = new Set();
-  let hadFractionTooBig = false;
-  let firstFractionTooBig = null;
-
+  // 2. PREPARAR CONTEXTO DE VALIDACIÓN
   const { numerator: rawNumerator, denominator: rawDenominator } = getFraction();
-  const denomValue = Number.isFinite(rawDenominator) && rawDenominator > 0 ? rawDenominator : null;
-  const numeratorValue = Number.isFinite(rawNumerator) && rawNumerator > 0 ? rawNumerator : null;
-
-  const caretGap = resolvePulseSeqGap(caretBefore, lg);
+  const caretGap = resolvePulseSeqGap(caretBefore, lg, pulseSeqRanges);
   fractionStore.lastFractionGap = caretGap;
 
+  // Contexto para validateFraction
+  const validationContext = {
+    numerator: rawNumerator,
+    denominator: rawDenominator,
+    lg,
+    getFractionInfoByLabel,
+    makeFractionKey,
+    fractionValue,
+    fractionDisplay,
+    cycleNotationToFraction,
+    resolvePulseSeqGap: (pos) => resolvePulseSeqGap(pos, lg, pulseSeqRanges)
+  };
+
+  // 3. VALIDAR TOKENS
+  const ints = [];
+  const seenInts = new Set();
+  const fractions = [];
+  const seenFractionKeys = new Set();
+  let hadTooBig = false;
+  let hadFractionTooBig = false;
+  let firstTooBig = null;
+  let firstFractionTooBig = null;
+
+  // Helper para registrar fracciones o convertirlas a enteros
   const pushFractionEntry = (entry) => {
     if (!entry) return;
-    const value = Number(entry.value);
-    if (!Number.isFinite(value)) return;
-    const nearest = nearestPulseIndex(value);
-    if (nearest != null) {
-      if (!seenInts.has(nearest)) {
-        seenInts.add(nearest);
-        ints.push(nearest);
-      }
-      return;
-    }
     fractions.push(entry);
     if (entry.rawLabel) {
       registerFractionLabel(entry.rawLabel, entry);
     }
   };
 
+  // Iterar tokens y validar usando módulos
   for (const token of tokens) {
-    const raw = token.raw;
-    const normalizedRaw = typeof raw === 'string' ? raw.trim() : '';
-    if (raw.includes('.')) {
-      let matchedFraction = null;
-      if (raw.startsWith('.')) {
-        if (!denomValue) continue;
-        const digits = raw.slice(1);
-        if (!digits) continue;
-        const fracNumerator = Number.parseInt(digits, 10);
-        if (!Number.isFinite(fracNumerator) || fracNumerator <= 0) continue;
-        if (fracNumerator >= denomValue) {
-          hadFractionTooBig = true;
-          if (firstFractionTooBig == null) firstFractionTooBig = raw;
-          continue;
-        }
-        const gap = resolvePulseSeqGap(token.start, lg);
-        const base = Number.isFinite(gap.base) ? gap.base : 0;
-        const next = Number.isFinite(gap.next) ? gap.next : (Number.isFinite(lg) ? lg : Infinity);
-        if (!Number.isFinite(base)) continue;
-        if (!Number.isNaN(lg) && base >= lg) continue;
-        const labelCandidate = `${base}.${digits}`;
-        matchedFraction = getFractionInfoByLabel(labelCandidate, { base });
-        if (matchedFraction && matchedFraction.key) {
-          if (!seenFractionKeys.has(matchedFraction.key)) {
-            seenFractionKeys.add(matchedFraction.key);
-            const entry = {
-              base: matchedFraction.base,
-              numerator: matchedFraction.numerator,
-              denominator: matchedFraction.denominator,
-              value: matchedFraction.value,
-              display: matchedFraction.display,
-              key: matchedFraction.key,
-              cycleIndex: matchedFraction.cycleIndex,
-              subdivisionIndex: matchedFraction.subdivisionIndex,
-              pulsesPerCycle: matchedFraction.pulsesPerCycle,
-              rawLabel: normalizedRaw || (typeof matchedFraction.rawLabel === 'string' ? matchedFraction.rawLabel : '')
-            };
-            pushFractionEntry(entry);
-          }
-          continue;
-        }
-        const value = base + fracNumerator / denomValue;
-        if (value <= base) continue;
-        if (Number.isFinite(next) && value >= next) continue;
-        if (!Number.isNaN(lg) && value >= lg) continue;
-        const key = makeFractionKey(base, fracNumerator, denomValue);
-        if (!key) continue;
-        if (!seenFractionKeys.has(key)) {
-          seenFractionKeys.add(key);
-          const entry = {
-            base,
-            numerator: fracNumerator,
-            denominator: denomValue,
-            value,
-            display: fractionDisplay(base, fracNumerator, denomValue),
-            key,
-            cycleIndex: null,
-            subdivisionIndex: null,
-            pulsesPerCycle: null,
-            rawLabel: normalizedRaw
-          };
-          pushFractionEntry(entry);
-        }
-      } else {
-        const [intPart, fractionDigitsRaw] = raw.split('.', 2);
-        const intVal = Number.parseInt(intPart, 10);
-        if (!Number.isFinite(intVal) || intVal < 0) continue;
-        if (!denomValue) continue;
-        const digits = fractionDigitsRaw ?? '';
-        if (!digits) continue;
-        const subdivisionIndex = Number.parseInt(digits, 10);
-        if (!Number.isFinite(subdivisionIndex) || subdivisionIndex <= 0) continue;
-        if (subdivisionIndex >= denomValue) {
-          hadFractionTooBig = true;
-          if (firstFractionTooBig == null) firstFractionTooBig = raw;
-          continue;
-        }
-      matchedFraction = getFractionInfoByLabel(raw) || getFractionInfoByLabel(`${intVal}.${subdivisionIndex}`);
-      let normalizedBase = intVal;
-      let normalizedNumerator = subdivisionIndex;
-      let value = intVal + subdivisionIndex / denomValue;
-      let displayOverride = null;
-      if (Number.isFinite(numeratorValue) && numeratorValue > 0) {
-        const cycleCapacity = Number.isFinite(lg) && lg > 0
-          ? Math.floor(lg / numeratorValue)
-          : null;
-        const rawCycle = intVal / numeratorValue;
-        const cycleIndexFromBase = Number.isFinite(rawCycle)
-          ? Math.round(rawCycle)
-          : null;
-        const isCycleApproxInteger = Number.isFinite(cycleIndexFromBase)
-          && Math.abs(rawCycle - cycleIndexFromBase) <= FRACTION_POSITION_EPSILON;
-        const mapping = isCycleApproxInteger
-          ? cycleNotationToFraction(cycleIndexFromBase, subdivisionIndex, numeratorValue, denomValue)
-          : null;
-        if (mapping) {
-          let canonicalBase = Number.isFinite(mapping.base)
-            ? Math.floor(mapping.base + FRACTION_POSITION_EPSILON)
-            : null;
-          let canonicalNumerator = Number.isFinite(mapping.numerator)
-              ? Math.round(mapping.numerator)
-              : null;
-            if (Number.isFinite(canonicalNumerator) && canonicalNumerator >= denomValue) {
-              const carry = Math.floor(canonicalNumerator / denomValue);
-              canonicalNumerator -= carry * denomValue;
-              if (Number.isFinite(canonicalBase)) {
-                canonicalBase += carry;
-              }
-            }
-            const numeratorValid = Number.isFinite(canonicalNumerator) && canonicalNumerator > 0 && canonicalNumerator < denomValue;
-            const baseValid = Number.isFinite(canonicalBase);
-            const canonicalValue = baseValid && numeratorValid
-              ? fractionValue(canonicalBase, canonicalNumerator, denomValue)
-              : NaN;
-            const withinLg = Number.isFinite(canonicalValue)
-              ? (!Number.isFinite(lg) || canonicalValue < lg - FRACTION_POSITION_EPSILON)
-              : false;
-            const cycleBase = Number.isFinite(cycleIndexFromBase) && Number.isFinite(numeratorValue)
-              ? cycleIndexFromBase * numeratorValue
-              : NaN;
-            const cycleOriginValid = Number.isFinite(cycleBase)
-              ? (!Number.isFinite(lg) || cycleBase < lg)
-              : true;
-            const withinCapacity = Number.isFinite(cycleCapacity)
-              ? (cycleCapacity > 0 && Number.isFinite(cycleIndexFromBase) && cycleIndexFromBase < cycleCapacity)
-              : true;
-            if (baseValid && numeratorValid && Number.isFinite(canonicalValue) && withinLg && cycleOriginValid && withinCapacity) {
-              normalizedBase = canonicalBase;
-              normalizedNumerator = canonicalNumerator;
-              value = canonicalValue;
-              displayOverride = {
-                cycleIndex: isCycleApproxInteger ? cycleIndexFromBase : null,
-                subdivisionIndex,
-                pulsesPerCycle: numeratorValue
-              };
-            }
-          }
-        }
-        if (!Number.isFinite(value)) continue;
-        if (!Number.isNaN(lg) && value >= lg) {
+    if (token.type === 'int') {
+      // VALIDAR ENTERO
+      const result = validateInteger(token, { lg });
+
+      if (!result.valid) {
+        if (result.error === 'too-big') {
           hadTooBig = true;
-          if (firstTooBig == null) firstTooBig = `${intVal}.${digits}`;
-          continue;
+          if (firstTooBig == null) firstTooBig = result.value;
         }
-        const key = makeFractionKey(normalizedBase, normalizedNumerator, denomValue);
-        if (!key) continue;
-        if (!seenFractionKeys.has(key)) {
-          if (matchedFraction && matchedFraction.key === key) {
-            seenFractionKeys.add(key);
-            const entry = {
-              base: matchedFraction.base,
-              numerator: matchedFraction.numerator,
-              denominator: matchedFraction.denominator,
-              value: matchedFraction.value,
-              display: matchedFraction.display,
-              key: matchedFraction.key,
-              cycleIndex: matchedFraction.cycleIndex,
-              subdivisionIndex: matchedFraction.subdivisionIndex,
-              pulsesPerCycle: matchedFraction.pulsesPerCycle,
-              rawLabel: normalizedRaw || (typeof matchedFraction.rawLabel === 'string' ? matchedFraction.rawLabel : '')
-            };
-            pushFractionEntry(entry);
-            continue;
-          }
-          seenFractionKeys.add(key);
-          const overrideCycleIndex = Number.isFinite(displayOverride?.cycleIndex) && displayOverride.cycleIndex >= 0
-            ? Math.floor(displayOverride.cycleIndex)
-            : null;
-          const overrideSubdivisionIndex = Number.isFinite(displayOverride?.subdivisionIndex) && displayOverride.subdivisionIndex >= 0
-            ? Math.floor(displayOverride.subdivisionIndex)
-            : null;
-          const overridePulsesPerCycle = Number.isFinite(displayOverride?.pulsesPerCycle) && displayOverride.pulsesPerCycle > 0
-            ? displayOverride.pulsesPerCycle
-            : null;
-          const entry = {
-            base: normalizedBase,
-            numerator: normalizedNumerator,
-            denominator: denomValue,
-            value,
-            display: fractionDisplay(normalizedBase, normalizedNumerator, denomValue, displayOverride || undefined),
-            key,
-            cycleIndex: overrideCycleIndex,
-            subdivisionIndex: overrideSubdivisionIndex,
-            pulsesPerCycle: overridePulsesPerCycle,
-            rawLabel: normalizedRaw
-          };
-          pushFractionEntry(entry);
-        }
+        continue;
       }
+
+      // Verificar si el pulso es seleccionable según fracción activa
+      const numeratorValue = Number.isFinite(rawNumerator) && rawNumerator > 0 ? rawNumerator : null;
+      const denomValue = Number.isFinite(rawDenominator) && rawDenominator > 0 ? rawDenominator : null;
+
+      if (!isIntegerPulseSelectable(result.value, numeratorValue, denomValue, lg)) {
+        continue; // Silenciosamente ignorar
+      }
+
+      if (!seenInts.has(result.value)) {
+        seenInts.add(result.value);
+        ints.push(result.value);
+      }
+
     } else {
-      const n = Number.parseInt(raw, 10);
-      if (!Number.isFinite(n) || n <= 0) continue;
-      if (!Number.isNaN(lg) && n >= lg) {
-        hadTooBig = true;
-        if (firstTooBig == null) firstTooBig = n;
+      // VALIDAR FRACCIÓN
+      const result = validateFraction(token, validationContext);
+
+      if (!result.valid) {
+        if (result.error === 'too-big') {
+          hadFractionTooBig = true;
+          if (firstFractionTooBig == null) firstFractionTooBig = result.raw || token.raw;
+        }
         continue;
       }
-      // Validar que el pulso entero es seleccionable según la fracción activa
-      if (!isIntegerPulseSelectable(n, numeratorValue, denomValue, lg)) {
-        // Silenciosamente ignorar pulsos no seleccionables (no son errores)
+
+      // Si la fracción está muy cerca de un entero, agregarla como entero
+      if (result.snapToInteger != null) {
+        if (!seenInts.has(result.snapToInteger)) {
+          seenInts.add(result.snapToInteger);
+          ints.push(result.snapToInteger);
+        }
         continue;
       }
-      if (!seenInts.has(n)) {
-        seenInts.add(n);
-        ints.push(n);
+
+      // Agregar fracción válida
+      if (result.entry && result.entry.key) {
+        if (!seenFractionKeys.has(result.entry.key)) {
+          seenFractionKeys.add(result.entry.key);
+          pushFractionEntry(result.entry);
+        }
       }
     }
   }
 
+  // 4. APLICAR AL ESTADO usando módulo
   ints.sort((a, b) => a - b);
   fractions.sort((a, b) => a.value - b.value);
-  fractionStore.selectionState.clear();
-  fractions.forEach(entry => {
-    fractionStore.selectionState.set(entry.key, entry);
-  });
+
+  pulseSeqStateManager.applyValidatedTokens(ints, fractions, { lg });
   rebuildFractionSelections({ skipUpdateField: true });
 
+  // 5. REGENERAR TEXTO DEL CAMPO
   const hasValidLg = Number.isFinite(lg) && lg > 0;
 
   if (hasValidLg) {
-    ensurePulseMemory(lg);
-    for (let i = 1; i < lg; i++) pulseMemory[i] = false;
-    ints.forEach(n => { if (n < lg) pulseMemory[n] = true; });
     renderTimeline();
   } else {
-    const combined = [
-      ...ints.map(n => ({ value: n, display: String(n), key: String(n) })),
-      ...fractions.map(f => {
-        const rawLabel = typeof f.rawLabel === 'string' ? f.rawLabel : '';
-        const preferred = rawLabel ? rawLabel : f.display;
-        return { value: f.value, display: preferred, key: f.key };
-      })
-    ].sort((a, b) => a.value - b.value);
-    pulseSeqRanges = {};
-    fractionStore.pulseSeqEntryOrder = combined.map(entry => entry.key);
-    fractionStore.pulseSeqEntryLookup.clear();
-    combined.forEach((entry) => {
-      if (!entry || !entry.key) return;
-      const type = entry.display.includes('.') ? 'fraction' : 'int';
-      fractionStore.pulseSeqEntryLookup.set(entry.key, { ...entry, type });
-    });
-    let pos = 0;
-    const parts = combined.map(entry => {
-      const start = pos + 2;
-      const end = start + entry.display.length;
-      pulseSeqRanges[entry.key] = [start, end];
-      pos += entry.display.length + 2;
-      return entry.display;
-    });
-    setPulseSeqText('  ' + parts.join('  ') + '  ');
+    const newText = pulseSeqStateManager.generateFieldText({ lg, pulseSeqRanges });
+    setPulseSeqText(newText);
   }
 
+  // 6. RESTAURAR CARET
   const outText = getPulseSeqText();
   const pos = Math.min(outText.length, caretBefore);
   const editEl = getEditEl();
   const isEditActive = editEl && document.activeElement === editEl;
   const shouldKeepCaret = hadTooBig || hadFractionTooBig || !(opts.causedBy === 'enter' || opts.causedBy === 'blur');
+
   if (!opts.skipCaret && isEditActive && shouldKeepCaret) {
     setPulseSeqSelection(pos, pos);
     try { moveCaretToNearestMidpoint(); } catch {}
   }
 
+  // 7. MOSTRAR ERRORES
   if (hadTooBig && !Number.isNaN(lg)) {
     const bad = firstTooBig != null ? firstTooBig : '';
     showPulseSeqAutoTip(`El número <strong>${bad}</strong> introducido es mayor que la <span style="color: var(--color-lg); font-weight: 700;">Lg</span>. Elige un número menor que <strong>${lg}</strong>`);
   }
-  if (hadFractionTooBig && denomValue) {
-    const fractionLabelRaw = firstFractionTooBig != null ? String(firstFractionTooBig) : '';
-    const fractionLabel = fractionLabelRaw.trim() || fractionLabelRaw;
-    showPulseSeqAutoTip(`El Pfr '<strong>${fractionLabel}</strong>' es mayor que la fracción. Introduce un número menor que 'd'.`);
+  if (hadFractionTooBig) {
+    const denomValue = Number.isFinite(rawDenominator) && rawDenominator > 0 ? rawDenominator : null;
+    if (denomValue) {
+      const fractionLabel = String(firstFractionTooBig || '').trim();
+      showPulseSeqAutoTip(`El Pfr '<strong>${fractionLabel}</strong>' es mayor que la fracción. Introduce un número menor que ${denomValue}.`);
+    }
   }
 
   return { hadTooBig, hadFractionTooBig };
 }
+
+// ==== FIN DE SANITIZEPULSESEQ REFACTORIZADO ====
 
 function handleInput(){
   const lg = parseNum(inputLg.value);
