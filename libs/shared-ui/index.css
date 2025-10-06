@@ -971,9 +971,11 @@ font-size: 1.2rem;
 .reset,
 .tap,
 .random {
-width: 32px;
-height: 32px;
-font-size: 0.85rem;
+  width: 32px;
+  height: 32px;
+  font-size: 0.85rem;
+}
+
 }
 
 /* Header title stays centered and clear of the icons */
@@ -1006,15 +1008,17 @@ font-size: 0.85rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: clamp(2.2rem, 2.5vw, 2.75rem);
+  height: clamp(2.2rem, 2.5vw, 2.75rem);
   padding: 0;
-  border-radius: 50%;
+  border-radius: 999px;
   border: 2px solid currentColor;
   background: transparent;
   color: var(--text-light);
   cursor: pointer;
-  opacity: 0.85;
+  line-height: 1;
+  opacity: 0.9;
+  appearance: none;
   transition: color 0.2s ease, transform 0.12s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -1040,6 +1044,7 @@ body[data-theme='dark'] .top-bar-notation-button {
 .top-bar-notation-button--active {
   color: var(--selection-color);
   border-color: var(--selection-color);
+  background: rgba(249, 124, 57, 0.12);
   box-shadow: 0 0 18px rgba(249, 124, 57, 0.5);
   opacity: 1;
 }
@@ -1168,6 +1173,7 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
   align-items: center;
   justify-content: center;
   background: #ffffff;
+  background-color: #ffffff;
   padding: clamp(24px, 4vw, 36px);
   position: relative;
   margin: 0 auto;
@@ -1193,8 +1199,9 @@ body[data-theme='dark'] .notation-panel__canvas {
   justify-content: center;
   width: fit-content;
   max-width: 100%;
-  background: #ffffff;
   margin: 0 auto;
+  background: transparent;
+  padding: 0;
 }
 
 .rhythm-staff-container .vf-container {
@@ -1270,6 +1277,7 @@ body.notation-open {
     padding: 18px;
     min-height: 220px;
     border-radius: 16px;
+    border: none;
     box-shadow: none;
   }
 
@@ -1279,8 +1287,9 @@ body.notation-open {
 
   .rhythm-staff-container {
     width: 100%;
-    padding: 12px;
+    padding: 0;
     border-radius: 14px;
+    background: transparent;
     box-shadow: none;
   }
 }

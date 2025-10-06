@@ -45,14 +45,19 @@ export function createNotationPanelController({
   let lastFocusedElement = null;
   const detailBase = { appId };
 
-  const backgroundTargets = [
-    dialog,
-    panel.querySelector('.notation-panel__canvas')
-  ]
+  const canvasEl = panel.querySelector('.notation-panel__canvas');
+  const backgroundTargets = [dialog]
     .filter((el, index, list) => el && list.indexOf(el) === index);
 
   function applySolidBackground() {
     backgroundTargets.forEach((target) => solidMenuBackground(target));
+    if (canvasEl) {
+      canvasEl.style.removeProperty('background-image');
+      const rootStyles = getComputedStyle(document.documentElement);
+      const textColor = rootStyles.getPropertyValue('--text-light').trim() || '#43433B';
+      canvasEl.style.backgroundColor = '#ffffff';
+      canvasEl.style.color = textColor;
+    }
   }
 
   function dispatch(open, extras = {}) {
