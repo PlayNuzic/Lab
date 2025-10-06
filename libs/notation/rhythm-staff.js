@@ -288,7 +288,10 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     if (svgElement && container) {
       const svgRect = svgElement.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
-      cachedSvgOffsetX = svgRect.left - containerRect.left;
+      // Asegurar que el offset sea relativo al scroll del contenedor
+      const scrollableParent = container.closest('.notation-panel__canvas');
+      const scrollLeft = scrollableParent ? scrollableParent.scrollLeft : 0;
+      cachedSvgOffsetX = (svgRect.left - containerRect.left) + scrollLeft;
     } else {
       cachedSvgOffsetX = 0;
     }
@@ -413,7 +416,11 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
   };
 
   const resetCursor = () => {
-    updateCursor(0, false);
+    // Usar requestAnimationFrame para asegurar que el DOM esté listo
+    requestAnimationFrame(() => {
+      updateSvgOffset();  // Re-calcular offset después del render
+      updateCursor(0, false);
+    });
   };
 
   const render = (state = {}) => {
