@@ -67,6 +67,7 @@ export function buildPulseEvents({
   lg,
   selectedSet = new Set(),
   duration = DEFAULT_DURATION,
+  dots = 0,
   includeZero = true,
   fractionalSelections = []
 } = {}) {
@@ -74,6 +75,7 @@ export function buildPulseEvents({
   const safeLg = Number.isFinite(lg) && lg > 0 ? Math.floor(lg) : 0;
   if (safeLg <= 0) return events;
   const resolvedDuration = typeof duration === 'string' && duration.trim() ? duration.trim() : DEFAULT_DURATION;
+  const resolvedDots = Number.isFinite(dots) ? Math.max(0, Math.floor(dots)) : 0;
   const normalizedSelected = normalizeSelectedSet(selectedSet);
   const entryLookup = new Map();
 
@@ -84,7 +86,8 @@ export function buildPulseEvents({
     const entry = {
       pulseIndex: i,
       duration: resolvedDuration,
-      rest: !shouldRenderNote
+      rest: !shouldRenderNote,
+      dots: resolvedDots
     };
     events.push(entry);
     if (key != null) {
@@ -105,6 +108,9 @@ export function buildPulseEvents({
         if (raw?.duration != null) {
           target.duration = raw.duration;
         }
+        if (Number.isFinite(raw?.dots)) {
+          target.dots = Math.max(0, Math.floor(raw.dots));
+        }
         if (raw?.selectionKey != null) {
           target.selectionKey = raw.selectionKey;
         }
@@ -118,6 +124,9 @@ export function buildPulseEvents({
         pulseIndex: value,
         duration: raw?.duration != null ? raw.duration : resolvedDuration,
         rest: Boolean(raw?.rest),
+        dots: Number.isFinite(raw?.dots)
+          ? Math.max(0, Math.floor(raw.dots))
+          : resolvedDots,
       };
       if (raw?.selectionKey != null) {
         extra.selectionKey = raw.selectionKey;

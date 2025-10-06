@@ -187,11 +187,14 @@ function buildNotationRenderState() {
   const normalizedFraction = fraction ? { ...fraction, notation: fractionNotation } : null;
 
   const denominatorValue = inferNotationDenominator(lgValue, fraction);
-  let baseDuration = durationValueFromDenominator(denominatorValue);
+  let baseDuration = fractionNotation?.duration
+    ?? durationValueFromDenominator(denominatorValue);
+  let baseDots = Number.isFinite(fractionNotation?.dots) ? Math.max(0, Math.floor(fractionNotation.dots)) : 0;
   const fractionNumeratorValue = Number.isFinite(fraction?.numerator) ? Math.floor(fraction.numerator) : null;
   const fractionDenominatorValue = Number.isFinite(fraction?.denominator) ? Math.floor(fraction.denominator) : null;
   if (fractionNumeratorValue && fractionDenominatorValue && fractionNumeratorValue === fractionDenominatorValue) {
     baseDuration = 'q';
+    baseDots = 0;
   }
   const selectedValues = new Set([0]);
   baseSelected.forEach((value) => selectedValues.add(value));
@@ -223,6 +226,7 @@ function buildNotationRenderState() {
     lg: lgValue,
     selectedSet: baseSelected,
     duration: baseDuration,
+    dots: baseDots,
     fractionalSelections: fractionalEvents
   });
 
