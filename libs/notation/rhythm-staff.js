@@ -280,6 +280,19 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
 
   let lastCursorX = null; // Track last valid cursor position
   let lastCursorPulse = -1; // Track last pulse to detect resets
+  let cachedSvgOffsetX = 0; // Cache SVG offset for performance
+  let scrollPending = false; // Throttle auto-scroll with requestAnimationFrame
+
+  const updateSvgOffset = () => {
+    const svgElement = container.querySelector('svg');
+    if (svgElement && container) {
+      const svgRect = svgElement.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      cachedSvgOffsetX = svgRect.left - containerRect.left;
+    } else {
+      cachedSvgOffsetX = 0;
+    }
+  };
 
   const updateCursor = (currentPulse = 0, isPlaying = false) => {
     const cursor = ensureCursor();
@@ -356,23 +369,18 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       lastCursorX = targetX;
     }
 
-    // Calcular offset del SVG si está centrado con margin auto
-    let svgOffsetX = 0;
-    const svgElement = container.querySelector('svg');
-    if (svgElement && container) {
-      const svgRect = svgElement.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      svgOffsetX = svgRect.left - containerRect.left;
-    }
-
     cursor.style.top = `${staveInfo.y}px`;
     cursor.style.height = `${staveInfo.height}px`;
-    cursor.style.transform = `translateX(${targetX + svgOffsetX}px)`;
+    cursor.style.transform = `translateX(${targetX + cachedSvgOffsetX}px)`;
     cursor.classList.toggle('notation-playback-cursor--active', isPlaying);
 
-    // Auto-scroll para mantener el cursor visible
-    if (isPlaying && Number.isFinite(targetX)) {
-      scrollNotationToPosition(targetX);
+    // Auto-scroll throttled con requestAnimationFrame para mejor performance
+    if (isPlaying && Number.isFinite(targetX) && !scrollPending) {
+      scrollPending = true;
+      requestAnimationFrame(() => {
+        scrollNotationToPosition(targetX);
+        scrollPending = false;
+      });
     }
   };
 
@@ -1010,6 +1018,9 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     });
 
     lastRenderMeta = { positionLookup, lgCount: lg };
+
+    // Actualizar cache del SVG offset después de renderizar
+    updateSvgOffset();
 
     resetCursor();
   };

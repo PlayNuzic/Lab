@@ -1215,7 +1215,6 @@ body[data-theme='dark'] .notation-panel__canvas {
   position: relative;
   display: block;
   width: fit-content;
-  min-width: 100%;
   margin: 0 auto;
   background: transparent;
   padding: 0;
