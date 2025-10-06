@@ -1076,7 +1076,8 @@ body[data-theme='dark'] .top-bar-notation-button {
   justify-content: center;
   padding: 0;
   margin: clamp(16px, 4vw, 28px) auto;
-  width: min(960px, 100%);
+  max-width: 1200px;
+  width: 100%;
   z-index: auto;
 }
 

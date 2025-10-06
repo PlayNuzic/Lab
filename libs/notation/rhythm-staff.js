@@ -33,9 +33,9 @@ const NAMED_DURATIONS = {
 };
 
 const REST_KEY = 'b/4';
-const DEFAULT_NOTE_KEY = 'b/4';
-const DOWNBEAT_KEY = 'd/4';
-const SELECTED_KEY = 'c/5';
+const DEFAULT_NOTE_KEY = 'c/4';
+const DOWNBEAT_KEY = 'd/2';
+const SELECTED_KEY = 'c/4';
 
 const BEAMABLE_DURATIONS = new Set(['8', '16', '32', '64']);
 const POSITION_SCALE = 1e6;
@@ -486,8 +486,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     const rawSelected = Array.isArray(selectedIndices) ? selectedIndices : [];
     rawSelected.forEach((value) => {
       const numeric = Number(value);
-      if (!Number.isFinite(numeric)) return;
-      if (shouldInclude(numeric)) {
+      if (Number.isFinite(numeric)) {
         selectedSet.add(numeric);
       }
     });
