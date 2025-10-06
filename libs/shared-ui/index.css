@@ -1169,14 +1169,11 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
 }
 
 .notation-panel__canvas {
-  width: fit-content;
-  min-width: 100%;
+  width: 100%;
   min-height: 260px;
   border-radius: 18px;
   border: 1px dashed rgba(0, 0, 0, 0.18);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   background: #ffffff;
   background-color: #ffffff;
   padding: clamp(24px, 4vw, 36px);
@@ -1216,9 +1213,7 @@ body[data-theme='dark'] .notation-panel__canvas {
 
 .rhythm-staff-container {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: fit-content;
   min-width: 100%;
   margin: 0 auto;
