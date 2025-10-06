@@ -476,15 +476,18 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
             return;
           }
 
-          if (!shouldInclude(position)) {
-            const ghostDuration = typeof resolvedRestDuration === 'string'
-              ? resolvedRestDuration.replace(/r$/i, '')
-              : null;
-            const fallbackDuration = typeof baseDuration === 'string' && baseDuration.trim()
-              ? baseDuration.trim()
-              : '16';
-            const ghostNote = new GhostNote({ duration: ghostDuration || fallbackDuration });
-            ghostNote.setStemDirection(Stem.UP);
+          // Los inicios de ciclo siempre se renderizan como silencios visibles
+          // para completar los tuplets, independientemente del filtro
+          const isCycleStart = subdivisionIndex === 0;
+
+          if (isCycleStart || shouldInclude(position)) {
+            // Crear silencio visible para inicios de ciclo o posiciones incluidas
+            const restNote = new StaveNote({
+              clef: 'treble',
+              duration: resolvedRestDuration,
+              keys: [REST_KEY],
+            });
+            restNote.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
 
             registerEntry({
               event: {
@@ -494,7 +497,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
                 generated: true,
               },
               pulseIndex: position,
-              note: ghostNote,
+              note: restNote,
               generated: true,
               tupletCycle: cycleIndex,
               subdivisionIndex,
@@ -503,12 +506,15 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
             return;
           }
 
-          const restNote = new StaveNote({
-            clef: 'treble',
-            duration: resolvedRestDuration,
-            keys: [REST_KEY],
-          });
-          restNote.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
+          // Para posiciones excluidas que NO son inicio de ciclo, crear GhostNote
+          const ghostDuration = typeof resolvedRestDuration === 'string'
+            ? resolvedRestDuration.replace(/r$/i, '')
+            : null;
+          const fallbackDuration = typeof baseDuration === 'string' && baseDuration.trim()
+            ? baseDuration.trim()
+            : '16';
+          const ghostNote = new GhostNote({ duration: ghostDuration || fallbackDuration });
+          ghostNote.setStemDirection(Stem.UP);
 
           registerEntry({
             event: {
@@ -518,7 +524,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
               generated: true,
             },
             pulseIndex: position,
-            note: restNote,
+            note: ghostNote,
             generated: true,
             tupletCycle: cycleIndex,
             subdivisionIndex,
@@ -654,7 +660,14 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
 
       const beamableNotes = tupletNotes.filter(shouldBeamNote);
       if (beamableNotes.length > 1) {
-        tupletBeams.push(new Beam(beamableNotes));
+        const beam = new Beam(beamableNotes);
+        tupletBeams.push(beam);
+        // Asignar beam a cada nota para que VexFlow oculte sus flags individuales
+        beamableNotes.forEach((note) => {
+          if (note && typeof note.setBeam === 'function') {
+            note.setBeam(beam);
+          }
+        });
       }
 
       return tuplet;
