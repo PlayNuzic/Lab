@@ -106,6 +106,7 @@ box-sizing: border-box;
 padding: 0 20px;
 margin: 0 auto;
 overflow-x: auto;
+overflow-y: visible;
 position: relative;
 }
 
@@ -130,6 +131,7 @@ opacity: 0.5;
 pointer-events: none;
 transform: translate(-50%, -50%);
 display: none;
+z-index: 100;
 }
 
 #pulseSeqHighlight.active,
