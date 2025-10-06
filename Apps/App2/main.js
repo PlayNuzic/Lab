@@ -114,7 +114,10 @@ function renderNotationIfVisible({ force = false } = {}) {
   if (!force && !notationPanelController.isOpen) return;
 
   if (!notationRenderer) {
-    notationRenderer = createRhythmStaff({ container: notationContentEl });
+    notationRenderer = createRhythmStaff({
+      container: notationContentEl,
+      pulseFilter: 'whole'
+    });
   }
 
   const state = buildNotationRenderState();

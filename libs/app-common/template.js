@@ -123,14 +123,12 @@ ${togglesMarkup}
       hidden
     >
       <div class="notation-panel__dialog" role="region" aria-label="Partitura musical">
-        <div class="notation-panel__body">
-          <div
-            id="${NOTATION_CONTENT_ID}"
-            class="notation-panel__canvas"
-            role="img"
-            aria-label="Partitura musical"
-          ></div>
-        </div>
+        <div
+          id="${NOTATION_CONTENT_ID}"
+          class="notation-panel__canvas"
+          role="img"
+          aria-label="Partitura musical"
+        ></div>
       </div>
     </section>
   ` : '';

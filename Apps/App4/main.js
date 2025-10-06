@@ -233,7 +233,10 @@ function renderNotationIfVisible({ force = false } = {}) {
   if (!force && !notationPanelController.isOpen) return;
 
   if (!notationRenderer) {
-    notationRenderer = createRhythmStaff({ container: notationContentEl });
+    notationRenderer = createRhythmStaff({
+      container: notationContentEl,
+      pulseFilter: 'fractional'
+    });
   }
 
   const state = buildNotationRenderState();

@@ -982,7 +982,7 @@ font-size: 0.85rem;
   width: 100%;
   text-align: center;
   padding: 0 var(--topbar-side-gap);
-  font-size: 1.45rem;
+  font-size: clamp(1.45rem, 1.6vw, 1.95rem);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1051,13 +1051,14 @@ body[data-theme='dark'] .top-bar-notation-button {
   fill: currentColor;
 }
 
+
 .notation-panel {
   position: fixed;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: clamp(28px, 6vw, 48px);
   z-index: 1050;
 }
 
@@ -1074,10 +1075,7 @@ body[data-theme='dark'] .top-bar-notation-button {
   z-index: auto;
 }
 
-.notation-panel[hidden] {
-  display: none;
-}
-
+.notation-panel[hidden],
 .notation-panel--inline[hidden] {
   display: none;
 }
@@ -1090,39 +1088,40 @@ body[data-theme='dark'] .top-bar-notation-button {
 
 .notation-panel__dialog {
   position: relative;
-  width: min(720px, 90vw);
-  max-height: min(90vh, 640px);
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
-  background: var(--bg-light);
+  align-items: center;
+  gap: clamp(20px, 4vw, 32px);
+  width: min(840px, 70vw);
+  max-width: 100%;
+  max-height: min(88vh, 720px);
+  padding: clamp(28px, 4vw, 44px);
+  border-radius: 24px;
+  background: #ffffff;
   color: var(--text-light);
-  border: 2px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 48px 96px rgba(0, 0, 0, 0.22);
   overflow: hidden;
 }
 
 .notation-panel--inline .notation-panel__dialog {
-  position: static;
-  width: fit-content;
-  max-width: 100%;
-  max-height: none;
-  border-radius: 14px;
-  border-width: 1px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
   margin: 0 auto;
+  width: fit-content;
+  max-height: none;
+  padding: clamp(22px, 4vw, 36px);
+  border-radius: 18px;
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.18);
 }
 
 body[data-theme='dark'] .notation-panel__dialog {
-  background: rgba(40, 40, 40, 0.95);
-  color: var(--text-dark);
-  border-color: rgba(238, 232, 216, 0.18);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.65);
+  background: #ffffff;
+  color: var(--text-light);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 48px 110px rgba(0, 0, 0, 0.35);
 }
 
 body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
-  background: rgb(255, 255, 255);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.28);
 }
 
 .notation-panel__header {
@@ -1130,7 +1129,7 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 24px 12px;
+  width: 100%;
 }
 
 .notation-panel__title {
@@ -1159,45 +1158,32 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
   outline-offset: 3px;
 }
 
-.notation-panel__body {
-  flex: 1;
-  padding: 0 24px 24px;
-  overflow: auto;
-  background: rgb(255, 255, 255) ;
-}
-
-.notation-panel--inline .notation-panel__body {
-  padding: 0 20px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
 .notation-panel__canvas {
   width: fit-content;
   max-width: 100%;
   min-height: 260px;
-  border-radius: 12px;
-  border: 1px dashed rgba(0, 0, 0, 0.12);
+  border-radius: 18px;
+  border: 1px dashed rgba(0, 0, 0, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
   background: #ffffff;
-  padding: 20px;
+  padding: clamp(24px, 4vw, 36px);
   position: relative;
   margin: 0 auto;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.16);
 }
 
 body[data-theme='dark'] .notation-panel__canvas {
-  border-color: rgba(238, 232, 216, 0.25);
-  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.24);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.28);
 }
 
 .notation-panel__canvas svg {
   background: #ffffff;
   display: block;
   margin: 0 auto;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.12));
 }
 
 .rhythm-staff-container {
@@ -1266,91 +1252,36 @@ body.notation-open {
   .notation-panel__dialog {
     width: min(640px, 100%);
     max-height: 92vh;
+    padding: 20px 16px;
+    border-radius: 18px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
   }
 
-  .notation-panel__body {
-    padding: 0 16px 20px;
-  }
-}
-
-@media (min-width: 601px) {
-  .top-bar h1 {
-    gap: 0.75rem;
-    font-size: clamp(1.45rem, 1.6vw, 1.95rem);
-    align-items: center;
-  }
-
-  .top-bar-notation-button {
-    width: clamp(2.6rem, 3vw, 3.1rem);
-    height: clamp(2.6rem, 3vw, 3.1rem);
-    background: rgba(255, 255, 255, 0.22);
-    border-color: currentColor;
-    background: color-mix(in srgb, #ffffff 72%, transparent);
-    border-color: color-mix(in srgb, currentColor 35%, transparent);
-    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
-  }
-
-  body[data-theme='dark'] .top-bar-notation-button {
-    color: var(--text-light);
-    background: rgba(255, 255, 255, 0.12);
-    border-color: currentColor;
-    background: color-mix(in srgb, #ffffff 18%, transparent);
-    border-color: color-mix(in srgb, #ffffff 32%, transparent);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
-  }
-
-  .top-bar-notation-button:hover {
-    background: rgba(255, 255, 255, 0.9);
-    background: color-mix(in srgb, #ffffff 80%, var(--selection-color) 20%);
-  }
-
-  .notation-panel {
-    padding: clamp(28px, 6vw, 48px);
-  }
-
-  .notation-panel__dialog {
-    width: min(840px, 70vw);
-    max-height: min(88vh, 720px);
-    border-radius: 24px;
-    background: #ffffff;
-    color: var(--text-light);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 48px 96px rgba(0, 0, 0, 0.22);
+  .notation-panel--inline .notation-panel__dialog {
+    padding: 18px 16px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
   }
 
   body[data-theme='dark'] .notation-panel__dialog {
-    background: #ffffff;
-    color: var(--text-light);
-    border-color: rgba(0, 0, 0, 0.12);
-    box-shadow: 0 48px 110px rgba(0, 0, 0, 0.35);
-  }
-
-  .notation-panel__body {
-    padding: 0 clamp(28px, 4vw, 40px) clamp(28px, 4vw, 44px);
-    background: #ffffff;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
   }
 
   .notation-panel__canvas {
-    padding: clamp(24px, 4vw, 36px);
-    border-radius: 18px;
-    border: 1px dashed rgba(0, 0, 0, 0.18);
-    background: #ffffff;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.16);
+    padding: 18px;
+    min-height: 220px;
+    border-radius: 16px;
+    box-shadow: none;
   }
 
   body[data-theme='dark'] .notation-panel__canvas {
-    border-color: rgba(0, 0, 0, 0.24);
-    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.28);
-  }
-
-  .notation-panel__canvas svg {
-    filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.12));
+    box-shadow: none;
   }
 
   .rhythm-staff-container {
-    padding: clamp(12px, 2vw, 24px);
-    border-radius: 16px;
-    box-shadow: 0 26px 52px rgba(0, 0, 0, 0.12);
+    width: 100%;
+    padding: 12px;
+    border-radius: 14px;
+    box-shadow: none;
   }
 }
 

@@ -76,6 +76,31 @@ function isWholePulse(value) {
   return Math.abs(value - nearestInteger) <= WHOLE_PULSE_EPSILON;
 }
 
+const PULSE_FILTERS = {
+  fractional: (value) => !isWholePulse(value),
+  whole: (value) => isWholePulse(value),
+  all: () => true
+};
+
+function normalizePulseFilter(filter) {
+  if (typeof filter === 'function') {
+    return (value) => Boolean(filter(value));
+  }
+  if (typeof filter === 'string' && PULSE_FILTERS[filter]) {
+    return PULSE_FILTERS[filter];
+  }
+  return PULSE_FILTERS.fractional;
+}
+
+function createPulseInclusionChecker(filter) {
+  const predicate = normalizePulseFilter(filter);
+  return (value) => {
+    if (!Number.isFinite(value)) return false;
+    if (value === 0) return true;
+    return Boolean(predicate(value));
+  };
+}
+
 function denominatorToDuration(denominator) {
   const clean = Math.round(Number(denominator));
   switch (clean) {
@@ -178,7 +203,7 @@ function pickKeyForPulse(pulseIndex, selectedSet) {
   return DEFAULT_NOTE_KEY;
 }
 
-export function createRhythmStaff({ container } = {}) {
+export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}) {
   if (!container) {
     throw new Error('createRhythmStaff requires a container element');
   }
@@ -198,6 +223,7 @@ export function createRhythmStaff({ container } = {}) {
   let cursorElement = null;
   let staveInfo = null;
   let lastRenderMeta = { positionLookup: new Map() };
+  let includePulse = createPulseInclusionChecker(pulseFilter);
 
   const clear = () => {
     if (!container) return;
@@ -283,7 +309,12 @@ export function createRhythmStaff({ container } = {}) {
       fraction = null,
       positions = [],
       rhythm,
+      pulseFilter: overridePulseFilter,
     } = state;
+
+    const shouldInclude = overridePulseFilter != null
+      ? createPulseInclusionChecker(overridePulseFilter)
+      : includePulse;
 
     const events = normalizeEvents(rhythm || state);
     const tuplets = normalizeTuplets(rhythm || state);
@@ -291,14 +322,16 @@ export function createRhythmStaff({ container } = {}) {
     clear();
 
     const pulses = Array.isArray(positions) ? positions : [];
-    const selectedSet = new Set(
-      (Array.isArray(selectedIndices) ? selectedIndices : [])
-        .map((value) => {
-          const numeric = Number(value);
-          return Number.isFinite(numeric) ? numeric : null;
-        })
-        .filter((value) => value != null && (!isWholePulse(value) || value === 0))
-    );
+    const selectedSet = new Set();
+    const rawSelected = Array.isArray(selectedIndices) ? selectedIndices : [];
+    rawSelected.forEach((value) => {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return;
+      if (shouldInclude(numeric)) {
+        selectedSet.add(numeric);
+      }
+    });
+    selectedSet.add(0);
 
     const entryBuckets = new Map();
     const entryList = [];
@@ -344,7 +377,7 @@ export function createRhythmStaff({ container } = {}) {
         ? Number(event.pulseIndex)
         : (Number.isFinite(pulses[index]) ? Number(pulses[index]) : index);
 
-      if (isWholePulse(pulseIndex) && pulseIndex !== 0) {
+      if (!shouldInclude(pulseIndex)) {
         return;
       }
 
@@ -395,7 +428,7 @@ export function createRhythmStaff({ container } = {}) {
             return;
           }
 
-          if (isWholePulse(position)) {
+          if (!shouldInclude(position)) {
             return;
           }
 
@@ -662,6 +695,9 @@ export function createRhythmStaff({ container } = {}) {
     destroy,
     updateCursor,
     resetCursor,
+    setPulseFilter: (nextFilter) => {
+      includePulse = createPulseInclusionChecker(nextFilter);
+    },
     resolvePulseIndexKey: (key) => {
       if (key == null) return null;
       const lookupKey = String(key);

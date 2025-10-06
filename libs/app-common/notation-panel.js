@@ -45,7 +45,10 @@ export function createNotationPanelController({
   let lastFocusedElement = null;
   const detailBase = { appId };
 
-  const backgroundTargets = [dialog, panel.querySelector('.notation-panel__body')]
+  const backgroundTargets = [
+    dialog,
+    panel.querySelector('.notation-panel__canvas')
+  ]
     .filter((el, index, list) => el && list.indexOf(el) === index);
 
   function applySolidBackground() {
