@@ -276,6 +276,7 @@ function handleNotationClick(event) {
   if (!target) return;
   const noteEl = target.closest('[data-pulse-index]');
   if (!noteEl) return;
+  if (noteEl.dataset.nonSelectable === 'true') return;
   const pulseValue = Number.parseFloat(noteEl.dataset.pulseIndex);
   if (!Number.isFinite(pulseValue)) return;
   const lgValue = parseInt(inputLg.value, 10);

@@ -124,12 +124,23 @@ function buildResult(numerator, denominator, rule) {
   const dots = Number.isFinite(rule?.dots) && rule.dots > 0 ? Math.floor(rule.dots) : 0;
   const showTuplet = rule?.tuplet?.show;
   const ratioed = rule?.tuplet?.ratioed;
+  const normalizedNumerator = Math.floor(Number(numerator) || 0);
+  const normalizedDenominator = Math.floor(Number(denominator) || 0);
+  const isEvenRatio = normalizedNumerator > 0
+    && normalizedDenominator > 0
+    && normalizedNumerator === normalizedDenominator;
+  const resolvedShow = isEvenRatio
+    ? false
+    : (typeof showTuplet === 'boolean' ? showTuplet : null);
+  const resolvedRatioed = isEvenRatio
+    ? false
+    : (typeof ratioed === 'boolean' ? ratioed : null);
   return {
     duration,
     dots,
     tuplet: {
-      show: typeof showTuplet === 'boolean' ? showTuplet : null,
-      ratioed: typeof ratioed === 'boolean' ? ratioed : null,
+      show: resolvedShow,
+      ratioed: resolvedRatioed,
       notesOccupied: numerator,
       denominator
     }

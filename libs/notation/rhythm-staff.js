@@ -1,4 +1,4 @@
-import { Renderer, Stave, StaveNote, Voice, Formatter, Tuplet, BarlineType, Beam, GhostNote, Stem } from '../vendor/vexflow/entry/vexflow.js';
+import { Renderer, Stave, StaveNote, Voice, Formatter, Tuplet, BarlineType, Beam } from '../vendor/vexflow/entry/vexflow.js';
 import { gridFromOrigin } from '../app-common/subdivision.js';
 import { resolveFractionNotation } from '../app-common/fraction-notation.js';
 
@@ -695,15 +695,15 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
             return;
           }
 
-          // Para posiciones excluidas que NO son inicio de ciclo, crear GhostNote
-          const ghostDuration = typeof resolvedRestDuration === 'string'
-            ? resolvedRestDuration.replace(/r$/i, '')
-            : null;
-          const fallbackDuration = typeof baseDuration === 'string' && baseDuration.trim()
-            ? baseDuration.trim()
-            : '16';
-          const ghostNote = new GhostNote({ duration: ghostDuration || fallbackDuration });
-          ghostNote.setStemDirection(Stem.UP);
+          // Para posiciones excluidas que coinciden con pulsos enteros,
+          // renderizar un silencio visible pero no interactivo.
+          const restNote = new StaveNote({
+            clef: 'treble',
+            duration: resolvedRestDuration,
+            keys: [REST_KEY],
+          });
+          restNote.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
+          applyDotsToNote(restNote, tupletDots);
 
           registerEntry({
             event: {
@@ -714,10 +714,11 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
               dots: tupletDots,
             },
             pulseIndex: position,
-            note: ghostNote,
+            note: restNote,
             generated: true,
             tupletCycle: cycleIndex,
             subdivisionIndex,
+            nonSelectable: true,
             originalIndex: events.length + entryList.length,
           });
         });
@@ -852,7 +853,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     const tupletBeams = [];
     const noteLookup = entries.map((entry) => entry.note);
 
-    const createTuplet = (noteIndices, ratio) => {
+    const collectCycleNotes = (noteIndices) => {
       const normalizedIndices = Array.from(new Set(noteIndices)).sort((a, b) => a - b);
       if (normalizedIndices.length < 2) return null;
 
@@ -860,6 +861,34 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
         .map((idx) => noteLookup[idx])
         .filter((note) => note);
       if (tupletNotes.length < 2) return null;
+
+      const beamableNotes = tupletNotes.filter(shouldBeamNote);
+      const hasFractionalPulses = normalizedIndices.some((idx) => {
+        const entry = entries[idx];
+        return entry && Number.isFinite(entry.pulseIndex) && !isWholePulse(entry.pulseIndex);
+      });
+
+      return {
+        normalizedIndices,
+        tupletNotes,
+        beamableNotes,
+        hasFractionalPulses,
+      };
+    };
+
+    const createBeamFromCycle = (cycle) => {
+      if (!cycle || !cycle.hasFractionalPulses) return null;
+      const { beamableNotes } = cycle;
+      if (!Array.isArray(beamableNotes) || beamableNotes.length < 2) return null;
+      const beam = new Beam(beamableNotes);
+      tupletBeams.push(beam);
+      return beam;
+    };
+
+    const createTupletFromCycle = (cycle, ratio) => {
+      if (!cycle) return null;
+      const { normalizedIndices, tupletNotes } = cycle;
+      if (!normalizedIndices?.length || !tupletNotes?.length) return null;
 
       const explicitNumNotes = Number.isFinite(Number(ratio?.numNotes)) && Number(ratio?.numNotes) > 0
         ? Number(ratio.numNotes)
@@ -899,29 +928,20 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       }
       renderedTuplets.push(tuplet);
 
-      // Solo crear beams si hay al menos una nota fraccionaria
-      // Los pulsos enteros solos NO deben tener beams entre ellos
-      const beamableNotes = tupletNotes.filter(shouldBeamNote);
-
-      // Verificar si hay al menos una nota fraccionaria en este tuplet
-      const hasFractionalPulses = normalizedIndices.some(idx => {
-        const entry = entries[idx];
-        return entry && Number.isFinite(entry.pulseIndex) && !isWholePulse(entry.pulseIndex);
-      });
-
-      if (beamableNotes.length > 1 && hasFractionalPulses) {
-        // El constructor de Beam automáticamente asigna el beam a las notas (llama setBeam)
-        const beam = new Beam(beamableNotes);
-        tupletBeams.push(beam);
-      }
-
+      createBeamFromCycle(cycle);
       return tuplet;
+    };
+
+    const createTupletFromIndices = (noteIndices, ratio) => {
+      const cycle = collectCycleNotes(noteIndices);
+      if (!cycle) return null;
+      return createTupletFromCycle(cycle, ratio);
     };
 
     if (tuplets.length) {
       tuplets.forEach((group) => {
         const indices = Array.isArray(group?.noteIndices) ? group.noteIndices : [];
-        createTuplet(indices, group);
+        createTupletFromIndices(indices, group);
       });
     } else if (fractionGrid?.subdivisions?.length && fractionGrid.denominator > 1 && fractionGrid.numerator > 0) {
       // Agrupar entries directamente por su tupletCycle metadata
@@ -929,9 +949,6 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       entries.forEach((entry) => {
         const cycleIdx = entry.tupletCycle;
         if (!Number.isFinite(cycleIdx)) return;
-        // Excluir GhostNotes generadas de los tuplets visibles
-        // Las GhostNotes son instancias de GhostNote, podemos usar instanceof
-        if (entry.note instanceof GhostNote) return;
         if (!groupedByCycle.has(cycleIdx)) {
           groupedByCycle.set(cycleIdx, []);
         }
@@ -941,14 +958,26 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       // Crear tuplets validando longitud por ciclo
       groupedByCycle.forEach((indices) => {
         if (!Array.isArray(indices) || indices.length < 2) return;
-        const sorted = Array.from(new Set(indices)).sort((a, b) => a - b);
-        if (sorted.length < 2) return;
+        const cycle = collectCycleNotes(indices);
+        if (!cycle) return;
+
+        const { normalizedIndices } = cycle;
+        if (!Array.isArray(normalizedIndices) || normalizedIndices.length < 2) return;
 
         // Validar longitud esperada del ciclo
         const expectedLength = fractionGrid.denominator;
-        const isCompleteCycle = sorted.length === expectedLength;
+        const isCompleteCycle = normalizedIndices.length === expectedLength;
 
         const fractionTuplet = fractionNotation?.tuplet ?? null;
+        const simpleHiddenTuplet = fractionTuplet?.show === false
+          && fractionGrid.numerator === 1
+          && fractionGrid.denominator > 1
+          && BEAMABLE_DURATIONS.has(sanitizeDurationForBeam(fractionNotation?.duration));
+
+        if (simpleHiddenTuplet) {
+          createBeamFromCycle(cycle);
+        }
+
         if (fractionTuplet?.show === false) {
           return;
         }
@@ -956,7 +985,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
         const ratioedOverride = typeof fractionTuplet?.ratioed === 'boolean'
           ? fractionTuplet.ratioed
           : shouldRatio;
-        createTuplet(sorted, {
+        createTupletFromCycle(cycle, {
           denominator: fractionGrid.denominator,
           notesOccupied: fractionGrid.numerator,
           ratioed: ratioedOverride,
@@ -1033,6 +1062,11 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
         } else {
           delete element.dataset.generated;
         }
+        if (entry.nonSelectable) {
+          element.dataset.nonSelectable = 'true';
+        } else {
+          delete element.dataset.nonSelectable;
+        }
         if (Number.isFinite(entry.tupletCycle)) {
           element.dataset.tupletCycle = String(entry.tupletCycle);
         } else {
@@ -1048,7 +1082,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
         } else {
           delete element.dataset.duration;
         }
-        if (selectedSet.has(pulseIndex)) {
+        if (!entry.nonSelectable && selectedSet.has(pulseIndex)) {
           element.dataset.selected = 'true';
         } else {
           delete element.dataset.selected;

@@ -31,11 +31,11 @@ describe('resolveFractionNotation', () => {
     expect(threeOverTwo.tuplet.ratioed).toBe(true);
   });
 
-  test('forces ratio display for equal numerator and denominator when required', () => {
+  test('omits tuplets when numerator and denominator match', () => {
     const threeOverThree = resolveFractionNotation(3, 3);
     expect(threeOverThree.duration).toBe('q');
-    expect(threeOverThree.tuplet.show).toBe(true);
-    expect(threeOverThree.tuplet.ratioed).toBe(true);
+    expect(threeOverThree.tuplet.show).toBe(false);
+    expect(threeOverThree.tuplet.ratioed).toBe(false);
   });
 
   test('supports higher numerators', () => {
