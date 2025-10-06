@@ -600,7 +600,8 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
         || denominatorToDuration(fractionDenominator)
         || '16';
       const resolvedRestDuration = resolveDuration(baseDuration, true);
-      const restDots = Number.isFinite(fractionNotation?.dots) && fractionNotation.dots > 0
+      const resolvedNoteDuration = resolveDuration(baseDuration, false);
+      const tupletDots = Number.isFinite(fractionNotation?.dots) && fractionNotation.dots > 0
         ? Math.floor(fractionNotation.dots)
         : 0;
 
@@ -628,16 +629,22 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
 
               // 3. Crear nueva entry con nota (no silencio)
               const noteKey = pickKeyForPulse(position, selectedSet);
-              const noteDuration = resolveDuration(realEvent.duration, false);
+              const normalizedEvent = {
+                ...realEvent,
+                duration: baseDuration,
+                dots: tupletDots,
+                rest: false,
+                generated: false,
+              };
               const note = new StaveNote({
                 clef: 'treble',
-                duration: noteDuration,
+                duration: resolvedNoteDuration,
                 keys: [noteKey],
               });
-              applyDotsToNote(note, realEvent?.dots);
+              applyDotsToNote(note, tupletDots);
 
               registerEntry({
-                event: realEvent,
+                event: normalizedEvent,
                 pulseIndex: position,
                 note,
                 generated: false,
@@ -668,7 +675,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
               keys: [REST_KEY],
             });
             restNote.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
-            applyDotsToNote(restNote, restDots);
+            applyDotsToNote(restNote, tupletDots);
 
             registerEntry({
               event: {
@@ -676,6 +683,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
                 duration: resolvedRestDuration,
                 rest: true,
                 generated: true,
+                dots: tupletDots,
               },
               pulseIndex: position,
               note: restNote,
@@ -703,6 +711,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
               duration: resolvedRestDuration,
               rest: true,
               generated: true,
+              dots: tupletDots,
             },
             pulseIndex: position,
             note: ghostNote,
