@@ -279,17 +279,26 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
   };
 
   let lastCursorX = null; // Track last valid cursor position
+  let lastCursorPulse = -1; // Track last pulse to detect resets
 
   const updateCursor = (currentPulse = 0, isPlaying = false) => {
     const cursor = ensureCursor();
     if (!staveInfo) {
       cursor.classList.remove('notation-playback-cursor--active');
       cursor.style.opacity = '0';
+      lastCursorX = null;
+      lastCursorPulse = -1;
       return;
     }
 
     // Remover opacity inline para que la clase CSS --active controle la opacidad
     cursor.style.opacity = '';
+
+    // Detectar reset de ciclo (pulso vuelve a 0 o disminuye)
+    if (currentPulse < lastCursorPulse) {
+      lastCursorX = null;
+    }
+    lastCursorPulse = currentPulse;
 
     // Buscar la nota correspondiente al pulso actual
     let targetX = null;
@@ -309,22 +318,19 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       }
     }
 
-    // Si no encontramos posición exacta, interpolar basándonos en pulso
+    // Si no encontramos posición exacta, usar última posición válida (NO interpolar)
+    // Esto evita saltos cuando el cursor pasa por pulsos sin entry
     if (!Number.isFinite(targetX)) {
-      const lgCount = lastRenderMeta.lgCount || 1;
-      const normalized = Number.isFinite(currentPulse) && lgCount > 0
-        ? Math.min(Math.max(currentPulse / lgCount, 0), 1)
-        : 0;
-      const startX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
-      const endXBase = Number.isFinite(staveInfo.contentEndX)
-        ? staveInfo.contentEndX
-        : staveInfo.x + staveInfo.width;
-      const usableWidth = Math.max(0, endXBase - startX);
-      targetX = startX + usableWidth * normalized;
+      if (Number.isFinite(lastCursorX)) {
+        targetX = lastCursorX;
+      } else {
+        // Primera vez o después de reset - usar posición inicial
+        targetX = Number.isFinite(staveInfo.contentStartX) ? staveInfo.contentStartX : staveInfo.x;
+      }
     }
 
-    // Actualizar última posición válida
-    if (Number.isFinite(targetX)) {
+    // Actualizar última posición válida solo si avanzamos
+    if (Number.isFinite(targetX) && (!Number.isFinite(lastCursorX) || targetX >= lastCursorX)) {
       lastCursorX = targetX;
     }
 
@@ -670,7 +676,8 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
           });
 
           // Calcular el ciclo del tuplet para que este pulso entero se incluya en el tuplet correcto
-          const tupletCycle = fractionGrid ? Math.floor(pulseIndex / fractionGrid.denominator) : undefined;
+          // El numerator define el tamaño del ciclo (cada ciclo empieza cada N pulsos)
+          const tupletCycle = fractionGrid ? Math.floor(pulseIndex / fractionGrid.numerator) : undefined;
 
           registerEntry({
             event,
@@ -694,7 +701,8 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       });
 
       // Calcular el ciclo del tuplet para que este pulso entero se incluya en el tuplet correcto
-      const tupletCycle = fractionGrid ? Math.floor(pulseIndex / fractionGrid.denominator) : undefined;
+      // El numerator define el tamaño del ciclo (cada ciclo empieza cada N pulsos)
+      const tupletCycle = fractionGrid ? Math.floor(pulseIndex / fractionGrid.numerator) : undefined;
 
       registerEntry({
         event,
@@ -798,8 +806,17 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       }
       renderedTuplets.push(tuplet);
 
+      // Solo crear beams si hay al menos una nota fraccionaria
+      // Los pulsos enteros solos NO deben tener beams entre ellos
       const beamableNotes = tupletNotes.filter(shouldBeamNote);
-      if (beamableNotes.length > 1) {
+
+      // Verificar si hay al menos una nota fraccionaria en este tuplet
+      const hasFractionalPulses = normalizedIndices.some(idx => {
+        const entry = entries[idx];
+        return entry && Number.isFinite(entry.pulseIndex) && !isWholePulse(entry.pulseIndex);
+      });
+
+      if (beamableNotes.length > 1 && hasFractionalPulses) {
         // El constructor de Beam automáticamente asigna el beam a las notas (llama setBeam)
         const beam = new Beam(beamableNotes);
         tupletBeams.push(beam);

@@ -1170,7 +1170,7 @@ body[data-theme='dark'] .notation-panel--inline .notation-panel__dialog {
 
 .notation-panel__canvas {
   width: fit-content;
-  max-width: 100%;
+  min-width: 100%;
   min-height: 260px;
   border-radius: 18px;
   border: 1px dashed rgba(0, 0, 0, 0.18);
@@ -1220,7 +1220,7 @@ body[data-theme='dark'] .notation-panel__canvas {
   align-items: center;
   justify-content: center;
   width: fit-content;
-  max-width: 100%;
+  min-width: 100%;
   margin: 0 auto;
   background: transparent;
   padding: 0;
@@ -1234,7 +1234,6 @@ body[data-theme='dark'] .notation-panel__canvas {
 .rhythm-staff-container svg {
   display: block;
   height: auto;
-  max-width: 100%;
 }
 
 .notation-playback-cursor {
