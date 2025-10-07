@@ -93,6 +93,76 @@ const newText = stateManager.generateFieldText({ lg: 12 });
 
 ---
 
+### pulse-seq-editor.js
+
+**Responsabilidad**: Editor contenteditable con navegación personalizada por gaps.
+
+**API principal**:
+
+```javascript
+createPulseSeqEditor({
+  editElement,
+  visualLayer?,
+  onTextChange?,
+  onUpdateVisualLayer?,
+  onSanitize?
+}) → {
+  attach(),
+  detach(),
+  getText(),
+  setText(str),
+  setSelection(start, end),
+  getCaretPosition(),
+  moveCaretToNearestMidpoint(),
+  moveCaretStep(dir)
+}
+```
+
+**Funciones utilitarias**:
+
+```javascript
+// Extrae posiciones de midpoints (doble espacio)
+getMidpoints(text) → number[]
+
+// Normaliza gaps entre tokens
+normalizeGaps(text) → string
+```
+
+**Uso**:
+```javascript
+import { createPulseSeqEditor } from '../../libs/app-common/pulse-seq-editor.js';
+
+const editor = createPulseSeqEditor({
+  editElement: document.querySelector('[contenteditable]'),
+  onUpdateVisualLayer: (text) => {
+    // Renderizar tokens coloreados
+  },
+  onSanitize: (opts) => {
+    // Validar y limpiar texto
+    sanitizePulseSeq(opts);
+  }
+});
+
+editor.attach(); // Adjunta event listeners
+```
+
+**Características**:
+- **Navegación por gaps**: ArrowLeft/Right/Home/End saltan entre tokens
+- **Backspace/Delete**: Borra token completo + espacio
+- **Espacio**: Normaliza gaps automáticamente
+- **Enter**: Ejecuta sanitización
+- **Focus**: Normaliza y posiciona en midpoint
+- **Blur**: Ejecuta sanitización
+- **Mouseup**: Ajusta caret al midpoint más cercano
+
+**Eventos manejados**:
+- `keydown`: Navegación, validación de teclas, borrado inteligente
+- `focus`: Normalización inicial
+- `blur`: Sanitización
+- `mouseup`: Ajuste de caret
+
+---
+
 ## Integración en App4
 
 Los módulos están integrados en [main.js](../../Apps/App4/main.js):
@@ -139,13 +209,32 @@ npm test -- pulse-seq-parser.test.js
 
 ## Changelog
 
+### 2025-10-07 - FASE 4 Completada
+- ✅ Creado highlight-controller.js (517 líneas)
+- ✅ Creado visual-sync.js (137 líneas)
+- ✅ Sistema de highlighting completo (pulsos, fracciones, ciclos)
+- ✅ Scroll automático en pulseSeq
+- ✅ Sincronización visual con RAF
+- ✅ Force reflow para animaciones CSS
+- ✅ Gestión de resolución de audio
+
+**Reducción**: main.js 4032 → 3573 líneas (~459 líneas)
+
+### 2025-10-07 - FASE 2 Completada
+- ✅ Creado pulse-seq-editor.js (499 líneas)
+- ✅ Navegación por gaps, Backspace/Delete inteligente
+- ✅ Integrado en main.js (líneas 1879-1894)
+- ✅ Event listeners antiguos comentados
+
+**Reducción**: main.js 4032 → 3882 líneas (~150 líneas)
+
 ### 2025-10-07 - FASE 1 Completada
-- ✅ Creado pulse-seq-parser.js (520 líneas)
-- ✅ Creado pulse-seq-state.js (175 líneas)
+- ✅ Creado pulse-seq-parser.js (459 líneas)
+- ✅ Creado pulse-seq-state.js (184 líneas)
 - ✅ Tests: 17 tests pasando
 - ✅ Integrado en main.js
 - ✅ Corrección de errores de inicialización
-- ✅ Mensaje hover con denominador real (en lugar de 'd')
+- ✅ Mensaje hover con denominador real
 
 **Reducción**: main.js 4225 → 4032 líneas (~193 líneas)
 
@@ -155,7 +244,15 @@ npm test -- pulse-seq-parser.test.js
 
 Ver [REFACTORING_PLAN.md](../../REFACTORING_PLAN.md) para el plan completo.
 
+**Fases completadas**:
+- ~~FASE 1: pulse-seq-parser.js + pulse-seq-state.js~~ ✅
+- ~~FASE 2: pulse-seq-editor.js~~ ✅
+- ~~FASE 3: Simplificación sanitizePulseSeq~~ ✅ (implícita en FASE 1-2)
+- ~~FASE 4: highlight-controller.js + visual-sync.js~~ ✅
+
+**Reducción total**: 4225 → 3573 líneas (**652 líneas, 15.4%**)
+**Código compartido**: 1796 líneas en 5 módulos reutilizables
+
 **Próximas fases**:
-- FASE 2: pulse-seq-editor.js (navegación por gaps, eventos de teclado)
-- FASE 3: Simplificación completa de sanitizePulseSeq
-- FASE 4: highlight-controller.js + visual-sync.js
+- FASE 5: timeline-renderer.js
+- FASE 6: random-fractional.js

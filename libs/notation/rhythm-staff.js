@@ -386,7 +386,8 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     cursor.style.top = `${staveInfo.y}px`;
     cursor.style.height = `${staveInfo.height}px`;
     cursor.style.transform = `translateX(${targetX + cachedSvgOffsetX}px)`;
-    cursor.classList.toggle('notation-playback-cursor--active', isPlaying);
+    // Mostrar cursor siempre que hay staveInfo válido (no solo durante playback)
+    cursor.classList.add('notation-playback-cursor--active');
 
     // Auto-scroll throttled con requestAnimationFrame para mejor performance
     if (isPlaying && Number.isFinite(targetX) && !scrollPending) {

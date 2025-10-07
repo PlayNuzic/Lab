@@ -148,12 +148,17 @@ export function createHighlightController({
     const shouldHighlightMarker = highlightFractionMarkers || !hit || hit === marker;
 
     if (marker && shouldHighlightMarker) {
+      void marker.offsetWidth; // Force reflow para reiniciar animación CSS
       marker.classList.add('fraction-active');
     }
     if (hit && hit !== marker) {
+      void hit.offsetWidth; // Force reflow
       hit.classList.add('fraction-active');
     }
-    if (token) token.classList.add('pulse-seq-token--active');
+    if (token) {
+      void token.offsetWidth; // Force reflow
+      token.classList.add('pulse-seq-token--active');
+    }
 
     fractionStore.lastHighlightFractionNodes = { key, marker, hit, token };
   }

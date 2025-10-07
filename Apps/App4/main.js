@@ -151,7 +151,7 @@ let lastStructureSignature = {
   numerator: null,
   denominator: null
 };
-let bars = [];
+// bars[] eliminado - ya no se usan barras legacy
 let pulseHits = [];
 let cycleMarkerHits = [];
 const fractionStore = createFractionSelectionStore();
@@ -1262,7 +1262,7 @@ const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
   timelineWrapper,
   getLg: () => (pulses.length > 0 ? pulses.length - 1 : 0),
   getPulses: () => pulses,
-  getBars: () => bars,
+  // getBars eliminado - ya no se usan barras legacy
   getCycleMarkers: () => cycleMarkers,
   getCycleLabels: () => cycleLabels,
   getPulseNumberLabels: () => pulseNumberLabels,
@@ -1331,7 +1331,8 @@ const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
         marker.style.left = `${percent}%`;
         marker.style.top = '50%';
         marker.style.transformOrigin = '50% 50%';
-        marker.style.transform = `translate(-50%, -50%) rotate(${FRACTION_MARKER_LINEAR_TILT_RAD}rad)`;
+        // En vista lineal no aplicar rotación - mantener marcadores verticales
+        marker.style.transform = `translate(-50%, -50%)`;
 
         const hit = fractionStore.hitMap.get(key);
         if (hit) {
@@ -2797,7 +2798,7 @@ function renderTimeline() {
   cycleMarkers = [];
   cycleMarkerHits = [];
   cycleLabels = [];
-  bars = [];
+  // bars = [] eliminado - ya no se usan barras legacy
   fractionStore.hitMap.clear();
   fractionStore.markerMap.clear();
   fractionStore.labelLookup.clear();
@@ -2830,12 +2831,7 @@ function renderTimeline() {
     timeline.appendChild(pulse);
     pulses.push(pulse);
 
-    if (i === 0 || i === lg) {
-      const bar = document.createElement('div');
-      bar.className = 'bar';
-      timeline.appendChild(bar);
-      bars.push(bar);
-    }
+    // Barras legacy eliminadas - usar solo CSS cycleMarkerFlash para animación circular
 
     const hit = document.createElement('div');
     hit.className = 'pulse-hit';

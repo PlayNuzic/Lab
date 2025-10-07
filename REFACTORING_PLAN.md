@@ -1928,3 +1928,40 @@ export function createAppState(initialState = {}) {
 
 **Estado**: ✅ FASE 1 VALIDADA - Módulos funcionan correctamente en producción
 
+---
+
+### ✅ FASE 2 COMPLETADA (2025-10-07)
+- [x] Creado pulse-seq-editor.js (499 líneas)
+- [x] Navegación por gaps con ArrowLeft/Right/Home/End
+- [x] Backspace/Delete inteligente (borra tokens completos)
+- [x] Normalización automática de espacios
+- [x] Handlers: focus, blur, mouseup, keydown
+- [x] Integrado en main.js (líneas 1879-1894)
+- [x] Event listeners antiguos comentados (líneas 1897-2034)
+- [x] Funciones wrapper adaptadas
+
+**Reducción lograda**: main.js de 4032 → 3882 líneas (~150 líneas)
+
+**Estado**: ✅ FASE 2 VALIDADA - Editor funciona correctamente
+
+---
+
+### ✅ FASE 4 COMPLETADA (2025-10-07)
+- [x] Creado highlight-controller.js (517 líneas)
+- [x] Creado visual-sync.js (137 líneas)
+- [x] Sistema de highlighting para pulsos enteros y fracciones
+- [x] Scroll automático en pulseSeq
+- [x] Sincronización con audio via requestAnimationFrame
+- [x] Force reflow para animaciones CSS de fracciones
+- [x] Gestión de resolución de audio (callback a main.js)
+- [x] Highlighting de ciclos
+- [x] Integrado en main.js (líneas 2770-2793, funciones delegadas)
+
+**Reducción lograda**: main.js de 4032 → 3573 líneas (~459 líneas adicionales)
+
+**Módulos FASE 4**:
+- `highlight-controller.js`: highlightIntegerPulse, highlightFraction, highlightPulse, highlightCycle
+- `visual-sync.js`: Loop RAF, syncVisualState, control de resolución
+
+**Estado**: ✅ FASE 4 VALIDADA - Highlighting funciona correctamente con flash angular
+
