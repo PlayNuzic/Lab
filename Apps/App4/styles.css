@@ -183,7 +183,7 @@ main > .notation-panel--inline .notation-panel__canvas {
 }
 
 .cycle-marker.start {
-  height: 30px;
+  height: 16px; /* Igual que marcadores normales - sin barras verticales */
   background: var(--color-lg);
   opacity: 1;
 }
@@ -337,7 +337,7 @@ main > .notation-panel--inline .notation-panel__canvas {
 }
 
 .timeline.circular .cycle-marker.start {
-  height: 36px;
+  height: 16px; /* Igual que marcadores normales - sin barras radiales */
 }
 
 .timeline.circular .cycle-label {

@@ -318,8 +318,9 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       return;
     }
 
-    // Remover opacity inline para que la clase CSS --active controle la opacidad
+    // Cursor visible siempre que hay staveInfo (no solo durante playback)
     cursor.style.opacity = '';
+    cursor.classList.add('notation-playback-cursor--active');
 
     // Detectar reset de ciclo (pulso vuelve a 0 o disminuye)
     if (currentPulse < lastCursorPulse) {
@@ -386,8 +387,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     cursor.style.top = `${staveInfo.y}px`;
     cursor.style.height = `${staveInfo.height}px`;
     cursor.style.transform = `translateX(${targetX + cachedSvgOffsetX}px)`;
-    // Mostrar cursor siempre que hay staveInfo válido (no solo durante playback)
-    cursor.classList.add('notation-playback-cursor--active');
+    // Clase ya añadida arriba - no hace falta toggle porque cursor siempre visible cuando hay staveInfo
 
     // Auto-scroll throttled con requestAnimationFrame para mejor performance
     if (isPlaying && Number.isFinite(targetX) && !scrollPending) {
@@ -428,12 +428,10 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
   };
 
   const resetCursor = () => {
-    // Reposicionar el cursor al inicio pero mantener su estado de visibilidad actual
+    // Reposicionar el cursor al inicio en pulso 0 y mostrar
     requestAnimationFrame(() => {
       updateSvgOffset();  // Re-calcular offset después del render
-      const cursor = ensureCursor();
-      const isActive = cursor.classList.contains('notation-playback-cursor--active');
-      updateCursor(0, isActive);  // Mantener visibilidad actual
+      updateCursor(0, false);  // Posicionar en pulso 0, cursor visible por staveInfo
     });
   };
 
