@@ -48,6 +48,7 @@ App4 explora la generación de secuencias de pulsos fraccionarios sobre la timel
 | `../../libs/app-common/notation-renderer.js` | Controlador completo de notación musical con VexFlow (render, clicks, estado). |
 | `../../libs/app-common/formula-renderer.js` | Generador de fórmulas musicales HTML (Lg·d/n, V base, V fracción, T). |
 | `../../libs/app-common/info-tooltip.js` | Tooltip flotante con auto-hide en scroll/resize y posicionamiento relativo. |
+| `../../libs/app-common/t-indicator.js` | Indicador T simplificado con control de texto y visibilidad (sin auto-posicionamiento). |
 
 ## Atajos y gestos
 
@@ -126,3 +127,20 @@ Esto cubre tanto los módulos compartidos (`libs/app-common`, `libs/sound`) como
 - **API limpia**: `createFormulaRenderer()` y `createInfoTooltip()` con factory pattern
 - **Validación**: ✅ Tooltip funciona correctamente con auto-hide en scroll/resize
 - **Total acumulado**: 1190 líneas reducidas desde inicio (28.2% del original 4225)
+
+### 2025-10-08: Refactorización FASE 9 - T Indicator Simplificado ✅
+- **Cambio**: Extracción de T Indicator a módulo simple sin lógica de posicionamiento automático
+- **Módulo creado**:
+  - `libs/app-common/t-indicator.js` (91 líneas) - Factory function con formateo a 1 decimal
+- **Reducción**: main.js de 3035 → 2969 líneas (66 líneas, 2.2%)
+- **Funciones eliminadas**:
+  - `updateTIndicatorText()` - Reemplazada por `tIndicatorController.updateText()`
+  - `updateTIndicatorPosition()` - Eliminada (posicionamiento ahora vía CSS)
+  - `scheduleTIndicatorReveal()` - Eliminada (control simplificado con show/hide)
+- **Simplificaciones**:
+  - Eliminado parámetro `tIndicator` de `createTimelineRenderer()`
+  - Eliminada preservación de tIndicator en timeline.innerHTML
+  - Eliminado event listener de resize para tIndicator
+  - Posicionamiento ahora controlado por CSS de la app
+- **API limpia**: `createTIndicator()` con métodos `updateText()`, `show()`, `hide()`
+- **Total acumulado**: 1256 líneas reducidas desde inicio (29.7% del original 4225)

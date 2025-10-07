@@ -32,6 +32,7 @@ import { randomizeFractional } from '../../libs/app-common/random-fractional.js'
 import { createNotationRenderer } from '../../libs/app-common/notation-renderer.js';
 import { createFormulaRenderer } from '../../libs/app-common/formula-renderer.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
+import { createTIndicator } from '../../libs/app-common/t-indicator.js';
 import {
   FRACTION_POSITION_EPSILON,
   TEXT_NODE_TYPE,
@@ -307,15 +308,13 @@ const { editEl: pulseSeqEditEl } = pulseSeqController.mount({
 const dragController = pulseSeqController.drag;
 
 // T indicator setup (App4-specific functionality)
-const shouldRenderTIndicator = Boolean(inputT);
-const tIndicator = shouldRenderTIndicator ? (() => {
-  const indicator = document.createElement('div');
-  indicator.id = 'tIndicator';
-  // Start hidden to avoid flicker during first layout
-  indicator.style.visibility = 'hidden';
-  timeline.appendChild(indicator);
-  return indicator;
-})() : null;
+// T Indicator setup
+const tIndicatorController = inputT ? createTIndicator() : null;
+if (tIndicatorController) {
+  tIndicatorController.element.id = 'tIndicator';
+  tIndicatorController.hide(); // Start hidden
+  timeline.appendChild(tIndicatorController.element);
+}
 // App4-specific additional elements
 const randComplexToggle = document.getElementById('randComplexToggle');
 const selectColor = document.getElementById('selectColor');
@@ -830,8 +829,6 @@ let isPlaying = false;
 let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
 let circularTimeline = false;
-const T_INDICATOR_TRANSITION_DELAY = 650;
-let tIndicatorRevealHandle = null;
 let visualSyncHandle = null;
 
 // Controladores de highlighting y visual sync (inicializados después de renderTimeline)
@@ -1126,68 +1123,6 @@ function moveCaretStep(dir) {
     pulseSeqController.moveCaretStep(dir);
   }
 }
-function updateTIndicatorText(value) {
-  if (!tIndicator) return;
-  // Only the number, no prefix
-  if (value === '' || value == null) { tIndicator.textContent = ''; return; }
-  const n = Number(value);
-  if (!Number.isFinite(n)) { tIndicator.textContent = String(value); return; }
-  // keep same rounding used for input T
-  const rounded = Math.round(n * 10) / 10;
-  tIndicator.textContent = String(rounded);
-}
-
-function updateTIndicatorPosition() {
-  if (!timeline || !tIndicator) return false;
-  const lg = parseInt(inputLg.value);
-  if (isNaN(lg) || lg <= 0) { return false; }
-
-  // Find the Lg label element and anchor 15px below it
-  let anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
-  if (!anchor) anchor = timeline.querySelector('.pulse.lg');
-  const tlRect = timeline.getBoundingClientRect();
-  const circular = timeline.classList.contains('circular');
-
-  if (!anchor) { return false; }
-
-  const aRect = anchor.getBoundingClientRect();
-  const isLabel = anchor.classList.contains('pulse-number');
-  const offsetX = circular && isLabel ? -16 : 0; // compensate label shift in circle
-  const centerX = aRect.left + aRect.width / 2 - tlRect.left + offsetX;
-  const topY = aRect.bottom - tlRect.top + 15; // 15px separation below
-
-  tIndicator.style.left = `${centerX}px`;
-  tIndicator.style.top = `${topY}px`;
-  tIndicator.style.transform = 'translate(-50%, 0)';
-
-  if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
-  return true;
-}
-function scheduleTIndicatorReveal(delay = 0) {
-  if (!tIndicator) return;
-  if (tIndicatorRevealHandle) {
-    clearTimeout(tIndicatorRevealHandle);
-    tIndicatorRevealHandle = null;
-  }
-
-  const ms = Math.max(0, Number(delay) || 0);
-  if (ms === 0) {
-    requestAnimationFrame(() => {
-      const anchored = updateTIndicatorPosition();
-      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
-    });
-    return;
-  }
-
-  tIndicator.style.visibility = 'hidden';
-  tIndicatorRevealHandle = setTimeout(() => {
-    tIndicatorRevealHandle = null;
-    requestAnimationFrame(() => {
-      const anchored = updateTIndicatorPosition();
-      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
-    });
-  }, ms);
-}
 
 const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
   timeline,
@@ -1203,8 +1138,6 @@ const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
   pulseNumberHideThreshold: PULSE_NUMBER_HIDE_THRESHOLD,
   numberCircleOffset: NUMBER_CIRCLE_OFFSET,
   isCircularEnabled: () => circularTimeline && loopEnabled,
-  scheduleIndicatorReveal: scheduleTIndicatorReveal,
-  tIndicatorTransitionDelay: T_INDICATOR_TRANSITION_DELAY,
   requestAnimationFrame: raf,
   callbacks: {
     onAfterCircularLayout: (context) => {
@@ -1551,17 +1484,20 @@ circularTimelineToggle.checked = (() => {
   return stored == null ? true : stored === '1';
 })();
 circularTimeline = circularTimelineToggle.checked;
-updateTIndicatorPosition();
-updateTIndicatorText(parseNum(inputT?.value ?? '') || '');
-scheduleTIndicatorReveal(350);
+// T Indicator initialization
+if (tIndicatorController) {
+  const tValue = parseNum(inputT?.value ?? '') || '';
+  tIndicatorController.updateText(tValue);
+  if (tValue) {
+    tIndicatorController.show();
+  }
+}
 
 circularTimelineToggle?.addEventListener('change', e => {
   circularTimeline = e.target.checked;
   saveOpt('circular', e.target.checked ? '1' : '0');
   layoutTimeline();
 });
-// Keep T indicator anchored on window resizes
-window.addEventListener('resize', updateTIndicatorPosition);
 window.addEventListener('resize', schedulePulseSeqSpacingAdjust);
 layoutTimeline();
 
@@ -2844,8 +2780,6 @@ async function startPlayback(providedAudio) {
     ed.classList.add('playing');
     try { ed.blur(); } catch {}
   }
-
-  scheduleTIndicatorReveal(0);
 
   return true;
 }

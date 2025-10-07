@@ -51,7 +51,6 @@ export function createFractionalTimelineRenderer(config) {
     registerFractionLabel,
     markFractionSuspended,
     rememberFractionSelectionInMemory,
-    tIndicator = null,
     constants = {}
   } = config;
 
@@ -565,9 +564,7 @@ export function createFractionalTimelineRenderer(config) {
     fractionStore.markerMap.clear();
     fractionStore.labelLookup.clear();
 
-    const savedIndicator = tIndicator;
     timeline.innerHTML = '';
-    if (savedIndicator) timeline.appendChild(savedIndicator);
 
     const lg = getLg();
     if (!Number.isFinite(lg) || lg <= 0) {
