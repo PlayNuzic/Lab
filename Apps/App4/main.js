@@ -322,42 +322,6 @@ if (notationContentEl) {
   notationContentEl.addEventListener('click', handleNotationClick);
 }
 
-const EMPTY_PULSE_SCROLL_CACHE = {
-  type: null,
-  index: null,
-  fractionKey: null,
-  trailingIndex: null,
-  rect: null,
-  trailingRect: null,
-  scrollLeft: null
-};
-
-let lastPulseScrollCache = { ...EMPTY_PULSE_SCROLL_CACHE };
-let lastPulseHighlightState = {
-  type: null,
-  index: null,
-  fractionKey: null,
-  trailingIndex: null
-};
-
-let lastFractionHighlightNodes = {
-  key: null,
-  marker: null,
-  hit: null,
-  token: null
-};
-
-let lastCycleHighlightState = {
-  cycleIndex: null,
-  subdivisionIndex: null,
-  marker: null,
-  label: null,
-  trailingMarker: null,
-  trailingLabel: null,
-  trailingCycleIndex: null,
-  trailingSubdivisionIndex: null
-};
-
 function normalizeFractionMemoryPayload(info) {
   if (!info || !info.key) return null;
   const base = Number.isFinite(info.base) ? info.base : null;
@@ -994,8 +958,6 @@ let circularTimeline = false;
 const T_INDICATOR_TRANSITION_DELAY = 650;
 let tIndicatorRevealHandle = null;
 let visualSyncHandle = null;
-let lastVisualStep = null;
-let lastNormalizedStep = null;
 
 // Controladores de highlighting y visual sync (inicializados después de renderTimeline)
 let highlightController = null;
@@ -1332,7 +1294,8 @@ const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
         if (hit) {
           hit.style.left = `${mx}px`;
           hit.style.top = `${my}px`;
-          hit.style.transform = 'translate(-50%, -50%)';
+          hit.style.transformOrigin = '50% 50%';
+          hit.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
         }
       });
 
@@ -1361,6 +1324,7 @@ const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
         if (hit) {
           hit.style.left = `${percent}%`;
           hit.style.top = '50%';
+          hit.style.transformOrigin = '50% 50%';
           hit.style.transform = 'translate(-50%, -50%)';
         }
       });
@@ -2753,22 +2717,25 @@ function setPulseSelected(i, shouldSelect) {
 
 
 function clearHighlights() {
+  if (highlightController) {
+    highlightController.clearAll();
+    return;
+  }
+
   pulses.forEach(p => p.classList.remove('active'));
-  resetCycleHighlightState();
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
   pulseSeqController.clearActive();
-  setFractionHighlightKey(null);
-  resetPulseScrollCache();
-  lastNormalizedStep = null;
-  fractionStore.lastHighlightType = null;
-  fractionStore.lastHighlightIntIndex = null;
-  fractionStore.lastHighlightFractionKey = null;
 }
 
 // Inicializar controladores de highlighting y visual sync
 function initHighlightingControllers() {
+  if (visualSyncManager) {
+    visualSyncManager.stop();
+    visualSyncManager = null;
+  }
+
   highlightController = createHighlightController({
     getPulses: () => pulses,
     getCycleMarkers: () => cycleMarkers,
@@ -2796,8 +2763,9 @@ function initHighlightingControllers() {
 }
 
 function renderTimeline() {
-  resetPulseHighlightState({ clearFraction: false });
-  resetCycleHighlightState();
+  if (highlightController) {
+    highlightController.clearAll();
+  }
   pulseNumberLabels = [];
   pulses = [];
   pulseHits = [];
@@ -2805,7 +2773,6 @@ function renderTimeline() {
   cycleMarkerHits = [];
   cycleLabels = [];
   bars = [];
-  clearFractionHighlight();
   fractionStore.hitMap.clear();
   fractionStore.markerMap.clear();
   fractionStore.labelLookup.clear();
@@ -3422,173 +3389,10 @@ playBtn.addEventListener('click', async () => {
   } catch {}
 });
 
-function deactivateCycleHighlight() {
-  const seen = new Set();
-  const { marker, label, trailingMarker, trailingLabel } = lastCycleHighlightState;
-  [marker, label, trailingMarker, trailingLabel].forEach((node) => {
-    if (!node || seen.has(node)) return;
-    if (node.classList) {
-      node.classList.remove('active');
-    }
-    seen.add(node);
-  });
-}
-
-function resetCycleHighlightState() {
-  deactivateCycleHighlight();
-  lastCycleHighlightState = {
-    cycleIndex: null,
-    subdivisionIndex: null,
-    marker: null,
-    label: null,
-    trailingMarker: null,
-    trailingLabel: null,
-    trailingCycleIndex: null,
-    trailingSubdivisionIndex: null
-  };
-}
-
 function highlightCycle(payload = {}) {
-  // Delegar al controlador si está disponible
   if (highlightController) {
     highlightController.highlightCycle(payload);
-    return;
   }
-
-  // Fallback legacy
-  if (!isPlaying) return;
-  const {
-    cycleIndex: rawCycleIndex,
-    subdivisionIndex: rawSubdivisionIndex,
-    numerator: payloadNumerator,
-    denominator: payloadDenominator,
-    totalCycles: payloadTotalCycles,
-    totalSubdivisions: payloadTotalSubdivisions
-  } = payload;
-
-  const cycleIndex = Number(rawCycleIndex);
-  const subdivisionIndex = Number(rawSubdivisionIndex);
-  if (!Number.isFinite(cycleIndex) || !Number.isFinite(subdivisionIndex)) return;
-
-  const expectedNumerator = Number.isFinite(lastStructureSignature.numerator)
-    ? lastStructureSignature.numerator
-    : null;
-  const expectedDenominator = Number.isFinite(lastStructureSignature.denominator)
-    ? lastStructureSignature.denominator
-    : null;
-  const expectedLg = Number.isFinite(lastStructureSignature.lg)
-    ? lastStructureSignature.lg
-    : null;
-
-  if (expectedNumerator == null || expectedDenominator == null || expectedLg == null) {
-    return;
-  }
-
-  if (Number.isFinite(payloadNumerator) && payloadNumerator !== expectedNumerator) {
-    return;
-  }
-  if (Number.isFinite(payloadDenominator) && payloadDenominator !== expectedDenominator) {
-    return;
-  }
-
-  const expectedCycles = Math.floor(expectedLg / expectedNumerator);
-  if (!Number.isFinite(expectedCycles) || expectedCycles <= 0) {
-    return;
-  }
-
-  if (Number.isFinite(payloadTotalCycles) && payloadTotalCycles !== expectedCycles) {
-    return;
-  }
-  if (Number.isFinite(payloadTotalSubdivisions) && payloadTotalSubdivisions !== expectedDenominator) {
-    return;
-  }
-
-  const clampIndex = (value, maxExclusive) => {
-    if (!Number.isFinite(value)) return null;
-    if (loopEnabled) {
-      if (maxExclusive <= 0) return null;
-      const span = maxExclusive;
-      return ((value % span) + span) % span;
-    }
-    if (maxExclusive <= 0) return null;
-    return Math.max(0, Math.min(value, maxExclusive - 1));
-  };
-
-  const normalizedCycleIndex = clampIndex(cycleIndex, expectedCycles);
-  const normalizedSubdivisionIndex = clampIndex(subdivisionIndex, expectedDenominator);
-  if (!Number.isFinite(normalizedCycleIndex) || !Number.isFinite(normalizedSubdivisionIndex)) {
-    return;
-  }
-
-  const shouldHighlightTrailing = loopEnabled
-    && normalizedCycleIndex === 0
-    && normalizedSubdivisionIndex === 0
-    && expectedCycles > 0;
-  const trailingCycleIndex = shouldHighlightTrailing ? expectedCycles - 1 : null;
-  const trailingSubdivisionIndex = shouldHighlightTrailing ? 0 : null;
-
-  const highlightUnchanged = normalizedCycleIndex === lastCycleHighlightState.cycleIndex
-    && normalizedSubdivisionIndex === lastCycleHighlightState.subdivisionIndex
-    && trailingCycleIndex === lastCycleHighlightState.trailingCycleIndex
-    && trailingSubdivisionIndex === lastCycleHighlightState.trailingSubdivisionIndex;
-  if (highlightUnchanged) {
-    return;
-  }
-
-  const marker = cycleMarkers.find((m) => Number(m.dataset.cycleIndex) === normalizedCycleIndex
-    && Number(m.dataset.subdivision) === normalizedSubdivisionIndex) || null;
-  const label = cycleLabels.find((l) => Number(l.dataset.cycleIndex) === normalizedCycleIndex
-    && Number(l.dataset.subdivision) === normalizedSubdivisionIndex) || null;
-
-  const trailingMarker = shouldHighlightTrailing
-    ? cycleMarkers.find((m) => Number(m.dataset.cycleIndex) === trailingCycleIndex
-      && Number(m.dataset.subdivision) === trailingSubdivisionIndex) || null
-    : null;
-  const trailingLabel = shouldHighlightTrailing
-    ? cycleLabels.find((l) => Number(l.dataset.cycleIndex) === trailingCycleIndex
-      && Number(l.dataset.subdivision) === trailingSubdivisionIndex) || null
-    : null;
-
-  deactivateCycleHighlight();
-
-  // Calculate adaptive animation duration based on subdivision tempo
-  const v = parseNum(inputV?.value ?? '');
-  const hasTempo = Number.isFinite(v) && v > 0;
-  let animDuration = 350; // Default 350ms
-
-  if (hasTempo && Number.isFinite(expectedDenominator) && expectedDenominator > 0) {
-    // Subdivision interval in ms = (60 / BPM) * 1000 / denominator
-    const subdivisionIntervalMs = (60 / v) * 1000 / expectedDenominator;
-    // Use 80% of the interval for animation, clamped between 60ms (ultra-fast) and 400ms (slow)
-    animDuration = Math.max(60, Math.min(subdivisionIntervalMs * 0.8, 400));
-  }
-
-  if (marker) {
-    marker.style.setProperty('--pulse-anim-duration', `${animDuration}ms`);
-    void marker.offsetWidth;
-    marker.classList.add('active');
-  }
-  if (label) {
-    label.classList.add('active');
-  }
-  if (trailingMarker && trailingMarker !== marker) {
-    trailingMarker.style.setProperty('--pulse-anim-duration', `${animDuration}ms`);
-    trailingMarker.classList.add('active');
-  }
-  if (trailingLabel && trailingLabel !== label) {
-    trailingLabel.classList.add('active');
-  }
-
-  lastCycleHighlightState = {
-    cycleIndex: normalizedCycleIndex,
-    subdivisionIndex: normalizedSubdivisionIndex,
-    marker,
-    label,
-    trailingMarker,
-    trailingLabel,
-    trailingCycleIndex,
-    trailingSubdivisionIndex
-  };
 }
 
 function getPulseSeqRectForKey(key) {
@@ -3643,90 +3447,6 @@ function scrollPulseSeqToRect(rect) {
   return newScrollLeft;
 }
 
-function resetPulseScrollCache() {
-  lastPulseScrollCache = { ...EMPTY_PULSE_SCROLL_CACHE };
-}
-
-// Removed complex setPulseActiveNodes and deactivatePulseNodes
-// Now using simple pattern from App1 directly in highlightPulse
-
-function setFractionHighlightKey(key) {
-  if (lastFractionHighlightNodes.key === key) {
-    return;
-  }
-
-  const { marker, hit, token } = lastFractionHighlightNodes;
-  if (marker) marker.classList.remove('fraction-active');
-  if (hit && hit !== marker) hit.classList.remove('fraction-active');
-  if (token) token.classList.remove('pulse-seq-token--active');
-
-  lastFractionHighlightNodes = {
-    key: null,
-    marker: null,
-    hit: null,
-    token: null
-  };
-
-  if (!key) {
-    fractionStore.lastFractionHighlightKey = null;
-    return;
-  }
-
-  const nextMarker = fractionStore.markerMap.get(key) || null;
-  const nextHit = fractionStore.hitMap.get(key) || null;
-  const nextToken = fractionStore.pulseSeqTokenMap.get(key) || null;
-
-  if (nextMarker) nextMarker.classList.add('fraction-active');
-  if (nextHit && nextHit !== nextMarker) nextHit.classList.add('fraction-active');
-  if (nextToken) nextToken.classList.add('pulse-seq-token--active');
-
-  lastFractionHighlightNodes = {
-    key,
-    marker: nextMarker,
-    hit: nextHit,
-    token: nextToken
-  };
-
-  fractionStore.lastFractionHighlightKey = key;
-}
-
-function clearFractionHighlight() {
-  setFractionHighlightKey(null);
-}
-
-function findFractionMatch(value, epsilon = FRACTION_POSITION_EPSILON) {
-  if (!Number.isFinite(value)) return null;
-  for (const item of fractionStore.pulseSelections) {
-    if (!item || !Number.isFinite(item.value) || !item.key) continue;
-    if (Math.abs(item.value - value) <= epsilon) {
-      return item;
-    }
-  }
-  for (const [key, hit] of fractionStore.hitMap.entries()) {
-    if (!key || !hit) continue;
-    const hitValue = Number.parseFloat(hit.dataset?.value);
-    if (!Number.isFinite(hitValue)) continue;
-    if (Math.abs(hitValue - value) <= epsilon) {
-      return { key, value: hitValue };
-    }
-  }
-  return null;
-}
-
-function resetPulseHighlightState({ clearFraction = true } = {}) {
-  pulses.forEach(p => p.classList.remove('active'));
-  if (clearFraction) {
-    setFractionHighlightKey(null);
-  }
-  lastPulseHighlightState = {
-    type: null,
-    index: null,
-    fractionKey: null,
-    trailingIndex: null
-  };
-  resetPulseScrollCache();
-}
-
 function resolvePulseAnimationDuration({ resolution } = {}) {
   const bpm = parseNum(inputV?.value);
   if (!(Number.isFinite(bpm) && bpm > 0)) {
@@ -3742,265 +3462,6 @@ function resolvePulseAnimationDuration({ resolution } = {}) {
   return Math.max(60, Math.min(intervalMs, 420));
 }
 
-// Simple integer pulse highlight - follows App1 pattern exactly
-function highlightIntegerPulse(i) {
-  if (highlightController) {
-    highlightController.highlightIntegerPulse(i, { loopEnabled });
-    return;
-  }
-  // Fallback legacy (si el controlador no está inicializado)
-  pulses.forEach(p => p?.classList.remove('active'));
-  if (!pulses || pulses.length === 0) return;
-  const idx = i % pulses.length;
-  const current = pulses[idx];
-  if (current) {
-    void current.offsetWidth;
-    current.classList.add('active');
-  }
-  if (loopEnabled && idx === 0 && pulses.length > 1) {
-    pulses[pulses.length - 1]?.classList.add('active');
-  }
-}
-
-function highlightPulse(payload){
-  // Delegar al controlador si está disponible
-  if (highlightController) {
-    highlightController.highlightPulse(payload, { loopEnabled, isPlaying });
-    return;
-  }
-
-  // Fallback legacy
-  if (!isPlaying) return;
-
-  if (!pulses || pulses.length === 0) {
-    lastNormalizedStep = null;
-    fractionStore.lastHighlightType = null;
-    fractionStore.lastHighlightIntIndex = null;
-    fractionStore.lastHighlightFractionKey = null;
-    resetPulseHighlightState({ clearFraction: true });
-    pulseSeqController.clearActive();
-    return;
-  }
-
-  let rawStepValue = null;
-  if (payload && typeof payload === 'object') {
-    if (Number.isFinite(payload.step)) {
-      rawStepValue = Number(payload.step);
-    } else if (Number.isFinite(payload.rawStep)) {
-      rawStepValue = Number(payload.rawStep);
-    }
-    if (Number.isFinite(payload.resolution) && payload.resolution > 0) {
-      const rounded = Math.max(1, Math.round(payload.resolution));
-      if (rounded !== currentAudioResolution) {
-        currentAudioResolution = rounded;
-      }
-    }
-  } else {
-    const candidate = Number(payload);
-    rawStepValue = Number.isFinite(candidate) ? candidate : null;
-  }
-
-  if (!Number.isFinite(rawStepValue)) {
-    lastNormalizedStep = null;
-    fractionStore.lastHighlightType = null;
-    fractionStore.lastHighlightIntIndex = null;
-    fractionStore.lastHighlightFractionKey = null;
-    resetPulseScrollCache();
-    return;
-  }
-
-  const baseCount = pulses.length > 1 ? pulses.length - 1 : 0;
-  if (baseCount <= 0) {
-    lastNormalizedStep = null;
-    fractionStore.lastHighlightType = null;
-    fractionStore.lastHighlightIntIndex = null;
-    fractionStore.lastHighlightFractionKey = null;
-    resetPulseScrollCache();
-    return;
-  }
-
-  const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
-  const scaledSpan = baseCount * resolution;
-
-  // Normalize without premature rounding to maintain sub-frame precision
-  let normalizedScaled = rawStepValue;
-  if (loopEnabled) {
-    if (scaledSpan <= 0) return;
-    normalizedScaled = ((rawStepValue % scaledSpan) + scaledSpan) % scaledSpan;
-  } else {
-    const maxStep = scaledSpan;
-    normalizedScaled = Math.max(0, Math.min(rawStepValue, maxStep));
-  }
-
-  const normalizedValue = resolution > 0 ? normalizedScaled / resolution : normalizedScaled;
-  const nearestInt = Math.round(normalizedValue);
-  const epsilon = FRACTION_POSITION_EPSILON;
-  const isIntegerStep = Math.abs(normalizedValue - nearestInt) <= epsilon
-    && nearestInt >= 0
-    && nearestInt <= baseCount;
-
-  let highlightType = 'int';
-  let fractionMatch = null;
-  if (!isIntegerStep) {
-    fractionMatch = findFractionMatch(normalizedValue, epsilon);
-    if (fractionMatch && fractionMatch.key) {
-      highlightType = 'fraction';
-    } else {
-      // Step is fractional but no matching fraction selected - ignore
-      return;
-    }
-  }
-
-  const fractionKey = fractionMatch && fractionMatch.key ? fractionMatch.key : null;
-  const idx = Math.max(0, Math.min(nearestInt, baseCount));
-  const loopWrapped = Number.isFinite(lastNormalizedStep) && normalizedScaled < lastNormalizedStep;
-
-  let shouldUpdate = false;
-  if (highlightType === 'fraction') {
-    shouldUpdate = fractionStore.lastHighlightType !== 'fraction'
-      || fractionKey !== fractionStore.lastHighlightFractionKey;
-  } else {
-    shouldUpdate = fractionStore.lastHighlightType !== 'int'
-      || idx !== fractionStore.lastHighlightIntIndex;
-  }
-
-  if (!shouldUpdate) {
-    lastNormalizedStep = normalizedScaled;
-    lastVisualStep = rawStepValue;
-    return;
-  }
-
-  fractionStore.lastHighlightType = highlightType;
-  fractionStore.lastHighlightIntIndex = highlightType === 'int' ? idx : null;
-  fractionStore.lastHighlightFractionKey = highlightType === 'fraction' ? fractionKey : null;
-  lastNormalizedStep = normalizedScaled;
-  lastVisualStep = rawStepValue;
-
-  let newScrollLeft = pulseSeqEl ? pulseSeqEl.scrollLeft : 0;
-
-  if (highlightType === 'fraction' && fractionKey) {
-    // Clear all pulse highlights for fractions too
-    pulses.forEach(p => p.classList.remove('active'));
-    setFractionHighlightKey(fractionKey);
-    if (pulseSeqEl) {
-      const cacheMatches = lastPulseScrollCache.type === 'fraction'
-        && lastPulseScrollCache.fractionKey === fractionKey;
-      const scrollAligned = cacheMatches
-        && lastPulseScrollCache.scrollLeft != null
-        && Math.abs(pulseSeqEl.scrollLeft - lastPulseScrollCache.scrollLeft) < 0.5;
-
-      const rect = cacheMatches && lastPulseScrollCache.rect
-        ? lastPulseScrollCache.rect
-        : getPulseSeqRectForKey(fractionKey);
-
-      if (rect) {
-        newScrollLeft = scrollAligned
-          ? pulseSeqEl.scrollLeft
-          : scrollPulseSeqToRect(rect);
-        pulseSeqController.setActiveIndex(0, {
-          rect,
-          scrollLeft: newScrollLeft
-        });
-        lastPulseScrollCache = {
-          type: 'fraction',
-          index: null,
-          fractionKey,
-          trailingIndex: null,
-          rect,
-          trailingRect: null,
-          scrollLeft: newScrollLeft
-        };
-      } else {
-        pulseSeqController.clearActive();
-        resetPulseScrollCache();
-      }
-    } else {
-      pulseSeqController.clearActive();
-      resetPulseScrollCache();
-    }
-    lastPulseHighlightState = {
-      type: 'fraction',
-      index: null,
-      fractionKey,
-      trailingIndex: null
-    };
-  } else {
-    // Clear all pulse highlights first (simple pattern from App1)
-    pulses.forEach(p => p.classList.remove('active'));
-
-    setFractionHighlightKey(null);
-    const targetIndex = idx;
-    const current = pulses[targetIndex];
-
-    // Always trigger reflow before adding active (like App1)
-    if (current) {
-      void current.offsetWidth;
-      current.classList.add('active');
-    }
-
-    // Add trailing pulse if looping back to 0
-    let trailingIndex = null;
-    if (loopEnabled && targetIndex === 0 && pulses.length > 0) {
-      trailingIndex = pulses.length - 1;
-      const last = pulses[trailingIndex];
-      if (last) {
-        last.classList.add('active');  // No reflow for trailing
-      }
-    }
-    if (pulseSeqEl) {
-      const cacheMatches = lastPulseScrollCache.type === 'int'
-        && lastPulseScrollCache.index === targetIndex
-        && lastPulseScrollCache.trailingIndex === trailingIndex;
-      const scrollAligned = cacheMatches
-        && lastPulseScrollCache.scrollLeft != null
-        && Math.abs(pulseSeqEl.scrollLeft - lastPulseScrollCache.scrollLeft) < 0.5;
-
-      const rect = cacheMatches && lastPulseScrollCache.rect
-        ? lastPulseScrollCache.rect
-        : getPulseSeqRectForIndex(targetIndex);
-      let trailingRect = null;
-      if (trailingIndex != null) {
-        trailingRect = cacheMatches && lastPulseScrollCache.trailingRect
-          ? lastPulseScrollCache.trailingRect
-          : getPulseSeqRectForIndex(trailingIndex);
-      }
-
-      if (rect) {
-        newScrollLeft = scrollAligned
-          ? pulseSeqEl.scrollLeft
-          : scrollPulseSeqToRect(rect);
-        pulseSeqController.setActiveIndex(targetIndex, {
-          rect,
-          trailingIndex,
-          trailingRect: trailingIndex != null ? trailingRect : null,
-          scrollLeft: newScrollLeft
-        });
-        lastPulseScrollCache = {
-          type: 'int',
-          index: targetIndex,
-          fractionKey: null,
-          trailingIndex,
-          rect,
-          trailingRect: trailingIndex != null ? trailingRect : null,
-          scrollLeft: newScrollLeft
-        };
-      } else {
-        pulseSeqController.clearActive();
-        resetPulseScrollCache();
-      }
-    } else {
-      pulseSeqController.clearActive();
-      resetPulseScrollCache();
-    }
-    lastPulseHighlightState = {
-      type: 'int',
-      index: targetIndex,
-      fractionKey: null,
-      trailingIndex
-    };
-  }
-}
-
 function stopVisualSync() {
   if (visualSyncManager) {
     visualSyncManager.stop();
@@ -4010,11 +3471,7 @@ function stopVisualSync() {
     cancelAnimationFrame(visualSyncHandle);
     visualSyncHandle = null;
   }
-  lastVisualStep = null;
-  lastNormalizedStep = null;
-  fractionStore.lastHighlightType = null;
-  fractionStore.lastHighlightIntIndex = null;
-  fractionStore.lastHighlightFractionKey = null;
+  highlightController?.clearAll();
 }
 
 function syncVisualState() {

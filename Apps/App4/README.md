@@ -9,6 +9,7 @@ App4 explora la generación de secuencias de pulsos fraccionarios sobre la timel
 3. El editor de fracciones (`inlineFractionSlot`) expone campos `n` y `d` con placeholders fantasma que ayudan a visualizar la fracción incluso cuando los inputs están vacíos.
 4. El menú aleatorio (`randomMenu`) puede habilitar rangos independientes para Lg, V, número de pulsos aleatorios y fracciones completas con la opción "Permitir fracciones complejas".
 5. Cada cambio re-calcula el layout (`layoutTimeline`) y sincroniza la vista circular/lineal, incluidos los números de pulso (`updatePulseNumbers`).
+6. Los hits fraccionarios comparten el mismo layout polar que los marcadores (`cycle-marker`), de modo que la animación queda tangente al círculo en la vista circular.
 
 ## Audio y sincronización
 
@@ -17,6 +18,7 @@ App4 explora la generación de secuencias de pulsos fraccionarios sobre la timel
 - `initAudio()` instancia `TimelineAudio`, espera a `ready()`, registra el canal `accent` en el mixer y sincroniza _loop_, _pulse_ y _cycle_ según el estado actual de la UI.
 - El menú de rendimiento (`performance-audio-menu.js`) queda inyectado en `index.html` para comprobar la latencia real del motor.
 - `initSoundDropdown` reutiliza el dropdown compartido que llama a `ensureAudio()` y pre-escucha el sample al cambiarlo.
+- `createHighlightController` + `createVisualSyncManager` gobiernan ahora el _highlight_ de pulsos enteros, fracciones y ciclos; la app deja de mantener duplicados locales y reutiliza la duración animada basada en el BPM/resolución.
 
 ## Estructura de datos
 
