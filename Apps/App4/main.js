@@ -2772,6 +2772,8 @@ function initHighlightingControllers() {
   highlightController = createHighlightController({
     getPulses: () => pulses,
     getCycleMarkers: () => cycleMarkers,
+    getPulseNumberLabels: () => pulseNumberLabels,
+    getPulseAnimationDuration: resolvePulseAnimationDuration,
     fractionStore,
     pulseSeqController,
     pulseSeqEl,
@@ -3723,6 +3725,21 @@ function resetPulseHighlightState({ clearFraction = true } = {}) {
     trailingIndex: null
   };
   resetPulseScrollCache();
+}
+
+function resolvePulseAnimationDuration({ resolution } = {}) {
+  const bpm = parseNum(inputV?.value);
+  if (!(Number.isFinite(bpm) && bpm > 0)) {
+    return null;
+  }
+  const baseResolution = Number.isFinite(resolution) && resolution > 0
+    ? Math.max(1, Math.round(resolution))
+    : Math.max(1, Math.round(currentAudioResolution || 1));
+  if (!Number.isFinite(baseResolution) || baseResolution <= 0) {
+    return null;
+  }
+  const intervalMs = (60 / (bpm * baseResolution)) * 1000;
+  return Math.max(60, Math.min(intervalMs, 420));
 }
 
 // Simple integer pulse highlight - follows App1 pattern exactly

@@ -149,6 +149,25 @@ main > .notation-panel--inline .notation-panel__canvas {
   text-shadow: 0 0 10px var(--selection-color);
 }
 
+.pulse-number--flash {
+  animation: pulseNumberFlash 0.48s ease;
+}
+
+@keyframes pulseNumberFlash {
+  0% {
+    color: var(--selection-color);
+    text-shadow: 0 0 12px var(--selection-color);
+  }
+  60% {
+    color: var(--selection-color);
+    text-shadow: 0 0 6px var(--selection-color);
+  }
+  100% {
+    color: inherit;
+    text-shadow: none;
+  }
+}
+
 .cycle-marker {
   position: absolute;
   width: 4px;

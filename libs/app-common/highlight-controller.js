@@ -10,6 +10,8 @@
  * @param {object} config
  * @param {Function} config.getPulses - Devuelve array de elementos .pulse
  * @param {Function} config.getCycleMarkers - Devuelve array de marcadores de ciclo
+ * @param {Function} [config.getPulseNumberLabels] - Devuelve labels de números de pulso
+ * @param {Function} [config.getPulseAnimationDuration] - Calcula duración animación (ms)
  * @param {object} config.fractionStore - Store de fracciones con selectionState
  * @param {object} config.pulseSeqController - Controlador de pulseSeq
  * @param {HTMLElement} [config.pulseSeqEl] - Elemento scrollable del pulseSeq
@@ -21,6 +23,8 @@
 export function createHighlightController({
   getPulses,
   getCycleMarkers,
+  getPulseNumberLabels = null,
+  getPulseAnimationDuration = null,
   fractionStore,
   pulseSeqController,
   pulseSeqEl = null,
@@ -52,6 +56,53 @@ export function createHighlightController({
     lastVisualStep: null,
     currentResolution: 1
   };
+
+  function resolvePulseNumberLabels() {
+    if (typeof getPulseNumberLabels !== 'function') return [];
+    const labels = getPulseNumberLabels();
+    if (!labels) return [];
+    if (Array.isArray(labels)) return labels;
+    if (typeof labels.length === 'number') {
+      try {
+        return Array.from(labels);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  function clearPulseNumberFlash() {
+    const labels = resolvePulseNumberLabels();
+    labels.forEach((label) => {
+      if (label && label.classList) {
+        label.classList.remove('pulse-number--flash');
+      }
+    });
+  }
+
+  function flashPulseNumber(index) {
+    if (!Number.isFinite(index)) return;
+    const labels = resolvePulseNumberLabels();
+    for (const label of labels) {
+      if (!label || !label.dataset) continue;
+      const labelIndex = Number.parseInt(label.dataset.index, 10);
+      if (Number.isFinite(labelIndex) && labelIndex === index) {
+        if (label.classList) {
+          // Reinicia animación
+          void label.offsetWidth;
+          label.classList.add('pulse-number--flash');
+        }
+        break;
+      }
+    }
+  }
+
+  function applyPulseAnimationDuration(node, durationMs) {
+    if (!node || !node.style) return;
+    if (!Number.isFinite(durationMs) || durationMs <= 0) return;
+    node.style.setProperty('--pulse-anim-duration', `${durationMs}ms`);
+  }
 
   /**
    * Encuentra fracción coincidente con un valor
@@ -151,6 +202,7 @@ export function createHighlightController({
     }
 
     pulseSeqController?.clearActive();
+    clearPulseNumberFlash();
     resetPulseScrollCache();
   }
 
@@ -166,11 +218,20 @@ export function createHighlightController({
     // Limpiar todos los highlights previos
     pulses.forEach(p => p?.classList.remove('active'));
     setFractionHighlightKey(null);
+    clearPulseNumberFlash();
 
     // Aplicar highlight al pulso actual
     const current = pulses[targetIndex];
     if (current) {
       void current.offsetWidth; // Force reflow
+      const duration = typeof getPulseAnimationDuration === 'function'
+        ? getPulseAnimationDuration({
+          index: targetIndex,
+          resolution: state.currentResolution,
+          loopEnabled
+        })
+        : null;
+      applyPulseAnimationDuration(current, duration);
       current.classList.add('active');
     }
 
@@ -180,8 +241,22 @@ export function createHighlightController({
       trailingIndex = pulses.length - 1;
       const last = pulses[trailingIndex];
       if (last) {
+        const duration = typeof getPulseAnimationDuration === 'function'
+          ? getPulseAnimationDuration({
+            index: trailingIndex,
+            trailing: true,
+            resolution: state.currentResolution,
+            loopEnabled
+          })
+          : null;
+        applyPulseAnimationDuration(last, duration);
         last.classList.add('active');
       }
+    }
+
+    flashPulseNumber(targetIndex);
+    if (trailingIndex != null) {
+      flashPulseNumber(trailingIndex);
     }
 
     // Actualizar pulseSeq highlight con scroll
@@ -217,10 +292,12 @@ export function createHighlightController({
    * Highlighting de fracción
    */
   function highlightFraction(key) {
+    if (!fractionStore || !key) return;
     const pulses = getPulses();
 
     // Limpiar pulsos
     pulses?.forEach(p => p?.classList.remove('active'));
+    clearPulseNumberFlash();
 
     // Aplicar highlight de fracción
     setFractionHighlightKey(key);
@@ -408,6 +485,8 @@ export function createHighlightController({
 
     state.cycle.activeMarkers.forEach(m => m?.classList.remove('active'));
     state.cycle.activeMarkers = [];
+
+    clearPulseNumberFlash();
 
     state.pulse.lastType = null;
     state.pulse.lastIntIndex = null;

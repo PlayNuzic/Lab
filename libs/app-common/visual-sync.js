@@ -31,6 +31,19 @@ export function createVisualSyncManager({
   let lastVisualStep = null;
   let currentAudioResolution = 1;
 
+  function resolveAudioResolution(state, audio) {
+    if (state && Number.isFinite(state.resolution) && state.resolution > 0) {
+      return Math.max(1, Math.round(state.resolution));
+    }
+    if (audio && typeof audio.getBaseResolution === 'function') {
+      const baseResolution = audio.getBaseResolution();
+      if (Number.isFinite(baseResolution) && baseResolution > 0) {
+        return Math.max(1, Math.round(baseResolution));
+      }
+    }
+    return null;
+  }
+
   /**
    * Sincroniza estado visual con el audio
    */
@@ -53,21 +66,22 @@ export function createVisualSyncManager({
     }
     lastVisualStep = state.step;
 
-    // Actualizar resolution
-    if (Number.isFinite(state.resolution) && state.resolution > 0) {
-      const newResolution = Math.max(1, Math.round(state.resolution));
-      if (newResolution !== currentAudioResolution) {
-        currentAudioResolution = newResolution;
-        if (onResolutionChange) {
-          onResolutionChange(newResolution);
-        }
+    const resolvedResolution = resolveAudioResolution(state, audio);
+    if (resolvedResolution != null && resolvedResolution !== currentAudioResolution) {
+      currentAudioResolution = resolvedResolution;
+      if (onResolutionChange) {
+        onResolutionChange(resolvedResolution);
       }
     }
 
+    const highlightPayload = resolvedResolution != null
+      ? { ...state, resolution: resolvedResolution }
+      : state;
+
     // Actualizar cursor de notación si existe
     if (notationRenderer && typeof notationRenderer.updateCursor === 'function') {
-      const resolution = currentAudioResolution;
-      const currentPulse = Number.isFinite(state.step) && resolution > 0
+      const resolution = currentAudioResolution > 0 ? currentAudioResolution : 1;
+      const currentPulse = Number.isFinite(state.step)
         ? state.step / resolution
         : 0;
       notationRenderer.updateCursor(currentPulse, isPlaying);
@@ -75,7 +89,7 @@ export function createVisualSyncManager({
 
     // Highlighting de pulsos - siempre usar highlightPulse que maneja ambos casos
     // (la función internamente detecta si es entero o fracción)
-    highlightController.highlightPulse(state, {
+    highlightController.highlightPulse(highlightPayload, {
       loopEnabled: getLoopEnabled(),
       isPlaying: true
     });
