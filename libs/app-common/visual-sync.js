@@ -12,7 +12,7 @@
  * @param {Function} config.getIsPlaying - Devuelve estado de reproducción
  * @param {Function} config.getLoopEnabled - Devuelve estado de loop
  * @param {object} config.highlightController - Controlador de highlighting
- * @param {object} [config.notationRenderer] - Renderer de notación (opcional)
+ * @param {Function} [config.getNotationRenderer] - Devuelve renderer de notación (opcional)
  * @param {Function} [config.getPulses] - Devuelve array de pulsos para calcular baseCount
  * @param {Function} [config.onResolutionChange] - Callback cuando cambia la resolución
  * @returns {object} - API del gestor
@@ -22,7 +22,7 @@ export function createVisualSyncManager({
   getIsPlaying,
   getLoopEnabled,
   highlightController,
-  notationRenderer = null,
+  getNotationRenderer = null,
   getPulses = null,
   onResolutionChange = null
 }) {
@@ -79,6 +79,9 @@ export function createVisualSyncManager({
       : state;
 
     // Actualizar cursor de notación si existe
+    const notationRenderer = typeof getNotationRenderer === 'function'
+      ? getNotationRenderer()
+      : null;
     if (notationRenderer && typeof notationRenderer.updateCursor === 'function') {
       const resolution = currentAudioResolution > 0 ? currentAudioResolution : 1;
       const currentPulse = Number.isFinite(state.step)

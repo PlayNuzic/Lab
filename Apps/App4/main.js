@@ -2785,7 +2785,7 @@ function initHighlightingControllers() {
     getIsPlaying: () => isPlaying,
     getLoopEnabled: () => loopEnabled,
     highlightController,
-    notationRenderer,
+    getNotationRenderer: () => notationRenderer,
     getPulses: () => pulses,
     onResolutionChange: (newResolution) => {
       currentAudioResolution = newResolution;
