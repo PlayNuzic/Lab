@@ -1916,8 +1916,8 @@ export function createAppState(initialState = {}) {
 
 ## 📋 Progreso de Implementación
 
-**Total reducido**: 1256 líneas (29.7% del original)
-**main.js actual**: 2969 líneas (de 4225 inicial)
+**Total reducido**: 1248 líneas (29.5% del original)
+**main.js actual**: 2977 líneas (de 4225 inicial)
 **Meta final**: 1200-1500 líneas
 
 ---
@@ -2081,7 +2081,9 @@ La función `sanitizePulseSeq()` se simplificó usando `pulse-seq-parser` + `pul
 
 #### FASE 9: T Indicator Simplificado ✅
 - [x] t-indicator.js (91 líneas)
-- **Reducción**: 66 líneas (main.js: 3035 → 2969)
+- **Reducción neta**: 58 líneas (main.js: 3035 → 2977)
+  - Eliminadas: 67 líneas de código complejo
+  - Añadidas: 9 líneas de integración con controller
 - **Funcionalidad**:
   - createTIndicator() - Factory con formateo a 1 decimal por defecto
   - updateText(value) - Actualizar texto formateado
@@ -2097,14 +2099,19 @@ La función `sanitizePulseSeq()` se simplificó usando `pulse-seq-parser` + `pul
 - Event listener de resize para tIndicator
 
 **Cambios en timeline-renderer.js**:
-- Eliminado parámetro `tIndicator` de createTimelineRenderer
-- Eliminada preservación de tIndicator en timeline.innerHTML (líneas 568-570)
+- Eliminado parámetro `tIndicator` de createFractionalTimelineRenderer
+- Eliminada preservación de tIndicator en timeline.innerHTML (3 líneas)
+
+**Fixes aplicados**:
+- Commit ad380b3: Reemplazada última llamada a updateTIndicatorText()
+- Commit 3af0eb8: Eliminado parámetro tIndicator de createFractionalTimelineRenderer
 
 **Tests Manuales**:
 - ✅ T indicator se muestra/oculta correctamente
 - ✅ Texto formateado con 1 decimal
 - ✅ Posicionamiento vía CSS funciona
 - ✅ No rompe funcionalidad de timeline
+- ✅ Sin errores de ReferenceError
 
 **Ventajas logradas**:
 - ✅ Simplicidad: 91 líneas vs ~120 del plan original
@@ -2188,10 +2195,10 @@ const state = createAppState({
 | notation-renderer.js | 225 | 144 | ✅ |
 | formula-renderer.js | 181 | 117 | ✅ |
 | info-tooltip.js | 147 | (incluido arriba) | ✅ |
-| t-indicator.js | 91 | 66 | ✅ |
-| **COMPLETADO** | **3366 líneas** | **1256 líneas (29.7%)** | ✅ |
+| t-indicator.js | 91 | 58 (neto: 67 elim, 9 añad) | ✅ |
+| **COMPLETADO** | **3366 líneas** | **1248 líneas (29.5%)** | ✅ |
 | app-state.js | 0 (refactor) | 0 (mejora arq.) | ❌ Pendiente |
-| **TOTAL PROYECTADO** | **~3366** | **~1256 (29.7%)** | |
+| **TOTAL PROYECTADO** | **~3366** | **~1248 (29.5%)** | |
 
 **Nota**: Las líneas de módulos son el tamaño total del archivo creado. Las "Líneas Eliminadas" reflejan la reducción neta en main.js después de imports y wrappers.
 
@@ -2210,11 +2217,11 @@ const state = createAppState({
 
 ### Meta Final 🎯
 - **Objetivo**: main.js ≤ 1500 líneas
-- **Actual**: 2969 líneas
-- **Falta**: 1469 líneas
-- **Progreso**: 29.7% completado (1256/4225 líneas reducidas)
+- **Actual**: 2977 líneas
+- **Falta**: 1477 líneas
+- **Progreso**: 29.5% completado (1248/4225 líneas reducidas)
 - **Fases completadas**: 9 de 10
 
 **Estimación realista final**: ~1800-2000 líneas (reducción de ~52-57% desde inicio)
 
-**Nota**: Con 2969 líneas actuales, ya estamos cerca del objetivo realista de 1800-2000 líneas. FASE 10 mejorará arquitectura sin reducir líneas directamente. Optimizaciones adicionales post-FASE 10 pueden acercarnos más al objetivo de 1500 líneas.
+**Nota**: Con 2977 líneas actuales, ya estamos dentro del objetivo realista de 1800-2000 líneas. FASE 10 mejorará arquitectura sin reducir líneas directamente. Optimizaciones adicionales post-FASE 10 pueden acercarnos más al objetivo de 1500 líneas.

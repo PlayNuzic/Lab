@@ -132,15 +132,22 @@ Esto cubre tanto los módulos compartidos (`libs/app-common`, `libs/sound`) como
 - **Cambio**: Extracción de T Indicator a módulo simple sin lógica de posicionamiento automático
 - **Módulo creado**:
   - `libs/app-common/t-indicator.js` (91 líneas) - Factory function con formateo a 1 decimal
-- **Reducción**: main.js de 3035 → 2969 líneas (66 líneas, 2.2%)
+- **Reducción neta**: main.js de 3035 → 2977 líneas (58 líneas, 1.9%)
+  - Eliminadas: 67 líneas de código complejo (funciones + constantes + listeners)
+  - Añadidas: 9 líneas de integración con controller
 - **Funciones eliminadas**:
   - `updateTIndicatorText()` - Reemplazada por `tIndicatorController.updateText()`
   - `updateTIndicatorPosition()` - Eliminada (posicionamiento ahora vía CSS)
   - `scheduleTIndicatorReveal()` - Eliminada (control simplificado con show/hide)
+  - `T_INDICATOR_TRANSITION_DELAY` constante
+  - `tIndicatorRevealHandle` variable
 - **Simplificaciones**:
-  - Eliminado parámetro `tIndicator` de `createTimelineRenderer()`
-  - Eliminada preservación de tIndicator en timeline.innerHTML
+  - Eliminado parámetro `tIndicator` de `createFractionalTimelineRenderer()`
+  - Eliminada preservación de tIndicator en timeline.innerHTML (timeline-renderer.js)
   - Eliminado event listener de resize para tIndicator
   - Posicionamiento ahora controlado por CSS de la app
 - **API limpia**: `createTIndicator()` con métodos `updateText()`, `show()`, `hide()`
-- **Total acumulado**: 1256 líneas reducidas desde inicio (29.7% del original 4225)
+- **Fixes aplicados**:
+  - Commit ad380b3: Reemplazada última llamada a updateTIndicatorText() en handleInput()
+  - Commit 3af0eb8: Eliminado parámetro tIndicator de createFractionalTimelineRenderer
+- **Total acumulado**: 1248 líneas reducidas desde inicio (29.5% del original 4225)
