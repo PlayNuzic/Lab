@@ -1912,634 +1912,334 @@ export function createAppState(initialState = {}) {
 ---
 
 *Plan generado: 2025-10-07*
-*Última actualización: [Pendiente]*
+*Última actualización: 2025-10-07 22:30*
 
 ## 📋 Progreso de Implementación
 
-### ✅ FASE 1 COMPLETADA (2025-10-07)
-- [x] Creado pulse-seq-parser.js (520 líneas)
-- [x] Creado pulse-seq-state.js (175 líneas)
-- [x] Tests: 17 tests pasando ✓
-- [x] Integrado en main.js:sanitizePulseSeq
-- [x] Resueltos errores de inicialización y duplicación
-- [x] Corregido mensaje hover de validación fraccionaria
-
-**Reducción lograda**: main.js de 4225 → 4032 líneas (~193 líneas)
-
-**Estado**: ✅ FASE 1 VALIDADA - Módulos funcionan correctamente en producción
+**Total reducido**: 1073 líneas (25.4% del objetivo final)
+**main.js actual**: 3152 líneas (de 4225 inicial)
+**Meta final**: 1200-1500 líneas
 
 ---
 
-### ✅ FASE 2 COMPLETADA (2025-10-07)
-- [x] Creado pulse-seq-editor.js (499 líneas)
-- [x] Navegación por gaps con ArrowLeft/Right/Home/End
-- [x] Backspace/Delete inteligente (borra tokens completos)
-- [x] Normalización automática de espacios
-- [x] Handlers: focus, blur, mouseup, keydown
-- [x] Integrado en main.js (líneas 1879-1894)
-- [x] Event listeners antiguos comentados (líneas 1897-2034)
-- [x] Funciones wrapper adaptadas
+### ✅ Fases Completadas (2025-10-07)
 
-**Reducción lograda**: main.js de 4032 → 3882 líneas (~150 líneas)
+#### FASE 1: Utilidades Puras ✅
+- [x] pulse-seq-parser.js (520 líneas)
+- [x] pulse-seq-state.js (175 líneas)
+- **Reducción**: 193 líneas netas
+- **Tests**: 17 tests pasando
+- **Validación**: ✅ Parseo y validación funcionan correctamente
 
-**Estado**: ✅ FASE 2 VALIDADA - Editor funciona correctamente
-
----
-
-### ✅ FASE 4 COMPLETADA (2025-10-07)
-- [x] Creado highlight-controller.js (517 líneas)
-- [x] Creado visual-sync.js (137 líneas)
-- [x] Sistema de highlighting para pulsos enteros y fracciones
-- [x] Scroll automático en pulseSeq
-- [x] Sincronización con audio via requestAnimationFrame
-- [x] Force reflow para animaciones CSS de fracciones
-- [x] Gestión de resolución de audio (callback a main.js)
-- [x] Highlighting de ciclos
-- [x] Integrado en main.js (líneas 2770-2793, funciones delegadas)
-
-**Reducción lograda**: main.js de 4032 → 3573 líneas (~459 líneas adicionales)
-
-**Módulos FASE 4**:
-- `highlight-controller.js`: highlightIntegerPulse, highlightFraction, highlightPulse, highlightCycle
-- `visual-sync.js`: Loop RAF, syncVisualState, control de resolución
-
-**Bug Crítico Resuelto (2025-10-07)**:
-- **Problema**: Cursor de notación no visible durante playback en App4
-- **Causa**: `visual-sync.js` esperaba `getNotationRenderer` como función, pero App4 pasaba objeto directo
-- **Solución**: Apps/App4/main.js:2788 - Cambio de `notationRenderer` a `getNotationRenderer: () => notationRenderer`
-- **Validación**: Cursor ahora se sincroniza correctamente con audio, moviéndose por la partitura durante reproducción
-
-**Estado**: ✅ FASE 4 VALIDADA - Highlighting y cursor funcionan correctamente
+**Archivos creados**:
+- `libs/app-common/pulse-seq-parser.js`
+- `libs/app-common/pulse-seq-state.js`
 
 ---
 
-### 🚧 FASE 5: renderTimeline() Modular (EN PREPARACIÓN)
+#### FASE 2: Editor de Secuencia ✅
+- [x] pulse-seq-editor.js (499 líneas)
+- **Reducción**: 150 líneas
+- **Funcionalidad**: Navegación por gaps, backspace inteligente, normalización automática
+- **Validación**: ✅ Edición funciona correctamente
 
-**Objetivo**: Extraer `renderTimeline()` completo (~350 líneas) a módulo reutilizable.
+**Archivos creados**:
+- `libs/app-common/pulse-seq-editor.js`
 
-**Estado actual de main.js**: 3574 líneas (reducción total: 651 líneas / 15.4% del objetivo)
+---
 
-#### Archivos a crear/modificar
+#### FASE 3: Simplificación sanitizePulseSeq ✅
+**Estado**: OMITIDA - Ya completada durante FASE 1
 
-##### 5.1 Ampliar `libs/app-common/timeline-renderer.js`
-**Líneas a extraer**: ~350 (de main.js:2796-3254 aproximadamente)
+La función `sanitizePulseSeq()` se simplificó usando `pulse-seq-parser` + `pulse-seq-state`, por lo que no requiere fase separada.
 
-**Responsabilidad**: Renderizado completo de timeline con soporte de fracciones, pulsos, ciclos y memoria.
+---
 
-**Funciones a modularizar**:
-- `renderIntegerPulses()` - Renderizado de pulsos base (0 a lg)
-- `renderFractionalSubdivisions()` - Subdivisions con gridFromOrigin
-- `createPulseHit()` - Áreas de click para pulsos enteros
-- `createCycleMarker()` - Marcadores de fracción con posicionamiento
-- `createFractionHit()` - Áreas de click para fracciones
-- `createFractionLabel()` - Labels de fracciones
-- `manageFractionMemory()` - Suspender/restaurar fracciones según validez
+#### FASE 4: Sistema de Highlighting ✅
+- [x] highlight-controller.js (517 líneas)
+- [x] visual-sync.js (137 líneas)
+- **Reducción**: 459 líneas
+- **Funcionalidad**:
+  - Highlighting de pulsos enteros, fracciones y ciclos
+  - Scroll automático en pulseSeq
+  - Sincronización con audio vía requestAnimationFrame
+  - Force reflow para animaciones CSS
+  - Gestión de resolución de audio
 
-**Interfaz del módulo**:
+**Bug Crítico Resuelto**:
+- **Problema**: Cursor de notación no visible durante playback
+- **Causa**: `visual-sync.js` esperaba `getNotationRenderer` como función getter
+- **Solución**: main.js:2788 - Cambio de `notationRenderer` a `getNotationRenderer: () => notationRenderer`
+- **Validación**: ✅ Cursor sincronizado correctamente
+
+**Archivos creados**:
+- `libs/app-common/highlight-controller.js`
+- `libs/app-common/visual-sync.js`
+
+---
+
+#### FASE 5: Timeline Renderer Modular ✅
+- [x] timeline-renderer.js (640 líneas)
+- **Reducción**: 266 líneas
+- **Funcionalidad**:
+  - Renderizado completo con fracciones, pulsos, ciclos y memoria
+  - 8 funciones principales extraídas
+  - API limpia con getters para todos los arrays
+
+**Tests Manuales Pasados**:
+- ✅ Diferentes valores de Lg (2-10, 16-32, 64+)
+- ✅ Fracciones simples y complejas (1/2, 3/5, 5/7)
+- ✅ Memoria de fracciones (suspender/restau rar con cambios de Lg)
+- ✅ Clicks en pulsos y fracciones
+- ✅ Highlighting durante playback con cursor sincronizado
+
+**Archivos creados**:
+- `libs/app-common/timeline-renderer.js`
+
+---
+
+#### FASE 6: Randomización con Fracciones ✅
+- [x] random-fractional.js (234 líneas)
+- **Reducción**: 12 líneas netas (debido a UX extra)
+
+**Funcionalidad Principal**:
+- Randomización con soporte de n/d y fracciones complejas
+- Respeto de pulsos seleccionables según fracción activa
+- Selección aleatoria por densidad o cantidad
+
+**UX Mejora EXTRA** (no planeada):
+- Migrado checkbox "Permitir fracciones complejas" de menú random → menú opciones global
+- Persistencia en localStorage (default: false)
+- Control de editabilidad del numerador: setSimpleMode/setComplexMode
+- Placeholder dinámico: "1/d" (simple) vs "n/d" (complejo)
+- Factory reset restaura a false
+- Integración en header.js y template.js
+
+**Archivos creados/modificados**:
+- `libs/app-common/random-fractional.js`
+- `libs/shared-ui/header.js` (checkbox añadido)
+- `libs/app-common/template.js` (checkbox añadido)
+- `libs/app-common/fraction-editor.js` (setSimpleMode/setComplexMode)
+
+**Validación**: ✅ Randomización y UX funcionan correctamente
+
+---
+
+#### FASE 7: Notation Renderer ✅
+- [x] notation-renderer.js (225 líneas)
+- **Reducción**: 144 líneas
+- **Funcionalidad**:
+  - buildNotationRenderState() - Construcción de estado para VexFlow
+  - renderIfVisible() - Renderizado condicional
+  - handleClick() - Gestión de clicks en notación
+  - inferNotationDenominator() - Cálculo de denominador
+
+**Mejoras Implementadas**:
+- **pulseFilter cambiado**: 'fractional' → 'all'
+  - Ahora renderiza silencios clickeables para pulsos enteros fuera del último ciclo
+- **Parámetro isPlaying**: Evita resetear cursor durante playback
+- **Fix bugs de inicialización**: orden correcto con pulseMemoryApi y notationPanelController
+
+**Tests Manuales**:
+- ✅ Abrir/cerrar panel preserva estado
+- ✅ Clicks en notas enteras y fraccionarias
+- ✅ Silencios clickeables fuera del último ciclo
+- ✅ Renderizado correcto de partitura
+- ✅ Cursor sincronizado al cambiar parámetros durante playback (fix commit 150340e)
+
+**Archivos creados**:
+- `libs/app-common/notation-renderer.js`
+
+---
+
+### ❌ Fases Pendientes (Re-priorizadas)
+
+#### FASE 8: Fórmulas y Title Info Tip
+**Líneas estimadas**: ~200
+**Riesgo**: Bajo
+**Tiempo estimado**: 1 día
+
+**Archivos a crear**:
+- `libs/app-common/formula-display.js` (~120 líneas)
+  - buildFormulaFragment() - Generación de fórmulas HTML
+  - Cálculos: Lg·d/n, V base, V fracción, T
+  - Formatters personalizables
+
+- `libs/app-common/info-tooltip.js` (~80 líneas)
+  - show/hide tooltip flotante
+  - Posicionamiento automático relativo a anchor
+  - Auto-hide en scroll/resize
+  - Soporte de temas dark/light
+
+**Extracción desde main.js**:
+- buildTitleInfoContent
+- showTitleInfoTip
+- hideTitleInfoTip
+
+**Estado**: ❌ PENDIENTE
+
+---
+
+#### FASE 9: T Indicator (Simplificado)
+**Líneas estimadas**: ~40 (simplificado desde ~120 del plan original)
+**Riesgo**: Bajo
+**Tiempo estimado**: 1 día
+
+**Cambio de Enfoque**:
+El plan original proponía módulo con posicionamiento dinámico complejo que anclara automáticamente al pulso Lg y se moviera con transformaciones de timeline.
+
+**Nuevo enfoque** (propuesta usuario):
+- Eliminar lógica de "mover T" automáticamente
+- Reducir a indicador simple: mostrar/ocultar texto formateado en posición elegida por app
+- NO participar en transformación de timeline
+- Mantener "en la maquinaria" para funcionamiento de apps (actualmente escondido en Apps 2-4)
+
+**Archivos a crear**:
+- `libs/app-common/t-indicator.js` (~40 líneas)
+  - createTIndicator({ className, formatValue })
+  - updateText(value) - Actualizar texto formateado
+  - show() / hide() - Control de visibilidad
+  - attach(container) / detach() - Montaje en DOM
+  - NO updatePosition() - La app controla posición con CSS/JS
+
+**Uso en App4**:
 ```javascript
-export function createFractionalTimelineRenderer({
-  timeline,                  // elemento DOM contenedor
-  getLg,                     // función que devuelve Lg actual
-  getFraction,               // función que devuelve {numerator, denominator}
-  fractionStore,             // store con selectionState, hitMap, markerMap
-  fractionMemory,            // Map con memoria de fracciones
-  computeHitSizePx,          // función de cálculo de tamaño de hit
-  computeNumberFontRem,      // función de cálculo de fuente de números
-  computeSubdivisionFontRem, // función de cálculo de fuente de subdivisiones
-  attachSelectionListeners,  // función para adjuntar eventos de selección
-  constants = {
-    FRACTION_POSITION_EPSILON,
-    SUBDIVISION_HIDE_THRESHOLD,
-    PULSE_NUMBER_HIDE_THRESHOLD
-  }
-}) {
-  // Variables internas
-  let pulses = [];
-  let pulseHits = [];
-  let cycleMarkers = [];
-  let cycleMarkerHits = [];
-  let cycleLabels = [];
-  let bars = [];
-  let pulseNumberLabels = [];
+const tIndicatorController = inputT ? createTIndicator() : null;
+if (tIndicatorController) {
+  tIndicatorController.element.id = 'tIndicator';
+  tIndicatorController.attach(timeline);
 
-  function render() {
-    // Lógica completa de renderTimeline()
-    // ...
-    return {
-      pulses,
-      pulseHits,
-      cycleMarkers,
-      cycleMarkerHits,
-      cycleLabels,
-      bars,
-      pulseNumberLabels
-    };
+  // Actualizar cuando cambia T
+  function handleTChange() {
+    tIndicatorController.updateText(inputT.value);
+    tIndicatorController.show();
   }
-
-  return {
-    render,
-    getPulses: () => pulses,
-    getPulseHits: () => pulseHits,
-    getCycleMarkers: () => cycleMarkers,
-    getCycleMarkerHits: () => cycleMarkerHits,
-    getCycleLabels: () => cycleLabels,
-    getBars: () => bars,
-    getPulseNumberLabels: () => pulseNumberLabels
-  };
 }
 ```
 
-**Integración en main.js**:
-```javascript
-// Inicialización (una vez)
-const timelineRenderer = createFractionalTimelineRenderer({
-  timeline,
-  getLg: () => parseInt(inputLg.value),
-  getFraction: () => fractionEditorController.getFraction(),
-  fractionStore,
-  fractionMemory,
-  computeHitSizePx,
-  computeNumberFontRem,
-  computeSubdivisionFontRem,
-  attachSelectionListeners,
-  constants: {
-    FRACTION_POSITION_EPSILON,
-    SUBDIVISION_HIDE_THRESHOLD,
-    PULSE_NUMBER_HIDE_THRESHOLD
-  }
-});
-
-// Uso (reemplazar renderTimeline())
-function renderTimeline() {
-  const result = timelineRenderer.render();
-
-  // Actualizar referencias globales
-  pulses = result.pulses;
-  pulseHits = result.pulseHits;
-  cycleMarkers = result.cycleMarkers;
-  cycleMarkerHits = result.cycleMarkerHits;
-  cycleLabels = result.cycleLabels;
-  bars = result.bars;
-  pulseNumberLabels = result.pulseNumberLabels;
-
-  // Actualizar highlight controller
-  initHighlightingControllers();
+**Posicionamiento**: Cada app decide con CSS
+```css
+#tIndicator {
+  position: absolute;
+  bottom: -30px;  /* App decide */
+  right: 20px;
 }
 ```
 
-**Reducción esperada**: main.js → ~3220 líneas (~354 líneas extraídas)
+**Ventajas del nuevo enfoque**:
+- Simplicidad: ~40 líneas vs ~120 del plan original
+- Flexibilidad: Apps controlan dónde mostrarlo
+- Sin acoplamiento con timeline-renderer
+- Visible cuando apps lo necesiten
+- Reutilizable para cualquier app
 
+**Cambios requeridos**:
+- Eliminar `updateTIndicatorPosition()` de main.js
+- Eliminar `scheduleTIndicatorReveal()` de main.js
+- Eliminar preservación de tIndicator en timeline-renderer.js (líneas 568-570)
+- Eliminar event listener de resize para tIndicator
+
+**Estado**: ❌ PENDIENTE
+
+---
+
+#### FASE 10: Estado Global Centralizado
+**Líneas estimadas**: 0 (refactor, no reducción directa)
+**Riesgo**: Alto
 **Tiempo estimado**: 2-3 días
 
-**Riesgo**: MEDIO (muchos elementos interconectados, gestión de memoria de fracciones, posicionamiento preciso)
+**Objetivo**: Migrar variables `let` dispersas a objeto `state.*`
 
-#### Tests requeridos
-1. Renderizado con diferentes valores de Lg (pequeños: 4, medianos: 16, grandes: 64)
-2. Subdivisiones fraccionarias con n/d variados (simples: 1/2, complejos: 3/5, 5/7)
-3. Memoria de fracciones: suspender cuando Lg cambia, restaurar cuando vuelve a ser válido
-4. Hit areas clickeables para pulsos y fracciones
-5. Umbrales de ocultación de labels (SUBDIVISION_HIDE_THRESHOLD, PULSE_NUMBER_HIDE_THRESHOLD)
-6. Modo circular vs lineal
+**Beneficios**:
+- Arquitectura más clara
+- Facilita debugging
+- Preparación para futuras apps
+- Opcional: Proxy reactivo para auto-actualización
 
-#### Validación
-- Comparar visual con versión original (screenshots)
-- Verificar que clicks funcionan en pulsos y fracciones
-- Confirmar que memoria de fracciones persiste correctamente
-- Testear con highlighting activo durante reproducción
+**Variables a centralizar**:
+```javascript
+// Reproducción
+let audio, isPlaying, loopEnabled, isUpdating
 
-**Estado**: 🚧 PENDIENTE - Listo para iniciar implementación
+// Timeline
+let circularTimeline, pulses, pulseNumberLabels
+let cycleMarkers, cycleLabels, bars, pulseHits
+
+// Highlighting
+let lastPulseHighlightState, lastFractionHighlightNodes
+let lastCycleHighlightState
+
+// Visual sync
+let visualSyncHandle, lastVisualStep, currentAudioResolution
+
+// Notación
+let notationRenderer, notationPanelController
+
+// T indicator
+let tIndicator, tIndicatorRevealHandle
+```
+
+**Enfoque**:
+```javascript
+import { createAppState } from '../../libs/app-common/app-state.js';
+
+const state = createAppState({
+  audio: null,
+  isPlaying: false,
+  // ... resto de estado inicial
+});
+
+// Acceso: state.audio, state.isPlaying, etc.
+```
+
+**Estado**: ❌ PENDIENTE - Baja prioridad hasta completar FASES 8-9
 
 ---
 
-### ✅ FASE 5 COMPLETADA (2025-10-07)
-- [x] Creado timeline-renderer.js (640 líneas)
-- [x] Extraídas 8 funciones principales de renderTimeline()
-- [x] Integrado en main.js con initTimelineRenderer()
-- [x] Gestión de memoria de fracciones (suspender/restaurar)
-- [x] API limpia con getters para todos los arrays
+## Reducción de Líneas Lograda
 
-**Reducción lograda**: main.js de 3574 → 3308 líneas (**266 líneas**, 7.4%)
+| Módulo | Líneas Módulo | Líneas Eliminadas de main.js | Estado |
+|--------|--------------|------------------------------|--------|
+| pulse-seq-parser.js | 520 | 193 | ✅ |
+| pulse-seq-state.js | 175 | (incluido arriba) | ✅ |
+| pulse-seq-editor.js | 499 | 150 | ✅ |
+| highlight-controller.js | 517 | 459 | ✅ |
+| visual-sync.js | 137 | (incluido arriba) | ✅ |
+| timeline-renderer.js | 640 | 266 | ✅ |
+| random-fractional.js | 234 | -12 (UX extra añadida) | ✅ |
+| notation-renderer.js | 225 | 144 | ✅ |
+| **COMPLETADO** | **2947 líneas** | **1073 líneas (25.4%)** | ✅ |
+| formula-display.js | ~120 | ~200 (estimado) | ❌ Pendiente |
+| info-tooltip.js | ~80 | (incluido arriba) | ❌ Pendiente |
+| t-indicator.js (simplificado) | ~40 | ~60 (estimado) | ❌ Pendiente |
+| app-state.js | 0 (refactor) | 0 (mejora arq.) | ❌ Pendiente |
+| **TOTAL PROYECTADO** | **~3187** | **~1333 (31.5%)** | |
 
-**Funciones Extraídas**:
-- `renderIntegerPulses()` - Renderizado de pulsos base (0 a lg)
-- `createPulseHit()` - Áreas de click para pulsos enteros
-- `renderFractionalSubdivisions()` - Subdivisions con gridFromOrigin
-- `createCycleMarker()` - Marcadores de fracción con posicionamiento
-- `createFractionHit()` - Áreas de click para fracciones
-- `createFractionLabel()` - Labels de fracciones
-- `registerAllLabels()` - Registro de múltiples labels por fracción
-- `manageFractionMemory()` - Suspender/restaurar fracciones según validez
-
-**Integración en main.js**:
-- Línea 30: Import de createFractionalTimelineRenderer
-- Línea 160: Variable global `timelineRenderer`
-- Líneas 2798-2823: Función `initTimelineRenderer()`
-- Líneas 2825-2877: Función `renderTimeline()` refactorizada (de ~350 → 53 líneas)
-
-**Archivos Modificados**:
-- Creado: `libs/app-common/timeline-renderer.js`
-- Modificado: `Apps/App4/main.js`
-- Backups: `main.js.backup-fase5`, `main.js.bak2`
-
-**Validación Completada** ✅:
-- [x] Tests manuales con diferentes valores de Lg (2-10, 16-32, 64+) - ✅ Renderizado correcto
-- [x] Fracciones simples y complejas (1/2, 3/5, 5/7) - ✅ Subdivisiones correctas
-- [x] Memoria de fracciones (suspender/restaurar con cambios de Lg) - ✅ Funcionando perfectamente
-- [x] Clicks en pulsos y fracciones - ✅ Selección interactiva correcta
-- [x] Highlighting durante playback - ✅ Sincronización perfecta con cursor
-
-**Progreso Acumulado**:
-- **Inicio**: 4225 líneas
-- **Actual**: 3308 líneas
-- **Reducción total**: **917 líneas (21.7%)**
-- **Meta final**: 1200-1500 líneas
-- **Progreso**: **34% del objetivo total**
-
-**Estado**: ✅ FASE 5 COMPLETADA Y VALIDADA - Todos los tests pasaron exitosamente
+**Nota**: Las líneas de módulos son el tamaño total del archivo creado. Las "Líneas Eliminadas" reflejan la reducción neta en main.js después de imports y wrappers.
 
 ---
 
-### 🚧 FASE 6: Randomización con Fracciones (EN PREPARACIÓN)
+## Próximos Pasos Inmediatos
 
-**Objetivo**: Extraer lógica de randomización con soporte de fracciones (~120 líneas) a módulo reutilizable.
+### Prioridad Alta 🔥
+1. **FASE 8: Fórmulas y Tooltips** (1 día, bajo riesgo)
+   - Alta reutilización para otras apps
+   - ~200 líneas de reducción
 
-**Estado actual de main.js**: 3308 líneas (reducción acumulada: 917 líneas / 21.7%)
+2. **FASE 9: T Indicator simplificado** (1 día, bajo riesgo)
+   - Mantener "en la maquinaria" sin complicaciones
+   - ~60 líneas de reducción
 
-#### Archivos a crear/modificar
+### Prioridad Baja 📋
+3. **FASE 10: Estado Global** (2-3 días, refactor arquitectural)
+   - Mayor complejidad, riesgo de romper flujos
+   - Beneficio: arquitectura más limpia, mejor debugging
 
-##### 6.1 Ampliar `libs/app-common/random-config.js` (EXISTENTE)
-**Líneas a añadir**: ~50
+### Meta Final 🎯
+- **Objetivo**: main.js ≤ 1500 líneas
+- **Actual**: 3152 líneas
+- **Falta**: 1652 líneas
+- **Aporte FASES 8-9**: ~260 líneas
+- **Brecha restante**: ~1392 líneas → requiere FASE 10 + optimizaciones adicionales
 
-**Responsabilidad**: Extender configuración de randomización para soportar n/d y fracciones complejas.
-
-**Funciones a ampliar**:
-```javascript
-/**
- * Aplica configuración de randomización incluyendo n, d
- */
-export function applyFractionalRandomConfig(cfg, controls = {}) {
-  // Código existente para Lg, V, T, Pulses...
-
-  // Añadir soporte para n, d
-  const { n, d, allowComplex } = controls;
-  if (n) {
-    if (cfg.n?.enabled != null) n.toggle.checked = cfg.n.enabled;
-    if (cfg.n?.range) {
-      n.min.value = cfg.n.range[0];
-      n.max.value = cfg.n.range[1];
-    }
-  }
-  if (d) {
-    if (cfg.d?.enabled != null) d.toggle.checked = cfg.d.enabled;
-    if (cfg.d?.range) {
-      d.min.value = cfg.d.range[0];
-      d.max.value = cfg.d.range[1];
-    }
-  }
-  if (allowComplex && typeof cfg.allowComplex === 'boolean') {
-    allowComplex.checked = cfg.allowComplex;
-  }
-}
-
-/**
- * Actualiza configuración desde controles
- */
-export function updateFractionalRandomConfig(randomConfig, controls = {}, defaults = {}) {
-  // Código existente...
-
-  // Añadir n, d
-  const { n, d, allowComplex } = controls;
-  if (n) {
-    let [min, max] = cfg.n?.range ?? defaults.n?.range ?? [1, 1];
-    if (!allowComplex?.checked) {
-      min = 1;
-      max = 1;
-    }
-    randomConfig.n = {
-      enabled: n.toggle?.checked ?? true,
-      range: resolveIntRange(n.min.value, n.max.value, [min, max])
-    };
-  }
-  if (d) {
-    randomConfig.d = {
-      enabled: d.toggle?.checked ?? true,
-      range: resolveIntRange(d.min.value, d.max.value, defaults.d?.range ?? [1, 8])
-    };
-  }
-  if (allowComplex) {
-    randomConfig.allowComplex = !!allowComplex.checked;
-  }
-
-  return randomConfig;
-}
-```
-
-##### 6.2 Crear `libs/app-common/random-fractional.js` (NUEVO)
-**Líneas a extraer**: ~130 (de main.js:1685-1806)
-
-**Responsabilidad**: Randomización con soporte de fracciones, pulsos seleccionables y memoria.
-
-**Interfaz del módulo**:
-```javascript
-/**
- * Randomiza parámetros con soporte de fracciones
- *
- * @param {object} config
- * @param {object} config.randomConfig - Configuración de randomización
- * @param {object} config.randomDefaults - Valores por defecto
- * @param {object} config.inputs - {inputLg, inputV, inputT}
- * @param {object} config.fractionEditor - Controller de fracción
- * @param {object} config.pulseMemoryApi - API de memoria de pulsos
- * @param {object} config.fractionStore - Store de fracciones
- * @param {HTMLElement} config.randomCount - Input de cantidad de pulsos
- * @param {Function} config.isIntegerPulseSelectable - Función de validación
- * @param {Function} config.nearestPulseIndex - Función de snap
- * @param {Function} config.applyRandomFractionSelection - Función de randomización de fracciones
- * @param {object} config.callbacks - Callbacks opcionales
- * @returns {object} - Resultado de randomización
- */
-export function randomizeFractional({
-  randomConfig,
-  randomDefaults,
-  inputs,
-  fractionEditor,
-  pulseMemoryApi,
-  fractionStore,
-  randomCount,
-  isIntegerPulseSelectable,
-  nearestPulseIndex,
-  applyRandomFractionSelection,
-  callbacks = {
-    onLgChange: null,
-    onVChange: null,
-    onFractionChange: null,
-    onPulsesChange: null,
-    renderNotation: null
-  }
-}) {
-  const cfg = randomConfig || randomDefaults;
-  const randomRanges = {};
-
-  // 1. Preparar rangos de randomización
-  prepareRandomRanges(cfg, randomDefaults, randomRanges);
-
-  // 2. Randomizar valores
-  const randomized = randomizeValues(randomRanges);
-
-  // 3. Aplicar Lg
-  if (cfg.Lg?.enabled && inputs.inputLg) {
-    const value = clampToRange(randomized.Lg, cfg.Lg.range, randomDefaults.Lg.range);
-    setValue(inputs.inputLg, value);
-    callbacks.onLgChange?.({ value, input: inputs.inputLg });
-  }
-
-  // 4. Aplicar V
-  if (cfg.V?.enabled && inputs.inputV) {
-    const value = clampToRange(randomized.V, cfg.V.range, randomDefaults.V.range);
-    setValue(inputs.inputV, value);
-    callbacks.onVChange?.({ value, input: inputs.inputV });
-  }
-
-  // 5. Aplicar n/d
-  const fractionUpdates = buildFractionUpdates(cfg, randomized, randomDefaults);
-  if (fractionEditor && Object.keys(fractionUpdates).length > 0) {
-    fractionEditor.setFraction(fractionUpdates, { cause: 'randomize' });
-    callbacks.onFractionChange?.(fractionUpdates);
-  }
-
-  // 6. Randomizar pulsos
-  if (cfg.Pulses?.enabled) {
-    randomizePulses({
-      inputs,
-      pulseMemoryApi,
-      fractionStore,
-      randomCount,
-      isIntegerPulseSelectable,
-      nearestPulseIndex,
-      applyRandomFractionSelection,
-      callbacks
-    });
-  }
-
-  // 7. Renderizar notación si existe callback
-  callbacks.renderNotation?.();
-
-  return {
-    randomized,
-    applied: {
-      lg: cfg.Lg?.enabled,
-      v: cfg.V?.enabled,
-      fraction: Object.keys(fractionUpdates).length > 0,
-      pulses: cfg.Pulses?.enabled
-    }
-  };
-}
-
-/**
- * Helper: Prepara rangos de randomización
- */
-function prepareRandomRanges(cfg, defaults, ranges) {
-  if (cfg.Lg?.enabled) {
-    const [lo, hi] = cfg.Lg.range ?? defaults.Lg.range;
-    ranges.Lg = { min: lo, max: hi };
-  }
-  if (cfg.V?.enabled) {
-    const [lo, hi] = cfg.V.range ?? defaults.V.range;
-    ranges.V = { min: lo, max: hi };
-  }
-  if (cfg.n?.enabled) {
-    let [min, max] = cfg.n.range ?? defaults.n.range;
-    if (!cfg.allowComplex) {
-      min = 1;
-      max = 1;
-    }
-    ranges.n = { min, max };
-  }
-  if (cfg.d?.enabled) {
-    const [min, max] = cfg.d.range ?? defaults.d.range;
-    ranges.d = { min, max };
-  }
-}
-
-/**
- * Helper: Construye objeto de actualizaciones de fracción
- */
-function buildFractionUpdates(cfg, randomized, defaults) {
-  const updates = {};
-
-  if (cfg.n?.enabled) {
-    const [min, max] = cfg.n.range ?? defaults.n.range;
-    const bounded = cfg.allowComplex ? [min, max] : [1, 1];
-    const randomValue = randomized.n ?? bounded[0];
-    updates.numerator = Math.max(1, Math.min(bounded[1], randomValue));
-  }
-
-  if (cfg.d?.enabled) {
-    const [min, max] = cfg.d.range ?? defaults.d.range;
-    const randomValue = randomized.d ?? min;
-    updates.denominator = Math.max(1, Math.min(max, randomValue));
-  }
-
-  return updates;
-}
-
-/**
- * Helper: Randomiza selección de pulsos
- */
-function randomizePulses(opts) {
-  const { inputs, pulseMemoryApi, fractionStore, randomCount,
-          isIntegerPulseSelectable, nearestPulseIndex,
-          applyRandomFractionSelection, callbacks } = opts;
-
-  // Limpiar selección persistente
-  pulseMemoryApi.clear();
-  fractionStore.selectionState.clear();
-  fractionStore.selectedFractionKeys.clear();
-
-  const lg = parseInt(inputs.inputLg.value);
-  if (isNaN(lg) || lg <= 0) return;
-
-  pulseMemoryApi.ensure(lg);
-
-  // Obtener pulsos seleccionables según fracción activa
-  const fraction = opts.fractionEditor?.getFraction?.() ?? {};
-  const available = [];
-  for (let i = 1; i < lg; i++) {
-    if (isIntegerPulseSelectable(i, fraction.numerator, fraction.denominator, lg)) {
-      available.push(i);
-    }
-  }
-
-  // Seleccionar aleatoriamente
-  const rawCount = randomCount?.value?.trim() || '';
-  const selected = selectRandomPulses(available, rawCount);
-
-  // Aplicar a memoria
-  for (let i = 1; i < lg; i++) pulseMemoryApi.data[i] = false;
-  selected.forEach(i => { pulseMemoryApi.data[i] = true; });
-
-  // Randomizar fracciones
-  const applied = applyRandomFractionSelection(fractionStore, {
-    lg,
-    randomCountValue: rawCount,
-    parseIntSafe: parseInt,
-    nearestPulseIndex
-  });
-
-  callbacks.onPulsesChange?.({ selected, fractionsApplied: applied });
-}
-
-/**
- * Helper: Selecciona pulsos aleatorios según densidad o cantidad
- */
-function selectRandomPulses(available, rawCount) {
-  const selected = new Set();
-
-  if (rawCount === '') {
-    const density = 0.5;
-    available.forEach(i => { if (Math.random() < density) selected.add(i); });
-  } else {
-    const parsed = Number.parseInt(rawCount, 10);
-    if (Number.isNaN(parsed)) {
-      const density = 0.5;
-      available.forEach(i => { if (Math.random() < density) selected.add(i); });
-    } else if (parsed > 0) {
-      const target = Math.min(parsed, available.length);
-      while (selected.size < target && available.length > 0) {
-        const idx = available[Math.floor(Math.random() * available.length)];
-        selected.add(idx);
-      }
-    }
-  }
-
-  return Array.from(selected).sort((a, b) => a - b);
-}
-
-/**
- * Helper: Clamp value to range
- */
-function clampToRange(value, range, defaultRange) {
-  const [lo, hi] = range ?? defaultRange;
-  return Math.max(lo, Math.min(hi, value ?? lo));
-}
-
-/**
- * Helper: Set value to input element
- */
-function setValue(input, value) {
-  if (!input) return;
-  input.value = String(value);
-}
-```
-
-**Integración en main.js**:
-```javascript
-// Import
-import { randomizeFractional } from '../../libs/app-common/random-fractional.js';
-
-// Reemplazar función randomize()
-function randomize() {
-  randomizeFractional({
-    randomConfig,
-    randomDefaults,
-    inputs: { inputLg, inputV, inputT },
-    fractionEditor: fractionEditorController,
-    pulseMemoryApi,
-    fractionStore,
-    randomCount,
-    isIntegerPulseSelectable,
-    nearestPulseIndex,
-    applyRandomFractionSelection,
-    callbacks: {
-      onLgChange: ({ value, input }) => handleInput({ target: input }),
-      onVChange: ({ value, input }) => handleInput({ target: input }),
-      onFractionChange: (updates) => {
-        // Fallback si no hay fractionEditor
-        if (!fractionEditorController) {
-          if (updates.numerator != null && numeratorInput) {
-            setValue(numeratorInput, updates.numerator);
-          }
-          if (updates.denominator != null && denominatorInput) {
-            setValue(denominatorInput, updates.denominator);
-          }
-          refreshFractionUI({ reveal: true });
-          handleInput();
-        }
-      },
-      onPulsesChange: ({ selected, fractionsApplied }) => {
-        syncSelectedFromMemory();
-        updatePulseNumbers();
-        layoutTimeline({ silent: true });
-        rebuildFractionSelections();
-        if (fractionsApplied && isPlaying) {
-          applySelectionToAudio();
-        }
-      },
-      renderNotation: () => renderNotationIfVisible()
-    }
-  });
-}
-```
-
-**Reducción esperada**: main.js → ~3190 líneas (~118 líneas extraídas)
-
-**Tiempo estimado**: 1-2 días
-
-**Riesgo**: MEDIO (lógica compleja de selección de pulsos según fracción activa)
-
-#### Tests requeridos
-1. Randomización con Lg/V habilitados
-2. Randomización con n/d y allowComplex
-3. Randomización de pulsos con fracción activa (verificar seleccionables)
-4. Randomización de fracciones
-5. Combinación de todos los parámetros
-6. Edge cases: Lg=2, fracción compleja 5/7, densidad vs cantidad
-
-#### Validación
-- Verificar que pulsos randomizados respetan `isIntegerPulseSelectable`
-- Confirmar que fracciones se randomizan correctamente
-- Verificar que memoria de pulsos se limpia antes de randomizar
-- Testear con allowComplex true/false
-
-**Estado**: 🚧 PENDIENTE - Listo para iniciar implementación
-
+**Estimación realista final**: ~1800-2000 líneas (reducción de ~52% desde inicio)
