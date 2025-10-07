@@ -28,6 +28,7 @@ import { createPulseSeqEditor } from '../../libs/app-common/pulse-seq-editor.js'
 import { createHighlightController } from '../../libs/app-common/highlight-controller.js';
 import { createVisualSyncManager } from '../../libs/app-common/visual-sync.js';
 import { createFractionalTimelineRenderer } from '../../libs/app-common/timeline-renderer.js';
+import { randomizeFractional } from '../../libs/app-common/random-fractional.js';
 import {
   FRACTION_POSITION_EPSILON,
   TEXT_NODE_TYPE,
@@ -1030,6 +1031,70 @@ function buildPulseSeqMarkup({ root, initialText }) {
 }
 initFractionEditorController();
 
+// Initialize complex fractions state from localStorage
+function initComplexFractionsState() {
+  const stored = localStorage.getItem('enableComplexFractions');
+  const enabled = stored === 'true'; // Default: false
+
+  if (fractionEditorController) {
+    if (enabled) {
+      fractionEditorController.setComplexMode();
+    } else {
+      fractionEditorController.setSimpleMode();
+    }
+  }
+
+  updateRandomMenuComplexState(enabled);
+}
+
+function updateRandomMenuComplexState(enabled) {
+  const randNToggle = document.getElementById('randNToggle');
+  const randNMin = document.getElementById('randNMin');
+  const randNMax = document.getElementById('randNMax');
+
+  if (!randNToggle) return;
+
+  if (enabled) {
+    // Habilitar controles de numerador
+    randNToggle.disabled = false;
+    randNToggle.style.opacity = '1';
+    randNToggle.title = '';
+    if (randNMin) randNMin.disabled = false;
+    if (randNMax) randNMax.disabled = false;
+  } else {
+    // Deshabilitar controles de numerador
+    randNToggle.disabled = true;
+    randNToggle.checked = false;
+    randNToggle.style.opacity = '0.5';
+    randNToggle.title = 'Activar fracciones complejas en Opciones para habilitar';
+    if (randNMin) randNMin.disabled = true;
+    if (randNMax) randNMax.disabled = true;
+  }
+}
+
+// Escuchar cambios de "Activar fracciones complejas"
+window.addEventListener('sharedui:complexfractions', (e) => {
+  const enabled = e.detail.value;
+
+  // Aplicar a fraction editor
+  if (fractionEditorController) {
+    if (enabled) {
+      fractionEditorController.setComplexMode();
+    } else {
+      fractionEditorController.setSimpleMode();
+    }
+  }
+
+  // Actualizar estado del toggle de numerador en random menu
+  updateRandomMenuComplexState(enabled);
+
+  // Re-renderizar timeline si es necesario
+  renderTimeline();
+});
+
+// Inicializar estado al cargar
+initComplexFractionsState();
+
 // Highlight overlay for pulse sequence numbers during playback
 // Highlight overlays are managed by the shared pulse sequence controller
 
@@ -1683,126 +1748,49 @@ if (tapHelp) {
  * Apply random values within the configured ranges and update inputs accordingly.
  */
 function randomize() {
-  const cfg = randomConfig || randomDefaults;
-  const randomRanges = {};
-  if (cfg.Lg?.enabled) {
-    const [lo, hi] = cfg.Lg.range ?? randomDefaults.Lg.range;
-    randomRanges.Lg = { min: lo, max: hi };
-  }
-  if (cfg.V?.enabled) {
-    const [lo, hi] = cfg.V.range ?? randomDefaults.V.range;
-    randomRanges.V = { min: lo, max: hi };
-  }
-  if (cfg.n?.enabled) {
-    let [min, max] = cfg.n.range ?? randomDefaults.n.range;
-    if (!cfg.allowComplex) {
-      min = 1;
-      max = 1;
-    }
-    randomRanges.n = { min, max };
-  }
-  if (cfg.d?.enabled) {
-    const [min, max] = cfg.d.range ?? randomDefaults.d.range;
-    randomRanges.d = { min, max };
-  }
-
-  const randomized = randomizeValues(randomRanges);
-
-  if (cfg.Lg?.enabled && inputLg) {
-    const [lo, hi] = cfg.Lg.range ?? randomDefaults.Lg.range;
-    const value = Math.max(lo, Math.min(hi, randomized.Lg ?? lo));
-    setValue(inputLg, value);
-    handleInput({ target: inputLg });
-  }
-  if (cfg.V?.enabled && inputV) {
-    const [lo, hi] = cfg.V.range ?? randomDefaults.V.range;
-    const value = Math.max(lo, Math.min(hi, randomized.V ?? lo));
-    setValue(inputV, value);
-    handleInput({ target: inputV });
-  }
-
-  const fractionUpdates = {};
-  if (cfg.n?.enabled) {
-    const [min, max] = cfg.n.range ?? randomDefaults.n.range;
-    const bounded = cfg.allowComplex ? [min, max] : [1, 1];
-    const randomValue = randomized.n ?? bounded[0];
-    fractionUpdates.numerator = Math.max(1, Math.min(bounded[1], randomValue));
-  }
-  if (cfg.d?.enabled) {
-    const [min, max] = cfg.d.range ?? randomDefaults.d.range;
-    const randomValue = randomized.d ?? min;
-    fractionUpdates.denominator = Math.max(1, Math.min(max, randomValue));
-  }
-  if (fractionEditorController && Object.keys(fractionUpdates).length > 0) {
-    fractionEditorController.setFraction(fractionUpdates, { cause: 'randomize' });
-  } else if (Object.keys(fractionUpdates).length > 0) {
-    if (fractionUpdates.numerator != null && numeratorInput) {
-      setValue(numeratorInput, fractionUpdates.numerator);
-    }
-    if (fractionUpdates.denominator != null && denominatorInput) {
-      setValue(denominatorInput, fractionUpdates.denominator);
-    }
-    refreshFractionUI({ reveal: true });
-    handleInput();
-  }
-
-  if (cfg.Pulses?.enabled) {
-    // Reset persistent selection memory so old pulses don't reappear when Lg grows
-    clearPersistentPulses();
-    const lg = parseInt(inputLg.value);
-    if (!isNaN(lg) && lg > 0) {
-      ensurePulseMemory(lg);
-      const rawCount = randomCount && typeof randomCount.value === 'string' ? randomCount.value.trim() : '';
-
-      // Obtener la fracción actual para filtrar pulsos seleccionables
-      const { numerator, denominator } = getFraction();
-      const available = [];
-      for (let i = 1; i < lg; i++) {
-        // Solo añadir pulsos que sean seleccionables según la fracción activa
-        if (isIntegerPulseSelectable(i, numerator, denominator, lg)) {
-          available.push(i);
-        }
-      }
-
-      const selected = new Set();
-      if (rawCount === '') {
-        const density = 0.5;
-        available.forEach(i => { if (Math.random() < density) selected.add(i); });
-      } else {
-        const parsed = Number.parseInt(rawCount, 10);
-        if (Number.isNaN(parsed)) {
-          const density = 0.5;
-          available.forEach(i => { if (Math.random() < density) selected.add(i); });
-        } else if (parsed > 0) {
-          const target = Math.min(parsed, available.length);
-          while (selected.size < target && available.length > 0) {
-            const idx = available[Math.floor(Math.random() * available.length)];
-            selected.add(idx);
+  randomizeFractional({
+    randomConfig,
+    randomDefaults,
+    inputs: { inputLg, inputV, inputT },
+    fractionEditor: fractionEditorController,
+    pulseMemoryApi,
+    fractionStore,
+    randomCount,
+    isIntegerPulseSelectable,
+    nearestPulseIndex,
+    applyRandomFractionSelection,
+    getAllowComplexFractions: () => {
+      const stored = localStorage.getItem('enableComplexFractions');
+      return stored === 'true';
+    },
+    callbacks: {
+      onLgChange: ({ value, input }) => handleInput({ target: input }),
+      onVChange: ({ value, input }) => handleInput({ target: input }),
+      onFractionChange: (updates) => {
+        // Fallback si no hay fractionEditor
+        if (!fractionEditorController) {
+          if (updates.numerator != null && numeratorInput) {
+            setValue(numeratorInput, updates.numerator);
           }
+          if (updates.denominator != null && denominatorInput) {
+            setValue(denominatorInput, updates.denominator);
+          }
+          refreshFractionUI({ reveal: true });
+          handleInput();
         }
-        // For parsed <= 0, keep selection empty (0 pulses)
-      }
-      const seq = Array.from(selected).sort((a, b) => a - b);
-      for (let i = 1; i < lg; i++) pulseMemory[i] = false;
-      seq.forEach(i => { pulseMemory[i] = true; });
-      syncSelectedFromMemory();
-      updatePulseNumbers();
-      layoutTimeline({ silent: true });
-
-      const applied = applyRandomFractionSelection(fractionStore, {
-        lg,
-        randomCountValue: rawCount,
-        parseIntSafe,
-        nearestPulseIndex
-      });
-      rebuildFractionSelections();
-      if (applied && isPlaying) {
-        applySelectionToAudio();
-      }
+      },
+      onPulsesChange: ({ selected, fractionsApplied }) => {
+        syncSelectedFromMemory();
+        updatePulseNumbers();
+        layoutTimeline({ silent: true });
+        rebuildFractionSelections();
+        if (fractionsApplied && isPlaying) {
+          applySelectionToAudio();
+        }
+      },
+      renderNotation: () => renderNotationIfVisible()
     }
-  }
-
-  renderNotationIfVisible();
+  });
 }
 
 initRandomMenu(randomBtn, randomMenu, randomize);

@@ -156,6 +156,7 @@ function wireControls(root) {
     const cycleSoundSelect = root.querySelector('#cycleSoundSelect');
     const factoryResetBtn = root.querySelector('#factoryResetBtn');
     const optionsMenu = root.querySelector('#optionsMenu');
+    const enableComplexFractions = root.querySelector('#enableComplexFractions');
 
     // Get the app's audio instance for preview
     // Apps expose their audio instance via window.__labAudio
@@ -208,6 +209,21 @@ function wireControls(root) {
         });
     }
 
+    // Complex fractions toggle - default false
+    if (enableComplexFractions) {
+        const stored = localStorage.getItem('enableComplexFractions');
+        const enabled = stored === 'true'; // Default: false
+        enableComplexFractions.checked = enabled;
+
+        enableComplexFractions.addEventListener('change', (e) => {
+            const value = e.target.checked;
+            localStorage.setItem('enableComplexFractions', String(value));
+            window.dispatchEvent(new CustomEvent('sharedui:complexfractions', {
+                detail: { value, source: 'shared-header' }
+            }));
+        });
+    }
+
     if (factoryResetBtn) {
         factoryResetBtn.addEventListener('click', () => {
             const message = 'Se eliminarán las preferencias guardadas y la app se recargará. ¿Quieres continuar?';
@@ -219,6 +235,16 @@ function wireControls(root) {
                 optionsMenu.removeAttribute('open');
             }
             factoryResetBtn.blur();
+
+            // Reset complex fractions to default (false)
+            localStorage.removeItem('enableComplexFractions');
+            if (enableComplexFractions) {
+                enableComplexFractions.checked = false;
+                window.dispatchEvent(new CustomEvent('sharedui:complexfractions', {
+                    detail: { value: false, source: 'factory-reset' }
+                }));
+            }
+
             window.dispatchEvent(new CustomEvent('sharedui:factoryreset', {
                 detail: { confirmed: true, source: 'shared-header' }
             }));
@@ -453,6 +479,7 @@ export function renderHeader({ title = 'App', mount } = {}) {
                 <label for="selectColor">Color selección</label>
                 <input type="color" id="selectColor" value="#F97C39">
                 <label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle"></label>
+                <label for="enableComplexFractions">Activar fracciones complejas <input type="checkbox" id="enableComplexFractions"></label>
                 <button type="button" id="factoryResetBtn" class="factory-reset">Volver a ajustes de fábrica</button>
                 <details>
                   <summary>Sonidos</summary>

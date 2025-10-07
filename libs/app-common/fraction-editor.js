@@ -126,8 +126,8 @@ export function createFractionEditor({
       denominator: null
     },
     fields: {
-      numerator: { wrapper: null, placeholder: null },
-      denominator: { wrapper: null, placeholder: null }
+      numerator: { wrapper: null, placeholder: null, up: null, down: null },
+      denominator: { wrapper: null, placeholder: null, up: null, down: null }
     }
   };
 
@@ -484,7 +484,9 @@ export function createFractionEditor({
   function attachField(fieldKey, fieldElements) {
     elements.fields[fieldKey] = {
       wrapper: fieldElements.wrapper,
-      placeholder: fieldElements.placeholder
+      placeholder: fieldElements.placeholder,
+      up: fieldElements.up,
+      down: fieldElements.down
     };
 
     registerHoverTarget(fieldElements.wrapper);
@@ -705,6 +707,63 @@ export function createFractionEditor({
       clearHideTimer();
       currentMessage = '';
       delete safeHost[CONTROLLER_SYMBOL];
+    },
+    setSimpleMode() {
+      const numeratorInput = elements.numerator;
+      if (!numeratorInput) return;
+
+      // Fijar numerador en 1
+      numeratorInput.value = '1';
+      numeratorInput.disabled = true;
+      numeratorInput.readOnly = true;
+      numeratorInput.style.opacity = '0.5';
+      numeratorInput.style.cursor = 'not-allowed';
+      numeratorInput.title = 'Activar fracciones complejas en Opciones para editar';
+
+      // Deshabilitar spinners
+      const numeratorUpBtn = elements.fields.numerator?.up;
+      const numeratorDownBtn = elements.fields.numerator?.down;
+      if (numeratorUpBtn) {
+        numeratorUpBtn.disabled = true;
+        numeratorUpBtn.style.opacity = '0.5';
+        numeratorUpBtn.style.cursor = 'not-allowed';
+      }
+      if (numeratorDownBtn) {
+        numeratorDownBtn.disabled = true;
+        numeratorDownBtn.style.opacity = '0.5';
+        numeratorDownBtn.style.cursor = 'not-allowed';
+      }
+
+      // Emitir cambio si numerador no era 1
+      const current = parsePositiveInt(numeratorInput.value);
+      if (current !== 1) {
+        setFraction({ numerator: 1 }, { cause: 'simple-mode' });
+      }
+    },
+    setComplexMode() {
+      const numeratorInput = elements.numerator;
+      if (!numeratorInput) return;
+
+      // Habilitar numerador
+      numeratorInput.disabled = false;
+      numeratorInput.readOnly = false;
+      numeratorInput.style.opacity = '1';
+      numeratorInput.style.cursor = '';
+      numeratorInput.title = '';
+
+      // Habilitar spinners
+      const numeratorUpBtn = elements.fields.numerator?.up;
+      const numeratorDownBtn = elements.fields.numerator?.down;
+      if (numeratorUpBtn) {
+        numeratorUpBtn.disabled = false;
+        numeratorUpBtn.style.opacity = '1';
+        numeratorUpBtn.style.cursor = 'pointer';
+      }
+      if (numeratorDownBtn) {
+        numeratorDownBtn.disabled = false;
+        numeratorDownBtn.style.opacity = '1';
+        numeratorDownBtn.style.cursor = 'pointer';
+      }
     }
   };
 

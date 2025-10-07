@@ -148,6 +148,7 @@ ${togglesMarkup}
         <label for="hoverToggle">Etiquetas de ayuda <input type="checkbox" id="hoverToggle" checked /></label>
         ${selectColor}
         <label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle" /></label>
+        <label for="enableComplexFractions">Activar fracciones complejas <input type="checkbox" id="enableComplexFractions" /></label>
         <button type="button" id="factoryResetBtn" class="factory-reset">Volver a ajustes de fábrica</button>
         <details>
           <summary>Sonidos</summary>

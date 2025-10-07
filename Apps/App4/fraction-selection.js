@@ -17,8 +17,7 @@ export const randomDefaults = {
   T: { enabled: true, range: [0.1, 20] },
   Pulses: { enabled: true, count: '' },
   n: { enabled: true, range: [1, 9] },
-  d: { enabled: true, range: [1, 9] },
-  allowComplex: true
+  d: { enabled: true, range: [1, 9] }
 };
 
 export function createFractionSelectionStore() {
@@ -410,8 +409,7 @@ export function applyRandomConfig(cfg, controls = {}) {
     V: { toggle: controls.randVToggle, min: controls.randVMin, max: controls.randVMax },
     T: { toggle: controls.randTToggle, min: controls.randTMin, max: controls.randTMax },
     n: { toggle: controls.randNToggle, min: controls.randNMin, max: controls.randNMax },
-    d: { toggle: controls.randDToggle, min: controls.randDMin, max: controls.randDMax },
-    allowComplex: controls.randComplexToggle
+    d: { toggle: controls.randDToggle, min: controls.randDMin, max: controls.randDMax }
   });
   if (cfg.Pulses && controls.randPulsesToggle && controls.randomCount) {
     controls.randPulsesToggle.checked = cfg.Pulses.enabled;
@@ -426,8 +424,7 @@ export function updateRandomConfig(randomConfig, controls = {}, defaults = rando
     V: { toggle: controls.randVToggle, min: controls.randVMin, max: controls.randVMax },
     T: { toggle: controls.randTToggle, min: controls.randTMin, max: controls.randTMax },
     n: { toggle: controls.randNToggle, min: controls.randNMin, max: controls.randNMax, integer: true, minValue: 1 },
-    d: { toggle: controls.randDToggle, min: controls.randDMin, max: controls.randDMax, integer: true, minValue: 1 },
-    allowComplex: controls.randComplexToggle
+    d: { toggle: controls.randDToggle, min: controls.randDMin, max: controls.randDMax, integer: true, minValue: 1 }
   }, defaults);
   if (controls.randPulsesToggle && controls.randomCount) {
     randomConfig.Pulses = {
