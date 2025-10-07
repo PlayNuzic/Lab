@@ -2469,7 +2469,6 @@ function initTimelineRenderer() {
     registerFractionLabel,
     markFractionSuspended,
     rememberFractionSelectionInMemory,
-    tIndicator,
     constants: {
       SUBDIVISION_HIDE_THRESHOLD,
       PULSE_NUMBER_HIDE_THRESHOLD
