@@ -227,40 +227,29 @@ main > .notation-panel--inline .notation-panel__canvas {
   }
 }
 
-@keyframes fractionFlash {
-  0% {
-    box-shadow: 0 0 0px var(--selection-color);
-    opacity: 1;
-  }
-  40% {
-    box-shadow: 0 0 20px var(--selection-color);
-    opacity: 1;
-  }
-  100% {
-    box-shadow: 0 0 8px var(--selection-color);
-    opacity: 0.8;
-  }
-}
-
 .cycle-marker.fraction-active {
   background: var(--selection-color);
-  animation: fractionFlash 0.35s ease-out forwards;
+  animation: pulseFlash var(--pulse-anim-duration, 0.35s) ease-out;
+  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
   opacity: 1;
 }
 
 .fraction-hit {
+  color: var(--selection-color);
   transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
 }
 
 .fraction-hit.selected {
+  animation: pulseFlash var(--pulse-anim-duration, 0.35s) ease-out;
   background: var(--selection-color);
-  box-shadow: 0 0 16px var(--selection-color);
+  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
   opacity: 0.75;
 }
 
 .fraction-hit.fraction-active {
+  animation: pulseFlash var(--pulse-anim-duration, 0.35s) ease-out;
   background: var(--selection-color);
-  animation: fractionFlash 0.35s ease-out forwards;
+  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
   opacity: 0.6;
 }
 
