@@ -2725,6 +2725,13 @@ function renderTimeline() {
 
   // Reinicializar controladores de highlighting después del render
   initHighlightingControllers();
+
+  if (isPlaying) {
+    // Si estamos en reproducción activa, reiniciar el loop de sync visual
+    // para que el cursor de notación y los highlights sigan avanzando.
+    syncVisualState();
+    startVisualSync();
+  }
 }
 
 function restoreCycleLabelDisplay() {
