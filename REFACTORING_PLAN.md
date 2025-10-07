@@ -1963,5 +1963,583 @@ export function createAppState(initialState = {}) {
 - `highlight-controller.js`: highlightIntegerPulse, highlightFraction, highlightPulse, highlightCycle
 - `visual-sync.js`: Loop RAF, syncVisualState, control de resolución
 
-**Estado**: ✅ FASE 4 VALIDADA - Highlighting funciona correctamente con flash angular
+**Bug Crítico Resuelto (2025-10-07)**:
+- **Problema**: Cursor de notación no visible durante playback en App4
+- **Causa**: `visual-sync.js` esperaba `getNotationRenderer` como función, pero App4 pasaba objeto directo
+- **Solución**: Apps/App4/main.js:2788 - Cambio de `notationRenderer` a `getNotationRenderer: () => notationRenderer`
+- **Validación**: Cursor ahora se sincroniza correctamente con audio, moviéndose por la partitura durante reproducción
+
+**Estado**: ✅ FASE 4 VALIDADA - Highlighting y cursor funcionan correctamente
+
+---
+
+### 🚧 FASE 5: renderTimeline() Modular (EN PREPARACIÓN)
+
+**Objetivo**: Extraer `renderTimeline()` completo (~350 líneas) a módulo reutilizable.
+
+**Estado actual de main.js**: 3574 líneas (reducción total: 651 líneas / 15.4% del objetivo)
+
+#### Archivos a crear/modificar
+
+##### 5.1 Ampliar `libs/app-common/timeline-renderer.js`
+**Líneas a extraer**: ~350 (de main.js:2796-3254 aproximadamente)
+
+**Responsabilidad**: Renderizado completo de timeline con soporte de fracciones, pulsos, ciclos y memoria.
+
+**Funciones a modularizar**:
+- `renderIntegerPulses()` - Renderizado de pulsos base (0 a lg)
+- `renderFractionalSubdivisions()` - Subdivisions con gridFromOrigin
+- `createPulseHit()` - Áreas de click para pulsos enteros
+- `createCycleMarker()` - Marcadores de fracción con posicionamiento
+- `createFractionHit()` - Áreas de click para fracciones
+- `createFractionLabel()` - Labels de fracciones
+- `manageFractionMemory()` - Suspender/restaurar fracciones según validez
+
+**Interfaz del módulo**:
+```javascript
+export function createFractionalTimelineRenderer({
+  timeline,                  // elemento DOM contenedor
+  getLg,                     // función que devuelve Lg actual
+  getFraction,               // función que devuelve {numerator, denominator}
+  fractionStore,             // store con selectionState, hitMap, markerMap
+  fractionMemory,            // Map con memoria de fracciones
+  computeHitSizePx,          // función de cálculo de tamaño de hit
+  computeNumberFontRem,      // función de cálculo de fuente de números
+  computeSubdivisionFontRem, // función de cálculo de fuente de subdivisiones
+  attachSelectionListeners,  // función para adjuntar eventos de selección
+  constants = {
+    FRACTION_POSITION_EPSILON,
+    SUBDIVISION_HIDE_THRESHOLD,
+    PULSE_NUMBER_HIDE_THRESHOLD
+  }
+}) {
+  // Variables internas
+  let pulses = [];
+  let pulseHits = [];
+  let cycleMarkers = [];
+  let cycleMarkerHits = [];
+  let cycleLabels = [];
+  let bars = [];
+  let pulseNumberLabels = [];
+
+  function render() {
+    // Lógica completa de renderTimeline()
+    // ...
+    return {
+      pulses,
+      pulseHits,
+      cycleMarkers,
+      cycleMarkerHits,
+      cycleLabels,
+      bars,
+      pulseNumberLabels
+    };
+  }
+
+  return {
+    render,
+    getPulses: () => pulses,
+    getPulseHits: () => pulseHits,
+    getCycleMarkers: () => cycleMarkers,
+    getCycleMarkerHits: () => cycleMarkerHits,
+    getCycleLabels: () => cycleLabels,
+    getBars: () => bars,
+    getPulseNumberLabels: () => pulseNumberLabels
+  };
+}
+```
+
+**Integración en main.js**:
+```javascript
+// Inicialización (una vez)
+const timelineRenderer = createFractionalTimelineRenderer({
+  timeline,
+  getLg: () => parseInt(inputLg.value),
+  getFraction: () => fractionEditorController.getFraction(),
+  fractionStore,
+  fractionMemory,
+  computeHitSizePx,
+  computeNumberFontRem,
+  computeSubdivisionFontRem,
+  attachSelectionListeners,
+  constants: {
+    FRACTION_POSITION_EPSILON,
+    SUBDIVISION_HIDE_THRESHOLD,
+    PULSE_NUMBER_HIDE_THRESHOLD
+  }
+});
+
+// Uso (reemplazar renderTimeline())
+function renderTimeline() {
+  const result = timelineRenderer.render();
+
+  // Actualizar referencias globales
+  pulses = result.pulses;
+  pulseHits = result.pulseHits;
+  cycleMarkers = result.cycleMarkers;
+  cycleMarkerHits = result.cycleMarkerHits;
+  cycleLabels = result.cycleLabels;
+  bars = result.bars;
+  pulseNumberLabels = result.pulseNumberLabels;
+
+  // Actualizar highlight controller
+  initHighlightingControllers();
+}
+```
+
+**Reducción esperada**: main.js → ~3220 líneas (~354 líneas extraídas)
+
+**Tiempo estimado**: 2-3 días
+
+**Riesgo**: MEDIO (muchos elementos interconectados, gestión de memoria de fracciones, posicionamiento preciso)
+
+#### Tests requeridos
+1. Renderizado con diferentes valores de Lg (pequeños: 4, medianos: 16, grandes: 64)
+2. Subdivisiones fraccionarias con n/d variados (simples: 1/2, complejos: 3/5, 5/7)
+3. Memoria de fracciones: suspender cuando Lg cambia, restaurar cuando vuelve a ser válido
+4. Hit areas clickeables para pulsos y fracciones
+5. Umbrales de ocultación de labels (SUBDIVISION_HIDE_THRESHOLD, PULSE_NUMBER_HIDE_THRESHOLD)
+6. Modo circular vs lineal
+
+#### Validación
+- Comparar visual con versión original (screenshots)
+- Verificar que clicks funcionan en pulsos y fracciones
+- Confirmar que memoria de fracciones persiste correctamente
+- Testear con highlighting activo durante reproducción
+
+**Estado**: 🚧 PENDIENTE - Listo para iniciar implementación
+
+---
+
+### ✅ FASE 5 COMPLETADA (2025-10-07)
+- [x] Creado timeline-renderer.js (640 líneas)
+- [x] Extraídas 8 funciones principales de renderTimeline()
+- [x] Integrado en main.js con initTimelineRenderer()
+- [x] Gestión de memoria de fracciones (suspender/restaurar)
+- [x] API limpia con getters para todos los arrays
+
+**Reducción lograda**: main.js de 3574 → 3308 líneas (**266 líneas**, 7.4%)
+
+**Funciones Extraídas**:
+- `renderIntegerPulses()` - Renderizado de pulsos base (0 a lg)
+- `createPulseHit()` - Áreas de click para pulsos enteros
+- `renderFractionalSubdivisions()` - Subdivisions con gridFromOrigin
+- `createCycleMarker()` - Marcadores de fracción con posicionamiento
+- `createFractionHit()` - Áreas de click para fracciones
+- `createFractionLabel()` - Labels de fracciones
+- `registerAllLabels()` - Registro de múltiples labels por fracción
+- `manageFractionMemory()` - Suspender/restaurar fracciones según validez
+
+**Integración en main.js**:
+- Línea 30: Import de createFractionalTimelineRenderer
+- Línea 160: Variable global `timelineRenderer`
+- Líneas 2798-2823: Función `initTimelineRenderer()`
+- Líneas 2825-2877: Función `renderTimeline()` refactorizada (de ~350 → 53 líneas)
+
+**Archivos Modificados**:
+- Creado: `libs/app-common/timeline-renderer.js`
+- Modificado: `Apps/App4/main.js`
+- Backups: `main.js.backup-fase5`, `main.js.bak2`
+
+**Validación Completada** ✅:
+- [x] Tests manuales con diferentes valores de Lg (2-10, 16-32, 64+) - ✅ Renderizado correcto
+- [x] Fracciones simples y complejas (1/2, 3/5, 5/7) - ✅ Subdivisiones correctas
+- [x] Memoria de fracciones (suspender/restaurar con cambios de Lg) - ✅ Funcionando perfectamente
+- [x] Clicks en pulsos y fracciones - ✅ Selección interactiva correcta
+- [x] Highlighting durante playback - ✅ Sincronización perfecta con cursor
+
+**Progreso Acumulado**:
+- **Inicio**: 4225 líneas
+- **Actual**: 3308 líneas
+- **Reducción total**: **917 líneas (21.7%)**
+- **Meta final**: 1200-1500 líneas
+- **Progreso**: **34% del objetivo total**
+
+**Estado**: ✅ FASE 5 COMPLETADA Y VALIDADA - Todos los tests pasaron exitosamente
+
+---
+
+### 🚧 FASE 6: Randomización con Fracciones (EN PREPARACIÓN)
+
+**Objetivo**: Extraer lógica de randomización con soporte de fracciones (~120 líneas) a módulo reutilizable.
+
+**Estado actual de main.js**: 3308 líneas (reducción acumulada: 917 líneas / 21.7%)
+
+#### Archivos a crear/modificar
+
+##### 6.1 Ampliar `libs/app-common/random-config.js` (EXISTENTE)
+**Líneas a añadir**: ~50
+
+**Responsabilidad**: Extender configuración de randomización para soportar n/d y fracciones complejas.
+
+**Funciones a ampliar**:
+```javascript
+/**
+ * Aplica configuración de randomización incluyendo n, d
+ */
+export function applyFractionalRandomConfig(cfg, controls = {}) {
+  // Código existente para Lg, V, T, Pulses...
+
+  // Añadir soporte para n, d
+  const { n, d, allowComplex } = controls;
+  if (n) {
+    if (cfg.n?.enabled != null) n.toggle.checked = cfg.n.enabled;
+    if (cfg.n?.range) {
+      n.min.value = cfg.n.range[0];
+      n.max.value = cfg.n.range[1];
+    }
+  }
+  if (d) {
+    if (cfg.d?.enabled != null) d.toggle.checked = cfg.d.enabled;
+    if (cfg.d?.range) {
+      d.min.value = cfg.d.range[0];
+      d.max.value = cfg.d.range[1];
+    }
+  }
+  if (allowComplex && typeof cfg.allowComplex === 'boolean') {
+    allowComplex.checked = cfg.allowComplex;
+  }
+}
+
+/**
+ * Actualiza configuración desde controles
+ */
+export function updateFractionalRandomConfig(randomConfig, controls = {}, defaults = {}) {
+  // Código existente...
+
+  // Añadir n, d
+  const { n, d, allowComplex } = controls;
+  if (n) {
+    let [min, max] = cfg.n?.range ?? defaults.n?.range ?? [1, 1];
+    if (!allowComplex?.checked) {
+      min = 1;
+      max = 1;
+    }
+    randomConfig.n = {
+      enabled: n.toggle?.checked ?? true,
+      range: resolveIntRange(n.min.value, n.max.value, [min, max])
+    };
+  }
+  if (d) {
+    randomConfig.d = {
+      enabled: d.toggle?.checked ?? true,
+      range: resolveIntRange(d.min.value, d.max.value, defaults.d?.range ?? [1, 8])
+    };
+  }
+  if (allowComplex) {
+    randomConfig.allowComplex = !!allowComplex.checked;
+  }
+
+  return randomConfig;
+}
+```
+
+##### 6.2 Crear `libs/app-common/random-fractional.js` (NUEVO)
+**Líneas a extraer**: ~130 (de main.js:1685-1806)
+
+**Responsabilidad**: Randomización con soporte de fracciones, pulsos seleccionables y memoria.
+
+**Interfaz del módulo**:
+```javascript
+/**
+ * Randomiza parámetros con soporte de fracciones
+ *
+ * @param {object} config
+ * @param {object} config.randomConfig - Configuración de randomización
+ * @param {object} config.randomDefaults - Valores por defecto
+ * @param {object} config.inputs - {inputLg, inputV, inputT}
+ * @param {object} config.fractionEditor - Controller de fracción
+ * @param {object} config.pulseMemoryApi - API de memoria de pulsos
+ * @param {object} config.fractionStore - Store de fracciones
+ * @param {HTMLElement} config.randomCount - Input de cantidad de pulsos
+ * @param {Function} config.isIntegerPulseSelectable - Función de validación
+ * @param {Function} config.nearestPulseIndex - Función de snap
+ * @param {Function} config.applyRandomFractionSelection - Función de randomización de fracciones
+ * @param {object} config.callbacks - Callbacks opcionales
+ * @returns {object} - Resultado de randomización
+ */
+export function randomizeFractional({
+  randomConfig,
+  randomDefaults,
+  inputs,
+  fractionEditor,
+  pulseMemoryApi,
+  fractionStore,
+  randomCount,
+  isIntegerPulseSelectable,
+  nearestPulseIndex,
+  applyRandomFractionSelection,
+  callbacks = {
+    onLgChange: null,
+    onVChange: null,
+    onFractionChange: null,
+    onPulsesChange: null,
+    renderNotation: null
+  }
+}) {
+  const cfg = randomConfig || randomDefaults;
+  const randomRanges = {};
+
+  // 1. Preparar rangos de randomización
+  prepareRandomRanges(cfg, randomDefaults, randomRanges);
+
+  // 2. Randomizar valores
+  const randomized = randomizeValues(randomRanges);
+
+  // 3. Aplicar Lg
+  if (cfg.Lg?.enabled && inputs.inputLg) {
+    const value = clampToRange(randomized.Lg, cfg.Lg.range, randomDefaults.Lg.range);
+    setValue(inputs.inputLg, value);
+    callbacks.onLgChange?.({ value, input: inputs.inputLg });
+  }
+
+  // 4. Aplicar V
+  if (cfg.V?.enabled && inputs.inputV) {
+    const value = clampToRange(randomized.V, cfg.V.range, randomDefaults.V.range);
+    setValue(inputs.inputV, value);
+    callbacks.onVChange?.({ value, input: inputs.inputV });
+  }
+
+  // 5. Aplicar n/d
+  const fractionUpdates = buildFractionUpdates(cfg, randomized, randomDefaults);
+  if (fractionEditor && Object.keys(fractionUpdates).length > 0) {
+    fractionEditor.setFraction(fractionUpdates, { cause: 'randomize' });
+    callbacks.onFractionChange?.(fractionUpdates);
+  }
+
+  // 6. Randomizar pulsos
+  if (cfg.Pulses?.enabled) {
+    randomizePulses({
+      inputs,
+      pulseMemoryApi,
+      fractionStore,
+      randomCount,
+      isIntegerPulseSelectable,
+      nearestPulseIndex,
+      applyRandomFractionSelection,
+      callbacks
+    });
+  }
+
+  // 7. Renderizar notación si existe callback
+  callbacks.renderNotation?.();
+
+  return {
+    randomized,
+    applied: {
+      lg: cfg.Lg?.enabled,
+      v: cfg.V?.enabled,
+      fraction: Object.keys(fractionUpdates).length > 0,
+      pulses: cfg.Pulses?.enabled
+    }
+  };
+}
+
+/**
+ * Helper: Prepara rangos de randomización
+ */
+function prepareRandomRanges(cfg, defaults, ranges) {
+  if (cfg.Lg?.enabled) {
+    const [lo, hi] = cfg.Lg.range ?? defaults.Lg.range;
+    ranges.Lg = { min: lo, max: hi };
+  }
+  if (cfg.V?.enabled) {
+    const [lo, hi] = cfg.V.range ?? defaults.V.range;
+    ranges.V = { min: lo, max: hi };
+  }
+  if (cfg.n?.enabled) {
+    let [min, max] = cfg.n.range ?? defaults.n.range;
+    if (!cfg.allowComplex) {
+      min = 1;
+      max = 1;
+    }
+    ranges.n = { min, max };
+  }
+  if (cfg.d?.enabled) {
+    const [min, max] = cfg.d.range ?? defaults.d.range;
+    ranges.d = { min, max };
+  }
+}
+
+/**
+ * Helper: Construye objeto de actualizaciones de fracción
+ */
+function buildFractionUpdates(cfg, randomized, defaults) {
+  const updates = {};
+
+  if (cfg.n?.enabled) {
+    const [min, max] = cfg.n.range ?? defaults.n.range;
+    const bounded = cfg.allowComplex ? [min, max] : [1, 1];
+    const randomValue = randomized.n ?? bounded[0];
+    updates.numerator = Math.max(1, Math.min(bounded[1], randomValue));
+  }
+
+  if (cfg.d?.enabled) {
+    const [min, max] = cfg.d.range ?? defaults.d.range;
+    const randomValue = randomized.d ?? min;
+    updates.denominator = Math.max(1, Math.min(max, randomValue));
+  }
+
+  return updates;
+}
+
+/**
+ * Helper: Randomiza selección de pulsos
+ */
+function randomizePulses(opts) {
+  const { inputs, pulseMemoryApi, fractionStore, randomCount,
+          isIntegerPulseSelectable, nearestPulseIndex,
+          applyRandomFractionSelection, callbacks } = opts;
+
+  // Limpiar selección persistente
+  pulseMemoryApi.clear();
+  fractionStore.selectionState.clear();
+  fractionStore.selectedFractionKeys.clear();
+
+  const lg = parseInt(inputs.inputLg.value);
+  if (isNaN(lg) || lg <= 0) return;
+
+  pulseMemoryApi.ensure(lg);
+
+  // Obtener pulsos seleccionables según fracción activa
+  const fraction = opts.fractionEditor?.getFraction?.() ?? {};
+  const available = [];
+  for (let i = 1; i < lg; i++) {
+    if (isIntegerPulseSelectable(i, fraction.numerator, fraction.denominator, lg)) {
+      available.push(i);
+    }
+  }
+
+  // Seleccionar aleatoriamente
+  const rawCount = randomCount?.value?.trim() || '';
+  const selected = selectRandomPulses(available, rawCount);
+
+  // Aplicar a memoria
+  for (let i = 1; i < lg; i++) pulseMemoryApi.data[i] = false;
+  selected.forEach(i => { pulseMemoryApi.data[i] = true; });
+
+  // Randomizar fracciones
+  const applied = applyRandomFractionSelection(fractionStore, {
+    lg,
+    randomCountValue: rawCount,
+    parseIntSafe: parseInt,
+    nearestPulseIndex
+  });
+
+  callbacks.onPulsesChange?.({ selected, fractionsApplied: applied });
+}
+
+/**
+ * Helper: Selecciona pulsos aleatorios según densidad o cantidad
+ */
+function selectRandomPulses(available, rawCount) {
+  const selected = new Set();
+
+  if (rawCount === '') {
+    const density = 0.5;
+    available.forEach(i => { if (Math.random() < density) selected.add(i); });
+  } else {
+    const parsed = Number.parseInt(rawCount, 10);
+    if (Number.isNaN(parsed)) {
+      const density = 0.5;
+      available.forEach(i => { if (Math.random() < density) selected.add(i); });
+    } else if (parsed > 0) {
+      const target = Math.min(parsed, available.length);
+      while (selected.size < target && available.length > 0) {
+        const idx = available[Math.floor(Math.random() * available.length)];
+        selected.add(idx);
+      }
+    }
+  }
+
+  return Array.from(selected).sort((a, b) => a - b);
+}
+
+/**
+ * Helper: Clamp value to range
+ */
+function clampToRange(value, range, defaultRange) {
+  const [lo, hi] = range ?? defaultRange;
+  return Math.max(lo, Math.min(hi, value ?? lo));
+}
+
+/**
+ * Helper: Set value to input element
+ */
+function setValue(input, value) {
+  if (!input) return;
+  input.value = String(value);
+}
+```
+
+**Integración en main.js**:
+```javascript
+// Import
+import { randomizeFractional } from '../../libs/app-common/random-fractional.js';
+
+// Reemplazar función randomize()
+function randomize() {
+  randomizeFractional({
+    randomConfig,
+    randomDefaults,
+    inputs: { inputLg, inputV, inputT },
+    fractionEditor: fractionEditorController,
+    pulseMemoryApi,
+    fractionStore,
+    randomCount,
+    isIntegerPulseSelectable,
+    nearestPulseIndex,
+    applyRandomFractionSelection,
+    callbacks: {
+      onLgChange: ({ value, input }) => handleInput({ target: input }),
+      onVChange: ({ value, input }) => handleInput({ target: input }),
+      onFractionChange: (updates) => {
+        // Fallback si no hay fractionEditor
+        if (!fractionEditorController) {
+          if (updates.numerator != null && numeratorInput) {
+            setValue(numeratorInput, updates.numerator);
+          }
+          if (updates.denominator != null && denominatorInput) {
+            setValue(denominatorInput, updates.denominator);
+          }
+          refreshFractionUI({ reveal: true });
+          handleInput();
+        }
+      },
+      onPulsesChange: ({ selected, fractionsApplied }) => {
+        syncSelectedFromMemory();
+        updatePulseNumbers();
+        layoutTimeline({ silent: true });
+        rebuildFractionSelections();
+        if (fractionsApplied && isPlaying) {
+          applySelectionToAudio();
+        }
+      },
+      renderNotation: () => renderNotationIfVisible()
+    }
+  });
+}
+```
+
+**Reducción esperada**: main.js → ~3190 líneas (~118 líneas extraídas)
+
+**Tiempo estimado**: 1-2 días
+
+**Riesgo**: MEDIO (lógica compleja de selección de pulsos según fracción activa)
+
+#### Tests requeridos
+1. Randomización con Lg/V habilitados
+2. Randomización con n/d y allowComplex
+3. Randomización de pulsos con fracción activa (verificar seleccionables)
+4. Randomización de fracciones
+5. Combinación de todos los parámetros
+6. Edge cases: Lg=2, fracción compleja 5/7, densidad vs cantidad
+
+#### Validación
+- Verificar que pulsos randomizados respetan `isIntegerPulseSelectable`
+- Confirmar que fracciones se randomizan correctamente
+- Verificar que memoria de pulsos se limpia antes de randomizar
+- Testear con allowComplex true/false
+
+**Estado**: 🚧 PENDIENTE - Listo para iniciar implementación
 

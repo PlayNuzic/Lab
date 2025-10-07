@@ -19,6 +19,7 @@ App4 explora la generación de secuencias de pulsos fraccionarios sobre la timel
 - El menú de rendimiento (`performance-audio-menu.js`) queda inyectado en `index.html` para comprobar la latencia real del motor.
 - `initSoundDropdown` reutiliza el dropdown compartido que llama a `ensureAudio()` y pre-escucha el sample al cambiarlo.
 - `createHighlightController` + `createVisualSyncManager` gobiernan ahora el _highlight_ de pulsos enteros, fracciones y ciclos; la app deja de mantener duplicados locales y reutiliza la duración animada basada en el BPM/resolución.
+- **Sincronización de notación**: El cursor de la partitura se sincroniza automáticamente durante playback mediante `visual-sync.js`, que obtiene el `notationRenderer` dinámicamente vía getter function (`getNotationRenderer: () => notationRenderer`).
 
 ## Estructura de datos
 
@@ -37,6 +38,12 @@ App4 explora la generación de secuencias de pulsos fraccionarios sobre la timel
 | `../../libs/app-common/subdivision.js` | Conversión entre Lg/V/T y grid para pintar la timeline. |
 | `../../libs/sound/index.js` | Motor `TimelineAudio`, mixer global y utilidades `ensureAudio`, `setBase`, `setAccent`, `setStart`. |
 | `../../libs/shared-ui/performance-audio-menu.js` | Menú flotante que expone _lookAhead_ y _updateInterval_ efectivos. |
+| `../../libs/app-common/pulse-seq-parser.js` | Parseo y validación de tokens del campo de secuencia de pulsos. |
+| `../../libs/app-common/pulse-seq-state.js` | Gestión de estado de pulseSeq (pulseMemory + fractionStore). |
+| `../../libs/app-common/pulse-seq-editor.js` | Editor de secuencia con navegación por gaps y eventos de teclado. |
+| `../../libs/app-common/highlight-controller.js` | Sistema de highlighting para pulsos enteros, fracciones y ciclos. |
+| `../../libs/app-common/visual-sync.js` | Loop de sincronización visual con requestAnimationFrame para highlighting y cursor de notación. |
+| `../../libs/app-common/timeline-renderer.js` | Renderizado modular de timeline con soporte de fracciones, pulsos, ciclos y memoria. |
 
 ## Atajos y gestos
 
@@ -54,3 +61,23 @@ npm test
 ```
 
 Esto cubre tanto los módulos compartidos (`libs/app-common`, `libs/sound`) como los _helpers_ utilizados por la app.
+
+## Historial de cambios significativos
+
+### 2025-10-07: Refactorización FASE 5 - Timeline Renderer Modular
+- **Cambio**: Extracción de `renderTimeline()` completo a módulo reutilizable
+- **Módulo creado**: `libs/app-common/timeline-renderer.js` (640 líneas)
+- **Reducción**: main.js de 3574 → 3308 líneas (266 líneas, 7.4%)
+- **Funciones extraídas**: 8 funciones principales de renderizado
+- **Validación**: ✅ Todos los tests manuales pasaron exitosamente
+  - Diferentes valores de Lg (2-10, 16-32, 64+)
+  - Fracciones simples y complejas (1/2, 3/5, 5/7)
+  - Memoria de fracciones al cambiar Lg
+  - Clicks en pulsos y fracciones
+  - Highlighting durante playback con cursor sincronizado
+
+### 2025-10-07: Fix cursor de notación sincronizado
+- **Problema**: El cursor de la partitura no se movía durante playback.
+- **Causa**: `visual-sync.js` esperaba `getNotationRenderer` como función getter, pero `main.js` lo pasaba como objeto directo.
+- **Solución**: Línea 2788 - Cambio de `notationRenderer` a `getNotationRenderer: () => notationRenderer`.
+- **Resultado**: El cursor ahora se sincroniza correctamente con el audio, moviéndose por la partitura durante la reproducción.

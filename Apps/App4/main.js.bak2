@@ -2880,6 +2880,329 @@ function restoreCycleLabelDisplay() {
   cycleLabels.forEach(label => {
     if (!label) return;
     const full = label.dataset.fullText;
+    if (i === 0) pulse.classList.add('zero');
+    else if (i === lg) pulse.classList.add('lg');
+    pulse.dataset.index = String(i);
+
+    // Aplicar clase si el pulso no es seleccionable según la fracción activa
+    const selectable = isIntegerPulseSelectable(i, numerator, denominator, lg);
+    if (i !== 0 && i !== lg && !selectable) {
+      pulse.classList.add('non-selectable');
+    }
+
+    timeline.appendChild(pulse);
+    pulses.push(pulse);
+
+    // Barras legacy eliminadas - usar solo CSS cycleMarkerFlash para animación circular
+
+    const hit = document.createElement('div');
+    hit.className = 'pulse-hit';
+    hit.dataset.index = String(i);
+    hit.dataset.selectionKey = `pulse:${i}`;
+    hit.style.position = 'absolute';
+    hit.style.borderRadius = '50%';
+    hit.style.background = 'transparent';
+    hit.style.zIndex = '6';
+    const hitSize = computeHitSizePx(lg);
+    hit.style.width = `${hitSize}px`;
+    hit.style.height = `${hitSize}px`;
+    if (i === 0 || i === lg) {
+      hit.style.pointerEvents = 'none';
+      hit.style.cursor = 'default';
+    } else if (!selectable) {
+      // Pulsos no seleccionables: deshabilitar interacciones
+      hit.style.pointerEvents = 'none';
+      hit.style.cursor = 'not-allowed';
+      hit.classList.add('non-selectable');
+    } else {
+      hit.style.pointerEvents = 'auto';
+      hit.style.cursor = 'pointer';
+      attachSelectionListeners(hit);
+    }
+    timeline.appendChild(hit);
+    pulseHits.push(hit);
+  }
+  const grid = gridFromOrigin({ lg, numerator, denominator });
+  const normalizedLg = Number.isFinite(lg) && lg > 0 ? lg : null;
+  const normalizedNumerator = Number.isFinite(grid?.numerator) && grid.numerator > 0
+    ? grid.numerator
+    : (Number.isFinite(numerator) && numerator > 0 ? numerator : null);
+  const normalizedDenominator = Number.isFinite(grid?.denominator) && grid.denominator > 0
+    ? grid.denominator
+    : (Number.isFinite(denominator) && denominator > 0 ? denominator : null);
+
+  lastStructureSignature = {
+    lg: normalizedLg,
+    numerator: normalizedNumerator,
+    denominator: normalizedDenominator
+  };
+
+  const validFractionKeys = new Set();
+  if (grid.cycles > 0 && grid.subdivisions.length && normalizedNumerator && normalizedDenominator) {
+    const hideFractionLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
+    const numeratorPerCycle = normalizedNumerator ?? 0;
+    const labelFormatter = ({ cycleIndex, subdivisionIndex, position }) => {
+      const normalizedPositionBase = Number.isFinite(position)
+        ? Math.floor(position + FRACTION_POSITION_EPSILON)
+        : null;
+      const normalizedCycle = Number.isFinite(cycleIndex) ? Math.floor(cycleIndex) : null;
+      const hasCycleBase = normalizedCycle != null && Number.isFinite(numeratorPerCycle);
+      const cycleBase = hasCycleBase ? normalizedCycle * numeratorPerCycle : null;
+
+      if (subdivisionIndex === 0) {
+        if (Number.isFinite(cycleBase)) return String(cycleBase);
+        return Number.isFinite(normalizedPositionBase) ? String(normalizedPositionBase) : null;
+      }
+
+      if (Number.isFinite(cycleBase)) {
+        return `${cycleBase}.${subdivisionIndex}`;
+      }
+
+      if (Number.isFinite(normalizedPositionBase)) {
+        return `${normalizedPositionBase}.${subdivisionIndex}`;
+      }
+
+      return `${cycleIndex}.${subdivisionIndex}`;
+    };
+    const denominatorValue = normalizedDenominator ?? 0;
+    grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
+      let fractionKey = null;
+      const formattedLabel = labelFormatter({ cycleIndex, subdivisionIndex, position });
+      let normalizedDisplay = null;
+      const marker = document.createElement('div');
+      marker.className = 'cycle-marker';
+      if (subdivisionIndex === 0) marker.classList.add('start');
+      marker.dataset.cycleIndex = String(cycleIndex);
+      marker.dataset.subdivision = String(subdivisionIndex);
+      marker.dataset.position = String(position);
+      if (Number.isFinite(numeratorPerCycle) && numeratorPerCycle > 0) {
+        marker.dataset.pulsesPerCycle = String(numeratorPerCycle);
+      }
+      if (Number.isFinite(lg) && lg > 0) {
+        const percent = (position / lg) * 100;
+        marker.style.left = `${percent}%`;
+        marker.style.top = '50%';
+        marker.style.transform = 'translate(-50%, -50%)';
+      }
+      timeline.appendChild(marker);
+      cycleMarkers.push(marker);
+
+      if (subdivisionIndex === 0) {
+        const baseIndex = cycleIndex * numeratorPerCycle;
+        if (Number.isFinite(baseIndex)) marker.dataset.index = String(baseIndex);
+      } else {
+        const snapPulse = nearestPulseIndex(position);
+        if (snapPulse != null) {
+          marker.dataset.index = String(snapPulse);
+        }
+      }
+
+      if (subdivisionIndex > 0 && denominatorValue > 0) {
+        let baseIndex = Math.floor(position);
+        let fracNumerator = Math.round((position - baseIndex) * denominatorValue);
+        if (fracNumerator >= denominatorValue) {
+          const carry = Math.floor(fracNumerator / denominatorValue);
+          baseIndex += carry;
+          fracNumerator -= carry * denominatorValue;
+        }
+        if (fracNumerator > 0) {
+          const key = makeFractionKey(baseIndex, fracNumerator, denominatorValue);
+          if (key) {
+            fractionKey = key;
+            const value = fractionValue(baseIndex, fracNumerator, denominatorValue);
+            const formattedDisplay = typeof formattedLabel === 'string'
+              ? formattedLabel.trim()
+              : (formattedLabel != null ? String(formattedLabel).trim() : '');
+            const fallbackDisplay = fractionDisplay(baseIndex, fracNumerator, denominatorValue, {
+              cycleIndex,
+              subdivisionIndex,
+              pulsesPerCycle: numeratorPerCycle
+            });
+            normalizedDisplay = formattedDisplay || (typeof fallbackDisplay === 'string'
+              ? fallbackDisplay
+              : String(fallbackDisplay ?? ''));
+            marker.dataset.baseIndex = String(baseIndex);
+            marker.dataset.fractionNumerator = String(fracNumerator);
+            marker.dataset.fractionDenominator = String(denominatorValue);
+            marker.dataset.fractionKey = key;
+            marker.dataset.selectionKey = `fraction:${key}`;
+            marker.dataset.value = String(value);
+            marker.dataset.display = normalizedDisplay;
+            marker.style.cursor = 'pointer';
+            attachSelectionListeners(marker);
+            validFractionKeys.add(key);
+            fractionStore.markerMap.set(key, marker);
+
+            const hit = document.createElement('div');
+            hit.className = 'fraction-hit';
+            hit.dataset.baseIndex = marker.dataset.baseIndex;
+            hit.dataset.cycleIndex = marker.dataset.cycleIndex;
+            hit.dataset.subdivision = marker.dataset.subdivision;
+            hit.dataset.fractionNumerator = marker.dataset.fractionNumerator;
+            hit.dataset.fractionDenominator = marker.dataset.fractionDenominator;
+            hit.dataset.fractionKey = key;
+            hit.dataset.selectionKey = `fraction:${key}`;
+            hit.dataset.value = String(value);
+            hit.dataset.display = normalizedDisplay;
+            if (Number.isFinite(numeratorPerCycle) && numeratorPerCycle > 0) {
+              hit.dataset.pulsesPerCycle = String(numeratorPerCycle);
+            }
+            hit.style.position = 'absolute';
+            hit.style.borderRadius = '50%';
+            hit.style.background = 'transparent';
+            hit.style.zIndex = '6';
+            const fracHitSize = computeHitSizePx(lg) * 0.75;
+            hit.style.width = `${fracHitSize}px`;
+            hit.style.height = `${fracHitSize}px`;
+            if (Number.isFinite(lg) && lg > 0) {
+              const percent = (position / lg) * 100;
+              hit.style.left = `${percent}%`;
+              hit.style.top = '50%';
+              hit.style.transform = 'translate(-50%, -50%)';
+            }
+            hit.style.pointerEvents = 'auto';
+            hit.style.cursor = 'pointer';
+            attachSelectionListeners(hit);
+            timeline.appendChild(hit);
+            cycleMarkerHits.push(hit);
+            fractionStore.hitMap.set(key, hit);
+
+            const storedSelection = fractionStore.selectionState.get(key);
+            const storedRawLabel = typeof storedSelection?.rawLabel === 'string'
+              ? storedSelection.rawLabel.trim()
+              : '';
+            const effectiveRawLabel = storedRawLabel || normalizedDisplay;
+            if (effectiveRawLabel) {
+              marker.dataset.rawLabel = effectiveRawLabel;
+              hit.dataset.rawLabel = effectiveRawLabel;
+            }
+            const labelInfo = {
+              key,
+              base: baseIndex,
+              numerator: fracNumerator,
+              denominator: denominatorValue,
+              value,
+              display: normalizedDisplay,
+              cycleIndex,
+              subdivisionIndex,
+              pulsesPerCycle: numeratorPerCycle,
+              rawLabel: storedRawLabel
+            };
+            registerFractionLabel(normalizedDisplay, labelInfo);
+            if (storedRawLabel) {
+              registerFractionLabel(storedRawLabel, labelInfo);
+            }
+            const cycleLabel = Number.isFinite(cycleIndex) && cycleIndex >= 0
+              ? `${Math.floor(cycleIndex)}.${subdivisionIndex}`
+              : null;
+            if (cycleLabel) {
+              registerFractionLabel(cycleLabel, labelInfo);
+            }
+            const absoluteLabel = Number.isFinite(labelInfo.base) && Number.isFinite(labelInfo.numerator)
+              ? `${labelInfo.base}.${labelInfo.numerator}`
+              : null;
+            if (absoluteLabel) {
+              registerFractionLabel(absoluteLabel, labelInfo);
+            }
+            if (Number.isFinite(cycleIndex) && Number.isFinite(subdivisionIndex) && subdivisionIndex >= 0) {
+              registerFractionLabel(`${cycleIndex}.${subdivisionIndex}`, labelInfo);
+            }
+          }
+        }
+      }
+
+      if (hideFractionLabels) return;
+      const formatted = formattedLabel != null
+        ? formattedLabel
+        : (normalizedDisplay != null ? normalizedDisplay : labelFormatter({ cycleIndex, subdivisionIndex, position }));
+      if (formatted != null) {
+        const label = document.createElement('div');
+        label.className = 'cycle-label';
+        if (subdivisionIndex === 0) label.classList.add('cycle-label--integer');
+        if (cycleIndex === 0 && subdivisionIndex === 0) label.classList.add('cycle-label--origin');
+        label.dataset.cycleIndex = String(cycleIndex);
+        label.dataset.subdivision = String(subdivisionIndex);
+        label.dataset.position = String(position);
+        if (fractionKey) {
+          label.dataset.fractionKey = fractionKey;
+        }
+        label.textContent = formatted;
+        label.dataset.fullText = String(formatted);
+        const decimalIndex = typeof formatted === 'string' ? formatted.indexOf('.') : -1;
+        if (decimalIndex > -1 && decimalIndex < formatted.length - 1) {
+          const fractionalPart = formatted.slice(decimalIndex + 1);
+          if (fractionalPart.length > 0) {
+            label.dataset.isDecimal = '1';
+            label.dataset.compactText = `.${fractionalPart}`;
+          }
+        }
+        label.style.fontSize = `${subdivisionFontRem}rem`;
+        if (Number.isFinite(lg) && lg > 0) {
+          const percent = (position / lg) * 100;
+          label.style.left = `${percent}%`;
+          label.style.top = 'calc(100% + 12px)';
+          label.style.transform = 'translate(-50%, 0)';
+        }
+        timeline.appendChild(label);
+        cycleLabels.push(label);
+      }
+    });
+  }
+
+  const invalidFractionEntries = [];
+  fractionStore.selectionState.forEach((entry, key) => {
+    if (!validFractionKeys.has(key)) {
+      invalidFractionEntries.push({ key, entry });
+    }
+  });
+  if (invalidFractionEntries.length > 0) {
+    invalidFractionEntries.forEach(({ key, entry }) => {
+      fractionStore.selectionState.delete(key);
+      markFractionSuspended({ ...entry, key });
+    });
+  }
+
+  let restoredFraction = false;
+  validFractionKeys.forEach((key) => {
+    if (fractionStore.selectionState.has(key)) return;
+    const memoryEntry = fractionMemory.get(key);
+    if (!memoryEntry || memoryEntry.suspended !== true) return;
+    const restoredEntry = {
+      base: memoryEntry.base,
+      numerator: memoryEntry.numerator,
+      denominator: memoryEntry.denominator,
+      value: memoryEntry.value,
+      display: memoryEntry.display,
+      key,
+      cycleIndex: memoryEntry.cycleIndex,
+      subdivisionIndex: memoryEntry.subdivisionIndex,
+      pulsesPerCycle: memoryEntry.pulsesPerCycle,
+      rawLabel: memoryEntry.rawLabel
+    };
+    fractionStore.selectionState.set(key, restoredEntry);
+    rememberFractionSelectionInMemory({ ...restoredEntry, key }, { suspended: false });
+    restoredFraction = true;
+  });
+
+  if (invalidFractionEntries.length > 0 || restoredFraction) {
+    rebuildFractionSelections({ skipUpdateField: true });
+  }
+
+  updatePulseNumbers();
+  layoutTimeline({ silent: true });
+  syncSelectedFromMemory();
+  applyFractionSelectionClasses();
+  clearHighlights();
+  renderNotationIfVisible();
+
+  // Reinicializar controladores de highlighting después del render
+  initHighlightingControllers();
+}
+
+function restoreCycleLabelDisplay() {
+  cycleLabels.forEach(label => {
+    if (!label) return;
+    const full = label.dataset.fullText;
     if (typeof full === 'string') {
       label.textContent = full;
     }
