@@ -1302,7 +1302,9 @@ const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
           hit.style.left = `${mx}px`;
           hit.style.top = `${my}px`;
           hit.style.transformOrigin = '50% 50%';
-          hit.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
+          const transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
+          hit.style.transform = transform;
+          hit.style.setProperty('--pulse-flash-base-transform', transform);
         }
       });
 
@@ -1332,14 +1334,17 @@ const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
         marker.style.top = '50%';
         marker.style.transformOrigin = '50% 50%';
         // En vista lineal no aplicar rotación - mantener marcadores verticales
-        marker.style.transform = `translate(-50%, -50%)`;
+        const baseTransform = 'translate(-50%, -50%)';
+        marker.style.transform = baseTransform;
+        marker.style.setProperty('--pulse-flash-base-transform', baseTransform);
 
         const hit = fractionStore.hitMap.get(key);
         if (hit) {
           hit.style.left = `${percent}%`;
           hit.style.top = '50%';
           hit.style.transformOrigin = '50% 50%';
-          hit.style.transform = 'translate(-50%, -50%)';
+          hit.style.transform = baseTransform;
+          hit.style.setProperty('--pulse-flash-base-transform', baseTransform);
         }
       });
 

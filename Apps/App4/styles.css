@@ -118,6 +118,7 @@ main > .notation-panel--inline .notation-panel__canvas {
 
 .pulse-hit {
   transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+  --pulse-flash-base-transform: translate(-50%, -50%);
 }
 
 .pulse-hit.selected {
@@ -175,6 +176,7 @@ main > .notation-panel--inline .notation-panel__canvas {
   border-radius: 999px;
   background: var(--line-color);
   transform: translate(-50%, -50%);
+  --pulse-flash-base-transform: translate(-50%, -50%);
   pointer-events: auto;
   cursor: pointer;
   opacity: 0.8;
@@ -236,6 +238,7 @@ main > .notation-panel--inline .notation-panel__canvas {
 
 .fraction-hit {
   color: var(--selection-color);
+  --pulse-flash-base-transform: translate(-50%, -50%);
   transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
 }
 

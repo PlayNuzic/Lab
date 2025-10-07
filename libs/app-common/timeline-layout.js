@@ -321,7 +321,9 @@ export function createTimelineRenderer(config = {}) {
           marker.style.left = `${mx}px`;
           marker.style.top = `${my}px`;
           marker.style.transformOrigin = '50% 50%';
-          marker.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
+          const transform = `translate(-50%, -50%) rotate(${angle + Math.PI / 2}rad)`;
+          marker.style.transform = transform;
+          marker.style.setProperty('--pulse-flash-base-transform', transform);
         });
 
         cycleLabels.forEach((label) => {
@@ -410,7 +412,9 @@ export function createTimelineRenderer(config = {}) {
         marker.style.left = `${percent}%`;
         marker.style.top = '50%';
         marker.style.transformOrigin = '50% 50%';
-        marker.style.transform = 'translate(-50%, -50%)';
+        const transform = 'translate(-50%, -50%)';
+        marker.style.transform = transform;
+        marker.style.setProperty('--pulse-flash-base-transform', transform);
       });
 
       cycleLabels.forEach((label) => {
