@@ -44,6 +44,7 @@ App4 explora la generación de secuencias de pulsos fraccionarios sobre la timel
 | `../../libs/app-common/highlight-controller.js` | Sistema de highlighting para pulsos enteros, fracciones y ciclos. |
 | `../../libs/app-common/visual-sync.js` | Loop de sincronización visual con requestAnimationFrame para highlighting y cursor de notación. |
 | `../../libs/app-common/timeline-renderer.js` | Renderizado modular de timeline con soporte de fracciones, pulsos, ciclos y memoria. |
+| `../../libs/app-common/random-fractional.js` | Lógica de randomización de fracciones y pulsos extraída de main.js. |
 
 ## Atajos y gestos
 
@@ -75,6 +76,20 @@ Esto cubre tanto los módulos compartidos (`libs/app-common`, `libs/sound`) como
   - Memoria de fracciones al cambiar Lg
   - Clicks en pulsos y fracciones
   - Highlighting durante playback con cursor sincronizado
+
+### 2025-10-07: FASE 6 - UX Mejora "Activar fracciones complejas"
+- **Cambio**: Migración del checkbox "Permitir fracciones complejas" del menú random a opciones globales
+- **Implementación**:
+  - Checkbox añadido en `libs/shared-ui/header.js` y `libs/app-common/template.js`
+  - Persistencia en `localStorage.enableComplexFractions` (default: `false`)
+  - Métodos `setSimpleMode()`/`setComplexMode()` en `fraction-editor.js`
+  - Placeholder dinámico: `1/d` (modo simple) vs `n/d` (modo complejo)
+  - Módulo `libs/app-common/random-fractional.js` creado (234 líneas)
+  - Función `randomize()` reemplazada en main.js con factory pattern
+  - Limpieza de `allowComplex` en `fraction-selection.js`
+- **Reducción**: main.js de 3308 → 3296 líneas (12 líneas adicionales)
+- **Total acumulado**: 929 líneas reducidas desde inicio (22% del original)
+- **UX**: Cuando está desactivado, el numerador queda fijado en "1" (no editable, spinners deshabilitados)
 
 ### 2025-10-07: Fix cursor de notación sincronizado
 - **Problema**: El cursor de la partitura no se movía durante playback.
