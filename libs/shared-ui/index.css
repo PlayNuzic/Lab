@@ -1364,7 +1364,7 @@ left: calc(27% + var(--play-button-size) * 0.92);
   top: calc(50% + var(--play-button-size) * 0.75 + 32px + 8px);
   left: calc(29% + var(--play-button-size) * 0.92);
 }
-}
+
 
 /* ---- Timeline layering & hit‑testing (shared) ---- */
 .timeline { position: relative; }
