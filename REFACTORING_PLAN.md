@@ -1916,13 +1916,13 @@ export function createAppState(initialState = {}) {
 
 ## 📋 Progreso de Implementación
 
-**Total reducido**: 1073 líneas (25.4% del objetivo final)
-**main.js actual**: 3152 líneas (de 4225 inicial)
+**Total reducido**: 1190 líneas (28.2% del original)
+**main.js actual**: 3035 líneas (de 4225 inicial)
 **Meta final**: 1200-1500 líneas
 
 ---
 
-### ✅ Fases Completadas (2025-10-07)
+### ✅ Fases Completadas (2025-10-08)
 
 #### FASE 1: Utilidades Puras ✅
 - [x] pulse-seq-parser.js (520 líneas)
@@ -2052,31 +2052,34 @@ La función `sanitizePulseSeq()` se simplificó usando `pulse-seq-parser` + `pul
 
 ---
 
+#### FASE 8: Fórmulas y Title Info Tip ✅
+- [x] formula-renderer.js (181 líneas)
+- [x] info-tooltip.js (147 líneas)
+- **Reducción**: 117 líneas
+- **Funcionalidad**:
+  - buildFormulaFragment() - Generación de fórmulas HTML (Lg·d/n, V base, V fracción, T)
+  - createFormulaRenderer() - Factory con formatters personalizables
+  - createInfoTooltip() - Tooltip flotante con auto-hide en scroll/resize
+  - Formatters: formatNumber, formatInteger, formatBpm
+
+**Funciones extraídas desde main.js**:
+- buildTitleInfoContent → buildFormulaFragment
+- formatNumberValue, formatInteger, formatBpmValue → formulaRenderer.*
+- ensureTitleInfoTip, showTitleInfoTip, hideTitleInfoTip → titleInfoTooltip.*
+
+**Tests Manuales**:
+- ✅ Tooltip muestra fórmulas correctamente
+- ✅ Auto-hide en scroll/resize funciona
+- ✅ Formatters con locale ca-ES (2 decimales)
+- ✅ Fórmulas calculan valores derivados correctamente
+
+**Archivos creados**:
+- `libs/app-common/formula-renderer.js`
+- `libs/app-common/info-tooltip.js`
+
+---
+
 ### ❌ Fases Pendientes (Re-priorizadas)
-
-#### FASE 8: Fórmulas y Title Info Tip
-**Líneas estimadas**: ~200
-**Riesgo**: Bajo
-**Tiempo estimado**: 1 día
-
-**Archivos a crear**:
-- `libs/app-common/formula-display.js` (~120 líneas)
-  - buildFormulaFragment() - Generación de fórmulas HTML
-  - Cálculos: Lg·d/n, V base, V fracción, T
-  - Formatters personalizables
-
-- `libs/app-common/info-tooltip.js` (~80 líneas)
-  - show/hide tooltip flotante
-  - Posicionamiento automático relativo a anchor
-  - Auto-hide en scroll/resize
-  - Soporte de temas dark/light
-
-**Extracción desde main.js**:
-- buildTitleInfoContent
-- showTitleInfoTip
-- hideTitleInfoTip
-
-**Estado**: ❌ PENDIENTE
 
 ---
 
@@ -2208,12 +2211,12 @@ const state = createAppState({
 | timeline-renderer.js | 640 | 266 | ✅ |
 | random-fractional.js | 234 | -12 (UX extra añadida) | ✅ |
 | notation-renderer.js | 225 | 144 | ✅ |
-| **COMPLETADO** | **2947 líneas** | **1073 líneas (25.4%)** | ✅ |
-| formula-display.js | ~120 | ~200 (estimado) | ❌ Pendiente |
-| info-tooltip.js | ~80 | (incluido arriba) | ❌ Pendiente |
+| formula-renderer.js | 181 | 117 | ✅ |
+| info-tooltip.js | 147 | (incluido arriba) | ✅ |
+| **COMPLETADO** | **3275 líneas** | **1190 líneas (28.2%)** | ✅ |
 | t-indicator.js (simplificado) | ~40 | ~60 (estimado) | ❌ Pendiente |
 | app-state.js | 0 (refactor) | 0 (mejora arq.) | ❌ Pendiente |
-| **TOTAL PROYECTADO** | **~3187** | **~1333 (31.5%)** | |
+| **TOTAL PROYECTADO** | **~3315** | **~1250 (29.6%)** | |
 
 **Nota**: Las líneas de módulos son el tamaño total del archivo creado. Las "Líneas Eliminadas" reflejan la reducción neta en main.js después de imports y wrappers.
 
@@ -2222,24 +2225,20 @@ const state = createAppState({
 ## Próximos Pasos Inmediatos
 
 ### Prioridad Alta 🔥
-1. **FASE 8: Fórmulas y Tooltips** (1 día, bajo riesgo)
-   - Alta reutilización para otras apps
-   - ~200 líneas de reducción
-
-2. **FASE 9: T Indicator simplificado** (1 día, bajo riesgo)
+1. **FASE 9: T Indicator simplificado** (1 día, bajo riesgo)
    - Mantener "en la maquinaria" sin complicaciones
    - ~60 líneas de reducción
 
 ### Prioridad Baja 📋
-3. **FASE 10: Estado Global** (2-3 días, refactor arquitectural)
+2. **FASE 10: Estado Global** (2-3 días, refactor arquitectural)
    - Mayor complejidad, riesgo de romper flujos
    - Beneficio: arquitectura más limpia, mejor debugging
 
 ### Meta Final 🎯
 - **Objetivo**: main.js ≤ 1500 líneas
-- **Actual**: 3152 líneas
-- **Falta**: 1652 líneas
-- **Aporte FASES 8-9**: ~260 líneas
-- **Brecha restante**: ~1392 líneas → requiere FASE 10 + optimizaciones adicionales
+- **Actual**: 3035 líneas
+- **Falta**: 1535 líneas
+- **Aporte FASE 9**: ~60 líneas
+- **Brecha restante**: ~1475 líneas → requiere FASE 10 + optimizaciones adicionales
 
 **Estimación realista final**: ~1800-2000 líneas (reducción de ~52% desde inicio)

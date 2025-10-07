@@ -46,6 +46,8 @@ App4 explora la generación de secuencias de pulsos fraccionarios sobre la timel
 | `../../libs/app-common/timeline-renderer.js` | Renderizado modular de timeline con soporte de fracciones, pulsos, ciclos y memoria. |
 | `../../libs/app-common/random-fractional.js` | Lógica de randomización de fracciones y pulsos extraída de main.js. |
 | `../../libs/app-common/notation-renderer.js` | Controlador completo de notación musical con VexFlow (render, clicks, estado). |
+| `../../libs/app-common/formula-renderer.js` | Generador de fórmulas musicales HTML (Lg·d/n, V base, V fracción, T). |
+| `../../libs/app-common/info-tooltip.js` | Tooltip flotante con auto-hide en scroll/resize y posicionamiento relativo. |
 
 ## Atajos y gestos
 
@@ -110,3 +112,17 @@ Esto cubre tanto los módulos compartidos (`libs/app-common`, `libs/sound`) como
 - **Causa**: `visual-sync.js` esperaba `getNotationRenderer` como función getter, pero `main.js` lo pasaba como objeto directo.
 - **Solución**: Línea 2788 - Cambio de `notationRenderer` a `getNotationRenderer: () => notationRenderer`.
 - **Resultado**: El cursor ahora se sincroniza correctamente con el audio, moviéndose por la partitura durante la reproducción.
+
+### 2025-10-08: Refactorización FASE 8 - Fórmulas y Tooltips ✅
+- **Cambio**: Extracción de lógica de fórmulas musicales y tooltips a módulos reutilizables
+- **Módulos creados**:
+  - `libs/app-common/formula-renderer.js` (181 líneas) - Factory function con formatters personalizables
+  - `libs/app-common/info-tooltip.js` (147 líneas) - Tooltip flotante con auto-hide
+- **Reducción**: main.js de 3152 → 3035 líneas (117 líneas, 3.7%)
+- **Funciones extraídas**:
+  - `buildFormulaFragment()` - Generación de fórmulas HTML
+  - `formatNumberValue()`, `formatInteger()`, `formatBpmValue()` - Formatters
+  - `ensureTitleInfoTip()`, `showTitleInfoTip()`, `hideTitleInfoTip()` - Tooltip lifecycle
+- **API limpia**: `createFormulaRenderer()` y `createInfoTooltip()` con factory pattern
+- **Validación**: ✅ Tooltip funciona correctamente con auto-hide en scroll/resize
+- **Total acumulado**: 1190 líneas reducidas desde inicio (28.2% del original 4225)
