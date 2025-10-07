@@ -18,6 +18,7 @@
  * @param {Function} [config.getPulseSeqRectForIndex] - Obtiene rect para índice
  * @param {Function} [config.scrollPulseSeqToRect] - Hace scroll a rect
  * @param {number} [config.epsilon=0.001] - Epsilon para comparación de fracciones
+ * @param {boolean} [config.highlightFractionMarkers=true] - Destaca marcadores además del hit asociado
  * @returns {object} - API del controlador
  */
 export function createHighlightController({
@@ -30,7 +31,8 @@ export function createHighlightController({
   pulseSeqEl = null,
   getPulseSeqRectForIndex = null,
   scrollPulseSeqToRect = null,
-  epsilon = 0.001
+  epsilon = 0.001,
+  highlightFractionMarkers = true
 }) {
 
   // Estado interno
@@ -143,8 +145,14 @@ export function createHighlightController({
     const hit = fractionStore.hitMap?.get(key);
     const token = fractionStore.pulseSeqTokenMap?.get(key);
 
-    if (marker) marker.classList.add('fraction-active');
-    if (hit && hit !== marker) hit.classList.add('fraction-active');
+    const shouldHighlightMarker = highlightFractionMarkers || !hit || hit === marker;
+
+    if (marker && shouldHighlightMarker) {
+      marker.classList.add('fraction-active');
+    }
+    if (hit && hit !== marker) {
+      hit.classList.add('fraction-active');
+    }
     if (token) token.classList.add('pulse-seq-token--active');
 
     fractionStore.lastHighlightFractionNodes = { key, marker, hit, token };

@@ -891,8 +891,11 @@ function applySelectionToAudio({ scheduling, instance } = {}) {
   const resolvedSelectionResolution = Number.isFinite(selection?.resolution)
     ? Math.max(1, Math.round(selection.resolution))
     : 1;
-  target.setSelected({ values: audioValues, resolution: 1 });
-  currentAudioResolution = resolvedSelectionResolution;
+  target.setSelected({ values: audioValues, resolution: resolvedSelectionResolution });
+  const schedulingResolution = Number.isFinite(scheduling?.resolution)
+    ? Math.max(1, Math.round(scheduling.resolution))
+    : resolvedSelectionResolution;
+  currentAudioResolution = Math.max(resolvedSelectionResolution, schedulingResolution);
   return selection;
 }
 
@@ -2538,6 +2541,9 @@ function handleInput(){
     if (effectiveCycleConfig) {
       transportPayload.cycle = effectiveCycleConfig;
     }
+    if (effectiveResolution != null) {
+      transportPayload.baseResolution = effectiveResolution;
+    }
     if (typeof audio.updateTransport === 'function' && (scheduling.validLg || scheduling.validV)) {
       audio.updateTransport(transportPayload);
     }
@@ -2754,7 +2760,8 @@ function initHighlightingControllers() {
     pulseSeqEl,
     getPulseSeqRectForIndex,
     scrollPulseSeqToRect,
-    epsilon: FRACTION_POSITION_EPSILON
+    epsilon: FRACTION_POSITION_EPSILON,
+    highlightFractionMarkers: false
   });
 
   visualSyncManager = createVisualSyncManager({
@@ -3339,7 +3346,7 @@ async function startPlayback(providedAudio) {
   const selectionValuesForAudio = selectionForAudio.audio ?? selectionForAudio.combined;
   const selectionPayload = {
     values: selectionValuesForAudio,
-    resolution: 1
+    resolution: resolvedSelectionResolution
   };
 
   audioInstance.play(

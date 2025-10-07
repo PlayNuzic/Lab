@@ -1109,12 +1109,19 @@ export class TimelineAudio {
     return state;
   }
 
-  updateTransport({ totalPulses, bpm, cycle, patternBeats, align = 'nextPulse', rampMs = 80 } = {}) {
+  updateTransport({ totalPulses, bpm, cycle, patternBeats, baseResolution, align = 'nextPulse', rampMs = 80 } = {}) {
     if (Number.isFinite(+totalPulses) && +totalPulses > 0) {
       this.setTotal(+totalPulses);
     }
     if (Number.isFinite(+bpm) && +bpm > 0) {
       this.setTempo(+bpm, { align, rampMs });
+    }
+    if (Number.isFinite(+baseResolution) && +baseResolution > 0) {
+      const normalizedResolution = Math.max(1, Math.round(+baseResolution));
+      if (normalizedResolution !== this._baseResolution) {
+        this._baseResolution = normalizedResolution;
+        this.baseResolution = normalizedResolution;
+      }
     }
     if (Number.isFinite(+patternBeats) && +patternBeats > 0) {
       this.setPattern(+patternBeats);
