@@ -157,6 +157,8 @@ let cycleMarkerHits = [];
 const fractionStore = createFractionSelectionStore();
 const fractionMemory = new Map();
 
+const FRACTION_MARKER_LINEAR_TILT_RAD = Math.PI / 3;
+
 const notationContentEl = notationContent || null;
 let notationRenderer = null;
 let notationPanelController = null;
@@ -891,7 +893,9 @@ function applySelectionToAudio({ scheduling, instance } = {}) {
   const resolvedSelectionResolution = Number.isFinite(selection?.resolution)
     ? Math.max(1, Math.round(selection.resolution))
     : 1;
-  target.setSelected({ values: audioValues, resolution: resolvedSelectionResolution });
+  // Enviamos pasos escalados directamente (resolución 1) para que TimelineAudio
+  // compare índices absolutos sin aplicar un segundo factor de escala.
+  target.setSelected({ values: audioValues, resolution: 1 });
   const schedulingResolution = Number.isFinite(scheduling?.resolution)
     ? Math.max(1, Math.round(scheduling.resolution))
     : resolvedSelectionResolution;
@@ -1323,6 +1327,12 @@ const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
         const pos = Number(marker.dataset.position);
         if (!Number.isFinite(pos)) return;
         const percent = percentForPosition(pos);
+
+        marker.style.left = `${percent}%`;
+        marker.style.top = '50%';
+        marker.style.transformOrigin = '50% 50%';
+        marker.style.transform = `translate(-50%, -50%) rotate(${FRACTION_MARKER_LINEAR_TILT_RAD}rad)`;
+
         const hit = fractionStore.hitMap.get(key);
         if (hit) {
           hit.style.left = `${percent}%`;
@@ -3346,7 +3356,8 @@ async function startPlayback(providedAudio) {
   const selectionValuesForAudio = selectionForAudio.audio ?? selectionForAudio.combined;
   const selectionPayload = {
     values: selectionValuesForAudio,
-    resolution: resolvedSelectionResolution
+    // Mantener resolución 1 evita reescalar pulsos seleccionados al iniciar play.
+    resolution: 1
   };
 
   audioInstance.play(
