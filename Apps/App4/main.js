@@ -2138,7 +2138,16 @@ function handleInput(){
   } else if (inputT) {
     indicatorValue = parseNum(inputT.value);
   }
-  updateTIndicatorText(indicatorValue);
+
+  // Update T indicator
+  if (tIndicatorController) {
+    tIndicatorController.updateText(indicatorValue);
+    if (indicatorValue) {
+      tIndicatorController.show();
+    } else {
+      tIndicatorController.hide();
+    }
+  }
 
   // Ensure memory capacity always (preserve selections when Lg crece manualmente)
   if (hasLg) {
