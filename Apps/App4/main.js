@@ -2717,8 +2717,8 @@ function setPulseSelected(i, shouldSelect) {
 
 
 function clearHighlights() {
+  highlightController?.clearAll?.();
   if (highlightController) {
-    highlightController.clearAll();
     return;
   }
 
@@ -2727,6 +2727,14 @@ function clearHighlights() {
   cycleLabels.forEach(l => l.classList.remove('active'));
   pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
   pulseSeqController.clearActive();
+
+  if (fractionStore) {
+    fractionStore.lastFractionHighlightKey = null;
+    fractionStore.lastHighlightType = null;
+    fractionStore.lastHighlightIntIndex = null;
+    fractionStore.lastHighlightFractionKey = null;
+    fractionStore.lastHighlightFractionNodes = { key: null, marker: null, hit: null, token: null };
+  }
 }
 
 // Inicializar controladores de highlighting y visual sync
