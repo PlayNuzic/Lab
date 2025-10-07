@@ -24,6 +24,9 @@ import { resolveFractionNotation } from '../../libs/app-common/fraction-notation
 import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
 import { parseTokens, validateInteger, validateFraction, nearestPulseIndex, resolvePulseSeqGap } from '../../libs/app-common/pulse-seq-parser.js';
 import { createPulseSeqStateManager } from '../../libs/app-common/pulse-seq-state.js';
+import { createPulseSeqEditor } from '../../libs/app-common/pulse-seq-editor.js';
+import { createHighlightController } from '../../libs/app-common/highlight-controller.js';
+import { createVisualSyncManager } from '../../libs/app-common/visual-sync.js';
 import {
   FRACTION_POSITION_EPSILON,
   TEXT_NODE_TYPE,
@@ -993,6 +996,11 @@ let tIndicatorRevealHandle = null;
 let visualSyncHandle = null;
 let lastVisualStep = null;
 let lastNormalizedStep = null;
+
+// Controladores de highlighting y visual sync (inicializados después de renderTimeline)
+let highlightController = null;
+let visualSyncManager = null;
+
 // Progress is now driven directly from audio callbacks
 // Progress is now driven directly from audio callbacks
 
@@ -1193,13 +1201,29 @@ function updatePulseSeqFractionDisplay(numerator, denominator, { silent = false 
   }
 }
 
-// Caret movement entre midpoints (dos espacios)
-function getMidpoints(text){ const a=[]; for(let i=1;i<text.length;i++) if(text[i-1]===' '&&text[i]===' ') a.push(i); return a; }
+// Caret movement entre midpoints (dos espacios) - ahora delegado a pulseSeqEditor
+function getMidpoints(text) {
+  const a = [];
+  for (let i = 1; i < text.length; i++) {
+    if (text[i - 1] === ' ' && text[i] === ' ') {
+      a.push(i);
+    }
+  }
+  return a;
+}
 function moveCaretToNearestMidpoint() {
-  pulseSeqController.moveCaretToNearestMidpoint();
+  if (pulseSeqEditor) {
+    pulseSeqEditor.moveCaretToNearestMidpoint();
+  } else {
+    pulseSeqController.moveCaretToNearestMidpoint();
+  }
 }
 function moveCaretStep(dir) {
-  pulseSeqController.moveCaretStep(dir);
+  if (pulseSeqEditor) {
+    pulseSeqEditor.moveCaretStep(dir);
+  } else {
+    pulseSeqController.moveCaretStep(dir);
+  }
 }
 function updateTIndicatorText(value) {
   if (!tIndicator) return;
@@ -1874,6 +1898,26 @@ bindUnit(inputT, unitT);
 [inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
 handleInput();
 
+// Inicializar editor de pulseSeq con navegación por gaps
+const pulseSeqEditor = getEditEl() ? createPulseSeqEditor({
+  editElement: getEditEl(),
+  visualLayer: pulseSeqVisualEl,
+  onUpdateVisualLayer: updatePulseSeqVisualLayer,
+  onSanitize: (opts) => {
+    const res = sanitizePulseSeq(opts);
+    // Ocultar caret al confirmar excepto si hubo errores
+    if (opts.causedBy === 'enter' && (!res || (!res.hadTooBig && !res.hadFractionTooBig))) {
+      try { getEditEl()?.blur(); } catch {}
+    }
+  }
+}) : null;
+
+if (pulseSeqEditor) {
+  pulseSeqEditor.attach();
+}
+
+// Los siguientes event listeners están ahora manejados por pulseSeqEditor
+/*
 getEditEl()?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
@@ -2010,6 +2054,7 @@ getEditEl()?.addEventListener('focus', ()=> setTimeout(()=>{
   updatePulseSeqVisualLayer(text);
   moveCaretToNearestMidpoint();
 },0));
+*/
 
 function setValue(input, value){
   isUpdating = true;
@@ -2722,6 +2767,32 @@ function clearHighlights() {
   fractionStore.lastHighlightFractionKey = null;
 }
 
+// Inicializar controladores de highlighting y visual sync
+function initHighlightingControllers() {
+  highlightController = createHighlightController({
+    getPulses: () => pulses,
+    getCycleMarkers: () => cycleMarkers,
+    fractionStore,
+    pulseSeqController,
+    pulseSeqEl,
+    getPulseSeqRectForIndex,
+    scrollPulseSeqToRect,
+    epsilon: FRACTION_POSITION_EPSILON
+  });
+
+  visualSyncManager = createVisualSyncManager({
+    getAudio: () => audio,
+    getIsPlaying: () => isPlaying,
+    getLoopEnabled: () => loopEnabled,
+    highlightController,
+    notationRenderer,
+    getPulses: () => pulses,
+    onResolutionChange: (newResolution) => {
+      currentAudioResolution = newResolution;
+    }
+  });
+}
+
 function renderTimeline() {
   resetPulseHighlightState({ clearFraction: false });
   resetCycleHighlightState();
@@ -3071,6 +3142,9 @@ function renderTimeline() {
   applyFractionSelectionClasses();
   clearHighlights();
   renderNotationIfVisible();
+
+  // Reinicializar controladores de highlighting después del render
+  initHighlightingControllers();
 }
 
 function restoreCycleLabelDisplay() {
@@ -3373,6 +3447,13 @@ function resetCycleHighlightState() {
 }
 
 function highlightCycle(payload = {}) {
+  // Delegar al controlador si está disponible
+  if (highlightController) {
+    highlightController.highlightCycle(payload);
+    return;
+  }
+
+  // Fallback legacy
   if (!isPlaying) return;
   const {
     cycleIndex: rawCycleIndex,
@@ -3646,55 +3727,32 @@ function resetPulseHighlightState({ clearFraction = true } = {}) {
 
 // Simple integer pulse highlight - follows App1 pattern exactly
 function highlightIntegerPulse(i) {
-  // Clear all pulse highlights
-  pulses.forEach(p => p.classList.remove('active'));
-
+  if (highlightController) {
+    highlightController.highlightIntegerPulse(i, { loopEnabled });
+    return;
+  }
+  // Fallback legacy (si el controlador no está inicializado)
+  pulses.forEach(p => p?.classList.remove('active'));
   if (!pulses || pulses.length === 0) return;
-
-  // Highlight current pulse
   const idx = i % pulses.length;
   const current = pulses[idx];
   if (current) {
-    // Force reflow so animation restarts (like App1)
     void current.offsetWidth;
     current.classList.add('active');
   }
-
-  // If looping and at first pulse, also highlight last
-  let trailingIndex = null;
-  if (loopEnabled && idx === 0) {
-    const last = pulses[pulses.length - 1];
-    if (last) {
-      last.classList.add('active');
-      trailingIndex = pulses.length - 1;
-    }
-  }
-
-  // Also highlight the token in the pulse sequence
-  if (pulseSeqEl) {
-    const rect = getPulseSeqRectForIndex(idx);
-    let trailingRect = null;
-    if (trailingIndex != null) {
-      trailingRect = getPulseSeqRectForIndex(trailingIndex);
-    }
-
-    if (rect) {
-      const newScrollLeft = scrollPulseSeqToRect(rect);
-      pulseSeqController.setActiveIndex(idx, {
-        rect,
-        trailingIndex,
-        trailingRect: trailingIndex != null ? trailingRect : null,
-        scrollLeft: newScrollLeft
-      });
-    } else {
-      pulseSeqController.clearActive();
-    }
-  } else {
-    pulseSeqController.clearActive();
+  if (loopEnabled && idx === 0 && pulses.length > 1) {
+    pulses[pulses.length - 1]?.classList.add('active');
   }
 }
 
 function highlightPulse(payload){
+  // Delegar al controlador si está disponible
+  if (highlightController) {
+    highlightController.highlightPulse(payload, { loopEnabled, isPlaying });
+    return;
+  }
+
+  // Fallback legacy
   if (!isPlaying) return;
 
   if (!pulses || pulses.length === 0) {
@@ -3927,6 +3985,10 @@ function highlightPulse(payload){
 }
 
 function stopVisualSync() {
+  if (visualSyncManager) {
+    visualSyncManager.stop();
+  }
+  // Mantener compatibilidad con código legacy
   if (visualSyncHandle != null) {
     cancelAnimationFrame(visualSyncHandle);
     visualSyncHandle = null;
@@ -3939,51 +4001,25 @@ function stopVisualSync() {
 }
 
 function syncVisualState() {
-  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
-  const state = audio.getVisualState();
-  if (!state || !Number.isFinite(state.step)) return;
-
-  // Protection against duplicate calls - like App1
-  if (lastVisualStep === state.step) return;
-  lastVisualStep = state.step;
-
-  // Actualizar cursor de notación
-  if (notationRenderer && typeof notationRenderer.updateCursor === 'function') {
-    const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
-    const currentPulse = Number.isFinite(state.step) && resolution > 0 ? state.step / resolution : 0;
-    notationRenderer.updateCursor(currentPulse, isPlaying);
-  }
-
-  const resolution = Math.max(1, Math.round(currentAudioResolution || 1));
-  const baseCount = pulses.length > 1 ? pulses.length - 1 : 0;
-
-  // Check if this is an integer step (divisible by resolution)
-  const isIntegerStep = state.step % resolution === 0;
-
-  if (isIntegerStep && baseCount > 0) {
-    // Use simple App1-style highlighting for integer pulses
-    // Divide by resolution to get the actual pulse index
-    const pulseIndex = state.step / resolution;
-    highlightIntegerPulse(pulseIndex);
-  } else {
-    // Use complex logic for fractional pulses
-    highlightPulse(state);
-  }
-
-  if (state.cycle && Number.isFinite(state.cycle.cycleIndex) && Number.isFinite(state.cycle.subdivisionIndex)) {
-    highlightCycle(state.cycle);
+  if (visualSyncManager) {
+    visualSyncManager.syncVisualState();
   }
 }
 
 function startVisualSync() {
-  stopVisualSync();
-  const step = () => {
-    visualSyncHandle = null;
-    if (!isPlaying || !audio) return;
-    syncVisualState();
+  if (visualSyncManager) {
+    visualSyncManager.start();
+  } else {
+    // Fallback legacy
+    stopVisualSync();
+    const step = () => {
+      visualSyncHandle = null;
+      if (!isPlaying || !audio) return;
+      syncVisualState();
+      visualSyncHandle = requestAnimationFrame(step);
+    };
     visualSyncHandle = requestAnimationFrame(step);
-  };
-  visualSyncHandle = requestAnimationFrame(step);
+  }
 }
 
 const menu = document.querySelector('.menu');
