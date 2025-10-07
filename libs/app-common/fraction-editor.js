@@ -710,7 +710,13 @@ export function createFractionEditor({
     },
     setSimpleMode() {
       const numeratorInput = elements.numerator;
+      const numeratorPlaceholder = elements.fields.numerator?.placeholder;
       if (!numeratorInput) return;
+
+      // Cambiar placeholder a "1"
+      if (numeratorPlaceholder) {
+        numeratorPlaceholder.textContent = '1';
+      }
 
       // Fijar numerador en 1
       numeratorInput.value = '1';
@@ -742,7 +748,13 @@ export function createFractionEditor({
     },
     setComplexMode() {
       const numeratorInput = elements.numerator;
+      const numeratorPlaceholder = elements.fields.numerator?.placeholder;
       if (!numeratorInput) return;
+
+      // Restaurar placeholder a "n"
+      if (numeratorPlaceholder) {
+        numeratorPlaceholder.textContent = fieldLabels.numerator.placeholder ?? 'n';
+      }
 
       // Habilitar numerador
       numeratorInput.disabled = false;
