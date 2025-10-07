@@ -45,6 +45,7 @@ App4 explora la generación de secuencias de pulsos fraccionarios sobre la timel
 | `../../libs/app-common/visual-sync.js` | Loop de sincronización visual con requestAnimationFrame para highlighting y cursor de notación. |
 | `../../libs/app-common/timeline-renderer.js` | Renderizado modular de timeline con soporte de fracciones, pulsos, ciclos y memoria. |
 | `../../libs/app-common/random-fractional.js` | Lógica de randomización de fracciones y pulsos extraída de main.js. |
+| `../../libs/app-common/notation-renderer.js` | Controlador completo de notación musical con VexFlow (render, clicks, estado). |
 
 ## Atajos y gestos
 
@@ -76,6 +77,19 @@ Esto cubre tanto los módulos compartidos (`libs/app-common`, `libs/sound`) como
   - Memoria de fracciones al cambiar Lg
   - Clicks en pulsos y fracciones
   - Highlighting durante playback con cursor sincronizado
+
+### 2025-10-07: FASE 7 - Extracción Notation Renderer
+- **Cambio**: Toda la lógica de notación musical extraída a módulo reutilizable
+- **Módulo creado**: `libs/app-common/notation-renderer.js` (225 líneas)
+- **Funciones extraídas**:
+  - `buildNotationRenderState()` - Construcción de estado para VexFlow
+  - `renderIfVisible()` - Renderizado condicional de partitura
+  - `handleClick()` - Gestión de clicks en notación
+  - `inferNotationDenominator()` - Cálculo de denominador de notación
+- **Reducción**: main.js de 3296 → 3152 líneas (144 líneas, 4.4%)
+- **Total acumulado**: 1073 líneas reducidas desde inicio (25.4% del original 4225)
+- **Integración**: Factory pattern con callbacks para setPulseSelected y setFractionSelected
+- **Validación**: Pendiente tests manuales de clicks y cursor sincronizado
 
 ### 2025-10-07: FASE 6 - UX Mejora "Activar fracciones complejas"
 - **Cambio**: Migración del checkbox "Permitir fracciones complejas" del menú random a opciones globales

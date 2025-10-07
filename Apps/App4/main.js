@@ -29,6 +29,7 @@ import { createHighlightController } from '../../libs/app-common/highlight-contr
 import { createVisualSyncManager } from '../../libs/app-common/visual-sync.js';
 import { createFractionalTimelineRenderer } from '../../libs/app-common/timeline-renderer.js';
 import { randomizeFractional } from '../../libs/app-common/random-fractional.js';
+import { createNotationRenderer } from '../../libs/app-common/notation-renderer.js';
 import {
   FRACTION_POSITION_EPSILON,
   TEXT_NODE_TYPE,
@@ -163,168 +164,11 @@ let timelineRenderer = null; // Inicializado después de tener timeline DOM
 const FRACTION_MARKER_LINEAR_TILT_RAD = Math.PI / 3;
 
 const notationContentEl = notationContent || null;
-let notationRenderer = null;
 let notationPanelController = null;
+let notationRendererController = null;
 
-function inferNotationDenominator(lgValue, fraction) {
-  if (fraction && Number.isFinite(fraction.denominator) && fraction.denominator > 0) {
-    return Math.max(1, Math.round(fraction.denominator));
-  }
-  if (!Number.isFinite(lgValue) || lgValue <= 0) return 4;
-  return Math.max(2, Math.round(lgValue));
-}
-
-function buildNotationRenderState() {
-  const lgValue = parseInt(inputLg.value, 10);
-  if (!Number.isFinite(lgValue) || lgValue <= 0) {
-    return null;
-  }
-
-  ensurePulseMemory(lgValue);
-  const baseSelected = new Set();
-  const maxIdx = Math.min(pulseMemory.length - 1, lgValue - 1);
-  for (let i = 1; i <= maxIdx; i++) {
-    if (pulseMemory[i]) baseSelected.add(i);
-  }
-
-  const fractionInfo = typeof getFraction === 'function' ? getFraction() : { numerator: null, denominator: null };
-  const fraction = (Number.isFinite(fractionInfo?.numerator) && Number.isFinite(fractionInfo?.denominator))
-    ? { numerator: fractionInfo.numerator, denominator: fractionInfo.denominator }
-    : null;
-  const fractionNotation = fraction
-    ? resolveFractionNotation(fraction.numerator, fraction.denominator)
-    : null;
-  const normalizedFraction = fraction ? { ...fraction, notation: fractionNotation } : null;
-
-  const denominatorValue = inferNotationDenominator(lgValue, fraction);
-  let baseDuration = fractionNotation?.duration
-    ?? durationValueFromDenominator(denominatorValue);
-  let baseDots = Number.isFinite(fractionNotation?.dots) ? Math.max(0, Math.floor(fractionNotation.dots)) : 0;
-  const fractionNumeratorValue = Number.isFinite(fraction?.numerator) ? Math.floor(fraction.numerator) : null;
-  const fractionDenominatorValue = Number.isFinite(fraction?.denominator) ? Math.floor(fraction.denominator) : null;
-  if (fractionNumeratorValue && fractionDenominatorValue && fractionNumeratorValue === fractionDenominatorValue) {
-    baseDuration = 'q';
-    baseDots = 0;
-  }
-  const selectedValues = new Set([0]);
-  baseSelected.forEach((value) => selectedValues.add(value));
-
-  const fractionSelections = Array.isArray(fractionStore.pulseSelections) ? fractionStore.pulseSelections : [];
-  const fractionalEvents = [];
-  fractionSelections.forEach((item) => {
-    if (!item || !item.key) return;
-    const value = Number(item.value);
-    if (!Number.isFinite(value) || value <= 0 || value >= lgValue) return;
-    const itemDenominator = Number.isFinite(item.denominator) && item.denominator > 0
-      ? Math.round(item.denominator)
-      : denominatorValue;
-    const notationInfo = resolveFractionNotation(item.numerator, itemDenominator);
-    const eventDuration = notationInfo.duration;
-
-    fractionalEvents.push({
-      pulseIndex: value,
-      duration: eventDuration,
-      rest: false,
-      selectionKey: item.key,
-      source: 'fraction',
-      dots: notationInfo.dots || 0
-    });
-    selectedValues.add(value);
-  });
-
-  const events = buildPulseEvents({
-    lg: lgValue,
-    selectedSet: baseSelected,
-    duration: baseDuration,
-    dots: baseDots,
-    fractionalSelections: fractionalEvents
-  });
-
-  events.sort((a, b) => a.pulseIndex - b.pulseIndex);
-  const positions = events.map((event) => event.pulseIndex);
-  const selectedIndices = Array.from(selectedValues).sort((a, b) => a - b);
-
-  return {
-    lg: lgValue,
-    fraction: normalizedFraction,
-    events,
-    positions,
-    selectedIndices
-  };
-}
-
-function renderNotationIfVisible({ force = false } = {}) {
-  if (!notationContentEl) return;
-  if (!notationPanelController) return;
-  if (!force && !notationPanelController.isOpen) return;
-
-  if (!notationRenderer) {
-    notationRenderer = createRhythmStaff({
-      container: notationContentEl,
-      pulseFilter: 'fractional'
-    });
-  }
-
-  const state = buildNotationRenderState();
-  if (!state) {
-    notationRenderer.render({ lg: 0, rhythm: [] });
-    return;
-  }
-
-  notationRenderer.render({
-    lg: state.lg,
-    selectedIndices: state.selectedIndices,
-    fraction: state.fraction,
-    positions: state.positions,
-    rhythm: state.events
-  });
-}
-
-function handleNotationClick(event) {
-  if (!notationPanelController || !notationPanelController.isOpen) return;
-  const target = event.target instanceof Element ? event.target : null;
-  if (!target) return;
-  const noteEl = target.closest('[data-pulse-index]');
-  if (!noteEl) return;
-  if (noteEl.dataset.nonSelectable === 'true') return;
-  const pulseValue = Number.parseFloat(noteEl.dataset.pulseIndex);
-  if (!Number.isFinite(pulseValue)) return;
-  const lgValue = parseInt(inputLg.value, 10);
-  if (!Number.isFinite(lgValue) || lgValue <= 0) return;
-  if (pulseValue <= 0 || pulseValue >= lgValue) return;
-  const selectionKey = noteEl.dataset.selectionKey;
-  if (selectionKey) {
-    const info = fractionStore.selectionState.get(selectionKey);
-    if (info) {
-      const currentlySelected = fractionStore.selectionState.has(selectionKey);
-      setFractionSelected(info, !currentlySelected);
-      renderNotationIfVisible({ force: true });
-    }
-    return;
-  }
-  if (Number.isInteger(pulseValue)) {
-    ensurePulseMemory(lgValue);
-    const shouldSelect = !pulseMemory[pulseValue];
-    setPulseSelected(pulseValue, shouldSelect);
-    return;
-  }
-
-  const { numerator, denominator } = getFraction();
-  const denominatorValue = Number.isFinite(denominator) && denominator > 0 ? Math.round(denominator) : null;
-  if (!denominatorValue) return;
-  const pulsesPerCycle = Number.isFinite(numerator) && numerator > 0 ? Number(numerator) : null;
-  const nextSelection = createFractionSelectionFromValue(pulseValue, {
-    denominator: denominatorValue,
-    pulsesPerCycle
-  });
-  if (!nextSelection) return;
-  if (nextSelection.value <= 0 || nextSelection.value >= lgValue) return;
-  const currentlySelected = fractionStore.selectionState.has(nextSelection.key);
-  setFractionSelected(nextSelection, !currentlySelected);
-}
-
-if (notationContentEl) {
-  notationContentEl.addEventListener('click', handleNotationClick);
+function renderNotationIfVisible(opts) {
+  notationRendererController?.render(opts);
 }
 
 function normalizeFractionMemoryPayload(info) {
@@ -502,6 +346,21 @@ notationPanelController = createNotationPanelController({
   appId: 'app4',
   onOpen: () => renderNotationIfVisible({ force: true })
 });
+
+// Notation renderer setup (after notationPanelController is available)
+if (notationContentEl) {
+  notationRendererController = createNotationRenderer({
+    notationContentEl,
+    notationPanelController,
+    getFraction,
+    getLg: () => parseInt(inputLg.value, 10),
+    fractionStore,
+    pulseMemoryApi,
+    createFractionSelectionFromValue,
+    onPulseSelected: setPulseSelected,
+    onFractionSelected: setFractionSelected
+  });
+}
 
 const globalMixer = getMixer();
 if (globalMixer) {
@@ -2775,7 +2634,7 @@ function initHighlightingControllers() {
     getIsPlaying: () => isPlaying,
     getLoopEnabled: () => loopEnabled,
     highlightController,
-    getNotationRenderer: () => notationRenderer,
+    getNotationRenderer: () => notationRendererController?.getRenderer(),
     getPulses: () => pulses,
     onResolutionChange: (newResolution) => {
       currentAudioResolution = newResolution;
@@ -2962,8 +2821,9 @@ function handlePlaybackStop(audioInstance) {
   }
 
   // Resetear cursor de notación
-  if (notationRenderer && typeof notationRenderer.resetCursor === 'function') {
-    notationRenderer.resetCursor();
+  const renderer = notationRendererController?.getRenderer();
+  if (renderer && typeof renderer.resetCursor === 'function') {
+    renderer.resetCursor();
   }
   currentAudioResolution = 1;
   const ed = getEditEl();
