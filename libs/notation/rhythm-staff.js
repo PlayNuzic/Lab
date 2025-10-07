@@ -443,6 +443,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       positions = [],
       rhythm,
       pulseFilter: overridePulseFilter,
+      isPlaying = false
     } = state;
 
     const events = normalizeEvents(rhythm || state);
@@ -1113,7 +1114,16 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     // Actualizar cache del SVG offset después de renderizar
     updateSvgOffset();
 
-    resetCursor();
+    // Solo resetear cursor si NO estamos en playback activo
+    // Durante playback, visual-sync.js se encarga de actualizar el cursor
+    if (!isPlaying) {
+      resetCursor();
+    } else {
+      // Durante playback, resetear tracking del cursor para que recalcule posición
+      // con el nuevo positionLookup y offset del SVG
+      lastCursorX = null;
+      lastCursorPulse = -1;
+    }
   };
 
   return {

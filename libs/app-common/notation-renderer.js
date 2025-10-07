@@ -133,7 +133,7 @@ export function createNotationRenderer({
    * Renders notation if the panel is open (or force=true).
    * Creates the VexFlow renderer on first call.
    */
-  function renderIfVisible({ force = false } = {}) {
+  function renderIfVisible({ force = false, isPlaying = false } = {}) {
     if (!notationContentEl) return;
     if (!notationPanelController) return;
     if (!force && !notationPanelController.isOpen) return;
@@ -141,13 +141,13 @@ export function createNotationRenderer({
     if (!notationRenderer) {
       notationRenderer = createRhythmStaff({
         container: notationContentEl,
-        pulseFilter: 'fractional'
+        pulseFilter: 'all'
       });
     }
 
     const state = buildNotationRenderState();
     if (!state) {
-      notationRenderer.render({ lg: 0, rhythm: [] });
+      notationRenderer.render({ lg: 0, rhythm: [], isPlaying });
       return;
     }
 
@@ -156,7 +156,8 @@ export function createNotationRenderer({
       selectedIndices: state.selectedIndices,
       fraction: state.fraction,
       positions: state.positions,
-      rhythm: state.events
+      rhythm: state.events,
+      isPlaying
     });
   }
 

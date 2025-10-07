@@ -168,7 +168,11 @@ let notationPanelController = null;
 let notationRendererController = null;
 
 function renderNotationIfVisible(opts) {
-  notationRendererController?.render(opts);
+  const playing = typeof isPlaying === 'boolean' ? isPlaying : false;
+  notationRendererController?.render({
+    ...opts,
+    isPlaying: playing
+  });
 }
 
 function normalizeFractionMemoryPayload(info) {
