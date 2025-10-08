@@ -919,9 +919,14 @@ function randomize() {
     setValue(inputV, randomInt(min, max));
   }
   const fractionUpdates = {};
+
+  // Check if complex fractions are enabled
+  const complexEnabled = localStorage.getItem('enableComplexFractions') === 'true';
+
   if (cfg.n.enabled) {
     const [min, max] = cfg.n.range;
-    fractionUpdates.numerator = Math.max(1, randomInt(min, max));
+    // Restrict numerator to 1 if complex fractions are disabled
+    fractionUpdates.numerator = complexEnabled ? Math.max(1, randomInt(min, max)) : 1;
   }
   if (cfg.d.enabled) {
     const [min, max] = cfg.d.range;
