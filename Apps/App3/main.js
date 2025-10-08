@@ -48,8 +48,7 @@ const randomDefaults = {
   Lg: { enabled: true, range: [2, 30] },
   V: { enabled: true, range: [40, 320] },
   n: { enabled: true, range: [1, 9] },
-  d: { enabled: true, range: [1, 9] },
-  allowComplex: true
+  d: { enabled: true, range: [1, 9] }
 };
 
 const preferenceStorage = createPreferenceStorage({ prefix: 'app3', separator: '::' });
@@ -73,7 +72,7 @@ const { inputLg, inputV, inputT, inputLgUp, inputLgDown, inputVUp, inputVDown,
         randomBtn, randomMenu, mixerMenu, tapBtn, tapHelp, resetBtn,
         circularTimelineToggle, randLgToggle, randLgMin, randLgMax, randVToggle,
         randVMin, randVMax, randNToggle, randNMin, randNMax, randDToggle,
-        randDMin, randDMax, randComplexToggle, baseSoundSelect, startSoundSelect,
+        randDMin, randDMax, baseSoundSelect, startSoundSelect,
         cycleSoundSelect, themeSelect, pulseToggleBtn, cycleToggleBtn } = elements;
 const titleHeading = document.querySelector('header.top-bar h1');
 let titleButton = null;
@@ -163,6 +162,66 @@ function initFractionEditorController() {
 }
 
 initFractionEditorController();
+
+// Initialize complex fractions state from localStorage (pattern from App4)
+function initComplexFractionsState() {
+  const stored = localStorage.getItem('enableComplexFractions');
+  const enabled = stored === 'true'; // Default: false
+
+  if (fractionEditorController) {
+    if (enabled) {
+      fractionEditorController.setComplexMode();
+    } else {
+      fractionEditorController.setSimpleMode();
+    }
+  }
+
+  updateRandomMenuComplexState(enabled);
+}
+
+function updateRandomMenuComplexState(enabled) {
+  if (!randNToggle) return;
+
+  if (enabled) {
+    // Habilitar controles de numerador
+    randNToggle.disabled = false;
+    randNToggle.style.opacity = '1';
+    randNToggle.title = '';
+    if (randNMin) randNMin.disabled = false;
+    if (randNMax) randNMax.disabled = false;
+  } else {
+    // Deshabilitar controles de numerador
+    randNToggle.disabled = true;
+    randNToggle.checked = false;
+    randNToggle.style.opacity = '0.5';
+    randNToggle.title = 'Activar fracciones complejas en Opciones para habilitar';
+    if (randNMin) randNMin.disabled = true;
+    if (randNMax) randNMax.disabled = true;
+  }
+}
+
+// Escuchar cambios de "Activar fracciones complejas"
+window.addEventListener('sharedui:complexfractions', (e) => {
+  const enabled = e.detail.value;
+
+  // Aplicar a fraction editor
+  if (fractionEditorController) {
+    if (enabled) {
+      fractionEditorController.setComplexMode();
+    } else {
+      fractionEditorController.setSimpleMode();
+    }
+  }
+
+  // Actualizar estado del toggle de numerador en random menu
+  updateRandomMenuComplexState(enabled);
+
+  // Re-renderizar timeline si es necesario
+  layoutTimeline();
+});
+
+// Inicializar estado al cargar
+initComplexFractionsState();
 
 function formatInteger(value) {
   const numeric = Number(value);
@@ -814,8 +873,7 @@ function applyRandomConfig(cfg) {
     Lg: { toggle: randLgToggle, min: randLgMin, max: randLgMax },
     V: { toggle: randVToggle, min: randVMin, max: randVMax },
     n: { toggle: randNToggle, min: randNMin, max: randNMax },
-    d: { toggle: randDToggle, min: randDMin, max: randDMax },
-    allowComplex: randComplexToggle
+    d: { toggle: randDToggle, min: randDMin, max: randDMax }
   });
 }
 
@@ -830,8 +888,7 @@ function updateRandomConfig() {
     Lg: { toggle: randLgToggle, min: randLgMin, max: randLgMax },
     V: { toggle: randVToggle, min: randVMin, max: randVMax },
     n: { toggle: randNToggle, min: randNMin, max: randNMax, integer: true, minValue: 1 },
-    d: { toggle: randDToggle, min: randDMin, max: randDMax, integer: true, minValue: 1 },
-    allowComplex: randComplexToggle
+    d: { toggle: randDToggle, min: randDMin, max: randDMax, integer: true, minValue: 1 }
   }, randomDefaults);
   saveOpt('random', JSON.stringify(randomConfig));
 }
@@ -842,8 +899,7 @@ applyRandomConfig(randomConfig);
   randLgToggle, randLgMin, randLgMax,
   randVToggle, randVMin, randVMax,
   randNToggle, randNMin, randNMax,
-  randDToggle, randDMin, randDMax,
-  randComplexToggle
+  randDToggle, randDMin, randDMax
 ].forEach(el => el?.addEventListener('change', updateRandomConfig));
 
 /**
@@ -864,11 +920,7 @@ function randomize() {
   }
   const fractionUpdates = {};
   if (cfg.n.enabled) {
-    let [min, max] = cfg.n.range;
-    if (!cfg.allowComplex) {
-      min = 1;
-      max = 1;
-    }
+    const [min, max] = cfg.n.range;
     fractionUpdates.numerator = Math.max(1, randomInt(min, max));
   }
   if (cfg.d.enabled) {
