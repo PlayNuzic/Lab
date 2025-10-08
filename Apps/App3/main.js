@@ -176,10 +176,12 @@ function initComplexFractionsState() {
     }
   }
 
-  updateRandomMenuComplexState(enabled);
+  // Skip config update during initialization (randomConfig not yet defined)
+  updateRandomMenuComplexState(enabled, { skipConfigUpdate: true });
 }
 
-function updateRandomMenuComplexState(enabled) {
+function updateRandomMenuComplexState(enabled, options = {}) {
+  const { skipConfigUpdate = false } = options;
   if (!randNToggle) return;
 
   if (enabled) {
@@ -190,9 +192,6 @@ function updateRandomMenuComplexState(enabled) {
     randNToggle.title = '';
     if (randNMin) randNMin.disabled = false;
     if (randNMax) randNMax.disabled = false;
-
-    // Actualizar configuración para persistir el estado
-    updateRandomConfig();
   } else {
     // Deshabilitar controles de numerador
     randNToggle.disabled = true;
@@ -201,8 +200,10 @@ function updateRandomMenuComplexState(enabled) {
     randNToggle.title = 'Activar fracciones complejas en Opciones para habilitar';
     if (randNMin) randNMin.disabled = true;
     if (randNMax) randNMax.disabled = true;
+  }
 
-    // Actualizar configuración para persistir el estado
+  // Solo actualizar config si no estamos en inicialización
+  if (!skipConfigUpdate && typeof updateRandomConfig === 'function') {
     updateRandomConfig();
   }
 }
