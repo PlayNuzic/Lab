@@ -136,6 +136,11 @@ export function buildPulseEvents({
     }
   }
 
+  // Calcular rango remainder para proteger sus duraciones
+  const lastCycleStart = Number.isFinite(numerator) && numerator > 0
+    ? Math.floor(safeLg / numerator) * numerator
+    : -1;
+
   if (Array.isArray(fractionalSelections) && fractionalSelections.length > 0) {
     fractionalSelections.forEach((raw) => {
       const value = Number.isFinite(raw?.pulseIndex) ? Number(raw.pulseIndex)
@@ -143,13 +148,19 @@ export function buildPulseEvents({
       if (!Number.isFinite(value)) return;
       const key = makePulseIndexKey(value);
       if (key == null) return;
+
+      // Verificar si es pulso remainder (no permitir sobrescribir duración)
+      const isRemainderPulse = value > lastCycleStart && value < safeLg;
+
       const target = entryLookup.get(key);
       if (target) {
         target.rest = Boolean(raw?.rest);
-        if (raw?.duration != null) {
+        // Solo sobrescribir duración si NO es remainder
+        if (raw?.duration != null && !isRemainderPulse) {
           target.duration = raw.duration;
         }
-        if (Number.isFinite(raw?.dots)) {
+        // Solo sobrescribir dots si NO es remainder
+        if (Number.isFinite(raw?.dots) && !isRemainderPulse) {
           target.dots = Math.max(0, Math.floor(raw.dots));
         }
         if (raw?.selectionKey != null) {
@@ -161,13 +172,14 @@ export function buildPulseEvents({
         return;
       }
 
+      // Para pulsos remainder, forzar duración de negra
       const extra = {
         pulseIndex: value,
-        duration: raw?.duration != null ? raw.duration : resolvedDuration,
+        duration: isRemainderPulse ? 'q' : (raw?.duration != null ? raw.duration : resolvedDuration),
         rest: Boolean(raw?.rest),
-        dots: Number.isFinite(raw?.dots)
+        dots: isRemainderPulse ? 0 : (Number.isFinite(raw?.dots)
           ? Math.max(0, Math.floor(raw.dots))
-          : resolvedDots,
+          : resolvedDots),
       };
       if (raw?.selectionKey != null) {
         extra.selectionKey = raw.selectionKey;
