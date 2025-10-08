@@ -11,6 +11,7 @@ import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-comm
 import { parseNum, formatSec } from '../../libs/app-common/number-utils.js';
 import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
+import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
@@ -45,10 +46,6 @@ const { inputLg, inputV, inputT, inputTUp, inputTDown, inputVUp, inputVDown,
 
 let pulses = [];
 
-// UI thresholds for number rendering
-const NUMBER_HIDE_THRESHOLD = 100;   // from this Lg and above, hide numbers
-const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
-
 let isPlaying = false;
 let loopEnabled = false;
 let isUpdating = false;     // evita bucles de 'input' reentrants
@@ -69,6 +66,14 @@ const visualSync = createSimpleVisualSync({
   getAudio: () => audio,
   getIsPlaying: () => isPlaying,
   onStep: (step) => highlightController.highlightPulse(step)
+});
+
+// Timeline controller for circular/linear rendering
+const timelineController = createCircularTimeline({
+  timeline,
+  timelineWrapper,
+  getPulses: () => pulses,
+  getNumberFontSize: (lg) => computeNumberFontRem(lg)
 });
 
 function cancelTapResync() {
@@ -343,7 +348,7 @@ document.addEventListener('sharedui:mute', (e) => {
   }catch{}
 })();
 
-updateNumbers();
+// updateNumbers() removed - now handled by timelineController
 
 circularTimelineToggle.checked = (() => {
   const stored = loadOpt('circular');
@@ -677,212 +682,25 @@ function updateFormula(){
 
 
 function renderTimeline(){
-  timeline.innerHTML = '';
-  pulses = [];
   const lg = parseInt(inputLg.value);
-  if(isNaN(lg) || lg <= 0) return;
-
-  for (let i = 0; i <= lg; i++) {
-    const p = document.createElement('div');
-    p.className = 'pulse';
-    p.dataset.index = i;
-    if (i === 0 || i === lg) p.classList.add('endpoint');
-    timeline.appendChild(p);
-    pulses.push(p);
-
-    if (i === 0 || i === lg) {
-      const bar = document.createElement('div');
-      bar.className = 'bar endpoint';
-      timeline.appendChild(bar);
-    }
+  if(isNaN(lg) || lg <= 0) {
+    timeline.innerHTML = '';
+    pulses = [];
+    return;
   }
-  animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
-  updateNumbers();
+
+  pulses = timelineController.render(lg, {
+    isCircular: loopEnabled && circularTimeline,
+    silent: true
+  });
 }
 
 function animateTimelineCircle(isCircular, opts = {}){
   const silent = !!opts.silent;
-  const lg = pulses.length - 1;
-  const bars = timeline.querySelectorAll('.bar');
-  if (lg <= 0) return;
-  if (isCircular) {
-    timelineWrapper.classList.add('circular');
-    timeline.classList.add('circular');
-    if (silent) timeline.classList.add('no-anim');
-    // Guia circular: ANCORADA al centre del WRAPPER per evitar desplaçaments
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    let guide = wrapper.querySelector('.circle-guide');
-    if (!guide) {
-      guide = document.createElement('div');
-      guide.className = 'circle-guide';
-      // estils mínims inline (per si el CSS no ha carregat)
-      guide.style.position = 'absolute';
-      guide.style.border = '2px solid var(--timeline-line, #EDE6D3)';
-      guide.style.borderRadius = '50%';
-      guide.style.pointerEvents = 'none';
-      guide.style.transition = 'opacity 300ms ease';
-      guide.style.opacity = '0';
-      wrapper.appendChild(guide);
-    }
-
-    // Recol·loca un cop aplicades les classes circulars
-    requestAnimationFrame(() => {
-      const wRect = wrapper.getBoundingClientRect();
-      const gcx = wRect.width / 2;
-      const gcy = wRect.height / 2;
-      const gRadius = Math.min(wRect.width, wRect.height) / 2 - 10;
-      guide.style.left = gcx + 'px';
-      guide.style.top = gcy + 'px';
-      guide.style.width = (gRadius * 2) + 'px';
-      guide.style.height = (gRadius * 2) + 'px';
-      guide.style.transform = 'translate(-50%, -50%)';
-      guide.style.opacity = '1';
-
-      // Geometria basada en el TIMELINE (anella real) perquè els polsos intersequin la línia
-      const tRect = timeline.getBoundingClientRect();
-      const cx = tRect.width / 2;
-      const cy = tRect.height / 2;
-      const radius = Math.min(tRect.width, tRect.height) / 2 - 1; // centre del pols gairebé sobre la línia (border=2)
-
-      // Polsos sobre la línia del cercle
-      pulses.forEach((p, i) => {
-        const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
-        p.style.left = x + 'px';
-        p.style.top = y + 'px';
-        p.style.transform = 'translate(-50%, -50%)';
-      });
-
-
-      // Barres 0/Lg: llargada més curta i centrada en la circumferència
-      bars.forEach((bar, idx) => {
-        const step = (idx === 0) ? 0 : lg;
-        const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
-        const bx = cx + radius * Math.cos(angle);
-        const by = cy + radius * Math.sin(angle);
-
-        // CORREGIDO: Barra más corta (25% en lugar de 50%) y centrada
-        const barLen = Math.min(tRect.width, tRect.height) * 0.25;
-        const intersectPx = barLen / 2; // La mitad intersecta hacia dentro
-
-        // Centra la barra: mitad hacia fuera, mitad hacia dentro
-        const topPx = by - intersectPx;
-
-        bar.style.display = 'block';
-        // ample de .bar = 2px -> resta 1px per centrar sense translate
-        bar.style.left = (bx - 1) + 'px';
-        bar.style.top = topPx + 'px';
-        bar.style.height = barLen + 'px';
-        bar.style.transformOrigin = '50% 50%'; // CORREGIDO: centrada
-        // Només rotate; res de translate/scale per no desancorar la base
-        bar.style.transform = 'rotate(' + (angle + Math.PI/2) + 'rad)';
-      });
-
-      updateNumbers();
-      // Apaga la guia circular un cop dibuixada l'anella real (evita doble cercle en mode fosc)
-      if (!silent) {
-        setTimeout(() => {
-          if (guide && wrapper.contains(guide)) {
-            guide.style.opacity = '0';
-          }
-        }, 400);
-      }
-      if (silent) {
-        // força reflow per aplicar els estils sense transicions i neteja la flag
-        void timeline.offsetHeight;
-        timeline.classList.remove('no-anim');
-      }
-    });
-  } else {
-    timelineWrapper.classList.remove('circular');
-    timeline.classList.remove('circular');
-    // Oculta la guia circular (fade-out)
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = wrapper.querySelector('.circle-guide');
-    if (guide) guide.style.opacity = '0';
-    pulses.forEach((p, i) => {
-      const percent = (i / lg) * 100;
-      p.style.left = percent + '%';
-      p.style.top = '50%';
-      p.style.transform = 'translate(-50%, -50%)';
-    });
-    bars.forEach((bar, idx) => {
-      bar.style.display = 'block';
-      const i = idx === 0 ? 0 : lg;
-      const percent = (i / lg) * 100;
-      bar.style.left = percent + '%';
-      bar.style.top = '10%';
-      bar.style.height = '80%';
-      bar.style.transform = '';
-      bar.style.transformOrigin = '';
-    });
-    updateNumbers();
-  }
+  timelineController.setCircular(isCircular, { silent });
 }
 
-function showNumber(i){
-  const n = document.createElement('div');
-  n.className = 'pulse-number';
-  n.dataset.index = i;
-  n.textContent = i;
-  const _lgForFont = pulses.length - 1;
-  const fontRem = computeNumberFontRem(_lgForFont);
-  n.style.fontSize = fontRem + 'rem';
-  if (i === 0 || i === _lgForFont) n.classList.add('endpoint');
-
-   if (timeline.classList.contains('circular')) {
-     const lg = pulses.length - 1;
-     const rect = timeline.getBoundingClientRect();
-     const radius = Math.min(rect.width, rect.height) / 2 - 10;
-     const offset = NUMBER_CIRCLE_OFFSET;
-     const cx = rect.width / 2;
-     const cy = rect.height / 2;
-     const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
-     const x = cx + (radius + offset) * Math.cos(angle);
-     let y = cy + (radius + offset) * Math.sin(angle);
-
-     const xShift = (i === 0) ? -16 : (i === lg ? 16 : 0); // 0 a l'esquerra, Lg a la dreta
-     n.style.left = (x + xShift) + 'px';
-     n.style.transform = 'translate(-50%, -50%)';
-
-     if (i === 0 || i === lg) {
-       // No fem cap forçat de verticalitat; deixem que el CSS determini l'estil
-       n.style.top = (y + 8) + 'px';
-       n.style.zIndex = (i === 0) ? '3' : '2';
-     } else {
-       n.style.top = y + 'px';
-     }
-
-  } else {
-    const percent = (i / (pulses.length - 1)) * 100;
-    n.style.left = percent + '%';
-  }
-
-  timeline.appendChild(n);
-}
-
-function removeNumber(i){
-  const el = timeline.querySelector(`.pulse-number[data-index="${i}"]`);
-  if(el) el.remove();
-}
-
-function updateNumbers(){
-  document.querySelectorAll('.pulse-number').forEach(n => n.remove());
-  if (pulses.length === 0) return;
-
-  const lgForNumbers = pulses.length - 1;
-  const tooDense = lgForNumbers >= NUMBER_HIDE_THRESHOLD;
-
-  showNumber(0);
-  showNumber(lgForNumbers);
-
-  if (!tooDense) {
-    for (let i = 1; i < lgForNumbers; i++) {
-      showNumber(i);
-    }
-  }
-}
+// showNumber, removeNumber, updateNumbers now handled by timelineController
 
 function updateAutoIndicator(){
   // Los LEDs encendidos son los campos editables; el apagado se recalcula
