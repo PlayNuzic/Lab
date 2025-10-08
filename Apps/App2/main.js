@@ -2,6 +2,7 @@ import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.j
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
+import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
@@ -14,7 +15,27 @@ import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 import { createNotationPanelController } from '../../libs/app-common/notation-panel.js';
 import { durationValueFromDenominator, buildPulseEvents } from '../../libs/app-common/notation-utils.js';
 import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
+import { parseNum, formatNumber, createNumberFormatter } from '../../libs/app-common/number-utils.js';
+import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
+import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 // Using local header controls for App2 (no shared init)
+
+// Create custom formatters for App2
+const formatInteger = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  return Math.round(numeric).toLocaleString('ca-ES');
+};
+
+const formatBpmValue = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  const rounded = Math.round(numeric * 10) / 10;
+  return rounded.toLocaleString('ca-ES', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1
+  });
+};
 
 let audio;
 let pendingMute = null;
@@ -246,18 +267,13 @@ const randomConfig = mergeRandomConfig(randomDefaults, loadRandomConfig());
  * @param {Record<string, any>} cfg
  */
 function applyRandomConfig(cfg) {
-  randLgToggle.checked = cfg.Lg.enabled;
-  randLgMin.value = cfg.Lg.range[0];
-  randLgMax.value = cfg.Lg.range[1];
-  randVToggle.checked = cfg.V.enabled;
-  randVMin.value = cfg.V.range[0];
-  randVMax.value = cfg.V.range[1];
-  if (cfg.T) {
-    if (randTToggle) randTToggle.checked = cfg.T.enabled;
-    if (randTMin) randTMin.value = cfg.T.range[0];
-    if (randTMax) randTMax.value = cfg.T.range[1];
-  }
-  if (randPulsesToggle && randomCount) {
+  applyBaseRandomConfig(cfg, {
+    Lg: { toggle: randLgToggle, min: randLgMin, max: randLgMax },
+    V: { toggle: randVToggle, min: randVMin, max: randVMax },
+    T: { toggle: randTToggle, min: randTMin, max: randTMax }
+  });
+  // Handle Pulses config (app-specific)
+  if (randPulsesToggle && randomCount && cfg.Pulses) {
     randPulsesToggle.checked = cfg.Pulses.enabled;
     randomCount.value = cfg.Pulses.count ?? '';
   }
@@ -267,22 +283,13 @@ function applyRandomConfig(cfg) {
  * Persist the current random menu configuration back to storage.
  */
 function updateRandomConfig() {
-  randomConfig.Lg = {
-    enabled: randLgToggle.checked,
-    range: toRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range)
-  };
-  randomConfig.V = {
-    enabled: randVToggle.checked,
-    range: toRange(randVMin?.value, randVMax?.value, randomDefaults.V.range)
-  };
-  const previousTRange = randomConfig.T?.range ?? randomDefaults.T.range;
-  const previousTEnabled = randomConfig.T?.enabled ?? randomDefaults.T.enabled;
-  randomConfig.T = {
-    enabled: randTToggle ? randTToggle.checked : previousTEnabled,
-    range: (randTMin && randTMax)
-      ? toRange(randTMin?.value, randTMax?.value, previousTRange)
-      : previousTRange
-  };
+  updateBaseRandomConfig(randomConfig, {
+    Lg: { toggle: randLgToggle, min: randLgMin, max: randLgMax, integer: true, minValue: 1 },
+    V: { toggle: randVToggle, min: randVMin, max: randVMax },
+    T: { toggle: randTToggle, min: randTMin, max: randTMax }
+  }, randomDefaults);
+
+  // Handle Pulses config (app-specific)
   if (randPulsesToggle && randomCount) {
     randomConfig.Pulses = {
       enabled: randPulsesToggle.checked,
@@ -343,10 +350,33 @@ let isUpdating = false;     // evita bucles de 'input' reentrants
 let circularTimeline = false;
 const T_INDICATOR_TRANSITION_DELAY = 650;
 let tIndicatorRevealHandle = null;
-let visualSyncHandle = null;
-let lastVisualStep = null;
+// visualSyncHandle and lastVisualStep now managed by visualSync controller
 // Progress is now driven directly from audio callbacks
-// Progress is now driven directly from audio callbacks
+
+// Create highlight controller
+const highlightController = createSimpleHighlightController({
+  getPulses: () => pulses,
+  getLoopEnabled: () => loopEnabled
+});
+
+// Create visual sync controller
+const visualSync = createSimpleVisualSync({
+  getAudio: () => audio,
+  getIsPlaying: () => isPlaying,
+  onStep: (step) => {
+    // Highlight pulse
+    highlightController.highlightPulse(step);
+
+    // Handle pulse scrolling
+    handlePulseScroll(step);
+
+    // Update notation cursor
+    if (notationRenderer && typeof notationRenderer.updateCursor === 'function') {
+      const index = step % pulses.length;
+      notationRenderer.updateCursor(index, isPlaying);
+    }
+  }
+});
 
 function updateTIndicatorText(value) {
   if (!tIndicator) return;
@@ -831,45 +861,8 @@ function setValue(input, value){
   isUpdating = false;
 }
 
-function parseNum(val){
-  if (typeof val !== 'string') return Number(val);
-  let s = val.trim();
-  // Si hi ha coma i no hi ha punt: format català “1.234,56” → traiem punts (milers) i passem coma a punt
-  if (s.includes(',') && !s.includes('.')) {
-    s = s.replace(/\./g, '').replace(',', '.');
-  } else {
-    // En la resta de casos, NO esborrem punts (poden ser decimals); només canviem comes per punts
-    s = s.replace(/,/g, '.');
-  }
-  const n = parseFloat(s);
-  return isNaN(n) ? NaN : n;
-}
-
-function formatInteger(value) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return '';
-  return Math.round(numeric).toLocaleString('ca-ES');
-}
-
-function formatNumberValue(value) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return '';
-  const rounded = Math.round(numeric * 100) / 100;
-  return rounded.toLocaleString('ca-ES', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2
-  });
-}
-
-function formatBpmValue(value) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return '';
-  const rounded = Math.round(numeric * 10) / 10;
-  return rounded.toLocaleString('ca-ES', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 1
-  });
-}
+// parseNum, formatInteger, formatBpmValue now imported/defined at top
+// formatNumberValue replaced with formatNumber from number-utils
 
 let titleInfoTipEl = null;
 
@@ -936,7 +929,7 @@ function buildTitleInfoContent() {
     baseLabel.textContent = 'V base';
     baseFormulaLine.append(
       baseLabel,
-      ` = (${formatInteger(lgValue)} / ${formatNumberValue(tForFormula)})·60 = ${formatBpmValue(effectiveTempo)} BPM`
+      ` = (${formatInteger(lgValue)} / ${formatNumber(tForFormula, 2)})·60 = ${formatBpmValue(effectiveTempo)} BPM`
     );
     fragment.append(baseFormulaLine);
   } else if (effectiveTempo != null) {
@@ -960,7 +953,7 @@ function buildTitleInfoContent() {
     tFormulaLabel.textContent = 'T';
     tFormulaLine.append(
       tFormulaLabel,
-      ` = (${formatInteger(lgValue)} / ${formatBpmValue(tempoValue)})·60 = ${formatNumberValue(derivedTFromTempo)} s`
+      ` = (${formatInteger(lgValue)} / ${formatBpmValue(tempoValue)})·60 = ${formatNumber(derivedTFromTempo, 2)} s`
     );
     fragment.append(tFormulaLine);
   } else if (hasT) {
@@ -968,7 +961,7 @@ function buildTitleInfoContent() {
     tLine.className = 'top-bar-info-tip__line';
     const tLabel = document.createElement('strong');
     tLabel.textContent = 'T:';
-    tLine.append(tLabel, ' ', `${formatNumberValue(tValue)} s`);
+    tLine.append(tLabel, ' ', `${formatNumber(tValue, 2)} s`);
     fragment.append(tLine);
   }
 
@@ -1627,8 +1620,8 @@ function handlePlaybackStop(audioInstance) {
   playBtn?.classList.remove('active');
   if (iconPlay) iconPlay.style.display = 'block';
   if (iconStop) iconStop.style.display = 'none';
-  pulses.forEach(p => p.classList.remove('active'));
-  stopVisualSync();
+  highlightController.clearHighlights();
+  visualSync.stop();
   if (audioInstance && typeof audioInstance.stop === 'function') {
     try { audioInstance.stop(); } catch {}
   }
@@ -1659,9 +1652,9 @@ async function startPlayback(providedAudio) {
   const audioInstance = providedAudio || await initAudio();
   if (!audioInstance) return false;
 
-  stopVisualSync();
+  visualSync.stop();
   audioInstance.stop();
-  pulses.forEach(p => p.classList.remove('active'));
+  highlightController.clearHighlights();
 
   // Sound selection is already applied by initAudio() from dataset.value
   // and by bindSharedSoundEvents from sharedui:sound events
@@ -1685,10 +1678,12 @@ async function startPlayback(providedAudio) {
     handlePlaybackStop(audioInstance);
   };
 
-  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
+  const onPulse = (step) => highlightController.highlightPulse(step);
 
-  syncVisualState();
-  startVisualSync();
+  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, onPulse, onFinish);
+
+  visualSync.syncVisualState();
+  visualSync.start();
 
   isPlaying = true;
   playBtn?.classList.add('active');
@@ -1757,96 +1752,47 @@ function getPulseSeqRect(index) {
 
 pulseSeqController.setRectResolver(getPulseSeqRect);
 
-function highlightPulse(i){
-  // Si no està en reproducció, no tornem a canviar seleccions ni highlights
-  if (!isPlaying) return;
+// Handle pulse scrolling in pulse sequence panel
+function handlePulseScroll(i) {
+  if (!pulseSeqEl || !pulses || pulses.length === 0) return;
 
-  // esborra il·luminació anterior
-  pulses.forEach(p => p.classList.remove('active'));
-
-  if (!pulses || pulses.length === 0) return;
-
-  // il·lumina el pols actual
   const idx = i % pulses.length;
-  const current = pulses[idx];
-  if (current) {
-    // Força un reflow perquè l'animació es reiniciï encara que es repeteixi el mateix pols
-    void current.offsetWidth;
-    current.classList.add('active');
+  const rect = getPulseSeqRect(idx);
+  let newScrollLeft = pulseSeqEl.scrollLeft;
+
+  if (rect) {
+    const parentRect = pulseSeqEl.getBoundingClientRect();
+    const absLeft = rect.left - parentRect.left + pulseSeqEl.scrollLeft;
+    const target = absLeft - (pulseSeqEl.clientWidth - rect.width) / 2;
+    const maxScroll = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
+    newScrollLeft = Math.max(0, Math.min(target, maxScroll));
+    pulseSeqEl.scrollLeft = newScrollLeft;
+    if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
   }
 
-  // si hi ha loop i som al primer pols, també il·lumina l’últim
-  if (loopEnabled && idx === 0) {
-    const last = pulses[pulses.length - 1];
-    if (last) last.classList.add('active');
-  }
-  if (pulseSeqEl) {
-    const rect = getPulseSeqRect(idx);
-    let newScrollLeft = pulseSeqEl.scrollLeft;
-    if (rect) {
-      const parentRect = pulseSeqEl.getBoundingClientRect();
-      const absLeft = rect.left - parentRect.left + pulseSeqEl.scrollLeft;
-      const target = absLeft - (pulseSeqEl.clientWidth - rect.width) / 2;
-      const maxScroll = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
-      newScrollLeft = Math.max(0, Math.min(target, maxScroll));
-      pulseSeqEl.scrollLeft = newScrollLeft;
-      if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
-    }
-
-    let trailingIndex = null;
-    let trailingRect = null;
-    if (idx === 0 && loopEnabled) {
-      trailingIndex = pulses.length - 1;
-      trailingRect = getPulseSeqRect(trailingIndex);
-    }
-
-    if (rect) {
-      pulseSeqController.setActiveIndex(idx, {
-        rect,
-        trailingIndex,
-        trailingRect,
-        scrollLeft: newScrollLeft
-      });
-    } else {
-      pulseSeqController.clearActive();
-    }
+  let trailingIndex = null;
+  let trailingRect = null;
+  if (idx === 0 && loopEnabled) {
+    trailingIndex = pulses.length - 1;
+    trailingRect = getPulseSeqRect(trailingIndex);
   }
 
-}
-
-function stopVisualSync() {
-  if (visualSyncHandle != null) {
-    cancelAnimationFrame(visualSyncHandle);
-    visualSyncHandle = null;
-  }
-  lastVisualStep = null;
-}
-
-function syncVisualState() {
-  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
-  const state = audio.getVisualState();
-  if (!state || !Number.isFinite(state.step)) return;
-  if (lastVisualStep === state.step) return;
-  lastVisualStep = state.step;
-  highlightPulse(state.step);
-
-  // Actualizar cursor de notación
-  if (notationRenderer && typeof notationRenderer.updateCursor === 'function') {
-    const index = Math.max(0, state.step);
-    notationRenderer.updateCursor(index, isPlaying);
+  if (rect) {
+    pulseSeqController.setActiveIndex(idx, {
+      rect,
+      trailingIndex,
+      trailingRect,
+      scrollLeft: newScrollLeft
+    });
+  } else {
+    pulseSeqController.clearActive();
   }
 }
 
-function startVisualSync() {
-  stopVisualSync();
-  const step = () => {
-    visualSyncHandle = null;
-    if (!isPlaying || !audio) return;
-    syncVisualState();
-    visualSyncHandle = requestAnimationFrame(step);
-  };
-  visualSyncHandle = requestAnimationFrame(step);
-}
+// highlightPulse now handled by highlightController.highlightPulse()
+// Pulse scrolling logic extracted to handlePulseScroll()
+// stopVisualSync, syncVisualState, startVisualSync replaced by visualSync controller
+// Use visualSync.stop(), visualSync.syncVisualState(), visualSync.start()
 
 const menu = document.querySelector('.menu');
 const optionsContent = document.querySelector('.menu .options-content');

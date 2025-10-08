@@ -127,7 +127,7 @@ position: absolute;
 border-radius: 50%;
 background: var(--selection-color);
 color: var(--selection-color);
-opacity: 0;
+opacity: 0.5;
 pointer-events: none;
 transform: translate(-50%, -50%);
 display: none;
@@ -140,7 +140,6 @@ border: 2px solid var(--selection-color);
 animation: pulseFlash 0.35s ease-out;
 box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
 display: block;
-opacity: 1;
 }
 
 /**
