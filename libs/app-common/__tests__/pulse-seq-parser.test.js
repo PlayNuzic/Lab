@@ -125,5 +125,39 @@ describe('pulse-seq-parser', () => {
       expect(gap.base).toBe(0);
       expect(gap.next).toBe(12);
     });
+
+    test('resuelve gap con múltiples ocurrencias de la misma base', () => {
+      const ranges = {
+        '0-a': [2, 5],   // 0.1
+        '0-b': [7, 10],  // 0.3
+        '0-c': [12, 15], // 0.4
+      };
+      // Cursor en posición 16 (después de 0.4)
+      const gap = resolvePulseSeqGap(16, 20, ranges);
+      expect(gap.base).toBe(0);  // base del token más cercano (0.4)
+      expect(gap.next).toBe(20); // siguiente es lg
+    });
+
+    test('resuelve gap con keys compuestas no numéricas', () => {
+      const ranges = {
+        '3-first': [5, 8],
+        '3-second': [10, 13],
+      };
+      const gap = resolvePulseSeqGap(14, 20, ranges);
+      expect(gap.base).toBe(3);
+      expect(gap.next).toBe(20);
+    });
+
+    test('resuelve gap entre ocurrencias de la misma base', () => {
+      const ranges = {
+        '0-a': [2, 3],   // 0 en posición 2-3
+        '3-a': [5, 6],   // 3 en posición 5-6
+        '3-b': [10, 11], // 3 en posición 10-11
+      };
+      // Cursor en posición 8 (después del primer 3, antes del segundo 3)
+      const gap = resolvePulseSeqGap(8, 20, ranges);
+      expect(gap.base).toBe(3);  // base del token más cercano
+      expect(gap.next).toBe(3);  // siguiente también es 3 (segunda ocurrencia)
+    });
   });
 });

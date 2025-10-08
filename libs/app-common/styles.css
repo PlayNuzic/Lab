@@ -197,6 +197,30 @@ body[data-theme='dark'] .fraction-info-bubble {
   transform: translate(-50%, calc(-100% - 12px)) scale(1);
 }
 
+/* Title info tooltip specific styles */
+.top-bar-info-tip {
+  white-space: normal;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 10px 14px;
+  text-align: center;
+  line-height: 2;
+}
+
+.top-bar-info-tip__line {
+  margin: 0;
+  font-size: 1.025rem;
+}
+
+.top-bar-info-tip__line + .top-bar-info-tip__line {
+  margin-top: 4px;
+}
+
+.top-bar-info-tip__hint {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
 
 /* --- Timeline --- */
 .timeline-wrapper {

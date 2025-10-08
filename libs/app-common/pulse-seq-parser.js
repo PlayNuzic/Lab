@@ -431,8 +431,13 @@ function validateStandardFraction(token, context) {
  */
 export function resolvePulseSeqGap(position, lg, pulseSeqRanges) {
   const ranges = Object.entries(pulseSeqRanges || {})
-    .map(([key, range]) => ({ key, range, num: Number(key) }))
-    .filter(entry => Number.isFinite(entry.num) && Number.isInteger(entry.num))
+    .map(([key, range]) => {
+      // Extraer número: si la key contiene guión, tomar solo la parte antes del guión
+      const numericPart = key.includes('-') ? key.split('-')[0] : key;
+      const num = Number(numericPart);
+      return { key, range, num };
+    })
+    .filter(entry => Number.isFinite(entry.num) && entry.num >= 0)
     .sort((a, b) => a.range[0] - b.range[0]);
 
   let base = null;

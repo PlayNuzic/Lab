@@ -334,6 +334,7 @@ if (titleHeading && titleTextNode) {
   titleButton.className = 'top-bar-title-button';
   titleButton.textContent = titleTextNode.textContent?.trim() || '';
   titleHeading.replaceChild(titleButton, titleTextNode);
+  attachHover(titleButton, { text: 'Click para ver información detallada' });
 } else if (titleHeading) {
   titleButton = document.createElement('button');
   titleButton.type = 'button';
@@ -342,6 +343,7 @@ if (titleHeading && titleTextNode) {
   titleButton.textContent = titleHeading.textContent || '';
   titleHeading.textContent = '';
   titleHeading.appendChild(titleButton);
+  attachHover(titleButton, { text: 'Click para ver información detallada' });
 }
 const notationToggleBtn = document.getElementById(NOTATION_TOGGLE_BTN_ID);
 notationPanelController = createNotationPanelController({
@@ -1973,9 +1975,35 @@ function sanitizePulseSeq(opts = {}){
   // 1. PARSEAR TOKENS usando módulo
   const tokens = parseTokens(text);
 
-  // 2. PREPARAR CONTEXTO DE VALIDACIÓN
+  // 2. CONSTRUIR MAPA TEMPORAL DE RANGES para resolución de gaps durante validación
+  // Este mapa necesita incluir TODOS los pulsos enteros que aparecen en el texto,
+  // tanto explícitos (ej: "3") como implícitos en fracciones (ej: "3.2" tiene base 3)
+  // Usamos keys únicas (value-index) para permitir múltiples ocurrencias de la misma base
   const { numerator: rawNumerator, denominator: rawDenominator } = getFraction();
-  const caretGap = resolvePulseSeqGap(caretBefore, lg, pulseSeqRanges);
+  const tempRanges = {};
+  let tokenIndex = 0;
+
+  tokens.forEach(token => {
+    if (token.type === 'int') {
+      // Entero explícito
+      const value = Number.parseInt(token.raw, 10);
+      if (Number.isFinite(value) && value > 0 && value < lg) {
+        tempRanges[`${value}-${tokenIndex++}`] = [token.start, token.start + token.raw.length];
+      }
+    } else if (token.type === 'fraction' && !token.raw.startsWith('.')) {
+      // Fracción estándar (ej: "3.2") - extraer la base
+      const [intPart] = token.raw.split('.', 2);
+      const base = Number.parseInt(intPart, 10);
+      if (Number.isFinite(base) && base >= 0 && base < lg) {
+        // Registrar solo el range de la parte entera "3" de "3.2"
+        tempRanges[`${base}-${tokenIndex++}`] = [token.start, token.start + intPart.length];
+      }
+    }
+    // Las fracciones con prefijo "." (ej: ".2", ".6") NO se registran porque no tienen base explícita
+  });
+
+  // 3. PREPARAR CONTEXTO DE VALIDACIÓN
+  const caretGap = resolvePulseSeqGap(caretBefore, lg, tempRanges);
   fractionStore.lastFractionGap = caretGap;
 
   // Contexto para validateFraction
@@ -1988,10 +2016,10 @@ function sanitizePulseSeq(opts = {}){
     fractionValue,
     fractionDisplay,
     cycleNotationToFraction,
-    resolvePulseSeqGap: (pos) => resolvePulseSeqGap(pos, lg, pulseSeqRanges)
+    resolvePulseSeqGap: (pos) => resolvePulseSeqGap(pos, lg, tempRanges)
   };
 
-  // 3. VALIDAR TOKENS
+  // 4. VALIDAR TOKENS
   const ints = [];
   const seenInts = new Set();
   const fractions = [];
@@ -2068,14 +2096,14 @@ function sanitizePulseSeq(opts = {}){
     }
   }
 
-  // 4. APLICAR AL ESTADO usando módulo
+  // 5. APLICAR AL ESTADO usando módulo
   ints.sort((a, b) => a - b);
   fractions.sort((a, b) => a.value - b.value);
 
   pulseSeqStateManager.applyValidatedTokens(ints, fractions, { lg });
   rebuildFractionSelections({ skipUpdateField: true });
 
-  // 5. REGENERAR TEXTO DEL CAMPO
+  // 6. REGENERAR TEXTO DEL CAMPO
   const hasValidLg = Number.isFinite(lg) && lg > 0;
 
   if (hasValidLg) {
@@ -2085,7 +2113,7 @@ function sanitizePulseSeq(opts = {}){
     setPulseSeqText(newText);
   }
 
-  // 6. RESTAURAR CARET
+  // 7. RESTAURAR CARET
   const outText = getPulseSeqText();
   const pos = Math.min(outText.length, caretBefore);
   const editEl = getEditEl();
@@ -2097,7 +2125,7 @@ function sanitizePulseSeq(opts = {}){
     try { moveCaretToNearestMidpoint(); } catch {}
   }
 
-  // 7. MOSTRAR ERRORES
+  // 8. MOSTRAR ERRORES
   if (hadTooBig && !Number.isNaN(lg)) {
     const bad = firstTooBig != null ? firstTooBig : '';
     showPulseSeqAutoTip(`El número <strong>${bad}</strong> introducido es mayor que la <span style="color: var(--color-lg); font-weight: 700;">Lg</span>. Elige un número menor que <strong>${lg}</strong>`);
@@ -2277,13 +2305,13 @@ function updatePulseSeqField(){
     .filter(item => item && Number.isFinite(item.value))
     .filter(item => item.value > 0 && item.value < lg);
   validFractionals.forEach(item => {
-    const normalizedRaw = typeof item.rawLabel === 'string' ? item.rawLabel.trim() : '';
-    const preferredDisplay = normalizedRaw ? normalizedRaw : item.display;
+    // Siempre usar display (con base explícita) en lugar de rawLabel
+    // Esto auto-completa .3 → 0.3 y permite que coexistan ambas notaciones
     entries.push({
       type: 'fraction',
       value: item.value,
-      display: preferredDisplay,
-      rawLabel: normalizedRaw,
+      display: item.display,
+      rawLabel: item.rawLabel,
       key: item.key
     });
   });

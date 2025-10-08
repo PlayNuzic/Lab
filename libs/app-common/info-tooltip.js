@@ -27,7 +27,7 @@
  */
 export function createInfoTooltip(options = {}) {
   const {
-    className = 'hover-tip auto-tip-below',
+    className = 'fraction-info-bubble auto-tip-below',
     autoHideOnScroll = true,
     autoHideOnResize = true
   } = options;

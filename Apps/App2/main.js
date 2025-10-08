@@ -19,6 +19,7 @@ import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
+import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 // Using local header controls for App2 (no shared init)
 
 // Create custom formatters for App2
@@ -909,34 +910,9 @@ function setValue(input, value){
 // parseNum, formatInteger, formatBpmValue now imported/defined at top
 // formatNumberValue replaced with formatNumber from number-utils
 
-let titleInfoTipEl = null;
-
-function ensureTitleInfoTip() {
-  if (titleInfoTipEl) return titleInfoTipEl;
-  const tip = document.createElement('div');
-  tip.className = 'hover-tip auto-tip-below top-bar-info-tip';
-  document.body.appendChild(tip);
-  titleInfoTipEl = tip;
-  return tip;
-}
-
-function hideTitleInfoTip() {
-  if (titleInfoTipEl) {
-    titleInfoTipEl.classList.remove('show');
-  }
-}
-
-function showTitleInfoTip(contentFragment, anchor) {
-  if (!anchor) return;
-  const tip = ensureTitleInfoTip();
-  if (contentFragment) {
-    tip.replaceChildren(contentFragment);
-  }
-  const rect = anchor.getBoundingClientRect();
-  tip.style.left = rect.left + rect.width / 2 + 'px';
-  tip.style.top = rect.bottom + window.scrollY + 'px';
-  tip.classList.add('show');
-}
+const titleInfoTooltip = createInfoTooltip({
+  className: 'fraction-info-bubble auto-tip-below top-bar-info-tip'
+});
 
 function buildTitleInfoContent() {
   const fragment = document.createDocumentFragment();
@@ -1030,19 +1006,18 @@ function buildTitleInfoContent() {
 }
 
 if (titleButton) {
+  attachHover(titleButton, { text: 'Click para ver información detallada' });
   titleButton.addEventListener('click', () => {
     const content = buildTitleInfoContent();
     if (!content) return;
-    showTitleInfoTip(content, titleButton);
+    titleInfoTooltip.show(content, titleButton);
   });
-  titleButton.addEventListener('blur', hideTitleInfoTip);
+  titleButton.addEventListener('blur', () => titleInfoTooltip.hide());
   titleButton.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' || event.key === 'Esc') {
-      hideTitleInfoTip();
+      titleInfoTooltip.hide();
     }
   });
-  window.addEventListener('scroll', hideTitleInfoTip, { passive: true });
-  window.addEventListener('resize', hideTitleInfoTip);
 }
 function formatSec(n){
   // arrodonim a 2 decimals però sense forçar-los si són .00

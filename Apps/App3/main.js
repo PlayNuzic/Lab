@@ -84,6 +84,7 @@ if (titleHeading) {
   titleButton.textContent = titleHeading.textContent || '';
   titleHeading.textContent = '';
   titleHeading.appendChild(titleButton);
+  attachHover(titleButton, { text: 'Click para ver información detallada' });
 }
 
 const globalMixer = getMixer();
