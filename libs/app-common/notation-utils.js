@@ -86,6 +86,9 @@ export function buildPulseEvents({
     // Siempre incluir pulso 0 si está habilitado
     if (i === 0) return includeZero;
 
+    // Excluir el pulso Lg (marca final, no seleccionable)
+    if (i === safeLg) return false;
+
     // Si no hay fracción válida, incluir todos los pulsos seleccionados
     if (!Number.isFinite(numerator) || numerator <= 0) {
       return normalizedSelected.has(makePulseIndexKey(i));
@@ -94,7 +97,7 @@ export function buildPulseEvents({
     // Con fracción: incluir múltiplos del numerador si están seleccionados, o todos los pulsos remainder
     const isMultiple = i % numerator === 0;
     const lastCycleStart = Math.floor(safeLg / numerator) * numerator;
-    const isRemainder = i > lastCycleStart && i <= safeLg;
+    const isRemainder = i > lastCycleStart && i < safeLg;
 
     // Incluir múltiplos solo si están seleccionados
     if (isMultiple) {
@@ -105,7 +108,7 @@ export function buildPulseEvents({
     return isRemainder;
   };
 
-  for (let i = 0; i <= safeLg; i++) {
+  for (let i = 0; i < safeLg; i++) {
     const key = makePulseIndexKey(i);
     const shouldInclude = shouldIncludePulse(i);
 
