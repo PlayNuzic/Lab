@@ -94,17 +94,17 @@ export function buildPulseEvents({
       return normalizedSelected.has(makePulseIndexKey(i));
     }
 
-    // Con fracción: incluir múltiplos del numerador si están seleccionados, o todos los pulsos remainder
+    // Con fracción: incluir TODOS los múltiplos del numerador Y todos los pulsos remainder
     const isMultiple = i % numerator === 0;
     const lastCycleStart = Math.floor(safeLg / numerator) * numerator;
     const isRemainder = i > lastCycleStart && i < safeLg;
 
-    // Incluir múltiplos solo si están seleccionados
+    // Incluir TODOS los múltiplos (para crear estructura de tuplets, seleccionados como nota, no seleccionados como silencio)
     if (isMultiple) {
-      return normalizedSelected.has(makePulseIndexKey(i));
+      return true;
     }
 
-    // Incluir TODOS los pulsos remainder (seleccionados o no, para mostrar silencios)
+    // Incluir TODOS los pulsos remainder (seleccionados como nota, no seleccionados como silencio)
     return isRemainder;
   };
 
