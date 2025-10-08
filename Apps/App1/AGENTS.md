@@ -27,9 +27,17 @@
 
 ## Dependències compartides
 - `libs/app-common/` (`audio.js`, `audio-init.js`, `audio-schedule.js`, `dom.js`,
-  `led-manager.js`, `random-menu.js`, `range.js`, `subdivision.js`, `utils.js`).
+  `led-manager.js`, `random-menu.js`, `range.js`, `subdivision.js`, `utils.js`,
+  `number-utils.js`, `simple-visual-sync.js`, `simple-highlight-controller.js`,
+  `circular-timeline.js`).
 - `libs/shared-ui/hover.js` per tooltips.
 - `libs/sound/index.js` indirectament via `createRhythmAudioInitializer`.
+
+## Controllers creats
+- **timelineController**: `createCircularTimeline()` - Gestiona rendering timeline circular/linear
+- **highlightController**: `createSimpleHighlightController()` - Highlighting de pulsos amb loop
+- **visualSync**: `createSimpleVisualSync()` - Sincronització visual amb requestAnimationFrame
+- **numberFormatter**: Funcions `parseNum()` i `formatSec()` per parseo/format de números
 
 ## Tests
 No hi ha suite específica d'App1; confia en les proves dels mòduls compartits.

@@ -12,9 +12,9 @@
 - **Inicial**: 1097 líneas
 - **Final**: 858 líneas
 - **Reducción**: 239 líneas (21.8%)
-- **Módulos creados**: 4 (794 líneas reutilizables)
-- **Tests**: 29 tests unitarios
-- **Commits**: 6 commits
+- **Módulos creados**: 4 (624 líneas reutilizables)
+- **Tests**: 81 tests unitarios (29 number-utils + 15 visual-sync + 17 highlight-controller + 20 circular-timeline)
+- **Commits**: 7 commits
 
 ### Módulos Creados
 
@@ -130,6 +130,51 @@ audioInstance.play(..., (step) => highlightController.highlightPulse(step), ...)
 **Problema**: `ReferenceError: updateNumbers is not defined` (línea 351)
 **Solución**: Eliminada llamada standalone, ahora manejada por timelineController
 
+### Fix 3: Circular timeline rendering timing issue
+**Commit**: `bb073f9`
+**Problema**: Pulsos se renderizaban incorrectamente - todos apilados en un punto o solo un pulso visible. Al usar random o cambiar datos manualmente fallaba. Al cambiar de lineal a circular funcionaba la primera vez, luego no.
+
+**Causa raíz**: En `circular-timeline.js`, la función `render()` creaba un array local de pulsos, pero luego llamaba a `setCircular()` que usaba `getPulses()` para obtener el array externo del scope de main.js. Como `render()` no había retornado aún, el array externo todavía contenía los pulsos anteriores (o estaba vacío).
+
+**Solución**: Creada función helper `applyLayout(pulses, isCircular, options)` que recibe el array de pulsos directamente como parámetro:
+
+```javascript
+// Antes (buggy):
+function render(lg, options = {}) {
+  const pulses = [/* create pulses */];
+  setCircular(isCircular, { silent }); // ❌ Usa getPulses() - array incorrecto!
+  return pulses;
+}
+
+// Después (fixed):
+function render(lg, options = {}) {
+  const pulses = [/* create pulses */];
+  applyLayout(pulses, isCircular, { silent }); // ✅ Usa array local directamente
+  return pulses;
+}
+
+function applyLayout(pulses, isCircular, options = {}) {
+  // Aplica layout al array proporcionado
+  const lg = pulses.length - 1;
+  const bars = timeline.querySelectorAll('.bar');
+  if (isCircular) {
+    applyCircularLayout(pulses, bars, lg, silent);
+  } else {
+    applyLinearLayout(pulses, bars, lg);
+  }
+  updateNumbers();
+}
+
+function setCircular(isCircular, options = {}) {
+  const pulses = getPulses(); // Ahora solo se usa para llamadas externas
+  applyLayout(pulses, isCircular, options);
+}
+```
+
+**Lección aprendida**: Cuando un módulo necesita acceder a estado externo, es crítico distinguir entre:
+- **Render inicial**: Usar parámetros directos (arrays locales recién creados)
+- **Actualizaciones posteriores**: Usar getters para obtener estado actualizado
+
 ---
 
 ## CSS Styling
@@ -233,6 +278,8 @@ visualSync.stop();
 560a054 - fix(app1): Replace highlightPulse references with highlightController
 02fb199 - style(app1): Move unit labels below circles and add formula margin
 f9faf40 - feat(app1): FASE 4 - Extract circular timeline controller
+ef6460d - docs(app1): Add complete refactoring summary
+bb073f9 - Fix: Circular timeline rendering timing issue
 ```
 
 ---

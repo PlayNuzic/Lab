@@ -207,7 +207,220 @@ npm test -- pulse-seq-parser.test.js
 
 ---
 
+---
+
+## Módulos de App1 (Rhythm Timeline)
+
+### number-utils.js
+
+**Responsabilidad**: Parseo y formateo de números con soporte multi-locale (catalán/US).
+
+**API principal**:
+
+```javascript
+createNumberFormatter(options = {}) → {
+  parseNum(val),
+  formatNumber(n, decimals)
+}
+
+// Exports directos
+parseNum(val) → number
+formatSec(n) → string
+```
+
+**Uso**:
+```javascript
+import { parseNum, formatSec } from '../../libs/app-common/number-utils.js';
+
+// Parseo inteligente (detecta formato catalán vs US)
+parseNum("1.234,56") // → 1234.56 (catalán)
+parseNum("1,234.56") // → 1234.56 (US)
+
+// Formateo con locale
+formatSec(1234.56) // → "1.234,56" (ca-ES)
+```
+
+**Características**:
+- Detección automática de formato basada en posición de separadores
+- Soporte `ca-ES` (1.234,56) y `en-US` (1,234.56)
+- Factory function para configuración personalizada
+- 29 tests unitarios ✅
+
+**Apps aplicables**: App1, App2, App3, App4 (todas usan parseNum)
+
+---
+
+### simple-visual-sync.js
+
+**Responsabilidad**: Sincronización visual con audio usando requestAnimationFrame.
+
+**API principal**:
+
+```javascript
+createSimpleVisualSync({
+  getAudio,
+  getIsPlaying,
+  onStep
+}) → {
+  start(),
+  stop(),
+  syncVisualState()
+}
+```
+
+**Uso**:
+```javascript
+import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
+
+const visualSync = createSimpleVisualSync({
+  getAudio: () => audio,
+  getIsPlaying: () => isPlaying,
+  onStep: (step) => highlightController.highlightPulse(step)
+});
+
+// Iniciar loop de sincronización
+visualSync.start();
+
+// Detener y limpiar
+visualSync.stop();
+```
+
+**Características**:
+- Loop con `requestAnimationFrame` para 60fps
+- Evita llamadas duplicadas con `lastVisualStep`
+- Manejo robusto de estados inválidos
+- Cleanup automático en stop()
+- 15 tests unitarios ✅
+
+**Apps aplicables**: App1, App2, App3, App4 (apps con playback visual)
+
+---
+
+### simple-highlight-controller.js
+
+**Responsabilidad**: Highlighting de pulsos con soporte de loop.
+
+**API principal**:
+
+```javascript
+createSimpleHighlightController({
+  getPulses,
+  getLoopEnabled,
+  highlightClass?
+}) → {
+  highlightPulse(index),
+  clearHighlights()
+}
+```
+
+**Uso**:
+```javascript
+import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
+
+const highlightController = createSimpleHighlightController({
+  getPulses: () => pulses,
+  getLoopEnabled: () => loopEnabled,
+  highlightClass: 'active' // Default
+});
+
+// Highlight pulse con wrapping automático
+highlightController.highlightPulse(7); // 7 % pulses.length
+
+// Limpiar todos los highlights
+highlightController.clearHighlights();
+```
+
+**Características**:
+- Highlighting automático de primer y último pulso cuando loop habilitado
+- Index wrapping con modulo
+- Force reflow para animaciones CSS
+- Clase de highlight personalizable
+- 17 tests unitarios ✅
+
+**Apps aplicables**: App1, App2, App3 (apps sin pulseSeq)
+
+**Diferencia con highlight-controller.js**: Versión simplificada sin soporte de `pulseSeq` fraccional (App4).
+
+---
+
+### circular-timeline.js ⭐
+
+**Responsabilidad**: Renderizado de timeline con layouts circular y lineal. **Módulo estrella** reutilizable en 4 apps.
+
+**API principal**:
+
+```javascript
+createCircularTimeline({
+  timeline,
+  timelineWrapper,
+  getPulses,
+  getNumberFontSize?
+}) → {
+  render(lg, options),
+  setCircular(isCircular, options),
+  updateNumbers(),
+  showNumber(i),
+  removeNumber(i)
+}
+```
+
+**Uso**:
+```javascript
+import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
+
+const timelineController = createCircularTimeline({
+  timeline: document.getElementById('timeline'),
+  timelineWrapper: document.getElementById('timeline-wrapper'),
+  getPulses: () => pulses,
+  getNumberFontSize: (lg) => lg > 50 ? 1.2 : 1.6
+});
+
+// Render inicial
+const pulses = timelineController.render(13, {
+  isCircular: true,
+  silent: true
+});
+
+// Cambiar layout
+timelineController.setCircular(false); // Linear
+timelineController.setCircular(true);  // Circular
+
+// Actualizar números
+timelineController.updateNumbers();
+```
+
+**Características**:
+- **Geometría circular**: Cálculo trigonométrico de posiciones en círculo
+- **Geometría linear**: Posicionamiento por porcentaje
+- **Transiciones suaves**: CSS transitions coordinadas con JS
+- **Números adaptativos**: Oculta números intermedios si lg >= 100
+- **Circle guide visual**: Guía circular con fade in/out
+- **Rotación de barras**: Barras de endpoint rotadas radialmente
+- **Silent mode**: Sin animaciones para render inicial
+- 20 tests unitarios ✅
+
+**Apps aplicables**: App1, App2, App3, App4 (todas usan timeline circular)
+
+**Casos de uso**:
+- App1: Timeline rítmica con pulsos
+- App2: Ear training con pulsos seleccionables
+- App3: Chord generation timeline
+- App4: Timeline fraccional con pulseSeq
+
+---
+
 ## Changelog
+
+### 2025-10-08 - App1 Refactoring Completado
+- ✅ Creado number-utils.js (112 líneas, 29 tests)
+- ✅ Creado simple-visual-sync.js (97 líneas, 15 tests)
+- ✅ Creado simple-highlight-controller.js (85 líneas, 17 tests)
+- ✅ Creado circular-timeline.js (330 líneas, 20 tests) ⭐
+- ✅ App1 reducido: 1097 → 858 líneas (-239 líneas, -21.8%)
+- ✅ Módulos reutilizables en App2, App3, App4
+
+**Reducción App1**: 1097 → 858 líneas (**239 líneas, 21.8%**)
+**Código compartido App1**: 624 líneas en 4 módulos reutilizables
 
 ### 2025-10-07 - FASE 4 Completada
 - ✅ Creado highlight-controller.js (517 líneas)
