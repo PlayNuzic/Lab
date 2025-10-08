@@ -13,12 +13,12 @@ import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-comm
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
 import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 import { createNotationPanelController } from '../../libs/app-common/notation-panel.js';
-import { durationValueFromDenominator, buildPulseEvents } from '../../libs/app-common/notation-utils.js';
 import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
 import { parseNum, formatNumber, createNumberFormatter } from '../../libs/app-common/number-utils.js';
 import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
+import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 // Using local header controls for App2 (no shared init)
 
 // Create custom formatters for App2
@@ -99,11 +99,6 @@ const notationContentEl = notationContent || null;
 let notationRenderer = null;
 let notationPanelController = null;
 
-function inferNotationDenominator(lgValue) {
-  // App2 siempre usa negras (denominador 4)
-  return 4;
-}
-
 function buildNotationRenderState() {
   const lgValue = parseInt(inputLg.value, 10);
   if (!Number.isFinite(lgValue) || lgValue <= 0) {
@@ -111,20 +106,29 @@ function buildNotationRenderState() {
   }
 
   ensurePulseMemory(lgValue);
-  const selectedSet = new Set();
-  const maxIdx = Math.min(pulseMemory.length - 1, lgValue - 1);
-  for (let i = 1; i <= maxIdx; i++) {
-    if (pulseMemory[i]) selectedSet.add(i);
-  }
 
-  const durationValue = durationValueFromDenominator(inferNotationDenominator(lgValue));
-  const events = buildPulseEvents({ lg: lgValue, selectedSet, duration: durationValue });
-  const positions = events.map((event) => event.pulseIndex);
-  const selectedIndices = Array.from(new Set([0, ...selectedSet])).sort((a, b) => a - b);
+  // Build rhythm events for ALL pulses from 0 to lg-1 (App2 always uses quarter notes)
+  // Selected pulses are notes, unselected pulses are rests
+  const rhythm = [];
+  const selectedIndices = [];
+  const positions = [];
+
+  for (let i = 0; i < lgValue; i++) {
+    const isSelected = (i === 0 || pulseMemory[i]);
+    rhythm.push({
+      pulseIndex: i,
+      duration: 'q', // quarter note
+      rest: !isSelected // rest if NOT selected
+    });
+    positions.push(i);
+    if (isSelected) {
+      selectedIndices.push(i);
+    }
+  }
 
   return {
     lg: lgValue,
-    events,
+    rhythm,
     positions,
     selectedIndices
   };
@@ -152,7 +156,7 @@ function renderNotationIfVisible({ force = false } = {}) {
     lg: state.lg,
     selectedIndices: state.selectedIndices,
     positions: state.positions,
-    rhythm: state.events
+    rhythm: state.rhythm
   });
 }
 
@@ -211,6 +215,7 @@ const tIndicator = tIndicatorController ? (() => {
   timeline.appendChild(el);
   return el;
 })() : null;
+
 const titleHeading = document.querySelector('header.top-bar h1');
 const titleTextNode = titleHeading?.querySelector('.top-bar-title-text');
 let titleButton = null;
@@ -456,6 +461,51 @@ dragController.attach({
     return !!pulseMemory[info.index];
   }
 });
+
+// Create timeline renderer for circular/linear layout
+const timelineRenderer = createTimelineRenderer({
+  timeline,
+  timelineWrapper,
+  getLg: () => pulses.length - 1,
+  getPulses: () => pulses,
+  getBars: () => Array.from(timeline.querySelectorAll('.bar')),
+  computeNumberFontRem,
+  pulseNumberHideThreshold: NUMBER_HIDE_THRESHOLD,
+  numberCircleOffset: NUMBER_CIRCLE_OFFSET,
+  isCircularEnabled: () => loopEnabled && circularTimeline,
+  scheduleIndicatorReveal: scheduleTIndicatorReveal,
+  tIndicatorTransitionDelay: T_INDICATOR_TRANSITION_DELAY,
+  callbacks: {
+    onAfterCircularLayout: (ctx) => {
+      // Position pulse hits in circular mode
+      pulseHits.forEach((h, i) => {
+        const angle = ctx.angleForIndex(i);
+        const x = ctx.centerX + ctx.radius * Math.cos(angle);
+        const y = ctx.centerY + ctx.radius * Math.sin(angle);
+        h.style.left = `${x}px`;
+        h.style.top = `${y}px`;
+        h.style.transform = 'translate(-50%, -50%)';
+      });
+      // Call App2-specific hooks
+      syncSelectedFromMemory();
+      updateNumbers();
+    },
+    onAfterLinearLayout: (ctx) => {
+      // Position pulse hits in linear mode
+      const lg = ctx.lg;
+      pulseHits.forEach((h, i) => {
+        const percent = (i / lg) * 100;
+        h.style.left = `${percent}%`;
+        h.style.top = '50%';
+        h.style.transform = 'translate(-50%, -50%)';
+      });
+      // Call App2-specific hooks
+      syncSelectedFromMemory();
+      updateNumbers();
+    }
+  }
+});
+
 // Hovers for LEDs and controls
 // LEDs ahora indican los campos editables; el apagado se recalcula
 attachHover(ledLg, { text: 'Entrada manual de "Lg"' });
@@ -1378,156 +1428,9 @@ function togglePulse(i){
   setPulseSelected(i, !pulseMemory[i]);
 }
 
-function animateTimelineCircle(isCircular, opts = {}){
+function animateTimelineCircle(isCircular, opts = {}) {
   const silent = !!opts.silent;
-  const desiredCircular = !!isCircular;
-  const wasCircular = timeline.classList.contains('circular');
-  const delay = (!silent && wasCircular !== desiredCircular) ? T_INDICATOR_TRANSITION_DELAY : 0;
-  scheduleTIndicatorReveal(delay);
-
-  const lg = pulses.length - 1;
-  const bars = timeline.querySelectorAll('.bar');
-  if (lg <= 0) return;
-  if (desiredCircular) {
-    timelineWrapper.classList.add('circular');
-    timeline.classList.add('circular');
-    if (silent) timeline.classList.add('no-anim');
-    // Guia circular: ANCORADA al centre del WRAPPER per evitar desplaçaments
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    let guide = document.querySelector('.circle-guide');
-    if (!guide) {
-      guide = document.createElement('div');
-      guide.className = 'circle-guide';
-      // estils mínims inline (per si el CSS no ha carregat)
-      guide.style.position = 'fixed';
-      guide.style.border = '2px solid var(--timeline-line, #EDE6D3)';
-      guide.style.borderRadius = '50%';
-      guide.style.pointerEvents = 'none';
-      guide.style.transition = 'opacity 300ms ease';
-      guide.style.opacity = '0';
-      guide.style.zIndex = '0';
-      document.body.appendChild(guide);
-    }
-
-    // Recol·loca un cop aplicades les classes circulars
-    requestAnimationFrame(() => {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const gcx = vw / 2;
-      const gcy = vh / 2;
-      // Size similar to timeline circle but safe even before layout settles
-      const tRect = timeline.getBoundingClientRect();
-      const baseSize = Math.min(
-        Math.min(vw, vh) * 0.6,
-        Math.max(tRect.width, 320),
-        Math.max(tRect.height, 320)
-      );
-      const gRadius = baseSize / 2 - 10;
-      guide.style.left = gcx + 'px';
-      guide.style.top = gcy + 'px';
-      guide.style.width = (gRadius * 2) + 'px';
-      guide.style.height = (gRadius * 2) + 'px';
-      guide.style.transform = 'translate(-50%, -50%)';
-      guide.style.opacity = '0'; // keep invisible; used only as a positioning helper
-
-      // Geometria basada en el TIMELINE (anella real) perquè els polsos intersequin la línia
-      const tRect2 = timeline.getBoundingClientRect();
-      const cx = tRect2.width / 2;
-      const cy = tRect2.height / 2;
-      const radius = Math.min(tRect2.width, tRect2.height) / 2 - 1; // centre del pols gairebé sobre la línia (border=2)
-
-      // Polsos sobre la línia del cercle
-      pulses.forEach((p, i) => {
-        const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
-        p.style.left = x + 'px';
-        p.style.top = y + 'px';
-        p.style.transform = 'translate(-50%, -50%)';
-      });
-
-      // Position hit targets over the pulse centers
-      pulseHits.forEach((h, i) => {
-        const angle = (i / lg) * 2 * Math.PI + Math.PI / 2;
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
-        h.style.left = x + 'px';
-        h.style.top = y + 'px';
-        h.style.transform = 'translate(-50%, -50%)';
-      });
-
-      // Barres 0/Lg: llargada més curta i centrada en la circumferència
-      bars.forEach((bar, idx) => {
-        const step = (idx === 0) ? 0 : lg;
-        const angle = (step / lg) * 2 * Math.PI + Math.PI / 2;
-        const bx = cx + radius * Math.cos(angle);
-        const by = cy + radius * Math.sin(angle);
-
-        // CORREGIDO: Barra más corta (25% en lugar de 50%) y centrada
-        const barLen = Math.min(tRect2.width, tRect2.height) * 0.25;
-        const intersectPx = barLen / 2; // La mitad intersecta hacia dentro
-
-        // Centra la barra: mitad hacia fuera, mitad hacia dentro
-        const topPx = by - intersectPx;
-
-        bar.style.display = 'block';
-        // ample de .bar = 2px -> resta 1px per centrar sense translate
-        bar.style.left = (bx - 1) + 'px';
-        bar.style.top = topPx + 'px';
-        bar.style.height = barLen + 'px';
-        bar.style.transformOrigin = '50% 50%'; // CORREGIDO: centrada
-        // Només rotate; res de translate/scale per no desancorar la base
-        bar.style.transform = 'rotate(' + (angle + Math.PI/2) + 'rad)';
-      });
-
-      syncSelectedFromMemory();
-      updateNumbers();
-      // Apaga la guia circular un cop dibuixada l'anella real (evita doble cercle en mode fosc)
-      if (!silent) {
-        setTimeout(() => {
-          if (guide && wrapper.contains(guide)) {
-            guide.style.opacity = '0';
-          }
-        }, 400);
-      }
-      if (silent) {
-        // força reflow per aplicar els estils sense transicions i neteja la flag
-        void timeline.offsetHeight;
-        timeline.classList.remove('no-anim');
-      }
-    });
-  } else {
-    timelineWrapper.classList.remove('circular');
-    timeline.classList.remove('circular');
-    // Oculta la guia circular (fade-out)
-    const wrapper = timeline.closest('.timeline-wrapper') || timeline.parentElement || timeline;
-    const guide = document.querySelector('.circle-guide');
-    if (guide) guide.style.opacity = '0';
-    pulses.forEach((p, i) => {
-      const percent = (i / lg) * 100;
-      p.style.left = percent + '%';
-      p.style.top = '50%';
-      p.style.transform = 'translate(-50%, -50%)';
-    });
-    pulseHits.forEach((h, i) => {
-      const percent = (i / lg) * 100;
-      h.style.left = percent + '%';
-      h.style.top = '50%';
-      h.style.transform = 'translate(-50%, -50%)';
-    });
-    bars.forEach((bar, idx) => {
-      bar.style.display = 'block';
-      const i = idx === 0 ? 0 : lg;
-      const percent = (i / lg) * 100;
-      bar.style.left = percent + '%';
-      bar.style.top = '10%';
-      bar.style.height = '80%';
-      bar.style.transform = '';
-      bar.style.transformOrigin = '';
-    });
-    syncSelectedFromMemory();
-    updateNumbers();
-  }
+  timelineRenderer.layoutTimeline(isCircular, { silent });
 }
 
 function showNumber(i, options = {}){

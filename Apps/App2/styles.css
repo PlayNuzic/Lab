@@ -207,3 +207,12 @@ transform: translate(-50%, calc(-50% - 50px)) !important; /* was -40px */
   }
 
 }
+
+/* Prevent wrapping of unit labels and input circles */
+.param .circle {
+  white-space: nowrap;
+}
+
+.param .circle .unit {
+  white-space: nowrap;
+}

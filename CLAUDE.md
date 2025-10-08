@@ -36,7 +36,10 @@ Audio and timing:
 - **`audio-toggles.js`**: Audio channel toggle management with mixer integration
 - **`loop-control.js`**: Shared loop controllers (`createLoopController`, `createPulseMemoryLoopController`)
 - **`subdivision.js`**: Temporal subdivision calculations (`fromLgAndTempo`, `gridFromOrigin`, `toPlaybackPulseCount`)
-- **`timeline-layout.js`**: Timeline rendering utilities (circular/linear layouts)
+- **`timeline-layout.js`**: Timeline rendering utilities for circular/linear layouts (used in App2)
+  - `createTimelineRenderer()`: Manages pulse positioning, numbers, bars, and cycle markers
+  - Callbacks for custom layouts (e.g., pulse hit targets in App2)
+  - Handles T-indicator reveal scheduling and number font sizing
 
 UI components and interaction:
 - **`fraction-editor.js`**: Reusable fraction editing components with full CRUD operations
@@ -64,7 +67,10 @@ Utilities:
 - **`sample-map.js`**: Sound sample management
 
 #### **`libs/notation/`** - Music Notation
-- **VexFlow integration**: Staff notation rendering
+- **`rhythm-staff.js`**: VexFlow-based rhythm notation with playback cursor and interactive rests
+  - Used by App2 with `pulseFilter: 'whole'` for whole-pulse-only notation
+  - Features: Cursor synchronization, auto-scroll, clickable notes/rests, beaming
+- **VexFlow 5.0.0**: Staff notation rendering engine
 
 #### **Other Libraries**
 - **`libs/cards/`**: Interactive note-component cards
@@ -167,7 +173,12 @@ All apps share common architecture with rhythm parameters (Lg, V, T) and audio p
    - Drag selection for rapid pattern creation
    - Synchronized timeline scrolling with visual highlighting
    - Mixer controls for pulse/accent channels
+   - Rhythm notation panel with clickable rests and playback cursor
    - Features: Auto-sync between text field and visual timeline
+   - **Refactored (2025-01)**: Integrated timeline-layout.js, simplified notation state building
+     - Uses `createTimelineRenderer()` for circular/linear layouts (~147 lines reduced)
+     - Uses `rhythm-staff.js` with inline event building (notation-utils.js no longer needed)
+     - Total reduction: 97 lines (5.3%), from 1839 to 1742 lines
 
 3. **App3**: Fraction Editor
    - Complex rhythm fraction editing (n/d subdivisions)
