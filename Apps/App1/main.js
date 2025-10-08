@@ -940,9 +940,9 @@ async function startPlayback(providedAudio) {
     audioInstance.stop();
   };
 
-  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
+  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, (step) => highlightController.highlightPulse(step), onFinish);
 
-  syncVisualState();
+  visualSync.syncVisualState();
   visualSync.start();
 
   isPlaying = true;
