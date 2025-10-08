@@ -117,11 +117,18 @@ export function buildPulseEvents({
 
     const isZero = i === 0;
     const isSelected = normalizedSelected.has(key);
+
+    // Determinar si es un pulso remainder (sobrante)
+    const lastCycleStart = Number.isFinite(numerator) && numerator > 0
+      ? Math.floor(safeLg / numerator) * numerator
+      : -1;
+    const isRemainderPulse = i > lastCycleStart && i < safeLg;
+
     const entry = {
       pulseIndex: i,
-      duration: resolvedDuration,
+      duration: isRemainderPulse ? 'q' : resolvedDuration, // Remainder siempre negra (quarter)
       rest: !isZero && !isSelected, // Pulso 0 nunca es silencio, resto según selección
-      dots: resolvedDots
+      dots: isRemainderPulse ? 0 : resolvedDots // Remainder sin puntillos
     };
     events.push(entry);
     if (key != null) {
