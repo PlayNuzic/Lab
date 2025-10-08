@@ -71,22 +71,18 @@ export function createCircularTimeline({
       }
     }
 
-    // Apply layout
-    setCircular(isCircular, { silent });
+    // Apply layout with local pulses array (not getPulses())
+    applyLayout(pulses, isCircular, { silent });
 
     return pulses;
   }
 
   /**
-   * Switch between circular and linear layout
-   *
-   * @param {boolean} isCircular - True for circular, false for linear
-   * @param {Object} options - Layout options
-   * @param {boolean} options.silent - Skip animations (for initial render)
+   * Apply layout to provided pulses array
+   * Internal helper used by render() to avoid timing issues
    */
-  function setCircular(isCircular, options = {}) {
+  function applyLayout(pulses, isCircular, options = {}) {
     const { silent = false } = options;
-    const pulses = getPulses();
     const lg = pulses.length - 1;
     const bars = timeline.querySelectorAll('.bar');
 
@@ -99,6 +95,19 @@ export function createCircularTimeline({
     }
 
     updateNumbers();
+  }
+
+  /**
+   * Switch between circular and linear layout
+   * Uses getPulses() to get current pulses from external scope
+   *
+   * @param {boolean} isCircular - True for circular, false for linear
+   * @param {Object} options - Layout options
+   * @param {boolean} options.silent - Skip animations (for initial render)
+   */
+  function setCircular(isCircular, options = {}) {
+    const pulses = getPulses();
+    applyLayout(pulses, isCircular, options);
   }
 
   /**
