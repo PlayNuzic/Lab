@@ -6,10 +6,10 @@
 /* App1 specific styles (overrides) */
 body {
   /* Move unit labels below circles (like mobile) */
-  --unit-label-offset: 80px;
+  --unit-label-offset: 120px;
 }
 
 /* Add margin between param circles and formula */
 .formula {
-  margin-top: 50px;
+  margin-top: 40px;
 }
