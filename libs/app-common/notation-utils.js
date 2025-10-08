@@ -69,7 +69,9 @@ export function buildPulseEvents({
   duration = DEFAULT_DURATION,
   dots = 0,
   includeZero = true,
-  fractionalSelections = []
+  fractionalSelections = [],
+  numerator = null,
+  denominator = null
 } = {}) {
   const events = [];
   const safeLg = Number.isFinite(lg) && lg > 0 ? Math.floor(lg) : 0;
@@ -79,14 +81,36 @@ export function buildPulseEvents({
   const normalizedSelected = normalizeSelectedSet(selectedSet);
   const entryLookup = new Map();
 
+  // Determinar qué pulsos deben aparecer en la partitura
+  const shouldIncludePulse = (i) => {
+    // Siempre incluir pulso 0 si está habilitado
+    if (i === 0) return includeZero;
+
+    // Si no hay fracción válida, incluir todos los pulsos seleccionados
+    if (!Number.isFinite(numerator) || numerator <= 0) {
+      return normalizedSelected.has(makePulseIndexKey(i));
+    }
+
+    // Con fracción: solo incluir múltiplos del numerador o pulsos remainder seleccionados
+    const isMultiple = i % numerator === 0;
+    const lastCycleStart = Math.floor(safeLg / numerator) * numerator;
+    const isRemainder = i > lastCycleStart && i < safeLg;
+
+    // Solo incluir si está seleccionado Y (es múltiplo O es remainder)
+    return normalizedSelected.has(makePulseIndexKey(i)) && (isMultiple || isRemainder);
+  };
+
   for (let i = 0; i < safeLg; i++) {
     const key = makePulseIndexKey(i);
-    const isZero = i === 0;
-    const shouldRenderNote = (includeZero && isZero) || normalizedSelected.has(key);
+    const shouldInclude = shouldIncludePulse(i);
+
+    // Solo crear evento si debe aparecer en la partitura
+    if (!shouldInclude) continue;
+
     const entry = {
       pulseIndex: i,
       duration: resolvedDuration,
-      rest: !shouldRenderNote,
+      rest: false, // Si llegamos aquí, debe mostrarse como nota
       dots: resolvedDots
     };
     events.push(entry);

@@ -113,7 +113,9 @@ export function createNotationRenderer({
       selectedSet: baseSelected,
       duration: baseDuration,
       dots: baseDots,
-      fractionalSelections: fractionalEvents
+      fractionalSelections: fractionalEvents,
+      numerator: fractionNumeratorValue,
+      denominator: fractionDenominatorValue
     });
 
     events.sort((a, b) => a.pulseIndex - b.pulseIndex);
