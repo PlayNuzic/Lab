@@ -185,10 +185,14 @@ function updateRandomMenuComplexState(enabled) {
   if (enabled) {
     // Habilitar controles de numerador
     randNToggle.disabled = false;
+    randNToggle.checked = true; // Reactivar check automáticamente
     randNToggle.style.opacity = '1';
     randNToggle.title = '';
     if (randNMin) randNMin.disabled = false;
     if (randNMax) randNMax.disabled = false;
+
+    // Actualizar configuración para persistir el estado
+    updateRandomConfig();
   } else {
     // Deshabilitar controles de numerador
     randNToggle.disabled = true;
@@ -197,6 +201,9 @@ function updateRandomMenuComplexState(enabled) {
     randNToggle.title = 'Activar fracciones complejas en Opciones para habilitar';
     if (randNMin) randNMin.disabled = true;
     if (randNMax) randNMax.disabled = true;
+
+    // Actualizar configuración para persistir el estado
+    updateRandomConfig();
   }
 }
 
