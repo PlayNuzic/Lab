@@ -3,23 +3,23 @@
 **Fecha**: 2025-10-08 (Actualizado con resultados finales)
 **App**: App2 (Ear Training)
 **Métrica inicial**: 1898 líneas en main.js
-**Métrica final**: 1841 líneas en main.js ✅
-**Reducción lograda**: 57 líneas (3%)
-**Tiempo real**: ~2 horas
+**Métrica final**: 1839 líneas en main.js ✅
+**Reducción lograda**: 59 líneas (3.1%)
+**Tiempo real**: ~2.5 horas
 
 ---
 
 ## ✅ RESULTADOS FINALES
 
-### Fases Completadas: 4/7
+### Fases Completadas: 5/7
 
 - ✅ **FASE 1**: Number Utilities - **19 líneas reducidas**
 - ✅ **FASE 2**: Visual Sync - **18 líneas reducidas**
 - ✅ **FASE 3**: Highlight Controller - **6 líneas reducidas**
+- ✅ **FASE 5**: T-Indicator - **2 líneas reducidas**
 - ✅ **FASE 7**: Random Config - **14 líneas reducidas**
-- ⏭️ **FASE 4**: Circular Timeline - **Omitida** (lógica demasiado específica)
-- ⏭️ **FASE 5**: T-Indicator - **Omitida** (posicionamiento muy customizado)
-- ⏳ **FASE 6**: Notation Renderer - **Pendiente** (futuras iteraciones)
+- ⏭️ **FASE 4**: Circular Timeline - **Omitida** (módulo incompatible con arquitectura App2)
+- ⏭️ **FASE 6**: Notation Renderer - **Omitida** (App2 muy simple, módulo muy complejo)
 
 ### Correcciones Aplicadas: 4
 
@@ -36,11 +36,11 @@
 
 App2 puede aprovechar **7 FASES** de refactoring usando módulos ya creados en App1, App4 y compartidos:
 - **Reducción total estimada**: 1898 → ~1400 líneas (**~500 líneas, 26%**)
-- **Reducción real lograda**: 1898 → 1841 líneas (**57 líneas, 3%**)
+- **Reducción real lograda**: 1898 → 1839 líneas (**59 líneas, 3.1%**)
 - **Todos los módulos ya existen** con 81+ tests ✅
 - **Sin crear nuevos módulos ni tests**
 - **Tiempo estimado**: 5-6 horas
-- **Tiempo real**: ~2 horas
+- **Tiempo real**: ~2.5 horas
 
 ---
 

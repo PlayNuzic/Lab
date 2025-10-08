@@ -2,9 +2,9 @@
 
 ## Resumen Ejecutivo
 
-**Reducción total**: 57 líneas (1898 → 1841 líneas, 3% reducción)
-**Módulos integrados**: 4 (number-utils, simple-visual-sync, simple-highlight-controller, random-config)
-**Fases completadas**: 4 de 7 planificadas
+**Reducción total**: 59 líneas (1898 → 1839 líneas, 3.1% reducción)
+**Módulos integrados**: 5 (number-utils, simple-visual-sync, simple-highlight-controller, random-config, t-indicator)
+**Fases completadas**: 5 de 7 planificadas
 **Estado**: ✅ Completado y testeado
 
 ---
@@ -100,6 +100,28 @@
 
 ---
 
+### ✅ FASE 5: T-Indicator (~2 líneas reducidas)
+
+**Módulo**: `libs/app-common/t-indicator.js`
+**Tests**: Módulo simple, sin tests específicos
+
+**Cambios**:
+- **Creado controller**: `tIndicatorController` con formatter por defecto
+- **Reemplazada función**: `updateTIndicatorText()` ahora usa `tIndicatorController.updateText()`
+- **Mantenido en App2**: `updateTIndicatorPosition()`, `scheduleTIndicatorReveal()` (lógica específica de posicionamiento)
+- **Separación clara**: Controller maneja formato/texto, App2 maneja posicionamiento
+
+**Archivos modificados**:
+- `Apps/App2/main.js:21` - Import de t-indicator
+- `Apps/App2/main.js:206-213` - T-indicator controller
+- `Apps/App2/main.js:390-392` - updateTIndicatorText() simplificado
+
+**Reducción**: 2 líneas
+
+**Beneficio**: Aunque la reducción es mínima, el código es más mantenible al usar un controller estándar para formato de texto.
+
+---
+
 ## Fases No Implementadas (Evaluadas)
 
 ### ⏭️ FASE 4: Circular Timeline
@@ -110,23 +132,11 @@
 - **Drag & drop**: Lógica específica de arrastre para cambiar selección
 - **Número positioning**: Cálculo de posición de números con shift en modo circular
 
-**Conclusión**: El módulo `circular-timeline.js` es demasiado genérico para las necesidades específicas de App2.
+**Conclusión**: El módulo `circular-timeline.js` crea y renderiza pulsos desde cero, incompatible con la arquitectura de App2.
 
 ---
 
-### ⏭️ FASE 5: T-Indicator
-
-**Razón para omitir**: App2 tiene posicionamiento dinámico complejo:
-- **Anclado al label Lg**: Posición calculada dinámicamente relativa al elemento `.pulse-number[data-index="${lg}"]`
-- **Modo circular**: Compensación de -16px en modo circular
-- **Delayed reveal**: Sistema de `scheduleTIndicatorReveal()` con transiciones
-- **Auto-positioning**: `updateTIndicatorPosition()` ejecutado en múltiples eventos
-
-**Conclusión**: El módulo `t-indicator.js` solo maneja show/hide/updateText, no el posicionamiento automático que necesita App2.
-
----
-
-### ⏳ FASE 6: Notation Renderer
+### ⏭️ FASE 6: Notation Renderer
 
 **Estado**: No evaluada (pendiente para futuras iteraciones)
 
@@ -208,7 +218,7 @@
 ## Archivos Modificados
 
 ### Apps/App2/
-- `main.js` - 1898 → 1841 líneas (-57)
+- `main.js` - 1898 → 1839 líneas (-59)
 - `index.html` - Config `showComplexFractions: false`
 - `styles.css` - Opacidad highlight ajustada
 
@@ -228,6 +238,7 @@
 | simple-visual-sync.js | libs/app-common/ | 17 | Sincronización visual playback |
 | simple-highlight-controller.js | libs/app-common/ | 17 | Highlighting de pulsos |
 | random-config.js | libs/app-common/ | Compartido | Configuración random menu |
+| t-indicator.js | libs/app-common/ | - | Formato y display de T indicator |
 
 **Total tests**: 45+ tests cubriendo la funcionalidad integrada
 
@@ -269,12 +280,13 @@
 
 ```
 Líneas iniciales:     1898
-Líneas finales:       1841
-Reducción:            57 líneas (3%)
-Módulos integrados:   4
-Fases completadas:    4/7
+Líneas finales:       1839
+Reducción:            59 líneas (3.1%)
+Módulos integrados:   5
+Fases completadas:    5/7
+Fases omitidas:       2 (FASE 4 y 6 - incompatibles con arquitectura App2)
 Fixes aplicados:      4
-Tiempo estimado:      ~2 horas
+Tiempo total:         ~2.5 horas
 ```
 
 **Estado**: ✅ Refactoring completado y funcional

@@ -18,6 +18,7 @@ import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
 import { parseNum, formatNumber, createNumberFormatter } from '../../libs/app-common/number-utils.js';
 import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
+import { createTIndicator } from '../../libs/app-common/t-indicator.js';
 // Using local header controls for App2 (no shared init)
 
 // Create custom formatters for App2
@@ -202,13 +203,13 @@ function moveCaretStep(dir) {
 }
 // T indicator setup (App2-specific functionality)
 const shouldRenderTIndicator = Boolean(inputT);
-const tIndicator = shouldRenderTIndicator ? (() => {
-  const indicator = document.createElement('div');
-  indicator.id = 'tIndicator';
-  // Start hidden to avoid flicker during first layout
-  indicator.style.visibility = 'hidden';
-  timeline.appendChild(indicator);
-  return indicator;
+const tIndicatorController = shouldRenderTIndicator ? createTIndicator() : null;
+const tIndicator = tIndicatorController ? (() => {
+  const el = tIndicatorController.element;
+  el.id = 'tIndicator';
+  el.style.visibility = 'hidden';
+  timeline.appendChild(el);
+  return el;
 })() : null;
 const titleHeading = document.querySelector('header.top-bar h1');
 const titleTextNode = titleHeading?.querySelector('.top-bar-title-text');
@@ -379,14 +380,8 @@ const visualSync = createSimpleVisualSync({
 });
 
 function updateTIndicatorText(value) {
-  if (!tIndicator) return;
-  // Only the number, no prefix
-  if (value === '' || value == null) { tIndicator.textContent = ''; return; }
-  const n = Number(value);
-  if (!Number.isFinite(n)) { tIndicator.textContent = String(value); return; }
-  // keep same rounding used for input T
-  const rounded = Math.round(n * 10) / 10;
-  tIndicator.textContent = String(rounded);
+  if (!tIndicatorController) return;
+  tIndicatorController.updateText(value);
 }
 
 function updateTIndicatorPosition() {
