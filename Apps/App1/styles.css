@@ -5,9 +5,11 @@
  */
 /* App1 specific styles (overrides) */
 body {
-  --unit-label-offset: -40px;
-}
-@media (max-width: 600px) {
-body {
+  /* Move unit labels below circles (like mobile) */
   --unit-label-offset: 80px;
-}}
+}
+
+/* Add margin between param circles and formula */
+.formula {
+  margin-top: 50px;
+}
