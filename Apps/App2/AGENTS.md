@@ -34,5 +34,10 @@
 - `libs/shared-ui/hover.js` (tooltips) i header global.
 
 ## Tests
-No hi ha suite específica d'App2. Fia't de les proves compartides i executa
-`npm test` abans de pujar canvis.
+No hi ha suite específica d'App2. Fia't de les proves compartides (280 tests):
+- `libs/app-common/__tests__/pulse-seq.test.js` - Gestió de seqüències
+- `libs/app-common/__tests__/loop-resize.test.js` - Comportament de loop
+- `libs/app-common/__tests__/subdivision.test.js` - Càlculs temporals
+- `libs/app-common/__tests__/notation-utils.test.js` - Events de notació (Oct 2025)
+
+Executa `npm test` abans de pujar canvis.

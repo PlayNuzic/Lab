@@ -11,6 +11,8 @@
   (`computeResyncDelay`), `audio-toggles.js` (mute declaratiu), `loop-control.js`
   (controladors base/rhythm/pulse-memory) i `preferences.js` (persistència, theme
   sync, factory reset).
+- **Notació rítmica**: `notation-utils.js` (construcció d'events per VexFlow amb
+  gestió intel·ligent de pulsos remainder, múltiples del numerador i tuplets).
 - **UI avançada**: `fraction-editor.js`, `pulse-seq.js`, `timeline-layout.js`,
   `template.js` (slots compartits) i `styles.css` (tokens comuns).
 - **Utilitats**: `subdivision.js`, `number.js`, `range.js`, `utils.js`,
@@ -22,10 +24,13 @@ mou-la aquí i dóna-li API clara.
 
 ## Tests
 - Execució amb `npm test` des de l'arrel.
+- **Cobertura**: 24 test suites, 280 tests
 - Suites actives: `__tests__/` (audio, audio-schedule, audio-toggles,
-  fraction-editor, loop-resize, subdivision, tap-resync) + tests unitaris
+  fraction-editor, loop-resize, subdivision, tap-resync, **notation-utils**) + tests unitaris
   dedicats (`audio-init.test.js`, `loop-control.test.js`, `range.test.js`,
   `utils.test.js`).
+- **Destacat Oct 2025**: `notation-utils.test.js` amb cobertura exhaustiva de
+  construcció d'events per partituras (pulsos remainder, múltiples, tuplets).
 - L'entorn és `node` amb `jsdom` puntual. Mockeja WebAudio/DOM quan ampliïs APIs.
 
 ## Bones pràctiques

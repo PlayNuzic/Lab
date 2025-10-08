@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Setup and Environment
 - **Initial setup**: `./setup.sh` - Run once per session to install dependencies and configure Git
-- **Run tests**: `npm test` - Execute Jest test suite (24 test suites, 109 tests)
+- **Run tests**: `npm test` - Execute Jest test suite (24 test suites, 280 tests)
 - **Run specific test**: `npm test -- --testNamePattern="test name"`
 - **Serve files locally**: `npx http-server` - For testing with proper ES module support
 
@@ -71,6 +71,34 @@ Utilities:
   - Used by App2 with `pulseFilter: 'whole'` for whole-pulse-only notation
   - Features: Cursor synchronization, auto-scroll, clickable notes/rests, beaming
 - **VexFlow 5.0.0**: Staff notation rendering engine
+
+#### **`libs/app-common/notation-utils.js`** - Rhythm Notation Utilities
+Smart event building for VexFlow scores optimized for rhythmic fractions and tuplets.
+
+**Core functionality**:
+- **`buildPulseEvents(config)`**: Constructs events for notation rendering
+  - Intelligent pulse filtering based on fraction structure
+  - Automatic rest/note assignment based on selection
+  - Tuplet-aware duration mapping
+
+**Pulse handling rules**:
+- **Pulse 0**: Always rendered as note (never rest), marks pattern start
+- **Numerator multiples**: ALL included in score to create tuplet structure
+  - Selected → rendered as notes
+  - NOT selected → rendered as clickable rests
+- **Remainder pulses**: Leftover pulses from incomplete final cycle
+  - Always rendered as quarter notes (regardless of base duration)
+  - No dots, protected from `fractionalSelections` overwrite
+- **Pulse Lg**: Excluded from score (final marker, not selectable)
+
+**Recent fixes** (Oct 2025):
+- Protection of remainder pulse duration against overwrite
+- Remainder pulses always as quarter notes
+- ALL multiples included in score (rests if not selected)
+- Pulse Lg exclusion from score
+- Pulse 0 forced as note
+
+**Test coverage**: 280 tests in `libs/app-common/__tests__/notation-utils.test.js`
 
 #### **Other Libraries**
 - **`libs/cards/`**: Interactive note-component cards
@@ -243,14 +271,15 @@ When fixing bugs that affect multiple apps:
 All shared components MUST have corresponding tests. Current test coverage:
 
 **Test locations**:
-- `libs/app-common/__tests__/` - Core app-common tests (subdivision, audio, fraction-editor, etc.)
+- `libs/app-common/__tests__/` - Core app-common tests (subdivision, audio, fraction-editor, notation-utils, etc.)
 - `tests/` - Legacy tests and integration tests
-- 24 test suites, 109 passing tests
+- 24 test suites, 280 passing tests
 
 **Key test files**:
 - `libs/app-common/__tests__/subdivision.test.js` - Temporal calculations
 - `libs/app-common/__tests__/audio.test.js` - Audio bridges and scheduling
 - `libs/app-common/__tests__/fraction-editor.test.js` - Fraction editing logic
+- `libs/app-common/__tests__/notation-utils.test.js` - Notation event building (comprehensive coverage)
 - `libs/app-common/__tests__/audio-toggles.test.js` - Toggle state management
 - `libs/app-common/__tests__/loop-resize.test.js` - Loop resizing behavior
 - `libs/app-common/__tests__/tap-resync.test.js` - Tap tempo resync logic
@@ -335,7 +364,7 @@ Standard rhythm apps use these element IDs:
 Test infrastructure:
 - **Jest 29.x** with Node.js environment (`testEnvironment: 'node'`)
 - **ES modules** support via experimental VM modules
-- **24 test suites**, 109 passing tests
+- **24 test suites**, 280 passing tests
 - **Test locations**:
   - `libs/app-common/__tests__/` - Core shared component tests
   - `libs/sound/*.test.js` - Audio engine tests
@@ -344,9 +373,9 @@ Test infrastructure:
 
 **Test patterns**:
 - Unit tests for pure functions (subdivision, range, number parsing)
-- Integration tests for complex components (fraction-editor, pulse-seq)
+- Integration tests for complex components (fraction-editor, pulse-seq, notation-utils)
 - Audio behavior tests (audio-toggles, loop-control, tap-resync)
-- Edge case validation (loop-resize, audio-schedule)
+- Edge case validation (loop-resize, audio-schedule, remainder pulses)
 
 ### Console Warnings Resolution
 

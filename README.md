@@ -42,11 +42,12 @@ Gestión avanzada de múltiples fracciones con generación de patrones complejos
 
 ## 🧩 Arquitectura Modular
 
-### libs/app-common/ (32 módulos)
+### libs/app-common/ (32+ módulos)
 
 **Componentes de producción** ✅:
 - **Audio**: `audio-init.js`, `audio.js`, `audio-schedule.js`, `audio-toggles.js`
 - **UI**: `fraction-editor.js`, `pulse-seq.js`, `mixer-menu.js`, `timeline-layout.js`
+- **Notación**: `notation-utils.js` - Construcción de eventos para partituras rítmicas con VexFlow
 - **Gestión**: `dom.js`, `led-manager.js`, `preferences.js`, `loop-control.js`
 - **Utilidades**: `subdivision.js`, `number.js`, `range.js`, `utils.js`
 
@@ -55,6 +56,7 @@ Gestión avanzada de múltiples fracciones con generación de patrones complejos
 - Inicialización de audio sin warnings
 - Componentes UI reutilizables con tests
 - Gestión consistente de estado y preferencias
+- Renderizado preciso de fracciones rítmicas con tuplets y pulsos remainder
 
 ### libs/sound/
 Motor de audio basado en Tone.js con clase `TimelineAudio`, mixer global y gestión de samples.
@@ -70,7 +72,7 @@ Componentes UI compartidos: header, dropdowns de sonido, efectos hover, estilos 
 
 ## 🧪 Testing
 
-**Cobertura actual**: 24 test suites, 109 tests pasados
+**Cobertura actual**: 24 test suites, 280 tests pasados
 
 **Suites principales**:
 ```
@@ -80,7 +82,8 @@ libs/app-common/__tests__/    # Componentes compartidos
 ├── fraction-editor.test.js    # Editor de fracciones
 ├── audio-toggles.test.js      # Gestión de toggles
 ├── loop-resize.test.js        # Comportamiento de loop
-└── tap-resync.test.js         # Resync de tap tempo
+├── tap-resync.test.js         # Resync de tap tempo
+└── notation-utils.test.js     # Construcción de eventos de notación
 
 libs/app-common/*.test.js      # Tests unitarios
 libs/sound/*.test.js           # Motor de audio
@@ -94,6 +97,29 @@ npm test -- subdivision     # Tests específicos
 ```
 
 ## 🛠️ Componentes Destacados
+
+### Utilidades de Notación Rítmica
+**Ubicación**: `libs/app-common/notation-utils.js`
+
+Construcción inteligente de eventos para partituras con VexFlow, optimizado para fracciones rítmicas y tuplets.
+
+**Características principales**:
+- **Pulso 0**: Siempre renderizado como nota (nunca silencio), marca el inicio del patrón
+- **Múltiplos del numerador**: Todos incluidos en la partitura para crear estructura de tuplets
+  - Seleccionados → aparecen como notas
+  - NO seleccionados → aparecen como silencios clickeables
+- **Pulsos remainder**: Sobrantes del último ciclo incompleto
+  - Siempre renderizados como negras (quarter notes)
+  - Sin puntillos, independientemente de la duración base del compás
+  - Protegidos contra sobrescritura por `fractionalSelections`
+- **Pulso Lg**: Excluido de la partitura (es marca final, no seleccionable)
+
+**Últimas mejoras** (Oct 2025):
+- Fix: Protección de duración de pulsos remainder contra sobrescritura
+- Fix: Pulsos remainder siempre como negras
+- Fix: Inclusión de TODOS los múltiplos en partitura (silencios si no están seleccionados)
+- Fix: Exclusión del pulso Lg de la partitura
+- Fix: Pulso 0 forzado como nota
 
 ### Controladores de Loop
 **Ubicación**: `libs/app-common/loop-control.js`

@@ -65,10 +65,42 @@ Executa totes les proves amb Jest des de l'arrel:
 npm test
 ```
 
-- **Cobertura actual**: 15 test suites, 80 tests (vegeu `npx jest --listTests`).
+- **Cobertura actual**: 24 test suites, 280 tests (vegeu `npx jest --listTests`).
 - **Cobertura clau**: `libs/app-common/__tests__/` (subdivisions, audio bridges,
-  loop resize, tap resync, fraction editor), `libs/app-common/*.{test.js}`
+  loop resize, tap resync, fraction editor, **notation-utils**), `libs/app-common/*.{test.js}`
   (audio-init, loop-control, range, utils), `libs/sound/*.test.js` (motor i
   mixer) i `libs/random/index.test.js`.
 
 Mantén els tests verds després de qualsevol canvi en mòduls compartits o apps.
+
+## Millores recents (Oct 2025)
+
+### `libs/app-common/notation-utils.js` - Construcció d'events de notació
+
+S'han aplicat **5 fixes consecutius** per garantir el renderitzat correcte de partitures
+rítmiques amb VexFlow, especialment en fraccions amb tuplets i pulsos remainder:
+
+1. **Inclusió del pulso Lg i protecció del pulso 0** (d7d174b)
+   - Pulso Lg (final) inclòs al bucle (`i <= safeLg`)
+   - Pulso 0 forçat com a nota (`rest: false`) mai silenci
+
+2. **Exclusió del pulso Lg** (488f114) - **Reversió del punt 1**
+   - Pulso Lg exclòs explícitament (`if (i === safeLg) return false`)
+   - És marca final de timeline, no seleccionable ni visible a partitura
+
+3. **Inclusió de TOTS els múltiples del numerador** (3280dfe)
+   - Múltiples seleccionats → notes
+   - Múltiples NO seleccionats → silencios clickejables
+   - Permet estructura correcta de tuplets en VexFlow
+
+4. **Pulsos remainder sempre com a negres** (996b3cf)
+   - Detecció: `i > lastCycleStart && i < safeLg`
+   - Duració forçada a `'q'` (quarter note)
+   - Dots forçats a 0 (sense puntillo)
+
+5. **Protecció contra sobrescriptura per fractionalSelections** (2d83386)
+   - `fractionalSelections` NO pot sobrescriure duració de pulsos remainder
+   - Verificació `isRemainderPulse` abans d'actualitzar `duration` i `dots`
+   - Garanteix que remainder mantingui sempre `'q'` amb 0 dots
+
+**Test coverage**: 280 tests a `libs/app-common/__tests__/notation-utils.test.js` ✅

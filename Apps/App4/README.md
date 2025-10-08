@@ -59,7 +59,7 @@ App4 explora la generación de secuencias de pulsos fraccionarios sobre la timel
 
 ## Tests
 
-App4 comparte la suite de Jest común. Después de instalar dependencias con `./setup.sh`, ejecuta:
+App4 comparte la suite de Jest común (24 test suites, 280 tests). Después de instalar dependencias con `./setup.sh`, ejecuta:
 
 ```bash
 npm test
@@ -67,7 +67,26 @@ npm test
 
 Esto cubre tanto los módulos compartidos (`libs/app-common`, `libs/sound`) como los _helpers_ utilizados por la app.
 
+**Tests relevantes para App4**:
+- `libs/app-common/__tests__/notation-utils.test.js` - Construcción de eventos de notación (Oct 2025)
+- `libs/app-common/__tests__/subdivision.test.js` - Cálculos temporales
+- `libs/app-common/__tests__/fraction-editor.test.js` - Editor de fracciones
+- `libs/app-common/__tests__/pulse-seq.test.js` - Secuenciador de pulsos
+- `libs/app-common/__tests__/audio.test.js` - Bridges de scheduling
+
 ## Historial de cambios significativos
+
+### 2025-10-08: Mejoras en `notation-utils.js` - Sistema de Notación Rítmica
+- **5 fixes consecutivos** aplicados al módulo compartido `libs/app-common/notation-utils.js`
+- **Objetivo**: Renderizado correcto de partituras con VexFlow para fracciones con tuplets y pulsos remainder
+- **Fixes aplicados**:
+  1. Inclusión del pulso Lg y protección del pulso 0 (d7d174b)
+  2. Exclusión del pulso Lg - reversión del punto 1 (488f114)
+  3. Inclusión de TODOS los múltiplos del numerador (3280dfe)
+  4. Pulsos remainder siempre como negras (996b3cf)
+  5. Protección contra sobrescritura por fractionalSelections (2d83386)
+- **Impacto**: Notación musical más precisa en App2 y App4
+- **Tests**: 280 tests pasando en `notation-utils.test.js`
 
 ### 2025-10-07: Refactorización FASE 5 - Timeline Renderer Modular
 - **Cambio**: Extracción de `renderTimeline()` completo a módulo reutilizable

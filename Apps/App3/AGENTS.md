@@ -39,5 +39,11 @@
 
 ## Tests
 No hi ha suite d'app dedicada. Les funcionalitats clau estan cobertes pels tests
-compartits (`fraction-editor`, `audio-toggles`, `subdivision`). Executa `npm test`
-per validar-los després de canvis.
+compartits (280 tests):
+- `libs/app-common/__tests__/fraction-editor.test.js` - Editor de fraccions
+- `libs/app-common/__tests__/audio-toggles.test.js` - Toggles d'àudio
+- `libs/app-common/__tests__/subdivision.test.js` - Càlculs temporals
+- `libs/app-common/__tests__/notation-utils.test.js` - Events de notació (Oct 2025)
+- `libs/app-common/__tests__/tap-resync.test.js` - Tap tempo resync
+
+Executa `npm test` per validar-los després de canvis.
