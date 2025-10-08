@@ -94,7 +94,7 @@ export function buildPulseEvents({
     // Con fracción: incluir múltiplos del numerador si están seleccionados, o todos los pulsos remainder
     const isMultiple = i % numerator === 0;
     const lastCycleStart = Math.floor(safeLg / numerator) * numerator;
-    const isRemainder = i > lastCycleStart && i < safeLg;
+    const isRemainder = i > lastCycleStart && i <= safeLg;
 
     // Incluir múltiplos solo si están seleccionados
     if (isMultiple) {
@@ -105,18 +105,19 @@ export function buildPulseEvents({
     return isRemainder;
   };
 
-  for (let i = 0; i < safeLg; i++) {
+  for (let i = 0; i <= safeLg; i++) {
     const key = makePulseIndexKey(i);
     const shouldInclude = shouldIncludePulse(i);
 
     // Solo crear evento si debe aparecer en la partitura
     if (!shouldInclude) continue;
 
+    const isZero = i === 0;
     const isSelected = normalizedSelected.has(key);
     const entry = {
       pulseIndex: i,
       duration: resolvedDuration,
-      rest: !isSelected, // Silencio si no está seleccionado
+      rest: !isZero && !isSelected, // Pulso 0 nunca es silencio, resto según selección
       dots: resolvedDots
     };
     events.push(entry);
