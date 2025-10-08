@@ -15,7 +15,6 @@ import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-co
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
-import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
 
 let audio;
 let pendingMute = null;
@@ -1078,7 +1077,6 @@ async function startPlayback() {
     iconPlay.style.display = 'none';
     iconStop.style.display = 'block';
   }
-  scheduleTIndicatorReveal(0);
   syncVisualState();
 }
 
@@ -1116,7 +1114,6 @@ resetBtn.addEventListener('click', () => {
   ['Lg', 'V', 'n', 'd'].forEach(clearOpt);
   loopEnabled = false;
   loopBtn.classList.remove('active');
-  clearOpt('circular'); // Let circular timeline controller handle reset on reload
   setPulseAudio(true, { persist: false });
   setCycleAudio(true, { persist: false });
   clearOpt(PULSE_AUDIO_KEY);
@@ -1171,17 +1168,16 @@ if (tapBtn) {
   tapBtn.addEventListener('click', () => { tapTempo(); });
 }
 
-// Initialize circular timeline controller
-createCircularTimeline({
-  timeline,
-  timelineWrapper,
-  toggle: circularTimelineToggle,
-  storage: { load: loadOpt, save: saveOpt },
-  defaultCircular: true,
-  onToggle: (isCircular) => {
-    circularTimeline = isCircular; // sync local state for quick access
-    layoutTimeline();
-  }
+// Initialize circular timeline toggle (pattern from App1)
+circularTimelineToggle.checked = (() => {
+  const stored = loadOpt('circular');
+  return stored == null ? true : stored === '1';
+})();
+circularTimeline = circularTimelineToggle.checked;
+circularTimelineToggle?.addEventListener('change', e => {
+  circularTimeline = e.target.checked;
+  saveOpt('circular', e.target.checked ? '1' : '0');
+  layoutTimeline();
 });
 
 /**
