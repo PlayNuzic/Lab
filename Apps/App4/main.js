@@ -34,13 +34,12 @@ import { createNotationRenderer } from '../../libs/app-common/notation-renderer.
 import { createFormulaRenderer } from '../../libs/app-common/formula-renderer.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
+import { makeFractionKey, FRACTION_POSITION_EPSILON } from '../../libs/app-common/pulse-selectability.js';
 import {
-  FRACTION_POSITION_EPSILON,
   TEXT_NODE_TYPE,
   fractionDefaults,
   randomDefaults,
   createFractionSelectionStore,
-  makeFractionKey,
   createFractionSelectionFromValue,
   registerFractionLabel as registerFractionLabelInStore,
   getFractionInfoByLabel as getFractionInfoByLabelFromStore,

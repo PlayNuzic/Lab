@@ -2,8 +2,10 @@
 // Encapsulates mutable state for fractional hits along with helpers used by main.js.
 
 import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
+import { makeFractionKey, FRACTION_POSITION_EPSILON } from '../../libs/app-common/pulse-selectability.js';
 
-export const FRACTION_POSITION_EPSILON = 1e-6;
+// Re-export for backward compatibility
+export { makeFractionKey, FRACTION_POSITION_EPSILON };
 export const TEXT_NODE_TYPE = (typeof Node !== 'undefined' && Node.TEXT_NODE) || 3;
 
 export const fractionDefaults = {
@@ -40,12 +42,7 @@ export function createFractionSelectionStore() {
   };
 }
 
-export function makeFractionKey(base, numerator, denominator) {
-  if (!Number.isFinite(base) || !Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
-    return null;
-  }
-  return `${base}+${numerator}/${denominator}`;
-}
+// makeFractionKey ahora se importa desde libs/app-common/pulse-selectability.js
 
 export function createFractionSelectionFromValue(value, options = {}) {
   const safeValue = Number(value);

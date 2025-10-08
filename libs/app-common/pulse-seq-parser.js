@@ -10,6 +10,8 @@
  * Todas las funciones son puras (sin side-effects) y pueden testearse independientemente.
  */
 
+import { FRACTION_POSITION_EPSILON } from './pulse-selectability.js';
+
 /**
  * Regex para capturar tokens: enteros y fracciones
  * Patrones: "1", "3.2", ".5", "0.3"
@@ -18,8 +20,9 @@ const TOKEN_REGEX = /\d+\.\d+|\.\d+|\d+/g;
 
 /**
  * Epsilon para determinar si un valor es aproximadamente un entero
+ * Importado desde pulse-selectability.js (valor: 1e-6)
  */
-export const FRACTION_POSITION_EPSILON = 0.001;
+export { FRACTION_POSITION_EPSILON };
 
 /**
  * Parsea el texto del pulseSeq en tokens con posiciones

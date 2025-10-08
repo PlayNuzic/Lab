@@ -74,8 +74,9 @@ describe('pulse-seq-parser', () => {
 
   describe('nearestPulseIndex', () => {
     test('devuelve entero si está muy cerca', () => {
-      expect(nearestPulseIndex(3.0001)).toBe(3);
-      expect(nearestPulseIndex(2.9999)).toBe(3);
+      // Epsilon actualizado a 1e-6, por lo que usamos valores más cercanos
+      expect(nearestPulseIndex(3.0000001)).toBe(3);
+      expect(nearestPulseIndex(2.9999999)).toBe(3);
       expect(nearestPulseIndex(5.0)).toBe(5);
     });
 
