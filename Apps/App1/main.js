@@ -8,6 +8,9 @@ import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subd
 import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
+import { parseNum, formatSec } from '../../libs/app-common/number-utils.js';
+import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
+import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
@@ -53,9 +56,20 @@ let circularTimeline = false;
 let autoTarget = null;               // 'Lg' | 'V' | 'T' | null
 // Track manual selection recency (oldest -> newest among the two manual LEDs)
 let manualHistory = [];
-let visualSyncHandle = null;
-let lastVisualStep = null;
 let tapResyncTimeout = null;
+
+// Highlight controller for pulse visualization
+const highlightController = createSimpleHighlightController({
+  getPulses: () => pulses,
+  getLoopEnabled: () => loopEnabled
+});
+
+// Visual sync manager (replaces visualSyncHandle and lastVisualStep)
+const visualSync = createSimpleVisualSync({
+  getAudio: () => audio,
+  getIsPlaying: () => isPlaying,
+  onStep: (step) => highlightController.highlightPulse(step)
+});
 
 function cancelTapResync() {
   if (tapResyncTimeout != null) {
@@ -497,27 +511,7 @@ function setValue(input, value){
   isUpdating = false;
 }
 
-function parseNum(val){
-  if (typeof val !== 'string') return Number(val);
-  let s = val.trim();
-  // Si hi ha coma i no hi ha punt: format català “1.234,56” → traiem punts (milers) i passem coma a punt
-  if (s.includes(',') && !s.includes('.')) {
-    s = s.replace(/\./g, '').replace(',', '.');
-  } else {
-    // En la resta de casos, NO esborrem punts (poden ser decimals); només canviem comes per punts
-    s = s.replace(/,/g, '.');
-  }
-  const n = parseFloat(s);
-    return isNaN(n) ? NaN : n;
-}
-function formatSec(n){
-  // arrodonim a 2 decimals però sense forçar-los si són .00
-  const rounded = Math.round(Number(n) * 100) / 100;
-  return rounded.toLocaleString('ca-ES', {
-     minimumFractionDigits: 0,
-     maximumFractionDigits: 2
-   });
-}
+// parseNum and formatSec now imported from number-utils.js
 
 function adjustT(delta){
   const current = parseNum(inputT.value);
@@ -916,9 +910,9 @@ async function startPlayback(providedAudio) {
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
 
-  stopVisualSync();
+  visualSync.stop();
   audioInstance.stop();
-  pulses.forEach(p => p.classList.remove('active'));
+  highlightController.clearHighlights();
 
   // Sound selection is already applied by initAudio() from dataset.value
   // and by bindSharedSoundEvents from sharedui:sound events
@@ -940,8 +934,8 @@ async function startPlayback(providedAudio) {
     playBtn.classList.remove('active');
     if (iconPlay) iconPlay.style.display = 'block';
     if (iconStop) iconStop.style.display = 'none';
-    pulses.forEach(p => p.classList.remove('active'));
-    stopVisualSync();
+    highlightController.clearHighlights();
+    visualSync.stop();
     cancelTapResync();
     audioInstance.stop();
   };
@@ -949,7 +943,7 @@ async function startPlayback(providedAudio) {
   audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, highlightPulse, onFinish);
 
   syncVisualState();
-  startVisualSync();
+  visualSync.start();
 
   isPlaying = true;
   playBtn.classList.add('active');
@@ -965,72 +959,21 @@ playBtn.addEventListener('click', async () => {
   const iconStop = playBtn?.querySelector('.icon-stop');
 
   if (isPlaying) {
-    stopVisualSync();
+    visualSync.stop();
     audioInstance.stop();
     isPlaying = false;
     cancelTapResync();
     playBtn.classList.remove('active');
     if (iconPlay) iconPlay.style.display = 'block';
     if (iconStop) iconStop.style.display = 'none';
-    pulses.forEach(p => p.classList.remove('active'));
+    highlightController.clearHighlights();
     return;
   }
 
   await startPlayback(audioInstance);
 });
 
-function highlightPulse(i){
-  // esborra il·luminació anterior
-  pulses.forEach(p => p.classList.remove('active'));
-
-  if (!pulses || pulses.length === 0) return;
-
-  // il·lumina el pols actual
-  const idx = i % pulses.length;
-  const current = pulses[idx];
-  if (current) {
-    // Força un reflow perquè l'animació es reiniciï encara que es repeteixi el mateix pols
-    void current.offsetWidth;
-    current.classList.add('active');
-  }
-
-  // si hi ha loop i som al primer pols, també il·lumina l’últim
-  if (loopEnabled && idx === 0) {
-    const last = pulses[pulses.length - 1];
-    if (last) last.classList.add('active');
-  }
-
-  if (Number.isFinite(i)) {
-    lastVisualStep = Number(i);
-  }
-}
-
-function stopVisualSync() {
-  if (visualSyncHandle != null) {
-    cancelAnimationFrame(visualSyncHandle);
-    visualSyncHandle = null;
-  }
-  lastVisualStep = null;
-}
-
-function syncVisualState() {
-  if (!isPlaying || !audio || typeof audio.getVisualState !== 'function') return;
-  const state = audio.getVisualState();
-  if (!state || !Number.isFinite(state.step)) return;
-  if (lastVisualStep === state.step) return;
-  highlightPulse(state.step);
-}
-
-function startVisualSync() {
-  stopVisualSync();
-  const step = () => {
-    visualSyncHandle = null;
-    if (!isPlaying || !audio) return;
-    syncVisualState();
-    visualSyncHandle = requestAnimationFrame(step);
-  };
-  visualSyncHandle = requestAnimationFrame(step);
-}
+// highlightPulse now handled by highlightController.highlightPulse()
 
 function randomInt(min, max) {
   const lo = Math.ceil(min);
