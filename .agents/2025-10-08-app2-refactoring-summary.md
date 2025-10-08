@@ -122,28 +122,190 @@
 
 ---
 
-## Fases No Implementadas (Evaluadas)
+## Fases Pendientes (VIABLES - Evaluadas)
 
-### ⏭️ FASE 4: Circular Timeline
+### ✅ FASE 4: Circular Timeline - **VIABLE CON `timeline-layout.js`**
 
-**Razón para omitir**: App2 tiene lógica muy customizada que no se ajusta al módulo compartido:
-- **Hit targets**: Sistema de zonas interactivas separadas de los elementos visuales
-- **Pulse selection**: Integración profunda con `pulseMemory` y selección de pulsos
-- **Drag & drop**: Lógica específica de arrastre para cambiar selección
-- **Número positioning**: Cálculo de posición de números con shift en modo circular
+**Análisis de Re-evaluación**:
 
-**Conclusión**: El módulo `circular-timeline.js` crea y renderiza pulsos desde cero, incompatible con la arquitectura de App2.
+**Módulo incorrecto evaluado inicialmente**: `circular-timeline.js` (crea pulsos desde cero)
+**Módulo correcto a usar**: `timeline-layout.js` (trabaja con pulsos existentes)
+
+**Por qué es viable**:
+1. ✅ **`timeline-layout.js` NO crea elementos** - recibe arrays de pulsos/bars/labels existentes
+2. ✅ **Callbacks configurables** - `onAfterCircularLayout`, `onAfterLinearLayout` para lógica custom
+3. ✅ **Soporta elementos adicionales** - podemos posicionar `pulseHits` en callbacks
+4. ✅ **Lógica casi idéntica** - App2 lines 1392-1531 (~140 líneas) hacen exactamente lo que hace el módulo
+
+**Implementación propuesta**:
+```javascript
+import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
+
+const timelineRenderer = createTimelineRenderer({
+  timeline,
+  timelineWrapper,
+  getLg: () => pulses.length - 1,
+  getPulses: () => pulses,
+  getBars: () => Array.from(timeline.querySelectorAll('.bar')),
+  computeNumberFontRem,
+  isCircularEnabled: () => loopEnabled && circularTimeline,
+  scheduleIndicatorReveal: scheduleTIndicatorReveal,
+  tIndicatorTransitionDelay: T_INDICATOR_TRANSITION_DELAY,
+  callbacks: {
+    onAfterCircularLayout: (ctx) => {
+      // Position pulse hits in circular mode
+      pulseHits.forEach((h, i) => {
+        const angle = ctx.angleForIndex(i);
+        const x = ctx.centerX + ctx.radius * Math.cos(angle);
+        const y = ctx.centerY + ctx.radius * Math.sin(angle);
+        h.style.left = `${x}px`;
+        h.style.top = `${y}px`;
+        h.style.transform = 'translate(-50%, -50%)';
+      });
+    },
+    onAfterLinearLayout: (ctx) => {
+      // Position pulse hits in linear mode
+      pulseHits.forEach((h, i) => {
+        const percent = ctx.percentForIndex(i);
+        h.style.left = `${percent}%`;
+        h.style.top = '50%';
+        h.style.transform = 'translate(-50%, -50%)';
+      });
+    }
+  }
+});
+
+// Replace animateTimelineCircle with:
+timelineRenderer.applyLayout(loopEnabled && circularTimeline, { silent });
+```
+
+**Funciones a reemplazar** (líneas 1381-1531, ~150 líneas):
+- `animateTimelineCircle()` - reemplazada por `timelineRenderer.applyLayout()`
+- Lógica de posicionamiento circular de pulses, bars, numbers
+- Lógica de posicionamiento linear
+
+**Reducción estimada**: ~120 líneas
+**Tiempo estimado**: 1 hora
+**Riesgo**: Bajo (módulo probado, callbacks claros)
 
 ---
 
-### ⏭️ FASE 6: Notation Renderer
+### ✅ FASE 6: Notation Renderer - **VIABLE CON NUEVO MÓDULO SIMPLE**
 
-**Estado**: No evaluada (pendiente para futuras iteraciones)
+**Análisis de Re-evaluación**:
 
-**Consideraciones**:
-- App2 usa `buildPulseEvents()` con pulsos enteros vs App4 que usa fracciones
-- Denominador fijo en 4 (negras) en App2
-- Requiere adaptación de `buildNotationRenderState` para `pulseMemory`
+**Módulo evaluado inicialmente**: `notation-renderer.js` (complejo, para App4 con fracciones)
+**Solución propuesta**: Crear `simple-notation-renderer.js` desde código existente de App2
+
+**Por qué es viable**:
+1. ✅ **App2 tiene implementación simple y limpia** - solo 50 líneas (106-156)
+2. ✅ **Sin fracciones** - solo pulsos enteros, denominador fijo 4
+3. ✅ **Reutilizable** - App1, App3 podrían usar el mismo módulo simple
+4. ✅ **Ya usa helpers compartidos** - `buildPulseEvents()`, `durationValueFromDenominator()`
+
+**Nuevo módulo a crear**: `libs/app-common/simple-notation-renderer.js`
+
+**Contenido propuesto**:
+```javascript
+/**
+ * Simple notation renderer for apps without fractions
+ * Renders integer pulse selections with fixed denominator
+ */
+export function createSimpleNotationRenderer({
+  notationContentEl,
+  notationPanelController,
+  getLg,
+  getSelectedPulses, // Returns Set or Array
+  inferDenominator = (lg) => Math.max(2, Math.round(lg))
+}) {
+  let renderer = null;
+
+  function buildRenderState() {
+    const lg = getLg();
+    if (!Number.isFinite(lg) || lg <= 0) return null;
+
+    const selectedSet = new Set(getSelectedPulses());
+    const durationValue = durationValueFromDenominator(inferDenominator(lg));
+    const events = buildPulseEvents({ lg, selectedSet, duration: durationValue });
+    const positions = events.map(e => e.pulseIndex);
+    const selectedIndices = Array.from(new Set([0, ...selectedSet])).sort((a, b) => a - b);
+
+    return { lg, events, positions, selectedIndices };
+  }
+
+  function render({ force = false } = {}) {
+    if (!notationContentEl || !notationPanelController) return;
+    if (!force && !notationPanelController.isOpen) return;
+
+    if (!renderer) {
+      renderer = createRhythmStaff({
+        container: notationContentEl,
+        pulseFilter: 'whole'
+      });
+    }
+
+    const state = buildRenderState();
+    if (!state) {
+      renderer.render({ lg: 0, rhythm: [] });
+      return;
+    }
+
+    renderer.render({
+      lg: state.lg,
+      selectedIndices: state.selectedIndices,
+      positions: state.positions,
+      rhythm: state.events
+    });
+  }
+
+  function updateCursor(index, isPlaying) {
+    if (renderer && typeof renderer.updateCursor === 'function') {
+      renderer.updateCursor(index, isPlaying);
+    }
+  }
+
+  function resetCursor() {
+    if (renderer && typeof renderer.resetCursor === 'function') {
+      renderer.resetCursor();
+    }
+  }
+
+  return { render, updateCursor, resetCursor, getRenderer: () => renderer };
+}
+```
+
+**Implementación en App2**:
+```javascript
+import { createSimpleNotationRenderer } from '../../libs/app-common/simple-notation-renderer.js';
+
+const notationRenderer = createSimpleNotationRenderer({
+  notationContentEl,
+  notationPanelController,
+  getLg: () => parseInt(inputLg.value, 10),
+  getSelectedPulses: () => {
+    const lg = parseInt(inputLg.value, 10);
+    const selected = [];
+    for (let i = 1; i < lg; i++) {
+      if (pulseMemory[i]) selected.push(i);
+    }
+    return selected;
+  },
+  inferDenominator: (lg) => 4 // App2 siempre usa 4
+});
+
+// Replace buildNotationRenderState() and renderNotationIfVisible()
+notationRenderer.render();
+```
+
+**Funciones a reemplazar** (líneas 106-156, ~50 líneas):
+- `buildNotationRenderState()` - integrado en el módulo
+- `renderNotationIfVisible()` - reemplazado por `notationRenderer.render()`
+
+**Reducción estimada**: ~35 líneas
+**Tiempo estimado**: 1.5 horas (incluye crear módulo + tests + integrar)
+**Riesgo**: Bajo (extracción directa de código funcional)
+
+**Beneficio adicional**: Módulo reutilizable para App1 y futuras apps sin fracciones
 
 ---
 
@@ -258,37 +420,59 @@
 
 ---
 
-## Próximos Pasos
+## Próximos Pasos para Nueva Sesión
+
+### ✅ FASE 4: Timeline Layout (~120 líneas)
+**Acción**: Integrar `timeline-layout.js` con callbacks para pulseHits
+**Archivo**: `Apps/App2/main.js` líneas 1381-1531
+**Reducción estimada**: ~120 líneas
+**Tiempo**: 1 hora
+
+### ✅ FASE 6: Simple Notation Renderer (~35 líneas)
+**Acción**:
+1. Crear módulo `libs/app-common/simple-notation-renderer.js`
+2. Extraer código de App2 líneas 106-156
+3. Integrar en App2
+
+**Reducción estimada**: ~35 líneas
+**Tiempo**: 1.5 horas (incluye crear módulo + tests)
 
 ### Refactoring adicional posible
-- [ ] **FASE 6**: Evaluar notation-renderer.js para App2
 - [ ] Considerar extraer `handlePulseScroll()` a módulo compartido si otras apps lo necesitan
 - [ ] Revisar si `formatSec` con locale ca-ES debería ser configurable en number-utils
 
-### Mejoras de template
-- [x] Parámetro `showComplexFractions` añadido
-- [ ] Considerar más parámetros de configuración para otras opciones del menú
-
 ### Testing
-- [x] Verificación manual de App2 completa
+- [x] Verificación manual de App2 completa (FASES 1-3-5-7)
 - [x] Fixes aplicados y testeados
-- [ ] Tests automáticos para integración de módulos en App2
+- [ ] Tests para simple-notation-renderer.js
+- [ ] Verificación manual FASES 4 y 6
 
 ---
 
-## Estadísticas Finales
+## Estadísticas Actuales (Sesión 1)
 
 ```
 Líneas iniciales:     1898
 Líneas finales:       1839
-Reducción:            59 líneas (3.1%)
-Módulos integrados:   5
+Reducción actual:     59 líneas (3.1%)
+Módulos integrados:   5 (number-utils, visual-sync, highlight, random-config, t-indicator)
 Fases completadas:    5/7
-Fases omitidas:       2 (FASE 4 y 6 - incompatibles con arquitectura App2)
+Fases pendientes:     2 (FASE 4 y 6 - VIABLES, evaluadas, listas para implementar)
 Fixes aplicados:      4
-Tiempo total:         ~2.5 horas
+Tiempo sesión 1:      ~2.5 horas
 ```
 
-**Estado**: ✅ Refactoring completado y funcional
+## Proyección Final (Con FASES 4 y 6)
+
+```
+Reducción proyectada: ~214 líneas total (1898 → ~1684, 11.3%)
+Módulos a integrar:   7 (actuales + timeline-layout + simple-notation-renderer)
+Nuevo módulo creado:  simple-notation-renderer.js (reutilizable)
+Tiempo adicional:     ~2.5 horas
+Tiempo total:         ~5 horas
+```
+
+**Estado actual**: ✅ 5/7 fases completadas y funcionales
+**Estado pendiente**: ✅ 2/7 fases evaluadas, viables, documentadas
 **Fecha**: 2025-10-08
-**Próxima app**: App3 o continuar con otras apps según prioridad
+**Próxima sesión**: Implementar FASES 4 y 6 según documentación adjunta

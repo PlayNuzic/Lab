@@ -9,7 +9,7 @@
 
 ---
 
-## ✅ RESULTADOS FINALES
+## ✅ RESULTADOS SESIÓN 1 (Parciales - 5/7 Fases)
 
 ### Fases Completadas: 5/7
 
@@ -18,8 +18,20 @@
 - ✅ **FASE 3**: Highlight Controller - **6 líneas reducidas**
 - ✅ **FASE 5**: T-Indicator - **2 líneas reducidas**
 - ✅ **FASE 7**: Random Config - **14 líneas reducidas**
-- ⏭️ **FASE 4**: Circular Timeline - **Omitida** (módulo incompatible con arquitectura App2)
-- ⏭️ **FASE 6**: Notation Renderer - **Omitida** (App2 muy simple, módulo muy complejo)
+
+### Fases Pendientes (VIABLES): 2/7
+
+- 📋 **FASE 4**: Timeline Layout - **~120 líneas**
+  - ✅ Re-evaluada con `timeline-layout.js`
+  - ✅ Callbacks para pulseHits documentados
+  - ✅ Lista para implementar
+
+- 📋 **FASE 6**: Simple Notation - **~35 líneas**
+  - ✅ Nuevo módulo `simple-notation-renderer.js` diseñado
+  - ✅ Extracción desde App2 documentada
+  - ✅ Lista para implementar
+
+**Plan de implementación detallado**: `.agents/2025-10-08-app2-fase4-fase6-implementation-plan.md`
 
 ### Correcciones Aplicadas: 4
 
@@ -28,7 +40,7 @@
 3. ✅ Añadido parámetro `showComplexFractions` al template
 4. ✅ Ajustada opacidad highlight a 0.5 (copia de App4)
 
-**Documentación completa**: `.agents/2025-10-08-app2-refactoring-summary.md`
+**Documentación completa sesión 1**: `.agents/2025-10-08-app2-refactoring-summary.md`
 
 ---
 
