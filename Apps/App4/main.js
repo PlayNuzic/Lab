@@ -29,6 +29,7 @@ import { createHighlightController } from '../../libs/app-common/highlight-contr
 import { createVisualSyncManager } from '../../libs/app-common/visual-sync.js';
 import { createFractionalTimelineRenderer } from '../../libs/app-common/timeline-renderer.js';
 import { randomizeFractional } from '../../libs/app-common/random-fractional.js';
+import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectability.js';
 import { createNotationRenderer } from '../../libs/app-common/notation-renderer.js';
 import { createFormulaRenderer } from '../../libs/app-common/formula-renderer.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
@@ -517,38 +518,8 @@ function initFractionEditorController() {
 
 // nearestPulseIndex ahora se importa desde pulse-seq-parser.js
 
-/**
- * Determina si un pulso entero es seleccionable según la fracción activa.
- *
- * @param {number} index - Índice del pulso a verificar
- * @param {number|null} numerator - Numerador de la fracción activa (n)
- * @param {number|null} denominator - Denominador de la fracción activa (d)
- * @param {number} lg - Longitud total de pulsos (Lg)
- * @returns {boolean} true si el pulso es seleccionable
- *
- * Regla: Para una fracción n/d, solo son seleccionables los pulsos que coinciden
- * con el inicio de cada ciclo de la fracción (múltiplos de n).
- * Si no hay fracción válida, todos los pulsos son seleccionables.
- */
-function isIntegerPulseSelectable(index, numerator, denominator, lg) {
-  // Validar entrada
-  if (!Number.isFinite(index) || !Number.isFinite(lg) || lg <= 0) {
-    return false;
-  }
-
-  // Los extremos (0 y Lg) siempre están controlados por Loop
-  if (index === 0 || index === lg) {
-    return false; // No seleccionables directamente, se controlan con loopEnabled
-  }
-
-  // Si no hay fracción válida, todos los pulsos intermedios son seleccionables
-  if (!Number.isFinite(numerator) || numerator <= 0 || !Number.isFinite(denominator) || denominator <= 0) {
-    return true;
-  }
-
-  // Solo son seleccionables los múltiplos del numerador
-  return index % numerator === 0;
-}
+// isIntegerPulseSelectable ahora se importa desde libs/app-common/pulse-selectability.js
+// La nueva versión incluye soporte para pulsos sobrantes (remainder) cuando Lg % numerator !== 0
 
 const voiceHighlightHandlers = new Map();
 

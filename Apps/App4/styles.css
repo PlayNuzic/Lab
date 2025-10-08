@@ -116,6 +116,29 @@ main > .notation-panel--inline .notation-panel__canvas {
   filter: grayscale(0.5);
 }
 
+/* Remainder pulses (sobrantes al final cuando Lg % numerator !== 0) */
+.pulse.remainder {
+  --pulse-scale: 0.7;
+  opacity: 0.65;
+  background: linear-gradient(135deg, var(--color-accent) 0%, #ffa500 100%);
+  border: 2px dashed #ffa500;
+  box-shadow: 0 0 6px rgba(255, 165, 0, 0.4);
+  animation: remainder-pulse 2s ease-in-out infinite;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+@keyframes remainder-pulse {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(255, 165, 0, 0.4);
+    transform: translate(-50%, -50%) scale(var(--pulse-scale));
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(255, 165, 0, 0.7);
+    transform: translate(-50%, -50%) scale(calc(var(--pulse-scale) * 1.1));
+  }
+}
+
 .pulse-hit {
   transition: background-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
   --pulse-flash-base-transform: translate(-50%, -50%);
@@ -134,6 +157,13 @@ main > .notation-panel--inline .notation-panel__canvas {
   cursor: not-allowed;
   pointer-events: none;
 }
+
+.pulse-hit.remainder {
+  opacity: 0.55;
+  cursor: pointer;
+  pointer-events: auto;
+  background: radial-gradient(circle, rgba(255, 165, 0, 0.15) 0%, transparent 70%);
+}
 .pulse-number.zero,
 .pulse-number.lg {
   color: var(--color-lg);
@@ -143,6 +173,13 @@ main > .notation-panel--inline .notation-panel__canvas {
   opacity: 0.35;
   color: var(--line-color);
   filter: grayscale(0.5);
+}
+
+.pulse-number.remainder {
+  color: #ffa500;
+  font-weight: 600;
+  opacity: 0.75;
+  text-shadow: 0 0 8px rgba(255, 165, 0, 0.5);
 }
 
 .pulse-number.selected:not(.zero):not(.lg) {

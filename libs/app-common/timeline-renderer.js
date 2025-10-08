@@ -7,7 +7,7 @@
 
 import { gridFromOrigin } from './subdivision.js';
 import { nearestPulseIndex } from './pulse-seq-parser.js';
-import { makeFractionKey, FRACTION_POSITION_EPSILON } from '../../Apps/App4/fraction-selection.js';
+import { makeFractionKey, FRACTION_POSITION_EPSILON, isIntegerPulseSelectable, isPulseRemainder } from './pulse-selectability.js';
 
 /**
  * Crea renderizador de timeline con soporte de fracciones
@@ -83,6 +83,11 @@ export function createFractionalTimelineRenderer(config) {
       const selectable = isIntegerPulseSelectable(i, numerator, denominator, lg);
       if (i !== 0 && i !== lg && !selectable) {
         pulse.classList.add('non-selectable');
+      }
+
+      // Marcar pulsos sobrantes visualmente (remainder)
+      if (isPulseRemainder(i, numerator, lg)) {
+        pulse.classList.add('remainder');
       }
 
       timeline.appendChild(pulse);
