@@ -775,5 +775,113 @@ audio.play(totalPulses, interval, selectedPulses, loop, onPulse);
 
 ---
 
+## Cobertura de Tests
+
+El proyecto cuenta con **21 archivos de tests** que cubren los módulos más críticos de `libs/app-common/`.
+
+### Tests Implementados
+
+**Directorio `__tests__/`:**
+1. ✅ `audio-schedule.test.js` - Cálculos de resync con tap tempo
+2. ✅ `audio-toggles.test.js` - Toggles de canales de audio
+3. ✅ `audio.test.js` - Bridges de scheduling
+4. ✅ `circular-timeline.test.js` - Renderizado circular/lineal
+5. ✅ `formula-renderer.test.js` - Renderizado de fórmulas
+6. ✅ `fraction-editor.test.js` - Editor de fracciones
+7. ✅ `fraction-notation.test.js` - Notación de fracciones
+8. ✅ `info-tooltip.test.js` - Tooltips informativos
+9. ✅ `loop-resize.test.js` - Resize de loops
+10. ✅ `number-utils.test.js` - Utilidades numéricas
+11. ✅ `pulse-seq-parser.test.js` - Parser de pulse sequences
+12. ✅ `rhythm.test.js` - Funciones de ritmo
+13. ✅ `simple-highlight-controller.test.js` - Highlighting
+14. ✅ `simple-visual-sync.test.js` - Sincronización visual
+15. ✅ `subdivision.test.js` - Cálculos de subdivisión
+16. ✅ `t-indicator.test.js` - Indicador T
+17. ✅ `tap-resync.test.js` - Tap tempo resync
+
+**Root de `app-common/`:**
+18. ✅ `audio-init.test.js` - Inicialización de audio
+19. ✅ `loop-control.test.js` - Controladores de loop
+20. ✅ `range.test.js` - Validación de rangos
+21. ✅ `utils.test.js` - Utilidades matemáticas
+
+### Ejecutar Tests
+
+```bash
+npm test
+```
+
+### Cobertura Actual
+- **~50%** de módulos de `app-common` tienen tests
+- Enfoque en módulos core y de lógica compleja
+- Tests de UI pendientes (componentes interactivos)
+
+---
+
+## Estado del Refactoring (2025-10-08)
+
+### Apps Refactorizadas
+
+| App | Estado | Reducción | Módulos Integrados | Commits |
+|-----|--------|-----------|-------------------|---------|
+| **App1** | ✅ Completo | -93 líneas (-10.6%) | 3 módulos | 3 |
+| **App2** | ✅ Completo | -281 líneas (-14.7%) | 10 módulos | 7 |
+| **App4** | ✅ Completo | -250 líneas (-13.9%) | 4 módulos | 6 |
+| **App3** | ✅ Completo | -118 líneas (-8.3%) | 4 módulos | 6 |
+
+**Total reducción**: **-742 líneas** (-12.3% del código original)
+
+### Módulos Creados Durante el Refactoring
+
+#### Nuevos Módulos (2025-10-08)
+1. `pulse-seq.js` - Controller de secuencias de pulsos
+2. `pulse-seq-state.js` - Estado de sequences
+3. `pulse-seq-parser.js` - Parser de sequences
+4. `pulse-seq-editor.js` - Editor completo
+5. `simple-highlight-controller.js` - Highlighting simplificado
+6. `simple-visual-sync.js` - Visual sync simplificado
+7. `info-tooltip.js` - Tooltips reutilizables
+8. `t-indicator.js` - Indicador T
+
+#### Módulos Mejorados
+1. `timeline-layout.js` - Callbacks para layouts personalizados
+2. `preferences.js` - Helpers `setupThemeSync()` y `setupMutePersistence()`
+3. `fraction-editor.js` - Modos complex/simple con placeholders
+
+### Patrones Establecidos
+
+**Inicialización de Audio:**
+```javascript
+const initAudio = createRhythmAudioInitializer({
+  getParams: () => ({ lg, v, t }),
+  getAudio: () => audio
+});
+```
+
+**Theme/Mute Persistence:**
+```javascript
+setupThemeSync({ select: themeSelect, storage: { load, save } });
+setupMutePersistence({ getAudio: () => audio, storage: { load, save } });
+```
+
+**Info Tooltips:**
+```javascript
+const tooltip = createInfoTooltip({ className: 'hover-tip auto-tip-below' });
+tooltip.show(content, anchor);
+```
+
+**T Indicator (CSS Positioning):**
+```javascript
+const tIndicatorController = createTIndicator();
+tIndicatorController.updateText(`T: ${value}`);
+// CSS controla posicionamiento, NO JavaScript
+```
+
+Ver [REFACTORING_SUMMARY.md](./REFACTORING_SUMMARY.md) para detalles completos del refactoring.
+
+---
+
 **Última actualización:** 2025-10-08
-**Versión del documento:** 1.0
+**Versión del documento:** 2.0
+**Estado del repositorio:** ✅ Refactoring completo
