@@ -13,6 +13,9 @@ import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js
 import { parseIntSafe, parseFloatSafe } from '../../libs/app-common/number.js';
 import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
+import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
+import { createTIndicator } from '../../libs/app-common/t-indicator.js';
+import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
 
 let audio;
 let pendingMute = null;
@@ -105,20 +108,19 @@ let lastStructureSignature = {
   numerator: null,
   denominator: null
 };
-const T_INDICATOR_TRANSITION_DELAY = 650;
-let tIndicatorRevealTimeout = null;
 const PULSE_AUDIO_KEY = 'pulseAudio';
 const CYCLE_AUDIO_KEY = 'cycleAudio';
 let pulseToggleController = null;
 let cycleToggleController = null;
 
 const shouldRenderTIndicator = Boolean(document.querySelector('.param.t'));
-const tIndicator = shouldRenderTIndicator ? (() => {
-  const indicator = document.createElement('div');
-  indicator.id = 'tIndicator';
-  indicator.style.visibility = 'hidden';
-  timeline.appendChild(indicator);
-  return indicator;
+const tIndicatorController = shouldRenderTIndicator ? createTIndicator() : null;
+const tIndicator = tIndicatorController ? (() => {
+  const el = tIndicatorController.element;
+  el.id = 'tIndicator';
+  el.style.visibility = 'hidden';
+  timeline.appendChild(el);
+  return el;
 })() : null;
 
 function initFractionEditorController() {
@@ -377,46 +379,18 @@ initMixerMenu({
   ]
 });
 
-function applyTheme(value) {
-  const val = value || 'system';
-  if (val === 'system') {
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.body.dataset.theme = dark ? 'dark' : 'light';
-  } else {
-    document.body.dataset.theme = val;
-  }
-  saveOpt('theme', val);
-  try {
-    window.dispatchEvent(new CustomEvent('sharedui:theme', {
-      detail: { value: document.body.dataset.theme, raw: val }
-    }));
-  } catch {}
-}
-
-const storedTheme = loadOpt('theme');
-if (themeSelect) {
-  if (storedTheme) themeSelect.value = storedTheme;
-  applyTheme(themeSelect.value || 'system');
-  themeSelect.addEventListener('change', (e) => applyTheme(e.target.value));
-} else {
-  applyTheme(storedTheme || 'system');
-}
-
-document.addEventListener('sharedui:mute', (e) => {
-  const val = !!(e && e.detail && e.detail.value);
-  saveOpt('mute', val ? '1' : '0');
-  pendingMute = val;
-  if (audio && typeof audio.setMute === 'function') {
-    audio.setMute(val);
-  }
+// Setup theme synchronization
+setupThemeSync({
+  select: themeSelect,
+  storage: { load: loadOpt, save: saveOpt }
 });
 
-(function restoreMutePreference() {
-  try {
-    const saved = loadOpt('mute');
-    if (saved === '1') document.getElementById('muteBtn')?.click();
-  } catch {}
-})();
+// Setup mute persistence
+setupMutePersistence({
+  getAudio: () => audio,
+  storage: { load: loadOpt, save: saveOpt },
+  onMuteChange: (muted) => { pendingMute = muted; }
+});
 
 function getLg() {
   return parseIntSafe(inputLg.value);
@@ -441,34 +415,10 @@ function getFraction() {
   };
 }
 
-let titleInfoTipEl = null;
-
-function ensureTitleInfoTip() {
-  if (titleInfoTipEl) return titleInfoTipEl;
-  const tip = document.createElement('div');
-  tip.className = 'hover-tip auto-tip-below top-bar-info-tip';
-  document.body.appendChild(tip);
-  titleInfoTipEl = tip;
-  return tip;
-}
-
-function hideTitleInfoTip() {
-  if (titleInfoTipEl) {
-    titleInfoTipEl.classList.remove('show');
-  }
-}
-
-function showTitleInfoTip(contentFragment, anchor) {
-  if (!anchor) return;
-  const tip = ensureTitleInfoTip();
-  if (contentFragment) {
-    tip.replaceChildren(contentFragment);
-  }
-  const rect = anchor.getBoundingClientRect();
-  tip.style.left = rect.left + rect.width / 2 + 'px';
-  tip.style.top = rect.bottom + window.scrollY + 'px';
-  tip.classList.add('show');
-}
+// Create title tooltip controller
+const titleTooltip = createInfoTooltip({
+  className: 'hover-tip auto-tip-below top-bar-info-tip'
+});
 
 function buildTitleInfoContent() {
   const fragment = document.createDocumentFragment();
@@ -585,79 +535,14 @@ if (titleButton) {
   titleButton.addEventListener('click', () => {
     const content = buildTitleInfoContent();
     if (!content) return;
-    showTitleInfoTip(content, titleButton);
+    titleTooltip.show(content, titleButton);
   });
-  titleButton.addEventListener('blur', hideTitleInfoTip);
+  titleButton.addEventListener('blur', () => titleTooltip.hide());
   titleButton.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' || event.key === 'Esc') {
-      hideTitleInfoTip();
+      titleTooltip.hide();
     }
   });
-  window.addEventListener('scroll', hideTitleInfoTip, { passive: true });
-  window.addEventListener('resize', hideTitleInfoTip);
-}
-
-function updateTIndicatorText(value) {
-  if (!tIndicator) return;
-  if (value === '' || value == null) {
-    tIndicator.textContent = '';
-    tIndicator.style.visibility = 'hidden';
-    return;
-  }
-  const n = Number(value);
-  if (!Number.isFinite(n)) {
-    tIndicator.textContent = `T: ${String(value)}`;
-    return;
-  }
-  const rounded = Math.round(n * 10) / 10;
-  tIndicator.textContent = `T: ${rounded}`;
-}
-
-function updateTIndicatorPosition() {
-  if (!timeline || !tIndicator) return false;
-  const lg = getLg();
-  if (!Number.isFinite(lg) || lg <= 0) return false;
-  let anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
-  if (!anchor) anchor = timeline.querySelector(`.pulse[data-index="${lg}"]`);
-  if (!anchor) anchor = pulses[pulses.length - 1] || null;
-  if (!anchor) return false;
-  const tlRect = timeline.getBoundingClientRect();
-  const aRect = anchor.getBoundingClientRect();
-  const circular = timeline.classList.contains('circular');
-  const offsetY = circular ? 50 : -90;
-  const centerX = aRect.left + aRect.width / 2 - tlRect.left;
-  const topY = aRect.bottom - tlRect.top + offsetY;
-  tIndicator.style.left = `${centerX}px`;
-  tIndicator.style.top = `${topY}px`;
-  tIndicator.style.transform = 'translate(-50%, 0)';
-  if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
-  return true;
-}
-
-function scheduleTIndicatorReveal(delay = 0) {
-  if (!tIndicator) return;
-  if (tIndicatorRevealTimeout) {
-    clearTimeout(tIndicatorRevealTimeout);
-    tIndicatorRevealTimeout = null;
-  }
-
-  const ms = Math.max(0, Number(delay) || 0);
-  if (ms === 0) {
-    requestAnimationFrame(() => {
-      const anchored = updateTIndicatorPosition();
-      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
-    });
-    return;
-  }
-
-  tIndicator.style.visibility = 'hidden';
-  tIndicatorRevealTimeout = setTimeout(() => {
-    tIndicatorRevealTimeout = null;
-    requestAnimationFrame(() => {
-      const anchored = updateTIndicatorPosition();
-      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
-    });
-  }, ms);
 }
 
 const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
@@ -673,9 +558,7 @@ const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
   computeNumberFontRem,
   pulseNumberHideThreshold: PULSE_NUMBER_HIDE_THRESHOLD,
   numberCircleOffset: NUMBER_CIRCLE_OFFSET,
-  isCircularEnabled: () => circularTimeline && loopEnabled,
-  scheduleIndicatorReveal: scheduleTIndicatorReveal,
-  tIndicatorTransitionDelay: T_INDICATOR_TRANSITION_DELAY
+  isCircularEnabled: () => circularTimeline && loopEnabled
 });
 
 function clearHighlights() {
@@ -767,9 +650,9 @@ function handleInput() {
 
   const tempoInfo = fromLgAndTempo(lg, v);
   if (tempoInfo.duration != null) {
-    updateTIndicatorText(tempoInfo.duration);
+    tIndicatorController?.updateText(`T: ${tempoInfo.duration}`);
   } else {
-    updateTIndicatorText('');
+    tIndicatorController?.updateText('');
   }
 
   loopBtn.disabled = !(Number.isFinite(lg) && lg > 0);
@@ -1233,7 +1116,7 @@ resetBtn.addEventListener('click', () => {
   ['Lg', 'V', 'n', 'd'].forEach(clearOpt);
   loopEnabled = false;
   loopBtn.classList.remove('active');
-  setCircular(false);
+  clearOpt('circular'); // Let circular timeline controller handle reset on reload
   setPulseAudio(true, { persist: false });
   setCycleAudio(true, { persist: false });
   clearOpt(PULSE_AUDIO_KEY);
@@ -1288,31 +1171,18 @@ if (tapBtn) {
   tapBtn.addEventListener('click', () => { tapTempo(); });
 }
 
-/**
- * Actualitza el mode de presentació circular i conserva la preferència.
- *
- * @param {boolean} value nou estat per la línia temporal circular.
- * @returns {void}
- * @remarks Invocat en arrencada i per l'interruptor. Depèn del DOM i `localStorage`; força recalcul de PulseMemory 1..Lg-1 a `layoutTimeline`.
- */
-function setCircular(value) {
-  circularTimeline = value;
-  if (circularTimelineToggle) {
-    circularTimelineToggle.checked = value;
+// Initialize circular timeline controller
+createCircularTimeline({
+  timeline,
+  timelineWrapper,
+  toggle: circularTimelineToggle,
+  storage: { load: loadOpt, save: saveOpt },
+  defaultCircular: true,
+  onToggle: (isCircular) => {
+    circularTimeline = isCircular; // sync local state for quick access
+    layoutTimeline();
   }
-  saveOpt('circular', value ? '1' : '0');
-  layoutTimeline();
-}
-
-const storedCircularRaw = loadOpt('circular');
-const initialCircular = storedCircularRaw == null ? true : storedCircularRaw === '1';
-setCircular(initialCircular);
-
-if (circularTimelineToggle) {
-  circularTimelineToggle.addEventListener('change', () => {
-    setCircular(circularTimelineToggle.checked);
-  });
-}
+});
 
 /**
  * Sound dropdowns are now initialized by header.js via initHeader().
