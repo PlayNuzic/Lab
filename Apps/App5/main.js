@@ -353,6 +353,9 @@ let pulses = [];
 // --- Selection memory across Lg changes ---
 let pulseSeqRanges = {};
 
+// Track which pulse numbers are visible (for persistence across layout changes)
+const visiblePulseNumbers = new Set();
+
 function ensureIntervalMemory(size) {
   intervalMemoryApi.ensure(size);
 }
@@ -1475,7 +1478,15 @@ function togglePulseNumberVisibility(pulseIndex) {
   indicesToToggle.forEach(index => {
     const numberEl = timeline.querySelector(`.pulse-number[data-index="${index}"]`);
     if (numberEl) {
+      const willBeVisible = numberEl.classList.contains('hidden');
       numberEl.classList.toggle('hidden');
+
+      // Track visibility state for persistence across layout changes
+      if (willBeVisible) {
+        visiblePulseNumbers.add(index);
+      } else {
+        visiblePulseNumbers.delete(index);
+      }
     }
   });
 }
@@ -1556,6 +1567,10 @@ function updateNumbers(){
   const lg = parseInt(inputLg.value);
   if (isNaN(lg) || lg <= 0) return;
 
+  // Clean up visibility tracking for pulse numbers that no longer exist (> Lg)
+  const indicesToRemove = Array.from(visiblePulseNumbers).filter(i => i > lg);
+  indicesToRemove.forEach(i => visiblePulseNumbers.delete(i));
+
   const tooDense = lg >= NUMBER_HIDE_THRESHOLD;
   if (tooDense) {
     try { updateTIndicatorPosition(); } catch {}
@@ -1563,11 +1578,12 @@ function updateNumbers(){
   }
 
   // App5: Renderizar números de 0 a Lg (pulsos empiezan en 0)
-  // Todos los números se crean escondidos por defecto (.hidden)
+  // Restaurar visibilidad desde visiblePulseNumbers Set
   for (let i = 0; i <= lg; i++) {
     const isEndpoint = i === 0 || i === lg;
+    const shouldBeVisible = visiblePulseNumbers.has(i);
     // Los números NO reflejan selección de intervalos (solo pulsos son marcadores)
-    showNumber(i, { selected: false, hidden: true, endpoint: isEndpoint });
+    showNumber(i, { selected: false, hidden: !shouldBeVisible, endpoint: isEndpoint });
   }
   // Re-anchor T to the (possibly) re-generated Lg label
   try { updateTIndicatorPosition(); } catch {}
