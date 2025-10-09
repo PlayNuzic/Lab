@@ -85,20 +85,20 @@ Intervals:   [  1  ] [  2  ] [  3  ]
 ### Phase 2: Remove Pulse Interactivity
 **Goal**: Simplify timeline - pulses become visual markers only
 
-- [ ] 2.1 Modify `renderTimeline()` function (~line 1327)
-  - [ ] Keep pulse loop: `for (let i = 0; i <= lg; i++)`
-  - [ ] Remove all pulse click handlers
-  - [ ] Remove `selectedPulses.has(i)` checks
-  - [ ] Remove `.selected` class from pulses
-  - [ ] Keep `.zero` and `.lg` classes
-- [ ] 2.2 Clean up remnants
-  - [ ] Delete `pulseHits` array and references
-  - [ ] Remove pulse click handler functions
-  - [ ] Remove pulse drag logic
-  - [ ] Remove `shouldSuppressClick` for pulses
-- [ ] 2.3 Test: Pulses render but are non-interactive
+- [x] 2.1 Modify `renderTimeline()` function (~line 1329)
+  - [x] Changed pulse loop: `for (let i = 0; i <= lg; i++)` - now includes pulse 0!
+  - [x] Removed all pulse click handlers
+  - [x] Removed all hit target creation
+  - [x] Added `.zero` class for pulse 0, kept `.lg` for pulse Lg
+- [x] 2.2 Clean up remnants
+  - [x] Removed `pulseHits` array declaration
+  - [x] Deleted `togglePulse()` function
+  - [x] Commented out `dragController.attach()` (will reconfigure in Phase 4)
+  - [x] Removed `pulseHits` positioning in circular/linear callbacks
+  - [x] Removed `.selected` class application in `syncSelectedFromMemory()`
+- [x] 2.3 Test: Pulses render but are non-interactive
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 
 ---
 
@@ -428,9 +428,9 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
 ## 📝 Implementation Log
 
 ### Session 1: 2025-10-09
-**Time**: Start
-**Phases Completed**: Phase 1 ✅
-**Tests Passed**: Phase 1.5 - No runtime errors
+**Time**: Start - In Progress
+**Phases Completed**: Phase 1 ✅, Phase 2 ✅
+**Tests Passed**: Phase 1.5, Phase 2.3
 **Notes**:
 - Created IMPLEMENTATION_PLAN.md
 - Reviewed core concepts and mathematical foundation
@@ -443,10 +443,19 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
   - Fixed random generation logic (line 714, 734)
   - Fixed updatePulseSeqField (line 1238)
   - Updated comments to use "intervals" terminology
+- **Phase 2 Complete**: Remove Pulse Interactivity
+  - **CRITICAL**: Changed pulse loop to start from 0: `for (let i = 0; i <= lg; i++)`
+  - Now renders pulses 0 to Lg (pulse 0 is the neutral starting point!)
+  - Removed all pulse click handlers and hit targets
+  - Deleted `togglePulse()` function
+  - Commented out `dragController.attach()` for pulses (will reconfigure for intervals in Phase 4)
+  - Removed `pulseHits` positioning in layout callbacks
+  - Removed `.selected` class application to pulses in `syncSelectedFromMemory()`
+  - Pulses are now purely visual markers (non-interactive)
 - Started HTTP server for testing
 
 **Next Session**:
-- Start with Phase 2: Remove Pulse Interactivity
+- Continue with Phase 3: Interval Rendering
 
 ---
 
@@ -473,12 +482,12 @@ None yet
 
 ## 📊 Progress Summary
 
-**Overall Progress**: 12.5% (1/8 phases complete)
+**Overall Progress**: 25% (2/8 phases complete)
 
 | Phase | Status | Progress |
 |-------|--------|----------|
 | 1. State Management | ✅ Complete | 100% |
-| 2. Remove Pulse Interactivity | ⬜ Not Started | 0% |
+| 2. Remove Pulse Interactivity | ✅ Complete | 100% |
 | 3. Interval Rendering | ⬜ Not Started | 0% |
 | 4. Interval Selection | ⬜ Not Started | 0% |
 | 5. Pulse Sequence Editing | ⬜ Not Started | 0% |
@@ -486,7 +495,7 @@ None yet
 | 7. Visual Polish | ⬜ Not Started | 0% |
 | 8. Testing & Validation | ⬜ Not Started | 0% |
 
-**Test Coverage**: 1/67 tests passed (Phase 1.5)
+**Test Coverage**: 2/67 tests passed (Phase 1.5, Phase 2.3)
 
 ---
 

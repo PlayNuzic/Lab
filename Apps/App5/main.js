@@ -320,8 +320,7 @@ applyRandomConfig(randomConfig);
 // pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
 
 let pulses = [];
-// Hit targets (separate from the visual dots) and drag mode
-let pulseHits = [];
+// pulseHits removed - no longer needed (pulses are non-interactive)
 // --- Selection memory across Lg changes ---
 let pulseSeqRanges = {};
 
@@ -451,6 +450,9 @@ function scheduleTIndicatorReveal(delay = 0) {
   }, ms);
 }
 const dragController = pulseSeqController.drag;
+// Drag controller for pulse selection - DISABLED in Phase 2
+// Will be reconfigured in Phase 4 for interval selection
+/*
 dragController.attach({
   timeline,
   resolveTarget: ({ target }) => {
@@ -471,6 +473,7 @@ dragController.attach({
     return !!intervalMemory[info.index];
   }
 });
+*/
 
 // Create timeline renderer for circular/linear layout
 const timelineRenderer = createTimelineRenderer({
@@ -487,29 +490,14 @@ const timelineRenderer = createTimelineRenderer({
   tIndicatorTransitionDelay: T_INDICATOR_TRANSITION_DELAY,
   callbacks: {
     onAfterCircularLayout: (ctx) => {
-      // Position pulse hits in circular mode
-      pulseHits.forEach((h, i) => {
-        const angle = ctx.angleForIndex(i);
-        const x = ctx.centerX + ctx.radius * Math.cos(angle);
-        const y = ctx.centerY + ctx.radius * Math.sin(angle);
-        h.style.left = `${x}px`;
-        h.style.top = `${y}px`;
-        h.style.transform = 'translate(-50%, -50%)';
-      });
-      // Call App2-specific hooks
+      // pulseHits positioning removed - pulses are non-interactive
+      // Phase 4 will add interval positioning here
       syncSelectedFromMemory();
       updateNumbers();
     },
     onAfterLinearLayout: (ctx) => {
-      // Position pulse hits in linear mode
-      const lg = ctx.lg;
-      pulseHits.forEach((h, i) => {
-        const percent = (i / lg) * 100;
-        h.style.left = `${percent}%`;
-        h.style.top = '50%';
-        h.style.transform = 'translate(-50%, -50%)';
-      });
-      // Call App2-specific hooks
+      // pulseHits positioning removed - pulses are non-interactive
+      // Phase 4 will add interval positioning here
       syncSelectedFromMemory();
       updateNumbers();
     }
@@ -1265,13 +1253,10 @@ function syncSelectedFromMemory() {
     if (intervalMemory[i]) selectedIntervals.add(i);
   }
 
-  // Aplica al DOM
-  pulses.forEach((p, idx) => {
-    if (!p) return;
-    p.classList.toggle('selected', selectedIntervals.has(idx));
-  });
+  // NO apply .selected class to pulses - they are non-interactive
+  // Selection styling will be applied to interval blocks instead
 
-  // Renderizar intervalos visuales
+  // Render interval blocks (they handle their own selection styling)
   intervalRenderer.render();
 
   updatePulseSeqField();
@@ -1329,60 +1314,30 @@ function setPulseSelected(i, shouldSelect) {
 function renderTimeline(){
   timeline.innerHTML = '';
   pulses = [];
-  pulseHits = [];
+  // pulseHits removed - no longer needed
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0) return;
   ensureIntervalMemory(lg);
 
-  // App5: Renderizar pulsos de 1 a Lg (sin pulso 0)
-  for (let i = 1; i <= lg; i++) {
+  // App5: Render pulses 0 to Lg (pulse 0 is neutral starting point)
+  for (let i = 0; i <= lg; i++) {
     const p = document.createElement('div');
     p.className = 'pulse';
+    if (i === 0) p.classList.add('zero');
     if (i === lg) p.classList.add('lg');
-    if (i === 1) p.classList.add('first');
     p.dataset.index = i;
     timeline.appendChild(p);
     pulses.push(p);
 
-    // Barras verticales en extremos (1 y Lg)
-    if (i === 1 || i === lg) {
+    // Vertical bars at endpoints (pulse 0 and pulse Lg)
+    if (i === 0 || i === lg) {
       const bar = document.createElement('div');
       bar.className = 'bar';
       timeline.appendChild(bar);
     }
 
-    // Click/drag hit target (bigger than the visual dot)
-    const hit = document.createElement('div');
-    hit.className = 'pulse-hit';
-    hit.dataset.index = i;
-    hit.style.position = 'absolute';
-    hit.style.borderRadius = '50%';
-    hit.style.background = 'transparent';
-    hit.style.zIndex = '6'; // above pulses and bars
-
-    const hitSize = computeHitSizePx(lg);
-    hit.style.width = hitSize + 'px';
-    hit.style.height = hitSize + 'px';
-
-    // Todos los pulsos son interactivos en App5
-    hit.style.pointerEvents = 'auto';
-    hit.style.cursor = 'pointer';
-
-    // listeners on the hit target
-    hit.addEventListener('click', (ev) => {
-      if (dragController.consumeSuppressClick(String(i))) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        return; // already applied on pointerdown
-      }
-      togglePulse(i);
-    });
-    hit.addEventListener('pointerenter', () => {
-      dragController.handleEnter({ key: String(i), index: i });
-    });
-
-    timeline.appendChild(hit);
-    pulseHits.push(hit);
+    // NO click handlers - pulses are visual markers only
+    // NO hit targets - pulses are non-interactive
   }
   syncSelectedFromMemory();
   animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
@@ -1390,14 +1345,8 @@ function renderTimeline(){
   renderNotationIfVisible();
 }
 
-function togglePulse(i){
-  const lg = parseInt(inputLg.value);
-  if (isNaN(lg)) return;
-
-  // App5: Todos los pulsos de 1 a Lg son interactivos
-  if (i < 1 || i > lg) return;
-  setPulseSelected(i, !intervalMemory[i]);
-}
+// togglePulse removed - pulses are no longer interactive in App5
+// Intervals will be selectable instead
 
 function animateTimelineCircle(isCircular, opts = {}) {
   const silent = !!opts.silent;
