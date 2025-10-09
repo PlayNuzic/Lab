@@ -1,172 +1,206 @@
 // it-renderer.js
-// Renderiza bloques de intervalos temporales (iT) sobre la timeline
+// Renderiza bloques de intervalos temporales (iT) - SIEMPRE todos los Lg intervalos
 
-import { calculateIntervals } from './it-calculator.js';
+import { calculateAllIntervals } from './it-calculator.js';
 
 /**
- * Crea un renderer de intervalos temporales para una timeline
+ * Crea un renderer de intervalos temporales que SIEMPRE muestra todos los Lg intervalos.
+ * Los intervalos son las entidades seleccionables, con estilo basado en el estado de selección.
+ *
  * @param {Object} config
  * @param {HTMLElement} config.timeline - Elemento timeline donde renderizar
- * @param {Function} config.getSelectedPulses - Función que retorna Set de pulsos seleccionados
- * @param {Function} config.getLg - Función que retorna la longitud actual
+ * @param {Function} config.getLg - Función que retorna el valor actual de Lg
  * @param {Function} config.isCircular - Función que indica si la timeline es circular
+ * @param {Function} config.getSelectedIntervals - Función que retorna Set de números de intervalos seleccionados
+ * @param {Function} config.onIntervalClick - Callback cuando se hace click en un intervalo
  * @returns {Object} API del renderer
  */
 export function createIntervalRenderer(config = {}) {
   const {
     timeline,
-    getSelectedPulses = () => new Set(),
     getLg = () => 0,
-    isCircular = () => false
+    isCircular = () => false,
+    getSelectedIntervals = () => new Set(),
+    onIntervalClick = null
   } = config;
 
   if (!timeline) {
     throw new Error('createIntervalRenderer requires a timeline element');
   }
 
-  let intervalBlocks = [];
+  // Store { interval, element } pairs
+  let intervalElements = [];
 
   /**
    * Limpia todos los bloques de intervalos del DOM
    */
-  function clearIntervals() {
-    intervalBlocks.forEach(block => {
-      if (block && block.parentNode) {
-        block.parentNode.removeChild(block);
+  function clear() {
+    intervalElements.forEach(({ element }) => {
+      if (element && element.parentNode) {
+        element.parentNode.removeChild(element);
       }
     });
-    intervalBlocks = [];
+    intervalElements = [];
   }
 
   /**
-   * Crea un bloque de intervalo DOM
+   * Crea un bloque de intervalo DOM con número centrado y click handler
    */
-  function createIntervalBlock(interval, index) {
-    const block = document.createElement('div');
-    block.className = 'interval-block';
-    block.dataset.intervalIndex = String(index);
-    block.dataset.start = String(interval.start);
-    block.dataset.end = String(interval.end);
-    block.dataset.duration = String(interval.duration);
-    return block;
+  function createIntervalBlock({ interval, isSelected, onClick }) {
+    const div = document.createElement('div');
+    div.className = 'interval-block';
+    div.dataset.intervalNumber = String(interval.number);
+    div.dataset.startPulse = String(interval.startPulse);
+    div.dataset.endPulse = String(interval.endPulse);
+
+    if (isSelected) {
+      div.classList.add('selected');
+    }
+
+    // Agregar número centrado
+    const label = document.createElement('span');
+    label.className = 'interval-number';
+    label.textContent = interval.number;
+    div.appendChild(label);
+
+    // Agregar click handler
+    if (onClick) {
+      div.addEventListener('click', onClick);
+      div.style.cursor = 'pointer';
+    }
+
+    // Agregar drag enter handler para drag selection
+    div.addEventListener('pointerenter', () => {
+      if (onIntervalDragEnter) {
+        onIntervalDragEnter(interval.number);
+      }
+    });
+
+    return div;
   }
 
   /**
-   * Posiciona un bloque en modo linear
-   */
-  function positionLinearBlock(block, interval, lg) {
-    if (!Number.isFinite(lg) || lg <= 0) return;
-
-    const startPercent = (interval.start / lg) * 100;
-    const endPercent = (interval.end / lg) * 100;
-    const widthPercent = endPercent - startPercent;
-
-    block.style.left = `${startPercent}%`;
-    block.style.width = `${widthPercent}%`;
-    block.style.top = '50%';
-    block.style.height = '8px';
-    block.style.transform = 'translate(0, -50%)';
-  }
-
-  /**
-   * Posiciona un bloque en modo circular
-   */
-  function positionCircularBlock(block, interval, lg, rect) {
-    if (!Number.isFinite(lg) || lg <= 0) return;
-    if (!rect) return;
-
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
-    const radius = Math.min(rect.width, rect.height) / 2 - 10;
-
-    const startAngle = (interval.start / lg) * 2 * Math.PI + Math.PI / 2;
-    const endAngle = (interval.end / lg) * 2 * Math.PI + Math.PI / 2;
-
-    const startX = cx + radius * Math.cos(startAngle);
-    const startY = cy + radius * Math.sin(startAngle);
-    const endX = cx + radius * Math.cos(endAngle);
-    const endY = cy + radius * Math.sin(endAngle);
-
-    // Calcular el punto medio del arco
-    const midAngle = (startAngle + endAngle) / 2;
-    const midX = cx + radius * Math.cos(midAngle);
-    const midY = cy + radius * Math.sin(midAngle);
-
-    // Posicionar el bloque en el punto medio
-    block.style.left = `${midX}px`;
-    block.style.top = `${midY}px`;
-
-    // Calcular la longitud del arco
-    const arcLength = radius * Math.abs(endAngle - startAngle);
-    block.style.width = `${Math.max(arcLength, 20)}px`;
-    block.style.height = '8px';
-
-    // Rotar el bloque para seguir el arco
-    const rotation = midAngle + Math.PI / 2;
-    block.style.transform = `translate(-50%, -50%) rotate(${rotation}rad)`;
-  }
-
-  /**
-   * Renderiza todos los intervalos
+   * Main render function - crea elementos DOM para TODOS los Lg intervalos
    */
   function render() {
-    clearIntervals();
+    clear();
 
-    const selectedPulses = getSelectedPulses();
-    const lg = getLg();
-
-    if (!selectedPulses || selectedPulses.size === 0) return;
+    const lg = Number(getLg());
     if (!Number.isFinite(lg) || lg <= 0) return;
 
-    const intervals = calculateIntervals(selectedPulses, lg);
-    if (intervals.length === 0) return;
+    const intervals = calculateAllIntervals(lg);
+    const selectedSet = getSelectedIntervals ? getSelectedIntervals() : new Set();
 
-    const circular = isCircular();
-    const rect = circular ? timeline.getBoundingClientRect() : null;
+    intervals.forEach((interval) => {
+      const isSelected = selectedSet.has(interval.number);
+      const block = createIntervalBlock({
+        interval,
+        isSelected,
+        onClick: () => {
+          if (onIntervalClick) onIntervalClick(interval.number);
+        }
+      });
 
-    intervals.forEach((interval, index) => {
-      const block = createIntervalBlock(interval, index);
-
-      if (circular) {
-        positionCircularBlock(block, interval, lg, rect);
-      } else {
-        positionLinearBlock(block, interval, lg);
-      }
-
+      intervalElements.push({ interval, element: block });
       timeline.appendChild(block);
-      intervalBlocks.push(block);
+    });
+
+    updatePositions();
+  }
+
+  /**
+   * Actualiza posiciones de todos los bloques sin recrear DOM
+   */
+  function updatePositions() {
+    const lg = Number(getLg());
+    if (!Number.isFinite(lg) || lg <= 0) return;
+
+    const circular = isCircular ? isCircular() : false;
+
+    if (circular) {
+      updateCircularPositions(lg);
+    } else {
+      updateLinearPositions(lg);
+    }
+  }
+
+  /**
+   * Posiciona intervalos en layout linear (encima de la timeline)
+   */
+  function updateLinearPositions(lg) {
+    intervalElements.forEach(({ interval, element }) => {
+      // Calcular posición entre startPulse y endPulse
+      const startPercent = (interval.startPulse / lg) * 100;
+      const endPercent = (interval.endPulse / lg) * 100;
+      const centerPercent = (startPercent + endPercent) / 2;
+      const widthPercent = endPercent - startPercent;
+
+      // Posicionar centrado horizontalmente, encima de la timeline
+      element.style.left = `${centerPercent}%`;
+      element.style.top = '-32px'; // Fijo encima de la timeline
+      element.style.width = `${widthPercent}%`;
+      element.style.transform = 'translateX(-50%)';
     });
   }
 
   /**
-   * Actualiza las posiciones de los bloques existentes (sin recrear DOM)
+   * Posiciona intervalos en layout circular (alrededor del círculo)
    */
-  function updatePositions() {
-    const lg = getLg();
-    const circular = isCircular();
-    const rect = circular ? timeline.getBoundingClientRect() : null;
+  function updateCircularPositions(lg) {
+    // Obtener dimensiones de la timeline para cálculos circulares
+    const rect = timeline.getBoundingClientRect();
+    const width = rect.width || 0;
+    const height = rect.height || 0;
+    const cx = width / 2;
+    const cy = height / 2;
+    const radius = Math.min(width, height) / 2 - 10;
 
-    intervalBlocks.forEach(block => {
-      const start = Number(block.dataset.start);
-      const end = Number(block.dataset.end);
-      const duration = Number(block.dataset.duration);
+    intervalElements.forEach(({ interval, element }) => {
+      // Calcular ángulos para pulsos start y end
+      // Offset +PI/2 para empezar arriba (12 o'clock)
+      const startAngle = (interval.startPulse / lg) * 2 * Math.PI + Math.PI / 2;
+      const endAngle = (interval.endPulse / lg) * 2 * Math.PI + Math.PI / 2;
+      const midAngle = (startAngle + endAngle) / 2;
 
-      if (!Number.isFinite(start) || !Number.isFinite(end)) return;
+      // Posicionar en el arco, offset hacia afuera del círculo
+      const offsetRadius = radius + 20; // 20px fuera del círculo
+      const x = cx + offsetRadius * Math.cos(midAngle);
+      const y = cy + offsetRadius * Math.sin(midAngle);
 
-      const interval = { start, end, duration };
+      element.style.left = `${x}px`;
+      element.style.top = `${y}px`;
+      element.style.transform = `translate(-50%, -50%) rotate(${midAngle + Math.PI / 2}rad)`;
 
-      if (circular) {
-        positionCircularBlock(block, interval, lg, rect);
+      // Calcular ancho aproximado del arco
+      const arcLength = Math.abs(endAngle - startAngle) * radius;
+      element.style.width = `${Math.max(arcLength, 30)}px`;
+    });
+  }
+
+  /**
+   * Actualiza el estado de selección sin re-render completo
+   */
+  function updateSelection() {
+    const selectedSet = getSelectedIntervals ? getSelectedIntervals() : new Set();
+
+    intervalElements.forEach(({ interval, element }) => {
+      if (selectedSet.has(interval.number)) {
+        element.classList.add('selected');
       } else {
-        positionLinearBlock(block, interval, lg);
+        element.classList.remove('selected');
       }
     });
   }
+
+  // Placeholder para drag enter handler (será configurado externamente)
+  let onIntervalDragEnter = null;
 
   return {
     render,
     updatePositions,
-    clearIntervals,
-    getIntervalBlocks: () => intervalBlocks.slice()
+    updateSelection,
+    clear,
+    setDragEnterHandler: (handler) => { onIntervalDragEnter = handler; },
+    getIntervalElements: () => intervalElements.map(ie => ie.element)
   };
 }

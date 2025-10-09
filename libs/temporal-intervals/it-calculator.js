@@ -1,33 +1,50 @@
 // it-calculator.js
-// Calcula intervalos temporales entre pulsos consecutivos seleccionados
+// Calcula intervalos temporales - SIEMPRE todos los Lg intervalos
 
 /**
- * Calcula los intervalos entre pulsos consecutivos seleccionados
- * @param {Set<number>} selectedPulses - Conjunto de pulsos seleccionados
- * @param {number} lg - Longitud total de la secuencia
- * @returns {Array<{start: number, end: number, duration: number}>} - Array de intervalos
+ * Calcula TODOS los intervalos para un Lg dado.
+ * Siempre retorna Lg intervalos, cada uno conectando pulsos consecutivos.
+ *
+ * @param {number} lg - El parámetro Lg (número del último pulso = cantidad de intervalos)
+ * @returns {Array<{number: number, startPulse: number, endPulse: number}>} Array de intervalos
+ *
+ * Ejemplo: lg = 3
+ * Retorna: [
+ *   { number: 1, startPulse: 0, endPulse: 1 },  // Intervalo 1: pulso 0 → pulso 1
+ *   { number: 2, startPulse: 1, endPulse: 2 },  // Intervalo 2: pulso 1 → pulso 2
+ *   { number: 3, startPulse: 2, endPulse: 3 }   // Intervalo 3: pulso 2 → pulso 3
+ * ]
+ *
+ * Fundamento matemático:
+ * - Pulsos: 0, 1, 2, ..., Lg
+ * - Intervalos: Lg total, numerados 1 a Lg
+ * - Intervalo k conecta pulso (k-1) con pulso k
  */
-export function calculateIntervals(selectedPulses, lg) {
-  if (!selectedPulses || selectedPulses.size === 0) return [];
+export function calculateAllIntervals(lg) {
   if (!Number.isFinite(lg) || lg <= 0) return [];
-
-  // Convertir Set a array ordenado
-  const sorted = Array.from(selectedPulses).sort((a, b) => a - b);
 
   const intervals = [];
 
-  // Calcular intervalos entre pulsos consecutivos
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const start = sorted[i];
-    const end = sorted[i + 1];
-    const duration = end - start;
-
-    if (duration > 0) {
-      intervals.push({ start, end, duration });
-    }
+  // Crear Lg intervalos numerados 1 a Lg
+  for (let i = 1; i <= lg; i++) {
+    intervals.push({
+      number: i,           // Número del intervalo: 1, 2, 3, ..., Lg
+      startPulse: i - 1,   // Pulso inicial: 0, 1, 2, ..., Lg-1
+      endPulse: i          // Pulso final: 1, 2, 3, ..., Lg
+    });
   }
 
   return intervals;
+}
+
+/**
+ * DEPRECATED: Función antigua que solo calculaba intervalos entre pulsos seleccionados.
+ * Usar calculateAllIntervals() en su lugar.
+ * Mantenida por compatibilidad temporal.
+ */
+export function calculateIntervals(_selectedPulses, lg) {
+  // En App5, siempre calculamos TODOS los intervalos
+  return calculateAllIntervals(lg);
 }
 
 /**

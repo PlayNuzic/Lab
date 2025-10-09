@@ -1,76 +1,132 @@
 /* it-styles.css */
-/* Estilos para bloques de intervalos temporales (iT) */
+/* Estilos para bloques de intervalos temporales (iT) - App5 Pulsaciones */
+/* Los intervalos son las entidades seleccionables (NO los pulsos) */
 
 .interval-block {
   position: absolute;
+  height: 24px; /* 3x original size (~8px → 24px) */
   background: var(--selection-color, #F97C39);
-  opacity: 0.3;
+  opacity: 0.25; /* Estado NO seleccionado - muy sutil */
   border-radius: 4px;
-  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 3;
-  /* Por encima de la timeline pero debajo de los pulsos */
+  transition: opacity 0.2s ease, background 0.2s ease, transform 0.1s ease;
+  pointer-events: auto;
+  z-index: 10; /* Por encima de pulsos y timeline */
+  user-select: none;
 }
 
+/* Estado SELECCIONADO - alta opacidad */
+.interval-block.selected {
+  opacity: 0.8;
+  background: var(--selection-color, #F97C39);
+}
+
+/* Hover feedback */
 .interval-block:hover {
-  opacity: 0.5;
-  transform-origin: center;
+  opacity: 0.9;
 }
 
-/* En modo circular, los bloques siguen la curvatura */
+/* Efecto de hover que respeta la transformación actual */
+.interval-block:not(.circular):hover {
+  transform: translateX(-50%) scale(1.05);
+}
+
+/* Número del intervalo centrado en el bloque */
+.interval-number {
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  user-select: none;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+}
+
+/* Layout LINEAR - intervalos posicionados ENCIMA de la timeline */
+.timeline:not(.circular) .interval-block {
+  top: -32px; /* Posición fija encima de la timeline (no superpuestos) */
+}
+
+/* Layout CIRCULAR - intervalos posicionados alrededor del círculo */
 .timeline.circular .interval-block {
-  border-radius: 50px;
-  /* Más redondeado para seguir el arco */
+  /* Posicionamiento manejado por JS updateCircularPositions */
+  transform-origin: center center;
+  border-radius: 12px; /* Más redondeado para seguir el arco */
 }
 
-/* Animación cuando se activa/desactiva un intervalo */
+/* Asegurar que los intervalos no se solapen con la timeline en modo linear */
+.timeline-wrapper:not(.circular) .timeline {
+  margin-top: 40px; /* Espacio para intervalos encima */
+}
+
+/* Animaciones de entrada/salida (opcional - para futuras mejoras) */
 .interval-block.entering {
-  animation: intervalFadeIn 0.3s ease-out;
+  animation: intervalFadeIn 0.2s ease-out;
 }
 
 .interval-block.leaving {
-  animation: intervalFadeOut 0.3s ease-out;
+  animation: intervalFadeOut 0.2s ease-out;
 }
 
 @keyframes intervalFadeIn {
   from {
     opacity: 0;
-    transform: scale(0.8);
+    transform: translateX(-50%) scale(0.8);
   }
   to {
-    opacity: 0.3;
-    transform: scale(1);
+    opacity: 0.25; /* Coincide con estado no seleccionado */
+    transform: translateX(-50%) scale(1);
   }
 }
 
 @keyframes intervalFadeOut {
   from {
-    opacity: 0.3;
-    transform: scale(1);
+    opacity: 0.25;
+    transform: translateX(-50%) scale(1);
   }
   to {
     opacity: 0;
-    transform: scale(0.8);
+    transform: translateX(-50%) scale(0.8);
   }
 }
 
-/* Estado activo durante playback */
+/* Estado activo durante playback (opcional) */
 .interval-block.active {
-  opacity: 0.6;
-  box-shadow: 0 0 10px var(--selection-color);
+  opacity: 1;
+  box-shadow: 0 0 8px var(--selection-color);
 }
 
-/* Resaltado del primer intervalo (opcional, cuando está activado) */
-.interval-block[data-interval-index="0"].first-interval-enabled {
-  opacity: 0.4;
+/* Resaltado del primer intervalo cuando está habilitado (Fase 6: Audio Integration) */
+.interval-block[data-interval-number="1"].first-interval-enabled {
   border: 2px solid var(--selection-color);
+  box-shadow: 0 0 6px var(--selection-color);
 }
 
-/* Adaptación para timelines muy pequeñas */
+/* Adaptación para pantallas pequeñas */
 @media (max-width: 600px) {
   .interval-block {
-    height: 6px !important;
-    border-radius: 3px;
+    height: 18px; /* Un poco más pequeño en móviles */
+  }
+
+  .interval-number {
+    font-size: 0.65rem;
+  }
+
+  .timeline:not(.circular) .interval-block {
+    top: -28px; /* Ajustar posición para pantallas pequeñas */
+  }
+}
+
+/* Adaptación para timelines muy grandes (muchos intervalos) */
+@media (min-width: 1200px) {
+  .interval-block {
+    height: 28px; /* Ligeramente más grande en pantallas grandes */
+  }
+
+  .interval-number {
+    font-size: 0.85rem;
   }
 }

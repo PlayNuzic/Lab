@@ -106,56 +106,65 @@ Intervals:   [  1  ] [  2  ] [  3  ]
 **Goal**: Refactor interval system to always render all intervals
 
 #### 3.1 Refactor it-calculator.js
-- [ ] Create `calculateAllIntervals(lg)` function
-  - [ ] Returns array of Lg interval objects
-  - [ ] Each object: `{ number, startPulse, endPulse }`
-  - [ ] Interval k: `{ number: k, startPulse: k-1, endPulse: k }`
-- [ ] Mark old `calculateIntervals` as deprecated
-- [ ] Test: Function returns correct Lg intervals
+- [x] Create `calculateAllIntervals(lg)` function
+  - [x] Returns array of Lg interval objects
+  - [x] Each object: `{ number, startPulse, endPulse }`
+  - [x] Interval k: `{ number: k, startPulse: k-1, endPulse: k }`
+  - [x] Comprehensive JSDoc with examples
+- [x] Mark old `calculateIntervals` as deprecated
+- [x] Test: Function returns correct Lg intervals
 
 #### 3.2 Rewrite it-renderer.js
-- [ ] Update `createIntervalRenderer` config
-  - [ ] Add `getSelectedIntervals` callback
-  - [ ] Add `onIntervalClick` callback
-- [ ] Implement `render()` function
-  - [ ] Always render all Lg intervals
-  - [ ] Apply `.selected` class based on selection state
-  - [ ] Add click handlers to interval blocks
-- [ ] Implement `createIntervalBlock()`
-  - [ ] Create div with class `interval-block`
-  - [ ] Add data attributes: `intervalNumber`, `startPulse`, `endPulse`
-  - [ ] Add centered number label
-  - [ ] Attach click handler
-- [ ] Implement `updateLinearPositions()`
-  - [ ] Position between `startPulse` and `endPulse`
-  - [ ] Center horizontally: `(startPercent + endPercent) / 2`
-  - [ ] Fixed vertical: `top: -32px`
-  - [ ] Width: percentage of interval span
-- [ ] Implement `updateCircularPositions()`
-  - [ ] Calculate mid-angle between pulses
-  - [ ] Offset outward from circle (~20px)
-  - [ ] Rotate to align with arc
-- [ ] Implement `updateSelection()`
-  - [ ] Update `.selected` class without full re-render
-- [ ] Add `setDragEnterHandler()` for drag support
-- [ ] Test: All Lg intervals render in linear mode
+- [x] Update `createIntervalRenderer` config
+  - [x] Add `getSelectedIntervals` callback
+  - [x] Add `onIntervalClick` callback
+- [x] Implement `render()` function
+  - [x] Always render all Lg intervals
+  - [x] Apply `.selected` class based on selection state
+  - [x] Add click handlers to interval blocks
+- [x] Implement `createIntervalBlock()`
+  - [x] Create div with class `interval-block`
+  - [x] Add data attributes: `intervalNumber`, `startPulse`, `endPulse`
+  - [x] Add centered number label (`.interval-number`)
+  - [x] Attach click handler
+  - [x] Add pointerenter for drag support
+- [x] Implement `updateLinearPositions()`
+  - [x] Position between `startPulse` and `endPulse`
+  - [x] Center horizontally: `(startPercent + endPercent) / 2`
+  - [x] Fixed vertical: `top: -32px`
+  - [x] Width: percentage of interval span
+- [x] Implement `updateCircularPositions()`
+  - [x] Calculate mid-angle between pulses
+  - [x] Offset outward from circle (20px)
+  - [x] Rotate to align with arc
+- [x] Implement `updateSelection()`
+  - [x] Update `.selected` class without full re-render
+- [x] Add `setDragEnterHandler()` for drag support
+- [x] Test: All Lg intervals render in linear mode
 
 #### 3.3 Update it-styles.css
-- [ ] Set interval block height to 24px (3x original)
-- [ ] Unselected opacity: 0.25
-- [ ] Selected opacity: 0.8
-- [ ] Linear positioning: `top: -32px`
-- [ ] Add hover effects
-- [ ] Style interval number labels
-- [ ] Add circular layout rules
-- [ ] Test: Intervals positioned above timeline
+- [x] Set interval block height to 24px (3x original ~8px)
+- [x] Unselected opacity: 0.25 (very subtle)
+- [x] Selected opacity: 0.8 (clearly visible)
+- [x] Linear positioning: `top: -32px` (fixed above timeline)
+- [x] Add hover effects (scale 1.05, opacity 0.9)
+- [x] Style interval number labels (centered, white, text-shadow)
+- [x] Add circular layout rules (border-radius 12px, transform-origin)
+- [x] Add timeline margin-top: 40px for interval space
+- [x] Add responsive media queries
+- [x] Test: Intervals positioned above timeline
 
 #### 3.4 Update it-index.js
-- [ ] Export new functions
-- [ ] Update barrel exports
-- [ ] Test: Imports work correctly
+- [x] Export `calculateAllIntervals` as primary function
+- [x] Mark `calculateIntervals` as deprecated
+- [x] Update barrel exports with comments
+- [x] Test: Imports work correctly
 
-**Status**: ⬜ Not Started
+#### 3.5 Update App5/main.js configuration
+- [x] Update intervalRenderer config with new parameters
+- [x] Set `onIntervalClick: null` (for Phase 4)
+
+**Status**: ✅ Complete
 
 ---
 
@@ -429,8 +438,8 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
 
 ### Session 1: 2025-10-09
 **Time**: Start - In Progress
-**Phases Completed**: Phase 1 ✅, Phase 2 ✅
-**Tests Passed**: Phase 1.5, Phase 2.3
+**Phases Completed**: Phase 1 ✅, Phase 2 ✅, Phase 3 ✅
+**Tests Passed**: Phase 1.5, Phase 2.3, Phase 3.5
 **Notes**:
 - Created IMPLEMENTATION_PLAN.md
 - Reviewed core concepts and mathematical foundation
@@ -452,10 +461,27 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
   - Removed `pulseHits` positioning in layout callbacks
   - Removed `.selected` class application to pulses in `syncSelectedFromMemory()`
   - Pulses are now purely visual markers (non-interactive)
+- **Phase 3 Complete**: Interval Rendering - Always All Lg Intervals
+  - **it-calculator.js**: Created `calculateAllIntervals(lg)` - returns Lg intervals always
+  - Each interval: `{ number, startPulse, endPulse }`
+  - Example Lg=3: intervals 1,2,3 connecting pulses (0→1), (1→2), (2→3)
+  - **it-renderer.js**: Complete rewrite (~200 lines)
+    - `render()` always creates all Lg interval blocks with numbers
+    - `updateLinearPositions()` centers intervals above timeline (top: -32px)
+    - `updateCircularPositions()` positions intervals outside circle arc
+    - `updateSelection()` updates .selected class without re-render
+    - Click handlers and drag enter handlers ready
+  - **it-styles.css**: Complete redesign
+    - Height: 24px (3x original)
+    - Unselected opacity: 0.25 (subtle), Selected: 0.8 (clear)
+    - Positioned -32px above timeline in linear mode
+    - Added responsive styles, hover effects, circular mode support
+  - **it-index.js**: Updated exports with calculateAllIntervals
+  - **App5/main.js**: Updated intervalRenderer configuration
 - Started HTTP server for testing
 
 **Next Session**:
-- Continue with Phase 3: Interval Rendering
+- Continue with Phase 4: Interval Selection Logic
 
 ---
 
@@ -482,20 +508,20 @@ None yet
 
 ## 📊 Progress Summary
 
-**Overall Progress**: 25% (2/8 phases complete)
+**Overall Progress**: 37.5% (3/8 phases complete)
 
 | Phase | Status | Progress |
 |-------|--------|----------|
 | 1. State Management | ✅ Complete | 100% |
 | 2. Remove Pulse Interactivity | ✅ Complete | 100% |
-| 3. Interval Rendering | ⬜ Not Started | 0% |
+| 3. Interval Rendering | ✅ Complete | 100% |
 | 4. Interval Selection | ⬜ Not Started | 0% |
 | 5. Pulse Sequence Editing | ⬜ Not Started | 0% |
 | 6. Audio Integration | ⬜ Not Started | 0% |
 | 7. Visual Polish | ⬜ Not Started | 0% |
 | 8. Testing & Validation | ⬜ Not Started | 0% |
 
-**Test Coverage**: 2/67 tests passed (Phase 1.5, Phase 2.3)
+**Test Coverage**: 3/67 tests passed (Phase 1.5, Phase 2.3, Phase 3.5)
 
 ---
 

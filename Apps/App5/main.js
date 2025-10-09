@@ -367,11 +367,13 @@ const highlightController = createSimpleHighlightController({
 });
 
 // Create interval renderer for temporal intervals visualization
+// Create interval renderer - Phase 3 configuration (click handlers in Phase 4)
 const intervalRenderer = createIntervalRenderer({
   timeline,
-  getSelectedPulses: () => selectedIntervals,
   getLg: () => parseInt(inputLg.value),
-  isCircular: () => loopEnabled && circularTimeline
+  isCircular: () => loopEnabled && circularTimeline,
+  getSelectedIntervals: () => selectedIntervals,
+  onIntervalClick: null // Will be configured in Phase 4
 });
 
 // Create visual sync controller
