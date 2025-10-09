@@ -820,6 +820,17 @@ bindUnit(inputT, unitT);
 [inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
 handleInput();
 
+// Helper function to find midpoints (double spaces) in pulse sequence text
+function getMidpoints(text) {
+  const a = [];
+  for (let i = 1; i < text.length; i++) {
+    if (text[i - 1] === ' ' && text[i] === ' ') {
+      a.push(i);
+    }
+  }
+  return a;
+}
+
 getEditEl()?.addEventListener('keydown', async (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
