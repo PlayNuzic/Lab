@@ -2,12 +2,6 @@
 
 body {
   --unit-label-offset: -20px;
-  --pulse-offset-x: 0px;
-  --pulse-offset-y: 0px;
-  --selected-offset-x: -145px;
-  --selected-offset-y: -2px;
-  --cycle-offset-x: -290px;
-  --cycle-offset-y: 0px;
 }
 
 header.top-bar h1 {
@@ -648,12 +642,6 @@ font-size: 0.9rem; /* Keep same font size */
  */
 @media (max-width: 600px) {
 body {
-  --pulse-offset-x: 40px;
-  --pulse-offset-y: -17px;
-  --selected-offset-x: -50px;
-  --selected-offset-y: -18px;
-  --cycle-offset-x: -140px;
-  --cycle-offset-y: -17px;
   --unit-label-offset: 0px;
 }
 

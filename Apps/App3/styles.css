@@ -11,10 +11,6 @@ body[data-theme='dark'] {
 }
 
 body.app3 {
-  --pulse-offset-x: -75px;
-  --pulse-offset-y: 0px;
-  --cycle-offset-x: -213px;
-  --cycle-offset-y: 0px;
   --unit-label-offset: -20px;
 }
 
@@ -98,10 +94,6 @@ header.top-bar h1 .top-bar-title-button:active {
     --control-toggle-size: clamp(56px, 30vw, 76px);
     --control-toggle-width: clamp(88px, 40vw, 120px);
     --control-toggle-gap: -28px;
-    --pulse-offset-x: -8px;
-    --pulse-offset-y: 40px;
-    --cycle-offset-x: -91px;
-    --cycle-offset-y: 40px;
     --unit-label-offset: -5px;
   }
 

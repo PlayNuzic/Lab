@@ -548,7 +548,7 @@ margin-right: auto;
 .control-sound-toggles {
   position: absolute;
   top: 59%;
-  left: 122%;
+  left: 50%;
   transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-overlap))));
   width: calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2);
   height: var(--control-toggle-size);
@@ -563,7 +563,7 @@ margin-right: auto;
 @media (max-width: 600px) {
   .control-sound-toggles {
     top: 50%;
-    left: 80%;
+    left: 50%;
     transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + 12px)));
     width: min(90vw, calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2));
   }
