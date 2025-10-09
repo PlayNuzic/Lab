@@ -1,0 +1,1721 @@
+import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { attachHover } from '../../libs/shared-ui/hover.js';
+import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
+import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
+import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
+import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
+import { toRange } from '../../libs/app-common/range.js';
+import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
+import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import createPulseSeqIntervalsController from '../../libs/app-common/pulse-seq-intervals.js';
+import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
+import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
+import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
+import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
+import { createNotationPanelController } from '../../libs/app-common/notation-panel.js';
+import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
+import { parseNum, formatNumber, createNumberFormatter } from '../../libs/app-common/number-utils.js';
+import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
+import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
+import { createTIndicator } from '../../libs/app-common/t-indicator.js';
+import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
+import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
+import { createIntervalRenderer } from '../../libs/temporal-intervals/index.js';
+// Using local header controls for App5 (no shared init)
+
+// Create custom formatters for App2
+const formatInteger = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  return Math.round(numeric).toLocaleString('ca-ES');
+};
+
+const formatBpmValue = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  const rounded = Math.round(numeric * 10) / 10;
+  return rounded.toLocaleString('ca-ES', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1
+  });
+};
+
+let audio;
+let pendingMute = null;
+const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
+window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
+bindSharedSoundEvents({
+  getAudio: () => audio,
+  mapping: {
+    baseSound: 'setBase',
+    accentSound: 'setAccent',
+    startSound: 'setStart'
+  }
+});
+// Bind all DOM elements using app-specific utilities (no warnings for missing elements)
+const { elements, leds, ledHelpers } = bindAppRhythmElements('app2');
+
+// Create LED managers for Lg, V, T parameters
+const ledManagers = createRhythmLEDManagers(leds);
+
+// State object for shared loop controller
+const appState = {
+  get loopEnabled() { return loopEnabled; },
+  set loopEnabled(v) { loopEnabled = v; }
+};
+
+// Create shared loop controller with pulse memory integration
+const loopController = createPulseMemoryLoopController({
+  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  loopBtn: elements.loopBtn,
+  state: appState,
+  ensureIntervalMemory,
+  getLg: () => parseInt(inputLg.value),
+  isPlaying: () => isPlaying,
+  onToggle: (enabled) => {
+    // Rebuild visible selection from memory and refresh labels
+    syncSelectedFromMemory();
+    updateNumbers();
+    if (isPlaying && typeof audio?.setSelected === 'function') {
+      audio.setSelected(selectedForAudioFromState());
+    }
+    animateTimelineCircle(enabled && circularTimeline);
+    // Update totalPulses when loop changes during playback
+    if (isPlaying) {
+      handleInput();
+    }
+  }
+});
+
+// Extract commonly used elements for backward compatibility
+const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
+        ledLg, ledV, ledT, unitLg, unitV, unitT, formula, timelineWrapper,
+        timeline, playBtn, loopBtn, resetBtn, tapBtn, tapHelp,
+        circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
+        randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
+        randTToggle, randTMin, randTMax, themeSelect, selectColor, baseSoundSelect,
+        accentSoundSelect, startSoundSelect, notationPanel, notationCloseBtn,
+        notationContent } = elements;
+
+const notationContentEl = notationContent || null;
+let notationRenderer = null;
+let notationPanelController = null;
+
+function buildNotationRenderState() {
+  const lgValue = parseInt(inputLg.value, 10);
+  if (!Number.isFinite(lgValue) || lgValue <= 0) {
+    return null;
+  }
+
+  ensureIntervalMemory(lgValue);
+
+  // Build rhythm events for ALL pulses from 0 to lg-1 (App2 always uses quarter notes)
+  // Selected pulses are notes, unselected pulses are rests
+  const rhythm = [];
+  const selectedIndices = [];
+  const positions = [];
+
+  for (let i = 0; i < lgValue; i++) {
+    const isSelected = (i === 0 || intervalMemory[i]);
+    rhythm.push({
+      pulseIndex: i,
+      duration: 'q', // quarter note
+      rest: !isSelected // rest if NOT selected
+    });
+    positions.push(i);
+    if (isSelected) {
+      selectedIndices.push(i);
+    }
+  }
+
+  return {
+    lg: lgValue,
+    rhythm,
+    positions,
+    selectedIndices
+  };
+}
+
+function renderNotationIfVisible({ force = false } = {}) {
+  if (!notationContentEl) return;
+  if (!notationPanelController) return;
+  if (!force && !notationPanelController.isOpen) return;
+
+  if (!notationRenderer) {
+    notationRenderer = createRhythmStaff({
+      container: notationContentEl,
+      pulseFilter: 'whole'
+    });
+  }
+
+  const state = buildNotationRenderState();
+  if (!state) {
+    notationRenderer.render({ lg: 0, rhythm: [] });
+    return;
+  }
+
+  notationRenderer.render({
+    lg: state.lg,
+    selectedIndices: state.selectedIndices,
+    positions: state.positions,
+    rhythm: state.rhythm
+  });
+}
+
+function handleNotationClick(event) {
+  if (!notationPanelController || !notationPanelController.isOpen) return;
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
+  const noteEl = target.closest('[data-pulse-index]');
+  if (!noteEl) return;
+  if (noteEl.dataset.nonSelectable === 'true') return;
+  const pulseIndex = Number.parseFloat(noteEl.dataset.pulseIndex);
+  if (!Number.isFinite(pulseIndex)) return;
+  const lgValue = parseInt(inputLg.value, 10);
+  if (!Number.isFinite(lgValue) || lgValue <= 0) return;
+  if (pulseIndex <= 0 || pulseIndex >= lgValue) return;
+  ensureIntervalMemory(lgValue);
+  const shouldSelect = !intervalMemory[pulseIndex];
+  setPulseSelected(pulseIndex, shouldSelect);
+}
+
+if (notationContentEl) {
+  notationContentEl.addEventListener('click', handleNotationClick);
+}
+
+// Pulse sequence UI element (contenteditable div in template)
+const pulseSeqEl = elements.pulseSeq;
+const pulseSeqController = createPulseSeqIntervalsController();
+const intervalMemoryApi = pulseSeqController.memory;
+let intervalMemory = intervalMemoryApi.data;
+const { editEl: pulseSeqEditEl } = pulseSeqController.mount({ root: pulseSeqEl });
+function getEditEl() {
+  return pulseSeqController.getEditElement();
+}
+function getPulseSeqText() {
+  return pulseSeqController.getText();
+}
+function setPulseSeqText(str) {
+  pulseSeqController.setText(str);
+}
+function setPulseSeqSelection(start, end) {
+  pulseSeqController.setSelectionRange(start, end);
+}
+function moveCaretToNearestMidpoint() {
+  pulseSeqController.moveCaretToNearestMidpoint();
+}
+function moveCaretStep(dir) {
+  pulseSeqController.moveCaretStep(dir);
+}
+// T indicator setup (App2-specific functionality)
+const shouldRenderTIndicator = Boolean(inputT);
+const tIndicatorController = shouldRenderTIndicator ? createTIndicator() : null;
+const tIndicator = tIndicatorController ? (() => {
+  const el = tIndicatorController.element;
+  el.id = 'tIndicator';
+  el.style.visibility = 'hidden';
+  timeline.appendChild(el);
+  return el;
+})() : null;
+
+const titleHeading = document.querySelector('header.top-bar h1');
+const titleTextNode = titleHeading?.querySelector('.top-bar-title-text');
+let titleButton = null;
+if (titleHeading && titleTextNode) {
+  titleButton = document.createElement('button');
+  titleButton.type = 'button';
+  titleButton.id = 'appTitleBtn';
+  titleButton.className = 'top-bar-title-button';
+  titleButton.textContent = titleTextNode.textContent?.trim() || '';
+  titleHeading.replaceChild(titleButton, titleTextNode);
+} else if (titleHeading) {
+  titleButton = document.createElement('button');
+  titleButton.type = 'button';
+  titleButton.id = 'appTitleBtn';
+  titleButton.className = 'top-bar-title-button';
+  titleButton.textContent = titleHeading.textContent || '';
+  titleHeading.textContent = '';
+  titleHeading.appendChild(titleButton);
+}
+const notationToggleBtn = document.getElementById(NOTATION_TOGGLE_BTN_ID);
+notationPanelController = createNotationPanelController({
+  toggleButton: notationToggleBtn,
+  panel: notationPanel,
+  closeButton: notationCloseBtn,
+  appId: 'app2',
+  onOpen: () => renderNotationIfVisible({ force: true })
+});
+
+const randomDefaults = {
+  Lg: { enabled: true, range: [2, 30] },
+  V: { enabled: true, range: [40, 320] },
+  T: { enabled: true, range: [0.1, 20] },
+  Pulses: { enabled: true, count: '' }
+};
+
+const RANDOM_STORE_KEY = 'random';
+
+function loadRandomConfig() {
+  try {
+    const raw = loadOpt(RANDOM_STORE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRandomConfig(cfg) {
+  try { saveOpt(RANDOM_STORE_KEY, JSON.stringify(cfg)); } catch {}
+}
+
+const randomConfig = mergeRandomConfig(randomDefaults, loadRandomConfig());
+
+/**
+ * Apply stored random configuration values to the associated DOM controls.
+ * @param {Record<string, any>} cfg
+ */
+function applyRandomConfig(cfg) {
+  applyBaseRandomConfig(cfg, {
+    Lg: { toggle: randLgToggle, min: randLgMin, max: randLgMax },
+    V: { toggle: randVToggle, min: randVMin, max: randVMax },
+    T: { toggle: randTToggle, min: randTMin, max: randTMax }
+  });
+  // Handle Pulses config (app-specific)
+  if (randPulsesToggle && randomCount && cfg.Pulses) {
+    randPulsesToggle.checked = cfg.Pulses.enabled;
+    randomCount.value = cfg.Pulses.count ?? '';
+  }
+}
+
+/**
+ * Persist the current random menu configuration back to storage.
+ */
+function updateRandomConfig() {
+  updateBaseRandomConfig(randomConfig, {
+    Lg: { toggle: randLgToggle, min: randLgMin, max: randLgMax, integer: true, minValue: 1 },
+    V: { toggle: randVToggle, min: randVMin, max: randVMax },
+    T: { toggle: randTToggle, min: randTMin, max: randTMax }
+  }, randomDefaults);
+
+  // Handle Pulses config (app-specific)
+  if (randPulsesToggle && randomCount) {
+    randomConfig.Pulses = {
+      enabled: randPulsesToggle.checked,
+      count: randomCount.value
+    };
+  }
+  saveRandomConfig(randomConfig);
+}
+
+applyRandomConfig(randomConfig);
+
+[
+  randLgToggle, randLgMin, randLgMax,
+  randVToggle, randVMin, randVMax,
+  randTToggle, randTMin, randTMax,
+  randPulsesToggle, randomCount
+].forEach(el => el?.addEventListener('change', updateRandomConfig));
+
+// No actualitza la memòria a cada tecleig: es confirma amb Enter o blur
+// pulseSeqEl?.addEventListener('input', handlePulseSeqInput);
+
+let pulses = [];
+// Hit targets (separate from the visual dots) and drag mode
+let pulseHits = [];
+// --- Selection memory across Lg changes ---
+let pulseSeqRanges = {};
+
+function ensureIntervalMemory(size) {
+  intervalMemoryApi.ensure(size);
+}
+
+// Clear all persistent interval selection (memory beyond current Lg too)
+function clearPersistentIntervals(){
+  intervalMemoryApi.clear();
+  try { selectedIntervals.clear(); } catch {}
+  /* Keep UI consistent; will be rebuilt by subsequent calls */
+  updatePulseSeqField();
+}
+// UI thresholds for number rendering
+const NUMBER_HIDE_THRESHOLD = 100;   // from this Lg and above, hide numbers
+const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
+
+// --- Selección para audio (App5: de 1 a Lg inclusive) ---
+function selectedForAudioFromState() {
+  const lg = parseInt(inputLg.value);
+  const set = new Set();
+  if (!isNaN(lg) && lg > 0) {
+    for (let i = 1; i <= lg && i < intervalMemory.length; i++) {
+      if (intervalMemory[i]) set.add(i);
+    }
+  }
+  return set;
+}
+const selectedIntervals = new Set();
+let isPlaying = false;
+let loopEnabled = false;
+let isUpdating = false;     // evita bucles de 'input' reentrants
+let circularTimeline = false;
+const T_INDICATOR_TRANSITION_DELAY = 650;
+let tIndicatorRevealHandle = null;
+// visualSyncHandle and lastVisualStep now managed by visualSync controller
+// Progress is now driven directly from audio callbacks
+
+// Create highlight controller
+const highlightController = createSimpleHighlightController({
+  getPulses: () => pulses,
+  getLoopEnabled: () => loopEnabled
+});
+
+// Create interval renderer for temporal intervals visualization
+const intervalRenderer = createIntervalRenderer({
+  timeline,
+  getSelectedPulses: () => selectedIntervals,
+  getLg: () => parseInt(inputLg.value),
+  isCircular: () => loopEnabled && circularTimeline
+});
+
+// Create visual sync controller
+const visualSync = createSimpleVisualSync({
+  getAudio: () => audio,
+  getIsPlaying: () => isPlaying,
+  onStep: (step) => {
+    // Highlight pulse
+    highlightController.highlightPulse(step);
+
+    // Handle pulse scrolling
+    handlePulseScroll(step);
+
+    // Update notation cursor
+    if (notationRenderer && typeof notationRenderer.updateCursor === 'function') {
+      const index = step % pulses.length;
+      notationRenderer.updateCursor(index, isPlaying);
+    }
+  }
+});
+
+function updateTIndicatorText(value) {
+  if (!tIndicatorController) return;
+  tIndicatorController.updateText(value);
+}
+
+function updateTIndicatorPosition() {
+  if (!timeline || !tIndicator) return false;
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) { return false; }
+
+  // Find the Lg label element and anchor 15px below it
+  let anchor = timeline.querySelector(`.pulse-number[data-index="${lg}"]`);
+  if (!anchor) anchor = timeline.querySelector('.pulse.lg');
+  const tlRect = timeline.getBoundingClientRect();
+  const circular = timeline.classList.contains('circular');
+
+  if (!anchor) { return false; }
+
+  const aRect = anchor.getBoundingClientRect();
+  const isLabel = anchor.classList.contains('pulse-number');
+  const offsetX = circular && isLabel ? -16 : 0; // compensate label shift in circle
+  const centerX = aRect.left + aRect.width / 2 - tlRect.left + offsetX;
+  const topY = aRect.bottom - tlRect.top + 15; // 15px separation below
+
+  tIndicator.style.left = `${centerX}px`;
+  tIndicator.style.top = `${topY}px`;
+  tIndicator.style.transform = 'translate(-50%, 0)';
+
+  if (tIndicator.parentNode !== timeline) timeline.appendChild(tIndicator);
+  return true;
+}
+function scheduleTIndicatorReveal(delay = 0) {
+  if (!tIndicator) return;
+  if (tIndicatorRevealHandle) {
+    clearTimeout(tIndicatorRevealHandle);
+    tIndicatorRevealHandle = null;
+  }
+
+  const ms = Math.max(0, Number(delay) || 0);
+  if (ms === 0) {
+    requestAnimationFrame(() => {
+      const anchored = updateTIndicatorPosition();
+      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
+    });
+    return;
+  }
+
+  tIndicator.style.visibility = 'hidden';
+  tIndicatorRevealHandle = setTimeout(() => {
+    tIndicatorRevealHandle = null;
+    requestAnimationFrame(() => {
+      const anchored = updateTIndicatorPosition();
+      tIndicator.style.visibility = anchored && tIndicator.textContent ? 'visible' : 'hidden';
+    });
+  }, ms);
+}
+const dragController = pulseSeqController.drag;
+dragController.attach({
+  timeline,
+  resolveTarget: ({ target }) => {
+    if (!target) return null;
+    const hit = target.closest('.pulse-hit, .pulse');
+    if (!hit) return null;
+    const idx = Number.parseInt(hit.dataset?.index, 10);
+    if (!Number.isFinite(idx)) return null;
+    return { key: String(idx), index: idx };
+  },
+  applySelection: (info, shouldSelect) => {
+    if (!info || !Number.isFinite(info.index)) return;
+    setPulseSelected(info.index, shouldSelect);
+  },
+  isSelectionActive: (info) => {
+    if (!info || !Number.isFinite(info.index)) return false;
+    ensureIntervalMemory(info.index);
+    return !!intervalMemory[info.index];
+  }
+});
+
+// Create timeline renderer for circular/linear layout
+const timelineRenderer = createTimelineRenderer({
+  timeline,
+  timelineWrapper,
+  getLg: () => pulses.length - 1,
+  getPulses: () => pulses,
+  getBars: () => Array.from(timeline.querySelectorAll('.bar')),
+  computeNumberFontRem,
+  pulseNumberHideThreshold: NUMBER_HIDE_THRESHOLD,
+  numberCircleOffset: NUMBER_CIRCLE_OFFSET,
+  isCircularEnabled: () => loopEnabled && circularTimeline,
+  scheduleIndicatorReveal: scheduleTIndicatorReveal,
+  tIndicatorTransitionDelay: T_INDICATOR_TRANSITION_DELAY,
+  callbacks: {
+    onAfterCircularLayout: (ctx) => {
+      // Position pulse hits in circular mode
+      pulseHits.forEach((h, i) => {
+        const angle = ctx.angleForIndex(i);
+        const x = ctx.centerX + ctx.radius * Math.cos(angle);
+        const y = ctx.centerY + ctx.radius * Math.sin(angle);
+        h.style.left = `${x}px`;
+        h.style.top = `${y}px`;
+        h.style.transform = 'translate(-50%, -50%)';
+      });
+      // Call App2-specific hooks
+      syncSelectedFromMemory();
+      updateNumbers();
+    },
+    onAfterLinearLayout: (ctx) => {
+      // Position pulse hits in linear mode
+      const lg = ctx.lg;
+      pulseHits.forEach((h, i) => {
+        const percent = (i / lg) * 100;
+        h.style.left = `${percent}%`;
+        h.style.top = '50%';
+        h.style.transform = 'translate(-50%, -50%)';
+      });
+      // Call App2-specific hooks
+      syncSelectedFromMemory();
+      updateNumbers();
+    }
+  }
+});
+
+// Hovers for LEDs and controls
+// LEDs ahora indican los campos editables; el apagado se recalcula
+attachHover(ledLg, { text: 'Entrada manual de "Lg"' });
+attachHover(ledV, { text: 'Entrada manual de "V"' });
+attachHover(ledT, { text: 'Valor calculado de "T"' });
+attachHover(playBtn, { text: 'Play / Stop' });
+attachHover(loopBtn, { text: 'Loop' });
+attachHover(tapBtn, { text: 'Tap Tempo' });
+attachHover(resetBtn, { text: 'Reset App' });
+attachHover(notationToggleBtn, { text: 'Mostrar/ocultar partitura' });
+attachHover(randomBtn, { text: 'Aleatorizar parámetros' });
+attachHover(randLgToggle, { text: 'Aleatorizar Lg' });
+attachHover(randLgMin, { text: 'Mínimo Lg' });
+attachHover(randLgMax, { text: 'Máximo Lg' });
+attachHover(randVToggle, { text: 'Aleatorizar V' });
+attachHover(randVMin, { text: 'Mínimo V' });
+attachHover(randVMax, { text: 'Máximo V' });
+attachHover(randTToggle, { text: 'Aleatorizar T' });
+attachHover(randTMin, { text: 'Mínimo T' });
+attachHover(randTMax, { text: 'Máximo T' });
+attachHover(randPulsesToggle, { text: 'Aleatorizar pulsos' });
+attachHover(randomCount, { text: 'Cantidad de pulsos a seleccionar (vacío = aleatorio, 0 = ninguno)' });
+
+
+const storeKey = (k) => `app2:${k}`;
+const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
+const loadOpt = (k) => { try { return localStorage.getItem(storeKey(k)); } catch { return null; } };
+
+function clearStoredPreferences() {
+  try {
+    const prefix = 'app2:';
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+    // Also clear shared sound preferences (no app prefix)
+    ['baseSound', 'accentSound', 'startSound', 'cycleSound'].forEach(key => {
+      try { localStorage.removeItem(key); } catch {}
+    });
+  } catch {}
+}
+
+let factoryResetPending = false;
+window.addEventListener('sharedui:factoryreset', () => {
+  if (factoryResetPending) return;
+  factoryResetPending = true;
+  clearStoredPreferences();
+  window.location.reload();
+});
+
+// Local header behavior (as before)
+function applyTheme(val){
+  if(val === 'system'){
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.dataset.theme = dark ? 'dark' : 'light';
+  } else {
+    document.body.dataset.theme = val;
+  }
+  saveOpt('theme', val);
+  // Notify shared listeners so dependent UI can refresh colors on the fly
+  try { window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: val } })); } catch {}
+}
+
+const storedTheme = loadOpt('theme');
+if (themeSelect) {
+  if (storedTheme) themeSelect.value = storedTheme;
+  applyTheme(themeSelect.value || 'system');
+  themeSelect.addEventListener('change', e => applyTheme(e.target.value));
+} else {
+  applyTheme(storedTheme || 'system');
+}
+
+document.addEventListener('sharedui:mute', (e) => {
+  const val = !!(e && e.detail && e.detail.value);
+  saveOpt('mute', val ? '1' : '0');
+  pendingMute = val;
+  if (audio && typeof audio.setMute === 'function') {
+    audio.setMute(val);
+  }
+});
+
+// Restore previous mute preference on load
+(() => {
+  try{
+    const saved = loadOpt('mute');
+    if (saved === '1') document.getElementById('muteBtn')?.click();
+  }catch{}
+})();
+
+const storedColor = loadOpt('color');
+if (storedColor) {
+  selectColor.value = storedColor;
+  document.documentElement.style.setProperty('--selection-color', storedColor);
+}
+selectColor.addEventListener('input', e => {
+  document.documentElement.style.setProperty('--selection-color', e.target.value);
+  saveOpt('color', e.target.value);
+});
+
+updateNumbers();
+
+circularTimelineToggle.checked = (() => {
+  const stored = loadOpt('circular');
+  return stored == null ? true : stored === '1';
+})();
+circularTimeline = circularTimelineToggle.checked;
+updateTIndicatorPosition();
+updateTIndicatorText(parseNum(inputT?.value ?? '') || '');
+scheduleTIndicatorReveal(350);
+
+circularTimelineToggle?.addEventListener('change', e => {
+  circularTimeline = e.target.checked;
+  saveOpt('circular', e.target.checked ? '1' : '0');
+  animateTimelineCircle(loopEnabled && circularTimeline);
+});
+// Keep T indicator anchored on window resizes
+window.addEventListener('resize', updateTIndicatorPosition);
+animateTimelineCircle(loopEnabled && circularTimeline);
+
+// Initialize loop controller with shared component
+loopController.attach();
+
+resetBtn.addEventListener('click', () => {
+  intervalMemory = [];
+  sessionStorage.setItem('volumeResetFlag', 'true');
+  window.location.reload();
+});
+
+async function handleTapTempo() {
+  try {
+    const audioInstance = await initAudio();
+    const result = audioInstance.tapTempo(performance.now());
+    if (!result) return;
+
+    if (result.remaining > 0) {
+      tapHelp.textContent = result.remaining === 2 ? '2 clicks más' : '1 click más solamente';
+      tapHelp.style.display = 'block';
+      return;
+    }
+
+    tapHelp.style.display = 'none';
+    if (Number.isFinite(result.bpm) && result.bpm > 0) {
+      const bpm = Math.round(result.bpm * 100) / 100;
+      setValue(inputV, bpm);
+      handleInput({ target: inputV });
+    }
+  } catch (error) {
+    console.warn('Tap tempo failed', error);
+  }
+}
+
+if (tapBtn) {
+  tapBtn.addEventListener('click', () => { handleTapTempo(); });
+}
+
+if (tapHelp) {
+  tapHelp.textContent = 'Se necesitan 3 clicks';
+  tapHelp.style.display = 'none';
+}
+
+// --- Aleatorización de parámetros y pulsos ---
+function randomInt(min, max) {
+  const lo = Math.ceil(min);
+  const hi = Math.floor(max);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) return lo;
+  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+}
+
+/**
+ * Apply random values within the configured ranges and update inputs accordingly.
+ */
+function randomize() {
+  if (randLgToggle?.checked) {
+    const [lo, hi] = toRange(randLgMin?.value, randLgMax?.value, randomDefaults.Lg.range);
+    const v = randomInt(lo, hi);
+    setValue(inputLg, v);
+    handleInput({ target: inputLg });
+  }
+  if (randVToggle?.checked) {
+    const [lo, hi] = toRange(randVMin?.value, randVMax?.value, randomDefaults.V.range);
+    const v = randomInt(lo, hi);
+    setValue(inputV, v);
+    handleInput({ target: inputV });
+  }
+  if (randPulsesToggle?.checked) {
+    // Reset persistent selection memory so old intervals don't reappear when Lg grows
+    clearPersistentIntervals();
+    const lg = parseInt(inputLg.value);
+    if (!isNaN(lg) && lg > 0) {
+      ensureIntervalMemory(lg);
+      const rawCount = typeof randomCount.value === 'string' ? randomCount.value.trim() : '';
+      const available = [];
+      for (let i = 1; i <= lg; i++) available.push(i);
+      const selected = new Set();
+      if (rawCount === '') {
+        const density = 0.5;
+        available.forEach(i => { if (Math.random() < density) selected.add(i); });
+      } else {
+        const parsed = Number.parseInt(rawCount, 10);
+        if (Number.isNaN(parsed)) {
+          const density = 0.5;
+          available.forEach(i => { if (Math.random() < density) selected.add(i); });
+        } else if (parsed > 0) {
+          const target = Math.min(parsed, available.length);
+          while (selected.size < target) {
+            const idx = available[Math.floor(Math.random() * available.length)];
+            selected.add(idx);
+          }
+        }
+        // For parsed <= 0, keep selection empty (0 intervals)
+      }
+      const seq = Array.from(selected).sort((a, b) => a - b);
+      for (let i = 1; i <= lg; i++) intervalMemory[i] = false;
+      seq.forEach(i => { intervalMemory[i] = true; });
+      syncSelectedFromMemory();
+      updateNumbers();
+      if (isPlaying && audio && typeof audio.setSelected === 'function') {
+        audio.setSelected(selectedForAudioFromState());
+      }
+    }
+  }
+}
+
+initRandomMenu(randomBtn, randomMenu, randomize);
+
+// Sound dropdowns initialized by header.js via initHeader()
+// No need to initialize here - header.js handles baseSoundSelect, accentSoundSelect, and startSoundSelect
+
+// Preview on sound change handled by shared header
+
+// Create standardized audio initializer that avoids AudioContext warnings
+const _baseInitAudio = createRhythmAudioInitializer({
+  getSoundSelects: () => ({
+    baseSoundSelect: elements.baseSoundSelect,
+    accentSoundSelect: elements.accentSoundSelect,
+    startSoundSelect: elements.startSoundSelect
+  }),
+  schedulingBridge
+});
+
+async function initAudio() {
+  if (!audio) {
+    audio = await _baseInitAudio();
+    if (pendingMute != null && typeof audio.setMute === 'function') {
+      audio.setMute(pendingMute);
+    }
+    // Expose audio instance for sound dropdown preview
+    if (typeof window !== 'undefined') window.__labAudio = audio;
+  }
+  return audio;
+}
+
+if (typeof window !== 'undefined') {
+  window.__labInitAudio = initAudio;
+}
+
+// Mostrar unitats quan s'edita cada paràmetre
+function bindUnit(input, unit){
+  if(!input || !unit) return;
+  input.addEventListener('focus', () => { unit.style.display = 'block'; });
+  input.addEventListener('blur', () => { unit.style.display = 'none'; });
+}
+
+if (inputT) {
+  inputT.readOnly = true;
+  inputT.dataset.auto = '1';
+}
+
+bindUnit(inputLg, unitLg);
+bindUnit(inputV, unitV);
+bindUnit(inputT, unitT);
+
+[inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
+handleInput();
+
+getEditEl()?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const res = sanitizePulseSeq({ causedBy: 'enter' });
+    // Oculta el caret al confirmar excepto si hubo números > Lg
+    if (!res || !res.hadTooBig) {
+      try { getEditEl()?.blur(); } catch {}
+    }
+    return;
+  }
+  if (e.key === 'ArrowLeft' || e.key === 'Home') { e.preventDefault(); moveCaretStep(-1); return; }
+  if (e.key === 'ArrowRight' || e.key === 'End') { e.preventDefault(); moveCaretStep(1); return; }
+  // Allow only digits, navegación y espacio (para introducir varios pulsos)
+  const allowed = new Set(['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab',' ']);
+  if (!/^[0-9]$/.test(e.key) && !allowed.has(e.key)) {
+    e.preventDefault();
+    return;
+  }
+  if (e.key === 'Backspace') {
+    // Borrar con una pulsación el número a la izquierda + un espacio
+    e.preventDefault();
+    const el = getEditEl(); if(!el) return; const node = el.firstChild || el; let text = node.textContent || '';
+    const sel = window.getSelection && window.getSelection(); if(!sel||sel.rangeCount===0) return; const rng = sel.getRangeAt(0); if(!el.contains(rng.startContainer)) return;
+    let pos = rng.startOffset; if(pos<=0 || text.length===0) return;
+    // Si no estamos en midpoint, ajusta al más cercano (sin modificar texto)
+    const mids = getMidpoints(text); if(mids.length){ let best=mids[0],d=Math.abs(pos-best); for(const m of mids){const dd=Math.abs(pos-m); if(dd<d){best=m; d=dd;}} pos=best; }
+    // Buscamos el token a la izquierda del midpoint
+    let i = pos-1; while(i>=0 && text[i]===' ') i--; if(i<0) return; // no hay número a la izquierda
+    if(!(text[i]>='0' && text[i]<='9')) return;
+    const endNum = i+1; let j=i; while(j>=0 && text[j]>='0' && text[j]<='9') j--; const startNum = j+1;
+    // Construimos: izquierda hasta startNum + '  ' + derecha saltando el espacio derecho del midpoint
+    const left = text.slice(0,startNum);
+    const right = text.slice(pos+1); // saltar un espacio (el derecho del midpoint)
+    const out = (left + '  ' + right);
+    node.textContent = out;
+    // Colocamos caret en el nuevo midpoint
+    const caret = left.length + 1; // centro de '  '
+    setPulseSeqSelection(caret, caret);
+    return;
+  }
+  if (e.key === 'Delete') {
+    // Borrar con una pulsación el número a la derecha + un espacio
+    e.preventDefault();
+    const el = getEditEl(); if(!el) return; const node = el.firstChild || el; let text = node.textContent || '';
+    const sel = window.getSelection && window.getSelection(); if(!sel||sel.rangeCount===0) return; const rng = sel.getRangeAt(0); if(!el.contains(rng.startContainer)) return;
+    let pos = rng.startOffset; if(pos>=text.length) return;
+    // Ajusta al midpoint más cercano (sin cambiar texto)
+    const mids = getMidpoints(text); if(mids.length){ let best=mids[0],d=Math.abs(pos-best); for(const m of mids){const dd=Math.abs(pos-m); if(dd<d){best=m; d=dd;}} pos=best; }
+    // Buscar número a la derecha del midpoint
+    let k = pos; while(k<text.length && text[k]===' ') k++;
+    const isD=(c)=> c>='0'&&c<='9';
+    if(k>=text.length || !isD(text[k])) return;
+    let end=k; while(end<text.length && isD(text[end])) end++;
+    // Espacios tras el número: saltar hasta 2 para no duplicar separadores
+    let s=0; while(end+s<text.length && text[end+s]===' ') s++;
+    const left = text.slice(0, pos-1); // elimina el espacio izquierdo del midpoint
+    const right = text.slice(end + Math.min(s,2));
+    node.textContent = left + '  ' + right;
+    const caret = left.length + 1; setPulseSeqSelection(caret, caret);
+    return;
+  }
+});
+getEditEl()?.addEventListener('blur', () => sanitizePulseSeq({ causedBy: 'blur' }));
+// Visual gap hint under caret (does not modify text)
+getEditEl()?.addEventListener('mouseup', ()=> setTimeout(moveCaretToNearestMidpoint,0));
+// (Sin manejador en keyup para evitar doble salto)
+getEditEl()?.addEventListener('focus', ()=> setTimeout(()=>{
+  const el = getEditEl(); if(!el) return;
+  const node = el.firstChild || el; let text = node.textContent || '';
+  if(text.length === 0){ text = '  '; node.textContent = text; }
+  moveCaretToNearestMidpoint();
+},0));
+
+const inputToLed = new Map([
+  [inputLg, ledLg],
+  [inputV, ledV],
+  [inputT, ledT],
+]);
+
+const autoTip = document.createElement('div');
+autoTip.className = 'hover-tip auto-tip-below';
+autoTip.textContent = 'Introduce valores en los otros dos círculos';
+document.body.appendChild(autoTip);
+let autoTipTimeout = null;
+
+function showAutoTip(input){
+  const rect = input.getBoundingClientRect();
+  autoTip.style.left = rect.left + rect.width / 2 + 'px';
+  // Show below the input (use bottom instead of top)
+  autoTip.style.top = rect.bottom + window.scrollY + 'px';
+  autoTip.classList.add('show');
+  clearTimeout(autoTipTimeout);
+  // Display twice as long as before
+  autoTipTimeout = setTimeout(() => autoTip.classList.remove('show'), 4000);
+}
+
+function flashOtherLeds(excludeInput){
+  const excludeLed = inputToLed.get(excludeInput);
+  [ledLg, ledV, ledT].forEach(led => {
+    if (led && led !== excludeLed) {
+      led.classList.add('flash');
+      setTimeout(() => led.classList.remove('flash'), 800);
+    }
+  });
+}
+
+[inputLg, inputV, inputT].filter(Boolean).forEach(input => {
+  input.addEventListener('beforeinput', (e) => {
+    if (input.dataset.auto === '1') {
+      showAutoTip(input);
+      flashOtherLeds(input);
+      e.preventDefault();
+    }
+  });
+});
+
+function setValue(input, value){
+  isUpdating = true;
+  input.value = String(value);
+  isUpdating = false;
+}
+
+// parseNum, formatInteger, formatBpmValue now imported/defined at top
+// formatNumberValue replaced with formatNumber from number-utils
+
+const titleInfoTooltip = createInfoTooltip({
+  className: 'fraction-info-bubble auto-tip-below top-bar-info-tip'
+});
+
+function buildTitleInfoContent() {
+  const fragment = document.createDocumentFragment();
+
+  const lgValue = parseNum(inputLg?.value ?? '');
+  const hasLg = Number.isFinite(lgValue) && lgValue > 0;
+
+  if (hasLg) {
+    const lgLine = document.createElement('p');
+    lgLine.className = 'top-bar-info-tip__line';
+    const lgLabel = document.createElement('strong');
+    lgLabel.textContent = 'Lg:';
+    lgLine.append(lgLabel, ' ', formatInteger(lgValue));
+    fragment.append(lgLine);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Introduce una Lg mayor que 0 para activar los cálculos.';
+    fragment.append(hint);
+  }
+
+  const tempoValue = parseNum(inputV?.value ?? '');
+  const hasTempo = Number.isFinite(tempoValue) && tempoValue > 0;
+  const tValue = parseNum(inputT?.value ?? '');
+  const hasT = Number.isFinite(tValue) && tValue > 0;
+  const derivedTFromTempo = hasLg && hasTempo ? (lgValue * 60) / tempoValue : null;
+  const tempoFromT = hasLg && hasT ? (lgValue / tValue) * 60 : null;
+  const effectiveTempo = hasTempo ? tempoValue : tempoFromT;
+  const tForFormula = hasT ? tValue : derivedTFromTempo;
+
+  if (effectiveTempo != null && hasLg && tForFormula != null) {
+    const baseFormulaLine = document.createElement('p');
+    baseFormulaLine.className = 'top-bar-info-tip__line';
+    const baseLabel = document.createElement('strong');
+    baseLabel.textContent = 'V base';
+    baseFormulaLine.append(
+      baseLabel,
+      ` = (${formatInteger(lgValue)} / ${formatNumber(tForFormula, 2)})·60 = ${formatBpmValue(effectiveTempo)} BPM`
+    );
+    fragment.append(baseFormulaLine);
+  } else if (effectiveTempo != null) {
+    const baseLine = document.createElement('p');
+    baseLine.className = 'top-bar-info-tip__line';
+    const baseLabel = document.createElement('strong');
+    baseLabel.textContent = 'V base:';
+    baseLine.append(baseLabel, ' ', `${formatBpmValue(effectiveTempo)} BPM`);
+    fragment.append(baseLine);
+  } else {
+    const hint = document.createElement('p');
+    hint.className = 'top-bar-info-tip__hint';
+    hint.textContent = 'Completa V y Lg para calcular la velocidad base.';
+    fragment.append(hint);
+  }
+
+  if (hasLg && hasTempo && derivedTFromTempo != null) {
+    const tFormulaLine = document.createElement('p');
+    tFormulaLine.className = 'top-bar-info-tip__line';
+    const tFormulaLabel = document.createElement('strong');
+    tFormulaLabel.textContent = 'T';
+    tFormulaLine.append(
+      tFormulaLabel,
+      ` = (${formatInteger(lgValue)} / ${formatBpmValue(tempoValue)})·60 = ${formatNumber(derivedTFromTempo, 2)} s`
+    );
+    fragment.append(tFormulaLine);
+  } else if (hasT) {
+    const tLine = document.createElement('p');
+    tLine.className = 'top-bar-info-tip__line';
+    const tLabel = document.createElement('strong');
+    tLabel.textContent = 'T:';
+    tLine.append(tLabel, ' ', `${formatNumber(tValue, 2)} s`);
+    fragment.append(tLine);
+  }
+
+  const selectedForAudio = selectedForAudioFromState();
+  const selectedCount = selectedForAudio ? selectedForAudio.size : 0;
+  const selectedLine = document.createElement('p');
+  selectedLine.className = 'top-bar-info-tip__line';
+  const selectedLabel = document.createElement('strong');
+  selectedLabel.textContent = 'Pulsos seleccionados:';
+  selectedLine.append(selectedLabel, ' ', formatInteger(selectedCount));
+  fragment.append(selectedLine);
+
+  if (selectedCount > 0) {
+    const reminder = document.createElement('p');
+    reminder.className = 'top-bar-info-tip__hint';
+    reminder.textContent = 'Los pulsos seleccionados no incluyen los extremos 0 y Lg.';
+    fragment.append(reminder);
+  }
+
+  return fragment;
+}
+
+if (titleButton) {
+  attachHover(titleButton, { text: 'Click para ver información detallada' });
+  titleButton.addEventListener('click', () => {
+    const content = buildTitleInfoContent();
+    if (!content) return;
+    titleInfoTooltip.show(content, titleButton);
+  });
+  titleButton.addEventListener('blur', () => titleInfoTooltip.hide());
+  titleButton.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' || event.key === 'Esc') {
+      titleInfoTooltip.hide();
+    }
+  });
+}
+function formatSec(n){
+  // arrodonim a 2 decimals però sense forçar-los si són .00
+  const rounded = Math.round(Number(n) * 100) / 100;
+  return rounded.toLocaleString('ca-ES', {
+     minimumFractionDigits: 0,
+     maximumFractionDigits: 2
+   });
+}
+
+// Guard: if LED is off (auto), show tip and do nothing
+function guardManual(input){
+  if (input?.dataset?.auto === '1'){
+    showAutoTip(input);
+    flashOtherLeds(input);
+    return false;
+  }
+  return true;
+}
+
+// Long‑press auto‑repeat for spinner buttons
+function addRepeatPress(el, fn, guardInput){
+  if (!el) return;
+  let t=null, r=null;
+  const start = (ev) => {
+    // When LED is off (auto), show help and do nothing
+    if (guardInput && !guardManual(guardInput)) { ev.preventDefault(); return; }
+    fn();
+    t = setTimeout(() => { r = setInterval(fn, 80); }, 320);
+    ev.preventDefault();
+  };
+  const stop = () => { clearTimeout(t); clearInterval(r); t=r=null; };
+  el.addEventListener('mousedown', start);
+  el.addEventListener('touchstart', start, { passive:false });
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>el.addEventListener(ev, stop));
+  // Also stop if released outside the button
+  document.addEventListener('mouseup', stop);
+  document.addEventListener('touchend', stop);
+}
+
+
+// Unified spinner behavior for number inputs (V, Lg)
+function stepAndDispatch(input, dir){
+  if (!input) return;
+  if (dir > 0) input.stepUp(); else input.stepDown();
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+addRepeatPress(inputVUp,   () => stepAndDispatch(inputV, +1),  inputV);
+addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1),  inputV);
+addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), inputLg);
+addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), inputLg);
+
+function sanitizePulseSeq(opts = {}){
+  if (!pulseSeqEl) return;
+  const lg = parseInt(inputLg.value);
+  // Guarda posición del caret antes de normalizar
+  const caretBefore = (()=>{ const el=getEditEl(); if(!el) return 0; const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; const r=s.getRangeAt(0); if(!el.contains(r.startContainer)) return 0; return r.startOffset; })();
+  const text = getPulseSeqText();
+  const matches = text.match(/\d+/g) || [];
+  const seen = new Set();
+  const nums = [];
+  let hadTooBig = false;
+  let firstTooBig = null;
+  for (const m of matches) {
+    const n = parseInt(m, 10);
+    if (n >= 1 && !seen.has(n)) {
+      if (!isNaN(lg) && n > lg) { hadTooBig = true; if(firstTooBig===null) firstTooBig=n; continue; }
+      seen.add(n);
+      nums.push(n);
+    }
+  }
+  if (!isNaN(lg)) ensureIntervalMemory(lg);
+  nums.sort((a,b) => a - b);
+  const joined = (isNaN(lg) ? nums : nums.filter(n => n >= 1 && n <= lg)).join('  ');
+  const out = '  ' + joined + '  ';
+  setPulseSeqText(out);
+  if (!isNaN(lg)) {
+    for (let i = 1; i <= lg; i++) intervalMemory[i] = false;
+    nums.forEach(n => { if (n >= 1 && n <= lg) intervalMemory[n] = true; });
+    syncSelectedFromMemory();
+    updateNumbers();
+  }
+  // Restaurar caret en una posición segura (entre espacios dobles)
+  // - Si hubo números > Lg o es tecleo normal, recolocamos el caret
+  // - Además, lo ajustamos explícitamente al midpoint más cercano para que no quede pegado a un número
+  const pos = Math.min(out.length, caretBefore);
+  if (hadTooBig || !(opts.causedBy === 'enter' || opts.causedBy === 'blur')) {
+    setPulseSeqSelection(pos, pos);
+    // Asegura separación: salta al midpoint más cercano tras normalizar
+    try { moveCaretToNearestMidpoint(); } catch {}
+  }
+  // Mensaje temporal si hubo números mayores que Lg
+  if (hadTooBig && !isNaN(lg)) {
+    try{
+      const el = getEditEl();
+      const tip = document.createElement('div');
+      tip.className = 'hover-tip auto-tip-below';
+      const bad = firstTooBig != null ? firstTooBig : '';
+      tip.innerHTML = `El número <strong>${bad}</strong> introducido es mayor que la <span style=\"color: var(--color-lg); font-weight: 700;\">Lg</span>. Elige un número menor que <strong>${lg}</strong>`;
+      document.body.appendChild(tip);
+      let rect = null;
+      const sel = window.getSelection && window.getSelection();
+      if(sel && sel.rangeCount){
+        const r = sel.getRangeAt(0).cloneRange();
+        if(el && el.contains(r.startContainer)){
+          r.collapse(false);
+          rect = r.getBoundingClientRect();
+        }
+      }
+      if(!rect) rect = el.getBoundingClientRect();
+      tip.style.left = rect.left + 'px';
+      tip.style.top = (rect.bottom + window.scrollY) + 'px';
+      tip.style.fontSize = '0.95rem';
+      tip.style.fontSize = '0.95rem';
+      tip.classList.add('show');
+      setTimeout(()=>{ tip.classList.remove('show'); try{ document.body.removeChild(tip);}catch{} }, 3000);
+    }catch{}
+  }
+  return { hadTooBig };
+}
+
+function handleInput(){
+  const lg = parseNum(inputLg.value);
+  const v  = parseNum(inputV.value);
+  const hasLg = !isNaN(lg) && lg > 0;
+  const hasV  = !isNaN(v)  && v  > 0;
+
+  if (isUpdating) return;
+
+  let indicatorValue = '';
+  if (hasLg && hasV) {
+    const timing = fromLgAndTempo(lg, v);
+    if (timing && timing.duration != null) {
+      const rounded = Math.round(timing.duration * 100) / 100;
+      if (inputT) setValue(inputT, rounded);
+      indicatorValue = rounded;
+    }
+  } else if (inputT) {
+    indicatorValue = parseNum(inputT.value);
+  }
+  updateTIndicatorText(indicatorValue);
+
+  // Ensure memory capacity always (preserve selections when Lg crece manualmente)
+  if (hasLg) {
+    ensureIntervalMemory(lg);
+  }
+
+  updateFormula();
+  renderTimeline();
+  updatePulseSeqField();
+  updateAutoIndicator();
+
+  if (isPlaying && audio) {
+    const lgNow = parseInt(inputLg.value);
+    const vNow  = parseFloat(inputV.value);
+    if (typeof audio.setSelected === 'function') {
+      audio.setSelected(selectedForAudioFromState());
+    }
+    const validLg = Number.isFinite(lgNow) && lgNow > 0;
+    const validV = Number.isFinite(vNow) && vNow > 0;
+    if (typeof audio.updateTransport === 'function' && (validLg || validV)) {
+      const playbackTotal = validLg ? toPlaybackPulseCount(lgNow, loopEnabled) : null;
+      audio.updateTransport({
+        align: 'nextPulse',
+        totalPulses: playbackTotal != null ? playbackTotal : undefined,
+        bpm: validV ? vNow : undefined
+      });
+    }
+  }
+}
+
+function updateFormula(){
+  if (!formula) return;
+  const tNum = parseNum(inputT?.value ?? '');
+  const tStr = isNaN(tNum)
+    ? ((inputT?.value ?? '') || 'T')
+    : formatSec(tNum).replace('.', ',');
+  const lg = inputLg.value || 'Lg';
+  const v  = inputV.value || 'V';
+  formula.innerHTML = `
+  <span class="fraction">
+    <span class="top lg">${lg}</span>
+    <span class="bottom v">${v}</span>
+  </span>
+  <span class="equal">=</span>
+  <span class="fraction">
+    <span class="top t">${tStr}</span>
+    <span class="bottom">60</span>
+  </span>`;
+
+  attachHover(formula.querySelector('.top.lg'), { text: 'Pulsos' });
+  attachHover(formula.querySelector('.bottom.v'), { text: 'PulsosPorMinuto' });
+  attachHover(formula.querySelector('.top.t'), { text: 'segundos' });
+  attachHover(formula.querySelector('.bottom:not(.v)'), { text: 'segundos' });
+}
+
+function updatePulseSeqField(){
+  if(!pulseSeqEl) return;
+  const lg = parseInt(inputLg.value);
+  if(isNaN(lg) || lg <= 0){
+    setPulseSeqText('');
+    try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=''; }catch{}
+    pulseSeqRanges = {};
+    return;
+  }
+  try{ const s = pulseSeqEl.querySelector('.pz.lg'); if (s) s.textContent=String(lg); }catch{}
+  const arr = [];
+  // Collect selected intervals from 1 to Lg (inclusive)
+  for(let i = 1; i <= lg && i < intervalMemory.length; i++){
+    if(intervalMemory[i]) arr.push(i);
+  }
+  arr.sort((a,b) => a - b);
+  pulseSeqRanges = {};
+  let pos = 0;
+  const parts = arr.map(num => {
+    const str = String(num);
+    pulseSeqRanges[num] = [pos + 2, pos + 2 + str.length];
+    pos += str.length + 2; // acumulado interno; offset global de 2 al inicio
+    return str;
+  });
+  // añade dos espacios al inicio y al final para tener midpoints en extremos
+  setPulseSeqText((parts.length? '  ' : '  ') + parts.join('  ') + (parts.length? '  ' : '  '));
+}
+
+// Rebuild selectedIntervals (visible set) from intervalMemory and current Lg, then apply DOM classes
+// App5: Sin extremos efímeros, de 1 a Lg inclusive
+function syncSelectedFromMemory() {
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) return;
+
+  selectedIntervals.clear();
+
+  // Persistencia: índices de 1 a Lg (inclusive)
+  const maxIdx = Math.min(lg, intervalMemory.length - 1);
+  for (let i = 1; i <= maxIdx; i++) {
+    if (intervalMemory[i]) selectedIntervals.add(i);
+  }
+
+  // Aplica al DOM
+  pulses.forEach((p, idx) => {
+    if (!p) return;
+    p.classList.toggle('selected', selectedIntervals.has(idx));
+  });
+
+  // Renderizar intervalos visuales
+  intervalRenderer.render();
+
+  updatePulseSeqField();
+  renderNotationIfVisible();
+}
+
+function handlePulseSeqInput(){
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) {
+    intervalMemory = [];
+    renderTimeline();
+    updateNumbers();
+    return;
+  }
+  ensureIntervalMemory(lg);
+  for(let i = 1; i <= lg; i++) intervalMemory[i] = false;
+  const nums = getPulseSeqText().trim().split(/\s+/)
+    .map(n => parseInt(n,10))
+    .filter(n => !isNaN(n) && n >= 1 && n <= lg);
+  nums.sort((a,b) => a - b);
+  nums.forEach(n => { intervalMemory[n] = true; });
+  setPulseSeqText(nums.join(' '));
+  renderTimeline();
+  updateNumbers();
+  if (isPlaying && audio && typeof audio.setSelected === 'function') {
+    audio.setSelected(selectedForAudioFromState());
+  }
+}
+
+// Set selection state for index i (App5: todos los pulsos de 1 a Lg son seleccionables)
+function setPulseSelected(i, shouldSelect) {
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg < 0) return;
+  if (i < 1 || i > lg) return; // Solo pulsos de 1 a Lg
+
+  ensureIntervalMemory(Math.max(i, lg));
+  intervalMemory[i] = shouldSelect;
+
+  syncSelectedFromMemory();
+  updateNumbers();
+
+  if (isPlaying && audio) {
+    if (typeof audio.setSelected === 'function') {
+      audio.setSelected(selectedForAudioFromState());
+    }
+    if (typeof audio.setLoop === 'function') {
+      audio.setLoop(loopEnabled);
+    }
+  }
+
+  animateTimelineCircle(loopEnabled && circularTimeline);
+  renderNotationIfVisible();
+}
+
+function renderTimeline(){
+  timeline.innerHTML = '';
+  pulses = [];
+  pulseHits = [];
+  const lg = parseInt(inputLg.value);
+  if(isNaN(lg) || lg <= 0) return;
+  ensureIntervalMemory(lg);
+
+  // App5: Renderizar pulsos de 1 a Lg (sin pulso 0)
+  for (let i = 1; i <= lg; i++) {
+    const p = document.createElement('div');
+    p.className = 'pulse';
+    if (i === lg) p.classList.add('lg');
+    if (i === 1) p.classList.add('first');
+    p.dataset.index = i;
+    timeline.appendChild(p);
+    pulses.push(p);
+
+    // Barras verticales en extremos (1 y Lg)
+    if (i === 1 || i === lg) {
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      timeline.appendChild(bar);
+    }
+
+    // Click/drag hit target (bigger than the visual dot)
+    const hit = document.createElement('div');
+    hit.className = 'pulse-hit';
+    hit.dataset.index = i;
+    hit.style.position = 'absolute';
+    hit.style.borderRadius = '50%';
+    hit.style.background = 'transparent';
+    hit.style.zIndex = '6'; // above pulses and bars
+
+    const hitSize = computeHitSizePx(lg);
+    hit.style.width = hitSize + 'px';
+    hit.style.height = hitSize + 'px';
+
+    // Todos los pulsos son interactivos en App5
+    hit.style.pointerEvents = 'auto';
+    hit.style.cursor = 'pointer';
+
+    // listeners on the hit target
+    hit.addEventListener('click', (ev) => {
+      if (dragController.consumeSuppressClick(String(i))) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        return; // already applied on pointerdown
+      }
+      togglePulse(i);
+    });
+    hit.addEventListener('pointerenter', () => {
+      dragController.handleEnter({ key: String(i), index: i });
+    });
+
+    timeline.appendChild(hit);
+    pulseHits.push(hit);
+  }
+  syncSelectedFromMemory();
+  animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
+  updateTIndicatorPosition();
+  renderNotationIfVisible();
+}
+
+function togglePulse(i){
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg)) return;
+
+  // App5: Todos los pulsos de 1 a Lg son interactivos
+  if (i < 1 || i > lg) return;
+  setPulseSelected(i, !intervalMemory[i]);
+}
+
+function animateTimelineCircle(isCircular, opts = {}) {
+  const silent = !!opts.silent;
+  timelineRenderer.layoutTimeline(isCircular, { silent });
+}
+
+function showNumber(i, options = {}){
+  const { selected = false } = options;
+  const n = document.createElement('div');
+  n.className = 'pulse-number';
+
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) return;
+
+  if (i === 1) n.classList.add('first');
+  if (i === lg) n.classList.add('lg');
+  if (selected) {
+    n.classList.add('selected');
+  }
+  n.dataset.index = i;
+  n.textContent = i;
+  const fontRem = computeNumberFontRem(lg);
+  n.style.fontSize = fontRem + 'rem';
+
+   if (timeline.classList.contains('circular')) {
+     const rect = timeline.getBoundingClientRect();
+     const radius = Math.min(rect.width, rect.height) / 2 - 10;
+     const offset = NUMBER_CIRCLE_OFFSET;
+     const cx = rect.width / 2;
+     const cy = rect.height / 2;
+     // App5: ángulo de 1 a Lg
+     const normalizedIndex = (i - 1) / (lg - 1); // normalizado de 0 a 1
+     const angle = normalizedIndex * 2 * Math.PI + Math.PI / 2;
+     const x = cx + (radius + offset) * Math.cos(angle);
+     let y = cy + (radius + offset) * Math.sin(angle);
+
+     const xShift = (i === 1) ? -16 : (i === lg ? 16 : 0); // 1 a l'esquerra, Lg a la dreta
+     n.style.left = (x + xShift) + 'px';
+     n.style.transform = 'translate(-50%, -50%)';
+
+     if (i === 1 || i === lg) {
+       n.style.top = (y + 8) + 'px';
+       n.style.zIndex = (i === 1) ? '3' : '2';
+     } else {
+       n.style.top = y + 'px';
+     }
+
+  } else {
+    // App5: posición lineal de 1 a Lg
+    const normalizedIndex = (i - 1) / (lg - 1);
+    const percent = normalizedIndex * 100;
+    n.style.left = percent + '%';
+  }
+
+  timeline.appendChild(n);
+}
+
+function removeNumber(i){
+  const el = timeline.querySelector(`.pulse-number[data-index="${i}"]`);
+  if(el) el.remove();
+}
+
+function updateNumbers(){
+  document.querySelectorAll('.pulse-number').forEach(n => n.remove());
+  if (pulses.length === 0) return;
+
+  const lg = parseInt(inputLg.value);
+  if (isNaN(lg) || lg <= 0) return;
+
+  const tooDense = lg >= NUMBER_HIDE_THRESHOLD;
+  if (tooDense) {
+    try { updateTIndicatorPosition(); } catch {}
+    return;
+  }
+
+  // App5: Renderizar números de 1 a Lg
+  for (let i = 1; i <= lg; i++) {
+    const isEndpoint = i === 1 || i === lg;
+    const isSelected = selectedIntervals.has(i);
+    showNumber(i, { selected: isSelected });
+  }
+  // Re-anchor T to the (possibly) re-generated Lg label
+  try { updateTIndicatorPosition(); } catch {}
+}
+
+function updateAutoIndicator(){
+  // Los LEDs encendidos son los campos editables; el apagado se recalcula
+  ledLg?.classList.toggle('on', inputLg.dataset.auto !== '1');
+  ledV?.classList.toggle('on', inputV.dataset.auto !== '1');
+  ledT?.classList.toggle('on', (inputT?.dataset?.auto) !== '1');
+}
+
+function handlePlaybackStop(audioInstance) {
+  const iconPlay = playBtn?.querySelector('.icon-play');
+  const iconStop = playBtn?.querySelector('.icon-stop');
+  isPlaying = false;
+  playBtn?.classList.remove('active');
+  if (iconPlay) iconPlay.style.display = 'block';
+  if (iconStop) iconStop.style.display = 'none';
+  highlightController.clearHighlights();
+  visualSync.stop();
+  if (audioInstance && typeof audioInstance.stop === 'function') {
+    try { audioInstance.stop(); } catch {}
+  }
+
+  // Resetear cursor de notación
+  if (notationRenderer && typeof notationRenderer.resetCursor === 'function') {
+    notationRenderer.resetCursor();
+  }
+  const ed = getEditEl();
+  if (ed) {
+    ed.classList.remove('playing');
+    try { ed.blur(); } catch {}
+    try {
+      const sel = window.getSelection && window.getSelection();
+      sel && sel.removeAllRanges && sel.removeAllRanges();
+    } catch {}
+  }
+  pulseSeqController.clearActive();
+}
+
+async function startPlayback(providedAudio) {
+  const lg = parseInt(inputLg.value);
+  const v  = parseFloat(inputV.value);
+  if (!Number.isFinite(lg) || !Number.isFinite(v) || lg <= 0 || v <= 0) {
+    return false;
+  }
+
+  const audioInstance = providedAudio || await initAudio();
+  if (!audioInstance) return false;
+
+  visualSync.stop();
+  audioInstance.stop();
+  highlightController.clearHighlights();
+
+  // Sound selection is already applied by initAudio() from dataset.value
+  // and by bindSharedSoundEvents from sharedui:sound events
+  // No need to override here
+
+  const timing = fromLgAndTempo(lg, v);
+  if (!timing || timing.interval == null) {
+    return false;
+  }
+
+  const interval = timing.interval;
+  const playbackTotal = toPlaybackPulseCount(lg, loopEnabled);
+  if (playbackTotal == null) {
+    return false;
+  }
+  const selectedForAudio = selectedForAudioFromState();
+  const iconPlay = playBtn?.querySelector('.icon-play');
+  const iconStop = playBtn?.querySelector('.icon-stop');
+
+  const onFinish = () => {
+    handlePlaybackStop(audioInstance);
+  };
+
+  const onPulse = (step) => highlightController.highlightPulse(step);
+
+  audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, onPulse, onFinish);
+
+  visualSync.syncVisualState();
+  visualSync.start();
+
+  isPlaying = true;
+  playBtn?.classList.add('active');
+  if (iconPlay) iconPlay.style.display = 'none';
+  if (iconStop) iconStop.style.display = 'block';
+  const ed = getEditEl();
+  if (ed) {
+    ed.classList.add('playing');
+    try { ed.blur(); } catch {}
+  }
+
+  return true;
+}
+
+function syncTimelineScroll(){
+  if (!pulseSeqEl || !timelineWrapper) return;
+  const maxSeq = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
+  const maxTl = timelineWrapper.scrollWidth - timelineWrapper.clientWidth;
+  if (maxSeq <= 0) return;
+  const ratio = pulseSeqEl.scrollLeft / maxSeq;
+  timelineWrapper.scrollLeft = maxTl * ratio;
+}
+
+playBtn.addEventListener('click', async () => {
+  try {
+    const audioInstance = await initAudio();
+    if (!audioInstance) return;
+
+    if (isPlaying) {
+      handlePlaybackStop(audioInstance);
+      return;
+    }
+
+    await startPlayback(audioInstance);
+  } catch {}
+});
+
+function getPulseSeqRect(index) {
+  if (!pulseSeqEl || !Number.isFinite(index)) return null;
+  const idx = Math.round(index);
+  if (idx === 0) {
+    const zero = pulseSeqEl.querySelector('.pz.zero');
+    return zero ? zero.getBoundingClientRect() : null;
+  }
+  if (pulses && idx === pulses.length - 1) {
+    const lgEl = pulseSeqEl.querySelector('.pz.lg');
+    return lgEl ? lgEl.getBoundingClientRect() : null;
+  }
+  const range = pulseSeqRanges[idx];
+  if (range && Array.isArray(range)) {
+    const edit = getEditEl();
+    const node = edit && edit.firstChild;
+    if (node) {
+      try {
+        const r = document.createRange();
+        const start = Math.max(0, Number(range[0]) || 0);
+        const end = Math.max(start, Number(range[1]) || start);
+        r.setStart(node, start);
+        r.setEnd(node, end);
+        return r.getBoundingClientRect();
+      } catch {}
+    }
+  }
+  return null;
+}
+
+pulseSeqController.setRectResolver(getPulseSeqRect);
+
+// Handle pulse scrolling in pulse sequence panel
+function handlePulseScroll(i) {
+  if (!pulseSeqEl || !pulses || pulses.length === 0) return;
+
+  const idx = i % pulses.length;
+  const rect = getPulseSeqRect(idx);
+  let newScrollLeft = pulseSeqEl.scrollLeft;
+
+  if (rect) {
+    const parentRect = pulseSeqEl.getBoundingClientRect();
+    const absLeft = rect.left - parentRect.left + pulseSeqEl.scrollLeft;
+    const target = absLeft - (pulseSeqEl.clientWidth - rect.width) / 2;
+    const maxScroll = pulseSeqEl.scrollWidth - pulseSeqEl.clientWidth;
+    newScrollLeft = Math.max(0, Math.min(target, maxScroll));
+    pulseSeqEl.scrollLeft = newScrollLeft;
+    if (typeof syncTimelineScroll === 'function') syncTimelineScroll();
+  }
+
+  let trailingIndex = null;
+  let trailingRect = null;
+  if (idx === 0 && loopEnabled) {
+    trailingIndex = pulses.length - 1;
+    trailingRect = getPulseSeqRect(trailingIndex);
+  }
+
+  if (rect) {
+    pulseSeqController.setActiveIndex(idx, {
+      rect,
+      trailingIndex,
+      trailingRect,
+      scrollLeft: newScrollLeft
+    });
+  } else {
+    pulseSeqController.clearActive();
+  }
+}
+
+// highlightPulse now handled by highlightController.highlightPulse()
+// Pulse scrolling logic extracted to handlePulseScroll()
+// stopVisualSync, syncVisualState, startVisualSync replaced by visualSync controller
+// Use visualSync.stop(), visualSync.syncVisualState(), visualSync.start()
+
+const menu = document.querySelector('.menu');
+const optionsContent = document.querySelector('.menu .options-content');
+
+if (menu && optionsContent) {
+  menu.addEventListener('toggle', () => {
+    if (menu.open) {
+      // enforce solid background on open
+      solidMenuBackground(optionsContent);
+      optionsContent.classList.add('opening');
+      optionsContent.classList.remove('closing');
+      optionsContent.style.maxHeight = optionsContent.scrollHeight + "px";
+
+      optionsContent.addEventListener('transitionend', () => {
+        optionsContent.classList.remove('opening');
+        optionsContent.style.maxHeight = "500px"; // estat estable
+      }, { once: true });
+
+    } else {
+      optionsContent.classList.add('closing');
+      optionsContent.classList.remove('opening');
+      optionsContent.style.maxHeight = optionsContent.scrollHeight + "px";
+      optionsContent.offsetHeight; // força reflow
+      optionsContent.style.maxHeight = "0px";
+
+      optionsContent.addEventListener('transitionend', () => {
+        optionsContent.classList.remove('closing');
+      }, { once: true });
+    }
+  });
+
+  // Also re-apply if theme changes while menu is open
+  window.addEventListener('sharedui:theme', () => {
+    if (menu.open) solidMenuBackground(optionsContent);
+  });
+}
+// Initialize mixer UI and sync accent/master controls
+const mixerMenu = document.getElementById('mixerMenu');
+const mixerTriggers = [playBtn, tapBtn].filter(Boolean);
+
+initMixerMenu({
+  menu: mixerMenu,
+  triggers: mixerTriggers,
+  channels: [
+    { id: 'pulse',  label: 'Pulsaciones', allowSolo: true },
+    { id: 'accent', label: 'Seleccionados',  allowSolo: true },
+    { id: 'master', label: 'Master',        allowSolo: false, isMaster: true }
+  ]
+});
