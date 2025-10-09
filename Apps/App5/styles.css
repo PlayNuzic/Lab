@@ -107,6 +107,8 @@ margin: 0 auto;
 overflow-x: auto;
 overflow-y: visible;
 position: relative;
+white-space: nowrap; /* Prevenir que P y ( se separen en líneas diferentes */
+flex-wrap: nowrap; /* Asegurar que todos los elementos se mantengan en una línea */
 }
 
 #pulseSeq .prefix,
