@@ -136,12 +136,13 @@ export function createRhythmLoopController({
 }
 
 /**
- * Enhanced loop controller that also handles memory persistence (for App2/App4)
+ * Enhanced loop controller that also handles memory persistence (for App2/App4/App5)
  * @param {Object} options - Configuration options
  * @param {Object} options.audio - Audio engine instance
  * @param {HTMLElement} options.loopBtn - Loop button element
  * @param {Object} options.state - State object with loopEnabled property
- * @param {Function} options.ensurePulseMemory - Function to ensure pulse memory
+ * @param {Function} [options.ensurePulseMemory] - Function to ensure pulse memory (App2/App4)
+ * @param {Function} [options.ensureIntervalMemory] - Function to ensure interval memory (App5)
  * @param {Function} options.getLg - Function to get current Lg value
  * @param {Function} [options.onToggle] - Optional callback
  * @param {Function} [options.isPlaying] - Function that returns playing state
@@ -152,20 +153,24 @@ export function createPulseMemoryLoopController({
   loopBtn,
   state,
   ensurePulseMemory,
+  ensureIntervalMemory, // App5 compatibility
   getLg,
   onToggle,
   isPlaying
 }) {
+  // Support both ensurePulseMemory (App2/App4) and ensureIntervalMemory (App5)
+  const ensureMemoryFn = ensureIntervalMemory || ensurePulseMemory;
+
   return createLoopController({
     audio,
     loopBtn,
     getLoopState: () => state.loopEnabled || false,
     setLoopState: (enabled) => { state.loopEnabled = enabled; },
     onToggle: (enabled, context) => {
-      // Ensure pulse memory when loop is toggled
+      // Ensure memory when loop is toggled
       const lg = getLg();
-      if (!isNaN(lg)) {
-        ensurePulseMemory(lg);
+      if (!isNaN(lg) && ensureMemoryFn) {
+        ensureMemoryFn(lg);
       }
 
       // Call original callback if provided
