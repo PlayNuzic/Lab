@@ -4,7 +4,7 @@
  * Generates HTML fragments with formatted musical formulas:
  * - Pulsos enteros (Lg)
  * - Pulsos fraccionados (Lg·d/n)
- * - V base = (Lg / T)·60
+ * - V (BPM) = (Lg / T)·60
  * - V fracción = (V·d)/n
  * - T = (Lg / V)·60
  *
@@ -110,7 +110,7 @@ export function createFormulaRenderer(options = {}) {
       const baseFormulaLine = document.createElement('p');
       baseFormulaLine.className = 'top-bar-info-tip__line';
       const baseFormulaLabel = document.createElement('strong');
-      baseFormulaLabel.textContent = 'V base';
+      baseFormulaLabel.textContent = 'V (BPM)';
       baseFormulaLine.append(
         baseFormulaLabel,
         ` = (${formatInteger(lg)} / ${formatNumber(tForBaseFormula)})·60 = ${formatBpm(effectiveTempo)} BPM`
@@ -120,13 +120,13 @@ export function createFormulaRenderer(options = {}) {
       const baseLine = document.createElement('p');
       baseLine.className = 'top-bar-info-tip__line';
       const baseLabel = document.createElement('strong');
-      baseLabel.textContent = 'V base:';
+      baseLabel.textContent = 'V (BPM):';
       baseLine.append(baseLabel, ' ', `${formatBpm(effectiveTempo)} BPM`);
       fragment.append(baseLine);
     } else if (hasLg && !hasTempo) {
       const hint = document.createElement('p');
       hint.className = 'top-bar-info-tip__hint';
-      hint.textContent = 'Completa V para calcular la fórmula de V base.';
+      hint.textContent = 'Completa V para calcular la fórmula de V (BPM).';
       fragment.append(hint);
     }
 

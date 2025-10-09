@@ -1091,7 +1091,7 @@ function buildTitleInfoContent() {
     const baseFormulaLine = document.createElement('p');
     baseFormulaLine.className = 'top-bar-info-tip__line';
     const baseLabel = document.createElement('strong');
-    baseLabel.textContent = 'V base';
+    baseLabel.textContent = 'V (BPM)';
     baseFormulaLine.append(
       baseLabel,
       ` = (${formatInteger(lgValue)} / ${formatNumber(tForFormula, 2)})·60 = ${formatBpmValue(effectiveTempo)} BPM`
@@ -1101,7 +1101,7 @@ function buildTitleInfoContent() {
     const baseLine = document.createElement('p');
     baseLine.className = 'top-bar-info-tip__line';
     const baseLabel = document.createElement('strong');
-    baseLabel.textContent = 'V base:';
+    baseLabel.textContent = 'V (BPM):';
     baseLine.append(baseLabel, ' ', `${formatBpmValue(effectiveTempo)} BPM`);
     fragment.append(baseLine);
   } else {
@@ -1135,16 +1135,9 @@ function buildTitleInfoContent() {
   const selectedLine = document.createElement('p');
   selectedLine.className = 'top-bar-info-tip__line';
   const selectedLabel = document.createElement('strong');
-  selectedLabel.textContent = 'Pulsos seleccionados:';
+  selectedLabel.textContent = 'iT(1) seleccionados:';
   selectedLine.append(selectedLabel, ' ', formatInteger(selectedCount));
   fragment.append(selectedLine);
-
-  if (selectedCount > 0) {
-    const reminder = document.createElement('p');
-    reminder.className = 'top-bar-info-tip__hint';
-    reminder.textContent = 'Los pulsos seleccionados no incluyen los extremos 0 y Lg.';
-    fragment.append(reminder);
-  }
 
   return fragment;
 }
