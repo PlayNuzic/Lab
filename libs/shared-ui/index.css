@@ -662,8 +662,12 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   transform: translateX(var(--cycle-translate-x, 0)) translateY(var(--cycle-translate-y, 0));
 }
 
+.control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) .control-sound-toggle-container--pulse {
+  left: calc(var(--pulse-offset-x, 70px));
+}
+
 .control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) .control-sound-toggle-container--cycle {
-  left: calc(var(--control-toggle-width) + var(--control-toggle-gap) + var(--cycle-offset-x, 0px));
+  left: calc(var(--cycle-offset-x, 78px));
 }
 
 /*

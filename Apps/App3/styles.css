@@ -91,29 +91,7 @@ header.top-bar h1 .top-bar-title-button:active {
 
 @media (max-width: 600px) {
   body.app3 {
-    --control-toggle-size: clamp(56px, 30vw, 76px);
-    --control-toggle-width: clamp(88px, 40vw, 120px);
-    --control-toggle-gap: -28px;
     --unit-label-offset: -5px;
-  }
-
-  body.app3 .control-sound-toggles {
-    top: 58%;
-    transform: translate(-50%, calc(-50% - 6px));
-  }
-
-  body.app3 .control-sound-toggles:has(.control-sound-toggle-container--selected) {
-    width: min(90vw, calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2));
-  }
-
-  body.app3 .control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) {
-    width: min(84vw, calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap)));
-  }
-
-  body.app3 .control-sound-toggle__label {
-    font-size: 12px;
-    letter-spacing: 1.4px;
-    transform: translateY(-6px);
   }
 }
 
