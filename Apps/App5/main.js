@@ -7,6 +7,8 @@ import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-co
 import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
+import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import createPulseSeqIntervalsController from '../../libs/app-common/pulse-seq-intervals.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
@@ -47,7 +49,9 @@ window.addEventListener('sharedui:scheduling', schedulingBridge.handleScheduling
 // Bind all DOM elements using app-specific utilities (no warnings for missing elements)
 // App5 adds startIntervalToggle for interval 1 sound control
 const { elements, leds, ledHelpers } = bindAppRhythmElements('app2', {
-  startIntervalToggle: 'startIntervalToggle'
+  startIntervalToggle: 'startIntervalToggle',
+  pulseToggleBtn: 'pulseToggleBtn',
+  selectedToggleBtn: 'selectedToggleBtn'
 });
 
 // Create LED managers for Lg, V, T parameters
@@ -89,8 +93,8 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
         circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
         randTToggle, randTMin, randTMax, themeSelect, selectColor, baseSoundSelect,
-        accentSoundSelect, startSoundSelect, startIntervalToggle, notationPanel,
-        notationCloseBtn, notationContent } = elements;
+        accentSoundSelect, startSoundSelect, startIntervalToggle, pulseToggleBtn,
+        selectedToggleBtn, notationPanel, notationCloseBtn, notationContent } = elements;
 
 // Custom sound event handling for App5 to respect interval 1 checkbox
 window.addEventListener('sharedui:sound', async (event) => {
@@ -1880,3 +1884,45 @@ initMixerMenu({
     { id: 'master', label: 'Master',        allowSolo: false, isMaster: true }
   ]
 });
+
+// Get mixer reference
+const globalMixer = getMixer();
+
+// Audio toggle buttons integration
+const audioToggleManager = initAudioToggles({
+  toggles: [
+    {
+      id: 'pulse',
+      button: pulseToggleBtn,
+      storageKey: 'app5::pulseAudio',
+      mixerChannel: 'pulse',
+      defaultEnabled: true,
+      onChange: (enabled) => {
+        if (audio && typeof audio.setPulseEnabled === 'function') {
+          audio.setPulseEnabled(enabled);
+        }
+      }
+    },
+    {
+      id: 'accent',
+      button: selectedToggleBtn,
+      storageKey: 'app5::selectedAudio',
+      mixerChannel: 'accent',
+      defaultEnabled: true
+    }
+  ],
+  storage: {
+    load: loadOpt,
+    save: saveOpt
+  },
+  mixer: globalMixer,
+  subscribeMixer
+});
+
+// Tooltips
+if (pulseToggleBtn) {
+  attachHover(pulseToggleBtn, { text: 'Activar o silenciar pulsaciones' });
+}
+if (selectedToggleBtn) {
+  attachHover(selectedToggleBtn, { text: 'Activar o silenciar intervalos seleccionados' });
+}

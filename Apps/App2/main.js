@@ -7,6 +7,8 @@ import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-co
 import { toRange } from '../../libs/app-common/range.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
+import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
@@ -52,7 +54,10 @@ bindSharedSoundEvents({
   }
 });
 // Bind all DOM elements using app-specific utilities (no warnings for missing elements)
-const { elements, leds, ledHelpers } = bindAppRhythmElements('app2');
+const { elements, leds, ledHelpers } = bindAppRhythmElements('app2', {
+  pulseToggleBtn: 'pulseToggleBtn',
+  selectedToggleBtn: 'selectedToggleBtn'
+});
 
 // Create LED managers for Lg, V, T parameters
 const ledManagers = createRhythmLEDManagers(leds);
@@ -93,8 +98,8 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
         circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
         randTToggle, randTMin, randTMax, themeSelect, selectColor, baseSoundSelect,
-        accentSoundSelect, startSoundSelect, notationPanel, notationCloseBtn,
-        notationContent } = elements;
+        accentSoundSelect, startSoundSelect, pulseToggleBtn, selectedToggleBtn,
+        notationPanel, notationCloseBtn, notationContent } = elements;
 
 const notationContentEl = notationContent || null;
 let notationRenderer = null;
@@ -1715,3 +1720,45 @@ initMixerMenu({
     { id: 'master', label: 'Master',        allowSolo: false, isMaster: true }
   ]
 });
+
+// Get mixer reference
+const globalMixer = getMixer();
+
+// Audio toggle buttons integration
+const audioToggleManager = initAudioToggles({
+  toggles: [
+    {
+      id: 'pulse',
+      button: pulseToggleBtn,
+      storageKey: 'app2::pulseAudio',
+      mixerChannel: 'pulse',
+      defaultEnabled: true,
+      onChange: (enabled) => {
+        if (audio && typeof audio.setPulseEnabled === 'function') {
+          audio.setPulseEnabled(enabled);
+        }
+      }
+    },
+    {
+      id: 'accent',
+      button: selectedToggleBtn,
+      storageKey: 'app2::selectedAudio',
+      mixerChannel: 'accent',
+      defaultEnabled: true
+    }
+  ],
+  storage: {
+    load: loadOpt,
+    save: saveOpt
+  },
+  mixer: globalMixer,
+  subscribeMixer
+});
+
+// Tooltips
+if (pulseToggleBtn) {
+  attachHover(pulseToggleBtn, { text: 'Activar o silenciar pulsos' });
+}
+if (selectedToggleBtn) {
+  attachHover(selectedToggleBtn, { text: 'Activar o silenciar pulsos seleccionados' });
+}
