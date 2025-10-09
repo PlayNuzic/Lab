@@ -44,16 +44,11 @@ let audio;
 let pendingMute = null;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
-bindSharedSoundEvents({
-  getAudio: () => audio,
-  mapping: {
-    baseSound: 'setBase',
-    accentSound: 'setAccent',
-    startSound: 'setStart'
-  }
-});
 // Bind all DOM elements using app-specific utilities (no warnings for missing elements)
-const { elements, leds, ledHelpers } = bindAppRhythmElements('app2');
+// App5 adds startIntervalToggle for interval 1 sound control
+const { elements, leds, ledHelpers } = bindAppRhythmElements('app2', {
+  startIntervalToggle: 'startIntervalToggle'
+});
 
 // Create LED managers for Lg, V, T parameters
 const ledManagers = createRhythmLEDManagers(leds);
@@ -94,8 +89,34 @@ const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
         circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
         randTToggle, randTMin, randTMax, themeSelect, selectColor, baseSoundSelect,
-        accentSoundSelect, startSoundSelect, notationPanel, notationCloseBtn,
-        notationContent } = elements;
+        accentSoundSelect, startSoundSelect, startIntervalToggle, notationPanel,
+        notationCloseBtn, notationContent } = elements;
+
+// Custom sound event handling for App5 to respect interval 1 checkbox
+window.addEventListener('sharedui:sound', async (event) => {
+  const detail = event?.detail || {};
+  const { type, value } = detail;
+  if (!audio || value == null) return;
+
+  try {
+    if (type === 'baseSound' && typeof audio.setBase === 'function') {
+      await audio.setBase(value);
+      // If interval 1 checkbox is unchecked, also update pulso0 to match base
+      if (startIntervalToggle && !startIntervalToggle.checked) {
+        await audio._setSound('pulso0', value, audio._defaultAssignments.pulso0);
+      }
+    } else if (type === 'accentSound' && typeof audio.setAccent === 'function') {
+      await audio.setAccent(value);
+    } else if (type === 'startSound' && typeof audio.setStart === 'function') {
+      // Only apply startSound to pulso0 if checkbox is checked
+      if (startIntervalToggle && startIntervalToggle.checked) {
+        await audio.setStart(value);
+      }
+    }
+  } catch (err) {
+    // Silently ignore errors
+  }
+});
 
 const notationContentEl = notationContent || null;
 let notationRenderer = null;
@@ -859,6 +880,43 @@ bindUnit(inputT, unitT);
 
 [inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
 handleInput();
+
+// Intervalo 1 checkbox: Enable/disable separate sound for interval 1 (step 0)
+if (startIntervalToggle) {
+  startIntervalToggle.addEventListener('change', async () => {
+    const enabled = startIntervalToggle.checked;
+
+    // Update startSoundSelect row visibility
+    const startRow = startSoundSelect?.closest('.interval-select-row');
+    if (startRow) {
+      startRow.classList.toggle('enabled', enabled);
+    }
+
+    // Update audio if initialized
+    if (audio) {
+      if (enabled) {
+        // When enabled: pulso0 uses startSound
+        const startSound = startSoundSelect?.dataset?.value;
+        if (startSound) {
+          await audio.setStart(startSound);
+        }
+      } else {
+        // When disabled: pulso0 uses same sound as pulso (base)
+        const baseSound = baseSoundSelect?.dataset?.value;
+        if (baseSound) {
+          // Set pulso0 to match pulso
+          await audio._setSound('pulso0', baseSound, audio._defaultAssignments.pulso0);
+        }
+      }
+    }
+  });
+
+  // Initialize row visibility based on checkbox state
+  const startRow = startSoundSelect?.closest('.interval-select-row');
+  if (startRow) {
+    startRow.classList.toggle('enabled', startIntervalToggle.checked);
+  }
+}
 
 // Helper function to find midpoints (double spaces) in pulse sequence text
 function getMidpoints(text) {
