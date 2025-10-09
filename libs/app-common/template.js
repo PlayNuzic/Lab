@@ -21,7 +21,8 @@ export function renderApp({
   showCycleToggle = false,
   inlineFractionSlot = false,
   showNotationToggle = false,
-  showComplexFractions = true
+  showComplexFractions = true,
+  useIntervalMode = false
 }) {
   if (!root) throw new Error('root element required');
   document.title = title;
@@ -154,18 +155,29 @@ ${togglesMarkup}
         <details>
           <summary>Sonidos</summary>
           <div class="sound-group">
+            ${useIntervalMode ? `
+            <div class="interval-sound-group">
+              <label for="startIntervalToggle" class="interval-toggle-label">
+                <input type="checkbox" id="startIntervalToggle" />
+                Intervalo 1
+              </label>
+              <div class="preview-row interval-select-row">
+                <label for="startSoundSelect" style="display:none"></label>
+                <div id="startSoundSelect"></div>
+              </div>
+            </div>` : `
             <p>Pulso 0</p>
             <div class="preview-row">
               <label for="startSoundSelect" style="display:none"></label>
               <div id="startSoundSelect"></div>
-            </div>
-            <p>Pulso</p>
+            </div>`}
+            <p>${useIntervalMode ? 'Pulsaciones' : 'Pulso'}</p>
             <div class="preview-row">
               <label for="baseSoundSelect" style="display:none"></label>
               <div id="baseSoundSelect"></div>
             </div>
             ${showAccent ? `
-            <p>Seleccionado</p>
+            <p>Seleccionado${useIntervalMode ? 's' : ''}</p>
             <div class="preview-row">
               <label for=\"accentSoundSelect\" style=\"display:none\"></label>
               <div id=\"accentSoundSelect\"></div>

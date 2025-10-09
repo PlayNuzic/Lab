@@ -1,0 +1,224 @@
+/* App5 specific overrides */
+
+body {
+--unit-label-offset: -20px;
+}
+
+header.top-bar h1 {
+  gap: 0.75rem;
+}
+
+header.top-bar h1 .top-bar-title-button {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0 clamp(12px, 3vw, 28px);
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: color 0.2s ease, transform 0.12s ease, text-shadow 0.25s ease;
+  text-align: center;
+}
+
+header.top-bar h1 .top-bar-title-button:hover {
+  text-shadow: 0 0 6px var(--selection-color);
+}
+
+header.top-bar h1 .top-bar-title-button:focus-visible {
+  outline: 2px solid var(--selection-color);
+  outline-offset: 4px;
+}
+
+header.top-bar h1 .top-bar-title-button:active {
+  transform: scale(0.96);
+  color: var(--selection-color);
+  text-shadow: 0 0 10px var(--selection-color);
+}
+
+main > .notation-panel--inline {
+  margin: clamp(16px, 4vw, 32px) auto 0;
+}
+
+main > .notation-panel--inline .notation-panel__canvas {
+  min-height: 220px;
+}
+
+/**
+ * Timeline pulse overrides to support selection and interactive hit areas.
+ */
+.pulse { cursor: pointer; }
+.timeline .pulse { pointer-events: auto; }
+
+/* Selected pulses use selection color */
+.pulse.selected { background: var(--selection-color); }
+
+/* Pulsos normales mantienen su color base */
+.pulse {
+  color: var(--color-lg);
+}
+
+.pulse-number {
+  color: var(--color-lg);
+}
+
+.pulse-number.selected {
+  color: var(--selection-color);
+}
+
+/**
+ * Editable pulse sequence container positioned above the timeline.
+ */
+#pulseSeq {
+font-size: 3rem;
+display: flex;
+justify-content: flex-start;
+align-items: center;
+gap: 12px;
+width: fit-content;
+max-width: 100%;
+box-sizing: border-box;
+padding: 0 20px;
+margin: 0 auto;
+overflow-x: auto;
+overflow-y: visible;
+position: relative;
+}
+
+#pulseSeq .prefix,
+#pulseSeq .suffix { color: inherit; user-select: none; }
+#pulseSeq .suffix { margin-left: -12px; margin-right: 12px; }
+#pulseSeq .lg { color: var(--color-lg); user-select: none; margin-left: 12px; }
+#pulseSeq .edit { outline: none; white-space: pre; }
+#pulseSeq .edit.playing { caret-color: transparent; }
+
+/**
+ * Pulse sequence highlight overlays following the current playback position.
+ */
+#pulseSeqHighlight,
+#pulseSeqHighlight2 {
+position: absolute;
+border-radius: 50%;
+background: var(--selection-color);
+color: var(--selection-color);
+opacity: 0.5;
+pointer-events: none;
+transform: translate(-50%, -50%);
+display: none;
+z-index: 100;
+border: 2px solid var(--selection-color);
+}
+
+#pulseSeqHighlight.active,
+#pulseSeqHighlight2.active {
+animation: pulseFlash 0.35s ease-out;
+box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
+display: block;
+}
+
+/**
+ * Circular indicator for displaying total cycle duration (T value).
+ */
+#tIndicator {
+position: absolute; /* positioned by JS relative to Lg label */
+display: flex;
+align-items: center;
+justify-content: center;
+width: 40px; /* Reduced from 50px */
+height: 40px; /* Reduced from 50px */
+border: 2px solid var(--color-t);
+border-radius: 50%;
+color: var(--color-t);
+text-align: center;
+font-weight: 700;
+background: transparent;
+pointer-events: none; /* purely visual */
+font-size: 0.9rem; /* Keep same font size */
+}
+
+/* Estilos para el checkbox de Intervalo 1 en el menú de sonidos */
+.interval-sound-group {
+  margin-bottom: 12px;
+}
+
+.interval-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.interval-toggle-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.interval-select-row {
+  margin-left: 24px;
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.interval-select-row.enabled {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/**
+ * Layout adjustments for timeline wrapper and controls on narrow screens.
+ */
+@media (max-width: 600px) {
+body {
+  --unit-label-offset: 0px;
+}
+
+#pulseSeq {
+font-size: 1.25rem;
+gap: 6px;
+padding: 0 12px;
+}
+
+#pulseSeq .prefix {
+white-space: nowrap;
+flex-shrink: 0;
+}
+
+/* Layout adjustments requested for App5 */
+/* 1) Raise inputs section by 25px (from shared 40px to 15) */
+.inputs {
+margin-top: 25px !important;
+}
+
+/* 2) Keep pulse sequence where it is — no changes needed to #pulseSeq */
+/* Compensate inputs shift so #pulseSeq stays in place */
+.middle { margin-top: 40px; }
+
+/* 3) Lower circular timeline by 90px */
+.timeline-wrapper.circular {
+margin-top: 90px !important; /* was 20px in shared styles */
+}
+
+/* 4) Lower controls inside circular wrapper (offset tuned for mobile) */
+.timeline-wrapper.circular > .controls {
+transform: translate(-50%, calc(-50% - 50px)) !important; /* was -40px */
+}
+
+/* 5) Lower unit label by 20px when shown on input focus */
+  .param .circle .unit {
+  top: calc(var(--unit-label-offset, -40px) - 1.8rem);
+  }
+
+}
+
+/* Prevent wrapping of unit labels and input circles */
+.param .circle {
+  white-space: nowrap;
+}
+
+.param .circle .unit {
+  white-space: nowrap;
+}

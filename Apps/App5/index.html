@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulsaciones</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="../../libs/temporal-intervals/it-styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="/favicon.ico" />
+</head>
+<body data-theme="system">
+  <div id="app-root"></div>
+
+  <!-- Tone.js is now loaded lazily after user interaction via tone-loader.js -->
+
+  <!-- Tu app -->
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Pulsaciones',
+      showNotationToggle: true,
+      showSelectColor: true,
+      showComplexFractions: false,
+      pulseSequence: true,
+      useIntervalMode: true,
+      randomMenuContent: `
+        <label>
+          <input type="checkbox" id="randLgToggle" name="randLgToggle" aria-label="Aleatorizar Lg" />
+          <span aria-hidden="true">Lg</span>
+          <input id="randLgMin" name="randLgMin" type="number" placeholder="Min" aria-label="Valor mínimo de Lg" />
+          <input id="randLgMax" name="randLgMax" type="number" placeholder="Max" aria-label="Valor máximo de Lg" />
+        </label>
+        <label>
+          <input type="checkbox" id="randVToggle" name="randVToggle" aria-label="Aleatorizar V" />
+          <span aria-hidden="true">V</span>
+          <input id="randVMin" name="randVMin" type="number" placeholder="Min" aria-label="Valor mínimo de V" />
+          <input id="randVMax" name="randVMax" type="number" placeholder="Max" aria-label="Valor máximo de V" />
+        </label>
+        <label>
+          <input type="checkbox" id="randPulsesToggle" name="randPulsesToggle" aria-label="Aleatorizar pulsaciones" />
+          <span aria-hidden="true">Pulsaciones</span>
+          <input id="randomCount" name="randomCount" type="number" min="0" placeholder="Random" aria-label="Número aleatorio de pulsaciones" />
+        </label>
+      `,
+      hideT: true,
+      hideLeds: true
+    });
+
+    // Pequeños ajustes de layout
+    document.querySelectorAll('.led').forEach(el => el.remove());
+    const inputs = document.querySelector('.inputs');
+    if (inputs) inputs.style.left = '0';
+
+    initHeader();
+    import('./main.js');
+  </script>
+
+  <!-- Rendimiento Audio (menú flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <!-- Long-press para abrir el mixer -->
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+
+</body>
+</html>

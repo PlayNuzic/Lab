@@ -1,0 +1,76 @@
+/* it-styles.css */
+/* Estilos para bloques de intervalos temporales (iT) */
+
+.interval-block {
+  position: absolute;
+  background: var(--selection-color, #F97C39);
+  opacity: 0.3;
+  border-radius: 4px;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 3;
+  /* Por encima de la timeline pero debajo de los pulsos */
+}
+
+.interval-block:hover {
+  opacity: 0.5;
+  transform-origin: center;
+}
+
+/* En modo circular, los bloques siguen la curvatura */
+.timeline.circular .interval-block {
+  border-radius: 50px;
+  /* Más redondeado para seguir el arco */
+}
+
+/* Animación cuando se activa/desactiva un intervalo */
+.interval-block.entering {
+  animation: intervalFadeIn 0.3s ease-out;
+}
+
+.interval-block.leaving {
+  animation: intervalFadeOut 0.3s ease-out;
+}
+
+@keyframes intervalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+}
+
+@keyframes intervalFadeOut {
+  from {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+/* Estado activo durante playback */
+.interval-block.active {
+  opacity: 0.6;
+  box-shadow: 0 0 10px var(--selection-color);
+}
+
+/* Resaltado del primer intervalo (opcional, cuando está activado) */
+.interval-block[data-interval-index="0"].first-interval-enabled {
+  opacity: 0.4;
+  border: 2px solid var(--selection-color);
+}
+
+/* Adaptación para timelines muy pequeñas */
+@media (max-width: 600px) {
+  .interval-block {
+    height: 6px !important;
+    border-radius: 3px;
+  }
+}
