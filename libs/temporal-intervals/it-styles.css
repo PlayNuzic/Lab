@@ -24,15 +24,8 @@
   background: var(--selection-color, #F97C39);
 }
 
-/* Hover feedback */
-.interval-block:hover {
-  opacity: 0.9;
-}
-
-/* Efecto de hover que respeta la transformación actual */
-.interval-block:not(.circular):hover {
-  transform: translateX(-50%) scale(1.05);
-}
+/* NO hover feedback - mantener comportamiento simple y claro */
+/* Los intervalos solo cambian de estado al hacer click/drag, no al pasar el mouse */
 
 /* Número del intervalo centrado en el bloque */
 .interval-number {
