@@ -16,7 +16,7 @@ import { createNotationPanelController } from '../../libs/app-common/notation-pa
 import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
 import { parseNum, formatNumber, createNumberFormatter } from '../../libs/app-common/number-utils.js';
 import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
-import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
+import { createIntervalHighlightController } from '../../libs/app-common/highlight-interval.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
@@ -340,12 +340,17 @@ const NUMBER_HIDE_THRESHOLD = 100;   // from this Lg and above, hide numbers
 const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
 
 // --- Selección para audio (App5: de 1 a Lg inclusive) ---
+// IMPORTANTE: Los intervalos son 1-indexed (intervalo 1, 2, 3...)
+// pero el audio usa step indices 0-indexed (step 0, 1, 2...)
+// Intervalo 1 = paso entre pulso 0→1 = toca en step 0
 function selectedForAudioFromState() {
   const lg = parseInt(inputLg.value);
   const set = new Set();
   if (!isNaN(lg) && lg > 0) {
     for (let i = 1; i <= lg && i < intervalMemory.length; i++) {
-      if (intervalMemory[i]) set.add(i);
+      if (intervalMemory[i]) {
+        set.add(i - 1); // Convertir intervalo (1-indexed) a step index (0-indexed)
+      }
     }
   }
   return set;
@@ -360,10 +365,11 @@ let tIndicatorRevealHandle = null;
 // visualSyncHandle and lastVisualStep now managed by visualSync controller
 // Progress is now driven directly from audio callbacks
 
-// Create highlight controller
-const highlightController = createSimpleHighlightController({
-  getPulses: () => pulses,
-  getLoopEnabled: () => loopEnabled
+// Create interval highlight controller (highlights intervals, not pulses)
+const highlightController = createIntervalHighlightController({
+  getIntervalBlocks: () => Array.from(document.querySelectorAll('.interval-block')),
+  getLoopEnabled: () => loopEnabled,
+  flashDuration: 200
 });
 
 // Create interval renderer for temporal intervals visualization
@@ -381,10 +387,11 @@ const visualSync = createSimpleVisualSync({
   getAudio: () => audio,
   getIsPlaying: () => isPlaying,
   onStep: (step) => {
-    // Highlight pulse
-    highlightController.highlightPulse(step);
+    // Highlight interval (step 0 → interval 1, step 1 → interval 2, etc.)
+    const intervalNumber = step + 1;
+    highlightController.highlightInterval(intervalNumber);
 
-    // Handle pulse scrolling
+    // Handle pulse scrolling (still based on step index for pulse positions)
     handlePulseScroll(step);
 
     // Update notation cursor
@@ -1394,6 +1401,13 @@ function renderTimeline(){
     if (i === 0) p.classList.add('zero');
     if (i === lg) p.classList.add('lg');
     p.dataset.index = i;
+
+    // Click handler for toggling pulse number visibility
+    p.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent event bubbling
+      togglePulseNumberVisibility(i);
+    });
+
     timeline.appendChild(p);
     pulses.push(p);
 
@@ -1403,9 +1417,6 @@ function renderTimeline(){
       bar.className = 'bar';
       timeline.appendChild(bar);
     }
-
-    // NO click handlers - pulses are visual markers only
-    // NO hit targets - pulses are non-interactive
   }
   syncSelectedFromMemory();
   animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
@@ -1416,24 +1427,40 @@ function renderTimeline(){
 // togglePulse removed - pulses are no longer interactive in App5
 // Intervals will be selectable instead
 
+// Toggle visibility of pulse number label on click
+function togglePulseNumberVisibility(pulseIndex) {
+  const numberEl = timeline.querySelector(`.pulse-number[data-index="${pulseIndex}"]`);
+  if (numberEl) {
+    numberEl.classList.toggle('hidden');
+  }
+}
+
 function animateTimelineCircle(isCircular, opts = {}) {
   const silent = !!opts.silent;
   timelineRenderer.layoutTimeline(isCircular, { silent });
 }
 
 function showNumber(i, options = {}){
-  const { selected = false } = options;
+  const { selected = false, hidden = false, endpoint = false } = options;
   const n = document.createElement('div');
   n.className = 'pulse-number';
 
   const lg = parseInt(inputLg.value);
   if (isNaN(lg) || lg <= 0) return;
 
-  if (i === 1) n.classList.add('first');
+  // Clases especiales para endpoints (pulso 0 y Lg)
+  if (i === 0) n.classList.add('zero');
   if (i === lg) n.classList.add('lg');
-  if (selected) {
-    n.classList.add('selected');
+  if (endpoint) n.classList.add('endpoint');
+
+  // Esconder por defecto si se indica
+  if (hidden) {
+    n.classList.add('hidden');
   }
+
+  // La clase 'selected' ya no se usa para números de pulso
+  // (solo los intervalos tienen selección)
+
   n.dataset.index = i;
   n.textContent = i;
   const fontRem = computeNumberFontRem(lg);
@@ -1445,26 +1472,26 @@ function showNumber(i, options = {}){
      const offset = NUMBER_CIRCLE_OFFSET;
      const cx = rect.width / 2;
      const cy = rect.height / 2;
-     // App5: ángulo de 1 a Lg
-     const normalizedIndex = (i - 1) / (lg - 1); // normalizado de 0 a 1
+     // App5: ángulo de 0 a Lg
+     const normalizedIndex = lg > 0 ? i / lg : 0; // normalizado de 0 a 1
      const angle = normalizedIndex * 2 * Math.PI + Math.PI / 2;
      const x = cx + (radius + offset) * Math.cos(angle);
      let y = cy + (radius + offset) * Math.sin(angle);
 
-     const xShift = (i === 1) ? -16 : (i === lg ? 16 : 0); // 1 a l'esquerra, Lg a la dreta
+     const xShift = (i === 0) ? -16 : (i === lg ? 16 : 0); // 0 a l'esquerra, Lg a la dreta
      n.style.left = (x + xShift) + 'px';
      n.style.transform = 'translate(-50%, -50%)';
 
-     if (i === 1 || i === lg) {
+     if (i === 0 || i === lg) {
        n.style.top = (y + 8) + 'px';
-       n.style.zIndex = (i === 1) ? '3' : '2';
+       n.style.zIndex = (i === 0) ? '3' : '2';
      } else {
        n.style.top = y + 'px';
      }
 
   } else {
-    // App5: posición lineal de 1 a Lg
-    const normalizedIndex = (i - 1) / (lg - 1);
+    // App5: posición lineal de 0 a Lg
+    const normalizedIndex = lg > 0 ? i / lg : 0;
     const percent = normalizedIndex * 100;
     n.style.left = percent + '%';
   }
@@ -1490,11 +1517,12 @@ function updateNumbers(){
     return;
   }
 
-  // App5: Renderizar números de 1 a Lg
-  for (let i = 1; i <= lg; i++) {
-    const isEndpoint = i === 1 || i === lg;
-    const isSelected = selectedIntervals.has(i);
-    showNumber(i, { selected: isSelected });
+  // App5: Renderizar números de 0 a Lg (pulsos empiezan en 0)
+  // Todos los números se crean escondidos por defecto (.hidden)
+  for (let i = 0; i <= lg; i++) {
+    const isEndpoint = i === 0 || i === lg;
+    // Los números NO reflejan selección de intervalos (solo pulsos son marcadores)
+    showNumber(i, { selected: false, hidden: true, endpoint: isEndpoint });
   }
   // Re-anchor T to the (possibly) re-generated Lg label
   try { updateTIndicatorPosition(); } catch {}
@@ -1572,7 +1600,11 @@ async function startPlayback(providedAudio) {
     handlePlaybackStop(audioInstance);
   };
 
-  const onPulse = (step) => highlightController.highlightPulse(step);
+  const onPulse = (step) => {
+    // Convert step index (0-indexed) to interval number (1-indexed)
+    const intervalNumber = step + 1;
+    highlightController.highlightInterval(intervalNumber);
+  };
 
   audioInstance.play(playbackTotal, interval, selectedForAudio, loopEnabled, onPulse, onFinish);
 
@@ -1683,7 +1715,8 @@ function handlePulseScroll(i) {
   }
 }
 
-// highlightPulse now handled by highlightController.highlightPulse()
+// highlightInterval now handled by highlightController.highlightInterval(intervalNumber)
+// Converts step index (0-indexed) to interval number (1-indexed): step 0 → interval 1
 // Pulse scrolling logic extracted to handlePulseScroll()
 // stopVisualSync, syncVisualState, startVisualSync replaced by visualSync controller
 // Use visualSync.stop(), visualSync.syncVisualState(), visualSync.start()

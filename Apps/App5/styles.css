@@ -62,14 +62,26 @@ main > .notation-panel--inline .notation-panel__canvas {
 }
 
 .pulse-number {
-  color: var(--color-lg);
-  /* Make pulse numbers 75% smaller (25% of original size) - they are no longer important */
-  font-size: 0.25em !important;
-  opacity: 0.5; /* Also reduce opacity to de-emphasize */
+  /* Normal size restored - numbers are important markers */
+  color: var(--color-contrast); /* Default color for intermediate pulses */
+  transition: opacity 0.2s ease;
 }
 
+/* Hidden by default - shown only on click */
+.pulse-number.hidden {
+  display: none;
+}
+
+/* Endpoints (0 and Lg) use Lg color */
+.pulse-number.zero,
+.pulse-number.lg,
+.pulse-number.endpoint {
+  color: var(--color-lg);
+}
+
+/* Selected class no longer used for pulse numbers (only intervals have selection) */
 .pulse-number.selected {
-  color: var(--selection-color);
+  /* Deprecated - pulse numbers don't reflect interval selection */
 }
 
 /**

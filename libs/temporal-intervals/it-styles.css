@@ -92,6 +92,33 @@
   box-shadow: 0 0 8px var(--selection-color);
 }
 
+/* Highlight effect durante playback - flash brillante */
+.interval-block.highlight {
+  opacity: 1 !important; /* Máxima visibilidad durante highlight */
+  background: var(--selection-color);
+  box-shadow: 0 0 12px var(--selection-color), 0 0 20px currentColor;
+  transform: scale(1.05);
+  transition: all 0.15s ease-out;
+}
+
+/* Animation for highlight flash */
+@keyframes intervalFlash {
+  0% {
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow: 0 0 12px var(--selection-color), 0 0 20px currentColor;
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 16px var(--selection-color), 0 0 24px currentColor;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow: 0 0 12px var(--selection-color), 0 0 20px currentColor;
+  }
+}
+
 /* Resaltado del primer intervalo cuando está habilitado (Fase 6: Audio Integration) */
 .interval-block[data-interval-number="1"].first-interval-enabled {
   border: 2px solid var(--selection-color);
