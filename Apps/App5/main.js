@@ -1459,11 +1459,25 @@ function renderTimeline(){
 // Intervals will be selectable instead
 
 // Toggle visibility of pulse number label on click
+// En circular, Lg y 0 comparten posición, así que se muestran/ocultan juntos
 function togglePulseNumberVisibility(pulseIndex) {
-  const numberEl = timeline.querySelector(`.pulse-number[data-index="${pulseIndex}"]`);
-  if (numberEl) {
-    numberEl.classList.toggle('hidden');
+  const lg = parseInt(inputLg.value);
+  const isCircular = timeline.classList.contains('circular');
+
+  // En circular, si clickeas Lg, también toggle 0 (están en la misma posición)
+  const indicesToToggle = [];
+  if (isCircular && (pulseIndex === 0 || pulseIndex === lg)) {
+    indicesToToggle.push(0, lg);
+  } else {
+    indicesToToggle.push(pulseIndex);
   }
+
+  indicesToToggle.forEach(index => {
+    const numberEl = timeline.querySelector(`.pulse-number[data-index="${index}"]`);
+    if (numberEl) {
+      numberEl.classList.toggle('hidden');
+    }
+  });
 }
 
 function animateTimelineCircle(isCircular, opts = {}) {
