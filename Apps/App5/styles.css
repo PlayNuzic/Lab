@@ -56,15 +56,15 @@ main > .notation-panel--inline .notation-panel__canvas {
 /* Selected pulses use selection color */
 .pulse.selected { background: var(--selection-color); }
 
-/* Pulsos intermedios (1 a Lg-1) usan color de contraste */
-.pulse {
-  background: var(--color-contrast);
+/* Solo pulsos 0 y Lg usan color azul (Lg) */
+.timeline .pulse.zero,
+.timeline .pulse.lg {
+  background: var(--color-lg);
 }
 
-/* Solo pulsos 0 y Lg usan color azul (Lg) */
-.pulse.zero,
-.pulse.lg {
-  background: var(--color-lg);
+/* Pulsos intermedios (1 a Lg-1) usan color de contraste con fallback */
+.timeline .pulse:not(.zero):not(.lg):not(.selected) {
+  background: var(--color-contrast, #e0e0e0);
 }
 
 .pulse-number {
