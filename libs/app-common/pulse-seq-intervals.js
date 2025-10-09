@@ -67,6 +67,34 @@ function placeOverlay({ rect, el, host, scrollLeft, scrollTop }) {
   el.classList.add('active');
 }
 
+/**
+ * Sanitizes a pulse sequence text input for interval mode (App5).
+ * Filters numbers to valid range [1, Lg], removes duplicates, sorts.
+ *
+ * @param {string} text - Raw text input (e.g., "1 3 5 12 99 -1")
+ * @param {number} lg - Current Lg value
+ * @returns {number[]} Sorted array of valid interval numbers
+ *
+ * Example: sanitizePulseSequence("1 3 5 12 99", 10)
+ * Returns: [1, 3, 5]
+ */
+export function sanitizePulseSequence(text, lg) {
+  if (!text || typeof text !== 'string') return [];
+  if (!Number.isFinite(lg) || lg <= 0) return [];
+
+  const numbers = text
+    .split(/\s+/)                          // Split by whitespace
+    .map(s => parseInt(s.trim(), 10))      // Parse integers
+    .filter(n =>
+      Number.isFinite(n) &&                // Valid number
+      n >= 1 &&                            // Minimum bound
+      n <= lg                              // Maximum bound (Lg = interval count)
+    );
+
+  // Remove duplicates and sort
+  return Array.from(new Set(numbers)).sort((a, b) => a - b);
+}
+
 export default function createPulseSeqIntervalsController(options = {}) {
   const state = {
     datasetFlag: options.datasetFlag || 'seqInited',

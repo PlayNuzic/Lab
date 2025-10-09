@@ -820,10 +820,10 @@ bindUnit(inputT, unitT);
 [inputLg, inputV].forEach(el => el.addEventListener('input', handleInput));
 handleInput();
 
-getEditEl()?.addEventListener('keydown', (e) => {
+getEditEl()?.addEventListener('keydown', async (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    const res = sanitizePulseSeq({ causedBy: 'enter' });
+    const res = await handlePulseSeqInput({ causedBy: 'enter' });
     // Oculta el caret al confirmar excepto si hubo números > Lg
     if (!res || !res.hadTooBig) {
       try { getEditEl()?.blur(); } catch {}
@@ -882,7 +882,7 @@ getEditEl()?.addEventListener('keydown', (e) => {
     return;
   }
 });
-getEditEl()?.addEventListener('blur', () => sanitizePulseSeq({ causedBy: 'blur' }));
+getEditEl()?.addEventListener('blur', () => handlePulseSeqInput({ causedBy: 'blur' }));
 // Visual gap hint under caret (does not modify text)
 getEditEl()?.addEventListener('mouseup', ()=> setTimeout(moveCaretToNearestMidpoint,0));
 // (Sin manejador en keyup para evitar doble salto)
@@ -1105,74 +1105,8 @@ addRepeatPress(inputVDown, () => stepAndDispatch(inputV, -1),  inputV);
 addRepeatPress(inputLgUp,  () => stepAndDispatch(inputLg, +1), inputLg);
 addRepeatPress(inputLgDown,() => stepAndDispatch(inputLg, -1), inputLg);
 
-function sanitizePulseSeq(opts = {}){
-  if (!pulseSeqEl) return;
-  const lg = parseInt(inputLg.value);
-  // Guarda posición del caret antes de normalizar
-  const caretBefore = (()=>{ const el=getEditEl(); if(!el) return 0; const s=window.getSelection&&window.getSelection(); if(!s||s.rangeCount===0) return 0; const r=s.getRangeAt(0); if(!el.contains(r.startContainer)) return 0; return r.startOffset; })();
-  const text = getPulseSeqText();
-  const matches = text.match(/\d+/g) || [];
-  const seen = new Set();
-  const nums = [];
-  let hadTooBig = false;
-  let firstTooBig = null;
-  for (const m of matches) {
-    const n = parseInt(m, 10);
-    if (n >= 1 && !seen.has(n)) {
-      if (!isNaN(lg) && n > lg) { hadTooBig = true; if(firstTooBig===null) firstTooBig=n; continue; }
-      seen.add(n);
-      nums.push(n);
-    }
-  }
-  if (!isNaN(lg)) ensureIntervalMemory(lg);
-  nums.sort((a,b) => a - b);
-  const joined = (isNaN(lg) ? nums : nums.filter(n => n >= 1 && n <= lg)).join('  ');
-  const out = '  ' + joined + '  ';
-  setPulseSeqText(out);
-  if (!isNaN(lg)) {
-    for (let i = 1; i <= lg; i++) intervalMemory[i] = false;
-    nums.forEach(n => { if (n >= 1 && n <= lg) intervalMemory[n] = true; });
-    syncSelectedFromMemory();
-    updateNumbers();
-  }
-  // Restaurar caret en una posición segura (entre espacios dobles)
-  // - Si hubo números > Lg o es tecleo normal, recolocamos el caret
-  // - Además, lo ajustamos explícitamente al midpoint más cercano para que no quede pegado a un número
-  const pos = Math.min(out.length, caretBefore);
-  if (hadTooBig || !(opts.causedBy === 'enter' || opts.causedBy === 'blur')) {
-    setPulseSeqSelection(pos, pos);
-    // Asegura separación: salta al midpoint más cercano tras normalizar
-    try { moveCaretToNearestMidpoint(); } catch {}
-  }
-  // Mensaje temporal si hubo números mayores que Lg
-  if (hadTooBig && !isNaN(lg)) {
-    try{
-      const el = getEditEl();
-      const tip = document.createElement('div');
-      tip.className = 'hover-tip auto-tip-below';
-      const bad = firstTooBig != null ? firstTooBig : '';
-      tip.innerHTML = `El número <strong>${bad}</strong> introducido es mayor que la <span style=\"color: var(--color-lg); font-weight: 700;\">Lg</span>. Elige un número menor que <strong>${lg}</strong>`;
-      document.body.appendChild(tip);
-      let rect = null;
-      const sel = window.getSelection && window.getSelection();
-      if(sel && sel.rangeCount){
-        const r = sel.getRangeAt(0).cloneRange();
-        if(el && el.contains(r.startContainer)){
-          r.collapse(false);
-          rect = r.getBoundingClientRect();
-        }
-      }
-      if(!rect) rect = el.getBoundingClientRect();
-      tip.style.left = rect.left + 'px';
-      tip.style.top = (rect.bottom + window.scrollY) + 'px';
-      tip.style.fontSize = '0.95rem';
-      tip.style.fontSize = '0.95rem';
-      tip.classList.add('show');
-      setTimeout(()=>{ tip.classList.remove('show'); try{ document.body.removeChild(tip);}catch{} }, 3000);
-    }catch{}
-  }
-  return { hadTooBig };
-}
+// OLD sanitizePulseSeq() removed - replaced by handlePulseSeqInput() which uses
+// shared sanitizePulseSequence() from pulse-seq-intervals.js
 
 function handleInput(){
   const lg = parseNum(inputLg.value);
@@ -1301,27 +1235,112 @@ function syncSelectedFromMemory() {
   renderNotationIfVisible();
 }
 
-function handlePulseSeqInput(){
+/**
+ * Handles manual editing of pulse sequence (P field) - Phase 5
+ * Parses text, validates interval numbers, updates state
+ * Preserves UX features: caret positioning, error messages for invalid numbers
+ */
+async function handlePulseSeqInput(opts = {}){
+  if (!pulseSeqEl) return;
   const lg = parseInt(inputLg.value);
+
+  // Save caret position before sanitizing
+  const caretBefore = (()=>{
+    const el=getEditEl();
+    if(!el) return 0;
+    const s=window.getSelection&&window.getSelection();
+    if(!s||s.rangeCount===0) return 0;
+    const r=s.getRangeAt(0);
+    if(!el.contains(r.startContainer)) return 0;
+    return r.startOffset;
+  })();
+
+  const text = getPulseSeqText();
+
   if (isNaN(lg) || lg <= 0) {
     intervalMemory = [];
+    selectedIntervals.clear();
     renderTimeline();
     updateNumbers();
     return;
   }
+
   ensureIntervalMemory(lg);
-  for(let i = 1; i <= lg; i++) intervalMemory[i] = false;
-  const nums = getPulseSeqText().trim().split(/\s+/)
-    .map(n => parseInt(n,10))
-    .filter(n => !isNaN(n) && n >= 1 && n <= lg);
-  nums.sort((a,b) => a - b);
-  nums.forEach(n => { intervalMemory[n] = true; });
-  setPulseSeqText(nums.join(' '));
-  renderTimeline();
+
+  // Import sanitization function
+  const { sanitizePulseSequence } = await import('../../libs/app-common/pulse-seq-intervals.js');
+
+  // Parse all numbers from text to detect invalid ones
+  const matches = text.match(/\d+/g) || [];
+  const allNumbers = matches.map(m => parseInt(m, 10)).filter(n => Number.isFinite(n) && n >= 1);
+  const tooBigNumbers = allNumbers.filter(n => n > lg);
+  const hadTooBig = tooBigNumbers.length > 0;
+  const firstTooBig = tooBigNumbers[0] || null;
+
+  // Get valid interval numbers (1 to Lg, deduplicated, sorted)
+  const validIntervals = sanitizePulseSequence(text, lg);
+
+  // Reset all intervals to unselected
+  for (let i = 1; i <= lg; i++) {
+    intervalMemory[i] = false;
+  }
+
+  // Mark valid intervals as selected
+  validIntervals.forEach(i => {
+    intervalMemory[i] = true;
+  });
+
+  // Update display with sanitized values (with padding for visual clarity)
+  const joined = validIntervals.join('  ');
+  const out = '  ' + joined + '  ';
+  setPulseSeqText(out);
+
+  // Rebuild selectedIntervals Set
+  selectedIntervals.clear();
+  validIntervals.forEach(i => selectedIntervals.add(i));
+
+  // Re-render intervals with new selection
+  intervalRenderer.render();
   updateNumbers();
+
+  // Restore caret in a safe position (between double spaces)
+  const pos = Math.min(out.length, caretBefore);
+  if (hadTooBig || !(opts.causedBy === 'enter' || opts.causedBy === 'blur')) {
+    setPulseSeqSelection(pos, pos);
+    // Ensure separation: jump to nearest midpoint after normalizing
+    try { moveCaretToNearestMidpoint(); } catch {}
+  }
+
+  // Show temporary message if there were numbers > Lg
+  if (hadTooBig) {
+    try{
+      const el = getEditEl();
+      const tip = document.createElement('div');
+      tip.className = 'hover-tip auto-tip-below';
+      const bad = firstTooBig != null ? firstTooBig : '';
+      tip.innerHTML = `El número <strong>${bad}</strong> introducido es mayor que la <span style="color: var(--color-lg); font-weight: 700;">Lg</span>. Elige un número menor que <strong>${lg}</strong>`;
+      document.body.appendChild(tip);
+      let rect = null;
+      const sel = window.getSelection && window.getSelection();
+      if(sel && sel.rangeCount){
+        const r = sel.getRangeAt(0);
+        rect = r.getBoundingClientRect();
+      }
+      if (!rect || rect.width === 0) rect = el.getBoundingClientRect();
+      const x = rect.left + rect.width/2 - tip.offsetWidth/2;
+      const y = rect.bottom + 12;
+      tip.style.left = `${x}px`;
+      tip.style.top = `${y}px`;
+      setTimeout(() => tip.remove(), 3500);
+    } catch {}
+  }
+
+  // Update audio if playing
   if (isPlaying && audio && typeof audio.setSelected === 'function') {
     audio.setSelected(selectedForAudioFromState());
   }
+
+  return { hadTooBig, firstTooBig };
 }
 
 // Set selection state for index i (App5: todos los pulsos de 1 a Lg son seleccionables)
