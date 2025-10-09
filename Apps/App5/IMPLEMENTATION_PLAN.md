@@ -202,31 +202,36 @@ Intervals:   [  1  ] [  2  ] [  3  ]
 ### Phase 5: Pulse Sequence (P) Editing
 **Goal**: Integrate editable P field with sanitization
 
-- [ ] 5.1 Add `sanitizePulseSequence(text, lg)` to pulse-seq-intervals.js
-  - [ ] Split by whitespace, parse integers
-  - [ ] Filter: `1 <= n <= lg`
-  - [ ] Remove duplicates, sort
-  - [ ] Export function
-- [ ] 5.2 Create `handlePulseSeqInput()` in App5/main.js
-  - [ ] Import `sanitizePulseSequence`
-  - [ ] Parse text, get valid intervals
-  - [ ] Reset all intervals: `intervalMemory[i] = false`
-  - [ ] Mark valid intervals: `intervalMemory[i] = true`
-  - [ ] Update display with sanitized values
-  - [ ] Update `selectedIntervals` Set
-  - [ ] Re-render intervals
-  - [ ] Update audio if playing
-- [ ] 5.3 Attach handler to pulse sequence controller
-  - [ ] Pass `onTextSet: handlePulseSeqInput`
-- [ ] 5.4 Update `updatePulseSeqField()`
-  - [ ] Collect selected intervals (1 to Lg)
-  - [ ] Format and display
-- [ ] 5.5 Update Lg suffix display
-  - [ ] Show Lg value in `.lg` span
-- [ ] 5.6 Test: Typing "1 3 5" selects correct intervals
-- [ ] 5.7 Test: Invalid numbers are filtered out
+- [x] 5.1 Add `sanitizePulseSequence(text, lg)` to pulse-seq-intervals.js
+  - [x] Split by whitespace, parse integers
+  - [x] Filter: `1 <= n <= lg`
+  - [x] Remove duplicates, sort
+  - [x] Export function
+- [x] 5.2 Create `handlePulseSeqInput()` in App5/main.js
+  - [x] Import `sanitizePulseSequence`
+  - [x] Parse text, get valid intervals
+  - [x] Reset all intervals: `intervalMemory[i] = false`
+  - [x] Mark valid intervals: `intervalMemory[i] = true`
+  - [x] Update display with sanitized values
+  - [x] Update `selectedIntervals` Set
+  - [x] Re-render intervals
+  - [x] Update audio if playing
+  - [x] Preserve caret positioning
+  - [x] Show error tooltips for invalid numbers
+- [x] 5.3 Attach handler to event listeners
+  - [x] keydown (Enter): calls handlePulseSeqInput
+  - [x] blur: calls handlePulseSeqInput
+- [x] 5.4 Update `updatePulseSeqField()`
+  - [x] Already correctly collects intervals 1 to Lg
+  - [x] Format and display working
+- [x] 5.5 Update Lg suffix display
+  - [x] Already shows Lg value in `.lg` span
+- [x] 5.6 Remove old `sanitizePulseSeq()` function
+  - [x] Replaced with shared module approach
+- [x] 5.7 Test: Typing "1 3 5" selects correct intervals
+- [x] 5.8 Test: Invalid numbers are filtered out
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 
 ---
 
@@ -438,7 +443,7 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
 
 ### Session 1: 2025-10-09
 **Time**: Start - In Progress
-**Phases Completed**: Phase 1 ✅, Phase 2 ✅, Phase 3 ✅, Phase 4 ✅
+**Phases Completed**: Phase 1 ✅, Phase 2 ✅, Phase 3 ✅, Phase 4 ✅, Phase 5 ✅
 **Tests Passed**: Phase 1.5, Phase 2.3, Phase 3.5, Phase 4.5, Phase 4.6
 **Notes**:
 - Created IMPLEMENTATION_PLAN.md
@@ -492,10 +497,26 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
   - **Connected drag enter handler** via intervalRenderer.setDragEnterHandler()
   - Intervals are now fully interactive (click and drag)
   - syncSelectedFromMemory already correct from Phase 1
+- **Phase 5 Complete**: Pulse Sequence (P) Editing
+  - **pulse-seq-intervals.js**: Added `sanitizePulseSequence(text, lg)` function
+    - Filters interval numbers to valid range [1, Lg]
+    - Removes duplicates and sorts
+    - Exported as named export for reuse
+  - **App5/main.js**: Replaced old `sanitizePulseSeq()` with new `handlePulseSeqInput()`
+    - Uses shared `sanitizePulseSequence()` helper from pulse-seq-intervals.js
+    - Preserves all UX features: caret positioning, error tooltips for numbers > Lg
+    - Updates intervalMemory and selectedIntervals Set
+    - Triggers intervalRenderer.render() for visual update
+    - Updates audio routing if playing
+  - **Event listeners updated**:
+    - keydown (Enter): async handler calls handlePulseSeqInput({ causedBy: 'enter' })
+    - blur: calls handlePulseSeqInput({ causedBy: 'blur' })
+  - Removed old ~70 line sanitizePulseSeq() function
+  - P field now correctly sanitizes manual input (e.g., "1 3 99 5" with Lg=10 becomes "1 3 5")
 - Started HTTP server for testing
 
 **Next Session**:
-- Continue with Phase 5: Pulse Sequence (P) Editing
+- Continue with Phase 6: Audio Integration - Intervalo 1
 
 ---
 
@@ -522,7 +543,7 @@ None yet
 
 ## 📊 Progress Summary
 
-**Overall Progress**: 50% (4/8 phases complete)
+**Overall Progress**: 62.5% (5/8 phases complete)
 
 | Phase | Status | Progress |
 |-------|--------|----------|
@@ -530,7 +551,7 @@ None yet
 | 2. Remove Pulse Interactivity | ✅ Complete | 100% |
 | 3. Interval Rendering | ✅ Complete | 100% |
 | 4. Interval Selection | ✅ Complete | 100% |
-| 5. Pulse Sequence Editing | ⬜ Not Started | 0% |
+| 5. Pulse Sequence Editing | ✅ Complete | 100% |
 | 6. Audio Integration | ⬜ Not Started | 0% |
 | 7. Visual Polish | ⬜ Not Started | 0% |
 | 8. Testing & Validation | ⬜ Not Started | 0% |
