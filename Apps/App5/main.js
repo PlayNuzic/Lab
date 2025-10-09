@@ -109,22 +109,26 @@ function buildNotationRenderState() {
 
   ensureIntervalMemory(lgValue);
 
-  // Build rhythm events for ALL pulses from 0 to lg-1 (App2 always uses quarter notes)
-  // Selected pulses are notes, unselected pulses are rests
+  // Build rhythm events for ALL steps (0 to Lg inclusive = Lg+1 steps)
+  // En App5: step 0 = intervalo 1, step 1 = intervalo 2, etc.
+  // Cada step es un quarter note, selected si el intervalo correspondiente está activo
   const rhythm = [];
   const selectedIndices = [];
   const positions = [];
 
-  for (let i = 0; i < lgValue; i++) {
-    const isSelected = (i === 0 || intervalMemory[i]);
+  // Renderizar Lg steps (0 to Lg-1) que corresponden a los Lg intervalos (1 to Lg)
+  for (let step = 0; step < lgValue; step++) {
+    const intervalNumber = step + 1; // step 0 → intervalo 1
+    const isSelected = intervalMemory[intervalNumber]; // Leer de intervalMemory (1-indexed)
+
     rhythm.push({
-      pulseIndex: i,
+      pulseIndex: step,
       duration: 'q', // quarter note
       rest: !isSelected // rest if NOT selected
     });
-    positions.push(i);
+    positions.push(step);
     if (isSelected) {
-      selectedIndices.push(i);
+      selectedIndices.push(step);
     }
   }
 
@@ -169,14 +173,39 @@ function handleNotationClick(event) {
   const noteEl = target.closest('[data-pulse-index]');
   if (!noteEl) return;
   if (noteEl.dataset.nonSelectable === 'true') return;
-  const pulseIndex = Number.parseFloat(noteEl.dataset.pulseIndex);
-  if (!Number.isFinite(pulseIndex)) return;
+
+  const step = Number.parseFloat(noteEl.dataset.pulseIndex);
+  if (!Number.isFinite(step)) return;
+
   const lgValue = parseInt(inputLg.value, 10);
   if (!Number.isFinite(lgValue) || lgValue <= 0) return;
-  if (pulseIndex <= 0 || pulseIndex >= lgValue) return;
+
+  // Convertir step (0-indexed) a intervalNumber (1-indexed)
+  const intervalNumber = step + 1;
+
+  // Validar que el intervalo esté en rango [1, Lg]
+  if (intervalNumber < 1 || intervalNumber > lgValue) return;
+
   ensureIntervalMemory(lgValue);
-  const shouldSelect = !intervalMemory[pulseIndex];
-  setPulseSelected(pulseIndex, shouldSelect);
+  const shouldSelect = !intervalMemory[intervalNumber];
+
+  // Toggle interval selection
+  intervalMemory[intervalNumber] = shouldSelect;
+  if (shouldSelect) {
+    selectedIntervals.add(intervalNumber);
+  } else {
+    selectedIntervals.delete(intervalNumber);
+  }
+
+  // Update displays
+  intervalRenderer.updateSelection();
+  updatePulseSeqField();
+  renderNotationIfVisible();
+
+  // Update audio if playing
+  if (isPlaying && audio && typeof audio.setSelected === 'function') {
+    audio.setSelected(selectedForAudioFromState());
+  }
 }
 
 if (notationContentEl) {
@@ -505,6 +534,7 @@ dragController.attach({
   // Drag end callback - update displays
   onDragEnd: () => {
     updatePulseSeqField();
+    renderNotationIfVisible(); // Sync notation with interval selection
 
     if (isPlaying && audio && typeof audio.setSelected === 'function') {
       audio.setSelected(selectedForAudioFromState());
@@ -1320,6 +1350,7 @@ async function handlePulseSeqInput(opts = {}){
   // Re-render intervals with new selection
   intervalRenderer.render();
   updateNumbers();
+  renderNotationIfVisible(); // Sync notation with P field changes
 
   // Restore caret in a safe position (between double spaces)
   const pos = Math.min(out.length, caretBefore);
