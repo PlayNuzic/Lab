@@ -1769,14 +1769,9 @@ playBtn.addEventListener('click', async () => {
 function getPulseSeqRect(index) {
   if (!pulseSeqEl || !Number.isFinite(index)) return null;
   const idx = Math.round(index);
-  if (idx === 0) {
-    const zero = pulseSeqEl.querySelector('.pz.zero');
-    return zero ? zero.getBoundingClientRect() : null;
-  }
-  if (pulses && idx === pulses.length - 1) {
-    const lgEl = pulseSeqEl.querySelector('.pz.lg');
-    return lgEl ? lgEl.getBoundingClientRect() : null;
-  }
+
+  // App5: index is intervalNumber (1-indexed), look it up in pulseSeqRanges
+  // pulseSeqRanges[intervalNumber] contains [start, end] for that number in the text
   const range = pulseSeqRanges[idx];
   if (range && Array.isArray(range)) {
     const edit = getEditEl();
@@ -1802,7 +1797,10 @@ function handlePulseScroll(i) {
   if (!pulseSeqEl || !pulses || pulses.length === 0) return;
 
   const idx = i % pulses.length;
-  const rect = getPulseSeqRect(idx);
+  // App5: Convert step (0-indexed) to intervalNumber (1-indexed) for P sequence
+  // step 0 → interval 1, step 1 → interval 2, etc.
+  const intervalNumber = idx + 1;
+  const rect = getPulseSeqRect(intervalNumber);
   let newScrollLeft = pulseSeqEl.scrollLeft;
 
   if (rect) {
@@ -1818,12 +1816,13 @@ function handlePulseScroll(i) {
   let trailingIndex = null;
   let trailingRect = null;
   if (idx === 0 && loopEnabled) {
-    trailingIndex = pulses.length - 1;
-    trailingRect = getPulseSeqRect(trailingIndex);
+    const trailingIntervalNumber = pulses.length; // último intervalo = Lg
+    trailingIndex = trailingIntervalNumber;
+    trailingRect = getPulseSeqRect(trailingIntervalNumber);
   }
 
   if (rect) {
-    pulseSeqController.setActiveIndex(idx, {
+    pulseSeqController.setActiveIndex(intervalNumber, {
       rect,
       trailingIndex,
       trailingRect,
