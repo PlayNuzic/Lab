@@ -63,6 +63,9 @@ main > .notation-panel--inline .notation-panel__canvas {
 
 .pulse-number {
   color: var(--color-lg);
+  /* Make pulse numbers 75% smaller (25% of original size) - they are no longer important */
+  font-size: 0.25em !important;
+  opacity: 0.5; /* Also reduce opacity to de-emphasize */
 }
 
 .pulse-number.selected {

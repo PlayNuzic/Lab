@@ -366,50 +366,14 @@ const highlightController = createSimpleHighlightController({
   getLoopEnabled: () => loopEnabled
 });
 
-/**
- * Handles click on an interval block - toggles selection
- * @param {number} intervalNumber - Interval number (1 to Lg)
- */
-function handleIntervalClick(intervalNumber) {
-  const lg = parseInt(inputLg.value);
-
-  // Validate interval number
-  if (isNaN(lg) || intervalNumber < 1 || intervalNumber > lg) {
-    console.warn(`Invalid interval number: ${intervalNumber}, Lg: ${lg}`);
-    return;
-  }
-
-  ensureIntervalMemory(lg);
-
-  // Toggle selection state
-  intervalMemory[intervalNumber] = !intervalMemory[intervalNumber];
-
-  // Update selectedIntervals Set for quick lookup
-  if (intervalMemory[intervalNumber]) {
-    selectedIntervals.add(intervalNumber);
-  } else {
-    selectedIntervals.delete(intervalNumber);
-  }
-
-  // Update visual state
-  intervalRenderer.updateSelection();
-
-  // Update pulse sequence display
-  updatePulseSeqField();
-
-  // Update audio if playing
-  if (isPlaying && audio && typeof audio.setSelected === 'function') {
-    audio.setSelected(selectedForAudioFromState());
-  }
-}
-
 // Create interval renderer for temporal intervals visualization
+// Note: Click/drag selection handled entirely by dragController below (no separate click handler needed)
 const intervalRenderer = createIntervalRenderer({
   timeline,
   getLg: () => parseInt(inputLg.value),
   isCircular: () => loopEnabled && circularTimeline,
   getSelectedIntervals: () => selectedIntervals,
-  onIntervalClick: handleIntervalClick // Phase 4: Click handler configured
+  onIntervalClick: null // dragController handles both clicks and drags
 });
 
 // Create visual sync controller
