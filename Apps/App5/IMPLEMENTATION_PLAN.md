@@ -443,8 +443,8 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
 
 ### Session 1: 2025-10-09
 **Time**: Start - In Progress
-**Phases Completed**: Phase 1 ✅, Phase 2 ✅, Phase 3 ✅, Phase 4 ✅, Phase 5 ✅
-**Tests Passed**: Phase 1.5, Phase 2.3, Phase 3.5, Phase 4.5, Phase 4.6
+**Phases Completed**: Phase 1 ✅, Phase 2 ✅, Phase 3 ✅, Phase 4 ✅, Phase 5 ✅, Conceptual Fixes ✅
+**Tests Passed**: Phase 1.5, Phase 2.3, Phase 3.5, Phase 4.5, Phase 4.6, Audio mapping, Notation sync, Layout persistence
 **Notes**:
 - Created IMPLEMENTATION_PLAN.md
 - Reviewed core concepts and mathematical foundation
@@ -513,6 +513,33 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
     - blur: calls handlePulseSeqInput({ causedBy: 'blur' })
   - Removed old ~70 line sanitizePulseSeq() function
   - P field now correctly sanitizes manual input (e.g., "1 3 99 5" with Lg=10 becomes "1 3 5")
+- **Conceptual Fixes Complete**: Critical bug fixes and improvements
+  - **Fix 1: Audio Mapping (Interval → Step Index)**
+    - Problem: Intervalo 1 sonaba como intervalo 2
+    - Solution: selectedForAudioFromState() now subtracts 1 (interval 1 → step 0)
+  - **Fix 2: Pulse Number Display**
+    - Numbers now start at 0 (not 1)
+    - Restored to 100% size (removed font-size: 0.25em)
+    - Hidden by default, toggle on click
+    - Colors: endpoints (0, Lg) blue, intermedios contrast color
+  - **Fix 3: Interval Highlighting**
+    - Created new module: libs/app-common/highlight-interval.js
+    - Highlights interval blocks during playback (not pulses)
+    - CSS: .interval-block.highlight with flash animation
+  - **Fix 4: Pulse Colors in Timeline**
+    - Intermediate pulses (1 to Lg-1): var(--color-contrast)
+    - Endpoints (0, Lg): var(--color-lg) (blue)
+  - **Fix 5: Notation Sync & Audio**
+    - buildNotationRenderState() now converts intervals correctly
+    - handleNotationClick() converts step → intervalNumber
+    - Added renderNotationIfVisible() calls for bidirectional sync
+  - **Fix 6: Circular Timeline Numbers**
+    - Click on pulse 0 or Lg shows/hides both numbers (shared position)
+  - **Fix 7: P Field Line Break**
+    - Added white-space: nowrap to prevent "P" and "(" separation
+  - **Fix 8: Number Visibility Persistence**
+    - visiblePulseNumbers Set tracks visible numbers
+    - Persists across linear ↔ circular layout changes
 - Started HTTP server for testing
 
 **Next Session**:
@@ -537,13 +564,47 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
 None yet
 
 ### Resolved Issues
-None yet
+
+**Issue #1**: Audio Mapping - Intervalo 1 suena como intervalo 2
+- **Phase**: Post-Phase 5 (Conceptual Fix)
+- **Severity**: Critical
+- **Description**: Los intervalos son 1-indexed pero el audio usa step indices 0-indexed
+- **Fix Applied**: selectedForAudioFromState() ahora resta 1 (intervalo N → step N-1)
+- **Status**: Fixed ✅
+
+**Issue #2**: Pulse numbers empiezan en 1 en lugar de 0
+- **Phase**: Post-Phase 5 (Conceptual Fix)
+- **Severity**: Medium
+- **Description**: Los números renderizaban de 1 a Lg, deberían ser 0 a Lg
+- **Fix Applied**: updateNumbers() ahora loop de 0 a Lg, showNumber() ajustado
+- **Status**: Fixed ✅
+
+**Issue #3**: Partitura no sincroniza con timeline/P field
+- **Phase**: Post-Phase 5 (Conceptual Fix)
+- **Severity**: High
+- **Description**: Cambios en timeline o P no actualizaban la partitura
+- **Fix Applied**: Añadido renderNotationIfVisible() en dragController.onDragEnd y handlePulseSeqInput
+- **Status**: Fixed ✅
+
+**Issue #4**: getMidpoints is not defined
+- **Phase**: Phase 5
+- **Severity**: High
+- **Description**: Error al presionar Backspace/Delete en campo P
+- **Fix Applied**: Añadida función getMidpoints() desde App4
+- **Status**: Fixed ✅
+
+**Issue #5**: Números de pulso no persisten al cambiar layout
+- **Phase**: Post-Phase 5 (Conceptual Fix)
+- **Severity**: Medium
+- **Description**: Al cambiar linear ↔ circular, números visibles desaparecían
+- **Fix Applied**: Set visiblePulseNumbers trackea estado, updateNumbers() restaura
+- **Status**: Fixed ✅
 
 ---
 
 ## 📊 Progress Summary
 
-**Overall Progress**: 62.5% (5/8 phases complete)
+**Overall Progress**: 75% (5/8 phases complete + conceptual fixes complete)
 
 | Phase | Status | Progress |
 |-------|--------|----------|
