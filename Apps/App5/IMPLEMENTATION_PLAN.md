@@ -171,31 +171,31 @@ Intervals:   [  1  ] [  2  ] [  3  ]
 ### Phase 4: Interval Selection Logic
 **Goal**: Make intervals clickable and draggable
 
-- [ ] 4.1 Add `handleIntervalClick(intervalNumber)` function
-  - [ ] Validate interval number (1 to Lg)
-  - [ ] Toggle `intervalMemory[intervalNumber]`
-  - [ ] Update `selectedIntervals` Set
-  - [ ] Call `intervalRenderer.updateSelection()`
-  - [ ] Update pulse sequence display
-  - [ ] Update audio if playing
-- [ ] 4.2 Initialize interval renderer
-  - [ ] Pass `getLg`, `isCircular`, `getSelectedIntervals`
-  - [ ] Pass `onIntervalClick: handleIntervalClick`
-- [ ] 4.3 Setup drag selection
-  - [ ] Configure `pulseSeqController.drag.attach()`
-  - [ ] `resolveTarget`: Find `.interval-block`, return interval number
-  - [ ] `applySelection`: Update `intervalMemory[key]`
-  - [ ] `isSelectionActive`: Check `intervalMemory[key]`
-  - [ ] `onDragEnd`: Update displays and audio
-  - [ ] Connect `intervalRenderer.setDragEnterHandler()`
-- [ ] 4.4 Update `syncSelectedFromMemory()`
-  - [ ] Use `intervalMemory` and `selectedIntervals`
-  - [ ] Loop: `i = 1; i <= lg`
-  - [ ] Remove ephemeral endpoints logic
-- [ ] 4.5 Test: Clicking intervals toggles selection
-- [ ] 4.6 Test: Dragging across intervals works
+- [x] 4.1 Add `handleIntervalClick(intervalNumber)` function
+  - [x] Validate interval number (1 to Lg)
+  - [x] Toggle `intervalMemory[intervalNumber]`
+  - [x] Update `selectedIntervals` Set
+  - [x] Call `intervalRenderer.updateSelection()`
+  - [x] Update pulse sequence display
+  - [x] Update audio if playing
+- [x] 4.2 Initialize interval renderer
+  - [x] Pass `getLg`, `isCircular`, `getSelectedIntervals`
+  - [x] Pass `onIntervalClick: handleIntervalClick`
+- [x] 4.3 Setup drag selection
+  - [x] Configure `dragController.attach()` for intervals
+  - [x] `resolveTarget`: Find `.interval-block`, return `{ key, intervalNumber }`
+  - [x] `applySelection`: Update `intervalMemory[intervalNumber]` and Set
+  - [x] `isSelectionActive`: Check `intervalMemory[intervalNumber]`
+  - [x] `onDragEnd`: Update displays and audio
+  - [x] Connect `intervalRenderer.setDragEnterHandler()`
+- [x] 4.4 Verify `syncSelectedFromMemory()` already correct
+  - [x] Uses `intervalMemory` and `selectedIntervals` ✓
+  - [x] Loop: `i = 1; i <= maxIdx` ✓
+  - [x] No ephemeral endpoints ✓
+- [x] 4.5 Test: Clicking intervals toggles selection
+- [x] 4.6 Test: Dragging across intervals works
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 
 ---
 
@@ -438,8 +438,8 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
 
 ### Session 1: 2025-10-09
 **Time**: Start - In Progress
-**Phases Completed**: Phase 1 ✅, Phase 2 ✅, Phase 3 ✅
-**Tests Passed**: Phase 1.5, Phase 2.3, Phase 3.5
+**Phases Completed**: Phase 1 ✅, Phase 2 ✅, Phase 3 ✅, Phase 4 ✅
+**Tests Passed**: Phase 1.5, Phase 2.3, Phase 3.5, Phase 4.5, Phase 4.6
 **Notes**:
 - Created IMPLEMENTATION_PLAN.md
 - Reviewed core concepts and mathematical foundation
@@ -478,10 +478,24 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
     - Added responsive styles, hover effects, circular mode support
   - **it-index.js**: Updated exports with calculateAllIntervals
   - **App5/main.js**: Updated intervalRenderer configuration
+- **Phase 4 Complete**: Interval Selection Logic
+  - **handleIntervalClick()**: Toggles interval selection, updates UI and audio
+  - Validates interval number (1 to Lg)
+  - Updates intervalMemory, selectedIntervals Set, visual state
+  - Calls intervalRenderer.updateSelection() for immediate visual feedback
+  - Updates pulse sequence display and audio routing
+  - **dragController configured for intervals**:
+    - resolveTarget finds .interval-block elements
+    - Returns { key, intervalNumber } for drag tracking
+    - applySelection updates intervalMemory during drag
+    - onDragEnd updates displays after drag completes
+  - **Connected drag enter handler** via intervalRenderer.setDragEnterHandler()
+  - Intervals are now fully interactive (click and drag)
+  - syncSelectedFromMemory already correct from Phase 1
 - Started HTTP server for testing
 
 **Next Session**:
-- Continue with Phase 4: Interval Selection Logic
+- Continue with Phase 5: Pulse Sequence (P) Editing
 
 ---
 
@@ -508,20 +522,20 @@ None yet
 
 ## 📊 Progress Summary
 
-**Overall Progress**: 37.5% (3/8 phases complete)
+**Overall Progress**: 50% (4/8 phases complete)
 
 | Phase | Status | Progress |
 |-------|--------|----------|
 | 1. State Management | ✅ Complete | 100% |
 | 2. Remove Pulse Interactivity | ✅ Complete | 100% |
 | 3. Interval Rendering | ✅ Complete | 100% |
-| 4. Interval Selection | ⬜ Not Started | 0% |
+| 4. Interval Selection | ✅ Complete | 100% |
 | 5. Pulse Sequence Editing | ⬜ Not Started | 0% |
 | 6. Audio Integration | ⬜ Not Started | 0% |
 | 7. Visual Polish | ⬜ Not Started | 0% |
 | 8. Testing & Validation | ⬜ Not Started | 0% |
 
-**Test Coverage**: 3/67 tests passed (Phase 1.5, Phase 2.3, Phase 3.5)
+**Test Coverage**: 5/67 tests passed (Phases 1.5, 2.3, 3.5, 4.5, 4.6)
 
 ---
 

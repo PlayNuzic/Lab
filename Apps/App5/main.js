@@ -366,14 +366,50 @@ const highlightController = createSimpleHighlightController({
   getLoopEnabled: () => loopEnabled
 });
 
+/**
+ * Handles click on an interval block - toggles selection
+ * @param {number} intervalNumber - Interval number (1 to Lg)
+ */
+function handleIntervalClick(intervalNumber) {
+  const lg = parseInt(inputLg.value);
+
+  // Validate interval number
+  if (isNaN(lg) || intervalNumber < 1 || intervalNumber > lg) {
+    console.warn(`Invalid interval number: ${intervalNumber}, Lg: ${lg}`);
+    return;
+  }
+
+  ensureIntervalMemory(lg);
+
+  // Toggle selection state
+  intervalMemory[intervalNumber] = !intervalMemory[intervalNumber];
+
+  // Update selectedIntervals Set for quick lookup
+  if (intervalMemory[intervalNumber]) {
+    selectedIntervals.add(intervalNumber);
+  } else {
+    selectedIntervals.delete(intervalNumber);
+  }
+
+  // Update visual state
+  intervalRenderer.updateSelection();
+
+  // Update pulse sequence display
+  updatePulseSeqField();
+
+  // Update audio if playing
+  if (isPlaying && audio && typeof audio.setSelected === 'function') {
+    audio.setSelected(selectedForAudioFromState());
+  }
+}
+
 // Create interval renderer for temporal intervals visualization
-// Create interval renderer - Phase 3 configuration (click handlers in Phase 4)
 const intervalRenderer = createIntervalRenderer({
   timeline,
   getLg: () => parseInt(inputLg.value),
   isCircular: () => loopEnabled && circularTimeline,
   getSelectedIntervals: () => selectedIntervals,
-  onIntervalClick: null // Will be configured in Phase 4
+  onIntervalClick: handleIntervalClick // Phase 4: Click handler configured
 });
 
 // Create visual sync controller
@@ -452,30 +488,66 @@ function scheduleTIndicatorReveal(delay = 0) {
   }, ms);
 }
 const dragController = pulseSeqController.drag;
-// Drag controller for pulse selection - DISABLED in Phase 2
-// Will be reconfigured in Phase 4 for interval selection
-/*
+// Drag controller for INTERVAL selection - Phase 4
 dragController.attach({
   timeline,
+
+  // Resolve which interval was targeted
   resolveTarget: ({ target }) => {
     if (!target) return null;
-    const hit = target.closest('.pulse-hit, .pulse');
-    if (!hit) return null;
-    const idx = Number.parseInt(hit.dataset?.index, 10);
-    if (!Number.isFinite(idx)) return null;
-    return { key: String(idx), index: idx };
+    const block = target.closest('.interval-block');
+    if (!block) return null;
+
+    const number = parseInt(block.dataset.intervalNumber);
+    if (!Number.isFinite(number)) return null;
+
+    return {
+      key: String(number),     // Unique identifier for drag controller
+      intervalNumber: number   // Interval number (1 to Lg)
+    };
   },
+
+  // Apply selection/deselection during drag
   applySelection: (info, shouldSelect) => {
-    if (!info || !Number.isFinite(info.index)) return;
-    setPulseSelected(info.index, shouldSelect);
+    if (!info || !Number.isFinite(info.intervalNumber)) return;
+
+    const lg = parseInt(inputLg.value);
+    ensureIntervalMemory(lg);
+
+    intervalMemory[info.intervalNumber] = shouldSelect;
+
+    if (shouldSelect) {
+      selectedIntervals.add(info.intervalNumber);
+    } else {
+      selectedIntervals.delete(info.intervalNumber);
+    }
+
+    intervalRenderer.updateSelection();
   },
+
+  // Check if interval is currently selected
   isSelectionActive: (info) => {
-    if (!info || !Number.isFinite(info.index)) return false;
-    ensureIntervalMemory(info.index);
-    return !!intervalMemory[info.index];
+    if (!info || !Number.isFinite(info.intervalNumber)) return false;
+    return intervalMemory[info.intervalNumber] === true;
+  },
+
+  // Drag end callback - update displays
+  onDragEnd: () => {
+    updatePulseSeqField();
+
+    if (isPlaying && audio && typeof audio.setSelected === 'function') {
+      audio.setSelected(selectedForAudioFromState());
+    }
   }
 });
-*/
+
+// Connect drag enter handler to interval renderer
+intervalRenderer.setDragEnterHandler((intervalNumber) => {
+  dragController.handleEnter({
+    key: String(intervalNumber),
+    intervalNumber: intervalNumber
+  });
+});
 
 // Create timeline renderer for circular/linear layout
 const timelineRenderer = createTimelineRenderer({
