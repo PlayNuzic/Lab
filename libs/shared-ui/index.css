@@ -1289,8 +1289,7 @@ body[data-theme='dark'] .notation-panel__canvas {
 
 .rhythm-staff-container {
   position: relative;
-  display: flex;
-  justify-content: center;
+  display: inline-block;
   min-width: 100%;
   background: transparent;
   padding: 0;
@@ -1304,6 +1303,8 @@ body[data-theme='dark'] .notation-panel__canvas {
 .rhythm-staff-container svg {
   display: block;
   height: auto;
+  margin: 0 auto;
+  max-width: none;
 }
 
 .notation-playback-cursor {
