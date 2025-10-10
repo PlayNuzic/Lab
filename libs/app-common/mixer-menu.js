@@ -196,11 +196,27 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     const newX = dragState.initialMenuLeft + deltaX;
     const newY = dragState.initialMenuTop + deltaY;
 
-    dragState.menuX = newX;
-    dragState.menuY = newY;
+    // Get menu dimensions and viewport bounds
+    const rect = menu.getBoundingClientRect();
+    const menuWidth = rect.width;
+    const menuHeight = rect.height;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
-    menu.style.top = `${newY}px`;
-    menu.style.left = `${newX}px`;
+    // Clamp position to keep menu within viewport
+    const minX = 0;
+    const maxX = viewportWidth - menuWidth;
+    const minY = 0;
+    const maxY = viewportHeight - menuHeight;
+
+    const clampedX = Math.max(minX, Math.min(maxX, newX));
+    const clampedY = Math.max(minY, Math.min(maxY, newY));
+
+    dragState.menuX = clampedX;
+    dragState.menuY = clampedY;
+
+    menu.style.top = `${clampedY}px`;
+    menu.style.left = `${clampedX}px`;
     menu.style.transform = 'none';
   };
 
