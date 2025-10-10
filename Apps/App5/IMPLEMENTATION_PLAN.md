@@ -268,29 +268,29 @@ Intervals:   [  1  ] [  2  ] [  3  ]
 ### Phase 7: Visual Polish & Positioning
 **Goal**: Clean up visuals, remove pulse numbers, finalize styles
 
-- [ ] 7.1 Remove pulse numbering from App5/main.js
-  - [ ] Delete `updateNumbers()` function
-  - [ ] Remove all calls to `updateNumbers()`
-  - [ ] Delete `showNumber()` function
-  - [ ] Remove `.pulse-number` element creation
-  - [ ] Delete pulse number positioning code
-- [ ] 7.2 Update App5/styles.css
-  - [ ] Remove all `.pulse-number` styles
-  - [ ] Simplify `.pulse` styles (non-interactive)
-  - [ ] Keep `.pulse.zero` and `.pulse.lg` distinctions
-- [ ] 7.3 Finalize it-styles.css
-  - [ ] Confirm 24px height
-  - [ ] Confirm `-32px` top position in linear mode
-  - [ ] Add timeline margin-top to accommodate intervals
-- [ ] 7.4 Add timeline-layout.js callback hook
-  - [ ] Add `onAfterLayout` callback in timeline-layout.js
-  - [ ] Call `intervalRenderer.updatePositions()` after layout changes
-  - [ ] Pass callback from App5/main.js
-- [ ] 7.5 Test: No pulse numbers visible
-- [ ] 7.6 Test: Interval numbers visible and centered
-- [ ] 7.7 Test: Layout transitions are smooth
+- [x] 7.1 Remove pulse numbering from App5/main.js
+  - [x] Delete `updateNumbers()` function
+  - [x] Remove all calls to `updateNumbers()`
+  - [x] Delete `showNumber()` function
+  - [x] Remove `.pulse-number` element creation
+  - [x] Delete pulse number positioning code
+- [x] 7.2 Update App5/styles.css
+  - [x] Remove all `.pulse-number` styles
+  - [x] Simplify `.pulse` styles (non-interactive)
+  - [x] Keep `.pulse.zero` and `.pulse.lg` distinctions
+- [x] 7.3 Finalize it-styles.css
+  - [x] Confirm 24px height
+  - [x] Confirm `-32px` top position in linear mode
+  - [x] Add timeline margin-top to accommodate intervals
+- [x] 7.4 Add timeline-layout.js callback hook
+  - [x] Add `onAfterLayout` callback in timeline-layout.js
+  - [x] Call `intervalRenderer.updatePositions()` after layout changes
+  - [x] Pass callback from App5/main.js
+- [x] 7.5 Test: No pulse numbers visible
+- [x] 7.6 Test: Interval numbers visible and centered
+- [x] 7.7 Test: Layout transitions are smooth
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 
 ---
 

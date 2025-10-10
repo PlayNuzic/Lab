@@ -551,6 +551,8 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       return entry;
     };
 
+    const baseLayerEntries = []; // Para la segunda voz (solo D4 del intervalo 1)
+
     events.forEach((event, index) => {
       const pulseIndex = Number.isFinite(event?.pulseIndex)
         ? Number(event.pulseIndex)
@@ -563,10 +565,24 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       const isRest = !!event?.rest || event?.type === 'rest';
       const duration = resolveDuration(event?.duration, isRest);
 
+      // Si tiene showBaseLayer (intervalo 1), la voz principal debe usar C5 para notas/silencios
+      let pickedKey;
+      if (event?.showBaseLayer) {
+        // Intervalo 1: siempre usar C5 (tanto para nota como para silencio)
+        pickedKey = SELECTED_KEY; // C5
+      } else {
+        // Resto de intervalos: lógica normal
+        pickedKey = pickKeyForPulse(pulseIndex, selectedSet);
+      }
+
+      const keys = isRest
+        ? [REST_KEY]
+        : (Array.isArray(pickedKey) ? pickedKey : [pickedKey]);
+
       const config = {
         clef: 'treble',
         duration,
-        keys: isRest ? [REST_KEY] : [pickKeyForPulse(pulseIndex, selectedSet)],
+        keys,
       };
 
       const note = new StaveNote(config);
@@ -581,6 +597,25 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
         note,
         originalIndex: index,
       });
+
+      // Si el evento tiene showBaseLayer (intervalo 1), crear D4 para la segunda voz
+      if (event?.showBaseLayer) {
+        const baseConfig = {
+          clef: 'treble',
+          duration, // Misma duración (quarter note)
+          keys: [DOWNBEAT_KEY], // D4
+        };
+        const baseNote = new StaveNote(baseConfig);
+        applyDotsToNote(baseNote, event?.dots);
+
+        baseLayerEntries.push({
+          event,
+          pulseIndex,
+          note: baseNote,
+          originalIndex: index,
+          isBaseLayer: true,
+        });
+      }
     });
 
     let fractionGrid = null;
@@ -993,16 +1028,26 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       });
     }
 
-    // Ahora crear y formatear el voice (las notas ya tienen beams asignados)
-    const voice = new Voice({ numBeats: 4, beatValue: 4 });
-    voice.setStrict(false);
-    voice.addTickables(entries.map((entry) => entry.note));
+    // Crear voces: voz principal (todos los intervalos) + voz base (solo D4 del intervalo 1)
+    const mainVoice = new Voice({ numBeats: 4, beatValue: 4 });
+    mainVoice.setStrict(false);
+    mainVoice.addTickables(entries.map((entry) => entry.note));
+
+    const voices = [mainVoice];
+
+    // Si hay eventos con base layer (intervalo 1), crear segunda voz con D4
+    if (baseLayerEntries.length > 0) {
+      const baseVoice = new Voice({ numBeats: 4, beatValue: 4 });
+      baseVoice.setStrict(false);
+      baseVoice.addTickables(baseLayerEntries.map((entry) => entry.note));
+      voices.push(baseVoice);
+    }
 
     const formatter = new Formatter();
-    formatter.joinVoices([voice]).format([voice], innerStaveWidth - 20);
+    formatter.joinVoices(voices).format(voices, innerStaveWidth - 20);
 
-    // Dibujar el voice (NO dibujará flags porque las notas ya tienen beam)
-    voice.draw(context, stave);
+    // Dibujar todas las voces
+    voices.forEach(voice => voice.draw(context, stave));
 
     // Calcular bounding boxes después de dibujar
     const defaultX = stave.getX();
@@ -1106,6 +1151,21 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
             meta.noteElement = element;
           }
         }
+      }
+    });
+
+    // Agregar data attributes a las notas de la capa base (D4 del intervalo 1)
+    baseLayerEntries.forEach((entry, index) => {
+      const { note, pulseIndex } = entry;
+      let element = note?.attrs?.el;
+      if (!element && typeof note?.getSVGElement === 'function') {
+        element = note.getSVGElement();
+      }
+      if (element) {
+        element.dataset.noteIndex = String(index);
+        element.dataset.pulseIndex = String(pulseIndex); // Mismo pulseIndex que la nota principal
+        element.dataset.baseLayer = 'true'; // Marca como capa base (D4)
+        // El D4 siempre es clickeable para togglear el intervalo 1
       }
     });
 

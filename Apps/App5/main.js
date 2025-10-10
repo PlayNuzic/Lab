@@ -146,11 +146,14 @@ function buildNotationRenderState() {
     const intervalNumber = step + 1; // step 0 → intervalo 1
     const isSelected = intervalMemory[intervalNumber]; // Leer de intervalMemory (1-indexed)
 
+    // Todos los intervalos usan la misma lógica
     rhythm.push({
       pulseIndex: step,
-      duration: 'q', // quarter note
-      rest: !isSelected // rest if NOT selected
+      duration: 'q',
+      rest: !isSelected,
+      showBaseLayer: step === 0 // Solo intervalo 1 necesita D4 en voz secundaria
     });
+
     positions.push(step);
     if (isSelected) {
       selectedIndices.push(step);
