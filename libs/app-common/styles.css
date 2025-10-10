@@ -405,6 +405,8 @@ body[data-theme='dark'] .fraction-info-bubble {
 .timeline.no-anim .pulse,
 .timeline.no-anim .bar,
 .timeline.no-anim .pulse-number,
+.timeline.no-anim .cycle-marker,
+.timeline.no-anim .cycle-label,
 .timeline.no-anim::before,
 .timeline.no-anim::after {
   transition: none;
