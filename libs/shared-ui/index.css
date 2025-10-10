@@ -86,6 +86,7 @@ body[data-theme='light'] {
   background: var(--bg-light);
   color: var(--text-light);
   --line-color: var(--text-light);
+  --color-contrast: #43433B;
   font-family: 'Ubuntu', sans-serif;
 }
 
@@ -93,6 +94,7 @@ body[data-theme='dark'] {
   background: var(--bg-dark);
   color: var(--text-dark);
   --line-color: var(--text-dark);
+  --color-contrast: #EEE8D8;
   font-family: 'Ubuntu', sans-serif;
 }
 
