@@ -34,7 +34,10 @@
   font-weight: 600;
   user-select: none;
   pointer-events: none;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  /* Sombra invertida tipo "tallado/inset" - luz desde arriba izquierda */
+  text-shadow:
+    0 -1px 1px rgba(0, 0, 0, 0.5),     /* Sombra arriba (oscuro) */
+    0 1px 1px rgba(255, 255, 255, 0.3); /* Luz abajo (claro) */
   line-height: 1;
 }
 

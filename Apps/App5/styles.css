@@ -51,7 +51,10 @@ main > .notation-panel--inline .notation-panel__canvas {
  * Timeline pulse overrides to support selection and interactive hit areas.
  */
 .pulse { cursor: pointer; }
-.timeline .pulse { pointer-events: auto; }
+.timeline .pulse {
+  pointer-events: auto;
+  z-index: 15 !important; /* Asegurar que pulsos estén siempre encima de intervalos (z-index: 3) */
+}
 
 /* Selected pulses use selection color */
 .pulse.selected { background: var(--selection-color); }
