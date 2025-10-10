@@ -179,7 +179,7 @@ main>.inputs>* {
   line-height: 1.4;
   max-width: min(280px, 85vw);
   white-space: pre-line;
-  pointer-events: none;
+  pointer-events: auto;
   z-index: 2000;
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
   background: var(--fraction-info-bg, var(--bg-light));
