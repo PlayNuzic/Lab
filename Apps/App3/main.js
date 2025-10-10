@@ -226,7 +226,7 @@ window.addEventListener('sharedui:complexfractions', (e) => {
   updateRandomMenuComplexState(enabled);
 
   // Re-renderizar timeline si es necesario
-  layoutTimeline();
+  animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
 });
 
 // Inicializar estado al cargar
@@ -484,7 +484,7 @@ function getFraction() {
 
 // Create title tooltip controller
 const titleTooltip = createInfoTooltip({
-  className: 'hover-tip auto-tip-below top-bar-info-tip'
+  className: 'fraction-info-bubble auto-tip-below top-bar-info-tip'
 });
 
 function buildTitleInfoContent() {
@@ -612,7 +612,7 @@ if (titleButton) {
   });
 }
 
-const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
+const timelineRenderer = createTimelineRenderer({
   timeline,
   timelineWrapper,
   getLg: () => (pulses.length > 0 ? pulses.length - 1 : 0),
@@ -627,6 +627,7 @@ const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
   numberCircleOffset: NUMBER_CIRCLE_OFFSET,
   isCircularEnabled: () => circularTimeline && loopEnabled
 });
+const { updatePulseNumbers, layoutTimeline } = timelineRenderer;
 
 function clearHighlights() {
   pulses.forEach(p => p.classList.remove('active'));
@@ -635,7 +636,15 @@ function clearHighlights() {
   pulseNumberLabels.forEach(label => label.classList.remove('pulse-number--flash'));
 }
 
+function animateTimelineCircle(isCircular, opts = {}) {
+  const silent = !!opts.silent;
+  timelineRenderer.layoutTimeline(isCircular, { silent });
+}
+
 function renderTimeline() {
+  // Disable transitions during render to prevent animation when changing inputs
+  timeline.classList.add('no-anim');
+
   pulseNumberLabels = [];
   pulses = [];
   cycleMarkers = [];
@@ -646,7 +655,19 @@ function renderTimeline() {
   if (savedIndicator) timeline.appendChild(savedIndicator);
 
   const lg = getLg();
-  if (!Number.isFinite(lg) || lg <= 0) return;
+  const { numerator, denominator } = getFraction();
+
+  // Update structure signature for highlight validation
+  lastStructureSignature = {
+    lg: Number.isFinite(lg) && lg > 0 ? lg : null,
+    numerator: Number.isFinite(numerator) && numerator > 0 ? numerator : null,
+    denominator: Number.isFinite(denominator) && denominator > 0 ? denominator : null
+  };
+
+  if (!Number.isFinite(lg) || lg <= 0) {
+    timeline.classList.remove('no-anim');
+    return;
+  }
   const numberFontRem = computeNumberFontRem(lg);
   const subdivisionFontRem = computeSubdivisionFontRem(lg);
 
@@ -665,7 +686,6 @@ function renderTimeline() {
     }
   }
 
-  const { numerator, denominator } = getFraction();
   const grid = gridFromOrigin({ lg, numerator, denominator });
   if (grid.cycles > 0 && grid.subdivisions.length) {
     const hideFractionLabels = lg >= SUBDIVISION_HIDE_THRESHOLD;
@@ -702,8 +722,13 @@ function renderTimeline() {
   }
 
   updatePulseNumbers();
-  layoutTimeline({ silent: true });
+  layoutTimeline();
   clearHighlights();
+
+  // Re-enable transitions after render completes
+  requestAnimationFrame(() => {
+    timeline.classList.remove('no-anim');
+  });
 }
 
 function handleInput() {
@@ -724,25 +749,13 @@ function handleInput() {
 
   loopBtn.disabled = !(Number.isFinite(lg) && lg > 0);
 
+  // Normalize values for audio configuration
   const normalizedLg = Number.isFinite(lg) && lg > 0 ? lg : null;
   const normalizedNumerator = Number.isFinite(numerator) && numerator > 0 ? numerator : null;
   const normalizedDenominator = Number.isFinite(denominator) && denominator > 0 ? denominator : null;
-  const structureChanged = (
-    normalizedLg !== lastStructureSignature.lg
-    || normalizedNumerator !== lastStructureSignature.numerator
-    || normalizedDenominator !== lastStructureSignature.denominator
-  );
 
-  if (structureChanged) {
-    lastStructureSignature = {
-      lg: normalizedLg,
-      numerator: normalizedNumerator,
-      denominator: normalizedDenominator
-    };
-    renderTimeline();
-  } else {
-    layoutTimeline({ silent: true });
-  }
+  // Always render timeline (siguiendo patrón de App2)
+  renderTimeline();
 
   if (audio) {
     const validLg = Number.isFinite(lg) && lg > 0;
@@ -1171,8 +1184,19 @@ loopBtn.addEventListener('click', () => {
   if (audio && typeof audio.setLoop === 'function') {
     audio.setLoop(loopEnabled);
   }
-  layoutTimeline();
-  handleInput();
+  animateTimelineCircle(loopEnabled && circularTimeline);
+
+  // Update audio transport if playing
+  if (isPlaying) {
+    const lg = getLg();
+    if (audio && Number.isFinite(lg) && lg > 0) {
+      const playbackTotal = toPlaybackPulseCount(lg, loopEnabled);
+      if (typeof audio.updateTransport === 'function') {
+        audio.updateTransport({ align: 'nextPulse', totalPulses: playbackTotal });
+      }
+    }
+  }
+
   syncVisualState();
 });
 
@@ -1243,7 +1267,7 @@ circularTimeline = circularTimelineToggle.checked;
 circularTimelineToggle?.addEventListener('change', e => {
   circularTimeline = e.target.checked;
   saveOpt('circular', e.target.checked ? '1' : '0');
-  layoutTimeline();
+  animateTimelineCircle(loopEnabled && circularTimeline);
 });
 
 /**

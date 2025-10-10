@@ -682,16 +682,25 @@ function updateFormula(){
 
 
 function renderTimeline(){
+  // Disable transitions during render to prevent animation when changing inputs
+  timeline.classList.add('no-anim');
+
   const lg = parseInt(inputLg.value);
   if(isNaN(lg) || lg <= 0) {
     timeline.innerHTML = '';
     pulses = [];
+    timeline.classList.remove('no-anim');
     return;
   }
 
   pulses = timelineController.render(lg, {
     isCircular: loopEnabled && circularTimeline,
     silent: true
+  });
+
+  // Re-enable transitions after render completes
+  requestAnimationFrame(() => {
+    timeline.classList.remove('no-anim');
   });
 }
 

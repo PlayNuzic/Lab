@@ -1156,7 +1156,17 @@ if (titleButton) {
     if (!content) return;
     titleInfoTooltip.show(content, titleButton);
   });
-  titleButton.addEventListener('blur', () => titleInfoTooltip.hide());
+
+  // Close on click outside
+  document.addEventListener('click', (e) => {
+    const tooltipEl = titleInfoTooltip.getElement();
+    if (tooltipEl && tooltipEl.classList.contains('show') &&
+        !titleButton.contains(e.target) &&
+        !tooltipEl.contains(e.target)) {
+      titleInfoTooltip.hide();
+    }
+  });
+
   titleButton.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' || event.key === 'Esc') {
       titleInfoTooltip.hide();

@@ -1830,7 +1830,7 @@ function formatSec(n) {
 }
 
 const titleInfoTooltip = createInfoTooltip({
-  className: 'hover-tip auto-tip-below top-bar-info-tip'
+  className: 'fraction-info-bubble auto-tip-below top-bar-info-tip'
 });
 
 function buildTitleInfoContent() {
@@ -2484,6 +2484,9 @@ function initTimelineRenderer() {
 }
 
 function renderTimeline() {
+  // Disable transitions during render to prevent animation when changing inputs
+  timeline.classList.add('no-anim');
+
   if (highlightController) {
     highlightController.clearAll();
   }
@@ -2501,6 +2504,10 @@ function renderTimeline() {
     cycleMarkers = [];
     cycleMarkerHits = [];
     cycleLabels = [];
+    // Re-enable transitions even in fallback case
+    requestAnimationFrame(() => {
+      timeline.classList.remove('no-anim');
+    });
     return;
   }
 
@@ -2542,6 +2549,11 @@ function renderTimeline() {
     syncVisualState();
     startVisualSync();
   }
+
+  // Re-enable transitions after render completes
+  requestAnimationFrame(() => {
+    timeline.classList.remove('no-anim');
+  });
 }
 
 function restoreCycleLabelDisplay() {

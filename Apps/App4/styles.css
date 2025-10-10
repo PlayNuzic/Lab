@@ -200,6 +200,14 @@ main > .notation-panel--inline .notation-panel__canvas {
   }
 }
 
+/* Disable transitions when rendering structure changes (Lg, V, Fraction, Tap) */
+.timeline.no-anim .cycle-marker,
+.timeline.no-anim .cycle-label,
+.timeline.no-anim .pulse-hit,
+.timeline.no-anim .fraction-hit {
+  transition: none;
+}
+
 .cycle-marker {
   position: absolute;
   width: 4px;

@@ -355,6 +355,12 @@ header.top-bar h1 .top-bar-title-button:active {
   }
 }
 
+/* Disable transitions when rendering structure changes (Lg, V, Fraction, Tap) */
+.timeline.no-anim .cycle-marker,
+.timeline.no-anim .cycle-label {
+  transition: none;
+}
+
 .timeline.circular .pulse-number {
   top: 50%;
 }
