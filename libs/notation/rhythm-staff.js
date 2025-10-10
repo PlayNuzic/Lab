@@ -619,9 +619,9 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
           clef: 'treble',
           duration, // Misma duración (quarter note)
           keys: [DOWNBEAT_KEY], // D4
-          stem_direction: -1, // Plica hacia abajo
         };
         const baseNote = new StaveNote(baseConfig);
+        baseNote.setStemDirection(-1); // Plica hacia abajo
         applyDotsToNote(baseNote, event?.dots);
 
         baseLayerEntries.push({
