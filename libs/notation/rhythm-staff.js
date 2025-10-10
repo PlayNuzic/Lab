@@ -867,7 +867,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     const stave = new Stave(HORIZONTAL_MARGIN, 48, innerStaveWidth);
     stave.addClef('treble');
     stave.setBegBarType(BarlineType.SINGLE);
-    stave.setEndBarType(BarlineType.SINGLE);
+    stave.setEndBarType(BarlineType.END);
     stave.setContext(context).draw();
 
     // Guardar información del stave para el cursor

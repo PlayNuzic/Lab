@@ -1289,7 +1289,8 @@ body[data-theme='dark'] .notation-panel__canvas {
 
 .rhythm-staff-container {
   position: relative;
-  display: inline-block;
+  display: flex;
+  justify-content: center;
   min-width: 100%;
   background: transparent;
   padding: 0;
