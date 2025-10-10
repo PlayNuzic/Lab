@@ -622,7 +622,7 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
 }
 
 .control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) {
-  width: calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap));
+  width: calc(var(--control-toggle-width) * 1.35 + var(--control-toggle-gap) * 2);
 }
 
 .control-sound-toggle-container {
@@ -659,7 +659,7 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   }
 
   .control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) {
-    width: min(84vw, calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap)));
+    width: min(84vw, calc(var(--control-toggle-width) * 1.35 + var(--control-toggle-gap) * 2));
   }
 
   .control-sound-toggle-container--cycle {
