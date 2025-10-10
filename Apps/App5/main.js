@@ -397,7 +397,7 @@ function clearPersistentIntervals(){
 }
 // UI thresholds for number rendering
 const NUMBER_HIDE_THRESHOLD = 100;   // from this Lg and above, hide numbers
-const NUMBER_CIRCLE_OFFSET  = 34;    // px distance from circle to number label
+const NUMBER_CIRCLE_OFFSET  = -20;    // px distance from circle to number label (negative = inside)
 
 // --- Selección para audio (App5: de 1 a Lg inclusive) ---
 // IMPORTANTE: Los intervalos son 1-indexed (intervalo 1, 2, 3...)
@@ -1578,7 +1578,8 @@ function showNumber(i, options = {}){
   n.dataset.index = i;
   n.textContent = i;
   const fontRem = computeNumberFontRem(lg);
-  n.style.fontSize = fontRem + 'rem';
+  const reducedFontRem = fontRem * 0.75; // Reducir 25% para números de pulsos
+  n.style.fontSize = reducedFontRem + 'rem';
 
    if (timeline.classList.contains('circular')) {
      const rect = timeline.getBoundingClientRect();

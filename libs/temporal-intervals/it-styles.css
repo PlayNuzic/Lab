@@ -30,7 +30,7 @@
 /* Número del intervalo centrado en el bloque */
 .interval-number {
   color: white;
-  font-size: 0.75rem;
+  font-size: 1.6rem; /* Base size - será sobrescrito por JS con tamaño adaptativo */
   font-weight: 600;
   user-select: none;
   pointer-events: none;
@@ -38,9 +38,10 @@
   line-height: 1;
 }
 
-/* Layout LINEAR - intervalos posicionados ENCIMA de la timeline */
+/* Layout LINEAR - intervalos posicionados PEGADOS a la timeline */
 .timeline:not(.circular) .interval-block {
-  top: -32px; /* Posición fija encima de la timeline (no superpuestos) */
+  top: 50%; /* Centrado verticalmente en la timeline */
+  transform: translateY(-50%);
 }
 
 /* Layout CIRCULAR - intervalos posicionados alrededor del círculo */
@@ -50,9 +51,9 @@
   border-radius: 12px; /* Más redondeado para seguir el arco */
 }
 
-/* Asegurar que los intervalos no se solapen con la timeline en modo linear */
+/* Ya no necesitamos margen superior - intervalos están pegados a la timeline */
 .timeline-wrapper:not(.circular) .timeline {
-  margin-top: 40px; /* Espacio para intervalos encima */
+  margin-top: 20px; /* Margen reducido ahora que los intervalos están en la línea */
 }
 
 /* Animaciones de entrada/salida (opcional - para futuras mejoras) */
@@ -131,12 +132,11 @@
     height: 18px; /* Un poco más pequeño en móviles */
   }
 
-  .interval-number {
-    font-size: 0.65rem;
-  }
+  /* font-size manejado por JS con computeIntervalNumberFontRem */
 
   .timeline:not(.circular) .interval-block {
-    top: -28px; /* Ajustar posición para pantallas pequeñas */
+    top: 50%; /* Mantener centrado verticalmente en móvil */
+    transform: translateY(-50%);
   }
 }
 
@@ -146,7 +146,5 @@
     height: 28px; /* Ligeramente más grande en pantallas grandes */
   }
 
-  .interval-number {
-    font-size: 0.85rem;
-  }
+  /* font-size manejado por JS con computeIntervalNumberFontRem */
 }

@@ -2,6 +2,7 @@
 // Renderiza bloques de intervalos temporales (iT) - SIEMPRE todos los Lg intervalos
 
 import { calculateAllIntervals } from './it-calculator.js';
+import { computeIntervalNumberFontRem } from '../../Apps/App5/utils.js';
 
 /**
  * Crea un renderer de intervalos temporales que SIEMPRE muestra todos los Lg intervalos.
@@ -57,10 +58,16 @@ export function createIntervalRenderer(config = {}) {
       div.classList.add('selected');
     }
 
-    // Agregar número centrado
+    // Agregar número centrado con tamaño adaptativo
     const label = document.createElement('span');
     label.className = 'interval-number';
     label.textContent = interval.number;
+
+    // Aplicar tamaño adaptativo basado en Lg
+    const lg = getLg();
+    const fontRem = computeIntervalNumberFontRem(lg);
+    label.style.fontSize = fontRem + 'rem';
+
     div.appendChild(label);
 
     // Agregar click handler
@@ -135,11 +142,11 @@ export function createIntervalRenderer(config = {}) {
       const centerPercent = (startPercent + endPercent) / 2;
       const widthPercent = endPercent - startPercent;
 
-      // Posicionar centrado horizontalmente, encima de la timeline
+      // Posicionar centrado horizontalmente, pegado a la timeline
       element.style.left = `${centerPercent}%`;
-      element.style.top = '-32px'; // Fijo encima de la timeline
+      element.style.top = '50%'; // Centrado verticalmente en la timeline
       element.style.width = `${widthPercent}%`;
-      element.style.transform = 'translateX(-50%)';
+      element.style.transform = 'translateX(-50%) translateY(-50%)';
     });
   }
 
