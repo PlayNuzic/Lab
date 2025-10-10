@@ -13,8 +13,14 @@ export function computeNumberFontRem(lg) {
   const BASE_REM = 1.3;   // ideal size at Lg=30
   const TARGET   = 30;    // reference Lg
   const K        = 0.5;   // perceptual exponent (sqrt scaling)
-  const MIN_REM  = 1.0;   // clamp min size
-  const MAX_REM  = 2.4;   // clamp max size
+
+  // Detect mobile screen
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 600px)').matches;
+
+  // Adjust limits based on screen size
+  const MIN_REM  = isMobile ? 0.85 : 1.0;   // Smaller min on mobile
+  const MAX_REM  = isMobile ? 1.1 : 2.4;    // Much smaller max on mobile
+
   const safeLg   = Math.max(1, Number(lg) || 1);
   const scale    = Math.pow(TARGET / safeLg, K);
   return Math.max(MIN_REM, Math.min(MAX_REM, BASE_REM * scale));
