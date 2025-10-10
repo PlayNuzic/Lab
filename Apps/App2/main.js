@@ -1330,11 +1330,17 @@ function setPulseSelected(i, shouldSelect) {
 }
 
 function renderTimeline(){
+  // Disable transitions during render to prevent animation when changing inputs
+  timeline.classList.add('no-anim');
+
   timeline.innerHTML = '';
   pulses = [];
   pulseHits = [];
   const lg = parseInt(inputLg.value);
-  if(isNaN(lg) || lg <= 0) return;
+  if(isNaN(lg) || lg <= 0) {
+    timeline.classList.remove('no-anim');
+    return;
+  }
   ensurePulseMemory(lg);
 
   for (let i = 0; i <= lg; i++) {
@@ -1395,6 +1401,11 @@ function renderTimeline(){
   animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
   updateTIndicatorPosition();
   renderNotationIfVisible();
+
+  // Re-enable transitions after render completes
+  requestAnimationFrame(() => {
+    timeline.classList.remove('no-anim');
+  });
 }
 
 function togglePulse(i){
