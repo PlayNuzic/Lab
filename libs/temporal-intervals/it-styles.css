@@ -12,7 +12,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: opacity 0.2s ease, background 0.2s ease;
+  transition: opacity 0.2s ease, background 0.2s ease, left 0.4s ease, top 0.4s ease, transform 0.4s ease, width 0.4s ease;
   pointer-events: auto;
   z-index: 3; /* Por debajo de pulsos (z-index: 5) pero encima de timeline (z-index: 1) */
   user-select: none;
@@ -141,6 +141,11 @@
     top: 50%; /* Alineado con la línea */
     transform: translateY(-100%); /* Reposa encima en móvil también */
   }
+}
+
+/* Deshabilitar transiciones cuando se cambian inputs (Lg, V, etc.) */
+.timeline.no-anim .interval-block {
+  transition: opacity 0.2s ease, background 0.2s ease;
 }
 
 /* Adaptación para timelines muy grandes (muchos intervalos) */

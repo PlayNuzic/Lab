@@ -1479,11 +1479,17 @@ function setPulseSelected(i, shouldSelect) {
 }
 
 function renderTimeline(){
+  // Disable transitions during render to prevent animation when changing inputs
+  timeline.classList.add('no-anim');
+
   timeline.innerHTML = '';
   pulses = [];
   // pulseHits removed - no longer needed
   const lg = parseInt(inputLg.value);
-  if(isNaN(lg) || lg <= 0) return;
+  if(isNaN(lg) || lg <= 0) {
+    timeline.classList.remove('no-anim');
+    return;
+  }
   ensureIntervalMemory(lg);
 
   // App5: Render pulses 0 to Lg (pulse 0 is neutral starting point)
@@ -1514,6 +1520,11 @@ function renderTimeline(){
   animateTimelineCircle(loopEnabled && circularTimeline, { silent: true });
   updateTIndicatorPosition();
   renderNotationIfVisible();
+
+  // Re-enable transitions after render completes
+  requestAnimationFrame(() => {
+    timeline.classList.remove('no-anim');
+  });
 }
 
 // togglePulse removed - pulses are no longer interactive in App5
