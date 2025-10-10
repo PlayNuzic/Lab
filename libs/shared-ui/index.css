@@ -625,6 +625,11 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   width: calc(var(--control-toggle-width) * 1.35 + var(--control-toggle-gap) * 2);
 }
 
+/* Caso específico: solo Pulse + Cycle (sin Selected) - App3 */
+.control-sound-toggles:has(.control-sound-toggle-container--pulse):has(.control-sound-toggle-container--cycle):not(:has(.control-sound-toggle-container--selected)) {
+  width: calc(var(--control-toggle-width) * 1.15 + var(--control-toggle-gap) * 2);
+}
+
 .control-sound-toggle-container {
   position: absolute;
   width: var(--control-toggle-width);
@@ -660,6 +665,11 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
 
   .control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) {
     width: min(84vw, calc(var(--control-toggle-width) * 1.35 + var(--control-toggle-gap) * 2));
+  }
+
+  /* Caso específico móvil: solo Pulse + Cycle (sin Selected) - App3 */
+  .control-sound-toggles:has(.control-sound-toggle-container--pulse):has(.control-sound-toggle-container--cycle):not(:has(.control-sound-toggle-container--selected)) {
+    width: min(84vw, calc(var(--control-toggle-width) * 1.15 + var(--control-toggle-gap) * 2));
   }
 
   .control-sound-toggle-container--cycle {
