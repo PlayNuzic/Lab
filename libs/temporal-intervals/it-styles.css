@@ -12,7 +12,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: opacity 0.2s ease, background 0.2s ease, transform 0.1s ease;
+  transition: opacity 0.2s ease, background 0.2s ease;
   pointer-events: auto;
   z-index: 3; /* Por debajo de pulsos (z-index: 5) pero encima de timeline (z-index: 1) */
   user-select: none;

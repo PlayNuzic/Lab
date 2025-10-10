@@ -73,7 +73,6 @@ main > .notation-panel--inline .notation-panel__canvas {
 .pulse-number {
   /* Normal size restored - numbers are important markers */
   color: var(--color-contrast); /* Default color for intermediate pulses */
-  transition: opacity 0.2s ease;
 }
 
 /* Hidden by default - shown only on click */
