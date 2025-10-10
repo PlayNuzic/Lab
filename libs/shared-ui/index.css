@@ -36,7 +36,7 @@
     --control-toggle-size: clamp(60px, 32vw, 82px);
     --control-toggle-width: clamp(92px, 58vw, 124px);
     --control-toggle-gap: -28px;
-    --control-toggle-overlap: 20px;
+    --control-toggle-overlap: 14px;
   }
 }
 
@@ -615,7 +615,7 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   top: 59%;
   left: 50%;
   transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-overlap))));
-  width: calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2);
+  width: calc(var(--control-toggle-width) * 1 + var(--control-toggle-gap) * 2);
   height: var(--control-toggle-size);
   pointer-events: none;
   z-index: 4;
@@ -625,51 +625,50 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   width: calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap));
 }
 
-@media (max-width: 600px) {
-  .control-sound-toggles {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + 12px)));
-    width: min(90vw, calc(var(--control-toggle-width) * 3 + var(--control-toggle-gap) * 2));
-  }
-
-  .control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) {
-    width: min(84vw, calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap)));
-  }
-}
-
 .control-sound-toggle-container {
   position: absolute;
-  bottom: 0;
   width: var(--control-toggle-width);
   height: var(--control-toggle-size);
   pointer-events: none;
 }
 
 .control-sound-toggle-container--pulse {
-  left: calc(var(--pulse-offset-x, 145px));
+  left: -3px;
   bottom: var(--pulse-offset-y, 2px);
   transform: translateX(var(--pulse-translate-x, 0)) translateY(var(--pulse-translate-y, 0));
 }
 
 .control-sound-toggle-container--selected {
-  left: calc(var(--control-toggle-width) + var(--control-toggle-gap) + var(--selected-offset-x, 0px));
+  left: 0;
   bottom: var(--selected-offset-y, 0px);
-  transform: translateX(var(--selected-translate-x, 0)) translateY(var(--selected-translate-y, 0));
+  transform: translateX(calc(-50% + var(--selected-translate-x, 0))) translateY(var(--selected-translate-y, 0));
 }
 
 .control-sound-toggle-container--cycle {
-  left: calc((var(--control-toggle-width) + var(--control-toggle-gap)) * 2 + var(--cycle-offset-x, -145px));
+  right: -7px;
   bottom: var(--cycle-offset-y, 2px);
   transform: translateX(var(--cycle-translate-x, 0)) translateY(var(--cycle-translate-y, 0));
 }
 
-.control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) .control-sound-toggle-container--pulse {
-  left: calc(var(--pulse-offset-x, 70px));
-}
+@media (max-width: 600px) {
+  .control-sound-toggles {
+    top: 59%;
+    left: 50%;
+    transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + 8px)));
+    width: min(90vw, calc(var(--control-toggle-width) * 1.45 + var(--control-toggle-gap) * 2));
+  }
 
-.control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) .control-sound-toggle-container--cycle {
-  left: calc(var(--cycle-offset-x, 78px));
+  .control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) {
+    width: min(84vw, calc(var(--control-toggle-width) * 2 + var(--control-toggle-gap)));
+  }
+
+  .control-sound-toggle-container--cycle {
+    right: -3px;
+  }
+
+  .control-sound-toggle-container--selected {
+    bottom: 1px;
+  }
 }
 
 /*
