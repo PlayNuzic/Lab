@@ -563,19 +563,29 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       }
 
       const isRest = !!event?.rest || event?.type === 'rest';
-      const duration = resolveDuration(event?.duration, isRest);
 
       // Si tiene showBaseLayer (intervalo 1), la voz principal debe usar C5 para notas/silencios
       let pickedKey;
+      let shouldMakeInvisible = false;
+
       if (event?.showBaseLayer) {
-        // Intervalo 1: siempre usar C5 (tanto para nota como para silencio)
+        // Intervalo 1: siempre usar C5
         pickedKey = SELECTED_KEY; // C5
+        // Si es rest, crear nota invisible en lugar de rest para que no oculte el D4
+        if (isRest) {
+          shouldMakeInvisible = true;
+        }
       } else {
         // Resto de intervalos: lógica normal
         pickedKey = pickKeyForPulse(pulseIndex, selectedSet);
       }
 
-      const keys = isRest
+      // Calcular duración DESPUÉS de determinar si debe ser invisible
+      const duration = shouldMakeInvisible
+        ? resolveDuration(event?.duration, false)  // Nota invisible: sin "r"
+        : resolveDuration(event?.duration, isRest);  // Normal: con "r" si es rest
+
+      const keys = (isRest && !shouldMakeInvisible)
         ? [REST_KEY]
         : (Array.isArray(pickedKey) ? pickedKey : [pickedKey]);
 
@@ -586,9 +596,14 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
       };
 
       const note = new StaveNote(config);
-      if (isRest) {
+
+      if (shouldMakeInvisible) {
+        // Crear nota invisible (sin rest) para no ocultar el D4 de la voz secundaria
+        note.setStyle({ fillStyle: 'transparent', strokeStyle: 'transparent' });
+      } else if (isRest) {
         note.setStyle({ fillStyle: '#000', strokeStyle: '#000' });
       }
+
       applyDotsToNote(note, event?.dots);
 
       registerEntry({
@@ -604,6 +619,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
           clef: 'treble',
           duration, // Misma duración (quarter note)
           keys: [DOWNBEAT_KEY], // D4
+          stem_direction: -1, // Plica hacia abajo
         };
         const baseNote = new StaveNote(baseConfig);
         applyDotsToNote(baseNote, event?.dots);
@@ -1039,7 +1055,28 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     if (baseLayerEntries.length > 0) {
       const baseVoice = new Voice({ numBeats: 4, beatValue: 4 });
       baseVoice.setStrict(false);
-      baseVoice.addTickables(baseLayerEntries.map((entry) => entry.note));
+
+      // Crear array de notas para la voz base, llenando con silencios invisibles
+      const baseNotes = [];
+      entries.forEach((entry, index) => {
+        const baseEntry = baseLayerEntries.find(be => be.pulseIndex === entry.pulseIndex);
+        if (baseEntry) {
+          // Usar el D4 de la base layer
+          baseNotes.push(baseEntry.note);
+        } else {
+          // Crear silencio invisible para mantener el timing
+          const ghostDuration = resolveDuration(entry.event?.duration, false) + 'r';
+          const ghostRest = new StaveNote({
+            clef: 'treble',
+            duration: ghostDuration,
+            keys: [REST_KEY]
+          });
+          ghostRest.setStyle({ fillStyle: 'transparent', strokeStyle: 'transparent' });
+          baseNotes.push(ghostRest);
+        }
+      });
+
+      baseVoice.addTickables(baseNotes);
       voices.push(baseVoice);
     }
 
