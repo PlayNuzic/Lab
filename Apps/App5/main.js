@@ -1578,7 +1578,7 @@ function showNumber(i, options = {}){
   n.dataset.index = i;
   n.textContent = i;
   const fontRem = computeNumberFontRem(lg);
-  const reducedFontRem = fontRem * 0.75; // Reducir 25% para números de pulsos
+  const reducedFontRem = fontRem * 0.5; // Reducir 50% total (25% + 25% adicional) para números de pulsos
   n.style.fontSize = reducedFontRem + 'rem';
 
    if (timeline.classList.contains('circular')) {

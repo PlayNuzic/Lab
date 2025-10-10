@@ -142,11 +142,11 @@ export function createIntervalRenderer(config = {}) {
       const centerPercent = (startPercent + endPercent) / 2;
       const widthPercent = endPercent - startPercent;
 
-      // Posicionar centrado horizontalmente, pegado a la timeline
+      // Posicionar centrado horizontalmente, reposando encima de la timeline
       element.style.left = `${centerPercent}%`;
-      element.style.top = '50%'; // Centrado verticalmente en la timeline
+      element.style.top = '50%'; // Alineado con la línea central
       element.style.width = `${widthPercent}%`;
-      element.style.transform = 'translateX(-50%) translateY(-50%)';
+      element.style.transform = 'translateX(-50%) translateY(-100%)'; // -100% = reposa encima
     });
   }
 

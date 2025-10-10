@@ -14,7 +14,7 @@
   cursor: pointer;
   transition: opacity 0.2s ease, background 0.2s ease, transform 0.1s ease;
   pointer-events: auto;
-  z-index: 10; /* Por encima de pulsos y timeline */
+  z-index: 3; /* Por debajo de pulsos (z-index: 5) pero encima de timeline (z-index: 1) */
   user-select: none;
 }
 
@@ -29,7 +29,7 @@
 
 /* Número del intervalo centrado en el bloque */
 .interval-number {
-  color: white;
+  color: var(--color-contrast, #e0e0e0); /* Color de contraste adaptable a tema claro/oscuro */
   font-size: 1.6rem; /* Base size - será sobrescrito por JS con tamaño adaptativo */
   font-weight: 600;
   user-select: none;
@@ -38,10 +38,10 @@
   line-height: 1;
 }
 
-/* Layout LINEAR - intervalos posicionados PEGADOS a la timeline */
+/* Layout LINEAR - intervalos REPOSANDO encima de la timeline */
 .timeline:not(.circular) .interval-block {
-  top: 50%; /* Centrado verticalmente en la timeline */
-  transform: translateY(-50%);
+  top: 50%; /* Alineado con la línea central */
+  transform: translateY(-100%); /* -100% = reposa con su base en la línea */
 }
 
 /* Layout CIRCULAR - intervalos posicionados alrededor del círculo */
@@ -135,8 +135,8 @@
   /* font-size manejado por JS con computeIntervalNumberFontRem */
 
   .timeline:not(.circular) .interval-block {
-    top: 50%; /* Mantener centrado verticalmente en móvil */
-    transform: translateY(-50%);
+    top: 50%; /* Alineado con la línea */
+    transform: translateY(-100%); /* Reposa encima en móvil también */
   }
 }
 
