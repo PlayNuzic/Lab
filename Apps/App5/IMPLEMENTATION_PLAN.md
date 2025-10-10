@@ -294,6 +294,30 @@ Intervals:   [  1  ] [  2  ] [  3  ]
 
 ---
 
+### Phase 7.5: Dual-Voice Notation for Interval 1 (Downbeat)
+**Goal**: Implement always-visible D4 downbeat with dual-voice system
+
+- [x] 7.5.1 Implement dual-voice rendering in rhythm-staff.js
+  - [x] Add `showBaseLayer` flag to rhythm events
+  - [x] Create secondary voice for D4 downbeat (always visible)
+  - [x] Create main voice with invisible C5 when interval 1 not selected
+  - [x] Add ghost rests to secondary voice for timing synchronization
+- [x] 7.5.2 Configure D4 visual appearance
+  - [x] Set stem direction downward using `setStemDirection(-1)`
+  - [x] Ensure D4 is always clickable for interval 1 toggle
+- [x] 7.5.3 Update App5/main.js rhythm generation
+  - [x] Add `showBaseLayer: true` for interval 1 (step === 0)
+  - [x] Use same rest logic for all intervals (simplified)
+- [x] 7.5.4 Test dual-voice rendering
+  - [x] D4 visible when interval 1 NOT selected
+  - [x] D4 + C5 visible when interval 1 IS selected
+  - [x] Both notes clickable to toggle interval 1
+  - [x] Stem directions correct (D4 down, C5 up)
+
+**Status**: ✅ Complete
+
+---
+
 ### Phase 8: Testing & Validation
 **Goal**: Comprehensive testing before declaring complete
 

@@ -58,20 +58,25 @@ El proyecto Lab está organizado como un **monorepo con workspaces** para aplica
 - `index.js` - Funciones principales de dibujo
 - `helpers.js` - Utilidades de conversión MIDI y armaduras
 - `pentagram.js` - Pentagramas SVG
-- `rhythm-staff.js` - Notación rítmica con cursor de reproducción
+- `rhythm-staff.js` - Notación rítmica con cursor de reproducción y soporte multi-voz
 
 **Exports principales:**
 - `drawInterval(container, note1, note2, mode, keySig, options)` - Renderiza intervalos en pentagrama simple o doble
 - `drawKeySignature(container, scaleId, root)` - Dibuja armaduras de clave
 - `drawPentagram()` - Pentagramas personalizados
-- `createRhythmStaff()` - Sistema de notación rítmica interactivo
+- `createRhythmStaff()` - Sistema de notación rítmica interactivo con soporte para múltiples voces
 - `needsDoubleStaff(n1, n2)` - Determina si se necesita pentagrama doble
 - `midiToParts()`, `midiSequenceToChromaticParts()` - Conversión MIDI a notación
 
-**Casos de uso:**
-- Renderizado de intervalos musicales en Apps de teoría
-- Notación rítmica en App2 (`pulseFilter: 'whole'`)
-- Armaduras de clave dinámicas
+**Funcionalidades avanzadas de `rhythm-staff.js`:**
+- **Sistema de múltiples voces**: Renderiza hasta 2 voces simultáneas usando VexFlow Voice API
+- **Notas base layer (`showBaseLayer`)**: Permite notas persistentes que siempre son visibles (ej: downbeat en App5)
+- **Ghost rests transparentes**: Mantiene timing correcto en voces secundarias sin afectar visualización
+- **Notas invisibles**: Crea notas transparentes para evitar que rests oculten otras voces
+- **Control de dirección de plica**: `setStemDirection()` para separación visual de voces
+- **Casos de uso**:
+  - App2: Notación rítmica básica (`pulseFilter: 'whole'`)
+  - App5: Doble voz con downbeat D4 siempre visible + intervalos seleccionables en C5
 
 **Dependencias:**
 - VexFlow (libs/vendor/vexflow/)
