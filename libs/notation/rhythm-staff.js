@@ -1081,7 +1081,7 @@ export function createRhythmStaff({ container, pulseFilter = 'fractional' } = {}
     }
 
     const formatter = new Formatter();
-    formatter.joinVoices(voices).format(voices, innerStaveWidth - 20);
+    formatter.joinVoices(voices).format(voices, innerStaveWidth - 40);
 
     // Dibujar todas las voces
     voices.forEach(voice => voice.draw(context, stave));
