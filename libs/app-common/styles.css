@@ -184,6 +184,13 @@ main>.inputs>* {
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
   background: var(--fraction-info-bg, var(--bg-light));
   color: var(--fraction-info-fg, var(--text-light));
+  opacity: 0;
+  visibility: hidden;
+}
+
+.fraction-info-bubble.show {
+  opacity: 1;
+  visibility: visible;
 }
 
 body[data-theme='dark'] .fraction-info-bubble {
