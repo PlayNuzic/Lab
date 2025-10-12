@@ -441,6 +441,9 @@ export class TimelineAudio {
     this.intervalRef = 0;
     this.loopRef = true;
 
+    // Gamification hooks
+    this._gamificationHooks = null;
+
     this._onPulseRef = null;
     this._onVoiceRef = null;
     this.onCompleteRef = null;
@@ -520,6 +523,10 @@ export class TimelineAudio {
     await ensureAudio();
     await this._ensureContext();
     return this;
+  }
+
+  setGamificationHooks(hooks) {
+    this._gamificationHooks = hooks;
   }
 
   _teardownAudioGraph() {
@@ -1028,10 +1035,30 @@ export class TimelineAudio {
     this.resetTapTempo();
     this._pendingTempo = null;
     this._adaptSchedulerInterval();
+
+    // Trigger gamification hook for play start
+    if (this._gamificationHooks?.onPlayStart) {
+      try {
+        this._gamificationHooks.onPlayStart({
+          totalPulses: this.totalRef,
+          intervalSec: this.intervalRef,
+          selectedCount: this.selectedRef.size,
+          loop: this.loopRef,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        console.error('Gamification hook error:', error);
+      }
+    }
   }
 
   stop() {
     if (!this._ctx) return;
+
+    // Capture timing info before clearing
+    const wasPlaying = this.isPlaying;
+    const pulseCount = this._pulseCounter;
+
     this.isPlaying = false;
     this._onPulseRef = null;
     this.onCompleteRef = null;
@@ -1051,6 +1078,19 @@ export class TimelineAudio {
     this.resetTapTempo();
     this._pendingTempo = null;
     this._setScheduledStep = null;
+
+    // Trigger gamification hook for stop
+    if (wasPlaying && this._gamificationHooks?.onPlayStop) {
+      try {
+        this._gamificationHooks.onPlayStop({
+          pulsesPlayed: Math.max(0, pulseCount + 1),
+          totalPulses: this.totalRef,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        console.error('Gamification hook error:', error);
+      }
+    }
   }
 
   setTempo(bpm, opts = {}) {

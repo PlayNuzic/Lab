@@ -1379,3 +1379,8 @@ initDefaults();
 window.addEventListener('resize', () => layoutTimeline({ silent: true }));
 
 handleInput();
+
+// Initialize gamification system
+import('./gamification-adapter.js').then(module => {
+  module.initApp3Gamification();
+});

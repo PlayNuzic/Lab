@@ -2985,3 +2985,8 @@ initMixerMenu({
     { id: 'master', label: 'Master',        allowSolo: false, isMaster: true }
   ]
 });
+
+// Initialize gamification system
+import('./gamification-adapter.js').then(module => {
+  module.initApp4Gamification();
+});

@@ -1951,3 +1951,8 @@ if (pulseToggleBtn) {
 if (selectedToggleBtn) {
   attachHover(selectedToggleBtn, { text: 'Activar o silenciar intervalos seleccionados' });
 }
+
+// Initialize gamification system
+import('./gamification-adapter.js').then(module => {
+  module.initApp5Gamification();
+});

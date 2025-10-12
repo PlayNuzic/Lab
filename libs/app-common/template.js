@@ -7,6 +7,30 @@ export const NOTATION_PANEL_ID = 'notationPanel';
 export const NOTATION_CLOSE_BTN_ID = 'notationCloseBtn';
 export const NOTATION_CONTENT_ID = 'notationContent';
 
+// Gamification event dispatcher
+let gamificationDispatcher = null;
+
+/**
+ * Set gamification event dispatcher for UI interactions
+ * @param {Function} dispatcher - Function to dispatch gamification events
+ */
+export function setGamificationDispatcher(dispatcher) {
+  gamificationDispatcher = dispatcher;
+}
+
+/**
+ * Dispatch gamification event if dispatcher is set
+ */
+function dispatchGamificationEvent(eventName, data = {}) {
+  if (gamificationDispatcher && typeof gamificationDispatcher === 'function') {
+    try {
+      gamificationDispatcher(eventName, data);
+    } catch (error) {
+      console.error('Gamification dispatcher error:', error);
+    }
+  }
+}
+
 export function renderApp({
   root,
   title,
@@ -287,4 +311,73 @@ ${togglesMarkup}
       </div>
     </section>
   </main>`;
+}
+
+/**
+ * Initialize gamification hooks for UI elements
+ * Called after DOM is ready
+ */
+export function initializeGamificationHooks() {
+  // Play button
+  const playBtn = document.getElementById('playBtn');
+  if (playBtn) {
+    playBtn.addEventListener('click', () => {
+      dispatchGamificationEvent('play_clicked', { timestamp: Date.now() });
+    });
+  }
+
+  // Random button
+  const randomBtn = document.getElementById('randomBtn');
+  if (randomBtn) {
+    randomBtn.addEventListener('click', () => {
+      dispatchGamificationEvent('randomize_used', { timestamp: Date.now() });
+    });
+  }
+
+  // Loop button
+  const loopBtn = document.getElementById('loopBtn');
+  if (loopBtn) {
+    loopBtn.addEventListener('click', () => {
+      const isActive = loopBtn.classList.contains('active');
+      dispatchGamificationEvent('loop_toggled', { enabled: !isActive, timestamp: Date.now() });
+    });
+  }
+
+  // Tap tempo button
+  const tapBtn = document.getElementById('tapTempoBtn');
+  if (tapBtn) {
+    tapBtn.addEventListener('click', () => {
+      dispatchGamificationEvent('tap_tempo_used', { timestamp: Date.now() });
+    });
+  }
+
+  // Parameter changes (Lg, V, T)
+  const paramInputs = ['inputLg', 'inputV', 'inputT'];
+  paramInputs.forEach(id => {
+    const input = document.getElementById(id);
+    if (input) {
+      input.addEventListener('change', () => {
+        dispatchGamificationEvent('parameter_changed', {
+          param: id.replace('input', ''),
+          value: input.value,
+          timestamp: Date.now()
+        });
+      });
+    }
+  });
+
+  // Toggle buttons for sound modes
+  [PULSE_TOGGLE_BTN_ID, SELECTED_TOGGLE_BTN_ID, CYCLE_TOGGLE_BTN_ID].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const isActive = btn.getAttribute('aria-pressed') === 'true';
+        dispatchGamificationEvent('toggle_changed', {
+          toggle: id,
+          enabled: !isActive,
+          timestamp: Date.now()
+        });
+      });
+    }
+  });
 }

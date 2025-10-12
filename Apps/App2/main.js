@@ -22,6 +22,7 @@ import { createSimpleHighlightController } from '../../libs/app-common/simple-hi
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
+import { initApp2Gamification } from './gamification-adapter.js';
 // Using local header controls for App2 (no shared init)
 
 // Create custom formatters for App2
@@ -1783,3 +1784,6 @@ if (pulseToggleBtn) {
 if (selectedToggleBtn) {
   attachHover(selectedToggleBtn, { text: 'Activar o silenciar pulsos seleccionados' });
 }
+
+// Initialize gamification system
+initApp2Gamification();

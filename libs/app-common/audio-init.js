@@ -6,6 +6,17 @@
 import { TimelineAudio, waitForUserInteraction } from '../sound/index.js';
 import { ensureToneLoaded } from '../sound/tone-loader.js';
 
+// Gamification hooks - optional integration
+let gamificationHooks = null;
+
+/**
+ * Set gamification hooks for audio events
+ * @param {Object} hooks - Object with event handler functions
+ */
+export function setGamificationHooks(hooks) {
+  gamificationHooks = hooks;
+}
+
 /**
  * Create a standardized audio initialization function that follows App4's pattern
  * @param {Object} config - Configuration options
@@ -74,6 +85,11 @@ export function createAudioInitializer(config = {}) {
         }
 
         await instance.ready();
+
+        // Set up gamification hooks if available
+        if (gamificationHooks && typeof instance.setGamificationHooks === 'function') {
+          instance.setGamificationHooks(gamificationHooks);
+        }
 
         // Register channels if specified
         if (config.channels && instance.mixer && typeof instance.mixer.registerChannel === 'function') {
