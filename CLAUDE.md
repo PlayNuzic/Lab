@@ -2,6 +2,57 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 PROCEDIMIENTOS CRÍTICOS - LEER SIEMPRE PRIMERO
+
+### 1. Ubicación del Repositorio
+**SIEMPRE trabajamos en el repositorio Lab**: `/Users/workingburcet/Lab/`
+- Verifica que estás en el directorio correcto antes de cualquier operación
+- Todas las rutas son relativas a `/Users/workingburcet/Lab/`
+
+### 2. Servidor en Vivo
+**Live Server se arranca automáticamente** al abrir VSCode en el directorio Lab
+- El servidor está corriendo - NO necesitas iniciarlo manualmente
+- Úsalo para probar aplicaciones con ES modules (evita problemas de CORS)
+- Puerto por defecto: usualmente 8080 o 5500
+
+### 3. Gestión de Seguimiento entre Sesiones
+**OBLIGATORIO para tareas que no se completen en un prompt:**
+
+#### Al NO completar una tarea:
+1. **CREAR/ACTUALIZAR** archivo de seguimiento: `SESSION_STATE.md` en la raíz del proyecto
+2. **Contenido mínimo**:
+   ```markdown
+   # Estado de Sesión - [Fecha]
+
+   ## Tarea Actual
+   [Descripción breve de qué se está haciendo]
+
+   ## Estado
+   - [x] Completado
+   - [ ] Pendiente
+
+   ## Próximos Pasos
+   1. [Paso siguiente específico]
+   2. [Paso siguiente específico]
+
+   ## Notas Importantes
+   - [Decisiones técnicas tomadas]
+   - [Problemas encontrados]
+   - [Archivos modificados]
+   ```
+
+#### Al COMPLETAR una tarea:
+1. **ELIMINAR** el archivo `SESSION_STATE.md` (si existe)
+2. **LIMPIAR** cualquier archivo temporal de seguimiento
+
+### 4. Orden de Actualización al Finalizar
+**SIEMPRE en este orden:**
+
+1. **PRIMERO**: Actualizar documento de seguimiento (`SESSION_STATE.md`)
+2. **SEGUNDO**: Resumir la conversación al usuario
+
+**NUNCA al revés** - el seguimiento debe estar actualizado ANTES del resumen.
+
 ## Development Commands
 
 ### Setup and Environment
