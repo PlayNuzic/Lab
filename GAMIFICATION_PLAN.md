@@ -603,6 +603,122 @@ export class RhythmAnalyzer {
 }
 ```
 
+#### Implementación Real (Completada)
+
+La implementación de la Fase 2b se completó con mejoras significativas sobre el diseño inicial:
+
+**Características implementadas:**
+
+1. **MicrophoneCapture** ([microphone.js:285](libs/audio-capture/microphone.js)):
+   - Inicialización con `Tone.UserMedia()` y `Tone.Meter()`
+   - Detección de beats en tiempo real con umbral configurable (default: -30 dB)
+   - Suavizado configurable (smoothing 0-1)
+   - Intervalo mínimo entre beats para evitar doble detección
+   - Callback `onBeatDetected` para feedback en tiempo real
+   - Métodos estáticos para verificar soporte y solicitar permisos
+   - Gestión completa de recursos con `dispose()`
+
+2. **KeyboardCapture** ([keyboard.js:361](libs/audio-capture/keyboard.js)):
+   - Captura de tecla Space (configurable)
+   - Anti-rebote con intervalo mínimo configurable
+   - Prevención de repeat automático del navegador
+   - Feedback visual opcional con elemento flotante animado
+   - Callback `onTapDetected` para feedback en tiempo real
+   - Clase adicional `CombinedCapture` para captura simultánea de micrófono + teclado
+
+3. **RhythmAnalyzer** ([rhythm-analysis.js:486](libs/audio-capture/rhythm-analysis.js)):
+   - Sistema avanzado de emparejamiento de taps con tolerancia
+   - Métricas ponderadas: timing (50%), consistency (30%), tempo (20%)
+   - Detección de taps perdidos y taps extra
+   - Cálculo de BPM con nivel de confianza
+   - Consistencia basada en desviación estándar y coeficiente de variación
+   - Análisis de ritmos libres con detección de patrones
+   - Funciones helper: `generateExpectedPattern()`, `fractionsToTimestamps()`
+   - Mensajes de feedback automáticos basados en accuracy
+
+4. **Integración** ([audio-capture/index.js:66](libs/audio-capture/index.js)):
+   - Barrel export de todas las clases y funciones
+   - Factory `createCaptureSystem()` para setup automático
+   - Función `checkSupport()` para verificar compatibilidad del navegador
+   - Exportación desde `/libs/gamification/index.js` para acceso unificado
+
+**Ejemplo de uso completo:**
+
+```javascript
+// Crear sistema completo de captura
+const system = await createCaptureSystem({
+  microphone: { threshold: -25, minInterval: 100 },
+  keyboard: { visualFeedback: true },
+  analyzer: { timingTolerance: 100, tempoTolerance: 10 }
+});
+
+if (!system.micInitialized) {
+  console.warn('Micrófono no disponible, usar solo teclado');
+}
+
+// Generar patrón esperado (120 BPM, 8 beats)
+const expectedPattern = generateExpectedPattern(120, 8);
+
+// Iniciar captura combinada
+await system.combined.startRecording();
+
+// Simular ejercicio (esperar input del usuario)
+await new Promise(resolve => setTimeout(resolve, 5000));
+
+// Detener y obtener resultados
+const results = system.combined.stopRecording();
+console.log('Eventos capturados:', results.combined.length);
+
+// Analizar solo taps de teclado
+const analysis = system.analyzer.compareRhythm(
+  results.keyboard,
+  expectedPattern
+);
+
+console.log(`Accuracy: ${analysis.accuracy}%`);
+console.log(`Message: ${analysis.message}`);
+console.log(`Timing: ${analysis.timingAccuracy}%`);
+console.log(`Consistency: ${analysis.consistencyScore}%`);
+console.log(`Tempo: ${analysis.tempoAccuracy}%`);
+console.log(`Missed: ${analysis.missedTaps}, Extra: ${analysis.extraTaps}`);
+
+// Limpiar recursos
+system.dispose();
+```
+
+**Arquitectura técnica:**
+
+```
+/libs/audio-capture/
+├── microphone.js      # Captura de micrófono con Tone.js
+│   └── MicrophoneCapture
+│       ├── initialize() → Tone.UserMedia + Tone.Meter
+│       ├── startRecording() → loop de detección
+│       ├── stopRecording() → timestamps[]
+│       └── dispose() → cleanup
+│
+├── keyboard.js        # Captura de teclado
+│   ├── KeyboardCapture
+│   │   ├── startRecording() → addEventListener
+│   │   ├── stopRecording() → timestamps[]
+│   │   └── feedback visual (opcional)
+│   └── CombinedCapture
+│       ├── startRecording() → ambos inputs
+│       ├── stopRecording() → { microphone[], keyboard[], combined[] }
+│       └── getAllEvents() → ordenados por timestamp
+│
+├── rhythm-analysis.js # Análisis y comparación
+│   └── RhythmAnalyzer
+│       ├── compareRhythm(recorded, expected) → metrics
+│       ├── detectTempo(taps) → { bpm, confidence }
+│       ├── calculateConsistency(taps) → 0-1
+│       └── analyzeFreeRhythm(taps) → patterns
+│
+└── index.js          # Barrel export + factories
+    ├── createCaptureSystem() → sistema completo
+    └── checkSupport() → compatibilidad
+```
+
 ### Fase 2c: Sistema de Ejercicios
 
 #### Clase Base de Ejercicio

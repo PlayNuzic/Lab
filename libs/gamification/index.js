@@ -58,6 +58,22 @@ export {
   resetMigrationStatus
 } from './migration.js';
 
+// Audio Capture (Phase 2b)
+export {
+  MicrophoneCapture,
+  createMicrophoneCapture,
+  KeyboardCapture,
+  CombinedCapture,
+  createKeyboardCapture,
+  createCombinedCapture,
+  RhythmAnalyzer,
+  createRhythmAnalyzer,
+  generateExpectedPattern,
+  fractionsToTimestamps,
+  createCaptureSystem,
+  checkSupport
+} from '../audio-capture/index.js';
+
 // Importar funciones necesarias para uso interno en este módulo
 import {
   DEV_CONFIG as DEV_CONFIG_INTERNAL,

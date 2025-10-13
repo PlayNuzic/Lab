@@ -256,44 +256,92 @@ window.__GAMIFICATION.getStats();
 - ✅ Stats de usuario con joins
 - ✅ Actualización automática de nivel/score
 
+**Mejoras y fixes adicionales:**
+- ✅ VSCode tasks para auto-inicio del servidor
+- ✅ Auto-install de dependencias
+- ✅ `.gitignore` para servidor
+- ✅ Mensajes de consola con `await` corregidos
+- ✅ Documentación completa: DEVELOPMENT.md, CONSOLE_COMMANDS.md
+- ✅ REST Client tests (api-tests.http)
+- ✅ Configuración de Live Server integrada
+
 ---
 
-### Fase 2b: Sistema de Captura de Audio - ⏳ PENDIENTE
+### Fase 2b: Sistema de Captura de Audio - ✅ COMPLETADA
 
 **Objetivo:** Capturar ritmos mediante micrófono Y teclado (Space).
 
-#### Tareas Pendientes:
+#### ✅ Completado:
 
-1. **Módulo de Captura de Micrófono** - ⏳
-   - [ ] Crear `/libs/audio-capture/microphone.js`
-   - [ ] Clase `MicrophoneCapture`
-   - [ ] Método `initialize()` con Tone.UserMedia
-   - [ ] Método `startRecording()` con beat detection
-   - [ ] Método `stopRecording()` retornando timestamps
-   - [ ] Método `dispose()` para cleanup
-   - [ ] Configurar umbral de detección ajustable
+1. **Módulo de Captura de Micrófono** - ✅
+   - [x] Crear `/libs/audio-capture/microphone.js`
+   - [x] Clase `MicrophoneCapture`
+   - [x] Método `initialize()` con Tone.UserMedia
+   - [x] Método `startRecording()` con beat detection
+   - [x] Método `stopRecording()` retornando timestamps
+   - [x] Método `dispose()` para cleanup
+   - [x] Configurar umbral de detección ajustable
+   - [x] Callback `onBeatDetected` para feedback en tiempo real
+   - [x] Métodos estáticos `isSupported()` y `requestPermissions()`
+   - [x] Configuración de smoothing y minInterval
 
-2. **Módulo de Captura de Teclado** - ⏳
-   - [ ] Crear `/libs/audio-capture/keyboard.js`
-   - [ ] Clase `KeyboardCapture`
-   - [ ] Constructor con targetKey configurable (default: Space)
-   - [ ] Método `startRecording()` con event listener
-   - [ ] Método `stopRecording()` retornando timestamps
-   - [ ] Prevención de comportamiento default de Space
+2. **Módulo de Captura de Teclado** - ✅
+   - [x] Crear `/libs/audio-capture/keyboard.js`
+   - [x] Clase `KeyboardCapture`
+   - [x] Constructor con targetKey configurable (default: Space)
+   - [x] Método `startRecording()` con event listener
+   - [x] Método `stopRecording()` retornando timestamps
+   - [x] Prevención de comportamiento default de Space
+   - [x] Anti-rebote con `minInterval` configurable
+   - [x] Feedback visual opcional con elemento flotante
+   - [x] Clase `CombinedCapture` para captura simultánea
+   - [x] Callback `onTapDetected` para feedback en tiempo real
 
-3. **Módulo de Análisis Rítmico** - ⏳
-   - [ ] Crear `/libs/audio-capture/rhythm-analysis.js`
-   - [ ] Clase `RhythmAnalyzer`
-   - [ ] Método `compareRhythm(recorded, expected)`
-   - [ ] Método `detectTempo(taps)` para calcular BPM
-   - [ ] Método `calculateConsistency(intervals)`
-   - [ ] Cálculo de desviaciones y precisión
+3. **Módulo de Análisis Rítmico** - ✅
+   - [x] Crear `/libs/audio-capture/rhythm-analysis.js`
+   - [x] Clase `RhythmAnalyzer`
+   - [x] Método `compareRhythm(recorded, expected)` con accuracy total
+   - [x] Método `detectTempo(taps)` para calcular BPM
+   - [x] Método `calculateConsistency(intervals)` con desviación estándar
+   - [x] Cálculo de desviaciones y precisión
+   - [x] Sistema de emparejamiento de taps con tolerancia
+   - [x] Detección de taps perdidos y extra
+   - [x] Métricas ponderadas (timing, consistency, tempo)
+   - [x] Método `analyzeFreeRhythm()` para improvisación
+   - [x] Detección de patrones rítmicos
+   - [x] Funciones helper: `generateExpectedPattern()`, `fractionsToTimestamps()`
+   - [x] Mensajes de feedback basados en accuracy
 
-**Archivos a crear:**
-- `/libs/audio-capture/microphone.js`
-- `/libs/audio-capture/keyboard.js`
-- `/libs/audio-capture/rhythm-analysis.js`
-- `/libs/audio-capture/index.js` - Barrel export
+4. **Barrel Export y Sistema Completo** - ✅
+   - [x] Crear `/libs/audio-capture/index.js`
+   - [x] Exportar todas las clases y funciones
+   - [x] Función `createCaptureSystem()` para setup completo
+   - [x] Función `checkSupport()` para verificar compatibilidad
+   - [x] Integración con `/libs/gamification/index.js`
+
+**Archivos creados:**
+- ✅ `/libs/audio-capture/microphone.js` - Captura de micrófono (285 líneas)
+- ✅ `/libs/audio-capture/keyboard.js` - Captura de teclado (361 líneas)
+- ✅ `/libs/audio-capture/rhythm-analysis.js` - Análisis rítmico (486 líneas)
+- ✅ `/libs/audio-capture/index.js` - Barrel export (66 líneas)
+- ✅ `/libs/gamification/index.js` - Exports actualizados
+
+**Total líneas de código:** ~1,198 líneas
+
+**Características implementadas:**
+- ✅ Captura de audio con Tone.UserMedia y Tone.Meter
+- ✅ Detección de beats en tiempo real con umbral configurable
+- ✅ Captura de teclado con anti-rebote y feedback visual
+- ✅ Captura combinada (micrófono + teclado simultáneamente)
+- ✅ Análisis de precisión rítmica con múltiples métricas
+- ✅ Detección de tempo (BPM) con nivel de confianza
+- ✅ Cálculo de consistencia con desviación estándar
+- ✅ Sistema de emparejamiento inteligente de taps
+- ✅ Detección de patrones en ritmos libres
+- ✅ Funciones helper para generación de patrones
+- ✅ Soporte para permisos de micrófono
+- ✅ Gestión completa de recursos (dispose)
+- ✅ Callbacks para feedback en tiempo real
 
 ---
 
