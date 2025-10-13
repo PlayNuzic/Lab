@@ -44,6 +44,9 @@ export {
   getAppGamificationConfig
 } from './config.js';
 
+// Importar DEV_CONFIG para uso interno en este módulo
+import { DEV_CONFIG as DEV_CONFIG_INTERNAL } from './config.js';
+
 /**
  * Clase principal que unifica todos los sistemas
  */
@@ -329,7 +332,7 @@ export function trackAppAction(action, metadata = {}) {
 }
 
 // Exportar el manager para debugging si está habilitado
-if (typeof window !== 'undefined' && DEV_CONFIG.enableDevTools) {
+if (typeof window !== 'undefined' && DEV_CONFIG_INTERNAL.enableDevTools) {
   window.__GAMIFICATION = getGamificationManager();
 }
 
