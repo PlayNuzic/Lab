@@ -861,7 +861,6 @@ const kbd = createKeyboardCapture({ key: 'Enter' });
 **💡 Tip:** Puedes copiar y pegar directamente estos comandos en la consola del navegador.
 
 **📚 Documentación completa:**
-- [AUDIO_CAPTURE_TESTING.md](AUDIO_CAPTURE_TESTING.md) - Tests de audio con explicaciones detalladas
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Guía de desarrollo
-- [PHASE_2A_QUICKSTART.md](PHASE_2A_QUICKSTART.md) - Quick start
+- [GAMIFICATION_PLAN.md](GAMIFICATION_PLAN.md) - Plan completo de gamificación
 - [GAMIFICATION_USAGE_EXAMPLE.md](GAMIFICATION_USAGE_EXAMPLE.md) - Ejemplos detallados de gamificación

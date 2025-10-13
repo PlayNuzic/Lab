@@ -228,10 +228,10 @@ window.__USER_MANAGER.getCurrentUserId()
 
 ## 📚 Documentación Adicional
 
+- **[CONSOLE_COMMANDS.md](CONSOLE_COMMANDS.md)** - Comandos de consola con tests
 - **[GAMIFICATION_PLAN.md](GAMIFICATION_PLAN.md)** - Plan completo del sistema
 - **[GAMIFICATION_PROGRESS.md](GAMIFICATION_PROGRESS.md)** - Estado del desarrollo
 - **[GAMIFICATION_USAGE_EXAMPLE.md](GAMIFICATION_USAGE_EXAMPLE.md)** - Ejemplos de uso
-- **[PHASE_2A_QUICKSTART.md](PHASE_2A_QUICKSTART.md)** - Guía rápida Fase 2a
 - **[server/README.md](server/README.md)** - Documentación del API
 
 ## ✅ Extensiones de VSCode Recomendadas
@@ -254,7 +254,7 @@ El proyecto recomienda estas extensiones (VSCode las sugerirá automáticamente)
 
 - ✅ **Fase 1:** Sistema de gamificación base (completada)
 - ✅ **Fase 2a:** Backend y base de datos (completada)
-- ⏳ **Fase 2b:** Sistema de captura de audio
+- ✅ **Fase 2b:** Sistema de captura de audio (completada)
 - ⏳ **Fase 2c:** Implementación de ejercicios
 - ⏳ **Fase 2d:** UI de ejercicios
 
