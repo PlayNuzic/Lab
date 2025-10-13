@@ -645,7 +645,11 @@ La implementación de la Fase 2b se completó con mejoras significativas sobre e
 **Ejemplo de uso completo:**
 
 ```javascript
+// Importar módulos necesarios
+import { createCaptureSystem, generateExpectedPattern } from '../../libs/audio-capture/index.js';
+
 // Crear sistema completo de captura
+// NOTA: createCaptureSystem() automáticamente carga Tone.js antes de inicializar el micrófono
 const system = await createCaptureSystem({
   microphone: { threshold: -25, minInterval: 100 },
   keyboard: { visualFeedback: true },

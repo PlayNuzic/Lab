@@ -35,6 +35,10 @@ export {
  * @returns {Object} Sistema completo con mic, kbd, analyzer y combined
  */
 export async function createCaptureSystem(options = {}) {
+  // Asegurar que Tone.js está cargado antes de crear MicrophoneCapture
+  const { ensureToneLoaded } = await import('../sound/tone-loader.js');
+  await ensureToneLoaded();
+
   const {
     MicrophoneCapture,
     KeyboardCapture,

@@ -7,7 +7,8 @@
  * @module libs/audio-capture/microphone
  */
 
-import * as Tone from 'tone';
+import { ensureToneLoaded } from '../sound/tone-loader.js';
+/* global Tone */
 
 /**
  * Clase para capturar y analizar audio del micrófono
@@ -50,6 +51,9 @@ export class MicrophoneCapture {
     }
 
     try {
+      // Asegurar que Tone.js está cargado
+      await ensureToneLoaded();
+
       // Asegurar que Tone.js está inicializado
       if (Tone.context.state !== 'running') {
         await Tone.start();
