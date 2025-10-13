@@ -240,19 +240,295 @@ El sistema está diseñado para ser ligero:
 - **Memoria utilizada:** < 1MB
 - **Almacenamiento local:** < 5MB máximo
 
-## Próximas Características (Fase 2)
+## Uso de Ejercicios (Fase 2 - Próximamente)
 
-En el futuro se añadirán:
+En la Fase 2 se añadirá un sistema de ejercicios con captura de audio. A continuación se muestran ejemplos de uso:
+
+### Cambiar de Usuario (Consola)
+
+```javascript
+// Sistema simple de 2 usuarios (sin autenticación)
+
+// Cambiar a usuario 'tester' (user_id: 1)
+window.__USER_MANAGER.switchUser(1);
+
+// Cambiar a usuario 'user' (user_id: 2)
+window.__USER_MANAGER.switchUser(2);
+
+// Ver usuario actual
+const currentUserId = window.__USER_MANAGER.getCurrentUserId();
+console.log(`Usuario actual: ${currentUserId}`);
+```
+
+### Lanzar Ejercicios
+
+```javascript
+// Cargar ejercicios disponibles
+const exercises = await window.__EXERCISE_LAUNCHER.loadExercises();
+console.log(`${exercises.length} ejercicios disponibles`);
+
+// Filtrar por tipo
+const sequenceExercises = exercises.filter(e => e.exercise_type === 'sequence_entry');
+const rhythmExercises = exercises.filter(e => e.exercise_type === 'rhythm_sync');
+
+// Lanzar un ejercicio específico
+await window.__EXERCISE_LAUNCHER.startExercise(
+  exerciseId: 1,
+  exerciseType: 'sequence_entry',
+  config: {
+    pattern: [0, 1, 0, 1, 0, 1, 0, 1], // par-impar
+    length: 8,
+    difficulty: 2
+  }
+);
+```
+
+### Ejemplo 1: Ejercicio de Entrada de Secuencia
+
+```javascript
+// El usuario ve una UI para ingresar un patrón par-impar
+// Puede hacer clic en botones para alternar entre Par (0) e Impar (1)
+
+// Cuando el usuario envía su respuesta:
+// - Se calcula la precisión comparando con el patrón objetivo
+// - Se guarda el resultado en la base de datos
+// - Se muestra feedback inmediato
+
+// Resultado esperado:
+{
+  score: 80, // (100% precisión × dificultad 2) × 0.4
+  accuracy: 87.5, // 7 de 8 correctos
+  attempt_data: {
+    target_pattern: [0, 1, 0, 1, 0, 1, 0, 1],
+    user_pattern: [0, 1, 0, 0, 0, 1, 0, 1],
+    correct_count: 7
+  }
+}
+```
+
+### Ejemplo 2: Ejercicio de Sincronización Rítmica
+
+```javascript
+// Este ejercicio usa TANTO micrófono COMO teclado (Space)
+
+// Configuración del ejercicio
+const rhythmConfig = {
+  rhythm: [0, 0.5, 1.0, 1.5], // Timestamps en segundos
+  input_mode: 'both', // 'mic', 'keyboard', o 'both'
+  difficulty: 3
+};
+
+// El usuario:
+// 1. Escucha el patrón objetivo
+// 2. Graba su intento usando micrófono O tecla Espacio
+// 3. El sistema detecta beats/taps automáticamente
+// 4. Se compara con el patrón objetivo
+
+// Resultado esperado:
+{
+  matched: true,
+  accuracy: 92,
+  deviations: [0.02, 0.01, 0.03, 0.015], // En segundos
+  avgDeviation: 0.019 // 19ms promedio
+}
+```
+
+### Ejemplo 3: Ejercicio de Tap Matching
+
+```javascript
+// Ejercicio independiente de precisión de tempo
+
+const tapConfig = {
+  bpm: 120,
+  tap_count: 8,
+  difficulty: 2
+};
+
+// El usuario toca un botón TAP repetidamente
+// El sistema calcula el BPM en tiempo real
+// Al completar los 8 taps, evalúa la precisión
+
+// Resultado esperado:
+{
+  target_bpm: 120,
+  achieved_bpm: 118,
+  consistency: 95, // Qué tan constantes fueron los intervalos
+  accuracy: 98.3 // Cercanía al objetivo
+}
+```
+
+### Ejemplo 4: Ejercicio de Reconocimiento de Fracciones
+
+```javascript
+// Ejercicio independiente de oído
+
+const fractionConfig = {
+  fraction: { n: 3, d: 4 },
+  options: [
+    { n: 3, d: 4 }, // Correcta
+    { n: 2, d: 4 },
+    { n: 4, d: 4 },
+    { n: 3, d: 8 }
+  ],
+  difficulty: 3
+};
+
+// El usuario:
+// 1. Escucha una fracción temporal
+// 2. Selecciona entre 4 opciones
+// 3. Recibe feedback inmediato
+
+// Resultado esperado (correcto):
+{
+  score: 30, // 10 × dificultad 3
+  accuracy: 100,
+  correct: true
+}
+
+// Resultado esperado (incorrecto):
+{
+  score: 0,
+  accuracy: 0,
+  correct: false
+}
+```
+
+### Ver Resultados de Ejercicios
+
+```javascript
+// Obtener historial de intentos del usuario actual
+const userId = window.__USER_MANAGER.getCurrentUserId();
+
+const response = await fetch(`/api/users/${userId}/attempts?limit=10`);
+const attempts = await response.json();
+
+attempts.forEach(attempt => {
+  console.log(`${attempt.exercise_title}:`);
+  console.log(`  Precisión: ${attempt.accuracy_percentage}%`);
+  console.log(`  Puntuación: ${attempt.score}`);
+  console.log(`  Fecha: ${new Date(attempt.completed_at).toLocaleDateString()}`);
+});
+```
+
+### Migración Automática de Datos
+
+```javascript
+// Al detectar que el servidor está disponible,
+// los datos de localStorage se migran automáticamente
+
+// Para forzar la migración manualmente:
+import { migrateLocalDataToDatabase } from '/libs/gamification/migration.js';
+
+const result = await migrateLocalDataToDatabase();
+console.log(`✅ ${result.synced_count} eventos migrados`);
+console.log(`❌ ${result.failed_count} eventos fallidos`);
+```
+
+### API Endpoints Disponibles
+
+```javascript
+// === USUARIOS ===
+// Listar usuarios
+GET /api/users
+// Respuesta: [{ user_id: 1, username: "tester", total_score: 1250 }]
+
+// Usuario específico
+GET /api/users/1
+// Respuesta: { user_id: 1, username: "tester", stats: {...} }
+
+// === EJERCICIOS ===
+// Listar ejercicios
+GET /api/exercises?type=rhythm_sync&difficulty=2
+// Respuesta: [{ exercise_id, type, title, parameters }]
+
+// Iniciar ejercicio
+POST /api/exercises/1/start
+// Body: { user_id: 1 }
+// Respuesta: { attempt_id: 42, exercise_data: {...} }
+
+// Completar ejercicio
+POST /api/exercises/1/complete
+// Body: { attempt_id: 42, score: 85, accuracy: 92.5, attempt_data: {...} }
+// Respuesta: { saved: true, new_score: 1335, achievements_unlocked: [] }
+
+// === EVENTOS ===
+// Sincronizar eventos desde localStorage
+POST /api/events/sync
+// Body: { user_id: 1, events: [...] }
+// Respuesta: { synced_count: 47, failed_count: 0 }
+
+// Historial de eventos
+GET /api/events/history?user_id=1&app_id=app2&limit=50
+// Respuesta: [{ event_id, event_type, timestamp, metadata }]
+```
+
+### Workflow Completo de Sesión con Ejercicios
+
+```javascript
+// 1. Iniciar como usuario de prueba
+window.__USER_MANAGER.switchUser(1); // tester
+
+// 2. Ver ejercicios disponibles
+const exercises = await window.__EXERCISE_LAUNCHER.loadExercises();
+console.log(`Ejercicios disponibles: ${exercises.length}`);
+
+// 3. Hacer un ejercicio de entrada de secuencia
+await window.__EXERCISE_LAUNCHER.startExercise(1, 'sequence_entry', {
+  pattern: [0,1,0,1,0,1,0,1],
+  length: 8,
+  difficulty: 1
+});
+// El usuario completa el ejercicio en la UI...
+// Resultado guardado automáticamente en BD
+
+// 4. Hacer un ejercicio de sincronización rítmica
+await window.__EXERCISE_LAUNCHER.startExercise(2, 'rhythm_sync', {
+  rhythm: [0, 0.5, 1.0, 1.5, 2.0],
+  input_mode: 'both', // mic + keyboard
+  difficulty: 2
+});
+// El usuario graba su ritmo con micrófono o Space...
+// Análisis y guardado automático
+
+// 5. Ver progreso
+const userId = window.__USER_MANAGER.getCurrentUserId();
+const userStats = await fetch(`/api/users/${userId}`).then(r => r.json());
+console.log(`Puntuación total: ${userStats.total_score}`);
+console.log(`Nivel actual: ${userStats.current_level}`);
+console.log(`Ejercicios completados: ${userStats.exercises_completed}`);
+
+// 6. Cambiar a otro usuario y comparar
+window.__USER_MANAGER.switchUser(2); // user
+const user2Stats = await fetch(`/api/users/2`).then(r => r.json());
+console.log(`Usuario 2 puntuación: ${user2Stats.total_score}`);
+```
+
+---
+
+## Próximas Características
+
+### Fase 2 (En desarrollo)
+- ✅ Sistema de ejercicios con captura de audio
+- ✅ Base de datos SQLite y API REST
+- ✅ Usuario simple de 2 personas (sin autenticación)
+- ✅ Migración automática de localStorage
+
+### Fase 3 (Futuro)
 - Dashboard visual con gráficas de progreso
 - Notificaciones visuales de logros
+- Visualización de estadísticas detalladas
+
+### Fase 4 (Futuro lejano)
+- Sistema de autenticación completo
 - Tabla de clasificación global
 - Compartir logros en redes sociales
 - Desafíos diarios y semanales
+- Modo competitivo
 - Recompensas y contenido desbloqueable
 
 ---
 
-## Ejemplo Completo de Sesión
+## Ejemplo Completo de Sesión (Fase 1)
 
 ```javascript
 // 1. Iniciar con debug

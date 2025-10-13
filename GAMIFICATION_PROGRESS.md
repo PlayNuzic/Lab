@@ -166,27 +166,221 @@ Para ver estadísticas:
 window.__GAMIFICATION.getStats();
 ```
 
-## FASE 2: Base de Datos y UI (PENDIENTE)
+## FASE 2: Backend, Ejercicios y Captura de Audio - PLANIFICADA
 
-### Elementos a implementar en el futuro:
+**IMPORTANTE:** Esta fase NO incluye autenticación ni características avanzadas (reservadas para Fase 4).
 
-1. **Backend**
-   - API REST/GraphQL
-   - Base de datos PostgreSQL/MongoDB
-   - Sistema de autenticación
-   - Sincronización de datos
+### Fase 2a: Backend y Base de Datos - ⏳ PENDIENTE
 
-2. **UI de Gamificación**
-   - Dashboard de progreso
-   - Notificaciones de logros
-   - Tabla de clasificación
-   - Medallas y badges visuales
+**Objetivo:** Sistema simple de 2 usuarios con base de datos SQLite y API REST.
 
-3. **Características Avanzadas**
-   - Desafíos diarios/semanales
-   - Sistema de recompensas
-   - Modo competitivo
-   - Análisis de progreso
+#### Tareas Pendientes:
+
+1. **Diseño de Base de Datos SQLite** - ⏳
+   - [ ] Crear esquema de tabla `users`
+   - [ ] Crear esquema de tabla `exercises`
+   - [ ] Crear esquema de tabla `user_exercises`
+   - [ ] Crear esquema de tabla `sessions`
+   - [ ] Crear esquema de tabla `events`
+   - [ ] Script de inicialización con 2 usuarios
+
+2. **Desarrollo API REST con Express.js** - ⏳
+   - [ ] Setup proyecto Node.js + Express
+   - [ ] Endpoint GET `/api/users`
+   - [ ] Endpoint GET `/api/users/:id`
+   - [ ] Endpoint GET `/api/exercises`
+   - [ ] Endpoint POST `/api/exercises/:id/start`
+   - [ ] Endpoint POST `/api/exercises/:id/complete`
+   - [ ] Endpoint POST `/api/sessions/start`
+   - [ ] Endpoint POST `/api/sessions/:id/end`
+   - [ ] Endpoint POST `/api/events/sync`
+   - [ ] Endpoint GET `/api/events/history`
+   - [ ] Middleware CORS y JSON parsing
+
+3. **Sistema de Usuario Simple** - ⏳
+   - [ ] Crear `/libs/gamification/user-manager.js`
+   - [ ] Función `switchUser(userId)` para consola
+   - [ ] Función `getCurrentUserId()`
+   - [ ] Persistencia en localStorage
+   - [ ] Exponer globalmente como `window.__USER_MANAGER`
+
+4. **Migración de Datos** - ⏳
+   - [ ] Crear `/libs/gamification/migration.js`
+   - [ ] Función `migrateLocalDataToDatabase()`
+   - [ ] Auto-detección de servidor disponible
+   - [ ] Limpieza de localStorage tras migración exitosa
+
+**Archivos a crear:**
+- `/server/index.js` - Servidor Express
+- `/server/api/routes.js` - Rutas API
+- `/server/db/schema.sql` - Esquema SQLite
+- `/server/db/database.js` - Conexión y queries
+- `/libs/gamification/user-manager.js` - Gestión usuarios
+- `/libs/gamification/migration.js` - Migración datos
+
+---
+
+### Fase 2b: Sistema de Captura de Audio - ⏳ PENDIENTE
+
+**Objetivo:** Capturar ritmos mediante micrófono Y teclado (Space).
+
+#### Tareas Pendientes:
+
+1. **Módulo de Captura de Micrófono** - ⏳
+   - [ ] Crear `/libs/audio-capture/microphone.js`
+   - [ ] Clase `MicrophoneCapture`
+   - [ ] Método `initialize()` con Tone.UserMedia
+   - [ ] Método `startRecording()` con beat detection
+   - [ ] Método `stopRecording()` retornando timestamps
+   - [ ] Método `dispose()` para cleanup
+   - [ ] Configurar umbral de detección ajustable
+
+2. **Módulo de Captura de Teclado** - ⏳
+   - [ ] Crear `/libs/audio-capture/keyboard.js`
+   - [ ] Clase `KeyboardCapture`
+   - [ ] Constructor con targetKey configurable (default: Space)
+   - [ ] Método `startRecording()` con event listener
+   - [ ] Método `stopRecording()` retornando timestamps
+   - [ ] Prevención de comportamiento default de Space
+
+3. **Módulo de Análisis Rítmico** - ⏳
+   - [ ] Crear `/libs/audio-capture/rhythm-analysis.js`
+   - [ ] Clase `RhythmAnalyzer`
+   - [ ] Método `compareRhythm(recorded, expected)`
+   - [ ] Método `detectTempo(taps)` para calcular BPM
+   - [ ] Método `calculateConsistency(intervals)`
+   - [ ] Cálculo de desviaciones y precisión
+
+**Archivos a crear:**
+- `/libs/audio-capture/microphone.js`
+- `/libs/audio-capture/keyboard.js`
+- `/libs/audio-capture/rhythm-analysis.js`
+- `/libs/audio-capture/index.js` - Barrel export
+
+---
+
+### Fase 2c: Sistema de Ejercicios - ⏳ PENDIENTE
+
+**Objetivo:** 4 tipos de ejercicios con puntuación y guardado en BD.
+
+#### Tareas Pendientes:
+
+1. **Clase Base de Ejercicio** - ⏳
+   - [ ] Crear `/libs/exercises/base-exercise.js`
+   - [ ] Clase `BaseExercise` con métodos comunes
+   - [ ] Método `start(userId)` - Registro en BD
+   - [ ] Método `complete(score, accuracy, data)` - Guardar resultado
+   - [ ] Hooks `onStart()`, `onComplete()`, `onError()`
+
+2. **Ejercicio 1: Entrada de Secuencia** - ⏳
+   - [ ] Crear `/libs/exercises/sequence-entry.js`
+   - [ ] Clase `SequenceEntryExercise extends BaseExercise`
+   - [ ] Generación de patrones par-impar
+   - [ ] UI de entrada con botones toggle
+   - [ ] Validación y cálculo de precisión
+   - [ ] Pantalla de resultados
+
+3. **Ejercicio 2: Sincronización Rítmica** - ⏳
+   - [ ] Crear `/libs/exercises/rhythm-sync.js`
+   - [ ] Clase `RhythmSyncExercise extends BaseExercise`
+   - [ ] Integración con `MicrophoneCapture`
+   - [ ] Integración con `KeyboardCapture`
+   - [ ] Reproducción de patrón objetivo
+   - [ ] Comparación con `RhythmAnalyzer`
+   - [ ] Soporte para modo `'both'` (mic + keyboard)
+   - [ ] Eliminación de duplicados por umbral temporal
+
+4. **Ejercicio 3: Tap Matching** - ⏳
+   - [ ] Crear `/libs/exercises/tap-matching.js`
+   - [ ] Clase `TapMatchingExercise extends BaseExercise`
+   - [ ] UI con botón TAP
+   - [ ] Cálculo de BPM en tiempo real
+   - [ ] Evaluación de precisión vs objetivo
+   - [ ] Feedback de consistencia
+
+5. **Ejercicio 4: Reconocimiento de Fracciones** - ⏳
+   - [ ] Crear `/libs/exercises/fraction-recognition.js`
+   - [ ] Clase `FractionRecognitionExercise extends BaseExercise`
+   - [ ] Reproducción de fracción temporal
+   - [ ] Generación de opciones múltiples
+   - [ ] Validación de respuesta
+   - [ ] Feedback inmediato
+
+**Archivos a crear:**
+- `/libs/exercises/base-exercise.js`
+- `/libs/exercises/sequence-entry.js`
+- `/libs/exercises/rhythm-sync.js`
+- `/libs/exercises/tap-matching.js`
+- `/libs/exercises/fraction-recognition.js`
+- `/libs/exercises/index.js` - Barrel export
+
+---
+
+### Fase 2d: Integración y UI - ⏳ PENDIENTE
+
+**Objetivo:** UI para lanzar ejercicios y ver resultados.
+
+#### Tareas Pendientes:
+
+1. **Lanzador de Ejercicios** - ⏳
+   - [ ] Crear `/libs/exercises/exercise-launcher.js`
+   - [ ] Clase `ExerciseLauncher`
+   - [ ] Método `loadExercises()` desde API
+   - [ ] Método `startExercise(id, type, config)`
+   - [ ] Switch para instanciar ejercicio correcto
+   - [ ] Exponer como `window.__EXERCISE_LAUNCHER`
+
+2. **UI de Selección** - ⏳
+   - [ ] Crear `/apps/exercises/index.html`
+   - [ ] Selector de usuario (dropdown)
+   - [ ] Grid de ejercicios disponibles
+   - [ ] Filtros por tipo y dificultad
+   - [ ] Contenedor para renderizar ejercicio activo
+
+3. **Estilos de Ejercicios** - ⏳
+   - [ ] Crear `/apps/exercises/styles/exercises.css`
+   - [ ] Estilos para `.sequence-exercise`
+   - [ ] Estilos para `.rhythm-sync-exercise`
+   - [ ] Estilos para `.tap-matching-exercise`
+   - [ ] Estilos para `.fraction-recognition-exercise`
+   - [ ] Estilos para `.exercise-result`
+
+4. **Script Principal** - ⏳
+   - [ ] Crear `/apps/exercises/scripts/main.js`
+   - [ ] Inicialización de `ExerciseLauncher`
+   - [ ] Carga y renderizado de lista de ejercicios
+   - [ ] Event listeners para selección
+   - [ ] Gestión de cambio de usuario
+
+**Archivos a crear:**
+- `/libs/exercises/exercise-launcher.js`
+- `/apps/exercises/index.html`
+- `/apps/exercises/styles/exercises.css`
+- `/apps/exercises/scripts/main.js`
+
+---
+
+### 📊 Resumen Fase 2
+
+**Total de archivos a crear:** ~20
+**Total de tareas:** ~60
+**Líneas de código estimadas:** ~3,000
+
+**Componentes principales:**
+- Backend: 5 archivos
+- Audio Capture: 4 archivos
+- Ejercicios: 6 archivos
+- UI: 4 archivos
+- Migración: 1 archivo
+
+**Características clave:**
+- ✅ Simple 2-user system (NO autenticación)
+- ✅ Captura de ritmo con mic + keyboard
+- ✅ 4 tipos de ejercicios independientes
+- ✅ Migración automática desde localStorage
+- ❌ NO tabla de clasificación (Fase 4)
+- ❌ NO integración social (Fase 4)
+- ❌ NO desafíos diarios (Fase 4)
 
 ## Instrucciones para Continuar
 
