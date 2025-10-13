@@ -170,53 +170,91 @@ window.__GAMIFICATION.getStats();
 
 **IMPORTANTE:** Esta fase NO incluye autenticación ni características avanzadas (reservadas para Fase 4).
 
-### Fase 2a: Backend y Base de Datos - ⏳ PENDIENTE
+### Fase 2a: Backend y Base de Datos - ✅ COMPLETADA
 
 **Objetivo:** Sistema simple de 2 usuarios con base de datos SQLite y API REST.
 
-#### Tareas Pendientes:
+#### Tareas Completadas:
 
-1. **Diseño de Base de Datos SQLite** - ⏳
-   - [ ] Crear esquema de tabla `users`
-   - [ ] Crear esquema de tabla `exercises`
-   - [ ] Crear esquema de tabla `user_exercises`
-   - [ ] Crear esquema de tabla `sessions`
-   - [ ] Crear esquema de tabla `events`
-   - [ ] Script de inicialización con 2 usuarios
+1. **Diseño de Base de Datos SQLite** - ✅
+   - [x] Crear esquema de tabla `users`
+   - [x] Crear esquema de tabla `exercises`
+   - [x] Crear esquema de tabla `user_exercises`
+   - [x] Crear esquema de tabla `sessions`
+   - [x] Crear esquema de tabla `events`
+   - [x] Script de inicialización con 2 usuarios
+   - [x] Índices para optimización de queries
+   - [x] 5 ejercicios de ejemplo pre-cargados
 
-2. **Desarrollo API REST con Express.js** - ⏳
-   - [ ] Setup proyecto Node.js + Express
-   - [ ] Endpoint GET `/api/users`
-   - [ ] Endpoint GET `/api/users/:id`
-   - [ ] Endpoint GET `/api/exercises`
-   - [ ] Endpoint POST `/api/exercises/:id/start`
-   - [ ] Endpoint POST `/api/exercises/:id/complete`
-   - [ ] Endpoint POST `/api/sessions/start`
-   - [ ] Endpoint POST `/api/sessions/:id/end`
-   - [ ] Endpoint POST `/api/events/sync`
-   - [ ] Endpoint GET `/api/events/history`
-   - [ ] Middleware CORS y JSON parsing
+2. **Desarrollo API REST con Express.js** - ✅
+   - [x] Setup proyecto Node.js + Express
+   - [x] Endpoint GET `/api/health`
+   - [x] Endpoint GET `/api/users`
+   - [x] Endpoint GET `/api/users/:id`
+   - [x] Endpoint GET `/api/users/:id/attempts`
+   - [x] Endpoint GET `/api/exercises`
+   - [x] Endpoint GET `/api/exercises/:id`
+   - [x] Endpoint POST `/api/exercises/:id/start`
+   - [x] Endpoint POST `/api/exercises/:id/complete`
+   - [x] Endpoint POST `/api/sessions/start`
+   - [x] Endpoint POST `/api/sessions/:id/end`
+   - [x] Endpoint GET `/api/sessions`
+   - [x] Endpoint POST `/api/events/sync`
+   - [x] Endpoint GET `/api/events/history`
+   - [x] Middleware CORS y JSON parsing
+   - [x] Error handling y logging
+   - [x] Graceful shutdown handlers
 
-3. **Sistema de Usuario Simple** - ⏳
-   - [ ] Crear `/libs/gamification/user-manager.js`
-   - [ ] Función `switchUser(userId)` para consola
-   - [ ] Función `getCurrentUserId()`
-   - [ ] Persistencia en localStorage
-   - [ ] Exponer globalmente como `window.__USER_MANAGER`
+3. **Sistema de Usuario Simple** - ✅
+   - [x] Crear `/libs/gamification/user-manager.js`
+   - [x] Clase `UserManager` con gestión de estado
+   - [x] Función `switchUser(userId)` para consola
+   - [x] Función `getCurrentUserId()`
+   - [x] Función `fetchUserStats()` desde API
+   - [x] Función `fetchUserAttempts()` desde API
+   - [x] Función `isServerAvailable()`
+   - [x] Persistencia en localStorage
+   - [x] Exponer globalmente como `window.__USER_MANAGER`
+   - [x] Event dispatcher para cambios de usuario
+   - [x] Mensajes de log informativos
 
-4. **Migración de Datos** - ⏳
-   - [ ] Crear `/libs/gamification/migration.js`
-   - [ ] Función `migrateLocalDataToDatabase()`
-   - [ ] Auto-detección de servidor disponible
-   - [ ] Limpieza de localStorage tras migración exitosa
+4. **Migración de Datos** - ✅
+   - [x] Crear `/libs/gamification/migration.js`
+   - [x] Función `migrateLocalDataToDatabase()`
+   - [x] Función `isServerAvailable()` con timeout
+   - [x] Función `getMigrationInfo()`
+   - [x] Función `resetMigrationStatus()` para testing
+   - [x] Auto-detección de servidor disponible
+   - [x] Limpieza de localStorage tras migración exitosa
+   - [x] Prevención de duplicados (migración idempotente)
+   - [x] Auto-migración al cargar página (2s delay)
+   - [x] Exponer como `window.__MIGRATION`
+   - [x] Event dispatcher para actualización de UI
 
-**Archivos a crear:**
-- `/server/index.js` - Servidor Express
-- `/server/api/routes.js` - Rutas API
-- `/server/db/schema.sql` - Esquema SQLite
-- `/server/db/database.js` - Conexión y queries
-- `/libs/gamification/user-manager.js` - Gestión usuarios
-- `/libs/gamification/migration.js` - Migración datos
+**Archivos creados:**
+- ✅ `/server/index.js` - Servidor Express (105 líneas)
+- ✅ `/server/api/routes.js` - Rutas API (387 líneas)
+- ✅ `/server/db/schema.sql` - Esquema SQLite (90 líneas)
+- ✅ `/server/db/database.js` - Conexión y queries (337 líneas)
+- ✅ `/server/package.json` - Dependencias y scripts
+- ✅ `/server/README.md` - Documentación completa del servidor
+- ✅ `/libs/gamification/user-manager.js` - Gestión usuarios (177 líneas)
+- ✅ `/libs/gamification/migration.js` - Migración datos (211 líneas)
+- ✅ `/libs/gamification/index.js` - Exports actualizados
+
+**Total líneas de código:** ~1,307 líneas
+
+**Características implementadas:**
+- ✅ Base de datos SQLite con 5 tablas
+- ✅ 14 endpoints API REST
+- ✅ Sistema de 2 usuarios sin autenticación
+- ✅ Migración automática desde localStorage
+- ✅ Manejo de errores robusto
+- ✅ CORS habilitado para desarrollo local
+- ✅ Logging de requests
+- ✅ Graceful shutdown
+- ✅ Stats de usuario con joins
+- ✅ Actualización automática de nivel/score
 
 ---
 

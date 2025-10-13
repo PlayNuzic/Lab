@@ -44,6 +44,20 @@ export {
   getAppGamificationConfig
 } from './config.js';
 
+// User Manager (Phase 2a)
+export {
+  UserManager,
+  getUserManager
+} from './user-manager.js';
+
+// Migration (Phase 2a)
+export {
+  migrateLocalDataToDatabase,
+  isServerAvailable,
+  getMigrationInfo,
+  resetMigrationStatus
+} from './migration.js';
+
 // Importar funciones necesarias para uso interno en este módulo
 import {
   DEV_CONFIG as DEV_CONFIG_INTERNAL,
