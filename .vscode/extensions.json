@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "ritwickdey.liveserver",
+    "humao.rest-client",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode"
+  ],
+  "unwantedRecommendations": []
+}

@@ -1,0 +1,101 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start API Server",
+      "type": "shell",
+      "command": "npm start",
+      "options": {
+        "cwd": "${workspaceFolder}/server"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Initializing database.*$",
+          "endsPattern": "^.*Gamification API Server running.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "focus": false,
+        "echo": true,
+        "showReuseMessage": false,
+        "clear": false,
+        "group": "servers"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    },
+    {
+      "label": "Start API Server (Dev)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/server"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*nodemon.*$",
+          "endsPattern": "^.*Gamification API Server running.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "focus": false,
+        "echo": true,
+        "showReuseMessage": false,
+        "clear": false,
+        "group": "servers"
+      }
+    },
+    {
+      "label": "Stop API Server",
+      "type": "shell",
+      "command": "lsof -ti :3000 | xargs kill -9 || true",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": false
+      }
+    },
+    {
+      "label": "Install Server Dependencies",
+      "type": "shell",
+      "command": "npm install",
+      "options": {
+        "cwd": "${workspaceFolder}/server"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Check Server Status",
+      "type": "shell",
+      "command": "curl -s http://localhost:3000/api/health | jq . || echo 'Server not running'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ]
+}

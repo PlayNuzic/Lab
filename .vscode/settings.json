@@ -1,0 +1,43 @@
+{
+  // Live Server Configuration
+  "liveServer.settings.port": 8080,
+  "liveServer.settings.root": "/",
+  "liveServer.settings.CustomBrowser": "chrome",
+  "liveServer.settings.ignoreFiles": [
+    ".vscode/**",
+    "**/*.scss",
+    "**/*.sass",
+    "**/*.ts",
+    "node_modules/**",
+    "server/**"
+  ],
+
+  // Auto-open apps
+  "liveServer.settings.AdvanceCustomBrowserCmdLine": null,
+
+  // Proxy API requests (opcional, si necesitas proxy)
+  // "liveServer.settings.proxy": {
+  //   "enable": true,
+  //   "baseUri": "/api",
+  //   "proxyUri": "http://localhost:3000/api"
+  // },
+
+  // Files to watch
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/server/db/*.db": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true
+  },
+
+  // Editor settings
+  "editor.formatOnSave": false,
+  "editor.tabSize": 2,
+
+  // Terminal
+  "terminal.integrated.defaultProfile.osx": "zsh",
+
+  // Task auto-run notification
+  "task.autoDetect": "on",
+  "task.problemMatchers.neverPrompt": false
+}

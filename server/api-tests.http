@@ -1,0 +1,204 @@
+### Gamification API - Test Collection
+### Use the REST Client extension for VSCode
+### Install: ritwickdey.liveserver
+
+@baseUrl = http://localhost:3000/api
+
+###############################################################################
+# HEALTH CHECK
+###############################################################################
+
+### Health Check
+GET {{baseUrl}}/health HTTP/1.1
+
+### Root Endpoint
+GET http://localhost:3000 HTTP/1.1
+
+###############################################################################
+# USERS
+###############################################################################
+
+### Get All Users
+GET {{baseUrl}}/users HTTP/1.1
+
+### Get User 1 (tester) with Stats
+GET {{baseUrl}}/users/1 HTTP/1.1
+
+### Get User 2 (user) with Stats
+GET {{baseUrl}}/users/2 HTTP/1.1
+
+### Get User Attempts
+GET {{baseUrl}}/users/1/attempts?limit=10 HTTP/1.1
+
+###############################################################################
+# EXERCISES
+###############################################################################
+
+### Get All Exercises
+GET {{baseUrl}}/exercises HTTP/1.1
+
+### Get Exercises by Type (sequence_entry)
+GET {{baseUrl}}/exercises?type=sequence_entry HTTP/1.1
+
+### Get Exercises by Difficulty
+GET {{baseUrl}}/exercises?difficulty=1 HTTP/1.1
+
+### Get Specific Exercise
+GET {{baseUrl}}/exercises/1 HTTP/1.1
+
+### Start Exercise (Sequence Entry)
+POST {{baseUrl}}/exercises/1/start HTTP/1.1
+Content-Type: application/json
+
+{
+  "user_id": 1
+}
+
+### Complete Exercise
+POST {{baseUrl}}/exercises/1/complete HTTP/1.1
+Content-Type: application/json
+
+{
+  "attempt_id": 1,
+  "score": 85,
+  "accuracy": 87.5,
+  "attempt_data": {
+    "target_pattern": [0, 1, 0, 1, 0, 1, 0, 1],
+    "user_pattern": [0, 1, 0, 0, 0, 1, 0, 1],
+    "correct_count": 7
+  }
+}
+
+###############################################################################
+# SESSIONS
+###############################################################################
+
+### Start Session
+POST {{baseUrl}}/sessions/start HTTP/1.1
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "app_id": "app2"
+}
+
+### End Session
+POST {{baseUrl}}/sessions/1699999999999/end HTTP/1.1
+Content-Type: application/json
+
+{
+  "total_events": 10,
+  "total_score": 250
+}
+
+### Get User Sessions
+GET {{baseUrl}}/sessions?user_id=1&limit=10 HTTP/1.1
+
+###############################################################################
+# EVENTS
+###############################################################################
+
+### Sync Events from localStorage
+POST {{baseUrl}}/events/sync HTTP/1.1
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "events": [
+    {
+      "event_id": "evt_1699999999999_abc123",
+      "event_type": "PRACTICE_COMPLETED",
+      "timestamp": 1699999999999,
+      "session_id": 1699999990000,
+      "app_id": "app2",
+      "base_score": 20,
+      "final_score": 25,
+      "metadata": {
+        "lg_value": 16,
+        "v_value": 120,
+        "duration_seconds": 180
+      }
+    },
+    {
+      "event_id": "evt_1699999999998_def456",
+      "event_type": "PATTERN_PLAYED",
+      "timestamp": 1699999999998,
+      "session_id": 1699999990000,
+      "app_id": "app2",
+      "base_score": 3,
+      "final_score": 5,
+      "metadata": {
+        "pattern_length": 8
+      }
+    }
+  ],
+  "sessions": [
+    {
+      "session_id": 1699999990000,
+      "app_id": "app2",
+      "total_events": 2,
+      "total_score": 30
+    }
+  ]
+}
+
+### Get Event History
+GET {{baseUrl}}/events/history?user_id=1&limit=50 HTTP/1.1
+
+### Get Event History by App
+GET {{baseUrl}}/events/history?user_id=1&app_id=app2&limit=20 HTTP/1.1
+
+###############################################################################
+# TESTING SCENARIOS
+###############################################################################
+
+### Scenario 1: Complete Exercise Flow
+# Step 1: Start exercise
+POST {{baseUrl}}/exercises/1/start HTTP/1.1
+Content-Type: application/json
+
+{
+  "user_id": 1
+}
+
+### Step 2: Complete exercise (copy attempt_id from step 1)
+POST {{baseUrl}}/exercises/1/complete HTTP/1.1
+Content-Type: application/json
+
+{
+  "attempt_id": 1,
+  "score": 100,
+  "accuracy": 100,
+  "attempt_data": {
+    "target_pattern": [0, 1, 0, 1, 0, 1, 0, 1],
+    "user_pattern": [0, 1, 0, 1, 0, 1, 0, 1],
+    "correct_count": 8
+  }
+}
+
+### Step 3: Check updated user stats
+GET {{baseUrl}}/users/1 HTTP/1.1
+
+###############################################################################
+# ERROR CASES
+###############################################################################
+
+### 404 - User Not Found
+GET {{baseUrl}}/users/999 HTTP/1.1
+
+### 404 - Exercise Not Found
+GET {{baseUrl}}/exercises/999 HTTP/1.1
+
+### 400 - Missing user_id
+POST {{baseUrl}}/exercises/1/start HTTP/1.1
+Content-Type: application/json
+
+{}
+
+### 400 - Invalid data
+POST {{baseUrl}}/exercises/1/complete HTTP/1.1
+Content-Type: application/json
+
+{
+  "attempt_id": 999
+}
