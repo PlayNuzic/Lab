@@ -425,6 +425,94 @@ if (result.accuracy >= 90) {
 
 ---
 
+### Test 11: Captura Durante Reproducción de Audio 🎵⌨️
+
+**Probar que la captura funciona mientras el audio reproduce:**
+
+```javascript
+const { createKeyboardCapture } = await import('../../libs/audio-capture/index.js');
+
+// Configurar con capture: true (default)
+const kbd = createKeyboardCapture({
+  visualFeedback: true,
+  useCapture: true  // Asegura prioridad sobre otros listeners (default: true)
+});
+
+console.log('🎵 INSTRUCCIONES:');
+console.log('1. Reproduce audio en la app (presiona play)');
+console.log('2. Espera a que empiece la captura');
+console.log('3. Presiona ESPACIO al ritmo del audio');
+console.log('');
+console.log('⏳ Esperando 3 segundos para que inicies audio...');
+
+await new Promise(resolve => setTimeout(resolve, 3000));
+
+kbd.startRecording();
+console.log('⌨️ ¡Captura iniciada! Presiona ESPACIO al ritmo del audio');
+console.log('💡 Deberías ver el feedback visual incluso con audio reproduciéndose');
+
+setTimeout(() => {
+  const taps = kbd.stopRecording();
+  console.log(`\n✅ Capturados ${taps.length} taps mientras el audio reproducía`);
+  console.log('🎉 ¡La captura funciona correctamente con audio!');
+  kbd.dispose();
+}, 8000);
+```
+
+**Por qué funciona:**
+- KeyboardCapture usa `{ capture: true }` por defecto
+- Esto hace que capture eventos en fase CAPTURE (antes que otros listeners)
+- Garantiza que funcione incluso si el reproductor de audio también escucha ESPACIO
+
+---
+
+### Test 12: Usar Tecla Alternativa (Si Hay Conflictos) ⌨️
+
+**Si ESPACIO sigue causando problemas, usa otra tecla:**
+
+```javascript
+const { createKeyboardCapture } = await import('../../libs/audio-capture/index.js');
+
+// Opción 1: Configurar tecla en constructor
+const kbd = createKeyboardCapture({
+  key: 'Enter',     // O 't', 'x', 'c', cualquier tecla
+  visualFeedback: true
+});
+
+console.log('⌨️ Configurado para capturar: ENTER');
+console.log('💡 Presiona ENTER durante 5 segundos...');
+
+kbd.startRecording();
+
+setTimeout(() => {
+  const taps = kbd.stopRecording();
+  console.log(`✅ Capturados ${taps.length} taps con ENTER`);
+  kbd.dispose();
+}, 5000);
+
+// Opción 2: Cambiar dinámicamente con setKey()
+const kbd2 = createKeyboardCapture({ visualFeedback: true });
+kbd2.setKey('t');  // Cambiar a tecla T
+
+console.log('\n⌨️ Segunda prueba con tecla T');
+kbd2.startRecording();
+
+setTimeout(() => {
+  const taps2 = kbd2.stopRecording();
+  console.log(`✅ Capturados ${taps2.length} taps con tecla T`);
+  kbd2.dispose();
+}, 5000);
+```
+
+**Teclas recomendadas:**
+- `'Enter'` - Enter/Return
+- `'t'` - Tecla T (fácil de presionar)
+- `'x'` - Tecla X
+- `'c'` - Tecla C
+- `' '` - Espacio (default)
+
+---
+
 ## Troubleshooting
 
 ### Error: "Cannot use import statement outside a module"

@@ -4,6 +4,10 @@
  * Captura entrada de teclado (tecla espacio) para registrar ritmos.
  * Funciona en paralelo con MicrophoneCapture para ejercicios de Rhythm Sync.
  *
+ * IMPORTANTE: Usa event listeners en fase CAPTURE (useCapture: true) por defecto
+ * para garantizar que capture eventos incluso cuando otros listeners (como
+ * reproductores de audio) también escuchan la misma tecla.
+ *
  * @module libs/audio-capture/keyboard
  */
 
@@ -24,6 +28,7 @@ export class KeyboardCapture {
       preventRepeat: options.preventRepeat !== false, // Prevenir repeat automático
       minInterval: options.minInterval || 50, // ms mínimos entre taps (anti-rebote)
       visualFeedback: options.visualFeedback !== false, // Mostrar feedback visual
+      useCapture: options.useCapture !== false, // Usar fase capture para prioridad
       ...options
     };
 
@@ -57,9 +62,10 @@ export class KeyboardCapture {
     this.lastTapTime = 0;
     this.keyIsDown = false;
 
-    // Agregar event listeners
-    window.addEventListener('keydown', this._handleKeyDown);
-    window.addEventListener('keyup', this._handleKeyUp);
+    // Agregar event listeners en fase CAPTURE para prioridad sobre otros listeners
+    const listenerOptions = { capture: this.config.useCapture !== false };
+    window.addEventListener('keydown', this._handleKeyDown, listenerOptions);
+    window.addEventListener('keyup', this._handleKeyUp, listenerOptions);
 
     // Crear feedback visual si está habilitado
     if (this.config.visualFeedback) {
@@ -67,7 +73,8 @@ export class KeyboardCapture {
     }
 
     this.isRecording = true;
-    console.log('⌨️ Iniciada captura de teclado');
+    const keyName = this.config.key === ' ' ? 'ESPACIO' : this.config.key.toUpperCase();
+    console.log(`⌨️ Iniciada captura de teclado (tecla: ${keyName})`);
     return true;
   }
 
@@ -81,9 +88,10 @@ export class KeyboardCapture {
       return [];
     }
 
-    // Remover event listeners
-    window.removeEventListener('keydown', this._handleKeyDown);
-    window.removeEventListener('keyup', this._handleKeyUp);
+    // Remover event listeners con las mismas opciones que se usaron al agregar
+    const listenerOptions = { capture: this.config.useCapture !== false };
+    window.removeEventListener('keydown', this._handleKeyDown, listenerOptions);
+    window.removeEventListener('keyup', this._handleKeyUp, listenerOptions);
 
     // Remover feedback visual
     if (this.feedbackElement) {
@@ -245,6 +253,38 @@ export class KeyboardCapture {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
+  }
+
+  /**
+   * Cambia la tecla capturada (debe llamarse antes de startRecording)
+   * @param {string} newKey - Nueva tecla a capturar (ej: 'Enter', 't', ' ')
+   * @returns {boolean} true si se cambió correctamente
+   */
+  setKey(newKey) {
+    if (this.isRecording) {
+      console.warn('⚠️ No se puede cambiar la tecla durante la grabación');
+      return false;
+    }
+
+    this.config.key = newKey;
+
+    // Inferir keyCode desde la tecla
+    const keyCodes = {
+      ' ': 'Space',
+      'Enter': 'Enter',
+      't': 'KeyT',
+      'T': 'KeyT',
+      'x': 'KeyX',
+      'X': 'KeyX',
+      'c': 'KeyC',
+      'C': 'KeyC'
+    };
+
+    this.config.keyCode = keyCodes[newKey] || newKey;
+
+    const keyName = newKey === ' ' ? 'ESPACIO' : newKey.toUpperCase();
+    console.log(`✅ Tecla cambiada a: ${keyName}`);
+    return true;
   }
 
   /**
