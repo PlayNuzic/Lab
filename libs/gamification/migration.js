@@ -225,8 +225,8 @@ if (typeof window !== 'undefined') {
 
   console.log('🔄 Migration Module cargado');
   console.log('   Comandos disponibles en consola:');
-  console.log('   - window.__MIGRATION.migrate()  // Migrar datos manualmente');
+  console.log('   - await window.__MIGRATION.migrate()  // Migrar datos manualmente (async)');
   console.log('   - window.__MIGRATION.info()  // Ver info de migración');
   console.log('   - window.__MIGRATION.reset()  // Resetear estado de migración');
-  console.log('   - window.__MIGRATION.isServerAvailable()  // Verificar servidor');
+  console.log('   - await window.__MIGRATION.isServerAvailable()  // Verificar servidor (async)');
 }

@@ -179,5 +179,5 @@ if (typeof window !== 'undefined') {
   console.log('   - window.__USER_MANAGER.switchUser(1)  // Cambiar a tester');
   console.log('   - window.__USER_MANAGER.switchUser(2)  // Cambiar a user');
   console.log('   - window.__USER_MANAGER.getCurrentUserId()  // Ver usuario actual');
-  console.log('   - window.__USER_MANAGER.fetchUserStats()  // Ver estadísticas');
+  console.log('   - await window.__USER_MANAGER.fetchUserStats()  // Ver estadísticas (async)');
 }
