@@ -44,8 +44,18 @@ export {
   getAppGamificationConfig
 } from './config.js';
 
-// Importar DEV_CONFIG para uso interno en este módulo
-import { DEV_CONFIG as DEV_CONFIG_INTERNAL } from './config.js';
+// Importar funciones necesarias para uso interno en este módulo
+import {
+  DEV_CONFIG as DEV_CONFIG_INTERNAL,
+  getConfigManager,
+  isGamificationEnabled,
+  getAppGamificationConfig
+} from './config.js';
+
+import { getEventSystem } from './event-system.js';
+import { getScoringSystem } from './scoring-system.js';
+import { getAchievementSystem } from './achievements.js';
+import { getGameDataStore } from './storage.js';
 
 /**
  * Clase principal que unifica todos los sistemas
