@@ -506,8 +506,8 @@ export class ExerciseRunner {
     let consistencyWeight = scoring.consistencyWeight || 0;
     let tempoWeight = scoring.tempoWeight || 0;
 
-    if (tempo === 0 && tempoWeight > 0) {
-      // Redistribute tempo weight proportionally
+    if (tempo < 0.01 && tempoWeight > 0) {
+      // Redistribute tempo weight proportionally (using threshold for float comparison)
       const totalWeight = timingWeight + consistencyWeight;
       if (totalWeight > 0) {
         const redistribution = tempoWeight;

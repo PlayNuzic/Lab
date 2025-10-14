@@ -213,7 +213,8 @@ export class FractionRecognitionExercise {
    * @returns {Promise<void>}
    */
   async playAudio(question) {
-    const { ensureAudio, scheduleNote } = await import('../sound/index.js');
+    const { ensureAudio, ensureToneLoaded } = await import('../sound/index.js');
+    await ensureToneLoaded();
     await ensureAudio();
 
     const bpm = this.definition.audioConfig?.bpm || 120;
@@ -238,9 +239,16 @@ export class FractionRecognitionExercise {
 
     console.log(`  Playing ${loopCount} cycles...`);
 
+    // Create synth for playback (using Tone.js directly)
+    /* global Tone */
+    const synth = new Tone.Synth({
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 0.1 }
+    }).toDestination();
+
     // Play subdivision pattern
-    const accentNote = 72; // C5 - accent for pulse 0
-    const baseNote = 60;   // C4 - base for subdivisions
+    const accentNote = 'C5'; // Accent for pulse 0
+    const baseNote = 'C4';   // Base for subdivisions
 
     for (let loop = 0; loop < loopCount; loop++) {
       const loopOffset = loop * totalDuration;
@@ -251,11 +259,7 @@ export class FractionRecognitionExercise {
         const note = isAccent ? accentNote : baseNote;
 
         setTimeout(() => {
-          scheduleNote({
-            note,
-            time: 0, // Immediate
-            duration: 0.1
-          });
+          synth.triggerAttackRelease(note, '0.1', undefined, 0.5);
         }, timestamp);
       });
     }
@@ -263,6 +267,9 @@ export class FractionRecognitionExercise {
     // Wait for audio to finish
     const totalPlaybackTime = loopCount * totalDuration + 500; // + 500ms buffer
     await this.delay(totalPlaybackTime);
+
+    // Cleanup
+    synth.dispose();
   }
 
   /**

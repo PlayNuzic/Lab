@@ -384,8 +384,9 @@ export function trackAppAction(action, metadata = {}) {
  */
 export async function recordAttempt(data) {
   try {
-    // Get current user
-    const userManager = getUserManager();
+    // Get current user (import from module exports)
+    const { getUserManager: getUserManagerFn } = await import('./user-manager.js');
+    const userManager = getUserManagerFn();
     const userId = userManager.getCurrentUserId();
 
     if (!userId) {
