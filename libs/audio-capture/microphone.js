@@ -273,8 +273,10 @@ export class MicrophoneCapture {
 /**
  * Crea una instancia de MicrophoneCapture con configuración predeterminada
  * @param {Object} options - Opciones de configuración
- * @returns {MicrophoneCapture}
+ * @returns {Promise<MicrophoneCapture>}
  */
-export function createMicrophoneCapture(options = {}) {
-  return new MicrophoneCapture(options);
+export async function createMicrophoneCapture(options = {}) {
+  const mic = new MicrophoneCapture(options);
+  await mic.initialize();
+  return mic;
 }

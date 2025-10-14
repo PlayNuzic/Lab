@@ -250,6 +250,9 @@ export class FractionRecognitionExercise {
     const accentNote = 'C5'; // Accent for pulse 0
     const baseNote = 'C4';   // Base for subdivisions
 
+    // Use Tone.now() for precise scheduling without setTimeout conflicts
+    const now = Tone.now();
+
     for (let loop = 0; loop < loopCount; loop++) {
       const loopOffset = loop * totalDuration;
 
@@ -258,9 +261,9 @@ export class FractionRecognitionExercise {
         const isAccent = sub.subdivisionIndex === 0; // First subdivision of each cycle
         const note = isAccent ? accentNote : baseNote;
 
-        setTimeout(() => {
-          synth.triggerAttackRelease(note, '0.1', undefined, 0.5);
-        }, timestamp);
+        // Schedule with Tone.js Transport for precise timing
+        const toneTime = now + (timestamp / 1000); // Convert ms to seconds
+        synth.triggerAttackRelease(note, '0.1', toneTime, 0.5);
       });
     }
 

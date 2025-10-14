@@ -115,8 +115,8 @@ window.__GAMIFICATION.getAchievementProgress('combo_master')
 ### Tracking de Eventos
 
 ```javascript
-// Trackear evento personalizado
-window.__GAMIFICATION.trackEvent('ejercicio_completado', {
+// Trackear evento válido (usar tipos de EVENT_TYPES)
+window.__GAMIFICATION.trackEvent('practice_completed', {
   ejercicio_id: 'interval_training',
   puntuacion: 85,
   tiempo: 120
@@ -127,6 +127,11 @@ window.__GAMIFICATION.trackAppAction('play_started', {
   duration: 30,
   selection_count: 5
 })
+
+// Ver tipos de eventos disponibles:
+// practice_started, practice_completed, practice_paused, pattern_played,
+// tap_tempo_used, rhythm_matched, perfect_timing, parameter_changed,
+// randomization_used, fraction_created, pulse_pattern_created, loop_activated
 ```
 
 </details>
@@ -316,6 +321,8 @@ console.log('✅ Count-in completado!');
 **Variantes para probar:**
 
 ```javascript
+// ⚠️ IMPORTANTE: Ejecuta primero el bloque principal para importar CountInController
+
 // Count-in rápido (240 BPM = 250ms/beat)
 const fast = new CountInController({ beats: 4, bpm: 240 });
 await fast.play();
@@ -415,13 +422,19 @@ const response = await fetch(`http://localhost:3000/api/users/${userId}/attempts
 const data = await response.json();
 console.log('📊 Últimos 5 intentos:', data);
 
+// DEBUG: Ver formato real de exercise_type
+if (data.length > 0) {
+  console.log('🔍 Formato de exercise_type:', data.map(a => a.exercise_type));
+}
+
 // Filtrar solo ejercicios de Fase 2c
-const ejercicios2c = data.filter(a =>
-  a.exercise_type.includes('sequence-entry') ||
-  a.exercise_type.includes('rhythm-sync') ||
-  a.exercise_type.includes('tap-tempo') ||
-  a.exercise_type.includes('fraction-recognition')
-);
+const ejercicios2c = data.filter(a => {
+  const type = a.exercise_type || '';
+  return type.includes('sequence-entry') ||
+    type.includes('rhythm-sync') ||
+    type.includes('tap-tempo') ||
+    type.includes('fraction-recognition');
+});
 console.log('🎯 Ejercicios Fase 2c:', ejercicios2c);
 ```
 
