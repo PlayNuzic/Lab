@@ -68,9 +68,10 @@ export class ExerciseRunner {
   /**
    * Run a specific level of the exercise
    * @param {number} levelNumber - Level number (1-indexed)
+   * @param {number} bpm - Optional BPM for rhythm-sync exercises
    * @returns {Promise<object>} Exercise result
    */
-  async runLevel(levelNumber) {
+  async runLevel(levelNumber, bpm = null) {
     if (!this.isInitialized) {
       const initialized = await this.initialize();
       if (!initialized) {
@@ -95,7 +96,7 @@ export class ExerciseRunner {
       if (this.definition.type === 'rhythm-capture') {
         return await this.runRhythmCapture(level);
       } else if (this.definition.type === 'rhythm-sync') {
-        return await this.runRhythmSync(level);
+        return await this.runRhythmSync(level, bpm); // FIX: pass bpm parameter
       } else if (this.definition.type === 'fraction-ear-training') {
         // Fraction recognition uses different runner
         throw new Error('Use FractionRecognitionExercise for fraction-ear-training type');
@@ -498,7 +499,7 @@ export class ExerciseRunner {
    */
   calculateScore(analysis, scoring, level) {
     const timing = analysis.timingAccuracy || analysis.proportionScore || 0;
-    const consistency = analysis.consistencyScore || 0;
+    const consistency = analysis.consistency || 0; // FIX: consistency not consistencyScore
     const tempo = analysis.tempoAccuracy || 0;
 
     // If tempo is 0 (free capture), redistribute its weight to timing and consistency

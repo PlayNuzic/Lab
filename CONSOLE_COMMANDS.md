@@ -154,11 +154,11 @@ keyboard.startRecording();
 await new Promise(resolve => setTimeout(resolve, 10000));
 
 const taps = keyboard.stopRecording();
-console.log('✅ Capturados', taps.length, 'taps:', taps.map(t => t.timestamp));
+console.log('✅ Capturados', taps.length, 'taps:', taps);
 ```
 
 **Resultado esperado:**
-- 5 timestamps en milisegundos
+- 5 timestamps en milisegundos (números directos, no objetos)
 - Diferencias razonables entre taps (ej: 200-1000ms)
 
 </details>
@@ -178,9 +178,9 @@ const { createMicrophoneCapture } = await import('../../libs/gamification/index.
 const mic = await createMicrophoneCapture({ threshold: 0.3, cooldown: 200 });
 console.log('🎤 Golpea cerca del micrófono durante 5 segundos...');
 
-mic.start();
+mic.startRecording();
 await new Promise(resolve => setTimeout(resolve, 5000));
-const beats = mic.stop();
+const beats = mic.stopRecording();
 
 console.log('✅ Detectados', beats.length, 'beats');
 console.log('Timestamps:', beats.map(b => Math.round(b.timestamp)));
@@ -207,8 +207,8 @@ mic.dispose();
 ```javascript
 const { createRhythmAnalyzer, fractionsToTimestamps } = await import('../../libs/gamification/index.js');
 
-// Patrón esperado: 4 pulsos a 120 BPM
-const expected = fractionsToTimestamps([0, 1, 2, 3], 120, 4);
+// Patrón esperado: 4 pulsos a 120 BPM (fracciones: 0, 0.25, 0.5, 0.75)
+const expected = fractionsToTimestamps([0, 0.25, 0.5, 0.75], 120);
 console.log('⏱️  Patrón esperado (120 BPM):', expected);
 
 // Simular taps del usuario (con pequeños errores)
@@ -217,7 +217,7 @@ console.log('👤 Taps del usuario:', userTaps.map(Math.round));
 
 // Analizar
 const analyzer = createRhythmAnalyzer();
-const result = analyzer.analyze(userTaps, expected, { tolerance: 50 });
+const result = analyzer.compareRhythm(userTaps, expected);
 
 console.log('\n📊 Análisis:');
 console.log('  Accuracy:', Math.round(result.accuracy), '%');

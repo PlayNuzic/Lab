@@ -77,6 +77,7 @@ export {
 // Importar funciones necesarias para uso interno en este módulo
 import {
   DEV_CONFIG as DEV_CONFIG_INTERNAL,
+  APP_EVENT_MAPPINGS,
   getConfigManager,
   isGamificationEnabled,
   getAppGamificationConfig
