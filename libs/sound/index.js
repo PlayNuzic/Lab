@@ -21,6 +21,7 @@ const SOUND_URLS = {
 
 export const soundNames = Object.keys(SOUND_URLS);
 export { waitForUserInteraction };
+export { ensureToneLoaded };
 export const soundLabels = {
   click1: 'Click Base',
   click2: 'Click Acento',

@@ -310,9 +310,9 @@ export class ExerciseRunner {
    */
   captureRhythm(expectedCount) {
     return new Promise((resolve) => {
-      this.keyboard.startRecording();
-
       let tapCount = 0;
+
+      // Configure callback BEFORE startRecording
       const originalCallback = this.keyboard.config.onTap;
 
       this.keyboard.config.onTap = (timestamp) => {
@@ -329,6 +329,9 @@ export class ExerciseRunner {
           }, 300); // Wait 300ms after last tap
         }
       };
+
+      // NOW start recording (callback already configured)
+      this.keyboard.startRecording();
     });
   }
 
@@ -340,10 +343,10 @@ export class ExerciseRunner {
    */
   captureRhythmSynchronized(expectedCount, timeout) {
     return new Promise((resolve) => {
-      this.keyboard.startRecording();
-
       let tapCount = 0;
       let timeoutId = null;
+
+      // Configure callback BEFORE startRecording
       const originalCallback = this.keyboard.config.onTap;
 
       const finish = () => {
@@ -363,6 +366,9 @@ export class ExerciseRunner {
           setTimeout(finish, 200); // Wait 200ms after expected count reached
         }
       };
+
+      // NOW start recording (callback already configured)
+      this.keyboard.startRecording();
 
       // Timeout fallback
       timeoutId = setTimeout(() => {

@@ -913,6 +913,76 @@ console.log('✅ Posiciones impares [1,3]:', selected, 'ms');
 
 </details>
 
+<details>
+<summary>Test 2b: Count-In Visual + Audio ⏱️🔊</summary>
+
+**Descripción:** Prueba el count-in con feedback visual y audio
+**Duración:** ~2-4 segundos (depende del BPM)
+
+```javascript
+const { CountInController } = await import('../../libs/ear-training/index.js');
+
+// Crear count-in de 4 beats a 120 BPM
+const countIn = new CountInController({
+  beats: 4,
+  bpm: 120,
+  visualFeedback: true,
+  audioFeedback: true
+});
+
+console.log('⏱️  Iniciando count-in...');
+console.log('📺 Deberías ver números grandes: 4, 3, 2, 1');
+console.log('🔊 Y escuchar un click en cada beat');
+
+await countIn.play();
+
+console.log('✅ Count-in completado!');
+```
+
+**Qué hace:**
+1. Crea overlay fullscreen con fondo oscuro
+2. Muestra números grandes (4 → 3 → 2 → 1) con animación pulse
+3. Muestra barra de progreso con círculos
+4. Reproduce click (MIDI 76) en cada beat
+5. Sincroniza visual + audio con setTimeout
+6. Limpia elementos al terminar
+
+**Resultado esperado:**
+- Overlay aparece con números animados
+- 4 clicks de audio (uno por beat)
+- Intervalo de 500ms entre beats (60000/120)
+- Overlay desaparece al terminar
+
+**Variantes para probar:**
+
+```javascript
+// Count-in rápido (240 BPM = 250ms/beat)
+const fast = new CountInController({ beats: 4, bpm: 240 });
+await fast.play();
+
+// Count-in lento (60 BPM = 1000ms/beat)
+const slow = new CountInController({ beats: 4, bpm: 60 });
+await slow.play();
+
+// Solo visual (sin audio)
+const silent = new CountInController({
+  beats: 4,
+  bpm: 120,
+  audioFeedback: false
+});
+await silent.play();
+
+// Solo audio (sin visual)
+const noVisual = new CountInController({
+  beats: 4,
+  bpm: 120,
+  visualFeedback: false
+});
+await noVisual.play();
+```
+
+</details>
+
 ### Tests de Ejercicio 1 (2)
 
 <details>
@@ -959,6 +1029,15 @@ ex1.dispose();
 - Captura 2 timestamps
 - Calcula score entre 0-100
 - Muestra si pasaste (≥70%)
+
+**⚠️ IMPORTANTE - Si el test se queda esperando:**
+
+Si no detecta tus taps después de 5 segundos:
+1. Haz clic en la página principal (fuera de la consola DevTools)
+2. Vuelve a presionar ESPACIO 2 veces
+3. El ejercicio debería continuar
+
+**Causa:** El foco del teclado debe estar en la página, no en DevTools.
 
 </details>
 
