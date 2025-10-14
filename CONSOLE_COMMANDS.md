@@ -973,7 +973,8 @@ ex1.dispose();
 await window.__USER_MANAGER.fetchUserAttempts(5);
 
 // O consultar directamente la API
-const response = await fetch('http://localhost:3000/api/attempts?limit=5');
+const userId = window.__USER_MANAGER.getCurrentUserId();
+const response = await fetch(`http://localhost:3000/api/users/${userId}/attempts?limit=5`);
 const data = await response.json();
 console.log('📊 Últimos 5 intentos:', data);
 

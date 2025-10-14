@@ -68,6 +68,7 @@ async function startServer() {
       console.log(`  GET  /api/health`);
       console.log(`  GET  /api/users`);
       console.log(`  GET  /api/users/:id`);
+      console.log(`  GET  /api/users/:id/attempts`);
       console.log(`  GET  /api/exercises`);
       console.log(`  POST /api/exercises/:id/start`);
       console.log(`  POST /api/exercises/:id/complete`);
