@@ -1,3 +1,47 @@
+/**
+ * Ear Training Module (Phase 2c)
+ *
+ * Exports:
+ * - Exercise definitions and configuration
+ * - Exercise runners and managers
+ * - UI components
+ * - Legacy interval ear training game
+ */
+
+// ============================================================================
+// Phase 2c: Rhythm Exercise System
+// ============================================================================
+
+// Exercise definitions
+export {
+  EXERCISE_1_SEQUENCE_ENTRY,
+  EXERCISE_2_RHYTHM_SYNC,
+  EXERCISE_3_TAP_TEMPO,
+  EXERCISE_4_FRACTION_RECOGNITION,
+  EXERCISE_DEFINITIONS,
+  getExerciseDefinition,
+  getExerciseIds,
+  isLinkedExercise,
+  getLinkedExerciseId,
+  validateExerciseDefinition
+} from './exercise-definitions.js';
+
+// Exercise runners
+export { ExerciseRunner } from './exercise-runner.js';
+export { LinkedExerciseManager } from './linked-exercise-manager.js';
+export { FractionRecognitionExercise } from './fraction-recognition.js';
+
+// Count-in controller
+export { CountInController, playCountIn } from './count-in-controller.js';
+
+// ============================================================================
+// Legacy: Interval Ear Training Game
+// ============================================================================
+
+/**
+ * Legacy interval ear training game (pre-Phase 2c)
+ * Used in App2 for interval recognition
+ */
 class EarTrainingGame {
   constructor(options = {}) {
     this.randInt = options.randInt || ((a, b) => Math.floor(Math.random() * (b - a + 1)) + a);
@@ -91,3 +135,4 @@ class EarTrainingGame {
 }
 
 export default EarTrainingGame;
+export { EarTrainingGame };
