@@ -447,6 +447,18 @@ export async function recordAttempt(data) {
 // Exportar el manager para debugging si está habilitado
 if (typeof window !== 'undefined' && DEV_CONFIG_INTERNAL.enableDevTools) {
   window.__GAMIFICATION = getGamificationManager();
+
+  // Exponer ear-training modules globalmente para tests de consola
+  import('../ear-training/index.js').then(earTraining => {
+    window.__EAR_TRAINING = {
+      CountInController: earTraining.CountInController,
+      ExerciseRunner: earTraining.ExerciseRunner,
+      LinkedExerciseManager: earTraining.LinkedExerciseManager,
+      FractionRecognitionExercise: earTraining.FractionRecognitionExercise
+    };
+  }).catch(err => {
+    console.warn('⚠️ Could not load ear-training modules:', err);
+  });
 }
 
 // Exportar la clase para testing

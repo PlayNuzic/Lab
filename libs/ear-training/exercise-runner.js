@@ -79,6 +79,15 @@ export class ExerciseRunner {
       }
     }
 
+    // Validate definition exists (defensive check)
+    if (!this.definition) {
+      throw new Error(`ExerciseRunner.definition is undefined! exerciseId: "${this.exerciseId}"`);
+    }
+
+    if (!this.definition.levels) {
+      throw new Error(`Exercise definition has no levels! exerciseId: "${this.exerciseId}", definition keys: ${Object.keys(this.definition).join(', ')}`);
+    }
+
     // Get level configuration
     const level = this.definition.levels.find(l => l.level === levelNumber);
     if (!level) {

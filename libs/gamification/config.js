@@ -118,6 +118,7 @@ export const APP_EVENT_MAPPINGS = {
     cycle_activated: 'ADVANCED_FEATURE_USED'
   },
   app5: {
+    play_started: 'PATTERN_PLAYED',
     interval_created: 'PATTERN_PLAYED',
     pattern_modified: 'PULSE_PATTERN_CREATED',
     parameter_changed: 'PARAMETER_CHANGED'

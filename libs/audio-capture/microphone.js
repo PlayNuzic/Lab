@@ -41,6 +41,27 @@ export class MicrophoneCapture {
   }
 
   /**
+   * Verifica los permisos del micrófono
+   * @returns {Promise<string>} Estado: 'granted', 'denied', 'prompt', o 'unknown'
+   */
+  async checkPermissions() {
+    try {
+      const result = await navigator.permissions.query({ name: 'microphone' });
+      if (result.state === 'denied') {
+        console.warn('⚠️ Permisos de micrófono denegados');
+      } else if (result.state === 'granted') {
+        console.log('✅ Permisos de micrófono concedidos');
+      } else if (result.state === 'prompt') {
+        console.log('ℹ️  Permisos de micrófono pendientes (se solicitarán al inicializar)');
+      }
+      return result.state;
+    } catch (e) {
+      console.warn('⚠️ No se pudo verificar permisos de micrófono:', e.message);
+      return 'unknown';
+    }
+  }
+
+  /**
    * Inicializa el micrófono y el medidor de volumen
    * @returns {Promise<boolean>} true si se inicializó correctamente
    */
@@ -51,6 +72,9 @@ export class MicrophoneCapture {
     }
 
     try {
+      // Verificar permisos primero
+      await this.checkPermissions();
+
       // Asegurar que Tone.js está cargado
       await ensureToneLoaded();
 
@@ -75,6 +99,7 @@ export class MicrophoneCapture {
 
       this.isInitialized = true;
       console.log('✅ Micrófono inicializado correctamente');
+      console.log(`ℹ️  Threshold actual: ${this.config.threshold} (usa valores menores como -20 o -30 si no detecta audio)`);
       return true;
 
     } catch (error) {
@@ -82,8 +107,11 @@ export class MicrophoneCapture {
 
       if (error.name === 'NotAllowedError') {
         console.error('   El usuario denegó el acceso al micrófono');
+        console.error('   Solución: Permitir micrófono en configuración del navegador y recargar');
       } else if (error.name === 'NotFoundError') {
         console.error('   No se encontró ningún dispositivo de micrófono');
+      } else if (error.name === 'NotReadableError') {
+        console.error('   El micrófono está siendo usado por otra aplicación');
       }
 
       return false;
@@ -139,11 +167,18 @@ export class MicrophoneCapture {
    * @private
    */
   _startBeatDetection() {
+    let sampleCount = 0;
     this.detectionInterval = setInterval(() => {
       if (!this.isRecording) return;
 
       // Obtener nivel de volumen actual (en dB)
       const level = this.meter.getValue();
+
+      // DEBUG: Log de amplitudes cada ~100 muestras (~1 segundo con detectionIntervalMs=10)
+      sampleCount++;
+      if (sampleCount % 100 === 0) {
+        console.log(`🎤 Nivel actual: ${level.toFixed(2)} dB | Threshold: ${this.config.threshold} dB`);
+      }
 
       // Detectar si supera el umbral
       if (level > this.config.threshold) {
@@ -153,6 +188,8 @@ export class MicrophoneCapture {
         if (now - this.lastBeatTime > this.config.minInterval) {
           this.detectedBeats.push(now);
           this.lastBeatTime = now;
+
+          console.log(`🔊 Beat detectado! Nivel: ${level.toFixed(2)} dB`);
 
           // Callback si existe
           if (this.onBeatDetected) {

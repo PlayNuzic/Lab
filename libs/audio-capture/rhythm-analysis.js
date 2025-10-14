@@ -474,7 +474,7 @@ export function generateExpectedPattern(bpm, beats, startTime = 0) {
 /**
  * Función helper para convertir un patrón de fracciones a timestamps
  * Útil para ejercicios de reconocimiento de fracciones rítmicas
- * @param {Array<number>} fractions - Array de fracciones (1=redonda, 0.5=blanca, 0.25=negra, etc.)
+ * @param {Array<number>} fractions - Array de posiciones fraccionales (0=inicio, 0.25=cuarto, 0.5=mitad, 0.75=tres cuartos, 1=fin)
  * @param {number} bpm - Beats por minuto (para referencia de negra)
  * @param {number} startTime - Timestamp de inicio (ms)
  * @returns {Array<number>} Array de timestamps
@@ -482,11 +482,12 @@ export function generateExpectedPattern(bpm, beats, startTime = 0) {
 export function fractionsToTimestamps(fractions, bpm, startTime = 0) {
   const quarterNote = 60000 / bpm; // Duración de una negra en ms
   const timestamps = [];
-  let currentTime = startTime;
 
   for (const fraction of fractions) {
-    timestamps.push(currentTime);
-    currentTime += fraction * quarterNote * 4; // Multiplicar por 4 para redonda como unidad
+    // Convertir fracción de posición a timestamp
+    // Cada fracción representa una posición en el ciclo de 4 negras (1 compás de 4/4)
+    const timestamp = startTime + (fraction * quarterNote * 4);
+    timestamps.push(timestamp);
   }
 
   return timestamps;

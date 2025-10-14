@@ -285,7 +285,8 @@ console.log('✅ Posiciones impares [1,3]:', selected, 'ms');
 **Duración:** ~2-4 segundos (depende del BPM)
 
 ```javascript
-const { CountInController } = await import('../../libs/ear-training/index.js');
+// CountInController está disponible globalmente en window.__EAR_TRAINING
+const { CountInController } = window.__EAR_TRAINING;
 
 // Crear count-in de 4 beats a 120 BPM
 const countIn = new CountInController({
@@ -321,9 +322,10 @@ console.log('✅ Count-in completado!');
 **Variantes para probar:**
 
 ```javascript
-// ⚠️ IMPORTANTE: Ejecuta primero el bloque principal para importar CountInController
+// Nota: CountInController ya está disponible globalmente, no necesitas import
 
 // Count-in rápido (240 BPM = 250ms/beat)
+const { CountInController } = window.__EAR_TRAINING;
 const fast = new CountInController({ beats: 4, bpm: 240 });
 await fast.play();
 
@@ -427,13 +429,13 @@ if (data.length > 0) {
   console.log('🔍 Formato de exercise_type:', data.map(a => a.exercise_type));
 }
 
-// Filtrar solo ejercicios de Fase 2c
+// Filtrar solo ejercicios de Fase 2c (usar underscore, no guión)
 const ejercicios2c = data.filter(a => {
   const type = a.exercise_type || '';
-  return type.includes('sequence-entry') ||
-    type.includes('rhythm-sync') ||
-    type.includes('tap-tempo') ||
-    type.includes('fraction-recognition');
+  return type.includes('sequence_entry') ||
+    type.includes('rhythm_sync') ||
+    type.includes('tap_tempo') ||
+    type.includes('fraction_recognition');
 });
 console.log('🎯 Ejercicios Fase 2c:', ejercicios2c);
 ```
@@ -503,8 +505,13 @@ manager.dispose();
 **Descripción:** Ejecuta Ejercicio 4 Nivel 1 (10 preguntas, fracciones simples)
 **Duración:** ~2-3 minutos (automático con respuestas simuladas)
 
+**⚠️ REQUISITOS PREVIOS:**
+- Tone.js debe estar inicializado (contexto de audio activo)
+- Si estás en la pantalla inicial de App4, primero haz clic en "Inicio" o ejecuta: `await Tone.start()`
+
 ```javascript
-const { FractionRecognitionExercise } = await import('../../libs/ear-training/index.js');
+// Opción 1: Usar módulo global (si está disponible)
+const { FractionRecognitionExercise } = window.__EAR_TRAINING || await import('../../libs/ear-training/index.js');
 
 // Crear ejercicio
 const ex4 = new FractionRecognitionExercise();
