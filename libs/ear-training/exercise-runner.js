@@ -501,10 +501,26 @@ export class ExerciseRunner {
     const consistency = analysis.consistencyScore || 0;
     const tempo = analysis.tempoAccuracy || 0;
 
+    // If tempo is 0 (free capture), redistribute its weight to timing and consistency
+    let timingWeight = scoring.timingWeight || 0;
+    let consistencyWeight = scoring.consistencyWeight || 0;
+    let tempoWeight = scoring.tempoWeight || 0;
+
+    if (tempo === 0 && tempoWeight > 0) {
+      // Redistribute tempo weight proportionally
+      const totalWeight = timingWeight + consistencyWeight;
+      if (totalWeight > 0) {
+        const redistribution = tempoWeight;
+        timingWeight += redistribution * (timingWeight / totalWeight);
+        consistencyWeight += redistribution * (consistencyWeight / totalWeight);
+        tempoWeight = 0;
+      }
+    }
+
     const score =
-      timing * (scoring.timingWeight || 0) +
-      consistency * (scoring.consistencyWeight || 0) +
-      tempo * (scoring.tempoWeight || 0);
+      timing * timingWeight +
+      consistency * consistencyWeight +
+      tempo * tempoWeight;
 
     return Math.round(score * 100);
   }

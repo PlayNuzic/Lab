@@ -371,6 +371,77 @@ export function trackAppAction(action, metadata = {}) {
   return manager.trackAppAction(action, metadata);
 }
 
+/**
+ * Record an exercise attempt to the database
+ * Helper function for Phase 2c exercises
+ * @param {object} data - Exercise attempt data
+ * @param {string} data.exercise_type - Type of exercise (e.g., "sequence-entry_level_1")
+ * @param {string} data.exercise_title - Human readable title
+ * @param {number} data.score - Score achieved (0-100)
+ * @param {number} data.accuracy - Accuracy percentage (0-100)
+ * @param {object} data.metadata - Additional data about the attempt
+ * @returns {Promise<object>} Server response with new score/level
+ */
+export async function recordAttempt(data) {
+  try {
+    // Get current user
+    const userManager = getUserManager();
+    const userId = userManager.getCurrentUserId();
+
+    if (!userId) {
+      throw new Error('No user logged in');
+    }
+
+    // Map exercise_type to exercise_id in database
+    // For now, use a simple mapping. In production, you'd query the DB first.
+    const exerciseTypeMap = {
+      'sequence-entry': 1,
+      'rhythm-sync': 3,
+      'tap-tempo': 4,
+      'fraction-recognition': 5
+    };
+
+    // Extract base exercise type (remove _level_X suffix)
+    const baseType = data.exercise_type.split('_level_')[0];
+    const exerciseId = exerciseTypeMap[baseType] || 1;
+
+    // Start attempt
+    const startResponse = await fetch(`http://localhost:3000/api/exercises/${exerciseId}/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId })
+    });
+
+    if (!startResponse.ok) {
+      throw new Error(`Failed to start attempt: ${startResponse.statusText}`);
+    }
+
+    const { attempt_id } = await startResponse.json();
+
+    // Complete attempt
+    const completeResponse = await fetch(`http://localhost:3000/api/exercises/${exerciseId}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        attempt_id,
+        score: data.score || 0,
+        accuracy: data.accuracy || 0,
+        attempt_data: data.metadata || {}
+      })
+    });
+
+    if (!completeResponse.ok) {
+      throw new Error(`Failed to complete attempt: ${completeResponse.statusText}`);
+    }
+
+    const result = await completeResponse.json();
+    return result;
+  } catch (error) {
+    console.error('Error recording attempt:', error);
+    throw error;
+  }
+}
+
 // Exportar el manager para debugging si está habilitado
 if (typeof window !== 'undefined' && DEV_CONFIG_INTERNAL.enableDevTools) {
   window.__GAMIFICATION = getGamificationManager();

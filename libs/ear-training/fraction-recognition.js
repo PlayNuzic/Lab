@@ -213,8 +213,8 @@ export class FractionRecognitionExercise {
    * @returns {Promise<void>}
    */
   async playAudio(question) {
-    const { init, scheduleNote } = await import('../sound/index.js');
-    await init();
+    const { ensureAudio, scheduleNote } = await import('../sound/index.js');
+    await ensureAudio();
 
     const bpm = this.definition.audioConfig?.bpm || 120;
     const loopCount = this.definition.audioConfig?.loopCount || 2;
