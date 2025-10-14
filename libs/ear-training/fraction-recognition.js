@@ -45,9 +45,9 @@ export class FractionRecognitionExercise {
 
     try {
       // Initialize sound system
-      const { init, ensureToneLoaded } = await import('../sound/index.js');
+      const { ensureAudio, ensureToneLoaded } = await import('../sound/index.js');
       await ensureToneLoaded();
-      await init();
+      await ensureAudio();
 
       this.isInitialized = true;
       return true;

@@ -312,11 +312,11 @@ export class ExerciseRunner {
     return new Promise((resolve) => {
       let tapCount = 0;
 
-      // Configure callback BEFORE startRecording
-      const originalCallback = this.keyboard.config.onTap;
+      // Save and configure callback BEFORE startRecording
+      const originalCallback = this.keyboard.onTapDetected;
 
-      this.keyboard.config.onTap = (timestamp) => {
-        if (originalCallback) originalCallback(timestamp);
+      this.keyboard.onTapDetected = (tap) => {
+        if (originalCallback) originalCallback(tap);
 
         tapCount++;
         console.log(`  Tap ${tapCount}/${expectedCount}`);
@@ -324,7 +324,7 @@ export class ExerciseRunner {
         if (tapCount >= expectedCount) {
           setTimeout(() => {
             const taps = this.keyboard.stopRecording();
-            this.keyboard.config.onTap = originalCallback; // Restore
+            this.keyboard.onTapDetected = originalCallback; // Restore
             resolve(taps);
           }, 300); // Wait 300ms after last tap
         }
@@ -346,18 +346,18 @@ export class ExerciseRunner {
       let tapCount = 0;
       let timeoutId = null;
 
-      // Configure callback BEFORE startRecording
-      const originalCallback = this.keyboard.config.onTap;
+      // Save and configure callback BEFORE startRecording
+      const originalCallback = this.keyboard.onTapDetected;
 
       const finish = () => {
         if (timeoutId) clearTimeout(timeoutId);
         const taps = this.keyboard.stopRecording();
-        this.keyboard.config.onTap = originalCallback; // Restore
+        this.keyboard.onTapDetected = originalCallback; // Restore
         resolve(taps);
       };
 
-      this.keyboard.config.onTap = (timestamp) => {
-        if (originalCallback) originalCallback(timestamp);
+      this.keyboard.onTapDetected = (tap) => {
+        if (originalCallback) originalCallback(tap);
 
         tapCount++;
         console.log(`  Tap ${tapCount}/${expectedCount}`);

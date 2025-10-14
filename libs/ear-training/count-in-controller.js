@@ -101,9 +101,9 @@ export class CountInController {
    */
   async initializeAudio() {
     try {
-      const { init, ensureToneLoaded } = await import('../sound/index.js');
+      const { ensureAudio, ensureToneLoaded } = await import('../sound/index.js');
       await ensureToneLoaded();
-      await init();
+      await ensureAudio();
     } catch (error) {
       console.error('⚠️  Failed to initialize audio for count-in:', error);
       this.config.audioFeedback = false;
