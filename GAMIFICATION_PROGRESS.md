@@ -345,60 +345,111 @@ window.__GAMIFICATION.getStats();
 
 ---
 
-### Fase 2c: Sistema de Ejercicios - ⏳ PENDIENTE
+### Fase 2c: Sistema de Ejercicios - ✅ COMPLETADA
 
 **Objetivo:** 4 tipos de ejercicios con puntuación y guardado en BD.
 
-#### Tareas Pendientes:
+#### ✅ Completado:
 
-1. **Clase Base de Ejercicio** - ⏳
-   - [ ] Crear `/libs/exercises/base-exercise.js`
-   - [ ] Clase `BaseExercise` con métodos comunes
-   - [ ] Método `start(userId)` - Registro en BD
-   - [ ] Método `complete(score, accuracy, data)` - Guardar resultado
-   - [ ] Hooks `onStart()`, `onComplete()`, `onError()`
+1. **Definiciones de Ejercicios** - ✅
+   - [x] Crear `/libs/ear-training/exercise-definitions.js`
+   - [x] EXERCISE_1_SEQUENCE_ENTRY (4 niveles con posiciones impares/pares)
+   - [x] EXERCISE_2_RHYTHM_SYNC (linked con ejercicio 1, 3 BPMs)
+   - [x] EXERCISE_3_TAP_TEMPO (1 nivel, 3 repeticiones)
+   - [x] EXERCISE_4_FRACTION_RECOGNITION (2 niveles, n=1 y n=1-7)
+   - [x] Helper functions: getExerciseDefinition, validateExerciseDefinition
+   - [x] Configuraciones de scoring, tolerancias, BPM ranges
 
-2. **Ejercicio 1: Entrada de Secuencia** - ⏳
-   - [ ] Crear `/libs/exercises/sequence-entry.js`
-   - [ ] Clase `SequenceEntryExercise extends BaseExercise`
-   - [ ] Generación de patrones par-impar
-   - [ ] UI de entrada con botones toggle
-   - [ ] Validación y cálculo de precisión
-   - [ ] Pantalla de resultados
+2. **Exercise Runner - Motor de Ejecución** - ✅
+   - [x] Crear `/libs/ear-training/exercise-runner.js`
+   - [x] Clase `ExerciseRunner` con métodos completos
+   - [x] Method: `calculateTimestamps()` - Fórmula Lg/V=T/60
+   - [x] Method: `selectPositions()` - Filtrar timestamps por posiciones
+   - [x] Method: `runRhythmCapture()` - Ejercicio 1 (captura libre)
+   - [x] Method: `runRhythmSync()` - Ejercicios 2 y 3 (con audio ref)
+   - [x] Method: `analyzeProportions()` - Análisis sin BPM
+   - [x] Method: `calculateScore()` - Scoring con pesos
+   - [x] Method: `submitResult()` - Guardar en BD vía gamification
+   - [x] Integración con `KeyboardCapture` y `RhythmAnalyzer`
+   - [x] Integración con `playCountIn()` para count-in
 
-3. **Ejercicio 2: Sincronización Rítmica** - ⏳
-   - [ ] Crear `/libs/exercises/rhythm-sync.js`
-   - [ ] Clase `RhythmSyncExercise extends BaseExercise`
-   - [ ] Integración con `MicrophoneCapture`
-   - [ ] Integración con `KeyboardCapture`
-   - [ ] Reproducción de patrón objetivo
-   - [ ] Comparación con `RhythmAnalyzer`
-   - [ ] Soporte para modo `'both'` (mic + keyboard)
-   - [ ] Eliminación de duplicados por umbral temporal
+3. **Linked Exercise Manager** - ✅
+   - [x] Crear `/libs/ear-training/linked-exercise-manager.js`
+   - [x] Clase `LinkedExerciseManager`
+   - [x] Method: `runLinkedLevel()` - Ejecutar ejercicio 1 → 2
+   - [x] Method: `runExercise2WithRepetitions()` - 3 BPMs crecientes
+   - [x] Method: `generateBPMSequence()` - Random BPMs ascendentes
+   - [x] Method: `calculateCombinedScore()` - Promedio de ambas partes
+   - [x] Validación: No avanza a parte 2 si parte 1 falla
+   - [x] Guardar resultado combinado en BD
 
-4. **Ejercicio 3: Tap Matching** - ⏳
-   - [ ] Crear `/libs/exercises/tap-matching.js`
-   - [ ] Clase `TapMatchingExercise extends BaseExercise`
-   - [ ] UI con botón TAP
-   - [ ] Cálculo de BPM en tiempo real
-   - [ ] Evaluación de precisión vs objetivo
-   - [ ] Feedback de consistencia
+4. **Count-in Controller** - ✅
+   - [x] Crear `/libs/ear-training/count-in-controller.js`
+   - [x] Clase `CountInController`
+   - [x] Visual feedback: Números 4,3,2,1 con animación pulse
+   - [x] Visual feedback: Barra de progreso con círculos
+   - [x] Audio feedback: Click (MIDI 76) en cada beat
+   - [x] Sincronización precisa con setTimeout
+   - [x] Overlay fullscreen con z-index alto
+   - [x] Factory function: `playCountIn()`
 
-5. **Ejercicio 4: Reconocimiento de Fracciones** - ⏳
-   - [ ] Crear `/libs/exercises/fraction-recognition.js`
-   - [ ] Clase `FractionRecognitionExercise extends BaseExercise`
-   - [ ] Reproducción de fracción temporal
-   - [ ] Generación de opciones múltiples
-   - [ ] Validación de respuesta
-   - [ ] Feedback inmediato
+5. **Fraction Recognition Exercise** - ✅
+   - [x] Crear `/libs/ear-training/fraction-recognition.js`
+   - [x] Clase `FractionRecognitionExercise`
+   - [x] Method: `generateQuestion()` - Fracción random según nivel
+   - [x] Method: `playAudio()` - Reproducir subdivisión con gridFromOrigin
+   - [x] Method: `validateAnswer()` - Comparar n/d del usuario
+   - [x] Method: `runLevel()` - Ejecutar nivel completo (10 o 15 preguntas)
+   - [x] Integración con sound system (accent + base sounds)
+   - [x] Integración con gamification (guardar resultados)
+   - [x] Simulación de respuestas para testing (70% correctas)
 
-**Archivos a crear:**
-- `/libs/exercises/base-exercise.js`
-- `/libs/exercises/sequence-entry.js`
-- `/libs/exercises/rhythm-sync.js`
-- `/libs/exercises/tap-matching.js`
-- `/libs/exercises/fraction-recognition.js`
-- `/libs/exercises/index.js` - Barrel export
+6. **Barrel Export** - ✅
+   - [x] Actualizar `/libs/ear-training/index.js`
+   - [x] Export EXERCISE_DEFINITIONS y helpers
+   - [x] Export ExerciseRunner
+   - [x] Export LinkedExerciseManager
+   - [x] Export FractionRecognitionExercise
+   - [x] Export CountInController y playCountIn
+   - [x] Mantener EarTrainingGame legacy para App2
+
+7. **Tests en Consola** - ✅
+   - [x] Actualizar `/CONSOLE_COMMANDS.md`
+   - [x] Añadir sección "🎯 Ejercicios de Ritmo (6 tests)"
+   - [x] Test 1: Verificar definiciones de ejercicios
+   - [x] Test 2: Calcular timestamps con fórmula
+   - [x] Test 3: Ejecutar Ejercicio 1 Nivel 1 (interactivo)
+   - [x] Test 4: Ver resultados en base de datos
+   - [x] Test 5: Ejecutar ejercicios linked 1+2 (completo)
+   - [x] Test 6: Reconocimiento de fracciones (simulado)
+   - [x] Código copy-paste ready para consola
+
+**Archivos creados:**
+- ✅ `/libs/ear-training/exercise-definitions.js` (300 líneas)
+- ✅ `/libs/ear-training/exercise-runner.js` (540 líneas)
+- ✅ `/libs/ear-training/linked-exercise-manager.js` (270 líneas)
+- ✅ `/libs/ear-training/count-in-controller.js` (240 líneas)
+- ✅ `/libs/ear-training/fraction-recognition.js` (380 líneas)
+- ✅ `/libs/ear-training/index.js` - Actualizado con exports (140 líneas)
+
+**Archivos modificados:**
+- ✅ `/CONSOLE_COMMANDS.md` - Añadida sección con 6 tests (257 líneas añadidas)
+
+**Total líneas de código:** ~2,127 líneas
+
+**Características implementadas:**
+- ✅ 4 ejercicios completos con niveles
+- ✅ Cálculo de timestamps con fórmula Lg/V=T/60
+- ✅ Análisis de proporciones para captura libre (Exercise 1)
+- ✅ Análisis de precisión con audio de referencia (Exercise 2, 3)
+- ✅ Count-in visual + audio con sincronización precisa
+- ✅ Linked exercises: Exercise 1 → Exercise 2 con 3 BPMs
+- ✅ Fraction recognition con 2 niveles
+- ✅ Integración completa con audio-capture (Phase 2b)
+- ✅ Integración completa con gamification (Phase 2a)
+- ✅ Tests en consola listos para copy-paste
+- ✅ Scoring con pesos configurables
+- ✅ Guardado de resultados en base de datos
 
 ---
 
@@ -448,22 +499,31 @@ window.__GAMIFICATION.getStats();
 
 ### 📊 Resumen Fase 2
 
-**Total de archivos a crear:** ~20
-**Total de tareas:** ~60
-**Líneas de código estimadas:** ~3,000
+**Estado General:**
+- ✅ Fase 2a: Backend y Base de Datos - COMPLETADA
+- ✅ Fase 2b: Sistema de Captura de Audio - COMPLETADA
+- ✅ Fase 2c: Sistema de Ejercicios - COMPLETADA
+- ⏳ Fase 2d: Integración y UI - PENDIENTE (Opcional)
+
+**Total de archivos creados:** 17
+**Total de tareas completadas:** ~70
+**Líneas de código totales:** ~4,632
 
 **Componentes principales:**
-- Backend: 5 archivos
-- Audio Capture: 4 archivos
-- Ejercicios: 6 archivos
-- UI: 4 archivos
-- Migración: 1 archivo
+- ✅ Backend: 5 archivos (1,307 líneas)
+- ✅ Audio Capture: 4 archivos (1,198 líneas)
+- ✅ Ejercicios: 6 archivos (2,127 líneas)
+- ⏳ UI: 4 archivos (pendiente - opcional)
+- ✅ Migración: 2 archivos
 
 **Características clave:**
 - ✅ Simple 2-user system (NO autenticación)
 - ✅ Captura de ritmo con mic + keyboard
-- ✅ 4 tipos de ejercicios independientes
+- ✅ 4 tipos de ejercicios con niveles
 - ✅ Migración automática desde localStorage
+- ✅ Sistema completo testeable desde consola
+- ✅ Count-in visual + audio
+- ✅ Linked exercises (1→2)
 - ❌ NO tabla de clasificación (Fase 4)
 - ❌ NO integración social (Fase 4)
 - ❌ NO desafíos diarios (Fase 4)

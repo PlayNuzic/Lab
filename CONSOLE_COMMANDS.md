@@ -845,6 +845,264 @@ const kbd = createKeyboardCapture({ key: 'Enter' });
 
 </details>
 
+<details>
+<summary>🎯 Ejercicios de Ritmo (6 tests - Fase 2c)</summary>
+
+> **Nota:** Estos ejercicios implementan el sistema completo de entrenamiento rítmico.
+> Todos los tests usan `await import()` para cargar módulos dinámicamente.
+
+### Tests Básicos (2)
+
+<details>
+<summary>Test 1: Verificar Definiciones de Ejercicios ✅</summary>
+
+**Descripción:** Verifica que los 4 ejercicios estén correctamente definidos
+**Duración:** Instantáneo
+
+```javascript
+const { EXERCISE_DEFINITIONS, getExerciseIds } = await import('../../libs/ear-training/index.js');
+
+// Ver todos los ejercicios disponibles
+console.log('📋 Ejercicios disponibles:', getExerciseIds());
+
+// Ver detalles del Ejercicio 1
+console.log('\n🎯 Ejercicio 1:', EXERCISE_DEFINITIONS['sequence-entry']);
+console.log('  Niveles:', EXERCISE_DEFINITIONS['sequence-entry'].levels.length);
+console.log('  Linked:', EXERCISE_DEFINITIONS['sequence-entry'].linked);
+```
+
+**Resultado esperado:**
+- Debe mostrar 4 ejercicios: `sequence-entry`, `rhythm-sync`, `tap-tempo`, `fraction-recognition`
+- Ejercicio 1 debe tener 4 niveles
+- Ejercicio 1 debe estar linked con `rhythm-sync`
+
+</details>
+
+<details>
+<summary>Test 2: Calcular Timestamps ⏱️</summary>
+
+**Descripción:** Verifica el cálculo de timestamps con la fórmula Lg/V=T/60
+**Duración:** Instantáneo
+
+```javascript
+const { ExerciseRunner } = await import('../../libs/ear-training/index.js');
+
+// Crear runner temporal
+const runner = new ExerciseRunner('sequence-entry');
+
+// Calcular timestamps para Lg 4, BPM 120
+const timestamps = runner.calculateTimestamps(4, 120);
+console.log('🎵 Lg 4, BPM 120:', timestamps, 'ms');
+// Esperado: [0, 500, 1000, 1500]
+
+// Calcular timestamps para Lg 4, BPM 240
+const timestamps2 = runner.calculateTimestamps(4, 240);
+console.log('🎵 Lg 4, BPM 240:', timestamps2, 'ms');
+// Esperado: [0, 250, 500, 750]
+
+// Seleccionar posiciones impares (1, 3)
+const selected = runner.selectPositions(timestamps, [1, 3]);
+console.log('✅ Posiciones impares [1,3]:', selected, 'ms');
+// Esperado: [500, 1500]
+```
+
+**Resultado esperado:**
+- BPM 120: intervalo de 500ms entre pulsos
+- BPM 240: intervalo de 250ms entre pulsos
+- Posiciones [1, 3] correctamente filtradas
+
+</details>
+
+### Tests de Ejercicio 1 (2)
+
+<details>
+<summary>Test 3: Ejecutar Ejercicio 1 - Nivel 1 (Simulado) 🎹</summary>
+
+**Descripción:** Ejecuta Ejercicio 1 Nivel 1 (2 golpes impares)
+**Duración:** ~5-10 segundos (depende de tu velocidad de taps)
+
+```javascript
+const { ExerciseRunner } = await import('../../libs/ear-training/index.js');
+
+// Crear y inicializar ejercicio
+const ex1 = new ExerciseRunner('sequence-entry');
+await ex1.initialize();
+
+console.log('🎯 Ejercicio 1 - Nivel 1: 2 golpes impares (posiciones 1, 3)');
+console.log('⌨️  Presiona ESPACIO 2 veces cuando quieras (timing libre)');
+console.log('');
+
+// Ejecutar nivel 1
+const result = await ex1.runLevel(1);
+
+// Mostrar resultado detallado
+console.log('\n📊 RESULTADO:');
+console.log('  Score:', result.score.total, '/ 100');
+console.log('  Passed:', result.score.passed ? '✅ SÍ' : '❌ NO');
+console.log('  Taps capturados:', result.capture.taps);
+console.log('  Breakdown:');
+console.log('    - Timing:', result.score.breakdown.timing + '%');
+console.log('    - Consistency:', result.score.breakdown.consistency + '%');
+
+// Limpiar recursos
+ex1.dispose();
+```
+
+**Qué hace:**
+1. Muestra instrucciones del nivel
+2. Espera que presiones ESPACIO 2 veces
+3. Analiza las proporciones temporales entre taps
+4. Calcula score basado en timing y consistency
+5. Guarda resultado en base de datos
+
+**Resultado esperado:**
+- Captura 2 timestamps
+- Calcula score entre 0-100
+- Muestra si pasaste (≥70%)
+
+</details>
+
+<details>
+<summary>Test 4: Ver Resultados Guardados en BD 💾</summary>
+
+**Descripción:** Verifica que el resultado se guardó en la base de datos
+**Duración:** Instantáneo
+
+```javascript
+// Ver últimos intentos del usuario actual
+await window.__USER_MANAGER.fetchUserAttempts(5);
+
+// O consultar directamente la API
+const response = await fetch('http://localhost:3000/api/attempts?limit=5');
+const data = await response.json();
+console.log('📊 Últimos 5 intentos:', data);
+
+// Filtrar solo ejercicios de Fase 2c
+const ejercicios2c = data.filter(a =>
+  a.exercise_type.includes('sequence-entry') ||
+  a.exercise_type.includes('rhythm-sync') ||
+  a.exercise_type.includes('tap-tempo') ||
+  a.exercise_type.includes('fraction-recognition')
+);
+console.log('🎯 Ejercicios Fase 2c:', ejercicios2c);
+```
+
+**Resultado esperado:**
+- Debe aparecer el intento que acabas de hacer
+- exercise_type: `sequence-entry_level_1`
+- Metadata con timing_accuracy, consistency, etc.
+
+</details>
+
+### Tests de Ejercicio 2 (Linked) (1)
+
+<details>
+<summary>Test 5: Ejecutar Ejercicios Linked (1 + 2) 🔗</summary>
+
+**Descripción:** Ejecuta Ejercicio 1 y luego Ejercicio 2 (si pasas el 1)
+**Duración:** ~30-45 segundos (incluye count-in y 3 repeticiones)
+
+```javascript
+const { LinkedExerciseManager } = await import('../../libs/ear-training/index.js');
+
+// Crear manager de ejercicios linked
+const manager = new LinkedExerciseManager('sequence-entry', 'rhythm-sync');
+await manager.initialize();
+
+console.log('🎯 EJERCICIOS LINKED: 1 + 2');
+console.log('═══════════════════════════════');
+console.log('Parte 1: Entrada de Secuencia (captura libre)');
+console.log('Parte 2: Sincronización Rítmica (con audio + count-in)');
+console.log('');
+
+// Ejecutar nivel 1 completo (ambas partes)
+const result = await manager.runLinkedLevel(1);
+
+// Mostrar resultado combinado
+console.log('\n🏆 RESULTADO FINAL:');
+console.log('  Completed:', result.completed ? '✅ SÍ' : '❌ NO');
+console.log('  Passed:', result.passed ? '✅ SÍ' : '❌ NO');
+console.log('  Combined Score:', result.combinedScore, '/ 100');
+console.log('  Parte 1 Score:', result.part1.score.total);
+if (result.part2) {
+  console.log('  Parte 2 Score:', result.part2.averageScore);
+  console.log('  BPMs usados:', result.part2.bpms);
+}
+
+// Limpiar recursos
+manager.dispose();
+```
+
+**Qué hace:**
+1. **Parte 1:** Ejecuta Ejercicio 1 (captura libre)
+2. **Si pasas:** Ejecuta Ejercicio 2 con 3 BPMs crecientes
+   - Count-in de 4 beats antes de cada repetición
+   - Audio de referencia con clicks
+   - Captura sincronizada con el audio
+3. Calcula score combinado (promedio de ambas partes)
+
+**Resultado esperado:**
+- Si pasas Parte 1: ejecuta Parte 2 con 3 repeticiones
+- Si fallas Parte 1: se detiene ahí
+- Score final es el promedio de ambas partes
+
+</details>
+
+### Test de Ejercicio 4 (Fraction Recognition) (1)
+
+<details>
+<summary>Test 6: Fraction Recognition (Simulado) 🎼</summary>
+
+**Descripción:** Ejecuta Ejercicio 4 Nivel 1 (10 preguntas, fracciones simples)
+**Duración:** ~2-3 minutos (automático con respuestas simuladas)
+
+```javascript
+const { FractionRecognitionExercise } = await import('../../libs/ear-training/index.js');
+
+// Crear ejercicio
+const ex4 = new FractionRecognitionExercise();
+await ex4.initialize();
+
+console.log('🎼 Ejercicio 4: Reconocimiento de Fracciones');
+console.log('📝 Nivel 1: Fracciones simples (n=1, d=1-12)');
+console.log('🔊 10 preguntas con audio de subdivisiones');
+console.log('');
+console.log('⚠️  En modo consola, las respuestas se simulan automáticamente (70% correctas)');
+console.log('');
+
+// Ejecutar nivel 1 (10 preguntas)
+const result = await ex4.runLevel(1);
+
+// Mostrar resultado
+console.log('\n🏆 RESULTADO FINAL:');
+console.log('  Correctas:', result.correctCount, '/', result.totalQuestions);
+console.log('  Accuracy:', Math.round(result.accuracy), '%');
+console.log('  Passed:', result.passed ? '✅ SÍ' : '❌ NO');
+console.log('  Total listens:', result.totalListenCount);
+
+// Limpiar recursos
+ex4.dispose();
+```
+
+**Qué hace:**
+1. Genera 10 preguntas random con fracciones 1/d (d entre 1 y 12)
+2. Para cada pregunta:
+   - Reproduce audio con la subdivisión usando gridFromOrigin
+   - Simula respuesta del usuario (70% correctas en modo consola)
+   - Valida la respuesta
+3. Calcula accuracy final y determina si pasó (≥80%)
+
+**Resultado esperado:**
+- 10 preguntas completadas
+- ~7 correctas (simulación 70%)
+- Audio se reproduce (escucharás clicks de accent + base)
+
+**Nota:** En una UI real, el usuario ingresaría n y d manualmente.
+
+</details>
+
+</details>
+
 ---
 
 ## 📝 Notas
@@ -855,6 +1113,7 @@ const kbd = createKeyboardCapture({ key: 'Enter' });
 - **Apps:** Deben servirse vía Live Server en `http://localhost:8080`
 - **Audio Capture:** Usa `await import()` en consola (no `import` estático)
 - **Permisos:** Tests de micrófono requieren permisos del navegador
+- **Ejercicios de Ritmo:** Los ejercicios son interactivos - presionarás ESPACIO para tocar patrones
 
 ---
 
