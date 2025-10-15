@@ -1,8 +1,21 @@
 # Plan de Gamificación para Apps 2-5
 
+## ⚠️ ARQUITECTURA SIMPLIFICADA (Última actualización: 2025-10-15)
+
+**El sistema ha sido simplificado para funcionar 100% offline sin servidor:**
+
+- ✅ **Usuario único:** Un solo usuario implícito, sin sistema de autenticación
+- ✅ **100% LocalStorage:** Todos los datos se guardan en el navegador
+- ✅ **Sin servidor:** No hay backend Express.js ni base de datos SQLite
+- ✅ **Sin sincronización:** Los datos permanecen localmente en el navegador
+- ❌ **Fase 2a (Backend) DESCARTADA:** No se implementará servidor ni BD
+- ✅ **Fase 2b/2c (Audio & Ejercicios):** Funcionan completamente offline
+
+---
+
 ## Resumen Ejecutivo
 
-Este documento describe el plan completo de gamificación para las aplicaciones de entrenamiento rítmico (Apps 2-5) del repositorio Lab. El sistema está diseñado en dos fases: la Fase 1 implementa la mecánica de juego modular sin UI, mientras que la Fase 2 añadirá base de datos y elementos visuales.
+Este documento describe el plan completo de gamificación para las aplicaciones de entrenamiento rítmico (Apps 2-5) del repositorio Lab. El sistema está diseñado con una arquitectura simplificada: la Fase 1 implementa la mecánica de juego modular almacenando todo en localStorage del navegador.
 
 ## Objetivo
 
@@ -253,15 +266,27 @@ GAMIFICATION_CONFIG.scoring.pointsMultiplier = 1.5;
 GAMIFICATION_CONFIG.debugMode = true;
 ```
 
-## FASE 2: Backend, Ejercicios y Captura de Audio
+## ~~FASE 2a: Backend y Base de Datos~~ **[DESCARTADA]**
 
-**Nota importante:** Esta fase NO incluye sistema de autenticación ni características avanzadas (reservadas para Fase 4). Se enfoca en:
-- Backend simple con 2 usuarios de prueba
-- Sistema de ejercicios con captura de audio
-- Sincronización con base de datos
-- UI básica para ejercicios
+**⚠️ Esta fase ha sido DESCARTADA. El sistema funciona 100% offline con localStorage.**
 
-### Fase 2a: Backend y Base de Datos
+~~**Nota original:** Esta fase NO incluía sistema de autenticación ni características avanzadas. Se enfocaba en:~~
+- ~~Backend simple con 2 usuarios de prueba~~
+- ~~Sincronización con base de datos SQLite~~
+- ~~API REST con Express.js~~
+
+**Razón del cambio:** Sistema simplificado para un usuario único sin servidor.
+
+---
+
+## FASE 2: Captura de Audio y Ejercicios (Offline)
+
+**Nota importante:** Esta fase funciona completamente offline:
+- Sistema de ejercicios con captura de audio (micrófono + teclado)
+- Almacenamiento de resultados en localStorage
+- Sin sincronización con servidor
+
+### ~~Fase 2a: Backend y Base de Datos~~ [VER ARRIBA - DESCARTADA]
 
 #### Estructura de Base de Datos (SQLite)
 
@@ -1403,74 +1428,81 @@ describe('ScoringSystem', () => {
 - El usuario puede exportar/eliminar sus datos
 - Cumplimiento con GDPR en Fase 2
 
-## Roadmap
+## Roadmap (Actualizado - Modo Offline)
 
 ### Q1 2025 - Fase 1 ✅ COMPLETADA
 - [x] Sistema de eventos modular
 - [x] Sistema de puntuación con multiplicadores
 - [x] Sistema de logros (20 achievements)
-- [x] Almacenamiento local con cola de sincronización
+- [x] Almacenamiento local (localStorage)
 - [x] Integración con Apps 2-5
 - [x] Adaptadores específicos por aplicación
 - [x] Documentación completa
+- [x] Sistema simplificado a usuario único
 
-### Q2 2025 - Fase 2a: Backend (PLANIFICADA)
-- [ ] Diseño esquema SQLite
-- [ ] Implementación API REST con Express.js
-- [ ] Sistema de usuario simple (2 usuarios)
-- [ ] Endpoints para ejercicios y eventos
-- [ ] Migración de datos localStorage → BD
+### ~~Q2 2025 - Fase 2a: Backend~~ ❌ DESCARTADA
+- ~~Diseño esquema SQLite~~
+- ~~Implementación API REST con Express.js~~
+- ~~Sistema de usuario simple (2 usuarios)~~
+- ~~Endpoints para ejercicios y eventos~~
+- ~~Migración de datos localStorage → BD~~
 
-### Q2 2025 - Fase 2b: Audio Capture (PLANIFICADA)
-- [ ] Módulo de captura de micrófono
-- [ ] Módulo de captura de teclado (Space)
-- [ ] Sistema de análisis rítmico
-- [ ] Beat detection y comparación
-- [ ] Detección de tempo (BPM)
+**Razón:** Sistema simplificado a modo offline con usuario único.
 
-### Q3 2025 - Fase 2c: Ejercicios (PLANIFICADA)
-- [ ] Clase base de ejercicio
-- [ ] Ejercicio 1: Entrada de secuencia (par-impar)
-- [ ] Ejercicio 2: Sincronización rítmica (mic + teclado)
+### Q2 2025 - Fase 2b: Audio Capture ✅ IMPLEMENTADA (Offline)
+- [x] Módulo de captura de micrófono
+- [x] Módulo de captura de teclado (Space)
+- [x] Sistema de análisis rítmico
+- [x] Beat detection y comparación
+- [x] Detección de tempo (BPM)
+- [x] Todo funciona sin servidor
+
+### Q3 2025 - Fase 2c: Ejercicios (EN PROGRESO - Offline)
+- [x] Clase base de ejercicio (con localStorage)
+- [x] Ejercicio 1: Entrada de secuencia (par-impar)
+- [x] Ejercicio 2: Sincronización rítmica (mic + teclado)
 - [ ] Ejercicio 3: Tap Matching
 - [ ] Ejercicio 4: Reconocimiento de fracciones
-- [ ] Sistema de puntuación de ejercicios
+- [x] Sistema de puntuación de ejercicios (localStorage)
 
-### Q3 2025 - Fase 2d: Integración (PLANIFICADA)
-- [ ] Lanzador de ejercicios
+### Q3 2025 - Fase 2d: Integración (PLANIFICADA - Offline)
+- [ ] Lanzador de ejercicios (sin servidor)
 - [ ] UI de selección de ejercicios
 - [ ] Feedback visual en tiempo real
-- [ ] Resultados y estadísticas
+- [ ] Resultados y estadísticas (desde localStorage)
 - [ ] Testing completo Fase 2
 
-### Q4 2025 - Fase 3: UI de Gamificación (FUTURA)
-- [ ] Dashboard visual con gráficas
+### Q4 2025 - Fase 3: UI de Gamificación (FUTURA - Offline)
+- [ ] Dashboard visual con gráficas (datos de localStorage)
 - [ ] Notificaciones de logros
 - [ ] Visualización de progreso
-- [ ] Perfil de usuario detallado
+- [ ] Perfil de usuario simplificado
 - [ ] Badges visuales
 
-### 2026 - Fase 4: Características Avanzadas (FUTURA)
-- [ ] Sistema de autenticación (OAuth2/JWT)
-- [ ] Tabla de clasificación global
-- [ ] Integración social
-- [ ] Desafíos diarios/semanales
-- [ ] Sistema de temporadas
-- [ ] Modo competitivo
-- [ ] Recompensas y contenido desbloqueable
+### 2026 - Fase 4: Características Avanzadas (DESCARTADA)
+- ~~Sistema de autenticación (OAuth2/JWT)~~
+- ~~Tabla de clasificación global~~
+- ~~Integración social~~
+- ~~Desafíos diarios/semanales~~
+- ~~Sistema de temporadas~~
+- ~~Modo competitivo~~
+- ~~Recompensas y contenido desbloqueable~~
+
+**Nota:** Fase 4 descartada por ser incompatible con arquitectura offline.
 
 ## Conclusión
 
 El sistema de gamificación está diseñado para ser:
 - **No invasivo**: Se integra sin afectar la funcionalidad existente
-- **Escalable**: Preparado para crecimiento futuro
+- **Simple y Ligero**: Sin dependencias de servidor ni base de datos
 - **Configurable**: Adaptable a las necesidades de cada app
-- **Resiliente**: Funciona offline y con recursos limitados
+- **100% Offline**: Funciona completamente en el navegador con localStorage
+- **Privado**: Los datos nunca salen del navegador del usuario
 - **Motivador**: Fomenta el aprendizaje y la práctica regular
 
-La implementación modular permite comenzar a recopilar datos inmediatamente mientras se desarrolla la UI y backend en paralelo, asegurando una transición suave entre fases.
+La arquitectura simplificada permite un desarrollo más rápido y mantenimiento más sencillo, ideal para un proyecto de desarrollo personal sin la complejidad de un backend.
 
 ---
 
-*Documento actualizado: 2025-10-13*
-*Versión: 2.0.0 - Fase 2 planificada*
+*Documento actualizado: 2025-10-15*
+*Versión: 3.0.0 - Arquitectura Simplificada (Offline)*

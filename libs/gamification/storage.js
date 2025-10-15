@@ -117,9 +117,6 @@ class GameDataStore {
         JSON.stringify(events)
       );
 
-      // Añadir a la cola de sincronización
-      this.addToSyncQueue(event);
-
       return true;
     } catch (error) {
       console.error('Error guardando evento:', error);
@@ -297,84 +294,12 @@ class GameDataStore {
   }
 
   /**
-   * Añade un evento a la cola de sincronización
-   */
-  addToSyncQueue(event) {
-    this.syncQueue.push(event);
-
-    // Si la cola es muy grande, intentar guardarla
-    if (this.syncQueue.length >= STORAGE_CONFIG.SYNC_BATCH_SIZE) {
-      this.saveSyncQueue();
-    }
-  }
-
-  /**
-   * Guarda la cola de sincronización
-   */
-  saveSyncQueue() {
-    try {
-      this.storage.setItem(
-        this.getStorageKey(STORAGE_KEYS.SYNC_QUEUE),
-        JSON.stringify(this.syncQueue)
-      );
-    } catch {
-      console.error('Error guardando cola de sincronización');
-    }
-  }
-
-  /**
-   * Carga la cola de sincronización
+   * Carga la cola de sincronización (deprecated - offline mode)
+   * Mantenida por compatibilidad, pero no se usa
    */
   loadSyncQueue() {
-    try {
-      const stored = this.storage.getItem(this.getStorageKey(STORAGE_KEYS.SYNC_QUEUE));
-      this.syncQueue = stored ? JSON.parse(stored) : [];
-    } catch {
-      this.syncQueue = [];
-    }
-  }
-
-  /**
-   * Prepara datos para sincronización con el servidor
-   */
-  exportForSync() {
-    const events = this.syncQueue.length > 0 ? this.syncQueue : this.getEvents({ limit: STORAGE_CONFIG.SYNC_BATCH_SIZE });
-
-    return {
-      version: STORAGE_CONFIG.VERSION,
-      batch_id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-      events: events,
-      user_profile: this.getUserProfile(),
-      metadata: {
-        client_timestamp: Date.now(),
-        events_count: events.length,
-        storage_usage: this.getStorageUsage()
-      }
-    };
-  }
-
-  /**
-   * Marca eventos como sincronizados
-   */
-  markAsSynced(eventIds) {
-    try {
-      // Eliminar de la cola de sincronización
-      this.syncQueue = this.syncQueue.filter(e => !eventIds.includes(e.evento_id));
-      this.saveSyncQueue();
-
-      // Actualizar timestamp de última sincronización
-      this.storage.setItem(
-        this.getStorageKey(STORAGE_KEYS.LAST_SYNC),
-        JSON.stringify({
-          timestamp: Date.now(),
-          events_synced: eventIds.length
-        })
-      );
-
-      return true;
-    } catch {
-      return false;
-    }
+    // En modo offline, no hay cola de sincronización
+    this.syncQueue = [];
   }
 
   /**
@@ -395,15 +320,13 @@ class GameDataStore {
       return {
         bytes_used: totalSize,
         kb_used: Math.round(totalSize / 1024),
-        events_count: this.getEvents().length,
-        sync_queue_size: this.syncQueue.length
+        events_count: this.getEvents().length
       };
     } catch {
       return {
         bytes_used: 0,
         kb_used: 0,
-        events_count: 0,
-        sync_queue_size: 0
+        events_count: 0
       };
     }
   }

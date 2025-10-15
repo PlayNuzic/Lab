@@ -1,15 +1,10 @@
 /**
- * User Manager - Client-side user management
- * Simple 2-user system without authentication
+ * User Manager - Client-side user management (Simplified)
+ * Single user system without authentication - all data in localStorage
  */
 
 export class UserManager {
   constructor() {
-    this.currentUser = null;
-    this.users = [
-      { id: 1, username: 'tester', displayName: 'Usuario de Prueba' },
-      { id: 2, username: 'user', displayName: 'Usuario Normal' }
-    ];
     this.loadCurrentUser();
   }
 
@@ -17,62 +12,12 @@ export class UserManager {
    * Load current user from localStorage
    */
   loadCurrentUser() {
-    const stored = localStorage.getItem('gamification_current_user_id');
-    this.currentUser = stored ? parseInt(stored) : 1; // Default: user 1 (tester)
-
-    console.log(`Usuario actual cargado: ${this.getUserDisplayName()}`);
-  }
-
-  /**
-   * Switch to a different user (console-based, no authentication)
-   * @param {number} userId - User ID (1 or 2)
-   * @returns {boolean} Success status
-   */
-  switchUser(userId) {
-    if (userId !== 1 && userId !== 2) {
-      console.error('❌ Solo existen user_id 1 (tester) y 2 (user)');
-      return false;
+    const stored = localStorage.getItem('gamification_username');
+    if (!stored) {
+      // Set default username
+      localStorage.setItem('gamification_username', 'Usuario');
     }
-
-    this.currentUser = userId;
-    localStorage.setItem('gamification_current_user_id', userId.toString());
-
-    const user = this.getUserInfo(userId);
-    console.log(`✅ Usuario cambiado a: ${user.displayName} (${user.username})`);
-
-    // Trigger event for UI updates
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('userChanged', {
-        detail: { userId, user }
-      }));
-    }
-
-    return true;
-  }
-
-  /**
-   * Get current user ID
-   * @returns {number} Current user ID
-   */
-  getCurrentUserId() {
-    return this.currentUser;
-  }
-
-  /**
-   * Get user info by ID
-   * @param {number} userId - User ID
-   * @returns {object|null} User info
-   */
-  getUserInfo(userId) {
-    return this.users.find(u => u.id === userId) || null;
-  }
-
-  /**
-   * Get current user info
-   * @returns {object|null} Current user info
-   */
-  getCurrentUserInfo() {
-    return this.getUserInfo(this.currentUser);
+    console.log(`👤 Usuario cargado: ${this.getUserDisplayName()}`);
   }
 
   /**
@@ -80,79 +25,64 @@ export class UserManager {
    * @returns {string} Display name
    */
   getUserDisplayName() {
-    const user = this.getCurrentUserInfo();
-    return user ? user.displayName : 'Unknown';
+    return localStorage.getItem('gamification_username') || 'Usuario';
   }
 
   /**
-   * Get all available users
-   * @returns {array} List of users
+   * Set user display name
+   * @param {string} name - New display name
    */
-  getAvailableUsers() {
-    return [...this.users];
-  }
-
-  /**
-   * Fetch user stats from API
-   * @param {number} userId - User ID (optional, defaults to current)
-   * @returns {Promise<object>} User stats
-   */
-  async fetchUserStats(userId = null) {
-    const targetUserId = userId || this.currentUser;
-
-    try {
-      const response = await fetch(`http://localhost:3000/api/users/${targetUserId}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const stats = await response.json();
-      return stats;
-    } catch (err) {
-      console.error('Error fetching user stats:', err);
-      return null;
-    }
-  }
-
-  /**
-   * Fetch user attempts from API
-   * @param {number} limit - Number of attempts to fetch
-   * @returns {Promise<array>} User attempts
-   */
-  async fetchUserAttempts(limit = 10) {
-    try {
-      const response = await fetch(
-        `http://localhost:3000/api/users/${this.currentUser}/attempts?limit=${limit}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const attempts = await response.json();
-      return attempts;
-    } catch (err) {
-      console.error('Error fetching user attempts:', err);
-      return [];
-    }
-  }
-
-  /**
-   * Check if server is available
-   * @returns {Promise<boolean>} Server availability
-   */
-  async isServerAvailable() {
-    try {
-      const response = await fetch('http://localhost:3000/api/health', {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
-
-      return response.ok;
-    } catch (err) {
+  setUserDisplayName(name) {
+    if (!name || typeof name !== 'string') {
+      console.error('❌ Nombre inválido');
       return false;
     }
+    localStorage.setItem('gamification_username', name);
+    console.log(`✅ Nombre cambiado a: ${name}`);
+
+    // Trigger event for UI updates
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('userNameChanged', {
+        detail: { name }
+      }));
+    }
+
+    return true;
+  }
+
+  /**
+   * Get user info (simplified)
+   * @returns {object} User info
+   */
+  getUserInfo() {
+    return {
+      displayName: this.getUserDisplayName(),
+      createdAt: this.getUserCreatedAt()
+    };
+  }
+
+  /**
+   * Get user creation timestamp
+   * @returns {number|null} Timestamp
+   */
+  getUserCreatedAt() {
+    const stored = localStorage.getItem('gamification_user_created_at');
+    if (!stored) {
+      const now = Date.now();
+      localStorage.setItem('gamification_user_created_at', now.toString());
+      return now;
+    }
+    return parseInt(stored);
+  }
+
+  /**
+   * Reset user data (for testing)
+   */
+  resetUser() {
+    localStorage.removeItem('gamification_username');
+    localStorage.removeItem('gamification_user_created_at');
+    this.loadCurrentUser();
+    console.log('🔄 Datos de usuario reseteados');
   }
 }
 
@@ -174,10 +104,10 @@ export function getUserManager() {
 if (typeof window !== 'undefined') {
   window.__USER_MANAGER = getUserManager();
 
-  console.log('👤 User Manager inicializado');
+  console.log('👤 User Manager inicializado (modo offline)');
   console.log('   Comandos disponibles en consola:');
-  console.log('   - window.__USER_MANAGER.switchUser(1)  // Cambiar a tester');
-  console.log('   - window.__USER_MANAGER.switchUser(2)  // Cambiar a user');
-  console.log('   - window.__USER_MANAGER.getCurrentUserId()  // Ver usuario actual');
-  console.log('   - await window.__USER_MANAGER.fetchUserStats()  // Ver estadísticas (async)');
+  console.log('   - window.__USER_MANAGER.getUserDisplayName()  // Ver nombre');
+  console.log('   - window.__USER_MANAGER.setUserDisplayName("Mi Nombre")  // Cambiar nombre');
+  console.log('   - window.__USER_MANAGER.getUserInfo()  // Ver info completa');
+  console.log('   - window.__USER_MANAGER.resetUser()  // Resetear usuario');
 }

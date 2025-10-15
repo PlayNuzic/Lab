@@ -44,19 +44,11 @@ export {
   getAppGamificationConfig
 } from './config.js';
 
-// User Manager (Phase 2a)
+// User Manager (Simplified - Single User)
 export {
   UserManager,
   getUserManager
 } from './user-manager.js';
-
-// Migration (Phase 2a)
-export {
-  migrateLocalDataToDatabase,
-  isServerAvailable,
-  getMigrationInfo,
-  resetMigrationStatus
-} from './migration.js';
 
 // Audio Capture (Phase 2b)
 export {
@@ -373,74 +365,58 @@ export function trackAppAction(action, metadata = {}) {
 }
 
 /**
- * Record an exercise attempt to the database
- * Helper function for Phase 2c exercises
+ * Record an exercise attempt to localStorage
+ * Helper function for exercise tracking (offline mode)
  * @param {object} data - Exercise attempt data
  * @param {string} data.exercise_type - Type of exercise (e.g., "sequence-entry_level_1")
  * @param {string} data.exercise_title - Human readable title
  * @param {number} data.score - Score achieved (0-100)
  * @param {number} data.accuracy - Accuracy percentage (0-100)
  * @param {object} data.metadata - Additional data about the attempt
- * @returns {Promise<object>} Server response with new score/level
+ * @returns {object} Attempt record saved to localStorage
  */
-export async function recordAttempt(data) {
+export function recordAttempt(data) {
   try {
-    // Get current user (import from module exports)
-    const { getUserManager: getUserManagerFn } = await import('./user-manager.js');
-    const userManager = getUserManagerFn();
-    const userId = userManager.getCurrentUserId();
-
-    if (!userId) {
-      throw new Error('No user logged in');
-    }
-
-    // Map exercise_type to exercise_id in database
-    // For now, use a simple mapping. In production, you'd query the DB first.
-    const exerciseTypeMap = {
-      'sequence-entry': 1,
-      'rhythm-sync': 3,
-      'tap-tempo': 4,
-      'fraction-recognition': 5
+    const attempt = {
+      attempt_id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      exercise_type: data.exercise_type,
+      exercise_title: data.exercise_title || data.exercise_type,
+      score: data.score || 0,
+      accuracy: data.accuracy || 0,
+      metadata: data.metadata || {},
+      timestamp: Date.now(),
+      completed_at: new Date().toISOString()
     };
 
-    // Extract base exercise type (remove _level_X suffix)
-    const baseType = data.exercise_type.split('_level_')[0];
-    const exerciseId = exerciseTypeMap[baseType] || 1;
+    // Get existing attempts from localStorage
+    const attemptsKey = 'gamification_exercise_attempts';
+    const stored = localStorage.getItem(attemptsKey);
+    const attempts = stored ? JSON.parse(stored) : [];
 
-    // Start attempt
-    const startResponse = await fetch(`http://localhost:3000/api/exercises/${exerciseId}/start`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId })
-    });
+    // Add new attempt
+    attempts.push(attempt);
 
-    if (!startResponse.ok) {
-      throw new Error(`Failed to start attempt: ${startResponse.statusText}`);
+    // Keep only last 100 attempts
+    if (attempts.length > 100) {
+      attempts.splice(0, attempts.length - 100);
     }
 
-    const { attempt_id } = await startResponse.json();
+    // Save to localStorage
+    localStorage.setItem(attemptsKey, JSON.stringify(attempts));
 
-    // Complete attempt
-    const completeResponse = await fetch(`http://localhost:3000/api/exercises/${exerciseId}/complete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        attempt_id,
-        score: data.score || 0,
-        accuracy: data.accuracy || 0,
-        attempt_data: data.metadata || {}
-      })
-    });
+    console.log('✅ Intento guardado:', attempt.attempt_id);
 
-    if (!completeResponse.ok) {
-      throw new Error(`Failed to complete attempt: ${completeResponse.statusText}`);
-    }
-
-    const result = await completeResponse.json();
-    return result;
+    return {
+      success: true,
+      attempt_id: attempt.attempt_id,
+      message: 'Attempt recorded successfully in localStorage'
+    };
   } catch (error) {
     console.error('Error recording attempt:', error);
-    throw error;
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }
 
@@ -448,7 +424,7 @@ export async function recordAttempt(data) {
 if (typeof window !== 'undefined' && DEV_CONFIG_INTERNAL.enableDevTools) {
   window.__GAMIFICATION = getGamificationManager();
 
-  // Exponer ear-training modules globalmente para tests de consola
+  // Exponer ear-training modules globalmente para tests de consola (si existen)
   import('../ear-training/index.js').then(earTraining => {
     window.__EAR_TRAINING = {
       CountInController: earTraining.CountInController,
@@ -456,8 +432,10 @@ if (typeof window !== 'undefined' && DEV_CONFIG_INTERNAL.enableDevTools) {
       LinkedExerciseManager: earTraining.LinkedExerciseManager,
       FractionRecognitionExercise: earTraining.FractionRecognitionExercise
     };
+    console.log('🎯 Ear-training modules cargados en window.__EAR_TRAINING');
   }).catch(err => {
-    console.warn('⚠️ Could not load ear-training modules:', err);
+    // Módulo ear-training opcional - si no existe, continuar sin él
+    console.log('ℹ️  Ear-training modules no disponibles (offline mode)');
   });
 }
 
