@@ -35,6 +35,7 @@ export class MicrophoneCapture {
     this.lastBeatTime = 0;
     this.detectionInterval = null;
     this.detectionIntervalMs = 50; // Chequear cada 50ms
+    this.isAboveThreshold = false; // Flag para gate: true si actualmente está sobre el threshold
 
     // Callbacks
     this.onBeatDetected = options.onBeatDetected || null;
@@ -133,9 +134,10 @@ export class MicrophoneCapture {
       return false;
     }
 
-    // Resetear timestamps
+    // Resetear timestamps y estado de gate
     this.detectedBeats = [];
     this.lastBeatTime = 0;
+    this.isAboveThreshold = false;
 
     // Iniciar detección de beats
     this.isRecording = true;
@@ -180,11 +182,15 @@ export class MicrophoneCapture {
         console.log(`🎤 Nivel actual: ${level.toFixed(2)} dB | Threshold: ${this.config.threshold} dB`);
       }
 
-      // Detectar si supera el umbral
-      if (level > this.config.threshold) {
+      // Sistema de GATE para evitar retriggering:
+      // Solo detecta un beat cuando el nivel CRUZA el threshold de abajo hacia arriba
+      const isCurrentlyAbove = level > this.config.threshold;
+
+      if (isCurrentlyAbove && !this.isAboveThreshold) {
+        // RISING EDGE: El nivel acaba de cruzar el threshold hacia arriba
         const now = performance.now();
 
-        // Evitar detección múltiple del mismo beat
+        // Evitar detección múltiple del mismo beat (cooldown adicional)
         if (now - this.lastBeatTime > this.config.minInterval) {
           this.detectedBeats.push(now);
           this.lastBeatTime = now;
@@ -201,6 +207,9 @@ export class MicrophoneCapture {
           }
         }
       }
+
+      // Actualizar estado del gate
+      this.isAboveThreshold = isCurrentlyAbove;
     }, this.detectionIntervalMs);
   }
 
