@@ -740,11 +740,8 @@ export function createFractionEditor({
         numeratorDownBtn.style.cursor = 'not-allowed';
       }
 
-      // Emitir cambio si numerador no era 1
-      const current = parsePositiveInt(numeratorInput.value);
-      if (current !== 1) {
-        setFraction({ numerator: 1 }, { cause: 'simple-mode' });
-      }
+      // Siempre forzar numerador = 1 para actualizar currentValues
+      setFraction({ numerator: 1 }, { cause: 'simple-mode' });
     },
     setComplexMode() {
       const numeratorInput = elements.numerator;

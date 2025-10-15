@@ -926,9 +926,6 @@ window.addEventListener('sharedui:complexfractions', (e) => {
   renderTimeline();
 });
 
-// Inicializar estado al cargar
-initComplexFractionsState();
-
 // Highlight overlay for pulse sequence numbers during playback
 // Highlight overlays are managed by the shared pulse sequence controller
 
@@ -1192,6 +1189,9 @@ const { updatePulseNumbers, layoutTimeline } = createTimelineRenderer({
     }
   }
 });
+
+// Inicializar estado de fracciones complejas después de que todos los componentes estén listos
+initComplexFractionsState();
 
 function getSelectionInfo(target) {
   if (!target) return null;
