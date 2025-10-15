@@ -64,6 +64,9 @@ window.__GAMIFICATION.getAchievementProgress('combo_master')
 ### Tracking de Eventos
 
 ```javascript
+// IMPORTANTE: Primero inicializar para la app específica
+window.__GAMIFICATION.init('app5');  // o app2, app3, app4
+
 // Trackear evento válido (usar tipos de EVENT_TYPES)
 window.__GAMIFICATION.trackEvent('practice_completed', {
   ejercicio_id: 'interval_training',
@@ -71,7 +74,8 @@ window.__GAMIFICATION.trackEvent('practice_completed', {
   tiempo: 120
 })
 
-// Trackear acción de app
+// Trackear acción de app (requiere init previo)
+// Acciones válidas para app5: play_started, pattern_created, interval_changed
 window.__GAMIFICATION.trackAppAction('play_started', {
   duration: 30,
   selection_count: 5
@@ -182,8 +186,10 @@ console.log('✅ Capturados', taps.length, 'taps:', taps);
 ```javascript
 const { createMicrophoneCapture } = await import('../../libs/gamification/index.js');
 
-const mic = await createMicrophoneCapture({ threshold: 0.3, cooldown: 200 });
+// IMPORTANTE: Usar threshold en dB negativos (el mic reporta típicamente -30 a -50 dB)
+const mic = await createMicrophoneCapture({ threshold: -30, cooldown: 200 });
 console.log('🎤 Golpea cerca del micrófono durante 5 segundos...');
+console.log('   (Threshold: -30 dB - ajustar si no detecta: -20 más sensible, -40 menos sensible)');
 
 mic.startRecording();
 await new Promise(resolve => setTimeout(resolve, 5000));
@@ -191,15 +197,21 @@ const beats = mic.stopRecording();
 
 console.log('✅ Detectados', beats.length, 'beats');
 console.log('Timestamps:', beats.map(b => Math.round(b.timestamp)));
-console.log('Amplitudes:', beats.map(b => b.amplitude.toFixed(2)));
+console.log('Amplitudes (dB):', beats.map(b => b.amplitude.toFixed(2)));
 
 mic.dispose();
 ```
 
 **Resultado esperado:**
-- Beats detectados cuando golpeas fuerte
-- Amplitudes > threshold (0.3)
-- Cooldown previene detecciones duplicadas
+- Beats detectados cuando golpeas fuerte (o aplaudes)
+- Amplitudes > threshold (-30 dB)
+- Cooldown de 200ms previene detecciones duplicadas
+
+**Si no detecta beats:**
+```javascript
+// Probar con threshold más sensible
+const mic = await createMicrophoneCapture({ threshold: -20, cooldown: 250 });
+```
 
 </details>
 
@@ -227,16 +239,20 @@ const analyzer = createRhythmAnalyzer();
 const result = analyzer.compareRhythm(userTaps, expected);
 
 console.log('\n📊 Análisis:');
-console.log('  Accuracy:', Math.round(result.accuracy), '%');
-console.log('  Avg Error:', Math.round(result.averageError), 'ms');
-console.log('  Consistency:', Math.round(result.consistency), '%');
-console.log('  Details:', result.details);
+console.log('  Accuracy:', Math.round(result.accuracy * 100), '%');
+console.log('  Timing Accuracy:', Math.round(result.timingAccuracy * 100), '%');
+console.log('  Consistency Score:', Math.round(result.consistencyScore * 100), '%');
+console.log('  Tempo Accuracy:', Math.round(result.tempoAccuracy * 100), '%');
+console.log('  Deviations (ms):', result.deviations.map(d => Math.round(d)));
+console.log('  Missed taps:', result.missedTaps);
+console.log('  Extra taps:', result.extraTaps);
 ```
 
 **Resultado esperado:**
-- Accuracy ~95% (errores pequeños)
-- Average Error ~10-20ms
-- Consistency alta si ritmo regular
+- Accuracy ~90-95% (con errores pequeños de ±25ms)
+- Timing Accuracy alta si los taps están cerca de los esperados
+- Consistency Score alta si el ritmo es regular
+- Tempo Accuracy alta si mantiene el BPM
 
 </details>
 
@@ -274,6 +290,151 @@ const attempts = JSON.parse(localStorage.getItem('gamification_exercise_attempts
 console.log(`Total intentos guardados: ${attempts.length}`);
 console.table(attempts.slice(-3)); // Mostrar últimos 3
 ```
+
+</details>
+
+<details>
+<summary>⏱️ Test: Count-In (Visual + Audio)</summary>
+
+**Descripción:** Prueba el count-in con feedback visual y audio
+**Duración:** ~2-4 segundos (depende del BPM)
+**Requisito:** Módulo ear-training cargado
+
+```javascript
+// CountInController está disponible globalmente en window.__EAR_TRAINING
+if (!window.__EAR_TRAINING) {
+  console.log('❌ Módulo ear-training no disponible');
+  console.log('ℹ️  Este test requiere el módulo ear-training');
+} else {
+  const { CountInController } = window.__EAR_TRAINING;
+
+  // Crear count-in de 4 beats a 120 BPM
+  const countIn = new CountInController({
+    beats: 4,
+    bpm: 120,
+    visualFeedback: true,
+    audioFeedback: true
+  });
+
+  console.log('⏱️  Iniciando count-in...');
+  console.log('📺 Deberías ver números grandes: 4, 3, 2, 1');
+  console.log('🔊 Y escuchar un click en cada beat');
+
+  await countIn.play();
+
+  console.log('✅ Count-in completado!');
+}
+```
+
+**Qué hace:**
+1. Crea overlay fullscreen con fondo oscuro
+2. Muestra números grandes (4 → 3 → 2 → 1) con animación pulse
+3. Muestra barra de progreso con círculos
+4. Reproduce click (MIDI 76) en cada beat
+5. Sincroniza visual + audio con setTimeout
+6. Limpia elementos al terminar
+
+**Resultado esperado:**
+- Overlay aparece con números animados
+- 4 clicks de audio (uno por beat)
+- Intervalo de 500ms entre beats (60000/120)
+- Overlay desaparece al terminar
+
+**Variantes para probar:**
+
+```javascript
+// Nota: CountInController ya está disponible globalmente, no necesitas import
+
+if (window.__EAR_TRAINING) {
+  const { CountInController } = window.__EAR_TRAINING;
+
+  // Count-in rápido (240 BPM = 250ms/beat)
+  const fast = new CountInController({ beats: 4, bpm: 240 });
+  await fast.play();
+
+  // Count-in lento (60 BPM = 1000ms/beat)
+  const slow = new CountInController({ beats: 4, bpm: 60 });
+  await slow.play();
+
+  // Solo visual (sin audio)
+  const silent = new CountInController({
+    beats: 4,
+    bpm: 120,
+    audioFeedback: false
+  });
+  await silent.play();
+
+  // Solo audio (sin visual)
+  const noVisual = new CountInController({
+    beats: 4,
+    bpm: 120,
+    visualFeedback: false
+  });
+  await noVisual.play();
+}
+```
+
+</details>
+
+<details>
+<summary>🎼 Test: Fraction Recognition (Simulado)</summary>
+
+**Descripción:** Ejecuta Ejercicio 4 Nivel 1 (10 preguntas, fracciones simples)
+**Duración:** ~2-3 minutos (automático con respuestas simuladas)
+**Requisito:** Módulo ear-training y Tone.js inicializado
+
+**⚠️ REQUISITOS PREVIOS:**
+- Tone.js debe estar inicializado (contexto de audio activo)
+- Si estás en la pantalla inicial de App4, primero haz clic en "Inicio" o ejecuta: `await Tone.start()`
+
+```javascript
+// Verificar disponibilidad del módulo
+if (!window.__EAR_TRAINING) {
+  console.log('❌ Módulo ear-training no disponible');
+  console.log('ℹ️  Este test requiere el módulo ear-training');
+} else {
+  const { FractionRecognitionExercise } = window.__EAR_TRAINING;
+
+  // Crear ejercicio
+  const ex4 = new FractionRecognitionExercise();
+  await ex4.initialize();
+
+  console.log('🎼 Ejercicio 4: Reconocimiento de Fracciones');
+  console.log('📝 Nivel 1: Fracciones simples (n=1, d=1-12)');
+  console.log('🔊 10 preguntas con audio de subdivisiones');
+  console.log('');
+  console.log('⚠️  En modo consola, las respuestas se simulan automáticamente (70% correctas)');
+  console.log('');
+
+  // Ejecutar nivel 1 (10 preguntas)
+  const result = await ex4.runLevel(1);
+
+  // Mostrar resultado
+  console.log('\n🏆 RESULTADO FINAL:');
+  console.log('  Correctas:', result.correctCount, '/', result.totalQuestions);
+  console.log('  Accuracy:', Math.round(result.accuracy), '%');
+  console.log('  Passed:', result.passed ? '✅ SÍ' : '❌ NO');
+  console.log('  Total listens:', result.totalListenCount);
+
+  // Limpiar recursos
+  ex4.dispose();
+}
+```
+
+**Qué hace:**
+1. Genera 10 preguntas random con fracciones 1/d (d entre 1 y 12)
+2. Para cada pregunta:
+   - Reproduce audio con la subdivisión usando gridFromOrigin
+   - Simula respuesta del usuario (70% correctas en modo consola)
+   - Valida la respuesta
+3. Calcula accuracy final y determina si pasó (≥80%)
+
+**Resultado esperado:**
+- 10 preguntas completadas
+- ~7 correctas (simulación 70%)
+- Audio se reproduce (escucharás clicks de accent + base)
+
+**Nota:** En una UI real, el usuario ingresaría n y d manualmente.
 
 </details>
 
@@ -473,18 +634,22 @@ const { ExerciseRunner } = await import('../../libs/ear-training/index.js');
 ## 🎯 Resumen de Tests Disponibles
 
 ### Audio Capture (3 tests)
-1. ⌨️ Keyboard Capture - Captura 5 taps
-2. 🎤 Microphone Capture - Detecta beats del micrófono
+1. ⌨️ Keyboard Capture - Captura 5 taps con ESPACIO
+2. 🎤 Microphone Capture - Detecta beats del micrófono (threshold: -30 dB)
 3. 🔍 Rhythm Analyzer - Analiza precisión vs patrón esperado
 
-### Ejercicios (2 tests offline)
-1. 🧪 Guardar Intento - `recordAttempt()` manual
+### Ejercicios de Entrenamiento (5 tests)
+1. 🧪 Guardar Intento - `recordAttempt()` manual en localStorage
 2. 💾 Ver Intentos - Consultar localStorage
+3. ⏱️ Count-In - Visual + Audio feedback (requiere ear-training)
+4. 🎼 Fraction Recognition - Reconocimiento de fracciones (requiere ear-training)
+5. 🎯 Verificar Módulos - Comprobar disponibilidad de ear-training
 
 ### Gamificación (múltiples)
 - Ver estadísticas, logros, nivel
-- Trackear eventos
+- Trackear eventos (requiere init de app)
 - Exportar/importar datos
+- Gestión de usuario único
 
 ---
 
