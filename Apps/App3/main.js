@@ -71,16 +71,17 @@ const { inputLg, inputV, inputT, inputLgUp, inputLgDown, inputVUp, inputVDown,
         randVMin, randVMax, randNToggle, randNMin, randNMax, randDToggle,
         randDMin, randDMax, baseSoundSelect, startSoundSelect,
         cycleSoundSelect, themeSelect, pulseToggleBtn, cycleToggleBtn } = elements;
+// Create title button like App4 does
 const titleHeading = document.querySelector('header.top-bar h1');
+const titleTextNode = titleHeading?.querySelector('.top-bar-title-text');
 let titleButton = null;
-if (titleHeading) {
+if (titleHeading && titleTextNode) {
   titleButton = document.createElement('button');
   titleButton.type = 'button';
   titleButton.id = 'appTitleBtn';
   titleButton.className = 'top-bar-title-button';
-  titleButton.textContent = titleHeading.textContent || '';
-  titleHeading.textContent = '';
-  titleHeading.appendChild(titleButton);
+  titleButton.textContent = titleTextNode.textContent?.trim() || '';
+  titleHeading.replaceChild(titleButton, titleTextNode);
   attachHover(titleButton, { text: 'Click para ver información detallada' });
 }
 
@@ -593,6 +594,7 @@ function buildTitleInfoContent() {
   return fragment;
 }
 
+// Add title button event listeners
 if (titleButton) {
   titleButton.addEventListener('click', () => {
     const content = buildTitleInfoContent();

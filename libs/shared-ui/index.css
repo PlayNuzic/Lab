@@ -1141,6 +1141,60 @@ body[data-theme='dark'] .top-bar-notation-button {
   fill: currentColor;
 }
 
+/* Gamification button styles - based on notation button */
+.top-bar-gamification-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(2.2rem, 2.5vw, 2.75rem);
+  height: clamp(2.2rem, 2.5vw, 2.75rem);
+  padding: 0;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.9;
+  appearance: none;
+  transition: color 0.2s ease, transform 0.12s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  margin-right: 0.5rem;
+}
+
+body[data-theme='dark'] .top-bar-gamification-button {
+  color: var(--text-dark);
+}
+
+.top-bar-gamification-button:hover {
+  color: var(--selection-color);
+  box-shadow: 0 0 12px rgba(249, 124, 57, 0.45);
+  opacity: 1;
+}
+
+.top-bar-gamification-button:active {
+  transform: scale(0.94);
+}
+
+.top-bar-gamification-button:focus-visible {
+  outline: 2px solid var(--selection-color);
+  outline-offset: 3px;
+}
+
+.top-bar-gamification-button.active {
+  color: var(--selection-color);
+  border-color: var(--selection-color);
+  background: rgba(249, 124, 57, 0.12);
+  box-shadow: 0 0 18px rgba(249, 124, 57, 0.5);
+  opacity: 1;
+}
+
+.top-bar-gamification-button__icon {
+  width: 70%;
+  height: 70%;
+  display: block;
+  fill: currentColor;
+}
+
 
 .notation-panel {
   position: fixed;

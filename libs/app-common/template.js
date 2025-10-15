@@ -46,7 +46,8 @@ export function renderApp({
   inlineFractionSlot = false,
   showNotationToggle = false,
   showComplexFractions = true,
-  useIntervalMode = false
+  useIntervalMode = false,
+  showGamificationToggle = false
 }) {
   if (!root) throw new Error('root element required');
   document.title = title;
@@ -122,6 +123,20 @@ export function renderApp({
 ${togglesMarkup}
         </div>
     ` : '';
+
+  const gamificationToggleButton = showGamificationToggle ? `
+      <button
+        id="gamificationToggleBtn"
+        class="top-bar-gamification-button"
+        type="button"
+        aria-label="Alternar gamificación"
+        aria-pressed="false"
+      >
+        <svg class="top-bar-gamification-button__icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" fill="currentColor" aria-hidden="true" focusable="false">
+          <path d="m16 3c.5522847 0 1 .44771525 1 1v6h6c4.9705627 0 9 4.0294373 9 9s-4.0294373 9-9 9h-14c-4.97056275 0-9-4.0294373-9-9s4.02943725-9 9-9h6v-6c0-.55228475.4477153-1 1-1zm-7 12c-.55228475 0-1 .4477153-1 1v2h-2c-.55228475 0-1 .4477153-1 1s.44771525 1 1 1h2v2c0 .5522847.44771525 1 1 1s1-.4477153 1-1v-2h2c.5522847 0 1-.4477153 1-1s-.4477153-1-1-1h-2v-2c0-.5522847-.44771525-1-1-1zm16.5 5c-.8284271 0-1.5.6715729-1.5 1.5s.6715729 1.5 1.5 1.5 1.5-.6715729 1.5-1.5-.6715729-1.5-1.5-1.5zm-2-5c-.8284271 0-1.5.6715729-1.5 1.5s.6715729 1.5 1.5 1.5 1.5-.6715729 1.5-1.5-.6715729-1.5-1.5-1.5z"/>
+        </svg>
+      </button>
+  ` : '';
 
   const notationToggleButton = showNotationToggle ? `
       <button
@@ -211,7 +226,7 @@ ${togglesMarkup}
         </details>
       </div>
     </details>
-    <h1><span class="top-bar-title-text">${title}</span>${notationToggleButton}</h1>
+    <h1>${gamificationToggleButton}<span class="top-bar-title-text">${title}</span>${notationToggleButton}</h1>
     <div class="sound-wrapper">
       <button id="muteBtn" class="sound" aria-label="Sonido"></button>
       <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
@@ -318,6 +333,20 @@ ${togglesMarkup}
  * Called after DOM is ready
  */
 export function initializeGamificationHooks() {
+  // Gamification toggle button
+  const gamificationBtn = document.getElementById('gamificationToggleBtn');
+  if (gamificationBtn) {
+    gamificationBtn.addEventListener('click', () => {
+      const isActive = gamificationBtn.getAttribute('aria-pressed') === 'true';
+      gamificationBtn.setAttribute('aria-pressed', (!isActive).toString());
+      gamificationBtn.classList.toggle('active', !isActive);
+      dispatchGamificationEvent('gamification_toggled', {
+        enabled: !isActive,
+        timestamp: Date.now()
+      });
+    });
+  }
+
   // Play button
   const playBtn = document.getElementById('playBtn');
   if (playBtn) {
