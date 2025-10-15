@@ -113,7 +113,7 @@ const loopController = createPulseMemoryLoopController({
 const { inputLg, inputV, inputT, inputVUp, inputVDown, inputLgUp, inputLgDown,
         ledLg, ledV, ledT, unitLg, unitV, unitT, formula, timelineWrapper,
         timeline, playBtn, loopBtn, resetBtn, tapBtn, tapHelp,
-        circularTimelineToggle, randomBtn, randomMenu, randLgToggle, randLgMin,
+        circularTimelineToggle, selectColor, randomBtn, randomMenu, randLgToggle, randLgMin,
         randLgMax, randVToggle, randVMin, randVMax, randPulsesToggle, randomCount,
         baseSoundSelect, accentSoundSelect,
         startSoundSelect, cycleSoundSelect, themeSelect, pulseToggleBtn,
@@ -317,7 +317,6 @@ if (tIndicatorController) {
 }
 // App4-specific additional elements
 const randComplexToggle = document.getElementById('randComplexToggle');
-const selectColor = document.getElementById('selectColor');
 const randNToggle = document.getElementById('randNToggle');
 const randNMin = document.getElementById('randNMin');
 const randNMax = document.getElementById('randNMax');

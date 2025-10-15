@@ -17,7 +17,6 @@ import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
 
 let audio;
-let pendingMute = null;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
 bindSharedSoundEvents({
@@ -38,10 +37,8 @@ const SUBDIVISION_HIDE_THRESHOLD = 41;
 const NUMBER_CIRCLE_OFFSET = 28;
 
 const defaults = {
-  Lg: 8,
-  V: 120,
-  numerator: 2,
-  denominator: 3
+  numerator: null,
+  denominator: null
 };
 
 const randomDefaults = {
@@ -70,7 +67,7 @@ const { elements } = bindAppRhythmElements('app3');
 const { inputLg, inputV, inputT, inputLgUp, inputLgDown, inputVUp, inputVDown,
         unitLg, unitV, formula, timelineWrapper, timeline, playBtn, loopBtn,
         randomBtn, randomMenu, mixerMenu, tapBtn, tapHelp, resetBtn,
-        circularTimelineToggle, randLgToggle, randLgMin, randLgMax, randVToggle,
+        circularTimelineToggle, selectColor, randLgToggle, randLgMin, randLgMax, randVToggle,
         randVMin, randVMax, randNToggle, randNMin, randNMax, randDToggle,
         randDMin, randDMax, baseSoundSelect, startSoundSelect,
         cycleSoundSelect, themeSelect, pulseToggleBtn, cycleToggleBtn } = elements;
@@ -296,8 +293,9 @@ async function initAudio() {
       const cycleEnabled = cycleToggleController?.isEnabled() ?? true;
       audio.setCycleEnabled(cycleEnabled);
     }
-    if (pendingMute != null && typeof audio.setMute === 'function') {
-      audio.setMute(pendingMute);
+    const savedMute = loadOpt('mute');
+    if (savedMute === '1' && typeof audio.setMute === 'function') {
+      audio.setMute(true);
     }
     // Expose audio instance for sound dropdown preview
     if (typeof window !== 'undefined') window.__labAudio = audio;
@@ -447,16 +445,13 @@ initMixerMenu({
 });
 
 // Setup theme synchronization
-setupThemeSync({
-  select: themeSelect,
-  storage: { load: loadOpt, save: saveOpt }
-});
+const muteButton = document.getElementById('muteBtn');
 
-// Setup mute persistence
+setupThemeSync({ storage: preferenceStorage, selectEl: themeSelect });
 setupMutePersistence({
-  getAudio: () => audio,
-  storage: { load: loadOpt, save: saveOpt },
-  onMuteChange: (muted) => { pendingMute = muted; }
+  storage: preferenceStorage,
+  getAudioInstance: () => audio,
+  muteButton
 });
 
 function getLg() {
@@ -1201,29 +1196,11 @@ loopBtn.addEventListener('click', () => {
 });
 
 resetBtn.addEventListener('click', () => {
-  ['Lg', 'V', 'n', 'd'].forEach(clearOpt);
-  loopEnabled = false;
-  loopBtn.classList.remove('active');
-  setPulseAudio(true, { persist: false });
-  setCycleAudio(true, { persist: false });
-  clearOpt(PULSE_AUDIO_KEY);
-  clearOpt(CYCLE_AUDIO_KEY);
-  pulseToggleController?.markStored(false);
-  cycleToggleController?.markStored(false);
-  if (audio) audio.stop();
-  if (audio && typeof audio.resetTapTempo === 'function') {
-    audio.resetTapTempo();
-  }
-  isPlaying = false;
-  clearHighlights();
-  applyInitialState();
-  const iconPlay = playBtn.querySelector('.icon-play');
-  const iconStop = playBtn.querySelector('.icon-stop');
-  if (iconPlay && iconStop) {
-    iconPlay.style.display = 'block';
-    iconStop.style.display = 'none';
-  }
+  // Limpiar valores de fracción del storage
+  clearOpt('n');
+  clearOpt('d');
   sessionStorage.setItem('volumeResetFlag', 'true');
+  window.location.reload();
 });
 
 async function tapTempo() {
@@ -1270,6 +1247,17 @@ circularTimelineToggle?.addEventListener('change', e => {
   animateTimelineCircle(loopEnabled && circularTimeline);
 });
 
+// Color selection persistence
+const storedColor = loadOpt('color');
+if (storedColor && selectColor) {
+  selectColor.value = storedColor;
+  document.documentElement.style.setProperty('--selection-color', storedColor);
+}
+selectColor?.addEventListener('input', e => {
+  document.documentElement.style.setProperty('--selection-color', e.target.value);
+  saveOpt('color', e.target.value);
+});
+
 /**
  * Sound dropdowns are now initialized by header.js via initHeader().
  * This includes baseSoundSelect, startSoundSelect, and cycleSoundSelect.
@@ -1279,106 +1267,7 @@ circularTimelineToggle?.addEventListener('change', e => {
  */
 // Sound dropdowns initialized by header.js - no app-specific setup needed
 
-/**
- * Restaura valors buits i preferències per defecte quan no hi ha estat guardat.
- *
- * @returns {void}
- * @remarks S'executa durant el bootstrap i quan l'usuari fa reset. Depèn de DOM i `localStorage`; sincronitza toggles d'àudio sense alterar PulseMemory.
- */
-function applyInitialState() {
-  setValue(inputLg, '');
-  setValue(inputV, '');
-  if (fractionEditorController) {
-    fractionEditorController.setFraction({ numerator: null, denominator: null }, {
-      cause: 'reset',
-      persist: false,
-      silent: true,
-      reveal: false
-    });
-  } else {
-    setValue(numeratorInput, '');
-    setValue(denominatorInput, '');
-  }
-  if (!pulseToggleController || !pulseToggleController.hasStored()) {
-    setPulseAudio(true, { persist: false });
-  }
-  if (!cycleToggleController || !cycleToggleController.hasStored()) {
-    setCycleAudio(true, { persist: false });
-  }
-  if (audio && typeof audio.resetTapTempo === 'function') {
-    audio.resetTapTempo();
-  }
-  if (tapHelp) {
-    tapHelp.textContent = 'Se necesitan 3 clicks';
-    tapHelp.style.display = 'none';
-  }
-  handleInput();
-}
-
-/**
- * Llegeix estat guardat (Lg, V, fraccions) i el carrega en la UI.
- *
- * @returns {void}
- * @remarks Es crida una vegada a l'inici. Depèn de `localStorage` i DOM; prepara el context perquè `computeNextZero` pugui re-sync amb valors coherents.
- */
-function initDefaults() {
-  const storedLg = parseIntSafe(loadOpt('Lg'));
-  const storedV = parseFloatSafe(loadOpt('V'));
-  const storedN = parseIntSafe(loadOpt('n'));
-  const storedD = parseIntSafe(loadOpt('d'));
-  const hasStored = (
-    (Number.isFinite(storedLg) && storedLg > 0)
-    || (Number.isFinite(storedV) && storedV > 0)
-    || (Number.isFinite(storedN) && storedN > 0)
-    || (Number.isFinite(storedD) && storedD > 0)
-  );
-
-  if (!hasStored) {
-    applyInitialState();
-    return;
-  }
-
-  setValue(inputLg, Number.isFinite(storedLg) && storedLg > 0 ? storedLg : '');
-  const validV = Number.isFinite(storedV) && storedV > 0 ? Math.round(storedV) : '';
-  setValue(inputV, validV);
-  if (fractionEditorController) {
-    fractionEditorController.setFraction({
-      numerator: Number.isFinite(storedN) && storedN > 0 ? storedN : null,
-      denominator: Number.isFinite(storedD) && storedD > 0 ? storedD : null
-    }, {
-      cause: 'restore',
-      persist: false,
-      silent: true,
-      reveal: true
-    });
-  } else {
-    setValue(numeratorInput, Number.isFinite(storedN) && storedN > 0 ? storedN : '');
-    setValue(denominatorInput, Number.isFinite(storedD) && storedD > 0 ? storedD : '');
-  }
-  handleInput();
-  if (audio && typeof audio.resetTapTempo === 'function') {
-    audio.resetTapTempo();
-  }
-  if (tapHelp) {
-    tapHelp.textContent = 'Se necesitan 3 clicks';
-    tapHelp.style.display = 'none';
-  }
-}
-
-initDefaults();
-
-[inputLg, inputV, numeratorInput, denominatorInput].forEach((el, idx) => {
-  el?.addEventListener('change', () => {
-    const keys = ['Lg', 'V', 'n', 'd'];
-    const raw = typeof el.value === 'string' ? el.value.trim() : el.value;
-    if (raw === '' || raw == null) clearOpt(keys[idx]);
-    else saveOpt(keys[idx], raw);
-  });
-});
-
 window.addEventListener('resize', () => layoutTimeline({ silent: true }));
-
-handleInput();
 
 // Initialize gamification system
 import('./gamification-adapter.js').then(module => {

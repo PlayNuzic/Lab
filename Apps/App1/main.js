@@ -38,7 +38,7 @@ const ledManagers = createRhythmLEDManagers(leds);
 const { inputLg, inputV, inputT, inputTUp, inputTDown, inputVUp, inputVDown,
         inputLgUp, inputLgDown, ledLg, ledV, ledT, unitLg, unitV, unitT,
         formula, timelineWrapper, timeline, playBtn, loopBtn, resetBtn,
-        tapBtn, tapHelp, circularTimelineToggle, themeSelect, baseSoundSelect,
+        tapBtn, tapHelp, circularTimelineToggle, themeSelect, selectColor, baseSoundSelect,
         startSoundSelect, randomBtn, randomMenu, randLgToggle, randLgMin, randLgMax,
         randVToggle, randVMin, randVMax, randTToggle, randTMin, randTMax } = elements;
 
@@ -359,6 +359,17 @@ circularTimelineToggle?.addEventListener('change', e => {
   circularTimeline = e.target.checked;
   saveOpt('circular', e.target.checked ? '1' : '0');
   animateTimelineCircle(loopEnabled && circularTimeline);
+});
+
+// Color selection persistence
+const storedColor = loadOpt('color');
+if (storedColor && selectColor) {
+  selectColor.value = storedColor;
+  document.documentElement.style.setProperty('--selection-color', storedColor);
+}
+selectColor?.addEventListener('input', e => {
+  document.documentElement.style.setProperty('--selection-color', e.target.value);
+  saveOpt('color', e.target.value);
 });
 animateTimelineCircle(loopEnabled && circularTimeline);
 
