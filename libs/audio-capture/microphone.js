@@ -235,6 +235,74 @@ export class MicrophoneCapture {
   }
 
   /**
+   * Calibra automáticamente el threshold basado en el ruido de fondo
+   * @param {number} duration - Duración de la calibración en ms (default: 2000)
+   * @returns {Promise<number>} Threshold calibrado en dB
+   */
+  async calibrateNoiseFloor(duration = 2000) {
+    if (!this.isInitialized) {
+      console.error('❌ Debes llamar a initialize() primero');
+      return this.config.threshold;
+    }
+
+    console.log('🎤 Calibrando ruido de fondo...');
+    console.log('   Mantén silencio durante los próximos segundos...');
+
+    const samples = [];
+    const sampleInterval = 50; // Muestra cada 50ms
+    const startTime = performance.now();
+
+    // Recoger muestras durante 'duration' ms
+    const interval = setInterval(() => {
+      const level = this.meter.getValue();
+      samples.push(level);
+
+      // Mostrar progreso
+      const elapsed = performance.now() - startTime;
+      if (samples.length % 10 === 0) { // Cada 500ms
+        const progress = Math.round((elapsed / duration) * 100);
+        console.log(`   Calibrando... ${progress}%`);
+      }
+    }, sampleInterval);
+
+    // Esperar la duración especificada
+    await new Promise(resolve => setTimeout(resolve, duration));
+    clearInterval(interval);
+
+    if (samples.length === 0) {
+      console.error('❌ No se pudieron recoger muestras');
+      return this.config.threshold;
+    }
+
+    // Calcular estadísticas del ruido
+    const avgNoise = samples.reduce((a, b) => a + b, 0) / samples.length;
+    const maxNoise = Math.max(...samples);
+    const minNoise = Math.min(...samples);
+
+    // Calcular desviación estándar
+    const variance = samples.reduce((acc, val) => acc + Math.pow(val - avgNoise, 2), 0) / samples.length;
+    const stdDev = Math.sqrt(variance);
+
+    // Establecer threshold = máximo ruido + margen dinámico
+    // El margen depende de la variabilidad del ruido
+    const margin = Math.max(6, stdDev * 2); // Mínimo 6 dB, o 2 veces la desviación estándar
+    const suggestedThreshold = maxNoise + margin;
+
+    console.log('📊 Análisis del ruido de fondo:');
+    console.log(`   Promedio: ${avgNoise.toFixed(1)} dB`);
+    console.log(`   Mínimo: ${minNoise.toFixed(1)} dB`);
+    console.log(`   Máximo: ${maxNoise.toFixed(1)} dB`);
+    console.log(`   Desv. estándar: ${stdDev.toFixed(1)} dB`);
+    console.log(`   Margen aplicado: ${margin.toFixed(1)} dB`);
+    console.log(`✅ Threshold calibrado: ${suggestedThreshold.toFixed(1)} dB`);
+
+    // Actualizar el threshold automáticamente
+    this.config.threshold = suggestedThreshold;
+
+    return suggestedThreshold;
+  }
+
+  /**
    * Configura el callback para cuando se detecta un beat
    * @param {Function} callback - Función a llamar cuando se detecta un beat
    */

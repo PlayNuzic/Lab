@@ -64,24 +64,55 @@ window.__GAMIFICATION.getAchievementProgress('combo_master')
 ### Tracking de Eventos
 
 ```javascript
-// IMPORTANTE: Primero inicializar para la app específica
-window.__GAMIFICATION.init('app5');  // o app2, app3, app4
+// Test universal - detecta la app actual automáticamente
+const currentApp = window.location.pathname.includes('app2') ? 'app2' :
+                   window.location.pathname.includes('app3') ? 'app3' :
+                   window.location.pathname.includes('app4') ? 'app4' :
+                   window.location.pathname.includes('app5') ? 'app5' : 'app2';
 
-// Trackear evento válido (usar tipos de EVENT_TYPES)
+// Inicializar para la app detectada
+window.__GAMIFICATION.init(currentApp);
+console.log(`🎮 Gamificación inicializada para: ${currentApp}`);
+
+// Trackear evento genérico (funciona en todas las apps)
 window.__GAMIFICATION.trackEvent('practice_completed', {
-  ejercicio_id: 'interval_training',
+  ejercicio_id: 'test_exercise',
   puntuacion: 85,
   tiempo: 120
-})
+});
 
-// Trackear acción de app (requiere init previo)
-// Acciones válidas para app5: play_started, pattern_created, interval_changed
-window.__GAMIFICATION.trackAppAction('play_started', {
-  duration: 30,
-  selection_count: 5
-})
+// Trackear acción específica de la app actual
+const exampleActions = {
+  app2: { action: 'play_clicked', metadata: { duration: 30 } },
+  app3: { action: 'fraction_created', metadata: { numerator: 1, denominator: 4 } },
+  app4: { action: 'pulse_pattern_created', metadata: { pattern: [1,0,1,0] } },
+  app5: { action: 'play_started', metadata: { duration: 30 } }
+};
 
-// Ver tipos de eventos disponibles:
+const { action, metadata } = exampleActions[currentApp];
+const result = window.__GAMIFICATION.trackAppAction(action, metadata);
+console.log(`✅ Acción '${action}' trackeada para ${currentApp}:`, result);
+
+```
+
+**Acciones válidas por app:**
+```javascript
+// App2 - Entrenamiento Rítmico
+// Acciones: play_clicked, tap_tempo_used, loop_enabled,
+//          parameter_changed, randomize_used, pulse_selected
+
+// App3 - Generador de Acordes
+// Acciones: fraction_created, parameter_changed, complexity_changed
+
+// App4 - Herramienta de Melodías
+// Acciones: fraction_created, pulse_pattern_created,
+//          parameter_changed, cycle_activated
+
+// App5 - Intervalos
+// Acciones: play_started, interval_created,
+//          pattern_modified, parameter_changed
+
+// Tipos de eventos genéricos disponibles:
 // practice_started, practice_completed, practice_paused, pattern_played,
 // tap_tempo_used, rhythm_matched, perfect_timing, parameter_changed,
 // randomization_used, fraction_created, pulse_pattern_created, loop_activated
@@ -177,41 +208,70 @@ console.log('✅ Capturados', taps.length, 'taps:', taps);
 <details>
 <summary>🎤 Microphone Capture</summary>
 
-### Test 2: Captura de Micrófono
+### Test 2: Captura de Micrófono (con Calibración Automática)
 
-**Descripción:** Detecta beats del micrófono durante 5 segundos
-**Duración:** ~5 segundos
+**Descripción:** Calibra el ruido de fondo y detecta beats del micrófono
+**Duración:** ~7 segundos (2s calibración + 5s captura)
 **Requisito:** Permiso de micrófono
 
 ```javascript
 const { createMicrophoneCapture } = await import('../../libs/gamification/index.js');
 
-// IMPORTANTE: Usar threshold en dB negativos (el mic reporta típicamente -30 a -50 dB)
+// Crear instancia con threshold temporal
 const mic = await createMicrophoneCapture({ threshold: -30, cooldown: 200 });
-console.log('🎤 Golpea cerca del micrófono durante 5 segundos...');
-console.log('   (Threshold: -30 dB - ajustar si no detecta: -20 más sensible, -40 menos sensible)');
+
+// NUEVO: Calibrar automáticamente el ruido de fondo
+console.log('🎤 CALIBRACIÓN AUTOMÁTICA');
+console.log('   Mantén silencio durante 2 segundos...');
+await mic.calibrateNoiseFloor(2000);
+
+// Ahora capturar beats con el threshold calibrado
+console.log('\n🎤 CAPTURA DE BEATS');
+console.log('   Ahora golpea cerca del micrófono o aplaude durante 5 segundos...');
 
 mic.startRecording();
 await new Promise(resolve => setTimeout(resolve, 5000));
 const beats = mic.stopRecording();
 
-console.log('✅ Detectados', beats.length, 'beats');
-console.log('Timestamps:', beats.map(b => Math.round(b.timestamp)));
-console.log('Amplitudes (dB):', beats.map(b => b.amplitude.toFixed(2)));
+console.log('\n📊 RESULTADOS:');
+console.log(`✅ Detectados ${beats.length} beats`);
+if (beats.length > 0) {
+  // Los beats son solo timestamps, no objetos
+  console.log('Timestamps (ms):', beats.map(b => Math.round(b)));
+
+  // Calcular intervalos entre beats
+  if (beats.length > 1) {
+    const intervals = [];
+    for (let i = 1; i < beats.length; i++) {
+      intervals.push(Math.round(beats[i] - beats[i-1]));
+    }
+    console.log('Intervalos (ms):', intervals);
+
+    // Estimar BPM si hay suficientes beats
+    if (intervals.length >= 2) {
+      const avgInterval = intervals.reduce((a,b) => a+b) / intervals.length;
+      const bpm = Math.round(60000 / avgInterval);
+      console.log(`BPM estimado: ${bpm}`);
+    }
+  }
+}
 
 mic.dispose();
 ```
 
-**Resultado esperado:**
-- Beats detectados cuando golpeas fuerte (o aplaudes)
-- Amplitudes > threshold (-30 dB)
-- Cooldown de 200ms previene detecciones duplicadas
-
-**Si no detecta beats:**
+**Test sin calibración (manual):**
 ```javascript
-// Probar con threshold más sensible
-const mic = await createMicrophoneCapture({ threshold: -20, cooldown: 250 });
+// Si prefieres usar un threshold fijo
+const mic = await createMicrophoneCapture({ threshold: -25, cooldown: 200 });
+console.log('🎤 Threshold manual: -25 dB');
+mic.startRecording();
+// ... resto del test
 ```
+
+**Resultado esperado:**
+- Calibración detecta el ruido ambiente y ajusta el threshold
+- Beats detectados cuando golpeas/aplaudes
+- El threshold calibrado se adapta a tu entorno
 
 </details>
 

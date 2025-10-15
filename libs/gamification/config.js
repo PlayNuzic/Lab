@@ -98,30 +98,30 @@ export const GAMIFICATION_CONFIG = {
  */
 export const APP_EVENT_MAPPINGS = {
   app2: {
-    // Mapeo de acciones a eventos
-    play_clicked: 'PATTERN_PLAYED',
-    tap_tempo_used: 'TAP_TEMPO_USED',
-    loop_enabled: 'LOOP_ACTIVATED',
-    parameter_changed: 'PARAMETER_CHANGED',
-    randomize_used: 'RANDOMIZATION_USED',
-    pulse_selected: 'PULSE_PATTERN_CREATED'
+    // Mapeo de acciones a eventos (minúsculas para coincidir con EVENT_TYPES)
+    play_clicked: 'pattern_played',
+    tap_tempo_used: 'tap_tempo_used',
+    loop_enabled: 'loop_activated',
+    parameter_changed: 'parameter_changed',
+    randomize_used: 'randomization_used',
+    pulse_selected: 'pulse_pattern_created'
   },
   app3: {
-    fraction_created: 'FRACTION_CREATED',
-    parameter_changed: 'PARAMETER_CHANGED',
-    complexity_changed: 'COMPLEXITY_INCREASED'
+    fraction_created: 'fraction_created',
+    parameter_changed: 'parameter_changed',
+    complexity_changed: 'complexity_increased'
   },
   app4: {
-    fraction_created: 'FRACTION_CREATED',
-    pulse_pattern_created: 'PULSE_PATTERN_CREATED',
-    parameter_changed: 'PARAMETER_CHANGED',
-    cycle_activated: 'ADVANCED_FEATURE_USED'
+    fraction_created: 'fraction_created',
+    pulse_pattern_created: 'pulse_pattern_created',
+    parameter_changed: 'parameter_changed',
+    cycle_activated: 'advanced_feature_used'
   },
   app5: {
-    play_started: 'PATTERN_PLAYED',
-    interval_created: 'PATTERN_PLAYED',
-    pattern_modified: 'PULSE_PATTERN_CREATED',
-    parameter_changed: 'PARAMETER_CHANGED'
+    play_started: 'pattern_played',
+    interval_created: 'pattern_played',
+    pattern_modified: 'pulse_pattern_created',
+    parameter_changed: 'parameter_changed'
   }
 };
 
