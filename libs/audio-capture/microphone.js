@@ -298,7 +298,8 @@ export class MicrophoneCapture {
 
     // Establecer threshold = máximo ruido + margen dinámico
     // El margen depende de la variabilidad del ruido
-    const margin = Math.max(6, stdDev * 2); // Mínimo 6 dB, o 2 veces la desviación estándar
+    // Usamos un margen más ajustado para mejor sensibilidad
+    const margin = Math.max(3, stdDev * 1.5); // Mínimo 3 dB, o 1.5 veces la desviación estándar
     const suggestedThreshold = maxNoise + margin;
 
     console.log('📊 Análisis del ruido de fondo:');

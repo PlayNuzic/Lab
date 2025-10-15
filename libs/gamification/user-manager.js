@@ -103,11 +103,5 @@ export function getUserManager() {
 // Auto-initialize and expose globally for console access
 if (typeof window !== 'undefined') {
   window.__USER_MANAGER = getUserManager();
-
-  console.log('👤 User Manager inicializado (modo offline)');
-  console.log('   Comandos disponibles en consola:');
-  console.log('   - window.__USER_MANAGER.getUserDisplayName()  // Ver nombre');
-  console.log('   - window.__USER_MANAGER.setUserDisplayName("Mi Nombre")  // Cambiar nombre');
-  console.log('   - window.__USER_MANAGER.getUserInfo()  // Ver info completa');
-  console.log('   - window.__USER_MANAGER.resetUser()  // Resetear usuario');
+  // Los comandos están documentados en CONSOLE_COMMANDS.md
 }

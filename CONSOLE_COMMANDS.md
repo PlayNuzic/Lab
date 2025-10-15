@@ -1,6 +1,6 @@
-# Comandos de Consola - Referencia Rápida (Modo Offline)
+# Comandos de Consola - Guía de Testing (Modo Offline)
 
-Guía rápida con **desplegables** para no ocupar espacio en consola.
+Guía organizada para probar todas las funcionalidades del sistema de gamificación antes de crear la UI.
 
 > 💡 **Tip:** Haz clic en las secciones (▶) para expandir/colapsar
 > 📋 Todos los comandos son **copy-paste ready**
@@ -9,178 +9,73 @@ Guía rápida con **desplegables** para no ocupar espacio en consola.
 
 ---
 
-## 📦 Sistema de Gamificación (Offline)
+## 🚀 Inicio Rápido - Quick Tests
 
 <details open>
-<summary>👤 User Manager (Usuario Único)</summary>
+<summary>⚡ Tests Básicos (< 1 minuto)</summary>
 
-### Comandos Básicos
-
-```javascript
-// Ver nombre del usuario actual
-window.__USER_MANAGER.getUserDisplayName()
-// Retorna: "Usuario"
-
-// Cambiar nombre de usuario
-window.__USER_MANAGER.setUserDisplayName("Mi Nombre")
-// Consola: "✅ Nombre cambiado a: Mi Nombre"
-
-// Ver información completa del usuario
-window.__USER_MANAGER.getUserInfo()
-// Retorna: { displayName: "Mi Nombre", createdAt: 1697234567890 }
-
-// Resetear usuario (para testing)
-window.__USER_MANAGER.resetUser()
-// Consola: "🔄 Datos de usuario reseteados"
-```
-
-**Nota:** Ya no hay sistema de múltiples usuarios ni conexión a servidor.
-
-</details>
-
-<details>
-<summary>🎮 Gamification Manager</summary>
-
-### Estadísticas y Progreso
+### 1. Verificar Sistema de Gamificación
 
 ```javascript
-// Ver estadísticas generales
+// La gamificación se inicializa automáticamente al cargar cualquier App (2-5)
+// Verificar que esté activa:
 window.__GAMIFICATION.getStats()
 // Retorna: { session: {...}, scoring: {...}, achievements: {...}, storage: {...} }
 
-// Ver nivel del usuario
+// Ver tu nivel actual
 window.__GAMIFICATION.getUserLevel()
-// Retorna: { level: 3, currentXP: 850, nextLevelXP: 1000, ... }
+// Retorna: { level: 1, currentXP: 0, nextLevelXP: 100, title: "Principiante" }
 
-// Ver todos los logros
-window.__GAMIFICATION.getAchievements()
-// Retorna: [{ id: 'first_session', unlocked: true, ... }, ...]
-
-// Ver progreso de un logro específico
-window.__GAMIFICATION.getAchievementProgress('combo_master')
-// Retorna: { current: 3, target: 5, percentage: 60, ... }
+// Ver nombre de usuario
+window.__USER_MANAGER.getUserDisplayName()
+// Retorna: "Usuario"
 ```
 
-### Tracking de Eventos
-
-```javascript
-// Test universal - detecta la app actual automáticamente
-const currentApp = window.location.pathname.includes('App2') ? 'app2' :
-                   window.location.pathname.includes('App3') ? 'app3' :
-                   window.location.pathname.includes('App4') ? 'app4' :
-                   window.location.pathname.includes('App5') ? 'app5' : 'app2';
-
-// Inicializar para la app detectada
-window.__GAMIFICATION.init(currentApp);
-console.log(`🎮 Gamificación inicializada para: ${currentApp}`);
-
-// Trackear evento genérico (funciona en todas las apps)
-window.__GAMIFICATION.trackEvent('practice_completed', {
-  ejercicio_id: 'test_exercise',
-  puntuacion: 85,
-  tiempo: 120
-});
-
-// Trackear acción específica de la app actual
-const exampleActions = {
-  app2: { action: 'play_clicked', metadata: { duration: 30 } },
-  app3: { action: 'fraction_created', metadata: { numerator: 1, denominator: 4 } },
-  app4: { action: 'pulse_pattern_created', metadata: { pattern: [1,0,1,0] } },
-  app5: { action: 'play_started', metadata: { duration: 30 } }
-};
-
-const { action, metadata } = exampleActions[currentApp];
-const result = window.__GAMIFICATION.trackAppAction(action, metadata);
-console.log(`✅ Acción '${action}' trackeada para ${currentApp}:`, result);
-
-```
-
-**Acciones válidas por app:**
-```javascript
-// App2 - Sucesión de Pulsos
-// Acciones: play_clicked, tap_tempo_used, loop_enabled,
-//          parameter_changed, randomize_used, pulse_selected
-
-// App3 - Fracciones Temporales
-// Acciones: fraction_created, parameter_changed, complexity_changed
-
-// App4 - Pulsos Fraccionados
-// Acciones: fraction_created, pulse_pattern_created,
-//          parameter_changed, cycle_activated
-
-// App5 - Pulsaciones
-// Acciones: play_started, interval_created,
-//          pattern_modified, parameter_changed
-
-// Tipos de eventos genéricos disponibles:
-// practice_started, practice_completed, practice_paused, pattern_played,
-// tap_tempo_used, rhythm_matched, perfect_timing, parameter_changed,
-// randomization_used, fraction_created, pulse_pattern_created, loop_activated
-```
-
-### Gestión de Datos
-
-```javascript
-// Exportar todos los datos del usuario (para backup)
-const backup = window.__GAMIFICATION.exportUserData()
-console.log('Datos exportados:', backup)
-
-// Guardar backup en archivo (copiar JSON y pegarlo en un archivo)
-copy(JSON.stringify(backup, null, 2))
-
-// Importar datos desde backup
-window.__GAMIFICATION.importUserData(backup)
-
-// Resetear sesión actual (mantiene logros y puntos totales)
-window.__GAMIFICATION.resetSession()
-
-// Resetear TODO (¡cuidado!)
-window.__GAMIFICATION.resetAll()
-```
+**✅ Todo funciona si:** Obtienes objetos con datos, no errores
 
 </details>
 
 <details>
-<summary>💾 Ver Intentos de Ejercicios</summary>
+<summary>🎯 Test de Tracking de Eventos</summary>
 
-### Consultar Intentos Guardados en localStorage
+### 2. Trackear Acción de la App Actual
 
 ```javascript
-// Ver todos los intentos guardados
-const attempts = JSON.parse(localStorage.getItem('gamification_exercise_attempts') || '[]')
-console.log(`📊 Total intentos: ${attempts.length}`)
-console.table(attempts)
+// La app ya está inicializada automáticamente al cargar la página
+// Puedes trackear acciones directamente:
 
-// Ver últimos 5 intentos
-const last5 = attempts.slice(-5)
-console.log('🎯 Últimos 5 intentos:')
-console.table(last5)
+// Para App2 - Sucesión de Pulsos
+window.__GAMIFICATION.trackAppAction('play_clicked', { duration: 30 });
 
-// Filtrar por tipo de ejercicio
-const sequenceAttempts = attempts.filter(a => a.exercise_type.includes('sequence'))
-console.log(`🔢 Intentos de secuencia: ${sequenceAttempts.length}`)
-console.table(sequenceAttempts)
+// Para App3 - Fracciones Temporales
+window.__GAMIFICATION.trackAppAction('fraction_created', { numerator: 1, denominator: 4 });
 
-// Ver mejores scores
-const sortedByScore = [...attempts].sort((a, b) => b.score - a.score)
-console.log('🏆 Top 5 scores:')
-console.table(sortedByScore.slice(0, 5))
+// Para App4 - Pulsos Fraccionados
+window.__GAMIFICATION.trackAppAction('pulse_pattern_created', { pattern: [1,0,1,0] });
 
-// Calcular accuracy promedio
-const avgAccuracy = attempts.reduce((sum, a) => sum + a.accuracy, 0) / attempts.length
-console.log(`📈 Accuracy promedio: ${avgAccuracy.toFixed(1)}%`)
+// Para App5 - Pulsaciones
+window.__GAMIFICATION.trackAppAction('play_started', { duration: 30 });
+
+// Ver resultado
+console.log('✅ Evento trackeado correctamente');
 ```
+
+**Acciones disponibles por app:**
+- **App2 (Sucesión de Pulsos):** `play_clicked`, `tap_tempo_used`, `loop_enabled`, `parameter_changed`, `randomize_used`, `pulse_selected`
+- **App3 (Fracciones Temporales):** `fraction_created`, `parameter_changed`, `complexity_changed`
+- **App4 (Pulsos Fraccionados):** `fraction_created`, `pulse_pattern_created`, `parameter_changed`, `cycle_activated`
+- **App5 (Pulsaciones):** `play_started`, `interval_created`, `pattern_modified`, `parameter_changed`
 
 </details>
 
 ---
 
-## 📦 Audio Capture
+## 🎤 Tests de Audio Capture
 
 <details>
-<summary>⌨️ Keyboard Capture</summary>
+<summary>⌨️ Test 1: Keyboard Capture (5 segundos)</summary>
 
-### Test 1: Captura Básica de Keyboard
+### Captura de Taps con Teclado
 
 **Descripción:** Captura 5 taps con ESPACIO
 **Duración:** ~5 segundos
@@ -196,19 +91,33 @@ keyboard.startRecording();
 await new Promise(resolve => setTimeout(resolve, 10000));
 
 const taps = keyboard.stopRecording();
-console.log('✅ Capturados', taps.length, 'taps:', taps);
+console.log('✅ Capturados', taps.length, 'taps');
+console.log('📊 Timestamps (ms):', taps.map(t => Math.round(t)));
+
+// Calcular intervalos entre taps
+if (taps.length > 1) {
+  const intervals = [];
+  for (let i = 1; i < taps.length; i++) {
+    intervals.push(Math.round(taps[i] - taps[i-1]));
+  }
+  console.log('⏱️  Intervalos (ms):', intervals);
+}
 ```
 
-**Resultado esperado:**
-- 5 timestamps en milisegundos (números directos, no objetos)
-- Diferencias razonables entre taps (ej: 200-1000ms)
+**✅ Resultado esperado:**
+- 5 timestamps en milisegundos
+- Intervalos razonables entre taps (ej: 200-1000ms)
+
+**⚠️ Troubleshooting:**
+- Si no detecta las teclas, haz clic en la página principal (fuera de DevTools)
+- El foco debe estar en la página, no en la consola
 
 </details>
 
 <details>
-<summary>🎤 Microphone Capture</summary>
+<summary>🎤 Test 2: Microphone Capture (7 segundos)</summary>
 
-### Test 2: Captura de Micrófono (con Calibración Automática)
+### Captura de Beats con Micrófono + Calibración Automática
 
 **Descripción:** Calibra el ruido de fondo y detecta beats del micrófono
 **Duración:** ~7 segundos (2s calibración + 5s captura)
@@ -217,15 +126,15 @@ console.log('✅ Capturados', taps.length, 'taps:', taps);
 ```javascript
 const { createMicrophoneCapture } = await import('../../libs/gamification/index.js');
 
-// Crear instancia con threshold temporal
+// Crear instancia
 const mic = await createMicrophoneCapture({ threshold: -30, cooldown: 200 });
 
-// NUEVO: Calibrar automáticamente el ruido de fondo
+// PASO 1: Calibrar automáticamente el ruido de fondo
 console.log('🎤 CALIBRACIÓN AUTOMÁTICA');
 console.log('   Mantén silencio durante 2 segundos...');
 await mic.calibrateNoiseFloor(2000);
 
-// Ahora capturar beats con el threshold calibrado
+// PASO 2: Capturar beats con el threshold calibrado
 console.log('\n🎤 CAPTURA DE BEATS');
 console.log('   Ahora golpea cerca del micrófono o aplaude durante 5 segundos...');
 
@@ -236,8 +145,7 @@ const beats = mic.stopRecording();
 console.log('\n📊 RESULTADOS:');
 console.log(`✅ Detectados ${beats.length} beats`);
 if (beats.length > 0) {
-  // Los beats son solo timestamps, no objetos
-  console.log('Timestamps (ms):', beats.map(b => Math.round(b)));
+  console.log('📍 Timestamps (ms):', beats.map(b => Math.round(b)));
 
   // Calcular intervalos entre beats
   if (beats.length > 1) {
@@ -245,13 +153,13 @@ if (beats.length > 0) {
     for (let i = 1; i < beats.length; i++) {
       intervals.push(Math.round(beats[i] - beats[i-1]));
     }
-    console.log('Intervalos (ms):', intervals);
+    console.log('⏱️  Intervalos (ms):', intervals);
 
-    // Estimar BPM si hay suficientes beats
+    // Estimar BPM
     if (intervals.length >= 2) {
       const avgInterval = intervals.reduce((a,b) => a+b) / intervals.length;
       const bpm = Math.round(60000 / avgInterval);
-      console.log(`BPM estimado: ${bpm}`);
+      console.log(`🎵 BPM estimado: ${bpm}`);
     }
   }
 }
@@ -259,26 +167,32 @@ if (beats.length > 0) {
 mic.dispose();
 ```
 
-**Test sin calibración (manual):**
+**✅ Resultado esperado:**
+- Calibración detecta el ruido ambiente y ajusta el threshold (margen de 3-4.5 dB sobre el máximo ruido)
+- Beats detectados cuando golpeas/aplaudes
+- El threshold calibrado se adapta a tu entorno
+
+**⚠️ Troubleshooting:**
+- Si no detecta beats: El ambiente es muy ruidoso, prueba con threshold manual más bajo (-20 dB)
+- Si detecta demasiados beats falsos: El ambiente es muy silencioso, prueba con threshold manual más alto (-35 dB)
+
+**Variante con threshold manual (sin calibración):**
 ```javascript
-// Si prefieres usar un threshold fijo
 const mic = await createMicrophoneCapture({ threshold: -25, cooldown: 200 });
 console.log('🎤 Threshold manual: -25 dB');
 mic.startRecording();
-// ... resto del test
+await new Promise(resolve => setTimeout(resolve, 5000));
+const beats = mic.stopRecording();
+console.log('✅ Beats:', beats.length);
+mic.dispose();
 ```
-
-**Resultado esperado:**
-- Calibración detecta el ruido ambiente y ajusta el threshold
-- Beats detectados cuando golpeas/aplaudes
-- El threshold calibrado se adapta a tu entorno
 
 </details>
 
 <details>
-<summary>🔍 Rhythm Analyzer</summary>
+<summary>🔍 Test 3: Rhythm Analyzer (instantáneo)</summary>
 
-### Test 3: Análisis de Timing
+### Análisis de Precisión de Timing
 
 **Descripción:** Analiza precisión de taps contra patrón esperado
 **Duración:** Instantáneo
@@ -288,27 +202,27 @@ const { createRhythmAnalyzer, fractionsToTimestamps } = await import('../../libs
 
 // Patrón esperado: 4 pulsos a 120 BPM (fracciones: 0, 0.25, 0.5, 0.75)
 const expected = fractionsToTimestamps([0, 0.25, 0.5, 0.75], 120);
-console.log('⏱️  Patrón esperado (120 BPM):', expected);
+console.log('⏱️  Patrón esperado (120 BPM):', expected.map(t => Math.round(t)));
 
-// Simular taps del usuario (con pequeños errores)
+// Simular taps del usuario (con pequeños errores de ±25ms)
 const userTaps = expected.map(t => t + Math.random() * 50 - 25);
-console.log('👤 Taps del usuario:', userTaps.map(Math.round));
+console.log('👤 Taps del usuario:', userTaps.map(t => Math.round(t)));
 
 // Analizar
 const analyzer = createRhythmAnalyzer();
 const result = analyzer.compareRhythm(userTaps, expected);
 
-console.log('\n📊 Análisis:');
-console.log('  Accuracy:', Math.round(result.accuracy * 100), '%');
-console.log('  Timing Accuracy:', Math.round(result.timingAccuracy * 100), '%');
-console.log('  Consistency Score:', Math.round(result.consistencyScore * 100), '%');
-console.log('  Tempo Accuracy:', Math.round(result.tempoAccuracy * 100), '%');
-console.log('  Deviations (ms):', result.deviations.map(d => Math.round(d)));
-console.log('  Missed taps:', result.missedTaps);
-console.log('  Extra taps:', result.extraTaps);
+console.log('\n📊 ANÁLISIS:');
+console.log('  ✅ Accuracy:', Math.round(result.accuracy * 100), '%');
+console.log('  ⏱️  Timing Accuracy:', Math.round(result.timingAccuracy * 100), '%');
+console.log('  🎯 Consistency Score:', Math.round(result.consistencyScore * 100), '%');
+console.log('  🎵 Tempo Accuracy:', Math.round(result.tempoAccuracy * 100), '%');
+console.log('  📉 Deviations (ms):', result.deviations.map(d => Math.round(d)));
+console.log('  ❌ Missed taps:', result.missedTaps);
+console.log('  ➕ Extra taps:', result.extraTaps);
 ```
 
-**Resultado esperado:**
+**✅ Resultado esperado:**
 - Accuracy ~90-95% (con errores pequeños de ±25ms)
 - Timing Accuracy alta si los taps están cerca de los esperados
 - Consistency Score alta si el ritmo es regular
@@ -318,10 +232,12 @@ console.log('  Extra taps:', result.extraTaps);
 
 ---
 
-## 📦 Ejercicios de Entrenamiento (Offline)
+## 🎼 Tests de Ejercicios de Entrenamiento
 
 <details>
-<summary>🧪 Test: Guardar Intento Manualmente</summary>
+<summary>🧪 Test 4: Guardar Intento Manualmente (instantáneo)</summary>
+
+### Guardar Resultado de Ejercicio en localStorage
 
 **Descripción:** Guardar un intento de ejercicio en localStorage
 **Duración:** Instantáneo
@@ -338,23 +254,31 @@ const result = recordAttempt({
   metadata: {
     timing_accuracy: 88,
     consistency: 95,
-    taps_count: 2
+    taps_count: 5
   }
 });
 
-console.log('Resultado:', result);
+console.log('📝 Resultado:', result);
 // Retorna: { success: true, attempt_id: "...", message: "..." }
 
 // Ver intentos guardados
 const attempts = JSON.parse(localStorage.getItem('gamification_exercise_attempts') || '[]');
-console.log(`Total intentos guardados: ${attempts.length}`);
-console.table(attempts.slice(-3)); // Mostrar últimos 3
+console.log(`📊 Total intentos guardados: ${attempts.length}`);
+console.log('🎯 Últimos 3 intentos:');
+console.table(attempts.slice(-3));
 ```
+
+**✅ Resultado esperado:**
+- `success: true`
+- Intento guardado en localStorage con ID único
+- Se puede consultar después con `localStorage.getItem('gamification_exercise_attempts')`
 
 </details>
 
 <details>
-<summary>⏱️ Test: Count-In (Visual + Audio)</summary>
+<summary>⏱️ Test 5: Count-In Visual + Audio (2-4 segundos)</summary>
+
+### Count-In con Feedback Visual y Audio
 
 **Descripción:** Prueba el count-in con feedback visual y audio
 **Duración:** ~2-4 segundos (depende del BPM)
@@ -364,7 +288,7 @@ console.table(attempts.slice(-3)); // Mostrar últimos 3
 // CountInController está disponible globalmente en window.__EAR_TRAINING
 if (!window.__EAR_TRAINING) {
   console.log('❌ Módulo ear-training no disponible');
-  console.log('ℹ️  Este test requiere el módulo ear-training');
+  console.log('ℹ️  Este test requiere el módulo ear-training (disponible en App4)');
 } else {
   const { CountInController } = window.__EAR_TRAINING;
 
@@ -394,17 +318,14 @@ if (!window.__EAR_TRAINING) {
 5. Sincroniza visual + audio con setTimeout
 6. Limpia elementos al terminar
 
-**Resultado esperado:**
+**✅ Resultado esperado:**
 - Overlay aparece con números animados
 - 4 clicks de audio (uno por beat)
 - Intervalo de 500ms entre beats (60000/120)
 - Overlay desaparece al terminar
 
 **Variantes para probar:**
-
 ```javascript
-// Nota: CountInController ya está disponible globalmente, no necesitas import
-
 if (window.__EAR_TRAINING) {
   const { CountInController } = window.__EAR_TRAINING;
 
@@ -417,19 +338,11 @@ if (window.__EAR_TRAINING) {
   await slow.play();
 
   // Solo visual (sin audio)
-  const silent = new CountInController({
-    beats: 4,
-    bpm: 120,
-    audioFeedback: false
-  });
+  const silent = new CountInController({ beats: 4, bpm: 120, audioFeedback: false });
   await silent.play();
 
   // Solo audio (sin visual)
-  const noVisual = new CountInController({
-    beats: 4,
-    bpm: 120,
-    visualFeedback: false
-  });
+  const noVisual = new CountInController({ beats: 4, bpm: 120, visualFeedback: false });
   await noVisual.play();
 }
 ```
@@ -437,7 +350,9 @@ if (window.__EAR_TRAINING) {
 </details>
 
 <details>
-<summary>🎼 Test: Fraction Recognition (Simulado)</summary>
+<summary>🎼 Test 6: Fraction Recognition (2-3 minutos)</summary>
+
+### Ejercicio Completo de Reconocimiento de Fracciones
 
 **Descripción:** Ejecuta Ejercicio 4 Nivel 1 (10 preguntas, fracciones simples)
 **Duración:** ~2-3 minutos (automático con respuestas simuladas)
@@ -451,7 +366,7 @@ if (window.__EAR_TRAINING) {
 // Verificar disponibilidad del módulo
 if (!window.__EAR_TRAINING) {
   console.log('❌ Módulo ear-training no disponible');
-  console.log('ℹ️  Este test requiere el módulo ear-training');
+  console.log('ℹ️  Este test requiere el módulo ear-training (disponible en App4)');
 } else {
   const { FractionRecognitionExercise } = window.__EAR_TRAINING;
 
@@ -488,95 +403,133 @@ if (!window.__EAR_TRAINING) {
    - Simula respuesta del usuario (70% correctas en modo consola)
    - Valida la respuesta
 3. Calcula accuracy final y determina si pasó (≥80%)
+4. **Guarda el resultado automáticamente** en localStorage
 
-**Resultado esperado:**
+**✅ Resultado esperado:**
 - 10 preguntas completadas
 - ~7 correctas (simulación 70%)
 - Audio se reproduce (escucharás clicks de accent + base)
+- El resultado se guarda en localStorage
 
 **Nota:** En una UI real, el usuario ingresaría n y d manualmente.
 
 </details>
 
+---
+
+## 🎮 Tests de Gamificación Completos
+
 <details>
-<summary>🎯 Test: Ejercicio Completo (si está disponible)</summary>
+<summary>📊 Ver Estadísticas y Progreso</summary>
 
-**Nota:** Los tests de ejercicios completos requieren el módulo `ear-training` que puede no estar disponible en modo offline simplificado.
-
-**Si el módulo está disponible:**
+### Consultar Estado del Sistema de Gamificación
 
 ```javascript
-// Verificar si ear-training está cargado
-if (window.__EAR_TRAINING) {
-  console.log('✅ Ear-training modules disponibles');
-  console.log('Módulos:', Object.keys(window.__EAR_TRAINING));
-} else {
-  console.log('❌ Ear-training modules no disponibles (modo offline)');
-  console.log('ℹ️  Los ejercicios se pueden ejecutar manualmente usando recordAttempt()');
+// Ver estadísticas generales
+const stats = window.__GAMIFICATION.getStats();
+console.log('📊 Estadísticas Generales:');
+console.table(stats.session);
+console.table(stats.scoring);
+console.table(stats.achievements);
+
+// Ver nivel del usuario
+const level = window.__GAMIFICATION.getUserLevel();
+console.log(`\n🎖️  NIVEL: ${level.level} - ${level.title}`);
+console.log(`   XP actual: ${level.currentXP}`);
+console.log(`   XP para siguiente nivel: ${level.nextLevelXP}`);
+console.log(`   Progreso: ${Math.round(level.progress * 100)}%`);
+
+// Ver todos los logros
+const achievements = window.__GAMIFICATION.getAchievements();
+const unlocked = achievements.filter(a => a.unlocked);
+console.log(`\n🏆 LOGROS: ${unlocked.length}/${achievements.length} desbloqueados`);
+console.table(unlocked);
+
+// Ver progreso de un logro específico
+const comboProgress = window.__GAMIFICATION.getAchievementProgress('combo_master');
+console.log('\n🎯 Progreso de "Combo Master":');
+console.log(`   ${comboProgress.current}/${comboProgress.target} (${comboProgress.percentage}%)`);
+```
+
+</details>
+
+<details>
+<summary>💾 Ver Intentos de Ejercicios</summary>
+
+### Consultar Intentos Guardados en localStorage
+
+```javascript
+// Ver todos los intentos guardados
+const attempts = JSON.parse(localStorage.getItem('gamification_exercise_attempts') || '[]');
+console.log(`📊 Total intentos: ${attempts.length}`);
+console.table(attempts);
+
+// Ver últimos 5 intentos
+const last5 = attempts.slice(-5);
+console.log('\n🎯 Últimos 5 intentos:');
+console.table(last5);
+
+// Filtrar por tipo de ejercicio
+const sequenceAttempts = attempts.filter(a => a.exercise_type.includes('sequence'));
+console.log(`\n🔢 Intentos de secuencia: ${sequenceAttempts.length}`);
+console.table(sequenceAttempts);
+
+// Ver mejores scores
+const sortedByScore = [...attempts].sort((a, b) => b.score - a.score);
+console.log('\n🏆 Top 5 scores:');
+console.table(sortedByScore.slice(0, 5));
+
+// Calcular accuracy promedio
+if (attempts.length > 0) {
+  const avgAccuracy = attempts.reduce((sum, a) => sum + a.accuracy, 0) / attempts.length;
+  console.log(`\n📈 Accuracy promedio: ${avgAccuracy.toFixed(1)}%`);
 }
 ```
 
 </details>
 
----
-
-## 📊 Flujos Completos (Offline)
-
 <details>
-<summary>🔄 Flujo: Usuario Nuevo → Ejercicio → Ver Stats</summary>
+<summary>👤 Gestión de Usuario</summary>
+
+### Comandos de Usuario
 
 ```javascript
-// 1. Configurar nombre de usuario
-window.__USER_MANAGER.setUserDisplayName("Practicante");
+// Ver nombre del usuario actual
+window.__USER_MANAGER.getUserDisplayName()
+// Retorna: "Usuario"
 
-// 2. Inicializar gamificación
-window.__GAMIFICATION.init('app2');
+// Cambiar nombre de usuario
+window.__USER_MANAGER.setUserDisplayName("Mi Nombre")
+// Consola: "✅ Nombre cambiado a: Mi Nombre"
 
-// 3. Trackear un evento de práctica
-window.__GAMIFICATION.trackEvent('practice_started', {
-  app_id: 'app2',
-  lg_value: 16
-});
+// Ver información completa del usuario
+window.__USER_MANAGER.getUserInfo()
+// Retorna: { displayName: "Mi Nombre", createdAt: 1697234567890 }
 
-// 4. Simular un ejercicio y guardar resultado
-const { recordAttempt } = await import('../../libs/gamification/index.js');
-recordAttempt({
-  exercise_type: 'sequence-entry_level_1',
-  score: 90,
-  accuracy: 95,
-  metadata: { duration: 30 }
-});
-
-// 5. Ver estadísticas actualizadas
-const stats = window.__GAMIFICATION.getStats();
-console.log('📊 Estadísticas:', stats);
-
-// 6. Ver nivel del usuario
-const level = window.__GAMIFICATION.getUserLevel();
-console.log(`🎖️  Nivel ${level.level}: ${level.title}`);
-
-// 7. Ver intentos guardados
-const attempts = JSON.parse(localStorage.getItem('gamification_exercise_attempts') || '[]');
-console.log(`🎯 Total intentos: ${attempts.length}`);
+// Resetear usuario (para testing)
+window.__USER_MANAGER.resetUser()
+// Consola: "🔄 Datos de usuario reseteados"
 ```
+
+**Nota:** Ya no hay sistema de múltiples usuarios ni conexión a servidor.
 
 </details>
 
 <details>
-<summary>💾 Flujo: Backup y Restore de Datos</summary>
+<summary>💾 Backup y Restore</summary>
+
+### Exportar/Importar Datos
 
 ```javascript
-// 1. Exportar todos los datos
+// Exportar todos los datos del usuario (para backup)
 const backup = window.__GAMIFICATION.exportUserData();
+console.log('📦 Datos exportados:', backup);
 
-// 2. Copiar al portapapeles (para guardar en archivo)
+// Guardar backup en archivo (copiar JSON y pegarlo en un archivo)
 copy(JSON.stringify(backup, null, 2));
 console.log('✅ Backup copiado al portapapeles - pégalo en un archivo .json');
 
-// 3. Simular pérdida de datos (¡CUIDADO!)
-// window.__GAMIFICATION.resetAll();
-
-// 4. Restaurar desde backup
+// Importar datos desde backup
 // Pega aquí tu backup JSON
 const myBackup = {
   "version": "1.0.0",
@@ -586,6 +539,154 @@ const myBackup = {
 
 window.__GAMIFICATION.importUserData(myBackup);
 console.log('✅ Datos restaurados desde backup');
+
+// Resetear sesión actual (mantiene logros y puntos totales)
+window.__GAMIFICATION.resetSession();
+
+// Resetear TODO (¡cuidado!)
+window.__GAMIFICATION.resetAll();
+```
+
+</details>
+
+---
+
+## 🔄 Workflow de Testing Completo
+
+<details open>
+<summary>🎯 Flujo Completo: Testing de Todas las Funcionalidades</summary>
+
+### Workflow Recomendado (Ejecutar en Orden)
+
+Este flujo prueba todas las funcionalidades en ~10 minutos:
+
+```javascript
+// ═══════════════════════════════════════════════════════════
+// PASO 1: Configuración Inicial (10 segundos)
+// ═══════════════════════════════════════════════════════════
+console.log('🚀 PASO 1: Configuración Inicial');
+window.__USER_MANAGER.setUserDisplayName("Tester");
+const initialStats = window.__GAMIFICATION.getStats();
+console.log('✅ Sistema inicializado');
+console.table(initialStats.session);
+
+// ═══════════════════════════════════════════════════════════
+// PASO 2: Test de Keyboard Capture (10 segundos)
+// ═══════════════════════════════════════════════════════════
+console.log('\n⌨️  PASO 2: Keyboard Capture');
+const { createKeyboardCapture } = await import('../../libs/gamification/index.js');
+const keyboard = createKeyboardCapture();
+console.log('   Presiona ESPACIO 5 veces...');
+keyboard.startRecording();
+await new Promise(resolve => setTimeout(resolve, 10000));
+const keyboardTaps = keyboard.stopRecording();
+console.log(`✅ ${keyboardTaps.length} taps capturados`);
+
+// ═══════════════════════════════════════════════════════════
+// PASO 3: Test de Microphone Capture (7 segundos)
+// ═══════════════════════════════════════════════════════════
+console.log('\n🎤 PASO 3: Microphone Capture + Calibración');
+const { createMicrophoneCapture } = await import('../../libs/gamification/index.js');
+const mic = await createMicrophoneCapture({ threshold: -30, cooldown: 200 });
+console.log('   Mantén silencio 2s...');
+await mic.calibrateNoiseFloor(2000);
+console.log('   Ahora golpea/aplaude 5s...');
+mic.startRecording();
+await new Promise(resolve => setTimeout(resolve, 5000));
+const micBeats = mic.stopRecording();
+console.log(`✅ ${micBeats.length} beats detectados`);
+mic.dispose();
+
+// ═══════════════════════════════════════════════════════════
+// PASO 4: Test de Rhythm Analyzer (instantáneo)
+// ═══════════════════════════════════════════════════════════
+console.log('\n🔍 PASO 4: Rhythm Analyzer');
+const { createRhythmAnalyzer, fractionsToTimestamps } = await import('../../libs/gamification/index.js');
+const expected = fractionsToTimestamps([0, 0.25, 0.5, 0.75], 120);
+const userTaps = expected.map(t => t + Math.random() * 50 - 25);
+const analyzer = createRhythmAnalyzer();
+const rhythmResult = analyzer.compareRhythm(userTaps, expected);
+console.log(`✅ Accuracy: ${Math.round(rhythmResult.accuracy * 100)}%`);
+
+// ═══════════════════════════════════════════════════════════
+// PASO 5: Guardar Intento de Ejercicio (instantáneo)
+// ═══════════════════════════════════════════════════════════
+console.log('\n🧪 PASO 5: Guardar Intento de Ejercicio');
+const { recordAttempt } = await import('../../libs/gamification/index.js');
+recordAttempt({
+  exercise_type: 'test_workflow',
+  exercise_title: 'Workflow Test',
+  score: 95,
+  accuracy: 98,
+  metadata: { test: true }
+});
+console.log('✅ Intento guardado');
+
+// ═══════════════════════════════════════════════════════════
+// PASO 6: Trackear Eventos de App (instantáneo)
+// ═══════════════════════════════════════════════════════════
+console.log('\n🎮 PASO 6: Trackear Eventos');
+window.__GAMIFICATION.trackEvent('practice_completed', { score: 95 });
+console.log('✅ Evento trackeado');
+
+// ═══════════════════════════════════════════════════════════
+// PASO 7: Verificar Estadísticas Finales
+// ═══════════════════════════════════════════════════════════
+console.log('\n📊 PASO 7: Estadísticas Finales');
+const finalStats = window.__GAMIFICATION.getStats();
+const level = window.__GAMIFICATION.getUserLevel();
+const attempts = JSON.parse(localStorage.getItem('gamification_exercise_attempts') || '[]');
+
+console.log('\n🏆 RESUMEN FINAL:');
+console.log(`   Usuario: ${window.__USER_MANAGER.getUserDisplayName()}`);
+console.log(`   Nivel: ${level.level} - ${level.title}`);
+console.log(`   XP: ${level.currentXP}`);
+console.log(`   Eventos: ${finalStats.session.totalEvents || 0}`);
+console.log(`   Intentos guardados: ${attempts.length}`);
+console.log('\n✅ WORKFLOW COMPLETO - TODAS LAS FUNCIONALIDADES PROBADAS');
+```
+
+**⏱️ Tiempo estimado:** ~10 minutos
+**✅ Todo funciona si:** Cada paso se completa sin errores
+
+</details>
+
+<details>
+<summary>🎼 Flujo con Fraction Recognition (solo App4)</summary>
+
+### Workflow Completo Incluyendo Ejercicio de Fracciones
+
+**Requisito:** Estar en App4 y tener Tone.js inicializado
+
+```javascript
+// Verificar que estamos en App4 y Tone.js está listo
+if (!window.__EAR_TRAINING) {
+  console.log('❌ Este flujo solo funciona en App4');
+} else if (Tone.context.state !== 'running') {
+  console.log('⚠️  Primero inicializa Tone.js: await Tone.start()');
+} else {
+  console.log('🎼 FLUJO COMPLETO CON FRACTION RECOGNITION\n');
+
+  // ... Ejecutar PASOS 1-6 del workflow anterior ...
+
+  // PASO ADICIONAL: Fraction Recognition (2-3 minutos)
+  console.log('\n🎼 PASO EXTRA: Fraction Recognition Exercise');
+  const { FractionRecognitionExercise } = window.__EAR_TRAINING;
+  const ex4 = new FractionRecognitionExercise();
+  await ex4.initialize();
+  console.log('   Ejecutando 10 preguntas...');
+  const result = await ex4.runLevel(1);
+  console.log(`✅ Ejercicio completado: ${result.correctCount}/10 correctas (${Math.round(result.accuracy)}%)`);
+  ex4.dispose();
+
+  // Ver estadísticas finales
+  const finalStats = window.__GAMIFICATION.getStats();
+  const level = window.__GAMIFICATION.getUserLevel();
+  console.log('\n🏆 RESUMEN FINAL CON EJERCICIO:');
+  console.log(`   Nivel: ${level.level} - XP: ${level.currentXP}`);
+  console.log(`   Intentos totales: ${JSON.parse(localStorage.getItem('gamification_exercise_attempts') || '[]').length}`);
+  console.log('\n✅ WORKFLOW COMPLETO CON EJERCICIO');
+}
 ```
 
 </details>
@@ -607,7 +708,6 @@ window.__USER_MANAGER.getUserInfo()
 
 **Solución:** Algunos comandos requieren `await`
 ```javascript
-// Si el comando es async
 const info = await window.__USER_MANAGER.getUserInfo()
 ```
 
@@ -665,6 +765,22 @@ const { ExerciseRunner } = await import('../../libs/ear-training/index.js');
 
 ---
 
+### Micrófono no detecta beats o detecta demasiados
+
+**Problema:** Calibración no funciona bien en tu ambiente
+
+**Solución:**
+```javascript
+// Usar threshold manual en lugar de calibración
+const mic = await createMicrophoneCapture({ threshold: -20, cooldown: 200 });
+// Ajusta el threshold según tu ambiente:
+// - Ambiente ruidoso: -15 a -20 dB
+// - Ambiente normal: -25 a -30 dB
+// - Ambiente muy silencioso: -35 a -40 dB
+```
+
+---
+
 ### Datos no persisten entre sesiones
 
 **Problema:** Los datos desaparecen al cerrar el navegador
@@ -673,6 +789,17 @@ const { ExerciseRunner } = await import('../../libs/ear-training/index.js');
 - Verificar que localStorage esté habilitado
 - No usar modo incógnito/privado
 - Verificar configuración del navegador (no bloquear cookies/storage)
+
+---
+
+### Módulo ear-training no disponible
+
+**Problema:** `window.__EAR_TRAINING` es undefined
+
+**Solución:**
+- Los tests de Count-In y Fraction Recognition solo funcionan en App4
+- Navega a `/apps/App4/` para acceder a estos tests
+- Los demás tests funcionan en cualquier app (App2-App5)
 
 </details>
 
@@ -683,37 +810,45 @@ const { ExerciseRunner } = await import('../../libs/ear-training/index.js');
 - **Modo Offline:** Todo se guarda en localStorage del navegador
 - **Sin servidor:** No hay API ni base de datos externa
 - **Usuario único:** Un solo usuario implícito por navegador
+- **Gamificación auto-inicializada:** Al cargar cualquier App (2-5), la gamificación se activa automáticamente
 - **Comandos síncronos:** La mayoría no necesitan `await`
-- **Comandos asíncronos:** Solo los de audio capture usan `await import()`
+- **Comandos asíncronos:** Solo los de audio capture y ejercicios usan `await import()`
 - **Permisos:** Tests de micrófono requieren permisos del navegador
 - **Foco de teclado:** Para tests con ESPACIO, asegúrate de que el foco esté en la página
 - **Backup:** Usa `exportUserData()` para hacer backups periódicos
+- **Calibración de micrófono:** Ajustada a margen de 3-4.5 dB (1.5x desviación estándar) para mejor sensibilidad
 
 ---
 
 ## 🎯 Resumen de Tests Disponibles
 
-### Audio Capture (3 tests)
-1. ⌨️ Keyboard Capture - Captura 5 taps con ESPACIO
-2. 🎤 Microphone Capture - Detecta beats del micrófono (threshold: -30 dB)
-3. 🔍 Rhythm Analyzer - Analiza precisión vs patrón esperado
+### Tests Rápidos (< 1 minuto)
+1. ✅ Verificar Sistema de Gamificación - Instantáneo
+2. 🎯 Trackear Acción de App - Instantáneo
+3. 🔍 Rhythm Analyzer - Instantáneo
+4. 🧪 Guardar Intento - Instantáneo
 
-### Ejercicios de Entrenamiento (5 tests)
-1. 🧪 Guardar Intento - `recordAttempt()` manual en localStorage
-2. 💾 Ver Intentos - Consultar localStorage
-3. ⏱️ Count-In - Visual + Audio feedback (requiere ear-training)
-4. 🎼 Fraction Recognition - Reconocimiento de fracciones (requiere ear-training)
-5. 🎯 Verificar Módulos - Comprobar disponibilidad de ear-training
+### Tests de Audio Capture (~1 minuto c/u)
+1. ⌨️ Keyboard Capture - 10 segundos (5 taps)
+2. 🎤 Microphone Capture + Calibración - 7 segundos (2s calibración + 5s captura)
 
-### Gamificación (múltiples)
-- Ver estadísticas, logros, nivel
-- Trackear eventos (requiere init de app)
-- Exportar/importar datos
-- Gestión de usuario único
+### Tests de Ejercicios (requieren App4)
+1. ⏱️ Count-In - 2-4 segundos (visual + audio)
+2. 🎼 Fraction Recognition - 2-3 minutos (10 preguntas automáticas)
+
+### Tests de Gamificación (instantáneos)
+1. 📊 Ver Estadísticas y Progreso
+2. 💾 Ver Intentos de Ejercicios
+3. 👤 Gestión de Usuario
+4. 💾 Backup y Restore
+
+### Workflows Completos
+1. 🎯 Workflow Básico - ~10 minutos (todos los tests menos Fraction Recognition)
+2. 🎼 Workflow con Fraction Recognition - ~13 minutos (solo en App4)
 
 ---
 
-**💡 Tip:** Puedes copiar y pegar directamente estos comandos en la consola del navegador.
+**💡 Tip Final:** Empieza con el "Workflow de Testing Completo" para probar todas las funcionalidades de forma ordenada.
 
 **📚 Documentación completa:**
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Guía de desarrollo
@@ -723,4 +858,4 @@ const { ExerciseRunner } = await import('../../libs/ear-training/index.js');
 
 ---
 
-*Última actualización: 2025-10-15 - Versión Offline Simplificada*
+*Última actualización: 2025-10-15 - Versión Optimizada para Testing Workflow*
