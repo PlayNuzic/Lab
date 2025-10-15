@@ -65,10 +65,10 @@ window.__GAMIFICATION.getAchievementProgress('combo_master')
 
 ```javascript
 // Test universal - detecta la app actual automáticamente
-const currentApp = window.location.pathname.includes('app2') ? 'app2' :
-                   window.location.pathname.includes('app3') ? 'app3' :
-                   window.location.pathname.includes('app4') ? 'app4' :
-                   window.location.pathname.includes('app5') ? 'app5' : 'app2';
+const currentApp = window.location.pathname.includes('App2') ? 'app2' :
+                   window.location.pathname.includes('App3') ? 'app3' :
+                   window.location.pathname.includes('App4') ? 'app4' :
+                   window.location.pathname.includes('App5') ? 'app5' : 'app2';
 
 // Inicializar para la app detectada
 window.__GAMIFICATION.init(currentApp);
@@ -97,18 +97,18 @@ console.log(`✅ Acción '${action}' trackeada para ${currentApp}:`, result);
 
 **Acciones válidas por app:**
 ```javascript
-// App2 - Entrenamiento Rítmico
+// App2 - Sucesión de Pulsos
 // Acciones: play_clicked, tap_tempo_used, loop_enabled,
 //          parameter_changed, randomize_used, pulse_selected
 
-// App3 - Generador de Acordes
+// App3 - Fracciones Temporales
 // Acciones: fraction_created, parameter_changed, complexity_changed
 
-// App4 - Herramienta de Melodías
+// App4 - Pulsos Fraccionados
 // Acciones: fraction_created, pulse_pattern_created,
 //          parameter_changed, cycle_activated
 
-// App5 - Intervalos
+// App5 - Pulsaciones
 // Acciones: play_started, interval_created,
 //          pattern_modified, parameter_changed
 

@@ -255,11 +255,15 @@ export class MicrophoneCapture {
     // Recoger muestras durante 'duration' ms
     const interval = setInterval(() => {
       const level = this.meter.getValue();
-      samples.push(level);
+
+      // Solo añadir muestras válidas (ignorar -Infinity o NaN)
+      if (isFinite(level)) {
+        samples.push(level);
+      }
 
       // Mostrar progreso
       const elapsed = performance.now() - startTime;
-      if (samples.length % 10 === 0) { // Cada 500ms
+      if (samples.length % 10 === 0 && samples.length > 0) { // Cada 500ms
         const progress = Math.round((elapsed / duration) * 100);
         console.log(`   Calibrando... ${progress}%`);
       }
@@ -270,7 +274,9 @@ export class MicrophoneCapture {
     clearInterval(interval);
 
     if (samples.length === 0) {
-      console.error('❌ No se pudieron recoger muestras');
+      console.error('❌ No se pudieron recoger muestras válidas');
+      console.error('   El micrófono puede estar silenciado o no está funcionando');
+      console.error('   Usando threshold por defecto');
       return this.config.threshold;
     }
 
@@ -282,6 +288,13 @@ export class MicrophoneCapture {
     // Calcular desviación estándar
     const variance = samples.reduce((acc, val) => acc + Math.pow(val - avgNoise, 2), 0) / samples.length;
     const stdDev = Math.sqrt(variance);
+
+    // Verificar que los valores calculados son válidos
+    if (!isFinite(avgNoise) || !isFinite(maxNoise) || !isFinite(stdDev)) {
+      console.error('❌ Valores de calibración inválidos');
+      console.error('   Usando threshold por defecto');
+      return this.config.threshold;
+    }
 
     // Establecer threshold = máximo ruido + margen dinámico
     // El margen depende de la variabilidad del ruido
