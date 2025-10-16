@@ -1956,3 +1956,33 @@ if (selectedToggleBtn) {
 import('./gamification-adapter.js').then(module => {
   module.initApp5Gamification();
 });
+
+// Initialize new game system after DOM is ready
+async function initializeGameSystem() {
+  const { GameManager } = await import('./game/game-manager.js');
+  const gameManager = new GameManager();
+
+  // Set references for game manager
+  window.pulseSeqController = pulseSeqController;
+  window.synth = audio; // Audio system reference for pattern playback
+  window.gameForceKeyboard = false; // Default to microphone mode
+
+  // Initialize after a small delay to ensure event listeners are ready
+  setTimeout(() => {
+    gameManager.init();
+    console.log('🎮 Game system initialized');
+  }, 100);
+
+  // Export for console debugging
+  window.gameManager = gameManager;
+}
+
+// Initialize game system
+initializeGameSystem();
+
+// Load debug helpers in development
+import('./debug-game.js').then(() => {
+  console.log('🛠️ Game debug helpers loaded. Use window.debugGame for testing.');
+}).catch(err => {
+  console.warn('Debug helpers not loaded:', err);
+});

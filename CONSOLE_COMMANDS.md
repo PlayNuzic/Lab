@@ -820,6 +820,242 @@ const mic = await createMicrophoneCapture({ threshold: -20, cooldown: 200 });
 
 ---
 
+## 🎮 Comandos del Juego de App5
+
+<details>
+<summary>🎮 Sistema de Juego UI (App5)</summary>
+
+### 1. Configuración del Modo de Entrada
+
+```javascript
+// Forzar modo teclado (útil en ambientes ruidosos)
+window.gameForceKeyboard = true;
+
+// Volver al modo micrófono (por defecto)
+window.gameForceKeyboard = false;
+
+// Verificar modo actual
+console.log('Modo:', window.gameForceKeyboard ? 'Teclado' : 'Micrófono');
+```
+
+### 2. Acceso al Game Manager
+
+```javascript
+// Acceder al manager del juego
+const gm = window.gameManager;
+
+// Ver estado actual del juego
+console.log(gm.gameState.getStatsSummary());
+
+// Ver nivel actual
+console.log('Nivel actual:', gm.gameState.currentLevel);
+
+// Ver niveles completados
+console.log('Completados:', gm.gameState.completedLevels);
+```
+
+### 3. Iniciar el Juego Manualmente
+
+```javascript
+// Simular click en botón de gamificación
+document.getElementById('gamificationToggleBtn')?.click();
+
+// O directamente
+window.gameManager.startGame();
+
+// Cargar un nivel específico
+window.gameManager.loadLevel(1); // Niveles 1-4
+```
+
+### 4. Control del Personaje
+
+```javascript
+// Cambiar mood del personaje
+window.gameManager.ui.character.setMood('happy');
+window.gameManager.ui.character.setMood('sad');
+window.gameManager.ui.character.setMood('thinking');
+window.gameManager.ui.character.setMood('celebrating');
+window.gameManager.ui.character.setMood('confused');
+window.gameManager.ui.character.setMood('focused');
+window.gameManager.ui.character.setMood('neutral');
+
+// Animar personaje
+window.gameManager.ui.character.animate('bounce');
+window.gameManager.ui.character.animate('shake');
+window.gameManager.ui.character.animate('pulse');
+```
+
+### 5. Gestión del Estado del Juego
+
+```javascript
+// Ver estadísticas completas
+const stats = window.gameManager.gameState.getStatsSummary();
+console.table({
+  'Progreso': stats.progress + '%',
+  'Nivel Actual': stats.currentLevel,
+  'Niveles Completados': stats.completedLevels,
+  'Intentos Totales': stats.totalAttempts,
+  'Tasa de Éxito': stats.successRate.toFixed(1) + '%',
+  'Precisión Media': stats.averageAccuracy.toFixed(1) + '%',
+  'Racha Actual': stats.currentStreak,
+  'Mejor Racha': stats.bestStreak,
+  'Logros': stats.achievementsUnlocked + '/' + stats.totalAchievements
+});
+
+// Resetear progreso (mantiene estadísticas)
+window.gameManager.gameState.reset(true);
+
+// Resetear todo
+window.gameManager.gameState.reset(false);
+
+// Exportar datos del juego
+const backup = window.gameManager.gameState.export();
+console.log('Backup creado:', backup);
+
+// Importar datos del juego
+window.gameManager.gameState.import(backup);
+```
+
+### 6. Logros y Achievements
+
+```javascript
+// Ver todos los logros
+const achievements = window.gameManager.gameState.achievements;
+console.table(achievements);
+
+// Ver descripción de logros
+const achievementInfo = {
+  firstStep: 'Completar nivel 1',
+  evenOdd: 'Completar niveles 1 y 2',
+  adaptive: 'Completar nivel 3 (dinámico)',
+  freeSpirit: 'Completar nivel 4 (libre)',
+  perfectScore: 'Obtener 100% de precisión',
+  streakMaster: 'Conseguir 5 victorias seguidas',
+  speedDemon: 'Completar un nivel en menos de 10 segundos',
+  persistent: 'Jugar 10 partidas',
+  expert: 'Completar todos los niveles'
+};
+console.table(achievementInfo);
+```
+
+### 7. Control de Pulse Sequence
+
+```javascript
+// Ver texto actual del pulse sequence
+const text = window.pulseSeqController.getText();
+console.log('Pulse sequence:', text);
+
+// Establecer un patrón específico
+window.pulseSeqController.setText('P ( 1 3 5 ) Lg = 8');
+
+// Obtener selección sanitizada
+const lg = 8;
+const selection = '1 2 3 4 5';
+const sanitized = window.gameManager.sanitizePulseSequence(selection, lg);
+console.log('Sanitizado:', sanitized);
+```
+
+### 8. Tests de Niveles
+
+```javascript
+// Test rápido del nivel 1
+async function testLevel1() {
+  window.gameManager.loadLevel(1);
+  // Establecer solución correcta
+  window.pulseSeqController.setText('P ( 1 3 ) Lg = 4');
+  // Validar
+  await window.gameManager.validatePhase1();
+}
+testLevel1();
+
+// Test rápido del nivel 2
+async function testLevel2() {
+  window.gameManager.loadLevel(2);
+  window.pulseSeqController.setText('P ( 2 4 ) Lg = 4');
+  await window.gameManager.validatePhase1();
+}
+testLevel2();
+
+// Ver configuración de nivel dinámico
+import('./game/levels-config.js').then(module => {
+  const level3 = module.getLevel(3);
+  console.log('Nivel 3 generado:', level3);
+});
+```
+
+### 9. Depuración de Audio Capture
+
+```javascript
+// Test de captura con teclado
+async function testKeyboardCapture() {
+  window.gameForceKeyboard = true;
+  const { createKeyboardCapture } = await import('./../../libs/gamification/index.js');
+  const capture = createKeyboardCapture();
+
+  console.log('Presiona ESPACIO 5 veces...');
+  const promise = capture.startCapture();
+
+  setTimeout(async () => {
+    const beats = await capture.stopCapture();
+    console.log('Beats capturados:', beats);
+  }, 5000);
+}
+testKeyboardCapture();
+
+// Test de calibración de micrófono
+async function testMicCalibration() {
+  window.gameForceKeyboard = false;
+  const { createMicrophoneCapture } = await import('./../../libs/gamification/index.js');
+  const mic = createMicrophoneCapture();
+
+  console.log('Calibrando micrófono...');
+  await mic.calibrateNoiseFloor(2000);
+  console.log('Calibración completa');
+}
+testMicCalibration();
+```
+
+### 10. Workflow de Testing Completo del Juego
+
+```javascript
+// Test completo del flujo del juego
+async function testGameFlow() {
+  // 1. Configurar modo teclado
+  window.gameForceKeyboard = true;
+  console.log('✅ Modo teclado activado');
+
+  // 2. Iniciar juego
+  window.gameManager.startGame();
+  console.log('✅ Juego iniciado');
+
+  // 3. Cargar nivel 1
+  await new Promise(r => setTimeout(r, 1000));
+  window.gameManager.loadLevel(1);
+  console.log('✅ Nivel 1 cargado');
+
+  // 4. Establecer solución
+  await new Promise(r => setTimeout(r, 500));
+  window.pulseSeqController.setText('P ( 1 3 ) Lg = 4');
+  console.log('✅ Solución establecida');
+
+  // 5. Validar fase 1
+  await new Promise(r => setTimeout(r, 500));
+  await window.gameManager.validatePhase1();
+  console.log('✅ Fase 1 validada');
+
+  // 6. Ver estadísticas
+  const stats = window.gameManager.gameState.getStatsSummary();
+  console.log('📊 Estadísticas:', stats);
+
+  console.log('✅ Test completo finalizado');
+}
+testGameFlow();
+```
+
+</details>
+
+---
+
 ## 🎯 Resumen de Tests Disponibles
 
 ### Tests Rápidos (< 1 minuto)
