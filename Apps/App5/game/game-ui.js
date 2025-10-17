@@ -3,7 +3,7 @@
  * Handles popup cards, bubble hints, and UI interactions
  */
 
-import { Character } from './character.js';
+// import { Character } from './character.js'; // DESACTIVADO: Personaje a implementar después
 import { getLevel, getLevelHint, getHintPositions } from './levels-config.js';
 import { GameState } from './game-state.js';
 
@@ -15,14 +15,14 @@ export class GameUI {
   constructor() {
     this.container = null;
     this.popup = null;
-    this.character = new Character();
+    // this.character = new Character(); // DESACTIVADO: Personaje a implementar después
     this.bubble = null;
     this.isVisible = false;
     this.callbacks = {};
     this.gameState = new GameState();
-    this.helpTimer = null;
-    this.helpTimeout = 5000; // 5 seconds for help
-    this.countdownInterval = null;
+    // this.helpTimer = null; // DESACTIVADO: Sin timers de ayuda por ahora
+    // this.helpTimeout = 5000; // 5 seconds for help
+    // this.countdownInterval = null;
   }
 
   /**
@@ -65,12 +65,12 @@ export class GameUI {
     // Close button handler
     header.querySelector('.game-close-btn').addEventListener('click', () => this.hide());
 
-    // Character area
-    const characterArea = document.createElement('div');
-    characterArea.className = 'game-character-area';
-    const characterElement = this.character.createElement('neutral');
-    characterArea.appendChild(characterElement);
-    this.popup.appendChild(characterArea);
+    // Character area - DESACTIVADO
+    // const characterArea = document.createElement('div');
+    // characterArea.className = 'game-character-area';
+    // const characterElement = this.character.createElement('neutral');
+    // characterArea.appendChild(characterElement);
+    // this.popup.appendChild(characterArea);
 
     // Message area with bubble
     const messageArea = document.createElement('div');
@@ -127,8 +127,8 @@ export class GameUI {
       this.popup.classList.remove('game-popup-enter');
     }, 500);
 
-    // Start help timer
-    this.startHelpTimer(levelNumber);
+    // Start help timer - DESACTIVADO
+    // this.startHelpTimer(levelNumber);
 
     // Trigger callback
     if (this.callbacks.onShow) {
@@ -142,8 +142,8 @@ export class GameUI {
   hide() {
     if (!this.isVisible) return;
 
-    // Clear timers
-    this.clearHelpTimer();
+    // Clear timers - DESACTIVADO
+    // this.clearHelpTimer();
 
     // Animate exit
     this.popup.classList.add('game-popup-exit');
@@ -273,8 +273,8 @@ export class GameUI {
     this.bubble.textContent = message;
     this.bubble.classList.add('game-bubble-show');
 
-    // Update character mood
-    this.character.setMood(mood);
+    // Update character mood - DESACTIVADO
+    // this.character.setMood(mood);
 
     // Auto-hide after delay
     setTimeout(() => {
@@ -340,7 +340,7 @@ export class GameUI {
 
     // Show hint message
     this.showMessage(hint, 'happy');
-    this.character.animate('bounce');
+    // this.character.animate('bounce'); // DESACTIVADO
 
     // Flash hint positions
     if (positions.length > 0 && this.callbacks.onShowHint) {
@@ -358,7 +358,7 @@ export class GameUI {
    * Validate Phase 1 selection
    */
   validatePhase1() {
-    this.clearHelpTimer();
+    // this.clearHelpTimer(); // DESACTIVADO
     if (this.callbacks.onValidatePhase1) {
       this.callbacks.onValidatePhase1();
     }
@@ -368,7 +368,7 @@ export class GameUI {
    * Skip Phase 1
    */
   skipPhase1() {
-    this.clearHelpTimer();
+    // this.clearHelpTimer(); // DESACTIVADO
     if (this.callbacks.onSkipPhase1) {
       this.callbacks.onSkipPhase1();
     }
@@ -389,8 +389,8 @@ export class GameUI {
     const buttons = this.popup.querySelectorAll('.game-btn');
     buttons.forEach(btn => btn.disabled = true);
 
-    // Character mood
-    this.character.setMood('focused');
+    // Character mood - DESACTIVADO
+    // this.character.setMood('focused');
 
     if (this.callbacks.onStartPhase2) {
       this.callbacks.onStartPhase2(config);
@@ -592,9 +592,9 @@ export class GameUI {
    * Reset UI to initial state
    */
   reset() {
-    this.clearHelpTimer();
-    this.character.reset();
+    // this.clearHelpTimer(); // DESACTIVADO: Sin timers
+    // this.character.reset(); // DESACTIVADO
     this.showMessage('¡Listo para jugar!', 'neutral');
-    this.updateProgress();
+    // this.updateProgress(); // Ya desactivado antes
   }
 }

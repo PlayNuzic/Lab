@@ -110,7 +110,34 @@ export class GameManager {
     this.setupEventCapture();
     console.log('✅ Event capture setup');
 
+    // Setup event listeners for real app interactions
+    this.setupEventListeners();
+    console.log('✅ Event listeners setup');
+
     console.log('✅ GameManager initialized successfully');
+  }
+
+  /**
+   * Setup event listeners for real app interactions (Enter key, etc.)
+   */
+  setupEventListeners() {
+    // Get the editable element for pulseSeq
+    const editEl = this.pulseSeqController?.getEditElement();
+
+    if (editEl) {
+      // Listen for Enter key in Phase 1
+      editEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && this.currentPhase === 1 && this.isGameActive) {
+          e.preventDefault();
+          console.log('📝 Enter detected in Phase 1 - auto-validating...');
+          this.autoValidatePhase1();
+        }
+      });
+
+      console.log('✅ Enter listener attached to pulseSeq');
+    } else {
+      console.warn('⚠️ pulseSeqController.getEditElement() not available yet');
+    }
   }
 
   /**
@@ -336,6 +363,99 @@ export class GameManager {
   }
 
   /**
+   * Auto-validate Phase 1 when user presses Enter
+   * Uses real data from pulse sequence controller
+   */
+  async autoValidatePhase1() {
+    console.log('🔍 Auto-validating Phase 1 using real app data');
+
+    if (!this.pulseSeqController) {
+      console.error('No pulse sequence controller');
+      return;
+    }
+
+    // Get current text from REAL pulse sequence input
+    const text = this.pulseSeqController.getText();
+    console.log('📝 Current pulseSeq text:', text);
+
+    // Extract Lg from text
+    const lgMatch = text.match(/Lg\s*=\s*(\d+)/);
+    const lg = lgMatch ? parseInt(lgMatch[1]) : this.currentLevel.lg || 4;
+
+    // Extract positions
+    const pulseMatch = text.match(/P\s*\((.*?)\)/);
+    if (!pulseMatch) {
+      console.warn('⚠️ No P(...) found in text');
+      return;
+    }
+
+    const selectedText = pulseMatch[1].trim();
+    console.log('📍 Selected text:', selectedText);
+
+    // Use REAL sanitization from the app
+    const sanitized = sanitizePulseSequence(selectedText, lg);
+    console.log('✨ Sanitized:', sanitized);
+
+    if (!sanitized || sanitized.length === 0) {
+      this.ui.showMessage('Formato inválido. Intenta de nuevo.', 'sad');
+      return;
+    }
+
+    // Convert to array of numbers
+    const positions = sanitized.split(/\s+/).map(Number).filter(n => !isNaN(n));
+    console.log('🎯 Positions:', positions);
+
+    // Validate using level's validation function
+    const isCorrect = this.currentLevel.validate(positions);
+    console.log('✅ Is correct?', isCorrect);
+
+    if (isCorrect) {
+      // Store pattern for phase 2
+      this.playbackPatterns = positions;
+
+      // Show success and play pattern
+      this.showSuccessAndPlayPattern();
+    } else {
+      // Show retry popup
+      this.ui.showMessage('Intenta de nuevo', 'sad');
+      // TODO: Add retry/quit buttons
+    }
+  }
+
+  /**
+   * Show success message and play pattern using REAL app play button
+   */
+  showSuccessAndPlayPattern() {
+    console.log('🎉 Showing success and playing pattern');
+
+    // Show success popup
+    this.ui.showMessage('¡Correcto! Observa el patrón...');
+
+    // Wait a moment, then trigger REAL play button
+    setTimeout(() => {
+      const playBtn = document.querySelector('.play');
+      if (playBtn) {
+        console.log('▶️ Clicking REAL play button');
+        playBtn.click();
+      } else {
+        console.error('❌ Play button not found');
+      }
+    }, 1000);
+
+    // Calculate duration of 2 cycles
+    const beatMs = (60 / this.currentLevel.bpm) * 1000; // ms per beat
+    const cycleMs = beatMs * this.currentLevel.lg; // ms per cycle
+    const totalMs = cycleMs * 2 + 500; // 2 cycles + margin
+
+    console.log(`⏱️  Waiting ${totalMs}ms (2 cycles at ${this.currentLevel.bpm} BPM, Lg=${this.currentLevel.lg})`);
+
+    // After 2 cycles, start Phase 2
+    setTimeout(() => {
+      this.startPhase2();
+    }, totalMs);
+  }
+
+  /**
    * Validate Phase 1 selection
    */
   async validatePhase1() {
@@ -364,7 +484,7 @@ export class GameManager {
 
     if (!sanitized || sanitized.length === 0) {
       this.ui.showMessage('Selección inválida. Intenta de nuevo.', 'sad');
-      this.ui.character.animate('shake');
+      // this.ui.character.animate('shake'); // DESACTIVADO
       return;
     }
 
@@ -377,7 +497,7 @@ export class GameManager {
     if (isCorrect) {
       const phase1Time = Date.now() - this.phase1StartTime;
       this.ui.showMessage('¡Correcto! Preparando Fase 2...', 'happy');
-      this.ui.character.animate('bounce');
+      // this.ui.character.animate('bounce'); // DESACTIVADO
 
       // Store pattern for phase 2
       this.playbackPatterns = positions;
@@ -388,7 +508,7 @@ export class GameManager {
       }, 1500);
     } else {
       this.ui.showMessage('Incorrecto. Revisa el requisito.', 'sad');
-      this.ui.character.animate('shake');
+      // this.ui.character.animate('shake'); // DESACTIVADO
 
       // Show hint after wrong attempt
       setTimeout(() => {
@@ -433,7 +553,7 @@ export class GameManager {
       this.pulseSeqController.setText(hintText + lgPart);
 
       // Flash the text input
-      const input = this.pulseSeqController.getElement();
+      const input = this.pulseSeqController.getEditElement();
       if (input) {
         input.classList.add('hint-flash');
         setTimeout(() => {
@@ -679,7 +799,7 @@ export class GameManager {
       // All levels complete, show level selector
       this.ui.showLevelSelector();
       this.ui.showMessage('¡Has completado todos los niveles!', 'celebrating');
-      this.ui.character.animate('bounce');
+      // this.ui.character.animate('bounce'); // DESACTIVADO
     }
   }
 
