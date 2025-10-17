@@ -1966,6 +1966,12 @@ async function initializeGameSystem() {
   window.pulseSeqController = pulseSeqController;
   window.gameForceKeyboard = false; // Default to microphone mode
 
+  // Expose input controls for game manager
+  window.inputLg = inputLg;
+  window.inputV = inputV;
+  window.setValue = setValue;
+  window.handleInput = handleInput;
+
   // Set synth reference getter that returns current audio instance
   Object.defineProperty(window, 'synth', {
     get() {

@@ -292,6 +292,45 @@ export class GameManager {
   }
 
   /**
+   * Set level parameters in the app (Lg, BPM, pulseSeq)
+   * @param {Object} level - Level configuration
+   */
+  setLevelParameters(level) {
+    console.log(`📝 Setting level parameters: Lg=${level.lg}, BPM=${level.bpm}`);
+
+    // Get input elements from window (exposed by main.js)
+    const inputLg = window.inputLg;
+    const inputV = window.inputV;
+    const setValue = window.setValue;
+    const handleInput = window.handleInput;
+
+    if (!inputLg || !inputV || !setValue || !handleInput) {
+      console.warn('⚠️ Input controls not available yet');
+      return;
+    }
+
+    // Set Lg (longitud)
+    if (level.lg) {
+      setValue(inputLg, level.lg);
+      handleInput({ target: inputLg });
+      console.log(`✅ Lg set to ${level.lg}`);
+    }
+
+    // Set BPM (velocidad)
+    if (level.bpm) {
+      setValue(inputV, level.bpm);
+      handleInput({ target: inputV });
+      console.log(`✅ BPM set to ${level.bpm}`);
+    }
+
+    // Clear pulseSeq
+    if (this.pulseSeqController) {
+      this.pulseSeqController.setText('');
+      console.log('✅ PulseSeq cleared');
+    }
+  }
+
+  /**
    * Load a specific level
    * @param {number} levelNumber - Level to load
    */
@@ -304,6 +343,9 @@ export class GameManager {
     // Reset event counters for new level
     this.playStopCount = 0;
     this.cycleReproductionCount = 0;
+
+    // Set level parameters (Lg, BPM, pulseSeq)
+    this.setLevelParameters(this.currentLevel);
 
     // Update UI for level
     this.ui.show(levelNumber);

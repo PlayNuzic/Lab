@@ -124,7 +124,7 @@ export class GameUI {
     // Start Phase 1 button handler
     this.popup.querySelector('[data-action="start-phase1"]').addEventListener('click', () => {
       console.log('🎯 User clicked Continue - starting Phase 1');
-      this.hide(); // Ocultar popup
+      this.hidePopup(); // Ocultar popup SIN terminar el juego
       document.body.classList.add('game-phase-1'); // Activar fase 1
 
       if (this.callbacks.onStartPhase1) {
@@ -149,7 +149,25 @@ export class GameUI {
   }
 
   /**
-   * Hide game UI - ACTUALIZADO
+   * Hide popup visually but keep game active
+   * Used when transitioning between phases
+   */
+  hidePopup() {
+    if (!this.container) return;
+
+    // Animate exit
+    this.popup.classList.add('game-popup-exit');
+    setTimeout(() => {
+      this.container.style.display = 'none';
+      this.popup.classList.remove('game-popup-exit');
+      // NOTE: isVisible stays true, game remains active
+      // NOTE: phase classes remain active
+    }, 300);
+  }
+
+  /**
+   * Hide game UI completely and end game
+   * Used when clicking X button
    */
   hide() {
     if (!this.isVisible) return;
@@ -164,7 +182,7 @@ export class GameUI {
       // Remove ALL game classes from body
       document.body.classList.remove('game-active', 'game-phase-1', 'game-phase-2');
 
-      // Trigger callback
+      // Trigger callback - this will end the game
       if (this.callbacks.onHide) {
         this.callbacks.onHide();
       }
