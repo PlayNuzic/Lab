@@ -253,63 +253,76 @@ transform: translate(-50%, calc(-50% - 50px)) !important; /* was -40px */
    Game UI Styles
    ========================================== */
 
-/* Main container and backdrop */
+/* Main container - NO BLOQUEA NADA */
 .game-container {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 9999;
+  z-index: 100; /* Menor que antes, no bloquea */
+  pointer-events: none; /* No bloquea por defecto */
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.game-backdrop {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
-  display: flex;
-  justify-content: center;
   align-items: flex-start;
+  justify-content: center;
   padding-top: 80px;
-  pointer-events: auto;
 }
 
-/* Allow interaction with specific elements during game */
-body.game-active .pulse-seq-intervals,
-body.game-active .it-svg-container,
-body.game-active .play,
-body.game-active .stop {
-  pointer-events: auto;
-  position: relative;
-  z-index: 1001;
+/* Backdrop ELIMINADO - no se usa */
+.game-backdrop {
+  display: none !important;
 }
 
-/* Disable specific buttons during game */
-body.game-active .loop,
-body.game-active .random,
-body.game-active .reset,
-body.game-active .tap {
+/* Fase 1: Deshabilita botones, permite PulseSeq y Timeline */
+body.game-phase-1 .play,
+body.game-phase-1 .loop,
+body.game-phase-1 .random,
+body.game-phase-1 .reset,
+body.game-phase-1 .tap {
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
-/* Popup card */
+body.game-phase-1 .pulse-seq-intervals,
+body.game-phase-1 .it-svg-container {
+  /* Permanecen interactivos */
+}
+
+/* Fase 2: Timeline VISIBLE pero no interactivo */
+body.game-phase-2 .pulse-seq-intervals,
+body.game-phase-2 .play,
+body.game-phase-2 .loop,
+body.game-phase-2 .random,
+body.game-phase-2 .reset,
+body.game-phase-2 .tap,
+body.game-phase-2 header {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+body.game-phase-2 .it-svg-container {
+  /* Timeline VISIBLE y animado */
+  pointer-events: none;
+  opacity: 1 !important; /* Completamente visible */
+}
+
+body.game-phase-2 .game-popup,
+body.game-phase-2 .game-popup * {
+  pointer-events: auto; /* Popup sigue clickeable */
+}
+
+/* Popup card - Horizontal y pequeño */
 .game-popup {
   position: relative;
   background: var(--background-color);
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  max-width: 200px;
-  width: 100%;
-  padding: 16px;
+  border: 2px solid var(--selection-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  min-width: 300px;
+  max-width: 500px;
+  width: auto;
+  padding: 16px 24px;
+  pointer-events: auto; /* Solo el popup es clickeable */
   transform-origin: center top;
   animation: popupEnter 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }

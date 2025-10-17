@@ -427,30 +427,34 @@ export class GameManager {
    */
   showSuccessAndPlayPattern() {
     console.log('🎉 Showing success and playing pattern');
+    console.log(`📊 Pattern: P(${this.playbackPatterns.join(' ')}) Lg=${this.currentLevel.lg} BPM=${this.currentLevel.bpm}`);
 
-    // Show success popup
-    this.ui.showMessage('¡Correcto! Observa el patrón...');
+    // Hide popup briefly
+    this.ui.hide();
 
-    // Wait a moment, then trigger REAL play button
+    // Wait 500ms, then click REAL play button
     setTimeout(() => {
       const playBtn = document.querySelector('.play');
       if (playBtn) {
         console.log('▶️ Clicking REAL play button');
         playBtn.click();
       } else {
-        console.error('❌ Play button not found');
+        console.error('❌ Play button not found - cannot reproduce pattern');
+        // Show error and retry
+        return;
       }
-    }, 1000);
+    }, 500);
 
     // Calculate duration of 2 cycles
     const beatMs = (60 / this.currentLevel.bpm) * 1000; // ms per beat
     const cycleMs = beatMs * this.currentLevel.lg; // ms per cycle
-    const totalMs = cycleMs * 2 + 500; // 2 cycles + margin
+    const totalMs = cycleMs * 2 + 1000; // 2 cycles + 1s margin
 
-    console.log(`⏱️  Waiting ${totalMs}ms (2 cycles at ${this.currentLevel.bpm} BPM, Lg=${this.currentLevel.lg})`);
+    console.log(`⏱️  Waiting ${totalMs}ms (2 cycles: ${cycleMs}ms each at ${this.currentLevel.bpm} BPM, Lg=${this.currentLevel.lg})`);
 
     // After 2 cycles, start Phase 2
     setTimeout(() => {
+      console.log('🎵 Pattern playback completed, starting Phase 2');
       this.startPhase2();
     }, totalMs);
   }
@@ -615,15 +619,15 @@ export class GameManager {
       if (window.gameForceKeyboard) {
         console.log('Using keyboard capture mode');
         this.audioCapture = createKeyboardCapture();
-        this.ui.showMessage('Usa la barra espaciadora para marcar el ritmo', 'focused');
+        console.log('⌨️ Keyboard capture ready');
       } else {
         console.log('Using microphone capture mode');
-        this.audioCapture = createMicrophoneCapture();
+        this.audioCapture = await createMicrophoneCapture(); // FIX: Agregar await
 
         // Calibrate noise floor
-        this.ui.showMessage('Calibrando micrófono...', 'thinking');
+        console.log('🎤 Calibrando micrófono...');
         await this.audioCapture.calibrateNoiseFloor(2000);
-        this.ui.showMessage('¡Listo! El patrón comenzará en breve', 'happy');
+        console.log('✅ Calibración completada');
       }
 
       // Calculate expected timestamps from pattern

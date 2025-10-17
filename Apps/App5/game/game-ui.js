@@ -91,7 +91,7 @@ export class GameUI {
   }
 
   /**
-   * Show game UI with level
+   * Show game UI with level - SIMPLIFICADO
    * @param {number} levelNumber - Level to display
    */
   show(levelNumber = 1) {
@@ -102,33 +102,45 @@ export class GameUI {
     const level = getLevel(levelNumber);
     this.currentLevel = level;
 
-    // Update level title
-    this.popup.querySelector('.game-level-title').textContent = `Nivel ${levelNumber}`;
+    // Popup simple: requisito + botón continuar
+    this.popup.innerHTML = `
+      <div class="game-popup-content">
+        <button class="game-close-btn" title="Cerrar">&times;</button>
+        <h3>Nivel ${levelNumber}</h3>
+        <p class="game-requirement">${level.requirement}</p>
+        <div class="game-button-group">
+          <button class="game-btn game-btn-primary" data-action="start-phase1">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M5 3l6 5-6 5V3z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
 
-    // Show requirement in bubble
-    this.showMessage(level.requirement, 'thinking');
+    // Close button handler
+    this.popup.querySelector('.game-close-btn').addEventListener('click', () => this.hide());
 
-    // Update progress
-    this.updateProgress();
+    // Start Phase 1 button handler
+    this.popup.querySelector('[data-action="start-phase1"]').addEventListener('click', () => {
+      console.log('🎯 User clicked Continue - starting Phase 1');
+      this.hide(); // Ocultar popup
+      document.body.classList.add('game-phase-1'); // Activar fase 1
 
-    // Show phase 1 buttons
-    this.showPhase1UI(level);
+      if (this.callbacks.onStartPhase1) {
+        this.callbacks.onStartPhase1();
+      }
+    });
 
     // Show container
     this.container.style.display = 'flex';
     this.isVisible = true;
-
-    // Add game-active class to body for selective overlay
-    document.body.classList.add('game-active');
 
     // Animate entrance
     this.popup.classList.add('game-popup-enter');
     setTimeout(() => {
       this.popup.classList.remove('game-popup-enter');
     }, 500);
-
-    // Start help timer - DESACTIVADO
-    // this.startHelpTimer(levelNumber);
 
     // Trigger callback
     if (this.callbacks.onShow) {
@@ -137,13 +149,10 @@ export class GameUI {
   }
 
   /**
-   * Hide game UI
+   * Hide game UI - ACTUALIZADO
    */
   hide() {
     if (!this.isVisible) return;
-
-    // Clear timers - DESACTIVADO
-    // this.clearHelpTimer();
 
     // Animate exit
     this.popup.classList.add('game-popup-exit');
@@ -152,8 +161,8 @@ export class GameUI {
       this.popup.classList.remove('game-popup-exit');
       this.isVisible = false;
 
-      // Remove game-active class from body
-      document.body.classList.remove('game-active');
+      // Remove ALL game classes from body
+      document.body.classList.remove('game-active', 'game-phase-1', 'game-phase-2');
 
       // Trigger callback
       if (this.callbacks.onHide) {
