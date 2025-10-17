@@ -1971,6 +1971,7 @@ async function initializeGameSystem() {
   window.inputV = inputV;
   window.setValue = setValue;
   window.handleInput = handleInput;
+  window.circularTimelineToggle = circularTimelineToggle;
 
   // Set synth reference getter that returns current audio instance
   Object.defineProperty(window, 'synth', {

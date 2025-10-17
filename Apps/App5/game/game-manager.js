@@ -369,39 +369,12 @@ export class GameManager {
 
     if (!this.pulseSeqController) {
       console.error('Pulse sequence controller not available');
-      this.ui.showMessage('Error: Controller no disponible', 'confused');
       return;
     }
 
-    // Set Lg value if needed
-    if (this.currentLevel.lg) {
-      // Get current text and update Lg portion
-      let currentText = this.pulseSeqController.getText();
-      const lgMatch = currentText.match(/Lg\s*=\s*(\d+)/);
-
-      if (lgMatch) {
-        // Replace existing Lg value
-        currentText = currentText.replace(/Lg\s*=\s*\d+/, `Lg = ${this.currentLevel.lg}`);
-      } else {
-        // Add Lg at the end
-        currentText = currentText.trim() + ` Lg = ${this.currentLevel.lg}`;
-      }
-
-      this.pulseSeqController.setText(currentText);
-    }
-
-    // Clear any existing selection for fresh start
-    const pulseMatch = this.pulseSeqController.getText().match(/P\s*\((.*?)\)/);
-    if (!pulseMatch || pulseMatch[1].trim() === '') {
-      // No existing selection, prompt user to select
-      this.ui.showMessage(this.currentLevel.requirement, 'thinking');
-    }
-
-    // For free mode (level 4), set default Lg
-    if (this.currentLevel.libre) {
-      const text = `P ( ) Lg = ${this.currentLevel.defaultLg || 8}`;
-      this.pulseSeqController.setText(text);
-    }
+    // Note: Lg and BPM already set by setLevelParameters() in loadLevel()
+    // Note: pulseSeq already cleared by setLevelParameters()
+    // Phase 1 is now ready for user input
   }
 
   /**
@@ -416,30 +389,24 @@ export class GameManager {
       return;
     }
 
-    // Get current text from REAL pulse sequence input
-    const text = this.pulseSeqController.getText();
+    // Get current text from REAL pulse sequence editable (contains ONLY numbers)
+    const text = this.pulseSeqController.getText().trim();
     console.log('📝 Current pulseSeq text:', text);
 
-    // Extract Lg from text
-    const lgMatch = text.match(/Lg\s*=\s*(\d+)/);
-    const lg = lgMatch ? parseInt(lgMatch[1]) : this.currentLevel.lg || 4;
-
-    // Extract positions
-    const pulseMatch = text.match(/P\s*\((.*?)\)/);
-    if (!pulseMatch) {
-      console.warn('⚠️ No P(...) found in text');
+    if (!text) {
+      console.warn('⚠️ No positions entered');
       return;
     }
 
-    const selectedText = pulseMatch[1].trim();
-    console.log('📍 Selected text:', selectedText);
-
-    // Use REAL sanitization from the app
-    const sanitized = sanitizePulseSequence(selectedText, lg);
+    // Text editable contains only numbers (e.g., "1 3")
+    // Use REAL sanitization from the app with level's Lg
+    const lg = this.currentLevel.lg || 4;
+    const sanitized = sanitizePulseSequence(text, lg);
     console.log('✨ Sanitized:', sanitized);
 
     if (!sanitized || sanitized.length === 0) {
-      this.ui.showMessage('Formato inválido. Intenta de nuevo.', 'sad');
+      console.warn('⚠️ Invalid format');
+      // TODO: Show error message to user
       return;
     }
 
@@ -458,45 +425,51 @@ export class GameManager {
       // Show success and play pattern
       this.showSuccessAndPlayPattern();
     } else {
-      // Show retry popup
-      this.ui.showMessage('Intenta de nuevo', 'sad');
-      // TODO: Add retry/quit buttons
+      console.warn('❌ Incorrect pattern');
+      // TODO: Show retry popup with buttons
     }
   }
 
   /**
-   * Show success message and play pattern using REAL app play button
+   * Show success message and play pattern in LINEAR mode (1 cycle)
    */
   showSuccessAndPlayPattern() {
-    console.log('🎉 Showing success and playing pattern');
+    console.log('🎉 Pattern correct - playing 1 cycle in LINEAR mode');
     console.log(`📊 Pattern: P(${this.playbackPatterns.join(' ')}) Lg=${this.currentLevel.lg} BPM=${this.currentLevel.bpm}`);
 
-    // Hide popup briefly
-    this.ui.hide();
+    // Hide popup
+    this.ui.hidePopup();
+
+    // Force LINEAR mode (circular = false)
+    const circularToggle = window.circularTimelineToggle;
+    if (circularToggle && circularToggle.checked) {
+      circularToggle.checked = false;
+      circularToggle.dispatchEvent(new Event('change'));
+      console.log('✅ Timeline set to LINEAR mode');
+    }
 
     // Wait 500ms, then click REAL play button
     setTimeout(() => {
       const playBtn = document.querySelector('.play');
       if (playBtn) {
-        console.log('▶️ Clicking REAL play button');
+        console.log('▶️ Playing pattern (1 cycle in linear mode)');
         playBtn.click();
       } else {
-        console.error('❌ Play button not found - cannot reproduce pattern');
-        // Show error and retry
+        console.error('❌ Play button not found');
         return;
       }
     }, 500);
 
-    // Calculate duration of 2 cycles
+    // Calculate duration of 1 cycle
     const beatMs = (60 / this.currentLevel.bpm) * 1000; // ms per beat
     const cycleMs = beatMs * this.currentLevel.lg; // ms per cycle
-    const totalMs = cycleMs * 2 + 1000; // 2 cycles + 1s margin
+    const totalMs = cycleMs + 1000; // 1 cycle + 1s margin
 
-    console.log(`⏱️  Waiting ${totalMs}ms (2 cycles: ${cycleMs}ms each at ${this.currentLevel.bpm} BPM, Lg=${this.currentLevel.lg})`);
+    console.log(`⏱️ Waiting ${totalMs}ms (1 cycle: ${cycleMs}ms at ${this.currentLevel.bpm} BPM, Lg=${this.currentLevel.lg})`);
 
-    // After 2 cycles, start Phase 2
+    // After 1 cycle, start Phase 2 (which will switch to circular)
     setTimeout(() => {
-      console.log('🎵 Pattern playback completed, starting Phase 2');
+      console.log('✅ 1 cycle completed, starting Phase 2');
       this.startPhase2();
     }, totalMs);
   }
@@ -636,6 +609,14 @@ export class GameManager {
     console.log('Starting Phase 2');
     this.currentPhase = 2;
     this.phase2StartTime = Date.now();
+
+    // Change timeline to CIRCULAR mode for Phase 2
+    const circularToggle = window.circularTimelineToggle;
+    if (circularToggle && !circularToggle.checked) {
+      circularToggle.checked = true;
+      circularToggle.dispatchEvent(new Event('change'));
+      console.log('✅ Timeline set to CIRCULAR mode for Phase 2');
+    }
 
     const config = {
       bpm: this.currentLevel.bpm || 90,

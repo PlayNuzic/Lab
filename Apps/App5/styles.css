@@ -283,9 +283,14 @@ body.game-phase-1 .tap {
   opacity: 0.4;
 }
 
-body.game-phase-1 .pulse-seq-intervals,
-body.game-phase-1 .it-svg-container {
-  /* Permanecen interactivos */
+body.game-phase-1 .pulse-seq-intervals {
+  /* Permanece interactivo para escribir */
+}
+
+body.game-phase-1 .it-svg-container,
+body.game-phase-1 .it-svg-container * {
+  /* Timeline NO clickeable en Fase 1 para evitar triggers indeseados */
+  pointer-events: none !important;
 }
 
 /* Fase 2: Timeline VISIBLE pero no interactivo */

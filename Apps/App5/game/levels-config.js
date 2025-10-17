@@ -84,7 +84,7 @@ export const LEVELS = {
   1: {
     lg: 4,
     bpm: 90,
-    requirement: "Selecciona 2 P impares (1 y 3)",
+    requirement: "Selecciona 2 P impares",
     solution: [1, 3], // Expected positions
     hint: "Las posiciones impares son la primera y tercera",
     requirementType: 'odd',
