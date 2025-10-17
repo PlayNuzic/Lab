@@ -191,6 +191,41 @@ export class GameManager {
     this.ui.on('onStartPhase2', (config) => this.startPhase2Recording(config));
     this.ui.on('onSkipPhase2', () => this.skipPhase2());
 
+    // Retry/Quit callbacks
+    this.ui.on('onRetry', () => {
+      console.log('🔄 Retry callback - clearing pulseSeq and refocusing');
+      // Clear pulseSeq and refocus
+      if (this.pulseSeqController) {
+        this.pulseSeqController.setText('');
+        setTimeout(() => {
+          const editEl = this.pulseSeqController.getEditElement();
+          if (editEl) {
+            editEl.focus();
+            // Force cursor visibility
+            const range = document.createRange();
+            const sel = window.getSelection();
+            if (editEl.childNodes.length > 0) {
+              range.selectNodeContents(editEl);
+              range.collapse(false);
+            } else {
+              const textNode = document.createTextNode('');
+              editEl.appendChild(textNode);
+              range.setStart(textNode, 0);
+              range.setEnd(textNode, 0);
+            }
+            sel.removeAllRanges();
+            sel.addRange(range);
+            console.log('✅ PulseSeq cleared and refocused for retry');
+          }
+        }, 100);
+      }
+    });
+
+    this.ui.on('onQuit', () => {
+      console.log('❌ Quit callback - ending game');
+      this.endGame();
+    });
+
     // Navigation callbacks
     this.ui.on('onSelectLevel', (level) => this.loadLevel(level));
     this.ui.on('onContinue', () => this.continueGame());
@@ -380,9 +415,24 @@ export class GameManager {
       const editEl = this.pulseSeqController.getEditElement();
       if (editEl) {
         editEl.focus();
+        // Force cursor visibility
+        const range = document.createRange();
+        const sel = window.getSelection();
+        if (editEl.childNodes.length > 0) {
+          range.selectNodeContents(editEl);
+          range.collapse(false);
+        } else {
+          // Empty element, create text node
+          const textNode = document.createTextNode('');
+          editEl.appendChild(textNode);
+          range.setStart(textNode, 0);
+          range.setEnd(textNode, 0);
+        }
+        sel.removeAllRanges();
+        sel.addRange(range);
         console.log('✅ PulseSeq editable focused - ready for input');
       }
-    }, 100); // Small delay to ensure DOM is ready after popup hides
+    }, 500); // Increase delay to 500ms to ensure popup animation completes
   }
 
   /**
@@ -434,7 +484,8 @@ export class GameManager {
       this.showSuccessAndPlayPattern();
     } else {
       console.warn('❌ Incorrect pattern');
-      // TODO: Show retry popup with buttons
+      // Show retry popup
+      this.ui.showRetryPopup();
     }
   }
 

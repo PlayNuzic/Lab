@@ -190,6 +190,55 @@ export class GameUI {
   }
 
   /**
+   * Show retry popup when pattern is incorrect
+   */
+  showRetryPopup() {
+    if (!this.container) {
+      this.init();
+    }
+
+    this.popup.innerHTML = `
+      <div class="game-popup-content">
+        <button class="game-close-btn" title="Cerrar">&times;</button>
+        <h3>Patrón incorrecto</h3>
+        <p>Intenta de nuevo o abandona el nivel</p>
+        <div class="game-button-group">
+          <button class="game-btn game-btn-primary" data-action="retry">
+            Reintentar
+          </button>
+          <button class="game-btn game-btn-secondary" data-action="quit">
+            Abandonar
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Handlers
+    this.popup.querySelector('.game-close-btn').addEventListener('click', () => this.hide());
+
+    this.popup.querySelector('[data-action="retry"]').addEventListener('click', () => {
+      console.log('🔄 User clicked Retry');
+      this.hidePopup();
+      document.body.classList.add('game-phase-1');
+      if (this.callbacks.onRetry) {
+        this.callbacks.onRetry();
+      }
+    });
+
+    this.popup.querySelector('[data-action="quit"]').addEventListener('click', () => {
+      console.log('❌ User clicked Quit');
+      if (this.callbacks.onQuit) {
+        this.callbacks.onQuit();
+      }
+      this.hide();
+    });
+
+    // Show
+    this.container.style.display = 'flex';
+    this.isVisible = true;
+  }
+
+  /**
    * Show Phase 1 UI (position selection)
    * @param {Object} level - Level configuration
    */
@@ -239,54 +288,37 @@ export class GameUI {
    * @param {Object} config - Phase 2 configuration
    */
   showPhase2UI(config) {
-    const actionArea = this.popup.querySelector('.game-action-area');
-    actionArea.innerHTML = '';
-
-    // Instructions
-    const instructions = document.createElement('p');
-    instructions.className = 'game-instructions';
+    // Recrear popup con estructura simplificada para Fase 2
     const inputMode = window.gameForceKeyboard ? 'teclado (Espacio)' : 'micrófono';
-    instructions.textContent = `Fase 2: Sincroniza el ritmo con ${inputMode}`;
-    actionArea.appendChild(instructions);
 
-    // Pattern info
-    const patternInfo = document.createElement('div');
-    patternInfo.className = 'game-pattern-info';
-    patternInfo.innerHTML = `
-      <p>El patrón se reproducirá <strong>2 veces</strong></p>
-      <p>BPM: <strong>${config.bpm}</strong></p>
+    this.popup.innerHTML = `
+      <div class="game-popup-content">
+        <button class="game-close-btn" title="Cerrar">&times;</button>
+        <h3>Fase 2</h3>
+        <p>Sincroniza el ritmo con ${inputMode}</p>
+        <p>El patrón se reproducirá <strong>2 veces</strong> - BPM: <strong>${config.bpm}</strong></p>
+        <div class="game-button-group">
+          <button class="game-btn game-btn-primary" data-action="start-phase2">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M5 3l6 5-6 5V3z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     `;
-    actionArea.appendChild(patternInfo);
 
-    // Recording indicator
-    const recordingIndicator = document.createElement('div');
-    recordingIndicator.className = 'game-recording-indicator';
-    recordingIndicator.style.display = 'none';
-    recordingIndicator.innerHTML = `
-      <span class="recording-dot"></span>
-      <span>Grabando...</span>
-    `;
-    actionArea.appendChild(recordingIndicator);
+    // Attach listeners
+    this.popup.querySelector('.game-close-btn').addEventListener('click', () => this.hide());
+    this.popup.querySelector('[data-action="start-phase2"]').addEventListener('click', () => {
+      console.log('🎯 User clicked Start Phase 2');
+      if (this.callbacks.onStartPhase2) {
+        this.callbacks.onStartPhase2(config);
+      }
+    });
 
-    // Buttons
-    const buttonGroup = document.createElement('div');
-    buttonGroup.className = 'game-button-group';
-
-    const startBtn = document.createElement('button');
-    startBtn.className = 'game-btn game-btn-primary';
-    startBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3l6 5-6 5V3z"/></svg>';
-    startBtn.title = 'Empezar';
-    startBtn.addEventListener('click', () => this.startPhase2Recording(config));
-
-    const skipBtn = document.createElement('button');
-    skipBtn.className = 'game-btn game-btn-secondary';
-    skipBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3l6 5-6 5V3z"/><path d="M11 3l6 5-6 5V3z"/></svg>';
-    skipBtn.title = 'Saltar';
-    skipBtn.addEventListener('click', () => this.skipPhase2());
-
-    buttonGroup.appendChild(startBtn);
-    buttonGroup.appendChild(skipBtn);
-    actionArea.appendChild(buttonGroup);
+    // Show container
+    this.container.style.display = 'flex';
+    this.isVisible = true;
   }
 
   /**

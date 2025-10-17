@@ -283,11 +283,20 @@ body.game-phase-1 .tap {
   opacity: 0.4;
 }
 
-/* Fase 1: Bloquear clicks en pulsos individuales */
-body.game-phase-1 .pulse-seq-intervals .pulse {
+/* Fase 1: Bloquear clicks en pulse-hit (elemento clickeable real) */
+body.game-phase-1 .pulse-hit {
   pointer-events: none !important;
+}
+
+/* Fase 1: Bloquear timeline completamente */
+body.game-phase-1 .timeline,
+body.game-phase-1 .timeline * {
+  pointer-events: none !important;
+}
+
+/* Fase 1: Visual fade en pulsos para indicar no clickeables */
+body.game-phase-1 .pulse {
   opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Fase 1: Permitir edición en el span editable */
@@ -328,8 +337,9 @@ body.game-phase-2 .game-popup * {
 /* Popup card - Horizontal y pequeño */
 .game-popup {
   position: relative;
-  background: var(--bg-dark); /* Fondo oscuro que respeta tema */
-  border: 2px solid var(--selection-color);
+  background: var(--bg-light);
+  color: var(--text-light);
+  border: 2px solid var(--text-light);
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   min-width: 300px;
@@ -339,6 +349,21 @@ body.game-phase-2 .game-popup * {
   pointer-events: auto; /* Solo el popup es clickeable */
   transform-origin: center top;
   animation: popupEnter 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Popup en modo oscuro */
+@media (prefers-color-scheme: dark) {
+  .game-popup {
+    background: var(--bg-dark);
+    color: var(--text-dark);
+    border: 2px solid var(--selection-color);
+  }
+}
+
+[data-theme="dark"] .game-popup {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+  border: 2px solid var(--selection-color);
 }
 
 .game-popup-enter {
