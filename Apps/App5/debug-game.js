@@ -219,6 +219,33 @@ export async function testMicDetection() {
   return detectedBeats;
 }
 
+// Switch to keyboard capture mode
+export function useKeyboard() {
+  console.log('⌨️ Cambiando a modo TECLADO...');
+  window.gameForceKeyboard = true;
+  console.log('✅ Modo de captura: TECLADO (tecla ESPACIO)');
+  console.log('💡 Este cambio se aplicará en el próximo nivel');
+  return true;
+}
+
+// Switch to microphone capture mode
+export function useMicrophone() {
+  console.log('🎤 Cambiando a modo MICRÓFONO...');
+  window.gameForceKeyboard = false;
+  console.log('✅ Modo de captura: MICRÓFONO');
+  console.log('💡 Este cambio se aplicará en el próximo nivel');
+  console.log('⚠️ ADVERTENCIA: La captura por micrófono puede ser imprecisa en diferentes entornos auditivos');
+  return true;
+}
+
+// Get current capture mode
+export function getCaptureMode() {
+  const isKeyboard = window.gameForceKeyboard !== false;
+  const mode = isKeyboard ? 'TECLADO (⌨️)' : 'MICRÓFONO (🎤)';
+  console.log(`📊 Modo de captura actual: ${mode}`);
+  return mode;
+}
+
 // Export all functions to window for easy console access
 if (typeof window !== 'undefined') {
   window.debugGame = {
@@ -233,7 +260,10 @@ if (typeof window !== 'undefined') {
     setThreshold,
     getLastAnalysis,
     getMicStats,
-    testMicDetection
+    testMicDetection,
+    useKeyboard,
+    useMicrophone,
+    getCaptureMode
   };
 
   console.log('🎮 Debug functions loaded! Available in window.debugGame:');
@@ -244,7 +274,11 @@ if (typeof window !== 'undefined') {
   console.log('  - testCompleteFlow()');
   console.log('  - clickGameButton()');
   console.log('  - quickStartGame()');
-  console.log('\n🎤 Microphone Debug (use during Phase 2):');
+  console.log('\n⌨️ Capture Mode (cambiar entre teclado/micrófono):');
+  console.log('  - getCaptureMode() - Ver modo actual');
+  console.log('  - useKeyboard() - Usar teclado (ESPACIO) [RECOMENDADO]');
+  console.log('  - useMicrophone() - Usar micrófono [EXPERIMENTAL]');
+  console.log('\n🎤 Microphone Debug (solo si useMicrophone() está activo):');
   console.log('  - getThreshold() - Ver threshold actual');
   console.log('  - setThreshold(dB) - Cambiar threshold (ej: -20)');
   console.log('  - getMicStats() - Ver configuración del micrófono');

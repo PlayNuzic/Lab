@@ -289,19 +289,33 @@ export class GameUI {
    */
   showPhase2UI(config) {
     // Recrear popup con estructura simplificada para Fase 2
-    const inputMode = window.gameForceKeyboard ? 'teclado (Espacio)' : 'micrófono';
+    const isKeyboard = window.gameForceKeyboard !== false; // Por defecto: teclado
+    const inputIcon = isKeyboard ? '⌨️' : '🎤';
+    const inputTitle = isKeyboard ? 'Teclado' : 'Micrófono';
+    const inputInstructions = isKeyboard
+      ? 'Presiona <strong>ESPACIO</strong> al ritmo del patrón'
+      : 'Haz sonidos (palmadas, taps) al ritmo del patrón';
 
     this.popup.innerHTML = `
       <div class="game-popup-content">
         <button class="game-close-btn" title="Cerrar">&times;</button>
-        <h3>Fase 2</h3>
-        <p>Sincroniza el ritmo con ${inputMode}</p>
-        <p>El patrón se reproducirá <strong>2 veces</strong> - BPM: <strong>${config.bpm}</strong></p>
+        <h3>Fase 2: Sincronización</h3>
+        <div style="margin: 15px 0; padding: 12px; background: rgba(74, 144, 226, 0.1); border-radius: 8px; border-left: 3px solid #4a90e2;">
+          <p style="margin: 0 0 8px 0; font-weight: 600;">
+            ${inputIcon} Modo: ${inputTitle}
+          </p>
+          <p style="margin: 0; font-size: 0.9em; opacity: 0.9;">
+            ${inputInstructions}
+          </p>
+        </div>
+        <p>El patrón se reproducirá <strong>2 veces</strong> en bucle.</p>
+        <p style="font-size: 0.9em; opacity: 0.8;">BPM: <strong>${config.bpm}</strong></p>
         <div class="game-button-group">
           <button class="game-btn game-btn-primary" data-action="start-phase2">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M5 3l6 5-6 5V3z"/>
             </svg>
+            Comenzar
           </button>
         </div>
       </div>
