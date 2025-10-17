@@ -486,7 +486,7 @@ export class GameUI {
    */
   showResults(results) {
     const { success, accuracy, message } = results;
-    const passed = accuracy >= 60;
+    const passed = accuracy >= 40; // Opción permisiva: 40% en lugar de 60%
 
     // Encouraging messages based on performance
     let encouragingMessage = '';
@@ -535,7 +535,8 @@ export class GameUI {
     this.popup.querySelector('[data-action="retry"]').addEventListener('click', () => {
       console.log('🔄 Retry button clicked - reloading same level');
       if (this.currentLevel && this.callbacks.onSelectLevel) {
-        this.callbacks.onSelectLevel(this.currentLevel);
+        // Pass levelNumber (number) instead of level object
+        this.callbacks.onSelectLevel(this.currentLevel.levelNumber);
       }
     });
 

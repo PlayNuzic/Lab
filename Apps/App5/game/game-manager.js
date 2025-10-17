@@ -303,7 +303,11 @@ export class GameManager {
 
     // Clean up audio capture if active
     if (this.audioCapture) {
-      if (this.audioCapture.stop) {
+      // CRITICAL: Properly dispose microphone when exiting game
+      if (this.audioCapture.dispose) {
+        this.audioCapture.dispose();
+        console.log('🎤 Micrófono desconectado al salir del juego');
+      } else if (this.audioCapture.stop) {
         this.audioCapture.stop();
       }
       this.audioCapture = null;
@@ -813,7 +817,7 @@ export class GameManager {
         const analysis = this.rhythmAnalyzer.compareRhythm(
           capturedBeats,
           allExpectedTimestamps,
-          { tolerance: 200 } // 200ms tolerance
+          { tolerance: 300 } // 300ms tolerance (opción permisiva)
         );
 
         console.log('📊 Rhythm analysis:', analysis);
@@ -843,7 +847,7 @@ export class GameManager {
         );
 
         // Show results
-        const success = accuracy >= 80;
+        const success = accuracy >= 60; // Opción permisiva: 60% en lugar de 80%
         const achievements = this.gameState.checkAchievements(
           this.currentLevel.levelNumber,
           accuracy,
@@ -859,6 +863,12 @@ export class GameManager {
             : `Sigue practicando. Precisión: ${Math.round(accuracy)}%`,
           achievements
         });
+
+        // CRITICAL: Dispose microphone after showing results
+        if (this.audioCapture && this.audioCapture.dispose) {
+          this.audioCapture.dispose();
+          console.log('🎤 Micrófono desconectado después de Phase 2');
+        }
 
         console.log('✅ Phase 2 completado');
 

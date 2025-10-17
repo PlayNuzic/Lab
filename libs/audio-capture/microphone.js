@@ -312,18 +312,27 @@ export class MicrophoneCapture {
     margin = Math.min(margin, 8); // Máximo 8 dB para evitar thresholds inalcanzables
     const suggestedThreshold = avgNoise + margin; // Usar PROMEDIO en lugar de máximo
 
+    // IMPORTANTE: Aplicar mínimo de -22 dB para evitar sobre-sensibilidad con auriculares
+    const MINIMUM_THRESHOLD = -22;
+    const finalThreshold = Math.max(suggestedThreshold, MINIMUM_THRESHOLD);
+
     console.log('📊 Análisis del ruido de fondo:');
     console.log(`   Promedio: ${avgNoise.toFixed(1)} dB`);
     console.log(`   Mínimo: ${minNoise.toFixed(1)} dB`);
     console.log(`   Máximo: ${maxNoise.toFixed(1)} dB`);
     console.log(`   Desv. estándar: ${stdDev.toFixed(1)} dB`);
     console.log(`   Margen aplicado: ${margin.toFixed(1)} dB (limitado a 5-8 dB)`);
-    console.log(`✅ Threshold calibrado: ${suggestedThreshold.toFixed(1)} dB`);
+    console.log(`   Threshold sugerido: ${suggestedThreshold.toFixed(1)} dB`);
+
+    if (finalThreshold !== suggestedThreshold) {
+      console.log(`   ⚠️  Threshold ajustado a mínimo: ${MINIMUM_THRESHOLD} dB`);
+    }
+    console.log(`✅ Threshold final: ${finalThreshold.toFixed(1)} dB`);
 
     // Actualizar el threshold automáticamente
-    this.config.threshold = suggestedThreshold;
+    this.config.threshold = finalThreshold;
 
-    return suggestedThreshold;
+    return finalThreshold;
   }
 
   /**
