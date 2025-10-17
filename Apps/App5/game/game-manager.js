@@ -184,6 +184,32 @@ export class GameManager {
    */
   setupUICallbacks() {
     // Phase 1 callbacks
+    this.ui.on('onStartPhase1', () => {
+      // Focus en pulseSeq cuando el usuario hace clic en "Continuar"
+      console.log('🎯 onStartPhase1 callback - focusing pulseSeq');
+      setTimeout(() => {
+        const editEl = this.pulseSeqController?.getEditElement();
+        if (editEl) {
+          editEl.focus();
+          // Force cursor visibility
+          const range = document.createRange();
+          const sel = window.getSelection();
+          if (editEl.childNodes.length > 0) {
+            range.selectNodeContents(editEl);
+            range.collapse(false);
+          } else {
+            // Empty element, create text node
+            const textNode = document.createTextNode('');
+            editEl.appendChild(textNode);
+            range.setStart(textNode, 0);
+            range.setEnd(textNode, 0);
+          }
+          sel.removeAllRanges();
+          sel.addRange(range);
+          console.log('✅ PulseSeq focused after Continue click');
+        }
+      }, 100); // Pequeño delay para que el popup termine de ocultarse
+    });
     this.ui.on('onValidatePhase1', () => this.validatePhase1());
     this.ui.on('onSkipPhase1', () => this.skipToPhase2());
     this.ui.on('onShowHint', (positions) => this.flashHintPositions(positions));
@@ -410,30 +436,7 @@ export class GameManager {
 
     // Note: Lg and BPM already set by setLevelParameters() in loadLevel()
     // Note: pulseSeq already cleared by setLevelParameters()
-
-    // Set focus on editable element so user can start typing immediately
-    setTimeout(() => {
-      const editEl = this.pulseSeqController.getEditElement();
-      if (editEl) {
-        editEl.focus();
-        // Force cursor visibility
-        const range = document.createRange();
-        const sel = window.getSelection();
-        if (editEl.childNodes.length > 0) {
-          range.selectNodeContents(editEl);
-          range.collapse(false);
-        } else {
-          // Empty element, create text node
-          const textNode = document.createTextNode('');
-          editEl.appendChild(textNode);
-          range.setStart(textNode, 0);
-          range.setEnd(textNode, 0);
-        }
-        sel.removeAllRanges();
-        sel.addRange(range);
-        console.log('✅ PulseSeq editable focused - ready for input');
-      }
-    }, 500); // Increase delay to 500ms to ensure popup animation completes
+    // Note: Focus will be set by onStartPhase1 callback when user clicks Continue
   }
 
   /**
@@ -752,19 +755,27 @@ export class GameManager {
       await countInPromise;
       console.log('✅ Count-in terminado');
 
-      // 6. Reproducir patrón 2 veces en la app real (timeline circular)
+      // 6. Activar botón LOOP para reproducir 2 veces
+      console.log('🔁 Activando loop para reproducir 2 ciclos...');
+      const loopBtn = document.querySelector('.loop');
+      if (loopBtn && !loopBtn.classList.contains('active')) {
+        loopBtn.click();
+        console.log('✅ Loop button activated');
+      }
+
+      // 7. Reproducir patrón en la app real (timeline circular con loop)
       console.log('▶️ Reproduciendo patrón en app real...');
       const playBtn = document.querySelector('.play');
       if (playBtn && !playBtn.classList.contains('active')) {
-        playBtn.click(); // Inicia reproducción en circular mode
-        console.log('✅ Play button clicked - reproduciendo en modo circular');
+        playBtn.click(); // Inicia reproducción en circular mode con loop
+        console.log('✅ Play button clicked - reproduciendo en modo circular con loop');
       } else {
         console.warn('⚠️ Play button not found or already active');
       }
 
-      // 7. Iniciar captura del micrófono DESPUÉS del count-in
+      // 8. Iniciar captura del micrófono DESPUÉS del count-in
       console.log('🎤 Iniciando captura de micrófono...');
-      this.audioCapture.startCapture();
+      this.audioCapture.startRecording();
 
       // Calculate expected timestamps from pattern
       const fractions = this.patternsToFractions(config.patterns, config.lg);
@@ -778,7 +789,7 @@ export class GameManager {
 
       console.log('🎯 Expected timestamps:', allExpectedTimestamps);
 
-      // 8. Después de 2 ciclos: detener reproducción y captura
+      // 9. Después de 2 ciclos: detener reproducción y captura
       setTimeout(async () => {
         console.log('⏹️ Deteniendo reproducción y captura...');
 
@@ -788,8 +799,14 @@ export class GameManager {
           console.log('✅ Play button clicked again - reproducción detenida');
         }
 
+        // Desactivar loop
+        if (loopBtn && loopBtn.classList.contains('active')) {
+          loopBtn.click();
+          console.log('✅ Loop button deactivated');
+        }
+
         // Detener captura y obtener beats
-        const capturedBeats = await this.audioCapture.stopCapture();
+        const capturedBeats = this.audioCapture.stopRecording();
         console.log('🎵 Captured beats:', capturedBeats);
 
         // Analyze rhythm
