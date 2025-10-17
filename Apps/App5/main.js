@@ -1959,16 +1959,20 @@ import('./gamification-adapter.js').then(module => {
 
 // Initialize new game system after DOM is ready
 async function initializeGameSystem() {
-  // Ensure audio is initialized first
-  await initAudio();
-
   const { GameManager } = await import('./game/game-manager.js');
   const gameManager = new GameManager();
 
   // Set references for game manager
   window.pulseSeqController = pulseSeqController;
-  window.synth = audio; // Audio system reference for pattern playback
   window.gameForceKeyboard = false; // Default to microphone mode
+
+  // Set synth reference getter that returns current audio instance
+  Object.defineProperty(window, 'synth', {
+    get() {
+      return audio; // Always returns current audio value, even if initialized later
+    },
+    configurable: true
+  });
 
   // Initialize after a small delay to ensure event listeners are ready
   setTimeout(() => {
