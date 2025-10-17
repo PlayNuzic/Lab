@@ -12,6 +12,7 @@ import {
 } from '../../../libs/gamification/index.js';
 
 import { sanitizePulseSequence } from '../../../libs/app-common/pulse-seq-intervals.js';
+import { playCountIn } from '../../../libs/ear-training/count-in-controller.js';
 import { GameUI } from './game-ui.js';
 import { GameState } from './game-state.js';
 import { getLevel, checkLevelCompletion, getHintPositions } from './levels-config.js';
@@ -691,26 +692,79 @@ export class GameManager {
 
   /**
    * Start Phase 2 recording
+   * Nueva secuencia: count-in → reproducción app real → captura
    * @param {Object} config - Recording configuration
    */
   async startPhase2Recording(config) {
-    console.log('Starting Phase 2 recording', config);
+    console.log('🎯 Starting Phase 2 recording with config:', config);
 
     try {
-      // Initialize audio capture based on mode
-      if (window.gameForceKeyboard) {
-        console.log('Using keyboard capture mode');
-        this.audioCapture = createKeyboardCapture();
-        console.log('⌨️ Keyboard capture ready');
-      } else {
-        console.log('Using microphone capture mode');
-        this.audioCapture = await createMicrophoneCapture(); // FIX: Agregar await
+      // 1. Ocultar popup Fase 2
+      this.ui.hidePopup();
+      console.log('✅ Popup oculto');
 
-        // Calibrate noise floor
-        console.log('🎤 Calibrando micrófono...');
-        await this.audioCapture.calibrateNoiseFloor(2000);
-        console.log('✅ Calibración completada');
+      // 2. Forzar CIRCULAR mode para reproducción
+      const circularToggle = window.circularTimelineToggle;
+      if (circularToggle && !circularToggle.checked) {
+        circularToggle.checked = true;
+        circularToggle.dispatchEvent(new Event('change'));
+        console.log('✅ Timeline set to CIRCULAR mode');
       }
+
+      // 3. Inicializar audio capture (sin calibrar aún)
+      if (window.gameForceKeyboard) {
+        console.log('⌨️ Using keyboard capture mode');
+        this.audioCapture = createKeyboardCapture();
+      } else {
+        console.log('🎤 Using microphone capture mode');
+        this.audioCapture = await createMicrophoneCapture();
+      }
+
+      // 4. Cálculos de timing
+      const beatMs = (60 / config.bpm) * 1000;           // ms por beat
+      const countInDuration = config.lg * beatMs;         // duración del count-in
+      const calibrationDuration = (config.lg - 0.5) * beatMs; // calibrar un poco menos que el count-in
+      const cycleDuration = config.lg * beatMs;           // duración de 1 ciclo
+      const captureDuration = 2 * cycleDuration + 500;   // 2 ciclos + 500ms buffer
+
+      console.log(`⏱️ Timing: beatMs=${beatMs.toFixed(0)}ms, countIn=${countInDuration.toFixed(0)}ms, calibration=${calibrationDuration.toFixed(0)}ms, capture=${captureDuration.toFixed(0)}ms`);
+
+      // 5. Disparar count-in Y calibrar micrófono en paralelo
+      console.log('🎵 Starting count-in and calibration...');
+
+      const countInPromise = playCountIn({
+        beats: config.lg,
+        bpm: config.bpm,
+        visualFeedback: true,
+        audioFeedback: true
+      });
+
+      // Calibrar en paralelo (termina antes que el count-in)
+      const calibrationPromise = (async () => {
+        if (!window.gameForceKeyboard && this.audioCapture.calibrateNoiseFloor) {
+          console.log(`🎤 Calibrando micrófono durante ${calibrationDuration.toFixed(0)}ms...`);
+          await this.audioCapture.calibrateNoiseFloor(calibrationDuration);
+          console.log('✅ Calibración completada');
+        }
+      })();
+
+      // Esperar a que termine el count-in
+      await countInPromise;
+      console.log('✅ Count-in terminado');
+
+      // 6. Reproducir patrón 2 veces en la app real (timeline circular)
+      console.log('▶️ Reproduciendo patrón en app real...');
+      const playBtn = document.querySelector('.play');
+      if (playBtn && !playBtn.classList.contains('active')) {
+        playBtn.click(); // Inicia reproducción en circular mode
+        console.log('✅ Play button clicked - reproduciendo en modo circular');
+      } else {
+        console.warn('⚠️ Play button not found or already active');
+      }
+
+      // 7. Iniciar captura del micrófono DESPUÉS del count-in
+      console.log('🎤 Iniciando captura de micrófono...');
+      this.audioCapture.startCapture();
 
       // Calculate expected timestamps from pattern
       const fractions = this.patternsToFractions(config.patterns, config.lg);
@@ -719,25 +773,24 @@ export class GameManager {
       // Double the timestamps for 2 repeats
       const allExpectedTimestamps = [
         ...expectedTimestamps,
-        ...expectedTimestamps.map(t => t + (60000 / config.bpm) * config.lg)
+        ...expectedTimestamps.map(t => t + cycleDuration)
       ];
 
-      console.log('Expected timestamps:', allExpectedTimestamps);
+      console.log('🎯 Expected timestamps:', allExpectedTimestamps);
 
-      // Play pattern twice with count-in if available
-      await this.playPatternWithCountIn(config);
-
-      // Start capture
-      const capturePromise = this.audioCapture.startCapture();
-
-      // Calculate total duration (2 patterns + some buffer)
-      const patternDuration = (60000 / config.bpm) * config.lg;
-      const totalDuration = patternDuration * config.repeats + 1000; // Add 1 second buffer
-
-      // Stop capture after duration
+      // 8. Después de 2 ciclos: detener reproducción y captura
       setTimeout(async () => {
+        console.log('⏹️ Deteniendo reproducción y captura...');
+
+        // Detener reproducción
+        if (playBtn && playBtn.classList.contains('active')) {
+          playBtn.click();
+          console.log('✅ Play button clicked again - reproducción detenida');
+        }
+
+        // Detener captura y obtener beats
         const capturedBeats = await this.audioCapture.stopCapture();
-        console.log('Captured beats:', capturedBeats);
+        console.log('🎵 Captured beats:', capturedBeats);
 
         // Analyze rhythm
         const analysis = this.rhythmAnalyzer.compareRhythm(
@@ -746,7 +799,7 @@ export class GameManager {
           { tolerance: 200 } // 200ms tolerance
         );
 
-        console.log('Rhythm analysis:', analysis);
+        console.log('📊 Rhythm analysis:', analysis);
 
         // Calculate accuracy
         const accuracy = analysis.accuracy * 100;
@@ -790,10 +843,12 @@ export class GameManager {
           achievements
         });
 
-      }, totalDuration);
+        console.log('✅ Phase 2 completado');
+
+      }, captureDuration);
 
     } catch (error) {
-      console.error('Error in Phase 2 recording:', error);
+      console.error('❌ Error in Phase 2 recording:', error);
       this.ui.showMessage('Error al capturar audio', 'confused');
       this.ui.stopPhase2Recording();
     }

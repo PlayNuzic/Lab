@@ -19,7 +19,7 @@ function generateLevel3() {
     {
       type: 'odd',
       count: Math.min(3, Math.floor((lg + 1) / 2)), // Up to 3 odd positions
-      description: (count) => `Selecciona ${count} P impares`,
+      description: (count) => `Escribe ${count} P impares`,
       validate: (positions, lg) => {
         const oddPositions = [];
         for (let i = 1; i <= lg; i += 2) {
@@ -31,7 +31,7 @@ function generateLevel3() {
     {
       type: 'even',
       count: Math.min(3, Math.floor(lg / 2)), // Up to 3 even positions
-      description: (count) => `Selecciona ${count} P pares`,
+      description: (count) => `Escribe ${count} P pares`,
       validate: (positions, lg) => {
         const evenPositions = [];
         for (let i = 2; i <= lg; i += 2) {
@@ -43,7 +43,7 @@ function generateLevel3() {
     {
       type: 'consecutive',
       count: 3,
-      description: () => `Selecciona 3 P consecutivos`,
+      description: () => `Escribe 3 P consecutivos`,
       validate: (positions) => {
         if (positions.length !== 3) return false;
         const sorted = [...positions].sort((a, b) => a - b);
@@ -53,7 +53,7 @@ function generateLevel3() {
     {
       type: 'extremes',
       count: 2,
-      description: (count, lg) => `Selecciona primera y última P (1 y ${lg})`,
+      description: (count, lg) => `Escribe primera y última P (1 y ${lg})`,
       validate: (positions, lg) => {
         return positions.length === 2 &&
                positions.includes(1) &&
@@ -84,7 +84,7 @@ export const LEVELS = {
   1: {
     lg: 4,
     bpm: 90,
-    requirement: "Selecciona 2 P impares",
+    requirement: "Escribe 2 P impares",
     solution: [1, 3], // Expected positions
     hint: "Las posiciones impares son la primera y tercera",
     requirementType: 'odd',
@@ -100,7 +100,7 @@ export const LEVELS = {
   2: {
     lg: 4,
     bpm: 90,
-    requirement: "Selecciona 2 P pares (2 y 4)",
+    requirement: "Escribe 2 P pares (2 y 4)",
     solution: [2, 4], // Expected positions
     hint: "Las posiciones pares son la segunda y cuarta",
     requirementType: 'even',
@@ -125,7 +125,7 @@ export const LEVELS = {
     type: 'free',
     libre: true,
     requirement: "Modo libre - Crea tu propio patrón",
-    hint: "Selecciona cualquier combinación de posiciones",
+    hint: "Escribe cualquier combinación de posiciones",
     minPositions: 2,
     maxPositions: 8,
     defaultLg: 8,

@@ -249,7 +249,7 @@ export class GameUI {
     // Instructions
     const instructions = document.createElement('p');
     instructions.className = 'game-instructions';
-    instructions.textContent = 'Fase 1: Selecciona las posiciones según el requisito';
+    instructions.textContent = 'Fase 1: Escribe las posiciones según el requisito';
     actionArea.appendChild(instructions);
 
     // Help countdown
