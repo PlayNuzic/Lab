@@ -374,7 +374,15 @@ export class GameManager {
 
     // Note: Lg and BPM already set by setLevelParameters() in loadLevel()
     // Note: pulseSeq already cleared by setLevelParameters()
-    // Phase 1 is now ready for user input
+
+    // Set focus on editable element so user can start typing immediately
+    setTimeout(() => {
+      const editEl = this.pulseSeqController.getEditElement();
+      if (editEl) {
+        editEl.focus();
+        console.log('✅ PulseSeq editable focused - ready for input');
+      }
+    }, 100); // Small delay to ensure DOM is ready after popup hides
   }
 
   /**
@@ -410,8 +418,8 @@ export class GameManager {
       return;
     }
 
-    // Convert to array of numbers
-    const positions = sanitized.split(/\s+/).map(Number).filter(n => !isNaN(n));
+    // sanitized is already an array of numbers [1, 3]
+    const positions = sanitized;
     console.log('🎯 Positions:', positions);
 
     // Validate using level's validation function

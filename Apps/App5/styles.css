@@ -283,13 +283,22 @@ body.game-phase-1 .tap {
   opacity: 0.4;
 }
 
-body.game-phase-1 .pulse-seq-intervals {
-  /* Permanece interactivo para escribir */
+/* Fase 1: Bloquear clicks en pulsos individuales */
+body.game-phase-1 .pulse-seq-intervals .pulse {
+  pointer-events: none !important;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
+/* Fase 1: Permitir edición en el span editable */
+body.game-phase-1 .pulse-seq-intervals .pz.edit {
+  pointer-events: auto !important;
+  cursor: text;
+}
+
+/* Fase 1: Bloquear timeline SVG */
 body.game-phase-1 .it-svg-container,
 body.game-phase-1 .it-svg-container * {
-  /* Timeline NO clickeable en Fase 1 para evitar triggers indeseados */
   pointer-events: none !important;
 }
 
