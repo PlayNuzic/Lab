@@ -305,18 +305,19 @@ export class MicrophoneCapture {
       return this.config.threshold;
     }
 
-    // Establecer threshold = máximo ruido + margen dinámico
-    // El margen depende de la variabilidad del ruido
-    // Usamos un margen más ajustado para mejor sensibilidad
-    const margin = Math.max(3, stdDev * 1.5); // Mínimo 3 dB, o 1.5 veces la desviación estándar
-    const suggestedThreshold = maxNoise + margin;
+    // Establecer threshold = PROMEDIO ruido + margen limitado
+    // Usar promedio en lugar de máximo para evitar thresholds positivos
+    // Limitar margen a 5-8 dB para mejor sensibilidad y robustez
+    let margin = Math.max(5, stdDev * 1.5); // Mínimo 5 dB, o 1.5 veces la desviación estándar
+    margin = Math.min(margin, 8); // Máximo 8 dB para evitar thresholds inalcanzables
+    const suggestedThreshold = avgNoise + margin; // Usar PROMEDIO en lugar de máximo
 
     console.log('📊 Análisis del ruido de fondo:');
     console.log(`   Promedio: ${avgNoise.toFixed(1)} dB`);
     console.log(`   Mínimo: ${minNoise.toFixed(1)} dB`);
     console.log(`   Máximo: ${maxNoise.toFixed(1)} dB`);
     console.log(`   Desv. estándar: ${stdDev.toFixed(1)} dB`);
-    console.log(`   Margen aplicado: ${margin.toFixed(1)} dB`);
+    console.log(`   Margen aplicado: ${margin.toFixed(1)} dB (limitado a 5-8 dB)`);
     console.log(`✅ Threshold calibrado: ${suggestedThreshold.toFixed(1)} dB`);
 
     // Actualizar el threshold automáticamente

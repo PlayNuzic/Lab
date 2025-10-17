@@ -496,36 +496,34 @@ export class GameUI {
       encouragingMessage = accuracy >= 50 ? 'Casi lo consigues. ¡Sigue practicando!' : '¡No te rindas! Puedes mejorar.';
     }
 
-    // Show message
-    this.showMessage(message, passed ? 'happy' : 'sad');
-
-    // Update action area with results - only accuracy and encouraging message
-    const actionArea = this.popup.querySelector('.game-action-area');
-    actionArea.innerHTML = `
-      <div class="game-results">
-        <p class="game-accuracy">Precisión: ${Math.round(accuracy)}%</p>
-        <p class="game-encouraging-message">${encouragingMessage}</p>
-        <div class="game-button-group">
-          <button class="game-btn game-btn-primary ${!passed ? 'game-btn-disabled' : ''}" data-action="continue" ${!passed ? 'disabled' : ''}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M5 3l6 5-6 5V3z"/>
-            </svg>
-            Siguiente Nivel
-          </button>
-          <button class="game-btn game-btn-secondary" data-action="menu">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M2 2h12v2H2V2zm0 5h12v2H2V7zm0 5h12v2H2v-2z"/>
-            </svg>
-            Menú
-          </button>
+    // Recrear popup con estructura simplificada
+    this.popup.innerHTML = `
+      <div class="game-popup-content">
+        <button class="game-close-btn" title="Cerrar">&times;</button>
+        <h3>Resultados</h3>
+        <div class="game-results">
+          <p class="game-accuracy">Precisión: ${Math.round(accuracy)}%</p>
+          <p class="game-encouraging-message">${encouragingMessage}</p>
+          <div class="game-button-group">
+            <button class="game-btn game-btn-primary ${!passed ? 'game-btn-disabled' : ''}"
+                    data-action="continue" ${!passed ? 'disabled' : ''}>
+              Siguiente Nivel
+            </button>
+            <button class="game-btn game-btn-secondary" data-action="retry">
+              Reintentar
+            </button>
+            <button class="game-btn game-btn-secondary" data-action="menu">
+              Menú
+            </button>
+          </div>
         </div>
       </div>
     `;
 
-    // Add event listeners to new buttons
-    const continueBtn = actionArea.querySelector('[data-action="continue"]');
-    const menuBtn = actionArea.querySelector('[data-action="menu"]');
+    // Event listeners
+    this.popup.querySelector('.game-close-btn').addEventListener('click', () => this.hide());
 
+    const continueBtn = this.popup.querySelector('[data-action="continue"]');
     if (continueBtn && !continueBtn.disabled) {
       continueBtn.addEventListener('click', () => {
         if (this.callbacks.onContinue) {
@@ -534,9 +532,20 @@ export class GameUI {
       });
     }
 
-    menuBtn.addEventListener('click', () => {
+    this.popup.querySelector('[data-action="retry"]').addEventListener('click', () => {
+      console.log('🔄 Retry button clicked - reloading same level');
+      if (this.currentLevel && this.callbacks.onSelectLevel) {
+        this.callbacks.onSelectLevel(this.currentLevel);
+      }
+    });
+
+    this.popup.querySelector('[data-action="menu"]').addEventListener('click', () => {
       this.hide();
     });
+
+    // Mostrar container si está oculto
+    this.container.style.display = 'flex';
+    this.isVisible = true;
   }
 
   /**
