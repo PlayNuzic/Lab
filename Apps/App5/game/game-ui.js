@@ -87,20 +87,6 @@ export class GameUI {
     actionArea.className = 'game-action-area';
     this.popup.appendChild(actionArea);
 
-    // Progress bar
-    const progressBar = document.createElement('div');
-    progressBar.className = 'game-progress-bar';
-    progressBar.innerHTML = `
-      <div class="game-progress-fill"></div>
-      <span class="game-progress-text">0%</span>
-    `;
-    this.popup.appendChild(progressBar);
-
-    // Stats area
-    const statsArea = document.createElement('div');
-    statsArea.className = 'game-stats-area';
-    this.popup.appendChild(statsArea);
-
     this.container.appendChild(this.popup);
   }
 
@@ -132,6 +118,9 @@ export class GameUI {
     this.container.style.display = 'flex';
     this.isVisible = true;
 
+    // Add game-active class to body for selective overlay
+    document.body.classList.add('game-active');
+
     // Animate entrance
     this.popup.classList.add('game-popup-enter');
     setTimeout(() => {
@@ -162,6 +151,9 @@ export class GameUI {
       this.container.style.display = 'none';
       this.popup.classList.remove('game-popup-exit');
       this.isVisible = false;
+
+      // Remove game-active class from body
+      document.body.classList.remove('game-active');
 
       // Trigger callback
       if (this.callbacks.onHide) {
@@ -200,12 +192,14 @@ export class GameUI {
 
     const validateBtn = document.createElement('button');
     validateBtn.className = 'game-btn game-btn-primary';
-    validateBtn.textContent = 'Validar';
+    validateBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>';
+    validateBtn.title = 'Validar';
     validateBtn.addEventListener('click', () => this.validatePhase1());
 
     const skipBtn = document.createElement('button');
     skipBtn.className = 'game-btn game-btn-secondary';
-    skipBtn.textContent = 'Saltar';
+    skipBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3l6 5-6 5V3z"/></svg>';
+    skipBtn.title = 'Saltar';
     skipBtn.addEventListener('click', () => this.skipPhase1());
 
     buttonGroup.appendChild(validateBtn);
@@ -253,12 +247,14 @@ export class GameUI {
 
     const startBtn = document.createElement('button');
     startBtn.className = 'game-btn game-btn-primary';
-    startBtn.textContent = 'Empezar';
+    startBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3l6 5-6 5V3z"/></svg>';
+    startBtn.title = 'Empezar';
     startBtn.addEventListener('click', () => this.startPhase2Recording(config));
 
     const skipBtn = document.createElement('button');
     skipBtn.className = 'game-btn game-btn-secondary';
-    skipBtn.textContent = 'Saltar';
+    skipBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3l6 5-6 5V3z"/><path d="M11 3l6 5-6 5V3z"/></svg>';
+    skipBtn.title = 'Saltar';
     skipBtn.addEventListener('click', () => this.skipPhase2());
 
     buttonGroup.appendChild(startBtn);
@@ -287,36 +283,10 @@ export class GameUI {
   }
 
   /**
-   * Update progress bar
+   * Update progress bar (disabled - no progress shown in popup)
    */
   updateProgress() {
-    const stats = this.gameState.getStatsSummary();
-    const progressFill = this.popup.querySelector('.game-progress-fill');
-    const progressText = this.popup.querySelector('.game-progress-text');
-
-    if (progressFill && progressText) {
-      progressFill.style.width = `${stats.progress}%`;
-      progressText.textContent = `${Math.round(stats.progress)}%`;
-    }
-
-    // Update stats area
-    const statsArea = this.popup.querySelector('.game-stats-area');
-    if (statsArea) {
-      statsArea.innerHTML = `
-        <div class="game-stat">
-          <span class="stat-label">Racha:</span>
-          <span class="stat-value">${stats.currentStreak}</span>
-        </div>
-        <div class="game-stat">
-          <span class="stat-label">Precisión:</span>
-          <span class="stat-value">${Math.round(stats.averageAccuracy)}%</span>
-        </div>
-        <div class="game-stat">
-          <span class="stat-label">Logros:</span>
-          <span class="stat-value">${stats.achievementsUnlocked}/${stats.totalAchievements}</span>
-        </div>
-      `;
-    }
+    // Progress and stats removed from popup - only shown in final results
   }
 
   /**
@@ -456,39 +426,37 @@ export class GameUI {
    * @param {Object} results - Game results
    */
   showResults(results) {
-    const { success, accuracy, message, achievements } = results;
+    const { success, accuracy, message } = results;
+    const passed = accuracy >= 60;
 
-    // Update character mood
-    if (success) {
-      this.character.setMood('celebrating');
-      this.character.animate('bounce');
+    // Encouraging messages based on performance
+    let encouragingMessage = '';
+    if (passed) {
+      encouragingMessage = accuracy >= 90 ? '¡Excelente trabajo!' : accuracy >= 75 ? '¡Muy bien!' : '¡Buen trabajo!';
     } else {
-      this.character.setMood('sad');
-      this.character.animate('shake');
+      encouragingMessage = accuracy >= 50 ? 'Casi lo consigues. ¡Sigue practicando!' : '¡No te rindas! Puedes mejorar.';
     }
 
     // Show message
-    this.showMessage(message, success ? 'celebrating' : 'sad');
+    this.showMessage(message, passed ? 'happy' : 'sad');
 
-    // Update progress
-    this.updateProgress();
-
-    // Show achievements if any
-    if (achievements && achievements.length > 0) {
-      this.showAchievements(achievements);
-    }
-
-    // Update action area with results
+    // Update action area with results - only accuracy and encouraging message
     const actionArea = this.popup.querySelector('.game-action-area');
     actionArea.innerHTML = `
       <div class="game-results">
-        <h4>${success ? '¡Éxito!' : 'Inténtalo de nuevo'}</h4>
         <p class="game-accuracy">Precisión: ${Math.round(accuracy)}%</p>
+        <p class="game-encouraging-message">${encouragingMessage}</p>
         <div class="game-button-group">
-          <button class="game-btn game-btn-primary" onclick="this.dispatchEvent(new CustomEvent('game-continue'))">
-            ${success ? 'Siguiente Nivel' : 'Reintentar'}
+          <button class="game-btn game-btn-primary ${!passed ? 'game-btn-disabled' : ''}" data-action="continue" ${!passed ? 'disabled' : ''}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M5 3l6 5-6 5V3z"/>
+            </svg>
+            Siguiente Nivel
           </button>
-          <button class="game-btn game-btn-secondary" onclick="this.dispatchEvent(new CustomEvent('game-menu'))">
+          <button class="game-btn game-btn-secondary" data-action="menu">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M2 2h12v2H2V2zm0 5h12v2H2V7zm0 5h12v2H2v-2z"/>
+            </svg>
             Menú
           </button>
         </div>
@@ -496,13 +464,18 @@ export class GameUI {
     `;
 
     // Add event listeners to new buttons
-    actionArea.querySelector('[onclick*="game-continue"]').addEventListener('game-continue', () => {
-      if (this.callbacks.onContinue) {
-        this.callbacks.onContinue();
-      }
-    });
+    const continueBtn = actionArea.querySelector('[data-action="continue"]');
+    const menuBtn = actionArea.querySelector('[data-action="menu"]');
 
-    actionArea.querySelector('[onclick*="game-menu"]').addEventListener('game-menu', () => {
+    if (continueBtn && !continueBtn.disabled) {
+      continueBtn.addEventListener('click', () => {
+        if (this.callbacks.onContinue) {
+          this.callbacks.onContinue();
+        }
+      });
+    }
+
+    menuBtn.addEventListener('click', () => {
       this.hide();
     });
   }

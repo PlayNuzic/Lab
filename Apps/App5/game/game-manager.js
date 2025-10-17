@@ -34,6 +34,8 @@ export class GameManager {
     this.currentPhase = null;
     this.synth = null; // Will be set from App5
     this.playbackPatterns = []; // Store patterns for phase 2 playback
+    this.playStopCount = 0; // Track play/stop button clicks
+    this.cycleReproductionCount = 0; // Track cycle reproductions
   }
 
   /**
@@ -104,7 +106,49 @@ export class GameManager {
     this.synth = window.synth;
     console.log('✅ synth reference:', this.synth ? 'found' : 'not found');
 
+    // Setup event capture for play/stop and cycle count
+    this.setupEventCapture();
+    console.log('✅ Event capture setup');
+
     console.log('✅ GameManager initialized successfully');
+  }
+
+  /**
+   * Setup event capture for play/stop and cycle reproduction
+   */
+  setupEventCapture() {
+    // Capture play button clicks
+    const playBtn = document.querySelector('.play');
+    if (playBtn) {
+      playBtn.addEventListener('click', () => {
+        if (this.isGameActive) {
+          this.playStopCount++;
+          console.log('▶️ Play clicked during game. Count:', this.playStopCount);
+        }
+      });
+    }
+
+    // Capture stop button clicks (if exists separately)
+    const stopBtn = document.querySelector('.stop');
+    if (stopBtn) {
+      stopBtn.addEventListener('click', () => {
+        if (this.isGameActive) {
+          this.playStopCount++;
+          console.log('⏹️ Stop clicked during game. Count:', this.playStopCount);
+        }
+      });
+    }
+
+    // Capture cycle reproductions - listen to audio playback events
+    // This depends on how App5 triggers playback, we'll track via Tone.js Transport
+    if (window.Tone && window.Tone.Transport) {
+      window.Tone.Transport.on('start', () => {
+        if (this.isGameActive && this.currentPhase === 'phase2') {
+          this.cycleReproductionCount++;
+          console.log('🔄 Cycle reproduction. Count:', this.cycleReproductionCount);
+        }
+      });
+    }
   }
 
   /**
@@ -229,6 +273,10 @@ export class GameManager {
 
     this.currentLevel = getLevel(levelNumber);
     this.currentPhase = 1;
+
+    // Reset event counters for new level
+    this.playStopCount = 0;
+    this.cycleReproductionCount = 0;
 
     // Update UI for level
     this.ui.show(levelNumber);

@@ -275,27 +275,51 @@ transform: translate(-50%, calc(-50% - 50px)) !important; /* was -40px */
   bottom: 0;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 80px;
+  pointer-events: auto;
+}
+
+/* Allow interaction with specific elements during game */
+body.game-active .pulse-seq-intervals,
+body.game-active .it-svg-container,
+body.game-active .play,
+body.game-active .stop {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1001;
+}
+
+/* Disable specific buttons during game */
+body.game-active .loop,
+body.game-active .random,
+body.game-active .reset,
+body.game-active .tap {
+  pointer-events: none;
+  opacity: 0.5;
 }
 
 /* Popup card */
 .game-popup {
   position: relative;
-  background: var(--background-color, #fff);
+  background: var(--background-color);
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  max-width: 600px;
+  max-width: 200px;
   width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  animation: slideIn 0.3s ease-out;
+  padding: 16px;
+  transform-origin: center top;
+  animation: popupEnter 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .game-popup-enter {
-  animation: slideIn 0.3s ease-out;
+  animation: popupEnter 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .game-popup-exit {
-  animation: slideOut 0.3s ease-in;
+  animation: popupExit 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 /* Popup header */
@@ -387,13 +411,13 @@ transform: translate(-50%, calc(-50% - 50px)) !important; /* was -40px */
 }
 
 .game-bubble {
-  background: #f0f0f0;
+  background: var(--color-contrast);
   border-radius: 20px;
   padding: 15px 20px;
   max-width: 80%;
   text-align: center;
   font-size: 1rem;
-  color: var(--text-color, #333);
+  color: var(--text-color);
   position: relative;
   opacity: 0;
   transform: scale(0.8);
@@ -445,45 +469,44 @@ transform: translate(-50%, calc(-50% - 50px)) !important; /* was -40px */
 /* Button styles */
 .game-button-group {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .game-btn {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.3s ease, transform 0.1s ease;
+  font-size: 0;
 }
 
-.game-btn:disabled {
-  opacity: 0.5;
+.game-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.game-btn:disabled,
+.game-btn-disabled {
+  opacity: 0.3;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 .game-btn-primary {
-  background: var(--selection-color, #4CAF50);
-  color: white;
-}
-
-.game-btn-primary:hover:not(:disabled) {
-  background: var(--selection-color-hover, #45a049);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  color: var(--selection-color);
 }
 
 .game-btn-secondary {
-  background: #e0e0e0;
-  color: var(--text-color, #333);
-}
-
-.game-btn-secondary:hover:not(:disabled) {
-  background: #d0d0d0;
-  transform: translateY(-2px);
+  color: var(--text-color);
 }
 
 /* Progress bar */
@@ -703,25 +726,25 @@ transform: translate(-50%, calc(-50% - 50px)) !important; /* was -40px */
 }
 
 /* Animations */
-@keyframes slideIn {
+@keyframes popupEnter {
   from {
     opacity: 0;
-    transform: scale(0.9) translateY(20px);
+    transform: scale(0);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: scale(1);
   }
 }
 
-@keyframes slideOut {
+@keyframes popupExit {
   from {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: scale(1);
   }
   to {
     opacity: 0;
-    transform: scale(0.9) translateY(20px);
+    transform: scale(0);
   }
 }
 

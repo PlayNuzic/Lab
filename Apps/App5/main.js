@@ -1959,6 +1959,9 @@ import('./gamification-adapter.js').then(module => {
 
 // Initialize new game system after DOM is ready
 async function initializeGameSystem() {
+  // Ensure audio is initialized first
+  await initAudio();
+
   const { GameManager } = await import('./game/game-manager.js');
   const gameManager = new GameManager();
 
