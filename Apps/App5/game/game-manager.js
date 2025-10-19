@@ -287,6 +287,13 @@ export class GameManager {
     // IMPORTANTE: Siempre empezar desde nivel 1
     // El progreso se guarda (completedLevels) pero cada sesión empieza desde el principio
     console.log('📋 Starting game - always begin at Level 1');
+
+    // Limpiar PulseSeq - no debe haber posiciones seleccionadas al iniciar
+    if (this.pulseSeqController) {
+      this.pulseSeqController.setText('');
+      console.log('✅ PulseSeq cleared');
+    }
+
     this.ui.showLevelSelector();
 
     this.ui.show(1); // Always show level 1 UI initially
