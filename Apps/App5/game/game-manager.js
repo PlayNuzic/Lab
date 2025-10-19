@@ -371,6 +371,7 @@ export class GameManager {
    */
   setLevelParameters(level) {
     console.log(`📝 Setting level parameters: Lg=${level.lg}, BPM=${level.bpm}`);
+    console.log('   Level object:', level);
 
     // Get input elements from window (exposed by main.js)
     const inputLg = window.inputLg;
@@ -378,12 +379,24 @@ export class GameManager {
     const setValue = window.setValue;
     const handleInput = window.handleInput;
 
+    console.log('   Checking inputs availability...');
+    console.log('   window.inputLg:', window.inputLg);
+    console.log('   window.inputV:', window.inputV);
+    console.log('   window.setValue:', typeof window.setValue);
+    console.log('   window.handleInput:', typeof window.handleInput);
+
     if (!inputLg || !inputV || !setValue || !handleInput) {
       console.error('❌ Input controls not available - cannot set level parameters');
       console.log('   inputLg:', !!inputLg);
       console.log('   inputV:', !!inputV);
       console.log('   setValue:', !!setValue);
       console.log('   handleInput:', !!handleInput);
+
+      // IMPORTANTE: Intentar limpiar PulseSeq aunque inputs no estén disponibles
+      if (this.pulseSeqController) {
+        this.pulseSeqController.setText('');
+        console.log('✅ PulseSeq cleared (inputs not available)');
+      }
       return;
     }
 
