@@ -1964,7 +1964,7 @@ async function initializeGameSystem() {
 
   // Set references for game manager
   window.pulseSeqController = pulseSeqController;
-  window.gameForceKeyboard = false; // Default to microphone mode
+  // NOTA: gameForceKeyboard se inicializa en game-manager.js (default: true = teclado)
 
   // Expose input controls for game manager
   window.inputLg = inputLg;
