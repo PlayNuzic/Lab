@@ -3,10 +3,6 @@
  * Orchestrates game flow, phases, and audio capture
  */
 
-// VERSION CHECK: 2025-10-19 18:45 - If you see this, new code is loading!
-console.log('🔍 GAME-MANAGER.JS LOADED - Version: 2025-10-19 18:45');
-console.log('🔍 This message confirms the updated file is being executed');
-
 import {
   createMicrophoneCapture,
   createKeyboardCapture,
@@ -295,13 +291,12 @@ export class GameManager {
     // Limpiar PulseSeq - no debe haber posiciones seleccionadas al iniciar
     if (this.pulseSeqController) {
       this.pulseSeqController.setText('');
-      console.log('✅ PulseSeq cleared');
+      console.log('✅ PulseSeq cleared on game start');
     }
 
-    this.ui.showLevelSelector();
-
-    this.ui.show(1); // Always show level 1 UI initially
-    console.log('✅ UI shown');
+    // CORRECCIÓN: Llamar loadLevel(1) que SÍ setea Lg y BPM
+    // loadLevel() llama internamente a setLevelParameters() y ui.show()
+    this.loadLevel(1);
   }
 
   /**
@@ -375,7 +370,6 @@ export class GameManager {
    */
   setLevelParameters(level) {
     console.log(`📝 Setting level parameters: Lg=${level.lg}, BPM=${level.bpm}`);
-    console.log('   Level object:', level);
 
     // Get input elements from window (exposed by main.js)
     const inputLg = window.inputLg;
@@ -383,51 +377,29 @@ export class GameManager {
     const setValue = window.setValue;
     const handleInput = window.handleInput;
 
-    console.log('   Checking inputs availability...');
-    console.log('   window.inputLg:', window.inputLg);
-    console.log('   window.inputV:', window.inputV);
-    console.log('   window.setValue:', typeof window.setValue);
-    console.log('   window.handleInput:', typeof window.handleInput);
-
     if (!inputLg || !inputV || !setValue || !handleInput) {
-      console.error('❌ Input controls not available - cannot set level parameters');
-      console.log('   inputLg:', !!inputLg);
-      console.log('   inputV:', !!inputV);
-      console.log('   setValue:', !!setValue);
-      console.log('   handleInput:', !!handleInput);
-
-      // IMPORTANTE: Intentar limpiar PulseSeq aunque inputs no estén disponibles
-      if (this.pulseSeqController) {
-        this.pulseSeqController.setText('');
-        console.log('✅ PulseSeq cleared (inputs not available)');
-      }
+      console.error('❌ Input controls not available');
       return;
     }
 
-    // Set Lg (longitud) - IMPORTANTE: debe ejecutarse siempre
+    // Set Lg (longitud)
     if (level.lg !== undefined) {
       setValue(inputLg, level.lg);
       handleInput({ target: inputLg });
       console.log(`✅ Lg set to ${level.lg}`);
-    } else {
-      console.warn('⚠️ Level has no Lg defined');
     }
 
-    // Set BPM (velocidad) - IMPORTANTE: debe ejecutarse siempre
+    // Set BPM (velocidad)
     if (level.bpm !== undefined) {
       setValue(inputV, level.bpm);
       handleInput({ target: inputV });
       console.log(`✅ BPM set to ${level.bpm}`);
-    } else {
-      console.warn('⚠️ Level has no BPM defined');
     }
 
     // Clear pulseSeq
     if (this.pulseSeqController) {
       this.pulseSeqController.setText('');
       console.log('✅ PulseSeq cleared');
-    } else {
-      console.warn('⚠️ pulseSeqController not available yet');
     }
   }
 
@@ -436,11 +408,9 @@ export class GameManager {
    * @param {number} levelNumber - Level to load
    */
   loadLevel(levelNumber) {
-    console.log(`🎯 loadLevel(${levelNumber}) called`);
-    console.log('🎯 About to call getLevel()...');
+    console.log(`Loading level ${levelNumber}`);
 
     this.currentLevel = getLevel(levelNumber);
-    console.log('🎯 Level loaded:', this.currentLevel);
     this.currentPhase = 1;
 
     // Reset event counters for new level
@@ -448,9 +418,7 @@ export class GameManager {
     this.cycleReproductionCount = 0;
 
     // Set level parameters (Lg, BPM, pulseSeq)
-    console.log('🎯 About to call setLevelParameters()...');
     this.setLevelParameters(this.currentLevel);
-    console.log('🎯 setLevelParameters() completed');
 
     // Update UI for level
     this.ui.show(levelNumber);
