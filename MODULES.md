@@ -223,6 +223,766 @@ class EarTrainingGame {
 
 ---
 
+### `libs/gamification/`
+**Ubicación:** `/Users/workingburcet/Lab/libs/gamification/`
+
+**Propósito:** Sistema modular de gamificación para todas las Apps
+
+**Archivos principales del core:**
+- `event-system.js` - Sistema de eventos y tracking
+- `scoring-system.js` - Cálculo de puntuaciones con multiplicadores
+- `achievements.js` - Sistema de logros desbloqueables
+- `storage.js` - Persistencia en localStorage con cola de sincronización
+- `config.js` - Configuración centralizada por app
+- `user-manager.js` - Gestión de usuario único
+- `index.js` - GamificationManager y API principal
+
+**Export principal:**
+```javascript
+class GamificationManager {
+  init(appId)
+  // Subsistemas accesibles:
+  events, scoring, achievements, storage
+}
+
+// Funciones helper
+initGamification(appId)
+trackEvent(type, metadata)
+trackAppAction(action, data)
+recordAttempt(appId, level, accuracy, metadata)
+```
+
+**Características:**
+- 18 tipos de eventos predefinidos
+- 20 logros en 7 categorías
+- 10 niveles de usuario con XP
+- Multiplicadores por racha, tiempo, complejidad
+- Sistema de puntos base configurables
+- Persistencia local con fallback a memoria
+- Preparado para sincronización futura con BD
+
+**Casos de uso:**
+- Tracking de práctica en todas las Apps
+- Sistema de niveles y logros
+- Análisis de progreso del usuario
+- Motivación mediante rewards
+
+**Integración en Apps:**
+```javascript
+// En gamification-adapter.js de cada app
+import { initGamification, trackEvent } from '../../libs/gamification/index.js';
+
+export function initApp5Gamification() {
+  initGamification('app5');
+  // Conectar eventos específicos...
+}
+```
+
+---
+
+### `libs/audio-capture/`
+**Ubicación:** `/Users/workingburcet/Lab/libs/audio-capture/`
+
+**Propósito:** Sistema de captura de ritmo por micrófono y teclado
+
+**Archivos principales:**
+- `microphone.js` - Captura con Tone.UserMedia y beat detection
+- `keyboard.js` - Captura con tecla Space (con anti-rebote)
+- `rhythm-analysis.js` - Análisis de precisión rítmica
+- `index.js` - Exports unificados
+
+**Exports principales:**
+```javascript
+// Captura de micrófono
+class MicrophoneCapture {
+  async initialize()
+  startRecording(onBeatDetected)
+  stopRecording() // Returns timestamps[]
+  dispose()
+}
+
+// Captura de teclado
+class KeyboardCapture {
+  startRecording(onTapDetected)
+  stopRecording() // Returns timestamps[]
+}
+
+// Análisis de ritmo
+class RhythmAnalyzer {
+  compareRhythm(recorded, expected) // Returns accuracy
+  detectTempo(taps) // Returns BPM
+  calculateConsistency(intervals)
+  analyzeFreeRhythm(timestamps)
+}
+
+// Helpers
+fractionsToTimestamps(fractions, bpm, lgMs)
+generateExpectedPattern(lg, positions, bpm)
+```
+
+**Características:**
+- Detección de beats en tiempo real
+- Umbral de detección ajustable
+- Anti-rebote configurable
+- Captura combinada (mic + keyboard)
+- Análisis de precisión con múltiples métricas
+- Detección de BPM con nivel de confianza
+- Emparejamiento inteligente de taps
+
+**Casos de uso:**
+- Ejercicios de ritmo en App5
+- Tap tempo mejorado
+- Validación de patrones rítmicos
+- Análisis de improvisación
+
+**Dependencias:**
+- Tone.js (UserMedia, Meter)
+
+---
+
+### `libs/gamification/game-components/`
+**Ubicación:** `/Users/workingburcet/Lab/libs/gamification/game-components/`
+
+**Propósito:** Sistema modular de componentes reutilizables para crear juegos educativos de música. Arquitectura extensible que separa la lógica base de las mecánicas específicas de cada juego.
+
+**Estructura:**
+```
+game-components/
+├── shared/                     # Componentes base compartidos
+│   ├── BaseGameManager.js     # Clase base para todos los juegos
+│   ├── LevelSystem.js         # Sistema de niveles genérico
+│   ├── PhaseManager.js        # Gestión de fases de juego
+│   ├── ValidationSystem.js    # Validación de respuestas
+│   ├── GameStateManager.js    # Estado y persistencia
+│   ├── ui/                    # Componentes UI reutilizables
+│   │   ├── GamePopup.js      # Popups de juego
+│   │   └── ResultsScreen.js  # Pantalla de resultados
+│   └── styles/
+│       └── game-ui.css        # Estilos unificados
+│
+├── rhythm-game/               # Para App2 y App5
+│   └── RhythmGameManager.js  # Gestión de juegos rítmicos
+│
+├── fraction-game/             # Para App3
+│   └── FractionGameBase.js   # Base para reconocimiento de fracciones
+│
+└── pattern-game/              # Para App4
+    └── PatternGameBase.js    # Base para creación de patrones
+```
+
+#### **Componentes Base Compartidos**
+
+##### `BaseGameManager.js`
+**Propósito:** Clase abstracta que proporciona toda la funcionalidad común para juegos
+
+**API Principal:**
+```javascript
+class BaseGameManager {
+  constructor(config) {
+    // config: {
+    //   appId: string,
+    //   gameName: string,
+    //   maxLevels: number,
+    //   ui: Object,         // Opcional: UI handlers
+    //   audioCapture: Object // Opcional: captura de audio
+    // }
+  }
+
+  // Inicialización y ciclo de vida
+  async init()                    // Inicializa el juego y carga progreso
+  startGame()                      // Inicia nueva sesión de juego
+  startLevel(levelNumber)          // Inicia un nivel específico
+  startPhase(phaseNumber)          // Inicia una fase del nivel
+  pauseGame() / resumeGame()      // Control de pausa
+  endGame(completed)               // Finaliza el juego
+
+  // Validación y puntuación
+  validateAttempt(userInput, expected)  // Valida respuesta del usuario
+  calculateScore(accuracy, timeSpent)   // Calcula puntuación
+  calculateAccuracy(input, expected)    // Calcula precisión (0-100)
+
+  // Progreso y niveles
+  completeLevel()                  // Marca nivel como completado
+  nextLevel()                      // Avanza al siguiente nivel
+  restartLevel()                   // Reinicia nivel actual
+
+  // Persistencia
+  saveProgress()                   // Guarda progreso en localStorage
+  loadProgress()                   // Carga progreso guardado
+  resetProgress()                  // Borra todo el progreso
+
+  // Eventos (para override)
+  onLevelStart(level)             // Hook al iniciar nivel
+  onLevelComplete(level, score)   // Hook al completar nivel
+  onGameComplete(stats)           // Hook al completar juego
+  onPhaseTransition(from, to)     // Hook al cambiar fase
+}
+```
+
+**Ejemplo de uso (extendiendo la clase):**
+```javascript
+import { BaseGameManager } from './shared/BaseGameManager.js';
+
+class MyCustomGame extends BaseGameManager {
+  constructor() {
+    super({
+      appId: 'myGame',
+      gameName: 'Mi Juego Musical',
+      maxLevels: 4
+    });
+  }
+
+  // Override métodos específicos
+  getLevelConfig(levelNumber) {
+    // Retorna configuración del nivel
+  }
+
+  executePhase(phaseNumber) {
+    // Implementa lógica de cada fase
+  }
+}
+```
+
+##### `LevelSystem.js`
+**Propósito:** Sistema genérico de gestión de niveles con unlocking progresivo
+
+**API Principal:**
+```javascript
+class LevelSystem {
+  constructor(maxLevels = 4, storageKey = 'gameLevels')
+
+  // Consultas de estado
+  getCurrentLevel()                // Nivel actual (1-maxLevels)
+  isUnlocked(levelNumber)          // Si el nivel está desbloqueado
+  isCompleted(levelNumber)         // Si el nivel fue completado
+  getAllLevelsCompleted()          // Si todos están completados
+
+  // Modificación de estado
+  unlockLevel(levelNumber)         // Desbloquea un nivel
+  completeLevel(levelNumber, score, stars) // Marca como completado
+  resetLevel(levelNumber)          // Resetea un nivel específico
+  resetAll()                       // Resetea todo el progreso
+
+  // Navegación
+  nextLevel()                      // Avanza al siguiente disponible
+  previousLevel()                  // Retrocede al anterior
+
+  // Estadísticas
+  getProgress()                    // {completed, total, percentage, stars}
+  getLevelStats(levelNumber)      // {completed, score, stars, attempts}
+  getTotalStars()                  // Total de estrellas ganadas
+
+  // Persistencia
+  saveProgress()                   // Guarda en localStorage
+  loadProgress()                   // Carga desde localStorage
+}
+
+// Helper para crear sistema estándar
+export function createStandardLevelSystem(config = {}) {
+  const system = new LevelSystem(4, config.storageKey);
+  if (config.unlockAll) {
+    for (let i = 1; i <= 4; i++) {
+      system.unlockLevel(i);
+    }
+  }
+  return system;
+}
+```
+
+##### `PhaseManager.js`
+**Propósito:** Gestiona las fases dentro de cada nivel (instrucción → ejecución → validación)
+
+**API Principal:**
+```javascript
+class PhaseManager {
+  constructor(config) {
+    // config: {
+    //   phases: Array<{name, duration?, canSkip?}>,
+    //   onPhaseStart: Function,
+    //   onPhaseEnd: Function,
+    //   onAllPhasesComplete: Function
+    // }
+  }
+
+  // Control de fases
+  start()                          // Inicia desde la primera fase
+  startPhase(phase)                // Inicia una fase específica
+  nextPhase()                      // Avanza a la siguiente
+  previousPhase()                  // Retrocede a la anterior
+  skipToPhase(phaseIndex)          // Salta a una fase
+  restartCurrentPhase()            // Reinicia fase actual
+
+  // Estado
+  getCurrentPhase()                // {index, name, startTime}
+  getPhaseCount()                  // Total de fases
+  isLastPhase()                    // Si es la última fase
+
+  // Progreso
+  getProgress()                    // {current, total, percentage}
+  getPhaseStatistics()             // Estadísticas de cada fase
+
+  // Control
+  pause() / resume()               // Pausa/reanuda la fase actual
+  reset()                          // Resetea todo el manager
+}
+```
+
+**Ejemplo de configuración:**
+```javascript
+const phaseManager = new PhaseManager({
+  phases: [
+    { name: 'instruction', duration: 3000 },
+    { name: 'listen', duration: 5000 },
+    { name: 'capture', canSkip: false },
+    { name: 'validation', duration: 2000 }
+  ],
+  onPhaseStart: (phase) => console.log(`Starting ${phase.name}`),
+  onPhaseEnd: (phase, stats) => console.log(`Completed ${phase.name}`),
+  onAllPhasesComplete: () => console.log('Level complete!')
+});
+```
+
+##### `ValidationSystem.js`
+**Propósito:** Sistema genérico de validación que soporta múltiples tipos de datos
+
+**API Principal:**
+```javascript
+class ValidationSystem {
+  constructor(config) {
+    // config: {
+    //   tolerance: number (0-1),     // Tolerancia para números
+    //   strictMode: boolean,          // Validación estricta
+    //   validators: Object            // Validadores custom
+    // }
+  }
+
+  // Validación por tipo
+  validateWithType(type, input, expected)  // Usa validador específico
+  validateGeneric(input, expected)         // Auto-detecta tipo
+
+  // Validadores específicos
+  validateNumber(input, expected)          // Con tolerancia
+  validateString(input, expected)          // Con similarity
+  validateArray(input, expected)           // Elemento por elemento
+  validateObject(input, expected)          // Campo por campo
+  validateRhythm(inputTimestamps,         // Validación rítmica
+                 expectedTimestamps,
+                 toleranceMs)
+
+  // Registro de validadores custom
+  registerValidator(type, validator)       // validator: (input, expected) => result
+
+  // Estadísticas
+  getStatistics()                         // {total, correct, incorrect, avg}
+  reset()                                  // Limpia historial
+}
+
+// Resultado de validación
+{
+  correct: boolean,      // Si es correcto
+  accuracy: number,      // Precisión 0-100
+  type: string,         // Tipo de validación
+  details: Object       // Detalles específicos
+}
+```
+
+**Ejemplo de validador custom:**
+```javascript
+validation.registerValidator('fraction', (input, expected) => {
+  const inputFrac = parseFraction(input);
+  const expectedFrac = parseFraction(expected);
+
+  const correct = inputFrac.n === expectedFrac.n &&
+                  inputFrac.d === expectedFrac.d;
+
+  let accuracy = 0;
+  if (inputFrac.n === expectedFrac.n) accuracy += 50;
+  if (inputFrac.d === expectedFrac.d) accuracy += 50;
+
+  return { correct, accuracy, type: 'fraction' };
+});
+```
+
+##### `GameStateManager.js`
+**Propósito:** Gestión completa del estado del juego con persistencia y undo/redo
+
+**API Principal:**
+```javascript
+class GameStateManager {
+  constructor(config) {
+    // config: {
+    //   storageKey: string,
+    //   autoSave: boolean,
+    //   autoSaveInterval: number,
+    //   maxSnapshots: number
+    // }
+  }
+
+  // Acceso al estado
+  get(path)                        // Obtiene valor por path (dot notation)
+  set(path, value)                 // Establece valor por path
+  update(updates)                  // Actualización parcial (merge)
+  getState()                       // Estado completo
+
+  // Snapshots y undo/redo
+  createSnapshot()                 // Crea snapshot del estado actual
+  undo()                          // Deshace último cambio
+  redo()                          // Rehace cambio deshecho
+  canUndo() / canRedo()           // Si hay cambios para deshacer/rehacer
+
+  // Persistencia
+  saveState()                     // Guarda en localStorage
+  loadState()                     // Carga desde localStorage
+  clearState()                    // Limpia estado y storage
+
+  // Observadores
+  subscribe(listener)             // Escucha cambios de estado
+  unsubscribe(listener)          // Deja de escuchar
+
+  // Control
+  startAutoSave()                // Inicia guardado automático
+  stopAutoSave()                 // Detiene guardado automático
+  dispose()                      // Limpia recursos
+}
+```
+
+**Ejemplo de uso:**
+```javascript
+const gameState = new GameStateManager({
+  storageKey: 'myGame_state',
+  autoSave: true,
+  autoSaveInterval: 5000
+});
+
+// Establecer valores
+gameState.set('player.score', 100);
+gameState.set('level.current', 2);
+
+// Obtener valores
+const score = gameState.get('player.score'); // 100
+
+// Escuchar cambios
+gameState.subscribe((newState, oldState) => {
+  console.log('State changed:', newState);
+});
+
+// Undo/Redo
+gameState.createSnapshot(); // Punto de restauración
+gameState.set('player.lives', 3);
+gameState.undo(); // Restaura snapshot
+```
+
+#### **Componentes UI**
+
+##### `GamePopup.js`
+**Propósito:** Sistema de popups reutilizable para mensajes, confirmaciones y requisitos
+
+**API Principal:**
+```javascript
+class GamePopup {
+  constructor(config) {
+    // config: {
+    //   containerId: string,
+    //   className: string,
+    //   animationDuration: number,
+    //   backdropClose: boolean,
+    //   autoClose: number
+    // }
+  }
+
+  // Mostrar popups
+  show(options)                    // Muestra popup genérico
+  showMessage(message, title)     // Mensaje simple
+  showConfirm(options)            // Returns Promise<boolean>
+  showLevelRequirements(config)  // Requisitos del nivel
+  showRetry(message, onRetry)    // Popup de reintentar
+
+  // Control
+  hide()                          // Oculta popup actual
+  dispose()                       // Limpia recursos
+}
+
+// Opciones para show()
+{
+  title: string,
+  content: string | HTMLElement,
+  requirements: Array<string>,
+  buttons: Array<{
+    text: string,
+    icon?: string,
+    primary?: boolean,
+    onClick: Function
+  }>,
+  autoClose?: number
+}
+```
+
+**Ejemplo de uso:**
+```javascript
+const popup = new GamePopup();
+
+// Mensaje simple
+popup.showMessage('¡Nivel completado!', 'Excelente');
+
+// Confirmación
+const confirmed = await popup.showConfirm({
+  title: '¿Salir del juego?',
+  message: 'Tu progreso se guardará',
+  confirmText: 'Salir',
+  cancelText: 'Continuar'
+});
+
+// Requisitos de nivel
+popup.showLevelRequirements({
+  level: 2,
+  title: 'Nivel 2: Patrones Medios',
+  requirements: [
+    'Crea 5 patrones diferentes',
+    'Precisión mínima: 80%',
+    'Tiempo límite: 2 minutos'
+  ]
+});
+```
+
+##### `ResultsScreen.js`
+**Propósito:** Pantalla de resultados animada con estadísticas y acciones
+
+**API Principal:**
+```javascript
+class ResultsScreen {
+  constructor(config) {
+    // config: {
+    //   containerId: string,
+    //   showConfetti: boolean,
+    //   animationDuration: number,
+    //   onContinue: Function,
+    //   onRetry: Function,
+    //   onExit: Function
+    // }
+  }
+
+  // Mostrar resultados
+  show(results)                    // Muestra pantalla de resultados
+  hide()                          // Oculta pantalla
+  dispose()                       // Limpia recursos
+}
+
+// Estructura de results
+{
+  level: number,
+  score: number,
+  accuracy: number,        // 0-100
+  duration: number,        // en ms
+  attempts: number,
+  nextLevel: boolean,      // Si hay siguiente nivel
+  customMessage?: string   // Mensaje personalizado
+}
+```
+
+**Características visuales:**
+- **Título dinámico:** Basado en rendimiento (Excelente/Muy bien/Bien hecho/Sigue practicando)
+- **Estrellas:** 1-3 estrellas animadas según accuracy
+- **Puntuación animada:** Contador incremental con easing
+- **Estadísticas:** Grid con nivel, precisión, tiempo, intentos
+- **Confetti:** Efecto para scores ≥80%
+- **Botones contextuales:** Siguiente nivel (si accuracy ≥60%), Reintentar, Salir
+
+#### **Componentes Específicos por Juego**
+
+##### `rhythm-game/RhythmGameManager.js`
+**Propósito:** Manager especializado para juegos de ritmo (Apps 2 y 5)
+
+**API Principal:**
+```javascript
+class RhythmGameManager extends BaseGameManager {
+  constructor(config)
+
+  // Audio capture
+  async initializeAudioCapture()  // Inicializa micrófono/teclado
+  switchCaptureMode(mode)         // 'microphone' | 'keyboard'
+  startCapture()                  // Inicia captura
+  stopCapture()                   // Detiene y retorna timestamps
+
+  // Configuración de niveles
+  getLevelConfig(levelNumber)     // Config específica de ritmo
+  setBPM(bpm)                    // Establece tempo
+  setTolerance(ms)               // Tolerancia de timing
+
+  // Generación de patrones
+  generatePositions(config)       // Genera posiciones aleatorias
+
+  // Validación
+  validateRhythm(captured, expected, tolerance)
+}
+
+// Configuración de nivel típica
+{
+  name: 'Nivel 1',
+  lg: 8,
+  v: 60,
+  bpm: 60,
+  tolerance: 100,
+  minPulses: 3,
+  maxPulses: 5,
+  phases: ['instruction', 'listen', 'capture', 'validation']
+}
+```
+
+##### `fraction-game/FractionGameBase.js`
+**Propósito:** Base para juegos de reconocimiento de fracciones (App3)
+
+**API Principal:**
+```javascript
+class FractionGameBase extends BaseGameManager {
+  constructor(config)
+
+  // Generación
+  generateRandomFraction()         // Genera fracción aleatoria según nivel
+  simplifyFraction(n, d)          // Simplifica fracción
+
+  // Audio
+  async playFractionAudio(fraction) // Reproduce audio de fracción
+
+  // Validación
+  validateFractionAnswer(userAnswer, correctAnswer)
+  calculateAccuracy(userAnswer, correctAnswer) // Parcial credit
+
+  // UI
+  getUserInput()                  // Obtiene n/d del usuario
+  showFractionNotation(fraction)  // Muestra notación
+}
+
+// Niveles de dificultad
+Level 1: n=1, d=2-4 (simples)
+Level 2: n=1-2, d=2-6 (medias)
+Level 3: n=1-3, d=2-8 (complejas)
+Level 4: n=1-5, d=2-12 (avanzadas)
+```
+
+##### `pattern-game/PatternGameBase.js`
+**Propósito:** Base para juegos de creación de patrones (App4)
+
+**API Principal:**
+```javascript
+class PatternGameBase extends BaseGameManager {
+  constructor(config)
+
+  // Configuración
+  getLevelConfig(levelNumber)     // Config con requisitos
+
+  // Generación
+  generateTargetPattern(requirement) // Genera patrón objetivo
+  detectFraction(pattern)          // Detecta fracción en patrón
+
+  // Requisitos
+  getRequirementDescription(req)   // Descripción legible
+  showHint()                      // Muestra pista
+
+  // Validación
+  validatePattern(userPattern, requirement)
+  calculatePatternAccuracy(user, requirement, target)
+}
+
+// Tipos de requisitos
+- fixed_n: Numerador fijo
+- fixed_d: Denominador fijo
+- specific_fraction: Fracción exacta
+- total_pulses: Número de pulsos
+- proportion: Proporción específica
+- pattern_type: Tipo de patrón
+```
+
+#### **Estilos y Temas**
+
+##### `shared/styles/game-ui.css`
+**Propósito:** Sistema de estilos unificado para todos los componentes de juego
+
+**Características:**
+```css
+/* Variables CSS personalizables */
+:root {
+  --game-primary: #667eea;
+  --game-primary-dark: #764ba2;
+  --game-success: #4CAF50;
+  --game-error: #f44336;
+  --game-backdrop: rgba(0, 0, 0, 0.6);
+  /* ... más variables */
+}
+
+/* Clases principales */
+.game-container        /* Contenedor principal */
+.game-backdrop        /* Overlay de fondo */
+.game-popup          /* Popups de juego */
+.game-button         /* Botones con variantes */
+.results-screen      /* Pantalla de resultados */
+.level-badge        /* Badges de nivel */
+.game-progress      /* Barras de progreso */
+.count-in-overlay   /* Cuenta regresiva */
+
+/* Animaciones predefinidas */
+@keyframes fadeIn, fadeOut, slideIn, bounceIn,
+           pulse, countPulse, star-appear, shake
+```
+
+**Responsive Design:**
+- Breakpoint principal: 480px
+- Ajuste automático de tamaños de fuente
+- Grid adaptativo para estadísticas
+- Botones y popups responsive
+
+#### **Integración con Apps**
+
+**Patrón de implementación:**
+```javascript
+// 1. Importar componentes necesarios
+import { RhythmGameManager } from '../../libs/gamification/game-components/rhythm-game/RhythmGameManager.js';
+import { GamePopup } from '../../libs/gamification/game-components/shared/ui/GamePopup.js';
+import { ResultsScreen } from '../../libs/gamification/game-components/shared/ui/ResultsScreen.js';
+
+// 2. Crear instancia del manager
+const gameManager = new RhythmGameManager({
+  appId: 'app5',
+  gameName: 'Ritmo y Pulso',
+  maxLevels: 4
+});
+
+// 3. Configurar UI
+const popup = new GamePopup();
+const results = new ResultsScreen({
+  onContinue: () => gameManager.nextLevel(),
+  onRetry: () => gameManager.restartLevel(),
+  onExit: () => gameManager.endGame()
+});
+
+// 4. Inicializar
+await gameManager.init();
+
+// 5. Conectar eventos
+gameManager.onLevelComplete = (level, score) => {
+  results.show({
+    level,
+    score,
+    accuracy: gameManager.getCurrentAccuracy(),
+    duration: gameManager.getLevelDuration()
+  });
+};
+
+// 6. Iniciar juego
+gameManager.startGame();
+```
+
+**Estado actual:**
+- ✅ **App5**: Implementación completa funcionando con 4 niveles
+- 🚧 **App2**: Preparado para implementación (ver plan)
+- 🚧 **App3**: Preparado para implementación (ver plan)
+- 🚧 **App4**: Preparado para implementación (ver plan)
+
+**Documentación adicional:**
+- Ver `GAMIFICATION_IMPLEMENTATION_PLAN.md` para detalles de implementación
+- Ver `GAMIFICATION_PROGRESS.md` para estado actual del proyecto
+
+---
+
 ### `libs/guide/`
 **Ubicación:** `/Users/workingburcet/Lab/libs/guide/`
 

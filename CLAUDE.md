@@ -155,6 +155,36 @@ Smart event building for VexFlow scores optimized for rhythmic fractions and tup
 - **`libs/utils/`**: General utilities
 - **`libs/vendor/`**: Third-party libraries (Tone.js)
 
+### 🎮 Gamification System (`libs/gamification/`)
+
+#### **Core System** - Modular gamification infrastructure
+- **`event-system.js`**: Event tracking and management
+- **`scoring-system.js`**: Score calculation with multipliers
+- **`achievements.js`**: Achievement system with 20+ unlockables
+- **`storage.js`**: LocalStorage persistence with sync queue
+- **`config.js`**: Centralized configuration
+- **`user-manager.js`**: Single-user state management
+- **`index.js`**: Main GamificationManager and API
+
+#### **Audio Capture** (`libs/audio-capture/`)
+- **`microphone.js`**: Microphone rhythm capture with beat detection
+- **`keyboard.js`**: Keyboard (Space) rhythm capture
+- **`rhythm-analysis.js`**: Pattern analysis and accuracy calculation
+
+#### **Game Components** (`libs/gamification/game-components/`) - Reusable game modules
+- **`shared/`**: Base classes and UI components
+  - `BaseGameManager.js`, `LevelSystem.js`, `PhaseManager.js`
+  - UI: `GamePopup.js`, `ResultsScreen.js`, `GameOverlay.js`
+- **`rhythm-game/`**: Rhythm game components (App2, App5)
+- **`fraction-game/`**: Fraction recognition components (App3)
+- **`pattern-game/`**: Pattern creation components (App4)
+
+#### **Current Implementation**
+- **App5**: Full gamification with 4 levels, pattern recognition, UI popups
+  - Location: `Apps/App5/game/` (game-manager.js, game-ui.js, levels-config.js)
+  - Mechanics: Listen to pattern → Enter positions → Validate → Score
+- **Apps 2,3,4**: Planned implementation (see GAMIFICATION_IMPLEMENTATION_PLAN.md)
+
 ### New Modularization Patterns (2024)
 
 #### **DOM Management**
