@@ -692,4 +692,64 @@ export class GameUI {
     this.showMessage('¡Listo para jugar!', 'neutral');
     // this.updateProgress(); // Ya desactivado antes
   }
+
+  /**
+   * Show success message before playback with continue button
+   */
+  showSuccessBeforePlayback(callback) {
+    this.popup.innerHTML = `
+      <div class="game-popup-content">
+        <button class="game-close-btn" title="Cerrar">&times;</button>
+        <h3>¡Muy bien!</h3>
+        <p class="game-message">Ahora escucha cómo suena.</p>
+        <div class="game-button-group">
+          <button class="game-btn game-btn-primary" data-action="continue">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M5 3l6 5-6 5V3z"/>
+            </svg>
+            Continuar
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.popup.querySelector('.game-close-btn').addEventListener('click', () => this.hide());
+
+    this.popup.querySelector('[data-action="continue"]').addEventListener('click', () => {
+      this.hidePopup();
+      if (callback) callback();
+    });
+
+    this.show();
+  }
+
+  /**
+   * Show confirmation for free mode (level 4)
+   */
+  showFreeModeContinue(callback) {
+    this.popup.innerHTML = `
+      <div class="game-popup-content">
+        <button class="game-close-btn" title="Cerrar">&times;</button>
+        <h3>¡Perfecto!</h3>
+        <p class="game-message">Ahora escuchemos tu patrón.</p>
+        <div class="game-button-group">
+          <button class="game-btn game-btn-primary" data-action="continue">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M5 3l6 5-6 5V3z"/>
+            </svg>
+            Continuar
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.popup.querySelector('.game-close-btn').addEventListener('click', () => this.hide());
+
+    this.popup.querySelector('[data-action="continue"]').addEventListener('click', () => {
+      this.hidePopup();
+      if (callback) callback();
+    });
+
+    this.show();
+  }
 }

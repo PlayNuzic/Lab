@@ -1973,6 +1973,15 @@ async function initializeGameSystem() {
   window.handleInput = handleInput;
   window.circularTimelineToggle = circularTimelineToggle;
 
+  // Exponer función para limpiar intervalos seleccionados (usado por game manager)
+  window.clearSelectedIntervals = function() {
+    selectedIntervals.clear();
+    if (intervalRenderer && intervalRenderer.render) {
+      intervalRenderer.render();
+    }
+    updatePulseSeqField();
+  };
+
   // Set synth reference getter that returns current audio instance
   Object.defineProperty(window, 'synth', {
     get() {

@@ -288,6 +288,12 @@ export class GameManager {
     // El progreso se guarda (completedLevels) pero cada sesión empieza desde el principio
     console.log('📋 Starting game - always begin at Level 1');
 
+    // Limpiar intervalos seleccionados del timeline
+    if (window.clearSelectedIntervals) {
+      window.clearSelectedIntervals();
+      console.log('✅ Timeline intervals cleared');
+    }
+
     // Limpiar PulseSeq - no debe haber posiciones seleccionadas al iniciar
     if (this.pulseSeqController) {
       this.pulseSeqController.setText('');
@@ -410,6 +416,11 @@ export class GameManager {
   loadLevel(levelNumber) {
     console.log(`Loading level ${levelNumber}`);
 
+    // Limpiar intervalos seleccionados del timeline
+    if (window.clearSelectedIntervals) {
+      window.clearSelectedIntervals();
+    }
+
     this.currentLevel = getLevel(levelNumber);
     this.currentPhase = 1;
 
@@ -479,7 +490,6 @@ export class GameManager {
 
     if (!sanitized || sanitized.length === 0) {
       console.warn('⚠️ Invalid format');
-      // TODO: Show error message to user
       return;
     }
 
@@ -487,7 +497,22 @@ export class GameManager {
     const positions = sanitized;
     console.log('🎯 Positions:', positions);
 
-    // Validate using level's validation function
+    // CASO ESPECIAL: Nivel 4 (modo libre)
+    if (this.currentLevel.libre) {
+      // Solo validar cantidad de posiciones (2-8)
+      if (positions.length >= 2 && positions.length <= 8) {
+        this.playbackPatterns = positions;
+        // Mostrar popup de confirmación para modo libre
+        this.ui.showFreeModeContinue(() => {
+          this.showSuccessAndPlayPattern();
+        });
+      } else {
+        this.ui.showMessage('Selecciona entre 2 y 8 posiciones', 'thinking');
+      }
+      return;
+    }
+
+    // NIVELES NORMALES (1, 2, 3): Validar con función del nivel
     const isCorrect = this.currentLevel.validate(positions);
     console.log('✅ Is correct?', isCorrect);
 
@@ -508,44 +533,46 @@ export class GameManager {
    * Show success message and play pattern in LINEAR mode (1 cycle)
    */
   showSuccessAndPlayPattern() {
-    console.log('🎉 Pattern correct - playing 1 cycle in LINEAR mode');
+    console.log('🎉 Pattern correct');
     console.log(`📊 Pattern: P(${this.playbackPatterns.join(' ')}) Lg=${this.currentLevel.lg} BPM=${this.currentLevel.bpm}`);
 
-    // Hide popup
-    this.ui.hidePopup();
+    // Mostrar popup de confirmación antes de reproducir
+    this.ui.showSuccessBeforePlayback(() => {
+      console.log('▶️ User confirmed - playing 1 cycle in LINEAR mode');
 
-    // Force LINEAR mode (circular = false)
-    const circularToggle = window.circularTimelineToggle;
-    if (circularToggle && circularToggle.checked) {
-      circularToggle.checked = false;
-      circularToggle.dispatchEvent(new Event('change'));
-      console.log('✅ Timeline set to LINEAR mode');
-    }
-
-    // Wait 500ms, then click REAL play button
-    setTimeout(() => {
-      const playBtn = document.querySelector('.play');
-      if (playBtn) {
-        console.log('▶️ Playing pattern (1 cycle in linear mode)');
-        playBtn.click();
-      } else {
-        console.error('❌ Play button not found');
-        return;
+      // Force LINEAR mode (circular = false)
+      const circularToggle = window.circularTimelineToggle;
+      if (circularToggle && circularToggle.checked) {
+        circularToggle.checked = false;
+        circularToggle.dispatchEvent(new Event('change'));
+        console.log('✅ Timeline set to LINEAR mode');
       }
-    }, 500);
 
-    // Calculate duration of 1 cycle
-    const beatMs = (60 / this.currentLevel.bpm) * 1000; // ms per beat
-    const cycleMs = beatMs * this.currentLevel.lg; // ms per cycle
-    const totalMs = cycleMs + 1000; // 1 cycle + 1s margin
+      // Wait 500ms, then click REAL play button
+      setTimeout(() => {
+        const playBtn = document.querySelector('.play');
+        if (playBtn) {
+          console.log('▶️ Playing pattern (1 cycle in linear mode)');
+          playBtn.click();
+        } else {
+          console.error('❌ Play button not found');
+          return;
+        }
+      }, 500);
 
-    console.log(`⏱️ Waiting ${totalMs}ms (1 cycle: ${cycleMs}ms at ${this.currentLevel.bpm} BPM, Lg=${this.currentLevel.lg})`);
+      // Calculate duration of 1 cycle
+      const beatMs = (60 / this.currentLevel.bpm) * 1000;
+      const cycleMs = beatMs * this.currentLevel.lg;
+      const totalMs = cycleMs + 1000;
 
-    // After 1 cycle, start Phase 2 (which will switch to circular)
-    setTimeout(() => {
-      console.log('✅ 1 cycle completed, starting Phase 2');
-      this.startPhase2();
-    }, totalMs);
+      console.log(`⏱️ Waiting ${totalMs}ms for 1 cycle`);
+
+      // After 1 cycle, start Phase 2 (which will switch to circular)
+      setTimeout(() => {
+        console.log('✅ 1 cycle completed, starting Phase 2');
+        this.startPhase2();
+      }, totalMs);
+    });
   }
 
   /**

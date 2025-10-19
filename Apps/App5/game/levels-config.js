@@ -101,7 +101,7 @@ export const LEVELS = {
   2: {
     lg: 4,
     bpm: 90,
-    requirement: "Escribe 2 P pares (2 y 4)",
+    requirement: "Escribe 2 P pares",
     solution: [2, 4], // Expected positions
     hint: "Las posiciones pares son la segunda y cuarta",
     requirementType: 'even',
