@@ -726,7 +726,9 @@ export class GameUI {
       if (callback) callback();
     });
 
-    this.show();
+    // Mostrar container sin llamar a show() (que reemplazaría el HTML)
+    this.container.style.display = 'flex';
+    this.isVisible = true;
   }
 
   /**
@@ -762,6 +764,8 @@ export class GameUI {
       if (callback) callback();
     });
 
-    this.show();
+    // Mostrar container sin llamar a show() (que reemplazaría el HTML)
+    this.container.style.display = 'flex';
+    this.isVisible = true;
   }
 }
