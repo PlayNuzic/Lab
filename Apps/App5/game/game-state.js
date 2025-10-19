@@ -136,7 +136,7 @@ export class GameState {
 
     // Update statistics
     this.statistics.totalAttempts++;
-    if (accuracy >= 80) {
+    if (accuracy >= 50) {
       this.statistics.successfulAttempts++;
       this.currentStreak++;
       if (this.currentStreak > this.statistics.bestStreak) {
@@ -154,7 +154,7 @@ export class GameState {
     const levelStats = this.statistics.levelStats[level];
     if (levelStats) {
       levelStats.attempts++;
-      if (accuracy >= 80) {
+      if (accuracy >= 50) {
         levelStats.completions++;
       }
       if (accuracy > levelStats.bestAccuracy) {
@@ -178,7 +178,7 @@ export class GameState {
     this.checkAchievements(level, accuracy, responseTime);
 
     // Auto-advance to next level if successful
-    if (accuracy >= 80 && level < 4) {
+    if (accuracy >= 50 && level < 4) {
       this.currentLevel = Math.min(level + 1, 4);
     }
 
@@ -238,7 +238,7 @@ export class GameState {
     const wasUnlocked = { ...this.achievements };
 
     // First Step - Complete level 1
-    if (level === 1 && accuracy >= 80) {
+    if (level === 1 && accuracy >= 50) {
       this.achievements.firstStep = true;
     }
 
@@ -248,12 +248,12 @@ export class GameState {
     }
 
     // Adaptive - Complete level 3
-    if (level === 3 && accuracy >= 80) {
+    if (level === 3 && accuracy >= 50) {
       this.achievements.adaptive = true;
     }
 
     // Free Spirit - Complete level 4
-    if (level === 4 && accuracy >= 80) {
+    if (level === 4 && accuracy >= 50) {
       this.achievements.freeSpirit = true;
     }
 
@@ -268,7 +268,7 @@ export class GameState {
     }
 
     // Speed Demon - Complete in under 10 seconds
-    if (responseTime < 10000 && accuracy >= 80) {
+    if (responseTime < 10000 && accuracy >= 50) {
       this.achievements.speedDemon = true;
     }
 

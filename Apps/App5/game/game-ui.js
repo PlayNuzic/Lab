@@ -522,12 +522,23 @@ export class GameUI {
           <div class="game-button-group">
             <button class="game-btn game-btn-primary ${!passed ? 'game-btn-disabled' : ''}"
                     data-action="continue" ${!passed ? 'disabled' : ''}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M5 3l6 5-6 5V3z"/>
+              </svg>
               Siguiente Nivel
             </button>
             <button class="game-btn game-btn-secondary" data-action="retry">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 3v2.5L11 3 8 .5V3c-3.9 0-7 3.1-7 7s3.1 7 7 7 7-3.1 7-7h-2c0 2.8-2.2 5-5 5s-5-2.2-5-5 2.2-5 5-5z"/>
+              </svg>
               Reintentar
             </button>
             <button class="game-btn game-btn-secondary" data-action="menu">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="2" y="3" width="12" height="2" rx="1"/>
+                <rect x="2" y="7" width="12" height="2" rx="1"/>
+                <rect x="2" y="11" width="12" height="2" rx="1"/>
+              </svg>
               Menú
             </button>
           </div>

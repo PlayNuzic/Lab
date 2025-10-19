@@ -854,7 +854,7 @@ export class GameManager {
         );
 
         // Show results
-        const success = accuracy >= 60; // Opción permisiva: 60% en lugar de 80%
+        const success = accuracy >= 50; // Opción permisiva: 50% para facilitar progreso
         const achievements = this.gameState.checkAchievements(
           this.currentLevel.levelNumber,
           accuracy,

@@ -14,10 +14,12 @@ export class RhythmAnalyzer {
   constructor(options = {}) {
     this.config = {
       // Tolerancia para considerar un tap "correcto" (en ms)
-      timingTolerance: options.timingTolerance || 100,
+      // Aumentado a 200ms (2 décimas) para ser más permisivo
+      timingTolerance: options.timingTolerance || 200,
 
       // Tolerancia para variación en tempo (BPM)
-      tempoTolerance: options.tempoTolerance || 10,
+      // Aumentado a 15 BPM para ser más permisivo
+      tempoTolerance: options.tempoTolerance || 15,
 
       // Ventana de análisis para consistencia (ms)
       consistencyWindow: options.consistencyWindow || 500,

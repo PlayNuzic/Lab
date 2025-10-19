@@ -41,13 +41,14 @@ function generateLevel3() {
       }
     },
     {
-      type: 'consecutive',
+      type: 'mixed',
       count: 3,
-      description: () => `Escribe 3 P consecutivos`,
-      validate: (positions) => {
+      description: () => `1 P impar y 2 P pares`,
+      validate: (positions, lg) => {
         if (positions.length !== 3) return false;
-        const sorted = [...positions].sort((a, b) => a - b);
-        return sorted[1] === sorted[0] + 1 && sorted[2] === sorted[1] + 1;
+        const oddPositions = positions.filter(p => p % 2 === 1);
+        const evenPositions = positions.filter(p => p % 2 === 0);
+        return oddPositions.length === 1 && evenPositions.length === 2;
       }
     },
     {
