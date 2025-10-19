@@ -289,7 +289,8 @@ export class GameUI {
    */
   showPhase2UI(config) {
     // Recrear popup con estructura simplificada para Fase 2
-    const isKeyboard = window.gameForceKeyboard !== false; // Por defecto: teclado
+    // Por defecto: teclado (true si undefined o true, false solo si explícitamente false)
+    const isKeyboard = window.gameForceKeyboard !== false;
     const inputIcon = isKeyboard ? '⌨️' : '🎤';
     const inputTitle = isKeyboard ? 'Teclado' : 'Micrófono';
     const inputInstructions = isKeyboard

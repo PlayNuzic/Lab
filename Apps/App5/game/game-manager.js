@@ -46,11 +46,10 @@ export class GameManager {
     console.log('🎮 GameManager.init() starting...');
 
     // Inicializar modo de captura: TECLADO por defecto
-    // (puede cambiarse con debugGame.useMicrophone())
-    if (window.gameForceKeyboard === undefined) {
-      window.gameForceKeyboard = true;
-      console.log('⌨️ Modo de captura por defecto: TECLADO (tecla ESPACIO)');
-    }
+    // IMPORTANTE: Siempre resetear a true al iniciar el game manager
+    // (puede cambiarse con debugGame.useMicrophone() después de inicializar)
+    window.gameForceKeyboard = true;
+    console.log('⌨️ Modo de captura: TECLADO (tecla ESPACIO) - default');
 
     // Initialize UI
     this.ui.init();
