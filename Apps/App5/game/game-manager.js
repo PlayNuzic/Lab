@@ -3,6 +3,10 @@
  * Orchestrates game flow, phases, and audio capture
  */
 
+// VERSION CHECK: 2025-10-19 18:45 - If you see this, new code is loading!
+console.log('🔍 GAME-MANAGER.JS LOADED - Version: 2025-10-19 18:45');
+console.log('🔍 This message confirms the updated file is being executed');
+
 import {
   createMicrophoneCapture,
   createKeyboardCapture,
@@ -432,9 +436,11 @@ export class GameManager {
    * @param {number} levelNumber - Level to load
    */
   loadLevel(levelNumber) {
-    console.log(`Loading level ${levelNumber}`);
+    console.log(`🎯 loadLevel(${levelNumber}) called`);
+    console.log('🎯 About to call getLevel()...');
 
     this.currentLevel = getLevel(levelNumber);
+    console.log('🎯 Level loaded:', this.currentLevel);
     this.currentPhase = 1;
 
     // Reset event counters for new level
@@ -442,7 +448,9 @@ export class GameManager {
     this.cycleReproductionCount = 0;
 
     // Set level parameters (Lg, BPM, pulseSeq)
+    console.log('🎯 About to call setLevelParameters()...');
     this.setLevelParameters(this.currentLevel);
+    console.log('🎯 setLevelParameters() completed');
 
     // Update UI for level
     this.ui.show(levelNumber);
