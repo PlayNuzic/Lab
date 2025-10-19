@@ -697,6 +697,12 @@ export class GameUI {
    * Show success message before playback with continue button
    */
   showSuccessBeforePlayback(callback) {
+    // Reemplazar popup completamente para eliminar event listeners anteriores
+    const oldPopup = this.popup;
+    this.popup = document.createElement('div');
+    this.popup.className = oldPopup.className;
+    oldPopup.parentNode.replaceChild(this.popup, oldPopup);
+
     this.popup.innerHTML = `
       <div class="game-popup-content">
         <button class="game-close-btn" title="Cerrar">&times;</button>
@@ -727,6 +733,12 @@ export class GameUI {
    * Show confirmation for free mode (level 4)
    */
   showFreeModeContinue(callback) {
+    // Reemplazar popup completamente para eliminar event listeners anteriores
+    const oldPopup = this.popup;
+    this.popup = document.createElement('div');
+    this.popup.className = oldPopup.className;
+    oldPopup.parentNode.replaceChild(this.popup, oldPopup);
+
     this.popup.innerHTML = `
       <div class="game-popup-content">
         <button class="game-close-btn" title="Cerrar">&times;</button>
