@@ -92,14 +92,22 @@ export class GameUI {
 
   /**
    * Show game UI with level - SIMPLIFICADO
-   * @param {number} levelNumber - Level to display
+   * @param {number|Object} levelOrNumber - Level number or level object (to avoid regenerating dynamic levels)
    */
-  show(levelNumber = 1) {
+  show(levelOrNumber = 1) {
     if (!this.container) {
       this.init();
     }
 
-    const level = getLevel(levelNumber);
+    // Accept both number and object to avoid regenerating dynamic levels
+    let level, levelNumber;
+    if (typeof levelOrNumber === 'number') {
+      levelNumber = levelOrNumber;
+      level = getLevel(levelNumber);
+    } else {
+      level = levelOrNumber;
+      levelNumber = level.levelNumber;
+    }
     this.currentLevel = level;
 
     // Popup simple: requisito + botón continuar
@@ -560,7 +568,7 @@ export class GameUI {
 
     this.popup.querySelector('[data-action="retry"]').addEventListener('click', () => {
       console.log('🔄 Retry button clicked - jumping to Phase 2');
-      this.hidePopup();
+      // No llamar hidePopup() - showPhase2UI() se encargará de reemplazar el contenido
       if (this.callbacks.onRetryLevel) {
         this.callbacks.onRetryLevel();
       }

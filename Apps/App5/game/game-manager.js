@@ -423,6 +423,7 @@ export class GameManager {
     // Limpiar intervalos seleccionados del timeline
     if (window.clearSelectedIntervals) {
       window.clearSelectedIntervals();
+      console.log('✅ Timeline intervals cleared');
     }
 
     this.currentLevel = getLevel(levelNumber);
@@ -435,8 +436,8 @@ export class GameManager {
     // Set level parameters (Lg, BPM, pulseSeq)
     this.setLevelParameters(this.currentLevel);
 
-    // Update UI for level
-    this.ui.show(levelNumber);
+    // Update UI for level - pass complete level object to avoid regenerating dynamic levels
+    this.ui.show(this.currentLevel);
 
     // Start Phase 1
     this.startPhase1();
