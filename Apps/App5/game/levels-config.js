@@ -161,6 +161,16 @@ export function getLevel(levelNumber) {
     };
   }
 
+  // For free mode (level 4), copy default values as initial values
+  if (level.type === 'free') {
+    return {
+      ...level,
+      lg: level.defaultLg,
+      bpm: level.defaultBpm,
+      levelNumber
+    };
+  }
+
   return {
     ...level,
     levelNumber

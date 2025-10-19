@@ -507,6 +507,16 @@ export class GameManager {
       // Solo validar cantidad de posiciones (2-8)
       if (positions.length >= 2 && positions.length <= 8) {
         this.playbackPatterns = positions;
+
+        // LEER valores actuales de Lg y BPM de la interfaz
+        const inputLg = window.inputLg;
+        const inputV = window.inputV;
+        if (inputLg && inputV) {
+          this.currentLevel.lg = parseInt(inputLg.value) || 8;
+          this.currentLevel.bpm = parseInt(inputV.value) || 100;
+          console.log(`📊 Free mode: usando Lg=${this.currentLevel.lg}, BPM=${this.currentLevel.bpm} de la interfaz`);
+        }
+
         // Mostrar popup de confirmación para modo libre
         this.ui.showFreeModeContinue(() => {
           this.showSuccessAndPlayPattern();
@@ -771,7 +781,7 @@ export class GameManager {
       const countInDuration = config.lg * beatMs;         // duración del count-in
       const calibrationDuration = (config.lg - 0.5) * beatMs; // calibrar un poco menos que el count-in
       const cycleDuration = config.lg * beatMs;           // duración de 1 ciclo
-      const captureDuration = 2 * cycleDuration;         // EXACTAMENTE 2 ciclos (sin beat extra)
+      const captureDuration = 2 * cycleDuration - 200;   // 2 ciclos MENOS 200ms para evitar ataque final
 
       console.log(`⏱️ Timing: beatMs=${beatMs.toFixed(0)}ms, countIn=${countInDuration.toFixed(0)}ms, calibration=${calibrationDuration.toFixed(0)}ms, capture=${captureDuration.toFixed(0)}ms`);
 
