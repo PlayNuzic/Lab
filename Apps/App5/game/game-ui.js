@@ -559,10 +559,10 @@ export class GameUI {
     }
 
     this.popup.querySelector('[data-action="retry"]').addEventListener('click', () => {
-      console.log('🔄 Retry button clicked - reloading same level');
-      if (this.currentLevel && this.callbacks.onSelectLevel) {
-        // Pass levelNumber (number) instead of level object
-        this.callbacks.onSelectLevel(this.currentLevel.levelNumber);
+      console.log('🔄 Retry button clicked - jumping to Phase 2');
+      this.hidePopup();
+      if (this.callbacks.onRetryLevel) {
+        this.callbacks.onRetryLevel();
       }
     });
 

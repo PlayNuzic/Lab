@@ -262,6 +262,10 @@ export class GameManager {
     // Navigation callbacks
     this.ui.on('onSelectLevel', (level) => this.loadLevel(level));
     this.ui.on('onContinue', () => this.continueGame());
+    this.ui.on('onRetryLevel', () => {
+      console.log('🔄 Retry level - skipping to Phase 2');
+      this.startPhase2();
+    });
     // When UI is hidden (X button or backdrop click), end the game completely
     this.ui.on('onHide', () => {
       console.log('🎮 UI hidden, ending game and deactivating button');
@@ -513,7 +517,7 @@ export class GameManager {
     }
 
     // NIVELES NORMALES (1, 2, 3): Validar con función del nivel
-    const isCorrect = this.currentLevel.validate(positions);
+    const isCorrect = this.currentLevel.validate(positions, this.currentLevel.lg);
     console.log('✅ Is correct?', isCorrect);
 
     if (isCorrect) {
