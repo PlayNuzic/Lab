@@ -12,6 +12,7 @@ import {
 } from '../../../libs/gamification/index.js';
 
 import { sanitizePulseSequence } from '../../../libs/app-common/pulse-seq-intervals.js';
+import { createInfoTooltip } from '../../../libs/app-common/info-tooltip.js';
 import { playCountIn } from '../../../libs/ear-training/count-in-controller.js';
 import { GameUI } from './game-ui.js';
 import { GameState } from './game-state.js';
@@ -37,6 +38,16 @@ export class GameManager {
     this.playbackPatterns = []; // Store patterns for phase 2 playback
     this.playStopCount = 0; // Track play/stop button clicks
     this.cycleReproductionCount = 0; // Track cycle reproductions
+
+    // Tooltip for pulse sequence validation errors
+    this.pulseSeqTooltip = createInfoTooltip({
+      className: 'hover-tip auto-tip-below',
+      useInnerHTML: true,
+      verticalOffset: 12,
+      autoRemoveDelay: 3500,
+      autoHideOnScroll: false,
+      autoHideOnResize: false
+    });
   }
 
   /**
@@ -489,7 +500,37 @@ export class GameManager {
 
     // Text editable contains only numbers (e.g., "1 3")
     // Use REAL sanitization from the app with level's Lg
-    const lg = this.currentLevel.lg || 4;
+    // In libre mode, read Lg from interface FIRST
+    let lg = this.currentLevel.lg || 4;
+
+    if (this.currentLevel.libre) {
+      const inputLg = window.inputLg;
+      if (inputLg) {
+        lg = parseInt(inputLg.value) || 8;
+      }
+    }
+
+    // Detect numbers > Lg BEFORE sanitizing to show error
+    const matches = text.match(/\d+/g) || [];
+    const allNumbers = matches.map(m => parseInt(m, 10)).filter(n => Number.isFinite(n) && n >= 1);
+    const tooBigNumbers = allNumbers.filter(n => n > lg);
+
+    if (tooBigNumbers.length > 0) {
+      const firstTooBig = tooBigNumbers[0];
+
+      // Show tooltip using shared module
+      try {
+        const pulseSeqEl = this.pulseSeqController.getEditElement();
+        const html = `El número <strong>${firstTooBig}</strong> introducido es mayor que la <span style="color: var(--color-lg); font-weight: 700;">Lg</span>. Elige un número menor que <strong>${lg}</strong>`;
+        this.pulseSeqTooltip.show(html, pulseSeqEl || document.body);
+      } catch (e) {
+        console.warn('Could not show tooltip:', e);
+      }
+
+      console.warn(`⚠️ Number ${firstTooBig} exceeds Lg=${lg}`);
+      return; // Don't proceed - wait for user to fix
+    }
+
     const sanitized = sanitizePulseSequence(text, lg);
     console.log('✨ Sanitized:', sanitized);
 
@@ -519,7 +560,7 @@ export class GameManager {
 
         // Mostrar popup de confirmación para modo libre
         this.ui.showFreeModeContinue(() => {
-          this.showSuccessAndPlayPattern();
+          this.showSuccessAndPlayPattern(true); // Skip popup - already shown
         });
       } else {
         this.ui.showMessage('Selecciona entre 2 y 8 posiciones', 'thinking');
@@ -546,13 +587,14 @@ export class GameManager {
 
   /**
    * Show success message and play pattern in LINEAR mode (1 cycle)
+   * @param {boolean} skipPopup - If true, skip the success popup and play directly
    */
-  showSuccessAndPlayPattern() {
+  showSuccessAndPlayPattern(skipPopup = false) {
     console.log('🎉 Pattern correct');
     console.log(`📊 Pattern: P(${this.playbackPatterns.join(' ')}) Lg=${this.currentLevel.lg} BPM=${this.currentLevel.bpm}`);
 
-    // Mostrar popup de confirmación antes de reproducir
-    this.ui.showSuccessBeforePlayback(() => {
+    // Function to execute after confirmation (or immediately if skipPopup)
+    const playPatternAndStartPhase2 = () => {
       console.log('▶️ User confirmed - playing 1 cycle in LINEAR mode');
 
       // Force LINEAR mode (circular = false)
@@ -587,7 +629,14 @@ export class GameManager {
         console.log('✅ 1 cycle completed, starting Phase 2');
         this.startPhase2();
       }, totalMs);
-    });
+    };
+
+    // Either show popup or execute directly
+    if (skipPopup) {
+      playPatternAndStartPhase2();
+    } else {
+      this.ui.showSuccessBeforePlayback(playPatternAndStartPhase2);
+    }
   }
 
   /**
@@ -873,8 +922,69 @@ export class GameManager {
 
         console.log('📊 Rhythm analysis:', analysis);
 
+        // Verify captured beats are at SELECTED positions (not just timing!)
+        // This prevents validating OPPOSITE pulses with good timing
+        const beatDuration = (60 / config.bpm) * 1000; // Duration of one pulse in ms
+        const selectedPositions = config.patterns; // Array like [1, 3]
+        let positionMatches = 0;
+        let totalBeatsChecked = 0;
+        let positionAccuracy = 0;
+
+        // Get offset from first match to align reference frames
+        const matches = analysis.details.matches || [];
+        if (matches.length === 0) {
+          console.warn('⚠️ No matches found for position validation');
+          positionAccuracy = 0;
+        } else {
+          // Calculate offset between captured and expected time references
+          // Use raw timestamps (not normalized matches) to get real offset
+          const offset = capturedBeats.length > 0 && allExpectedTimestamps.length > 0
+            ? capturedBeats[0] - allExpectedTimestamps[0]
+            : 0;
+          console.log(`🔄 Time offset: ${offset.toFixed(2)}ms (aligning captured to expected frame)`);
+
+          capturedBeats.forEach(timestamp => {
+            // Normalize timestamp to same reference as expected
+            const normalized = timestamp - offset;
+
+            // Calculate absolute beat number (0-based)
+            const absoluteBeat = Math.round(normalized / beatDuration);
+
+            // Calculate position in cycle (0-based: 0 to lg-1)
+            let cyclePosition = absoluteBeat % config.lg;
+            // Handle negative wrap (if absoluteBeat is negative)
+            if (cyclePosition < 0) cyclePosition += config.lg;
+
+            // Convert to 1-based interval position
+            // INTERVALS: P1 = beat 0, P2 = beat 1, ..., PLg = beat (lg-1)
+            // So: pulsePosition = cyclePosition + 1
+            const pulsePosition = cyclePosition + 1;
+
+            totalBeatsChecked++;
+
+            if (selectedPositions.includes(pulsePosition)) {
+              positionMatches++;
+            }
+
+            console.log(`🎯 Beat at ${timestamp.toFixed(0)}ms (normalized: ${normalized.toFixed(0)}ms, beat #${absoluteBeat}) → pulse ${pulsePosition} (${selectedPositions.includes(pulsePosition) ? '✅ correct' : '❌ wrong'})`);
+          });
+
+          positionAccuracy = totalBeatsChecked > 0 ? positionMatches / totalBeatsChecked : 0;
+        }
+
+        console.log(`📍 Position accuracy: ${positionMatches}/${totalBeatsChecked} = ${(positionAccuracy * 100).toFixed(1)}%`);
+
+        // Require BOTH timing AND position accuracy
+        // If position accuracy is low, it means they hit wrong pulses (even with good timing)
+        let finalAccuracy = analysis.accuracy;
+        if (positionAccuracy < 0.6) {
+          // Hitting wrong positions should fail even with good timing
+          finalAccuracy = Math.min(finalAccuracy, positionAccuracy);
+          console.warn(`⚠️ Position accuracy too low (${(positionAccuracy * 100).toFixed(1)}%), reducing final accuracy`);
+        }
+
         // Calculate accuracy
-        const accuracy = analysis.accuracy * 100;
+        const accuracy = finalAccuracy * 100;
 
         // Record attempt
         recordAttempt({
@@ -912,7 +1022,8 @@ export class GameManager {
           message: success
             ? `¡Excelente! Precisión: ${Math.round(accuracy)}%`
             : `Sigue practicando. Precisión: ${Math.round(accuracy)}%`,
-          achievements
+          achievements,
+          isLibreMode: this.currentLevel.libre || false
         });
 
         // CRITICAL: Dispose microphone after showing results

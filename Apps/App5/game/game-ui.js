@@ -508,7 +508,7 @@ export class GameUI {
    * @param {Object} results - Game results
    */
   showResults(results) {
-    const { success, accuracy, message } = results;
+    const { success, accuracy, message, isLibreMode } = results;
     const passed = accuracy >= 40; // Opción permisiva: 40% en lugar de 60%
 
     // Encouraging messages based on performance
@@ -519,6 +519,17 @@ export class GameUI {
       encouragingMessage = accuracy >= 50 ? 'Casi lo consigues. ¡Sigue practicando!' : '¡No te rindas! Puedes mejorar.';
     }
 
+    // In libre mode (level 4), don't show "Continue" button - only Retry and Quit
+    const continueButton = !isLibreMode ? `
+      <button class="game-btn game-btn-primary ${!passed ? 'game-btn-disabled' : ''}"
+              data-action="continue" ${!passed ? 'disabled' : ''}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M5 3l6 5-6 5V3z"/>
+        </svg>
+        Siguiente Nivel
+      </button>
+    ` : '';
+
     // Recrear popup con estructura simplificada
     this.popup.innerHTML = `
       <div class="game-popup-content">
@@ -528,13 +539,7 @@ export class GameUI {
           <p class="game-accuracy">Precisión: ${Math.round(accuracy)}%</p>
           <p class="game-encouraging-message">${encouragingMessage}</p>
           <div class="game-button-group">
-            <button class="game-btn game-btn-primary ${!passed ? 'game-btn-disabled' : ''}"
-                    data-action="continue" ${!passed ? 'disabled' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M5 3l6 5-6 5V3z"/>
-              </svg>
-              Siguiente Nivel
-            </button>
+            ${continueButton}
             <button class="game-btn game-btn-secondary" data-action="retry">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 3v2.5L11 3 8 .5V3c-3.9 0-7 3.1-7 7s3.1 7 7 7 7-3.1 7-7h-2c0 2.8-2.2 5-5 5s-5-2.2-5-5 2.2-5 5-5z"/>
@@ -545,7 +550,7 @@ export class GameUI {
               <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 25 25" fill="none">
                 <path d="M18 7L7 18M7 7L18 18" stroke="currentColor" stroke-width="1.2"/>
               </svg>
-              Menú
+              ${isLibreMode ? 'Abandonar' : 'Menú'}
             </button>
           </div>
         </div>
@@ -766,7 +771,7 @@ export class GameUI {
     this.popup.querySelector('.game-close-btn').addEventListener('click', () => this.hide());
 
     this.popup.querySelector('[data-action="play-free-pattern"]').addEventListener('click', () => {
-      this.hidePopup();
+      // NO llamar hidePopup() - el siguiente popup se encargará de reemplazar el contenido
       if (callback) callback();
     });
 

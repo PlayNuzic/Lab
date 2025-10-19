@@ -23,13 +23,19 @@
  * @param {string} [options.className] - CSS classes for the tooltip element
  * @param {boolean} [options.autoHideOnScroll=true] - Auto-hide on window scroll
  * @param {boolean} [options.autoHideOnResize=true] - Auto-hide on window resize
+ * @param {number} [options.verticalOffset=0] - Vertical offset in pixels from anchor bottom
+ * @param {boolean} [options.useInnerHTML=false] - Allow HTML content via innerHTML
+ * @param {number|null} [options.autoRemoveDelay=null] - Auto-remove after ms (null = persistent)
  * @returns {Object} Tooltip controller API
  */
 export function createInfoTooltip(options = {}) {
   const {
     className = 'fraction-info-bubble auto-tip-below',
     autoHideOnScroll = true,
-    autoHideOnResize = true
+    autoHideOnResize = true,
+    verticalOffset = 0,
+    useInnerHTML = false,
+    autoRemoveDelay = null
   } = options;
 
   let tooltipEl = null;
@@ -62,23 +68,47 @@ export function createInfoTooltip(options = {}) {
 
     const tip = ensureTooltipElement();
 
-    // Update content
-    if (content instanceof DocumentFragment || content instanceof HTMLElement) {
+    // Update content (support HTML if enabled)
+    if (useInnerHTML && typeof content === 'string') {
+      tip.innerHTML = content;
+    } else if (content instanceof DocumentFragment || content instanceof HTMLElement) {
       tip.replaceChildren(content);
     } else if (typeof content === 'string') {
       tip.textContent = content;
     }
 
-    // Position tooltip below anchor, centered horizontally
+    // Position tooltip below anchor with configurable offset
     const rect = anchor.getBoundingClientRect();
+    const y = rect.bottom + window.scrollY + verticalOffset;
+
+    // Center horizontally - need to wait for render to get tooltip width
+    tip.style.top = y + 'px';
     tip.style.left = rect.left + rect.width / 2 + 'px';
-    tip.style.top = rect.bottom + window.scrollY + 'px';
 
     // Show with CSS class
     tip.classList.add('show');
 
+    // Adjust horizontal position after render to center properly
+    requestAnimationFrame(() => {
+      if (tooltipEl) {
+        const x = rect.left + rect.width / 2 - tooltipEl.offsetWidth / 2;
+        tooltipEl.style.left = x + 'px';
+      }
+    });
+
     // Setup auto-hide listeners
     setupAutoHideListeners();
+
+    // Auto-remove if configured
+    if (autoRemoveDelay && Number.isFinite(autoRemoveDelay)) {
+      setTimeout(() => {
+        if (tooltipEl && tooltipEl.parentNode) {
+          tooltipEl.parentNode.removeChild(tooltipEl);
+          tooltipEl = null;
+        }
+        removeAutoHideListeners();
+      }, autoRemoveDelay);
+    }
   }
 
   /**
