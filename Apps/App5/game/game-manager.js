@@ -379,28 +379,38 @@ export class GameManager {
     const handleInput = window.handleInput;
 
     if (!inputLg || !inputV || !setValue || !handleInput) {
-      console.warn('⚠️ Input controls not available yet');
+      console.error('❌ Input controls not available - cannot set level parameters');
+      console.log('   inputLg:', !!inputLg);
+      console.log('   inputV:', !!inputV);
+      console.log('   setValue:', !!setValue);
+      console.log('   handleInput:', !!handleInput);
       return;
     }
 
-    // Set Lg (longitud)
-    if (level.lg) {
+    // Set Lg (longitud) - IMPORTANTE: debe ejecutarse siempre
+    if (level.lg !== undefined) {
       setValue(inputLg, level.lg);
       handleInput({ target: inputLg });
       console.log(`✅ Lg set to ${level.lg}`);
+    } else {
+      console.warn('⚠️ Level has no Lg defined');
     }
 
-    // Set BPM (velocidad)
-    if (level.bpm) {
+    // Set BPM (velocidad) - IMPORTANTE: debe ejecutarse siempre
+    if (level.bpm !== undefined) {
       setValue(inputV, level.bpm);
       handleInput({ target: inputV });
       console.log(`✅ BPM set to ${level.bpm}`);
+    } else {
+      console.warn('⚠️ Level has no BPM defined');
     }
 
     // Clear pulseSeq
     if (this.pulseSeqController) {
       this.pulseSeqController.setText('');
       console.log('✅ PulseSeq cleared');
+    } else {
+      console.warn('⚠️ pulseSeqController not available yet');
     }
   }
 
