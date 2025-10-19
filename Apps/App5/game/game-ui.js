@@ -542,10 +542,8 @@ export class GameUI {
               Reintentar
             </button>
             <button class="game-btn game-btn-secondary" data-action="menu">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <rect x="2" y="3" width="12" height="2" rx="1"/>
-                <rect x="2" y="7" width="12" height="2" rx="1"/>
-                <rect x="2" y="11" width="12" height="2" rx="1"/>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 25 25" fill="none">
+                <path d="M18 7L7 18M7 7L18 18" stroke="currentColor" stroke-width="1.2"/>
               </svg>
               Menú
             </button>

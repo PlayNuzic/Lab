@@ -8,8 +8,8 @@
  * @returns {Object} Level 3 config with random parameters
  */
 function generateLevel3() {
-  // Random Lg between 5-8
-  const lg = Math.floor(Math.random() * 4) + 5; // 5, 6, 7, or 8
+  // Random Lg between 4-8
+  const lg = Math.floor(Math.random() * 5) + 4; // 4, 5, 6, 7, or 8
 
   // Random BPM between 80-120
   const bpm = Math.floor(Math.random() * 5) * 10 + 80; // 80, 90, 100, 110, or 120

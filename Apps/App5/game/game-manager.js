@@ -771,7 +771,7 @@ export class GameManager {
       const countInDuration = config.lg * beatMs;         // duración del count-in
       const calibrationDuration = (config.lg - 0.5) * beatMs; // calibrar un poco menos que el count-in
       const cycleDuration = config.lg * beatMs;           // duración de 1 ciclo
-      const captureDuration = 2 * cycleDuration + 500;   // 2 ciclos + 500ms buffer
+      const captureDuration = 2 * cycleDuration;         // EXACTAMENTE 2 ciclos (sin beat extra)
 
       console.log(`⏱️ Timing: beatMs=${beatMs.toFixed(0)}ms, countIn=${countInDuration.toFixed(0)}ms, calibration=${calibrationDuration.toFixed(0)}ms, capture=${captureDuration.toFixed(0)}ms`);
 
@@ -821,8 +821,10 @@ export class GameManager {
       this.audioCapture.startRecording();
 
       // Calculate expected timestamps from pattern
+      // NO usar fractionsToTimestamps que asume Lg=4 hardcoded
+      // Calcular directamente con Lg variable del nivel
       const fractions = this.patternsToFractions(config.patterns, config.lg);
-      const expectedTimestamps = fractionsToTimestamps(fractions, config.bpm);
+      const expectedTimestamps = fractions.map(f => f * cycleDuration);
 
       // Double the timestamps for 2 repeats
       const allExpectedTimestamps = [

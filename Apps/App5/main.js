@@ -1975,7 +1975,7 @@ async function initializeGameSystem() {
 
   // Exponer función para limpiar intervalos seleccionados (usado por game manager)
   window.clearSelectedIntervals = function() {
-    selectedIntervals.clear();
+    clearPersistentIntervals(); // Limpia AMBOS: intervalMemory Y selectedIntervals
     if (intervalRenderer && intervalRenderer.render) {
       intervalRenderer.render();
     }
