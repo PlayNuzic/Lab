@@ -212,9 +212,15 @@ export class GameUI {
         <p>Intenta de nuevo o abandona el nivel</p>
         <div class="game-button-group">
           <button class="game-btn game-btn-primary" data-action="retry">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 3v2.5L11 3 8 .5V3c-3.9 0-7 3.1-7 7s3.1 7 7 7 7-3.1 7-7h-2c0 2.8-2.2 5-5 5s-5-2.2-5-5 2.2-5 5-5z"/>
+            </svg>
             Reintentar
           </button>
           <button class="game-btn game-btn-secondary" data-action="quit">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 25 25" fill="none">
+              <path d="M18 7L7 18M7 7L18 18" stroke="currentColor" stroke-width="1.2"/>
+            </svg>
             Abandonar
           </button>
         </div>

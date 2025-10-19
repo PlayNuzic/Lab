@@ -63,7 +63,18 @@ function generateLevel3() {
     }
   ];
 
-  const selectedType = requirementTypes[Math.floor(Math.random() * requirementTypes.length)];
+  // Weighted selection: "mixed" (1 impar + 2 pares) should appear ~60% of the time
+  // Create weighted array with more "mixed" entries
+  const weightedTypes = [
+    requirementTypes[2], // mixed
+    requirementTypes[2], // mixed (duplicate)
+    requirementTypes[2], // mixed (triple)
+    requirementTypes[0], // odd
+    requirementTypes[1], // even
+    requirementTypes[3]  // extremes
+  ];
+
+  const selectedType = weightedTypes[Math.floor(Math.random() * weightedTypes.length)];
 
   return {
     lg,
