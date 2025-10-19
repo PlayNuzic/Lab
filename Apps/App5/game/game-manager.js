@@ -581,8 +581,8 @@ export class GameManager {
       return;
     }
 
-    // Convert sanitized string to array of numbers
-    const positions = sanitized.split(/\s+/).map(Number).filter(n => !isNaN(n));
+    // sanitized is already an array of numbers from sanitizePulseSequence()
+    const positions = sanitized;
 
     // Check if selection meets level requirements
     const isCorrect = checkLevelCompletion(this.currentLevel.levelNumber, positions);

@@ -339,6 +339,131 @@ See [Testing Matrix](#testing-matrix) below for detailed test cases.
 
 ---
 
+### Phase 9: Gamification System
+**Goal**: Add rhythm training game with 4 progressive levels
+
+#### 9.1 Game Architecture
+- [x] Create GameManager class for orchestration
+  - [x] Manages game flow between phases
+  - [x] Handles level progression (1-4)
+  - [x] Coordinates UI, audio capture, and rhythm analysis
+- [x] Create GameUI class for popups and feedback
+  - [x] Level selection popup
+  - [x] Phase 1 popup (pattern entry)
+  - [x] Phase 2 popup (rhythm sync)
+  - [x] Results popup with accuracy scoring
+  - [x] Retry/Continue/Menu buttons
+- [x] Create GameState class for persistence
+  - [x] Track completed levels
+  - [x] Save/load progress to localStorage
+  - [x] Record attempts and statistics
+
+#### 9.2 Level Configuration
+- [x] Define 4 difficulty levels in levels-config.js
+  - [x] Level 1: 2 odd positions (Lg=4, BPM=90)
+  - [x] Level 2: 2 even positions (Lg=4, BPM=90)
+  - [x] Level 3: Dynamic (random Lg 5-8, random BPM 80-120, random requirement)
+  - [x] Level 4: Free mode (custom patterns)
+  - [x] All levels: `phase2Repeats: 2` (pattern plays twice)
+
+#### 9.3 Phase 1: Pattern Entry
+- [x] User writes pattern positions in editable field
+  - [x] Example: "1 3" for positions 1 and 3
+  - [x] Auto-validation on Enter key
+  - [x] Sanitization with `sanitizePulseSequence()`
+- [x] Pattern validation against level requirements
+  - [x] Correct: Play pattern 1 cycle in linear mode → Proceed to Phase 2
+  - [x] Incorrect: Show retry popup with hint
+- [x] Help system with 5-second countdown
+  - [x] Shows hint positions after timeout
+- [x] Timeline and notation interaction disabled during game
+
+#### 9.4 Phase 2: Rhythm Synchronization
+- [x] Keyboard capture mode (DEFAULT)
+  - [x] User presses SPACE bar to match rhythm
+  - [x] Visual feedback indicator (blue circle)
+  - [x] Reliable and precise capture
+  - [x] Set via `window.gameForceKeyboard = true`
+- [x] Microphone capture mode (EXPERIMENTAL)
+  - [x] Audio beat detection via Web Audio API
+  - [x] Automatic noise calibration
+  - [x] Threshold: -22 dB minimum (prevents over-sensitivity)
+  - [x] Can be imprecise in different audio environments
+  - [x] Accessible via `debugGame.useMicrophone()`
+- [x] Count-in sequence
+  - [x] Visual countdown (8, 7, 6, ... 1)
+  - [x] Audio click feedback
+  - [x] Duration: Lg beats at configured BPM
+  - [x] Microphone calibrates DURING count-in (parallel)
+- [x] Pattern reproduction
+  - [x] Timeline switches to CIRCULAR mode
+  - [x] Loop button activates automatically
+  - [x] Pattern plays 2 complete cycles
+  - [x] User must sync with rhythm (keyboard or microphone)
+- [x] Rhythm analysis
+  - [x] Compare captured beats vs expected timestamps
+  - [x] Tolerance: 300ms (permissive)
+  - [x] Accuracy calculation: timing + consistency + tempo
+  - [x] Pass threshold: 40% (permissive)
+  - [x] Success threshold: 60% (permissive)
+
+#### 9.5 Results and Progression
+- [x] Results popup shows accuracy percentage
+  - [x] ≥40%: "Siguiente Nivel" button enabled
+  - [x] <40%: Must retry current level
+  - [x] "Reintentar" button reloads same level
+  - [x] "Menú" button returns to level selection
+- [x] Progress tracking
+  - [x] Completed levels saved to localStorage
+  - [x] All attempts recorded with analysis
+  - [x] Statistics available via debug commands
+
+#### 9.6 Debug Console Commands
+- [x] Capture mode switching
+  - [x] `debugGame.getCaptureMode()` - View current mode
+  - [x] `debugGame.useKeyboard()` - Switch to keyboard [RECOMMENDED]
+  - [x] `debugGame.useMicrophone()` - Switch to microphone [EXPERIMENTAL]
+- [x] Microphone debugging (when mic active)
+  - [x] `debugGame.getThreshold()` - View current threshold
+  - [x] `debugGame.setThreshold(dB)` - Adjust sensitivity
+  - [x] `debugGame.getMicStats()` - View mic configuration
+  - [x] `debugGame.testMicDetection()` - 5-second beat test
+  - [x] `debugGame.getLastAnalysis()` - View last attempt details
+- [x] Game controls
+  - [x] `debugGame.quickStartGame()` - Start game directly
+  - [x] `debugGame.testCompleteFlow()` - Full system test
+
+#### 9.7 Critical Fixes Applied
+- [x] Fix 1: Microphone disposal
+  - [x] Call `dispose()` after Phase 2 results
+  - [x] Call `dispose()` in endGame() when exiting
+  - [x] Prevents browser mic staying active after quit
+- [x] Fix 2: Reintentar button error
+  - [x] Pass `levelNumber` (number) instead of level object
+  - [x] Fixed "Invalid level number [object Object]" error
+- [x] Fix 3: Minimum threshold floor
+  - [x] Added -22 dB minimum to prevent over-sensitivity
+  - [x] Fixes detecting 8-9 beats instead of 4 with headphones
+- [x] Fix 4: Permissive accuracy settings
+  - [x] Tolerance: 200ms → 300ms
+  - [x] Pass threshold: 60% → 40%
+  - [x] Success threshold: 80% → 60%
+- [x] Fix 5: Timeline interactivity
+  - [x] Block `.pulse-hit` overlays during game phases
+  - [x] Prevent timeline clicks interfering with game
+- [x] Fix 6: Sanitized.split() error
+  - [x] Remove `.split()` in validatePhase1()
+  - [x] `sanitizePulseSequence()` already returns array
+
+#### 9.8 Documentation
+- [x] GAME_DEBUG.md - Complete console commands reference
+- [x] IMPLEMENTATION_PLAN.md - Phase 9 documentation (this section)
+- [x] AGENTS.md - To be updated with gamification system
+
+**Status**: ✅ Complete (commit series: a026c5d, 175d037, 5bc5356, current)
+
+---
+
 ## 🧪 Testing Matrix
 
 ### Basic Rendering Tests
@@ -650,7 +775,7 @@ None yet
 
 ## 📊 Progress Summary
 
-**Overall Progress**: 81% (6/8 phases complete + conceptual fixes complete)
+**Overall Progress**: 90% (7/9 phases complete + conceptual fixes complete)
 
 | Phase | Status | Progress |
 |-------|--------|----------|
@@ -660,10 +785,12 @@ None yet
 | 4. Interval Selection | ✅ Complete | 100% |
 | 5. Pulse Sequence Editing | ✅ Complete | 100% |
 | 6. Audio Integration | ✅ Complete | 100% |
-| 7. Visual Polish | ⬜ Not Started | 0% |
+| 7. Visual Polish | ✅ Complete | 100% |
 | 8. Testing & Validation | ⬜ Not Started | 0% |
+| 9. Gamification System | ✅ Complete | 100% |
 
 **Test Coverage**: 5/67 tests passed (Phases 1.5, 2.3, 3.5, 4.5, 4.6)
+**Gamification**: Fully functional with keyboard (default) and microphone (experimental) capture modes
 
 ---
 

@@ -34,6 +34,165 @@ P ( 1 2 6 8 9 11 ) 12
 ### Random Menu
 - Opción "Pulsaciones" en lugar de "Pulsos"
 
+---
+
+## Sistema de Gamificación
+
+App5 incluye un **sistema de entrenamiento rítmico** con 4 niveles progresivos. El juego tiene dos fases principales:
+
+### Activación
+- **Botón "Game"** en la barra superior
+- Activa/desactiva el modo de juego
+- Durante el juego, la timeline y notación están bloqueadas
+
+### Fase 1: Selección de Patrón
+**Objetivo**: Escribir las posiciones correctas según el requisito del nivel
+
+1. Usuario ve popup con requisito (ej: "Escribe 2 P impares")
+2. Escribe posiciones en campo editable (ej: "1 3")
+3. Presiona Enter para validar
+4. **Si correcto**: Pattern se reproduce 1 vez en modo LINEAR → Pasa a Fase 2
+5. **Si incorrecto**: Popup de reintentar con hint
+6. **Sistema de ayuda**: Después de 5 segundos muestra hint con posiciones correctas
+
+**Características**:
+- Auto-validación al presionar Enter
+- Sanitización automática (elimina duplicados, ordena, valida rango)
+- Timeline bloqueada (no se puede hacer clic)
+- Notación bloqueada (no se puede editar)
+
+### Fase 2: Sincronización Rítmica
+**Objetivo**: Sincronizar con el ritmo del patrón usando teclado o micrófono
+
+**Secuencia completa**:
+1. Popup muestra modo de captura actual (⌨️ Teclado o 🎤 Micrófono)
+2. Usuario hace clic en "Comenzar"
+3. **Count-in** visual y auditivo (Lg beats @ BPM configurado)
+   - Cuenta regresiva: 8, 7, 6, 5, 4, 3, 2, 1
+   - Clicks de audio sincronizados
+   - Si modo micrófono: calibración paralela durante count-in
+4. Timeline cambia a modo **CIRCULAR**
+5. Loop se activa automáticamente
+6. **Patrón se reproduce 2 veces** completas
+7. Usuario sincroniza con el ritmo:
+   - **Teclado (DEFAULT)**: Presiona tecla **ESPACIO**
+   - **Micrófono (EXPERIMENTAL)**: Hace sonidos (palmadas, taps)
+8. Sistema captura beats y compara con timestamps esperados
+9. **Análisis de ritmo**:
+   - Timing: ¿Qué tan cerca están los beats del tiempo correcto?
+   - Consistencia: ¿Qué tan regular es el tempo?
+   - Tempo: ¿El tempo general es correcto?
+   - **Accuracy total**: Combinación de las 3 métricas
+10. **Resultados**:
+    - Muestra precisión (0-100%)
+    - ≥40%: Botón "Siguiente Nivel" habilitado
+    - <40%: Botón "Siguiente Nivel" deshabilitado
+    - "Reintentar": Vuelve a cargar el mismo nivel
+    - "Menú": Regresa a selección de niveles
+
+**Modos de Captura**:
+
+#### Teclado (Recomendado) - DEFAULT
+- **Tecla**: ESPACIO
+- **Ventajas**:
+  - Preciso y confiable
+  - Funciona en cualquier entorno
+  - No requiere permisos de micrófono
+  - Feedback visual inmediato (círculo azul)
+- **Activación**: Por defecto, o `debugGame.useKeyboard()`
+
+#### Micrófono (Experimental)
+- **Detección**: Web Audio API con análisis FFT
+- **Calibración automática**: Durante count-in
+- **Threshold**: -22 dB mínimo (evita sobre-sensibilidad)
+- **Ventajas**:
+  - Permite práctica con instrumentos reales
+  - Más natural para palmadas/percusión
+- **Desventajas**:
+  - Puede ser impreciso según entorno auditivo
+  - Ruido ambiental afecta detección
+  - Auriculares pueden causar sobre-sensibilidad
+- **Activación**: `debugGame.useMicrophone()`
+- **Debug**:
+  - `debugGame.getThreshold()` - Ver sensibilidad
+  - `debugGame.setThreshold(-20)` - Ajustar
+  - `debugGame.testMicDetection()` - Probar 5 segundos
+
+**Configuración Permisiva**:
+- Tolerancia temporal: **300ms** (beats pueden estar ±300ms del tiempo esperado)
+- Threshold para pasar nivel: **40%** (solo necesitas 40% precisión para avanzar)
+- Threshold para "éxito": **60%** (mensaje "¡Excelente!" a partir de 60%)
+
+### Niveles
+
+#### Nivel 1: Posiciones Impares
+- **Requisito**: "Escribe 2 P impares"
+- **Solución**: 1, 3
+- **Lg**: 4
+- **BPM**: 90
+- **Dificultad**: Fácil
+
+#### Nivel 2: Posiciones Pares
+- **Requisito**: "Escribe 2 P pares (2 y 4)"
+- **Solución**: 2, 4
+- **Lg**: 4
+- **BPM**: 90
+- **Dificultad**: Fácil
+
+#### Nivel 3: Dinámico (Aleatorio)
+- **Requisito**: Variable (impares, pares, consecutivos, o extremos)
+- **Lg**: Aleatorio 5-8
+- **BPM**: Aleatorio 80-120
+- **Dificultad**: Media
+- **Tipos de requisitos**:
+  - Impares: "Escribe N P impares"
+  - Pares: "Escribe N P pares"
+  - Consecutivos: "Escribe 3 P consecutivos"
+  - Extremos: "Escribe primera y última P (1 y Lg)"
+
+#### Nivel 4: Modo Libre
+- **Requisito**: "Modo libre - Crea tu propio patrón"
+- **Lg**: 8 (configurable)
+- **BPM**: 100 (configurable)
+- **Dificultad**: Variable
+- **Validación**: Cualquier patrón con 2-8 posiciones es válido
+
+### Persistencia
+- **localStorage**: Niveles completados y estadísticas
+- **Progreso guardado**: Se mantiene entre sesiones
+- **Intentos registrados**: Todos los intentos con análisis detallado
+- **Acceso a datos**: `debugGame.getLastAnalysis()` en consola
+
+### Comandos de Consola
+
+Todos disponibles vía `window.debugGame`:
+
+#### Control del Juego
+```javascript
+debugGame.quickStartGame()        // Iniciar juego directamente
+debugGame.testCompleteFlow()      // Test completo del sistema
+```
+
+#### Modo de Captura
+```javascript
+debugGame.getCaptureMode()        // Ver modo actual
+debugGame.useKeyboard()           // Cambiar a teclado [RECOMENDADO]
+debugGame.useMicrophone()         // Cambiar a micrófono [EXPERIMENTAL]
+```
+
+#### Debug de Micrófono (solo si modo micrófono activo)
+```javascript
+debugGame.getThreshold()          // Ver threshold actual (dB)
+debugGame.setThreshold(-20)       // Cambiar threshold
+debugGame.getMicStats()           // Ver configuración completa
+debugGame.testMicDetection()      // Test de 5 segundos
+debugGame.getLastAnalysis()       // Ver análisis del último intento
+```
+
+**Ver documentación completa**: `Apps/App5/GAME_DEBUG.md`
+
+---
+
 ## Módulos Nuevos Creados
 
 ### 1. temporal-intervals
