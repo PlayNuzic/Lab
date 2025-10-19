@@ -283,18 +283,13 @@ export class GameManager {
     }
 
     this.isGameActive = true;
-    console.log('✅ Game activated, currentLevel:', this.gameState.currentLevel);
 
-    // Show level selector or continue from saved state
-    if (this.gameState.currentLevel) {
-      console.log('📍 Loading saved level:', this.gameState.currentLevel);
-      this.loadLevel(this.gameState.currentLevel);
-    } else {
-      console.log('📋 Showing level selector');
-      this.ui.showLevelSelector();
-    }
+    // IMPORTANTE: Siempre empezar desde nivel 1
+    // El progreso se guarda (completedLevels) pero cada sesión empieza desde el principio
+    console.log('📋 Starting game - always begin at Level 1');
+    this.ui.showLevelSelector();
 
-    this.ui.show(this.gameState.currentLevel);
+    this.ui.show(1); // Always show level 1 UI initially
     console.log('✅ UI shown');
   }
 

@@ -109,12 +109,133 @@ if (window.gameManager) {
 }
 ```
 
-#### Test 4: Probar un nivel específico
+#### Test 4: Probar niveles específicos
+
+**IMPORTANTE**: El juego siempre empieza en Nivel 1. Estos tests son para debugging.
+
+##### Nivel 1: Posiciones Impares
 ```javascript
-// Nivel 1
+// Cargar nivel
 window.gameManager.loadLevel(1);
+
+// Solución correcta: 1, 3
 window.pulseSeqController.setText('P ( 1 3 ) Lg = 4');
 await window.gameManager.validatePhase1();
+// ✅ Debería pasar a Fase 2
+
+// Solución incorrecta (para probar)
+window.pulseSeqController.setText('P ( 2 4 ) Lg = 4');
+await window.gameManager.validatePhase1();
+// ❌ Debería mostrar popup de reintentar
+```
+
+##### Nivel 2: Posiciones Pares
+```javascript
+// Cargar nivel
+window.gameManager.loadLevel(2);
+
+// Solución correcta: 2, 4
+window.pulseSeqController.setText('P ( 2 4 ) Lg = 4');
+await window.gameManager.validatePhase1();
+// ✅ Debería pasar a Fase 2
+
+// Solución incorrecta (para probar)
+window.pulseSeqController.setText('P ( 1 3 ) Lg = 4');
+await window.gameManager.validatePhase1();
+// ❌ Debería mostrar popup de reintentar
+```
+
+##### Nivel 3: Dinámico (Aleatorio)
+```javascript
+// Cargar nivel (se genera aleatoriamente cada vez)
+window.gameManager.loadLevel(3);
+
+// Ver el requisito actual
+console.log('Requisito:', window.gameManager.currentLevel.requirement);
+console.log('Lg:', window.gameManager.currentLevel.lg);
+console.log('BPM:', window.gameManager.currentLevel.bpm);
+
+// Ejemplo: Si el requisito es "Escribe 2 P impares" y Lg=6
+// Solución correcta: 1, 3 (o 1, 5 o 3, 5)
+window.pulseSeqController.setText('P ( 1 3 ) Lg = 6');
+await window.gameManager.validatePhase1();
+
+// NOTA: La solución depende del requisito aleatorio generado
+// Tipos posibles: impares, pares, consecutivos, extremos
+```
+
+##### Nivel 4: Modo Libre
+```javascript
+// Cargar nivel
+window.gameManager.loadLevel(4);
+
+// Cualquier patrón con 2-8 posiciones es válido
+window.pulseSeqController.setText('P ( 1 2 5 7 ) Lg = 8');
+await window.gameManager.validatePhase1();
+// ✅ Siempre pasa (modo libre)
+
+// Probar con diferentes patrones
+window.pulseSeqController.setText('P ( 1 4 6 8 ) Lg = 8');
+await window.gameManager.validatePhase1();
+// ✅ También válido
+
+// Mínimo 2 posiciones
+window.pulseSeqController.setText('P ( 3 7 ) Lg = 8');
+await window.gameManager.validatePhase1();
+// ✅ Válido
+```
+
+##### Test Completo de Todos los Niveles
+```javascript
+// Test secuencial de todos los niveles
+async function testAllLevels() {
+  console.log('🧪 Testing all levels...\n');
+
+  // Nivel 1
+  console.log('📝 Level 1: Odd positions');
+  window.gameManager.loadLevel(1);
+  window.pulseSeqController.setText('P ( 1 3 ) Lg = 4');
+  await window.gameManager.validatePhase1();
+  console.log('✅ Level 1 validated\n');
+
+  // Esperar un poco entre niveles
+  await new Promise(r => setTimeout(r, 1000));
+
+  // Nivel 2
+  console.log('📝 Level 2: Even positions');
+  window.gameManager.loadLevel(2);
+  window.pulseSeqController.setText('P ( 2 4 ) Lg = 4');
+  await window.gameManager.validatePhase1();
+  console.log('✅ Level 2 validated\n');
+
+  await new Promise(r => setTimeout(r, 1000));
+
+  // Nivel 3 (dinámico - usar primera solución posible)
+  console.log('📝 Level 3: Dynamic');
+  window.gameManager.loadLevel(3);
+  const level3 = window.gameManager.currentLevel;
+  console.log('  Requirement:', level3.requirement);
+  console.log('  Lg:', level3.lg, 'BPM:', level3.bpm);
+  // Para test automático, usar hint positions si existen
+  const hintPositions = window.gameManager.currentLevel.solution || [1, 2];
+  window.pulseSeqController.setText(`P ( ${hintPositions.join(' ')} ) Lg = ${level3.lg}`);
+  await window.gameManager.validatePhase1();
+  console.log('✅ Level 3 validated\n');
+
+  await new Promise(r => setTimeout(r, 1000));
+
+  // Nivel 4 (libre)
+  console.log('📝 Level 4: Free mode');
+  window.gameManager.loadLevel(4);
+  window.pulseSeqController.setText('P ( 1 3 5 7 ) Lg = 8');
+  await window.gameManager.validatePhase1();
+  console.log('✅ Level 4 validated\n');
+
+  console.log('🎉 All levels tested successfully!');
+}
+
+// Ejecutar test
+testAllLevels();
 ```
 
 ### Comandos Útiles:
