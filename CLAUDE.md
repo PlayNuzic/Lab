@@ -9,11 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Verifica que estás en el directorio correcto antes de cualquier operación
 - Todas las rutas son relativas a `/Users/workingburcet/Lab/`
 
-### 2. Servidor en Vivo
-**Live Server se arranca automáticamente** al abrir VSCode en el directorio Lab
-- El servidor está corriendo - NO necesitas iniciarlo manualmente
-- Úsalo para probar aplicaciones con ES modules (evita problemas de CORS)
-- Puerto por defecto: usualmente 8080 o 5500
+### 2. Servidor Deprecado
+
 
 ### 3. Gestión de Seguimiento entre Sesiones
 **OBLIGATORIO para tareas que no se completen en un prompt:**
