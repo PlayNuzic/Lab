@@ -703,7 +703,7 @@ export class GameUI {
         <h3>¡Muy bien!</h3>
         <p class="game-message">Ahora escucha cómo suena.</p>
         <div class="game-button-group">
-          <button class="game-btn game-btn-primary" data-action="continue">
+          <button class="game-btn game-btn-primary" data-action="play-preview">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M5 3l6 5-6 5V3z"/>
             </svg>
@@ -715,7 +715,7 @@ export class GameUI {
 
     this.popup.querySelector('.game-close-btn').addEventListener('click', () => this.hide());
 
-    this.popup.querySelector('[data-action="continue"]').addEventListener('click', () => {
+    this.popup.querySelector('[data-action="play-preview"]').addEventListener('click', () => {
       this.hidePopup();
       if (callback) callback();
     });
@@ -733,7 +733,7 @@ export class GameUI {
         <h3>¡Perfecto!</h3>
         <p class="game-message">Ahora escuchemos tu patrón.</p>
         <div class="game-button-group">
-          <button class="game-btn game-btn-primary" data-action="continue">
+          <button class="game-btn game-btn-primary" data-action="play-free-pattern">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M5 3l6 5-6 5V3z"/>
             </svg>
@@ -745,7 +745,7 @@ export class GameUI {
 
     this.popup.querySelector('.game-close-btn').addEventListener('click', () => this.hide());
 
-    this.popup.querySelector('[data-action="continue"]').addEventListener('click', () => {
+    this.popup.querySelector('[data-action="play-free-pattern"]').addEventListener('click', () => {
       this.hidePopup();
       if (callback) callback();
     });
