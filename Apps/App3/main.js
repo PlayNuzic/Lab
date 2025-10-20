@@ -87,7 +87,7 @@ if (titleHeading && titleTextNode) {
 
 const globalMixer = getMixer();
 if (globalMixer) {
-  globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso/Pulso 0' });
+  globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso' });
   globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivisión' });
 }
 
@@ -439,7 +439,7 @@ initMixerMenu({
   menu: mixerMenu,
   triggers: mixerTriggers,
   channels: [
-    { id: 'pulse', label: 'Pulso/Pulso 0', allowSolo: true },
+    { id: 'pulse', label: 'Pulso', allowSolo: true },
     { id: 'subdivision', label: 'Subdivisión', allowSolo: true },
     { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
   ]

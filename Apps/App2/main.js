@@ -1737,7 +1737,7 @@ initMixerMenu({
   menu: mixerMenu,
   triggers: mixerTriggers,
   channels: [
-    { id: 'pulse',  label: 'Pulso/Pulso 0', allowSolo: true },
+    { id: 'pulse',  label: 'Pulso', allowSolo: true },
     { id: 'accent', label: 'Seleccionado',  allowSolo: true },
     { id: 'master', label: 'Master',        allowSolo: false, isMaster: true }
   ]
