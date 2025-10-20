@@ -7,7 +7,7 @@
 
 import { setVolume, getVolume } from '../sound/index.js';
 import { ensureToneLoaded } from '../sound/tone-loader.js';
-import { initSoundDropdown } from './sound-dropdown.js';
+import { initSoundDropdown, initP1ToggleUI } from './sound-dropdown.js';
 
 // --- Scheduling helpers (look-ahead y updateInterval) ---
 
@@ -207,6 +207,38 @@ function wireControls(root) {
             apply: (a, val) => a?.setCycle?.(val),
             defaultValue: 'click10' // Ride
         });
+    }
+
+    // P1 toggle integration (shared across all apps with useIntervalMode: true)
+    const p1Checkbox = root.querySelector('#startIntervalToggle');
+    const p1StartRow = startSoundSelect?.closest('.preview-row');
+
+    let p1Controller = null;
+    if (p1Checkbox) {
+        p1Controller = initP1ToggleUI({
+            checkbox: p1Checkbox,
+            startSoundRow: p1StartRow,
+            storageKey: 'p1Toggle',
+            onChange: async (enabled) => {
+                const audio = await getAppAudio();
+                if (audio && typeof audio.setStartEnabled === 'function') {
+                    audio.setStartEnabled(enabled);
+                }
+            }
+        });
+
+        // Synchronize with audio on initialization
+        (async () => {
+            const audio = await getAppAudio();
+            if (audio && typeof audio.setStartEnabled === 'function') {
+                audio.setStartEnabled(p1Controller.getState());
+            }
+        })();
+
+        // Expose controller globally for mixer synchronization
+        if (typeof window !== 'undefined') {
+            window.__p1Controller = p1Controller;
+        }
     }
 
     // Complex fractions toggle - default false

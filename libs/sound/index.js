@@ -512,6 +512,7 @@ export class TimelineAudio {
     this._pendingMixerState = null;
     this._pulseMutedForFallback = false;
     this._cycleMutedForFallback = false;
+    this._startEnabled = true; // P1 additional sound enabled by default
 
     this._ensureContextPromise = null;
 
@@ -848,6 +849,14 @@ export class TimelineAudio {
   async setCycle(key) {
     await this.ready();
     await this._setSound('cycle', key, this._defaultAssignments.cycle);
+  }
+
+  setStartEnabled(enabled) {
+    this._startEnabled = !!enabled;
+  }
+
+  getStartEnabled() {
+    return this._startEnabled;
   }
 
   async preview(soundKey) {
@@ -1329,14 +1338,8 @@ export class TimelineAudio {
 
         let triggered = false;
         if (this._buffers && this._buffers.size) {
-          if (isStart && !this._pulseMutedForFallback && this._buffers.has('start')) {
-            triggerPlayer('start', when);
-            triggered = true;
-          }
-
           const baseKey = (() => {
             if (!this._buffers || this._buffers.size === 0 || this._pulseMutedForFallback) return null;
-            if (isStart && this._buffers.has('pulso0')) return 'pulso0';
             if (this._buffers.has('pulso')) return 'pulso';
             if (this._buffers.has('pulso0')) return 'pulso0';
             return null;
@@ -1345,6 +1348,11 @@ export class TimelineAudio {
           if (baseKey && isBaseStep) {
             triggerPlayer(baseKey, when);
             triggered = true;
+
+            // P1: If _startEnabled, add additional sound layer
+            if (isStart && this._startEnabled && this._buffers.has('pulso0')) {
+              triggerPlayer('pulso0', when);
+            }
           }
 
           if (isSelected && this._buffers.has('seleccionados')) {

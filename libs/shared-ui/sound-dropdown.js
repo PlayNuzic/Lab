@@ -202,3 +202,72 @@ export function initSoundDropdown(container, { storageKey, eventType, getAudio, 
   };
   document.addEventListener('click', onDocClick, true);
 }
+
+/**
+ * Initialize P1 (Pulso/Pulsación 1) toggle control
+ * Manages checkbox state, visibility of start sound row, and persistence
+ *
+ * @param {Object} options
+ * @param {HTMLInputElement} options.checkbox - The P1 checkbox element
+ * @param {HTMLElement} [options.startSoundRow] - The row containing start sound dropdown
+ * @param {string} [options.storageKey='p1Toggle'] - localStorage key for persistence
+ * @param {(enabled: boolean) => void} [options.onChange] - Callback when state changes
+ * @returns {{ getState: () => boolean, setState: (enabled: boolean) => void } | null}
+ */
+export function initP1ToggleUI({
+  checkbox,
+  startSoundRow,
+  storageKey = 'p1Toggle',
+  onChange
+} = {}) {
+  if (!checkbox) return null;
+
+  // Load saved state (default: enabled)
+  const stored = (() => {
+    try {
+      return localStorage.getItem(storageKey);
+    } catch {
+      return null;
+    }
+  })();
+  const initialState = stored === 'false' ? false : true;
+  checkbox.checked = initialState;
+
+  // Show/hide start sound row based on checkbox state
+  if (startSoundRow) {
+    startSoundRow.classList.toggle('enabled', initialState);
+  }
+
+  // Event listener for checkbox changes
+  checkbox.addEventListener('change', () => {
+    const enabled = checkbox.checked;
+
+    // Persist state
+    try {
+      localStorage.setItem(storageKey, String(enabled));
+    } catch {}
+
+    // Update row visibility
+    if (startSoundRow) {
+      startSoundRow.classList.toggle('enabled', enabled);
+    }
+
+    // Notify callback
+    if (typeof onChange === 'function') {
+      try {
+        onChange(enabled);
+      } catch (err) {
+        console.error('P1 toggle onChange error:', err);
+      }
+    }
+  });
+
+  // Return controller API
+  return {
+    getState: () => checkbox.checked,
+    setState: (enabled) => {
+      checkbox.checked = !!enabled;
+      checkbox.dispatchEvent(new Event('change'));
+    }
+  };
+}

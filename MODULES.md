@@ -1065,7 +1065,7 @@ randomize(ranges)
 
 **Archivos:**
 - `header.js` - Header común con controles de audio
-- `sound-dropdown.js` - Selectores de sonido
+- `sound-dropdown.js` - Selectores de sonido + Sistema P1 Toggle
 - `hover.js` - Efectos hover
 - `index.css` - Estilos base (incluye fix de slider-vertical)
 
@@ -1073,11 +1073,61 @@ randomize(ranges)
 - Estilos CSS consistentes entre Apps
 - Componentes reutilizables
 - Temas y variables CSS
+- **Sistema P1 Toggle**: Control del sonido adicional en primer pulso
 
 **Casos de uso:**
 - Headers con controles de audio/volumen
 - Dropdowns de selección de sonidos
 - Estilos base de todas las Apps
+
+#### Sistema P1 Toggle
+**Ubicación:** `libs/shared-ui/sound-dropdown.js` (UI) + `libs/shared-ui/header.js` (coordinación) + `libs/app-common/mixer-menu.js` (control mixer)
+
+**Propósito:** Sistema compartido para controlar el sonido adicional del primer pulso/intervalo (P1)
+
+**Funcionalidad:**
+- Checkbox en menú de opciones de header
+- Control visual en mixer (botón ON/OFF sin slider)
+- Persistencia automática en localStorage
+- Sincronización bidireccional: checkbox ↔ mixer ↔ audio
+
+**Comportamiento de audio:**
+- **Activo** (checkbox marcado): P1 reproduce `pulso` (base) + `pulso0` (adicional) simultáneamente
+- **Inactivo** (checkbox desmarcado): P1 reproduce solo `pulso` (como todos los demás)
+
+**API en `sound-dropdown.js`:**
+```javascript
+initP1ToggleUI({
+  checkbox: HTMLInputElement,      // El checkbox de P1
+  startSoundRow: HTMLElement,      // Row del dropdown (opcional, se oculta/muestra)
+  storageKey: 'p1Toggle',          // Key de localStorage
+  onChange: (enabled) => void      // Callback cuando cambia
+})
+// Retorna: { getState: () => boolean, setState: (enabled: boolean) => void }
+```
+
+**API en `TimelineAudio` (libs/sound/index.js):**
+```javascript
+audio.setStartEnabled(boolean)  // Activa/desactiva sonido adicional en P1
+audio.getStartEnabled()          // Retorna el estado actual
+```
+
+**Integración automática:**
+- Apps con `useIntervalMode: true` en `template.js` obtienen el sistema automáticamente
+- `header.js` detecta el checkbox `#startIntervalToggle` y lo conecta
+- `mixer-menu.js` crea el control P1 si `window.__p1Controller` existe
+- Nomenclatura: Apps 1-4 ("Pulso 1"), App5 ("Pulsación 1")
+
+**Arquitectura de audio:**
+- NO crea canal adicional en mixer (simplicidad)
+- `pulso0` comparte canal `'pulse'` con resto de pulsos
+- Flag interno `_startEnabled` en `TimelineAudio` controla reproducción
+- Lógica en `libs/sound/index.js` líneas 1341-1356
+
+**Casos de uso:**
+- **App5**: Distinguir intervalos musicales (Pulsación 1 con sonido diferente)
+- **Apps 1-4**: Enfatizar el downbeat (Pulso 1 con capa adicional)
+- **Futuras apps**: Sistema listo para uso inmediato
 
 ---
 

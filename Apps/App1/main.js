@@ -12,6 +12,7 @@ import { parseNum, formatSec } from '../../libs/app-common/number-utils.js';
 import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
+import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
@@ -874,5 +875,18 @@ if (menu && optionsContent) {
   // Also re-apply if theme changes while menu is open
   window.addEventListener('sharedui:theme', () => {
     if (menu.open) solidMenuBackground(optionsContent);
+  });
+}
+
+// Initialize mixer menu with long-press triggers
+const mixerMenu = document.getElementById('mixerMenu');
+if (mixerMenu && playBtn) {
+  initMixerMenu({
+    menu: mixerMenu,
+    triggers: [playBtn, tapBtn].filter(Boolean),
+    channels: [
+      { id: 'pulse', label: 'Pulso', allowSolo: true },
+      { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
+    ]
   });
 }

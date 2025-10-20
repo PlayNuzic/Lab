@@ -47,6 +47,7 @@ export function renderApp({
   showNotationToggle = false,
   showComplexFractions = true,
   useIntervalMode = false,
+  showP1Toggle = false,
   showGamificationToggle = false
 }) {
   if (!root) throw new Error('root element required');
@@ -194,11 +195,11 @@ ${togglesMarkup}
         <details>
           <summary>Sonidos</summary>
           <div class="sound-group">
-            ${useIntervalMode ? `
+            ${(useIntervalMode || showP1Toggle) ? `
             <div class="interval-sound-group">
               <label for="startIntervalToggle" class="interval-toggle-label">
                 <input type="checkbox" id="startIntervalToggle" />
-                Intervalo 1
+                ${useIntervalMode ? 'Intervalo 1' : 'Pulso 1'}
               </label>
               <div class="preview-row interval-select-row">
                 <label for="startSoundSelect" style="display:none"></label>
