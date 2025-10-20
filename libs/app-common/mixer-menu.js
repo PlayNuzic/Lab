@@ -205,7 +205,11 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     menuX: null,
     menuY: null,
     initialMenuLeft: 0,
-    initialMenuTop: 0
+    initialMenuTop: 0,
+    cachedWidth: 0,
+    cachedHeight: 0,
+    grabOffsetX: 0,
+    grabOffsetY: 0
   };
 
   function resetMenuPosition() {
@@ -246,6 +250,11 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     if (!menuOpen) return;
     menu.classList.remove('open');
     menuOpen = false;
+
+    // Reset mixer position to CSS defaults (ensures clean state for next open)
+    menu.style.left = '';
+    menu.style.top = '';
+    menu.style.transform = '';
   }
 
   const toggleMenu = () => {
@@ -269,16 +278,13 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
 
     event.preventDefault();
 
-    const deltaX = event.clientX - dragState.startX;
-    const deltaY = event.clientY - dragState.startY;
+    // Calculate new position using grab offset (keeps click point under cursor)
+    const newX = event.clientX - dragState.grabOffsetX;
+    const newY = event.clientY - dragState.grabOffsetY;
 
-    const newX = dragState.initialMenuLeft + deltaX;
-    const newY = dragState.initialMenuTop + deltaY;
-
-    // Get menu dimensions and viewport bounds
-    const rect = menu.getBoundingClientRect();
-    const menuWidth = rect.width;
-    const menuHeight = rect.height;
+    // Use cached dimensions (avoid getBoundingClientRect during drag)
+    const menuWidth = dragState.cachedWidth;
+    const menuHeight = dragState.cachedHeight;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
@@ -325,40 +331,74 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     event.preventDefault();
     event.stopPropagation(); // Prevent closing the menu
 
-    // Apply transform='none' FIRST, then read positions
-    menu.style.transform = 'none';
-    const rect = menu.getBoundingClientRect();
+    // Capture event coordinates immediately
+    const clickX = event.clientX;
+    const clickY = event.clientY;
+    const pointerId = event.pointerId;
 
-    // Set inline styles to prevent visual jump
-    menu.style.left = rect.left + 'px';
-    menu.style.top = rect.top + 'px';
+    // DOBLE RAF: Garantiza estabilidad completa en modo circular
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
 
-    dragState.isDragging = true;
-    dragState.pointerId = event.pointerId;
-    dragState.startX = event.clientX;
-    dragState.startY = event.clientY;
-    dragState.initialMenuLeft = rect.left;
-    dragState.initialMenuTop = rect.top;
+        // PASO 1: Limpiar transform para leer dimensiones reales
+        menu.style.transform = 'none';
 
-    if (dragState.menuX === null) {
-      dragState.menuX = rect.left;
-      dragState.menuY = rect.top;
-    }
+        // PASO 2: Forzar reflow
+        void menu.offsetHeight;
 
-    menu.classList.add('dragging');
-    title.style.cursor = 'grabbing';
+        // PASO 3: Leer dimensiones limpias
+        const rect = menu.getBoundingClientRect();
+        const menuWidth = rect.width;
+        const menuHeight = rect.height;
 
-    // Set pointer capture for better drag handling
-    try {
-      title.setPointerCapture(event.pointerId);
-    } catch (e) {
-      // Fallback to document events if pointer capture fails
-    }
+        // PASO 4: Calcular posición centrada MANUALMENTE
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const centeredLeft = (viewportWidth - menuWidth) / 2;
+        const centeredTop = (viewportHeight - menuHeight) / 2;
 
-    // Add move and up listeners
-    title.addEventListener('pointermove', handlePointerMove);
-    title.addEventListener('pointerup', handlePointerUp);
-    title.addEventListener('pointercancel', handlePointerUp);
+        // PASO 5: Aplicar posición centrada como inline styles
+        menu.style.left = centeredLeft + 'px';
+        menu.style.top = centeredTop + 'px';
+        // transform ya está en 'none' del paso 1
+
+        // PASO 6: Calcular grab offset relativo a la posición centrada
+        const grabOffsetX = clickX - centeredLeft;
+        const grabOffsetY = clickY - centeredTop;
+
+        // PASO 7: Setup drag state
+        dragState.isDragging = true;
+        dragState.pointerId = pointerId;
+        dragState.startX = clickX;
+        dragState.startY = clickY;
+        dragState.initialMenuLeft = centeredLeft;
+        dragState.initialMenuTop = centeredTop;
+        dragState.cachedWidth = menuWidth;
+        dragState.cachedHeight = menuHeight;
+        dragState.grabOffsetX = grabOffsetX;
+        dragState.grabOffsetY = grabOffsetY;
+
+        if (dragState.menuX === null) {
+          dragState.menuX = centeredLeft;
+          dragState.menuY = centeredTop;
+        }
+
+        menu.classList.add('dragging');
+        title.style.cursor = 'grabbing';
+
+        // Set pointer capture for better drag handling
+        try {
+          title.setPointerCapture(pointerId);
+        } catch (e) {
+          // Fallback to document events if pointer capture fails
+        }
+
+        // Add move and up listeners
+        title.addEventListener('pointermove', handlePointerMove);
+        title.addEventListener('pointerup', handlePointerUp);
+        title.addEventListener('pointercancel', handlePointerUp);
+      });
+    });
   });
 
   triggerButtons.forEach((btn) => {
