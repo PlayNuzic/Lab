@@ -57,6 +57,69 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
   ];
 
+  // P1 toggle control (special channel without slider)
+  const p1Controller = (typeof window !== 'undefined') ? window.__p1Controller : null;
+  if (p1Controller) {
+    const p1Wrapper = document.createElement('div');
+    p1Wrapper.className = 'mixer-channel mixer-channel--p1-toggle';
+    p1Wrapper.dataset.channel = 'p1-toggle';
+
+    const p1Label = document.createElement('span');
+    p1Label.className = 'mixer-channel__label';
+    p1Label.textContent = 'P1';
+    p1Wrapper.appendChild(p1Label);
+
+    const p1SliderPlaceholder = document.createElement('div');
+    p1SliderPlaceholder.className = 'mixer-channel__slider-wrapper mixer-channel__slider-wrapper--hidden';
+    p1Wrapper.appendChild(p1SliderPlaceholder);
+
+    const p1Actions = document.createElement('div');
+    p1Actions.className = 'mixer-channel__actions mixer-channel__actions--single';
+
+    const p1ToggleBtn = document.createElement('button');
+    p1ToggleBtn.type = 'button';
+    p1ToggleBtn.className = 'mixer-action mixer-action--p1-toggle';
+    p1ToggleBtn.setAttribute('aria-label', 'Alternar sonido adicional P1');
+    p1ToggleBtn.innerHTML = `
+      <svg aria-hidden="true" viewBox="0 0 40 40" focusable="false" class="icon-on">
+        <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle"
+              font-family="inherit" font-size="20" font-weight="bold" fill="currentColor">ON</text>
+      </svg>
+      <svg aria-hidden="true" viewBox="0 0 40 40" focusable="false" class="icon-off" style="display:none;">
+        <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle"
+              font-family="inherit" font-size="20" font-weight="bold" fill="currentColor">OFF</text>
+      </svg>
+    `;
+    p1Actions.appendChild(p1ToggleBtn);
+    p1Wrapper.appendChild(p1Actions);
+
+    content.appendChild(p1Wrapper);
+
+    // Synchronize initial state
+    const initialState = p1Controller.getState();
+    p1ToggleBtn.classList.toggle('active', initialState);
+    p1ToggleBtn.setAttribute('aria-pressed', initialState ? 'true' : 'false');
+    const iconOn = p1ToggleBtn.querySelector('.icon-on');
+    const iconOff = p1ToggleBtn.querySelector('.icon-off');
+    if (iconOn) iconOn.style.display = initialState ? 'block' : 'none';
+    if (iconOff) iconOff.style.display = initialState ? 'none' : 'block';
+
+    // Event listener
+    p1ToggleBtn.addEventListener('click', () => {
+      const currentState = p1Controller.getState();
+      const newState = !currentState;
+      p1Controller.setState(newState);
+
+      // Update button UI
+      p1ToggleBtn.classList.toggle('active', newState);
+      p1ToggleBtn.setAttribute('aria-pressed', newState ? 'true' : 'false');
+      const iconOn = p1ToggleBtn.querySelector('.icon-on');
+      const iconOff = p1ToggleBtn.querySelector('.icon-off');
+      if (iconOn) iconOn.style.display = newState ? 'block' : 'none';
+      if (iconOff) iconOff.style.display = newState ? 'none' : 'block';
+    });
+  }
+
   knownChannels.forEach((config) => {
     const channelId = config.id;
     if (!channelId) return;
@@ -158,6 +221,22 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     menu.classList.add('open');
     menuOpen = true;
     solidMenuBackground(menu);
+
+    // Synchronize P1 toggle state when opening
+    const p1Controller = (typeof window !== 'undefined') ? window.__p1Controller : null;
+    if (p1Controller) {
+      const p1ToggleBtn = menu.querySelector('.mixer-action--p1-toggle');
+      if (p1ToggleBtn) {
+        const currentState = p1Controller.getState();
+        p1ToggleBtn.classList.toggle('active', currentState);
+        p1ToggleBtn.setAttribute('aria-pressed', currentState ? 'true' : 'false');
+        const iconOn = p1ToggleBtn.querySelector('.icon-on');
+        const iconOff = p1ToggleBtn.querySelector('.icon-off');
+        if (iconOn) iconOn.style.display = currentState ? 'block' : 'none';
+        if (iconOff) iconOff.style.display = currentState ? 'none' : 'block';
+      }
+    }
+
     // Reset position to center when opening
     resetMenuPosition();
     try { menu.focus({ preventScroll: true }); } catch { menu.focus(); }
@@ -217,7 +296,6 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
 
     menu.style.top = `${clampedY}px`;
     menu.style.left = `${clampedX}px`;
-    menu.style.transform = 'none';
   };
 
   const handlePointerUp = () => {
@@ -247,12 +325,18 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     event.preventDefault();
     event.stopPropagation(); // Prevent closing the menu
 
+    // Apply transform='none' FIRST, then read positions
+    menu.style.transform = 'none';
+    const rect = menu.getBoundingClientRect();
+
+    // Set inline styles to prevent visual jump
+    menu.style.left = rect.left + 'px';
+    menu.style.top = rect.top + 'px';
+
     dragState.isDragging = true;
     dragState.pointerId = event.pointerId;
     dragState.startX = event.clientX;
     dragState.startY = event.clientY;
-
-    const rect = menu.getBoundingClientRect();
     dragState.initialMenuLeft = rect.left;
     dragState.initialMenuTop = rect.top;
 
@@ -337,6 +421,8 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     if (!menuOpen) return;
     const next = event.relatedTarget;
     if (!next || menu.contains(next)) return;
+    // Don't close if focus moved to a trigger button (Play/Tap)
+    if (triggerButtons.includes(next)) return;
     closeMenu();
   });
 
