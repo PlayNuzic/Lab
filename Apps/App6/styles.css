@@ -1,0 +1,413 @@
+/* App6 - Los Números - Specific Styles */
+
+/* Hide elements not needed for this app */
+.inputs,
+.sound-wrapper,
+.middle,
+.controls button,
+.control-sound-toggles {
+  display: none !important;
+}
+
+/* Main container layout */
+body {
+  overflow-x: hidden;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: calc(100vh - 80px);
+  padding: 20px;
+}
+
+/* Click to start overlay */
+.start-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  z-index: 1600; /* Above timeline (1500) but below menu and popups */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--line-color);
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+  pointer-events: auto; /* Ensure clicks are captured */
+}
+
+.start-overlay:hover {
+  opacity: 0.6;
+}
+
+.start-overlay.hidden {
+  display: none;
+}
+
+/* Instruction popup */
+.instruction-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 28px 36px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  background: var(--bg-light);
+  color: var(--text-light);
+  z-index: 2000;
+  max-width: 420px;
+  text-align: center;
+  font-size: 1.2rem;
+  line-height: 1.6;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+}
+
+body[data-theme='dark'] .instruction-popup {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(238, 232, 216, 0.2);
+}
+
+.instruction-popup.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.instruction-popup p {
+  margin: 0;
+  padding: 0;
+}
+
+.instruction-popup button {
+  margin-top: 20px;
+  padding: 12px 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--selection-color);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.instruction-popup button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.instruction-popup button:active {
+  transform: scale(0.98);
+}
+
+/* Scale intro animation for initial "Los números" popup */
+.instruction-popup.scale-intro {
+  animation: popupScaleIntro 1.1s ease-out 0.3s;
+}
+
+@keyframes popupScaleIntro {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  45% {
+    transform: translate(-50%, -50%) scale(2);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Scale animation for "Escoge un número" popup */
+.instruction-popup.scale-pulse {
+  animation: popupScalePulse 1s ease-out;
+}
+
+@keyframes popupScalePulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.25);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Number visual container */
+.number-visual-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+  margin-bottom: 40px;
+  z-index: 1500; /* Same level as timeline */
+  opacity: 1; /* Full opacity when visible */
+}
+
+/* Ensure visual is never dimmed when visible (not hidden) */
+.number-visual-container:not(.hidden) {
+  opacity: 1 !important;
+}
+
+.number-visual {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.number-visual svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.number-dot {
+  fill: var(--selection-color);
+  transition: opacity 0.2s ease;
+}
+
+.number-zero {
+  font-size: 120px;
+  font-weight: 700;
+  font-family: 'Ubuntu', sans-serif;
+  fill: var(--selection-color);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.number-zero.flash {
+  animation: numberFlash 0.6s ease-out;
+}
+
+@keyframes numberFlash {
+  0% {
+    opacity: 0;
+    transform: scale(2);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(2.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Timeline customization for App6 */
+.timeline-wrapper {
+  width: 100%;
+  max-width: 900px;
+  margin: 40px auto;
+  position: relative;
+  z-index: 1500; /* Below popups (2000) but above start overlay (100) */
+  opacity: 1 !important; /* Always full opacity */
+}
+
+.timeline {
+  position: relative;
+  height: 100px;
+  transition: transform 0.6s ease;
+}
+
+/* Make timeline line visible */
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--line-color);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Pulse styling */
+.timeline .pulse {
+  pointer-events: auto; /* Make clickable */
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.timeline .pulse:hover:not(.locked):not(.disabled) {
+  transform: translateX(-50%) scale(1.3);
+}
+
+.timeline .pulse.selected {
+  color: var(--selection-color) !important;
+  background: var(--selection-color) !important;
+}
+
+.timeline .pulse.locked {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.timeline .pulse.disabled {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* Pulse number styling - larger and clickable */
+.timeline .pulse-number {
+  font-size: 2.8rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease, font-size 0.3s ease;
+  user-select: none;
+  pointer-events: auto;
+  z-index: 20;
+  opacity: 1 !important; /* Always full opacity - never dimmed */
+}
+
+.timeline .pulse-number:hover:not(.locked):not(.disabled) {
+  transform: translateX(-50%) scale(1.1);
+}
+
+.timeline .pulse-number.selected {
+  color: var(--selection-color);
+  transform: translateX(-50%) scale(1.15);
+  font-weight: 700;
+}
+
+.timeline .pulse-number.locked {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.timeline .pulse-number.disabled {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* Initial zero styling (appears at position 0 after shift) */
+.timeline .pulse-number.zero-initial {
+  font-size: 5.6rem;
+  animation: zeroAppear 0.8s ease-out forwards;
+}
+
+@keyframes zeroAppear {
+  0% {
+    transform: translateX(-50%) scale(2);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(-50%) scale(2.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+    font-size: 2.8rem;
+  }
+}
+
+/* Pulse number fade-in animation for initial drawing */
+.pulse-number.fade-in {
+  animation: numberFadeIn 0.4s ease-out;
+}
+
+@keyframes numberFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Timeline shift animation container */
+.timeline-shift {
+  animation: timelineShift 0.6s ease;
+}
+
+@keyframes timelineShift {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(var(--shift-distance, 100px));
+  }
+}
+
+/* Override interval-block styles for App6 (non-interactive, used for distance concept) */
+.interval-block {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+/* Flash animation for selected number (pulses 3 times) */
+.pulse-number.flash {
+  animation: numberFlashPulse 0.8s ease-in-out 3;
+}
+
+@keyframes numberFlashPulse {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.3);
+    opacity: 0.7;
+  }
+}
+
+/* Number visual hidden state */
+.number-visual-container.hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Ensure header and menu remain accessible above start overlay */
+header,
+.menu-toggle,
+.options-menu {
+  z-index: 1700 !important; /* Above start overlay (1600) */
+  position: relative;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .timeline .pulse-number {
+    font-size: 2.2rem;
+  }
+
+  .timeline .pulse-number.zero-initial {
+    font-size: 4.4rem;
+  }
+
+  .number-visual {
+    width: 200px;
+    height: 200px;
+  }
+
+  .number-zero {
+    font-size: 100px;
+  }
+
+  .instruction-popup {
+    max-width: 90%;
+    padding: 20px 24px;
+    font-size: 1.1rem;
+  }
+}

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Los Números</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="../../libs/temporal-intervals/it-styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="favicon.ico" />
+</head>
+<body data-theme="system">
+  <div id="app-root"></div>
+
+  <!-- App initialization (no audio, simplified header) -->
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Los Números',
+      showSelectColor: true,
+      showComplexFractions: false,
+      showAccent: false,
+      hideT: true,
+      hideLeds: true,
+      randomMenuContent: '' // No random menu
+    });
+
+    // Remove audio controls (mute button and volume slider)
+    document.querySelector('.sound-wrapper')?.remove();
+
+    // Hide Lg and V parameter inputs (not needed for this app)
+    document.querySelector('.inputs')?.remove();
+
+    // Hide formula section
+    document.querySelector('.middle')?.remove();
+
+    // Hide all control buttons except the ones we need
+    const controls = document.querySelector('.controls');
+    if (controls) {
+      controls.querySelectorAll('button').forEach(btn => btn.remove());
+      controls.querySelectorAll('.play-group').forEach(group => group.remove());
+      controls.querySelectorAll('.control-sound-toggles').forEach(group => group.remove());
+    }
+
+    // Remove hover toggle and circular timeline toggle from menu
+    document.querySelector('#hoverToggle')?.closest('label')?.remove();
+    document.querySelector('#circularTimelineToggle')?.closest('label')?.remove();
+
+    // Remove sound section from menu
+    document.querySelector('.sound-group')?.closest('details')?.remove();
+
+    initHeader();
+
+    // Load and persist menu options
+    setTimeout(() => {
+      const STORAGE_KEY_THEME = 'app6_theme';
+      const STORAGE_KEY_COLOR = 'app6_color';
+
+      // Load saved preferences
+      const savedTheme = localStorage.getItem(STORAGE_KEY_THEME);
+      const savedColor = localStorage.getItem(STORAGE_KEY_COLOR);
+
+      if (savedTheme) {
+        document.body.setAttribute('data-theme', savedTheme);
+        const themeSelect = document.getElementById('themeSelect');
+        if (themeSelect) themeSelect.value = savedTheme;
+      }
+
+      if (savedColor) {
+        document.body.setAttribute('data-color', savedColor);
+        const colorSelect = document.getElementById('colorSelect');
+        if (colorSelect) colorSelect.value = savedColor;
+      }
+
+      // Save theme changes
+      const themeSelect = document.getElementById('themeSelect');
+      if (themeSelect) {
+        themeSelect.addEventListener('change', (e) => {
+          localStorage.setItem(STORAGE_KEY_THEME, e.target.value);
+        });
+      }
+
+      // Save color changes
+      const colorSelect = document.getElementById('colorSelect');
+      if (colorSelect) {
+        colorSelect.addEventListener('change', (e) => {
+          localStorage.setItem(STORAGE_KEY_COLOR, e.target.value);
+        });
+      }
+
+      // Factory Reset: clear saved preferences
+      window.addEventListener('sharedui:factoryreset', () => {
+        localStorage.removeItem(STORAGE_KEY_THEME);
+        localStorage.removeItem(STORAGE_KEY_COLOR);
+        // Reset to defaults
+        document.body.setAttribute('data-theme', 'system');
+        document.body.removeAttribute('data-color');
+        if (themeSelect) themeSelect.value = 'system';
+        if (colorSelect) colorSelect.value = '';
+      });
+    }, 100);
+
+    import('./main.js');
+  </script>
+</body>
+</html>
