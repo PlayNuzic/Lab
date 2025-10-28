@@ -1,0 +1,14 @@
+{
+  "name": "playnuzic-lab-agents",
+  "version": "1.0.0",
+  "description": "Sistema de agentes para PlayNuzic Lab",
+  "type": "module",
+  "main": "orchestrator.js",
+  "scripts": {
+    "analyze": "node orchestrator.js analyze",
+    "verify": "node orchestrator.js verify"
+  },
+  "keywords": ["playnuzic", "agents", "ai"],
+  "author": "PlayNuzic",
+  "license": "MIT"
+}

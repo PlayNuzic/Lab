@@ -1,0 +1,36 @@
+name: PlayNuzic-Lab-Agent-Integration
+version: 1.0.0
+mode: non-invasive
+
+preserve:
+  - browser_clock_system: true
+  - pulse_interval_calculations: true
+  - voice_sync_cycles: true
+  - minimalist_aesthetic: true
+  - existing_module_structure: true
+
+existing:
+  apps:
+    - app1-ritmos-numericos
+    - app2-melodias-matematicas
+    - app3-armonias-algoritmicas
+    - app4-composicion-combinatoria
+    - app5-sintesis-numerica
+    - app6-patrones-polirritmicos
+  
+  libs:
+    - app-common/
+    - sound/
+    - notation/
+    - cards/
+    - ear-training/
+
+rules:
+  - never_modify_existing_files: true
+  - always_preserve_clock_system: true
+  - maintain_calculation_compatibility: true
+  - respect_minimalist_design: true
+  - overlay_not_replace: true
+  - suggest_not_impose: true
+  - learn_from_existing: true
+  - test_before_suggest: true
