@@ -46,22 +46,6 @@ main {
   color: var(--text-color);
 }
 
-/* Reveal animation for instruction text */
-.instruction.reveal {
-  animation: revealText 0.8s ease-out;
-}
-
-@keyframes revealText {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 /* Input container */
 .input-container {
   display: flex;
@@ -171,6 +155,8 @@ main {
 
 /* Highlight zero magnitudes with flash animation */
 .magnitude-item.highlight-zero {
+  opacity: 1 !important;
+  display: flex !important;
   animation: zeroFlash 0.8s ease-in-out 3;
 }
 

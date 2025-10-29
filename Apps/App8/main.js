@@ -326,12 +326,35 @@ function showZeroConceptPopup(count = 1) {
 }
 
 /**
+ * Type text letter by letter (typing effect)
+ * @param {HTMLElement} element - Element to type into
+ * @param {string} text - Text to type
+ * @param {number} speed - Milliseconds between each letter
+ */
+function typeText(element, text, speed = 80) {
+  element.textContent = '';
+  let i = 0;
+
+  return new Promise(resolve => {
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        element.textContent += text[i];
+        i++;
+      } else {
+        clearInterval(interval);
+        resolve();
+      }
+    }, speed);
+  });
+}
+
+/**
  * Prepare for zero exercise phase
  */
 function prepareZeroExercise() {
   hidePopup();
 
-  setTimeout(() => {
+  setTimeout(async () => {
     // Clean magnitudes
     magnitudesContainer.innerHTML = '';
 
@@ -339,12 +362,8 @@ function prepareZeroExercise() {
     numberInput.value = '';
     numberInput.disabled = false;
 
-    // Change instruction text with reveal animation
-    instructionText.classList.remove('reveal');
-    instructionText.textContent = 'Introduce ahora el número 0';
-    // Force reflow
-    instructionText.offsetHeight;
-    instructionText.classList.add('reveal');
+    // Change instruction text with typing animation
+    await typeText(instructionText, 'Introduce ahora el número 0', 80);
 
     // Update state
     state.waitingForZero = true;
@@ -385,6 +404,8 @@ function createTimeline() {
   // Create timeline wrapper
   const timelineWrapper = document.createElement('div');
   timelineWrapper.className = 'timeline-wrapper';
+  // Force display to override CSS !important rules
+  timelineWrapper.style.display = 'block';
 
   // Create timeline
   timeline = document.createElement('div');
