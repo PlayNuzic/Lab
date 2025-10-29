@@ -291,9 +291,10 @@ function highlightZeroMagnitudes() {
       zeroItemsCount++;
       // Keep visible and add flash animation
       item.classList.add('highlight-zero');
-      // Ensure it stays visible
+      // Ensure it stays visible with inline styles (highest specificity)
       item.style.opacity = '1';
       item.style.display = 'flex';
+      item.style.transform = 'scale(1)';
     } else {
       // Fade out non-zero items quickly
       item.style.transition = 'opacity 0.3s ease, transform 0.3s ease';

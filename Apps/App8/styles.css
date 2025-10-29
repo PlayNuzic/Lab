@@ -9,16 +9,6 @@
   display: none !important;
 }
 
-/* Hide timeline initially - it will be shown when created dynamically */
-.timeline-wrapper {
-  display: none !important;
-}
-
-/* Hide timeline line initially (::before pseudo-element) */
-main > .timeline-wrapper {
-  display: none !important;
-}
-
 /* Main container layout */
 body {
   overflow-y: auto;
@@ -157,7 +147,11 @@ main {
 .magnitude-item.highlight-zero {
   opacity: 1 !important;
   display: flex !important;
+  transform: scale(1) !important;
+  position: relative;
+  z-index: 2500;
   animation: zeroFlash 0.8s ease-in-out 3;
+  animation-fill-mode: forwards;
 }
 
 @keyframes zeroFlash {
