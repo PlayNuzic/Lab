@@ -8,16 +8,20 @@ import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subd
 import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
-import { parseNum, formatSec } from '../../libs/app-common/number-utils.js';
+import { parseNum, formatSec, randomInt } from '../../libs/app-common/number-utils.js';
 import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
+import { createRhythmLoopController } from '../../libs/app-common/loop-control.js';
+import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
+import { initCircularTimelineToggle, initColorSelector, bindUnitsVisibility } from '../../libs/app-common/ui-helpers.js';
+import { setupClickOutside } from '../../libs/app-common/click-outside.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
 let audio;
-let pendingMute = null;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
 bindSharedSoundEvents({
@@ -280,112 +284,68 @@ ledLg?.addEventListener('click', () => setAuto('Lg'));
 ledV?.addEventListener('click', () => setAuto('V'));
 ledT?.addEventListener('click', () => setAuto('T'));
 
-const storeKey = (k) => `app1:${k}`;
-const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
-const loadOpt = (k) => { try { return localStorage.getItem(storeKey(k)); } catch { return null; } };
+// Create preference storage for App1
+const preferenceStorage = createPreferenceStorage({ prefix: 'app1', separator: ':' });
+const { load: loadOpt, save: saveOpt } = preferenceStorage;
 
-function clearStoredPreferences() {
-  try {
-    const prefix = 'app1:';
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) keysToRemove.push(key);
-    }
-    keysToRemove.forEach((key) => localStorage.removeItem(key));
+// Register factory reset handler
+registerFactoryReset({ storage: preferenceStorage });
 
-    // Also clear shared sound preferences (no app prefix)
-    ['baseSound', 'accentSound', 'startSound', 'cycleSound'].forEach(key => {
-      try { localStorage.removeItem(key); } catch {}
-    });
-  } catch {}
-}
-
-let factoryResetPending = false;
-window.addEventListener('sharedui:factoryreset', () => {
-  if (factoryResetPending) return;
-  factoryResetPending = true;
-  clearStoredPreferences();
-  window.location.reload();
+// Setup theme synchronization
+setupThemeSync({
+  storage: preferenceStorage,
+  selectEl: themeSelect,
+  defaultValue: 'system'
 });
 
-// Local header behavior (as before)
-function applyTheme(val){
-  if(val === 'system'){
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.body.dataset.theme = dark ? 'dark' : 'light';
-  } else {
-    document.body.dataset.theme = val;
-  }
-  saveOpt('theme', val);
-  // Notify shared listeners so dependent UI can refresh colors on the fly
-  try { window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: val } })); } catch {}
-}
-
-const storedTheme = loadOpt('theme');
-if (themeSelect) {
-  if (storedTheme) themeSelect.value = storedTheme;
-  applyTheme(themeSelect.value || 'system');
-  themeSelect.addEventListener('change', e => applyTheme(e.target.value));
-} else {
-  applyTheme(storedTheme || 'system');
-}
-
-// Persist and apply mute from shared header
-document.addEventListener('sharedui:mute', (e) => {
-  const val = !!(e && e.detail && e.detail.value);
-  saveOpt('mute', val ? '1' : '0');
-  pendingMute = val;
-  if (audio && typeof audio.setMute === 'function') {
-    audio.setMute(val);
+// Setup mute persistence
+setupMutePersistence({
+  storage: preferenceStorage,
+  getAudioInstance: async () => {
+    if (!audio) await initAudio();
+    return audio;
   }
 });
-
-// Restore previous mute preference on load by toggling the shared button
-(() => {
-  try{
-    const saved = loadOpt('mute');
-    if (saved === '1') document.getElementById('muteBtn')?.click();
-  }catch{}
-})();
 
 // updateNumbers() removed - now handled by timelineController
 
-circularTimelineToggle.checked = (() => {
-  const stored = loadOpt('circular');
-  return stored == null ? true : stored === '1';
-})();
-circularTimeline = circularTimelineToggle.checked;
-circularTimelineToggle?.addEventListener('change', e => {
-  circularTimeline = e.target.checked;
-  saveOpt('circular', e.target.checked ? '1' : '0');
-  animateTimelineCircle(loopEnabled && circularTimeline);
+// Initialize circular timeline toggle with shared helper
+const circularTimelineHelper = initCircularTimelineToggle({
+  toggle: circularTimelineToggle,
+  storage: preferenceStorage,
+  onToggle: (checked) => {
+    circularTimeline = checked;
+    animateTimelineCircle(loopEnabled && circularTimeline);
+  }
+});
+circularTimeline = circularTimelineHelper.getState();
+
+// Initialize color selector with shared helper
+initColorSelector({
+  selector: selectColor,
+  storage: preferenceStorage
 });
 
-// Color selection persistence
-const storedColor = loadOpt('color');
-if (storedColor && selectColor) {
-  selectColor.value = storedColor;
-  document.documentElement.style.setProperty('--selection-color', storedColor);
-}
-selectColor?.addEventListener('input', e => {
-  document.documentElement.style.setProperty('--selection-color', e.target.value);
-  saveOpt('color', e.target.value);
-});
 animateTimelineCircle(loopEnabled && circularTimeline);
 
-loopBtn.addEventListener('click', () => {
-  loopEnabled = !loopEnabled;
-  loopBtn.classList.toggle('active', loopEnabled);
-  if (isPlaying && audio && typeof audio.setLoop === 'function') {
-    audio.setLoop(loopEnabled);
-  }
-  animateTimelineCircle(loopEnabled && circularTimeline);
-  // Update totalPulses when loop changes during playback
-  if (isPlaying) {
-    handleInput();
+// Create loop controller with shared component
+const loopController = createRhythmLoopController({
+  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  loopBtn,
+  state: {
+    get loopEnabled() { return loopEnabled; },
+    set loopEnabled(v) { loopEnabled = v; }
+  },
+  isPlaying: () => isPlaying,
+  onToggle: (enabled) => {
+    animateTimelineCircle(enabled && circularTimeline);
+    // Update totalPulses when loop changes during playback
+    if (isPlaying) {
+      handleInput();
+    }
   }
 });
+loopController.attach();
 
 resetBtn.addEventListener('click', () => {
   cancelTapResync();
@@ -393,45 +353,20 @@ resetBtn.addEventListener('click', () => {
   window.location.reload();
 });
 
-async function handleTapTempo() {
-  try {
-    const audioInstance = await initAudio();
-    const result = audioInstance.tapTempo(performance.now());
-    if (!result) return;
-
-    if (result.remaining > 0) {
-      if (tapHelp) {
-        tapHelp.textContent = result.remaining === 2 ? '2 clicks más' : '1 click más solamente';
-        tapHelp.style.display = 'block';
-      }
-      return;
+// Create tap tempo handler with shared component
+const tapTempoHandler = createTapTempoHandler({
+  getAudioInstance: initAudio,
+  tapBtn,
+  tapHelp,
+  onBpmDetected: (bpm) => {
+    setValue(inputV, bpm);
+    handleInput({ target: inputV });
+    if (isPlaying) {
+      scheduleTapResync(bpm);
     }
-
-    if (tapHelp) {
-      tapHelp.style.display = 'none';
-    }
-
-    if (Number.isFinite(result.bpm) && result.bpm > 0) {
-      const bpm = Math.round(result.bpm * 100) / 100;
-      setValue(inputV, bpm);
-      handleInput({ target: inputV });
-      if (isPlaying) {
-        scheduleTapResync(bpm);
-      }
-    }
-  } catch (error) {
-    console.warn('Tap tempo failed', error);
   }
-}
-
-if (tapBtn) {
-  tapBtn.addEventListener('click', () => { handleTapTempo(); });
-}
-
-if (tapHelp) {
-  tapHelp.textContent = 'Se necesitan 3 clicks';
-  tapHelp.style.display = 'none';
-}
+});
+tapTempoHandler.attach();
 
 // Sound dropdowns initialized by header.js via initHeader()
 // No need to initialize here - header.js handles baseSoundSelect and startSoundSelect
@@ -451,9 +386,6 @@ const _baseInitAudio = createRhythmAudioInitializer({
 async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
-    if (pendingMute != null && typeof audio.setMute === 'function') {
-      audio.setMute(pendingMute);
-    }
     // Expose audio instance for sound dropdown preview
     if (typeof window !== 'undefined') window.__labAudio = audio;
   }
@@ -464,16 +396,13 @@ if (typeof window !== 'undefined') {
   window.__labInitAudio = initAudio;
 }
 
-// Mostrar unitats quan s'edita cada paràmetre
-function bindUnit(input, unit){
-  if(!input || !unit) return;
-  input.addEventListener('focus', () => { unit.style.display = 'block'; });
-  input.addEventListener('blur', () => { unit.style.display = 'none'; });
-}
-
-bindUnit(inputLg, unitLg);
-bindUnit(inputV, unitV);
-bindUnit(inputT, unitT);
+// Mostrar unitats quan s'edita cada paràmetre (using shared helper)
+const unitBindings = bindUnitsVisibility([
+  { input: inputLg, unit: unitLg },
+  { input: inputV, unit: unitV },
+  { input: inputT, unit: unitT }
+]);
+unitBindings.attachAll();
 
 [inputLg, inputV, inputT].forEach(el => el.addEventListener('input', handleInput));
 updateFormula();
@@ -813,13 +742,7 @@ playBtn.addEventListener('click', async () => {
 });
 
 // highlightPulse now handled by highlightController.highlightPulse()
-
-function randomInt(min, max) {
-  const lo = Math.ceil(min);
-  const hi = Math.floor(max);
-  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) return lo;
-  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
-}
+// randomInt now imported from number-utils.js
 
 function randomize() {
   if (randLgToggle?.checked) {

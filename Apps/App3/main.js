@@ -7,10 +7,13 @@ import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-co
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
+import { createRhythmLoopController } from '../../libs/app-common/loop-control.js';
+import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { fromLgAndTempo, gridFromOrigin, computeSubdivisionFontRem, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 import { parseIntSafe, parseFloatSafe } from '../../libs/app-common/number.js';
+import { randomInt } from '../../libs/app-common/number-utils.js';
 import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
@@ -872,11 +875,7 @@ addRepeatPress(inputLgDown, () => adjustInput(inputLg, -1));
 addRepeatPress(inputVUp, () => adjustInput(inputV, +1));
 addRepeatPress(inputVDown, () => adjustInput(inputV, -1));
 
-function randomInt(min, max) {
-  const lo = Math.ceil(min);
-  const hi = Math.floor(max);
-  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
-}
+// randomInt now imported from number-utils.js
 
 let randomConfig = (() => {
   try {
@@ -1175,27 +1174,33 @@ playBtn.addEventListener('click', async () => {
   startPlayback();
 });
 
-loopBtn.addEventListener('click', () => {
-  loopEnabled = !loopEnabled;
-  loopBtn.classList.toggle('active', loopEnabled);
-  if (audio && typeof audio.setLoop === 'function') {
-    audio.setLoop(loopEnabled);
-  }
-  animateTimelineCircle(loopEnabled && circularTimeline);
+// Create loop controller with shared component
+const loopController = createRhythmLoopController({
+  audio: { setLoop: (enabled) => audio?.setLoop?.(enabled) },
+  loopBtn,
+  state: {
+    get loopEnabled() { return loopEnabled; },
+    set loopEnabled(v) { loopEnabled = v; }
+  },
+  isPlaying: () => isPlaying,
+  onToggle: (enabled) => {
+    animateTimelineCircle(enabled && circularTimeline);
 
-  // Update audio transport if playing
-  if (isPlaying) {
-    const lg = getLg();
-    if (audio && Number.isFinite(lg) && lg > 0) {
-      const playbackTotal = toPlaybackPulseCount(lg, loopEnabled);
-      if (typeof audio.updateTransport === 'function') {
-        audio.updateTransport({ align: 'nextPulse', totalPulses: playbackTotal });
+    // Update audio transport if playing
+    if (isPlaying) {
+      const lg = getLg();
+      if (audio && Number.isFinite(lg) && lg > 0) {
+        const playbackTotal = toPlaybackPulseCount(lg, enabled);
+        if (typeof audio.updateTransport === 'function') {
+          audio.updateTransport({ align: 'nextPulse', totalPulses: playbackTotal });
+        }
       }
     }
-  }
 
-  syncVisualState();
+    syncVisualState();
+  }
 });
+loopController.attach();
 
 resetBtn.addEventListener('click', () => {
   // Limpiar valores de fracción del storage
@@ -1205,37 +1210,17 @@ resetBtn.addEventListener('click', () => {
   window.location.reload();
 });
 
-async function tapTempo() {
-  try {
-    const audioInstance = await initAudio();
-    const result = audioInstance.tapTempo(performance.now());
-    if (!result) return;
-
-    if (result.remaining > 0) {
-      if (tapHelp) {
-        tapHelp.textContent = result.remaining === 2 ? '2 clicks más' : '1 click más solamente';
-        tapHelp.style.display = 'block';
-      }
-      return;
-    }
-
-    if (tapHelp) {
-      tapHelp.style.display = 'none';
-    }
-
-    if (Number.isFinite(result.bpm) && result.bpm > 0) {
-      const bpm = Math.round(result.bpm * 100) / 100;
-      setValue(inputV, bpm);
-      handleInput();
-    }
-  } catch (error) {
-    console.warn('Tap tempo failed', error);
+// Create tap tempo handler with shared component
+const tapTempoHandler = createTapTempoHandler({
+  getAudioInstance: initAudio,
+  tapBtn,
+  tapHelp,
+  onBpmDetected: (bpm) => {
+    setValue(inputV, bpm);
+    handleInput();
   }
-}
-
-if (tapBtn) {
-  tapBtn.addEventListener('click', () => { tapTempo(); });
-}
+});
+tapTempoHandler.attach();
 
 // Initialize circular timeline toggle (pattern from App1)
 circularTimelineToggle.checked = (() => {

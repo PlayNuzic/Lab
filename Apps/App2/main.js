@@ -16,13 +16,15 @@ import { createPulseMemoryLoopController } from '../../libs/app-common/loop-cont
 import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 import { createNotationPanelController } from '../../libs/app-common/notation-panel.js';
 import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
-import { parseNum, formatNumber, createNumberFormatter } from '../../libs/app-common/number-utils.js';
+import { parseNum, formatNumber, createNumberFormatter, randomInt } from '../../libs/app-common/number-utils.js';
 import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { initApp2Gamification } from './gamification-adapter.js';
+import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
+import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 // Using local header controls for App2 (no shared init)
 
 // Create custom formatters for App2
@@ -43,7 +45,6 @@ const formatBpmValue = (value) => {
 };
 
 let audio;
-let pendingMute = null;
 const schedulingBridge = createSchedulingBridge({ getAudio: () => audio });
 window.addEventListener('sharedui:scheduling', schedulingBridge.handleSchedulingEvent);
 bindSharedSoundEvents({
@@ -537,73 +538,28 @@ attachHover(randPulsesToggle, { text: 'Aleatorizar pulsos' });
 attachHover(randomCount, { text: 'Cantidad de pulsos a seleccionar (vacío = aleatorio, 0 = ninguno)' });
 
 
-const storeKey = (k) => `app2:${k}`;
-const saveOpt = (k, v) => { try { localStorage.setItem(storeKey(k), v); } catch {} };
-const loadOpt = (k) => { try { return localStorage.getItem(storeKey(k)); } catch { return null; } };
+// Create preference storage for App2
+const preferenceStorage = createPreferenceStorage({ prefix: 'app2', separator: ':' });
+const { load: loadOpt, save: saveOpt } = preferenceStorage;
 
-function clearStoredPreferences() {
-  try {
-    const prefix = 'app2:';
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) keysToRemove.push(key);
-    }
-    keysToRemove.forEach((key) => localStorage.removeItem(key));
+// Register factory reset handler
+registerFactoryReset({ storage: preferenceStorage });
 
-    // Also clear shared sound preferences (no app prefix)
-    ['baseSound', 'accentSound', 'startSound', 'cycleSound'].forEach(key => {
-      try { localStorage.removeItem(key); } catch {}
-    });
-  } catch {}
-}
-
-let factoryResetPending = false;
-window.addEventListener('sharedui:factoryreset', () => {
-  if (factoryResetPending) return;
-  factoryResetPending = true;
-  clearStoredPreferences();
-  window.location.reload();
+// Setup theme synchronization
+setupThemeSync({
+  storage: preferenceStorage,
+  selectEl: themeSelect,
+  defaultValue: 'system'
 });
 
-// Local header behavior (as before)
-function applyTheme(val){
-  if(val === 'system'){
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.body.dataset.theme = dark ? 'dark' : 'light';
-  } else {
-    document.body.dataset.theme = val;
-  }
-  saveOpt('theme', val);
-  // Notify shared listeners so dependent UI can refresh colors on the fly
-  try { window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: val } })); } catch {}
-}
-
-const storedTheme = loadOpt('theme');
-if (themeSelect) {
-  if (storedTheme) themeSelect.value = storedTheme;
-  applyTheme(themeSelect.value || 'system');
-  themeSelect.addEventListener('change', e => applyTheme(e.target.value));
-} else {
-  applyTheme(storedTheme || 'system');
-}
-
-document.addEventListener('sharedui:mute', (e) => {
-  const val = !!(e && e.detail && e.detail.value);
-  saveOpt('mute', val ? '1' : '0');
-  pendingMute = val;
-  if (audio && typeof audio.setMute === 'function') {
-    audio.setMute(val);
+// Setup mute persistence
+setupMutePersistence({
+  storage: preferenceStorage,
+  getAudioInstance: async () => {
+    if (!audio) await initAudio();
+    return audio;
   }
 });
-
-// Restore previous mute preference on load
-(() => {
-  try{
-    const saved = loadOpt('mute');
-    if (saved === '1') document.getElementById('muteBtn')?.click();
-  }catch{}
-})();
 
 const storedColor = loadOpt('color');
 if (storedColor) {
@@ -644,45 +600,20 @@ resetBtn.addEventListener('click', () => {
   window.location.reload();
 });
 
-async function handleTapTempo() {
-  try {
-    const audioInstance = await initAudio();
-    const result = audioInstance.tapTempo(performance.now());
-    if (!result) return;
-
-    if (result.remaining > 0) {
-      tapHelp.textContent = result.remaining === 2 ? '2 clicks más' : '1 click más solamente';
-      tapHelp.style.display = 'block';
-      return;
-    }
-
-    tapHelp.style.display = 'none';
-    if (Number.isFinite(result.bpm) && result.bpm > 0) {
-      const bpm = Math.round(result.bpm * 100) / 100;
-      setValue(inputV, bpm);
-      handleInput({ target: inputV });
-    }
-  } catch (error) {
-    console.warn('Tap tempo failed', error);
+// Create tap tempo handler with shared component
+const tapTempoHandler = createTapTempoHandler({
+  getAudioInstance: initAudio,
+  tapBtn,
+  tapHelp,
+  onBpmDetected: (bpm) => {
+    setValue(inputV, bpm);
+    handleInput({ target: inputV });
   }
-}
-
-if (tapBtn) {
-  tapBtn.addEventListener('click', () => { handleTapTempo(); });
-}
-
-if (tapHelp) {
-  tapHelp.textContent = 'Se necesitan 3 clicks';
-  tapHelp.style.display = 'none';
-}
+});
+tapTempoHandler.attach();
 
 // --- Aleatorización de parámetros y pulsos ---
-function randomInt(min, max) {
-  const lo = Math.ceil(min);
-  const hi = Math.floor(max);
-  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) return lo;
-  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
-}
+// randomInt now imported from number-utils.js
 
 /**
  * Apply random values within the configured ranges and update inputs accordingly.
@@ -759,9 +690,6 @@ const _baseInitAudio = createRhythmAudioInitializer({
 async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
-    if (pendingMute != null && typeof audio.setMute === 'function') {
-      audio.setMute(pendingMute);
-    }
     // Expose audio instance for sound dropdown preview
     if (typeof window !== 'undefined') window.__labAudio = audio;
   }
