@@ -63,7 +63,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a **monorepo** with **workspaces** for rhythm-based musical applications. The project focuses on temporal formulas, rhythmic fractions, and audio timing patterns.
 
 ### High-Level Structure
-- **Apps/**: Individual rhythm applications (App1-App4, SoundGrid placeholder)
+- **Apps/**: Individual rhythm applications (App1-App8)
 - **libs/**: Modular libraries for shared functionality
 - **packages/**: Additional workspace packages
 

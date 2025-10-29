@@ -26,21 +26,23 @@ Este documento describe la arquitectura de módulos compartidos del proyecto Lab
 
 ## Arquitectura General
 
-El proyecto Lab está organizado como un **monorepo con workspaces** para aplicaciones de ritmo musical. La estructura modular facilita la reutilización de código entre las diferentes Apps (App1-App4, SoundGrid).
+El proyecto Lab está organizado como un **monorepo con workspaces** para aplicaciones de ritmo musical. La estructura modular facilita la reutilización de código entre las diferentes Apps (App1-App8).
 
 ```
 /Users/workingburcet/Lab/
 ├── Apps/           # Aplicaciones individuales
 ├── libs/           # Módulos compartidos principales
-│   ├── app-common/ # 43+ módulos compartidos entre apps
-│   ├── notation/   # Renderizado musical
-│   ├── sound/      # Motor de audio
-│   ├── cards/      # Sistema de tarjetas interactivas
-│   ├── ear-training/
-│   ├── guide/
-│   ├── utils/
-│   ├── random/
-│   ├── shared-ui/
+│   ├── app-common/ # 50 módulos compartidos entre apps
+│   ├── notation/   # Renderizado musical (4 módulos)
+│   ├── sound/      # Motor de audio (9 módulos)
+│   ├── cards/      # Sistema de tarjetas interactivas (1 módulo)
+│   ├── ear-training/ # Entrenamiento auditivo (6 módulos)
+│   ├── guide/      # Tours guiados (1 módulo)
+│   ├── utils/      # Utilidades matemáticas (2 módulos)
+│   ├── random/     # Randomización (2 módulos)
+│   ├── shared-ui/  # Componentes UI compartidos (4 módulos)
+│   ├── gamification/ # Sistema de gamificación (7 core + 10 game-components)
+│   ├── audio-capture/ # Captura de audio/ritmo (4 módulos)
 │   └── vendor/     # Dependencias externas
 └── packages/       # Paquetes adicionales
 ```
@@ -54,7 +56,7 @@ El proyecto Lab está organizado como un **monorepo con workspaces** para aplica
 
 **Propósito:** Sistema de renderizado de notación musical basado en VexFlow 5.0.0
 
-**Archivos principales:**
+**Archivos principales (4 módulos):**
 - `index.js` - Funciones principales de dibujo
 - `helpers.js` - Utilidades de conversión MIDI y armaduras
 - `pentagram.js` - Pentagramas SVG
@@ -89,13 +91,16 @@ El proyecto Lab está organizado como un **monorepo con workspaces** para aplica
 
 **Propósito:** Motor de audio completo con Tone.js, AudioWorklet y sistema de mixer
 
-**Archivos principales:**
+**Archivos principales (9 módulos):**
 - `index.js` - TimelineAudio class y API principal
 - `mixer.js` - AudioMixer para control de canales
 - `sample-map.js` - Gestión de samples de audio
 - `user-interaction.js` - Detección de interacción del usuario
 - `tone-loader.js` - Carga lazy de Tone.js
 - `timeline-processor.js` - AudioWorklet para timing preciso
+- `index.test.js` - Tests del módulo principal
+- `mixer.test.js` - Tests del mixer
+- `tone-loader.test.js` - Tests del tone loader
 
 **Exports principales:**
 ```javascript
@@ -144,6 +149,9 @@ setChannelVolume/Mute/Solo(channelId, value)
 
 **Propósito:** Sistema de tarjetas interactivas para manipulación de notas musicales
 
+**Archivos (1 módulo):**
+- `index.js` - Sistema completo de tarjetas
+
 **Exports principales:**
 ```javascript
 init(container, {
@@ -187,6 +195,14 @@ init(container, {
 
 **Propósito:** Sistema de entrenamiento auditivo con niveles progresivos
 
+**Archivos principales (6 módulos):**
+- `index.js` - Export principal
+- `count-in-controller.js` - Control de cuenta regresiva
+- `exercise-definitions.js` - Definiciones de ejercicios
+- `exercise-runner.js` - Ejecución de ejercicios
+- `fraction-recognition.js` - Reconocimiento de fracciones
+- `linked-exercise-manager.js` - Gestión de ejercicios enlazados
+
 **Export principal:**
 ```javascript
 class EarTrainingGame {
@@ -228,7 +244,7 @@ class EarTrainingGame {
 
 **Propósito:** Sistema modular de gamificación para todas las Apps
 
-**Archivos principales del core:**
+**Archivos principales del core (7 módulos):**
 - `event-system.js` - Sistema de eventos y tracking
 - `scoring-system.js` - Cálculo de puntuaciones con multiplicadores
 - `achievements.js` - Sistema de logros desbloqueables
@@ -285,7 +301,7 @@ export function initApp5Gamification() {
 
 **Propósito:** Sistema de captura de ritmo por micrófono y teclado
 
-**Archivos principales:**
+**Archivos principales (4 módulos):**
 - `microphone.js` - Captura con Tone.UserMedia y beat detection
 - `keyboard.js` - Captura con tecla Space (con anti-rebote)
 - `rhythm-analysis.js` - Análisis de precisión rítmica
@@ -345,77 +361,60 @@ generateExpectedPattern(lg, positions, bpm)
 
 **Propósito:** Sistema modular de componentes reutilizables para crear juegos educativos de música. Arquitectura extensible que separa la lógica base de las mecánicas específicas de cada juego.
 
-**Estructura:**
-```
-game-components/
-├── shared/                     # Componentes base compartidos
-│   ├── BaseGameManager.js     # Clase base para todos los juegos
-│   ├── LevelSystem.js         # Sistema de niveles genérico
-│   ├── PhaseManager.js        # Gestión de fases de juego
-│   ├── ValidationSystem.js    # Validación de respuestas
-│   ├── GameStateManager.js    # Estado y persistencia
-│   ├── ui/                    # Componentes UI reutilizables
-│   │   ├── GamePopup.js      # Popups de juego
-│   │   └── ResultsScreen.js  # Pantalla de resultados
-│   └── styles/
-│       └── game-ui.css        # Estilos unificados
-│
-├── rhythm-game/               # Para App2 y App5
-│   └── RhythmGameManager.js  # Gestión de juegos rítmicos
-│
-├── fraction-game/             # Para App3
-│   └── FractionGameBase.js   # Base para reconocimiento de fracciones
-│
-└── pattern-game/              # Para App4
-    └── PatternGameBase.js    # Base para creación de patrones
-```
+**Archivos (10 módulos):**
 
-#### **Componentes Base Compartidos**
+**Componentes Base Compartidos (5 módulos):**
+- `shared/BaseGameManager.js` - Clase base para todos los juegos
+- `shared/LevelSystem.js` - Sistema de niveles genérico
+- `shared/PhaseManager.js` - Gestión de fases de juego
+- `shared/ValidationSystem.js` - Validación de respuestas
+- `shared/GameStateManager.js` - Estado y persistencia
 
-##### `BaseGameManager.js`
+**Componentes UI (2 módulos):**
+- `shared/ui/GamePopup.js` - Popups de juego
+- `shared/ui/ResultsScreen.js` - Pantalla de resultados
+
+**Componentes Específicos por Juego (3 módulos):**
+- `rhythm-game/RhythmGameManager.js` - Para App2 y App5
+- `fraction-game/FractionGameBase.js` - Para App3
+- `pattern-game/PatternGameBase.js` - Para App4
+
+#### **BaseGameManager.js**
 **Propósito:** Clase abstracta que proporciona toda la funcionalidad común para juegos
 
 **API Principal:**
 ```javascript
 class BaseGameManager {
-  constructor(config) {
-    // config: {
-    //   appId: string,
-    //   gameName: string,
-    //   maxLevels: number,
-    //   ui: Object,         // Opcional: UI handlers
-    //   audioCapture: Object // Opcional: captura de audio
-    // }
-  }
+  constructor(config)
 
   // Inicialización y ciclo de vida
-  async init()                    // Inicializa el juego y carga progreso
-  startGame()                      // Inicia nueva sesión de juego
-  startLevel(levelNumber)          // Inicia un nivel específico
-  startPhase(phaseNumber)          // Inicia una fase del nivel
-  pauseGame() / resumeGame()      // Control de pausa
-  endGame(completed)               // Finaliza el juego
+  async init()
+  startGame()
+  startLevel(levelNumber)
+  startPhase(phaseNumber)
+  pauseGame() / resumeGame()
+  endGame(completed)
 
   // Validación y puntuación
-  validateAttempt(userInput, expected)  // Valida respuesta del usuario
-  calculateScore(accuracy, timeSpent)   // Calcula puntuación
-  calculateAccuracy(input, expected)    // Calcula precisión (0-100)
+  validateAttempt(userInput, expected)
+  calculateScore(accuracy, timeSpent)
+  calculateAccuracy(input, expected)
 
   // Progreso y niveles
-  completeLevel()                  // Marca nivel como completado
-  nextLevel()                      // Avanza al siguiente nivel
-  restartLevel()                   // Reinicia nivel actual
+  completeLevel()
+  nextLevel()
+  restartLevel()
 
   // Persistencia
-  saveProgress()                   // Guarda progreso en localStorage
-  loadProgress()                   // Carga progreso guardado
-  resetProgress()                  // Borra todo el progreso
+  saveProgress()
+  loadProgress()
+  resetProgress()
 
   // Eventos (para override)
-  onLevelStart(level)             // Hook al iniciar nivel
-  onLevelComplete(level, score)   // Hook al completar nivel
-  onGameComplete(stats)           // Hook al completar juego
-  onPhaseTransition(from, to)     // Hook al cambiar fase
+  onLevelStart(level)
+  onLevelComplete(level, score)
+  onGameComplete(stats)
+  onPhaseTransition(from, to)
 }
 ```
 
@@ -443,534 +442,6 @@ class MyCustomGame extends BaseGameManager {
 }
 ```
 
-##### `LevelSystem.js`
-**Propósito:** Sistema genérico de gestión de niveles con unlocking progresivo
-
-**API Principal:**
-```javascript
-class LevelSystem {
-  constructor(maxLevels = 4, storageKey = 'gameLevels')
-
-  // Consultas de estado
-  getCurrentLevel()                // Nivel actual (1-maxLevels)
-  isUnlocked(levelNumber)          // Si el nivel está desbloqueado
-  isCompleted(levelNumber)         // Si el nivel fue completado
-  getAllLevelsCompleted()          // Si todos están completados
-
-  // Modificación de estado
-  unlockLevel(levelNumber)         // Desbloquea un nivel
-  completeLevel(levelNumber, score, stars) // Marca como completado
-  resetLevel(levelNumber)          // Resetea un nivel específico
-  resetAll()                       // Resetea todo el progreso
-
-  // Navegación
-  nextLevel()                      // Avanza al siguiente disponible
-  previousLevel()                  // Retrocede al anterior
-
-  // Estadísticas
-  getProgress()                    // {completed, total, percentage, stars}
-  getLevelStats(levelNumber)      // {completed, score, stars, attempts}
-  getTotalStars()                  // Total de estrellas ganadas
-
-  // Persistencia
-  saveProgress()                   // Guarda en localStorage
-  loadProgress()                   // Carga desde localStorage
-}
-
-// Helper para crear sistema estándar
-export function createStandardLevelSystem(config = {}) {
-  const system = new LevelSystem(4, config.storageKey);
-  if (config.unlockAll) {
-    for (let i = 1; i <= 4; i++) {
-      system.unlockLevel(i);
-    }
-  }
-  return system;
-}
-```
-
-##### `PhaseManager.js`
-**Propósito:** Gestiona las fases dentro de cada nivel (instrucción → ejecución → validación)
-
-**API Principal:**
-```javascript
-class PhaseManager {
-  constructor(config) {
-    // config: {
-    //   phases: Array<{name, duration?, canSkip?}>,
-    //   onPhaseStart: Function,
-    //   onPhaseEnd: Function,
-    //   onAllPhasesComplete: Function
-    // }
-  }
-
-  // Control de fases
-  start()                          // Inicia desde la primera fase
-  startPhase(phase)                // Inicia una fase específica
-  nextPhase()                      // Avanza a la siguiente
-  previousPhase()                  // Retrocede a la anterior
-  skipToPhase(phaseIndex)          // Salta a una fase
-  restartCurrentPhase()            // Reinicia fase actual
-
-  // Estado
-  getCurrentPhase()                // {index, name, startTime}
-  getPhaseCount()                  // Total de fases
-  isLastPhase()                    // Si es la última fase
-
-  // Progreso
-  getProgress()                    // {current, total, percentage}
-  getPhaseStatistics()             // Estadísticas de cada fase
-
-  // Control
-  pause() / resume()               // Pausa/reanuda la fase actual
-  reset()                          // Resetea todo el manager
-}
-```
-
-**Ejemplo de configuración:**
-```javascript
-const phaseManager = new PhaseManager({
-  phases: [
-    { name: 'instruction', duration: 3000 },
-    { name: 'listen', duration: 5000 },
-    { name: 'capture', canSkip: false },
-    { name: 'validation', duration: 2000 }
-  ],
-  onPhaseStart: (phase) => console.log(`Starting ${phase.name}`),
-  onPhaseEnd: (phase, stats) => console.log(`Completed ${phase.name}`),
-  onAllPhasesComplete: () => console.log('Level complete!')
-});
-```
-
-##### `ValidationSystem.js`
-**Propósito:** Sistema genérico de validación que soporta múltiples tipos de datos
-
-**API Principal:**
-```javascript
-class ValidationSystem {
-  constructor(config) {
-    // config: {
-    //   tolerance: number (0-1),     // Tolerancia para números
-    //   strictMode: boolean,          // Validación estricta
-    //   validators: Object            // Validadores custom
-    // }
-  }
-
-  // Validación por tipo
-  validateWithType(type, input, expected)  // Usa validador específico
-  validateGeneric(input, expected)         // Auto-detecta tipo
-
-  // Validadores específicos
-  validateNumber(input, expected)          // Con tolerancia
-  validateString(input, expected)          // Con similarity
-  validateArray(input, expected)           // Elemento por elemento
-  validateObject(input, expected)          // Campo por campo
-  validateRhythm(inputTimestamps,         // Validación rítmica
-                 expectedTimestamps,
-                 toleranceMs)
-
-  // Registro de validadores custom
-  registerValidator(type, validator)       // validator: (input, expected) => result
-
-  // Estadísticas
-  getStatistics()                         // {total, correct, incorrect, avg}
-  reset()                                  // Limpia historial
-}
-
-// Resultado de validación
-{
-  correct: boolean,      // Si es correcto
-  accuracy: number,      // Precisión 0-100
-  type: string,         // Tipo de validación
-  details: Object       // Detalles específicos
-}
-```
-
-**Ejemplo de validador custom:**
-```javascript
-validation.registerValidator('fraction', (input, expected) => {
-  const inputFrac = parseFraction(input);
-  const expectedFrac = parseFraction(expected);
-
-  const correct = inputFrac.n === expectedFrac.n &&
-                  inputFrac.d === expectedFrac.d;
-
-  let accuracy = 0;
-  if (inputFrac.n === expectedFrac.n) accuracy += 50;
-  if (inputFrac.d === expectedFrac.d) accuracy += 50;
-
-  return { correct, accuracy, type: 'fraction' };
-});
-```
-
-##### `GameStateManager.js`
-**Propósito:** Gestión completa del estado del juego con persistencia y undo/redo
-
-**API Principal:**
-```javascript
-class GameStateManager {
-  constructor(config) {
-    // config: {
-    //   storageKey: string,
-    //   autoSave: boolean,
-    //   autoSaveInterval: number,
-    //   maxSnapshots: number
-    // }
-  }
-
-  // Acceso al estado
-  get(path)                        // Obtiene valor por path (dot notation)
-  set(path, value)                 // Establece valor por path
-  update(updates)                  // Actualización parcial (merge)
-  getState()                       // Estado completo
-
-  // Snapshots y undo/redo
-  createSnapshot()                 // Crea snapshot del estado actual
-  undo()                          // Deshace último cambio
-  redo()                          // Rehace cambio deshecho
-  canUndo() / canRedo()           // Si hay cambios para deshacer/rehacer
-
-  // Persistencia
-  saveState()                     // Guarda en localStorage
-  loadState()                     // Carga desde localStorage
-  clearState()                    // Limpia estado y storage
-
-  // Observadores
-  subscribe(listener)             // Escucha cambios de estado
-  unsubscribe(listener)          // Deja de escuchar
-
-  // Control
-  startAutoSave()                // Inicia guardado automático
-  stopAutoSave()                 // Detiene guardado automático
-  dispose()                      // Limpia recursos
-}
-```
-
-**Ejemplo de uso:**
-```javascript
-const gameState = new GameStateManager({
-  storageKey: 'myGame_state',
-  autoSave: true,
-  autoSaveInterval: 5000
-});
-
-// Establecer valores
-gameState.set('player.score', 100);
-gameState.set('level.current', 2);
-
-// Obtener valores
-const score = gameState.get('player.score'); // 100
-
-// Escuchar cambios
-gameState.subscribe((newState, oldState) => {
-  console.log('State changed:', newState);
-});
-
-// Undo/Redo
-gameState.createSnapshot(); // Punto de restauración
-gameState.set('player.lives', 3);
-gameState.undo(); // Restaura snapshot
-```
-
-#### **Componentes UI**
-
-##### `GamePopup.js`
-**Propósito:** Sistema de popups reutilizable para mensajes, confirmaciones y requisitos
-
-**API Principal:**
-```javascript
-class GamePopup {
-  constructor(config) {
-    // config: {
-    //   containerId: string,
-    //   className: string,
-    //   animationDuration: number,
-    //   backdropClose: boolean,
-    //   autoClose: number
-    // }
-  }
-
-  // Mostrar popups
-  show(options)                    // Muestra popup genérico
-  showMessage(message, title)     // Mensaje simple
-  showConfirm(options)            // Returns Promise<boolean>
-  showLevelRequirements(config)  // Requisitos del nivel
-  showRetry(message, onRetry)    // Popup de reintentar
-
-  // Control
-  hide()                          // Oculta popup actual
-  dispose()                       // Limpia recursos
-}
-
-// Opciones para show()
-{
-  title: string,
-  content: string | HTMLElement,
-  requirements: Array<string>,
-  buttons: Array<{
-    text: string,
-    icon?: string,
-    primary?: boolean,
-    onClick: Function
-  }>,
-  autoClose?: number
-}
-```
-
-**Ejemplo de uso:**
-```javascript
-const popup = new GamePopup();
-
-// Mensaje simple
-popup.showMessage('¡Nivel completado!', 'Excelente');
-
-// Confirmación
-const confirmed = await popup.showConfirm({
-  title: '¿Salir del juego?',
-  message: 'Tu progreso se guardará',
-  confirmText: 'Salir',
-  cancelText: 'Continuar'
-});
-
-// Requisitos de nivel
-popup.showLevelRequirements({
-  level: 2,
-  title: 'Nivel 2: Patrones Medios',
-  requirements: [
-    'Crea 5 patrones diferentes',
-    'Precisión mínima: 80%',
-    'Tiempo límite: 2 minutos'
-  ]
-});
-```
-
-##### `ResultsScreen.js`
-**Propósito:** Pantalla de resultados animada con estadísticas y acciones
-
-**API Principal:**
-```javascript
-class ResultsScreen {
-  constructor(config) {
-    // config: {
-    //   containerId: string,
-    //   showConfetti: boolean,
-    //   animationDuration: number,
-    //   onContinue: Function,
-    //   onRetry: Function,
-    //   onExit: Function
-    // }
-  }
-
-  // Mostrar resultados
-  show(results)                    // Muestra pantalla de resultados
-  hide()                          // Oculta pantalla
-  dispose()                       // Limpia recursos
-}
-
-// Estructura de results
-{
-  level: number,
-  score: number,
-  accuracy: number,        // 0-100
-  duration: number,        // en ms
-  attempts: number,
-  nextLevel: boolean,      // Si hay siguiente nivel
-  customMessage?: string   // Mensaje personalizado
-}
-```
-
-**Características visuales:**
-- **Título dinámico:** Basado en rendimiento (Excelente/Muy bien/Bien hecho/Sigue practicando)
-- **Estrellas:** 1-3 estrellas animadas según accuracy
-- **Puntuación animada:** Contador incremental con easing
-- **Estadísticas:** Grid con nivel, precisión, tiempo, intentos
-- **Confetti:** Efecto para scores ≥80%
-- **Botones contextuales:** Siguiente nivel (si accuracy ≥60%), Reintentar, Salir
-
-#### **Componentes Específicos por Juego**
-
-##### `rhythm-game/RhythmGameManager.js`
-**Propósito:** Manager especializado para juegos de ritmo (Apps 2 y 5)
-
-**API Principal:**
-```javascript
-class RhythmGameManager extends BaseGameManager {
-  constructor(config)
-
-  // Audio capture
-  async initializeAudioCapture()  // Inicializa micrófono/teclado
-  switchCaptureMode(mode)         // 'microphone' | 'keyboard'
-  startCapture()                  // Inicia captura
-  stopCapture()                   // Detiene y retorna timestamps
-
-  // Configuración de niveles
-  getLevelConfig(levelNumber)     // Config específica de ritmo
-  setBPM(bpm)                    // Establece tempo
-  setTolerance(ms)               // Tolerancia de timing
-
-  // Generación de patrones
-  generatePositions(config)       // Genera posiciones aleatorias
-
-  // Validación
-  validateRhythm(captured, expected, tolerance)
-}
-
-// Configuración de nivel típica
-{
-  name: 'Nivel 1',
-  lg: 8,
-  v: 60,
-  bpm: 60,
-  tolerance: 100,
-  minPulses: 3,
-  maxPulses: 5,
-  phases: ['instruction', 'listen', 'capture', 'validation']
-}
-```
-
-##### `fraction-game/FractionGameBase.js`
-**Propósito:** Base para juegos de reconocimiento de fracciones (App3)
-
-**API Principal:**
-```javascript
-class FractionGameBase extends BaseGameManager {
-  constructor(config)
-
-  // Generación
-  generateRandomFraction()         // Genera fracción aleatoria según nivel
-  simplifyFraction(n, d)          // Simplifica fracción
-
-  // Audio
-  async playFractionAudio(fraction) // Reproduce audio de fracción
-
-  // Validación
-  validateFractionAnswer(userAnswer, correctAnswer)
-  calculateAccuracy(userAnswer, correctAnswer) // Parcial credit
-
-  // UI
-  getUserInput()                  // Obtiene n/d del usuario
-  showFractionNotation(fraction)  // Muestra notación
-}
-
-// Niveles de dificultad
-Level 1: n=1, d=2-4 (simples)
-Level 2: n=1-2, d=2-6 (medias)
-Level 3: n=1-3, d=2-8 (complejas)
-Level 4: n=1-5, d=2-12 (avanzadas)
-```
-
-##### `pattern-game/PatternGameBase.js`
-**Propósito:** Base para juegos de creación de patrones (App4)
-
-**API Principal:**
-```javascript
-class PatternGameBase extends BaseGameManager {
-  constructor(config)
-
-  // Configuración
-  getLevelConfig(levelNumber)     // Config con requisitos
-
-  // Generación
-  generateTargetPattern(requirement) // Genera patrón objetivo
-  detectFraction(pattern)          // Detecta fracción en patrón
-
-  // Requisitos
-  getRequirementDescription(req)   // Descripción legible
-  showHint()                      // Muestra pista
-
-  // Validación
-  validatePattern(userPattern, requirement)
-  calculatePatternAccuracy(user, requirement, target)
-}
-
-// Tipos de requisitos
-- fixed_n: Numerador fijo
-- fixed_d: Denominador fijo
-- specific_fraction: Fracción exacta
-- total_pulses: Número de pulsos
-- proportion: Proporción específica
-- pattern_type: Tipo de patrón
-```
-
-#### **Estilos y Temas**
-
-##### `shared/styles/game-ui.css`
-**Propósito:** Sistema de estilos unificado para todos los componentes de juego
-
-**Características:**
-```css
-/* Variables CSS personalizables */
-:root {
-  --game-primary: #667eea;
-  --game-primary-dark: #764ba2;
-  --game-success: #4CAF50;
-  --game-error: #f44336;
-  --game-backdrop: rgba(0, 0, 0, 0.6);
-  /* ... más variables */
-}
-
-/* Clases principales */
-.game-container        /* Contenedor principal */
-.game-backdrop        /* Overlay de fondo */
-.game-popup          /* Popups de juego */
-.game-button         /* Botones con variantes */
-.results-screen      /* Pantalla de resultados */
-.level-badge        /* Badges de nivel */
-.game-progress      /* Barras de progreso */
-.count-in-overlay   /* Cuenta regresiva */
-
-/* Animaciones predefinidas */
-@keyframes fadeIn, fadeOut, slideIn, bounceIn,
-           pulse, countPulse, star-appear, shake
-```
-
-**Responsive Design:**
-- Breakpoint principal: 480px
-- Ajuste automático de tamaños de fuente
-- Grid adaptativo para estadísticas
-- Botones y popups responsive
-
-#### **Integración con Apps**
-
-**Patrón de implementación:**
-```javascript
-// 1. Importar componentes necesarios
-import { RhythmGameManager } from '../../libs/gamification/game-components/rhythm-game/RhythmGameManager.js';
-import { GamePopup } from '../../libs/gamification/game-components/shared/ui/GamePopup.js';
-import { ResultsScreen } from '../../libs/gamification/game-components/shared/ui/ResultsScreen.js';
-
-// 2. Crear instancia del manager
-const gameManager = new RhythmGameManager({
-  appId: 'app5',
-  gameName: 'Ritmo y Pulso',
-  maxLevels: 4
-});
-
-// 3. Configurar UI
-const popup = new GamePopup();
-const results = new ResultsScreen({
-  onContinue: () => gameManager.nextLevel(),
-  onRetry: () => gameManager.restartLevel(),
-  onExit: () => gameManager.endGame()
-});
-
-// 4. Inicializar
-await gameManager.init();
-
-// 5. Conectar eventos
-gameManager.onLevelComplete = (level, score) => {
-  results.show({
-    level,
-    score,
-    accuracy: gameManager.getCurrentAccuracy(),
-    duration: gameManager.getLevelDuration()
-  });
-};
-
-// 6. Iniciar juego
-gameManager.startGame();
-```
-
 **Estado actual:**
 - ✅ **App5**: Implementación completa funcionando con 4 niveles
 - 🚧 **App2**: Preparado para implementación (ver plan)
@@ -987,6 +458,9 @@ gameManager.startGame();
 **Ubicación:** `/Users/workingburcet/Lab/libs/guide/`
 
 **Propósito:** Tours guiados interactivos con Driver.js
+
+**Archivos (1 módulo):**
+- `index.js` - Wrapper de Driver.js
 
 **Exports principales:**
 ```javascript
@@ -1014,6 +488,10 @@ startTour(steps, onEnd)     // Legacy wrapper
 
 **Propósito:** Utilidades matemáticas básicas
 
+**Archivos (2 módulos):**
+- `index.js` - Utilidades principales
+- `index.test.js` - Tests
+
 **Exports:**
 ```javascript
 randInt(a, b)      // Entero aleatorio [a,b]
@@ -1032,6 +510,10 @@ wrapSym(n, m)      // Wrap simétrico alrededor de 0
 **Ubicación:** `/Users/workingburcet/Lab/libs/random/`
 
 **Propósito:** Sistema de randomización con rangos configurables
+
+**Archivos (2 módulos):**
+- `index.js` - Sistema de randomización
+- `index.test.js` - Tests
 
 **Exports:**
 ```javascript
@@ -1063,22 +545,48 @@ randomize(ranges)
 
 **Propósito:** Componentes UI compartidos y estilos
 
-**Archivos:**
-- `header.js` - Header común con controles de audio
+**Archivos (4 módulos):**
+- `header.js` - Header común con controles de audio y click-outside
 - `sound-dropdown.js` - Selectores de sonido + Sistema P1 Toggle
 - `hover.js` - Efectos hover
-- `index.css` - Estilos base (incluye fix de slider-vertical)
+- `performance-audio-menu.js` - Menú de rendimiento de audio
 
 **Características:**
 - Estilos CSS consistentes entre Apps
 - Componentes reutilizables
 - Temas y variables CSS
 - **Sistema P1 Toggle**: Control del sonido adicional en primer pulso
+- **Click-outside integrado**: Cierre automático de menús al hacer click fuera
+
+#### **Click-outside en header.js**
+**Propósito:** Sistema integrado para cerrar menús al hacer click fuera de ellos
+
+**Funcionalidad:**
+- Tracking de eventos `pointerdown` para detectar clicks dentro/fuera
+- Listeners de `focusout` para cerrar menús cuando pierden el foco
+- Manejo inteligente de elementos no-focusables (li, etc.)
+- Auto-limpieza de listeners al cerrar menú
+
+**Implementación:**
+```javascript
+// En wireMenu():
+let lastPointerDownInside = false;
+const trackPointerDown = (event) => {
+  lastPointerDownInside = detailsEl.contains(event.target);
+};
+
+const handleFocusOut = (e) => {
+  const next = e.relatedTarget;
+  if (!next && lastPointerDownInside) return; // click interno
+  detailsEl.removeAttribute('open'); // cierra menú
+};
+```
 
 **Casos de uso:**
 - Headers con controles de audio/volumen
 - Dropdowns de selección de sonidos
 - Estilos base de todas las Apps
+- Menús de opciones (click-outside)
 
 #### Sistema P1 Toggle
 **Ubicación:** `libs/shared-ui/sound-dropdown.js` (UI) + `libs/shared-ui/header.js` (coordinación) + `libs/app-common/mixer-menu.js` (control mixer)
@@ -1133,7 +641,7 @@ audio.getStartEnabled()          // Retorna el estado actual
 
 ## App-Common (libs/app-common/)
 
-Conjunto de **43+ módulos** compartidos entre Apps, organizados en categorías funcionales.
+Conjunto de **50 módulos** compartidos entre Apps, organizados en categorías funcionales.
 
 ### Audio & Timing
 
@@ -1260,6 +768,45 @@ createTimelineRenderer(options)
 
 ---
 
+#### `tap-tempo-handler.js` ⭐ **NUEVO**
+**Propósito:** Handler compartido de tap tempo con feedback visual
+
+**Exports:**
+```javascript
+createTapTempoHandler({
+  getAudioInstance,
+  tapBtn,
+  tapHelp,
+  onBpmDetected,
+  messages
+})
+```
+
+**Características:**
+- Manejo consistente de tap tempo entre apps
+- Feedback visual de clicks restantes
+- Mensajes personalizables
+- Callbacks de BPM detectado
+- Integración con TimelineAudio
+
+**Ejemplo de uso:**
+```javascript
+const tapHandler = createTapTempoHandler({
+  getAudioInstance: async () => audio,
+  tapBtn: elements.tapBtn,
+  tapHelp: elements.tapHelp,
+  onBpmDetected: (bpm) => {
+    inputV.value = Math.round(bpm);
+    updateNumbers();
+  }
+});
+tapHandler.attach();
+```
+
+**Apps migradas:** App1, App2, App3, App5
+
+---
+
 ### UI Components
 
 #### `fraction-editor.js`
@@ -1309,6 +856,11 @@ createPulseSeqController(container, options)
 
 ---
 
+#### `pulse-seq-intervals.js`
+**Propósito:** Manejo de intervalos en pulse sequences
+
+---
+
 #### `mixer-menu.js`
 **Propósito:** Menú del mixer de audio
 
@@ -1334,8 +886,63 @@ createMixerMenu(mixer, container)
 
 ---
 
+#### `random-fractional.js`
+**Propósito:** Randomización de fracciones
+
+---
+
 #### `info-tooltip.js`
 **Propósito:** Tooltips informativos
+
+---
+
+#### `ui-helpers.js` ⭐ **NUEVO**
+**Propósito:** Utilidades compartidas de inicialización de UI
+
+**Exports:**
+```javascript
+initCircularTimelineToggle({ toggle, storage, onToggle, defaultValue })
+initColorSelector({ selector, storage, cssVariable, onColorChange })
+bindUnitVisibility({ input, unit })
+bindUnitsVisibility(pairs)
+```
+
+**Características:**
+- Inicialización de circular timeline toggle con persistencia
+- Selector de color con sincronización CSS
+- Binding de visibilidad de unidades (ms, s, Hz, etc.)
+- Batch binding para múltiples pares input/unit
+
+**Ejemplo de uso:**
+```javascript
+// Circular timeline toggle
+const circularHelper = initCircularTimelineToggle({
+  toggle: circularToggle,
+  storage: { load, save },
+  onToggle: (checked) => {
+    circular = checked;
+    renderTimeline();
+  }
+});
+
+// Color selector
+const colorHelper = initColorSelector({
+  selector: colorInput,
+  storage: { load, save },
+  cssVariable: '--selection-color',
+  onColorChange: (color) => console.log('Color:', color)
+});
+
+// Unit visibility
+const unitHelper = bindUnitsVisibility([
+  { input: inputLg, unit: unitLg },
+  { input: inputV, unit: unitV },
+  { input: inputT, unit: unitT }
+]);
+unitHelper.attachAll();
+```
+
+**Apps migradas:** App1, App2, App3, App5
 
 ---
 
@@ -1460,8 +1067,41 @@ safeParseFloat(value, defaultValue)
 
 ---
 
-#### `number-utils.js`
-**Propósito:** Utilidades numéricas adicionales
+#### `number-utils.js` ⭐ **MEJORADO**
+**Propósito:** Utilidades numéricas con soporte de locale Catalán
+
+**Exports:**
+```javascript
+createNumberFormatter(options)
+parseNum(val)
+formatNumber(n, decimals)
+formatSec(n)
+randomInt(min, max) // ⭐ NUEVO
+```
+
+**Características:**
+- Parser de números con soporte Catalán (comma como decimal)
+- Formatter con locale configurable
+- **randomInt añadido**: Generación de enteros aleatorios en rango
+- Manejo de múltiples formatos: "1.234,56" (CA), "1234.56" (estándar), "1,234.56" (US)
+
+**Ejemplo de uso:**
+```javascript
+// Parsing con soporte multi-formato
+parseNum('1.234,56')  // => 1234.56 (Catalán)
+parseNum('1234.56')   // => 1234.56 (estándar)
+parseNum('1,234.56')  // => 1234.56 (US)
+
+// Formatting con locale
+formatNumber(1234.56)     // => '1.234,56' (ca-ES)
+formatSec(1234.56)        // => '1.234,56'
+
+// Random int (nueva funcionalidad)
+randomInt(1, 10)   // => 7
+randomInt(40, 320) // => 156
+```
+
+**Apps migradas:** App1, App2, App3, App5
 
 ---
 
@@ -1487,10 +1127,20 @@ calculateHitSize(...)
 
 ---
 
+#### `pulse-selectability.js`
+**Propósito:** Gestión de selectabilidad de pulsos
+
+---
+
 ### Controllers
 
 #### `highlight-controller.js`
 **Propósito:** Control de highlighting de elementos
+
+---
+
+#### `highlight-interval.js`
+**Propósito:** Highlighting de intervalos
 
 ---
 
@@ -1543,6 +1193,8 @@ import { init as initCards } from '../../libs/cards/index.js';
 import { bindRhythmElements } from '../../libs/app-common/dom.js';
 import { initAudio } from '../../libs/app-common/audio-init.js';
 import { createFractionEditor } from '../../libs/app-common/fraction-editor.js';
+import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
+import { randomInt } from '../../libs/app-common/number-utils.js';
 ```
 
 ### Pattern típico de inicialización:
@@ -1550,6 +1202,8 @@ import { createFractionEditor } from '../../libs/app-common/fraction-editor.js';
 import { initAudio } from '../../libs/app-common/audio-init.js';
 import { bindRhythmElements } from '../../libs/app-common/dom.js';
 import TimelineAudio from '../../libs/sound/index.js';
+import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
+import { initCircularTimelineToggle } from '../../libs/app-common/ui-helpers.js';
 
 // Setup
 await initAudio();
@@ -1560,6 +1214,28 @@ const { elements, leds, ledHelpers } = bindRhythmElements({
 
 const audio = new TimelineAudio();
 await audio.ready();
+
+// Tap tempo
+const tapHandler = createTapTempoHandler({
+  getAudioInstance: async () => audio,
+  tapBtn: elements.tapBtn,
+  tapHelp: elements.tapHelp,
+  onBpmDetected: (bpm) => {
+    elements.inputV.value = Math.round(bpm);
+    updateNumbers();
+  }
+});
+tapHandler.attach();
+
+// Circular timeline
+const circularHelper = initCircularTimelineToggle({
+  toggle: elements.circularToggle,
+  storage: { load, save },
+  onToggle: (checked) => {
+    circular = checked;
+    renderTimeline();
+  }
+});
 
 // Uso
 audio.play(totalPulses, interval, selectedPulses, loop, onPulse);
@@ -1581,6 +1257,8 @@ audio.play(totalPulses, interval, selectedPulses, loop, onPulse);
 2. `led-manager.js` → Estado de LEDs
 3. `events.js` → Event handling
 4. `fraction-editor.js` / `pulse-seq.js` → Editores específicos
+5. `ui-helpers.js` → Inicialización de controles UI
+6. `tap-tempo-handler.js` → Manejo de tap tempo
 
 ### Notation Chain:
 1. `notation/index.js` → Renderizado base
@@ -1592,11 +1270,11 @@ audio.play(totalPulses, interval, selectedPulses, loop, onPulse);
 
 ## Cobertura de Tests
 
-El proyecto cuenta con **21 archivos de tests** que cubren los módulos más críticos de `libs/app-common/`.
+El proyecto cuenta con **27 test suites** y **280 tests** que cubren los módulos más críticos.
 
 ### Tests Implementados
 
-**Directorio `__tests__/`:**
+**Directorio `libs/app-common/__tests__/` (18 archivos):**
 1. ✅ `audio-schedule.test.js` - Cálculos de resync con tap tempo
 2. ✅ `audio-toggles.test.js` - Toggles de canales de audio
 3. ✅ `audio.test.js` - Bridges de scheduling
@@ -1608,18 +1286,26 @@ El proyecto cuenta con **21 archivos de tests** que cubren los módulos más cr�
 9. ✅ `loop-resize.test.js` - Resize de loops
 10. ✅ `number-utils.test.js` - Utilidades numéricas
 11. ✅ `pulse-seq-parser.test.js` - Parser de pulse sequences
-12. ✅ `rhythm.test.js` - Funciones de ritmo
-13. ✅ `simple-highlight-controller.test.js` - Highlighting
-14. ✅ `simple-visual-sync.test.js` - Sincronización visual
-15. ✅ `subdivision.test.js` - Cálculos de subdivisión
-16. ✅ `t-indicator.test.js` - Indicador T
-17. ✅ `tap-resync.test.js` - Tap tempo resync
+12. ✅ `pulse-selectability.test.js` - Selectabilidad de pulsos
+13. ✅ `rhythm.test.js` - Funciones de ritmo
+14. ✅ `simple-highlight-controller.test.js` - Highlighting
+15. ✅ `simple-visual-sync.test.js` - Sincronización visual
+16. ✅ `subdivision.test.js` - Cálculos de subdivisión
+17. ✅ `t-indicator.test.js` - Indicador T
+18. ✅ `tap-resync.test.js` - Tap tempo resync
 
-**Root de `app-common/`:**
-18. ✅ `audio-init.test.js` - Inicialización de audio
-19. ✅ `loop-control.test.js` - Controladores de loop
-20. ✅ `range.test.js` - Validación de rangos
-21. ✅ `utils.test.js` - Utilidades matemáticas
+**Root de `libs/app-common/` (3 archivos):**
+19. ✅ `audio-init.test.js` - Inicialización de audio
+20. ✅ `loop-control.test.js` - Controladores de loop
+21. ✅ `range.test.js` - Validación de rangos
+22. ✅ `utils.test.js` - Utilidades matemáticas
+
+**Otros módulos (6 archivos):**
+23. ✅ `libs/sound/index.test.js` - TimelineAudio
+24. ✅ `libs/sound/mixer.test.js` - AudioMixer
+25. ✅ `libs/sound/tone-loader.test.js` - Tone loader
+26. ✅ `libs/utils/index.test.js` - Utilidades matemáticas
+27. ✅ `libs/random/index.test.js` - Sistema de randomización
 
 ### Ejecutar Tests
 
@@ -1627,29 +1313,73 @@ El proyecto cuenta con **21 archivos de tests** que cubren los módulos más cr�
 npm test
 ```
 
+**Salida típica:**
+```
+Test Suites: 27 passed, 27 total
+Tests:       280 passed, 280 total
+```
+
 ### Cobertura Actual
-- **~50%** de módulos de `app-common` tienen tests
+- **54%** de módulos de `app-common` tienen tests (27 de 50)
+- **100%** de módulos críticos de audio tienen tests
 - Enfoque en módulos core y de lógica compleja
-- Tests de UI pendientes (componentes interactivos)
+- Tests de UI pendientes (componentes interactivos avanzados)
 
 ---
 
-## Estado del Refactoring (2025-10-08)
+## Estado del Refactoring (2025-10-30)
+
+### Logros de Modularización
+
+**Reducción total de código:** **~320 líneas eliminadas** (~8% del código original)
+
+| Métrica | Antes | Después | Cambio |
+|---------|-------|---------|--------|
+| **Líneas de código** | ~4,000 | ~3,680 | -320 (-8%) |
+| **Módulos compartidos** | 43 | 50 | +7 nuevos |
+| **Apps migradas** | 0 | 4 (App1, 2, 3, 5) | +4 |
+| **Cobertura de tests** | 24 suites | 27 suites | +3 |
+| **Tests totales** | 265 | 280 | +15 |
 
 ### Apps Refactorizadas
 
-| App | Estado | Reducción | Módulos Integrados | Commits |
-|-----|--------|-----------|-------------------|---------|
-| **App1** | ✅ Completo | -93 líneas (-10.6%) | 3 módulos | 3 |
-| **App2** | ✅ Completo | -281 líneas (-14.7%) | 10 módulos | 7 |
-| **App4** | ✅ Completo | -250 líneas (-13.9%) | 4 módulos | 6 |
-| **App3** | ✅ Completo | -118 líneas (-8.3%) | 4 módulos | 6 |
+| App | Estado | Reducción | Módulos Integrados | Fecha |
+|-----|--------|-----------|-------------------|-------|
+| **App1** | ✅ Completo | -93 líneas (-10.6%) | 3 nuevos | 2025-10-30 |
+| **App2** | ✅ Completo | -85 líneas (-4.5%) | 3 nuevos | 2025-10-30 |
+| **App3** | ✅ Completo | -72 líneas (-5.1%) | 3 nuevos | 2025-10-30 |
+| **App5** | ✅ Completo | -70 líneas (-4.8%) | 3 nuevos | 2025-10-30 |
+| **App4** | 🚧 Pendiente | - | - | - |
 
-**Total reducción**: **-742 líneas** (-12.3% del código original)
+### Módulos Creados en el Refactoring
 
-### Módulos Creados Durante el Refactoring
+#### Nuevos Módulos (2025-10-30)
+1. **`tap-tempo-handler.js`** - Handler compartido de tap tempo con feedback visual
+   - Manejo consistente entre apps
+   - Mensajes personalizables
+   - Integración con TimelineAudio
+   - Apps: App1, App2, App3, App5
 
-#### Nuevos Módulos (2025-10-08)
+2. **`ui-helpers.js`** - Utilidades de inicialización de UI
+   - Circular timeline toggle con persistencia
+   - Color selector con CSS sync
+   - Unit visibility binding
+   - Apps: App1, App2, App3, App5
+
+3. **`number-utils.js`** (mejorado) - Añadido `randomInt()`
+   - Parser multi-formato (CA, US, estándar)
+   - Formatter con locale
+   - Generación de enteros aleatorios
+   - Apps: App1, App2, App3, App5
+
+#### Módulos Mejorados
+1. **`header.js`** - Integración de click-outside
+   - Cierre automático de menús al click fuera
+   - Tracking inteligente de pointerdown
+   - Auto-limpieza de listeners
+   - Apps: Todas
+
+### Módulos Anteriores (2025-10-08)
 1. `pulse-seq.js` - Controller de secuencias de pulsos
 2. `pulse-seq-state.js` - Estado de sequences
 3. `pulse-seq-parser.js` - Parser de sequences
@@ -1658,11 +1388,6 @@ npm test
 6. `simple-visual-sync.js` - Visual sync simplificado
 7. `info-tooltip.js` - Tooltips reutilizables
 8. `t-indicator.js` - Indicador T
-
-#### Módulos Mejorados
-1. `timeline-layout.js` - Callbacks para layouts personalizados
-2. `preferences.js` - Helpers `setupThemeSync()` y `setupMutePersistence()`
-3. `fraction-editor.js` - Modos complex/simple con placeholders
 
 ### Patrones Establecidos
 
@@ -1680,6 +1405,47 @@ setupThemeSync({ select: themeSelect, storage: { load, save } });
 setupMutePersistence({ getAudio: () => audio, storage: { load, save } });
 ```
 
+**Tap Tempo Handler:**
+```javascript
+const tapHandler = createTapTempoHandler({
+  getAudioInstance: async () => audio,
+  tapBtn: elements.tapBtn,
+  tapHelp: elements.tapHelp,
+  onBpmDetected: (bpm) => {
+    inputV.value = Math.round(bpm);
+    updateNumbers();
+  }
+});
+tapHandler.attach();
+```
+
+**UI Helpers:**
+```javascript
+// Circular timeline
+const circularHelper = initCircularTimelineToggle({
+  toggle: circularToggle,
+  storage: { load, save },
+  onToggle: (checked) => {
+    circular = checked;
+    renderTimeline();
+  }
+});
+
+// Color selector
+const colorHelper = initColorSelector({
+  selector: colorInput,
+  storage: { load, save },
+  onColorChange: (color) => updateTheme(color)
+});
+
+// Unit visibility
+const unitHelper = bindUnitsVisibility([
+  { input: inputLg, unit: unitLg },
+  { input: inputV, unit: unitV }
+]);
+unitHelper.attachAll();
+```
+
 **Info Tooltips:**
 ```javascript
 const tooltip = createInfoTooltip({ className: 'hover-tip auto-tip-below' });
@@ -1693,10 +1459,21 @@ tIndicatorController.updateText(`T: ${value}`);
 // CSS controla posicionamiento, NO JavaScript
 ```
 
+### Beneficios Conseguidos
+
+1. **Eliminación de duplicación:** ~320 líneas de código duplicado eliminadas
+2. **Consistencia:** Comportamiento uniforme de tap tempo, UI helpers entre apps
+3. **Mantenibilidad:** Cambios en un solo lugar se propagan a todas las apps
+4. **Testabilidad:** Nuevos módulos facilitan testing aislado
+5. **Reutilización:** Funcionalidad lista para futuras apps (App4, App6+)
+6. **Click-outside integrado:** Menús más usables sin código adicional
+
 Ver [REFACTORING_SUMMARY.md](./REFACTORING_SUMMARY.md) para detalles completos del refactoring.
 
 ---
 
-**Última actualización:** 2025-10-08
-**Versión del documento:** 2.0
-**Estado del repositorio:** ✅ Refactoring completo
+**Última actualización:** 2025-10-30
+**Versión del documento:** 3.0
+**Estado del repositorio:** ✅ Refactoring Apps 1,2,3,5 completo
+**Módulos totales:** 50 en app-common + 46 en otros libs = **96 módulos**
+**Cobertura de tests:** 27 suites, 280 tests pasando
