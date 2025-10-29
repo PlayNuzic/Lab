@@ -141,6 +141,14 @@ function wireMenu(detailsEl) {
             detachPointerTracker();
         }
     });
+
+    // Close menu when clicking outside
+    const handleDocumentClick = (e) => {
+        if (detailsEl.open && !detailsEl.contains(e.target)) {
+            detailsEl.removeAttribute('open');
+        }
+    };
+    document.addEventListener('click', handleDocumentClick);
 }
 
 function wireControls(root) {

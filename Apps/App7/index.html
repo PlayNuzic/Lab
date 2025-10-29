@@ -53,16 +53,6 @@
 
     initHeader();
 
-    // Close menu when clicking outside
-    const optionsMenu = document.getElementById('optionsMenu');
-    if (optionsMenu) {
-      document.addEventListener('click', (e) => {
-        if (optionsMenu.open && !optionsMenu.contains(e.target)) {
-          optionsMenu.removeAttribute('open');
-        }
-      });
-    }
-
     // Load and persist menu options
     setTimeout(() => {
       const STORAGE_KEY_THEME = 'app7_theme';
