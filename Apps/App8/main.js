@@ -362,6 +362,7 @@ function prepareZeroExercise() {
     // Reset input
     numberInput.value = '';
     numberInput.disabled = false;
+    numberInput.placeholder = '';  // Clear placeholder for zero exercise
 
     // Change instruction text with typing animation
     await typeText(instructionText, 'Introduce ahora el número 0', 80);

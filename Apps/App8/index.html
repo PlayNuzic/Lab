@@ -36,6 +36,9 @@
     // Hide formula section
     document.querySelector('.middle')?.remove();
 
+    // Remove template's timeline (App8 creates its own dynamically)
+    document.querySelector('.timeline-wrapper')?.remove();
+
     // Hide all control buttons except the ones we need
     const controls = document.querySelector('.controls');
     if (controls) {
