@@ -182,6 +182,14 @@ function validateAndShowMagnitudes() {
     return;
   }
 
+  // Special case: if user enters just "0", trigger zero concept mode immediately
+  if (value === '0') {
+    state.waitingForZero = true;
+    state.hasZero = false;
+    startZeroExercise();
+    return;
+  }
+
   // Detect if number contains zero (but is not "0" itself)
   state.hasZero = value.includes('0');
 
@@ -278,14 +286,14 @@ async function showMagnitudes(numberStr) {
 
 /**
  * Highlight magnitudes that contain zero with flash animation
- * Hide all magnitudes that DON'T contain zero
+ * Keep ALL magnitudes visible (improved UX - less confusing)
  */
 function highlightZeroMagnitudes() {
   const allItems = magnitudesContainer.querySelectorAll('.magnitude-item');
 
   let zeroItemsCount = 0;
 
-  // Hide all magnitudes that are NOT zero, keep zero items visible
+  // Keep ALL magnitudes visible, but highlight only zeros with flash animation
   allItems.forEach(item => {
     if (item.dataset.digit === '0') {
       zeroItemsCount++;
@@ -296,13 +304,10 @@ function highlightZeroMagnitudes() {
       item.style.display = 'flex';
       item.style.transform = 'scale(1)';
     } else {
-      // Fade out non-zero items quickly
-      item.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-      item.style.opacity = '0';
-      item.style.transform = 'scale(0)';
-      setTimeout(() => {
-        item.style.display = 'none';
-      }, 300);
+      // Keep non-zero items visible (no hiding)
+      item.style.opacity = '1';
+      item.style.display = 'flex';
+      item.style.transform = 'scale(1)';
     }
   });
 
@@ -588,6 +593,7 @@ function resetToInitial() {
     instructionText.textContent = 'Introduce el número que quieras';
     numberInput.value = '';
     numberInput.disabled = false;
+    numberInput.placeholder = 'Ejemplo: 3210';  // Restore placeholder
     magnitudesContainer.innerHTML = '';
     actionButton.style.display = 'none';
 
