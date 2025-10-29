@@ -76,7 +76,7 @@ describe('createFormulaRenderer', () => {
       const tempDiv = document.createElement('div');
       tempDiv.appendChild(fragment);
 
-      expect(tempDiv.textContent).toContain('V base');
+      expect(tempDiv.textContent).toContain('V (BPM)');
       // (4 / 2) * 60 = 120 BPM
       expect(tempDiv.textContent).toContain('120');
     });

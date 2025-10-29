@@ -1,10 +1,27 @@
 /**
  * @jest-environment jsdom
  */
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect, beforeAll } from '@jest/globals';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
 
 describe('Common utils', () => {
+  beforeAll(() => {
+    // Mock window.matchMedia for jsdom
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => {},
+      }),
+    });
+  });
+
   test('computeHitSizePx scales and clamps values', () => {
     expect(computeHitSizePx(30)).toBe(32);
     expect(computeHitSizePx(1)).toBe(44);

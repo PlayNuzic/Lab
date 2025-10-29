@@ -17,8 +17,12 @@ describe('TimelineAudio (new engine)', () => {
   beforeEach(() => {
     gainNodes = [];
     global.window = global.window || globalThis;
+    // Mock fetch to return empty audio buffer to avoid console warnings
     global.fetch = jest.fn(() =>
-      Promise.reject(Object.assign(new Error('fetch failed'), { name: 'TypeError' }))
+      Promise.resolve({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
+      })
     );
 
     class FakeGainNode {
@@ -70,6 +74,11 @@ describe('TimelineAudio (new engine)', () => {
         });
         this.createOscillator = jest.fn(() => new FakeOscillatorNode());
         this.createBufferSource = jest.fn(() => new FakeBufferSourceNode());
+        this.decodeAudioData = jest.fn(() => Promise.resolve({
+          duration: 0.1,
+          length: 4800,
+          sampleRate: 48000
+        }));
         this.destination = {};
         this.currentTime = 0;
         this.sampleRate = 48000;
@@ -184,7 +193,9 @@ describe('TimelineAudio (new engine)', () => {
       const pulso0Calls = scheduleSpy.mock.calls.filter(([key]) => key === 'pulso0');
       const accentCalls = scheduleSpy.mock.calls.filter(([key]) => key === 'seleccionados');
 
-      expect(pulsoCalls.length).toBe(1);
+      // With baseResolution=3, in a 2-second lookahead at 0.5 sec/pulse (4 pulses total),
+      // base steps occur at indices 0, 3. Index 0 is pulso0, so we get 2 pulso calls (indices 0, 3)
+      expect(pulsoCalls.length).toBe(2);
       expect(pulso0Calls.length).toBe(1);
       expect(accentCalls.length).toBe(1);
     } finally {
