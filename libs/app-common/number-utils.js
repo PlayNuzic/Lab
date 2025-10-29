@@ -119,3 +119,21 @@ export const { parseNum, formatNumber } = createNumberFormatter();
 export function formatSec(n) {
   return formatNumber(n, 2);
 }
+
+/**
+ * Generate a random integer within a specified range (inclusive)
+ *
+ * @param {number} min - Minimum value (inclusive)
+ * @param {number} max - Maximum value (inclusive)
+ * @returns {number} Random integer between min and max
+ *
+ * @example
+ * randomInt(1, 10)   // => 7 (random value between 1 and 10)
+ * randomInt(40, 320) // => 156 (random value between 40 and 320)
+ */
+export function randomInt(min, max) {
+  const lo = Math.ceil(min);
+  const hi = Math.floor(max);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) return lo;
+  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+}
