@@ -266,7 +266,7 @@ function handleNumberClick(num) {
     // After flash animation (3 cycles of 0.8s = 2.4s), show popup with "Continuar" button
     setTimeout(() => {
       pulseNumber.classList.remove('flash');
-      showPopup('Muy bien! Has seleccionado una posición.', 'Continuar', () => {
+      showPopup('Muy bien! Has escogido una posición en la línea numérica.', 'Continuar', () => {
         hidePopup();
         showQuantityConcept(num);
       });
@@ -348,7 +348,7 @@ function handleDoneSelecting() {
 
   // Show deselection instruction
   setTimeout(() => {
-    showPopup('Bien! Ahora deselecciona todos los números. ¿Qué te queda?');
+    showPopup('Bien! Tienes varios números escogidos, que además son una cantidad. Ahora prueba a deseleccionar los números escogidos. ¿Qué te queda?');
   }, 300);
 }
 
@@ -357,7 +357,7 @@ function handleDoneSelecting() {
  */
 function showQuantityConcept(selectedNum) {
   // Show popup WITHOUT button first
-  showPopup('también tienes una cantidad');
+  showPopup('también puede ser una cantidad');
 
   // Ensure visual container is visible
   numberVisualContainer.classList.remove('hidden');
