@@ -36,6 +36,7 @@ const state = {
   animating: false,
   hasZero: false,              // Tracks if current number contains zeros
   waitingForZero: false,       // Waiting for user to enter "0"
+  skipZeroInput: false,        // Skip "introduce el número 0" and go direct to timeline
   zeroPhase: 0,                // Zero concept phase (0-6)
   selectedNumber: null,        // Selected number from timeline
   canSelectNumber: false       // Can select numbers from timeline
@@ -182,16 +183,15 @@ function validateAndShowMagnitudes() {
     return;
   }
 
-  // Special case: if user enters just "0", trigger zero concept mode immediately
+  // Special case: if user enters just "0", show magnitude then go direct to timeline
   if (value === '0') {
-    state.waitingForZero = true;
     state.hasZero = false;
-    startZeroExercise();
-    return;
+    state.skipZeroInput = true;  // Skip the "introduce el número 0" phase
+  } else {
+    // Detect if number contains zero (but is not "0" itself)
+    state.hasZero = value.includes('0');
+    state.skipZeroInput = false;
   }
-
-  // Detect if number contains zero (but is not "0" itself)
-  state.hasZero = value.includes('0');
 
   // Valid number - show magnitudes
   state.currentNumber = value;
@@ -274,8 +274,15 @@ async function showMagnitudes(numberStr) {
   // Wait for last animation to finish
   await new Promise(resolve => setTimeout(resolve, 600));
 
+  // Special case: if number is "0", go directly to timeline (skip "introduce el número 0")
+  if (state.skipZeroInput && numberStr === '0') {
+    state.animating = false;
+    // Wait a bit to show the "0 Unidades" card, then go to timeline
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    startZeroExercise();
+  }
   // Check if number contains zero (and is not "0" itself)
-  if (state.hasZero && numberStr !== '0') {
+  else if (state.hasZero && numberStr !== '0') {
     highlightZeroMagnitudes();
   } else {
     // Normal flow - show "Otro número" button
@@ -585,6 +592,7 @@ function resetToInitial() {
     state.animating = false;
     state.hasZero = false;
     state.waitingForZero = false;
+    state.skipZeroInput = false;
     state.zeroPhase = 0;
     state.selectedNumber = null;
     state.canSelectNumber = false;
