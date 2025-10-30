@@ -18,10 +18,13 @@ import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
 import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
-import { createNotationPanelController } from '../../libs/app-common/notation-panel.js';
-import { durationValueFromDenominator, buildPulseEvents } from '../../libs/app-common/notation-utils.js';
-import { resolveFractionNotation } from '../../libs/app-common/fraction-notation.js';
-import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
+import {
+  createNotationPanelController,
+  durationValueFromDenominator,
+  buildPulseEvents,
+  resolveFractionNotation,
+  createRhythmStaff
+} from '../../libs/notation/index.js';
 import { parseTokens, validateInteger, validateFraction, nearestPulseIndex, resolvePulseSeqGap } from '../../libs/pulse-seq/index.js';
 import { createPulseSeqStateManager } from '../../libs/pulse-seq/index.js';
 import { createPulseSeqEditor } from '../../libs/pulse-seq/index.js';
@@ -30,7 +33,7 @@ import { createVisualSyncManager } from '../../libs/app-common/visual-sync.js';
 import { createFractionalTimelineRenderer } from '../../libs/app-common/timeline-renderer.js';
 import { randomizeFractional } from '../../libs/app-common/random-fractional.js';
 import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectability.js';
-import { createNotationRenderer } from '../../libs/app-common/notation-renderer.js';
+import { createNotationRenderer } from '../../libs/notation/index.js';
 import { createFormulaRenderer } from '../../libs/app-common/formula-renderer.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';

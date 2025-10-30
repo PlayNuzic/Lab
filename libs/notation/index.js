@@ -1,7 +1,8 @@
 import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, StaveConnector } from '../vendor/vexflow/entry/vexflow.js';
 import { midiToParts, midiSequenceToChromaticParts, needsDoubleStaff, createNote, createChord,
          keySignatureMap, keySignatureFrom, applyKeySignature } from './helpers.js';
-import { getKeySignature } from '../../shared/scales.js';
+// NOTE: getKeySignature import commented out - scales.js doesn't export this function
+// import { getKeySignature } from '../vendor/chromatone-theory/scales.js';
 
 export function drawInterval(container, note1, note2, mode='iS', keySig, options={ scaleId:'CROM', root:0 }){
   container.innerHTML = '';
@@ -152,30 +153,37 @@ export function drawInterval(container, note1, note2, mode='iS', keySig, options
   }
 }
 
-export function drawKeySignature(container, scaleId, root){
-  container.innerHTML='';
-  const renderer = new Renderer(container, Renderer.Backends.SVG);
-  renderer.resize(240, 360);
-  const ctx = renderer.getContext();
-  const accList = getKeySignature(String(scaleId), root);
-
-  const treble = new Stave(20, 40, 200);
-  treble.addClef('treble');
-  applyKeySignature(treble, accList, 'treble', root);
-  const bass = new Stave(20, 200, 200);
-  bass.addClef('bass');
-  applyKeySignature(bass, accList, 'bass', root);
-  treble.setContext(ctx).draw();
-  bass.setContext(ctx).draw();
-
-  const brace = new StaveConnector(treble, bass);
-  brace.setType(StaveConnector.type.BRACE);
-  brace.setContext(ctx).draw();
-  const line = new StaveConnector(treble, bass);
-  line.setType(StaveConnector.type.SINGLE_LEFT);
-  line.setContext(ctx).draw();
-}
+// NOTE: drawKeySignature commented out - not used by current apps and requires getKeySignature
+// export function drawKeySignature(container, scaleId, root){
+//   container.innerHTML='';
+//   const renderer = new Renderer(container, Renderer.Backends.SVG);
+//   renderer.resize(240, 360);
+//   const ctx = renderer.getContext();
+//   const accList = getKeySignature(String(scaleId), root);
+//
+//   const treble = new Stave(20, 40, 200);
+//   treble.addClef('treble');
+//   applyKeySignature(treble, accList, 'treble', root);
+//   const bass = new Stave(20, 200, 200);
+//   bass.addClef('bass');
+//   applyKeySignature(bass, accList, 'bass', root);
+//   treble.setContext(ctx).draw();
+//   bass.setContext(ctx).draw();
+//
+//   const brace = new StaveConnector(treble, bass);
+//   brace.setType(StaveConnector.type.BRACE);
+//   brace.setContext(ctx).draw();
+//   const line = new StaveConnector(treble, bass);
+//   line.setType(StaveConnector.type.SINGLE_LEFT);
+//   line.setContext(ctx).draw();
+// }
 
 export * from './helpers.js';
 export { drawPentagram, drawIntervalEllipse } from './pentagram.js';
 export { createRhythmStaff } from './rhythm-staff.js';
+
+// Rhythm notation utilities (Phase 2 consolidation)
+export { resolveFractionNotation, isSimpleFraction } from './fraction-notation.js';
+export { createNotationPanelController } from './panel.js';
+export { durationValueFromDenominator, buildPulseEvents, makeFractionPulseKey } from './utils.js';
+export { createNotationRenderer } from './renderer.js';

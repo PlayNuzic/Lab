@@ -1,6 +1,6 @@
 import { Renderer, Stave, StaveNote, Voice, Formatter, Tuplet, BarlineType, Beam } from '../vendor/vexflow/entry/vexflow.js';
 import { gridFromOrigin } from '../app-common/subdivision.js';
-import { resolveFractionNotation } from '../app-common/fraction-notation.js';
+import { resolveFractionNotation } from './fraction-notation.js';
 
 const DEFAULT_HEIGHT = 200;
 const HORIZONTAL_MARGIN = 18;

@@ -1,5 +1,5 @@
-import { createRhythmStaff } from '../notation/rhythm-staff.js';
-import { durationValueFromDenominator, buildPulseEvents } from './notation-utils.js';
+import { createRhythmStaff } from './rhythm-staff.js';
+import { durationValueFromDenominator, buildPulseEvents } from './utils.js';
 import { resolveFractionNotation } from './fraction-notation.js';
 
 /**

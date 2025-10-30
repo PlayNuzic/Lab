@@ -299,7 +299,7 @@ export function keySignatureFrom(options){
   return names[idx];
 }
 
-import { getKeySignature } from '../../shared/scales.js';
+// import { getKeySignature } from '../vendor/chromatone-theory/scales.js';
 
 const DOUBLE_SHARP = '\uD834\uDD2A';
 const DOUBLE_FLAT = '\uD834\uDD2B';

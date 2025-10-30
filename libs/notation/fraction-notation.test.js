@@ -1,4 +1,4 @@
-import { resolveFractionNotation } from '../fraction-notation.js';
+import { resolveFractionNotation } from './fraction-notation.js';
 
 describe('resolveFractionNotation', () => {
   test('maps simple fractions with numerator 1 without ratio', () => {

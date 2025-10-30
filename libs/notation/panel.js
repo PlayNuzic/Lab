@@ -1,4 +1,4 @@
-import { solidMenuBackground } from './utils.js';
+import { solidMenuBackground } from '../app-common/utils.js';
 
 /**
  * Notation panel controller shared by rhythm apps.

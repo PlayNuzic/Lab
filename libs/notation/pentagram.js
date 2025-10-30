@@ -1,7 +1,7 @@
 import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, StaveConnector, GhostNote } from '../vendor/vexflow/entry/vexflow.js';
 // Import helpers directly to avoid circular dependency with index.js
 import { midiToParts, midiToPartsByKeySig, midiSequenceToChromaticParts, applyKeySignature, parseKeySignatureArray, letterToPc } from './helpers.js';
-import { getKeySignature } from '../../shared/scales.js';
+// import { getKeySignature } from '../vendor/chromatone-theory/scales.js';
 
 export function drawIntervalEllipse(svg, p1, p2, color){
   const yTop = Math.min(p1.y, p2.y);
