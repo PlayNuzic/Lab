@@ -32,7 +32,7 @@ El proyecto Lab está organizado como un **monorepo con workspaces** para aplica
 /Users/workingburcet/Lab/
 ├── Apps/           # Aplicaciones individuales
 ├── libs/           # Módulos compartidos principales
-│   ├── app-common/ # 50 módulos compartidos entre apps
+│   ├── app-common/ # 49 módulos compartidos entre apps (consolidado)
 │   ├── notation/   # Renderizado musical (4 módulos)
 │   ├── sound/      # Motor de audio (9 módulos)
 │   ├── cards/      # Sistema de tarjetas interactivas (1 módulo)
@@ -641,7 +641,9 @@ audio.getStartEnabled()          // Retorna el estado actual
 
 ## App-Common (libs/app-common/)
 
-Conjunto de **50 módulos** compartidos entre Apps, organizados en categorías funcionales.
+Conjunto de **49 módulos** compartidos entre Apps, organizados en categorías funcionales.
+
+**Última consolidación:** 2025-10-30 - pulse-seq-intervals.js consolidado en pulse-seq.js (-1 módulo, -502 líneas)
 
 ### Audio & Timing
 
@@ -825,19 +827,34 @@ createFractionEditor(container, options)
 
 ---
 
-#### `pulse-seq.js`
-**Propósito:** Controlador de secuencia de pulsos con selección drag
+#### `pulse-seq.js` ⭐ **CONSOLIDADO**
+**Propósito:** Controlador unificado de secuencia de pulsos con soporte para modos estándar e intervalos
 
 **Exports:**
 ```javascript
-createPulseSeqController(container, options)
+// Default export: Standard mode
+createPulseSeqController(options)
+
+// Named exports:
+createPulseSeqIntervalsController(options) // Convenience factory for App5
+sanitizePulseSequence(text, lg)            // Interval validation
 ```
 
+**Modos:**
+- **Standard** (`markupVariant: 'default'`): "Pulsos ( 0 ... ) Lg" con pulse 0 (App2)
+- **Intervals** (`markupVariant: 'intervals'`): "P ( ... ) Lg" sin pulse 0 (App5)
+
 **Características:**
-- Drag selection
-- Memoria de selección
-- Integración con audio
-- Visual feedback
+- Drag selection con pointer tracking
+- Memoria de selección persistente
+- Integración con audio y timeline
+- Visual feedback con overlays animados
+- Soporte para ambos formatos (pulsos e intervalos) en un solo módulo
+
+**Cambio (2025-10-30):** Consolidado de pulse-seq.js + pulse-seq-intervals.js
+- Eliminadas ~502 líneas de código duplicado (85% de duplicación)
+- API compatible con ambas apps mediante markup variant
+- Apps migradas: App5 ahora usa named exports del módulo unificado
 
 ---
 
@@ -853,11 +870,6 @@ createPulseSeqController(container, options)
 
 #### `pulse-seq-parser.js`
 **Propósito:** Parser de pulse sequences
-
----
-
-#### `pulse-seq-intervals.js`
-**Propósito:** Manejo de intervalos en pulse sequences
 
 ---
 
@@ -1331,15 +1343,19 @@ Tests:       280 passed, 280 total
 
 ### Logros de Modularización
 
-**Reducción total de código:** **~320 líneas eliminadas** (~8% del código original)
+**Reducción total de código:** **~822 líneas eliminadas** (~18% del código original)
 
-| Métrica | Antes | Después | Cambio |
-|---------|-------|---------|--------|
-| **Líneas de código** | ~4,000 | ~3,680 | -320 (-8%) |
-| **Módulos compartidos** | 43 | 50 | +7 nuevos |
+| Métrica | Antes (Oct 08) | Después (Oct 30) | Cambio |
+|---------|----------------|------------------|--------|
+| **Líneas de código** | ~4,000 | ~3,178 | -822 (-18%) |
+| **Módulos compartidos** | 43 | 49 | +6 nuevos, -1 consolidado |
 | **Apps migradas** | 0 | 4 (App1, 2, 3, 5) | +4 |
 | **Cobertura de tests** | 24 suites | 27 suites | +3 |
 | **Tests totales** | 265 | 280 | +15 |
+
+**Fase 1 Consolidación (2025-10-30):**
+- **pulse-seq-intervals.js → pulse-seq.js**: -502 líneas (85% duplicación eliminada)
+- **Total eliminado en consolidación**: -502 líneas adicionales a los -320 de refactoring previo
 
 ### Apps Refactorizadas
 
@@ -1371,6 +1387,14 @@ Tests:       280 passed, 280 total
    - Formatter con locale
    - Generación de enteros aleatorios
    - Apps: App1, App2, App3, App5
+
+#### Módulos Consolidados (2025-10-30)
+1. **`pulse-seq.js`** - Consolidación de pulse-seq.js + pulse-seq-intervals.js
+   - Soporte unificado para modos estándar e intervalos
+   - API mediante `markupVariant: 'default' | 'intervals'`
+   - Named exports: `createPulseSeqIntervalsController`, `sanitizePulseSequence`
+   - **Eliminadas 502 líneas** de código duplicado (85% duplicación)
+   - Apps migradas: App5 (App2 ya usaba pulse-seq.js estándar)
 
 #### Módulos Mejorados
 1. **`header.js`** - Integración de click-outside
@@ -1473,7 +1497,8 @@ Ver [REFACTORING_SUMMARY.md](./REFACTORING_SUMMARY.md) para detalles completos d
 ---
 
 **Última actualización:** 2025-10-30
-**Versión del documento:** 3.0
-**Estado del repositorio:** ✅ Refactoring Apps 1,2,3,5 completo
-**Módulos totales:** 50 en app-common + 46 en otros libs = **96 módulos**
+**Versión del documento:** 3.1
+**Estado del repositorio:** ✅ Consolidación Fase 1 completa
+**Módulos totales:** 49 en app-common + 46 en otros libs = **95 módulos** (-1 desde v3.0)
 **Cobertura de tests:** 27 suites, 280 tests pasando
+**Próxima fase:** Ver CONSOLIDATION_PHASE2.md para plan de consolidaciones futuras
