@@ -1,4 +1,4 @@
-import { solidMenuBackground } from './utils.js';
+import { solidMenuBackground } from '../app-common/utils.js';
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);

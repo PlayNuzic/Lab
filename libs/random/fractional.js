@@ -9,7 +9,7 @@
  * - Randomización de fracciones en timeline
  */
 
-import { randomize as randomizeValues } from '../random/index.js';
+import { randomize as randomizeValues } from './index.js';
 
 /**
  * Randomiza parámetros con soporte de fracciones

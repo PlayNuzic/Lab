@@ -1,3 +1,13 @@
+/**
+ * Random Sub-Package
+ *
+ * Consolidated random/randomization functionality including:
+ * - Basic randomization (legacy randomize function)
+ * - Random configuration management (config.js)
+ * - Random menu UI (menu.js)
+ * - Fractional randomization (fractional.js)
+ */
+
 import { randInt } from '../utils/index.js';
 
 export const DEFAULT_RANGES = {
@@ -20,3 +30,12 @@ export function randomize(ranges = DEFAULT_RANGES) {
   }
   return result;
 }
+
+// Random configuration management
+export { applyBaseRandomConfig, updateBaseRandomConfig } from './config.js';
+
+// Random menu UI
+export { mergeRandomConfig, initRandomMenu } from './menu.js';
+
+// Fractional randomization
+export { randomizeFractional } from './fractional.js';

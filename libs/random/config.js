@@ -1,4 +1,4 @@
-import { resolveRange, resolveIntRange } from './number-utils.js';
+import { resolveRange, resolveIntRange } from '../app-common/number-utils.js';
 
 export function applyBaseRandomConfig(cfg, controls = {}) {
   if (!cfg) return;

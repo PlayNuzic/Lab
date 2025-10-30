@@ -1,7 +1,7 @@
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
-import { initRandomMenu } from '../../libs/app-common/random-menu.js';
+import { initRandomMenu, randomizeFractional } from '../../libs/random/index.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { fromLgAndTempo, toPlaybackPulseCount, gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
@@ -31,7 +31,6 @@ import { createPulseSeqEditor } from '../../libs/pulse-seq/index.js';
 import { createHighlightController } from '../../libs/app-common/highlight-controller.js';
 import { createVisualSyncManager } from '../../libs/app-common/visual-sync.js';
 import { createFractionalTimelineRenderer } from '../../libs/app-common/timeline-renderer.js';
-import { randomizeFractional } from '../../libs/app-common/random-fractional.js';
 import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectability.js';
 import { createNotationRenderer } from '../../libs/notation/index.js';
 import { createFormulaRenderer } from '../../libs/app-common/formula-renderer.js';

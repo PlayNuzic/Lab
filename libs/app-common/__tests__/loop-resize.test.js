@@ -167,9 +167,11 @@ describe('loop resize keeps circular selection', () => {
     jest.unstable_mockModule('../../shared-ui/hover.js', () => ({
       attachHover: jest.fn(),
     }));
-    jest.unstable_mockModule('../random-menu.js', () => ({
+    jest.unstable_mockModule('../../random/index.js', () => ({
       initRandomMenu: jest.fn(),
       mergeRandomConfig: jest.fn((defaults, stored) => ({ ...defaults, ...stored })),
+      applyBaseRandomConfig: jest.fn(),
+      updateBaseRandomConfig: jest.fn(),
     }));
     jest.unstable_mockModule('../audio.js', () => ({
       createSchedulingBridge: jest.fn(() => ({

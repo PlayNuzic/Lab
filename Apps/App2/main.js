@@ -1,8 +1,7 @@
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './utils.js';
-import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
-import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
+import { initRandomMenu, mergeRandomConfig, applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/random/index.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { toRange, parseNum, formatNumber, createNumberFormatter, randomInt } from '../../libs/app-common/number-utils.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
