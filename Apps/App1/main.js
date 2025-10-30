@@ -17,7 +17,6 @@ import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMut
 import { createRhythmLoopController } from '../../libs/app-common/loop-control.js';
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import { initCircularTimelineToggle, initColorSelector, bindUnitsVisibility } from '../../libs/app-common/ui-helpers.js';
-import { setupClickOutside } from '../../libs/app-common/click-outside.js';
 // Using local header controls for App1 (no shared init)
 // TODO[audit]: incorporar helpers de subdivision comuns quan hi hagi cobertura de tests
 
