@@ -1,7 +1,7 @@
 // Fraction selection and randomization logic unique to App4.
 // Encapsulates mutable state for fractional hits along with helpers used by main.js.
 
-import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
+import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/random/index.js';
 import { makeFractionKey, FRACTION_POSITION_EPSILON } from '../../libs/app-common/pulse-selectability.js';
 
 // Re-export for backward compatibility
