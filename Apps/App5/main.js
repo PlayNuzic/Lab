@@ -4,7 +4,7 @@ import { computeHitSizePx, solidMenuBackground, computeNumberFontRem } from './u
 import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
 import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { toRange } from '../../libs/app-common/range.js';
+import { toRange, parseNum, formatNumber, createNumberFormatter, randomInt } from '../../libs/app-common/number-utils.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
@@ -16,7 +16,6 @@ import { createPulseMemoryLoopController } from '../../libs/app-common/loop-cont
 import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 import { createNotationPanelController } from '../../libs/app-common/notation-panel.js';
 import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
-import { parseNum, formatNumber, createNumberFormatter, randomInt } from '../../libs/app-common/number-utils.js';
 import { createSimpleVisualSync } from '../../libs/app-common/visual-sync.js';
 import { createIntervalHighlightController } from '../../libs/app-common/highlight-interval.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';

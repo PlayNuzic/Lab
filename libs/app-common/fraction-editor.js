@@ -1,5 +1,5 @@
 import { solidMenuBackground as deprecatedSolidMenuBackground } from './utils.js';
-import { parsePositiveInt, gcd } from './number.js';
+import { parsePositiveInt, gcd } from './number-utils.js';
 
 const FRACTION_HOVER_NUMERATOR_TYPE = 'numerator';
 const FRACTION_HOVER_DENOMINATOR_TYPE = 'denominator';

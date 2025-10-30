@@ -13,7 +13,7 @@ import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
 import { randomize as randomizeValues } from '../../libs/random/index.js';
 import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
-import { parseIntSafe, gcd, lcm } from '../../libs/app-common/number.js';
+import { parseIntSafe, gcd, lcm } from '../../libs/app-common/number-utils.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';

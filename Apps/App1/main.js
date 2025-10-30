@@ -2,13 +2,12 @@ import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.j
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { solidMenuBackground, computeNumberFontRem } from './utils.js';
 import { initRandomMenu, mergeRandomConfig } from '../../libs/app-common/random-menu.js';
-import { toRange } from '../../libs/app-common/range.js';
+import { toRange, parseNum, formatSec, randomInt } from '../../libs/app-common/number-utils.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
-import { parseNum, formatSec, randomInt } from '../../libs/app-common/number-utils.js';
 import { createSimpleVisualSync } from '../../libs/app-common/visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';

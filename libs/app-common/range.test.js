@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals';
-import { toNumber, toRange } from './range.js';
+import { toNumber, toRange } from './number-utils.js';
 
 describe('range helpers', () => {
   test('toNumber falls back when value is not finite', () => {

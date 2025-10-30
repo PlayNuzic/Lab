@@ -12,8 +12,7 @@ import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.j
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { fromLgAndTempo, gridFromOrigin, computeSubdivisionFontRem, toPlaybackPulseCount } from '../../libs/app-common/subdivision.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
-import { parseIntSafe, parseFloatSafe } from '../../libs/app-common/number.js';
-import { randomInt } from '../../libs/app-common/number-utils.js';
+import { parseIntSafe, parseFloatSafe, randomInt } from '../../libs/app-common/number-utils.js';
 import { applyBaseRandomConfig, updateBaseRandomConfig } from '../../libs/app-common/random-config.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
