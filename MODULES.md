@@ -32,14 +32,15 @@ El proyecto Lab está organizado como un **monorepo con workspaces** para aplica
 /Users/workingburcet/Lab/
 ├── Apps/           # Aplicaciones individuales
 ├── libs/           # Módulos compartidos principales
-│   ├── app-common/ # 49 módulos compartidos entre apps (consolidado)
-│   ├── notation/   # Renderizado musical (4 módulos)
+│   ├── app-common/ # 40 módulos compartidos entre apps (consolidado Fase 2)
+│   ├── pulse-seq/  # Secuencias de pulsos (5 módulos: parser, state, editor, pulse-seq, index)
+│   ├── notation/   # Renderizado musical (9 módulos + rhythm-staff)
+│   ├── random/     # Randomización (5 módulos: core, config, menu, fractional, index)
 │   ├── sound/      # Motor de audio (9 módulos)
 │   ├── cards/      # Sistema de tarjetas interactivas (1 módulo)
 │   ├── ear-training/ # Entrenamiento auditivo (6 módulos)
 │   ├── guide/      # Tours guiados (1 módulo)
 │   ├── utils/      # Utilidades matemáticas (2 módulos)
-│   ├── random/     # Randomización (2 módulos)
 │   ├── shared-ui/  # Componentes UI compartidos (4 módulos)
 │   ├── gamification/ # Sistema de gamificación (7 core + 10 game-components)
 │   ├── audio-capture/ # Captura de audio/ritmo (4 módulos)
@@ -51,16 +52,72 @@ El proyecto Lab está organizado como un **monorepo con workspaces** para aplica
 
 ## Módulos Core (libs/)
 
-### `libs/notation/`
+### `libs/pulse-seq/` ⭐ **NUEVO SUB-PACKAGE (Fase 2)**
+**Ubicación:** `/Users/workingburcet/Lab/libs/pulse-seq/`
+
+**Propósito:** Sub-package consolidado para gestión de secuencias de pulsos
+
+**Archivos principales (5 módulos):**
+- `index.js` - Exports unificados del sub-package
+- `pulse-seq.js` - Controladores principales (estándar e intervalos)
+- `parser.js` - Parser y validación de secuencias (antes pulse-seq-parser.js)
+- `state.js` - Gestión de estado (antes pulse-seq-state.js)
+- `editor.js` - Editor de secuencias (antes pulse-seq-editor.js)
+
+**Exports principales:**
+```javascript
+// Default export
+export { default } from './pulse-seq.js';
+
+// Named exports
+export {
+  createPulseSeqController,
+  createPulseSeqIntervalsController,
+  sanitizePulseSequence
+} from './pulse-seq.js';
+
+export {
+  parseTokens,
+  validateInteger,
+  validateFraction,
+  nearestPulseIndex,
+  resolvePulseSeqGap,
+  FRACTION_POSITION_EPSILON
+} from './parser.js';
+
+export { createPulseSeqStateManager } from './state.js';
+export { createPulseSeqEditor, getMidpoints, normalizeGaps } from './editor.js';
+```
+
+**Características:**
+- Imports consolidados: Un solo import desde `libs/pulse-seq/index.js`
+- Soporte dual: Modo estándar (App2) y modo intervalos (App5)
+- Parser robusto con validación de fracciones
+- Estado persistente con memoria de selección
+
+**Apps que lo usan:** App2, App4, App5
+
+---
+
+### `libs/notation/` ⭐ **CONSOLIDADO (Fase 2)**
 **Ubicación:** `/Users/workingburcet/Lab/libs/notation/`
 
-**Propósito:** Sistema de renderizado de notación musical basado en VexFlow 5.0.0
+**Propósito:** Sistema completo de notación musical (renderizado + utilidades rítmicas)
 
-**Archivos principales (4 módulos):**
-- `index.js` - Funciones principales de dibujo
+**Archivos principales (9 módulos + rhythm-staff):**
+
+**Renderizado VexFlow:**
+- `index.js` - Funciones principales de dibujo (drawInterval, drawPentagram)
 - `helpers.js` - Utilidades de conversión MIDI y armaduras
-- `pentagram.js` - Pentagramas SVG
+- `pentagram.js` - Pentagramas SVG personalizados
 - `rhythm-staff.js` - Notación rítmica con cursor de reproducción y soporte multi-voz
+
+**Utilidades Rítmicas (consolidadas desde app-common):**
+- `fraction-notation.js` - Mapeo de fracciones a notación VexFlow (antes en app-common)
+- `panel.js` - Controlador del panel de notación (antes notation-panel.js)
+- `utils.js` - Utilidades de construcción de eventos (antes notation-utils.js)
+- `renderer.js` - Renderer de notación para App4 (antes notation-renderer.js)
+- `fraction-notation.test.js` - Tests del módulo de fracciones
 
 **Exports principales:**
 - `drawInterval(container, note1, note2, mode, keySig, options)` - Renderiza intervalos en pentagrama simple o doble
@@ -506,37 +563,57 @@ wrapSym(n, m)      // Wrap simétrico alrededor de 0
 
 ---
 
-### `libs/random/`
+### `libs/random/` ⭐ **CONSOLIDADO (Fase 2)**
 **Ubicación:** `/Users/workingburcet/Lab/libs/random/`
 
-**Propósito:** Sistema de randomización con rangos configurables
+**Propósito:** Sub-package completo de randomización (básica + configuración + UI + fracciones)
 
-**Archivos (2 módulos):**
-- `index.js` - Sistema de randomización
+**Archivos (5 módulos):**
+- `index.js` - Exports unificados del sub-package
+- `core.js` - Función randomize() base (evita dependencias circulares)
+- `config.js` - Gestión de configuración random (antes random-config.js en app-common)
+- `menu.js` - UI de menús random (antes random-menu.js en app-common)
+- `fractional.js` - Randomización de fracciones (antes random-fractional.js en app-common)
 - `index.test.js` - Tests
 
-**Exports:**
+**Exports principales:**
 ```javascript
+// Core randomization
+export { randomize, DEFAULT_RANGES } from './core.js';
+
 DEFAULT_RANGES = {
   Lg: { min: 2, max: 30 },
   V: { min: 40, max: 320 },
   T: { min: 0.1, max: 10 }
 }
 
-randomize(ranges)
+// Configuration management
+export { applyBaseRandomConfig, updateBaseRandomConfig } from './config.js';
+
+// UI
+export { mergeRandomConfig, initRandomMenu } from './menu.js';
+
+// Fractional randomization
+export { randomizeFractional } from './fractional.js';
 ```
 
 **Características:**
-- Rangos por defecto para parámetros comunes (Lg, V, T)
-- Soporte para enteros (Lg, V) y flotantes (T)
-- Configuración flexible de rangos
+- Imports consolidados: Un solo import desde `libs/random/index.js`
+- Sin dependencias circulares (core.js aislado)
+- Soporte completo para Apps con fracciones (App4)
+- Persistencia de configuración
+- Validación de rangos
 
 **Casos de uso:**
-- Botones de randomización en Apps
-- Generación aleatoria de parámetros rítmicos
+- Botones de randomización en todas las Apps
+- Configuración avanzada de rangos (App2, App3, App5)
+- Randomización de patrones fraccionarios (App4)
+
+**Apps que lo usan:** App1, App2, App3, App4, App5 (todas)
 
 **Dependencias:**
 - libs/utils (randInt)
+- libs/app-common (number-utils, resolveRange)
 
 ---
 
@@ -641,9 +718,17 @@ audio.getStartEnabled()          // Retorna el estado actual
 
 ## App-Common (libs/app-common/)
 
-Conjunto de **49 módulos** compartidos entre Apps, organizados en categorías funcionales.
+Conjunto de **40 módulos** compartidos entre Apps, organizados en categorías funcionales.
 
-**Última consolidación:** 2025-10-30 - pulse-seq-intervals.js consolidado en pulse-seq.js (-1 módulo, -502 líneas)
+**Última consolidación:** 2025-10-30 Fase 2
+- **Eliminados 9 módulos** movidos a sub-packages:
+  - pulse-seq-parser.js, pulse-seq-state.js, pulse-seq-editor.js → `libs/pulse-seq/`
+  - notation-panel.js, notation-utils.js, notation-renderer.js, fraction-notation.js → `libs/notation/`
+  - random-config.js, random-menu.js, random-fractional.js → `libs/random/`
+- **Consolidados 3 módulos**:
+  - number.js + range.js → number-utils.js
+  - simple-visual-sync.js → visual-sync.js
+- **Total reducido:** -196 líneas, -12 archivos
 
 ### Audio & Timing
 
@@ -738,18 +823,22 @@ toPlaybackPulseCount(Lg, V, T)
 
 ---
 
-#### `visual-sync.js`
-**Propósito:** Sincronización visual-audio
+#### `visual-sync.js` ⭐ **CONSOLIDADO (Fase 2)**
+**Propósito:** Sincronización visual-audio unificada (simple + completa)
 
 **Exports:**
 ```javascript
-createVisualSync(audioEngine, highlightController)
+createVisualSyncManager(options)  // Modo completo con highlighting + notation
+createSimpleVisualSync(options)   // Convenience factory para modo simple
 ```
 
----
+**Características:**
+- Detección automática de modo según config
+- Modo simple: Solo callback onStepChange
+- Modo completo: Highlighting + notation + resolution tracking
+- Consolidado de simple-visual-sync.js (eliminado en Fase 2)
 
-#### `simple-visual-sync.js`
-**Propósito:** Versión simplificada de visual-sync
+**Apps:** App1 (simple), App2 (simple), App3, App4 (completo), App5 (simple)
 
 ---
 
@@ -827,49 +916,12 @@ createFractionEditor(container, options)
 
 ---
 
-#### `pulse-seq.js` ⭐ **CONSOLIDADO**
-**Propósito:** Controlador unificado de secuencia de pulsos con soporte para modos estándar e intervalos
+#### `pulse-seq.js` ⭐ **MOVIDO A SUB-PACKAGE**
+**Ver:** [`libs/pulse-seq/`](#libspulse-seq--nuevo-sub-package-fase-2)
 
-**Exports:**
-```javascript
-// Default export: Standard mode
-createPulseSeqController(options)
-
-// Named exports:
-createPulseSeqIntervalsController(options) // Convenience factory for App5
-sanitizePulseSequence(text, lg)            // Interval validation
-```
-
-**Modos:**
-- **Standard** (`markupVariant: 'default'`): "Pulsos ( 0 ... ) Lg" con pulse 0 (App2)
-- **Intervals** (`markupVariant: 'intervals'`): "P ( ... ) Lg" sin pulse 0 (App5)
-
-**Características:**
-- Drag selection con pointer tracking
-- Memoria de selección persistente
-- Integración con audio y timeline
-- Visual feedback con overlays animados
-- Soporte para ambos formatos (pulsos e intervalos) en un solo módulo
-
-**Cambio (2025-10-30):** Consolidado de pulse-seq.js + pulse-seq-intervals.js
-- Eliminadas ~502 líneas de código duplicado (85% de duplicación)
-- API compatible con ambas apps mediante markup variant
-- Apps migradas: App5 ahora usa named exports del módulo unificado
-
----
-
-#### `pulse-seq-editor.js`
-**Propósito:** Editor completo de pulse sequences
-
----
-
-#### `pulse-seq-state.js`
-**Propósito:** Estado de pulse sequences
-
----
-
-#### `pulse-seq-parser.js`
-**Propósito:** Parser de pulse sequences
+Todos los módulos de pulse-seq se movieron al sub-package `libs/pulse-seq/`:
+- pulse-seq.js, pulse-seq-parser.js, pulse-seq-state.js, pulse-seq-editor.js
+- Imports consolidados desde `libs/pulse-seq/index.js`
 
 ---
 
@@ -888,18 +940,12 @@ createMixerMenu(mixer, container)
 
 ---
 
-#### `random-menu.js`
-**Propósito:** Controles de randomización
+#### `random-*.js` ⭐ **MOVIDO A SUB-PACKAGE**
+**Ver:** [`libs/random/`](#libsrandom--consolidado-fase-2)
 
----
-
-#### `random-config.js`
-**Propósito:** Configuración de randomización
-
----
-
-#### `random-fractional.js`
-**Propósito:** Randomización de fracciones
+Todos los módulos random se movieron al sub-package `libs/random/`:
+- random-config.js, random-menu.js, random-fractional.js
+- Imports consolidados desde `libs/random/index.js`
 
 ---
 
@@ -960,28 +1006,21 @@ unitHelper.attachAll();
 
 ### Notation & Rendering
 
+#### Módulos de notación ⭐ **MOVIDOS A SUB-PACKAGE**
+**Ver:** [`libs/notation/`](#libsnotation--consolidado-fase-2)
+
+Los siguientes módulos se movieron al sub-package `libs/notation/`:
+- fraction-notation.js → `libs/notation/fraction-notation.js`
+- notation-panel.js → `libs/notation/panel.js`
+- notation-utils.js → `libs/notation/utils.js`
+- notation-renderer.js → `libs/notation/renderer.js`
+
+Imports consolidados desde `libs/notation/index.js`
+
+---
+
 #### `rhythm.js`
-**Propósito:** Funciones de ritmo musical
-
----
-
-#### `fraction-notation.js`
-**Propósito:** Notación de fracciones musicales
-
----
-
-#### `notation-panel.js`
-**Propósito:** Panel de notación
-
----
-
-#### `notation-renderer.js`
-**Propósito:** Renderizador de notación
-
----
-
-#### `notation-utils.js`
-**Propósito:** Utilidades de notación
+**Propósito:** Funciones de ritmo musical (permanece en app-common)
 
 ---
 
@@ -1068,63 +1107,69 @@ factoryReset()
 
 ---
 
-#### `number.js`
-**Propósito:** Parsing seguro de números
+#### `number-utils.js` ⭐ **CONSOLIDADO (Fase 2)**
+**Propósito:** Utilidades numéricas unificadas (parsing + formatting + math + range)
 
-**Exports:**
+**Consolidado de:**
+- `number.js` (parsing seguro, gcd, lcm, resolveRange)
+- `range.js` (toNumber, toRange)
+- `number-utils.js` original (parseNum, formatNumber, randomInt)
+
+**Exports consolidados:**
 ```javascript
-safeParseInt(value, defaultValue)
-safeParseFloat(value, defaultValue)
-```
+// PARSING - Safe number parsing
+parsePositiveInt(value)
+parseIntSafe(value)
+parseFloatSafe(value)
+toNumber(value, fallback)
 
----
-
-#### `number-utils.js` ⭐ **MEJORADO**
-**Propósito:** Utilidades numéricas con soporte de locale Catalán
-
-**Exports:**
-```javascript
+// FORMATTING - Locale-aware (ca-ES)
 createNumberFormatter(options)
-parseNum(val)
+parseNum(val)           // Soporta "1.234,56" (CA), "1234.56", "1,234.56" (US)
 formatNumber(n, decimals)
 formatSec(n)
-randomInt(min, max) // ⭐ NUEVO
+
+// MATH UTILITIES
+gcd(a, b)
+lcm(a, b)
+randomInt(min, max)
+
+// RANGE UTILITIES
+toRange(minValue, maxValue, defaults)
+resolveRange(minInput, maxInput, fallbackRange, options)
+resolveIntRange(minInput, maxInput, fallbackRange, options)
 ```
 
 **Características:**
-- Parser de números con soporte Catalán (comma como decimal)
-- Formatter con locale configurable
-- **randomInt añadido**: Generación de enteros aleatorios en rango
-- Manejo de múltiples formatos: "1.234,56" (CA), "1234.56" (estándar), "1,234.56" (US)
+- **Un solo archivo** con todas las utilidades numéricas
+- Parser multi-formato: "1.234,56" (CA), "1234.56" (estándar), "1,234.56" (US)
+- Formatter con locale configurable (ca-ES)
+- Math utilities: GCD/LCM para fracciones
+- Range utilities: Validación, normalización, clamping
+- Organizado por categorías (Parsing, Formatting, Math, Range)
 
 **Ejemplo de uso:**
 ```javascript
-// Parsing con soporte multi-formato
-parseNum('1.234,56')  // => 1234.56 (Catalán)
-parseNum('1234.56')   // => 1234.56 (estándar)
-parseNum('1,234.56')  // => 1234.56 (US)
+// Parsing seguro
+parseIntSafe('123')     // => 123
+parsePositiveInt('-5')  // => null
+toNumber('abc', 10)     // => 10 (fallback)
 
-// Formatting con locale
-formatNumber(1234.56)     // => '1.234,56' (ca-ES)
-formatSec(1234.56)        // => '1.234,56'
+// Formatting locale-aware
+parseNum('1.234,56')    // => 1234.56 (CA)
+formatNumber(1234.56)   // => '1.234,56' (ca-ES)
 
-// Random int (nueva funcionalidad)
-randomInt(1, 10)   // => 7
-randomInt(40, 320) // => 156
+// Math
+gcd(12, 18)             // => 6
+lcm(4, 6)               // => 12
+randomInt(1, 10)        // => 7
+
+// Range
+toRange(5, 10)          // => {min: 5, max: 10}
+resolveIntRange('5', '10', {min: 0, max: 100}) // => {min: 5, max: 10}
 ```
 
-**Apps migradas:** App1, App2, App3, App5
-
----
-
-#### `range.js`
-**Propósito:** Validación y clamping de rangos
-
-**Exports:**
-```javascript
-validateRange(value, min, max)
-clampToRange(value, min, max)
-```
+**Apps:** Todas (App1-5)
 
 ---
 
@@ -1343,19 +1388,34 @@ Tests:       280 passed, 280 total
 
 ### Logros de Modularización
 
-**Reducción total de código:** **~822 líneas eliminadas** (~18% del código original)
+**Reducción total de código:** **~1,018 líneas eliminadas** (~22% del código original)
 
-| Métrica | Antes (Oct 08) | Después (Oct 30) | Cambio |
-|---------|----------------|------------------|--------|
-| **Líneas de código** | ~4,000 | ~3,178 | -822 (-18%) |
-| **Módulos compartidos** | 43 | 49 | +6 nuevos, -1 consolidado |
-| **Apps migradas** | 0 | 4 (App1, 2, 3, 5) | +4 |
-| **Cobertura de tests** | 24 suites | 27 suites | +3 |
-| **Tests totales** | 265 | 280 | +15 |
+| Métrica | Antes (Oct 08) | Después Fase 1 (Oct 30) | Después Fase 2 (Oct 30) | Cambio Total |
+|---------|----------------|-------------------------|-------------------------|--------------|
+| **Líneas de código** | ~4,000 | ~3,178 | ~2,982 | -1,018 (-22%) |
+| **Módulos en app-common** | 43 | 49 | 40 | -3 |
+| **Sub-packages** | 5 | 5 | 8 | +3 nuevos |
+| **Apps migradas** | 0 | 4 (App1, 2, 3, 5) | 5 (todas) | +5 |
+| **Cobertura de tests** | 24 suites | 27 suites | 27 suites | +3 |
+| **Tests totales** | 265 | 280 | 280 | +15 |
 
-**Fase 1 Consolidación (2025-10-30):**
+**Fase 1 Consolidación (2025-10-30 AM):**
 - **pulse-seq-intervals.js → pulse-seq.js**: -502 líneas (85% duplicación eliminada)
-- **Total eliminado en consolidación**: -502 líneas adicionales a los -320 de refactoring previo
+- **Total eliminado**: -502 líneas adicionales a los -320 de refactoring previo
+
+**Fase 2 Consolidación (2025-10-30 PM):**
+- **Session 1.1**: Visual-sync consolidation (-80 líneas)
+  - simple-visual-sync.js → visual-sync.js
+- **Session 2**: Number modules consolidation (-116 líneas, CRITICAL)
+  - number.js + range.js → number-utils.js
+- **Session 3.1**: pulse-seq sub-package (4 archivos reorganizados)
+  - pulse-seq-parser.js, pulse-seq-state.js, pulse-seq-editor.js → libs/pulse-seq/
+- **Session 3.2**: notation sub-package (4 archivos reorganizados)
+  - fraction-notation.js, notation-panel.js, notation-utils.js, notation-renderer.js → libs/notation/
+- **Session 3.3**: random sub-package (3 archivos reorganizados)
+  - random-config.js, random-menu.js, random-fractional.js → libs/random/
+- **Bug fixes**: Circular dependency fix + fraction-selection.js update
+- **Total Fase 2**: -196 líneas, -12 archivos en app-common, +3 sub-packages consolidados
 
 ### Apps Refactorizadas
 
@@ -1497,8 +1557,11 @@ Ver [REFACTORING_SUMMARY.md](./REFACTORING_SUMMARY.md) para detalles completos d
 ---
 
 **Última actualización:** 2025-10-30
-**Versión del documento:** 3.1
-**Estado del repositorio:** ✅ Consolidación Fase 1 completa
-**Módulos totales:** 49 en app-common + 46 en otros libs = **95 módulos** (-1 desde v3.0)
-**Cobertura de tests:** 27 suites, 280 tests pasando
-**Próxima fase:** Ver CONSOLIDATION_PHASE2.md para plan de consolidaciones futuras
+**Versión del documento:** 4.0 (Fase 2 Completa)
+**Estado del repositorio:** ✅ Consolidación Fase 1 y Fase 2 completas
+**Módulos en app-common:** 40 (era 49, reducido en -9)
+**Sub-packages:** 8 (pulse-seq, notation, random, sound, cards, ear-training, utils, shared-ui)
+**Módulos totales:** 40 en app-common + 59 en sub-packages = **99 módulos** (+4 netos desde v3.1)
+**Cobertura de tests:** 27 suites, 280 tests pasando ✅
+**Commits:** 11 commits ahead (Fase 2)
+**Líneas eliminadas:** -1,018 (-22% reducción total desde inicio)

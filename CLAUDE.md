@@ -69,7 +69,9 @@ This is a **monorepo** with **workspaces** for rhythm-based musical applications
 
 ### Core Libraries (`libs/`)
 
-#### **`libs/app-common/`** - Shared App Logic (32 modules)
+#### **`libs/app-common/`** - Shared App Logic (40 modules after Fase 2)
+**Consolidado en Fase 2:** Reducido de 49 a 40 módulos (-9 movidos a sub-packages)
+
 Core initialization and management:
 - **`audio-init.js`**: Standardized audio initialization with warning suppression
 - **`app-init.js`**: Unified app initialization helper (deprecated in favor of modular approach)
@@ -88,20 +90,50 @@ Audio and timing:
   - `createTimelineRenderer()`: Manages pulse positioning, numbers, bars, and cycle markers
   - Callbacks for custom layouts (e.g., pulse hit targets in App2)
   - Handles T-indicator reveal scheduling and number font sizing
+- **`visual-sync.js`**: Visual-audio synchronization (consolidado: simple + completo)
 
 UI components and interaction:
 - **`fraction-editor.js`**: Reusable fraction editing components with full CRUD operations
-- **`pulse-seq.js`**: Pulse sequence controller with drag selection and memory management
 - **`mixer-menu.js`**: Audio mixer menu functionality with longpress support
 - **`mixer-longpress.js`**: Longpress interaction for mixer controls
-- **`random-menu.js`**: Randomization controls
-- **`random-config.js`**: Random configuration management
+- **`tap-tempo-handler.js`**: Tap tempo handler with visual feedback
 
 Utilities:
+- **`number-utils.js`**: Número utilities consolidadas (parsing + formatting + math + range)
+  - Consolidado en Fase 2: Merged number.js + range.js
 - **`events.js`**: Standardized event binding utilities
-- **`number.js`**: Safe number parsing utilities
-- **`range.js`**: Range validation and clamping
 - **`utils.js`**: Math utilities (font size, hit size calculations)
+
+#### **`libs/pulse-seq/`** - Pulse Sequence Sub-Package ⭐ **NUEVO (Fase 2)**
+Creado en consolidación Fase 2 - Sistema completo de secuencias de pulsos
+- **`index.js`**: Exports unificados
+- **`pulse-seq.js`**: Controladores principales (estándar + intervalos)
+- **`parser.js`**: Parser y validación (antes pulse-seq-parser.js en app-common)
+- **`state.js`**: Gestión de estado (antes pulse-seq-state.js en app-common)
+- **`editor.js`**: Editor completo (antes pulse-seq-editor.js en app-common)
+
+**Import:** `import { createPulseSeqController } from '../../libs/pulse-seq/index.js'`
+
+#### **`libs/notation/`** - Notation Sub-Package ⭐ **CONSOLIDADO (Fase 2)**
+Consolidado en Fase 2 - VexFlow rendering + utilidades rítmicas
+- **`index.js`**: Exports unificados + drawInterval, drawPentagram
+- **`rhythm-staff.js`**: VexFlow-based rhythm notation
+- **`fraction-notation.js`**: Fraction mapping (movido desde app-common)
+- **`panel.js`**: Panel controller (movido desde app-common)
+- **`utils.js`**: Event building (movido desde app-common)
+- **`renderer.js`**: Notation renderer (movido desde app-common)
+
+**Import:** `import { createRhythmStaff, resolveFractionNotation } from '../../libs/notation/index.js'`
+
+#### **`libs/random/`** - Random Sub-Package ⭐ **CONSOLIDADO (Fase 2)**
+Consolidado en Fase 2 - Sistema completo de randomización
+- **`index.js`**: Exports unificados
+- **`core.js`**: randomize() base (evita circular dependencies)
+- **`config.js`**: Configuration management (movido desde app-common)
+- **`menu.js`**: UI controls (movido desde app-common)
+- **`fractional.js`**: Fractional randomization (movido desde app-common)
+
+**Import:** `import { randomize, initRandomMenu, applyBaseRandomConfig } from '../../libs/random/index.js'`
 
 #### **`libs/shared-ui/`** - UI Components
 - **`header.js`**: Common header with audio controls
