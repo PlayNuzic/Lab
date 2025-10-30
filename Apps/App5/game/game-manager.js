@@ -11,7 +11,7 @@ import {
   recordAttempt
 } from '../../../libs/gamification/index.js';
 
-import { sanitizePulseSequence } from '../../../libs/app-common/pulse-seq-intervals.js';
+import { sanitizePulseSequence } from '../../../libs/app-common/pulse-seq.js';
 import { createInfoTooltip } from '../../../libs/app-common/info-tooltip.js';
 import { playCountIn } from '../../../libs/ear-training/count-in-controller.js';
 import { GameUI } from './game-ui.js';

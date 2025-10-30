@@ -9,7 +9,7 @@ import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subd
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
-import createPulseSeqIntervalsController from '../../libs/app-common/pulse-seq-intervals.js';
+import { createPulseSeqIntervalsController } from '../../libs/app-common/pulse-seq.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
@@ -1252,7 +1252,7 @@ async function handlePulseSeqInput(opts = {}){
   ensureIntervalMemory(lg);
 
   // Import sanitization function
-  const { sanitizePulseSequence } = await import('../../libs/app-common/pulse-seq-intervals.js');
+  const { sanitizePulseSequence } = await import('../../libs/app-common/pulse-seq.js');
 
   // Parse all numbers from text to detect invalid ones
   const matches = text.match(/\d+/g) || [];

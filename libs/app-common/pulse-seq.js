@@ -1,3 +1,8 @@
+// libs/app-common/pulse-seq.js
+// Unified pulse sequence controller with support for both standard and interval modes
+// - Standard mode: "Pulsos ( 0 ... ) Lg" (with pulse 0)
+// - Intervals mode: "P ( ... ) Lg" (without pulse 0, for App5)
+
 const DEFAULT_OVERLAY_IDS = ['pulseSeqHighlight', 'pulseSeqHighlight2'];
 
 function defaultMarkupBuilder({ root, initialText }) {
@@ -14,6 +19,26 @@ function defaultMarkupBuilder({ root, initialText }) {
   root.append(
     mk('prefix', 'Pulsos ('),
     mk('zero', '0'),
+    edit,
+    mk('suffix', ')'),
+    mk('lg', '')
+  );
+  return { editEl: edit };
+}
+
+function intervalsMarkupBuilder({ root, initialText }) {
+  if (!root) return { editEl: null };
+  const mk = (cls, txt) => {
+    const span = document.createElement('span');
+    span.className = `pz ${cls}`;
+    if (txt != null) span.textContent = txt;
+    return span;
+  };
+  root.textContent = '';
+  const edit = mk('edit', initialText);
+  edit.contentEditable = 'true';
+  root.append(
+    mk('prefix', 'P ('),
     edit,
     mk('suffix', ')'),
     mk('lg', '')
@@ -62,6 +87,34 @@ function placeOverlay({ rect, el, host, scrollLeft, scrollTop }) {
   el.classList.add('active');
 }
 
+/**
+ * Sanitizes a pulse sequence text input for interval mode (App5).
+ * Filters numbers to valid range [1, Lg], removes duplicates, sorts.
+ *
+ * @param {string} text - Raw text input (e.g., "1 3 5 12 99 -1")
+ * @param {number} lg - Current Lg value
+ * @returns {number[]} Sorted array of valid interval numbers
+ *
+ * Example: sanitizePulseSequence("1 3 5 12 99", 10)
+ * Returns: [1, 3, 5]
+ */
+export function sanitizePulseSequence(text, lg) {
+  if (!text || typeof text !== 'string') return [];
+  if (!Number.isFinite(lg) || lg <= 0) return [];
+
+  const numbers = text
+    .split(/\s+/)                          // Split by whitespace
+    .map(s => parseInt(s.trim(), 10))      // Parse integers
+    .filter(n =>
+      Number.isFinite(n) &&                // Valid number
+      n >= 1 &&                            // Minimum bound
+      n <= lg                              // Maximum bound (Lg = interval count)
+    );
+
+  // Remove duplicates and sort
+  return Array.from(new Set(numbers)).sort((a, b) => a - b);
+}
+
 export default function createPulseSeqController(options = {}) {
   const state = {
     datasetFlag: options.datasetFlag || 'seqInited',
@@ -102,9 +155,13 @@ export default function createPulseSeqController(options = {}) {
     let alreadyInit = host.dataset?.[datasetFlag] === '1';
     if (!alreadyInit) {
       const initialText = (host.textContent || '').trim();
-      const builder = typeof config.markupBuilder === 'function'
+
+      // Select markup builder based on markupVariant option
+      const variant = config.markupVariant || options.markupVariant || 'default';
+      let builder = typeof config.markupBuilder === 'function'
         ? config.markupBuilder
-        : defaultMarkupBuilder;
+        : (variant === 'intervals' ? intervalsMarkupBuilder : defaultMarkupBuilder);
+
       const result = builder({ root: host, initialText });
       const edit = result && result.editEl ? result.editEl : resolveEditElement(host);
       state.editEl = edit;
@@ -466,4 +523,15 @@ export default function createPulseSeqController(options = {}) {
     },
     getEditElement: () => state.editEl
   };
+}
+
+/**
+ * Convenience factory for interval mode (App5).
+ * Equivalent to createPulseSeqController({ markupVariant: 'intervals' })
+ */
+export function createPulseSeqIntervalsController(options = {}) {
+  return createPulseSeqController({
+    ...options,
+    markupVariant: 'intervals'
+  });
 }
