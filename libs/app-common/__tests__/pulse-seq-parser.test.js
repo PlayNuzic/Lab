@@ -2,7 +2,7 @@
  * @fileoverview Tests para pulse-seq-parser
  */
 
-import { parseTokens, validateInteger, nearestPulseIndex, resolvePulseSeqGap, FRACTION_POSITION_EPSILON } from '../pulse-seq-parser.js';
+import { parseTokens, validateInteger, nearestPulseIndex, resolvePulseSeqGap, FRACTION_POSITION_EPSILON } from '../../pulse-seq/index.js';
 
 describe('pulse-seq-parser', () => {
   describe('parseTokens', () => {

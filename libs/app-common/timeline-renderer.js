@@ -6,7 +6,7 @@
  */
 
 import { gridFromOrigin } from './subdivision.js';
-import { nearestPulseIndex } from './pulse-seq-parser.js';
+import { nearestPulseIndex } from '../pulse-seq/index.js';
 import { makeFractionKey, FRACTION_POSITION_EPSILON, isIntegerPulseSelectable, isPulseRemainder } from './pulse-selectability.js';
 
 /**

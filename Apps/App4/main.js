@@ -11,7 +11,7 @@ import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMut
 import createFractionEditor, { createEmptyFractionInfo } from '../../libs/app-common/fraction-editor.js';
 import { FRACTION_INLINE_SLOT_ID } from '../../libs/app-common/template.js';
 import { randomize as randomizeValues } from '../../libs/random/index.js';
-import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
+import createPulseSeqController from '../../libs/pulse-seq/index.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';
 import { parseIntSafe, gcd, lcm } from '../../libs/app-common/number-utils.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
@@ -22,9 +22,9 @@ import { createNotationPanelController } from '../../libs/app-common/notation-pa
 import { durationValueFromDenominator, buildPulseEvents } from '../../libs/app-common/notation-utils.js';
 import { resolveFractionNotation } from '../../libs/app-common/fraction-notation.js';
 import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
-import { parseTokens, validateInteger, validateFraction, nearestPulseIndex, resolvePulseSeqGap } from '../../libs/app-common/pulse-seq-parser.js';
-import { createPulseSeqStateManager } from '../../libs/app-common/pulse-seq-state.js';
-import { createPulseSeqEditor } from '../../libs/app-common/pulse-seq-editor.js';
+import { parseTokens, validateInteger, validateFraction, nearestPulseIndex, resolvePulseSeqGap } from '../../libs/pulse-seq/index.js';
+import { createPulseSeqStateManager } from '../../libs/pulse-seq/index.js';
+import { createPulseSeqEditor } from '../../libs/pulse-seq/index.js';
 import { createHighlightController } from '../../libs/app-common/highlight-controller.js';
 import { createVisualSyncManager } from '../../libs/app-common/visual-sync.js';
 import { createFractionalTimelineRenderer } from '../../libs/app-common/timeline-renderer.js';

@@ -10,7 +10,7 @@
  * Todas las funciones son puras (sin side-effects) y pueden testearse independientemente.
  */
 
-import { FRACTION_POSITION_EPSILON } from './pulse-selectability.js';
+import { FRACTION_POSITION_EPSILON } from '../app-common/pulse-selectability.js';
 
 /**
  * Regex para capturar tokens: enteros y fracciones

@@ -9,7 +9,7 @@ import { fromLgAndTempo, toPlaybackPulseCount } from '../../libs/app-common/subd
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
-import createPulseSeqController from '../../libs/app-common/pulse-seq.js';
+import createPulseSeqController from '../../libs/pulse-seq/index.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
