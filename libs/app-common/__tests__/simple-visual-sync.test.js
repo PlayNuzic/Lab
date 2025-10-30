@@ -1,8 +1,8 @@
 /**
- * Tests for simple-visual-sync.js
+ * Tests for simple-visual-sync.js (now in visual-sync.js)
  */
 
-import { createSimpleVisualSync } from '../simple-visual-sync.js';
+import { createSimpleVisualSync } from '../visual-sync.js';
 
 describe('createSimpleVisualSync', () => {
   let mockAudio;

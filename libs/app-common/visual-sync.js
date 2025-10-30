@@ -1,35 +1,44 @@
 /**
  * visual-sync.js
  *
- * Gestor de sincronización visual con requestAnimationFrame.
- * Sincroniza highlighting de pulsos/ciclos con el estado del audio.
+ * Unified visual synchronization manager with requestAnimationFrame
+ * Supports both full-featured and simple modes via feature detection
+ *
+ * - Full mode: Resolution tracking, notation cursor, highlight controller
+ * - Simple mode: Basic step callback only
+ *
+ * @module libs/app-common/visual-sync
  */
 
 /**
- * Crea gestor de sincronización visual
+ * Creates a visual sync manager
  * @param {object} config
- * @param {Function} config.getAudio - Devuelve instancia de audio
- * @param {Function} config.getIsPlaying - Devuelve estado de reproducción
- * @param {Function} config.getLoopEnabled - Devuelve estado de loop
- * @param {object} config.highlightController - Controlador de highlighting
- * @param {Function} [config.getNotationRenderer] - Devuelve renderer de notación (opcional)
- * @param {Function} [config.getPulses] - Devuelve array de pulsos para calcular baseCount
- * @param {Function} [config.onResolutionChange] - Callback cuando cambia la resolución
- * @returns {object} - API del gestor
+ * @param {Function} config.getAudio - Returns audio instance
+ * @param {Function} config.getIsPlaying - Returns playback state
+ * @param {Function} [config.getLoopEnabled] - Returns loop state (full mode)
+ * @param {object} [config.highlightController] - Highlight controller (full mode)
+ * @param {Function} [config.getNotationRenderer] - Returns notation renderer (full mode)
+ * @param {Function} [config.getPulses] - Returns pulses array (full mode)
+ * @param {Function} [config.onResolutionChange] - Callback when resolution changes (full mode)
+ * @param {Function} [config.onStepChange] - Callback when step changes (simple mode)
+ * @returns {object} - API: { start, stop, syncVisualState }
  */
 export function createVisualSyncManager({
   getAudio,
   getIsPlaying,
-  getLoopEnabled,
-  highlightController,
+  getLoopEnabled = null,
+  highlightController = null,
   getNotationRenderer = null,
   getPulses = null,
-  onResolutionChange = null
+  onResolutionChange = null,
+  onStepChange = null
 }) {
-
   let rafHandle = null;
   let lastVisualStep = null;
   let currentAudioResolution = 1;
+
+  // Detect mode based on provided config
+  const isSimpleMode = Boolean(onStepChange && !highlightController);
 
   function resolveAudioResolution(state, audio) {
     if (state && Number.isFinite(state.resolution) && state.resolution > 0) {
@@ -45,7 +54,8 @@ export function createVisualSyncManager({
   }
 
   /**
-   * Sincroniza estado visual con el audio
+   * Synchronize visual state with audio
+   * Handles both simple and full modes
    */
   function syncVisualState() {
     const isPlaying = getIsPlaying();
@@ -60,12 +70,19 @@ export function createVisualSyncManager({
       return;
     }
 
-    // Protección contra llamadas duplicadas
+    // Avoid duplicate calls for same step
     if (lastVisualStep === state.step) {
       return;
     }
     lastVisualStep = state.step;
 
+    // Simple mode: just call the step callback
+    if (isSimpleMode) {
+      onStepChange(state.step);
+      return;
+    }
+
+    // Full mode: resolution tracking + highlighting + notation
     const resolvedResolution = resolveAudioResolution(state, audio);
     if (resolvedResolution != null && resolvedResolution !== currentAudioResolution) {
       currentAudioResolution = resolvedResolution;
@@ -78,7 +95,7 @@ export function createVisualSyncManager({
       ? { ...state, resolution: resolvedResolution }
       : state;
 
-    // Actualizar cursor de notación si existe
+    // Update notation cursor if available
     const notationRenderer = typeof getNotationRenderer === 'function'
       ? getNotationRenderer()
       : null;
@@ -90,21 +107,23 @@ export function createVisualSyncManager({
       notationRenderer.updateCursor(currentPulse, isPlaying);
     }
 
-    // Highlighting de pulsos - siempre usar highlightPulse que maneja ambos casos
-    // (la función internamente detecta si es entero o fracción)
-    highlightController.highlightPulse(highlightPayload, {
-      loopEnabled: getLoopEnabled(),
-      isPlaying: true
-    });
+    // Pulse highlighting (highlightPulse handles both integer and fraction cases)
+    if (highlightController) {
+      highlightController.highlightPulse(highlightPayload, {
+        loopEnabled: getLoopEnabled ? getLoopEnabled() : false,
+        isPlaying: true
+      });
 
-    // Highlighting de ciclos
-    if (state.cycle && Number.isFinite(state.cycle.cycleIndex) && Number.isFinite(state.cycle.subdivisionIndex)) {
-      highlightController.highlightCycle(state.cycle);
+      // Cycle highlighting
+      if (state.cycle && Number.isFinite(state.cycle.cycleIndex) && Number.isFinite(state.cycle.subdivisionIndex)) {
+        highlightController.highlightCycle(state.cycle);
+      }
     }
   }
 
   /**
-   * Inicia el loop de sincronización
+   * Start the synchronization loop
+   * Uses requestAnimationFrame for smooth 60fps updates
    */
   function start() {
     stop();
@@ -121,7 +140,8 @@ export function createVisualSyncManager({
   }
 
   /**
-   * Detiene el loop de sincronización
+   * Stop the synchronization loop
+   * Cleans up requestAnimationFrame handle
    */
   function stop() {
     if (rafHandle != null) {
@@ -131,10 +151,35 @@ export function createVisualSyncManager({
     lastVisualStep = null;
   }
 
-  // API pública
+  // Public API
   return {
     start,
     stop,
     syncVisualState
   };
+}
+
+/**
+ * Convenience factory for simple mode (backward compatibility)
+ * Creates a simple visual sync manager with just a step callback
+ *
+ * @param {Object} config
+ * @param {Function} config.getAudio - Returns audio instance
+ * @param {Function} config.getIsPlaying - Returns playback state
+ * @param {Function} config.onStep - Callback when step changes (receives step index)
+ * @returns {Object} Visual sync API with start/stop methods
+ *
+ * @example
+ * const visualSync = createSimpleVisualSync({
+ *   getAudio: () => audio,
+ *   getIsPlaying: () => isPlaying,
+ *   onStep: (step) => highlightPulse(step)
+ * });
+ */
+export function createSimpleVisualSync({ getAudio, getIsPlaying, onStep }) {
+  return createVisualSyncManager({
+    getAudio,
+    getIsPlaying,
+    onStepChange: onStep
+  });
 }

@@ -17,7 +17,7 @@ import { NOTATION_TOGGLE_BTN_ID } from '../../libs/app-common/template.js';
 import { createNotationPanelController } from '../../libs/app-common/notation-panel.js';
 import { createRhythmStaff } from '../../libs/notation/rhythm-staff.js';
 import { parseNum, formatNumber, createNumberFormatter, randomInt } from '../../libs/app-common/number-utils.js';
-import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
+import { createSimpleVisualSync } from '../../libs/app-common/visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createTIndicator } from '../../libs/app-common/t-indicator.js';
 import { createTimelineRenderer } from '../../libs/app-common/timeline-layout.js';

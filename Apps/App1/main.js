@@ -9,7 +9,7 @@ import { computeResyncDelay } from '../../libs/app-common/audio-schedule.js';
 import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmLEDManagers, syncLEDsWithInputs } from '../../libs/app-common/led-manager.js';
 import { parseNum, formatSec, randomInt } from '../../libs/app-common/number-utils.js';
-import { createSimpleVisualSync } from '../../libs/app-common/simple-visual-sync.js';
+import { createSimpleVisualSync } from '../../libs/app-common/visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
 import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
