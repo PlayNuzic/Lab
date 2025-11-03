@@ -48,7 +48,10 @@ export function renderApp({
   showComplexFractions = true,
   useIntervalMode = false,
   showP1Toggle = false,
-  showGamificationToggle = false
+  showGamificationToggle = false,
+  showCircularTimelineToggle = true,
+  showHoverToggle = true,
+  showStartSoundDropdown = true
 }) {
   if (!root) throw new Error('root element required');
   document.title = title;
@@ -187,14 +190,15 @@ ${togglesMarkup}
             <option value="dark">Oscuro</option>
           </select>
         </label>
-        <label for="hoverToggle">Etiquetas de ayuda <input type="checkbox" id="hoverToggle" checked /></label>
+        ${showHoverToggle ? '<label for="hoverToggle">Etiquetas de ayuda <input type="checkbox" id="hoverToggle" checked /></label>' : ''}
         ${selectColor}
-        <label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle" /></label>
+        ${showCircularTimelineToggle ? '<label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle" /></label>' : ''}
         ${showComplexFractions ? '<label for="enableComplexFractions">Activar fracciones complejas <input type="checkbox" id="enableComplexFractions" /></label>' : ''}
         <button type="button" id="factoryResetBtn" class="factory-reset">Volver a ajustes de fábrica</button>
         <details>
           <summary>Sonidos</summary>
           <div class="sound-group">
+            ${showStartSoundDropdown ? `
             ${(useIntervalMode || showP1Toggle) ? `
             <div class="interval-sound-group">
               <label for="startIntervalToggle" class="interval-toggle-label">
@@ -211,6 +215,7 @@ ${togglesMarkup}
               <label for="startSoundSelect" style="display:none"></label>
               <div id="startSoundSelect"></div>
             </div>`}
+            ` : ''}
             <p>${useIntervalMode ? 'Pulsaciones' : 'Pulso'}</p>
             <div class="preview-row">
               <label for="baseSoundSelect" style="display:none"></label>
