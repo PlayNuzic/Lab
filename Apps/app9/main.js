@@ -9,7 +9,7 @@ import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-co
 let pulses = [];
 let isPlaying = false;
 let audio = null;
-let randomNoisePulse = -1;  // Índice del pulso que reproduce ruido rosa
+let noises = [];  // Array de {startPulse, duration, barElement} para 2 ruidos
 let currentBPM = 0;
 
 // Referencias a elementos del DOM
@@ -18,7 +18,7 @@ let timelineWrapper = null;
 let playBtn = null;
 
 // ========== CONFIGURACIÓN ==========
-const TOTAL_PULSES = 6;  // Dibuja 6 pulsos (0-5)
+const TOTAL_PULSES = 9;  // Dibuja 9 pulsos (0-8)
 const MIN_BPM = 75;
 const MAX_BPM = 200;
 
@@ -54,17 +54,17 @@ function drawTimeline() {
 
   timeline.innerHTML = '';
 
-  // Crear 6 pulsos (0-5)
-  for (let i = 0; i <= 5; i++) {
+  // Crear 9 pulsos (0-8)
+  for (let i = 0; i <= 8; i++) {
     // Crear pulse (punto)
     const pulse = document.createElement('div');
     pulse.className = 'pulse';
-    if (i === 0 || i === 5) pulse.classList.add('endpoint');
+    if (i === 0 || i === 8) pulse.classList.add('endpoint');
     pulse.dataset.index = i;
     timeline.appendChild(pulse);
 
     // Crear barras en endpoints
-    if (i === 0 || i === 5) {
+    if (i === 0 || i === 8) {
       const bar = document.createElement('div');
       bar.className = 'bar endpoint';
       timeline.appendChild(bar);
@@ -72,10 +72,10 @@ function drawTimeline() {
   }
 
   // Crear números
-  for (let i = 0; i <= 5; i++) {
+  for (let i = 0; i <= 8; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
-    if (i === 0 || i === 5) num.classList.add('endpoint');
+    if (i === 0 || i === 8) num.classList.add('endpoint');
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);
@@ -95,7 +95,7 @@ function layoutLinear() {
 
   // Posicionar pulsos en línea horizontal
   pulsesElems.forEach((p, i) => {
-    const pct = (i / 5) * 100;  // 0%, 20%, 40%, 60%, 80%, 100%
+    const pct = (i / (TOTAL_PULSES - 1)) * 100;  // Distribuir de 0% a 100%
     p.style.left = pct + '%';
     p.style.top = '50%';
     p.style.transform = 'translate(-50%, -50%)';
@@ -103,8 +103,8 @@ function layoutLinear() {
 
   // Posicionar barras en endpoints
   bars.forEach((bar, idx) => {
-    const i = idx === 0 ? 0 : 5;
-    const pct = (i / 5) * 100;
+    const i = idx === 0 ? 0 : (TOTAL_PULSES - 1);
+    const pct = (i / (TOTAL_PULSES - 1)) * 100;
     bar.style.left = pct + '%';
     bar.style.top = '30%';
     bar.style.height = '40%';
@@ -114,7 +114,7 @@ function layoutLinear() {
   // Posicionar números
   numbers.forEach(n => {
     const idx = parseInt(n.dataset.index);
-    const pct = (idx / 5) * 100;
+    const pct = (idx / (TOTAL_PULSES - 1)) * 100;
     n.style.left = pct + '%';
     n.style.top = '-28px';
     n.style.transform = 'translate(-50%, 0)';
@@ -162,6 +162,48 @@ function getRandomPulseIndex() {
   return Math.floor(Math.random() * TOTAL_PULSES);
 }
 
+/**
+ * Genera 2 ruidos con duraciones fijas (1 pulso y 2 pulsos) sin solapamiento
+ * Las posiciones y el orden son aleatorios, garantizando que ambos quepan en los 9 pulsos (0-8)
+ * @returns {Array} [{startPulse: number, duration: 1 o 2}, {startPulse: number, duration: 2 o 1}]
+ */
+function generate2Noises() {
+  const noises = [];
+
+  // Decidir aleatoriamente el orden: 50% chance de cada combinación
+  const shortFirst = Math.random() < 0.5;
+  const firstDuration = shortFirst ? 1 : 2;
+  const secondDuration = shortFirst ? 2 : 1;
+
+  // Pulsos disponibles: 0-8 (9 pulsos totales)
+  // Un ruido que empieza en pulso X con duración D ocupa los pulsos [X, X+D-1]
+
+  // Para que ambos quepan secuencialmente sin solaparse:
+  // Ruido 1 ocupa: [start1, start1 + duration1 - 1]
+  // Ruido 2 ocupa: [start2, start2 + duration2 - 1]
+  // Restricción: start2 >= start1 + duration1 (no solapamiento)
+  // Restricción: start2 + duration2 - 1 <= 8 (última posición válida)
+
+  // Máximo inicio del ruido 1 para garantizar espacio para ambos:
+  // start1 + duration1 + duration2 <= 9
+  // start1 <= 9 - duration1 - duration2
+  const maxStart1 = TOTAL_PULSES - firstDuration - secondDuration;
+  const start1 = Math.floor(Math.random() * (maxStart1 + 1));
+
+  noises.push({ startPulse: start1, duration: firstDuration });
+
+  // Rango válido para el segundo ruido:
+  // Mínimo: justo después del primero
+  const minStart2 = start1 + firstDuration;
+  // Máximo: último pulso donde cabe (inicio + duración - 1 <= 8)
+  const maxStart2 = TOTAL_PULSES - secondDuration;
+
+  const start2 = Math.floor(Math.random() * (maxStart2 - minStart2 + 1)) + minStart2;
+  noises.push({ startPulse: start2, duration: secondDuration });
+
+  return noises;
+}
+
 async function handlePlay() {
   if (isPlaying) return; // Bloquear si ya está reproduciendo
 
@@ -170,17 +212,24 @@ async function handlePlay() {
     await initAudio();
   }
 
-  // Generar BPM y pulso aleatorios
+  // Generar BPM y 2 ruidos aleatorios sin solapamiento
   currentBPM = getRandomBPM();
-  randomNoisePulse = getRandomPulseIndex();
+  noises = generate2Noises();
 
-  console.log(`BPM: ${currentBPM}, Pulso con ruido: ${randomNoisePulse}`);
+  console.log(`BPM: ${currentBPM}`);
+  console.log(`Ruido 1: pulso ${noises[0].startPulse}, duración ${noises[0].duration}`);
+  console.log(`Ruido 2: pulso ${noises[1].startPulse}, duración ${noises[1].duration}`);
 
   // Calcular intervalo entre pulsos (en segundos)
   const intervalSec = 60 / currentBPM;
 
-  // Configurar qué pulsos reproducen el sonido adicional (ruido rosa)
-  const selectedPulses = new Set([randomNoisePulse]);
+  // Crear Set con todos los pulsos que deben reproducir ruido
+  const selectedPulses = new Set();
+  noises.forEach(noise => {
+    for (let i = 0; i < noise.duration; i++) {
+      selectedPulses.add(noise.startPulse + i);
+    }
+  });
 
   // Marcar como reproduciendo
   isPlaying = true;
@@ -189,19 +238,46 @@ async function handlePlay() {
     playBtn.classList.add('playing');
   }
 
-  // Limpiar highlights previos
+  // Limpiar highlights previos y barras de duración previas
   highlightController.clearHighlights();
+  // Limpiar cualquier barra anterior de noises previos
+  noises.forEach(noise => {
+    if (noise.barElement) {
+      noise.barElement.remove();
+      noise.barElement = null;
+    }
+  });
 
-  // Iniciar reproducción
-  // Con 6 pulsos visibles (0-5), cuando loop=false necesitamos lg+1 pasos para reproducir todos
+  // Iniciar reproducción con 9 pulsos (0-8)
   audio.play(
-    TOTAL_PULSES + 1,  // 7 pasos para reproducir índices 0-5 sin loop
+    TOTAL_PULSES,      // 9 pasos para reproducir índices 0-8
     intervalSec,       // Intervalo entre pulsos
-    selectedPulses,    // Set con el índice del pulso que tiene ruido
+    selectedPulses,    // Set con índices de pulsos que tienen ruido
     false,             // Sin loop
     (step) => {
-      // Callback por cada pulso (opcional, visualSync maneja el highlight)
+      // Callback por cada pulso
       console.log(`Paso ${step}`);
+
+      // Verificar si algún ruido empieza en este pulso
+      noises.forEach((noise) => {
+        if (step === noise.startPulse) {
+          // Crear barra de duración y guardar referencia en el objeto noise
+          noise.barElement = createDurationBar(noise, intervalSec);
+        }
+      });
+
+      // Verificar si algún ruido termina en este pulso
+      noises.forEach((noise) => {
+        if (step === noise.startPulse + noise.duration - 1) {
+          // Programar eliminación de barra después del pulso
+          setTimeout(() => {
+            if (noise.barElement) {
+              noise.barElement.remove();
+              noise.barElement = null;
+            }
+          }, intervalSec * 1000);
+        }
+      });
     },
     () => {
       // Callback al completar
@@ -212,12 +288,57 @@ async function handlePlay() {
       }
       visualSync.stop();
       highlightController.clearHighlights();
+      // Limpiar todas las barras de duración
+      noises.forEach(noise => {
+        if (noise.barElement) {
+          noise.barElement.remove();
+          noise.barElement = null;
+        }
+      });
       console.log('Metrónomo finalizado');
     }
   );
 
   // Iniciar sincronización visual
   visualSync.start();
+}
+
+/**
+ * Crea y anima una barra de duración para un ruido
+ * @param {Object} noise - {startPulse, duration}
+ * @param {number} intervalSec - Intervalo entre pulsos en segundos
+ * @returns {HTMLElement} Referencia al elemento de barra creado
+ */
+function createDurationBar(noise, intervalSec) {
+  if (!timeline) return null;
+
+  // Calcular posiciones en porcentaje
+  const pulseSpacing = 100 / (TOTAL_PULSES - 1); // Espaciado entre pulsos: 100% / 8 = 12.5%
+  const startPercent = noise.startPulse * pulseSpacing;
+  const widthPercent = noise.duration * pulseSpacing;
+
+  // Calcular duración de animación
+  const animationDuration = intervalSec * noise.duration;
+
+  // Crear elemento de barra
+  const bar = document.createElement('div');
+  bar.className = 'interval-block';
+  bar.style.left = `${startPercent}%`;
+  bar.style.width = '0%';
+  bar.style.transitionDuration = `${animationDuration}s`;
+
+  timeline.appendChild(bar);
+
+  // Forzar reflow y animar
+  bar.offsetHeight;
+
+  requestAnimationFrame(() => {
+    bar.style.width = `${widthPercent}%`;
+    bar.style.opacity = '0.8';
+    bar.classList.add('active');
+  });
+
+  return bar;
 }
 
 // ========== EVENT HANDLERS ==========

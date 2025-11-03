@@ -150,6 +150,31 @@
   justify-content: center !important;
 }
 
+/* ========== DURATION BAR (INTERVAL BLOCK) ========== */
+.interval-block {
+  position: absolute;
+  top: 50%;
+  height: 24px;
+  background: var(--selection-color, #F97C39);
+  opacity: 0.25;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  pointer-events: none;
+  z-index: 5;
+  user-select: none;
+  transform: translateY(-100%);
+  transition-property: width, opacity;
+  transition-timing-function: linear;
+}
+
+.interval-block.active {
+  opacity: 0.8;
+  box-shadow: 0 0 8px var(--selection-color);
+}
+
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
   .timeline-wrapper {
