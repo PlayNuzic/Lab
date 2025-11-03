@@ -1,0 +1,216 @@
+// libs/shared-ui/instrument-dropdown.js
+// Dropdown for selecting melodic instruments
+
+// Available instruments
+export const instrumentNames = ['piano'];
+
+export const instrumentLabels = {
+  piano: 'Piano'
+};
+
+/**
+ * Initialize instrument dropdown
+ * @param {HTMLElement} container - Container for dropdown
+ * @param {Object} options - Configuration
+ * @param {string} options.storageKey - LocalStorage key
+ * @param {string} options.eventType - Event type to dispatch on change
+ * @param {Function} options.onSelect - Callback when instrument is selected
+ * @param {string} options.defaultValue - Default instrument
+ */
+export function initInstrumentDropdown(container, { storageKey, eventType, onSelect, defaultValue }) {
+  if (!container) return;
+
+  // Prevent double enhancement
+  if (container.dataset.enhanced === '1') return;
+  container.dataset.enhanced = '1';
+
+  // Clear any existing content
+  container.innerHTML = '';
+  container.classList.add('custom-dropdown');
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'dropdown-toggle';
+
+  // Transfer ID for accessibility
+  if (container.id) {
+    toggle.id = container.id;
+    container.removeAttribute('id');
+  }
+
+  container.appendChild(toggle);
+
+  const panel = document.createElement('div');
+  panel.className = 'dropdown-panel';
+  panel.style.display = 'none';
+
+  const list = document.createElement('ul');
+  instrumentNames.forEach(name => {
+    const li = document.createElement('li');
+    li.dataset.value = name;
+    li.textContent = instrumentLabels[name] || name;
+    li.tabIndex = -1;
+    list.appendChild(li);
+  });
+  panel.appendChild(list);
+
+  const exitBtn = document.createElement('button');
+  exitBtn.type = 'button';
+  exitBtn.className = 'dropdown-exit';
+  exitBtn.textContent = 'Salir';
+  panel.appendChild(exitBtn);
+
+  container.appendChild(panel);
+
+  // Load from localStorage or use default
+  const stored = (() => {
+    try {
+      return localStorage.getItem(storageKey);
+    } catch {
+      return null;
+    }
+  })();
+
+  const fallbackDefault = defaultValue && instrumentNames.includes(defaultValue) ? defaultValue : instrumentNames[0];
+  let selected = (stored && instrumentNames.includes(stored)) ? stored : fallbackDefault;
+  let pending = selected;
+
+  function updateDataset(value) {
+    if (!value) {
+      delete container.dataset.value;
+      delete toggle.dataset.value;
+      return;
+    }
+    container.dataset.value = value;
+    toggle.dataset.value = value;
+  }
+
+  function updateLabel() {
+    toggle.textContent = instrumentLabels[selected] || selected;
+    updateDataset(selected);
+  }
+
+  // Initialize label
+  updateLabel();
+
+  function updateListHighlight() {
+    const children = [...list.children];
+    children.forEach(li => li.classList.remove('selected', 'pending'));
+    children.forEach(li => {
+      if (li.dataset.value === pending) li.classList.add('selected');
+    });
+  }
+
+  function openPanel() {
+    pending = selected;
+    updateListHighlight();
+    panel.style.display = 'block';
+    toggle.setAttribute('aria-expanded', 'true');
+
+    // Focus first item
+    const firstItem = list.querySelector('li');
+    if (firstItem) firstItem.focus();
+  }
+
+  function closePanel() {
+    panel.style.display = 'none';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.focus();
+  }
+
+  function confirmSelection() {
+    selected = pending;
+
+    // Save to localStorage
+    try {
+      localStorage.setItem(storageKey, selected);
+    } catch (e) {
+      console.warn('Failed to save instrument to localStorage:', e);
+    }
+
+    updateLabel();
+
+    // Dispatch event
+    if (eventType) {
+      window.dispatchEvent(new CustomEvent(eventType, {
+        detail: { instrument: selected }
+      }));
+    }
+
+    // Call callback
+    if (onSelect) {
+      onSelect(selected);
+    }
+
+    closePanel();
+  }
+
+  // Toggle button handler
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (panel.style.display === 'none') {
+      openPanel();
+    } else {
+      closePanel();
+    }
+  });
+
+  // List item selection
+  list.addEventListener('click', (e) => {
+    const li = e.target.closest('li');
+    if (!li) return;
+    pending = li.dataset.value;
+    confirmSelection();
+  });
+
+  // Exit button
+  exitBtn.addEventListener('click', () => {
+    pending = selected; // Reset pending
+    closePanel();
+  });
+
+  // Keyboard navigation
+  list.addEventListener('keydown', (e) => {
+    const items = [...list.querySelectorAll('li')];
+    const current = e.target.closest('li');
+    const idx = items.indexOf(current);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = items[idx + 1] || items[0];
+      next.focus();
+      pending = next.dataset.value;
+      updateListHighlight();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = items[idx - 1] || items[items.length - 1];
+      prev.focus();
+      pending = prev.dataset.value;
+      updateListHighlight();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      confirmSelection();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closePanel();
+    }
+  });
+
+  // Close on outside click
+  document.addEventListener('click', (e) => {
+    if (!container.contains(e.target) && panel.style.display !== 'none') {
+      closePanel();
+    }
+  });
+
+  return {
+    getSelected: () => selected,
+    setSelected: (value) => {
+      if (instrumentNames.includes(value)) {
+        selected = value;
+        pending = value;
+        updateLabel();
+      }
+    }
+  };
+}

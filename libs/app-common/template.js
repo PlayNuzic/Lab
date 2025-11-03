@@ -51,7 +51,8 @@ export function renderApp({
   showGamificationToggle = false,
   showCircularTimelineToggle = true,
   showHoverToggle = true,
-  showStartSoundDropdown = true
+  showStartSoundDropdown = true,
+  showInstrumentDropdown = false
 }) {
   if (!root) throw new Error('root element required');
   document.title = title;
@@ -215,6 +216,13 @@ ${togglesMarkup}
               <label for="startSoundSelect" style="display:none"></label>
               <div id="startSoundSelect"></div>
             </div>`}
+            ` : ''}
+            ${showInstrumentDropdown ? `
+            <p>Instrumento</p>
+            <div class="preview-row">
+              <label for="instrumentSelect" style="display:none"></label>
+              <div id="instrumentSelect"></div>
+            </div>
             ` : ''}
             <p>${useIntervalMode ? 'Pulsaciones' : 'Pulso'}</p>
             <div class="preview-row">

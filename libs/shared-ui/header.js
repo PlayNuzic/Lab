@@ -8,6 +8,7 @@
 import { setVolume, getVolume } from '../sound/index.js';
 import { ensureToneLoaded } from '../sound/tone-loader.js';
 import { initSoundDropdown, initP1ToggleUI } from './sound-dropdown.js';
+import { initInstrumentDropdown } from './instrument-dropdown.js';
 
 // --- Scheduling helpers (look-ahead y updateInterval) ---
 
@@ -214,6 +215,22 @@ function wireControls(root) {
             getAudio: getAppAudio,
             apply: (a, val) => a?.setCycle?.(val),
             defaultValue: 'click10' // Ride
+        });
+    }
+
+    // Initialize instrument dropdown if present (used in melodic apps like App10)
+    const instrumentSelect = root.querySelector('#instrumentSelect');
+    if (instrumentSelect) {
+        initInstrumentDropdown(instrumentSelect, {
+            storageKey: 'selectedInstrument',
+            eventType: 'instrument',
+            onSelect: (instrument) => {
+                // Dispatch event for app to handle
+                window.dispatchEvent(new CustomEvent('sharedui:instrument', {
+                    detail: { instrument }
+                }));
+            },
+            defaultValue: 'piano'
         });
     }
 
