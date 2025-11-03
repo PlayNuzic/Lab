@@ -16,7 +16,8 @@ const SOUND_URLS = {
   click7: new URL('click7.wav', SAMPLE_BASE_URL).href,
   click8: new URL('click8.wav', SAMPLE_BASE_URL).href,
   click9: new URL('click9.wav', SAMPLE_BASE_URL).href,
-  click10: new URL('click10.wav', SAMPLE_BASE_URL).href
+  click10: new URL('click10.wav', SAMPLE_BASE_URL).href,
+  click11: new URL('Click11.wav', SAMPLE_BASE_URL).href
 };
 
 export const soundNames = Object.keys(SOUND_URLS);
@@ -32,7 +33,8 @@ export const soundLabels = {
   click7: 'Bombo',
   click8: 'Caja',
   click9: 'Hi-Hat',
-  click10: 'Ride'
+  click10: 'Ride',
+  click11: 'Ruido Rosa'
 };
 
 const mixer = new AudioMixer({ masterLabel: 'Master' });
@@ -790,7 +792,7 @@ export class TimelineAudio {
     return this._bus.pulso;
   }
 
-  _schedulePlayerStart(key, when) {
+  _schedulePlayerStart(key, when, duration = null) {
     if (!this._ctx || !this._buffers) return;
     const entry = this._buffers.get(key);
     if (!entry?.buffer) return;
@@ -806,6 +808,10 @@ export class TimelineAudio {
       if (destination) source.connect(destination);
       const startTime = Math.max(ctx.currentTime, when);
       source.start(startTime);
+      // Si se especifica duración, detener el sonido después de ese tiempo
+      if (duration != null && duration > 0) {
+        source.stop(startTime + duration);
+      }
       this._activeSources.add(source);
     } catch {}
   }
@@ -1274,9 +1280,9 @@ export class TimelineAudio {
       o.stop(when + dur + 0.01);
     };
 
-    const triggerPlayer = (key, when) => {
+    const triggerPlayer = (key, when, duration = null) => {
       if (!this._buffers?.has(key)) return;
-      this._schedulePlayerStart(key, when);
+      this._schedulePlayerStart(key, when, duration);
     };
 
     this._stepTime = (absoluteStep) => {
@@ -1356,7 +1362,7 @@ export class TimelineAudio {
           }
 
           if (isSelected && this._buffers.has('seleccionados')) {
-            triggerPlayer('seleccionados', when);
+            triggerPlayer('seleccionados', when, this.intervalRef);
             triggered = true;
           }
         }

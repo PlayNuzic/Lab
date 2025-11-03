@@ -14,7 +14,10 @@ export const DEFAULT_SAMPLE_MAP = {
 
   // Inicio de compás y subdivisiones del ciclo.
   start: 'click7',
-  cycle: 'click10'
+  cycle: 'click10',
+
+  // Ruido rosa para efectos especiales.
+  ruidoRosa: 'click11'
 };
 
 // Permite sobrescribir dinámicamente desde fuera si fuese necesario.
