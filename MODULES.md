@@ -99,6 +99,151 @@ export { createPulseSeqEditor, getMidpoints, normalizeGaps } from './editor.js';
 
 ---
 
+### `libs/app-common/musical-plane.js` ⭐ **NUEVO (2024-11)**
+**Ubicación:** `/Users/workingburcet/Lab/libs/app-common/musical-plane.js`
+
+**Propósito:** Sistema modular para crear grids musicales 2D con alineación robusta basada en mediciones DOM
+
+**API principal:**
+```javascript
+import { createMusicalPlane } from '../../libs/app-common/musical-plane.js';
+
+const musicalPlane = createMusicalPlane({
+  container: matrixContainer,
+  verticalAxis: soundline,        // Cualquier eje vertical
+  horizontalAxis: timelineAxis,   // Cualquier eje horizontal
+  cellFactory: clickableCells,    // Factory para crear celdas
+  fillSpaces: true,               // Celdas llenan espacios entre marcadores
+  cellClassName: 'plane-cell'
+});
+
+musicalPlane.render();           // Renderiza el grid
+musicalPlane.update();           // Actualiza posiciones (ej. resize)
+musicalPlane.destroy();          // Limpia recursos
+```
+
+**Características clave:**
+- **Posicionamiento matemático**: Calcula posiciones desde mediciones DOM reales, no porcentajes CSS
+- **Composable**: Funciona con cualquier combinación de ejes vertical/horizontal
+- **Responsive**: Auto-actualización con ResizeObserver
+- **Sin hacks CSS**: No requiere height: 125% u otros trucos de alineación
+- **Robusto**: Funciona perfectamente a 100%, 125%, 150%, 200% zoom
+
+**Métodos:**
+- `render()` - Crea y posiciona todas las celdas
+- `update()` - Recalcula posiciones (después de resize)
+- `clear()` - Elimina todas las celdas
+- `destroy()` - Limpieza completa
+- `getCellAt(vIndex, hIndex)` - Obtiene celda en posición específica
+- `getRow(vIndex)` - Obtiene todas las celdas en una fila
+- `getColumn(hIndex)` - Obtiene todas las celdas en una columna
+- `highlightCell(vIndex, hIndex, className, duration)` - Highlight temporal
+
+**Apps que lo usan:** App11 (El Plano)
+
+---
+
+### `libs/app-common/plane-cells.js` ⭐ **NUEVO (2024-11)**
+**Ubicación:** `/Users/workingburcet/Lab/libs/app-common/plane-cells.js`
+
+**Propósito:** Patrones factory para crear diferentes tipos de celdas interactivas
+
+**Factories disponibles:**
+
+#### `createClickableCellFactory(config)`
+Celdas con feedback visual al hacer click
+```javascript
+const cellFactory = createClickableCellFactory({
+  className: 'matrix-cell',
+  highlightClass: 'highlight',
+  highlightDuration: 500,
+  createContent: (vIndex, hIndex) => document.createTextNode(`${vIndex},${hIndex}`),
+  styles: { backgroundColor: 'rgba(255,255,255,0.1)' }
+});
+```
+
+#### `createToggleCellFactory(config)`
+Celdas con estado on/off (útil para secuenciadores)
+```javascript
+const toggleCells = createToggleCellFactory({
+  className: 'toggle-cell',
+  activeClass: 'active',
+  defaultState: false,
+  onToggle: (vIndex, hIndex, isActive) => console.log(`Cell ${vIndex},${hIndex}: ${isActive}`)
+});
+```
+
+#### `createVelocityCellFactory(config)`
+Celdas sensibles a la velocidad del click
+```javascript
+const velocityCells = createVelocityCellFactory({
+  minVelocity: 0.1,
+  maxVelocity: 1.0,
+  onVelocityClick: (vIndex, hIndex, velocity) => playNote(midi, velocity)
+});
+```
+
+#### `createDraggableCellFactory(config)`
+Celdas con selección por arrastre
+```javascript
+const draggableCells = createDraggableCellFactory({
+  selectedClass: 'selected',
+  onSelectionChange: (selectedCells) => updatePattern(selectedCells)
+});
+```
+
+**Apps que lo usan:** App11
+
+---
+
+### `libs/app-common/plane-adapters.js` ⭐ **NUEVO (2024-11)**
+**Ubicación:** `/Users/workingburcet/Lab/libs/app-common/plane-adapters.js`
+
+**Propósito:** Adaptadores para hacer componentes existentes compatibles con musical-plane
+
+**Adaptadores disponibles:**
+
+#### `createSoundlineVerticalAxis(soundline)`
+Adapta soundline para usar como eje vertical (12 notas)
+
+#### `createTimelineHorizontalAxis(pulses, container, fillSpaces)`
+Adapta timeline para usar como eje horizontal
+
+#### `createScaleVerticalAxis(scale, container)`
+Crea eje vertical para escalas personalizadas
+
+#### `createMeasureHorizontalAxis(measures, beatsPerMeasure, container)`
+Crea eje horizontal basado en compases
+
+#### `createCircularAxis(divisions, container)`
+Crea eje circular/radial para layouts circulares
+
+#### `createGridAxis(rows, cols, container)`
+Crea grid combinado para layouts tipo drum pad
+
+**Ejemplo de uso:**
+```javascript
+import { createSoundlineVerticalAxis, createTimelineHorizontalAxis } from './plane-adapters.js';
+
+// Adaptar soundline existente
+const verticalAxis = createSoundlineVerticalAxis(soundline);
+
+// Crear eje horizontal para 9 pulsos
+const horizontalAxis = createTimelineHorizontalAxis(9, timelineContainer, true);
+
+// Usar con musical-plane
+const plane = createMusicalPlane({
+  container,
+  verticalAxis,
+  horizontalAxis,
+  cellFactory
+});
+```
+
+**Apps que lo usan:** App11
+
+---
+
 ### `libs/notation/` ⭐ **CONSOLIDADO (Fase 2)**
 **Ubicación:** `/Users/workingburcet/Lab/libs/notation/`
 
