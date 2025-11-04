@@ -346,28 +346,28 @@ registerFactoryReset({ storage: preferenceStorage });
 function initApp() {
   console.log('Initializing App11: El Plano (Refactored)');
 
-  // Get timeline wrapper from template
-  const timelineWrapper = document.getElementById('timelineWrapper');
-  if (!timelineWrapper) {
-    console.error('Timeline wrapper not found');
+  // Get timeline element (NOT wrapper) - following Apps 9 & 10 pattern
+  const timeline = document.getElementById('timeline');
+  if (!timeline) {
+    console.error('Timeline not found');
     return;
   }
 
-  // Clear default timeline content
-  const timeline = document.getElementById('timeline');
-  if (timeline) {
-    timeline.innerHTML = '';
-  }
+  // Clear timeline content ONLY (preserves .controls in timelineWrapper)
+  timeline.innerHTML = '';
 
-  // Inject grid structure (simplified - no more hardcoded heights)
-  timelineWrapper.innerHTML = `
-    <div class="grid-container">
-      <div id="soundlineWrapper"></div>
-      <div id="matrixContainer"></div>
-      <div style="grid-column: 1; grid-row: 2;"></div>
-      <div id="timelineContainer"></div>
-    </div>
+  // Create grid structure inside timeline
+  const gridContainer = document.createElement('div');
+  gridContainer.className = 'grid-container';
+  gridContainer.innerHTML = `
+    <div id="soundlineWrapper"></div>
+    <div id="matrixContainer"></div>
+    <div style="grid-column: 1; grid-row: 2;"></div>
+    <div id="timelineContainer"></div>
   `;
+
+  // Append grid to timeline (controls stay after timeline in timelineWrapper)
+  timeline.appendChild(gridContainer);
 
   // Create vertical soundline (left)
   createVerticalSoundline();
