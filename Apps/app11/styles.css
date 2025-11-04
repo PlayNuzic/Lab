@@ -218,7 +218,7 @@
 .soundline-highlight {
   position: absolute;
   left: 40px; /* Aligned with soundline numbers */
-  width: 110px; /* Extends from numbers to right of vertical line */
+  width: 60px; /* Extends from numbers to right of vertical line */
   height: 8.33%; /* 1/12 of container height for each note */
   background: var(--note-highlight-color);
   opacity: 0;
@@ -278,16 +278,16 @@
   justify-content: center !important;
   align-items: center !important;
   gap: 10px;
-  margin-top: 0;
+  margin-top: -50px;
 }
 
 #timelineWrapper .controls {
   position: relative;
   z-index: 20;
   align-self: flex-start;
-  width: calc(100% - 60px);
+  width: 100%;
   max-width: 1200px;
-  margin-left: 60px;
+  margin-left: 145px;
 }
 
 /* ========== RESPONSIVE ========== */
