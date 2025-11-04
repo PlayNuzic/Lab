@@ -66,8 +66,8 @@
 /* ========== NÚMEROS ========== */
 .timeline .pulse-number {
   position: absolute;
-  top: calc(50% + 30px);
-  font-size: 2.8rem;
+  top: 90% !important;
+  font-size: 1.2rem;
   font-weight: 400;
   transform: translateX(-50%);
   user-select: none;
@@ -75,6 +75,25 @@
   opacity: 0.85;
   transition: transform 0.2s ease, opacity 0.2s ease;
   pointer-events: none;
+}
+
+/* Números de intervalos (1-8) centrados entre pulsos, ENCIMA de timeline */
+.timeline .interval-number {
+  position: absolute;
+  top: 0% !important;
+  font-size: 2.8rem;
+  font-weight: 400;
+  transform: translateX(-50%);
+  user-select: none;
+  z-index: 15;
+  opacity: 0.85;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  pointer-events: none;
+  color: var(--text-color, #333);
+}
+
+[data-theme="dark"] .timeline .interval-number {
+  color: var(--text-dark, #e0e0e0);
 }
 
 /* ========== CONTROLES ========== */
@@ -197,6 +216,10 @@
     top: calc(50% + 25px);
   }
 
+  .timeline .interval-number {
+    font-size: 2.4rem;
+  }
+
   .play-btn {
     width: 56px;
     height: 56px;
@@ -212,6 +235,10 @@
   .timeline .pulse-number {
     font-size: 1.8rem;
     top: calc(50% + 20px);
+  }
+
+  .timeline .interval-number {
+    font-size: 2rem;
   }
 
   .timeline .pulse {

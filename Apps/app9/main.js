@@ -71,7 +71,7 @@ function drawTimeline() {
     }
   }
 
-  // Crear números
+  // Crear números de pulsos (0-8)
   for (let i = 0; i <= 8; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
@@ -79,6 +79,15 @@ function drawTimeline() {
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);
+  }
+
+  // Crear números de intervalos (1-8) - posicionados entre pulsos
+  for (let i = 1; i <= 8; i++) {
+    const intervalNum = document.createElement('div');
+    intervalNum.className = 'interval-number';
+    intervalNum.dataset.index = i;
+    intervalNum.textContent = i;
+    timeline.appendChild(intervalNum);
   }
 
   // Layout lineal (posicionar elementos)
@@ -111,13 +120,24 @@ function layoutLinear() {
     bar.style.transform = '';
   });
 
-  // Posicionar números
+  // Posicionar números de pulsos
   numbers.forEach(n => {
     const idx = parseInt(n.dataset.index);
     const pct = (idx / (TOTAL_PULSES - 1)) * 100;
     n.style.left = pct + '%';
     n.style.top = '-28px';
     n.style.transform = 'translate(-50%, 0)';
+  });
+
+  // Posicionar números de intervalos (centrados entre pulsos)
+  const intervalNumbers = timeline.querySelectorAll('.interval-number');
+  intervalNumbers.forEach(n => {
+    const idx = parseInt(n.dataset.index);
+    // Posición en punto medio entre pulso (idx-1) y pulso (idx)
+    const pct = ((idx - 0.5) / (TOTAL_PULSES - 1)) * 100;
+    n.style.left = pct + '%';
+    n.style.top = '70%';
+    n.style.transform = 'translate(-50%, -50%)';
   });
 }
 
