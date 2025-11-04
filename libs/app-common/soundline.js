@@ -86,7 +86,42 @@ export function createSoundline(container) {
         return -1;
       }
       return midi - 60;
-    }
+    },
+
+    // NEW: For musical-plane integration
+    /**
+     * Get vertical position bounds for a note index
+     * Compatible with musical-plane axis interface
+     * @param {number} noteIndex - Note index (0-11)
+     * @returns {Object} {top: px, height: px} in pixels relative to container
+     */
+    getPosition: (noteIndex) => {
+      if (noteIndex < 0 || noteIndex >= 12) {
+        console.warn(`Note index ${noteIndex} out of range (0-11)`);
+        return { top: 0, height: 0 };
+      }
+
+      const containerRect = soundline.getBoundingClientRect();
+      const containerHeight = containerRect.height;
+
+      // Each note occupies 1/12 of the container height
+      const noteHeight = containerHeight / 12;
+
+      // Note 0 at bottom, note 11 at top (inverted for musical convention)
+      const top = containerHeight - ((noteIndex + 1) * noteHeight);
+
+      return {
+        top: Math.max(0, top),
+        height: noteHeight
+      };
+    },
+
+    /**
+     * Get number of notes (always 12)
+     * Compatible with musical-plane axis interface
+     * @returns {number} 12
+     */
+    getCount: () => 12
   };
 }
 

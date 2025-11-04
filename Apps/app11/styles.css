@@ -5,7 +5,6 @@
   --line-color: #666;
   --soundline-width: 3px;
   --timeline-height: 2px;
-  --cell-height: 10.42%; /* 8.33% * 1.25 = 10.4167% (ajustado para soundline al 125%) */
   --cell-highlight-color: var(--selection-color, #F97C39);
   --pulse-marker-height: 15px;
   --note-highlight-color: var(--selection-color, #F97C39);
@@ -55,7 +54,7 @@
 .soundline {
   position: relative;
   width: 100%;
-  height: 125%; /* 25% más larga para mayor espaciado entre notas */
+  height: 100%;
 }
 
 /* Línea vertical principal */
@@ -118,13 +117,10 @@
 
 /* ========== MATRIX CELLS ========== */
 .matrix-cell {
-  position: absolute;
-  width: 12.5%; /* 100% / 8 spaces = 12.5% */
-  height: var(--cell-height);
+  /* Position and size are set dynamically by musical-plane.js */
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 2px;
   cursor: pointer;
-  transform: translate(-50%, 50%);
   transition: all 0.15s ease;
   background: rgba(255, 255, 255, 0.3);
   z-index: 5;
@@ -221,7 +217,7 @@
   position: absolute;
   left: 40px; /* Aligned with soundline numbers */
   width: 110px; /* Extends from numbers to right of vertical line */
-  height: var(--cell-height); /* Matches cell height (10.42% for 125% soundline) */
+  height: 8.33%; /* 1/12 of container height for each note */
   background: var(--note-highlight-color);
   opacity: 0;
   border-radius: 4px;
