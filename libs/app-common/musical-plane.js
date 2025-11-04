@@ -100,9 +100,10 @@ export function createMusicalPlane(config) {
     const hCount = horizontalAxis.getCount();
 
     // Determine iteration strategy based on fillSpaces
-    // fillSpaces=true: cells fill spaces BETWEEN markers (n-1 cells)
+    // fillSpaces=true: cells fill spaces BETWEEN markers (n-1 cells) for HORIZONTAL
     // fillSpaces=false: cells align WITH markers (n cells)
-    const vIterations = fillSpaces ? vCount - 1 : vCount;
+    // Note: Vertical axis always uses full count (all notes)
+    const vIterations = vCount; // Always use full vertical count
     const hIterations = fillSpaces ? hCount - 1 : hCount;
 
     // Validate iterations
