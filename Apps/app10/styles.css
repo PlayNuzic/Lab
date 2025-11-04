@@ -34,6 +34,7 @@
   display: flex;
   justify-content: center; /* Centrar soundline */
   align-items: center;
+  overflow: visible; /* Allow soundline to extend beyond 100% */
 }
 
 /* Ocultar la línea horizontal del timeline (no necesaria en App10) */

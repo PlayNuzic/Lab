@@ -5,7 +5,7 @@
   --line-color: #666;
   --soundline-width: 3px;
   --timeline-height: 2px;
-  --cell-height: 8.33%; /* 100% / 12 notes = 8.33% */
+  --cell-height: 10.42%; /* 8.33% * 1.25 = 10.4167% (ajustado para soundline al 125%) */
   --cell-highlight-color: var(--selection-color, #F97C39);
   --pulse-marker-height: 15px;
   --note-highlight-color: var(--selection-color, #F97C39);
@@ -221,7 +221,7 @@
   position: absolute;
   left: 40px; /* Aligned with soundline numbers */
   width: 110px; /* Extends from numbers to right of vertical line */
-  height: 8.33%;
+  height: var(--cell-height); /* Matches cell height (10.42% for 125% soundline) */
   background: var(--note-highlight-color);
   opacity: 0;
   border-radius: 4px;
