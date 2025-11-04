@@ -20,9 +20,9 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
-  padding: 40px;
+  padding: 40px 40px 40px 0;
   position: relative;
   overflow: visible;
   gap: 30px;
@@ -31,7 +31,7 @@
 /* ========== GRID CONTAINER ========== */
 .grid-container {
   position: relative;
-  width: 90%;
+  width: calc(100% - 60px);
   max-width: 1200px;
   height: 70vh;
   max-height: 700px;
@@ -39,7 +39,8 @@
   grid-template-columns: 150px 1fr;
   grid-template-rows: 1fr 80px;
   gap: 20px;
-  margin: 0 auto;
+  margin: 0;
+  margin-left: 60px;
 }
 
 /* ========== SOUNDLINE WRAPPER (LEFT) ========== */
@@ -266,7 +267,8 @@
 
 /* Show only play button */
 .controls #playBtn,
-.controls .play {
+.controls .play,
+.controls .play-group {
   display: flex !important;
 }
 
@@ -282,37 +284,46 @@
 #timelineWrapper .controls {
   position: relative;
   z-index: 20;
-  width: 90%;
+  align-self: flex-start;
+  width: calc(100% - 60px);
   max-width: 1200px;
+  margin-left: 60px;
 }
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 1024px) {
   .grid-container {
-    width: 95%;
+    width: calc(100% - 50px);
     height: 65vh;
     grid-template-columns: 120px 1fr;
     grid-template-rows: 1fr 70px;
     gap: 15px;
+    margin-left: 50px;
   }
 
   .soundline-number,
   .pulse-number {
     font-size: 1.2rem;
   }
+
+  #timelineWrapper .controls {
+    width: calc(100% - 50px);
+    margin-left: 50px;
+  }
 }
 
 @media (max-width: 768px) {
   #timelineWrapper {
-    padding: 20px;
+    padding: 20px 20px 20px 0;
   }
 
   .grid-container {
-    width: 100%;
+    width: calc(100% - 30px);
     height: 60vh;
     grid-template-columns: 100px 1fr;
     grid-template-rows: 1fr 60px;
     gap: 10px;
+    margin-left: 30px;
   }
 
   .soundline-number,
@@ -338,10 +349,17 @@
     left: 20px; /* Aligned with numbers on mobile */
     width: 80px;
   }
+
+  #timelineWrapper .controls {
+    width: calc(100% - 30px);
+    margin-left: 30px;
+  }
 }
 
 @media (max-width: 480px) {
   .grid-container {
+    width: calc(100% - 20px);
+    margin-left: 20px;
     grid-template-columns: 80px 1fr;
     grid-template-rows: 1fr 50px;
     gap: 8px;
@@ -350,5 +368,10 @@
   .soundline-number,
   .pulse-number {
     font-size: 0.9rem;
+  }
+
+  #timelineWrapper .controls {
+    width: calc(100% - 20px);
+    margin-left: 20px;
   }
 }
