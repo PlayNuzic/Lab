@@ -353,21 +353,29 @@ function initApp() {
     return;
   }
 
-  // Clear default timeline content
+  // Clear default timeline content but preserve controls
   const timeline = document.getElementById('timeline');
   if (timeline) {
     timeline.innerHTML = '';
   }
 
-  // Inject grid structure (simplified - no more hardcoded heights)
-  timelineWrapper.innerHTML = `
-    <div class="grid-container">
-      <div id="soundlineWrapper"></div>
-      <div id="matrixContainer"></div>
-      <div style="grid-column: 1; grid-row: 2;"></div>
-      <div id="timelineContainer"></div>
-    </div>
+  // Create grid structure without destroying existing content
+  const gridContainer = document.createElement('div');
+  gridContainer.className = 'grid-container';
+  gridContainer.innerHTML = `
+    <div id="soundlineWrapper"></div>
+    <div id="matrixContainer"></div>
+    <div style="grid-column: 1; grid-row: 2;"></div>
+    <div id="timelineContainer"></div>
   `;
+
+  // Insert grid before controls (controls stay at the bottom)
+  const controls = timelineWrapper.querySelector('.controls');
+  if (controls) {
+    timelineWrapper.insertBefore(gridContainer, controls);
+  } else {
+    timelineWrapper.appendChild(gridContainer);
+  }
 
   // Create vertical soundline (left)
   createVerticalSoundline();
