@@ -346,17 +346,24 @@ registerFactoryReset({ storage: preferenceStorage });
 function initApp() {
   console.log('Initializing App11: El Plano (Refactored)');
 
-  // Get timeline element (NOT wrapper) - following Apps 9 & 10 pattern
-  const timeline = document.getElementById('timeline');
-  if (!timeline) {
-    console.error('Timeline not found');
+  const timelineWrapper = document.getElementById('timelineWrapper');
+  if (!timelineWrapper) {
+    console.error('Timeline wrapper not found');
     return;
   }
 
-  // Clear timeline content ONLY (preserves .controls in timelineWrapper)
-  timeline.innerHTML = '';
+  const controls = timelineWrapper.querySelector('.controls');
 
-  // Create grid structure inside timeline
+  // Remove default timeline section to avoid nested <section> structure
+  const existingTimeline = timelineWrapper.querySelector('#timeline');
+  if (existingTimeline) {
+    existingTimeline.remove();
+  }
+
+  // Remove any previous grid (defensive in case of reinitialization)
+  timelineWrapper.querySelector('.grid-container')?.remove();
+
+  // Create grid structure directly inside the wrapper (controls stay after it)
   const gridContainer = document.createElement('div');
   gridContainer.className = 'grid-container';
   gridContainer.innerHTML = `
@@ -366,8 +373,7 @@ function initApp() {
     <div id="timelineContainer"></div>
   `;
 
-  // Append grid to timeline (controls stay after timeline in timelineWrapper)
-  timeline.appendChild(gridContainer);
+  timelineWrapper.insertBefore(gridContainer, controls ?? null);
 
   // Create vertical soundline (left)
   createVerticalSoundline();
