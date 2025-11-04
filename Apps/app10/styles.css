@@ -45,7 +45,7 @@
 .soundline {
   position: relative;
   width: 300px; /* Más ancho para acomodar números a la izquierda */
-  height: 115%; /* 15% más larga */
+  height: 125%; /* 25% más larga para mayor espaciado entre notas */
 }
 
 /* Línea vertical principal */

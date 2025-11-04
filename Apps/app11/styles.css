@@ -55,7 +55,7 @@
 .soundline {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: 125%; /* 25% más larga para mayor espaciado entre notas */
 }
 
 /* Línea vertical principal */

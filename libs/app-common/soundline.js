@@ -98,14 +98,14 @@ function layoutSoundline(soundline) {
   const divisions = soundline.querySelectorAll('.soundline-division');
   const numbers = soundline.querySelectorAll('.soundline-number');
 
-  // Position horizontal division lines
+  // Position horizontal division lines (mantiene 12 espacios)
   divisions.forEach((div, idx) => {
     const pct = (idx / 12) * 100; // 0%, 8.33%, 16.67%, ... 100%
     div.style.top = `${pct}%`;
     // left y width se manejan en CSS
   });
 
-  // Position numbers in spaces between lines
+  // Position numbers in spaces between lines (mantiene 12 espacios)
   numbers.forEach((num, idx) => {
     // Space centers: 4.17%, 12.5%, 20.83%, ... 95.83%
     const pct = ((idx + 0.5) / 12) * 100;
