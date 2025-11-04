@@ -249,11 +249,9 @@
 }
 
 /* ========== HIDE UNNECESSARY CONTROLS ========== */
-.controls #playBtn,
 .controls #loopBtn,
 .controls #randomBtn,
 .controls #resetBtn,
-.controls .play,
 .controls .loop,
 .controls .random,
 .controls .reset,
@@ -263,13 +261,15 @@
   display: none !important;
 }
 
-/* Show only tap tempo */
+/* Show play button and tap tempo */
+.controls #playBtn,
 .controls #tapTempoBtn,
+.controls .play,
 .controls .tap {
   display: flex !important;
 }
 
-/* Center tap tempo button */
+/* Center play and tap tempo buttons */
 .controls {
   display: flex !important;
   justify-content: center !important;
