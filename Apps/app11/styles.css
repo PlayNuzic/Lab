@@ -252,24 +252,24 @@
 .controls #loopBtn,
 .controls #randomBtn,
 .controls #resetBtn,
+.controls #tapTempoBtn,
 .controls .loop,
 .controls .random,
 .controls .reset,
+.controls .tap,
 .controls .play-group,
 .controls #randomMenu,
 .controls #mixerMenu {
   display: none !important;
 }
 
-/* Show play button and tap tempo */
+/* Show only play button */
 .controls #playBtn,
-.controls #tapTempoBtn,
-.controls .play,
-.controls .tap {
+.controls .play {
   display: flex !important;
 }
 
-/* Center play and tap tempo buttons */
+/* Center play button */
 .controls {
   display: flex !important;
   justify-content: center !important;

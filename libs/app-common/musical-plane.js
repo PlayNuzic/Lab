@@ -41,6 +41,7 @@ export function createMusicalPlane(config) {
   const cells = [];
   let isRendered = false;
   let resizeObserver = null;
+  let resizeTimeout = null;
 
   /**
    * Compute cell bounds using actual DOM measurements
@@ -263,11 +264,11 @@ export function createMusicalPlane(config) {
 
     resizeObserver = new ResizeObserver(entries => {
       // Debounce updates
-      if (this.resizeTimeout) {
-        clearTimeout(this.resizeTimeout);
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
       }
 
-      this.resizeTimeout = setTimeout(() => {
+      resizeTimeout = setTimeout(() => {
         update();
       }, 100);
     });
