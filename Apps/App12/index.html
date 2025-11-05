@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plano-Sucesión</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+</head>
+<body data-theme="system">
+  <div id="app-root"></div>
+  <!-- Tone.js is now loaded lazily after user interaction via tone-loader.js -->
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    // Set defaults in localStorage BEFORE header initializes
+    const app12Prefs = localStorage.getItem('app12-preferences');
+    if (!app12Prefs) {
+      // First time - set factory defaults
+      localStorage.setItem('app12-preferences', JSON.stringify({
+        selectedInstrument: 'piano',
+        selectColor: '#4a9eff'
+      }));
+    }
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Plano-Sucesión',
+      showSelectColor: true,
+      showAccent: false,
+      showComplexFractions: false,
+      hideT: true,
+      hideLeds: true,
+      showCircularTimelineToggle: false,
+      showHoverToggle: false,
+      showStartSoundDropdown: false,
+      showInstrumentDropdown: true,
+      randomMenuContent: `
+        <label>
+          <span>V (BPM)</span>
+          <input type="number" id="randVMin" value="60" min="60" max="240">
+          <input type="number" id="randVMax" value="240" min="60" max="240">
+        </label>
+        <label>
+          <span>P (Max Pulsos)</span>
+          <input type="number" id="randPMax" value="7" min="1" max="7">
+        </label>
+        <label>
+          <span>N (Max Notas)</span>
+          <input type="number" id="randNMax" value="11" min="0" max="11">
+        </label>
+      `
+    });
+    initHeader();
+
+    // Remove template-generated elements (inputs, middle section)
+    document.querySelector('.inputs')?.remove();
+    document.querySelector('.middle')?.remove();
+
+    import('./main.js');
+  </script>
+
+  <!-- Rendimiento Audio (menú flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <!-- Long-press para abrir el mixer -->
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+</body>
+</html>
