@@ -49,6 +49,15 @@ export function createPairStateManager(options = {}) {
     if (!memory[note]) memory[note] = {};
     memory[note][pulse] = true;
 
+    // Auto-sort: Sort by pulse ascending, then by note ascending
+    // This ensures multiple notes on the same pulse appear in ascending order
+    pairs.sort((a, b) => {
+      if (a.pulse !== b.pulse) {
+        return a.pulse - b.pulse; // Sort by pulse first
+      }
+      return a.note - b.note; // Then by note
+    });
+
     onChange(getPairs());
     return true;
   }

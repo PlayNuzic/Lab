@@ -331,7 +331,18 @@ async function init() {
       // Custom rendering: add label structure for N/P pairs
       cellElement.innerHTML = ''; // Clear any default content
     },
-    onCellClick: (noteIndex, pulseIndex, cellElement) => {
+    onCellClick: async (noteIndex, pulseIndex, cellElement) => {
+      // Play MIDI note on click
+      await initPiano();
+      const Tone = window.Tone;
+      const midi = 60 + noteIndex; // C4 = MIDI 60
+      const toneNote = Tone.Frequency(midi, 'midi').toNote();
+      const duration = (60 / currentBPM) * 0.9; // 1 pulse duration (90% for clean separation)
+      piano.triggerAttackRelease(toneNote, duration);
+
+      // Visual feedback on soundline
+      highlightNoteOnSoundline(noteIndex, duration * 1000);
+
       // Toggle cell in matrix-seq
       const isActive = cellElement.classList.contains('active');
 
@@ -423,17 +434,9 @@ async function init() {
     }
   });
 
-  // Sync selection color from color picker
+  // Color picker change listener (initial value set in index.html)
   const selectColor = document.getElementById('selectColor');
   if (selectColor) {
-    // Load stored color
-    const prefs = preferenceStorage.load();
-    if (prefs && prefs.selectColor) {
-      selectColor.value = prefs.selectColor;
-      document.documentElement.style.setProperty('--select-color', prefs.selectColor);
-    }
-
-    // Update on change
     selectColor.addEventListener('input', (e) => {
       const color = e.target.value;
       document.documentElement.style.setProperty('--select-color', color);

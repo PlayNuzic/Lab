@@ -63,6 +63,12 @@
 
     initHeader();
 
+    // After header is initialized, sync color picker value
+    const selectColor = document.getElementById('selectColor');
+    if (selectColor) {
+      selectColor.value = storedColor;
+    }
+
     // Remove template-generated elements (inputs, middle section)
     document.querySelector('.inputs')?.remove();
     document.querySelector('.middle')?.remove();

@@ -39,7 +39,7 @@
 .seq-input {
   flex: 1;
   min-height: 50px;
-  font-size: 1.5rem;
+  font-size: 3rem;
   font-family: 'Courier New', monospace;
   display: flex;
   align-items: center;
@@ -328,7 +328,7 @@
 
 /* App12 controls container (moved via JavaScript) */
 .app12-controls-container {
-  margin: 50px auto;
+  margin: -75px auto;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -385,7 +385,7 @@
   }
 
   .seq-input {
-    font-size: 1.1rem;
+    font-size: 2.5rem;
   }
 
   .cell-label {
@@ -436,7 +436,7 @@
   }
 
   .seq-input {
-    font-size: 1rem;
+    font-size: 2rem;
   }
 
   .cell-label {
@@ -463,7 +463,7 @@
   }
 
   .seq-input {
-    font-size: 0.9rem;
+    font-size: 1.25rem;
   }
 
   .cell-label {
