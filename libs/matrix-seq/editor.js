@@ -178,15 +178,138 @@ export function createDualEditor(config = {}) {
   }
 
   /**
+   * Sanitiza notas y muestra warnings si hay números fuera de rango
+   * @returns {boolean} true si hubo errores
+   */
+  function sanitizeNotes() {
+    const text = noteEditEl.textContent || '';
+    const { notes, errors } = parseNotes(text, {
+      min: noteRange[0],
+      max: noteRange[1]
+    });
+
+    let hadTooBig = false;
+    let firstTooBig = null;
+
+    // Detectar números fuera de rango
+    const matches = text.match(/\d+/g) || [];
+    for (const m of matches) {
+      const n = parseInt(m, 10);
+      if (!isNaN(n) && n > noteRange[1]) {
+        hadTooBig = true;
+        if (firstTooBig === null) firstTooBig = n;
+      }
+    }
+
+    // Actualizar texto con números válidos
+    isUpdating = true;
+    noteEditEl.textContent = notes.join(' ');
+    isUpdating = false;
+
+    currentNotes = notes;
+    onNotesChange(notes, errors);
+    emitPairsChange();
+
+    // Mostrar warning si hubo números > max
+    if (hadTooBig) {
+      showRangeWarning(noteEditEl, firstTooBig, noteRange[1], 'N');
+    }
+
+    return hadTooBig;
+  }
+
+  /**
+   * Sanitiza pulsos y muestra warnings si hay números fuera de rango
+   * @returns {boolean} true si hubo errores
+   */
+  function sanitizePulses() {
+    const text = pulseEditEl.textContent || '';
+    const { pulses, errors, sanitized } = parsePulses(text, {
+      min: pulseRange[0],
+      max: pulseRange[1]
+    });
+
+    let hadTooBig = false;
+    let firstTooBig = null;
+
+    // Detectar números fuera de rango
+    const matches = text.match(/\d+/g) || [];
+    for (const m of matches) {
+      const n = parseInt(m, 10);
+      if (!isNaN(n) && n > pulseRange[1]) {
+        hadTooBig = true;
+        if (firstTooBig === null) firstTooBig = n;
+      }
+    }
+
+    // Actualizar texto con pulsos válidos (ya ordenados y sin duplicados)
+    isUpdating = true;
+    pulseEditEl.textContent = pulses.join(' ');
+    isUpdating = false;
+
+    currentPulses = pulses;
+    onPulsesChange(pulses, errors);
+    emitPairsChange();
+
+    // Mostrar warning si hubo números > max
+    if (hadTooBig) {
+      showRangeWarning(pulseEditEl, firstTooBig, pulseRange[1], 'P');
+    }
+
+    return hadTooBig;
+  }
+
+  /**
+   * Muestra un warning temporal bajo el elemento
+   * @param {HTMLElement} element - Elemento donde mostrar el warning
+   * @param {number} invalidNumber - Número inválido
+   * @param {number} maxValue - Valor máximo permitido
+   * @param {string} label - Etiqueta (N o P)
+   */
+  function showRangeWarning(element, invalidNumber, maxValue, label) {
+    const tip = document.createElement('div');
+    tip.className = 'hover-tip auto-tip-below matrix-seq-warning';
+    tip.innerHTML = `El número <strong>${invalidNumber}</strong> es mayor que ${label} (<strong>${maxValue}</strong>). Elige un número menor.`;
+
+    document.body.appendChild(tip);
+
+    // Posicionar bajo el elemento
+    const rect = element.getBoundingClientRect();
+    tip.style.position = 'absolute';
+    tip.style.left = rect.left + 'px';
+    tip.style.top = (rect.bottom + window.scrollY) + 'px';
+    tip.style.fontSize = '0.95rem';
+    tip.style.zIndex = '1000';
+
+    // Auto-remove después de 3 segundos
+    setTimeout(() => {
+      tip.remove();
+    }, 3000);
+  }
+
+  /**
    * Handler para Enter key en notas
    */
   function handleNoteKeydown(e) {
+    // Filter: Only allow digits, space, navigation keys
+    const allowed = new Set(['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab',' ','Enter']);
+    if (!/^[0-9]$/.test(e.key) && !allowed.has(e.key)) {
+      e.preventDefault();
+      return;
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (onEnterFromNote) {
-        onEnterFromNote();
-      } else if (pulseEditEl) {
-        pulseEditEl.focus();
+      // Sanitize and check for errors
+      const hadErrors = sanitizeNotes();
+
+      // Only blur if no errors (keeps caret active for correction)
+      if (!hadErrors) {
+        if (onEnterFromNote) {
+          onEnterFromNote();
+        } else if (pulseEditEl) {
+          pulseEditEl.focus();
+        }
       }
     }
   }
@@ -195,12 +318,25 @@ export function createDualEditor(config = {}) {
    * Handler para Enter key en pulsos
    */
   function handlePulseKeydown(e) {
+    // Filter: Only allow digits, space, navigation keys
+    const allowed = new Set(['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Tab',' ','Enter']);
+    if (!/^[0-9]$/.test(e.key) && !allowed.has(e.key)) {
+      e.preventDefault();
+      return;
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (onEnterFromPulse) {
-        onEnterFromPulse();
-      } else if (noteEditEl) {
-        noteEditEl.focus();
+      // Sanitize and check for errors
+      const hadErrors = sanitizePulses();
+
+      // Only blur if no errors (keeps caret active for correction)
+      if (!hadErrors) {
+        if (onEnterFromPulse) {
+          onEnterFromPulse();
+        } else if (noteEditEl) {
+          noteEditEl.focus();
+        }
       }
     }
   }

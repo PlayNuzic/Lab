@@ -265,48 +265,7 @@ function injectSequenceInputs() {
 }
 
 // createPlaneWrapper removed - now handled by createMusicalGrid()
-
-function injectControlButtons() {
-  // Find header controls
-  const headerControls = document.querySelector('.header-controls');
-  if (!headerControls) return;
-
-  // Play button (should already exist)
-  playBtn = document.getElementById('playBtn');
-  if (!playBtn) {
-    playBtn = document.createElement('button');
-    playBtn.id = 'playBtn';
-    playBtn.className = 'btn';
-    playBtn.textContent = 'Play';
-    headerControls.appendChild(playBtn);
-  }
-
-  // Reset button
-  resetBtn = document.createElement('button');
-  resetBtn.id = 'resetBtn';
-  resetBtn.className = 'btn';
-  resetBtn.textContent = 'Reset';
-  headerControls.appendChild(resetBtn);
-
-  // Tap button
-  tapBtn = document.createElement('button');
-  tapBtn.id = 'tapBtn';
-  tapBtn.className = 'btn';
-  tapBtn.textContent = 'Tap';
-  headerControls.appendChild(tapBtn);
-
-  // BPM display
-  bpmDisplay = document.createElement('span');
-  bpmDisplay.id = 'bpmDisplay';
-  bpmDisplay.className = 'bpm-display';
-  bpmDisplay.textContent = `${DEFAULT_BPM} BPM`;
-  headerControls.appendChild(bpmDisplay);
-
-  // Random button (should exist from template)
-  randomBtn = document.getElementById('randBtn');
-}
-
-// Cell factory no longer needed - handled by createMusicalGrid()
+// injectControlButtons removed - buttons now queried after DOM is ready
 
 // ========== INITIALIZATION ==========
 
@@ -315,7 +274,6 @@ async function init() {
 
   // Inject DOM elements
   injectSequenceInputs();
-  injectControlButtons();
 
   // Create musical grid using new simplified module
   musicalGrid = createMusicalGrid({
@@ -412,7 +370,45 @@ async function init() {
     pulseElement: musicalGrid.containers.timeline
   });
 
-  // Event listeners
+  // Wait for DOM to be fully populated by template system
+  await new Promise(resolve => setTimeout(resolve, 50));
+
+  // Query control buttons AFTER template has rendered
+  const headerControls = document.querySelector('.header-controls');
+
+  playBtn = document.getElementById('playBtn');
+  randomBtn = document.getElementById('randBtn');
+
+  // Reset button - create if doesn't exist
+  resetBtn = document.getElementById('resetBtn');
+  if (!resetBtn && headerControls) {
+    resetBtn = document.createElement('button');
+    resetBtn.id = 'resetBtn';
+    resetBtn.className = 'btn';
+    resetBtn.textContent = 'Reset';
+    headerControls.appendChild(resetBtn);
+  }
+
+  // Tap button - create if doesn't exist
+  tapBtn = document.getElementById('tapBtn');
+  if (!tapBtn && headerControls) {
+    tapBtn = document.createElement('button');
+    tapBtn.id = 'tapBtn';
+    tapBtn.className = 'btn';
+    tapBtn.textContent = 'Tap';
+    headerControls.appendChild(tapBtn);
+  }
+
+  // BPM display - query existing or create if missing
+  bpmDisplay = document.querySelector('.bpm-display');
+  if (!bpmDisplay && headerControls) {
+    bpmDisplay = document.createElement('span');
+    bpmDisplay.className = 'bpm-display';
+    bpmDisplay.textContent = `${DEFAULT_BPM} BPM`;
+    headerControls.appendChild(bpmDisplay);
+  }
+
+  // Event listeners (now buttons exist)
   playBtn?.addEventListener('click', handlePlay);
   resetBtn?.addEventListener('click', handleReset);
   randomBtn?.addEventListener('click', handleRandom);

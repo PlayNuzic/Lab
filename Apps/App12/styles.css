@@ -37,13 +37,21 @@
 }
 
 .seq-input {
-  flex: 1;
+  width: fit-content;          /* Shrink to content width */
+  max-width: 100%;             /* Prevent overflow beyond parent */
+  margin: 0 auto;              /* Center horizontally */
+  overflow-x: auto;            /* Enable horizontal scroll */
+  overflow-y: visible;         /* Tooltips can overflow vertically */
+  justify-content: flex-start; /* Content aligns left within container */
   min-height: 50px;
   font-size: 3rem;
   font-family: 'Courier New', monospace;
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 0 20px;             /* Add horizontal padding */
+  position: relative;          /* For absolute tooltips */
+  box-sizing: border-box;
 }
 
 /* Pulse-seq styling for N and P inputs */
@@ -346,6 +354,35 @@
 .loop,
 .controls .loop {
   display: none !important;
+}
+
+/* ========== WARNING TOOLTIPS ========== */
+.hover-tip.matrix-seq-warning {
+  position: absolute;
+  background: #ff6b6b;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: tipFadeIn 0.2s ease-out;
+  max-width: 300px;
+}
+
+[data-theme="dark"] .hover-tip.matrix-seq-warning {
+  background: #e74c3c;
+}
+
+@keyframes tipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .bpm-display {
