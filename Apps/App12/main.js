@@ -4,6 +4,7 @@
 import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createMusicalPlane } from '../../libs/app-common/musical-plane.js';
 import { createTimelineHorizontalAxis } from '../../libs/app-common/plane-adapters.js';
+import { createToggleCellFactory } from '../../libs/app-common/plane-cells.js';
 import { loadPiano } from '../../libs/sound/piano.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
@@ -81,74 +82,6 @@ function highlightNoteOnSoundline(noteIndex, durationMs) {
   setTimeout(() => {
     rect.remove();
   }, durationMs);
-}
-
-// ========== CELL FACTORY ==========
-
-function createToggleCellFactory() {
-  const cellStates = new Map();
-
-  return {
-    createCell: (noteIndex, pulseIndex) => {
-      const cell = document.createElement('div');
-      cell.className = 'matrix-cell';
-      cell.dataset.note = noteIndex;
-      cell.dataset.pulse = pulseIndex;
-
-      // Texto overlay
-      const label = document.createElement('span');
-      label.className = 'cell-label';
-      label.textContent = `N${noteIndex} P${pulseIndex}`;
-      cell.appendChild(label);
-
-      // State key
-      const key = `${noteIndex}-${pulseIndex}`;
-      cellStates.set(key, false);
-
-      // Click handler
-      cell.addEventListener('click', () => {
-        const isActive = cellStates.get(key);
-
-        if (isActive) {
-          matrixSeq.removePair(noteIndex, pulseIndex);
-          cell.classList.remove('active');
-          cellStates.set(key, false);
-        } else {
-          matrixSeq.addPair(noteIndex, pulseIndex);
-          cell.classList.add('active');
-          cellStates.set(key, true);
-        }
-      });
-
-      return cell;
-    },
-
-    getCellState: (noteIndex, pulseIndex) => {
-      const key = `${noteIndex}-${pulseIndex}`;
-      return cellStates.get(key) || false;
-    },
-
-    setCellState: (noteIndex, pulseIndex, isActive) => {
-      const key = `${noteIndex}-${pulseIndex}`;
-      cellStates.set(key, isActive);
-
-      const cell = document.querySelector(`[data-note="${noteIndex}"][data-pulse="${pulseIndex}"]`);
-      if (cell) {
-        if (isActive) {
-          cell.classList.add('active');
-        } else {
-          cell.classList.remove('active');
-        }
-      }
-    },
-
-    clearAll: () => {
-      cellStates.clear();
-      document.querySelectorAll('.matrix-cell.active').forEach(cell => {
-        cell.classList.remove('active');
-      });
-    }
-  };
 }
 
 // ========== PLAYBACK ==========
@@ -260,12 +193,35 @@ function handleRandom() {
 // ========== SYNCHRONIZATION ==========
 
 function syncGridFromPairs(pairs) {
-  // Clear all cells first
-  cellFactory.clearAll();
+  // Clear all states first
+  cellFactory.clearStates();
+
+  // Clear all active visuals
+  document.querySelectorAll('.matrix-cell.active').forEach(cell => {
+    cell.classList.remove('active');
+    const label = cell.querySelector('.cell-label');
+    if (label) {
+      label.remove();
+    }
+  });
 
   // Activate cells for each pair
   pairs.forEach(({ note, pulse }) => {
-    cellFactory.setCellState(note, pulse, true);
+    cellFactory.setState(note, pulse, true);
+
+    // Update visual manually
+    const cell = document.querySelector(`[data-v-index="${note}"][data-h-index="${pulse}"]`);
+    if (cell) {
+      cell.classList.add('active');
+
+      // Add label if not exists
+      if (!cell.querySelector('.cell-label')) {
+        const label = document.createElement('span');
+        label.className = 'cell-label';
+        label.textContent = `N${note} P${pulse}`;
+        cell.appendChild(label);
+      }
+    }
   });
 }
 
@@ -413,8 +369,32 @@ async function init() {
 
   timeline = createTimelineHorizontalAxis(TOTAL_PULSES, timelineWrapper, true);
 
-  // Create cell factory
-  cellFactory = createToggleCellFactory();
+  // Create cell factory with onToggle callback for matrix-seq integration
+  cellFactory = createToggleCellFactory({
+    className: 'matrix-cell',
+    activeClass: 'active',
+    defaultState: false,
+    onToggle: (vIndex, hIndex, isActive, cellElement) => {
+      // Integrate with matrix-seq
+      if (isActive) {
+        matrixSeq.addPair(vIndex, hIndex);
+
+        // Add label "N[x] P[y]"
+        const label = document.createElement('span');
+        label.className = 'cell-label';
+        label.textContent = `N${vIndex} P${hIndex}`;
+        cellElement.appendChild(label);
+      } else {
+        matrixSeq.removePair(vIndex, hIndex);
+
+        // Remove label
+        const label = cellElement.querySelector('.cell-label');
+        if (label) {
+          label.remove();
+        }
+      }
+    }
+  });
 
   // Create musical plane (2D grid)
   musicalPlane = createMusicalPlane({
