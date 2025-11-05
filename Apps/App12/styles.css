@@ -321,14 +321,24 @@
   display: none !important;
 }
 
-/* Reposition controls: centered below grid */
-#timelineWrapper .controls {
-  position: static;
-  margin: 30px auto;
+/* Hide empty timeline wrapper */
+#timelineWrapper:empty {
+  display: none;
+}
+
+/* App12 controls container (moved via JavaScript) */
+.app12-controls-container {
+  margin: 50px auto;
+  width: 100%;
   display: flex;
   justify-content: center;
-  gap: 15px;
-  width: fit-content;
+  align-items: center;
+}
+
+/* Preserve concentric circle layout */
+.app12-controls-container .controls {
+  position: relative;
+  /* Template's original layout is preserved */
 }
 
 /* Hide Loop button */

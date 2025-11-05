@@ -75,7 +75,12 @@ export function createSyncManager(config = {}) {
     const added = state.add(note, pulse);
 
     if (added) {
-      syncToEditor();
+      // Direct editor update (bypass flag check in syncToEditor)
+      const notes = state.getNotes();
+      const pulses = state.getPulses();
+      editor.setNotes(notes);
+      editor.setPulses(pulses);
+      onSyncComplete('state', state.getPairs());
     }
 
     isSyncing = false;
@@ -93,7 +98,12 @@ export function createSyncManager(config = {}) {
     const removed = state.remove(note, pulse);
 
     if (removed) {
-      syncToEditor();
+      // Direct editor update (bypass flag check in syncToEditor)
+      const notes = state.getNotes();
+      const pulses = state.getPulses();
+      editor.setNotes(notes);
+      editor.setPulses(pulses);
+      onSyncComplete('state', state.getPairs());
     }
 
     isSyncing = false;

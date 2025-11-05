@@ -54,6 +54,13 @@
         </label>
       `
     });
+
+    // Load selection color BEFORE header initializes
+    const app12PrefsJson = localStorage.getItem('app12-preferences');
+    const app12PrefsObj = app12PrefsJson ? JSON.parse(app12PrefsJson) : {};
+    const storedColor = app12PrefsObj.selectColor || '#4a9eff';
+    document.documentElement.style.setProperty('--select-color', storedColor);
+
     initHeader();
 
     // Remove template-generated elements (inputs, middle section)

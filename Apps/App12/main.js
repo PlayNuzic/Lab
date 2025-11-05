@@ -353,6 +353,29 @@ async function init() {
     }
   });
 
+  // Reposition controls below grid
+  const timelineWrapper = document.getElementById('timelineWrapper');
+  const controls = timelineWrapper?.querySelector('.controls');
+  const appRoot = document.getElementById('app-root');
+
+  if (controls && appRoot) {
+    // Extract controls from timeline wrapper
+    controls.remove();
+
+    // Create container for controls
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'app12-controls-container';
+    controlsContainer.appendChild(controls);
+
+    // Insert after grid-container
+    const gridContainer = appRoot.querySelector('.grid-container');
+    if (gridContainer) {
+      gridContainer.after(controlsContainer);
+    } else {
+      appRoot.appendChild(controlsContainer);
+    }
+  }
+
   // Create matrix-seq controller
   matrixSeq = createMatrixSeqController({
     noteRange: [0, 11],
