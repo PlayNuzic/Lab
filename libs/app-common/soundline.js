@@ -2,112 +2,136 @@
 // Módulo para crear línea sonora vertical con divisiones y numeración MIDI
 
 /**
- * Creates a vertical soundline with 13 horizontal divisions and numbered spaces (0-11)
- * Mapping: 0 → MIDI 60 (C4), 11 → MIDI 71 (B4)
+ * Creates a vertical soundline with horizontal divisions and numbered spaces.
  *
- * @param {HTMLElement} container - Container element for the soundline
- * @returns {Object} Soundline API
+ * Supports the legacy signature `createSoundline({ container, onNoteClick })`
+ * as well as the simplified `createSoundline(container)`.
+ *
+ * @param {HTMLElement|Object} options - Container element or configuration.
+ * @param {HTMLElement} options.container - Target container element.
+ * @param {number} [options.totalNotes=12] - Number of note spaces (>=1).
+ * @param {number} [options.startMidi=60] - MIDI note assigned to index 0.
+ * @param {Function} [options.labelFormatter] - Custom text for each label.
+ * @param {Function} [options.onNoteClick] - Click handler for labels.
+ * @returns {Object} Soundline API.
  */
-export function createSoundline(container) {
-  if (!container) {
-    throw new Error('Container element required for soundline');
-  }
+export function createSoundline(options) {
+  const {
+    container,
+    totalNotes,
+    startMidi,
+    labelFormatter,
+    onNoteClick
+  } = normalizeOptions(options);
 
   // Create main soundline container
   const soundline = document.createElement('div');
   soundline.className = 'soundline';
   soundline.id = 'soundline';
 
-  // Create 13 horizontal division lines (indices 0-12)
-  for (let i = 0; i <= 12; i++) {
+  // Create horizontal division lines (indices 0-totalNotes)
+  for (let i = 0; i <= totalNotes; i++) {
     const line = document.createElement('div');
     line.className = 'soundline-division';
     line.dataset.index = i;
     soundline.appendChild(line);
   }
 
-  // Create 12 number labels (0-11) positioned in spaces between lines
-  // Note 0 (MIDI 60) at bottom, Note 11 (MIDI 71) at top
-  for (let i = 0; i <= 11; i++) {
+  // Create number labels (0-totalNotes-1) positioned in spaces between lines
+  for (let i = 0; i < totalNotes; i++) {
     const label = document.createElement('div');
     label.className = 'soundline-number';
+
+    const midi = startMidi + i;
     label.dataset.note = i;
-    label.dataset.midi = 60 + i;
-    label.textContent = i;
+    label.dataset.noteIndex = i;
+    label.dataset.midi = midi;
+    label.textContent = formatLabel(labelFormatter, i, midi);
+
+    if (onNoteClick) {
+      label.tabIndex = 0;
+      label.addEventListener('click', (event) => {
+        onNoteClick(i, midi, event);
+      });
+      label.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onNoteClick(i, midi, event);
+        }
+      });
+    }
+
     soundline.appendChild(label);
   }
 
   container.appendChild(soundline);
 
   // Position elements after appending to DOM
-  layoutSoundline(soundline);
+  layoutSoundline(soundline, totalNotes);
 
-  return {
+  const soundlineApi = {
     element: soundline,
 
     /**
-     * Get vertical position percentage for a note index
-     * @param {number} noteIndex - Note index (0-11)
+     * Get vertical position percentage for a note index.
+     * @param {number} noteIndex - Note index (0-totalNotes-1)
      * @returns {number} Percentage from top (0-100)
      */
     getNotePosition: (noteIndex) => {
-      if (noteIndex < 0 || noteIndex > 11) {
-        console.warn(`Note index ${noteIndex} out of range (0-11)`);
+      if (noteIndex < 0 || noteIndex >= totalNotes) {
+        console.warn(`Note index ${noteIndex} out of range (0-${totalNotes - 1})`);
         return 50;
       }
+
       // Center of space between lines: same as numbers
-      // Space centers: 4.17%, 12.5%, 20.83%, ... 95.83%
-      const pct = ((noteIndex + 0.5) / 12) * 100;
-      // Inverted: note 0 at bottom (95.83%), note 11 at top (4.17%)
+      const pct = ((noteIndex + 0.5) / totalNotes) * 100;
+      // Inverted: note 0 at bottom, top note at top
       return 100 - pct;
     },
 
     /**
-     * Get MIDI number for note index
-     * @param {number} noteIndex - Note index (0-11)
-     * @returns {number} MIDI number (60-71)
+     * Get MIDI number for note index.
+     * @param {number} noteIndex - Note index (0-totalNotes-1)
+     * @returns {number} MIDI number
      */
     getMidiForNote: (noteIndex) => {
-      if (noteIndex < 0 || noteIndex > 11) {
-        console.warn(`Note index ${noteIndex} out of range (0-11)`);
-        return 60;
+      if (noteIndex < 0 || noteIndex >= totalNotes) {
+        console.warn(`Note index ${noteIndex} out of range (0-${totalNotes - 1})`);
+        return startMidi;
       }
-      return 60 + noteIndex;
+      return startMidi + noteIndex;
     },
 
     /**
-     * Get note index for MIDI number
-     * @param {number} midi - MIDI number (60-71)
-     * @returns {number} Note index (0-11) or -1 if out of range
+     * Get note index for MIDI number.
+     * @param {number} midi - MIDI number
+     * @returns {number} Note index or -1 if out of range
      */
     getNoteForMidi: (midi) => {
-      if (midi < 60 || midi > 71) {
-        console.warn(`MIDI ${midi} out of range (60-71)`);
+      const offset = midi - startMidi;
+      if (offset < 0 || offset >= totalNotes) {
+        console.warn(`MIDI ${midi} out of range (${startMidi}-${startMidi + totalNotes - 1})`);
         return -1;
       }
-      return midi - 60;
+      return offset;
     },
 
-    // NEW: For musical-plane integration
     /**
-     * Get vertical position bounds for a note index
-     * Compatible with musical-plane axis interface
-     * @param {number} noteIndex - Note index (0-11)
-     * @returns {Object} {top: px, height: px} in pixels relative to container
+     * Get vertical position bounds for a note index (px).
+     * Compatible with musical-plane axis interface.
+     * @param {number} noteIndex - Note index (0-totalNotes-1)
+     * @returns {Object} {top: px, height: px}
      */
     getPosition: (noteIndex) => {
-      if (noteIndex < 0 || noteIndex >= 12) {
-        console.warn(`Note index ${noteIndex} out of range (0-11)`);
+      if (noteIndex < 0 || noteIndex >= totalNotes) {
+        console.warn(`Note index ${noteIndex} out of range (0-${totalNotes - 1})`);
         return { top: 0, height: 0 };
       }
 
       const containerRect = soundline.getBoundingClientRect();
       const containerHeight = containerRect.height;
 
-      // Each note occupies 1/12 of the container height
-      const noteHeight = containerHeight / 12;
-
-      // Note 0 at bottom, note 11 at top (inverted for musical convention)
+      const noteHeight = containerHeight / totalNotes;
       const top = containerHeight - ((noteIndex + 1) * noteHeight);
 
       return {
@@ -117,37 +141,93 @@ export function createSoundline(container) {
     },
 
     /**
-     * Get number of notes (always 12)
-     * Compatible with musical-plane axis interface
-     * @returns {number} 12
+     * Get number of notes (divisions).
+     * Compatible with musical-plane axis interface.
+     * @returns {number}
      */
-    getCount: () => 12
+    getCount: () => totalNotes,
+
+    /**
+     * Force layout recomputation (e.g., after resize or font change).
+     */
+    relayout: () => layoutSoundline(soundline, totalNotes)
   };
+
+  return soundlineApi;
+}
+
+function formatLabel(formatter, noteIndex, midi) {
+  if (typeof formatter === 'function') {
+    try {
+      const result = formatter(noteIndex, midi);
+      if (result !== undefined && result !== null) {
+        return String(result);
+      }
+    } catch (error) {
+      console.warn('Soundline labelFormatter threw an error:', error);
+    }
+  }
+  return String(noteIndex);
+}
+
+function normalizeOptions(options) {
+  const defaultOptions = {
+    container: null,
+    totalNotes: 12,
+    startMidi: 60,
+    labelFormatter: null,
+    onNoteClick: null
+  };
+
+  if (isDomElement(options)) {
+    return { ...defaultOptions, container: options };
+  }
+
+  const config = { ...defaultOptions, ...(options || {}) };
+  const container = config.container;
+
+  if (!isDomElement(container)) {
+    throw new Error('Container element required for soundline');
+  }
+
+  const normalizedTotalNotes = Number.isInteger(config.totalNotes) ? config.totalNotes : defaultOptions.totalNotes;
+  const safeTotalNotes = Math.max(1, normalizedTotalNotes);
+
+  const normalizedStartMidi = Number.isInteger(config.startMidi) ? config.startMidi : defaultOptions.startMidi;
+
+  return {
+    container,
+    totalNotes: safeTotalNotes,
+    startMidi: normalizedStartMidi,
+    labelFormatter: config.labelFormatter,
+    onNoteClick: typeof config.onNoteClick === 'function' ? config.onNoteClick : null
+  };
+}
+
+function isDomElement(value) {
+  return Boolean(value && typeof value === 'object' && value.nodeType === 1 && typeof value.appendChild === 'function');
 }
 
 /**
  * Layout soundline elements in vertical arrangement
  * @private
  */
-function layoutSoundline(soundline) {
+function layoutSoundline(soundline, totalNotes = 12) {
+  if (!soundline) return;
+
+  const safeTotalNotes = Math.max(1, totalNotes);
   const divisions = soundline.querySelectorAll('.soundline-division');
   const numbers = soundline.querySelectorAll('.soundline-number');
 
-  // Position horizontal division lines (mantiene 12 espacios)
   divisions.forEach((div, idx) => {
-    const pct = (idx / 12) * 100; // 0%, 8.33%, 16.67%, ... 100%
+    const pct = (idx / safeTotalNotes) * 100;
     div.style.top = `${pct}%`;
-    // left y width se manejan en CSS
   });
 
-  // Position numbers in spaces between lines (mantiene 12 espacios)
   numbers.forEach((num, idx) => {
-    // Space centers: 4.17%, 12.5%, 20.83%, ... 95.83%
-    const pct = ((idx + 0.5) / 12) * 100;
-    // Inverted: index 0 at bottom, index 11 at top
+    const pct = ((idx + 0.5) / safeTotalNotes) * 100;
     const invertedPct = 100 - pct;
     num.style.top = `${invertedPct}%`;
     num.style.transform = 'translateY(-50%)';
-    // left y width se manejan en CSS
   });
 }

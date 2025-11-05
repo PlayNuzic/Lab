@@ -58,11 +58,13 @@ function highlightNoteOnSoundline(noteIndex, durationMs) {
   const rect = document.createElement('div');
   rect.className = 'soundline-highlight';
 
-  const noteElement = document.querySelector(`[data-note-index="${noteIndex}"]`);
+  const soundlineEl = document.querySelector('.soundline-wrapper');
+  if (!soundlineEl) return;
+
+  const noteElement = soundlineEl.querySelector(`.soundline-number[data-note-index="${noteIndex}"]`);
   if (!noteElement) return;
 
   const bounds = noteElement.getBoundingClientRect();
-  const soundlineEl = document.querySelector('.soundline-wrapper');
   const soundlineBounds = soundlineEl.getBoundingClientRect();
 
   rect.style.position = 'absolute';
@@ -384,20 +386,13 @@ async function init() {
   const soundlineWrapper = createSoundlineWrapper();
 
   // Create soundline (vertical axis) using shared API
-  soundline = createSoundline(soundlineWrapper);
-
-  // Optional: click on soundline numbers to audition notes
-  soundlineWrapper.addEventListener('click', async (e) => {
-    const target = e.target;
-    if (target && target.classList && target.classList.contains('soundline-number')) {
-      const noteIndex = parseInt(target.dataset.note, 10);
-      if (!Number.isNaN(noteIndex)) {
-        await initPiano();
-        const midi = 60 + noteIndex;
-        const Tone = window.Tone;
-        const toneNote = Tone.Frequency(midi, 'midi').toNote();
-        piano.triggerAttackRelease(toneNote, 0.3);
-      }
+  soundline = createSoundline({
+    container: soundlineWrapper,
+    onNoteClick: async (noteIndex, midi) => {
+      await initPiano();
+      const Tone = window.Tone;
+      const toneNote = Tone.Frequency(midi, 'midi').toNote();
+      piano.triggerAttackRelease(toneNote, 0.3);
     }
   });
 
