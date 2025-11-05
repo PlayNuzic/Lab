@@ -1,10 +1,8 @@
 // App12: Plano-Sucesión - 2D Step Sequencer with dual N+P sequences
 // Uses matrix-seq module for coordinated note/pulse selection
+// Uses grid-layout.js for simplified 2D grid creation
 
-import { createSoundline } from '../../libs/app-common/soundline.js';
-import { createMusicalPlane } from '../../libs/app-common/musical-plane.js';
-import { createTimelineHorizontalAxis } from '../../libs/app-common/plane-adapters.js';
-import { createToggleCellFactory } from '../../libs/app-common/plane-cells.js';
+import { createMusicalGrid } from '../../libs/app-common/grid-layout.js';
 import { loadPiano } from '../../libs/sound/piano.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
@@ -20,9 +18,7 @@ const DEFAULT_BPM = 120;
 
 // ========== STATE ==========
 let piano = null;
-let soundline = null;
-let timeline = null;
-let musicalPlane = null;
+let musicalGrid = null;
 let matrixSeq = null;
 let currentBPM = DEFAULT_BPM;
 let isPlaying = false;
@@ -35,7 +31,6 @@ let randomBtn = null;
 let bpmDisplay = null;
 let noteSeqWrapper = null;
 let pulseSeqWrapper = null;
-let planeWrapper = null;
 
 // Storage de preferencias
 const preferenceStorage = createPreferenceStorage('app12');
@@ -56,14 +51,14 @@ async function initPiano() {
 // ========== VISUAL FEEDBACK ==========
 
 function highlightNoteOnSoundline(noteIndex, durationMs) {
-  const rect = document.createElement('div');
-  rect.className = 'soundline-highlight';
+  const noteElement = musicalGrid?.getNoteElement(noteIndex);
+  if (!noteElement) return;
 
-  const soundlineEl = document.querySelector('.soundline-wrapper');
+  const soundlineEl = musicalGrid.containers.soundline;
   if (!soundlineEl) return;
 
-  const noteElement = soundlineEl.querySelector(`.soundline-number[data-note-index="${noteIndex}"]`);
-  if (!noteElement) return;
+  const rect = document.createElement('div');
+  rect.className = 'soundline-highlight';
 
   const bounds = noteElement.getBoundingClientRect();
   const soundlineBounds = soundlineEl.getBoundingClientRect();
@@ -118,7 +113,7 @@ async function handlePlay() {
 
     // Schedule visual feedback
     setTimeout(() => {
-      const cell = document.querySelector(`[data-note="${note}"][data-pulse="${pulse}"]`);
+      const cell = musicalGrid.getCellElement(note, pulse);
       if (cell) {
         cell.classList.add('playing');
         setTimeout(() => cell.classList.remove('playing'), duration * 1000);
@@ -141,7 +136,7 @@ async function handlePlay() {
 function handleReset() {
   // Clear selections
   matrixSeq.clear();
-  cellFactory.clearAll();
+  musicalGrid?.clear();
 
   // Reset BPM
   currentBPM = DEFAULT_BPM;
@@ -193,11 +188,10 @@ function handleRandom() {
 // ========== SYNCHRONIZATION ==========
 
 function syncGridFromPairs(pairs) {
-  // Clear all states first
-  cellFactory.clearStates();
+  if (!musicalGrid) return;
 
   // Clear all active visuals
-  document.querySelectorAll('.matrix-cell.active').forEach(cell => {
+  document.querySelectorAll('.musical-cell.active').forEach(cell => {
     cell.classList.remove('active');
     const label = cell.querySelector('.cell-label');
     if (label) {
@@ -207,10 +201,7 @@ function syncGridFromPairs(pairs) {
 
   // Activate cells for each pair
   pairs.forEach(({ note, pulse }) => {
-    cellFactory.setState(note, pulse, true);
-
-    // Update visual manually
-    const cell = document.querySelector(`[data-v-index="${note}"][data-h-index="${pulse}"]`);
+    const cell = musicalGrid.getCellElement(note, pulse);
     if (cell) {
       cell.classList.add('active');
 
@@ -273,15 +264,7 @@ function injectSequenceInputs() {
   }
 }
 
-function createPlaneWrapper() {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'plane-wrapper';
-  const appRoot = document.getElementById('app-root');
-  if (appRoot) {
-    appRoot.appendChild(wrapper);
-  }
-  return wrapper;
-}
+// createPlaneWrapper removed - now handled by createMusicalGrid()
 
 function injectControlButtons() {
   // Find header controls
@@ -323,8 +306,7 @@ function injectControlButtons() {
   randomBtn = document.getElementById('randBtn');
 }
 
-// ========== CELL FACTORY INSTANCE ==========
-let cellFactory = null;
+// Cell factory no longer needed - handled by createMusicalGrid()
 
 // ========== INITIALIZATION ==========
 
@@ -335,77 +317,52 @@ async function init() {
   injectSequenceInputs();
   injectControlButtons();
 
-  // Create plane wrapper first
-  planeWrapper = createPlaneWrapper();
+  // Create musical grid using new simplified module
+  musicalGrid = createMusicalGrid({
+    parent: document.getElementById('app-root'),
+    notes: TOTAL_NOTES,
+    pulses: TOTAL_PULSES,
+    startMidi: 60, // C4
+    fillSpaces: true, // Cells between pulses (spaces 0-7)
+    cellClassName: 'musical-cell',
+    activeClassName: 'active',
+    highlightClassName: 'highlight',
+    cellRenderer: (noteIndex, pulseIndex, cellElement) => {
+      // Custom rendering: add label structure for N/P pairs
+      cellElement.innerHTML = ''; // Clear any default content
+    },
+    onCellClick: (noteIndex, pulseIndex, cellElement) => {
+      // Toggle cell in matrix-seq
+      const isActive = cellElement.classList.contains('active');
 
-  // Create soundline wrapper
-  const soundlineWrapper = createSoundlineWrapper();
+      if (isActive) {
+        // Remove pair
+        matrixSeq.removePair(noteIndex, pulseIndex);
+        cellElement.classList.remove('active');
 
-  // Create soundline (vertical axis) using shared API
-  soundline = createSoundline({
-    container: soundlineWrapper,
+        // Remove label
+        const label = cellElement.querySelector('.cell-label');
+        if (label) label.remove();
+      } else {
+        // Add pair
+        matrixSeq.addPair(noteIndex, pulseIndex);
+        cellElement.classList.add('active');
+
+        // Add label "N[x] P[y]"
+        const label = document.createElement('span');
+        label.className = 'cell-label';
+        label.textContent = `N${noteIndex} P${pulseIndex}`;
+        cellElement.appendChild(label);
+      }
+    },
     onNoteClick: async (noteIndex, midi) => {
+      // Play note when soundline clicked
       await initPiano();
       const Tone = window.Tone;
       const toneNote = Tone.Frequency(midi, 'midi').toNote();
       piano.triggerAttackRelease(toneNote, 0.3);
     }
   });
-
-  // Create timeline wrapper
-  const timelineWrapper = createTimelineWrapper();
-
-  // Create timeline (horizontal axis)
-  const timelineNumbers = Array.from({ length: TOTAL_PULSES }, (_, i) => i);
-
-  // Render timeline markers
-  timelineNumbers.forEach(pulseIndex => {
-    const marker = document.createElement('div');
-    marker.className = 'pulse-marker';
-    marker.dataset.pulseIndex = pulseIndex;
-    marker.textContent = pulseIndex;
-    timelineWrapper.appendChild(marker);
-  });
-
-  timeline = createTimelineHorizontalAxis(TOTAL_PULSES, timelineWrapper, true);
-
-  // Create cell factory with onToggle callback for matrix-seq integration
-  cellFactory = createToggleCellFactory({
-    className: 'matrix-cell',
-    activeClass: 'active',
-    defaultState: false,
-    onToggle: (vIndex, hIndex, isActive, cellElement) => {
-      // Integrate with matrix-seq
-      if (isActive) {
-        matrixSeq.addPair(vIndex, hIndex);
-
-        // Add label "N[x] P[y]"
-        const label = document.createElement('span');
-        label.className = 'cell-label';
-        label.textContent = `N${vIndex} P${hIndex}`;
-        cellElement.appendChild(label);
-      } else {
-        matrixSeq.removePair(vIndex, hIndex);
-
-        // Remove label
-        const label = cellElement.querySelector('.cell-label');
-        if (label) {
-          label.remove();
-        }
-      }
-    }
-  });
-
-  // Create musical plane (2D grid)
-  musicalPlane = createMusicalPlane({
-    container: planeWrapper,
-    verticalAxis: soundline,
-    horizontalAxis: timeline,
-    cellFactory: cellFactory
-  });
-
-  // Render the grid cells
-  musicalPlane.render();
 
   // Create matrix-seq controller
   matrixSeq = createMatrixSeqController({
@@ -426,10 +383,10 @@ async function init() {
   matrixSeq.mount({
     noteRoot: document.getElementById('noteSeqInput'),
     pulseRoot: document.getElementById('pulseSeqInput'),
-    noteAxis: soundline,
-    pulseAxis: timeline,
-    noteElement: document.querySelector('.soundline-wrapper'),
-    pulseElement: timelineWrapper
+    noteAxis: null, // Not needed with new grid
+    pulseAxis: null, // Not needed with new grid
+    noteElement: musicalGrid.containers.soundline,
+    pulseElement: musicalGrid.containers.timeline
   });
 
   // Event listeners
@@ -464,23 +421,7 @@ async function init() {
   console.log('App12 initialized successfully');
 }
 
-function createSoundlineWrapper() {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'soundline-wrapper';
-  if (planeWrapper) {
-    planeWrapper.appendChild(wrapper);
-  }
-  return wrapper;
-}
-
-function createTimelineWrapper() {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'timeline-wrapper';
-  if (planeWrapper) {
-    planeWrapper.appendChild(wrapper);
-  }
-  return wrapper;
-}
+// createSoundlineWrapper and createTimelineWrapper removed - now handled by createMusicalGrid()
 
 // Start initialization
 init().catch(err => {

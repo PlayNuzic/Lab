@@ -181,8 +181,8 @@
 }
 
 /* ========== MATRIX CELLS ========== */
-.matrix-cell {
-  /* Position and size set dynamically by musical-plane.js */
+.musical-cell {
+  /* Position and size set dynamically by grid-layout.js */
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 2px;
   cursor: pointer;
@@ -195,12 +195,12 @@
   position: relative;
 }
 
-[data-theme="dark"] .matrix-cell {
+[data-theme="dark"] .musical-cell {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.05);
 }
 
-.matrix-cell:hover {
+.musical-cell:hover {
   background: var(--cell-highlight-color);
   opacity: 0.4;
   box-shadow: 0 0 10px var(--cell-highlight-color);
@@ -208,7 +208,7 @@
 }
 
 /* Active cell (selected) */
-.matrix-cell.active {
+.musical-cell.active {
   background: var(--cell-highlight-color);
   opacity: 0.9;
   border-color: var(--cell-highlight-color);
@@ -217,7 +217,7 @@
 }
 
 /* Playing animation */
-.matrix-cell.playing {
+.musical-cell.playing {
   animation: cellFlash 0.3s ease-in-out;
   z-index: 15;
 }
@@ -237,7 +237,7 @@
   display: none;
 }
 
-.matrix-cell.active .cell-label {
+.musical-cell.active .cell-label {
   display: block;
 }
 
@@ -357,6 +357,10 @@
   .cell-label {
     font-size: 0.6em;
   }
+
+  .musical-cell:hover {
+    opacity: 0.5;
+  }
 }
 
 @media (max-width: 768px) {
@@ -430,6 +434,10 @@
 
   .cell-label {
     display: none !important; /* Hide on very small screens */
+  }
+
+  .musical-cell {
+    border-width: 0.5px;
   }
 
   .bpm-display {
