@@ -338,22 +338,11 @@ async function init() {
       if (isActive) {
         // Remove pair
         matrixSeq.removePair(noteIndex, pulseIndex);
-        cellElement.classList.remove('active');
-
-        // Remove label
-        const label = cellElement.querySelector('.cell-label');
-        if (label) label.remove();
       } else {
         // Add pair
         matrixSeq.addPair(noteIndex, pulseIndex);
-        cellElement.classList.add('active');
-
-        // Add label "N[x] P[y]"
-        const label = document.createElement('span');
-        label.className = 'cell-label';
-        label.textContent = `N${noteIndex} P${pulseIndex}`;
-        cellElement.appendChild(label);
       }
+      // Note: syncGridFromPairs() will handle visual updates (active class + labels)
     },
     onNoteClick: async (noteIndex, midi) => {
       // Play note when soundline clicked
@@ -410,6 +399,26 @@ async function init() {
       piano: { label: 'Piano', defaultVolume: 0 }
     }
   });
+
+  // Sync selection color from color picker
+  const selectColor = document.getElementById('selectColor');
+  if (selectColor) {
+    // Load stored color
+    const prefs = preferenceStorage.load();
+    if (prefs && prefs.selectColor) {
+      selectColor.value = prefs.selectColor;
+      document.documentElement.style.setProperty('--select-color', prefs.selectColor);
+    }
+
+    // Update on change
+    selectColor.addEventListener('input', (e) => {
+      const color = e.target.value;
+      document.documentElement.style.setProperty('--select-color', color);
+      const currentPrefs = preferenceStorage.load() || {};
+      currentPrefs.selectColor = color;
+      preferenceStorage.save(currentPrefs);
+    });
+  }
 
   // Factory reset
   registerFactoryReset(() => {

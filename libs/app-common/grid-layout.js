@@ -134,13 +134,17 @@ export function createMusicalGrid(config) {
       division.style.top = `${yPct}%`;
       container.appendChild(division);
 
-      // Note label (clickable number)
+      // Note label (clickable number) - CENTERED between divisions
       const noteLabel = document.createElement('div');
       noteLabel.className = 'soundline-number';
       noteLabel.dataset.noteIndex = noteIndex;
       noteLabel.dataset.midi = midi;
       noteLabel.textContent = noteFormatter ? noteFormatter(noteIndex, midi) : noteIndex;
-      noteLabel.style.top = `${yPct}%`;
+
+      // Center label between division lines (not ON the line)
+      const yCenter = (i + 0.5) * (100 / notes);
+      noteLabel.style.top = `${yCenter}%`;
+      noteLabel.style.transform = 'translateY(-50%)';
 
       // Click handler
       if (onNoteClick) {
