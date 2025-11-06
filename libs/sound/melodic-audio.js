@@ -11,6 +11,7 @@
 
 import TimelineAudio from './index.js';
 import { loadPiano } from './piano.js';
+import { ensureToneLoaded } from './tone-loader.js';
 
 export class MelodicTimelineAudio extends TimelineAudio {
   constructor() {
@@ -34,14 +35,17 @@ export class MelodicTimelineAudio extends TimelineAudio {
    * @returns {Promise<void>}
    */
   async setInstrument(key) {
-    // Ensure TimelineAudio is ready (loads Tone.js)
+    // Ensure TimelineAudio is ready (loads AudioContext)
     await this.ready();
+
+    // CRITICAL: Explicitly load Tone.js before using piano
+    await ensureToneLoaded();
 
     console.log(`Loading instrument: ${key}`);
 
     // Verify Tone.js is available
     if (typeof window.Tone === 'undefined') {
-      console.error('Tone.js not loaded after ready()');
+      console.error('Tone.js not loaded after ensureToneLoaded()');
       return;
     }
 
