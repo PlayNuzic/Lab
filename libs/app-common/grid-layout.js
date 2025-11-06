@@ -130,7 +130,7 @@ export function createMusicalGrid(config) {
       // Division marker (horizontal line)
       const division = document.createElement('div');
       division.className = 'soundline-division';
-      const yPct = (i / (notes - 1)) * 100;
+      const yPct = (i / notes) * 100;
       division.style.top = `${yPct}%`;
       container.appendChild(division);
 

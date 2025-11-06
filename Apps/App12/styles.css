@@ -158,7 +158,7 @@
   width: 30px;
   height: 2px;
   background: var(--line-color);
-  left: 85px;
+  left: 70px;
   pointer-events: none;
   z-index: 2;
 }
@@ -246,7 +246,7 @@
 
 /* Cell label (N[x] P[y]) */
 .cell-label {
-  font-size: 0.7em;
+  font-size: 1.3rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.95);
   pointer-events: none;
@@ -516,4 +516,26 @@
     padding: 6px 10px;
     min-width: 70px;
   }
+}
+
+/* ========== PULSE HIGHLIGHT (during playback) ========== */
+.pulse-marker.highlighted {
+  background: var(--select-color, #4a9eff);
+  opacity: 1;
+  transform: translateX(-50%) scaleY(1.5);
+  transition: all 0.1s ease;
+  box-shadow: 0 0 10px var(--select-color, #4a9eff);
+  z-index: 20;
+}
+
+.musical-cell.pulse-highlight {
+  border-color: var(--select-color, #4a9eff);
+  box-shadow: 0 0 12px var(--select-color, #4a9eff);
+  opacity: 0.7;
+}
+
+.musical-cell.active.pulse-highlight {
+  opacity: 1;
+  transform: scale(1.08);
+  z-index: 18;
 }

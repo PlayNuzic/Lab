@@ -3,12 +3,12 @@
 // Uses grid-layout.js for simplified 2D grid creation
 
 import { createMusicalGrid } from '../../libs/app-common/grid-layout.js';
-import { loadPiano } from '../../libs/sound/piano.js';
+import { MelodicTimelineAudio } from '../../libs/sound/melodic-audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
-import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 import { createMatrixSeqController } from '../../libs/matrix-seq/index.js';
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { initRandomMenu } from '../../libs/random/menu.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -17,11 +17,12 @@ const TOTAL_SPACES = 8;   // Spaces between pulses: 0-7
 const DEFAULT_BPM = 120;
 
 // ========== STATE ==========
-let piano = null;
+let audio = null;
 let musicalGrid = null;
 let matrixSeq = null;
 let currentBPM = DEFAULT_BPM;
 let isPlaying = false;
+let playbackTimeout = null; // Store timeout reference for immediate stop
 
 // Elements
 let playBtn = null;
@@ -37,18 +38,74 @@ const preferenceStorage = createPreferenceStorage('app12');
 
 // ========== AUDIO INITIALIZATION ==========
 
-async function initPiano() {
-  if (!piano) {
-    console.log('Ensuring Tone.js is loaded...');
-    await ensureToneLoaded();
-    console.log('Loading piano...');
-    piano = await loadPiano();
-    console.log('Piano loaded successfully');
+async function initAudio() {
+  if (!audio) {
+    console.log('Initializing MelodicTimelineAudio...');
+    audio = new MelodicTimelineAudio();
+    await audio.ready();
+
+    // Load default instrument from preferences
+    const prefs = JSON.parse(localStorage.getItem('app12-preferences') || '{}');
+    const instrument = prefs.selectedInstrument || 'piano';
+    await audio.setInstrument(instrument);
+
+    // CRITICAL: Expose globally for Performance submenu and header
+    window.NuzicAudioEngine = audio;
+    window.__labAudio = audio;
+
+    console.log('Audio initialized and exposed globally');
   }
-  return piano;
+  return audio;
 }
 
 // ========== VISUAL FEEDBACK ==========
+
+function createMatrixHighlightController() {
+  let currentPulse = -1;
+
+  function highlightPulse(pulse) {
+    // Clear previous highlights
+    document.querySelectorAll('.pulse-marker.highlighted').forEach(el => {
+      el.classList.remove('highlighted');
+    });
+    document.querySelectorAll('.musical-cell.pulse-highlight').forEach(el => {
+      el.classList.remove('pulse-highlight');
+    });
+
+    currentPulse = pulse;
+
+    // Highlight pulse marker on timeline
+    const pulseMarker = musicalGrid?.containers?.timeline
+      ?.querySelector(`[data-pulse="${pulse}"]`);
+    if (pulseMarker) {
+      pulseMarker.classList.add('highlighted');
+    }
+
+    // Highlight all active cells in this pulse column
+    if (musicalGrid) {
+      for (let noteIndex = 0; noteIndex < TOTAL_NOTES; noteIndex++) {
+        const cell = musicalGrid.getCellElement(noteIndex, pulse);
+        if (cell && cell.classList.contains('active')) {
+          cell.classList.add('pulse-highlight');
+        }
+      }
+    }
+  }
+
+  function clearHighlights() {
+    document.querySelectorAll('.pulse-marker.highlighted').forEach(el => {
+      el.classList.remove('highlighted');
+    });
+    document.querySelectorAll('.musical-cell.pulse-highlight').forEach(el => {
+      el.classList.remove('pulse-highlight');
+    });
+    currentPulse = -1;
+  }
+
+  return { highlightPulse, clearHighlights };
+}
+
+let highlightController = null;
 
 function highlightNoteOnSoundline(noteIndex, durationMs) {
   const noteElement = musicalGrid?.getNoteElement(noteIndex);
@@ -82,53 +139,132 @@ function highlightNoteOnSoundline(noteIndex, durationMs) {
 // ========== PLAYBACK ==========
 
 async function handlePlay() {
-  if (isPlaying) return;
+  if (isPlaying) {
+    // Immediate stop via audio engine
+    stopPlayback();
+    return;
+  }
 
-  // Ensure piano is loaded
-  await initPiano();
+  // Ensure audio is initialized
+  await initAudio();
 
-  const pairs = matrixSeq.getPairs();
-  if (pairs.length === 0) {
-    console.warn('No pairs selected');
+  const allPairs = matrixSeq.getPairs();
+
+  // Filter only pairs with active cells (silent pulses = empty columns)
+  const activePairs = allPairs.filter(pair => {
+    const cell = musicalGrid.getCellElement(pair.note, pair.pulse);
+    return cell?.classList.contains('active');
+  });
+
+  if (activePairs.length === 0) {
+    console.warn('No active notes to play');
     return;
   }
 
   isPlaying = true;
-  playBtn.disabled = true;
-  playBtn.textContent = 'Playing...';
+
+  // Switch to stop icon
+  const playIcon = playBtn.querySelector('.icon-play');
+  const stopIcon = playBtn.querySelector('.icon-stop');
+  if (playIcon && stopIcon) {
+    playIcon.style.display = 'none';
+    stopIcon.style.display = 'block';
+  }
 
   const Tone = window.Tone;
   const intervalMs = (60 / currentBPM) * 1000;
+  const intervalSec = intervalMs / 1000;
   const startTime = Tone.now();
 
-  pairs.forEach((pair, idx) => {
-    const { note, pulse } = pair;
-    const midi = 60 + note; // C4 = MIDI 60
-    const toneNote = Tone.Frequency(midi, 'midi').toNote();
-    const when = startTime + (idx * intervalMs / 1000);
-    const duration = intervalMs * 0.9 / 1000;
+  // Store all timeouts for cleanup
+  const visualTimeouts = [];
 
-    // Schedule audio
-    piano.triggerAttackRelease(toneNote, duration, when);
+  // Group pairs by pulse for simultaneous playback
+  const pulseGroups = {};
+  activePairs.forEach(pair => {
+    if (!pulseGroups[pair.pulse]) {
+      pulseGroups[pair.pulse] = [];
+    }
+    pulseGroups[pair.pulse].push(pair.note);
+  });
 
-    // Schedule visual feedback
-    setTimeout(() => {
-      const cell = musicalGrid.getCellElement(note, pulse);
-      if (cell) {
-        cell.classList.add('playing');
-        setTimeout(() => cell.classList.remove('playing'), duration * 1000);
-      }
+  // Get unique pulses in order
+  const uniquePulses = Object.keys(pulseGroups).map(p => parseInt(p)).sort((a, b) => a - b);
 
-      highlightNoteOnSoundline(note, duration * 1000);
+  // Schedule playback for each pulse group via audio engine
+  uniquePulses.forEach((pulse, idx) => {
+    const notes = pulseGroups[pulse];
+    const when = startTime + (idx * intervalSec);
+    const duration = intervalSec * 0.9;
+
+    // Play all notes at this pulse simultaneously via audio engine
+    notes.forEach(note => {
+      const midi = 60 + note; // C4 = MIDI 60
+      audio.playNote(midi, duration, when);
+    });
+
+    // Schedule visual feedback for all notes at this pulse
+    const visualTimeout = setTimeout(() => {
+      // Highlight the entire pulse column
+      highlightController?.highlightPulse(pulse);
+
+      notes.forEach(note => {
+        const cell = musicalGrid.getCellElement(note, pulse);
+        if (cell) {
+          cell.classList.add('playing');
+          const clearTimeout = setTimeout(() => cell.classList.remove('playing'), duration * 1000);
+          visualTimeouts.push(clearTimeout);
+        }
+        highlightNoteOnSoundline(note, duration * 1000);
+      });
     }, idx * intervalMs);
+    visualTimeouts.push(visualTimeout);
   });
 
   // Reset after completion
-  setTimeout(() => {
-    isPlaying = false;
-    playBtn.disabled = false;
-    playBtn.textContent = 'Play';
-  }, pairs.length * intervalMs + 500);
+  playbackTimeout = setTimeout(() => {
+    stopPlayback();
+  }, uniquePulses.length * intervalMs + 500);
+
+  // Store cleanup function for immediate stop
+  window.cleanupPlayback = () => {
+    visualTimeouts.forEach(timeout => clearTimeout(timeout));
+  };
+}
+
+function stopPlayback() {
+  isPlaying = false;
+
+  // Stop audio engine (releases all instrument notes)
+  audio?.stop();
+
+  // Clear main playback timeout
+  if (playbackTimeout) {
+    clearTimeout(playbackTimeout);
+    playbackTimeout = null;
+  }
+
+  // Clear all visual timeouts
+  if (window.cleanupPlayback) {
+    window.cleanupPlayback();
+    delete window.cleanupPlayback;
+  }
+
+  // Clear pulse highlights
+  highlightController?.clearHighlights();
+
+  // Clear any active playing animations
+  document.querySelectorAll('.musical-cell.playing').forEach(cell => {
+    cell.classList.remove('playing');
+  });
+
+  // Switch back to play icon
+  const playIcon = playBtn?.querySelector('.icon-play');
+  const stopIcon = playBtn?.querySelector('.icon-stop');
+  if (playIcon && stopIcon) {
+    playIcon.style.display = 'block';
+    stopIcon.style.display = 'none';
+  }
 }
 
 // ========== RESET ==========
@@ -142,12 +278,9 @@ function handleReset() {
   currentBPM = DEFAULT_BPM;
   updateBPMDisplay();
 
-  // Reset audio if playing
+  // Stop playback if playing
   if (isPlaying) {
-    window.Tone?.Transport?.stop();
-    isPlaying = false;
-    playBtn.disabled = false;
-    playBtn.textContent = 'Play';
+    stopPlayback();
   }
 
   console.log('Reset to default state');
@@ -209,7 +342,7 @@ function syncGridFromPairs(pairs) {
       if (!cell.querySelector('.cell-label')) {
         const label = document.createElement('span');
         label.className = 'cell-label';
-        label.textContent = `N${note} P${pulse}`;
+        label.textContent = `N(${note}) P(${pulse})`;
         cell.appendChild(label);
       }
     }
@@ -290,13 +423,12 @@ async function init() {
       cellElement.innerHTML = ''; // Clear any default content
     },
     onCellClick: async (noteIndex, pulseIndex, cellElement) => {
-      // Play MIDI note on click
-      await initPiano();
-      const Tone = window.Tone;
+      // Play MIDI note on click via audio engine
+      await initAudio();
       const midi = 60 + noteIndex; // C4 = MIDI 60
-      const toneNote = Tone.Frequency(midi, 'midi').toNote();
       const duration = (60 / currentBPM) * 0.9; // 1 pulse duration (90% for clean separation)
-      piano.triggerAttackRelease(toneNote, duration);
+      const Tone = window.Tone;
+      audio.playNote(midi, duration, Tone.now());
 
       // Visual feedback on soundline
       highlightNoteOnSoundline(noteIndex, duration * 1000);
@@ -314,11 +446,10 @@ async function init() {
       // Note: syncGridFromPairs() will handle visual updates (active class + labels)
     },
     onNoteClick: async (noteIndex, midi) => {
-      // Play note when soundline clicked
-      await initPiano();
+      // Play note when soundline clicked via audio engine
+      await initAudio();
       const Tone = window.Tone;
-      const toneNote = Tone.Frequency(midi, 'midi').toNote();
-      piano.triggerAttackRelease(toneNote, 0.3);
+      audio.playNote(midi, 0.3, Tone.now());
     }
   });
 
@@ -370,43 +501,21 @@ async function init() {
     pulseElement: musicalGrid.containers.timeline
   });
 
+  // Initialize highlight controller
+  highlightController = createMatrixHighlightController();
+
   // Wait for DOM to be fully populated by template system
   await new Promise(resolve => setTimeout(resolve, 50));
 
   // Query control buttons AFTER template has rendered
-  const headerControls = document.querySelector('.header-controls');
-
   playBtn = document.getElementById('playBtn');
-  randomBtn = document.getElementById('randBtn');
-
-  // Reset button - create if doesn't exist
+  randomBtn = document.getElementById('randomBtn');
   resetBtn = document.getElementById('resetBtn');
-  if (!resetBtn && headerControls) {
-    resetBtn = document.createElement('button');
-    resetBtn.id = 'resetBtn';
-    resetBtn.className = 'btn';
-    resetBtn.textContent = 'Reset';
-    headerControls.appendChild(resetBtn);
-  }
-
-  // Tap button - create if doesn't exist
-  tapBtn = document.getElementById('tapBtn');
-  if (!tapBtn && headerControls) {
-    tapBtn = document.createElement('button');
-    tapBtn.id = 'tapBtn';
-    tapBtn.className = 'btn';
-    tapBtn.textContent = 'Tap';
-    headerControls.appendChild(tapBtn);
-  }
-
-  // BPM display - query existing or create if missing
+  tapBtn = document.getElementById('tapTempoBtn');
   bpmDisplay = document.querySelector('.bpm-display');
-  if (!bpmDisplay && headerControls) {
-    bpmDisplay = document.createElement('span');
-    bpmDisplay.className = 'bpm-display';
-    bpmDisplay.textContent = `${DEFAULT_BPM} BPM`;
-    headerControls.appendChild(bpmDisplay);
-  }
+
+  // Initialize BPM display
+  updateBPMDisplay();
 
   // Event listeners (now buttons exist)
   playBtn?.addEventListener('click', handlePlay);
@@ -414,21 +523,36 @@ async function init() {
   randomBtn?.addEventListener('click', handleRandom);
 
   // Tap tempo
-  createTapTempoHandler({
-    button: tapBtn,
-    onTempoChange: (bpm) => {
+  const tapTempoHandler = createTapTempoHandler({
+    getAudioInstance: initAudio,  // Fixed: use initAudio instead of initPiano
+    tapBtn,
+    tapHelp: null,
+    onBpmDetected: (bpm) => {
       currentBPM = Math.round(bpm);
       updateBPMDisplay();
+      console.log('Tap tempo detected BPM:', currentBPM);
     }
   });
+  tapTempoHandler.attach();
 
-  // Mixer integration
-  initMixerMenu({
-    triggerButton: playBtn,
-    channels: {
-      piano: { label: 'Piano', defaultVolume: 0 }
-    }
-  });
+  // Mixer integration (longpress on play button)
+  const mixerMenu = document.getElementById('mixerMenu');
+  if (mixerMenu) {
+    initMixerMenu({
+      menu: mixerMenu,
+      triggers: [playBtn, tapBtn].filter(Boolean),
+      channels: [
+        { id: 'piano', label: 'Piano', allowSolo: true },
+        { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
+      ]
+    });
+  }
+
+  // Random menu (longpress to open configuration)
+  const randomMenu = document.getElementById('randomMenu');
+  if (randomBtn && randomMenu) {
+    initRandomMenu(randomBtn, randomMenu, handleRandom);
+  }
 
   // Color picker change listener (initial value set in index.html)
   const selectColor = document.getElementById('selectColor');
@@ -441,6 +565,20 @@ async function init() {
       preferenceStorage.save(currentPrefs);
     });
   }
+
+  // Wire instrument dropdown to audio engine
+  window.addEventListener('sharedui:instrument', async (e) => {
+    const instrument = e.detail.instrument;
+    console.log('Instrument changed to:', instrument);
+
+    await initAudio();
+    await audio.setInstrument(instrument);
+
+    // Save to preferences
+    const currentPrefs = preferenceStorage.load() || {};
+    currentPrefs.selectedInstrument = instrument;
+    preferenceStorage.save(currentPrefs);
+  });
 
   // Factory reset
   registerFactoryReset(() => {
