@@ -6,12 +6,14 @@
  * - State manager (pares)
  * - Drag selection
  * - Sync bidireccional
+ * - Column-based renderer (optional)
  */
 
 import { createDualEditor } from './editor.js';
 import { createPairStateManager } from './state.js';
 import { createDragHandlers } from './drag.js';
 import { createSyncManager } from './sync.js';
+import { createPairColumnsRenderer } from './pair-columns.js';
 
 /**
  * Crea un controller completo de matrix-seq
@@ -27,7 +29,10 @@ export function createMatrixSeqController(config = {}) {
     onNotesChange = () => {},
     onPulsesChange = () => {},
     onEnterFromNote = null,
-    onEnterFromPulse = null
+    onEnterFromPulse = null,
+    renderMode = 'rows', // 'rows' | 'columns'
+    columnContainer = null, // Container for column-based rendering
+    autoJump = false // Enable auto-jump on digit entry
   } = config;
 
   // Sub-sistemas
@@ -35,6 +40,7 @@ export function createMatrixSeqController(config = {}) {
   let editor = null;
   let dragHandlers = null;
   let syncManager = null;
+  let columnRenderer = null;
 
   // Referencias a elementos y ejes
   let noteAxis = null;
@@ -62,6 +68,11 @@ export function createMatrixSeqController(config = {}) {
       pulseRange,
       onChange: (pairs) => {
         onPairsChange(pairs);
+
+        // Update column renderer if in column mode
+        if (renderMode === 'columns' && columnRenderer) {
+          columnRenderer.render(pairs);
+        }
       }
     });
 
@@ -69,6 +80,7 @@ export function createMatrixSeqController(config = {}) {
     editor = createDualEditor({
       noteRange,
       pulseRange,
+      autoJump, // Pass through auto-jump flag
       onPairsChange: (pairs) => {
         // Cuando el editor cambia, actualizar state
         if (syncManager && !syncManager.getSyncStatus()) {
@@ -120,12 +132,41 @@ export function createMatrixSeqController(config = {}) {
       }
     }
 
+    // Crear column renderer si está en modo columns
+    if (renderMode === 'columns' && columnContainer) {
+      columnRenderer = createPairColumnsRenderer({
+        container: columnContainer,
+        noteRange,
+        pulseRange,
+        onPairClick: (note, pulse) => {
+          // Click on column → toggle pair
+          if (state.has(note, pulse)) {
+            syncManager.removePair(note, pulse);
+          } else {
+            syncManager.addPair(note, pulse);
+          }
+        },
+        onPairChange: (updatedPairs) => {
+          // Column edit → update state
+          state.setPairs(updatedPairs);
+          if (syncManager) {
+            syncManager.syncToEditor();
+          }
+        },
+        editable: true
+      });
+
+      // Initial render
+      columnRenderer.render(state.getPairs());
+    }
+
     return {
       noteEditEl,
       pulseEditEl,
       state,
       editor,
-      syncManager
+      syncManager,
+      columnRenderer
     };
   }
 
@@ -220,6 +261,16 @@ export function createMatrixSeqController(config = {}) {
   };
 
   /**
+   * Acceso al column renderer
+   */
+  const columns = {
+    render: (pairs) => columnRenderer?.render(pairs),
+    highlightPulse: (pulse) => columnRenderer?.highlightPulse(pulse),
+    clearHighlights: () => columnRenderer?.clearHighlights(),
+    destroy: () => columnRenderer?.destroy()
+  };
+
+  /**
    * Obtiene texto actual
    */
   function getText() {
@@ -263,9 +314,11 @@ export function createMatrixSeqController(config = {}) {
     // Sub-sistemas
     memory,
     drag,
+    columns,
 
     // Configuración
     noteRange,
-    pulseRange
+    pulseRange,
+    renderMode
   };
 }

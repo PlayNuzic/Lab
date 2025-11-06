@@ -951,7 +951,7 @@ body[data-theme='dark'] .nuzic-audio-perf-panel .perf-foot {
 }
 
 .control-sound-toggles--three .control-sound-toggle-container--pulse {
-  left: calc(var(--pulse-offset-x, 0px));
+  left: calc(var(--pulse-offset-x, 40px));
 }
 
 .control-sound-toggles--three .control-sound-toggle-container--selected {
@@ -961,7 +961,7 @@ body[data-theme='dark'] .nuzic-audio-perf-panel .perf-foot {
 }
 
 .control-sound-toggles--three .control-sound-toggle-container--cycle {
-  left: calc((var(--control-toggle-width) + var(--control-toggle-gap)) * 2 + var(--cycle-offset-x, -140px));
+  left: calc((var(--control-toggle-width) + var(--control-toggle-gap)) * 2 + var(--cycle-offset-x, 0px));
 }
 
 @media (max-width: 600px) {

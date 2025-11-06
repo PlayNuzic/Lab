@@ -1351,14 +1351,17 @@ export class TimelineAudio {
             return null;
           })();
 
-          if (baseKey && isBaseStep) {
+          // Play base pulse sound on all steps EXCEPT step 0
+          // Step 0 is silent unless P1 mode is enabled
+          if (baseKey && isBaseStep && !isStart) {
             triggerPlayer(baseKey, when);
             triggered = true;
+          }
 
-            // P1: If _startEnabled, add additional sound layer
-            if (isStart && this._startEnabled && this._buffers.has('pulso0')) {
-              triggerPlayer('pulso0', when);
-            }
+          // P1: If _startEnabled, play special pulse0 sound ONLY on step 0
+          if (isStart && this._startEnabled && this._buffers.has('pulso0')) {
+            triggerPlayer('pulso0', when);
+            triggered = true;
           }
 
           if (isSelected && this._buffers.has('seleccionados')) {
@@ -1367,9 +1370,16 @@ export class TimelineAudio {
           }
         }
 
-        if (!triggered && !this._pulseMutedForFallback && (isBaseStep || isSelected)) {
-          const f = isStart ? 1400 : (isSelected ? 1100 : 900);
-          triggerBeep(when, f);
+        // Fallback beep: Only play on non-zero base steps or selected steps
+        // Skip step 0 in base pulse (unless P1 mode is enabled, which uses samples)
+        if (!triggered && !this._pulseMutedForFallback) {
+          if (isSelected) {
+            // Always beep for selected steps
+            triggerBeep(when, 1100);
+          } else if (isBaseStep && !isStart) {
+            // Beep for base steps, EXCEPT step 0
+            triggerBeep(when, 900);
+          }
         }
 
         scheduledStep = n;

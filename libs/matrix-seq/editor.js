@@ -11,6 +11,63 @@
 import { parseNotes, parsePulses, autoCompletePulses, createPairs } from './parser.js';
 
 /**
+ * Caret position helpers
+ */
+
+/**
+ * Gets current caret position in contenteditable element
+ * @param {HTMLElement} element - Contenteditable element
+ * @returns {number} - Caret position (0-based)
+ */
+function getCaretPosition(element) {
+  if (!element) return 0;
+
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return 0;
+
+  const range = selection.getRangeAt(0);
+  const preCaretRange = range.cloneRange();
+  preCaretRange.selectNodeContents(element);
+  preCaretRange.setEnd(range.endContainer, range.endOffset);
+
+  return preCaretRange.toString().length;
+}
+
+/**
+ * Sets caret position in contenteditable element
+ * @param {HTMLElement} element - Contenteditable element
+ * @param {number} position - Desired position
+ */
+function setCaretPosition(element, position) {
+  if (!element) return;
+
+  const textNode = element.firstChild;
+  if (!textNode || textNode.nodeType !== Node.TEXT_NODE) return;
+
+  const range = document.createRange();
+  const selection = window.getSelection();
+
+  const safePosition = Math.min(position, textNode.length);
+  range.setStart(textNode, safePosition);
+  range.collapse(true);
+
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
+/**
+ * Checks if caret is at end of text
+ * @param {HTMLElement} element - Contenteditable element
+ * @returns {boolean}
+ */
+function isAtEnd(element) {
+  if (!element) return false;
+  const position = getCaretPosition(element);
+  const textLength = (element.textContent || '').length;
+  return position >= textLength;
+}
+
+/**
  * Crea markup builder para notas
  * Formato: N ( ... ) 0-11
  */
@@ -82,7 +139,8 @@ export function createDualEditor(config = {}) {
     onNotesChange = () => {},
     onPulsesChange = () => {},
     onEnterFromNote = null,
-    onEnterFromPulse = null
+    onEnterFromPulse = null,
+    autoJump = false // Enable auto-jump on digit entry
   } = config;
 
   let noteRoot = null;
@@ -125,7 +183,7 @@ export function createDualEditor(config = {}) {
   /**
    * Handler para input en notas
    */
-  function handleNoteInput() {
+  function handleNoteInput(event) {
     if (isUpdating) return;
 
     const text = noteEditEl.textContent || '';
@@ -147,12 +205,24 @@ export function createDualEditor(config = {}) {
 
     // Emitir pares actualizados
     emitPairsChange();
+
+    // Auto-jump logic: If enabled and user typed a digit
+    if (autoJump && event?.inputType === 'insertText' && /^[0-9]$/.test(event.data)) {
+      // Check if at end of text
+      if (isAtEnd(noteEditEl)) {
+        // Jump to pulse field
+        if (pulseEditEl) {
+          pulseEditEl.focus();
+          setCaretPosition(pulseEditEl, (pulseEditEl.textContent || '').length);
+        }
+      }
+    }
   }
 
   /**
    * Handler para input en pulsos
    */
-  function handlePulseInput() {
+  function handlePulseInput(event) {
     if (isUpdating) return;
 
     const text = pulseEditEl.textContent || '';
@@ -175,6 +245,18 @@ export function createDualEditor(config = {}) {
 
     // Emitir pares actualizados
     emitPairsChange();
+
+    // Auto-jump logic: If enabled and user typed a digit
+    if (autoJump && event?.inputType === 'insertText' && /^[0-9]$/.test(event.data)) {
+      // Check if at end of text
+      if (isAtEnd(pulseEditEl)) {
+        // Jump back to note field
+        if (noteEditEl) {
+          noteEditEl.focus();
+          setCaretPosition(noteEditEl, (noteEditEl.textContent || '').length);
+        }
+      }
+    }
   }
 
   /**

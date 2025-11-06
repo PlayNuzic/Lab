@@ -143,13 +143,28 @@ export class MelodicTimelineAudio extends TimelineAudio {
 
   /**
    * Stop playback - extends parent stop() to also release instrument notes
+   * Uses disconnect/reconnect pattern to clear Tone.js event queue
    */
   stop() {
     super.stop();
 
-    // Release all active instrument notes
-    if (this._instrumentSampler && typeof this._instrumentSampler.releaseAll === 'function') {
-      this._instrumentSampler.releaseAll();
+    // CRITICAL: Disconnect and reconnect sampler to clear all scheduled events
+    // releaseAll() only stops currently playing notes, not future scheduled ones
+    if (this._instrumentSampler) {
+      const instrumentChannel = this.mixer.getChannelNode('instrument');
+
+      if (instrumentChannel) {
+        // 1. Disconnect from mixer (stops all audio immediately)
+        this._instrumentSampler.disconnect();
+
+        // 2. Release all active notes (cleanup internal state)
+        if (typeof this._instrumentSampler.releaseAll === 'function') {
+          this._instrumentSampler.releaseAll();
+        }
+
+        // 3. Reconnect to mixer (ready for next playback)
+        this._instrumentSampler.connect(instrumentChannel);
+      }
     }
   }
 
