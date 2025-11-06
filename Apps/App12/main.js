@@ -171,6 +171,12 @@ async function handlePlay() {
     stopIcon.style.display = 'block';
   }
 
+  if (!window.Tone) {
+    console.error('Tone.js not available');
+    stopPlayback();
+    return;
+  }
+
   const Tone = window.Tone;
   const intervalMs = (60 / currentBPM) * 1000;
   const intervalSec = intervalMs / 1000;
@@ -425,6 +431,12 @@ async function init() {
     onCellClick: async (noteIndex, pulseIndex, cellElement) => {
       // Play MIDI note on click via audio engine
       await initAudio();
+
+      if (!window.Tone) {
+        console.warn('Tone.js not available');
+        return;
+      }
+
       const midi = 60 + noteIndex; // C4 = MIDI 60
       const duration = (60 / currentBPM) * 0.9; // 1 pulse duration (90% for clean separation)
       const Tone = window.Tone;
@@ -448,6 +460,12 @@ async function init() {
     onNoteClick: async (noteIndex, midi) => {
       // Play note when soundline clicked via audio engine
       await initAudio();
+
+      if (!window.Tone) {
+        console.warn('Tone.js not available');
+        return;
+      }
+
       const Tone = window.Tone;
       audio.playNote(midi, 0.3, Tone.now());
     }

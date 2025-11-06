@@ -34,9 +34,16 @@ export class MelodicTimelineAudio extends TimelineAudio {
    * @returns {Promise<void>}
    */
   async setInstrument(key) {
+    // Ensure TimelineAudio is ready (loads Tone.js)
     await this.ready();
 
     console.log(`Loading instrument: ${key}`);
+
+    // Verify Tone.js is available
+    if (typeof window.Tone === 'undefined') {
+      console.error('Tone.js not loaded after ready()');
+      return;
+    }
 
     // Disconnect previous instrument if exists
     if (this._instrumentSampler) {
@@ -48,18 +55,23 @@ export class MelodicTimelineAudio extends TimelineAudio {
     // For now, only piano is supported
     // Future: Add switch/case for different instruments
     let sampler;
-    switch (key) {
-      case 'piano':
-      default:
-        sampler = await loadPiano();
-        break;
-      // Future instruments:
-      // case 'synth':
-      //   sampler = await loadSynth();
-      //   break;
-      // case 'guitar':
-      //   sampler = await loadGuitar();
-      //   break;
+    try {
+      switch (key) {
+        case 'piano':
+        default:
+          sampler = await loadPiano();
+          break;
+        // Future instruments:
+        // case 'synth':
+        //   sampler = await loadSynth();
+        //   break;
+        // case 'guitar':
+        //   sampler = await loadGuitar();
+        //   break;
+      }
+    } catch (error) {
+      console.error(`Failed to load instrument ${key}:`, error);
+      return;
     }
 
     // Connect sampler to mixer channel (NOT toDestination!)
@@ -91,6 +103,11 @@ export class MelodicTimelineAudio extends TimelineAudio {
       return;
     }
 
+    if (typeof window.Tone === 'undefined') {
+      console.error('Tone.js not available');
+      return;
+    }
+
     const Tone = window.Tone;
     const note = Tone.Frequency(midi, 'midi').toNote();
 
@@ -106,6 +123,11 @@ export class MelodicTimelineAudio extends TimelineAudio {
   playChord(midiNotes, duration, when) {
     if (!this._instrumentSampler) {
       console.warn('No instrument loaded, cannot play chord');
+      return;
+    }
+
+    if (typeof window.Tone === 'undefined') {
+      console.error('Tone.js not available');
       return;
     }
 
