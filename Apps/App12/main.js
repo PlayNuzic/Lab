@@ -5,10 +5,12 @@
 import { createMusicalGrid } from '../../libs/app-common/grid-layout.js';
 import { MelodicTimelineAudio } from '../../libs/sound/melodic-audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
-import { createMatrixSeqController } from '../../libs/matrix-seq/index.js';
-import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
+import { createGridEditor } from '../../libs/matrix-seq/index.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
+import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
+import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
+import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -19,19 +21,15 @@ const DEFAULT_BPM = 120;
 // ========== STATE ==========
 let audio = null;
 let musicalGrid = null;
-let matrixSeq = null;
-let currentBPM = DEFAULT_BPM;
+let gridEditor = null;
+const currentBPM = DEFAULT_BPM; // Locked to 120 BPM
 let isPlaying = false;
-let playbackTimeout = null; // Store timeout reference for immediate stop
 
 // Elements
 let playBtn = null;
 let resetBtn = null;
-let tapBtn = null;
 let randomBtn = null;
-let bpmDisplay = null;
-let noteSeqWrapper = null;
-let pulseSeqWrapper = null;
+let gridEditorContainer = null;
 
 // Storage de preferencias
 const preferenceStorage = createPreferenceStorage('app12');
@@ -71,6 +69,14 @@ function createMatrixHighlightController() {
     document.querySelectorAll('.musical-cell.pulse-highlight').forEach(el => {
       el.classList.remove('pulse-highlight');
     });
+    document.querySelectorAll('.pz.number.highlighted').forEach(el => {
+      el.classList.remove('highlighted');
+    });
+
+    // Clear grid editor cell highlights
+    if (gridEditor) {
+      gridEditor.clearHighlights();
+    }
 
     currentPulse = pulse;
 
@@ -90,6 +96,13 @@ function createMatrixHighlightController() {
         }
       }
     }
+
+    // Highlight grid editor cells for this pulse
+    if (gridEditor) {
+      // Highlight all cells in this pulse column
+      gridEditor.highlightCell('N', pulse);
+      gridEditor.highlightCell('P', pulse);
+    }
   }
 
   function clearHighlights() {
@@ -99,6 +112,9 @@ function createMatrixHighlightController() {
     document.querySelectorAll('.musical-cell.pulse-highlight').forEach(el => {
       el.classList.remove('pulse-highlight');
     });
+    if (gridEditor) {
+      gridEditor.clearHighlights();
+    }
     currentPulse = -1;
   }
 
@@ -148,18 +164,21 @@ async function handlePlay() {
   // Ensure audio is initialized
   await initAudio();
 
-  const allPairs = matrixSeq.getPairs();
-
-  // Filter only pairs with active cells (silent pulses = empty columns)
-  const activePairs = allPairs.filter(pair => {
-    const cell = musicalGrid.getCellElement(pair.note, pair.pulse);
-    return cell?.classList.contains('active');
-  });
-
-  if (activePairs.length === 0) {
-    console.warn('No active notes to play');
+  if (!window.Tone) {
+    console.error('Tone.js not available');
     return;
   }
+
+  const allPairs = gridEditor.getPairs();
+
+  // Group pairs by pulse for polyphonic playback
+  const pulseGroups = {};
+  allPairs.forEach(pair => {
+    if (!pulseGroups[pair.pulse]) {
+      pulseGroups[pair.pulse] = [];
+    }
+    pulseGroups[pair.pulse].push(60 + pair.note); // Store as MIDI notes
+  });
 
   isPlaying = true;
 
@@ -171,90 +190,58 @@ async function handlePlay() {
     stopIcon.style.display = 'block';
   }
 
-  if (!window.Tone) {
-    console.error('Tone.js not available');
-    stopPlayback();
-    return;
-  }
-
+  const intervalSec = (60 / currentBPM);
+  const totalPulses = TOTAL_PULSES; // 9 pulses (0-8)
   const Tone = window.Tone;
-  const intervalMs = (60 / currentBPM) * 1000;
-  const intervalSec = intervalMs / 1000;
-  const startTime = Tone.now();
 
-  // Store all timeouts for cleanup
-  const visualTimeouts = [];
+  // Start TimelineAudio transport-based playback
+  audio.play(
+    totalPulses,
+    intervalSec,
+    new Set(), // No accent sounds (pulse plays automatically on all beats)
+    false, // No loop initially
+    (step) => {
+      // onPulse callback: Called on EVERY pulse (0-8), even if empty
 
-  // Group pairs by pulse for simultaneous playback
-  const pulseGroups = {};
-  activePairs.forEach(pair => {
-    if (!pulseGroups[pair.pulse]) {
-      pulseGroups[pair.pulse] = [];
+      // 1) Visual feedback for pulse column
+      highlightController?.highlightPulse(step);
+
+      // 2) Play piano notes if any exist at this pulse
+      const notes = pulseGroups[step];
+      if (notes && notes.length > 0) {
+        const duration = intervalSec * 0.9;
+        const when = Tone.now(); // Immediate (already scheduled by transport)
+
+        // Polyphonic: trigger all notes simultaneously
+        notes.forEach(midi => {
+          audio.playNote(midi, duration, when);
+
+          // Visual feedback per cell
+          const noteIndex = midi - 60;
+          const cell = musicalGrid.getCellElement(noteIndex, step);
+          if (cell) {
+            cell.classList.add('playing');
+            setTimeout(() => cell.classList.remove('playing'), duration * 1000);
+          }
+          highlightNoteOnSoundline(noteIndex, duration * 1000);
+        });
+      }
+
+      // 3) Pulse sound plays AUTOMATICALLY via TimelineAudio
+      //    (controlled by pulseToggleBtn + mixer 'pulse' channel)
+    },
+    () => {
+      // onComplete callback: Playback finished
+      stopPlayback();
     }
-    pulseGroups[pair.pulse].push(pair.note);
-  });
-
-  // Get unique pulses in order
-  const uniquePulses = Object.keys(pulseGroups).map(p => parseInt(p)).sort((a, b) => a - b);
-
-  // Schedule playback for each pulse group via audio engine
-  uniquePulses.forEach((pulse, idx) => {
-    const notes = pulseGroups[pulse];
-    const when = startTime + (idx * intervalSec);
-    const duration = intervalSec * 0.9;
-
-    // Play all notes at this pulse simultaneously via audio engine
-    notes.forEach(note => {
-      const midi = 60 + note; // C4 = MIDI 60
-      audio.playNote(midi, duration, when);
-    });
-
-    // Schedule visual feedback for all notes at this pulse
-    const visualTimeout = setTimeout(() => {
-      // Highlight the entire pulse column
-      highlightController?.highlightPulse(pulse);
-
-      notes.forEach(note => {
-        const cell = musicalGrid.getCellElement(note, pulse);
-        if (cell) {
-          cell.classList.add('playing');
-          const clearTimeout = setTimeout(() => cell.classList.remove('playing'), duration * 1000);
-          visualTimeouts.push(clearTimeout);
-        }
-        highlightNoteOnSoundline(note, duration * 1000);
-      });
-    }, idx * intervalMs);
-    visualTimeouts.push(visualTimeout);
-  });
-
-  // Reset after completion
-  playbackTimeout = setTimeout(() => {
-    stopPlayback();
-  }, uniquePulses.length * intervalMs + 500);
-
-  // Store cleanup function for immediate stop
-  window.cleanupPlayback = () => {
-    visualTimeouts.forEach(timeout => clearTimeout(timeout));
-  };
+  );
 }
 
 function stopPlayback() {
   isPlaying = false;
 
-  // Stop audio engine (releases all instrument notes)
+  // Stop audio engine (stops transport + releases all instrument notes)
   audio?.stop();
-
-  // Clear main playback timeout
-  if (playbackTimeout) {
-    clearTimeout(playbackTimeout);
-    playbackTimeout = null;
-  }
-
-  // Clear all visual timeouts
-  if (window.cleanupPlayback) {
-    window.cleanupPlayback();
-    delete window.cleanupPlayback;
-  }
 
   // Clear pulse highlights
   highlightController?.clearHighlights();
@@ -277,12 +264,8 @@ function stopPlayback() {
 
 function handleReset() {
   // Clear selections
-  matrixSeq.clear();
+  gridEditor?.clear();
   musicalGrid?.clear();
-
-  // Reset BPM
-  currentBPM = DEFAULT_BPM;
-  updateBPMDisplay();
 
   // Stop playback if playing
   if (isPlaying) {
@@ -296,14 +279,8 @@ function handleReset() {
 
 function handleRandom() {
   // Get parameters from random menu
-  const randVMin = parseInt(document.getElementById('randVMin')?.value || 60, 10);
-  const randVMax = parseInt(document.getElementById('randVMax')?.value || 240, 10);
   const randPMax = parseInt(document.getElementById('randPMax')?.value || 7, 10);
   const randNMax = parseInt(document.getElementById('randNMax')?.value || 11, 10);
-
-  // Generate random BPM
-  currentBPM = Math.floor(Math.random() * (randVMax - randVMin + 1)) + randVMin;
-  updateBPMDisplay();
 
   // Generate random number of pairs (1 to randPMax)
   const numPairs = Math.floor(Math.random() * randPMax) + 1;
@@ -316,7 +293,7 @@ function handleRandom() {
   }
 
   // Set pairs
-  matrixSeq.setPairs(pairs);
+  gridEditor?.setPairs(pairs);
 
   // Update visual grid
   syncGridFromPairs(pairs);
@@ -348,58 +325,24 @@ function syncGridFromPairs(pairs) {
       if (!cell.querySelector('.cell-label')) {
         const label = document.createElement('span');
         label.className = 'cell-label';
-        label.textContent = `N(${note}) P(${pulse})`;
+        label.textContent = `( ${note} , ${pulse} )`;
         cell.appendChild(label);
       }
     }
   });
 }
 
-// ========== BPM DISPLAY ==========
-
-function updateBPMDisplay() {
-  if (bpmDisplay) {
-    bpmDisplay.textContent = `${currentBPM} BPM`;
-  }
-}
-
 // ========== DOM INJECTION ==========
 
-function injectSequenceInputs() {
-  // Create wrapper for sequences
-  const sequencesContainer = document.createElement('div');
-  sequencesContainer.className = 'sequences-container';
-
-  // Note sequence
-  noteSeqWrapper = document.createElement('div');
-  noteSeqWrapper.className = 'seq-wrapper note-seq-wrapper';
-  noteSeqWrapper.id = 'noteSeqWrapper';
-
-  const noteSeqInput = document.createElement('div');
-  noteSeqInput.className = 'seq-input';
-  noteSeqInput.id = 'noteSeqInput';
-
-  noteSeqWrapper.appendChild(noteSeqInput);
-
-  // Pulse sequence
-  pulseSeqWrapper = document.createElement('div');
-  pulseSeqWrapper.className = 'seq-wrapper pulse-seq-wrapper';
-  pulseSeqWrapper.id = 'pulseSeqWrapper';
-
-  const pulseSeqInput = document.createElement('div');
-  pulseSeqInput.className = 'seq-input';
-  pulseSeqInput.id = 'pulseSeqInput';
-
-  pulseSeqWrapper.appendChild(pulseSeqInput);
-
-  // Add to container
-  sequencesContainer.appendChild(noteSeqWrapper);
-  sequencesContainer.appendChild(pulseSeqWrapper);
+function injectGridEditor() {
+  // Create container for grid editor
+  gridEditorContainer = document.createElement('div');
+  gridEditorContainer.id = 'gridEditorContainer';
 
   // Inject into app-root
   const appRoot = document.getElementById('app-root');
   if (appRoot) {
-    appRoot.appendChild(sequencesContainer);
+    appRoot.appendChild(gridEditorContainer);
   }
 }
 
@@ -412,7 +355,7 @@ async function init() {
   console.log('Initializing App12: Plano-Sucesión...');
 
   // Inject DOM elements
-  injectSequenceInputs();
+  injectGridEditor();
 
   // Create musical grid using new simplified module
   musicalGrid = createMusicalGrid({
@@ -445,17 +388,40 @@ async function init() {
       // Visual feedback on soundline
       highlightNoteOnSoundline(noteIndex, duration * 1000);
 
-      // Toggle cell in matrix-seq
+      // Toggle cell in grid - handled by toggling active class
       const isActive = cellElement.classList.contains('active');
+      cellElement.classList.toggle('active');
 
+      // Manage label
       if (isActive) {
-        // Remove pair
-        matrixSeq.removePair(noteIndex, pulseIndex);
+        // Removing: delete label
+        const label = cellElement.querySelector('.cell-label');
+        if (label) {
+          label.remove();
+        }
       } else {
-        // Add pair
-        matrixSeq.addPair(noteIndex, pulseIndex);
+        // Adding: create label if not exists
+        if (!cellElement.querySelector('.cell-label')) {
+          const label = document.createElement('span');
+          label.className = 'cell-label';
+          label.textContent = `( ${noteIndex} , ${pulseIndex} )`;
+          cellElement.appendChild(label);
+        }
       }
-      // Note: syncGridFromPairs() will handle visual updates (active class + labels)
+
+      // Update grid editor pairs
+      if (gridEditor) {
+        const currentPairs = gridEditor.getPairs();
+        if (isActive) {
+          // Remove pair
+          const filtered = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
+          gridEditor.setPairs(filtered);
+        } else {
+          // Add pair
+          currentPairs.push({ note: noteIndex, pulse: pulseIndex });
+          gridEditor.setPairs(currentPairs);
+        }
+      }
     },
     onNoteClick: async (noteIndex, midi) => {
       // Play note when soundline clicked via audio engine
@@ -494,29 +460,15 @@ async function init() {
     }
   }
 
-  // Create matrix-seq controller
-  matrixSeq = createMatrixSeqController({
+  // Create grid editor with invisible table layout
+  gridEditor = createGridEditor({
+    container: gridEditorContainer,
     noteRange: [0, 11],
     pulseRange: [0, 7],
+    maxPairs: 8,
     onPairsChange: (pairs) => {
       syncGridFromPairs(pairs);
-    },
-    onEnterFromNote: () => {
-      document.getElementById('pulseSeqInput')?.querySelector('.edit')?.focus();
-    },
-    onEnterFromPulse: () => {
-      document.getElementById('noteSeqInput')?.querySelector('.edit')?.focus();
     }
-  });
-
-  // Mount matrix-seq
-  matrixSeq.mount({
-    noteRoot: document.getElementById('noteSeqInput'),
-    pulseRoot: document.getElementById('pulseSeqInput'),
-    noteAxis: null, // Not needed with new grid
-    pulseAxis: null, // Not needed with new grid
-    noteElement: musicalGrid.containers.soundline,
-    pulseElement: musicalGrid.containers.timeline
   });
 
   // Initialize highlight controller
@@ -529,40 +481,68 @@ async function init() {
   playBtn = document.getElementById('playBtn');
   randomBtn = document.getElementById('randomBtn');
   resetBtn = document.getElementById('resetBtn');
-  tapBtn = document.getElementById('tapTempoBtn');
-  bpmDisplay = document.querySelector('.bpm-display');
-
-  // Initialize BPM display
-  updateBPMDisplay();
 
   // Event listeners (now buttons exist)
   playBtn?.addEventListener('click', handlePlay);
   resetBtn?.addEventListener('click', handleReset);
   randomBtn?.addEventListener('click', handleRandom);
 
-  // Tap tempo
-  const tapTempoHandler = createTapTempoHandler({
-    getAudioInstance: initAudio,  // Fixed: use initAudio instead of initPiano
-    tapBtn,
-    tapHelp: null,
-    onBpmDetected: (bpm) => {
-      currentBPM = Math.round(bpm);
-      updateBPMDisplay();
-      console.log('Tap tempo detected BPM:', currentBPM);
-    }
-  });
-  tapTempoHandler.attach();
+  // P1 Toggle (Pulse 0 special sound) - MUST be before mixer init
+  const startIntervalToggle = document.getElementById('startIntervalToggle');
+  const startSoundRow = document.querySelector('.interval-select-row');
+  if (startIntervalToggle && startSoundRow) {
+    window.__p1Controller = initP1ToggleUI({
+      checkbox: startIntervalToggle,
+      startSoundRow: startSoundRow,
+      storageKey: 'app12:p1Toggle',
+      onChange: async (enabled) => {
+        await initAudio();
+        if (audio && typeof audio.setStartEnabled === 'function') {
+          audio.setStartEnabled(enabled);
+        }
+      }
+    });
+  }
 
   // Mixer integration (longpress on play button)
   const mixerMenu = document.getElementById('mixerMenu');
   if (mixerMenu) {
     initMixerMenu({
       menu: mixerMenu,
-      triggers: [playBtn, tapBtn].filter(Boolean),
+      triggers: [playBtn].filter(Boolean),
       channels: [
-        { id: 'piano', label: 'Piano', allowSolo: true },
+        { id: 'pulse', label: 'Pulso', allowSolo: true },
+        { id: 'instrument', label: 'Piano', allowSolo: true },
         { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
       ]
+    });
+  }
+
+  // Audio toggles (sync with mixer)
+  const pulseToggleBtn = document.getElementById('pulseToggleBtn');
+  if (pulseToggleBtn) {
+    const globalMixer = getMixer();
+    initAudioToggles({
+      toggles: [
+        {
+          id: 'pulse',
+          button: pulseToggleBtn,
+          storageKey: 'app12:pulseAudio',
+          mixerChannel: 'pulse',
+          defaultEnabled: true,
+          onChange: (enabled) => {
+            if (audio && typeof audio.setPulseEnabled === 'function') {
+              audio.setPulseEnabled(enabled);
+            }
+          }
+        }
+      ],
+      storage: {
+        load: () => preferenceStorage.load() || {},
+        save: (data) => preferenceStorage.save(data)
+      },
+      mixer: globalMixer,
+      subscribeMixer
     });
   }
 
