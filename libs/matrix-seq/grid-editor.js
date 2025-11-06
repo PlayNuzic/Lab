@@ -1,0 +1,810 @@
+/**
+ * grid-editor.js - Grid-based editor for N-P pairs (dynamic columns by pulse)
+ *
+ * Features:
+ * - Dynamic columns (one per pulse, created on demand)
+ * - Multi-voice support (multiple notes per pulse → multiple rows)
+ * - Auto-jump navigation with 300ms delay (allows two-digit input)
+ * - Arrow key navigation
+ * - Invisible cells (transparent borders/background)
+ */
+
+/**
+ * Creates grid-based pair editor with dynamic columns
+ * @param {Object} config - Configuration
+ * @returns {Object} - Editor API
+ */
+export function createGridEditor(config = {}) {
+  const {
+    container,
+    noteRange = [0, 11],
+    pulseRange = [0, 7],
+    maxPairs = 8,
+    onPairsChange = () => {}
+  } = config;
+
+  let currentPairs = [];
+  let autoJumpTimer = null;
+  const AUTO_JUMP_DELAY = 300; // ms
+
+  /**
+   * Groups pairs by pulse
+   * @param {Array} pairs - Array of {note, pulse} objects
+   * @returns {Object} - { pulse: [note1, note2, ...] }
+   */
+  function groupPairsByPulse(pairs) {
+    const grouped = {};
+    pairs.forEach(({ note, pulse }) => {
+      if (!grouped[pulse]) {
+        grouped[pulse] = [];
+      }
+      grouped[pulse].push(note);
+    });
+    return grouped;
+  }
+
+  /**
+   * Calculates maximum voices needed across all pulses
+   * @param {Object} grouped - Grouped pairs by pulse
+   * @returns {number} - Max voice count (minimum 2 for empty state)
+   */
+  function calculateMaxVoices(grouped) {
+    let max = 1;
+    for (const pulse in grouped) {
+      const voiceCount = grouped[pulse].length;
+      if (voiceCount > max) {
+        max = voiceCount;
+      }
+    }
+    // Minimum 2 rows for empty state, max 12 voices
+    return Math.max(2, Math.min(max + 1, 12)); // +1 for empty input row
+  }
+
+  /**
+   * Renders the grid
+   */
+  function render(pairs = []) {
+    currentPairs = [...pairs];
+
+    if (!container) {
+      console.warn('No container provided for grid editor');
+      return;
+    }
+
+    // Clear existing content
+    container.innerHTML = '';
+    container.className = 'matrix-grid-editor';
+
+    // Group pairs by pulse
+    const grouped = groupPairsByPulse(pairs);
+    const pulses = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+
+    // Calculate dynamic height based on actual max voices
+    const maxVoices = calculateMaxVoices(grouped);
+    const dynamicHeight = maxVoices * 60; // 60px per voice row
+
+    // Set CSS custom property for dynamic height
+    container.style.setProperty('--notes-height', `${dynamicHeight}px`);
+
+    // Create label column (N and P labels on the left)
+    const labelColumn = document.createElement('div');
+    labelColumn.className = 'grid-label-column';
+
+    const nLabel = document.createElement('div');
+    nLabel.className = 'grid-row-label grid-row-label--n';
+    nLabel.textContent = 'N';
+    labelColumn.appendChild(nLabel);
+
+    const pLabel = document.createElement('div');
+    pLabel.className = 'grid-row-label grid-row-label--p';
+    pLabel.textContent = 'P';
+    labelColumn.appendChild(pLabel);
+
+    container.appendChild(labelColumn);
+
+    // Create columns container
+    const columnsContainer = document.createElement('div');
+    columnsContainer.className = 'grid-columns-container';
+
+    // If no pairs, render single empty column
+    if (pulses.length === 0) {
+      const emptyColumn = createPulseColumn(null, []);
+      columnsContainer.appendChild(emptyColumn);
+      container.appendChild(columnsContainer);
+      // Focus first input
+      requestAnimationFrame(() => {
+        const firstInput = emptyColumn.querySelector('.note-input');
+        if (firstInput) {
+          firstInput.focus();
+        }
+      });
+      return;
+    }
+
+    // Render columns for each pulse
+    pulses.forEach(pulse => {
+      const notes = grouped[pulse];
+      const column = createPulseColumn(pulse, notes);
+      columnsContainer.appendChild(column);
+    });
+
+    container.appendChild(columnsContainer);
+  }
+
+  /**
+   * Creates a pulse column with dynamic note rows
+   * @param {number|null} pulse - Pulse value (null for empty initial column)
+   * @param {Array} notes - Array of note values at this pulse
+   * @returns {HTMLElement} - Column element
+   */
+  function createPulseColumn(pulse, notes) {
+    const column = document.createElement('div');
+    column.className = 'pulse-column';
+    column.dataset.pulse = pulse !== null ? pulse : '';
+
+    // Notes area (container for all note inputs)
+    const notesArea = document.createElement('div');
+    notesArea.className = 'column-notes-area';
+
+    // Note rows
+    if (notes.length > 0) {
+      notes.forEach((note, index) => {
+        const row = createNoteRow(pulse, note, index);
+        notesArea.appendChild(row);
+      });
+      // Empty row (for adding more notes to this pulse)
+      const emptyRow = createNoteRow(pulse, null, notes.length);
+      notesArea.appendChild(emptyRow);
+    } else {
+      // First empty row
+      const emptyRow = createNoteRow(pulse, null, 0);
+      notesArea.appendChild(emptyRow);
+    }
+
+    column.appendChild(notesArea);
+
+    // Pulse area (container for pulse input)
+    const pulseArea = document.createElement('div');
+    pulseArea.className = 'column-pulse-area';
+
+    // Pulse input (editable, empty by default)
+    const pulseInput = document.createElement('input');
+    pulseInput.className = 'pulse-input';
+    pulseInput.type = 'text';
+    pulseInput.value = pulse !== null ? String(pulse) : '';
+    pulseInput.dataset.pulse = pulse !== null ? pulse : '';
+    pulseInput.maxLength = 1;
+    pulseInput.placeholder = '';
+    pulseInput.addEventListener('input', (e) => handlePulseInputChange(e, pulse));
+    pulseInput.addEventListener('keydown', (e) => handleKeyDown(e, pulseInput, 'P', pulse));
+
+    pulseArea.appendChild(pulseInput);
+    column.appendChild(pulseArea);
+
+    return column;
+  }
+
+  /**
+   * Creates a note row
+   * @param {number|null} pulse - Pulse value (null for empty column)
+   * @param {number|null} note - Note value (null for empty)
+   * @param {number} voiceIndex - Voice index (0 = first note, 1 = second, etc.)
+   * @returns {HTMLElement} - Input element (no wrapper row)
+   */
+  function createNoteRow(pulse, note, voiceIndex) {
+    const input = document.createElement('input');
+    input.className = 'note-input';
+    input.type = 'text';
+    input.value = note !== null ? String(note) : '';
+    input.dataset.pulse = pulse !== null ? pulse : '';
+    input.dataset.voice = voiceIndex;
+    input.maxLength = 2; // Allow two digits
+    input.placeholder = '';
+
+    input.addEventListener('input', (e) => handleNoteInputChange(e, pulse, voiceIndex));
+    input.addEventListener('keydown', (e) => handleKeyDown(e, input, 'N', pulse, voiceIndex));
+    input.addEventListener('blur', () => updatePairsFromDOM());
+
+    return input;
+  }
+
+
+  /**
+   * Handles note input change
+   */
+  function handleNoteInputChange(event, pulse, voiceIndex) {
+    const input = event.target;
+    const text = input.value.trim();
+
+    // Validate: only digits
+    if (text && !/^\d+$/.test(text)) {
+      input.value = text.replace(/\D/g, '');
+      return;
+    }
+
+    // Auto-jump with delay (allows typing two digits)
+    if (autoJumpTimer) {
+      clearTimeout(autoJumpTimer);
+    }
+
+    if (event.inputType === 'insertText' && /^[0-9]$/.test(event.data)) {
+      autoJumpTimer = setTimeout(() => {
+        const value = parseInt(input.value, 10);
+        if (!isNaN(value) && value >= noteRange[0] && value <= noteRange[1]) {
+          // Valid note: jump to next empty cell in column
+          jumpToNextEmptyCellInColumn(input);
+        }
+        autoJumpTimer = null;
+      }, AUTO_JUMP_DELAY);
+    }
+
+    // Trigger update
+    updatePairsFromDOM();
+  }
+
+  /**
+   * Handles pulse input change
+   */
+  function handlePulseInputChange(event, oldPulse) {
+    const input = event.target;
+    const text = input.value.trim();
+
+    // Validate: only digits
+    if (text && !/^\d+$/.test(text)) {
+      input.value = text.replace(/\D/g, '');
+      return;
+    }
+
+    const newPulse = text ? parseInt(text, 10) : null;
+
+    // Check for duplicate pulse (merge into existing column)
+    if (newPulse !== null && !isNaN(newPulse) && newPulse >= pulseRange[0] && newPulse <= pulseRange[1]) {
+      const currentColumn = input.closest('.pulse-column');
+      const existingColumn = findColumnByPulse(newPulse, currentColumn);
+
+      if (existingColumn && existingColumn !== currentColumn) {
+        // Duplicate pulse found! Merge notes into existing column
+        mergeColumnsAndJumpToNext(currentColumn, existingColumn);
+        return; // Skip normal update and auto-jump
+      }
+    }
+
+    // Auto-jump with delay (only if no duplicate)
+    if (autoJumpTimer) {
+      clearTimeout(autoJumpTimer);
+    }
+
+    if (event.inputType === 'insertText' && /^[0-9]$/.test(event.data)) {
+      autoJumpTimer = setTimeout(() => {
+        const value = parseInt(input.value, 10);
+        if (!isNaN(value) && value >= pulseRange[0] && value <= pulseRange[1]) {
+          // Valid pulse: jump to next column's first empty note
+          jumpToNextColumnFirstEmpty(input);
+        }
+        autoJumpTimer = null;
+      }, AUTO_JUMP_DELAY);
+    }
+
+    // Trigger update
+    updatePairsFromDOM();
+  }
+
+  /**
+   * Handles keydown events
+   */
+  function handleKeyDown(event, input, type, pulse, voiceIndex = 0) {
+    const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Tab', 'Enter'];
+    if (!/^[0-9]$/.test(event.key) && !allowed.includes(event.key)) {
+      event.preventDefault();
+      return;
+    }
+
+    switch (event.key) {
+      case 'Enter':
+        event.preventDefault();
+        if (type === 'N') {
+          // N → next empty cell in column (N2, N3... or P)
+          jumpToNextEmptyCellInColumn(input);
+        } else if (type === 'P') {
+          // P → next column's first empty N (or create new column)
+          jumpToNextColumnFirstEmpty(input);
+        }
+        break;
+
+      case 'ArrowUp':
+        event.preventDefault();
+        if (type === 'N') {
+          // Move to previous note input in same column
+          const prevInput = input.previousElementSibling;
+          if (prevInput && prevInput.classList.contains('note-input')) {
+            prevInput.focus();
+            prevInput.select();
+          }
+        } else if (type === 'P') {
+          // Move to last note in same column
+          const column = input.closest('.pulse-column');
+          const noteInputs = column?.querySelectorAll('.note-input');
+          if (noteInputs && noteInputs.length > 0) {
+            const lastInput = noteInputs[noteInputs.length - 1];
+            lastInput.focus();
+            lastInput.select();
+          }
+        }
+        break;
+
+      case 'ArrowDown':
+        event.preventDefault();
+        if (type === 'N') {
+          // Move to next note input in same column OR pulse if last
+          const nextInput = input.nextElementSibling;
+          if (nextInput && nextInput.classList.contains('note-input')) {
+            nextInput.focus();
+            nextInput.select();
+          } else {
+            // No next note input: jump to pulse (skip labels)
+            const column = input.closest('.pulse-column');
+            const pulseInput = column?.querySelector('.pulse-input');
+            if (pulseInput) {
+              pulseInput.focus();
+              pulseInput.select();
+            }
+          }
+        } else if (type === 'P') {
+          // Move to first note in same column
+          const column = input.closest('.pulse-column');
+          const firstInput = column?.querySelector('.note-input');
+          if (firstInput) {
+            firstInput.focus();
+            firstInput.select();
+          }
+        }
+        break;
+
+      case 'ArrowRight':
+        event.preventDefault();
+        if (isAtEnd(input)) {
+          jumpToNextColumn(input);
+        }
+        break;
+
+      case 'ArrowLeft':
+        event.preventDefault();
+        if (isAtStart(input)) {
+          jumpToPrevColumn(input);
+        }
+        break;
+
+      case 'Tab':
+        event.preventDefault();
+        if (event.shiftKey) {
+          jumpToPrevColumn(input);
+        } else {
+          jumpToNextColumn(input);
+        }
+        break;
+    }
+  }
+
+  /**
+   * Finds a column by pulse value (excluding the current column)
+   * @param {number} pulse - Pulse value to search for
+   * @param {HTMLElement} currentColumn - Column to exclude from search
+   * @returns {HTMLElement|null} - Found column or null
+   */
+  function findColumnByPulse(pulse, currentColumn) {
+    const columnsContainer = container.querySelector('.grid-columns-container');
+    if (!columnsContainer) return null;
+
+    const columns = columnsContainer.querySelectorAll('.pulse-column');
+    for (const column of columns) {
+      if (column === currentColumn) continue;
+
+      const pulseInput = column.querySelector('.pulse-input');
+      if (pulseInput && parseInt(pulseInput.value, 10) === pulse) {
+        return column;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Merges notes from current column into existing column, then jumps to next
+   * @param {HTMLElement} currentColumn - Column with duplicate pulse
+   * @param {HTMLElement} existingColumn - Target column with same pulse
+   */
+  function mergeColumnsAndJumpToNext(currentColumn, existingColumn) {
+    // Extract all note values from current column (excluding empty ones)
+    const currentNoteInputs = currentColumn.querySelectorAll('.note-input');
+    const notesToMove = [];
+    currentNoteInputs.forEach(input => {
+      const value = input.value.trim();
+      if (value && !isNaN(parseInt(value, 10))) {
+        notesToMove.push(parseInt(value, 10));
+      }
+    });
+
+    // If no valid notes to move, just jump to next column
+    if (notesToMove.length === 0) {
+      const columnsContainer = container.querySelector('.grid-columns-container');
+      const nextColumn = currentColumn.nextElementSibling;
+
+      if (nextColumn && nextColumn.classList.contains('pulse-column')) {
+        const firstInput = nextColumn.querySelector('.note-input');
+        if (firstInput) {
+          requestAnimationFrame(() => {
+            firstInput.focus();
+            firstInput.select();
+          });
+        }
+      } else {
+        // Create new empty column
+        const columns = columnsContainer.querySelectorAll('.pulse-column');
+        if (columns.length < maxPairs) {
+          const newColumn = createPulseColumn(null, []);
+          columnsContainer.appendChild(newColumn);
+
+          const firstInput = newColumn.querySelector('.note-input');
+          if (firstInput) {
+            requestAnimationFrame(() => {
+              firstInput.focus();
+            });
+          }
+        }
+      }
+      return;
+    }
+
+    // Get existing pulse value from target column
+    const existingPulseInput = existingColumn.querySelector('.pulse-input');
+    const existingPulse = existingPulseInput ? parseInt(existingPulseInput.value, 10) : null;
+
+    // Update pairs by merging notes
+    const updatedPairs = [];
+
+    // First, collect all pairs from DOM EXCEPT from current column
+    const allColumns = container.querySelectorAll('.pulse-column');
+    allColumns.forEach(column => {
+      if (column === currentColumn) return; // Skip current column
+
+      const pulseInput = column.querySelector('.pulse-input');
+      const pulse = pulseInput ? parseInt(pulseInput.value, 10) : null;
+
+      if (pulse === null || isNaN(pulse)) return;
+
+      const noteInputs = column.querySelectorAll('.note-input');
+      noteInputs.forEach(input => {
+        const note = parseInt(input.value, 10);
+        if (!isNaN(note)) {
+          updatedPairs.push({ note, pulse });
+        }
+      });
+    });
+
+    // Add the moved notes to the existing pulse
+    if (existingPulse !== null) {
+      notesToMove.forEach(note => {
+        updatedPairs.push({ note, pulse: existingPulse });
+      });
+    }
+
+    // Re-render with updated pairs
+    render(updatedPairs);
+
+    // Notify change
+    if (onPairsChange) {
+      onPairsChange(updatedPairs);
+    }
+
+    // Jump to next column (or create new one)
+    requestAnimationFrame(() => {
+      const columnsContainer = container.querySelector('.grid-columns-container');
+      const columns = columnsContainer.querySelectorAll('.pulse-column');
+
+      // Find the column that now has the merged pulse
+      let mergedColumn = null;
+      for (const column of columns) {
+        const pulseInput = column.querySelector('.pulse-input');
+        if (pulseInput && parseInt(pulseInput.value, 10) === existingPulse) {
+          mergedColumn = column;
+          break;
+        }
+      }
+
+      // Jump to next column after the merged one
+      if (mergedColumn) {
+        const nextColumn = mergedColumn.nextElementSibling;
+        if (nextColumn && nextColumn.classList.contains('pulse-column')) {
+          const firstInput = nextColumn.querySelector('.note-input');
+          if (firstInput) {
+            firstInput.focus();
+            firstInput.select();
+          }
+        } else {
+          // Create new empty column
+          if (columns.length < maxPairs) {
+            const newColumn = createPulseColumn(null, []);
+            columnsContainer.appendChild(newColumn);
+
+            const firstInput = newColumn.querySelector('.note-input');
+            if (firstInput) {
+              firstInput.focus();
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Jumps to next empty cell in same column (N1 → N2 → ... → P)
+   */
+  function jumpToNextEmptyCellInColumn(input) {
+    const column = input.closest('.pulse-column');
+    if (!column) return;
+
+    // Find next empty note input in same column
+    let nextSibling = input.nextElementSibling;
+    while (nextSibling) {
+      if (nextSibling.classList && nextSibling.classList.contains('note-input')) {
+        if (!nextSibling.value.trim()) {
+          // Found empty note input
+          requestAnimationFrame(() => {
+            nextSibling.focus();
+            nextSibling.select();
+          });
+          return;
+        }
+      }
+      nextSibling = nextSibling.nextElementSibling;
+    }
+
+    // No empty note inputs: jump to pulse input
+    const pulseInput = column.querySelector('.pulse-input');
+    if (pulseInput) {
+      requestAnimationFrame(() => {
+        pulseInput.focus();
+        pulseInput.select();
+      });
+    }
+  }
+
+  /**
+   * Jumps to first empty cell in next column (creates if doesn't exist)
+   */
+  function jumpToNextColumnFirstEmpty(input) {
+    const currentColumn = input.closest('.pulse-column');
+    const columnsContainer = container.querySelector('.grid-columns-container');
+    if (!columnsContainer) return;
+
+    const nextColumn = currentColumn?.nextElementSibling;
+
+    if (nextColumn && nextColumn.classList.contains('pulse-column')) {
+      // Next column exists: find first empty note input
+      const noteInputs = nextColumn.querySelectorAll('.note-input');
+      for (const noteInput of noteInputs) {
+        if (!noteInput.value.trim()) {
+          requestAnimationFrame(() => {
+            noteInput.focus();
+            noteInput.select();
+          });
+          return;
+        }
+      }
+      // All filled: focus first anyway
+      if (noteInputs.length > 0) {
+        requestAnimationFrame(() => {
+          noteInputs[0].focus();
+          noteInputs[0].select();
+        });
+      }
+    } else {
+      // No next column: create new empty column
+      const columns = columnsContainer.querySelectorAll('.pulse-column');
+      if (columns.length < maxPairs) {
+        const newColumn = createPulseColumn(null, []); // pulse = null (empty)
+        columnsContainer.appendChild(newColumn);
+
+        // Focus first input in new column
+        const firstInput = newColumn.querySelector('.note-input');
+        if (firstInput) {
+          requestAnimationFrame(() => {
+            firstInput.focus();
+          });
+        }
+      }
+    }
+  }
+
+  /**
+   * Jumps to next column
+   */
+  function jumpToNextColumn(input) {
+    const currentColumn = input.closest('.pulse-column');
+    const columnsContainer = container.querySelector('.grid-columns-container');
+    if (!columnsContainer) return;
+
+    const nextColumn = currentColumn?.nextElementSibling;
+
+    if (nextColumn && nextColumn.classList.contains('pulse-column')) {
+      const firstInput = nextColumn.querySelector('.note-input');
+      if (firstInput) {
+        requestAnimationFrame(() => {
+          firstInput.focus();
+          firstInput.select();
+        });
+      }
+    } else {
+      // No next column: create if possible
+      const columns = columnsContainer.querySelectorAll('.pulse-column');
+      if (columns.length < maxPairs) {
+        const newColumn = createPulseColumn(null, []);
+        columnsContainer.appendChild(newColumn);
+
+        const firstInput = newColumn.querySelector('.note-input');
+        if (firstInput) {
+          requestAnimationFrame(() => {
+            firstInput.focus();
+          });
+        }
+      }
+    }
+  }
+
+  /**
+   * Jumps to previous column
+   */
+  function jumpToPrevColumn(input) {
+    const currentColumn = input.closest('.pulse-column');
+    const prevColumn = currentColumn?.previousElementSibling;
+
+    if (prevColumn && prevColumn.classList.contains('pulse-column')) {
+      const firstInput = prevColumn.querySelector('.note-input');
+      if (firstInput) {
+        requestAnimationFrame(() => {
+          firstInput.focus();
+          firstInput.select();
+        });
+      }
+    }
+  }
+
+  /**
+   * Adds a new empty column
+   */
+  function addNewColumn() {
+    const columns = container.querySelectorAll('.pulse-column');
+    const nextPulse = columns.length; // Use column count as next pulse
+
+    if (nextPulse >= maxPairs) {
+      console.warn('Max pairs reached');
+      return;
+    }
+
+    // Create new column
+    const column = createPulseColumn(nextPulse, []);
+
+    // Insert before "add" button
+    const addBtn = container.querySelector('.add-column-btn');
+    if (addBtn) {
+      container.insertBefore(column, addBtn);
+    } else {
+      container.appendChild(column);
+    }
+
+    // Focus first input
+    const firstInput = column.querySelector('.note-input');
+    if (firstInput) {
+      requestAnimationFrame(() => {
+        firstInput.focus();
+      });
+    }
+  }
+
+  /**
+   * Updates pairs from DOM state
+   */
+  function updatePairsFromDOM() {
+    const newPairs = [];
+
+    const columns = container.querySelectorAll('.pulse-column');
+    columns.forEach(column => {
+      const pulseInput = column.querySelector('.pulse-input');
+      const pulseText = pulseInput?.value.trim();
+      const pulse = pulseText ? parseInt(pulseText, 10) : parseInt(column.dataset.pulse, 10);
+
+      if (isNaN(pulse) || pulse < pulseRange[0] || pulse > pulseRange[1]) {
+        return; // Invalid pulse, skip
+      }
+
+      const noteInputs = column.querySelectorAll('.note-input');
+      noteInputs.forEach(input => {
+        const noteText = input.value.trim();
+        if (noteText) {
+          const note = parseInt(noteText, 10);
+          if (!isNaN(note) && note >= noteRange[0] && note <= noteRange[1]) {
+            newPairs.push({ note, pulse });
+          }
+        }
+      });
+    });
+
+    // Sort by pulse, then by note
+    newPairs.sort((a, b) => {
+      if (a.pulse !== b.pulse) return a.pulse - b.pulse;
+      return a.note - b.note;
+    });
+
+    currentPairs = newPairs;
+    onPairsChange(newPairs);
+  }
+
+  /**
+   * Checks if caret is at end of input
+   */
+  function isAtEnd(input) {
+    return input.selectionStart >= input.value.length;
+  }
+
+  /**
+   * Checks if caret is at start of input
+   */
+  function isAtStart(input) {
+    return input.selectionStart === 0;
+  }
+
+  /**
+   * Gets current pairs
+   */
+  function getPairs() {
+    return [...currentPairs];
+  }
+
+  /**
+   * Sets pairs programmatically
+   */
+  function setPairs(pairs) {
+    render(pairs);
+  }
+
+  /**
+   * Clears all cells
+   */
+  function clear() {
+    currentPairs = [];
+    render([]);
+  }
+
+  /**
+   * Highlights cells (for playback)
+   */
+  function highlightCell(row, col) {
+    // Find column with matching pulse
+    const column = container.querySelector(`.pulse-column[data-pulse="${col}"]`);
+    if (column) {
+      column.classList.add('highlighted');
+    }
+  }
+
+  /**
+   * Clears all highlights
+   */
+  function clearHighlights() {
+    container.querySelectorAll('.pulse-column.highlighted').forEach(col => {
+      col.classList.remove('highlighted');
+    });
+  }
+
+  // Initial render
+  if (container) {
+    render();
+  }
+
+  return {
+    render,
+    getPairs,
+    setPairs,
+    clear,
+    highlightCell,
+    clearHighlights
+  };
+}

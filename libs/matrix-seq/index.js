@@ -10,6 +10,8 @@
  * - Drag selection en ambos ejes
  * - Memory system para persistencia
  * - Sincronización automática sucesiones ↔ matriz
+ * - Column-based renderer with multi-voice support
+ * - Grid-based editor with invisible table layout (2 rows × 8 columns)
  */
 
 export { createMatrixSeqController } from './matrix-seq.js';
@@ -18,3 +20,5 @@ export { createPairStateManager } from './state.js';
 export { createDualEditor } from './editor.js';
 export { createDragHandlers } from './drag.js';
 export { createSyncManager } from './sync.js';
+export { createPairColumnsRenderer } from './pair-columns.js';
+export { createGridEditor } from './grid-editor.js';
