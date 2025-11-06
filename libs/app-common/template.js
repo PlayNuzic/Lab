@@ -199,24 +199,24 @@ ${togglesMarkup}
         <details>
           <summary>Sonidos</summary>
           <div class="sound-group">
-            ${showStartSoundDropdown ? `
             ${(useIntervalMode || showP1Toggle) ? `
             <div class="interval-sound-group">
               <label for="startIntervalToggle" class="interval-toggle-label">
                 <input type="checkbox" id="startIntervalToggle" />
                 ${useIntervalMode ? 'Intervalo 1' : 'Pulso 1'}
               </label>
+              ${showStartSoundDropdown ? `
               <div class="preview-row interval-select-row">
                 <label for="startSoundSelect" style="display:none"></label>
                 <div id="startSoundSelect"></div>
-              </div>
-            </div>` : `
+              </div>` : `
+              <div class="preview-row interval-select-row" style="display:none;"></div>`}
+            </div>` : showStartSoundDropdown ? `
             <p>Pulso 0</p>
             <div class="preview-row">
               <label for="startSoundSelect" style="display:none"></label>
               <div id="startSoundSelect"></div>
-            </div>`}
-            ` : ''}
+            </div>` : ''}
             ${showInstrumentDropdown ? `
             <p>Instrumento</p>
             <div class="preview-row">
