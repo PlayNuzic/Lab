@@ -66,6 +66,8 @@ export function mergeRandomConfig(defaults, stored) {
 export function initRandomMenu(button, menu, onRandomize, longPress = 500) {
   if (!button || !menu || typeof onRandomize !== 'function') return;
   let pressTimer = null;
+  let longPressFired = false;
+  let pressStartTime = 0;
 
   function toggleMenu(force) {
     const shouldOpen = typeof force === 'boolean' ? force : !menu.classList.contains('open');
@@ -76,16 +78,27 @@ export function initRandomMenu(button, menu, onRandomize, longPress = 500) {
   }
 
   button.addEventListener('pointerdown', () => {
+    longPressFired = false;
+    pressStartTime = Date.now();
     pressTimer = setTimeout(() => {
+      longPressFired = true;
       toggleMenu();
       pressTimer = null;
     }, longPress);
   });
 
   button.addEventListener('pointerup', () => {
+    const pressDuration = Date.now() - pressStartTime;
+
     if (pressTimer) {
       clearTimeout(pressTimer);
       pressTimer = null;
+    }
+
+    // Only randomize if:
+    // 1. Longpress did NOT fire yet, AND
+    // 2. Press duration was clearly a shortpress (< 90% of longPress threshold)
+    if (!longPressFired && pressDuration < longPress * 0.9) {
       onRandomize();
     }
   });
