@@ -496,9 +496,9 @@ async function init() {
       startSoundRow: startSoundRow,
       storageKey: 'app12:p1Toggle',
       onChange: async (enabled) => {
-        await initAudio();
-        if (audio && typeof audio.setStartEnabled === 'function') {
-          audio.setStartEnabled(enabled);
+        const audioInstance = await initAudio();
+        if (audioInstance && typeof audioInstance.setStartEnabled === 'function') {
+          audioInstance.setStartEnabled(enabled);
         }
       }
     });

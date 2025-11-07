@@ -302,13 +302,9 @@ export function createGridEditor(config = {}) {
     switch (event.key) {
       case 'Enter':
         event.preventDefault();
-        if (type === 'N') {
-          // N → next empty cell in column (N2, N3... or P)
-          jumpToNextEmptyCellInColumn(input);
-        } else if (type === 'P') {
-          // P → next column's first empty N (or create new column)
-          jumpToNextColumnFirstEmpty(input);
-        }
+        // Finalize input: blur to remove caret and trigger sanitization
+        input.blur();
+        // Sanitization happens automatically via blur → updatePairsFromDOM()
         break;
 
       case 'ArrowUp':
@@ -701,6 +697,32 @@ export function createGridEditor(config = {}) {
   }
 
   /**
+   * Checks if visual reorganization is needed (column order changed)
+   */
+  function checkIfReorganizationNeeded(newPairs) {
+    // Get current visual pulse order from DOM
+    const columns = container.querySelectorAll('.pulse-column');
+    const visualPulses = [];
+    columns.forEach(column => {
+      const pulseInput = column.querySelector('.pulse-input');
+      const pulse = pulseInput ? parseInt(pulseInput.value, 10) : parseInt(column.dataset.pulse, 10);
+      if (!isNaN(pulse)) {
+        visualPulses.push(pulse);
+      }
+    });
+
+    // Get sorted pulse order from newPairs
+    const sortedPulses = [...new Set(newPairs.map(p => p.pulse))].sort((a, b) => a - b);
+
+    // Compare arrays
+    if (visualPulses.length !== sortedPulses.length) return true;
+    for (let i = 0; i < visualPulses.length; i++) {
+      if (visualPulses[i] !== sortedPulses[i]) return true;
+    }
+    return false;
+  }
+
+  /**
    * Updates pairs from DOM state
    */
   function updatePairsFromDOM() {
@@ -735,6 +757,14 @@ export function createGridEditor(config = {}) {
     });
 
     currentPairs = newPairs;
+
+    // Check if pairs need visual reorganization (pulse order changed)
+    const needsReorganization = checkIfReorganizationNeeded(newPairs);
+    if (needsReorganization) {
+      // Re-render grid with sorted pairs to reorganize columns visually
+      render(newPairs);
+    }
+
     onPairsChange(newPairs);
   }
 
