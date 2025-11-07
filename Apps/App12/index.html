@@ -22,7 +22,8 @@
       // First time - set factory defaults
       localStorage.setItem('app12-preferences', JSON.stringify({
         selectedInstrument: 'piano',
-        selectColor: '#4a9eff'
+        selectColor: '#4a9eff',
+        polyphony: '0'  // Factory default: polyphony DISABLED
       }));
     }
 
@@ -40,6 +41,7 @@
       showInstrumentDropdown: true,
       showP1Toggle: true,
       showPulseToggle: true,
+      showPolyphonyToggle: true,
       randomMenuContent: `
         <label>
           <span>P (Max Pulsos)</span>

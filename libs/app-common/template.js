@@ -52,7 +52,8 @@ export function renderApp({
   showCircularTimelineToggle = true,
   showHoverToggle = true,
   showStartSoundDropdown = true,
-  showInstrumentDropdown = false
+  showInstrumentDropdown = false,
+  showPolyphonyToggle = false
 }) {
   if (!root) throw new Error('root element required');
   document.title = title;
@@ -195,6 +196,7 @@ ${togglesMarkup}
         ${selectColor}
         ${showCircularTimelineToggle ? '<label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle" /></label>' : ''}
         ${showComplexFractions ? '<label for="enableComplexFractions">Activar fracciones complejas <input type="checkbox" id="enableComplexFractions" /></label>' : ''}
+        ${showPolyphonyToggle ? '<label for="polyphonyToggle">Permitir Polifonía <input type="checkbox" id="polyphonyToggle" /></label>' : ''}
         <button type="button" id="factoryResetBtn" class="factory-reset">Volver a ajustes de fábrica</button>
         <details>
           <summary>Sonidos</summary>

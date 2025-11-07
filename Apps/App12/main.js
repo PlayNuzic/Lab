@@ -24,6 +24,7 @@ let musicalGrid = null;
 let gridEditor = null;
 const currentBPM = DEFAULT_BPM; // Locked to 120 BPM
 let isPlaying = false;
+let polyphonyEnabled = false; // Default: polyphony DISABLED (monophonic mode)
 
 // Elements
 let playBtn = null;
@@ -54,6 +55,22 @@ async function initAudio() {
     console.log('Audio initialized and exposed globally');
   }
   return audio;
+}
+
+// ========== HELPER FUNCTIONS ==========
+
+/**
+ * Get all cells in a specific pulse column
+ * @param {number} pulseIndex - The pulse index (0-7)
+ * @returns {Array<HTMLElement>} - Array of cell elements in that pulse
+ */
+function getCellsInPulse(pulseIndex) {
+  const cells = [];
+  for (let noteIndex = 0; noteIndex < TOTAL_NOTES; noteIndex++) {
+    const cell = musicalGrid.getCellElement(noteIndex, pulseIndex);
+    if (cell) cells.push(cell);
+  }
+  return cells;
 }
 
 // ========== VISUAL FEEDBACK ==========
@@ -388,38 +405,87 @@ async function init() {
       // Visual feedback on soundline
       highlightNoteOnSoundline(noteIndex, duration * 1000);
 
-      // Toggle cell in grid - handled by toggling active class
-      const isActive = cellElement.classList.contains('active');
-      cellElement.classList.toggle('active');
+      // Check polyphony mode
+      if (!polyphonyEnabled) {
+        // ========== MONOPHONIC MODE ==========
+        // Only one note per pulse allowed
 
-      // Manage label
-      if (isActive) {
-        // Removing: delete label
-        const label = cellElement.querySelector('.cell-label');
-        if (label) {
-          label.remove();
-        }
-      } else {
-        // Adding: create label if not exists
-        if (!cellElement.querySelector('.cell-label')) {
+        const isActive = cellElement.classList.contains('active');
+
+        if (isActive) {
+          // Cell is active → toggle OFF (remove)
+          cellElement.classList.remove('active');
+          const label = cellElement.querySelector('.cell-label');
+          if (label) label.remove();
+
+          // Update grid editor: remove this pair
+          if (gridEditor) {
+            const currentPairs = gridEditor.getPairs();
+            const filtered = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
+            gridEditor.setPairs(filtered);
+          }
+        } else {
+          // Cell is inactive → deactivate all others in this pulse, activate only this one
+
+          // Deactivate all other cells in this pulse column
+          const allCellsInPulse = getCellsInPulse(pulseIndex);
+          allCellsInPulse.forEach(cell => {
+            if (cell !== cellElement && cell.classList.contains('active')) {
+              cell.classList.remove('active');
+              const label = cell.querySelector('.cell-label');
+              if (label) label.remove();
+            }
+          });
+
+          // Activate only this cell
+          cellElement.classList.add('active');
           const label = document.createElement('span');
           label.className = 'cell-label';
           label.textContent = `( ${noteIndex} , ${pulseIndex} )`;
           cellElement.appendChild(label);
-        }
-      }
 
-      // Update grid editor pairs
-      if (gridEditor) {
-        const currentPairs = gridEditor.getPairs();
+          // Update grid editor: remove all pairs for this pulse, add only this one
+          if (gridEditor) {
+            const currentPairs = gridEditor.getPairs();
+            const filtered = currentPairs.filter(p => p.pulse !== pulseIndex);
+            filtered.push({ note: noteIndex, pulse: pulseIndex });
+            gridEditor.setPairs(filtered);
+          }
+        }
+      } else {
+        // ========== POLYPHONIC MODE ==========
+        // Multiple notes per pulse allowed (CURRENT BEHAVIOR)
+
+        const isActive = cellElement.classList.contains('active');
+        cellElement.classList.toggle('active');
+
+        // Manage label
         if (isActive) {
-          // Remove pair
-          const filtered = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
-          gridEditor.setPairs(filtered);
+          // Removing: delete label
+          const label = cellElement.querySelector('.cell-label');
+          if (label) label.remove();
         } else {
-          // Add pair
-          currentPairs.push({ note: noteIndex, pulse: pulseIndex });
-          gridEditor.setPairs(currentPairs);
+          // Adding: create label if not exists
+          if (!cellElement.querySelector('.cell-label')) {
+            const label = document.createElement('span');
+            label.className = 'cell-label';
+            label.textContent = `( ${noteIndex} , ${pulseIndex} )`;
+            cellElement.appendChild(label);
+          }
+        }
+
+        // Update grid editor pairs
+        if (gridEditor) {
+          const currentPairs = gridEditor.getPairs();
+          if (isActive) {
+            // Remove pair
+            const filtered = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
+            gridEditor.setPairs(filtered);
+          } else {
+            // Add pair
+            currentPairs.push({ note: noteIndex, pulse: pulseIndex });
+            gridEditor.setPairs(currentPairs);
+          }
         }
       }
     },
@@ -561,6 +627,22 @@ async function init() {
       const currentPrefs = preferenceStorage.load() || {};
       currentPrefs.selectColor = color;
       preferenceStorage.save(currentPrefs);
+    });
+  }
+
+  // Polyphony toggle
+  const polyphonyToggle = document.getElementById('polyphonyToggle');
+  if (polyphonyToggle) {
+    // Load from storage (default: false = monophonic)
+    const storedPolyphony = preferenceStorage.load('polyphony');
+    polyphonyEnabled = storedPolyphony === '1'; // Only true if explicitly set to '1'
+    polyphonyToggle.checked = polyphonyEnabled;
+
+    // Listen for changes
+    polyphonyToggle.addEventListener('change', (e) => {
+      polyphonyEnabled = e.target.checked;
+      preferenceStorage.save('polyphony', polyphonyEnabled ? '1' : '0');
+      console.log('Polyphony mode:', polyphonyEnabled ? 'ENABLED (polyphonic)' : 'DISABLED (monophonic)');
     });
   }
 
