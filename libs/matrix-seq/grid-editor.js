@@ -9,6 +9,8 @@
  * - Invisible cells (transparent borders/background)
  */
 
+import { createInfoTooltip } from '../app-common/info-tooltip.js';
+
 /**
  * Creates grid-based pair editor with dynamic columns
  * @param {Object} config - Configuration
@@ -20,16 +22,23 @@ export function createGridEditor(config = {}) {
     noteRange = [0, 11],
     pulseRange = [0, 7],
     maxPairs = 8,
-    onPairsChange = () => {}
+    onPairsChange = () => {},
+    getPolyphonyEnabled = () => true  // Default: allow polyphony
   } = config;
 
   let currentPairs = [];
   let autoJumpTimer = null;
   const AUTO_JUMP_DELAY = 300; // ms
 
+  // Info tooltip for warnings
+  const infoTooltip = createInfoTooltip({
+    className: 'fraction-info-bubble auto-tip-below',
+    autoRemoveDelay: 2000
+  });
+
   /**
    * Groups pairs by pulse
-   * @param {Array} pairs - Array of {note, pulse} objects
+   * @param {Array} pairs - Array of {note, pulse} objects (note can be null for empty columns)
    * @returns {Object} - { pulse: [note1, note2, ...] }
    */
   function groupPairsByPulse(pairs) {
@@ -38,7 +47,10 @@ export function createGridEditor(config = {}) {
       if (!grouped[pulse]) {
         grouped[pulse] = [];
       }
-      grouped[pulse].push(note);
+      // Only add note if it's not null (preserve empty pulses with empty array)
+      if (note !== null) {
+        grouped[pulse].push(note);
+      }
     });
     return grouped;
   }
@@ -153,10 +165,13 @@ export function createGridEditor(config = {}) {
         notesArea.appendChild(row);
       });
       // Empty row (for adding more notes to this pulse)
-      const emptyRow = createNoteRow(pulse, null, notes.length);
-      notesArea.appendChild(emptyRow);
+      // Only create if polyphony is enabled
+      if (getPolyphonyEnabled()) {
+        const emptyRow = createNoteRow(pulse, null, notes.length);
+        notesArea.appendChild(emptyRow);
+      }
     } else {
-      // First empty row
+      // First empty row (always needed for initial input)
       const emptyRow = createNoteRow(pulse, null, 0);
       notesArea.appendChild(emptyRow);
     }
@@ -222,6 +237,17 @@ export function createGridEditor(config = {}) {
       return;
     }
 
+    // Validate range and show tooltip for out-of-range values
+    if (text) {
+      const value = parseInt(text, 10);
+      if (!isNaN(value) && (value < noteRange[0] || value > noteRange[1])) {
+        infoTooltip.show(`El Número ${value} es demasiado grande. Escoge 0-${noteRange[1]}`, input);
+        input.value = ''; // Clear invalid input
+        input.focus();    // Keep focus
+        return;
+      }
+    }
+
     // Auto-jump with delay (allows typing two digits)
     if (autoJumpTimer) {
       clearTimeout(autoJumpTimer);
@@ -232,7 +258,18 @@ export function createGridEditor(config = {}) {
         const value = parseInt(input.value, 10);
         if (!isNaN(value) && value >= noteRange[0] && value <= noteRange[1]) {
           // Valid note: jump to next empty cell in column
-          jumpToNextEmptyCellInColumn(input);
+          // Only jump to next note if polyphony enabled
+          if (getPolyphonyEnabled()) {
+            jumpToNextEmptyCellInColumn(input);
+          } else {
+            // Monophonic: jump to pulse input directly
+            const column = input.closest('.pulse-column');
+            const pulseInput = column?.querySelector('.pulse-input');
+            if (pulseInput) {
+              pulseInput.focus();
+              pulseInput.select();
+            }
+          }
         }
         autoJumpTimer = null;
       }, AUTO_JUMP_DELAY);
@@ -257,15 +294,33 @@ export function createGridEditor(config = {}) {
 
     const newPulse = text ? parseInt(text, 10) : null;
 
+    // Validate range FIRST (before duplicate check)
+    if (newPulse !== null && !isNaN(newPulse)) {
+      if (newPulse < pulseRange[0] || newPulse > pulseRange[1]) {
+        infoTooltip.show(`El Pulso ${newPulse} es mayor que la Longitud. Escoge otro Pulso`, input);
+        input.value = ''; // Clear invalid input
+        input.focus();    // Keep focus
+        return;
+      }
+    }
+
     // Check for duplicate pulse (merge into existing column)
     if (newPulse !== null && !isNaN(newPulse) && newPulse >= pulseRange[0] && newPulse <= pulseRange[1]) {
       const currentColumn = input.closest('.pulse-column');
       const existingColumn = findColumnByPulse(newPulse, currentColumn);
 
       if (existingColumn && existingColumn !== currentColumn) {
-        // Duplicate pulse found! Merge notes into existing column
+        // Duplicate pulse found! Show warning and prevent creation
+        infoTooltip.show(`El Pulso ${newPulse} ya existe`, input);
+        // Merge notes into existing column
         mergeColumnsAndJumpToNext(currentColumn, existingColumn);
         return; // Skip normal update and auto-jump
+      }
+
+      // Auto-close if P=7 (last pulse)
+      if (newPulse === 7) {
+        input.blur(); // Finalize input and trigger sanitization
+        return;
       }
     }
 
@@ -334,8 +389,18 @@ export function createGridEditor(config = {}) {
           // Move to next note input in same column OR pulse if last
           const nextInput = input.nextElementSibling;
           if (nextInput && nextInput.classList.contains('note-input')) {
-            nextInput.focus();
-            nextInput.select();
+            // If polyphony disabled and next input is empty, skip to pulse
+            if (!getPolyphonyEnabled() && !nextInput.value.trim()) {
+              const column = input.closest('.pulse-column');
+              const pulseInput = column?.querySelector('.pulse-input');
+              if (pulseInput) {
+                pulseInput.focus();
+                pulseInput.select();
+              }
+            } else {
+              nextInput.focus();
+              nextInput.select();
+            }
           } else {
             // No next note input: jump to pulse (skip labels)
             const column = input.closest('.pulse-column');
@@ -419,33 +484,35 @@ export function createGridEditor(config = {}) {
       }
     });
 
-    // If no valid notes to move, just jump to next column
+    // Filter to only first note if polyphony is disabled
+    if (!getPolyphonyEnabled() && notesToMove.length > 1) {
+      notesToMove.length = 1; // Keep only N1
+    }
+
+    // If polyphony is disabled, don't merge anything - just clear P and keep focus
+    if (!getPolyphonyEnabled()) {
+      const currentPulseInput = currentColumn.querySelector('.pulse-input');
+      if (currentPulseInput) {
+        requestAnimationFrame(() => {
+          currentPulseInput.value = ''; // Clear the duplicate pulse value
+          currentPulseInput.focus();
+          currentPulseInput.select();
+        });
+      }
+      return;
+    }
+
+    // POLYPHONY MODE: Proceed with merge
+
+    // If no valid notes to move, just jump to existing column (don't create new)
     if (notesToMove.length === 0) {
-      const columnsContainer = container.querySelector('.grid-columns-container');
-      const nextColumn = currentColumn.nextElementSibling;
-
-      if (nextColumn && nextColumn.classList.contains('pulse-column')) {
-        const firstInput = nextColumn.querySelector('.note-input');
-        if (firstInput) {
-          requestAnimationFrame(() => {
-            firstInput.focus();
-            firstInput.select();
-          });
-        }
-      } else {
-        // Create new empty column
-        const columns = columnsContainer.querySelectorAll('.pulse-column');
-        if (columns.length < maxPairs) {
-          const newColumn = createPulseColumn(null, []);
-          columnsContainer.appendChild(newColumn);
-
-          const firstInput = newColumn.querySelector('.note-input');
-          if (firstInput) {
-            requestAnimationFrame(() => {
-              firstInput.focus();
-            });
-          }
-        }
+      // Jump to first note input in existing column
+      const firstInput = existingColumn.querySelector('.note-input');
+      if (firstInput) {
+        requestAnimationFrame(() => {
+          firstInput.focus();
+          firstInput.select();
+        });
       }
       return;
     }
@@ -491,7 +558,7 @@ export function createGridEditor(config = {}) {
       onPairsChange(updatedPairs);
     }
 
-    // Jump to next column (or create new one)
+    // Jump to next column after the merged one
     requestAnimationFrame(() => {
       const columnsContainer = container.querySelector('.grid-columns-container');
       const columns = columnsContainer.querySelectorAll('.pulse-column');
@@ -729,6 +796,8 @@ export function createGridEditor(config = {}) {
     const newPairs = [];
 
     const columns = container.querySelectorAll('.pulse-column');
+    let hasEmptyNote = false;
+
     columns.forEach(column => {
       const pulseInput = column.querySelector('.pulse-input');
       const pulseText = pulseInput?.value.trim();
@@ -739,16 +808,42 @@ export function createGridEditor(config = {}) {
       }
 
       const noteInputs = column.querySelectorAll('.note-input');
+      let hasAtLeastOneNote = false;
+
       noteInputs.forEach(input => {
         const noteText = input.value.trim();
         if (noteText) {
           const note = parseInt(noteText, 10);
           if (!isNaN(note) && note >= noteRange[0] && note <= noteRange[1]) {
             newPairs.push({ note, pulse });
+            hasAtLeastOneNote = true;
           }
         }
       });
+
+      // If no notes but valid pulse exists, add dummy pair to preserve column
+      if (!hasAtLeastOneNote && !isNaN(pulse)) {
+        hasEmptyNote = true;
+        // Add pair with note: null to preserve the pulse column
+        newPairs.push({ note: null, pulse });
+      }
     });
+
+    // Detect if sorting is needed (new pulse < last pulse)
+    const visualPulses = Array.from(columns).map(col => {
+      const input = col.querySelector('.pulse-input');
+      return input ? parseInt(input.value, 10) : NaN;
+    }).filter(p => !isNaN(p));
+
+    let needsSortWarning = false;
+    if (visualPulses.length > 1) {
+      for (let i = 1; i < visualPulses.length; i++) {
+        if (visualPulses[i] < visualPulses[i - 1]) {
+          needsSortWarning = true;
+          break;
+        }
+      }
+    }
 
     // Sort by pulse, then by note
     newPairs.sort((a, b) => {
@@ -761,6 +856,14 @@ export function createGridEditor(config = {}) {
     // Check if pairs need visual reorganization (pulse order changed)
     const needsReorganization = checkIfReorganizationNeeded(newPairs);
     if (needsReorganization) {
+      // Show "Ordenando Pulsos" warning if auto-sorting is triggered
+      if (needsSortWarning) {
+        const sortTooltip = createInfoTooltip({
+          className: 'fraction-info-bubble auto-tip-below',
+          autoRemoveDelay: 1500
+        });
+        sortTooltip.show('Ordenando Pulsos', container);
+      }
       // Re-render grid with sorted pairs to reorganize columns visually
       render(newPairs);
     }

@@ -1553,3 +1553,114 @@ body.notation-open {
 .hover-tip.show {
   opacity: 1;
 }
+
+/* ========== FLEXIBLE BUTTON LAYOUTS ========== */
+
+/* Vertical layout */
+.controls[data-layout="vertical"] {
+  flex-direction: column;
+  gap: 2rem;
+  height: auto;
+  width: auto;
+}
+
+.controls[data-layout="vertical"] #playBtn {
+  position: static;
+  margin: 0 auto 2rem auto;
+}
+
+.controls[data-layout="vertical"] .control-sound-toggles {
+  position: static;
+  transform: none;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  margin-bottom: 2rem;
+}
+
+.controls[data-layout="vertical"] .control-sound-toggle-container {
+  position: static;
+  transform: none;
+}
+
+.controls[data-layout="vertical"] .control-buttons-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.controls[data-layout="vertical"] .random,
+.controls[data-layout="vertical"] .loop,
+.controls[data-layout="vertical"] .tap,
+.controls[data-layout="vertical"] .reset {
+  position: static;
+  margin: 0;
+}
+
+.controls[data-layout="vertical"] .play-group {
+  position: static;
+  display: contents;
+}
+
+.controls[data-layout="vertical"] .tap-help {
+  position: static;
+  margin-left: 8px;
+}
+
+/* Horizontal layout */
+.controls[data-layout="horizontal"] {
+  flex-direction: row;
+  gap: 1rem;
+  width: auto;
+  height: auto;
+  align-items: center;
+}
+
+.controls[data-layout="horizontal"] #playBtn {
+  position: static;
+  order: 5;
+}
+
+.controls[data-layout="horizontal"] .control-sound-toggles {
+  position: static;
+  transform: none;
+  display: flex;
+  gap: 0.5rem;
+  width: auto;
+  height: auto;
+  order: 10;
+}
+
+.controls[data-layout="horizontal"] .control-sound-toggle-container {
+  position: static;
+  transform: none;
+}
+
+.controls[data-layout="horizontal"] .random {
+  position: static;
+  order: 1;
+}
+
+.controls[data-layout="horizontal"] .loop {
+  position: static;
+  order: 2;
+}
+
+.controls[data-layout="horizontal"] .tap,
+.controls[data-layout="horizontal"] .play-group {
+  position: static;
+  order: 3;
+}
+
+.controls[data-layout="horizontal"] .reset {
+  position: static;
+  order: 4;
+}
+
+.controls[data-layout="horizontal"] .tap-help {
+  position: static;
+  margin-left: 8px;
+}

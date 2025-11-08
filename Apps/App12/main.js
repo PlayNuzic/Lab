@@ -332,8 +332,10 @@ function syncGridFromPairs(pairs) {
     }
   });
 
-  // Activate cells for each pair
+  // Activate cells for each pair (skip pairs with note=null used for preserving empty columns)
   pairs.forEach(({ note, pulse }) => {
+    if (note === null) return; // Skip dummy pairs used to preserve empty pulse columns
+
     const cell = musicalGrid.getCellElement(note, pulse);
     if (cell) {
       cell.classList.add('active');
@@ -356,10 +358,30 @@ function injectGridEditor() {
   gridEditorContainer = document.createElement('div');
   gridEditorContainer.id = 'gridEditorContainer';
 
-  // Inject into app-root
+  // Create main grid wrapper for proper CSS grid layout
   const appRoot = document.getElementById('app-root');
   if (appRoot) {
-    appRoot.appendChild(gridEditorContainer);
+    // Create wrapper inside main element
+    const mainElement = appRoot.querySelector('main');
+    if (mainElement) {
+      const gridWrapper = document.createElement('div');
+      gridWrapper.className = 'app12-main-grid';
+
+      // Move existing grid-container into wrapper
+      const gridContainer = mainElement.querySelector('.grid-container');
+      if (gridContainer) {
+        gridWrapper.appendChild(gridContainer);
+      }
+
+      // Add grid-seq to wrapper
+      gridWrapper.insertBefore(gridEditorContainer, gridWrapper.firstChild);
+
+      // Append wrapper to main
+      mainElement.appendChild(gridWrapper);
+    } else {
+      // Fallback: append directly to app-root
+      appRoot.appendChild(gridEditorContainer);
+    }
   }
 }
 
@@ -503,12 +525,12 @@ async function init() {
     }
   });
 
-  // Reposition controls below grid
+  // Reposition controls into grid wrapper
   const timelineWrapper = document.getElementById('timelineWrapper');
   const controls = timelineWrapper?.querySelector('.controls');
-  const appRoot = document.getElementById('app-root');
+  const gridWrapper = document.querySelector('.app12-main-grid');
 
-  if (controls && appRoot) {
+  if (controls && gridWrapper) {
     // Extract controls from timeline wrapper
     controls.remove();
 
@@ -517,12 +539,12 @@ async function init() {
     controlsContainer.className = 'app12-controls-container';
     controlsContainer.appendChild(controls);
 
-    // Insert after grid-container
-    const gridContainer = appRoot.querySelector('.grid-container');
+    // Insert into grid wrapper (between grid-seq and grid-container)
+    const gridContainer = gridWrapper.querySelector('.grid-container');
     if (gridContainer) {
-      gridContainer.after(controlsContainer);
+      gridContainer.before(controlsContainer);
     } else {
-      appRoot.appendChild(controlsContainer);
+      gridWrapper.appendChild(controlsContainer);
     }
   }
 
@@ -532,6 +554,7 @@ async function init() {
     noteRange: [0, 11],
     pulseRange: [0, 7],
     maxPairs: 8,
+    getPolyphonyEnabled: () => polyphonyEnabled,
     onPairsChange: (pairs) => {
       syncGridFromPairs(pairs);
     }
@@ -643,6 +666,37 @@ async function init() {
       polyphonyEnabled = e.target.checked;
       preferenceStorage.save('polyphony', polyphonyEnabled ? '1' : '0');
       console.log('Polyphony mode:', polyphonyEnabled ? 'ENABLED (polyphonic)' : 'DISABLED (monophonic)');
+
+      // Adaptation: When disabling polyphony, filter to keep only first note per pulse
+      if (!polyphonyEnabled && gridPairs.length > 0) {
+        const pulsesMap = new Map();
+        const filteredPairs = [];
+
+        // Keep only first note (N1) per pulse
+        gridPairs.forEach(pair => {
+          if (!pulsesMap.has(pair.pulse)) {
+            pulsesMap.set(pair.pulse, true);
+            filteredPairs.push(pair);
+          }
+        });
+
+        // Update gridPairs and re-render
+        gridPairs = filteredPairs;
+        gridLayoutController.render(filteredPairs);
+
+        // Update cellStates to remove N2+ cells
+        const newCellStates = new Map();
+        filteredPairs.forEach(pair => {
+          const key = `${pair.note}-${pair.pulse}`;
+          if (cellStates.has(key)) {
+            newCellStates.set(key, cellStates.get(key));
+          }
+        });
+        cellStates.clear();
+        newCellStates.forEach((value, key) => cellStates.set(key, value));
+
+        console.log('Polyphony disabled: Filtered to N1 only per pulse');
+      }
     });
   }
 

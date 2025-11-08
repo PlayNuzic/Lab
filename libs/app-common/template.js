@@ -53,7 +53,8 @@ export function renderApp({
   showHoverToggle = true,
   showStartSoundDropdown = true,
   showInstrumentDropdown = false,
-  showPolyphonyToggle = false
+  showPolyphonyToggle = false,
+  controlsLayout = null
 }) {
   if (!root) throw new Error('root element required');
   document.title = title;
@@ -281,8 +282,9 @@ ${togglesMarkup}
     <section class="timeline-wrapper" id="timelineWrapper">
       <section class="timeline" id="timeline"></section>
 
-      <div class="controls">
+      <div class="controls"${controlsLayout ? ` data-layout="${controlsLayout.mode}"` : ''}>
       ${soundToggleMarkup}
+      ${controlsLayout?.mode === 'vertical' ? '<div class="control-buttons-row">' : ''}
       <button id="randomBtn" class="random" aria-label="Random">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor" stroke="currentColor">
     <path d="M449.531,105.602L288.463,8.989C278.473,2.994,267.235,0,256.01,0c-11.238,0-22.483,2.994-32.466,8.989 L62.475,105.602c-19.012,11.406-30.647,31.949-30.647,54.117v192.562c0,22.168,11.635,42.711,30.647,54.117l161.069,96.613 c9.982,5.988,21.228,8.989,32.466,8.989c11.226,0,22.463-3.001,32.453-8.989l161.069-96.613 c19.013-11.406,30.64-31.95,30.64-54.117V159.719C480.172,137.551,468.544,117.008,449.531,105.602z M250.599,492.733 c-6.028-0.745-11.929-2.713-17.32-5.949L72.209,390.171c-13.306-7.989-21.456-22.369-21.456-37.89V159.719 c0-6.022,1.235-11.862,3.518-17.234l196.328,117.76V492.733z M59.669,133.114c3.364-4.464,7.593-8.318,12.54-11.286l161.069-96.613 c6.995-4.196,14.85-6.29,22.731-6.29c7.868,0,15.724,2.095,22.718,6.29l161.069,96.613c4.942,2.968,9.184,6.821,12.54,11.286 L256.01,250.881L59.669,133.114z M461.253,352.281c0,15.521-8.15,29.901-21.456,37.89l-161.069,96.613 c-5.397,3.236-11.292,5.204-17.32,5.949V260.246l196.328-117.76c2.282,5.371,3.518,11.212,3.518,17.234V352.281z"/>
@@ -339,6 +341,7 @@ ${togglesMarkup}
     <path d="M18 7L7 18M7 7L18 18" stroke="currentColor" stroke-width="1.2"/>
   </svg>
 </button>
+      ${controlsLayout?.mode === 'vertical' ? '</div>' : ''}
       </div>
     </section>
   </main>`;
