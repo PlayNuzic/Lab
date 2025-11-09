@@ -396,9 +396,10 @@ async function init() {
   // Inject DOM elements
   injectGridEditor();
 
-  // Create musical grid using new simplified module
+  // Create musical grid inside the main grid wrapper
+  const mainGridWrapper = document.querySelector('.app12-main-grid');
   musicalGrid = createMusicalGrid({
-    parent: document.getElementById('app-root'),
+    parent: mainGridWrapper || document.getElementById('app-root'), // Use grid wrapper if exists
     notes: TOTAL_NOTES,
     pulses: TOTAL_PULSES,
     startMidi: 60, // C4
