@@ -226,7 +226,7 @@
 /* Pulse markers (short vertical lines with numbers below) */
 .pulse-marker {
   position: absolute;
-  top: 12px;
+  top: 20px;
   width: 2px;
   height: var(--pulse-marker-height, 15px);
   background: var(--line-color, #666);
@@ -243,7 +243,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 18px; /* Space between line and number */
+  padding-top:5px; /* Space between line and number */
   line-height: 3;
 }
 
