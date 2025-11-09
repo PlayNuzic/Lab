@@ -309,7 +309,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .grid-container {
     height: 60vh;
     grid-template-columns: 100px 1fr;

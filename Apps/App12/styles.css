@@ -329,7 +329,7 @@
 }
 
 /* ========== MOBILE LANDSCAPE ADAPTATIONS ========== */
-@media (max-width: 768px) and (orientation: landscape) {
+@media (max-width: 900px) and (orientation: landscape) {
   /* Reduce padding and margins for tighter layout */
   .app12-main-grid {
     grid-template-columns: 80px 1fr 80px;
@@ -460,7 +460,7 @@
 }
 
 /* ========== MUSICAL GRID ADAPTATIONS FOR MOBILE ========== */
-@media (max-width: 768px) and (orientation: landscape) {
+@media (max-width: 900px) and (orientation: landscape) {
   /* Reduce musical-grid container height */
   .grid-container {
     height: 40vh !important;

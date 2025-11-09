@@ -550,7 +550,7 @@ async function init() {
   }
 
   // Create grid editor with scroll enabled on mobile
-  const isMobile = window.innerWidth <= 768;
+  const isMobile = window.innerWidth <= 900;
   gridEditor = createGridEditor({
     container: gridEditorContainer,
     noteRange: [0, 11],

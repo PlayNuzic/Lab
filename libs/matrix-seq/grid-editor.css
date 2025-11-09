@@ -260,7 +260,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .matrix-grid-editor {
     font-size: 2rem;
     margin: 15px 30px;
