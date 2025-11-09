@@ -549,13 +549,17 @@ async function init() {
     }
   }
 
-  // Create grid editor with invisible table layout
+  // Create grid editor with scroll enabled on mobile
+  const isMobile = window.innerWidth <= 768;
   gridEditor = createGridEditor({
     container: gridEditorContainer,
     noteRange: [0, 11],
     pulseRange: [0, 7],
     maxPairs: 8,
     getPolyphonyEnabled: () => polyphonyEnabled,
+    scrollEnabled: isMobile,
+    containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
+    columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
     onPairsChange: (pairs) => {
       syncGridFromPairs(pairs);
     }

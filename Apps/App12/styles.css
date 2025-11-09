@@ -298,3 +298,128 @@
   grid-row: 2;
   margin: 0 auto;
 }
+
+/* ========== RESPONSIVE ADAPTATIONS ========== */
+
+/* ========== LANDSCAPE ORIENTATION WARNING (Portrait Mode) ========== */
+@media (max-width: 768px) and (orientation: portrait) {
+  body::before {
+    content: '⟲ Por favor, gira tu dispositivo para usar esta aplicación';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    z-index: 9999;
+    padding: 20px;
+  }
+
+  /* Hide app content in portrait mode */
+  #app-root {
+    display: none !important;
+  }
+}
+
+/* ========== MOBILE LANDSCAPE ADAPTATIONS ========== */
+@media (max-width: 768px) and (orientation: landscape) {
+  /* Reduce padding and margins for tighter layout */
+  .app12-main-grid {
+    grid-template-columns: 100px 1fr 100px;
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+
+  .app12-controls-container {
+    margin: 10px;
+  }
+
+  .plane-wrapper {
+    width: calc(100% - 20px);
+    margin: 10px;
+  }
+
+  /* Smaller controls */
+  .app12-controls-container .control-buttons-row {
+    gap: 0.3rem;
+  }
+
+  .app12-controls-container .button-row {
+    gap: 0.8rem;
+  }
+
+  /* Compact grid-editor with scroll enabled */
+  #gridEditorContainer {
+    font-size: 1.5rem;
+  }
+}
+
+/* ========== SMALL MOBILE LANDSCAPE (≤ 480px) ========== */
+@media (max-width: 480px) and (orientation: landscape) {
+  .app12-main-grid {
+    grid-template-columns: 80px 1fr 80px;
+    gap: 0.5rem;
+    padding: 0.25rem;
+  }
+
+  .app12-controls-container {
+    margin: 5px;
+  }
+
+  /* Even smaller for tiny screens */
+  #gridEditorContainer {
+    font-size: 1.2rem;
+  }
+}
+
+/* ========== MUSICAL GRID ADAPTATIONS FOR MOBILE ========== */
+@media (max-width: 768px) and (orientation: landscape) {
+  /* Reduce musical-grid container height */
+  .grid-container {
+    height: 40vh !important;
+    max-height: 350px !important;
+  }
+
+  /* Smaller soundline and pulse numbers */
+  .soundline-number,
+  .pulse-marker {
+    font-size: 1rem !important;
+  }
+
+  /* Smaller cell labels */
+  .cell-label {
+    font-size: 0.9rem !important;
+  }
+
+  /* Reduce grid gaps */
+  .grid-container {
+    gap: 10px !important;
+    grid-template-columns: 100px 1fr !important;
+  }
+}
+
+@media (max-width: 480px) and (orientation: landscape) {
+  /* Even smaller for tiny screens */
+  .grid-container {
+    height: 35vh !important;
+    max-height: 300px !important;
+    gap: 8px !important;
+    grid-template-columns: 80px 1fr !important;
+  }
+
+  .soundline-number,
+  .pulse-marker {
+    font-size: 0.85rem !important;
+  }
+
+  .cell-label {
+    font-size: 0.8rem !important;
+  }
+}
