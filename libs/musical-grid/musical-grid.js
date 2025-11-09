@@ -12,6 +12,10 @@
  * @param {number} [config.pulses=9] - Number of horizontal pulse markers (0 to pulses-1)
  * @param {number} [config.startMidi=60] - Starting MIDI note (C4 by default)
  * @param {boolean} [config.fillSpaces=true] - If true, cells fill spaces BETWEEN pulses (n-1 cells horizontally)
+ * @param {boolean} [config.scrollEnabled=false] - Enable scroll for larger grids
+ * @param {Object} [config.containerSize] - Fixed container size when scrollEnabled {width, height}
+ * @param {Object} [config.visibleCells] - Visible cell counts when scrollEnabled {notes, pulses}
+ * @param {Object} [config.cellSize] - Minimum cell size when scrollEnabled {minWidth, minHeight}
  * @param {Function} [config.onCellClick] - (noteIndex, pulseIndex, cellElement) => void
  * @param {Function} [config.onNoteClick] - (noteIndex, midi, noteElement) => void
  * @param {Function} [config.cellRenderer] - (noteIndex, pulseIndex, cellElement) => void - Custom cell rendering
@@ -36,6 +40,10 @@ export function createMusicalGrid(config) {
     pulses = 9,
     startMidi = 60,
     fillSpaces = true,
+    scrollEnabled = false,
+    containerSize = null,
+    visibleCells = null,
+    cellSize = null,
     onCellClick = null,
     onNoteClick = null,
     cellRenderer = null,
@@ -72,13 +80,35 @@ export function createMusicalGrid(config) {
     const gridContainer = document.createElement('div');
     gridContainer.className = 'grid-container';
 
+    // Apply scroll container size if provided
+    if (scrollEnabled && containerSize) {
+      if (containerSize.width) gridContainer.style.width = containerSize.width;
+      if (containerSize.height) gridContainer.style.height = containerSize.height;
+      if (containerSize.maxWidth) gridContainer.style.maxWidth = containerSize.maxWidth;
+      if (containerSize.maxHeight) gridContainer.style.maxHeight = containerSize.maxHeight;
+    }
+
     // Soundline wrapper (top-left)
     const soundlineWrapper = document.createElement('div');
     soundlineWrapper.className = 'soundline-wrapper';
 
+    // Enable vertical scroll if needed
+    if (scrollEnabled) {
+      soundlineWrapper.style.overflowY = 'auto';
+      soundlineWrapper.style.overflowX = 'hidden';
+      soundlineWrapper.style.scrollbarWidth = 'none'; // Firefox
+      soundlineWrapper.style.msOverflowStyle = 'none'; // IE/Edge
+    }
+
     // Matrix container (top-right) - where cells are rendered
     const matrixContainer = document.createElement('div');
     matrixContainer.className = 'matrix-container';
+
+    // Enable scroll if needed
+    if (scrollEnabled) {
+      matrixContainer.style.overflow = 'auto';
+      matrixContainer.style.scrollBehavior = 'smooth';
+    }
 
     // Spacer (bottom-left) - empty cell in grid
     const spacer = document.createElement('div');
@@ -88,6 +118,14 @@ export function createMusicalGrid(config) {
     // Timeline wrapper (bottom-right)
     const timelineWrapper = document.createElement('div');
     timelineWrapper.className = 'timeline-wrapper';
+
+    // Enable horizontal scroll if needed
+    if (scrollEnabled) {
+      timelineWrapper.style.overflowX = 'auto';
+      timelineWrapper.style.overflowY = 'hidden';
+      timelineWrapper.style.scrollbarWidth = 'none'; // Firefox
+      timelineWrapper.style.msOverflowStyle = 'none'; // IE/Edge
+    }
 
     // Assemble structure
     gridContainer.appendChild(soundlineWrapper);
@@ -117,10 +155,28 @@ export function createMusicalGrid(config) {
   function renderSoundline() {
     const container = containers.soundline;
 
+    // Create inner expandible container for scroll support
+    let innerContainer = container;
+    if (scrollEnabled) {
+      innerContainer = document.createElement('div');
+      innerContainer.className = 'soundline-inner';
+      innerContainer.style.position = 'relative';
+
+      // Calculate expanded height based on cellSize
+      if (cellSize && cellSize.minHeight) {
+        const expandedHeight = notes * cellSize.minHeight;
+        innerContainer.style.minHeight = `${expandedHeight}px`;
+        innerContainer.style.height = `${expandedHeight}px`;
+      }
+
+      container.appendChild(innerContainer);
+      containers.soundlineInner = innerContainer;
+    }
+
     // Create vertical line
     const line = document.createElement('div');
     line.className = 'soundline';
-    container.appendChild(line);
+    innerContainer.appendChild(line);
 
     // Create note elements (0 to notes-1, from bottom to top visually)
     for (let i = 0; i < notes; i++) {
@@ -132,7 +188,7 @@ export function createMusicalGrid(config) {
       division.className = 'soundline-division';
       const yPct = (i / notes) * 100;
       division.style.top = `${yPct}%`;
-      container.appendChild(division);
+      innerContainer.appendChild(division);
 
       // Note label (clickable number) - CENTERED between divisions
       const noteLabel = document.createElement('div');
@@ -154,7 +210,7 @@ export function createMusicalGrid(config) {
         });
       }
 
-      container.appendChild(noteLabel);
+      innerContainer.appendChild(noteLabel);
       noteElements.push({ index: noteIndex, element: noteLabel, midi });
     }
   }
@@ -165,10 +221,28 @@ export function createMusicalGrid(config) {
   function renderTimeline() {
     const container = containers.timeline;
 
+    // Create inner expandible container for scroll support
+    let innerContainer = container;
+    if (scrollEnabled) {
+      innerContainer = document.createElement('div');
+      innerContainer.className = 'timeline-inner';
+      innerContainer.style.position = 'relative';
+
+      // Calculate expanded width based on cellSize
+      if (cellSize && cellSize.minWidth) {
+        const expandedWidth = hCellCount * cellSize.minWidth;
+        innerContainer.style.minWidth = `${expandedWidth}px`;
+        innerContainer.style.width = `${expandedWidth}px`;
+      }
+
+      container.appendChild(innerContainer);
+      containers.timelineInner = innerContainer;
+    }
+
     // Create horizontal line
     const line = document.createElement('div');
     line.className = 'timeline-line';
-    container.appendChild(line);
+    innerContainer.appendChild(line);
 
     // Create pulse markers (0 to pulses-1)
     for (let i = 0; i < pulses; i++) {
@@ -180,7 +254,7 @@ export function createMusicalGrid(config) {
       marker.dataset.pulseIndex = i;
       marker.style.left = `${xPct}%`;
       marker.textContent = pulseFormatter ? pulseFormatter(i) : i;
-      container.appendChild(marker);
+      innerContainer.appendChild(marker);
 
       pulseElements.push({ index: i, element: marker });
     }
@@ -193,30 +267,55 @@ export function createMusicalGrid(config) {
     // Note: noteIndex is the actual note (0-11)
     // hIndex is the horizontal cell index (0 to hCellCount-1)
 
-    const matrixRect = containers.matrix.getBoundingClientRect();
+    // Use inner container for scroll mode, outer container otherwise
+    const targetContainer = scrollEnabled && containers.matrixInner
+      ? containers.matrixInner
+      : containers.matrix;
+
+    const matrixRect = targetContainer.getBoundingClientRect();
     if (matrixRect.width === 0 || matrixRect.height === 0) {
       return { left: 0, top: 0, width: 0, height: 0 };
     }
 
     // Vertical: note position (top-to-bottom = high-to-low note)
     const visualNoteIndex = notes - 1 - noteIndex; // Convert to visual index
-    const noteHeight = matrixRect.height / notes;
-    const top = visualNoteIndex * noteHeight;
+
+    // Use fixed cell size if scrollEnabled, otherwise responsive
+    let noteHeight, top;
+    if (scrollEnabled && cellSize && cellSize.minHeight) {
+      noteHeight = cellSize.minHeight;
+      top = visualNoteIndex * noteHeight;
+    } else {
+      noteHeight = matrixRect.height / notes;
+      top = visualNoteIndex * noteHeight;
+    }
 
     // Horizontal: pulse space position
     let left, width;
 
-    if (fillSpaces) {
-      // Cells fill spaces BETWEEN pulse markers
-      // Space 0 is between pulse 0 and pulse 1
-      const spaceWidth = matrixRect.width / hCellCount;
-      left = hIndex * spaceWidth;
-      width = spaceWidth;
+    if (scrollEnabled && cellSize && cellSize.minWidth) {
+      // Fixed cell size for scroll mode
+      if (fillSpaces) {
+        width = cellSize.minWidth;
+        left = hIndex * width;
+      } else {
+        width = cellSize.minWidth;
+        left = hIndex * width;
+      }
     } else {
-      // Cells align WITH pulse markers
-      const cellWidth = matrixRect.width / hCellCount;
-      left = hIndex * cellWidth;
-      width = cellWidth;
+      // Responsive cell size for non-scroll mode
+      if (fillSpaces) {
+        // Cells fill spaces BETWEEN pulse markers
+        // Space 0 is between pulse 0 and pulse 1
+        const spaceWidth = matrixRect.width / hCellCount;
+        left = hIndex * spaceWidth;
+        width = spaceWidth;
+      } else {
+        // Cells align WITH pulse markers
+        const cellWidth = matrixRect.width / hCellCount;
+        left = hIndex * cellWidth;
+        width = cellWidth;
+      }
     }
 
     return { left, top, width, height: noteHeight };
@@ -227,6 +326,31 @@ export function createMusicalGrid(config) {
    */
   function createCells() {
     const container = containers.matrix;
+
+    // Create inner expandible container for scroll support
+    let innerContainer = container;
+    if (scrollEnabled) {
+      innerContainer = document.createElement('div');
+      innerContainer.className = 'matrix-inner';
+      innerContainer.style.position = 'relative';
+
+      // Calculate expanded size based on cellSize
+      if (cellSize) {
+        if (cellSize.minWidth) {
+          const expandedWidth = hCellCount * cellSize.minWidth;
+          innerContainer.style.minWidth = `${expandedWidth}px`;
+          innerContainer.style.width = `${expandedWidth}px`;
+        }
+        if (cellSize.minHeight) {
+          const expandedHeight = notes * cellSize.minHeight;
+          innerContainer.style.minHeight = `${expandedHeight}px`;
+          innerContainer.style.height = `${expandedHeight}px`;
+        }
+      }
+
+      container.appendChild(innerContainer);
+      containers.matrixInner = innerContainer;
+    }
 
     // Create cells for all note x pulse combinations
     for (let noteIndex = 0; noteIndex < notes; noteIndex++) {
@@ -263,7 +387,7 @@ export function createMusicalGrid(config) {
         }
 
         // Append and track
-        container.appendChild(cell);
+        innerContainer.appendChild(cell);
         cells.push({
           element: cell,
           noteIndex,
@@ -288,6 +412,59 @@ export function createMusicalGrid(config) {
   }
 
   /**
+   * Setup scroll synchronization between matrix and axes
+   */
+  function setupScrollSync() {
+    if (!scrollEnabled) return;
+
+    let isScrolling = false;
+
+    // Sync scroll from matrix to axes
+    containers.matrix.addEventListener('scroll', () => {
+      if (isScrolling) return;
+      isScrolling = true;
+
+      // Sync vertical scroll to soundline
+      if (containers.soundline) {
+        containers.soundline.scrollTop = containers.matrix.scrollTop;
+      }
+
+      // Sync horizontal scroll to timeline
+      if (containers.timeline) {
+        containers.timeline.scrollLeft = containers.matrix.scrollLeft;
+      }
+
+      requestAnimationFrame(() => {
+        isScrolling = false;
+      });
+    });
+
+    // Sync scroll from soundline to matrix (vertical only)
+    containers.soundline.addEventListener('scroll', () => {
+      if (isScrolling) return;
+      isScrolling = true;
+
+      containers.matrix.scrollTop = containers.soundline.scrollTop;
+
+      requestAnimationFrame(() => {
+        isScrolling = false;
+      });
+    });
+
+    // Sync scroll from timeline to matrix (horizontal only)
+    containers.timeline.addEventListener('scroll', () => {
+      if (isScrolling) return;
+      isScrolling = true;
+
+      containers.matrix.scrollLeft = containers.timeline.scrollLeft;
+
+      requestAnimationFrame(() => {
+        isScrolling = false;
+      });
+    });
+  }
+
+  /**
    * Setup automatic resize handling
    */
   function setupResizeHandling() {
@@ -296,6 +473,11 @@ export function createMusicalGrid(config) {
       window.addEventListener('resize', updateCellPositions);
       return;
     }
+
+    // Observe the correct container based on scroll mode
+    const targetContainer = scrollEnabled && containers.matrixInner
+      ? containers.matrixInner
+      : containers.matrix;
 
     resizeObserver = new ResizeObserver(() => {
       // Debounce updates
@@ -308,7 +490,7 @@ export function createMusicalGrid(config) {
       }, 100);
     });
 
-    resizeObserver.observe(containers.matrix);
+    resizeObserver.observe(targetContainer);
   }
 
   /**
@@ -328,12 +510,16 @@ export function createMusicalGrid(config) {
     renderTimeline();
     createCells();
 
+    // Setup scroll synchronization
+    setupScrollSync();
+
     // Setup resize handling
     setupResizeHandling();
 
     isRendered = true;
 
-    console.log(`Musical grid rendered: ${notes} notes × ${hCellCount} cells = ${cells.length} cells`);
+    const scrollStatus = scrollEnabled ? ' (scroll enabled)' : '';
+    console.log(`Musical grid rendered: ${notes} notes × ${hCellCount} cells = ${cells.length} cells${scrollStatus}`);
   }
 
   /**

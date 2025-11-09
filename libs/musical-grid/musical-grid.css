@@ -44,6 +44,17 @@
   height: 100%;
 }
 
+/* Hide scrollbar in soundline wrapper when scroll is enabled */
+.soundline-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+/* Inner expandible container for scroll support */
+.soundline-inner {
+  position: relative;
+  width: 100%;
+}
+
 /* Vertical soundline */
 .soundline {
   position: relative;
@@ -107,6 +118,13 @@
 
 [data-theme="dark"] .matrix-container {
   background: rgba(255, 255, 255, 0.02);
+}
+
+/* Inner expandible container for scroll support */
+.matrix-inner {
+  position: relative;
+  min-width: 100%;
+  min-height: 100%;
 }
 
 /* ========== MATRIX CELLS ========== */
@@ -179,6 +197,18 @@
   height: 100%;
   display: flex;
   align-items: flex-start;
+}
+
+/* Hide scrollbar in timeline wrapper when scroll is enabled */
+.timeline-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+/* Inner expandible container for scroll support */
+.timeline-inner {
+  position: relative;
+  min-width: 100%;
+  height: 100%;
 }
 
 /* Línea horizontal */
