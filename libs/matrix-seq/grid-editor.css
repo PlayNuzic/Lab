@@ -1,0 +1,275 @@
+/**
+ * Grid Editor CSS - Shared styles for matrix-seq grid-editor component
+ *
+ * Usage:
+ *   import '../../libs/matrix-seq/grid-editor.css';
+ *
+ * CSS Custom Properties Required:
+ *   --notes-height: Dynamic height calculated by grid-editor.js (maxVoices * 60px)
+ *   --select-color: Highlight/accent color (default: #F97C39)
+ *   --text-color: Main text color (default: #333)
+ *   --text-dark: Dark theme text color (default: #e0e0e0)
+ *
+ * Dependencies:
+ *   - None (standalone)
+ */
+
+/* ========== GRID EDITOR (Dynamic Columns by Pulse) ========== */
+.matrix-grid-editor {
+  display: flex;
+  gap: 20px;
+  margin: 20px 60px;
+  padding: 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 2.25rem; /* Reduced 25% from 3rem */
+}
+
+/* Label column (fixed on left) */
+.grid-label-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 10px 15px;
+}
+
+.grid-row-label {
+  font-weight: 600;
+  font-size: 2.25rem; /* Reduced 25% from 3rem */
+  color: var(--text-color, #333);
+  text-align: center;
+}
+
+.grid-row-label--n {
+  min-height: var(--notes-height, 120px); /* Dynamic height based on max voices */
+  display: flex;
+  align-items: flex-start;
+  padding-top: 15px;
+}
+
+.grid-row-label--p {
+  height: 60px; /* Same as pulse input height */
+  display: flex;
+  align-items: center;
+}
+
+[data-theme="dark"] .grid-row-label {
+  color: var(--text-dark, #e0e0e0);
+}
+
+/* Columns container */
+.grid-columns-container {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Pulse column */
+.pulse-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid transparent;
+  padding: 10px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.pulse-column.highlighted {
+  background: rgba(74, 158, 255, 0.1);
+  border-color: var(--select-color, #F97C39);
+  box-shadow: 0 0 10px var(--select-color, #F97C39);
+}
+
+/* Notes area (dynamic height for vertical alignment) */
+.column-notes-area {
+  height: var(--notes-height, 120px); /* Fixed height to maintain P row alignment */
+  min-height: var(--notes-height, 120px); /* Fallback */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start; /* Align items to top */
+}
+
+/* Pulse area */
+.column-pulse-area {
+  height: 60px;
+  display: flex;
+  align-items: center;
+}
+
+.pulse-input {
+  /* Invisible borders and background */
+  border: 1px solid transparent;
+  background: transparent;
+
+  /* Layout - same size as note-input */
+  width: 52.5px; /* Reduced 25% from 70px */
+  padding: 6px 9px; /* Reduced 25% from 8px 12px */
+  text-align: center;
+
+  /* Typography - same size as note-input */
+  font-size: 2.25rem; /* Reduced 25% from 3rem */
+  font-family: 'Courier New', monospace;
+  color: var(--text-color, #333);
+
+  /* Interaction */
+  outline: none;
+  cursor: text;
+  transition: all 0.15s ease;
+
+  /* Caret color */
+  caret-color: var(--select-color, #F97C39);
+}
+
+[data-theme="dark"] .pulse-input {
+  color: var(--text-dark, #e0e0e0);
+}
+
+.pulse-input:focus {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .pulse-input:focus {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.note-input {
+  /* Invisible borders and background */
+  border: 1px solid transparent;
+  background: transparent;
+
+  /* Layout */
+  width: 52.5px; /* Reduced 25% from 70px */
+  padding: 6px 9px; /* Reduced 25% from 8px 12px */
+  text-align: center;
+
+  /* Typography */
+  font-size: 2.25rem; /* Reduced 25% from 3rem */
+  font-family: 'Courier New', monospace;
+  color: var(--text-color, #333);
+
+  /* Interaction */
+  outline: none;
+  cursor: text;
+  transition: all 0.15s ease;
+
+  /* Caret color */
+  caret-color: var(--select-color, #F97C39);
+}
+
+[data-theme="dark"] .note-input {
+  color: var(--text-dark, #e0e0e0);
+}
+
+.note-input:focus {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .note-input:focus {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.note-input::placeholder {
+  color: #ccc;
+  opacity: 0.5;
+}
+
+[data-theme="dark"] .note-input::placeholder {
+  color: #666;
+}
+
+/* Responsive sizing for grid editor */
+@media (max-width: 1024px) {
+  .matrix-grid-editor {
+    font-size: 2.5rem;
+    margin: 20px 50px;
+    gap: 15px;
+  }
+
+  .grid-row-label {
+    font-size: 2.5rem;
+  }
+
+  .grid-row-label--n,
+  .column-notes-area {
+    /* Dynamic height maintained at all screen sizes */
+    min-height: var(--notes-height, 120px);
+  }
+
+  .grid-row-label--p,
+  .column-pulse-area {
+    height: 50px;
+  }
+
+  .note-input,
+  .pulse-input {
+    font-size: 2.5rem;
+    width: 60px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .matrix-grid-editor {
+    font-size: 2rem;
+    margin: 15px 30px;
+    gap: 12px;
+  }
+
+  .grid-row-label {
+    font-size: 2rem;
+  }
+
+  .grid-row-label--n,
+  .column-notes-area {
+    /* Dynamic height maintained at all screen sizes */
+    min-height: var(--notes-height, 120px);
+  }
+
+  .grid-row-label--p,
+  .column-pulse-area {
+    height: 45px;
+  }
+
+  .note-input,
+  .pulse-input {
+    font-size: 2rem;
+    width: 50px;
+    padding: 5px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .matrix-grid-editor {
+    font-size: 1.5rem;
+    margin: 10px 20px;
+    gap: 10px;
+  }
+
+  .grid-row-label {
+    font-size: 1.5rem;
+  }
+
+  .grid-row-label--n,
+  .column-notes-area {
+    /* Dynamic height maintained at all screen sizes */
+    min-height: var(--notes-height, 120px);
+  }
+
+  .grid-row-label--p,
+  .column-pulse-area {
+    height: 40px;
+  }
+
+  .note-input,
+  .pulse-input {
+    font-size: 1.5rem;
+    width: 45px;
+    padding: 4px 6px;
+  }
+}

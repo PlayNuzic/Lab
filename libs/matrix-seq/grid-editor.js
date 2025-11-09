@@ -1,20 +1,60 @@
 /**
  * grid-editor.js - Grid-based editor for N-P pairs (dynamic columns by pulse)
  *
+ * A fully encapsulated, reusable component for editing Note-Pulse pairs in a dynamic grid layout.
+ * Ready for use "out of the box" with minimal configuration.
+ *
  * Features:
  * - Dynamic columns (one per pulse, created on demand)
- * - Multi-voice support (multiple notes per pulse → multiple rows)
+ * - Multi-voice support (multiple notes per pulse → polyphony/monophony modes)
  * - Auto-jump navigation with 300ms delay (allows two-digit input)
- * - Arrow key navigation
- * - Invisible cells (transparent borders/background)
+ * - Auto-blur on P=7 (last pulse) without blocking note entry
+ * - Auto-merge of duplicate pulse columns
+ * - Auto-sort columns when pulse order changes
+ * - Arrow key navigation (Up/Down/Left/Right)
+ * - Keyboard shortcuts (Enter, Tab, Backspace)
+ * - Range validation with contextual tooltips
+ * - Highlight support for playback synchronization
+ * - Responsive design (4 breakpoints: desktop, tablet, mobile, small mobile)
+ *
+ * CSS Required:
+ * - Import '../../libs/matrix-seq/grid-editor.css' in your app
+ *
+ * Dependencies:
+ * - libs/app-common/info-tooltip.js (for validation warnings)
+ *
+ * @example
+ * import { createGridEditor } from '../../libs/matrix-seq/index.js';
+ * import '../../libs/matrix-seq/grid-editor.css';
+ *
+ * const editor = createGridEditor({
+ *   container: document.getElementById('editorContainer'),
+ *   noteRange: [0, 11],
+ *   pulseRange: [0, 7],
+ *   maxPairs: 8,
+ *   getPolyphonyEnabled: () => myPolyphonyState,
+ *   onPairsChange: (pairs) => console.log('Pairs updated:', pairs)
+ * });
+ *
+ * // API
+ * editor.setPairs([{ note: 5, pulse: 2 }, { note: 7, pulse: 4 }]);
+ * editor.highlightCell(5, 2); // Highlight during playback
+ * editor.clear();
  */
 
 import { createInfoTooltip } from '../app-common/info-tooltip.js';
 
 /**
  * Creates grid-based pair editor with dynamic columns
+ *
  * @param {Object} config - Configuration
- * @returns {Object} - Editor API
+ * @param {HTMLElement} config.container - Container element for the editor
+ * @param {Array<number>} [config.noteRange=[0, 11]] - Valid note range [min, max]
+ * @param {Array<number>} [config.pulseRange=[0, 7]] - Valid pulse range [min, max]
+ * @param {number} [config.maxPairs=8] - Maximum number of N-P pairs allowed
+ * @param {Function} [config.getPolyphonyEnabled=() => true] - Function returning polyphony state
+ * @param {Function} [config.onPairsChange=(pairs) => {}] - Callback when pairs change
+ * @returns {Object} - Editor API with methods: render, getPairs, setPairs, clear, highlightCell, clearHighlights
  */
 export function createGridEditor(config = {}) {
   const {
