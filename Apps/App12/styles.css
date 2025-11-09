@@ -332,13 +332,13 @@
 @media (max-width: 768px) and (orientation: landscape) {
   /* Reduce padding and margins for tighter layout */
   .app12-main-grid {
-    grid-template-columns: 100px 1fr 100px;
-    gap: 1rem;
-    padding: 0.5rem;
+    grid-template-columns: 80px 1fr 80px;
+    gap: 0.8rem;
+    padding: 0.4rem;
   }
 
   .app12-controls-container {
-    margin: 10px;
+    margin: 8px;
   }
 
   .plane-wrapper {
@@ -352,30 +352,110 @@
   }
 
   .app12-controls-container .button-row {
-    gap: 0.8rem;
+    gap: 0.6rem;
+  }
+
+  /* Scale down all control buttons */
+  .app12-controls-container .control {
+    width: 45px !important;
+    height: 45px !important;
+    font-size: 1.2rem !important;
+  }
+
+  .app12-controls-container .control svg {
+    width: 20px !important;
+    height: 20px !important;
   }
 
   /* Compact grid-editor with scroll enabled */
   #gridEditorContainer {
-    font-size: 1.5rem;
+    font-size: 1.4rem !important;
+  }
+
+  /* Reduce grid-editor label and input sizes */
+  .matrix-grid-editor {
+    font-size: 1.4rem !important;
+    margin: 10px 20px !important;
+    padding: 10px !important;
+  }
+
+  .grid-row-label {
+    font-size: 1.4rem !important;
+  }
+
+  .note-input,
+  .pulse-input {
+    font-size: 1.4rem !important;
+    width: 40px !important;
+    padding: 4px 6px !important;
+  }
+
+  .grid-label-column {
+    padding: 5px 8px !important;
+  }
+
+  /* CRITICAL: Force scroll mode in grid-editor for mobile */
+  .matrix-grid-editor--scrollable {
+    max-height: 180px !important;
+    overflow: auto !important;
+  }
+
+  .grid-columns-container--scrollable {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+  }
+
+  .matrix-grid-editor--scrollable .pulse-column {
+    flex-shrink: 0 !important;
+    width: 80px !important;
+    min-height: 150px !important;
   }
 }
 
 /* ========== SMALL MOBILE LANDSCAPE (≤ 480px) ========== */
 @media (max-width: 480px) and (orientation: landscape) {
   .app12-main-grid {
-    grid-template-columns: 80px 1fr 80px;
-    gap: 0.5rem;
-    padding: 0.25rem;
+    grid-template-columns: 70px 1fr 70px;
+    gap: 0.4rem;
+    padding: 0.2rem;
   }
 
   .app12-controls-container {
     margin: 5px;
   }
 
+  /* Even smaller buttons */
+  .app12-controls-container .control {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 1rem !important;
+  }
+
+  .app12-controls-container .control svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
   /* Even smaller for tiny screens */
   #gridEditorContainer {
-    font-size: 1.2rem;
+    font-size: 1.1rem !important;
+  }
+
+  .matrix-grid-editor {
+    font-size: 1.1rem !important;
+    margin: 8px 15px !important;
+    padding: 8px !important;
+  }
+
+  .grid-row-label {
+    font-size: 1.1rem !important;
+  }
+
+  .note-input,
+  .pulse-input {
+    font-size: 1.1rem !important;
+    width: 35px !important;
+    padding: 3px 5px !important;
   }
 }
 
