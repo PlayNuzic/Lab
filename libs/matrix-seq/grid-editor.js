@@ -319,8 +319,9 @@ export function createGridEditor(config = {}) {
 
       // Auto-close if P=7 (last pulse)
       if (newPulse === 7) {
-        input.blur(); // Finalize input and trigger sanitization
-        return;
+        input.blur(); // Finalize pulse input
+        updatePairsFromDOM(); // Trigger immediate update
+        return; // Skip auto-jump for P=7
       }
     }
 

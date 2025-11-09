@@ -829,7 +829,7 @@
 .app12-main-grid {
   display: grid;
   grid-template-rows: auto 1fr;
-  grid-template-columns: 150px 1fr;
+  grid-template-columns: 150px 1fr 150px;
   gap: 2rem;
   padding: 1rem;
   width: 100%;
@@ -847,10 +847,10 @@
   grid-row: 2;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  align-items: flex-start;
+  justify-content: center;
   padding-top: 0;
-  margin: 0;
+  margin: 45px;
 }
 
 .app12-controls-container .controls[data-layout="vertical"] {
@@ -862,9 +862,48 @@
   position: static;
 }
 
-/* Grid-2D container in second row, right column */
+/* Force vertical layout for control-buttons-row */
+.app12-controls-container .control-buttons-row {
+  display: flex;
+  flex-direction: column !important;
+  gap: 0.5rem;  /* Reduced from 3rem */
+  align-items: center;
+}
+
+/* Override shared-ui margins for tighter spacing in App12 */
+.app12-controls-container #playBtn {
+  margin: 0 !important;  /* Remove 2rem bottom margin from shared-ui */
+  margin-left: 27px !important;  /* Ajusta este valor para mover más o menos a la derecha */
+}
+
+.app12-controls-container .control-sound-toggles {
+  position: static !important;  /* Remove absolute positioning */
+  transform: none !important;   /* Remove transforms */
+  margin: 0 !important; 
+  margin-left: 25px !important;        /* Remove any margins */
+}
+
+.app12-controls-container .button-row {
+  margin: 0 !important;  /* Ensure no extra margins on Random+Reset row */
+}
+
+/* Button row for Random + Reset in same row */
+.app12-controls-container .button-row {
+  display: flex;
+  flex-direction: row;
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Rotar PulseToggle solo en App12 */
+.app12-controls-container #pulseToggleBtn {
+  transform: rotate(55deg);  /* Ajusta el ángulo como prefieras */
+}
+
+/* Grid-2D container in second row, center column */
 .grid-container {
   grid-column: 2;
   grid-row: 2;
-  margin: 0;
+  margin: 0 auto;
 }
