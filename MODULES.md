@@ -6,6 +6,9 @@ Este documento describe la arquitectura de módulos compartidos del proyecto Lab
 
 - [Arquitectura General](#arquitectura-general)
 - [Módulos Core (libs/)](#módulos-core-libs)
+  - [pulse-seq](#libspulse-seq)
+  - [matrix-seq](#libsmatrix-seq)
+  - [musical-grid](#libsmusical-grid)
   - [notation](#libsnotation)
   - [sound](#libssound)
   - [cards](#libscards)
@@ -34,6 +37,8 @@ El proyecto Lab está organizado como un **monorepo con workspaces** para aplica
 ├── libs/           # Módulos compartidos principales
 │   ├── app-common/ # 40 módulos compartidos entre apps (consolidado Fase 2)
 │   ├── pulse-seq/  # Secuencias de pulsos (5 módulos: parser, state, editor, pulse-seq, index)
+│   ├── matrix-seq/ # Editor N-P pairs (4 módulos: grid-editor, parser, index + tests)
+│   ├── musical-grid/ # Visualización 2D grid (3 módulos: musical-grid, index, CSS + tests)
 │   ├── notation/   # Renderizado musical (9 módulos + rhythm-staff)
 │   ├── random/     # Randomización (5 módulos: core, config, menu, fractional, index)
 │   ├── sound/      # Motor de audio (9 módulos)
@@ -96,6 +101,103 @@ export { createPulseSeqEditor, getMidpoints, normalizeGaps } from './editor.js';
 - Estado persistente con memoria de selección
 
 **Apps que lo usan:** App2, App4, App5
+
+---
+
+### `libs/matrix-seq/` ⭐ **NUEVO SUB-PACKAGE (Fase 2, 2025-01)**
+**Ubicación:** `/Users/workingburcet/Lab/libs/matrix-seq/`
+
+**Propósito:** Sistema completo para edición de pares Note-Pulse (N-P) con grid dinámico
+
+**Archivos principales (4 módulos):**
+- `index.js` - Exports unificados del sub-package
+- `grid-editor.js` - Editor grid dinámico con columnas por pulso (945 líneas)
+- `grid-editor.css` - Estilos compartidos (275 líneas)
+- `parser.js` - Parser y validación de N-P pairs
+- `README.md` - Documentación completa con ejemplos
+- `__tests__/` - Tests completos (18 tests, todos pasando)
+
+**Exports principales:**
+```javascript
+export { createGridEditor } from './grid-editor.js';
+export {
+  validateNote,
+  validatePulse,
+  parseNotes,
+  parsePulses,
+  autoCompletePulses,
+  createPairs,
+  decomposePairs
+} from './parser.js';
+```
+
+**Características:**
+- **Columnas dinámicas:** Una columna por pulso, creadas on-demand
+- **Multi-voice:** Soporte polyphony/monophony
+- **Auto-jump navigation:** 300ms delay permite entrada de dos dígitos
+- **Auto-blur en P=7:** Cierra último pulso sin bloquear entrada de notas
+- **Auto-merge duplicados:** Fusiona notas cuando se detectan pulsos duplicados
+- **Auto-sort columns:** Reorganiza visualmente cuando cambia orden de pulsos
+- **Keyboard navigation:** Flechas, Tab, Enter, Backspace
+- **Range validation:** Tooltips contextuales para valores fuera de rango
+- **Highlight support:** Sincronización visual durante playback
+- **Responsive:** 4 breakpoints (desktop → mobile)
+
+**Apps que lo usan:** App12
+
+**Nivel de madurez:** 10/10 - Production-ready con CSS extraído y tests completos
+
+---
+
+### `libs/musical-grid/` ⭐ **NUEVO MODULE (Fase 2, 2025-01)**
+**Ubicación:** `/Users/workingburcet/Lab/libs/musical-grid/`
+
+**Propósito:** Visualización 2D de grids musicales con soundline, timeline y matriz interactiva
+
+**Archivos principales (3 módulos):**
+- `musical-grid.js` - Sistema grid completo (565 líneas)
+- `musical-grid.css` - Estilos compartidos (357 líneas)
+- `index.js` - Exports unificados
+- `README.md` - Documentación completa con ejemplos de scroll
+- `__tests__/` - Tests completos (26 tests, todos pasando)
+
+**Exports principales:**
+```javascript
+export { createMusicalGrid } from './musical-grid.js';
+```
+
+**Características principales:**
+- **Sistema grid completo:** Soundline (notas verticales), Timeline (pulsos horizontales), Matrix (celdas)
+- **Soporte scroll:** Scroll horizontal/vertical opcional para grids grandes con ejes sincronizados
+- **Celdas interactivas:** Click handlers, hover states, highlight para playback
+- **Flexible layout:** Modo fillSpaces (celdas entre pulsos) o alineación directa
+- **Custom formatters:** Etiquetas personalizadas de notas/pulsos
+- **Responsive:** 4 breakpoints con resize automático
+- **Theme support:** Compatible con light/dark theme
+- **Auto-render:** Renderiza inmediatamente al crear
+
+**Scroll mode features:**
+- Sincronización automática entre matriz y ejes (vertical + horizontal)
+- Scrollbars ocultos en ejes (solo visible en matriz)
+- Contenedores interiores expandibles
+- Tamaño de celda fijo en modo scroll
+- Prevención de bucles infinitos con debouncing
+
+**Configuration scroll:**
+```javascript
+const grid = createMusicalGrid({
+  parent: container,
+  notes: 24,
+  pulses: 16,
+  scrollEnabled: true,
+  containerSize: { width: '100%', maxHeight: '70vh' },
+  cellSize: { minWidth: 60, minHeight: 40 }
+});
+```
+
+**Apps que lo usan:** App12
+
+**Nivel de madurez:** 10/10 - Production-ready con scroll completo y tests
 
 ---
 
