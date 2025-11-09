@@ -1,0 +1,338 @@
+/**
+ * Musical Grid CSS - Shared styles for 2D musical grid visualization
+ *
+ * Usage:
+ *   import '../../libs/musical-grid/musical-grid.css';
+ *
+ * CSS Custom Properties Required:
+ *   --line-color: Color for grid lines (default: #666)
+ *   --soundline-width: Width of vertical soundline (default: 3px)
+ *   --timeline-height: Height of horizontal timeline (default: 2px)
+ *   --cell-highlight-color: Highlight color for cells (default: --select-color)
+ *   --pulse-marker-height: Height of pulse markers (default: 15px)
+ *   --note-highlight-color: Highlight color for notes (default: --select-color)
+ *   --select-color: Global selection color (default: #F97C39)
+ *   --text-color: Main text color (default: #333)
+ *   --text-dark: Dark theme text color (default: #e0e0e0)
+ *   --text-light: Light text color (default: #666)
+ *   --z-base, --z-content, --z-interactive, --z-active, --z-overlay: Z-index levels
+ *
+ * Dependencies:
+ *   - None (standalone)
+ */
+
+/* ========== GRID CONTAINER ========== */
+.grid-container {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  height: 52.5vh; /* Reduced 25% from 70vh */
+  max-height: 525px; /* Reduced 25% from 700px */
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  grid-template-rows: 1fr 80px;
+  gap: 20px;
+  margin: 0 auto;
+}
+
+/* ========== SOUNDLINE WRAPPER (LEFT) ========== */
+.soundline-wrapper {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Vertical soundline */
+.soundline {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Línea vertical principal */
+.soundline::before {
+  content: '';
+  position: absolute;
+  left: 100px;
+  top: 0;
+  bottom: 0;
+  width: var(--soundline-width, 3px);
+  background: var(--line-color, #666);
+  pointer-events: none;
+  z-index: var(--z-base, 1);
+}
+
+/* Divisiones horizontales (note markers) */
+.soundline-division {
+  position: absolute;
+  width: 30px;
+  height: 2px;
+  background: var(--line-color, #666);
+  left: 70px;
+  pointer-events: none;
+  z-index: var(--z-base, 1);
+}
+
+/* Números de notas (0-11) */
+.soundline-number {
+  position: absolute;
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: var(--text-light, #666);
+  user-select: none;
+  z-index: var(--z-content, 5);
+  opacity: 0.85;
+  transition: color 0.3s ease;
+  left: 40px;
+  text-align: end;
+  width: 55px;
+}
+
+[data-theme="dark"] .soundline-number {
+  color: var(--text-dark, #e0e0e0);
+}
+
+/* ========== MATRIX CONTAINER (CENTER) ========== */
+.matrix-container {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+}
+
+[data-theme="dark"] .matrix-container {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* ========== MATRIX CELLS ========== */
+.musical-cell {
+  /* Position and size set dynamically by musical-grid.js */
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: rgba(255, 255, 255, 0.3);
+  z-index: var(--z-content, 5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+[data-theme="dark"] .musical-cell {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.musical-cell:hover {
+  background: var(--cell-highlight-color, var(--select-color, #F97C39));
+  opacity: 0.4;
+  box-shadow: 0 0 10px var(--cell-highlight-color, var(--select-color, #F97C39));
+  z-index: var(--z-interactive, 10);
+}
+
+/* Active cell (selected) */
+.musical-cell.active {
+  background: var(--cell-highlight-color, var(--select-color, #F97C39));
+  opacity: 0.9;
+  border-color: var(--cell-highlight-color, var(--select-color, #F97C39));
+  box-shadow: 0 0 8px var(--cell-highlight-color, var(--select-color, #F97C39));
+  z-index: var(--z-interactive, 10);
+}
+
+/* Playing animation */
+.musical-cell.playing {
+  animation: cellFlash 0.3s ease-in-out;
+  z-index: var(--z-active, 15);
+}
+
+@keyframes cellFlash {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+/* Cell label (N[x] P[y]) */
+.cell-label {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.95);
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  display: none;
+}
+
+.musical-cell.active .cell-label {
+  display: block;
+}
+
+/* ========== TIMELINE CONTAINER (BOTTOM) ========== */
+.timeline-wrapper {
+  grid-column: 2;
+  grid-row: 2;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Línea horizontal */
+.timeline-line {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: var(--timeline-height, 2px);
+  background: var(--line-color, #666);
+  pointer-events: none;
+  z-index: var(--z-base, 1);
+}
+
+/* Pulse markers (short vertical lines with numbers below) */
+.pulse-marker {
+  position: absolute;
+  top: 12px;
+  width: 2px;
+  height: var(--pulse-marker-height, 15px);
+  background: var(--line-color, #666);
+  transform: translateX(-50%); /* Center the marker line on its position */
+  pointer-events: none;
+  z-index: var(--z-base, 1);
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: var(--text-color, #333);
+  user-select: none;
+  opacity: 0.85;
+
+  /* Number positioning: centered below the line */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 18px; /* Space between line and number */
+  line-height: 1;
+}
+
+[data-theme="dark"] .pulse-marker {
+  color: var(--text-dark, #e0e0e0);
+}
+
+/* ========== SOUNDLINE HIGHLIGHT ========== */
+.soundline-highlight {
+  position: absolute;
+  left: 40px;
+  width: 60px;
+  background: var(--note-highlight-color, var(--select-color, #F97C39));
+  opacity: 0.6;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: var(--z-interactive, 10);
+  box-shadow: 0 0 14px var(--note-highlight-color, var(--select-color, #F97C39));
+}
+
+/* ========== PULSE HIGHLIGHT (during playback) ========== */
+.pulse-marker.highlighted {
+  background: var(--select-color, #F97C39);
+  opacity: 1;
+  transform: translateX(-50%) scaleY(1.5);
+  transition: all 0.1s ease;
+  box-shadow: 0 0 10px var(--select-color, #F97C39);
+  z-index: var(--z-active, 15);
+}
+
+.musical-cell.pulse-highlight {
+  border-color: var(--select-color, #F97C39);
+  box-shadow: 0 0 12px var(--select-color, #F97C39);
+  opacity: 0.7;
+}
+
+.musical-cell.active.pulse-highlight {
+  opacity: 1;
+  transform: scale(1.08);
+  z-index: var(--z-active, 15);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 1024px) {
+  .grid-container {
+    height: 65vh;
+    grid-template-columns: 120px 1fr;
+    grid-template-rows: 1fr 70px;
+    gap: 15px;
+  }
+
+  .soundline-number,
+  .pulse-marker {
+    font-size: 1.2rem;
+  }
+
+  .cell-label {
+    font-size: 1.1rem;
+  }
+
+  .musical-cell:hover {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-container {
+    height: 60vh;
+    grid-template-columns: 100px 1fr;
+    grid-template-rows: 1fr 60px;
+    gap: 10px;
+  }
+
+  .soundline-number,
+  .pulse-marker {
+    font-size: 1rem;
+  }
+
+  .soundline::before {
+    left: 70px;
+  }
+
+  .soundline-division {
+    left: 60px;
+    width: 20px;
+  }
+
+  .soundline-number {
+    left: 20px;
+    width: 30px;
+  }
+
+  .soundline-highlight {
+    left: 20px;
+    width: 80px;
+  }
+
+  .cell-label {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid-container {
+    grid-template-columns: 80px 1fr;
+    grid-template-rows: 1fr 50px;
+    gap: 8px;
+  }
+
+  .soundline-number,
+  .pulse-marker {
+    font-size: 0.9rem;
+  }
+
+  .cell-label {
+    display: none !important; /* Hide on very small screens */
+  }
+
+  .musical-cell {
+    border-width: 0.5px;
+  }
+}

@@ -1,7 +1,8 @@
 /* App12: Plano-Sucesión - Step Sequencer Styles */
 
-/* Import shared grid-editor styles */
+/* Import shared module styles */
 @import url('../../libs/matrix-seq/grid-editor.css');
+@import url('../../libs/musical-grid/musical-grid.css');
 
 /* Variables CSS */
 :root {
