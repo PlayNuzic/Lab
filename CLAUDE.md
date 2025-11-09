@@ -9,8 +9,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Verifica que estás en el directorio correcto antes de cualquier operación
 - Todas las rutas son relativas a `/Users/workingburcet/Lab/`
 
-### 2. Servidor Deprecado
-
+### 2. Sistema de Agentes
+**Claude Code tiene agentes especializados nativos disponibles:**
+- Usa `@.claude-code/agents-context.md` para ver los 6 agentes disponibles
+- Los agentes son: UI, Audio, Responsive, Modules, Creator, Gamification
+- Invoca agentes según la tarea específica para mejor rendimiento
 
 ### 3. Gestión de Seguimiento entre Sesiones
 **OBLIGATORIO para tareas que no se completen en un prompt:**
@@ -54,18 +57,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Setup and Environment
 - **Initial setup**: `./setup.sh` - Run once per session to install dependencies and configure Git
-- **Run tests**: `npm test` - Execute Jest test suite (24 test suites, 280 tests)
+- **Run tests**: `npm test` - Execute Jest test suite (26 test suites, 324 tests)
 - **Run specific test**: `npm test -- --testNamePattern="test name"`
-- **Serve files locally**: `npx http-server` - For testing with proper ES module support
+- **Run module tests**: `npm test -- --testPathPattern="(grid-editor|musical-grid)"`
 
 ## Project Architecture
 
 This is a **monorepo** with **workspaces** for rhythm-based musical applications. The project focuses on temporal formulas, rhythmic fractions, and audio timing patterns.
 
 ### High-Level Structure
-- **Apps/**: Individual rhythm applications (App1-App8)
+- **Apps/**: Individual rhythm applications (App1-App12)
 - **libs/**: Modular libraries for shared functionality
+  - **app-common/** - 40 core modules (Fase 2 consolidation)
+  - **pulse-seq/** - Pulse sequence sub-package (5 modules)
+  - **matrix-seq/** - Note-Pulse grid editor (4 modules) ⭐ **NUEVO (2025-01)**
+  - **musical-grid/** - 2D musical grid visualization (3 modules) ⭐ **NUEVO (2025-01)**
+  - **notation/** - VexFlow rendering (9 modules)
+  - **random/** - Randomization sub-package (5 modules)
+  - **sound/** - Audio engine (9 modules)
+  - **shared-ui/** - UI components (4 modules)
+  - **gamification/** - Achievement system (17 modules)
+  - **audio-capture/** - Audio/rhythm capture (4 modules)
 - **packages/**: Additional workspace packages
+- **.claude-code/**: Agent configurations and context
 
 ### Core Libraries (`libs/`)
 
@@ -134,6 +148,62 @@ Consolidado en Fase 2 - Sistema completo de randomización
 - **`fractional.js`**: Fractional randomization (movido desde app-common)
 
 **Import:** `import { randomize, initRandomMenu, applyBaseRandomConfig } from '../../libs/random/index.js'`
+
+#### **`libs/matrix-seq/`** - Note-Pulse Grid Editor ⭐ **NUEVO (2025-01)**
+Sistema completo para edición de pares Note-Pulse (N-P) con grid dinámico
+- **`index.js`**: Exports unificados
+- **`grid-editor.js`**: Editor grid dinámico (945 líneas)
+- **`grid-editor.css`**: Estilos compartidos (275 líneas)
+- **`parser.js`**: Validación N-P pairs
+- **`__tests__/`**: 18 tests (todos pasando)
+
+**Características:**
+- Columnas dinámicas (una por pulso)
+- Multi-voice (polyphony/monophony)
+- Auto-jump navigation (300ms delay)
+- Auto-blur en P=7
+- Auto-merge duplicados
+- Auto-sort columns
+- Keyboard navigation completa
+- Range validation con tooltips
+- Responsive (4 breakpoints)
+
+**Import:** `import { createGridEditor } from '../../libs/matrix-seq/index.js'`
+
+**Apps usando:** App12
+
+#### **`libs/musical-grid/`** - 2D Musical Grid Visualization ⭐ **NUEVO (2025-01)**
+Visualización 2D de grids musicales con soundline, timeline y matriz interactiva
+- **`musical-grid.js`**: Sistema grid completo (565 líneas)
+- **`musical-grid.css`**: Estilos compartidos (357 líneas)
+- **`index.js`**: Exports unificados
+- **`README.md`**: Documentación completa
+- **`__tests__/`**: 26 tests (todos pasando)
+
+**Características:**
+- Sistema grid completo (soundline + timeline + matrix)
+- **Scroll opcional** con sincronización automática de ejes
+- Contenedores interiores expandibles para scroll
+- Celdas interactivas con click handlers
+- Custom formatters para notas/pulsos
+- Responsive con auto-resize
+- Theme support (light/dark)
+
+**Scroll configuration:**
+```javascript
+const grid = createMusicalGrid({
+  parent: container,
+  notes: 24,
+  pulses: 16,
+  scrollEnabled: true,
+  containerSize: { width: '100%', maxHeight: '70vh' },
+  cellSize: { minWidth: 60, minHeight: 40 }
+});
+```
+
+**Import:** `import { createMusicalGrid } from '../../libs/musical-grid/index.js'`
+
+**Apps usando:** App12
 
 #### **`libs/shared-ui/`** - UI Components
 - **`header.js`**: Common header with audio controls
@@ -472,20 +542,24 @@ Standard rhythm apps use these element IDs:
 ### Testing
 
 Test infrastructure:
-- **Jest 29.x** with Node.js environment (`testEnvironment: 'node'`)
+- **Jest 29.x** with Node.js/jsdom environments
 - **ES modules** support via experimental VM modules
-- **24 test suites**, 280 passing tests
+- **26 test suites**, 324 passing tests (+44 from matrix-seq + musical-grid)
 - **Test locations**:
-  - `libs/app-common/__tests__/` - Core shared component tests
+  - `libs/app-common/__tests__/` - Core shared component tests (20 suites)
+  - `libs/matrix-seq/__tests__/` - Grid editor tests (18 tests) ⭐ **NUEVO**
+  - `libs/musical-grid/__tests__/` - Musical grid tests (26 tests) ⭐ **NUEVO**
   - `libs/sound/*.test.js` - Audio engine tests
   - `libs/random/*.test.js`, `libs/utils/*.test.js` - Utility tests
   - `tests/` - Legacy integration and domain-specific tests
 
 **Test patterns**:
 - Unit tests for pure functions (subdivision, range, number parsing)
-- Integration tests for complex components (fraction-editor, pulse-seq, notation-utils)
+- Integration tests for complex components (fraction-editor, pulse-seq, notation-utils, grid-editor, musical-grid)
 - Audio behavior tests (audio-toggles, loop-control, tap-resync)
 - Edge case validation (loop-resize, audio-schedule, remainder pulses)
+- DOM interaction tests with jsdom (grid-editor, musical-grid)
+- Scroll synchronization tests (musical-grid)
 
 ### Console Warnings Resolution
 
@@ -503,34 +577,37 @@ Test infrastructure:
 
 #### **Current Modularization Achievements**
 - **~70% code reduction** vs. monolithic apps
-- **32 shared modules** in `libs/app-common/`
+- **40 shared modules** in `libs/app-common/` (consolidado Fase 2)
+- **7 sub-packages** especializados (pulse-seq, matrix-seq, musical-grid, notation, random, gamification, audio-capture)
 - **DOM queries**: Centralized through `bindAppRhythmElements()`
 - **Audio**: Unified initialization via `createRhythmAudioInitializer()`
 - **State management**: Shared preference storage and factory reset
-- **UI components**: Reusable controllers (fraction-editor, pulse-seq, loop-control)
+- **UI components**: Reusable controllers (fraction-editor, pulse-seq, loop-control, grid-editor, musical-grid)
 
 #### **Shared Components Status**
-✅ **Production-ready**:
+✅ **Production-ready (10/10 maturity)**:
 - Audio initialization and scheduling
 - DOM element binding
 - LED management
 - Loop controllers (basic, rhythm, pulse-memory variants)
 - Fraction editor with validation
 - Pulse sequence editor with drag selection
+- **Grid editor (matrix-seq)** - Dynamic N-P pair editing ⭐ **NUEVO**
+- **Musical grid (musical-grid)** - 2D visualization with scroll ⭐ **NUEVO**
 - Mixer menu and audio toggles
 - Random parameter generation
 - Timeline layout (circular/linear)
 - Tap tempo with resync
 - Preference storage with factory reset
 
-🚧 **In development** (see `libs/app-common/AGENTS.md`):
-- Advanced subdivision rendering
-- Multi-app state synchronization
+✅ **Modulos con scroll support**:
+- **musical-grid**: Scroll horizontal/vertical sincronizado con ejes
 
 #### **Development Speed**
 - **New app from scratch**: 4-6 hours (with mature patterns)
 - **New feature in existing app**: 1-2 hours
 - **Legacy refactor to modular**: 2-3 hours per app
+- **New module with tests**: 3-4 hours (includes documentation)
 
 #### **Recommended Patterns**
 1. **Start with bindAppRhythmElements()** for DOM access
@@ -550,3 +627,68 @@ Test infrastructure:
 - **VexFlow 5.0.0**: Music notation rendering
 - **Jest 29.x**: Testing framework
 - **ES2022**: Modern JavaScript features
+
+---
+
+## 🎭 Sistema de Agentes
+
+Claude Code tiene un sistema de agentes especializados para optimizar el desarrollo. Ver `@.claude-code/agents-context.md` para detalles completos.
+
+### Agentes Disponibles
+
+1. **🎨 UI Agent**
+   - Especialidad: Diseño de interfaces, componentes UI, accesibilidad
+   - Usa para: Crear componentes visuales, análisis de diseño, mejoras de UX
+
+2. **🔊 Audio Agent**
+   - Especialidad: Sistema de audio, timing, sincronización
+   - Usa para: Optimización de audio, debugging de timing, performance
+   - ⚠️ **CRÍTICO**: NO puede modificar clock.js, pulse-interval-calc.js, voice-sync.js
+
+3. **📱 Responsive Agent**
+   - Especialidad: Adaptación móvil, responsive design
+   - Usa para: Media queries, touch interactions, mobile layouts
+
+4. **📦 Modules Agent**
+   - Especialidad: Arquitectura, código duplicado, refactoring
+   - Usa para: Detectar duplicados, mejorar estructura, extracción de componentes
+   - Usado para: Creación de matrix-seq y musical-grid modules
+
+5. **🏗️ Creator Agent**
+   - Especialidad: Crear nuevas apps y componentes
+   - Usa para: Generar apps completas, componentes complejos, features nuevas
+
+6. **🎮 Gamification Agent**
+   - Especialidad: Sistema de logros, engagement
+   - Usa para: Achievements, tracking de progreso, badges
+
+### Reglas Críticas de Agentes
+
+**🚫 NUNCA MODIFICAR:**
+- `libs/sound/clock.js` - Sistema de timing crítico
+- `libs/app-common/pulse-interval-calc.js` - Cálculos de intervalos
+- `libs/app-common/voice-sync.js` - Sincronización de voces
+
+**✅ SIEMPRE:**
+1. Mostrar código ANTES de crear archivos
+2. Esperar aprobación explícita (✅) del usuario
+3. Crear nuevos archivos en vez de modificar existentes cuando sea posible
+4. Escribir tests para nuevos componentes
+5. Ejecutar `npm test` después de cambios
+
+### Filosofía PlayNuzic Lab
+
+- **Minimalismo**: UI limpia, código simple
+- **Reutilización**: ~70% código compartido
+- **No invasión**: Nunca romper lo existente
+- **Testing**: 324+ tests deben pasar siempre
+- **Modularización**: Extraer a libs/ cuando hay duplicación
+
+---
+
+## 📚 Recursos Adicionales
+
+- **MODULES.md**: Documentación completa de todos los módulos compartidos
+- **libs/matrix-seq/README.md**: Guía completa del grid editor
+- **libs/musical-grid/README.md**: Guía completa de visualización 2D con scroll
+- **.claude-code/agents-context.md**: Sistema de agentes especializado

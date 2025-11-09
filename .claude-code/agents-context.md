@@ -18,6 +18,9 @@
 ### 📦 Modules Agent
 **Especialidad:** Arquitectura, código duplicado, refactoring
 **Usa para:** Detectar duplicados, mejorar estructura, extracción de componentes
+**Ejemplos recientes:**
+- Creación de `libs/matrix-seq/` (grid-editor: 945 líneas JS, 275 CSS, 18 tests)
+- Creación de `libs/musical-grid/` (musical-grid: 565 líneas JS, 357 CSS, 26 tests con scroll)
 
 ### 🏗️ Creator Agent
 **Especialidad:** Crear nuevas apps y componentes
@@ -48,14 +51,20 @@
 
 ```
 Lab/
-├── Apps/                    # 6 apps existentes (app1-app6)
+├── Apps/                    # 12 apps (app1-app12)
 ├── libs/
-│   ├── app-common/         # 32+ módulos compartidos ✅
-│   ├── sound/              # Audio engine
-│   └── notation/           # VexFlow integration
-├── agents/                 # Sistema de agentes (nuevo)
-├── enhancements/           # Mejoras opcionales (nuevo)
-└── tests/                  # Tests con Jest
+│   ├── app-common/         # 40 módulos compartidos (Fase 2) ✅
+│   ├── pulse-seq/          # Secuencias de pulsos (5 módulos)
+│   ├── matrix-seq/         # Grid editor N-P (4 módulos + tests) ⭐ NUEVO
+│   ├── musical-grid/       # Grid 2D con scroll (3 módulos + tests) ⭐ NUEVO
+│   ├── notation/           # VexFlow rendering (9 módulos)
+│   ├── random/             # Randomización (5 módulos)
+│   ├── sound/              # Audio engine (9 módulos)
+│   ├── shared-ui/          # UI components (4 módulos)
+│   ├── gamification/       # Achievement system (17 módulos)
+│   └── audio-capture/      # Audio/rhythm capture (4 módulos)
+├── .claude-code/           # Configuración de agentes
+└── tests/                  # 26 test suites, 324 tests ✅
 ```
 
 ---
@@ -157,6 +166,26 @@ Proceso:
 5. Implementa paso a paso
 ```
 
+### Modularizar Código
+```
+📦 Modules Agent: Modulariza [componente] de @Apps/[app]/
+
+Proceso:
+1. Analiza duplicación en múltiples apps
+2. Identifica patrón común
+3. Propón estructura en libs/[nombre]/
+4. Crea módulo con:
+   - Código JS modular
+   - CSS compartido extraído
+   - Tests completos (jsdom si es UI)
+   - README.md con ejemplos
+5. Actualiza MODULES.md
+6. Espera mi ✅
+7. Implementa y ejecuta tests
+
+Ejemplo reciente: libs/musical-grid/ con scroll support
+```
+
 ---
 
 ## 🎨 Filosofía de PlayNuzic Lab
@@ -164,7 +193,17 @@ Proceso:
 - **Minimalismo**: UI limpia, código simple
 - **Reutilización**: ~70% código compartido
 - **No invasión**: Nunca romper lo existente
-- **Testing**: 280+ tests deben pasar siempre
+- **Testing**: 324+ tests deben pasar siempre
+- **Modularización**: Extraer a libs/ cuando hay duplicación (ver matrix-seq y musical-grid como ejemplos)
+
+---
+
+## 📚 Recursos Adicionales
+
+- **CLAUDE.md**: Guía principal de desarrollo con Claude Code
+- **MODULES.md**: Documentación completa de todos los módulos compartidos
+- **libs/matrix-seq/README.md**: Guía del grid editor (N-P pairs)
+- **libs/musical-grid/README.md**: Guía de visualización 2D con scroll
 
 ---
 
