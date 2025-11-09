@@ -57,7 +57,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Setup and Environment
 - **Initial setup**: `./setup.sh` - Run once per session to install dependencies and configure Git
-- **Run tests**: `npm test` - Execute Jest test suite (26 test suites, 324 tests)
+- **Run tests**: `npm test` - Execute Jest test suite (33 test suites, 406 tests)
 - **Run specific test**: `npm test -- --testNamePattern="test name"`
 - **Run module tests**: `npm test -- --testPathPattern="(grid-editor|musical-grid)"`
 
@@ -544,7 +544,7 @@ Standard rhythm apps use these element IDs:
 Test infrastructure:
 - **Jest 29.x** with Node.js/jsdom environments
 - **ES modules** support via experimental VM modules
-- **26 test suites**, 324 passing tests (+44 from matrix-seq + musical-grid)
+- **33 test suites**, 406 passing tests (+44 from matrix-seq + musical-grid)
 - **Test locations**:
   - `libs/app-common/__tests__/` - Core shared component tests (20 suites)
   - `libs/matrix-seq/__tests__/` - Grid editor tests (18 tests) ⭐ **NUEVO**
@@ -681,7 +681,7 @@ Claude Code tiene un sistema de agentes especializados para optimizar el desarro
 - **Minimalismo**: UI limpia, código simple
 - **Reutilización**: ~70% código compartido
 - **No invasión**: Nunca romper lo existente
-- **Testing**: 324+ tests deben pasar siempre
+- **Testing**: 406 tests deben pasar siempre (33 suites)
 - **Modularización**: Extraer a libs/ cuando hay duplicación
 
 ---

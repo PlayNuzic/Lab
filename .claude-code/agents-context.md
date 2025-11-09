@@ -64,7 +64,7 @@ Lab/
 │   ├── gamification/       # Achievement system (17 módulos)
 │   └── audio-capture/      # Audio/rhythm capture (4 módulos)
 ├── .claude-code/           # Configuración de agentes
-└── tests/                  # 26 test suites, 324 tests ✅
+└── tests/                  # 33 test suites, 406 tests ✅
 ```
 
 ---
@@ -193,7 +193,7 @@ Ejemplo reciente: libs/musical-grid/ con scroll support
 - **Minimalismo**: UI limpia, código simple
 - **Reutilización**: ~70% código compartido
 - **No invasión**: Nunca romper lo existente
-- **Testing**: 324+ tests deben pasar siempre
+- **Testing**: 406 tests deben pasar siempre (33 suites)
 - **Modularización**: Extraer a libs/ cuando hay duplicación (ver matrix-seq y musical-grid como ejemplos)
 
 ---
