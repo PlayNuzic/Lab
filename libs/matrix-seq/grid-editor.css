@@ -6,6 +6,8 @@
  *
  * CSS Custom Properties Required:
  *   --notes-height: Dynamic height calculated by grid-editor.js (maxVoices * 60px)
+ *   --column-width: Fixed column width in scroll mode (optional)
+ *   --column-min-height: Fixed column min-height in scroll mode (optional)
  *   --select-color: Highlight/accent color (default: #F97C39)
  *   --text-color: Main text color (default: #333)
  *   --text-dark: Dark theme text color (default: #e0e0e0)
@@ -64,6 +66,43 @@
   flex-wrap: wrap;
 }
 
+/* Scroll mode: Fixed container size with overflow */
+.matrix-grid-editor--scrollable {
+  overflow: auto;
+  scroll-behavior: smooth;
+}
+
+/* Scroll mode: Columns container becomes scrollable horizontally */
+.grid-columns-container--scrollable {
+  flex-wrap: nowrap; /* No wrap in scroll mode */
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 10px; /* Space for scrollbar */
+}
+
+/* Hide scrollbar in columns container for cleaner look */
+.grid-columns-container--scrollable::-webkit-scrollbar {
+  height: 8px;
+}
+
+.grid-columns-container--scrollable::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.grid-columns-container--scrollable::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+[data-theme="dark"] .grid-columns-container--scrollable::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .grid-columns-container--scrollable::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 /* Pulse column */
 .pulse-column {
   display: flex;
@@ -73,6 +112,13 @@
   padding: 10px;
   border-radius: 4px;
   transition: all 0.15s ease;
+}
+
+/* Scroll mode: Fixed column width */
+.matrix-grid-editor--scrollable .pulse-column {
+  flex-shrink: 0; /* Prevent shrinking */
+  width: var(--column-width, auto);
+  min-height: var(--column-min-height, auto);
 }
 
 .pulse-column.highlighted {

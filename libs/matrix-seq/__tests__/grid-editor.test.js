@@ -237,4 +237,76 @@ describe('matrix-seq/grid-editor', () => {
       }).not.toThrow();
     });
   });
+
+  describe('scroll mode', () => {
+    it('aplica clase scrollable cuando scrollEnabled=true', () => {
+      editor = createGridEditor({
+        container,
+        scrollEnabled: true,
+        maxPairs: 16
+      });
+
+      // Container itself receives the class (it's cleared and class is set)
+      expect(container.classList.contains('matrix-grid-editor')).toBe(true);
+      expect(container.classList.contains('matrix-grid-editor--scrollable')).toBe(true);
+    });
+
+    it('no aplica clase scrollable cuando scrollEnabled=false', () => {
+      editor = createGridEditor({
+        container,
+        scrollEnabled: false
+      });
+
+      expect(container.classList.contains('matrix-grid-editor')).toBe(true);
+      expect(container.classList.contains('matrix-grid-editor--scrollable')).toBe(false);
+    });
+
+    it('aplica containerSize cuando se proporciona', () => {
+      editor = createGridEditor({
+        container,
+        scrollEnabled: true,
+        containerSize: { width: '800px', maxHeight: '400px' }
+      });
+
+      // Styles are applied to container
+      expect(container.style.width).toBe('800px');
+      expect(container.style.maxHeight).toBe('400px');
+    });
+
+    it('aplica clase scrollable a columnsContainer en modo scroll', () => {
+      editor = createGridEditor({
+        container,
+        scrollEnabled: true,
+        maxPairs: 16
+      });
+
+      const columnsContainer = container.querySelector('.grid-columns-container');
+      expect(columnsContainer.classList.contains('grid-columns-container--scrollable')).toBe(true);
+    });
+
+    it('no aplica clase scrollable a columnsContainer en modo normal', () => {
+      editor = createGridEditor({
+        container,
+        scrollEnabled: false
+      });
+
+      const columnsContainer = container.querySelector('.grid-columns-container');
+      expect(columnsContainer.classList.contains('grid-columns-container--scrollable')).toBe(false);
+    });
+
+    it('aplica CSS custom properties para column size en scroll mode', () => {
+      editor = createGridEditor({
+        container,
+        scrollEnabled: true,
+        columnSize: { width: '100px', minHeight: '200px' }
+      });
+
+      // Custom properties applied to container
+      const columnWidth = container.style.getPropertyValue('--column-width');
+      const columnMinHeight = container.style.getPropertyValue('--column-min-height');
+
+      expect(columnWidth).toBe('100px');
+      expect(columnMinHeight).toBe('200px');
+    });
+  });
 });

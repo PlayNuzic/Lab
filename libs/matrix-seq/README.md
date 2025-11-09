@@ -12,6 +12,7 @@ A fully encapsulated, production-ready component for editing N-P pairs with dyna
 
 - ✅ **Dynamic columns** - One column per pulse, created on demand
 - ✅ **Multi-voice support** - Polyphony/monophony modes
+- ✅ **Scroll support** - Optional horizontal/vertical scroll for large grids (>8 pairs)
 - ✅ **Auto-jump navigation** - 300ms delay allows two-digit input
 - ✅ **Auto-blur on P=7** - Closes last pulse without blocking note entry
 - ✅ **Auto-merge duplicates** - Merges notes when duplicate pulses detected
@@ -79,12 +80,17 @@ editor.clear();
 | `maxPairs` | number | `8` | Maximum N-P pairs allowed |
 | `getPolyphonyEnabled` | Function | `() => true` | Function returning polyphony state |
 | `onPairsChange` | Function | `() => {}` | Callback when pairs change |
+| `scrollEnabled` | boolean | `false` | Enable horizontal/vertical scroll for large grids |
+| `containerSize` | Object | `null` | Fixed container size: `{width, height, maxWidth, maxHeight}` |
+| `columnSize` | Object | `null` | Fixed column size in scroll mode: `{width, minHeight}` |
 
 #### CSS Custom Properties
 
 The grid-editor respects these CSS variables:
 
 - `--notes-height`: Dynamic height (calculated by module)
+- `--column-width`: Fixed column width in scroll mode (optional)
+- `--column-min-height`: Fixed column min-height in scroll mode (optional)
 - `--select-color`: Highlight/accent color (default: `#F97C39`)
 - `--text-color`: Main text color (default: `#333`)
 - `--text-dark`: Dark theme text color (default: `#e0e0e0`)
@@ -123,6 +129,44 @@ The grid-editor respects these CSS variables:
 - **Tablet**: ≤ 1024px (slightly smaller fonts)
 - **Mobile**: ≤ 768px (compact layout)
 - **Small Mobile**: ≤ 480px (minimal sizing)
+
+#### Scroll Mode
+
+Enable scroll for grids with more than 8 N-P pairs or for apps that need many voices in polyphony mode:
+
+```javascript
+const editor = createGridEditor({
+  container: document.getElementById('editorContainer'),
+  noteRange: [0, 11],
+  pulseRange: [0, 15],      // 16 pulses (0-15)
+  maxPairs: 16,              // Allow 16 columns
+  scrollEnabled: true,       // Enable scroll
+  containerSize: {
+    width: '100%',
+    maxHeight: '500px'       // Fixed max height
+  },
+  columnSize: {
+    width: '100px',          // Fixed column width
+    minHeight: '250px'       // Fixed min height
+  },
+  onPairsChange: (pairs) => {
+    console.log('Pairs:', pairs);
+  }
+});
+```
+
+**Scroll Features:**
+- **Horizontal scroll** - Columns scroll left/right when content exceeds container width
+- **Fixed column sizing** - Columns maintain consistent size (no wrapping)
+- **Smooth scrolling** - CSS `scroll-behavior: smooth` applied
+- **Backward compatible** - Scroll disabled by default (scrollEnabled: false)
+- **Custom scrollbar** - Styled scrollbar with light/dark theme support
+
+**Use Cases:**
+- Apps with >8 pairs (e.g., 16-step sequencers)
+- Polyphony mode with many voices per pulse
+- Small screens that need more pairs
+- Future apps with extended pulse ranges
 
 #### Example: App12 Usage
 
@@ -166,20 +210,24 @@ The `grid-editor.js` module is **production-ready** and fully modular:
 
 - ✅ All interaction logic encapsulated
 - ✅ Clear, documented API
-- ✅ Flexible configuration
+- ✅ Flexible configuration with scroll support
 - ✅ CSS extracted to shared file
 - ✅ Zero app-specific dependencies
 - ✅ Comprehensive JSDoc documentation
+- ✅ Full test coverage (24 tests including scroll)
 - ✅ Used successfully in App12
+- ✅ Backward compatible (scroll optional)
 
 ## File Structure
 
 ```
 libs/matrix-seq/
-├── grid-editor.js       # Main component (945 lines)
-├── grid-editor.css      # Shared styles (258 lines)
-├── index.js             # Module exports
-└── README.md            # This file
+├── grid-editor.js           # Main component (985 lines)
+├── grid-editor.css          # Shared styles (320 lines)
+├── index.js                 # Module exports
+├── README.md                # This file
+└── __tests__/
+    └── grid-editor.test.js  # 24 passing tests (includes scroll)
 ```
 
 ## Migration Guide

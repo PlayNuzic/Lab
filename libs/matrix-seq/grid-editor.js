@@ -54,6 +54,9 @@ import { createInfoTooltip } from '../app-common/info-tooltip.js';
  * @param {number} [config.maxPairs=8] - Maximum number of N-P pairs allowed
  * @param {Function} [config.getPolyphonyEnabled=() => true] - Function returning polyphony state
  * @param {Function} [config.onPairsChange=(pairs) => {}] - Callback when pairs change
+ * @param {boolean} [config.scrollEnabled=false] - Enable horizontal/vertical scroll for large grids
+ * @param {Object} [config.containerSize=null] - Fixed container size {width, height, maxWidth, maxHeight}
+ * @param {Object} [config.columnSize=null] - Fixed column size in scroll mode {width, minHeight}
  * @returns {Object} - Editor API with methods: render, getPairs, setPairs, clear, highlightCell, clearHighlights
  */
 export function createGridEditor(config = {}) {
@@ -63,7 +66,10 @@ export function createGridEditor(config = {}) {
     pulseRange = [0, 7],
     maxPairs = 8,
     onPairsChange = () => {},
-    getPolyphonyEnabled = () => true  // Default: allow polyphony
+    getPolyphonyEnabled = () => true,  // Default: allow polyphony
+    scrollEnabled = false,
+    containerSize = null,
+    columnSize = null
   } = config;
 
   let currentPairs = [];
@@ -127,6 +133,19 @@ export function createGridEditor(config = {}) {
     container.innerHTML = '';
     container.className = 'matrix-grid-editor';
 
+    // Apply scroll mode class if enabled
+    if (scrollEnabled) {
+      container.classList.add('matrix-grid-editor--scrollable');
+    }
+
+    // Apply container size if provided
+    if (containerSize) {
+      if (containerSize.width) container.style.width = containerSize.width;
+      if (containerSize.height) container.style.height = containerSize.height;
+      if (containerSize.maxWidth) container.style.maxWidth = containerSize.maxWidth;
+      if (containerSize.maxHeight) container.style.maxHeight = containerSize.maxHeight;
+    }
+
     // Group pairs by pulse
     const grouped = groupPairsByPulse(pairs);
     const pulses = Object.keys(grouped).map(Number).sort((a, b) => a - b);
@@ -137,6 +156,16 @@ export function createGridEditor(config = {}) {
 
     // Set CSS custom property for dynamic height
     container.style.setProperty('--notes-height', `${dynamicHeight}px`);
+
+    // Set CSS custom property for fixed column size in scroll mode
+    if (scrollEnabled && columnSize) {
+      if (columnSize.width) {
+        container.style.setProperty('--column-width', columnSize.width);
+      }
+      if (columnSize.minHeight) {
+        container.style.setProperty('--column-min-height', columnSize.minHeight);
+      }
+    }
 
     // Create label column (N and P labels on the left)
     const labelColumn = document.createElement('div');
@@ -154,9 +183,14 @@ export function createGridEditor(config = {}) {
 
     container.appendChild(labelColumn);
 
-    // Create columns container
+    // Create columns container (with optional scroll wrapper)
     const columnsContainer = document.createElement('div');
     columnsContainer.className = 'grid-columns-container';
+
+    // If scroll enabled, wrap columns in scrollable container
+    if (scrollEnabled) {
+      columnsContainer.classList.add('grid-columns-container--scrollable');
+    }
 
     // If no pairs, render single empty column
     if (pulses.length === 0) {
