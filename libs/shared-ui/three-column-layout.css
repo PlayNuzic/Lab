@@ -1,0 +1,108 @@
+/* Three-Column Layout - Shared CSS Module
+ * Used by: App11 (El Plano), App12 (Plano-Sucesión)
+ *
+ * Provides a responsive 3-column grid layout with:
+ * - Left column: Controls (buttons, toggles)
+ * - Center column: Main content (grid, editor)
+ * - Right column: (reserved for future use)
+ *
+ * Apps can customize positioning via CSS custom properties
+ */
+
+/* ========== BASE 3-COLUMN GRID ========== */
+.three-column-layout {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: var(--col-left, 150px) 1fr var(--col-right, 150px);
+  gap: var(--layout-gap, 2rem);
+  padding: var(--layout-padding, 1rem);
+  width: 100%;
+}
+
+/* ========== CONTROLS CONTAINER (LEFT COLUMN) ========== */
+.three-column-layout__controls {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: var(--controls-justify, flex-start);
+  padding-top: var(--controls-padding-top, 20px);
+  margin: var(--controls-margin, 20px);
+}
+
+/* Vertical layout support */
+.three-column-layout__controls .controls[data-layout="vertical"] {
+  flex-direction: column;
+  gap: var(--controls-gap, 1.5rem);
+  width: auto;
+  height: auto;
+  margin: var(--controls-inner-margin, 30px);
+  position: static;
+  align-items: flex-start;
+}
+
+/* Control buttons row */
+.three-column-layout__controls .control-buttons-row {
+  display: flex;
+  flex-direction: column !important;
+  gap: var(--buttons-gap, 0.5rem);
+  align-items: var(--buttons-align, start);
+}
+
+/* Button row (Random + Reset in same row) */
+.three-column-layout__controls .button-row {
+  display: flex;
+  flex-direction: row;
+  gap: var(--button-row-gap, 1.5rem);
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+}
+
+/* ========== MAIN CONTENT CONTAINER (CENTER COLUMN) ========== */
+.three-column-layout__main {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+  position: relative;
+}
+
+/* ========== RESPONSIVE BREAKPOINTS ========== */
+/* Standard breakpoints for Apps 11-12 */
+
+@media (max-width: 900px) {
+  .three-column-layout {
+    grid-template-columns: var(--col-left-tablet, 80px) 1fr var(--col-right-tablet, 80px);
+    gap: var(--layout-gap-tablet, 0.8rem);
+    padding: var(--layout-padding-tablet, 0.4rem);
+  }
+
+  .three-column-layout__controls {
+    margin: var(--controls-margin-tablet, 8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .three-column-layout {
+    grid-template-columns: var(--col-left-mobile, 70px) 1fr var(--col-right-mobile, 70px);
+    gap: var(--layout-gap-mobile, 0.6rem);
+    padding: var(--layout-padding-mobile, 0.3rem);
+  }
+
+  .three-column-layout__controls {
+    margin: var(--controls-margin-mobile, 5px);
+  }
+}
+
+@media (max-width: 480px) {
+  .three-column-layout {
+    grid-template-columns: var(--col-left-tiny, 60px) 1fr var(--col-right-tiny, 60px);
+    gap: var(--layout-gap-tiny, 0.4rem);
+    padding: var(--layout-padding-tiny, 0.2rem);
+  }
+
+  .three-column-layout__controls {
+    margin: var(--controls-margin-tiny, 3px);
+  }
+}

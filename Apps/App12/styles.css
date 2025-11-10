@@ -3,6 +3,7 @@
 /* Import shared module styles */
 @import url('../../libs/matrix-seq/grid-editor.css');
 @import url('../../libs/musical-grid/musical-grid.css');
+@import url('../../libs/shared-ui/three-column-layout.css');
 
 /* Variables CSS */
 :root {
@@ -19,6 +20,13 @@
   --z-interactive: 10;   /* Interactive elements: hover/focus states */
   --z-active: 20;        /* Active/playing states */
   --z-overlay: 100;      /* Overlays: tooltips, modals */
+
+  /* ThreeColumnLayout customization - preserves exact App12 positioning */
+  --controls-padding-top: 0px;
+  --controls-margin: 5px;
+  --controls-inner-margin: 0;
+  --controls-justify: center;
+  --buttons-align: center;
 }
 
 [data-theme="dark"] {
@@ -210,94 +218,44 @@
   z-index: var(--z-interactive);
 }
 
-/* ========== VERTICAL BUTTON LAYOUT (LEFT SIDE) ========== */
-/* Create grid layout:
-   Row 1: grid-seq (full width)
-   Row 2: buttons (left) + grid-2D (right)
-*/
-
-/* Main grid wrapper */
-.app12-main-grid {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: 150px 1fr 150px;
-  gap: 2rem;
-  padding: 1rem;
-  width: 100%;
-}
-
+/* ========== APP12-SPECIFIC LAYOUT CUSTOMIZATIONS ========== */
 /* Grid-seq takes full width in first row */
 #gridEditorContainer {
   grid-column: 1 / -1;
   grid-row: 1;
 }
 
-/* Buttons container in second row, left column */
-.app12-controls-container {
-  grid-column: 1;
-  grid-row: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 0px;
-  margin: 5px;
-}
-
+/* App12-specific control spacing overrides */
 .app12-controls-container .controls[data-layout="vertical"] {
-  flex-direction: column;
   gap: 1.5rem;
-  width: auto;
-  height: auto;
-  margin: 0;
-  position: static;
   align-items: flex-start; /* Keep content left-aligned */
 }
 
-/* Force vertical layout for control-buttons-row */
 .app12-controls-container .control-buttons-row {
-  display: flex;
-  flex-direction: column !important;
-  gap: 0.5rem;  /* Reduced from 3rem */
-  align-items: center;
+  gap: 0.5rem;  /* Tighter than default */
 }
 
-/* Override shared-ui margins for tighter spacing in App12 */
 .app12-controls-container #playBtn {
   margin: 0 !important;  /* Remove 2rem bottom margin from shared-ui */
-  margin-left: 0 !important;  /* Keep aligned to the left column */
+  margin-left: 80px !important;
 }
 
 .app12-controls-container .control-sound-toggles {
-  position: static !important;  /* Remove absolute positioning */
-  transform: none !important;   /* Remove transforms */
+  position: static !important;
+  transform: none !important;
   margin: 0 !important;
-  margin-left: 0 !important;   /* Keep aligned to the left column */
+  margin-left: 70px !important;
 }
 
 .app12-controls-container .button-row {
-  margin: 0 !important;  /* Ensure no extra margins on Random+Reset row */
-}
-
-/* Button row for Random + Reset in same row */
-.app12-controls-container .button-row {
-  display: flex;
-  flex-direction: row;
   gap: 1.5rem;
-  align-items: center;
-  justify-content: center;
+  margin: 0 !important;
+  margin-left: 55px !important;
 }
 
-/* Rotar PulseToggle solo en App12 */
+/* Rotar PulseToggle en App12 */
 .app12-controls-container #pulseToggleBtn {
-  transform: rotate(55deg);  /* Ajusta el ángulo como prefieras */
-}
-
-/* Grid-2D container in second row, center column */
-.grid-container {
-  grid-column: 2;
-  grid-row: 2;
-  margin: 0; /* Keep grid snug to the right column */
+  transform: rotate(55deg);
 }
 
 /* ========== CELL LABEL VISIBILITY AND CENTERING ========== */
@@ -310,7 +268,7 @@
   transform: translate(-50%, -50%);
   display: none;
   font-weight: 600;
-  color: var(--select-color, #F97C39);
+  color: var(--color-contrast, #F97C39);
   z-index: var(--z-active, 20);
   pointer-events: none;
 }

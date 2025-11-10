@@ -538,6 +538,62 @@ Standard rhythm apps use these element IDs:
 - **App-specific styles**: `Apps/AppX/styles.css`
 - **Theme support**: `data-theme` attribute
 - **Deprecated warnings fixed**: slider-vertical replaced with writing-mode
+- **Three-column layout**: `libs/shared-ui/three-column-layout.css` (Apps 11-12)
+
+#### **Responsive Design Standards**
+
+**Breakpoint Policy** (Apps 11-12 only):
+- **900px**: Tablet landscape - reduce columns to 80px
+- **768px**: Tablet portrait - reduce columns to 70px, show portrait warning
+- **480px**: Mobile - reduce columns to 60px, ultra-compact UI
+
+**Apps 1-10**: No breakpoint standardization needed - work well in vertical layout
+
+**Custom properties** for ThreeColumnLayout:
+```css
+:root {
+  /* Column widths */
+  --col-left: 150px;
+  --col-right: 150px;
+
+  /* Spacing */
+  --layout-gap: 2rem;
+  --layout-padding: 1rem;
+  --controls-margin: 20px;
+  --controls-padding-top: 20px;
+
+  /* Responsive overrides */
+  --col-left-tablet: 80px;
+  --col-left-mobile: 70px;
+  --col-left-tiny: 60px;
+}
+```
+
+#### **Portrait Warning Policy**
+
+Apps requiring landscape orientation (grid 2D apps like App11, App12):
+
+**CSS implementation**:
+```css
+@media (max-width: 768px) and (orientation: portrait) {
+  body::before {
+    content: '⟲ Por favor, gira tu dispositivo para usar esta aplicación';
+    position: fixed;
+    /* ... full-screen overlay styles ... */
+    z-index: 9999;
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}
+```
+
+**Requirements**:
+- Warning appears ONLY on portrait mode ≤768px
+- Overlay with rotate icon and message
+- App content hidden until landscape
+- Document in app-specific README.md
 
 ### Testing
 

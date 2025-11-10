@@ -1,13 +1,19 @@
 /* App11: El Plano - Estilos */
 
-/* Import shared grid styles */
+/* Import shared modules */
 @import url('../../libs/musical-grid/musical-grid.css');
+@import url('../../libs/shared-ui/three-column-layout.css');
 
 /* Variables CSS */
 :root {
   --cell-highlight-color: var(--selection-color, #F97C39);
   --note-highlight-color: var(--selection-color, #F97C39);
   --z-active: 20;
+
+  /* ThreeColumnLayout customization - preserves exact App11 positioning */
+  --controls-padding-top: 50px;
+  --controls-margin: 50px;
+  --controls-inner-margin: 30px;
 }
 
 [data-theme="dark"] {
@@ -19,28 +25,7 @@
   display: none !important;
 }
 
-/* ========== MAIN GRID WRAPPER (3-COLUMN LAYOUT) ========== */
-.app11-main-grid {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: 150px 1fr 150px;
-  gap: 2rem;
-  padding: 1rem;
-  width: 100%;
-}
-
-/* ========== CONTROLS CONTAINER (LEFT COLUMN) ========== */
-.app11-controls-container {
-  grid-column: 1;
-  grid-row: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding-top: 50px;
-  margin: 50px;
-}
-
+/* ========== APP11-SPECIFIC OVERRIDES ========== */
 .app11-controls-container .controls[data-layout="vertical"] {
   flex-direction: column;
   gap: 1.5rem;
@@ -83,10 +68,7 @@
 
 /* ========== GRID CONTAINER (CENTER COLUMN) ========== */
 #grid-container {
-  grid-column: 2;
-  grid-row: 2;
-  margin: 0;
-  position: relative;
+  /* Grid positioning inherited from three-column-layout__main */
   height: 70vh;
 }
 

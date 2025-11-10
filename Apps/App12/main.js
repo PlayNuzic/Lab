@@ -365,11 +365,12 @@ function injectGridEditor() {
     const mainElement = appRoot.querySelector('main');
     if (mainElement) {
       const gridWrapper = document.createElement('div');
-      gridWrapper.className = 'app12-main-grid';
+      gridWrapper.className = 'three-column-layout app12-main-grid';
 
       // Move existing grid-container into wrapper
       const gridContainer = mainElement.querySelector('.grid-container');
       if (gridContainer) {
+        gridContainer.classList.add('three-column-layout__main');
         gridWrapper.appendChild(gridContainer);
       }
 
@@ -537,7 +538,7 @@ async function init() {
 
     // Create container for controls
     const controlsContainer = document.createElement('div');
-    controlsContainer.className = 'app12-controls-container';
+    controlsContainer.className = 'three-column-layout__controls app12-controls-container';
     controlsContainer.appendChild(controls);
 
     // Insert into grid wrapper (between grid-seq and grid-container)
@@ -671,37 +672,6 @@ async function init() {
       polyphonyEnabled = e.target.checked;
       preferenceStorage.save('polyphony', polyphonyEnabled ? '1' : '0');
       console.log('Polyphony mode:', polyphonyEnabled ? 'ENABLED (polyphonic)' : 'DISABLED (monophonic)');
-
-      // Adaptation: When disabling polyphony, filter to keep only first note per pulse
-      if (!polyphonyEnabled && gridPairs.length > 0) {
-        const pulsesMap = new Map();
-        const filteredPairs = [];
-
-        // Keep only first note (N1) per pulse
-        gridPairs.forEach(pair => {
-          if (!pulsesMap.has(pair.pulse)) {
-            pulsesMap.set(pair.pulse, true);
-            filteredPairs.push(pair);
-          }
-        });
-
-        // Update gridPairs and re-render
-        gridPairs = filteredPairs;
-        gridLayoutController.render(filteredPairs);
-
-        // Update cellStates to remove N2+ cells
-        const newCellStates = new Map();
-        filteredPairs.forEach(pair => {
-          const key = `${pair.note}-${pair.pulse}`;
-          if (cellStates.has(key)) {
-            newCellStates.set(key, cellStates.get(key));
-          }
-        });
-        cellStates.clear();
-        newCellStates.forEach((value, key) => cellStates.set(key, value));
-
-        console.log('Polyphony disabled: Filtered to N1 only per pulse');
-      }
     });
   }
 

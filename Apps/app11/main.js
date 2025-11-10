@@ -86,6 +86,11 @@ async function handlePlay() {
     return;
   }
 
+  // Set flag immediately to prevent double-click race condition
+  isPlaying = true;
+  playBtn.disabled = true;
+  playBtn.classList.add('playing');
+
   // Ensure audio is loaded
   if (!audio) {
     await initAudio();
@@ -94,6 +99,10 @@ async function handlePlay() {
   // Check Tone.js is available
   if (!window.Tone) {
     console.warn('Tone.js not available yet');
+    // Reset state if we can't play
+    isPlaying = false;
+    playBtn.disabled = false;
+    playBtn.classList.remove('playing');
     return;
   }
 
@@ -114,11 +123,6 @@ async function handlePlay() {
     const label = cell.querySelector('.cell-label');
     if (label) label.remove();
   });
-
-  // Update state
-  isPlaying = true;
-  playBtn.disabled = true;
-  playBtn.classList.add('playing');
 
   // Create map of notes by pulse
   const notesByPulse = {};
@@ -191,16 +195,17 @@ async function init() {
 
   // Create main grid wrapper for 3-column layout
   const mainGridWrapper = document.createElement('div');
-  mainGridWrapper.className = 'app11-main-grid';
+  mainGridWrapper.className = 'three-column-layout app11-main-grid';
 
   // Create controls container (left column)
   const controlsContainer = document.createElement('div');
-  controlsContainer.className = 'app11-controls-container';
+  controlsContainer.className = 'three-column-layout__controls app11-controls-container';
   controlsContainer.appendChild(controls);
 
   // Create grid container (center column)
   const gridContainer = document.createElement('div');
   gridContainer.id = 'grid-container';
+  gridContainer.className = 'three-column-layout__main';
 
   // Append containers to main grid wrapper
   mainGridWrapper.appendChild(controlsContainer);
