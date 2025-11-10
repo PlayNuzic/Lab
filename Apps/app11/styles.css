@@ -99,7 +99,8 @@
   display: none;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--select-color, #F97C39);
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   z-index: var(--z-active, 20);
   pointer-events: none;
 }
@@ -114,7 +115,8 @@
 }
 
 [data-theme="dark"] .app11-main-grid .cell-label {
-  color: var(--select-color, #F97C39);
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* Responsive cell labels */
@@ -134,6 +136,18 @@
   .app11-main-grid .cell-label {
     display: none !important;
   }
+}
+
+/* ========== GRID NUMBERS COLOR FIX ========== */
+/* Force grid numbers to use theme colors instead of orange */
+.app11-main-grid .soundline-number,
+.app11-main-grid .pulse-marker {
+  color: var(--text-color, #333) !important;
+}
+
+[data-theme="dark"] .app11-main-grid .soundline-number,
+[data-theme="dark"] .app11-main-grid .pulse-marker {
+  color: var(--text-dark, #e0e0e0) !important;
 }
 
 /* ========== HIDE UNNECESSARY CONTROLS ========== */
