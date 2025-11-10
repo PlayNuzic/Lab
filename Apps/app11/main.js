@@ -175,21 +175,39 @@ async function handlePlay() {
 async function init() {
   console.log('Initializing App11...');
 
-  const timelineWrapper = document.getElementById('timelineWrapper');
-  if (!timelineWrapper) {
-    console.error('timelineWrapper not found');
+  // Find the main element and controls
+  const appRoot = document.getElementById('app-root');
+  const mainElement = appRoot?.querySelector('main');
+  if (!mainElement) {
+    console.error('Main element not found');
     return;
   }
 
-  // Find and preserve the controls element (rendered by template)
-  const controls = timelineWrapper.querySelector('.controls');
+  const controls = mainElement.querySelector('.controls');
+  if (!controls) {
+    console.error('Controls element not found');
+    return;
+  }
 
-  // Create grid container
+  // Create main grid wrapper for 3-column layout
+  const mainGridWrapper = document.createElement('div');
+  mainGridWrapper.className = 'app11-main-grid';
+
+  // Create controls container (left column)
+  const controlsContainer = document.createElement('div');
+  controlsContainer.className = 'app11-controls-container';
+  controlsContainer.appendChild(controls);
+
+  // Create grid container (center column)
   const gridContainer = document.createElement('div');
   gridContainer.id = 'grid-container';
 
-  // Insert grid container WITHOUT destroying controls
-  timelineWrapper.insertBefore(gridContainer, controls);
+  // Append containers to main grid wrapper
+  mainGridWrapper.appendChild(controlsContainer);
+  mainGridWrapper.appendChild(gridContainer);
+
+  // Append wrapper to main element
+  mainElement.appendChild(mainGridWrapper);
 
   // Create musical grid
   musicalGrid = createMusicalGrid({
@@ -240,9 +258,6 @@ async function init() {
       }
     }
   }
-
-  // Pre-load audio
-  initAudio();
 
   // Setup Play button
   playBtn = document.getElementById('playBtn');

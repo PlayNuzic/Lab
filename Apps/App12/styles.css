@@ -251,6 +251,7 @@
   height: auto;
   margin: 0;
   position: static;
+  align-items: flex-start; /* Keep content left-aligned */
 }
 
 /* Force vertical layout for control-buttons-row */
@@ -264,14 +265,14 @@
 /* Override shared-ui margins for tighter spacing in App12 */
 .app12-controls-container #playBtn {
   margin: 0 !important;  /* Remove 2rem bottom margin from shared-ui */
-  margin-left: 30px !important;  /* Ajusta este valor para mover más o menos a la derecha */
+  margin-left: 0 !important;  /* Keep aligned to the left column */
 }
 
 .app12-controls-container .control-sound-toggles {
   position: static !important;  /* Remove absolute positioning */
   transform: none !important;   /* Remove transforms */
-  margin: 0 !important; 
-  margin-left: 25px !important;        /* Remove any margins */
+  margin: 0 !important;
+  margin-left: 0 !important;   /* Keep aligned to the left column */
 }
 
 .app12-controls-container .button-row {
@@ -296,7 +297,31 @@
 .grid-container {
   grid-column: 2;
   grid-row: 2;
-  margin: 0 -50px;
+  margin: 0; /* Keep grid snug to the right column */
+}
+
+/* ========== CELL LABEL VISIBILITY AND CENTERING ========== */
+/* Center the N,P pair label inside each active cell, force selection color,
+   and ensure it renders above any highlight/background layers. */
+.app12-main-grid .cell-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+  font-weight: 600;
+  color: var(--select-color, #F97C39);
+  z-index: var(--z-active, 20);
+  pointer-events: none;
+}
+
+.app12-main-grid .musical-cell.active .cell-label {
+  display: block;
+}
+
+/* Avoid dimming labels via parent opacity on active cells */
+.app12-main-grid .musical-cell.active {
+  opacity: 1 !important;
 }
 
 /* ========== RESPONSIVE ADAPTATIONS ========== */

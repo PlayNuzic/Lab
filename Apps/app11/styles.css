@@ -7,6 +7,7 @@
 :root {
   --cell-highlight-color: var(--selection-color, #F97C39);
   --note-highlight-color: var(--selection-color, #F97C39);
+  --z-active: 20;
 }
 
 [data-theme="dark"] {
@@ -18,55 +19,120 @@
   display: none !important;
 }
 
-/* ========== GRID CONTAINER ========== */
+/* ========== MAIN GRID WRAPPER (3-COLUMN LAYOUT) ========== */
+.app11-main-grid {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 150px 1fr 150px;
+  gap: 2rem;
+  padding: 1rem;
+  width: 100%;
+}
+
+/* ========== CONTROLS CONTAINER (LEFT COLUMN) ========== */
+.app11-controls-container {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 50px;
+  margin: 50px;
+}
+
+.app11-controls-container .controls[data-layout="vertical"] {
+  flex-direction: column;
+  gap: 1.5rem;
+  width: auto;
+  height: auto;
+  margin: 30px;
+  position: static;
+  align-items: flex-start;
+}
+
+/* Force vertical layout for control-buttons-row */
+.app11-controls-container .control-buttons-row {
+  display: flex;
+  flex-direction: column !important;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+/* Override shared-ui margins for tighter spacing */
+.app11-controls-container #playBtn {
+  margin: 0px !important;
+  margin-left: 25px !important;
+}
+
+.app11-controls-container .control-sound-toggles {
+  position: static !important;
+  transform: none !important;
+  margin: -30px !important;
+  margin-left: -20px !important;
+}
+
+/* Rotar PulseToggle solo en App12 */
+.app11-controls-container #pulseToggleBtn {
+  transform: rotate(58deg);  /* Ajusta el ángulo como prefieras */
+}
+
+.app11-controls-container .button-row {
+  margin: 0 !important;
+}
+
+/* ========== GRID CONTAINER (CENTER COLUMN) ========== */
 #grid-container {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
   position: relative;
-  width: 90vw;
-  max-width: 1200px;
   height: 70vh;
-  margin: 40px auto;
 }
 
 /* ========== CELL LABELS (COORDINATES) ========== */
-.cell-label {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--selection-color, #F97C39);
-  pointer-events: none;
-  display: none; /* Hidden by default */
+.app11-main-grid .cell-label {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 20;
+  display: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--select-color, #F97C39);
+  z-index: var(--z-active, 20);
+  pointer-events: none;
 }
 
-.musical-cell.active .cell-label {
+.app11-main-grid .musical-cell.active .cell-label {
   display: block;
-  position: relative;
-  z-index: 999;
 }
 
-[data-theme="dark"] .cell-label {
-  color: var(--selection-color, #F97C39);
+/* Avoid dimming labels via parent opacity on active cells */
+.app11-main-grid .musical-cell.active {
+  opacity: 1 !important;
+}
+
+[data-theme="dark"] .app11-main-grid .cell-label {
+  color: var(--select-color, #F97C39);
 }
 
 /* Responsive cell labels */
 @media (max-width: 900px) {
-  .cell-label {
+  .app11-main-grid .cell-label {
     font-size: 0.8rem;
   }
 }
 
 @media (max-width: 480px) {
-  .cell-label {
+  .app11-main-grid .cell-label {
     font-size: 0.7rem;
   }
 }
 
 @media (max-width: 480px) and (orientation: landscape) {
-  .cell-label {
-    display: none !important; /* Hide on very small landscape screens */
+  .app11-main-grid .cell-label {
+    display: none !important;
   }
 }
 
