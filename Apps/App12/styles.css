@@ -240,8 +240,8 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 0;
-  margin: 45px;
+  padding-top: 0px;
+  margin: 5px;
 }
 
 .app12-controls-container .controls[data-layout="vertical"] {
@@ -264,7 +264,7 @@
 /* Override shared-ui margins for tighter spacing in App12 */
 .app12-controls-container #playBtn {
   margin: 0 !important;  /* Remove 2rem bottom margin from shared-ui */
-  margin-left: 27px !important;  /* Ajusta este valor para mover más o menos a la derecha */
+  margin-left: 30px !important;  /* Ajusta este valor para mover más o menos a la derecha */
 }
 
 .app12-controls-container .control-sound-toggles {
@@ -296,7 +296,7 @@
 .grid-container {
   grid-column: 2;
   grid-row: 2;
-  margin: 0 auto;
+  margin: 0 -50px;
 }
 
 /* ========== RESPONSIVE ADAPTATIONS ========== */
@@ -328,8 +328,8 @@
   }
 }
 
-/* ========== MOBILE LANDSCAPE ADAPTATIONS ========== */
-@media (max-width: 900px) and (orientation: landscape) {
+/* ========== MOBILE AND TABLET ADAPTATIONS ========== */
+@media (max-width: 900px) {
   /* Reduce padding and margins for tighter layout */
   .app12-main-grid {
     grid-template-columns: 80px 1fr 80px;
@@ -339,6 +339,7 @@
 
   .app12-controls-container {
     margin: 8px;
+    margin-bottom: 1.5rem; /* Prevent overlap with musical-grid */
   }
 
   .plane-wrapper {
@@ -355,8 +356,20 @@
     gap: 0.6rem;
   }
 
-  /* Scale down all control buttons - Half size for mobile */
-  .app12-controls-container .play,
+  /* Scale down control buttons for mobile */
+  /* Play button: 2x larger than other buttons */
+  .app12-controls-container .play {
+    width: 64px !important;
+    height: 64px !important;
+    font-size: 1.4rem !important;
+  }
+
+  .app12-controls-container .play svg {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* Other buttons: smaller size */
   .app12-controls-container .random,
   .app12-controls-container .reset,
   .app12-controls-container .loop,
@@ -366,7 +379,6 @@
     font-size: 0.9rem !important;
   }
 
-  .app12-controls-container .play svg,
   .app12-controls-container .random svg,
   .app12-controls-container .reset svg,
   .app12-controls-container .loop svg,
@@ -385,7 +397,7 @@
     font-size: 1.4rem !important;
     margin: 10px 20px !important;
     padding: 10px !important;
-    gap: 8px !important; /* Reduce gap between N and P rows */
+    gap: 4px !important; /* Minimal gap between N and P rows */
   }
 
   .grid-row-label {
@@ -421,8 +433,8 @@
   }
 }
 
-/* ========== SMALL MOBILE LANDSCAPE (≤ 480px) ========== */
-@media (max-width: 480px) and (orientation: landscape) {
+/* ========== SMALL MOBILE (≤ 480px) ========== */
+@media (max-width: 480px) {
   .app12-main-grid {
     grid-template-columns: 70px 1fr 70px;
     gap: 0.4rem;
@@ -431,10 +443,23 @@
 
   .app12-controls-container {
     margin: 5px;
+    margin-bottom: 1rem; /* Prevent overlap with musical-grid on small screens */
   }
 
   /* Even smaller buttons for tiny screens */
-  .app12-controls-container .play,
+  /* Play button: 2x larger than other buttons */
+  .app12-controls-container .play {
+    width: 56px !important;
+    height: 56px !important;
+    font-size: 1.2rem !important;
+  }
+
+  .app12-controls-container .play svg {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  /* Other buttons: smaller size */
   .app12-controls-container .random,
   .app12-controls-container .reset,
   .app12-controls-container .loop,
@@ -444,7 +469,6 @@
     font-size: 0.8rem !important;
   }
 
-  .app12-controls-container .play svg,
   .app12-controls-container .random svg,
   .app12-controls-container .reset svg,
   .app12-controls-container .loop svg,
@@ -462,7 +486,7 @@
     font-size: 1.1rem !important;
     margin: 8px 15px !important;
     padding: 8px !important;
-    gap: 6px !important; /* Even smaller gap for tiny screens */
+    gap: 3px !important; /* Ultra-compact gap for tiny screens */
   }
 
   .grid-row-label {
@@ -478,7 +502,7 @@
 }
 
 /* ========== MUSICAL GRID ADAPTATIONS FOR MOBILE ========== */
-@media (max-width: 900px) and (orientation: landscape) {
+@media (max-width: 900px) {
   /* Reduce musical-grid container height */
   .grid-container {
     height: 40vh !important;
