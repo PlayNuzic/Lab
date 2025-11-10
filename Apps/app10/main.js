@@ -135,6 +135,12 @@ async function handlePlay() {
     // Todas las notas tienen la misma duración (1 pulso)
     const noteDurationSec = intervalSec;
 
+    // Añadir silencio de 1 pulso entre escala (nota 11) y random (nota 12)
+    if (idx === 12) {
+      currentTime += intervalSec; // Silencio de 1 pulso
+      console.log('[SILENCIO] 1 pulso entre escala y secuencia random');
+    }
+
     // Programar reproducción de la nota
     const when = startTime + currentTime;
     piano.triggerAttackRelease(note, noteDurationSec * 0.9, when);
