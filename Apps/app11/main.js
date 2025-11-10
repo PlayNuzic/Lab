@@ -1,14 +1,13 @@
 // App11: El Plano - Interactive 2D musical grid
-// REFACTORED to use modular musical-plane system
+// Simple random note generator with clickable cells
 
-import { createSoundline } from '../../libs/app-common/soundline.js';
-import { createMusicalPlane } from '../../libs/app-common/musical-plane.js';
-import { createTimelineHorizontalAxis } from '../../libs/app-common/plane-adapters.js';
-import { createClickableCellFactory } from '../../libs/app-common/plane-cells.js';
-import { loadPiano, playNote } from '../../libs/sound/piano.js';
+import { createMusicalGrid } from '../../libs/musical-grid/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
-import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
-import { TimelineAudio } from '../../libs/sound/index.js';
+import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { MelodicTimelineAudio } from '../../libs/sound/melodic-audio.js';
+import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
+import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8 (9 markers)
@@ -19,12 +18,11 @@ const MAX_NOTES = 8;      // Maximum notes in sequence
 const FIXED_BPM = 120;    // Fixed BPM (not randomized)
 const MIN_BPM = 75;       // Minimum random BPM
 const MAX_BPM = 200;      // Maximum random BPM
+const BASE_MIDI = 60;     // C4
 
 // ========== STATE ==========
 let audio = null;
-let piano = null;
-let soundline = null;
-let musicalPlane = null;
+let musicalGrid = null;
 let currentBPM = FIXED_BPM;
 let intervalSec = 60 / FIXED_BPM; // 0.5 seconds per pulse
 let isPlaying = false;
@@ -37,125 +35,66 @@ const preferenceStorage = createPreferenceStorage('app11');
 
 async function initAudio() {
   if (!audio) {
-    console.log('Ensuring Tone.js is loaded...');
-    await ensureToneLoaded();
-    console.log('Initializing TimelineAudio...');
-    audio = new TimelineAudio({
-      Lg: SEQUENCE_PULSES,
-      V: 1,
-      T: currentBPM,
-      selected: [] // No selected pulses initially
-    });
+    console.log('Initializing MelodicTimelineAudio...');
+    audio = new MelodicTimelineAudio();
     await audio.ready();
 
-    // Enable pulse sound (metronome) by default
-    audio.setPulseEnabled(true);
+    // Load default instrument (piano)
+    const prefs = preferenceStorage.load() || {};
+    const instrument = prefs.selectedInstrument || 'piano';
+    await audio.setInstrument(instrument);
 
-    console.log('TimelineAudio initialized');
+    // Expose globally for debugging
+    window.NuzicAudioEngine = audio;
+    window.__labAudio = audio;
+
+    console.log('MelodicTimelineAudio initialized with instrument:', instrument);
   }
   return audio;
 }
 
-async function initPiano() {
-  if (!piano) {
-    console.log('Loading piano...');
-    piano = await loadPiano();
-    console.log('Piano loaded successfully');
-  }
-  return piano;
-}
-
 // ========== RANDOM GENERATORS ==========
 
-/**
- * Generate random BPM between MIN_BPM and MAX_BPM
- */
 function getRandomBPM() {
   return Math.floor(Math.random() * (MAX_BPM - MIN_BPM + 1)) + MIN_BPM;
 }
 
-/**
- * Generate random note index (0-11)
- */
 function getRandomNoteIndex() {
   return Math.floor(Math.random() * TOTAL_NOTES);
 }
 
-/**
- * Generate random sequence with 4-8 notes in 8 pulses
- * Silences are randomly distributed among unused pulses
- *
- * @returns {Object} { notes: [{note, pulse}], silencePulses: [pulse] }
- */
 function generateRandomSequence() {
-  // Random note count: 4-8
   const noteCount = Math.floor(Math.random() * (MAX_NOTES - MIN_NOTES + 1)) + MIN_NOTES;
-
-  // Generate ALL pulse positions (0-7)
   const allPulses = Array.from({length: SEQUENCE_PULSES}, (_, i) => i);
-
-  // Shuffle and split into notes vs silences
   const shuffled = allPulses.sort(() => Math.random() - 0.5);
-  const notePulses = shuffled.slice(0, noteCount).sort((a, b) => a - b); // Ascending order for left-to-right
+  const notePulses = shuffled.slice(0, noteCount).sort((a, b) => a - b);
   const silencePulses = shuffled.slice(noteCount);
 
-  // Generate random notes for each pulse
   const notes = notePulses.map(pulse => ({
     note: getRandomNoteIndex(),
     pulse: pulse
   }));
 
-  console.log(`Generated sequence: ${noteCount} notes, ${silencePulses.length} silences`);
-  console.log(`Note pulses: ${notePulses.join(', ')}`);
-  console.log(`Silence pulses: ${silencePulses.join(', ')}`);
-
   return { notes, silencePulses };
-}
-
-// ========== VISUAL FEEDBACK ==========
-
-/**
- * Highlights a note on the vertical soundline
- */
-function highlightNoteOnSoundline(noteIndex, durationMs) {
-  // Create highlight rectangle on soundline
-  const rect = document.createElement('div');
-  rect.className = 'soundline-highlight';
-
-  const yPct = soundline.getNotePosition(noteIndex);
-  rect.style.top = `${yPct}%`;
-
-  soundline.element.appendChild(rect);
-
-  // Add active class for animation
-  requestAnimationFrame(() => {
-    rect.classList.add('active');
-  });
-
-  // Remove after duration
-  setTimeout(() => {
-    rect.classList.remove('active');
-    setTimeout(() => rect.remove(), 200); // Allow fade out
-  }, durationMs);
 }
 
 // ========== PLAY SEQUENCE ==========
 
-/**
- * Handles Play button click: plays 4-8 random notes in 8-pulse sequence with shared metronome
- */
 async function handlePlay() {
   if (isPlaying) {
     console.log('Already playing, ignoring click');
     return;
   }
 
-  // Ensure audio and piano are loaded
+  // Ensure audio is loaded
   if (!audio) {
     await initAudio();
   }
-  if (!piano) {
-    await initPiano();
+
+  // Check Tone.js is available
+  if (!window.Tone) {
+    console.warn('Tone.js not available yet');
+    return;
   }
 
   // Generate random content
@@ -165,19 +104,15 @@ async function handlePlay() {
   console.log('=== Play Sequence ===');
   console.log(`BPM: ${currentBPM}`);
   console.log(`Notes (${notes.length}):`, notes.map(({note, pulse}) => `P${pulse}:N${note}`).join(', '));
-  console.log(`MIDI:`, notes.map(({note}) => soundline.getMidiForNote(note)).join(', '));
-  console.log(`Silences (${silencePulses.length}):`, silencePulses.join(', '));
 
   // Calculate interval
   intervalSec = 60 / currentBPM;
 
-  // Clear all previous active cells and labels
-  document.querySelectorAll('.matrix-cell.active').forEach(cell => {
+  // Clear all previous labels and active states
+  document.querySelectorAll('.musical-cell.active').forEach(cell => {
     cell.classList.remove('active');
     const label = cell.querySelector('.cell-label');
-    if (label) {
-      label.remove();
-    }
+    if (label) label.remove();
   });
 
   // Update state
@@ -185,7 +120,7 @@ async function handlePlay() {
   playBtn.disabled = true;
   playBtn.classList.add('playing');
 
-  // Create map of notes by pulse for quick lookup
+  // Create map of notes by pulse
   const notesByPulse = {};
   notes.forEach(({note, pulse}) => {
     notesByPulse[pulse] = note;
@@ -193,52 +128,40 @@ async function handlePlay() {
 
   const Tone = window.Tone;
 
-  // Start TimelineAudio transport-based playback (metronome + piano)
+  // Start playback
   audio.play(
-    SEQUENCE_PULSES,     // Total pulses (0-7)
-    intervalSec,         // Interval per pulse
-    new Set(),           // No accent sounds (metronome plays on all pulses automatically)
-    false,               // No loop
+    SEQUENCE_PULSES,
+    intervalSec,
+    new Set(),
+    false,
     (step) => {
-      // onPulse callback: Called on EVERY pulse (0-7)
-      console.log(`Pulse ${step} (metronome)`);
+      console.log(`Pulse ${step}`);
 
-      // Check if there's a note at this pulse
       const note = notesByPulse[step];
       if (note !== undefined) {
-        const midi = soundline.getMidiForNote(note);
+        const midi = BASE_MIDI + note;
         const duration = intervalSec * 0.9;
-        const when = Tone.now(); // Immediate (already scheduled by transport)
+        const when = Tone.now();
 
-        // Play piano note
-        const noteFreq = Tone.Frequency(midi, 'midi').toNote();
-        piano.triggerAttackRelease(noteFreq, duration, when);
+        audio.playNote(midi, duration, when);
 
-        console.log(`Pulse ${step}: Note ${note} (MIDI ${midi})`);
-
-        // Visual feedback: activate cell and add label
-        const cell = musicalPlane.getCellAt(note, step);
+        // Visual feedback: highlight cell and show label
+        const cell = musicalGrid.getCellElement(note, step);
         if (cell) {
-          cell.element.classList.add('active');
+          cell.classList.add('active');
 
-          // Add label if it doesn't exist
-          if (!cell.element.querySelector('.cell-label')) {
+          // Add label
+          if (!cell.querySelector('.cell-label')) {
             const label = document.createElement('span');
             label.className = 'cell-label';
             label.textContent = `( ${note} , ${step} )`;
-            cell.element.appendChild(label);
+            cell.appendChild(label);
           }
-
-          // Highlight cell in matrix
-          musicalPlane.highlightCell(note, step, 'highlight', duration * 1000);
         }
-
-        // Highlight note on soundline
-        highlightNoteOnSoundline(note, duration * 1000);
       }
     },
     () => {
-      // onComplete callback
+      // onComplete
       isPlaying = false;
       playBtn.disabled = false;
       playBtn.classList.remove('playing');
@@ -247,246 +170,184 @@ async function handlePlay() {
   );
 }
 
-// ========== GRID CREATION ==========
-
-/**
- * Creates the vertical soundline on the left side
- */
-function createVerticalSoundline() {
-  const soundlineWrapper = document.getElementById('soundlineWrapper');
-  if (!soundlineWrapper) {
-    console.error('Soundline wrapper not found');
-    return;
-  }
-
-  soundline = createSoundline(soundlineWrapper);
-  console.log('Vertical soundline created');
-}
-
-/**
- * Creates the horizontal timeline at the bottom
- */
-function createHorizontalTimeline() {
-  const timelineContainer = document.getElementById('timelineContainer');
-  if (!timelineContainer) {
-    console.error('Timeline container not found');
-    return;
-  }
-
-  // Create horizontal line
-  const line = document.createElement('div');
-  line.className = 'timeline-line';
-  timelineContainer.appendChild(line);
-
-  // Create pulse markers (short vertical lines)
-  for (let i = 0; i < TOTAL_PULSES; i++) {
-    const pct = (i / (TOTAL_PULSES - 1)) * 100;
-
-    // Pulse marker (short vertical line)
-    const marker = document.createElement('div');
-    marker.className = 'pulse-marker';
-    marker.style.left = `${pct}%`;
-    timelineContainer.appendChild(marker);
-
-    // Pulse number (below line)
-    const number = document.createElement('div');
-    number.className = 'pulse-number';
-    number.textContent = i;
-    number.style.left = `${pct}%`;
-    timelineContainer.appendChild(number);
-  }
-
-  console.log('Horizontal timeline created');
-}
-
-/**
- * Creates the interactive matrix using musical-plane module
- */
-function createInteractiveMatrix() {
-  const matrixContainer = document.getElementById('matrixContainer');
-  if (!matrixContainer) {
-    console.error('Matrix container not found');
-    return;
-  }
-
-  // Create horizontal axis adapter for timeline
-  const timelineContainer = document.getElementById('timelineContainer');
-  const horizontalAxis = createTimelineHorizontalAxis(
-    TOTAL_PULSES,
-    timelineContainer,
-    true // fillSpaces: cells between pulses
-  );
-
-  // Create cell factory with custom click handler
-  const cellFactory = createClickableCellFactory({
-    className: 'matrix-cell',
-    highlightClass: 'highlight',
-    highlightDuration: intervalSec * 1000 * 0.9 // 90% of interval for clean separation
-  });
-
-  // Override onClick to play notes and show coordinates inside cell
-  const originalOnClick = cellFactory.onClick;
-  cellFactory.onClick = async (noteIndex, spaceIndex, cellElement, event) => {
-    // Ensure piano is loaded
-    if (!piano) {
-      await initPiano();
-    }
-
-    // Get MIDI note
-    const midi = soundline.getMidiForNote(noteIndex);
-
-    // Play note with 1 pulse duration
-    const duration = intervalSec * 0.9; // 90% of interval for clean separation
-    playNote(midi, duration);
-
-    // Visual feedback on cell
-    originalOnClick(noteIndex, spaceIndex, cellElement, event);
-
-    // Activate cell and add coordinate label (like App12)
-    cellElement.classList.add('active');
-
-    // Add label if it doesn't exist
-    if (!cellElement.querySelector('.cell-label')) {
-      const label = document.createElement('span');
-      label.className = 'cell-label';
-      label.textContent = `( ${noteIndex} , ${spaceIndex} )`;
-      cellElement.appendChild(label);
-    }
-
-    // Visual feedback on soundline
-    highlightNoteOnSoundline(noteIndex, duration * 1000);
-
-    console.log(`Cell clicked: N=${noteIndex}, P=${spaceIndex} (MIDI ${midi})`);
-  };
-
-  // Create musical plane
-  musicalPlane = createMusicalPlane({
-    container: matrixContainer,
-    verticalAxis: soundline,           // Use soundline as vertical axis
-    horizontalAxis: horizontalAxis,     // Use timeline as horizontal axis
-    cellFactory: cellFactory,
-    fillSpaces: true,                   // Cells fill spaces BETWEEN markers
-    cellClassName: 'matrix-cell'
-  });
-
-  // Render the grid
-  const cells = musicalPlane.render();
-  console.log(`Interactive matrix created (${cells.length} cells)`);
-}
-
-// ========== BPM MANAGEMENT ==========
-
-/**
- * Updates BPM from tap tempo
- */
-function handleBPMChange(newBPM) {
-  currentBPM = newBPM;
-  intervalSec = 60 / currentBPM;
-  console.log(`BPM updated to ${currentBPM} (interval: ${intervalSec.toFixed(3)}s)`);
-
-  // Update cell factory highlight duration if plane exists
-  if (musicalPlane) {
-    // Recreate matrix with new timing
-    musicalPlane.clear();
-    createInteractiveMatrix();
-  }
-}
-
-// Listen for tap tempo events
-document.addEventListener('sharedui:tempo', (e) => {
-  handleBPMChange(e.detail.bpm);
-});
-
-// ========== FACTORY RESET ==========
-registerFactoryReset({ storage: preferenceStorage });
-
 // ========== INITIALIZATION ==========
 
-function initApp() {
-  console.log('Initializing App11: El Plano (Refactored)');
+async function init() {
+  console.log('Initializing App11...');
 
   const timelineWrapper = document.getElementById('timelineWrapper');
   if (!timelineWrapper) {
-    console.error('Timeline wrapper not found');
+    console.error('timelineWrapper not found');
     return;
   }
 
+  // Find and preserve the controls element (rendered by template)
   const controls = timelineWrapper.querySelector('.controls');
 
-  // Remove default timeline section to avoid nested <section> structure
-  const existingTimeline = timelineWrapper.querySelector('#timeline');
-  if (existingTimeline) {
-    existingTimeline.remove();
+  // Create grid container
+  const gridContainer = document.createElement('div');
+  gridContainer.id = 'grid-container';
+
+  // Insert grid container WITHOUT destroying controls
+  timelineWrapper.insertBefore(gridContainer, controls);
+
+  // Create musical grid
+  musicalGrid = createMusicalGrid({
+    parent: gridContainer,
+    notes: TOTAL_NOTES,
+    pulses: TOTAL_PULSES,
+    noteFormatter: (index) => index.toString(),
+    pulseFormatter: (index) => index.toString(),
+    scrollEnabled: false
+  });
+
+  console.log('Musical grid created');
+
+  // Add click handlers to cells
+  for (let noteIndex = 0; noteIndex < TOTAL_NOTES; noteIndex++) {
+    for (let pulseIndex = 0; pulseIndex < SEQUENCE_PULSES; pulseIndex++) {
+      const cell = musicalGrid.getCellElement(noteIndex, pulseIndex);
+      if (cell) {
+        cell.addEventListener('click', async () => {
+          await initAudio();
+
+          if (!window.Tone) {
+            console.warn('Tone.js not available yet');
+            return;
+          }
+
+          const midi = BASE_MIDI + noteIndex;
+          const duration = intervalSec * 0.9;
+
+          audio.playNote(midi, duration, window.Tone.now());
+
+          // Show label on click
+          cell.classList.add('active');
+          if (!cell.querySelector('.cell-label')) {
+            const label = document.createElement('span');
+            label.className = 'cell-label';
+            label.textContent = `( ${noteIndex} , ${pulseIndex} )`;
+            cell.appendChild(label);
+          }
+
+          // Remove label after 500ms
+          setTimeout(() => {
+            cell.classList.remove('active');
+            const label = cell.querySelector('.cell-label');
+            if (label) label.remove();
+          }, 500);
+        });
+      }
+    }
   }
 
-  // Remove any previous grid (defensive in case of reinitialization)
-  timelineWrapper.querySelector('.grid-container')?.remove();
+  // Pre-load audio
+  initAudio();
 
-  // Create grid structure directly inside the wrapper (controls stay after it)
-  const gridContainer = document.createElement('div');
-  gridContainer.className = 'grid-container';
-  gridContainer.innerHTML = `
-    <div id="soundlineWrapper"></div>
-    <div id="matrixContainer"></div>
-    <div style="grid-column: 1; grid-row: 2;"></div>
-    <div id="timelineContainer"></div>
-  `;
-
-  timelineWrapper.insertBefore(gridContainer, controls ?? null);
-
-  // Create vertical soundline (left)
-  createVerticalSoundline();
-
-  // Create horizontal timeline (bottom)
-  createHorizontalTimeline();
-
-  // Create interactive matrix using modular system
-  createInteractiveMatrix();
-
-  // Pre-load audio and piano to avoid delay on first click
-  // Note: initPiano() must wait for Tone.js to load, which happens in initAudio()
-  initAudio().then(() => initPiano());
-
-  // Setup Play button event listener
+  // Setup Play button
   playBtn = document.getElementById('playBtn');
   if (playBtn) {
     playBtn.addEventListener('click', handlePlay);
-    console.log('Play button event listener attached');
-  } else {
-    console.warn('Play button not found');
   }
 
-  // Listen for sound changes from dropdown (metronome sound)
+  // Listen for sound changes
   document.addEventListener('sharedui:sound', async (e) => {
-    console.log('Sound changed:', e.detail.sound);
+    const { type, value } = e.detail;
     const audioInstance = await initAudio();
-    if (audioInstance && typeof audioInstance.setBase === 'function') {
-      await audioInstance.setBase(e.detail.sound);
-      console.log(`Metronome sound updated to: ${e.detail.sound}`);
+
+    if (type === 'base' && audioInstance && typeof audioInstance.setBase === 'function') {
+      await audioInstance.setBase(value);
+    }
+
+    if (type === 'start' && audioInstance && typeof audioInstance.setStart === 'function') {
+      await audioInstance.setStart(value);
     }
   });
 
-  // Listen for instrument changes (placeholder - only piano available for now)
-  document.addEventListener('sharedui:instrument', (e) => {
-    console.log('Instrument changed:', e.detail.instrument);
-    // Future: load different instruments based on selection
+  // Listen for instrument changes
+  document.addEventListener('sharedui:instrument', async (e) => {
+    const instrument = e.detail.instrument;
+    await initAudio();
+    await audio.setInstrument(instrument);
+
+    const currentPrefs = preferenceStorage.load() || {};
+    currentPrefs.selectedInstrument = instrument;
+    preferenceStorage.save(currentPrefs);
   });
 
-  console.log('App11 initialized successfully with modular plane system');
-  console.log(`Fixed BPM: ${FIXED_BPM}, Interval: ${intervalSec}s per pulse`);
+  // Initialize P1 toggle
+  const startIntervalToggle = document.getElementById('startIntervalToggle');
+  const startSoundRow = document.querySelector('.interval-select-row');
+  if (startIntervalToggle && startSoundRow) {
+    initP1ToggleUI({
+      checkbox: startIntervalToggle,
+      startSoundRow: startSoundRow,
+      storageKey: 'app11:p1Toggle',
+      onChange: async (enabled) => {
+        const audioInstance = await initAudio();
+        if (audioInstance && typeof audioInstance.setStartEnabled === 'function') {
+          audioInstance.setStartEnabled(enabled);
+        }
+      }
+    });
+  }
+
+  // Initialize mixer menu
+  const mixerMenu = document.getElementById('mixerMenu');
+  if (mixerMenu && playBtn) {
+    initMixerMenu({
+      menu: mixerMenu,
+      triggers: [playBtn],
+      channels: [
+        { id: 'start', label: 'Pulso1', allowSolo: false, hasSlider: false },
+        { id: 'pulse', label: 'Pulso', allowSolo: true },
+        { id: 'instrument', label: 'Piano', allowSolo: true },
+        { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
+      ]
+    });
+  }
+
+  // Initialize audio toggles
+  const pulseToggleBtn = document.getElementById('pulseToggleBtn');
+  if (pulseToggleBtn) {
+    const globalMixer = getMixer();
+    initAudioToggles({
+      toggles: [{
+        id: 'pulse',
+        button: pulseToggleBtn,
+        storageKey: 'app11:pulseAudio',
+        mixerChannel: 'pulse',
+        defaultEnabled: true,
+        onChange: (enabled) => {
+          if (audio && typeof audio.setPulseEnabled === 'function') {
+            audio.setPulseEnabled(enabled);
+          }
+        }
+      }],
+      storage: {
+        load: () => preferenceStorage.load() || {},
+        save: (data) => preferenceStorage.save(data)
+      },
+      mixer: globalMixer,
+      subscribeMixer
+    });
+  }
+
+  console.log('App11 initialized successfully');
 }
 
 // ========== CLEANUP ==========
 
 window.addEventListener('beforeunload', () => {
-  if (musicalPlane) {
-    musicalPlane.destroy();
+  if (musicalGrid) {
+    musicalGrid.destroy?.();
   }
 });
 
-// Wait for DOM to be ready
+// ========== START ==========
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
+  document.addEventListener('DOMContentLoaded', init);
 } else {
-  initApp();
+  init();
 }
