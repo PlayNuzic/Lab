@@ -355,16 +355,16 @@
     gap: 0.6rem;
   }
 
-  /* Scale down all control buttons */
+  /* Scale down all control buttons - Half size for mobile */
   .app12-controls-container .control {
-    width: 45px !important;
-    height: 45px !important;
-    font-size: 1.2rem !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.9rem !important;
   }
 
   .app12-controls-container .control svg {
-    width: 20px !important;
-    height: 20px !important;
+    width: 16px !important;
+    height: 16px !important;
   }
 
   /* Compact grid-editor with scroll enabled */
@@ -377,6 +377,7 @@
     font-size: 1.4rem !important;
     margin: 10px 20px !important;
     padding: 10px !important;
+    gap: 8px !important; /* Reduce gap between N and P rows */
   }
 
   .grid-row-label {
@@ -424,16 +425,16 @@
     margin: 5px;
   }
 
-  /* Even smaller buttons */
+  /* Even smaller buttons for tiny screens */
   .app12-controls-container .control {
-    width: 38px !important;
-    height: 38px !important;
-    font-size: 1rem !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.8rem !important;
   }
 
   .app12-controls-container .control svg {
-    width: 16px !important;
-    height: 16px !important;
+    width: 14px !important;
+    height: 14px !important;
   }
 
   /* Even smaller for tiny screens */
@@ -445,6 +446,7 @@
     font-size: 1.1rem !important;
     margin: 8px 15px !important;
     padding: 8px !important;
+    gap: 6px !important; /* Even smaller gap for tiny screens */
   }
 
   .grid-row-label {
