@@ -67,8 +67,9 @@
 .timeline .pulse-number {
   position: absolute;
   top: 90% !important;
-  font-size: 1.2rem;
+  font-size: 1.8rem;
   font-weight: 400;
+  color: var(--selection-color);
   transform: translateX(-50%);
   user-select: none;
   z-index: 20;
@@ -81,7 +82,7 @@
 .timeline .interval-number {
   position: absolute;
   top: 0% !important;
-  font-size: 2.8rem;
+  font-size: 1.8rem;
   font-weight: 400;
   transform: translateX(-50%);
   user-select: none;
@@ -89,11 +90,11 @@
   opacity: 0.85;
   transition: transform 0.2s ease, opacity 0.2s ease;
   pointer-events: none;
-  color: var(--text-color, #333);
+  color: var(--color-contrast);
 }
 
 [data-theme="dark"] .timeline .interval-number {
-  color: var(--text-dark, #e0e0e0);
+  color: var(--color-contrast);
 }
 
 /* ========== CONTROLES ========== */
@@ -212,12 +213,12 @@
   }
 
   .timeline .pulse-number {
-    font-size: 2.2rem;
+    font-size: 2rem;
     top: calc(50% + 25px);
   }
 
   .timeline .interval-number {
-    font-size: 2.4rem;
+    font-size: 2rem;
   }
 
   .play-btn {
@@ -233,12 +234,12 @@
 
 @media (max-width: 480px) {
   .timeline .pulse-number {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     top: calc(50% + 20px);
   }
 
   .timeline .interval-number {
-    font-size: 2rem;
+    font-size: 1.6rem;
   }
 
   .timeline .pulse {
