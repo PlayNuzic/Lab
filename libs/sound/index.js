@@ -1464,7 +1464,8 @@ export class TimelineAudio {
       }
     } else if (msg.type === 'done') {
       if (typeof this.onCompleteRef === 'function') this.onCompleteRef();
-      this.stop();
+      // Add 100ms delay to allow last note to finish naturally
+      setTimeout(() => this.stop(), 100);
     }
   }
 
