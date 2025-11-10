@@ -30,9 +30,9 @@
 .grid-label-column {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   flex-shrink: 0;
-  padding: 10px 15px;
+  padding: 10px 35px;
 }
 
 .grid-row-label {
@@ -47,10 +47,11 @@
   display: flex;
   align-items: flex-start;
   padding-top: 0px;
+    margin-bottom: -25px; /* NUEVO: gap explícito (reducción 1/3) */
 }
 
 .grid-row-label--p {
-  height: 6px; /* Reduced for minimal N-P gap */
+  height: 0px; /* Reduced for minimal N-P gap */
   display: flex;
   align-items: flex-start;
 }
