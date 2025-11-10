@@ -356,13 +356,21 @@
   }
 
   /* Scale down all control buttons - Half size for mobile */
-  .app12-controls-container .control {
+  .app12-controls-container .play,
+  .app12-controls-container .random,
+  .app12-controls-container .reset,
+  .app12-controls-container .loop,
+  .app12-controls-container .tap {
     width: 32px !important;
     height: 32px !important;
     font-size: 0.9rem !important;
   }
 
-  .app12-controls-container .control svg {
+  .app12-controls-container .play svg,
+  .app12-controls-container .random svg,
+  .app12-controls-container .reset svg,
+  .app12-controls-container .loop svg,
+  .app12-controls-container .tap svg {
     width: 16px !important;
     height: 16px !important;
   }
@@ -426,13 +434,21 @@
   }
 
   /* Even smaller buttons for tiny screens */
-  .app12-controls-container .control {
+  .app12-controls-container .play,
+  .app12-controls-container .random,
+  .app12-controls-container .reset,
+  .app12-controls-container .loop,
+  .app12-controls-container .tap {
     width: 28px !important;
     height: 28px !important;
     font-size: 0.8rem !important;
   }
 
-  .app12-controls-container .control svg {
+  .app12-controls-container .play svg,
+  .app12-controls-container .random svg,
+  .app12-controls-container .reset svg,
+  .app12-controls-container .loop svg,
+  .app12-controls-container .tap svg {
     width: 14px !important;
     height: 14px !important;
   }
