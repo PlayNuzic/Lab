@@ -262,13 +262,13 @@
 
 @media (max-width: 900px) {
   .matrix-grid-editor {
-    font-size: 2rem;
-    margin: 15px 30px;
-    gap: 12px;
+    font-size: 1.4rem;
+    margin: 10px 20px;
+    gap: 8px; /* Compact gap for mobile landscape */
   }
 
   .grid-row-label {
-    font-size: 2rem;
+    font-size: 1.4rem;
   }
 
   .grid-row-label--n,
@@ -284,21 +284,21 @@
 
   .note-input,
   .pulse-input {
-    font-size: 2rem;
-    width: 50px;
-    padding: 5px 8px;
+    font-size: 1.4rem;
+    width: 40px;
+    padding: 4px 6px;
   }
 }
 
 @media (max-width: 480px) {
   .matrix-grid-editor {
-    font-size: 1.5rem;
-    margin: 10px 20px;
-    gap: 10px;
+    font-size: 1.1rem;
+    margin: 8px 15px;
+    gap: 6px; /* Even more compact for tiny screens */
   }
 
   .grid-row-label {
-    font-size: 1.5rem;
+    font-size: 1.1rem;
   }
 
   .grid-row-label--n,
@@ -314,8 +314,8 @@
 
   .note-input,
   .pulse-input {
-    font-size: 1.5rem;
-    width: 45px;
-    padding: 4px 6px;
+    font-size: 1.1rem;
+    width: 35px;
+    padding: 3px 5px;
   }
 }
