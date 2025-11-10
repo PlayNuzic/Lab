@@ -8,17 +8,20 @@ import { createClickableCellFactory } from '../../libs/app-common/plane-cells.js
 import { loadPiano, playNote } from '../../libs/sound/piano.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
+import { TimelineAudio } from '../../libs/sound/index.js';
 
 // ========== CONFIGURATION ==========
-const TOTAL_PULSES = 9;   // Horizontal: 0-8
+const TOTAL_PULSES = 9;   // Horizontal: 0-8 (9 markers)
 const TOTAL_NOTES = 12;   // Vertical: 0-11 (MIDI 60-71)
-const TOTAL_SPACES = 8;   // Spaces between pulses: 0-7
+const SEQUENCE_PULSES = 8; // Total pulses in playback sequence (0-7)
+const MIN_NOTES = 4;      // Minimum notes in sequence
+const MAX_NOTES = 8;      // Maximum notes in sequence
 const FIXED_BPM = 120;    // Fixed BPM (not randomized)
-const PLAY_NOTES = 4;     // Number of notes in Play sequence
 const MIN_BPM = 75;       // Minimum random BPM
 const MAX_BPM = 200;      // Maximum random BPM
 
 // ========== STATE ==========
+let audio = null;
 let piano = null;
 let soundline = null;
 let musicalPlane = null;
@@ -32,10 +35,29 @@ const preferenceStorage = createPreferenceStorage('app11');
 
 // ========== AUDIO INITIALIZATION ==========
 
-async function initPiano() {
-  if (!piano) {
+async function initAudio() {
+  if (!audio) {
     console.log('Ensuring Tone.js is loaded...');
     await ensureToneLoaded();
+    console.log('Initializing TimelineAudio...');
+    audio = new TimelineAudio({
+      Lg: SEQUENCE_PULSES,
+      V: 1,
+      T: currentBPM,
+      selected: [] // No selected pulses initially
+    });
+    await audio.ready();
+
+    // Enable pulse sound (metronome) by default
+    audio.setPulseEnabled(true);
+
+    console.log('TimelineAudio initialized');
+  }
+  return audio;
+}
+
+async function initPiano() {
+  if (!piano) {
     console.log('Loading piano...');
     piano = await loadPiano();
     console.log('Piano loaded successfully');
@@ -60,33 +82,34 @@ function getRandomNoteIndex() {
 }
 
 /**
- * Generate array of random note indices
+ * Generate random sequence with 4-8 notes in 8 pulses
+ * Silences are randomly distributed among unused pulses
+ *
+ * @returns {Object} { notes: [{note, pulse}], silencePulses: [pulse] }
  */
-function generateRandomNotes() {
-  const notes = [];
-  for (let i = 0; i < PLAY_NOTES; i++) {
-    notes.push(getRandomNoteIndex());
-  }
-  return notes;
-}
+function generateRandomSequence() {
+  // Random note count: 4-8
+  const noteCount = Math.floor(Math.random() * (MAX_NOTES - MIN_NOTES + 1)) + MIN_NOTES;
 
-/**
- * Generate array of random space indices in ascending order
- * Ensures: space[i] < space[i+1] (left-to-right constraint)
- */
-function generateRandomSpaces() {
-  const spaces = [];
-  let minSpace = 0;
+  // Generate ALL pulse positions (0-7)
+  const allPulses = Array.from({length: SEQUENCE_PULSES}, (_, i) => i);
 
-  for (let i = 0; i < PLAY_NOTES; i++) {
-    // Leave room for remaining notes
-    const maxSpace = TOTAL_SPACES - 1 - (PLAY_NOTES - 1 - i);
-    const space = Math.floor(Math.random() * (maxSpace - minSpace + 1)) + minSpace;
-    spaces.push(space);
-    minSpace = space + 1;  // Next must be greater
-  }
+  // Shuffle and split into notes vs silences
+  const shuffled = allPulses.sort(() => Math.random() - 0.5);
+  const notePulses = shuffled.slice(0, noteCount).sort((a, b) => a - b); // Ascending order for left-to-right
+  const silencePulses = shuffled.slice(noteCount);
 
-  return spaces;
+  // Generate random notes for each pulse
+  const notes = notePulses.map(pulse => ({
+    note: getRandomNoteIndex(),
+    pulse: pulse
+  }));
+
+  console.log(`Generated sequence: ${noteCount} notes, ${silencePulses.length} silences`);
+  console.log(`Note pulses: ${notePulses.join(', ')}`);
+  console.log(`Silence pulses: ${silencePulses.join(', ')}`);
+
+  return { notes, silencePulses };
 }
 
 // ========== VISUAL FEEDBACK ==========
@@ -119,7 +142,7 @@ function highlightNoteOnSoundline(noteIndex, durationMs) {
 // ========== PLAY SEQUENCE ==========
 
 /**
- * Handles Play button click: plays 4 random notes in sequence
+ * Handles Play button click: plays 4-8 random notes in 8-pulse sequence with shared metronome
  */
 async function handlePlay() {
   if (isPlaying) {
@@ -127,66 +150,101 @@ async function handlePlay() {
     return;
   }
 
-  // Ensure piano is loaded
+  // Ensure audio and piano are loaded
+  if (!audio) {
+    await initAudio();
+  }
   if (!piano) {
     await initPiano();
   }
 
   // Generate random content
   currentBPM = getRandomBPM();
-  const randomNotes = generateRandomNotes();
-  const randomSpaces = generateRandomSpaces();
+  const { notes, silencePulses } = generateRandomSequence();
 
   console.log('=== Play Sequence ===');
   console.log(`BPM: ${currentBPM}`);
-  console.log(`Notes: ${randomNotes.join(', ')} (MIDI: ${randomNotes.map(n => soundline.getMidiForNote(n)).join(', ')})`);
-  console.log(`Spaces: ${randomSpaces.join(', ')}`);
+  console.log(`Notes (${notes.length}):`, notes.map(({note, pulse}) => `P${pulse}:N${note}`).join(', '));
+  console.log(`MIDI:`, notes.map(({note}) => soundline.getMidiForNote(note)).join(', '));
+  console.log(`Silences (${silencePulses.length}):`, silencePulses.join(', '));
 
   // Calculate interval
   intervalSec = 60 / currentBPM;
+
+  // Clear all previous active cells and labels
+  document.querySelectorAll('.matrix-cell.active').forEach(cell => {
+    cell.classList.remove('active');
+    const label = cell.querySelector('.cell-label');
+    if (label) {
+      label.remove();
+    }
+  });
 
   // Update state
   isPlaying = true;
   playBtn.disabled = true;
   playBtn.classList.add('playing');
 
-  // Manual scheduling with Tone.js (pattern from App10)
-  const Tone = window.Tone;
-  const startTime = Tone.now();
-  let currentTime = 0;  // Accumulated time in seconds
-
-  randomNotes.forEach((noteIndex, i) => {
-    const midi = soundline.getMidiForNote(noteIndex);
-    const note = Tone.Frequency(midi, 'midi').toNote();
-    const spaceIndex = randomSpaces[i];
-    const noteDurationSec = intervalSec * 0.9;  // 90% of interval for clean separation
-
-    // Schedule note playback
-    const when = startTime + currentTime;
-    piano.triggerAttackRelease(note, noteDurationSec, when);
-
-    // Schedule visual feedback
-    const delayMs = currentTime * 1000;
-    setTimeout(() => {
-      console.log(`Note ${i}: ${noteIndex} (MIDI ${midi}) at space ${spaceIndex}`);
-
-      // Highlight cell in matrix
-      musicalPlane.highlightCell(noteIndex, spaceIndex, 'highlight', noteDurationSec * 1000);
-
-      // Highlight note on soundline
-      highlightNoteOnSoundline(noteIndex, noteDurationSec * 1000);
-    }, delayMs);
-
-    currentTime += intervalSec;  // Accumulate time (1 pulse per note)
+  // Create map of notes by pulse for quick lookup
+  const notesByPulse = {};
+  notes.forEach(({note, pulse}) => {
+    notesByPulse[pulse] = note;
   });
 
-  // Callback when complete
-  setTimeout(() => {
-    isPlaying = false;
-    playBtn.disabled = false;
-    playBtn.classList.remove('playing');
-    console.log('Sequence completed');
-  }, currentTime * 1000);
+  const Tone = window.Tone;
+
+  // Start TimelineAudio transport-based playback (metronome + piano)
+  audio.play(
+    SEQUENCE_PULSES,     // Total pulses (0-7)
+    intervalSec,         // Interval per pulse
+    new Set(),           // No accent sounds (metronome plays on all pulses automatically)
+    false,               // No loop
+    (step) => {
+      // onPulse callback: Called on EVERY pulse (0-7)
+      console.log(`Pulse ${step} (metronome)`);
+
+      // Check if there's a note at this pulse
+      const note = notesByPulse[step];
+      if (note !== undefined) {
+        const midi = soundline.getMidiForNote(note);
+        const duration = intervalSec * 0.9;
+        const when = Tone.now(); // Immediate (already scheduled by transport)
+
+        // Play piano note
+        const noteFreq = Tone.Frequency(midi, 'midi').toNote();
+        piano.triggerAttackRelease(noteFreq, duration, when);
+
+        console.log(`Pulse ${step}: Note ${note} (MIDI ${midi})`);
+
+        // Visual feedback: activate cell and add label
+        const cell = musicalPlane.getCellAt(note, step);
+        if (cell) {
+          cell.element.classList.add('active');
+
+          // Add label if it doesn't exist
+          if (!cell.element.querySelector('.cell-label')) {
+            const label = document.createElement('span');
+            label.className = 'cell-label';
+            label.textContent = `( ${note} , ${step} )`;
+            cell.element.appendChild(label);
+          }
+
+          // Highlight cell in matrix
+          musicalPlane.highlightCell(note, step, 'highlight', duration * 1000);
+        }
+
+        // Highlight note on soundline
+        highlightNoteOnSoundline(note, duration * 1000);
+      }
+    },
+    () => {
+      // onComplete callback
+      isPlaying = false;
+      playBtn.disabled = false;
+      playBtn.classList.remove('playing');
+      console.log('Sequence completed');
+    }
+  );
 }
 
 // ========== GRID CREATION ==========
@@ -266,7 +324,7 @@ function createInteractiveMatrix() {
     highlightDuration: intervalSec * 1000 * 0.9 // 90% of interval for clean separation
   });
 
-  // Override onClick to play notes
+  // Override onClick to play notes and show coordinates inside cell
   const originalOnClick = cellFactory.onClick;
   cellFactory.onClick = async (noteIndex, spaceIndex, cellElement, event) => {
     // Ensure piano is loaded
@@ -284,10 +342,21 @@ function createInteractiveMatrix() {
     // Visual feedback on cell
     originalOnClick(noteIndex, spaceIndex, cellElement, event);
 
+    // Activate cell and add coordinate label (like App12)
+    cellElement.classList.add('active');
+
+    // Add label if it doesn't exist
+    if (!cellElement.querySelector('.cell-label')) {
+      const label = document.createElement('span');
+      label.className = 'cell-label';
+      label.textContent = `( ${noteIndex} , ${spaceIndex} )`;
+      cellElement.appendChild(label);
+    }
+
     // Visual feedback on soundline
     highlightNoteOnSoundline(noteIndex, duration * 1000);
 
-    console.log(`Cell clicked: Space ${spaceIndex} (between pulse ${spaceIndex} and ${spaceIndex + 1}), Note ${noteIndex} (MIDI ${midi})`);
+    console.log(`Cell clicked: N=${noteIndex}, P=${spaceIndex} (MIDI ${midi})`);
   };
 
   // Create musical plane
@@ -303,16 +372,6 @@ function createInteractiveMatrix() {
   // Render the grid
   const cells = musicalPlane.render();
   console.log(`Interactive matrix created (${cells.length} cells)`);
-
-  // Handle window resize for responsive layout
-  let resizeTimeout;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-      musicalPlane.update();
-      console.log('Matrix updated after resize');
-    }, 250);
-  });
 }
 
 // ========== BPM MANAGEMENT ==========
@@ -384,8 +443,9 @@ function initApp() {
   // Create interactive matrix using modular system
   createInteractiveMatrix();
 
-  // Pre-load piano to avoid delay on first click
-  initPiano();
+  // Pre-load audio and piano to avoid delay on first click
+  // Note: initPiano() must wait for Tone.js to load, which happens in initAudio()
+  initAudio().then(() => initPiano());
 
   // Setup Play button event listener
   playBtn = document.getElementById('playBtn');
@@ -395,6 +455,16 @@ function initApp() {
   } else {
     console.warn('Play button not found');
   }
+
+  // Listen for sound changes from dropdown (metronome sound)
+  document.addEventListener('sharedui:sound', async (e) => {
+    console.log('Sound changed:', e.detail.sound);
+    const audioInstance = await initAudio();
+    if (audioInstance && typeof audioInstance.setBase === 'function') {
+      await audioInstance.setBase(e.detail.sound);
+      console.log(`Metronome sound updated to: ${e.detail.sound}`);
+    }
+  });
 
   // Listen for instrument changes (placeholder - only piano available for now)
   document.addEventListener('sharedui:instrument', (e) => {

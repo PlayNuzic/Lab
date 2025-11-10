@@ -375,3 +375,46 @@
     margin-left: 20px;
   }
 }
+
+/* ========== CELL LABELS (COORDINATES) ========== */
+.cell-label {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--selection-color, #F97C39);
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  display: none; /* Hidden by default */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+}
+
+.matrix-cell.active .cell-label {
+  display: block; /* Show only when cell is active */
+}
+
+[data-theme="dark"] .cell-label {
+  color: var(--selection-color, #F97C39);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* Responsive cell labels */
+@media (max-width: 900px) {
+  .cell-label {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .cell-label {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) and (orientation: landscape) {
+  .cell-label {
+    display: none !important; /* Hide on very small landscape screens */
+  }
+}
