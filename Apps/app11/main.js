@@ -165,11 +165,34 @@ async function handlePlay() {
       }
     },
     () => {
-      // onComplete
+      // onComplete - elegant fade-out animation with delay
+      console.log('Sequence completed - waiting 500ms before fade-out...');
+
+      // Collect all active cells
+      const activeCells = document.querySelectorAll('.musical-cell.active');
+
+      // Wait 500ms to show last pulse, then start fade-out
+      setTimeout(() => {
+        console.log('Starting fade-out animation...');
+        activeCells.forEach(cell => {
+          cell.classList.add('fading-out');
+        });
+
+        // After 1 second fade-out, clean up
+        setTimeout(() => {
+          activeCells.forEach(cell => {
+            cell.classList.remove('active', 'fading-out');
+            const label = cell.querySelector('.cell-label');
+            if (label) label.remove();
+          });
+          console.log('Fade-out complete - cells cleared');
+        }, 1000);
+      }, 500);
+
+      // Reset state immediately (don't wait for animation)
       isPlaying = false;
       playBtn.disabled = false;
       playBtn.classList.remove('playing');
-      console.log('Sequence completed');
     }
   );
 }

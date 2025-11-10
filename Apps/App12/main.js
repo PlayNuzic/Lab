@@ -672,6 +672,39 @@ async function init() {
       polyphonyEnabled = e.target.checked;
       preferenceStorage.save('polyphony', polyphonyEnabled ? '1' : '0');
       console.log('Polyphony mode:', polyphonyEnabled ? 'ENABLED (polyphonic)' : 'DISABLED (monophonic)');
+
+      // When disabling polyphony, filter to keep only first note per pulse
+      if (!polyphonyEnabled && gridEditor) {
+        const currentPairs = gridEditor.getPairs();
+        const pulsesMap = new Map();
+        const filteredPairs = [];
+
+        // Keep only N1 per pulse
+        currentPairs.forEach(pair => {
+          if (!pulsesMap.has(pair.pulse)) {
+            pulsesMap.set(pair.pulse, true);
+            filteredPairs.push(pair);
+          }
+        });
+
+        // Update grid-editor
+        gridEditor.setPairs(filteredPairs);
+
+        // Clear all active cells in musical-grid
+        document.querySelectorAll('.musical-cell.active').forEach(cell => {
+          cell.classList.remove('active');
+        });
+
+        // Re-render filtered pairs in musical-grid
+        filteredPairs.forEach(({note, pulse}) => {
+          const cell = musicalGrid.getCellElement(note, pulse);
+          if (cell) {
+            cell.classList.add('active');
+          }
+        });
+
+        console.log(`Polyphony disabled: ${currentPairs.length} → ${filteredPairs.length} notes (monophonic mode applied)`);
+      }
     });
   }
 

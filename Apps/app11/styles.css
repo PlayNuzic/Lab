@@ -87,6 +87,17 @@
   pointer-events: none;
 }
 
+/* Elegant fade-out animation for sequence completion */
+.app11-main-grid .musical-cell.active.fading-out {
+  transition: opacity 1s ease-out;
+  opacity: 0;
+}
+
+.app11-main-grid .musical-cell.active.fading-out .cell-label {
+  transition: opacity 1s ease-out;
+  opacity: 0;
+}
+
 .app11-main-grid .musical-cell.active .cell-label {
   display: block;
 }
