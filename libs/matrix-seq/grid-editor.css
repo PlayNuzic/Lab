@@ -234,7 +234,7 @@
   .matrix-grid-editor {
     font-size: 2.5rem;
     margin: 20px 50px;
-    gap: 15px;
+    gap: 10px; /* Reduced for tablets */
   }
 
   .grid-row-label {
