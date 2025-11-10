@@ -50,7 +50,7 @@
 }
 
 .grid-row-label--p {
-  height: 60px; /* Same as pulse input height */
+  height: 6px; /* Reduced for minimal N-P gap */
   display: flex;
   align-items: flex-start;
 }
