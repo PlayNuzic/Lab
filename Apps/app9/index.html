@@ -6,8 +6,27 @@
   <title>Línea Temporal</title>
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="../../libs/app-common/timeline-intervals.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../../favicon.ico" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      background-color: #f5f5f5; /* color del fondo del web */
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto;
+      width: 100vw;
+      height: 100vh;
+      background-color: #f5f5f5; /* elimina les bandes negres del canvas */
+    }
+  </style>
 </head>
 <body data-theme="system">
   <div id="app-root"></div>
