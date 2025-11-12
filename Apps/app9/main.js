@@ -4,6 +4,13 @@ import { createSimpleHighlightController } from '../../libs/app-common/simple-hi
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
+import {
+  createIntervalBars,
+  highlightIntervalBar,
+  clearIntervalHighlights,
+  layoutHorizontalIntervalBars,
+  applyTimelineStyles
+} from '../../libs/app-common/timeline-intervals.js';
 
 // ========== ESTADO ==========
 let pulses = [];
@@ -90,6 +97,20 @@ function drawTimeline() {
     timeline.appendChild(intervalNum);
   }
 
+  // Crear barras de intervalos (1-8) usando módulo compartido
+  createIntervalBars({
+    container: timeline,
+    count: 8,
+    orientation: 'horizontal',
+    cssClass: 'interval-bar'
+  });
+
+  // Aplicar configuración de estilos (posiciones de números específicas de App9)
+  applyTimelineStyles(timeline, {
+    pulseNumberPosition: 'below',     // Números de pulso abajo
+    intervalNumberPosition: 'above'   // Números de intervalo arriba
+  });
+
   // Layout lineal (posicionar elementos)
   layoutLinear();
 
@@ -139,6 +160,9 @@ function layoutLinear() {
     n.style.top = '70%';
     n.style.transform = 'translate(-50%, -50%)';
   });
+
+  // Posicionar barras de intervalos
+  layoutHorizontalIntervalBars(timeline, TOTAL_PULSES, 'interval-bar');
 }
 
 // ========== FUNCIONES DE AUDIO ==========
@@ -260,6 +284,7 @@ async function handlePlay() {
 
   // Limpiar highlights previos y barras de duración previas
   highlightController.clearHighlights();
+  clearIntervalHighlights(timeline, 'interval-bar');
   // Limpiar cualquier barra anterior de noises previos
   noises.forEach(noise => {
     if (noise.barElement) {
@@ -277,6 +302,14 @@ async function handlePlay() {
     (step) => {
       // Callback por cada pulso
       console.log(`Paso ${step}`);
+
+      // Iluminar barra de intervalo correspondiente
+      // Pulso N ilumina Intervalo N+1 (pulso 0 → intervalo 1, pulso 1 → intervalo 2, etc.)
+      if (step < TOTAL_PULSES - 1) {
+        const intervalIndex = step + 1;
+        clearIntervalHighlights(timeline, 'interval-bar');
+        highlightIntervalBar(timeline, intervalIndex, intervalSec * 1000, 'interval-bar');
+      }
 
       // Verificar si algún ruido empieza en este pulso
       noises.forEach((noise) => {
@@ -308,6 +341,7 @@ async function handlePlay() {
       }
       visualSync.stop();
       highlightController.clearHighlights();
+      clearIntervalHighlights(timeline, 'interval-bar');
       // Limpiar todas las barras de duración
       noises.forEach(noise => {
         if (noise.barElement) {

@@ -1,101 +1,18 @@
-/* App9: Línea Temporal - Estilos */
+/* App9: Línea Temporal - Estilos específicos de la app */
 
-/* Variables CSS */
+/* Configuración de colores del timeline (override de defaults del módulo compartido) */
 :root {
-  --line-color: #666;
-  --pulse-color: currentColor;
-  --pulse-anim-duration: 0.35s;
+  --timeline-interval-color: #4A9EFF;
+  --timeline-pulse-color: currentColor;
+  --timeline-line-color: #666;
 }
 
 [data-theme="dark"] {
-  --line-color: #999;
+  --timeline-line-color: #999;
 }
 
-/* ========== TIMELINE ========== */
-.timeline-wrapper {
-  width: 100%;
-  max-width: 900px;
-  margin: 60px auto 40px;
-  position: relative;
-  z-index: 1500;
-  opacity: 1 !important;
-  padding: 0 20px;
-}
-
-.timeline {
-  position: relative;
-  height: 120px;
-  transition: transform 0.6s ease;
-}
-
-/* Línea horizontal de fondo */
-.timeline::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--line-color);
-  transform: translateY(-50%);
-  pointer-events: none;
-}
-
-/* ========== PULSOS (DOTS) ========== */
-.timeline .pulse {
-  position: absolute;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--pulse-color) !important;
-  transform: translate(-50%, -50%);
-  --pulse-flash-base-transform: translate(-50%, -50%);
-  cursor: default;
-  transition: left 0.4s ease, top 0.4s ease, transform 0.15s ease,
-              box-shadow 0.15s ease, background-color 0.15s ease;
-  z-index: 10 !important;
-}
-
-/* Estado activo con highlight (usa animación compartida de app-common/styles.css) */
-.timeline .pulse.active {
-  animation: pulseFlash var(--pulse-anim-duration) ease-out;
-  box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
-}
-
-/* ========== NÚMEROS ========== */
-.timeline .pulse-number {
-  position: absolute;
-  top: 90% !important;
-  font-size: 1.8rem;
-  font-weight: 400;
-  color: var(--selection-color);
-  transform: translateX(-50%);
-  user-select: none;
-  z-index: 20;
-  opacity: 0.85;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-  pointer-events: none;
-}
-
-/* Números de intervalos (1-8) centrados entre pulsos, ENCIMA de timeline */
-.timeline .interval-number {
-  position: absolute;
-  top: 0% !important;
-  font-size: 1.8rem;
-  font-weight: 400;
-  transform: translateX(-50%);
-  user-select: none;
-  z-index: 15;
-  opacity: 0.85;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-  pointer-events: none;
-  color: var(--color-contrast);
-}
-
-[data-theme="dark"] .timeline .interval-number {
-  color: var(--color-contrast);
-}
+/* Los estilos de timeline, pulsos, números y barras de intervalos
+   están ahora en libs/app-common/timeline-intervals.css */
 
 /* ========== CONTROLES ========== */
 .controls-wrapper {
