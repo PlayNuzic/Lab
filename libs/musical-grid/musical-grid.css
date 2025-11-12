@@ -466,6 +466,42 @@
   }
 }
 
+/* ========== GRID CONTAINER RESPONSIVE POSITIONING ========== */
+/* Fix: Adjust left offset to prevent overflow on small screens */
+
+@media (max-width: 900px) {
+  .grid-container {
+    left: -40px !important;  /* Reduce from -120px for tablet */
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-container {
+    left: -30px !important;  /* Further reduce for mobile */
+  }
+}
+
+@media (max-width: 600px) {
+  .grid-container {
+    left: -20px !important;  /* Minimal offset for small screens */
+    top: 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid-container {
+    left: 0 !important;      /* No offset on tiny screens */
+    top: 5px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .grid-container {
+    left: 5px !important;    /* Slight padding for ultra-tiny */
+    top: 0 !important;
+  }
+}
+
 /* ========== INTERVAL BARS AND NUMBERS ========== */
 /* Interval system integrated into musical-grid - plug&play */
 

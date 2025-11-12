@@ -247,7 +247,9 @@
   position: static !important;
   transform: none !important;
   margin: 0 !important;
-  margin-left: 70px !important;
+  margin-left: 60px !important;
+  margin-top: 10px !important;
+  overflow: visible !important;
 }
 
 .app12-controls-container .button-row {
@@ -300,14 +302,21 @@
 }
 
 .app12-controls-container #pulseToggleBtn {
-  width: 60px;
-  height: 60px;
-  font-size: 1.4rem;
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
+  z-index: 10 !important;
 }
 
 .app12-controls-container #pulseToggleBtn svg {
   width: 100%;
   height: 100%;
+}
+
+/* Aumentar visibilidad del Pulse button */
+.app12-controls-container #pulseToggleBtn .control-sound-toggle__shape {
+  stroke-opacity: 0.8 !important;
+  stroke-width: 3 !important;
 }
 
 /* ========== LANDSCAPE ORIENTATION WARNING (Portrait Mode) ========== */
@@ -393,11 +402,11 @@
     height: 90% !important;
   }
 
-  /* PulseToggle: Reduce 20% (60px → 48px) */
+  /* PulseToggle: Reduce 25% (48px → 36px) */
   .app12-controls-container #pulseToggleBtn {
-    width: 48px !important;
-    height: 48px !important;
-    font-size: 1.2rem !important;
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1rem !important;
   }
 
   .app12-controls-container #pulseToggleBtn svg {
@@ -509,11 +518,11 @@
     height: 85% !important;
   }
 
-  /* PulseToggle: Reduce 27% (60px → 44px) */
+  /* PulseToggle: Reduce 35% (48px → 31px) */
   .app12-controls-container #pulseToggleBtn {
-    width: 44px !important;
-    height: 44px !important;
-    font-size: 1.1rem !important;
+    width: 31px !important;
+    height: 31px !important;
+    font-size: 0.9rem !important;
   }
 
   .app12-controls-container #pulseToggleBtn svg {
@@ -563,11 +572,11 @@
     height: 83% !important;
   }
 
-  /* PulseToggle: Reduce 30% (60px → 42px) */
+  /* PulseToggle: Reduce 42% (48px → 28px) */
   .app12-controls-container #pulseToggleBtn {
-    width: 42px !important;
-    height: 42px !important;
-    font-size: 1.05rem !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.85rem !important;
   }
 
   .app12-controls-container #pulseToggleBtn svg {
@@ -617,11 +626,11 @@
     height: 80% !important;
   }
 
-  /* PulseToggle: Reduce 35% (60px → 39px) */
+  /* PulseToggle: Reduce 45% (48px → 26px) */
   .app12-controls-container #pulseToggleBtn {
-    width: 39px !important;
-    height: 39px !important;
-    font-size: 0.95rem !important;
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.8rem !important;
   }
 
   .app12-controls-container #pulseToggleBtn svg {
@@ -657,11 +666,11 @@
 
   /* Other buttons: HIDDEN (controlado por two-column-layout.css) */
 
-  /* PulseToggle: mínimo táctil (36px) */
+  /* PulseToggle: mínimo táctil (28px) */
   .app12-controls-container #pulseToggleBtn {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 0.9rem !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.8rem !important;
   }
 
   .app12-controls-container #pulseToggleBtn svg {

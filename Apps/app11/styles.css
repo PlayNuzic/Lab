@@ -121,9 +121,9 @@ main > .timeline-wrapper {
 }
 
 .app11-controls-container #pulseToggleBtn {
-  width: 60px;
-  height: 60px;
-  font-size: 1.4rem;
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
 }
 
 .app11-controls-container #pulseToggleBtn svg {
@@ -145,11 +145,11 @@ main > .timeline-wrapper {
     height: 45% !important;
   }
 
-  /* PulseToggle: Reduce 20% (60px → 48px) */
+  /* PulseToggle: Reduce 25% (48px → 36px) */
   .app11-controls-container #pulseToggleBtn {
-    width: 48px !important;
-    height: 48px !important;
-    font-size: 1.2rem !important;
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1rem !important;
   }
 
   .app11-controls-container #pulseToggleBtn svg {
@@ -177,11 +177,11 @@ main > .timeline-wrapper {
     height: 40% !important;
   }
 
-  /* PulseToggle: Reduce 27% (60px → 44px) */
+  /* PulseToggle: Reduce 35% (48px → 31px) */
   .app11-controls-container #pulseToggleBtn {
-    width: 44px !important;
-    height: 44px !important;
-    font-size: 1.1rem !important;
+    width: 31px !important;
+    height: 31px !important;
+    font-size: 0.9rem !important;
   }
 
   .app11-controls-container #pulseToggleBtn svg {
@@ -204,11 +204,11 @@ main > .timeline-wrapper {
     height: 42% !important;
   }
 
-  /* PulseToggle: Reduce 30% (60px → 42px) */
+  /* PulseToggle: Reduce 42% (48px → 28px) */
   .app11-controls-container #pulseToggleBtn {
-    width: 42px !important;
-    height: 42px !important;
-    font-size: 1.05rem !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.85rem !important;
   }
 
   .app11-controls-container #pulseToggleBtn svg {
@@ -231,11 +231,11 @@ main > .timeline-wrapper {
     height: 38% !important;
   }
 
-  /* PulseToggle: Reduce 35% (60px → 39px) */
+  /* PulseToggle: Reduce 45% (48px → 26px) */
   .app11-controls-container #pulseToggleBtn {
-    width: 39px !important;
-    height: 39px !important;
-    font-size: 0.95rem !important;
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.8rem !important;
   }
 
   .app11-controls-container #pulseToggleBtn svg {
@@ -258,11 +258,11 @@ main > .timeline-wrapper {
     height: 40% !important;
   }
 
-  /* PulseToggle: mínimo táctil (36px) */
+  /* PulseToggle: mínimo táctil (28px) */
   .app11-controls-container #pulseToggleBtn {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 0.9rem !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.8rem !important;
   }
 
   .app11-controls-container #pulseToggleBtn svg {
