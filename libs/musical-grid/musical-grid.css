@@ -65,12 +65,14 @@
 /* ========== GRID CONTAINER ========== */
 .grid-container {
   position: relative;
+  top: 20px;
+  left: -120px;
   width: 100%;
   max-width: 900px; /* Match timeline-wrapper width for alignment */
   height: 52.5vh; /* Reduced 25% from 70vh */
   max-height: 525px; /* Reduced 25% from 700px */
   display: grid;
-  grid-template-columns: 150px 1fr;
+  grid-template-columns: 115px 1fr;
   grid-template-rows: 1fr 80px;
   gap: 20px;
   margin: 0 auto;

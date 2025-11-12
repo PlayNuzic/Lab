@@ -2,7 +2,7 @@
 
 /* Import shared modules */
 @import url('../../libs/musical-grid/musical-grid.css');
-@import url('../../libs/shared-ui/three-column-layout.css');
+@import url('../../libs/shared-ui/two-column-layout.css');
 
 /* Variables CSS */
 :root {
@@ -10,10 +10,13 @@
   --note-highlight-color: var(--selection-color, #F97C39);
   --z-active: 20;
 
-  /* ThreeColumnLayout customization - preserves exact App11 positioning */
+  /* TwoColumnLayout customization - preserves exact App11 positioning */
   --controls-padding-top: 50px;
   --controls-margin: 50px;
   --controls-inner-margin: 30px;
+  --controls-justify: start;
+  /* Reduce gap to align grid more to the left */
+  --layout-gap: 1rem;
 }
 
 [data-theme="dark"] {
@@ -21,7 +24,7 @@
 }
 
 /* ========== HIDE TEMPLATE TIMELINE ========== */
-/* App11 moves .controls to three-column-layout, then hides template's timeline-wrapper */
+/* App11 moves .controls to two-column-layout, then hides template's timeline-wrapper */
 /* Only hide template's timeline (child of main), not musical-grid's timeline */
 main > .timeline-wrapper {
   display: none !important;

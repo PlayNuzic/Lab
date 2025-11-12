@@ -225,19 +225,19 @@ async function init() {
     return;
   }
 
-  // Create main grid wrapper for 3-column layout
+  // Create main grid wrapper for 2-column layout
   const mainGridWrapper = document.createElement('div');
-  mainGridWrapper.className = 'three-column-layout app11-main-grid';
+  mainGridWrapper.className = 'two-column-layout app11-main-grid';
 
   // Create controls container (left column)
   const controlsContainer = document.createElement('div');
-  controlsContainer.className = 'three-column-layout__controls app11-controls-container';
+  controlsContainer.className = 'two-column-layout__controls app11-controls-container';
   controlsContainer.appendChild(controls);
 
-  // Create grid container (center column)
+  // Create grid container (center-right column, expanded)
   const gridContainer = document.createElement('div');
   gridContainer.id = 'grid-container';
-  gridContainer.className = 'three-column-layout__main';
+  gridContainer.className = 'two-column-layout__main';
 
   // Append containers to main grid wrapper
   mainGridWrapper.appendChild(controlsContainer);

@@ -1,10 +1,25 @@
-/* Three-Column Layout - Shared CSS Module
- * Used by: App11 (El Plano), App12 (Plano-Sucesión)
+/**
+ * ⚠️ DEPRECATED: Use two-column-layout.css instead
+ *
+ * This file is kept for reference only.
+ * The right column (column 3) was always empty and wasted 60-150px of horizontal space.
+ *
+ * Migration guide:
+ * 1. Change import: three-column-layout.css → two-column-layout.css
+ * 2. Change classes: .three-column-layout → .two-column-layout
+ * 3. Change classes: .three-column-layout__controls → .two-column-layout__controls
+ * 4. Change classes: .three-column-layout__main → .two-column-layout__main
+ *
+ * Apps 11 and 12 have already been migrated.
+ */
+
+/* Three-Column Layout - Shared CSS Module (DEPRECATED)
+ * Used by: App11 (El Plano), App12 (Plano-Sucesión) - NOW MIGRATED TO TWO-COLUMN
  *
  * Provides a responsive 3-column grid layout with:
  * - Left column: Controls (buttons, toggles)
  * - Center column: Main content (grid, editor)
- * - Right column: (reserved for future use)
+ * - Right column: (reserved for future use) ⚠️ ALWAYS EMPTY - WASTED SPACE
  *
  * Apps can customize positioning via CSS custom properties
  */

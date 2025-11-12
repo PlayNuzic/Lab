@@ -375,12 +375,12 @@ function injectGridEditor() {
     const mainElement = appRoot.querySelector('main');
     if (mainElement) {
       const gridWrapper = document.createElement('div');
-      gridWrapper.className = 'three-column-layout app12-main-grid';
+      gridWrapper.className = 'two-column-layout app12-main-grid';
 
       // Move existing grid-container into wrapper
       const gridContainer = mainElement.querySelector('.grid-container');
       if (gridContainer) {
-        gridContainer.classList.add('three-column-layout__main');
+        gridContainer.classList.add('two-column-layout__main');
         gridWrapper.appendChild(gridContainer);
       }
 
@@ -550,7 +550,7 @@ async function init() {
 
     // Create container for controls
     const controlsContainer = document.createElement('div');
-    controlsContainer.className = 'three-column-layout__controls app12-controls-container';
+    controlsContainer.className = 'two-column-layout__controls app12-controls-container';
     controlsContainer.appendChild(controls);
 
     // Insert into grid wrapper (between grid-seq and grid-container)
