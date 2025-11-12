@@ -884,6 +884,78 @@ export function createMusicalGrid(config) {
     return pulse ? pulse.element : null;
   }
 
+  /**
+   * Highlight an interval bar
+   * @param {string} axis - 'horizontal' or 'vertical'
+   * @param {number} index - Interval index (1-based: pulse 0 -> interval 1)
+   * @param {number} durationMs - Duration in milliseconds (0 = permanent)
+   */
+  function highlightInterval(axis, index, durationMs = 0) {
+    if (axis === 'horizontal' && intervalsConfig.horizontal) {
+      const container = containers.timelineInner || containers.timeline;
+      if (!container) return;
+
+      const bar = container.querySelector(`.interval-bar.horizontal[data-interval-index="${index}"]`);
+      if (bar) {
+        bar.classList.add('active');
+        if (durationMs > 0) {
+          setTimeout(() => bar.classList.remove('active'), durationMs);
+        }
+      }
+    } else if (axis === 'vertical' && intervalsConfig.vertical) {
+      const container = containers.soundlineInner || containers.soundline;
+      if (!container) return;
+
+      const bar = container.querySelector(`.interval-bar.vertical[data-interval-index="${index}"]`);
+      if (bar) {
+        bar.classList.add('active');
+        if (durationMs > 0) {
+          setTimeout(() => bar.classList.remove('active'), durationMs);
+        }
+      }
+    }
+  }
+
+  /**
+   * Clear all interval highlights
+   * @param {string} axis - 'horizontal', 'vertical', or 'both' (default: 'horizontal')
+   */
+  function clearIntervalHighlights(axis = 'horizontal') {
+    if (axis === 'horizontal' || axis === 'both') {
+      const container = containers.timelineInner || containers.timeline;
+      if (container) {
+        container.querySelectorAll('.interval-bar.horizontal.active').forEach(bar => {
+          bar.classList.remove('active');
+        });
+      }
+    }
+
+    if (axis === 'vertical' || axis === 'both') {
+      const container = containers.soundlineInner || containers.soundline;
+      if (container) {
+        container.querySelectorAll('.interval-bar.vertical.active').forEach(bar => {
+          bar.classList.remove('active');
+        });
+      }
+    }
+  }
+
+  /**
+   * Helper for playback - automatically highlights the correct interval
+   * @param {number} pulseIndex - Current pulse being played (0-based)
+   * @param {number} durationMs - Duration of the pulse in milliseconds
+   */
+  function onPulseStep(pulseIndex, durationMs = 0) {
+    // Clear previous highlights
+    clearIntervalHighlights('horizontal');
+
+    // Highlight the interval after this pulse (pulse 0 -> interval 1)
+    if (intervalsConfig.horizontal && pulseIndex < pulses - 1) {
+      const intervalIndex = pulseIndex + 1;
+      highlightInterval('horizontal', intervalIndex, durationMs);
+    }
+  }
+
   // Auto-render on creation
   render();
 
@@ -903,6 +975,11 @@ export function createMusicalGrid(config) {
     getNoteElement,
     getPulseElement,
     getMidiForNote,
+
+    // Interval highlighting (native support)
+    highlightInterval,
+    clearIntervalHighlights,
+    onPulseStep,
 
     // Container access (for composing with interval bars)
     getContainer(selector) {

@@ -321,4 +321,81 @@ describe('musical-grid', () => {
       expect(cells1).not.toBe(cells2); // Diferentes referencias (copia)
     });
   });
+
+  describe('interval highlighting', () => {
+    it('expone métodos de interval highlighting', () => {
+      grid = createMusicalGrid({
+        parent,
+        notes: 12,
+        pulses: 9,
+        showIntervals: { horizontal: true, vertical: false }
+      });
+
+      expect(typeof grid.highlightInterval).toBe('function');
+      expect(typeof grid.clearIntervalHighlights).toBe('function');
+      expect(typeof grid.onPulseStep).toBe('function');
+    });
+
+    it('agrega clase active a interval bar cuando se llama highlightInterval', () => {
+      grid = createMusicalGrid({
+        parent,
+        notes: 12,
+        pulses: 9,
+        showIntervals: { horizontal: true, vertical: false }
+      });
+
+      // Encontrar la barra de intervalo 1
+      const timelineContainer = grid.getTimelineContainer();
+      const intervalBar = timelineContainer.querySelector('.interval-bar.horizontal[data-interval-index="1"]');
+
+      expect(intervalBar).toBeTruthy();
+      expect(intervalBar.classList.contains('active')).toBe(false);
+
+      // Destacar intervalo 1
+      grid.highlightInterval('horizontal', 1, 0);
+      expect(intervalBar.classList.contains('active')).toBe(true);
+    });
+
+    it('limpia highlights cuando se llama clearIntervalHighlights', () => {
+      grid = createMusicalGrid({
+        parent,
+        notes: 12,
+        pulses: 9,
+        showIntervals: { horizontal: true, vertical: false }
+      });
+
+      const timelineContainer = grid.getTimelineContainer();
+      const intervalBar = timelineContainer.querySelector('.interval-bar.horizontal[data-interval-index="1"]');
+
+      // Destacar y luego limpiar
+      grid.highlightInterval('horizontal', 1, 0);
+      expect(intervalBar.classList.contains('active')).toBe(true);
+
+      grid.clearIntervalHighlights('horizontal');
+      expect(intervalBar.classList.contains('active')).toBe(false);
+    });
+
+    it('onPulseStep destaca el intervalo correcto', () => {
+      grid = createMusicalGrid({
+        parent,
+        notes: 12,
+        pulses: 9,
+        showIntervals: { horizontal: true, vertical: false }
+      });
+
+      const timelineContainer = grid.getTimelineContainer();
+      const interval1 = timelineContainer.querySelector('.interval-bar.horizontal[data-interval-index="1"]');
+      const interval2 = timelineContainer.querySelector('.interval-bar.horizontal[data-interval-index="2"]');
+
+      // Pulso 0 debe destacar intervalo 1
+      grid.onPulseStep(0, 0);
+      expect(interval1.classList.contains('active')).toBe(true);
+      expect(interval2.classList.contains('active')).toBe(false);
+
+      // Pulso 1 debe destacar intervalo 2
+      grid.onPulseStep(1, 0);
+      expect(interval1.classList.contains('active')).toBe(false);
+      expect(interval2.classList.contains('active')).toBe(true);
+    });
+  });
 });

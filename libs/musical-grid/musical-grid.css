@@ -45,7 +45,7 @@
 :root {
   /* Existing variables */
   --pulse-marker-height: 15px;
-  --interval-bar-height: 6px;
+  --interval-bar-height: 4px;
   --interval-bar-width: 6px;
 
   /* ⭐ NEW: Cell label system */
@@ -465,7 +465,7 @@
 }
 
 /* ========== INTERVAL BARS AND NUMBERS ========== */
-/* Interval system integrated into musical-grid */
+/* Interval system integrated into musical-grid - plug&play */
 
 /* Horizontal interval numbers (timeline) */
 .timeline-wrapper .interval-number,
@@ -502,7 +502,7 @@
 .timeline-wrapper .interval-bar.horizontal,
 .timeline-inner .interval-bar.horizontal {
   position: absolute;
-  top: 15px; /* Aligned with timeline-line */
+  top: 17px; /* On Top the timeline-line (top: 17px) */
   height: var(--interval-bar-height, 6px);
   background: var(--interval-color, #4A9EFF);
   opacity: 0.3;
@@ -526,22 +526,28 @@
   transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
-/* Active state during playback */
-.interval-bar.horizontal.active,
-.interval-bar.vertical.active {
+/* Active state during playback (highlighting) */
+.timeline-wrapper .interval-bar.horizontal.active,
+.timeline-inner .interval-bar.horizontal.active,
+.soundline-wrapper .interval-bar.vertical.active,
+.soundline-inner .interval-bar.vertical.active {
   background: var(--interval-color, #4A9EFF);
   opacity: 0.8;
   box-shadow: 0 0 8px var(--interval-color, #4A9EFF);
 }
 
 /* Dark theme adjustments */
-[data-theme="dark"] .interval-bar.horizontal,
-[data-theme="dark"] .interval-bar.vertical {
+[data-theme="dark"] .timeline-wrapper .interval-bar.horizontal,
+[data-theme="dark"] .timeline-inner .interval-bar.horizontal,
+[data-theme="dark"] .soundline-wrapper .interval-bar.vertical,
+[data-theme="dark"] .soundline-inner .interval-bar.vertical {
   opacity: 0.4;
 }
 
-[data-theme="dark"] .interval-bar.horizontal.active,
-[data-theme="dark"] .interval-bar.vertical.active {
+[data-theme="dark"] .timeline-wrapper .interval-bar.horizontal.active,
+[data-theme="dark"] .timeline-inner .interval-bar.horizontal.active,
+[data-theme="dark"] .soundline-wrapper .interval-bar.vertical.active,
+[data-theme="dark"] .soundline-inner .interval-bar.vertical.active {
   opacity: 0.9;
   box-shadow: 0 0 10px var(--interval-color, #4A9EFF);
 }

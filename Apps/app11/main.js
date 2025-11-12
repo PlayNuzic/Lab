@@ -8,7 +8,6 @@ import { MelodicTimelineAudio } from '../../libs/sound/melodic-audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
-import { highlightIntervalBar, clearIntervalHighlights } from '../../libs/app-common/timeline-intervals.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8 (9 markers)
@@ -133,10 +132,6 @@ async function handlePlay() {
 
   const Tone = window.Tone;
 
-  // Get containers for interval highlighting
-  const timelineInner = musicalGrid.getTimelineContainer();
-  const soundlineInner = musicalGrid.getSoundlineContainer();
-
   // Pre-schedule all notes BEFORE starting playback
   // This ensures notes sound DURING pulses, not after
   const now = Tone.now();
@@ -157,12 +152,8 @@ async function handlePlay() {
     (step) => {
       console.log(`Pulse ${step}`);
 
-      // Highlight horizontal interval bar (timeline)
-      if (timelineInner && step < SEQUENCE_PULSES - 1) {
-        const intervalIndex = step + 1; // Pulso 0 → Intervalo 1
-        clearIntervalHighlights(timelineInner, 'interval-bar');
-        highlightIntervalBar(timelineInner, intervalIndex, intervalSec * 1000, 'interval-bar');
-      }
+      // Use native interval highlighting from musical-grid
+      musicalGrid.onPulseStep(step, intervalSec * 1000);
 
       const note = notesByPulse[step];
       if (note !== undefined) {
