@@ -17,13 +17,15 @@ let isAscending = true; // Toggle para alternar escala ascendente/descendente
 // Referencias a elementos del DOM
 let soundlineWrapper = null;
 let playBtn = null;
+let startOverlay = null;
 
 // ========== CONFIGURACIÓN ==========
-const TOTAL_NOTES = 4;  // 4 notas aleatorias
+const TOTAL_NOTES = 6;  // 6 notas aleatorias (changed from 4)
 const MIN_NOTE = 0;      // Nota 0 (MIDI 60 = C4)
 const MAX_NOTE = 11;     // Nota 11 (MIDI 71 = B4)
 const MIN_BPM = 75;
 const MAX_BPM = 200;
+const CHROMATIC_BPM = 160; // BPM fijo para escala cromática inicial
 
 // Storage de preferencias
 const preferenceStorage = createPreferenceStorage('app10');
@@ -94,17 +96,17 @@ async function handlePlay() {
   // Generar BPM
   currentBPM = getRandomBPM();
 
-  // Generar escala cromática (ascendente o descendente) + 4 notas random
+  // Generar escala cromática (ascendente o descendente) + 6 notas random
   const scaleNotes = generateChromaticScale(isAscending);
   const randomSeqNotes = generateRandomNotes();
 
-  // Concatenar: escala primero (12 notas), luego random (4 notas)
+  // Concatenar: escala primero (12 notas), luego random (6 notas)
   randomNotes = [...scaleNotes, ...randomSeqNotes];
 
   // Log de información
   console.log(`BPM: ${currentBPM}`);
   console.log(`Escala: ${isAscending ? 'ASCENDENTE (C4→B4)' : 'DESCENDENTE (B4→C4)'}`);
-  console.log(`Total notas: ${randomNotes.length} (12 escala + 4 random)`);
+  console.log(`Total notas: ${randomNotes.length} (12 escala + 6 random)`);
   console.log(`Próximo play será: ${isAscending ? 'DESCENDENTE' : 'ASCENDENTE'}`);
 
   // Toggle para próximo play
@@ -169,6 +171,67 @@ async function handlePlay() {
   }, currentTime * 1000);
 }
 
+/**
+ * Plays chromatic scale with visual highlights
+ * @param {number[]} notes - Array of note indices (0-11)
+ * @param {number} intervalMs - Time between notes in milliseconds
+ */
+function playChromaticScale(notes, intervalMs) {
+  let currentIndex = 0;
+
+  const playNextNote = () => {
+    if (currentIndex >= notes.length) {
+      console.log('Chromatic scale completed');
+      return;
+    }
+
+    const noteIndex = notes[currentIndex];
+    const midi = soundline.getMidiForNote(noteIndex);
+    const note = window.Tone.Frequency(midi, 'midi').toNote();
+
+    // Play note
+    piano.triggerAttackRelease(note, (intervalMs / 1000) * 0.9);
+
+    // Highlight note visually
+    noteHighlightController.highlightNote(noteIndex, intervalMs * 0.9);
+
+    console.log(`[INTRO] Nota ${currentIndex}: ${noteIndex} (MIDI ${midi})`);
+
+    currentIndex++;
+
+    // Schedule next note
+    if (currentIndex < notes.length) {
+      setTimeout(playNextNote, intervalMs);
+    }
+  };
+
+  // Start sequence
+  playNextNote();
+}
+
+/**
+ * Handles the start overlay click
+ * Plays chromatic scale (0-11) at BPM 160, then hides overlay
+ */
+async function handleStartOverlay() {
+  console.log('Start overlay clicked - playing chromatic scale');
+
+  // Hide overlay
+  startOverlay.classList.add('hidden');
+
+  // Initialize piano (deferred from initApp)
+  await initPiano();
+
+  // Play chromatic scale: notes 0-11 ascending at BPM 160
+  const chromaticNotes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  const intervalMs = (60 / CHROMATIC_BPM) * 1000;
+
+  console.log(`Playing chromatic scale at ${CHROMATIC_BPM} BPM (interval: ${intervalMs.toFixed(0)}ms)`);
+
+  // Play scale with visual feedback
+  playChromaticScale(chromaticNotes, intervalMs);
+}
+
 // ========== EVENT HANDLERS ==========
 function setupEventHandlers() {
   // Obtener botón Play del template
@@ -218,10 +281,16 @@ function initApp() {
   // Configurar event listeners
   setupEventHandlers();
 
-  // Pre-cargar piano para evitar delay en primer Play
-  initPiano();
+  // Create start overlay (deferred piano initialization)
+  startOverlay = document.createElement('div');
+  startOverlay.className = 'start-overlay';
+  startOverlay.textContent = 'Toca para empezar';
+  document.body.appendChild(startOverlay);
 
-  console.log('App10 inicializada correctamente');
+  // Start overlay click handler
+  startOverlay.addEventListener('click', handleStartOverlay);
+
+  console.log('App10 inicializada correctamente - esperando interacción del usuario');
 }
 
 // Ejecutar cuando el DOM esté listo
