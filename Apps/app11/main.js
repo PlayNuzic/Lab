@@ -8,6 +8,7 @@ import { MelodicTimelineAudio } from '../../libs/sound/melodic-audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
+import { highlightIntervalBar, clearIntervalHighlights } from '../../libs/app-common/timeline-intervals.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8 (9 markers)
@@ -132,7 +133,22 @@ async function handlePlay() {
 
   const Tone = window.Tone;
 
-  // Start playback
+  // Get containers for interval highlighting
+  const timelineInner = musicalGrid.getTimelineContainer();
+  const soundlineInner = musicalGrid.getSoundlineContainer();
+
+  // Pre-schedule all notes BEFORE starting playback
+  // This ensures notes sound DURING pulses, not after
+  const now = Tone.now();
+  notes.forEach(({note, pulse}) => {
+    const midi = BASE_MIDI + note;
+    const duration = intervalSec * 0.9;
+    const when = now + (pulse * intervalSec); // Calculate exact timing
+
+    audio.playNote(midi, duration, when);
+  });
+
+  // Start playback (for visual feedback and pulse sounds only)
   audio.play(
     SEQUENCE_PULSES,
     intervalSec,
@@ -141,14 +157,16 @@ async function handlePlay() {
     (step) => {
       console.log(`Pulse ${step}`);
 
+      // Highlight horizontal interval bar (timeline)
+      if (timelineInner && step < SEQUENCE_PULSES - 1) {
+        const intervalIndex = step + 1; // Pulso 0 → Intervalo 1
+        clearIntervalHighlights(timelineInner, 'interval-bar');
+        highlightIntervalBar(timelineInner, intervalIndex, intervalSec * 1000, 'interval-bar');
+      }
+
       const note = notesByPulse[step];
       if (note !== undefined) {
-        const midi = BASE_MIDI + note;
-        const duration = intervalSec * 0.9;
-        const when = Tone.now();
-
-        audio.playNote(midi, duration, when);
-
+        // Note: Audio already scheduled above - this is only visual feedback
         // Visual feedback: highlight cell and show label
         const cell = musicalGrid.getCellElement(note, step);
         if (cell) {
@@ -166,12 +184,12 @@ async function handlePlay() {
     },
     () => {
       // onComplete - elegant fade-out animation with delay
-      console.log('Sequence completed - waiting 500ms before fade-out...');
+      console.log('Sequence completed - waiting 1000ms before fade-out...');
 
       // Collect all active cells
       const activeCells = document.querySelectorAll('.musical-cell.active');
 
-      // Wait 500ms to show last pulse, then start fade-out
+      // Wait 1000ms to show last pulse, then start fade-out
       setTimeout(() => {
         console.log('Starting fade-out animation...');
         activeCells.forEach(cell => {
@@ -187,7 +205,7 @@ async function handlePlay() {
           });
           console.log('Fade-out complete - cells cleared');
         }, 1000);
-      }, 500);
+      }, 1000);
 
       // Reset state immediately (don't wait for animation)
       isPlaying = false;
@@ -237,17 +255,19 @@ async function init() {
   // Append wrapper to main element
   mainElement.appendChild(mainGridWrapper);
 
-  // Create musical grid
+  // Create musical grid with intervals enabled (horizontal only)
   musicalGrid = createMusicalGrid({
     parent: gridContainer,
     notes: TOTAL_NOTES,
     pulses: TOTAL_PULSES,
     noteFormatter: (index) => index.toString(),
     pulseFormatter: (index) => index.toString(),
-    scrollEnabled: false
+    scrollEnabled: false,
+    showIntervals: { horizontal: true, vertical: false },
+    intervalColor: '#4A9EFF'
   });
 
-  console.log('Musical grid created');
+  console.log('Musical grid created with intervals');
 
   // Add click handlers to cells
   for (let noteIndex = 0; noteIndex < TOTAL_NOTES; noteIndex++) {
@@ -276,12 +296,17 @@ async function init() {
             cell.appendChild(label);
           }
 
-          // Remove label after 500ms
+          // Wait 1000ms, then start fade-out animation
           setTimeout(() => {
-            cell.classList.remove('active');
-            const label = cell.querySelector('.cell-label');
-            if (label) label.remove();
-          }, 500);
+            cell.classList.add('fading-out');
+
+            // After fade-out completes (1000ms), clean up
+            setTimeout(() => {
+              cell.classList.remove('active', 'fading-out');
+              const label = cell.querySelector('.cell-label');
+              if (label) label.remove();
+            }, 1000);
+          }, 1000);
         });
       }
     }
