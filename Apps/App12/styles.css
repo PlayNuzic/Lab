@@ -258,29 +258,14 @@
   transform: rotate(55deg);
 }
 
-/* ========== CELL LABEL VISIBILITY AND CENTERING ========== */
-/* Center the N,P pair label inside each active cell, force selection color,
-   and ensure it renders above any highlight/background layers. */
+/* ========== CELL LABEL CUSTOMIZATIONS ========== */
+/* App12-specific label color override (orange selection color) */
 .app12-main-grid .cell-label {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: none;
-  font-weight: 600;
-  color: var(--color-contrast, #F97C39);
-  z-index: var(--z-active, 20);
-  pointer-events: none;
+  color: var(--color-contrast, #F97C39) !important;
 }
 
-.app12-main-grid .musical-cell.active .cell-label {
-  display: block;
-}
-
-/* Avoid dimming labels via parent opacity on active cells */
-.app12-main-grid .musical-cell.active {
-  opacity: 1 !important;
-}
+/* Note: All other cell label styles (positioning, font-size, nowrap, fade-out)
+   are inherited from musical-grid.css module */
 
 /* ========== RESPONSIVE ADAPTATIONS ========== */
 
@@ -498,10 +483,7 @@
     font-size: 1rem !important;
   }
 
-  /* Smaller cell labels */
-  .cell-label {
-    font-size: 0.9rem !important;
-  }
+  /* Note: Cell label font-size inherited from musical-grid.css responsive rules */
 
   /* Reduce grid gaps */
   .grid-container {
@@ -524,7 +506,6 @@
     font-size: 0.85rem !important;
   }
 
-  .cell-label {
-    font-size: 0.8rem !important;
-  }
+  /* Note: Cell label hidden on landscape via musical-grid.css
+     @media (max-width: 480px) and (orientation: landscape) rule */
 }
