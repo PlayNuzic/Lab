@@ -59,9 +59,9 @@ main > .timeline-wrapper {
   margin-left: -20px !important;
 }
 
-/* Rotar PulseToggle solo en App12 */
+/* Rotar PulseToggle solo en App11 */
 .app11-controls-container #pulseToggleBtn {
-  transform: rotate(58deg);  /* Ajusta el ángulo como prefieras */
+  transform: rotate(58deg);
 }
 
 .app11-controls-container .button-row {
@@ -71,66 +71,7 @@ main > .timeline-wrapper {
 /* ========== GRID CONTAINER (CENTER COLUMN) ========== */
 #grid-container {
   /* Grid positioning inherited from three-column-layout__main */
-  height: 70vh;
-}
-
-/* ========== CELL LABELS (COORDINATES) ========== */
-.app11-main-grid .cell-label {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: none;
-  font-size: clamp(0.65rem, 1.5vw, 1rem);
-  font-weight: 600;
-  color: #FFFFFF;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  z-index: var(--z-active, 20);
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-/* Elegant fade-out animation for sequence completion */
-.app11-main-grid .musical-cell.active.fading-out {
-  transition: opacity 1s ease-out;
-  opacity: 0;
-}
-
-.app11-main-grid .musical-cell.active.fading-out .cell-label {
-  transition: opacity 1s ease-out;
-  opacity: 0;
-}
-
-.app11-main-grid .musical-cell.active .cell-label {
-  display: block;
-}
-
-/* Avoid dimming labels via parent opacity on active cells */
-.app11-main-grid .musical-cell.active {
-  opacity: 1 !important;
-}
-
-[data-theme="dark"] .app11-main-grid .cell-label {
-  color: #FFFFFF;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-@media (max-width: 480px) and (orientation: landscape) {
-  .app11-main-grid .cell-label {
-    display: none !important;
-  }
-}
-
-/* ========== GRID NUMBERS COLOR FIX ========== */
-/* Force grid numbers to use theme colors instead of orange */
-.app11-main-grid .soundline-number,
-.app11-main-grid .pulse-marker {
-  color: var(--text-color, #333) !important;
-}
-
-[data-theme="dark"] .app11-main-grid .soundline-number,
-[data-theme="dark"] .app11-main-grid .pulse-marker {
-  color: var(--text-dark, #e0e0e0) !important;
+  height: 70vh; /* App11-specific height */
 }
 
 /* ========== HIDE UNNECESSARY CONTROLS ========== */

@@ -4,7 +4,8 @@
  * Usage:
  *   import '../../libs/musical-grid/musical-grid.css';
  *
- * CSS Custom Properties Required:
+ * CSS Custom Properties Available:
+ *   Grid structure:
  *   --line-color: Color for grid lines (default: #666)
  *   --soundline-width: Width of vertical soundline (default: 3px)
  *   --timeline-height: Height of horizontal timeline (default: 2px)
@@ -13,11 +14,28 @@
  *   --note-highlight-color: Highlight color for notes (default: --select-color)
  *   --interval-bar-height: Height of horizontal interval bars (default: 6px)
  *   --interval-bar-width: Width of vertical interval bars (default: 6px)
+ *
+ *   Cell labels (NEW):
+ *   --cell-label-font-size: Adaptive label size (default: clamp(0.65rem, 1.5vw, 1rem))
+ *   --cell-label-font-weight: Label font weight (default: 600)
+ *   --cell-label-color: Label text color (default: rgba(255, 255, 255, 0.95))
+ *   --cell-label-color-dark: Dark theme label color (default: #FFFFFF)
+ *   --cell-label-shadow: Label text shadow (default: 0 1px 2px rgba(0, 0, 0, 0.5))
+ *   --cell-label-shadow-dark: Dark theme shadow (default: 0 1px 2px rgba(0, 0, 0, 0.8))
+ *   --fade-out-duration: Fade animation duration (default: 1s)
+ *
+ *   Grid numbers (NEW):
+ *   --grid-number-color: Unified color for pulse/soundline numbers (default: var(--text-color, #333))
+ *   --grid-number-color-dark: Dark theme number color (default: var(--text-dark, #e0e0e0))
+ *
+ *   Theme colors:
  *   --select-color: Global selection color (default: #F97C39)
  *   --text-color: Main text color (default: #333)
  *   --text-dark: Dark theme text color (default: #e0e0e0)
  *   --text-light: Light text color (default: #666)
- *   --z-base, --z-content, --z-interactive, --z-active, --z-overlay: Z-index levels
+ *
+ *   Z-index levels:
+ *   --z-base, --z-content, --z-interactive, --z-active, --z-overlay
  *
  * Dependencies:
  *   - None (standalone)
@@ -25,9 +43,23 @@
 
 /* ========== CSS VARIABLES ========== */
 :root {
+  /* Existing variables */
   --pulse-marker-height: 15px;
   --interval-bar-height: 6px;
   --interval-bar-width: 6px;
+
+  /* ⭐ NEW: Cell label system */
+  --cell-label-font-size: clamp(0.65rem, 1.5vw, 1rem);
+  --cell-label-font-weight: 600;
+  --cell-label-color: rgba(255, 255, 255, 0.95);
+  --cell-label-color-dark: #FFFFFF;
+  --cell-label-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --cell-label-shadow-dark: 0 1px 2px rgba(0, 0, 0, 0.8);
+  --fade-out-duration: 1s;
+
+  /* ⭐ NEW: Grid numbers unified colors */
+  --grid-number-color: var(--text-color, #333);
+  --grid-number-color-dark: var(--text-dark, #e0e0e0);
 }
 
 /* ========== GRID CONTAINER ========== */
@@ -100,7 +132,8 @@
   position: absolute;
   font-size: 1.4rem;
   font-weight: 400;
-  color: var(--text-light, #666);
+  /* ⭐ UPDATED: Unified color system */
+  color: var(--grid-number-color, var(--text-color, #333));
   user-select: none;
   z-index: var(--z-content, 5);
   opacity: 0.85;
@@ -111,7 +144,8 @@
 }
 
 [data-theme="dark"] .soundline-number {
-  color: var(--text-dark, #e0e0e0);
+  /* ⭐ UPDATED: Unified color system */
+  color: var(--grid-number-color-dark, var(--text-dark, #e0e0e0));
 }
 
 /* ========== MATRIX CONTAINER (CENTER) ========== */
@@ -183,18 +217,50 @@
   50% { opacity: 0.5; transform: scale(1.05); }
 }
 
-/* Cell label (N[x] P[y]) */
+/* ========== CELL LABELS (COORDINATES) ========== */
 .cell-label {
-  font-size: 1.2rem;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.95);
-  pointer-events: none;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   display: none;
+
+  /* ⭐ UPDATED: Adaptive font sizing */
+  font-size: var(--cell-label-font-size, clamp(0.65rem, 1.5vw, 1rem));
+  font-weight: var(--cell-label-font-weight, 600);
+
+  color: var(--cell-label-color, rgba(255, 255, 255, 0.95));
+  text-shadow: var(--cell-label-shadow, 0 1px 2px rgba(0, 0, 0, 0.5));
+  z-index: var(--z-active, 20);
+  pointer-events: none;
+
+  /* ⭐ NEW: Always single line */
+  white-space: nowrap;
 }
 
 .musical-cell.active .cell-label {
   display: block;
+}
+
+/* ⭐ NEW: Elegant fade-out animation */
+.musical-cell.active.fading-out {
+  transition: opacity var(--fade-out-duration, 1s) ease-out;
+  opacity: 0;
+}
+
+.musical-cell.active.fading-out .cell-label {
+  transition: opacity var(--fade-out-duration, 1s) ease-out;
+  opacity: 0;
+}
+
+/* Avoid dimming labels via parent opacity on active cells */
+.musical-cell.active {
+  opacity: 1 !important;
+}
+
+[data-theme="dark"] .cell-label {
+  color: var(--cell-label-color-dark, #FFFFFF);
+  text-shadow: var(--cell-label-shadow-dark, 0 1px 2px rgba(0, 0, 0, 0.8));
 }
 
 /* ========== TIMELINE CONTAINER (BOTTOM) ========== */
@@ -244,7 +310,8 @@
   z-index: var(--z-base, 1);
   font-size: 1.4rem;
   font-weight: 400;
-  color: var(--text-color, #333);
+  /* ⭐ UPDATED: Unified color system */
+  color: var(--grid-number-color, var(--text-color, #333));
   user-select: none;
   opacity: 0.85;
 
@@ -257,7 +324,8 @@
 }
 
 [data-theme="dark"] .pulse-marker {
-  color: var(--text-dark, #e0e0e0);
+  /* ⭐ UPDATED: Unified color system */
+  color: var(--grid-number-color-dark, var(--text-dark, #e0e0e0));
 }
 
 /* ========== SOUNDLINE HIGHLIGHT ========== */
@@ -373,8 +441,9 @@
     font-size: 0.9rem;
   }
 
+  /* ⭐ UPDATED: Reduce label size on mobile */
   .cell-label {
-    display: none !important; /* Hide on very small screens */
+    font-size: 0.7rem;
   }
 
   .musical-cell {
@@ -385,6 +454,13 @@
   :root {
     --interval-bar-height: 4px;
     --interval-bar-width: 4px;
+  }
+}
+
+/* ⭐ NEW: Hide labels on mobile landscape */
+@media (max-width: 480px) and (orientation: landscape) {
+  .cell-label {
+    display: none !important;
   }
 }
 
