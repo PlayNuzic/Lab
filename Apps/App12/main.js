@@ -11,6 +11,7 @@ import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { highlightIntervalBar, clearIntervalHighlights } from '../../libs/app-common/timeline-intervals.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -114,6 +115,15 @@ function createMatrixHighlightController() {
       }
     }
 
+    // Highlight horizontal interval bar (timeline)
+    const timelineInner = musicalGrid?.getTimelineContainer?.();
+    if (timelineInner && pulse < TOTAL_SPACES) {
+      const intervalIndex = pulse + 1; // Pulso 0 → Intervalo 1
+      const intervalSec = 60 / currentBPM;
+      clearIntervalHighlights(timelineInner, 'interval-bar');
+      highlightIntervalBar(timelineInner, intervalIndex, intervalSec * 1000, 'interval-bar');
+    }
+
     // Highlight grid editor cells for this pulse
     if (gridEditor) {
       // Highlight all cells in this pulse column
@@ -129,6 +139,11 @@ function createMatrixHighlightController() {
     document.querySelectorAll('.musical-cell.pulse-highlight').forEach(el => {
       el.classList.remove('pulse-highlight');
     });
+    // Clear interval highlights
+    const timelineInner = musicalGrid?.getTimelineContainer?.();
+    if (timelineInner) {
+      clearIntervalHighlights(timelineInner, 'interval-bar');
+    }
     if (gridEditor) {
       gridEditor.clearHighlights();
     }
@@ -408,6 +423,8 @@ async function init() {
     cellClassName: 'musical-cell',
     activeClassName: 'active',
     highlightClassName: 'highlight',
+    showIntervals: { horizontal: true, vertical: false },
+    intervalColor: '#4A9EFF',
     cellRenderer: (noteIndex, pulseIndex, cellElement) => {
       // Custom rendering: add label structure for N/P pairs
       cellElement.innerHTML = ''; // Clear any default content
