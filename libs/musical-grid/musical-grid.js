@@ -25,6 +25,8 @@
  * @param {string} [config.activeClassName='active'] - CSS class for active cells
  * @param {string} [config.highlightClassName='highlight'] - CSS class for highlighted cells
  * @param {HTMLElement} [config.insertBefore] - Insert grid before this element
+ * @param {boolean|Object} [config.showIntervals=false] - Show interval bars and numbers (true/false or {horizontal: bool, vertical: bool})
+ * @param {string} [config.intervalColor='#4A9EFF'] - Color for interval bars and numbers
  * @returns {Object} Grid controller API
  */
 export function createMusicalGrid(config) {
@@ -52,8 +54,21 @@ export function createMusicalGrid(config) {
     cellClassName = 'musical-cell',
     activeClassName = 'active',
     highlightClassName = 'highlight',
-    insertBefore = null
+    insertBefore = null,
+    showIntervals = false,
+    intervalColor = '#4A9EFF'
   } = config;
+
+  // Normalize showIntervals to object {horizontal, vertical}
+  const intervalsConfig = typeof showIntervals === 'object' && showIntervals !== null
+    ? {
+        horizontal: showIntervals.horizontal ?? true,
+        vertical: showIntervals.vertical ?? true
+      }
+    : {
+        horizontal: showIntervals,
+        vertical: showIntervals
+      };
 
   // Validate dimensions
   if (notes <= 0 || pulses <= 0) {
@@ -213,6 +228,55 @@ export function createMusicalGrid(config) {
       innerContainer.appendChild(noteLabel);
       noteElements.push({ index: noteIndex, element: noteLabel, midi });
     }
+
+    // Render interval bars and numbers if enabled
+    if (intervalsConfig.vertical) {
+      renderSoundlineIntervals(innerContainer);
+    }
+  }
+
+  /**
+   * Render interval bars and numbers in soundline (vertical)
+   */
+  function renderSoundlineIntervals(container) {
+    // Total number of intervals (spaces between notes)
+    const totalIntervals = notes - 1;
+
+    // Create interval numbers (1 to notes-1) - positioned between notes
+    for (let i = 1; i < notes; i++) {
+      const intervalNum = document.createElement('div');
+      intervalNum.className = 'interval-number vertical';
+      intervalNum.dataset.intervalIndex = i;
+      intervalNum.textContent = i;
+
+      // Position centered between note (i-1) and note (i)
+      // Uses same spacing as note divisions to maintain alignment with cell rows
+      const yPct = ((i - 0.5) / totalIntervals) * 100;
+      intervalNum.style.top = `${yPct}%`;
+      intervalNum.style.transform = 'translateY(-50%)';
+
+      container.appendChild(intervalNum);
+    }
+
+    // Create interval bars (1 to notes-1) - vertical bars between notes
+    for (let i = 1; i < notes; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'interval-bar vertical';
+      bar.dataset.intervalIndex = i;
+
+      // Calculate position and height to match cell rows exactly
+      // Bar starts at note (i-1) and ends at note (i)
+      const startPct = ((i - 1) / totalIntervals) * 100;
+      const heightPct = 100 / totalIntervals;
+
+      bar.style.top = `${startPct}%`;
+      bar.style.height = `${heightPct}%`;
+
+      container.appendChild(bar);
+    }
+
+    // Apply interval color CSS variable to container
+    container.style.setProperty('--interval-color', intervalColor);
   }
 
   /**
@@ -244,20 +308,116 @@ export function createMusicalGrid(config) {
     line.className = 'timeline-line';
     innerContainer.appendChild(line);
 
-    // Create pulse markers (0 to pulses-1)
-    for (let i = 0; i < pulses; i++) {
-      const xPct = (i / (pulses - 1)) * 100;
+    // Make timeline-line dynamic to match interval-bars width
+    const totalIntervals = pulses - 1;
+    let timelineWidth;
 
+    if (scrollEnabled && cellSize && cellSize.minWidth) {
+      // Scroll mode: use fixed cellSize from config
+      timelineWidth = totalIntervals * cellSize.minWidth;
+    } else {
+      // Responsive mode: calculate from matrix container width
+      const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+      timelineWidth = matrixWidth;
+    }
+
+    line.style.width = `${timelineWidth}px`;
+    line.style.right = 'auto'; // Cancel the default right: 0
+
+    // Create pulse markers (0 to pulses-1) in PIXELS
+    for (let i = 0; i < pulses; i++) {
       // Pulse marker (short vertical line)
       const marker = document.createElement('div');
       marker.className = 'pulse-marker';
       marker.dataset.pulseIndex = i;
-      marker.style.left = `${xPct}%`;
+
+      // Calculate position in PIXELS to match cell columns exactly
+      let markerLeft;
+
+      if (scrollEnabled && cellSize && cellSize.minWidth) {
+        // Scroll mode: use fixed cellSize from config
+        markerLeft = i * cellSize.minWidth;
+      } else {
+        // Responsive mode: calculate from matrix container width
+        const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+        const cellWidth = matrixWidth / totalIntervals;
+        markerLeft = i * cellWidth;
+      }
+
+      marker.style.left = `${markerLeft}px`;
       marker.textContent = pulseFormatter ? pulseFormatter(i) : i;
       innerContainer.appendChild(marker);
 
       pulseElements.push({ index: i, element: marker });
     }
+
+    // Render interval bars and numbers if enabled
+    if (intervalsConfig.horizontal) {
+      renderTimelineIntervals(innerContainer);
+    }
+  }
+
+  /**
+   * Render interval bars and numbers in timeline (horizontal)
+   */
+  function renderTimelineIntervals(container) {
+    // Total number of intervals (spaces between pulses)
+    const totalIntervals = pulses - 1;
+
+    // Create interval numbers (1 to pulses-1)
+    for (let i = 1; i < pulses; i++) {
+      const intervalNum = document.createElement('div');
+      intervalNum.className = 'interval-number';
+      intervalNum.dataset.intervalIndex = i;
+      intervalNum.textContent = i;
+
+      // Position centered between pulse (i-1) and pulse (i) in PIXELS
+      let numLeft;
+
+      if (scrollEnabled && cellSize && cellSize.minWidth) {
+        // Scroll mode: use fixed cellSize from config
+        numLeft = (i - 0.5) * cellSize.minWidth;
+      } else {
+        // Responsive mode: calculate from matrix container width
+        const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+        const cellWidth = matrixWidth / totalIntervals;
+        numLeft = (i - 0.5) * cellWidth;
+      }
+
+      intervalNum.style.left = `${numLeft}px`;
+
+      container.appendChild(intervalNum);
+    }
+
+    // Create interval bars (1 to pulses-1)
+    for (let i = 1; i < pulses; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'interval-bar horizontal';
+      bar.dataset.intervalIndex = i;
+
+      // Calculate position and width in PIXELS to match cell columns exactly
+      // Bar starts at pulse (i-1) and ends at pulse (i)
+      let barLeft, barWidth;
+
+      if (scrollEnabled && cellSize && cellSize.minWidth) {
+        // Scroll mode: use fixed cellSize from config
+        barWidth = cellSize.minWidth;
+        barLeft = (i - 1) * barWidth;
+      } else {
+        // Responsive mode: calculate from matrix container width
+        const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+        barWidth = matrixWidth / totalIntervals;
+        barLeft = (i - 1) * barWidth;
+      }
+
+      bar.style.left = `${barLeft}px`;
+      bar.style.width = `${barWidth}px`;
+
+      container.appendChild(bar);
+    }
+
+    // Apply interval color CSS variable to container
+    container.style.setProperty('--interval-color', intervalColor);
   }
 
   /**
@@ -409,6 +569,118 @@ export function createMusicalGrid(config) {
       element.style.width = `${bounds.width}px`;
       element.style.height = `${bounds.height}px`;
     });
+
+    // Also update interval bars positions to stay synchronized
+    updateIntervalBarsPositions();
+  }
+
+  /**
+   * Update interval bars positions after resize
+   * Keeps bars synchronized with cell columns/rows
+   */
+  function updateIntervalBarsPositions() {
+    if (!intervalsConfig.horizontal && !intervalsConfig.vertical) return;
+
+    const totalIntervals = pulses - 1;
+
+    // Update horizontal bars (timeline)
+    if (intervalsConfig.horizontal) {
+    const timelineContainer = containers.timelineInner || containers.timeline;
+    if (timelineContainer) {
+      // Update timeline-line width
+      const timelineLine = timelineContainer.querySelector('.timeline-line');
+      if (timelineLine) {
+        let timelineWidth;
+
+        if (scrollEnabled && cellSize && cellSize.minWidth) {
+          timelineWidth = totalIntervals * cellSize.minWidth;
+        } else {
+          const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+          timelineWidth = matrixWidth;
+        }
+
+        timelineLine.style.width = `${timelineWidth}px`;
+        timelineLine.style.right = 'auto';
+      }
+
+      // Update pulse markers
+      const pulseMarkers = timelineContainer.querySelectorAll('.pulse-marker');
+      pulseMarkers.forEach(marker => {
+        const i = parseInt(marker.dataset.pulseIndex);
+        let markerLeft;
+
+        if (scrollEnabled && cellSize && cellSize.minWidth) {
+          markerLeft = i * cellSize.minWidth;
+        } else {
+          const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+          const cellWidth = matrixWidth / totalIntervals;
+          markerLeft = i * cellWidth;
+        }
+
+        marker.style.left = `${markerLeft}px`;
+      });
+
+      // Update interval numbers
+      const intervalNumbers = timelineContainer.querySelectorAll('.interval-number');
+      intervalNumbers.forEach(num => {
+        const i = parseInt(num.dataset.intervalIndex);
+        let numLeft;
+
+        if (scrollEnabled && cellSize && cellSize.minWidth) {
+          numLeft = (i - 0.5) * cellSize.minWidth;
+        } else {
+          const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+          const cellWidth = matrixWidth / totalIntervals;
+          numLeft = (i - 0.5) * cellWidth;
+        }
+
+        num.style.left = `${numLeft}px`;
+      });
+
+      // Update interval bars
+      const horizontalBars = timelineContainer.querySelectorAll('.interval-bar.horizontal');
+
+      horizontalBars.forEach(bar => {
+        const i = parseInt(bar.dataset.intervalIndex);
+        let barLeft, barWidth;
+
+        if (scrollEnabled && cellSize && cellSize.minWidth) {
+          // Scroll mode: use fixed cellSize from config
+          barWidth = cellSize.minWidth;
+          barLeft = (i - 1) * barWidth;
+        } else {
+          // Responsive mode: calculate from matrix container width
+          const matrixWidth = containers.matrix?.getBoundingClientRect().width || 0;
+          barWidth = matrixWidth / totalIntervals;
+          barLeft = (i - 1) * barWidth;
+        }
+
+        bar.style.left = `${barLeft}px`;
+        bar.style.width = `${barWidth}px`;
+      });
+    }
+    } // End intervalsConfig.horizontal
+
+    // Update vertical bars (soundline) - already use percentages, but update for consistency
+    if (intervalsConfig.vertical) {
+    const soundlineContainer = containers.soundlineInner || containers.soundline;
+    if (soundlineContainer) {
+      const verticalBars = soundlineContainer.querySelectorAll('.interval-bar.vertical');
+      const totalNoteIntervals = notes - 1;
+
+      verticalBars.forEach(bar => {
+        const i = parseInt(bar.dataset.intervalIndex);
+
+        // Vertical bars already use percentage system which works correctly
+        // No need to recalculate unless we switch to pixel system
+        const startPct = ((i - 1) / totalNoteIntervals) * 100;
+        const heightPct = 100 / totalNoteIntervals;
+
+        bar.style.top = `${startPct}%`;
+        bar.style.height = `${heightPct}%`;
+      });
+    }
+    } // End intervalsConfig.vertical
   }
 
   /**
@@ -631,6 +903,21 @@ export function createMusicalGrid(config) {
     getNoteElement,
     getPulseElement,
     getMidiForNote,
+
+    // Container access (for composing with interval bars)
+    getContainer(selector) {
+      if (!containers.grid) return null;
+      return containers.grid.querySelector(selector);
+    },
+    getTimelineContainer() {
+      return containers.timelineInner || containers.timeline;
+    },
+    getSoundlineContainer() {
+      return containers.soundlineInner || containers.soundline;
+    },
+    getMatrixContainer() {
+      return containers.matrixInner || containers.matrix;
+    },
 
     // Container access (if needed for advanced use)
     containers,

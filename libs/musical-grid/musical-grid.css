@@ -11,6 +11,8 @@
  *   --cell-highlight-color: Highlight color for cells (default: --select-color)
  *   --pulse-marker-height: Height of pulse markers (default: 15px)
  *   --note-highlight-color: Highlight color for notes (default: --select-color)
+ *   --interval-bar-height: Height of horizontal interval bars (default: 6px)
+ *   --interval-bar-width: Width of vertical interval bars (default: 6px)
  *   --select-color: Global selection color (default: #F97C39)
  *   --text-color: Main text color (default: #333)
  *   --text-dark: Dark theme text color (default: #e0e0e0)
@@ -21,11 +23,18 @@
  *   - None (standalone)
  */
 
+/* ========== CSS VARIABLES ========== */
+:root {
+  --pulse-marker-height: 15px;
+  --interval-bar-height: 6px;
+  --interval-bar-width: 6px;
+}
+
 /* ========== GRID CONTAINER ========== */
 .grid-container {
   position: relative;
   width: 100%;
-  max-width: 1200px;
+  max-width: 900px; /* Match timeline-wrapper width for alignment */
   height: 52.5vh; /* Reduced 25% from 70vh */
   max-height: 525px; /* Reduced 25% from 700px */
   display: grid;
@@ -226,7 +235,7 @@
 /* Pulse markers (short vertical lines with numbers below) */
 .pulse-marker {
   position: absolute;
-  top: 20px;
+  top: 14px;
   width: 2px;
   height: var(--pulse-marker-height, 15px);
   background: var(--line-color, #666);
@@ -344,6 +353,12 @@
   .cell-label {
     font-size: 1rem;
   }
+
+  /* Reduce interval bars size */
+  :root {
+    --interval-bar-height: 5px;
+    --interval-bar-width: 5px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -365,4 +380,92 @@
   .musical-cell {
     border-width: 0.5px;
   }
+
+  /* Further reduce interval bars size */
+  :root {
+    --interval-bar-height: 4px;
+    --interval-bar-width: 4px;
+  }
+}
+
+/* ========== INTERVAL BARS AND NUMBERS ========== */
+/* Interval system integrated into musical-grid */
+
+/* Horizontal interval numbers (timeline) */
+.timeline-wrapper .interval-number,
+.timeline-inner .interval-number {
+  position: absolute;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--interval-color, #4A9EFF);
+  user-select: none;
+  z-index: 15;
+  opacity: 0.85;
+  transform: translateX(-50%);
+  pointer-events: none;
+  top: -10px; /* Below pulse markers */
+}
+
+/* Vertical interval numbers (soundline) */
+.soundline-wrapper .interval-number.vertical,
+.soundline-inner .interval-number.vertical {
+  position: absolute;
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--interval-color, #4A9EFF);
+  user-select: none;
+  z-index: 15;
+  opacity: 0.85;
+  pointer-events: none;
+  left: 10px; /* To the left of soundline numbers */
+  text-align: right;
+  width: 30px;
+}
+
+/* Horizontal interval bars (timeline) */
+.timeline-wrapper .interval-bar.horizontal,
+.timeline-inner .interval-bar.horizontal {
+  position: absolute;
+  top: 15px; /* Aligned with timeline-line */
+  height: var(--interval-bar-height, 6px);
+  background: var(--interval-color, #4A9EFF);
+  opacity: 0.3;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 3;
+  transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+/* Vertical interval bars (soundline) */
+.soundline-wrapper .interval-bar.vertical,
+.soundline-inner .interval-bar.vertical {
+  position: absolute;
+  left: 100px; /* Aligned with soundline vertical line */
+  width: var(--interval-bar-width, 6px);
+  background: var(--interval-color, #4A9EFF);
+  opacity: 0.3;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 3;
+  transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+/* Active state during playback */
+.interval-bar.horizontal.active,
+.interval-bar.vertical.active {
+  background: var(--interval-color, #4A9EFF);
+  opacity: 0.8;
+  box-shadow: 0 0 8px var(--interval-color, #4A9EFF);
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .interval-bar.horizontal,
+[data-theme="dark"] .interval-bar.vertical {
+  opacity: 0.4;
+}
+
+[data-theme="dark"] .interval-bar.horizontal.active,
+[data-theme="dark"] .interval-bar.vertical.active {
+  opacity: 0.9;
+  box-shadow: 0 0 10px var(--interval-color, #4A9EFF);
 }
