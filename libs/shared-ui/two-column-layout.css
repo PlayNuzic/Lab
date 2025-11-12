@@ -96,14 +96,45 @@
   }
 }
 
+@media (max-width: 600px) {
+  .two-column-layout {
+    grid-template-columns: var(--col-left-small, 55px) 1fr;
+    gap: var(--layout-gap-small, 0.5rem);
+    padding: var(--layout-padding-small, 0.25rem);
+  }
+
+  .two-column-layout__controls {
+    margin: var(--controls-margin-small, 4px);
+  }
+}
+
 @media (max-width: 480px) {
   .two-column-layout {
-    grid-template-columns: var(--col-left-tiny, 60px) 1fr;
+    grid-template-columns: var(--col-left-tiny, 50px) 1fr;
     gap: var(--layout-gap-tiny, 0.4rem);
     padding: var(--layout-padding-tiny, 0.2rem);
   }
 
   .two-column-layout__controls {
     margin: var(--controls-margin-tiny, 3px);
+  }
+}
+
+@media (max-width: 400px) {
+  .two-column-layout {
+    grid-template-columns: var(--col-left-ultra, 45px) 1fr;
+    gap: var(--layout-gap-ultra, 0.3rem);
+    padding: var(--layout-padding-ultra, 0.15rem);
+  }
+
+  .two-column-layout__controls {
+    margin: var(--controls-margin-ultra, 2px);
+  }
+
+  /* Ocultar botones secundarios en pantallas ultra-pequeñas */
+  .two-column-layout__controls .random,
+  .two-column-layout__controls .reset,
+  .two-column-layout__controls .tap {
+    display: none !important;
   }
 }

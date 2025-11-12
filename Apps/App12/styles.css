@@ -300,9 +300,9 @@
 }
 
 .app12-controls-container #pulseToggleBtn {
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
+  width: 60px;
+  height: 60px;
+  font-size: 1.4rem;
 }
 
 .app12-controls-container #pulseToggleBtn svg {
@@ -393,11 +393,11 @@
     height: 90% !important;
   }
 
-  /* PulseToggle: Same as other buttons */
+  /* PulseToggle: Reduce 20% (60px → 48px) */
   .app12-controls-container #pulseToggleBtn {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 1rem !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 1.2rem !important;
   }
 
   .app12-controls-container #pulseToggleBtn svg {
@@ -509,16 +509,70 @@
     height: 85% !important;
   }
 
-  /* PulseToggle: Same as other buttons */
+  /* PulseToggle: Reduce 27% (60px → 44px) */
   .app12-controls-container #pulseToggleBtn {
-    width: 31px !important;
-    height: 31px !important;
-    font-size: 0.9rem !important;
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 1.1rem !important;
   }
 
   .app12-controls-container #pulseToggleBtn svg {
     width: 85% !important;
     height: 85% !important;
+  }
+}
+
+/* ========== SMALL SCREENS (≤ 600px) ========== */
+@media (max-width: 600px) {
+  .app12-main-grid {
+    grid-template-columns: 60px 1fr 60px;
+    gap: 0.55rem;
+    padding: 0.28rem;
+  }
+
+  .app12-controls-container {
+    margin: 5px;
+    margin-bottom: 1.1rem;
+  }
+
+  /* Play button: Reduce 35% (80px → 52px) */
+  .app12-controls-container .play {
+    width: 52px !important;
+    height: 52px !important;
+    font-size: 1.3rem !important;
+  }
+
+  .app12-controls-container .play svg {
+    width: 42% !important;
+    height: 42% !important;
+  }
+
+  /* Other buttons: Reduce 42% (48px → 28px) */
+  .app12-controls-container .random,
+  .app12-controls-container .reset,
+  .app12-controls-container .tap {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.85rem !important;
+  }
+
+  .app12-controls-container .random svg,
+  .app12-controls-container .reset svg,
+  .app12-controls-container .tap svg {
+    width: 83% !important;
+    height: 83% !important;
+  }
+
+  /* PulseToggle: Reduce 30% (60px → 42px) */
+  .app12-controls-container #pulseToggleBtn {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 1.05rem !important;
+  }
+
+  .app12-controls-container #pulseToggleBtn svg {
+    width: 83% !important;
+    height: 83% !important;
   }
 }
 
@@ -563,39 +617,79 @@
     height: 80% !important;
   }
 
-  /* PulseToggle: Same as other buttons */
+  /* PulseToggle: Reduce 35% (60px → 39px) */
   .app12-controls-container #pulseToggleBtn {
-    width: 26px !important;
-    height: 26px !important;
-    font-size: 0.8rem !important;
+    width: 39px !important;
+    height: 39px !important;
+    font-size: 0.95rem !important;
   }
 
   .app12-controls-container #pulseToggleBtn svg {
     width: 80% !important;
     height: 80% !important;
   }
+}
 
-  /* Even smaller for tiny screens */
+/* ========== ULTRA COMPACT (≤ 400px) ========== */
+@media (max-width: 400px) {
+  .app12-main-grid {
+    grid-template-columns: 50px 1fr 50px;
+    gap: 0.35rem;
+    padding: 0.18rem;
+  }
+
+  .app12-controls-container {
+    margin: 3px;
+    margin-bottom: 0.8rem;
+  }
+
+  /* Play button: mínimo táctil (50px) */
+  .app12-controls-container .play {
+    width: 50px !important;
+    height: 50px !important;
+    font-size: 1.25rem !important;
+  }
+
+  .app12-controls-container .play svg {
+    width: 40% !important;
+    height: 40% !important;
+  }
+
+  /* Other buttons: HIDDEN (controlado por two-column-layout.css) */
+
+  /* PulseToggle: mínimo táctil (36px) */
+  .app12-controls-container #pulseToggleBtn {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 0.9rem !important;
+  }
+
+  .app12-controls-container #pulseToggleBtn svg {
+    width: 78% !important;
+    height: 78% !important;
+  }
+
+  /* Grid-editor ultra-compact */
   #gridEditorContainer {
-    font-size: 1.1rem !important;
+    font-size: 1rem !important;
   }
 
   .matrix-grid-editor {
-    font-size: 1.1rem !important;
-    margin: 8px 15px !important;
-    padding: 8px !important;
-    gap: 3px !important;
+    font-size: 1rem !important;
+    margin: 6px 12px !important;
+    padding: 6px !important;
+    gap: 2px !important;
   }
 
   .grid-row-label {
-    font-size: 1.1rem !important;
+    font-size: 1rem !important;
   }
 
   .note-input,
   .pulse-input {
-    font-size: 1.1rem !important;
-    width: 35px !important;
-    padding: 3px 5px !important;
+    font-size: 1rem !important;
+    width: 32px !important;
+    padding: 2px 4px !important;
   }
 }
 
