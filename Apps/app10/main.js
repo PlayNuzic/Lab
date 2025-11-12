@@ -12,7 +12,6 @@ let soundline = null;
 let noteHighlightController = null;
 let randomNotes = [];
 let currentBPM = 0;
-let isAscending = true; // Toggle para alternar escala ascendente/descendente
 
 // Referencias a elementos del DOM
 let soundlineWrapper = null;
@@ -45,19 +44,6 @@ function generateRandomNotes() {
     notes.push(getRandomNoteIndex());
   }
   return notes;
-}
-
-/**
- * Genera escala cromática C4-B4 (ascendente o descendente)
- * @param {boolean} ascending - true para C4→B4, false para B4→C4
- * @returns {number[]} Array de índices de notas (0-11)
- */
-function generateChromaticScale(ascending = true) {
-  const scale = [];
-  for (let i = 0; i <= 11; i++) {
-    scale.push(ascending ? i : 11 - i);
-  }
-  return scale;
 }
 
 // ========== FUNCIONES DE DIBUJO ==========
@@ -96,21 +82,13 @@ async function handlePlay() {
   // Generar BPM
   currentBPM = getRandomBPM();
 
-  // Generar escala cromática (ascendente o descendente) + 6 notas random
-  const scaleNotes = generateChromaticScale(isAscending);
-  const randomSeqNotes = generateRandomNotes();
-
-  // Concatenar: escala primero (12 notas), luego random (6 notas)
-  randomNotes = [...scaleNotes, ...randomSeqNotes];
+  // Generar SOLO 6 notas aleatorias (sin escala cromática)
+  randomNotes = generateRandomNotes();
 
   // Log de información
   console.log(`BPM: ${currentBPM}`);
-  console.log(`Escala: ${isAscending ? 'ASCENDENTE (C4→B4)' : 'DESCENDENTE (B4→C4)'}`);
-  console.log(`Total notas: ${randomNotes.length} (12 escala + 6 random)`);
-  console.log(`Próximo play será: ${isAscending ? 'DESCENDENTE' : 'ASCENDENTE'}`);
-
-  // Toggle para próximo play
-  isAscending = !isAscending;
+  console.log(`Total notas: ${randomNotes.length} (random)`);
+  console.log(`Notas: ${randomNotes.join(', ')}`);
 
   // Calcular intervalo entre notas (en segundos)
   const intervalSec = 60 / currentBPM;
@@ -125,7 +103,7 @@ async function handlePlay() {
   // Limpiar highlights previos
   noteHighlightController.clearHighlights();
 
-  // Reproducir secuencia completa (escala + random) con duración uniforme
+  // Reproducir secuencia de 6 notas aleatorias
   const Tone = window.Tone;
   const startTime = Tone.now();
   let currentTime = 0; // Tiempo acumulado en segundos
@@ -137,21 +115,14 @@ async function handlePlay() {
     // Todas las notas tienen la misma duración (1 pulso)
     const noteDurationSec = intervalSec;
 
-    // Añadir silencio de 1 pulso entre escala (nota 11) y random (nota 12)
-    if (idx === 12) {
-      currentTime += intervalSec; // Silencio de 1 pulso
-      console.log('[SILENCIO] 1 pulso entre escala y secuencia random');
-    }
-
     // Programar reproducción de la nota
     const when = startTime + currentTime;
     piano.triggerAttackRelease(note, noteDurationSec * 0.9, when);
 
     // Programar highlight
     const delayMs = currentTime * 1000;
-    const label = idx < 12 ? 'ESCALA' : 'RANDOM';
     setTimeout(() => {
-      console.log(`[${label}] Nota ${idx}: ${noteIndex} (MIDI ${midi})`);
+      console.log(`[RANDOM] Nota ${idx + 1}/6: ${noteIndex} (MIDI ${midi})`);
       noteHighlightController.highlightNote(noteIndex, noteDurationSec * 1000 * 0.9);
     }, delayMs);
 
