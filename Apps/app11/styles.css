@@ -20,8 +20,10 @@
   --line-color: #999;
 }
 
-/* ========== HIDE EMPTY TIMELINE FROM TEMPLATE ========== */
-#timeline {
+/* ========== HIDE TEMPLATE TIMELINE ========== */
+/* App11 moves .controls to three-column-layout, then hides template's timeline-wrapper */
+/* Only hide template's timeline (child of main), not musical-grid's timeline */
+main > .timeline-wrapper {
   display: none !important;
 }
 
@@ -79,12 +81,13 @@
   left: 50%;
   transform: translate(-50%, -50%);
   display: none;
-  font-size: 1rem;
+  font-size: clamp(0.65rem, 1.5vw, 1rem);
   font-weight: 600;
   color: #FFFFFF;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   z-index: var(--z-active, 20);
   pointer-events: none;
+  white-space: nowrap;
 }
 
 /* Elegant fade-out animation for sequence completion */
@@ -110,19 +113,6 @@
 [data-theme="dark"] .app11-main-grid .cell-label {
   color: #FFFFFF;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-/* Responsive cell labels */
-@media (max-width: 900px) {
-  .app11-main-grid .cell-label {
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .app11-main-grid .cell-label {
-    font-size: 0.7rem;
-  }
 }
 
 @media (max-width: 480px) and (orientation: landscape) {
