@@ -68,7 +68,7 @@
   top: 20px;
   left: -120px;
   width: 100%;
-  max-width: 900px; /* Match timeline-wrapper width for alignment */
+  max-width: 1200px; /* Expanded from 900px to utilize space from removed third column */
   height: 52.5vh; /* Reduced 25% from 70vh */
   max-height: 525px; /* Reduced 25% from 700px */
   display: grid;

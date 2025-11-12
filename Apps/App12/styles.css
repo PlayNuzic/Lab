@@ -272,6 +272,44 @@
 
 /* ========== RESPONSIVE ADAPTATIONS ========== */
 
+/* Desktop sizes (explicit baseline for overrides) */
+.app12-controls-container .play {
+  width: 80px;
+  height: 80px;
+  font-size: 2rem;
+}
+
+.app12-controls-container .play svg {
+  width: 50%;
+  height: 50%;
+}
+
+.app12-controls-container .random,
+.app12-controls-container .reset,
+.app12-controls-container .tap {
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
+}
+
+.app12-controls-container .random svg,
+.app12-controls-container .reset svg,
+.app12-controls-container .tap svg {
+  width: 100%;
+  height: 100%;
+}
+
+.app12-controls-container #pulseToggleBtn {
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
+}
+
+.app12-controls-container #pulseToggleBtn svg {
+  width: 100%;
+  height: 100%;
+}
+
 /* ========== LANDSCAPE ORIENTATION WARNING (Portrait Mode) ========== */
 @media (max-width: 768px) and (orientation: portrait) {
   body::before {
@@ -299,7 +337,7 @@
   }
 }
 
-/* ========== MOBILE AND TABLET ADAPTATIONS ========== */
+/* ========== TABLET (≤ 900px) ========== */
 @media (max-width: 900px) {
   /* Reduce padding and margins for tighter layout */
   .app12-main-grid {
@@ -310,7 +348,7 @@
 
   .app12-controls-container {
     margin: 8px;
-    margin-bottom: 1.5rem; /* Prevent overlap with musical-grid */
+    margin-bottom: 1.5rem;
   }
 
   .plane-wrapper {
@@ -327,35 +365,49 @@
     gap: 0.6rem;
   }
 
-  /* Scale down control buttons for mobile */
-  /* Play button: 2x larger than other buttons */
+  /* Play button: Reduce 20% (80px → 64px) */
   .app12-controls-container .play {
     width: 64px !important;
     height: 64px !important;
-    font-size: 1.4rem !important;
+    font-size: 1.6rem !important;
   }
 
   .app12-controls-container .play svg {
-    width: 32px !important;
-    height: 32px !important;
+    width: 45% !important;
+    height: 45% !important;
   }
 
-  /* Other buttons: smaller size */
+  /* Other buttons: Reduce 25% (48px → 36px) */
   .app12-controls-container .random,
   .app12-controls-container .reset,
-  .app12-controls-container .loop,
   .app12-controls-container .tap {
-    width: 32px !important;
-    height: 32px !important;
-    font-size: 0.9rem !important;
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1rem !important;
   }
 
   .app12-controls-container .random svg,
   .app12-controls-container .reset svg,
-  .app12-controls-container .loop svg,
   .app12-controls-container .tap svg {
-    width: 16px !important;
-    height: 16px !important;
+    width: 90% !important;
+    height: 90% !important;
+  }
+
+  /* PulseToggle: Same as other buttons */
+  .app12-controls-container #pulseToggleBtn {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1rem !important;
+  }
+
+  .app12-controls-container #pulseToggleBtn svg {
+    width: 90% !important;
+    height: 90% !important;
+  }
+
+  /* Mantener rotación 55deg en todas las pantallas */
+  .app12-controls-container #pulseToggleBtn {
+    transform: rotate(55deg) !important;
   }
 
   /* Compact grid-editor with scroll enabled */
@@ -363,12 +415,11 @@
     font-size: 1.4rem !important;
   }
 
-  /* Reduce grid-editor label and input sizes */
   .matrix-grid-editor {
     font-size: 1.4rem !important;
     margin: 10px 20px !important;
     padding: 10px !important;
-    gap: 4px !important; /* Minimal gap between N and P rows */
+    gap: 4px !important;
   }
 
   .grid-row-label {
@@ -402,50 +453,126 @@
     width: 80px !important;
     min-height: 150px !important;
   }
+
+  /* Reduce musical-grid container height */
+  .grid-container {
+    height: 40vh !important;
+    max-height: 350px !important;
+    gap: 10px !important;
+    grid-template-columns: 100px 1fr !important;
+  }
+
+  .soundline-number,
+  .pulse-marker {
+    font-size: 1rem !important;
+  }
 }
 
-/* ========== SMALL MOBILE (≤ 480px) ========== */
-@media (max-width: 480px) {
+/* ========== MOBILE (≤ 768px) ========== */
+@media (max-width: 768px) {
   .app12-main-grid {
     grid-template-columns: 70px 1fr 70px;
+    gap: 0.6rem;
+    padding: 0.3rem;
+  }
+
+  .app12-controls-container {
+    margin: 6px;
+    margin-bottom: 1.2rem;
+  }
+
+  /* Play button: Reduce 30% (80px → 56px) */
+  .app12-controls-container .play {
+    width: 56px !important;
+    height: 56px !important;
+    font-size: 1.4rem !important;
+  }
+
+  .app12-controls-container .play svg {
+    width: 40% !important;
+    height: 40% !important;
+  }
+
+  /* Other buttons: Reduce 35% (48px → 31px) */
+  .app12-controls-container .random,
+  .app12-controls-container .reset,
+  .app12-controls-container .tap {
+    width: 31px !important;
+    height: 31px !important;
+    font-size: 0.9rem !important;
+  }
+
+  .app12-controls-container .random svg,
+  .app12-controls-container .reset svg,
+  .app12-controls-container .tap svg {
+    width: 85% !important;
+    height: 85% !important;
+  }
+
+  /* PulseToggle: Same as other buttons */
+  .app12-controls-container #pulseToggleBtn {
+    width: 31px !important;
+    height: 31px !important;
+    font-size: 0.9rem !important;
+  }
+
+  .app12-controls-container #pulseToggleBtn svg {
+    width: 85% !important;
+    height: 85% !important;
+  }
+}
+
+/* ========== TINY MOBILE (≤ 480px) ========== */
+@media (max-width: 480px) {
+  .app12-main-grid {
+    grid-template-columns: 60px 1fr 60px;
     gap: 0.4rem;
     padding: 0.2rem;
   }
 
   .app12-controls-container {
     margin: 5px;
-    margin-bottom: 1rem; /* Prevent overlap with musical-grid on small screens */
+    margin-bottom: 1rem;
   }
 
-  /* Even smaller buttons for tiny screens */
-  /* Play button: 2x larger than other buttons */
+  /* Play button: Reduce 40% (80px → 48px) */
   .app12-controls-container .play {
-    width: 56px !important;
-    height: 56px !important;
+    width: 48px !important;
+    height: 48px !important;
     font-size: 1.2rem !important;
   }
 
   .app12-controls-container .play svg {
-    width: 28px !important;
-    height: 28px !important;
+    width: 38% !important;
+    height: 38% !important;
   }
 
-  /* Other buttons: smaller size */
+  /* Other buttons: Reduce 45% (48px → 26px) */
   .app12-controls-container .random,
   .app12-controls-container .reset,
-  .app12-controls-container .loop,
   .app12-controls-container .tap {
-    width: 28px !important;
-    height: 28px !important;
+    width: 26px !important;
+    height: 26px !important;
     font-size: 0.8rem !important;
   }
 
   .app12-controls-container .random svg,
   .app12-controls-container .reset svg,
-  .app12-controls-container .loop svg,
   .app12-controls-container .tap svg {
-    width: 14px !important;
-    height: 14px !important;
+    width: 80% !important;
+    height: 80% !important;
+  }
+
+  /* PulseToggle: Same as other buttons */
+  .app12-controls-container #pulseToggleBtn {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .app12-controls-container #pulseToggleBtn svg {
+    width: 80% !important;
+    height: 80% !important;
   }
 
   /* Even smaller for tiny screens */
@@ -457,7 +584,7 @@
     font-size: 1.1rem !important;
     margin: 8px 15px !important;
     padding: 8px !important;
-    gap: 3px !important; /* Ultra-compact gap for tiny screens */
+    gap: 3px !important;
   }
 
   .grid-row-label {
@@ -472,29 +599,7 @@
   }
 }
 
-/* ========== MUSICAL GRID ADAPTATIONS FOR MOBILE ========== */
-@media (max-width: 900px) {
-  /* Reduce musical-grid container height */
-  .grid-container {
-    height: 40vh !important;
-    max-height: 350px !important;
-  }
-
-  /* Smaller soundline and pulse numbers */
-  .soundline-number,
-  .pulse-marker {
-    font-size: 1rem !important;
-  }
-
-  /* Note: Cell label font-size inherited from musical-grid.css responsive rules */
-
-  /* Reduce grid gaps */
-  .grid-container {
-    gap: 10px !important;
-    grid-template-columns: 100px 1fr !important;
-  }
-}
-
+/* ========== MUSICAL GRID LANDSCAPE (≤ 480px) ========== */
 @media (max-width: 480px) and (orientation: landscape) {
   /* Even smaller for tiny screens */
   .grid-container {
