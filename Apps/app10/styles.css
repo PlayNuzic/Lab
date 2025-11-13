@@ -15,7 +15,10 @@
   --controls-margin: 0;
 
   /* Play button positioning */
-  --play-btn-offset: -400px; /* Distancia desde el borde derecho de la columna izquierda */
+  --play-btn-offset: -200px; /* Distancia desde el borde derecho de la columna izquierda */
+
+  /* Soundline sizing */
+  --soundline-height: 100%; /* Altura de la soundline (100% = 625px del contenedor, 80% = 500px, etc.) */
 }
 
 [data-theme="dark"] {
@@ -102,7 +105,7 @@
 .soundline {
   position: relative;
   width: 300px; /* Más ancho para acomodar números a la izquierda */
-  height: 125%; /* 25% más larga para mayor espaciado entre notas */
+  height: var(--soundline-height, 100%); /* Altura ajustable con variable */
 }
 
 /* Línea vertical principal */
@@ -289,7 +292,7 @@
   justify-content: center !important;
   align-items: center !important;
   gap: 10px;
-  margin: -100px;
+  margin: -50px;
   width: auto !important;
   height: auto !important;
 }
