@@ -15,7 +15,7 @@
   --controls-margin: 0;
 
   /* Play button positioning */
-  --play-btn-offset: -200px; /* Distancia desde el borde derecho de la columna izquierda */
+  --play-btn-offset: -400px; /* Distancia desde el borde derecho de la columna izquierda */
 
   /* Soundline sizing */
   --soundline-height: 100%; /* Altura de la soundline (100% = 625px del contenedor, 80% = 500px, etc.) */
