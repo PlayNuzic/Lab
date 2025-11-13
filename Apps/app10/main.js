@@ -231,14 +231,47 @@ registerFactoryReset({ storage: preferenceStorage });
 function initApp() {
   console.log('Inicializando App10: Línea Sonora');
 
-  // Obtener referencias del template
-  // Usamos timeline (elemento hijo) para no borrar los controles
+  // Obtener elementos del template ANTES de que se eliminen
+  const timelineWrapper = document.querySelector('.timeline-wrapper');
+  const controls = document.querySelector('.controls');
   soundlineWrapper = document.getElementById('timeline');
 
-  if (!soundlineWrapper) {
-    console.error('Soundline wrapper no encontrado en el template');
+  if (!soundlineWrapper || !timelineWrapper || !controls) {
+    console.error('Elementos del template no encontrados', { soundlineWrapper, timelineWrapper, controls });
     return;
   }
+
+  console.log('Elementos encontrados correctamente');
+
+  // Eliminar .middle ahora que ya tenemos las referencias a .controls y .timeline-wrapper
+  document.querySelector('.middle')?.remove();
+
+  // Crear estructura two-column layout
+  const mainElement = document.querySelector('main');
+  if (!mainElement) {
+    console.error('main element no encontrado');
+    return;
+  }
+
+  const twoColumnWrapper = document.createElement('div');
+  twoColumnWrapper.className = 'two-column-layout app10-main-layout';
+
+  // Crear contenedor de controles (columna izquierda)
+  const controlsContainer = document.createElement('div');
+  controlsContainer.className = 'two-column-layout__controls app10-controls-container';
+  controlsContainer.appendChild(controls);
+
+  // Crear contenedor de soundline (columna derecha expandida)
+  const soundlineContainer = document.createElement('div');
+  soundlineContainer.className = 'two-column-layout__main';
+  soundlineContainer.appendChild(timelineWrapper);
+
+  // Ensamblar layout
+  twoColumnWrapper.appendChild(controlsContainer);
+  twoColumnWrapper.appendChild(soundlineContainer);
+  mainElement.appendChild(twoColumnWrapper);
+
+  console.log('Two-column layout creado correctamente');
 
   // Dibujar soundline vertical
   drawSoundline();

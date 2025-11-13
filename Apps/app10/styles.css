@@ -1,10 +1,21 @@
 /* App10: Línea Sonora - Estilos */
+@import url('../../libs/shared-ui/two-column-layout.css');
 
 /* Variables CSS */
 :root {
   --line-color: #666;
   --soundline-width: 3px;
   --note-highlight-color: var(--selection-color, #F97C39);
+
+  /* Two-column layout customization */
+  --col-left: 150px;
+  --controls-justify: center;
+  --layout-gap: 2rem;
+  --controls-padding-top: 0;
+  --controls-margin: 0;
+
+  /* Play button positioning */
+  --play-btn-offset: -400px; /* Distancia desde el borde derecho de la columna izquierda */
 }
 
 [data-theme="dark"] {
@@ -39,19 +50,36 @@
   display: none;
 }
 
+/* ========== TWO-COLUMN LAYOUT CUSTOMIZATION ========== */
+.app10-main-layout {
+  height: 100vh;
+  padding-top: 80px; /* Espacio para header */
+}
+
+.app10-controls-container {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end; /* Alinear a la derecha de la columna izquierda */
+  padding-right: var(--play-btn-offset, 20px);
+  height: 100%;
+  position: relative;
+  z-index: 1600;
+}
+
 /* ========== SOUNDLINE WRAPPER ========== */
 .timeline-wrapper {
   width: 100%;
   max-width: 600px;
   height: 625px;
-  margin: 60px auto 40px;
+  margin: 0 auto;
   position: relative;
   z-index: 1500;
   opacity: 1 !important;
   padding: 40px;
   display: flex;
-  flex-direction: column; /* Stack timeline and controls vertically */
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
 /* Timeline element (contains soundline) */
@@ -252,13 +280,27 @@
   display: flex !important;
 }
 
-/* Centrar botón Play en los controles */
+/* Override de .controls para App10 - mantener posicionamiento absoluto */
 .controls {
+  position: relative !important;
+  top: 0px !important;
+  left: 50px !important; /* Ajustable con variable más abajo */
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
   gap: 10px;
-  margin-top: 30px;
+  margin: -100px;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* Override específico para App10: ajuste fino de posición del botón */
+.app10-controls-container .controls {
+  position: absolute !important;
+  top: 50% !important;
+  left: auto !important;
+  right: var(--play-btn-offset, 20px) !important;
+  transform: translateY(-50%) !important;
 }
 
 /* ========== RESPONSIVE ========== */

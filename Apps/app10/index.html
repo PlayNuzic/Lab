@@ -41,9 +41,9 @@
     });
     initHeader();
 
-    // Remove template-generated elements
+    // Remove only .inputs, keep .middle temporarily for main.js to access .controls
     document.querySelector('.inputs')?.remove();
-    document.querySelector('.middle')?.remove();
+    // Note: .middle will be removed by main.js after extracting .controls
 
     import('./main.js');
   </script>
