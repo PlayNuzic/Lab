@@ -1024,19 +1024,25 @@ export function createMusicalGrid(config) {
       }
 
       // 2. Vertical path: from current note to next note (at next pulse)
-      const startNote = Math.min(current.note, next.note);
-      const endNote = Math.max(current.note, next.note);
-
-      for (let n = startNote; n <= endNote; n++) {
-        const cell = getCellElement(n, next.pulse);
-        if (cell) {
-          // Skip the destination note - it's the final cell, doesn't need left border
-          if (n === next.note) {
-            continue;
+      // Draw left borders respecting direction (up or down)
+      if (current.note < next.note) {
+        // Going down: draw from current to next-1
+        for (let n = current.note; n < next.note; n++) {
+          const cell = getCellElement(n, next.pulse);
+          if (cell) {
+            cell.classList.add('interval-path-vertical');
           }
-          cell.classList.add('interval-path-vertical');
+        }
+      } else if (current.note > next.note) {
+        // Going up: draw from next+1 to current
+        for (let n = next.note + 1; n <= current.note; n++) {
+          const cell = getCellElement(n, next.pulse);
+          if (cell) {
+            cell.classList.add('interval-path-vertical');
+          }
         }
       }
+      // If current.note === next.note: no vertical path needed (same note)
     }
   }
 
