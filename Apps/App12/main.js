@@ -494,6 +494,7 @@ async function init() {
             const currentPairs = gridEditor.getPairs();
             const filtered = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
             gridEditor.setPairs(filtered);
+            syncGridFromPairs(filtered); // Update interval paths in real-time
           }
         } else {
           // Cell is inactive → deactivate all others in this pulse, activate only this one
