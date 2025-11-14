@@ -209,8 +209,8 @@
 .musical-cell::before {
   content: '';
   position: absolute;
-  bottom: -5px;  /* Center at bottom border (10px / 2 = 5px) */
-  left: -5px;    /* Center at left border (10px / 2 = 5px) */
+  bottom: -7px;  /* Center at bottom border (10px / 2 = 5px) */
+  left: -7px;    /* Center at left border (10px / 2 = 5px) */
   width: 10px;
   height: 10px;
   border-radius: 50%;
