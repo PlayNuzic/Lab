@@ -57,22 +57,6 @@ async function initAudio() {
   return audio;
 }
 
-// ========== HELPER FUNCTIONS ==========
-
-/**
- * Get all cells in a specific pulse column
- * @param {number} pulseIndex - The pulse index (0-7)
- * @returns {Array<HTMLElement>} - Array of cell elements in that pulse
- */
-function getCellsInPulse(pulseIndex) {
-  const cells = [];
-  for (let noteIndex = 0; noteIndex < TOTAL_NOTES; noteIndex++) {
-    const cell = musicalGrid.getCellElement(noteIndex, pulseIndex);
-    if (cell) cells.push(cell);
-  }
-  return cells;
-}
-
 // ========== VISUAL FEEDBACK ==========
 
 function createMatrixHighlightController() {
@@ -294,6 +278,11 @@ function handleReset() {
   gridEditor?.clear();
   musicalGrid?.clear();
 
+  // Clear interval paths
+  if (musicalGrid?.clearIntervalPaths) {
+    musicalGrid.clearIntervalPaths();
+  }
+
   // Stop playback if playing
   if (isPlaying) {
     stopPlayback();
@@ -477,92 +466,39 @@ async function init() {
       highlightNoteOnSoundline(noteIndex, duration * 1000);
 
       // Check polyphony mode
+      // Don't manipulate DOM directly - let syncGridFromPairs handle all visual updates
+      if (!gridEditor) return;
+
+      const currentPairs = gridEditor.getPairs();
+      const isActive = currentPairs.some(p => p.note === noteIndex && p.pulse === pulseIndex);
+
+      let newPairs;
       if (!polyphonyEnabled) {
         // ========== MONOPHONIC MODE ==========
         // Only one note per pulse allowed
-
-        const isActive = cellElement.classList.contains('active');
-
         if (isActive) {
-          // Cell is active → toggle OFF (remove)
-          cellElement.classList.remove('active');
-          const label = cellElement.querySelector('.cell-label');
-          if (label) label.remove();
-
-          // Update grid editor: remove this pair
-          if (gridEditor) {
-            const currentPairs = gridEditor.getPairs();
-            const filtered = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
-            gridEditor.setPairs(filtered);
-            syncGridFromPairs(filtered); // Update interval paths in real-time
-          }
+          // Remove this pair
+          newPairs = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
         } else {
-          // Cell is inactive → deactivate all others in this pulse, activate only this one
-
-          // Deactivate all other cells in this pulse column
-          const allCellsInPulse = getCellsInPulse(pulseIndex);
-          allCellsInPulse.forEach(cell => {
-            if (cell !== cellElement && cell.classList.contains('active')) {
-              cell.classList.remove('active');
-              const label = cell.querySelector('.cell-label');
-              if (label) label.remove();
-            }
-          });
-
-          // Activate only this cell
-          cellElement.classList.add('active');
-          const label = document.createElement('span');
-          label.className = 'cell-label';
-          label.textContent = `( ${noteIndex} , ${pulseIndex} )`;
-          cellElement.appendChild(label);
-
-          // Update grid editor: remove all pairs for this pulse, add only this one
-          if (gridEditor) {
-            const currentPairs = gridEditor.getPairs();
-            const filtered = currentPairs.filter(p => p.pulse !== pulseIndex);
-            filtered.push({ note: noteIndex, pulse: pulseIndex });
-            gridEditor.setPairs(filtered);
-            syncGridFromPairs(filtered); // Update interval paths in real-time
-          }
+          // Remove all pairs for this pulse, add only this one
+          newPairs = currentPairs.filter(p => p.pulse !== pulseIndex);
+          newPairs.push({ note: noteIndex, pulse: pulseIndex });
         }
       } else {
         // ========== POLYPHONIC MODE ==========
-        // Multiple notes per pulse allowed (CURRENT BEHAVIOR)
-
-        const isActive = cellElement.classList.contains('active');
-        cellElement.classList.toggle('active');
-
-        // Manage label
+        // Multiple notes per pulse allowed
         if (isActive) {
-          // Removing: delete label
-          const label = cellElement.querySelector('.cell-label');
-          if (label) label.remove();
+          // Remove pair
+          newPairs = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
         } else {
-          // Adding: create label if not exists
-          if (!cellElement.querySelector('.cell-label')) {
-            const label = document.createElement('span');
-            label.className = 'cell-label';
-            label.textContent = `( ${noteIndex} , ${pulseIndex} )`;
-            cellElement.appendChild(label);
-          }
-        }
-
-        // Update grid editor pairs
-        if (gridEditor) {
-          const currentPairs = gridEditor.getPairs();
-          if (isActive) {
-            // Remove pair
-            const filtered = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
-            gridEditor.setPairs(filtered);
-            syncGridFromPairs(filtered); // Update interval paths in real-time
-          } else {
-            // Add pair
-            currentPairs.push({ note: noteIndex, pulse: pulseIndex });
-            gridEditor.setPairs(currentPairs);
-            syncGridFromPairs(currentPairs); // Update interval paths in real-time
-          }
+          // Add pair
+          newPairs = [...currentPairs, { note: noteIndex, pulse: pulseIndex }];
         }
       }
+
+      // Update grid editor and sync visual state
+      gridEditor.setPairs(newPairs);
+      syncGridFromPairs(newPairs);
     },
     onNoteClick: async (noteIndex, midi) => {
       // Play note when soundline clicked via audio engine
