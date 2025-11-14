@@ -392,12 +392,19 @@
   /* Generous click area using padding (invisible expansion) */
   padding: 15px;
   margin: -15px; /* Compensate for padding to maintain visual position */
+
+  /* Make clickable pulse markers more visible */
+  background: rgba(255, 139, 77, 0.1); /* Orange background when clickable */
+  border-radius: 4px;
 }
 
 .pulse-marker-clickable:hover {
-  opacity: 0.8 !important; /* Increase visibility on hover */
+  opacity: 1 !important; /* Full visibility on hover */
   color: var(--select-color, #E4570C);
-  transition: opacity 0.2s ease, color 0.2s ease;
+  background: rgba(255, 139, 77, 0.3); /* Stronger orange on hover */
+  font-weight: bold;
+  transform: translateX(-50%) scale(1.2);
+  transition: all 0.2s ease;
 }
 
 .pulse-marker-clickable:active {
