@@ -209,12 +209,12 @@
 .musical-cell::before {
   content: '';
   position: absolute;
-  bottom: -7px;  /* Center at bottom border */
-  left: -7px;    /* Center at left border */
+  bottom: -6px;  /* Center at bottom border */
+  left: -6px;    /* Center at left border */
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid var(--line-color, #fff);  /* Adapts to theme (dark text in light, light text in dark) */
+  border: 1px solid var(--line-color, #fff);  /* Adapts to theme (dark text in light, light text in dark) */
   background: transparent;  /* Hollow by default */
   z-index: 15;
   pointer-events: none;
