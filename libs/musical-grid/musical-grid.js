@@ -304,6 +304,11 @@ export function createMusicalGrid(config) {
   function renderTimeline() {
     const container = containers.timeline;
 
+    // Debug: Check if timeline container receives any clicks
+    container.addEventListener('click', (e) => {
+      console.log('🎯 Timeline container clicked!', e.target.className, e.target);
+    }, true); // Use capture phase to catch events before they bubble
+
     // Create inner expandible container for scroll support
     let innerContainer = container;
     if (scrollEnabled) {
@@ -371,6 +376,11 @@ export function createMusicalGrid(config) {
         console.log('📍 Adding click handler to pulse marker', i);
         marker.style.cursor = 'pointer';
         marker.classList.add('pulse-marker-clickable');
+        console.log('✅ Class list after adding clickable:', marker.classList.toString());
+
+        // Force pointer-events directly on the element as a test
+        marker.style.pointerEvents = 'auto';
+        marker.style.zIndex = '30';
         marker.addEventListener('click', () => {
           console.log('🖱️ Pulse marker clicked at index', i);
           onPulseClick(i, marker);
