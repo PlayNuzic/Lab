@@ -373,7 +373,8 @@ function syncGridFromPairs(pairs) {
   if (musicalGrid.highlightIntervalPath) {
     // Filter out null notes before passing to highlightIntervalPath
     const validPairs = pairs.filter(p => p.note !== null);
-    musicalGrid.highlightIntervalPath(validPairs);
+    // Pass polyphonic flag to enable voice separation
+    musicalGrid.highlightIntervalPath(validPairs, polyphonyEnabled);
   }
 }
 

@@ -974,28 +974,48 @@ export function createMusicalGrid(config) {
   }
 
   /**
-   * Highlights cell borders to show the path between consecutive N-P pairs
-   * Illuminates bottom borders horizontally and left borders vertically
-   * @param {Array} pairs - Array of {note, pulse} pairs (must be sorted by pulse)
+   * Separates pairs into independent voices (no two notes in same pulse within a voice)
+   * @param {Array} pairs - Array of {note, pulse} pairs
+   * @returns {Array<Array>} - Array of voices, each voice is an array of pairs
    */
-  function highlightIntervalPath(pairs) {
-    if (!intervalsConfig.cellLines || !pairs || pairs.length < 2) {
-      return;
-    }
-
-    // Clear any existing paths
-    clearIntervalPaths();
-
-    // Sort pairs by pulse to ensure correct order
+  function separateIntoVoices(pairs) {
+    const voices = [];
     const sortedPairs = [...pairs].sort((a, b) => a.pulse - b.pulse);
 
-    // Iterate through consecutive pairs
-    for (let i = 0; i < sortedPairs.length - 1; i++) {
-      const current = sortedPairs[i];
-      const next = sortedPairs[i + 1];
+    for (const pair of sortedPairs) {
+      // Find a voice that doesn't have a note at this pulse
+      let assignedVoice = voices.find(voice =>
+        !voice.some(p => p.pulse === pair.pulse)
+      );
+
+      if (!assignedVoice) {
+        // Create new voice
+        assignedVoice = [];
+        voices.push(assignedVoice);
+      }
+
+      assignedVoice.push(pair);
+    }
+
+    return voices;
+  }
+
+  /**
+   * Draws interval path for a single voice (sequence of non-overlapping notes)
+   * @param {Array} voicePairs - Array of {note, pulse} pairs in this voice
+   */
+  function drawVoicePath(voicePairs) {
+    if (voicePairs.length < 2) return;
+
+    // Sort by pulse
+    const sorted = [...voicePairs].sort((a, b) => a.pulse - b.pulse);
+
+    // Draw paths between consecutive notes in this voice
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const current = sorted[i];
+      const next = sorted[i + 1];
 
       // 1. Horizontal path: from current pulse to next pulse (along current note)
-      // Illuminates bottom borders of cells from current.pulse to next.pulse-1
       for (let p = current.pulse; p < next.pulse; p++) {
         const cell = getCellElement(current.note, p);
         if (cell) {
@@ -1004,22 +1024,44 @@ export function createMusicalGrid(config) {
       }
 
       // 2. Vertical path: from current note to next note (at next pulse)
-      // Illuminates left borders of cells from current.note (exclusive) to next.note (inclusive)
       const startNote = Math.min(current.note, next.note);
       const endNote = Math.max(current.note, next.note);
 
       for (let n = startNote; n <= endNote; n++) {
         const cell = getCellElement(n, next.pulse);
         if (cell) {
-          // Skip the starting note (current.note) - it already has horizontal border
+          // Skip the starting note - it already has horizontal border
           if (n === current.note) {
             continue;
           }
-
-          // All other cells in the vertical path get left border
           cell.classList.add('interval-path-vertical');
         }
       }
+    }
+  }
+
+  /**
+   * Highlights cell borders to show the path between consecutive N-P pairs
+   * Illuminates bottom borders horizontally and left borders vertically
+   * @param {Array} pairs - Array of {note, pulse} pairs
+   * @param {boolean} polyphonic - If true, separate into independent voices
+   */
+  function highlightIntervalPath(pairs, polyphonic = false) {
+    if (!intervalsConfig.cellLines || !pairs || pairs.length < 2) {
+      return;
+    }
+
+    // Clear any existing paths
+    clearIntervalPaths();
+
+    if (polyphonic) {
+      // Separate into independent voices and draw each voice separately
+      const voices = separateIntoVoices(pairs);
+      voices.forEach(voice => drawVoicePath(voice));
+    } else {
+      // Monophonic: draw single path through all notes
+      const sortedPairs = [...pairs].sort((a, b) => a.pulse - b.pulse);
+      drawVoicePath(sortedPairs);
     }
   }
 
