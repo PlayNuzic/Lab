@@ -1069,9 +1069,9 @@ export function createMusicalGrid(config) {
    * Clears all interval path highlights from cells
    */
   function clearIntervalPaths() {
-    cells.forEach(cell => {
-      if (cell && cell.classList) {
-        cell.classList.remove('interval-path-horizontal', 'interval-path-vertical', 'interval-path-corner');
+    cells.forEach(({ element }) => {
+      if (element && element.classList) {
+        element.classList.remove('interval-path-horizontal', 'interval-path-vertical', 'interval-path-corner');
       }
     });
   }
