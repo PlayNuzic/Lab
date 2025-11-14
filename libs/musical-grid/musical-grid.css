@@ -214,7 +214,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid #fff;  /* Contrast color (white) for hollow dots */
+  border: 2px solid var(--line-color, #fff);  /* Adapts to theme (dark text in light, light text in dark) */
   background: transparent;  /* Hollow by default */
   z-index: 15;
   pointer-events: none;
@@ -232,7 +232,7 @@
 /* N-P dot FILLED with selection color when cell is active */
 .musical-cell.active::before {
   background: var(--cell-highlight-color, var(--select-color, #ff8b4d));  /* Selection color fill */
-  border-color: #fff;  /* Keep white contrast border */
+  border-color: var(--line-color, #fff);  /* Adapts to theme */
   box-shadow: 0 0 6px var(--cell-highlight-color, var(--select-color, #ff8b4d));
 }
 
