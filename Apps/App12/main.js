@@ -511,8 +511,15 @@ async function init() {
       // Custom rendering: add label structure for N/P pairs
       cellElement.innerHTML = ''; // Clear any default content
     },
-    onCellClick: intervalLinesEnabled ? null : async (noteIndex, pulseIndex, cellElement) => {
-      // Cell clicks DISABLED when interval lines are enabled
+    onCellClick: async (noteIndex, pulseIndex, cellElement) => {
+      // Check CURRENT state, not creation-time state
+      const prefs = preferenceStorage.load() || {};
+      const currentIntervalLines = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
+
+      if (currentIntervalLines) {
+        return; // Cell clicks DISABLED when interval lines are enabled
+      }
+
       // Play MIDI note on click via audio engine
       await initAudio();
 
@@ -564,8 +571,15 @@ async function init() {
       gridEditor.setPairs(newPairs);
       syncGridFromPairs(newPairs);
     },
-    onPulseClick: intervalLinesEnabled ? async (pulseIndex, pulseElement) => {
-      // Pulse clicks ENABLED only when interval lines are enabled
+    onPulseClick: async (pulseIndex, pulseElement) => {
+      // Check CURRENT state, not creation-time state
+      const prefs = preferenceStorage.load() || {};
+      const currentIntervalLines = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
+
+      if (!currentIntervalLines) {
+        return; // Pulse clicks ENABLED only when interval lines are enabled
+      }
+
       await initAudio();
 
       if (!window.Tone || !gridEditor) {
@@ -598,7 +612,7 @@ async function init() {
           highlightNoteOnSoundline(noteIndex, duration * 1000);
         });
       }
-    } : null,
+    },
     onNoteClick: async (noteIndex, midi) => {
       // Play note when soundline clicked via audio engine
       await initAudio();
@@ -842,6 +856,7 @@ async function init() {
     const polyphonyToggle = document.getElementById('polyphonyToggle');
     if (polyphonyToggle) {
       polyphonyToggle.checked = false;
+      polyphonyToggle.dispatchEvent(new Event('change'));  // Force event to trigger listeners
       polyphonyEnabled = false;
     }
 
@@ -849,6 +864,7 @@ async function init() {
     const intervalLinesToggle = document.getElementById('intervalLinesToggle');
     if (intervalLinesToggle) {
       intervalLinesToggle.checked = false;
+      intervalLinesToggle.dispatchEvent(new Event('change'));  // Force event to trigger listeners
       if (musicalGrid?.clearIntervalPaths) {
         musicalGrid.clearIntervalPaths();
       }

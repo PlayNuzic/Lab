@@ -231,9 +231,9 @@
 
 /* N-P dot FILLED with selection color when cell is active */
 .musical-cell.active::before {
-  background: var(--cell-highlight-color, var(--select-color, #ff8b4d));  /* Selection color fill */
+  background: var(--cell-highlight-color, var(--select-color, #E4570C));  /* Selection color fill */
   border-color: var(--line-color, #fff);  /* Adapts to theme */
-  box-shadow: 0 0 6px var(--cell-highlight-color, var(--select-color, #ff8b4d));
+  box-shadow: 0 0 6px var(--cell-highlight-color, var(--select-color, #E4570C));
 }
 
 /* ========== INTERVAL PATH BORDERS (intervals-cell-lines) ========== */
@@ -359,7 +359,7 @@
   top: 14px;
   width: 2px;
   height: var(--pulse-marker-height, 15px);
-  background: var(--line-color, #666);
+  background: rgba(102, 102, 102, 0.1);  /* Line with low opacity - matches grid lines */
   transform: translateX(-50%); /* Center the marker line on its position */
   pointer-events: none;
   z-index: var(--z-base, 1);
@@ -368,7 +368,7 @@
   /* ⭐ UPDATED: Unified color system */
   color: var(--grid-number-color, var(--text-color, #333));
   user-select: none;
-  opacity: 0.1;  /* Match grid line opacity for subtlety */
+  opacity: 0.85;  /* Numbers visible - only line is transparent via rgba() */
 
   /* Number positioning: centered below the line */
   display: flex;

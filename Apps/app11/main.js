@@ -264,8 +264,15 @@ async function init() {
       cellLines: intervalLinesEnabled
     },
     intervalColor: '#4A9EFF',
-    onCellClick: intervalLinesEnabled ? null : async (noteIndex, pulseIndex, cell) => {
-      // Cell clicks DISABLED when interval lines are enabled
+    onCellClick: async (noteIndex, pulseIndex, cell) => {
+      // Check CURRENT state, not creation-time state
+      const prefs = preferenceStorage.load() || {};
+      const currentIntervalLines = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
+
+      if (currentIntervalLines) {
+        return; // Cell clicks DISABLED when interval lines are enabled
+      }
+
       await initAudio();
 
       if (!window.Tone) {
@@ -299,8 +306,15 @@ async function init() {
         }, 1000);
       }, 1000);
     },
-    onPulseClick: intervalLinesEnabled ? async (pulseIndex) => {
-      // Pulse clicks ENABLED only when interval lines are enabled
+    onPulseClick: async (pulseIndex) => {
+      // Check CURRENT state, not creation-time state
+      const prefs = preferenceStorage.load() || {};
+      const currentIntervalLines = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
+
+      if (!currentIntervalLines) {
+        return; // Pulse clicks ENABLED only when interval lines are enabled
+      }
+
       await initAudio();
 
       if (!window.Tone) {
@@ -331,7 +345,7 @@ async function init() {
           setTimeout(() => cell.classList.remove('playing'), duration * 1000);
         });
       }
-    } : null
+    }
   });
 
   console.log('Musical grid created with intervals');
