@@ -209,12 +209,12 @@
 .musical-cell::before {
   content: '';
   position: absolute;
-  bottom: -7px;  /* Center at bottom border (10px / 2 = 5px) */
-  left: -7px;    /* Center at left border (10px / 2 = 5px) */
+  bottom: -7px;  /* Center at bottom border */
+  left: -7px;    /* Center at left border */
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid var(--cell-highlight-color, var(--select-color, #ff8b4d));
+  border: 2px solid #fff;  /* Contrast color (white) for hollow dots */
   background: transparent;  /* Hollow by default */
   z-index: 15;
   pointer-events: none;
@@ -229,11 +229,11 @@
   z-index: var(--z-interactive, 10);
 }
 
-/* N-P dot FILLED with contrast color when cell is active */
+/* N-P dot FILLED with selection color when cell is active */
 .musical-cell.active::before {
-  background: #fff;  /* White contrast color for visibility */
-  border-color: var(--cell-highlight-color, var(--select-color, #ff8b4d));
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+  background: var(--cell-highlight-color, var(--select-color, #ff8b4d));  /* Selection color fill */
+  border-color: #fff;  /* Keep white contrast border */
+  box-shadow: 0 0 6px var(--cell-highlight-color, var(--select-color, #ff8b4d));
 }
 
 /* ========== INTERVAL PATH BORDERS (intervals-cell-lines) ========== */
