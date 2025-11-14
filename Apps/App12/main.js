@@ -4,7 +4,6 @@
 
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
 import { MelodicTimelineAudio } from '../../libs/sound/melodic-audio.js';
-import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createGridEditor } from '../../libs/matrix-seq/index.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
@@ -25,6 +24,7 @@ let gridEditor = null;
 const currentBPM = DEFAULT_BPM; // Locked to 120 BPM
 let isPlaying = false;
 let polyphonyEnabled = false; // Default: polyphony DISABLED (monophonic mode)
+let intervalLinesEnabledState = false; // State in memory for performance
 
 // Elements
 let playBtn = null;
@@ -32,8 +32,26 @@ let resetBtn = null;
 let randomBtn = null;
 let gridEditorContainer = null;
 
-// Storage de preferencias
-const preferenceStorage = createPreferenceStorage('app12');
+// ========== STORAGE HELPERS ==========
+function loadPreferences() {
+  const json = localStorage.getItem('app12-preferences');
+  return json ? JSON.parse(json) : {
+    selectedInstrument: 'piano',
+    selectColor: '#E4570C',
+    polyphony: '0',
+    intervalLinesEnabled: false
+  };
+}
+
+function savePreference(key, value) {
+  const prefs = loadPreferences();
+  prefs[key] = value;
+  localStorage.setItem('app12-preferences', JSON.stringify(prefs));
+}
+
+function saveAllPreferences(prefs) {
+  localStorage.setItem('app12-preferences', JSON.stringify(prefs));
+}
 
 // ========== AUDIO INITIALIZATION ==========
 
@@ -44,7 +62,7 @@ async function initAudio() {
     await audio.ready();
 
     // Load default instrument from preferences
-    const prefs = JSON.parse(localStorage.getItem('app12-preferences') || '{}');
+    const prefs = loadPreferences();
     const instrument = prefs.selectedInstrument || 'piano';
     await audio.setInstrument(instrument);
 
@@ -352,7 +370,7 @@ function syncGridFromPairs(pairs) {
   }
 
   // Load preferences to check if interval lines are enabled
-  const prefs = preferenceStorage.load() || {};
+  const prefs = loadPreferences();
   const intervalLinesEnabled = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
 
   // Filter out null notes
@@ -487,8 +505,9 @@ async function init() {
   injectGridEditor();
 
   // Load preferences
-  const prefs = preferenceStorage.load() || {};
+  const prefs = loadPreferences();
   const intervalLinesEnabled = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
+  intervalLinesEnabledState = intervalLinesEnabled; // Store in memory
 
   // Create musical grid inside the main grid wrapper
   const mainGridWrapper = document.querySelector('.app12-main-grid');
@@ -512,11 +531,8 @@ async function init() {
       cellElement.innerHTML = ''; // Clear any default content
     },
     onCellClick: async (noteIndex, pulseIndex, cellElement) => {
-      // Check CURRENT state, not creation-time state
-      const prefs = preferenceStorage.load() || {};
-      const currentIntervalLines = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
-
-      if (currentIntervalLines) {
+      // Check state from memory for performance
+      if (intervalLinesEnabledState) {
         return; // Cell clicks DISABLED when interval lines are enabled
       }
 
@@ -572,11 +588,8 @@ async function init() {
       syncGridFromPairs(newPairs);
     },
     onPulseClick: async (pulseIndex, pulseElement) => {
-      // Check CURRENT state, not creation-time state
-      const prefs = preferenceStorage.load() || {};
-      const currentIntervalLines = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
-
-      if (!currentIntervalLines) {
+      // Check state from memory for performance
+      if (!intervalLinesEnabledState) {
         return; // Pulse clicks ENABLED only when interval lines are enabled
       }
 
@@ -732,8 +745,8 @@ async function init() {
         }
       ],
       storage: {
-        load: () => preferenceStorage.load() || {},
-        save: (data) => preferenceStorage.save(data)
+        load: () => loadPreferences(),
+        save: (data) => saveAllPreferences(data)
       },
       mixer: globalMixer,
       subscribeMixer
@@ -752,9 +765,7 @@ async function init() {
     selectColor.addEventListener('input', (e) => {
       const color = e.target.value;
       document.documentElement.style.setProperty('--select-color', color);
-      const currentPrefs = preferenceStorage.load() || {};
-      currentPrefs.selectColor = color;
-      preferenceStorage.save(currentPrefs);
+      savePreference('selectColor', color);
     });
   }
 
@@ -762,14 +773,14 @@ async function init() {
   const polyphonyToggle = document.getElementById('polyphonyToggle');
   if (polyphonyToggle) {
     // Load from storage (default: false = monophonic)
-    const storedPolyphony = preferenceStorage.load('polyphony');
-    polyphonyEnabled = storedPolyphony === '1'; // Only true if explicitly set to '1'
+    const prefs = loadPreferences();
+    polyphonyEnabled = prefs.polyphony === '1'; // Only true if explicitly set to '1'
     polyphonyToggle.checked = polyphonyEnabled;
 
     // Listen for changes
     polyphonyToggle.addEventListener('change', (e) => {
       polyphonyEnabled = e.target.checked;
-      preferenceStorage.save('polyphony', polyphonyEnabled ? '1' : '0');
+      savePreference('polyphony', polyphonyEnabled ? '1' : '0');
       console.log('Polyphony mode:', polyphonyEnabled ? 'ENABLED (polyphonic)' : 'DISABLED (monophonic)');
 
       // When disabling polyphony, filter to keep only first note per pulse
@@ -804,11 +815,10 @@ async function init() {
     // Listen for changes
     intervalLinesToggle.addEventListener('change', () => {
       const enabled = intervalLinesToggle.checked;
+      intervalLinesEnabledState = enabled; // Update memory state
 
       // Save to preferences
-      const currentPrefs = preferenceStorage.load() || {};
-      currentPrefs.intervalLinesEnabled = enabled;
-      preferenceStorage.save(currentPrefs);
+      savePreference('intervalLinesEnabled', enabled);
 
       // Update grid configuration in real-time (no reload)
       if (musicalGrid && musicalGrid.intervalsConfig && gridEditor) {
@@ -833,17 +843,15 @@ async function init() {
     await audio.setInstrument(instrument);
 
     // Save to preferences
-    const currentPrefs = preferenceStorage.load() || {};
-    currentPrefs.selectedInstrument = instrument;
-    preferenceStorage.save(currentPrefs);
+    savePreference('selectedInstrument', instrument);
   });
 
   // Factory reset
-  registerFactoryReset(() => {
+  document.addEventListener('sharedui:factory-reset', () => {
     // 1. Clear grid state first
     handleReset();
 
-    // 2. Update localStorage with factory defaults
+    // 2. Set factory defaults
     localStorage.setItem('app12-preferences', JSON.stringify({
       selectedInstrument: 'piano',
       selectColor: '#E4570C',
@@ -851,33 +859,7 @@ async function init() {
       intervalLinesEnabled: false    // Interval lines DISABLED
     }));
 
-    // 3. Sync UI without reload
-    // Polyphony toggle
-    const polyphonyToggle = document.getElementById('polyphonyToggle');
-    if (polyphonyToggle) {
-      polyphonyToggle.checked = false;
-      polyphonyToggle.dispatchEvent(new Event('change'));  // Force event to trigger listeners
-      polyphonyEnabled = false;
-    }
-
-    // Interval lines toggle
-    const intervalLinesToggle = document.getElementById('intervalLinesToggle');
-    if (intervalLinesToggle) {
-      intervalLinesToggle.checked = false;
-      intervalLinesToggle.dispatchEvent(new Event('change'));  // Force event to trigger listeners
-      if (musicalGrid?.clearIntervalPaths) {
-        musicalGrid.clearIntervalPaths();
-      }
-    }
-
-    // Color picker
-    const selectColorInput = document.getElementById('selectColor');
-    if (selectColorInput) {
-      selectColorInput.value = '#E4570C';
-      document.documentElement.style.setProperty('--select-color', '#E4570C');
-    }
-
-    // 4. Reload to ensure clean state
+    // 3. Reload to ensure clean state
     window.location.reload();
   });
 
