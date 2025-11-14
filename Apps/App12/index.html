@@ -23,7 +23,7 @@
       // First time - set factory defaults
       localStorage.setItem('app12-preferences', JSON.stringify({
         selectedInstrument: 'piano',
-        selectColor: '#ff8b4d',
+        selectColor: '#E4570C',
         polyphony: '0',  // Factory default: polyphony DISABLED
         intervalLinesEnabled: false
       }));
@@ -63,7 +63,7 @@
     // Load selection color BEFORE header initializes
     const app12PrefsJson = localStorage.getItem('app12-preferences');
     const app12PrefsObj = app12PrefsJson ? JSON.parse(app12PrefsJson) : {};
-    const storedColor = app12PrefsObj.selectColor || '#ff8b4d';
+    const storedColor = app12PrefsObj.selectColor || '#E4570C';
     document.documentElement.style.setProperty('--select-color', storedColor);
 
     initHeader();

@@ -736,7 +736,7 @@ async function init() {
     handleReset();
     localStorage.setItem('app12-preferences', JSON.stringify({
       selectedInstrument: 'piano',
-      selectColor: '#ff8b4d',
+      selectColor: '#E4570C',
       polyphony: '0',
       intervalLinesEnabled: false
     }));
