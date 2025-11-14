@@ -351,19 +351,60 @@ function syncGridFromPairs(pairs) {
     musicalGrid.clearIntervalPaths();
   }
 
-  // Activate cells for each pair (skip pairs with note=null used for preserving empty columns)
-  pairs.forEach(({ note, pulse }) => {
-    if (note === null) return; // Skip dummy pairs used to preserve empty pulse columns
+  // Load preferences to check if interval lines are enabled
+  const prefs = preferenceStorage.load() || {};
+  const intervalLinesEnabled = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
 
+  // Filter out null notes
+  const validPairs = pairs.filter(p => p.note !== null);
+
+  // Calculate labels based on interval lines mode
+  let labelsMap = new Map(); // Map: "note-pulse" -> label text
+
+  if (intervalLinesEnabled && validPairs.length > 0) {
+    // ========== INTERVAL MODE: Musical intervals ==========
+    // Separate into voices (same logic as highlightIntervalPath)
+    const voices = polyphonyEnabled ? separateIntoVoices(validPairs) : [validPairs.slice().sort((a, b) => a.pulse - b.pulse)];
+
+    voices.forEach(voice => {
+      if (voice.length === 0) return;
+
+      // Sort by pulse
+      const sorted = [...voice].sort((a, b) => a.pulse - b.pulse);
+
+      // First note in voice: (N{note}, {duration}p)
+      const first = sorted[0];
+      const firstDuration = sorted.length > 1 ? sorted[1].pulse - first.pulse : 1;
+      labelsMap.set(`${first.note}-${first.pulse}`, `(N${first.note}, ${firstDuration}p)`);
+
+      // Subsequent notes: (+{interval}, {duration}p)
+      for (let i = 1; i < sorted.length; i++) {
+        const prev = sorted[i - 1];
+        const curr = sorted[i];
+        const soundInterval = curr.note - prev.note; // Semitones (can be negative)
+        const temporalInterval = curr.pulse - prev.pulse; // Pulses
+        const sign = soundInterval >= 0 ? '+' : '';
+        labelsMap.set(`${curr.note}-${curr.pulse}`, `(${sign}${soundInterval}, ${temporalInterval}p)`);
+      }
+    });
+  } else {
+    // ========== NORMAL MODE: Coordinates (N, P) ==========
+    validPairs.forEach(({ note, pulse }) => {
+      labelsMap.set(`${note}-${pulse}`, `( ${note} , ${pulse} )`);
+    });
+  }
+
+  // Activate cells and apply labels
+  validPairs.forEach(({ note, pulse }) => {
     const cell = musicalGrid.getCellElement(note, pulse);
     if (cell) {
       cell.classList.add('active');
 
-      // Add label if not exists
+      // Add label with correct text from map
       if (!cell.querySelector('.cell-label')) {
         const label = document.createElement('span');
         label.className = 'cell-label';
-        label.textContent = `( ${note} , ${pulse} )`;
+        label.textContent = labelsMap.get(`${note}-${pulse}`) || `( ${note} , ${pulse} )`;
         cell.appendChild(label);
       }
     }
@@ -371,11 +412,32 @@ function syncGridFromPairs(pairs) {
 
   // Highlight interval paths (if enabled)
   if (musicalGrid.highlightIntervalPath) {
-    // Filter out null notes before passing to highlightIntervalPath
-    const validPairs = pairs.filter(p => p.note !== null);
     // Pass polyphonic flag to enable voice separation
     musicalGrid.highlightIntervalPath(validPairs, polyphonyEnabled);
   }
+}
+
+// Helper: Separate pairs into independent voices (copy from musical-grid logic)
+function separateIntoVoices(pairs) {
+  const voices = [];
+  const sortedPairs = [...pairs].sort((a, b) => a.pulse - b.pulse);
+
+  for (const pair of sortedPairs) {
+    // Find a voice that doesn't have a note at this pulse
+    let assignedVoice = voices.find(voice =>
+      !voice.some(p => p.pulse === pair.pulse)
+    );
+
+    if (!assignedVoice) {
+      // Create new voice
+      assignedVoice = [];
+      voices.push(assignedVoice);
+    }
+
+    assignedVoice.push(pair);
+  }
+
+  return voices;
 }
 
 // ========== DOM INJECTION ==========
@@ -738,17 +800,12 @@ async function init() {
       if (musicalGrid && musicalGrid.intervalsConfig && gridEditor) {
         musicalGrid.intervalsConfig.cellLines = enabled;
 
-        // Always clear first
-        musicalGrid.clearIntervalPaths();
-
         // Get current pairs from grid editor
         const currentPairs = gridEditor.getPairs();
-        const validPairs = currentPairs.filter(p => p.note !== null);
 
-        // Apply interval paths if enabled and have pairs
-        if (enabled && validPairs.length > 0) {
-          musicalGrid.highlightIntervalPath(validPairs);
-        }
+        // Refresh labels AND interval paths via syncGridFromPairs
+        // This ensures labels switch between coordinate mode and interval mode
+        syncGridFromPairs(currentPairs);
       }
     });
   }
