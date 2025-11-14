@@ -1030,8 +1030,8 @@ export function createMusicalGrid(config) {
       for (let n = startNote; n <= endNote; n++) {
         const cell = getCellElement(n, next.pulse);
         if (cell) {
-          // Skip the starting note - it already has horizontal border
-          if (n === current.note) {
+          // Skip the destination note - it's the final cell, doesn't need left border
+          if (n === next.note) {
             continue;
           }
           cell.classList.add('interval-path-vertical');

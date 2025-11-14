@@ -674,21 +674,9 @@ async function init() {
           }
         });
 
-        // Update grid-editor
+        // Update grid-editor and sync visual state (including interval paths)
         gridEditor.setPairs(filteredPairs);
-
-        // Clear all active cells in musical-grid
-        document.querySelectorAll('.musical-cell.active').forEach(cell => {
-          cell.classList.remove('active');
-        });
-
-        // Re-render filtered pairs in musical-grid
-        filteredPairs.forEach(({note, pulse}) => {
-          const cell = musicalGrid.getCellElement(note, pulse);
-          if (cell) {
-            cell.classList.add('active');
-          }
-        });
+        syncGridFromPairs(filteredPairs);
 
         console.log(`Polyphony disabled: ${currentPairs.length} → ${filteredPairs.length} notes (monophonic mode applied)`);
       }
