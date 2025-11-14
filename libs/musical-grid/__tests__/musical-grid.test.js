@@ -84,7 +84,8 @@ describe('musical-grid', () => {
     it('renderiza número correcto de notas', () => {
       grid = createMusicalGrid({ parent, notes: 12, pulses: 9 });
       const noteLabels = parent.querySelectorAll('.soundline-number');
-      expect(noteLabels.length).toBe(12);
+      // Now includes top zero label, so 12 notes + 1 top label = 13
+      expect(noteLabels.length).toBe(13);
     });
 
     it('renderiza número correcto de pulsos', () => {

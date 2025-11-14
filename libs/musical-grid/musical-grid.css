@@ -205,13 +205,53 @@
   z-index: var(--z-interactive, 10);
 }
 
-/* Active cell (selected) */
+/* Active cell (selected) - attenuated background */
 .musical-cell.active {
   background: var(--cell-highlight-color, var(--select-color, #F97C39));
-  opacity: 0.9;
+  opacity: 0.3;  /* Reduced from 0.9 to make N-P dot stand out */
   border-color: var(--cell-highlight-color, var(--select-color, #F97C39));
-  box-shadow: 0 0 8px var(--cell-highlight-color, var(--select-color, #F97C39));
+  box-shadow: none;  /* Removed glow for subtler appearance */
   z-index: var(--z-interactive, 10);
+}
+
+/* N-P dot in bottom-left corner of active cells */
+.musical-cell.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cell-highlight-color, var(--select-color, #F97C39));
+  box-shadow: 0 0 6px var(--cell-highlight-color, var(--select-color, #F97C39));
+  z-index: 15;
+  pointer-events: none;
+}
+
+/* ========== INTERVAL PATH BORDERS (intervals-cell-lines) ========== */
+/* These classes are dynamically added to cells to show paths between consecutive N-P pairs */
+
+/* Horizontal path - illuminates bottom border from current pulse to next note's pulse */
+.interval-path-horizontal {
+  border-bottom: 3px solid var(--interval-color, #4A9EFF) !important;
+  box-shadow: 0 2px 4px rgba(74, 158, 255, 0.3);
+  z-index: 12;
+}
+
+/* Vertical path - illuminates left border from current note to next note */
+.interval-path-vertical {
+  border-left: 3px solid var(--interval-color, #4A9EFF) !important;
+  box-shadow: -2px 0 4px rgba(74, 158, 255, 0.3);
+  z-index: 12;
+}
+
+/* Corner cell - both horizontal and vertical borders (transition point) */
+.interval-path-corner {
+  border-bottom: 3px solid var(--interval-color, #4A9EFF) !important;
+  border-left: 3px solid var(--interval-color, #4A9EFF) !important;
+  box-shadow: -2px 2px 4px rgba(74, 158, 255, 0.3);
+  z-index: 12;
 }
 
 /* Playing animation */

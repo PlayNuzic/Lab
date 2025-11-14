@@ -246,6 +246,10 @@ async function init() {
   // Append wrapper to main element
   mainElement.appendChild(mainGridWrapper);
 
+  // Load preferences
+  const prefs = preferenceStorage.load() || {};
+  const intervalLinesEnabled = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
+
   // Create musical grid with intervals enabled (horizontal only)
   musicalGrid = createMusicalGrid({
     parent: gridContainer,
@@ -254,7 +258,11 @@ async function init() {
     noteFormatter: (index) => index.toString(),
     pulseFormatter: (index) => index.toString(),
     scrollEnabled: false,
-    showIntervals: { horizontal: true, vertical: false },
+    showIntervals: {
+      horizontal: true,
+      vertical: false,
+      cellLines: intervalLinesEnabled
+    },
     intervalColor: '#4A9EFF'
   });
 
@@ -350,6 +358,79 @@ async function init() {
       }
     });
   }
+
+  // Initialize interval lines toggle
+  const intervalLinesToggle = document.getElementById('intervalLinesToggle');
+  if (intervalLinesToggle) {
+    // Set initial state from preferences
+    intervalLinesToggle.checked = intervalLinesEnabled;
+
+    // Listen for changes
+    intervalLinesToggle.addEventListener('change', () => {
+      const enabled = intervalLinesToggle.checked;
+
+      // Save to preferences
+      const currentPrefs = preferenceStorage.load() || {};
+      currentPrefs.intervalLinesEnabled = enabled;
+      preferenceStorage.save(currentPrefs);
+
+      // Update grid configuration in real-time (no reload)
+      if (musicalGrid && musicalGrid.intervalsConfig) {
+        musicalGrid.intervalsConfig.cellLines = enabled;
+
+        // Get currently active cells and extract N-P pairs
+        const activeCells = document.querySelectorAll('.musical-cell.active');
+        const pairs = [];
+        activeCells.forEach(cell => {
+          const note = parseInt(cell.dataset.note);
+          const pulse = parseInt(cell.dataset.pulse);
+          if (!isNaN(note) && !isNaN(pulse)) {
+            pairs.push({ note, pulse });
+          }
+        });
+
+        // Sort pairs by pulse (required for highlightIntervalPath)
+        pairs.sort((a, b) => a.pulse - b.pulse);
+
+        // Apply or clear interval paths
+        if (enabled && pairs.length > 0) {
+          musicalGrid.highlightIntervalPath(pairs);
+        } else {
+          musicalGrid.clearIntervalPaths();
+        }
+      }
+    });
+  }
+
+  // Initialize color picker
+  const selectColorInput = document.getElementById('selectColor');
+  if (selectColorInput) {
+    // Set initial color from preferences
+    const savedColor = prefs.selectColor || '#ff8b4d';
+    selectColorInput.value = savedColor;
+    document.documentElement.style.setProperty('--select-color', savedColor);
+
+    // Listen for changes
+    selectColorInput.addEventListener('input', (e) => {
+      const newColor = e.target.value;
+      document.documentElement.style.setProperty('--select-color', newColor);
+
+      // Save to preferences
+      const currentPrefs = preferenceStorage.load() || {};
+      currentPrefs.selectColor = newColor;
+      preferenceStorage.save(currentPrefs);
+    });
+  }
+
+  // Register factory reset
+  registerFactoryReset(() => {
+    localStorage.setItem('app11-preferences', JSON.stringify({
+      selectedInstrument: 'piano',
+      intervalLinesEnabled: false,
+      selectColor: '#ff8b4d'
+    }));
+    window.location.reload();
+  });
 
   // Initialize mixer menu
   const mixerMenu = document.getElementById('mixerMenu');

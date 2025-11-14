@@ -32,20 +32,23 @@
     if (!app11Prefs) {
       // First time - set factory defaults
       localStorage.setItem('app11-preferences', JSON.stringify({
-        selectedInstrument: 'piano'
+        selectedInstrument: 'piano',
+        intervalLinesEnabled: false,
+        selectColor: '#ff8b4d'
       }));
     }
 
     renderApp({
       root: document.getElementById('app-root'),
       title: 'El Plano',
-      showSelectColor: false,
+      showSelectColor: true,
       showAccent: false,
       showComplexFractions: false,
       hideT: true,
       hideLeds: true,
       showCircularTimelineToggle: false,
       showHoverToggle: false,
+      showIntervalLinesToggle: true,
       showStartSoundDropdown: true,
       showInstrumentDropdown: true,
       showPulseToggle: true,

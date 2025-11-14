@@ -25,7 +25,7 @@
  * @param {string} [config.activeClassName='active'] - CSS class for active cells
  * @param {string} [config.highlightClassName='highlight'] - CSS class for highlighted cells
  * @param {HTMLElement} [config.insertBefore] - Insert grid before this element
- * @param {boolean|Object} [config.showIntervals=false] - Show interval bars and numbers (true/false or {horizontal: bool, vertical: bool})
+ * @param {boolean|Object} [config.showIntervals=false] - Show interval bars and numbers (true/false or {horizontal: bool, vertical: bool, cellLines: bool})
  * @param {string} [config.intervalColor='#4A9EFF'] - Color for interval bars and numbers
  * @returns {Object} Grid controller API
  */
@@ -59,15 +59,17 @@ export function createMusicalGrid(config) {
     intervalColor = '#4A9EFF'
   } = config;
 
-  // Normalize showIntervals to object {horizontal, vertical}
+  // Normalize showIntervals to object {horizontal, vertical, cellLines}
   const intervalsConfig = typeof showIntervals === 'object' && showIntervals !== null
     ? {
         horizontal: showIntervals.horizontal ?? true,
-        vertical: showIntervals.vertical ?? true
+        vertical: showIntervals.vertical ?? true,
+        cellLines: showIntervals.cellLines ?? false
       }
     : {
         horizontal: showIntervals,
-        vertical: showIntervals
+        vertical: showIntervals,
+        cellLines: false
       };
 
   // Validate dimensions
@@ -971,6 +973,64 @@ export function createMusicalGrid(config) {
     }
   }
 
+  /**
+   * Highlights cell borders to show the path between consecutive N-P pairs
+   * Illuminates bottom borders horizontally and left borders vertically
+   * @param {Array} pairs - Array of {note, pulse} pairs (must be sorted by pulse)
+   */
+  function highlightIntervalPath(pairs) {
+    if (!intervalsConfig.cellLines || !pairs || pairs.length < 2) {
+      return;
+    }
+
+    // Clear any existing paths
+    clearIntervalPaths();
+
+    // Sort pairs by pulse to ensure correct order
+    const sortedPairs = [...pairs].sort((a, b) => a.pulse - b.pulse);
+
+    // Iterate through consecutive pairs
+    for (let i = 0; i < sortedPairs.length - 1; i++) {
+      const current = sortedPairs[i];
+      const next = sortedPairs[i + 1];
+
+      // 1. Horizontal path: from current pulse to next pulse (along current note)
+      for (let p = current.pulse; p < next.pulse; p++) {
+        const cell = getCellElement(current.note, p);
+        if (cell) {
+          cell.classList.add('interval-path-horizontal');
+        }
+      }
+
+      // 2. Vertical path: from current note to next note (at next pulse)
+      const startNote = Math.min(current.note, next.note);
+      const endNote = Math.max(current.note, next.note);
+
+      for (let n = startNote; n <= endNote; n++) {
+        const cell = getCellElement(n, next.pulse);
+        if (cell) {
+          // Corner cell gets both classes
+          if (n === current.note && next.pulse < pulses - 1) {
+            cell.classList.add('interval-path-corner');
+          } else {
+            cell.classList.add('interval-path-vertical');
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Clears all interval path highlights from cells
+   */
+  function clearIntervalPaths() {
+    cells.forEach(cell => {
+      if (cell && cell.classList) {
+        cell.classList.remove('interval-path-horizontal', 'interval-path-vertical', 'interval-path-corner');
+      }
+    });
+  }
+
   // Auto-render on creation
   render();
 
@@ -996,6 +1056,10 @@ export function createMusicalGrid(config) {
     clearIntervalHighlights,
     onPulseStep,
 
+    // Interval path borders (for N-P pairs)
+    highlightIntervalPath,
+    clearIntervalPaths,
+
     // Container access (for composing with interval bars)
     getContainer(selector) {
       if (!containers.grid) return null;
@@ -1019,6 +1083,7 @@ export function createMusicalGrid(config) {
     get cellCount() { return cells.length; },
     get noteCount() { return notes; },
     get pulseCount() { return pulses; },
-    get cells() { return [...cells]; } // Return copy
+    get cells() { return [...cells]; }, // Return copy
+    get intervalsConfig() { return intervalsConfig; } // Expose for runtime updates
   };
 }

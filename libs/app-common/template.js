@@ -51,6 +51,7 @@ export function renderApp({
   showGamificationToggle = false,
   showCircularTimelineToggle = true,
   showHoverToggle = true,
+  showIntervalLinesToggle = false,
   showStartSoundDropdown = true,
   showInstrumentDropdown = false,
   showPolyphonyToggle = false,
@@ -196,6 +197,7 @@ ${togglesMarkup}
         ${showHoverToggle ? '<label for="hoverToggle">Etiquetas de ayuda <input type="checkbox" id="hoverToggle" checked /></label>' : ''}
         ${selectColor}
         ${showCircularTimelineToggle ? '<label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle" /></label>' : ''}
+        ${showIntervalLinesToggle ? '<label for="intervalLinesToggle">Mostrar líneas de intervalos <input type="checkbox" id="intervalLinesToggle" /></label>' : ''}
         ${showComplexFractions ? '<label for="enableComplexFractions">Activar fracciones complejas <input type="checkbox" id="enableComplexFractions" /></label>' : ''}
         ${showPolyphonyToggle ? '<label for="polyphonyToggle">Permitir Polifonía <input type="checkbox" id="polyphonyToggle" /></label>' : ''}
         <button type="button" id="factoryResetBtn" class="factory-reset">Volver a ajustes de fábrica</button>

@@ -357,6 +357,11 @@ function syncGridFromPairs(pairs) {
     }
   });
 
+  // Clear interval paths before updating
+  if (musicalGrid.clearIntervalPaths) {
+    musicalGrid.clearIntervalPaths();
+  }
+
   // Activate cells for each pair (skip pairs with note=null used for preserving empty columns)
   pairs.forEach(({ note, pulse }) => {
     if (note === null) return; // Skip dummy pairs used to preserve empty pulse columns
@@ -374,6 +379,13 @@ function syncGridFromPairs(pairs) {
       }
     }
   });
+
+  // Highlight interval paths (if enabled)
+  if (musicalGrid.highlightIntervalPath) {
+    // Filter out null notes before passing to highlightIntervalPath
+    const validPairs = pairs.filter(p => p.note !== null);
+    musicalGrid.highlightIntervalPath(validPairs);
+  }
 }
 
 // ========== DOM INJECTION ==========
@@ -422,6 +434,10 @@ async function init() {
   // Inject DOM elements
   injectGridEditor();
 
+  // Load preferences
+  const prefs = preferenceStorage.load() || {};
+  const intervalLinesEnabled = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
+
   // Create musical grid inside the main grid wrapper
   const mainGridWrapper = document.querySelector('.app12-main-grid');
   musicalGrid = createMusicalGrid({
@@ -433,7 +449,11 @@ async function init() {
     cellClassName: 'musical-cell',
     activeClassName: 'active',
     highlightClassName: 'highlight',
-    showIntervals: { horizontal: true, vertical: false },
+    showIntervals: {
+      horizontal: true,
+      vertical: false,
+      cellLines: intervalLinesEnabled
+    },
     intervalColor: '#4A9EFF',
     cellRenderer: (noteIndex, pulseIndex, cellElement) => {
       // Custom rendering: add label structure for N/P pairs
@@ -734,6 +754,39 @@ async function init() {
     });
   }
 
+  // Interval lines toggle
+  const intervalLinesToggle = document.getElementById('intervalLinesToggle');
+  if (intervalLinesToggle) {
+    // Set initial state from preferences
+    intervalLinesToggle.checked = intervalLinesEnabled;
+
+    // Listen for changes
+    intervalLinesToggle.addEventListener('change', () => {
+      const enabled = intervalLinesToggle.checked;
+
+      // Save to preferences
+      const currentPrefs = preferenceStorage.load() || {};
+      currentPrefs.intervalLinesEnabled = enabled;
+      preferenceStorage.save(currentPrefs);
+
+      // Update grid configuration in real-time (no reload)
+      if (musicalGrid && musicalGrid.intervalsConfig && gridEditor) {
+        musicalGrid.intervalsConfig.cellLines = enabled;
+
+        // Get current pairs from grid editor
+        const currentPairs = gridEditor.getPairs();
+        const validPairs = currentPairs.filter(p => p.note !== null);
+
+        // Apply or clear interval paths
+        if (enabled && validPairs.length > 0) {
+          musicalGrid.highlightIntervalPath(validPairs);
+        } else {
+          musicalGrid.clearIntervalPaths();
+        }
+      }
+    });
+  }
+
   // Wire instrument dropdown to audio engine
   window.addEventListener('sharedui:instrument', async (e) => {
     const instrument = e.detail.instrument;
@@ -751,7 +804,12 @@ async function init() {
   // Factory reset
   registerFactoryReset(() => {
     handleReset();
-    preferenceStorage.clear();
+    localStorage.setItem('app12-preferences', JSON.stringify({
+      selectedInstrument: 'piano',
+      selectColor: '#ff8b4d',
+      polyphony: '0',
+      intervalLinesEnabled: false
+    }));
     window.location.reload();
   });
 
