@@ -23,13 +23,6 @@
   --line-color: #999;
 }
 
-/* ========== HIDE TEMPLATE TIMELINE ========== */
-/* App11 moves .controls to two-column-layout, then hides template's timeline-wrapper */
-/* Only hide template's timeline (child of main), not musical-grid's timeline */
-main > .timeline-wrapper {
-  display: none !important;
-}
-
 /* ========== APP11-SPECIFIC OVERRIDES ========== */
 .app11-controls-container .controls[data-layout="vertical"] {
   flex-direction: column;

@@ -128,16 +128,6 @@
   align-items: center;
 }
 
-/* Hide template timeline (App12 uses musical-grid instead) */
-#timelineWrapper > #timeline {
-  display: none !important;
-}
-
-/* Hide empty timeline wrapper */
-#timelineWrapper:empty {
-  display: none;
-}
-
 /* Preserve concentric circle layout */
 .app12-controls-container .controls {
   position: relative;

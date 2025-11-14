@@ -76,6 +76,14 @@
     document.querySelector('.inputs')?.remove();
     document.querySelector('.middle')?.remove();
 
+    // Extract .controls from timeline-wrapper before removing it
+    const timelineWrapper = document.querySelector('.timeline-wrapper');
+    const controls = timelineWrapper?.querySelector('.controls');
+    if (controls && timelineWrapper) {
+      timelineWrapper.before(controls);  // Move controls out of wrapper
+      timelineWrapper.remove();          // Now remove the wrapper
+    }
+
     import('./main.js');
   </script>
 

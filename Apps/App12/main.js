@@ -540,12 +540,11 @@ async function init() {
   });
 
   // Reposition controls into grid wrapper
-  const timelineWrapper = document.getElementById('timelineWrapper');
-  const controls = timelineWrapper?.querySelector('.controls');
+  const controls = document.querySelector('.controls');
   const gridWrapper = document.querySelector('.app12-main-grid');
 
   if (controls && gridWrapper) {
-    // Extract controls from timeline wrapper
+    // Extract controls from template
     controls.remove();
 
     // Create container for controls

@@ -193,6 +193,15 @@ export function createMusicalGrid(config) {
     line.className = 'soundline';
     innerContainer.appendChild(line);
 
+    // Create top zero label (above first division)
+    const topZeroLabel = document.createElement('div');
+    topZeroLabel.className = 'soundline-number top-zero';
+    topZeroLabel.dataset.noteIndex = '0-top';
+    topZeroLabel.textContent = '0';
+    topZeroLabel.style.top = '0%';
+    topZeroLabel.style.transform = 'translateY(-50%)';  // Align with first division
+    innerContainer.appendChild(topZeroLabel);
+
     // Create note elements (0 to notes-1, from bottom to top visually)
     for (let i = 0; i < notes; i++) {
       const noteIndex = notes - 1 - i; // Reverse for visual top-to-bottom = high-to-low
@@ -215,7 +224,7 @@ export function createMusicalGrid(config) {
       // Center label between division lines (not ON the line)
       const yCenter = (i + 0.5) * (100 / notes);
       noteLabel.style.top = `${yCenter}%`;
-      noteLabel.style.transform = 'translateY(-50%)';
+      noteLabel.style.transform = 'translateY(30%)';
 
       // Click handler
       if (onNoteClick) {
@@ -228,6 +237,12 @@ export function createMusicalGrid(config) {
       innerContainer.appendChild(noteLabel);
       noteElements.push({ index: noteIndex, element: noteLabel, midi });
     }
+
+    // Create final division at bottom edge
+    const finalDivision = document.createElement('div');
+    finalDivision.className = 'soundline-division';
+    finalDivision.style.top = '100%';
+    innerContainer.appendChild(finalDivision);
 
     // Render interval bars and numbers if enabled
     if (intervalsConfig.vertical) {
