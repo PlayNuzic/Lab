@@ -309,15 +309,30 @@ function handleRandom() {
   const randPMax = parseInt(document.getElementById('randPMax')?.value || 7, 10);
   const randNMax = parseInt(document.getElementById('randNMax')?.value || 11, 10);
 
-  // Generate random number of pairs (1 to randPMax)
-  const numPairs = Math.floor(Math.random() * randPMax) + 1;
-  const pairs = [];
+  // Calculate min/max pairs (similar to App11's MIN_NOTES/MAX_NOTES)
+  const MIN_PAIRS = Math.max(1, Math.floor(randPMax * 0.5)); // At least 50% of max
+  const MAX_PAIRS = randPMax;
 
-  for (let i = 0; i < numPairs; i++) {
-    const note = Math.floor(Math.random() * (randNMax + 1));
-    const pulse = i; // Sequential pulses
-    pairs.push({ note, pulse });
+  // Generate random number of pairs (MIN_PAIRS to MAX_PAIRS)
+  const numPairs = Math.floor(Math.random() * (MAX_PAIRS - MIN_PAIRS + 1)) + MIN_PAIRS;
+
+  // Create array of all available pulses (0 to TOTAL_SPACES-1 = 0 to 7)
+  const allPulses = Array.from({length: TOTAL_SPACES}, (_, i) => i);
+
+  // Shuffle pulses using Fisher-Yates algorithm (more reliable than sort)
+  for (let i = allPulses.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allPulses[i], allPulses[j]] = [allPulses[j], allPulses[i]];
   }
+
+  // Select first numPairs pulses from shuffled array
+  const selectedPulses = allPulses.slice(0, numPairs).sort((a, b) => a - b);
+
+  // Generate pairs with random notes
+  const pairs = selectedPulses.map(pulse => ({
+    note: Math.floor(Math.random() * (randNMax + 1)),
+    pulse: pulse
+  }));
 
   // Set pairs
   gridEditor?.setPairs(pairs);
@@ -325,7 +340,7 @@ function handleRandom() {
   // Update visual grid
   syncGridFromPairs(pairs);
 
-  console.log('Random generation:', { bpm: currentBPM, pairs });
+  console.log('Random generation:', { bpm: currentBPM, pairs, numPairs, selectedPulses });
 }
 
 // ========== SYNCHRONIZATION ==========
