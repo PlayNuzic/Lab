@@ -37,6 +37,14 @@ export function createSoundline(options) {
     soundline.appendChild(line);
   }
 
+  // Create top zero label (above first division)
+  const topZeroLabel = document.createElement('div');
+  topZeroLabel.className = 'soundline-number soundline-number-top';
+  topZeroLabel.dataset.note = '0-top';
+  topZeroLabel.dataset.noteIndex = totalNotes;
+  topZeroLabel.textContent = '0';
+  soundline.appendChild(topZeroLabel);
+
   // Create number labels (0-totalNotes-1) positioned in spaces between lines
   for (let i = 0; i < totalNotes; i++) {
     const label = document.createElement('div');
@@ -224,10 +232,18 @@ function layoutSoundline(soundline, totalNotes = 12) {
     div.style.top = `${pct}%`;
   });
 
-  numbers.forEach((num, idx) => {
+  numbers.forEach((num) => {
+    // Skip top zero label (positioned separately)
+    if (num.classList.contains('soundline-number-top')) {
+      num.style.top = '0%';
+      num.style.transform = 'translateY(-50%)';
+      return;
+    }
+
+    const idx = parseInt(num.dataset.noteIndex, 10);
     const pct = ((idx + 0.5) / safeTotalNotes) * 100;
     const invertedPct = 100 - pct;
     num.style.top = `${invertedPct}%`;
-    num.style.transform = 'translateY(-50%)';
+    num.style.transform = 'translateY(30%)';  // Changed from -50% to 30% to align with divisions
   });
 }
