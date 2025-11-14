@@ -159,6 +159,11 @@ export function createMusicalGrid(config) {
       parent.appendChild(gridContainer);
     }
 
+    // Debug: Add click handler at grid container level
+    gridContainer.addEventListener('click', (e) => {
+      console.log('🎨 Grid container clicked!', e.target.className, 'at coordinates:', e.clientX, e.clientY);
+    }, true);
+
     // Store references
     containers.grid = gridContainer;
     containers.soundline = soundlineWrapper;
@@ -308,6 +313,21 @@ export function createMusicalGrid(config) {
     container.addEventListener('click', (e) => {
       console.log('🎯 Timeline container clicked!', e.target.className, e.target);
     }, true); // Use capture phase to catch events before they bubble
+
+    // Debug: Check timeline container size and position
+    setTimeout(() => {
+      const rect = container.getBoundingClientRect();
+      console.log('📏 Timeline container dimensions:', {
+        width: rect.width,
+        height: rect.height,
+        top: rect.top,
+        left: rect.left,
+        display: window.getComputedStyle(container).display,
+        position: window.getComputedStyle(container).position,
+        pointerEvents: window.getComputedStyle(container).pointerEvents,
+        zIndex: window.getComputedStyle(container).zIndex
+      });
+    }, 100);
 
     // Create inner expandible container for scroll support
     let innerContainer = container;
