@@ -521,6 +521,7 @@ async function init() {
             const filtered = currentPairs.filter(p => p.pulse !== pulseIndex);
             filtered.push({ note: noteIndex, pulse: pulseIndex });
             gridEditor.setPairs(filtered);
+            syncGridFromPairs(filtered); // Update interval paths in real-time
           }
         }
       } else {
@@ -552,10 +553,12 @@ async function init() {
             // Remove pair
             const filtered = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
             gridEditor.setPairs(filtered);
+            syncGridFromPairs(filtered); // Update interval paths in real-time
           } else {
             // Add pair
             currentPairs.push({ note: noteIndex, pulse: pulseIndex });
             gridEditor.setPairs(currentPairs);
+            syncGridFromPairs(currentPairs); // Update interval paths in real-time
           }
         }
       }
