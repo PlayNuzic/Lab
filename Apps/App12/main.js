@@ -733,13 +733,42 @@ async function init() {
 
   // Factory reset
   registerFactoryReset(() => {
+    // 1. Clear grid state first
     handleReset();
+
+    // 2. Update localStorage with factory defaults
     localStorage.setItem('app12-preferences', JSON.stringify({
       selectedInstrument: 'piano',
       selectColor: '#E4570C',
-      polyphony: '0',
-      intervalLinesEnabled: false
+      polyphony: '0',                // Polyphony DISABLED
+      intervalLinesEnabled: false    // Interval lines DISABLED
     }));
+
+    // 3. Sync UI without reload
+    // Polyphony toggle
+    const polyphonyToggle = document.getElementById('polyphonyToggle');
+    if (polyphonyToggle) {
+      polyphonyToggle.checked = false;
+      polyphonyEnabled = false;
+    }
+
+    // Interval lines toggle
+    const intervalLinesToggle = document.getElementById('intervalLinesToggle');
+    if (intervalLinesToggle) {
+      intervalLinesToggle.checked = false;
+      if (musicalGrid?.clearIntervalPaths) {
+        musicalGrid.clearIntervalPaths();
+      }
+    }
+
+    // Color picker
+    const selectColorInput = document.getElementById('selectColor');
+    if (selectColorInput) {
+      selectColorInput.value = '#E4570C';
+      document.documentElement.style.setProperty('--select-color', '#E4570C');
+    }
+
+    // 4. Reload to ensure clean state
     window.location.reload();
   });
 
