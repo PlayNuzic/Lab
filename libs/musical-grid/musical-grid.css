@@ -29,7 +29,7 @@
  *   --grid-number-color-dark: Dark theme number color (default: var(--text-dark, #e0e0e0))
  *
  *   Theme colors:
- *   --select-color: Global selection color (default: #F97C39)
+ *   --select-color: Global selection color (default: #E4570C)
  *   --text-color: Main text color (default: #333)
  *   --text-dark: Dark theme text color (default: #e0e0e0)
  *   --text-light: Light text color (default: #666)
@@ -199,9 +199,9 @@
 }
 
 .musical-cell:hover {
-  background: var(--cell-highlight-color, var(--select-color, #F97C39));
+  background: var(--cell-highlight-color, var(--select-color, #E4570C));
   opacity: 0.4;
-  box-shadow: 0 0 10px var(--cell-highlight-color, var(--select-color, #F97C39));
+  box-shadow: 0 0 10px var(--cell-highlight-color, var(--select-color, #E4570C));
   z-index: var(--z-interactive, 10);
 }
 

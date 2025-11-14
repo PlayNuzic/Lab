@@ -847,7 +847,7 @@ async function init() {
   });
 
   // Factory reset
-  document.addEventListener('sharedui:factory-reset', () => {
+  window.addEventListener('sharedui:factoryreset', () => {
     // 1. Clear grid state first
     handleReset();
 
