@@ -368,7 +368,7 @@
   /* ⭐ UPDATED: Unified color system */
   color: var(--grid-number-color, var(--text-color, #333));
   user-select: none;
-  opacity: 0.85;
+  opacity: 0.1;  /* Match grid line opacity for subtlety */
 
   /* Number positioning: centered below the line */
   display: flex;
