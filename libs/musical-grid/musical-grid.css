@@ -387,6 +387,7 @@
 .pulse-marker-clickable {
   pointer-events: auto !important; /* Override default pointer-events: none */
   cursor: pointer !important;
+  z-index: 25 !important; /* Above interval lines (z-index: 15) and NP dots (z-index: 20) */
 
   /* Generous click area using padding (invisible expansion) */
   padding: 15px;
@@ -403,6 +404,15 @@
   opacity: 1 !important;
   transform: translateX(-50%) scale(1.2);
   transition: all 0.1s ease;
+}
+
+/* Hover effect on cells when pulse marker is hovered */
+.musical-cell.pulse-hover-highlight {
+  background: var(--cell-highlight-color, var(--select-color, #E4570C));
+  opacity: 0.3;
+  box-shadow: 0 0 8px var(--cell-highlight-color, var(--select-color, #E4570C));
+  transition: all 0.15s ease;
+  z-index: var(--z-interactive, 10);
 }
 
 /* ========== SOUNDLINE HIGHLIGHT ========== */

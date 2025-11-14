@@ -373,6 +373,23 @@ export function createMusicalGrid(config) {
         marker.addEventListener('click', () => {
           onPulseClick(i, marker);
         });
+
+        // Hover handler: illuminate all cells in this pulse column
+        marker.addEventListener('mouseenter', () => {
+          // Find all cells in column i
+          const columnCells = matrixContainer.querySelectorAll(`.musical-cell[data-pulse="${i}"]`);
+          columnCells.forEach(cell => {
+            cell.classList.add('pulse-hover-highlight');
+          });
+        });
+
+        marker.addEventListener('mouseleave', () => {
+          // Remove highlight from all cells
+          const highlightedCells = matrixContainer.querySelectorAll('.pulse-hover-highlight');
+          highlightedCells.forEach(cell => {
+            cell.classList.remove('pulse-hover-highlight');
+          });
+        });
       }
 
       innerContainer.appendChild(marker);
