@@ -383,6 +383,28 @@
   color: var(--grid-number-color-dark, var(--text-dark, #e0e0e0));
 }
 
+/* ========== CLICKABLE PULSE MARKERS ========== */
+.pulse-marker-clickable {
+  pointer-events: auto !important; /* Override default pointer-events: none */
+  cursor: pointer !important;
+
+  /* Generous click area using padding (invisible expansion) */
+  padding: 15px;
+  margin: -15px; /* Compensate for padding to maintain visual position */
+}
+
+.pulse-marker-clickable:hover {
+  opacity: 0.8 !important; /* Increase visibility on hover */
+  color: var(--select-color, #E4570C);
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.pulse-marker-clickable:active {
+  opacity: 1 !important;
+  transform: translateX(-50%) scale(1.2);
+  transition: all 0.1s ease;
+}
+
 /* ========== SOUNDLINE HIGHLIGHT ========== */
 .soundline-highlight {
   position: absolute;

@@ -18,6 +18,7 @@
  * @param {Object} [config.cellSize] - Minimum cell size when scrollEnabled {minWidth, minHeight}
  * @param {Function} [config.onCellClick] - (noteIndex, pulseIndex, cellElement) => void
  * @param {Function} [config.onNoteClick] - (noteIndex, midi, noteElement) => void
+ * @param {Function} [config.onPulseClick] - (pulseIndex, pulseElement) => void
  * @param {Function} [config.cellRenderer] - (noteIndex, pulseIndex, cellElement) => void - Custom cell rendering
  * @param {Function} [config.noteFormatter] - (noteIndex, midi) => string - Custom note label
  * @param {Function} [config.pulseFormatter] - (pulseIndex) => string - Custom pulse label
@@ -48,6 +49,7 @@ export function createMusicalGrid(config) {
     cellSize = null,
     onCellClick = null,
     onNoteClick = null,
+    onPulseClick = null,
     cellRenderer = null,
     noteFormatter = null,
     pulseFormatter = null,
@@ -363,6 +365,16 @@ export function createMusicalGrid(config) {
 
       marker.style.left = `${markerLeft}px`;
       marker.textContent = pulseFormatter ? pulseFormatter(i) : i;
+
+      // Click handler for pulse markers
+      if (onPulseClick) {
+        marker.style.cursor = 'pointer';
+        marker.classList.add('pulse-marker-clickable');
+        marker.addEventListener('click', () => {
+          onPulseClick(i, marker);
+        });
+      }
+
       innerContainer.appendChild(marker);
 
       pulseElements.push({ index: i, element: marker });

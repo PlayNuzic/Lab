@@ -263,53 +263,78 @@ async function init() {
       vertical: false,
       cellLines: intervalLinesEnabled
     },
-    intervalColor: '#4A9EFF'
+    intervalColor: '#4A9EFF',
+    onCellClick: intervalLinesEnabled ? null : async (noteIndex, pulseIndex, cell) => {
+      // Cell clicks DISABLED when interval lines are enabled
+      await initAudio();
+
+      if (!window.Tone) {
+        console.warn('Tone.js not available yet');
+        return;
+      }
+
+      const midi = BASE_MIDI + noteIndex;
+      const duration = intervalSec * 0.9;
+
+      audio.playNote(midi, duration, window.Tone.now());
+
+      // Show label on click
+      cell.classList.add('active');
+      if (!cell.querySelector('.cell-label')) {
+        const label = document.createElement('span');
+        label.className = 'cell-label';
+        label.textContent = `( ${noteIndex} , ${pulseIndex} )`;
+        cell.appendChild(label);
+      }
+
+      // Wait 1000ms, then start fade-out animation
+      setTimeout(() => {
+        cell.classList.add('fading-out');
+
+        // After fade-out completes (1000ms), clean up
+        setTimeout(() => {
+          cell.classList.remove('active', 'fading-out');
+          const label = cell.querySelector('.cell-label');
+          if (label) label.remove();
+        }, 1000);
+      }, 1000);
+    },
+    onPulseClick: intervalLinesEnabled ? async (pulseIndex) => {
+      // Pulse clicks ENABLED only when interval lines are enabled
+      await initAudio();
+
+      if (!window.Tone) {
+        console.warn('Tone.js not available yet');
+        return;
+      }
+
+      // Play ALL active notes at this pulse
+      const activeCells = [];
+      for (let noteIndex = 0; noteIndex < TOTAL_NOTES; noteIndex++) {
+        const cell = musicalGrid.getCellElement(noteIndex, pulseIndex);
+        if (cell && cell.classList.contains('active')) {
+          activeCells.push({ noteIndex, cell });
+        }
+      }
+
+      if (activeCells.length > 0) {
+        const duration = intervalSec * 0.9;
+        const when = window.Tone.now();
+
+        // Play all notes simultaneously
+        activeCells.forEach(({ noteIndex, cell }) => {
+          const midi = BASE_MIDI + noteIndex;
+          audio.playNote(midi, duration, when);
+
+          // Visual feedback
+          cell.classList.add('playing');
+          setTimeout(() => cell.classList.remove('playing'), duration * 1000);
+        });
+      }
+    } : null
   });
 
   console.log('Musical grid created with intervals');
-
-  // Add click handlers to cells
-  for (let noteIndex = 0; noteIndex < TOTAL_NOTES; noteIndex++) {
-    for (let pulseIndex = 0; pulseIndex < SEQUENCE_PULSES; pulseIndex++) {
-      const cell = musicalGrid.getCellElement(noteIndex, pulseIndex);
-      if (cell) {
-        cell.addEventListener('click', async () => {
-          await initAudio();
-
-          if (!window.Tone) {
-            console.warn('Tone.js not available yet');
-            return;
-          }
-
-          const midi = BASE_MIDI + noteIndex;
-          const duration = intervalSec * 0.9;
-
-          audio.playNote(midi, duration, window.Tone.now());
-
-          // Show label on click
-          cell.classList.add('active');
-          if (!cell.querySelector('.cell-label')) {
-            const label = document.createElement('span');
-            label.className = 'cell-label';
-            label.textContent = `( ${noteIndex} , ${pulseIndex} )`;
-            cell.appendChild(label);
-          }
-
-          // Wait 1000ms, then start fade-out animation
-          setTimeout(() => {
-            cell.classList.add('fading-out');
-
-            // After fade-out completes (1000ms), clean up
-            setTimeout(() => {
-              cell.classList.remove('active', 'fading-out');
-              const label = cell.querySelector('.cell-label');
-              if (label) label.remove();
-            }, 1000);
-          }, 1000);
-        });
-      }
-    }
-  }
 
   // Setup Play button
   playBtn = document.getElementById('playBtn');
@@ -407,7 +432,7 @@ async function init() {
   const selectColorInput = document.getElementById('selectColor');
   if (selectColorInput) {
     // Set initial color from preferences
-    const savedColor = prefs.selectColor || '#ff8b4d';
+    const savedColor = prefs.selectColor || '#E4570C';
     selectColorInput.value = savedColor;
     document.documentElement.style.setProperty('--select-color', savedColor);
 
@@ -425,11 +450,31 @@ async function init() {
 
   // Register factory reset
   registerFactoryReset(() => {
+    // 1. Update localStorage with factory defaults
     localStorage.setItem('app11-preferences', JSON.stringify({
       selectedInstrument: 'piano',
       intervalLinesEnabled: false,
-      selectColor: '#ff8b4d'
+      selectColor: '#E4570C'
     }));
+
+    // 2. Sync UI without reload
+    // Interval lines toggle
+    const intervalLinesToggle = document.getElementById('intervalLinesToggle');
+    if (intervalLinesToggle) {
+      intervalLinesToggle.checked = false;
+      if (musicalGrid?.clearIntervalPaths) {
+        musicalGrid.clearIntervalPaths();
+      }
+    }
+
+    // Color picker
+    const selectColorInput = document.getElementById('selectColor');
+    if (selectColorInput) {
+      selectColorInput.value = '#E4570C';
+      document.documentElement.style.setProperty('--select-color', '#E4570C');
+    }
+
+    // 3. Reload to ensure clean state
     window.location.reload();
   });
 

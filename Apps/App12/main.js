@@ -449,7 +449,8 @@ async function init() {
       // Custom rendering: add label structure for N/P pairs
       cellElement.innerHTML = ''; // Clear any default content
     },
-    onCellClick: async (noteIndex, pulseIndex, cellElement) => {
+    onCellClick: intervalLinesEnabled ? null : async (noteIndex, pulseIndex, cellElement) => {
+      // Cell clicks DISABLED when interval lines are enabled
       // Play MIDI note on click via audio engine
       await initAudio();
 
@@ -501,6 +502,41 @@ async function init() {
       gridEditor.setPairs(newPairs);
       syncGridFromPairs(newPairs);
     },
+    onPulseClick: intervalLinesEnabled ? async (pulseIndex, pulseElement) => {
+      // Pulse clicks ENABLED only when interval lines are enabled
+      await initAudio();
+
+      if (!window.Tone || !gridEditor) {
+        console.warn('Tone.js or gridEditor not available');
+        return;
+      }
+
+      // Play ALL notes at this pulse (polyphonic)
+      const currentPairs = gridEditor.getPairs();
+      const notesAtPulse = currentPairs
+        .filter(p => p.pulse === pulseIndex && p.note !== null)
+        .map(p => 60 + p.note);
+
+      if (notesAtPulse.length > 0) {
+        const duration = (60 / currentBPM) * 0.9;
+        const Tone = window.Tone;
+        const when = Tone.now();
+
+        // Play all notes simultaneously
+        notesAtPulse.forEach(midi => {
+          audio.playNote(midi, duration, when);
+
+          // Visual feedback per cell
+          const noteIndex = midi - 60;
+          const cell = musicalGrid.getCellElement(noteIndex, pulseIndex);
+          if (cell) {
+            cell.classList.add('playing');
+            setTimeout(() => cell.classList.remove('playing'), duration * 1000);
+          }
+          highlightNoteOnSoundline(noteIndex, duration * 1000);
+        });
+      }
+    } : null,
     onNoteClick: async (noteIndex, midi) => {
       // Play note when soundline clicked via audio engine
       await initAudio();
