@@ -773,15 +773,16 @@ async function init() {
       if (musicalGrid && musicalGrid.intervalsConfig && gridEditor) {
         musicalGrid.intervalsConfig.cellLines = enabled;
 
+        // Always clear first
+        musicalGrid.clearIntervalPaths();
+
         // Get current pairs from grid editor
         const currentPairs = gridEditor.getPairs();
         const validPairs = currentPairs.filter(p => p.note !== null);
 
-        // Apply or clear interval paths
+        // Apply interval paths if enabled and have pairs
         if (enabled && validPairs.length > 0) {
           musicalGrid.highlightIntervalPath(validPairs);
-        } else {
-          musicalGrid.clearIntervalPaths();
         }
       }
     });

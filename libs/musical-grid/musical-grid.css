@@ -205,6 +205,21 @@
   z-index: var(--z-interactive, 10);
 }
 
+/* N-P dot in bottom-left corner of ALL cells (always visible) */
+.musical-cell::before {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1.5px solid var(--cell-highlight-color, var(--select-color, #ff8b4d));
+  background: transparent;  /* Hollow by default */
+  z-index: 15;
+  pointer-events: none;
+}
+
 /* Active cell (selected) - attenuated background */
 .musical-cell.active {
   background: var(--cell-highlight-color, var(--select-color, #F97C39));
@@ -214,19 +229,10 @@
   z-index: var(--z-interactive, 10);
 }
 
-/* N-P dot in bottom-left corner of active cells */
-.musical-cell.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--cell-highlight-color, var(--select-color, #F97C39));
-  box-shadow: 0 0 6px var(--cell-highlight-color, var(--select-color, #F97C39));
-  z-index: 15;
-  pointer-events: none;
+/* N-P dot FILLED when cell is active */
+.musical-cell.active::before {
+  background: var(--cell-highlight-color, var(--select-color, #ff8b4d));
+  box-shadow: 0 0 4px var(--cell-highlight-color, var(--select-color, #ff8b4d));
 }
 
 /* ========== INTERVAL PATH BORDERS (intervals-cell-lines) ========== */

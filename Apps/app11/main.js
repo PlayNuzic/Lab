@@ -378,6 +378,9 @@ async function init() {
       if (musicalGrid && musicalGrid.intervalsConfig) {
         musicalGrid.intervalsConfig.cellLines = enabled;
 
+        // Always clear first
+        musicalGrid.clearIntervalPaths();
+
         // Get currently active cells and extract N-P pairs
         const activeCells = document.querySelectorAll('.musical-cell.active');
         const pairs = [];
@@ -392,11 +395,9 @@ async function init() {
         // Sort pairs by pulse (required for highlightIntervalPath)
         pairs.sort((a, b) => a.pulse - b.pulse);
 
-        // Apply or clear interval paths
+        // Apply interval paths if enabled and have pairs
         if (enabled && pairs.length > 0) {
           musicalGrid.highlightIntervalPath(pairs);
-        } else {
-          musicalGrid.clearIntervalPaths();
         }
       }
     });

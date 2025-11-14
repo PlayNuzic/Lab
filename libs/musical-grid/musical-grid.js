@@ -995,6 +995,7 @@ export function createMusicalGrid(config) {
       const next = sortedPairs[i + 1];
 
       // 1. Horizontal path: from current pulse to next pulse (along current note)
+      // Illuminates bottom borders of cells from current.pulse to next.pulse-1
       for (let p = current.pulse; p < next.pulse; p++) {
         const cell = getCellElement(current.note, p);
         if (cell) {
@@ -1003,18 +1004,20 @@ export function createMusicalGrid(config) {
       }
 
       // 2. Vertical path: from current note to next note (at next pulse)
+      // Illuminates left borders of cells from current.note (exclusive) to next.note (inclusive)
       const startNote = Math.min(current.note, next.note);
       const endNote = Math.max(current.note, next.note);
 
       for (let n = startNote; n <= endNote; n++) {
         const cell = getCellElement(n, next.pulse);
         if (cell) {
-          // Corner cell gets both classes
-          if (n === current.note && next.pulse < pulses - 1) {
-            cell.classList.add('interval-path-corner');
-          } else {
-            cell.classList.add('interval-path-vertical');
+          // Skip the starting note (current.note) - it already has horizontal border
+          if (n === current.note) {
+            continue;
           }
+
+          // All other cells in the vertical path get left border
+          cell.classList.add('interval-path-vertical');
         }
       }
     }
