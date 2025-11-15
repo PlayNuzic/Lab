@@ -200,7 +200,7 @@
 
 /* Disable pointer cursor in interval mode */
 .interval-mode .musical-cell {
-  cursor: default;
+  cursor: default !important;
 }
 
 .musical-cell:hover {
@@ -234,14 +234,15 @@
   pointer-events: auto !important;
   cursor: pointer !important;
   z-index: 25 !important;  /* Above interval lines */
-  width: 14px;  /* Slightly larger for easier clicking */
-  height: 14px;
-  bottom: -7px;  /* Adjust position for larger size */
-  left: -7px;
+  /* Keep visual size small, expand click area with padding */
+  width: 10px;  /* Original size */
+  height: 10px;
+  bottom: -6px;  /* Original position */
+  left: -6px;
 
-  /* Generous click area expansion */
-  padding: 10px;
-  margin: -10px;
+  /* Generous click area expansion (invisible) */
+  padding: 8px;
+  margin: -8px;
 }
 
 /* Hover effect for clickable N-P dots */
@@ -260,6 +261,11 @@
   border-color: var(--cell-highlight-color, var(--select-color, #F97C39));
   box-shadow: none;  /* Removed glow for subtler appearance */
   z-index: var(--z-interactive, 10);
+}
+
+/* In interval mode, active cells have even lower opacity */
+.interval-mode .musical-cell.active {
+  opacity: 0.15;  /* Very subtle in interval mode */
 }
 
 /* N-P dot FILLED with selection color when cell is active */
