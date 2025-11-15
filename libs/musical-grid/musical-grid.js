@@ -19,6 +19,7 @@
  * @param {Function} [config.onCellClick] - (noteIndex, pulseIndex, cellElement) => void
  * @param {Function} [config.onNoteClick] - (noteIndex, midi, noteElement) => void
  * @param {Function} [config.onPulseClick] - (pulseIndex, pulseElement) => void
+ * @param {Function} [config.onDotClick] - (noteIndex, pulseIndex, dotElement) => void - Handler for N-P dot clicks
  * @param {Function} [config.cellRenderer] - (noteIndex, pulseIndex, cellElement) => void - Custom cell rendering
  * @param {Function} [config.noteFormatter] - (noteIndex, midi) => string - Custom note label
  * @param {Function} [config.pulseFormatter] - (pulseIndex) => string - Custom pulse label
@@ -50,6 +51,7 @@ export function createMusicalGrid(config) {
     onCellClick = null,
     onNoteClick = null,
     onPulseClick = null,
+    onDotClick = null,
     cellRenderer = null,
     noteFormatter = null,
     pulseFormatter = null,
@@ -624,6 +626,27 @@ export function createMusicalGrid(config) {
           });
         }
 
+        // Create N-P dot (real DOM element)
+        const dot = document.createElement('div');
+        dot.className = 'np-dot';
+        dot.dataset.note = noteIndex;
+        dot.dataset.pulse = hIndex;
+
+        // Make dots clickable when interval lines are enabled
+        // Check if showIntervals is enabled and cellLines is true
+        const intervalLinesEnabled = intervalsConfig && intervalsConfig.cellLines;
+
+        if (intervalLinesEnabled && onDotClick) {
+          dot.classList.add('np-dot-clickable');
+          dot.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent cell click from firing
+            onDotClick(noteIndex, hIndex, dot);
+          });
+        }
+
+        // Add dot to cell
+        cell.appendChild(dot);
+
         // Append and track
         innerContainer.appendChild(cell);
         cells.push({
@@ -1143,6 +1166,31 @@ export function createMusicalGrid(config) {
     });
   }
 
+  /**
+   * Update N-P dot clickability based on interval lines state
+   * @param {boolean} enabled - Whether interval lines are enabled
+   */
+  function updateDotClickability(enabled) {
+    cells.forEach(({ element, noteIndex, pulseIndex }) => {
+      const dot = element.querySelector('.np-dot');
+      if (!dot) return;
+
+      // Remove existing listeners to avoid duplicates
+      const newDot = dot.cloneNode(true);
+      dot.parentNode.replaceChild(newDot, dot);
+
+      if (enabled && onDotClick) {
+        newDot.classList.add('np-dot-clickable');
+        newDot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          onDotClick(noteIndex, pulseIndex, newDot);
+        });
+      } else {
+        newDot.classList.remove('np-dot-clickable');
+      }
+    });
+  }
+
   // Auto-render on creation
   render();
 
@@ -1171,6 +1219,9 @@ export function createMusicalGrid(config) {
     // Interval path borders (for N-P pairs)
     highlightIntervalPath,
     clearIntervalPaths,
+
+    // N-P dot management
+    updateDotClickability,
 
     // Container access (for composing with interval bars)
     getContainer(selector) {

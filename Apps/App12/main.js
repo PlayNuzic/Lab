@@ -588,6 +588,60 @@ async function init() {
       gridEditor.setPairs(newPairs);
       syncGridFromPairs(newPairs);
     },
+    onDotClick: async (noteIndex, pulseIndex, dotElement) => {
+      // N-P dots are clickable only when interval lines are enabled
+      if (!intervalLinesEnabledState) {
+        return; // Dot clicks DISABLED when interval lines are disabled
+      }
+
+      // Use the same logic as cell clicks
+      await initAudio();
+
+      if (!window.Tone) {
+        console.warn('Tone.js not available');
+        return;
+      }
+
+      const midi = 60 + noteIndex; // C4 = MIDI 60
+      const duration = (60 / currentBPM) * 0.9; // 1 pulse duration (90% for clean separation)
+      const Tone = window.Tone;
+      audio.playNote(midi, duration, Tone.now());
+
+      // Visual feedback on soundline
+      highlightNoteOnSoundline(noteIndex, duration * 1000);
+
+      // Check polyphony mode
+      if (!gridEditor) return;
+
+      const currentPairs = gridEditor.getPairs();
+      const isActive = currentPairs.some(p => p.note === noteIndex && p.pulse === pulseIndex);
+
+      let newPairs;
+      if (!polyphonyEnabled) {
+        // MONOPHONIC MODE
+        if (isActive) {
+          // Remove this pair
+          newPairs = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
+        } else {
+          // Remove all pairs for this pulse, add only this one
+          newPairs = currentPairs.filter(p => p.pulse !== pulseIndex);
+          newPairs.push({ note: noteIndex, pulse: pulseIndex });
+        }
+      } else {
+        // POLYPHONIC MODE
+        if (isActive) {
+          // Remove pair
+          newPairs = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
+        } else {
+          // Add pair
+          newPairs = [...currentPairs, { note: noteIndex, pulse: pulseIndex }];
+        }
+      }
+
+      // Update grid editor and sync visual state
+      gridEditor.setPairs(newPairs);
+      syncGridFromPairs(newPairs);
+    },
     onPulseClick: async (pulseIndex, pulseElement) => {
       console.log('🎵 Pulse clicked! Index:', pulseIndex, 'intervalLinesEnabledState:', intervalLinesEnabledState);
 
@@ -831,6 +885,9 @@ async function init() {
       // Update grid configuration in real-time (no reload)
       if (musicalGrid && musicalGrid.intervalsConfig && gridEditor) {
         musicalGrid.intervalsConfig.cellLines = enabled;
+
+        // Update N-P dot clickability
+        musicalGrid.updateDotClickability(enabled);
 
         // Get current pairs from grid editor
         const currentPairs = gridEditor.getPairs();

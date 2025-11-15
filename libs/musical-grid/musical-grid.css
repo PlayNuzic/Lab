@@ -205,9 +205,8 @@
   z-index: var(--z-interactive, 10);
 }
 
-/* N-P dot at intersection point of ALL cells (always visible) */
-.musical-cell::before {
-  content: '';
+/* N-P dot at intersection point of ALL cells (now a real DOM element) */
+.np-dot {
   position: absolute;
   bottom: -6px;  /* Center at bottom border */
   left: -6px;    /* Center at left border */
@@ -217,7 +216,28 @@
   border: 1px solid var(--line-color, #fff);  /* Adapts to theme (dark text in light, light text in dark) */
   background: transparent;  /* Hollow by default */
   z-index: 15;
-  pointer-events: none;
+  pointer-events: none;  /* Default: not clickable */
+  transition: all 0.2s ease;
+}
+
+/* N-P dot when interval lines are enabled (clickable) */
+.np-dot.np-dot-clickable {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 25 !important;  /* Above interval lines */
+  width: 14px;  /* Slightly larger for easier clicking */
+  height: 14px;
+  bottom: -7px;  /* Adjust position for larger size */
+  left: -7px;
+}
+
+/* Hover effect for clickable N-P dots */
+.np-dot.np-dot-clickable:hover {
+  background: rgba(255, 139, 77, 0.4);  /* Orange glow on hover */
+  border-color: var(--select-color, #E4570C);
+  border-width: 2px;
+  box-shadow: 0 0 8px var(--select-color, #E4570C);
+  transform: scale(1.3);
 }
 
 /* Active cell (selected) - attenuated background */
@@ -230,7 +250,7 @@
 }
 
 /* N-P dot FILLED with selection color when cell is active */
-.musical-cell.active::before {
+.musical-cell.active .np-dot {
   background: var(--cell-highlight-color, var(--select-color, #E4570C));  /* Selection color fill */
   border-color: var(--line-color, #fff);  /* Adapts to theme */
   box-shadow: 0 0 6px var(--cell-highlight-color, var(--select-color, #E4570C));
