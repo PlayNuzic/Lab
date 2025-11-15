@@ -511,7 +511,6 @@ async function init() {
 
   // Create musical grid inside the main grid wrapper
   const mainGridWrapper = document.querySelector('.app12-main-grid');
-  console.log('🎨 Creating musical grid with intervalLinesEnabledState:', intervalLinesEnabledState);
   musicalGrid = createMusicalGrid({
     parent: mainGridWrapper || document.getElementById('app-root'), // Use grid wrapper if exists
     notes: TOTAL_NOTES,
@@ -643,15 +642,10 @@ async function init() {
       syncGridFromPairs(newPairs);
     },
     onPulseClick: async (pulseIndex, pulseElement) => {
-      console.log('🎵 Pulse clicked! Index:', pulseIndex, 'intervalLinesEnabledState:', intervalLinesEnabledState);
-
       // Check state from memory for performance
       if (!intervalLinesEnabledState) {
-        console.log('❌ Pulse click ignored - interval lines are DISABLED');
         return; // Pulse clicks ENABLED only when interval lines are enabled
       }
-
-      console.log('✅ Processing pulse click - interval lines are ENABLED');
 
       await initAudio();
 
@@ -740,6 +734,14 @@ async function init() {
 
   // Initialize highlight controller
   highlightController = createMatrixHighlightController();
+
+  // Apply interval-mode class if enabled
+  if (intervalLinesEnabled) {
+    const gridContainer = document.querySelector('.grid-container');
+    if (gridContainer) {
+      gridContainer.classList.add('interval-mode');
+    }
+  }
 
   // Wait for DOM to be fully populated by template system
   await new Promise(resolve => setTimeout(resolve, 50));
@@ -875,12 +877,20 @@ async function init() {
     // Listen for changes
     intervalLinesToggle.addEventListener('change', () => {
       const enabled = intervalLinesToggle.checked;
-      console.log('🔄 Interval lines toggle changed to:', enabled);
       intervalLinesEnabledState = enabled; // Update memory state
-      console.log('💾 intervalLinesEnabledState updated to:', intervalLinesEnabledState);
 
       // Save to preferences
       savePreference('intervalLinesEnabled', enabled);
+
+      // Toggle interval-mode class on grid container
+      const gridContainer = document.querySelector('.grid-container');
+      if (gridContainer) {
+        if (enabled) {
+          gridContainer.classList.add('interval-mode');
+        } else {
+          gridContainer.classList.remove('interval-mode');
+        }
+      }
 
       // Update grid configuration in real-time (no reload)
       if (musicalGrid && musicalGrid.intervalsConfig && gridEditor) {

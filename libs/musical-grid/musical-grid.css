@@ -198,6 +198,11 @@
   background: rgba(255, 255, 255, 0.05);
 }
 
+/* Disable pointer cursor in interval mode */
+.interval-mode .musical-cell {
+  cursor: default;
+}
+
 .musical-cell:hover {
   background: var(--cell-highlight-color, var(--select-color, #E4570C));
   opacity: 0.4;
@@ -213,11 +218,15 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1px solid var(--line-color, #fff);  /* Adapts to theme (dark text in light, light text in dark) */
+  border: 1px solid rgba(102, 102, 102, 0.3);  /* Same opacity as grid lines */
   background: transparent;  /* Hollow by default */
   z-index: 15;
   pointer-events: none;  /* Default: not clickable */
   transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .np-dot {
+  border-color: rgba(153, 153, 153, 0.3);  /* Lighter for dark theme with same low opacity */
 }
 
 /* N-P dot when interval lines are enabled (clickable) */
@@ -229,6 +238,10 @@
   height: 14px;
   bottom: -7px;  /* Adjust position for larger size */
   left: -7px;
+
+  /* Generous click area expansion */
+  padding: 10px;
+  margin: -10px;
 }
 
 /* Hover effect for clickable N-P dots */
@@ -252,7 +265,9 @@
 /* N-P dot FILLED with selection color when cell is active */
 .musical-cell.active .np-dot {
   background: var(--cell-highlight-color, var(--select-color, #E4570C));  /* Selection color fill */
-  border-color: var(--line-color, #fff);  /* Adapts to theme */
+  border-color: var(--cell-highlight-color, var(--select-color, #E4570C));  /* Solid border when active */
+  border-width: 1px;
+  opacity: 1;  /* Full opacity when active */
   box-shadow: 0 0 6px var(--cell-highlight-color, var(--select-color, #E4570C));
 }
 

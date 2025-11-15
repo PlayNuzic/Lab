@@ -259,6 +259,11 @@
   color: var(--color-contrast, #F97C39) !important;
 }
 
+/* Interval mode: labels are blue to match interval lines */
+.interval-mode .cell-label {
+  color: var(--interval-color, #4A9EFF) !important;
+}
+
 /* Note: All other cell label styles (positioning, font-size, nowrap, fade-out)
    are inherited from musical-grid.css module */
 

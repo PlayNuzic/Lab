@@ -161,10 +161,6 @@ export function createMusicalGrid(config) {
       parent.appendChild(gridContainer);
     }
 
-    // Debug: Add click handler at grid container level
-    gridContainer.addEventListener('click', (e) => {
-      console.log('🎨 Grid container clicked!', e.target.className, 'at coordinates:', e.clientX, e.clientY);
-    }, true);
 
     // Store references
     containers.grid = gridContainer;
@@ -311,25 +307,6 @@ export function createMusicalGrid(config) {
   function renderTimeline() {
     const container = containers.timeline;
 
-    // Debug: Check if timeline container receives any clicks
-    container.addEventListener('click', (e) => {
-      console.log('🎯 Timeline container clicked!', e.target.className, e.target);
-    }, true); // Use capture phase to catch events before they bubble
-
-    // Debug: Check timeline container size and position
-    setTimeout(() => {
-      const rect = container.getBoundingClientRect();
-      console.log('📏 Timeline container dimensions:', {
-        width: rect.width,
-        height: rect.height,
-        top: rect.top,
-        left: rect.left,
-        display: window.getComputedStyle(container).display,
-        position: window.getComputedStyle(container).position,
-        pointerEvents: window.getComputedStyle(container).pointerEvents,
-        zIndex: window.getComputedStyle(container).zIndex
-      });
-    }, 100);
 
     // Create inner expandible container for scroll support
     let innerContainer = container;
@@ -395,23 +372,20 @@ export function createMusicalGrid(config) {
 
       // Click handler for pulse markers
       if (onPulseClick) {
-        console.log('📍 Adding click handler to pulse marker', i);
         marker.style.cursor = 'pointer';
         marker.classList.add('pulse-marker-clickable');
-        console.log('✅ Class list after adding clickable:', marker.classList.toString());
 
         // Force pointer-events directly on the element as a test
         marker.style.pointerEvents = 'auto';
         marker.style.zIndex = '30';
         marker.addEventListener('click', () => {
-          console.log('🖱️ Pulse marker clicked at index', i);
           onPulseClick(i, marker);
         });
 
         // Hover handler: illuminate all cells in this pulse column
         marker.addEventListener('mouseenter', () => {
           // Find all cells in column i
-          const columnCells = matrixContainer.querySelectorAll(`.musical-cell[data-pulse="${i}"]`);
+          const columnCells = containers.matrix.querySelectorAll(`.musical-cell[data-pulse="${i}"]`);
           columnCells.forEach(cell => {
             cell.classList.add('pulse-hover-highlight');
           });
@@ -419,7 +393,7 @@ export function createMusicalGrid(config) {
 
         marker.addEventListener('mouseleave', () => {
           // Remove highlight from all cells
-          const highlightedCells = matrixContainer.querySelectorAll('.pulse-hover-highlight');
+          const highlightedCells = containers.matrix.querySelectorAll('.pulse-hover-highlight');
           highlightedCells.forEach(cell => {
             cell.classList.remove('pulse-hover-highlight');
           });
