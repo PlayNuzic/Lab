@@ -215,19 +215,30 @@
 /* N-P dot at intersection point of ALL cells (now a real DOM element) */
 .np-dot {
   position: absolute;
-  bottom: -6px;  /* Center at bottom border */
-  left: -6px;    /* Center at left border */
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1px solid rgba(102, 102, 102, 0.3);  /* Same opacity as grid lines */
-  background: transparent;  /* Hollow by default */
-  z-index: 15;
+  bottom: -6px;  /* Clickable area centered on intersection */
+  left: -6px;
+  width: 12px;
+  height: 12px;
+  z-index: 30;
   pointer-events: none;  /* Default: not clickable */
-  transition: all 0.2s ease;
 }
 
-[data-theme="dark"] .np-dot {
+.np-dot::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(102, 102, 102, 0.3);  /* Same opacity as grid lines */
+  background: transparent;
+  transform: translate(-50%, -50%);
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+[data-theme="dark"] .np-dot::after {
   border-color: rgba(153, 153, 153, 0.3);  /* Lighter for dark theme with same low opacity */
 }
 
@@ -239,12 +250,12 @@
 }
 
 /* Hover effect for clickable N-P dots */
-.np-dot.np-dot-clickable:hover {
+.np-dot.np-dot-clickable:hover::after {
   background: rgba(255, 139, 77, 0.4);  /* Orange glow on hover */
   border-color: var(--select-color, #E4570C);
   border-width: 2px;
   box-shadow: 0 0 8px var(--select-color, #E4570C);
-  transform: scale(1.3);
+  transform: translate(-50%, -50%) scale(1.3);
 }
 
 /* Active cell (selected) - attenuated background */
@@ -257,7 +268,7 @@
 }
 
 /* N-P dot FILLED with selection color when cell is active */
-.musical-cell.active .np-dot {
+.musical-cell.active .np-dot::after {
   background: var(--cell-highlight-color, var(--select-color, #E4570C));  /* Selection color fill */
   border-color: var(--cell-highlight-color, var(--select-color, #E4570C));  /* Solid border when active */
   border-width: 1px;
@@ -271,12 +282,18 @@
 /* Horizontal path - illuminates bottom border from current pulse to next note's pulse */
 .interval-path-horizontal {
   border-bottom: 4px solid var(--interval-color, #4A9EFF) !important;
+  border-top-color: transparent !important;
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
   z-index: 12;
 }
 
 /* Vertical path - illuminates left border from current note to next note */
 .interval-path-vertical {
   border-left: 4px solid var(--interval-color, #4A9EFF) !important;
+  border-right-color: transparent !important;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
   z-index: 12;
 }
 
@@ -284,6 +301,8 @@
 .interval-path-corner {
   border-bottom: 4px solid var(--interval-color, #4A9EFF) !important;
   border-left: 4px solid var(--interval-color, #4A9EFF) !important;
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
   z-index: 12;
 }
 
