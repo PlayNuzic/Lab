@@ -1080,6 +1080,11 @@ export function createMusicalGrid(config) {
           }
         }
       }
+      // Ensure destination cell always participates in the vertical path
+      if (current.note !== next.note) {
+        const destinationCell = getCellElement(next.note, next.pulse);
+        destinationCell?.classList.add('interval-path-vertical');
+      }
       // If current.note === next.note: no vertical path needed (same note)
     }
   }
