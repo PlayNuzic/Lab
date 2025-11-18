@@ -205,7 +205,7 @@
   cursor: default !important;
 }
 
-.musical-cell:hover {
+.grid-container:not(.interval-mode) .musical-cell:hover {
   background: var(--cell-highlight-color, var(--select-color, #E4570C));
   opacity: 0.4;
   box-shadow: 0 0 10px var(--cell-highlight-color, var(--select-color, #E4570C));
@@ -236,15 +236,6 @@
   pointer-events: auto !important;
   cursor: pointer !important;
   z-index: 25 !important;  /* Above interval lines */
-  /* Keep visual size small, expand click area with padding */
-  width: 10px;  /* Original size */
-  height: 10px;
-  bottom: -6px;  /* Original position */
-  left: -6px;
-
-  /* Generous click area expansion (invisible) */
-  padding: 8px;
-  margin: -8px;
 }
 
 /* Hover effect for clickable N-P dots */
