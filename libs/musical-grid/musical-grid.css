@@ -280,18 +280,12 @@
 /* Horizontal path - illuminates bottom border from current pulse to next note's pulse */
 .interval-path-horizontal {
   border-bottom: 4px solid var(--interval-color, #4A9EFF) !important;
-  box-shadow:
-    0 6px 12px rgba(74, 158, 255, 0.5),
-    inset 0 -1px 2px rgba(255, 255, 255, 0.3);
   z-index: 12;
 }
 
 /* Vertical path - illuminates left border from current note to next note */
 .interval-path-vertical {
   border-left: 4px solid var(--interval-color, #4A9EFF) !important;
-  box-shadow:
-    -6px 0 12px rgba(74, 158, 255, 0.5),
-    inset -1px 0 2px rgba(255, 255, 255, 0.3);
   z-index: 12;
 }
 
@@ -299,9 +293,6 @@
 .interval-path-corner {
   border-bottom: 4px solid var(--interval-color, #4A9EFF) !important;
   border-left: 4px solid var(--interval-color, #4A9EFF) !important;
-  box-shadow:
-    -4px 4px 12px rgba(74, 158, 255, 0.5),
-    inset -1px -1px 2px rgba(255, 255, 255, 0.3);
   z-index: 12;
 }
 
