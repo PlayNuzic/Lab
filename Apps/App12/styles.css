@@ -253,20 +253,6 @@
   transform: rotate(55deg);
 }
 
-/* ========== CELL LABEL CUSTOMIZATIONS ========== */
-/* App12-specific label color override (orange selection color) */
-.app12-main-grid .cell-label {
-  color: var(--color-contrast, #F97C39) !important;
-}
-
-/* Interval mode: labels are blue to match interval lines */
-.interval-mode .cell-label {
-  color: var(--interval-color, #4A9EFF) !important;
-}
-
-/* Note: All other cell label styles (positioning, font-size, nowrap, fade-out)
-   are inherited from musical-grid.css module */
-
 /* ========== RESPONSIVE ADAPTATIONS ========== */
 
 /* Desktop sizes (explicit baseline for overrides) */

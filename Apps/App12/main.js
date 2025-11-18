@@ -640,57 +640,6 @@ async function init() {
       // Update grid editor and sync visual state
       gridEditor.setPairs(newPairs);
       syncGridFromPairs(newPairs);
-    },
-    onPulseClick: async (pulseIndex, pulseElement) => {
-      // Check state from memory for performance
-      if (!intervalLinesEnabledState) {
-        return; // Pulse clicks ENABLED only when interval lines are enabled
-      }
-
-      await initAudio();
-
-      if (!window.Tone || !gridEditor) {
-        console.warn('Tone.js or gridEditor not available');
-        return;
-      }
-
-      // Play ALL notes at this pulse (polyphonic)
-      const currentPairs = gridEditor.getPairs();
-      const notesAtPulse = currentPairs
-        .filter(p => p.pulse === pulseIndex && p.note !== null)
-        .map(p => 60 + p.note);
-
-      if (notesAtPulse.length > 0) {
-        const duration = (60 / currentBPM) * 0.9;
-        const Tone = window.Tone;
-        const when = Tone.now();
-
-        // Play all notes simultaneously
-        notesAtPulse.forEach(midi => {
-          audio.playNote(midi, duration, when);
-
-          // Visual feedback per cell
-          const noteIndex = midi - 60;
-          const cell = musicalGrid.getCellElement(noteIndex, pulseIndex);
-          if (cell) {
-            cell.classList.add('playing');
-            setTimeout(() => cell.classList.remove('playing'), duration * 1000);
-          }
-          highlightNoteOnSoundline(noteIndex, duration * 1000);
-        });
-      }
-    },
-    onNoteClick: async (noteIndex, midi) => {
-      // Play note when soundline clicked via audio engine
-      await initAudio();
-
-      if (!window.Tone) {
-        console.warn('Tone.js not available');
-        return;
-      }
-
-      const Tone = window.Tone;
-      audio.playNote(midi, 0.3, Tone.now());
     }
   });
 

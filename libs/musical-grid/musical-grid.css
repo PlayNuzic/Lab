@@ -20,6 +20,7 @@
  *   --cell-label-font-weight: Label font weight (default: 600)
  *   --cell-label-color: Label text color (default: rgba(255, 255, 255, 0.95))
  *   --cell-label-color-dark: Dark theme label color (default: #FFFFFF)
+ *   --cell-label-interval-color: Interval-mode label color (default: var(--interval-color, #4A9EFF))
  *   --cell-label-shadow: Label text shadow (default: 0 1px 2px rgba(0, 0, 0, 0.5))
  *   --cell-label-shadow-dark: Dark theme shadow (default: 0 1px 2px rgba(0, 0, 0, 0.8))
  *   --fade-out-duration: Fade animation duration (default: 1s)
@@ -53,6 +54,7 @@
   --cell-label-font-weight: 600;
   --cell-label-color: rgba(255, 255, 255, 0.95);
   --cell-label-color-dark: #FFFFFF;
+  --cell-label-interval-color: var(--interval-color, #4A9EFF);
   --cell-label-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   --cell-label-shadow-dark: 0 1px 2px rgba(0, 0, 0, 0.8);
   --fade-out-duration: 1s;
@@ -257,15 +259,10 @@
 /* Active cell (selected) - attenuated background */
 .musical-cell.active {
   background: var(--cell-highlight-color, var(--select-color, #F97C39));
-  opacity: 0.3;  /* Reduced from 0.9 to make N-P dot stand out */
   border-color: var(--cell-highlight-color, var(--select-color, #F97C39));
   box-shadow: none;  /* Removed glow for subtler appearance */
+  filter: saturate(0.6) brightness(1) contrast(1);  /* Softer, less saturated fill */
   z-index: var(--z-interactive, 10);
-}
-
-/* In interval mode, active cells have even lower opacity */
-.interval-mode .musical-cell.active {
-  opacity: 0.15;  /* Very subtle in interval mode */
 }
 
 /* N-P dot FILLED with selection color when cell is active */
@@ -338,6 +335,10 @@
   display: block;
 }
 
+.interval-mode .cell-label {
+  color: var(--cell-label-interval-color, var(--interval-color, #4A9EFF));
+}
+
 /* ⭐ NEW: Elegant fade-out animation */
 .musical-cell.active.fading-out {
   transition: opacity var(--fade-out-duration, 1s) ease-out;
@@ -347,11 +348,6 @@
 .musical-cell.active.fading-out .cell-label {
   transition: opacity var(--fade-out-duration, 1s) ease-out;
   opacity: 0;
-}
-
-/* Avoid dimming labels via parent opacity on active cells */
-.musical-cell.active {
-  opacity: 1 !important;
 }
 
 [data-theme="dark"] .cell-label {
@@ -422,45 +418,6 @@
 [data-theme="dark"] .pulse-marker {
   /* ⭐ UPDATED: Unified color system */
   color: var(--grid-number-color-dark, var(--text-dark, #e0e0e0));
-}
-
-/* ========== CLICKABLE PULSE MARKERS ========== */
-.pulse-marker-clickable {
-  pointer-events: auto !important; /* Override default pointer-events: none */
-  cursor: pointer !important;
-  z-index: 25 !important; /* Above interval lines (z-index: 15) and NP dots (z-index: 20) */
-
-  /* Generous click area using padding (invisible expansion) */
-  padding: 15px;
-  margin: -15px; /* Compensate for padding to maintain visual position */
-
-  /* Make clickable pulse markers more visible */
-  background: rgba(255, 139, 77, 0.1); /* Orange background when clickable */
-  border-radius: 4px;
-}
-
-.pulse-marker-clickable:hover {
-  opacity: 1 !important; /* Full visibility on hover */
-  color: var(--select-color, #E4570C);
-  background: rgba(255, 139, 77, 0.3); /* Stronger orange on hover */
-  font-weight: bold;
-  transform: translateX(-50%) scale(1.2);
-  transition: all 0.2s ease;
-}
-
-.pulse-marker-clickable:active {
-  opacity: 1 !important;
-  transform: translateX(-50%) scale(1.2);
-  transition: all 0.1s ease;
-}
-
-/* Hover effect on cells when pulse marker is hovered */
-.musical-cell.pulse-hover-highlight {
-  background: var(--cell-highlight-color, var(--select-color, #E4570C));
-  opacity: 0.3;
-  box-shadow: 0 0 8px var(--cell-highlight-color, var(--select-color, #E4570C));
-  transition: all 0.15s ease;
-  z-index: var(--z-interactive, 10);
 }
 
 /* ========== SOUNDLINE HIGHLIGHT ========== */

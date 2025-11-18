@@ -373,30 +373,10 @@ export function createMusicalGrid(config) {
       // Click handler for pulse markers
       if (onPulseClick) {
         marker.style.cursor = 'pointer';
-        marker.classList.add('pulse-marker-clickable');
-
-        // Force pointer-events directly on the element as a test
         marker.style.pointerEvents = 'auto';
         marker.style.zIndex = '30';
         marker.addEventListener('click', () => {
           onPulseClick(i, marker);
-        });
-
-        // Hover handler: illuminate all cells in this pulse column
-        marker.addEventListener('mouseenter', () => {
-          // Find all cells in column i
-          const columnCells = containers.matrix.querySelectorAll(`.musical-cell[data-pulse="${i}"]`);
-          columnCells.forEach(cell => {
-            cell.classList.add('pulse-hover-highlight');
-          });
-        });
-
-        marker.addEventListener('mouseleave', () => {
-          // Remove highlight from all cells
-          const highlightedCells = containers.matrix.querySelectorAll('.pulse-hover-highlight');
-          highlightedCells.forEach(cell => {
-            cell.classList.remove('pulse-hover-highlight');
-          });
         });
       }
 
