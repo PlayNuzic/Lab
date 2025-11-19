@@ -3,9 +3,25 @@
  * Utilidades DOM con protección XSS mediante DOMPurify
  *
  * Proporciona funciones seguras para manipular el DOM y prevenir vulnerabilidades XSS.
+ *
+ * IMPORTANTE: Este módulo detecta automáticamente el entorno:
+ * - Navegador: Usa DOMPurify global (cargado desde CDN en index.html)
+ * - Node.js/Tests: Usa isomorphic-dompurify
  */
 
-import DOMPurify from 'isomorphic-dompurify';
+// Dynamic import based on environment
+let DOMPurify;
+
+if (typeof window !== 'undefined' && window.DOMPurify) {
+  // Browser environment - use global DOMPurify from CDN
+  DOMPurify = window.DOMPurify;
+} else if (typeof global !== 'undefined') {
+  // Node.js environment (tests) - use isomorphic-dompurify
+  const module = await import('isomorphic-dompurify');
+  DOMPurify = module.default;
+} else {
+  console.error('dom-utils: DOMPurify not available in this environment');
+}
 
 /**
  * Configuración de DOMPurify con atributos permitidos
