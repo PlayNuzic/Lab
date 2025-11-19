@@ -285,7 +285,8 @@
   border-top-color: transparent !important;
   border-left-color: transparent !important;
   border-right-color: transparent !important;
-  z-index: 12;
+  background: transparent !important;  /* Remove background from path cells */
+  z-index: var(--z-content, 5);  /* Use default cell z-index, below overlays */
 }
 
 /* Vertical path - illuminates left border from current note to next note */
@@ -294,7 +295,8 @@
   border-right-color: transparent !important;
   border-top-color: transparent !important;
   border-bottom-color: transparent !important;
-  z-index: 12;
+  background: transparent !important;  /* Remove background from path cells */
+  z-index: var(--z-content, 5);  /* Use default cell z-index, below overlays */
 }
 
 /* Corner cell - both horizontal and vertical borders (transition point) */
@@ -303,7 +305,8 @@
   border-left: 4px solid var(--interval-color, #4A9EFF) !important;
   border-top-color: transparent !important;
   border-right-color: transparent !important;
-  z-index: 12;
+  background: transparent !important;  /* Remove background from path cells */
+  z-index: var(--z-content, 5);  /* Use default cell z-index, below overlays */
 }
 
 /* Playing animation */
