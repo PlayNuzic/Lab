@@ -403,7 +403,7 @@
   top: 14px;
   width: 2px;
   height: var(--pulse-marker-height, 15px);
-  background: rgba(102, 102, 102, 0.1);  /* Line with low opacity - matches grid lines */
+  background: var(--line-color, #666);  /* Use same visible color as other grid lines */
   transform: translateX(-50%); /* Center the marker line on its position */
   pointer-events: none;
   z-index: var(--z-base, 1);
@@ -412,7 +412,7 @@
   /* ⭐ UPDATED: Unified color system */
   color: var(--grid-number-color, var(--text-color, #333));
   user-select: none;
-  opacity: 0.85;  /* Numbers visible - only line is transparent via rgba() */
+  opacity: 0.85;  /* Applies to entire element for consistency */
 
   /* Number positioning: centered below the line */
   display: flex;
