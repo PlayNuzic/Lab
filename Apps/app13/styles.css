@@ -1,0 +1,223 @@
+/* App13: Intervalos Temporales - Estilos específicos de la app */
+
+/* Configuración de colores del timeline (override de defaults del módulo compartido) */
+:root {
+  --timeline-interval-color: #4A9EFF;
+  --timeline-pulse-color: currentColor;
+  --timeline-line-color: #666;
+}
+
+[data-theme="dark"] {
+  --timeline-line-color: #999;
+}
+
+/* Los estilos de timeline, pulsos, números y barras de intervalos
+   están ahora en libs/app-common/timeline-intervals.css */
+
+/* ========== CONTROLES ========== */
+.controls-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 40px;
+  gap: 20px;
+}
+
+.play-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: transparent;
+  color: var(--selection-color, #F97C39);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.play-btn:hover:not(:disabled) {
+  background: var(--selection-color, #F97C39);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(249, 124, 57, 0.3);
+}
+
+.play-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.play-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.play-btn.playing {
+  animation: playingPulse 1s ease-in-out infinite;
+}
+
+@keyframes playingPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(249, 124, 57, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(249, 124, 57, 0.6);
+  }
+}
+
+.play-btn svg {
+  width: 28px;
+  height: 28px;
+  margin-left: 4px; /* Alineación visual del triángulo */
+}
+
+/* ========== OCULTAR NÚMEROS DE INTERVALO ========== */
+/* App13 no muestra números de intervalo */
+.timeline .interval-number {
+  display: none !important;
+}
+
+/* ========== NÚMEROS DE SUMA DE SILENCIOS ========== */
+.silence-sum {
+  position: absolute;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--timeline-pulse-color);
+  opacity: 0.7;
+  transform: translate(250%, 0);
+  z-index: 25;
+  top: calc(50% - 70px); /* Misma altura que interval-duration */
+  pointer-events: none;
+  user-select: none;
+}
+
+[data-theme="dark"] .silence-sum {
+  color: #ddd;
+}
+
+/* ========== NÚMERO DE DURACIÓN DEL INTERVALO ========== */
+.interval-duration {
+  position: absolute;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--selection-color, #F97C39);
+  transform: translate(250%, 0);
+  z-index: 30; /* Encima de las barras */
+  top: calc(50% - 70px); /* Encima de la barra de duración */
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ========== OCULTAR BOTONES INNECESARIOS ========== */
+/* App13 solo necesita el botón Play */
+.controls #tapTempoBtn,
+.controls #loopBtn,
+.controls #randomBtn,
+.controls #resetBtn {
+  display: none !important;
+}
+
+/* Centrar botón Play en los controles */
+.controls {
+  justify-content: center !important;
+}
+
+/* ========== DURATION BAR (INTERVAL BLOCK) - PERSISTENTE ========== */
+.interval-block {
+  position: absolute;
+  top: 50%;
+  height: 24px;
+  background: var(--selection-color, #F97C39);
+  opacity: 0.25;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  pointer-events: none;
+  z-index: 5;
+  user-select: none;
+  transform: translateY(-100%);
+  transition-property: width;
+  transition-timing-function: linear;
+}
+
+.interval-block.active {
+  opacity: 0.8 !important; /* Mantener siempre visible */
+  box-shadow: 0 0 8px var(--selection-color);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .timeline-wrapper {
+    max-width: 100%;
+    padding: 0 15px;
+    margin: 40px auto 30px;
+  }
+
+  .timeline {
+    height: 100px;
+  }
+
+  .timeline .pulse {
+    width: 10px;
+    height: 10px;
+  }
+
+  .timeline .pulse-number {
+    font-size: 2rem;
+    top: calc(50% + 25px);
+  }
+
+  .timeline .interval-number {
+    font-size: 2rem;
+  }
+
+  .silence-sum {
+    font-size: 1.6rem;
+    top: calc(50% - 35px); /* Misma altura que interval-duration en tablet */
+  }
+
+  .interval-duration {
+    font-size: 1.6rem;
+    top: calc(50% - 35px);
+  }
+
+  .play-btn {
+    width: 56px;
+    height: 56px;
+  }
+
+  .play-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .timeline .pulse-number {
+    font-size: 1.6rem;
+    top: calc(50% + 20px);
+  }
+
+  .timeline .interval-number {
+    font-size: 1.6rem;
+  }
+
+  .silence-sum {
+    font-size: 1.4rem;
+    top: calc(50% - 30px); /* Misma altura que interval-duration en mobile */
+  }
+
+  .interval-duration {
+    font-size: 1.4rem;
+    top: calc(50% - 30px);
+  }
+
+  .timeline .pulse {
+    width: 8px;
+    height: 8px;
+  }
+}
