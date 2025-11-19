@@ -285,8 +285,7 @@
   border-top-color: transparent !important;
   border-left-color: transparent !important;
   border-right-color: transparent !important;
-  background: transparent !important;  /* Remove background from path cells */
-  z-index: var(--z-content, 5);  /* Use default cell z-index, below overlays */
+  z-index: var(--z-content, 5) !important;  /* Below overlays (mixer=12) */
 }
 
 /* Vertical path - illuminates left border from current note to next note */
@@ -295,8 +294,7 @@
   border-right-color: transparent !important;
   border-top-color: transparent !important;
   border-bottom-color: transparent !important;
-  background: transparent !important;  /* Remove background from path cells */
-  z-index: var(--z-content, 5);  /* Use default cell z-index, below overlays */
+  z-index: var(--z-content, 5) !important;  /* Below overlays (mixer=12) */
 }
 
 /* Corner cell - both horizontal and vertical borders (transition point) */
@@ -305,8 +303,7 @@
   border-left: 4px solid var(--interval-color, #4A9EFF) !important;
   border-top-color: transparent !important;
   border-right-color: transparent !important;
-  background: transparent !important;  /* Remove background from path cells */
-  z-index: var(--z-content, 5);  /* Use default cell z-index, below overlays */
+  z-index: var(--z-content, 5) !important;  /* Below overlays (mixer=12) */
 }
 
 /* Playing animation */
@@ -613,7 +610,7 @@
   font-weight: 400;
   color: var(--interval-color, #4A9EFF);
   user-select: none;
-  z-index: 15;
+  z-index: var(--z-interactive, 10);  /* Below overlays (mixer=12) */
   opacity: 0.85;
   transform: translateX(-50%);
   pointer-events: none;
@@ -628,7 +625,7 @@
   font-weight: 400;
   color: var(--interval-color, #4A9EFF);
   user-select: none;
-  z-index: 15;
+  z-index: var(--z-interactive, 10);  /* Below overlays (mixer=12) */
   opacity: 0.85;
   pointer-events: none;
   left: 10px; /* To the left of soundline numbers */
