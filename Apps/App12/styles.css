@@ -128,10 +128,10 @@
   align-items: center;
 }
 
-/* Ensure reset and random buttons are clickable with high z-index */
+/* Ensure reset and random buttons are clickable */
 .app12-controls-container .reset,
 .app12-controls-container .random {
-  z-index: 50 !important;
+  z-index: 10 !important;  /* Below overlays (mixer=12) but above base content */
   pointer-events: auto !important;
   position: relative;
 }
