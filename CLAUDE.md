@@ -83,8 +83,9 @@ This is a **monorepo** with **workspaces** for rhythm-based musical applications
 
 ### Core Libraries (`libs/`)
 
-#### **`libs/app-common/`** - Shared App Logic (40 modules after Fase 2)
+#### **`libs/app-common/`** - Shared App Logic (43 modules after Fase 4)
 **Consolidado en Fase 2:** Reducido de 49 a 40 módulos (-9 movidos a sub-packages)
+**Fase 4 (2025-01):** +3 nuevos módulos (matrix-highlight-controller, dom-utils, timeline-intervals con tests)
 
 Core initialization and management:
 - **`audio-init.js`**: Standardized audio initialization with warning suppression
@@ -104,6 +105,14 @@ Audio and timing:
   - `createTimelineRenderer()`: Manages pulse positioning, numbers, bars, and cycle markers
   - Callbacks for custom layouts (e.g., pulse hit targets in App2)
   - Handles T-indicator reveal scheduling and number font sizing
+- **`timeline-intervals.js`**: ⭐ **NUEVO (Fase 4)** - Interval bar visualization system
+  - `createIntervalBars()`: Creates interval bar DOM elements (horizontal/vertical)
+  - `layoutHorizontalIntervalBars()` / `layoutVerticalIntervalBars()`: Position bars with pulse-based spacing
+  - `highlightIntervalBar()`: Temporary bar highlighting with optional auto-remove
+  - `clearIntervalHighlights()`: Remove all active highlights
+  - `applyTimelineStyles()`: CSS custom properties configuration (colors, sizes, positions)
+  - **Supports:** App9 horizontal timelines, MusicalMatrix vertical soundlines
+  - **Tests:** 24 tests passing in `__tests__/timeline-intervals.test.js`
 - **`visual-sync.js`**: Visual-audio synchronization (consolidado: simple + completo)
 
 UI components and interaction:
@@ -117,6 +126,22 @@ Utilities:
   - Consolidado en Fase 2: Merged number.js + range.js
 - **`events.js`**: Standardized event binding utilities
 - **`utils.js`**: Math utilities (font size, hit size calculations)
+- **`matrix-highlight-controller.js`**: ⭐ **NUEVO (Fase 4)** - Pulse highlighting for 2D musical grids
+  - `createMatrixHighlightController()`: Coordinates pulse column highlighting across grid components
+  - `highlightNoteOnSoundline()`: Creates temporary highlight rectangles on soundline
+  - Integration with musical-grid, grid-editor, and timeline
+  - BPM-aware timing calculations for synchronized animations
+  - **Apps using:** App12
+  - **Tests:** 26 tests passing in `__tests__/matrix-highlight-controller.test.js`
+- **`dom-utils.js`**: ⭐ **NUEVO (Fase 4)** - XSS-safe DOM manipulation utilities
+  - `sanitizeHTML()`: DOMPurify-based HTML sanitization with custom allowed attributes
+  - `clearElement()`: Efficient child removal (replaces `innerHTML = ''`)
+  - `createSafeElement()`: Safe element creation with attribute filtering
+  - `setSafeHTML()`: Replace element content with sanitized HTML
+  - `getDOMPurifyConfig()`: Get current sanitization configuration
+  - **Allowed attributes:** `class`, `data-note`, `data-pulse`, `data-interval`, `data-intervalIndex`, `data-soundinterval`, `data-temporalinterval`, `data-is`, `data-it`
+  - **Apps using:** App12 (more to migrate in future phases)
+  - **Tests:** 32 tests passing in `__tests__/dom-utils.test.js`
 
 #### **`libs/pulse-seq/`** - Pulse Sequence Sub-Package ⭐ **NUEVO (Fase 2)**
 Creado en consolidación Fase 2 - Sistema completo de secuencias de pulsos
@@ -600,22 +625,26 @@ Apps requiring landscape orientation (grid 2D apps like App11, App12):
 Test infrastructure:
 - **Jest 29.x** with Node.js/jsdom environments
 - **ES modules** support via experimental VM modules
-- **33 test suites**, 406 passing tests (+44 from matrix-seq + musical-grid)
+- **36 test suites**, 498 passing tests (+56 from Fase 4: timeline-intervals + dom-utils + matrix-highlight-controller)
 - **Test locations**:
-  - `libs/app-common/__tests__/` - Core shared component tests (20 suites)
-  - `libs/matrix-seq/__tests__/` - Grid editor tests (18 tests) ⭐ **NUEVO**
-  - `libs/musical-grid/__tests__/` - Musical grid tests (26 tests) ⭐ **NUEVO**
+  - `libs/app-common/__tests__/` - Core shared component tests (23 suites after Fase 4)
+    - **timeline-intervals.test.js** - 24 tests ⭐ **NUEVO (Fase 4)**
+    - **dom-utils.test.js** - 32 tests ⭐ **NUEVO (Fase 4)**
+    - **matrix-highlight-controller.test.js** - 26 tests ⭐ **NUEVO (Fase 4)**
+  - `libs/matrix-seq/__tests__/` - Grid editor tests (18 tests)
+  - `libs/musical-grid/__tests__/` - Musical grid tests (26 tests)
   - `libs/sound/*.test.js` - Audio engine tests
   - `libs/random/*.test.js`, `libs/utils/*.test.js` - Utility tests
   - `tests/` - Legacy integration and domain-specific tests
 
 **Test patterns**:
 - Unit tests for pure functions (subdivision, range, number parsing)
-- Integration tests for complex components (fraction-editor, pulse-seq, notation-utils, grid-editor, musical-grid)
+- Integration tests for complex components (fraction-editor, pulse-seq, notation-utils, grid-editor, musical-grid, matrix-highlight-controller, dom-utils)
 - Audio behavior tests (audio-toggles, loop-control, tap-resync)
 - Edge case validation (loop-resize, audio-schedule, remainder pulses)
-- DOM interaction tests with jsdom (grid-editor, musical-grid)
+- DOM interaction tests with jsdom (grid-editor, musical-grid, matrix-highlight-controller, dom-utils)
 - Scroll synchronization tests (musical-grid)
+- XSS prevention tests (dom-utils)
 
 ### Console Warnings Resolution
 
@@ -629,16 +658,73 @@ Test infrastructure:
 - Use `ensureAudioSilent()` for warning-free audio checks
 - Handle audio context state in user interaction handlers
 
+### Vulnerability Fixes (2025-01)
+
+Systematic vulnerability analysis and fixes applied to Apps 11-14 across 4 phases:
+
+#### **Phase 1: Race Conditions & Interval Mode Bugs** ✅
+**Apps affected:** App12
+- **Fixed:** Interval mode labels not switching despite toggle being ON
+- **Root cause:** `syncGridFromPairs()` reloading from localStorage on every call, causing stale data
+- **Solution:** Use in-memory state (`intervalLinesEnabledState`) for performance and consistency
+- **Commit:** `e240da8` - "Fix: Use in-memory state for interval mode in App12"
+
+#### **Phase 2: Preference Storage Migration** ✅
+**Apps affected:** App12
+- **Migrated:** Custom localStorage functions (19 LOC) → shared `createPreferenceStorage('app12')`
+- **Benefits:** Consistent API across 10 apps, eliminated duplicate code, factory reset support
+- **Commit:** `6380e6f` - "Fix Phase 2: Migrate App12 to shared preference storage"
+
+#### **Phase 3: Highlight Controller Modularization** ✅
+**Apps affected:** App12 (future: Apps with 2D grids)
+- **Created:** `libs/app-common/matrix-highlight-controller.js` (171 LOC)
+- **Functionality:** Pulse highlighting coordination across musical-grid, grid-editor, and timeline
+- **Tests:** 26 tests passing in `__tests__/matrix-highlight-controller.test.js`
+- **Benefits:** Reusable across future grid-based apps, BPM-aware timing, unified API
+- **Commit:** `404b7d2` - "Fix Phase 2: Modularize matrix highlight controller"
+
+#### **Phase 4: XSS Protection & Timeline Intervals** ✅
+**Modules created:**
+1. **`timeline-intervals.js`** (208 LOC)
+   - Modular interval bar visualization system
+   - Horizontal/vertical layout support
+   - CSS custom properties configuration
+   - 24 tests passing
+
+2. **`dom-utils.js`** (189 LOC)
+   - DOMPurify-based HTML sanitization
+   - `sanitizeHTML()`, `clearElement()`, `createSafeElement()`, `setSafeHTML()`
+   - Allowed attributes: `class`, `data-note`, `data-pulse`, `data-interval`, `data-intervalIndex`, `data-soundinterval`, `data-temporalinterval`, `data-is`, `data-it`
+   - 32 tests passing (includes XSS attack vector prevention)
+
+3. **App12 migration:**
+   - Replaced `innerHTML = ''` with `clearElement()` at line 430
+   - Added import: `import { clearElement } from '../../libs/app-common/dom-utils.js'`
+
+**Dependencies installed:**
+- `isomorphic-dompurify` (v2.x) - XSS protection library
+
+**Test coverage impact:**
+- **Before Fase 4:** 442 tests, 33 suites
+- **After Fase 4:** 498 tests, 36 suites (+56 tests, +3 suites)
+
+**Security improvements:**
+- ✅ Explicit XSS protection with DOMPurify
+- ✅ Centralized DOM manipulation with safe defaults
+- ✅ Future-proof data attributes for upcoming apps
+- ✅ Comprehensive test coverage for attack vectors
+
 ### Scaling and Code Reuse
 
 #### **Current Modularization Achievements**
 - **~70% code reduction** vs. monolithic apps
-- **40 shared modules** in `libs/app-common/` (consolidado Fase 2)
+- **43 shared modules** in `libs/app-common/` (40 consolidados Fase 2, +3 en Fase 4)
 - **7 sub-packages** especializados (pulse-seq, matrix-seq, musical-grid, notation, random, gamification, audio-capture)
 - **DOM queries**: Centralized through `bindAppRhythmElements()`
 - **Audio**: Unified initialization via `createRhythmAudioInitializer()`
 - **State management**: Shared preference storage and factory reset
 - **UI components**: Reusable controllers (fraction-editor, pulse-seq, loop-control, grid-editor, musical-grid)
+- **Security**: XSS protection with DOMPurify (dom-utils module) ⭐ **NUEVO (Fase 4)**
 
 #### **Shared Components Status**
 ✅ **Production-ready (10/10 maturity)**:
