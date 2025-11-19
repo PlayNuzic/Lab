@@ -149,7 +149,7 @@
 
 .note-highlight.highlight {
   opacity: 0.8;
-  box-shadow: 0 0 14px var(--note-highlight-color), 0 0 20px currentColor;
+  box-shadow: 0 0 7px var(--note-highlight-color), 0 0 10px currentColor;
   /* No animation for permanent highlights */
 }
 

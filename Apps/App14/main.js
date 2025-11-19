@@ -156,7 +156,8 @@ function showIntervalNumber(note1Index, note2Index) {
   intervalNum.textContent = `${direction}${absInterval}`;
   intervalNum.style.position = 'absolute';
   intervalNum.style.top = `${centerY}%`;
-  intervalNum.style.left = '180px'; // Position to the right of the line (160px + 20px)
+  // Special positioning for ±1 and 0: 220px instead of 180px
+  intervalNum.style.left = (absInterval === 0 || absInterval === 1) ? '220px' : '180px';
   intervalNum.style.transform = 'translateY(-50%)';
 
   soundline.element.appendChild(intervalNum);
@@ -217,9 +218,12 @@ async function playSequence() {
       currentHighlights.push(note2Index);
 
       // Create interval visualization after both notes are highlighted
+      // Always show interval number (including "0" for same-note repetitions)
+      showIntervalNumber(note1Index, note2Index);
+
+      // Only show line when notes are different (no line for "0")
       if (note1Index !== note2Index) {
         createIntervalLine(note1Index, note2Index);
-        showIntervalNumber(note1Index, note2Index);
       }
     }, intervalSec * 1000);
 

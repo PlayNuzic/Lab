@@ -52,11 +52,7 @@ export function createNoteHighlightController(config = {}) {
       rect.style.height = '8.33%'; // 100% / 12 spaces = 8.33%
       rect.style.transform = 'translateY(-50%)';
 
-      // Show note index (0-11)
-      const label = document.createElement('span');
-      label.className = 'note-highlight-label';
-      label.textContent = noteIndex;
-      rect.appendChild(label);
+      // Note: Label removed - no numbers inside highlighted cells
 
       soundline.element.appendChild(rect);
       activeHighlights.set(noteIndex, rect);
