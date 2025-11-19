@@ -11,6 +11,7 @@ import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
+import { createMatrixHighlightController, highlightNoteOnSoundline } from '../../libs/app-common/matrix-highlight-controller.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -60,110 +61,9 @@ async function initAudio() {
 }
 
 // ========== VISUAL FEEDBACK ==========
-
-function createMatrixHighlightController() {
-  let currentPulse = -1;
-
-  function highlightPulse(pulse) {
-    // Clear previous highlights
-    document.querySelectorAll('.pulse-marker.highlighted').forEach(el => {
-      el.classList.remove('highlighted');
-    });
-    document.querySelectorAll('.musical-cell.pulse-highlight').forEach(el => {
-      el.classList.remove('pulse-highlight');
-    });
-    document.querySelectorAll('.pz.number.highlighted').forEach(el => {
-      el.classList.remove('highlighted');
-    });
-
-    // Clear grid editor cell highlights
-    if (gridEditor) {
-      gridEditor.clearHighlights();
-    }
-
-    currentPulse = pulse;
-
-    // Highlight pulse marker on timeline
-    const pulseMarker = musicalGrid?.containers?.timeline
-      ?.querySelector(`[data-pulse="${pulse}"]`);
-    if (pulseMarker) {
-      pulseMarker.classList.add('highlighted');
-    }
-
-    // Highlight all active cells in this pulse column
-    if (musicalGrid) {
-      for (let noteIndex = 0; noteIndex < TOTAL_NOTES; noteIndex++) {
-        const cell = musicalGrid.getCellElement(noteIndex, pulse);
-        if (cell && cell.classList.contains('active')) {
-          cell.classList.add('pulse-highlight');
-        }
-      }
-    }
-
-    // Use native interval highlighting from musical-grid
-    if (musicalGrid) {
-      const intervalSec = 60 / currentBPM;
-      musicalGrid.onPulseStep(pulse, intervalSec * 1000);
-    }
-
-    // Highlight grid editor cells for this pulse
-    if (gridEditor) {
-      // Highlight all cells in this pulse column
-      gridEditor.highlightCell('N', pulse);
-      gridEditor.highlightCell('P', pulse);
-    }
-  }
-
-  function clearHighlights() {
-    document.querySelectorAll('.pulse-marker.highlighted').forEach(el => {
-      el.classList.remove('highlighted');
-    });
-    document.querySelectorAll('.musical-cell.pulse-highlight').forEach(el => {
-      el.classList.remove('pulse-highlight');
-    });
-    // Clear interval highlights using native method
-    if (musicalGrid) {
-      musicalGrid.clearIntervalHighlights('horizontal');
-    }
-    if (gridEditor) {
-      gridEditor.clearHighlights();
-    }
-    currentPulse = -1;
-  }
-
-  return { highlightPulse, clearHighlights };
-}
+// Using shared matrix highlight controller module
 
 let highlightController = null;
-
-function highlightNoteOnSoundline(noteIndex, durationMs) {
-  const noteElement = musicalGrid?.getNoteElement(noteIndex);
-  if (!noteElement) return;
-
-  const soundlineEl = musicalGrid.containers.soundline;
-  if (!soundlineEl) return;
-
-  const rect = document.createElement('div');
-  rect.className = 'soundline-highlight';
-
-  const bounds = noteElement.getBoundingClientRect();
-  const soundlineBounds = soundlineEl.getBoundingClientRect();
-
-  rect.style.position = 'absolute';
-  rect.style.top = `${bounds.top - soundlineBounds.top}px`;
-  rect.style.left = '0';
-  rect.style.width = '100%';
-  rect.style.height = `${bounds.height}px`;
-  rect.style.backgroundColor = 'rgba(255, 255, 0, 0.3)';
-  rect.style.pointerEvents = 'none';
-  rect.style.zIndex = '10';
-
-  soundlineEl.appendChild(rect);
-
-  setTimeout(() => {
-    rect.remove();
-  }, durationMs);
-}
 
 // ========== PLAYBACK ==========
 
@@ -236,7 +136,7 @@ async function handlePlay() {
             cell.classList.add('playing');
             setTimeout(() => cell.classList.remove('playing'), duration * 1000);
           }
-          highlightNoteOnSoundline(noteIndex, duration * 1000);
+          highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
         });
       }
 
@@ -549,7 +449,7 @@ async function init() {
       audio.playNote(midi, duration, Tone.now());
 
       // Visual feedback on soundline
-      highlightNoteOnSoundline(noteIndex, duration * 1000);
+      highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
 
       // Check polyphony mode
       // Don't manipulate DOM directly - let syncGridFromPairs handle all visual updates
@@ -606,7 +506,7 @@ async function init() {
       audio.playNote(midi, duration, Tone.now());
 
       // Visual feedback on soundline
-      highlightNoteOnSoundline(noteIndex, duration * 1000);
+      highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
 
       // Check polyphony mode
       if (!gridEditor) return;
@@ -680,8 +580,13 @@ async function init() {
     }
   });
 
-  // Initialize highlight controller
-  highlightController = createMatrixHighlightController();
+  // Initialize highlight controller using shared module
+  highlightController = createMatrixHighlightController({
+    musicalGrid,
+    gridEditor,
+    totalNotes: TOTAL_NOTES,
+    currentBPM: currentBPM
+  });
 
   // Apply interval-mode class if enabled
   if (intervalLinesEnabled) {
