@@ -10,6 +10,7 @@ import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -33,25 +34,8 @@ let randomBtn = null;
 let gridEditorContainer = null;
 
 // ========== STORAGE HELPERS ==========
-function loadPreferences() {
-  const json = localStorage.getItem('app12-preferences');
-  return json ? JSON.parse(json) : {
-    selectedInstrument: 'piano',
-    selectColor: '#E4570C',
-    polyphony: '0',
-    intervalLinesEnabled: false
-  };
-}
-
-function savePreference(key, value) {
-  const prefs = loadPreferences();
-  prefs[key] = value;
-  localStorage.setItem('app12-preferences', JSON.stringify(prefs));
-}
-
-function saveAllPreferences(prefs) {
-  localStorage.setItem('app12-preferences', JSON.stringify(prefs));
-}
+// Use shared preference storage module
+const preferenceStorage = createPreferenceStorage('app12');
 
 // ========== AUDIO INITIALIZATION ==========
 
@@ -62,7 +46,7 @@ async function initAudio() {
     await audio.ready();
 
     // Load default instrument from preferences
-    const prefs = loadPreferences();
+    const prefs = preferenceStorage.load() || {};
     const instrument = prefs.selectedInstrument || 'piano';
     await audio.setInstrument(instrument);
 
@@ -380,7 +364,7 @@ function syncGridFromPairs(pairs) {
   }
 
   // Load preferences to check if interval lines are enabled
-  const prefs = loadPreferences();
+  const prefs = preferenceStorage.load() || {};
   const intervalLinesEnabled = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
 
   // Filter out null notes
@@ -520,7 +504,7 @@ async function init() {
   injectGridEditor();
 
   // Load preferences
-  const prefs = loadPreferences();
+  const prefs = preferenceStorage.load() || {};
   const intervalLinesEnabled = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
   intervalLinesEnabledState = intervalLinesEnabled; // Store in memory
 
@@ -771,8 +755,13 @@ async function init() {
         }
       ],
       storage: {
-        load: () => loadPreferences(),
-        save: (data) => saveAllPreferences(data)
+        load: () => preferenceStorage.load() || {},
+        save: (data) => {
+          // Save all keys from data object
+          Object.entries(data).forEach(([key, value]) => {
+            preferenceStorage.save({ [key]: value });
+          });
+        }
       },
       mixer: globalMixer,
       subscribeMixer
@@ -791,7 +780,9 @@ async function init() {
     selectColor.addEventListener('input', (e) => {
       const color = e.target.value;
       document.documentElement.style.setProperty('--select-color', color);
-      savePreference('selectColor', color);
+      const currentPrefs = preferenceStorage.load() || {};
+      currentPrefs.selectColor = color;
+      preferenceStorage.save(currentPrefs);
     });
   }
 
@@ -799,14 +790,16 @@ async function init() {
   const polyphonyToggle = document.getElementById('polyphonyToggle');
   if (polyphonyToggle) {
     // Load from storage (default: false = monophonic)
-    const prefs = loadPreferences();
+    const prefs = preferenceStorage.load() || {};
     polyphonyEnabled = prefs.polyphony === '1'; // Only true if explicitly set to '1'
     polyphonyToggle.checked = polyphonyEnabled;
 
     // Listen for changes
     polyphonyToggle.addEventListener('change', (e) => {
       polyphonyEnabled = e.target.checked;
-      savePreference('polyphony', polyphonyEnabled ? '1' : '0');
+      const currentPrefs = preferenceStorage.load() || {};
+      currentPrefs.polyphony = polyphonyEnabled ? '1' : '0';
+      preferenceStorage.save(currentPrefs);
       console.log('Polyphony mode:', polyphonyEnabled ? 'ENABLED (polyphonic)' : 'DISABLED (monophonic)');
 
       // When disabling polyphony, filter to keep only first note per pulse
@@ -844,7 +837,9 @@ async function init() {
       intervalLinesEnabledState = enabled; // Update memory state
 
       // Save to preferences
-      savePreference('intervalLinesEnabled', enabled);
+      const currentPrefs = preferenceStorage.load() || {};
+      currentPrefs.intervalLinesEnabled = enabled;
+      preferenceStorage.save(currentPrefs);
 
       // Toggle interval-mode class on grid container
       const gridContainer = document.querySelector('.grid-container');
@@ -882,23 +877,28 @@ async function init() {
     await audio.setInstrument(instrument);
 
     // Save to preferences
-    savePreference('selectedInstrument', instrument);
+    const currentPrefs = preferenceStorage.load() || {};
+    currentPrefs.selectedInstrument = instrument;
+    preferenceStorage.save(currentPrefs);
   });
 
-  // Factory reset
-  window.addEventListener('sharedui:factoryreset', () => {
+  // Factory reset using shared module
+  registerFactoryReset(() => {
     // 1. Clear grid state first
     handleReset();
 
-    // 2. Set factory defaults
-    localStorage.setItem('app12-preferences', JSON.stringify({
+    // 2. Clear all preferences (will use defaults on reload)
+    preferenceStorage.clearAll();
+
+    // 3. Set factory defaults
+    preferenceStorage.save({
       selectedInstrument: 'piano',
       selectColor: '#E4570C',
       polyphony: '0',                // Polyphony DISABLED
       intervalLinesEnabled: false    // Interval lines DISABLED
-    }));
+    });
 
-    // 3. Reload to ensure clean state
+    // 4. Reload to ensure clean state
     window.location.reload();
   });
 
