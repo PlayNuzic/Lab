@@ -259,3 +259,13 @@ playBtn?.addEventListener('click', async () => {
 // Initialize piano on first user interaction (for faster response)
 document.addEventListener('click', initializePiano, { once: true });
 document.addEventListener('touchstart', initializePiano, { once: true });
+
+// ========== CLEANUP ==========
+
+window.addEventListener('beforeunload', () => {
+  // Dispose piano sampler to free AudioBuffers
+  if (piano && typeof piano.dispose === 'function') {
+    piano.dispose();
+    piano = null;
+  }
+});

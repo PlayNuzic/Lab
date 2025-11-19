@@ -420,22 +420,49 @@ function createDurationBar(noise, intervalSec) {
 }
 
 // ========== EVENT HANDLERS ==========
+
+// Store handler references for cleanup
+const eventHandlers = {
+  playClick: null,
+  themeChange: null
+};
+
 function setupEventHandlers() {
   // Obtener botón Play del template
   playBtn = document.getElementById('playBtn');
 
   if (playBtn) {
-    playBtn.addEventListener('click', handlePlay);
+    eventHandlers.playClick = handlePlay;
+    playBtn.addEventListener('click', eventHandlers.playClick);
   }
 
   // Manejo de cambios de tema (manejado por header compartido)
-  document.addEventListener('sharedui:theme', (e) => {
+  eventHandlers.themeChange = (e) => {
     // El tema ya es manejado automáticamente
-  });
+  };
+  document.addEventListener('sharedui:theme', eventHandlers.themeChange);
 }
 
 // ========== FACTORY RESET ==========
 registerFactoryReset({ storage: preferenceStorage });
+
+// ========== CLEANUP ==========
+
+window.addEventListener('beforeunload', () => {
+  // Stop audio
+  if (audio) {
+    audio.stop?.();
+  }
+
+  // Remove event listeners
+  if (playBtn && eventHandlers.playClick) {
+    playBtn.removeEventListener('click', eventHandlers.playClick);
+  }
+
+  if (eventHandlers.themeChange) {
+    document.removeEventListener('sharedui:theme', eventHandlers.themeChange);
+  }
+});
 
 // ========== INICIALIZACIÓN ==========
 function initApp() {

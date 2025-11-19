@@ -355,12 +355,22 @@ function handleRandom() {
 function syncGridFromPairs(pairs) {
   if (!musicalGrid) return;
 
-  // Clear all active visuals
+  // PERFORMANCE: Incremental update instead of full redraw
+  // Track which cells should be active
+  const activeCells = new Set(pairs.map(p => `${p.note}-${p.pulse}`));
+
+  // Clear only cells that are no longer active
   document.querySelectorAll('.musical-cell.active').forEach(cell => {
-    cell.classList.remove('active');
-    const label = cell.querySelector('.cell-label');
-    if (label) {
-      label.remove();
+    const note = parseInt(cell.dataset.note);
+    const pulse = parseInt(cell.dataset.pulse);
+    const key = `${note}-${pulse}`;
+
+    if (!activeCells.has(key)) {
+      cell.classList.remove('active');
+      const label = cell.querySelector('.cell-label');
+      if (label) {
+        label.remove();
+      }
     }
   });
 
@@ -412,18 +422,23 @@ function syncGridFromPairs(pairs) {
     });
   }
 
-  // Activate cells and apply labels
+  // Activate cells and apply labels (only update if changed)
   validPairs.forEach(({ note, pulse }) => {
     const cell = musicalGrid.getCellElement(note, pulse);
     if (cell) {
       cell.classList.add('active');
 
-      // Add label with correct text from map
-      if (!cell.querySelector('.cell-label')) {
-        const label = document.createElement('span');
+      // PERFORMANCE: Only update label if text changed
+      const expectedText = labelsMap.get(`${note}-${pulse}`) || `( ${note} , ${pulse} )`;
+      let label = cell.querySelector('.cell-label');
+
+      if (!label) {
+        label = document.createElement('span');
         label.className = 'cell-label';
-        label.textContent = labelsMap.get(`${note}-${pulse}`) || `( ${note} , ${pulse} )`;
+        label.textContent = expectedText;
         cell.appendChild(label);
+      } else if (label.textContent !== expectedText) {
+        label.textContent = expectedText;
       }
     }
   });
@@ -891,6 +906,24 @@ async function init() {
 }
 
 // createSoundlineWrapper and createTimelineWrapper removed - now handled by createMusicalGrid()
+
+// ========== CLEANUP ==========
+
+window.addEventListener('beforeunload', () => {
+  // Stop audio engine and cleanup Tone.Transport
+  if (audio) {
+    audio.stop();
+  }
+
+  // Cleanup grid components
+  if (musicalGrid) {
+    musicalGrid.destroy?.();
+  }
+
+  if (gridEditor) {
+    gridEditor.destroy?.();
+  }
+});
 
 // Start initialization
 init().catch(err => {

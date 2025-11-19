@@ -353,11 +353,12 @@ async function init() {
   // Setup Play button
   playBtn = document.getElementById('playBtn');
   if (playBtn) {
-    playBtn.addEventListener('click', handlePlay);
+    eventHandlers.playClick = handlePlay;
+    playBtn.addEventListener('click', eventHandlers.playClick);
   }
 
   // Listen for sound changes
-  document.addEventListener('sharedui:sound', async (e) => {
+  eventHandlers.sharedSound = async (e) => {
     const { type, value } = e.detail;
     const audioInstance = await initAudio();
 
@@ -368,10 +369,11 @@ async function init() {
     if (type === 'start' && audioInstance && typeof audioInstance.setStart === 'function') {
       await audioInstance.setStart(value);
     }
-  });
+  };
+  document.addEventListener('sharedui:sound', eventHandlers.sharedSound);
 
   // Listen for instrument changes
-  document.addEventListener('sharedui:instrument', async (e) => {
+  eventHandlers.sharedInstrument = async (e) => {
     const instrument = e.detail.instrument;
     await initAudio();
     await audio.setInstrument(instrument);
@@ -379,7 +381,8 @@ async function init() {
     const currentPrefs = preferenceStorage.load() || {};
     currentPrefs.selectedInstrument = instrument;
     preferenceStorage.save(currentPrefs);
-  });
+  };
+  document.addEventListener('sharedui:instrument', eventHandlers.sharedInstrument);
 
   // Initialize P1 toggle
   const startIntervalToggle = document.getElementById('startIntervalToggle');
@@ -405,7 +408,7 @@ async function init() {
     intervalLinesToggle.checked = intervalLinesEnabled;
 
     // Listen for changes
-    intervalLinesToggle.addEventListener('change', () => {
+    eventHandlers.intervalLinesChange = () => {
       const enabled = intervalLinesToggle.checked;
 
       // Save to preferences
@@ -439,7 +442,8 @@ async function init() {
           musicalGrid.highlightIntervalPath(pairs);
         }
       }
-    });
+    };
+    intervalLinesToggle.addEventListener('change', eventHandlers.intervalLinesChange);
   }
 
   // Initialize color picker
@@ -538,9 +542,40 @@ async function init() {
 
 // ========== CLEANUP ==========
 
+// Store handler references for cleanup
+const eventHandlers = {
+  playClick: null,
+  sharedSound: null,
+  sharedInstrument: null,
+  intervalLinesChange: null
+};
+
 window.addEventListener('beforeunload', () => {
+  // Cleanup audio and grid
+  if (audio) {
+    audio.stop?.();
+  }
+
   if (musicalGrid) {
     musicalGrid.destroy?.();
+  }
+
+  // Remove event listeners
+  if (playBtn && eventHandlers.playClick) {
+    playBtn.removeEventListener('click', eventHandlers.playClick);
+  }
+
+  if (eventHandlers.sharedSound) {
+    document.removeEventListener('sharedui:sound', eventHandlers.sharedSound);
+  }
+
+  if (eventHandlers.sharedInstrument) {
+    document.removeEventListener('sharedui:instrument', eventHandlers.sharedInstrument);
+  }
+
+  const intervalLinesToggle = document.getElementById('intervalLinesToggle');
+  if (intervalLinesToggle && eventHandlers.intervalLinesChange) {
+    intervalLinesToggle.removeEventListener('change', eventHandlers.intervalLinesChange);
   }
 });
 
