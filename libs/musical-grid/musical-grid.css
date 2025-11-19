@@ -263,7 +263,6 @@
   background: var(--cell-highlight-color, var(--select-color, #F97C39));
   border-color: var(--cell-highlight-color, var(--select-color, #F97C39));
   box-shadow: none;  /* Removed glow for subtler appearance */
-  filter: saturate(0.6) brightness(1) contrast(1);  /* Softer, less saturated fill */
   z-index: var(--z-interactive, 10);
 }
 
