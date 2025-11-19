@@ -12,6 +12,7 @@ import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createMatrixHighlightController, highlightNoteOnSoundline } from '../../libs/app-common/matrix-highlight-controller.js';
+import { clearElement } from '../../libs/app-common/dom-utils.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -426,7 +427,7 @@ async function init() {
     intervalColor: '#4A9EFF',
     cellRenderer: (noteIndex, pulseIndex, cellElement) => {
       // Custom rendering: add label structure for N/P pairs
-      cellElement.innerHTML = ''; // Clear any default content
+      clearElement(cellElement); // Clear any default content (XSS-safe)
     },
     onCellClick: async (noteIndex, pulseIndex, cellElement) => {
       // Check state from memory for performance
