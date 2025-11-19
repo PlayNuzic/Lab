@@ -128,6 +128,14 @@
   align-items: center;
 }
 
+/* Ensure reset and random buttons are clickable with high z-index */
+.app12-controls-container .reset,
+.app12-controls-container .random {
+  z-index: 50 !important;
+  pointer-events: auto !important;
+  position: relative;
+}
+
 /* Preserve concentric circle layout */
 .app12-controls-container .controls {
   position: relative;
