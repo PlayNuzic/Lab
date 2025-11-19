@@ -263,9 +263,8 @@ function syncGridFromPairs(pairs) {
     musicalGrid.clearIntervalPaths();
   }
 
-  // Load preferences to check if interval lines are enabled
-  const prefs = preferenceStorage.load() || {};
-  const intervalLinesEnabled = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
+  // Use in-memory state for performance and consistency
+  const intervalLinesEnabled = intervalLinesEnabledState;
 
   // Filter out null notes
   const validPairs = pairs.filter(p => p.note !== null);
