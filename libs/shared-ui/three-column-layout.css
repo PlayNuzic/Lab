@@ -1,0 +1,95 @@
+/**
+ * three-column-layout.css - Three column layout for Apps that need it
+ */
+
+.app-content {
+  display: grid;
+  grid-template-columns: var(--col-left, 250px) 1fr var(--col-right, 250px);
+  gap: var(--layout-gap, 2rem);
+  padding: var(--layout-padding, 1rem);
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Columns */
+.left-column,
+.right-column {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.center-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+}
+
+/* Column content sections */
+.grid-editor-section,
+.info-section {
+  padding: 0.5rem;
+}
+
+.grid-editor-section h3,
+.info-section h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+/* Musical grid container in center */
+.musical-grid-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .app-content {
+    grid-template-columns: var(--col-left-tablet, 200px) 1fr var(--col-right-tablet, 200px);
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-content {
+    grid-template-columns: var(--col-left-mobile, 150px) 1fr var(--col-right-mobile, 150px);
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .left-column,
+  .right-column {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Stack vertically on small screens */
+  .app-content {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .left-column {
+    order: 1;
+  }
+
+  .center-column {
+    order: 2;
+    min-height: 400px;
+  }
+
+  .right-column {
+    order: 3;
+  }
+}

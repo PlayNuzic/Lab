@@ -22,3 +22,13 @@ export { createDragHandlers } from './drag.js';
 export { createSyncManager } from './sync.js';
 export { createPairColumnsRenderer } from './pair-columns.js';
 export { createGridEditor } from './grid-editor.js';
+
+// Interval parser functions for App15
+export {
+  getIntervalRange,
+  validateSoundInterval,
+  validateTemporalInterval,
+  parseIntervalPairs,
+  intervalsToPairs,
+  formatInterval
+} from './interval-parser.js';

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plano y Sucesión de Intervalos</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="../../libs/musical-grid/musical-grid.css" />
+  <link rel="stylesheet" href="../../libs/matrix-seq/grid-editor.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+</head>
+<body data-theme="system">
+  <div id="app-root"></div>
+  <!-- Tone.js is now loaded lazily after user interaction via tone-loader.js -->
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    // Set defaults in localStorage BEFORE header initializes
+    const app15Prefs = localStorage.getItem('app15-preferences');
+    if (!app15Prefs) {
+      // First time - set factory defaults
+      localStorage.setItem('app15-preferences', JSON.stringify({
+        selectedInstrument: 'piano',
+        selectColor: '#E4570C',
+        polyphony: '0',  // Factory default: polyphony DISABLED
+        intervalLinesEnabled: true  // Always enabled in App15
+      }));
+    }
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Plano y Sucesión de Intervalos',
+      showSelectColor: true,
+      showAccent: false,
+      showComplexFractions: false,
+      hideT: true,
+      hideLeds: true,
+      showCircularTimelineToggle: false,
+      showHoverToggle: false,
+      showIntervalLinesToggle: false,  // No toggle in App15, always enabled
+      showStartSoundDropdown: true,
+      showInstrumentDropdown: true,
+      showP1Toggle: true,
+      showPulseToggle: true,
+      showPolyphonyToggle: true,
+      controlsLayout: {
+        mode: 'vertical'
+      },
+      randomMenuContent: `
+        <label>
+          <span>P (Max Pulsos)</span>
+          <input type="number" id="randPMax" value="7" min="1" max="7">
+        </label>
+        <label>
+          <span>N (Max Notas)</span>
+          <input type="number" id="randNMax" value="11" min="0" max="11">
+        </label>
+      `
+    });
+
+    // Load selection color BEFORE header initializes
+    const app15PrefsJson = localStorage.getItem('app15-preferences');
+    const app15PrefsObj = app15PrefsJson ? JSON.parse(app15PrefsJson) : {};
+    const storedColor = app15PrefsObj.selectColor || '#E4570C';
+    document.documentElement.style.setProperty('--select-color', storedColor);
+
+    initHeader();
+
+    // After header is initialized, sync color picker value
+    const selectColor = document.getElementById('selectColor');
+    if (selectColor) {
+      selectColor.value = storedColor;
+    }
+
+    // Remove only the inputs and middle section, but keep app-content
+    document.querySelector('.inputs')?.remove();
+    document.querySelector('.middle')?.remove();
+
+    // Extract .controls from timeline-wrapper before removing it (like App12)
+    const timelineWrapper = document.querySelector('.timeline-wrapper');
+    const controls = timelineWrapper?.querySelector('.controls');
+    if (controls && timelineWrapper) {
+      timelineWrapper.before(controls);  // Move controls out of wrapper
+      timelineWrapper.remove();          // Now remove the wrapper
+    }
+
+    // Ensure app-content exists for main.js to use
+    const appContent = document.querySelector('.app-content');
+    if (!appContent) {
+      const newAppContent = document.createElement('div');
+      newAppContent.className = 'app-content';
+      const appRoot = document.getElementById('app-root');
+      appRoot.appendChild(newAppContent);
+    }
+
+    import('./main.js');
+  </script>
+
+  <!-- Rendimiento Audio (menú flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <!-- Long-press para abrir el mixer -->
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+</body>
+</html>

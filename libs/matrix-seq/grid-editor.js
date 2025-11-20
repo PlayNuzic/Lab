@@ -69,7 +69,9 @@ export function createGridEditor(config = {}) {
     getPolyphonyEnabled = () => true,  // Default: allow polyphony
     scrollEnabled = false,
     containerSize = null,
-    columnSize = null
+    columnSize = null,
+    mode = 'standard',  // 'standard' | 'interval'
+    showZigzag = false
   } = config;
 
   let currentPairs = [];
@@ -132,6 +134,12 @@ export function createGridEditor(config = {}) {
     // Clear existing content
     container.innerHTML = '';
     container.className = 'matrix-grid-editor';
+
+    // Use different render modes
+    if (mode === 'interval' && showZigzag) {
+      renderIntervalMode(pairs);
+      return;
+    }
 
     // Apply scroll mode class if enabled
     if (scrollEnabled) {
@@ -215,6 +223,415 @@ export function createGridEditor(config = {}) {
     });
 
     container.appendChild(columnsContainer);
+  }
+
+  /**
+   * Renders the grid in interval mode with zigzag layout
+   */
+  function renderIntervalMode(pairs = []) {
+    currentPairs = [...pairs];
+
+    // Clear container
+    container.innerHTML = '';
+    container.className = 'matrix-grid-editor matrix-grid-editor--interval';
+
+    // Create zigzag container (2 rows)
+    const zigzagContainer = document.createElement('div');
+    zigzagContainer.className = 'grid-zigzag-container';
+
+    // Row 1: N, iS₁, iS₂, iS₃...
+    const row1 = document.createElement('div');
+    row1.className = 'zigzag-row zigzag-row--top';
+
+    // Row 2: P, iT₁, iT₂, iT₃...
+    const row2 = document.createElement('div');
+    row2.className = 'zigzag-row zigzag-row--bottom';
+
+    // First pair is always N-P
+    const firstPair = pairs[0] || { note: null, pulse: null };
+
+    // Create N cell (first pair)
+    const nCell = document.createElement('div');
+    nCell.className = 'zigzag-cell zigzag-cell--n';
+
+    const nLabel = document.createElement('div');
+    nLabel.className = 'zigzag-label';
+    nLabel.textContent = 'N';
+    nCell.appendChild(nLabel);
+
+    const nInput = document.createElement('input');
+    nInput.className = 'zigzag-input note-input';
+    nInput.type = 'text';
+    nInput.value = firstPair.note !== null ? String(firstPair.note) : '';
+    nInput.maxLength = 2;
+    nInput.dataset.index = '0';
+    nInput.dataset.type = 'note';
+    nInput.addEventListener('input', (e) => handleIntervalInputChange(e, 0, 'note'));
+    nInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, 0, 'note'));
+    nCell.appendChild(nInput);
+    row1.appendChild(nCell);
+
+    // Create P cell (first pair)
+    const pCell = document.createElement('div');
+    pCell.className = 'zigzag-cell zigzag-cell--p';
+
+    const pLabel = document.createElement('div');
+    pLabel.className = 'zigzag-label';
+    pLabel.textContent = 'P';
+    pCell.appendChild(pLabel);
+
+    const pInput = document.createElement('input');
+    pInput.className = 'zigzag-input pulse-input';
+    pInput.type = 'text';
+    pInput.value = firstPair.pulse !== null ? String(firstPair.pulse) : '';
+    pInput.maxLength = 1;
+    pInput.dataset.index = '0';
+    pInput.dataset.type = 'pulse';
+    pInput.addEventListener('input', (e) => handleIntervalInputChange(e, 0, 'pulse'));
+    pInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, 0, 'pulse'));
+    pCell.appendChild(pInput);
+    row2.appendChild(pCell);
+
+    // Convert pairs to intervals for display
+    const intervals = [];
+    for (let i = 1; i < pairs.length; i++) {
+      const soundInterval = pairs[i].note - pairs[i-1].note;
+      const temporalInterval = pairs[i].pulse - pairs[i-1].pulse;
+      intervals.push({ soundInterval, temporalInterval });
+    }
+
+    // Create interval cells
+    intervals.forEach((interval, index) => {
+      // iS cell in row 1
+      const isCell = document.createElement('div');
+      isCell.className = 'zigzag-cell zigzag-cell--is';
+
+      const isLabel = document.createElement('div');
+      isLabel.className = 'zigzag-label';
+      isLabel.textContent = `iS${index + 1}`;
+      isCell.appendChild(isLabel);
+
+      const isInput = document.createElement('input');
+      isInput.className = 'zigzag-input interval-input';
+      isInput.type = 'text';
+      isInput.value = interval.soundInterval !== null ? formatIntervalValue(interval.soundInterval) : '';
+      isInput.maxLength = 3; // Allow negative sign
+      isInput.dataset.index = String(index + 1);
+      isInput.dataset.type = 'is';
+      isInput.addEventListener('input', (e) => handleIntervalInputChange(e, index + 1, 'is'));
+      isInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, index + 1, 'is'));
+      isCell.appendChild(isInput);
+      row1.appendChild(isCell);
+
+      // iT cell in row 2
+      const itCell = document.createElement('div');
+      itCell.className = 'zigzag-cell zigzag-cell--it';
+
+      const itLabel = document.createElement('div');
+      itLabel.className = 'zigzag-label';
+      itLabel.textContent = `iT${index + 1}`;
+      itCell.appendChild(itLabel);
+
+      const itInput = document.createElement('input');
+      itInput.className = 'zigzag-input interval-input';
+      itInput.type = 'text';
+      itInput.value = interval.temporalInterval !== null ? String(interval.temporalInterval) : '';
+      itInput.maxLength = 1;
+      itInput.dataset.index = String(index + 1);
+      itInput.dataset.type = 'it';
+      itInput.addEventListener('input', (e) => handleIntervalInputChange(e, index + 1, 'it'));
+      itInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, index + 1, 'it'));
+      itCell.appendChild(itInput);
+      row2.appendChild(itCell);
+    });
+
+    // Add empty interval pair if less than max
+    if (pairs.length < maxPairs) {
+      const newIndex = intervals.length + 1;
+
+      // Empty iS cell
+      const isCell = document.createElement('div');
+      isCell.className = 'zigzag-cell zigzag-cell--is zigzag-cell--empty';
+
+      const isLabel = document.createElement('div');
+      isLabel.className = 'zigzag-label';
+      isLabel.textContent = `iS${newIndex}`;
+      isCell.appendChild(isLabel);
+
+      const isInput = document.createElement('input');
+      isInput.className = 'zigzag-input interval-input';
+      isInput.type = 'text';
+      isInput.value = '';
+      isInput.maxLength = 3;
+      isInput.dataset.index = String(newIndex);
+      isInput.dataset.type = 'is';
+      isInput.addEventListener('input', (e) => handleIntervalInputChange(e, newIndex, 'is'));
+      isInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, newIndex, 'is'));
+      isCell.appendChild(isInput);
+      row1.appendChild(isCell);
+
+      // Empty iT cell
+      const itCell = document.createElement('div');
+      itCell.className = 'zigzag-cell zigzag-cell--it zigzag-cell--empty';
+
+      const itLabel = document.createElement('div');
+      itLabel.className = 'zigzag-label';
+      itLabel.textContent = `iT${newIndex}`;
+      itCell.appendChild(itLabel);
+
+      const itInput = document.createElement('input');
+      itInput.className = 'zigzag-input interval-input';
+      itInput.type = 'text';
+      itInput.value = '';
+      itInput.maxLength = 1;
+      itInput.dataset.index = String(newIndex);
+      itInput.dataset.type = 'it';
+      itInput.addEventListener('input', (e) => handleIntervalInputChange(e, newIndex, 'it'));
+      itInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, newIndex, 'it'));
+      itCell.appendChild(itInput);
+      row2.appendChild(itCell);
+    }
+
+    zigzagContainer.appendChild(row1);
+    zigzagContainer.appendChild(row2);
+    container.appendChild(zigzagContainer);
+
+    // Focus first input
+    requestAnimationFrame(() => {
+      const firstInput = container.querySelector('.note-input');
+      if (firstInput) firstInput.focus();
+    });
+  }
+
+  /**
+   * Formats interval value with sign
+   */
+  function formatIntervalValue(value) {
+    if (value > 0) return `+${value}`;
+    return String(value);
+  }
+
+  /**
+   * Handles interval mode input changes
+   */
+  function handleIntervalInputChange(event, index, type) {
+    const input = event.target;
+    const text = input.value.trim();
+
+    // For intervals, allow + or - sign
+    if (type === 'is' && text) {
+      // Allow +/- followed by digits
+      if (!/^[+-]?\d*$/.test(text)) {
+        input.value = text.replace(/[^+-\d]/g, '');
+        return;
+      }
+    } else if (text) {
+      // For note, pulse, and temporal intervals: only digits
+      if (!/^\d*$/.test(text)) {
+        input.value = text.replace(/\D/g, '');
+        return;
+      }
+    }
+
+    // TODO: Add validation based on current position
+    // This will use interval-parser.js functions
+
+    // Auto-jump timer for zigzag navigation
+    if (autoJumpTimer) {
+      clearTimeout(autoJumpTimer);
+    }
+
+    if (event.inputType === 'insertText') {
+      autoJumpTimer = setTimeout(() => {
+        jumpToNextInZigzag(input);
+        autoJumpTimer = null;
+      }, AUTO_JUMP_DELAY);
+    }
+
+    // Update pairs from intervals
+    updatePairsFromIntervals();
+  }
+
+  /**
+   * Handles interval mode keyboard navigation
+   */
+  function handleIntervalKeyDown(event, index, type) {
+    const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Enter', '+', '-'];
+    if (!/^[0-9]$/.test(event.key) && !allowed.includes(event.key)) {
+      event.preventDefault();
+      return;
+    }
+
+    switch (event.key) {
+      case 'Enter':
+        event.preventDefault();
+        jumpToNextInZigzag(event.target);
+        break;
+
+      case 'ArrowDown':
+        event.preventDefault();
+        // From row 1 to row 2
+        if (type === 'note' || type === 'is') {
+          const currentIndex = parseInt(event.target.dataset.index);
+          const targetType = type === 'note' ? 'pulse' : 'it';
+          const targetInput = container.querySelector(
+            `.zigzag-input[data-index="${currentIndex}"][data-type="${targetType}"]`
+          );
+          if (targetInput) {
+            targetInput.focus();
+            targetInput.select();
+          }
+        }
+        break;
+
+      case 'ArrowUp':
+        event.preventDefault();
+        // From row 2 to row 1
+        if (type === 'pulse' || type === 'it') {
+          const currentIndex = parseInt(event.target.dataset.index);
+          const targetType = type === 'pulse' ? 'note' : 'is';
+          const targetInput = container.querySelector(
+            `.zigzag-input[data-index="${currentIndex}"][data-type="${targetType}"]`
+          );
+          if (targetInput) {
+            targetInput.focus();
+            targetInput.select();
+          }
+        }
+        break;
+
+      case 'ArrowLeft':
+        event.preventDefault();
+        navigateZigzagBackward(event.target);
+        break;
+
+      case 'ArrowRight':
+        event.preventDefault();
+        navigateZigzagForward(event.target);
+        break;
+    }
+  }
+
+  /**
+   * Jump to next cell in zigzag pattern
+   */
+  function jumpToNextInZigzag(currentInput) {
+    const type = currentInput.dataset.type;
+    const index = parseInt(currentInput.dataset.index);
+
+    // Zigzag pattern: N → P ↓ → iS₁ ↗ → iT₁ ↘ → iS₂ ↗ → iT₂ ...
+    let nextInput = null;
+
+    if (type === 'note') {
+      // N → P (down)
+      nextInput = container.querySelector('.zigzag-input[data-index="0"][data-type="pulse"]');
+    } else if (type === 'pulse') {
+      // P → iS₁ (diagonal up-right)
+      nextInput = container.querySelector('.zigzag-input[data-index="1"][data-type="is"]');
+    } else if (type === 'is') {
+      // iS → iT (down)
+      nextInput = container.querySelector(`.zigzag-input[data-index="${index}"][data-type="it"]`);
+    } else if (type === 'it') {
+      // iT → iS_next (diagonal up-right)
+      const nextIndex = index + 1;
+      nextInput = container.querySelector(`.zigzag-input[data-index="${nextIndex}"][data-type="is"]`);
+    }
+
+    if (nextInput) {
+      nextInput.focus();
+      nextInput.select();
+    }
+  }
+
+  /**
+   * Navigate backward in zigzag pattern
+   */
+  function navigateZigzagBackward(currentInput) {
+    const type = currentInput.dataset.type;
+    const index = parseInt(currentInput.dataset.index);
+
+    let prevInput = null;
+
+    if (type === 'pulse' && index === 0) {
+      // P → N
+      prevInput = container.querySelector('.zigzag-input[data-index="0"][data-type="note"]');
+    } else if (type === 'is' && index === 1) {
+      // iS₁ → P
+      prevInput = container.querySelector('.zigzag-input[data-index="0"][data-type="pulse"]');
+    } else if (type === 'it') {
+      // iT → iS (same index)
+      prevInput = container.querySelector(`.zigzag-input[data-index="${index}"][data-type="is"]`);
+    } else if (type === 'is' && index > 1) {
+      // iS → iT_prev
+      const prevIndex = index - 1;
+      prevInput = container.querySelector(`.zigzag-input[data-index="${prevIndex}"][data-type="it"]`);
+    }
+
+    if (prevInput) {
+      prevInput.focus();
+      prevInput.select();
+    }
+  }
+
+  /**
+   * Navigate forward in zigzag pattern
+   */
+  function navigateZigzagForward(currentInput) {
+    jumpToNextInZigzag(currentInput);
+  }
+
+  /**
+   * Update pairs from interval inputs
+   */
+  function updatePairsFromIntervals() {
+    const nInput = container.querySelector('.zigzag-input[data-index="0"][data-type="note"]');
+    const pInput = container.querySelector('.zigzag-input[data-index="0"][data-type="pulse"]');
+
+    const firstNote = nInput ? parseInt(nInput.value) : null;
+    const firstPulse = pInput ? parseInt(pInput.value) : null;
+
+    if (firstNote === null || firstPulse === null || isNaN(firstNote) || isNaN(firstPulse)) {
+      currentPairs = [];
+      onPairsChange(currentPairs);
+      return;
+    }
+
+    // Start with first pair
+    const pairs = [{ note: firstNote, pulse: firstPulse }];
+    let currentNote = firstNote;
+    let currentPulse = firstPulse;
+
+    // Collect all interval inputs
+    let index = 1;
+    while (true) {
+      const isInput = container.querySelector(`.zigzag-input[data-index="${index}"][data-type="is"]`);
+      const itInput = container.querySelector(`.zigzag-input[data-index="${index}"][data-type="it"]`);
+
+      if (!isInput || !itInput) break;
+
+      const isValue = isInput.value.trim();
+      const itValue = itInput.value.trim();
+
+      if (!isValue || !itValue) break;
+
+      const soundInterval = parseInt(isValue);
+      const temporalInterval = parseInt(itValue);
+
+      if (isNaN(soundInterval) || isNaN(temporalInterval)) break;
+
+      currentNote += soundInterval;
+      currentPulse += temporalInterval;
+
+      // Validate ranges
+      if (currentNote < noteRange[0] || currentNote > noteRange[1]) break;
+      if (currentPulse < pulseRange[0] || currentPulse > pulseRange[1]) break;
+
+      pairs.push({ note: currentNote, pulse: currentPulse });
+      index++;
+    }
+
+    currentPairs = pairs;
+    onPairsChange(currentPairs);
   }
 
   /**
