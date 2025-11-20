@@ -632,6 +632,76 @@ export function createGridEditor(config = {}) {
 
     currentPairs = pairs;
     onPairsChange(currentPairs);
+
+    // Always keep one empty interval slot available (up to maxPairs)
+    ensureEmptyIntervalSlot();
+  }
+
+  function ensureEmptyIntervalSlot() {
+    if (mode !== 'interval' || !showZigzag) return;
+
+    const intervalInputs = Array.from(container.querySelectorAll('.zigzag-input.interval-input'));
+    const hasEmpty = intervalInputs.some(input => !input.value.trim());
+    if (hasEmpty) return;
+
+    const maxIntervalSlots = maxPairs - 1; // Exclude initial N-P pair
+    const currentMaxIndex = intervalInputs.reduce((max, input) => {
+      const idx = parseInt(input.dataset.index || '0', 10);
+      return isNaN(idx) ? max : Math.max(max, idx);
+    }, 0);
+
+    if (currentMaxIndex >= maxIntervalSlots) return;
+
+    const newIndex = currentMaxIndex + 1;
+    const row1 = container.querySelector('.zigzag-row--top');
+    const row2 = container.querySelector('.zigzag-row--bottom');
+    if (!row1 || !row2) return;
+
+    // Empty iS cell
+    const isCell = document.createElement('div');
+    isCell.className = 'zigzag-cell zigzag-cell--is zigzag-cell--empty';
+
+    const isLabel = document.createElement('div');
+    isLabel.className = 'zigzag-label';
+    isLabel.textContent = `iS${newIndex}`;
+    isCell.appendChild(isLabel);
+
+    const isInput = document.createElement('input');
+    isInput.className = 'zigzag-input interval-input';
+    isInput.type = 'text';
+    isInput.value = '';
+    isInput.maxLength = 3;
+    isInput.dataset.index = String(newIndex);
+    isInput.dataset.type = 'is';
+    isInput.addEventListener('input', (e) => handleIntervalInputChange(e, newIndex, 'is'));
+    isInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, newIndex, 'is'));
+    isCell.appendChild(isInput);
+    row1.appendChild(isCell);
+
+    // Empty iT cell
+    const itCell = document.createElement('div');
+    itCell.className = 'zigzag-cell zigzag-cell--it zigzag-cell--empty';
+
+    const itLabel = document.createElement('div');
+    itLabel.className = 'zigzag-label';
+    itLabel.textContent = `iT${newIndex}`;
+    itCell.appendChild(itLabel);
+
+    const itInput = document.createElement('input');
+    itInput.className = 'zigzag-input interval-input';
+    itInput.type = 'text';
+    itInput.value = '';
+    itInput.maxLength = 1;
+    itInput.dataset.index = String(newIndex);
+    itInput.dataset.type = 'it';
+    itInput.addEventListener('input', (e) => handleIntervalInputChange(e, newIndex, 'it'));
+    itInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, newIndex, 'it'));
+    itCell.appendChild(itInput);
+    row2.appendChild(itCell);
+
+    requestAnimationFrame(() => {
+      isInput.focus();
+    });
   }
 
   /**

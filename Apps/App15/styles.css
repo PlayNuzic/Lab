@@ -13,6 +13,7 @@
   --cell-highlight-color: var(--select-color, #F97C39);
   --pulse-marker-height: 15px;
   --note-highlight-color: var(--select-color, #F97C39);
+  --select-color-rgb: 228, 87, 12;
 
   /* Z-index system */
   --z-base: 1;           /* Base elements: lines, markers */
@@ -684,6 +685,27 @@
 .interval-start.interval-end {
   border: 3px solid var(--select-color);
   border-radius: 4px;
+}
+
+/* Interval tubes across multiple cells (App15) */
+.musical-cell.interval-span {
+  background: rgba(var(--select-color-rgb), 0.18);
+  position: relative;
+}
+
+.musical-cell.interval-span-start {
+  border-left: 3px solid var(--select-color, #F97C39);
+  border-radius: 6px 0 0 6px;
+}
+
+.musical-cell.interval-span-end {
+  border-right: 3px solid var(--select-color, #F97C39);
+  border-radius: 0 6px 6px 6px;
+}
+
+.musical-cell.interval-span-start.interval-span-end {
+  border: 3px solid var(--select-color, #F97C39);
+  border-radius: 6px;
 }
 
 /* ========== ZIGZAG INTERVAL MODE ========== */

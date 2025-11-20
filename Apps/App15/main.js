@@ -27,6 +27,7 @@ let gridEditor = null;
 const currentBPM = DEFAULT_BPM; // Locked to 120 BPM
 let isPlaying = false;
 let polyphonyEnabled = false; // Default: polyphony DISABLED (monophonic mode)
+const intervalLinesEnabledState = true; // Always enabled in App15
 
 // Store current intervals and pairs
 let currentIntervals = [];
@@ -156,10 +157,8 @@ async function handlePlay() {
 }
 
 function stopPlayback() {
-  if (!audio) return;
-
   isPlaying = false;
-  audio.stop();
+  audio?.stop();
 
   // Clear all highlights
   musicalGrid?.clearIntervalHighlights();
@@ -172,6 +171,11 @@ function stopPlayback() {
     playIcon.style.display = 'block';
     stopIcon.style.display = 'none';
   }
+
+  // Clear any active playing animations
+  document.querySelectorAll('.musical-cell.playing').forEach(cell => {
+    cell.classList.remove('playing');
+  });
 }
 
 // ========== GRID SYNCHRONIZATION ==========
@@ -199,8 +203,49 @@ function separateIntoVoices(pairs) {
   return voices;
 }
 
+function clearIntervalTubes() {
+  document.querySelectorAll('.musical-cell.interval-span').forEach(cell => {
+    cell.classList.remove('interval-span', 'interval-span-start', 'interval-span-end');
+  });
+}
+
+function applyIntervalTubes(pairs) {
+  clearIntervalTubes();
+  if (!musicalGrid || !pairs || pairs.length === 0) return;
+
+  const maxPulseIndex = TOTAL_SPACES - 1;
+  const voices = polyphonyEnabled
+    ? separateIntoVoices(pairs)
+    : [pairs.slice().sort((a, b) => a.pulse - b.pulse)];
+
+  voices.forEach(voice => {
+    if (!voice || voice.length === 0) return;
+
+    const sorted = [...voice].sort((a, b) => a.pulse - b.pulse);
+
+    sorted.forEach((current, idx) => {
+      const next = sorted[idx + 1];
+      const endPulseExclusive = next ? Math.min(next.pulse, TOTAL_SPACES) : Math.min(current.pulse + 1, TOTAL_SPACES);
+
+      for (let p = current.pulse; p < endPulseExclusive; p++) {
+        if (p < 0 || p > maxPulseIndex) continue;
+        const cell = musicalGrid.getCellElement(current.note, p);
+        if (!cell) continue;
+        cell.classList.add('interval-span');
+        if (p === current.pulse) {
+          cell.classList.add('interval-span-start');
+        }
+        if (p === endPulseExclusive - 1) {
+          cell.classList.add('interval-span-end');
+        }
+      }
+    });
+  });
+}
+
 function syncGridFromPairs(pairs) {
   if (!musicalGrid) return;
+  currentPairs = pairs;
 
   // PERFORMANCE: Incremental update instead of full redraw
   // Track which cells should be active
@@ -225,9 +270,10 @@ function syncGridFromPairs(pairs) {
   if (musicalGrid.clearIntervalPaths) {
     musicalGrid.clearIntervalPaths();
   }
+  clearIntervalTubes();
 
   // Interval lines always enabled in App15
-  const intervalLinesEnabled = true;
+  const intervalLinesEnabled = intervalLinesEnabledState;
 
   // Filter out null notes
   const validPairs = pairs.filter(p => p.note !== null);
@@ -295,6 +341,9 @@ function syncGridFromPairs(pairs) {
     musicalGrid.highlightIntervalPath(validPairs, polyphonyEnabled);
   }
 
+  // Apply tube-style spans for temporal intervals
+  applyIntervalTubes(validPairs);
+
   // Save to storage
   saveCurrentState();
 }
@@ -329,6 +378,7 @@ function handleReset() {
   // Clear editors
   gridEditor?.clear();
   musicalGrid?.clear();
+  clearIntervalTubes();
 
   // Reset state
   currentIntervals = [];
@@ -382,11 +432,17 @@ function handleRandom() {
     intervals
   );
 
+  currentIntervals = intervals;
+  currentPairs = pairs;
+
   // Update editor
   gridEditor.setPairs(pairs);
 
   // Sync to grid
   syncGridFromPairs(pairs);
+
+  // Persist
+  saveCurrentState();
 }
 
 // ========== STORAGE ==========
@@ -407,59 +463,81 @@ function loadSavedState() {
   if (prefs.intervals && prefs.initialPair) {
     // Restore intervals
     const pairs = intervalsToPairs(prefs.initialPair, prefs.intervals);
+    currentIntervals = prefs.intervals;
+    currentPairs = pairs;
     gridEditor.setPairs(pairs);
     syncGridFromPairs(pairs);
+  }
+}
+
+// ========== DOM INJECTION ==========
+
+function injectGridEditor() {
+  // Create container for grid editor
+  gridEditorContainer = document.createElement('div');
+  gridEditorContainer.id = 'gridEditorContainer';
+
+  // Create main grid wrapper for proper CSS grid layout
+  const appRoot = document.getElementById('app-root');
+  if (appRoot) {
+    // Create wrapper inside main element
+    const mainElement = appRoot.querySelector('main');
+    if (mainElement) {
+      const gridWrapper = document.createElement('div');
+      gridWrapper.className = 'two-column-layout app12-main-grid';
+
+      // Move existing grid-container into wrapper
+      const gridContainer = mainElement.querySelector('.grid-container');
+      if (gridContainer) {
+        gridContainer.classList.add('two-column-layout__main');
+        gridWrapper.appendChild(gridContainer);
+      }
+
+      // Add grid-seq to wrapper
+      gridWrapper.insertBefore(gridEditorContainer, gridWrapper.firstChild);
+
+      // Append wrapper to main
+      mainElement.appendChild(gridWrapper);
+    } else {
+      // Fallback: append directly to app-root
+      appRoot.appendChild(gridEditorContainer);
+    }
   }
 }
 
 // ========== INITIALIZATION ==========
 
 async function initializeApp() {
-  // Create containers
-  let appContent = document.querySelector('.app-content');
-  if (!appContent) {
-    // Create app-content if it doesn't exist
-    appContent = document.createElement('div');
-    appContent.className = 'app-content';
-    const appRoot = document.getElementById('app-root');
-    if (appRoot) {
-      appRoot.appendChild(appContent);
-    } else {
-      document.body.appendChild(appContent);
-    }
-  }
-  clearElement(appContent);
+  console.log('Initializing App15: Plano y Sucesión de Intervalos...');
 
-  // Create grid editor container
-  gridEditorContainer = document.createElement('div');
-  gridEditorContainer.id = 'gridEditorContainer';
-  appContent.appendChild(gridEditorContainer);
+  // Inject DOM elements to mirror App12 layout (controls + grid)
+  injectGridEditor();
 
-  // Create musical grid container
-  const gridContainer = document.createElement('div');
-  gridContainer.className = 'musical-grid-container';
-  appContent.appendChild(gridContainer);
+  // Wait for template DOM to settle
+  await new Promise(resolve => setTimeout(resolve, 50));
 
-  // Create musical grid (standard, same as App12)
+  // Create musical grid (aligned to timeline like App12)
+  const mainGridWrapper = document.querySelector('.app12-main-grid');
   musicalGrid = createMusicalGrid({
-    parent: gridContainer,
+    parent: mainGridWrapper || document.getElementById('app-root'),
     notes: TOTAL_NOTES,
     pulses: TOTAL_PULSES,
-    fillSpaces: false,
+    startMidi: 60,
+    fillSpaces: true, // Align cells to the spaces between pulse markers
     cellClassName: 'musical-cell',
     activeClassName: 'active',
     highlightClassName: 'highlight',
     showIntervals: {
       horizontal: true,
       vertical: false,
-      cellLines: true // Always show interval lines
+      cellLines: intervalLinesEnabledState
     },
-    onCellClick: async (noteIndex, pulseIndex, cellElement) => {
-      // In App15, interval lines are ALWAYS enabled, so cell clicks are DISABLED
-      // Users interact only through the zigzag grid editor
-      // But we keep click-to-play for preview
-
-      // Play MIDI note on click via audio engine
+    intervalColor: '#4A9EFF',
+    cellRenderer: (noteIndex, pulseIndex, cellElement) => {
+      clearElement(cellElement);
+    },
+    onCellClick: async (noteIndex) => {
+      // Preview note only (editing happens in zigzag grid)
       await initAudio();
 
       if (!window.Tone) {
@@ -467,17 +545,16 @@ async function initializeApp() {
         return;
       }
 
-      const midi = 60 + noteIndex; // C4 = MIDI 60
-      const duration = (60 / currentBPM) * 0.9; // 1 pulse duration (90% for clean separation)
+      const midi = 60 + noteIndex;
+      const duration = (60 / currentBPM) * 0.9;
       const Tone = window.Tone;
       audio.playNote(midi, duration, Tone.now());
 
       // Visual feedback on soundline
       highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
     },
-    onDotClick: async (noteIndex, pulseIndex, dotElement) => {
-      // Dot clicks work in interval mode (always enabled in App15)
-
+    onDotClick: async (noteIndex, pulseIndex) => {
+      // Dot clicks allow quick toggle (and preview)
       await initAudio();
 
       if (!window.Tone) {
@@ -485,67 +562,79 @@ async function initializeApp() {
         return;
       }
 
-      const midi = 60 + noteIndex; // C4 = MIDI 60
-      const duration = (60 / currentBPM) * 0.9; // 1 pulse duration (90% for clean separation)
+      const midi = 60 + noteIndex;
+      const duration = (60 / currentBPM) * 0.9;
       const Tone = window.Tone;
       audio.playNote(midi, duration, Tone.now());
 
-      // Visual feedback on soundline
       highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
 
-      // Check polyphony mode
       if (!gridEditor) return;
 
-      const currentPairs = gridEditor.getPairs();
-      const isActive = currentPairs.some(p => p.note === noteIndex && p.pulse === pulseIndex);
+      const pairsAtMoment = gridEditor.getPairs();
+      const isActive = pairsAtMoment.some(p => p.note === noteIndex && p.pulse === pulseIndex);
 
       let newPairs;
       if (!polyphonyEnabled) {
-        // MONOPHONIC MODE
         if (isActive) {
-          // Remove this pair
-          newPairs = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
+          newPairs = pairsAtMoment.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
         } else {
-          // Remove all pairs for this pulse, add only this one
-          newPairs = currentPairs.filter(p => p.pulse !== pulseIndex);
+          newPairs = pairsAtMoment.filter(p => p.pulse !== pulseIndex);
           newPairs.push({ note: noteIndex, pulse: pulseIndex });
         }
       } else {
-        // POLYPHONIC MODE
         if (isActive) {
-          // Remove pair
-          newPairs = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
+          newPairs = pairsAtMoment.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
         } else {
-          // Add pair
-          newPairs = [...currentPairs, { note: noteIndex, pulse: pulseIndex }];
+          newPairs = [...pairsAtMoment, { note: noteIndex, pulse: pulseIndex }];
         }
       }
 
-      // Update grid editor and sync visual state
       gridEditor.setPairs(newPairs);
       syncGridFromPairs(newPairs);
     }
   });
 
-  // Create grid editor in interval mode with zigzag
+  // Reposition controls into grid wrapper (match App12)
+  const controls = document.querySelector('.controls');
+  const gridWrapper = document.querySelector('.app12-main-grid');
+
+  if (controls && gridWrapper) {
+    controls.remove();
+
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'two-column-layout__controls app12-controls-container';
+    controlsContainer.appendChild(controls);
+
+    const gridContainer = gridWrapper.querySelector('.grid-container');
+    if (gridContainer) {
+      gridContainer.before(controlsContainer);
+    } else {
+      gridWrapper.appendChild(controlsContainer);
+    }
+  }
+
+  // Create grid editor with scroll enabled on mobile, using interval zigzag mode
+  const isMobile = window.innerWidth <= 900;
   gridEditor = createGridEditor({
     container: gridEditorContainer,
     noteRange: [0, 11],
-    pulseRange: [0, 7],
-    maxPairs: 8,
-    mode: 'interval',  // Enable interval mode
-    showZigzag: true,  // Enable zigzag visual pattern
+    pulseRange: [0, TOTAL_SPACES - 1],
+    maxPairs: TOTAL_SPACES,
+    mode: 'interval',
+    showZigzag: true,
+    scrollEnabled: isMobile,
+    containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
+    columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
     getPolyphonyEnabled: () => polyphonyEnabled,
     onPairsChange: (pairs) => {
-      // Update current state
       currentPairs = pairs;
 
-      // Convert pairs to intervals for storage
       if (pairs.length > 1) {
         const intervals = [];
         for (let i = 1; i < pairs.length; i++) {
-          const soundInterval = pairs[i].note - pairs[i-1].note;
-          const temporalInterval = pairs[i].pulse - pairs[i-1].pulse;
+          const soundInterval = pairs[i].note - pairs[i - 1].note;
+          const temporalInterval = pairs[i].pulse - pairs[i - 1].pulse;
           intervals.push({ soundInterval, temporalInterval });
         }
         currentIntervals = intervals;
@@ -553,84 +642,100 @@ async function initializeApp() {
         currentIntervals = [];
       }
 
-      // Sync with musical grid using pairs directly
       syncGridFromPairs(pairs);
     }
   });
 
-  // Initialize controls
-  const controls = document.querySelector('.controls');
-  if (controls) {
-    playBtn = controls.querySelector('#playBtn');
-    resetBtn = controls.querySelector('#resetBtn');
-    randomBtn = controls.querySelector('#randomBtn');
-
-    if (playBtn) playBtn.addEventListener('click', handlePlay);
-    if (resetBtn) resetBtn.addEventListener('click', handleReset);
-    if (randomBtn) randomBtn.addEventListener('click', handleRandom);
-  }
-
-  // Create highlight controller
+  // Initialize highlight controller using shared module
   highlightController = createMatrixHighlightController({
     musicalGrid,
-    gridEditor: gridEditor,
-    timeline: null, // No separate timeline in App15
+    gridEditor,
     totalNotes: TOTAL_NOTES,
     currentBPM: currentBPM
   });
 
-  // Initialize audio toggles
-  initAudioToggles(window.Tone);
+  // Wait for DOM to be fully rendered
+  await new Promise(resolve => setTimeout(resolve, 30));
 
-  // Initialize mixer
-  initMixerMenu();
+  // Query control buttons AFTER template has rendered
+  playBtn = document.getElementById('playBtn');
+  randomBtn = document.getElementById('randomBtn');
+  resetBtn = document.getElementById('resetBtn');
 
-  // Initialize random menu
-  initRandomMenu(handleRandom);
+  playBtn?.addEventListener('click', handlePlay);
+  resetBtn?.addEventListener('click', handleReset);
+  randomBtn?.addEventListener('click', handleRandom);
 
-  // Initialize P1 toggle
-  initP1ToggleUI();
-
-  // Register factory reset
-  registerFactoryReset(() => {
-    handleReset();
-    preferenceStorage.clear();
-    location.reload();
-  });
-
-  // Load saved state
-  loadSavedState();
-
-  // Handle polyphony toggle
-  const polyphonyToggle = document.getElementById('polyphonyToggle');
-  if (polyphonyToggle) {
-    const prefs = preferenceStorage.load() || {};
-    polyphonyEnabled = prefs.polyphony === '1';
-    polyphonyToggle.checked = polyphonyEnabled;
-
-    polyphonyToggle.addEventListener('change', (e) => {
-      polyphonyEnabled = e.target.checked;
-      const newPrefs = preferenceStorage.load() || {};
-      newPrefs.polyphony = polyphonyEnabled ? '1' : '0';
-      preferenceStorage.save(newPrefs);
-    });
-  }
-
-  // Handle instrument changes
-  const instrumentDropdown = document.getElementById('instrumentDropdown');
-  if (instrumentDropdown) {
-    instrumentDropdown.addEventListener('change', async (e) => {
-      const instrument = e.target.value;
-      if (audio) {
-        await audio.setInstrument(instrument);
+  // P1 Toggle (Pulse 0 special sound) - MUST be before mixer init
+  const startIntervalToggle = document.getElementById('startIntervalToggle');
+  const startSoundRow = document.querySelector('.interval-select-row');
+  if (startIntervalToggle && startSoundRow) {
+    window.__p1Controller = initP1ToggleUI({
+      checkbox: startIntervalToggle,
+      startSoundRow,
+      storageKey: 'app15:p1Toggle',
+      onChange: async (enabled) => {
+        const audioInstance = await initAudio();
+        if (audioInstance && typeof audioInstance.setStartEnabled === 'function') {
+          audioInstance.setStartEnabled(enabled);
+        }
       }
-      const prefs = preferenceStorage.load() || {};
-      prefs.selectedInstrument = instrument;
-      preferenceStorage.save(prefs);
     });
   }
 
-  // Handle select color changes
+  // Mixer integration (longpress on play button)
+  const mixerMenu = document.getElementById('mixerMenu');
+  if (mixerMenu) {
+    initMixerMenu({
+      menu: mixerMenu,
+      triggers: [playBtn].filter(Boolean),
+      channels: [
+        { id: 'pulse', label: 'Pulso', allowSolo: true },
+        { id: 'instrument', label: 'Piano', allowSolo: true },
+        { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
+      ]
+    });
+  }
+
+  // Audio toggles (sync with mixer)
+  const pulseToggleBtn = document.getElementById('pulseToggleBtn');
+  if (pulseToggleBtn) {
+    const globalMixer = getMixer();
+    initAudioToggles({
+      toggles: [
+        {
+          id: 'pulse',
+          button: pulseToggleBtn,
+          storageKey: 'app15:pulseAudio',
+          mixerChannel: 'pulse',
+          defaultEnabled: true,
+          onChange: (enabled) => {
+            if (audio && typeof audio.setPulseEnabled === 'function') {
+              audio.setPulseEnabled(enabled);
+            }
+          }
+        }
+      ],
+      storage: {
+        load: () => preferenceStorage.load() || {},
+        save: (data) => {
+          Object.entries(data).forEach(([key, value]) => {
+            preferenceStorage.save({ [key]: value });
+          });
+        }
+      },
+      mixer: globalMixer,
+      subscribeMixer
+    });
+  }
+
+  // Random menu (longpress to open configuration)
+  const randomMenu = document.getElementById('randomMenu');
+  if (randomBtn && randomMenu) {
+    initRandomMenu(randomBtn, randomMenu, handleRandom);
+  }
+
+  // Color picker change listener (initial value set in index.html)
   const selectColor = document.getElementById('selectColor');
   if (selectColor) {
     selectColor.addEventListener('input', (e) => {
@@ -641,7 +746,68 @@ async function initializeApp() {
       preferenceStorage.save(prefs);
     });
   }
+
+  // Polyphony toggle
+  const polyphonyToggle = document.getElementById('polyphonyToggle');
+  if (polyphonyToggle) {
+    const prefs = preferenceStorage.load() || {};
+    polyphonyEnabled = prefs.polyphony === '1'; // Default false
+    polyphonyToggle.checked = polyphonyEnabled;
+
+    polyphonyToggle.addEventListener('change', (e) => {
+      polyphonyEnabled = e.target.checked;
+      const currentPrefs = preferenceStorage.load() || {};
+      currentPrefs.polyphony = polyphonyEnabled ? '1' : '0';
+      preferenceStorage.save(currentPrefs);
+
+      if (!polyphonyEnabled && gridEditor) {
+        const existingPairs = gridEditor.getPairs();
+        const pulsesMap = new Map();
+        const filteredPairs = [];
+
+        existingPairs.forEach(pair => {
+          if (!pulsesMap.has(pair.pulse)) {
+            pulsesMap.set(pair.pulse, true);
+            filteredPairs.push(pair);
+          }
+        });
+
+        gridEditor.setPairs(filteredPairs);
+        syncGridFromPairs(filteredPairs);
+      }
+    });
+  }
+
+  // Wire instrument dropdown to audio engine
+  window.addEventListener('sharedui:instrument', async (e) => {
+    const instrument = e.detail.instrument;
+    await initAudio();
+    await audio.setInstrument(instrument);
+
+    const currentPrefs = preferenceStorage.load() || {};
+    currentPrefs.selectedInstrument = instrument;
+    preferenceStorage.save(currentPrefs);
+  });
+
+  // Factory reset using shared module
+  registerFactoryReset(() => {
+    handleReset();
+    preferenceStorage.clearAll();
+    preferenceStorage.save({
+      selectedInstrument: 'piano',
+      selectColor: '#E4570C',
+      polyphony: '0',
+      intervalLinesEnabled: true
+    });
+    window.location.reload();
+  });
+
+  // Load saved state after wiring everything
+  loadSavedState();
+
+  console.log('App15 initialized successfully');
 }
+
 
 // Wait for DOM
 if (document.readyState === 'loading') {
