@@ -71,7 +71,9 @@ export function createGridEditor(config = {}) {
     containerSize = null,
     columnSize = null,
     mode = 'standard',  // 'standard' | 'interval'
-    showZigzag = false
+    showZigzag = false,
+    showIntervalLabels = true,
+    leftZigzagLabels = null
   } = config;
 
   let currentPairs = [];
@@ -234,6 +236,9 @@ export function createGridEditor(config = {}) {
     // Clear container
     container.innerHTML = '';
     container.className = 'matrix-grid-editor matrix-grid-editor--interval';
+    if (!showIntervalLabels) {
+      container.classList.add('zigzag--no-headers');
+    }
 
     // Create zigzag container (2 rows)
     const zigzagContainer = document.createElement('div');
@@ -247,6 +252,19 @@ export function createGridEditor(config = {}) {
     const row2 = document.createElement('div');
     row2.className = 'zigzag-row zigzag-row--bottom';
 
+    // Optional left labels (iS / iT to mimic App12 style)
+    if (leftZigzagLabels) {
+      const topLabel = document.createElement('div');
+      topLabel.className = 'zigzag-left-label zigzag-left-label--top';
+      topLabel.textContent = leftZigzagLabels.topText || '';
+      row1.appendChild(topLabel);
+
+      const bottomLabel = document.createElement('div');
+      bottomLabel.className = 'zigzag-left-label zigzag-left-label--bottom';
+      bottomLabel.textContent = leftZigzagLabels.bottomText || '';
+      row2.appendChild(bottomLabel);
+    }
+
     // First pair is always N-P
     const firstPair = pairs[0] || { note: null, pulse: null };
 
@@ -254,13 +272,15 @@ export function createGridEditor(config = {}) {
     const nCell = document.createElement('div');
     nCell.className = 'zigzag-cell zigzag-cell--n';
 
-    const nLabel = document.createElement('div');
-    nLabel.className = 'zigzag-label';
-    nLabel.textContent = 'N';
-    nCell.appendChild(nLabel);
+    if (showIntervalLabels) {
+      const nLabel = document.createElement('div');
+      nLabel.className = 'zigzag-label';
+      nLabel.textContent = 'N';
+      nCell.appendChild(nLabel);
+    }
 
     const nInput = document.createElement('input');
-    nInput.className = 'zigzag-input note-input';
+    nInput.className = 'zigzag-input note-input zigzag-input--n';
     nInput.type = 'text';
     nInput.value = firstPair.note !== null ? String(firstPair.note) : '';
     nInput.maxLength = 2;
@@ -275,13 +295,15 @@ export function createGridEditor(config = {}) {
     const pCell = document.createElement('div');
     pCell.className = 'zigzag-cell zigzag-cell--p';
 
-    const pLabel = document.createElement('div');
-    pLabel.className = 'zigzag-label';
-    pLabel.textContent = 'P';
-    pCell.appendChild(pLabel);
+    if (showIntervalLabels) {
+      const pLabel = document.createElement('div');
+      pLabel.className = 'zigzag-label';
+      pLabel.textContent = 'P';
+      pCell.appendChild(pLabel);
+    }
 
     const pInput = document.createElement('input');
-    pInput.className = 'zigzag-input pulse-input';
+    pInput.className = 'zigzag-input pulse-input zigzag-input--p';
     pInput.type = 'text';
     pInput.value = firstPair.pulse !== null ? String(firstPair.pulse) : '';
     pInput.maxLength = 1;
@@ -306,13 +328,15 @@ export function createGridEditor(config = {}) {
       const isCell = document.createElement('div');
       isCell.className = 'zigzag-cell zigzag-cell--is';
 
-      const isLabel = document.createElement('div');
-      isLabel.className = 'zigzag-label';
-      isLabel.textContent = `iS${index + 1}`;
-      isCell.appendChild(isLabel);
+      if (showIntervalLabels) {
+        const isLabel = document.createElement('div');
+        isLabel.className = 'zigzag-label';
+        isLabel.textContent = `iS${index + 1}`;
+        isCell.appendChild(isLabel);
+      }
 
       const isInput = document.createElement('input');
-      isInput.className = 'zigzag-input interval-input';
+      isInput.className = 'zigzag-input interval-input zigzag-input--is';
       isInput.type = 'text';
       isInput.value = interval.soundInterval !== null ? formatIntervalValue(interval.soundInterval) : '';
       isInput.maxLength = 3; // Allow negative sign
@@ -327,13 +351,15 @@ export function createGridEditor(config = {}) {
       const itCell = document.createElement('div');
       itCell.className = 'zigzag-cell zigzag-cell--it';
 
-      const itLabel = document.createElement('div');
-      itLabel.className = 'zigzag-label';
-      itLabel.textContent = `iT${index + 1}`;
-      itCell.appendChild(itLabel);
+      if (showIntervalLabels) {
+        const itLabel = document.createElement('div');
+        itLabel.className = 'zigzag-label';
+        itLabel.textContent = `iT${index + 1}`;
+        itCell.appendChild(itLabel);
+      }
 
       const itInput = document.createElement('input');
-      itInput.className = 'zigzag-input interval-input';
+      itInput.className = 'zigzag-input interval-input zigzag-input--it';
       itInput.type = 'text';
       itInput.value = interval.temporalInterval !== null ? String(interval.temporalInterval) : '';
       itInput.maxLength = 1;
@@ -353,13 +379,15 @@ export function createGridEditor(config = {}) {
       const isCell = document.createElement('div');
       isCell.className = 'zigzag-cell zigzag-cell--is zigzag-cell--empty';
 
-      const isLabel = document.createElement('div');
-      isLabel.className = 'zigzag-label';
-      isLabel.textContent = `iS${newIndex}`;
-      isCell.appendChild(isLabel);
+      if (showIntervalLabels) {
+        const isLabel = document.createElement('div');
+        isLabel.className = 'zigzag-label';
+        isLabel.textContent = `iS${newIndex}`;
+        isCell.appendChild(isLabel);
+      }
 
       const isInput = document.createElement('input');
-      isInput.className = 'zigzag-input interval-input';
+      isInput.className = 'zigzag-input interval-input zigzag-input--is';
       isInput.type = 'text';
       isInput.value = '';
       isInput.maxLength = 3;
@@ -374,13 +402,15 @@ export function createGridEditor(config = {}) {
       const itCell = document.createElement('div');
       itCell.className = 'zigzag-cell zigzag-cell--it zigzag-cell--empty';
 
-      const itLabel = document.createElement('div');
-      itLabel.className = 'zigzag-label';
-      itLabel.textContent = `iT${newIndex}`;
-      itCell.appendChild(itLabel);
+      if (showIntervalLabels) {
+        const itLabel = document.createElement('div');
+        itLabel.className = 'zigzag-label';
+        itLabel.textContent = `iT${newIndex}`;
+        itCell.appendChild(itLabel);
+      }
 
       const itInput = document.createElement('input');
-      itInput.className = 'zigzag-input interval-input';
+      itInput.className = 'zigzag-input interval-input zigzag-input--it';
       itInput.type = 'text';
       itInput.value = '';
       itInput.maxLength = 1;

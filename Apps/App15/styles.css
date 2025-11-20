@@ -770,6 +770,40 @@
   transition: all 0.2s ease;
 }
 
+.zigzag--no-headers .zigzag-input {
+  border-top: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+/* Left rail labels (iS / iT to mimic App12 side labels) */
+.zigzag-left-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  font-weight: 700;
+  color: #4A9EFF;
+  min-width: 52px;
+}
+
+.zigzag-left-label--top,
+.zigzag-left-label--bottom {
+  margin-right: 8px;
+}
+
+/* Color accents for first pair vs interval pairs */
+.zigzag-input--n,
+.zigzag-input--p {
+  color: var(--select-color, #E4570C);
+  font-weight: 700;
+}
+
+.zigzag-input--is,
+.zigzag-input--it {
+  color: #4A9EFF;
+  font-weight: 700;
+}
+
 .zigzag-input:focus {
   outline: none;
   background: var(--select-color);
@@ -781,6 +815,13 @@
 .zigzag-cell--p,
 .zigzag-cell--it {
   position: relative;
+}
+
+/* Slightly thicker connectors for arrow-like zigzag */
+.zigzag-cell--p::after,
+.zigzag-cell--it::after {
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 /* Diagonal connecting lines using pseudo-elements - MORE VISIBLE */

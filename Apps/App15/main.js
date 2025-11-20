@@ -623,6 +623,8 @@ async function initializeApp() {
     maxPairs: TOTAL_SPACES,
     mode: 'interval',
     showZigzag: true,
+    showIntervalLabels: false,
+    leftZigzagLabels: { topText: 'iS', bottomText: 'iT' },
     scrollEnabled: isMobile,
     containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
     columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
