@@ -426,6 +426,10 @@ export function createGridEditor(config = {}) {
     zigzagContainer.appendChild(row2);
     container.appendChild(zigzagContainer);
 
+    // Normalize ghost patterns
+    applyISPattern(row1);
+    applyITPattern(row2);
+
     // Focus first input
     requestAnimationFrame(() => {
       const firstInput = container.querySelector('.note-input');
@@ -439,6 +443,36 @@ export function createGridEditor(config = {}) {
   function formatIntervalValue(value) {
     if (value > 0) return `+${value}`;
     return String(value);
+  }
+
+  function applyISPattern(row) {
+    // Remove existing ghosts
+    Array.from(row.querySelectorAll('.zigzag-cell--ghost')).forEach(el => el.remove());
+    const isCells = Array.from(row.querySelectorAll('.zigzag-cell--is'));
+    isCells.forEach(cell => {
+      const ghost = document.createElement('div');
+      ghost.className = 'zigzag-cell zigzag-cell--ghost';
+      cell.after(ghost);
+    });
+  }
+
+  function applyITPattern(row) {
+    // Remove existing ghosts
+    Array.from(row.querySelectorAll('.zigzag-cell--ghost')).forEach(el => el.remove());
+    const itCells = Array.from(row.querySelectorAll('.zigzag-cell--it'));
+    if (itCells.length === 0) return;
+
+    // Insert leading ghost before first it
+    const leadingGhost = document.createElement('div');
+    leadingGhost.className = 'zigzag-cell zigzag-cell--ghost';
+    row.insertBefore(leadingGhost, itCells[0]);
+
+    // Add ghost after each it
+    itCells.forEach(cell => {
+      const ghost = document.createElement('div');
+      ghost.className = 'zigzag-cell zigzag-cell--ghost';
+      cell.after(ghost);
+    });
   }
 
   /**

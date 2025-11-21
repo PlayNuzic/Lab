@@ -17,8 +17,9 @@ import { intervalsToPairs } from '../../libs/matrix-seq/index.js';
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
 const TOTAL_NOTES = 12;   // Vertical: 0-11 (MIDI 60-71)
-const TOTAL_SPACES = 8;   // Spaces between pulses: 0-7
+const TOTAL_SPACES = 8;   // Spaces between pulses: 0-7 (total pulses = 9)
 const DEFAULT_BPM = 120;
+const IT_BAR_LAYER_ID = 'it-bars-layer';
 
 // ========== STATE ==========
 let audio = null;
@@ -32,6 +33,40 @@ const intervalLinesEnabledState = true; // Always enabled in App15
 // Store current intervals and pairs
 let currentIntervals = [];
 let currentPairs = [];
+
+function buildPairsFromIntervals(basePair, intervals = []) {
+  if (!basePair) return [];
+
+  let currentNote = basePair.note ?? 0;
+  let currentPulse = basePair.pulse ?? 0;
+  let lastPlayableNote = currentNote;
+  const pairs = [{
+    note: currentNote,
+    pulse: currentPulse,
+    isRest: false
+  }];
+
+  intervals.forEach((interval) => {
+    const temporal = interval?.temporalInterval ?? interval?.temporal ?? 0;
+    if (!temporal) return;
+
+    const isRest = !!interval.isRest;
+    currentPulse += temporal;
+
+    if (isRest) {
+      pairs.push({ note: lastPlayableNote, pulse: currentPulse, isRest: true });
+      return;
+    }
+
+    const soundInterval = interval.soundInterval ?? 0;
+    currentNote += soundInterval;
+    lastPlayableNote = currentNote;
+
+    pairs.push({ note: currentNote, pulse: currentPulse, isRest: false });
+  });
+
+  return pairs;
+}
 
 // Elements
 let playBtn = null;
@@ -89,10 +124,11 @@ async function handlePlay() {
 
   // Get pairs from grid editor
   const allPairs = gridEditor.getPairs();
+  const playablePairs = allPairs.filter(p => !p.isRest && p.note !== null && p.note !== undefined);
 
   // Group pairs by pulse for polyphonic playback
   const pulseGroups = {};
-  allPairs.forEach(pair => {
+  playablePairs.forEach(pair => {
     if (!pulseGroups[pair.pulse]) {
       pulseGroups[pair.pulse] = [];
     }
@@ -243,13 +279,71 @@ function applyIntervalTubes(pairs) {
   });
 }
 
+function renderTemporalBars(intervals = []) {
+  if (!musicalGrid || typeof musicalGrid.getTimelineContainer !== 'function') return;
+  const timeline = musicalGrid.getTimelineContainer();
+  const matrix = musicalGrid.getMatrixContainer?.();
+  if (!timeline || !matrix) return;
+
+  let layer = timeline.querySelector(`#${IT_BAR_LAYER_ID}`);
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = IT_BAR_LAYER_ID;
+    layer.className = 'it-bars-layer';
+    timeline.appendChild(layer);
+  }
+
+  // Reset content
+  layer.innerHTML = '';
+
+  const timelineRect = timeline.getBoundingClientRect();
+  const matrixRect = matrix.getBoundingClientRect();
+
+  // Force layer to align with matrix width/left
+  const totalSpaces = TOTAL_PULSES - 1; // 8 spaces between 9 pulses
+  const totalWidth = matrixRect.width || timelineRect.width || 0;
+  const leftOffset = matrixRect.left - timelineRect.left;
+
+  layer.style.width = `${totalWidth}px`;
+  layer.style.left = `${leftOffset}px`;
+
+  let offset = 0;
+
+  intervals.forEach((interval, index) => {
+    const duration = interval?.temporalInterval ?? interval?.temporal ?? 0;
+    if (!duration) return;
+
+    const leftPx = (offset / totalSpaces) * totalWidth;
+    const widthPx = (duration / totalSpaces) * totalWidth;
+    const labelValue = duration;
+
+    const bar = document.createElement('div');
+    bar.className = 'it-bar';
+    if (interval.isRest) {
+      bar.classList.add('it-bar--rest');
+    }
+    bar.style.left = `${leftPx}px`;
+    bar.style.width = `${widthPx}px`;
+    bar.dataset.index = index + 1;
+
+    const label = document.createElement('div');
+    label.className = 'it-bar__label';
+    label.textContent = labelValue;
+    bar.appendChild(label);
+
+    layer.appendChild(bar);
+    offset += duration;
+  });
+}
+
 function syncGridFromPairs(pairs) {
   if (!musicalGrid) return;
   currentPairs = pairs;
 
   // PERFORMANCE: Incremental update instead of full redraw
   // Track which cells should be active
-  const activeCells = new Set(pairs.map(p => `${p.note}-${p.pulse}`));
+  const visiblePairs = pairs.filter(p => p.note !== null && p.note !== undefined);
+  const activeCells = new Set(visiblePairs.map(p => `${p.note}-${p.pulse}`));
 
   // Clear only cells that are no longer active
   document.querySelectorAll('.musical-cell.active').forEach(cell => {
@@ -276,7 +370,7 @@ function syncGridFromPairs(pairs) {
   const intervalLinesEnabled = intervalLinesEnabledState;
 
   // Filter out null notes
-  const validPairs = pairs.filter(p => p.note !== null);
+  const validPairs = visiblePairs;
 
   // Calculate labels based on interval lines mode
   let labelsMap = new Map(); // Map: "note-pulse" -> label text
@@ -315,10 +409,15 @@ function syncGridFromPairs(pairs) {
   }
 
   // Activate cells and apply labels (only update if changed)
-  validPairs.forEach(({ note, pulse }) => {
+  validPairs.forEach(({ note, pulse, isRest }) => {
     const cell = musicalGrid.getCellElement(note, pulse);
     if (cell) {
       cell.classList.add('active');
+      if (isRest) {
+        cell.classList.add('rest-cell');
+      } else {
+        cell.classList.remove('rest-cell');
+      }
 
       // PERFORMANCE: Only update label if text changed
       const expectedText = labelsMap.get(`${note}-${pulse}`) || `( ${note} , ${pulse} )`;
@@ -343,6 +442,9 @@ function syncGridFromPairs(pairs) {
 
   // Apply tube-style spans for temporal intervals
   applyIntervalTubes(validPairs);
+
+  // Render temporal overlay based on iT
+  renderTemporalBars(currentIntervals);
 
   // Save to storage
   saveCurrentState();
@@ -379,6 +481,7 @@ function handleReset() {
   gridEditor?.clear();
   musicalGrid?.clear();
   clearIntervalTubes();
+  renderTemporalBars([]);
 
   // Reset state
   currentIntervals = [];
@@ -392,12 +495,12 @@ function handleReset() {
 
 function handleRandom() {
   // Get random settings
-  const randPMax = parseInt(document.getElementById('randPMax')?.value || '7');
+  const randPMax = Math.min(parseInt(document.getElementById('randPMax')?.value || '7'), TOTAL_SPACES - 1);
   const randNMax = parseInt(document.getElementById('randNMax')?.value || '11');
 
   // Generate random initial position
-  const initialNote = Math.floor(Math.random() * (randNMax + 1));
-  const initialPulse = Math.floor(Math.random() * Math.min(3, randPMax)); // Start early
+  const initialNote = 0;
+  const initialPulse = 0;
 
   // Generate random intervals
   const numIntervals = Math.floor(Math.random() * 5) + 1; // 1-5 intervals
@@ -452,7 +555,7 @@ function saveCurrentState() {
 
   // Save current intervals and initial position
   prefs.intervals = currentIntervals;
-  prefs.initialPair = currentPairs[0] || null;
+  prefs.initialPair = { note: 0, pulse: 0 };
 
   preferenceStorage.save(prefs);
 }
@@ -461,9 +564,11 @@ function loadSavedState() {
   const prefs = preferenceStorage.load() || {};
 
   if (prefs.intervals && prefs.initialPair) {
-    // Restore intervals
-    const pairs = intervalsToPairs(prefs.initialPair, prefs.intervals);
-    currentIntervals = prefs.intervals;
+    // Restore intervals (supports rests)
+    const basePair = prefs.initialPair || { note: 0, pulse: 0 };
+    const intervals = prefs.intervals || [];
+    const pairs = buildPairsFromIntervals(basePair, intervals);
+    currentIntervals = intervals;
     currentPairs = pairs;
     gridEditor.setPairs(pairs);
     syncGridFromPairs(pairs);
@@ -528,7 +633,7 @@ async function initializeApp() {
     activeClassName: 'active',
     highlightClassName: 'highlight',
     showIntervals: {
-      horizontal: true,
+      horizontal: false,
       vertical: false,
       cellLines: intervalLinesEnabledState
     },
@@ -625,6 +730,14 @@ async function initializeApp() {
     showZigzag: true,
     showIntervalLabels: false,
     leftZigzagLabels: { topText: 'iS', bottomText: 'iT' },
+    autoJumpDelayMs: 500,
+    intervalModeOptions: {
+      basePair: { note: 0, pulse: 0 },
+      hideInitialPair: true,
+      allowSilence: true,
+      firstIntervalPositiveOnly: true,
+      maxTotalPulse: TOTAL_PULSES - 1
+    },
     scrollEnabled: isMobile,
     containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
     columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
@@ -632,17 +745,39 @@ async function initializeApp() {
     onPairsChange: (pairs) => {
       currentPairs = pairs;
 
-      if (pairs.length > 1) {
-        const intervals = [];
-        for (let i = 1; i < pairs.length; i++) {
-          const soundInterval = pairs[i].note - pairs[i - 1].note;
-          const temporalInterval = pairs[i].pulse - pairs[i - 1].pulse;
-          intervals.push({ soundInterval, temporalInterval });
+      const intervals = [];
+      let prevNote = 0;
+      let prevPulse = 0;
+      let lastPlayable = 0;
+
+      pairs.forEach((pair, idx) => {
+        if (idx === 0) {
+          prevNote = pair.note;
+          lastPlayable = pair.note;
+          prevPulse = pair.pulse;
+          return;
         }
-        currentIntervals = intervals;
-      } else {
-        currentIntervals = [];
-      }
+
+        const temporalInterval = pair.pulse - prevPulse;
+        const isRest = !!pair.isRest;
+        const soundInterval = isRest ? 0 : pair.note - prevNote;
+
+        intervals.push({
+          soundInterval,
+          temporalInterval,
+          isRest
+        });
+
+        if (!isRest) {
+          prevNote = pair.note;
+          lastPlayable = pair.note;
+        } else {
+          prevNote = lastPlayable;
+        }
+        prevPulse = pair.pulse;
+      });
+
+      currentIntervals = intervals;
 
       syncGridFromPairs(pairs);
     }

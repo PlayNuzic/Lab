@@ -128,6 +128,16 @@
   box-shadow: 0 0 10px var(--select-color, #F97C39);
 }
 
+/* ========== Interval Zigzag Helpers ========== */
+.zigzag-cell--hidden {
+  display: none !important;
+}
+
+.zigzag-cell--ghost {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* Notes area (dynamic height for vertical alignment) */
 .column-notes-area {
   height: var(--notes-height, 120px); /* Fixed height to maintain P row alignment */

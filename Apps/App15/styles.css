@@ -37,6 +37,53 @@
   --line-color: #999;
 }
 
+/* ========== iT Bars Overlay (timeline) ========== */
+.it-bars-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  pointer-events: none;
+  display: block;
+  z-index: 15;
+}
+
+.it-bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 8px;
+  border-radius: 8px;
+  background: var(--select-color, #F97C39);
+  opacity: 0.9;
+}
+
+.it-bar--rest {
+  background: rgba(var(--select-color-rgb, 228, 87, 12), 0.35);
+}
+
+.it-bar__label {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-color, #333);
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+
+[data-theme="dark"] .it-bar__label {
+  color: var(--text-dark, #e0e0e0);
+}
+
+.timeline-wrapper,
+.timeline-inner {
+  position: relative;
+}
+
 /* ========== SEQUENCES CONTAINER ========== */
 /* .sequences-container removed - element doesn't exist in DOM (orphaned CSS) */
 
@@ -710,9 +757,9 @@
 
 /* ========== ZIGZAG INTERVAL MODE ========== */
 .matrix-grid-editor--interval {
-  padding: 1rem;
-  background: var(--bg-secondary);
-  border-radius: 8px;
+  padding: 0.2rem 0.4rem;
+  background: transparent;
+  border-radius: 6px;
 }
 
 .grid-zigzag-container {
@@ -724,55 +771,63 @@
 
 .zigzag-row {
   display: flex;
-  gap: 0;
+  gap: 18px;
+  align-items: center;
 }
 
 .zigzag-row--top {
-  margin-bottom: 10px; /* Increased spacing for visual zigzag */
+  margin-bottom: 8px;
 }
 
 .zigzag-cell {
   display: flex;
   flex-direction: column;
-  min-width: 80px;
+  flex: 0 0 72px;
   position: relative;
+  box-sizing: border-box;
 }
 
-/* Zigzag visual offset - intervals shift right */
-.zigzag-cell--is {
-  margin-left: 20px; /* Offset right */
-}
-
-.zigzag-cell--it {
-  margin-left: 10px; /* Offset less than iS */
-}
-
-.zigzag-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  padding: 4px 8px;
-  text-align: center;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-bottom: none;
+.matrix-grid-editor--interval .zigzag-label {
+  display: none;
 }
 
 .zigzag-input {
   width: 100%;
-  padding: 8px;
-  font-size: 1.1rem;
+  padding: 6px 8px;
+  font-size: 2rem;
   text-align: center;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-top: none;
-  color: var(--text-primary);
-  transition: all 0.2s ease;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  color: var(--text-color, #333);
+  transition: all 0.15s ease;
+  box-shadow: none;
 }
 
-.zigzag--no-headers .zigzag-input {
-  border-top: 1px solid var(--border-color);
+[data-theme="dark"] .zigzag-input {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text-dark, #e0e0e0);
+}
+
+.zigzag-input:focus {
+  outline: none;
+  border-color: var(--select-color, #F97C39);
+  box-shadow: 0 0 6px rgba(var(--select-color-rgb, 228, 87, 12), 0.35);
+  background: rgba(var(--select-color-rgb, 228, 87, 12), 0.08);
+}
+
+.zigzag-cell--ghost {
+  visibility: visible;
+  pointer-events: none;
+  background: #000;
+  opacity: 0.4;
+  min-height: 36px;
+  min-width: 72px;
+  flex: 0 0 72px;
+  margin: 0;
   border-radius: 6px;
+  box-sizing: border-box;
 }
 
 /* Left rail labels (iS / iT to mimic App12 side labels) */
