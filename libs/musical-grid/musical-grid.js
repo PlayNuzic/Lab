@@ -1150,8 +1150,8 @@ export function createMusicalGrid(config) {
         if (lastPlayableNote !== null && hasValidTemporalInterval) {
           // Calculate the space where the vertical line should be drawn
           // The vertical line connects at the START of current note
-          // Use Math.max(0, ...) to ensure pulse=0 pairs are visible (startSpace >= 0)
-          const currentStartSpace = Math.max(0, current.pulse - current.temporalInterval);
+          // With new semantics: pulse = START position, so line is drawn AT pulse
+          const currentStartSpace = current.pulse;
 
           // Calculate the sound interval for the label
           const soundInterval = current.note - lastPlayableNote;

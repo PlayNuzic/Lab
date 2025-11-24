@@ -52,10 +52,11 @@ function buildPairsFromIntervals(basePair, intervals = []) {
     if (!temporal || temporal <= 0) return;
 
     const isRest = !!interval.isRest;
-    currentPulse += temporal;
+    const notePulse = currentPulse;  // Store START position BEFORE advancing
+    currentPulse += temporal;         // Advance for NEXT note
 
     if (isRest) {
-      pairs.push({ note: lastPlayableNote, pulse: currentPulse, isRest: true });
+      pairs.push({ note: lastPlayableNote, pulse: notePulse, isRest: true });
       return;
     }
 
@@ -63,7 +64,7 @@ function buildPairsFromIntervals(basePair, intervals = []) {
     currentNote += soundInterval;
     lastPlayableNote = currentNote;
 
-    pairs.push({ note: currentNote, pulse: currentPulse, isRest: false });
+    pairs.push({ note: currentNote, pulse: notePulse, isRest: false });
   });
 
   return pairs;
@@ -319,14 +320,14 @@ function syncGridFromPairs(pairs) {
   const visiblePairs = pairs.filter(p => p.note !== null && p.note !== undefined);
   console.log('[App15] visiblePairs after filter:', JSON.stringify(visiblePairs));
   // Convert pulse to space indices for cell tracking (fillSpaces mode)
-  // Each note occupies spaces from (pulse - temporalInterval) to (pulse - 1)
-  // The note STARTS at (pulse - iT), and ENDS at pulse
+  // Each note occupies spaces from pulse (START) to (pulse + iT - 1) (END)
+  // The note STARTS at pulse, and ENDS at (pulse + iT - 1)
   const activeCells = new Set();
   visiblePairs.forEach(p => {
-    if (p.pulse <= 0 || p.isRest) return; // Base position has no cell, silences don't illuminate
+    if (p.isRest) return; // Silences don't illuminate cells
     const iT = p.temporalInterval || 1;
-    const startSpace = p.pulse - iT;
-    const endSpace = p.pulse - 1;
+    const startSpace = p.pulse;
+    const endSpace = p.pulse + iT - 1;
     for (let space = startSpace; space <= endSpace; space++) {
       if (space >= 0) {
         activeCells.add(`${p.note}-${space}`);
@@ -362,15 +363,10 @@ function syncGridFromPairs(pairs) {
 
   // Activate cells (no labels in grid-2D)
   // With fillSpaces=true, cells represent SPACES between pulses
-  // Each note occupies spaces from (pulse - temporalInterval) to (pulse - 1)
-  // The note STARTS at (pulse - iT), showing its full duration
+  // Each note occupies spaces from pulse (START) to (pulse + iT - 1) (END)
+  // The note STARTS at pulse, showing its full duration
   console.log('[App15] validPairs to activate:', JSON.stringify(validPairs));
   validPairs.forEach(({ note, pulse, isRest, temporalInterval }) => {
-    // Pulse 0 is the starting point - no cell to activate
-    if (pulse === 0) {
-      console.log(`[App15] Skipping pulse=0 (base position, no cell)`);
-      return;
-    }
     // Silences (isRest) don't illuminate cells - they represent absence of sound
     if (isRest) {
       console.log(`[App15] Skipping silence at pulse=${pulse} (no cell illumination)`);
@@ -378,8 +374,8 @@ function syncGridFromPairs(pairs) {
     }
     // Calculate start and end spaces based on temporalInterval
     const iT = temporalInterval || 1;
-    const startSpace = pulse - iT;
-    const endSpace = pulse - 1;
+    const startSpace = pulse;
+    const endSpace = pulse + iT - 1;
     console.log(`[App15] Activating cells for note=${note}, pulse=${pulse}, iT=${iT} -> spaces ${startSpace} to ${endSpace}`);
 
     for (let space = startSpace; space <= endSpace; space++) {
