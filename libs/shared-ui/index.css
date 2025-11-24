@@ -1554,6 +1554,46 @@ body.notation-open {
   opacity: 1;
 }
 
+/* ========== VALIDATION TOOLTIPS ========== */
+/* Shared styles for validation warning tooltips used in grid-editor, matrix-seq */
+
+.hover-tip.validation-warning {
+  position: absolute;
+  background: #ff6b6b;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: validationTipFadeIn 0.2s ease-out;
+  max-width: 300px;
+  white-space: nowrap;
+  opacity: 1 !important;
+  pointer-events: none;
+  transform: none;
+  transition: none;
+}
+
+[data-theme="dark"] .hover-tip.validation-warning {
+  background: #e74c3c;
+}
+
+.hover-tip.validation-warning strong {
+  font-weight: 700;
+}
+
+@keyframes validationTipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ========== FLEXIBLE BUTTON LAYOUTS ========== */
 
 /* Vertical layout */

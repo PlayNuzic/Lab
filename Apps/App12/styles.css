@@ -155,34 +155,7 @@
   display: none !important;
 }
 
-/* ========== WARNING TOOLTIPS ========== */
-.hover-tip.matrix-seq-warning {
-  position: absolute;
-  background: #ff6b6b;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 0.95rem;
-  z-index: var(--z-overlay);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  animation: tipFadeIn 0.2s ease-out;
-  max-width: 300px;
-}
-
-[data-theme="dark"] .hover-tip.matrix-seq-warning {
-  background: #e74c3c;
-}
-
-@keyframes tipFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* WARNING TOOLTIPS: Now using shared styles from libs/shared-ui/index.css (.hover-tip.validation-warning) */
 
 .bpm-display {
   font-size: 1.1rem;

@@ -18,6 +18,8 @@
  * - Interactive editing via contenteditable
  */
 
+import { showValidationWarning } from '../app-common/info-tooltip.js';
+
 /**
  * Groups pairs by pulse index, supporting multiple notes per pulse
  * @param {Array<{note: number, pulse: number}>} pairs - Array of pairs
@@ -331,20 +333,7 @@ export function createPairColumnsRenderer(config = {}) {
    * Shows validation error tooltip
    */
   function showValidationError(element, message) {
-    const tip = document.createElement('div');
-    tip.className = 'hover-tip validation-error';
-    tip.textContent = message;
-    document.body.appendChild(tip);
-
-    // Position below element
-    const rect = element.getBoundingClientRect();
-    tip.style.position = 'absolute';
-    tip.style.left = rect.left + 'px';
-    tip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
-    tip.style.zIndex = '1000';
-
-    // Auto-remove after 2s
-    setTimeout(() => tip.remove(), 2000);
+    showValidationWarning(element, message, 2000);
   }
 
   /**

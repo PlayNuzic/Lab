@@ -9,6 +9,7 @@
  */
 
 import { parseNotes, parsePulses, autoCompletePulses, createPairs } from './parser.js';
+import { showValidationWarning } from '../app-common/info-tooltip.js';
 
 /**
  * Caret position helpers
@@ -349,24 +350,8 @@ export function createDualEditor(config = {}) {
    * @param {string} label - Etiqueta (N o P)
    */
   function showRangeWarning(element, invalidNumber, maxValue, label) {
-    const tip = document.createElement('div');
-    tip.className = 'hover-tip auto-tip-below matrix-seq-warning';
-    tip.innerHTML = `El número <strong>${invalidNumber}</strong> es mayor que ${label} (<strong>${maxValue}</strong>). Elige un número menor.`;
-
-    document.body.appendChild(tip);
-
-    // Posicionar bajo el elemento
-    const rect = element.getBoundingClientRect();
-    tip.style.position = 'absolute';
-    tip.style.left = rect.left + 'px';
-    tip.style.top = (rect.bottom + window.scrollY) + 'px';
-    tip.style.fontSize = '0.95rem';
-    tip.style.zIndex = '1000';
-
-    // Auto-remove después de 3 segundos
-    setTimeout(() => {
-      tip.remove();
-    }, 3000);
+    const message = `El número <strong>${invalidNumber}</strong> es mayor que ${label} (<strong>${maxValue}</strong>). Elige un número menor.`;
+    showValidationWarning(element, message, 3000);
   }
 
   /**

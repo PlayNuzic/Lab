@@ -138,41 +138,7 @@
   pointer-events: none;
 }
 
-/* Tooltip for validation messages (App12 style) */
-.zigzag-tooltip {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(245, 245, 245, 0.98);
-  color: #333;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  white-space: nowrap;
-  z-index: 100;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  animation: tooltipFadeIn 0.2s ease-out;
-  margin-top: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="dark"] .zigzag-tooltip {
-  background: rgba(60, 60, 60, 0.98);
-  color: #e0e0e0;
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-@keyframes tooltipFadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
+/* Validation tooltips: Now using shared styles from libs/shared-ui/index.css (.hover-tip.validation-warning) */
 
 /* Notes area (dynamic height for vertical alignment) */
 .column-notes-area {

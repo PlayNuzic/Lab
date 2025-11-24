@@ -175,3 +175,72 @@ export function createInfoTooltip(options = {}) {
     getElement
   };
 }
+
+/**
+ * Creates a validation warning tooltip controller
+ * Pre-configured for input validation errors with auto-remove behavior
+ *
+ * @param {Object} [options]
+ * @param {number} [options.autoRemoveDelay=2500] - Auto-remove after ms
+ * @param {number} [options.verticalOffset=5] - Vertical offset from anchor
+ * @returns {Object} Tooltip controller API
+ */
+export function createValidationTooltip(options = {}) {
+  const {
+    autoRemoveDelay = 2500,
+    verticalOffset = 5
+  } = options;
+
+  return createInfoTooltip({
+    className: 'hover-tip validation-warning',
+    autoHideOnScroll: false,
+    autoHideOnResize: false,
+    verticalOffset,
+    useInnerHTML: true,
+    autoRemoveDelay
+  });
+}
+
+/**
+ * Shows a temporary validation warning below an element
+ * Convenience function for one-off validation messages
+ *
+ * @param {HTMLElement} element - Element to position relative to
+ * @param {string} message - Warning message (supports HTML)
+ * @param {number} [duration=2500] - Duration in ms before auto-remove
+ */
+export function showValidationWarning(element, message, duration = 2500) {
+  if (!element) return;
+
+  // Remove any existing validation tooltip on this element
+  const existingId = element.dataset.validationTooltipId;
+  if (existingId) {
+    const existing = document.getElementById(existingId);
+    if (existing) existing.remove();
+  }
+
+  // Create tooltip element
+  const tip = document.createElement('div');
+  const tipId = 'validation-tip-' + Math.random().toString(36).substr(2, 9);
+  tip.id = tipId;
+  tip.className = 'hover-tip validation-warning';
+  tip.innerHTML = message;
+
+  document.body.appendChild(tip);
+  element.dataset.validationTooltipId = tipId;
+
+  // Position below element
+  const rect = element.getBoundingClientRect();
+  tip.style.left = rect.left + 'px';
+  tip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+
+  // Auto-remove after duration
+  setTimeout(() => {
+    if (tip.parentNode) {
+      tip.remove();
+    }
+    if (element.dataset.validationTooltipId === tipId) {
+      delete element.dataset.validationTooltipId;
+    }
+  }, duration);
+}

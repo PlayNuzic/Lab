@@ -543,18 +543,10 @@ export function createGridEditor(config = {}) {
 
   /**
    * Shows a temporary tooltip on an input element
+   * Uses the shared infoTooltip for consistent styling with N/P validation
    */
-  function showInputTooltip(input, message, duration = 2000) {
-    // Remove existing tooltip
-    const existingTooltip = input.parentElement?.querySelector('.zigzag-tooltip');
-    if (existingTooltip) existingTooltip.remove();
-
-    const tooltip = document.createElement('div');
-    tooltip.className = 'zigzag-tooltip';
-    tooltip.textContent = message;
-    input.parentElement?.appendChild(tooltip);
-
-    setTimeout(() => tooltip.remove(), duration);
+  function showInputTooltip(input, message) {
+    infoTooltip.show(message, input);
   }
 
   /**
