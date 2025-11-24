@@ -851,15 +851,22 @@ async function initializeApp() {
     initRandomMenu(randomBtn, randomMenu, handleRandom);
   }
 
-  // Color picker change listener (initial value set in index.html)
+  // Color picker - load saved value and setup change listener
   const selectColor = document.getElementById('selectColor');
   if (selectColor) {
+    // Load saved color
+    const prefs = preferenceStorage.load() || {};
+    if (prefs.selectColor) {
+      selectColor.value = prefs.selectColor;
+      document.documentElement.style.setProperty('--select-color', prefs.selectColor);
+    }
+
     selectColor.addEventListener('input', (e) => {
       const color = e.target.value;
       document.documentElement.style.setProperty('--select-color', color);
-      const prefs = preferenceStorage.load() || {};
-      prefs.selectColor = color;
-      preferenceStorage.save(prefs);
+      const currentPrefs = preferenceStorage.load() || {};
+      currentPrefs.selectColor = color;
+      preferenceStorage.save(currentPrefs);
     });
   }
 
@@ -909,6 +916,12 @@ async function initializeApp() {
   registerFactoryReset(() => {
     handleReset();
     preferenceStorage.clearAll();
+
+    // Clear keys with separate namespace (used by shared UI components)
+    localStorage.removeItem('app15:p1Toggle');
+    localStorage.removeItem('app15:pulseAudio');
+
+    // Set default values
     preferenceStorage.save({
       selectedInstrument: 'piano',
       selectColor: '#E4570C',
