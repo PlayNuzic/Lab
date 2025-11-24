@@ -77,7 +77,7 @@ let gridEditorContainer = null;
 
 // ========== STORAGE HELPERS ==========
 // Use shared preference storage module - renamed to app15
-const preferenceStorage = createPreferenceStorage('app15');
+const preferenceStorage = createPreferenceStorage({ prefix: 'app15', separator: '-' });
 
 // ========== AUDIO INITIALIZATION ==========
 

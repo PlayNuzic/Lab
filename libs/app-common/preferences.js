@@ -16,7 +16,11 @@
  *   clearAll: () => void
  * }} interface to interact with the storage namespace.
  */
-export function createPreferenceStorage({ prefix, separator = '::' }) {
+export function createPreferenceStorage(options) {
+  // Support both string and object syntax
+  const { prefix, separator = '::' } = typeof options === 'string'
+    ? { prefix: options }
+    : options;
   const sep = separator ?? '';
   const prefixValue = `${prefix}${sep}`;
 
@@ -53,7 +57,45 @@ export function createPreferenceStorage({ prefix, separator = '::' }) {
     } catch {}
   };
 
-  return { storeKey, save, load, clear, clearAll };
+  // JSON object storage (for apps that store all prefs as one object)
+  const PREFS_KEY = 'preferences';
+
+  const saveJson = (obj) => {
+    try {
+      localStorage.setItem(storeKey(PREFS_KEY), JSON.stringify(obj));
+    } catch {}
+  };
+
+  const loadJson = () => {
+    try {
+      const raw = localStorage.getItem(storeKey(PREFS_KEY));
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Polymorphic save/load: detect if called with object (JSON mode) or key-value
+  const polymorphicSave = (keyOrObj, value) => {
+    if (typeof keyOrObj === 'object' && keyOrObj !== null && value === undefined) {
+      // Called as save(obj) - JSON mode
+      saveJson(keyOrObj);
+    } else {
+      // Called as save(key, value) - key-value mode
+      save(keyOrObj, value);
+    }
+  };
+
+  const polymorphicLoad = (key) => {
+    if (key === undefined) {
+      // Called as load() - JSON mode
+      return loadJson();
+    }
+    // Called as load(key) - key-value mode
+    return load(key);
+  };
+
+  return { storeKey, save: polymorphicSave, load: polymorphicLoad, clear, clearAll };
 }
 
 /**
