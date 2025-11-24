@@ -90,6 +90,10 @@ export function createMusicalGrid(config) {
   let resizeObserver = null;
   let resizeTimeout = null;
 
+  // Store current interval path data for redrawing on resize
+  let currentIntervalPairs = null;
+  let currentIntervalPolyphonic = false;
+
   // Calculate horizontal cell count based on fillSpaces
   const hCellCount = fillSpaces ? pulses - 1 : pulses;
 
@@ -625,8 +629,18 @@ export function createMusicalGrid(config) {
       element.style.height = `${bounds.height}px`;
     });
 
+    // Force reflow to ensure offsetLeft/offsetTop are updated
+    // This is necessary before reading geometric properties in redrawIntervalPaths
+    const firstCell = cells[0]?.element;
+    if (firstCell) {
+      void firstCell.offsetHeight;  // Reading without assignment = forced reflow
+    }
+
     // Also update interval bars positions to stay synchronized
     updateIntervalBarsPositions();
+
+    // Redraw interval path lines after cell positions are updated
+    redrawIntervalPaths();
   }
 
   /**
@@ -1048,44 +1062,75 @@ export function createMusicalGrid(config) {
     // Sort by pulse
     const sorted = [...voicePairs].sort((a, b) => a.pulse - b.pulse);
 
-    // Draw paths between consecutive notes in this voice
-    for (let i = 0; i < sorted.length - 1; i++) {
+    // Track the last playable (non-silence) note for connecting after silences
+    let lastPlayableNote = null;
+    let lastPlayableIndex = -1;
+
+    // Draw vertical paths between consecutive notes in this voice
+    // Horizontal paths removed - iT bars in timeline show duration instead
+    for (let i = 0; i < sorted.length; i++) {
       const current = sorted[i];
-      const next = sorted[i + 1];
 
-      // 1. Horizontal path: from current pulse to next pulse (along current note)
-      for (let p = current.pulse; p < next.pulse; p++) {
-        const cell = getCellElement(current.note, p);
-        if (cell) {
-          cell.classList.add('interval-path-horizontal');
-        }
-      }
+      // Track playable notes
+      if (!current.isRest) {
+        // If we have a previous playable note, draw vertical line
+        if (lastPlayableNote !== null && lastPlayableNote !== current.note) {
+          // Calculate the space where the vertical line should be drawn
+          // The vertical line connects at the START of current note
+          const currentStartSpace = current.temporalInterval ? current.pulse - current.temporalInterval : current.pulse - 1;
 
-      // 2. Vertical path: from current note to next note (at next pulse)
-      // Draw left borders respecting direction (up or down)
-      if (current.note < next.note) {
-        // Going down: include current note to keep connection tight
-        for (let n = current.note; n < next.note; n++) {
-          const cell = getCellElement(n, next.pulse);
-          if (cell) {
-            cell.classList.add('interval-path-vertical');
+          // Calculate the sound interval for the label
+          const soundInterval = current.note - lastPlayableNote;
+
+          // Draw vertical path from last playable note to current note
+          const minNote = Math.min(lastPlayableNote, current.note);
+          const maxNote = Math.max(lastPlayableNote, current.note);
+
+          // Get or create the interval lines container (outside cell stacking context)
+          const targetContainer = containers.matrixInner || containers.matrix;
+          let linesContainer = targetContainer.querySelector('.interval-lines-container');
+          if (!linesContainer) {
+            linesContainer = document.createElement('div');
+            linesContainer.className = 'interval-lines-container';
+            targetContainer.appendChild(linesContainer);
+            // Force reflow AFTER adding to DOM and BEFORE reading getBoundingClientRect()
+            // This ensures the browser has calculated the element's dimensions
+            void linesContainer.offsetHeight;
           }
+
+          // Use computeCellBounds() for positioning - same method as cells
+          // This ensures lines resize correctly like cells do
+          const topBounds = computeCellBounds(maxNote, currentStartSpace);
+          const bottomBounds = computeCellBounds(minNote, currentStartSpace);
+
+          // Create vertical line element
+          const line = document.createElement('div');
+          line.className = 'interval-line-vertical';
+          // Position line using computed bounds (same as cells)
+          line.style.left = `${topBounds.left}px`;
+          line.style.top = `${topBounds.top}px`;
+          line.style.height = `${bottomBounds.top + bottomBounds.height - topBounds.top}px`;
+          linesContainer.appendChild(line);
+
+          // Add interval label (iS value) to the middle of the vertical line
+          const middleNote = Math.floor((minNote + maxNote) / 2);
+          const middleBounds = computeCellBounds(middleNote, currentStartSpace);
+          const label = document.createElement('div');
+          label.className = 'interval-label';
+          // Position label to the left of the line, vertically centered
+          label.style.left = `${middleBounds.left - 50}px`;
+          label.style.top = `${middleBounds.top + middleBounds.height / 2}px`;
+          label.style.transform = 'translateY(-50%)';
+          // Format with sign
+          label.textContent = soundInterval > 0 ? `+${soundInterval}` : `${soundInterval}`;
+          linesContainer.appendChild(label);
         }
-      } else if (current.note > next.note) {
-        // Going up: start just before current note to avoid backtracking
-        for (let n = current.note - 1; n >= next.note; n--) {
-          const cell = getCellElement(n, next.pulse);
-          if (cell) {
-            cell.classList.add('interval-path-vertical');
-          }
-        }
+
+        lastPlayableNote = current.note;
+        lastPlayableIndex = i;
       }
-      // Ensure destination cell always participates in the vertical path
-      if (current.note !== next.note) {
-        const destinationCell = getCellElement(next.note, next.pulse);
-        destinationCell?.classList.add('interval-path-vertical');
-      }
-      // If current.note === next.note: no vertical path needed (same note)
+      // If current is a silence, we don't update lastPlayableNote
+      // so the next playable note will connect to the last non-silence note
     }
   }
 
@@ -1097,8 +1142,15 @@ export function createMusicalGrid(config) {
    */
   function highlightIntervalPath(pairs, polyphonic = false) {
     if (!intervalsConfig.cellLines || !pairs || pairs.length < 2) {
+      // Clear stored data if no valid pairs
+      currentIntervalPairs = null;
+      currentIntervalPolyphonic = false;
       return;
     }
+
+    // Store pairs for redrawing on resize
+    currentIntervalPairs = pairs;
+    currentIntervalPolyphonic = polyphonic;
 
     // Clear any existing paths
     clearIntervalPaths();
@@ -1115,6 +1167,32 @@ export function createMusicalGrid(config) {
   }
 
   /**
+   * Redraw interval paths after resize (uses stored pairs)
+   */
+  function redrawIntervalPaths() {
+    if (!currentIntervalPairs || currentIntervalPairs.length < 2) {
+      return;
+    }
+
+    // Remove existing container completely to force fresh getBoundingClientRect()
+    // Just clearing innerHTML keeps the same DOM node with stale coordinates
+    const targetContainer = containers.matrixInner || containers.matrix;
+    const oldLinesContainer = targetContainer?.querySelector('.interval-lines-container');
+    if (oldLinesContainer) {
+      oldLinesContainer.remove();
+    }
+
+    // Redraw paths (drawVoicePath will create a new container with fresh coordinates)
+    if (currentIntervalPolyphonic) {
+      const voices = separateIntoVoices(currentIntervalPairs);
+      voices.forEach(voice => drawVoicePath(voice));
+    } else {
+      const sortedPairs = [...currentIntervalPairs].sort((a, b) => a.pulse - b.pulse);
+      drawVoicePath(sortedPairs);
+    }
+  }
+
+  /**
    * Clears all interval path highlights from cells
    */
   function clearIntervalPaths() {
@@ -1123,6 +1201,13 @@ export function createMusicalGrid(config) {
         element.classList.remove('interval-path-horizontal', 'interval-path-vertical', 'interval-path-corner');
       }
     });
+
+    // Clear interval lines and labels from the external container
+    const targetContainer = containers.matrixInner || containers.matrix;
+    const linesContainer = targetContainer?.querySelector('.interval-lines-container');
+    if (linesContainer) {
+      linesContainer.innerHTML = '';
+    }
   }
 
   /**

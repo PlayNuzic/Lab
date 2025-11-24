@@ -240,45 +240,7 @@ function separateIntoVoices(pairs) {
   return voices;
 }
 
-function clearIntervalTubes() {
-  document.querySelectorAll('.musical-cell.interval-span').forEach(cell => {
-    cell.classList.remove('interval-span', 'interval-span-start', 'interval-span-end');
-  });
-}
-
-function applyIntervalTubes(pairs) {
-  clearIntervalTubes();
-  if (!musicalGrid || !pairs || pairs.length === 0) return;
-
-  const maxPulseIndex = TOTAL_SPACES - 1;
-  const voices = polyphonyEnabled
-    ? separateIntoVoices(pairs)
-    : [pairs.slice().sort((a, b) => a.pulse - b.pulse)];
-
-  voices.forEach(voice => {
-    if (!voice || voice.length === 0) return;
-
-    const sorted = [...voice].sort((a, b) => a.pulse - b.pulse);
-
-    sorted.forEach((current, idx) => {
-      const next = sorted[idx + 1];
-      const endPulseExclusive = next ? Math.min(next.pulse, TOTAL_SPACES) : Math.min(current.pulse + 1, TOTAL_SPACES);
-
-      for (let p = current.pulse; p < endPulseExclusive; p++) {
-        if (p < 0 || p > maxPulseIndex) continue;
-        const cell = musicalGrid.getCellElement(current.note, p);
-        if (!cell) continue;
-        cell.classList.add('interval-span');
-        if (p === current.pulse) {
-          cell.classList.add('interval-span-start');
-        }
-        if (p === endPulseExclusive - 1) {
-          cell.classList.add('interval-span-end');
-        }
-      }
-    });
-  });
-}
+// Note: interval-span tubes removed - iT bars in timeline are sufficient for showing duration
 
 function renderTemporalBars(intervals = []) {
   if (!musicalGrid || typeof musicalGrid.getTimelineContainer !== 'function') return;
@@ -378,7 +340,6 @@ function syncGridFromPairs(pairs) {
   if (musicalGrid.clearIntervalPaths) {
     musicalGrid.clearIntervalPaths();
   }
-  clearIntervalTubes();
 
   // Interval lines always enabled in App15
   const intervalLinesEnabled = intervalLinesEnabledState;
@@ -426,9 +387,6 @@ function syncGridFromPairs(pairs) {
     musicalGrid.highlightIntervalPath(validPairs, polyphonyEnabled);
   }
 
-  // Apply tube-style spans for temporal intervals
-  applyIntervalTubes(validPairs);
-
   // Render temporal overlay based on iT
   renderTemporalBars(currentIntervals);
 
@@ -466,7 +424,6 @@ function handleReset() {
   // Clear editors
   gridEditor?.clear();
   musicalGrid?.clear();
-  clearIntervalTubes();
   renderTemporalBars([]);
 
   // Reset state

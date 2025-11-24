@@ -685,3 +685,37 @@
   opacity: 0.9;
   box-shadow: 0 0 10px var(--interval-color, #4A9EFF);
 }
+
+/* ========== INTERVAL LINES CONTAINER (outside cell stacking context) ========== */
+.interval-lines-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 30; /* Above active cells (z-index: 10) */
+}
+
+/* ========== INTERVAL VERTICAL LINES ========== */
+.interval-line-vertical {
+  position: absolute;
+  width: 4px;
+  background: var(--interval-color, #4A9EFF);
+  pointer-events: none;
+}
+
+/* ========== INTERVAL LABELS (iS values on vertical lines) ========== */
+.interval-label {
+  position: absolute;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--interval-color, #4A9EFF);
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .interval-label {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}

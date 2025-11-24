@@ -55,12 +55,19 @@
   transform: translateY(-50%);
   height: 8px;
   border-radius: 8px;
-  background: var(--select-color, #F97C39);
+  background: var(--interval-color, #4A9EFF);
   opacity: 0.9;
 }
 
 .it-bar--rest {
-  background: rgba(var(--select-color-rgb, 228, 87, 12), 0.35);
+  /* Dashed line effect for silences */
+  background: repeating-linear-gradient(
+    90deg,
+    var(--interval-color, #4A9EFF) 0px,
+    var(--interval-color, #4A9EFF) 8px,
+    transparent 8px,
+    transparent 16px
+  );
 }
 
 .it-bar__label {
@@ -68,15 +75,15 @@
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.8rem;
+  font-size: 1.6rem;
   font-weight: 700;
-  color: var(--text-color, #333);
+  color: var(--interval-color, #4A9EFF);
   white-space: nowrap;
   margin-bottom: 4px;
 }
 
 [data-theme="dark"] .it-bar__label {
-  color: var(--text-dark, #e0e0e0);
+  color: var(--interval-color, #4A9EFF);
 }
 
 .timeline-wrapper,
