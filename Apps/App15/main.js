@@ -290,6 +290,13 @@ function renderTemporalBars(intervals = []) {
 
     const label = document.createElement('div');
     label.className = 'it-bar__label';
+    // Position label based on soundInterval sign: positive = right (+10px), negative = left (-45px)
+    const soundInterval = interval.soundInterval ?? 0;
+    if (soundInterval > 0) {
+      label.classList.add('it-bar__label--right');
+    } else if (soundInterval < 0) {
+      label.classList.add('it-bar__label--left');
+    }
     label.textContent = labelValue;
     bar.appendChild(label);
 

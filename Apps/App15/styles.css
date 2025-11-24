@@ -72,7 +72,7 @@
 
 .it-bar__label {
   position: absolute;
-  bottom: 100%;
+  bottom: 10%;
   left: 50%;
   transform: translateX(-50%);
   font-size: 1.6rem;
@@ -84,6 +84,18 @@
 
 [data-theme="dark"] .it-bar__label {
   color: var(--interval-color, #4A9EFF);
+}
+
+/* Position label based on soundInterval sign */
+.it-bar__label--right {
+  left: auto;
+  right: 10px;
+  transform: none;
+}
+
+.it-bar__label--left {
+  left: -45px;
+  transform: none;
 }
 
 .timeline-wrapper,
