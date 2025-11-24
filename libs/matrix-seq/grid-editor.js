@@ -333,9 +333,16 @@ export function createGridEditor(config = {}) {
     // Convert pairs to intervals for display (using displayPairs which includes basePair)
     const intervals = [];
     for (let i = 1; i < displayPairs.length; i++) {
-      const soundInterval = displayPairs[i].note - displayPairs[i-1].note;
-      const temporalInterval = displayPairs[i].pulse - displayPairs[i-1].pulse;
-      intervals.push({ soundInterval, temporalInterval });
+      const currentPair = displayPairs[i];
+      const prevPair = displayPairs[i-1];
+      const soundInterval = currentPair.note - prevPair.note;
+      const temporalInterval = currentPair.pulse - prevPair.pulse;
+      // Preserve isRest flag for silences
+      intervals.push({
+        soundInterval,
+        temporalInterval,
+        isRest: currentPair.isRest || false
+      });
     }
 
     // Create interval cells
@@ -354,7 +361,13 @@ export function createGridEditor(config = {}) {
       const isInput = document.createElement('input');
       isInput.className = 'zigzag-input interval-input zigzag-input--is';
       isInput.type = 'text';
-      isInput.value = interval.soundInterval !== null ? formatIntervalValue(interval.soundInterval) : '';
+      // Show 's' for silences, formatted interval for normal notes
+      if (interval.isRest) {
+        isInput.value = 's';
+        isInput.dataset.isSilence = 'true';
+      } else {
+        isInput.value = interval.soundInterval !== null ? formatIntervalValue(interval.soundInterval) : '';
+      }
       isInput.maxLength = 3; // Allow negative sign
       isInput.dataset.index = String(index + 1);
       isInput.dataset.type = 'is';

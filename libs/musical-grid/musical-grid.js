@@ -1094,12 +1094,12 @@ export function createMusicalGrid(config) {
       firstLine.style.height = `${bottomBounds.top + bottomBounds.height - topBounds.top}px`;
       linesContainer.appendChild(firstLine);
 
-      // Add first iS label
+      // Add first iS label (positioned to the RIGHT to avoid overlapping soundline)
       const middleNote = Math.floor((minNote + maxNote) / 2);
       const middleBounds = computeCellBounds(middleNote, 0);
       const firstLabel = document.createElement('div');
       firstLabel.className = 'interval-label interval-label-first';
-      firstLabel.style.left = '-50px'; // Position to the left of the line
+      firstLabel.style.left = '10px'; // Position to the RIGHT of the first line
       firstLabel.style.top = `${middleBounds.top + middleBounds.height / 2}px`;
       firstLabel.style.transform = 'translateY(-50%)';
       firstLabel.textContent = soundInterval > 0 ? `+${soundInterval}` : `${soundInterval}`;

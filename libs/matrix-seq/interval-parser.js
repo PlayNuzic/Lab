@@ -131,7 +131,7 @@ export function parseIntervalPairs(pairs) {
  * Convert intervals back to N-P pairs for visualization
  * @param {Object} initial - Initial N-P pair
  * @param {Array} intervals - Array of interval objects
- * @returns {Array} Array of N-P pairs
+ * @returns {Array} Array of N-P pairs (preserves isRest and temporalInterval)
  */
 export function intervalsToPairs(initial, intervals) {
   if (!initial) return [];
@@ -141,13 +141,24 @@ export function intervalsToPairs(initial, intervals) {
   let currentPulse = initial.pulse;
 
   for (const interval of intervals) {
-    currentNote = (currentNote + interval.soundInterval + 12) % 12;
+    // For silences, note doesn't change (soundInterval is 0 or ignored)
+    if (!interval.isRest) {
+      currentNote = (currentNote + interval.soundInterval + 12) % 12;
+    }
     currentPulse += interval.temporalInterval;
 
-    pairs.push({
+    const pair = {
       note: currentNote,
-      pulse: currentPulse
-    });
+      pulse: currentPulse,
+      temporalInterval: interval.temporalInterval
+    };
+
+    // Preserve isRest flag for silences
+    if (interval.isRest) {
+      pair.isRest = true;
+    }
+
+    pairs.push(pair);
   }
 
   return pairs;
