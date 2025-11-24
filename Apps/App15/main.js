@@ -780,12 +780,8 @@ async function initializeApp() {
       // Visual feedback on soundline
       highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
     },
-    onDotClick: async (noteIndex, spaceIndex) => {
-      // IMPORTANT: spaceIndex (0-7) represents the SPACE/CELL index, not the pulse marker
-      // Space 0 = interval from pulse 0 to pulse 1
-      // Space N = interval from pulse N to pulse N+1
-      // Therefore: targetPulse = spaceIndex + 1
-
+    onDotClick: async (noteIndex, pulseIndex) => {
+      // Dot clicks allow quick toggle (and preview)
       await initAudio();
 
       if (!window.Tone) {
@@ -793,78 +789,31 @@ async function initializeApp() {
         return;
       }
 
-      // Play note preview
       const midi = 60 + noteIndex;
       const duration = (60 / currentBPM) * 0.9;
       const Tone = window.Tone;
       audio.playNote(midi, duration, Tone.now());
+
       highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
 
       if (!gridEditor) return;
 
-      // Convert spaceIndex to targetPulse
-      const targetPulse = spaceIndex + 1;
-
-      // Validate pulse range (0-8 for 9 total pulses)
-      if (targetPulse > TOTAL_PULSES - 1) {
-        console.warn(`Target pulse ${targetPulse} exceeds max pulse ${TOTAL_PULSES - 1}`);
-        return;
-      }
-
-      // Validate note range (0-11 for 12 notes)
-      if (noteIndex < 0 || noteIndex > TOTAL_NOTES - 1) {
-        console.warn(`Note index ${noteIndex} out of range [0, ${TOTAL_NOTES - 1}]`);
-        return;
-      }
-
       const pairsAtMoment = gridEditor.getPairs();
-
-      // Check if there's already a pair at this exact N-P location
-      const isActive = pairsAtMoment.some(p => p.note === noteIndex && p.pulse === targetPulse);
+      const isActive = pairsAtMoment.some(p => p.note === noteIndex && p.pulse === pulseIndex);
 
       let newPairs;
       if (!polyphonyEnabled) {
-        // Monophonic mode: only one note per pulse
         if (isActive) {
-          // Remove the clicked pair
-          newPairs = pairsAtMoment.filter(p => !(p.note === noteIndex && p.pulse === targetPulse));
+          newPairs = pairsAtMoment.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
         } else {
-          // Replace any existing note at this pulse with new note
-          newPairs = pairsAtMoment.filter(p => p.pulse !== targetPulse);
-
-          // Calculate temporalInterval from last pair before targetPulse
-          const previousPairs = pairsAtMoment.filter(p => p.pulse < targetPulse);
-          const lastPair = previousPairs.length > 0
-            ? previousPairs[previousPairs.length - 1]
-            : { note: 0, pulse: 0 }; // Base pair (0,0) if no previous pairs
-
-          const temporalInterval = targetPulse - lastPair.pulse;
-
-          newPairs.push({
-            note: noteIndex,
-            pulse: targetPulse,
-            temporalInterval
-          });
+          newPairs = pairsAtMoment.filter(p => p.pulse !== pulseIndex);
+          newPairs.push({ note: noteIndex, pulse: pulseIndex });
         }
       } else {
-        // Polyphonic mode: allow multiple notes per pulse
         if (isActive) {
-          // Remove the clicked pair
-          newPairs = pairsAtMoment.filter(p => !(p.note === noteIndex && p.pulse === targetPulse));
+          newPairs = pairsAtMoment.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
         } else {
-          // Add new note without removing others at same pulse
-          const previousPairs = pairsAtMoment.filter(p => p.pulse < targetPulse);
-          const lastPair = previousPairs.length > 0
-            ? previousPairs[previousPairs.length - 1]
-            : { note: 0, pulse: 0 };
-
-          const temporalInterval = targetPulse - lastPair.pulse;
-
-          newPairs = [...pairsAtMoment, {
-            note: noteIndex,
-            pulse: targetPulse,
-            temporalInterval
-          }];
+          newPairs = [...pairsAtMoment, { note: noteIndex, pulse: pulseIndex }];
         }
       }
 
@@ -970,19 +919,8 @@ async function initializeApp() {
       let prevPulse = 0;  // Base P₀
       let lastPlayable = 0;
 
-      // Track pulses already processed to skip duplicates (polyphony)
-      // In monophonic mode, we only process the first pair at each pulse
-      const processedPulses = new Set();
-
       // Process ALL pairs - each represents an interval endpoint
       pairs.forEach((pair) => {
-        // Skip if we already processed this pulse (polyphony case)
-        // This prevents temporalInterval=0 for duplicate pulses
-        if (processedPulses.has(pair.pulse)) {
-          return;  // Skip duplicate pulse
-        }
-        processedPulses.add(pair.pulse);
-
         const temporalInterval = pair.pulse - prevPulse;
         const isRest = !!pair.isRest;
         const soundInterval = isRest ? 0 : pair.note - prevNote;
