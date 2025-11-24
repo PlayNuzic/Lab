@@ -829,7 +829,7 @@
 /* Color accents for first pair vs interval pairs */
 .zigzag-input--n,
 .zigzag-input--p {
-  color: var(--select-color, #E4570C);
+  color: var(--select-color, #F97C39);
   font-weight: 700;
 }
 

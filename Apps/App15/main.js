@@ -924,7 +924,7 @@ async function initializeApp() {
     // Set default values
     preferenceStorage.save({
       selectedInstrument: 'piano',
-      selectColor: '#E4570C',
+      selectColor: '#F97C39',
       polyphony: '0',
       intervalLinesEnabled: true
     });
