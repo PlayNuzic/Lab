@@ -1170,8 +1170,12 @@ export function createMusicalGrid(config) {
             const middleBounds = computeCellBounds(middleNote, currentStartSpace);
             const label = document.createElement('div');
             label.className = 'interval-label';
-            // Position label to the left of the line, vertically centered
-            label.style.left = `${middleBounds.left - 50}px`;
+            // Position label based on sign: positive = right (+10px), negative = left (-45px)
+            if (soundInterval > 0) {
+              label.style.left = `${middleBounds.left + 10}px`;
+            } else {
+              label.style.left = `${middleBounds.left - 45}px`;
+            }
             label.style.top = `${middleBounds.top + middleBounds.height / 2}px`;
             label.style.transform = 'translateY(-50%)';
             // Format with sign

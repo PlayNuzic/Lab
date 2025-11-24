@@ -86,18 +86,6 @@
   color: var(--interval-color, #4A9EFF);
 }
 
-/* Position label based on soundInterval sign */
-.it-bar__label--right {
-  left: auto;
-  right: 10px;
-  transform: none;
-}
-
-.it-bar__label--left {
-  left: -45px;
-  transform: none;
-}
-
 .timeline-wrapper,
 .timeline-inner {
   position: relative;
@@ -872,10 +860,11 @@
   font-weight: 700;
 }
 
-.zigzag-input--is,
-.zigzag-input--it {
-  color: #4A9EFF;
+.zigzag-input.zigzag-input--is,
+.zigzag-input.zigzag-input--it {
+  color: var(--interval-color, #4A9EFF) !important;
   font-weight: 700;
+  opacity: 1;
 }
 
 .zigzag-input:focus {
