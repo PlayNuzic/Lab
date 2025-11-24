@@ -73,12 +73,14 @@ export function createGridEditor(config = {}) {
     mode = 'standard',  // 'standard' | 'interval'
     showZigzag = false,
     showIntervalLabels = true,
-    leftZigzagLabels = null
+    leftZigzagLabels = null,
+    autoJumpDelayMs = 300,  // Custom auto-jump delay (ms)
+    intervalModeOptions = null  // Options for interval mode (basePair, maxTotalPulse, etc.)
   } = config;
 
   let currentPairs = [];
   let autoJumpTimer = null;
-  const AUTO_JUMP_DELAY = 300; // ms
+  const AUTO_JUMP_DELAY = autoJumpDelayMs; // Use provided delay or default
 
   // Info tooltip for warnings
   const infoTooltip = createInfoTooltip({
@@ -266,7 +268,9 @@ export function createGridEditor(config = {}) {
     }
 
     // First pair is always N-P
-    const firstPair = pairs[0] || { note: null, pulse: null };
+    // In interval mode, use basePair from options if available
+    const defaultPair = intervalModeOptions?.basePair || { note: null, pulse: null };
+    const firstPair = pairs[0] || defaultPair;
 
     // Create N cell (first pair)
     const nCell = document.createElement('div');
@@ -371,64 +375,16 @@ export function createGridEditor(config = {}) {
       row2.appendChild(itCell);
     });
 
-    // Add empty interval pair if less than max
-    if (pairs.length < maxPairs) {
-      const newIndex = intervals.length + 1;
-
-      // Empty iS cell
-      const isCell = document.createElement('div');
-      isCell.className = 'zigzag-cell zigzag-cell--is zigzag-cell--empty';
-
-      if (showIntervalLabels) {
-        const isLabel = document.createElement('div');
-        isLabel.className = 'zigzag-label';
-        isLabel.textContent = `iS${newIndex}`;
-        isCell.appendChild(isLabel);
-      }
-
-      const isInput = document.createElement('input');
-      isInput.className = 'zigzag-input interval-input zigzag-input--is';
-      isInput.type = 'text';
-      isInput.value = '';
-      isInput.maxLength = 3;
-      isInput.dataset.index = String(newIndex);
-      isInput.dataset.type = 'is';
-      isInput.addEventListener('input', (e) => handleIntervalInputChange(e, newIndex, 'is'));
-      isInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, newIndex, 'is'));
-      isCell.appendChild(isInput);
-      row1.appendChild(isCell);
-
-      // Empty iT cell
-      const itCell = document.createElement('div');
-      itCell.className = 'zigzag-cell zigzag-cell--it zigzag-cell--empty';
-
-      if (showIntervalLabels) {
-        const itLabel = document.createElement('div');
-        itLabel.className = 'zigzag-label';
-        itLabel.textContent = `iT${newIndex}`;
-        itCell.appendChild(itLabel);
-      }
-
-      const itInput = document.createElement('input');
-      itInput.className = 'zigzag-input interval-input zigzag-input--it';
-      itInput.type = 'text';
-      itInput.value = '';
-      itInput.maxLength = 1;
-      itInput.dataset.index = String(newIndex);
-      itInput.dataset.type = 'it';
-      itInput.addEventListener('input', (e) => handleIntervalInputChange(e, newIndex, 'it'));
-      itInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, newIndex, 'it'));
-      itCell.appendChild(itInput);
-      row2.appendChild(itCell);
-    }
-
     zigzagContainer.appendChild(row1);
     zigzagContainer.appendChild(row2);
     container.appendChild(zigzagContainer);
 
-    // Normalize ghost patterns
+    // Apply ghost patterns to existing cells
     applyISPattern(row1);
     applyITPattern(row2);
+
+    // Ensure at least one empty slot for adding new pairs
+    ensureEmptyIntervalSlot();
 
     // Focus first input
     requestAnimationFrame(() => {
@@ -445,34 +401,162 @@ export function createGridEditor(config = {}) {
     return String(value);
   }
 
+  /**
+   * Creates a ghost cell for zigzag pattern
+   */
+  function createGhostCell() {
+    const ghost = document.createElement('div');
+    ghost.className = 'zigzag-cell zigzag-cell--ghost';
+    return ghost;
+  }
+
+  /**
+   * Creates an empty iS input cell
+   */
+  function createEmptyISCell(index) {
+    const isCell = document.createElement('div');
+    isCell.className = 'zigzag-cell zigzag-cell--is zigzag-cell--empty';
+
+    if (showIntervalLabels) {
+      const isLabel = document.createElement('div');
+      isLabel.className = 'zigzag-label';
+      isLabel.textContent = `iS${index}`;
+      isCell.appendChild(isLabel);
+    }
+
+    const isInput = document.createElement('input');
+    isInput.className = 'zigzag-input interval-input zigzag-input--is';
+    isInput.type = 'text';
+    isInput.value = '';
+    isInput.maxLength = 3;
+    isInput.dataset.index = String(index);
+    isInput.dataset.type = 'is';
+    isInput.addEventListener('input', (e) => handleIntervalInputChange(e, index, 'is'));
+    isInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, index, 'is'));
+    isCell.appendChild(isInput);
+
+    return isCell;
+  }
+
+  /**
+   * Creates an empty iT input cell
+   */
+  function createEmptyITCell(index) {
+    const itCell = document.createElement('div');
+    itCell.className = 'zigzag-cell zigzag-cell--it zigzag-cell--empty';
+
+    if (showIntervalLabels) {
+      const itLabel = document.createElement('div');
+      itLabel.className = 'zigzag-label';
+      itLabel.textContent = `iT${index}`;
+      itCell.appendChild(itLabel);
+    }
+
+    const itInput = document.createElement('input');
+    itInput.className = 'zigzag-input interval-input zigzag-input--it';
+    itInput.type = 'text';
+    itInput.value = '';
+    itInput.maxLength = 1;
+    itInput.dataset.index = String(index);
+    itInput.dataset.type = 'it';
+    itInput.addEventListener('input', (e) => handleIntervalInputChange(e, index, 'it'));
+    itInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, index, 'it'));
+    itCell.appendChild(itInput);
+
+    return itCell;
+  }
+
+  /**
+   * Applies zigzag pattern to iS row (row 1)
+   * Pattern: [cabezal] [N oculto] [iS₁ editable] [ghost] [iS₂ editable] [ghost] ...
+   * - N cell (index 0) is hidden
+   * - Pattern: editable → ghost → editable → ghost ...
+   * NOTE: Only applies ghosts to existing cells, does NOT create new cells
+   */
   function applyISPattern(row) {
     // Remove existing ghosts
     Array.from(row.querySelectorAll('.zigzag-cell--ghost')).forEach(el => el.remove());
-    const isCells = Array.from(row.querySelectorAll('.zigzag-cell--is'));
-    isCells.forEach(cell => {
-      const ghost = document.createElement('div');
-      ghost.className = 'zigzag-cell zigzag-cell--ghost';
+
+    // Hide N cell (first note cell, not the left label)
+    const nCell = row.querySelector('.zigzag-cell--n');
+    if (nCell) {
+      nCell.classList.add('zigzag-cell--hidden');
+    }
+
+    // Add ghost after each existing iS cell
+    const existingISCells = Array.from(row.querySelectorAll('.zigzag-cell--is'));
+    existingISCells.forEach(cell => {
+      const ghost = createGhostCell();
       cell.after(ghost);
     });
   }
 
+  /**
+   * Applies zigzag pattern to iT row (row 2)
+   * Pattern: [cabezal] [P oculto] [ghost] [iT₁ editable] [ghost] [iT₂ editable] ...
+   * - P cell (index 0) is hidden
+   * - Pattern: ghost → editable → ghost → editable ...
+   * NOTE: Only applies ghosts to existing cells, does NOT create new cells
+   */
   function applyITPattern(row) {
     // Remove existing ghosts
     Array.from(row.querySelectorAll('.zigzag-cell--ghost')).forEach(el => el.remove());
-    const itCells = Array.from(row.querySelectorAll('.zigzag-cell--it'));
-    if (itCells.length === 0) return;
 
-    // Insert leading ghost before first it
-    const leadingGhost = document.createElement('div');
-    leadingGhost.className = 'zigzag-cell zigzag-cell--ghost';
-    row.insertBefore(leadingGhost, itCells[0]);
+    // Hide P cell (first pulse cell, not the left label)
+    const pCell = row.querySelector('.zigzag-cell--p');
+    if (pCell) {
+      pCell.classList.add('zigzag-cell--hidden');
+    }
 
-    // Add ghost after each it
-    itCells.forEach(cell => {
-      const ghost = document.createElement('div');
-      ghost.className = 'zigzag-cell zigzag-cell--ghost';
-      cell.after(ghost);
+    // Add ghost before each existing iT cell
+    const existingITCells = Array.from(row.querySelectorAll('.zigzag-cell--it'));
+    existingITCells.forEach(cell => {
+      const ghost = createGhostCell();
+      cell.before(ghost);
     });
+  }
+
+  /**
+   * Shows a temporary tooltip on an input element
+   */
+  function showInputTooltip(input, message, duration = 2000) {
+    // Remove existing tooltip
+    const existingTooltip = input.parentElement?.querySelector('.zigzag-tooltip');
+    if (existingTooltip) existingTooltip.remove();
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'zigzag-tooltip';
+    tooltip.textContent = message;
+    input.parentElement?.appendChild(tooltip);
+
+    setTimeout(() => tooltip.remove(), duration);
+  }
+
+  /**
+   * Calculates the current note/pulse at a given interval index
+   */
+  function getCurrentPositionAtIndex(targetIndex) {
+    const nInput = container.querySelector('.zigzag-input[data-index="0"][data-type="note"]');
+    const pInput = container.querySelector('.zigzag-input[data-index="0"][data-type="pulse"]');
+
+    let currentNote = nInput ? parseInt(nInput.value) : 0;
+    let currentPulse = pInput ? parseInt(pInput.value) : 0;
+
+    if (isNaN(currentNote)) currentNote = 0;
+    if (isNaN(currentPulse)) currentPulse = 0;
+
+    for (let i = 1; i < targetIndex; i++) {
+      const isInput = container.querySelector(`.zigzag-input[data-index="${i}"][data-type="is"]`);
+      const itInput = container.querySelector(`.zigzag-input[data-index="${i}"][data-type="it"]`);
+
+      const isVal = isInput ? parseInt(isInput.value) : 0;
+      const itVal = itInput ? parseInt(itInput.value) : 0;
+
+      if (!isNaN(isVal)) currentNote += isVal;
+      if (!isNaN(itVal)) currentPulse += itVal;
+    }
+
+    return { currentNote, currentPulse };
   }
 
   /**
@@ -497,8 +581,71 @@ export function createGridEditor(config = {}) {
       }
     }
 
-    // TODO: Add validation based on current position
-    // This will use interval-parser.js functions
+    // Validate ranges based on type
+    if (text && index > 0) {
+      const value = parseInt(text);
+      if (!isNaN(value)) {
+        const { currentNote, currentPulse } = getCurrentPositionAtIndex(index);
+
+        if (type === 'is') {
+          // iS: Check resulting note is within noteRange
+          const resultNote = currentNote + value;
+          const minIS = noteRange[0] - currentNote;
+          const maxIS = noteRange[1] - currentNote;
+
+          if (resultNote < noteRange[0] || resultNote > noteRange[1]) {
+            showInputTooltip(input, `iS debe estar entre ${minIS >= 0 ? '+' : ''}${minIS} y +${maxIS}`);
+            // Clear invalid value and cancel any pending auto-jump
+            input.value = '';
+            if (autoJumpTimer) {
+              clearTimeout(autoJumpTimer);
+              autoJumpTimer = null;
+            }
+            return;
+          }
+        } else if (type === 'it') {
+          // iT: Must be positive, check resulting pulse is within pulseRange
+          if (value <= 0) {
+            showInputTooltip(input, 'iT debe ser positivo (≥1)');
+            input.value = '';
+            if (autoJumpTimer) {
+              clearTimeout(autoJumpTimer);
+              autoJumpTimer = null;
+            }
+            return;
+          }
+
+          const resultPulse = currentPulse + value;
+          // In interval mode, use maxTotalPulse if provided, otherwise use pulseRange[1]
+          const maxPulse = (mode === 'interval' && intervalModeOptions?.maxTotalPulse !== undefined)
+            ? intervalModeOptions.maxTotalPulse
+            : pulseRange[1];
+          const maxIT = maxPulse - currentPulse;
+
+          if (resultPulse > maxPulse) {
+            showInputTooltip(input, `iT máximo: ${maxIT}`);
+            input.value = '';
+            if (autoJumpTimer) {
+              clearTimeout(autoJumpTimer);
+              autoJumpTimer = null;
+            }
+            return;
+          }
+
+          // Check if we've reached the maximum pulse - end editing mode
+          if (resultPulse === maxPulse) {
+            // Update pairs first
+            updatePairsFromIntervals();
+            // Remove any empty slots that were created
+            removeEmptyIntervalSlots();
+            // Blur to end editing
+            input.blur();
+            showInputTooltip(input, 'Secuencia completa');
+            return;
+          }
+        }
+      }
+    }
 
     // Auto-jump timer for zigzag navigation
     if (autoJumpTimer) {
@@ -520,9 +667,27 @@ export function createGridEditor(config = {}) {
    * Handles interval mode keyboard navigation
    */
   function handleIntervalKeyDown(event, index, type) {
+    // Allow 's' or 'S' for silence in iS field (if allowSilence is enabled)
+    const allowSilence = intervalModeOptions?.allowSilence && type === 'is';
     const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Enter', '+', '-'];
+    if (allowSilence) {
+      allowed.push('s', 'S');
+    }
+
     if (!/^[0-9]$/.test(event.key) && !allowed.includes(event.key)) {
       event.preventDefault();
+      return;
+    }
+
+    // Handle 's' for silence
+    if ((event.key === 's' || event.key === 'S') && type === 'is' && allowSilence) {
+      event.preventDefault();
+      event.target.value = 's';
+      event.target.dataset.isSilence = 'true';
+      // Trigger input change to update pairs
+      updatePairsFromIntervals();
+      // Jump to next field
+      setTimeout(() => jumpToNextInZigzag(event.target), 50);
       return;
     }
 
@@ -678,19 +843,33 @@ export function createGridEditor(config = {}) {
 
       if (!isValue || !itValue) break;
 
-      const soundInterval = parseInt(isValue);
+      // Check if this is a silence (iS = 's')
+      const isSilence = isValue.toLowerCase() === 's';
+
       const temporalInterval = parseInt(itValue);
+      if (isNaN(temporalInterval)) break;
 
-      if (isNaN(soundInterval) || isNaN(temporalInterval)) break;
-
-      currentNote += soundInterval;
       currentPulse += temporalInterval;
 
-      // Validate ranges
-      if (currentNote < noteRange[0] || currentNote > noteRange[1]) break;
-      if (currentPulse < pulseRange[0] || currentPulse > pulseRange[1]) break;
+      // In interval mode, use maxTotalPulse if provided
+      const maxPulse = (mode === 'interval' && intervalModeOptions?.maxTotalPulse !== undefined)
+        ? intervalModeOptions.maxTotalPulse
+        : pulseRange[1];
+      if (currentPulse < pulseRange[0] || currentPulse > maxPulse) break;
 
-      pairs.push({ note: currentNote, pulse: currentPulse });
+      if (isSilence) {
+        // Silence: keep the same note but mark as rest
+        pairs.push({ note: currentNote, pulse: currentPulse, isRest: true });
+      } else {
+        const soundInterval = parseInt(isValue);
+        if (isNaN(soundInterval)) break;
+        currentNote += soundInterval;
+
+        // Validate note range
+        if (currentNote < noteRange[0] || currentNote > noteRange[1]) break;
+
+        pairs.push({ note: currentNote, pulse: currentPulse });
+      }
       index++;
     }
 
@@ -701,15 +880,52 @@ export function createGridEditor(config = {}) {
     ensureEmptyIntervalSlot();
   }
 
+  /**
+   * Calculates the total accumulated pulse from all filled intervals
+   */
+  function getTotalAccumulatedPulse() {
+    const pInput = container.querySelector('.zigzag-input[data-index="0"][data-type="pulse"]');
+    let totalPulse = pInput ? parseInt(pInput.value) || 0 : 0;
+
+    let index = 1;
+    while (true) {
+      const itInput = container.querySelector(`.zigzag-input[data-index="${index}"][data-type="it"]`);
+      if (!itInput) break;
+      const itValue = parseInt(itInput.value);
+      if (isNaN(itValue)) break;
+      totalPulse += itValue;
+      index++;
+    }
+    return totalPulse;
+  }
+
+  /**
+   * Ensures there's always one empty interval slot available for adding new pairs.
+   * Creates the slot with proper zigzag pattern (iS + ghost in row1, ghost + iT in row2).
+   * Does NOT create new slots if maxTotalPulse has been reached.
+   */
   function ensureEmptyIntervalSlot() {
     if (mode !== 'interval' || !showZigzag) return;
 
-    const intervalInputs = Array.from(container.querySelectorAll('.zigzag-input.interval-input'));
-    const hasEmpty = intervalInputs.some(input => !input.value.trim());
-    if (hasEmpty) return;
+    // Check if we've reached max pulse - no more slots needed
+    const maxPulse = intervalModeOptions?.maxTotalPulse ?? pulseRange[1];
+    const currentTotalPulse = getTotalAccumulatedPulse();
+    if (currentTotalPulse >= maxPulse) return;
+
+    // Check if there's an empty iS-iT pair (both must be empty for the same index)
+    const isInputs = Array.from(container.querySelectorAll('.zigzag-input[data-type="is"]'));
+
+    // Find if any pair has BOTH iS and iT empty
+    const hasEmptyPair = isInputs.some(isInput => {
+      const idx = isInput.dataset.index;
+      const itInput = container.querySelector(`.zigzag-input[data-type="it"][data-index="${idx}"]`);
+      return !isInput.value.trim() && itInput && !itInput.value.trim();
+    });
+
+    if (hasEmptyPair) return;
 
     const maxIntervalSlots = maxPairs - 1; // Exclude initial N-P pair
-    const currentMaxIndex = intervalInputs.reduce((max, input) => {
+    const currentMaxIndex = isInputs.reduce((max, input) => {
       const idx = parseInt(input.dataset.index || '0', 10);
       return isNaN(idx) ? max : Math.max(max, idx);
     }, 0);
@@ -721,50 +937,57 @@ export function createGridEditor(config = {}) {
     const row2 = container.querySelector('.zigzag-row--bottom');
     if (!row1 || !row2) return;
 
-    // Empty iS cell
-    const isCell = document.createElement('div');
-    isCell.className = 'zigzag-cell zigzag-cell--is zigzag-cell--empty';
-
-    const isLabel = document.createElement('div');
-    isLabel.className = 'zigzag-label';
-    isLabel.textContent = `iS${newIndex}`;
-    isCell.appendChild(isLabel);
-
-    const isInput = document.createElement('input');
-    isInput.className = 'zigzag-input interval-input';
-    isInput.type = 'text';
-    isInput.value = '';
-    isInput.maxLength = 3;
-    isInput.dataset.index = String(newIndex);
-    isInput.dataset.type = 'is';
-    isInput.addEventListener('input', (e) => handleIntervalInputChange(e, newIndex, 'is'));
-    isInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, newIndex, 'is'));
-    isCell.appendChild(isInput);
+    // Row 1: iS cell + ghost (pattern: editable → ghost)
+    const isCell = createEmptyISCell(newIndex);
     row1.appendChild(isCell);
+    row1.appendChild(createGhostCell());
 
-    // Empty iT cell
-    const itCell = document.createElement('div');
-    itCell.className = 'zigzag-cell zigzag-cell--it zigzag-cell--empty';
-
-    const itLabel = document.createElement('div');
-    itLabel.className = 'zigzag-label';
-    itLabel.textContent = `iT${newIndex}`;
-    itCell.appendChild(itLabel);
-
-    const itInput = document.createElement('input');
-    itInput.className = 'zigzag-input interval-input';
-    itInput.type = 'text';
-    itInput.value = '';
-    itInput.maxLength = 1;
-    itInput.dataset.index = String(newIndex);
-    itInput.dataset.type = 'it';
-    itInput.addEventListener('input', (e) => handleIntervalInputChange(e, newIndex, 'it'));
-    itInput.addEventListener('keydown', (e) => handleIntervalKeyDown(e, newIndex, 'it'));
-    itCell.appendChild(itInput);
+    // Row 2: ghost + iT cell (pattern: ghost → editable)
+    row2.appendChild(createGhostCell());
+    const itCell = createEmptyITCell(newIndex);
     row2.appendChild(itCell);
+  }
 
-    requestAnimationFrame(() => {
-      isInput.focus();
+  /**
+   * Removes empty interval slots (iS-iT pairs where both are empty).
+   * Also removes their associated ghost cells to maintain zigzag pattern.
+   */
+  function removeEmptyIntervalSlots() {
+    if (mode !== 'interval' || !showZigzag) return;
+
+    const row1 = container.querySelector('.zigzag-row--top');
+    const row2 = container.querySelector('.zigzag-row--bottom');
+    if (!row1 || !row2) return;
+
+    // Find empty iS cells and remove them along with their ghost
+    const isInputs = Array.from(container.querySelectorAll('.zigzag-input[data-type="is"]'));
+    isInputs.forEach(isInput => {
+      const idx = isInput.dataset.index;
+      const itInput = container.querySelector(`.zigzag-input[data-type="it"][data-index="${idx}"]`);
+
+      // Only remove if BOTH iS and iT are empty
+      if (!isInput.value.trim() && itInput && !itInput.value.trim()) {
+        const isCell = isInput.closest('.zigzag-cell');
+        const itCell = itInput.closest('.zigzag-cell');
+
+        if (isCell) {
+          // Remove ghost after iS cell
+          const nextSibling = isCell.nextElementSibling;
+          if (nextSibling?.classList.contains('zigzag-cell--ghost')) {
+            nextSibling.remove();
+          }
+          isCell.remove();
+        }
+
+        if (itCell) {
+          // Remove ghost before iT cell
+          const prevSibling = itCell.previousElementSibling;
+          if (prevSibling?.classList.contains('zigzag-cell--ghost')) {
+            prevSibling.remove();
+          }
+          itCell.remove();
+        }
+      }
     });
   }
 
