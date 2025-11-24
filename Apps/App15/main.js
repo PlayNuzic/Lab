@@ -351,7 +351,7 @@ function syncGridFromPairs(pairs) {
   // The note STARTS at (pulse - iT), and ENDS at pulse
   const activeCells = new Set();
   visiblePairs.forEach(p => {
-    if (p.pulse <= 0) return; // Base position has no cell
+    if (p.pulse <= 0 || p.isRest) return; // Base position has no cell, silences don't illuminate
     const iT = p.temporalInterval || 1;
     const startSpace = p.pulse - iT;
     const endSpace = p.pulse - 1;
@@ -400,6 +400,11 @@ function syncGridFromPairs(pairs) {
       console.log(`[App15] Skipping pulse=0 (base position, no cell)`);
       return;
     }
+    // Silences (isRest) don't illuminate cells - they represent absence of sound
+    if (isRest) {
+      console.log(`[App15] Skipping silence at pulse=${pulse} (no cell illumination)`);
+      return;
+    }
     // Calculate start and end spaces based on temporalInterval
     const iT = temporalInterval || 1;
     const startSpace = pulse - iT;
@@ -411,11 +416,6 @@ function syncGridFromPairs(pairs) {
       const cell = musicalGrid.getCellElement(note, space);
       if (cell) {
         cell.classList.add('active');
-        if (isRest) {
-          cell.classList.add('rest-cell');
-        } else {
-          cell.classList.remove('rest-cell');
-        }
       }
     }
   });
