@@ -383,8 +383,9 @@ function syncGridFromPairs(pairs) {
 
   // Highlight interval paths (if enabled)
   if (musicalGrid.highlightIntervalPath) {
-    // Pass polyphonic flag to enable voice separation
-    musicalGrid.highlightIntervalPath(validPairs, polyphonyEnabled);
+    // Pass polyphonic flag and basePair for first iS line at left edge
+    const basePair = { note: 0, pulse: 0 };
+    musicalGrid.highlightIntervalPath(validPairs, polyphonyEnabled, basePair);
   }
 
   // Render temporal overlay based on iT
@@ -426,6 +427,9 @@ function handleReset() {
   musicalGrid?.clear();
   renderTemporalBars([]);
 
+  // Clear interval lines (vertical iS lines)
+  musicalGrid?.clearIntervalPaths();
+
   // Reset state
   currentIntervals = [];
   currentPairs = [];
@@ -437,46 +441,57 @@ function handleReset() {
 // ========== RANDOM ==========
 
 function handleRandom() {
-  // Get random settings
-  const randPMax = Math.min(parseInt(document.getElementById('randPMax')?.value || '7'), TOTAL_SPACES - 1);
-  const randNMax = parseInt(document.getElementById('randNMax')?.value || '11');
+  // Get random settings from menu
+  const randISMax = Math.min(Math.max(parseInt(document.getElementById('randISMax')?.value || '5'), 1), 11);
+  const randITMax = Math.min(Math.max(parseInt(document.getElementById('randITMax')?.value || '3'), 1), 8);
 
-  // Generate random initial position
-  const initialNote = 0;
-  const initialPulse = 0;
+  // Base pair is always (0, 0)
+  const basePair = { note: 0, pulse: 0 };
+  const maxTotalPulse = TOTAL_PULSES - 1; // 8
 
-  // Generate random intervals
-  const numIntervals = Math.floor(Math.random() * 5) + 1; // 1-5 intervals
+  // Generate random intervals with validation rules from grid-editor
+  const maxIntervals = 7; // Maximum possible intervals
+  const numIntervals = Math.floor(Math.random() * Math.min(5, maxIntervals)) + 1; // 1-5 intervals
   const intervals = [];
-  let currentNote = initialNote;
-  let currentPulse = initialPulse;
+  let currentNote = basePair.note;
+  let currentPulse = basePair.pulse;
 
-  for (let i = 0; i < numIntervals && currentPulse < randPMax; i++) {
-    // Random sound interval (limited by current note)
-    const maxUp = 11 - currentNote;
-    const maxDown = -currentNote;
-    const soundInterval = Math.floor(Math.random() * (maxUp - maxDown + 1)) + maxDown;
+  for (let i = 0; i < numIntervals; i++) {
+    // Calculate valid iT range
+    const remainingPulses = maxTotalPulse - currentPulse;
+    if (remainingPulses <= 0) break;
 
-    // Random temporal interval (limited by remaining pulses)
-    const remainingPulses = randPMax - currentPulse;
-    const temporalInterval = Math.min(
-      Math.floor(Math.random() * 3) + 1, // 1-3 pulses
-      remainingPulses
-    );
+    // iT: Random between 1 and min(randITMax, remainingPulses)
+    const maxIT = Math.min(randITMax, remainingPulses);
+    const temporalInterval = Math.floor(Math.random() * maxIT) + 1; // 1 to maxIT
+
+    // Calculate valid iS range (result must stay in [0, 11])
+    const maxUp = Math.min(randISMax, TOTAL_NOTES - 1 - currentNote); // Can't exceed note 11
+    const maxDown = Math.min(randISMax, currentNote); // Can't go below note 0
+
+    let soundInterval;
+    if (i === 0) {
+      // First iS must be positive (firstIntervalPositiveOnly rule)
+      if (maxUp <= 0) break; // Can't generate valid first interval
+      soundInterval = Math.floor(Math.random() * maxUp) + 1; // 1 to maxUp
+    } else {
+      // Subsequent iS can be positive or negative
+      // Random between -maxDown and +maxUp
+      soundInterval = Math.floor(Math.random() * (maxUp + maxDown + 1)) - maxDown;
+    }
 
     intervals.push({ soundInterval, temporalInterval });
 
-    currentNote = (currentNote + soundInterval + 12) % 12;
+    // Update position for next iteration
+    currentNote += soundInterval;
     currentPulse += temporalInterval;
 
-    if (currentPulse >= randPMax) break;
+    // Stop if we've reached max pulse
+    if (currentPulse >= maxTotalPulse) break;
   }
 
-  // Convert to pairs
-  const pairs = intervalsToPairs(
-    { note: initialNote, pulse: initialPulse },
-    intervals
-  );
+  // Convert to pairs using intervalsToPairs
+  const pairs = intervalsToPairs(basePair, intervals);
 
   currentIntervals = intervals;
   currentPairs = pairs;
@@ -752,7 +767,7 @@ async function initializeApp() {
 
   playBtn?.addEventListener('click', handlePlay);
   resetBtn?.addEventListener('click', handleReset);
-  randomBtn?.addEventListener('click', handleRandom);
+  // NOTE: randomBtn click is handled by initRandomMenu() below (shortpress → handleRandom, longpress → open menu)
 
   // P1 Toggle (Pulse 0 special sound) - MUST be before mixer init
   const startIntervalToggle = document.getElementById('startIntervalToggle');

@@ -93,6 +93,7 @@ export function createMusicalGrid(config) {
   // Store current interval path data for redrawing on resize
   let currentIntervalPairs = null;
   let currentIntervalPolyphonic = false;
+  let currentIntervalBasePair = null;
 
   // Calculate horizontal cell count based on fillSpaces
   const hCellCount = fillSpaces ? pulses - 1 : pulses;
@@ -1055,12 +1056,55 @@ export function createMusicalGrid(config) {
   /**
    * Draws interval path for a single voice (sequence of non-overlapping notes)
    * @param {Array} voicePairs - Array of {note, pulse} pairs in this voice
+   * @param {Object} basePair - Base pair {note, pulse} for drawing first iS line (optional)
    */
-  function drawVoicePath(voicePairs) {
-    if (voicePairs.length < 2) return;
+  function drawVoicePath(voicePairs, basePair = null) {
+    if (voicePairs.length < 1) return;
 
     // Sort by pulse
     const sorted = [...voicePairs].sort((a, b) => a.pulse - b.pulse);
+
+    // Get or create the interval lines container (outside cell stacking context)
+    const targetContainer = containers.matrixInner || containers.matrix;
+    let linesContainer = targetContainer.querySelector('.interval-lines-container');
+    if (!linesContainer) {
+      linesContainer = document.createElement('div');
+      linesContainer.className = 'interval-lines-container';
+      targetContainer.appendChild(linesContainer);
+      // Force reflow AFTER adding to DOM and BEFORE reading getBoundingClientRect()
+      void linesContainer.offsetHeight;
+    }
+
+    // Draw FIRST iS line from base pair (0,0) to first note at left edge of grid
+    const firstPair = sorted[0];
+    if (basePair && !firstPair.isRest && firstPair.note !== basePair.note) {
+      const minNote = Math.min(basePair.note, firstPair.note);
+      const maxNote = Math.max(basePair.note, firstPair.note);
+      const soundInterval = firstPair.note - basePair.note;
+
+      // Position at left edge (space 0, but use left: 0 to align with grid border)
+      const topBounds = computeCellBounds(maxNote, 0);
+      const bottomBounds = computeCellBounds(minNote, 0);
+
+      // Create first vertical line at left edge
+      const firstLine = document.createElement('div');
+      firstLine.className = 'interval-line-vertical interval-line-first';
+      firstLine.style.left = '0px'; // Align with left edge of grid
+      firstLine.style.top = `${topBounds.top}px`;
+      firstLine.style.height = `${bottomBounds.top + bottomBounds.height - topBounds.top}px`;
+      linesContainer.appendChild(firstLine);
+
+      // Add first iS label
+      const middleNote = Math.floor((minNote + maxNote) / 2);
+      const middleBounds = computeCellBounds(middleNote, 0);
+      const firstLabel = document.createElement('div');
+      firstLabel.className = 'interval-label interval-label-first';
+      firstLabel.style.left = '-50px'; // Position to the left of the line
+      firstLabel.style.top = `${middleBounds.top + middleBounds.height / 2}px`;
+      firstLabel.style.transform = 'translateY(-50%)';
+      firstLabel.textContent = soundInterval > 0 ? `+${soundInterval}` : `${soundInterval}`;
+      linesContainer.appendChild(firstLabel);
+    }
 
     // Track the last playable (non-silence) note for connecting after silences
     let lastPlayableNote = null;
@@ -1085,18 +1129,6 @@ export function createMusicalGrid(config) {
           // Draw vertical path from last playable note to current note
           const minNote = Math.min(lastPlayableNote, current.note);
           const maxNote = Math.max(lastPlayableNote, current.note);
-
-          // Get or create the interval lines container (outside cell stacking context)
-          const targetContainer = containers.matrixInner || containers.matrix;
-          let linesContainer = targetContainer.querySelector('.interval-lines-container');
-          if (!linesContainer) {
-            linesContainer = document.createElement('div');
-            linesContainer.className = 'interval-lines-container';
-            targetContainer.appendChild(linesContainer);
-            // Force reflow AFTER adding to DOM and BEFORE reading getBoundingClientRect()
-            // This ensures the browser has calculated the element's dimensions
-            void linesContainer.offsetHeight;
-          }
 
           // Use computeCellBounds() for positioning - same method as cells
           // This ensures lines resize correctly like cells do
@@ -1139,18 +1171,21 @@ export function createMusicalGrid(config) {
    * Illuminates bottom borders horizontally and left borders vertically
    * @param {Array} pairs - Array of {note, pulse} pairs
    * @param {boolean} polyphonic - If true, separate into independent voices
+   * @param {Object} basePair - Base pair {note, pulse} for drawing first iS line (optional)
    */
-  function highlightIntervalPath(pairs, polyphonic = false) {
-    if (!intervalsConfig.cellLines || !pairs || pairs.length < 2) {
+  function highlightIntervalPath(pairs, polyphonic = false, basePair = null) {
+    if (!intervalsConfig.cellLines || !pairs || pairs.length < 1) {
       // Clear stored data if no valid pairs
       currentIntervalPairs = null;
       currentIntervalPolyphonic = false;
+      currentIntervalBasePair = null;
       return;
     }
 
     // Store pairs for redrawing on resize
     currentIntervalPairs = pairs;
     currentIntervalPolyphonic = polyphonic;
+    currentIntervalBasePair = basePair;
 
     // Clear any existing paths
     clearIntervalPaths();
@@ -1158,11 +1193,12 @@ export function createMusicalGrid(config) {
     if (polyphonic) {
       // Separate into independent voices and draw each voice separately
       const voices = separateIntoVoices(pairs);
-      voices.forEach(voice => drawVoicePath(voice));
+      // Only first voice gets the basePair for first iS line
+      voices.forEach((voice, index) => drawVoicePath(voice, index === 0 ? basePair : null));
     } else {
       // Monophonic: draw single path through all notes
       const sortedPairs = [...pairs].sort((a, b) => a.pulse - b.pulse);
-      drawVoicePath(sortedPairs);
+      drawVoicePath(sortedPairs, basePair);
     }
   }
 
@@ -1170,7 +1206,7 @@ export function createMusicalGrid(config) {
    * Redraw interval paths after resize (uses stored pairs)
    */
   function redrawIntervalPaths() {
-    if (!currentIntervalPairs || currentIntervalPairs.length < 2) {
+    if (!currentIntervalPairs || currentIntervalPairs.length < 1) {
       return;
     }
 
@@ -1185,10 +1221,11 @@ export function createMusicalGrid(config) {
     // Redraw paths (drawVoicePath will create a new container with fresh coordinates)
     if (currentIntervalPolyphonic) {
       const voices = separateIntoVoices(currentIntervalPairs);
-      voices.forEach(voice => drawVoicePath(voice));
+      // Only first voice gets the basePair for first iS line
+      voices.forEach((voice, index) => drawVoicePath(voice, index === 0 ? currentIntervalBasePair : null));
     } else {
       const sortedPairs = [...currentIntervalPairs].sort((a, b) => a.pulse - b.pulse);
-      drawVoicePath(sortedPairs);
+      drawVoicePath(sortedPairs, currentIntervalBasePair);
     }
   }
 
