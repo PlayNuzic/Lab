@@ -249,9 +249,34 @@ async function initializePiano() {
   try {
     await ensureToneLoaded();
     piano = await loadPiano();
+
+    // Connect volume/mute from shared header
+    setupVolumeControl();
   } catch (error) {
     console.error('Error initializing piano:', error);
   }
+}
+
+/**
+ * Connect header volume/mute controls to Tone.js Master
+ */
+function setupVolumeControl() {
+  const Tone = window.Tone;
+  if (!Tone) return;
+
+  // Listen to volume changes from header slider
+  window.addEventListener('sharedui:volume', (e) => {
+    const volume = e.detail?.value ?? 1;
+    // Convert linear 0-1 to dB (-Infinity to 0)
+    const dB = volume > 0 ? 20 * Math.log10(volume) : -Infinity;
+    Tone.getDestination().volume.value = dB;
+  });
+
+  // Listen to mute toggle from header speaker icon
+  window.addEventListener('sharedui:mute', (e) => {
+    const muted = e.detail?.value ?? false;
+    Tone.getDestination().mute = muted;
+  });
 }
 
 // Event listeners

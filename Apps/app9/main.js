@@ -207,17 +207,16 @@ function getRandomPulseIndex() {
 }
 
 /**
- * Genera 2 ruidos con duraciones fijas (1 pulso y 2 pulsos) sin solapamiento
- * Las posiciones y el orden son aleatorios, garantizando que ambos quepan en los 9 pulsos (0-8)
- * @returns {Array} [{startPulse: number, duration: 1 o 2}, {startPulse: number, duration: 2 o 1}]
+ * Genera 2 ruidos de 1 pulso cada uno sin solapamiento
+ * Las posiciones son aleatorias, garantizando que ambos quepan en los 9 pulsos (0-8)
+ * @returns {Array} [{startPulse: number, duration: 1}, {startPulse: number, duration: 1}]
  */
 function generate2Noises() {
   const noises = [];
 
-  // Decidir aleatoriamente el orden: 50% chance de cada combinación
-  const shortFirst = Math.random() < 0.5;
-  const firstDuration = shortFirst ? 1 : 2;
-  const secondDuration = shortFirst ? 2 : 1;
+  // Ambos ruidos tienen duración de 1 pulso
+  const firstDuration = 1;
+  const secondDuration = 1;
 
   // Pulsos disponibles: 0-8 (9 pulsos totales)
   // Un ruido que empieza en pulso X con duración D ocupa los pulsos [X, X+D-1]
