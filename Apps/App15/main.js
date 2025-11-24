@@ -393,9 +393,10 @@ function syncGridFromPairs(pairs) {
 
   // Highlight interval paths (if enabled)
   if (musicalGrid.highlightIntervalPath) {
-    // Pass polyphonic flag. NO basePair since hideInitialPair=true means the first
-    // pair is already relative to (0,0) and shouldn't draw the base line
-    musicalGrid.highlightIntervalPath(validPairs, polyphonyEnabled, null);
+    // Pass basePair (0,0) to draw first iS line from origin
+    // hideInitialPair=true means the pair isn't shown in grid-editor,
+    // but we still need it to draw the first interval line in grid-2D
+    musicalGrid.highlightIntervalPath(validPairs, polyphonyEnabled, { note: 0, pulse: 0 });
   }
 
   // Render temporal overlay based on iT
