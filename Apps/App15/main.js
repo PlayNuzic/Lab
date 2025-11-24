@@ -442,8 +442,9 @@ function handleReset() {
 
 function handleRandom() {
   // Get random settings from menu
-  const randISMax = Math.min(Math.max(parseInt(document.getElementById('randISMax')?.value || '5'), 1), 11);
-  const randITMax = Math.min(Math.max(parseInt(document.getElementById('randITMax')?.value || '3'), 1), 8);
+  const randISMax = Math.min(Math.max(parseInt(document.getElementById('randISMax')?.value || '11'), 1), 11);
+  const randITMax = Math.min(Math.max(parseInt(document.getElementById('randITMax')?.value || '8'), 1), 8);
+  const allowSilences = document.getElementById('randAllowSilences')?.checked || false;
 
   // Base pair is always (0, 0)
   const basePair = { note: 0, pulse: 0 };
@@ -465,42 +466,56 @@ function handleRandom() {
     const maxIT = Math.min(randITMax, remainingPulses);
     const temporalInterval = Math.floor(Math.random() * maxIT) + 1; // 1 to maxIT
 
-    // Calculate valid iS range (result must stay in [0, 11])
-    const maxUp = Math.min(randISMax, TOTAL_NOTES - 1 - currentNote); // Can't exceed note 11
-    const maxDown = Math.min(randISMax, currentNote); // Can't go below note 0
+    // Decide if this interval is a silence (only if allowSilences and not first interval)
+    const isSilence = allowSilences && i > 0 && Math.random() < 0.2; // 20% chance of silence
 
-    let soundInterval;
-    if (i === 0) {
-      // First iS must be positive (firstIntervalPositiveOnly rule)
-      if (maxUp <= 0) break; // Can't generate valid first interval
-      soundInterval = Math.floor(Math.random() * maxUp) + 1; // 1 to maxUp
+    if (isSilence) {
+      // Silence: soundInterval is 0, note doesn't change
+      intervals.push({ soundInterval: 0, temporalInterval, isRest: true });
     } else {
-      // Subsequent iS can be positive or negative
-      // Random between -maxDown and +maxUp
-      soundInterval = Math.floor(Math.random() * (maxUp + maxDown + 1)) - maxDown;
+      // Calculate valid iS range (result must stay in [0, 11])
+      const maxUp = Math.min(randISMax, TOTAL_NOTES - 1 - currentNote); // Can't exceed note 11
+      const maxDown = Math.min(randISMax, currentNote); // Can't go below note 0
+
+      let soundInterval;
+      if (i === 0) {
+        // First iS must be positive (firstIntervalPositiveOnly rule)
+        if (maxUp <= 0) break; // Can't generate valid first interval
+        soundInterval = Math.floor(Math.random() * maxUp) + 1; // 1 to maxUp
+      } else {
+        // Subsequent iS can be positive or negative
+        // Random between -maxDown and +maxUp
+        soundInterval = Math.floor(Math.random() * (maxUp + maxDown + 1)) - maxDown;
+      }
+
+      intervals.push({ soundInterval, temporalInterval });
+
+      // Update note position (only for non-silences)
+      currentNote += soundInterval;
     }
 
-    intervals.push({ soundInterval, temporalInterval });
-
-    // Update position for next iteration
-    currentNote += soundInterval;
+    // Update pulse position
     currentPulse += temporalInterval;
 
     // Stop if we've reached max pulse
     if (currentPulse >= maxTotalPulse) break;
   }
 
-  // Convert to pairs using intervalsToPairs
-  const pairs = intervalsToPairs(basePair, intervals);
+  // Convert to pairs using intervalsToPairs (includes base pair)
+  const allPairs = intervalsToPairs(basePair, intervals);
+
+  // gridEditor with hideInitialPair expects pairs WITHOUT the base pair
+  // So we slice to remove the first element (base pair)
+  const pairsForEditor = allPairs.slice(1);
 
   currentIntervals = intervals;
-  currentPairs = pairs;
+  currentPairs = pairsForEditor;
 
-  // Update editor
-  gridEditor.setPairs(pairs);
+  // Update editor (expects pairs without base)
+  gridEditor.setPairs(pairsForEditor);
 
-  // Sync to grid
-  syncGridFromPairs(pairs);
+  // Sync to grid (also expects pairs without base, syncGridFromPairs handles basePair internally)
+  syncGridFromPairs(pairsForEditor);
 
   // Persist
   saveCurrentState();

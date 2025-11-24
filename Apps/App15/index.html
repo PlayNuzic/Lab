@@ -52,11 +52,15 @@
       randomMenuContent: `
         <label>
           <span>iS (Intervalo Sonoro)</span>
-          <input type="number" id="randISMax" value="5" min="1" max="11">
+          <input type="number" id="randISMax" value="11" min="1" max="11">
         </label>
         <label>
           <span>iT (Intervalo Temporal Máx)</span>
-          <input type="number" id="randITMax" value="3" min="1" max="8">
+          <input type="number" id="randITMax" value="8" min="1" max="8">
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="randAllowSilences">
+          <span>Permitir Silencios</span>
         </label>
       `
     });
