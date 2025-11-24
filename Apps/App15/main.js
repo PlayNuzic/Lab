@@ -450,24 +450,23 @@ function handleRandom() {
   const basePair = { note: 0, pulse: 0 };
   const maxTotalPulse = TOTAL_PULSES - 1; // 8
 
-  // Generate random intervals with validation rules from grid-editor
-  const maxIntervals = 7; // Maximum possible intervals
-  const numIntervals = Math.floor(Math.random() * Math.min(5, maxIntervals)) + 1; // 1-5 intervals
+  // Generate random intervals until we reach exactly 8 pulses
   const intervals = [];
   let currentNote = basePair.note;
   let currentPulse = basePair.pulse;
+  let intervalCount = 0;
 
-  for (let i = 0; i < numIntervals; i++) {
+  // Continue generating intervals until we fill all 8 pulses
+  while (currentPulse < maxTotalPulse) {
     // Calculate valid iT range
     const remainingPulses = maxTotalPulse - currentPulse;
-    if (remainingPulses <= 0) break;
 
     // iT: Random between 1 and min(randITMax, remainingPulses)
     const maxIT = Math.min(randITMax, remainingPulses);
     const temporalInterval = Math.floor(Math.random() * maxIT) + 1; // 1 to maxIT
 
     // Decide if this interval is a silence (only if allowSilences and not first interval)
-    const isSilence = allowSilences && i > 0 && Math.random() < 0.2; // 20% chance of silence
+    const isSilence = allowSilences && intervalCount > 0 && Math.random() < 0.2; // 20% chance of silence
 
     if (isSilence) {
       // Silence: soundInterval is 0, note doesn't change
@@ -478,7 +477,7 @@ function handleRandom() {
       const maxDown = Math.min(randISMax, currentNote); // Can't go below note 0
 
       let soundInterval;
-      if (i === 0) {
+      if (intervalCount === 0) {
         // First iS must be positive (firstIntervalPositiveOnly rule)
         if (maxUp <= 0) break; // Can't generate valid first interval
         soundInterval = Math.floor(Math.random() * maxUp) + 1; // 1 to maxUp
@@ -494,11 +493,9 @@ function handleRandom() {
       currentNote += soundInterval;
     }
 
-    // Update pulse position
+    // Update pulse position and interval count
     currentPulse += temporalInterval;
-
-    // Stop if we've reached max pulse
-    if (currentPulse >= maxTotalPulse) break;
+    intervalCount++;
   }
 
   // Convert to pairs using intervalsToPairs (includes base pair)
