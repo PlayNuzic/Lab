@@ -1077,7 +1077,9 @@ export function createMusicalGrid(config) {
 
     // Draw FIRST iS line from base pair (0,0) to first note at left edge of grid
     const firstPair = sorted[0];
-    if (basePair && !firstPair.isRest) {
+    // Only draw if first pair has valid temporal interval (pulse > basePair.pulse)
+    const hasValidTemporalInterval = firstPair.pulse > (basePair?.pulse ?? 0);
+    if (basePair && !firstPair.isRest && hasValidTemporalInterval) {
       const soundInterval = firstPair.note - basePair.note;
 
       if (soundInterval === 0) {
@@ -1143,10 +1145,12 @@ export function createMusicalGrid(config) {
       // Track playable notes
       if (!current.isRest) {
         // If we have a previous playable note, draw vertical line
-        if (lastPlayableNote !== null) {
+        // Only draw if current has valid temporal interval (>0)
+        const hasValidTemporalInterval = current.temporalInterval && current.temporalInterval > 0;
+        if (lastPlayableNote !== null && hasValidTemporalInterval) {
           // Calculate the space where the vertical line should be drawn
           // The vertical line connects at the START of current note
-          const currentStartSpace = current.temporalInterval ? current.pulse - current.temporalInterval : current.pulse - 1;
+          const currentStartSpace = current.pulse - current.temporalInterval;
 
           // Calculate the sound interval for the label
           const soundInterval = current.note - lastPlayableNote;
