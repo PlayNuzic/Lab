@@ -1118,7 +1118,7 @@ export function createMusicalGrid(config) {
       // Track playable notes
       if (!current.isRest) {
         // If we have a previous playable note, draw vertical line
-        if (lastPlayableNote !== null && lastPlayableNote !== current.note) {
+        if (lastPlayableNote !== null) {
           // Calculate the space where the vertical line should be drawn
           // The vertical line connects at the START of current note
           const currentStartSpace = current.temporalInterval ? current.pulse - current.temporalInterval : current.pulse - 1;
@@ -1126,36 +1126,58 @@ export function createMusicalGrid(config) {
           // Calculate the sound interval for the label
           const soundInterval = current.note - lastPlayableNote;
 
-          // Draw vertical path from last playable note to current note
-          const minNote = Math.min(lastPlayableNote, current.note);
-          const maxNote = Math.max(lastPlayableNote, current.note);
+          if (soundInterval === 0) {
+            // iS=0: Same note - draw short separator bar with label below
+            const bounds = computeCellBounds(current.note, currentStartSpace);
 
-          // Use computeCellBounds() for positioning - same method as cells
-          // This ensures lines resize correctly like cells do
-          const topBounds = computeCellBounds(maxNote, currentStartSpace);
-          const bottomBounds = computeCellBounds(minNote, currentStartSpace);
+            // Create short vertical separator line (same height as cell)
+            const line = document.createElement('div');
+            line.className = 'interval-line-vertical interval-line-zero';
+            line.style.left = `${bounds.left}px`;
+            line.style.top = `${bounds.top}px`;
+            line.style.height = `${bounds.height}px`;
+            linesContainer.appendChild(line);
 
-          // Create vertical line element
-          const line = document.createElement('div');
-          line.className = 'interval-line-vertical';
-          // Position line using computed bounds (same as cells)
-          line.style.left = `${topBounds.left}px`;
-          line.style.top = `${topBounds.top}px`;
-          line.style.height = `${bottomBounds.top + bottomBounds.height - topBounds.top}px`;
-          linesContainer.appendChild(line);
+            // Add "0" label centered BELOW the line
+            const label = document.createElement('div');
+            label.className = 'interval-label interval-label-zero';
+            label.style.left = `${bounds.left}px`;
+            label.style.top = `${bounds.top + bounds.height + 5}px`; // Below the cell
+            label.style.transform = 'translateX(-50%)';
+            label.textContent = '0';
+            linesContainer.appendChild(label);
+          } else {
+            // Draw vertical path from last playable note to current note
+            const minNote = Math.min(lastPlayableNote, current.note);
+            const maxNote = Math.max(lastPlayableNote, current.note);
 
-          // Add interval label (iS value) to the middle of the vertical line
-          const middleNote = Math.floor((minNote + maxNote) / 2);
-          const middleBounds = computeCellBounds(middleNote, currentStartSpace);
-          const label = document.createElement('div');
-          label.className = 'interval-label';
-          // Position label to the left of the line, vertically centered
-          label.style.left = `${middleBounds.left - 50}px`;
-          label.style.top = `${middleBounds.top + middleBounds.height / 2}px`;
-          label.style.transform = 'translateY(-50%)';
-          // Format with sign
-          label.textContent = soundInterval > 0 ? `+${soundInterval}` : `${soundInterval}`;
-          linesContainer.appendChild(label);
+            // Use computeCellBounds() for positioning - same method as cells
+            // This ensures lines resize correctly like cells do
+            const topBounds = computeCellBounds(maxNote, currentStartSpace);
+            const bottomBounds = computeCellBounds(minNote, currentStartSpace);
+
+            // Create vertical line element
+            const line = document.createElement('div');
+            line.className = 'interval-line-vertical';
+            // Position line using computed bounds (same as cells)
+            line.style.left = `${topBounds.left}px`;
+            line.style.top = `${topBounds.top}px`;
+            line.style.height = `${bottomBounds.top + bottomBounds.height - topBounds.top}px`;
+            linesContainer.appendChild(line);
+
+            // Add interval label (iS value) to the middle of the vertical line
+            const middleNote = Math.floor((minNote + maxNote) / 2);
+            const middleBounds = computeCellBounds(middleNote, currentStartSpace);
+            const label = document.createElement('div');
+            label.className = 'interval-label';
+            // Position label to the left of the line, vertically centered
+            label.style.left = `${middleBounds.left - 50}px`;
+            label.style.top = `${middleBounds.top + middleBounds.height / 2}px`;
+            label.style.transform = 'translateY(-50%)';
+            // Format with sign
+            label.textContent = soundInterval > 0 ? `+${soundInterval}` : `${soundInterval}`;
+            linesContainer.appendChild(label);
+          }
         }
 
         lastPlayableNote = current.note;
