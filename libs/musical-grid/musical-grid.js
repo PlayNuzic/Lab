@@ -1077,37 +1077,62 @@ export function createMusicalGrid(config) {
 
     // Draw FIRST iS line from base pair (0,0) to first note at left edge of grid
     const firstPair = sorted[0];
-    if (basePair && !firstPair.isRest && firstPair.note !== basePair.note) {
-      const minNote = Math.min(basePair.note, firstPair.note);
-      const maxNote = Math.max(basePair.note, firstPair.note);
+    if (basePair && !firstPair.isRest) {
       const soundInterval = firstPair.note - basePair.note;
 
-      // Position at left edge (space 0, but use left: 0 to align with grid border)
-      const topBounds = computeCellBounds(maxNote, 0);
-      const bottomBounds = computeCellBounds(minNote, 0);
+      if (soundInterval === 0) {
+        // iS=0: Same note as base - draw short separator bar with label below
+        const bounds = computeCellBounds(firstPair.note, 0);
 
-      // Create first vertical line at left edge
-      const firstLine = document.createElement('div');
-      firstLine.className = 'interval-line-vertical interval-line-first';
-      firstLine.style.left = '0px'; // Align with left edge of grid
-      firstLine.style.top = `${topBounds.top}px`;
-      firstLine.style.height = `${bottomBounds.top + bottomBounds.height - topBounds.top}px`;
-      linesContainer.appendChild(firstLine);
+        // Create short vertical separator line (same height as cell)
+        const line = document.createElement('div');
+        line.className = 'interval-line-vertical interval-line-first interval-line-zero';
+        line.style.left = '0px';
+        line.style.top = `${bounds.top}px`;
+        line.style.height = `${bounds.height}px`;
+        linesContainer.appendChild(line);
 
-      // Add first iS label (positioned to the RIGHT to avoid overlapping soundline)
-      const middleNote = Math.floor((minNote + maxNote) / 2);
-      const middleBounds = computeCellBounds(middleNote, 0);
-      const firstLabel = document.createElement('div');
-      firstLabel.className = 'interval-label interval-label-first';
-      firstLabel.style.left = '10px'; // Position to the RIGHT of the first line
-      firstLabel.style.top = `${middleBounds.top + middleBounds.height / 2}px`;
-      firstLabel.style.transform = 'translateY(-50%)';
-      firstLabel.textContent = soundInterval > 0 ? `+${soundInterval}` : `${soundInterval}`;
-      linesContainer.appendChild(firstLabel);
+        // Add "0" label centered BELOW the line
+        const label = document.createElement('div');
+        label.className = 'interval-label interval-label-first interval-label-zero';
+        label.style.left = '0px';
+        label.style.top = `${bounds.top + bounds.height + 5}px`; // Below the cell
+        label.style.transform = 'translateX(-50%)';
+        label.textContent = '0';
+        linesContainer.appendChild(label);
+      } else {
+        // Different note - draw full vertical line
+        const minNote = Math.min(basePair.note, firstPair.note);
+        const maxNote = Math.max(basePair.note, firstPair.note);
+
+        // Position at left edge (space 0, but use left: 0 to align with grid border)
+        const topBounds = computeCellBounds(maxNote, 0);
+        const bottomBounds = computeCellBounds(minNote, 0);
+
+        // Create first vertical line at left edge
+        const firstLine = document.createElement('div');
+        firstLine.className = 'interval-line-vertical interval-line-first';
+        firstLine.style.left = '0px'; // Align with left edge of grid
+        firstLine.style.top = `${topBounds.top}px`;
+        firstLine.style.height = `${bottomBounds.top + bottomBounds.height - topBounds.top}px`;
+        linesContainer.appendChild(firstLine);
+
+        // Add first iS label (positioned to the RIGHT to avoid overlapping soundline)
+        const middleNote = Math.floor((minNote + maxNote) / 2);
+        const middleBounds = computeCellBounds(middleNote, 0);
+        const firstLabel = document.createElement('div');
+        firstLabel.className = 'interval-label interval-label-first';
+        firstLabel.style.left = '10px'; // Position to the RIGHT of the first line
+        firstLabel.style.top = `${middleBounds.top + middleBounds.height / 2}px`;
+        firstLabel.style.transform = 'translateY(-50%)';
+        firstLabel.textContent = soundInterval > 0 ? `+${soundInterval}` : `${soundInterval}`;
+        linesContainer.appendChild(firstLabel);
+      }
     }
 
     // Track the last playable (non-silence) note for connecting after silences
-    let lastPlayableNote = null;
+    // Initialize with basePair note so first note connects properly
+    let lastPlayableNote = basePair ? basePair.note : null;
     let lastPlayableIndex = -1;
 
     // Draw vertical paths between consecutive notes in this voice
