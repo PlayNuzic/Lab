@@ -632,15 +632,13 @@ export function createMusicalGrid(config) {
   /**
    * Update interval bars positions after resize
    * Keeps bars synchronized with cell columns/rows
+   * Also updates timeline-line and pulse markers (always needed)
    */
   function updateIntervalBarsPositions() {
-    if (!intervalsConfig.horizontal && !intervalsConfig.vertical) return;
-
     const totalIntervals = pulses - 1;
-
-    // Update horizontal bars (timeline)
-    if (intervalsConfig.horizontal) {
     const timelineContainer = containers.timelineInner || containers.timeline;
+
+    // ALWAYS update timeline-line and pulse markers (independent of interval config)
     if (timelineContainer) {
       // Update timeline-line width
       const timelineLine = timelineContainer.querySelector('.timeline-line');
@@ -658,7 +656,7 @@ export function createMusicalGrid(config) {
         timelineLine.style.right = 'auto';
       }
 
-      // Update pulse markers
+      // Update pulse markers (ALWAYS - independent of intervalsConfig)
       const pulseMarkers = timelineContainer.querySelectorAll('.pulse-marker');
       pulseMarkers.forEach(marker => {
         const i = parseInt(marker.dataset.pulseIndex);
@@ -674,7 +672,10 @@ export function createMusicalGrid(config) {
 
         marker.style.left = `${markerLeft}px`;
       });
+    }
 
+    // Update horizontal interval bars and numbers (only if enabled)
+    if (intervalsConfig.horizontal && timelineContainer) {
       // Update interval numbers
       const intervalNumbers = timelineContainer.querySelectorAll('.interval-number');
       intervalNumbers.forEach(num => {
@@ -714,28 +715,27 @@ export function createMusicalGrid(config) {
         bar.style.width = `${barWidth}px`;
       });
     }
-    } // End intervalsConfig.horizontal
 
-    // Update vertical bars (soundline) - already use percentages, but update for consistency
+    // Update vertical bars (soundline) - only if enabled
     if (intervalsConfig.vertical) {
-    const soundlineContainer = containers.soundlineInner || containers.soundline;
-    if (soundlineContainer) {
-      const verticalBars = soundlineContainer.querySelectorAll('.interval-bar.vertical');
-      const totalNoteIntervals = notes - 1;
+      const soundlineContainer = containers.soundlineInner || containers.soundline;
+      if (soundlineContainer) {
+        const verticalBars = soundlineContainer.querySelectorAll('.interval-bar.vertical');
+        const totalNoteIntervals = notes - 1;
 
-      verticalBars.forEach(bar => {
-        const i = parseInt(bar.dataset.intervalIndex);
+        verticalBars.forEach(bar => {
+          const i = parseInt(bar.dataset.intervalIndex);
 
-        // Vertical bars already use percentage system which works correctly
-        // No need to recalculate unless we switch to pixel system
-        const startPct = ((i - 1) / totalNoteIntervals) * 100;
-        const heightPct = 100 / totalNoteIntervals;
+          // Vertical bars already use percentage system which works correctly
+          // No need to recalculate unless we switch to pixel system
+          const startPct = ((i - 1) / totalNoteIntervals) * 100;
+          const heightPct = 100 / totalNoteIntervals;
 
-        bar.style.top = `${startPct}%`;
-        bar.style.height = `${heightPct}%`;
-      });
+          bar.style.top = `${startPct}%`;
+          bar.style.height = `${heightPct}%`;
+        });
+      }
     }
-    } // End intervalsConfig.vertical
   }
 
   /**

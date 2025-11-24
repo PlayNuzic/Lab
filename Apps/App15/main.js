@@ -48,7 +48,8 @@ function buildPairsFromIntervals(basePair, intervals = []) {
 
   intervals.forEach((interval) => {
     const temporal = interval?.temporalInterval ?? interval?.temporal ?? 0;
-    if (!temporal) return;
+    // iT must be positive (≥1) - skip invalid intervals
+    if (!temporal || temporal <= 0) return;
 
     const isRest = !!interval.isRest;
     currentPulse += temporal;
@@ -296,16 +297,14 @@ function renderTemporalBars(intervals = []) {
   // Reset content
   layer.innerHTML = '';
 
-  const timelineRect = timeline.getBoundingClientRect();
-  const matrixRect = matrix.getBoundingClientRect();
-
-  // Force layer to align with matrix width/left
+  // Get matrix width for position calculations (timeline shares same CSS grid column)
+  const matrixWidth = matrix.getBoundingClientRect().width;
   const totalSpaces = TOTAL_PULSES - 1; // 8 spaces between 9 pulses
-  const totalWidth = matrixRect.width || timelineRect.width || 0;
-  const leftOffset = matrixRect.left - timelineRect.left;
+  const cellWidth = matrixWidth / totalSpaces;
 
-  layer.style.width = `${totalWidth}px`;
-  layer.style.left = `${leftOffset}px`;
+  // Layer inherits timeline width (same as matrix via CSS grid-column: 2)
+  layer.style.width = '100%';
+  layer.style.left = '0';
 
   let offset = 0;
 
@@ -313,8 +312,9 @@ function renderTemporalBars(intervals = []) {
     const duration = interval?.temporalInterval ?? interval?.temporal ?? 0;
     if (!duration) return;
 
-    const leftPx = (offset / totalSpaces) * totalWidth;
-    const widthPx = (duration / totalSpaces) * totalWidth;
+    // Calculate position using cell width (same formula as musical-grid)
+    const leftPx = offset * cellWidth;
+    const widthPx = duration * cellWidth;
     const labelValue = duration;
 
     const bar = document.createElement('div');
@@ -340,10 +340,28 @@ function syncGridFromPairs(pairs) {
   if (!musicalGrid) return;
   currentPairs = pairs;
 
+  console.log('[App15] syncGridFromPairs received:', JSON.stringify(pairs));
+
   // PERFORMANCE: Incremental update instead of full redraw
   // Track which cells should be active
   const visiblePairs = pairs.filter(p => p.note !== null && p.note !== undefined);
-  const activeCells = new Set(visiblePairs.map(p => `${p.note}-${p.pulse}`));
+  console.log('[App15] visiblePairs after filter:', JSON.stringify(visiblePairs));
+  // Convert pulse to space indices for cell tracking (fillSpaces mode)
+  // Each note occupies spaces from (pulse - temporalInterval) to (pulse - 1)
+  // The note STARTS at (pulse - iT), and ENDS at pulse
+  const activeCells = new Set();
+  visiblePairs.forEach(p => {
+    if (p.pulse <= 0) return; // Base position has no cell
+    const iT = p.temporalInterval || 1;
+    const startSpace = p.pulse - iT;
+    const endSpace = p.pulse - 1;
+    for (let space = startSpace; space <= endSpace; space++) {
+      if (space >= 0) {
+        activeCells.add(`${p.note}-${space}`);
+      }
+    }
+  });
+  console.log('[App15] activeCells (space indices):', [...activeCells]);
 
   // Clear only cells that are no longer active
   document.querySelectorAll('.musical-cell.active').forEach(cell => {
@@ -353,10 +371,6 @@ function syncGridFromPairs(pairs) {
 
     if (!activeCells.has(key)) {
       cell.classList.remove('active');
-      const label = cell.querySelector('.cell-label');
-      if (label) {
-        label.remove();
-      }
     }
   });
 
@@ -369,67 +383,39 @@ function syncGridFromPairs(pairs) {
   // Interval lines always enabled in App15
   const intervalLinesEnabled = intervalLinesEnabledState;
 
-  // Filter out null notes
-  const validPairs = visiblePairs;
+  // Filter out invalid pairs (null notes or pulses out of range)
+  const validPairs = visiblePairs.filter(p =>
+    p.pulse >= 0 && p.pulse <= TOTAL_PULSES - 1 &&
+    p.note >= 0 && p.note <= TOTAL_NOTES - 1
+  );
 
-  // Calculate labels based on interval lines mode
-  let labelsMap = new Map(); // Map: "note-pulse" -> label text
+  // Activate cells (no labels in grid-2D)
+  // With fillSpaces=true, cells represent SPACES between pulses
+  // Each note occupies spaces from (pulse - temporalInterval) to (pulse - 1)
+  // The note STARTS at (pulse - iT), showing its full duration
+  console.log('[App15] validPairs to activate:', JSON.stringify(validPairs));
+  validPairs.forEach(({ note, pulse, isRest, temporalInterval }) => {
+    // Pulse 0 is the starting point - no cell to activate
+    if (pulse === 0) {
+      console.log(`[App15] Skipping pulse=0 (base position, no cell)`);
+      return;
+    }
+    // Calculate start and end spaces based on temporalInterval
+    const iT = temporalInterval || 1;
+    const startSpace = pulse - iT;
+    const endSpace = pulse - 1;
+    console.log(`[App15] Activating cells for note=${note}, pulse=${pulse}, iT=${iT} -> spaces ${startSpace} to ${endSpace}`);
 
-  if (intervalLinesEnabled && validPairs.length > 0) {
-    // ========== INTERVAL MODE: Musical intervals ==========
-    // Separate into voices (same logic as highlightIntervalPath)
-    const voices = polyphonyEnabled ? separateIntoVoices(validPairs) : [validPairs.slice().sort((a, b) => a.pulse - b.pulse)];
-
-    voices.forEach(voice => {
-      if (voice.length === 0) return;
-
-      // Sort by pulse
-      const sorted = [...voice].sort((a, b) => a.pulse - b.pulse);
-
-      // First note in voice: (N{note}, {duration}p)
-      const first = sorted[0];
-      const firstDuration = sorted.length > 1 ? sorted[1].pulse - first.pulse : 1;
-      labelsMap.set(`${first.note}-${first.pulse}`, `(N${first.note}, ${firstDuration}p)`);
-
-      // Subsequent notes: (+{interval}, {duration}p)
-      for (let i = 1; i < sorted.length; i++) {
-        const prev = sorted[i - 1];
-        const curr = sorted[i];
-        const soundInterval = curr.note - prev.note; // Semitones (can be negative)
-        const temporalInterval = curr.pulse - prev.pulse; // Pulses
-        const sign = soundInterval >= 0 ? '+' : '';
-        labelsMap.set(`${curr.note}-${curr.pulse}`, `(${sign}${soundInterval}, ${temporalInterval}p)`);
-      }
-    });
-  } else {
-    // ========== NORMAL MODE: Coordinates (N, P) ==========
-    validPairs.forEach(({ note, pulse }) => {
-      labelsMap.set(`${note}-${pulse}`, `( ${note} , ${pulse} )`);
-    });
-  }
-
-  // Activate cells and apply labels (only update if changed)
-  validPairs.forEach(({ note, pulse, isRest }) => {
-    const cell = musicalGrid.getCellElement(note, pulse);
-    if (cell) {
-      cell.classList.add('active');
-      if (isRest) {
-        cell.classList.add('rest-cell');
-      } else {
-        cell.classList.remove('rest-cell');
-      }
-
-      // PERFORMANCE: Only update label if text changed
-      const expectedText = labelsMap.get(`${note}-${pulse}`) || `( ${note} , ${pulse} )`;
-      let label = cell.querySelector('.cell-label');
-
-      if (!label) {
-        label = document.createElement('span');
-        label.className = 'cell-label';
-        label.textContent = expectedText;
-        cell.appendChild(label);
-      } else if (label.textContent !== expectedText) {
-        label.textContent = expectedText;
+    for (let space = startSpace; space <= endSpace; space++) {
+      if (space < 0) continue;
+      const cell = musicalGrid.getCellElement(note, space);
+      if (cell) {
+        cell.classList.add('active');
+        if (isRest) {
+          cell.classList.add('rest-cell');
+        } else {
+          cell.classList.remove('rest-cell');
+        }
       }
     }
   });
@@ -700,6 +686,18 @@ async function initializeApp() {
     }
   });
 
+  // ResizeObserver to keep timeline bars aligned with grid cells on resize
+  const matrixContainer = musicalGrid.getMatrixContainer?.();
+  if (matrixContainer) {
+    const resizeObserver = new ResizeObserver(() => {
+      // Recalculate temporal bars positions when matrix size changes
+      if (currentIntervals.length > 0) {
+        renderTemporalBars(currentIntervals);
+      }
+    });
+    resizeObserver.observe(matrixContainer);
+  }
+
   // Reposition controls into grid wrapper (match App12)
   const controls = document.querySelector('.controls');
   const gridWrapper = document.querySelector('.app12-main-grid');
@@ -746,18 +744,14 @@ async function initializeApp() {
       currentPairs = pairs;
 
       const intervals = [];
-      let prevNote = 0;
-      let prevPulse = 0;
+      // Base pair is always (0,0) when hideInitialPair is enabled
+      // Each received pair is the RESULT of an interval, not the base
+      let prevNote = 0;   // Base N₀
+      let prevPulse = 0;  // Base P₀
       let lastPlayable = 0;
 
-      pairs.forEach((pair, idx) => {
-        if (idx === 0) {
-          prevNote = pair.note;
-          lastPlayable = pair.note;
-          prevPulse = pair.pulse;
-          return;
-        }
-
+      // Process ALL pairs - each represents an interval endpoint
+      pairs.forEach((pair) => {
         const temporalInterval = pair.pulse - prevPulse;
         const isRest = !!pair.isRest;
         const soundInterval = isRest ? 0 : pair.note - prevNote;

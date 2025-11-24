@@ -42,7 +42,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
+  /* width set dynamically by JS to match matrix container */
   height: 100%;
   pointer-events: none;
   display: block;
@@ -51,7 +51,7 @@
 
 .it-bar {
   position: absolute;
-  top: 50%;
+  top: 20%;
   transform: translateY(-50%);
   height: 8px;
   border-radius: 8px;
