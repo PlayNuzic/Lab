@@ -683,18 +683,9 @@ function saveCurrentState() {
 }
 
 function loadSavedState() {
-  const prefs = preferenceStorage.load() || {};
-
-  if (prefs.intervals && prefs.initialPair) {
-    // Restore intervals (supports rests)
-    const basePair = prefs.initialPair || { note: 0, pulse: 0 };
-    const intervals = prefs.intervals || [];
-    const pairs = buildPairsFromIntervals(basePair, intervals);
-    currentIntervals = intervals;
-    currentPairs = pairs;
-    gridEditor.setPairs(pairs);
-    syncGridFromPairs(pairs);
-  }
+  // App15 should always start empty - no persistence of sequences between sessions
+  // Only UI preferences (polyphony, selectColor, etc.) are persisted
+  // The grid-editor and grid-2D start with no pairs/intervals
 }
 
 // ========== DOM INJECTION ==========
