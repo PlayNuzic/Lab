@@ -970,8 +970,19 @@ async function initializeApp() {
       let prevPulse = 0;  // Base P₀
       let lastPlayable = 0;
 
+      // Track pulses already processed to skip duplicates (polyphony)
+      // In monophonic mode, we only process the first pair at each pulse
+      const processedPulses = new Set();
+
       // Process ALL pairs - each represents an interval endpoint
       pairs.forEach((pair) => {
+        // Skip if we already processed this pulse (polyphony case)
+        // This prevents temporalInterval=0 for duplicate pulses
+        if (processedPulses.has(pair.pulse)) {
+          return;  // Skip duplicate pulse
+        }
+        processedPulses.add(pair.pulse);
+
         const temporalInterval = pair.pulse - prevPulse;
         const isRest = !!pair.isRest;
         const soundInterval = isRest ? 0 : pair.note - prevNote;
