@@ -81,7 +81,9 @@ let dragState = {
   active: false,
   startSpaceIndex: null,
   currentSpaceIndex: null,
+  noteIndex: null,        // Track the note being created/edited
   originalPair: null,
+  mode: null,             // 'create' | 'edit'
   previewElement: null
 };
 
@@ -318,12 +320,9 @@ function syncGridFromPairs(pairs) {
   if (!musicalGrid) return;
   currentPairs = pairs;
 
-  console.log('[App15] syncGridFromPairs received:', JSON.stringify(pairs));
-
   // PERFORMANCE: Incremental update instead of full redraw
   // Track which cells should be active
   const visiblePairs = pairs.filter(p => p.note !== null && p.note !== undefined);
-  console.log('[App15] visiblePairs after filter:', JSON.stringify(visiblePairs));
   // Convert pulse to space indices for cell tracking (fillSpaces mode)
   // Each note occupies spaces from pulse (START) to (pulse + iT - 1) (END)
   // The note STARTS at pulse, and ENDS at (pulse + iT - 1)
@@ -339,7 +338,6 @@ function syncGridFromPairs(pairs) {
       }
     }
   });
-  console.log('[App15] activeCells (space indices):', [...activeCells]);
 
   // Clear only cells that are no longer active
   document.querySelectorAll('.musical-cell.active').forEach(cell => {
@@ -370,18 +368,14 @@ function syncGridFromPairs(pairs) {
   // With fillSpaces=true, cells represent SPACES between pulses
   // Each note occupies spaces from pulse (START) to (pulse + iT - 1) (END)
   // The note STARTS at pulse, showing its full duration
-  console.log('[App15] validPairs to activate:', JSON.stringify(validPairs));
   validPairs.forEach(({ note, pulse, isRest, temporalInterval }) => {
     // Silences (isRest) don't illuminate cells - they represent absence of sound
-    if (isRest) {
-      console.log(`[App15] Skipping silence at pulse=${pulse} (no cell illumination)`);
-      return;
-    }
+    if (isRest) return;
+
     // Calculate start and end spaces based on temporalInterval
     const iT = temporalInterval || 1;
     const startSpace = pulse;
     const endSpace = pulse + iT - 1;
-    console.log(`[App15] Activating cells for note=${note}, pulse=${pulse}, iT=${iT} -> spaces ${startSpace} to ${endSpace}`);
 
     for (let space = startSpace; space <= endSpace; space++) {
       if (space < 0) continue;
@@ -428,31 +422,45 @@ function calculateSpaceFromMouseX(mouseX, musicalGrid) {
   const relativeX = mouseX - rect.left;
 
   // Calculate which space (cell) the mouse is over
-  const cellWidth = rect.width / TOTAL_PULSES; // 9 pulses = 8 spaces, but width is divided by pulses
+  // With fillSpaces=true, there are 8 cells (spaces) between 9 pulses
+  const cellWidth = rect.width / TOTAL_SPACES;
   const spaceIndex = Math.floor(relativeX / cellWidth);
 
-  // Clamp to valid range [0, TOTAL_PULSES - 2] (8 spaces for 9 pulses)
-  return Math.max(0, Math.min(TOTAL_PULSES - 2, spaceIndex));
+  // Clamp to valid range [0, TOTAL_SPACES - 1] (0-7)
+  return Math.max(0, Math.min(TOTAL_SPACES - 1, spaceIndex));
 }
 
 /**
- * Handle mousedown on an existing dot to start drag
+ * Handle mousedown on a dot to start drag (create or edit mode)
+ * - If no pair exists at position → mode 'create'
+ * - If pair exists → mode 'edit'
  */
 function handleDotMouseDown(noteIndex, spaceIndex, event, musicalGrid) {
   if (!gridEditor) return;
 
-  const targetPulse = spaceIndex + 1;
   const pairsAtMoment = gridEditor.getPairs();
 
-  // Find existing pair at this N-P location
-  const existingPair = pairsAtMoment.find(p => p.note === noteIndex && p.pulse === targetPulse);
-
-  if (!existingPair) return; // Only drag existing dots
+  // Check if there's an existing pair at this position
+  // spaceIndex in grid-2D = pulse in pair semantics (START position)
+  const existingPair = pairsAtMoment.find(p => p.note === noteIndex && p.pulse === spaceIndex);
 
   dragState.active = true;
   dragState.startSpaceIndex = spaceIndex;
   dragState.currentSpaceIndex = spaceIndex;
-  dragState.originalPair = existingPair;
+  dragState.noteIndex = noteIndex;
+  dragState.originalPair = existingPair || null;
+  dragState.mode = existingPair ? 'edit' : 'create';
+
+  // Immediate visual feedback on mousedown
+  document.body.classList.add('dragging-note');
+  // Change cursor to grabbing via :root variable (CSS variable inheritance fix)
+  document.documentElement.style.setProperty('--np-dot-cursor', 'grabbing');
+
+  // Show preview on initial cell immediately
+  const cell = musicalGrid.getCellElement(noteIndex, spaceIndex);
+  if (cell) {
+    cell.classList.add('drag-preview');
+  }
 
   // Prevent default to avoid text selection
   event.preventDefault();
@@ -463,88 +471,225 @@ function handleDotMouseDown(noteIndex, spaceIndex, event, musicalGrid) {
  * Handle mousemove during drag to preview new iT
  */
 function handleMouseMove(event, musicalGrid) {
-  if (!dragState.active || !dragState.originalPair) return;
+  if (!dragState.active) return;
 
   const newSpaceIndex = calculateSpaceFromMouseX(event.clientX, musicalGrid);
   if (newSpaceIndex === null || newSpaceIndex === dragState.currentSpaceIndex) return;
 
+  // Clear previous preview
+  clearDragPreview();
+
   dragState.currentSpaceIndex = newSpaceIndex;
 
-  // Calculate new pulse and iT
-  const newPulse = newSpaceIndex + 1;
+  // Show preview of cells that will be occupied
+  const startSpace = Math.min(dragState.startSpaceIndex, newSpaceIndex);
+  const endSpace = Math.max(dragState.startSpaceIndex, newSpaceIndex);
 
-  // Find previous pair to calculate iT correctly
-  const pairsAtMoment = gridEditor.getPairs();
-  const previousPairs = pairsAtMoment.filter(p =>
-    p !== dragState.originalPair && p.pulse < newPulse
-  );
-  const lastPair = previousPairs.length > 0
-    ? previousPairs[previousPairs.length - 1]
-    : { note: 0, pulse: 0 };
+  for (let space = startSpace; space <= endSpace; space++) {
+    const cell = musicalGrid.getCellElement(dragState.noteIndex, space);
+    if (cell) {
+      cell.classList.add('drag-preview');
+    }
+  }
 
-  const newIT = newPulse - lastPair.pulse;
-
-  // Validate iT (must be ≥1)
-  if (newIT < 1) return;
-
-  // Validate pulse doesn't exceed limits
-  if (newPulse > TOTAL_PULSES - 1) return;
-
-  // Update preview visual (TODO: implement visual preview)
-  // For now, just update cursor to indicate dragging is active
-  document.body.style.cursor = 'ew-resize';
+  // Add grabbing cursor class to body
+  document.body.classList.add('dragging-note');
 }
 
 /**
- * Handle mouseup to finalize drag and update pair
+ * Handle mouseup to finalize drag and update/create pair
  */
 function handleMouseUp(event, musicalGrid) {
-  if (!dragState.active || !dragState.originalPair) return;
+  if (!dragState.active) return;
 
-  // Reset cursor
-  document.body.style.cursor = '';
+  // Remove grabbing cursor class
+  document.body.classList.remove('dragging-note');
 
-  // Only update if space changed
-  if (dragState.currentSpaceIndex !== null &&
-      dragState.currentSpaceIndex !== dragState.startSpaceIndex) {
+  const startSpace = dragState.startSpaceIndex;
+  const endSpace = dragState.currentSpaceIndex ?? startSpace;
 
-    const newPulse = dragState.currentSpaceIndex + 1;
+  // Calculate iT as distance from start to end + 1 (inclusive)
+  // If no drag (same position), iT = 1
+  const iT = Math.abs(endSpace - startSpace) + 1;
+  const startPulse = Math.min(startSpace, endSpace);  // Pulse = START position
+
+  if (dragState.mode === 'create') {
+    // Creating new pair
+    const newPair = {
+      note: dragState.noteIndex,
+      pulse: startPulse,
+      temporalInterval: iT
+    };
+
+    // Add to pairs, respecting polyphony mode
     const pairsAtMoment = gridEditor.getPairs();
+    let newPairs;
 
-    // Find previous pair to calculate new iT
-    const previousPairs = pairsAtMoment.filter(p =>
-      p !== dragState.originalPair && p.pulse < newPulse
-    );
-    const lastPair = previousPairs.length > 0
-      ? previousPairs[previousPairs.length - 1]
-      : { note: 0, pulse: 0 };
-
-    const newIT = newPulse - lastPair.pulse;
-
-    // Validate before updating
-    if (newIT >= 1 && newPulse <= TOTAL_PULSES - 1) {
-      // Create updated pairs array
-      const newPairs = pairsAtMoment.map(p => {
-        if (p === dragState.originalPair) {
-          return {
-            ...p,
-            pulse: newPulse,
-            temporalInterval: newIT
-          };
-        }
-        return p;
+    if (!polyphonyEnabled) {
+      // Remove any existing pair at overlapping pulses
+      newPairs = pairsAtMoment.filter(p => {
+        const pEnd = p.pulse + (p.temporalInterval || 1) - 1;
+        const newEnd = startPulse + iT - 1;
+        // Check for overlap
+        return !(p.pulse <= newEnd && pEnd >= startPulse);
       });
+      newPairs.push(newPair);
+    } else {
+      newPairs = [...pairsAtMoment, newPair];
+    }
 
-      gridEditor.setPairs(newPairs);
-      syncGridFromPairs(newPairs);
+    // Fill gaps with automatic silences
+    newPairs = fillGapsWithSilences(newPairs);
+
+    // Update intervals BEFORE sync (ensures iT-bars render correctly)
+    updateIntervalsFromPairs(newPairs);
+
+    // Play preview sound
+    playNotePreview(dragState.noteIndex, iT);
+
+    gridEditor.setPairs(newPairs);
+    syncGridFromPairs(newPairs);
+
+    // If sequence is full (8 pulses), remove empty columns
+    const totalPulses = newPairs.reduce((sum, p) => sum + (p.temporalInterval || 1), 0);
+    if (totalPulses >= TOTAL_SPACES && gridEditor.removeEmptyIntervalSlots) {
+      gridEditor.removeEmptyIntervalSlots();
+    }
+
+  } else if (dragState.mode === 'edit' && dragState.originalPair) {
+    // Editing existing pair - update its position and temporalInterval
+    const pairsAtMoment = gridEditor.getPairs();
+    let newPairs = pairsAtMoment.map(p => {
+      if (p === dragState.originalPair) {
+        return {
+          ...p,
+          pulse: startPulse,
+          temporalInterval: iT
+        };
+      }
+      return p;
+    });
+
+    // Fill gaps with automatic silences
+    newPairs = fillGapsWithSilences(newPairs);
+
+    // Update intervals BEFORE sync (ensures iT-bars render correctly)
+    updateIntervalsFromPairs(newPairs);
+
+    gridEditor.setPairs(newPairs);
+    syncGridFromPairs(newPairs);
+
+    // If sequence is full (8 pulses), remove empty columns
+    const totalPulses = newPairs.reduce((sum, p) => sum + (p.temporalInterval || 1), 0);
+    if (totalPulses >= TOTAL_SPACES && gridEditor.removeEmptyIntervalSlots) {
+      gridEditor.removeEmptyIntervalSlots();
     }
   }
 
   // Reset drag state
+  resetDragState();
+}
+
+/**
+ * Reset drag state to initial values
+ */
+function resetDragState() {
+  clearDragPreview();
+  document.body.classList.remove('dragging-note');
+  // Restore cursor to grab via :root variable
+  document.documentElement.style.setProperty('--np-dot-cursor', 'grab');
   dragState.active = false;
   dragState.startSpaceIndex = null;
   dragState.currentSpaceIndex = null;
+  dragState.noteIndex = null;
   dragState.originalPair = null;
+  dragState.mode = null;
+}
+
+/**
+ * Clear visual preview of drag selection
+ */
+function clearDragPreview() {
+  document.querySelectorAll('.musical-cell.drag-preview').forEach(cell => {
+    cell.classList.remove('drag-preview');
+  });
+}
+
+/**
+ * Play a preview sound for a note with given duration
+ */
+async function playNotePreview(noteIndex, iT) {
+  await initAudio();
+  if (!window.Tone) return;
+
+  const midi = 60 + noteIndex;
+  const duration = (iT * (60 / currentBPM)) * 0.9;
+  audio.playNote(midi, duration, window.Tone.now());
+  highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
+}
+
+/**
+ * Fill gaps between notes with automatic silences
+ * When a note doesn't touch the previous note, the gap becomes a rest
+ */
+function fillGapsWithSilences(pairs) {
+  if (pairs.length === 0) return pairs;
+
+  // Sort pairs by pulse (START position)
+  const sorted = [...pairs].sort((a, b) => a.pulse - b.pulse);
+  const result = [];
+
+  // Start from pulse 0 (base pair position)
+  let expectedPulse = 0;
+
+  sorted.forEach(pair => {
+    // If there's a gap, fill with silence
+    if (pair.pulse > expectedPulse) {
+      const gapSize = pair.pulse - expectedPulse;
+      result.push({
+        note: result.length > 0 ? result[result.length - 1].note : 0,
+        pulse: expectedPulse,
+        temporalInterval: gapSize,
+        isRest: true
+      });
+    }
+
+    result.push(pair);
+    expectedPulse = pair.pulse + (pair.temporalInterval || 1);
+  });
+
+  return result;
+}
+
+/**
+ * Update currentIntervals from pairs array
+ * This ensures intervals are fresh before rendering iT-bars
+ */
+function updateIntervalsFromPairs(pairs) {
+  const intervals = [];
+  let prevNote = 0;  // Base N₀
+  let lastPlayable = 0;
+
+  pairs.forEach((pair) => {
+    const temporalInterval = pair.temporalInterval || 1;
+    const isRest = !!pair.isRest;
+    const soundInterval = isRest ? 0 : pair.note - prevNote;
+
+    intervals.push({
+      soundInterval,
+      temporalInterval,
+      isRest
+    });
+
+    if (!isRest) {
+      prevNote = pair.note;
+      lastPlayable = pair.note;
+    } else {
+      prevNote = lastPlayable;
+    }
+  });
+
+  currentIntervals = intervals;
 }
 
 // ========== END DRAG HANDLERS ==========
@@ -761,67 +906,16 @@ async function initializeApp() {
     cellRenderer: (noteIndex, pulseIndex, cellElement) => {
       clearElement(cellElement);
     },
-    onCellClick: async (noteIndex) => {
-      // Preview note only (editing happens in zigzag grid)
-      await initAudio();
-
-      if (!window.Tone) {
-        console.warn('Tone.js not available');
-        return;
-      }
-
-      const midi = 60 + noteIndex;
-      const duration = (60 / currentBPM) * 0.9;
-      const Tone = window.Tone;
-      audio.playNote(midi, duration, Tone.now());
-
-      // Visual feedback on soundline
-      highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
-    },
-    onDotClick: async (noteIndex, pulseIndex) => {
-      // Dot clicks allow quick toggle (and preview)
-      await initAudio();
-
-      if (!window.Tone) {
-        console.warn('Tone.js not available');
-        return;
-      }
-
-      const midi = 60 + noteIndex;
-      // Find existing pair to get its temporalInterval
-      const existingPair = gridEditor?.getPairs().find(p => p.note === noteIndex && p.pulse === pulseIndex);
-      const iT = existingPair?.temporalInterval || 1;
-      const duration = (iT * (60 / currentBPM)) * 0.9;
-      const Tone = window.Tone;
-      audio.playNote(midi, duration, Tone.now());
-
-      highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
-
-      if (!gridEditor) return;
-
-      const pairsAtMoment = gridEditor.getPairs();
-      const isActive = pairsAtMoment.some(p => p.note === noteIndex && p.pulse === pulseIndex);
-
-      let newPairs;
-      if (!polyphonyEnabled) {
-        if (isActive) {
-          newPairs = pairsAtMoment.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
-        } else {
-          newPairs = pairsAtMoment.filter(p => p.pulse !== pulseIndex);
-          newPairs.push({ note: noteIndex, pulse: pulseIndex });
-        }
-      } else {
-        if (isActive) {
-          newPairs = pairsAtMoment.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
-        } else {
-          newPairs = [...pairsAtMoment, { note: noteIndex, pulse: pulseIndex }];
-        }
-      }
-
-      gridEditor.setPairs(newPairs);
-      syncGridFromPairs(newPairs);
-    }
+    // Dummy onDotClick to enable np-dot-clickable class (hover effects)
+    // Actual interaction handled by drag system via mousedown
+    onDotClick: () => {}
   });
+
+  // Apply interval-mode class to disable cell hover and pointer cursor
+  const gridContainer = document.querySelector('.grid-container');
+  if (gridContainer) {
+    gridContainer.classList.add('interval-mode');
+  }
 
   // ========== SETUP DRAG LISTENERS FOR iT MODIFICATION ==========
   // Attach mousedown listeners to all N-P dots for drag support
@@ -912,38 +1006,7 @@ async function initializeApp() {
     getPolyphonyEnabled: () => polyphonyEnabled,
     onPairsChange: (pairs) => {
       currentPairs = pairs;
-
-      const intervals = [];
-      // Base pair is always (0,0) when hideInitialPair is enabled
-      // Each received pair is the RESULT of an interval, not the base
-      let prevNote = 0;   // Base N₀
-      let lastPlayable = 0;
-
-      // Process ALL pairs - each represents an interval endpoint
-      // With new semantics: pair.pulse = START position, pair.temporalInterval = duration
-      pairs.forEach((pair) => {
-        // Use temporalInterval directly from the pair (set by grid-editor)
-        // This is the duration of the note, already calculated correctly
-        const temporalInterval = pair.temporalInterval || 1;
-        const isRest = !!pair.isRest;
-        const soundInterval = isRest ? 0 : pair.note - prevNote;
-
-        intervals.push({
-          soundInterval,
-          temporalInterval,
-          isRest
-        });
-
-        if (!isRest) {
-          prevNote = pair.note;
-          lastPlayable = pair.note;
-        } else {
-          prevNote = lastPlayable;
-        }
-      });
-
-      currentIntervals = intervals;
-
+      updateIntervalsFromPairs(pairs);
       syncGridFromPairs(pairs);
     }
   });

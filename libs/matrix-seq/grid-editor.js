@@ -336,7 +336,9 @@ export function createGridEditor(config = {}) {
       const currentPair = displayPairs[i];
       const prevPair = displayPairs[i-1];
       const soundInterval = currentPair.note - prevPair.note;
-      const temporalInterval = currentPair.pulse - prevPair.pulse;
+      // Use temporalInterval from pair if available (pulse=START semantics),
+      // fallback to pulse difference for backwards compatibility
+      const temporalInterval = currentPair.temporalInterval || (currentPair.pulse - prevPair.pulse) || 1;
       // Preserve isRest flag for silences
       intervals.push({
         soundInterval,
@@ -856,22 +858,16 @@ export function createGridEditor(config = {}) {
     let currentNote = firstNote;
     let currentPulse = firstPulse;
 
-    console.log('[grid-editor] updatePairsFromIntervals START:', { firstNote, firstPulse, hideInitialPair: intervalModeOptions?.hideInitialPair });
-
     // Collect all interval inputs
     let index = 1;
     while (true) {
       const isInput = container.querySelector(`.zigzag-input[data-index="${index}"][data-type="is"]`);
       const itInput = container.querySelector(`.zigzag-input[data-index="${index}"][data-type="it"]`);
 
-      console.log(`[grid-editor] index=${index}, isInput exists=${!!isInput}, itInput exists=${!!itInput}`);
-
       if (!isInput || !itInput) break;
 
       const isValue = isInput.value.trim();
       const itValue = itInput.value.trim();
-
-      console.log(`[grid-editor] index=${index}, isValue="${isValue}", itValue="${itValue}"`);
 
       if (!isValue || !itValue) break;
 
@@ -898,7 +894,6 @@ export function createGridEditor(config = {}) {
         // Silence: keep the same note but mark as rest
         // Use notePulse (START position) for the pair
         pairs.push({ note: currentNote, pulse: notePulse, isRest: true, temporalInterval });
-        console.log(`[grid-editor] Added SILENCE pair: note=${currentNote}, pulse=${notePulse}, iT=${temporalInterval}`);
       } else {
         const soundInterval = parseInt(isValue);
         if (isNaN(soundInterval)) break;
@@ -909,12 +904,9 @@ export function createGridEditor(config = {}) {
 
         // Use notePulse (START position) for the pair
         pairs.push({ note: currentNote, pulse: notePulse, temporalInterval });
-        console.log(`[grid-editor] Added pair: note=${currentNote}, pulse=${notePulse} (iS=${soundInterval}, iT=${temporalInterval})`);
       }
       index++;
     }
-
-    console.log('[grid-editor] All pairs before hideInitialPair:', JSON.stringify(pairs));
 
     // If hideInitialPair is enabled, exclude the base pair from output
     // The base pair (N₀, P₀) is only used as reference for interval calculations
@@ -924,7 +916,6 @@ export function createGridEditor(config = {}) {
       currentPairs = pairs;
     }
 
-    console.log('[grid-editor] Final currentPairs sent to onPairsChange:', JSON.stringify(currentPairs));
     onPairsChange(currentPairs);
 
     // Always keep one empty interval slot available (up to maxPairs)

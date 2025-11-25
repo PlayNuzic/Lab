@@ -200,9 +200,9 @@
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* Disable pointer cursor in interval mode */
+/* Disable pointer cursor in interval mode (no !important to allow drag override) */
 .interval-mode .musical-cell {
-  cursor: default !important;
+  cursor: default;
 }
 
 .grid-container:not(.interval-mode) .musical-cell:hover {
@@ -245,7 +245,7 @@
 /* N-P dot when interval lines are enabled (clickable) */
 .np-dot.np-dot-clickable {
   pointer-events: auto !important;
-  cursor: pointer !important;
+  cursor: var(--np-dot-cursor, pointer);  /* Variable allows apps to override (no !important to allow drag override) */
   z-index: 25 !important;  /* Above interval lines */
 }
 

@@ -31,10 +31,27 @@
 
   /* Reduce gap to align grid more to the left */
   --layout-gap: 1rem;
+
+  /* Cursor for N-P dots in interval mode (controlled by JS) */
+  --np-dot-cursor: grab;
 }
 
 [data-theme="dark"] {
   --line-color: #999;
+}
+
+/* ========== Drag Preview ========== */
+.musical-cell.drag-preview {
+  background: var(--select-color, #E4570C) !important;
+  opacity: 0.3;
+}
+
+/* ========== Drag Cursors ========== */
+/* Cursor variable controlled by JavaScript via :root (see handleDotMouseDown/resetDragState) */
+/* Force grabbing cursor on ALL elements during drag to prevent cursor flickering */
+body.dragging-note,
+body.dragging-note * {
+  cursor: grabbing !important;
 }
 
 /* ========== iT Bars Overlay (timeline) ========== */
