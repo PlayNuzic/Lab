@@ -904,12 +904,14 @@ async function initializeApp() {
       // Base pair is always (0,0) when hideInitialPair is enabled
       // Each received pair is the RESULT of an interval, not the base
       let prevNote = 0;   // Base N₀
-      let prevPulse = 0;  // Base P₀
       let lastPlayable = 0;
 
       // Process ALL pairs - each represents an interval endpoint
+      // With new semantics: pair.pulse = START position, pair.temporalInterval = duration
       pairs.forEach((pair) => {
-        const temporalInterval = pair.pulse - prevPulse;
+        // Use temporalInterval directly from the pair (set by grid-editor)
+        // This is the duration of the note, already calculated correctly
+        const temporalInterval = pair.temporalInterval || 1;
         const isRest = !!pair.isRest;
         const soundInterval = isRest ? 0 : pair.note - prevNote;
 
@@ -925,7 +927,6 @@ async function initializeApp() {
         } else {
           prevNote = lastPlayable;
         }
-        prevPulse = pair.pulse;
       });
 
       currentIntervals = intervals;
