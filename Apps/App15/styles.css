@@ -479,10 +479,10 @@ body.dragging-note * {
     min-height: 150px !important;
   }
 
-  /* Musical-grid container - maximize available space */
+  /* Musical-grid container - balance size vs control overlap */
   .grid-container {
-    height: 55vh !important;
-    max-height: none !important;
+    height: 50vh !important;
+    max-height: calc(100vh - 280px) !important;
     gap: 10px !important;
     grid-template-columns: 80px 1fr !important;
   }
