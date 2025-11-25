@@ -21,6 +21,7 @@
 **Ejemplos recientes:**
 - Creación de `libs/matrix-seq/` (grid-editor: 945 líneas JS, 275 CSS, 18 tests)
 - Creación de `libs/musical-grid/` (musical-grid: 565 líneas JS, 357 CSS, 26 tests con scroll)
+- Creación de `libs/interval-sequencer/` (6 módulos, ~1400 líneas, 113 tests) ⭐ NUEVO
 
 ### 🏗️ Creator Agent
 **Especialidad:** Crear nuevas apps y componentes
@@ -51,12 +52,13 @@
 
 ```
 Lab/
-├── Apps/                    # 12 apps (app1-app12)
+├── Apps/                    # 15 apps (app1-app15)
 ├── libs/
 │   ├── app-common/         # 40 módulos compartidos (Fase 2) ✅
 │   ├── pulse-seq/          # Secuencias de pulsos (5 módulos)
-│   ├── matrix-seq/         # Grid editor N-P (4 módulos + tests) ⭐ NUEVO
-│   ├── musical-grid/       # Grid 2D con scroll (3 módulos + tests) ⭐ NUEVO
+│   ├── matrix-seq/         # Grid editor N-P (4 módulos + tests)
+│   ├── musical-grid/       # Grid 2D con scroll (3 módulos + tests)
+│   ├── interval-sequencer/ # Secuenciador iS-iT (6 módulos + tests) ⭐ NUEVO
 │   ├── notation/           # VexFlow rendering (9 módulos)
 │   ├── random/             # Randomización (5 módulos)
 │   ├── sound/              # Audio engine (9 módulos)
@@ -64,7 +66,7 @@ Lab/
 │   ├── gamification/       # Achievement system (17 módulos)
 │   └── audio-capture/      # Audio/rhythm capture (4 módulos)
 ├── .claude-code/           # Configuración de agentes
-└── tests/                  # 33 test suites, 406 tests ✅
+└── tests/                  # 41 test suites, 584 tests ✅
 ```
 
 ---
@@ -193,8 +195,8 @@ Ejemplo reciente: libs/musical-grid/ con scroll support
 - **Minimalismo**: UI limpia, código simple
 - **Reutilización**: ~70% código compartido
 - **No invasión**: Nunca romper lo existente
-- **Testing**: 406 tests deben pasar siempre (33 suites)
-- **Modularización**: Extraer a libs/ cuando hay duplicación (ver matrix-seq y musical-grid como ejemplos)
+- **Testing**: 584 tests deben pasar siempre (41 suites)
+- **Modularización**: Extraer a libs/ cuando hay duplicación (ver matrix-seq, musical-grid e interval-sequencer como ejemplos)
 
 ---
 
@@ -204,6 +206,7 @@ Ejemplo reciente: libs/musical-grid/ con scroll support
 - **MODULES.md**: Documentación completa de todos los módulos compartidos
 - **libs/matrix-seq/README.md**: Guía del grid editor (N-P pairs)
 - **libs/musical-grid/README.md**: Guía de visualización 2D con scroll
+- **libs/interval-sequencer/README.md**: Guía del secuenciador de intervalos (iS-iT)
 
 ---
 

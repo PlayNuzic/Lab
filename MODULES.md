@@ -39,6 +39,7 @@ El proyecto Lab está organizado como un **monorepo con workspaces** para aplica
 │   ├── pulse-seq/  # Secuencias de pulsos (5 módulos: parser, state, editor, pulse-seq, index)
 │   ├── matrix-seq/ # Editor N-P pairs (4 módulos: grid-editor, parser, index + tests)
 │   ├── musical-grid/ # Visualización 2D grid (3 módulos: musical-grid, index, CSS + tests)
+│   ├── interval-sequencer/ # Secuenciador de intervalos (6 módulos + tests) ⭐ NUEVO
 │   ├── notation/   # Renderizado musical (9 módulos + rhythm-staff)
 │   ├── random/     # Randomización (5 módulos: core, config, menu, fractional, index)
 │   ├── sound/      # Motor de audio (9 módulos)
@@ -198,6 +199,67 @@ const grid = createMusicalGrid({
 **Apps que lo usan:** App12
 
 **Nivel de madurez:** 10/10 - Production-ready con scroll completo y tests
+
+---
+
+### `libs/interval-sequencer/` ⭐ **NUEVO MODULE (2025-11)**
+**Ubicación:** `/Users/workingburcet/Lab/libs/interval-sequencer/`
+
+**Propósito:** Sistema completo para secuenciación basada en intervalos musicales (iS-iT) con drag editing, visualización de barras temporales, y conversión pairs ↔ intervals.
+
+**Archivos principales (6 módulos):**
+- `index.js` - Exports unificados (52 líneas)
+- `interval-controller.js` - Controlador principal orquestador (297 líneas)
+- `interval-converter.js` - Conversión pairs ↔ intervals (264 líneas)
+- `interval-drag-handler.js` - Sistema de drag para modificar iT (416 líneas)
+- `interval-renderer.js` - Renderizado de iT-bars (239 líneas)
+- `gap-filler.js` - Auto-inserción de silencios (130 líneas)
+- `README.md` - Documentación completa
+- `__tests__/` - Tests completos (113 tests, 5 suites)
+
+**Exports principales:**
+```javascript
+// Controlador all-in-one
+export { createIntervalSequencer } from './interval-controller.js';
+
+// Componentes individuales
+export { createIntervalDragHandler } from './interval-drag-handler.js';
+export { createIntervalRenderer } from './interval-renderer.js';
+
+// Utilidades de conversión
+export { pairsToIntervals, buildPairsFromIntervals } from './interval-converter.js';
+
+// Gap filler
+export { fillGapsWithSilences, detectGaps, hasGaps } from './gap-filler.js';
+```
+
+**Características principales:**
+- **Controlador unificado:** `createIntervalSequencer()` orquesta todos los componentes
+- **Drag editing:** Modificación horizontal de iT mediante drag en grid
+- **Renderer de barras:** Visualización de duraciones como barras horizontales
+- **Gap filler:** Auto-inserción de silencios cuando hay huecos
+- **Conversión bidireccional:** pairs ↔ intervals con validación
+- **Semántica pulse=START:** La nota comienza en `pulse` y dura `temporalInterval` pulsos
+
+**Ejemplo de uso:**
+```javascript
+import { createIntervalSequencer } from '../../libs/interval-sequencer/index.js';
+
+const sequencer = createIntervalSequencer({
+  musicalGrid,
+  totalSpaces: 8,
+  basePair: { note: 0, pulse: 0 },
+  autoFillGaps: true,
+  onIntervalsChange: (intervals, pairs) => { ... }
+});
+
+sequencer.setPairs(initialPairs);
+const intervals = sequencer.getIntervals();
+```
+
+**Apps que lo usan:** App15
+
+**Nivel de madurez:** 10/10 - Production-ready con 113 tests
 
 ---
 
@@ -1803,12 +1865,11 @@ Ver [REFACTORING_SUMMARY.md](./REFACTORING_SUMMARY.md) para detalles completos d
 
 ---
 
-**Última actualización:** 2025-10-30
-**Versión del documento:** 4.0 (Fase 2 Completa)
-**Estado del repositorio:** ✅ Consolidación Fase 1 y Fase 2 completas
+**Última actualización:** 2025-11-25
+**Versión del documento:** 5.0 (interval-sequencer module)
+**Estado del repositorio:** ✅ Consolidación Fase 1, 2 y módulo interval-sequencer completos
 **Módulos en app-common:** 40 (era 49, reducido en -9)
-**Sub-packages:** 8 (pulse-seq, notation, random, sound, cards, ear-training, utils, shared-ui)
-**Módulos totales:** 40 en app-common + 59 en sub-packages = **99 módulos** (+4 netos desde v3.1)
-**Cobertura de tests:** 27 suites, 280 tests pasando ✅
-**Commits:** 11 commits ahead (Fase 2)
-**Líneas eliminadas:** -1,018 (-22% reducción total desde inicio)
+**Sub-packages:** 9 (pulse-seq, matrix-seq, musical-grid, interval-sequencer, notation, random, sound, shared-ui, gamification)
+**Módulos totales:** 40 en app-common + 65 en sub-packages = **105 módulos** (+6 desde v4.0)
+**Cobertura de tests:** 41 suites, 584 tests pasando ✅ (+113 tests de interval-sequencer)
+**Nuevo módulo:** `libs/interval-sequencer/` - Sistema de secuenciación de intervalos (6 módulos, 113 tests)

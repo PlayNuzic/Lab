@@ -66,12 +66,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a **monorepo** with **workspaces** for rhythm-based musical applications. The project focuses on temporal formulas, rhythmic fractions, and audio timing patterns.
 
 ### High-Level Structure
-- **Apps/**: Individual rhythm applications (App1-App12)
+- **Apps/**: Individual rhythm applications (App1-App15)
 - **libs/**: Modular libraries for shared functionality
   - **app-common/** - 40 core modules (Fase 2 consolidation)
   - **pulse-seq/** - Pulse sequence sub-package (5 modules)
   - **matrix-seq/** - Note-Pulse grid editor (4 modules) ⭐ **NUEVO (2025-01)**
   - **musical-grid/** - 2D musical grid visualization (3 modules) ⭐ **NUEVO (2025-01)**
+  - **interval-sequencer/** - Interval-based sequencing (6 modules) ⭐ **NUEVO (2025-11)**
   - **notation/** - VexFlow rendering (9 modules)
   - **random/** - Randomization sub-package (5 modules)
   - **sound/** - Audio engine (9 modules)
@@ -229,6 +230,41 @@ const grid = createMusicalGrid({
 **Import:** `import { createMusicalGrid } from '../../libs/musical-grid/index.js'`
 
 **Apps usando:** App12
+
+#### **`libs/interval-sequencer/`** - Interval Sequencing System ⭐ **NUEVO (2025-11)**
+Sistema completo para secuenciación basada en intervalos musicales (iS-iT)
+- **`index.js`**: Exports unificados
+- **`interval-controller.js`**: Controlador principal orquestador
+- **`interval-converter.js`**: Conversión pairs ↔ intervals
+- **`interval-drag-handler.js`**: Sistema de drag para modificar iT
+- **`interval-renderer.js`**: Renderizado de iT-bars en timeline
+- **`gap-filler.js`**: Auto-inserción de silencios
+- **`__tests__/`**: 113 tests (5 suites)
+
+**Características:**
+- Controlador unificado `createIntervalSequencer()`
+- Drag editing para modificar duración de notas (iT)
+- Visualización de barras temporales
+- Auto-fill de gaps con silencios
+- Conversión bidireccional pairs ↔ intervals
+- Semántica pulse=START (nota comienza en pulse, dura iT pulsos)
+
+**Ejemplo:**
+```javascript
+import { createIntervalSequencer } from '../../libs/interval-sequencer/index.js';
+
+const sequencer = createIntervalSequencer({
+  musicalGrid,
+  totalSpaces: 8,
+  basePair: { note: 0, pulse: 0 },
+  autoFillGaps: true,
+  onIntervalsChange: (intervals, pairs) => { ... }
+});
+```
+
+**Import:** `import { createIntervalSequencer, fillGapsWithSilences, pairsToIntervals } from '../../libs/interval-sequencer/index.js'`
+
+**Apps usando:** App15
 
 #### **`libs/shared-ui/`** - UI Components
 - **`header.js`**: Common header with audio controls
@@ -625,26 +661,33 @@ Apps requiring landscape orientation (grid 2D apps like App11, App12):
 Test infrastructure:
 - **Jest 29.x** with Node.js/jsdom environments
 - **ES modules** support via experimental VM modules
-- **36 test suites**, 498 passing tests (+56 from Fase 4: timeline-intervals + dom-utils + matrix-highlight-controller)
+- **41 test suites**, 584 passing tests (+113 from interval-sequencer)
 - **Test locations**:
-  - `libs/app-common/__tests__/` - Core shared component tests (23 suites after Fase 4)
-    - **timeline-intervals.test.js** - 24 tests ⭐ **NUEVO (Fase 4)**
-    - **dom-utils.test.js** - 32 tests ⭐ **NUEVO (Fase 4)**
-    - **matrix-highlight-controller.test.js** - 26 tests ⭐ **NUEVO (Fase 4)**
+  - `libs/app-common/__tests__/` - Core shared component tests (23 suites)
+    - **timeline-intervals.test.js** - 24 tests
+    - **dom-utils.test.js** - 32 tests
+    - **matrix-highlight-controller.test.js** - 26 tests
   - `libs/matrix-seq/__tests__/` - Grid editor tests (18 tests)
   - `libs/musical-grid/__tests__/` - Musical grid tests (26 tests)
+  - `libs/interval-sequencer/__tests__/` - Interval sequencer tests (113 tests, 5 suites) ⭐ **NUEVO**
+    - **gap-filler.test.js** - 27 tests
+    - **interval-converter.test.js** - 26 tests
+    - **interval-drag-handler.test.js** - 25 tests
+    - **interval-renderer.test.js** - 23 tests
+    - **interval-controller.test.js** - 22 tests
   - `libs/sound/*.test.js` - Audio engine tests
   - `libs/random/*.test.js`, `libs/utils/*.test.js` - Utility tests
   - `tests/` - Legacy integration and domain-specific tests
 
 **Test patterns**:
-- Unit tests for pure functions (subdivision, range, number parsing)
-- Integration tests for complex components (fraction-editor, pulse-seq, notation-utils, grid-editor, musical-grid, matrix-highlight-controller, dom-utils)
+- Unit tests for pure functions (subdivision, range, number parsing, gap-filler)
+- Integration tests for complex components (fraction-editor, pulse-seq, notation-utils, grid-editor, musical-grid, matrix-highlight-controller, dom-utils, interval-sequencer)
 - Audio behavior tests (audio-toggles, loop-control, tap-resync)
 - Edge case validation (loop-resize, audio-schedule, remainder pulses)
-- DOM interaction tests with jsdom (grid-editor, musical-grid, matrix-highlight-controller, dom-utils)
+- DOM interaction tests with jsdom (grid-editor, musical-grid, matrix-highlight-controller, dom-utils, interval-drag-handler, interval-renderer)
 - Scroll synchronization tests (musical-grid)
 - XSS prevention tests (dom-utils)
+- Interval conversion tests (pairsToIntervals, buildPairsFromIntervals)
 
 ### Console Warnings Resolution
 
@@ -719,12 +762,12 @@ Systematic vulnerability analysis and fixes applied to Apps 11-14 across 4 phase
 #### **Current Modularization Achievements**
 - **~70% code reduction** vs. monolithic apps
 - **43 shared modules** in `libs/app-common/` (40 consolidados Fase 2, +3 en Fase 4)
-- **7 sub-packages** especializados (pulse-seq, matrix-seq, musical-grid, notation, random, gamification, audio-capture)
+- **8 sub-packages** especializados (pulse-seq, matrix-seq, musical-grid, interval-sequencer, notation, random, gamification, audio-capture)
 - **DOM queries**: Centralized through `bindAppRhythmElements()`
 - **Audio**: Unified initialization via `createRhythmAudioInitializer()`
 - **State management**: Shared preference storage and factory reset
-- **UI components**: Reusable controllers (fraction-editor, pulse-seq, loop-control, grid-editor, musical-grid)
-- **Security**: XSS protection with DOMPurify (dom-utils module) ⭐ **NUEVO (Fase 4)**
+- **UI components**: Reusable controllers (fraction-editor, pulse-seq, loop-control, grid-editor, musical-grid, interval-sequencer)
+- **Security**: XSS protection with DOMPurify (dom-utils module)
 
 #### **Shared Components Status**
 ✅ **Production-ready (10/10 maturity)**:
@@ -734,8 +777,9 @@ Systematic vulnerability analysis and fixes applied to Apps 11-14 across 4 phase
 - Loop controllers (basic, rhythm, pulse-memory variants)
 - Fraction editor with validation
 - Pulse sequence editor with drag selection
-- **Grid editor (matrix-seq)** - Dynamic N-P pair editing ⭐ **NUEVO**
-- **Musical grid (musical-grid)** - 2D visualization with scroll ⭐ **NUEVO**
+- **Grid editor (matrix-seq)** - Dynamic N-P pair editing
+- **Musical grid (musical-grid)** - 2D visualization with scroll
+- **Interval sequencer (interval-sequencer)** - iS-iT based sequencing ⭐ **NUEVO (2025-11)**
 - Mixer menu and audio toggles
 - Random parameter generation
 - Timeline layout (circular/linear)
@@ -823,7 +867,7 @@ Claude Code tiene un sistema de agentes especializados para optimizar el desarro
 - **Minimalismo**: UI limpia, código simple
 - **Reutilización**: ~70% código compartido
 - **No invasión**: Nunca romper lo existente
-- **Testing**: 406 tests deben pasar siempre (33 suites)
+- **Testing**: 584 tests deben pasar siempre (41 suites)
 - **Modularización**: Extraer a libs/ cuando hay duplicación
 
 ---
@@ -833,4 +877,5 @@ Claude Code tiene un sistema de agentes especializados para optimizar el desarro
 - **MODULES.md**: Documentación completa de todos los módulos compartidos
 - **libs/matrix-seq/README.md**: Guía completa del grid editor
 - **libs/musical-grid/README.md**: Guía completa de visualización 2D con scroll
+- **libs/interval-sequencer/README.md**: Guía completa del secuenciador de intervalos
 - **.claude-code/agents-context.md**: Sistema de agentes especializado

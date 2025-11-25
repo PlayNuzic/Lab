@@ -14,12 +14,19 @@ import { clearElement } from '../../libs/app-common/dom-utils.js';
 import { intervalsToPairs } from '../../libs/matrix-seq/index.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 
+// Import interval-sequencer module utilities
+import {
+  fillGapsWithSilences,
+  pairsToIntervals,
+  buildPairsFromIntervals,
+  createIntervalRenderer
+} from '../../libs/interval-sequencer/index.js';
+
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
 const TOTAL_NOTES = 12;   // Vertical: 0-11 (MIDI 60-71)
 const TOTAL_SPACES = 8;   // Spaces between pulses: 0-7 (total pulses = 9)
 const DEFAULT_BPM = 120;
-const IT_BAR_LAYER_ID = 'it-bars-layer';
 
 // ========== STATE ==========
 let audio = null;
@@ -34,41 +41,8 @@ const intervalLinesEnabledState = true; // Always enabled in App15
 let currentIntervals = [];
 let currentPairs = [];
 
-function buildPairsFromIntervals(basePair, intervals = []) {
-  if (!basePair) return [];
-
-  let currentNote = basePair.note ?? 0;
-  let currentPulse = basePair.pulse ?? 0;
-  let lastPlayableNote = currentNote;
-  const pairs = [{
-    note: currentNote,
-    pulse: currentPulse,
-    isRest: false
-  }];
-
-  intervals.forEach((interval) => {
-    const temporal = interval?.temporalInterval ?? interval?.temporal ?? 0;
-    // iT must be positive (≥1) - skip invalid intervals
-    if (!temporal || temporal <= 0) return;
-
-    const isRest = !!interval.isRest;
-    const notePulse = currentPulse;  // Store START position BEFORE advancing
-    currentPulse += temporal;         // Advance for NEXT note
-
-    if (isRest) {
-      pairs.push({ note: lastPlayableNote, pulse: notePulse, isRest: true });
-      return;
-    }
-
-    const soundInterval = interval.soundInterval ?? 0;
-    currentNote += soundInterval;
-    lastPlayableNote = currentNote;
-
-    pairs.push({ note: currentNote, pulse: notePulse, isRest: false });
-  });
-
-  return pairs;
-}
+// Interval renderer instance (from interval-sequencer module)
+let intervalRenderer = null;
 
 // Elements
 let playBtn = null;
@@ -258,61 +232,13 @@ function separateIntoVoices(pairs) {
 
 // Note: interval-span tubes removed - iT bars in timeline are sufficient for showing duration
 
+/**
+ * Render temporal bars using interval-sequencer module
+ * Wrapper function that delegates to the module's renderer
+ */
 function renderTemporalBars(intervals = []) {
-  if (!musicalGrid || typeof musicalGrid.getTimelineContainer !== 'function') return;
-  const timeline = musicalGrid.getTimelineContainer();
-  const matrix = musicalGrid.getMatrixContainer?.();
-  if (!timeline || !matrix) return;
-
-  let layer = timeline.querySelector(`#${IT_BAR_LAYER_ID}`);
-  if (!layer) {
-    layer = document.createElement('div');
-    layer.id = IT_BAR_LAYER_ID;
-    layer.className = 'it-bars-layer';
-    timeline.appendChild(layer);
-  }
-
-  // Reset content
-  layer.innerHTML = '';
-
-  // Get matrix width for position calculations (timeline shares same CSS grid column)
-  const matrixWidth = matrix.getBoundingClientRect().width;
-  const totalSpaces = TOTAL_PULSES - 1; // 8 spaces between 9 pulses
-  const cellWidth = matrixWidth / totalSpaces;
-
-  // Layer inherits timeline width (same as matrix via CSS grid-column: 2)
-  layer.style.width = '100%';
-  layer.style.left = '0';
-
-  let offset = 0;
-
-  intervals.forEach((interval, index) => {
-    const duration = interval?.temporalInterval ?? interval?.temporal ?? 0;
-    if (!duration) return;
-
-    // Calculate position using cell width (same formula as musical-grid)
-    const leftPx = offset * cellWidth;
-    const widthPx = duration * cellWidth;
-    const labelValue = duration;
-
-    const bar = document.createElement('div');
-    bar.className = 'it-bar';
-    if (interval.isRest) {
-      bar.classList.add('it-bar--rest');
-    }
-    bar.style.left = `${leftPx}px`;
-    bar.style.width = `${widthPx}px`;
-    bar.dataset.index = index + 1;
-
-    const label = document.createElement('div');
-    label.className = 'it-bar__label';
-    // iT labels always centered in their bar
-    label.textContent = labelValue;
-    bar.appendChild(label);
-
-    layer.appendChild(bar);
-    offset += duration;
-  });
+  if (!intervalRenderer) return;
+  intervalRenderer.render(intervals);
 }
 
 function syncGridFromPairs(pairs) {
@@ -627,68 +553,15 @@ async function playNotePreview(noteIndex, iT) {
   highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
 }
 
-/**
- * Fill gaps between notes with automatic silences
- * When a note doesn't touch the previous note, the gap becomes a rest
- */
-function fillGapsWithSilences(pairs) {
-  if (pairs.length === 0) return pairs;
-
-  // Sort pairs by pulse (START position)
-  const sorted = [...pairs].sort((a, b) => a.pulse - b.pulse);
-  const result = [];
-
-  // Start from pulse 0 (base pair position)
-  let expectedPulse = 0;
-
-  sorted.forEach(pair => {
-    // If there's a gap, fill with silence
-    if (pair.pulse > expectedPulse) {
-      const gapSize = pair.pulse - expectedPulse;
-      result.push({
-        note: result.length > 0 ? result[result.length - 1].note : 0,
-        pulse: expectedPulse,
-        temporalInterval: gapSize,
-        isRest: true
-      });
-    }
-
-    result.push(pair);
-    expectedPulse = pair.pulse + (pair.temporalInterval || 1);
-  });
-
-  return result;
-}
+// fillGapsWithSilences is imported from interval-sequencer module
+// Uses basePair = { note: 0, pulse: 0 } by default
 
 /**
- * Update currentIntervals from pairs array
+ * Update currentIntervals from pairs array using module's pairsToIntervals
  * This ensures intervals are fresh before rendering iT-bars
  */
 function updateIntervalsFromPairs(pairs) {
-  const intervals = [];
-  let prevNote = 0;  // Base N₀
-  let lastPlayable = 0;
-
-  pairs.forEach((pair) => {
-    const temporalInterval = pair.temporalInterval || 1;
-    const isRest = !!pair.isRest;
-    const soundInterval = isRest ? 0 : pair.note - prevNote;
-
-    intervals.push({
-      soundInterval,
-      temporalInterval,
-      isRest
-    });
-
-    if (!isRest) {
-      prevNote = pair.note;
-      lastPlayable = pair.note;
-    } else {
-      prevNote = lastPlayable;
-    }
-  });
-
-  currentIntervals = intervals;
+  currentIntervals = pairsToIntervals(pairs, { note: 0, pulse: 0 });
 }
 
 // ========== END DRAG HANDLERS ==========
@@ -915,6 +788,13 @@ async function initializeApp() {
   if (gridContainer) {
     gridContainer.classList.add('interval-mode');
   }
+
+  // Initialize interval renderer from interval-sequencer module
+  intervalRenderer = createIntervalRenderer({
+    getTimelineContainer: () => musicalGrid?.getTimelineContainer?.(),
+    getMatrixContainer: () => musicalGrid?.getMatrixContainer?.(),
+    totalSpaces: TOTAL_SPACES
+  });
 
   // ========== SETUP DRAG LISTENERS FOR iT MODIFICATION ==========
   // Attach mousedown listeners to all N-P dots for drag support
