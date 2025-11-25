@@ -660,6 +660,11 @@ function handleRandom() {
   // Update editor (expects pairs without base)
   gridEditor.setPairs(pairsForEditor);
 
+  // Remove empty interval slots at the end (sanitize like manual input does)
+  if (gridEditor.removeEmptyIntervalSlots) {
+    gridEditor.removeEmptyIntervalSlots();
+  }
+
   // Sync to grid (also expects pairs without base, syncGridFromPairs handles basePair internally)
   syncGridFromPairs(pairsForEditor);
 

@@ -1838,6 +1838,7 @@ export function createGridEditor(config = {}) {
     setPairs,
     clear,
     highlightCell,
-    clearHighlights
+    clearHighlights,
+    removeEmptyIntervalSlots
   };
 }
