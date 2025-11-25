@@ -145,11 +145,15 @@ export function intervalsToPairs(initial, intervals) {
     if (!interval.isRest) {
       currentNote = (currentNote + interval.soundInterval + 12) % 12;
     }
+
+    // NEW SEMANTIC: pulse = START position (not END)
+    // Capture the START pulse BEFORE advancing for the NEXT note
+    const notePulse = currentPulse;
     currentPulse += interval.temporalInterval;
 
     const pair = {
       note: currentNote,
-      pulse: currentPulse,
+      pulse: notePulse,  // Use START position
       temporalInterval: interval.temporalInterval
     };
 
