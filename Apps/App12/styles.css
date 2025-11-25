@@ -316,9 +316,14 @@
     margin-bottom: 1.5rem;
   }
 
-  /* Reposition controls to stay in left column - reduce desktop margins */
+  /* Scale ALL controls 35% smaller and reposition to left column */
+  .app12-controls-container .controls {
+    transform: scale(0.65);
+    transform-origin: top left;
+  }
+
   .app12-controls-container #playBtn {
-    margin-left: 10px !important;
+    margin-left: 0 !important;
   }
 
   .app12-controls-container .control-sound-toggles {
@@ -326,7 +331,7 @@
   }
 
   .app12-controls-container .button-row {
-    margin-left: 5px !important;
+    margin-left: 0 !important;
   }
 
   .plane-wrapper {
@@ -334,42 +339,9 @@
     margin: 10px;
   }
 
-  /* Smaller controls */
-  .app12-controls-container .control-buttons-row {
-    gap: 0.3rem;
-  }
-
-  /* Play button: Reduce 40% (80px → 48px) */
-  .app12-controls-container .play {
-    width: 48px !important;
-    height: 48px !important;
-    font-size: 1.2rem !important;
-  }
-
-  .app12-controls-container .play svg {
-    width: 40% !important;
-    height: 40% !important;
-  }
-
-  /* Other buttons: Reduce 45% (48px → 26px) */
-  .app12-controls-container .random,
-  .app12-controls-container .reset,
-  .app12-controls-container .tap {
-    width: 26px !important;
-    height: 26px !important;
-    font-size: 0.85rem !important;
-  }
-
-  .app12-controls-container .random svg,
-  .app12-controls-container .reset svg,
-  .app12-controls-container .tap svg {
-    width: 85% !important;
-    height: 85% !important;
-  }
-
-  /* PulseToggle: Reduce 25% */
+  /* Mantener rotación en PulseToggle */
   .app12-controls-container #pulseToggleBtn {
-    transform: rotate(55deg) scale(0.75) !important;
+    transform: rotate(55deg) !important;
   }
 
   /* Compact grid-editor with scroll enabled */
@@ -450,38 +422,7 @@
     padding: 0 12px;
   }
 
-  /* Play button: Reduce 30% (80px → 56px) */
-  .app12-controls-container .play {
-    width: 56px !important;
-    height: 56px !important;
-    font-size: 1.4rem !important;
-  }
-
-  .app12-controls-container .play svg {
-    width: 40% !important;
-    height: 40% !important;
-  }
-
-  /* Other buttons: Reduce 35% (48px → 31px) */
-  .app12-controls-container .random,
-  .app12-controls-container .reset,
-  .app12-controls-container .tap {
-    width: 31px !important;
-    height: 31px !important;
-    font-size: 0.9rem !important;
-  }
-
-  .app12-controls-container .random svg,
-  .app12-controls-container .reset svg,
-  .app12-controls-container .tap svg {
-    width: 85% !important;
-    height: 85% !important;
-  }
-
-  /* Mantener rotación 55deg */
-  .app12-controls-container #pulseToggleBtn {
-    transform: rotate(55deg) !important;
-  }
+  /* Controls scale inherited from 900px breakpoint */
 }
 
 /* ========== SMALL SCREENS (≤ 600px) ========== */
@@ -497,38 +438,7 @@
     margin-bottom: 1.1rem;
   }
 
-  /* Play button: Reduce 35% (80px → 52px) */
-  .app12-controls-container .play {
-    width: 52px !important;
-    height: 52px !important;
-    font-size: 1.3rem !important;
-  }
-
-  .app12-controls-container .play svg {
-    width: 42% !important;
-    height: 42% !important;
-  }
-
-  /* Other buttons: Reduce 42% (48px → 28px) */
-  .app12-controls-container .random,
-  .app12-controls-container .reset,
-  .app12-controls-container .tap {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 0.85rem !important;
-  }
-
-  .app12-controls-container .random svg,
-  .app12-controls-container .reset svg,
-  .app12-controls-container .tap svg {
-    width: 83% !important;
-    height: 83% !important;
-  }
-
-  /* Mantener rotación 55deg */
-  .app12-controls-container #pulseToggleBtn {
-    transform: rotate(55deg) !important;
-  }
+  /* Controls scale inherited from 900px breakpoint */
 }
 
 /* ========== TINY MOBILE (≤ 480px) ========== */
@@ -550,38 +460,7 @@
     margin: 10px;
   }
 
-  /* Play button: Reduce 40% (80px → 48px) */
-  .app12-controls-container .play {
-    width: 48px !important;
-    height: 48px !important;
-    font-size: 1.2rem !important;
-  }
-
-  .app12-controls-container .play svg {
-    width: 38% !important;
-    height: 38% !important;
-  }
-
-  /* Other buttons: Reduce 45% (48px → 26px) */
-  .app12-controls-container .random,
-  .app12-controls-container .reset,
-  .app12-controls-container .tap {
-    width: 26px !important;
-    height: 26px !important;
-    font-size: 0.8rem !important;
-  }
-
-  .app12-controls-container .random svg,
-  .app12-controls-container .reset svg,
-  .app12-controls-container .tap svg {
-    width: 80% !important;
-    height: 80% !important;
-  }
-
-  /* Mantener rotación 55deg */
-  .app12-controls-container #pulseToggleBtn {
-    transform: rotate(55deg) !important;
-  }
+  /* Controls scale inherited from 900px breakpoint */
 }
 
 /* ========== ULTRA COMPACT (≤ 400px) ========== */
@@ -608,24 +487,7 @@
     padding: 6px 10px;
   }
 
-  /* Play button: mínimo táctil (50px) */
-  .app12-controls-container .play {
-    width: 50px !important;
-    height: 50px !important;
-    font-size: 1.25rem !important;
-  }
-
-  .app12-controls-container .play svg {
-    width: 40% !important;
-    height: 40% !important;
-  }
-
-  /* Other buttons: HIDDEN (controlado por two-column-layout.css) */
-
-  /* Mantener rotación 55deg */
-  .app12-controls-container #pulseToggleBtn {
-    transform: rotate(55deg) !important;
-  }
+  /* Controls scale inherited from 900px breakpoint */
 
   /* Grid-editor ultra-compact */
   #gridEditorContainer {
