@@ -316,6 +316,19 @@
     margin-bottom: 1.5rem;
   }
 
+  /* Reposition controls to stay in left column - reduce desktop margins */
+  .app12-controls-container #playBtn {
+    margin-left: 10px !important;
+  }
+
+  .app12-controls-container .control-sound-toggles {
+    margin-left: 0 !important;
+  }
+
+  .app12-controls-container .button-row {
+    margin-left: 5px !important;
+  }
+
   .plane-wrapper {
     width: calc(100% - 20px);
     margin: 10px;
@@ -324,10 +337,6 @@
   /* Smaller controls */
   .app12-controls-container .control-buttons-row {
     gap: 0.3rem;
-  }
-
-  .app12-controls-container .button-row {
-    gap: 0.6rem;
   }
 
   /* Play button: Reduce 20% (80px → 64px) */
