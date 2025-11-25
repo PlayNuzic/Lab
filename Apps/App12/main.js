@@ -10,7 +10,7 @@ import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
-import { createMatrixHighlightController, highlightNoteOnSoundline } from '../../libs/app-common/matrix-highlight-controller.js';
+import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
 import { clearElement } from '../../libs/app-common/dom-utils.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 
@@ -129,7 +129,6 @@ async function handlePlay() {
             cell.classList.add('playing');
             setTimeout(() => cell.classList.remove('playing'), duration * 1000);
           }
-          highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
         });
       }
 
@@ -440,9 +439,6 @@ async function init() {
       const Tone = window.Tone;
       audio.playNote(midi, duration, Tone.now());
 
-      // Visual feedback on soundline
-      highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
-
       // Check polyphony mode
       // Don't manipulate DOM directly - let syncGridFromPairs handle all visual updates
       if (!gridEditor) return;
@@ -496,9 +492,6 @@ async function init() {
       const duration = (60 / currentBPM) * 0.9; // 1 pulse duration (90% for clean separation)
       const Tone = window.Tone;
       audio.playNote(midi, duration, Tone.now());
-
-      // Visual feedback on soundline
-      highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
 
       // Check polyphony mode
       if (!gridEditor) return;

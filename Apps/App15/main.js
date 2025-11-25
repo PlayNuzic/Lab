@@ -9,7 +9,7 @@ import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { getMixer, subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
-import { createMatrixHighlightController, highlightNoteOnSoundline } from '../../libs/app-common/matrix-highlight-controller.js';
+import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
 import { clearElement } from '../../libs/app-common/dom-utils.js';
 import { intervalsToPairs } from '../../libs/matrix-seq/index.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
@@ -169,7 +169,6 @@ async function handlePlay() {
             cell.classList.add('playing');
             setTimeout(() => cell.classList.remove('playing'), duration * 1000);
           }
-          highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
         });
       }
 
@@ -550,7 +549,6 @@ async function playNotePreview(noteIndex, iT) {
   const midi = 60 + noteIndex;
   const duration = (iT * (60 / currentBPM)) * 0.9;
   audio.playNote(midi, duration, window.Tone.now());
-  highlightNoteOnSoundline(musicalGrid, noteIndex, duration * 1000);
 }
 
 // fillGapsWithSilences is imported from interval-sequencer module
