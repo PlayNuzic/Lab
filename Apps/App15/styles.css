@@ -411,37 +411,37 @@ body.dragging-note * {
     gap: 0.3rem;
   }
 
-  /* Play button: Reduce 20% (80px → 64px) */
+  /* Play button: Reduce 40% (80px → 48px) */
   .app12-controls-container .play {
-    width: 64px !important;
-    height: 64px !important;
-    font-size: 1.6rem !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 1.2rem !important;
   }
 
   .app12-controls-container .play svg {
-    width: 45% !important;
-    height: 45% !important;
+    width: 40% !important;
+    height: 40% !important;
   }
 
-  /* Other buttons: Reduce 25% (48px → 36px) */
+  /* Other buttons: Reduce 45% (48px → 26px) */
   .app12-controls-container .random,
   .app12-controls-container .reset,
   .app12-controls-container .tap {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 1rem !important;
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.85rem !important;
   }
 
   .app12-controls-container .random svg,
   .app12-controls-container .reset svg,
   .app12-controls-container .tap svg {
-    width: 90% !important;
-    height: 90% !important;
+    width: 85% !important;
+    height: 85% !important;
   }
 
-  /* Mantener rotación 55deg en todas las pantallas */
+  /* PulseToggle: Reduce 25% */
   .app12-controls-container #pulseToggleBtn {
-    transform: rotate(55deg) !important;
+    transform: rotate(55deg) scale(0.75) !important;
   }
 
   /* Compact grid-editor with scroll enabled */
