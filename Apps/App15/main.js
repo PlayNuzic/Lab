@@ -7,7 +7,7 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
-import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { getMixer, subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createMatrixHighlightController, highlightNoteOnSoundline } from '../../libs/app-common/matrix-highlight-controller.js';
 import { clearElement } from '../../libs/app-common/dom-utils.js';
@@ -101,6 +101,13 @@ const _initAudio = createMelodicAudioInitializer({
 async function initAudio() {
   if (!audio) {
     audio = await _initAudio();
+
+    // Sync P1 toggle state with audio engine (P1 defaults to enabled in audio,
+    // but user may have saved it as disabled - sync from localStorage)
+    const p1Stored = localStorage.getItem('app15:p1Toggle');
+    if (p1Stored === 'false' && typeof audio.setStartEnabled === 'function') {
+      audio.setStartEnabled(false);
+    }
   }
   return audio;
 }
@@ -1054,6 +1061,66 @@ async function initializeApp() {
     });
   }
 
+  // Mixer state persistence
+  const MIXER_STORAGE_KEY = 'app15-mixer';
+  const MIXER_CHANNELS = ['pulse', 'instrument'];
+
+  // Load saved mixer state
+  function loadMixerState() {
+    try {
+      const saved = localStorage.getItem(MIXER_STORAGE_KEY);
+      if (!saved) return;
+      const state = JSON.parse(saved);
+
+      // Restore master
+      if (state.master) {
+        if (typeof state.master.volume === 'number') setVolume(state.master.volume);
+        if (typeof state.master.muted === 'boolean') setMute(state.master.muted);
+      }
+
+      // Restore channels
+      if (state.channels) {
+        MIXER_CHANNELS.forEach(id => {
+          const ch = state.channels[id];
+          if (ch) {
+            if (typeof ch.volume === 'number') setChannelVolume(id, ch.volume);
+            if (typeof ch.muted === 'boolean') setChannelMute(id, ch.muted);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Error loading mixer state:', e);
+    }
+  }
+
+  // Save mixer state on changes
+  let mixerSaveTimeout = null;
+  subscribeMixer((snapshot) => {
+    // Debounce saves to avoid excessive writes
+    if (mixerSaveTimeout) clearTimeout(mixerSaveTimeout);
+    mixerSaveTimeout = setTimeout(() => {
+      const state = {
+        master: {
+          volume: snapshot.master.volume,
+          muted: snapshot.master.muted
+        },
+        channels: {}
+      };
+      snapshot.channels.forEach(ch => {
+        if (MIXER_CHANNELS.includes(ch.id)) {
+          state.channels[ch.id] = {
+            volume: ch.volume,
+            muted: ch.muted
+          };
+        }
+      });
+      localStorage.setItem(MIXER_STORAGE_KEY, JSON.stringify(state));
+    }, 100);
+  });
+
+  // Load mixer state after a short delay (after mixer is initialized)
+  setTimeout(loadMixerState, 50);
+
   // Audio toggles (sync with mixer)
   const pulseToggleBtn = document.getElementById('pulseToggleBtn');
   if (pulseToggleBtn) {
@@ -1154,22 +1221,26 @@ async function initializeApp() {
   });
 
   // Factory reset using shared module
-  registerFactoryReset(() => {
-    handleReset();
-    preferenceStorage.clearAll();
+  registerFactoryReset({
+    storage: preferenceStorage,
+    onBeforeReload: () => {
+      handleReset();
 
-    // Clear keys with separate namespace (used by shared UI components)
-    localStorage.removeItem('app15:p1Toggle');
-    localStorage.removeItem('app15:pulseAudio');
+      // Clear keys with separate namespace (used by shared UI components)
+      localStorage.removeItem('app15:p1Toggle');
+      localStorage.removeItem('app15:pulseAudio');
 
-    // Set default values
-    preferenceStorage.save({
-      selectedInstrument: 'piano',
-      selectColor: '#F97C39',
-      polyphony: '0',
-      intervalLinesEnabled: true
-    });
-    window.location.reload();
+      // Reset mixer to factory defaults (remove saved state)
+      localStorage.removeItem('app15-mixer');
+
+      // Reset random menu to factory defaults (iS=11, iT=4, allow silences)
+      const randISMax = document.getElementById('randISMax');
+      const randITMax = document.getElementById('randITMax');
+      const randAllowSilences = document.getElementById('randAllowSilences');
+      if (randISMax) randISMax.value = '11';
+      if (randITMax) randITMax.value = '4';
+      if (randAllowSilences) randAllowSilences.checked = true;
+    }
   });
 
   // Load saved state after wiring everything
