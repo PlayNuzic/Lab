@@ -434,6 +434,13 @@
     margin-bottom: 1.2rem;
   }
 
+  /* Reduce seq-input font size for mobile */
+  .seq-input {
+    font-size: 1.8rem;
+    gap: 8px;
+    padding: 0 12px;
+  }
+
   /* Play button: Reduce 30% (80px → 56px) */
   .app12-controls-container .play {
     width: 56px !important;
@@ -528,6 +535,12 @@
     margin-bottom: 1rem;
   }
 
+  /* Reduce plane-wrapper margins for more space */
+  .plane-wrapper {
+    width: calc(100% - 20px);
+    margin: 10px;
+  }
+
   /* Play button: Reduce 40% (80px → 48px) */
   .app12-controls-container .play {
     width: 48px !important;
@@ -573,6 +586,17 @@
   .app12-controls-container {
     margin: 3px;
     margin-bottom: 0.8rem;
+  }
+
+  /* Prevent horizontal overflow on seq-input */
+  .seq-input {
+    font-size: 1.5rem;
+  }
+
+  .seq-input .pz.edit {
+    min-width: unset;
+    max-width: 85vw;
+    padding: 6px 10px;
   }
 
   /* Play button: mínimo táctil (50px) */
