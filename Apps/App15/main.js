@@ -138,12 +138,16 @@ async function handlePlay() {
   const playablePairs = allPairs.filter(p => !p.isRest && p.note !== null && p.note !== undefined);
 
   // Group pairs by pulse for polyphonic playback
+  // Store both MIDI note and temporalInterval for variable duration
   const pulseGroups = {};
   playablePairs.forEach(pair => {
     if (!pulseGroups[pair.pulse]) {
       pulseGroups[pair.pulse] = [];
     }
-    pulseGroups[pair.pulse].push(60 + pair.note); // Store as MIDI notes
+    pulseGroups[pair.pulse].push({
+      midi: 60 + pair.note,
+      temporalInterval: pair.temporalInterval || 1
+    });
   });
 
   isPlaying = true;
@@ -175,15 +179,16 @@ async function handlePlay() {
       // 2) Play piano notes if any exist at this pulse
       const notes = pulseGroups[step];
       if (notes && notes.length > 0) {
-        const duration = intervalSec * 0.9;
         const when = Tone.now(); // Immediate (already scheduled by transport)
 
         // Polyphonic: trigger all notes simultaneously
-        notes.forEach(midi => {
-          audio.playNote(midi, duration, when);
+        notes.forEach(noteData => {
+          // Duration based on temporalInterval (iT)
+          const duration = (noteData.temporalInterval * intervalSec) * 0.9;
+          audio.playNote(noteData.midi, duration, when);
 
           // Visual feedback per cell
-          const noteIndex = midi - 60;
+          const noteIndex = noteData.midi - 60;
           const cell = musicalGrid.getCellElement(noteIndex, step);
           if (cell) {
             cell.classList.add('playing');
@@ -783,7 +788,10 @@ async function initializeApp() {
       }
 
       const midi = 60 + noteIndex;
-      const duration = (60 / currentBPM) * 0.9;
+      // Find existing pair to get its temporalInterval
+      const existingPair = gridEditor?.getPairs().find(p => p.note === noteIndex && p.pulse === pulseIndex);
+      const iT = existingPair?.temporalInterval || 1;
+      const duration = (iT * (60 / currentBPM)) * 0.9;
       const Tone = window.Tone;
       audio.playNote(midi, duration, Tone.now());
 
