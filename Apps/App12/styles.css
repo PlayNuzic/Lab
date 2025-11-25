@@ -407,12 +407,12 @@
     min-height: 150px !important;
   }
 
-  /* Reduce musical-grid container height */
+  /* Musical-grid container - maximize available space */
   .grid-container {
-    height: 40vh !important;
-    max-height: 350px !important;
+    height: 55vh !important;
+    max-height: none !important;
     gap: 10px !important;
-    grid-template-columns: 100px 1fr !important;
+    grid-template-columns: 80px 1fr !important;
   }
 
   .soundline-number,
