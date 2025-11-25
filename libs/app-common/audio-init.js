@@ -149,3 +149,68 @@ export function createRhythmAudioInitializer(config = {}) {
     ...config
   });
 }
+
+/**
+ * Create audio initializer for melodic apps (App12, App15)
+ * Uses MelodicTimelineAudio with proper Tone.js loading order
+ *
+ * @param {Object} config - Configuration options
+ * @param {string} config.defaultInstrument - Default instrument to load ('piano')
+ * @param {Function} config.getPreferences - Function to get saved preferences
+ * @param {Function} config.onReady - Callback when audio is ready
+ * @returns {Function} initAudio function
+ */
+export function createMelodicAudioInitializer(config = {}) {
+  let audio = null;
+  let audioInitPromise = null;
+
+  async function initAudio() {
+    if (audio) {
+      return audio;
+    }
+
+    if (!audioInitPromise) {
+      audioInitPromise = (async () => {
+        // 1. Load Tone.js FIRST (critical for avoiding race condition)
+        await ensureToneLoaded();
+
+        // 2. Wait for user interaction before creating AudioContext
+        await waitForUserInteraction();
+
+        // 3. Dynamic import to avoid circular dependencies
+        const { MelodicTimelineAudio } = await import('../sound/melodic-audio.js');
+
+        // 4. Create instance AFTER Tone.js is loaded
+        const instance = new MelodicTimelineAudio();
+
+        // 5. Ready (Tone.js guaranteed to be available)
+        await instance.ready();
+
+        // 6. Load instrument
+        const prefs = config.getPreferences?.() || {};
+        const instrument = prefs.selectedInstrument || config.defaultInstrument || 'piano';
+        await instance.setInstrument(instrument);
+
+        // 7. Expose globally for Performance submenu and header
+        if (typeof window !== 'undefined') {
+          window.NuzicAudioEngine = instance;
+          window.__labAudio = instance;
+        }
+
+        // 8. Call onReady callback if provided
+        config.onReady?.(instance);
+
+        return instance;
+      })();
+
+      audio = await audioInitPromise;
+    }
+
+    return audio;
+  }
+
+  // Expose method to get current audio instance without initializing
+  initAudio.getInstance = () => audio;
+
+  return initAudio;
+}

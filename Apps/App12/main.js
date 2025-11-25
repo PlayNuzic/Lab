@@ -3,7 +3,6 @@
 // Uses musical-grid module for 2D grid visualization
 
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
-import { MelodicTimelineAudio } from '../../libs/sound/melodic-audio.js';
 import { createGridEditor } from '../../libs/matrix-seq/index.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
@@ -13,6 +12,7 @@ import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createMatrixHighlightController, highlightNoteOnSoundline } from '../../libs/app-common/matrix-highlight-controller.js';
 import { clearElement } from '../../libs/app-common/dom-utils.js';
+import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -40,23 +40,15 @@ let gridEditorContainer = null;
 const preferenceStorage = createPreferenceStorage('app12');
 
 // ========== AUDIO INITIALIZATION ==========
+// Use standardized melodic audio initializer (ensures Tone.js loads before AudioContext)
+const _initAudio = createMelodicAudioInitializer({
+  defaultInstrument: 'piano',
+  getPreferences: () => preferenceStorage.load() || {}
+});
 
 async function initAudio() {
   if (!audio) {
-    console.log('Initializing MelodicTimelineAudio...');
-    audio = new MelodicTimelineAudio();
-    await audio.ready();
-
-    // Load default instrument from preferences
-    const prefs = preferenceStorage.load() || {};
-    const instrument = prefs.selectedInstrument || 'piano';
-    await audio.setInstrument(instrument);
-
-    // CRITICAL: Expose globally for Performance submenu and header
-    window.NuzicAudioEngine = audio;
-    window.__labAudio = audio;
-
-    console.log('Audio initialized and exposed globally');
+    audio = await _initAudio();
   }
   return audio;
 }
