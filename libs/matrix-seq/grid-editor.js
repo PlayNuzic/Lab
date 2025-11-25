@@ -585,6 +585,11 @@ export function createGridEditor(config = {}) {
     const input = event.target;
     const text = input.value.trim();
 
+    // Clear invalid state when user starts typing
+    if (input.classList.contains('invalid')) {
+      input.classList.remove('invalid');
+    }
+
     // For intervals, allow + or - sign
     if (type === 'is' && text) {
       // Allow +/- followed by digits
@@ -892,7 +897,13 @@ export function createGridEditor(config = {}) {
       const maxPulse = (mode === 'interval' && intervalModeOptions?.maxTotalPulse !== undefined)
         ? intervalModeOptions.maxTotalPulse
         : pulseRange[1];
-      if (currentPulse < pulseRange[0] || currentPulse > maxPulse) break;
+      if (currentPulse < pulseRange[0] || currentPulse > maxPulse) {
+        // Calculate maximum valid iT from current position
+        const maxIT = maxPulse - notePulse;
+        showInputTooltip(itInput, `iT máximo: ${maxIT}`);
+        itInput.classList.add('invalid');
+        break;
+      }
 
       if (isSilence) {
         // Silence: keep the same note but mark as rest
@@ -901,10 +912,27 @@ export function createGridEditor(config = {}) {
       } else {
         const soundInterval = parseInt(isValue);
         if (isNaN(soundInterval)) break;
-        currentNote += soundInterval;
 
-        // Validate note range
-        if (currentNote < noteRange[0] || currentNote > noteRange[1]) break;
+        const newNote = currentNote + soundInterval;
+
+        // Validate note range - if invalid, show warning and break
+        if (newNote < noteRange[0] || newNote > noteRange[1]) {
+          // Calculate valid range for this iS
+          const minIS = noteRange[0] - currentNote;
+          const maxIS = noteRange[1] - currentNote;
+          const message = `El nuevo iS debe estar entre ${minIS >= 0 ? '+' : ''}${minIS} y +${maxIS}`;
+
+          // Show tooltip on the invalid input
+          showInputTooltip(isInput, message);
+
+          // Mark input as invalid (add CSS class for visual feedback)
+          isInput.classList.add('invalid');
+
+          // Break parsing (preserve subsequent data per previous fix)
+          break;
+        }
+
+        currentNote = newNote;
 
         // Use notePulse (START position) for the pair
         pairs.push({ note: currentNote, pulse: notePulse, temporalInterval });
