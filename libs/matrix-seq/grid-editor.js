@@ -869,7 +869,11 @@ export function createGridEditor(config = {}) {
       const isValue = isInput.value.trim();
       const itValue = itInput.value.trim();
 
-      if (!isValue || !itValue) break;
+      // Skip empty pairs but continue parsing (preserve subsequent data)
+      if (!isValue || !itValue) {
+        index++;
+        continue;
+      }
 
       // Check if this is a silence (iS = 's')
       const isSilence = isValue.toLowerCase() === 's';
