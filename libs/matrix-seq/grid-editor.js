@@ -882,9 +882,13 @@ export function createGridEditor(config = {}) {
       // iT must be positive (≥1) - negative or zero would cause invalid pairs
       if (isNaN(temporalInterval) || temporalInterval <= 0) break;
 
+      // NEW SEMANTIC: pulse = START position (not END)
+      // Capture the START pulse BEFORE advancing for the NEXT note
+      const notePulse = currentPulse;
       currentPulse += temporalInterval;
 
       // In interval mode, use maxTotalPulse if provided
+      // Validate against the END position (currentPulse after advancing)
       const maxPulse = (mode === 'interval' && intervalModeOptions?.maxTotalPulse !== undefined)
         ? intervalModeOptions.maxTotalPulse
         : pulseRange[1];
@@ -892,9 +896,9 @@ export function createGridEditor(config = {}) {
 
       if (isSilence) {
         // Silence: keep the same note but mark as rest
-        // Include temporalInterval so consumers can calculate start position
-        pairs.push({ note: currentNote, pulse: currentPulse, isRest: true, temporalInterval });
-        console.log(`[grid-editor] Added SILENCE pair: note=${currentNote}, pulse=${currentPulse}, iT=${temporalInterval}`);
+        // Use notePulse (START position) for the pair
+        pairs.push({ note: currentNote, pulse: notePulse, isRest: true, temporalInterval });
+        console.log(`[grid-editor] Added SILENCE pair: note=${currentNote}, pulse=${notePulse}, iT=${temporalInterval}`);
       } else {
         const soundInterval = parseInt(isValue);
         if (isNaN(soundInterval)) break;
@@ -903,9 +907,9 @@ export function createGridEditor(config = {}) {
         // Validate note range
         if (currentNote < noteRange[0] || currentNote > noteRange[1]) break;
 
-        // Include temporalInterval so consumers can calculate start position
-        pairs.push({ note: currentNote, pulse: currentPulse, temporalInterval });
-        console.log(`[grid-editor] Added pair: note=${currentNote}, pulse=${currentPulse} (iS=${soundInterval}, iT=${temporalInterval})`);
+        // Use notePulse (START position) for the pair
+        pairs.push({ note: currentNote, pulse: notePulse, temporalInterval });
+        console.log(`[grid-editor] Added pair: note=${currentNote}, pulse=${notePulse} (iS=${soundInterval}, iT=${temporalInterval})`);
       }
       index++;
     }
