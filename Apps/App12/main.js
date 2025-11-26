@@ -200,6 +200,9 @@ function handleReset() {
 // ========== RANDOM GENERATION ==========
 
 function handleRandom() {
+  // Prevent random during playback
+  if (isPlaying) return;
+
   // Get parameters from random menu
   const randPMax = parseInt(document.getElementById('randPMax')?.value || 7, 10);
   const randNMax = parseInt(document.getElementById('randNMax')?.value || 11, 10);

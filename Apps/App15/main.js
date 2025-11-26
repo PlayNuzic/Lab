@@ -617,6 +617,9 @@ function handleReset() {
 // ========== RANDOM ==========
 
 function handleRandom() {
+  // Prevent random during playback
+  if (isPlaying) return;
+
   // Get random settings from menu
   const randISMax = Math.min(Math.max(parseInt(document.getElementById('randISMax')?.value || '11'), 1), 11);
   const randITMax = Math.min(Math.max(parseInt(document.getElementById('randITMax')?.value || '8'), 1), 8);
