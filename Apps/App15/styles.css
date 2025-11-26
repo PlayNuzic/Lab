@@ -710,7 +710,7 @@ body.dragging-note * {
 }
 
 .zigzag-cell--ghost {
-  visibility: visible;
+  visibility: hidden;
   pointer-events: none;
   background: #000;
   opacity: 0.4;
