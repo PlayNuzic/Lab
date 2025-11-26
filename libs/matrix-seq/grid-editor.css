@@ -169,6 +169,7 @@
 
   /* Typography - same size as note-input */
   font-size: 2.25rem; /* Reduced 25% from 3rem */
+  font-weight: 700;
   font-family: 'Courier New', monospace;
   color: var(--text-color, #333);
 
@@ -207,6 +208,7 @@
 
   /* Typography */
   font-size: 2.25rem; /* Reduced 25% from 3rem */
+  font-weight: 700;
   font-family: 'Courier New', monospace;
   color: var(--text-color, #333);
 
