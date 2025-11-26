@@ -57,25 +57,8 @@ export async function ensureToneLoaded() {
       script.src = scriptUrl;
 
       script.onload = () => {
-        // Wait for Tone to be available globally (script execution may lag behind onload)
-        let retries = 0;
-        const maxRetries = 50; // Max 50ms wait (50 * 1ms)
-
-        const checkTone = () => {
-          if (typeof Tone !== 'undefined') {
-            toneLoaded = true;
-            resolve(true);
-          } else if (retries < maxRetries) {
-            retries++;
-            // Retry after a short delay (allows script to execute)
-            setTimeout(checkTone, 1);
-          } else {
-            // Fallback: resolve anyway after max retries (script loaded but Tone not global yet)
-            toneLoaded = true;
-            resolve(true);
-          }
-        };
-        checkTone();
+        toneLoaded = true;
+        resolve(true);
       };
 
       script.onerror = () => {

@@ -13,7 +13,6 @@ import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-co
 import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
 import { clearElement } from '../../libs/app-common/dom-utils.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
-import { isToneLoaded } from '../../libs/sound/tone-loader.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -77,7 +76,7 @@ async function handlePlay() {
   // Ensure audio is initialized
   await initAudio();
 
-  if (!isToneLoaded()) {
+  if (!window.Tone) {
     console.error('Tone.js not available');
     return;
   }
