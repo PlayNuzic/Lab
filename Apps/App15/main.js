@@ -79,7 +79,7 @@ async function initAudio() {
     // Sync P1 toggle state with audio engine (P1 defaults to enabled in audio,
     // but user may have saved it as disabled - sync from localStorage)
     const p1Stored = localStorage.getItem('app15:p1Toggle');
-    if (p1Stored === 'false' && typeof audio.setStartEnabled === 'function') {
+    if (audio && p1Stored === 'false' && typeof audio.setStartEnabled === 'function') {
       audio.setStartEnabled(false);
     }
   }
