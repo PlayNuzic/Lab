@@ -465,6 +465,15 @@ async function init() {
     currentBPM: currentBPM
   });
 
+  // Initialize audio on first grid-editor interaction (improves responsiveness)
+  let audioInitializedFromGrid = false;
+  gridEditorContainer?.addEventListener('focusin', async () => {
+    if (!audioInitializedFromGrid) {
+      audioInitializedFromGrid = true;
+      await initAudio();
+    }
+  }, { once: true });
+
   // Wait for DOM to be fully populated by template system
   await new Promise(resolve => setTimeout(resolve, 50));
 

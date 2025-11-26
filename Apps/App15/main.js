@@ -896,6 +896,15 @@ async function initializeApp() {
     currentBPM: currentBPM
   });
 
+  // Initialize audio on first grid-editor interaction (improves responsiveness)
+  let audioInitializedFromGrid = false;
+  gridEditorContainer?.addEventListener('focusin', async () => {
+    if (!audioInitializedFromGrid) {
+      audioInitializedFromGrid = true;
+      await initAudio();
+    }
+  }, { once: true });
+
   // Wait for DOM to be fully rendered
   await new Promise(resolve => setTimeout(resolve, 30));
 
@@ -1123,6 +1132,8 @@ async function initializeApp() {
 
   // Load saved state after wiring everything
   loadSavedState();
+
+  // Auto-focus is handled by grid-editor's renderIntervalMode()
 
   console.log('App15 initialized successfully');
 }

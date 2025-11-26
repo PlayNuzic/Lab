@@ -413,10 +413,10 @@ export function createGridEditor(config = {}) {
     // Ensure at least one empty slot for adding new pairs
     ensureEmptyIntervalSlot();
 
-    // Focus first input
+    // Focus first visible interval input (iS₁)
     requestAnimationFrame(() => {
-      const firstInput = container.querySelector('.note-input');
-      if (firstInput) firstInput.focus();
+      const firstVisibleInput = container.querySelector('.interval-input');
+      if (firstVisibleInput) firstVisibleInput.focus();
     });
   }
 
