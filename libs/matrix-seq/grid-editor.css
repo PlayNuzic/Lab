@@ -186,13 +186,13 @@
 }
 
 .pulse-input:focus {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.1);
+  background: color-mix(in srgb, var(--select-color, #F97C39) 15%, transparent);
+  border-color: color-mix(in srgb, var(--select-color, #F97C39) 30%, transparent);
 }
 
 [data-theme="dark"] .pulse-input:focus {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--select-color, #F97C39) 12%, transparent);
+  border-color: color-mix(in srgb, var(--select-color, #F97C39) 25%, transparent);
 }
 
 .note-input {
@@ -224,13 +224,13 @@
 }
 
 .note-input:focus {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.1);
+  background: color-mix(in srgb, var(--select-color, #F97C39) 15%, transparent);
+  border-color: color-mix(in srgb, var(--select-color, #F97C39) 30%, transparent);
 }
 
 [data-theme="dark"] .note-input:focus {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--select-color, #F97C39) 12%, transparent);
+  border-color: color-mix(in srgb, var(--select-color, #F97C39) 25%, transparent);
 }
 
 .note-input::placeholder {

@@ -8,7 +8,7 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
-import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { getMixer, subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
 import { clearElement } from '../../libs/app-common/dom-utils.js';
@@ -27,7 +27,6 @@ let gridEditor = null;
 const currentBPM = DEFAULT_BPM; // Locked to 120 BPM
 let isPlaying = false;
 let polyphonyEnabled = false; // Default: polyphony DISABLED (monophonic mode)
-let intervalLinesEnabledState = false; // State in memory for performance
 
 // Elements
 let playBtn = null;
@@ -49,6 +48,13 @@ const _initAudio = createMelodicAudioInitializer({
 async function initAudio() {
   if (!audio) {
     audio = await _initAudio();
+
+    // Sync P1 toggle state with audio engine (P1 defaults to enabled in audio,
+    // but user may have saved it as disabled - sync from localStorage)
+    const p1Stored = localStorage.getItem('app12:p1Toggle');
+    if (p1Stored === 'false' && typeof audio.setStartEnabled === 'function') {
+      audio.setStartEnabled(false);
+    }
   }
   return audio;
 }
@@ -255,47 +261,14 @@ function syncGridFromPairs(pairs) {
     musicalGrid.clearIntervalPaths();
   }
 
-  // Use in-memory state for performance and consistency
-  const intervalLinesEnabled = intervalLinesEnabledState;
-
   // Filter out null notes
   const validPairs = pairs.filter(p => p.note !== null);
 
-  // Calculate labels based on interval lines mode
-  let labelsMap = new Map(); // Map: "note-pulse" -> label text
-
-  if (intervalLinesEnabled && validPairs.length > 0) {
-    // ========== INTERVAL MODE: Musical intervals ==========
-    // Separate into voices (same logic as highlightIntervalPath)
-    const voices = polyphonyEnabled ? separateIntoVoices(validPairs) : [validPairs.slice().sort((a, b) => a.pulse - b.pulse)];
-
-    voices.forEach(voice => {
-      if (voice.length === 0) return;
-
-      // Sort by pulse
-      const sorted = [...voice].sort((a, b) => a.pulse - b.pulse);
-
-      // First note in voice: (N{note}, {duration}p)
-      const first = sorted[0];
-      const firstDuration = sorted.length > 1 ? sorted[1].pulse - first.pulse : 1;
-      labelsMap.set(`${first.note}-${first.pulse}`, `(N${first.note}, ${firstDuration}p)`);
-
-      // Subsequent notes: (+{interval}, {duration}p)
-      for (let i = 1; i < sorted.length; i++) {
-        const prev = sorted[i - 1];
-        const curr = sorted[i];
-        const soundInterval = curr.note - prev.note; // Semitones (can be negative)
-        const temporalInterval = curr.pulse - prev.pulse; // Pulses
-        const sign = soundInterval >= 0 ? '+' : '';
-        labelsMap.set(`${curr.note}-${curr.pulse}`, `(${sign}${soundInterval}, ${temporalInterval}p)`);
-      }
-    });
-  } else {
-    // ========== NORMAL MODE: Coordinates (N, P) ==========
-    validPairs.forEach(({ note, pulse }) => {
-      labelsMap.set(`${note}-${pulse}`, `( ${note} , ${pulse} )`);
-    });
-  }
+  // Calculate labels - always in N-P coordinate mode
+  const labelsMap = new Map(); // Map: "note-pulse" -> label text
+  validPairs.forEach(({ note, pulse }) => {
+    labelsMap.set(`${note}-${pulse}`, `( ${note} , ${pulse} )`);
+  });
 
   // Activate cells and apply labels (only update if changed)
   validPairs.forEach(({ note, pulse }) => {
@@ -323,29 +296,6 @@ function syncGridFromPairs(pairs) {
     // Pass polyphonic flag to enable voice separation
     musicalGrid.highlightIntervalPath(validPairs, polyphonyEnabled);
   }
-}
-
-// Helper: Separate pairs into independent voices (copy from musical-grid logic)
-function separateIntoVoices(pairs) {
-  const voices = [];
-  const sortedPairs = [...pairs].sort((a, b) => a.pulse - b.pulse);
-
-  for (const pair of sortedPairs) {
-    // Find a voice that doesn't have a note at this pulse
-    let assignedVoice = voices.find(voice =>
-      !voice.some(p => p.pulse === pair.pulse)
-    );
-
-    if (!assignedVoice) {
-      // Create new voice
-      assignedVoice = [];
-      voices.push(assignedVoice);
-    }
-
-    assignedVoice.push(pair);
-  }
-
-  return voices;
 }
 
 // ========== DOM INJECTION ==========
@@ -396,8 +346,6 @@ async function init() {
 
   // Load preferences
   const prefs = preferenceStorage.load() || {};
-  const intervalLinesEnabled = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
-  intervalLinesEnabledState = intervalLinesEnabled; // Store in memory
 
   // Create musical grid inside the main grid wrapper
   const mainGridWrapper = document.querySelector('.app12-main-grid');
@@ -412,8 +360,7 @@ async function init() {
     highlightClassName: 'highlight',
     showIntervals: {
       horizontal: true,
-      vertical: false,
-      cellLines: intervalLinesEnabled
+      vertical: false
     },
     intervalColor: '#4A9EFF',
     cellRenderer: (noteIndex, pulseIndex, cellElement) => {
@@ -421,11 +368,6 @@ async function init() {
       clearElement(cellElement); // Clear any default content (XSS-safe)
     },
     onCellClick: async (noteIndex, pulseIndex, cellElement) => {
-      // Check state from memory for performance
-      if (intervalLinesEnabledState) {
-        return; // Cell clicks DISABLED when interval lines are enabled
-      }
-
       // Play MIDI note on click via audio engine
       await initAudio();
 
@@ -474,57 +416,7 @@ async function init() {
       gridEditor.setPairs(newPairs);
       syncGridFromPairs(newPairs);
     },
-    onDotClick: async (noteIndex, pulseIndex, dotElement) => {
-      // N-P dots are clickable only when interval lines are enabled
-      if (!intervalLinesEnabledState) {
-        return; // Dot clicks DISABLED when interval lines are disabled
-      }
-
-      // Use the same logic as cell clicks
-      await initAudio();
-
-      if (!window.Tone) {
-        console.warn('Tone.js not available');
-        return;
-      }
-
-      const midi = 60 + noteIndex; // C4 = MIDI 60
-      const duration = (60 / currentBPM) * 0.9; // 1 pulse duration (90% for clean separation)
-      const Tone = window.Tone;
-      audio.playNote(midi, duration, Tone.now());
-
-      // Check polyphony mode
-      if (!gridEditor) return;
-
-      const currentPairs = gridEditor.getPairs();
-      const isActive = currentPairs.some(p => p.note === noteIndex && p.pulse === pulseIndex);
-
-      let newPairs;
-      if (!polyphonyEnabled) {
-        // MONOPHONIC MODE
-        if (isActive) {
-          // Remove this pair
-          newPairs = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
-        } else {
-          // Remove all pairs for this pulse, add only this one
-          newPairs = currentPairs.filter(p => p.pulse !== pulseIndex);
-          newPairs.push({ note: noteIndex, pulse: pulseIndex });
-        }
-      } else {
-        // POLYPHONIC MODE
-        if (isActive) {
-          // Remove pair
-          newPairs = currentPairs.filter(p => !(p.note === noteIndex && p.pulse === pulseIndex));
-        } else {
-          // Add pair
-          newPairs = [...currentPairs, { note: noteIndex, pulse: pulseIndex }];
-        }
-      }
-
-      // Update grid editor and sync visual state
-      gridEditor.setPairs(newPairs);
-      syncGridFromPairs(newPairs);
-    }
+    onDotClick: null // N-P dots not clickable in N-P mode
   });
 
   // Reposition controls into grid wrapper
@@ -573,14 +465,6 @@ async function init() {
     currentBPM: currentBPM
   });
 
-  // Apply interval-mode class if enabled
-  if (intervalLinesEnabled) {
-    const gridContainer = document.querySelector('.grid-container');
-    if (gridContainer) {
-      gridContainer.classList.add('interval-mode');
-    }
-  }
-
   // Wait for DOM to be fully populated by template system
   await new Promise(resolve => setTimeout(resolve, 50));
 
@@ -624,6 +508,66 @@ async function init() {
       ]
     });
   }
+
+  // Mixer state persistence
+  const MIXER_STORAGE_KEY = 'app12-mixer';
+  const MIXER_CHANNELS = ['pulse', 'instrument'];
+
+  // Load saved mixer state
+  function loadMixerState() {
+    try {
+      const saved = localStorage.getItem(MIXER_STORAGE_KEY);
+      if (!saved) return;
+      const state = JSON.parse(saved);
+
+      // Restore master
+      if (state.master) {
+        if (typeof state.master.volume === 'number') setVolume(state.master.volume);
+        if (typeof state.master.muted === 'boolean') setMute(state.master.muted);
+      }
+
+      // Restore channels
+      if (state.channels) {
+        MIXER_CHANNELS.forEach(id => {
+          const ch = state.channels[id];
+          if (ch) {
+            if (typeof ch.volume === 'number') setChannelVolume(id, ch.volume);
+            if (typeof ch.muted === 'boolean') setChannelMute(id, ch.muted);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Error loading mixer state:', e);
+    }
+  }
+
+  // Save mixer state on changes
+  let mixerSaveTimeout = null;
+  subscribeMixer((snapshot) => {
+    // Debounce saves to avoid excessive writes
+    if (mixerSaveTimeout) clearTimeout(mixerSaveTimeout);
+    mixerSaveTimeout = setTimeout(() => {
+      const state = {
+        master: {
+          volume: snapshot.master.volume,
+          muted: snapshot.master.muted
+        },
+        channels: {}
+      };
+      snapshot.channels.forEach(ch => {
+        if (MIXER_CHANNELS.includes(ch.id)) {
+          state.channels[ch.id] = {
+            volume: ch.volume,
+            muted: ch.muted
+          };
+        }
+      });
+      localStorage.setItem(MIXER_STORAGE_KEY, JSON.stringify(state));
+    }, 100);
+  });
+
+  // Load mixer state after a short delay (after mixer is initialized)
+  setTimeout(loadMixerState, 50);
 
   // Audio toggles (sync with mixer)
   const pulseToggleBtn = document.getElementById('pulseToggleBtn');
@@ -676,20 +620,16 @@ async function init() {
     });
   }
 
-  // Polyphony toggle
+  // Polyphony toggle (NOT persistent - always starts disabled)
   const polyphonyToggle = document.getElementById('polyphonyToggle');
   if (polyphonyToggle) {
-    // Load from storage (default: false = monophonic)
-    const prefs = preferenceStorage.load() || {};
-    polyphonyEnabled = prefs.polyphony === '1'; // Only true if explicitly set to '1'
-    polyphonyToggle.checked = polyphonyEnabled;
+    // Always start disabled (monophonic mode)
+    polyphonyEnabled = false;
+    polyphonyToggle.checked = false;
 
     // Listen for changes
     polyphonyToggle.addEventListener('change', (e) => {
       polyphonyEnabled = e.target.checked;
-      const currentPrefs = preferenceStorage.load() || {};
-      currentPrefs.polyphony = polyphonyEnabled ? '1' : '0';
-      preferenceStorage.save(currentPrefs);
       console.log('Polyphony mode:', polyphonyEnabled ? 'ENABLED (polyphonic)' : 'DISABLED (monophonic)');
 
       // When disabling polyphony, filter to keep only first note per pulse
@@ -715,49 +655,6 @@ async function init() {
     });
   }
 
-  // Interval lines toggle
-  const intervalLinesToggle = document.getElementById('intervalLinesToggle');
-  if (intervalLinesToggle) {
-    // Set initial state from preferences
-    intervalLinesToggle.checked = intervalLinesEnabled;
-
-    // Listen for changes
-    intervalLinesToggle.addEventListener('change', () => {
-      const enabled = intervalLinesToggle.checked;
-      intervalLinesEnabledState = enabled; // Update memory state
-
-      // Save to preferences
-      const currentPrefs = preferenceStorage.load() || {};
-      currentPrefs.intervalLinesEnabled = enabled;
-      preferenceStorage.save(currentPrefs);
-
-      // Toggle interval-mode class on grid container
-      const gridContainer = document.querySelector('.grid-container');
-      if (gridContainer) {
-        if (enabled) {
-          gridContainer.classList.add('interval-mode');
-        } else {
-          gridContainer.classList.remove('interval-mode');
-        }
-      }
-
-      // Update grid configuration in real-time (no reload)
-      if (musicalGrid && musicalGrid.intervalsConfig && gridEditor) {
-        musicalGrid.intervalsConfig.cellLines = enabled;
-
-        // Update N-P dot clickability
-        musicalGrid.updateDotClickability(enabled);
-
-        // Get current pairs from grid editor
-        const currentPairs = gridEditor.getPairs();
-
-        // Refresh labels AND interval paths via syncGridFromPairs
-        // This ensures labels switch between coordinate mode and interval mode
-        syncGridFromPairs(currentPairs);
-      }
-    });
-  }
-
   // Wire instrument dropdown to audio engine
   window.addEventListener('sharedui:instrument', async (e) => {
     const instrument = e.detail.instrument;
@@ -773,23 +670,26 @@ async function init() {
   });
 
   // Factory reset using shared module
-  registerFactoryReset(() => {
-    // 1. Clear grid state first
-    handleReset();
+  registerFactoryReset({
+    storage: preferenceStorage,
+    onBeforeReload: () => {
+      handleReset();
 
-    // 2. Clear all preferences (will use defaults on reload)
-    preferenceStorage.clearAll();
+      // Clear keys with separate namespace (used by shared UI components)
+      localStorage.removeItem('app12:p1Toggle');
+      localStorage.removeItem('app12:pulseAudio');
 
-    // 3. Set factory defaults
-    preferenceStorage.save({
-      selectedInstrument: 'piano',
-      selectColor: '#E4570C',
-      polyphony: '0',                // Polyphony DISABLED
-      intervalLinesEnabled: false    // Interval lines DISABLED
-    });
+      // Reset mixer to factory defaults (remove saved state)
+      localStorage.removeItem('app12-mixer');
 
-    // 4. Reload to ensure clean state
-    window.location.reload();
+      // Polyphony is NOT persistent - no need to reset (always starts disabled)
+
+      // Reset random menu to factory defaults (if present)
+      const randPMax = document.getElementById('randPMax');
+      const randNMax = document.getElementById('randNMax');
+      if (randPMax) randPMax.value = '7';
+      if (randNMax) randNMax.value = '11';
+    }
   });
 
   console.log('App12 initialized successfully');
