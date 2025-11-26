@@ -13,6 +13,7 @@ import { createMatrixHighlightController } from '../../libs/app-common/matrix-hi
 import { clearElement } from '../../libs/app-common/dom-utils.js';
 import { intervalsToPairs } from '../../libs/matrix-seq/index.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { isToneLoaded } from '../../libs/sound/tone-loader.js';
 
 // Import interval-sequencer module utilities
 import {
@@ -103,7 +104,7 @@ async function handlePlay() {
   // Ensure audio is initialized
   await initAudio();
 
-  if (!window.Tone) {
+  if (!isToneLoaded()) {
     console.error('Tone.js not available');
     return;
   }
