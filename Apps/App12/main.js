@@ -94,6 +94,9 @@ async function handlePlay() {
 
   isPlaying = true;
 
+  // Disable random button during playback
+  if (randomBtn) randomBtn.disabled = true;
+
   // Switch to stop icon
   const playIcon = playBtn.querySelector('.icon-play');
   const stopIcon = playBtn.querySelector('.icon-stop');
@@ -150,6 +153,9 @@ async function handlePlay() {
 
 function stopPlayback() {
   isPlaying = false;
+
+  // Re-enable random button after playback
+  if (randomBtn) randomBtn.disabled = false;
 
   // Stop audio engine (stops transport + releases all instrument notes)
   audio?.stop();
