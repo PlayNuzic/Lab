@@ -676,7 +676,10 @@ export function createGridEditor(config = {}) {
       clearTimeout(autoJumpTimer);
     }
 
-    if (event.inputType === 'insertText') {
+    // Skip auto-jump if user just typed +/- in iS field (waiting for number)
+    const isSignOnly = type === 'is' && /^[+-]$/.test(text);
+
+    if (event.inputType === 'insertText' && !isSignOnly) {
       autoJumpTimer = setTimeout(() => {
         jumpToNextInZigzag(input);
         autoJumpTimer = null;
