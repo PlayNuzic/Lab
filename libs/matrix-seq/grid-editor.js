@@ -877,8 +877,8 @@ export function createGridEditor(config = {}) {
       const isValue = isInput.value.trim();
       const itValue = itInput.value.trim();
 
-      // Skip empty pairs but continue parsing (preserve subsequent data)
-      if (!isValue || !itValue) {
+      // Skip if iS is empty
+      if (!isValue) {
         index++;
         continue;
       }
@@ -886,7 +886,9 @@ export function createGridEditor(config = {}) {
       // Check if this is a silence (iS = 's')
       const isSilence = isValue.toLowerCase() === 's';
 
-      const temporalInterval = parseInt(itValue);
+      // If iT is empty but iS is valid, use iT=1 as preview
+      const isPreview = !itValue;
+      const temporalInterval = isPreview ? 1 : parseInt(itValue);
       // iT must be positive (≥1) - negative or zero would cause invalid pairs
       if (isNaN(temporalInterval) || temporalInterval <= 0) break;
 
