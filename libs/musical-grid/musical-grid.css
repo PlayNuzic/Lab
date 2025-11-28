@@ -140,7 +140,7 @@
 /* Números de notas (0-11) */
 .soundline-number {
   position: absolute;
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: 400;
   /* ⭐ UPDATED: Unified color system */
   color: var(--grid-number-color, var(--text-color, #333));
@@ -472,7 +472,7 @@
 
   .soundline-number,
   .pulse-marker {
-    font-size: 1.2rem;
+    font-size: 1rem;
   }
 
   .cell-label {
@@ -494,7 +494,7 @@
 
   .soundline-number,
   .pulse-marker {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 
   .soundline::before {

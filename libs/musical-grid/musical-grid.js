@@ -236,7 +236,7 @@ export function createMusicalGrid(config) {
       // Center label between division lines (not ON the line)
       const yCenter = (i + 0.5) * (100 / notes);
       noteLabel.style.top = `${yCenter}%`;
-      noteLabel.style.transform = 'translateY(30%)';
+      noteLabel.style.transform = 'translateY(15%)';
 
       // Click handler
       if (onNoteClick) {
