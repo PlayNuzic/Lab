@@ -664,7 +664,7 @@ export function createGridEditor(config = {}) {
             removeEmptyIntervalSlots();
             // Blur to end editing
             input.blur();
-            showInputTooltip(input, 'Secuencia completa');
+            showInputTooltip(input, 'Sucesión completa');
             return;
           }
         }
