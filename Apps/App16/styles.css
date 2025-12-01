@@ -71,9 +71,13 @@
   line-height: 1;
 }
 
-/* Playing state: blue color with animation */
-.cycle-counter__digit.playing {
+/* Playing state: color matches current pulse highlight */
+.cycle-counter__digit.playing-zero {
   color: var(--color-lg, #4A90D9);
+}
+
+.cycle-counter__digit.playing-active {
+  color: var(--selection-color, #EA570C);
 }
 
 /* Flip animation for cycle counter */
@@ -119,7 +123,7 @@
 
 /* Highlight during playback - normal numbers */
 .pulse-number.active {
-  color: var(--select-color, #F97C39);
+  color: var(--selection-color, #EA570C);
   transform: translateX(-50%) scale(1.35);
 }
 
@@ -132,7 +136,7 @@
 
 /* Pulse dot highlights */
 .pulse.active {
-  background: var(--select-color, #F97C39) !important;
+  background: var(--selection-color, #EA570C) !important;
   transform: translate(-50%, -50%) scale(1.6);
 }
 
@@ -148,8 +152,8 @@
 }
 
 .cycle-circle.active {
-  border-color: var(--select-color, #F97C39) !important;
-  box-shadow: 0 0 12px var(--select-color, #F97C39);
+  border-color: var(--selection-color, #EA570C) !important;
+  box-shadow: 0 0 12px var(--selection-color, #EA570C);
 }
 
 .cycle-circle.active-zero {

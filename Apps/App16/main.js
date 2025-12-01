@@ -220,7 +220,7 @@ function showTotalCycles() {
   if (!cycleDigit) return;
   const total = getTotalCycles();
   cycleDigit.textContent = total > 0 ? String(total) : '';
-  cycleDigit.classList.remove('playing');
+  cycleDigit.classList.remove('playing-zero', 'playing-active');
 }
 
 /**
@@ -231,9 +231,6 @@ function updateCycleCounter(newCycle) {
   if (newCycle === currentCycle && cycleDigit.textContent === String(newCycle)) return;
 
   currentCycle = newCycle;
-
-  // Mark as playing mode (blue color)
-  cycleDigit.classList.add('playing');
 
   // Flip animation
   cycleDigit.classList.add('flip-out');
@@ -247,6 +244,22 @@ function updateCycleCounter(newCycle) {
       cycleDigit.classList.remove('flip-in');
     }, 150);
   }, 150);
+}
+
+/**
+ * Update cycle digit color based on current step
+ */
+function updateCycleDigitColor(step) {
+  if (!cycleDigit || compas === null) return;
+
+  cycleDigit.classList.remove('playing-zero', 'playing-active');
+
+  const modValue = step % compas;
+  if (modValue === 0) {
+    cycleDigit.classList.add('playing-zero');
+  } else {
+    cycleDigit.classList.add('playing-active');
+  }
 }
 
 // ============================================
@@ -367,6 +380,7 @@ async function handlePlay() {
       highlightPulse(step);
       highlightNumber(step);
       highlightCycleCircle(step);
+      updateCycleDigitColor(step);
 
       // Update cycle counter when hitting a new cycle start (except first)
       if (step > 0 && step % compas === 0) {

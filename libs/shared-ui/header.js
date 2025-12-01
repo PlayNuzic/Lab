@@ -46,10 +46,20 @@ function applyTheme(value) {
     window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: v } }));
 }
 
-function setSelectionColor(value) {
-    const v = value || '#F97C39';
+const SELECTION_COLOR_DEFAULT = '#EA570C';
+const SELECTION_COLOR_KEY = 'sharedui:selectionColor';
+
+function setSelectionColor(value, persist = true) {
+    const v = value || SELECTION_COLOR_DEFAULT;
     document.documentElement.style.setProperty('--selection-color', v);
+    if (persist) {
+        try { localStorage.setItem(SELECTION_COLOR_KEY, v); } catch (e) { /* ignore */ }
+    }
     window.dispatchEvent(new CustomEvent('sharedui:selectioncolor', { detail: { value: v } }));
+}
+
+function getStoredSelectionColor() {
+    try { return localStorage.getItem(SELECTION_COLOR_KEY); } catch (e) { return null; }
 }
 
 function setMute(value) {
@@ -302,6 +312,13 @@ function wireControls(root) {
                 }));
             }
 
+            // Reset selection color to default
+            localStorage.removeItem(SELECTION_COLOR_KEY);
+            if (selectColor) {
+                selectColor.value = SELECTION_COLOR_DEFAULT;
+                setSelectionColor(SELECTION_COLOR_DEFAULT, false);
+            }
+
             window.dispatchEvent(new CustomEvent('sharedui:factoryreset', {
                 detail: { confirmed: true, source: 'shared-header' }
             }));
@@ -450,9 +467,10 @@ function wireControls(root) {
     }
 
     if (selectColor) {
-        const initial = selectColor.value || getComputedStyle(document.documentElement).getPropertyValue('--selection-color').trim() || '#F97C39';
+        const stored = getStoredSelectionColor();
+        const initial = stored || SELECTION_COLOR_DEFAULT;
         selectColor.value = initial;
-        setSelectionColor(initial);
+        setSelectionColor(initial, false);  // Don't persist on init (already stored or default)
         selectColor.addEventListener('input', (e) => setSelectionColor(e.target.value));
     }
 
