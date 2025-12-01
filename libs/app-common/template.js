@@ -208,7 +208,7 @@ ${togglesMarkup}
             <div class="interval-sound-group">
               <label for="startIntervalToggle" class="interval-toggle-label">
                 <input type="checkbox" id="startIntervalToggle" />
-                ${useIntervalMode ? 'Intervalo 1' : 'Pulso 1'}
+                ${useIntervalMode ? 'Intervalo 1' : 'Pulso 0'}
               </label>
               ${showStartSoundDropdown ? `
               <div class="preview-row interval-select-row">

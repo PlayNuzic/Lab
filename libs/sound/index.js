@@ -473,7 +473,7 @@ export class TimelineAudio {
     this._schedulerEverySec = 0.02;
     this._schedulerOverrideSec = null;
 
-    this._bus = { master: null, pulso: null, seleccionados: null, cycle: null };
+    this._bus = { master: null, pulso: null, start: null, seleccionados: null, cycle: null };
 
     this._sampleMap = null;
 
@@ -508,6 +508,7 @@ export class TimelineAudio {
 
     this.mixer = mixer;
     mixer.registerChannel('pulse', { allowSolo: true, label: 'Pulso' });
+    mixer.registerChannel('start', { allowSolo: true, label: 'P0' });
     mixer.registerChannel('accent', { allowSolo: true, label: 'Seleccionado' });
     mixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivisión' });
 
@@ -515,6 +516,10 @@ export class TimelineAudio {
     this._pulseMutedForFallback = false;
     this._cycleMutedForFallback = false;
     this._startEnabled = true; // P1 additional sound enabled by default
+
+    // Measure/Compás system: plays pulso0 at specific steps (cycle starts)
+    this._measureStarts = new Set([0]); // Default: only step 0
+    this._measureEnabled = true; // Whether measure sounds are enabled
 
     this._ensureContextPromise = null;
 
@@ -647,10 +652,12 @@ export class TimelineAudio {
 
       this._bus.master = ctx.createGain();
       this._bus.pulso = ctx.createGain();
+      this._bus.start = ctx.createGain();
       this._bus.seleccionados = ctx.createGain();
       this._bus.cycle = ctx.createGain();
 
       this._bus.pulso.connect(this._bus.master);
+      this._bus.start.connect(this._bus.master);
       this._bus.seleccionados.connect(this._bus.master);
       this._bus.cycle.connect(this._bus.master);
       this._bus.master.connect(ctx.destination);
@@ -757,6 +764,7 @@ export class TimelineAudio {
 
     try { this._bus.master.gain.value = masterMuted ? 0 : masterVolume; } catch {}
     applyGain(this._bus.pulso, 'pulse');
+    applyGain(this._bus.start, 'start');
     applyGain(this._bus.seleccionados, 'accent');
     applyGain(this._bus.cycle, 'subdivision');
   }
@@ -789,6 +797,7 @@ export class TimelineAudio {
   _resolveBusForSampleKey(key) {
     if (key === 'seleccionados') return this._bus.seleccionados;
     if (key === 'cycle') return this._bus.cycle;
+    if (key === 'pulso0' || key === 'start') return this._bus.start;
     return this._bus.pulso;
   }
 
@@ -857,12 +866,52 @@ export class TimelineAudio {
     await this._setSound('cycle', key, this._defaultAssignments.cycle);
   }
 
+  // Legacy API - delegates to Measure system for backwards compatibility
   setStartEnabled(enabled) {
     this._startEnabled = !!enabled;
+    this._measureEnabled = !!enabled;
   }
 
   getStartEnabled() {
     return this._startEnabled;
+  }
+
+  // Measure/Compás system methods
+  // Set which steps trigger the pulso0 sound (measure starts)
+  setMeasureStarts(steps) {
+    if (steps instanceof Set) {
+      this._measureStarts = steps;
+    } else if (Array.isArray(steps)) {
+      this._measureStarts = new Set(steps);
+    } else {
+      this._measureStarts = new Set([0]);
+    }
+  }
+
+  getMeasureStarts() {
+    return this._measureStarts;
+  }
+
+  // Enable/disable measure sounds (P0 toggle)
+  setMeasureEnabled(enabled) {
+    this._measureEnabled = !!enabled;
+  }
+
+  getMeasureEnabled() {
+    return this._measureEnabled;
+  }
+
+  // Configure measure from compás value: 0, compás, compás*2, etc.
+  configureMeasure(compas, totalPulses) {
+    if (!Number.isFinite(compas) || compas < 1) {
+      this._measureStarts = new Set([0]);
+      return;
+    }
+    const starts = new Set();
+    for (let i = 0; i < totalPulses; i++) {
+      if (i % compas === 0) starts.add(i);
+    }
+    this._measureStarts = starts;
   }
 
   async preview(soundKey) {
@@ -1333,7 +1382,8 @@ export class TimelineAudio {
         if (when == null || when > horizon) break;
 
         const stepIndex = this._resolveStepIndex(n);
-        const isStart = stepIndex === 0;
+        // Measure system: check if this step is a measure start (compás beginning)
+        const isMeasureStart = this._measureStarts?.has(stepIndex) ?? (stepIndex === 0);
         const resolution = Math.max(1, Math.round(this._baseResolution || 1));
         const isBaseStep = Number.isFinite(stepIndex) && (resolution <= 1 || (stepIndex % resolution === 0));
         const selectionResolution = Math.max(1, Math.round(this._selectedResolution || 1));
@@ -1357,9 +1407,9 @@ export class TimelineAudio {
             triggered = true;
           }
 
-          // P1: If _startEnabled, play ADDITIONAL special pulse0 sound on step 0
+          // Measure/P0: If measureEnabled, play ADDITIONAL special pulse0 sound on measure starts
           // This sound is ADDED to the base pulse, not replacing it
-          if (isStart && this._startEnabled && this._buffers.has('pulso0')) {
+          if (isMeasureStart && this._measureEnabled && this._buffers.has('pulso0')) {
             triggerPlayer('pulso0', when);
             triggered = true;
           }
@@ -1463,9 +1513,14 @@ export class TimelineAudio {
         }
       }
     } else if (msg.type === 'done') {
-      if (typeof this.onCompleteRef === 'function') this.onCompleteRef();
-      // Add 100ms delay to allow last note to finish naturally
-      setTimeout(() => this.stop(), 100);
+      // Call onComplete callback - app is responsible for calling stop() when ready
+      // This allows apps to add delays to let the last pulse ring out
+      if (typeof this.onCompleteRef === 'function') {
+        this.onCompleteRef();
+      } else {
+        // No callback provided: stop immediately (backwards compatibility)
+        this.stop();
+      }
     }
   }
 
