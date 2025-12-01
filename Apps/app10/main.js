@@ -193,8 +193,8 @@ async function handleStartOverlay() {
   // Initialize piano (deferred from initApp)
   await initPiano();
 
-  // Play chromatic scale: notes 0-11 ascending + ending sequence 7-4-0 at BPM 160
-  const chromaticNotes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 7, 4, 0];
+  // Play chromatic scale: notes 0-11 ascending at BPM 160
+  const chromaticNotes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
   const intervalMs = (60 / CHROMATIC_BPM) * 1000;
 
   console.log(`Playing chromatic scale at ${CHROMATIC_BPM} BPM (interval: ${intervalMs.toFixed(0)}ms)`);

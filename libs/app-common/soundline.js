@@ -29,21 +29,14 @@ export function createSoundline(options) {
   soundline.className = 'soundline';
   soundline.id = 'soundline';
 
-  // Create horizontal division lines (indices 0-totalNotes)
-  for (let i = 0; i <= totalNotes; i++) {
+  // Create horizontal division lines (indices 0 to totalNotes-1)
+  for (let i = 0; i < totalNotes; i++) {
     const line = document.createElement('div');
     line.className = 'soundline-division';
     line.dataset.index = i;
     soundline.appendChild(line);
   }
 
-  // Create top zero label (above first division)
-  const topZeroLabel = document.createElement('div');
-  topZeroLabel.className = 'soundline-number soundline-number-top';
-  topZeroLabel.dataset.note = '0-top';
-  topZeroLabel.dataset.noteIndex = totalNotes;
-  topZeroLabel.textContent = '0';
-  soundline.appendChild(topZeroLabel);
 
   // Create number labels (0-totalNotes-1) positioned in spaces between lines
   for (let i = 0; i < totalNotes; i++) {
@@ -227,23 +220,28 @@ function layoutSoundline(soundline, totalNotes = 12) {
   const divisions = soundline.querySelectorAll('.soundline-division');
   const numbers = soundline.querySelectorAll('.soundline-number');
 
+  // Calculate top and bottom positions for vertical line
+  const topNotePct = ((safeTotalNotes - 0.5) / safeTotalNotes) * 100;  // note 11 position
+  const bottomNotePct = (0.5 / safeTotalNotes) * 100;  // note 0 position
+  const lineTop = 100 - topNotePct;  // inverted
+  const lineBottom = 100 - bottomNotePct;  // inverted
+
+  // Set CSS custom properties for vertical line bounds
+  soundline.style.setProperty('--line-top', `${lineTop}%`);
+  soundline.style.setProperty('--line-bottom', `${100 - lineBottom}%`);
+
+  // Position divisions and numbers at same height (aligned)
   divisions.forEach((div, idx) => {
-    const pct = (idx / safeTotalNotes) * 100;
-    div.style.top = `${pct}%`;
+    const pct = ((idx + 0.5) / safeTotalNotes) * 100;
+    const invertedPct = 100 - pct;
+    div.style.top = `${invertedPct}%`;
   });
 
   numbers.forEach((num) => {
-    // Skip top zero label (positioned separately)
-    if (num.classList.contains('soundline-number-top')) {
-      num.style.top = '0%';
-      num.style.transform = 'translateY(-50%)';
-      return;
-    }
-
     const idx = parseInt(num.dataset.noteIndex, 10);
     const pct = ((idx + 0.5) / safeTotalNotes) * 100;
     const invertedPct = 100 - pct;
     num.style.top = `${invertedPct}%`;
-    num.style.transform = 'translateY(30%)';  // Changed from -50% to 30% to align with divisions
+    num.style.transform = 'translateY(-50%)';
   });
 }

@@ -44,13 +44,13 @@ export function createNoteHighlightController(config = {}) {
       rect.className = 'note-highlight';
       rect.dataset.note = noteIndex;
 
-      // Position rectangle
+      // Position rectangle - bottom edge aligned with division line
       const yPos = soundline.getNotePosition(noteIndex);
       rect.style.top = `${yPos}%`;
       // left se maneja en CSS (120px)
       rect.style.width = '80px';
       rect.style.height = '8.33%'; // 100% / 12 spaces = 8.33%
-      rect.style.transform = 'translateY(-50%)';
+      rect.style.transform = 'translateY(-100%)';
 
       // Note: Label removed - no numbers inside highlighted cells
 
