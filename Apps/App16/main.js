@@ -201,25 +201,54 @@ function renderPulseNumbers() {
   }
 }
 
+/**
+ * Create the "12" end label above the final bar
+ */
+function renderEndLabel() {
+  if (!timeline) return;
+
+  // Remove existing end label if any
+  timeline.querySelector('.timeline-end-label')?.remove();
+
+  const endLabel = document.createElement('div');
+  endLabel.className = 'timeline-end-label';
+  endLabel.textContent = '12';
+  timeline.appendChild(endLabel);
+}
+
 // ============================================
 // CYCLE COUNTER
 // ============================================
 
 /**
- * Calculate total cycles that fit in the timeline
+ * Calculate complete cycles and remainder beats
  */
-function getTotalCycles() {
-  if (compas === null || compas < 1) return 0;
-  return Math.ceil(PLAYABLE_PULSES / compas);
+function getCycleInfo() {
+  if (compas === null || compas < 1) return { complete: 0, remainder: 0 };
+  const complete = Math.floor(PLAYABLE_PULSES / compas);
+  const remainder = PLAYABLE_PULSES % compas;
+  return { complete, remainder };
 }
 
 /**
  * Show total cycles (when stopped) - uses Compás color (text-color)
+ * Shows complete cycles with remainder in subscript: "2₍₃₎" means 2 complete cycles + 3 extra beats
  */
 function showTotalCycles() {
   if (!cycleDigit) return;
-  const total = getTotalCycles();
-  cycleDigit.textContent = total > 0 ? String(total) : '';
+
+  const { complete, remainder } = getCycleInfo();
+
+  if (complete === 0 && remainder === 0) {
+    cycleDigit.innerHTML = '';
+  } else if (remainder === 0) {
+    // Perfect fit - no remainder
+    cycleDigit.innerHTML = String(complete);
+  } else {
+    // Show complete cycles + remainder in subscript
+    cycleDigit.innerHTML = `${complete}<sub>${remainder}</sub>`;
+  }
+
   cycleDigit.classList.remove('playing-zero', 'playing-active');
 }
 
@@ -610,6 +639,9 @@ async function initializeApp() {
     });
   }
   // Don't call renderPulseNumbers() - wait for user input
+
+  // Always show the "12" end label
+  renderEndLabel();
 
   // Give focus to input so user can start typing
   inputCompas?.focus();

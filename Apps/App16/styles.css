@@ -71,6 +71,14 @@
   line-height: 1;
 }
 
+.cycle-counter__digit sub {
+  font-size: 0.5em;
+  vertical-align: baseline;
+  position: relative;
+  top: 0.3em;
+  opacity: 0.8;
+}
+
 /* Playing state: color matches current pulse highlight */
 .cycle-counter__digit.playing-zero {
   color: var(--color-lg, #4A90D9);
@@ -119,6 +127,17 @@
   vertical-align: super;
   margin-left: 1px;
   opacity: 0.8;
+}
+
+/* End marker label (12) */
+.timeline-end-label {
+  position: absolute;
+  right: 0;
+  top: -2rem;
+  transform: translateX(50%);
+  font-size: 2rem;
+  font-weight: 700;
+  color: #36C473;
 }
 
 /* Highlight during playback - normal numbers */
@@ -208,6 +227,11 @@
   .pulse-number {
     font-size: 0.9rem;
   }
+
+  .timeline-end-label {
+    font-size: 1.5rem;
+    top: -1.5rem;
+  }
 }
 
 /* Mobile landscape / Small tablets */
@@ -245,6 +269,11 @@
   .pulse-number sup {
     font-size: 0.5em;
   }
+
+  .timeline-end-label {
+    font-size: 1.25rem;
+    top: -1.25rem;
+  }
 }
 
 /* Small mobile (iPhone SE, etc.) */
@@ -277,5 +306,10 @@
 
   .pulse-number {
     font-size: 0.7rem;
+  }
+
+  .timeline-end-label {
+    font-size: 1rem;
+    top: -1rem;
   }
 }
