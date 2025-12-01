@@ -11,8 +11,8 @@ import { createCircularTimeline } from '../../libs/app-common/circular-timeline.
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/index.js';
 import { createPreferenceStorage, registerFactoryReset } from '../../libs/app-common/preferences.js';
-import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
-import { getMixer, subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
+import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
+import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
 
 // ============================================
 // CONSTANTS
@@ -29,10 +29,12 @@ const BPM = 100;              // Fijo, oculto al usuario
 
 let audio = null;
 let isPlaying = false;
-let compas = DEFAULT_COMPAS;
+let compas = null;            // Starts as null (empty input)
 let currentCycle = 1;
 let pulses = [];              // DOM pulse elements
 let currentStep = -1;
+let p0Enabled = true;         // P0 toggle state (not persisted between sessions)
+let cycleHighlightTimeout = null;  // For auto-dimming cycle circle
 
 // ============================================
 // DOM ELEMENTS
@@ -79,7 +81,7 @@ const _baseInitAudio = createRhythmAudioInitializer({
   }),
   schedulingBridge,
   channels: [
-    { id: 'start', options: { allowSolo: true, label: 'P1' }, assignment: 'start' }
+    { id: 'start', options: { allowSolo: true, label: 'P0' }, assignment: 'start' }
   ]
 });
 
@@ -156,7 +158,7 @@ let timelineController;
 /**
  * Custom pulse number creator for modular numbering
  */
-function createModularPulseNumber(index, fontRem, context) {
+function createModularPulseNumber(index) {
   // Pulse 12 (end marker) doesn't get a number
   if (index >= PLAYABLE_PULSES) return null;
 
@@ -175,22 +177,8 @@ function createModularPulseNumber(index, fontRem, context) {
     label.textContent = String(modValue);
   }
 
-  label.style.fontSize = `${fontRem}rem`;
+  // Font size controlled by CSS (.pulse-number { font-size: 2rem })
   return label;
-}
-
-function renderTimeline() {
-  if (!timelineController) return;
-
-  // Use the timeline controller to render pulses
-  // The controller returns the array of pulse DOM elements
-  pulses = timelineController.render(TOTAL_PULSES - 1, {
-    isCircular: false,
-    silent: true
-  });
-
-  // Re-render numbers with our custom modular format
-  renderPulseNumbers();
 }
 
 function renderPulseNumbers() {
@@ -203,7 +191,7 @@ function renderPulseNumbers() {
 
   // Create numbers only for pulses 0-11 (not 12)
   for (let i = 0; i < PLAYABLE_PULSES; i++) {
-    const label = createModularPulseNumber(i, 1.2, { lg });
+    const label = createModularPulseNumber(i);
     if (label) {
       // Position linearly
       const percent = (i / lg) * 100;
@@ -217,11 +205,35 @@ function renderPulseNumbers() {
 // CYCLE COUNTER
 // ============================================
 
+/**
+ * Calculate total cycles that fit in the timeline
+ */
+function getTotalCycles() {
+  if (compas === null || compas < 1) return 0;
+  return Math.ceil(PLAYABLE_PULSES / compas);
+}
+
+/**
+ * Show total cycles (when stopped) - uses Compás color (text-color)
+ */
+function showTotalCycles() {
+  if (!cycleDigit) return;
+  const total = getTotalCycles();
+  cycleDigit.textContent = total > 0 ? String(total) : '';
+  cycleDigit.classList.remove('playing');
+}
+
+/**
+ * Update cycle counter during playback (with animation)
+ */
 function updateCycleCounter(newCycle) {
   if (!cycleDigit) return;
   if (newCycle === currentCycle && cycleDigit.textContent === String(newCycle)) return;
 
   currentCycle = newCycle;
+
+  // Mark as playing mode (blue color)
+  cycleDigit.classList.add('playing');
 
   // Flip animation
   cycleDigit.classList.add('flip-out');
@@ -274,11 +286,42 @@ function highlightNumber(step) {
   }
 }
 
+function highlightCycleCircle(step) {
+  const cycleCircle = document.querySelector('.cycle-circle');
+  if (!cycleCircle) return;
+
+  // Clear any pending timeout
+  if (cycleHighlightTimeout) {
+    clearTimeout(cycleHighlightTimeout);
+    cycleHighlightTimeout = null;
+  }
+
+  cycleCircle.classList.remove('active', 'active-zero');
+
+  if (compas === null) return;
+
+  const modValue = step % compas;
+  if (modValue === 0) {
+    cycleCircle.classList.add('active-zero');
+  } else {
+    cycleCircle.classList.add('active');
+  }
+
+  // Auto-dim after 300ms
+  cycleHighlightTimeout = setTimeout(() => {
+    cycleCircle.classList.remove('active', 'active-zero');
+    cycleHighlightTimeout = null;
+  }, 300);
+}
+
 function clearHighlights() {
   pulses.forEach(p => p.classList.remove('active', 'active-zero'));
   document.querySelectorAll('.pulse-number').forEach(n => {
     n.classList.remove('active', 'active-zero');
   });
+  // Clear cycle circle highlight
+  const cycleCircle = document.querySelector('.cycle-circle');
+  cycleCircle?.classList.remove('active', 'active-zero');
 }
 
 // ============================================
@@ -290,6 +333,8 @@ async function handlePlay() {
     stopPlayback();
     return;
   }
+
+  if (compas === null) return; // Can't play without compás
 
   const audioInstance = await initAudio();
   if (!audioInstance) return;
@@ -308,21 +353,20 @@ async function handlePlay() {
 
   const intervalSec = 60 / BPM;
 
-  // Determine which pulses are cycle starts (for P1/start sound)
-  const cycleStarts = new Set();
-  for (let i = 0; i < PLAYABLE_PULSES; i++) {
-    if (i % compas === 0) cycleStarts.add(i);
-  }
+  // Configure Measure system: P0 sounds at 0, compás, compás*2, etc.
+  audioInstance.configureMeasure(compas, PLAYABLE_PULSES);
+  audioInstance.setMeasureEnabled(p0Enabled);
 
   audioInstance.play(
     PLAYABLE_PULSES,
     intervalSec,
-    cycleStarts,  // P1/start sound plays on these
+    new Set(),    // No selected pulses
     false,        // NO loop (single-shot)
     (step) => {
       currentStep = step;
       highlightPulse(step);
       highlightNumber(step);
+      highlightCycleCircle(step);
 
       // Update cycle counter when hitting a new cycle start (except first)
       if (step > 0 && step % compas === 0) {
@@ -331,16 +375,29 @@ async function handlePlay() {
       }
     },
     () => {
-      // onComplete callback
-      stopPlayback();
+      // onComplete callback - delay 590ms to let last pulse ring out (10ms silence before end)
+      // This is App16-specific timing, not applied globally
+      setTimeout(() => {
+        audio?.stop();  // Stop audio after delay
+        stopPlayback(false);  // Update UI without calling stop again
+      }, 590);
     }
   );
 }
 
-function stopPlayback() {
+/**
+ * Stop playback and reset UI.
+ * @param {boolean} forceStop - If true, calls audio.stop(). If false (onComplete), audio engine handles timing.
+ */
+function stopPlayback(forceStop = true) {
   isPlaying = false;
   currentStep = -1;
-  audio?.stop();
+
+  // Only force stop if user clicked stop (not on natural completion)
+  // The audio engine already handles the delay to let the last pulse finish
+  if (forceStop) {
+    audio?.stop();
+  }
 
   // Update play button state
   playBtn?.classList.remove('active');
@@ -350,6 +407,9 @@ function stopPlayback() {
   if (iconStop) iconStop.style.display = 'none';
 
   clearHighlights();
+
+  // Show total cycles again (stopped state)
+  showTotalCycles();
 }
 
 // ============================================
@@ -357,32 +417,67 @@ function stopPlayback() {
 // ============================================
 
 function handleCompasChange(newValue) {
-  const parsed = parseInt(newValue, 10);
-  if (isNaN(parsed)) return;
+  // Handle empty input - clear numbers and cycles
+  if (newValue === '' || newValue === null || newValue === undefined) {
+    compas = null;
+    timeline?.querySelectorAll('.pulse-number').forEach(n => n.remove());
+    showTotalCycles();  // Shows empty when no compás
+    return;
+  }
 
-  // Clamp to valid range
-  compas = Math.max(2, Math.min(12, parsed));
-  if (inputCompas) inputCompas.value = compas;
+  const parsed = parseInt(newValue, 10);
+
+  // Invalid number - clear input and keep focus
+  if (isNaN(parsed)) {
+    showValidationWarning(inputCompas, 'Introduce un número válido', 2000);
+    if (inputCompas) {
+      inputCompas.value = '';
+      inputCompas.focus();
+    }
+    return;
+  }
+
+  // Validate range with tooltips - clear input and keep focus on error
+  if (parsed < 1) {
+    showValidationWarning(inputCompas, 'El Compás mínimo es <strong>1</strong>', 2000);
+    if (inputCompas) {
+      inputCompas.value = '';
+      inputCompas.focus();
+    }
+    return;
+  } else if (parsed > 12) {
+    showValidationWarning(inputCompas, 'El Compás máximo es <strong>12</strong>', 2000);
+    if (inputCompas) {
+      inputCompas.value = '';
+      inputCompas.focus();
+    }
+    return;
+  } else {
+    compas = parsed;
+    if (inputCompas) inputCompas.value = compas;
+  }
 
   // Re-render numbers with new compás
   renderPulseNumbers();
 
-  // Reset cycle counter
-  updateCycleCounter(1);
+  // Show total cycles (stopped state)
+  showTotalCycles();
 
   // Save state
   saveState();
 }
 
 function incrementCompas() {
-  if (compas < 12) {
-    handleCompasChange(compas + 1);
+  const current = compas ?? 0;
+  if (current < 12) {
+    handleCompasChange(current + 1);
   }
 }
 
 function decrementCompas() {
-  if (compas > 2) {
-    handleCompasChange(compas - 1);
+  const current = compas ?? 2;
+  if (current > 1) {
+    handleCompasChange(current - 1);
   }
 }
 
@@ -409,8 +504,8 @@ function addRepeatPress(el, fn) {
 
 function handleRandom() {
   const maxCompas = parseInt(document.getElementById('randCompasMax')?.value || '12', 10);
-  const min = 2;
-  const max = Math.min(Math.max(maxCompas, 2), 12);
+  const min = 1;
+  const max = Math.min(Math.max(maxCompas, 1), 12);
   const newCompas = Math.floor(Math.random() * (max - min + 1)) + min;
 
   handleCompasChange(newCompas);
@@ -422,11 +517,21 @@ function handleRandom() {
 
 function handleReset() {
   stopPlayback();
-  compas = DEFAULT_COMPAS;
-  if (inputCompas) inputCompas.value = DEFAULT_COMPAS;
-  renderPulseNumbers();
-  updateCycleCounter(1);
-  saveState();
+
+  // Reset to empty state (like initialization)
+  compas = null;
+  if (inputCompas) {
+    inputCompas.value = '';
+    inputCompas.focus();
+  }
+
+  // Clear pulse numbers from timeline
+  timeline?.querySelectorAll('.pulse-number').forEach(n => n.remove());
+
+  // Clear cycle display
+  showTotalCycles();
+
+  // Note: P0 toggle state is NOT reset - it persists through Reset
 }
 
 // ============================================
@@ -442,10 +547,7 @@ function saveState() {
 
 function loadState() {
   const prefs = preferenceStorage.load();
-  if (prefs?.compas) {
-    compas = Math.max(2, Math.min(12, prefs.compas));
-    if (inputCompas) inputCompas.value = compas;
-  }
+  // Only load randCompasMax - compás always starts empty
   if (prefs?.randCompasMax) {
     const randInput = document.getElementById('randCompasMax');
     if (randInput) randInput.value = prefs.randCompasMax;
@@ -474,14 +576,29 @@ async function initializeApp() {
     timeline,
     timelineWrapper,
     getPulses: () => pulses,
-    getNumberFontSize: () => 1.2
+    getNumberFontSize: () => 2.0
   });
 
-  // Load saved state
+  // Load only randCompasMax (compás always starts empty)
   loadState();
 
-  // Render initial timeline
-  renderTimeline();
+  // Ensure input is empty on start
+  if (inputCompas) {
+    inputCompas.value = '';
+  }
+  compas = null;
+
+  // Render timeline WITHOUT numbers (user will see them appear when entering compás)
+  if (timelineController) {
+    pulses = timelineController.render(TOTAL_PULSES - 1, {
+      isCircular: false,
+      silent: true
+    });
+  }
+  // Don't call renderPulseNumbers() - wait for user input
+
+  // Give focus to input so user can start typing
+  inputCompas?.focus();
 
   // Compás input events
   inputCompas?.addEventListener('input', (e) => {
@@ -514,7 +631,7 @@ async function initializeApp() {
       menu: mixerMenu,
       triggers: [playBtn].filter(Boolean),
       channels: [
-        { id: 'start', label: 'P1', allowSolo: true },
+        { id: 'start', label: 'P0', allowSolo: true },
         { id: 'pulse', label: 'Pulso', allowSolo: true },
         { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
       ]
@@ -524,26 +641,37 @@ async function initializeApp() {
   // Load mixer state after a short delay
   setTimeout(loadMixerState, 50);
 
-  // Initialize audio toggles for Pulse
+  // Initialize P0 toggle from menu checkbox (NOT persisted between sessions - always starts active)
+  // The template generates 'startIntervalToggle' checkbox when showP1Toggle: true
+  const p0Checkbox = document.getElementById('startIntervalToggle');
+  if (p0Checkbox) {
+    p0Enabled = true;
+    p0Checkbox.checked = true;
+    p0Checkbox.addEventListener('change', () => {
+      p0Enabled = p0Checkbox.checked;
+      if (audio?.setMeasureEnabled) {
+        audio.setMeasureEnabled(p0Enabled);
+      }
+    });
+  }
+
+  // Initialize audio toggles for Pulse only (P0 handled separately above)
   const pulseToggle = document.getElementById('pulseToggleBtn');
   if (pulseToggle) {
-    initAudioToggles({
-      toggles: [
-        {
-          id: 'pulse',
-          button: pulseToggle,
-          storageKey: 'app16:pulseAudio',
-          mixerChannel: 'pulse',
-          defaultEnabled: true,
-          onChange: (enabled) => {
-            if (audio?.setPulseEnabled) {
-              audio.setPulseEnabled(enabled);
-            }
-          }
-        }
-      ],
-      mixer: getMixer(),
-      subscribeMixer
+    const savedPulseEnabled = localStorage.getItem('app16:pulseAudio');
+    const pulseEnabled = savedPulseEnabled !== null ? savedPulseEnabled === 'true' : true;
+
+    pulseToggle.classList.toggle('active', pulseEnabled);
+    if (audio?.setPulseEnabled) {
+      audio.setPulseEnabled(pulseEnabled);
+    }
+
+    pulseToggle.addEventListener('click', () => {
+      const isActive = pulseToggle.classList.toggle('active');
+      localStorage.setItem('app16:pulseAudio', String(isActive));
+      if (audio?.setPulseEnabled) {
+        audio.setPulseEnabled(isActive);
+      }
     });
   }
 

@@ -1,12 +1,20 @@
 /* App16 - Módulo Temporal - Compás */
 
 /* ============================================
+   APP-SPECIFIC CSS VARIABLES
+   ============================================ */
+
+:root {
+  --control-toggle-gap: -29px;
+}
+
+/* ============================================
    HIDE TEMPLATE ELEMENTS NOT NEEDED
    ============================================ */
 
 /* Hide loop and tap buttons */
 #loopBtn,
-#tapBtn {
+#tapTempoBtn {
   display: none !important;
 }
 
@@ -52,15 +60,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-secondary, #f5f5f5);
+  background: transparent;
 }
 
 .cycle-counter__digit {
   font-size: 3rem;
   font-weight: 700;
   font-family: 'Courier New', Courier, monospace;
-  color: var(--color-lg, #4A90D9);
+  color: var(--text-color, #333);  /* Same as Compás input when stopped */
   line-height: 1;
+}
+
+/* Playing state: blue color with animation */
+.cycle-counter__digit.playing {
+  color: var(--color-lg, #4A90D9);
 }
 
 /* Flip animation for cycle counter */
@@ -88,6 +101,7 @@
 
 /* Modular numbering styles */
 .pulse-number {
+  font-size: 2rem;
   transition: transform 0.12s ease, color 0.12s ease;
 }
 
@@ -128,12 +142,27 @@
   box-shadow: 0 0 12px var(--color-lg, #4A90D9);
 }
 
+/* Cycle circle highlights during playback */
+.cycle-circle {
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.cycle-circle.active {
+  border-color: var(--select-color, #F97C39) !important;
+  box-shadow: 0 0 12px var(--select-color, #F97C39);
+}
+
+.cycle-circle.active-zero {
+  border-color: var(--color-lg, #4A90D9) !important;
+  box-shadow: 0 0 12px var(--color-lg, #4A90D9);
+}
+
 /* ============================================
    DARK THEME ADJUSTMENTS
    ============================================ */
 
 [data-theme="dark"] .param.cycle-display .cycle-circle {
-  background: var(--bg-secondary, #2a2a2a);
+  background: transparent;
 }
 
 [data-theme="dark"] .param.compas input {

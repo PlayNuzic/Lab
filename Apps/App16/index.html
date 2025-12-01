@@ -31,7 +31,7 @@
       randomMenuContent: `
         <label>
           <span>Compás máximo</span>
-          <input type="number" id="randCompasMax" value="12" min="2" max="12">
+          <input type="number" id="randCompasMax" value="12" min="1" max="12">
         </label>
       `
     });
@@ -41,9 +41,9 @@
     if (inputsSection) {
       inputsSection.innerHTML = `
         <div class="param compas">
-          <span class="abbr">Compás</span>
+          <span class="abbr">Pulsos Compás</span>
           <div class="circle">
-            <input id="inputCompas" type="number" min="2" max="12" value="4" />
+            <input id="inputCompas" type="number" min="1" max="12" value="" />
             <div class="spinner">
               <button id="compasUp" class="spin up" type="button" aria-label="Incrementar Compás"></button>
               <button id="compasDown" class="spin down" type="button" aria-label="Decrementar Compás"></button>
@@ -51,9 +51,9 @@
           </div>
         </div>
         <div class="param cycle-display">
-          <span class="abbr">Ciclo</span>
+          <span class="abbr">Nº Compases</span>
           <div class="circle cycle-circle">
-            <div class="cycle-counter__digit" id="cycleDigit">1</div>
+            <div class="cycle-counter__digit" id="cycleDigit"></div>
           </div>
         </div>
       `;
