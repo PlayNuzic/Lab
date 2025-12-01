@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Módulo Temporal - Compás</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+</head>
+<body data-theme="system">
+  <div id="app-root"></div>
+
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Módulo Temporal - Compás',
+      showSelectColor: false,
+      showAccent: false,
+      showComplexFractions: false,
+      pulseSequence: false,
+      showPulseToggle: true,
+      showP1Toggle: true,
+      showCircularTimelineToggle: false,
+      hideT: true,
+      hideLeds: true,
+      randomMenuContent: `
+        <label>
+          <span>Compás máximo</span>
+          <input type="number" id="randCompasMax" value="12" min="2" max="12">
+        </label>
+      `
+    });
+
+    // Reemplazar inputs Lg/V por nuestro control de Compás + contador de ciclo
+    const inputsSection = document.querySelector('.inputs');
+    if (inputsSection) {
+      inputsSection.innerHTML = `
+        <div class="param compas">
+          <span class="abbr">Compás</span>
+          <div class="circle">
+            <input id="inputCompas" type="number" min="2" max="12" value="4" />
+            <div class="spinner">
+              <button id="compasUp" class="spin up" type="button" aria-label="Incrementar Compás"></button>
+              <button id="compasDown" class="spin down" type="button" aria-label="Decrementar Compás"></button>
+            </div>
+          </div>
+        </div>
+        <div class="param cycle-display">
+          <span class="abbr">Ciclo</span>
+          <div class="circle cycle-circle">
+            <div class="cycle-counter__digit" id="cycleDigit">1</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Ocultar la sección middle (fórmula)
+    const middleSection = document.querySelector('.middle');
+    if (middleSection) middleSection.style.display = 'none';
+
+    initHeader();
+    import('./main.js');
+  </script>
+
+  <!-- Rendimiento Audio (menú flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <!-- Long-press para abrir el mixer -->
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+</body>
+</html>
