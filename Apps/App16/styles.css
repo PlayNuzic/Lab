@@ -169,13 +169,22 @@
   color: var(--text-color, #eee);
 }
 
+[data-theme="dark"] .cycle-counter__digit {
+  color: var(--text-color, #eee);
+}
+
 /* ============================================
    RESPONSIVE
    ============================================ */
 
+/* Tablet / Small desktop */
 @media (max-width: 600px) {
   .inputs {
     gap: 1rem;
+  }
+
+  .param .abbr {
+    font-size: 0.85rem;
   }
 
   .param.compas .circle,
@@ -194,5 +203,75 @@
 
   .pulse-number {
     font-size: 0.9rem;
+  }
+}
+
+/* Mobile landscape / Small tablets */
+@media (max-width: 480px) {
+  .inputs {
+    gap: 0.75rem;
+  }
+
+  .param .abbr {
+    font-size: 0.8rem;
+  }
+
+  .param.compas .spinner {
+    width: 15px;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 70px;
+    height: 70px;
+  }
+
+  .param.compas input {
+    font-size: 1.75rem;
+  }
+
+  .cycle-counter__digit {
+    font-size: 2rem;
+  }
+
+  .pulse-number {
+    font-size: 0.8rem;
+  }
+
+  .pulse-number sup {
+    font-size: 0.5em;
+  }
+}
+
+/* Small mobile (iPhone SE, etc.) */
+@media (max-width: 360px) {
+  .inputs {
+    gap: 0.5rem;
+  }
+
+  .param .abbr {
+    font-size: 0.75rem;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 60px;
+    height: 60px;
+  }
+
+  .param.compas input {
+    font-size: 1.5rem;
+  }
+
+  .param.compas .spinner {
+    width: 14px;
+  }
+
+  .cycle-counter__digit {
+    font-size: 1.75rem;
+  }
+
+  .pulse-number {
+    font-size: 0.7rem;
   }
 }
