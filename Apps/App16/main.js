@@ -395,6 +395,9 @@ async function handlePlay() {
   if (iconPlay) iconPlay.style.display = 'none';
   if (iconStop) iconStop.style.display = 'block';
 
+  // Disable random button during playback
+  if (randomBtn) randomBtn.disabled = true;
+
   const intervalSec = 60 / BPM;
 
   // Configure Measure system: P0 sounds at 0, compás, compás*2, etc.
@@ -450,6 +453,9 @@ function stopPlayback(forceStop = true) {
   const iconStop = playBtn?.querySelector('.icon-stop');
   if (iconPlay) iconPlay.style.display = 'block';
   if (iconStop) iconStop.style.display = 'none';
+
+  // Re-enable random button after playback
+  if (randomBtn) randomBtn.disabled = false;
 
   clearHighlights();
 

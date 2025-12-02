@@ -78,6 +78,7 @@ export function initRandomMenu(button, menu, onRandomize, longPress = 500) {
   }
 
   button.addEventListener('pointerdown', () => {
+    if (button.disabled) return;
     longPressFired = false;
     pressStartTime = Date.now();
     pressTimer = setTimeout(() => {
@@ -88,6 +89,7 @@ export function initRandomMenu(button, menu, onRandomize, longPress = 500) {
   });
 
   button.addEventListener('pointerup', () => {
+    if (button.disabled) return;
     const pressDuration = Date.now() - pressStartTime;
 
     if (pressTimer) {
