@@ -35,6 +35,7 @@ let pulses = [];              // DOM pulse elements
 let currentStep = -1;
 let p0Enabled = true;         // P0 toggle state (not persisted between sessions)
 let cycleHighlightTimeout = null;  // For auto-dimming cycle circle
+let cycleHighlightEnabled = true; // Cycle highlight toggle state
 
 // ============================================
 // DOM ELEMENTS
@@ -340,6 +341,7 @@ function highlightCycleCircle(step) {
 
   cycleCircle.classList.remove('active', 'active-zero');
 
+  if (!cycleHighlightEnabled) return;
   if (compas === null) return;
 
   const modValue = step % compas;
@@ -721,6 +723,18 @@ async function initializeApp() {
     });
   }
 
+  // Initialize cycle highlight toggle
+  const cycleHighlightToggle = document.getElementById('cycleHighlightToggle');
+  if (cycleHighlightToggle) {
+    const savedHighlight = localStorage.getItem('app16:cycleHighlight');
+    cycleHighlightEnabled = savedHighlight !== null ? savedHighlight === 'true' : true;
+    cycleHighlightToggle.checked = cycleHighlightEnabled;
+    cycleHighlightToggle.addEventListener('change', () => {
+      cycleHighlightEnabled = cycleHighlightToggle.checked;
+      localStorage.setItem('app16:cycleHighlight', String(cycleHighlightEnabled));
+    });
+  }
+
   // Register factory reset
   registerFactoryReset({
     storage: preferenceStorage,
@@ -728,6 +742,7 @@ async function initializeApp() {
       stopPlayback();
       localStorage.removeItem('app16:p1Toggle');
       localStorage.removeItem('app16:pulseAudio');
+      localStorage.removeItem('app16:cycleHighlight');
       localStorage.removeItem(MIXER_STORAGE_KEY);
     }
   });
