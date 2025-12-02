@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Módulo Temporal - Circular</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+</head>
+<body data-theme="system">
+  <div id="app-root"></div>
+
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Módulo Temporal - Circular',
+      showSelectColor: true,
+      showHoverToggle: false,
+      showAccent: false,
+      showComplexFractions: false,
+      pulseSequence: false,
+      showPulseToggle: true,
+      showP1Toggle: true,
+      showCircularTimelineToggle: false,
+      showCycleHighlightToggle: true,
+      hideT: true,
+      hideLeds: true,
+      randomMenuContent: `
+        <label>
+          <span>Pulsos máximo</span>
+          <input type="number" id="randPulsosMax" value="12" min="1" max="99">
+        </label>
+        <label>
+          <span>Cycles máximo</span>
+          <input type="number" id="randCyclesMax" value="8" min="1" max="12">
+        </label>
+        <label>
+          <span>BPM mínimo</span>
+          <input type="number" id="randBpmMin" value="60" min="30" max="300">
+        </label>
+        <label>
+          <span>BPM máximo</span>
+          <input type="number" id="randBpmMax" value="180" min="30" max="300">
+        </label>
+      `
+    });
+
+    // Reemplazar inputs Lg/V por nuestro control de Compás + contador de ciclo
+    const inputsSection = document.querySelector('.inputs');
+    if (inputsSection) {
+      inputsSection.innerHTML = `
+        <div class="param compas">
+          <span class="abbr">Pulsos Compás</span>
+          <div class="circle">
+            <input id="inputCompas" type="number" min="1" max="99" value="" />
+            <div class="spinner">
+              <button id="compasUp" class="spin up" type="button" aria-label="Incrementar Compás"></button>
+              <button id="compasDown" class="spin down" type="button" aria-label="Decrementar Compás"></button>
+            </div>
+          </div>
+        </div>
+        <div class="param cycle-display">
+          <span class="abbr">Cycle</span>
+          <div class="circle cycle-circle">
+            <input id="inputCycle" type="number" min="1" max="12" value="4" />
+            <div class="cycle-counter__digit" id="cycleDigit"></div>
+            <div class="spinner">
+              <button id="cycleUp" class="spin up" type="button" aria-label="Incrementar Cycle"></button>
+              <button id="cycleDown" class="spin down" type="button" aria-label="Decrementar Cycle"></button>
+            </div>
+          </div>
+        </div>
+        <div class="param bpm" id="bpmParam" style="display: none;">
+          <span class="abbr">BPM</span>
+          <div class="circle">
+            <input id="inputBpm" type="number" min="30" max="300" value="100" />
+            <div class="spinner">
+              <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
+              <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Ocultar la sección middle (fórmula)
+    const middleSection = document.querySelector('.middle');
+    if (middleSection) middleSection.style.display = 'none';
+
+    // Añadir checkbox "Mostrar BPM" al menú Opciones (después de cycleHighlightToggle)
+    const cycleHighlightLabel = document.querySelector('label[for="cycleHighlightToggle"]');
+    if (cycleHighlightLabel) {
+      const showBpmLabel = document.createElement('label');
+      showBpmLabel.setAttribute('for', 'showBpmToggle');
+      showBpmLabel.innerHTML = 'Mostrar BPM <input type="checkbox" id="showBpmToggle" />';
+      cycleHighlightLabel.after(showBpmLabel);
+    }
+
+    // Añadir botón tap tempo al grupo de controles (oculto por defecto)
+    const controlGroup = document.querySelector('.control');
+    if (controlGroup) {
+      const tapBtn = document.createElement('button');
+      tapBtn.id = 'tapTempoBtn';
+      tapBtn.className = 'tap';
+      tapBtn.setAttribute('aria-label', 'Tap Tempo');
+      tapBtn.style.display = 'none';
+      tapBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor"><path d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm0 448c-110.5 0-200-89.5-200-200S145.5 56 256 56s200 89.5 200 200-89.5 200-200 200zm61.8-104.4l-84.9-61.7c-3.1-2.3-4.9-5.9-4.9-9.7V116c0-6.6 5.4-12 12-12h32c6.6 0 12 5.4 12 12v141.7l66.8 48.6c5.4 3.9 6.5 11.4 2.6 16.8l-18.8 25.8c-3.9 5.3-11.4 6.5-16.8 2.7z"/></svg>`;
+
+      // Insertar después del playBtn
+      const playBtn = controlGroup.querySelector('#playBtn');
+      if (playBtn && playBtn.nextSibling) {
+        controlGroup.insertBefore(tapBtn, playBtn.nextSibling);
+      } else {
+        controlGroup.appendChild(tapBtn);
+      }
+
+      // Añadir span para help text
+      const tapHelp = document.createElement('span');
+      tapHelp.id = 'tapHelp';
+      tapHelp.style.display = 'none';
+      controlGroup.appendChild(tapHelp);
+    }
+
+    initHeader();
+    import('./main.js');
+  </script>
+
+  <!-- Rendimiento Audio (menú flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <!-- Long-press para abrir el mixer -->
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+</body>
+</html>

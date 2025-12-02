@@ -1,0 +1,377 @@
+/* App17 - Módulo Temporal - Circular */
+
+/* ============================================
+   APP-SPECIFIC CSS VARIABLES
+   ============================================ */
+
+:root {
+  --control-toggle-gap: -29px;
+}
+
+/* ============================================
+   HIDE TEMPLATE ELEMENTS NOT NEEDED
+   ============================================ */
+
+/* Hide loop button */
+#loopBtn {
+  display: none !important;
+}
+
+/* Tap tempo button is controlled via JS (toggleBpmVisibility) */
+
+/* Hide formula section */
+.middle {
+  display: none !important;
+}
+
+/* ============================================
+   INPUTS SECTION: Pulsos Compás + Cycle + Counter
+   ============================================ */
+
+.inputs {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+}
+
+/* All param circles same size */
+.param.compas .circle,
+.param.cycle-display .circle {
+  width: 100px;
+  height: 100px;
+}
+
+/* Cycle circle: contains both input (when stopped) and digit (when playing) */
+.param.cycle-display .cycle-circle {
+  position: relative;
+}
+
+/* Cycle input - visible when stopped */
+.param.cycle-display .cycle-circle input {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.param.cycle-display .cycle-circle input:focus {
+  outline: none;
+}
+
+/* When playing, hide input and show digit */
+.param.cycle-display .cycle-circle.playing input {
+  display: none;
+}
+
+.param.cycle-display .cycle-circle .cycle-counter__digit {
+  display: none;
+}
+
+.param.cycle-display .cycle-circle.playing .cycle-counter__digit {
+  display: block;
+}
+
+.param.compas input {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+}
+
+.param.compas input:focus {
+  outline: none;
+}
+
+/* Cycle display styling */
+.param.cycle-display .cycle-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.cycle-counter__digit {
+  font-size: 3rem;
+  font-weight: 700;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--text-color, #333);  /* Same as Compás input when stopped */
+  line-height: 1;
+}
+
+.cycle-counter__digit sub {
+  font-size: 0.5em;
+  vertical-align: baseline;
+  position: relative;
+  top: 0.3em;
+  opacity: 0.8;
+}
+
+/* Playing state: color matches current pulse highlight */
+.cycle-counter__digit.playing-zero {
+  color: var(--color-lg, #4A90D9);
+}
+
+.cycle-counter__digit.playing-active {
+  color: var(--selection-color, #EA570C);
+}
+
+/* Flip animation for cycle counter */
+.cycle-counter__digit.flip-out {
+  animation: flipOut 0.15s ease-in forwards;
+}
+
+.cycle-counter__digit.flip-in {
+  animation: flipIn 0.15s ease-out forwards;
+}
+
+@keyframes flipOut {
+  from { transform: rotateX(0); opacity: 1; }
+  to { transform: rotateX(-90deg); opacity: 0; }
+}
+
+@keyframes flipIn {
+  from { transform: rotateX(90deg); opacity: 0; }
+  to { transform: rotateX(0); opacity: 1; }
+}
+
+/* ============================================
+   TIMELINE - Pulse Number Overrides
+   ============================================ */
+
+/* Modular numbering styles */
+.pulse-number {
+  font-size: 2rem;
+  transition: transform 0.12s ease, color 0.12s ease;
+}
+
+.pulse-number.cycle-start {
+  color: var(--color-lg, #4A90D9);
+  font-weight: 700;
+}
+
+.pulse-number sup {
+  font-size: 0.55em;
+  vertical-align: super;
+  margin-left: 1px;
+  opacity: 0.8;
+}
+
+/* Hide endpoint number in circular mode (overlaps with position 0) */
+.pulse-number.endpoint:not([data-index="0"]) {
+  display: none !important;
+}
+
+/* Reposition the 0 number at bottom center of circle */
+.pulse-number[data-index="0"] {
+  left: 142px !important;
+  transform: translate(50%, 20%) !important;
+}
+
+/* Highlight during playback - normal numbers */
+.pulse-number.active {
+  color: var(--selection-color, #EA570C);
+  transform: translateX(-50%) scale(1.35);
+}
+
+/* Highlight during playback - cycle start (0s) */
+.pulse-number.active-zero {
+  color: var(--color-lg, #4A90D9);
+  transform: translateX(-50%) scale(1.5);
+  text-shadow: 0 0 12px var(--color-lg, #4A90D9);
+}
+
+/* Pulse dot highlights */
+.pulse.active {
+  background: var(--selection-color, #EA570C) !important;
+  transform: translate(-50%, -50%) scale(1.6);
+}
+
+.pulse.active-zero {
+  background: var(--color-lg, #4A90D9) !important;
+  transform: translate(-50%, -50%) scale(1.8);
+  box-shadow: 0 0 12px var(--color-lg, #4A90D9);
+}
+
+/* Cycle circle highlights during playback */
+.cycle-circle {
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.cycle-circle.active {
+  border-color: var(--selection-color, #EA570C) !important;
+  box-shadow: 0 0 12px var(--selection-color, #EA570C);
+}
+
+.cycle-circle.active-zero {
+  border-color: var(--color-lg, #4A90D9) !important;
+  box-shadow: 0 0 12px var(--color-lg, #4A90D9);
+}
+
+/* ============================================
+   BPM PARAM (THIRD CIRCLE)
+   ============================================ */
+
+/* BPM param circle - same size as others */
+.param.bpm .circle {
+  width: 100px;
+  height: 100px;
+}
+
+.param.bpm input {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.param.bpm input:focus {
+  outline: none;
+}
+
+/* ============================================
+   DARK THEME ADJUSTMENTS
+   ============================================ */
+
+[data-theme="dark"] .param.cycle-display .cycle-circle {
+  background: transparent;
+}
+
+[data-theme="dark"] .param.compas input,
+[data-theme="dark"] .param.cycle-display input,
+[data-theme="dark"] .param.bpm input {
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .cycle-counter__digit {
+  color: var(--text-color, #eee);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+/* Tablet / Small desktop */
+@media (max-width: 600px) {
+  .inputs {
+    gap: 1rem;
+  }
+
+  .param .abbr {
+    font-size: 0.85rem;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle,
+  .param.bpm .circle {
+    width: 80px;
+    height: 80px;
+  }
+
+  .param.compas input,
+  .param.cycle-display input,
+  .param.bpm input {
+    font-size: 2rem;
+  }
+
+  .cycle-counter__digit {
+    font-size: 2.5rem;
+  }
+
+  .pulse-number {
+    font-size: 0.9rem;
+  }
+}
+
+/* Mobile landscape / Small tablets */
+@media (max-width: 480px) {
+  .inputs {
+    gap: 0.75rem;
+  }
+
+  .param .abbr {
+    font-size: 0.8rem;
+  }
+
+  .param.compas .spinner,
+  .param.cycle-display .spinner,
+  .param.bpm .spinner {
+    width: 15px;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle,
+  .param.bpm .circle {
+    width: 70px;
+    height: 70px;
+  }
+
+  .param.compas input,
+  .param.cycle-display input,
+  .param.bpm input {
+    font-size: 1.75rem;
+  }
+
+  .cycle-counter__digit {
+    font-size: 2rem;
+  }
+
+  .pulse-number {
+    font-size: 0.8rem;
+  }
+
+  .pulse-number sup {
+    font-size: 0.5em;
+  }
+}
+
+/* Small mobile (iPhone SE, etc.) */
+@media (max-width: 360px) {
+  .inputs {
+    gap: 0.5rem;
+  }
+
+  .param .abbr {
+    font-size: 0.75rem;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle,
+  .param.bpm .circle {
+    width: 60px;
+    height: 60px;
+  }
+
+  .param.compas input,
+  .param.cycle-display input,
+  .param.bpm input {
+    font-size: 1.5rem;
+  }
+
+  .param.compas .spinner,
+  .param.cycle-display .spinner,
+  .param.bpm .spinner {
+    width: 14px;
+  }
+
+  .cycle-counter__digit {
+    font-size: 1.75rem;
+  }
+
+  .pulse-number {
+    font-size: 0.7rem;
+  }
+}
