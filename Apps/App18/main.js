@@ -258,6 +258,9 @@ function drawSoundline() {
 }
 
 // ========== LOCAL HIGHLIGHT CONTROLLER (for 14 notes) ==========
+// Track pending timeouts to cancel them when same note repeats
+const highlightTimeouts = new Map();
+
 /**
  * Highlight a note on the soundline (adapted for 14 notes)
  * @param {number} noteIndex - Note index (0-13)
@@ -289,19 +292,37 @@ function highlightNote(noteIndex, duration = 300) {
     activeHighlights.set(noteIndex, rect);
   }
 
-  // Add highlight class
+  // Cancel any pending timeout for this note (prevents premature removal)
+  const existingTimeout = highlightTimeouts.get(noteIndex);
+  if (existingTimeout) {
+    clearTimeout(existingTimeout);
+    highlightTimeouts.delete(noteIndex);
+  }
+
+  // Force animation restart: remove class, trigger reflow, add class
+  rect.classList.remove('highlight');
+  // Force reflow to restart CSS animation
+  void rect.offsetWidth;
   rect.classList.add('highlight');
 
   // Auto-remove highlight after duration
-  setTimeout(() => {
+  const timeoutId = setTimeout(() => {
     rect.classList.remove('highlight');
+    highlightTimeouts.delete(noteIndex);
   }, duration);
+
+  highlightTimeouts.set(noteIndex, timeoutId);
 }
 
 /**
  * Clear all highlights and remove elements
  */
 function clearHighlights() {
+  // Cancel all pending timeouts
+  highlightTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+  highlightTimeouts.clear();
+
+  // Remove all highlight elements
   activeHighlights.forEach(rect => {
     rect.classList.remove('highlight');
     rect.remove();
