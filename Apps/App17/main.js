@@ -869,6 +869,12 @@ async function initializeApp() {
   // Cycle input events
   inputCycle?.addEventListener('input', (e) => {
     handleCycleChange(e.target.value);
+    // Auto-blur after entering a digit
+    if (e.inputType === 'insertText' && /^[0-9]$/.test(e.data)) {
+      setTimeout(() => {
+        inputCycle.blur();
+      }, AUTO_JUMP_DELAY);
+    }
   });
 
   inputCycle?.addEventListener('blur', () => {
