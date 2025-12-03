@@ -44,7 +44,13 @@
   gap: 2rem;
 }
 
-/* Registro param styling (from App16/17) */
+/* Registro param styling - custom layout with external spinners */
+.param.registro .registro-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .param.registro .circle {
   width: 100px;
   height: 100px;
@@ -70,6 +76,77 @@
   color: transparent;
 }
 
+/* External spinner - positioned to the right of circle, 6x size */
+.param.registro .spinner-external {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+}
+
+.param.registro .spinner-external .spin {
+  width: 72px;
+  height: 72px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.param.registro .spinner-external .spin:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.param.registro .spinner-external .spin:active {
+  transform: scale(0.95);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+/* Arrow indicators */
+.param.registro .spinner-external .spin::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+}
+
+.param.registro .spinner-external .spin.up::before {
+  border-bottom: 16px solid var(--text-color, #333);
+  margin-top: -2px;
+}
+
+.param.registro .spinner-external .spin.down::before {
+  border-top: 16px solid var(--text-color, #333);
+  margin-top: 2px;
+}
+
+/* Dark theme adjustments for external spinner */
+[data-theme="dark"] .param.registro .spinner-external .spin {
+  background: transparent;
+}
+
+[data-theme="dark"] .param.registro .spinner-external .spin:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .param.registro .spinner-external .spin:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .param.registro .spinner-external .spin.up::before {
+  border-bottom-color: var(--text-dark, #e0e0e0);
+}
+
+[data-theme="dark"] .param.registro .spinner-external .spin.down::before {
+  border-top-color: var(--text-dark, #e0e0e0);
+}
+
 /* ============================================
    MAIN LAYOUT - Center soundline with input
    ============================================ */
@@ -79,7 +156,7 @@ main {
   flex-direction: column;
   align-items: center;
   min-height: calc(100vh - 60px);
-  padding-top: 20px;
+  padding-top: 0px;
 }
 
 /* ============================================
@@ -92,7 +169,7 @@ main {
   margin: 0 auto;
   position: relative;
   z-index: 1500;
-  padding: 20px 40px;
+  padding: 20px 0px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -279,6 +356,11 @@ main {
     font-size: 2rem;
   }
 
+  .param.registro .spinner-external .spin {
+    width: 60px;
+    height: 60px;
+  }
+
   .timeline-wrapper {
     max-width: 100%;
     height: 500px;
@@ -311,8 +393,13 @@ main {
     font-size: 0.8rem;
   }
 
-  .param.registro .spinner {
-    width: 15px;
+  .param.registro .registro-row {
+    gap: 0.5rem;
+  }
+
+  .param.registro .spinner-external .spin {
+    width: 54px;
+    height: 54px;
   }
 
   .param.registro .circle {
@@ -355,6 +442,10 @@ main {
     font-size: 0.75rem;
   }
 
+  .param.registro .registro-row {
+    gap: 0.4rem;
+  }
+
   .param.registro .circle {
     width: 60px;
     height: 60px;
@@ -364,8 +455,22 @@ main {
     font-size: 1.5rem;
   }
 
-  .param.registro .spinner {
-    width: 14px;
+  .param.registro .spinner-external .spin {
+    width: 48px;
+    height: 48px;
+  }
+
+  .param.registro .spinner-external .spin::before {
+    border-left-width: 10px;
+    border-right-width: 10px;
+  }
+
+  .param.registro .spinner-external .spin.up::before {
+    border-bottom-width: 12px;
+  }
+
+  .param.registro .spinner-external .spin.down::before {
+    border-top-width: 12px;
   }
 
   .timeline-wrapper {

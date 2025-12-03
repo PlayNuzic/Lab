@@ -611,6 +611,11 @@ function initApp() {
   // Setup event listeners
   setupEventHandlers();
 
+  // Focus on input registro at startup
+  if (inputRegistro) {
+    inputRegistro.focus();
+  }
+
   console.log('App18 initialized - waiting for registry input');
 }
 
