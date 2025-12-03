@@ -288,10 +288,10 @@ function wireControls(root) {
         }
     }
 
-    // Complex fractions toggle - default false
+    // Complex fractions toggle - default true (for Apps 3 and 4)
     if (enableComplexFractions) {
         const stored = localStorage.getItem('enableComplexFractions');
-        const enabled = stored === 'true'; // Default: false
+        const enabled = stored === null ? true : stored === 'true'; // Default: true
         enableComplexFractions.checked = enabled;
 
         enableComplexFractions.addEventListener('change', (e) => {
@@ -315,12 +315,12 @@ function wireControls(root) {
             }
             factoryResetBtn.blur();
 
-            // Reset complex fractions to default (false)
+            // Reset complex fractions to default (true)
             localStorage.removeItem('enableComplexFractions');
             if (enableComplexFractions) {
-                enableComplexFractions.checked = false;
+                enableComplexFractions.checked = true;
                 window.dispatchEvent(new CustomEvent('sharedui:complexfractions', {
-                    detail: { value: false, source: 'factory-reset' }
+                    detail: { value: true, source: 'factory-reset' }
                 }));
             }
 

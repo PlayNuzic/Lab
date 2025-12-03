@@ -166,7 +166,7 @@ initFractionEditorController();
 // Initialize complex fractions state from localStorage (pattern from App4)
 function initComplexFractionsState() {
   const stored = localStorage.getItem('enableComplexFractions');
-  const enabled = stored === 'true'; // Default: false
+  const enabled = stored === null ? true : stored === 'true'; // Default: true
 
   if (fractionEditorController) {
     if (enabled) {
@@ -936,8 +936,9 @@ function randomize() {
   }
   const fractionUpdates = {};
 
-  // Check if complex fractions are enabled
-  const complexEnabled = localStorage.getItem('enableComplexFractions') === 'true';
+  // Check if complex fractions are enabled (default: true)
+  const storedComplex = localStorage.getItem('enableComplexFractions');
+  const complexEnabled = storedComplex === null ? true : storedComplex === 'true';
 
   if (cfg.n.enabled) {
     const [min, max] = cfg.n.range;

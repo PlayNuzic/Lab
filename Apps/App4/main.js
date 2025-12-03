@@ -869,7 +869,7 @@ initFractionEditorController();
 // Initialize complex fractions state from localStorage
 function initComplexFractionsState() {
   const stored = localStorage.getItem('enableComplexFractions');
-  const enabled = stored === 'true'; // Default: false
+  const enabled = stored === null ? true : stored === 'true'; // Default: true
 
   if (fractionEditorController) {
     if (enabled) {
@@ -1535,7 +1535,7 @@ function randomize() {
     applyRandomFractionSelection,
     getAllowComplexFractions: () => {
       const stored = localStorage.getItem('enableComplexFractions');
-      return stored === 'true';
+      return stored === null ? true : stored === 'true'; // Default: true
     },
     callbacks: {
       onLgChange: ({ value, input }) => handleInput({ target: input }),
