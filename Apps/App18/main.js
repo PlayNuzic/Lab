@@ -55,16 +55,60 @@ function getRandomBPM() {
   return Math.floor(Math.random() * (MAX_BPM - MIN_BPM + 1)) + MIN_BPM;
 }
 
+function getRandomRegistro() {
+  return Math.floor(Math.random() * (MAX_REGISTRO - MIN_REGISTRO + 1)) + MIN_REGISTRO;
+}
+
 function getRandomNoteIndex() {
   // Random note within current registry (0-11)
   return Math.floor(Math.random() * 12);
 }
 
+/**
+ * Get available "outside" notes based on current registry
+ * - Registro 0: only next (0, 1 of next registry = notes 12, 13)
+ * - Registro 7: only prev (11 of prev registry = note -1)
+ * - Registro 1-6: both prev and next (-1, 12, 13)
+ * Returns array of note indices that are "outside" current registry
+ */
+function getOutsideNotes() {
+  if (registro === 0) {
+    // No prev, only next: notes 12, 13 (0r1, 1r1)
+    return [12, 13];
+  } else if (registro === MAX_REGISTRO) {
+    // No next, only prev: note -1 (11r6)
+    return [-1];
+  } else {
+    // Both prev and next
+    return [-1, 12, 13];
+  }
+}
+
 function generateRandomNotes() {
   const notes = [];
-  for (let i = 0; i < SEQUENCE_LENGTH; i++) {
+
+  // Decide how many outside notes (1 or 2)
+  const outsideCount = Math.random() < 0.5 ? 1 : 2;
+  const insideCount = SEQUENCE_LENGTH - outsideCount;
+
+  // Generate inside notes (0-11)
+  for (let i = 0; i < insideCount; i++) {
     notes.push(getRandomNoteIndex());
   }
+
+  // Generate outside notes
+  const outsideOptions = getOutsideNotes();
+  for (let i = 0; i < outsideCount; i++) {
+    const randomOutside = outsideOptions[Math.floor(Math.random() * outsideOptions.length)];
+    notes.push(randomOutside);
+  }
+
+  // Shuffle the array to mix inside and outside notes
+  for (let i = notes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [notes[i], notes[j]] = [notes[j], notes[i]];
+  }
+
   return notes;
 }
 
@@ -136,11 +180,37 @@ function calculateStartMidi() {
 }
 
 /**
- * Get MIDI for a playable note (0-11) within current registry
+ * Get MIDI for a playable note within or adjacent to current registry
+ * - Notes 0-11: current registry
+ * - Note -1: previous registry note 11 (clamped to 0 if registro=0)
+ * - Notes 12-13: next registry notes 0-1 (clamped to 11 if registro=7)
+ * Returns { midi, clampedNote } where clampedNote is the effective note index
  */
 function getMidiForPlayableNote(noteInRegistry) {
-  if (registro === null) return 60;
-  return noteInRegistry + (registro * 12);
+  if (registro === null) return { midi: 60, clampedNote: 0 };
+
+  let effectiveNote = noteInRegistry;
+
+  if (noteInRegistry === -1) {
+    // Previous registry note 11
+    if (registro === 0) {
+      // Clamp to 0r0 (lowest note in registry 0)
+      effectiveNote = 0;
+    } else {
+      return { midi: (registro - 1) * 12 + 11, clampedNote: -1 };
+    }
+  } else if (noteInRegistry >= 12) {
+    // Next registry notes 0-1
+    if (registro === MAX_REGISTRO) {
+      // Clamp to 11r7 (highest note in registry 7)
+      effectiveNote = 11;
+    } else {
+      return { midi: (registro + 1) * 12 + (noteInRegistry - 12), clampedNote: noteInRegistry };
+    }
+  }
+
+  // Current registry (or clamped note)
+  return { midi: effectiveNote + (registro * 12), clampedNote: effectiveNote };
 }
 
 // ========== SOUNDLINE DRAWING ==========
@@ -282,7 +352,7 @@ async function handlePlay() {
     playBtn.disabled = true;
     playBtn.classList.add('playing');
   }
-  if (randomBtn) randomBtn.disabled = true;
+  // Note: randomBtn stays enabled so user can prepare next sequence
 
   // Clear previous highlights
   clearHighlights();
@@ -293,8 +363,8 @@ async function handlePlay() {
   let currentTime = 0;
 
   randomNotes.forEach((noteInRegistry, idx) => {
-    // Calculate MIDI from note in registry
-    const midi = getMidiForPlayableNote(noteInRegistry);
+    // Calculate MIDI from note in registry (may be clamped at boundaries)
+    const { midi, clampedNote } = getMidiForPlayableNote(noteInRegistry);
     const note = Tone.Frequency(midi, 'midi').toNote();
     const noteDurationSec = intervalSec * 0.9;
 
@@ -302,14 +372,32 @@ async function handlePlay() {
     const when = startTime + currentTime;
     piano.triggerAttackRelease(note, noteDurationSec, when);
 
-    // Highlight index depends on registry layout
-    // Registro 0: no prev, so noteInRegistry maps directly to index
-    // Registro 1-7: has prev at index 0, so noteInRegistry + 1
-    const highlightIndex = registro === 0 ? noteInRegistry : noteInRegistry + 1;
+    // Calculate highlight index based on clamped note and registry layout
+    let highlightIndex;
+    if (registro === 0) {
+      // No prev: notes 0-11 at index 0-11, notes 12-13 at index 12-13
+      highlightIndex = clampedNote;
+    } else if (registro === MAX_REGISTRO) {
+      // No next: note -1 at index 0, notes 0-11 at index 1-12
+      highlightIndex = clampedNote + 1;
+    } else {
+      // Full range: note -1 at index 0, notes 0-11 at index 1-12, notes 12-13 at index 13-14
+      highlightIndex = clampedNote + 1;
+    }
+
     const delayMs = currentTime * 1000;
 
     setTimeout(() => {
-      console.log(`Note ${idx + 1}/${SEQUENCE_LENGTH}: ${noteInRegistry}r${registro} (MIDI ${midi})`);
+      // Format label for logging (using clamped note)
+      let label;
+      if (clampedNote === -1) {
+        label = `11r${registro - 1}`;
+      } else if (clampedNote >= 12) {
+        label = `${clampedNote - 12}r${registro + 1}`;
+      } else {
+        label = `${clampedNote}r${registro}`;
+      }
+      console.log(`Note ${idx + 1}/${SEQUENCE_LENGTH}: ${label} (MIDI ${midi})`);
       highlightNote(highlightIndex, noteDurationSec * 1000);
     }, delayMs);
 
@@ -323,17 +411,25 @@ async function handlePlay() {
       playBtn.disabled = false;
       playBtn.classList.remove('playing');
     }
-    if (randomBtn) randomBtn.disabled = false;
     clearHighlights();
     console.log('Sequence finished');
   }, currentTime * 1000);
 }
 
 function handleRandom() {
-  if (isPlaying) return;
-  if (registro === null) return;
+  // Can be called during playback to prepare next sequence
 
-  // Re-generate random sequence (same registry)
+  // If no registry, randomize both registry and sequence
+  if (registro === null) {
+    registro = getRandomRegistro();
+    if (inputRegistro) {
+      inputRegistro.value = registro;
+    }
+    drawSoundline();
+    console.log(`Random registry: ${registro}`);
+  }
+
+  // Generate random sequence
   randomNotes = generateRandomNotes();
   currentBPM = getRandomBPM();
 
