@@ -17,8 +17,9 @@ export function attachHover(el, { text = '', color = '#fff', background = 'rgba(
     tip.style.color = el.dataset.hoverColor ?? color;
     tip.style.fontSize = el.dataset.hoverSize ?? size;
     const rect = el.getBoundingClientRect();
+    // Position fixed uses viewport coordinates - rect already gives us that
     tip.style.left = rect.left + rect.width / 2 + 'px';
-    tip.style.top = rect.top + window.scrollY + 'px';
+    tip.style.top = rect.top + 'px';
     tip.classList.add('show');
   }
 
