@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modulo Sonoro - Registro</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+</head>
+<body data-theme="system">
+  <div id="app-root"></div>
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    // Set defaults in localStorage BEFORE header initializes
+    const app18Prefs = localStorage.getItem('app18-preferences');
+    if (!app18Prefs) {
+      localStorage.setItem('app18-preferences', JSON.stringify({
+        selectedInstrument: 'piano'
+      }));
+    }
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Modulo Sonoro - Registro',
+      showSelectColor: false,
+      showAccent: false,
+      showComplexFractions: false,
+      hideT: true,
+      hideLeds: true,
+      showCircularTimelineToggle: false,
+      showHoverToggle: false,
+      showStartSoundDropdown: false,
+      showInstrumentDropdown: true,
+      randomMenuContent: ''
+    });
+
+    // Replace inputs section with Registro input
+    const inputsSection = document.querySelector('.inputs');
+    if (inputsSection) {
+      inputsSection.innerHTML = `
+        <div class="param registro">
+          <span class="abbr">Registro</span>
+          <div class="circle">
+            <input id="inputRegistro" type="number" min="0" max="7" value="" placeholder="" />
+            <div class="spinner">
+              <button id="registroUp" class="spin up" type="button" aria-label="Incrementar Registro"></button>
+              <button id="registroDown" class="spin down" type="button" aria-label="Decrementar Registro"></button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    initHeader();
+    import('./main.js');
+  </script>
+
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+</body>
+</html>

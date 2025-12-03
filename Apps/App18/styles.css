@@ -1,0 +1,399 @@
+/* App18: Modulo Sonoro - Registro */
+
+/* ============================================
+   CSS VARIABLES
+   ============================================ */
+:root {
+  --line-color: #666;
+  --soundline-width: 3px;
+  --note-highlight-color: var(--selection-color, #F97C39);
+  --soundline-height: 100%;
+}
+
+[data-theme="dark"] {
+  --line-color: #999;
+}
+
+/* ============================================
+   HIDE TEMPLATE ELEMENTS NOT NEEDED
+   ============================================ */
+
+/* Hide loop, tap buttons - show only play, random, reset */
+#loopBtn,
+#tapTempoBtn {
+  display: none !important;
+}
+
+/* Hide formula section */
+.middle {
+  display: none !important;
+}
+
+/* Hide random menu popup (not needed) */
+#randomMenu {
+  display: none !important;
+}
+
+/* ============================================
+   INPUTS SECTION: Registro Input
+   ============================================ */
+
+.inputs {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+}
+
+/* Registro param styling (from App16/17) */
+.param.registro .circle {
+  width: 100px;
+  height: 100px;
+}
+
+.param.registro input {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.param.registro input:focus {
+  outline: none;
+}
+
+.param.registro input::placeholder {
+  color: transparent;
+}
+
+/* ============================================
+   MAIN LAYOUT - Center soundline with input
+   ============================================ */
+
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: calc(100vh - 60px);
+  padding-top: 20px;
+}
+
+/* ============================================
+   SOUNDLINE WRAPPER - Timeline always centered
+   ============================================ */
+
+.timeline-wrapper {
+  width: 100%;
+  height: 550px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1500;
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Timeline (soundline container) - centered with input Registro */
+.timeline {
+  width: 300px;
+  height: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  --soundline-offset-x: 60px;  /* Fine-tune: positive = right, negative = left */
+  margin-left: var(--soundline-offset-x);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: visible;
+}
+
+/* Controls - positioned absolutely relative to timeline-wrapper */
+.timeline-wrapper .controls {
+  position: absolute;
+  margin: 0;
+  --controls-offset-x: -190px;   /* Fine-tune horizontal position from center */
+  --controls-offset-y: 0px;     /* Fine-tune vertical position from center */
+  --reset-offset-y: 0px;         /* Fine-tune reset button vertical position */
+  left: calc(50% + var(--controls-offset-x));
+  top: calc(50% + var(--controls-offset-y));
+  transform: translate(-50%, -50%);
+}
+
+/* Swap Random and Reset positions: Reset left, Random right */
+.timeline-wrapper .controls .reset {
+  margin-left: 0px;
+  margin-top: var(--reset-offset-y);
+}
+
+.timeline-wrapper .controls .random {
+  margin-right: 0px;
+}
+
+/* Hide horizontal timeline line */
+.timeline::before {
+  display: none !important;
+}
+
+/* ============================================
+   SOUNDLINE (VERTICAL LINE) - 14 notes
+   ============================================ */
+
+.soundline {
+  position: relative;
+  width: 300px;
+  height: var(--soundline-height, 100%);
+}
+
+/* Vertical line */
+.soundline::before {
+  content: '';
+  position: absolute;
+  left: 100px;
+  top: var(--line-top, 0);
+  bottom: var(--line-bottom, 0);
+  width: var(--soundline-width);
+  background: var(--line-color);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ============================================
+   HORIZONTAL DIVISIONS
+   ============================================ */
+
+.soundline-division {
+  position: absolute;
+  width: 30px;
+  height: 2px;
+  background: var(--line-color);
+  left: 85px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ============================================
+   NUMBERS (registry labels: Nr format)
+   ============================================ */
+
+.soundline-number {
+  position: absolute;
+  font-size: 1.6rem;
+  font-weight: 400;
+  color: var(--text-color, #333);
+  user-select: none;
+  z-index: 3;
+  opacity: 0.85;
+  transition: color 0.3s ease;
+  left: 20px;
+  text-align: right;
+  width: 60px;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* Highlight registry boundaries */
+.soundline-number.registry-boundary {
+  opacity: 0.5;
+  font-size: 1.4rem;
+}
+
+/* Current registry start (note 0) */
+.soundline-number.registry-start {
+  color: var(--color-lg, #4A90D9);
+  font-weight: 700;
+}
+
+[data-theme="dark"] .soundline-number {
+  color: var(--text-dark, #e0e0e0);
+}
+
+[data-theme="dark"] .soundline-number.registry-start {
+  color: var(--color-lg, #4A90D9);
+}
+
+/* ============================================
+   NOTE HIGHLIGHTS (14 notes = 7.14% each)
+   ============================================ */
+
+.note-highlight {
+  position: absolute;
+  width: 80px;
+  height: 7.14%; /* 100% / 14 notes */
+  left: 120px;
+  background: var(--note-highlight-color);
+  opacity: 0;
+  border-radius: 4px;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.note-highlight.highlight {
+  opacity: 0.8;
+  box-shadow: 0 0 14px var(--note-highlight-color), 0 0 20px currentColor;
+  animation: noteFlash var(--pulse-anim-duration, 0.35s) ease-out;
+}
+
+@keyframes noteFlash {
+  0% {
+    transform: translateY(-100%) scale(0.95);
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(-100%) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100%) scale(1);
+    opacity: 0.8;
+  }
+}
+
+/* ============================================
+   DARK THEME ADJUSTMENTS
+   ============================================ */
+
+[data-theme="dark"] .param.registro input {
+  color: var(--text-color, #eee);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+/* Tablet / Small desktop */
+@media (max-width: 600px) {
+  .inputs {
+    gap: 1rem;
+  }
+
+  .param .abbr {
+    font-size: 0.85rem;
+  }
+
+  .param.registro .circle {
+    width: 80px;
+    height: 80px;
+  }
+
+  .param.registro input {
+    font-size: 2rem;
+  }
+
+  .timeline-wrapper {
+    max-width: 100%;
+    height: 500px;
+    padding: 20px 15px;
+  }
+
+  .soundline {
+    width: 200px;
+  }
+
+  .soundline-number {
+    font-size: 1.3rem;
+    left: 10px;
+    width: 50px;
+  }
+
+  .note-highlight {
+    width: 60px;
+    left: 110px;
+  }
+}
+
+/* Mobile landscape / Small tablets */
+@media (max-width: 480px) {
+  .inputs {
+    gap: 0.75rem;
+  }
+
+  .param .abbr {
+    font-size: 0.8rem;
+  }
+
+  .param.registro .spinner {
+    width: 15px;
+  }
+
+  .param.registro .circle {
+    width: 70px;
+    height: 70px;
+  }
+
+  .param.registro input {
+    font-size: 1.75rem;
+  }
+
+  .timeline-wrapper {
+    height: 450px;
+    padding: 15px 10px;
+  }
+
+  .soundline {
+    width: 160px;
+  }
+
+  .soundline-number {
+    font-size: 1.1rem;
+    left: 5px;
+    width: 45px;
+  }
+
+  .note-highlight {
+    width: 50px;
+    left: 100px;
+  }
+}
+
+/* Small mobile (iPhone SE, etc.) */
+@media (max-width: 360px) {
+  .inputs {
+    gap: 0.5rem;
+  }
+
+  .param .abbr {
+    font-size: 0.75rem;
+  }
+
+  .param.registro .circle {
+    width: 60px;
+    height: 60px;
+  }
+
+  .param.registro input {
+    font-size: 1.5rem;
+  }
+
+  .param.registro .spinner {
+    width: 14px;
+  }
+
+  .timeline-wrapper {
+    height: 400px;
+  }
+
+  .soundline {
+    width: 140px;
+  }
+
+  .soundline-number {
+    font-size: 1rem;
+    left: 0;
+    width: 40px;
+  }
+
+  .note-highlight {
+    width: 45px;
+    left: 90px;
+  }
+}
