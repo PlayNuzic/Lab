@@ -332,7 +332,8 @@ async function handlePlay() {
       });
     },
     () => {
-      // Callback al completar
+      // Callback al completar - IMPORTANTE: llamar a audio.stop() para detener el scheduler
+      audio.stop();
       isPlaying = false;
       if (playBtn) {
         playBtn.disabled = false;
