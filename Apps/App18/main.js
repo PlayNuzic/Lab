@@ -27,13 +27,25 @@ let registroDown = null;
 const activeHighlights = new Map();
 
 // ========== CONFIGURATION ==========
-const TOTAL_DISPLAYED_NOTES = 14; // 1 prev + 12 current + 1 next
 const SEQUENCE_LENGTH = 6;        // Random notes per playback
 const MIN_REGISTRO = 0;
 const MAX_REGISTRO = 7;
 const MIN_BPM = 75;
 const MAX_BPM = 200;
 const CHROMATIC_BPM = 160;
+
+/**
+ * Calculate total notes to display based on registry
+ * - Registro 0: 14 notes (no prev: 12 current + 2 next)
+ * - Registro 1-6: 15 notes (1 prev + 12 current + 2 next)
+ * - Registro 7: 13 notes (no next: 1 prev + 12 current)
+ */
+function getTotalDisplayedNotes() {
+  if (registro === null) return 15;
+  if (registro === 0) return 14;  // No previous registry
+  if (registro === MAX_REGISTRO) return 13;  // No next registry
+  return 15;  // Full range
+}
 
 // Preference storage
 const preferenceStorage = createPreferenceStorage('app18');
@@ -59,21 +71,46 @@ function generateRandomNotes() {
 // ========== REGISTRY LABEL FORMATTER ==========
 /**
  * Formats a note index as registry label: "Nr" format
- * Index 0: Previous registry's note 11
- * Index 1-12: Current registry's notes 0-11
- * Index 13: Next registry's note 0
+ * Layout varies by registry:
+ * - Registro 0: No prev (index 0-11 = current, 12-13 = next)
+ * - Registro 1-6: Full (index 0 = prev, 1-12 = current, 13-14 = next)
+ * - Registro 7: No next (index 0 = prev, 1-12 = current)
  */
 function formatRegistryLabel(noteIndex) {
   if (registro === null) return '';
 
+  // Registro 0: No previous registry
+  if (registro === 0) {
+    if (noteIndex < 12) {
+      // Current registry: notes 0-11
+      return `${noteIndex}r${registro}`;
+    } else {
+      // Next registry: notes 0-1 (index 12-13 maps to note 0-1)
+      const note = noteIndex - 12;
+      return `${note}r${registro + 1}`;
+    }
+  }
+
+  // Registro 7: No next registry
+  if (registro === MAX_REGISTRO) {
+    if (noteIndex === 0) {
+      // Previous registry: note 11
+      return `11r${registro - 1}`;
+    } else {
+      // Current registry: notes 0-11 (index 1-12 maps to note 0-11)
+      const note = noteIndex - 1;
+      return `${note}r${registro}`;
+    }
+  }
+
+  // Registro 1-6: Full range
   if (noteIndex === 0) {
     // Previous registry: note 11
-    const prevReg = registro > 0 ? registro - 1 : 0;
-    return `11r${prevReg}`;
-  } else if (noteIndex === 13) {
-    // Next registry: note 0
-    const nextReg = registro < MAX_REGISTRO ? registro + 1 : MAX_REGISTRO;
-    return `0r${nextReg}`;
+    return `11r${registro - 1}`;
+  } else if (noteIndex >= 13) {
+    // Next registry: notes 0-1 (index 13-14 maps to note 0-1)
+    const note = noteIndex - 13;
+    return `${note}r${registro + 1}`;
   } else {
     // Current registry: notes 0-11 (index 1-12 maps to note 0-11)
     const note = noteIndex - 1;
@@ -116,7 +153,7 @@ function drawSoundline() {
   // Create soundline with custom label formatter
   soundline = createSoundline({
     container: soundlineWrapper,
-    totalNotes: TOTAL_DISPLAYED_NOTES,
+    totalNotes: getTotalDisplayedNotes(),
     startMidi: calculateStartMidi(),
     labelFormatter: formatRegistryLabel
   });
@@ -124,17 +161,25 @@ function drawSoundline() {
   // Add CSS classes for styling registry boundaries
   if (registro !== null) {
     const numbers = soundlineWrapper.querySelectorAll('.soundline-number');
+
     numbers.forEach((num) => {
       const idx = parseInt(num.dataset.noteIndex, 10);
 
-      // Mark boundary notes (prev and next registry)
-      if (idx === 0 || idx === 13) {
-        num.classList.add('registry-boundary');
+      // Mark boundary notes based on registry
+      let isBoundary = false;
+      if (registro === 0) {
+        // No prev, boundaries are next registry (index 12-13)
+        isBoundary = idx >= 12;
+      } else if (registro === MAX_REGISTRO) {
+        // No next, boundary is prev registry (index 0)
+        isBoundary = idx === 0;
+      } else {
+        // Full range: prev (0) and next (13-14)
+        isBoundary = idx === 0 || idx >= 13;
       }
 
-      // Mark current registry start (note 0 = index 1)
-      if (idx === 1) {
-        num.classList.add('registry-start');
+      if (isBoundary) {
+        num.classList.add('registry-boundary');
       }
     });
   }
@@ -149,8 +194,9 @@ function drawSoundline() {
  * @param {number} duration - Duration in ms
  */
 function highlightNote(noteIndex, duration = 300) {
-  if (noteIndex < 0 || noteIndex >= TOTAL_DISPLAYED_NOTES) {
-    console.warn(`Note index ${noteIndex} out of range (0-${TOTAL_DISPLAYED_NOTES - 1})`);
+  const totalNotes = getTotalDisplayedNotes();
+  if (noteIndex < 0 || noteIndex >= totalNotes) {
+    console.warn(`Note index ${noteIndex} out of range (0-${totalNotes - 1})`);
     return;
   }
 
@@ -256,8 +302,10 @@ async function handlePlay() {
     const when = startTime + currentTime;
     piano.triggerAttackRelease(note, noteDurationSec, when);
 
-    // Highlight: noteInRegistry + 1 (because index 0 is prev registry)
-    const highlightIndex = noteInRegistry + 1;
+    // Highlight index depends on registry layout
+    // Registro 0: no prev, so noteInRegistry maps directly to index
+    // Registro 1-7: has prev at index 0, so noteInRegistry + 1
+    const highlightIndex = registro === 0 ? noteInRegistry : noteInRegistry + 1;
     const delayMs = currentTime * 1000;
 
     setTimeout(() => {

@@ -185,7 +185,7 @@ main {
 .soundline-number {
   position: absolute;
   font-size: 1.6rem;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--text-color, #333);
   user-select: none;
   z-index: 3;
@@ -203,28 +203,18 @@ main {
   font-size: 1.4rem;
 }
 
-/* Current registry start (note 0) */
-.soundline-number.registry-start {
-  color: var(--color-lg, #4A90D9);
-  font-weight: 700;
-}
-
 [data-theme="dark"] .soundline-number {
   color: var(--text-dark, #e0e0e0);
 }
 
-[data-theme="dark"] .soundline-number.registry-start {
-  color: var(--color-lg, #4A90D9);
-}
-
 /* ============================================
-   NOTE HIGHLIGHTS (14 notes = 7.14% each)
+   NOTE HIGHLIGHTS (15 notes = 6.67% each)
    ============================================ */
 
 .note-highlight {
   position: absolute;
   width: 80px;
-  height: 7.14%; /* 100% / 14 notes */
+  height: 6.67%; /* 100% / 15 notes */
   left: 120px;
   background: var(--note-highlight-color);
   opacity: 0;
