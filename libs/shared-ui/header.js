@@ -48,6 +48,18 @@ function applyTheme(value) {
 
 const SELECTION_COLOR_DEFAULT = '#EA570C';
 const SELECTION_COLOR_KEY = 'sharedui:selectionColor';
+const HOVER_ENABLED_KEY = 'sharedui:hoverEnabled';
+
+function getStoredHoverEnabled() {
+    try {
+        const stored = localStorage.getItem(HOVER_ENABLED_KEY);
+        return stored === null ? true : stored === 'true';
+    } catch (e) { return true; }
+}
+
+function setStoredHoverEnabled(value) {
+    try { localStorage.setItem(HOVER_ENABLED_KEY, String(value)); } catch (e) { /* ignore */ }
+}
 
 function setSelectionColor(value, persist = true) {
     const v = value || SELECTION_COLOR_DEFAULT;
@@ -319,6 +331,13 @@ function wireControls(root) {
                 setSelectionColor(SELECTION_COLOR_DEFAULT, false);
             }
 
+            // Reset hover labels to default (enabled)
+            localStorage.removeItem(HOVER_ENABLED_KEY);
+            if (hoverToggle) {
+                hoverToggle.checked = true;
+                window.__hoversEnabled = true;
+            }
+
             window.dispatchEvent(new CustomEvent('sharedui:factoryreset', {
                 detail: { confirmed: true, source: 'shared-header' }
             }));
@@ -454,9 +473,13 @@ function wireControls(root) {
     }
 
     if (hoverToggle) {
-        window.__hoversEnabled = hoverToggle.checked;
+        // Restore saved preference (default: true)
+        const storedHover = getStoredHoverEnabled();
+        hoverToggle.checked = storedHover;
+        window.__hoversEnabled = storedHover;
         hoverToggle.addEventListener('change', (e) => {
             window.__hoversEnabled = e.target.checked;
+            setStoredHoverEnabled(e.target.checked);
             if (!e.target.checked) {
                 document.querySelectorAll('.hover-tip').forEach(t => t.classList.remove('show'));
             }

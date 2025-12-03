@@ -5,6 +5,7 @@ import { createSoundline } from '../../libs/app-common/soundline.js';
 import { loadPiano } from '../../libs/sound/piano.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
+import { attachHover } from '../../libs/shared-ui/hover.js';
 
 // ========== STATE ==========
 let isPlaying = false;
@@ -605,6 +606,15 @@ function setupEventHandlers() {
   });
 }
 
+// ========== HOVER LABELS ==========
+function setupHovers() {
+  if (playBtn) attachHover(playBtn, { text: 'Reproducir secuencia' });
+  if (randomBtn) attachHover(randomBtn, { text: 'Nueva secuencia aleatoria. Incluye nuevo registro si no hay uno establecido' });
+  if (resetBtn) attachHover(resetBtn, { text: 'Reiniciar' });
+  if (registroUp) attachHover(registroUp, { text: 'Registro +1' });
+  if (registroDown) attachHover(registroDown, { text: 'Registro -1' });
+}
+
 // ========== FACTORY RESET ==========
 registerFactoryReset({ storage: preferenceStorage });
 
@@ -635,6 +645,9 @@ function initApp() {
 
   // Setup event listeners
   setupEventHandlers();
+
+  // Setup hover labels
+  setupHovers();
 
   // Focus on input registro at startup
   if (inputRegistro) {
