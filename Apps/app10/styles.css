@@ -1,24 +1,13 @@
 /* App10: Línea Sonora - Estilos */
-@import url('../../libs/shared-ui/two-column-layout.css');
 
 /* Variables CSS */
 :root {
   --line-color: #666;
   --soundline-width: 3px;
   --note-highlight-color: var(--selection-color, #F97C39);
-
-  /* Two-column layout customization */
-  --col-left: 150px;
-  --controls-justify: center;
-  --layout-gap: 2rem;
-  --controls-padding-top: 0;
-  --controls-margin: 0;
-
-  /* Play button positioning */
-  --play-btn-offset: -200px; /* Distancia desde el borde derecho de la columna izquierda */
-
-  /* Soundline sizing */
-  --soundline-height: 100%; /* Altura de la soundline (100% = 625px del contenedor, 80% = 500px, etc.) */
+  --play-gap: clamp(0px, 4vw, 10px); /* Espacio entre play y soundline */
+  --layout-offset: 2vw; /* Desplazamiento horizontal (negativo = izquierda) */
+  --soundline-height: 100%;
 }
 
 [data-theme="dark"] {
@@ -53,20 +42,28 @@
   display: none;
 }
 
-/* ========== TWO-COLUMN LAYOUT CUSTOMIZATION ========== */
-.app10-main-layout {
-  height: 100vh;
-  padding-top: 0px; /* Espacio para header */
+/* ========== LAYOUT CENTRADO ========== */
+.app10-center-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 60px); /* Altura menos header */
+  width: 100%;
+  margin-left: var(--layout-offset);
 }
 
 .app10-controls-container {
-  display: flex !important;
+  display: flex;
   align-items: center;
-  justify-content: flex-end; /* Alinear a la derecha de la columna izquierda */
-  padding-right: var(--play-btn-offset, 20px);
-  height: 100%;
-  position: relative;
+  justify-content: center;
   z-index: 1600;
+  margin-right: var(--play-gap);
+}
+
+.app10-soundline-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ========== SOUNDLINE WRAPPER ========== */
@@ -283,27 +280,17 @@
   display: flex !important;
 }
 
-/* Override de .controls para App10 - mantener posicionamiento absoluto */
-.controls {
-  position: relative !important;
-  top: 0px !important;
-  left: 50px !important; /* Ajustable con variable más abajo */
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 10px;
-  margin: -50px;
+/* Override de .controls para App10 */
+.app10-controls-container .controls {
+  position: static !important;
+  margin: 0 !important;
   width: auto !important;
   height: auto !important;
 }
 
-/* Override específico para App10: ajuste fino de posición del botón */
-.app10-controls-container .controls {
-  position: absolute !important;
-  top: 50% !important;
-  left: auto !important;
-  right: var(--play-btn-offset, 20px) !important;
-  transform: translateY(-50%) !important;
+.app10-controls-container .play {
+  position: static !important;
+  transform: none !important;
 }
 
 /* ========== RESPONSIVE ========== */

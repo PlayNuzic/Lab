@@ -253,23 +253,21 @@ function initApp() {
     return;
   }
 
-  const twoColumnWrapper = document.createElement('div');
-  twoColumnWrapper.className = 'two-column-layout app10-main-layout';
+  // Layout centrado: botón play + soundline juntos en el centro
+  const centerWrapper = document.createElement('div');
+  centerWrapper.className = 'app10-center-layout';
 
-  // Crear contenedor de controles (columna izquierda)
   const controlsContainer = document.createElement('div');
-  controlsContainer.className = 'two-column-layout__controls app10-controls-container';
+  controlsContainer.className = 'app10-controls-container';
   controlsContainer.appendChild(controls);
 
-  // Crear contenedor de soundline (columna derecha expandida)
   const soundlineContainer = document.createElement('div');
-  soundlineContainer.className = 'two-column-layout__main';
+  soundlineContainer.className = 'app10-soundline-container';
   soundlineContainer.appendChild(timelineWrapper);
 
-  // Ensamblar layout
-  twoColumnWrapper.appendChild(controlsContainer);
-  twoColumnWrapper.appendChild(soundlineContainer);
-  mainElement.appendChild(twoColumnWrapper);
+  centerWrapper.appendChild(controlsContainer);
+  centerWrapper.appendChild(soundlineContainer);
+  mainElement.appendChild(centerWrapper);
 
   console.log('Two-column layout creado correctamente');
 
