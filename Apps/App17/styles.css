@@ -6,6 +6,9 @@
 
 :root {
   --control-toggle-gap: -29px;
+  /* BPM position fine-tuning */
+  --bpm-offset-x: 0px;
+  --bpm-offset-y: -150px;
 }
 
 /* ============================================
@@ -217,17 +220,36 @@
 }
 
 /* ============================================
-   BPM PARAM (THIRD CIRCLE)
+   BPM INLINE (positioned at circle start)
    ============================================ */
 
-/* BPM param circle - same size as others */
-.param.bpm .circle {
-  width: 100px;
-  height: 100px;
+.bpm-inline {
+  position: absolute;
+  bottom: var(--bpm-offset-y);
+  left: calc(50% + var(--bpm-offset-x));
+  transform: translateX(-50%);
+  display: none;  /* Controlled by "Mostrar BPM" toggle */
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  z-index: 10;
 }
 
-.param.bpm input {
-  font-size: 2.5rem;
+.bpm-inline.visible {
+  display: flex;
+}
+
+/* Size: 2/3 of original (66px instead of 100px) */
+.bpm-inline .circle {
+  width: 66px;
+  height: 66px;
+  border: 2px solid var(--circle-border, rgba(255,255,255,0.3));
+  border-radius: 50%;
+  position: relative;
+}
+
+.bpm-inline input {
+  font-size: 1.65rem;
   font-weight: 700;
   text-align: center;
   width: 100%;
@@ -238,8 +260,63 @@
   font-family: 'Courier New', Courier, monospace;
 }
 
-.param.bpm input:focus {
+.bpm-inline input:focus {
   outline: none;
+}
+
+.bpm-inline .abbr {
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-color, #333);
+  opacity: 0.8;
+}
+
+.bpm-inline .spinner {
+  position: absolute;
+  right: -35px;  /* Moved further right, outside circle */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;  /* Double size */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bpm-inline .spin {
+  width: 26px;   /* Double size: 13px * 2 */
+  height: 26px;  /* Double size: 13px * 2 */
+  border: none;
+  background: var(--circle-border, rgba(255,255,255,0.3));
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.bpm-inline .spin:hover {
+  background: var(--circle-border-hover, rgba(255,255,255,0.5));
+}
+
+.bpm-inline .spin.up::before,
+.bpm-inline .spin.down::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  margin: auto;
+}
+
+.bpm-inline .spin.up::before {
+  border-left: 8px solid transparent;   /* Double size */
+  border-right: 8px solid transparent;  /* Double size */
+  border-bottom: 10px solid var(--text-color, #333);  /* Double size */
+  margin-top: 6px;
+}
+
+.bpm-inline .spin.down::before {
+  border-left: 8px solid transparent;   /* Double size */
+  border-right: 8px solid transparent;  /* Double size */
+  border-top: 10px solid var(--text-color, #333);  /* Double size */
+  margin-top: 8px;
 }
 
 /* ============================================
@@ -251,8 +328,12 @@
 }
 
 [data-theme="dark"] .param.compas input,
-[data-theme="dark"] .param.cycle-display input,
-[data-theme="dark"] .param.bpm input {
+[data-theme="dark"] .param.cycle-display input {
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .bpm-inline input,
+[data-theme="dark"] .bpm-inline .abbr {
   color: var(--text-color, #eee);
 }
 
@@ -373,5 +454,19 @@
 
   .pulse-number {
     font-size: 0.7rem;
+  }
+
+  /* BPM inline responsive */
+  .bpm-inline .circle {
+    width: 50px;
+    height: 50px;
+  }
+
+  .bpm-inline input {
+    font-size: 1.25rem;
+  }
+
+  .bpm-inline .abbr {
+    font-size: 0.55rem;
   }
 }

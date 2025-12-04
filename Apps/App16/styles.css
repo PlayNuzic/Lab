@@ -6,15 +6,17 @@
 
 :root {
   --control-toggle-gap: -29px;
+  /* BPM position fine-tuning */
+  --bpm-offset-x: 18px;
+  --bpm-offset-y: -107px;
 }
 
 /* ============================================
    HIDE TEMPLATE ELEMENTS NOT NEEDED
    ============================================ */
 
-/* Hide loop and tap buttons */
-#loopBtn,
-#tapTempoBtn {
+/* Hide loop button */
+#loopBtn {
   display: none !important;
 }
 
@@ -133,9 +135,9 @@
 .timeline-end-label {
   position: absolute;
   right: 0;
-  top: -2rem;
+  top: -3rem;
   transform: translateX(50%);
-  font-size: 2rem;
+  font-size: 3rem;
   font-weight: 700;
   color: #36C473;
 }
@@ -181,6 +183,105 @@
 }
 
 /* ============================================
+   BPM INLINE (positioned at line start)
+   ============================================ */
+
+.bpm-inline {
+  position: absolute;
+  top: var(--bpm-offset-y);
+  left: var(--bpm-offset-x);
+  display: none;  /* Controlled by "Mostrar BPM" toggle */
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  z-index: 10;
+}
+
+.bpm-inline.visible {
+  display: flex;
+}
+
+/* Size: 2/3 of original (66px instead of 100px) */
+.bpm-inline .circle {
+  width: 66px;
+  height: 66px;
+  border: 2px solid var(--circle-border, rgba(255,255,255,0.3));
+  border-radius: 50%;
+  position: relative;
+}
+
+.bpm-inline input {
+  font-size: 1.65rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.bpm-inline input:focus {
+  outline: none;
+}
+
+.bpm-inline .abbr {
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-color, #333);
+  opacity: 0.8;
+}
+
+.bpm-inline .spinner {
+  position: absolute;
+  right: -35px;  /* Moved further right, outside circle */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;  /* Double size */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bpm-inline .spin {
+  width: 26px;   /* Double size: 13px * 2 */
+  height: 26px;  /* Double size: 13px * 2 */
+  border: none;
+  background: var(--circle-border, rgba(255,255,255,0.3));
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.bpm-inline .spin:hover {
+  background: var(--circle-border-hover, rgba(255,255,255,0.5));
+}
+
+.bpm-inline .spin.up::before,
+.bpm-inline .spin.down::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  margin: auto;
+}
+
+.bpm-inline .spin.up::before {
+  border-left: 8px solid transparent;   /* Double size */
+  border-right: 8px solid transparent;  /* Double size */
+  border-bottom: 10px solid var(--text-color, #333);  /* Double size */
+  margin-top: 6px;
+}
+
+.bpm-inline .spin.down::before {
+  border-left: 8px solid transparent;   /* Double size */
+  border-right: 8px solid transparent;  /* Double size */
+  border-top: 10px solid var(--text-color, #333);  /* Double size */
+  margin-top: 8px;
+}
+
+/* ============================================
    DARK THEME ADJUSTMENTS
    ============================================ */
 
@@ -193,6 +294,11 @@
 }
 
 [data-theme="dark"] .cycle-counter__digit {
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .bpm-inline input,
+[data-theme="dark"] .bpm-inline .abbr {
   color: var(--text-color, #eee);
 }
 
@@ -311,5 +417,19 @@
   .timeline-end-label {
     font-size: 1rem;
     top: -1rem;
+  }
+
+  /* BPM inline responsive */
+  .bpm-inline .circle {
+    width: 50px;
+    height: 50px;
+  }
+
+  .bpm-inline input {
+    font-size: 1.25rem;
+  }
+
+  .bpm-inline .abbr {
+    font-size: 0.55rem;
   }
 }

@@ -75,17 +75,26 @@
             </div>
           </div>
         </div>
-        <div class="param bpm" id="bpmParam" style="display: none;">
-          <span class="abbr">BPM</span>
-          <div class="circle">
-            <input id="inputBpm" type="number" min="30" max="300" value="100" />
-            <div class="spinner">
-              <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
-              <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
-            </div>
+      `;
+    }
+
+    // Añadir BPM inline junto al timeline (dentro del timeline-wrapper)
+    const timelineWrapper = document.querySelector('.timeline-wrapper');
+    if (timelineWrapper) {
+      const bpmInline = document.createElement('div');
+      bpmInline.className = 'bpm-inline';
+      bpmInline.id = 'bpmParam';
+      bpmInline.innerHTML = `
+        <span class="abbr">BPM</span>
+        <div class="circle">
+          <input id="inputBpm" type="number" min="30" max="300" value="100" />
+          <div class="spinner">
+            <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
+            <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
           </div>
         </div>
       `;
+      timelineWrapper.appendChild(bpmInline);
     }
 
     // Ocultar la sección middle (fórmula)
