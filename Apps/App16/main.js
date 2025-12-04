@@ -170,12 +170,11 @@ function createModularPulseNumber(index) {
   const modValue = index % compas;
   const cycleIndex = Math.floor(index / compas) + 1;
 
+  // All numbers show superscript with cycle number
+  label.innerHTML = `${modValue}<sup>${cycleIndex}</sup>`;
+
   if (modValue === 0) {
-    // Cycle start: show superscript with cycle number
-    label.innerHTML = `0<sup>${cycleIndex}</sup>`;
     label.classList.add('cycle-start');
-  } else {
-    label.textContent = String(modValue);
   }
 
   // Font size controlled by CSS (.pulse-number { font-size: 2rem })
