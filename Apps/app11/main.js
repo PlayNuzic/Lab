@@ -174,7 +174,10 @@ async function handlePlay() {
       }
     },
     () => {
-      // onComplete - elegant fade-out animation with delay
+      // onComplete - IMPORTANT: stop audio scheduler to prevent infinite playback
+      audio.stop();
+
+      // Elegant fade-out animation with delay
       console.log('Sequence completed - waiting 1000ms before fade-out...');
 
       // Collect all active cells
