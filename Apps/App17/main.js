@@ -676,9 +676,9 @@ function decrementBpm() {
 function toggleBpmVisibility(enabled) {
   showBpmEnabled = enabled;
 
-  // Show/hide BPM param
+  // Show/hide BPM param (using .visible class for bpm-inline)
   if (bpmParam) {
-    bpmParam.style.display = enabled ? '' : 'none';
+    bpmParam.classList.toggle('visible', enabled);
   }
 
   // Show/hide tap tempo button
@@ -903,6 +903,10 @@ async function initializeApp() {
     inputBpm.value = bpm;
   }
 
+  // Load showBpm preference (defaults to true)
+  const savedShowBpm = localStorage.getItem('app17:showBpm');
+  showBpmEnabled = savedShowBpm !== null ? savedShowBpm === 'true' : true;
+
   // Initialize BPM visibility from loaded state
   toggleBpmVisibility(showBpmEnabled);
 
@@ -911,6 +915,7 @@ async function initializeApp() {
     showBpmToggle.checked = showBpmEnabled;
     showBpmToggle.addEventListener('change', () => {
       toggleBpmVisibility(showBpmToggle.checked);
+      localStorage.setItem('app17:showBpm', String(showBpmToggle.checked));
     });
   }
 
@@ -1010,6 +1015,7 @@ async function initializeApp() {
       localStorage.removeItem('app17:p1Toggle');
       localStorage.removeItem('app17:pulseAudio');
       localStorage.removeItem('app17:cycleHighlight');
+      localStorage.removeItem('app17:showBpm');
       localStorage.removeItem(MIXER_STORAGE_KEY);
     }
   });

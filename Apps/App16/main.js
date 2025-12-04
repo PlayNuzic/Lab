@@ -13,6 +13,7 @@ import { initRandomMenu } from '../../libs/random/index.js';
 import { createPreferenceStorage, registerFactoryReset } from '../../libs/app-common/preferences.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
+import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 
 // ============================================
 // CONSTANTS
@@ -21,7 +22,9 @@ import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } 
 const TOTAL_PULSES = 13;      // 0-12 (12 = end marker, no suena)
 const PLAYABLE_PULSES = 12;   // Solo 0-11 suenan
 const DEFAULT_COMPAS = 4;
-const BPM = 100;              // Fijo, oculto al usuario
+const DEFAULT_BPM = 100;
+const MIN_BPM = 30;
+const MAX_BPM = 300;
 
 // ============================================
 // STATE
@@ -36,6 +39,8 @@ let currentStep = -1;
 let p0Enabled = true;         // P0 toggle state (not persisted between sessions)
 let cycleHighlightTimeout = null;  // For auto-dimming cycle circle
 let cycleHighlightEnabled = true; // Cycle highlight toggle state
+let bpm = DEFAULT_BPM;        // Current BPM value
+let showBpmEnabled = false;   // BPM visibility toggle state (not persisted)
 
 // ============================================
 // DOM ELEMENTS
@@ -51,6 +56,14 @@ let playBtn;
 let resetBtn;
 let randomBtn;
 let randomMenu;
+let inputBpm;
+let bpmUpBtn;
+let bpmDownBtn;
+let bpmParam;
+let tapTempoBtn;
+let tapHelp;
+let showBpmToggle;
+let tapTempoHandler = null;
 
 // ============================================
 // STORAGE
@@ -397,7 +410,7 @@ async function handlePlay() {
   // Disable random button during playback
   if (randomBtn) randomBtn.disabled = true;
 
-  const intervalSec = 60 / BPM;
+  const intervalSec = 60 / bpm;
 
   // Configure Measure system: P0 sounds at 0, compás, compás*2, etc.
   audioInstance.configureMeasure(compas, PLAYABLE_PULSES);
@@ -562,6 +575,63 @@ function handleRandom() {
 }
 
 // ============================================
+// BPM HANDLING
+// ============================================
+
+function handleBpmChange(newValue) {
+  const parsed = parseInt(newValue, 10);
+
+  if (isNaN(parsed)) return;
+
+  // Clamp to valid range
+  bpm = Math.min(MAX_BPM, Math.max(MIN_BPM, parsed));
+
+  if (inputBpm && inputBpm.value !== String(bpm)) {
+    inputBpm.value = bpm;
+  }
+}
+
+function incrementBpm() {
+  if (bpm < MAX_BPM) {
+    handleBpmChange(bpm + 1);
+  }
+}
+
+function decrementBpm() {
+  if (bpm > MIN_BPM) {
+    handleBpmChange(bpm - 1);
+  }
+}
+
+/**
+ * Toggle BPM visibility - shows/hides BPM input and tap tempo button
+ */
+function toggleBpmVisibility(enabled) {
+  showBpmEnabled = enabled;
+
+  // Show/hide BPM param (using .visible class for bpm-inline)
+  if (bpmParam) {
+    bpmParam.classList.toggle('visible', enabled);
+  }
+
+  // Show/hide tap tempo button
+  if (tapTempoBtn) {
+    tapTempoBtn.style.display = enabled ? '' : 'none';
+  }
+
+  // Show/hide tap help text
+  if (tapHelp) {
+    tapHelp.style.display = enabled ? '' : 'none';
+  }
+
+  // Reset BPM to default when hidden
+  if (!enabled) {
+    bpm = DEFAULT_BPM;
+    if (inputBpm) inputBpm.value = bpm;
+  }
+}
+
+// ============================================
 // RESET
 // ============================================
 
@@ -620,6 +690,13 @@ async function initializeApp() {
   resetBtn = document.getElementById('resetBtn');
   randomBtn = document.getElementById('randomBtn');
   randomMenu = document.getElementById('randomMenu');
+  inputBpm = document.getElementById('inputBpm');
+  bpmUpBtn = document.getElementById('bpmUp');
+  bpmDownBtn = document.getElementById('bpmDown');
+  bpmParam = document.getElementById('bpmParam');
+  tapTempoBtn = document.getElementById('tapTempoBtn');
+  tapHelp = document.getElementById('tapHelp');
+  showBpmToggle = document.getElementById('showBpmToggle');
 
   // Create timeline controller
   timelineController = createCircularTimeline({
@@ -740,6 +817,54 @@ async function initializeApp() {
     });
   }
 
+  // Initialize BPM input and toggle
+  if (inputBpm) {
+    inputBpm.value = bpm;
+
+    inputBpm.addEventListener('input', (e) => {
+      handleBpmChange(e.target.value);
+    });
+
+    inputBpm.addEventListener('blur', () => {
+      handleBpmChange(inputBpm.value);
+    });
+  }
+
+  // BPM spinner buttons with auto-repeat
+  addRepeatPress(bpmUpBtn, incrementBpm);
+  addRepeatPress(bpmDownBtn, decrementBpm);
+
+  // Load showBpm preference (defaults to true)
+  const savedShowBpm = localStorage.getItem('app16:showBpm');
+  showBpmEnabled = savedShowBpm !== null ? savedShowBpm === 'true' : true;
+
+  // Initialize BPM visibility toggle
+  if (showBpmToggle) {
+    showBpmToggle.checked = showBpmEnabled;
+    showBpmToggle.addEventListener('change', () => {
+      toggleBpmVisibility(showBpmToggle.checked);
+      localStorage.setItem('app16:showBpm', String(showBpmToggle.checked));
+    });
+  }
+
+  // Initialize BPM visibility from state
+  toggleBpmVisibility(showBpmEnabled);
+
+  // Initialize tap tempo handler
+  if (tapTempoBtn) {
+    tapTempoHandler = createTapTempoHandler({
+      getAudioInstance: initAudio,
+      tapBtn: tapTempoBtn,
+      tapHelp: tapHelp,
+      onBpmDetected: (newBpm) => {
+        // Clamp BPM to valid range
+        const clampedBpm = Math.min(MAX_BPM, Math.max(MIN_BPM, Math.round(newBpm)));
+        handleBpmChange(clampedBpm);
+      }
+    });
+    tapTempoHandler.attach();
+  }
+
   // Register factory reset
   registerFactoryReset({
     storage: preferenceStorage,
@@ -748,6 +873,7 @@ async function initializeApp() {
       localStorage.removeItem('app16:p1Toggle');
       localStorage.removeItem('app16:pulseAudio');
       localStorage.removeItem('app16:cycleHighlight');
+      localStorage.removeItem('app16:showBpm');
       localStorage.removeItem(MIXER_STORAGE_KEY);
     }
   });
