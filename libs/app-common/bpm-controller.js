@@ -37,6 +37,8 @@ export function createBpmController(config) {
   let bpm = defaultValue;
   let cleanupUp = null;
   let cleanupDown = null;
+  let sanitizeTimer = null;
+  const SANITIZE_DELAY = 500;
 
   /**
    * Set BPM value with clamping and validation
@@ -123,6 +125,10 @@ export function createBpmController(config) {
     inputEl.removeEventListener('input', handleInput);
     inputEl.removeEventListener('blur', handleBlur);
 
+    if (sanitizeTimer) {
+      clearTimeout(sanitizeTimer);
+      sanitizeTimer = null;
+    }
     if (cleanupUp) {
       cleanupUp();
       cleanupUp = null;
@@ -134,6 +140,12 @@ export function createBpmController(config) {
   }
 
   function handleInput(event) {
+    // Clear any pending sanitize timer
+    if (sanitizeTimer) {
+      clearTimeout(sanitizeTimer);
+      sanitizeTimer = null;
+    }
+
     const parsed = parseInt(event.target.value, 10);
     // Only update BPM if value is valid and within range
     // DO NOT clamp during typing - this prevents multi-digit entry
@@ -145,10 +157,18 @@ export function createBpmController(config) {
         }
       }
     }
+
+    // Auto-sanitize after 500ms of no typing
+    sanitizeTimer = setTimeout(() => {
+      sanitizeValue();
+      sanitizeTimer = null;
+    }, SANITIZE_DELAY);
   }
 
-  function handleBlur() {
-    // On blur, clamp and show final corrected value
+  /**
+   * Sanitize (clamp) the input value to valid range
+   */
+  function sanitizeValue() {
     const parsed = parseInt(inputEl.value, 10);
     let newBpm;
     if (isNaN(parsed) || parsed < min) {
@@ -165,6 +185,16 @@ export function createBpmController(config) {
         onChange(bpm);
       }
     }
+  }
+
+  function handleBlur() {
+    // Clear any pending sanitize timer
+    if (sanitizeTimer) {
+      clearTimeout(sanitizeTimer);
+      sanitizeTimer = null;
+    }
+    // On blur, clamp and show final corrected value immediately
+    sanitizeValue();
   }
 
   // Initialize input value

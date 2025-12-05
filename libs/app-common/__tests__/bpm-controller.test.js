@@ -310,6 +310,95 @@ describe('bpm-controller', () => {
 
         expect(controller.getValue()).toBe(101);
       });
+
+      test('auto-sanitizes value after 500ms of no typing', () => {
+        const onChange = jest.fn();
+        const controller = createBpmController({ inputEl, min: 30, max: 240, defaultValue: 100, onChange });
+
+        controller.attach();
+
+        // User types "5" (below min)
+        inputEl.value = '5';
+        inputEl.dispatchEvent(new Event('input'));
+        expect(inputEl.value).toBe('5'); // Not sanitized yet
+        expect(controller.getValue()).toBe(100); // BPM unchanged
+
+        // After 500ms, value should be sanitized
+        jest.advanceTimersByTime(500);
+
+        expect(inputEl.value).toBe('30'); // Clamped to min
+        expect(controller.getValue()).toBe(30);
+        expect(onChange).toHaveBeenCalledWith(30);
+      });
+
+      test('auto-sanitizes value above max after 500ms', () => {
+        const onChange = jest.fn();
+        const controller = createBpmController({ inputEl, min: 30, max: 240, defaultValue: 100, onChange });
+
+        controller.attach();
+
+        // User types "999" (above max)
+        inputEl.value = '999';
+        inputEl.dispatchEvent(new Event('input'));
+        expect(inputEl.value).toBe('999'); // Not sanitized yet
+
+        // After 500ms, value should be sanitized
+        jest.advanceTimersByTime(500);
+
+        expect(inputEl.value).toBe('240'); // Clamped to max
+        expect(controller.getValue()).toBe(240);
+        expect(onChange).toHaveBeenCalledWith(240);
+      });
+
+      test('resets sanitize timer on each keystroke', () => {
+        const onChange = jest.fn();
+        const controller = createBpmController({ inputEl, min: 30, max: 240, defaultValue: 100, onChange });
+
+        controller.attach();
+
+        // User types "5"
+        inputEl.value = '5';
+        inputEl.dispatchEvent(new Event('input'));
+
+        // Wait 300ms (less than 500ms)
+        jest.advanceTimersByTime(300);
+        expect(inputEl.value).toBe('5'); // Still not sanitized
+
+        // User continues typing "50"
+        inputEl.value = '50';
+        inputEl.dispatchEvent(new Event('input'));
+
+        // Wait another 300ms (total 600ms but timer was reset)
+        jest.advanceTimersByTime(300);
+        expect(inputEl.value).toBe('50'); // Still not sanitized (valid value, no change needed)
+        expect(controller.getValue()).toBe(50); // Updated because 50 is valid
+
+        // Wait remaining 200ms to complete 500ms from last keystroke
+        jest.advanceTimersByTime(200);
+        expect(inputEl.value).toBe('50'); // Already valid, no change
+      });
+
+      test('cancels sanitize timer on blur', () => {
+        const onChange = jest.fn();
+        const controller = createBpmController({ inputEl, min: 30, max: 240, defaultValue: 100, onChange });
+
+        controller.attach();
+
+        // User types "5"
+        inputEl.value = '5';
+        inputEl.dispatchEvent(new Event('input'));
+
+        // User immediately blurs (before 500ms)
+        inputEl.dispatchEvent(new Event('blur'));
+
+        expect(inputEl.value).toBe('30'); // Sanitized immediately on blur
+        expect(controller.getValue()).toBe(30);
+
+        // Advance time - should not cause additional sanitization
+        onChange.mockClear();
+        jest.advanceTimersByTime(500);
+        expect(onChange).not.toHaveBeenCalled(); // No duplicate callback
+      });
     });
 
     describe('detach', () => {
