@@ -16,6 +16,8 @@ import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
+import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
+import { createTotalLengthDisplay } from '../../libs/app-common/total-length-display.js';
 
 // ============================================
 // CONSTANTS
@@ -75,7 +77,8 @@ let tapHelp;
 let showBpmToggle;
 let tapTempoHandler = null;
 let totalLengthDigit;
-let globalStep = 0;  // Global pulse counter during playback
+let superscriptController;   // Shared module for cycle superscripts
+let totalLengthController;   // Shared module for total length display
 
 // ============================================
 // STORAGE
@@ -253,10 +256,16 @@ function renderPulseNumbers() {
     timelineController.showNumber(i);
   }
 
-  // Apply cycle-start class to pulse 0
-  const zeroNumber = timeline.querySelector('.pulse-number[data-index="0"]');
-  if (zeroNumber) {
-    zeroNumber.classList.add('cycle-start');
+  // Add superscripts to all numbers (cycle 1 when stopped)
+  // Use requestAnimationFrame to ensure DOM is updated after showNumber
+  if (superscriptController) {
+    superscriptController.updateAfterRender(1, () => {
+      // Apply cycle-start class to pulse 0
+      const zeroNumber = timeline.querySelector('.pulse-number[data-index="0"]');
+      if (zeroNumber) {
+        zeroNumber.classList.add('cycle-start');
+      }
+    });
   }
 }
 
@@ -322,76 +331,37 @@ function updateCycleDigitColor(step) {
 }
 
 // ============================================
-// TOTAL LENGTH DISPLAY
+// TOTAL LENGTH DISPLAY (using shared module)
 // ============================================
 
 /**
  * Update total length display when NOT playing
- * Shows: pulsosCompas × cycles
+ * Delegates to shared totalLengthController module
  */
 function updateTotalLength() {
-  if (isPlaying) return; // Don't update during playback
-  if (!totalLengthDigit) return;
-
-  if (!pulsosCompas || !cycles) {
-    totalLengthDigit.textContent = '--';
-    return;
+  if (totalLengthController) {
+    totalLengthController.showTotal();
   }
-
-  const total = pulsosCompas * cycles;
-  updateTotalLengthDisplay(total);
-}
-
-/**
- * Update total length display with flip animation
- */
-function updateTotalLengthDisplay(newValue) {
-  if (!totalLengthDigit) return;
-  const currentValue = totalLengthDigit.textContent;
-  if (currentValue === String(newValue)) return;
-
-  totalLengthDigit.classList.add('flip-out');
-
-  setTimeout(() => {
-    totalLengthDigit.textContent = String(newValue);
-    totalLengthDigit.classList.remove('flip-out');
-    totalLengthDigit.classList.add('flip-in');
-
-    setTimeout(() => {
-      totalLengthDigit.classList.remove('flip-in');
-    }, 150);
-  }, 150);
 }
 
 /**
  * Update global step display during playback (1-indexed)
- * Called from onPulse callback
+ * Delegates to shared totalLengthController module
  */
 function updateGlobalStep(localStep, cycleNumber) {
-  if (!totalLengthDigit || !pulsosCompas) return;
-
-  // localStep is 0-indexed within cycle
-  // cycleNumber is 1-indexed
-  globalStep = (cycleNumber - 1) * pulsosCompas + localStep + 1;
-  updateTotalLengthDisplay(globalStep);
-
-  // Colors: blue on step 1, orange on others
-  totalLengthDigit.classList.remove('playing-zero', 'playing-active');
-  if (globalStep === 1) {
-    totalLengthDigit.classList.add('playing-zero');
-  } else {
-    totalLengthDigit.classList.add('playing-active');
+  if (totalLengthController) {
+    totalLengthController.updateGlobalStep(localStep, cycleNumber);
   }
 }
 
 /**
  * Reset total length display after playback stops
+ * Delegates to shared totalLengthController module
  */
 function resetTotalLengthDisplay() {
-  if (!totalLengthDigit) return;
-  totalLengthDigit.classList.remove('playing-zero', 'playing-active');
-  globalStep = 0;
-  updateTotalLength();
+  if (totalLengthController) {
+    totalLengthController.reset();
+  }
 }
 
 // ============================================
@@ -533,9 +503,10 @@ async function handlePlay() {
       // Update global step in total length display
       updateGlobalStep(pulseInCycle, cycleNumber);
 
-      // Update cycle counter when hitting a new cycle start (except first)
+      // Update cycle counter and superscripts when hitting a new cycle start (except first)
       if (step > 0 && step % pulsosCompas === 0) {
         updateCycleCounter(cycleNumber);
+        if (superscriptController) superscriptController.updateAll(cycleNumber);
       }
     },
     () => {
@@ -575,6 +546,9 @@ function stopPlayback(forceStop = true) {
   if (randomBtn) randomBtn.disabled = false;
 
   clearHighlights();
+
+  // Reset superscripts to cycle 1
+  if (superscriptController) superscriptController.reset();
 
   // Reset total length display (clear playback colors)
   resetTotalLengthDisplay();
@@ -896,6 +870,19 @@ async function initializeApp() {
     timelineWrapper,
     getPulses: () => pulses,
     getNumberFontSize: () => 2.0
+  });
+
+  // Create superscript controller (circular mode - all numbers share same superscript)
+  superscriptController = createCycleSuperscript({
+    timeline,
+    mode: 'circular'
+  });
+
+  // Create total length display controller
+  totalLengthController = createTotalLengthDisplay({
+    digitElement: totalLengthDigit,
+    getTotal: () => (pulsosCompas && cycles) ? pulsosCompas * cycles : null,
+    getPulsosPerCycle: () => pulsosCompas || 1
   });
 
   // Load state

@@ -15,6 +15,7 @@ import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
+import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
 
 // ============================================
 // CONSTANTS
@@ -169,34 +170,13 @@ subscribeMixer((snapshot) => {
 // ============================================
 
 let timelineController;
+let superscriptController;
 
 /**
- * Custom pulse number creator for modular numbering
+ * Render pulse numbers using shared superscript module (linear mode)
  */
-function createModularPulseNumber(index) {
-  // Pulse 12 (end marker) doesn't get a number
-  if (index >= PLAYABLE_PULSES) return null;
-
-  const label = document.createElement('div');
-  label.className = 'pulse-number';
-  label.dataset.index = String(index);
-
-  const modValue = index % compas;
-  const cycleIndex = Math.floor(index / compas) + 1;
-
-  // All numbers show superscript with cycle number
-  label.innerHTML = `${modValue}<sup>${cycleIndex}</sup>`;
-
-  if (modValue === 0) {
-    label.classList.add('cycle-start');
-  }
-
-  // Font size controlled by CSS (.pulse-number { font-size: 2rem })
-  return label;
-}
-
 function renderPulseNumbers() {
-  if (!timeline) return;
+  if (!timeline || !superscriptController) return;
 
   // Remove existing numbers
   timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
@@ -205,13 +185,11 @@ function renderPulseNumbers() {
 
   // Create numbers only for pulses 0-11 (not 12)
   for (let i = 0; i < PLAYABLE_PULSES; i++) {
-    const label = createModularPulseNumber(i);
-    if (label) {
-      // Position linearly
-      const percent = (i / lg) * 100;
-      label.style.left = percent + '%';
-      timeline.appendChild(label);
-    }
+    const label = superscriptController.createNumberElement(i);
+    // Position linearly
+    const percent = (i / lg) * 100;
+    label.style.left = percent + '%';
+    timeline.appendChild(label);
   }
 }
 
@@ -688,6 +666,13 @@ async function initializeApp() {
     timelineWrapper,
     getPulses: () => pulses,
     getNumberFontSize: () => 2.0
+  });
+
+  // Create superscript controller (linear mode - position-based superscripts)
+  superscriptController = createCycleSuperscript({
+    timeline,
+    getPulsosPerCycle: () => compas || 1,
+    mode: 'linear'
   });
 
   // Load only randCompasMax (compás always starts empty)
