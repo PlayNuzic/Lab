@@ -74,6 +74,8 @@ let tapTempoBtn;
 let tapHelp;
 let showBpmToggle;
 let tapTempoHandler = null;
+let totalLengthDigit;
+let globalStep = 0;  // Global pulse counter during playback
 
 // ============================================
 // STORAGE
@@ -275,6 +277,9 @@ function showTotalCycles() {
   }
 
   cycleDigit.classList.remove('playing-zero', 'playing-active');
+
+  // Update total length display
+  updateTotalLength();
 }
 
 /**
@@ -314,6 +319,79 @@ function updateCycleDigitColor(step) {
   } else {
     cycleDigit.classList.add('playing-active');
   }
+}
+
+// ============================================
+// TOTAL LENGTH DISPLAY
+// ============================================
+
+/**
+ * Update total length display when NOT playing
+ * Shows: pulsosCompas × cycles
+ */
+function updateTotalLength() {
+  if (isPlaying) return; // Don't update during playback
+  if (!totalLengthDigit) return;
+
+  if (!pulsosCompas || !cycles) {
+    totalLengthDigit.textContent = '--';
+    return;
+  }
+
+  const total = pulsosCompas * cycles;
+  updateTotalLengthDisplay(total);
+}
+
+/**
+ * Update total length display with flip animation
+ */
+function updateTotalLengthDisplay(newValue) {
+  if (!totalLengthDigit) return;
+  const currentValue = totalLengthDigit.textContent;
+  if (currentValue === String(newValue)) return;
+
+  totalLengthDigit.classList.add('flip-out');
+
+  setTimeout(() => {
+    totalLengthDigit.textContent = String(newValue);
+    totalLengthDigit.classList.remove('flip-out');
+    totalLengthDigit.classList.add('flip-in');
+
+    setTimeout(() => {
+      totalLengthDigit.classList.remove('flip-in');
+    }, 150);
+  }, 150);
+}
+
+/**
+ * Update global step display during playback (1-indexed)
+ * Called from onPulse callback
+ */
+function updateGlobalStep(localStep, cycleNumber) {
+  if (!totalLengthDigit || !pulsosCompas) return;
+
+  // localStep is 0-indexed within cycle
+  // cycleNumber is 1-indexed
+  globalStep = (cycleNumber - 1) * pulsosCompas + localStep + 1;
+  updateTotalLengthDisplay(globalStep);
+
+  // Colors: blue on step 1, orange on others
+  totalLengthDigit.classList.remove('playing-zero', 'playing-active');
+  if (globalStep === 1) {
+    totalLengthDigit.classList.add('playing-zero');
+  } else {
+    totalLengthDigit.classList.add('playing-active');
+  }
+}
+
+/**
+ * Reset total length display after playback stops
+ */
+function resetTotalLengthDisplay() {
+  if (!totalLengthDigit) return;
+  totalLengthDigit.classList.remove('playing-zero', 'playing-active');
+  globalStep = 0;
+  updateTotalLength();
 }
 
 // ============================================
@@ -449,10 +527,15 @@ async function handlePlay() {
       highlightCycleCircle(step);
       updateCycleDigitColor(step);
 
+      // Calculate current cycle number (1-indexed)
+      const cycleNumber = Math.floor(step / pulsosCompas) + 1;
+
+      // Update global step in total length display
+      updateGlobalStep(pulseInCycle, cycleNumber);
+
       // Update cycle counter when hitting a new cycle start (except first)
       if (step > 0 && step % pulsosCompas === 0) {
-        const newCycle = Math.floor(step / pulsosCompas) + 1;
-        updateCycleCounter(newCycle);
+        updateCycleCounter(cycleNumber);
       }
     },
     () => {
@@ -492,6 +575,9 @@ function stopPlayback(forceStop = true) {
   if (randomBtn) randomBtn.disabled = false;
 
   clearHighlights();
+
+  // Reset total length display (clear playback colors)
+  resetTotalLengthDisplay();
 
   // Show total cycles again (stopped state)
   showTotalCycles();
@@ -789,6 +875,7 @@ async function initializeApp() {
   cycleUpBtn = document.getElementById('cycleUp');
   cycleDownBtn = document.getElementById('cycleDown');
   cycleDigit = document.getElementById('cycleDigit');
+  totalLengthDigit = document.getElementById('totalLengthDigit');
   timeline = document.getElementById('timeline');
   timelineWrapper = document.getElementById('timelineWrapper');
   playBtn = document.getElementById('playBtn');

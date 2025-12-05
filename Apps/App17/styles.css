@@ -15,7 +15,10 @@
   --control-toggle-gap: -29px;
   /* BPM position fine-tuning */
   --bpm-offset-x: 0px;
-  --bpm-offset-y: -150px;
+  --bpm-offset-y: -180px;
+  /* Total Length position fine-tuning */
+  --total-offset-x: -30px;
+  --total-offset-y: 0px;
 }
 
 /* ============================================
@@ -102,6 +105,73 @@
 }
 
 /* ============================================
+   TOTAL LENGTH CIRCLE 2/3 size = 66px)
+   ============================================ */
+
+.total-length-inline {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: calc(0px + var(--total-offset-x));
+  margin-top: var(--total-offset-y);
+}
+
+.total-length-inline .circle {
+  width: 66px;
+  height: 66px;
+  border: 2px solid var(--circle-border, #333);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.total-length-inline .total-length__digit {
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--text-color, #333);
+  line-height: 1;
+}
+
+.total-length-inline .abbr {
+  font-size: 1.4rem;
+   font-weight: 700;
+  color: var(--text-color, #333);
+  opacity: 1;
+}
+
+/* Flip animations (reuse keyframes from cycle-counter) */
+.total-length__digit.flip-out {
+  animation: flipOut 0.15s ease-in forwards;
+}
+
+.total-length__digit.flip-in {
+  animation: flipIn 0.15s ease-out forwards;
+}
+
+/* Playback colors */
+.total-length__digit.playing-zero {
+  color: var(--color-lg, #4A90D9);
+}
+
+.total-length__digit.playing-active {
+  color: var(--selection-color, #EA570C);
+}
+
+/* Dark theme */
+[data-theme="dark"] .total-length-inline .circle {
+  border-color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .total-length-inline .total-length__digit,
+[data-theme="dark"] .total-length-inline .abbr {
+  color: var(--text-color, #eee);
+}
+
+/* ============================================
    TIMELINE - App-specific overrides
    ============================================ */
 
@@ -161,7 +231,7 @@
   }
 
   .param.compas .circle,
-  .param.cycle-display .circle,
+  .param.cycle-display .circle.cycle-circle,
   .param.bpm .circle {
     width: 80px;
     height: 80px;
@@ -171,6 +241,20 @@
   .param.cycle-display input,
   .param.bpm input {
     font-size: 2rem;
+  }
+
+  /* Total Length responsive (1/3 of 80px = 27px) */
+  .total-length-inline .circle {
+    width: 27px;
+    height: 27px;
+  }
+
+  .total-length-inline .total-length__digit {
+    font-size: 0.9rem;
+  }
+
+  .total-length-inline .abbr {
+    font-size: 0.5rem;
   }
 }
 
@@ -191,7 +275,7 @@
   }
 
   .param.compas .circle,
-  .param.cycle-display .circle,
+  .param.cycle-display .circle.cycle-circle,
   .param.bpm .circle {
     width: 70px;
     height: 70px;
@@ -201,6 +285,20 @@
   .param.cycle-display input,
   .param.bpm input {
     font-size: 1.75rem;
+  }
+
+  /* Total Length responsive (1/3 of 70px = 23px) */
+  .total-length-inline .circle {
+    width: 23px;
+    height: 23px;
+  }
+
+  .total-length-inline .total-length__digit {
+    font-size: 0.8rem;
+  }
+
+  .total-length-inline .abbr {
+    font-size: 0.45rem;
   }
 }
 
@@ -215,7 +313,7 @@
   }
 
   .param.compas .circle,
-  .param.cycle-display .circle,
+  .param.cycle-display .circle.cycle-circle,
   .param.bpm .circle {
     width: 60px;
     height: 60px;
@@ -231,5 +329,19 @@
   .param.cycle-display .spinner,
   .param.bpm .spinner {
     width: 14px;
+  }
+
+  /* Total Length responsive (1/3 of 60px = 20px) */
+  .total-length-inline .circle {
+    width: 20px;
+    height: 20px;
+  }
+
+  .total-length-inline .total-length__digit {
+    font-size: 0.7rem;
+  }
+
+  .total-length-inline .abbr {
+    font-size: 0.4rem;
   }
 }
