@@ -38,7 +38,7 @@ export function createBpmController(config) {
   let cleanupUp = null;
   let cleanupDown = null;
   let sanitizeTimer = null;
-  const SANITIZE_DELAY = 500;
+  const SANITIZE_DELAY = 1500;
 
   /**
    * Set BPM value with clamping and validation
