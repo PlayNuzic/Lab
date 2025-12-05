@@ -215,19 +215,69 @@ function getMidiForPlayableNote(noteInRegistry) {
   return { midi: effectiveNote + (registro * 12) + MIDI_OFFSET, clampedNote: effectiveNote };
 }
 
+// ========== NOTE CLICK HANDLER ==========
+/**
+ * Calculate the actual note-in-registry from visual noteIndex
+ * Inverse of the highlight index calculation in handlePlay()
+ */
+function getNoteInRegistryFromIndex(noteIndex) {
+  if (registro === 0) {
+    // No prev: index 0-11 = notes 0-11, index 12-13 = notes 12-13
+    return noteIndex;
+  } else if (registro === MAX_REGISTRO) {
+    // No next: index 0 = note -1, index 1-12 = notes 0-11
+    return noteIndex - 1;
+  } else {
+    // Full range: index 0 = note -1, index 1-12 = notes 0-11, index 13-14 = notes 12-13
+    return noteIndex - 1;
+  }
+}
+
+/**
+ * Handle click on soundline note (number or division line)
+ */
+async function handleNoteClick(noteIndex) {
+  if (registro === null) return;
+
+  // Initialize piano if needed
+  if (!piano) {
+    await initPiano();
+  }
+
+  // Convert visual index to note-in-registry
+  const noteInRegistry = getNoteInRegistryFromIndex(noteIndex);
+
+  // Get MIDI using existing logic (includes MIDI_OFFSET)
+  const { midi } = getMidiForPlayableNote(noteInRegistry);
+
+  // Play the note
+  const Tone = window.Tone;
+  const note = Tone.Frequency(midi, 'midi').toNote();
+  piano.triggerAttackRelease(note, 0.5);
+
+  // Show highlight
+  highlightNote(noteIndex, 300);
+
+  console.log(`Click: index=${noteIndex}, noteInRegistry=${noteInRegistry}, MIDI=${midi}`);
+}
+
 // ========== SOUNDLINE DRAWING ==========
 function drawSoundline() {
   if (!soundlineWrapper) return;
 
+  // Clear previous highlights (they reference old DOM elements)
+  clearHighlights();
+
   // Clear previous content
   soundlineWrapper.innerHTML = '';
 
-  // Create soundline with custom label formatter
+  // Create soundline with custom label formatter and click handler
   soundline = createSoundline({
     container: soundlineWrapper,
     totalNotes: getTotalDisplayedNotes(),
     startMidi: calculateStartMidi(),
-    labelFormatter: formatRegistryLabel
+    labelFormatter: formatRegistryLabel,
+    onNoteClick: handleNoteClick
   });
 
   // Add CSS classes for styling registry boundaries
@@ -534,7 +584,8 @@ function handleRegistroUp() {
     registro++;
   }
   inputRegistro.value = registro;
-  handleRegistroChange();
+  drawSoundline();
+  console.log('Registry changed to:', registro);
 }
 
 function handleRegistroDown() {
@@ -544,7 +595,8 @@ function handleRegistroDown() {
     registro--;
   }
   inputRegistro.value = registro;
-  handleRegistroChange();
+  drawSoundline();
+  console.log('Registry changed to:', registro);
 }
 
 // ========== EVENT HANDLERS ==========
@@ -574,7 +626,6 @@ function setupEventHandlers() {
 
   if (inputRegistro) {
     inputRegistro.addEventListener('input', handleRegistroChange);
-    inputRegistro.addEventListener('change', handleRegistroChange);
 
     // Keyboard navigation
     inputRegistro.addEventListener('keydown', (e) => {

@@ -286,11 +286,28 @@ main {
 .soundline-division {
   position: absolute;
   width: 30px;
+  height: 16px;
+  margin-top: -7px;
+  background: transparent;
+  left: 85px;
+  z-index: 2;
+  cursor: pointer;
+}
+
+/* Visible line inside clickable area */
+.soundline-division::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
   height: 2px;
   background: var(--line-color);
-  left: 85px;
-  pointer-events: none;
-  z-index: 2;
+}
+
+.soundline-division:hover::after {
+  background: var(--note-highlight-color, #F97C39);
 }
 
 /* ============================================
@@ -305,11 +322,17 @@ main {
   user-select: none;
   z-index: 3;
   opacity: 0.85;
-  transition: color 0.3s ease;
+  transition: color 0.15s ease, opacity 0.15s ease;
   left: 20px;
   text-align: right;
   width: 60px;
   font-family: 'Courier New', Courier, monospace;
+  cursor: pointer;
+}
+
+.soundline-number:hover {
+  opacity: 1;
+  color: var(--note-highlight-color, #F97C39);
 }
 
 /* Highlight registry boundaries */

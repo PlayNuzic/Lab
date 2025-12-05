@@ -34,6 +34,16 @@ export function createSoundline(options) {
     const line = document.createElement('div');
     line.className = 'soundline-division';
     line.dataset.index = i;
+    line.dataset.noteIndex = i;
+    line.dataset.midi = startMidi + i;
+
+    if (onNoteClick) {
+      line.style.cursor = 'pointer';
+      line.addEventListener('click', (event) => {
+        onNoteClick(i, startMidi + i, event);
+      });
+    }
+
     soundline.appendChild(line);
   }
 
