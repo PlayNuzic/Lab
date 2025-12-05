@@ -243,7 +243,7 @@
 .bpm-inline .circle {
   width: 66px;
   height: 66px;
-  border: 2px solid var(--circle-border, rgba(255,255,255,0.3));
+  border: 2px solid var(--circle-border, #333);
   border-radius: 50%;
   position: relative;
 }
@@ -284,16 +284,19 @@
 }
 
 .bpm-inline .spin {
-  width: 26px;   /* Double size: 13px * 2 */
-  height: 26px;  /* Double size: 13px * 2 */
+  width: 26px;
+  height: 26px;
   border: none;
-  background: var(--circle-border, rgba(255,255,255,0.3));
+  background: #333;
   cursor: pointer;
   border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .bpm-inline .spin:hover {
-  background: var(--circle-border-hover, rgba(255,255,255,0.5));
+  background: #555;
 }
 
 .bpm-inline .spin.up::before,
@@ -302,21 +305,18 @@
   display: block;
   width: 0;
   height: 0;
-  margin: auto;
 }
 
 .bpm-inline .spin.up::before {
-  border-left: 8px solid transparent;   /* Double size */
-  border-right: 8px solid transparent;  /* Double size */
-  border-bottom: 10px solid var(--text-color, #333);  /* Double size */
-  margin-top: 6px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid #eee;
 }
 
 .bpm-inline .spin.down::before {
-  border-left: 8px solid transparent;   /* Double size */
-  border-right: 8px solid transparent;  /* Double size */
-  border-top: 10px solid var(--text-color, #333);  /* Double size */
-  margin-top: 8px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #eee;
 }
 
 /* ============================================
@@ -332,9 +332,29 @@
   color: var(--text-color, #eee);
 }
 
+[data-theme="dark"] .bpm-inline .circle {
+  border-color: var(--text-color, #eee);
+}
+
 [data-theme="dark"] .bpm-inline input,
 [data-theme="dark"] .bpm-inline .abbr {
   color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .bpm-inline .spin {
+  background: #eee;
+}
+
+[data-theme="dark"] .bpm-inline .spin:hover {
+  background: #ccc;
+}
+
+[data-theme="dark"] .bpm-inline .spin.up::before {
+  border-bottom-color: #333;
+}
+
+[data-theme="dark"] .bpm-inline .spin.down::before {
+  border-top-color: #333;
 }
 
 [data-theme="dark"] .cycle-counter__digit {
