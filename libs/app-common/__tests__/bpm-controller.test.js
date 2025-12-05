@@ -311,11 +311,18 @@ describe('bpm-controller', () => {
         expect(controller.getValue()).toBe(101);
       });
 
-      test('auto-sanitizes value after 500ms of no typing', () => {
+      test('auto-sanitizes value after 500ms of no typing and blurs input', () => {
         const onChange = jest.fn();
         const controller = createBpmController({ inputEl, min: 30, max: 240, defaultValue: 100, onChange });
 
         controller.attach();
+
+        // Add to DOM so it can receive focus
+        document.body.appendChild(inputEl);
+
+        // Focus the input
+        inputEl.focus();
+        expect(document.activeElement).toBe(inputEl);
 
         // User types "5" (below min)
         inputEl.value = '5';
@@ -323,12 +330,13 @@ describe('bpm-controller', () => {
         expect(inputEl.value).toBe('5'); // Not sanitized yet
         expect(controller.getValue()).toBe(100); // BPM unchanged
 
-        // After 500ms, value should be sanitized
+        // After 500ms, value should be sanitized and input blurred
         jest.advanceTimersByTime(500);
 
         expect(inputEl.value).toBe('30'); // Clamped to min
         expect(controller.getValue()).toBe(30);
         expect(onChange).toHaveBeenCalledWith(30);
+        expect(document.activeElement).not.toBe(inputEl); // Input is blurred
       });
 
       test('auto-sanitizes value above max after 500ms', () => {

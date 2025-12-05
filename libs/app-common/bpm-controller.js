@@ -161,6 +161,7 @@ export function createBpmController(config) {
     // Auto-sanitize after 500ms of no typing
     sanitizeTimer = setTimeout(() => {
       sanitizeValue();
+      inputEl.blur(); // Close the caret
       sanitizeTimer = null;
     }, SANITIZE_DELAY);
   }
