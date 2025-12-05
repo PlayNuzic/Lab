@@ -34,6 +34,7 @@ const MAX_REGISTRO = 7;
 const MIN_BPM = 75;
 const MAX_BPM = 200;
 const CHROMATIC_BPM = 160;
+const MIDI_OFFSET = 12;   // Offset to raise all notes by one octave
 
 /**
  * Calculate total notes to display based on registry
@@ -198,7 +199,7 @@ function getMidiForPlayableNote(noteInRegistry) {
       // Clamp to 0r0 (lowest note in registry 0)
       effectiveNote = 0;
     } else {
-      return { midi: (registro - 1) * 12 + 11, clampedNote: -1 };
+      return { midi: (registro - 1) * 12 + 11 + MIDI_OFFSET, clampedNote: -1 };
     }
   } else if (noteInRegistry >= 12) {
     // Next registry notes 0-1
@@ -206,12 +207,12 @@ function getMidiForPlayableNote(noteInRegistry) {
       // Clamp to 11r7 (highest note in registry 7)
       effectiveNote = 11;
     } else {
-      return { midi: (registro + 1) * 12 + (noteInRegistry - 12), clampedNote: noteInRegistry };
+      return { midi: (registro + 1) * 12 + (noteInRegistry - 12) + MIDI_OFFSET, clampedNote: noteInRegistry };
     }
   }
 
   // Current registry (or clamped note)
-  return { midi: effectiveNote + (registro * 12), clampedNote: effectiveNote };
+  return { midi: effectiveNote + (registro * 12) + MIDI_OFFSET, clampedNote: effectiveNote };
 }
 
 // ========== SOUNDLINE DRAWING ==========
