@@ -1,6 +1,13 @@
 /* App17 - Módulo Temporal - Circular */
 
 /* ============================================
+   SHARED COMPONENT IMPORTS
+   ============================================ */
+@import '../../libs/shared-ui/bpm-inline.css';
+@import '../../libs/shared-ui/cycle-counter.css';
+@import '../../libs/shared-ui/pulse-highlight.css';
+
+/* ============================================
    APP-SPECIFIC CSS VARIABLES
    ============================================ */
 
@@ -94,78 +101,14 @@
   outline: none;
 }
 
-/* Cycle display styling */
-.param.cycle-display .cycle-circle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-}
-
-.cycle-counter__digit {
-  font-size: 3rem;
-  font-weight: 700;
-  font-family: 'Courier New', Courier, monospace;
-  color: var(--text-color, #333);  /* Same as Compás input when stopped */
-  line-height: 1;
-}
-
-.cycle-counter__digit sub {
-  font-size: 0.5em;
-  vertical-align: baseline;
-  position: relative;
-  top: 0.3em;
-  opacity: 0.8;
-}
-
-/* Playing state: color matches current pulse highlight */
-.cycle-counter__digit.playing-zero {
-  color: var(--color-lg, #4A90D9);
-}
-
-.cycle-counter__digit.playing-active {
-  color: var(--selection-color, #EA570C);
-}
-
-/* Flip animation for cycle counter */
-.cycle-counter__digit.flip-out {
-  animation: flipOut 0.15s ease-in forwards;
-}
-
-.cycle-counter__digit.flip-in {
-  animation: flipIn 0.15s ease-out forwards;
-}
-
-@keyframes flipOut {
-  from { transform: rotateX(0); opacity: 1; }
-  to { transform: rotateX(-90deg); opacity: 0; }
-}
-
-@keyframes flipIn {
-  from { transform: rotateX(90deg); opacity: 0; }
-  to { transform: rotateX(0); opacity: 1; }
-}
-
 /* ============================================
-   TIMELINE - Pulse Number Overrides
+   TIMELINE - App-specific overrides
    ============================================ */
 
-/* Modular numbering styles */
-.pulse-number {
-  font-size: 2rem;
-  transition: transform 0.12s ease, color 0.12s ease;
-}
-
+/* Cycle start color override */
 .pulse-number.cycle-start {
   color: var(--color-lg, #4A90D9);
   font-weight: 700;
-}
-
-.pulse-number sup {
-  font-size: 0.55em;
-  vertical-align: super;
-  margin-left: 1px;
-  opacity: 0.8;
 }
 
 /* Hide endpoint number in circular mode (overlaps with position 0) */
@@ -179,144 +122,15 @@
   transform: translate(50%, 20%) !important;
 }
 
-/* Highlight during playback - normal numbers */
-.pulse-number.active {
-  color: var(--selection-color, #EA570C);
-  transform: translateX(-50%) scale(1.35);
-}
-
-/* Highlight during playback - cycle start (0s) */
-.pulse-number.active-zero {
-  color: var(--color-lg, #4A90D9);
-  transform: translateX(-50%) scale(1.5);
-  text-shadow: 0 0 12px var(--color-lg, #4A90D9);
-}
-
-/* Pulse dot highlights */
-.pulse.active {
-  background: var(--selection-color, #EA570C) !important;
-  transform: translate(-50%, -50%) scale(1.6);
-}
-
-.pulse.active-zero {
-  background: var(--color-lg, #4A90D9) !important;
-  transform: translate(-50%, -50%) scale(1.8);
-  box-shadow: 0 0 12px var(--color-lg, #4A90D9);
-}
-
-/* Cycle circle highlights during playback */
-.cycle-circle {
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
-}
-
-.cycle-circle.active {
-  border-color: var(--selection-color, #EA570C) !important;
-  box-shadow: 0 0 12px var(--selection-color, #EA570C);
-}
-
-.cycle-circle.active-zero {
-  border-color: var(--color-lg, #4A90D9) !important;
-  box-shadow: 0 0 12px var(--color-lg, #4A90D9);
-}
-
 /* ============================================
-   BPM INLINE (positioned at circle start)
+   BPM INLINE - Position override for circular
    ============================================ */
 
 .bpm-inline {
-  position: absolute;
   bottom: var(--bpm-offset-y);
   left: calc(50% + var(--bpm-offset-x));
   transform: translateX(-50%);
-  display: none;  /* Controlled by "Mostrar BPM" toggle */
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  z-index: 10;
-}
-
-.bpm-inline.visible {
-  display: flex;
-}
-
-/* Size: 2/3 of original (66px instead of 100px) */
-.bpm-inline .circle {
-  width: 66px;
-  height: 66px;
-  border: 2px solid var(--circle-border, #333);
-  border-radius: 50%;
-  position: relative;
-}
-
-.bpm-inline input {
-  font-size: 1.65rem;
-  font-weight: 700;
-  text-align: center;
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-color, #333);
-  font-family: 'Courier New', Courier, monospace;
-}
-
-.bpm-inline input:focus {
-  outline: none;
-}
-
-.bpm-inline .abbr {
-  font-size: 1.4rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-color, #333);
-  opacity: 0.8;
-}
-
-.bpm-inline .spinner {
-  position: absolute;
-  right: -35px;  /* Moved further right, outside circle */
-  top: 50%;
-  transform: translateY(-50%);
-  width: 26px;  /* Double size */
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.bpm-inline .spin {
-  width: 26px;
-  height: 26px;
-  border: none;
-  background: #333;
-  cursor: pointer;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bpm-inline .spin:hover {
-  background: #555;
-}
-
-.bpm-inline .spin.up::before,
-.bpm-inline .spin.down::before {
-  content: '';
-  display: block;
-  width: 0;
-  height: 0;
-}
-
-.bpm-inline .spin.up::before {
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 8px solid #eee;
-}
-
-.bpm-inline .spin.down::before {
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 8px solid #eee;
+  top: auto;  /* Override from shared */
 }
 
 /* ============================================
@@ -329,35 +143,6 @@
 
 [data-theme="dark"] .param.compas input,
 [data-theme="dark"] .param.cycle-display input {
-  color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .bpm-inline .circle {
-  border-color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .bpm-inline input,
-[data-theme="dark"] .bpm-inline .abbr {
-  color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .bpm-inline .spin {
-  background: #eee;
-}
-
-[data-theme="dark"] .bpm-inline .spin:hover {
-  background: #ccc;
-}
-
-[data-theme="dark"] .bpm-inline .spin.up::before {
-  border-bottom-color: #333;
-}
-
-[data-theme="dark"] .bpm-inline .spin.down::before {
-  border-top-color: #333;
-}
-
-[data-theme="dark"] .cycle-counter__digit {
   color: var(--text-color, #eee);
 }
 
@@ -386,14 +171,6 @@
   .param.cycle-display input,
   .param.bpm input {
     font-size: 2rem;
-  }
-
-  .cycle-counter__digit {
-    font-size: 2.5rem;
-  }
-
-  .pulse-number {
-    font-size: 0.9rem;
   }
 }
 
@@ -425,18 +202,6 @@
   .param.bpm input {
     font-size: 1.75rem;
   }
-
-  .cycle-counter__digit {
-    font-size: 2rem;
-  }
-
-  .pulse-number {
-    font-size: 0.8rem;
-  }
-
-  .pulse-number sup {
-    font-size: 0.5em;
-  }
 }
 
 /* Small mobile (iPhone SE, etc.) */
@@ -466,27 +231,5 @@
   .param.cycle-display .spinner,
   .param.bpm .spinner {
     width: 14px;
-  }
-
-  .cycle-counter__digit {
-    font-size: 1.75rem;
-  }
-
-  .pulse-number {
-    font-size: 0.7rem;
-  }
-
-  /* BPM inline responsive */
-  .bpm-inline .circle {
-    width: 50px;
-    height: 50px;
-  }
-
-  .bpm-inline input {
-    font-size: 1.25rem;
-  }
-
-  .bpm-inline .abbr {
-    font-size: 0.55rem;
   }
 }

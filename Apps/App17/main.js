@@ -15,6 +15,7 @@ import { createPreferenceStorage, registerFactoryReset } from '../../libs/app-co
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
+import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 
 // ============================================
 // CONSTANTS
@@ -622,22 +623,6 @@ function decrementCycle() {
   }
 }
 
-// Long-press auto-repeat for spinner buttons
-function addRepeatPress(el, fn) {
-  if (!el) return;
-  let t = null, r = null;
-  const start = (ev) => {
-    fn();
-    t = setTimeout(() => { r = setInterval(fn, 80); }, 320);
-    ev.preventDefault();
-  };
-  const stop = () => { clearTimeout(t); clearInterval(r); t = r = null; };
-  el.addEventListener('mousedown', start);
-  el.addEventListener('touchstart', start, { passive: false });
-  ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(ev => el.addEventListener(ev, stop));
-  document.addEventListener('mouseup', stop);
-  document.addEventListener('touchend', stop);
-}
 
 // ============================================
 // BPM INPUT HANDLING
@@ -882,12 +867,12 @@ async function initializeApp() {
   });
 
   // Spinner buttons with auto-repeat
-  addRepeatPress(compasUpBtn, incrementCompas);
-  addRepeatPress(compasDownBtn, decrementCompas);
-  addRepeatPress(cycleUpBtn, incrementCycle);
-  addRepeatPress(cycleDownBtn, decrementCycle);
-  addRepeatPress(bpmUpBtn, incrementBpm);
-  addRepeatPress(bpmDownBtn, decrementBpm);
+  attachSpinnerRepeat(compasUpBtn, incrementCompas);
+  attachSpinnerRepeat(compasDownBtn, decrementCompas);
+  attachSpinnerRepeat(cycleUpBtn, incrementCycle);
+  attachSpinnerRepeat(cycleDownBtn, decrementCycle);
+  attachSpinnerRepeat(bpmUpBtn, incrementBpm);
+  attachSpinnerRepeat(bpmDownBtn, decrementBpm);
 
   // BPM input events
   inputBpm?.addEventListener('input', (e) => {
