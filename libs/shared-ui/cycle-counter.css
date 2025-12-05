@@ -1,0 +1,114 @@
+/* libs/shared-ui/cycle-counter.css */
+/* Cycle Counter Component - Shared styles for App16, App17, and future apps */
+
+/* ============================================
+   CYCLE COUNTER DIGIT
+   ============================================ */
+
+.cycle-counter__digit {
+  font-size: 3rem;
+  font-weight: 700;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--text-color, #333);
+  line-height: 1;
+}
+
+.cycle-counter__digit sub {
+  font-size: 0.5em;
+  vertical-align: baseline;
+  position: relative;
+  top: 0.3em;
+  opacity: 0.8;
+}
+
+/* ============================================
+   PLAYING STATES
+   ============================================ */
+
+/* Zero position - blue highlight */
+.cycle-counter__digit.playing-zero {
+  color: var(--color-lg, #4A90D9);
+}
+
+/* Active position - orange highlight */
+.cycle-counter__digit.playing-active {
+  color: var(--selection-color, #EA570C);
+}
+
+/* ============================================
+   FLIP ANIMATIONS
+   ============================================ */
+
+.cycle-counter__digit.flip-out {
+  animation: flipOut 0.15s ease-in forwards;
+}
+
+.cycle-counter__digit.flip-in {
+  animation: flipIn 0.15s ease-out forwards;
+}
+
+@keyframes flipOut {
+  from { transform: rotateX(0); opacity: 1; }
+  to { transform: rotateX(-90deg); opacity: 0; }
+}
+
+@keyframes flipIn {
+  from { transform: rotateX(90deg); opacity: 0; }
+  to { transform: rotateX(0); opacity: 1; }
+}
+
+/* ============================================
+   CYCLE CIRCLE CONTAINER
+   ============================================ */
+
+.cycle-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.cycle-circle.active {
+  border-color: var(--selection-color, #EA570C) !important;
+  box-shadow: 0 0 12px var(--selection-color, #EA570C);
+}
+
+.cycle-circle.active-zero {
+  border-color: var(--color-lg, #4A90D9) !important;
+  box-shadow: 0 0 12px var(--color-lg, #4A90D9);
+}
+
+/* ============================================
+   DARK THEME
+   ============================================ */
+
+[data-theme="dark"] .cycle-counter__digit {
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .cycle-circle {
+  background: transparent;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 600px) {
+  .cycle-counter__digit {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .cycle-counter__digit {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .cycle-counter__digit {
+    font-size: 1.75rem;
+  }
+}

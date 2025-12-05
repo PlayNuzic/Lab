@@ -1,0 +1,81 @@
+/* libs/shared-ui/pulse-highlight.css */
+/* Pulse Highlight Component - Shared styles for App16, App17, and future apps */
+
+/* ============================================
+   PULSE NUMBER BASE STYLES
+   ============================================ */
+
+.pulse-number {
+  font-size: 2rem;
+  transition: transform 0.12s ease, color 0.12s ease;
+}
+
+.pulse-number.cycle-start {
+  color: var(--color-lg, #4A90D9);
+  font-weight: 700;
+}
+
+.pulse-number sup {
+  font-size: 0.55em;
+  vertical-align: super;
+  margin-left: 1px;
+  opacity: 0.8;
+}
+
+/* ============================================
+   PULSE NUMBER HIGHLIGHT STATES
+   ============================================ */
+
+/* Active pulse - orange */
+.pulse-number.active {
+  color: var(--selection-color, #EA570C);
+  transform: translateX(-50%) scale(1.35);
+}
+
+/* Zero position - blue with glow */
+.pulse-number.active-zero {
+  color: var(--color-lg, #4A90D9);
+  transform: translateX(-50%) scale(1.5);
+  text-shadow: 0 0 12px var(--color-lg, #4A90D9);
+}
+
+/* ============================================
+   PULSE DOT HIGHLIGHT STATES
+   ============================================ */
+
+.pulse.active {
+  background: var(--selection-color, #EA570C) !important;
+  transform: translate(-50%, -50%) scale(1.6);
+}
+
+.pulse.active-zero {
+  background: var(--color-lg, #4A90D9) !important;
+  transform: translate(-50%, -50%) scale(1.8);
+  box-shadow: 0 0 12px var(--color-lg, #4A90D9);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 600px) {
+  .pulse-number {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pulse-number {
+    font-size: 0.8rem;
+  }
+
+  .pulse-number sup {
+    font-size: 0.5em;
+  }
+}
+
+@media (max-width: 360px) {
+  .pulse-number {
+    font-size: 0.7rem;
+  }
+}
