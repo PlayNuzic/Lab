@@ -18,6 +18,7 @@ import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.j
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
 import { createTotalLengthDisplay } from '../../libs/app-common/total-length-display.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ============================================
 // CONSTANTS
@@ -76,6 +77,7 @@ let tapTempoBtn;
 let tapHelp;
 let showBpmToggle;
 let tapTempoHandler = null;
+let bpmController = null;
 let totalLengthDigit;
 let superscriptController;   // Shared module for cycle superscripts
 let totalLengthController;   // Shared module for total length display
@@ -685,35 +687,11 @@ function decrementCycle() {
 
 
 // ============================================
-// BPM INPUT HANDLING
+// BPM HANDLING (via shared bpm-controller)
 // ============================================
 
-function handleBpmChange(newValue) {
-  const parsed = parseInt(newValue, 10);
-
-  if (isNaN(parsed) || parsed < MIN_BPM) {
-    bpm = MIN_BPM;
-  } else if (parsed > MAX_BPM) {
-    bpm = MAX_BPM;
-  } else {
-    bpm = parsed;
-  }
-
-  if (inputBpm) inputBpm.value = bpm;
-  saveState();
-}
-
-function incrementBpm() {
-  if (bpm < MAX_BPM) {
-    handleBpmChange(bpm + 1);
-  }
-}
-
-function decrementBpm() {
-  if (bpm > MIN_BPM) {
-    handleBpmChange(bpm - 1);
-  }
-}
+// BPM is handled by bpmController (shared module)
+// Local bpm variable is synced via onChange callback
 
 /**
  * Toggle BPM visibility - shows/hides BPM input and tap tempo button
@@ -721,8 +699,10 @@ function decrementBpm() {
 function toggleBpmVisibility(enabled) {
   showBpmEnabled = enabled;
 
-  // Show/hide BPM param (using .visible class for bpm-inline)
-  if (bpmParam) {
+  // Show/hide BPM param via controller or direct class toggle
+  if (bpmController) {
+    bpmController.setVisible(enabled);
+  } else if (bpmParam) {
     bpmParam.classList.toggle('visible', enabled);
   }
 
@@ -738,8 +718,13 @@ function toggleBpmVisibility(enabled) {
 
   // Reset BPM to default when hidden
   if (!enabled) {
-    bpm = DEFAULT_BPM;
-    if (inputBpm) inputBpm.value = bpm;
+    if (bpmController) {
+      bpmController.setValue(DEFAULT_BPM);
+      bpm = DEFAULT_BPM;
+    } else {
+      bpm = DEFAULT_BPM;
+      if (inputBpm) inputBpm.value = bpm;
+    }
   }
   // Note: showBpmEnabled is NOT persisted
 }
@@ -759,13 +744,15 @@ function handleRandom() {
   handleCycleChange(newCycles);
 
   // Only randomize BPM if it's visible
-  if (showBpmEnabled) {
+  if (showBpmEnabled && bpmController) {
     const minBpm = parseInt(document.getElementById('randBpmMin')?.value || '60', 10);
     const maxBpm = parseInt(document.getElementById('randBpmMax')?.value || '180', 10);
     const clampedMin = Math.max(MIN_BPM, Math.min(minBpm, MAX_BPM));
     const clampedMax = Math.max(MIN_BPM, Math.min(maxBpm, MAX_BPM));
     const newBpm = Math.floor(Math.random() * (clampedMax - clampedMin + 1)) + clampedMin;
-    handleBpmChange(newBpm);
+    bpmController.setValue(newBpm);
+    bpm = newBpm;
+    saveState();
   }
 }
 
@@ -940,26 +927,28 @@ async function initializeApp() {
     handleCycleChange(inputCycle.value);
   });
 
-  // Spinner buttons with auto-repeat
+  // Spinner buttons with auto-repeat (compás and cycle only - BPM handled by controller)
   attachSpinnerRepeat(compasUpBtn, incrementCompas);
   attachSpinnerRepeat(compasDownBtn, decrementCompas);
   attachSpinnerRepeat(cycleUpBtn, incrementCycle);
   attachSpinnerRepeat(cycleDownBtn, decrementCycle);
-  attachSpinnerRepeat(bpmUpBtn, incrementBpm);
-  attachSpinnerRepeat(bpmDownBtn, decrementBpm);
 
-  // BPM input events
-  inputBpm?.addEventListener('input', (e) => {
-    handleBpmChange(e.target.value);
-  });
-
-  inputBpm?.addEventListener('blur', () => {
-    handleBpmChange(inputBpm.value);
-  });
-
-  // Set BPM input value from loaded state
+  // Initialize BPM controller (shared module handles input/blur/spinners)
   if (inputBpm) {
-    inputBpm.value = bpm;
+    bpmController = createBpmController({
+      inputEl: inputBpm,
+      upBtn: bpmUpBtn,
+      downBtn: bpmDownBtn,
+      container: bpmParam,
+      min: MIN_BPM,
+      max: MAX_BPM,
+      defaultValue: bpm,
+      onChange: (newBpm) => {
+        bpm = newBpm;
+        saveState();
+      }
+    });
+    bpmController.attach();
   }
 
   // Load showBpm preference (defaults to true)
@@ -985,9 +974,13 @@ async function initializeApp() {
       tapBtn: tapTempoBtn,
       tapHelp: tapHelp,
       onBpmDetected: (newBpm) => {
-        // Clamp BPM to valid range
+        // Use controller to set BPM (handles clamping)
         const clampedBpm = Math.min(MAX_BPM, Math.max(MIN_BPM, Math.round(newBpm)));
-        handleBpmChange(clampedBpm);
+        if (bpmController) {
+          bpmController.setValue(clampedBpm);
+        }
+        bpm = clampedBpm;
+        saveState();
       }
     });
     tapTempoHandler.attach();

@@ -193,7 +193,7 @@ describe('bpm-controller', () => {
     });
 
     describe('attach', () => {
-      test('handles input events', () => {
+      test('handles input events for valid values', () => {
         const onChange = jest.fn();
         const controller = createBpmController({ inputEl, onChange });
 
@@ -206,7 +206,91 @@ describe('bpm-controller', () => {
         expect(onChange).toHaveBeenCalledWith(150);
       });
 
-      test('handles blur events', () => {
+      test('allows typing multi-digit numbers without clamping during input', () => {
+        const onChange = jest.fn();
+        const controller = createBpmController({ inputEl, min: 30, max: 300, defaultValue: 100, onChange });
+
+        controller.attach();
+
+        // User types "1" - below min, should NOT clamp, should NOT update BPM
+        inputEl.value = '1';
+        inputEl.dispatchEvent(new Event('input'));
+        expect(inputEl.value).toBe('1'); // Input still shows what user typed
+        expect(controller.getValue()).toBe(100); // BPM unchanged (invalid value)
+        expect(onChange).not.toHaveBeenCalled();
+
+        // User continues typing "12" - still below min
+        inputEl.value = '12';
+        inputEl.dispatchEvent(new Event('input'));
+        expect(inputEl.value).toBe('12');
+        expect(controller.getValue()).toBe(100); // BPM still unchanged
+        expect(onChange).not.toHaveBeenCalled();
+
+        // User types "120" - now valid
+        inputEl.value = '120';
+        inputEl.dispatchEvent(new Event('input'));
+        expect(inputEl.value).toBe('120');
+        expect(controller.getValue()).toBe(120); // BPM updated
+        expect(onChange).toHaveBeenCalledWith(120);
+      });
+
+      test('clamps value on blur when too low', () => {
+        const onChange = jest.fn();
+        const controller = createBpmController({ inputEl, min: 30, max: 300, defaultValue: 100, onChange });
+
+        controller.attach();
+
+        // User types "5" and leaves field
+        inputEl.value = '5';
+        inputEl.dispatchEvent(new Event('input'));
+        inputEl.dispatchEvent(new Event('blur'));
+
+        expect(inputEl.value).toBe('30'); // Clamped to min
+        expect(controller.getValue()).toBe(30);
+        expect(onChange).toHaveBeenCalledWith(30);
+      });
+
+      test('clamps value on blur when too high', () => {
+        const onChange = jest.fn();
+        const controller = createBpmController({ inputEl, min: 30, max: 300, defaultValue: 100, onChange });
+
+        controller.attach();
+
+        // User types "999" and leaves field
+        inputEl.value = '999';
+        inputEl.dispatchEvent(new Event('input'));
+        inputEl.dispatchEvent(new Event('blur'));
+
+        expect(inputEl.value).toBe('300'); // Clamped to max
+        expect(controller.getValue()).toBe(300);
+        expect(onChange).toHaveBeenCalledWith(300);
+      });
+
+      test('handles empty input on blur', () => {
+        const controller = createBpmController({ inputEl, min: 30, defaultValue: 100 });
+
+        controller.attach();
+
+        inputEl.value = '';
+        inputEl.dispatchEvent(new Event('blur'));
+
+        expect(inputEl.value).toBe('30');
+        expect(controller.getValue()).toBe(30);
+      });
+
+      test('handles NaN input on blur', () => {
+        const controller = createBpmController({ inputEl, min: 30, defaultValue: 100 });
+
+        controller.attach();
+
+        inputEl.value = 'abc';
+        inputEl.dispatchEvent(new Event('blur'));
+
+        expect(inputEl.value).toBe('30');
+        expect(controller.getValue()).toBe(30);
+      });
+
+      test('handles blur events for valid values', () => {
         const controller = createBpmController({ inputEl });
 
         controller.attach();

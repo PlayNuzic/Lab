@@ -16,6 +16,7 @@ import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } 
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ============================================
 // CONSTANTS
@@ -66,6 +67,7 @@ let tapTempoBtn;
 let tapHelp;
 let showBpmToggle;
 let tapTempoHandler = null;
+let bpmController = null;
 
 // ============================================
 // STORAGE
@@ -537,31 +539,15 @@ function handleRandom() {
 }
 
 // ============================================
-// BPM HANDLING
+// BPM HANDLING (via shared bpm-controller)
 // ============================================
 
-function handleBpmChange(newValue) {
-  const parsed = parseInt(newValue, 10);
-
-  if (isNaN(parsed)) return;
-
-  // Clamp to valid range
-  bpm = Math.min(MAX_BPM, Math.max(MIN_BPM, parsed));
-
-  if (inputBpm && inputBpm.value !== String(bpm)) {
-    inputBpm.value = bpm;
-  }
-}
-
-function incrementBpm() {
-  if (bpm < MAX_BPM) {
-    handleBpmChange(bpm + 1);
-  }
-}
-
-function decrementBpm() {
-  if (bpm > MIN_BPM) {
-    handleBpmChange(bpm - 1);
+/**
+ * Sync local bpm variable from controller
+ */
+function syncBpmFromController() {
+  if (bpmController) {
+    bpm = bpmController.getValue();
   }
 }
 
@@ -571,8 +557,10 @@ function decrementBpm() {
 function toggleBpmVisibility(enabled) {
   showBpmEnabled = enabled;
 
-  // Show/hide BPM param (using .visible class for bpm-inline)
-  if (bpmParam) {
+  // Show/hide BPM param via controller or direct class toggle
+  if (bpmController) {
+    bpmController.setVisible(enabled);
+  } else if (bpmParam) {
     bpmParam.classList.toggle('visible', enabled);
   }
 
@@ -588,8 +576,13 @@ function toggleBpmVisibility(enabled) {
 
   // Reset BPM to default when hidden
   if (!enabled) {
-    bpm = DEFAULT_BPM;
-    if (inputBpm) inputBpm.value = bpm;
+    if (bpmController) {
+      bpmController.setValue(DEFAULT_BPM);
+      bpm = DEFAULT_BPM;
+    } else {
+      bpm = DEFAULT_BPM;
+      if (inputBpm) inputBpm.value = bpm;
+    }
   }
 }
 
@@ -786,22 +779,22 @@ async function initializeApp() {
     });
   }
 
-  // Initialize BPM input and toggle
+  // Initialize BPM controller (shared module handles input/blur/spinners)
   if (inputBpm) {
-    inputBpm.value = bpm;
-
-    inputBpm.addEventListener('input', (e) => {
-      handleBpmChange(e.target.value);
+    bpmController = createBpmController({
+      inputEl: inputBpm,
+      upBtn: bpmUpBtn,
+      downBtn: bpmDownBtn,
+      container: bpmParam,
+      min: MIN_BPM,
+      max: MAX_BPM,
+      defaultValue: bpm,
+      onChange: (newBpm) => {
+        bpm = newBpm;
+      }
     });
-
-    inputBpm.addEventListener('blur', () => {
-      handleBpmChange(inputBpm.value);
-    });
+    bpmController.attach();
   }
-
-  // BPM spinner buttons with auto-repeat
-  attachSpinnerRepeat(bpmUpBtn, incrementBpm);
-  attachSpinnerRepeat(bpmDownBtn, decrementBpm);
 
   // Load showBpm preference (defaults to true)
   const savedShowBpm = localStorage.getItem('app16:showBpm');
@@ -826,9 +819,12 @@ async function initializeApp() {
       tapBtn: tapTempoBtn,
       tapHelp: tapHelp,
       onBpmDetected: (newBpm) => {
-        // Clamp BPM to valid range
+        // Use controller to set BPM (handles clamping)
         const clampedBpm = Math.min(MAX_BPM, Math.max(MIN_BPM, Math.round(newBpm)));
-        handleBpmChange(clampedBpm);
+        if (bpmController) {
+          bpmController.setValue(clampedBpm);
+        }
+        bpm = clampedBpm;
       }
     });
     tapTempoHandler.attach();

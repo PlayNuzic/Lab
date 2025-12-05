@@ -134,11 +134,37 @@ export function createBpmController(config) {
   }
 
   function handleInput(event) {
-    setValue(event.target.value);
+    const parsed = parseInt(event.target.value, 10);
+    // Only update BPM if value is valid and within range
+    // DO NOT clamp during typing - this prevents multi-digit entry
+    if (!isNaN(parsed) && parsed >= min && parsed <= max) {
+      if (parsed !== bpm) {
+        bpm = parsed;
+        if (typeof onChange === 'function') {
+          onChange(bpm);
+        }
+      }
+    }
   }
 
   function handleBlur() {
-    setValue(inputEl.value);
+    // On blur, clamp and show final corrected value
+    const parsed = parseInt(inputEl.value, 10);
+    let newBpm;
+    if (isNaN(parsed) || parsed < min) {
+      newBpm = min;
+    } else if (parsed > max) {
+      newBpm = max;
+    } else {
+      newBpm = parsed;
+    }
+    inputEl.value = newBpm;
+    if (newBpm !== bpm) {
+      bpm = newBpm;
+      if (typeof onChange === 'function') {
+        onChange(bpm);
+      }
+    }
   }
 
   // Initialize input value
