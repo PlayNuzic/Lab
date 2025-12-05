@@ -43,7 +43,7 @@ describe('bpm-controller', () => {
 
       expect(controller.getValue()).toBe(100);
       expect(controller.min).toBe(30);
-      expect(controller.max).toBe(300);
+      expect(controller.max).toBe(240);
       expect(inputEl.value).toBe('100');
     });
 
@@ -79,11 +79,11 @@ describe('bpm-controller', () => {
       });
 
       test('clamps to max value', () => {
-        const controller = createBpmController({ inputEl, max: 300 });
+        const controller = createBpmController({ inputEl, max: 240 });
 
         controller.setValue(500);
 
-        expect(controller.getValue()).toBe(300);
+        expect(controller.getValue()).toBe(240);
       });
 
       test('ignores NaN values', () => {
@@ -140,11 +140,11 @@ describe('bpm-controller', () => {
       });
 
       test('does not exceed max', () => {
-        const controller = createBpmController({ inputEl, defaultValue: 300, max: 300 });
+        const controller = createBpmController({ inputEl, defaultValue: 240, max: 240 });
 
         controller.increment();
 
-        expect(controller.getValue()).toBe(300);
+        expect(controller.getValue()).toBe(240);
       });
     });
 
@@ -208,7 +208,7 @@ describe('bpm-controller', () => {
 
       test('allows typing multi-digit numbers without clamping during input', () => {
         const onChange = jest.fn();
-        const controller = createBpmController({ inputEl, min: 30, max: 300, defaultValue: 100, onChange });
+        const controller = createBpmController({ inputEl, min: 30, max: 240, defaultValue: 100, onChange });
 
         controller.attach();
 
@@ -236,7 +236,7 @@ describe('bpm-controller', () => {
 
       test('clamps value on blur when too low', () => {
         const onChange = jest.fn();
-        const controller = createBpmController({ inputEl, min: 30, max: 300, defaultValue: 100, onChange });
+        const controller = createBpmController({ inputEl, min: 30, max: 240, defaultValue: 100, onChange });
 
         controller.attach();
 
@@ -252,7 +252,7 @@ describe('bpm-controller', () => {
 
       test('clamps value on blur when too high', () => {
         const onChange = jest.fn();
-        const controller = createBpmController({ inputEl, min: 30, max: 300, defaultValue: 100, onChange });
+        const controller = createBpmController({ inputEl, min: 30, max: 240, defaultValue: 100, onChange });
 
         controller.attach();
 
@@ -261,9 +261,9 @@ describe('bpm-controller', () => {
         inputEl.dispatchEvent(new Event('input'));
         inputEl.dispatchEvent(new Event('blur'));
 
-        expect(inputEl.value).toBe('300'); // Clamped to max
-        expect(controller.getValue()).toBe(300);
-        expect(onChange).toHaveBeenCalledWith(300);
+        expect(inputEl.value).toBe('240'); // Clamped to max
+        expect(controller.getValue()).toBe(240);
+        expect(onChange).toHaveBeenCalledWith(240);
       });
 
       test('handles empty input on blur', () => {

@@ -31,7 +31,7 @@ const MAX_CYCLES = 12;
 const DEFAULT_CYCLES = 4;
 const DEFAULT_BPM = 100;
 const MIN_BPM = 30;
-const MAX_BPM = 300;
+const MAX_BPM = 240;
 
 // ============================================
 // STATE

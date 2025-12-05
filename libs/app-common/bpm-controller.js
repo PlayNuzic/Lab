@@ -12,7 +12,7 @@ import { attachSpinnerRepeat } from './spinner-repeat.js';
  * @param {HTMLElement} [config.downBtn] - Decrement button
  * @param {HTMLElement} [config.container] - Container element for visibility toggle
  * @param {number} [config.min=30] - Minimum BPM value
- * @param {number} [config.max=300] - Maximum BPM value
+ * @param {number} [config.max=240] - Maximum BPM value
  * @param {number} [config.defaultValue=100] - Default BPM value
  * @param {Function} [config.onChange] - Callback when BPM changes
  * @returns {Object} BPM controller API
@@ -24,7 +24,7 @@ export function createBpmController(config) {
     downBtn,
     container,
     min = 30,
-    max = 300,
+    max = 240,
     defaultValue = 100,
     onChange
   } = config;
@@ -197,7 +197,7 @@ function createNullController() {
     attach: () => {},
     detach: () => {},
     min: 30,
-    max: 300,
+    max: 240,
     inputEl: null
   };
 }

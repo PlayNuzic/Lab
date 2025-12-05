@@ -27,7 +27,7 @@ const PLAYABLE_PULSES = 12;   // Solo 0-11 suenan
 const DEFAULT_COMPAS = 4;
 const DEFAULT_BPM = 100;
 const MIN_BPM = 30;
-const MAX_BPM = 300;
+const MAX_BPM = 240;
 
 // ============================================
 // STATE
