@@ -37,6 +37,14 @@
   --btn-taptempo-offset-y: -25px;
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
+  --bpm-offset-x: 0px;
+  --bpm-offset-y: -35px;
+
+  /* BPM sizing */
+  --bpm-scale: 0.8;
+
+  /* Left column offset */
+  --left-column-offset-y: -35px;
 
   /* Colors */
   --grid-line-color: rgba(0, 0, 0, 0.15);
@@ -85,6 +93,8 @@ main {
   gap: 2rem;
   padding: 1rem 1rem 0.5rem;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 /* All param circles same size */
@@ -207,7 +217,9 @@ main {
   gap: var(--layout-gap);
   padding: var(--layout-gap);
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 2;
 }
 
 /* ============================================
@@ -219,7 +231,10 @@ main {
   flex-direction: column;
   align-items: center;
   gap: var(--controls-gap);
-  padding: 0.5rem 0;
+  padding: 0rem 0;
+  transform: translateY(var(--left-column-offset-y));
+  position: relative;
+  z-index: 10;
 }
 
 /* Registry param */
@@ -234,6 +249,8 @@ main {
   font-size: 1.4rem;
   font-weight: 600;
   color: var(--text-color, #333);
+  position: relative;
+  z-index: 10;
 }
 
 .param.registro .circle {
@@ -407,11 +424,12 @@ main {
   transform: translate(var(--btn-taptempo-offset-x), var(--btn-taptempo-offset-y));
 }
 
-/* BPM inline at bottom */
+/* BPM inline at bottom - always visible in App19 */
 .left-column .bpm-inline {
-  position: static;
+  position: relative;
+  display: flex !important;
   margin-top: auto;
-  transform: none;
+  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
 }
 
 /* ============================================
