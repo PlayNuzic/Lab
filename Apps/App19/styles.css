@@ -24,7 +24,19 @@
   --controls-gap: 0.75rem;
 
   /* Registry circle */
-  --registro-circle-size: 80px;
+  --registro-circle-size: 70px;
+
+  /* Button fine-tuning offsets (x, y) */
+  --btn-play-offset-x: 75px;
+  --btn-play-offset-y: 15px;
+  --btn-random-offset-x: 0px;
+  --btn-random-offset-y: -30px;
+  --btn-reset-offset-x: 0px;
+  --btn-reset-offset-y: -35px;
+  --btn-taptempo-offset-x: 0px;
+  --btn-taptempo-offset-y: -25px;
+  --btn-pulse-toggle-offset-x: -115px;
+  --btn-pulse-toggle-offset-y: -35px;
 
   /* Colors */
   --grid-line-color: rgba(0, 0, 0, 0.15);
@@ -126,9 +138,9 @@ main {
 .total-length-inline {
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.5rem;
 }
 
 .total-length-inline .circle {
@@ -150,10 +162,10 @@ main {
 }
 
 .total-length-inline .abbr {
-  font-size: 0.85rem;
+  font-size: 1.4rem;
   font-weight: 600;
   color: var(--text-color, #333);
-  opacity: 0.8;
+  opacity: 1;
 }
 
 /* Flip animations (reuse keyframes from cycle-counter) */
@@ -219,7 +231,7 @@ main {
 }
 
 .param.registro .abbr {
-  font-size: 0.9rem;
+  font-size: 1.4rem;
   font-weight: 600;
   color: var(--text-color, #333);
 }
@@ -260,7 +272,7 @@ main {
 }
 
 .registro-nav .spin {
-  width: 40px;
+  width: 60px;
   height: 30px;
   border: 1px solid var(--circle-border, #333);
   border-radius: 6px;
@@ -357,9 +369,20 @@ main {
   gap: 0.5rem;
 }
 
-/* Button order: Pulso toggle first (above Play) */
-.controls-container .control-sound-toggle-container {
-  order: -1;
+/* Play row: static positioning for vertical layout */
+.controls-container .controls .play-row {
+  position: static;
+  transform: translate(var(--btn-play-offset-x), var(--btn-play-offset-y));
+}
+
+/* Play button fine-tuning */
+.controls-container .controls #playBtn {
+  position: relative;
+}
+
+/* Pulse toggle fine-tuning */
+.controls-container .controls .play-row .control-sound-toggle-container {
+  transform: translate(var(--btn-pulse-toggle-offset-x), var(--btn-pulse-toggle-offset-y)) !important;
 }
 
 /* Hide button-row wrapper, show buttons directly */
@@ -370,9 +393,18 @@ main {
   gap: 0.5rem;
 }
 
-/* Tap tempo visible */
+/* Button fine-tuning offsets */
+.controls-container .controls #randomBtn {
+  transform: translate(var(--btn-random-offset-x), var(--btn-random-offset-y));
+}
+
+.controls-container .controls #resetBtn {
+  transform: translate(var(--btn-reset-offset-x), var(--btn-reset-offset-y));
+}
+
 .controls-container .controls #tapTempoBtn {
   display: flex !important;
+  transform: translate(var(--btn-taptempo-offset-x), var(--btn-taptempo-offset-y));
 }
 
 /* BPM inline at bottom */
@@ -506,9 +538,8 @@ main {
 .timeline-number {
   height: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: start;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-color, #333);
@@ -519,10 +550,11 @@ main {
 }
 
 .timeline-number .cycle-sup {
-  font-size: 0.65rem;
+  font-size: 0.6em;
   vertical-align: super;
   margin-left: 1px;
   opacity: 0.7;
+  line-height: 1;
 }
 
 /* Cycle start (pulse 0) styling */
