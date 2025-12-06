@@ -24,6 +24,10 @@ export function createRegistryController(config = {}) {
     onRegistryChange
   } = config;
 
+  // Fixed display configuration: 15 notes with 0 centered at position 8 (index 7)
+  const TOTAL_NOTES = 15;
+  const ZERO_POSITION = 7;
+
   let registry = null;
 
   /**
@@ -85,31 +89,26 @@ export function createRegistryController(config = {}) {
   }
 
   /**
-   * Get total displayed notes based on registry
-   * - Registry 0: 14 notes (no prev: 12 current + 2 next)
-   * - Registry 1-6: 15 notes (1 prev + 12 current + 2 next)
-   * - Registry max: 13 notes (no next: 1 prev + 12 current)
-   * @returns {number} Total notes to display
+   * Get total displayed notes - always 15 with 0 centered at position 8
+   * @returns {number} Total notes to display (always 15)
    */
   function getTotalNotes() {
-    if (registry === null) return 15;
-    if (registry === min) return notesPerRegistry + 2;  // 14
-    if (registry === max) return notesPerRegistry + 1;  // 13
-    return notesPerRegistry + 3;  // 15
+    return TOTAL_NOTES;
   }
 
   /**
    * Get available "outside" notes based on current registry
-   * @returns {number[]} Array of outside note indices
+   * With 0 centered, returns indices of notes outside current registry
+   * @returns {number[]} Array of visual note indices that are boundary notes
    */
   function getOutsideNotes() {
-    if (registry === min) {
-      return [notesPerRegistry, notesPerRegistry + 1];  // [12, 13]
-    } else if (registry === max) {
-      return [-1];  // prev note 11
-    } else {
-      return [-1, notesPerRegistry, notesPerRegistry + 1];  // [-1, 12, 13]
+    const outside = [];
+    for (let i = 0; i < TOTAL_NOTES; i++) {
+      if (isBoundaryNote(i)) {
+        outside.push(i);
+      }
     }
+    return outside;
   }
 
   /**
@@ -162,83 +161,95 @@ export function createRegistryController(config = {}) {
 
   /**
    * Format a note index as registry label (Nr format)
-   * @param {number} noteIndex - Visual note index
+   * Note 0 of current registry is always at ZERO_POSITION (index 7)
+   * @param {number} noteIndex - Visual note index (0 = top, 14 = bottom)
    * @returns {string} Formatted label
    */
   function formatLabel(noteIndex) {
     if (registry === null) return '';
 
-    // Registry 0: No previous registry
-    if (registry === min) {
-      if (noteIndex < notesPerRegistry) {
-        return `${noteIndex}r${registry}`;
-      } else {
-        const note = noteIndex - notesPerRegistry;
-        return `${note}r${registry + 1}`;
-      }
-    }
+    // Calculate offset from ZERO_POSITION
+    // Negative offset = notes above 0 (higher pitch, previous registry)
+    // Positive offset = notes below 0 (lower pitch, same/next registry)
+    const offset = noteIndex - ZERO_POSITION;
 
-    // Registry max: No next registry
-    if (registry === max) {
-      if (noteIndex === 0) {
-        return `${notesPerRegistry - 1}r${registry - 1}`;  // 11r(n-1)
-      } else {
-        const note = noteIndex - 1;
-        return `${note}r${registry}`;
-      }
-    }
+    let noteNum, noteRegistry;
 
-    // Registry 1 to max-1: Full range
-    if (noteIndex === 0) {
-      return `${notesPerRegistry - 1}r${registry - 1}`;  // 11r(n-1)
-    } else if (noteIndex >= notesPerRegistry + 1) {
-      const note = noteIndex - (notesPerRegistry + 1);
-      return `${note}r${registry + 1}`;
+    if (offset < 0) {
+      // Notes above 0 (toward previous registry)
+      // offset = -1 → note 11 of current registry
+      // offset = -2 → note 10 of current registry
+      // ...
+      // offset = -12 → note 0 of previous registry
+      const absOffset = Math.abs(offset);
+      noteNum = (notesPerRegistry - absOffset % notesPerRegistry) % notesPerRegistry;
+      noteRegistry = registry - Math.ceil(absOffset / notesPerRegistry);
+      // Adjust for when absOffset is exact multiple of 12
+      if (absOffset % notesPerRegistry === 0) {
+        noteNum = 0;
+        noteRegistry = registry - (absOffset / notesPerRegistry) + 1;
+      }
     } else {
-      const note = noteIndex - 1;
-      return `${note}r${registry}`;
+      // Notes at 0 and below (same registry or next)
+      // offset = 0 → note 0 of current registry
+      // offset = 1 → note 1 of current registry
+      // ...
+      // offset = 12 → note 0 of next registry
+      noteNum = offset % notesPerRegistry;
+      noteRegistry = registry + Math.floor(offset / notesPerRegistry);
     }
+
+    return `${noteNum}r${noteRegistry}`;
   }
 
   /**
    * Convert visual note index to note-in-registry
+   * With 0 at ZERO_POSITION, this returns the offset from 0
    * @param {number} noteIndex - Visual note index
-   * @returns {number} Note in registry (-1 to 13)
+   * @returns {number} Note offset from 0 (negative = above, positive = below)
    */
   function getNoteInRegistry(noteIndex) {
-    if (registry === min) {
-      return noteIndex;
-    } else {
-      return noteIndex - 1;
-    }
+    return noteIndex - ZERO_POSITION;
   }
 
   /**
    * Convert note-in-registry to visual highlight index
-   * @param {number} noteInRegistry - Note in registry (-1 to 13)
+   * @param {number} noteInRegistry - Note offset from 0
    * @returns {number} Visual highlight index
    */
   function getHighlightIndex(noteInRegistry) {
-    if (registry === min) {
-      return noteInRegistry;
-    } else {
-      return noteInRegistry + 1;
-    }
+    return noteInRegistry + ZERO_POSITION;
   }
 
   /**
    * Check if a note index is a boundary note (outside current registry)
+   * With 0 of current registry centered at ZERO_POSITION:
+   * - Indices above ZERO_POSITION (higher noteIndex, higher pitch) are notes 1-7 of current registry
+   * - Index ZERO_POSITION is note 0 of current registry
+   * - Indices below ZERO_POSITION (lower noteIndex, lower pitch) are notes from previous registry
+   *
+   * Note: 0rN is the LOWEST note of registry N, so notes below 0rN belong to registry N-1
+   *
    * @param {number} noteIndex - Visual note index
-   * @returns {boolean} True if boundary note
+   * @returns {boolean} True if boundary note (different registry than current)
    */
   function isBoundaryNote(noteIndex) {
-    if (registry === min) {
-      return noteIndex >= notesPerRegistry;
-    } else if (registry === max) {
-      return noteIndex === 0;
-    } else {
-      return noteIndex === 0 || noteIndex >= notesPerRegistry + 1;
+    if (registry === null) return false;
+
+    const offset = noteIndex - ZERO_POSITION;
+
+    // Notes with negative offset are below 0rN (lower pitch) = previous registry
+    if (offset < 0) {
+      return true; // All notes below 0 are from previous registry
     }
+
+    // Notes with positive offset > 11 would be next registry, but with 15 notes centered,
+    // max offset is +7 which is still in current registry (note 7)
+    if (offset >= notesPerRegistry) {
+      return true; // Notes 12+ would be next registry
+    }
+
+    return false;
   }
 
   return {
