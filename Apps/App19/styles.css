@@ -55,6 +55,10 @@
 [data-theme="dark"] {
   --grid-line-color: rgba(255, 255, 255, 0.15);
   --grid-hover-color: rgba(234, 87, 12, 0.3);
+  /* Grid area bg is visible when grid doesn't fill the space */
+  --grid-area-bg: #252525;
+  /* Cells have different (darker) bg to differentiate from empty space */
+  --grid-cell-bg: #1e1e1e;
 }
 
 /* ============================================
@@ -424,6 +428,32 @@ main {
   transform: translate(var(--btn-taptempo-offset-x), var(--btn-taptempo-offset-y));
 }
 
+/* Reorder buttons: Play → Random → Reset → TapTempo */
+.controls-container .controls .play-row {
+  order: 1;
+}
+
+.controls-container .controls .button-row {
+  order: 2;
+}
+
+.controls-container .controls #tapTempoBtn {
+  order: 3;
+}
+
+/* Inside .button-row: Random first, then Reset */
+.controls-container .controls .button-row #randomBtn {
+  order: 1;
+}
+
+.controls-container .controls .button-row #randomMenu {
+  order: 2;
+}
+
+.controls-container .controls .button-row #resetBtn {
+  order: 3;
+}
+
 /* BPM inline at bottom - always visible in App19 */
 .left-column .bpm-inline {
   position: relative;
@@ -454,6 +484,8 @@ main {
   justify-content: stretch;
   padding-right: 0.5rem;
   min-width: 50px;
+  position: relative;
+  z-index: 5;
 }
 
 /* Grid area (matrix + timeline) */
@@ -533,8 +565,13 @@ main {
 }
 
 /* Dark theme */
+[data-theme="dark"] .grid-area,
+[data-theme="dark"] .matrix-container {
+  background: var(--grid-area-bg, #252525);
+}
+
 [data-theme="dark"] .grid-cell {
-  background: var(--bg-dark, #1a1a1a);
+  background: var(--grid-cell-bg, #1e1e1e);
 }
 
 [data-theme="dark"] .grid-cell:hover {
@@ -558,7 +595,8 @@ main {
   display: flex;
   align-items: center;
   justify-content: start;
-  font-size: 0.9rem;
+  margin-left: -5px;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--text-color, #333);
 }
@@ -568,9 +606,10 @@ main {
 }
 
 .timeline-number .cycle-sup {
-  font-size: 0.6em;
+  font-size: 0.8em;
   vertical-align: super;
   margin-left: 1px;
+  margin-top: -15px;
   opacity: 0.7;
   line-height: 1;
 }
@@ -583,6 +622,11 @@ main {
 /* Dark theme */
 [data-theme="dark"] .timeline-number {
   color: var(--text-color, #eee);
+}
+
+/* Preserve blue color for cycle-start (pulse 0) in dark mode */
+[data-theme="dark"] .timeline-number.cycle-start {
+  color: var(--color-lg, #4A90D9);
 }
 
 /* ============================================
@@ -600,16 +644,22 @@ main {
   align-items: center;
   justify-content: flex-end;
   padding-right: 0.5rem;
-  font-size: 0.8rem;
+  font-size: 1.2rem;
   font-weight: 500;
   color: var(--text-color, #333);
   border-bottom: 1px solid var(--grid-line-color);
   box-sizing: border-box;
 }
 
-/* Registry boundary note styling */
+/* Registry boundary: same color as other notes (no blue) */
 .soundline-note.registry-boundary {
-  color: var(--color-lg, #4A90D9);
+  color: var(--text-color, #333);
+  font-weight: 500;
+}
+
+/* Note 0 of any registry: selection color */
+.soundline-note[data-note-num="0"] {
+  color: var(--select-color, #E4570C) !important;
   font-weight: 700;
 }
 

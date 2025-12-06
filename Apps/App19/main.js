@@ -140,6 +140,10 @@ function updateSoundline() {
     const label = registryController.formatLabel(i);
     noteEl.textContent = label;
 
+    // Extract noteNum from label (e.g., "0r4" → 0, "11r3" → 11)
+    const noteNum = label.split('r')[0];
+    noteEl.dataset.noteNum = noteNum;
+
     // Mark boundary notes
     if (registryController.isBoundaryNote(i)) {
       noteEl.classList.add('registry-boundary');

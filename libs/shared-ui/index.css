@@ -1515,27 +1515,28 @@ body.notation-open {
   }
 }
 
-.loop {
+/* Circular layout positioning (default, no data-layout attribute) */
+.controls:not([data-layout]) .loop {
   top: calc(50% + var(--play-button-size) * 0.75);
   left: calc(73% - var(--play-button-size) * 0.92);
 }
 
-.random {
+.controls:not([data-layout]) .random {
   top: calc(55% + var(--play-button-size) * 0.1);
   left: calc(65% - var(--play-button-size) * 1.18);
 }
 
-.reset {
+.controls:not([data-layout]) .reset {
   top: calc(55% + var(--play-button-size) * 0.1);
   left: calc(35% + var(--play-button-size) * 1.18);
 }
 
-.tap {
+.controls:not([data-layout]) .tap {
   top: calc(50% + var(--play-button-size) * 0.75);
   left: calc(27% + var(--play-button-size) * 0.92);
 }
 
-.tap+.tap-help {
+.controls:not([data-layout]) .tap+.tap-help {
   top: calc(50% + var(--play-button-size) * 0.75 + 32px + 8px);
   left: calc(29% + var(--play-button-size) * 0.92);
 }
