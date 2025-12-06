@@ -824,16 +824,50 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.3s ease, transform 0.1s ease;
 }
 
-/* Central play button */
-.play {
+/* Play row: contains play button + sound toggles inline */
+.play-row {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  z-index: 2;
+}
+
+/* Sound toggles inside play-row: positioned relative, not absolute */
+.play-row .control-sound-toggles {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: auto;
+  height: auto;
+  display: flex;
+  pointer-events: auto;
+}
+
+.play-row .control-sound-toggle-container {
+  position: relative;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  transform: none;
+}
+
+/* Central play button */
+.play {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
   width: var(--play-button-size);
   height: var(--play-button-size);
   font-size: 2rem;
   z-index: 2;
+  flex-shrink: 0;
 }
 
 /* Positioning buttons around the play button using precise angles */

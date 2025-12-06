@@ -289,17 +289,20 @@ ${togglesMarkup}
       <div class="controls"${controlsLayout ? ` data-layout="${controlsLayout.mode}"` : ''}>
       ${controlsLayout?.mode === 'vertical' ? '<div class="control-buttons-row">' : ''}
 
-      <!-- Fila 1: Play Button -->
-      <button id="playBtn" class="play" aria-label="Play">
-  <!-- Icona Play (triangle) -->
-  <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
-    <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
-  </svg>
-  <!-- Icona Stop (quadrat) -->
-  <svg class="icon-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" style="display:none">
-    <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
-  </svg>
-</button>
+      <!-- Fila 1: Play Button + Sound Toggles -->
+      <div class="play-row">
+        <button id="playBtn" class="play" aria-label="Play">
+          <!-- Icona Play (triangle) -->
+          <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
+            <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
+          </svg>
+          <!-- Icona Stop (quadrat) -->
+          <svg class="icon-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" style="display:none">
+            <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
+          </svg>
+        </button>
+        ${soundToggleMarkup}
+      </div>
 
       <!-- Loop Button -->
       <button id="loopBtn" class="loop" aria-label="Loop">
@@ -353,9 +356,6 @@ ${togglesMarkup}
   </svg>
 </button>
       </div>
-
-      <!-- Fila 3: PulseToggle (.control sound toggle) -->
-      ${soundToggleMarkup}
 
       <div id="mixerMenu"></div>
       ${controlsLayout?.mode === 'vertical' ? '</div>' : ''}
