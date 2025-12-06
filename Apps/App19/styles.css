@@ -1,0 +1,704 @@
+/* App19 - Plano Musical */
+
+/* ============================================
+   SHARED COMPONENT IMPORTS
+   ============================================ */
+@import '../../libs/shared-ui/bpm-inline.css';
+@import '../../libs/shared-ui/cycle-counter.css';
+@import '../../libs/shared-ui/pulse-highlight.css';
+@import '../../libs/shared-ui/soundline.css';
+
+/* ============================================
+   APP-SPECIFIC CSS VARIABLES
+   ============================================ */
+
+:root {
+  /* Layout dimensions */
+  --left-column-width: 150px;
+  --grid-cell-min-width: 50px;
+  --grid-cell-height: 32px;
+  --visible-pulses: 12;
+
+  /* Spacing */
+  --layout-gap: 1rem;
+  --controls-gap: 0.75rem;
+
+  /* Registry circle */
+  --registro-circle-size: 80px;
+
+  /* Colors */
+  --grid-line-color: rgba(0, 0, 0, 0.15);
+  --grid-hover-color: rgba(234, 87, 12, 0.2);
+  --grid-selected-color: var(--select-color, #E4570C);
+}
+
+[data-theme="dark"] {
+  --grid-line-color: rgba(255, 255, 255, 0.15);
+  --grid-hover-color: rgba(234, 87, 12, 0.3);
+}
+
+/* ============================================
+   HIDE TEMPLATE ELEMENTS NOT NEEDED
+   ============================================ */
+
+/* Hide loop button - not used in this app */
+#loopBtn {
+  display: none !important;
+}
+
+/* Hide formula section */
+.middle {
+  display: none !important;
+}
+
+/* ============================================
+   MAIN LAYOUT
+   ============================================ */
+
+main {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 60px);
+  padding: 0;
+}
+
+/* ============================================
+   INPUTS SECTION: Compás + Nº Compases + Longitud
+   ============================================ */
+
+.inputs {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2rem;
+  padding: 1rem 1rem 0.5rem;
+  flex-shrink: 0;
+}
+
+/* All param circles same size */
+.param.compas .circle,
+.param.cycle-display .circle {
+  width: 100px;
+  height: 100px;
+}
+
+/* Cycle circle: contains both input (when stopped) and digit (when playing) */
+.param.cycle-display .cycle-circle {
+  position: relative;
+}
+
+/* Input styling for compas and cycle */
+.param.compas input,
+.param.cycle-display .cycle-circle input {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.param.compas input:focus,
+.param.cycle-display .cycle-circle input:focus {
+  outline: none;
+}
+
+/* When playing, hide input and show digit */
+.param.cycle-display .cycle-circle.playing input {
+  display: none;
+}
+
+.param.cycle-display .cycle-circle .cycle-counter__digit {
+  display: none;
+}
+
+.param.cycle-display .cycle-circle.playing .cycle-counter__digit {
+  display: block;
+}
+
+/* ============================================
+   TOTAL LENGTH CIRCLE (2/3 size = 66px)
+   ============================================ */
+
+.total-length-inline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.total-length-inline .circle {
+  width: 66px;
+  height: 66px;
+  border: 2px solid var(--circle-border, #333);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.total-length-inline .total-length__digit {
+  font-size: 1.8rem;
+  font-weight: 700;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--text-color, #333);
+  line-height: 1;
+}
+
+.total-length-inline .abbr {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
+  opacity: 0.8;
+}
+
+/* Flip animations (reuse keyframes from cycle-counter) */
+.total-length__digit.flip-out {
+  animation: flipOut 0.15s ease-in forwards;
+}
+
+.total-length__digit.flip-in {
+  animation: flipIn 0.15s ease-out forwards;
+}
+
+/* Playback colors */
+.total-length__digit.playing-zero {
+  color: var(--color-lg, #4A90D9);
+}
+
+.total-length__digit.playing-active {
+  color: var(--selection-color, #EA570C);
+}
+
+/* Dark theme */
+[data-theme="dark"] .total-length-inline .circle {
+  border-color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .total-length-inline .total-length__digit,
+[data-theme="dark"] .total-length-inline .abbr {
+  color: var(--text-color, #eee);
+}
+
+/* ============================================
+   TIMELINE WRAPPER - 2 COLUMN LAYOUT
+   ============================================ */
+
+.timeline-wrapper {
+  flex: 1;
+  display: grid;
+  grid-template-columns: var(--left-column-width) 1fr;
+  gap: var(--layout-gap);
+  padding: var(--layout-gap);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ============================================
+   LEFT COLUMN: Registry + Controls + BPM
+   ============================================ */
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--controls-gap);
+  padding: 0.5rem 0;
+}
+
+/* Registry param */
+.param.registro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.param.registro .abbr {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
+}
+
+.param.registro .circle {
+  width: var(--registro-circle-size);
+  height: var(--registro-circle-size);
+  border: 2px solid var(--circle-border, #333);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.param.registro input {
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+  cursor: default;
+}
+
+.param.registro input:focus {
+  outline: none;
+}
+
+/* Registry navigation buttons */
+.registro-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.registro-nav .spin {
+  width: 40px;
+  height: 30px;
+  border: 1px solid var(--circle-border, #333);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+.registro-nav .spin:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.registro-nav .spin:active {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* Arrow indicators */
+.registro-nav .spin::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+}
+
+.registro-nav .spin.up::before {
+  border-bottom: 10px solid var(--text-color, #333);
+  margin-top: -2px;
+}
+
+.registro-nav .spin.down::before {
+  border-top: 10px solid var(--text-color, #333);
+  margin-top: 2px;
+}
+
+/* Dark theme */
+[data-theme="dark"] .param.registro .circle {
+  border-color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .param.registro input,
+[data-theme="dark"] .param.registro .abbr {
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .registro-nav .spin {
+  border-color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .registro-nav .spin:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .registro-nav .spin.up::before {
+  border-bottom-color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .registro-nav .spin.down::before {
+  border-top-color: var(--text-color, #eee);
+}
+
+/* Controls container */
+.controls-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.controls-container .controls {
+  position: static;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Vertical layout for controls */
+.controls-container .controls[data-layout="vertical"] {
+  flex-direction: column;
+}
+
+.controls-container .controls .control-buttons-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Button order: Pulso toggle first (above Play) */
+.controls-container .control-sound-toggle-container {
+  order: -1;
+}
+
+/* Hide button-row wrapper, show buttons directly */
+.controls-container .controls .button-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Tap tempo visible */
+.controls-container .controls #tapTempoBtn {
+  display: flex !important;
+}
+
+/* BPM inline at bottom */
+.left-column .bpm-inline {
+  position: static;
+  margin-top: auto;
+  transform: none;
+}
+
+/* ============================================
+   RIGHT COLUMN: Grid 2D
+   ============================================ */
+
+.right-column {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Soundline container (Y-axis: notes) */
+.soundline-container {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  padding-right: 0.5rem;
+  min-width: 50px;
+}
+
+/* Grid area (matrix + timeline) */
+.grid-area {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Matrix container (cells) */
+.matrix-container {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 0;
+}
+
+/* Timeline container (X-axis: pulses) */
+.timeline-container {
+  height: 40px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Sync scroll between matrix and timeline */
+.matrix-container,
+.timeline-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--grid-line-color) transparent;
+}
+
+/* Hide scrollbar on timeline (will be synced with matrix) */
+.timeline-container {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.timeline-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   GRID CELLS
+   ============================================ */
+
+.grid-matrix {
+  display: grid;
+  gap: 0;
+  min-width: max-content;
+}
+
+.grid-cell {
+  background: var(--bg-color, #fff);
+  height: var(--grid-cell-height);
+  cursor: pointer;
+  transition: background 0.1s ease;
+  border-right: 1px solid var(--grid-line-color);
+  border-bottom: 1px solid var(--grid-line-color);
+  box-sizing: border-box;
+}
+
+.grid-cell:hover {
+  background: var(--grid-hover-color);
+}
+
+.grid-cell.selected {
+  background: var(--grid-selected-color);
+}
+
+.grid-cell.highlighted {
+  outline: 2px solid var(--color-lg, #4A90D9);
+  outline-offset: -2px;
+}
+
+/* Dark theme */
+[data-theme="dark"] .grid-cell {
+  background: var(--bg-dark, #1a1a1a);
+}
+
+[data-theme="dark"] .grid-cell:hover {
+  background: var(--grid-hover-color);
+}
+
+/* ============================================
+   TIMELINE NUMBERS
+   ============================================ */
+
+.timeline-row {
+  display: grid;
+  gap: 0;
+  min-width: max-content;
+  height: 100%;
+  align-items: center;
+}
+
+.timeline-number {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
+}
+
+.timeline-number .pulse-num {
+  line-height: 1;
+}
+
+.timeline-number .cycle-sup {
+  font-size: 0.65rem;
+  vertical-align: super;
+  margin-left: 1px;
+  opacity: 0.7;
+}
+
+/* Cycle start (pulse 0) styling */
+.timeline-number.cycle-start {
+  color: var(--color-lg, #4A90D9);
+}
+
+/* Dark theme */
+[data-theme="dark"] .timeline-number {
+  color: var(--text-color, #eee);
+}
+
+/* ============================================
+   SOUNDLINE NOTES (Y-axis)
+   ============================================ */
+
+.soundline-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.soundline-note {
+  height: var(--grid-cell-height);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-color, #333);
+  border-bottom: 1px solid var(--grid-line-color);
+  box-sizing: border-box;
+}
+
+/* Registry boundary note styling */
+.soundline-note.registry-boundary {
+  color: var(--color-lg, #4A90D9);
+  font-weight: 700;
+}
+
+/* Dark theme */
+[data-theme="dark"] .soundline-note {
+  color: var(--text-color, #eee);
+}
+
+/* ============================================
+   PORTRAIT WARNING (mobile)
+   ============================================ */
+
+@media (max-width: 768px) and (orientation: portrait) {
+  body::before {
+    content: '\21BB  Por favor, gira tu dispositivo para usar esta aplicación';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-color, #fff);
+    color: var(--text-color, #333);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.2rem;
+    padding: 2rem;
+    z-index: 9999;
+  }
+
+  [data-theme="dark"] body::before {
+    background: var(--bg-dark, #1a1a1a);
+    color: var(--text-color, #eee);
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - Tablet landscape
+   ============================================ */
+
+@media (max-width: 900px) {
+  :root {
+    --left-column-width: 120px;
+    --registro-circle-size: 70px;
+    --grid-cell-min-width: 45px;
+    --grid-cell-height: 28px;
+  }
+
+  .inputs {
+    gap: 1.5rem;
+    padding: 0.75rem 1rem 0.5rem;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 85px;
+    height: 85px;
+  }
+
+  .param.compas input,
+  .param.cycle-display .cycle-circle input {
+    font-size: 2rem;
+  }
+
+  .total-length-inline .circle {
+    width: 56px;
+    height: 56px;
+  }
+
+  .total-length-inline .total-length__digit {
+    font-size: 1.5rem;
+  }
+
+  .param.registro input {
+    font-size: 1.8rem;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - Tablet portrait / Small landscape
+   ============================================ */
+
+@media (max-width: 768px) and (orientation: landscape) {
+  :root {
+    --left-column-width: 100px;
+    --registro-circle-size: 60px;
+    --grid-cell-min-width: 40px;
+    --grid-cell-height: 24px;
+  }
+
+  .inputs {
+    gap: 1rem;
+    padding: 0.5rem 0.75rem 0.25rem;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 70px;
+    height: 70px;
+  }
+
+  .param.compas input,
+  .param.cycle-display .cycle-circle input {
+    font-size: 1.75rem;
+  }
+
+  .total-length-inline .circle {
+    width: 46px;
+    height: 46px;
+  }
+
+  .total-length-inline .total-length__digit {
+    font-size: 1.3rem;
+  }
+
+  .total-length-inline .abbr {
+    font-size: 0.75rem;
+  }
+
+  .param.registro input {
+    font-size: 1.5rem;
+  }
+
+  .registro-nav .spin {
+    width: 35px;
+    height: 25px;
+  }
+}
+
+/* ============================================
+   DARK THEME ADJUSTMENTS
+   ============================================ */
+
+[data-theme="dark"] .param.compas input,
+[data-theme="dark"] .param.cycle-display input {
+  color: var(--text-color, #eee);
+}
