@@ -28,17 +28,17 @@
 
   /* Button fine-tuning offsets (x, y) */
   --btn-play-offset-x: 75px;
-  --btn-play-offset-y: 15px;
+  --btn-play-offset-y: 10px;
   --btn-random-offset-x: 0px;
   --btn-random-offset-y: -30px;
   --btn-reset-offset-x: 0px;
   --btn-reset-offset-y: -35px;
   --btn-taptempo-offset-x: 0px;
-  --btn-taptempo-offset-y: -25px;
+  --btn-taptempo-offset-y: -40px;
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
   --bpm-offset-x: 0px;
-  --bpm-offset-y: -35px;
+  --bpm-offset-y: -45px;
 
   /* BPM sizing */
   --bpm-scale: 0.8;
@@ -294,7 +294,7 @@ main {
 
 .registro-nav .spin {
   width: 60px;
-  height: 30px;
+  height: 35px;
   border: 1px solid var(--circle-border, #333);
   border-radius: 6px;
   background: transparent;
