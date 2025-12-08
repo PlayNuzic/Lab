@@ -23,6 +23,20 @@
   --control-toggle-width: 150px;
   --control-toggle-gap: -2px;
   --control-toggle-overlap: 16px;
+
+  /* Circular layout fine-tuning (defaults = 0) */
+  --play-row-offset-x: 0px;
+  --play-row-offset-y: 0px;
+  --control-toggles-offset-x: 0px;
+  --control-toggles-offset-y: 0px;
+  --btn-loop-offset-x: 0px;
+  --btn-loop-offset-y: 0px;
+  --btn-random-offset-x: 0px;
+  --btn-random-offset-y: 0px;
+  --btn-reset-offset-x: 0px;
+  --btn-reset-offset-y: 0px;
+  --btn-tap-offset-x: 0px;
+  --btn-tap-offset-y: 0px;
 }
 
 /**
@@ -614,7 +628,7 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   position: absolute;
   top: 59%;
   left: 50%;
-  transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-overlap))));
+  transform: translate(calc(-50% + var(--control-toggles-offset-x)), calc(-50% - (var(--play-button-size) / 2 + var(--control-toggle-overlap)) + var(--control-toggles-offset-y)));
   width: calc(var(--control-toggle-width) * 1 + var(--control-toggle-gap) * 2);
   height: var(--control-toggle-size);
   pointer-events: none;
@@ -829,7 +843,7 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(calc(-50% + var(--play-row-offset-x)), calc(-50% + var(--play-row-offset-y)));
   display: flex;
   align-items: center;
   gap: 0;
@@ -1517,28 +1531,28 @@ body.notation-open {
 
 /* Circular layout positioning (default, no data-layout attribute) */
 .controls:not([data-layout]) .loop {
-  top: calc(50% + var(--play-button-size) * 0.75);
-  left: calc(73% - var(--play-button-size) * 0.92);
+  top: calc(50% + var(--play-button-size) * 0.75 + var(--btn-loop-offset-y));
+  left: calc(73% - var(--play-button-size) * 0.92 + var(--btn-loop-offset-x));
 }
 
 .controls:not([data-layout]) .random {
-  top: calc(55% + var(--play-button-size) * 0.1);
-  left: calc(65% - var(--play-button-size) * 1.18);
+  top: calc(55% + var(--play-button-size) * 0.1 + var(--btn-random-offset-y));
+  left: calc(65% - var(--play-button-size) * 1.18 + var(--btn-random-offset-x));
 }
 
 .controls:not([data-layout]) .reset {
-  top: calc(55% + var(--play-button-size) * 0.1);
-  left: calc(35% + var(--play-button-size) * 1.18);
+  top: calc(55% + var(--play-button-size) * 0.1 + var(--btn-reset-offset-y));
+  left: calc(35% + var(--play-button-size) * 1.18 + var(--btn-reset-offset-x));
 }
 
 .controls:not([data-layout]) .tap {
-  top: calc(50% + var(--play-button-size) * 0.75);
-  left: calc(27% + var(--play-button-size) * 0.92);
+  top: calc(50% + var(--play-button-size) * 0.75 + var(--btn-tap-offset-y));
+  left: calc(27% + var(--play-button-size) * 0.92 + var(--btn-tap-offset-x));
 }
 
 .controls:not([data-layout]) .tap+.tap-help {
-  top: calc(50% + var(--play-button-size) * 0.75 + 32px + 8px);
-  left: calc(29% + var(--play-button-size) * 0.92);
+  top: calc(50% + var(--play-button-size) * 0.75 + 32px + 8px + var(--btn-tap-offset-y));
+  left: calc(29% + var(--play-button-size) * 0.92 + var(--btn-tap-offset-x));
 }
 
 
