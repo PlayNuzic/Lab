@@ -13,7 +13,7 @@
   --controls-padding-top: 0;
   --controls-margin: 0;
 
-  /* Play button positioning */
+  /* Play button positioning - distancia desde borde derecho de col izquierda */
   --play-btn-offset: -200px;
 
   /* Soundline sizing */
@@ -53,19 +53,9 @@
 }
 
 /* ========== TWO-COLUMN LAYOUT CUSTOMIZATION ========== */
-.app10-main-layout {
-  height: 100vh;
-  padding-top: 80px; /* Espacio para header */
-}
-
 .app10-controls-container {
-  display: flex !important;
-  align-items: center;
-  justify-content: flex-end; /* Alinear a la derecha de la columna izquierda */
-  padding-right: var(--play-btn-offset, 20px);
-  height: 100%;
   position: relative;
-  z-index: 1600;
+  height: 100%;
 }
 
 /* ========== SOUNDLINE WRAPPER ========== */
@@ -112,6 +102,7 @@
   position: relative;
   width: 300px; /* Más ancho para acomodar números a la izquierda */
   height: var(--soundline-height, 100%); /* Altura ajustable con variable */
+  margin: 0 auto;
 }
 
 /* Línea vertical principal */
@@ -209,63 +200,7 @@
 }
 
 /* ========== CONTROLES ========== */
-.controls-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 40px;
-  gap: 20px;
-}
-
-.play-btn {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  background: transparent;
-  color: var(--selection-color, #F97C39);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  padding: 0;
-}
-
-.play-btn:hover:not(:disabled) {
-  background: var(--selection-color, #F97C39);
-  color: white;
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(249, 124, 57, 0.3);
-}
-
-.play-btn:active:not(:disabled) {
-  transform: scale(0.95);
-}
-
-.play-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.play-btn.playing {
-  animation: playingPulse 1s ease-in-out infinite;
-}
-
-@keyframes playingPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 rgba(249, 124, 57, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(249, 124, 57, 0.6);
-  }
-}
-
-.play-btn svg {
-  width: 28px;
-  height: 28px;
-  margin-left: 4px;
-}
+/* Estilos de botón Play heredados de shared-ui/.play */
 
 /* ========== MOSTRAR SOLO BOTÓN PLAY ========== */
 /* App10 solo necesita el botón Play */
@@ -289,27 +224,14 @@
   display: flex !important;
 }
 
-/* Override de .controls para App10 - posicionamiento absoluto como App14 */
-.controls {
-  position: relative !important;
-  top: -300px !important;
-  left: -200px !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 10px;
-  margin: -50px;
-  width: auto !important;
-  height: auto !important;
-}
-
-/* Ajuste fino de posición del botón */
+/* Posicionamiento del botón Play - usa variable --play-btn-offset */
 .app10-controls-container .controls {
-  position: absolute !important;
-  top: 50% !important;
-  left: auto !important;
-  right: var(--play-btn-offset, 20px) !important;
-  transform: translateY(-50%) !important;
+  position: absolute;
+  top: 50%;
+  right: var(--play-btn-offset, -200px);
+  transform: translateY(-50%);
+  display: flex;
+  gap: 10px;
 }
 
 /* ========== RESPONSIVE ========== */
@@ -335,16 +257,6 @@
 
   .note-highlight-label {
     font-size: 1.2rem;
-  }
-
-  .play-btn {
-    width: 56px;
-    height: 56px;
-  }
-
-  .play-btn svg {
-    width: 24px;
-    height: 24px;
   }
 }
 
