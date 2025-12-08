@@ -21,12 +21,12 @@
   --total-offset-y: 0px;
 
   /* Circular layout fine-tuning for App17 */
-  --play-row-offset-x: 0px;
-  --play-row-offset-y: 0px;
+  --play-row-offset-x: 75px;
+  --play-row-offset-y: -5px;
   --control-toggles-offset-x: 0px;
   --control-toggles-offset-y: 0px;
-  --toggle-pulse-offset-x: 0px;
-  --toggle-pulse-offset-y: 0px;
+  --toggle-pulse-offset-x: -115px;
+  --toggle-pulse-offset-y: -35px;
   --toggle-selected-offset-x: 0px;
   --toggle-selected-offset-y: 0px;
   --toggle-cycle-offset-x: 0px;
