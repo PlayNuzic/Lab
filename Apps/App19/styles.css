@@ -454,6 +454,26 @@ main {
   order: 3;
 }
 
+/* ============================================
+   COLOR IDENTIFICATION FOR SECTIONS
+   ============================================ */
+
+/* Bordes de botones .controls → naranja (color de selección) */
+.controls-container .controls .play,
+.controls-container .controls .random,
+.controls-container .controls .reset,
+.controls-container .controls .tap {
+  border-color: var(--selection-color);
+}
+
+/* Círculos de parámetros → azul (color Lg) */
+.param.compas .circle,
+.param.cycle-display .circle,
+.total-length-inline .circle,
+.bpm-inline .circle {
+  border-color: var(--color-lg);
+}
+
 /* BPM inline at bottom - always visible in App19 */
 .left-column .bpm-inline {
   position: relative;
