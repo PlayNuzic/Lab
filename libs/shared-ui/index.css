@@ -37,6 +37,14 @@
   --btn-reset-offset-y: 0px;
   --btn-tap-offset-x: 0px;
   --btn-tap-offset-y: 0px;
+
+  /* Individual toggle fine-tuning (defaults = 0) */
+  --toggle-pulse-offset-x: 0px;
+  --toggle-pulse-offset-y: 0px;
+  --toggle-selected-offset-x: 0px;
+  --toggle-selected-offset-y: 0px;
+  --toggle-cycle-offset-x: 0px;
+  --toggle-cycle-offset-y: 0px;
 }
 
 /**
@@ -654,20 +662,20 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
 
 .control-sound-toggle-container--pulse {
   left: -3px;
-  bottom: var(--pulse-offset-y, 2px);
-  transform: translateX(var(--pulse-translate-x, 0)) translateY(var(--pulse-translate-y, 0));
+  bottom: 2px;
+  transform: translateX(var(--toggle-pulse-offset-x)) translateY(var(--toggle-pulse-offset-y));
 }
 
 .control-sound-toggle-container--selected {
   left: 0;
-  bottom: var(--selected-offset-y, 0px);
-  transform: translateX(calc(-50% + var(--selected-translate-x, 0))) translateY(var(--selected-translate-y, 0));
+  bottom: 0px;
+  transform: translateX(calc(-50% + var(--toggle-selected-offset-x))) translateY(var(--toggle-selected-offset-y));
 }
 
 .control-sound-toggle-container--cycle {
   right: -7px;
-  bottom: var(--cycle-offset-y, 2px);
-  transform: translateX(var(--cycle-translate-x, 0)) translateY(var(--cycle-translate-y, 0));
+  bottom: 2px;
+  transform: translateX(var(--toggle-cycle-offset-x)) translateY(var(--toggle-cycle-offset-y));
 }
 
 @media (max-width: 600px) {

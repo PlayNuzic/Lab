@@ -1,4 +1,26 @@
-/* App2 specific overrides */
+/* App4 specific overrides */
+
+/* Circular layout fine-tuning for App4 (Pulse + Selected + Cycle toggles) */
+:root {
+  --play-row-offset-x: 0px;
+  --play-row-offset-y: 0px;
+  --control-toggles-offset-x: 0px;
+  --control-toggles-offset-y: 0px;
+  --toggle-pulse-offset-x: 0px;
+  --toggle-pulse-offset-y: 0px;
+  --toggle-selected-offset-x: 0px;
+  --toggle-selected-offset-y: 0px;
+  --toggle-cycle-offset-x: 0px;
+  --toggle-cycle-offset-y: 0px;
+  --btn-loop-offset-x: 0px;
+  --btn-loop-offset-y: 0px;
+  --btn-random-offset-x: 0px;
+  --btn-random-offset-y: 0px;
+  --btn-reset-offset-x: 0px;
+  --btn-reset-offset-y: 0px;
+  --btn-tap-offset-x: 0px;
+  --btn-tap-offset-y: 0px;
+}
 
 body {
   --unit-label-offset: -20px;
