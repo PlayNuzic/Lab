@@ -505,7 +505,7 @@ main {
   padding-right: 0.5rem;
   min-width: 50px;
   position: relative;
-  z-index: 5;
+  z-index: 1;
 }
 
 /* Grid area (matrix + timeline) */
@@ -531,9 +531,11 @@ main {
   height: 40px;
   flex-shrink: 0;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   position: relative;
   z-index: 10;
+  margin-left: -15px;
+  padding-left: 15px;
 }
 
 /* Sync scroll between matrix and timeline */
