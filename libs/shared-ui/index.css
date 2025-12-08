@@ -876,7 +876,19 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   right: auto;
   top: auto;
   bottom: auto;
-  transform: none;
+}
+
+/* Apply individual toggle offsets even in play-row layout */
+.play-row .control-sound-toggle-container--pulse {
+  transform: translateX(var(--toggle-pulse-offset-x)) translateY(var(--toggle-pulse-offset-y));
+}
+
+.play-row .control-sound-toggle-container--selected {
+  transform: translateX(var(--toggle-selected-offset-x)) translateY(var(--toggle-selected-offset-y));
+}
+
+.play-row .control-sound-toggle-container--cycle {
+  transform: translateX(var(--toggle-cycle-offset-x)) translateY(var(--toggle-cycle-offset-y));
 }
 
 /* Central play button */
