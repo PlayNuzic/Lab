@@ -19,12 +19,12 @@
   --layout-gap: 1rem;
 
   /* Circular layout fine-tuning for App11 (vertical layout) */
-  --play-row-offset-x: 0px;
+  --play-row-offset-x: -650px;
   --play-row-offset-y: 0px;
   --control-toggles-offset-x: 0px;
   --control-toggles-offset-y: 0px;
-  --toggle-pulse-offset-x: 0px;
-  --toggle-pulse-offset-y: 0px;
+  --toggle-pulse-offset-x: -100px;
+  --toggle-pulse-offset-y: -35px;
   --toggle-selected-offset-x: 0px;
   --toggle-selected-offset-y: 0px;
   --toggle-cycle-offset-x: 0px;

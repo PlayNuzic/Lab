@@ -1691,7 +1691,19 @@ body.notation-open {
 
 .controls[data-layout="vertical"] .control-sound-toggle-container {
   position: static;
-  transform: none;
+}
+
+/* Apply individual toggle offsets in vertical layout */
+.controls[data-layout="vertical"] .control-sound-toggle-container--pulse {
+  transform: translateX(var(--toggle-pulse-offset-x)) translateY(var(--toggle-pulse-offset-y));
+}
+
+.controls[data-layout="vertical"] .control-sound-toggle-container--selected {
+  transform: translateX(var(--toggle-selected-offset-x)) translateY(var(--toggle-selected-offset-y));
+}
+
+.controls[data-layout="vertical"] .control-sound-toggle-container--cycle {
+  transform: translateX(var(--toggle-cycle-offset-x)) translateY(var(--toggle-cycle-offset-y));
 }
 
 .controls[data-layout="vertical"] .control-buttons-row {
@@ -1745,7 +1757,19 @@ body.notation-open {
 
 .controls[data-layout="horizontal"] .control-sound-toggle-container {
   position: static;
-  transform: none;
+}
+
+/* Apply individual toggle offsets in horizontal layout */
+.controls[data-layout="horizontal"] .control-sound-toggle-container--pulse {
+  transform: translateX(var(--toggle-pulse-offset-x)) translateY(var(--toggle-pulse-offset-y));
+}
+
+.controls[data-layout="horizontal"] .control-sound-toggle-container--selected {
+  transform: translateX(var(--toggle-selected-offset-x)) translateY(var(--toggle-selected-offset-y));
+}
+
+.controls[data-layout="horizontal"] .control-sound-toggle-container--cycle {
+  transform: translateX(var(--toggle-cycle-offset-x)) translateY(var(--toggle-cycle-offset-y));
 }
 
 .controls[data-layout="horizontal"] .random {
