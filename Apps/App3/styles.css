@@ -2,14 +2,14 @@
   --cycle-color: var(--color-v);
 
   /* Circular layout fine-tuning for App3 (Pulse + Cycle toggles) */
-  --play-row-offset-x: 0px;
-  --play-row-offset-y: 0px;
-  --control-toggles-offset-x: 0px;
-  --control-toggles-offset-y: 0px;
-  --toggle-pulse-offset-x: 0px;
-  --toggle-pulse-offset-y: 0px;
-  --toggle-cycle-offset-x: 0px;
-  --toggle-cycle-offset-y: 0px;
+  --play-row-offset-x: 70px;
+  --play-row-offset-y: -5px;
+  --control-toggles-offset-x: -118px;
+  --control-toggles-offset-y: -35px;
+  --toggle-pulse-offset-x: -223px;
+  --toggle-pulse-offset-y: -35px;
+  --toggle-cycle-offset-x: -371px;
+  --toggle-cycle-offset-y: -35px;
   --btn-loop-offset-x: 0px;
   --btn-loop-offset-y: 0px;
   --btn-random-offset-x: 0px;

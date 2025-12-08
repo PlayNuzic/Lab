@@ -16,6 +16,26 @@
   /* BPM position fine-tuning */
   --bpm-offset-x: 18px;
   --bpm-offset-y: -107px;
+
+  /* Circular layout fine-tuning for App16 */
+  --play-row-offset-x: 0px;
+  --play-row-offset-y: 0px;
+  --control-toggles-offset-x: 0px;
+  --control-toggles-offset-y: 0px;
+  --toggle-pulse-offset-x: 0px;
+  --toggle-pulse-offset-y: 0px;
+  --toggle-selected-offset-x: 0px;
+  --toggle-selected-offset-y: 0px;
+  --toggle-cycle-offset-x: 0px;
+  --toggle-cycle-offset-y: 0px;
+  --btn-loop-offset-x: 0px;
+  --btn-loop-offset-y: 0px;
+  --btn-random-offset-x: 0px;
+  --btn-random-offset-y: 0px;
+  --btn-reset-offset-x: 0px;
+  --btn-reset-offset-y: 0px;
+  --btn-tap-offset-x: 0px;
+  --btn-tap-offset-y: 0px;
 }
 
 /* ============================================

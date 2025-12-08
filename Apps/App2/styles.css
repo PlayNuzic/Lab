@@ -2,14 +2,14 @@
 
 /* Circular layout fine-tuning for App2 (Pulse + Selected toggles) */
 :root {
-  --play-row-offset-x: 0px;
-  --play-row-offset-y: 0px;
+  --play-row-offset-x: 150px;
+  --play-row-offset-y: -5px;
   --control-toggles-offset-x: 0px;
   --control-toggles-offset-y: 0px;
-  --toggle-pulse-offset-x: 0px;
-  --toggle-pulse-offset-y: 0px;
-  --toggle-selected-offset-x: 0px;
-  --toggle-selected-offset-y: 0px;
+  --toggle-pulse-offset-x: -118px;
+  --toggle-pulse-offset-y: -35px;
+  --toggle-selected-offset-x: -266px;
+  --toggle-selected-offset-y: -33px;
   --btn-loop-offset-x: 0px;
   --btn-loop-offset-y: 0px;
   --btn-random-offset-x: 0px;
