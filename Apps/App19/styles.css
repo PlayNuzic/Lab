@@ -534,6 +534,7 @@ main {
   overflow-y: hidden;
   position: relative;
   z-index: 10;
+  padding-left: 5px;
 }
 
 /* Sync scroll between matrix and timeline */
@@ -617,7 +618,6 @@ main {
   display: flex;
   align-items: center;
   justify-content: start;
-  margin-left: -5px;
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--text-color, #333);
