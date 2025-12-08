@@ -92,8 +92,8 @@
   content: '';
   position: absolute;
   left: 100px; /* Posicionada a 100px del borde izquierdo del soundline */
-  top: 0;
-  bottom: 0;
+  top: var(--line-top, 0);
+  bottom: var(--line-bottom, 0);
   width: var(--soundline-width);
   background: var(--line-color);
   pointer-events: none;
