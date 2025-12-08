@@ -231,59 +231,52 @@ registerFactoryReset({ storage: preferenceStorage });
 function initApp() {
   console.log('Inicializando App10: Línea Sonora');
 
-  // Obtener elementos del template ANTES de que se eliminen
-  const timelineWrapper = document.querySelector('.timeline-wrapper');
-  const controls = document.querySelector('.controls');
-  soundlineWrapper = document.getElementById('timeline');
-
-  if (!soundlineWrapper || !timelineWrapper || !controls) {
-    console.error('Elementos del template no encontrados', { soundlineWrapper, timelineWrapper, controls });
+  // Get timeline element from template
+  const timeline = document.getElementById('timeline');
+  if (!timeline) {
+    console.error('Cannot find #timeline element');
     return;
   }
 
-  console.log('Elementos encontrados correctamente');
-
-  // Eliminar .middle ahora que ya tenemos las referencias a .controls y .timeline-wrapper
-  document.querySelector('.middle')?.remove();
-
-  // Crear estructura two-column layout
-  const mainElement = document.querySelector('main');
-  if (!mainElement) {
-    console.error('main element no encontrado');
-    return;
+  // Extract .controls before removing .middle (patrón App14)
+  const middle = document.querySelector('.middle');
+  const controlsSection = middle?.querySelector('.controls');
+  if (controlsSection && timeline.parentElement) {
+    // Wrap controls in app10-controls-container
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'app10-controls-container';
+    controlsContainer.appendChild(controlsSection);
+    timeline.parentElement.parentElement.insertBefore(controlsContainer, timeline.parentElement);
   }
+  middle?.remove();
 
-  // Layout centrado: botón play + soundline juntos en el centro
-  const centerWrapper = document.createElement('div');
-  centerWrapper.className = 'app10-center-layout';
-
-  const controlsContainer = document.createElement('div');
-  controlsContainer.className = 'app10-controls-container';
-  controlsContainer.appendChild(controls);
-
+  // Create soundline container inside timeline (como App14)
   const soundlineContainer = document.createElement('div');
-  soundlineContainer.className = 'app10-soundline-container';
-  soundlineContainer.appendChild(timelineWrapper);
+  soundlineContainer.className = 'soundline-container';
+  soundlineContainer.style.position = 'relative';
+  soundlineContainer.style.width = '100%';
+  soundlineContainer.style.height = '100%';
+  timeline.appendChild(soundlineContainer);
 
-  centerWrapper.appendChild(controlsContainer);
-  centerWrapper.appendChild(soundlineContainer);
-  mainElement.appendChild(centerWrapper);
+  // Set soundlineWrapper reference for drawSoundline
+  soundlineWrapper = soundlineContainer;
 
-  console.log('Two-column layout creado correctamente');
+  console.log('Layout creado correctamente (patrón App14)');
 
   // Dibujar soundline vertical
   drawSoundline();
 
   // Crear controlador de highlights
   noteHighlightController = createNoteHighlightController({
+    container: soundlineContainer,
     soundline,
-    highlightDuration: 300
+    notes: 12
   });
 
   // Configurar event listeners
   setupEventHandlers();
 
-  // Create start overlay (deferred piano initialization)
+  // Create start overlay (deferred piano initialization) - específico App10
   startOverlay = document.createElement('div');
   startOverlay.className = 'start-overlay';
   startOverlay.textContent = 'Toca para escuchar los números';
