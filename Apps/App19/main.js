@@ -328,6 +328,9 @@ function handleCompasChange() {
     if (!isNaN(num)) {
       compas = Math.max(CONFIG.MIN_COMPAS, Math.min(CONFIG.MAX_COMPAS, num));
       elements.inputCompas.value = compas;
+      // Auto-focus to inputCycle after valid compas entry
+      elements.inputCycle?.focus();
+      elements.inputCycle?.select();
     }
   }
 
