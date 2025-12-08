@@ -238,15 +238,12 @@ function initApp() {
     return;
   }
 
-  // Extract .controls before removing .middle (patrón App14)
+  // Extract .controls before removing .middle (patrón exacto App14)
   const middle = document.querySelector('.middle');
   const controlsSection = middle?.querySelector('.controls');
   if (controlsSection && timeline.parentElement) {
-    // Wrap controls in app10-controls-container
-    const controlsContainer = document.createElement('div');
-    controlsContainer.className = 'app10-controls-container';
-    controlsContainer.appendChild(controlsSection);
-    timeline.parentElement.parentElement.insertBefore(controlsContainer, timeline.parentElement);
+    // Insert controls as sibling BEFORE timeline-wrapper (no wrapper needed)
+    timeline.parentElement.parentElement.insertBefore(controlsSection, timeline.parentElement);
   }
   middle?.remove();
 

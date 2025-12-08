@@ -5,18 +5,6 @@
   --line-color: #666;
   --soundline-width: 3px;
   --note-highlight-color: var(--selection-color, #F97C39);
-
-  /* Two-column layout customization (como App14) */
-  --col-left: 150px;
-  --controls-justify: center;
-  --layout-gap: 2rem;
-  --controls-padding-top: 0;
-  --controls-margin: 0;
-
-  /* Play button positioning - distancia desde borde derecho de col izquierda */
-  --play-btn-offset: -200px;
-
-  /* Soundline sizing */
   --soundline-height: 100%;
 }
 
@@ -53,10 +41,7 @@
 }
 
 /* ========== TWO-COLUMN LAYOUT CUSTOMIZATION ========== */
-.app10-controls-container {
-  position: relative;
-  height: 100%;
-}
+/* Controls se insertan directamente (patrón App14, sin wrapper) */
 
 /* ========== SOUNDLINE WRAPPER ========== */
 .timeline-wrapper {
@@ -224,14 +209,18 @@
   display: flex !important;
 }
 
-/* Posicionamiento del botón Play - usa variable --play-btn-offset */
-.app10-controls-container .controls {
-  position: absolute;
-  top: 50%;
-  right: var(--play-btn-offset, -200px);
-  transform: translateY(-50%);
+/* Posicionamiento de .controls (patrón App14) */
+.controls {
+  position: relative;
+  top: -300px;
+  left: -200px;
   display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 10px;
+  margin: -50px;
+  width: auto;
+  height: auto;
 }
 
 /* ========== RESPONSIVE ========== */
