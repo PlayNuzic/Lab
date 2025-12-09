@@ -16,8 +16,8 @@ import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
-  // Registry limits (4 registries: 2, 3, 4, 5)
-  MIN_REGISTRO: 2,
+  // Registry limits (3 registries: 3, 4, 5)
+  MIN_REGISTRO: 3,
   MAX_REGISTRO: 5,
   DEFAULT_REGISTRO: 4,
 
