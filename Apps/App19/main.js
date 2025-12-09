@@ -655,17 +655,20 @@ function clearPlaybackHighlights() {
 }
 
 /**
- * Get or create the playhead element
+ * Get or create the playhead element (inside grid-matrix for proper scrolling)
  * @returns {HTMLElement|null}
  */
 function getPlayhead() {
   if (!elements.matrixContainer) return null;
 
-  let playhead = elements.matrixContainer.querySelector('.playhead');
+  const gridMatrix = elements.matrixContainer.querySelector('.grid-matrix');
+  if (!gridMatrix) return null;
+
+  let playhead = gridMatrix.querySelector('.playhead');
   if (!playhead) {
     playhead = document.createElement('div');
     playhead.className = 'playhead hidden';
-    elements.matrixContainer.appendChild(playhead);
+    gridMatrix.appendChild(playhead);
   }
   return playhead;
 }
@@ -689,7 +692,8 @@ function updatePlayhead(step) {
  * Hide the playhead
  */
 function hidePlayhead() {
-  const playhead = elements.matrixContainer?.querySelector('.playhead');
+  const gridMatrix = elements.matrixContainer?.querySelector('.grid-matrix');
+  const playhead = gridMatrix?.querySelector('.playhead');
   if (playhead) {
     playhead.classList.add('hidden');
   }

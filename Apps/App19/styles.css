@@ -573,6 +573,7 @@ main {
   display: grid;
   gap: 0;
   min-width: max-content;
+  position: relative;  /* For playhead positioning */
 }
 
 .grid-cell {
@@ -631,22 +632,17 @@ main {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 3px;
+  width: 1px;
   background: var(--select-color, #EA570C);
   opacity: 0.85;
   z-index: 20;
   pointer-events: none;
-  box-shadow: 0 0 8px var(--select-color, #EA570C);
+  box-shadow: 0 0 6px var(--select-color, #EA570C);
 }
 
 /* Hide playhead when not playing */
 .playhead.hidden {
   display: none;
-}
-
-/* Matrix container needs position relative for playhead */
-.matrix-container {
-  position: relative;
 }
 
 /* Dark theme */
