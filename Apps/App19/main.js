@@ -672,17 +672,88 @@ async function startPlayback() {
   // Build map of MIDI note by pulse AND registry by pulse (MONOPHONIC: only 1 note per pulse)
   // Key format: `${registry}-${noteIndex}-${pulseIndex}`
   const pulseNotes = {};
-  const pulseRegistry = {};  // Maps pulse -> registry of the note
+  const pulseRegistry = {};  // Maps pulse -> optimal registry to display
   const midiOffset = CONFIG.MIDI_OFFSET;
   const notesPerRegistry = CONFIG.NOTES_PER_REGISTRY;
 
+  // Helper: Get all registries where a note (noteNum, noteReg) would be visible
+  // Grid shows 15 notes with 0rN centered at position 7
+  const TOTAL_VISIBLE = 15;
+  const ZERO_POS = 7;
+
+  function getVisibleRegistries(noteNum, noteReg) {
+    const visibleIn = [];
+    // Check registries in valid range
+    for (let testReg = CONFIG.MIN_REGISTRO; testReg <= CONFIG.MAX_REGISTRO; testReg++) {
+      // For each visual position (0-14), check if it matches our note
+      for (let visualIdx = 0; visualIdx < TOTAL_VISIBLE; visualIdx++) {
+        const offset = visualIdx - ZERO_POS;
+        let checkNote, checkReg;
+
+        if (offset < 0) {
+          const absOffset = Math.abs(offset);
+          checkNote = (notesPerRegistry - absOffset % notesPerRegistry) % notesPerRegistry;
+          checkReg = testReg - Math.ceil(absOffset / notesPerRegistry);
+          if (absOffset % notesPerRegistry === 0) {
+            checkNote = 0;
+            checkReg = testReg - (absOffset / notesPerRegistry) + 1;
+          }
+        } else {
+          checkNote = offset % notesPerRegistry;
+          checkReg = testReg + Math.floor(offset / notesPerRegistry);
+        }
+
+        if (checkNote === noteNum && checkReg === noteReg) {
+          visibleIn.push(testReg);
+          break; // Found in this registry, no need to check more positions
+        }
+      }
+    }
+    return visibleIn;
+  }
+
+  // Collect all notes and their possible visible registries
+  const notesInfo = [];
   for (const key of selectedCells.keys()) {
     const [reg, noteIndex, pulseIndex] = key.split('-').map(Number);
-    // Calculate MIDI directly: registry * 12 + noteIndex + midiOffset
     const midi = reg * notesPerRegistry + noteIndex + midiOffset;
-    // Monophonic: one note per pulse (last one wins if duplicates exist)
+    const visibleIn = getVisibleRegistries(noteIndex, reg);
+    notesInfo.push({ reg, noteIndex, pulseIndex, midi, visibleIn });
     pulseNotes[pulseIndex] = midi;
-    pulseRegistry[pulseIndex] = reg;
+  }
+
+  // For each pulse, choose the registry that maximizes visible notes
+  // Count how many notes are visible in each registry
+  const registryCounts = {};
+  for (let r = CONFIG.MIN_REGISTRO; r <= CONFIG.MAX_REGISTRO; r++) {
+    registryCounts[r] = 0;
+  }
+  for (const info of notesInfo) {
+    for (const visReg of info.visibleIn) {
+      registryCounts[visReg] = (registryCounts[visReg] || 0) + 1;
+    }
+  }
+
+  // For each note, pick the registry with highest note count among its visible options
+  for (const info of notesInfo) {
+    if (info.visibleIn.length === 0) {
+      // Fallback to original registry if not visible anywhere
+      pulseRegistry[info.pulseIndex] = info.reg;
+    } else if (info.visibleIn.length === 1) {
+      // Only one option
+      pulseRegistry[info.pulseIndex] = info.visibleIn[0];
+    } else {
+      // Multiple options: pick the one with most total visible notes
+      let bestReg = info.visibleIn[0];
+      let bestCount = registryCounts[bestReg];
+      for (const visReg of info.visibleIn) {
+        if (registryCounts[visReg] > bestCount) {
+          bestCount = registryCounts[visReg];
+          bestReg = visReg;
+        }
+      }
+      pulseRegistry[info.pulseIndex] = bestReg;
+    }
   }
 
   isPlaying = true;
@@ -715,13 +786,14 @@ async function startPlayback() {
       highlightTimelineNumber(step);
 
       // 3. Schedule registry change to show the current note (if not already visible)
-      // Delay slightly so the highlight appears first, then grid scrolls to show it
+      // Delay to 75% of beat interval so highlight shows first, then grid scrolls
       if (pulseRegistry[step] !== undefined) {
+        const registryChangeDelay = intervalSec * 1000 * 0.75;  // 75% of beat in ms
         setTimeout(() => {
           if (isPlaying) {
             spinToRegistry(pulseRegistry[step]);
           }
-        }, 50);  // Small delay to let highlight render first
+        }, registryChangeDelay);
       }
 
       // 4. Auto-scroll to keep current pulse visible
