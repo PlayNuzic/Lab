@@ -614,6 +614,9 @@ async function startPlayback() {
     return;
   }
 
+  // Switch to a registry with notes if current has none
+  ensureRegistryWithNotesVisible();
+
   // Build map of MIDI note by pulse (MONOPHONIC: only 1 note per pulse)
   // Key format: `${registry}-${noteIndex}-${pulseIndex}`
   const pulseNotes = {};
@@ -642,6 +645,9 @@ async function startPlayback() {
   const p0Enabled = window.__p1Controller?.getState() ?? true;
   audio.setMeasureEnabled(p0Enabled);
 
+  // Scroll to first pulse at start
+  scrollToPulse(0);
+
   audio.play(
     totalPulses,
     intervalSec,
@@ -654,10 +660,13 @@ async function startPlayback() {
       // 2. Highlight timeline number
       highlightTimelineNumber(step);
 
-      // 3. Color of cycle digit
+      // 3. Auto-scroll to keep current pulse visible
+      scrollToPulse(step);
+
+      // 4. Color of cycle digit
       updateCycleDigitColor(step);
 
-      // 4. Flip animation for cycle counter (when cycle changes)
+      // 5. Flip animation for cycle counter (when cycle changes)
       const cycleNum = Math.floor(step / compas) + 1;
       if (step > 0 && step % compas === 0) {
         updateCycleCounter(cycleNum);
@@ -665,10 +674,10 @@ async function startPlayback() {
         elements.cycleDigit.textContent = '1';
       }
 
-      // 5. Animation for totalLengthDigit
+      // 6. Animation for totalLengthDigit
       updateTotalLengthDisplay(step);
 
-      // 6. Play note if exists at this pulse (MONOPHONIC: 1 note max)
+      // 7. Play note if exists at this pulse (MONOPHONIC: 1 note max)
       // Duration = 1 pulse (based on BPM), with small margin to avoid overlap
       const midi = pulseNotes[step];
       if (midi !== undefined) {
@@ -831,6 +840,95 @@ function setupScrollSync() {
     matrix.addEventListener('scroll', () => {
       timeline.scrollLeft = matrix.scrollLeft;
     });
+  }
+}
+
+/**
+ * Auto-scroll to center the current pulse during playback
+ * @param {number} pulseIndex - Current pulse being played
+ */
+function scrollToPulse(pulseIndex) {
+  const matrix = elements.matrixContainer;
+  const timeline = elements.timelineContainer;
+  if (!matrix) return;
+
+  // Find the cell at this pulse to get its position
+  const cell = matrix.querySelector(`.grid-cell[data-pulse="${pulseIndex}"]`);
+  if (!cell) return;
+
+  const cellRect = cell.getBoundingClientRect();
+  const containerRect = matrix.getBoundingClientRect();
+
+  // Calculate the absolute left position of the cell within the scrollable area
+  const cellLeft = cell.offsetLeft;
+  const cellWidth = cell.offsetWidth;
+
+  // Target: center the cell in the visible area
+  const targetScrollLeft = cellLeft - (containerRect.width / 2) + (cellWidth / 2);
+
+  // Clamp to valid scroll range
+  const maxScroll = matrix.scrollWidth - matrix.clientWidth;
+  const newScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScroll));
+
+  // Apply smooth scroll
+  matrix.scrollLeft = newScrollLeft;
+
+  // Sync timeline
+  if (timeline) {
+    timeline.scrollLeft = newScrollLeft;
+  }
+}
+
+/**
+ * Find the first registry that has selected notes
+ * @returns {number|null} Registry number or null if no notes selected
+ */
+function findRegistryWithNotes() {
+  if (selectedCells.size === 0) return null;
+
+  // Get all registries with notes, return the first one (lowest)
+  const registries = new Set();
+  for (const key of selectedCells.keys()) {
+    const [reg] = key.split('-').map(Number);
+    registries.add(reg);
+  }
+
+  if (registries.size === 0) return null;
+
+  // Return the lowest registry with notes
+  return Math.min(...registries);
+}
+
+/**
+ * Switch to a registry that has notes (if current registry has none)
+ * Called before playback starts
+ */
+function ensureRegistryWithNotesVisible() {
+  if (selectedCells.size === 0) return;
+
+  const currentRegistry = registryController.getRegistry();
+
+  // Check if current registry has any notes
+  let currentHasNotes = false;
+  for (const key of selectedCells.keys()) {
+    const [reg] = key.split('-').map(Number);
+    if (reg === currentRegistry) {
+      currentHasNotes = true;
+      break;
+    }
+  }
+
+  // If current registry has notes, stay there
+  if (currentHasNotes) return;
+
+  // Otherwise, switch to a registry with notes
+  const registryWithNotes = findRegistryWithNotes();
+  if (registryWithNotes !== null && registryWithNotes !== currentRegistry) {
+    registryController.setRegistry(registryWithNotes);
+    if (elements.inputRegistro) {
+      elements.inputRegistro.value = registryWithNotes;
+    }
+    updateGrid();
   }
 }
 
