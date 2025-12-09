@@ -263,6 +263,11 @@ async function handlePlay() {
   if (playBtn) {
     playBtn.disabled = true;
     playBtn.classList.add('playing');
+    // Switch to stop icon
+    const iconPlay = playBtn.querySelector('.icon-play');
+    const iconStop = playBtn.querySelector('.icon-stop');
+    if (iconPlay) iconPlay.style.display = 'none';
+    if (iconStop) iconStop.style.display = 'block';
   }
   // Note: randomBtn stays enabled so user can prepare next sequence
 
@@ -305,6 +310,11 @@ async function handlePlay() {
     if (playBtn) {
       playBtn.disabled = false;
       playBtn.classList.remove('playing');
+      // Switch back to play icon
+      const iconPlay = playBtn.querySelector('.icon-play');
+      const iconStop = playBtn.querySelector('.icon-stop');
+      if (iconPlay) iconPlay.style.display = 'block';
+      if (iconStop) iconStop.style.display = 'none';
     }
     clearHighlights();
     console.log('Sequence finished');

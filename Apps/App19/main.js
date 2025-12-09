@@ -807,6 +807,12 @@ async function startPlayback() {
   isPlaying = true;
   elements.playBtn?.classList.add('playing');
 
+  // Switch to stop icon
+  const iconPlay = elements.playBtn?.querySelector('.icon-play');
+  const iconStop = elements.playBtn?.querySelector('.icon-stop');
+  if (iconPlay) iconPlay.style.display = 'none';
+  if (iconStop) iconStop.style.display = 'block';
+
   // Hide input, show cycle digit
   const cycleParam = elements.inputCycle?.closest('.param.cycle-display');
   cycleParam?.classList.add('playing');
@@ -892,6 +898,12 @@ async function startPlayback() {
 function stopPlayback() {
   isPlaying = false;
   elements.playBtn?.classList.remove('playing');
+
+  // Switch back to play icon
+  const iconPlay = elements.playBtn?.querySelector('.icon-play');
+  const iconStop = elements.playBtn?.querySelector('.icon-stop');
+  if (iconPlay) iconPlay.style.display = 'block';
+  if (iconStop) iconStop.style.display = 'none';
 
   audio?.stop();
 
