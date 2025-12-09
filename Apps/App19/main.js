@@ -779,30 +779,35 @@ async function startPlayback() {
     new Set(),
     false,  // No loop
     (step) => {
-      // 1. Highlight selected cell that plays (works across all visible registries)
+      // 1. Switch to registry of CURRENT pulse note immediately (so it's visible when it plays)
+      if (pulseRegistry[step] !== undefined) {
+        spinToRegistry(pulseRegistry[step]);
+      }
+
+      // 2. Highlight selected cell that plays (works across all visible registries)
       highlightSelectedCell(step);
 
-      // 2. Highlight timeline number
+      // 3. Highlight timeline number
       highlightTimelineNumber(step);
 
-      // 3. Schedule registry change to show the current note (if not already visible)
-      // Delay to 75% of beat interval so highlight shows first, then grid scrolls
-      if (pulseRegistry[step] !== undefined) {
+      // 4. Schedule registry change for NEXT pulse (anticipate after 75% of current beat)
+      const nextPulse = step + 1;
+      if (pulseRegistry[nextPulse] !== undefined && nextPulse < totalPulses) {
         const registryChangeDelay = intervalSec * 1000 * 0.75;  // 75% of beat in ms
         setTimeout(() => {
           if (isPlaying) {
-            spinToRegistry(pulseRegistry[step]);
+            spinToRegistry(pulseRegistry[nextPulse]);
           }
         }, registryChangeDelay);
       }
 
-      // 4. Auto-scroll to keep current pulse visible
+      // 5. Auto-scroll to keep current pulse visible
       scrollToPulse(step);
 
-      // 5. Color of cycle digit
+      // 6. Color of cycle digit
       updateCycleDigitColor(step);
 
-      // 6. Flip animation for cycle counter (when cycle changes)
+      // 7. Flip animation for cycle counter (when cycle changes)
       const cycleNum = Math.floor(step / compas) + 1;
       if (step > 0 && step % compas === 0) {
         updateCycleCounter(cycleNum);
@@ -810,10 +815,10 @@ async function startPlayback() {
         elements.cycleDigit.textContent = '1';
       }
 
-      // 7. Animation for totalLengthDigit
+      // 8. Animation for totalLengthDigit
       updateTotalLengthDisplay(step);
 
-      // 8. Play note if exists at this pulse (MONOPHONIC: 1 note max)
+      // 9. Play note if exists at this pulse (MONOPHONIC: 1 note max)
       // Duration = 1 pulse (based on BPM), with small margin to avoid overlap
       const midi = pulseNotes[step];
       if (midi !== undefined) {
