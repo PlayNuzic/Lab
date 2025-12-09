@@ -828,8 +828,8 @@ async function startPlayback() {
   if (iconStop) iconStop.style.display = 'block';
 
   // Hide input, show cycle digit
-  const cycleParam = elements.inputCycle?.closest('.param.cycle-display');
-  cycleParam?.classList.add('playing');
+  const cycleCircle = document.querySelector('.cycle-circle');
+  cycleCircle?.classList.add('playing');
 
   // Configure measure for P0 sound
   audio.configureMeasure(compas, totalPulses);
@@ -922,8 +922,8 @@ function stopPlayback() {
   audio?.stop();
 
   // Show input, hide cycle digit
-  const cycleParam = elements.inputCycle?.closest('.param.cycle-display');
-  cycleParam?.classList.remove('playing');
+  const cycleCircle = document.querySelector('.cycle-circle');
+  cycleCircle?.classList.remove('playing');
 
   // Clear all animations
   clearPlaybackHighlights();
