@@ -1513,12 +1513,15 @@ function initApp() {
   updateSoundline();
   updateGrid();
 
-  // Scroll to current registry (after DOM is ready)
+  // Scroll to current registry (after DOM is fully rendered)
+  // Use double rAF to ensure layout is complete
   requestAnimationFrame(() => {
-    const currentRegistry = registryController.getRegistry();
-    if (currentRegistry !== null) {
-      scrollToRegistry(currentRegistry);
-    }
+    requestAnimationFrame(() => {
+      const currentRegistry = registryController.getRegistry();
+      if (currentRegistry !== null) {
+        scrollToRegistry(currentRegistry);
+      }
+    });
   });
 
   // Focus on Compás input

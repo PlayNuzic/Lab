@@ -149,6 +149,7 @@ main {
 
 .param.cycle-display .cycle-circle .cycle-counter__digit {
   display: none;
+  font-size: 2.5rem;
 }
 
 .param.cycle-display .cycle-circle.playing .cycle-counter__digit {
@@ -595,6 +596,31 @@ main {
   outline: none;
 }
 
+/* BPM dark theme overrides */
+[data-theme="dark"] .left-column .bpm-inline .abbr {
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .left-column .bpm-inline input {
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .left-column .bpm-inline .spin {
+  background: #eee;
+}
+
+[data-theme="dark"] .left-column .bpm-inline .spin:hover {
+  background: #ccc;
+}
+
+[data-theme="dark"] .left-column .bpm-inline .spin.up::before {
+  border-bottom-color: #333;
+}
+
+[data-theme="dark"] .left-column .bpm-inline .spin.down::before {
+  border-top-color: #333;
+}
+
 /* ============================================
    RIGHT COLUMN: Grid 2D
    ============================================ */
@@ -764,6 +790,10 @@ main {
 
 [data-theme="dark"] .grid-cell:hover {
   background: var(--grid-hover-color);
+}
+
+[data-theme="dark"] .grid-cell.selected {
+  background: var(--grid-selected-color, #E4570C);
 }
 
 [data-theme="dark"] .grid-cell .cell-label {
