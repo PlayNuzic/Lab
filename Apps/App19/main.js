@@ -1208,7 +1208,7 @@ function savePreferences() {
   preferenceStorage.save({
     compas,
     cycles,
-    registry: registryController.getRegistry(),
+    // NOTE: Registry is NOT saved - always starts at DEFAULT_REGISTRO (4)
     bpm: bpmController?.getValue() || CONFIG.DEFAULT_BPM,
     selectedCells: Array.from(selectedCells.keys())
   });
@@ -1218,13 +1218,8 @@ function loadPreferences() {
   const prefs = preferenceStorage.load();
   if (!prefs) return;
 
-  // Restore registry
-  if (prefs.registry !== undefined) {
-    registryController.setRegistry(prefs.registry);
-    if (elements.inputRegistro) {
-      elements.inputRegistro.value = registryController.getRegistry();
-    }
-  }
+  // NOTE: Registry is NOT restored from preferences - always starts at DEFAULT_REGISTRO (4)
+  // This ensures consistent grid position on app start
 
   // Restore compás
   if (prefs.compas !== undefined && prefs.compas !== null) {
