@@ -450,11 +450,13 @@ function decrementCycles() {
 function handleRegistryUp() {
   registryController.increment();
   elements.inputRegistro.value = registryController.getRegistry();
+  updateGrid();
 }
 
 function handleRegistryDown() {
   registryController.decrement();
   elements.inputRegistro.value = registryController.getRegistry();
+  updateGrid();
 }
 
 // ========== CONTROL HANDLERS ==========
@@ -901,6 +903,7 @@ function findRegistryWithNotes() {
 
 /**
  * Switch to a registry that has notes (if current registry has none)
+ * Uses spin animation by simulating Up/Down button clicks
  * Called before playback starts
  */
 function ensureRegistryWithNotesVisible() {
@@ -921,14 +924,22 @@ function ensureRegistryWithNotesVisible() {
   // If current registry has notes, stay there
   if (currentHasNotes) return;
 
-  // Otherwise, switch to a registry with notes
+  // Otherwise, switch to a registry with notes using spin animation
   const registryWithNotes = findRegistryWithNotes();
   if (registryWithNotes !== null && registryWithNotes !== currentRegistry) {
-    registryController.setRegistry(registryWithNotes);
-    if (elements.inputRegistro) {
-      elements.inputRegistro.value = registryWithNotes;
+    const steps = registryWithNotes - currentRegistry;
+
+    if (steps > 0) {
+      // Need to go UP
+      for (let i = 0; i < steps; i++) {
+        elements.registroUp?.click();
+      }
+    } else {
+      // Need to go DOWN
+      for (let i = 0; i < Math.abs(steps); i++) {
+        elements.registroDown?.click();
+      }
     }
-    updateGrid();
   }
 }
 
