@@ -631,12 +631,11 @@ main {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 1px;
+  width: 3px;
   background: var(--select-color, #EA570C);
   opacity: 0.85;
   z-index: 20;
   pointer-events: none;
-  transition: left 0.05s linear;
   box-shadow: 0 0 8px var(--select-color, #EA570C);
 }
 
