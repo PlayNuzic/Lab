@@ -682,12 +682,8 @@ async function startPlayback() {
     new Set(),
     false,  // No loop
     (step) => {
-      // 1. Auto-switch registry if current/next pulse has note in different registry
-      // Check next pulse first (to anticipate), then current
-      const nextPulse = step + 1;
-      if (pulseRegistry[nextPulse] !== undefined) {
-        spinToRegistry(pulseRegistry[nextPulse]);
-      } else if (pulseRegistry[step] !== undefined) {
+      // 1. Switch to registry of CURRENT pulse note (so it's visible when it plays)
+      if (pulseRegistry[step] !== undefined) {
         spinToRegistry(pulseRegistry[step]);
       }
 
@@ -697,13 +693,25 @@ async function startPlayback() {
       // 3. Highlight timeline number
       highlightTimelineNumber(step);
 
-      // 4. Auto-scroll to keep current pulse visible
+      // 4. Schedule registry change for NEXT pulse (after current note is shown)
+      const nextPulse = step + 1;
+      if (pulseRegistry[nextPulse] !== undefined && nextPulse < totalPulses) {
+        // Delay the registry change to happen after this pulse is visible
+        // Use half the interval to give time to see current note before switching
+        setTimeout(() => {
+          if (isPlaying) {
+            spinToRegistry(pulseRegistry[nextPulse]);
+          }
+        }, (intervalSec * 1000) * 0.6);  // 60% through the pulse
+      }
+
+      // 5. Auto-scroll to keep current pulse visible
       scrollToPulse(step);
 
-      // 5. Color of cycle digit
+      // 6. Color of cycle digit
       updateCycleDigitColor(step);
 
-      // 6. Flip animation for cycle counter (when cycle changes)
+      // 7. Flip animation for cycle counter (when cycle changes)
       const cycleNum = Math.floor(step / compas) + 1;
       if (step > 0 && step % compas === 0) {
         updateCycleCounter(cycleNum);
@@ -711,10 +719,10 @@ async function startPlayback() {
         elements.cycleDigit.textContent = '1';
       }
 
-      // 7. Animation for totalLengthDigit
+      // 8. Animation for totalLengthDigit
       updateTotalLengthDisplay(step);
 
-      // 8. Play note if exists at this pulse (MONOPHONIC: 1 note max)
+      // 9. Play note if exists at this pulse (MONOPHONIC: 1 note max)
       // Duration = 1 pulse (based on BPM), with small margin to avoid overlap
       const midi = pulseNotes[step];
       if (midi !== undefined) {
