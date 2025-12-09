@@ -1,6 +1,16 @@
 /* App19 - Plano Modular */
 
 /* ============================================
+   GLOBAL SCROLL OVERRIDE
+   ============================================ */
+
+/* Block both horizontal and vertical global scroll for this app */
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ============================================
    SHARED COMPONENT IMPORTS
    ============================================ */
 @import '../../libs/shared-ui/bpm-inline.css';
@@ -38,7 +48,7 @@
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
   --bpm-offset-x: 0px;
-  --bpm-offset-y: -45px;
+  --bpm-offset-y: -39px;
 
   /* BPM sizing */
   --bpm-scale: 0.8;
@@ -488,8 +498,101 @@ main {
 .left-column .bpm-inline {
   position: relative;
   display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
   margin-top: auto;
   transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
+}
+
+/* BPM label above circle */
+.left-column .bpm-inline .abbr {
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-color, #333);
+  opacity: 0.8;
+}
+
+/* BPM circle */
+.left-column .bpm-inline .circle {
+  width: 66px;
+  height: 66px;
+  border: 2px solid var(--color-lg, #4A90D9);
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Override shared-ui/index.css spinner styles for BPM */
+.left-column .bpm-inline .spinner {
+  position: absolute;
+  right: -35px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.left-column .bpm-inline .spin {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: #333;
+  cursor: pointer;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.left-column .bpm-inline .spin:hover {
+  background: #555;
+}
+
+.left-column .bpm-inline .spin::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+}
+
+.left-column .bpm-inline .spin.up::before {
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid #eee;
+  border-top: none;
+}
+
+.left-column .bpm-inline .spin.down::before {
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #eee;
+  border-bottom: none;
+}
+
+/* BPM input styling */
+.left-column .bpm-inline input {
+  font-size: 1.65rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+  padding: 0;
+}
+
+.left-column .bpm-inline input:focus {
+  outline: none;
 }
 
 /* ============================================
@@ -516,15 +619,9 @@ main {
   min-width: 50px;
   position: relative;
   z-index: 1;
-  /* Vertical scroll for all registries */
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* Scroll hidden from user - only used programmatically during playback */
+  overflow: hidden;
   max-height: calc(15 * var(--grid-cell-height));  /* 15 visible rows */
-  scrollbar-width: none;  /* Hide scrollbar - synced with matrix */
-}
-
-.soundline-container::-webkit-scrollbar {
-  display: none;
 }
 
 /* Grid area (matrix + timeline) */
@@ -541,7 +638,7 @@ main {
 .matrix-container {
   flex: 1;
   overflow-x: auto;
-  overflow-y: auto;  /* Enable vertical scroll for all registries */
+  overflow-y: hidden;  /* Vertical scroll hidden - only used programmatically during playback */
   min-height: 0;
   max-height: calc(15 * var(--grid-cell-height));  /* 15 visible rows */
 }
@@ -753,9 +850,21 @@ main {
 }
 
 /* Note 0 of any registry: selection color */
-.soundline-note[data-note-num="0"] {
+.soundline-note[data-noteinreg="0"] {
   color: var(--select-color, #E4570C) !important;
   font-weight: 700;
+}
+
+/* Out of range rows (r2 padding for scroll) - dimmed and non-interactive */
+.soundline-note.out-of-range {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.grid-cell.out-of-range {
+  opacity: 0.25;
+  pointer-events: none;
+  cursor: default;
 }
 
 /* Dark theme */

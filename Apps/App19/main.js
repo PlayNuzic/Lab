@@ -16,8 +16,8 @@ import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
-  // Registry limits (only 3 registries: 3, 4, 5)
-  MIN_REGISTRO: 3,
+  // Registry limits (4 registries: 2, 3, 4, 5)
+  MIN_REGISTRO: 2,
   MAX_REGISTRO: 5,
   DEFAULT_REGISTRO: 4,
 
@@ -139,15 +139,13 @@ function updateGridVisibility() {
 // ========== SOUNDLINE FUNCTIONS ==========
 
 /**
- * Update soundline (Y-axis: notes) - renders ALL registries for smooth vertical scroll
+ * Update soundline (Y-axis: notes) - renders from 7r5 to 5r2 for smooth vertical scroll
+ * This range allows centering 0rN for any registry (3, 4, or 5) with 7 rows above and below
  */
 function updateSoundline() {
   if (!elements.soundlineContainer) return;
 
-  // Calculate total rows: all registries × notes per registry
-  const numRegistries = CONFIG.MAX_REGISTRO - CONFIG.MIN_REGISTRO + 1;  // 3 registries
-  const notesPerReg = CONFIG.NOTES_PER_REGISTRY;  // 12 notes
-  const totalRows = numRegistries * notesPerReg;  // 36 rows
+  const rows = buildGridRows();
 
   // Clear and rebuild
   elements.soundlineContainer.innerHTML = '';
@@ -155,27 +153,28 @@ function updateSoundline() {
   const soundlineRow = document.createElement('div');
   soundlineRow.className = 'soundline-row';
 
-  // Create note labels for ALL registries (top = highest registry/note, bottom = lowest)
-  for (let rowIdx = 0; rowIdx < totalRows; rowIdx++) {
-    const regOffset = Math.floor(rowIdx / notesPerReg);
-    const noteInReg = notesPerReg - 1 - (rowIdx % notesPerReg);
-    const registry = CONFIG.MAX_REGISTRO - regOffset;
-    const label = `${noteInReg}r${registry}`;
+  rows.forEach((row, rowIdx) => {
+    const label = `${row.noteInReg}r${row.registry}`;
 
     const noteEl = document.createElement('div');
     noteEl.className = 'soundline-note';
     noteEl.dataset.noteIndex = rowIdx;
-    noteEl.dataset.registry = registry;
-    noteEl.dataset.noteinreg = noteInReg;
+    noteEl.dataset.registry = row.registry;
+    noteEl.dataset.noteinreg = row.noteInReg;
     noteEl.textContent = label;
 
     // Mark boundary notes (note 0 of each registry)
-    if (noteInReg === 0) {
+    if (row.noteInReg === 0) {
       noteEl.classList.add('registry-boundary');
     }
 
+    // Mark rows outside valid registry range as non-interactive
+    if (row.registry < CONFIG.MIN_REGISTRO || row.registry > CONFIG.MAX_REGISTRO) {
+      noteEl.classList.add('out-of-range');
+    }
+
     soundlineRow.appendChild(noteEl);
-  }
+  });
 
   elements.soundlineContainer.appendChild(soundlineRow);
 }
@@ -201,7 +200,38 @@ function updateGrid() {
 }
 
 /**
- * Update matrix (cells) - renders ALL registries for smooth vertical scroll
+ * Build the row definitions for the grid (7r5 to 5r1)
+ * Shared between updateMatrix and updateSoundline
+ */
+function buildGridRows() {
+  const rows = [];
+
+  // r5: notes 7 to 0 (top 8 notes)
+  for (let note = 7; note >= 0; note--) {
+    rows.push({ registry: 5, noteInReg: note });
+  }
+  // r4: notes 11 to 0
+  for (let note = 11; note >= 0; note--) {
+    rows.push({ registry: 4, noteInReg: note });
+  }
+  // r3: notes 11 to 0
+  for (let note = 11; note >= 0; note--) {
+    rows.push({ registry: 3, noteInReg: note });
+  }
+  // r2: notes 11 to 0 (full registry, now valid)
+  for (let note = 11; note >= 0; note--) {
+    rows.push({ registry: 2, noteInReg: note });
+  }
+  // r1: notes 11 to 5 (bottom 7 notes for scroll padding)
+  for (let note = 11; note >= 5; note--) {
+    rows.push({ registry: 1, noteInReg: note });
+  }
+
+  return rows;
+}
+
+/**
+ * Update matrix (cells) - renders from 7r5 to 5r2 for smooth vertical scroll
  * @param {number} cellWidth - Width of each cell in pixels
  */
 function updateMatrix(cellWidth) {
@@ -214,10 +244,8 @@ function updateMatrix(cellWidth) {
     return;
   }
 
-  // Calculate total rows: all registries × notes per registry
-  const numRegistries = CONFIG.MAX_REGISTRO - CONFIG.MIN_REGISTRO + 1;  // 3 registries
-  const notesPerReg = CONFIG.NOTES_PER_REGISTRY;  // 12 notes
-  const totalRows = numRegistries * notesPerReg;  // 36 rows
+  const rows = buildGridRows();
+  const totalRows = rows.length;  // 35 rows (8 + 12 + 12 + 7 = 39? No: 8+12+12+7=39)
 
   // Create grid with fixed cell widths (no stretching)
   const grid = document.createElement('div');
@@ -225,19 +253,12 @@ function updateMatrix(cellWidth) {
   grid.style.gridTemplateColumns = `repeat(${totalPulses}, ${cellWidth}px)`;
   grid.style.gridTemplateRows = `repeat(${totalRows}, var(--grid-cell-height))`;
 
-  // Create cells for ALL registries (top = highest registry/note, bottom = lowest)
-  // Row 0 = note 11 of MAX_REGISTRO (highest)
-  // Row 35 = note 0 of MIN_REGISTRO (lowest)
-  for (let rowIdx = 0; rowIdx < totalRows; rowIdx++) {
-    // Calculate registry and note from row index
-    // rowIdx 0 = reg 5, note 11
-    // rowIdx 11 = reg 5, note 0
-    // rowIdx 12 = reg 4, note 11
-    // etc.
-    const regOffset = Math.floor(rowIdx / notesPerReg);
-    const noteInReg = notesPerReg - 1 - (rowIdx % notesPerReg);
-    const registry = CONFIG.MAX_REGISTRO - regOffset;
+  // Create cells for each row
+  rows.forEach((row, rowIdx) => {
+    const registry = row.registry;
+    const noteInReg = row.noteInReg;
     const rowLabel = `${noteInReg}r${registry}`;
+    const isOutOfRange = registry < CONFIG.MIN_REGISTRO || registry > CONFIG.MAX_REGISTRO;
 
     for (let pulseIdx = 0; pulseIdx < totalPulses; pulseIdx++) {
       const cell = document.createElement('div');
@@ -247,23 +268,30 @@ function updateMatrix(cellWidth) {
       cell.dataset.registry = registry;
       cell.dataset.noteinreg = noteInReg;  // lowercase for CSS selector compatibility
 
-      // Check if there's a selected note at this row and pulse
-      const rowKey = `${registry}-${noteInReg}-${pulseIdx}`;
-
-      if (selectedCells.has(rowKey)) {
-        cell.classList.add('selected');
-        const label = document.createElement('span');
-        label.className = 'cell-label';
-        label.textContent = rowLabel;
-        cell.appendChild(label);
+      // Mark out-of-range cells
+      if (isOutOfRange) {
+        cell.classList.add('out-of-range');
       }
 
-      // Click handler with absolute coordinates
-      cell.addEventListener('click', () => handleCellClickAbsolute(registry, noteInReg, pulseIdx));
+      // Check if there's a selected note at this row and pulse (only for valid registries)
+      if (!isOutOfRange) {
+        const rowKey = `${registry}-${noteInReg}-${pulseIdx}`;
+
+        if (selectedCells.has(rowKey)) {
+          cell.classList.add('selected');
+          const label = document.createElement('span');
+          label.className = 'cell-label';
+          label.textContent = rowLabel;
+          cell.appendChild(label);
+        }
+
+        // Click handler with absolute coordinates (only for valid registries)
+        cell.addEventListener('click', () => handleCellClickAbsolute(registry, noteInReg, pulseIdx));
+      }
 
       grid.appendChild(cell);
     }
-  }
+  });
 
   elements.matrixContainer.innerHTML = '';
   elements.matrixContainer.appendChild(grid);
@@ -1090,34 +1118,50 @@ function scrollToPulse(pulseIndex) {
 }
 
 /**
- * Scroll to a specific registry with smooth animation
+ * Scroll to a specific registry
  * @param {number} targetRegistry - The registry to scroll to (3, 4, or 5)
+ * @param {boolean} animated - Whether to use smooth animation (default: false for instant)
+ * @param {boolean} updateState - Whether to update registry controller state (default: false)
  */
-function scrollToRegistry(targetRegistry) {
+function scrollToRegistry(targetRegistry, animated = false, updateState = false) {
   if (targetRegistry < CONFIG.MIN_REGISTRO || targetRegistry > CONFIG.MAX_REGISTRO) return;
 
   const cellHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-cell-height')) || 32;
-  const notesPerReg = CONFIG.NOTES_PER_REGISTRY;
 
-  // Calculate which row index corresponds to note 0 of the target registry
-  // Registry 5 (highest) starts at row 0, note 11 is row 0, note 0 is row 11
-  // Registry 4 starts at row 12, note 0 is row 23
-  // Registry 3 starts at row 24, note 0 is row 35
-  const regOffset = CONFIG.MAX_REGISTRO - targetRegistry;  // 0 for reg 5, 1 for reg 4, 2 for reg 3
-  const note0Row = (regOffset * notesPerReg) + (notesPerReg - 1);  // Row where note 0 of this registry is
+  // New layout (7r5 to 5r1):
+  // - Rows 0-7: notes 7-0 of r5 (8 rows) → 0r5 at row 7
+  // - Rows 8-19: notes 11-0 of r4 (12 rows) → 0r4 at row 19
+  // - Rows 20-31: notes 11-0 of r3 (12 rows) → 0r3 at row 31
+  // - Rows 32-43: notes 11-0 of r2 (12 rows) → 0r2 at row 43
+  // - Rows 44-50: notes 11-5 of r1 (7 rows, padding only)
+  const note0RowMap = {
+    5: 7,   // 0r5 is at row 7
+    4: 19,  // 0r4 is at row 8 + 11 = 19
+    3: 31,  // 0r3 is at row 8 + 12 + 11 = 31
+    2: 43   // 0r2 is at row 8 + 12 + 12 + 11 = 43
+  };
+  const note0Row = note0RowMap[targetRegistry];
 
   // We want to center note 0 in the visible area (7 rows visible above it)
   const visibleRows = 15;
   const centerOffset = Math.floor(visibleRows / 2);
   const targetScrollTop = Math.max(0, (note0Row - centerOffset) * cellHeight);
 
-  // Smooth scroll both containers
-  smoothScrollTo(elements.matrixContainer, targetScrollTop);
-  smoothScrollTo(elements.soundlineContainer, targetScrollTop);
+  if (animated) {
+    // Smooth scroll for playback
+    smoothScrollTo(elements.matrixContainer, targetScrollTop);
+    smoothScrollTo(elements.soundlineContainer, targetScrollTop);
+  } else {
+    // Instant scroll for user registry buttons
+    if (elements.matrixContainer) elements.matrixContainer.scrollTop = targetScrollTop;
+    if (elements.soundlineContainer) elements.soundlineContainer.scrollTop = targetScrollTop;
+  }
 
-  // Update registry controller state (for input display)
-  registryController.setRegistry(targetRegistry);
-  elements.inputRegistro.value = targetRegistry;
+  // Only update state when explicitly requested (e.g., during init or playback)
+  if (updateState) {
+    registryController.setRegistry(targetRegistry);
+    elements.inputRegistro.value = targetRegistry;
+  }
 }
 
 /**
@@ -1151,11 +1195,11 @@ function smoothScrollTo(element, targetScrollTop, duration = 200) {
 }
 
 /**
- * Legacy function name - redirects to scrollToRegistry
- * @deprecated Use scrollToRegistry instead
+ * Animated scroll to registry (used during playback)
+ * Uses smooth animation for visual continuity
  */
 function spinToRegistry(targetRegistry) {
-  scrollToRegistry(targetRegistry);
+  scrollToRegistry(targetRegistry, true, true);  // animated = true, updateState = true for playback
 }
 
 // ========== PREFERENCES ==========
