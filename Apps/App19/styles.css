@@ -825,6 +825,7 @@ main {
   min-width: max-content;
   height: 100%;
   align-items: center;
+  margin-left: 15px;  /* Match .grid-matrix margin for alignment */
 }
 
 .timeline-number {
@@ -832,7 +833,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: start;
-  margin-left: -5px;
+  margin-left: 8px;
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--text-color, #333);
