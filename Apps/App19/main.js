@@ -139,13 +139,15 @@ function updateGridVisibility() {
 // ========== SOUNDLINE FUNCTIONS ==========
 
 /**
- * Update soundline (Y-axis: notes)
+ * Update soundline (Y-axis: notes) - renders ALL registries for smooth vertical scroll
  */
 function updateSoundline() {
   if (!elements.soundlineContainer) return;
 
-  const registry = registryController.getRegistry();
-  const totalNotes = registryController.getTotalNotes();
+  // Calculate total rows: all registries × notes per registry
+  const numRegistries = CONFIG.MAX_REGISTRO - CONFIG.MIN_REGISTRO + 1;  // 3 registries
+  const notesPerReg = CONFIG.NOTES_PER_REGISTRY;  // 12 notes
+  const totalRows = numRegistries * notesPerReg;  // 36 rows
 
   // Clear and rebuild
   elements.soundlineContainer.innerHTML = '';
@@ -153,22 +155,22 @@ function updateSoundline() {
   const soundlineRow = document.createElement('div');
   soundlineRow.className = 'soundline-row';
 
-  // Create note labels from top to bottom (highest note first)
-  for (let i = totalNotes - 1; i >= 0; i--) {
+  // Create note labels for ALL registries (top = highest registry/note, bottom = lowest)
+  for (let rowIdx = 0; rowIdx < totalRows; rowIdx++) {
+    const regOffset = Math.floor(rowIdx / notesPerReg);
+    const noteInReg = notesPerReg - 1 - (rowIdx % notesPerReg);
+    const registry = CONFIG.MAX_REGISTRO - regOffset;
+    const label = `${noteInReg}r${registry}`;
+
     const noteEl = document.createElement('div');
     noteEl.className = 'soundline-note';
-    noteEl.dataset.noteIndex = i;
-
-    // Format label using registry controller
-    const label = registryController.formatLabel(i);
+    noteEl.dataset.noteIndex = rowIdx;
+    noteEl.dataset.registry = registry;
+    noteEl.dataset.noteinreg = noteInReg;
     noteEl.textContent = label;
 
-    // Extract noteNum from label (e.g., "0r4" → 0, "11r3" → 11)
-    const noteNum = label.split('r')[0];
-    noteEl.dataset.noteNum = noteNum;
-
-    // Mark boundary notes
-    if (registryController.isBoundaryNote(i)) {
+    // Mark boundary notes (note 0 of each registry)
+    if (noteInReg === 0) {
       noteEl.classList.add('registry-boundary');
     }
 
@@ -199,46 +201,56 @@ function updateGrid() {
 }
 
 /**
- * Update matrix (cells)
+ * Update matrix (cells) - renders ALL registries for smooth vertical scroll
  * @param {number} cellWidth - Width of each cell in pixels
  */
 function updateMatrix(cellWidth) {
   if (!elements.matrixContainer) return;
 
   const totalPulses = getTotalPulses();
-  const totalNotes = registryController.getTotalNotes();
 
-  if (totalPulses === 0 || totalNotes === 0) {
+  if (totalPulses === 0) {
     elements.matrixContainer.innerHTML = '';
     return;
   }
+
+  // Calculate total rows: all registries × notes per registry
+  const numRegistries = CONFIG.MAX_REGISTRO - CONFIG.MIN_REGISTRO + 1;  // 3 registries
+  const notesPerReg = CONFIG.NOTES_PER_REGISTRY;  // 12 notes
+  const totalRows = numRegistries * notesPerReg;  // 36 rows
 
   // Create grid with fixed cell widths (no stretching)
   const grid = document.createElement('div');
   grid.className = 'grid-matrix';
   grid.style.gridTemplateColumns = `repeat(${totalPulses}, ${cellWidth}px)`;
-  grid.style.gridTemplateRows = `repeat(${totalNotes}, var(--grid-cell-height))`;
+  grid.style.gridTemplateRows = `repeat(${totalRows}, var(--grid-cell-height))`;
 
-  // Create cells (top to bottom = highest to lowest note, left to right = pulse 0 to n)
-  for (let noteIdx = totalNotes - 1; noteIdx >= 0; noteIdx--) {
+  // Create cells for ALL registries (top = highest registry/note, bottom = lowest)
+  // Row 0 = note 11 of MAX_REGISTRO (highest)
+  // Row 35 = note 0 of MIN_REGISTRO (lowest)
+  for (let rowIdx = 0; rowIdx < totalRows; rowIdx++) {
+    // Calculate registry and note from row index
+    // rowIdx 0 = reg 5, note 11
+    // rowIdx 11 = reg 5, note 0
+    // rowIdx 12 = reg 4, note 11
+    // etc.
+    const regOffset = Math.floor(rowIdx / notesPerReg);
+    const noteInReg = notesPerReg - 1 - (rowIdx % notesPerReg);
+    const registry = CONFIG.MAX_REGISTRO - regOffset;
+    const rowLabel = `${noteInReg}r${registry}`;
+
     for (let pulseIdx = 0; pulseIdx < totalPulses; pulseIdx++) {
       const cell = document.createElement('div');
       cell.className = 'grid-cell';
-      cell.dataset.note = noteIdx;
+      cell.dataset.note = rowIdx;  // Visual row index
       cell.dataset.pulse = pulseIdx;
-
-      // Get the actual note label for this visual row (e.g., "6r3")
-      // This accounts for notes from adjacent registries visible in the grid
-      const rowLabel = registryController.formatLabel(noteIdx);
-      const [rowNoteStr, rowRegStr] = rowLabel.split('r');
-      const rowNote = parseInt(rowNoteStr, 10);
-      const rowReg = parseInt(rowRegStr, 10);
+      cell.dataset.registry = registry;
+      cell.dataset.noteinreg = noteInReg;  // lowercase for CSS selector compatibility
 
       // Check if there's a selected note at this row and pulse
-      const rowKey = `${rowReg}-${rowNote}-${pulseIdx}`;
+      const rowKey = `${registry}-${noteInReg}-${pulseIdx}`;
 
       if (selectedCells.has(rowKey)) {
-        // Note is selected - show as selected with its original label
         cell.classList.add('selected');
         const label = document.createElement('span');
         label.className = 'cell-label';
@@ -246,8 +258,8 @@ function updateMatrix(cellWidth) {
         cell.appendChild(label);
       }
 
-      // Click handler
-      cell.addEventListener('click', () => handleCellClick(noteIdx, pulseIdx));
+      // Click handler with absolute coordinates
+      cell.addEventListener('click', () => handleCellClickAbsolute(registry, noteInReg, pulseIdx));
 
       grid.appendChild(cell);
     }
@@ -302,54 +314,38 @@ function updateTimeline(cellWidth) {
 // ========== CELL INTERACTION ==========
 
 /**
- * Handle cell click - select/deselect with GLOBAL MONOPHONIC logic (1 note per pulse across ALL registries)
- * Key format: `${registry}-${noteIndex}-${pulseIndex}`
- * Note: The visual noteIndex maps to a real note via formatLabel (accounts for adjacent registries)
+ * Handle cell click with absolute coordinates (registry + noteInReg + pulse)
+ * Used by the new full-registry grid
  */
-async function handleCellClick(noteIndex, pulseIndex) {
-  // Get the actual note and registry for this visual row
-  const rowLabel = registryController.formatLabel(noteIndex);
-  const [rowNoteStr, rowRegStr] = rowLabel.split('r');
-  const rowNote = parseInt(rowNoteStr, 10);
-  const rowReg = parseInt(rowRegStr, 10);
-  const key = `${rowReg}-${rowNote}-${pulseIndex}`;
+async function handleCellClickAbsolute(registry, noteInReg, pulseIndex) {
+  const key = `${registry}-${noteInReg}-${pulseIndex}`;
+  const rowLabel = `${noteInReg}r${registry}`;
 
   // If clicking the same cell, deselect it
   if (selectedCells.has(key)) {
     selectedCells.delete(key);
     const cell = elements.matrixContainer?.querySelector(
-      `.grid-cell[data-note="${noteIndex}"][data-pulse="${pulseIndex}"]`
+      `.grid-cell[data-registry="${registry}"][data-noteinreg="${noteInReg}"][data-pulse="${pulseIndex}"]`
     );
     if (cell) {
       cell.classList.remove('selected');
-      // Remove label
       const label = cell.querySelector('.cell-label');
       if (label) label.remove();
     }
   } else {
     // GLOBAL MONOPHONIC: Remove ANY existing note in this pulse (from ANY registry)
-    // Also need to update visual if the old note is visible in current view
     for (const existingKey of [...selectedCells.keys()]) {
       const [existingReg, existingNote, existingPulse] = existingKey.split('-').map(Number);
       if (existingPulse === pulseIndex) {
         selectedCells.delete(existingKey);
-        // Find if this note is visible in the current view
-        // by checking all visual rows for a match
-        const totalNotes = registryController.getTotalNotes();
-        for (let idx = 0; idx < totalNotes; idx++) {
-          const idxLabel = registryController.formatLabel(idx);
-          const [idxNote, idxReg] = idxLabel.split('r').map(s => parseInt(s, 10));
-          if (idxNote === existingNote && idxReg === existingReg) {
-            const oldCell = elements.matrixContainer?.querySelector(
-              `.grid-cell[data-note="${idx}"][data-pulse="${existingPulse}"]`
-            );
-            if (oldCell) {
-              oldCell.classList.remove('selected');
-              const oldLabel = oldCell.querySelector('.cell-label');
-              if (oldLabel) oldLabel.remove();
-            }
-            break;
-          }
+        // Find and deselect the old cell visually
+        const oldCell = elements.matrixContainer?.querySelector(
+          `.grid-cell[data-registry="${existingReg}"][data-noteinreg="${existingNote}"][data-pulse="${existingPulse}"]`
+        );
+        if (oldCell) {
+          oldCell.classList.remove('selected');
+          const oldLabel = oldCell.querySelector('.cell-label');
+          if (oldLabel) oldLabel.remove();
         }
       }
     }
@@ -357,11 +353,10 @@ async function handleCellClick(noteIndex, pulseIndex) {
     // Select the new cell
     selectedCells.set(key, true);
     const cell = elements.matrixContainer?.querySelector(
-      `.grid-cell[data-note="${noteIndex}"][data-pulse="${pulseIndex}"]`
+      `.grid-cell[data-registry="${registry}"][data-noteinreg="${noteInReg}"][data-pulse="${pulseIndex}"]`
     );
     if (cell) {
       cell.classList.add('selected');
-      // Add label immediately
       if (!cell.querySelector('.cell-label')) {
         const label = document.createElement('span');
         label.className = 'cell-label';
@@ -371,28 +366,24 @@ async function handleCellClick(noteIndex, pulseIndex) {
     }
   }
 
-  // Play the note
-  await playNote(noteIndex);
+  // Play the note using absolute MIDI calculation
+  await playNoteAbsolute(registry, noteInReg);
   savePreferences();
 }
 
 /**
- * Play a note at given index using MelodicTimelineAudio
+ * Play a note with absolute registry and note coordinates
  */
-async function playNote(noteIndex) {
+async function playNoteAbsolute(registry, noteInReg) {
   const audioInstance = await initAudio();
   if (!audioInstance) return;
-
-  const registry = registryController.getRegistry();
-  if (registry === null) return;
-
-  const noteInRegistry = registryController.getNoteInRegistry(noteIndex);
-  const { midi } = registryController.getMidiForNote(noteInRegistry);
 
   const Tone = window.Tone;
   if (!Tone) return;
 
-  audioInstance.playNote(midi, 0.5, Tone.now());
+  const midi = registry * CONFIG.NOTES_PER_REGISTRY + noteInReg + CONFIG.MIDI_OFFSET;
+  const noteDuration = 0.3;
+  audioInstance.playNote(midi, noteDuration, Tone.now());
 }
 
 // ========== INPUT HANDLERS ==========
@@ -493,14 +484,18 @@ function decrementCycles() {
 
 function handleRegistryUp() {
   registryController.increment();
-  elements.inputRegistro.value = registryController.getRegistry();
-  updateGrid();
+  const newRegistry = registryController.getRegistry();
+  elements.inputRegistro.value = newRegistry;
+  // Scroll to new registry instead of rebuilding grid
+  scrollToRegistry(newRegistry);
 }
 
 function handleRegistryDown() {
   registryController.decrement();
-  elements.inputRegistro.value = registryController.getRegistry();
-  updateGrid();
+  const newRegistry = registryController.getRegistry();
+  elements.inputRegistro.value = newRegistry;
+  // Scroll to new registry instead of rebuilding grid
+  scrollToRegistry(newRegistry);
 }
 
 // ========== CONTROL HANDLERS ==========
@@ -527,7 +522,7 @@ async function handlePlay() {
 
 /**
  * Highlight the selected cell that plays at this step
- * Finds the visual row that corresponds to the note being played
+ * Uses absolute registry/note data attributes
  */
 function highlightSelectedCell(step) {
   // Clear previous highlights
@@ -535,24 +530,15 @@ function highlightSelectedCell(step) {
     cell.classList.remove('playing');
   });
 
-  // Find the note at this pulse
+  // Find the note at this pulse using absolute coordinates
   for (const key of selectedCells.keys()) {
     const [reg, noteNum, pulseIndex] = key.split('-').map(Number);
     if (pulseIndex === step) {
-      // Find which visual row (data-note) corresponds to this note+registry
-      const totalNotes = registryController.getTotalNotes();
-      for (let visualIdx = 0; visualIdx < totalNotes; visualIdx++) {
-        const rowLabel = registryController.formatLabel(visualIdx);
-        const [rowNote, rowReg] = rowLabel.split('r').map(s => parseInt(s, 10));
-        if (rowNote === noteNum && rowReg === reg) {
-          // Found the visual row - highlight it
-          const cell = elements.matrixContainer?.querySelector(
-            `.grid-cell[data-note="${visualIdx}"][data-pulse="${pulseIndex}"]`
-          );
-          cell?.classList.add('playing');
-          break;
-        }
-      }
+      // Direct lookup using data attributes
+      const cell = elements.matrixContainer?.querySelector(
+        `.grid-cell[data-registry="${reg}"][data-noteinreg="${noteNum}"][data-pulse="${pulseIndex}"]`
+      );
+      cell?.classList.add('playing');
       break; // Monophonic: only one note per pulse
     }
   }
@@ -1036,13 +1022,34 @@ function handleReset() {
 
 // ========== SCROLL SYNCHRONIZATION ==========
 
+let isScrollSyncing = false;  // Prevent scroll sync loops
+
 function setupScrollSync() {
   const matrix = elements.matrixContainer;
   const timeline = elements.timelineContainer;
+  const soundline = elements.soundlineContainer;
 
+  // Horizontal sync: matrix → timeline
   if (matrix && timeline) {
     matrix.addEventListener('scroll', () => {
       timeline.scrollLeft = matrix.scrollLeft;
+    });
+  }
+
+  // Vertical sync: matrix ↔ soundline (bidirectional)
+  if (matrix && soundline) {
+    matrix.addEventListener('scroll', () => {
+      if (isScrollSyncing) return;
+      isScrollSyncing = true;
+      soundline.scrollTop = matrix.scrollTop;
+      requestAnimationFrame(() => { isScrollSyncing = false; });
+    });
+
+    soundline.addEventListener('scroll', () => {
+      if (isScrollSyncing) return;
+      isScrollSyncing = true;
+      matrix.scrollTop = soundline.scrollTop;
+      requestAnimationFrame(() => { isScrollSyncing = false; });
     });
   }
 }
@@ -1083,26 +1090,72 @@ function scrollToPulse(pulseIndex) {
 }
 
 /**
- * Spin to a specific registry using Up/Down buttons
- * @param {number} targetRegistry - The registry to switch to
+ * Scroll to a specific registry with smooth animation
+ * @param {number} targetRegistry - The registry to scroll to (3, 4, or 5)
  */
-function spinToRegistry(targetRegistry) {
-  const currentRegistry = registryController.getRegistry();
-  if (targetRegistry === currentRegistry) return;
+function scrollToRegistry(targetRegistry) {
+  if (targetRegistry < CONFIG.MIN_REGISTRO || targetRegistry > CONFIG.MAX_REGISTRO) return;
 
-  const steps = targetRegistry - currentRegistry;
+  const cellHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-cell-height')) || 32;
+  const notesPerReg = CONFIG.NOTES_PER_REGISTRY;
 
-  if (steps > 0) {
-    // Need to go UP
-    for (let i = 0; i < steps; i++) {
-      elements.registroUp?.click();
-    }
-  } else {
-    // Need to go DOWN
-    for (let i = 0; i < Math.abs(steps); i++) {
-      elements.registroDown?.click();
+  // Calculate which row index corresponds to note 0 of the target registry
+  // Registry 5 (highest) starts at row 0, note 11 is row 0, note 0 is row 11
+  // Registry 4 starts at row 12, note 0 is row 23
+  // Registry 3 starts at row 24, note 0 is row 35
+  const regOffset = CONFIG.MAX_REGISTRO - targetRegistry;  // 0 for reg 5, 1 for reg 4, 2 for reg 3
+  const note0Row = (regOffset * notesPerReg) + (notesPerReg - 1);  // Row where note 0 of this registry is
+
+  // We want to center note 0 in the visible area (7 rows visible above it)
+  const visibleRows = 15;
+  const centerOffset = Math.floor(visibleRows / 2);
+  const targetScrollTop = Math.max(0, (note0Row - centerOffset) * cellHeight);
+
+  // Smooth scroll both containers
+  smoothScrollTo(elements.matrixContainer, targetScrollTop);
+  smoothScrollTo(elements.soundlineContainer, targetScrollTop);
+
+  // Update registry controller state (for input display)
+  registryController.setRegistry(targetRegistry);
+  elements.inputRegistro.value = targetRegistry;
+}
+
+/**
+ * Smooth scroll animation using requestAnimationFrame
+ * @param {HTMLElement} element - Element to scroll
+ * @param {number} targetScrollTop - Target scrollTop value
+ * @param {number} duration - Animation duration in ms (default 200)
+ */
+function smoothScrollTo(element, targetScrollTop, duration = 200) {
+  if (!element) return;
+
+  const startScrollTop = element.scrollTop;
+  const distance = targetScrollTop - startScrollTop;
+  const startTime = performance.now();
+
+  function animate(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Ease out cubic for smooth deceleration
+    const easeOut = 1 - Math.pow(1 - progress, 3);
+
+    element.scrollTop = startScrollTop + (distance * easeOut);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
     }
   }
+
+  requestAnimationFrame(animate);
+}
+
+/**
+ * Legacy function name - redirects to scrollToRegistry
+ * @deprecated Use scrollToRegistry instead
+ */
+function spinToRegistry(targetRegistry) {
+  scrollToRegistry(targetRegistry);
 }
 
 // ========== PREFERENCES ==========
@@ -1415,6 +1468,14 @@ function initApp() {
   updateGridVisibility();
   updateSoundline();
   updateGrid();
+
+  // Scroll to current registry (after DOM is ready)
+  requestAnimationFrame(() => {
+    const currentRegistry = registryController.getRegistry();
+    if (currentRegistry !== null) {
+      scrollToRegistry(currentRegistry);
+    }
+  });
 
   // Focus on Compás input
   elements.inputCompas?.focus();

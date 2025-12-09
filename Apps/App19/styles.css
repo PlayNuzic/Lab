@@ -511,11 +511,20 @@ main {
   grid-row: 1;
   display: flex;
   flex-direction: column;
-  justify-content: stretch;
+  justify-content: flex-start;
   padding-right: 0.5rem;
   min-width: 50px;
   position: relative;
   z-index: 1;
+  /* Vertical scroll for all registries */
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(15 * var(--grid-cell-height));  /* 15 visible rows */
+  scrollbar-width: none;  /* Hide scrollbar - synced with matrix */
+}
+
+.soundline-container::-webkit-scrollbar {
+  display: none;
 }
 
 /* Grid area (matrix + timeline) */
@@ -532,8 +541,9 @@ main {
 .matrix-container {
   flex: 1;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;  /* Enable vertical scroll for all registries */
   min-height: 0;
+  max-height: calc(15 * var(--grid-cell-height));  /* 15 visible rows */
 }
 
 /* Timeline container (X-axis: pulses) */
