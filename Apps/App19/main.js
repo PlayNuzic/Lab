@@ -174,7 +174,9 @@ function updateSoundline() {
     }
 
     // Mark rows outside valid registry range as non-interactive
-    if (row.registry < CONFIG.MIN_REGISTRO || row.registry > CONFIG.MAX_REGISTRO) {
+    // Out of range: r1 entirely, and r2 notes 0-4 (only 5-11 of r2 are visible/selectable)
+    const isOutOfRange = row.registry === 1 || (row.registry === 2 && row.noteInReg < 5);
+    if (isOutOfRange) {
       noteEl.classList.add('out-of-range');
     }
 
@@ -271,7 +273,9 @@ function updateMatrix(cellWidth) {
     const registry = row.registry;
     const noteInReg = row.noteInReg;
     const rowLabel = `${noteInReg}r${registry}`;
-    const isOutOfRange = registry < CONFIG.MIN_REGISTRO || registry > CONFIG.MAX_REGISTRO;
+    // Out of range: r1 entirely, and r2 notes 0-4 (only 5-11 of r2 are visible/selectable)
+    // Selectable: r2 notes 5-11, r3 full, r4 full, r5 notes 0-7
+    const isOutOfRange = registry === 1 || (registry === 2 && noteInReg < 5);
 
     for (let pulseIdx = 0; pulseIdx < totalPulses; pulseIdx++) {
       const cell = document.createElement('div');
