@@ -598,32 +598,29 @@ main {
   outline-offset: -2px;
 }
 
-/* Cell with note in another registry (shows label) */
-.grid-cell.has-other-registry-note {
-  position: relative;
-  background: var(--grid-other-registry-bg, rgba(234, 87, 12, 0.15));
-}
-
+/* Cell label for selected cells */
 .grid-cell .cell-label {
+  display: none;  /* Hidden by default */
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: var(--grid-label-color, rgba(234, 87, 12, 0.8));
+  color: var(--grid-selected-label-color, #fff);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   white-space: nowrap;
+  z-index: 5;
 }
 
-/* Label on selected cells - white text for contrast */
-.grid-cell.selected .cell-label {
-  color: var(--grid-selected-label-color, #fff);
-}
-
-/* Selected cells need position:relative for label */
+/* Show label on selected cells */
 .grid-cell.selected {
   position: relative;
+}
+
+.grid-cell.selected .cell-label {
+  display: block;
 }
 
 /* Dark theme */
@@ -640,12 +637,8 @@ main {
   background: var(--grid-hover-color);
 }
 
-[data-theme="dark"] .grid-cell.has-other-registry-note {
-  background: var(--grid-other-registry-bg, rgba(234, 87, 12, 0.25));
-}
-
 [data-theme="dark"] .grid-cell .cell-label {
-  color: var(--grid-label-color, rgba(234, 87, 12, 0.9));
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* ============================================
