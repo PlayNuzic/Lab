@@ -140,8 +140,8 @@ function updateGridVisibility() {
 // ========== SOUNDLINE FUNCTIONS ==========
 
 /**
- * Update soundline (Y-axis: notes) - renders from 7r5 to 5r2 for smooth vertical scroll
- * This range allows centering 0rN for any registry (3, 4, or 5) with 7 rows above and below
+ * Update soundline (Y-axis: notes) - renders from 7r5 to 5r2
+ * 39 rows: r5 (0-7), r4 (0-11), r3 (0-11), r2 (5-11)
  */
 function updateSoundline() {
   if (!elements.soundlineContainer) return;
@@ -171,13 +171,6 @@ function updateSoundline() {
     // Mark boundary notes (note 0 of each registry)
     if (row.noteInReg === 0) {
       noteEl.classList.add('registry-boundary');
-    }
-
-    // Mark rows outside valid registry range as non-interactive
-    // Out of range: r1 entirely, and r2 notes 0-4 (only 5-11 of r2 are visible/selectable)
-    const isOutOfRange = row.registry === 1 || (row.registry === 2 && row.noteInReg < 5);
-    if (isOutOfRange) {
-      noteEl.classList.add('out-of-range');
     }
 
     soundlineRow.appendChild(noteEl);
@@ -215,8 +208,10 @@ function updateGrid() {
 }
 
 /**
- * Build the row definitions for the grid (7r5 to 5r1)
+ * Build the row definitions for the grid (7r5 to 5r2)
  * Shared between updateMatrix and updateSoundline
+ * Only renders selectable rows: r5 (0-7), r4 (0-11), r3 (0-11), r2 (5-11)
+ * Total: 8 + 12 + 12 + 7 = 39 rows
  */
 function buildGridRows() {
   const rows = [];
@@ -233,13 +228,9 @@ function buildGridRows() {
   for (let note = 11; note >= 0; note--) {
     rows.push({ registry: 3, noteInReg: note });
   }
-  // r2: notes 11 to 0 (full registry, now valid)
-  for (let note = 11; note >= 0; note--) {
-    rows.push({ registry: 2, noteInReg: note });
-  }
-  // r1: notes 11 to 5 (bottom 7 notes for scroll padding)
+  // r2: notes 11 to 5 only (visible when viewing r3)
   for (let note = 11; note >= 5; note--) {
-    rows.push({ registry: 1, noteInReg: note });
+    rows.push({ registry: 2, noteInReg: note });
   }
 
   return rows;
@@ -268,14 +259,11 @@ function updateMatrix(cellWidth) {
   grid.style.gridTemplateColumns = `repeat(${totalPulses}, ${cellWidth}px)`;
   grid.style.gridTemplateRows = `repeat(${totalRows}, var(--grid-cell-height))`;
 
-  // Create cells for each row
+  // Create cells for each row (all rows are selectable)
   rows.forEach((row, rowIdx) => {
     const registry = row.registry;
     const noteInReg = row.noteInReg;
     const rowLabel = `${noteInReg}r${registry}`;
-    // Out of range: r1 entirely, and r2 notes 0-4 (only 5-11 of r2 are visible/selectable)
-    // Selectable: r2 notes 5-11, r3 full, r4 full, r5 notes 0-7
-    const isOutOfRange = registry === 1 || (registry === 2 && noteInReg < 5);
 
     for (let pulseIdx = 0; pulseIdx < totalPulses; pulseIdx++) {
       const cell = document.createElement('div');
@@ -285,26 +273,18 @@ function updateMatrix(cellWidth) {
       cell.dataset.registry = registry;
       cell.dataset.noteinreg = noteInReg;  // lowercase for CSS selector compatibility
 
-      // Mark out-of-range cells
-      if (isOutOfRange) {
-        cell.classList.add('out-of-range');
+      const rowKey = `${registry}-${noteInReg}-${pulseIdx}`;
+
+      if (selectedCells.has(rowKey)) {
+        cell.classList.add('selected');
+        const label = document.createElement('span');
+        label.className = 'cell-label';
+        label.textContent = rowLabel;
+        cell.appendChild(label);
       }
 
-      // Check if there's a selected note at this row and pulse (only for valid registries)
-      if (!isOutOfRange) {
-        const rowKey = `${registry}-${noteInReg}-${pulseIdx}`;
-
-        if (selectedCells.has(rowKey)) {
-          cell.classList.add('selected');
-          const label = document.createElement('span');
-          label.className = 'cell-label';
-          label.textContent = rowLabel;
-          cell.appendChild(label);
-        }
-
-        // Click handler with absolute coordinates (only for valid registries)
-        cell.addEventListener('click', () => handleCellClickAbsolute(registry, noteInReg, pulseIdx));
-      }
+      // Click handler with absolute coordinates
+      cell.addEventListener('click', () => handleCellClickAbsolute(registry, noteInReg, pulseIdx));
 
       grid.appendChild(cell);
     }
@@ -1174,17 +1154,15 @@ function scrollToRegistry(targetRegistry, animated = false, updateState = false)
 
   const cellHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-cell-height')) || 32;
 
-  // New layout (7r5 to 5r1):
+  // Layout (7r5 to 5r2): 39 rows total
   // - Rows 0-7: notes 7-0 of r5 (8 rows) → 0r5 at row 7
   // - Rows 8-19: notes 11-0 of r4 (12 rows) → 0r4 at row 19
   // - Rows 20-31: notes 11-0 of r3 (12 rows) → 0r3 at row 31
-  // - Rows 32-43: notes 11-0 of r2 (12 rows) → 0r2 at row 43
-  // - Rows 44-50: notes 11-5 of r1 (7 rows, padding only)
+  // - Rows 32-38: notes 11-5 of r2 (7 rows, no 0r2)
   const note0RowMap = {
     5: 7,   // 0r5 is at row 7
     4: 19,  // 0r4 is at row 8 + 11 = 19
-    3: 31,  // 0r3 is at row 8 + 12 + 11 = 31
-    2: 43   // 0r2 is at row 8 + 12 + 12 + 11 = 43
+    3: 31   // 0r3 is at row 8 + 12 + 11 = 31
   };
   const note0Row = note0RowMap[targetRegistry];
 
