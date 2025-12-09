@@ -1074,15 +1074,3 @@ main {
   color: var(--select-color, #EA570C) !important;
 }
 
-/* Hide input / show digit during playback for cycle display */
-.param.cycle-display .cycle-counter__digit {
-  display: none;
-}
-
-.param.cycle-display.playing input {
-  display: none;
-}
-
-.param.cycle-display.playing .cycle-counter__digit {
-  display: block;
-}
