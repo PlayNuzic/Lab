@@ -527,7 +527,7 @@ async function handlePlay() {
 
 /**
  * Highlight the selected cell that plays at this step
- * Only highlights cells from the CURRENT registry
+ * Finds the visual row that corresponds to the note being played
  */
 function highlightSelectedCell(step) {
   // Clear previous highlights
@@ -535,16 +535,25 @@ function highlightSelectedCell(step) {
     cell.classList.remove('playing');
   });
 
-  // Find and highlight the cell selected in this pulse (current registry only)
-  const currentRegistry = registryController.getRegistry();
+  // Find the note at this pulse
   for (const key of selectedCells.keys()) {
-    const [reg, noteIndex, pulseIndex] = key.split('-').map(Number);
-    // Only highlight if same registry and same pulse
-    if (reg === currentRegistry && pulseIndex === step) {
-      const cell = elements.matrixContainer?.querySelector(
-        `.grid-cell[data-note="${noteIndex}"][data-pulse="${pulseIndex}"]`
-      );
-      cell?.classList.add('playing');
+    const [reg, noteNum, pulseIndex] = key.split('-').map(Number);
+    if (pulseIndex === step) {
+      // Find which visual row (data-note) corresponds to this note+registry
+      const totalNotes = registryController.getTotalNotes();
+      for (let visualIdx = 0; visualIdx < totalNotes; visualIdx++) {
+        const rowLabel = registryController.formatLabel(visualIdx);
+        const [rowNote, rowReg] = rowLabel.split('r').map(s => parseInt(s, 10));
+        if (rowNote === noteNum && rowReg === reg) {
+          // Found the visual row - highlight it
+          const cell = elements.matrixContainer?.querySelector(
+            `.grid-cell[data-note="${visualIdx}"][data-pulse="${pulseIndex}"]`
+          );
+          cell?.classList.add('playing');
+          break;
+        }
+      }
+      break; // Monophonic: only one note per pulse
     }
   }
 }
