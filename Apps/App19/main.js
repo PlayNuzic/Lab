@@ -649,6 +649,50 @@ function clearPlaybackHighlights() {
 
   // Total length digit
   elements.totalLengthDigit?.classList.remove('playing-zero', 'playing-active', 'flip-out', 'flip-in');
+
+  // Hide playhead
+  hidePlayhead();
+}
+
+/**
+ * Get or create the playhead element
+ * @returns {HTMLElement|null}
+ */
+function getPlayhead() {
+  if (!elements.matrixContainer) return null;
+
+  let playhead = elements.matrixContainer.querySelector('.playhead');
+  if (!playhead) {
+    playhead = document.createElement('div');
+    playhead.className = 'playhead hidden';
+    elements.matrixContainer.appendChild(playhead);
+  }
+  return playhead;
+}
+
+/**
+ * Update playhead position for current step
+ * @param {number} step - Current pulse index
+ */
+function updatePlayhead(step) {
+  const playhead = getPlayhead();
+  if (!playhead) return;
+
+  const cellWidth = getCellWidth();
+  const leftPosition = step * cellWidth;
+
+  playhead.style.left = `${leftPosition}px`;
+  playhead.classList.remove('hidden');
+}
+
+/**
+ * Hide the playhead
+ */
+function hidePlayhead() {
+  const playhead = elements.matrixContainer?.querySelector('.playhead');
+  if (playhead) {
+    playhead.classList.add('hidden');
+  }
 }
 
 // ========== PLAYBACK FUNCTIONS ==========
@@ -779,18 +823,21 @@ async function startPlayback() {
     new Set(),
     false,  // No loop
     (step) => {
-      // 1. Switch to registry of CURRENT pulse note immediately (so it's visible when it plays)
+      // 1. Update playhead position (vertical bar like DAWs)
+      updatePlayhead(step);
+
+      // 2. Switch to registry of CURRENT pulse note immediately (so it's visible when it plays)
       if (pulseRegistry[step] !== undefined) {
         spinToRegistry(pulseRegistry[step]);
       }
 
-      // 2. Highlight selected cell that plays (works across all visible registries)
+      // 3. Highlight selected cell that plays (works across all visible registries)
       highlightSelectedCell(step);
 
-      // 3. Highlight timeline number
+      // 4. Highlight timeline number
       highlightTimelineNumber(step);
 
-      // 4. Schedule registry change for NEXT pulse (anticipate after 75% of current beat)
+      // 5. Schedule registry change for NEXT pulse (anticipate after 75% of current beat)
       const nextPulse = step + 1;
       if (pulseRegistry[nextPulse] !== undefined && nextPulse < totalPulses) {
         const registryChangeDelay = intervalSec * 1000 * 0.75;  // 75% of beat in ms
@@ -801,13 +848,13 @@ async function startPlayback() {
         }, registryChangeDelay);
       }
 
-      // 5. Auto-scroll to keep current pulse visible
+      // 6. Auto-scroll to keep current pulse visible
       scrollToPulse(step);
 
-      // 6. Color of cycle digit
+      // 7. Color of cycle digit
       updateCycleDigitColor(step);
 
-      // 7. Flip animation for cycle counter (when cycle changes)
+      // 8. Flip animation for cycle counter (when cycle changes)
       const cycleNum = Math.floor(step / compas) + 1;
       if (step > 0 && step % compas === 0) {
         updateCycleCounter(cycleNum);
@@ -815,10 +862,10 @@ async function startPlayback() {
         elements.cycleDigit.textContent = '1';
       }
 
-      // 8. Animation for totalLengthDigit
+      // 9. Animation for totalLengthDigit
       updateTotalLengthDisplay(step);
 
-      // 9. Play note if exists at this pulse (MONOPHONIC: 1 note max)
+      // 10. Play note if exists at this pulse (MONOPHONIC: 1 note max)
       // Duration = 1 pulse (based on BPM), with small margin to avoid overlap
       const midi = pulseNotes[step];
       if (midi !== undefined) {
