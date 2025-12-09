@@ -45,7 +45,7 @@ let isPlaying = false;
 let audio = null;
 let tapTempoHandler = null;
 let mixerSaveTimeout = null;
-let isInitialized = false;  // Flag to track if initial scroll has been set
+let isInitialized = false;  // Flag to track if initial scroll to default registry has been applied
 
 // Input values
 let compas = null;      // null = empty, 1-7 = value
@@ -187,6 +187,9 @@ function updateSoundline() {
   if (savedScrollTop !== null) {
     elements.soundlineContainer.scrollTop = savedScrollTop;
   }
+
+  // Apply initial scroll once the soundline exists
+  maybeApplyInitialScroll();
 }
 
 // ========== GRID FUNCTIONS ==========
@@ -314,6 +317,9 @@ function updateMatrix(cellWidth) {
   if (savedScrollTop !== null) {
     elements.matrixContainer.scrollTop = savedScrollTop;
   }
+
+  // Apply initial scroll once the grid exists
+  maybeApplyInitialScroll();
 }
 
 /**
@@ -1184,6 +1190,24 @@ function scrollToRegistry(targetRegistry, animated = false, updateState = false)
 }
 
 /**
+ * Apply the initial scroll to the default registry once the grid and soundline exist.
+ * This runs only once, after the first meaningful render (when pulses > 0).
+ */
+function maybeApplyInitialScroll() {
+  if (isInitialized) return;
+
+  const totalPulses = getTotalPulses();
+  const hasGrid = elements.matrixContainer?.querySelector('.grid-matrix');
+  const hasSoundline = elements.soundlineContainer?.querySelector('.soundline-row');
+
+  if (!hasGrid || !hasSoundline || totalPulses === 0) return;
+
+  const currentRegistry = registryController.getRegistry() ?? CONFIG.DEFAULT_REGISTRO;
+  scrollToRegistry(currentRegistry, false, true);
+  isInitialized = true;
+}
+
+/**
  * Smooth scroll animation using requestAnimationFrame
  * @param {HTMLElement} element - Element to scroll
  * @param {number} targetScrollTop - Target scrollTop value
@@ -1467,7 +1491,7 @@ function initApp() {
     tapTempoHandler = createTapTempoHandler({
       getAudioInstance: initAudio,
       tapBtn: elements.tapTempoBtn,
-      tapHelp: document.getElementById('tapHelp'),
+      tapHelp: null,  // Disable help label - causes layout shift in App19
       onBpmDetected: (newBpm) => {
         const clampedBpm = Math.min(CONFIG.MAX_BPM, Math.max(CONFIG.MIN_BPM, Math.round(newBpm)));
         bpmController?.setValue(clampedBpm);
@@ -1526,17 +1550,6 @@ function initApp() {
   updateGridVisibility();
   updateSoundline();
   updateGrid();
-
-  // Scroll to current registry (after DOM is fully rendered)
-  // Use setTimeout to ensure it runs after any pending input event handlers
-  setTimeout(() => {
-    const currentRegistry = registryController.getRegistry();
-    if (currentRegistry !== null) {
-      scrollToRegistry(currentRegistry);
-    }
-    // Mark as initialized so future updateGrid/updateSoundline preserve scroll
-    isInitialized = true;
-  }, 50);
 
   // Focus on Compás input
   elements.inputCompas?.focus();
