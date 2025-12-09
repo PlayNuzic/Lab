@@ -1,14 +1,18 @@
 // App19: Plano Musical
 // Combines temporal module (App17) with sound module (App18) in a 2D interactive grid
 
-import { loadPiano } from '../../libs/sound/piano.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
-import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { createRegistryController } from '../../libs/sound/registry-controller.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { createCycleCounter } from '../../libs/app-common/cycle-counter.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
+import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
+import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { subscribeMixer } from '../../libs/sound/index.js';
+import { initRandomMenu } from '../../libs/random/menu.js';
+import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
@@ -38,20 +42,39 @@ const CONFIG = {
 
 // ========== STATE ==========
 let isPlaying = false;
-let piano = null;
+let audio = null;
+let tapTempoHandler = null;
+let mixerSaveTimeout = null;
 
 // Input values
 let compas = null;      // null = empty, 1-7 = value
 let cycles = null;      // null = empty, 1-4 = value
 
-// Selected cells in grid: Map<`${noteIndex}-${pulseIndex}`, true>
+// Selected cells in grid: Map<`${registry}-${noteIndex}-${pulseIndex}`, true>
+// Each key includes the registry so notes persist when changing registry view
 const selectedCells = new Map();
+
+// Mixer storage key
+const MIXER_STORAGE_KEY = 'app19-mixer';
 
 // ========== DOM ELEMENT REFERENCES ==========
 let elements = {};
 
 // ========== PREFERENCE STORAGE ==========
 const preferenceStorage = createPreferenceStorage('app19');
+
+// ========== AUDIO INITIALIZATION ==========
+const _initAudio = createMelodicAudioInitializer({
+  defaultInstrument: 'piano',
+  getPreferences: () => preferenceStorage.load() || {}
+});
+
+async function initAudio() {
+  if (!audio) {
+    audio = await _initAudio();
+  }
+  return audio;
+}
 
 // ========== CONTROLLERS ==========
 
@@ -204,8 +227,9 @@ function updateMatrix(cellWidth) {
       cell.dataset.note = noteIdx;
       cell.dataset.pulse = pulseIdx;
 
-      // Check if selected
-      const key = `${noteIdx}-${pulseIdx}`;
+      // Check if selected (key includes registry)
+      const registry = registryController.getRegistry();
+      const key = `${registry}-${noteIdx}-${pulseIdx}`;
       if (selectedCells.has(key)) {
         cell.classList.add('selected');
       }
@@ -266,51 +290,65 @@ function updateTimeline(cellWidth) {
 // ========== CELL INTERACTION ==========
 
 /**
- * Handle cell click - select/deselect and play note
+ * Handle cell click - select/deselect with GLOBAL MONOPHONIC logic (1 note per pulse across ALL registries)
+ * Key format: `${registry}-${noteIndex}-${pulseIndex}`
  */
 async function handleCellClick(noteIndex, pulseIndex) {
-  const key = `${noteIndex}-${pulseIndex}`;
+  const registry = registryController.getRegistry();
+  const key = `${registry}-${noteIndex}-${pulseIndex}`;
 
-  // Toggle selection
+  // If clicking the same cell, deselect it
   if (selectedCells.has(key)) {
     selectedCells.delete(key);
+    const cell = elements.matrixContainer?.querySelector(
+      `.grid-cell[data-note="${noteIndex}"][data-pulse="${pulseIndex}"]`
+    );
+    cell?.classList.remove('selected');
   } else {
-    selectedCells.set(key, true);
-  }
+    // GLOBAL MONOPHONIC: Remove ANY existing note in this pulse (from ANY registry)
+    for (const existingKey of [...selectedCells.keys()]) {
+      const [existingReg, existingNote, existingPulse] = existingKey.split('-').map(Number);
+      if (existingPulse === pulseIndex) {
+        selectedCells.delete(existingKey);
+        // Only update visual if the note is in the current registry view
+        if (existingReg === registry) {
+          const oldCell = elements.matrixContainer?.querySelector(
+            `.grid-cell[data-note="${existingNote}"][data-pulse="${existingPulse}"]`
+          );
+          oldCell?.classList.remove('selected');
+        }
+      }
+    }
 
-  // Update cell visual
-  const cell = elements.matrixContainer?.querySelector(
-    `.grid-cell[data-note="${noteIndex}"][data-pulse="${pulseIndex}"]`
-  );
-  if (cell) {
-    cell.classList.toggle('selected', selectedCells.has(key));
+    // Select the new cell
+    selectedCells.set(key, true);
+    const cell = elements.matrixContainer?.querySelector(
+      `.grid-cell[data-note="${noteIndex}"][data-pulse="${pulseIndex}"]`
+    );
+    cell?.classList.add('selected');
   }
 
   // Play the note
   await playNote(noteIndex);
-
-  console.log(`Cell clicked: note=${noteIndex}, pulse=${pulseIndex}, selected=${selectedCells.has(key)}`);
+  savePreferences();
 }
 
 /**
- * Play a note at given index
+ * Play a note at given index using MelodicTimelineAudio
  */
 async function playNote(noteIndex) {
-  // Initialize piano if needed
-  if (!piano) {
-    await initPiano();
-  }
+  if (!audio) await initAudio();
 
   const registry = registryController.getRegistry();
   if (registry === null) return;
 
-  // Convert visual index to note-in-registry
   const noteInRegistry = registryController.getNoteInRegistry(noteIndex);
   const { midi } = registryController.getMidiForNote(noteInRegistry);
 
   const Tone = window.Tone;
-  const note = Tone.Frequency(midi, 'midi').toNote();
-  piano.triggerAttackRelease(note, 0.5);
+  if (!Tone) return;
+
+  audio.playNote(midi, 0.5, Tone.now());
 }
 
 // ========== INPUT HANDLERS ==========
@@ -436,23 +474,215 @@ async function handlePlay() {
     return;
   }
 
-  // Initialize piano if needed
-  if (!piano) {
-    await initPiano();
-  }
-
   startPlayback();
 }
 
+// ========== ANIMATION FUNCTIONS (Pattern from Apps 16/17) ==========
+
 /**
- * Start playback
+ * Highlight the selected cell that plays at this step
+ * Only highlights cells from the CURRENT registry
  */
-function startPlayback() {
+function highlightSelectedCell(step) {
+  // Clear previous highlights
+  elements.matrixContainer?.querySelectorAll('.grid-cell.playing').forEach(cell => {
+    cell.classList.remove('playing');
+  });
+
+  // Find and highlight the cell selected in this pulse (current registry only)
+  const currentRegistry = registryController.getRegistry();
+  for (const key of selectedCells.keys()) {
+    const [reg, noteIndex, pulseIndex] = key.split('-').map(Number);
+    // Only highlight if same registry and same pulse
+    if (reg === currentRegistry && pulseIndex === step) {
+      const cell = elements.matrixContainer?.querySelector(
+        `.grid-cell[data-note="${noteIndex}"][data-pulse="${pulseIndex}"]`
+      );
+      cell?.classList.add('playing');
+    }
+  }
+}
+
+/**
+ * Highlight timeline number at current step
+ */
+function highlightTimelineNumber(step) {
+  elements.timelineContainer?.querySelectorAll('.timeline-number').forEach(el => {
+    el.classList.remove('active', 'active-zero');
+  });
+
+  const numberEl = elements.timelineContainer?.querySelector(`.timeline-number[data-pulse="${step}"]`);
+  if (numberEl && compas) {
+    const modValue = step % compas;
+    numberEl.classList.add(modValue === 0 ? 'active-zero' : 'active');
+  }
+}
+
+/**
+ * Update cycle counter with flip animation
+ */
+function updateCycleCounter(newCycle) {
+  const digit = elements.cycleDigit;
+  if (!digit) return;
+
+  // Flip animation
+  digit.classList.add('flip-out');
+
+  setTimeout(() => {
+    digit.textContent = String(newCycle);
+    digit.classList.remove('flip-out');
+    digit.classList.add('flip-in');
+
+    setTimeout(() => {
+      digit.classList.remove('flip-in');
+    }, 150);
+  }, 150);
+}
+
+/**
+ * Update cycle digit color based on step
+ */
+function updateCycleDigitColor(step) {
+  const digit = elements.cycleDigit;
+  if (!digit || compas === null) return;
+
+  digit.classList.remove('playing-zero', 'playing-active');
+  digit.classList.add(step % compas === 0 ? 'playing-zero' : 'playing-active');
+}
+
+/**
+ * Update total length display with flip animation
+ */
+function updateTotalLengthDisplay(step) {
+  const digit = elements.totalLengthDigit;
+  if (!digit) return;
+
+  // Flip animation
+  digit.classList.add('flip-out');
+
+  setTimeout(() => {
+    digit.textContent = String(step + 1);  // 1-indexed
+    digit.classList.remove('flip-out');
+    digit.classList.add('flip-in');
+
+    // Color: blue if step+1 === 1, orange otherwise
+    digit.classList.remove('playing-zero', 'playing-active');
+    digit.classList.add(step === 0 ? 'playing-zero' : 'playing-active');
+
+    setTimeout(() => {
+      digit.classList.remove('flip-in');
+    }, 150);
+  }, 150);
+}
+
+/**
+ * Clear all playback highlights
+ */
+function clearPlaybackHighlights() {
+  // Cells
+  elements.matrixContainer?.querySelectorAll('.grid-cell.playing').forEach(cell => {
+    cell.classList.remove('playing');
+  });
+
+  // Timeline numbers
+  elements.timelineContainer?.querySelectorAll('.timeline-number').forEach(el => {
+    el.classList.remove('active', 'active-zero');
+  });
+
+  // Cycle digit
+  elements.cycleDigit?.classList.remove('playing-zero', 'playing-active', 'flip-out', 'flip-in');
+
+  // Total length digit
+  elements.totalLengthDigit?.classList.remove('playing-zero', 'playing-active', 'flip-out', 'flip-in');
+}
+
+// ========== PLAYBACK FUNCTIONS ==========
+
+/**
+ * Start playback with metronome + notes
+ */
+async function startPlayback() {
+  await initAudio();
+
+  const totalPulses = getTotalPulses();
+  const bpm = bpmController?.getValue() || CONFIG.DEFAULT_BPM;
+  const intervalSec = 60 / bpm;
+  const Tone = window.Tone;
+
+  if (!Tone) {
+    console.error('Tone.js not available');
+    return;
+  }
+
+  // Build map of MIDI note by pulse (MONOPHONIC: only 1 note per pulse)
+  // Key format: `${registry}-${noteIndex}-${pulseIndex}`
+  const pulseNotes = {};
+  const midiOffset = CONFIG.MIDI_OFFSET;
+  const notesPerRegistry = CONFIG.NOTES_PER_REGISTRY;
+
+  for (const key of selectedCells.keys()) {
+    const [reg, noteIndex, pulseIndex] = key.split('-').map(Number);
+    // Calculate MIDI directly: registry * 12 + noteIndex + midiOffset
+    const midi = reg * notesPerRegistry + noteIndex + midiOffset;
+    // Monophonic: one note per pulse (last one wins if duplicates exist)
+    pulseNotes[pulseIndex] = midi;
+  }
+
   isPlaying = true;
   elements.playBtn?.classList.add('playing');
-  console.log('Playback started');
 
-  // TODO: Implement full playback with metrónomo + notas
+  // Hide input, show cycle digit
+  const cycleParam = elements.inputCycle?.closest('.param.cycle-display');
+  cycleParam?.classList.add('playing');
+
+  // Configure measure for P0 sound
+  audio.configureMeasure(compas, totalPulses);
+
+  // Apply P0 toggle state
+  const p0Enabled = window.__p1Controller?.getState() ?? true;
+  audio.setMeasureEnabled(p0Enabled);
+
+  audio.play(
+    totalPulses,
+    intervalSec,
+    new Set(),
+    false,  // No loop
+    (step) => {
+      // 1. Highlight selected cell that plays
+      highlightSelectedCell(step);
+
+      // 2. Highlight timeline number
+      highlightTimelineNumber(step);
+
+      // 3. Color of cycle digit
+      updateCycleDigitColor(step);
+
+      // 4. Flip animation for cycle counter (when cycle changes)
+      const cycleNum = Math.floor(step / compas) + 1;
+      if (step > 0 && step % compas === 0) {
+        updateCycleCounter(cycleNum);
+      } else if (step === 0 && elements.cycleDigit) {
+        elements.cycleDigit.textContent = '1';
+      }
+
+      // 5. Animation for totalLengthDigit
+      updateTotalLengthDisplay(step);
+
+      // 6. Play note if exists at this pulse (MONOPHONIC: 1 note max)
+      // Duration = 1 pulse (based on BPM), with small margin to avoid overlap
+      const midi = pulseNotes[step];
+      if (midi !== undefined) {
+        const noteDuration = intervalSec * 0.95;  // 95% of pulse duration
+        audio.playNote(midi, noteDuration, Tone.now());
+      }
+    },
+    () => {
+      // onComplete - delay for last pulse to sound
+      setTimeout(() => {
+        stopPlayback();
+      }, 590);
+    }
+  );
 }
 
 /**
@@ -461,13 +691,48 @@ function startPlayback() {
 function stopPlayback() {
   isPlaying = false;
   elements.playBtn?.classList.remove('playing');
+
+  audio?.stop();
+
+  // Show input, hide cycle digit
+  const cycleParam = elements.inputCycle?.closest('.param.cycle-display');
+  cycleParam?.classList.remove('playing');
+
+  // Clear all animations
+  clearPlaybackHighlights();
+
+  // Restore Longitud display
+  updateLongitud();
+
+  // Restore cycleDigit to cycles value
+  if (elements.cycleDigit && cycles !== null) {
+    elements.cycleDigit.textContent = String(cycles);
+  }
+
   console.log('Playback stopped');
 }
 
 /**
- * Handle Random button - generate random Compás, Nº Compases, BPM
+ * Shuffle array in place (Fisher-Yates)
+ */
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+/**
+ * Handle Random button - generate random Compás, Nº Compases, BPM with MONOPHONIC sequence
  */
 function handleRandom() {
+  // FIX: Ensure bpmController is initialized
+  if (!bpmController) {
+    console.warn('BPM controller not initialized, skipping random');
+    return;
+  }
+
   // Get random menu values
   const randCompasMax = parseInt(document.getElementById('randCompasMax')?.value || CONFIG.MAX_COMPAS);
   const randCyclesMax = parseInt(document.getElementById('randCyclesMax')?.value || CONFIG.MAX_CYCLES);
@@ -482,22 +747,28 @@ function handleRandom() {
   // Update inputs
   elements.inputCompas.value = compas;
   elements.inputCycle.value = cycles;
-  if (bpmController && bpmController.setValue) {
-    bpmController.setValue(randomBpm);
-  }
+  bpmController.setValue(randomBpm);
 
-  // Clear current selections and generate random sequence
+  // Clear current selections
   selectedCells.clear();
 
-  // Generate some random note selections
+  // Generate MONOPHONIC random sequence (max 1 note per pulse)
   const totalPulses = getTotalPulses();
   const totalNotes = registryController.getTotalNotes();
+
+  // Decide how many pulses will have notes (1 to min(totalPulses, 8))
   const numSelections = Math.floor(Math.random() * Math.min(totalPulses, 8)) + 1;
 
-  for (let i = 0; i < numSelections; i++) {
+  // Create array of available pulses and shuffle
+  const availablePulses = Array.from({ length: totalPulses }, (_, i) => i);
+  shuffleArray(availablePulses);
+
+  // Select the first N pulses with random notes (using CURRENT registry)
+  const registry = registryController.getRegistry();
+  for (let i = 0; i < numSelections && i < availablePulses.length; i++) {
+    const pulseIdx = availablePulses[i];
     const noteIdx = Math.floor(Math.random() * totalNotes);
-    const pulseIdx = Math.floor(Math.random() * totalPulses);
-    selectedCells.set(`${noteIdx}-${pulseIdx}`, true);
+    selectedCells.set(`${registry}-${noteIdx}-${pulseIdx}`, true);
   }
 
   updateLongitud();
@@ -523,12 +794,20 @@ function handleReset() {
   elements.inputCycle.value = '';
 
   // Reset BPM to 100
-  if (bpmController && bpmController.setValue) {
+  if (bpmController) {
     bpmController.setValue(CONFIG.DEFAULT_BPM);
   }
 
   // Clear selections
   selectedCells.clear();
+
+  // Reset tap tempo
+  if (tapTempoHandler) {
+    tapTempoHandler.reset();
+  }
+
+  // Clear any visual highlights
+  clearPlaybackHighlights();
 
   // Update displays
   updateLongitud();
@@ -540,37 +819,6 @@ function handleReset() {
   elements.inputCompas?.focus();
 
   console.log('Reset complete');
-}
-
-// ========== AUDIO FUNCTIONS ==========
-
-async function initPiano() {
-  if (!piano) {
-    console.log('Ensuring Tone.js is loaded...');
-    await ensureToneLoaded();
-    console.log('Loading piano...');
-    piano = await loadPiano();
-    console.log('Piano loaded');
-
-    setupVolumeControl();
-  }
-  return piano;
-}
-
-function setupVolumeControl() {
-  const Tone = window.Tone;
-  if (!Tone) return;
-
-  window.addEventListener('sharedui:volume', (e) => {
-    const volume = e.detail?.value ?? 1;
-    const dB = volume > 0 ? 20 * Math.log10(volume) : -Infinity;
-    Tone.getDestination().volume.value = dB;
-  });
-
-  window.addEventListener('sharedui:mute', (e) => {
-    const muted = e.detail?.value ?? false;
-    Tone.getDestination().mute = muted;
-  });
 }
 
 // ========== SCROLL SYNCHRONIZATION ==========
@@ -677,7 +925,7 @@ function setupEventHandlers() {
 
   // Control buttons
   elements.playBtn?.addEventListener('click', handlePlay);
-  elements.randomBtn?.addEventListener('click', handleRandom);
+  // NOTE: randomBtn is handled by initRandomMenu (with longpress support)
   elements.resetBtn?.addEventListener('click', handleReset);
 
   // Theme changes
@@ -815,6 +1063,70 @@ function initApp() {
     cycleCounter = createCycleCounter({ element: elements.cycleDigit });
   }
 
+  // Initialize P1 Toggle (Pulse 0 special sound) - MUST be before mixer init
+  const startIntervalToggle = document.getElementById('startIntervalToggle');
+  const startSoundRow = document.querySelector('.interval-select-row');
+  if (startIntervalToggle && startSoundRow) {
+    window.__p1Controller = initP1ToggleUI({
+      checkbox: startIntervalToggle,
+      startSoundRow,
+      storageKey: 'app19:p1Toggle',
+      onChange: async (enabled) => {
+        const audioInstance = await initAudio();
+        if (audioInstance && typeof audioInstance.setMeasureEnabled === 'function') {
+          audioInstance.setMeasureEnabled(enabled);
+        }
+      }
+    });
+  }
+
+  // Initialize tap tempo handler
+  if (elements.tapTempoBtn) {
+    tapTempoHandler = createTapTempoHandler({
+      getAudioInstance: initAudio,
+      tapBtn: elements.tapTempoBtn,
+      tapHelp: document.getElementById('tapHelp'),
+      onBpmDetected: (newBpm) => {
+        const clampedBpm = Math.min(CONFIG.MAX_BPM, Math.max(CONFIG.MIN_BPM, Math.round(newBpm)));
+        bpmController?.setValue(clampedBpm);
+        savePreferences();
+      }
+    });
+    tapTempoHandler.attach();
+    elements.tapTempoBtn.style.display = '';  // Show button
+  }
+
+  // Mixer integration (longpress on play button)
+  const mixerMenu = document.getElementById('mixerMenu');
+  if (mixerMenu && elements.playBtn) {
+    initMixerMenu({
+      menu: mixerMenu,
+      triggers: [elements.playBtn],
+      channels: [
+        { id: 'pulse', label: 'Pulso', allowSolo: true },
+        { id: 'instrument', label: 'Piano', allowSolo: true },
+        { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
+      ]
+    });
+
+    // Subscribe to mixer changes for persistence
+    subscribeMixer((snapshot) => {
+      clearTimeout(mixerSaveTimeout);
+      mixerSaveTimeout = setTimeout(() => {
+        localStorage.setItem(MIXER_STORAGE_KEY, JSON.stringify(snapshot));
+      }, 100);
+    });
+
+    // Load mixer state
+    loadMixerState();
+  }
+
+  // Random menu (longpress to open configuration)
+  const randomMenu = document.getElementById('randomMenu');
+  if (elements.randomBtn && randomMenu) {
+    initRandomMenu(elements.randomBtn, randomMenu, handleRandom);
+  }
+
   // Load saved preferences
   loadPreferences();
 
@@ -837,6 +1149,31 @@ function initApp() {
   elements.inputCompas?.focus();
 
   console.log('App19 initialized');
+}
+
+/**
+ * Load mixer state from localStorage
+ */
+function loadMixerState() {
+  try {
+    const saved = localStorage.getItem(MIXER_STORAGE_KEY);
+    if (!saved) return;
+    const state = JSON.parse(saved);
+
+    if (window.NuzicMixer) {
+      if (state.master !== undefined) {
+        window.NuzicMixer.setMasterVolume(state.master);
+      }
+      ['pulse', 'instrument'].forEach(ch => {
+        if (state[ch]) {
+          window.NuzicMixer.setChannelVolume?.(ch, state[ch].volume ?? 1);
+          window.NuzicMixer.setChannelMute?.(ch, state[ch].muted ?? false);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('Failed to load mixer state:', e);
+  }
 }
 
 // Execute when DOM is ready
