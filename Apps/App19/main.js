@@ -45,6 +45,7 @@ let isPlaying = false;
 let audio = null;
 let tapTempoHandler = null;
 let mixerSaveTimeout = null;
+let isInitialized = false;  // Flag to track if initial scroll has been set
 
 // Input values
 let compas = null;      // null = empty, 1-7 = value
@@ -147,6 +148,10 @@ function updateSoundline() {
 
   const rows = buildGridRows();
 
+  // Preserve scroll position before clearing (innerHTML = '' resets scrollTop)
+  // Only preserve after initialization (during init, scroll will be set by scrollToRegistry)
+  const savedScrollTop = isInitialized ? elements.soundlineContainer.scrollTop : null;
+
   // Clear and rebuild
   elements.soundlineContainer.innerHTML = '';
 
@@ -177,6 +182,11 @@ function updateSoundline() {
   });
 
   elements.soundlineContainer.appendChild(soundlineRow);
+
+  // Restore scroll position (only after initialization)
+  if (savedScrollTop !== null) {
+    elements.soundlineContainer.scrollTop = savedScrollTop;
+  }
 }
 
 // ========== GRID FUNCTIONS ==========
@@ -293,8 +303,17 @@ function updateMatrix(cellWidth) {
     }
   });
 
+  // Preserve scroll position before clearing (innerHTML = '' resets scrollTop)
+  // Only preserve after initialization (during init, scroll will be set by scrollToRegistry)
+  const savedScrollTop = isInitialized ? elements.matrixContainer.scrollTop : null;
+
   elements.matrixContainer.innerHTML = '';
   elements.matrixContainer.appendChild(grid);
+
+  // Restore scroll position (only after initialization)
+  if (savedScrollTop !== null) {
+    elements.matrixContainer.scrollTop = savedScrollTop;
+  }
 }
 
 /**
@@ -1515,6 +1534,8 @@ function initApp() {
     if (currentRegistry !== null) {
       scrollToRegistry(currentRegistry);
     }
+    // Mark as initialized so future updateGrid/updateSoundline preserve scroll
+    isInitialized = true;
   }, 50);
 
   // Focus on Compás input
