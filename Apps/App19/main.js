@@ -1105,6 +1105,23 @@ function setupScrollSync() {
       requestAnimationFrame(() => { isScrollSyncing = false; });
     });
   }
+
+  // Block user wheel scroll on vertical containers (only programmatic scroll via spinners allowed)
+  if (matrix) {
+    matrix.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
+
+  if (soundline) {
+    soundline.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
 }
 
 /**
