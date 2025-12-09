@@ -310,7 +310,12 @@ async function handleCellClick(noteIndex, pulseIndex) {
     const cell = elements.matrixContainer?.querySelector(
       `.grid-cell[data-note="${noteIndex}"][data-pulse="${pulseIndex}"]`
     );
-    cell?.classList.remove('selected');
+    if (cell) {
+      cell.classList.remove('selected');
+      // Remove label
+      const label = cell.querySelector('.cell-label');
+      if (label) label.remove();
+    }
   } else {
     // GLOBAL MONOPHONIC: Remove ANY existing note in this pulse (from ANY registry)
     for (const existingKey of [...selectedCells.keys()]) {
@@ -322,7 +327,12 @@ async function handleCellClick(noteIndex, pulseIndex) {
           const oldCell = elements.matrixContainer?.querySelector(
             `.grid-cell[data-note="${existingNote}"][data-pulse="${existingPulse}"]`
           );
-          oldCell?.classList.remove('selected');
+          if (oldCell) {
+            oldCell.classList.remove('selected');
+            // Remove label from old cell
+            const oldLabel = oldCell.querySelector('.cell-label');
+            if (oldLabel) oldLabel.remove();
+          }
         }
       }
     }
@@ -332,7 +342,16 @@ async function handleCellClick(noteIndex, pulseIndex) {
     const cell = elements.matrixContainer?.querySelector(
       `.grid-cell[data-note="${noteIndex}"][data-pulse="${pulseIndex}"]`
     );
-    cell?.classList.add('selected');
+    if (cell) {
+      cell.classList.add('selected');
+      // Add label immediately
+      if (!cell.querySelector('.cell-label')) {
+        const label = document.createElement('span');
+        label.className = 'cell-label';
+        label.textContent = `${noteIndex}r${registry}`;
+        cell.appendChild(label);
+      }
+    }
   }
 
   // Play the note
