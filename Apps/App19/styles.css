@@ -645,9 +645,17 @@ main {
   min-width: 50px;
   position: relative;
   z-index: 1;
-  /* Scroll hidden from user - only used programmatically during playback */
-  overflow: hidden;
+  /* Scroll enabled for programmatic control, but hidden from user */
+  overflow-y: scroll;
+  overflow-x: hidden;
   max-height: calc(15 * var(--grid-cell-height));  /* 15 visible rows */
+  /* Hide scrollbar */
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE/Edge */
+}
+
+.soundline-container::-webkit-scrollbar {
+  display: none;  /* Chrome/Safari */
 }
 
 /* Grid area (matrix + timeline) */
@@ -664,9 +672,15 @@ main {
 .matrix-container {
   flex: 1;
   overflow-x: auto;
-  overflow-y: hidden;  /* Vertical scroll hidden - only used programmatically during playback */
+  overflow-y: scroll;  /* Scroll enabled for programmatic control */
   min-height: 0;
   max-height: calc(15 * var(--grid-cell-height));  /* 15 visible rows */
+  /* Hide vertical scrollbar */
+  scrollbar-width: thin;  /* Keep horizontal scrollbar thin */
+}
+
+.matrix-container::-webkit-scrollbar:vertical {
+  display: none;  /* Hide vertical scrollbar in Chrome/Safari */
 }
 
 /* Timeline container (X-axis: pulses) */
