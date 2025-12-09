@@ -598,6 +598,24 @@ main {
   outline-offset: -2px;
 }
 
+/* Cell with note in another registry (shows label) */
+.grid-cell.has-other-registry-note {
+  position: relative;
+  background: var(--grid-other-registry-bg, rgba(234, 87, 12, 0.15));
+}
+
+.grid-cell .cell-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--grid-label-color, rgba(234, 87, 12, 0.8));
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 /* Dark theme */
 [data-theme="dark"] .grid-area,
 [data-theme="dark"] .matrix-container {
@@ -610,6 +628,14 @@ main {
 
 [data-theme="dark"] .grid-cell:hover {
   background: var(--grid-hover-color);
+}
+
+[data-theme="dark"] .grid-cell.has-other-registry-note {
+  background: var(--grid-other-registry-bg, rgba(234, 87, 12, 0.25));
+}
+
+[data-theme="dark"] .grid-cell .cell-label {
+  color: var(--grid-label-color, rgba(234, 87, 12, 0.9));
 }
 
 /* ============================================

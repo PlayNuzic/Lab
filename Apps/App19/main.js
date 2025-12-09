@@ -227,11 +227,27 @@ function updateMatrix(cellWidth) {
       cell.dataset.note = noteIdx;
       cell.dataset.pulse = pulseIdx;
 
-      // Check if selected (key includes registry)
-      const registry = registryController.getRegistry();
-      const key = `${registry}-${noteIdx}-${pulseIdx}`;
-      if (selectedCells.has(key)) {
+      // Check if selected (key includes registry) - also check other registries for label
+      const currentRegistry = registryController.getRegistry();
+      const currentKey = `${currentRegistry}-${noteIdx}-${pulseIdx}`;
+
+      if (selectedCells.has(currentKey)) {
+        // Selected in current registry - show as selected
         cell.classList.add('selected');
+      } else {
+        // Check if this pulse has a note in another registry (for label display)
+        for (const existingKey of selectedCells.keys()) {
+          const [reg, note, pulse] = existingKey.split('-').map(Number);
+          if (pulse === pulseIdx && reg !== currentRegistry) {
+            // Note exists in another registry at this pulse - add label
+            const label = document.createElement('span');
+            label.className = 'cell-label';
+            label.textContent = `${note}r${reg}`;
+            cell.appendChild(label);
+            cell.classList.add('has-other-registry-note');
+            break;
+          }
+        }
       }
 
       // Click handler
