@@ -227,17 +227,22 @@ function updateMatrix(cellWidth) {
       cell.dataset.note = noteIdx;
       cell.dataset.pulse = pulseIdx;
 
-      // Check if selected (key includes registry)
-      const currentRegistry = registryController.getRegistry();
-      const currentKey = `${currentRegistry}-${noteIdx}-${pulseIdx}`;
+      // Get the actual note label for this visual row (e.g., "6r3")
+      // This accounts for notes from adjacent registries visible in the grid
+      const rowLabel = registryController.formatLabel(noteIdx);
+      const [rowNoteStr, rowRegStr] = rowLabel.split('r');
+      const rowNote = parseInt(rowNoteStr, 10);
+      const rowReg = parseInt(rowRegStr, 10);
 
-      if (selectedCells.has(currentKey)) {
-        // Selected in current registry - show as selected with label
+      // Check if there's a selected note at this row and pulse
+      const rowKey = `${rowReg}-${rowNote}-${pulseIdx}`;
+
+      if (selectedCells.has(rowKey)) {
+        // Note is selected - show as selected with its original label
         cell.classList.add('selected');
-        // Add label showing note and registry (e.g., "2r3")
         const label = document.createElement('span');
         label.className = 'cell-label';
-        label.textContent = `${noteIdx}r${currentRegistry}`;
+        label.textContent = rowLabel;
         cell.appendChild(label);
       }
 
@@ -299,10 +304,15 @@ function updateTimeline(cellWidth) {
 /**
  * Handle cell click - select/deselect with GLOBAL MONOPHONIC logic (1 note per pulse across ALL registries)
  * Key format: `${registry}-${noteIndex}-${pulseIndex}`
+ * Note: The visual noteIndex maps to a real note via formatLabel (accounts for adjacent registries)
  */
 async function handleCellClick(noteIndex, pulseIndex) {
-  const registry = registryController.getRegistry();
-  const key = `${registry}-${noteIndex}-${pulseIndex}`;
+  // Get the actual note and registry for this visual row
+  const rowLabel = registryController.formatLabel(noteIndex);
+  const [rowNoteStr, rowRegStr] = rowLabel.split('r');
+  const rowNote = parseInt(rowNoteStr, 10);
+  const rowReg = parseInt(rowRegStr, 10);
+  const key = `${rowReg}-${rowNote}-${pulseIndex}`;
 
   // If clicking the same cell, deselect it
   if (selectedCells.has(key)) {
@@ -318,20 +328,27 @@ async function handleCellClick(noteIndex, pulseIndex) {
     }
   } else {
     // GLOBAL MONOPHONIC: Remove ANY existing note in this pulse (from ANY registry)
+    // Also need to update visual if the old note is visible in current view
     for (const existingKey of [...selectedCells.keys()]) {
       const [existingReg, existingNote, existingPulse] = existingKey.split('-').map(Number);
       if (existingPulse === pulseIndex) {
         selectedCells.delete(existingKey);
-        // Only update visual if the note is in the current registry view
-        if (existingReg === registry) {
-          const oldCell = elements.matrixContainer?.querySelector(
-            `.grid-cell[data-note="${existingNote}"][data-pulse="${existingPulse}"]`
-          );
-          if (oldCell) {
-            oldCell.classList.remove('selected');
-            // Remove label from old cell
-            const oldLabel = oldCell.querySelector('.cell-label');
-            if (oldLabel) oldLabel.remove();
+        // Find if this note is visible in the current view
+        // by checking all visual rows for a match
+        const totalNotes = registryController.getTotalNotes();
+        for (let idx = 0; idx < totalNotes; idx++) {
+          const idxLabel = registryController.formatLabel(idx);
+          const [idxNote, idxReg] = idxLabel.split('r').map(s => parseInt(s, 10));
+          if (idxNote === existingNote && idxReg === existingReg) {
+            const oldCell = elements.matrixContainer?.querySelector(
+              `.grid-cell[data-note="${idx}"][data-pulse="${existingPulse}"]`
+            );
+            if (oldCell) {
+              oldCell.classList.remove('selected');
+              const oldLabel = oldCell.querySelector('.cell-label');
+              if (oldLabel) oldLabel.remove();
+            }
+            break;
           }
         }
       }
@@ -348,7 +365,7 @@ async function handleCellClick(noteIndex, pulseIndex) {
       if (!cell.querySelector('.cell-label')) {
         const label = document.createElement('span');
         label.className = 'cell-label';
-        label.textContent = `${noteIndex}r${registry}`;
+        label.textContent = rowLabel;
         cell.appendChild(label);
       }
     }
