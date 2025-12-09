@@ -616,12 +616,10 @@ async function startPlayback() {
     return;
   }
 
-  // Switch to a registry with notes if current has none
-  ensureRegistryWithNotesVisible();
-
-  // Build map of MIDI note by pulse (MONOPHONIC: only 1 note per pulse)
+  // Build map of MIDI note by pulse AND registry by pulse (MONOPHONIC: only 1 note per pulse)
   // Key format: `${registry}-${noteIndex}-${pulseIndex}`
   const pulseNotes = {};
+  const pulseRegistry = {};  // Maps pulse -> registry of the note
   const midiOffset = CONFIG.MIDI_OFFSET;
   const notesPerRegistry = CONFIG.NOTES_PER_REGISTRY;
 
@@ -631,6 +629,7 @@ async function startPlayback() {
     const midi = reg * notesPerRegistry + noteIndex + midiOffset;
     // Monophonic: one note per pulse (last one wins if duplicates exist)
     pulseNotes[pulseIndex] = midi;
+    pulseRegistry[pulseIndex] = reg;
   }
 
   isPlaying = true;
@@ -656,19 +655,28 @@ async function startPlayback() {
     new Set(),
     false,  // No loop
     (step) => {
-      // 1. Highlight selected cell that plays
+      // 1. Auto-switch registry if current/next pulse has note in different registry
+      // Check next pulse first (to anticipate), then current
+      const nextPulse = step + 1;
+      if (pulseRegistry[nextPulse] !== undefined) {
+        spinToRegistry(pulseRegistry[nextPulse]);
+      } else if (pulseRegistry[step] !== undefined) {
+        spinToRegistry(pulseRegistry[step]);
+      }
+
+      // 2. Highlight selected cell that plays
       highlightSelectedCell(step);
 
-      // 2. Highlight timeline number
+      // 3. Highlight timeline number
       highlightTimelineNumber(step);
 
-      // 3. Auto-scroll to keep current pulse visible
+      // 4. Auto-scroll to keep current pulse visible
       scrollToPulse(step);
 
-      // 4. Color of cycle digit
+      // 5. Color of cycle digit
       updateCycleDigitColor(step);
 
-      // 5. Flip animation for cycle counter (when cycle changes)
+      // 6. Flip animation for cycle counter (when cycle changes)
       const cycleNum = Math.floor(step / compas) + 1;
       if (step > 0 && step % compas === 0) {
         updateCycleCounter(cycleNum);
@@ -676,10 +684,10 @@ async function startPlayback() {
         elements.cycleDigit.textContent = '1';
       }
 
-      // 6. Animation for totalLengthDigit
+      // 7. Animation for totalLengthDigit
       updateTotalLengthDisplay(step);
 
-      // 7. Play note if exists at this pulse (MONOPHONIC: 1 note max)
+      // 8. Play note if exists at this pulse (MONOPHONIC: 1 note max)
       // Duration = 1 pulse (based on BPM), with small margin to avoid overlap
       const midi = pulseNotes[step];
       if (midi !== undefined) {
@@ -858,7 +866,6 @@ function scrollToPulse(pulseIndex) {
   const cell = matrix.querySelector(`.grid-cell[data-pulse="${pulseIndex}"]`);
   if (!cell) return;
 
-  const cellRect = cell.getBoundingClientRect();
   const containerRect = matrix.getBoundingClientRect();
 
   // Calculate the absolute left position of the cell within the scrollable area
@@ -882,63 +889,24 @@ function scrollToPulse(pulseIndex) {
 }
 
 /**
- * Find the first registry that has selected notes
- * @returns {number|null} Registry number or null if no notes selected
+ * Spin to a specific registry using Up/Down buttons
+ * @param {number} targetRegistry - The registry to switch to
  */
-function findRegistryWithNotes() {
-  if (selectedCells.size === 0) return null;
-
-  // Get all registries with notes, return the first one (lowest)
-  const registries = new Set();
-  for (const key of selectedCells.keys()) {
-    const [reg] = key.split('-').map(Number);
-    registries.add(reg);
-  }
-
-  if (registries.size === 0) return null;
-
-  // Return the lowest registry with notes
-  return Math.min(...registries);
-}
-
-/**
- * Switch to a registry that has notes (if current registry has none)
- * Uses spin animation by simulating Up/Down button clicks
- * Called before playback starts
- */
-function ensureRegistryWithNotesVisible() {
-  if (selectedCells.size === 0) return;
-
+function spinToRegistry(targetRegistry) {
   const currentRegistry = registryController.getRegistry();
+  if (targetRegistry === currentRegistry) return;
 
-  // Check if current registry has any notes
-  let currentHasNotes = false;
-  for (const key of selectedCells.keys()) {
-    const [reg] = key.split('-').map(Number);
-    if (reg === currentRegistry) {
-      currentHasNotes = true;
-      break;
+  const steps = targetRegistry - currentRegistry;
+
+  if (steps > 0) {
+    // Need to go UP
+    for (let i = 0; i < steps; i++) {
+      elements.registroUp?.click();
     }
-  }
-
-  // If current registry has notes, stay there
-  if (currentHasNotes) return;
-
-  // Otherwise, switch to a registry with notes using spin animation
-  const registryWithNotes = findRegistryWithNotes();
-  if (registryWithNotes !== null && registryWithNotes !== currentRegistry) {
-    const steps = registryWithNotes - currentRegistry;
-
-    if (steps > 0) {
-      // Need to go UP
-      for (let i = 0; i < steps; i++) {
-        elements.registroUp?.click();
-      }
-    } else {
-      // Need to go DOWN
-      for (let i = 0; i < Math.abs(steps); i++) {
-        elements.registroDown?.click();
-      }
+  } else {
+    // Need to go DOWN
+    for (let i = 0; i < Math.abs(steps); i++) {
+      elements.registroDown?.click();
     }
   }
 }
