@@ -232,8 +232,13 @@ function updateMatrix(cellWidth) {
       const currentKey = `${currentRegistry}-${noteIdx}-${pulseIdx}`;
 
       if (selectedCells.has(currentKey)) {
-        // Selected in current registry - show as selected
+        // Selected in current registry - show as selected with label
         cell.classList.add('selected');
+        // Add label showing note and registry
+        const label = document.createElement('span');
+        label.className = 'cell-label';
+        label.textContent = `${noteIdx}r${currentRegistry}`;
+        cell.appendChild(label);
       } else {
         // Check if this pulse has a note in another registry (for label display)
         for (const existingKey of selectedCells.keys()) {
@@ -353,7 +358,8 @@ async function handleCellClick(noteIndex, pulseIndex) {
  * Play a note at given index using MelodicTimelineAudio
  */
 async function playNote(noteIndex) {
-  if (!audio) await initAudio();
+  const audioInstance = await initAudio();
+  if (!audioInstance) return;
 
   const registry = registryController.getRegistry();
   if (registry === null) return;
@@ -364,7 +370,7 @@ async function playNote(noteIndex) {
   const Tone = window.Tone;
   if (!Tone) return;
 
-  audio.playNote(midi, 0.5, Tone.now());
+  audioInstance.playNote(midi, 0.5, Tone.now());
 }
 
 // ========== INPUT HANDLERS ==========

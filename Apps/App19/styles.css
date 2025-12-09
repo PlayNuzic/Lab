@@ -616,6 +616,16 @@ main {
   white-space: nowrap;
 }
 
+/* Label on selected cells - white text for contrast */
+.grid-cell.selected .cell-label {
+  color: var(--grid-selected-label-color, #fff);
+}
+
+/* Selected cells need position:relative for label */
+.grid-cell.selected {
+  position: relative;
+}
+
 /* Dark theme */
 [data-theme="dark"] .grid-area,
 [data-theme="dark"] .matrix-container {
