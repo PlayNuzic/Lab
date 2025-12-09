@@ -1509,15 +1509,13 @@ function initApp() {
   updateGrid();
 
   // Scroll to current registry (after DOM is fully rendered)
-  // Use double rAF to ensure layout is complete
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const currentRegistry = registryController.getRegistry();
-      if (currentRegistry !== null) {
-        scrollToRegistry(currentRegistry);
-      }
-    });
-  });
+  // Use setTimeout to ensure it runs after any pending input event handlers
+  setTimeout(() => {
+    const currentRegistry = registryController.getRegistry();
+    if (currentRegistry !== null) {
+      scrollToRegistry(currentRegistry);
+    }
+  }, 50);
 
   // Focus on Compás input
   elements.inputCompas?.focus();
