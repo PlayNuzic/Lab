@@ -27,6 +27,7 @@ html, body {
   --left-column-width: 150px;
   --grid-cell-min-width: 50px;
   --grid-cell-height: 32px;
+  --visible-rows: 15;
   --visible-pulses: 12;
 
   /* Spacing */
@@ -648,7 +649,7 @@ main {
   /* Scroll enabled for programmatic control, but hidden from user */
   overflow-y: scroll;
   overflow-x: hidden;
-  max-height: calc(15 * var(--grid-cell-height));  /* 15 visible rows */
+  max-height: calc(var(--visible-rows) * var(--grid-cell-height));
   /* Hide scrollbar */
   scrollbar-width: none;  /* Firefox */
   -ms-overflow-style: none;  /* IE/Edge */
@@ -674,7 +675,7 @@ main {
   overflow-x: auto;
   overflow-y: scroll;  /* Scroll enabled for programmatic control */
   min-height: 0;
-  max-height: calc(15 * var(--grid-cell-height));  /* 15 visible rows */
+  max-height: calc(var(--visible-rows) * var(--grid-cell-height));
   /* Hide vertical scrollbar */
   scrollbar-width: thin;  /* Keep horizontal scrollbar thin */
 }
@@ -1121,3 +1122,38 @@ main {
   color: var(--select-color, #EA570C) !important;
 }
 
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+/* Tablet landscape (900px) */
+@media (max-width: 900px) {
+  :root {
+    --visible-rows: 12;
+    --grid-cell-height: 28px;
+    --left-column-width: 120px;
+  }
+}
+
+/* Tablet portrait landscape (768px) */
+@media (max-width: 768px) {
+  :root {
+    --visible-rows: 10;
+    --grid-cell-height: 24px;
+    --left-column-width: 100px;
+  }
+
+  .inputs-section {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+}
+
+/* Mobile landscape (600px) */
+@media (max-width: 600px) {
+  :root {
+    --visible-rows: 8;
+    --grid-cell-height: 20px;
+    --left-column-width: 90px;
+  }
+}
