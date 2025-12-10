@@ -1149,11 +1149,130 @@ main {
   }
 }
 
-/* Mobile landscape (600px) */
-@media (max-width: 600px) {
+/* Small screens (700px) - Compact inputs to maximize grid space */
+@media (max-width: 700px) {
   :root {
-    --visible-rows: 8;
-    --grid-cell-height: 20px;
-    --left-column-width: 90px;
+    --visible-rows: 39;  /* Show ALL rows (full grid height) */
+    --grid-cell-height: 18px;
+    --left-column-width: 80px;
+    --registro-circle-size: 50px;
+  }
+
+  /* Compact inputs section */
+  .inputs-section {
+    padding: 0.25rem;
+    gap: 0.25rem;
+  }
+
+  /* Smaller param circles */
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 60px;
+    height: 60px;
+  }
+
+  .param.compas input,
+  .param.cycle-display .cycle-circle input {
+    font-size: 1.5rem;
+  }
+
+  .param.cycle-display .cycle-circle .cycle-counter__digit {
+    font-size: 1.5rem;
+  }
+
+  /* Smaller total-length */
+  .total-length-inline .circle {
+    width: 50px;
+    height: 50px;
+  }
+
+  .total-length-inline input {
+    font-size: 1.2rem;
+  }
+
+  /* Compact param labels */
+  .param-inline .abbr,
+  .total-length-inline .abbr {
+    font-size: 0.9rem;
+  }
+
+  /* Smaller registry */
+  .param.registro .abbr {
+    font-size: 1rem;
+  }
+
+  .param.registro input {
+    font-size: 1.5rem;
+  }
+
+  /* Smaller buttons */
+  .left-column .action-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Compact BPM */
+  .left-column .bpm-inline .abbr {
+    font-size: 1rem;
+  }
+
+  .left-column .bpm-inline .circle {
+    width: 50px;
+    height: 50px;
+  }
+
+  .left-column .bpm-inline input {
+    font-size: 1.2rem;
+  }
+
+  .left-column .bpm-inline .spin {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Smaller soundline labels */
+  .soundline-note {
+    font-size: 0.7rem;
+    min-width: 35px;
+  }
+
+  /* Smaller timeline numbers */
+  .timeline-number {
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra small screens (500px) */
+@media (max-width: 500px) {
+  :root {
+    --grid-cell-height: 16px;
+    --left-column-width: 70px;
+    --registro-circle-size: 45px;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 50px;
+    height: 50px;
+  }
+
+  .param.compas input,
+  .param.cycle-display .cycle-circle input,
+  .param.cycle-display .cycle-circle .cycle-counter__digit {
+    font-size: 1.3rem;
+  }
+
+  .total-length-inline .circle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .total-length-inline input {
+    font-size: 1rem;
+  }
+
+  .soundline-note {
+    font-size: 0.6rem;
+    min-width: 30px;
   }
 }
