@@ -1,160 +1,231 @@
 /* App13: Intervalos Temporales - Estilos específicos de la app */
 
-/* Configuración de colores del timeline (override de defaults del módulo compartido) */
+/* ========== VARIABLES DE COLOR ========== */
 :root {
   --timeline-interval-color: #4A9EFF;
   --timeline-pulse-color: currentColor;
   --timeline-line-color: #666;
+
+  /* Ajust fi dels controls */
+  --controls-offset-x: 0px;
+  --controls-offset-y: -20px;
+  --controls-scale: 1;
 }
 
 [data-theme="dark"] {
   --timeline-line-color: #999;
 }
 
-/* Los estilos de timeline, pulsos, números y barras de intervalos
-   están ahora en libs/app-common/timeline-intervals.css */
-
-/* ========== CONTROLES ========== */
-.controls-wrapper {
+/* ========== EDITOR iT ========== */
+.it-editor-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  margin-top: 40px;
-  gap: 20px;
+  margin: 20px auto 30px;
+  gap: 10px;
 }
 
-.play-btn {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  background: transparent;
-  color: var(--selection-color, #F97C39);
-  cursor: pointer;
+.it-editor-label,
+.it-editor__label {
+  color: #4A9EFF;
+  font-weight: 700;
+  font-size: 2.8rem;
+  margin-right: 8px;
+}
+
+.it-editor {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+}
+
+.it-input {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--border-color, #ccc);
+  border-radius: 8px;
+  background: var(--bg-input, transparent);
+  color: var(--text-color, currentColor);
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
   transition: all 0.2s ease;
-  padding: 0;
+  -moz-appearance: textfield;
 }
 
-.play-btn:hover:not(:disabled) {
-  background: var(--selection-color, #F97C39);
+.it-input::-webkit-outer-spin-button,
+.it-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.it-input:focus {
+  border-color: var(--selection-color, #F97C39);
+  box-shadow: 0 0 0 3px rgba(249, 124, 57, 0.2);
+}
+
+.it-input::placeholder {
+  color: var(--text-muted, #888);
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+
+.it-input.has-value {
+  border-color: var(--selection-color, #F97C39);
+  background: rgba(249, 124, 57, 0.1);
+}
+
+/* ========== TOOLTIP ========== */
+.it-tooltip {
+  position: fixed;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+}
+
+.it-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.it-tooltip.success {
+  background: #22C55E;
   color: white;
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(249, 124, 57, 0.3);
 }
 
-.play-btn:active:not(:disabled) {
-  transform: scale(0.95);
+.it-tooltip.error {
+  background: #EF4444;
+  color: white;
 }
 
-.play-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.it-tooltip.info {
+  background: #3B82F6;
+  color: white;
 }
 
-.play-btn.playing {
-  animation: playingPulse 1s ease-in-out infinite;
+/* ========== TIMELINE ========== */
+.timeline-wrapper {
+  max-width: 700px;
+  margin: 30px auto;
+  padding: 0 20px;
 }
 
-@keyframes playingPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 rgba(249, 124, 57, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(249, 124, 57, 0.6);
-  }
+.timeline {
+  position: relative;
+  height: 120px;
+  display: flex;
+  align-items: center;
 }
 
-.play-btn svg {
-  width: 28px;
-  height: 28px;
-  margin-left: 4px; /* Alineación visual del triángulo */
-}
-
-/* ========== OCULTAR NÚMEROS DE INTERVALO ========== */
-/* App13 no muestra números de intervalo */
-.timeline .interval-number {
-  display: none !important;
-}
-
-/* ========== NÚMEROS DE SUMA DE SILENCIOS ========== */
-.silence-sum {
-  position: absolute;
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: var(--timeline-pulse-color);
-  opacity: 0.7;
-  transform: translate(250%, 0);
-  z-index: 25;
-  top: calc(50% - 70px); /* Misma altura que interval-duration */
-  pointer-events: none;
-  user-select: none;
-}
-
-[data-theme="dark"] .silence-sum {
-  color: #ddd;
-}
-
-/* ========== NÚMERO DE DURACIÓN DEL INTERVALO ========== */
-.interval-duration {
-  position: absolute;
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: var(--selection-color, #F97C39);
-  transform: translate(250%, 0);
-  z-index: 30; /* Encima de las barras */
-  top: calc(50% - 70px); /* Encima de la barra de duración */
-  pointer-events: none;
-  user-select: none;
-}
-
-/* ========== OCULTAR BOTONES INNECESARIOS ========== */
-/* App13 solo necesita el botón Play */
-.controls #tapTempoBtn,
-.controls #loopBtn,
-.controls #randomBtn,
-.controls #resetBtn {
-  display: none !important;
-}
-
-/* Centrar botón Play en los controles */
-.controls {
-  justify-content: center !important;
-}
-
-/* ========== DURATION BAR (INTERVAL BLOCK) - PERSISTENTE ========== */
-.interval-block {
+.timeline-line {
   position: absolute;
   top: 50%;
-  height: 24px;
-  background: var(--selection-color, #F97C39);
-  opacity: 0.25;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: default;
-  pointer-events: none;
-  z-index: 5;
-  user-select: none;
-  transform: translateY(-100%);
-  transition-property: width;
-  transition-timing-function: linear;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--timeline-line-color);
+  transform: translateY(-50%);
 }
 
-.interval-block.active {
-  opacity: 0.8 !important; /* Mantener siempre visible */
-  box-shadow: 0 0 8px var(--selection-color);
+/* Pulsos del timeline */
+.timeline .pulse {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--timeline-pulse-color, currentColor);
+  transform: translate(-50%, -50%);
+  top: 50%;
+  z-index: 10;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+/* Flash dels pulsos durant reproducció */
+.timeline .pulse.active {
+  transform: translate(-50%, -50%) scale(1.5);
+  background: var(--selection-color, #F97C39);
+  box-shadow: 0 0 12px var(--selection-color, #F97C39);
+}
+
+.timeline .pulse-number {
+  position: absolute;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--timeline-interval-color, #4A9EFF);
+  top: calc(50% + 25px);
+  transform: translateX(-50%);
+  user-select: none;
+}
+
+/* ========== BARRES D'INTERVALS VISUALS ========== */
+.interval-bar-visual {
+  position: absolute;
+  top: 50%;
+  height: 28px;
+  border-radius: 6px;
+  z-index: 5;
+  transform: translateY(-100%);
+  transition: box-shadow 0.2s ease;
+  pointer-events: none;
+}
+
+.interval-bar-visual.highlight {
+  box-shadow: 0 0 12px currentColor;
+}
+
+/* Número de duració sobre la barra */
+.interval-bar-visual .bar-duration {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: inherit;
+  opacity: 0.9;
+}
+
+/* ========== CONTROLES ========== */
+.controls {
+  transform: translate(var(--controls-offset-x), var(--controls-offset-y)) scale(var(--controls-scale));
+}
+
+/* Amagar botons innecessaris del template */
+.controls #tapTempoBtn,
+.controls #loopBtn {
+  display: none !important;
+}
+
+/* Ordre dels botons: Random primer */
+.controls #randomBtn {
+  order: -1;
 }
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
+  .it-editor-container {
+    margin: 15px auto 25px;
+  }
+
+  .it-input {
+    width: 44px;
+    height: 44px;
+    font-size: 1.3rem;
+  }
+
   .timeline-wrapper {
     max-width: 100%;
     padding: 0 15px;
-    margin: 40px auto 30px;
+    margin: 25px auto;
   }
 
   .timeline {
@@ -167,57 +238,42 @@
   }
 
   .timeline .pulse-number {
-    font-size: 2rem;
-    top: calc(50% + 25px);
+    font-size: 1rem;
+    top: calc(50% + 20px);
   }
 
-  .timeline .interval-number {
-    font-size: 2rem;
-  }
-
-  .silence-sum {
-    font-size: 1.6rem;
-    top: calc(50% - 35px); /* Misma altura que interval-duration en tablet */
-  }
-
-  .interval-duration {
-    font-size: 1.6rem;
-    top: calc(50% - 35px);
-  }
-
-  .play-btn {
-    width: 56px;
-    height: 56px;
-  }
-
-  .play-btn svg {
-    width: 24px;
+  .interval-bar-visual {
     height: 24px;
+  }
+
+  .interval-bar-visual .bar-duration {
+    font-size: 1rem;
+    top: -20px;
   }
 }
 
 @media (max-width: 480px) {
+  .it-input {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
   .timeline .pulse-number {
-    font-size: 1.6rem;
-    top: calc(50% + 20px);
-  }
-
-  .timeline .interval-number {
-    font-size: 1.6rem;
-  }
-
-  .silence-sum {
-    font-size: 1.4rem;
-    top: calc(50% - 30px); /* Misma altura que interval-duration en mobile */
-  }
-
-  .interval-duration {
-    font-size: 1.4rem;
-    top: calc(50% - 30px);
+    font-size: 0.9rem;
   }
 
   .timeline .pulse {
     width: 8px;
     height: 8px;
+  }
+
+  .interval-bar-visual {
+    height: 20px;
+  }
+
+  .interval-bar-visual .bar-duration {
+    font-size: 0.9rem;
+    top: -18px;
   }
 }

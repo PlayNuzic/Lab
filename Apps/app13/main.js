@@ -1,157 +1,133 @@
-// App13: Intervalos Temporales - Metrónomo visual con intervalo único y suma de silencios
-import { createSimpleVisualSync } from '../../libs/app-common/visual-sync.js';
-import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
+// App13: Intervalos Temporales - Editor de secuencias de iT con reproducción
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
-import {
-  createIntervalBars,
-  highlightIntervalBar,
-  clearIntervalHighlights,
-  layoutHorizontalIntervalBars,
-  applyTimelineStyles
-} from '../../libs/app-common/timeline-intervals.js';
-
-// ========== ESTADO ==========
-let pulses = [];
-let isPlaying = false;
-let audio = null;
-let noise = null;  // Objeto {startPulse, duration, barElement, numberElement} para 1 ruido
-let silenceNumbers = [];  // Array de elementos DOM para números de suma de silencios
-let currentBPM = 0;
-
-// Referencias a elementos del DOM
-let timeline = null;
-let timelineWrapper = null;
-let playBtn = null;
+import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 
 // ========== CONFIGURACIÓN ==========
-const TOTAL_PULSES = 9;  // Dibuja 9 pulsos (0-8)
+const TOTAL_PULSES = 9;  // Pulsos 0-8 (8 es endpoint visual)
+const MAX_LENGTH = 8;    // Suma total de iTs
+const MAX_ITS = 4;       // Máximo 4 inputs de iT
 const MIN_BPM = 75;
 const MAX_BPM = 200;
+const FADEOUT_TIME = 0.05; // 50ms fadeout para evitar cracks
+
+// Sons per reproduir segons duració de l'iT
+// Sons CURTS (per iT = 1): Click13, Click15, Click17
+const SHORT_SOUNDS = ['click13', 'click15', 'click17'];
+// Sons LLARGS (per iT > 1): Click12, Click14, Click16 (es tallen amb fadeout)
+const LONG_SOUNDS = ['click12', 'click14', 'click16'];
+
+// Colors ben diferenciats per les barres (màxim 4 iTs)
+const VIBRANT_COLORS = [
+  '#E74C3C', // vermell
+  '#F1C40F', // groc
+  '#2ECC71', // verd
+  '#3498DB'  // blau
+];
+
+// ========== ESTADO ==========
+let isPlaying = false;
+let audio = null;
+let currentIntervals = []; // Array de valores iT entrats
+let playbackTimeouts = []; // Per cancel·lar reproducció
+
+// Persistència de sons i colors (es manté fins canvi d'editor o random)
+let currentSoundAssignments = null;
+let currentColorAssignments = null;
+
+// So actual del metrònom (seleccionable via header dropdown)
+// Llegir de localStorage per respectar selecció prèvia de l'usuari
+let currentMetronomeSound = (() => {
+  try {
+    const stored = localStorage.getItem('baseSound');
+    return stored || 'click9';
+  } catch {
+    return 'click9';
+  }
+})();
+
+// Referències DOM
+let timeline = null;
+let itEditor = null;
+let itInputs = [];
+let playBtn = null;
+let randomBtn = null;
+let resetBtn = null;
+let tooltip = null;
+let tooltipTimeout = null;
 
 // Storage de preferencias
 const preferenceStorage = createPreferenceStorage('app13');
 
-// ========== CONTROLADORES DE VISUALIZACIÓN ==========
-const highlightController = createSimpleHighlightController({
-  getPulses: () => pulses,
-  getLoopEnabled: () => false  // Sin loop
-});
+// ========== UTILITATS ==========
+function getRandomBPM() {
+  return Math.floor(Math.random() * (MAX_BPM - MIN_BPM + 1)) + MIN_BPM;
+}
 
-const visualSync = createSimpleVisualSync({
-  getAudio: () => audio,
-  getIsPlaying: () => isPlaying,
-  onStep: (step) => {
-    highlightController.highlightPulse(step);
-  }
-});
+/**
+ * Assigna sons únics a cada interval segons la seva duració
+ * - iT = 1: Sons curts (Click13, Click15, Click17)
+ * - iT > 1: Sons llargs (Click12, Click14, Click16)
+ * @param {number[]} intervals - Array de duracions dels intervals
+ * @returns {string[]} - Array de sons assignats (un per cada interval)
+ */
+function assignSoundsToIntervals(intervals) {
+  // Separar intervals curts i llargs
+  const shortIndices = [];
+  const longIndices = [];
 
-// ========== BINDING DE DROPDOWNS DE SONIDO ==========
-bindSharedSoundEvents({
-  getAudio: () => audio,
-  mapping: {
-    baseSound: 'setBase',      // Dropdown "Pulso" → audio.setBase()
-    accentSound: 'setAccent'   // Dropdown "Seleccionado" → audio.setAccent()
-  }
-});
-
-// ========== FUNCIONES DE DIBUJO DEL TIMELINE ==========
-function drawTimeline() {
-  if (!timeline) return;
-
-  timeline.innerHTML = '';
-
-  // Crear 9 pulsos (0-8)
-  for (let i = 0; i <= 8; i++) {
-    // Crear pulse (punto)
-    const pulse = document.createElement('div');
-    pulse.className = 'pulse';
-    if (i === 0 || i === 8) pulse.classList.add('endpoint');
-    pulse.dataset.index = i;
-    timeline.appendChild(pulse);
-
-    // Crear barras en endpoints
-    if (i === 0 || i === 8) {
-      const bar = document.createElement('div');
-      bar.className = 'bar endpoint';
-      timeline.appendChild(bar);
+  intervals.forEach((iT, idx) => {
+    if (iT === 1) {
+      shortIndices.push(idx);
+    } else {
+      longIndices.push(idx);
     }
-  }
-
-  // Crear números de pulsos (0-8)
-  for (let i = 0; i <= 8; i++) {
-    const num = document.createElement('div');
-    num.className = 'pulse-number';
-    if (i === 0 || i === 8) num.classList.add('endpoint');
-    num.dataset.index = i;
-    num.textContent = i;
-    timeline.appendChild(num);
-  }
-
-  // NO crear números de intervalos en App13 - los ocultaremos en CSS de todas formas
-
-  // Crear barras de intervalos (1-8) usando módulo compartido
-  createIntervalBars({
-    container: timeline,
-    count: 8,
-    orientation: 'horizontal',
-    cssClass: 'interval-bar'
   });
 
-  // Aplicar configuración de estilos (posiciones de números específicas de App9)
-  applyTimelineStyles(timeline, {
-    pulseNumberPosition: 'below',     // Números de pulso abajo
-    intervalNumberPosition: 'above'   // Números de intervalo arriba
+  // Barrejar cada pool de sons
+  const shuffledShort = [...SHORT_SOUNDS].sort(() => Math.random() - 0.5);
+  const shuffledLong = [...LONG_SOUNDS].sort(() => Math.random() - 0.5);
+
+  // Assignar sons
+  const result = new Array(intervals.length);
+
+  shortIndices.forEach((idx, i) => {
+    result[idx] = shuffledShort[i % shuffledShort.length];
   });
 
-  // Layout lineal (posicionar elementos)
-  layoutLinear();
+  longIndices.forEach((idx, i) => {
+    result[idx] = shuffledLong[i % shuffledLong.length];
+  });
 
-  // Actualizar array de pulsos
-  pulses = Array.from(timeline.querySelectorAll('.pulse'));
+  return result;
 }
 
-function layoutLinear() {
-  const pulsesElems = timeline.querySelectorAll('.pulse');
-  const bars = timeline.querySelectorAll('.bar');
-  const numbers = timeline.querySelectorAll('.pulse-number');
-
-  // Posicionar pulsos en línea horizontal
-  pulsesElems.forEach((p, i) => {
-    const pct = (i / (TOTAL_PULSES - 1)) * 100;  // Distribuir de 0% a 100%
-    p.style.left = pct + '%';
-    p.style.top = '50%';
-    p.style.transform = 'translate(-50%, -50%)';
-  });
-
-  // Posicionar barras en endpoints
-  bars.forEach((bar, idx) => {
-    const i = idx === 0 ? 0 : (TOTAL_PULSES - 1);
-    const pct = (i / (TOTAL_PULSES - 1)) * 100;
-    bar.style.left = pct + '%';
-    bar.style.top = '30%';
-    bar.style.height = '40%';
-    bar.style.transform = '';
-  });
-
-  // Posicionar números de pulsos
-  numbers.forEach(n => {
-    const idx = parseInt(n.dataset.index);
-    const pct = (idx / (TOTAL_PULSES - 1)) * 100;
-    n.style.left = pct + '%';
-    n.style.top = '-28px';
-    n.style.transform = 'translate(-50%, 0)';
-  });
-
-  // No posicionar números de intervalos en App13 (no existen)
-
-  // Posicionar barras de intervalos
-  layoutHorizontalIntervalBars(timeline, TOTAL_PULSES, 'interval-bar');
+/**
+ * Selecciona N colors únics aleatoris (sense repetició)
+ */
+function getUniqueRandomColors(count) {
+  const shuffled = [...VIBRANT_COLORS].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
 }
 
-// ========== FUNCIONES DE AUDIO ==========
-// Crear inicializador de audio usando el sistema compartido
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Invalida les assignacions de sons i colors (forçar regeneració al pròxim Play)
+ */
+function invalidateSoundAssignments() {
+  currentSoundAssignments = null;
+  currentColorAssignments = null;
+}
+
+function getCurrentSum() {
+  return currentIntervals.reduce((sum, val) => sum + (val || 0), 0);
+}
+
+// ========== AUDIO ==========
 const _baseInitAudio = createRhythmAudioInitializer({
   getSoundSelects: () => ({
     baseSoundSelect: document.querySelector('#baseSoundSelect'),
@@ -162,15 +138,6 @@ const _baseInitAudio = createRhythmAudioInitializer({
 async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
-
-    // Los valores por defecto ya están en localStorage (establecidos en index.html)
-    // y serán aplicados por header.js al inicializar los dropdowns.
-    // Solo establecemos fallbacks si no hay valores guardados.
-    const prefs = JSON.parse(localStorage.getItem('app13-preferences') || '{}');
-    if (prefs.baseSound) audio.setBase(prefs.baseSound);
-    if (prefs.accentSound) audio.setAccent(prefs.accentSound);
-
-    // Exponer audio globalmente para que header.js pueda acceder
     if (typeof window !== 'undefined') {
       window.__labAudio = audio;
     }
@@ -178,316 +145,657 @@ async function initAudio() {
   return audio;
 }
 
-// Función helper para apps sin inicialización compleja
 if (typeof window !== 'undefined') {
   window.__labInitAudio = initAudio;
 }
 
-function getRandomBPM() {
-  return Math.floor(Math.random() * (MAX_BPM - MIN_BPM + 1)) + MIN_BPM;
-}
+/**
+ * Reprodueix un so amb durada exacta i fadeout
+ * @param {string} soundKey - Clau del so (click12-click17)
+ * @param {number} duration - Durada en segons
+ */
+async function playSoundWithDuration(soundKey, duration) {
+  await ensureToneLoaded();
 
-function getRandomPulseIndex() {
-  return Math.floor(Math.random() * TOTAL_PULSES);
+  // Obtenir URL del so
+  const soundUrl = new URL(`../../libs/sound/samples/${soundKey.replace('click', 'Click')}.wav`, import.meta.url).href;
+
+  // Crear context d'audio si no existeix
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+  try {
+    // Carregar el buffer
+    const response = await fetch(soundUrl);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+    // Crear source i gain per fadeout
+    const source = audioContext.createBufferSource();
+    const gainNode = audioContext.createGain();
+
+    source.buffer = audioBuffer;
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Calcular temps
+    const playDuration = Math.max(0.01, duration - FADEOUT_TIME);
+
+    // Programar fadeout
+    gainNode.gain.setValueAtTime(1, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(1, audioContext.currentTime + playDuration);
+    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + playDuration + FADEOUT_TIME);
+
+    // Reproduir i aturar
+    source.start(0);
+    source.stop(audioContext.currentTime + duration);
+
+  } catch (err) {
+    console.warn(`Error reproduint ${soundKey}:`, err);
+  }
 }
 
 /**
- * Genera 1 ruido con duración variable (2-6 pulsos) en posición aleatoria
- * @returns {Object} {startPulse: number, duration: number}
+ * Reprodueix un click curt de metrònom usant l'AudioContext compartit
+ * Usa el so seleccionat al dropdown "Pulso" del header
  */
-function generateSingleNoise() {
-  // Duración aleatoria entre 2 y 6 pulsos
-  const duration = Math.floor(Math.random() * 5) + 2; // 2, 3, 4, 5, o 6
-
-  // Posición inicial aleatoria (debe caber el intervalo)
-  // El intervalo debe terminar máximo en el pulso 7 (penúltimo pulso visible)
-  // Si el intervalo dura D pulsos y empieza en P, ocupa pulsos [P, P+D-1]
-  // El máximo inicio es tal que P+D-1 <= 7, es decir P <= 7-D+1 = 8-D
-  const maxStart = 8 - duration;  // No usar TOTAL_PULSES aquí, límite fijo en pulso 7
-  const startPulse = Math.floor(Math.random() * (maxStart + 1));
-
-  return { startPulse, duration };
+async function playMetronomeClick() {
+  if (!audio) return;
+  try {
+    await audio.preview(currentMetronomeSound);
+  } catch (err) {
+    console.warn('Error reproduint metrònom:', err);
+  }
 }
 
-async function handlePlay() {
-  if (isPlaying) return; // Bloquear si ya está reproduciendo
+// ========== EDITOR iT ==========
+function createItEditor() {
+  itEditor = document.createElement('div');
+  itEditor.className = 'it-editor';
 
-  // Inicializar audio si es necesario
-  if (!audio) {
-    await initAudio();
+  // Etiqueta "iT:"
+  const label = document.createElement('span');
+  label.className = 'it-editor__label';
+  label.textContent = 'iT:';
+  itEditor.appendChild(label);
+
+  // Contenidor d'inputs
+  const inputsContainer = document.createElement('div');
+  inputsContainer.className = 'it-editor__inputs';
+
+  // Crear 4 inputs
+  for (let i = 0; i < MAX_ITS; i++) {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.pattern = '[1-8]';
+    input.maxLength = 1;
+    input.className = 'it-input';
+    input.dataset.index = i;
+    input.placeholder = '';
+
+    // Event handlers
+    input.addEventListener('input', (e) => handleItInput(e, i));
+    input.addEventListener('keydown', (e) => handleItKeydown(e, i));
+    input.addEventListener('focus', () => hideTooltip());
+
+    inputsContainer.appendChild(input);
+    itInputs.push(input);
   }
 
-  // Generar BPM y 1 ruido aleatorio
-  currentBPM = getRandomBPM();
-  noise = generateSingleNoise();
+  itEditor.appendChild(inputsContainer);
 
-  console.log(`BPM: ${currentBPM}`);
-  console.log(`Ruido: pulso ${noise.startPulse}, duración ${noise.duration}`);
+  // Tooltip (posició fixa al body per evitar problemes de posicionament)
+  tooltip = document.createElement('div');
+  tooltip.className = 'it-tooltip';
+  document.body.appendChild(tooltip);
 
-  // Calcular intervalo entre pulsos (en segundos)
-  const intervalSec = 60 / currentBPM;
+  return itEditor;
+}
 
-  // Crear Set con todos los pulsos que deben reproducir ruido
-  const selectedPulses = new Set();
-  for (let i = 0; i < noise.duration; i++) {
-    selectedPulses.add(noise.startPulse + i);
+function handleItInput(e, index) {
+  const input = e.target;
+  const value = input.value;
+
+  // Validar valor 0 - no existeix moviment
+  if (value === '0') {
+    showTooltip(input, 'iT debe ser ≥ 1', false);
+    input.value = '';
+    return;
   }
 
-  // Marcar como reproduciendo
-  isPlaying = true;
-  if (playBtn) {
-    playBtn.disabled = true;
-    playBtn.classList.add('playing');
+  // Validar valor 9 o més gran - fora de rang
+  if (value === '9' || (value && parseInt(value) > 8)) {
+    showTooltip(input, 'iT máximo: 8', false);
+    input.value = '';
+    return;
   }
 
-  // Limpiar highlights previos y barras de duración previas
-  highlightController.clearHighlights();
-  clearIntervalHighlights(timeline, 'interval-bar');
+  // Només acceptar dígits 1-8
+  if (value && !/^[1-8]$/.test(value)) {
+    input.value = '';
+    return;
+  }
 
-  // Limpiar TODAS las barras y números de intervalos anteriores del DOM
-  const existingBars = timeline.querySelectorAll('.interval-block');
-  existingBars.forEach(bar => bar.remove());
+  const numValue = parseInt(value) || 0;
 
-  const existingNumbers = timeline.querySelectorAll('.interval-duration');
-  existingNumbers.forEach(num => num.remove());
+  // Calcular suma actual (sense aquest input)
+  const otherSum = currentIntervals.reduce((sum, val, i) => {
+    return i === index ? sum : sum + (val || 0);
+  }, 0);
 
-  // Limpiar números de silencio anteriores
-  silenceNumbers.forEach(elem => elem.remove());
-  silenceNumbers = [];
+  const maxAllowed = MAX_LENGTH - otherSum;
 
-  // Variables para tracking de silencios
-  let silenceStart = null;
-  let silenceCount = 0;
+  // Validar que no excedeixi el màxim
+  if (numValue > maxAllowed) {
+    input.value = '';
+    showTooltip(input, `iT máximo: ${maxAllowed}`);
+    return;
+  }
 
-  // Iniciar reproducción con 8 pulsos (0-7), el pulso 8 es solo visual
-  audio.play(
-    TOTAL_PULSES - 1,  // 8 pasos para reproducir índices 0-7
-    intervalSec,       // Intervalo entre pulsos
-    selectedPulses,    // Set con índices de pulsos que tienen ruido
-    false,             // Sin loop
-    (step) => {
-      // Callback por cada pulso
-      console.log(`Paso ${step}`);
+  // Actualitzar estat
+  currentIntervals[index] = numValue;
 
-      // Iluminar barra de intervalo correspondiente
-      // Pulso N ilumina Intervalo N+1 (pulso 0 → intervalo 1, pulso 1 → intervalo 2, etc.)
-      if (step < TOTAL_PULSES - 2) {  // Solo hasta el pulso 6, ya que el 7 iluminaría intervalo 8
-        const intervalIndex = step + 1;
-        clearIntervalHighlights(timeline, 'interval-bar');
-        highlightIntervalBar(timeline, intervalIndex, intervalSec * 1000, 'interval-bar');
-      }
+  // Invalidar sons al canviar l'editor
+  invalidateSoundAssignments();
 
-      // Verificar si es un pulso con ruido o silencio
-      const isNoise = selectedPulses.has(step);
+  // Comprovar si hem arribat a longitud completa
+  const newSum = getCurrentSum();
+  if (newSum === MAX_LENGTH) {
+    input.blur();
+    showTooltip(input, 'Longitud completa', true);
+    updateTimeline();
+    return;
+  }
 
-      if (isNoise) {
-        // Si había silencios acumulados, crear número de suma centrado
-        if (silenceCount > 0) {
-          // Calcular posición central del rango de silencios
-          const centerPulse = silenceStart + (silenceCount - 1) / 2;
-          createSilenceNumber(centerPulse, silenceCount);
-          silenceStart = null;
-          silenceCount = 0;
-        }
-
-        // Si es el inicio del ruido, crear barra persistente
-        if (step === noise.startPulse) {
-          noise.barElement = createDurationBar(noise, intervalSec);
-        }
-
-        // Si es el final del ruido, crear el número de duración
-        if (step === noise.startPulse + noise.duration - 1) {
-          noise.numberElement = createIntervalNumber(noise);
-        }
-      } else {
-        // Es un silencio
-        if (silenceStart === null) {
-          silenceStart = step;
-        }
-        silenceCount++;
-
-        // Si es el último pulso reproducible (7), mostrar suma de silencios centrada
-        // El pulso 8 es solo visual/endpoint y no se reproduce
-        if (step === TOTAL_PULSES - 2 && silenceCount > 0) {
-          const centerPulse = silenceStart + (silenceCount - 1) / 2;
-          createSilenceNumber(centerPulse, silenceCount);
-        }
-      }
-    },
-    () => {
-      // Callback al completar - IMPORTANTE: llamar a audio.stop() para detener el scheduler
-      audio.stop();
-      isPlaying = false;
-      if (playBtn) {
-        playBtn.disabled = false;
-        playBtn.classList.remove('playing');
-      }
-      visualSync.stop();
-      highlightController.clearHighlights();
-      clearIntervalHighlights(timeline, 'interval-bar');
-      // NO limpiar las barras de duración en App13 (son persistentes)
-      console.log('Metrónomo finalizado');
+  // Auto-avançar al següent input
+  if (numValue > 0 && index < MAX_ITS - 1) {
+    const nextInput = itInputs[index + 1];
+    if (nextInput && !nextInput.value) {
+      setTimeout(() => nextInput.focus(), 50);
     }
-  );
+  }
 
-  // Iniciar sincronización visual
-  visualSync.start();
+  updateTimeline();
 }
 
-/**
- * Crea un número de suma de silencios en la posición especificada
- * @param {number} pulsePosition - Posición del pulso (puede ser decimal para centrado)
- * @param {number} count - Cantidad de pulsos silenciosos
- */
-function createSilenceNumber(pulsePosition, count) {
+function handleItKeydown(e, index) {
+  // Backspace en input buit → tornar enrere
+  if (e.key === 'Backspace' && !itInputs[index].value && index > 0) {
+    e.preventDefault();
+    itInputs[index - 1].focus();
+    return;
+  }
+
+  // Arrow keys per navegació
+  if (e.key === 'ArrowLeft' && index > 0) {
+    e.preventDefault();
+    itInputs[index - 1].focus();
+  } else if (e.key === 'ArrowRight' && index < MAX_ITS - 1) {
+    e.preventDefault();
+    itInputs[index + 1].focus();
+  }
+}
+
+function showTooltip(input, message, isSuccess = false) {
+  if (!tooltip) return;
+
+  tooltip.textContent = message;
+  tooltip.className = `it-tooltip ${isSuccess ? 'success' : 'error'} visible`;
+
+  // Posicionar sota l'input
+  const rect = input.getBoundingClientRect();
+  tooltip.style.left = `${rect.left + rect.width / 2}px`;
+  tooltip.style.top = `${rect.bottom + 8}px`;
+  tooltip.style.transform = 'translateX(-50%)';
+
+  // Auto-ocultar després de 2s
+  clearTimeout(tooltipTimeout);
+  tooltipTimeout = setTimeout(hideTooltip, 2000);
+}
+
+function hideTooltip() {
+  if (tooltip) {
+    tooltip.classList.remove('visible');
+  }
+}
+
+function getIntervalsFromEditor() {
+  return currentIntervals.filter(v => v > 0);
+}
+
+function setIntervalsToEditor(intervals) {
+  // Netejar
+  currentIntervals = [];
+  itInputs.forEach((input, i) => {
+    input.value = intervals[i] || '';
+    currentIntervals[i] = intervals[i] || 0;
+  });
+
+  updateTimeline();
+}
+
+function clearEditor() {
+  currentIntervals = [];
+  itInputs.forEach(input => {
+    input.value = '';
+  });
+  updateTimeline();
+}
+
+function focusFirstInput() {
+  if (itInputs[0]) {
+    itInputs[0].focus();
+  }
+}
+
+// ========== TIMELINE ==========
+function drawTimeline() {
   if (!timeline) return;
 
-  // Calcular posición en porcentaje (acepta decimales para posición central)
-  const pulseSpacing = 100 / (TOTAL_PULSES - 1);
-  const leftPercent = pulsePosition * pulseSpacing;
+  timeline.innerHTML = '';
 
-  // Crear elemento de número
-  const num = document.createElement('div');
-  num.className = 'silence-sum';
-  num.textContent = count;
-  num.style.left = `${leftPercent}%`;
+  // Crear 9 pulsos (0-8)
+  for (let i = 0; i <= 8; i++) {
+    const pulse = document.createElement('div');
+    pulse.className = 'pulse';
+    if (i === 0 || i === 8) pulse.classList.add('endpoint');
+    pulse.dataset.index = i;
+    timeline.appendChild(pulse);
 
-  timeline.appendChild(num);
+    // Barres en endpoints
+    if (i === 0 || i === 8) {
+      const bar = document.createElement('div');
+      bar.className = 'bar endpoint';
+      timeline.appendChild(bar);
+    }
+  }
 
-  // Guardar referencia para limpieza
-  silenceNumbers.push(num);
+  // Números de pulsos (0-8)
+  for (let i = 0; i <= 8; i++) {
+    const num = document.createElement('div');
+    num.className = 'pulse-number';
+    if (i === 0 || i === 8) num.classList.add('endpoint');
+    num.dataset.index = i;
+    num.textContent = i;
+    timeline.appendChild(num);
+  }
+
+  // Layout lineal
+  layoutTimeline();
 }
 
-/**
- * Crea un número de duración del intervalo encima de la barra
- * @param {Object} noise - {startPulse, duration}
- * @returns {HTMLElement} Referencia al elemento de número creado
- */
-function createIntervalNumber(noise) {
-  if (!timeline) return null;
+function layoutTimeline() {
+  const pulsesElems = timeline.querySelectorAll('.pulse');
+  const bars = timeline.querySelectorAll('.bar');
+  const numbers = timeline.querySelectorAll('.pulse-number');
 
-  // Calcular posición central del intervalo
-  const pulseSpacing = 100 / (TOTAL_PULSES - 1);
-  const centerPosition = noise.startPulse + (noise.duration - 1) / 2;
-  const leftPercent = centerPosition * pulseSpacing;
+  pulsesElems.forEach((p, i) => {
+    const pct = (i / (TOTAL_PULSES - 1)) * 100;
+    p.style.left = pct + '%';
+    p.style.top = '50%';
+    p.style.transform = 'translate(-50%, -50%)';
+  });
 
-  // Crear elemento de número
-  const num = document.createElement('div');
-  num.className = 'interval-duration';
-  num.textContent = noise.duration;
-  num.style.left = `${leftPercent}%`;
+  bars.forEach((bar, idx) => {
+    const i = idx === 0 ? 0 : (TOTAL_PULSES - 1);
+    const pct = (i / (TOTAL_PULSES - 1)) * 100;
+    bar.style.left = pct + '%';
+    bar.style.top = '30%';
+    bar.style.height = '40%';
+  });
 
-  timeline.appendChild(num);
-
-  return num;
+  numbers.forEach(n => {
+    const idx = parseInt(n.dataset.index);
+    const pct = (idx / (TOTAL_PULSES - 1)) * 100;
+    n.style.left = pct + '%';
+    n.style.top = 'calc(50% + 30px)';
+    n.style.transform = 'translate(-50%, 0)';
+  });
 }
 
-/**
- * Crea y anima una barra de duración para un ruido
- * @param {Object} noise - {startPulse, duration}
- * @param {number} intervalSec - Intervalo entre pulsos en segundos
- * @returns {HTMLElement} Referencia al elemento de barra creado
- */
-function createDurationBar(noise, intervalSec) {
-  if (!timeline) return null;
+function updateTimeline() {
+  // Netejar barres anteriors
+  const existingBars = timeline.querySelectorAll('.interval-bar-visual');
+  existingBars.forEach(bar => bar.remove());
 
-  // Calcular posiciones en porcentaje
-  const pulseSpacing = 100 / (TOTAL_PULSES - 1); // Espaciado entre pulsos: 100% / 8 = 12.5%
-  const startPercent = noise.startPulse * pulseSpacing;
-  const widthPercent = noise.duration * pulseSpacing;
+  // Dibuixar barres pels iT entrats
+  const intervals = getIntervalsFromEditor();
+  let currentPulse = 0;
 
-  // Calcular duración de animación
-  const animationDuration = intervalSec * noise.duration;
+  // Regenerar colors només si cal (editor canviat o primera vegada)
+  if (!currentColorAssignments || currentColorAssignments.length !== intervals.length) {
+    currentColorAssignments = intervals.map((_, idx) => VIBRANT_COLORS[idx % VIBRANT_COLORS.length]);
+  }
 
-  // Crear elemento de barra
+  // Aplicar colors als inputs i dibuixar barres
+  itInputs.forEach((input, idx) => {
+    const hasValue = currentIntervals[idx] > 0;
+    if (hasValue && idx < currentColorAssignments.length) {
+      const color = currentColorAssignments[idx];
+      input.style.color = color;
+      input.style.borderColor = color;
+    } else {
+      // Reset estils si no té valor
+      input.style.color = '';
+      input.style.borderColor = '';
+    }
+  });
+
+  intervals.forEach((iT, idx) => {
+    if (iT > 0) {
+      const color = currentColorAssignments[idx];
+      createIntervalBar(currentPulse, iT, color, false);
+      currentPulse += iT;
+    }
+  });
+}
+
+function createIntervalBar(startPulse, duration, color, animated = true) {
+  const pulseSpacing = 100 / (TOTAL_PULSES - 1);
+  const startPercent = startPulse * pulseSpacing;
+  const widthPercent = duration * pulseSpacing;
+
   const bar = document.createElement('div');
-  bar.className = 'interval-block';
+  bar.className = 'interval-bar-visual';
   bar.style.left = `${startPercent}%`;
-  bar.style.width = '0%';
-  bar.style.transitionDuration = `${animationDuration}s`;
+  bar.style.width = animated ? '0%' : `${widthPercent}%`;
+  bar.style.background = color;
+
+  // Número de duració
+  const label = document.createElement('span');
+  label.className = 'interval-bar-visual__label';
+  label.textContent = duration;
+  label.style.color = color;
+  bar.appendChild(label);
 
   timeline.appendChild(bar);
 
-  // Forzar reflow y animar
-  bar.offsetHeight;
-
-  requestAnimationFrame(() => {
-    bar.style.width = `${widthPercent}%`;
-    bar.style.opacity = '0.8';
-    bar.classList.add('active');
-  });
+  if (animated) {
+    bar.offsetHeight; // Force reflow
+    requestAnimationFrame(() => {
+      bar.style.width = `${widthPercent}%`;
+    });
+  }
 
   return bar;
 }
 
-// ========== EVENT HANDLERS ==========
+function clearTimelineBars() {
+  const bars = timeline.querySelectorAll('.interval-bar-visual');
+  bars.forEach(bar => bar.remove());
+}
 
-// Store handler references for cleanup
-const eventHandlers = {
-  playClick: null,
-  themeChange: null
-};
+function highlightPulse(index, active = true) {
+  const pulse = timeline.querySelector(`.pulse[data-index="${index}"]`);
+  if (pulse) {
+    pulse.classList.toggle('active', active);
+  }
+}
 
-function setupEventHandlers() {
-  // Obtener botón Play del template
-  playBtn = document.getElementById('playBtn');
+function clearPulseHighlights() {
+  timeline.querySelectorAll('.pulse.active').forEach(p => p.classList.remove('active'));
+}
 
-  if (playBtn) {
-    eventHandlers.playClick = handlePlay;
-    playBtn.addEventListener('click', eventHandlers.playClick);
+// ========== REPRODUCCIÓ ==========
+async function handlePlay() {
+  // Si ja estem reproduint, STOP
+  if (isPlaying) {
+    isPlaying = false;
+    updateControlsState();
+    clearPulseHighlights();
+    return;
   }
 
-  // Manejo de cambios de tema (manejado por header compartido)
-  eventHandlers.themeChange = (e) => {
-    // El tema ya es manejado automáticamente
-  };
-  document.addEventListener('sharedui:theme', eventHandlers.themeChange);
+  const intervals = getIntervalsFromEditor();
+
+  // Inicialitzar audio
+  await initAudio();
+
+  isPlaying = true;
+  updateControlsState();
+
+  // Generar BPM aleatori
+  const bpm = getRandomBPM();
+  const beatDuration = 60 / bpm; // segons per puls
+
+  // Netejar barres
+  clearTimelineBars();
+  clearPulseHighlights();
+
+  // MODE METRÒNOM: si editor buit, reproduir 8 pulsos sense barres
+  if (intervals.length === 0) {
+    console.log(`Mode metrònom: BPM ${bpm}`);
+
+    for (let p = 0; p < MAX_LENGTH; p++) {
+      if (!isPlaying) break;
+
+      highlightPulse(p, true);
+      playMetronomeClick();
+      await sleep(beatDuration * 1000);
+      highlightPulse(p, false);
+    }
+
+    isPlaying = false;
+    updateControlsState();
+    return;
+  }
+
+  // MODE INTERVALS
+  console.log(`BPM: ${bpm}, intervals: ${intervals.join(', ')}`);
+
+  // Usar sons persistents (només regenerar si no existeixen o han canviat els intervals)
+  // NOTA: Els colors es gestionen a updateTimeline() per persistència visual
+  if (!currentSoundAssignments || currentSoundAssignments.length !== intervals.length) {
+    currentSoundAssignments = assignSoundsToIntervals(intervals);
+  }
+  const soundsForThisPlay = currentSoundAssignments;
+  // Usar colors ja assignats per updateTimeline()
+  const colorsForThisPlay = currentColorAssignments || intervals.map((_, idx) => VIBRANT_COLORS[idx % VIBRANT_COLORS.length]);
+
+  let currentPulse = 0;
+
+  for (let i = 0; i < intervals.length; i++) {
+    if (!isPlaying) break; // Per si s'ha aturat
+
+    const iT = intervals[i];
+    const duration = iT * beatDuration;
+    const color = colorsForThisPlay[i];
+    const sound = soundsForThisPlay[i];
+
+    // Crear barra animada
+    createIntervalBar(currentPulse, iT, color, true);
+
+    // Reproduir so de l'interval amb durada exacta
+    playSoundWithDuration(sound, duration);
+
+    // Loop per cada puls dins l'interval (metrònom + flash)
+    for (let p = 0; p < iT; p++) {
+      if (!isPlaying) break;
+
+      const pulseIndex = currentPulse + p;
+
+      // Flash del puls
+      highlightPulse(pulseIndex, true);
+
+      // Metrònom (so curt) a cada puls
+      playMetronomeClick();
+
+      // Esperar 1 beat
+      await sleep(beatDuration * 1000);
+
+      // Netejar flash
+      highlightPulse(pulseIndex, false);
+    }
+
+    currentPulse += iT;
+  }
+
+  // Si la seqüència no arriba a 8 pulsos, completar amb metrònom
+  if (currentPulse < MAX_LENGTH) {
+    console.log(`Completant amb metrònom: pulsos ${currentPulse} a ${MAX_LENGTH - 1}`);
+
+    for (let p = currentPulse; p < MAX_LENGTH; p++) {
+      if (!isPlaying) break;
+
+      highlightPulse(p, true);
+      playMetronomeClick();
+      await sleep(beatDuration * 1000);
+      highlightPulse(p, false);
+    }
+  }
+
+  // Final
+  isPlaying = false;
+  updateControlsState();
+  console.log('Reproducció finalitzada');
+}
+
+function handleRandom() {
+  if (isPlaying) return;
+
+  // Invalidar sons al prémer random
+  invalidateSoundAssignments();
+
+  // Generar entre 1 i 4 iTs aleatoris
+  const numIntervals = Math.floor(Math.random() * MAX_ITS) + 1;
+  const intervals = [];
+  let remaining = MAX_LENGTH;
+
+  for (let i = 0; i < numIntervals && remaining > 0; i++) {
+    // Últim interval: ocupar el que queda (o un valor aleatori)
+    const isLast = i === numIntervals - 1;
+    let value;
+
+    if (isLast) {
+      // 50% de probabilitat d'ocupar tot o un valor aleatori
+      if (Math.random() > 0.5) {
+        value = remaining;
+      } else {
+        value = Math.floor(Math.random() * remaining) + 1;
+      }
+    } else {
+      // Deixar espai pels següents
+      const maxForThis = remaining - (numIntervals - i - 1);
+      value = Math.floor(Math.random() * Math.min(maxForThis, 8)) + 1;
+    }
+
+    intervals.push(value);
+    remaining -= value;
+  }
+
+  setIntervalsToEditor(intervals);
+}
+
+function handleReset() {
+  if (isPlaying) {
+    // Aturar reproducció
+    isPlaying = false;
+    playbackTimeouts.forEach(t => clearTimeout(t));
+    playbackTimeouts = [];
+    clearPulseHighlights();
+  }
+
+  clearEditor();
+  clearTimelineBars();
+  focusFirstInput();
+  updateControlsState();
+}
+
+function updateControlsState() {
+  if (playBtn) {
+    // NO bloquejar el botó - ha d'estar sempre actiu per poder aturar
+    playBtn.classList.toggle('playing', isPlaying);
+
+    // Toggle icones del template (play ↔ stop)
+    const iconPlay = playBtn.querySelector('.icon-play');
+    const iconStop = playBtn.querySelector('.icon-stop');
+    if (iconPlay) iconPlay.style.display = isPlaying ? 'none' : 'block';
+    if (iconStop) iconStop.style.display = isPlaying ? 'block' : 'none';
+  }
+  if (randomBtn) {
+    randomBtn.disabled = isPlaying;
+  }
+}
+
+// ========== SETUP ==========
+function setupControls() {
+  const controls = document.querySelector('.controls');
+  if (!controls) return;
+
+  playBtn = document.getElementById('playBtn');
+  randomBtn = document.getElementById('randomBtn');
+  resetBtn = document.getElementById('resetBtn');
+
+  // Event listeners
+  if (playBtn) {
+    playBtn.addEventListener('click', handlePlay);
+  }
+  if (randomBtn) {
+    randomBtn.addEventListener('click', handleRandom);
+  }
+  if (resetBtn) {
+    resetBtn.addEventListener('click', handleReset);
+  }
 }
 
 // ========== FACTORY RESET ==========
 registerFactoryReset({ storage: preferenceStorage });
 
 // ========== CLEANUP ==========
-
 window.addEventListener('beforeunload', () => {
-  // Stop audio
   if (audio) {
     audio.stop?.();
   }
-
-  // Remove event listeners
-  if (playBtn && eventHandlers.playClick) {
-    playBtn.removeEventListener('click', eventHandlers.playClick);
-  }
-
-  if (eventHandlers.themeChange) {
-    document.removeEventListener('sharedui:theme', eventHandlers.themeChange);
-  }
+  playbackTimeouts.forEach(t => clearTimeout(t));
 });
 
-// ========== INICIALIZACIÓN ==========
+// ========== INICIALITZACIÓ ==========
 function initApp() {
-  console.log('Inicializando App13: Intervalos Temporales');
+  console.log('Inicialitzant App13: Intervalos Temporales');
 
-  // Obtener referencias al timeline del template
+  // Obtenir timeline
   timeline = document.getElementById('timeline');
-  timelineWrapper = document.getElementById('timelineWrapper');
+  const timelineWrapper = document.getElementById('timelineWrapper');
 
   if (!timeline || !timelineWrapper) {
-    console.error('Timeline no encontrado en el template');
+    console.error('Timeline no trobat');
     return;
   }
 
-  // Dibujar timeline con 6 pulsos (0-5)
+  // Crear editor iT i inserir-lo abans del timeline
+  const editor = createItEditor();
+  timelineWrapper.insertBefore(editor, timeline);
+
+  // Dibuixar timeline
   drawTimeline();
 
-  // Configurar event listeners
-  setupEventHandlers();
+  // Setup controls
+  setupControls();
 
-  console.log('App13 inicializada correctamente');
+  // Cablear events de so compartits (selector Pulso → metrònom)
+  bindSharedSoundEvents({
+    getAudio: () => audio,
+    mapping: {
+      baseSound: 'setBase',
+      accentSound: 'setAccent'
+    }
+  });
+
+  // Escoltar canvis de so base per actualitzar el metrònom
+  window.addEventListener('sharedui:sound', (event) => {
+    const { type, value } = event.detail || {};
+    if (type === 'baseSound' && value) {
+      currentMetronomeSound = value;
+    }
+  });
+
+  // Focus inicial
+  setTimeout(focusFirstInput, 100);
+
+  console.log('App13 inicialitzada');
 }
 
-// Ejecutar cuando el DOM esté listo
+// Executar quan el DOM estigui llest
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
 } else {

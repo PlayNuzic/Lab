@@ -17,21 +17,11 @@
     import { initHeader } from '../../libs/shared-ui/header.js';
     import { renderApp } from '../../libs/app-common/template.js';
 
-    // Set defaults in localStorage BEFORE header initializes
-    const app13Prefs = localStorage.getItem('app13-preferences');
-    if (!app13Prefs) {
-      // First time - set factory defaults
-      localStorage.setItem('app13-preferences', JSON.stringify({
-        baseSound: 'click1',
-        accentSound: 'click11'
-      }));
-    }
-
     renderApp({
       root: document.getElementById('app-root'),
       title: 'Intervalos Temporales',
       showSelectColor: false,
-      showAccent: true,
+      showAccent: false,
       showComplexFractions: false,
       hideT: true,
       hideLeds: true,
@@ -42,7 +32,7 @@
     });
     initHeader();
 
-    // Remove template-generated elements
+    // Remove template-generated elements (we build our own UI)
     document.querySelector('.inputs')?.remove();
     document.querySelector('.middle')?.remove();
 
@@ -51,7 +41,5 @@
 
   <!-- Rendimiento Audio (menú flotante) -->
   <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
-  <!-- Long-press para abrir el mixer -->
-  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
 </body>
 </html>
