@@ -7,23 +7,8 @@
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="../../libs/musical-grid/musical-grid.css" />
-  <!-- Estilos del módulo plano-modular -->
-  <link rel="stylesheet" href="../../libs/plano-modular/plano-modular.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../../favicon.ico" />
-  <style>
-    /* Ajuste para integrar plano-modular con el layout de App19 */
-    .plano-container {
-      grid-column: 1 / -1;
-      grid-row: 1 / -1;
-    }
-
-    /* Ocultar contenedores originales si existen */
-    #soundlineContainer, #gridArea, #matrixContainer, #timelineContainer {
-      display: none !important;
-    }
-
-  </style>
 </head>
 <body data-theme="system">
   <div id="app-root"></div>
@@ -178,9 +163,16 @@
           </div>
         </div>
 
-        <!-- Right Column: Grid 2D (plano-modular renders here) -->
+        <!-- Right Column: Grid 2D (Soundline + Timeline + Matrix) -->
         <div class="right-column" id="rightColumn">
-          <!-- plano-modular will render its grid here -->
+          <!-- Soundline (Y-axis: notes) -->
+          <div class="soundline-container" id="soundlineContainer"></div>
+
+          <!-- Grid Matrix (cells) + Timeline (X-axis: pulses) -->
+          <div class="grid-area" id="gridArea">
+            <div class="matrix-container" id="matrixContainer"></div>
+            <div class="timeline-container" id="timelineContainer"></div>
+          </div>
         </div>
       `;
 
@@ -211,7 +203,6 @@
       }
     }
 
-    // Load main.js (migrated version is now the main)
     import('./main.js');
   </script>
 

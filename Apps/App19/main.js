@@ -917,7 +917,7 @@ function loadMixerState() {
     const state = JSON.parse(saved);
 
     if (window.NuzicMixer) {
-      if (state.master !== undefined) {
+      if (state.master !== undefined && window.NuzicMixer.setMasterVolume) {
         window.NuzicMixer.setMasterVolume(state.master);
       }
       ['pulse', 'instrument'].forEach(ch => {
