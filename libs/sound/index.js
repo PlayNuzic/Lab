@@ -17,7 +17,13 @@ const SOUND_URLS = {
   click8: new URL('click8.wav', SAMPLE_BASE_URL).href,
   click9: new URL('click9.wav', SAMPLE_BASE_URL).href,
   click10: new URL('click10.wav', SAMPLE_BASE_URL).href,
-  click11: new URL('Click11.wav', SAMPLE_BASE_URL).href
+  click11: new URL('Click11.wav', SAMPLE_BASE_URL).href,
+  click12: new URL('Click12.wav', SAMPLE_BASE_URL).href,
+  click13: new URL('Click13.wav', SAMPLE_BASE_URL).href,
+  click14: new URL('Click14.wav', SAMPLE_BASE_URL).href,
+  click15: new URL('Click15.wav', SAMPLE_BASE_URL).href,
+  click16: new URL('Click16.wav', SAMPLE_BASE_URL).href,
+  click17: new URL('Click17.wav', SAMPLE_BASE_URL).href
 };
 
 export const soundNames = Object.keys(SOUND_URLS);
@@ -34,7 +40,13 @@ export const soundLabels = {
   click8: 'Caja',
   click9: 'Hi-Hat',
   click10: 'Ride',
-  click11: 'Ruido Rosa'
+  click11: 'Ruido Rosa',
+  click12: 'Ruido Sintetizado 1',
+  click13: 'Ruido Sintetizado 2',
+  click14: 'Ruido Sintetizado 3',
+  click15: 'Ruido Sintetizado 4',
+  click16: 'Ruido Sintetizado 5',
+  click17: 'Ruido Sintetizado 6'
 };
 
 const mixer = new AudioMixer({ masterLabel: 'Master' });
