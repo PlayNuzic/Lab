@@ -786,6 +786,7 @@ main {
   z-index: 20;
   pointer-events: none;
   box-shadow: 0 0 6px var(--select-color, #EA570C);
+  margin-left: -4px;  /* Align with timeline numbers */
 }
 
 /* Hide playhead when not playing */
