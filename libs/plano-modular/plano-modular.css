@@ -1,0 +1,365 @@
+/**
+ * plano-modular.css - Base styles for plano-modular grid component
+ * All properties use CSS custom properties for easy customization
+ */
+
+/* ============================================
+   CSS CUSTOM PROPERTIES (CONFIGURABLE)
+   ============================================ */
+
+.plano-container {
+  /* Cell dimensions */
+  --plano-cell-height: 32px;
+  --plano-cell-min-width: 50px;
+  --plano-cell-width: 50px;
+
+  /* Visible area */
+  --plano-visible-rows: 15;
+
+  /* Component sizes */
+  --plano-soundline-width: 50px;
+  --plano-timeline-height: 40px;
+
+  /* Colors */
+  --plano-bg-color: #fff;
+  --plano-cell-bg: #fafafa;
+  --plano-cell-hover: rgba(0, 0, 0, 0.05);
+  --plano-grid-line-color: rgba(0, 0, 0, 0.1);
+  --plano-select-color: #EA570C;
+  --plano-cycle-color: #4A90D9;
+  --plano-highlight-color: rgba(234, 87, 12, 0.3);
+  --plano-text-color: #333;
+  --plano-boundary-color: rgba(74, 144, 217, 0.2);
+
+  /* Playhead */
+  --plano-playhead-width: 2px;
+  --plano-playhead-color: var(--plano-select-color);
+
+  /* Spacing */
+  --plano-grid-gap: 0;
+  --plano-margin-left: 15px;
+}
+
+/* ============================================
+   MAIN CONTAINER LAYOUT
+   ============================================ */
+
+.plano-container {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr auto;
+  gap: var(--plano-grid-gap);
+  min-height: 0;
+  overflow: hidden;
+  background: var(--plano-bg-color);
+}
+
+/* ============================================
+   SOUNDLINE (Y-AXIS: ROWS/NOTES)
+   ============================================ */
+
+.plano-soundline-container {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: var(--plano-soundline-width);
+  max-height: calc(var(--plano-visible-rows) * var(--plano-cell-height));
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.plano-soundline-container::-webkit-scrollbar {
+  display: none;
+}
+
+.plano-soundline-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.plano-soundline-note {
+  height: var(--plano-cell-height);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--plano-text-color);
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.plano-soundline-note.plano-boundary {
+  background: var(--plano-boundary-color);
+  font-weight: 700;
+  color: var(--plano-cycle-color);
+}
+
+/* Note 0 styling (first note of registry) - selection color */
+.plano-soundline-note[data-note="0"] {
+  color: var(--plano-select-color) !important;
+  font-weight: 700;
+}
+
+/* ============================================
+   GRID AREA (MATRIX + TIMELINE)
+   ============================================ */
+
+.plano-grid-area {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ============================================
+   MATRIX CONTAINER (CELLS)
+   ============================================ */
+
+.plano-matrix-container {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: scroll;
+  min-height: 0;
+  max-height: calc(var(--plano-visible-rows) * var(--plano-cell-height));
+  scrollbar-width: thin;
+}
+
+.plano-matrix-container::-webkit-scrollbar:vertical {
+  display: none;
+}
+
+.plano-matrix {
+  display: grid;
+  gap: var(--plano-grid-gap);
+  min-width: max-content;
+  position: relative;
+  margin-left: var(--plano-margin-left);
+}
+
+/* ============================================
+   GRID CELLS
+   ============================================ */
+
+.plano-cell {
+  background: var(--plano-cell-bg);
+  height: var(--plano-cell-height);
+  cursor: pointer;
+  transition: background 0.1s ease;
+  border-right: 1px solid var(--plano-grid-line-color);
+  border-bottom: 1px solid var(--plano-grid-line-color);
+  box-sizing: border-box;
+  position: relative;
+}
+
+.plano-cell:hover {
+  background: var(--plano-cell-hover);
+}
+
+.plano-cell.plano-selected {
+  background: var(--plano-select-color);
+}
+
+.plano-cell.plano-highlight {
+  background: var(--plano-select-color) !important;
+  transform: scale(1.1);
+  transition: transform 0.1s ease, background 0.1s ease;
+  box-shadow: 0 0 8px var(--plano-select-color);
+  z-index: 10;
+}
+
+[data-theme="dark"] .plano-cell.plano-highlight {
+  box-shadow: 0 0 12px var(--plano-select-color);
+}
+
+.plano-cell-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+/* ============================================
+   TIMELINE (X-AXIS: COLUMNS/PULSES)
+   ============================================ */
+
+.plano-timeline-container {
+  height: var(--plano-timeline-height);
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.plano-timeline-container::-webkit-scrollbar {
+  display: none;
+}
+
+.plano-timeline-row {
+  display: grid;
+  gap: var(--plano-grid-gap);
+  min-width: max-content;
+  height: 100%;
+  align-items: center;
+  margin-left: var(--plano-margin-left);
+}
+
+.plano-timeline-number {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--plano-text-color);
+}
+
+.plano-timeline-number.plano-cycle-start {
+  color: var(--plano-cycle-color);
+}
+
+.plano-timeline-number.plano-highlight {
+  color: var(--plano-select-color) !important;
+  transform: scale(1.2);
+  font-weight: 700;
+  transition: transform 0.1s ease, color 0.1s ease;
+}
+
+.plano-timeline-number.plano-cycle-start.plano-highlight {
+  color: var(--plano-cycle-color) !important;
+  transform: scale(1.3);
+  text-shadow: 0 0 8px var(--plano-cycle-color);
+}
+
+[data-theme="dark"] .plano-timeline-number.plano-cycle-start.plano-highlight {
+  text-shadow: 0 0 12px var(--plano-cycle-color);
+}
+
+.plano-pulse-num {
+  line-height: 1;
+}
+
+.plano-cycle-num {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-left: 1px;
+  margin-top: -15px;
+}
+
+/* ============================================
+   PLAYHEAD
+   ============================================ */
+
+.plano-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--plano-playhead-width);
+  background: var(--plano-playhead-color);
+  opacity: 0.85;
+  z-index: 20;
+  pointer-events: none;
+  box-shadow: 0 0 6px var(--plano-playhead-color);
+}
+
+.plano-playhead--hidden {
+  display: none;
+}
+
+/* ============================================
+   DARK THEME
+   ============================================ */
+
+[data-theme="dark"] .plano-container {
+  --plano-bg-color: #1e1e1e;
+  --plano-cell-bg: #252525;
+  --plano-cell-hover: rgba(255, 255, 255, 0.05);
+  --plano-grid-line-color: rgba(255, 255, 255, 0.1);
+  --plano-text-color: #eee;
+  --plano-boundary-color: rgba(74, 144, 217, 0.15);
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+@media (max-width: 900px) {
+  .plano-container {
+    --plano-visible-rows: 12;
+    --plano-cell-height: 28px;
+    --plano-soundline-width: 45px;
+  }
+
+  .plano-soundline-note {
+    font-size: 0.8rem;
+  }
+
+  .plano-timeline-number {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .plano-container {
+    --plano-visible-rows: 10;
+    --plano-cell-height: 24px;
+    --plano-soundline-width: 40px;
+  }
+
+  .plano-soundline-note {
+    font-size: 0.75rem;
+  }
+
+  .plano-timeline-number {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .plano-container {
+    --plano-visible-rows: 39;
+    --plano-cell-height: 18px;
+    --plano-soundline-width: 35px;
+    --plano-timeline-height: 30px;
+  }
+
+  .plano-soundline-note {
+    font-size: 0.7rem;
+  }
+
+  .plano-timeline-number {
+    font-size: 0.8rem;
+  }
+
+  .plano-cell-label {
+    font-size: 0.6rem;
+  }
+}
+
+@media (max-width: 500px) {
+  .plano-container {
+    --plano-cell-height: 16px;
+    --plano-soundline-width: 30px;
+  }
+
+  .plano-soundline-note {
+    font-size: 0.6rem;
+    padding-right: 0.25rem;
+  }
+
+  .plano-timeline-number {
+    font-size: 0.7rem;
+  }
+}
