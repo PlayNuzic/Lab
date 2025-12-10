@@ -36,6 +36,7 @@ import {
  * @param {Array} [config.registryConfig.registries] - Custom registry definitions
  * @param {number} [config.registryConfig.visibleRows=15] - Visible rows
  * @param {Array<number>} [config.registryConfig.selectableRegistries] - Selectable registries
+ * @param {number} [config.initialRegistry] - Starting registry (defaults to middle selectable)
  * @param {Object} [config.cycleConfig] - Cycle display configuration
  * @param {number} [config.cycleConfig.compas] - Pulses per cycle
  * @param {boolean} [config.cycleConfig.showCycle=true] - Show cycle numbers
@@ -58,7 +59,8 @@ export function createPlanoMusical(config) {
     onCellClick,
     onSelectionChange,
     showPlayhead = true,
-    playheadOffset = 0
+    playheadOffset = 0,
+    initialRegistry
   } = config;
 
   // Build registry configuration
@@ -77,7 +79,12 @@ export function createPlanoMusical(config) {
   const note0RowMap = calculateNote0RowMap(rows);
 
   // Track current registry for external controls
-  let currentRegistry = selectableRegistries[Math.floor(selectableRegistries.length / 2)];
+  const defaultRegistry =
+    selectableRegistries.includes(initialRegistry)
+      ? initialRegistry
+      : selectableRegistries[Math.floor(selectableRegistries.length / 2)];
+
+  let currentRegistry = defaultRegistry;
 
   // Create the base plano-modular instance
   const plano = createPlanoModular({
@@ -333,6 +340,7 @@ export function createApp19Grid(config) {
       notesPerRegistry: APP19_CONFIG.notesPerRegistry,
       midiOffset: APP19_CONFIG.midiOffset
     },
+    initialRegistry: defaultRegistry,
     cycleConfig,
     bpm,
     selectionMode: 'monophonic',
