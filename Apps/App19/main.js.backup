@@ -1,0 +1,1589 @@
+// App19: Plano Musical
+// Combines temporal module (App17) with sound module (App18) in a 2D interactive grid
+
+import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
+import { attachHover } from '../../libs/shared-ui/hover.js';
+import { createRegistryController } from '../../libs/sound/registry-controller.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { createCycleCounter } from '../../libs/app-common/cycle-counter.js';
+import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
+import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
+import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { subscribeMixer } from '../../libs/sound/index.js';
+import { initRandomMenu } from '../../libs/random/menu.js';
+import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
+
+// ========== CONFIGURATION ==========
+const CONFIG = {
+  // Registry limits (3 registries: 3, 4, 5)
+  MIN_REGISTRO: 3,
+  MAX_REGISTRO: 5,
+  DEFAULT_REGISTRO: 4,
+
+  // Compás limits
+  MIN_COMPAS: 1,
+  MAX_COMPAS: 7,
+
+  // Nº Compases (cycles) limits
+  MIN_CYCLES: 1,
+  MAX_CYCLES: 4,
+
+  // BPM limits
+  MIN_BPM: 30,
+  MAX_BPM: 300,
+  DEFAULT_BPM: 100,
+
+  // Grid display
+  VISIBLE_PULSES: 12,
+  NOTES_PER_REGISTRY: 12,
+  MIDI_OFFSET: 12
+};
+
+// ========== STATE ==========
+let isPlaying = false;
+let audio = null;
+let tapTempoHandler = null;
+let mixerSaveTimeout = null;
+let isInitialized = false;  // Flag to track if initial scroll to default registry has been applied
+
+// Input values
+let compas = null;      // null = empty, 1-7 = value
+let cycles = null;      // null = empty, 1-4 = value
+
+// Selected cells in grid: Map<`${registry}-${noteIndex}-${pulseIndex}`, true>
+// Each key includes the registry so notes persist when changing registry view
+const selectedCells = new Map();
+
+// Mixer storage key
+const MIXER_STORAGE_KEY = 'app19-mixer';
+
+// ========== DOM ELEMENT REFERENCES ==========
+let elements = {};
+
+// ========== PREFERENCE STORAGE ==========
+const preferenceStorage = createPreferenceStorage('app19');
+
+// ========== AUDIO INITIALIZATION ==========
+const _initAudio = createMelodicAudioInitializer({
+  defaultInstrument: 'piano',
+  getPreferences: () => preferenceStorage.load() || {}
+});
+
+async function initAudio() {
+  if (!audio) {
+    audio = await _initAudio();
+  }
+  return audio;
+}
+
+// ========== CONTROLLERS ==========
+
+// Registry controller (adapted for range 3-5)
+const registryController = createRegistryController({
+  min: CONFIG.MIN_REGISTRO,
+  max: CONFIG.MAX_REGISTRO,
+  midiOffset: CONFIG.MIDI_OFFSET,
+  notesPerRegistry: CONFIG.NOTES_PER_REGISTRY,
+  onRegistryChange: (newRegistry) => {
+    console.log('Registry changed to:', newRegistry);
+    updateSoundline();
+    updateGrid();
+    savePreferences();
+  }
+});
+
+// BPM controller
+let bpmController = null;
+
+// Cycle counter (for playback display)
+let cycleCounter = null;
+
+// ========== HELPER FUNCTIONS ==========
+
+/**
+ * Calculate total pulses (Compás × Nº Compases)
+ */
+function getTotalPulses() {
+  if (compas === null || cycles === null) return 0;
+  return compas * cycles;
+}
+
+/**
+ * Update the Longitud display
+ */
+function updateLongitud() {
+  const total = getTotalPulses();
+  if (elements.totalLengthDigit) {
+    elements.totalLengthDigit.textContent = total > 0 ? total : '--';
+  }
+}
+
+/**
+ * Check if scroll is needed (total pulses > visible)
+ */
+function needsScroll() {
+  return getTotalPulses() > CONFIG.VISIBLE_PULSES;
+}
+
+/**
+ * Update grid visibility based on whether we have data
+ */
+function updateGridVisibility() {
+  const rightColumn = document.getElementById('rightColumn');
+  if (rightColumn) {
+    const visible = getTotalPulses() > 0;
+    rightColumn.style.display = visible ? '' : 'none';
+  }
+}
+
+// ========== SOUNDLINE FUNCTIONS ==========
+
+/**
+ * Update soundline (Y-axis: notes) - renders from 7r5 to 5r2
+ * 39 rows: r5 (0-7), r4 (0-11), r3 (0-11), r2 (5-11)
+ */
+function updateSoundline() {
+  if (!elements.soundlineContainer) return;
+
+  const rows = buildGridRows();
+
+  // Preserve scroll position before clearing (innerHTML = '' resets scrollTop)
+  // Only preserve after initialization (during init, scroll will be set by scrollToRegistry)
+  const savedScrollTop = isInitialized ? elements.soundlineContainer.scrollTop : null;
+
+  // Clear and rebuild
+  elements.soundlineContainer.innerHTML = '';
+
+  const soundlineRow = document.createElement('div');
+  soundlineRow.className = 'soundline-row';
+
+  rows.forEach((row, rowIdx) => {
+    const label = `${row.noteInReg}r${row.registry}`;
+
+    const noteEl = document.createElement('div');
+    noteEl.className = 'soundline-note';
+    noteEl.dataset.noteIndex = rowIdx;
+    noteEl.dataset.registry = row.registry;
+    noteEl.dataset.noteinreg = row.noteInReg;
+    noteEl.textContent = label;
+
+    // Mark boundary notes (note 0 of each registry)
+    if (row.noteInReg === 0) {
+      noteEl.classList.add('registry-boundary');
+    }
+
+    soundlineRow.appendChild(noteEl);
+  });
+
+  elements.soundlineContainer.appendChild(soundlineRow);
+
+  // Restore scroll position (only after initialization)
+  if (savedScrollTop !== null) {
+    elements.soundlineContainer.scrollTop = savedScrollTop;
+  }
+
+  // Apply initial scroll once the soundline exists
+  maybeApplyInitialScroll();
+}
+
+// ========== GRID FUNCTIONS ==========
+
+/**
+ * Calculate cell width based on container width / 12 visible pulses
+ */
+function getCellWidth() {
+  if (!elements.matrixContainer) return 50; // fallback
+  const containerWidth = elements.matrixContainer.clientWidth;
+  return Math.floor(containerWidth / CONFIG.VISIBLE_PULSES);
+}
+
+/**
+ * Update grid matrix and timeline
+ */
+function updateGrid() {
+  const cellWidth = getCellWidth();
+  updateMatrix(cellWidth);
+  updateTimeline(cellWidth);
+}
+
+/**
+ * Build the row definitions for the grid (7r5 to 5r2)
+ * Shared between updateMatrix and updateSoundline
+ * Only renders selectable rows: r5 (0-7), r4 (0-11), r3 (0-11), r2 (5-11)
+ * Total: 8 + 12 + 12 + 7 = 39 rows
+ */
+function buildGridRows() {
+  const rows = [];
+
+  // r5: notes 7 to 0 (top 8 notes)
+  for (let note = 7; note >= 0; note--) {
+    rows.push({ registry: 5, noteInReg: note });
+  }
+  // r4: notes 11 to 0
+  for (let note = 11; note >= 0; note--) {
+    rows.push({ registry: 4, noteInReg: note });
+  }
+  // r3: notes 11 to 0
+  for (let note = 11; note >= 0; note--) {
+    rows.push({ registry: 3, noteInReg: note });
+  }
+  // r2: notes 11 to 5 only (visible when viewing r3)
+  for (let note = 11; note >= 5; note--) {
+    rows.push({ registry: 2, noteInReg: note });
+  }
+
+  return rows;
+}
+
+/**
+ * Update matrix (cells) - renders from 7r5 to 5r2 for smooth vertical scroll
+ * @param {number} cellWidth - Width of each cell in pixels
+ */
+function updateMatrix(cellWidth) {
+  if (!elements.matrixContainer) return;
+
+  const totalPulses = getTotalPulses();
+
+  if (totalPulses === 0) {
+    elements.matrixContainer.innerHTML = '';
+    return;
+  }
+
+  const rows = buildGridRows();
+  const totalRows = rows.length;  // 35 rows (8 + 12 + 12 + 7 = 39? No: 8+12+12+7=39)
+
+  // Create grid with fixed cell widths (no stretching)
+  const grid = document.createElement('div');
+  grid.className = 'grid-matrix';
+  grid.style.gridTemplateColumns = `repeat(${totalPulses}, ${cellWidth}px)`;
+  grid.style.gridTemplateRows = `repeat(${totalRows}, var(--grid-cell-height))`;
+
+  // Create cells for each row (all rows are selectable)
+  rows.forEach((row, rowIdx) => {
+    const registry = row.registry;
+    const noteInReg = row.noteInReg;
+    const rowLabel = `${noteInReg}r${registry}`;
+
+    for (let pulseIdx = 0; pulseIdx < totalPulses; pulseIdx++) {
+      const cell = document.createElement('div');
+      cell.className = 'grid-cell';
+      cell.dataset.note = rowIdx;  // Visual row index
+      cell.dataset.pulse = pulseIdx;
+      cell.dataset.registry = registry;
+      cell.dataset.noteinreg = noteInReg;  // lowercase for CSS selector compatibility
+
+      const rowKey = `${registry}-${noteInReg}-${pulseIdx}`;
+
+      if (selectedCells.has(rowKey)) {
+        cell.classList.add('selected');
+        const label = document.createElement('span');
+        label.className = 'cell-label';
+        label.textContent = rowLabel;
+        cell.appendChild(label);
+      }
+
+      // Click handler with absolute coordinates
+      cell.addEventListener('click', () => handleCellClickAbsolute(registry, noteInReg, pulseIdx));
+
+      grid.appendChild(cell);
+    }
+  });
+
+  // Preserve scroll position before clearing (innerHTML = '' resets scrollTop)
+  // Only preserve after initialization (during init, scroll will be set by scrollToRegistry)
+  const savedScrollTop = isInitialized ? elements.matrixContainer.scrollTop : null;
+
+  elements.matrixContainer.innerHTML = '';
+  elements.matrixContainer.appendChild(grid);
+
+  // Restore scroll position (only after initialization)
+  if (savedScrollTop !== null) {
+    elements.matrixContainer.scrollTop = savedScrollTop;
+  }
+
+  // Apply initial scroll once the grid exists
+  maybeApplyInitialScroll();
+}
+
+/**
+ * Update timeline (X-axis: pulse numbers with cycle superscript)
+ * @param {number} cellWidth - Width of each cell in pixels
+ */
+function updateTimeline(cellWidth) {
+  if (!elements.timelineContainer) return;
+
+  const totalPulses = getTotalPulses();
+
+  if (totalPulses === 0 || compas === null) {
+    elements.timelineContainer.innerHTML = '';
+    return;
+  }
+
+  const row = document.createElement('div');
+  row.className = 'timeline-row';
+  row.style.gridTemplateColumns = `repeat(${totalPulses}, ${cellWidth}px)`;
+
+  for (let pulseIdx = 0; pulseIdx < totalPulses; pulseIdx++) {
+    const pulseInCycle = pulseIdx % compas;
+    const cycleNum = Math.floor(pulseIdx / compas) + 1;
+
+    const numEl = document.createElement('div');
+    numEl.className = 'timeline-number';
+    numEl.dataset.pulse = pulseIdx;
+
+    // Pulse 0 of each cycle gets special styling
+    if (pulseInCycle === 0) {
+      numEl.classList.add('cycle-start');
+    }
+
+    numEl.innerHTML = `
+      <span class="pulse-num">${pulseInCycle}</span><sup class="cycle-sup">${cycleNum}</sup>
+    `;
+
+    row.appendChild(numEl);
+  }
+
+  elements.timelineContainer.innerHTML = '';
+  elements.timelineContainer.appendChild(row);
+}
+
+// ========== CELL INTERACTION ==========
+
+/**
+ * Handle cell click with absolute coordinates (registry + noteInReg + pulse)
+ * Used by the new full-registry grid
+ */
+async function handleCellClickAbsolute(registry, noteInReg, pulseIndex) {
+  const key = `${registry}-${noteInReg}-${pulseIndex}`;
+  const rowLabel = `${noteInReg}r${registry}`;
+
+  // If clicking the same cell, deselect it
+  if (selectedCells.has(key)) {
+    selectedCells.delete(key);
+    const cell = elements.matrixContainer?.querySelector(
+      `.grid-cell[data-registry="${registry}"][data-noteinreg="${noteInReg}"][data-pulse="${pulseIndex}"]`
+    );
+    if (cell) {
+      cell.classList.remove('selected');
+      const label = cell.querySelector('.cell-label');
+      if (label) label.remove();
+    }
+  } else {
+    // GLOBAL MONOPHONIC: Remove ANY existing note in this pulse (from ANY registry)
+    for (const existingKey of [...selectedCells.keys()]) {
+      const [existingReg, existingNote, existingPulse] = existingKey.split('-').map(Number);
+      if (existingPulse === pulseIndex) {
+        selectedCells.delete(existingKey);
+        // Find and deselect the old cell visually
+        const oldCell = elements.matrixContainer?.querySelector(
+          `.grid-cell[data-registry="${existingReg}"][data-noteinreg="${existingNote}"][data-pulse="${existingPulse}"]`
+        );
+        if (oldCell) {
+          oldCell.classList.remove('selected');
+          const oldLabel = oldCell.querySelector('.cell-label');
+          if (oldLabel) oldLabel.remove();
+        }
+      }
+    }
+
+    // Select the new cell
+    selectedCells.set(key, true);
+    const cell = elements.matrixContainer?.querySelector(
+      `.grid-cell[data-registry="${registry}"][data-noteinreg="${noteInReg}"][data-pulse="${pulseIndex}"]`
+    );
+    if (cell) {
+      cell.classList.add('selected');
+      if (!cell.querySelector('.cell-label')) {
+        const label = document.createElement('span');
+        label.className = 'cell-label';
+        label.textContent = rowLabel;
+        cell.appendChild(label);
+      }
+    }
+  }
+
+  // Play the note using absolute MIDI calculation
+  await playNoteAbsolute(registry, noteInReg);
+  savePreferences();
+}
+
+/**
+ * Play a note with absolute registry and note coordinates
+ */
+async function playNoteAbsolute(registry, noteInReg) {
+  const audioInstance = await initAudio();
+  if (!audioInstance) return;
+
+  const Tone = window.Tone;
+  if (!Tone) return;
+
+  const midi = registry * CONFIG.NOTES_PER_REGISTRY + noteInReg + CONFIG.MIDI_OFFSET;
+  const noteDuration = 0.3;
+  audioInstance.playNote(midi, noteDuration, Tone.now());
+}
+
+// ========== INPUT HANDLERS ==========
+
+/**
+ * Handle Compás input change
+ */
+function handleCompasChange() {
+  const value = elements.inputCompas?.value?.trim();
+
+  if (value === '') {
+    compas = null;
+  } else {
+    const num = parseInt(value, 10);
+    if (!isNaN(num)) {
+      compas = Math.max(CONFIG.MIN_COMPAS, Math.min(CONFIG.MAX_COMPAS, num));
+      elements.inputCompas.value = compas;
+      // Auto-focus to inputCycle after valid compas entry
+      elements.inputCycle?.focus();
+      elements.inputCycle?.select();
+    }
+  }
+
+  updateLongitud();
+  updateGridVisibility();
+  updateGrid();
+  savePreferences();
+  console.log('Compás changed to:', compas);
+}
+
+/**
+ * Handle Nº Compases input change
+ */
+function handleCyclesChange() {
+  const value = elements.inputCycle?.value?.trim();
+
+  if (value === '') {
+    cycles = null;
+  } else {
+    const num = parseInt(value, 10);
+    if (!isNaN(num)) {
+      cycles = Math.max(CONFIG.MIN_CYCLES, Math.min(CONFIG.MAX_CYCLES, num));
+      elements.inputCycle.value = cycles;
+    }
+  }
+
+  updateLongitud();
+  updateGridVisibility();
+  updateGrid();
+  savePreferences();
+  console.log('Nº Compases changed to:', cycles);
+}
+
+/**
+ * Increment/decrement helpers
+ */
+function incrementCompas() {
+  if (compas === null) {
+    compas = CONFIG.MIN_COMPAS;
+  } else if (compas < CONFIG.MAX_COMPAS) {
+    compas++;
+  }
+  elements.inputCompas.value = compas;
+  handleCompasChange();
+}
+
+function decrementCompas() {
+  if (compas === null) {
+    compas = CONFIG.MAX_COMPAS;
+  } else if (compas > CONFIG.MIN_COMPAS) {
+    compas--;
+  }
+  elements.inputCompas.value = compas;
+  handleCompasChange();
+}
+
+function incrementCycles() {
+  if (cycles === null) {
+    cycles = CONFIG.MIN_CYCLES;
+  } else if (cycles < CONFIG.MAX_CYCLES) {
+    cycles++;
+  }
+  elements.inputCycle.value = cycles;
+  handleCyclesChange();
+}
+
+function decrementCycles() {
+  if (cycles === null) {
+    cycles = CONFIG.MAX_CYCLES;
+  } else if (cycles > CONFIG.MIN_CYCLES) {
+    cycles--;
+  }
+  elements.inputCycle.value = cycles;
+  handleCyclesChange();
+}
+
+// ========== REGISTRY HANDLERS ==========
+
+function handleRegistryUp() {
+  registryController.increment();
+  const newRegistry = registryController.getRegistry();
+  elements.inputRegistro.value = newRegistry;
+  // Scroll to new registry instead of rebuilding grid
+  scrollToRegistry(newRegistry);
+}
+
+function handleRegistryDown() {
+  registryController.decrement();
+  const newRegistry = registryController.getRegistry();
+  elements.inputRegistro.value = newRegistry;
+  // Scroll to new registry instead of rebuilding grid
+  scrollToRegistry(newRegistry);
+}
+
+// ========== CONTROL HANDLERS ==========
+
+/**
+ * Handle Play button
+ */
+async function handlePlay() {
+  if (isPlaying) {
+    stopPlayback();
+    return;
+  }
+
+  const totalPulses = getTotalPulses();
+  if (totalPulses === 0) {
+    console.log('Cannot play: no pulses defined');
+    return;
+  }
+
+  startPlayback();
+}
+
+// ========== ANIMATION FUNCTIONS (Pattern from Apps 16/17) ==========
+
+/**
+ * Highlight the selected cell that plays at this step
+ * Uses absolute registry/note data attributes
+ */
+function highlightSelectedCell(step) {
+  // Clear previous highlights
+  elements.matrixContainer?.querySelectorAll('.grid-cell.playing').forEach(cell => {
+    cell.classList.remove('playing');
+  });
+
+  // Find the note at this pulse using absolute coordinates
+  for (const key of selectedCells.keys()) {
+    const [reg, noteNum, pulseIndex] = key.split('-').map(Number);
+    if (pulseIndex === step) {
+      // Direct lookup using data attributes
+      const cell = elements.matrixContainer?.querySelector(
+        `.grid-cell[data-registry="${reg}"][data-noteinreg="${noteNum}"][data-pulse="${pulseIndex}"]`
+      );
+      cell?.classList.add('playing');
+      break; // Monophonic: only one note per pulse
+    }
+  }
+}
+
+/**
+ * Highlight timeline number at current step
+ */
+function highlightTimelineNumber(step) {
+  elements.timelineContainer?.querySelectorAll('.timeline-number').forEach(el => {
+    el.classList.remove('active', 'active-zero');
+  });
+
+  const numberEl = elements.timelineContainer?.querySelector(`.timeline-number[data-pulse="${step}"]`);
+  if (numberEl && compas) {
+    const modValue = step % compas;
+    numberEl.classList.add(modValue === 0 ? 'active-zero' : 'active');
+  }
+}
+
+/**
+ * Update cycle counter with flip animation
+ */
+function updateCycleCounter(newCycle) {
+  const digit = elements.cycleDigit;
+  if (!digit) return;
+
+  // Flip animation
+  digit.classList.add('flip-out');
+
+  setTimeout(() => {
+    digit.textContent = String(newCycle);
+    digit.classList.remove('flip-out');
+    digit.classList.add('flip-in');
+
+    setTimeout(() => {
+      digit.classList.remove('flip-in');
+    }, 150);
+  }, 150);
+}
+
+/**
+ * Update cycle digit color based on step
+ */
+function updateCycleDigitColor(step) {
+  const digit = elements.cycleDigit;
+  if (!digit || compas === null) return;
+
+  digit.classList.remove('playing-zero', 'playing-active');
+  digit.classList.add(step % compas === 0 ? 'playing-zero' : 'playing-active');
+}
+
+/**
+ * Update total length display with flip animation
+ */
+function updateTotalLengthDisplay(step) {
+  const digit = elements.totalLengthDigit;
+  if (!digit) return;
+
+  // Flip animation
+  digit.classList.add('flip-out');
+
+  setTimeout(() => {
+    digit.textContent = String(step + 1);  // 1-indexed
+    digit.classList.remove('flip-out');
+    digit.classList.add('flip-in');
+
+    // Color: blue if step+1 === 1, orange otherwise
+    digit.classList.remove('playing-zero', 'playing-active');
+    digit.classList.add(step === 0 ? 'playing-zero' : 'playing-active');
+
+    setTimeout(() => {
+      digit.classList.remove('flip-in');
+    }, 150);
+  }, 150);
+}
+
+/**
+ * Clear all playback highlights
+ */
+function clearPlaybackHighlights() {
+  // Cells
+  elements.matrixContainer?.querySelectorAll('.grid-cell.playing').forEach(cell => {
+    cell.classList.remove('playing');
+  });
+
+  // Timeline numbers
+  elements.timelineContainer?.querySelectorAll('.timeline-number').forEach(el => {
+    el.classList.remove('active', 'active-zero');
+  });
+
+  // Cycle digit
+  elements.cycleDigit?.classList.remove('playing-zero', 'playing-active', 'flip-out', 'flip-in');
+
+  // Total length digit
+  elements.totalLengthDigit?.classList.remove('playing-zero', 'playing-active', 'flip-out', 'flip-in');
+
+  // Hide playhead
+  hidePlayhead();
+}
+
+/**
+ * Get or create the playhead element (inside grid-matrix for proper scrolling)
+ * @returns {HTMLElement|null}
+ */
+function getPlayhead() {
+  if (!elements.matrixContainer) return null;
+
+  const gridMatrix = elements.matrixContainer.querySelector('.grid-matrix');
+  if (!gridMatrix) return null;
+
+  let playhead = gridMatrix.querySelector('.playhead');
+  if (!playhead) {
+    playhead = document.createElement('div');
+    playhead.className = 'playhead hidden';
+    gridMatrix.appendChild(playhead);
+  }
+  return playhead;
+}
+
+/**
+ * Update playhead position for current step
+ * @param {number} step - Current pulse index
+ */
+function updatePlayhead(step) {
+  const playhead = getPlayhead();
+  if (!playhead) return;
+
+  const cellWidth = getCellWidth();
+  const leftPosition = step * cellWidth;
+
+  playhead.style.left = `${leftPosition}px`;
+  playhead.classList.remove('hidden');
+}
+
+/**
+ * Hide the playhead
+ */
+function hidePlayhead() {
+  const gridMatrix = elements.matrixContainer?.querySelector('.grid-matrix');
+  const playhead = gridMatrix?.querySelector('.playhead');
+  if (playhead) {
+    playhead.classList.add('hidden');
+  }
+}
+
+// ========== PLAYBACK FUNCTIONS ==========
+
+/**
+ * Start playback with metronome + notes
+ */
+async function startPlayback() {
+  await initAudio();
+
+  const totalPulses = getTotalPulses();
+  const bpm = bpmController?.getValue() || CONFIG.DEFAULT_BPM;
+  const intervalSec = 60 / bpm;
+  const Tone = window.Tone;
+
+  if (!Tone) {
+    console.error('Tone.js not available');
+    return;
+  }
+
+  // Build map of MIDI note by pulse AND registry by pulse (MONOPHONIC: only 1 note per pulse)
+  // Key format: `${registry}-${noteIndex}-${pulseIndex}`
+  const pulseNotes = {};
+  const pulseRegistry = {};  // Maps pulse -> optimal registry to display
+  const midiOffset = CONFIG.MIDI_OFFSET;
+  const notesPerRegistry = CONFIG.NOTES_PER_REGISTRY;
+
+  // Helper: Get all registries where a note (noteNum, noteReg) would be visible
+  // Grid shows 15 notes with 0rN centered at position 7
+  const TOTAL_VISIBLE = 15;
+  const ZERO_POS = 7;
+
+  function getVisibleRegistries(noteNum, noteReg) {
+    const visibleIn = [];
+    // Check registries in valid range
+    for (let testReg = CONFIG.MIN_REGISTRO; testReg <= CONFIG.MAX_REGISTRO; testReg++) {
+      // For each visual position (0-14), check if it matches our note
+      for (let visualIdx = 0; visualIdx < TOTAL_VISIBLE; visualIdx++) {
+        const offset = visualIdx - ZERO_POS;
+        let checkNote, checkReg;
+
+        if (offset < 0) {
+          const absOffset = Math.abs(offset);
+          checkNote = (notesPerRegistry - absOffset % notesPerRegistry) % notesPerRegistry;
+          checkReg = testReg - Math.ceil(absOffset / notesPerRegistry);
+          if (absOffset % notesPerRegistry === 0) {
+            checkNote = 0;
+            checkReg = testReg - (absOffset / notesPerRegistry) + 1;
+          }
+        } else {
+          checkNote = offset % notesPerRegistry;
+          checkReg = testReg + Math.floor(offset / notesPerRegistry);
+        }
+
+        if (checkNote === noteNum && checkReg === noteReg) {
+          visibleIn.push(testReg);
+          break; // Found in this registry, no need to check more positions
+        }
+      }
+    }
+    return visibleIn;
+  }
+
+  // Collect all notes and their possible visible registries
+  const notesInfo = [];
+  for (const key of selectedCells.keys()) {
+    const [reg, noteIndex, pulseIndex] = key.split('-').map(Number);
+    const midi = reg * notesPerRegistry + noteIndex + midiOffset;
+    const visibleIn = getVisibleRegistries(noteIndex, reg);
+    notesInfo.push({ reg, noteIndex, pulseIndex, midi, visibleIn });
+    pulseNotes[pulseIndex] = midi;
+  }
+
+  // For each pulse, choose the registry that maximizes visible notes
+  // Count how many notes are visible in each registry
+  const registryCounts = {};
+  for (let r = CONFIG.MIN_REGISTRO; r <= CONFIG.MAX_REGISTRO; r++) {
+    registryCounts[r] = 0;
+  }
+  for (const info of notesInfo) {
+    for (const visReg of info.visibleIn) {
+      registryCounts[visReg] = (registryCounts[visReg] || 0) + 1;
+    }
+  }
+
+  // For each note, pick the registry with highest note count among its visible options
+  for (const info of notesInfo) {
+    if (info.visibleIn.length === 0) {
+      // Fallback to original registry if not visible anywhere
+      pulseRegistry[info.pulseIndex] = info.reg;
+    } else if (info.visibleIn.length === 1) {
+      // Only one option
+      pulseRegistry[info.pulseIndex] = info.visibleIn[0];
+    } else {
+      // Multiple options: pick the one with most total visible notes
+      let bestReg = info.visibleIn[0];
+      let bestCount = registryCounts[bestReg];
+      for (const visReg of info.visibleIn) {
+        if (registryCounts[visReg] > bestCount) {
+          bestCount = registryCounts[visReg];
+          bestReg = visReg;
+        }
+      }
+      pulseRegistry[info.pulseIndex] = bestReg;
+    }
+  }
+
+  isPlaying = true;
+  elements.playBtn?.classList.add('playing');
+
+  // Switch to stop icon
+  const iconPlay = elements.playBtn?.querySelector('.icon-play');
+  const iconStop = elements.playBtn?.querySelector('.icon-stop');
+  if (iconPlay) iconPlay.style.display = 'none';
+  if (iconStop) iconStop.style.display = 'block';
+
+  // Hide input, show cycle digit
+  const cycleCircle = document.querySelector('.cycle-circle');
+  cycleCircle?.classList.add('playing');
+
+  // Configure measure for P0 sound
+  audio.configureMeasure(compas, totalPulses);
+
+  // Apply P0 toggle state
+  const p0Enabled = window.__p1Controller?.getState() ?? true;
+  audio.setMeasureEnabled(p0Enabled);
+
+  // Scroll to first pulse at start
+  scrollToPulse(0);
+
+  audio.play(
+    totalPulses,
+    intervalSec,
+    new Set(),
+    false,  // No loop
+    (step) => {
+      // 1. Update playhead position (vertical bar like DAWs)
+      updatePlayhead(step);
+
+      // 2. Switch to registry of CURRENT pulse note immediately (so it's visible when it plays)
+      if (pulseRegistry[step] !== undefined) {
+        spinToRegistry(pulseRegistry[step]);
+      }
+
+      // 3. Highlight selected cell that plays (works across all visible registries)
+      highlightSelectedCell(step);
+
+      // 4. Highlight timeline number
+      highlightTimelineNumber(step);
+
+      // 5. Schedule registry change for NEXT pulse (anticipate after 75% of current beat)
+      const nextPulse = step + 1;
+      if (pulseRegistry[nextPulse] !== undefined && nextPulse < totalPulses) {
+        const registryChangeDelay = intervalSec * 1000 * 0.75;  // 75% of beat in ms
+        setTimeout(() => {
+          if (isPlaying) {
+            spinToRegistry(pulseRegistry[nextPulse]);
+          }
+        }, registryChangeDelay);
+      }
+
+      // 6. Auto-scroll to keep current pulse visible
+      scrollToPulse(step);
+
+      // 7. Color of cycle digit
+      updateCycleDigitColor(step);
+
+      // 8. Flip animation for cycle counter (when cycle changes)
+      const cycleNum = Math.floor(step / compas) + 1;
+      if (step > 0 && step % compas === 0) {
+        updateCycleCounter(cycleNum);
+      } else if (step === 0 && elements.cycleDigit) {
+        elements.cycleDigit.textContent = '1';
+      }
+
+      // 9. Animation for totalLengthDigit
+      updateTotalLengthDisplay(step);
+
+      // 10. Play note if exists at this pulse (MONOPHONIC: 1 note max)
+      // Duration = 1 pulse (based on BPM), with small margin to avoid overlap
+      const midi = pulseNotes[step];
+      if (midi !== undefined) {
+        const noteDuration = intervalSec * 0.95;  // 95% of pulse duration
+        audio.playNote(midi, noteDuration, Tone.now());
+      }
+    },
+    () => {
+      // onComplete - delay for last pulse to sound
+      setTimeout(() => {
+        stopPlayback();
+      }, 590);
+    }
+  );
+}
+
+/**
+ * Stop playback
+ */
+function stopPlayback() {
+  isPlaying = false;
+  elements.playBtn?.classList.remove('playing');
+
+  // Switch back to play icon
+  const iconPlay = elements.playBtn?.querySelector('.icon-play');
+  const iconStop = elements.playBtn?.querySelector('.icon-stop');
+  if (iconPlay) iconPlay.style.display = 'block';
+  if (iconStop) iconStop.style.display = 'none';
+
+  audio?.stop();
+
+  // Show input, hide cycle digit
+  const cycleCircle = document.querySelector('.cycle-circle');
+  cycleCircle?.classList.remove('playing');
+
+  // Clear all animations
+  clearPlaybackHighlights();
+
+  // Restore Longitud display
+  updateLongitud();
+
+  // Restore cycleDigit to cycles value
+  if (elements.cycleDigit && cycles !== null) {
+    elements.cycleDigit.textContent = String(cycles);
+  }
+
+  console.log('Playback stopped');
+}
+
+/**
+ * Shuffle array in place (Fisher-Yates)
+ */
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+/**
+ * Handle Random button - generate random Compás, Nº Compases, BPM with MONOPHONIC sequence
+ */
+function handleRandom() {
+  // FIX: Ensure bpmController is initialized
+  if (!bpmController) {
+    console.warn('BPM controller not initialized, skipping random');
+    return;
+  }
+
+  // Get random menu values
+  const randCompasMax = parseInt(document.getElementById('randCompasMax')?.value || CONFIG.MAX_COMPAS);
+  const randCyclesMax = parseInt(document.getElementById('randCyclesMax')?.value || CONFIG.MAX_CYCLES);
+  const randBpmMin = parseInt(document.getElementById('randBpmMin')?.value || 60);
+  const randBpmMax = parseInt(document.getElementById('randBpmMax')?.value || 180);
+
+  // Generate random values
+  compas = Math.floor(Math.random() * randCompasMax) + 1;
+  cycles = Math.floor(Math.random() * randCyclesMax) + 1;
+  const randomBpm = Math.floor(Math.random() * (randBpmMax - randBpmMin + 1)) + randBpmMin;
+
+  // Update inputs
+  elements.inputCompas.value = compas;
+  elements.inputCycle.value = cycles;
+  bpmController.setValue(randomBpm);
+
+  // Clear current selections
+  selectedCells.clear();
+
+  // Generate MONOPHONIC random sequence (max 1 note per pulse)
+  const totalPulses = getTotalPulses();
+  const totalNotes = registryController.getTotalNotes();
+
+  // Decide how many pulses will have notes (1 to min(totalPulses, 8))
+  const numSelections = Math.floor(Math.random() * Math.min(totalPulses, 8)) + 1;
+
+  // Create array of available pulses and shuffle
+  const availablePulses = Array.from({ length: totalPulses }, (_, i) => i);
+  shuffleArray(availablePulses);
+
+  // Select the first N pulses with random notes (using CURRENT registry)
+  const registry = registryController.getRegistry();
+  for (let i = 0; i < numSelections && i < availablePulses.length; i++) {
+    const pulseIdx = availablePulses[i];
+    const noteIdx = Math.floor(Math.random() * totalNotes);
+    selectedCells.set(`${registry}-${noteIdx}-${pulseIdx}`, true);
+  }
+
+  updateLongitud();
+  updateGridVisibility();
+  updateGrid();
+  savePreferences();
+
+  console.log(`Random: Compás=${compas}, Cycles=${cycles}, BPM=${randomBpm}, Selections=${numSelections}`);
+}
+
+/**
+ * Handle Reset button - clear grid and inputs (BPM stays at 100)
+ */
+function handleReset() {
+  if (isPlaying) {
+    stopPlayback();
+  }
+
+  // Clear inputs
+  compas = null;
+  cycles = null;
+  elements.inputCompas.value = '';
+  elements.inputCycle.value = '';
+
+  // Reset BPM to 100
+  if (bpmController) {
+    bpmController.setValue(CONFIG.DEFAULT_BPM);
+  }
+
+  // Clear selections
+  selectedCells.clear();
+
+  // Reset tap tempo
+  if (tapTempoHandler) {
+    tapTempoHandler.reset();
+  }
+
+  // Clear any visual highlights
+  clearPlaybackHighlights();
+
+  // Update displays
+  updateLongitud();
+  updateGridVisibility();
+  updateGrid();
+  savePreferences();
+
+  // Focus on Compás input
+  elements.inputCompas?.focus();
+
+  console.log('Reset complete');
+}
+
+// ========== SCROLL SYNCHRONIZATION ==========
+
+let isScrollSyncing = false;  // Prevent scroll sync loops
+
+function setupScrollSync() {
+  const matrix = elements.matrixContainer;
+  const timeline = elements.timelineContainer;
+  const soundline = elements.soundlineContainer;
+
+  // Horizontal sync: matrix → timeline
+  if (matrix && timeline) {
+    matrix.addEventListener('scroll', () => {
+      timeline.scrollLeft = matrix.scrollLeft;
+    });
+  }
+
+  // Vertical sync: matrix ↔ soundline (bidirectional)
+  if (matrix && soundline) {
+    matrix.addEventListener('scroll', () => {
+      if (isScrollSyncing) return;
+      isScrollSyncing = true;
+      soundline.scrollTop = matrix.scrollTop;
+      requestAnimationFrame(() => { isScrollSyncing = false; });
+    });
+
+    soundline.addEventListener('scroll', () => {
+      if (isScrollSyncing) return;
+      isScrollSyncing = true;
+      matrix.scrollTop = soundline.scrollTop;
+      requestAnimationFrame(() => { isScrollSyncing = false; });
+    });
+  }
+
+  // Block user wheel scroll on vertical containers (only programmatic scroll via spinners allowed)
+  if (matrix) {
+    matrix.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
+
+  if (soundline) {
+    soundline.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
+}
+
+/**
+ * Auto-scroll to center the current pulse during playback
+ * @param {number} pulseIndex - Current pulse being played
+ */
+function scrollToPulse(pulseIndex) {
+  const matrix = elements.matrixContainer;
+  const timeline = elements.timelineContainer;
+  if (!matrix) return;
+
+  // Find the cell at this pulse to get its position
+  const cell = matrix.querySelector(`.grid-cell[data-pulse="${pulseIndex}"]`);
+  if (!cell) return;
+
+  const containerRect = matrix.getBoundingClientRect();
+
+  // Calculate the absolute left position of the cell within the scrollable area
+  const cellLeft = cell.offsetLeft;
+  const cellWidth = cell.offsetWidth;
+
+  // Target: center the cell in the visible area
+  const targetScrollLeft = cellLeft - (containerRect.width / 2) + (cellWidth / 2);
+
+  // Clamp to valid scroll range
+  const maxScroll = matrix.scrollWidth - matrix.clientWidth;
+  const newScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScroll));
+
+  // Apply smooth scroll
+  matrix.scrollLeft = newScrollLeft;
+
+  // Sync timeline
+  if (timeline) {
+    timeline.scrollLeft = newScrollLeft;
+  }
+}
+
+/**
+ * Scroll to a specific registry
+ * @param {number} targetRegistry - The registry to scroll to (3, 4, or 5)
+ * @param {boolean} animated - Whether to use smooth animation (default: false for instant)
+ * @param {boolean} updateState - Whether to update registry controller state (default: false)
+ */
+function scrollToRegistry(targetRegistry, animated = false, updateState = false) {
+  if (targetRegistry < CONFIG.MIN_REGISTRO || targetRegistry > CONFIG.MAX_REGISTRO) return;
+
+  const cellHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-cell-height')) || 32;
+
+  // Layout (7r5 to 5r2): 39 rows total
+  // - Rows 0-7: notes 7-0 of r5 (8 rows) → 0r5 at row 7
+  // - Rows 8-19: notes 11-0 of r4 (12 rows) → 0r4 at row 19
+  // - Rows 20-31: notes 11-0 of r3 (12 rows) → 0r3 at row 31
+  // - Rows 32-38: notes 11-5 of r2 (7 rows, no 0r2)
+  const note0RowMap = {
+    5: 7,   // 0r5 is at row 7
+    4: 19,  // 0r4 is at row 8 + 11 = 19
+    3: 31   // 0r3 is at row 8 + 12 + 11 = 31
+  };
+  const note0Row = note0RowMap[targetRegistry];
+
+  // We want to center note 0 in the visible area (7 rows visible above it)
+  const visibleRows = 15;
+  const centerOffset = Math.floor(visibleRows / 2);
+  const targetScrollTop = Math.max(0, (note0Row - centerOffset) * cellHeight);
+
+  if (animated) {
+    // Smooth scroll for playback
+    smoothScrollTo(elements.matrixContainer, targetScrollTop);
+    smoothScrollTo(elements.soundlineContainer, targetScrollTop);
+  } else {
+    // Instant scroll for user registry buttons
+    if (elements.matrixContainer) elements.matrixContainer.scrollTop = targetScrollTop;
+    if (elements.soundlineContainer) elements.soundlineContainer.scrollTop = targetScrollTop;
+  }
+
+  // Only update state when explicitly requested (e.g., during init or playback)
+  if (updateState) {
+    registryController.setRegistry(targetRegistry);
+    elements.inputRegistro.value = targetRegistry;
+  }
+}
+
+/**
+ * Apply the initial scroll to the default registry once the grid and soundline exist.
+ * This runs only once, after the first meaningful render (when pulses > 0).
+ */
+function maybeApplyInitialScroll() {
+  if (isInitialized) return;
+
+  const totalPulses = getTotalPulses();
+  const hasGrid = elements.matrixContainer?.querySelector('.grid-matrix');
+  const hasSoundline = elements.soundlineContainer?.querySelector('.soundline-row');
+
+  if (!hasGrid || !hasSoundline || totalPulses === 0) return;
+
+  const currentRegistry = registryController.getRegistry() ?? CONFIG.DEFAULT_REGISTRO;
+  scrollToRegistry(currentRegistry, false, true);
+  isInitialized = true;
+}
+
+/**
+ * Smooth scroll animation using requestAnimationFrame
+ * @param {HTMLElement} element - Element to scroll
+ * @param {number} targetScrollTop - Target scrollTop value
+ * @param {number} duration - Animation duration in ms (default 200)
+ */
+function smoothScrollTo(element, targetScrollTop, duration = 200) {
+  if (!element) return;
+
+  const startScrollTop = element.scrollTop;
+  const distance = targetScrollTop - startScrollTop;
+  const startTime = performance.now();
+
+  function animate(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Ease out cubic for smooth deceleration
+    const easeOut = 1 - Math.pow(1 - progress, 3);
+
+    element.scrollTop = startScrollTop + (distance * easeOut);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+/**
+ * Animated scroll to registry (used during playback)
+ * Uses smooth animation for visual continuity
+ */
+function spinToRegistry(targetRegistry) {
+  scrollToRegistry(targetRegistry, true, true);  // animated = true, updateState = true for playback
+}
+
+// ========== PREFERENCES ==========
+
+function savePreferences() {
+  preferenceStorage.save({
+    compas,
+    cycles,
+    // NOTE: Registry is NOT saved - always starts at DEFAULT_REGISTRO (4)
+    bpm: bpmController?.getValue() || CONFIG.DEFAULT_BPM,
+    selectedCells: Array.from(selectedCells.keys())
+  });
+}
+
+function loadPreferences() {
+  const prefs = preferenceStorage.load();
+  if (!prefs) return;
+
+  // NOTE: Registry is NOT restored from preferences - always starts at DEFAULT_REGISTRO (4)
+  // This ensures consistent grid position on app start
+
+  // Restore compás
+  if (prefs.compas !== undefined && prefs.compas !== null) {
+    compas = prefs.compas;
+    if (elements.inputCompas) {
+      elements.inputCompas.value = compas;
+    }
+  }
+
+  // Restore cycles
+  if (prefs.cycles !== undefined && prefs.cycles !== null) {
+    cycles = prefs.cycles;
+    if (elements.inputCycle) {
+      elements.inputCycle.value = cycles;
+    }
+  }
+
+  // Restore BPM
+  if (prefs.bpm !== undefined && bpmController && bpmController.setValue) {
+    bpmController.setValue(prefs.bpm);
+  }
+
+  // Restore selections
+  if (prefs.selectedCells && Array.isArray(prefs.selectedCells)) {
+    selectedCells.clear();
+    prefs.selectedCells.forEach(key => selectedCells.set(key, true));
+  }
+}
+
+// ========== EVENT HANDLERS SETUP ==========
+
+function setupEventHandlers() {
+  // Compás input
+  elements.inputCompas?.addEventListener('input', handleCompasChange);
+  elements.inputCompas?.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowUp') { e.preventDefault(); incrementCompas(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); decrementCompas(); }
+  });
+
+  // Compás spinners with repeat
+  if (elements.compasUp) {
+    attachSpinnerRepeat(elements.compasUp, incrementCompas);
+  }
+  if (elements.compasDown) {
+    attachSpinnerRepeat(elements.compasDown, decrementCompas);
+  }
+
+  // Cycles input
+  elements.inputCycle?.addEventListener('input', handleCyclesChange);
+  elements.inputCycle?.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowUp') { e.preventDefault(); incrementCycles(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); decrementCycles(); }
+  });
+
+  // Cycles spinners with repeat
+  if (elements.cycleUp) {
+    attachSpinnerRepeat(elements.cycleUp, incrementCycles);
+  }
+  if (elements.cycleDown) {
+    attachSpinnerRepeat(elements.cycleDown, decrementCycles);
+  }
+
+  // Registry buttons
+  elements.registroUp?.addEventListener('click', handleRegistryUp);
+  elements.registroDown?.addEventListener('click', handleRegistryDown);
+
+  // Control buttons
+  elements.playBtn?.addEventListener('click', handlePlay);
+  // NOTE: randomBtn is handled by initRandomMenu (with longpress support)
+  elements.resetBtn?.addEventListener('click', handleReset);
+
+  // Theme changes
+  document.addEventListener('sharedui:theme', () => {
+    // Theme handled automatically
+  });
+
+  // Instrument changes
+  document.addEventListener('sharedui:instrument', (e) => {
+    console.log('Instrument changed:', e.detail.instrument);
+  });
+}
+
+// ========== HOVER LABELS ==========
+
+function setupHovers() {
+  if (elements.playBtn) attachHover(elements.playBtn, { text: 'Reproducir secuencia' });
+  if (elements.randomBtn) attachHover(elements.randomBtn, { text: 'Generar secuencia aleatoria' });
+  if (elements.resetBtn) attachHover(elements.resetBtn, { text: 'Reiniciar (vaciar grid e inputs)' });
+  if (elements.registroUp) attachHover(elements.registroUp, { text: 'Registro +1' });
+  if (elements.registroDown) attachHover(elements.registroDown, { text: 'Registro -1' });
+  if (elements.compasUp) attachHover(elements.compasUp, { text: 'Compás +1' });
+  if (elements.compasDown) attachHover(elements.compasDown, { text: 'Compás -1' });
+  if (elements.cycleUp) attachHover(elements.cycleUp, { text: 'Nº Compases +1' });
+  if (elements.cycleDown) attachHover(elements.cycleDown, { text: 'Nº Compases -1' });
+}
+
+// ========== FACTORY RESET ==========
+
+registerFactoryReset({
+  storage: preferenceStorage,
+  onReset: () => {
+    // Reset to defaults
+    compas = null;
+    cycles = null;
+    registryController.setRegistry(CONFIG.DEFAULT_REGISTRO);
+    selectedCells.clear();
+
+    // Update UI
+    elements.inputCompas.value = '';
+    elements.inputCycle.value = '';
+    elements.inputRegistro.value = CONFIG.DEFAULT_REGISTRO;
+
+    if (bpmController) {
+      bpmController.setBpm(CONFIG.DEFAULT_BPM);
+    }
+
+    updateLongitud();
+    updateSoundline();
+    updateGrid();
+  }
+});
+
+// ========== INITIALIZATION ==========
+
+function bindElements() {
+  elements = {
+    // Inputs
+    inputCompas: document.getElementById('inputCompas'),
+    inputCycle: document.getElementById('inputCycle'),
+    inputRegistro: document.getElementById('inputRegistro'),
+    inputBpm: document.getElementById('inputBpm'),
+
+    // Spinners
+    compasUp: document.getElementById('compasUp'),
+    compasDown: document.getElementById('compasDown'),
+    cycleUp: document.getElementById('cycleUp'),
+    cycleDown: document.getElementById('cycleDown'),
+    registroUp: document.getElementById('registroUp'),
+    registroDown: document.getElementById('registroDown'),
+    bpmUp: document.getElementById('bpmUp'),
+    bpmDown: document.getElementById('bpmDown'),
+
+    // Displays
+    totalLengthDigit: document.getElementById('totalLengthDigit'),
+    cycleDigit: document.getElementById('cycleDigit'),
+
+    // Grid containers
+    soundlineContainer: document.getElementById('soundlineContainer'),
+    matrixContainer: document.getElementById('matrixContainer'),
+    timelineContainer: document.getElementById('timelineContainer'),
+
+    // Control buttons
+    playBtn: document.getElementById('playBtn'),
+    randomBtn: document.getElementById('randomBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    tapTempoBtn: document.getElementById('tapTempoBtn')
+  };
+}
+
+function initApp() {
+  console.log('Initializing App19: Plano Musical');
+
+  // Bind DOM elements
+  bindElements();
+
+  // Debug: Check if critical elements exist
+  console.log('Elements found:', {
+    inputBpm: !!elements.inputBpm,
+    bpmUp: !!elements.bpmUp,
+    bpmDown: !!elements.bpmDown,
+    cycleDigit: !!elements.cycleDigit,
+    inputRegistro: !!elements.inputRegistro,
+    soundlineContainer: !!elements.soundlineContainer,
+    matrixContainer: !!elements.matrixContainer
+  });
+
+  // Initialize registry with default
+  registryController.setRegistry(CONFIG.DEFAULT_REGISTRO);
+  if (elements.inputRegistro) {
+    elements.inputRegistro.value = CONFIG.DEFAULT_REGISTRO;
+  }
+
+  // Initialize BPM controller (only if elements exist)
+  if (elements.inputBpm && elements.bpmUp && elements.bpmDown) {
+    bpmController = createBpmController({
+      inputEl: elements.inputBpm,
+      upBtn: elements.bpmUp,
+      downBtn: elements.bpmDown,
+      min: CONFIG.MIN_BPM,
+      max: CONFIG.MAX_BPM,
+      defaultValue: CONFIG.DEFAULT_BPM,
+      onChange: (bpm) => {
+        console.log('BPM changed to:', bpm);
+        savePreferences();
+      }
+    });
+    bpmController.attach();
+  } else {
+    console.warn('BPM controller not initialized - missing DOM elements');
+  }
+
+  // Initialize cycle counter for playback
+  if (elements.cycleDigit) {
+    cycleCounter = createCycleCounter({ element: elements.cycleDigit });
+  }
+
+  // Initialize P1 Toggle (Pulse 0 special sound) - MUST be before mixer init
+  const startIntervalToggle = document.getElementById('startIntervalToggle');
+  const startSoundRow = document.querySelector('.interval-select-row');
+  if (startIntervalToggle && startSoundRow) {
+    window.__p1Controller = initP1ToggleUI({
+      checkbox: startIntervalToggle,
+      startSoundRow,
+      storageKey: 'app19:p1Toggle',
+      onChange: async (enabled) => {
+        const audioInstance = await initAudio();
+        if (audioInstance && typeof audioInstance.setMeasureEnabled === 'function') {
+          audioInstance.setMeasureEnabled(enabled);
+        }
+      }
+    });
+  }
+
+  // Initialize tap tempo handler
+  if (elements.tapTempoBtn) {
+    tapTempoHandler = createTapTempoHandler({
+      getAudioInstance: initAudio,
+      tapBtn: elements.tapTempoBtn,
+      tapHelp: null,  // Disable help label - causes layout shift in App19
+      onBpmDetected: (newBpm) => {
+        const clampedBpm = Math.min(CONFIG.MAX_BPM, Math.max(CONFIG.MIN_BPM, Math.round(newBpm)));
+        bpmController?.setValue(clampedBpm);
+        savePreferences();
+      }
+    });
+    tapTempoHandler.attach();
+    elements.tapTempoBtn.style.display = '';  // Show button
+  }
+
+  // Mixer integration (longpress on play button)
+  const mixerMenu = document.getElementById('mixerMenu');
+  if (mixerMenu && elements.playBtn) {
+    initMixerMenu({
+      menu: mixerMenu,
+      triggers: [elements.playBtn],
+      channels: [
+        { id: 'pulse', label: 'Pulso', allowSolo: true },
+        { id: 'instrument', label: 'Piano', allowSolo: true },
+        { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
+      ]
+    });
+
+    // Subscribe to mixer changes for persistence
+    subscribeMixer((snapshot) => {
+      clearTimeout(mixerSaveTimeout);
+      mixerSaveTimeout = setTimeout(() => {
+        localStorage.setItem(MIXER_STORAGE_KEY, JSON.stringify(snapshot));
+      }, 100);
+    });
+
+    // Load mixer state
+    loadMixerState();
+  }
+
+  // Random menu (longpress to open configuration)
+  const randomMenu = document.getElementById('randomMenu');
+  if (elements.randomBtn && randomMenu) {
+    initRandomMenu(elements.randomBtn, randomMenu, handleRandom);
+  }
+
+  // Load saved preferences
+  loadPreferences();
+
+  // Setup event handlers
+  setupEventHandlers();
+
+  // Setup hover labels
+  setupHovers();
+
+  // Setup scroll synchronization
+  setupScrollSync();
+
+  // Initial renders
+  updateLongitud();
+  updateGridVisibility();
+  updateSoundline();
+  updateGrid();
+
+  // Focus on Compás input
+  elements.inputCompas?.focus();
+
+  console.log('App19 initialized');
+}
+
+/**
+ * Load mixer state from localStorage
+ */
+function loadMixerState() {
+  try {
+    const saved = localStorage.getItem(MIXER_STORAGE_KEY);
+    if (!saved) return;
+    const state = JSON.parse(saved);
+
+    if (window.NuzicMixer) {
+      if (state.master !== undefined) {
+        window.NuzicMixer.setMasterVolume(state.master);
+      }
+      ['pulse', 'instrument'].forEach(ch => {
+        if (state[ch]) {
+          window.NuzicMixer.setChannelVolume?.(ch, state[ch].volume ?? 1);
+          window.NuzicMixer.setChannelMute?.(ch, state[ch].muted ?? false);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('Failed to load mixer state:', e);
+  }
+}
+
+// Execute when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}

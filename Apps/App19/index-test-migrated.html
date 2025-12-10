@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plano Modular (TEST MIGRATED)</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="../../libs/musical-grid/musical-grid.css" />
+  <!-- Estilos del módulo plano-modular -->
+  <link rel="stylesheet" href="../../libs/plano-modular/plano-modular.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+  <style>
+    /* Ajuste para integrar plano-modular con el layout de App19 */
+    .plano-container {
+      grid-column: 1 / -1;
+      grid-row: 1 / -1;
+    }
+
+    /* Ocultar contenedores originales si existen */
+    #soundlineContainer, #gridArea, #matrixContainer, #timelineContainer {
+      display: none !important;
+    }
+
+    /* Banner de test */
+    .test-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #EA570C;
+      color: white;
+      text-align: center;
+      padding: 4px;
+      font-size: 12px;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body data-theme="system">
+  <div class="test-banner">TEST: Versión migrada a plano-modular</div>
+  <div id="app-root" style="margin-top: 24px;"></div>
+
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    // Set defaults in localStorage BEFORE header initializes
+    const app19Prefs = localStorage.getItem('app19-preferences');
+    if (!app19Prefs) {
+      localStorage.setItem('app19-preferences', JSON.stringify({
+        selectedInstrument: 'piano',
+        selectColor: '#E4570C',
+        registry: 4,
+        bpm: 100
+      }));
+    }
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Plano Modular (TEST)',
+      showSelectColor: true,
+      showAccent: false,
+      showComplexFractions: false,
+      hideT: true,
+      hideLeds: true,
+      showCircularTimelineToggle: false,
+      showHoverToggle: false,
+      showIntervalLinesToggle: false,
+      showStartSoundDropdown: true,
+      showInstrumentDropdown: true,
+      showP1Toggle: true,
+      showPulseToggle: true,
+      showPolyphonyToggle: false,
+      controlsLayout: {
+        mode: 'vertical'
+      },
+      randomMenuContent: `
+        <label>
+          <span>Compás máximo</span>
+          <input type="number" id="randCompasMax" value="7" min="1" max="7">
+        </label>
+        <label>
+          <span>Nº Compases máximo</span>
+          <input type="number" id="randCyclesMax" value="4" min="1" max="4">
+        </label>
+        <label>
+          <span>BPM mínimo</span>
+          <input type="number" id="randBpmMin" value="60" min="30" max="300">
+        </label>
+        <label>
+          <span>BPM máximo</span>
+          <input type="number" id="randBpmMax" value="180" min="30" max="300">
+        </label>
+      `
+    });
+
+    // Load selection color BEFORE header initializes
+    const app19PrefsJson = localStorage.getItem('app19-preferences');
+    const app19PrefsObj = app19PrefsJson ? JSON.parse(app19PrefsJson) : {};
+    const storedColor = app19PrefsObj.selectColor || '#E4570C';
+    document.documentElement.style.setProperty('--select-color', storedColor);
+
+    initHeader();
+
+    // After header is initialized, sync color picker value
+    const selectColor = document.getElementById('selectColor');
+    if (selectColor) {
+      selectColor.value = storedColor;
+    }
+
+    // Remove template-generated elements we don't need
+    document.querySelector('.middle')?.remove();
+
+    // Replace .inputs section with our custom layout (Compás, Nº Compases, Longitud)
+    const inputsSection = document.querySelector('.inputs');
+    if (inputsSection) {
+      inputsSection.innerHTML = `
+        <div class="param compas">
+          <span class="abbr">Compás</span>
+          <div class="circle">
+            <input id="inputCompas" type="number" min="1" max="7" value="" />
+            <div class="spinner">
+              <button id="compasUp" class="spin up" type="button" aria-label="Incrementar Compás"></button>
+              <button id="compasDown" class="spin down" type="button" aria-label="Decrementar Compás"></button>
+            </div>
+          </div>
+        </div>
+        <div class="param cycle-display">
+          <span class="abbr">Nº Compases</span>
+          <div class="circle cycle-circle">
+            <input id="inputCycle" type="number" min="1" max="4" value="" />
+            <div class="cycle-counter__digit" id="cycleDigit"></div>
+            <div class="spinner">
+              <button id="cycleUp" class="spin up" type="button" aria-label="Incrementar Nº Compases"></button>
+              <button id="cycleDown" class="spin down" type="button" aria-label="Decrementar Nº Compases"></button>
+            </div>
+          </div>
+        </div>
+        <div class="total-length-inline" id="totalLengthParam">
+          <div class="circle">
+            <span class="total-length__digit" id="totalLengthDigit">--</span>
+          </div>
+          <span class="abbr">Longitud</span>
+        </div>
+      `;
+    }
+
+    // Extract .controls from timeline-wrapper and restructure for 2-column layout
+    const timelineWrapper = document.querySelector('.timeline-wrapper');
+    const controls = timelineWrapper?.querySelector('.controls');
+
+    console.log('Template restructure:', {
+      timelineWrapper: !!timelineWrapper,
+      controls: !!controls
+    });
+
+    if (controls && timelineWrapper) {
+      // Move controls out of wrapper temporarily
+      timelineWrapper.before(controls);
+
+      // Clear timeline-wrapper and rebuild with 2-column structure
+      timelineWrapper.innerHTML = `
+        <!-- Left Column: Registry + Controls -->
+        <div class="left-column" id="leftColumn">
+          <!-- Registry control -->
+          <div class="param registro" id="registroParam">
+            <span class="abbr">Registro</span>
+            <div class="circle">
+              <input id="inputRegistro" type="number" min="3" max="5" value="4" readonly />
+            </div>
+            <div class="registro-nav">
+              <button id="registroUp" class="spin up" type="button" aria-label="Registro +1"></button>
+              <button id="registroDown" class="spin down" type="button" aria-label="Registro -1"></button>
+            </div>
+          </div>
+
+          <!-- Controls will be inserted here -->
+          <div class="controls-container" id="controlsContainer"></div>
+
+          <!-- BPM inline at bottom -->
+          <div class="bpm-inline" id="bpmParam">
+            <span class="abbr">BPM</span>
+            <div class="circle">
+              <input id="inputBpm" type="number" min="30" max="300" value="100" />
+              <div class="spinner">
+                <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
+                <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Grid 2D (plano-modular renders here) -->
+        <div class="right-column" id="rightColumn">
+          <!-- plano-modular will render its grid here -->
+        </div>
+      `;
+
+      // Move controls into the left column
+      const controlsContainer = document.getElementById('controlsContainer');
+      if (controlsContainer && controls) {
+        controlsContainer.appendChild(controls);
+      }
+    } else {
+      console.error('Failed to restructure template - timelineWrapper or controls not found');
+    }
+
+    // Add tap tempo button if not present (hidden by default, shown when BPM visible)
+    const controlGroup = document.querySelector('.controls');
+    if (controlGroup) {
+      // Check if tap button exists
+      let tapBtn = controlGroup.querySelector('#tapTempoBtn');
+      if (tapBtn) {
+        tapBtn.style.display = 'none'; // Hidden by default
+      }
+
+      // Add tap help span if not present
+      if (!controlGroup.querySelector('#tapHelp')) {
+        const tapHelp = document.createElement('span');
+        tapHelp.id = 'tapHelp';
+        tapHelp.style.display = 'none';
+        controlGroup.appendChild(tapHelp);
+      }
+    }
+
+    // Load the MIGRATED version
+    import('./main-migrated.js');
+  </script>
+
+  <!-- Rendimiento Audio (menú flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <!-- Long-press para abrir el mixer -->
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+</body>
+</html>
