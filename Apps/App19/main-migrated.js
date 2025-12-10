@@ -646,62 +646,74 @@ function loadPreferences() {
 
 // ========== EVENT HANDLERS SETUP ==========
 
+// Helper functions for spinners
+function incrementCompas() {
+  if (compas === null) compas = 0;
+  compas = Math.min(CONFIG.MAX_COMPAS, compas + 1);
+  elements.inputCompas.value = compas;
+  handleCompasChange();
+}
+
+function decrementCompas() {
+  if (compas === null) return;
+  compas = Math.max(CONFIG.MIN_COMPAS, compas - 1);
+  elements.inputCompas.value = compas;
+  handleCompasChange();
+}
+
+function incrementCycles() {
+  if (cycles === null) cycles = 0;
+  cycles = Math.min(CONFIG.MAX_CYCLES, cycles + 1);
+  elements.inputCycle.value = cycles;
+  handleCyclesChange();
+}
+
+function decrementCycles() {
+  if (cycles === null) return;
+  cycles = Math.max(CONFIG.MIN_CYCLES, cycles - 1);
+  elements.inputCycle.value = cycles;
+  handleCyclesChange();
+}
+
 function setupEventHandlers() {
-  // Compás input
+  // Compás input with arrow keys
   elements.inputCompas?.addEventListener('input', handleCompasChange);
   elements.inputCompas?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      incrementCompas();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      decrementCompas();
+    } else if (e.key === 'Enter') {
       elements.inputCycle?.focus();
       elements.inputCycle?.select();
     }
   });
 
-  // Compás spinners
-  if (elements.compasUp && elements.compasDown) {
-    attachSpinnerRepeat(elements.compasUp, elements.compasDown, {
-      onIncrement: () => {
-        if (compas === null) compas = 0;
-        compas = Math.min(CONFIG.MAX_COMPAS, compas + 1);
-        elements.inputCompas.value = compas;
-        handleCompasChange();
-      },
-      onDecrement: () => {
-        if (compas === null) return;
-        compas = Math.max(CONFIG.MIN_COMPAS, compas - 1);
-        elements.inputCompas.value = compas;
-        handleCompasChange();
-      }
-    });
-  }
+  // Compás spinners - correct API: attachSpinnerRepeat(element, callback)
+  attachSpinnerRepeat(elements.compasUp, incrementCompas);
+  attachSpinnerRepeat(elements.compasDown, decrementCompas);
 
-  // Cycles input
+  // Cycles input with arrow keys
   elements.inputCycle?.addEventListener('input', handleCyclesChange);
+  elements.inputCycle?.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      incrementCycles();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      decrementCycles();
+    }
+  });
 
-  // Cycles spinners
-  if (elements.cycleUp && elements.cycleDown) {
-    attachSpinnerRepeat(elements.cycleUp, elements.cycleDown, {
-      onIncrement: () => {
-        if (cycles === null) cycles = 0;
-        cycles = Math.min(CONFIG.MAX_CYCLES, cycles + 1);
-        elements.inputCycle.value = cycles;
-        handleCyclesChange();
-      },
-      onDecrement: () => {
-        if (cycles === null) return;
-        cycles = Math.max(CONFIG.MIN_CYCLES, cycles - 1);
-        elements.inputCycle.value = cycles;
-        handleCyclesChange();
-      }
-    });
-  }
+  // Cycles spinners - correct API: attachSpinnerRepeat(element, callback)
+  attachSpinnerRepeat(elements.cycleUp, incrementCycles);
+  attachSpinnerRepeat(elements.cycleDown, decrementCycles);
 
-  // Registry spinners (each button needs its own attachSpinnerRepeat)
-  if (elements.registroUp) {
-    attachSpinnerRepeat(elements.registroUp, () => handleRegistryChange(1));
-  }
-  if (elements.registroDown) {
-    attachSpinnerRepeat(elements.registroDown, () => handleRegistryChange(-1));
-  }
+  // Registry buttons - simple click events (not spinners, as in original)
+  elements.registroUp?.addEventListener('click', () => handleRegistryChange(1));
+  elements.registroDown?.addEventListener('click', () => handleRegistryChange(-1));
 
   // Play button
   elements.playBtn?.addEventListener('click', togglePlayback);
