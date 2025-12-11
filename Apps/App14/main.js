@@ -15,10 +15,12 @@ const MAX_IS = 4; // Màxim 4 intervals
 
 // ========== ESTAT ==========
 let isPlaying = false;
+let userStopped = false; // Flag per indicar que l'usuari ha parat manualment
 let piano = null;
 let currentIntervals = []; // Array de valors iS entrats
 let currentHighlights = [];
 let currentIntervalElements = [];
+let activeAnimationTimeouts = []; // Track active animation timeouts
 
 // Referències DOM
 let isEditor = null;
@@ -126,41 +128,97 @@ function clearHighlights() {
 }
 
 /**
- * Create vertical interval line between two notes
+ * Create vertical interval line between two notes with directional animation
+ * La barra creix des de la nota origen cap a la nota destí
+ * @param {number} note1Index - Nota origen (primer del parell)
+ * @param {number} note2Index - Nota destí (segon del parell)
  */
-function createIntervalLine(note1Index, note2Index) {
-  const minNote = Math.min(note1Index, note2Index);
-  const maxNote = Math.max(note1Index, note2Index);
+function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeats = 2) {
+  // getNotePosition retorna el BOTTOM de la cel·la
+  // Per centrar, restem la meitat de l'alçada d'una cel·la (pujar mig cel·la)
+  const cellHeight = 100 / 12; // ≈ 8.33%
+  const halfCell = cellHeight / 2; // ≈ 4.17%
 
-  const minPos = soundline.getNotePosition(minNote);
-  const maxPos = soundline.getNotePosition(maxNote);
+  const pos1 = soundline.getNotePosition(note1Index);
+  const pos2 = soundline.getNotePosition(note2Index);
+
+  // Centre de cada cel·la = bottom - halfCell
+  const center1 = pos1 - halfCell;
+  const center2 = pos2 - halfCell;
 
   const intervalBar = document.createElement('div');
   intervalBar.className = 'interval-bar-vertical';
   intervalBar.style.position = 'absolute';
-
-  const padding = 1.5;
-  intervalBar.style.top = `${maxPos + padding}%`;
-  intervalBar.style.height = `${(minPos - maxPos) - (padding * 2)}%`;
   intervalBar.style.left = '160px';
   intervalBar.style.width = '4px';
 
+  // Alçada final: distància entre els dos centres
+  const finalHeight = Math.abs(center1 - center2);
+
+  // Durada de l'animació en segons (per defecte 2 beats)
+  const animationDuration = (60 / FIXED_BPM) * durationBeats;
+
+  // Delay abans de començar l'animació (1 beat per defecte)
+  const delayMs = (60 / FIXED_BPM) * delayBeats * 1000;
+
+  // Determinar direcció: positiu (puja, note2 > note1) o negatiu (baixa)
+  // En la soundline, nota 0 està a BAIX (% alt), nota 11 a DALT (% baix)
+  const isAscending = note2Index > note1Index;
+
+  if (isAscending) {
+    // Interval positiu: nota puja (de baix a dalt en pantalla)
+    // center1 > center2 (origen té % més alt = més avall)
+    // Posicionem el BOTTOM de la barra al centre de l'origen
+    const bottomPos = 100 - center1;
+    intervalBar.style.bottom = `${bottomPos}%`;
+    intervalBar.style.top = 'auto';
+    intervalBar.style.height = '0%';
+  } else {
+    // Interval negatiu: nota baixa (de dalt a baix en pantalla)
+    // center1 < center2 (origen té % més baix = més amunt)
+    // Posicionem el TOP de la barra al centre de l'origen
+    intervalBar.style.top = `${center1}%`;
+    intervalBar.style.height = '0%';
+  }
+
   soundline.element.appendChild(intervalBar);
   currentIntervalElements.push(intervalBar);
+
+  // Animar l'alçada després del delay
+  const timeoutId = setTimeout(() => {
+    requestAnimationFrame(() => {
+      intervalBar.style.transition = `height ${animationDuration}s ease-out`;
+      intervalBar.style.height = `${finalHeight}%`;
+    });
+  }, delayMs);
+  activeAnimationTimeouts.push(timeoutId);
 }
 
 /**
- * Show interval number with direction
+ * Show interval number with direction (with delay)
  */
-function showIntervalNumber(note1Index, note2Index) {
+function showIntervalNumber(note1Index, note2Index, delayBeats = 1) {
   const interval = note2Index - note1Index;
   const absInterval = Math.abs(interval);
   const direction = interval > 0 ? '+' : interval < 0 ? '-' : '';
 
+  // Calcular centre de cada cel·la (igual que createIntervalLine)
+  const cellHeight = 100 / 12;
+  const halfCell = cellHeight / 2;
+
   const pos1 = soundline.getNotePosition(note1Index);
   const pos2 = soundline.getNotePosition(note2Index);
-  const centerY = (pos1 + pos2) / 2;
 
+  // Centre de cada cel·la
+  const center1 = pos1 - halfCell;
+  const center2 = pos2 - halfCell;
+
+  // Punt mig entre els dos centres
+  const centerY = (center1 + center2) / 2;
+
+  const delayMs = (60 / FIXED_BPM) * delayBeats * 1000;
+
+  // Crear element però no mostrar-lo encara
   const intervalNum = document.createElement('div');
   intervalNum.className = 'interval-number';
   intervalNum.textContent = `${direction}${absInterval}`;
@@ -168,9 +226,17 @@ function showIntervalNumber(note1Index, note2Index) {
   intervalNum.style.top = `${centerY}%`;
   intervalNum.style.left = (absInterval === 0 || absInterval === 1) ? '220px' : '180px';
   intervalNum.style.transform = 'translateY(-50%)';
+  intervalNum.style.opacity = '0';
 
   soundline.element.appendChild(intervalNum);
   currentIntervalElements.push(intervalNum);
+
+  // Mostrar després del delay
+  const timeoutId = setTimeout(() => {
+    intervalNum.style.transition = 'opacity 0.2s ease';
+    intervalNum.style.opacity = '1';
+  }, delayMs);
+  activeAnimationTimeouts.push(timeoutId);
 }
 
 // ========== EDITOR iS ==========
@@ -282,11 +348,17 @@ function handleIsInput(e, index) {
   currentIntervals[index] = numValue;
   updateInputStates();
 
-  // Auto-avançar al següent input
+  // Auto-avançar al següent input amb delay de 500ms
+  // Això permet temps per escriure números de dos dígits (10, 11)
   if (index < MAX_IS - 1) {
     const nextInput = isInputs[index + 1];
     if (nextInput && nextInput.value === '') {
-      setTimeout(() => nextInput.focus(), 50);
+      setTimeout(() => {
+        // Només avançar si l'input actual segueix amb valor i el següent segueix buit
+        if (input.value !== '' && nextInput.value === '') {
+          nextInput.focus();
+        }
+      }, 500);
     }
   }
 }
@@ -416,9 +488,11 @@ async function handlePlay() {
   // Si ja estem reproduint, STOP
   if (isPlaying) {
     isPlaying = false;
+    userStopped = true; // Marcar que l'usuari ha parat manualment
     updateControlsState();
-    clearHighlights();
-    clearIntervalElements();
+    // NO esborrem els elements - deixem que l'animació acabi i es mantingui
+    // clearHighlights();
+    // clearIntervalElements();
     return;
   }
 
@@ -434,32 +508,35 @@ async function handlePlay() {
   if (!piano) return;
 
   isPlaying = true;
+  userStopped = false; // Reset flag per nova reproducció
   updateControlsState();
 
-  // Netejar visualització anterior
+  // Netejar visualització anterior i timeouts pendents
+  activeAnimationTimeouts.forEach(id => clearTimeout(id));
+  activeAnimationTimeouts = [];
   clearHighlights();
   clearIntervalElements();
 
   try {
     const Tone = window.Tone;
-    const intervalSec = 60 / FIXED_BPM;
-    const noteDuration = intervalSec * 0.9;
+    const beatSec = 60 / FIXED_BPM;
 
     // Nota inicial sempre 0
     let currentNote = getStartingNote();
 
-    // Tocar primera nota (nota 0)
+    // Tocar primera nota (nota 0) - dura 1 beat
     const note1 = getNoteName(currentNote);
-    piano.triggerAttackRelease(note1, noteDuration, Tone.now());
+    piano.triggerAttackRelease(note1, beatSec * 0.9, Tone.now());
     highlightController.highlightNote(currentNote, 999999);
     currentHighlights.push(currentNote);
 
-    await sleep(intervalSec * 1000);
+    await sleep(beatSec * 1000);
 
     // Tocar cada interval
     // Visualització per parells: sempre mostrem origen → destí
     // El destí d'un parell es converteix en l'origen del següent
     // Al final, l'últim parell es queda il·luminat
+    // Timings: 1a nota 1 beat, 2a-4a nota 3 beats, 5a nota 1 beat
     for (let i = 0; i < intervals.length; i++) {
       if (!isPlaying) break;
 
@@ -489,19 +566,26 @@ async function handlePlay() {
         if (rect) rect.classList.remove('highlight');
       }
 
+      // Determinar si és l'última nota (5a nota = index 3, ja que index comença a 0)
+      const isLastNote = i === intervals.length - 1;
+
       // Mostrar interval (línia i número)
+      // L'animació comença 1 beat després i dura 2 beats
       if (previousNote !== currentNote) {
-        createIntervalLine(previousNote, currentNote);
+        createIntervalLine(previousNote, currentNote, 1, 2);
       }
       showIntervalNumber(previousNote, currentNote);
 
       // Tocar nova nota i mostrar highlight
       const note2 = getNoteName(currentNote);
-      piano.triggerAttackRelease(note2, noteDuration, Tone.now());
+      // Durada de la nota: última nota 1 beat, resta 3 beats
+      const noteDurationBeats = isLastNote ? 1 : 3;
+      piano.triggerAttackRelease(note2, beatSec * noteDurationBeats * 0.9, Tone.now());
       highlightController.highlightNote(currentNote, 999999);
       currentHighlights.push(currentNote);
 
-      await sleep(intervalSec * 1000);
+      // Esperar segons la nota: última nota 1 beat, resta 3 beats
+      await sleep(beatSec * noteDurationBeats * 1000);
     }
 
     // L'últim parell es queda il·luminat (no es neteja)
@@ -540,6 +624,11 @@ function handleReset() {
   if (isPlaying) {
     isPlaying = false;
   }
+  userStopped = false;
+
+  // Cancel·lar timeouts pendents
+  activeAnimationTimeouts.forEach(id => clearTimeout(id));
+  activeAnimationTimeouts = [];
 
   clearEditor();
   clearHighlights();
