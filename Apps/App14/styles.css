@@ -20,10 +20,11 @@
   /* Soundline sizing and positioning */
   --soundline-height: 100%; /* Altura de la soundline (100% = 625px del contenedor, 80% = 500px, etc.) */
   --soundline-offset-x: 35px; /* Ajust fi horitzontal de la soundline */
+  --timeline-offset-y: 50px; /* Ajust fi vertical de la timeline (separació de l'editor iS) */
 
   /* Ajust fi dels controls */
   --controls-offset-x: 0px;
-  --controls-offset-y: -20px;
+  --controls-offset-y: 20px;
   --controls-scale: 1;
 }
 
@@ -183,6 +184,7 @@
   justify-content: center; /* Centrar soundline */
   align-items: center;
   overflow: visible; /* Allow soundline to extend beyond 100% */
+  transform: translateY(var(--timeline-offset-y, 0px)); /* Ajust fi vertical */
 }
 
 /* Ocultar la línea horizontal del timeline (no necesaria en App14) */

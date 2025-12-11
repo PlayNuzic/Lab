@@ -348,7 +348,7 @@ function handleIsInput(e, index) {
   currentIntervals[index] = numValue;
   updateInputStates();
 
-  // Auto-avançar al següent input amb delay de 500ms
+  // Auto-avançar al següent input amb delay de 1000ms
   // Això permet temps per escriure números de dos dígits (10, 11)
   if (index < MAX_IS - 1) {
     const nextInput = isInputs[index + 1];
@@ -358,7 +358,7 @@ function handleIsInput(e, index) {
         if (input.value !== '' && nextInput.value === '') {
           nextInput.focus();
         }
-      }, 500);
+      }, 1000);
     }
   }
 }
