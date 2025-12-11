@@ -457,6 +457,9 @@ async function handlePlay() {
     await sleep(intervalSec * 1000);
 
     // Tocar cada interval
+    // Visualització per parells: sempre mostrem origen → destí
+    // El destí d'un parell es converteix en l'origen del següent
+    // Al final, l'últim parell es queda il·luminat
     for (let i = 0; i < intervals.length; i++) {
       if (!isPlaying) break;
 
@@ -473,10 +476,17 @@ async function handlePlay() {
       // Netejar elements d'interval anteriors
       clearIntervalElements();
 
-      // Esborrar highlight anterior NOMÉS si ja hem mostrat la tercera nota (i >= 1)
-      // La primera nota (índex 0 de l'array) es manté fins que apareix la tercera (i === 1)
-      if (i >= 1) {
-        clearHighlights();
+      // Per a parells: esborrem la nota ANTERIOR a l'origen actual
+      // i === 0: mostrem nota0 → nota1 (no esborrem res, nota0 ja hi és)
+      // i === 1: mostrem nota1 → nota2 (esborrem nota0, mantenim nota1)
+      // i === 2: mostrem nota2 → nota3 (esborrem nota1, mantenim nota2)
+      // i === 3: mostrem nota3 → nota4 (esborrem nota2, mantenim nota3)
+      // Sempre mantenim l'última nota del parell anterior (que és l'origen del parell actual)
+      if (i >= 1 && currentHighlights.length >= 2) {
+        // Esborrar la primera nota dels highlights (la més antiga)
+        const noteToRemove = currentHighlights.shift();
+        const rect = soundline.element.querySelector(`.note-highlight[data-note="${noteToRemove}"]`);
+        if (rect) rect.classList.remove('highlight');
       }
 
       // Mostrar interval (línia i número)
@@ -493,6 +503,8 @@ async function handlePlay() {
 
       await sleep(intervalSec * 1000);
     }
+
+    // L'últim parell es queda il·luminat (no es neteja)
 
   } catch (error) {
     console.error('Error playing sequence:', error);
