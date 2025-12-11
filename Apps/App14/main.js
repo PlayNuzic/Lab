@@ -1,27 +1,33 @@
-// App14: Intervalo Sonoro
-// Muestra intervalos sonoros entre dos notas aleatorias con visualización de línea vertical
-
+// App14: Intervalo Sonoro - Editor de seqüències d'iS amb visualització
 import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createNoteHighlightController } from '../../libs/app-common/note-highlight.js';
 import { loadPiano } from '../../libs/sound/piano.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 
-// Constants
+// ========== CONSTANTS ==========
 const MIN_NOTE = 0;
 const MAX_NOTE = 11;
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const OCTAVE = 4;
 const START_MIDI = 60; // C4
-const FIXED_BPM = 65; // BPM fijo para intervalos
+const FIXED_BPM = 65;
+const MAX_IS = 4; // Màxim 4 intervals
 
-// State
+// ========== ESTAT ==========
 let isPlaying = false;
 let piano = null;
+let currentIntervals = []; // Array de valors iS entrats
 let currentHighlights = [];
 let currentIntervalElements = [];
 
-// DOM elements
-const playBtn = document.getElementById('playBtn');
+// Referències DOM
+let isEditor = null;
+let isInputs = [];
+let playBtn = null;
+let randomBtn = null;
+let resetBtn = null;
+let tooltip = null;
+let tooltipTimeout = null;
 
 // Get timeline element from template
 const timeline = document.getElementById('timeline');
@@ -58,20 +64,9 @@ const highlightController = createNoteHighlightController({
   notes: 12
 });
 
-/**
- * Generate two random note indices
- */
-function generateRandomNotes() {
-  const note1 = Math.floor(Math.random() * (MAX_NOTE - MIN_NOTE + 1)) + MIN_NOTE;
-  const note2 = Math.floor(Math.random() * (MAX_NOTE - MIN_NOTE + 1)) + MIN_NOTE;
-  return [note1, note2];
-}
-
-/**
- * Get MIDI note value from index
- */
-function getMidiNote(noteIndex) {
-  return START_MIDI + noteIndex;
+// ========== UTILITATS ==========
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
@@ -81,6 +76,32 @@ function getNoteName(noteIndex) {
   return `${NOTE_NAMES[noteIndex]}${OCTAVE}`;
 }
 
+/**
+ * Calculate valid iS range for next interval
+ * @param {number} currentNote - Current note (0-11)
+ * @param {boolean} isFirst - Whether this is the first interval
+ * @returns {Object} - { min, max } valid iS values
+ */
+function getValidIsRange(currentNote, isFirst = false) {
+  // El primer iS sempre comença des de nota 0, per tant només pot ser positiu (0-11)
+  if (isFirst) {
+    return { min: 0, max: MAX_NOTE };
+  }
+  // iS posteriors poden ser negatius o positius
+  // La nota resultant ha d'estar dins [0, 11]
+  const minIs = MIN_NOTE - currentNote;
+  const maxIs = MAX_NOTE - currentNote;
+  return { min: minIs, max: maxIs };
+}
+
+/**
+ * Get starting note (always 0)
+ */
+function getStartingNote() {
+  return 0;
+}
+
+// ========== INTERVAL ELEMENTS ==========
 /**
  * Clear all interval elements (line and number)
  */
@@ -111,25 +132,18 @@ function createIntervalLine(note1Index, note2Index) {
   const minNote = Math.min(note1Index, note2Index);
   const maxNote = Math.max(note1Index, note2Index);
 
-  // Use the soundline API to get positions
   const minPos = soundline.getNotePosition(minNote);
   const maxPos = soundline.getNotePosition(maxNote);
 
-  // Create line element
   const intervalBar = document.createElement('div');
   intervalBar.className = 'interval-bar-vertical';
   intervalBar.style.position = 'absolute';
 
-  // Position vertically with padding to avoid covering numbers
-  // Add 15% padding on each side to keep line away from numbers
-  const padding = 1.5; // 15% of each cell height (1.5% of total)
+  const padding = 1.5;
   intervalBar.style.top = `${maxPos + padding}%`;
   intervalBar.style.height = `${(minPos - maxPos) - (padding * 2)}%`;
-
-  // Position horizontally - align with center of highlights
-  intervalBar.style.left = '160px'; // Center of highlights (120px + 40px)
+  intervalBar.style.left = '160px';
   intervalBar.style.width = '4px';
-  // NO translateY - the line should span from note to note without offset
 
   soundline.element.appendChild(intervalBar);
   currentIntervalElements.push(intervalBar);
@@ -143,20 +157,15 @@ function showIntervalNumber(note1Index, note2Index) {
   const absInterval = Math.abs(interval);
   const direction = interval > 0 ? '+' : interval < 0 ? '-' : '';
 
-  // Use the soundline API to get positions
   const pos1 = soundline.getNotePosition(note1Index);
   const pos2 = soundline.getNotePosition(note2Index);
-
-  // Calculate vertical center position between the two notes
   const centerY = (pos1 + pos2) / 2;
 
-  // Create number element
   const intervalNum = document.createElement('div');
   intervalNum.className = 'interval-number';
   intervalNum.textContent = `${direction}${absInterval}`;
   intervalNum.style.position = 'absolute';
   intervalNum.style.top = `${centerY}%`;
-  // Special positioning for ±1 and 0: 220px instead of 180px
   intervalNum.style.left = (absInterval === 0 || absInterval === 1) ? '220px' : '180px';
   intervalNum.style.transform = 'translateY(-50%)';
 
@@ -164,84 +173,215 @@ function showIntervalNumber(note1Index, note2Index) {
   currentIntervalElements.push(intervalNum);
 }
 
-/**
- * Play the two-note sequence
- */
-async function playSequence() {
-  if (isPlaying) return;
+// ========== EDITOR iS ==========
+function createIsEditor() {
+  isEditor = document.createElement('div');
+  isEditor.className = 'is-editor';
 
-  // Clear previous highlights and interval elements
-  clearHighlights();
-  clearIntervalElements();
+  // Etiqueta "iS:"
+  const label = document.createElement('span');
+  label.className = 'is-editor__label';
+  label.textContent = 'iS:';
+  isEditor.appendChild(label);
 
-  isPlaying = true;
-  playBtn.disabled = true;
+  // Contenidor d'inputs
+  const inputsContainer = document.createElement('div');
+  inputsContainer.className = 'is-editor__inputs';
+  inputsContainer.style.display = 'flex';
+  inputsContainer.style.gap = '8px';
 
-  try {
-    // Ensure audio is ready
-    await ensureToneLoaded();
+  // Crear 4 inputs
+  for (let i = 0; i < MAX_IS; i++) {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.pattern = '-?[0-9]*';
+    input.maxLength = 3; // -11 to 11
+    input.className = 'is-input';
+    input.dataset.index = i;
+    input.placeholder = '';
 
-    // Load piano if not already loaded
-    if (!piano) {
-      piano = await loadPiano();
+    // Event handlers
+    input.addEventListener('input', (e) => handleIsInput(e, i));
+    input.addEventListener('keydown', (e) => handleIsKeydown(e, i));
+    input.addEventListener('focus', () => hideTooltip());
+
+    inputsContainer.appendChild(input);
+    isInputs.push(input);
+  }
+
+  isEditor.appendChild(inputsContainer);
+
+  // Tooltip (posició fixa al body)
+  tooltip = document.createElement('div');
+  tooltip.className = 'is-tooltip';
+  document.body.appendChild(tooltip);
+
+  return isEditor;
+}
+
+function handleIsInput(e, index) {
+  const input = e.target;
+  let value = input.value.trim();
+
+  // El primer iS (index 0) NO pot ser negatiu
+  const isFirst = index === 0;
+
+  // Permetre '-' sol mentre s'escriu (però no al primer input)
+  if (value === '-') {
+    if (isFirst) {
+      input.value = '';
+      showTooltip(input, 'El primer iS debe ser entre 0 y 11', false);
     }
+    return;
+  }
 
-    // Generate two random notes
-    const [note1Index, note2Index] = generateRandomNotes();
+  // Només acceptar números i signe negatiu (negatiu només si no és el primer)
+  if (value && !/^-?\d+$/.test(value)) {
+    input.value = '';
+    return;
+  }
 
-    // Calculate timing
-    const intervalSec = 60 / FIXED_BPM;
-    const noteDuration = intervalSec * 0.9;
+  const numValue = parseInt(value);
+  if (isNaN(numValue)) {
+    currentIntervals[index] = undefined;
+    updateInputStates();
+    return;
+  }
 
-    // Get Tone instance
-    const Tone = window.Tone;
+  // El primer iS sempre comença des de nota 0
+  // Calcular la nota acumulada fins aquest punt
+  let currentNote = 0; // Nota inicial sempre 0
+  for (let i = 0; i < index; i++) {
+    if (currentIntervals[i] !== undefined) {
+      currentNote += currentIntervals[i];
+    }
+  }
 
-    // Schedule and play notes
-    const now = Tone.now();
+  // Obtenir rang vàlid
+  const range = getValidIsRange(currentNote, isFirst);
 
-    // Play first note
-    const note1 = getNoteName(note1Index);
-    piano.triggerAttackRelease(note1, noteDuration, now);
+  // Validar que el valor està dins del rang
+  if (numValue < range.min || numValue > range.max) {
+    let message;
+    if (isFirst) {
+      message = `iS debe ser entre 0 y ${range.max}`;
+    } else {
+      const minStr = range.min >= 0 ? `${range.min}` : `${range.min}`;
+      const maxStr = range.max >= 0 ? `+${range.max}` : `${range.max}`;
+      message = `iS debe estar entre ${minStr} y ${maxStr}`;
+    }
+    showTooltip(input, message, false);
+    input.value = '';
+    currentIntervals[index] = undefined;
+    updateInputStates();
+    return;
+  }
 
-    // Use the controller to create the highlight, then prevent auto-removal
-    highlightController.highlightNote(note1Index, 999999); // Large duration
-    currentHighlights.push(note1Index);
+  // Actualitzar estat
+  currentIntervals[index] = numValue;
+  updateInputStates();
 
-    // Play second note
-    const note2 = getNoteName(note2Index);
-    piano.triggerAttackRelease(note2, noteDuration, now + intervalSec);
-
-    // Highlight second note after delay
-    setTimeout(() => {
-      // Use the controller to create the highlight, then prevent auto-removal
-      highlightController.highlightNote(note2Index, 999999); // Large duration
-      currentHighlights.push(note2Index);
-
-      // Create interval visualization after both notes are highlighted
-      // Always show interval number (including "0" for same-note repetitions)
-      showIntervalNumber(note1Index, note2Index);
-
-      // Only show line when notes are different (no line for "0")
-      if (note1Index !== note2Index) {
-        createIntervalLine(note1Index, note2Index);
-      }
-    }, intervalSec * 1000);
-
-    // Re-enable play button after sequence completes
-    setTimeout(() => {
-      isPlaying = false;
-      playBtn.disabled = false;
-    }, intervalSec * 2 * 1000);
-
-  } catch (error) {
-    console.error('Error playing sequence:', error);
-    isPlaying = false;
-    playBtn.disabled = false;
+  // Auto-avançar al següent input
+  if (index < MAX_IS - 1) {
+    const nextInput = isInputs[index + 1];
+    if (nextInput && nextInput.value === '') {
+      setTimeout(() => nextInput.focus(), 50);
+    }
   }
 }
 
-// Initialize piano on first user interaction
+function handleIsKeydown(e, index) {
+  // Backspace en input buit → tornar enrere
+  if (e.key === 'Backspace' && !isInputs[index].value && index > 0) {
+    e.preventDefault();
+    isInputs[index - 1].focus();
+    return;
+  }
+
+  // Arrow keys per navegació
+  if (e.key === 'ArrowLeft' && index > 0) {
+    e.preventDefault();
+    isInputs[index - 1].focus();
+  } else if (e.key === 'ArrowRight' && index < MAX_IS - 1) {
+    e.preventDefault();
+    isInputs[index + 1].focus();
+  }
+}
+
+function updateInputStates() {
+  isInputs.forEach((input, idx) => {
+    const hasValue = currentIntervals[idx] !== undefined;
+    input.classList.toggle('has-value', hasValue);
+  });
+}
+
+function showTooltip(input, message, isSuccess = false) {
+  if (!tooltip) return;
+
+  tooltip.textContent = message;
+  tooltip.className = `is-tooltip ${isSuccess ? 'success' : 'error'} visible`;
+
+  const rect = input.getBoundingClientRect();
+  tooltip.style.left = `${rect.left + rect.width / 2}px`;
+  tooltip.style.top = `${rect.bottom + 8}px`;
+  tooltip.style.transform = 'translateX(-50%)';
+
+  clearTimeout(tooltipTimeout);
+  tooltipTimeout = setTimeout(hideTooltip, 2000);
+}
+
+function hideTooltip() {
+  if (tooltip) {
+    tooltip.classList.remove('visible');
+  }
+}
+
+function getIntervalsFromEditor() {
+  return currentIntervals.filter(v => v !== undefined);
+}
+
+function setIntervalsToEditor(intervals) {
+  currentIntervals = [];
+  isInputs.forEach((input, i) => {
+    if (intervals[i] !== undefined) {
+      input.value = intervals[i];
+      currentIntervals[i] = intervals[i];
+    } else {
+      input.value = '';
+    }
+  });
+  updateInputStates();
+}
+
+function clearEditor() {
+  currentIntervals = [];
+  isInputs.forEach(input => {
+    input.value = '';
+    input.classList.remove('has-value');
+  });
+}
+
+function focusFirstInput() {
+  if (isInputs[0]) {
+    isInputs[0].focus();
+  }
+}
+
+// ========== FLASH ANIMATION ==========
+async function flashEmptyInputs() {
+  // 3 flashes
+  for (let i = 0; i < 3; i++) {
+    isInputs.forEach(input => input.classList.add('flash'));
+    await sleep(300);
+    isInputs.forEach(input => input.classList.remove('flash'));
+    if (i < 2) await sleep(100); // Pausa entre flashes
+  }
+}
+
+// ========== AUDIO ==========
 let pianoInitialized = false;
+
 async function initializePiano() {
   if (pianoInitialized) return;
   pianoInitialized = true;
@@ -249,52 +389,227 @@ async function initializePiano() {
   try {
     await ensureToneLoaded();
     piano = await loadPiano();
-
-    // Connect volume/mute from shared header
     setupVolumeControl();
   } catch (error) {
     console.error('Error initializing piano:', error);
   }
 }
 
-/**
- * Connect header volume/mute controls to Tone.js Master
- */
 function setupVolumeControl() {
   const Tone = window.Tone;
   if (!Tone) return;
 
-  // Listen to volume changes from header slider
   window.addEventListener('sharedui:volume', (e) => {
     const volume = e.detail?.value ?? 1;
-    // Convert linear 0-1 to dB (-Infinity to 0)
     const dB = volume > 0 ? 20 * Math.log10(volume) : -Infinity;
     Tone.getDestination().volume.value = dB;
   });
 
-  // Listen to mute toggle from header speaker icon
   window.addEventListener('sharedui:mute', (e) => {
     const muted = e.detail?.value ?? false;
     Tone.getDestination().mute = muted;
   });
 }
 
-// Event listeners
-playBtn?.addEventListener('click', async () => {
-  await initializePiano();
-  playSequence();
-});
+// ========== REPRODUCCIÓ ==========
+async function handlePlay() {
+  // Si ja estem reproduint, STOP
+  if (isPlaying) {
+    isPlaying = false;
+    updateControlsState();
+    clearHighlights();
+    clearIntervalElements();
+    return;
+  }
 
-// Initialize piano on first user interaction (for faster response)
+  const intervals = getIntervalsFromEditor();
+
+  // Si editor buit, flash i sortir
+  if (intervals.length === 0) {
+    await flashEmptyInputs();
+    return;
+  }
+
+  await initializePiano();
+  if (!piano) return;
+
+  isPlaying = true;
+  updateControlsState();
+
+  // Netejar visualització anterior
+  clearHighlights();
+  clearIntervalElements();
+
+  try {
+    const Tone = window.Tone;
+    const intervalSec = 60 / FIXED_BPM;
+    const noteDuration = intervalSec * 0.9;
+
+    // Nota inicial sempre 0
+    let currentNote = getStartingNote();
+
+    // Tocar primera nota (nota 0)
+    const note1 = getNoteName(currentNote);
+    piano.triggerAttackRelease(note1, noteDuration, Tone.now());
+    highlightController.highlightNote(currentNote, 999999);
+    currentHighlights.push(currentNote);
+
+    await sleep(intervalSec * 1000);
+
+    // Tocar cada interval
+    for (let i = 0; i < intervals.length; i++) {
+      if (!isPlaying) break;
+
+      const iS = intervals[i];
+      const previousNote = currentNote;
+      currentNote = currentNote + iS;
+
+      // Validar que la nota resultant està dins del rang
+      if (currentNote < MIN_NOTE || currentNote > MAX_NOTE) {
+        console.warn(`Nota ${currentNote} fora de rang, aturant`);
+        break;
+      }
+
+      // Netejar elements d'interval anteriors
+      clearIntervalElements();
+
+      // Esborrar highlight anterior NOMÉS si ja hem mostrat la tercera nota (i >= 1)
+      // La primera nota (índex 0 de l'array) es manté fins que apareix la tercera (i === 1)
+      if (i >= 1) {
+        clearHighlights();
+      }
+
+      // Mostrar interval (línia i número)
+      if (previousNote !== currentNote) {
+        createIntervalLine(previousNote, currentNote);
+      }
+      showIntervalNumber(previousNote, currentNote);
+
+      // Tocar nova nota i mostrar highlight
+      const note2 = getNoteName(currentNote);
+      piano.triggerAttackRelease(note2, noteDuration, Tone.now());
+      highlightController.highlightNote(currentNote, 999999);
+      currentHighlights.push(currentNote);
+
+      await sleep(intervalSec * 1000);
+    }
+
+  } catch (error) {
+    console.error('Error playing sequence:', error);
+  }
+
+  isPlaying = false;
+  updateControlsState();
+}
+
+function handleRandom() {
+  if (isPlaying) return;
+
+  // Generar entre 1 i 4 iS aleatoris vàlids
+  const numIntervals = Math.floor(Math.random() * MAX_IS) + 1;
+  const intervals = [];
+
+  // Nota inicial sempre 0
+  let currentNote = 0;
+
+  for (let i = 0; i < numIntervals; i++) {
+    const isFirst = i === 0;
+    const range = getValidIsRange(currentNote, isFirst);
+    // Generar iS aleatori dins del rang vàlid
+    const iS = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+    intervals.push(iS);
+    currentNote += iS;
+  }
+
+  setIntervalsToEditor(intervals);
+}
+
+function handleReset() {
+  if (isPlaying) {
+    isPlaying = false;
+  }
+
+  clearEditor();
+  clearHighlights();
+  clearIntervalElements();
+  focusFirstInput();
+  updateControlsState();
+}
+
+function updateControlsState() {
+  if (playBtn) {
+    // NO bloquejar el botó - ha d'estar sempre actiu per poder aturar
+    playBtn.classList.toggle('playing', isPlaying);
+
+    // Toggle icones del template (play ↔ stop)
+    const iconPlay = playBtn.querySelector('.icon-play');
+    const iconStop = playBtn.querySelector('.icon-stop');
+    if (iconPlay) iconPlay.style.display = isPlaying ? 'none' : 'block';
+    if (iconStop) iconStop.style.display = isPlaying ? 'block' : 'none';
+  }
+  if (randomBtn) {
+    randomBtn.disabled = isPlaying;
+  }
+  if (resetBtn) {
+    resetBtn.disabled = isPlaying;
+  }
+}
+
+// ========== SETUP ==========
+function setupControls() {
+  const controls = document.querySelector('.controls');
+  if (!controls) return;
+
+  playBtn = document.getElementById('playBtn');
+  randomBtn = document.getElementById('randomBtn');
+  resetBtn = document.getElementById('resetBtn');
+
+  if (playBtn) {
+    playBtn.addEventListener('click', handlePlay);
+  }
+  if (randomBtn) {
+    randomBtn.addEventListener('click', handleRandom);
+  }
+  if (resetBtn) {
+    resetBtn.addEventListener('click', handleReset);
+  }
+}
+
+// ========== INICIALITZACIÓ ==========
+function initApp() {
+  console.log('Inicialitzant App14: Intervalo Sonoro');
+
+  // Crear editor iS i inserir-lo abans del timeline
+  const editor = createIsEditor();
+  const timelineWrapper = timeline.parentElement;
+  if (timelineWrapper) {
+    timelineWrapper.insertBefore(editor, timeline);
+  }
+
+  // Setup controls
+  setupControls();
+
+  // Focus inicial
+  setTimeout(focusFirstInput, 100);
+
+  console.log('App14 inicialitzada');
+}
+
+// Initialize piano on first user interaction
 document.addEventListener('click', initializePiano, { once: true });
 document.addEventListener('touchstart', initializePiano, { once: true });
 
-// ========== CLEANUP ==========
-
+// Cleanup
 window.addEventListener('beforeunload', () => {
-  // Dispose piano sampler to free AudioBuffers
   if (piano && typeof piano.dispose === 'function') {
     piano.dispose();
     piano = null;
   }
 });
+
+// Executar quan el DOM estigui llest
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}

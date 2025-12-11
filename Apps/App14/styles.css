@@ -19,10 +19,126 @@
 
   /* Soundline sizing */
   --soundline-height: 100%; /* Altura de la soundline (100% = 625px del contenedor, 80% = 500px, etc.) */
+
+  /* Ajust fi dels controls */
+  --controls-offset-x: 0px;
+  --controls-offset-y: -20px;
+  --controls-scale: 1;
 }
 
 [data-theme="dark"] {
   --line-color: #999;
+}
+
+/* ========== EDITOR iS ========== */
+.is-editor-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px auto 30px;
+  gap: 10px;
+}
+
+.is-editor-label,
+.is-editor__label {
+  color: var(--interval-color, #4A9EFF);
+  font-weight: 700;
+  font-size: 2.8rem;
+  margin-right: 8px;
+}
+
+.is-editor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.is-input {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--interval-color, #4A9EFF);
+  border-radius: 8px;
+  background: var(--bg-input, transparent);
+  color: var(--interval-color, #4A9EFF);
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  transition: all 0.2s ease;
+  -moz-appearance: textfield;
+}
+
+.is-input::-webkit-outer-spin-button,
+.is-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.is-input:focus {
+  border-color: var(--interval-color, #4A9EFF);
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.3);
+}
+
+.is-input::placeholder {
+  color: var(--text-muted, #888);
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+
+.is-input.has-value {
+  background: rgba(74, 158, 255, 0.1);
+}
+
+/* Flash animation per caselles buides */
+@keyframes inputFlash {
+  0%, 100% {
+    border-color: var(--interval-color, #4A9EFF);
+    box-shadow: none;
+  }
+  50% {
+    border-color: var(--selection-color, #F97C39);
+    box-shadow: 0 0 12px var(--selection-color, #F97C39);
+  }
+}
+
+.is-input.flash {
+  animation: inputFlash 0.3s ease-in-out;
+}
+
+/* ========== TOOLTIP ========== */
+.is-tooltip {
+  position: fixed;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+}
+
+.is-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.is-tooltip.success {
+  background: #22C55E;
+  color: white;
+}
+
+.is-tooltip.error {
+  background: #EF4444;
+  color: white;
+}
+
+.is-tooltip.info {
+  background: var(--interval-color, #4A9EFF);
+  color: white;
 }
 
 /* ========== TWO-COLUMN LAYOUT CUSTOMIZATION ========== */
@@ -274,53 +390,50 @@
   margin-left: 4px;
 }
 
-/* ========== MOSTRAR SOLO BOTÓN PLAY ========== */
-/* App14 solo necesita el botón Play */
+/* ========== CONTROLES ========== */
+/* App14 muestra Play, Random y Reset */
 .controls #tapTempoBtn,
 .controls #loopBtn,
-.controls #randomBtn,
-.controls #resetBtn,
-.controls .random,
 .controls .loop,
 .controls .tap,
-.controls .reset,
 .controls #randomMenu,
 .controls #mixerMenu {
   display: none !important;
 }
 
-/* Asegurar que Play sea visible */
+/* Asegurar que Play, Random y Reset sean visibles */
 .controls #playBtn,
+.controls #randomBtn,
+.controls #resetBtn,
 .controls .play,
+.controls .random,
+.controls .reset,
 .controls .play-group {
   display: flex !important;
 }
 
-/* Override de .controls para App14 - mantener posicionamiento absoluto */
+/* Override de .controls para App14 */
 .controls {
-  position: relative !important;
-  top: -300px !important;
-  left: -200px !important; /* Ajustable con variable más abajo */
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 10px;
-  margin: -50px;
-  width: auto !important;
-  height: auto !important;
+  transform: translate(var(--controls-offset-x), var(--controls-offset-y)) scale(var(--controls-scale));
 }
 
-/* Override específico para App14: ajuste fino de posición del botón */
-.app14-controls-container .controls {
-  position: absolute !important;
-  top: 50% !important;
-  left: auto !important;
-  right: var(--play-btn-offset, 20px) !important;
-  transform: translateY(-50%) !important;
+/* Orden de botones: Random primero */
+.controls #randomBtn {
+  order: -1;
 }
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
+  .is-editor-container {
+    margin: 15px auto 25px;
+  }
+
+  .is-input {
+    width: 44px;
+    height: 44px;
+    font-size: 1.3rem;
+  }
+
   .timeline-wrapper {
     max-width: 100%;
     height: 400px;
@@ -360,6 +473,12 @@
 }
 
 @media (max-width: 480px) {
+  .is-input {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
   .timeline-wrapper {
     height: 350px;
     padding: 20px 15px;
