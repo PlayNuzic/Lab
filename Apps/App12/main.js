@@ -397,17 +397,17 @@ async function init() {
     },
     onCellClick: async (noteIndex, pulseIndex, cellElement) => {
       // Play MIDI note on click via audio engine
-      await initAudio();
+      const audioInstance = await initAudio();
 
-      if (!window.Tone) {
-        console.warn('Tone.js not available');
+      if (!window.Tone || !audioInstance) {
+        console.warn('Audio not available');
         return;
       }
 
       const midi = 60 + noteIndex; // C4 = MIDI 60
       const duration = (60 / currentBPM) * 0.9; // 1 pulse duration (90% for clean separation)
       const Tone = window.Tone;
-      audio.playNote(midi, duration, Tone.now());
+      audioInstance.playNote(midi, duration, Tone.now());
 
       // Check polyphony mode
       // Don't manipulate DOM directly - let syncGridFromPairs handle all visual updates

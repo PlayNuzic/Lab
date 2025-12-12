@@ -566,12 +566,12 @@ function clearDragPreview() {
  * Play a preview sound for a note with given duration
  */
 async function playNotePreview(noteIndex, iT) {
-  await initAudio();
-  if (!window.Tone) return;
+  const audioInstance = await initAudio();
+  if (!window.Tone || !audioInstance) return;
 
   const midi = 60 + noteIndex;
   const duration = (iT * (60 / currentBPM)) * 0.9;
-  audio.playNote(midi, duration, window.Tone.now());
+  audioInstance.playNote(midi, duration, window.Tone.now());
 }
 
 // fillGapsWithSilences is imported from interval-sequencer module
