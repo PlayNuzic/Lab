@@ -13,6 +13,7 @@ import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-co
 import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
 import { clearElement } from '../../libs/app-common/dom-utils.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -73,8 +74,25 @@ async function handlePlay() {
     return;
   }
 
+  // Show loading indicator if piano not yet loaded
+  const playIcon = playBtn?.querySelector('.icon-play');
+  const stopIcon = playBtn?.querySelector('.icon-stop');
+  let wasLoading = false;
+
+  if (!isPianoLoaded() && playBtn) {
+    wasLoading = true;
+    playBtn.disabled = true;
+    if (playIcon) playIcon.style.opacity = '0.5';
+  }
+
   // Ensure audio is initialized
   await initAudio();
+
+  // Restore button state after loading
+  if (wasLoading && playBtn) {
+    playBtn.disabled = false;
+    if (playIcon) playIcon.style.opacity = '1';
+  }
 
   if (!window.Tone) {
     console.error('Tone.js not available');
@@ -97,9 +115,7 @@ async function handlePlay() {
   // Disable random button during playback
   if (randomBtn) randomBtn.disabled = true;
 
-  // Switch to stop icon
-  const playIcon = playBtn.querySelector('.icon-play');
-  const stopIcon = playBtn.querySelector('.icon-stop');
+  // Switch to stop icon (playIcon and stopIcon already declared above)
   if (playIcon && stopIcon) {
     playIcon.style.display = 'none';
     stopIcon.style.display = 'block';
@@ -349,6 +365,9 @@ function injectGridEditor() {
 
 async function init() {
   console.log('Initializing App12: Plano-Sucesión...');
+
+  // Setup piano preload in background (reduces latency on first play)
+  setupPianoPreload({ delay: 300 });
 
   // Inject DOM elements
   injectGridEditor();

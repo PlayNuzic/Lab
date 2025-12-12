@@ -8,6 +8,7 @@ import { createCycleCounter } from '../../libs/app-common/cycle-counter.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { subscribeMixer } from '../../libs/sound/index.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
@@ -406,7 +407,25 @@ async function togglePlayback() {
  * Start playback
  */
 async function startPlayback() {
+  // Show loading indicator if piano not yet loaded
+  const iconPlay = elements.playBtn?.querySelector('.icon-play');
+  const iconStop = elements.playBtn?.querySelector('.icon-stop');
+  let wasLoading = false;
+
+  if (!isPianoLoaded() && elements.playBtn) {
+    wasLoading = true;
+    elements.playBtn.disabled = true;
+    if (iconPlay) iconPlay.style.opacity = '0.5';
+  }
+
   const audioInstance = await initAudio();
+
+  // Restore button state after loading
+  if (wasLoading && elements.playBtn) {
+    elements.playBtn.disabled = false;
+    if (iconPlay) iconPlay.style.opacity = '1';
+  }
+
   if (!audioInstance) return;
 
   const Tone = window.Tone;
@@ -427,9 +446,7 @@ async function startPlayback() {
   isPlaying = true;
   elements.playBtn?.classList.add('playing');
 
-  // Switch to stop icon
-  const iconPlay = elements.playBtn?.querySelector('.icon-play');
-  const iconStop = elements.playBtn?.querySelector('.icon-stop');
+  // Switch to stop icon (iconPlay and iconStop already declared above)
   if (iconPlay) iconPlay.style.display = 'none';
   if (iconStop) iconStop.style.display = 'block';
 
@@ -799,6 +816,9 @@ function bindElements() {
 
 function initApp() {
   console.log('Initializing App19: Plano Musical (Migrated)');
+
+  // Setup piano preload in background (reduces latency on first play)
+  setupPianoPreload({ delay: 300 });
 
   // Bind DOM elements
   bindElements();

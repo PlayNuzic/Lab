@@ -2,7 +2,7 @@
 // Visual melodic line with registry-based piano playback
 
 import { createSoundline } from '../../libs/app-common/soundline.js';
-import { loadPiano } from '../../libs/sound/piano.js';
+import { loadPiano, setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
@@ -235,9 +235,20 @@ async function handlePlay() {
     return;
   }
 
+  // Show loading indicator if piano not yet loaded
+  const playIcon = playBtn?.querySelector('.icon-play');
+  if (!isPianoLoaded() && playIcon) {
+    playIcon.style.opacity = '0.5';
+  }
+
   // Initialize piano if needed
   if (!piano) {
     await initPiano();
+  }
+
+  // Restore button opacity after loading
+  if (playIcon) {
+    playIcon.style.opacity = '1';
   }
 
   // Generate random sequence only if we don't have one yet
@@ -457,6 +468,9 @@ registerFactoryReset({ storage: preferenceStorage });
 // ========== INITIALIZATION ==========
 function initApp() {
   console.log('Initializing App18: Modulo Sonoro - Registro');
+
+  // Setup piano preload in background (reduces latency on first play)
+  setupPianoPreload({ delay: 300 });
 
   // Get template elements
   soundlineWrapper = document.getElementById('timeline');

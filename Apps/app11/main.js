@@ -4,7 +4,8 @@
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
-import { MelodicTimelineAudio } from '../../libs/sound/melodic-audio.js';
+import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
@@ -32,23 +33,15 @@ let playBtn = null;
 const preferenceStorage = createPreferenceStorage('app11');
 
 // ========== AUDIO INITIALIZATION ==========
+// Use standardized melodic audio initializer (ensures Tone.js loads before AudioContext)
+const _initAudio = createMelodicAudioInitializer({
+  defaultInstrument: 'piano',
+  getPreferences: () => preferenceStorage.load() || {}
+});
 
 async function initAudio() {
   if (!audio) {
-    console.log('Initializing MelodicTimelineAudio...');
-    audio = new MelodicTimelineAudio();
-    await audio.ready();
-
-    // Load default instrument (piano)
-    const prefs = preferenceStorage.load() || {};
-    const instrument = prefs.selectedInstrument || 'piano';
-    await audio.setInstrument(instrument);
-
-    // Expose globally for debugging
-    window.NuzicAudioEngine = audio;
-    window.__labAudio = audio;
-
-    console.log('MelodicTimelineAudio initialized with instrument:', instrument);
+    audio = await _initAudio();
   }
   return audio;
 }
@@ -89,11 +82,23 @@ async function handlePlay() {
   // Set flag immediately to prevent double-click race condition
   isPlaying = true;
   playBtn.disabled = true;
+
+  // Show loading indicator if piano not yet loaded
+  const playIcon = playBtn?.querySelector('.icon-play');
+  if (!isPianoLoaded() && playIcon) {
+    playIcon.style.opacity = '0.5';
+  }
+
   playBtn.classList.add('playing');
 
   // Ensure audio is loaded
   if (!audio) {
     await initAudio();
+  }
+
+  // Restore button opacity after loading
+  if (playIcon) {
+    playIcon.style.opacity = '1';
   }
 
   // Check Tone.js is available
@@ -213,6 +218,9 @@ async function handlePlay() {
 
 async function init() {
   console.log('Initializing App11...');
+
+  // Setup piano preload in background (reduces latency on first play)
+  setupPianoPreload({ delay: 300 });
 
   // Find the main element and controls
   const appRoot = document.getElementById('app-root');

@@ -1,7 +1,7 @@
 // App14: Intervalo Sonoro - Editor de seqüències d'iS amb visualització
 import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createNoteHighlightController } from '../../libs/app-common/note-highlight.js';
-import { loadPiano } from '../../libs/sound/piano.js';
+import { loadPiano, setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 
 // ========== CONSTANTS ==========
@@ -504,7 +504,19 @@ async function handlePlay() {
     return;
   }
 
+  // Show loading indicator if piano not yet loaded
+  const playIcon = playBtn?.querySelector('.icon-play');
+  if (!isPianoLoaded() && playIcon) {
+    playIcon.style.opacity = '0.5';
+  }
+
   await initializePiano();
+
+  // Restore button opacity after loading
+  if (playIcon) {
+    playIcon.style.opacity = '1';
+  }
+
   if (!piano) return;
 
   isPlaying = true;
@@ -686,6 +698,9 @@ function setupControls() {
 function initApp() {
   console.log('Inicialitzant App14: Intervalo Sonoro');
 
+  // Setup piano preload in background (reduces latency on first play)
+  setupPianoPreload({ delay: 300 });
+
   // Crear editor iS i inserir-lo abans del timeline
   const editor = createIsEditor();
   const timelineWrapper = timeline.parentElement;
@@ -701,10 +716,6 @@ function initApp() {
 
   console.log('App14 inicialitzada');
 }
-
-// Initialize piano on first user interaction
-document.addEventListener('click', initializePiano, { once: true });
-document.addEventListener('touchstart', initializePiano, { once: true });
 
 // Cleanup
 window.addEventListener('beforeunload', () => {

@@ -1,6 +1,6 @@
 // App10: Línea Sonora - Visual melodic line with piano playback
 import { createSoundline } from '../../libs/app-common/soundline.js';
-import { loadPiano } from '../../libs/sound/piano.js';
+import { loadPiano, setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { createNoteHighlightController } from '../../libs/app-common/note-highlight.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
@@ -74,9 +74,20 @@ async function initPiano() {
 async function handlePlay() {
   if (isPlaying) return; // Bloquear si ya está reproduciendo
 
+  // Show loading indicator if piano not yet loaded
+  const playIcon = playBtn?.querySelector('.icon-play');
+  if (!isPianoLoaded() && playIcon) {
+    playIcon.style.opacity = '0.5';
+  }
+
   // Inicializar piano si es necesario
   if (!piano) {
     await initPiano();
+  }
+
+  // Restore button opacity after loading
+  if (playIcon) {
+    playIcon.style.opacity = '1';
   }
 
   // Generar BPM
@@ -230,6 +241,9 @@ registerFactoryReset({ storage: preferenceStorage });
 // ========== INICIALIZACIÓN ==========
 function initApp() {
   console.log('Inicializando App10: Línea Sonora');
+
+  // Setup piano preload in background (reduces latency on first play)
+  setupPianoPreload({ delay: 300 });
 
   // Get timeline element from template
   const timeline = document.getElementById('timeline');

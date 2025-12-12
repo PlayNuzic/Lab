@@ -9,6 +9,7 @@
 let sampler = null;
 let isLoaded = false;
 let loadPromise = null;
+let preloadInitiated = false;
 
 /**
  * Load piano sampler with Salamander samples from CDN
@@ -129,4 +130,84 @@ export function isPianoLoaded() {
  */
 export function getSampler() {
   return sampler;
+}
+
+/**
+ * Preload piano samples in background after user interaction
+ * This reduces perceived latency by loading samples before user clicks Play
+ *
+ * Call this after first user interaction (e.g., in DOMContentLoaded or after first click)
+ *
+ * @param {Object} options - Preload options
+ * @param {number} options.delay - Delay in ms before starting preload (default: 300)
+ * @param {Function} options.onStart - Callback when preload starts
+ * @param {Function} options.onComplete - Callback when preload completes
+ * @param {Function} options.onError - Callback on preload error
+ * @returns {Promise<void>}
+ */
+export async function preloadPiano(options = {}) {
+  const { delay = 300, onStart, onComplete, onError } = options;
+
+  // Already loaded or preload already started
+  if (isLoaded || preloadInitiated) {
+    return;
+  }
+
+  preloadInitiated = true;
+
+  // Wait for specified delay to not block initial interaction
+  if (delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+
+  try {
+    onStart?.();
+    await loadPiano();
+    onComplete?.();
+  } catch (err) {
+    preloadInitiated = false; // Allow retry
+    onError?.(err);
+    console.warn('Piano preload failed:', err);
+  }
+}
+
+/**
+ * Setup automatic piano preload after first user interaction
+ * Attaches one-time listener that triggers preload 300ms after first click/touch
+ *
+ * @param {Object} options - Same options as preloadPiano
+ */
+export function setupPianoPreload(options = {}) {
+  if (typeof document === 'undefined') return;
+
+  // Already loaded or preload setup
+  if (isLoaded || preloadInitiated) return;
+
+  const triggerPreload = async () => {
+    // Import tone-loader to ensure Tone.js is loaded first
+    const { ensureToneLoaded } = await import('./tone-loader.js');
+
+    // Ensure Tone.js is loaded before preloading piano
+    await ensureToneLoaded();
+
+    // Preload piano in background
+    preloadPiano(options);
+  };
+
+  // Listen for first interaction
+  const events = ['click', 'touchstart', 'keydown'];
+  const handler = () => {
+    events.forEach(e => document.removeEventListener(e, handler, { capture: true }));
+    triggerPreload();
+  };
+
+  events.forEach(e => document.addEventListener(e, handler, { capture: true, once: true }));
+}
+
+/**
+ * Check if piano preload has been initiated
+ * @returns {boolean}
+ */
+export function isPianoPreloading() {
+  return preloadInitiated && !isLoaded;
 }
