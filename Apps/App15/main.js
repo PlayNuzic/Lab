@@ -385,6 +385,9 @@ function calculateSpaceFromMouseX(mouseX, musicalGrid) {
 function handleDotMouseDown(noteIndex, spaceIndex, event, musicalGrid) {
   if (!gridEditor) return;
 
+  // Initialize audio on first interaction (ensures sound is ready for mouseup)
+  initAudio();
+
   const pairsAtMoment = gridEditor.getPairs();
 
   // Check if there's an existing pair at this position
