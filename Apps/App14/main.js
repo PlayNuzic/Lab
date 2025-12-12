@@ -578,13 +578,13 @@ async function handlePlay() {
 
       // Tocar nova nota i mostrar highlight
       const note2 = getNoteName(currentNote);
-      // Durada de la nota: última nota 1 beat, resta 3 beats
-      const noteDurationBeats = isLastNote ? 1 : 3;
+      // Durada de la nota: última nota 2 beats, resta 3 beats
+      const noteDurationBeats = isLastNote ? 2 : 3;
       piano.triggerAttackRelease(note2, beatSec * noteDurationBeats * 0.9, Tone.now());
       highlightController.highlightNote(currentNote, 999999);
       currentHighlights.push(currentNote);
 
-      // Esperar segons la nota: última nota 1 beat, resta 3 beats
+      // Esperar segons la nota: última nota 2 beats, resta 3 beats
       await sleep(beatSec * noteDurationBeats * 1000);
     }
 
@@ -601,14 +601,13 @@ async function handlePlay() {
 function handleRandom() {
   if (isPlaying) return;
 
-  // Generar entre 1 i 4 iS aleatoris vàlids
-  const numIntervals = Math.floor(Math.random() * MAX_IS) + 1;
+  // Generar sempre 4 iS aleatoris vàlids
   const intervals = [];
 
   // Nota inicial sempre 0
   let currentNote = 0;
 
-  for (let i = 0; i < numIntervals; i++) {
+  for (let i = 0; i < MAX_IS; i++) {
     const isFirst = i === 0;
     const range = getValidIsRange(currentNote, isFirst);
     // Generar iS aleatori dins del rang vàlid
