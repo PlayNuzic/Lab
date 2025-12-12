@@ -559,11 +559,15 @@ async function handlePlay() {
       // i === 2: mostrem nota2 → nota3 (esborrem nota1, mantenim nota2)
       // i === 3: mostrem nota3 → nota4 (esborrem nota2, mantenim nota3)
       // Sempre mantenim l'última nota del parell anterior (que és l'origen del parell actual)
+      // IMPORTANT: Si iS = 0, la nota origen i destí són la mateixa - no esborrar-la!
       if (i >= 1 && currentHighlights.length >= 2) {
-        // Esborrar la primera nota dels highlights (la més antiga)
-        const noteToRemove = currentHighlights.shift();
-        const rect = soundline.element.querySelector(`.note-highlight[data-note="${noteToRemove}"]`);
-        if (rect) rect.classList.remove('highlight');
+        const noteToRemove = currentHighlights[0];
+        // Només esborrar si la nota a esborrar NO és l'origen del parell actual
+        if (noteToRemove !== previousNote) {
+          currentHighlights.shift();
+          const rect = soundline.element.querySelector(`.note-highlight[data-note="${noteToRemove}"]`);
+          if (rect) rect.classList.remove('highlight');
+        }
       }
 
       // Determinar si és l'última nota (5a nota = index 3, ja que index comença a 0)
@@ -582,7 +586,10 @@ async function handlePlay() {
       const noteDurationBeats = isLastNote ? 2 : 3;
       piano.triggerAttackRelease(note2, beatSec * noteDurationBeats * 0.9, Tone.now());
       highlightController.highlightNote(currentNote, 999999);
-      currentHighlights.push(currentNote);
+      // Només afegir als highlights si és una nota diferent (evitar duplicats quan iS = 0)
+      if (currentNote !== previousNote) {
+        currentHighlights.push(currentNote);
+      }
 
       // Esperar segons la nota: última nota 2 beats, resta 3 beats
       await sleep(beatSec * noteDurationBeats * 1000);
