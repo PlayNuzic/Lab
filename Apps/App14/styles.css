@@ -112,6 +112,12 @@
   animation: inputFlash 0.3s ease-in-out;
 }
 
+/* Active input during playback */
+.is-input.input-active {
+  border-color: var(--selection-color, #FFBB33);
+  box-shadow: 0 0 12px var(--selection-color, #FFBB33);
+}
+
 /* ========== TOOLTIP ========== */
 .is-tooltip {
   position: fixed;

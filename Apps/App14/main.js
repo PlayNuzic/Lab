@@ -493,6 +493,23 @@ function setupVolumeControl() {
   });
 }
 
+// ========== INPUT HIGHLIGHT ==========
+/**
+ * Il·lumina el borde d'un input de l'editor iS
+ */
+function highlightInput(index) {
+  if (isInputs[index]) {
+    isInputs[index].classList.add('input-active');
+  }
+}
+
+/**
+ * Treu la il·luminació de tots els inputs
+ */
+function clearInputHighlights() {
+  isInputs.forEach(input => input.classList.remove('input-active'));
+}
+
 // ========== REPRODUCCIÓ ==========
 async function handlePlay() {
   // Si ja estem reproduint, STOP
@@ -500,9 +517,7 @@ async function handlePlay() {
     isPlaying = false;
     userStopped = true; // Marcar que l'usuari ha parat manualment
     updateControlsState();
-    // NO esborrem els elements - deixem que l'animació acabi i es mantingui
-    // clearHighlights();
-    // clearIntervalElements();
+    clearInputHighlights();
     return;
   }
 
@@ -538,6 +553,7 @@ async function handlePlay() {
   activeAnimationTimeouts = [];
   clearHighlights();
   clearIntervalElements();
+  clearInputHighlights();
 
   try {
     const Tone = window.Tone;
@@ -546,84 +562,75 @@ async function handlePlay() {
     // Nota inicial sempre 0
     let currentNote = getStartingNote();
 
-    // Tocar primera nota (nota 0) - dura 1 beat
-    const note1 = getNoteName(currentNote);
-    piano.triggerAttackRelease(note1, beatSec * 0.9, Tone.now());
-    highlightController.highlightNote(currentNote, 999999);
-    currentHighlights.push(currentNote);
-
-    await sleep(beatSec * 1000);
-
-    // Tocar cada interval
-    // Visualització per parells: sempre mostrem origen → destí
-    // El destí d'un parell es converteix en l'origen del següent
-    // Al final, l'últim parell es queda il·luminat
-    // Timings: 1a nota 1 beat, 2a-4a nota 3 beats, 5a nota 1 beat
+    // Reproduir cada parell d'interval
+    // Parell i: nota[i] → nota[i+1] amb iS[i]
+    // - Primer parell (i=0): nota0 (1 beat) → nota1 (2 beats)
+    // - Parells següents (i>0): repetir nota[i] (1 beat) → nota[i+1] (2 beats)
     for (let i = 0; i < intervals.length; i++) {
       if (!isPlaying) break;
 
       const iS = intervals[i];
-      const previousNote = currentNote;
-      currentNote = currentNote + iS;
+      const originNote = currentNote;
+      const destNote = currentNote + iS;
 
       // Validar que la nota resultant està dins del rang
-      if (currentNote < MIN_NOTE || currentNote > MAX_NOTE) {
-        console.warn(`Nota ${currentNote} fora de rang, aturant`);
+      if (destNote < MIN_NOTE || destNote > MAX_NOTE) {
+        console.warn(`Nota ${destNote} fora de rang, aturant`);
         break;
       }
 
-      // Netejar elements d'interval anteriors
+      // Netejar elements anteriors
       clearIntervalElements();
+      clearHighlights();
+      clearInputHighlights();
 
-      // Per a parells: esborrem la nota ANTERIOR a l'origen actual
-      // i === 0: mostrem nota0 → nota1 (no esborrem res, nota0 ja hi és)
-      // i === 1: mostrem nota1 → nota2 (esborrem nota0, mantenim nota1)
-      // i === 2: mostrem nota2 → nota3 (esborrem nota1, mantenim nota2)
-      // i === 3: mostrem nota3 → nota4 (esborrem nota2, mantenim nota3)
-      // Sempre mantenim l'última nota del parell anterior (que és l'origen del parell actual)
-      // IMPORTANT: Si iS = 0, la nota origen i destí són la mateixa - no esborrar-la!
-      if (i >= 1 && currentHighlights.length >= 2) {
-        const noteToRemove = currentHighlights[0];
-        // Només esborrar si la nota a esborrar NO és l'origen del parell actual
-        if (noteToRemove !== previousNote) {
-          currentHighlights.shift();
-          const rect = soundline.element.querySelector(`.note-highlight[data-note="${noteToRemove}"]`);
-          if (rect) rect.classList.remove('highlight');
-        }
+      // Il·luminar l'input corresponent a aquest parell
+      highlightInput(i);
+
+      // Si NO és el primer parell, repetir la nota origen (1 beat)
+      if (i > 0) {
+        const repeatNoteName = getNoteName(originNote);
+        piano.triggerAttackRelease(repeatNoteName, beatSec * 0.9, Tone.now());
+        highlightController.highlightNote(originNote, 999999);
+        currentHighlights.push(originNote);
+        await sleep(beatSec * 1000);
+        if (!isPlaying) break;
+      } else {
+        // Primer parell: tocar nota origen (1 beat)
+        const originNoteName = getNoteName(originNote);
+        piano.triggerAttackRelease(originNoteName, beatSec * 0.9, Tone.now());
+        highlightController.highlightNote(originNote, 999999);
+        currentHighlights.push(originNote);
+        await sleep(beatSec * 1000);
+        if (!isPlaying) break;
       }
 
-      // Determinar si és l'última nota (5a nota = index 3, ja que index comença a 0)
-      const isLastNote = i === intervals.length - 1;
-
-      // Mostrar interval (línia i número)
-      // L'animació comença 1 beat després i dura 2 beats
-      if (previousNote !== currentNote) {
-        createIntervalLine(previousNote, currentNote, 1, 2);
+      // Mostrar interval (línia i número) - animació comença ara
+      if (originNote !== destNote) {
+        createIntervalLine(originNote, destNote, 0, 2); // delay 0, durada 2 beats
       }
-      showIntervalNumber(previousNote, currentNote);
+      showIntervalNumber(originNote, destNote, 0); // delay 0
 
-      // Tocar nova nota i mostrar highlight
-      const note2 = getNoteName(currentNote);
-      // Durada de la nota: última nota 2 beats, resta 3 beats
-      const noteDurationBeats = isLastNote ? 2 : 3;
-      piano.triggerAttackRelease(note2, beatSec * noteDurationBeats * 0.9, Tone.now());
-      highlightController.highlightNote(currentNote, 999999);
-      // Només afegir als highlights si és una nota diferent (evitar duplicats quan iS = 0)
-      if (currentNote !== previousNote) {
-        currentHighlights.push(currentNote);
+      // Tocar nota destí (2 beats)
+      const destNoteName = getNoteName(destNote);
+      piano.triggerAttackRelease(destNoteName, beatSec * 2 * 0.9, Tone.now());
+      highlightController.highlightNote(destNote, 999999);
+      if (destNote !== originNote) {
+        currentHighlights.push(destNote);
       }
 
-      // Esperar segons la nota: última nota 2 beats, resta 3 beats
-      await sleep(beatSec * noteDurationBeats * 1000);
+      await sleep(beatSec * 2 * 1000);
+
+      // Actualitzar nota actual per al següent parell
+      currentNote = destNote;
     }
-
-    // L'últim parell es queda il·luminat (no es neteja)
 
   } catch (error) {
     console.error('Error playing sequence:', error);
   }
 
   isPlaying = false;
+  clearInputHighlights();
   updateControlsState();
 }
 
