@@ -303,27 +303,28 @@
 }
 
 /* Arrow tip for ascending intervals (pointing up) */
+/* Fletxa més petita per no sobrepassar 1/8 de cel·la */
 .interval-bar-vertical.ascending::before {
   content: '';
   position: absolute;
-  top: -8px;
+  top: -5px;
   left: 50%;
   transform: translateX(-50%);
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 10px solid var(--interval-color);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 7px solid var(--interval-color);
 }
 
 /* Arrow tip for descending intervals (pointing down) */
 .interval-bar-vertical.descending::after {
   content: '';
   position: absolute;
-  bottom: -8px;
+  bottom: -5px;
   left: 50%;
   transform: translateX(-50%);
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 10px solid var(--interval-color);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--interval-color);
 }
 
 /* Interval number */

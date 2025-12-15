@@ -136,7 +136,7 @@ function clearHighlights() {
 function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeats = 2) {
   // getNotePosition retorna el BOTTOM de la cel·la
   const cellHeight = 100 / 12; // ≈ 8.33%
-  const quarterCell = cellHeight / 4; // ≈ 2.08%
+  const eighthCell = cellHeight / 8; // ≈ 1.04%
   const halfCell = cellHeight / 2; // ≈ 4.17%
 
   const pos1 = soundline.getNotePosition(note1Index);
@@ -150,11 +150,11 @@ function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeat
   // En la soundline, nota 0 està a BAIX (% alt), nota 11 a DALT (% baix)
   const isAscending = note2Index > note1Index;
 
-  // Offset 1/4 de celda: per a intervals +, parteix des d'un quart per sobre del centre
-  // Per a intervals -, parteix des d'un quart per sota del centre
+  // Offset 1/8 de celda: per a intervals +, parteix des d'un vuitè per sobre del centre
+  // Per a intervals -, parteix des d'un vuitè per sota del centre
   // En coordenades %, més baix = més avall en pantalla
-  const startOffset = isAscending ? quarterCell : -quarterCell;
-  const endOffset = isAscending ? -quarterCell : quarterCell;
+  const startOffset = isAscending ? eighthCell : -eighthCell;
+  const endOffset = isAscending ? -eighthCell : eighthCell;
 
   const start1 = center1 - startOffset; // Punt d'inici de la barra
   const end2 = center2 - endOffset; // Punt final de la barra
