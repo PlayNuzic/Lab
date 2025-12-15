@@ -277,9 +277,9 @@
     0 0 8px var(--cell-highlight-color, var(--select-color, #FFBB33)),
     0 0 16px var(--cell-highlight-color, var(--select-color, #FFBB33)),
     0 0 24px color-mix(in srgb, var(--cell-highlight-color, var(--select-color, #FFBB33)) 60%, transparent);
-  /* Slightly larger size */
-  width: 10px;
-  height: 10px;
+  /* Much larger size when active */
+  width: 20px;
+  height: 20px;
 }
 
 /* ========== INTERVAL PATH BORDERS (intervals-cell-lines) ========== */
