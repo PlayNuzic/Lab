@@ -266,6 +266,12 @@
   z-index: var(--z-interactive, 10);
 }
 
+/* Dark theme: stronger background for better visibility */
+[data-theme="dark"] .musical-cell.active {
+  background: color-mix(in srgb, var(--cell-highlight-color, var(--select-color, #FFBB33)) 60%, transparent);
+  border-color: color-mix(in srgb, var(--cell-highlight-color, var(--select-color, #FFBB33)) 60%, transparent);
+}
+
 /* N-P dot FILLED with selection color when cell is active */
 .musical-cell.active .np-dot::after {
   background: var(--cell-highlight-color, var(--select-color, #FFBB33));  /* Selection color fill */
@@ -278,8 +284,8 @@
     0 0 16px var(--cell-highlight-color, var(--select-color, #FFBB33)),
     0 0 24px color-mix(in srgb, var(--cell-highlight-color, var(--select-color, #FFBB33)) 60%, transparent);
   /* Much larger size when active */
-  width: 20px;
-  height: 20px;
+  width: 10px;
+  height: 10px;
 }
 
 /* ========== INTERVAL PATH BORDERS (intervals-cell-lines) ========== */
