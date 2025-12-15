@@ -122,12 +122,12 @@ async function handlePlay() {
   }
 
   const intervalSec = (60 / currentBPM);
-  const totalPulses = TOTAL_PULSES; // 9 pulses (0-8)
+  const totalPulseSounds = TOTAL_SPACES; // 8 pulse sounds (spaces 0-7)
   const Tone = window.Tone;
 
   // Start TimelineAudio transport-based playback
   audio.play(
-    totalPulses,
+    totalPulseSounds,
     intervalSec,
     new Set(), // No accent sounds (pulse plays automatically on all beats)
     false, // No loop initially
@@ -162,8 +162,8 @@ async function handlePlay() {
     },
     () => {
       // onComplete callback: Playback finished
-      // Delay audio.stop() by one pulse to let the last note ring out
-      const lastNoteDelay = intervalSec * 1000;
+      // Delay audio.stop() to let the last note ring out (90% of interval)
+      const lastNoteDelay = intervalSec * 0.9 * 1000;
       stopPlayback(lastNoteDelay);
     }
   );
@@ -176,7 +176,7 @@ function stopPlayback(delayMs = 0) {
   if (randomBtn) randomBtn.disabled = false;
 
   // Stop audio engine (stops transport + releases all instrument notes)
-  // Delay stop to let the last note ring out (prevents abrupt cutoff)
+  // delayMs > 0 allows last note to ring out before disconnecting sampler
   if (delayMs > 0) {
     setTimeout(() => {
       audio?.stop();
