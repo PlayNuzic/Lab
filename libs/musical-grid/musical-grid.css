@@ -268,11 +268,18 @@
 
 /* N-P dot FILLED with selection color when cell is active */
 .musical-cell.active .np-dot::after {
-  background: var(--cell-highlight-color, var(--select-color, #E4570C));  /* Selection color fill */
-  border-color: var(--cell-highlight-color, var(--select-color, #E4570C));  /* Solid border when active */
-  border-width: 1px;
+  background: var(--cell-highlight-color, var(--select-color, #FFBB33));  /* Selection color fill */
+  border-color: var(--cell-highlight-color, var(--select-color, #FFBB33));  /* Solid border when active */
+  border-width: 2px;
   opacity: 1;  /* Full opacity when active */
-  box-shadow: 0 0 6px var(--cell-highlight-color, var(--select-color, #E4570C));
+  /* Exaggerated glow effect */
+  box-shadow:
+    0 0 8px var(--cell-highlight-color, var(--select-color, #FFBB33)),
+    0 0 16px var(--cell-highlight-color, var(--select-color, #FFBB33)),
+    0 0 24px color-mix(in srgb, var(--cell-highlight-color, var(--select-color, #FFBB33)) 60%, transparent);
+  /* Slightly larger size */
+  width: 10px;
+  height: 10px;
 }
 
 /* ========== INTERVAL PATH BORDERS (intervals-cell-lines) ========== */

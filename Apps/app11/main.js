@@ -265,9 +265,8 @@ async function init() {
 
   // Load preferences
   const prefs = preferenceStorage.load() || {};
-  const intervalLinesEnabled = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
 
-  // Create musical grid with intervals enabled (horizontal only)
+  // Create musical grid (no intervals in App11)
   musicalGrid = createMusicalGrid({
     parent: gridContainer,
     notes: TOTAL_NOTES,
@@ -275,21 +274,7 @@ async function init() {
     noteFormatter: (index) => index.toString(),
     pulseFormatter: (index) => index.toString(),
     scrollEnabled: false,
-    showIntervals: {
-      horizontal: true,
-      vertical: false,
-      cellLines: intervalLinesEnabled
-    },
-    intervalColor: '#4A9EFF',
     onCellClick: async (noteIndex, pulseIndex, cell) => {
-      // Check CURRENT state, not creation-time state
-      const prefs = preferenceStorage.load() || {};
-      const currentIntervalLines = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
-
-      if (currentIntervalLines) {
-        return; // Cell clicks DISABLED when interval lines are enabled
-      }
-
       await initAudio();
 
       if (!window.Tone) {
@@ -323,46 +308,7 @@ async function init() {
         }, 1000);
       }, 1000);
     },
-    onPulseClick: async (pulseIndex) => {
-      // Check CURRENT state, not creation-time state
-      const prefs = preferenceStorage.load() || {};
-      const currentIntervalLines = prefs.intervalLinesEnabled !== undefined ? prefs.intervalLinesEnabled : false;
-
-      if (!currentIntervalLines) {
-        return; // Pulse clicks ENABLED only when interval lines are enabled
-      }
-
-      await initAudio();
-
-      if (!window.Tone) {
-        console.warn('Tone.js not available yet');
-        return;
-      }
-
-      // Play ALL active notes at this pulse
-      const activeCells = [];
-      for (let noteIndex = 0; noteIndex < TOTAL_NOTES; noteIndex++) {
-        const cell = musicalGrid.getCellElement(noteIndex, pulseIndex);
-        if (cell && cell.classList.contains('active')) {
-          activeCells.push({ noteIndex, cell });
-        }
-      }
-
-      if (activeCells.length > 0) {
-        const duration = intervalSec * 0.9;
-        const when = window.Tone.now();
-
-        // Play all notes simultaneously
-        activeCells.forEach(({ noteIndex, cell }) => {
-          const midi = BASE_MIDI + noteIndex;
-          audio.playNote(midi, duration, when);
-
-          // Visual feedback
-          cell.classList.add('playing');
-          setTimeout(() => cell.classList.remove('playing'), duration * 1000);
-        });
-      }
-    }
+    onPulseClick: null  // Pulse clicks disabled - only cell clicks work in App11
   });
 
   console.log('Musical grid created with intervals');
@@ -418,51 +364,6 @@ async function init() {
     });
   }
 
-  // Initialize interval lines toggle
-  const intervalLinesToggle = document.getElementById('intervalLinesToggle');
-  if (intervalLinesToggle) {
-    // Set initial state from preferences
-    intervalLinesToggle.checked = intervalLinesEnabled;
-
-    // Listen for changes
-    eventHandlers.intervalLinesChange = () => {
-      const enabled = intervalLinesToggle.checked;
-
-      // Save to preferences
-      const currentPrefs = preferenceStorage.load() || {};
-      currentPrefs.intervalLinesEnabled = enabled;
-      preferenceStorage.save(currentPrefs);
-
-      // Update grid configuration in real-time (no reload)
-      if (musicalGrid && musicalGrid.intervalsConfig) {
-        musicalGrid.intervalsConfig.cellLines = enabled;
-
-        // Always clear first
-        musicalGrid.clearIntervalPaths();
-
-        // Get currently active cells and extract N-P pairs
-        const activeCells = document.querySelectorAll('.musical-cell.active');
-        const pairs = [];
-        activeCells.forEach(cell => {
-          const note = parseInt(cell.dataset.note);
-          const pulse = parseInt(cell.dataset.pulse);
-          if (!isNaN(note) && !isNaN(pulse)) {
-            pairs.push({ note, pulse });
-          }
-        });
-
-        // Sort pairs by pulse (required for highlightIntervalPath)
-        pairs.sort((a, b) => a.pulse - b.pulse);
-
-        // Apply interval paths if enabled and have pairs
-        if (enabled && pairs.length > 0) {
-          musicalGrid.highlightIntervalPath(pairs);
-        }
-      }
-    };
-    intervalLinesToggle.addEventListener('change', eventHandlers.intervalLinesChange);
-  }
-
   // Initialize color picker
   const selectColorInput = document.getElementById('selectColor');
   if (selectColorInput) {
@@ -488,20 +389,10 @@ async function init() {
     // 1. Update localStorage with factory defaults
     localStorage.setItem('app11-preferences', JSON.stringify({
       selectedInstrument: 'piano',
-      intervalLinesEnabled: false,
       selectColor: '#E4570C'
     }));
 
     // 2. Sync UI without reload
-    // Interval lines toggle
-    const intervalLinesToggle = document.getElementById('intervalLinesToggle');
-    if (intervalLinesToggle) {
-      intervalLinesToggle.checked = false;
-      if (musicalGrid?.clearIntervalPaths) {
-        musicalGrid.clearIntervalPaths();
-      }
-    }
-
     // Color picker
     const selectColorInput = document.getElementById('selectColor');
     if (selectColorInput) {
@@ -563,8 +454,7 @@ async function init() {
 const eventHandlers = {
   playClick: null,
   sharedSound: null,
-  sharedInstrument: null,
-  intervalLinesChange: null
+  sharedInstrument: null
 };
 
 window.addEventListener('beforeunload', () => {
@@ -588,11 +478,6 @@ window.addEventListener('beforeunload', () => {
 
   if (eventHandlers.sharedInstrument) {
     document.removeEventListener('sharedui:instrument', eventHandlers.sharedInstrument);
-  }
-
-  const intervalLinesToggle = document.getElementById('intervalLinesToggle');
-  if (intervalLinesToggle && eventHandlers.intervalLinesChange) {
-    intervalLinesToggle.removeEventListener('change', eventHandlers.intervalLinesChange);
   }
 });
 
