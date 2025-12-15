@@ -48,6 +48,7 @@ let currentMetronomeSound = (() => {
 let timeline = null;
 let itEditor = null;
 let itInputs = [];
+let sumDisplay = null; // Input informatiu de suma
 let playBtn = null;
 let randomBtn = null;
 let resetBtn = null;
@@ -107,6 +108,14 @@ function invalidateSoundAssignments() {
 
 function getCurrentSum() {
   return currentIntervals.reduce((sum, val) => sum + (val || 0), 0);
+}
+
+function updateSumDisplay() {
+  if (sumDisplay) {
+    const sum = getCurrentSum();
+    sumDisplay.value = sum;
+    sumDisplay.classList.toggle('complete', sum === MAX_LENGTH);
+  }
 }
 
 // ========== AUDIO ==========
@@ -226,6 +235,15 @@ function createItEditor() {
 
   itEditor.appendChild(inputsContainer);
 
+  // Input informatiu de suma (readonly)
+  sumDisplay = document.createElement('input');
+  sumDisplay.type = 'text';
+  sumDisplay.readOnly = true;
+  sumDisplay.className = 'it-input it-sum-display';
+  sumDisplay.value = '0';
+  sumDisplay.tabIndex = -1; // No navegable per teclat
+  itEditor.appendChild(sumDisplay);
+
   // Tooltip (posició fixa al body per evitar problemes de posicionament)
   tooltip = document.createElement('div');
   tooltip.className = 'it-tooltip';
@@ -276,6 +294,9 @@ function handleItInput(e, index) {
 
   // Actualitzar estat
   currentIntervals[index] = numValue;
+
+  // Actualitzar display de suma
+  updateSumDisplay();
 
   // Invalidar sons al canviar l'editor
   invalidateSoundAssignments();
@@ -353,6 +374,7 @@ function setIntervalsToEditor(intervals) {
     currentIntervals[i] = intervals[i] || 0;
   });
 
+  updateSumDisplay();
   updateTimeline();
 }
 
@@ -361,6 +383,7 @@ function clearEditor() {
   itInputs.forEach(input => {
     input.value = '';
   });
+  updateSumDisplay();
   updateTimeline();
 }
 

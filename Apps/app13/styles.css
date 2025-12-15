@@ -77,6 +77,43 @@
   background: rgba(255, 187, 51, 0.1);
 }
 
+/* ========== SUM DISPLAY (readonly) ========== */
+.it-sum-display {
+  border-color: var(--border-color, #ccc);
+  color: var(--text-muted, #888);
+  cursor: default;
+  pointer-events: none;
+  margin-left: 24px;
+  position: relative;
+}
+
+.it-sum-display::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 32px;
+  background: var(--border-color, #ccc);
+  border-radius: 1px;
+}
+
+.it-sum-display:focus {
+  border-color: var(--border-color, #ccc);
+  box-shadow: none;
+}
+
+/* Longitud completa - blau nuzic */
+.it-sum-display.complete {
+  border-color: #7BB4CD;
+  color: #7BB4CD;
+}
+
+.it-sum-display.complete::before {
+  background: #7BB4CD;
+}
+
 /* ========== TOOLTIP ========== */
 .it-tooltip {
   position: fixed;
@@ -98,7 +135,7 @@
 }
 
 .it-tooltip.success {
-  background: #22C55E;
+  background: #7BB4CD;
   color: white;
 }
 
