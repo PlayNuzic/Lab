@@ -24,6 +24,7 @@ let activeAnimationTimeouts = []; // Track active animation timeouts
 
 // Referències DOM
 let isEditor = null;
+let isInputsContainer = null;
 let isInputs = [];
 let playBtn = null;
 let randomBtn = null;
@@ -269,10 +270,10 @@ function createIsEditor() {
   isEditor.appendChild(label);
 
   // Contenidor d'inputs
-  const inputsContainer = document.createElement('div');
-  inputsContainer.className = 'is-editor__inputs';
-  inputsContainer.style.display = 'flex';
-  inputsContainer.style.gap = '8px';
+  isInputsContainer = document.createElement('div');
+  isInputsContainer.className = 'is-editor__inputs';
+  isInputsContainer.style.display = 'flex';
+  isInputsContainer.style.gap = '8px';
 
   // Crear 4 inputs
   for (let i = 0; i < MAX_IS; i++) {
@@ -290,11 +291,11 @@ function createIsEditor() {
     input.addEventListener('keydown', (e) => handleIsKeydown(e, i));
     input.addEventListener('focus', () => hideTooltip());
 
-    inputsContainer.appendChild(input);
+    isInputsContainer.appendChild(input);
     isInputs.push(input);
   }
 
-  isEditor.appendChild(inputsContainer);
+  isEditor.appendChild(isInputsContainer);
 
   // Tooltip (posició fixa al body)
   tooltip = document.createElement('div');
@@ -533,7 +534,7 @@ async function handlePlay() {
 
   // Si editor buit, mostrar avís i flash
   if (intervals.length === 0) {
-    showTooltip(isEditor, 'Introduce al menos un intervalo', false);
+    showTooltip(isInputsContainer, 'Introduce al menos un intervalo', false);
     await flashEmptyInputs();
     return;
   }
