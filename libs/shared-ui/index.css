@@ -817,19 +817,19 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
 
 .control-sound-toggle--pulse {
   --control-toggle-color: var(--control-toggle-pulse-color, currentColor);
-  --control-toggle-active-color: var(--control-toggle-pulse-active-color, var(--selection-color));
+  --control-toggle-active-color: var(--control-toggle-pulse-active-color, var(--selection-color, #FFBB33));
   --control-toggle-clip-path: path('M -7% 83% A 57% 95% 0 0 1 50% -12% L 50% 30% A 32% 53% 0 0 0 18% 83% Z');
 }
 
 .control-sound-toggle--selected {
   --control-toggle-color: var(--control-toggle-selected-color, currentColor);
-  --control-toggle-active-color: var(--control-toggle-selected-active-color, var(--selection-color));
+  --control-toggle-active-color: var(--control-toggle-selected-active-color, var(--selection-color, #FFBB33));
   --control-toggle-clip-path: path('M 18% 83% A 32% 53% 0 0 1 50% 30% A 32% 53% 0 0 1 82% 83% Z');
 }
 
 .control-sound-toggle--cycle {
   --control-toggle-color: var(--control-toggle-cycle-color, currentColor);
-  --control-toggle-active-color: var(--control-toggle-cycle-active-color, var(--selection-color));
+  --control-toggle-active-color: var(--control-toggle-cycle-active-color, var(--selection-color, #FFBB33));
   --control-toggle-clip-path: path('M 50% -12% A 57% 95% 0 0 1 107% 83% L 82% 83% A 32% 53% 0 0 0 50% 30% Z');
 }
 
