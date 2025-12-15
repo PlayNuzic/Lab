@@ -27,7 +27,7 @@ let playBtn = null;
 // ========== CONFIGURACIÓN ==========
 const TOTAL_PULSES = 9;  // Dibuja 9 pulsos (0-8)
 const MIN_BPM = 75;
-const MAX_BPM = 200;
+const MAX_BPM = 150;
 
 // Storage de preferencias
 const preferenceStorage = createPreferenceStorage('app9');
@@ -207,44 +207,22 @@ function getRandomPulseIndex() {
 }
 
 /**
- * Genera 2 ruidos de 1 pulso cada uno sin solapamiento
- * Las posiciones son aleatorias, garantizando que ambos quepan en los 9 pulsos (0-8)
+ * Genera 2 notas de 1 pulso cada una
+ * Primera nota: aleatoria entre pulsos 0-3
+ * Segunda nota: aleatoria entre pulsos 4-7
  * @returns {Array} [{startPulse: number, duration: 1}, {startPulse: number, duration: 1}]
  */
 function generate2Noises() {
-  const noises = [];
+  // Primera nota: aleatoria entre 0-3
+  const start1 = Math.floor(Math.random() * 4);
 
-  // Ambos ruidos tienen duración de 1 pulso
-  const firstDuration = 1;
-  const secondDuration = 1;
+  // Segunda nota: aleatoria entre 4-7
+  const start2 = 4 + Math.floor(Math.random() * 4);
 
-  // Pulsos disponibles: 0-8 (9 pulsos totales)
-  // Un ruido que empieza en pulso X con duración D ocupa los pulsos [X, X+D-1]
-
-  // Para que ambos quepan secuencialmente sin solaparse:
-  // Ruido 1 ocupa: [start1, start1 + duration1 - 1]
-  // Ruido 2 ocupa: [start2, start2 + duration2 - 1]
-  // Restricción: start2 >= start1 + duration1 (no solapamiento)
-  // Restricción: start2 + duration2 - 1 <= 8 (última posición válida)
-
-  // Máximo inicio del ruido 1 para garantizar espacio para ambos:
-  // start1 + duration1 + duration2 <= 9
-  // start1 <= 9 - duration1 - duration2
-  const maxStart1 = TOTAL_PULSES - firstDuration - secondDuration;
-  const start1 = Math.floor(Math.random() * (maxStart1 + 1));
-
-  noises.push({ startPulse: start1, duration: firstDuration });
-
-  // Rango válido para el segundo ruido:
-  // Mínimo: justo después del primero
-  const minStart2 = start1 + firstDuration;
-  // Máximo: último pulso donde cabe (inicio + duración - 1 <= 8)
-  const maxStart2 = TOTAL_PULSES - secondDuration;
-
-  const start2 = Math.floor(Math.random() * (maxStart2 - minStart2 + 1)) + minStart2;
-  noises.push({ startPulse: start2, duration: secondDuration });
-
-  return noises;
+  return [
+    { startPulse: start1, duration: 1 },
+    { startPulse: start2, duration: 1 }
+  ];
 }
 
 async function handlePlay() {

@@ -23,8 +23,15 @@
       // First time - set factory defaults
       localStorage.setItem('app9-preferences', JSON.stringify({
         baseSound: 'click1',
-        accentSound: 'click11'
+        accentSound: 'click13'
       }));
+    } else {
+      // Migrate old click11 (Ruido Rosa) to click13 (Synth Voice 2)
+      const prefs = JSON.parse(app9Prefs);
+      if (prefs.accentSound === 'click11') {
+        prefs.accentSound = 'click13';
+        localStorage.setItem('app9-preferences', JSON.stringify(prefs));
+      }
     }
 
     renderApp({
