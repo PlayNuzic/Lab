@@ -348,10 +348,10 @@ function syncGridFromPairs(pairs) {
     // Sort by pulse to ensure correct order
     const sortedPairs = [...validPairs].sort((a, b) => a.pulse - b.pulse);
 
-    sortedPairs.forEach((pair) => {
+    sortedPairs.forEach((pair, intervalIndex) => {
       if (!pair.isRest) {
         // Always draw interval line (including case 0 when note stays the same)
-        createIntervalLine(prevNote, pair.note, pair.pulse);
+        createIntervalLine(prevNote, pair.note, pair.pulse, intervalIndex);
         prevNote = pair.note;
       }
     });
@@ -615,8 +615,9 @@ function updateIntervalsFromPairs(pairs) {
  * @param {number} note1Index - Origin note (0-11)
  * @param {number} note2Index - Destination note (0-11)
  * @param {number} pulseIndex - Pulse position where the transition occurs (0-7)
+ * @param {number} intervalIndex - Index of this interval in the sequence (0 = first interval)
  */
-function createIntervalLine(note1Index, note2Index, pulseIndex) {
+function createIntervalLine(note1Index, note2Index, pulseIndex, intervalIndex = 0) {
   const matrixContainer = musicalGrid?.getMatrixContainer?.();
   if (!matrixContainer) return;
 
@@ -647,16 +648,15 @@ function createIntervalLine(note1Index, note2Index, pulseIndex) {
     matrixContainer.appendChild(intervalBar);
     currentIntervalElements.push(intervalBar);
 
-    // Number "0" to the right of the bar (10px margin), vertically centered
-    const centerY = topEdge + cellHeight / 2;
+    // Number "0" ABOVE the bar (centered horizontally on the bar)
     const intervalNum = document.createElement('div');
     intervalNum.className = 'interval-number';
     intervalNum.textContent = '0';
     intervalNum.style.position = 'absolute';
     intervalNum.style.zIndex = '16';
-    intervalNum.style.top = `${centerY}%`;
-    intervalNum.style.left = `calc(${leftPos}% + 12px)`;
-    intervalNum.style.transform = 'translateY(-50%)';
+    intervalNum.style.top = `${topEdge}%`;
+    intervalNum.style.left = `${leftPos}%`;
+    intervalNum.style.transform = 'translate(-50%, -100%)'; // Center horizontally, position above
 
     matrixContainer.appendChild(intervalNum);
     currentIntervalElements.push(intervalNum);
@@ -703,6 +703,7 @@ function createIntervalLine(note1Index, note2Index, pulseIndex) {
   intervalNum.style.zIndex = '16';
 
   // Positioning rules:
+  // - First interval (index 0): number always goes RIGHT
   // - For ±1: number goes RIGHT of the bar (both ascending and descending)
   // - For other ascending (+): number goes LEFT of the bar
   // - For other descending (-): number goes RIGHT of the bar
@@ -713,6 +714,8 @@ function createIntervalLine(note1Index, note2Index, pulseIndex) {
   // 10px margin means:
   // - Left number: leftPos - 12px (then offset for text width)
   // - Right number: leftPos + 12px
+
+  const isFirstInterval = intervalIndex === 0;
 
   if (absInterval === 1) {
     // ±1: number always goes RIGHT of the bar
@@ -725,8 +728,13 @@ function createIntervalLine(note1Index, note2Index, pulseIndex) {
     intervalNum.style.top = `${centerY}%`;
     intervalNum.style.left = `calc(${leftPos}% + 12px)`;
     intervalNum.style.transform = 'translateY(-50%)';
+  } else if (isFirstInterval) {
+    // First interval: number always goes RIGHT
+    intervalNum.style.top = `${centerY}%`;
+    intervalNum.style.left = `calc(${leftPos}% + 12px)`;
+    intervalNum.style.transform = 'translateY(-50%)';
   } else if (isAscending) {
-    // Ascending (except ±1): number LEFT of the bar
+    // Ascending (except ±1 and first): number LEFT of the bar
     intervalNum.style.top = `${centerY}%`;
     intervalNum.style.left = `calc(${leftPos}% - 12px)`;
     intervalNum.style.transform = 'translate(-100%, -50%)'; // Align right edge to the position

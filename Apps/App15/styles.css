@@ -44,11 +44,11 @@
   --toggle-pulse-offset-y: -20px;
 
   /* Fine-tuning for button positioning (same pattern as App12) */
-  --play-row-margin-left: 43px;
+  --play-row-margin-left: 45px;
   --play-row-margin-top: -60px;
-  --button-row-margin-left: -60px;
+  --button-row-margin-left: -50px;
   --button-row-margin-top: 0px;
-  --controls-vertical-gap: 0.5rem;
+  --controls-vertical-gap: 0.1rem;
 }
 
 [data-theme="dark"] {
@@ -323,13 +323,6 @@ body.dragging-note * {
 
 .app12-controls-container #playBtn {
   margin: 0 !important;  /* Remove 2rem bottom margin from shared-ui */
-  margin-left: 80px !important;
-}
-
-.app12-controls-container .button-row {
-  gap: 1.5rem;
-  margin: 0 !important;
-  margin-left: 55px !important;
 }
 
 /* Toggle positioning now uses CSS variables in :root */
