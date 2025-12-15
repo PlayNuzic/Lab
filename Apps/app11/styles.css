@@ -21,6 +21,10 @@
   /* Toggle positioning for satellite button */
   --toggle-pulse-offset-x: -115px;
   --toggle-pulse-offset-y: -20px;
+
+  /* Fine-tuning for button positioning */
+  --play-row-margin-left: -20px;
+  --play-row-margin-top: -20px;
 }
 
 [data-theme="dark"] {
@@ -42,6 +46,8 @@
 .app11-controls-container .play-row {
   position: static;
   transform: none;
+  margin-left: var(--play-row-margin-left);
+  margin-top: var(--play-row-margin-top);
 }
 
 /* Force vertical layout for control-buttons-row */
@@ -55,7 +61,6 @@
 /* Override shared-ui margins for tighter spacing */
 .app11-controls-container #playBtn {
   margin: 0px !important;
-  margin-left: 25px !important;
 }
 
 /* Toggle positioning now uses CSS variables:
