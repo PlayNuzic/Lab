@@ -1003,7 +1003,9 @@ export function createGridEditor(config = {}) {
 
     if (hasEmptyPair) return;
 
-    const maxIntervalSlots = maxPairs - 1; // Exclude initial N-P pair
+    // When hideInitialPair is enabled, intervals ARE the pairs (base is implicit)
+    // So maxIntervalSlots = maxPairs (not maxPairs - 1)
+    const maxIntervalSlots = intervalModeOptions?.hideInitialPair ? maxPairs : maxPairs - 1;
     const currentMaxIndex = isInputs.reduce((max, input) => {
       const idx = parseInt(input.dataset.index || '0', 10);
       return isNaN(idx) ? max : Math.max(max, idx);
