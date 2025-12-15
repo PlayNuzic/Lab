@@ -349,11 +349,9 @@ function syncGridFromPairs(pairs) {
     const sortedPairs = [...validPairs].sort((a, b) => a.pulse - b.pulse);
 
     sortedPairs.forEach((pair) => {
-      if (!pair.isRest && pair.note !== prevNote) {
-        // Position the interval line at the pulse where the transition occurs
-        createIntervalLine(prevNote, pair.note, pair.pulse);
-      }
       if (!pair.isRest) {
+        // Always draw interval line (including case 0 when note stays the same)
+        createIntervalLine(prevNote, pair.note, pair.pulse);
         prevNote = pair.note;
       }
     });
@@ -623,6 +621,47 @@ function createIntervalLine(note1Index, note2Index, pulseIndex) {
   if (!matrixContainer) return;
 
   const isAscending = note2Index > note1Index;
+  const interval = note2Index - note1Index;
+  const absInterval = Math.abs(interval);
+
+  // Calculate horizontal position (left edge of the pulse column where the new note starts)
+  const leftPos = pulseIndex / TOTAL_SPACES * 100;
+
+  // Special case: interval 0 - draw vertical line spanning the full cell height
+  if (absInterval === 0) {
+    // Vertical line from top to bottom of the cell (full cell height)
+    const cellHeight = 100 / TOTAL_NOTES; // Height of one cell in %
+    const topEdge = (TOTAL_NOTES - 1 - note2Index) / TOTAL_NOTES * 100;
+
+    const intervalBar = document.createElement('div');
+    intervalBar.className = 'interval-bar-vertical interval-zero';
+
+    intervalBar.style.position = 'absolute';
+    intervalBar.style.top = `${topEdge}%`;
+    intervalBar.style.left = `${leftPos}%`;
+    intervalBar.style.transform = 'translateX(-50%)';
+    intervalBar.style.width = '4px';
+    intervalBar.style.height = `${cellHeight}%`;
+    intervalBar.style.zIndex = '15';
+
+    matrixContainer.appendChild(intervalBar);
+    currentIntervalElements.push(intervalBar);
+
+    // Number "0" to the right of the bar (10px margin), vertically centered
+    const centerY = topEdge + cellHeight / 2;
+    const intervalNum = document.createElement('div');
+    intervalNum.className = 'interval-number';
+    intervalNum.textContent = '0';
+    intervalNum.style.position = 'absolute';
+    intervalNum.style.zIndex = '16';
+    intervalNum.style.top = `${centerY}%`;
+    intervalNum.style.left = `calc(${leftPos}% + 12px)`;
+    intervalNum.style.transform = 'translateY(-50%)';
+
+    matrixContainer.appendChild(intervalNum);
+    currentIntervalElements.push(intervalNum);
+    return;
+  }
 
   // Calculate vertical positions (grid is inverted: note 0 at bottom)
   // Note positions in grid: higher note index = higher in the grid = lower CSS top value
@@ -634,9 +673,6 @@ function createIntervalLine(note1Index, note2Index, pulseIndex) {
   const bottomEdge = (TOTAL_NOTES - bottomNote) / TOTAL_NOTES * 100;
 
   const finalHeight = bottomEdge - topEdge;
-
-  // Calculate horizontal position (center of the pulse column)
-  const leftPos = (pulseIndex + 0.5) / TOTAL_SPACES * 100;
 
   const intervalBar = document.createElement('div');
   intervalBar.className = 'interval-bar-vertical';
@@ -653,6 +689,56 @@ function createIntervalLine(note1Index, note2Index, pulseIndex) {
 
   matrixContainer.appendChild(intervalBar);
   currentIntervalElements.push(intervalBar);
+
+  // Create interval number label (like App14)
+  const direction = interval > 0 ? '+' : '-';
+
+  // Calculate vertical center of the interval bar
+  let centerY = (topEdge + bottomEdge) / 2;
+
+  const intervalNum = document.createElement('div');
+  intervalNum.className = 'interval-number';
+  intervalNum.textContent = `${direction}${absInterval}`;
+  intervalNum.style.position = 'absolute';
+  intervalNum.style.zIndex = '16';
+
+  // Positioning rules:
+  // - For ±1: number goes RIGHT of the bar (both ascending and descending)
+  // - For other ascending (+): number goes LEFT of the bar
+  // - For other descending (-): number goes RIGHT of the bar
+
+  // Bar is 4px wide centered at leftPos, so:
+  // - Left edge of bar: leftPos - 2px
+  // - Right edge of bar: leftPos + 2px
+  // 10px margin means:
+  // - Left number: leftPos - 12px (then offset for text width)
+  // - Right number: leftPos + 12px
+
+  if (absInterval === 1) {
+    // ±1: number always goes RIGHT of the bar
+    // Shift vertically to avoid overlap: down for ascending, up for descending
+    if (isAscending) {
+      centerY = bottomEdge - 2; // Move towards bottom
+    } else {
+      centerY = topEdge + 2; // Move towards top
+    }
+    intervalNum.style.top = `${centerY}%`;
+    intervalNum.style.left = `calc(${leftPos}% + 12px)`;
+    intervalNum.style.transform = 'translateY(-50%)';
+  } else if (isAscending) {
+    // Ascending (except ±1): number LEFT of the bar
+    intervalNum.style.top = `${centerY}%`;
+    intervalNum.style.left = `calc(${leftPos}% - 12px)`;
+    intervalNum.style.transform = 'translate(-100%, -50%)'; // Align right edge to the position
+  } else {
+    // Descending (except ±1): number RIGHT of the bar
+    intervalNum.style.top = `${centerY}%`;
+    intervalNum.style.left = `calc(${leftPos}% + 12px)`;
+    intervalNum.style.transform = 'translateY(-50%)';
+  }
+
+  matrixContainer.appendChild(intervalNum);
+  currentIntervalElements.push(intervalNum);
 }
 
 /**

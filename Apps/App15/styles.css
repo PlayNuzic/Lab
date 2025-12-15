@@ -637,6 +637,12 @@ body.dragging-note * {
   box-shadow: 0 0 8px var(--interval-sound-color, #F28AAD);
 }
 
+/* Interval 0 bar - no arrows (same note repeated) */
+.interval-bar-vertical.interval-zero::before,
+.interval-bar-vertical.interval-zero::after {
+  display: none;
+}
+
 /* Arrow tip for ascending intervals (pointing up) */
 .interval-bar-vertical.ascending::before {
   content: '';
@@ -659,6 +665,20 @@ body.dragging-note * {
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
   border-top: 7px solid var(--interval-sound-color, #F28AAD);
+}
+
+/* Interval number label (like App14) */
+.interval-number {
+  color: var(--interval-sound-color, #F28AAD);
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .interval-number {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 /* ========== INTERVAL PATH COLORS - DEPRECATED (now using interval-bar-vertical) ========== */
