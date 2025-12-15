@@ -96,19 +96,36 @@ body.dragging-note * {
   transform: translateY(-50%);
   height: 8px;
   border-radius: 8px;
-  background: var(--interval-color, #4A9EFF);
+  background: var(--interval-temporal-color, #4A9EFF);
   opacity: 0.9;
+}
+
+/* Arrow tip for temporal intervals (pointing right) */
+.it-bar::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid var(--interval-temporal-color, #4A9EFF);
 }
 
 .it-bar--rest {
   /* Dashed line effect for silences */
   background: repeating-linear-gradient(
     90deg,
-    var(--interval-color, #4A9EFF) 0px,
-    var(--interval-color, #4A9EFF) 8px,
+    var(--interval-temporal-color, #4A9EFF) 0px,
+    var(--interval-temporal-color, #4A9EFF) 8px,
     transparent 8px,
     transparent 16px
   );
+}
+
+/* No arrow for rest bars */
+.it-bar--rest::after {
+  display: none;
 }
 
 .it-bar__label {
@@ -118,13 +135,13 @@ body.dragging-note * {
   transform: translateX(-50%);
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--interval-color, #4A9EFF);
+  color: var(--interval-temporal-color, #4A9EFF);
   white-space: nowrap;
   margin-bottom: 4px;
 }
 
 [data-theme="dark"] .it-bar__label {
-  color: var(--interval-color, #4A9EFF);
+  color: var(--interval-temporal-color, #4A9EFF);
 }
 
 .timeline-wrapper,
@@ -609,6 +626,35 @@ body.dragging-note * {
 [data-theme="dark"] .musical-cell {
   background: transparent;
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ========== INTERVAL PATH COLORS - iS uses Rosa Nuzic ========== */
+/* Override musical-grid defaults to use Rosa Nuzic for iS (sound intervals) */
+.interval-path-horizontal {
+  border-bottom-color: var(--interval-sound-color, #F28AAD) !important;
+}
+
+.interval-path-vertical {
+  border-left-color: var(--interval-sound-color, #F28AAD) !important;
+  position: relative;
+}
+
+.interval-path-corner {
+  border-bottom-color: var(--interval-sound-color, #F28AAD) !important;
+  border-left-color: var(--interval-sound-color, #F28AAD) !important;
+}
+
+/* Arrow tips for vertical interval paths only */
+/* Arrow pointing up (for ascending intervals) */
+.interval-path-vertical::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: -5px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 7px solid var(--interval-sound-color, #F28AAD);
+  z-index: 20;
 }
 
 /* ========== INTERVAL EXPANSION STYLES (Option B - Borders) ========== */
