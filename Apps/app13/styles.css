@@ -2,7 +2,7 @@
 
 /* ========== VARIABLES DE COLOR ========== */
 :root {
-  --timeline-interval-color: #4A9EFF;
+  --timeline-interval-color: #7BB4CD;
   --timeline-pulse-color: currentColor;
   --timeline-line-color: #666;
 
@@ -27,7 +27,7 @@
 
 .it-editor-label,
 .it-editor__label {
-  color: #4A9EFF;
+  color: #7BB4CD;
   font-weight: 700;
   font-size: 2.8rem;
   margin-right: 8px;
@@ -108,7 +108,7 @@
 }
 
 .it-tooltip.info {
-  background: #3B82F6;
+  background: #7BB4CD;
   color: white;
 }
 

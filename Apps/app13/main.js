@@ -17,10 +17,10 @@ const INTERVAL_SOUNDS = ['click12', 'click13'];
 
 // Colors ben diferenciats per les barres (màxim 4 iTs)
 const VIBRANT_COLORS = [
-  '#E74C3C', // vermell
-  '#F1C40F', // groc
-  '#2ECC71', // verd
-  '#3498DB'  // blau
+  '#E76F68', // vermell
+  '#FFBB33', // groc
+  '#7CD6B3', // verd
+  '#7BB4CD'  // blau
 ];
 
 // ========== ESTADO ==========
