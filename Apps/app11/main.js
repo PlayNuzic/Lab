@@ -179,11 +179,17 @@ async function handlePlay() {
       }
     },
     () => {
-      // onComplete - IMPORTANT: stop audio scheduler to prevent infinite playback
-      audio.stop();
+      // onComplete - delay stop to let the last note ring out
+      console.log('Sequence completed - waiting for last note to finish...');
+
+      // Wait for last note duration before stopping audio
+      const lastNoteDelay = intervalSec * 1000;
+      setTimeout(() => {
+        audio.stop();
+      }, lastNoteDelay);
 
       // Elegant fade-out animation with delay
-      console.log('Sequence completed - waiting 1000ms before fade-out...');
+      console.log('Starting visual fade-out after 1000ms...');
 
       // Collect all active cells
       const activeCells = document.querySelectorAll('.musical-cell.active');
