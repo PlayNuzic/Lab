@@ -159,17 +159,17 @@ async function handlePlay() {
   }
 
   const intervalSec = (60 / currentBPM);
-  const totalPulses = TOTAL_PULSES; // 9 pulses (0-8)
+  const totalPulseSounds = TOTAL_SPACES; // 8 pulse sounds (spaces 0-7)
   const Tone = window.Tone;
 
   // Start TimelineAudio transport-based playback
   audio.play(
-    totalPulses,
+    totalPulseSounds,
     intervalSec,
     new Set(), // No accent sounds (pulse plays automatically on all beats)
     false, // No loop initially
     (step) => {
-      // onPulse callback: Called on EVERY pulse (0-8), even if empty
+      // onPulse callback: Called on EVERY space (0-7), even if empty
 
       // 1) Visual feedback for pulse column
       highlightController?.highlightPulse(step);
@@ -340,7 +340,7 @@ function syncGridFromPairs(pairs) {
     }
   });
 
-  // Draw interval lines for iS visualization (App14 style)
+  // Draw interval lines for iS visualization (App14 style positioned in matrix)
   if (intervalLinesEnabledState && validPairs.length > 0) {
     // Start from base pair (0,0)
     let prevNote = 0;
@@ -350,7 +350,8 @@ function syncGridFromPairs(pairs) {
 
     sortedPairs.forEach((pair) => {
       if (!pair.isRest && pair.note !== prevNote) {
-        createIntervalLine(prevNote, pair.note);
+        // Position the interval line at the pulse where the transition occurs
+        createIntervalLine(prevNote, pair.note, pair.pulse);
       }
       if (!pair.isRest) {
         prevNote = pair.note;
@@ -607,55 +608,50 @@ function updateIntervalsFromPairs(pairs) {
 
 // ========== END DRAG HANDLERS ==========
 
-// ========== INTERVAL LINES (iS) - App14 style ==========
+// ========== INTERVAL LINES (iS) - App14 style in 2D grid ==========
 
 /**
- * Create a vertical interval line between two notes (like App14)
- * Uses separate DOM elements instead of cell borders
+ * Create a vertical interval line between two notes at a specific pulse position
+ * Uses separate DOM elements positioned in the matrix grid (not soundline like App14)
+ *
+ * @param {number} note1Index - Origin note (0-11)
+ * @param {number} note2Index - Destination note (0-11)
+ * @param {number} pulseIndex - Pulse position where the transition occurs (0-7)
  */
-function createIntervalLine(note1Index, note2Index) {
-  const soundlineContainer = musicalGrid?.getSoundlineContainer?.();
-  if (!soundlineContainer) return;
-
-  const cellHeight = 100 / TOTAL_NOTES; // 8.33%
-
-  // Calculate positions (soundline is inverted: note 0 at bottom)
-  const pos1 = ((note1Index + 0.5) / TOTAL_NOTES) * 100;
-  const pos2 = ((note2Index + 0.5) / TOTAL_NOTES) * 100;
+function createIntervalLine(note1Index, note2Index, pulseIndex) {
+  const matrixContainer = musicalGrid?.getMatrixContainer?.();
+  if (!matrixContainer) return;
 
   const isAscending = note2Index > note1Index;
 
-  // Calculate start and end positions based on direction
-  let start1, end2;
-  if (isAscending) {
-    start1 = 100 - pos1 + cellHeight / 2;  // TOP of origin cell
-    end2 = 100 - pos2 - cellHeight / 2;     // BOTTOM of target cell
-  } else {
-    start1 = 100 - pos1 - cellHeight / 2;   // BOTTOM of origin cell
-    end2 = 100 - pos2 + cellHeight / 2;     // TOP of target cell
-  }
+  // Calculate vertical positions (grid is inverted: note 0 at bottom)
+  // Note positions in grid: higher note index = higher in the grid = lower CSS top value
+  const topNote = Math.max(note1Index, note2Index);
+  const bottomNote = Math.min(note1Index, note2Index);
 
-  const finalHeight = Math.abs(start1 - end2);
+  // Calculate top and bottom edges in percentages
+  const topEdge = (TOTAL_NOTES - 1 - topNote) / TOTAL_NOTES * 100;
+  const bottomEdge = (TOTAL_NOTES - bottomNote) / TOTAL_NOTES * 100;
+
+  const finalHeight = bottomEdge - topEdge;
+
+  // Calculate horizontal position (center of the pulse column)
+  const leftPos = (pulseIndex + 0.5) / TOTAL_SPACES * 100;
 
   const intervalBar = document.createElement('div');
   intervalBar.className = 'interval-bar-vertical';
   intervalBar.classList.add(isAscending ? 'ascending' : 'descending');
 
-  // Position horizontally (to the right of soundline)
+  // Position in matrix grid
   intervalBar.style.position = 'absolute';
-  intervalBar.style.left = '120px';
+  intervalBar.style.left = `${leftPos}%`;
+  intervalBar.style.transform = 'translateX(-50%)';
   intervalBar.style.width = '4px';
-
-  if (isAscending) {
-    intervalBar.style.bottom = `${100 - start1}%`;
-    intervalBar.style.top = 'auto';
-  } else {
-    intervalBar.style.top = `${start1}%`;
-  }
-
+  intervalBar.style.top = `${topEdge}%`;
   intervalBar.style.height = `${finalHeight}%`;
+  intervalBar.style.zIndex = '15';
 
-  soundlineContainer.appendChild(intervalBar);
+  matrixContainer.appendChild(intervalBar);
   currentIntervalElements.push(intervalBar);
 }
 
