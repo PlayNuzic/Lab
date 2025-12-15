@@ -11,6 +11,7 @@
 
 import TimelineAudio from './index.js';
 import { loadPiano } from './piano.js';
+import { loadViolin } from './violin.js';
 import { ensureToneLoaded } from './tone-loader.js';
 
 export class MelodicTimelineAudio extends TimelineAudio {
@@ -56,22 +57,16 @@ export class MelodicTimelineAudio extends TimelineAudio {
     }
 
     // Load new instrument sampler
-    // For now, only piano is supported
-    // Future: Add switch/case for different instruments
     let sampler;
     try {
       switch (key) {
+        case 'violin':
+          sampler = await loadViolin();
+          break;
         case 'piano':
         default:
           sampler = await loadPiano();
           break;
-        // Future instruments:
-        // case 'synth':
-        //   sampler = await loadSynth();
-        //   break;
-        // case 'guitar':
-        //   sampler = await loadGuitar();
-        //   break;
       }
     } catch (error) {
       console.error(`Failed to load instrument ${key}:`, error);

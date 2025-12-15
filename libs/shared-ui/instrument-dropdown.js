@@ -2,10 +2,11 @@
 // Dropdown for selecting melodic instruments
 
 // Available instruments
-export const instrumentNames = ['piano'];
+export const instrumentNames = ['piano', 'violin'];
 
 export const instrumentLabels = {
-  piano: 'Piano'
+  piano: 'Piano',
+  violin: 'Violín'
 };
 
 /**
