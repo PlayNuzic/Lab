@@ -32,7 +32,7 @@
 
 /* Active position - orange highlight */
 .cycle-counter__digit.playing-active {
-  color: var(--selection-color, #EA570C);
+  color: var(--selection-color, #FFBB33);
 }
 
 /* ============================================
@@ -70,8 +70,8 @@
 }
 
 .cycle-circle.active {
-  border-color: var(--selection-color, #EA570C) !important;
-  box-shadow: 0 0 12px var(--selection-color, #EA570C);
+  border-color: var(--selection-color, #FFBB33) !important;
+  box-shadow: 0 0 12px var(--selection-color, #FFBB33);
 }
 
 .cycle-circle.active-zero {

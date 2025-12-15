@@ -28,7 +28,7 @@
 
 /* Active pulse - orange */
 .pulse-number.active {
-  color: var(--selection-color, #EA570C);
+  color: var(--selection-color, #FFBB33);
   transform: translateX(-50%) scale(1.35);
 }
 
@@ -44,7 +44,7 @@
    ============================================ */
 
 .pulse.active {
-  background: var(--selection-color, #EA570C) !important;
+  background: var(--selection-color, #FFBB33) !important;
   transform: translate(-50%, -50%) scale(1.6);
 }
 
