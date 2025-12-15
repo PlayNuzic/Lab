@@ -123,7 +123,7 @@
 }
 
 .pulse-column.highlighted {
-  background: rgba(74, 158, 255, 0.1);
+  background: rgba(255, 187, 51, 0.15);
   border-color: var(--select-color, #FFBB33);
   box-shadow: 0 0 10px var(--select-color, #FFBB33);
 }

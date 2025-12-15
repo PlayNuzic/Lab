@@ -18,14 +18,24 @@
     import { renderApp } from '../../libs/app-common/template.js';
 
     // Set defaults in localStorage BEFORE header initializes
-    const app12Prefs = localStorage.getItem('app12-preferences');
+    // Key must match preferenceStorage('app12') which uses 'app12::preferences'
+    const app12Prefs = localStorage.getItem('app12::preferences');
     if (!app12Prefs) {
       // First time - set factory defaults
-      localStorage.setItem('app12-preferences', JSON.stringify({
+      localStorage.setItem('app12::preferences', JSON.stringify({
         selectedInstrument: 'piano',
-        selectColor: '#E4570C'
+        selectColor: '#FFBB33'
       }));
+    } else {
+      // Migrate old orange color to new default
+      const prefs = JSON.parse(app12Prefs);
+      if (prefs.selectColor === '#E4570C') {
+        prefs.selectColor = '#FFBB33';
+        localStorage.setItem('app12::preferences', JSON.stringify(prefs));
+      }
     }
+    // Clean up old key format if exists
+    localStorage.removeItem('app12-preferences');
 
     renderApp({
       root: document.getElementById('app-root'),
@@ -59,10 +69,11 @@
     });
 
     // Load selection color BEFORE header initializes
-    const app12PrefsJson = localStorage.getItem('app12-preferences');
+    const app12PrefsJson = localStorage.getItem('app12::preferences');
     const app12PrefsObj = app12PrefsJson ? JSON.parse(app12PrefsJson) : {};
-    const storedColor = app12PrefsObj.selectColor || '#E4570C';
+    const storedColor = app12PrefsObj.selectColor || '#FFBB33';
     document.documentElement.style.setProperty('--select-color', storedColor);
+    document.documentElement.style.setProperty('--selection-color', storedColor);
 
     initHeader();
 

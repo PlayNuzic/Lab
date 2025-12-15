@@ -224,9 +224,9 @@ async function handleCellClick(noteIndex, pulseIndex, cellElement) {
   --soundline-width: 3px;
   --timeline-height: 2px;
   --cell-size: 40px;
-  --cell-highlight-color: var(--selection-color, #F97C39);
+  --cell-highlight-color: var(--selection-color, #FFBB33);
   --pulse-marker-height: 15px;
-  --note-highlight-color: var(--selection-color, #F97C39);
+  --note-highlight-color: var(--selection-color, #FFBB33);
 }
 ```
 

@@ -660,6 +660,7 @@ async function init() {
     selectColor.addEventListener('input', (e) => {
       const color = e.target.value;
       document.documentElement.style.setProperty('--select-color', color);
+      document.documentElement.style.setProperty('--selection-color', color);
       const currentPrefs = preferenceStorage.load() || {};
       currentPrefs.selectColor = color;
       preferenceStorage.save(currentPrefs);
