@@ -62,8 +62,8 @@
 }
 
 .it-input:focus {
-  border-color: var(--selection-color, #F97C39);
-  box-shadow: 0 0 0 3px rgba(249, 124, 57, 0.2);
+  border-color: var(--selection-color, #FFBB33);
+  box-shadow: 0 0 0 3px rgba(255, 187, 51, 0.2);
 }
 
 .it-input::placeholder {
@@ -73,8 +73,8 @@
 }
 
 .it-input.has-value {
-  border-color: var(--selection-color, #F97C39);
-  background: rgba(249, 124, 57, 0.1);
+  border-color: var(--selection-color, #FFBB33);
+  background: rgba(255, 187, 51, 0.1);
 }
 
 /* ========== TOOLTIP ========== */
@@ -152,8 +152,8 @@
 /* Flash dels pulsos durant reproducció */
 .timeline .pulse.active {
   transform: translate(-50%, -50%) scale(1.5);
-  background: var(--selection-color, #F97C39);
-  box-shadow: 0 0 12px var(--selection-color, #F97C39);
+  background: var(--selection-color, #FFBB33);
+  box-shadow: 0 0 12px var(--selection-color, #FFBB33);
 }
 
 .timeline .pulse-number {

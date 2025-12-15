@@ -4,7 +4,7 @@
 :root {
   --line-color: #666;
   --soundline-width: 3px;
-  --note-highlight-color: var(--selection-color, #F97C39);
+  --note-highlight-color: var(--selection-color, #FFBB33);
   --interval-color: #F28AAD; /* Rosa Nuzic para intervalos sonoros */
 
   /* Two-column layout customization */
@@ -62,13 +62,17 @@
   border: 2px solid var(--interval-color, #F28AAD);
   border-radius: 8px;
   background: var(--bg-input, transparent);
-  color: var(--interval-color, #F28AAD);
+  color: var(--text-color, #333);
   font-size: 1.5rem;
   font-weight: 600;
   text-align: center;
   outline: none;
   transition: all 0.2s ease;
   -moz-appearance: textfield;
+}
+
+[data-theme="dark"] .is-input {
+  color: var(--text-dark, #e0e0e0);
 }
 
 .is-input::-webkit-outer-spin-button,
@@ -99,8 +103,8 @@
     box-shadow: none;
   }
   50% {
-    border-color: var(--selection-color, #F97C39);
-    box-shadow: 0 0 12px var(--selection-color, #F97C39);
+    border-color: var(--selection-color, #FFBB33);
+    box-shadow: 0 0 12px var(--selection-color, #FFBB33);
   }
 }
 
@@ -298,6 +302,30 @@
   animation: intervalFadeIn 0.3s ease-out;
 }
 
+/* Arrow tip for ascending intervals (pointing up) */
+.interval-bar-vertical.ascending::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 10px solid var(--interval-color);
+}
+
+/* Arrow tip for descending intervals (pointing down) */
+.interval-bar-vertical.descending::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 10px solid var(--interval-color);
+}
+
 /* Interval number */
 .interval-number {
   color: var(--interval-color);
@@ -350,7 +378,7 @@
   border-radius: 50%;
   border: 2px solid currentColor;
   background: transparent;
-  color: var(--selection-color, #F97C39);
+  color: var(--selection-color, #FFBB33);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -360,10 +388,10 @@
 }
 
 .play-btn:hover:not(:disabled) {
-  background: var(--selection-color, #F97C39);
+  background: var(--selection-color, #FFBB33);
   color: white;
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(249, 124, 57, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 187, 51, 0.3);
 }
 
 .play-btn:active:not(:disabled) {
@@ -381,10 +409,10 @@
 
 @keyframes playingPulse {
   0%, 100% {
-    box-shadow: 0 0 0 rgba(249, 124, 57, 0.4);
+    box-shadow: 0 0 0 rgba(255, 187, 51, 0.4);
   }
   50% {
-    box-shadow: 0 0 20px rgba(249, 124, 57, 0.6);
+    box-shadow: 0 0 20px rgba(255, 187, 51, 0.6);
   }
 }
 

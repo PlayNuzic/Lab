@@ -17,7 +17,7 @@
   --color-lg: #5C7AEA;
   --color-v: #2E8B57;
   --color-t: #E57373;
-  --selection-color: #F97C39;
+  --selection-color: #FFBB33;
   --play-button-size: 80px;
   --control-toggle-size: 100px;
   --control-toggle-width: 150px;
@@ -1181,7 +1181,7 @@ body[data-theme='dark'] .top-bar-notation-button {
 
 .top-bar-notation-button:hover {
   color: var(--selection-color);
-  box-shadow: 0 0 12px rgba(249, 124, 57, 0.45);
+  box-shadow: 0 0 12px rgba(255, 187, 51, 0.45);
   opacity: 1;
 }
 
@@ -1197,8 +1197,8 @@ body[data-theme='dark'] .top-bar-notation-button {
 .top-bar-notation-button--active {
   color: var(--selection-color);
   border-color: var(--selection-color);
-  background: rgba(249, 124, 57, 0.12);
-  box-shadow: 0 0 18px rgba(249, 124, 57, 0.5);
+  background: rgba(255, 187, 51, 0.12);
+  box-shadow: 0 0 18px rgba(255, 187, 51, 0.5);
   opacity: 1;
 }
 
@@ -1235,7 +1235,7 @@ body[data-theme='dark'] .top-bar-gamification-button {
 
 .top-bar-gamification-button:hover {
   color: var(--selection-color);
-  box-shadow: 0 0 12px rgba(249, 124, 57, 0.45);
+  box-shadow: 0 0 12px rgba(255, 187, 51, 0.45);
   opacity: 1;
 }
 
@@ -1251,8 +1251,8 @@ body[data-theme='dark'] .top-bar-gamification-button {
 .top-bar-gamification-button.active {
   color: var(--selection-color);
   border-color: var(--selection-color);
-  background: rgba(249, 124, 57, 0.12);
-  box-shadow: 0 0 18px rgba(249, 124, 57, 0.5);
+  background: rgba(255, 187, 51, 0.12);
+  box-shadow: 0 0 18px rgba(255, 187, 51, 0.5);
   opacity: 1;
 }
 
@@ -1446,7 +1446,7 @@ body[data-theme='dark'] .notation-panel__canvas {
   left: 0;
   width: 2px;
   height: 100%;
-  background: var(--selection-color, #F97C39);
+  background: var(--selection-color, #FFBB33);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
@@ -1477,18 +1477,18 @@ body.notation-open {
 }
 
 .notation-panel__canvas::-webkit-scrollbar-thumb {
-  background: var(--selection-color, #F97C39);
+  background: var(--selection-color, #FFBB33);
   border-radius: 5px;
 }
 
 .notation-panel__canvas::-webkit-scrollbar-thumb:hover {
-  background: var(--selection-color, #F97C39);
+  background: var(--selection-color, #FFBB33);
   opacity: 1;
 }
 
 .notation-panel__canvas {
   scrollbar-width: thin;
-  scrollbar-color: var(--selection-color, #F97C39) rgba(0, 0, 0, 0.08);
+  scrollbar-color: var(--selection-color, #FFBB33) rgba(0, 0, 0, 0.08);
 }
 
 @media (max-width: 600px) {

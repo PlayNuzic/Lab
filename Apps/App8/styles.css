@@ -54,7 +54,7 @@ main {
   font-size: 1.8rem;
   font-weight: 600;
   text-align: center;
-  border: 3px solid var(--selection-color, #F97C39);
+  border: 3px solid var(--selection-color, #FFBB33);
   border-radius: 12px;
   background: var(--bg-color);
   color: var(--text-color);
@@ -63,7 +63,7 @@ main {
 }
 
 .number-input:focus {
-  box-shadow: 0 0 0 4px rgba(249, 124, 57, 0.2);
+  box-shadow: 0 0 0 4px rgba(255, 187, 51, 0.2);
   transform: scale(1.02);
 }
 
@@ -93,9 +93,9 @@ main {
   justify-content: center;
   gap: 8px;
   padding: 20px;
-  background: rgba(249, 124, 57, 0.1);
+  background: rgba(255, 187, 51, 0.1);
   border-radius: 12px;
-  border: 2px solid var(--selection-color, #F97C39);
+  border: 2px solid var(--selection-color, #FFBB33);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   flex: 0 0 calc((100% / 6) - 20px);
@@ -113,7 +113,7 @@ main {
 .magnitude-number {
   font-size: 3rem;
   font-weight: 700;
-  color: var(--selection-color, #F97C39);
+  color: var(--selection-color, #FFBB33);
   line-height: 1;
 }
 
@@ -171,7 +171,7 @@ main {
   padding: 16px 48px;
   border-radius: 12px;
   border: none;
-  background: var(--selection-color, #F97C39);
+  background: var(--selection-color, #FFBB33);
   color: white;
   font-size: 1.4rem;
   font-weight: 600;
@@ -206,7 +206,7 @@ main {
   color: var(--text-color);
   padding: 30px 40px;
   border-radius: 16px;
-  border: 3px solid var(--selection-color, #F97C39);
+  border: 3px solid var(--selection-color, #FFBB33);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   z-index: 2000;
   opacity: 0;
@@ -230,7 +230,7 @@ main {
   padding: 12px 32px;
   border-radius: 8px;
   border: none;
-  background: var(--selection-color, #F97C39);
+  background: var(--selection-color, #FFBB33);
   color: white;
   font-size: 1.2rem;
   font-weight: 600;
@@ -473,7 +473,7 @@ body[data-theme='dark'] .timeline .pulse {
   position: absolute;
   top: 50%;
   height: 24px;
-  background: var(--selection-color, #F97C39);
+  background: var(--selection-color, #FFBB33);
   opacity: 0.25;
   border-radius: 4px;
   display: flex;

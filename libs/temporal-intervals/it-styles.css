@@ -5,7 +5,7 @@
 .interval-block {
   position: absolute;
   height: 24px; /* 3x original size (~8px → 24px) */
-  background: var(--selection-color, #F97C39);
+  background: var(--selection-color, #FFBB33);
   opacity: 0.25; /* Estado NO seleccionado - muy sutil */
   border-radius: 4px;
   display: flex;
@@ -21,7 +21,7 @@
 /* Estado SELECCIONADO - alta opacidad */
 .interval-block.selected {
   opacity: 0.8;
-  background: var(--selection-color, #F97C39);
+  background: var(--selection-color, #FFBB33);
 }
 
 /* NO hover feedback - mantener comportamiento simple y claro */

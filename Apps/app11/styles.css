@@ -6,8 +6,8 @@
 
 /* Variables CSS */
 :root {
-  --cell-highlight-color: var(--selection-color, #F97C39);
-  --note-highlight-color: var(--selection-color, #F97C39);
+  --cell-highlight-color: var(--selection-color, #FFBB33);
+  --note-highlight-color: var(--selection-color, #FFBB33);
   --z-active: 20;
 
   /* TwoColumnLayout customization - preserves exact App11 positioning */

@@ -135,8 +135,8 @@ function clearHighlights() {
  */
 function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeats = 2) {
   // getNotePosition retorna el BOTTOM de la cel·la
-  // Per centrar, restem la meitat de l'alçada d'una cel·la (pujar mig cel·la)
   const cellHeight = 100 / 12; // ≈ 8.33%
+  const quarterCell = cellHeight / 4; // ≈ 2.08%
   const halfCell = cellHeight / 2; // ≈ 4.17%
 
   const pos1 = soundline.getNotePosition(note1Index);
@@ -146,14 +146,27 @@ function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeat
   const center1 = pos1 - halfCell;
   const center2 = pos2 - halfCell;
 
+  // Determinar direcció: positiu (puja, note2 > note1) o negatiu (baixa)
+  // En la soundline, nota 0 està a BAIX (% alt), nota 11 a DALT (% baix)
+  const isAscending = note2Index > note1Index;
+
+  // Offset 1/4 de celda: per a intervals +, parteix des d'un quart per sobre del centre
+  // Per a intervals -, parteix des d'un quart per sota del centre
+  // En coordenades %, més baix = més avall en pantalla
+  const startOffset = isAscending ? quarterCell : -quarterCell;
+  const endOffset = isAscending ? -quarterCell : quarterCell;
+
+  const start1 = center1 - startOffset; // Punt d'inici de la barra
+  const end2 = center2 - endOffset; // Punt final de la barra
+
   const intervalBar = document.createElement('div');
   intervalBar.className = 'interval-bar-vertical';
   intervalBar.style.position = 'absolute';
   intervalBar.style.left = '160px';
   intervalBar.style.width = '4px';
 
-  // Alçada final: distància entre els dos centres
-  const finalHeight = Math.abs(center1 - center2);
+  // Alçada final: distància entre els punts ajustats
+  const finalHeight = Math.abs(start1 - end2);
 
   // Durada de l'animació en segons (per defecte 2 beats)
   const animationDuration = (60 / FIXED_BPM) * durationBeats;
@@ -161,23 +174,20 @@ function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeat
   // Delay abans de començar l'animació (1 beat per defecte)
   const delayMs = (60 / FIXED_BPM) * delayBeats * 1000;
 
-  // Determinar direcció: positiu (puja, note2 > note1) o negatiu (baixa)
-  // En la soundline, nota 0 està a BAIX (% alt), nota 11 a DALT (% baix)
-  const isAscending = note2Index > note1Index;
+  // Afegir classe per direcció (per CSS arrow)
+  intervalBar.classList.add(isAscending ? 'ascending' : 'descending');
 
   if (isAscending) {
     // Interval positiu: nota puja (de baix a dalt en pantalla)
-    // center1 > center2 (origen té % més alt = més avall)
-    // Posicionem el BOTTOM de la barra al centre de l'origen
-    const bottomPos = 100 - center1;
+    // Posicionem el BOTTOM de la barra al punt d'inici
+    const bottomPos = 100 - start1;
     intervalBar.style.bottom = `${bottomPos}%`;
     intervalBar.style.top = 'auto';
     intervalBar.style.height = '0%';
   } else {
     // Interval negatiu: nota baixa (de dalt a baix en pantalla)
-    // center1 < center2 (origen té % més baix = més amunt)
-    // Posicionem el TOP de la barra al centre de l'origen
-    intervalBar.style.top = `${center1}%`;
+    // Posicionem el TOP de la barra al punt d'inici
+    intervalBar.style.top = `${start1}%`;
     intervalBar.style.height = '0%';
   }
 

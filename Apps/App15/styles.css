@@ -10,9 +10,9 @@
   --line-color: #666;
   --soundline-width: 3px;
   --timeline-height: 2px;
-  --cell-highlight-color: var(--select-color, #F97C39);
+  --cell-highlight-color: var(--select-color, #FFBB33);
   --pulse-marker-height: 15px;
-  --note-highlight-color: var(--select-color, #F97C39);
+  --note-highlight-color: var(--select-color, #FFBB33);
   --select-color-rgb: 228, 87, 12;
 
   /* Z-index system */
@@ -276,11 +276,11 @@ body.dragging-note * {
 }
 
 .seq-input .pz.number.highlighted {
-  background: var(--select-color, #F97C39);
+  background: var(--select-color, #FFBB33);
   color: white;
   font-weight: 700;
   transform: scale(1.15);
-  box-shadow: 0 0 8px var(--select-color, #F97C39);
+  box-shadow: 0 0 8px var(--select-color, #FFBB33);
   z-index: var(--z-interactive);
 }
 
@@ -624,17 +624,17 @@ body.dragging-note * {
 }
 
 .musical-cell.interval-span-start {
-  border-left: 3px solid var(--select-color, #F97C39);
+  border-left: 3px solid var(--select-color, #FFBB33);
   border-radius: 6px 0 0 6px;
 }
 
 .musical-cell.interval-span-end {
-  border-right: 3px solid var(--select-color, #F97C39);
+  border-right: 3px solid var(--select-color, #FFBB33);
   border-radius: 0 6px 6px 6px;
 }
 
 .musical-cell.interval-span-start.interval-span-end {
-  border: 3px solid var(--select-color, #F97C39);
+  border: 3px solid var(--select-color, #FFBB33);
   border-radius: 6px;
 }
 
@@ -695,7 +695,7 @@ body.dragging-note * {
 
 .zigzag-input:focus {
   outline: none;
-  border-color: var(--select-color, #F97C39);
+  border-color: var(--select-color, #FFBB33);
   box-shadow: 0 0 6px rgba(var(--select-color-rgb, 228, 87, 12), 0.35);
   background: rgba(var(--select-color-rgb, 228, 87, 12), 0.08);
 }
@@ -732,7 +732,7 @@ body.dragging-note * {
 /* Color accents for first pair vs interval pairs */
 .zigzag-input--n,
 .zigzag-input--p {
-  color: var(--select-color, #F97C39);
+  color: var(--select-color, #FFBB33);
   font-weight: 700;
 }
 

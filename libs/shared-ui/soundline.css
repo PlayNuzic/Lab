@@ -8,7 +8,7 @@
 :root {
   --line-color: #666;
   --soundline-width: 3px;
-  --note-highlight-color: var(--selection-color, #F97C39);
+  --note-highlight-color: var(--selection-color, #FFBB33);
   --soundline-height: 100%;
 }
 
@@ -67,7 +67,7 @@
 }
 
 .soundline-division:hover::after {
-  background: var(--note-highlight-color, #F97C39);
+  background: var(--note-highlight-color, #FFBB33);
 }
 
 /* ============================================
@@ -92,7 +92,7 @@
 
 .soundline-number:hover {
   opacity: 1;
-  color: var(--note-highlight-color, #F97C39);
+  color: var(--note-highlight-color, #FFBB33);
 }
 
 /* Registry boundary markers */

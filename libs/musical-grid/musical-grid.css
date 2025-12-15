@@ -260,8 +260,8 @@
 
 /* Active cell (selected) - attenuated background and border to highlight N-P dot */
 .musical-cell.active {
-  background: color-mix(in srgb, var(--cell-highlight-color, var(--select-color, #F97C39)) 40%, transparent);
-  border-color: color-mix(in srgb, var(--cell-highlight-color, var(--select-color, #F97C39)) 40%, transparent);
+  background: color-mix(in srgb, var(--cell-highlight-color, var(--select-color, #FFBB33)) 40%, transparent);
+  border-color: color-mix(in srgb, var(--cell-highlight-color, var(--select-color, #FFBB33)) 40%, transparent);
   box-shadow: none;  /* Removed glow for subtler appearance */
   z-index: var(--z-interactive, 10);
 }
@@ -431,27 +431,27 @@
   position: absolute;
   left: 40px;
   width: 60px;
-  background: var(--note-highlight-color, var(--select-color, #F97C39));
+  background: var(--note-highlight-color, var(--select-color, #FFBB33));
   opacity: 0.6;
   border-radius: 4px;
   pointer-events: none;
   z-index: var(--z-interactive, 10);
-  box-shadow: 0 0 14px var(--note-highlight-color, var(--select-color, #F97C39));
+  box-shadow: 0 0 14px var(--note-highlight-color, var(--select-color, #FFBB33));
 }
 
 /* ========== PULSE HIGHLIGHT (during playback) ========== */
 .pulse-marker.highlighted {
-  background: var(--select-color, #F97C39);
+  background: var(--select-color, #FFBB33);
   opacity: 1;
   transform: translateX(-50%) scaleY(1.5);
   transition: all 0.1s ease;
-  box-shadow: 0 0 10px var(--select-color, #F97C39);
+  box-shadow: 0 0 10px var(--select-color, #FFBB33);
   z-index: var(--z-active, 15);
 }
 
 .musical-cell.pulse-highlight {
-  border-color: var(--select-color, #F97C39);
-  box-shadow: 0 0 12px var(--select-color, #F97C39);
+  border-color: var(--select-color, #FFBB33);
+  box-shadow: 0 0 12px var(--select-color, #FFBB33);
   opacity: 0.7;
 }
 

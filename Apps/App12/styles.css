@@ -10,9 +10,9 @@
   --line-color: #666;
   --soundline-width: 3px;
   --timeline-height: 2px;
-  --cell-highlight-color: var(--select-color, #F97C39);
+  --cell-highlight-color: var(--select-color, #FFBB33);
   --pulse-marker-height: 15px;
-  --note-highlight-color: var(--select-color, #F97C39);
+  --note-highlight-color: var(--select-color, #FFBB33);
 
   /* Z-index system */
   --z-base: 1;           /* Base elements: lines, markers */
@@ -203,11 +203,11 @@
 }
 
 .seq-input .pz.number.highlighted {
-  background: var(--select-color, #F97C39);
+  background: var(--select-color, #FFBB33);
   color: white;
   font-weight: 700;
   transform: scale(1.15);
-  box-shadow: 0 0 8px var(--select-color, #F97C39);
+  box-shadow: 0 0 8px var(--select-color, #FFBB33);
   z-index: var(--z-interactive);
 }
 
