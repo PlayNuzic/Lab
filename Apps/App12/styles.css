@@ -29,18 +29,18 @@
   --buttons-align: center;
 
   /* Reduce gap to align grid more to the left */
-  --layout-gap: 0.5rem;
+  --layout-gap: 0rem;
 
   /* Toggle positioning for satellite button */
   --toggle-pulse-offset-x: -115px;
   --toggle-pulse-offset-y: -20px;
 
   /* Fine-tuning for button positioning */
-  --play-row-margin-left: 43px;
-  --play-row-margin-top: -60px;
-  --button-row-margin-left: -60px;
+  --play-row-margin-left: 30px;
+  --play-row-margin-top: 0px;
+  --button-row-margin-left: -70px;
   --button-row-margin-top: 0px;
-  --controls-vertical-gap: 0.5rem;
+  --controls-vertical-gap: 0.1rem;
 }
 
 [data-theme="dark"] {
