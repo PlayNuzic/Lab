@@ -165,8 +165,16 @@ function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeat
   intervalBar.style.left = '160px';
   intervalBar.style.width = '4px';
 
-  // Alçada final: distància entre els punts ajustats
-  const finalHeight = Math.abs(start1 - end2);
+  // Padding per escurçar la barra i no tapar els números
+  // Per intervals ±1: padding negatiu perquè la línia sobresurti i la fletxa quedi separada
+  // Per altres intervals: 25% de cel·la a cada extrem
+  const intervalSize = Math.abs(note2Index - note1Index);
+  const padding = intervalSize === 1 ? cellHeight * -0.3 : cellHeight * 0.25;
+
+  // Alçada final: distància entre els punts menys el padding als dos extrems
+  // (si padding és negatiu, la línia serà més llarga)
+  const fullHeight = Math.abs(start1 - end2);
+  const finalHeight = fullHeight - (padding * 2);
 
   // Durada de l'animació en segons (per defecte 2 beats)
   const animationDuration = (60 / FIXED_BPM) * durationBeats;
@@ -179,15 +187,15 @@ function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeat
 
   if (isAscending) {
     // Interval positiu: nota puja (de baix a dalt en pantalla)
-    // Posicionem el BOTTOM de la barra al punt d'inici
-    const bottomPos = 100 - start1;
+    // Posicionem el BOTTOM de la barra al punt d'inici - padding (més avall)
+    const bottomPos = 100 - start1 + padding;
     intervalBar.style.bottom = `${bottomPos}%`;
     intervalBar.style.top = 'auto';
     intervalBar.style.height = '0%';
   } else {
     // Interval negatiu: nota baixa (de dalt a baix en pantalla)
-    // Posicionem el TOP de la barra al punt d'inici
-    intervalBar.style.top = `${start1}%`;
+    // Posicionem el TOP de la barra al punt d'inici + padding (més avall)
+    intervalBar.style.top = `${start1 + padding}%`;
     intervalBar.style.height = '0%';
   }
 
