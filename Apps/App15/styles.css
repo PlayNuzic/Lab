@@ -13,7 +13,11 @@
   --cell-highlight-color: var(--select-color, #FFBB33);
   --pulse-marker-height: 15px;
   --note-highlight-color: var(--select-color, #FFBB33);
-  --select-color-rgb: 228, 87, 12;
+  --select-color-rgb: 255, 187, 51;
+
+  /* Interval colors */
+  --interval-sound-color: #F28AAD; /* Rosa Nuzic para iS (intervalos sonoros) */
+  --interval-temporal-color: #4A9EFF; /* Azul para iT (intervalos temporales) */
 
   /* Z-index system */
   --z-base: 1;           /* Base elements: lines, markers */
@@ -62,7 +66,7 @@
 
 /* ========== Drag Preview ========== */
 .musical-cell.drag-preview {
-  background: var(--select-color, #E4570C) !important;
+  background: var(--select-color, #FFBB33) !important;
   opacity: 0.3;
 }
 
@@ -595,6 +599,18 @@ body.dragging-note * {
      @media (max-width: 480px) and (orientation: landscape) rule */
 }
 
+/* ========== GRID2D CELL COLORS (same as grid-editor) ========== */
+/* Override musical-grid default white background to be transparent like grid-editor */
+.musical-cell {
+  background: transparent;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .musical-cell {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
 /* ========== INTERVAL EXPANSION STYLES (Option B - Borders) ========== */
 .interval-duration {
   background: rgba(var(--select-color-rgb), 0.15);
@@ -720,8 +736,17 @@ body.dragging-note * {
   justify-content: center;
   padding: 0 10px;
   font-weight: 700;
-  color: #4A9EFF;
   min-width: 52px;
+}
+
+/* iS label in Rosa Nuzic */
+.zigzag-left-label--top {
+  color: var(--interval-sound-color, #F28AAD);
+}
+
+/* iT label in Blue */
+.zigzag-left-label--bottom {
+  color: var(--interval-temporal-color, #4A9EFF);
 }
 
 .zigzag-left-label--top,
@@ -736,9 +761,16 @@ body.dragging-note * {
   font-weight: 700;
 }
 
-.zigzag-input.zigzag-input--is,
+/* iS inputs - Rosa Nuzic */
+.zigzag-input.zigzag-input--is {
+  color: var(--interval-sound-color, #F28AAD) !important;
+  font-weight: 700;
+  opacity: 1;
+}
+
+/* iT inputs - Blue */
 .zigzag-input.zigzag-input--it {
-  color: var(--interval-color, #4A9EFF) !important;
+  color: var(--interval-temporal-color, #4A9EFF) !important;
   font-weight: 700;
   opacity: 1;
 }
@@ -801,15 +833,17 @@ body.dragging-note * {
   font-weight: 700;
 }
 
-/* Interval cells styling - AZUL INTERVALO #4A9EFF */
+/* Interval cells styling */
+/* iS labels - Rosa Nuzic */
 .zigzag-cell--is .zigzag-label {
-  color: #4A9EFF;
-  background: rgba(74, 158, 255, 0.1);
+  color: var(--interval-sound-color, #F28AAD);
+  background: rgba(242, 138, 173, 0.1);
   font-weight: 700;
 }
 
+/* iT labels - Blue */
 .zigzag-cell--it .zigzag-label {
-  color: #4A9EFF;
+  color: var(--interval-temporal-color, #4A9EFF);
   background: rgba(74, 158, 255, 0.15);
   font-weight: 700;
 }

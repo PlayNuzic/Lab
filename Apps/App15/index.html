@@ -24,10 +24,17 @@
       // First time - set factory defaults
       localStorage.setItem('app15-preferences', JSON.stringify({
         selectedInstrument: 'piano',
-        selectColor: '#F97C39',
+        selectColor: '#FFBB33',
         polyphony: '0',  // Factory default: polyphony DISABLED
         intervalLinesEnabled: true  // Always enabled in App15
       }));
+    } else {
+      // Migrate old color to new default
+      const prefs = JSON.parse(app15Prefs);
+      if (prefs.selectColor === '#F97C39') {
+        prefs.selectColor = '#FFBB33';
+        localStorage.setItem('app15-preferences', JSON.stringify(prefs));
+      }
     }
 
     renderApp({
@@ -68,7 +75,7 @@
     // Load selection color BEFORE header initializes
     const app15PrefsJson = localStorage.getItem('app15-preferences');
     const app15PrefsObj = app15PrefsJson ? JSON.parse(app15PrefsJson) : {};
-    const storedColor = app15PrefsObj.selectColor || '#F97C39';
+    const storedColor = app15PrefsObj.selectColor || '#FFBB33';
     document.documentElement.style.setProperty('--select-color', storedColor);
 
     initHeader();
