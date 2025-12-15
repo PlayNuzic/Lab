@@ -11,7 +11,7 @@
 }
 
 .pulse-number.cycle-start {
-  color: var(--color-lg, #4A90D9);
+  color: var(--color-lg, #7BB4CD);
   font-weight: 700;
 }
 
@@ -34,9 +34,9 @@
 
 /* Zero position - blue with glow */
 .pulse-number.active-zero {
-  color: var(--color-lg, #4A90D9);
+  color: var(--color-lg, #7BB4CD);
   transform: translateX(-50%) scale(1.5);
-  text-shadow: 0 0 12px var(--color-lg, #4A90D9);
+  text-shadow: 0 0 12px var(--color-lg, #7BB4CD);
 }
 
 /* ============================================
@@ -49,9 +49,9 @@
 }
 
 .pulse.active-zero {
-  background: var(--color-lg, #4A90D9) !important;
+  background: var(--color-lg, #7BB4CD) !important;
   transform: translate(-50%, -50%) scale(1.8);
-  box-shadow: 0 0 12px var(--color-lg, #4A90D9);
+  box-shadow: 0 0 12px var(--color-lg, #7BB4CD);
 }
 
 /* ============================================

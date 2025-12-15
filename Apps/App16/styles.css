@@ -90,7 +90,7 @@
 
 /* Cycle start color override */
 .pulse-number.cycle-start {
-  color: var(--color-lg, #4A90D9);
+  color: var(--color-lg, #7BB4CD);
   font-weight: 700;
 }
 
@@ -102,7 +102,7 @@
   transform: translateX(50%);
   font-size: 3rem;
   font-weight: 700;
-  color: #36C473;
+  color: #7BB4CD;
 }
 
 /* ============================================

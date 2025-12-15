@@ -246,7 +246,7 @@ El módulo usa CSS custom properties para personalización:
   --plano-cell-hover: rgba(0, 0, 0, 0.05);
   --plano-grid-line-color: rgba(0, 0, 0, 0.1);
   --plano-select-color: #EA570C;
-  --plano-cycle-color: #4A90D9;
+  --plano-cycle-color: #7BB4CD;
   --plano-highlight-color: rgba(234, 87, 12, 0.3);
   --plano-text-color: #333;
   --plano-boundary-color: rgba(74, 144, 217, 0.2);

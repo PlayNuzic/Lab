@@ -27,7 +27,7 @@
 
 /* Zero position - blue highlight */
 .cycle-counter__digit.playing-zero {
-  color: var(--color-lg, #4A90D9);
+  color: var(--color-lg, #7BB4CD);
 }
 
 /* Active position - orange highlight */
@@ -75,8 +75,8 @@
 }
 
 .cycle-circle.active-zero {
-  border-color: var(--color-lg, #4A90D9) !important;
-  box-shadow: 0 0 12px var(--color-lg, #4A90D9);
+  border-color: var(--color-lg, #7BB4CD) !important;
+  box-shadow: 0 0 12px var(--color-lg, #7BB4CD);
 }
 
 /* ============================================
