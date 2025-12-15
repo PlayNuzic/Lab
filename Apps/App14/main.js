@@ -134,30 +134,30 @@ function clearHighlights() {
  * @param {number} note2Index - Nota destí (segon del parell)
  */
 function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeats = 2) {
-  // getNotePosition retorna el BOTTOM de la cel·la
+  // getNotePosition retorna el BOTTOM de la cel·la (en %)
+  // La cel·la ocupa des de (bottom - cellHeight) fins a bottom
   const cellHeight = 100 / 12; // ≈ 8.33%
-  const eighthCell = cellHeight / 8; // ≈ 1.04%
-  const halfCell = cellHeight / 2; // ≈ 4.17%
 
-  const pos1 = soundline.getNotePosition(note1Index);
-  const pos2 = soundline.getNotePosition(note2Index);
-
-  // Centre de cada cel·la = bottom - halfCell
-  const center1 = pos1 - halfCell;
-  const center2 = pos2 - halfCell;
+  const pos1 = soundline.getNotePosition(note1Index); // Bottom de cel·la origen
+  const pos2 = soundline.getNotePosition(note2Index); // Bottom de cel·la destí
 
   // Determinar direcció: positiu (puja, note2 > note1) o negatiu (baixa)
   // En la soundline, nota 0 està a BAIX (% alt), nota 11 a DALT (% baix)
   const isAscending = note2Index > note1Index;
 
-  // Offset 1/8 de celda: per a intervals +, parteix des d'un vuitè per sobre del centre
-  // Per a intervals -, parteix des d'un vuitè per sota del centre
-  // En coordenades %, més baix = més avall en pantalla
-  const startOffset = isAscending ? eighthCell : -eighthCell;
-  const endOffset = isAscending ? -eighthCell : eighthCell;
-
-  const start1 = center1 - startOffset; // Punt d'inici de la barra
-  const end2 = center2 - endOffset; // Punt final de la barra
+  // Línia de borde a borde:
+  // - Interval ascendent (+): des del TOP de cel·la origen fins al BOTTOM de cel·la destí
+  //   top origen = pos1 - cellHeight, bottom destí = pos2
+  // - Interval descendent (-): des del BOTTOM de cel·la origen fins al TOP de cel·la destí
+  //   bottom origen = pos1, top destí = pos2 - cellHeight
+  let start1, end2;
+  if (isAscending) {
+    start1 = pos1 - cellHeight; // Top de cel·la origen
+    end2 = pos2;                 // Bottom de cel·la destí
+  } else {
+    start1 = pos1;               // Bottom de cel·la origen
+    end2 = pos2 - cellHeight;    // Top de cel·la destí
+  }
 
   const intervalBar = document.createElement('div');
   intervalBar.className = 'interval-bar-vertical';
