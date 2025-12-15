@@ -531,8 +531,9 @@ async function handlePlay() {
 
   const intervals = getIntervalsFromEditor();
 
-  // Si editor buit, flash i sortir
+  // Si editor buit, mostrar avís i flash
   if (intervals.length === 0) {
+    showTooltip(isInputs[0], 'Introduce al menos un intervalo', false);
     await flashEmptyInputs();
     return;
   }
