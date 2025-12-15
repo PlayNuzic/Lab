@@ -389,15 +389,15 @@ async function init() {
     // 1. Update localStorage with factory defaults
     localStorage.setItem('app11-preferences', JSON.stringify({
       selectedInstrument: 'piano',
-      selectColor: '#E4570C'
+      selectColor: '#FFBB33'
     }));
 
     // 2. Sync UI without reload
     // Color picker
     const selectColorInput = document.getElementById('selectColor');
     if (selectColorInput) {
-      selectColorInput.value = '#E4570C';
-      document.documentElement.style.setProperty('--select-color', '#E4570C');
+      selectColorInput.value = '#FFBB33';
+      document.documentElement.style.setProperty('--select-color', '#FFBB33');
     }
 
     // 3. Reload to ensure clean state
