@@ -162,19 +162,28 @@ async function handlePlay() {
     },
     () => {
       // onComplete callback: Playback finished
-      stopPlayback();
+      // Delay audio.stop() by one pulse to let the last note ring out
+      const lastNoteDelay = intervalSec * 1000;
+      stopPlayback(lastNoteDelay);
     }
   );
 }
 
-function stopPlayback() {
+function stopPlayback(delayMs = 0) {
   isPlaying = false;
 
   // Re-enable random button after playback
   if (randomBtn) randomBtn.disabled = false;
 
   // Stop audio engine (stops transport + releases all instrument notes)
-  audio?.stop();
+  // Delay stop to let the last note ring out (prevents abrupt cutoff)
+  if (delayMs > 0) {
+    setTimeout(() => {
+      audio?.stop();
+    }, delayMs);
+  } else {
+    audio?.stop();
+  }
 
   // Clear pulse highlights
   highlightController?.clearHighlights();
