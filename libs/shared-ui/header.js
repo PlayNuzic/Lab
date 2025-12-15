@@ -46,7 +46,7 @@ function applyTheme(value) {
     window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: v } }));
 }
 
-const SELECTION_COLOR_DEFAULT = '#EA570C';
+const SELECTION_COLOR_DEFAULT = '#FFBB33';
 const SELECTION_COLOR_KEY = 'sharedui:selectionColor';
 const HOVER_ENABLED_KEY = 'sharedui:hoverEnabled';
 
