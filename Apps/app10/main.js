@@ -23,7 +23,7 @@ const TOTAL_NOTES = 6;  // 6 notas aleatorias (changed from 4)
 const MIN_NOTE = 0;      // Nota 0 (MIDI 60 = C4)
 const MAX_NOTE = 11;     // Nota 11 (MIDI 71 = B4)
 const MIN_BPM = 75;
-const MAX_BPM = 200;
+const MAX_BPM = 120;
 const CHROMATIC_BPM = 160; // BPM fijo para escala cromática inicial
 
 // Storage de preferencias
