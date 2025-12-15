@@ -18,25 +18,9 @@
   /* Reduce gap to align grid more to the left */
   --layout-gap: 1rem;
 
-  /* Circular layout fine-tuning for App11 (vertical layout) */
-  --play-row-offset-x: -560px;
-  --play-row-offset-y: -150px;
-  --control-toggles-offset-x: 0px;
-  --control-toggles-offset-y: 0px;
+  /* Toggle positioning for satellite button */
   --toggle-pulse-offset-x: -115px;
   --toggle-pulse-offset-y: -20px;
-  --toggle-selected-offset-x: 0px;
-  --toggle-selected-offset-y: 0px;
-  --toggle-cycle-offset-x: 0px;
-  --toggle-cycle-offset-y: 0px;
-  --btn-loop-offset-x: 0px;
-  --btn-loop-offset-y: 0px;
-  --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 0px;
-  --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 0px;
-  --btn-tap-offset-x: 0px;
-  --btn-tap-offset-y: 0px;
 }
 
 [data-theme="dark"] {
@@ -52,6 +36,12 @@
   margin: 30px;
   position: static;
   align-items: flex-start;
+}
+
+/* Play-row: use static positioning instead of absolute centering */
+.app11-controls-container .play-row {
+  position: static;
+  transform: none;
 }
 
 /* Force vertical layout for control-buttons-row */

@@ -31,25 +31,9 @@
   /* Reduce gap to align grid more to the left */
   --layout-gap: 1rem;
 
-  /* Circular layout fine-tuning for App12 (vertical layout) */
-  --play-row-offset-x: -597px;
-  --play-row-offset-y: -65px;
-  --control-toggles-offset-x: 0px;
-  --control-toggles-offset-y: 0px;
+  /* Toggle positioning for satellite button */
   --toggle-pulse-offset-x: -115px;
   --toggle-pulse-offset-y: -20px;
-  --toggle-selected-offset-x: 0px;
-  --toggle-selected-offset-y: 0px;
-  --toggle-cycle-offset-x: 0px;
-  --toggle-cycle-offset-y: 0px;
-  --btn-loop-offset-x: 0px;
-  --btn-loop-offset-y: 0px;
-  --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 0px;
-  --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 0px;
-  --btn-tap-offset-x: 0px;
-  --btn-tap-offset-y: 0px;
 }
 
 [data-theme="dark"] {
@@ -160,6 +144,12 @@
 .app12-controls-container .controls {
   position: relative;
   /* Template's original layout is preserved */
+}
+
+/* Play-row: use static positioning instead of absolute centering */
+.app12-controls-container .play-row {
+  position: static;
+  transform: none;
 }
 
 /* Hide Loop button */
