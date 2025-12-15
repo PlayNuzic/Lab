@@ -10,6 +10,37 @@ export const instrumentLabels = {
 };
 
 /**
+ * Preload instrument samples in background to reduce latency
+ * Called automatically when user selects an instrument from dropdown
+ * @param {string} instrument - Instrument key to preload
+ */
+async function preloadInstrument(instrument) {
+  try {
+    // Ensure Tone.js is loaded first
+    const { ensureToneLoaded } = await import('../sound/tone-loader.js');
+    await ensureToneLoaded();
+
+    // Dynamically import and preload the selected instrument
+    switch (instrument) {
+      case 'violin': {
+        const { preloadViolin } = await import('../sound/violin.js');
+        preloadViolin({ delay: 0 }); // No delay - start immediately
+        console.log('Violin preload initiated');
+        break;
+      }
+      case 'piano': {
+        const { preloadPiano } = await import('../sound/piano.js');
+        preloadPiano({ delay: 0 });
+        console.log('Piano preload initiated');
+        break;
+      }
+    }
+  } catch (err) {
+    console.warn(`Failed to preload ${instrument}:`, err);
+  }
+}
+
+/**
  * Initialize instrument dropdown
  * @param {HTMLElement} container - Container for dropdown
  * @param {Object} options - Configuration
@@ -94,6 +125,16 @@ export function initInstrumentDropdown(container, { storageKey, eventType, onSel
   // Initialize label
   updateLabel();
 
+  // Preload the initially selected instrument after first user interaction
+  // This ensures samples are ready before user clicks Play
+  const preloadOnFirstInteraction = () => {
+    preloadInstrument(selected);
+    document.removeEventListener('click', preloadOnFirstInteraction, { capture: true });
+    document.removeEventListener('touchstart', preloadOnFirstInteraction, { capture: true });
+  };
+  document.addEventListener('click', preloadOnFirstInteraction, { capture: true, once: true });
+  document.addEventListener('touchstart', preloadOnFirstInteraction, { capture: true, once: true });
+
   function updateListHighlight() {
     const children = [...list.children];
     children.forEach(li => li.classList.remove('selected', 'pending'));
@@ -130,6 +171,9 @@ export function initInstrumentDropdown(container, { storageKey, eventType, onSel
     }
 
     updateLabel();
+
+    // Preload instrument samples in background to reduce latency
+    preloadInstrument(selected);
 
     // Dispatch event
     if (eventType) {
