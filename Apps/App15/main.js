@@ -45,6 +45,10 @@ let currentPairs = [];
 // Interval renderer instance (from interval-sequencer module)
 let intervalRenderer = null;
 
+// Tracking d'elements d'interval iS (línies verticals estil App14)
+let currentIntervalElements = [];
+let activeAnimationTimeouts = [];
+
 // Elements
 let playBtn = null;
 let resetBtn = null;
@@ -195,27 +199,35 @@ async function handlePlay() {
       //    (controlled by pulseToggleBtn + mixer 'pulse' channel)
     },
     () => {
-      // onComplete callback: Playback finished
-      stopPlayback();
+      // onComplete callback: Delay stop to let last note ring out (90% of interval)
+      const lastNoteDelay = intervalSec * 0.9 * 1000;
+      stopPlayback(lastNoteDelay);
     }
   );
 }
 
-function stopPlayback() {
+function stopPlayback(delayMs = 0) {
   isPlaying = false;
 
   // Re-enable random button after playback
   if (randomBtn) randomBtn.disabled = false;
 
-  audio?.stop();
+  // Stop audio with delay to let last note ring out
+  if (delayMs > 0) {
+    setTimeout(() => {
+      audio?.stop();
+    }, delayMs);
+  } else {
+    audio?.stop();
+  }
 
   // Clear all highlights
   musicalGrid?.clearIntervalHighlights();
   highlightController?.clearHighlights();
 
   // Reset button icon
-  const playIcon = playBtn.querySelector('.icon-play');
-  const stopIcon = playBtn.querySelector('.icon-stop');
+  const playIcon = playBtn?.querySelector('.icon-play');
+  const stopIcon = playBtn?.querySelector('.icon-stop');
   if (playIcon && stopIcon) {
     playIcon.style.display = 'block';
     stopIcon.style.display = 'none';
@@ -297,13 +309,8 @@ function syncGridFromPairs(pairs) {
     }
   });
 
-  // Clear interval paths before updating
-  if (musicalGrid.clearIntervalPaths) {
-    musicalGrid.clearIntervalPaths();
-  }
-
-  // Interval lines always enabled in App15
-  const intervalLinesEnabled = intervalLinesEnabledState;
+  // Clear interval lines (App14 style vertical bars)
+  clearIntervalLines();
 
   // Filter out invalid pairs (null notes or pulses out of range)
   const validPairs = visiblePairs.filter(p =>
@@ -333,12 +340,22 @@ function syncGridFromPairs(pairs) {
     }
   });
 
-  // Highlight interval paths (if enabled)
-  if (musicalGrid.highlightIntervalPath) {
-    // Pass basePair (0,0) to draw first iS line from origin
-    // hideInitialPair=true means the pair isn't shown in grid-editor,
-    // but we still need it to draw the first interval line in grid-2D
-    musicalGrid.highlightIntervalPath(validPairs, polyphonyEnabled, { note: 0, pulse: 0 });
+  // Draw interval lines for iS visualization (App14 style)
+  if (intervalLinesEnabledState && validPairs.length > 0) {
+    // Start from base pair (0,0)
+    let prevNote = 0;
+
+    // Sort by pulse to ensure correct order
+    const sortedPairs = [...validPairs].sort((a, b) => a.pulse - b.pulse);
+
+    sortedPairs.forEach((pair) => {
+      if (!pair.isRest && pair.note !== prevNote) {
+        createIntervalLine(prevNote, pair.note);
+      }
+      if (!pair.isRest) {
+        prevNote = pair.note;
+      }
+    });
   }
 
   // Render temporal overlay based on iT
@@ -590,6 +607,70 @@ function updateIntervalsFromPairs(pairs) {
 
 // ========== END DRAG HANDLERS ==========
 
+// ========== INTERVAL LINES (iS) - App14 style ==========
+
+/**
+ * Create a vertical interval line between two notes (like App14)
+ * Uses separate DOM elements instead of cell borders
+ */
+function createIntervalLine(note1Index, note2Index) {
+  const soundlineContainer = musicalGrid?.getSoundlineContainer?.();
+  if (!soundlineContainer) return;
+
+  const cellHeight = 100 / TOTAL_NOTES; // 8.33%
+
+  // Calculate positions (soundline is inverted: note 0 at bottom)
+  const pos1 = ((note1Index + 0.5) / TOTAL_NOTES) * 100;
+  const pos2 = ((note2Index + 0.5) / TOTAL_NOTES) * 100;
+
+  const isAscending = note2Index > note1Index;
+
+  // Calculate start and end positions based on direction
+  let start1, end2;
+  if (isAscending) {
+    start1 = 100 - pos1 + cellHeight / 2;  // TOP of origin cell
+    end2 = 100 - pos2 - cellHeight / 2;     // BOTTOM of target cell
+  } else {
+    start1 = 100 - pos1 - cellHeight / 2;   // BOTTOM of origin cell
+    end2 = 100 - pos2 + cellHeight / 2;     // TOP of target cell
+  }
+
+  const finalHeight = Math.abs(start1 - end2);
+
+  const intervalBar = document.createElement('div');
+  intervalBar.className = 'interval-bar-vertical';
+  intervalBar.classList.add(isAscending ? 'ascending' : 'descending');
+
+  // Position horizontally (to the right of soundline)
+  intervalBar.style.position = 'absolute';
+  intervalBar.style.left = '120px';
+  intervalBar.style.width = '4px';
+
+  if (isAscending) {
+    intervalBar.style.bottom = `${100 - start1}%`;
+    intervalBar.style.top = 'auto';
+  } else {
+    intervalBar.style.top = `${start1}%`;
+  }
+
+  intervalBar.style.height = `${finalHeight}%`;
+
+  soundlineContainer.appendChild(intervalBar);
+  currentIntervalElements.push(intervalBar);
+}
+
+/**
+ * Clear all interval line elements
+ */
+function clearIntervalLines() {
+  currentIntervalElements.forEach(el => el.remove());
+  currentIntervalElements = [];
+  activeAnimationTimeouts.forEach(id => clearTimeout(id));
+  activeAnimationTimeouts = [];
+}
+
+// ========== END INTERVAL LINES ==========
+
 function syncIntervalsFromGrid(noteIndex, pulseIndex, duration) {
   // When a cell is dragged in the grid, update the corresponding interval
   // This is complex and might need more context about which interval to update
@@ -622,8 +703,8 @@ function handleReset() {
   musicalGrid?.clear();
   renderTemporalBars([]);
 
-  // Clear interval lines (vertical iS lines)
-  musicalGrid?.clearIntervalPaths();
+  // Clear interval lines (App14 style vertical bars)
+  clearIntervalLines();
 
   // Reset state
   currentIntervals = [];

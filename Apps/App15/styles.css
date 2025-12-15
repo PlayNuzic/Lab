@@ -39,25 +39,16 @@
   /* Cursor for N-P dots in interval mode (controlled by JS) */
   --np-dot-cursor: grab;
 
-  /* Circular layout fine-tuning for App15 */
-  --play-row-offset-x: -597px;
-  --play-row-offset-y: -75px;
-  --control-toggles-offset-x: 0px;
-  --control-toggles-offset-y: 0px;
+  /* Toggle positioning for satellite button */
   --toggle-pulse-offset-x: -115px;
   --toggle-pulse-offset-y: -20px;
-  --toggle-selected-offset-x: 0px;
-  --toggle-selected-offset-y: 0px;
-  --toggle-cycle-offset-x: 0px;
-  --toggle-cycle-offset-y: 0px;
-  --btn-loop-offset-x: 0px;
-  --btn-loop-offset-y: 0px;
-  --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 0px;
-  --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 0px;
-  --btn-tap-offset-x: 0px;
-  --btn-tap-offset-y: 0px;
+
+  /* Fine-tuning for button positioning (same pattern as App12) */
+  --play-row-margin-left: 43px;
+  --play-row-margin-top: -60px;
+  --button-row-margin-left: -60px;
+  --button-row-margin-top: 0px;
+  --controls-vertical-gap: 0.5rem;
 }
 
 [data-theme="dark"] {
@@ -100,16 +91,10 @@ body.dragging-note * {
   opacity: 0.9;
 }
 
-/* Arrow tip for temporal intervals (pointing right) */
+/* Arrow tip for temporal intervals - DISABLED per user request */
+/* iT bars should NOT have arrows */
 .it-bar::after {
-  content: '';
-  position: absolute;
-  right: -5px;
-  top: 50%;
-  transform: translateY(-50%);
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 7px solid var(--interval-temporal-color, #4A9EFF);
+  display: none;
 }
 
 .it-bar--rest {
@@ -255,6 +240,20 @@ body.dragging-note * {
   /* Template's original layout is preserved */
 }
 
+/* Play-row: use static positioning instead of absolute centering */
+.app12-controls-container .play-row {
+  position: static;
+  transform: none;
+  margin-left: var(--play-row-margin-left);
+  margin-top: var(--play-row-margin-top);
+}
+
+.app12-controls-container .button-row {
+  gap: 1.5rem;
+  margin-top: var(--button-row-margin-top) !important;
+  margin-left: var(--button-row-margin-left) !important;
+}
+
 /* Hide Loop button */
 #loopBtn,
 .loop,
@@ -314,7 +313,7 @@ body.dragging-note * {
 
 /* App12-specific control spacing overrides */
 .app12-controls-container .controls[data-layout="vertical"] {
-  gap: 1.5rem;
+  gap: var(--controls-vertical-gap, 1.5rem);
   align-items: flex-start; /* Keep content left-aligned */
 }
 
@@ -628,8 +627,44 @@ body.dragging-note * {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-/* ========== INTERVAL PATH COLORS - iS uses Rosa Nuzic ========== */
-/* Override musical-grid defaults to use Rosa Nuzic for iS (sound intervals) */
+/* ========== INTERVAL LINES (iS) - App14 style vertical bars ========== */
+/* Separate DOM elements positioned on soundline instead of cell borders */
+.interval-bar-vertical {
+  background: var(--interval-sound-color, #F28AAD);
+  border-radius: 2px;
+  opacity: 0.8;
+  z-index: 15;
+  box-shadow: 0 0 8px var(--interval-sound-color, #F28AAD);
+}
+
+/* Arrow tip for ascending intervals (pointing up) */
+.interval-bar-vertical.ascending::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 7px solid var(--interval-sound-color, #F28AAD);
+}
+
+/* Arrow tip for descending intervals (pointing down) */
+.interval-bar-vertical.descending::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--interval-sound-color, #F28AAD);
+}
+
+/* ========== INTERVAL PATH COLORS - DEPRECATED (now using interval-bar-vertical) ========== */
+/* These styles are kept for backwards compatibility but no longer used */
+/* Cell border-based interval visualization replaced by App14-style DOM elements */
+/*
 .interval-path-horizontal {
   border-bottom-color: var(--interval-sound-color, #F28AAD) !important;
 }
@@ -644,8 +679,6 @@ body.dragging-note * {
   border-left-color: var(--interval-sound-color, #F28AAD) !important;
 }
 
-/* Arrow tips for vertical interval paths only */
-/* Arrow pointing up (for ascending intervals) */
 .interval-path-vertical::before {
   content: '';
   position: absolute;
@@ -656,6 +689,7 @@ body.dragging-note * {
   border-bottom: 7px solid var(--interval-sound-color, #F28AAD);
   z-index: 20;
 }
+*/
 
 /* ========== INTERVAL EXPANSION STYLES (Option B - Borders) ========== */
 .interval-duration {
