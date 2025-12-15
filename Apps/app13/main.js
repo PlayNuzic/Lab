@@ -9,14 +9,11 @@ const TOTAL_PULSES = 9;  // Pulsos 0-8 (8 es endpoint visual)
 const MAX_LENGTH = 8;    // Suma total de iTs
 const MAX_ITS = 4;       // Máximo 4 inputs de iT
 const MIN_BPM = 75;
-const MAX_BPM = 200;
+const MAX_BPM = 150;
 const FADEOUT_TIME = 0.05; // 50ms fadeout para evitar cracks
 
-// Sons per reproduir segons duració de l'iT
-// Sons CURTS (per iT = 1): Click13, Click15, Click17
-const SHORT_SOUNDS = ['click13', 'click15', 'click17'];
-// Sons LLARGS (per iT > 1): Click12, Click14, Click16 (es tallen amb fadeout)
-const LONG_SOUNDS = ['click12', 'click14', 'click16'];
+// Sons disponibles (Synth Voice 1 i 2)
+const INTERVAL_SOUNDS = ['click12', 'click13'];
 
 // Colors ben diferenciats per les barres (màxim 4 iTs)
 const VIBRANT_COLORS = [
@@ -66,39 +63,24 @@ function getRandomBPM() {
 }
 
 /**
- * Assigna sons únics a cada interval segons la seva duració
- * - iT = 1: Sons curts (Click13, Click15, Click17)
- * - iT > 1: Sons llargs (Click12, Click14, Click16)
+ * Assigna sons als intervals alternant entre click12 i click13
+ * Mai repeteix el mateix so dues vegades seguides
  * @param {number[]} intervals - Array de duracions dels intervals
  * @returns {string[]} - Array de sons assignats (un per cada interval)
  */
 function assignSoundsToIntervals(intervals) {
-  // Separar intervals curts i llargs
-  const shortIndices = [];
-  const longIndices = [];
+  if (intervals.length === 0) return [];
 
-  intervals.forEach((iT, idx) => {
-    if (iT === 1) {
-      shortIndices.push(idx);
-    } else {
-      longIndices.push(idx);
-    }
-  });
+  const result = [];
+  // Començar amb un so aleatori
+  let lastSound = INTERVAL_SOUNDS[Math.floor(Math.random() * 2)];
+  result.push(lastSound);
 
-  // Barrejar cada pool de sons
-  const shuffledShort = [...SHORT_SOUNDS].sort(() => Math.random() - 0.5);
-  const shuffledLong = [...LONG_SOUNDS].sort(() => Math.random() - 0.5);
-
-  // Assignar sons
-  const result = new Array(intervals.length);
-
-  shortIndices.forEach((idx, i) => {
-    result[idx] = shuffledShort[i % shuffledShort.length];
-  });
-
-  longIndices.forEach((idx, i) => {
-    result[idx] = shuffledLong[i % shuffledLong.length];
-  });
+  // Per cada interval següent, usar l'altre so
+  for (let i = 1; i < intervals.length; i++) {
+    lastSound = lastSound === 'click12' ? 'click13' : 'click12';
+    result.push(lastSound);
+  }
 
   return result;
 }
