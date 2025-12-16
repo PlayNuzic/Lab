@@ -480,7 +480,7 @@ export function createGridEditor(config = {}) {
     // Get configuration
     const maxTotalPulse = intervalModeOptions?.maxTotalPulse || pulseRange[1];
 
-    // Calculate intervals from pairs
+    // Calculate intervals from pairs (include registry)
     const intervals = [];
     for (let i = 1; i < pairs.length; i++) {
       const currentPair = pairs[i];
@@ -489,6 +489,7 @@ export function createGridEditor(config = {}) {
       const temporalInterval = currentPair.temporalInterval || (currentPair.pulse - prevPair.pulse) || 1;
       intervals.push({
         note: currentPair.note,
+        registry: currentPair.registry,
         temporalInterval,
         isRest: currentPair.isRest || false
       });
@@ -496,16 +497,16 @@ export function createGridEditor(config = {}) {
 
     // Create cells for each pair
     if (pairs.length === 0) {
-      // First empty N cell
-      const nCell = createNItNoteCell(0, null);
+      // First empty N cell (with null registry)
+      const nCell = createNItNoteCell(0, null, null);
       row1.appendChild(nCell);
 
       // Ghost cell for alignment in iT row
       const ghost = createGhostCell();
       row2.appendChild(ghost);
     } else {
-      // First note cell
-      const firstNCell = createNItNoteCell(0, pairs[0].note);
+      // First note cell (with registry)
+      const firstNCell = createNItNoteCell(0, pairs[0].note, pairs[0].registry);
       row1.appendChild(firstNCell);
 
       // Ghost in iT row for first note
@@ -514,8 +515,8 @@ export function createGridEditor(config = {}) {
 
       // Create cells for remaining pairs (with iT before each)
       intervals.forEach((interval, index) => {
-        // N cell in row 1 (index+1 because first note is at index 0)
-        const nCell = createNItNoteCell(index + 1, interval.note);
+        // N cell in row 1 (index+1 because first note is at index 0) - include registry
+        const nCell = createNItNoteCell(index + 1, interval.note, interval.registry);
         row1.appendChild(nCell);
 
         // iT cell in row 2
@@ -542,25 +543,51 @@ export function createGridEditor(config = {}) {
   }
 
   /**
-   * Creates an N cell for N-iT mode
+   * Creates an N cell for N-iT mode (NrX format: Note + 'r' + Registry)
+   * @param {number} index - Cell index
+   * @param {number|null} note - Note value (0-11) or null
+   * @param {number|null} registry - Registry value (3-5) or null
    */
-  function createNItNoteCell(index, note) {
+  function createNItNoteCell(index, note, registry = null) {
     const cell = document.createElement('div');
     cell.className = 'zigzag-cell zigzag-cell--n-it-note';
     if (note === null) {
       cell.classList.add('zigzag-cell--empty');
     }
 
-    const input = document.createElement('input');
-    input.className = 'zigzag-input n-it-note-input zigzag-input--n';
-    input.type = 'text';
-    input.value = note !== null ? String(note) : '';
-    input.maxLength = 2;
-    input.dataset.index = String(index);
-    input.dataset.type = 'n-it-note';
-    input.addEventListener('input', (e) => handleNItInputChange(e, index, 'note'));
-    input.addEventListener('keydown', (e) => handleNItKeyDown(e, index, 'note'));
-    cell.appendChild(input);
+    // Note input
+    const noteInput = document.createElement('input');
+    noteInput.className = 'zigzag-input n-it-note-input zigzag-input--n';
+    noteInput.type = 'text';
+    noteInput.value = note !== null ? String(note) : '';
+    noteInput.maxLength = 2;
+    noteInput.dataset.index = String(index);
+    noteInput.dataset.type = 'n-it-note';
+    noteInput.placeholder = 'N';
+    noteInput.addEventListener('input', (e) => handleNItInputChange(e, index, 'note'));
+    noteInput.addEventListener('keydown', (e) => handleNItKeyDown(e, index, 'note'));
+    cell.appendChild(noteInput);
+
+    // 'r' separator (appears after note is entered)
+    const rSeparator = document.createElement('span');
+    rSeparator.className = 'nrx-separator';
+    rSeparator.textContent = 'r';
+    rSeparator.style.display = note !== null ? 'inline' : 'none';
+    cell.appendChild(rSeparator);
+
+    // Registry input (appears after note is entered)
+    const regInput = document.createElement('input');
+    regInput.className = 'zigzag-input n-it-registry-input zigzag-input--n';
+    regInput.type = 'text';
+    regInput.value = registry !== null ? String(registry) : '';
+    regInput.maxLength = 1;
+    regInput.dataset.index = String(index);
+    regInput.dataset.type = 'n-it-registry';
+    regInput.placeholder = 'R';
+    regInput.style.display = note !== null ? 'inline-block' : 'none';
+    regInput.addEventListener('input', (e) => handleNItInputChange(e, index, 'registry'));
+    regInput.addEventListener('keydown', (e) => handleNItKeyDown(e, index, 'registry'));
+    cell.appendChild(regInput);
 
     return cell;
   }
@@ -670,11 +697,12 @@ export function createGridEditor(config = {}) {
   }
 
   /**
-   * Handles input changes in N-iT mode
+   * Handles input changes in N-iT mode (note, registry, it)
    */
   function handleNItInputChange(event, index, type) {
     const input = event.target;
     const text = input.value.trim();
+    const cell = input.closest('.zigzag-cell--n-it-note');
 
     // Clear invalid state
     input.classList.remove('invalid');
@@ -691,7 +719,53 @@ export function createGridEditor(config = {}) {
         input.classList.add('invalid');
         return;
       }
-      // Auto-jump to iT after valid note (if not first note)
+
+      // Show/hide 'r' separator and registry input based on note value
+      if (cell) {
+        const rSeparator = cell.querySelector('.nrx-separator');
+        const regInput = cell.querySelector('.n-it-registry-input');
+        if (text && !isNaN(noteVal)) {
+          // Valid note entered - show separator and registry input
+          if (rSeparator) rSeparator.style.display = 'inline';
+          if (regInput) regInput.style.display = 'inline-block';
+          cell.classList.remove('zigzag-cell--empty');
+        } else {
+          // Note cleared - hide separator and registry input
+          if (rSeparator) rSeparator.style.display = 'none';
+          if (regInput) {
+            regInput.style.display = 'none';
+            regInput.value = '';
+          }
+          cell.classList.add('zigzag-cell--empty');
+        }
+      }
+
+      // Auto-jump to registry input after valid note
+      if (text && !isNaN(noteVal)) {
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          const regInput = cell?.querySelector('.n-it-registry-input');
+          if (regInput) {
+            regInput.focus();
+            regInput.select();
+          }
+        }, AUTO_JUMP_DELAY);
+      }
+    } else if (type === 'registry') {
+      // Registry must be 3-5 (configurable via nrxModeOptions)
+      const regRange = nrxModeOptions?.registryRange || [3, 5];
+      if (text && !/^\d$/.test(text)) {
+        input.value = text.replace(/\D/g, '');
+        return;
+      }
+      const regVal = parseInt(text);
+      if (text && !isNaN(regVal) && (regVal < regRange[0] || regVal > regRange[1])) {
+        showInputTooltip(input, `Registro: ${regRange[0]}-${regRange[1]}`);
+        input.classList.add('invalid');
+        return;
+      }
+
+      // Auto-jump to iT after valid registry (if not first note)
       if (text && index > 0) {
         clearTimeout(autoJumpTimer);
         autoJumpTimer = setTimeout(() => {
@@ -742,10 +816,12 @@ export function createGridEditor(config = {}) {
   }
 
   /**
-   * Handles keydown in N-iT mode
+   * Handles keydown in N-iT mode (note, registry, it)
+   * Navigation: note → registry → iT → note → registry → iT → ...
    */
   function handleNItKeyDown(event, index, type) {
     const input = event.target;
+    const cell = input.closest('.zigzag-cell--n-it-note');
 
     switch (event.key) {
       case 'Enter':
@@ -753,19 +829,29 @@ export function createGridEditor(config = {}) {
         event.preventDefault();
         clearTimeout(autoJumpTimer);
         if (type === 'note') {
-          if (index === 0) {
-            // First note: jump to next N (creates new pair)
-            jumpToNextNItCell(index);
+          // Note → Registry (same cell)
+          const regInput = cell?.querySelector('.n-it-registry-input');
+          if (regInput && regInput.style.display !== 'none') {
+            regInput.focus();
+            regInput.select();
           } else {
-            // Other notes: jump to iT first
+            // No registry visible yet, jump to next N (creates new pair)
+            jumpToNextNItCell(index);
+          }
+        } else if (type === 'registry') {
+          // Registry → iT (if not first note) or next N (if first note)
+          if (index > 0) {
             const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
             if (itInput) {
               itInput.focus();
               itInput.select();
             }
+          } else {
+            // First note: jump to next N
+            jumpToNextNItCell(index);
           }
         } else if (type === 'it') {
-          // Jump to next N
+          // iT → Next N (note input)
           jumpToNextNItCell(index);
         }
         break;
@@ -773,10 +859,23 @@ export function createGridEditor(config = {}) {
       case 'ArrowRight':
         if (isAtEnd(input)) {
           event.preventDefault();
-          if (type === 'note' && index > 0) {
-            const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
-            if (itInput) itInput.focus();
-          } else {
+          if (type === 'note') {
+            // Note → Registry
+            const regInput = cell?.querySelector('.n-it-registry-input');
+            if (regInput && regInput.style.display !== 'none') {
+              regInput.focus();
+            } else {
+              jumpToNextNItCell(index);
+            }
+          } else if (type === 'registry') {
+            // Registry → iT (if not first) or next N
+            if (index > 0) {
+              const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
+              if (itInput) itInput.focus();
+            } else {
+              jumpToNextNItCell(index);
+            }
+          } else if (type === 'it') {
             jumpToNextNItCell(index);
           }
         }
@@ -785,32 +884,45 @@ export function createGridEditor(config = {}) {
       case 'ArrowLeft':
         if (isAtStart(input)) {
           event.preventDefault();
-          if (type === 'it') {
-            const nInput = container.querySelector(`.n-it-note-input[data-index="${index}"]`);
-            if (nInput) nInput.focus();
+          if (type === 'registry') {
+            // Registry → Note (same cell)
+            const noteInput = cell?.querySelector('.n-it-note-input');
+            if (noteInput) noteInput.focus();
+          } else if (type === 'it') {
+            // iT → Registry of same index
+            const regInput = container.querySelector(`.n-it-registry-input[data-index="${index}"]`);
+            if (regInput) regInput.focus();
           } else if (type === 'note' && index > 0) {
-            // Previous iT or previous N
+            // Note → Previous iT or previous registry
             const prevItInput = container.querySelector(`.n-it-temporal-input[data-index="${index - 1}"]`);
             if (prevItInput) {
               prevItInput.focus();
             } else {
-              const prevNInput = container.querySelector(`.n-it-note-input[data-index="${index - 1}"]`);
-              if (prevNInput) prevNInput.focus();
+              const prevRegInput = container.querySelector(`.n-it-registry-input[data-index="${index - 1}"]`);
+              if (prevRegInput) prevRegInput.focus();
             }
           }
         }
         break;
 
       case 'Backspace':
-        if (input.value === '' && index > 0) {
+        if (input.value === '') {
           event.preventDefault();
-          if (type === 'note') {
+          if (type === 'note' && index > 0) {
             removeNItCellAt(index);
+          } else if (type === 'registry') {
+            // Registry empty → focus note
+            const noteInput = cell?.querySelector('.n-it-note-input');
+            if (noteInput) {
+              noteInput.focus();
+              noteInput.select();
+            }
           } else if (type === 'it') {
-            const nInput = container.querySelector(`.n-it-note-input[data-index="${index}"]`);
-            if (nInput) {
-              nInput.focus();
-              nInput.select();
+            // iT empty → focus registry
+            const regInput = container.querySelector(`.n-it-registry-input[data-index="${index}"]`);
+            if (regInput) {
+              regInput.focus();
+              regInput.select();
             }
           }
         }
@@ -894,9 +1006,14 @@ export function createGridEditor(config = {}) {
    */
   function reindexNItCells() {
     const nInputs = container.querySelectorAll('.n-it-note-input');
+    const regInputs = container.querySelectorAll('.n-it-registry-input');
     const itInputs = container.querySelectorAll('.n-it-temporal-input');
 
     nInputs.forEach((input, idx) => {
+      input.dataset.index = String(idx);
+    });
+
+    regInputs.forEach((input, idx) => {
       input.dataset.index = String(idx);
     });
 
@@ -906,15 +1023,21 @@ export function createGridEditor(config = {}) {
   }
 
   /**
-   * Updates pairs from DOM in N-iT mode
+   * Updates pairs from DOM in N-iT mode (including registry)
    */
   function updateNItPairsFromDOM() {
     const pairs = [];
-    const nInputs = container.querySelectorAll('.n-it-note-input');
+    const nCells = container.querySelectorAll('.zigzag-cell--n-it-note');
     let accumulatedPulse = 0;
 
-    nInputs.forEach((input, index) => {
-      const note = parseInt(input.value);
+    nCells.forEach((cell, index) => {
+      const noteInput = cell.querySelector('.n-it-note-input');
+      const regInput = cell.querySelector('.n-it-registry-input');
+
+      const note = noteInput ? parseInt(noteInput.value) : NaN;
+      const registry = regInput ? parseInt(regInput.value) : NaN;
+
+      // Only add pair if note is valid
       if (isNaN(note)) return;
 
       // Get temporalInterval from corresponding iT cell (index > 0)
@@ -930,6 +1053,7 @@ export function createGridEditor(config = {}) {
 
       pairs.push({
         note,
+        registry: isNaN(registry) ? null : registry,
         pulse: index === 0 ? 0 : accumulatedPulse,
         temporalInterval
       });
@@ -2884,6 +3008,35 @@ export function createGridEditor(config = {}) {
     });
   }
 
+  /**
+   * Focus the first N cell (note input) in the grid editor
+   * Works for n-it, nrx-it, and interval modes
+   */
+  function focusFirstNCell() {
+    // Try n-it mode first (n-it-note-input class)
+    let firstNInput = container.querySelector('.n-it-note-input');
+
+    // Try nrx-it mode (note input in NrX cell)
+    if (!firstNInput) {
+      firstNInput = container.querySelector('.nrx-note-input');
+    }
+
+    // Try interval mode (note input at index 0)
+    if (!firstNInput) {
+      firstNInput = container.querySelector('.zigzag-input[data-index="0"][data-type="note"]');
+    }
+
+    // Try generic zigzag N input
+    if (!firstNInput) {
+      firstNInput = container.querySelector('.zigzag-input[data-type="n"]');
+    }
+
+    if (firstNInput) {
+      firstNInput.focus();
+      firstNInput.select();
+    }
+  }
+
   // Initial render
   if (container) {
     render();
@@ -2896,6 +3049,7 @@ export function createGridEditor(config = {}) {
     clear,
     highlightCell,
     clearHighlights,
-    removeEmptyIntervalSlots
+    removeEmptyIntervalSlots,
+    focusFirstNCell
   };
 }

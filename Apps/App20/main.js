@@ -21,6 +21,14 @@ import { createApp19Grid } from '../../libs/plano-modular/index.js';
 // Import grid-editor for NrX-iT input
 import { createGridEditor } from '../../libs/matrix-seq/index.js';
 
+// Import interval-sequencer module for drag stretching and temporal bars
+import {
+  fillGapsWithSilences,
+  pairsToIntervals,
+  buildPairsFromIntervals,
+  createIntervalRenderer
+} from '../../libs/interval-sequencer/index.js';
+
 // ========== CONFIGURATION ==========
 const CONFIG = {
   // Registry limits (3 registries: 3, 4, 5)
@@ -139,6 +147,25 @@ let grid = null;
 // Grid editor instance (NrX-iT zigzag)
 let gridEditor = null;
 
+// Interval renderer for visualizing temporal bars
+let intervalRenderer = null;
+
+// Store current intervals and pairs
+let currentIntervals = [];
+let currentPairs = [];
+
+// Drag state for horizontal iT modification
+let dragState = {
+  active: false,
+  startSpaceIndex: null,
+  currentSpaceIndex: null,
+  noteIndex: null,
+  registryIndex: null,
+  originalPair: null,
+  mode: null,             // 'create' | 'edit'
+  previewElement: null
+};
+
 // Mixer storage key
 const MIXER_STORAGE_KEY = 'app20-mixer';
 
@@ -248,6 +275,9 @@ function updateGridVisibility() {
 function syncGridFromPairs(pairs) {
   if (!grid) return;
 
+  // Save pairs to state
+  currentPairs = [...pairs];
+
   // Clear existing selection
   grid.clearSelection();
 
@@ -264,7 +294,286 @@ function syncGridFromPairs(pairs) {
     grid.selectCell(rowId, pair.pulse);
   });
 
+  // Convert pairs to intervals and render temporal bars
+  if (pairs.length > 0) {
+    currentIntervals = pairsToIntervals(pairs, { basePair: pairs[0] });
+    renderTemporalBars(currentIntervals);
+  } else {
+    currentIntervals = [];
+    clearTemporalBars();
+  }
+
   console.log('Grid synced from pairs:', pairs.length, 'notes');
+}
+
+/**
+ * Render temporal bars (iT visualization) on the grid
+ */
+function renderTemporalBars(intervals) {
+  if (!intervalRenderer || !grid) return;
+
+  // Get timeline container from plano-modular grid
+  const timelineContainer = grid.getTimelineContainer?.();
+  if (!timelineContainer) return;
+
+  // Clear existing bars
+  intervalRenderer.clear();
+
+  // Calculate cell width from grid
+  const matrixContainer = grid.getMatrixContainer?.();
+  if (!matrixContainer) return;
+
+  const firstCell = matrixContainer.querySelector('.plano-cell');
+  if (!firstCell) return;
+
+  const cellWidth = firstCell.offsetWidth;
+
+  // Render bars for each interval (skip first - base note has no iT)
+  let accumulatedPulse = 0;
+  intervals.forEach((interval, index) => {
+    if (index === 0) {
+      // Base note - store its pulse position
+      accumulatedPulse = 0;
+      return;
+    }
+
+    const iT = interval.temporalInterval || 1;
+    const startPulse = accumulatedPulse;
+    const endPulse = accumulatedPulse + iT;
+
+    // Create bar element
+    const bar = document.createElement('div');
+    bar.className = 'it-bar';
+    bar.style.position = 'absolute';
+    bar.style.left = `${startPulse * cellWidth}px`;
+    bar.style.width = `${iT * cellWidth}px`;
+    bar.style.height = '4px';
+    bar.style.background = 'var(--interval-temporal-color, #4A9EFF)';
+    bar.style.bottom = '0';
+    bar.style.borderRadius = '2px';
+
+    timelineContainer.appendChild(bar);
+
+    accumulatedPulse = endPulse;
+  });
+}
+
+/**
+ * Clear temporal bars
+ */
+function clearTemporalBars() {
+  if (!grid) return;
+  const timelineContainer = grid.getTimelineContainer?.();
+  if (!timelineContainer) return;
+
+  timelineContainer.querySelectorAll('.it-bar').forEach(bar => bar.remove());
+}
+
+// ========== DRAG SYSTEM FOR iT MODIFICATION ==========
+
+/**
+ * Setup drag listeners for horizontal iT modification
+ */
+function setupDragListeners() {
+  if (!grid) return;
+
+  const matrixContainer = grid.getMatrixContainer?.();
+  if (!matrixContainer) return;
+
+  // Event delegation for mousedown on selected cells
+  matrixContainer.addEventListener('mousedown', handleDragStart);
+
+  // Global mousemove and mouseup
+  document.addEventListener('mousemove', handleDragMove);
+  document.addEventListener('mouseup', handleDragEnd);
+
+  console.log('Drag listeners setup for iT modification');
+}
+
+/**
+ * Handle drag start - initiate dragging on a selected cell
+ */
+function handleDragStart(e) {
+  const cell = e.target.closest('.plano-cell.plano-selected');
+  if (!cell) return;
+
+  // Get cell coordinates from data attributes
+  const pulse = parseInt(cell.dataset.pulse);
+  const noteData = cell.dataset.note; // Format: "NrR" e.g., "5r4"
+
+  if (isNaN(pulse) || !noteData) return;
+
+  // Parse note and registry from the noteData
+  const match = noteData.match(/^(\d+)r(\d+)$/);
+  if (!match) return;
+
+  const note = parseInt(match[1]);
+  const registry = parseInt(match[2]);
+
+  // Find the corresponding pair
+  const pair = currentPairs.find(p =>
+    p.note === note &&
+    (p.registry ?? CONFIG.DEFAULT_REGISTRO) === registry &&
+    p.pulse === pulse
+  );
+
+  if (!pair) return;
+
+  // Start drag state
+  dragState = {
+    active: true,
+    startSpaceIndex: pulse,
+    currentSpaceIndex: pulse,
+    noteIndex: note,
+    registryIndex: registry,
+    originalPair: { ...pair },
+    mode: 'edit',
+    previewElement: null
+  };
+
+  // Prevent text selection during drag
+  e.preventDefault();
+
+  console.log('Drag started on pair:', pair);
+}
+
+/**
+ * Handle drag move - update duration preview
+ */
+function handleDragMove(e) {
+  if (!dragState.active || !grid) return;
+
+  const matrixContainer = grid.getMatrixContainer?.();
+  if (!matrixContainer) return;
+
+  // Calculate current space index from mouse position
+  const rect = matrixContainer.getBoundingClientRect();
+  const relativeX = e.clientX - rect.left;
+
+  const firstCell = matrixContainer.querySelector('.plano-cell');
+  if (!firstCell) return;
+
+  const cellWidth = firstCell.offsetWidth;
+  const newSpaceIndex = Math.max(0, Math.floor(relativeX / cellWidth));
+
+  // Only update if space changed
+  if (newSpaceIndex !== dragState.currentSpaceIndex) {
+    dragState.currentSpaceIndex = newSpaceIndex;
+    updateDragPreview();
+  }
+}
+
+/**
+ * Handle drag end - finalize the duration change
+ */
+function handleDragEnd(e) {
+  if (!dragState.active) return;
+
+  const originalPair = dragState.originalPair;
+  const newEndPulse = dragState.currentSpaceIndex;
+
+  // Calculate new temporal interval
+  const newIT = Math.max(1, newEndPulse - originalPair.pulse + 1);
+
+  // Update the pair's temporalInterval
+  const pairIndex = currentPairs.findIndex(p =>
+    p.note === originalPair.note &&
+    p.pulse === originalPair.pulse
+  );
+
+  if (pairIndex >= 0) {
+    currentPairs[pairIndex].temporalInterval = newIT;
+
+    // Recalculate subsequent pulse positions
+    recalculatePulsePositions();
+
+    // Update grid editor
+    if (gridEditor) {
+      gridEditor.setPairs([...currentPairs]);
+    }
+
+    // Re-sync grid and temporal bars
+    syncGridFromPairs(currentPairs);
+  }
+
+  // Clear drag preview
+  clearDragPreview();
+
+  // Reset drag state
+  dragState = {
+    active: false,
+    startSpaceIndex: null,
+    currentSpaceIndex: null,
+    noteIndex: null,
+    registryIndex: null,
+    originalPair: null,
+    mode: null,
+    previewElement: null
+  };
+
+  console.log('Drag ended, new iT:', newIT);
+}
+
+/**
+ * Update drag preview visualization
+ */
+function updateDragPreview() {
+  if (!dragState.active || !grid) return;
+
+  // Remove existing preview
+  clearDragPreview();
+
+  const matrixContainer = grid.getMatrixContainer?.();
+  if (!matrixContainer) return;
+
+  const firstCell = matrixContainer.querySelector('.plano-cell');
+  if (!firstCell) return;
+
+  const cellWidth = firstCell.offsetWidth;
+  const cellHeight = firstCell.offsetHeight;
+
+  // Create preview element showing the stretched duration
+  const preview = document.createElement('div');
+  preview.className = 'drag-preview';
+  preview.style.position = 'absolute';
+  preview.style.left = `${dragState.startSpaceIndex * cellWidth}px`;
+  preview.style.width = `${(dragState.currentSpaceIndex - dragState.startSpaceIndex + 1) * cellWidth}px`;
+  preview.style.top = '0';
+  preview.style.height = `${cellHeight}px`;
+  preview.style.background = 'rgba(255, 187, 51, 0.3)';
+  preview.style.border = '2px dashed var(--plano-select-color, #FFBB33)';
+  preview.style.borderRadius = '4px';
+  preview.style.pointerEvents = 'none';
+  preview.style.zIndex = '100';
+
+  matrixContainer.appendChild(preview);
+  dragState.previewElement = preview;
+}
+
+/**
+ * Clear drag preview visualization
+ */
+function clearDragPreview() {
+  if (dragState.previewElement) {
+    dragState.previewElement.remove();
+    dragState.previewElement = null;
+  }
+}
+
+/**
+ * Recalculate pulse positions after iT change
+ */
+function recalculatePulsePositions() {
+  let accumulatedPulse = 0;
+
+  currentPairs.forEach((pair, index) => {
+    if (index === 0) {
+      pair.pulse = 0;
+    } else {
+      pair.pulse = accumulatedPulse;
+    }
+    accumulatedPulse += pair.temporalInterval || 1;
+  });
 }
 
 /**
@@ -299,7 +608,17 @@ function initGrid() {
     onSelectionChange: null  // Selections not persisted
   });
 
-  console.log('Grid initialized with plano-modular');
+  // Initialize interval renderer for temporal bars (iT visualization)
+  intervalRenderer = createIntervalRenderer({
+    getTimelineContainer: () => grid?.getTimelineContainer?.(),
+    getMatrixContainer: () => grid?.getMatrixContainer?.(),
+    totalSpaces: getTotalPulses() || 28
+  });
+
+  // Setup drag listeners for horizontal iT modification
+  setupDragListeners();
+
+  console.log('Grid initialized with plano-modular + interval renderer');
 }
 
 /**
@@ -412,6 +731,9 @@ function initGridEditor() {
     intervalModeOptions: {
       maxTotalPulse: totalPulses - 1
     },
+    nrxModeOptions: {
+      registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO]
+    },
     scrollEnabled: isMobile,
     containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
     columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
@@ -421,7 +743,7 @@ function initGridEditor() {
     }
   });
 
-  console.log('Grid editor initialized in N-iT zigzag mode');
+  console.log('Grid editor initialized in N-iT zigzag mode with NrX format');
 }
 
 /**
@@ -448,6 +770,9 @@ function updateGridEditorMaxPulse() {
       maxPairs: totalPulses,
       intervalModeOptions: {
         maxTotalPulse: totalPulses - 1
+      },
+      nrxModeOptions: {
+        registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO]
       },
       scrollEnabled: isMobile,
       containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
@@ -532,6 +857,13 @@ function handleCyclesChange() {
     if (!isNaN(num)) {
       cycles = Math.max(CONFIG.MIN_CYCLES, Math.min(CONFIG.MAX_CYCLES, num));
       elements.inputCycle.value = cycles;
+
+      // Auto-focus to first N cell in grid-editor after entering cycles
+      setTimeout(() => {
+        if (gridEditor && gridEditor.focusFirstNCell) {
+          gridEditor.focusFirstNCell();
+        }
+      }, 50);
     }
   }
 

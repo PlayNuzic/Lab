@@ -61,6 +61,7 @@ html, body {
   --grid-line-color: rgba(0, 0, 0, 0.15);
   --grid-hover-color: rgba(255, 187, 51, 0.3);
   --grid-selected-color: #FFBB33;
+  --plano-select-color: #FFBB33;
 }
 
 [data-theme="dark"] {
@@ -1530,6 +1531,50 @@ main {
 .zigzag-input.invalid {
   background: rgba(255, 0, 0, 0.1) !important;
   border-color: #ff0000 !important;
+}
+
+/* ============================================
+   NrX FORMAT (Note + 'r' + Registry)
+   ============================================ */
+
+/* NrX cell container - flexbox for note + r + registry layout */
+.zigzag-cell--n-it-note {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: nowrap;
+}
+
+/* Note input (smaller when registry is shown) */
+.zigzag-cell--n-it-note .n-it-note-input {
+  width: 40px;
+  flex-shrink: 0;
+}
+
+/* 'r' separator */
+.nrx-separator {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--interval-sound-color, #F28AAD);
+  opacity: 0.8;
+  padding: 0 2px;
+  user-select: none;
+}
+
+/* Registry input (smaller than note) */
+.zigzag-cell--n-it-note .n-it-registry-input {
+  width: 32px;
+  flex-shrink: 0;
+  font-size: 1.6rem;
+}
+
+/* Both inputs in NrX cell use same color */
+.zigzag-cell--n-it-note .zigzag-input--n {
+  color: var(--interval-sound-color, #F28AAD) !important;
+}
+
+[data-theme="dark"] .nrx-separator {
+  color: var(--interval-sound-color, #F28AAD);
 }
 
 /* ============================================
