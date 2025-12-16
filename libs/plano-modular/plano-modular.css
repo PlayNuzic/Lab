@@ -23,11 +23,11 @@
   /* Colors */
   --plano-bg-color: #fff;
   --plano-cell-bg: #fafafa;
-  --plano-cell-hover: rgba(0, 0, 0, 0.05);
+  --plano-cell-hover: rgba(255, 187, 51, 0.3);
   --plano-grid-line-color: rgba(0, 0, 0, 0.1);
-  --plano-select-color: #EA570C;
+  --plano-select-color: #FFBB33;
   --plano-cycle-color: #7BB4CD;
-  --plano-highlight-color: rgba(234, 87, 12, 0.3);
+  --plano-highlight-color: rgba(255, 187, 51, 0.5);
   --plano-text-color: #333;
   --plano-boundary-color: rgba(74, 144, 217, 0.2);
 
@@ -178,35 +178,25 @@
   box-shadow: 0 0 12px var(--plano-select-color);
 }
 
-.plano-cell-label {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-}
-
-/* Highlight label (shown during playback) */
+/* Cell labels - same font-size as soundline */
+.plano-cell-label,
 .plano-highlight-label {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  font-size: 1.2rem;  /* Same as .plano-soundline-note */
+  font-weight: 600;
+  color: #333;  /* Dark text on yellow background */
+  text-shadow: none;
   pointer-events: none;
   white-space: nowrap;
   z-index: 15;
 }
 
+.plano-cell-label sup,
 .plano-highlight-label sup {
-  font-size: 0.55em;
+  font-size: 0.6em;
   vertical-align: super;
   line-height: 0;
 }
@@ -330,6 +320,11 @@
   .plano-timeline-number {
     font-size: 1rem;
   }
+
+  .plano-cell-label,
+  .plano-highlight-label {
+    font-size: 0.8rem;  /* Same as soundline at this breakpoint */
+  }
 }
 
 @media (max-width: 768px) {
@@ -345,6 +340,11 @@
 
   .plano-timeline-number {
     font-size: 0.9rem;
+  }
+
+  .plano-cell-label,
+  .plano-highlight-label {
+    font-size: 0.75rem;  /* Same as soundline at this breakpoint */
   }
 }
 
@@ -364,8 +364,9 @@
     font-size: 0.8rem;
   }
 
-  .plano-cell-label {
-    font-size: 0.6rem;
+  .plano-cell-label,
+  .plano-highlight-label {
+    font-size: 0.7rem;  /* Same as soundline at this breakpoint */
   }
 }
 
@@ -382,5 +383,10 @@
 
   .plano-timeline-number {
     font-size: 0.7rem;
+  }
+
+  .plano-cell-label,
+  .plano-highlight-label {
+    font-size: 0.6rem;  /* Same as soundline at this breakpoint */
   }
 }

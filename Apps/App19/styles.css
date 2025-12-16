@@ -59,13 +59,13 @@ html, body {
 
   /* Colors */
   --grid-line-color: rgba(0, 0, 0, 0.15);
-  --grid-hover-color: rgba(234, 87, 12, 0.2);
-  --grid-selected-color: var(--select-color, #E4570C);
+  --grid-hover-color: rgba(255, 187, 51, 0.3);
+  --grid-selected-color: #FFBB33;
 }
 
 [data-theme="dark"] {
   --grid-line-color: rgba(255, 255, 255, 0.15);
-  --grid-hover-color: rgba(234, 87, 12, 0.3);
+  --grid-hover-color: rgba(255, 187, 51, 0.4);
   /* Grid area bg is visible when grid doesn't fill the space */
   --grid-area-bg: #252525;
   /* Cells have different (darker) bg to differentiate from empty space */

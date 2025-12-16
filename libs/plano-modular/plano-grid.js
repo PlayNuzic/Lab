@@ -264,13 +264,16 @@ export function updateTimeline(container, columns, options = {}) {
 
 /**
  * Update a single cell's selection state
+ * Shows label with Note^Registry P^m format (registry and m as superscripts)
  * @param {HTMLElement} container - Matrix container
- * @param {string} rowId - Row identifier
+ * @param {string} rowId - Row identifier (e.g., "5r4")
  * @param {number} colIndex - Column index
  * @param {boolean} selected - Whether cell should be selected
- * @param {string} label - Label to show when selected
+ * @param {string} label - Label to show when selected (unused, kept for compatibility)
+ * @param {Object} [options] - Additional options
+ * @param {number} [options.compas] - Pulses per cycle (for modular pulse calculation)
  */
-export function updateCellSelection(container, rowId, colIndex, selected, label = '') {
+export function updateCellSelection(container, rowId, colIndex, selected, label = '', options = {}) {
   if (!container) return;
 
   const cell = container.querySelector(
@@ -281,11 +284,25 @@ export function updateCellSelection(container, rowId, colIndex, selected, label 
 
   if (selected) {
     cell.classList.add('plano-selected');
-    // Add label if not exists
-    if (label && !cell.querySelector('.plano-cell-label')) {
+    // Add label with N^r P^m format
+    if (!cell.querySelector('.plano-cell-label')) {
       const labelEl = document.createElement('span');
       labelEl.className = 'plano-cell-label';
-      labelEl.textContent = label;
+
+      // Parse rowId (e.g., "5r4" → note=5, registry=4)
+      const match = rowId.match(/^(\d+)r(\d+)$/);
+      if (match) {
+        const noteNum = match[1];
+        const registry = match[2];
+
+        // Calculate modular pulse (pulse within cycle)
+        const compas = options.compas || 1;
+        const moduloPulse = colIndex % compas;
+
+        // Build label: N^r P^m (registry and m as superscripts)
+        labelEl.innerHTML = `${noteNum}<sup>${registry}</sup> ${moduloPulse}<sup>m</sup>`;
+      }
+
       cell.appendChild(labelEl);
     }
   } else {

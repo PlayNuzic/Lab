@@ -337,7 +337,7 @@ describe('plano-grid', () => {
       container = document.createElement('div');
       const cell = document.createElement('div');
       cell.className = 'plano-cell';
-      cell.dataset.rowId = 'r1';
+      cell.dataset.rowId = '5r4';  // Format: NrR (note 5, registry 4)
       cell.dataset.colIndex = '2';
       container.appendChild(cell);
     });
@@ -349,7 +349,7 @@ describe('plano-grid', () => {
     });
 
     test('should add selected class', () => {
-      updateCellSelection(container, 'r1', 2, true);
+      updateCellSelection(container, '5r4', 2, true);
 
       const cell = container.querySelector('.plano-cell');
       expect(cell.classList.contains('plano-selected')).toBe(true);
@@ -359,17 +359,19 @@ describe('plano-grid', () => {
       const cell = container.querySelector('.plano-cell');
       cell.classList.add('plano-selected');
 
-      updateCellSelection(container, 'r1', 2, false);
+      updateCellSelection(container, '5r4', 2, false);
 
       expect(cell.classList.contains('plano-selected')).toBe(false);
     });
 
     test('should add label when selecting', () => {
-      updateCellSelection(container, 'r1', 2, true, 'Label');
+      // Update cell with valid rowId format (NrR) and compas option
+      updateCellSelection(container, '5r4', 2, true, '', { compas: 4 });
 
       const label = container.querySelector('.plano-cell-label');
       expect(label).not.toBeNull();
-      expect(label.textContent).toBe('Label');
+      // Label format: N^r P^m → "5" + sup "4" + " " + "2" + sup "m"
+      expect(label.innerHTML).toBe('5<sup>4</sup> 2<sup>m</sup>');
     });
 
     test('should remove label when deselecting', () => {
@@ -378,14 +380,14 @@ describe('plano-grid', () => {
       label.className = 'plano-cell-label';
       cell.appendChild(label);
 
-      updateCellSelection(container, 'r1', 2, false);
+      updateCellSelection(container, '5r4', 2, false);
 
       expect(cell.querySelector('.plano-cell-label')).toBeNull();
     });
 
     test('should not duplicate label', () => {
-      updateCellSelection(container, 'r1', 2, true, 'Label');
-      updateCellSelection(container, 'r1', 2, true, 'Label');
+      updateCellSelection(container, '5r4', 2, true, '', { compas: 4 });
+      updateCellSelection(container, '5r4', 2, true, '', { compas: 4 });
 
       const labels = container.querySelectorAll('.plano-cell-label');
       expect(labels.length).toBe(1);

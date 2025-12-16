@@ -146,13 +146,16 @@ export function createPlanoModular(config) {
 
     const { isSelected, deselected } = selectionManager.toggle(rowData.id, colIndex, rowData.data);
 
+    // Options with compas for modular pulse calculation
+    const selectionOptions = { compas: cycleConfig.compas };
+
     // Update visual state for toggled cell
-    updateCellSelection(matrixContainer, rowData.id, colIndex, isSelected, rowData.label);
+    updateCellSelection(matrixContainer, rowData.id, colIndex, isSelected, rowData.label, selectionOptions);
 
     // Update visual state for deselected cells (monophonic mode)
     for (const key of deselected) {
       const [rowId, col] = [key.split('-').slice(0, -1).join('-'), parseInt(key.split('-').pop(), 10)];
-      updateCellSelection(matrixContainer, rowId, col, false);
+      updateCellSelection(matrixContainer, rowId, col, false, '', selectionOptions);
     }
 
     // Callbacks
@@ -240,13 +243,14 @@ export function createPlanoModular(config) {
 
     // Selection API
     selectCell(rowId, colIndex) {
+      const selectionOptions = { compas: cycleConfig.compas };
       const deselected = selectionManager.select(rowId, colIndex);
-      updateCellSelection(matrixContainer, rowId, colIndex, true);
+      updateCellSelection(matrixContainer, rowId, colIndex, true, '', selectionOptions);
       for (const key of deselected) {
         const parts = key.split('-');
         const col = parseInt(parts.pop(), 10);
         const rId = parts.join('-');
-        updateCellSelection(matrixContainer, rId, col, false);
+        updateCellSelection(matrixContainer, rId, col, false, '', selectionOptions);
       }
       if (onSelectionChange) {
         onSelectionChange(selectionManager.getSelected());
@@ -254,20 +258,22 @@ export function createPlanoModular(config) {
     },
 
     deselectCell(rowId, colIndex) {
+      const selectionOptions = { compas: cycleConfig.compas };
       selectionManager.deselect(rowId, colIndex);
-      updateCellSelection(matrixContainer, rowId, colIndex, false);
+      updateCellSelection(matrixContainer, rowId, colIndex, false, '', selectionOptions);
       if (onSelectionChange) {
         onSelectionChange(selectionManager.getSelected());
       }
     },
 
     clearSelection() {
+      const selectionOptions = { compas: cycleConfig.compas };
       const cleared = selectionManager.clear();
       for (const key of cleared) {
         const parts = key.split('-');
         const col = parseInt(parts.pop(), 10);
         const rId = parts.join('-');
-        updateCellSelection(matrixContainer, rId, col, false);
+        updateCellSelection(matrixContainer, rId, col, false, '', selectionOptions);
       }
       if (onSelectionChange) {
         onSelectionChange(selectionManager.getSelected());
