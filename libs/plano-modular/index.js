@@ -338,8 +338,13 @@ export function createPlanoModular(config) {
     },
 
     // Highlight API (for playback)
-    highlightCell(rowId, colIndex, duration = 0) {
-      return highlightCell(matrixContainer, rowId, colIndex, duration);
+    highlightCell(rowId, colIndex, duration = 0, options = {}) {
+      // Include cycleConfig.compas for modular pulse calculation
+      const highlightOptions = {
+        compas: cycleConfig.compas,
+        ...options
+      };
+      return highlightCell(matrixContainer, rowId, colIndex, duration, highlightOptions);
     },
 
     highlightTimelineNumber(colIndex, duration = 0) {

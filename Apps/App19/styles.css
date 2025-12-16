@@ -646,17 +646,25 @@ main {
   min-width: 50px;
   position: relative;
   z-index: 1;
-  /* Scroll enabled for programmatic control, but hidden from user */
+  /* Scroll enabled for user and programmatic control */
   overflow-y: scroll;
   overflow-x: hidden;
   max-height: calc(var(--visible-rows) * var(--grid-cell-height));
-  /* Hide scrollbar */
-  scrollbar-width: none;  /* Firefox */
-  -ms-overflow-style: none;  /* IE/Edge */
+  /* Show thin scrollbar */
+  scrollbar-width: thin;  /* Firefox */
 }
 
 .soundline-container::-webkit-scrollbar {
-  display: none;  /* Chrome/Safari */
+  width: 6px;  /* Chrome/Safari */
+}
+
+.soundline-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+[data-theme="dark"] .soundline-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Grid area (matrix + timeline) */
@@ -673,15 +681,25 @@ main {
 .matrix-container {
   flex: 1;
   overflow-x: auto;
-  overflow-y: scroll;  /* Scroll enabled for programmatic control */
+  overflow-y: scroll;  /* Scroll enabled for user and programmatic control */
   min-height: 0;
   max-height: calc(var(--visible-rows) * var(--grid-cell-height));
-  /* Hide vertical scrollbar */
-  scrollbar-width: thin;  /* Keep horizontal scrollbar thin */
+  /* Show thin scrollbar */
+  scrollbar-width: thin;  /* Firefox */
 }
 
-.matrix-container::-webkit-scrollbar:vertical {
-  display: none;  /* Hide vertical scrollbar in Chrome/Safari */
+.matrix-container::-webkit-scrollbar {
+  width: 6px;  /* Chrome/Safari */
+  height: 6px;
+}
+
+.matrix-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+[data-theme="dark"] .matrix-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Timeline container (X-axis: pulses) */
@@ -744,8 +762,8 @@ main {
 }
 
 .grid-cell.highlighted {
-  outline: 2px solid var(--color-lg, #4A90D9);
-  outline-offset: -2px;
+  background: #FFBB33 !important;
+  outline: none;
 }
 
 /* Cell label for selected cells */

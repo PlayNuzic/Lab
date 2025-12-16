@@ -300,13 +300,16 @@ export function updateCellSelection(container, rowId, colIndex, selected, label 
 
 /**
  * Highlight a cell temporarily (e.g., during playback)
+ * Shows a label with Note^Registry - Pulse^m (registry and m as superscripts)
  * @param {HTMLElement} container - Matrix container
- * @param {string} rowId - Row identifier
- * @param {number} colIndex - Column index
+ * @param {string} rowId - Row identifier (e.g., "5r4")
+ * @param {number} colIndex - Column index (absolute pulse)
  * @param {number} duration - Highlight duration in ms (0 for permanent)
+ * @param {Object} [options] - Additional options
+ * @param {number} [options.compas] - Pulses per cycle (for modular pulse calculation)
  * @returns {Function} Function to remove highlight
  */
-export function highlightCell(container, rowId, colIndex, duration = 0) {
+export function highlightCell(container, rowId, colIndex, duration = 0, options = {}) {
   if (!container) return () => {};
 
   const cell = container.querySelector(
@@ -317,8 +320,36 @@ export function highlightCell(container, rowId, colIndex, duration = 0) {
 
   cell.classList.add('plano-highlight');
 
+  // Add highlight label with Note^Registry - Pulse^m
+  let highlightLabel = cell.querySelector('.plano-highlight-label');
+  if (!highlightLabel) {
+    highlightLabel = document.createElement('span');
+    highlightLabel.className = 'plano-highlight-label';
+
+    // Parse rowId (e.g., "5r4" → note=5, registry=4)
+    const match = rowId.match(/^(\d+)r(\d+)$/);
+    if (match) {
+      const noteNum = match[1];
+      const registry = match[2];
+
+      // Calculate modular pulse (pulse within cycle)
+      const compas = options.compas || 1;
+      const moduloPulse = colIndex % compas;
+
+      // Build label: N^r - P^m (registry and m as superscripts)
+      highlightLabel.innerHTML = `${noteNum}<sup>${registry}</sup>-${moduloPulse}<sup>m</sup>`;
+    }
+
+    cell.appendChild(highlightLabel);
+  }
+
   const removeHighlight = () => {
     cell.classList.remove('plano-highlight');
+    // Remove highlight label
+    const label = cell.querySelector('.plano-highlight-label');
+    if (label) {
+      label.remove();
+    }
   };
 
   if (duration > 0) {

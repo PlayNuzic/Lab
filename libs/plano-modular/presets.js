@@ -94,7 +94,7 @@ export function createPlanoMusical(config) {
     cycleConfig,
     bpm,
     scrollConfig: {
-      blockVerticalWheel: true,
+      blockVerticalWheel: false,  // Allow user to scroll vertically
       visibleRows,
       visibleColumns: 12,  // 12 columns visible, scroll for more
       note0RowMap
