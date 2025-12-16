@@ -187,8 +187,10 @@ export function createMelodicAudioInitializer(config = {}) {
         await instance.ready();
 
         // 6. Load instrument
+        // Priority: localStorage.selectedInstrument (header dropdown) > app prefs > config default
+        const storedInstrument = localStorage.getItem('selectedInstrument');
         const prefs = config.getPreferences?.() || {};
-        const instrument = prefs.selectedInstrument || config.defaultInstrument || 'piano';
+        const instrument = storedInstrument || prefs.selectedInstrument || config.defaultInstrument || 'piano';
         await instance.setInstrument(instrument);
 
         // 7. Expose globally for Performance submenu and header

@@ -9,6 +9,7 @@ import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
+import { isViolinLoaded } from '../../libs/sound/violin.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { subscribeMixer } from '../../libs/sound/index.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
@@ -407,12 +408,16 @@ async function togglePlayback() {
  * Start playback
  */
 async function startPlayback() {
-  // Show loading indicator if piano not yet loaded
+  // Check if current instrument is loaded (read from shared localStorage key)
+  const currentInstrument = localStorage.getItem('selectedInstrument') || 'piano';
+  const isInstrumentLoaded = currentInstrument === 'violin' ? isViolinLoaded() : isPianoLoaded();
+
+  // Show loading indicator if instrument not yet loaded
   const iconPlay = elements.playBtn?.querySelector('.icon-play');
   const iconStop = elements.playBtn?.querySelector('.icon-stop');
   let wasLoading = false;
 
-  if (!isPianoLoaded() && elements.playBtn) {
+  if (!isInstrumentLoaded && elements.playBtn) {
     wasLoading = true;
     elements.playBtn.disabled = true;
     if (iconPlay) iconPlay.style.opacity = '0.5';
@@ -707,6 +712,18 @@ function decrementCycles() {
 }
 
 function setupEventHandlers() {
+  // Listen for instrument changes from dropdown (sharedui header)
+  // Note: The header already saves to localStorage.selectedInstrument
+  window.addEventListener('sharedui:instrument', async (e) => {
+    const { instrument } = e.detail;
+    console.log('Instrument changed to:', instrument);
+
+    // Update audio instance if already initialized
+    if (audio && audio.setInstrument) {
+      await audio.setInstrument(instrument);
+    }
+  });
+
   // Compás input with arrow keys
   elements.inputCompas?.addEventListener('input', handleCompasChange);
   elements.inputCompas?.addEventListener('keydown', (e) => {
@@ -896,12 +913,16 @@ function initApp() {
   // Mixer integration
   const mixerMenu = document.getElementById('mixerMenu');
   if (mixerMenu && elements.playBtn) {
+    // Get initial instrument label from shared localStorage
+    const initialInstrument = localStorage.getItem('selectedInstrument') || 'piano';
+    const instrumentLabel = initialInstrument === 'violin' ? 'Violín' : 'Piano';
+
     initMixerMenu({
       menu: mixerMenu,
       triggers: [elements.playBtn],
       channels: [
         { id: 'pulse', label: 'Pulso', allowSolo: true },
-        { id: 'instrument', label: 'Piano', allowSolo: true },
+        { id: 'instrument', label: instrumentLabel, allowSolo: true },
         { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
       ]
     });

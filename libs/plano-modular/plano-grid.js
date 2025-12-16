@@ -299,8 +299,9 @@ export function updateCellSelection(container, rowId, colIndex, selected, label 
         const compas = options.compas || 1;
         const moduloPulse = colIndex % compas;
 
-        // Build label: N^r P^m (registry and m as superscripts)
-        labelEl.innerHTML = `${noteNum}<sup>${registry}</sup> ${moduloPulse}<sup>m</sup>`;
+        // Build label: N^r P^c (registry and cycle number as superscripts)
+        const cycleNum = Math.floor(colIndex / compas) + 1;
+        labelEl.innerHTML = `${noteNum}<sup>${registry}</sup> ${moduloPulse}<sup>${cycleNum}</sup>`;
       }
 
       cell.appendChild(labelEl);
@@ -353,8 +354,9 @@ export function highlightCell(container, rowId, colIndex, duration = 0, options 
       const compas = options.compas || 1;
       const moduloPulse = colIndex % compas;
 
-      // Build label: N^r - P^m (registry and m as superscripts)
-      highlightLabel.innerHTML = `${noteNum}<sup>${registry}</sup>-${moduloPulse}<sup>m</sup>`;
+      // Build label: N^r - P^c (registry and cycle number as superscripts)
+      const cycleNum = Math.floor(colIndex / compas) + 1;
+      highlightLabel.innerHTML = `${noteNum}<sup>${registry}</sup>-${moduloPulse}<sup>${cycleNum}</sup>`;
     }
 
     cell.appendChild(highlightLabel);
