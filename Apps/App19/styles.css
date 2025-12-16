@@ -761,9 +761,17 @@ main {
   background: var(--grid-selected-color);
 }
 
+/* Legacy class - keep for compatibility */
 .grid-cell.highlighted {
   background: #FFBB33 !important;
   outline: none;
+}
+
+/* plano-modular highlight override */
+.plano-cell.plano-highlight {
+  background: #FFBB33 !important;
+  transform: scale(1.05);
+  box-shadow: 0 0 8px #FFBB33;
 }
 
 /* Cell label for selected cells */

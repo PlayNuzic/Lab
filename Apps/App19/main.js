@@ -599,6 +599,20 @@ function handleRandom() {
   updateLongitud();
   updateGridVisibility();
   updateGrid();
+
+  // Generate random notes (one per pulse)
+  const totalPulses = compas * cycles;
+  const selectableRegs = [3, 4, 5];
+
+  for (let pulse = 0; pulse < totalPulses; pulse++) {
+    // Random registry from selectable ones
+    const registry = selectableRegs[Math.floor(Math.random() * selectableRegs.length)];
+    // Random note within registry (0-11)
+    const note = Math.floor(Math.random() * CONFIG.NOTES_PER_REGISTRY);
+    // Build rowId (e.g., "5r4" = note 5, registry 4)
+    const rowId = `${note}r${registry}`;
+    grid?.selectCell(rowId, pulse);
+  }
 }
 
 // ========== RESET ==========
