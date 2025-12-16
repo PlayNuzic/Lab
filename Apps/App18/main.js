@@ -33,7 +33,7 @@ const SEQUENCE_LENGTH = 6;        // Random notes per playback
 const MIN_REGISTRO = 0;
 const MAX_REGISTRO = 7;
 const MIN_BPM = 75;
-const MAX_BPM = 200;
+const MAX_BPM = 150;
 
 // Preference storage
 const preferenceStorage = createPreferenceStorage('app18');
@@ -346,13 +346,12 @@ function handleRandom() {
     console.log(`Random registry: ${newRegistry}`);
   }
 
-  // Generate random sequence using shared module
-  randomNotes = generateMelodicSequence({
-    registry: registryController.getRegistry(),
-    length: SEQUENCE_LENGTH,
-    minRegistry: MIN_REGISTRO,
-    maxRegistry: MAX_REGISTRO
-  });
+  // Generate 6 random notes within range -7 to +7 (15 notes centered at 0)
+  randomNotes = [];
+  for (let i = 0; i < SEQUENCE_LENGTH; i++) {
+    const note = Math.floor(Math.random() * 15) - 7; // -7 to +7
+    randomNotes.push(note);
+  }
   currentBPM = getRandomBPM(MIN_BPM, MAX_BPM);
 
   console.log(`New random: BPM=${currentBPM}, Notes=${randomNotes.join(',')}`);
