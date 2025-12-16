@@ -1332,3 +1332,305 @@ main {
     min-width: 30px;
   }
 }
+
+/* ============================================
+   ZIGZAG GRID-EDITOR (N-iT MODE)
+   Copied from App15 interval mode with adaptations
+   ============================================ */
+
+/* CSS Variables for interval colors */
+:root {
+  --interval-sound-color: #F28AAD;  /* Rosa Nuzic for N/iS */
+  --interval-temporal-color: #4A9EFF;  /* Blue for iT */
+}
+
+/* Interval mode container */
+.matrix-grid-editor--interval {
+  padding: 0.2rem 0.4rem;
+  background: transparent;
+  border-radius: 6px;
+}
+
+/* N-iT specific container - same as interval */
+.matrix-grid-editor--n-it {
+  /* Inherits from --interval */
+}
+
+/* Zigzag container - 2 rows */
+.grid-zigzag-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
+/* Zigzag rows */
+.zigzag-row {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.zigzag-row--top {
+  margin-bottom: 8px;
+}
+
+/* Zigzag cells */
+.zigzag-cell {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 72px;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Hide labels in App20 (showIntervalLabels: false) */
+.matrix-grid-editor--interval .zigzag-label {
+  display: none;
+}
+
+/* Zigzag inputs */
+.zigzag-input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 2rem;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  color: var(--text-color, #333);
+  transition: all 0.15s ease;
+  box-shadow: none;
+}
+
+[data-theme="dark"] .zigzag-input {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text-dark, #e0e0e0);
+}
+
+.zigzag-input:focus {
+  outline: none;
+  border-color: var(--select-color, #FFBB33);
+  box-shadow: 0 0 6px rgba(var(--select-color-rgb, 228, 87, 12), 0.35);
+  background: rgba(var(--select-color-rgb, 228, 87, 12), 0.08);
+}
+
+/* Ghost cells for zigzag pattern */
+.zigzag-cell--ghost {
+  visibility: hidden;
+  pointer-events: none;
+  background: #000;
+  opacity: 0.4;
+  min-height: 36px;
+  min-width: 72px;
+  flex: 0 0 72px;
+  margin: 0;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+/* Left rail labels (N / iT) */
+.zigzag-left-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  font-weight: 700;
+  min-width: 52px;
+  font-size: 1.6rem;
+}
+
+/* N label - Rosa Nuzic */
+.zigzag-left-label--top {
+  color: var(--interval-sound-color, #F28AAD);
+}
+
+/* iT label - Blue */
+.zigzag-left-label--bottom {
+  color: var(--interval-temporal-color, #4A9EFF);
+}
+
+.zigzag-left-label--top,
+.zigzag-left-label--bottom {
+  margin-right: 8px;
+}
+
+/* N inputs - Rosa Nuzic */
+.zigzag-input.zigzag-input--n {
+  color: var(--interval-sound-color, #F28AAD) !important;
+  font-weight: 700;
+  opacity: 1;
+}
+
+/* iT inputs - Blue */
+.zigzag-input.zigzag-input--it {
+  color: var(--interval-temporal-color, #4A9EFF) !important;
+  font-weight: 700;
+  opacity: 1;
+}
+
+/* Focus state with select-color */
+.zigzag-input:focus {
+  outline: none;
+  background: var(--select-color);
+  color: white !important;
+  z-index: 10;
+}
+
+/* Visual zigzag pattern with connecting lines */
+.zigzag-cell--n-it-temporal,
+.zigzag-cell--it {
+  position: relative;
+}
+
+/* Diagonal connecting lines - MORE VISIBLE */
+.zigzag-cell--n-it-temporal::after,
+.zigzag-cell--it::after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 3px;
+  background: var(--text-secondary);
+  opacity: 0.6;
+  top: -10px;
+  right: -15px;
+  transform: rotate(-45deg);
+  transform-origin: center;
+  z-index: 1;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.zigzag-cell--n-it-note:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 3px;
+  background: var(--text-secondary);
+  opacity: 0.6;
+  bottom: -10px;
+  left: -15px;
+  transform: rotate(-45deg);
+  transform-origin: center;
+  z-index: 1;
+  border-radius: 2px;
+}
+
+/* Empty cells styling */
+.zigzag-cell--empty .zigzag-input {
+  opacity: 0.6;
+}
+
+.zigzag-cell--empty .zigzag-label {
+  opacity: 0.5;
+}
+
+/* Invalid input warning */
+.zigzag-input.invalid {
+  background: rgba(255, 0, 0, 0.1) !important;
+  border-color: #ff0000 !important;
+}
+
+/* ============================================
+   ZIGZAG RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 900px) {
+  .zigzag-cell {
+    flex: 0 0 64px;
+  }
+
+  .zigzag-cell--ghost {
+    min-width: 64px;
+    flex: 0 0 64px;
+  }
+
+  .zigzag-input {
+    font-size: 1.6rem;
+    padding: 4px 6px;
+  }
+
+  .zigzag-row {
+    gap: 14px;
+  }
+
+  .zigzag-left-label {
+    min-width: 40px;
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .zigzag-cell {
+    flex: 0 0 56px;
+  }
+
+  .zigzag-cell--ghost {
+    min-width: 56px;
+    flex: 0 0 56px;
+  }
+
+  .zigzag-input {
+    font-size: 1.4rem;
+    padding: 3px 4px;
+  }
+
+  .zigzag-row {
+    gap: 10px;
+  }
+
+  .zigzag-left-label {
+    min-width: 32px;
+    font-size: 1.2rem;
+    padding: 0 6px;
+  }
+
+  /* Smaller diagonal lines */
+  .zigzag-cell--n-it-temporal::after,
+  .zigzag-cell--it::after,
+  .zigzag-cell--n-it-note:not(:first-child)::before {
+    width: 22px;
+    height: 2px;
+  }
+}
+
+@media (max-width: 500px) {
+  .zigzag-cell {
+    flex: 0 0 48px;
+  }
+
+  .zigzag-cell--ghost {
+    min-width: 48px;
+    flex: 0 0 48px;
+    min-height: 28px;
+  }
+
+  .zigzag-input {
+    font-size: 1.2rem;
+    padding: 2px 3px;
+  }
+
+  .zigzag-row {
+    gap: 8px;
+  }
+
+  .zigzag-row--top {
+    margin-bottom: 4px;
+  }
+
+  .zigzag-left-label {
+    min-width: 28px;
+    font-size: 1rem;
+    padding: 0 4px;
+  }
+
+  /* Even smaller diagonal lines */
+  .zigzag-cell--n-it-temporal::after,
+  .zigzag-cell--it::after,
+  .zigzag-cell--n-it-note:not(:first-child)::before {
+    width: 16px;
+    height: 2px;
+    opacity: 0.5;
+  }
+}

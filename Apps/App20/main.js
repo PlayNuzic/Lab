@@ -242,8 +242,8 @@ function updateGridVisibility() {
 
 /**
  * Sync Grid 2D from grid-editor pairs (Editor → Grid 2D)
- * Called when user edits the NrX-iT zigzag editor
- * @param {Array} pairs - Array of { note, registry, pulse, temporalInterval }
+ * Called when user edits the N-iT zigzag editor
+ * @param {Array} pairs - Array of { note, pulse, temporalInterval } (registry defaults to CONFIG.DEFAULT_REGISTRO)
  */
 function syncGridFromPairs(pairs) {
   if (!grid) return;
@@ -252,12 +252,15 @@ function syncGridFromPairs(pairs) {
   grid.clearSelection();
 
   // Select cells based on pairs
+  // N-iT mode only has note, not registry - use default registry
   pairs.forEach(pair => {
     if (pair.note === null || pair.note === undefined) return;
-    if (pair.registry === null || pair.registry === undefined) return;
+
+    // Use registry from pair if available, otherwise use default
+    const registry = pair.registry ?? CONFIG.DEFAULT_REGISTRO;
 
     // Build rowId: "NrR" format (e.g., "5r4")
-    const rowId = `${pair.note}r${pair.registry}`;
+    const rowId = `${pair.note}r${registry}`;
     grid.selectCell(rowId, pair.pulse);
   });
 
@@ -393,23 +396,32 @@ function initGridEditor() {
     return;
   }
 
+  const isMobile = window.innerWidth <= 900;
+  const totalPulses = getTotalPulses() || 28;
+
   gridEditor = createGridEditor({
     container: elements.gridEditorContainer,
-    mode: 'nrx-it',
+    mode: 'n-it',
+    showZigzag: true,
+    showIntervalLabels: false,
+    leftZigzagLabels: { topText: 'N', bottomText: 'iT' },
+    autoJumpDelayMs: 500,
     noteRange: [0, 11],
-    pulseRange: [0, getTotalPulses() || 28],  // Max 7*4 = 28 pulses
-    maxPairs: 28,
-    nrxModeOptions: {
-      registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO],
-      maxTotalPulse: getTotalPulses() || 28
+    pulseRange: [0, totalPulses - 1],
+    maxPairs: totalPulses,
+    intervalModeOptions: {
+      maxTotalPulse: totalPulses - 1
     },
+    scrollEnabled: isMobile,
+    containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
+    columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
     onPairsChange: (pairs) => {
       // Sync Grid 2D when editor changes
       syncGridFromPairs(pairs);
     }
   });
 
-  console.log('Grid editor initialized in NrX-iT mode');
+  console.log('Grid editor initialized in N-iT zigzag mode');
 }
 
 /**
@@ -421,17 +433,25 @@ function updateGridEditorMaxPulse() {
     // Save current pairs before re-initializing
     const currentPairs = gridEditor ? gridEditor.getPairs() : [];
 
+    const isMobile = window.innerWidth <= 900;
+
     // Re-initialize with updated maxTotalPulse
     gridEditor = createGridEditor({
       container: elements.gridEditorContainer,
-      mode: 'nrx-it',
+      mode: 'n-it',
+      showZigzag: true,
+      showIntervalLabels: false,
+      leftZigzagLabels: { topText: 'N', bottomText: 'iT' },
+      autoJumpDelayMs: 500,
       noteRange: [0, 11],
-      pulseRange: [0, totalPulses],
+      pulseRange: [0, totalPulses - 1],
       maxPairs: totalPulses,
-      nrxModeOptions: {
-        registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO],
-        maxTotalPulse: totalPulses
+      intervalModeOptions: {
+        maxTotalPulse: totalPulses - 1
       },
+      scrollEnabled: isMobile,
+      containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
+      columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
       onPairsChange: (pairs) => {
         syncGridFromPairs(pairs);
       }

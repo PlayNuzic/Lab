@@ -146,6 +146,11 @@ export function createGridEditor(config = {}) {
       return;
     }
 
+    if (mode === 'n-it' && showZigzag) {
+      renderNItMode(pairs);
+      return;
+    }
+
     if (mode === 'nrx-it') {
       renderNrxItMode(pairs);
       return;
@@ -424,6 +429,517 @@ export function createGridEditor(config = {}) {
       const firstVisibleInput = container.querySelector('.interval-input');
       if (firstVisibleInput) firstVisibleInput.focus();
     });
+  }
+
+  /**
+   * Renders the grid in N-iT mode (Note + Temporal Intervals with zigzag layout)
+   * Similar to interval mode but with absolute note values instead of intervals
+   *
+   * Layout (zigzag pattern):
+   * Row 1 (N): Label "N" | N₁ | (ghost) | N₂ | (ghost) | N₃ ...
+   * Row 2 (iT): Label "iT" | (ghost) | iT₁ | (ghost) | iT₂ ...
+   *
+   * Navigation: N₁ → iT₁ → N₂ → iT₂ → N₃ → ...
+   * (First note has no iT before it)
+   */
+  function renderNItMode(pairs = []) {
+    currentPairs = [...pairs];
+
+    // Clear container
+    container.innerHTML = '';
+    container.className = 'matrix-grid-editor matrix-grid-editor--interval matrix-grid-editor--n-it';
+    if (!showIntervalLabels) {
+      container.classList.add('zigzag--no-headers');
+    }
+
+    // Create zigzag container (2 rows)
+    const zigzagContainer = document.createElement('div');
+    zigzagContainer.className = 'grid-zigzag-container';
+
+    // Row 1: N₁, N₂, N₃...
+    const row1 = document.createElement('div');
+    row1.className = 'zigzag-row zigzag-row--top';
+
+    // Row 2: iT₁, iT₂, iT₃...
+    const row2 = document.createElement('div');
+    row2.className = 'zigzag-row zigzag-row--bottom';
+
+    // Optional left labels (N / iT)
+    if (leftZigzagLabels) {
+      const topLabel = document.createElement('div');
+      topLabel.className = 'zigzag-left-label zigzag-left-label--top';
+      topLabel.textContent = leftZigzagLabels.topText || 'N';
+      row1.appendChild(topLabel);
+
+      const bottomLabel = document.createElement('div');
+      bottomLabel.className = 'zigzag-left-label zigzag-left-label--bottom';
+      bottomLabel.textContent = leftZigzagLabels.bottomText || 'iT';
+      row2.appendChild(bottomLabel);
+    }
+
+    // Get configuration
+    const maxTotalPulse = intervalModeOptions?.maxTotalPulse || pulseRange[1];
+
+    // Calculate intervals from pairs
+    const intervals = [];
+    for (let i = 1; i < pairs.length; i++) {
+      const currentPair = pairs[i];
+      const prevPair = pairs[i - 1];
+      // Use temporalInterval from pair if available, else calculate from pulse difference
+      const temporalInterval = currentPair.temporalInterval || (currentPair.pulse - prevPair.pulse) || 1;
+      intervals.push({
+        note: currentPair.note,
+        temporalInterval,
+        isRest: currentPair.isRest || false
+      });
+    }
+
+    // Create cells for each pair
+    if (pairs.length === 0) {
+      // First empty N cell
+      const nCell = createNItNoteCell(0, null);
+      row1.appendChild(nCell);
+
+      // Ghost cell for alignment in iT row
+      const ghost = createGhostCell();
+      row2.appendChild(ghost);
+    } else {
+      // First note cell
+      const firstNCell = createNItNoteCell(0, pairs[0].note);
+      row1.appendChild(firstNCell);
+
+      // Ghost in iT row for first note
+      const firstGhost = createGhostCell();
+      row2.appendChild(firstGhost);
+
+      // Create cells for remaining pairs (with iT before each)
+      intervals.forEach((interval, index) => {
+        // N cell in row 1 (index+1 because first note is at index 0)
+        const nCell = createNItNoteCell(index + 1, interval.note);
+        row1.appendChild(nCell);
+
+        // iT cell in row 2
+        const itCell = createNItTemporalCell(index + 1, interval.temporalInterval);
+        row2.appendChild(itCell);
+      });
+    }
+
+    zigzagContainer.appendChild(row1);
+    zigzagContainer.appendChild(row2);
+    container.appendChild(zigzagContainer);
+
+    // Apply ghost patterns (zigzag visual)
+    applyNItPattern(row1, row2);
+
+    // Ensure at least one empty slot for adding new notes
+    ensureEmptyNItSlot();
+
+    // Focus first N input
+    requestAnimationFrame(() => {
+      const firstInput = container.querySelector('.n-it-note-input');
+      if (firstInput) firstInput.focus();
+    });
+  }
+
+  /**
+   * Creates an N cell for N-iT mode
+   */
+  function createNItNoteCell(index, note) {
+    const cell = document.createElement('div');
+    cell.className = 'zigzag-cell zigzag-cell--n-it-note';
+    if (note === null) {
+      cell.classList.add('zigzag-cell--empty');
+    }
+
+    const input = document.createElement('input');
+    input.className = 'zigzag-input n-it-note-input zigzag-input--n';
+    input.type = 'text';
+    input.value = note !== null ? String(note) : '';
+    input.maxLength = 2;
+    input.dataset.index = String(index);
+    input.dataset.type = 'n-it-note';
+    input.addEventListener('input', (e) => handleNItInputChange(e, index, 'note'));
+    input.addEventListener('keydown', (e) => handleNItKeyDown(e, index, 'note'));
+    cell.appendChild(input);
+
+    return cell;
+  }
+
+  /**
+   * Creates an iT cell for N-iT mode
+   */
+  function createNItTemporalCell(index, temporalInterval) {
+    const cell = document.createElement('div');
+    cell.className = 'zigzag-cell zigzag-cell--n-it-temporal zigzag-cell--it';
+    if (temporalInterval === null) {
+      cell.classList.add('zigzag-cell--empty');
+    }
+
+    const input = document.createElement('input');
+    input.className = 'zigzag-input n-it-temporal-input zigzag-input--it';
+    input.type = 'text';
+    input.value = temporalInterval !== null ? String(temporalInterval) : '';
+    input.maxLength = 2;
+    input.dataset.index = String(index);
+    input.dataset.type = 'n-it-temporal';
+    input.addEventListener('input', (e) => handleNItInputChange(e, index, 'it'));
+    input.addEventListener('keydown', (e) => handleNItKeyDown(e, index, 'it'));
+    cell.appendChild(input);
+
+    return cell;
+  }
+
+  /**
+   * Applies zigzag pattern to N-iT mode rows
+   * Row 1 (N): N₁ | (ghost) | N₂ | (ghost) | N₃ ...
+   * Row 2 (iT): (ghost) | iT₁ | (ghost) | iT₂ ...
+   */
+  function applyNItPattern(row1, row2) {
+    // Remove existing ghosts
+    Array.from(row1.querySelectorAll('.zigzag-cell--ghost')).forEach(el => el.remove());
+    Array.from(row2.querySelectorAll('.zigzag-cell--ghost')).forEach(el => el.remove());
+
+    // Row 1: Add ghost AFTER each N cell (except last)
+    const nCells = Array.from(row1.querySelectorAll('.zigzag-cell--n-it-note'));
+    nCells.forEach((cell, idx) => {
+      if (idx < nCells.length - 1) {
+        const ghost = createGhostCell();
+        cell.after(ghost);
+      }
+    });
+
+    // Row 2: Add ghost BEFORE each iT cell
+    const itCells = Array.from(row2.querySelectorAll('.zigzag-cell--n-it-temporal'));
+    itCells.forEach(cell => {
+      const ghost = createGhostCell();
+      cell.before(ghost);
+    });
+
+    // Add trailing ghost to row 2 for alignment
+    const lastItCell = row2.querySelector('.zigzag-cell--n-it-temporal:last-of-type');
+    if (lastItCell) {
+      const trailingGhost = createGhostCell();
+      lastItCell.after(trailingGhost);
+    }
+  }
+
+  /**
+   * Ensures there's an empty slot for adding new N-iT pairs
+   */
+  function ensureEmptyNItSlot() {
+    const row1 = container.querySelector('.zigzag-row--top');
+    const row2 = container.querySelector('.zigzag-row--bottom');
+    if (!row1 || !row2) return;
+
+    // Check if we can add more
+    const maxTotalPulse = intervalModeOptions?.maxTotalPulse || pulseRange[1];
+    const currentTotal = calculateNItTotalPulse();
+    if (currentTotal >= maxTotalPulse) return;
+
+    // Check if last N cell is empty
+    const nCells = row1.querySelectorAll('.zigzag-cell--n-it-note');
+    const lastNCell = nCells[nCells.length - 1];
+    const lastNInput = lastNCell?.querySelector('.n-it-note-input');
+
+    if (lastNInput && lastNInput.value !== '') {
+      // Add empty N cell
+      const newIndex = nCells.length;
+      const emptyNCell = createNItNoteCell(newIndex, null);
+      row1.appendChild(emptyNCell);
+
+      // Add corresponding iT cell
+      const emptyItCell = createNItTemporalCell(newIndex, null);
+      row2.appendChild(emptyItCell);
+
+      // Reapply pattern
+      applyNItPattern(row1, row2);
+    }
+  }
+
+  /**
+   * Calculates total pulse from N-iT pairs
+   */
+  function calculateNItTotalPulse() {
+    let total = 0;
+    const itInputs = container.querySelectorAll('.n-it-temporal-input');
+    itInputs.forEach(input => {
+      const val = parseInt(input.value);
+      if (!isNaN(val)) total += val;
+    });
+    return total;
+  }
+
+  /**
+   * Handles input changes in N-iT mode
+   */
+  function handleNItInputChange(event, index, type) {
+    const input = event.target;
+    const text = input.value.trim();
+
+    // Clear invalid state
+    input.classList.remove('invalid');
+
+    if (type === 'note') {
+      // Note must be 0-11
+      if (text && !/^-?\d*$/.test(text)) {
+        input.value = text.replace(/[^\d-]/g, '');
+        return;
+      }
+      const noteVal = parseInt(text);
+      if (text && !isNaN(noteVal) && (noteVal < noteRange[0] || noteVal > noteRange[1])) {
+        showInputTooltip(input, `Nota: ${noteRange[0]}-${noteRange[1]}`);
+        input.classList.add('invalid');
+        return;
+      }
+      // Auto-jump to iT after valid note (if not first note)
+      if (text && index > 0) {
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
+          if (itInput) {
+            itInput.focus();
+            itInput.select();
+          }
+        }, AUTO_JUMP_DELAY);
+      } else if (text && index === 0) {
+        // First note: jump to next N cell (will create iT + N pair)
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          jumpToNextNItCell(index);
+        }, AUTO_JUMP_DELAY);
+      }
+    } else if (type === 'it') {
+      // iT must be positive integer
+      if (text && !/^\d*$/.test(text)) {
+        input.value = text.replace(/\D/g, '');
+        return;
+      }
+      const itVal = parseInt(text);
+      const maxTotalPulse = intervalModeOptions?.maxTotalPulse || pulseRange[1];
+      const currentTotal = calculateNItTotalPulse();
+
+      if (text && !isNaN(itVal) && itVal < 1) {
+        showInputTooltip(input, 'iT debe ser ≥ 1');
+        input.classList.add('invalid');
+        return;
+      }
+      if (text && !isNaN(itVal) && currentTotal > maxTotalPulse) {
+        showInputTooltip(input, `iT máximo: ${maxTotalPulse - currentTotal + itVal}`);
+        input.classList.add('invalid');
+        return;
+      }
+      // Auto-jump to next N after valid iT
+      if (text) {
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          jumpToNextNItCell(index);
+        }, AUTO_JUMP_DELAY);
+      }
+    }
+
+    // Update pairs
+    updateNItPairsFromDOM();
+  }
+
+  /**
+   * Handles keydown in N-iT mode
+   */
+  function handleNItKeyDown(event, index, type) {
+    const input = event.target;
+
+    switch (event.key) {
+      case 'Enter':
+      case 'Tab':
+        event.preventDefault();
+        clearTimeout(autoJumpTimer);
+        if (type === 'note') {
+          if (index === 0) {
+            // First note: jump to next N (creates new pair)
+            jumpToNextNItCell(index);
+          } else {
+            // Other notes: jump to iT first
+            const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
+            if (itInput) {
+              itInput.focus();
+              itInput.select();
+            }
+          }
+        } else if (type === 'it') {
+          // Jump to next N
+          jumpToNextNItCell(index);
+        }
+        break;
+
+      case 'ArrowRight':
+        if (isAtEnd(input)) {
+          event.preventDefault();
+          if (type === 'note' && index > 0) {
+            const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
+            if (itInput) itInput.focus();
+          } else {
+            jumpToNextNItCell(index);
+          }
+        }
+        break;
+
+      case 'ArrowLeft':
+        if (isAtStart(input)) {
+          event.preventDefault();
+          if (type === 'it') {
+            const nInput = container.querySelector(`.n-it-note-input[data-index="${index}"]`);
+            if (nInput) nInput.focus();
+          } else if (type === 'note' && index > 0) {
+            // Previous iT or previous N
+            const prevItInput = container.querySelector(`.n-it-temporal-input[data-index="${index - 1}"]`);
+            if (prevItInput) {
+              prevItInput.focus();
+            } else {
+              const prevNInput = container.querySelector(`.n-it-note-input[data-index="${index - 1}"]`);
+              if (prevNInput) prevNInput.focus();
+            }
+          }
+        }
+        break;
+
+      case 'Backspace':
+        if (input.value === '' && index > 0) {
+          event.preventDefault();
+          if (type === 'note') {
+            removeNItCellAt(index);
+          } else if (type === 'it') {
+            const nInput = container.querySelector(`.n-it-note-input[data-index="${index}"]`);
+            if (nInput) {
+              nInput.focus();
+              nInput.select();
+            }
+          }
+        }
+        break;
+    }
+  }
+
+  /**
+   * Jumps to next N cell in N-iT mode, creating if needed
+   */
+  function jumpToNextNItCell(currentIndex) {
+    const nextIndex = currentIndex + 1;
+    let nextNCell = container.querySelector(`.zigzag-cell--n-it-note input[data-index="${nextIndex}"]`);
+
+    if (!nextNCell) {
+      // Check if we can add more
+      const maxTotalPulse = intervalModeOptions?.maxTotalPulse || pulseRange[1];
+      const currentTotal = calculateNItTotalPulse();
+      if (currentTotal >= maxTotalPulse) return;
+
+      // Create new cells
+      const row1 = container.querySelector('.zigzag-row--top');
+      const row2 = container.querySelector('.zigzag-row--bottom');
+      if (!row1 || !row2) return;
+
+      const newNCell = createNItNoteCell(nextIndex, null);
+      row1.appendChild(newNCell);
+
+      const newItCell = createNItTemporalCell(nextIndex, null);
+      row2.appendChild(newItCell);
+
+      // Reapply pattern
+      applyNItPattern(row1, row2);
+
+      nextNCell = newNCell.querySelector('.n-it-note-input');
+    }
+
+    if (nextNCell) {
+      requestAnimationFrame(() => {
+        nextNCell.focus();
+        nextNCell.select();
+      });
+    }
+  }
+
+  /**
+   * Removes N-iT cell at index
+   */
+  function removeNItCellAt(index) {
+    const nCell = container.querySelector(`.zigzag-cell--n-it-note input[data-index="${index}"]`)?.parentElement;
+    const itCell = container.querySelector(`.zigzag-cell--n-it-temporal input[data-index="${index}"]`)?.parentElement;
+
+    if (nCell) nCell.remove();
+    if (itCell) itCell.remove();
+
+    // Re-index remaining cells
+    reindexNItCells();
+
+    // Update pairs
+    updateNItPairsFromDOM();
+
+    // Focus previous cell
+    if (index > 0) {
+      const prevNInput = container.querySelector(`.n-it-note-input[data-index="${index - 1}"]`);
+      if (prevNInput) {
+        prevNInput.focus();
+        prevNInput.select();
+      }
+    }
+
+    // Reapply pattern
+    const row1 = container.querySelector('.zigzag-row--top');
+    const row2 = container.querySelector('.zigzag-row--bottom');
+    if (row1 && row2) {
+      applyNItPattern(row1, row2);
+    }
+  }
+
+  /**
+   * Re-indexes all N-iT cells after deletion
+   */
+  function reindexNItCells() {
+    const nInputs = container.querySelectorAll('.n-it-note-input');
+    const itInputs = container.querySelectorAll('.n-it-temporal-input');
+
+    nInputs.forEach((input, idx) => {
+      input.dataset.index = String(idx);
+    });
+
+    itInputs.forEach((input, idx) => {
+      input.dataset.index = String(idx + 1); // iT starts at index 1
+    });
+  }
+
+  /**
+   * Updates pairs from DOM in N-iT mode
+   */
+  function updateNItPairsFromDOM() {
+    const pairs = [];
+    const nInputs = container.querySelectorAll('.n-it-note-input');
+    let accumulatedPulse = 0;
+
+    nInputs.forEach((input, index) => {
+      const note = parseInt(input.value);
+      if (isNaN(note)) return;
+
+      // Get temporalInterval from corresponding iT cell (index > 0)
+      let temporalInterval = 1;
+      if (index > 0) {
+        const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
+        const itVal = itInput ? parseInt(itInput.value) : NaN;
+        if (!isNaN(itVal)) {
+          temporalInterval = itVal;
+          accumulatedPulse += temporalInterval;
+        }
+      }
+
+      pairs.push({
+        note,
+        pulse: index === 0 ? 0 : accumulatedPulse,
+        temporalInterval
+      });
+    });
+
+    currentPairs = pairs;
+    onPairsChange(pairs);
+
+    // Ensure empty slot exists
+    ensureEmptyNItSlot();
   }
 
   /**
