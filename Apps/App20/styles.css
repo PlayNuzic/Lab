@@ -1,0 +1,1334 @@
+/* App20 - Plano y sucesión N-iT */
+
+/* ============================================
+   GLOBAL SCROLL OVERRIDE
+   ============================================ */
+
+/* Block both horizontal and vertical global scroll for this app */
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ============================================
+   SHARED COMPONENT IMPORTS
+   ============================================ */
+@import '../../libs/shared-ui/bpm-inline.css';
+@import '../../libs/shared-ui/cycle-counter.css';
+@import '../../libs/shared-ui/pulse-highlight.css';
+@import '../../libs/shared-ui/soundline.css';
+
+/* ============================================
+   APP-SPECIFIC CSS VARIABLES
+   ============================================ */
+
+:root {
+  /* Layout dimensions */
+  --left-column-width: 150px;
+  --grid-cell-min-width: 50px;
+  --grid-cell-height: 32px;
+  --visible-rows: 15;
+  --visible-pulses: 12;
+
+  /* Spacing */
+  --layout-gap: 1rem;
+  --controls-gap: 0.75rem;
+
+  /* Registry circle */
+  --registro-circle-size: 70px;
+
+  /* Button fine-tuning offsets (x, y) */
+  --btn-play-offset-x: 75px;
+  --btn-play-offset-y: 10px;
+  --btn-random-offset-x: 0px;
+  --btn-random-offset-y: -30px;
+  --btn-reset-offset-x: 0px;
+  --btn-reset-offset-y: -35px;
+  --btn-taptempo-offset-x: 0px;
+  --btn-taptempo-offset-y: -40px;
+  --btn-pulse-toggle-offset-x: -115px;
+  --btn-pulse-toggle-offset-y: -35px;
+  --bpm-offset-x: 0px;
+  --bpm-offset-y: -39px;
+
+  /* BPM sizing */
+  --bpm-scale: 0.8;
+
+  /* Left column offset */
+  --left-column-offset-y: -35px;
+
+  /* Colors */
+  --grid-line-color: rgba(0, 0, 0, 0.15);
+  --grid-hover-color: rgba(255, 187, 51, 0.3);
+  --grid-selected-color: #FFBB33;
+}
+
+[data-theme="dark"] {
+  --grid-line-color: rgba(255, 255, 255, 0.15);
+  --grid-hover-color: rgba(255, 187, 51, 0.4);
+  /* Grid area bg is visible when grid doesn't fill the space */
+  --grid-area-bg: #252525;
+  /* Cells have different (darker) bg to differentiate from empty space */
+  --grid-cell-bg: #1e1e1e;
+}
+
+/* ============================================
+   HIDE TEMPLATE ELEMENTS NOT NEEDED
+   ============================================ */
+
+/* Hide loop button - not used in this app */
+#loopBtn {
+  display: none !important;
+}
+
+/* Hide formula section */
+.middle {
+  display: none !important;
+}
+
+/* ============================================
+   MAIN LAYOUT
+   ============================================ */
+
+main {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 60px);
+  padding: 0;
+}
+
+/* ============================================
+   INPUTS SECTION: Compás/Cycles stacked + separator + grid-editor
+   ============================================ */
+
+.inputs {
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* Left stack: Compás + Cycles vertically */
+.inputs-left-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Vertical separator */
+.inputs-separator {
+  width: 2px;
+  background: var(--grid-line-color, rgba(0, 0, 0, 0.15));
+  align-self: stretch;
+  margin: 0 0.5rem;
+}
+
+[data-theme="dark"] .inputs-separator {
+  background: var(--grid-line-color, rgba(255, 255, 255, 0.15));
+}
+
+/* Grid editor container */
+.inputs-grid-editor {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+}
+
+/* All param circles - smaller for stacked layout */
+.param.compas .circle,
+.param.cycle-display .circle {
+  width: 70px;
+  height: 70px;
+}
+
+/* Cycle circle: contains both input (when stopped) and digit (when playing) */
+.param.cycle-display .cycle-circle {
+  position: relative;
+}
+
+/* Input styling for compas and cycle - smaller font for stacked layout */
+.param.compas input,
+.param.cycle-display .cycle-circle input {
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.param.compas input:focus,
+.param.cycle-display .cycle-circle input:focus {
+  outline: none;
+}
+
+/* When playing, hide input and show digit */
+.param.cycle-display .cycle-circle.playing input {
+  display: none;
+}
+
+.param.cycle-display .cycle-circle .cycle-counter__digit {
+  display: none;
+  font-size: 1.8rem;
+}
+
+.param.cycle-display .cycle-circle.playing .cycle-counter__digit {
+  display: block;
+}
+
+/* ============================================
+   TOTAL LENGTH CIRCLE (2/3 size = 66px)
+   ============================================ */
+
+.total-length-inline {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.total-length-inline .circle {
+  width: 66px;
+  height: 66px;
+  border: 2px solid var(--circle-border, #333);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.total-length-inline .total-length__digit {
+  font-size: 1.8rem;
+  font-weight: 700;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--text-color, #333);
+  line-height: 1;
+}
+
+.total-length-inline .abbr {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
+  opacity: 1;
+}
+
+/* Flip animations (reuse keyframes from cycle-counter) */
+.total-length__digit.flip-out {
+  animation: flipOut 0.15s ease-in forwards;
+}
+
+.total-length__digit.flip-in {
+  animation: flipIn 0.15s ease-out forwards;
+}
+
+/* Playback colors */
+.total-length__digit.playing-zero {
+  color: var(--color-lg, #4A90D9);
+}
+
+.total-length__digit.playing-active {
+  color: var(--selection-color, #EA570C);
+}
+
+/* Dark theme */
+[data-theme="dark"] .total-length-inline .circle {
+  border-color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .total-length-inline .total-length__digit,
+[data-theme="dark"] .total-length-inline .abbr {
+  color: var(--text-color, #eee);
+}
+
+/* ============================================
+   TIMELINE WRAPPER - 2 COLUMN LAYOUT
+   ============================================ */
+
+.timeline-wrapper {
+  flex: 1;
+  display: grid;
+  grid-template-columns: var(--left-column-width) 1fr;
+  gap: var(--layout-gap);
+  padding: var(--layout-gap);
+  min-height: 0;
+  overflow: visible;
+  position: relative;
+  z-index: 2;
+}
+
+/* ============================================
+   LEFT COLUMN: Registry + Controls + BPM
+   ============================================ */
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--controls-gap);
+  padding: 0rem 0;
+  transform: translateY(var(--left-column-offset-y));
+  position: relative;
+  z-index: 10;
+}
+
+/* Registry param */
+.param.registro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.param.registro .abbr {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
+  position: relative;
+  z-index: 10;
+}
+
+.param.registro .circle {
+  width: var(--registro-circle-size);
+  height: var(--registro-circle-size);
+  border: 2px solid var(--circle-border, #333);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.param.registro input {
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+  cursor: default;
+}
+
+.param.registro input:focus {
+  outline: none;
+}
+
+/* Registry navigation buttons */
+.registro-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.registro-nav .spin {
+  width: 60px;
+  height: 35px;
+  border: 1px solid var(--circle-border, #333);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+.registro-nav .spin:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.registro-nav .spin:active {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* Arrow indicators */
+.registro-nav .spin::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+}
+
+.registro-nav .spin.up::before {
+  border-bottom: 10px solid var(--text-color, #333);
+  margin-top: -2px;
+}
+
+.registro-nav .spin.down::before {
+  border-top: 10px solid var(--text-color, #333);
+  margin-top: 2px;
+}
+
+/* Dark theme */
+[data-theme="dark"] .param.registro .circle {
+  border-color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .param.registro input,
+[data-theme="dark"] .param.registro .abbr {
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .registro-nav .spin {
+  border-color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .registro-nav .spin:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .registro-nav .spin.up::before {
+  border-bottom-color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .registro-nav .spin.down::before {
+  border-top-color: var(--text-color, #eee);
+}
+
+/* Controls container */
+.controls-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.controls-container .controls {
+  position: static;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Vertical layout for controls */
+.controls-container .controls[data-layout="vertical"] {
+  flex-direction: column;
+}
+
+.controls-container .controls .control-buttons-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Play row: static positioning for vertical layout */
+.controls-container .controls .play-row {
+  position: static;
+  transform: translate(var(--btn-play-offset-x), var(--btn-play-offset-y));
+  pointer-events: none;  /* Evitar que el contenedor tape otros elementos */
+}
+
+/* Re-activar pointer events en los elementos interactivos del play-row */
+.controls-container .controls .play-row > * {
+  pointer-events: auto;
+}
+
+/* Play button fine-tuning */
+.controls-container .controls #playBtn {
+  position: relative;
+}
+
+/* Pulse toggle fine-tuning */
+.controls-container .controls .play-row .control-sound-toggle-container {
+  transform: translate(var(--btn-pulse-toggle-offset-x), var(--btn-pulse-toggle-offset-y)) !important;
+}
+
+/* Hide button-row wrapper, show buttons directly */
+.controls-container .controls .button-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Button fine-tuning offsets */
+/* Override shared-ui absolute positioning for vertical layout */
+.controls-container .controls #randomBtn {
+  position: static;
+  transform: translate(var(--btn-random-offset-x), var(--btn-random-offset-y));
+}
+
+.controls-container .controls #resetBtn {
+  position: static;
+  transform: translate(var(--btn-reset-offset-x), var(--btn-reset-offset-y));
+}
+
+.controls-container .controls #tapTempoBtn {
+  position: static;
+  display: flex !important;
+  transform: translate(var(--btn-taptempo-offset-x), var(--btn-taptempo-offset-y));
+}
+
+/* Reorder buttons: Play → Random → Reset → TapTempo */
+.controls-container .controls .play-row {
+  order: 1;
+}
+
+.controls-container .controls .button-row {
+  order: 2;
+}
+
+.controls-container .controls #tapTempoBtn {
+  order: 3;
+}
+
+/* Inside .button-row: Random first, then Reset */
+.controls-container .controls .button-row #randomBtn {
+  order: 1;
+}
+
+.controls-container .controls .button-row #randomMenu {
+  order: 2;
+}
+
+.controls-container .controls .button-row #resetBtn {
+  order: 3;
+}
+
+/* ============================================
+   COLOR IDENTIFICATION FOR SECTIONS
+   ============================================ */
+
+/* Bordes de botones .controls → naranja (color de selección) */
+.controls-container .controls .play,
+.controls-container .controls .random,
+.controls-container .controls .reset,
+.controls-container .controls .tap {
+  border-color: var(--selection-color);
+}
+
+/* Círculos de parámetros → azul (color Lg) */
+.param.compas .circle,
+.param.cycle-display .circle,
+.total-length-inline .circle,
+.bpm-inline .circle {
+  border-color: var(--color-lg);
+}
+
+/* BPM inline at bottom - always visible in App19 */
+.left-column .bpm-inline {
+  position: relative;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: auto;
+  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
+}
+
+/* BPM label above circle */
+.left-column .bpm-inline .abbr {
+  font-size: 1.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-color, #333);
+  opacity: 0.8;
+}
+
+/* BPM circle */
+.left-column .bpm-inline .circle {
+  width: 66px;
+  height: 66px;
+  border: 2px solid var(--color-lg, #4A90D9);
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Override shared-ui/index.css spinner styles for BPM */
+.left-column .bpm-inline .spinner {
+  position: absolute;
+  right: -35px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.left-column .bpm-inline .spin {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: #333;
+  cursor: pointer;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.left-column .bpm-inline .spin:hover {
+  background: #555;
+}
+
+.left-column .bpm-inline .spin::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+}
+
+.left-column .bpm-inline .spin.up::before {
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid #eee;
+  border-top: none;
+}
+
+.left-column .bpm-inline .spin.down::before {
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #eee;
+  border-bottom: none;
+}
+
+/* BPM input styling */
+.left-column .bpm-inline input {
+  font-size: 1.65rem;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+  padding: 0;
+}
+
+.left-column .bpm-inline input:focus {
+  outline: none;
+}
+
+/* BPM dark theme overrides */
+[data-theme="dark"] .left-column .bpm-inline .abbr {
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .left-column .bpm-inline input {
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .left-column .bpm-inline .spin {
+  background: #eee;
+}
+
+[data-theme="dark"] .left-column .bpm-inline .spin:hover {
+  background: #ccc;
+}
+
+[data-theme="dark"] .left-column .bpm-inline .spin.up::before {
+  border-bottom-color: #333;
+}
+
+[data-theme="dark"] .left-column .bpm-inline .spin.down::before {
+  border-top-color: #333;
+}
+
+/* ============================================
+   RIGHT COLUMN: Grid 2D
+   ============================================ */
+
+.right-column {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Soundline container (Y-axis: notes) */
+.soundline-container {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-right: 0.5rem;
+  min-width: 50px;
+  position: relative;
+  z-index: 1;
+  /* Scroll enabled for user and programmatic control */
+  overflow-y: scroll;
+  overflow-x: hidden;
+  max-height: calc(var(--visible-rows) * var(--grid-cell-height));
+  /* Show thin scrollbar */
+  scrollbar-width: thin;  /* Firefox */
+}
+
+.soundline-container::-webkit-scrollbar {
+  width: 6px;  /* Chrome/Safari */
+}
+
+.soundline-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+[data-theme="dark"] .soundline-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Grid area (matrix + timeline) */
+.grid-area {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Matrix container (cells) */
+.matrix-container {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: scroll;  /* Scroll enabled for user and programmatic control */
+  min-height: 0;
+  max-height: calc(var(--visible-rows) * var(--grid-cell-height));
+  /* Show thin scrollbar */
+  scrollbar-width: thin;  /* Firefox */
+}
+
+.matrix-container::-webkit-scrollbar {
+  width: 6px;  /* Chrome/Safari */
+  height: 6px;
+}
+
+.matrix-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+[data-theme="dark"] .matrix-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Timeline container (X-axis: pulses) */
+.timeline-container {
+  height: 40px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  position: relative;
+  z-index: 10;
+  margin-left: -15px;
+  padding-left: 15px;
+}
+
+/* Sync scroll between matrix and timeline */
+.matrix-container,
+.timeline-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--grid-line-color) transparent;
+}
+
+/* Hide scrollbar on timeline (will be synced with matrix) */
+.timeline-container {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.timeline-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   GRID CELLS
+   ============================================ */
+
+.grid-matrix {
+  display: grid;
+  gap: 0;
+  min-width: max-content;
+  position: relative;  /* For playhead positioning */
+  margin-left: 15px;   /* Space for pulse 0 visibility */
+}
+
+.grid-cell {
+  background: var(--bg-color, #fff);
+  height: var(--grid-cell-height);
+  cursor: pointer;
+  transition: background 0.1s ease;
+  border-right: 1px solid var(--grid-line-color);
+  border-bottom: 1px solid var(--grid-line-color);
+  box-sizing: border-box;
+}
+
+.grid-cell:hover {
+  background: var(--grid-hover-color);
+}
+
+.grid-cell.selected {
+  background: var(--grid-selected-color);
+}
+
+/* Legacy class - keep for compatibility */
+.grid-cell.highlighted {
+  background: #FFBB33 !important;
+  outline: none;
+}
+
+/* plano-modular highlight override */
+.plano-cell.plano-highlight {
+  background: #FFBB33 !important;
+  transform: scale(1.05);
+  box-shadow: 0 0 8px #FFBB33;
+}
+
+/* Cell label for selected cells */
+.grid-cell .cell-label {
+  display: none;  /* Hidden by default */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--grid-selected-label-color, #fff);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+/* Show label on selected cells */
+.grid-cell.selected {
+  position: relative;
+}
+
+.grid-cell.selected .cell-label {
+  display: block;
+}
+
+/* ============================================
+   PLAYHEAD (vertical bar during playback)
+   ============================================ */
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--select-color, #EA570C);
+  opacity: 0.85;
+  z-index: 20;
+  pointer-events: none;
+  box-shadow: 0 0 6px var(--select-color, #EA570C);
+  margin-left: -4px;  /* Align with timeline numbers */
+}
+
+/* Hide playhead when not playing */
+.playhead.hidden {
+  display: none;
+}
+
+/* Dark theme */
+[data-theme="dark"] .grid-area,
+[data-theme="dark"] .matrix-container {
+  background: var(--grid-area-bg, #252525);
+}
+
+[data-theme="dark"] .grid-cell {
+  background: var(--grid-cell-bg, #1e1e1e);
+}
+
+[data-theme="dark"] .grid-cell:hover {
+  background: var(--grid-hover-color);
+}
+
+[data-theme="dark"] .grid-cell.selected {
+  background: var(--grid-selected-color, #E4570C);
+}
+
+[data-theme="dark"] .grid-cell .cell-label {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* ============================================
+   TIMELINE NUMBERS
+   ============================================ */
+
+.timeline-row {
+  display: grid;
+  gap: 0;
+  min-width: max-content;
+  height: 100%;
+  align-items: center;
+  margin-left: 15px;  /* Match .grid-matrix margin for alignment */
+}
+
+.timeline-number {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  margin-left: -4px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
+}
+
+.timeline-number .pulse-num {
+  line-height: 1;
+}
+
+.timeline-number .cycle-sup {
+  font-size: 0.8em;
+  vertical-align: super;
+  margin-left: 1px;
+  margin-top: -15px;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+/* Cycle start (pulse 0) styling */
+.timeline-number.cycle-start {
+  color: var(--color-lg, #4A90D9);
+}
+
+/* Dark theme */
+[data-theme="dark"] .timeline-number {
+  color: var(--text-color, #eee);
+}
+
+/* Preserve blue color for cycle-start (pulse 0) in dark mode */
+[data-theme="dark"] .timeline-number.cycle-start {
+  color: var(--color-lg, #4A90D9);
+}
+
+/* ============================================
+   SOUNDLINE NOTES (Y-axis)
+   ============================================ */
+
+.soundline-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.soundline-note {
+  height: var(--grid-cell-height);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-color, #333);
+  border-bottom: 1px solid var(--grid-line-color);
+  box-sizing: border-box;
+}
+
+/* Registry boundary: same color as other notes (no blue) */
+.soundline-note.registry-boundary {
+  color: var(--text-color, #333);
+  font-weight: 500;
+}
+
+/* Note 0 of any registry: selection color */
+.soundline-note[data-noteinreg="0"] {
+  color: var(--select-color, #E4570C) !important;
+  font-weight: 700;
+}
+
+/* Out of range rows (r2 padding for scroll) - dimmed and non-interactive */
+.soundline-note.out-of-range {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.grid-cell.out-of-range {
+  opacity: 0.25;
+  pointer-events: none;
+  cursor: default;
+}
+
+/* Dark theme */
+[data-theme="dark"] .soundline-note {
+  color: var(--text-color, #eee);
+}
+
+/* ============================================
+   PORTRAIT WARNING (mobile)
+   ============================================ */
+
+@media (max-width: 768px) and (orientation: portrait) {
+  body::before {
+    content: '\21BB  Por favor, gira tu dispositivo para usar esta aplicación';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-color, #fff);
+    color: var(--text-color, #333);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.2rem;
+    padding: 2rem;
+    z-index: 9999;
+  }
+
+  [data-theme="dark"] body::before {
+    background: var(--bg-dark, #1a1a1a);
+    color: var(--text-color, #eee);
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - Tablet landscape
+   ============================================ */
+
+@media (max-width: 900px) {
+  :root {
+    --left-column-width: 120px;
+    --registro-circle-size: 70px;
+    --grid-cell-min-width: 45px;
+    --grid-cell-height: 28px;
+  }
+
+  .inputs {
+    gap: 1.5rem;
+    padding: 0.75rem 1rem 0.5rem;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 85px;
+    height: 85px;
+  }
+
+  .param.compas input,
+  .param.cycle-display .cycle-circle input {
+    font-size: 2rem;
+  }
+
+  .total-length-inline .circle {
+    width: 56px;
+    height: 56px;
+  }
+
+  .total-length-inline .total-length__digit {
+    font-size: 1.5rem;
+  }
+
+  .param.registro input {
+    font-size: 1.8rem;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - Tablet portrait / Small landscape
+   ============================================ */
+
+@media (max-width: 768px) and (orientation: landscape) {
+  :root {
+    --left-column-width: 100px;
+    --registro-circle-size: 60px;
+    --grid-cell-min-width: 40px;
+    --grid-cell-height: 24px;
+  }
+
+  .inputs {
+    gap: 1rem;
+    padding: 0.5rem 0.75rem 0.25rem;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 70px;
+    height: 70px;
+  }
+
+  .param.compas input,
+  .param.cycle-display .cycle-circle input {
+    font-size: 1.75rem;
+  }
+
+  .total-length-inline .circle {
+    width: 46px;
+    height: 46px;
+  }
+
+  .total-length-inline .total-length__digit {
+    font-size: 1.3rem;
+  }
+
+  .total-length-inline .abbr {
+    font-size: 0.75rem;
+  }
+
+  .param.registro input {
+    font-size: 1.5rem;
+  }
+
+  .registro-nav .spin {
+    width: 35px;
+    height: 25px;
+  }
+}
+
+/* ============================================
+   DARK THEME ADJUSTMENTS
+   ============================================ */
+
+[data-theme="dark"] .param.compas input,
+[data-theme="dark"] .param.cycle-display input {
+  color: var(--text-color, #eee);
+}
+
+/* ============================================
+   PLAYBACK ANIMATIONS (Pattern from Apps 16/17)
+   ============================================ */
+
+/* Grid cell playing highlight */
+.grid-cell.playing {
+  background: var(--select-color, #EA570C) !important;
+  transform: scale(1.1);
+  transition: transform 0.1s ease, background 0.1s ease;
+  box-shadow: 0 0 8px var(--select-color, #EA570C);
+  z-index: 10;
+}
+
+[data-theme="dark"] .grid-cell.playing {
+  box-shadow: 0 0 12px var(--select-color, #EA570C);
+}
+
+/* Timeline numbers active states */
+.timeline-number.active {
+  color: var(--select-color, #EA570C) !important;
+  transform: scale(1.2);
+  font-weight: 700;
+  transition: transform 0.1s ease, color 0.1s ease;
+}
+
+.timeline-number.active-zero {
+  color: var(--color-lg, #4A90D9) !important;
+  transform: scale(1.3);
+  font-weight: 700;
+  text-shadow: 0 0 8px var(--color-lg, #4A90D9);
+  transition: transform 0.1s ease, color 0.1s ease;
+}
+
+[data-theme="dark"] .timeline-number.active-zero {
+  text-shadow: 0 0 12px var(--color-lg, #4A90D9);
+}
+
+/* Flip animations (keyframes) */
+@keyframes flipOut {
+  from { transform: rotateX(0); opacity: 1; }
+  to { transform: rotateX(-90deg); opacity: 0; }
+}
+
+@keyframes flipIn {
+  from { transform: rotateX(90deg); opacity: 0; }
+  to { transform: rotateX(0); opacity: 1; }
+}
+
+.flip-out {
+  animation: flipOut 0.15s ease-in forwards;
+}
+
+.flip-in {
+  animation: flipIn 0.15s ease-out forwards;
+}
+
+/* Colors for digits during playback */
+.cycle-counter__digit.playing-zero,
+.total-length__digit.playing-zero {
+  color: var(--color-lg, #4A90D9) !important;
+}
+
+.cycle-counter__digit.playing-active,
+.total-length__digit.playing-active {
+  color: var(--select-color, #EA570C) !important;
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+/* Tablet landscape (900px) */
+@media (max-width: 900px) {
+  :root {
+    --visible-rows: 12;
+    --grid-cell-height: 28px;
+    --left-column-width: 120px;
+  }
+}
+
+/* Tablet portrait landscape (768px) */
+@media (max-width: 768px) {
+  :root {
+    --visible-rows: 10;
+    --grid-cell-height: 24px;
+    --left-column-width: 100px;
+  }
+
+  .inputs-section {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+}
+
+/* Small screens (700px) - Compact inputs to maximize grid space */
+@media (max-width: 700px) {
+  :root {
+    --visible-rows: 39;  /* Show ALL rows (full grid height) */
+    --grid-cell-height: 18px;
+    --left-column-width: 80px;
+    --registro-circle-size: 50px;
+  }
+
+  /* Compact inputs section */
+  .inputs-section {
+    padding: 0.25rem;
+    gap: 0.25rem;
+  }
+
+  /* Smaller param circles */
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 60px;
+    height: 60px;
+  }
+
+  .param.compas input,
+  .param.cycle-display .cycle-circle input {
+    font-size: 1.5rem;
+  }
+
+  .param.cycle-display .cycle-circle .cycle-counter__digit {
+    font-size: 1.5rem;
+  }
+
+  /* Smaller total-length */
+  .total-length-inline .circle {
+    width: 50px;
+    height: 50px;
+  }
+
+  .total-length-inline input {
+    font-size: 1.2rem;
+  }
+
+  /* Compact param labels */
+  .param-inline .abbr,
+  .total-length-inline .abbr {
+    font-size: 0.9rem;
+  }
+
+  /* Smaller registry */
+  .param.registro .abbr {
+    font-size: 1rem;
+  }
+
+  .param.registro input {
+    font-size: 1.5rem;
+  }
+
+  /* Smaller buttons */
+  .left-column .action-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Compact BPM */
+  .left-column .bpm-inline .abbr {
+    font-size: 1rem;
+  }
+
+  .left-column .bpm-inline .circle {
+    width: 50px;
+    height: 50px;
+  }
+
+  .left-column .bpm-inline input {
+    font-size: 1.2rem;
+  }
+
+  .left-column .bpm-inline .spin {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Smaller soundline labels */
+  .soundline-note {
+    font-size: 0.7rem;
+    min-width: 35px;
+  }
+
+  /* Smaller timeline numbers */
+  .timeline-number {
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra small screens (500px) */
+@media (max-width: 500px) {
+  :root {
+    --grid-cell-height: 16px;
+    --left-column-width: 70px;
+    --registro-circle-size: 45px;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 50px;
+    height: 50px;
+  }
+
+  .param.compas input,
+  .param.cycle-display .cycle-circle input,
+  .param.cycle-display .cycle-circle .cycle-counter__digit {
+    font-size: 1.3rem;
+  }
+
+  .total-length-inline .circle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .total-length-inline input {
+    font-size: 1rem;
+  }
+
+  .soundline-note {
+    font-size: 0.6rem;
+    min-width: 30px;
+  }
+}

@@ -70,12 +70,13 @@ export function createGridEditor(config = {}) {
     scrollEnabled = false,
     containerSize = null,
     columnSize = null,
-    mode = 'standard',  // 'standard' | 'interval'
+    mode = 'standard',  // 'standard' | 'interval' | 'nrx-it'
     showZigzag = false,
     showIntervalLabels = true,
     leftZigzagLabels = null,
     autoJumpDelayMs = 300,  // Custom auto-jump delay (ms)
-    intervalModeOptions = null  // Options for interval mode (basePair, maxTotalPulse, etc.)
+    intervalModeOptions = null,  // Options for interval mode (basePair, maxTotalPulse, etc.)
+    nrxModeOptions = null  // Options for nrx-it mode (registryRange, etc.)
   } = config;
 
   let currentPairs = [];
@@ -142,6 +143,11 @@ export function createGridEditor(config = {}) {
     // Use different render modes
     if (mode === 'interval' && showZigzag) {
       renderIntervalMode(pairs);
+      return;
+    }
+
+    if (mode === 'nrx-it') {
+      renderNrxItMode(pairs);
       return;
     }
 
@@ -418,6 +424,511 @@ export function createGridEditor(config = {}) {
       const firstVisibleInput = container.querySelector('.interval-input');
       if (firstVisibleInput) firstVisibleInput.focus();
     });
+  }
+
+  /**
+   * Renders the grid in NrX-iT mode (Note+Registry with Temporal Intervals)
+   * Layout:
+   * Row 1 (N): Label "N" | NrX₁ | NrX₂ | NrX₃ ...
+   * Row 2 (iT): Label "iT" | (ghost) | iT₁ | (ghost) | iT₂ ...
+   *
+   * Each NrX cell contains two inputs: note (0-11) + 'r' + registry (3-5)
+   * Navigation: note → registry → iT → note → registry → iT → ...
+   */
+  function renderNrxItMode(pairs = []) {
+    currentPairs = [...pairs];
+
+    // Clear container
+    container.innerHTML = '';
+    container.className = 'matrix-grid-editor matrix-grid-editor--nrx-it';
+
+    // Default options
+    const registryRange = nrxModeOptions?.registryRange || [3, 5];
+    const maxTotalPulse = nrxModeOptions?.maxTotalPulse || pulseRange[1];
+
+    // Create zigzag container (2 rows)
+    const zigzagContainer = document.createElement('div');
+    zigzagContainer.className = 'grid-zigzag-container grid-zigzag-container--nrx';
+
+    // Row 1: N (with NrX cells)
+    const row1 = document.createElement('div');
+    row1.className = 'zigzag-row zigzag-row--top zigzag-row--nrx';
+
+    // Row 2: iT (temporal intervals)
+    const row2 = document.createElement('div');
+    row2.className = 'zigzag-row zigzag-row--bottom zigzag-row--it';
+
+    // Left labels
+    const topLabel = document.createElement('div');
+    topLabel.className = 'zigzag-left-label zigzag-left-label--top';
+    topLabel.textContent = 'N';
+    row1.appendChild(topLabel);
+
+    const bottomLabel = document.createElement('div');
+    bottomLabel.className = 'zigzag-left-label zigzag-left-label--bottom';
+    bottomLabel.textContent = 'iT';
+    row2.appendChild(bottomLabel);
+
+    // Render existing pairs
+    if (pairs.length === 0) {
+      // Create first empty NrX cell
+      const emptyNrxCell = createNrxCell(0, null, null);
+      row1.appendChild(emptyNrxCell);
+
+      // Ghost cell in iT row for zigzag alignment
+      const ghost = createGhostCell();
+      row2.appendChild(ghost);
+    } else {
+      // Render each pair as NrX cell + iT cell (except first pair has no iT)
+      pairs.forEach((pair, index) => {
+        const nrxCell = createNrxCell(index, pair.note, pair.registry);
+        row1.appendChild(nrxCell);
+
+        if (index === 0) {
+          // First pair: ghost in iT row
+          const ghost = createGhostCell();
+          row2.appendChild(ghost);
+        } else {
+          // Subsequent pairs: iT cell
+          const itCell = createNrxItCell(index, pair.temporalInterval || 1);
+          row2.appendChild(itCell);
+        }
+      });
+
+      // Add empty NrX cell for next entry if not at max
+      const currentTotalPulse = calculateNrxTotalPulse();
+      if (currentTotalPulse < maxTotalPulse) {
+        const emptyNrxCell = createNrxCell(pairs.length, null, null);
+        row1.appendChild(emptyNrxCell);
+
+        const emptyItCell = createNrxItCell(pairs.length, null);
+        row2.appendChild(emptyItCell);
+      }
+    }
+
+    zigzagContainer.appendChild(row1);
+    zigzagContainer.appendChild(row2);
+    container.appendChild(zigzagContainer);
+
+    // Focus first note input
+    requestAnimationFrame(() => {
+      const firstNoteInput = container.querySelector('.nrx-note-input');
+      if (firstNoteInput) firstNoteInput.focus();
+    });
+  }
+
+  /**
+   * Creates an NrX cell (note + 'r' + registry)
+   */
+  function createNrxCell(index, note, registry) {
+    const cell = document.createElement('div');
+    cell.className = 'zigzag-cell zigzag-cell--nrx';
+    cell.dataset.index = String(index);
+
+    // Note input
+    const noteInput = document.createElement('input');
+    noteInput.className = 'zigzag-input nrx-note-input';
+    noteInput.type = 'text';
+    noteInput.value = note !== null ? String(note) : '';
+    noteInput.maxLength = 2;
+    noteInput.dataset.index = String(index);
+    noteInput.dataset.type = 'nrx-note';
+    noteInput.placeholder = 'N';
+    noteInput.addEventListener('input', (e) => handleNrxInput(e, index, 'note'));
+    noteInput.addEventListener('keydown', (e) => handleNrxKeyDown(e, index, 'note'));
+    cell.appendChild(noteInput);
+
+    // 'r' separator
+    const separator = document.createElement('span');
+    separator.className = 'nrx-separator';
+    separator.textContent = 'r';
+    cell.appendChild(separator);
+
+    // Registry input
+    const regInput = document.createElement('input');
+    regInput.className = 'zigzag-input nrx-registry-input';
+    regInput.type = 'text';
+    regInput.value = registry !== null ? String(registry) : '';
+    regInput.maxLength = 1;
+    regInput.dataset.index = String(index);
+    regInput.dataset.type = 'nrx-registry';
+    regInput.placeholder = 'X';
+    regInput.addEventListener('input', (e) => handleNrxInput(e, index, 'registry'));
+    regInput.addEventListener('keydown', (e) => handleNrxKeyDown(e, index, 'registry'));
+    cell.appendChild(regInput);
+
+    return cell;
+  }
+
+  /**
+   * Creates an iT cell for NrX-iT mode
+   */
+  function createNrxItCell(index, temporalInterval) {
+    const cell = document.createElement('div');
+    cell.className = 'zigzag-cell zigzag-cell--nrx-it';
+    cell.dataset.index = String(index);
+
+    const itInput = document.createElement('input');
+    itInput.className = 'zigzag-input nrx-it-input';
+    itInput.type = 'text';
+    itInput.value = temporalInterval !== null ? String(temporalInterval) : '';
+    itInput.maxLength = 2;
+    itInput.dataset.index = String(index);
+    itInput.dataset.type = 'nrx-it';
+    itInput.placeholder = 'iT';
+    itInput.addEventListener('input', (e) => handleNrxInput(e, index, 'it'));
+    itInput.addEventListener('keydown', (e) => handleNrxKeyDown(e, index, 'it'));
+    cell.appendChild(itInput);
+
+    return cell;
+  }
+
+  /**
+   * Handles input changes in NrX-iT mode
+   */
+  function handleNrxInput(event, index, type) {
+    const input = event.target;
+    const text = input.value.trim();
+
+    // Clear invalid state
+    input.classList.remove('invalid');
+
+    // Validate based on type
+    const registryRange = nrxModeOptions?.registryRange || [3, 5];
+
+    if (type === 'note') {
+      // Note must be 0-11
+      if (text && !/^\d*$/.test(text)) {
+        input.value = text.replace(/\D/g, '');
+        return;
+      }
+      const noteVal = parseInt(text);
+      if (text && !isNaN(noteVal) && (noteVal < 0 || noteVal > 11)) {
+        showInputTooltip(input, 'Nota: 0-11');
+        input.classList.add('invalid');
+        return;
+      }
+      // Auto-jump to registry after valid note
+      if (text.length >= 2 || (text.length === 1 && noteVal >= 2)) {
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          const regInput = input.parentElement.querySelector('.nrx-registry-input');
+          if (regInput) {
+            regInput.focus();
+            regInput.select();
+          }
+        }, AUTO_JUMP_DELAY);
+      }
+    } else if (type === 'registry') {
+      // Registry must be within range
+      if (text && !/^\d*$/.test(text)) {
+        input.value = text.replace(/\D/g, '');
+        return;
+      }
+      const regVal = parseInt(text);
+      if (text && !isNaN(regVal) && (regVal < registryRange[0] || regVal > registryRange[1])) {
+        showInputTooltip(input, `Registro: ${registryRange[0]}-${registryRange[1]}`);
+        input.classList.add('invalid');
+        return;
+      }
+      // Auto-jump to iT after valid registry (if not first cell)
+      if (text && index > 0) {
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          const itInput = container.querySelector(`.nrx-it-input[data-index="${index}"]`);
+          if (itInput) {
+            itInput.focus();
+            itInput.select();
+          }
+        }, AUTO_JUMP_DELAY);
+      } else if (text && index === 0) {
+        // First cell: jump to next NrX cell
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          jumpToNextNrxCell(index);
+        }, AUTO_JUMP_DELAY);
+      }
+    } else if (type === 'it') {
+      // iT must be positive integer
+      if (text && !/^\d*$/.test(text)) {
+        input.value = text.replace(/\D/g, '');
+        return;
+      }
+      const itVal = parseInt(text);
+      const maxTotalPulse = nrxModeOptions?.maxTotalPulse || pulseRange[1];
+      const currentTotal = calculateNrxTotalPulse();
+
+      if (text && !isNaN(itVal) && itVal < 1) {
+        showInputTooltip(input, 'iT debe ser ≥ 1');
+        input.classList.add('invalid');
+        return;
+      }
+      if (text && !isNaN(itVal) && currentTotal > maxTotalPulse) {
+        showInputTooltip(input, `iT máximo: ${maxTotalPulse - currentTotal + itVal}`);
+        input.classList.add('invalid');
+        return;
+      }
+      // Auto-jump to next NrX after valid iT
+      if (text) {
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          jumpToNextNrxCell(index);
+        }, AUTO_JUMP_DELAY);
+      }
+    }
+
+    // Update pairs
+    updateNrxPairsFromDOM();
+  }
+
+  /**
+   * Handles keydown in NrX-iT mode
+   */
+  function handleNrxKeyDown(event, index, type) {
+    const input = event.target;
+
+    switch (event.key) {
+      case 'Enter':
+      case 'Tab':
+        event.preventDefault();
+        clearTimeout(autoJumpTimer);
+        if (type === 'note') {
+          // Jump to registry
+          const regInput = input.parentElement.querySelector('.nrx-registry-input');
+          if (regInput) {
+            regInput.focus();
+            regInput.select();
+          }
+        } else if (type === 'registry') {
+          if (index === 0) {
+            // First cell: jump to next NrX
+            jumpToNextNrxCell(index);
+          } else {
+            // Jump to iT
+            const itInput = container.querySelector(`.nrx-it-input[data-index="${index}"]`);
+            if (itInput) {
+              itInput.focus();
+              itInput.select();
+            }
+          }
+        } else if (type === 'it') {
+          // Jump to next NrX
+          jumpToNextNrxCell(index);
+        }
+        break;
+
+      case 'ArrowRight':
+        if (isAtEnd(input)) {
+          event.preventDefault();
+          if (type === 'note') {
+            const regInput = input.parentElement.querySelector('.nrx-registry-input');
+            if (regInput) regInput.focus();
+          } else if (type === 'registry' && index > 0) {
+            const itInput = container.querySelector(`.nrx-it-input[data-index="${index}"]`);
+            if (itInput) itInput.focus();
+          } else {
+            jumpToNextNrxCell(index);
+          }
+        }
+        break;
+
+      case 'ArrowLeft':
+        if (isAtStart(input)) {
+          event.preventDefault();
+          if (type === 'registry') {
+            const noteInput = input.parentElement.querySelector('.nrx-note-input');
+            if (noteInput) noteInput.focus();
+          } else if (type === 'it') {
+            const nrxCell = container.querySelector(`.zigzag-cell--nrx[data-index="${index}"]`);
+            const regInput = nrxCell?.querySelector('.nrx-registry-input');
+            if (regInput) regInput.focus();
+          } else if (type === 'note' && index > 0) {
+            // Jump to previous iT or previous registry
+            const prevItInput = container.querySelector(`.nrx-it-input[data-index="${index - 1}"]`);
+            if (prevItInput) {
+              prevItInput.focus();
+            } else {
+              jumpToPrevNrxCell(index);
+            }
+          }
+        }
+        break;
+
+      case 'Backspace':
+        if (input.value === '' && index > 0) {
+          event.preventDefault();
+          // Delete current cell and jump back
+          if (type === 'note') {
+            removeNrxCellAt(index);
+          } else if (type === 'registry') {
+            const noteInput = input.parentElement.querySelector('.nrx-note-input');
+            if (noteInput) {
+              noteInput.focus();
+              noteInput.select();
+            }
+          } else if (type === 'it') {
+            const nrxCell = container.querySelector(`.zigzag-cell--nrx[data-index="${index}"]`);
+            const regInput = nrxCell?.querySelector('.nrx-registry-input');
+            if (regInput) {
+              regInput.focus();
+              regInput.select();
+            }
+          }
+        }
+        break;
+    }
+  }
+
+  /**
+   * Jumps to next NrX cell, creating if needed
+   */
+  function jumpToNextNrxCell(currentIndex) {
+    const nextIndex = currentIndex + 1;
+    let nextNrxCell = container.querySelector(`.zigzag-cell--nrx[data-index="${nextIndex}"]`);
+
+    if (!nextNrxCell) {
+      // Check if we can add more
+      const maxTotalPulse = nrxModeOptions?.maxTotalPulse || pulseRange[1];
+      const currentTotal = calculateNrxTotalPulse();
+      if (currentTotal >= maxTotalPulse) return;
+
+      // Create new NrX cell
+      const row1 = container.querySelector('.zigzag-row--nrx');
+      const row2 = container.querySelector('.zigzag-row--it');
+      if (!row1 || !row2) return;
+
+      nextNrxCell = createNrxCell(nextIndex, null, null);
+      row1.appendChild(nextNrxCell);
+
+      // Create corresponding iT cell
+      const itCell = createNrxItCell(nextIndex, null);
+      row2.appendChild(itCell);
+    }
+
+    const noteInput = nextNrxCell.querySelector('.nrx-note-input');
+    if (noteInput) {
+      requestAnimationFrame(() => {
+        noteInput.focus();
+        noteInput.select();
+      });
+    }
+  }
+
+  /**
+   * Jumps to previous NrX cell
+   */
+  function jumpToPrevNrxCell(currentIndex) {
+    if (currentIndex <= 0) return;
+
+    const prevIndex = currentIndex - 1;
+    const prevNrxCell = container.querySelector(`.zigzag-cell--nrx[data-index="${prevIndex}"]`);
+    if (!prevNrxCell) return;
+
+    const regInput = prevNrxCell.querySelector('.nrx-registry-input');
+    if (regInput) {
+      requestAnimationFrame(() => {
+        regInput.focus();
+        regInput.select();
+      });
+    }
+  }
+
+  /**
+   * Removes NrX cell at index
+   */
+  function removeNrxCellAt(index) {
+    const nrxCell = container.querySelector(`.zigzag-cell--nrx[data-index="${index}"]`);
+    const itCell = container.querySelector(`.zigzag-cell--nrx-it[data-index="${index}"]`);
+
+    if (nrxCell) nrxCell.remove();
+    if (itCell) itCell.remove();
+
+    // Re-index remaining cells
+    reindexNrxCells();
+
+    // Update pairs
+    updateNrxPairsFromDOM();
+
+    // Focus previous cell
+    if (index > 0) {
+      jumpToPrevNrxCell(index);
+    }
+  }
+
+  /**
+   * Re-indexes all NrX cells after deletion
+   */
+  function reindexNrxCells() {
+    const nrxCells = container.querySelectorAll('.zigzag-cell--nrx');
+    const itCells = container.querySelectorAll('.zigzag-cell--nrx-it');
+
+    nrxCells.forEach((cell, index) => {
+      cell.dataset.index = String(index);
+      const noteInput = cell.querySelector('.nrx-note-input');
+      const regInput = cell.querySelector('.nrx-registry-input');
+      if (noteInput) noteInput.dataset.index = String(index);
+      if (regInput) regInput.dataset.index = String(index);
+    });
+
+    itCells.forEach((cell, index) => {
+      cell.dataset.index = String(index + 1); // iT starts at index 1
+      const itInput = cell.querySelector('.nrx-it-input');
+      if (itInput) itInput.dataset.index = String(index + 1);
+    });
+  }
+
+  /**
+   * Calculates total pulse from NrX-iT pairs
+   */
+  function calculateNrxTotalPulse() {
+    let total = 0;
+    const itInputs = container.querySelectorAll('.nrx-it-input');
+    itInputs.forEach(input => {
+      const val = parseInt(input.value);
+      if (!isNaN(val)) total += val;
+    });
+    return total;
+  }
+
+  /**
+   * Updates pairs from DOM in NrX-iT mode
+   */
+  function updateNrxPairsFromDOM() {
+    const pairs = [];
+    const nrxCells = container.querySelectorAll('.zigzag-cell--nrx');
+    let accumulatedPulse = 0;
+
+    nrxCells.forEach((cell, index) => {
+      const noteInput = cell.querySelector('.nrx-note-input');
+      const regInput = cell.querySelector('.nrx-registry-input');
+
+      const note = noteInput ? parseInt(noteInput.value) : NaN;
+      const registry = regInput ? parseInt(regInput.value) : NaN;
+
+      if (isNaN(note) || isNaN(registry)) return;
+
+      // Get temporalInterval from corresponding iT cell (index > 0)
+      let temporalInterval = 1;
+      if (index > 0) {
+        const itInput = container.querySelector(`.nrx-it-input[data-index="${index}"]`);
+        const itVal = itInput ? parseInt(itInput.value) : NaN;
+        if (!isNaN(itVal)) {
+          temporalInterval = itVal;
+        }
+      }
+
+      pairs.push({
+        note,
+        registry,
+        pulse: accumulatedPulse,
+        temporalInterval
+      });
+
+      accumulatedPulse += temporalInterval;
+    });
+
+    currentPairs = pairs;
+    onPairsChange(pairs);
   }
 
   /**
