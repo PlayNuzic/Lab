@@ -39,6 +39,18 @@ html, body {
   --registro-offset-x: 0px;
   --registro-offset-y: 37px;
 
+  /* Compás param offset */
+  --compas-offset-x: 15px;
+  --compas-offset-y: 0px;
+
+  /* Cycles param offset */
+  --cycles-offset-x: 15px;
+  --cycles-offset-y: 0px;
+
+  /* Grid editor offset */
+  --grid-editor-offset-x: -40px;
+  --grid-editor-offset-y: 0px;
+
   /* Controls container offset */
   --controls-offset-y: 0px;
 
@@ -113,8 +125,8 @@ main {
   display: flex;
   justify-content: flex-start;
   align-items: stretch;
-  gap: 1rem;
-  padding: 0.5rem 1rem;
+  gap: 0.1rem;
+  padding: 0.1rem 0.1rem;
   flex-shrink: 0;
   position: relative;
   z-index: 1;
@@ -127,8 +139,8 @@ main {
 .inputs-left-stack {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: flex-start;
+  gap: 0.1rem;
   flex-shrink: 0;
 }
 
@@ -157,6 +169,8 @@ main {
   scroll-behavior: smooth;
   /* FIXED: block instead of flex - flex conflicts with overflow-x: auto */
   display: block;
+  /* Fine-tuning position */
+  transform: translate(var(--grid-editor-offset-x), var(--grid-editor-offset-y));
 }
 
 /* The grid content inside must use max-content to enable scroll */
@@ -166,6 +180,38 @@ main {
 }
 
 /* All param circles - smaller for stacked layout */
+/* Compás param - horizontal layout with label on right */
+.param.compas {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  transform: translate(var(--compas-offset-x), var(--compas-offset-y));
+}
+
+.param.compas .abbr {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
+  order: 2; /* Label a la derecha del círculo */
+}
+
+/* Cycles param - horizontal layout with label on right */
+.param.cycle-display {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  transform: translate(var(--cycles-offset-x), var(--cycles-offset-y));
+}
+
+.param.cycle-display .abbr {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
+  order: 2; /* Label a la derecha del círculo */
+}
+
 .param.compas .circle,
 .param.cycle-display .circle {
   width: 70px;
