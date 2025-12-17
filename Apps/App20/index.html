@@ -169,10 +169,17 @@
       timelineWrapper.before(controls);
 
       // Clear timeline-wrapper and rebuild with 2-column structure
-      // NOTE: Registry control removed - now entered via grid-editor
       timelineWrapper.innerHTML = `
-        <!-- Left Column: Controls + BPM -->
+        <!-- Left Column: Registry + Controls + BPM -->
         <div class="left-column" id="leftColumn">
+          <!-- Registry display (read-only, updated by grid scroll) -->
+          <div class="param registro" id="registroParam">
+            <span class="abbr">Registro</span>
+            <div class="circle">
+              <input id="inputRegistro" type="number" min="3" max="5" value="4" readonly />
+            </div>
+          </div>
+
           <!-- Controls will be inserted here -->
           <div class="controls-container" id="controlsContainer"></div>
 

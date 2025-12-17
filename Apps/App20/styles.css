@@ -36,6 +36,8 @@ html, body {
 
   /* Registry circle */
   --registro-circle-size: 70px;
+  --registro-offset-x: 0px;
+  --registro-offset-y: 0px;
 
   /* Button fine-tuning offsets (x, y) */
   --btn-play-offset-x: 75px;
@@ -307,6 +309,7 @@ main {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  transform: translate(var(--registro-offset-x), var(--registro-offset-y));
 }
 
 .param.registro .abbr {

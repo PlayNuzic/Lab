@@ -832,6 +832,38 @@ function initGrid() {
     onSelectionChange: null  // Selections not persisted
   });
 
+  // Add scroll listener to update registry display based on visible position
+  const soundline = gridContainer.querySelector('.plano-soundline-container');
+  if (soundline) {
+    soundline.addEventListener('scroll', () => {
+      if (!grid || !elements.inputRegistro) return;
+
+      // Get note0RowMap to find registry boundaries
+      const note0RowMap = grid.getNote0RowMap();
+      if (!note0RowMap) return;
+
+      // Calculate which registry is most visible based on scroll position
+      const scrollTop = soundline.scrollTop;
+      const cellHeight = 32; // var(--grid-cell-height)
+      const visibleMiddleRow = Math.floor(scrollTop / cellHeight) + 7; // +7 for center of 15 visible rows
+
+      // Find the closest registry based on its note0 row position
+      let closestRegistry = CONFIG.DEFAULT_REGISTRO;
+      let minDistance = Infinity;
+
+      for (const [regStr, rowIndex] of Object.entries(note0RowMap)) {
+        const reg = parseInt(regStr);
+        const distance = Math.abs(rowIndex - visibleMiddleRow);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestRegistry = reg;
+        }
+      }
+
+      elements.inputRegistro.value = closestRegistry;
+    });
+  }
+
   // Initialize interval renderer for temporal bars (iT visualization)
   intervalRenderer = createIntervalRenderer({
     getTimelineContainer: () => grid?.getElements?.()?.timelineContainer,
@@ -1616,6 +1648,7 @@ function bindElements() {
     // Inputs
     inputCompas: document.getElementById('inputCompas'),
     inputCycle: document.getElementById('inputCycle'),
+    inputRegistro: document.getElementById('inputRegistro'),
     inputBpm: document.getElementById('inputBpm'),
 
     // Grid-editor container
