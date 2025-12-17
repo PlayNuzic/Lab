@@ -37,21 +37,24 @@ html, body {
   /* Registry circle */
   --registro-circle-size: 70px;
   --registro-offset-x: 0px;
-  --registro-offset-y: 0px;
+  --registro-offset-y: 37px;
+
+  /* Controls container offset */
+  --controls-offset-y: 0px;
 
   /* Button fine-tuning offsets (x, y) */
   --btn-play-offset-x: 75px;
-  --btn-play-offset-y: 130px;
+  --btn-play-offset-y: 70px;
   --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 90px;
+  --btn-random-offset-y: 30px;
   --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 90px;
+  --btn-reset-offset-y: 30px;
   --btn-taptempo-offset-x: 0px;
-  --btn-taptempo-offset-y: 90px;
+  --btn-taptempo-offset-y: 30px;
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
-  --bpm-offset-x: 0px;
-  --bpm-offset-y: 110px;
+  --bpm-offset-x: -45px;
+  --bpm-offset-y: 30px;
 
   /* BPM sizing */
   --bpm-scale: 0.8;
@@ -134,7 +137,7 @@ main {
   width: 2px;
   background: var(--grid-line-color, rgba(0, 0, 0, 0.15));
   align-self: stretch;
-  margin: 0 0.5rem;
+  margin: 0 0.1rem;
 }
 
 [data-theme="dark"] .inputs-separator {
@@ -306,18 +309,17 @@ main {
 /* Registry param */
 .param.registro {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 0.5rem;
   transform: translate(var(--registro-offset-x), var(--registro-offset-y));
 }
 
 .param.registro .abbr {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--text-color, #333);
-  position: relative;
-  z-index: 10;
+  order: 2; /* Label a la derecha del círculo */
 }
 
 .param.registro .circle {
@@ -430,6 +432,7 @@ main {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+  transform: translateY(var(--controls-offset-y, 0px));
 }
 
 .controls-container .controls {
@@ -1541,6 +1544,8 @@ main {
 /* N-iT specific container - same as interval */
 .matrix-grid-editor--n-it {
   /* Inherits from --interval */
+  margin-left: 0;
+  margin-right: 0;
 }
 
 /* Zigzag container - 2 rows */
@@ -1645,11 +1650,12 @@ main {
 .zigzag-cell--ghost {
   visibility: hidden;
   pointer-events: none;
-  background: #000;
-  opacity: 0.4;
+  background: transparent;
+  opacity: 0;
   min-height: 36px;
-  min-width: 72px;
-  flex: 0 0 72px;
+  min-width: 10px !important;
+  width: 10px !important;
+  flex: 0 0 10px !important;
   margin: 0;
   border-radius: 6px;
   box-sizing: border-box;
@@ -1663,7 +1669,7 @@ main {
   padding: 0 10px;
   font-weight: 700;
   min-width: 52px;
-  font-size: 1.6rem;
+  font-size: 2.8rem;
 }
 
 /* N label - Rosa Nuzic */
@@ -1759,15 +1765,22 @@ main {
   padding: 0 !important;
 }
 
-/* Unified cell size for all cells (N, iT, ghost) */
+/* Unified cell size for all cells (N, iT) */
 .zigzag-cell,
 .zigzag-cell--n-it-note,
-.zigzag-cell--n-it-temporal,
-.zigzag-cell--ghost {
+.zigzag-cell--n-it-temporal {
   min-width: 80px !important;
   width: 80px !important;
   max-width: 80px !important;
   flex: 0 0 80px !important;
+}
+
+/* Ghost cells - much thinner */
+.zigzag-cell--ghost {
+  min-width: 10px !important;
+  width: 10px !important;
+  max-width: 10px !important;
+  flex: 0 0 10px !important;
 }
 
 /* NrX cell container - transparent with FFBB33 border */
@@ -1806,7 +1819,8 @@ main {
 /* Ghost cells - same size but transparent/hidden */
 .zigzag-cell--ghost {
   visibility: hidden;
-  border: 1px solid transparent !important;
+  border: none !important;
+  background: transparent !important;
 }
 
 /* Note input - size only */
@@ -1835,8 +1849,9 @@ main {
   }
 
   .zigzag-cell--ghost {
-    min-width: 64px;
-    flex: 0 0 64px;
+    min-width: 10px !important;
+    width: 10px !important;
+    flex: 0 0 10px !important;
   }
 
   .zigzag-input {
@@ -1880,8 +1895,9 @@ main {
   }
 
   .zigzag-cell--ghost {
-    min-width: 56px;
-    flex: 0 0 56px;
+    min-width: 10px !important;
+    width: 10px !important;
+    flex: 0 0 10px !important;
   }
 
   .zigzag-input {
@@ -1934,8 +1950,9 @@ main {
   }
 
   .zigzag-cell--ghost {
-    min-width: 48px;
-    flex: 0 0 48px;
+    min-width: 10px !important;
+    width: 10px !important;
+    flex: 0 0 10px !important;
     min-height: 28px;
   }
 
