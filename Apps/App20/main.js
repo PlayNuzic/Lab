@@ -1059,6 +1059,15 @@ function initGridEditor() {
       if (isUpdatingFromDrag) return;
       // Sync Grid 2D when editor changes
       syncGridFromPairs(pairs);
+
+      // Auto-scroll to registry of last note when not playing
+      if (!isPlaying && pairs.length > 0) {
+        // Find the last non-silence pair with a valid registry
+        const lastPairWithRegistry = [...pairs].reverse().find(p => !p.isRest && p.registry != null);
+        if (lastPairWithRegistry && lastPairWithRegistry.registry != null) {
+          scrollToRegistry(lastPairWithRegistry.registry, true);
+        }
+      }
     }
   });
 
@@ -1103,6 +1112,14 @@ function updateGridEditorMaxPulse() {
         // Skip if update came from drag (to prevent overwriting)
         if (isUpdatingFromDrag) return;
         syncGridFromPairs(pairs);
+
+        // Auto-scroll to registry of last note when not playing
+        if (!isPlaying && pairs.length > 0) {
+          const lastPairWithRegistry = [...pairs].reverse().find(p => !p.isRest && p.registry != null);
+          if (lastPairWithRegistry && lastPairWithRegistry.registry != null) {
+            scrollToRegistry(lastPairWithRegistry.registry, true);
+          }
+        }
       }
     });
 
