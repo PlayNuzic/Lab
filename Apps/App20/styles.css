@@ -1621,7 +1621,7 @@ main {
 .zigzag-cell--n-it-note .zigzag-input:focus {
   border: none !important;
   box-shadow: none !important;
-  background: color-mix(in srgb, var(--select-color, #FFBB33) 15%, transparent) !important;
+  background: transparent !important;
 }
 
 /* N-iT temporal cell inputs - NO borders (border is on container) */
@@ -1629,12 +1629,13 @@ main {
   border: none !important;
   background: transparent !important;
   box-shadow: none !important;
+  padding: 6px 8px;
 }
 
 .zigzag-cell--n-it-temporal .zigzag-input:focus {
   border: none !important;
   box-shadow: none !important;
-  background: color-mix(in srgb, var(--select-color, #FFBB33) 15%, transparent) !important;
+  background: transparent !important;
 }
 
 /* Ghost cells for zigzag pattern */
@@ -1757,25 +1758,59 @@ main {
    NrX FORMAT (Note + 'r' + Registry)
    ============================================ */
 
-/* NrX cell container - unified box with FFBB33 border */
+/* 'r' separator - no margins for compact display (5r3) */
+.nrx-separator {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Unified cell size for all cells (N, iT, ghost) */
+.zigzag-cell,
+.zigzag-cell--n-it-note,
+.zigzag-cell--n-it-temporal,
+.zigzag-cell--ghost {
+  min-width: 80px !important;
+  width: 80px !important;
+  max-width: 80px !important;
+  flex: 0 0 80px !important;
+}
+
+/* NrX cell container - transparent with FFBB33 border */
 .zigzag-cell--n-it-note {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
   gap: 0;
   flex-wrap: nowrap !important;
-  min-width: 80px;
   max-height: 50px;
   justify-content: center;
-  /* Border and background - FFBB33 */
+  /* Transparent background with orange border */
   border: 1px solid var(--select-color, #FFBB33) !important;
   border-radius: 6px;
-  background: color-mix(in srgb, var(--select-color, #FFBB33) 8%, transparent);
+  background: transparent !important;
 }
 
 [data-theme="dark"] .zigzag-cell--n-it-note {
-  background: color-mix(in srgb, var(--select-color, #FFBB33) 12%, transparent);
+  background: transparent !important;
   border-color: var(--select-color, #FFBB33) !important;
+}
+
+/* iT cell container - transparent with FFBB33 border */
+.zigzag-cell--n-it-temporal {
+  border: 1px solid var(--select-color, #FFBB33) !important;
+  border-radius: 6px;
+  background: transparent !important;
+}
+
+[data-theme="dark"] .zigzag-cell--n-it-temporal {
+  background: transparent !important;
+  border-color: var(--select-color, #FFBB33) !important;
+}
+
+/* Ghost cells - same size but transparent/hidden */
+.zigzag-cell--ghost {
+  visibility: hidden;
+  border: 1px solid transparent !important;
 }
 
 /* Note input - size only */
