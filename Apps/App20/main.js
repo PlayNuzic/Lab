@@ -659,6 +659,7 @@ function handleDragEnd() {
 
   if (mode === 'create') {
     // CREATE MODE: Add a new note with the dragged duration
+    // App is MONOPHONIC - only one note at a time
     const newPair = {
       note: originalPair.note,
       registry: originalPair.registry,
@@ -666,11 +667,42 @@ function handleDragEnd() {
       temporalInterval: newIT
     };
 
-    // Add to currentPairs (preserving existing notes)
-    currentPairs.push(newPair);
+    const targetPulse = originalPair.pulse;
 
-    // Sort by pulse position
-    currentPairs.sort((a, b) => a.pulse - b.pulse);
+    // Check if there's a note that STARTS at this exact pulse - replace it
+    const exactMatchIndex = currentPairs.findIndex(p => p.pulse === targetPulse);
+
+    if (exactMatchIndex >= 0) {
+      // Replace the note that starts at this pulse
+      currentPairs[exactMatchIndex] = newPair;
+    } else {
+      // Check if we're clicking in the MIDDLE of an existing note's duration
+      // Find a note whose range [pulse, pulse+iT) contains targetPulse
+      const overlappingIndex = currentPairs.findIndex(p => {
+        const noteStart = p.pulse;
+        const noteEnd = noteStart + (p.temporalInterval || 1);
+        return targetPulse > noteStart && targetPulse < noteEnd;
+      });
+
+      if (overlappingIndex >= 0) {
+        // Cut the overlapping note at targetPulse
+        const overlappingNote = currentPairs[overlappingIndex];
+        const newDuration = targetPulse - overlappingNote.pulse;
+        overlappingNote.temporalInterval = newDuration;
+
+        // Add the new note after the cut
+        currentPairs.push(newPair);
+      } else {
+        // No overlap - just add the new note
+        currentPairs.push(newPair);
+      }
+
+      // Sort by pulse position
+      currentPairs.sort((a, b) => a.pulse - b.pulse);
+    }
+
+    // Recalculate pulse positions for all notes
+    recalculatePulsePositions();
 
     // Set flag to prevent onPairsChange from overwriting our pairs
     isUpdatingFromDrag = true;
