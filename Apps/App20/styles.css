@@ -36,20 +36,30 @@ html, body {
 
   /* Registry circle */
   --registro-circle-size: 70px;
-  --registro-offset-x: 0px;
-  --registro-offset-y: 37px;
+  --registro-offset-x: 3px;
+  --registro-offset-y: 45px;
 
   /* Compás param offset */
-  --compas-offset-x: 15px;
-  --compas-offset-y: 0px;
+  --compas-offset-x: 75px;
+  --compas-offset-y: -30px;
 
   /* Cycles param offset */
-  --cycles-offset-x: 15px;
-  --cycles-offset-y: 0px;
+  --cycles-offset-x: 50px;
+  --cycles-offset-y: -25px;
 
   /* Grid editor offset */
   --grid-editor-offset-x: -40px;
-  --grid-editor-offset-y: 0px;
+  --grid-editor-offset-y: -35px;
+
+  /* Separator height */
+  --separator-height: 180px;
+
+  /* Timeline wrapper (grid 2D) offset */
+  --timeline-wrapper-offset-y: -60px;
+
+  /* Total length offset */
+  --total-length-offset-x: 0px;
+  --total-length-offset-y: -35px;
 
   /* Controls container offset */
   --controls-offset-y: 0px;
@@ -65,7 +75,7 @@ html, body {
   --btn-taptempo-offset-y: 30px;
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
-  --bpm-offset-x: -45px;
+  --bpm-offset-x: 0px;
   --bpm-offset-y: 30px;
 
   /* BPM sizing */
@@ -147,9 +157,10 @@ main {
 /* Vertical separator */
 .inputs-separator {
   width: 2px;
+  height: var(--separator-height, 80px);
   background: var(--grid-line-color, rgba(0, 0, 0, 0.15));
-  align-self: stretch;
-  margin: 0 0.1rem;
+  align-self: flex-start;
+  margin: 0 1.9rem;
 }
 
 [data-theme="dark"] .inputs-separator {
@@ -180,12 +191,12 @@ main {
 }
 
 /* All param circles - smaller for stacked layout */
-/* Compás param - horizontal layout with label on right */
+/* Compás param - vertical layout with label on top */
 .param.compas {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   transform: translate(var(--compas-offset-x), var(--compas-offset-y));
 }
 
@@ -193,15 +204,14 @@ main {
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--text-color, #333);
-  order: 2; /* Label a la derecha del círculo */
 }
 
-/* Cycles param - horizontal layout with label on right */
+/* Cycles param - vertical layout with label on top */
 .param.cycle-display {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   transform: translate(var(--cycles-offset-x), var(--cycles-offset-y));
 }
 
@@ -209,7 +219,6 @@ main {
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--text-color, #333);
-  order: 2; /* Label a la derecha del círculo */
 }
 
 .param.compas .circle,
@@ -266,6 +275,7 @@ main {
   flex-direction: row;
   align-items: center;
   gap: 0.5rem;
+  transform: translate(var(--total-length-offset-x), var(--total-length-offset-y));
 }
 
 .total-length-inline .circle {
@@ -335,6 +345,7 @@ main {
   overflow: visible;
   position: relative;
   z-index: 2;
+  transform: translateY(var(--timeline-wrapper-offset-y, 0px));
 }
 
 /* ============================================
@@ -352,12 +363,12 @@ main {
   z-index: 10;
 }
 
-/* Registry param */
+/* Registry param - vertical layout with label on top */
 .param.registro {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   transform: translate(var(--registro-offset-x), var(--registro-offset-y));
 }
 
@@ -365,7 +376,6 @@ main {
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--text-color, #333);
-  order: 2; /* Label a la derecha del círculo */
 }
 
 .param.registro .circle {
