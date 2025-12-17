@@ -1800,6 +1800,7 @@ main {
   border: 1px solid var(--select-color, #FFBB33) !important;
   border-radius: 6px;
   background: transparent !important;
+  max-height: 50px;
 }
 
 [data-theme="dark"] .zigzag-cell--n-it-temporal {

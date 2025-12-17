@@ -1547,6 +1547,11 @@ function setupEventHandlers() {
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       decrementCycles();
+    } else if (e.key === 'Enter') {
+      // Move focus to first N cell in grid-editor
+      if (gridEditor?.focusFirstNCell) {
+        gridEditor.focusFirstNCell();
+      }
     }
   });
 
@@ -1781,8 +1786,10 @@ function initApp() {
   updateLongitud();
   updateGridVisibility();
 
-  // Focus on Compás input
-  elements.inputCompas?.focus();
+  // Focus on Compás input (after render completes)
+  requestAnimationFrame(() => {
+    elements.inputCompas?.focus();
+  });
 
   console.log('App20 initialized');
 }
