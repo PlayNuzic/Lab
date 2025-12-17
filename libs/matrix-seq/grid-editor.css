@@ -638,3 +638,29 @@
     padding: 0.15rem;
   }
 }
+
+/* ========== SILENCE CELLS ========== */
+
+/* Silence cell styling (when note = 's') */
+.zigzag-cell--silence {
+  border-style: dashed !important;
+  border-color: var(--silence-color, #888) !important;
+  background: color-mix(in srgb, var(--silence-color, #888) 8%, transparent) !important;
+}
+
+[data-theme="dark"] .zigzag-cell--silence {
+  border-color: var(--silence-color, #aaa) !important;
+  background: color-mix(in srgb, var(--silence-color, #888) 12%, transparent) !important;
+}
+
+/* Silence input shows 's' in italic, grayed */
+.zigzag-cell--silence .n-it-note-input,
+.zigzag-cell--silence .zigzag-input--is {
+  font-style: italic;
+  color: var(--silence-color, #888) !important;
+}
+
+[data-theme="dark"] .zigzag-cell--silence .n-it-note-input,
+[data-theme="dark"] .zigzag-cell--silence .zigzag-input--is {
+  color: var(--silence-color, #aaa) !important;
+}

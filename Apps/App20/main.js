@@ -295,6 +295,8 @@ function syncGridFromPairs(pairs) {
   const durationCells = []; // Cells for duration highlight
 
   pairs.forEach((pair) => {
+    // Skip silences (isRest) - they don't illuminate cells in the grid
+    if (pair.isRest) return;
     if (pair.note === null || pair.note === undefined) return;
 
     const registry = pair.registry ?? CONFIG.DEFAULT_REGISTRO;
@@ -1043,7 +1045,8 @@ function initGridEditor() {
     intervalModeOptions: {
       basePair: { note: 0, pulse: 0, registry: CONFIG.DEFAULT_REGISTRO },
       hideInitialPair: true,
-      maxTotalPulse: totalPulses - 1
+      maxTotalPulse: totalPulses - 1,
+      allowSilence: true
     },
     nrxModeOptions: {
       registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO]
@@ -1087,7 +1090,8 @@ function updateGridEditorMaxPulse() {
       intervalModeOptions: {
         basePair: { note: 0, pulse: 0, registry: CONFIG.DEFAULT_REGISTRO },
         hideInitialPair: true,
-        maxTotalPulse: totalPulses - 1
+        maxTotalPulse: totalPulses - 1,
+        allowSilence: true
       },
       nrxModeOptions: {
         registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO]
