@@ -777,7 +777,7 @@ export function createGridEditor(config = {}) {
         }
       }
 
-      // Auto-jump to registry input after valid note
+      // Auto-jump to registry input after valid note (300ms fixed delay)
       if (text && !isNaN(noteVal)) {
         clearTimeout(autoJumpTimer);
         autoJumpTimer = setTimeout(() => {
@@ -786,7 +786,7 @@ export function createGridEditor(config = {}) {
             regInput.focus();
             regInput.select();
           }
-        }, AUTO_JUMP_DELAY);
+        }, 300); // Fixed 300ms for N → r transition
       }
     } else if (type === 'registry') {
       // Registry must be 3-5 (configurable via nrxModeOptions)
@@ -803,19 +803,28 @@ export function createGridEditor(config = {}) {
       }
 
       // Auto-jump after valid registry - ZIGZAG navigation
-      // Pattern: N[n](registry) → iT[n+1]
-      // iT[n+1] gives the temporal interval BETWEEN N[n] and N[n+1]
+      // With hideInitialPair: N[n](registry) → iT[n] (same index)
+      // Without hideInitialPair: N[n](registry) → iT[n+1]
       if (text) {
         clearTimeout(autoJumpTimer);
         autoJumpTimer = setTimeout(() => {
-          // Create next N cell if needed (this also creates iT[index+1])
-          jumpToNextNItCell(index);
-          // Wait for DOM to update, then focus on iT[index+1]
-          // Double requestAnimationFrame ensures DOM has been painted
+          const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+          // With hideInitialPair, iT[n] corresponds to N[n]
+          // Without it, iT[n+1] corresponds to N[n] (first N has ghost)
+          const targetItIndex = hideInitialPair ? index : index + 1;
+
+          // First check if target iT exists
+          let itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+
+          if (!itInput) {
+            // Create next N cell (which also creates corresponding iT)
+            jumpToNextNItCell(index);
+          }
+
+          // Wait for DOM to update, then focus on target iT
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              const nextItIndex = index + 1;
-              const itInput = container.querySelector(`.n-it-temporal-input[data-index="${nextItIndex}"]`);
+              itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
               if (itInput) {
                 itInput.focus();
                 itInput.select();
@@ -858,20 +867,32 @@ export function createGridEditor(config = {}) {
       }
 
       // Auto-jump to next N after valid iT (only if not complete)
-      // After iT[n], jump to N[n] (same index) to fill in note/registry
-      // Then after N[n](registry), it will jump to iT[n+1]
+      // With hideInitialPair: iT[n] corresponds to N[n], so after iT[n] go to N[n+1]
+      // Without hideInitialPair: iT[n] corresponds to N[n-1], so after iT[n] go to N[n]
       if (text) {
         clearTimeout(autoJumpTimer);
         autoJumpTimer = setTimeout(() => {
-          // Focus on N cell at same index (which should already exist)
-          const noteInput = container.querySelector(`.n-it-note-input[data-index="${index}"]`);
-          if (noteInput) {
-            noteInput.focus();
-            noteInput.select();
-          } else {
-            // If N[index] doesn't exist, create it
-            jumpToNextNItCell(index - 1);
+          const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+          // With hideInitialPair: iT[n] → N[n+1]
+          // Without: iT[n] → N[n]
+          const targetNIndex = hideInitialPair ? index + 1 : index;
+
+          // Check if target N exists
+          let noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
+
+          if (!noteInput) {
+            // Create next N cell
+            jumpToNextNItCell(hideInitialPair ? index : index - 1);
           }
+
+          // Wait for DOM update then focus
+          requestAnimationFrame(() => {
+            noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
+            if (noteInput) {
+              noteInput.focus();
+              noteInput.select();
+            }
+          });
         }, AUTO_JUMP_DELAY);
       }
     }

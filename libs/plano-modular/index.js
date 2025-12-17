@@ -185,7 +185,18 @@ export function createPlanoModular(config) {
     updateMatrix(matrixContainer, rows, columns, {
       cellWidth,
       isSelected: (rowId, colIndex) => selectionManager.isSelected(rowId, colIndex),
-      cellFormatter: (row) => row.label,
+      cellFormatter: (row, colIndex) => {
+        // Generate N^r P^m label (same format as updateCellSelection)
+        const match = row.id.match(/^(\d+)r(\d+)$/);
+        if (match) {
+          const noteNum = match[1];
+          const registry = match[2];
+          const moduloPulse = colIndex % cycleConfig.compas;
+          const cycleNum = Math.floor(colIndex / cycleConfig.compas) + 1;
+          return { html: `${noteNum}<sup>${registry}</sup> ${moduloPulse}<sup>${cycleNum}</sup>` };
+        }
+        return row.label;
+      },
       onCellClick: handleCellClick
     });
 

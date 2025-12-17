@@ -154,11 +154,17 @@ export function updateMatrix(container, rows, columns, options = {}) {
         cell.classList.add('plano-selected');
 
         // Add label for selected cell
-        const labelContent = cellFormatter ? cellFormatter(row, colIdx) : row.label;
-        if (labelContent) {
+        // cellFormatter receives (row, colIdx) and can return string or {text, html}
+        const labelResult = cellFormatter ? cellFormatter(row, colIdx) : row.label;
+        if (labelResult) {
           const label = document.createElement('span');
           label.className = 'plano-cell-label';
-          label.textContent = labelContent;
+          // Support both plain text and HTML content
+          if (typeof labelResult === 'object' && labelResult.html) {
+            label.innerHTML = labelResult.html;
+          } else {
+            label.textContent = labelResult;
+          }
           cell.appendChild(label);
         }
       }
