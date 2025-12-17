@@ -1692,14 +1692,6 @@ main {
   opacity: 1;
 }
 
-/* Focus state with select-color */
-.zigzag-input:focus {
-  outline: none;
-  background: var(--select-color);
-  color: white !important;
-  z-index: 10;
-}
-
 /* Visual zigzag pattern with connecting lines */
 .zigzag-cell--n-it-temporal,
 .zigzag-cell--it {
