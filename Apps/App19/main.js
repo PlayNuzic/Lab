@@ -266,6 +266,38 @@ function initGrid() {
     onSelectionChange: null  // Selections not persisted
   });
 
+  // Add scroll listener to update registry display based on visible position
+  const soundline = gridContainer.querySelector('.plano-soundline-container');
+  if (soundline) {
+    soundline.addEventListener('scroll', () => {
+      if (!grid || !elements.inputRegistro) return;
+
+      // Get note0RowMap to find registry boundaries
+      const note0RowMap = grid.getNote0RowMap();
+      if (!note0RowMap) return;
+
+      // Calculate which registry is most visible based on scroll position
+      const scrollTop = soundline.scrollTop;
+      const cellHeight = 32; // var(--grid-cell-height)
+      const visibleMiddleRow = Math.floor(scrollTop / cellHeight) + 7; // +7 for center of 15 visible rows
+
+      // Find the closest registry based on its note0 row position
+      let closestRegistry = CONFIG.DEFAULT_REGISTRO;
+      let minDistance = Infinity;
+
+      for (const [regStr, rowIndex] of Object.entries(note0RowMap)) {
+        const reg = parseInt(regStr);
+        const distance = Math.abs(rowIndex - visibleMiddleRow);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestRegistry = reg;
+        }
+      }
+
+      elements.inputRegistro.value = closestRegistry;
+    });
+  }
+
   console.log('Grid initialized with plano-modular');
 }
 
@@ -377,18 +409,6 @@ function handleCyclesChange() {
   updateLongitud();
   updateGridVisibility();
   updateGrid();
-}
-
-/**
- * Handle Registry change
- */
-function handleRegistryChange(delta) {
-  const current = grid?.getCurrentRegistry() || CONFIG.DEFAULT_REGISTRO;
-  const newRegistry = Math.max(CONFIG.MIN_REGISTRO, Math.min(CONFIG.MAX_REGISTRO, current + delta));
-
-  if (newRegistry !== current) {
-    scrollToRegistry(newRegistry, false);
-  }
 }
 
 // ========== PLAYBACK ==========
@@ -759,10 +779,6 @@ function setupEventHandlers() {
   attachSpinnerRepeat(elements.cycleUp, incrementCycles);
   attachSpinnerRepeat(elements.cycleDown, decrementCycles);
 
-  // Registry buttons - simple click events (not spinners, as in original)
-  elements.registroUp?.addEventListener('click', () => handleRegistryChange(1));
-  elements.registroDown?.addEventListener('click', () => handleRegistryChange(-1));
-
   // Play button
   elements.playBtn?.addEventListener('click', togglePlayback);
 
@@ -828,8 +844,6 @@ function bindElements() {
     compasDown: document.getElementById('compasDown'),
     cycleUp: document.getElementById('cycleUp'),
     cycleDown: document.getElementById('cycleDown'),
-    registroUp: document.getElementById('registroUp'),
-    registroDown: document.getElementById('registroDown'),
     bpmUp: document.getElementById('bpmUp'),
     bpmDown: document.getElementById('bpmDown'),
 

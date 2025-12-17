@@ -36,6 +36,8 @@ html, body {
 
   /* Registry circle */
   --registro-circle-size: 70px;
+  --registro-offset-x: 0px;
+  --registro-offset-y: -125px;
 
   /* Button fine-tuning offsets (x, y) */
   --btn-play-offset-x: 75px;
@@ -259,6 +261,7 @@ main {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  transform: translate(var(--registro-offset-x), var(--registro-offset-y));
 }
 
 .param.registro .abbr {
@@ -297,56 +300,7 @@ main {
   outline: none;
 }
 
-/* Registry navigation buttons */
-.registro-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.registro-nav .spin {
-  width: 60px;
-  height: 35px;
-  border: 1px solid var(--circle-border, #333);
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-  position: relative;
-  transition: background 0.15s ease;
-}
-
-.registro-nav .spin:hover {
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.registro-nav .spin:active {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-/* Arrow indicators */
-.registro-nav .spin::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-}
-
-.registro-nav .spin.up::before {
-  border-bottom: 10px solid var(--text-color, #333);
-  margin-top: -2px;
-}
-
-.registro-nav .spin.down::before {
-  border-top: 10px solid var(--text-color, #333);
-  margin-top: 2px;
-}
-
-/* Dark theme */
+/* Dark theme for registro */
 [data-theme="dark"] .param.registro .circle {
   border-color: var(--text-color, #eee);
 }
@@ -354,22 +308,6 @@ main {
 [data-theme="dark"] .param.registro input,
 [data-theme="dark"] .param.registro .abbr {
   color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .registro-nav .spin {
-  border-color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .registro-nav .spin:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .registro-nav .spin.up::before {
-  border-bottom-color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .registro-nav .spin.down::before {
-  border-top-color: var(--text-color, #eee);
 }
 
 /* Controls container */
@@ -1064,11 +1002,6 @@ main {
 
   .param.registro input {
     font-size: 1.5rem;
-  }
-
-  .registro-nav .spin {
-    width: 35px;
-    height: 25px;
   }
 }
 
