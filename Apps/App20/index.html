@@ -39,10 +39,17 @@
     if (!app20Prefs) {
       localStorage.setItem('app20-preferences', JSON.stringify({
         selectedInstrument: 'piano',
-        selectColor: '#E4570C',
+        selectColor: '#FFBB33',
         registry: 4,
         bpm: 100
       }));
+    } else {
+      // Migrate old orange color to new yellow
+      const prefs = JSON.parse(app20Prefs);
+      if (prefs.selectColor === '#E4570C') {
+        prefs.selectColor = '#FFBB33';
+        localStorage.setItem('app20-preferences', JSON.stringify(prefs));
+      }
     }
 
     renderApp({
@@ -87,7 +94,7 @@
     // Load selection color BEFORE header initializes
     const app20PrefsJson = localStorage.getItem('app20-preferences');
     const app20PrefsObj = app20PrefsJson ? JSON.parse(app20PrefsJson) : {};
-    const storedColor = app20PrefsObj.selectColor || '#E4570C';
+    const storedColor = app20PrefsObj.selectColor || '#FFBB33';
     document.documentElement.style.setProperty('--select-color', storedColor);
 
     initHeader();

@@ -490,6 +490,96 @@
   opacity: 0.3;
 }
 
+/* ========== N-iT MODE STYLES (App20+) ========== */
+
+/* N-iT note cell container (unified box with border) */
+.zigzag-cell--n-it-note {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--select-color, #FFBB33);
+  border-radius: 4px;
+  margin-right: 0.5rem;
+  background: color-mix(in srgb, var(--select-color, #FFBB33) 8%, transparent);
+}
+
+[data-theme="dark"] .zigzag-cell--n-it-note {
+  background: color-mix(in srgb, var(--select-color, #FFBB33) 12%, transparent);
+  border-color: var(--select-color, #FFBB33);
+}
+
+/* N-iT inputs inside the unified cell - NO borders */
+.zigzag-cell--n-it-note .n-it-note-input,
+.zigzag-cell--n-it-note .n-it-registry-input {
+  width: 2.5rem;
+  font-size: 1.5rem;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  text-align: center;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  padding: 0.25rem;
+  outline: none;
+}
+
+[data-theme="dark"] .zigzag-cell--n-it-note .n-it-note-input,
+[data-theme="dark"] .zigzag-cell--n-it-note .n-it-registry-input {
+  color: var(--text-dark, #e0e0e0);
+}
+
+/* Focus state - highlight individual input subtly */
+.zigzag-cell--n-it-note .n-it-note-input:focus,
+.zigzag-cell--n-it-note .n-it-registry-input:focus {
+  background: color-mix(in srgb, var(--select-color, #FFBB33) 15%, transparent);
+  border-radius: 2px;
+}
+
+/* Focus on cell container */
+.zigzag-cell--n-it-note:focus-within {
+  box-shadow: 0 0 6px color-mix(in srgb, var(--select-color, #FFBB33) 50%, transparent);
+}
+
+/* N-iT temporal cell */
+.zigzag-cell--n-it-temporal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--grid-line-color, rgba(0, 0, 0, 0.15));
+  border-radius: 4px;
+  margin-right: 0.5rem;
+  background: var(--bg-color, #fff);
+}
+
+[data-theme="dark"] .zigzag-cell--n-it-temporal {
+  background: var(--bg-dark, #2a2a2a);
+  border-color: var(--grid-line-color, rgba(255, 255, 255, 0.15));
+}
+
+/* N-iT temporal input */
+.n-it-temporal-input {
+  width: 2.5rem;
+  font-size: 1.5rem;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  text-align: center;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  padding: 0.25rem;
+}
+
+.n-it-temporal-input:focus {
+  outline: 2px solid var(--select-color, #FFBB33);
+  border-radius: 2px;
+}
+
+[data-theme="dark"] .n-it-temporal-input {
+  color: var(--text-dark, #e0e0e0);
+}
+
 /* NrX-iT mode responsive */
 @media (max-width: 768px) {
   .nrx-note-input,
@@ -504,9 +594,18 @@
   }
 
   .zigzag-cell--nrx,
-  .zigzag-cell--nrx-it {
+  .zigzag-cell--nrx-it,
+  .zigzag-cell--n-it-note,
+  .zigzag-cell--n-it-temporal {
     padding: 0.15rem 0.35rem;
     margin-right: 0.35rem;
+  }
+
+  .zigzag-cell--n-it-note .n-it-note-input,
+  .zigzag-cell--n-it-note .n-it-registry-input,
+  .n-it-temporal-input {
+    width: 2rem;
+    font-size: 1.2rem;
   }
 }
 
@@ -524,8 +623,18 @@
   }
 
   .zigzag-cell--nrx,
-  .zigzag-cell--nrx-it {
+  .zigzag-cell--nrx-it,
+  .zigzag-cell--n-it-note,
+  .zigzag-cell--n-it-temporal {
     padding: 0.1rem 0.25rem;
     margin-right: 0.25rem;
+  }
+
+  .zigzag-cell--n-it-note .n-it-note-input,
+  .zigzag-cell--n-it-note .n-it-registry-input,
+  .n-it-temporal-input {
+    width: 1.8rem;
+    font-size: 1rem;
+    padding: 0.15rem;
   }
 }

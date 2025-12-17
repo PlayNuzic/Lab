@@ -11,7 +11,8 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { isViolinLoaded } from '../../libs/sound/violin.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
-import { subscribeMixer } from '../../libs/sound/index.js';
+import { subscribeMixer, getMixer } from '../../libs/sound/index.js';
+import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 
@@ -154,6 +155,9 @@ let intervalRenderer = null;
 let currentIntervals = [];
 let currentPairs = [];
 
+// Flag to prevent onPairsChange from overwriting during drag operations
+let isUpdatingFromDrag = false;
+
 // Drag state for horizontal iT modification
 let dragState = {
   active: false,
@@ -270,7 +274,12 @@ function updateGridVisibility() {
 /**
  * Sync Grid 2D from grid-editor pairs (Editor → Grid 2D)
  * Called when user edits the N-iT zigzag editor
- * @param {Array} pairs - Array of { note, pulse, temporalInterval } (registry defaults to CONFIG.DEFAULT_REGISTRO)
+ * @param {Array} pairs - Array of { note, pulse, temporalInterval, registry }
+ *
+ * Each note illuminates `temporalInterval` cells starting from `pulse`
+ * - pulse is where the note STARTS
+ * - temporalInterval is how many pulses the note lasts
+ * - So cells from pulse to (pulse + temporalInterval - 1) are illuminated
  */
 function syncGridFromPairs(pairs) {
   if (!grid) return;
@@ -278,23 +287,45 @@ function syncGridFromPairs(pairs) {
   // Save pairs to state
   currentPairs = [...pairs];
 
-  // Clear existing selection
-  grid.clearSelection();
+  // Clear duration highlights (will be re-applied after refresh)
+  clearDurationHighlights();
 
-  // Select cells based on pairs
-  // N-iT mode only has note, not registry - use default registry
-  pairs.forEach(pair => {
+  // Build selection keys for loadSelection
+  const selectionKeys = [];
+  const durationCells = []; // Cells for duration highlight
+
+  pairs.forEach((pair) => {
     if (pair.note === null || pair.note === undefined) return;
 
-    // Use registry from pair if available, otherwise use default
     const registry = pair.registry ?? CONFIG.DEFAULT_REGISTRO;
-
-    // Build rowId: "NrR" format (e.g., "5r4")
     const rowId = `${pair.note}r${registry}`;
-    grid.selectCell(rowId, pair.pulse);
+    const iT = pair.temporalInterval || 1;
+    const startPulse = pair.pulse;
+
+    // First cell: selection key
+    selectionKeys.push(`${rowId}-${startPulse}`);
+
+    // Additional cells: duration highlights
+    for (let pulse = startPulse + 1; pulse < startPulse + iT; pulse++) {
+      durationCells.push({ rowId, pulse });
+    }
   });
 
-  // Convert pairs to intervals and render temporal bars
+  // loadSelection clears existing selection, loads new keys, and calls refresh()
+  // This is atomic and ensures DOM is properly rebuilt with selections
+  grid.loadSelection(selectionKeys);
+
+  // Apply duration highlights and restore dots after refresh completes
+  requestAnimationFrame(() => {
+    durationCells.forEach(({ rowId, pulse }) => {
+      highlightSingleCell(rowId, pulse);
+    });
+
+    // Re-add dots that were removed during refresh
+    addDotsToAllCells();
+  });
+
+  // Convert pairs to intervals and render temporal bars on timeline
   if (pairs.length > 0) {
     currentIntervals = pairsToIntervals(pairs, { basePair: pairs[0] });
     renderTemporalBars(currentIntervals);
@@ -307,20 +338,142 @@ function syncGridFromPairs(pairs) {
 }
 
 /**
+ * Highlight a single cell with duration-highlight class
+ * Used for cells that extend a note's duration (not the starting cell)
+ */
+function highlightSingleCell(rowId, pulse) {
+  if (!grid) return;
+
+  const matrixContainer = grid.getElements?.()?.matrixContainer;
+  if (!matrixContainer) return;
+
+  const cell = matrixContainer.querySelector(
+    `.plano-cell[data-row-id="${rowId}"][data-col-index="${pulse}"]`
+  );
+  if (cell) {
+    cell.classList.add('duration-highlight');
+  }
+}
+
+/**
+ * Clear all duration highlights
+ */
+function clearDurationHighlights() {
+  if (!grid) return;
+
+  const matrixContainer = grid.getElements?.()?.matrixContainer;
+  if (!matrixContainer) return;
+
+  matrixContainer.querySelectorAll('.plano-cell.duration-highlight').forEach(cell => {
+    cell.classList.remove('duration-highlight');
+  });
+}
+
+/**
+ * Add a draggable dot to a cell
+ */
+function addDotToCell(rowId, colIndex) {
+  if (!grid) return;
+
+  // Get matrix container from plano-modular API
+  const elements = grid.getElements?.();
+  const matrixContainer = elements?.matrixContainer;
+  if (!matrixContainer) return;
+
+  const cell = matrixContainer.querySelector(
+    `.plano-cell[data-row-id="${rowId}"][data-col-index="${colIndex}"]`
+  );
+  if (!cell) return;
+
+  // Remove existing dot if any
+  const existingDot = cell.querySelector('.np-dot');
+  if (existingDot) existingDot.remove();
+
+  // Create dot
+  const dot = document.createElement('div');
+  dot.className = 'np-dot np-dot-clickable';
+  dot.dataset.rowId = rowId;
+  dot.dataset.colIndex = colIndex;
+
+  cell.appendChild(dot);
+}
+
+/**
+ * Clear all dots from the grid
+ */
+function clearAllDots() {
+  if (!grid) return;
+
+  const matrixContainer = grid.getElements?.()?.matrixContainer;
+  if (!matrixContainer) return;
+
+  matrixContainer.querySelectorAll('.np-dot').forEach(dot => dot.remove());
+}
+
+/**
+ * Render a duration bar showing note length (iT > 1)
+ */
+function renderDurationBar(rowId, startPulse, iT) {
+  if (!grid || iT <= 1) return;
+
+  const matrixContainer = grid.getElements?.()?.matrixContainer;
+  if (!matrixContainer) return;
+
+  const startCell = matrixContainer.querySelector(
+    `.plano-cell[data-row-id="${rowId}"][data-col-index="${startPulse}"]`
+  );
+  if (!startCell) return;
+
+  const cellWidth = startCell.offsetWidth;
+  const cellHeight = startCell.offsetHeight;
+
+  // Create duration bar
+  const bar = document.createElement('div');
+  bar.className = 'duration-bar';
+  bar.dataset.rowId = rowId;
+  bar.dataset.startPulse = startPulse;
+  bar.style.position = 'absolute';
+  bar.style.left = '0';
+  bar.style.top = '50%';
+  bar.style.transform = 'translateY(-50%)';
+  bar.style.width = `${iT * cellWidth}px`;
+  bar.style.height = '8px';
+  bar.style.background = 'var(--plano-select-color, #FFBB33)';
+  bar.style.borderRadius = '4px';
+  bar.style.opacity = '0.7';
+  bar.style.pointerEvents = 'none';
+  bar.style.zIndex = '5';
+
+  startCell.appendChild(bar);
+}
+
+/**
+ * Clear all duration bars
+ */
+function clearDurationBars() {
+  if (!grid) return;
+
+  const matrixContainer = grid.getElements?.()?.matrixContainer;
+  if (!matrixContainer) return;
+
+  matrixContainer.querySelectorAll('.duration-bar').forEach(bar => bar.remove());
+}
+
+/**
  * Render temporal bars (iT visualization) on the grid
  */
 function renderTemporalBars(intervals) {
   if (!intervalRenderer || !grid) return;
 
   // Get timeline container from plano-modular grid
-  const timelineContainer = grid.getTimelineContainer?.();
+  const timelineContainer = grid.getElements?.()?.timelineContainer;
   if (!timelineContainer) return;
 
   // Clear existing bars
   intervalRenderer.clear();
 
   // Calculate cell width from grid
-  const matrixContainer = grid.getMatrixContainer?.();
+  const matrixContainer = grid.getElements?.()?.matrixContainer;
   if (!matrixContainer) return;
 
   const firstCell = matrixContainer.querySelector('.plano-cell');
@@ -363,7 +516,7 @@ function renderTemporalBars(intervals) {
  */
 function clearTemporalBars() {
   if (!grid) return;
-  const timelineContainer = grid.getTimelineContainer?.();
+  const timelineContainer = grid.getElements?.()?.timelineContainer;
   if (!timelineContainer) return;
 
   timelineContainer.querySelectorAll('.it-bar').forEach(bar => bar.remove());
@@ -377,127 +530,204 @@ function clearTemporalBars() {
 function setupDragListeners() {
   if (!grid) return;
 
-  const matrixContainer = grid.getMatrixContainer?.();
+  const matrixContainer = grid.getElements?.()?.matrixContainer;
   if (!matrixContainer) return;
 
-  // Event delegation for mousedown on selected cells
+  // Event delegation for mousedown on dots (clickable points)
   matrixContainer.addEventListener('mousedown', handleDragStart);
 
   // Global mousemove and mouseup
   document.addEventListener('mousemove', handleDragMove);
   document.addEventListener('mouseup', handleDragEnd);
 
+  // Set cursor style for dots
+  document.documentElement.style.setProperty('--np-dot-cursor', 'grab');
+
   console.log('Drag listeners setup for iT modification');
 }
 
 /**
- * Handle drag start - initiate dragging on a selected cell
+ * Handle drag start - initiate dragging on a dot
+ * Supports both EDIT mode (existing pair) and CREATE mode (new note)
  */
 function handleDragStart(e) {
-  const cell = e.target.closest('.plano-cell.plano-selected');
+  // Only start drag from dots
+  const dot = e.target.closest('.np-dot');
+  console.log('handleDragStart - target:', e.target, 'dot:', dot);
+  if (!dot) return;
+
+  const cell = dot.closest('.plano-cell');
   if (!cell) return;
 
   // Get cell coordinates from data attributes
-  const pulse = parseInt(cell.dataset.pulse);
-  const noteData = cell.dataset.note; // Format: "NrR" e.g., "5r4"
+  const rowId = cell.dataset.rowId; // Format: "NrR" e.g., "5r4"
+  const colIndex = parseInt(cell.dataset.colIndex);
 
-  if (isNaN(pulse) || !noteData) return;
+  if (!rowId || isNaN(colIndex)) return;
 
-  // Parse note and registry from the noteData
-  const match = noteData.match(/^(\d+)r(\d+)$/);
+  // Parse note and registry from rowId
+  const match = rowId.match(/^(\d+)r(\d+)$/);
   if (!match) return;
 
   const note = parseInt(match[1]);
   const registry = parseInt(match[2]);
 
-  // Find the corresponding pair
-  const pair = currentPairs.find(p =>
+  // Find existing pair at this position (if any)
+  const existingPair = currentPairs.find(p =>
     p.note === note &&
     (p.registry ?? CONFIG.DEFAULT_REGISTRO) === registry &&
-    p.pulse === pulse
+    p.pulse === colIndex
   );
 
-  if (!pair) return;
+  // Determine mode: edit existing or create new
+  const mode = existingPair ? 'edit' : 'create';
+  const pair = existingPair || {
+    note,
+    registry,
+    pulse: colIndex,
+    temporalInterval: 1
+  };
 
   // Start drag state
   dragState = {
     active: true,
-    startSpaceIndex: pulse,
-    currentSpaceIndex: pulse,
+    startSpaceIndex: colIndex,
+    currentSpaceIndex: colIndex,
     noteIndex: note,
     registryIndex: registry,
+    rowId: rowId,
     originalPair: { ...pair },
-    mode: 'edit',
+    mode: mode,
     previewElement: null
   };
+
+  // Change cursor to grabbing
+  document.documentElement.style.setProperty('--np-dot-cursor', 'grabbing');
+  document.body.style.cursor = 'grabbing';
 
   // Prevent text selection during drag
   e.preventDefault();
 
-  console.log('Drag started on pair:', pair);
+  // Initial highlight
+  updateDragHighlight();
+
+  console.log(`Drag started (${mode} mode) on:`, pair);
 }
 
 /**
- * Handle drag move - update duration preview
+ * Handle drag move - update duration preview and cell highlighting
  */
 function handleDragMove(e) {
   if (!dragState.active || !grid) return;
 
-  const matrixContainer = grid.getMatrixContainer?.();
+  const matrixContainer = grid.getElements?.()?.matrixContainer;
   if (!matrixContainer) return;
 
   // Calculate current space index from mouse position
   const rect = matrixContainer.getBoundingClientRect();
-  const relativeX = e.clientX - rect.left;
+  const relativeX = e.clientX - rect.left + matrixContainer.scrollLeft;
 
   const firstCell = matrixContainer.querySelector('.plano-cell');
   if (!firstCell) return;
 
   const cellWidth = firstCell.offsetWidth;
-  const newSpaceIndex = Math.max(0, Math.floor(relativeX / cellWidth));
+  const totalPulses = getTotalPulses();
+  const newSpaceIndex = Math.max(
+    dragState.startSpaceIndex,
+    Math.min(totalPulses - 1, Math.floor(relativeX / cellWidth))
+  );
 
   // Only update if space changed
   if (newSpaceIndex !== dragState.currentSpaceIndex) {
     dragState.currentSpaceIndex = newSpaceIndex;
-    updateDragPreview();
+    updateDragHighlight();
   }
 }
 
 /**
- * Handle drag end - finalize the duration change
+ * Handle drag end - finalize the duration change or create new note
  */
-function handleDragEnd(e) {
+function handleDragEnd() {
   if (!dragState.active) return;
 
   const originalPair = dragState.originalPair;
   const newEndPulse = dragState.currentSpaceIndex;
+  const mode = dragState.mode;
 
   // Calculate new temporal interval
   const newIT = Math.max(1, newEndPulse - originalPair.pulse + 1);
 
-  // Update the pair's temporalInterval
-  const pairIndex = currentPairs.findIndex(p =>
-    p.note === originalPair.note &&
-    p.pulse === originalPair.pulse
-  );
+  // Clear drag highlight before updating
+  clearDragHighlight();
 
-  if (pairIndex >= 0) {
-    currentPairs[pairIndex].temporalInterval = newIT;
+  // Restore cursor
+  document.documentElement.style.setProperty('--np-dot-cursor', 'grab');
+  document.body.style.cursor = '';
 
-    // Recalculate subsequent pulse positions
-    recalculatePulsePositions();
+  if (mode === 'create') {
+    // CREATE MODE: Add a new note with the dragged duration
+    const newPair = {
+      note: originalPair.note,
+      registry: originalPair.registry,
+      pulse: originalPair.pulse,
+      temporalInterval: newIT
+    };
+
+    // Add to currentPairs (preserving existing notes)
+    currentPairs.push(newPair);
+
+    // Sort by pulse position
+    currentPairs.sort((a, b) => a.pulse - b.pulse);
+
+    // Set flag to prevent onPairsChange from overwriting our pairs
+    isUpdatingFromDrag = true;
+
+    // Sync grid directly (uses loadSelection + refresh for reliable update)
+    syncGridFromPairs(currentPairs);
 
     // Update grid editor
     if (gridEditor) {
       gridEditor.setPairs([...currentPairs]);
     }
 
-    // Re-sync grid and temporal bars
-    syncGridFromPairs(currentPairs);
-  }
+    // Reset flag after next animation frame (covers both sync and async operations)
+    requestAnimationFrame(() => {
+      isUpdatingFromDrag = false;
+    });
 
-  // Clear drag preview
-  clearDragPreview();
+    console.log('Drag ended (CREATE mode), new note:', newPair);
+  } else {
+    // EDIT MODE: Update existing pair's temporalInterval
+    const pairIndex = currentPairs.findIndex(p =>
+      p.note === originalPair.note &&
+      p.pulse === originalPair.pulse
+    );
+
+    if (pairIndex >= 0) {
+      currentPairs[pairIndex].temporalInterval = newIT;
+
+      // Recalculate subsequent pulse positions
+      recalculatePulsePositions();
+
+      // Set flag to prevent onPairsChange from overwriting
+      isUpdatingFromDrag = true;
+
+      // Re-sync grid and temporal bars
+      syncGridFromPairs(currentPairs);
+
+      // Update grid editor
+      if (gridEditor) {
+        gridEditor.setPairs([...currentPairs]);
+      }
+
+      // Reset flag after next animation frame
+      requestAnimationFrame(() => {
+        isUpdatingFromDrag = false;
+      });
+    }
+
+    console.log('Drag ended (EDIT mode), new iT:', newIT);
+  }
 
   // Reset drag state
   dragState = {
@@ -506,58 +736,52 @@ function handleDragEnd(e) {
     currentSpaceIndex: null,
     noteIndex: null,
     registryIndex: null,
+    rowId: null,
     originalPair: null,
     mode: null,
     previewElement: null
   };
-
-  console.log('Drag ended, new iT:', newIT);
 }
 
 /**
- * Update drag preview visualization
+ * Update drag highlight - illuminate cells being stretched
  */
-function updateDragPreview() {
+function updateDragHighlight() {
   if (!dragState.active || !grid) return;
 
-  // Remove existing preview
-  clearDragPreview();
+  // Clear previous highlight
+  clearDragHighlight();
 
-  const matrixContainer = grid.getMatrixContainer?.();
+  const matrixContainer = grid.getElements?.()?.matrixContainer;
   if (!matrixContainer) return;
 
-  const firstCell = matrixContainer.querySelector('.plano-cell');
-  if (!firstCell) return;
+  const rowId = dragState.rowId;
+  const startPulse = dragState.startSpaceIndex;
+  const endPulse = dragState.currentSpaceIndex;
 
-  const cellWidth = firstCell.offsetWidth;
-  const cellHeight = firstCell.offsetHeight;
-
-  // Create preview element showing the stretched duration
-  const preview = document.createElement('div');
-  preview.className = 'drag-preview';
-  preview.style.position = 'absolute';
-  preview.style.left = `${dragState.startSpaceIndex * cellWidth}px`;
-  preview.style.width = `${(dragState.currentSpaceIndex - dragState.startSpaceIndex + 1) * cellWidth}px`;
-  preview.style.top = '0';
-  preview.style.height = `${cellHeight}px`;
-  preview.style.background = 'rgba(255, 187, 51, 0.3)';
-  preview.style.border = '2px dashed var(--plano-select-color, #FFBB33)';
-  preview.style.borderRadius = '4px';
-  preview.style.pointerEvents = 'none';
-  preview.style.zIndex = '100';
-
-  matrixContainer.appendChild(preview);
-  dragState.previewElement = preview;
+  // Highlight all cells in the range
+  for (let pulse = startPulse; pulse <= endPulse; pulse++) {
+    const cell = matrixContainer.querySelector(
+      `.plano-cell[data-row-id="${rowId}"][data-col-index="${pulse}"]`
+    );
+    if (cell) {
+      cell.classList.add('drag-highlight');
+    }
+  }
 }
 
 /**
- * Clear drag preview visualization
+ * Clear drag highlight from all cells
  */
-function clearDragPreview() {
-  if (dragState.previewElement) {
-    dragState.previewElement.remove();
-    dragState.previewElement = null;
-  }
+function clearDragHighlight() {
+  if (!grid) return;
+
+  const matrixContainer = grid.getElements?.()?.matrixContainer;
+  if (!matrixContainer) return;
+
+  matrixContainer.querySelectorAll('.plano-cell.drag-highlight').forEach(cell => {
+    cell.classList.remove('drag-highlight');
+  });
 }
 
 /**
@@ -610,15 +834,47 @@ function initGrid() {
 
   // Initialize interval renderer for temporal bars (iT visualization)
   intervalRenderer = createIntervalRenderer({
-    getTimelineContainer: () => grid?.getTimelineContainer?.(),
-    getMatrixContainer: () => grid?.getMatrixContainer?.(),
+    getTimelineContainer: () => grid?.getElements?.()?.timelineContainer,
+    getMatrixContainer: () => grid?.getElements?.()?.matrixContainer,
     totalSpaces: getTotalPulses() || 28
   });
+
+  // Add np-dots to ALL cells (like App15/musical-grid)
+  addDotsToAllCells();
 
   // Setup drag listeners for horizontal iT modification
   setupDragListeners();
 
   console.log('Grid initialized with plano-modular + interval renderer');
+}
+
+/**
+ * Add np-dot elements to ALL cells in the grid (bottom-left corner)
+ * This enables drag-to-create functionality like App15
+ */
+function addDotsToAllCells() {
+  if (!grid) return;
+
+  const matrixContainer = grid.getElements?.()?.matrixContainer;
+  if (!matrixContainer) return;
+
+  // Get all plano-cells
+  const cells = matrixContainer.querySelectorAll('.plano-cell');
+
+  cells.forEach(cell => {
+    // Skip if dot already exists
+    if (cell.querySelector('.np-dot')) return;
+
+    // Create dot element (bottom-left corner)
+    const dot = document.createElement('div');
+    dot.className = 'np-dot np-dot-clickable';
+    dot.dataset.rowId = cell.dataset.rowId;
+    dot.dataset.colIndex = cell.dataset.colIndex;
+
+    cell.appendChild(dot);
+  });
+
+  console.log(`Added dots to ${cells.length} cells`);
 }
 
 /**
@@ -701,6 +957,11 @@ function updateGrid() {
     grid.updateColumns(totalPulses);
     grid.setCompas(compas || 1);
 
+    // Re-add dots to all cells (they get removed when grid refreshes)
+    requestAnimationFrame(() => {
+      addDotsToAllCells();
+    });
+
     // Apply initial scroll once the grid has real content
     maybeApplyInitialScroll();
   }
@@ -729,6 +990,8 @@ function initGridEditor() {
     pulseRange: [0, totalPulses - 1],
     maxPairs: totalPulses,
     intervalModeOptions: {
+      basePair: { note: 0, pulse: 0, registry: CONFIG.DEFAULT_REGISTRO },
+      hideInitialPair: true,
       maxTotalPulse: totalPulses - 1
     },
     nrxModeOptions: {
@@ -738,6 +1001,8 @@ function initGridEditor() {
     containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
     columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
     onPairsChange: (pairs) => {
+      // Skip if update came from drag (to prevent overwriting)
+      if (isUpdatingFromDrag) return;
       // Sync Grid 2D when editor changes
       syncGridFromPairs(pairs);
     }
@@ -769,6 +1034,8 @@ function updateGridEditorMaxPulse() {
       pulseRange: [0, totalPulses - 1],
       maxPairs: totalPulses,
       intervalModeOptions: {
+        basePair: { note: 0, pulse: 0, registry: CONFIG.DEFAULT_REGISTRO },
+        hideInitialPair: true,
         maxTotalPulse: totalPulses - 1
       },
       nrxModeOptions: {
@@ -778,6 +1045,8 @@ function updateGridEditorMaxPulse() {
       containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
       columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
       onPairsChange: (pairs) => {
+        // Skip if update came from drag (to prevent overwriting)
+        if (isUpdatingFromDrag) return;
         syncGridFromPairs(pairs);
       }
     });
@@ -936,6 +1205,14 @@ async function startPlayback() {
   // Build pulse → registry map for vertical autoscroll
   const pulseRegistry = buildPulseRegistryMap(grid.getSelectedArray());
 
+  // Build pulse → pair map for accessing temporalInterval during playback
+  const pulsePairMap = new Map();
+  currentPairs.forEach(pair => {
+    if (pair.note !== null && pair.note !== undefined) {
+      pulsePairMap.set(pair.pulse, pair);
+    }
+  });
+
   isPlaying = true;
   elements.playBtn?.classList.add('playing');
 
@@ -977,7 +1254,11 @@ async function startPlayback() {
       // 4. Find note for this pulse and highlight/play
       const midi = midiMap.get(step);
       if (midi !== undefined) {
-        const noteDuration = intervalSec * 0.95;
+        // Get temporalInterval from pair to determine note duration
+        const pair = pulsePairMap.get(step);
+        const iT = pair?.temporalInterval || 1;
+        // Duration = iT pulses (minus small gap for separation)
+        const noteDuration = intervalSec * iT * 0.95;
         audioInstance.playNote(midi, noteDuration, Tone.now());
 
         // Find and highlight the selected cell
@@ -1351,7 +1632,8 @@ function bindElements() {
     playBtn: document.getElementById('playBtn'),
     randomBtn: document.getElementById('randomBtn'),
     resetBtn: document.getElementById('resetBtn'),
-    tapTempoBtn: document.getElementById('tapTempoBtn')
+    tapTempoBtn: document.getElementById('tapTempoBtn'),
+    pulseToggleBtn: document.getElementById('pulseToggleBtn')
   };
 }
 
@@ -1442,9 +1724,36 @@ function initApp() {
       mixerSaveTimeout = setTimeout(() => {
         localStorage.setItem(MIXER_STORAGE_KEY, JSON.stringify(snapshot));
       }, 100);
+
+      // Sync pulseToggleBtn with mixer pulse channel mute state
+      if (elements.pulseToggleBtn) {
+        const pulseChannel = snapshot.channels?.pulse;
+        if (pulseChannel) {
+          const isMuted = pulseChannel.muted || pulseChannel.effectiveMuted;
+          // Button active = pulse enabled (not muted)
+          elements.pulseToggleBtn.classList.toggle('active', !isMuted);
+          elements.pulseToggleBtn.setAttribute('aria-pressed', String(!isMuted));
+        }
+      }
     });
 
     loadMixerState();
+  }
+
+  // Wire pulseToggleBtn using initAudioToggles (pattern from App15/App12)
+  // This handles race conditions and proper mixer sync
+  if (elements.pulseToggleBtn) {
+    initAudioToggles({
+      toggles: [{
+        id: 'pulse',
+        button: elements.pulseToggleBtn,
+        storageKey: 'app20:pulseAudio',
+        mixerChannel: 'pulse',
+        defaultEnabled: true
+      }],
+      mixer: getMixer(),
+      subscribeMixer
+    });
   }
 
   // Random menu
