@@ -152,6 +152,9 @@ main {
   align-items: flex-start;
   gap: 0.1rem;
   flex-shrink: 0;
+  /* Ensure spinners are above grid-editor (which uses negative transform) */
+  position: relative;
+  z-index: 10;
 }
 
 /* Vertical separator */

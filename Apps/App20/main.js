@@ -1045,7 +1045,7 @@ function initGridEditor() {
     intervalModeOptions: {
       basePair: { note: 0, pulse: 0, registry: CONFIG.DEFAULT_REGISTRO },
       hideInitialPair: true,
-      maxTotalPulse: totalPulses - 1,
+      maxTotalPulse: totalPulses,  // Sum of iTs should equal total pulses (not -1)
       allowSilence: true
     },
     nrxModeOptions: {
@@ -1090,7 +1090,7 @@ function updateGridEditorMaxPulse() {
       intervalModeOptions: {
         basePair: { note: 0, pulse: 0, registry: CONFIG.DEFAULT_REGISTRO },
         hideInitialPair: true,
-        maxTotalPulse: totalPulses - 1,
+        maxTotalPulse: totalPulses,  // Sum of iTs should equal total pulses (not -1)
         allowSilence: true
       },
       nrxModeOptions: {

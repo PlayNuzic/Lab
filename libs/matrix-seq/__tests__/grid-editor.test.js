@@ -309,4 +309,88 @@ describe('matrix-seq/grid-editor', () => {
       expect(columnMinHeight).toBe('200px');
     });
   });
+
+  describe('N-iT mode silences', () => {
+    it('permite silencios con allowSilence habilitado', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'n-it',
+        showZigzag: true,
+        intervalModeOptions: {
+          allowSilence: true,
+          hideInitialPair: true
+        }
+      });
+
+      // Get the note input
+      const noteInput = container.querySelector('.n-it-note-input');
+      expect(noteInput).not.toBeNull();
+
+      // Simulate pressing 's' key
+      const keydownEvent = new KeyboardEvent('keydown', {
+        key: 's',
+        bubbles: true
+      });
+      noteInput.dispatchEvent(keydownEvent);
+
+      // Value should be 's'
+      expect(noteInput.value).toBe('s');
+      expect(noteInput.dataset.isSilence).toBe('true');
+
+      // Cell should have silence class
+      const cell = noteInput.closest('.zigzag-cell--n-it-note');
+      expect(cell.classList.contains('zigzag-cell--silence')).toBe(true);
+    });
+
+    it('no permite silencios sin allowSilence', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'n-it',
+        showZigzag: true,
+        intervalModeOptions: {
+          allowSilence: false,
+          hideInitialPair: true
+        }
+      });
+
+      const noteInput = container.querySelector('.n-it-note-input');
+      noteInput.value = '';  // Start empty
+
+      // Simulate pressing 's' key
+      const keydownEvent = new KeyboardEvent('keydown', {
+        key: 's',
+        bubbles: true
+      });
+      noteInput.dispatchEvent(keydownEvent);
+
+      // Value should still be empty (s not accepted)
+      expect(noteInput.value).toBe('');
+    });
+
+    it('procesa isRest en setPairs con N-iT mode', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'n-it',
+        showZigzag: true,
+        intervalModeOptions: {
+          allowSilence: true,
+          hideInitialPair: true
+        }
+      });
+
+      // Set pairs with a silence
+      editor.setPairs([
+        { note: 5, pulse: 0, registry: 4, temporalInterval: 2 },
+        { note: null, pulse: 2, registry: null, temporalInterval: 1, isRest: true }
+      ]);
+
+      // Should have silence cell
+      const silenceCell = container.querySelector('.zigzag-cell--silence');
+      expect(silenceCell).not.toBeNull();
+
+      // Silence cell's note input should show 's'
+      const noteInput = silenceCell.querySelector('.n-it-note-input');
+      expect(noteInput.value).toBe('s');
+    });
+  });
 });

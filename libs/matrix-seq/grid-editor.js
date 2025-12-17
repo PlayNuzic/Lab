@@ -604,6 +604,8 @@ export function createGridEditor(config = {}) {
     noteInput.dataset.index = String(index);
     noteInput.dataset.type = 'n-it-note';
     noteInput.placeholder = 'N';
+    noteInput.autocomplete = 'off';
+    noteInput.spellcheck = false;
     if (isRest) {
       noteInput.dataset.isSilence = 'true';
     }
@@ -915,6 +917,14 @@ export function createGridEditor(config = {}) {
       if (text) {
         clearTimeout(autoJumpTimer);
         autoJumpTimer = setTimeout(() => {
+          // Check if we're at max - don't auto-jump if sequence is full
+          const maxTotalPulse = intervalModeOptions?.maxTotalPulse || pulseRange[1];
+          const currentTotal = calculateNItTotalPulse();
+          if (currentTotal >= maxTotalPulse) {
+            // Stay in current cell, don't jump
+            return;
+          }
+
           const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
           // With hideInitialPair: iT[n] → N[n+1]
           // Without: iT[n] → N[n]
@@ -924,7 +934,7 @@ export function createGridEditor(config = {}) {
           let noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
 
           if (!noteInput) {
-            // Create next N cell
+            // Create next N cell (jumpToNextNItCell will check max again internally)
             jumpToNextNItCell(hideInitialPair ? index : index - 1);
           }
 
@@ -935,6 +945,7 @@ export function createGridEditor(config = {}) {
               noteInput.focus();
               noteInput.select();
             }
+            // If noteInput still doesn't exist, stay in current cell (don't jump anywhere)
           });
         }, AUTO_JUMP_DELAY);
       }
