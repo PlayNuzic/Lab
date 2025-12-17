@@ -333,8 +333,6 @@ function syncGridFromPairs(pairs) {
     currentIntervals = [];
     clearTemporalBars();
   }
-
-  console.log('Grid synced from pairs:', pairs.length, 'notes');
 }
 
 /**
@@ -542,8 +540,6 @@ function setupDragListeners() {
 
   // Set cursor style for dots
   document.documentElement.style.setProperty('--np-dot-cursor', 'grab');
-
-  console.log('Drag listeners setup for iT modification');
 }
 
 /**
@@ -553,7 +549,6 @@ function setupDragListeners() {
 function handleDragStart(e) {
   // Only start drag from dots
   const dot = e.target.closest('.np-dot');
-  console.log('handleDragStart - target:', e.target, 'dot:', dot);
   if (!dot) return;
 
   const cell = dot.closest('.plano-cell');
@@ -610,8 +605,6 @@ function handleDragStart(e) {
 
   // Initial highlight
   updateDragHighlight();
-
-  console.log(`Drag started (${mode} mode) on:`, pair);
 }
 
 /**
@@ -694,8 +687,6 @@ function handleDragEnd() {
     requestAnimationFrame(() => {
       isUpdatingFromDrag = false;
     });
-
-    console.log('Drag ended (CREATE mode), new note:', newPair);
   } else {
     // EDIT MODE: Update existing pair's temporalInterval
     const pairIndex = currentPairs.findIndex(p =>
@@ -725,8 +716,6 @@ function handleDragEnd() {
         isUpdatingFromDrag = false;
       });
     }
-
-    console.log('Drag ended (EDIT mode), new iT:', newIT);
   }
 
   // Reset drag state
@@ -905,8 +894,6 @@ function addDotsToAllCells() {
 
     cell.appendChild(dot);
   });
-
-  console.log(`Added dots to ${cells.length} cells`);
 }
 
 /**
