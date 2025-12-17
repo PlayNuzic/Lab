@@ -140,17 +140,19 @@
         <!-- Vertical separator -->
         <div class="inputs-separator"></div>
 
-        <!-- Right: Grid-editor for NrX-iT -->
-        <div class="inputs-grid-editor" id="gridEditorContainer">
-          <!-- Grid editor will be initialized by main.js -->
-        </div>
-
-        <!-- Longitud display (moved to right edge) -->
-        <div class="total-length-inline" id="totalLengthParam">
-          <div class="circle">
-            <span class="total-length__digit" id="totalLengthDigit">--</span>
+        <!-- Right: Grid-editor + Longitud wrapper (flex row) -->
+        <div class="grid-editor-wrapper">
+          <div class="inputs-grid-editor" id="gridEditorContainer">
+            <!-- Grid editor will be initialized by main.js -->
           </div>
-          <span class="abbr">Longitud</span>
+
+          <!-- Longitud display (attached to right of grid-editor) -->
+          <div class="total-length-inline" id="totalLengthParam">
+            <div class="circle">
+              <span class="total-length__digit" id="totalLengthDigit">--</span>
+            </div>
+            <span class="abbr">Longitud</span>
+          </div>
         </div>
       `;
     }
