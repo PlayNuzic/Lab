@@ -52,16 +52,24 @@
   /* ⭐ NEW: Cell label system */
   --cell-label-font-size: clamp(0.65rem, 1.5vw, 1rem);
   --cell-label-font-weight: 600;
-  --cell-label-color: rgba(255, 255, 255, 0.95);
+  /* Light mode: dark text for contrast on orange/yellow background */
+  --cell-label-color: rgba(0, 0, 0, 0.85);
   --cell-label-color-dark: #FFFFFF;
   --cell-label-interval-color: var(--interval-color, #4A9EFF);
-  --cell-label-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  /* Light mode: light shadow for depth on dark text */
+  --cell-label-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
   --cell-label-shadow-dark: 0 1px 2px rgba(0, 0, 0, 0.8);
   --fade-out-duration: 1s;
 
   /* ⭐ NEW: Grid numbers unified colors */
   --grid-number-color: var(--text-color, #333);
   --grid-number-color-dark: var(--text-dark, #e0e0e0);
+}
+
+/* Dark theme variable overrides */
+[data-theme="dark"] {
+  --cell-label-color: #FFFFFF;
+  --cell-label-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* ========== GRID CONTAINER ========== */
@@ -341,8 +349,8 @@
   font-size: var(--cell-label-font-size, clamp(0.65rem, 1.5vw, 1rem));
   font-weight: var(--cell-label-font-weight, 600);
 
-  color: var(--cell-label-color, rgba(255, 255, 255, 0.95));
-  text-shadow: var(--cell-label-shadow, 0 1px 2px rgba(0, 0, 0, 0.5));
+  color: #43433B;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
   z-index: var(--z-active, 20);
   pointer-events: none;
 
@@ -350,7 +358,8 @@
   white-space: nowrap;
 }
 
-.musical-cell.active .cell-label {
+.musical-cell.active .cell-label,
+.grid-cell.selected .cell-label {
   display: block;
 }
 
@@ -370,8 +379,8 @@
 }
 
 [data-theme="dark"] .cell-label {
-  color: var(--cell-label-color-dark, #FFFFFF);
-  text-shadow: var(--cell-label-shadow-dark, 0 1px 2px rgba(0, 0, 0, 0.8));
+  color: #EEE8D8;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* ========== TIMELINE CONTAINER (BOTTOM) ========== */

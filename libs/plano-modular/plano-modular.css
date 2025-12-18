@@ -187,11 +187,17 @@
   transform: translate(-50%, -50%);
   font-size: 1.2rem;  /* Same as .plano-soundline-note */
   font-weight: 600;
-  color: #333;  /* Dark text on yellow background */
-  text-shadow: none;
+  color: #43433B;  /* Light mode: dark text on yellow background */
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
   pointer-events: none;
   white-space: nowrap;
   z-index: 15;
+}
+
+[data-theme="dark"] .plano-cell-label,
+[data-theme="dark"] .plano-highlight-label {
+  color: #EEE8D8;  /* Dark mode: light text on yellow background */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .plano-cell-label sup,

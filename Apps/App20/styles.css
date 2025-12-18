@@ -911,29 +911,9 @@ main {
   box-shadow: 0 0 8px #FFBB33;
 }
 
-/* Cell label for selected cells */
-.grid-cell .cell-label {
-  display: none;  /* Hidden by default */
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--grid-selected-label-color, #fff);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 5;
-}
-
-/* Show label on selected cells */
+/* Cell label styles managed by musical-grid.css */
 .grid-cell.selected {
   position: relative;
-}
-
-.grid-cell.selected .cell-label {
-  display: block;
 }
 
 /* ============================================
@@ -974,10 +954,6 @@ main {
 
 [data-theme="dark"] .grid-cell.selected {
   background: var(--grid-selected-color, #FFBB33);
-}
-
-[data-theme="dark"] .grid-cell .cell-label {
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* ============================================
