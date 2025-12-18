@@ -703,8 +703,8 @@ function handleDragEnd() {
       currentPairs.sort((a, b) => a.pulse - b.pulse);
     }
 
-    // Recalculate pulse positions for all notes
-    recalculatePulsePositions();
+    // NOTE: Do NOT recalculate pulse positions - respect where the user clicked
+    // Gaps between notes are valid (implicit silences)
 
     // Set flag to prevent onPairsChange from overwriting our pairs
     isUpdatingFromDrag = true;
@@ -736,8 +736,8 @@ function handleDragEnd() {
     if (pairIndex >= 0) {
       currentPairs[pairIndex].temporalInterval = newIT;
 
-      // Recalculate subsequent pulse positions
-      recalculatePulsePositions();
+      // NOTE: Do NOT recalculate pulse positions - editing duration doesn't move other notes
+      // This allows gaps (implicit silences) between notes
 
       // Set flag to prevent onPairsChange from overwriting
       isUpdatingFromDrag = true;
@@ -831,22 +831,6 @@ function clearDragHighlight() {
 
   matrixContainer.querySelectorAll('.plano-cell.drag-highlight').forEach(cell => {
     cell.classList.remove('drag-highlight');
-  });
-}
-
-/**
- * Recalculate pulse positions after iT change
- */
-function recalculatePulsePositions() {
-  let accumulatedPulse = 0;
-
-  currentPairs.forEach((pair, index) => {
-    if (index === 0) {
-      pair.pulse = 0;
-    } else {
-      pair.pulse = accumulatedPulse;
-    }
-    accumulatedPulse += pair.temporalInterval || 1;
   });
 }
 
