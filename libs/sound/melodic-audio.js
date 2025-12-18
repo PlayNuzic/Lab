@@ -81,7 +81,12 @@ export class MelodicTimelineAudio extends TimelineAudio {
       return;
     }
 
-    sampler.disconnect();
+    // Safely disconnect any existing connections before connecting to mixer
+    try {
+      sampler.disconnect();
+    } catch (e) {
+      // Ignore disconnect errors - sampler may not have been connected
+    }
     sampler.connect(instrumentChannel);
 
     this._instrumentSampler = sampler;
