@@ -1056,6 +1056,7 @@ export function createGridEditor(config = {}) {
       case 'ArrowRight':
         if (isAtEnd(input)) {
           event.preventDefault();
+          const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
           if (type === 'note') {
             // Note → Registry
             const regInput = cell?.querySelector('.n-it-registry-input');
@@ -1065,15 +1066,28 @@ export function createGridEditor(config = {}) {
               jumpToNextNItCell(index);
             }
           } else if (type === 'registry') {
-            // Registry → iT[index+1] (zigzag pattern)
-            jumpToNextNItCell(index);
+            // With hideInitialPair: R[n] → iT[n] (same index)
+            // Without hideInitialPair: R[n] → iT[n+1] (next index)
+            const targetItIndex = hideInitialPair ? index : index + 1;
+            // Ensure target iT cell exists
+            if (!container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`)) {
+              jumpToNextNItCell(index);
+            }
             requestAnimationFrame(() => {
-              const nextItIndex = index + 1;
-              const itInput = container.querySelector(`.n-it-temporal-input[data-index="${nextItIndex}"]`);
+              const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
               if (itInput) itInput.focus();
             });
           } else if (type === 'it') {
-            jumpToNextNItCell(index);
+            // With hideInitialPair: iT[n] → N[n+1]
+            // Without hideInitialPair: iT[n] → N[n]
+            const targetNIndex = hideInitialPair ? index + 1 : index;
+            if (!container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`)) {
+              jumpToNextNItCell(index);
+            }
+            requestAnimationFrame(() => {
+              const noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
+              if (noteInput) noteInput.focus();
+            });
           }
         }
         break;
@@ -1081,18 +1095,22 @@ export function createGridEditor(config = {}) {
       case 'ArrowLeft':
         if (isAtStart(input)) {
           event.preventDefault();
+          const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
           if (type === 'registry') {
             // Registry → Note (same cell)
             const noteInput = cell?.querySelector('.n-it-note-input');
             if (noteInput) noteInput.focus();
           } else if (type === 'it') {
-            // iT[n] → Registry[n-1] (zigzag pattern: iT follows the registry of previous N)
-            const prevRegIndex = index - 1;
-            const regInput = container.querySelector(`.n-it-registry-input[data-index="${prevRegIndex}"]`);
+            // With hideInitialPair: iT[n] → R[n] (same N cell)
+            // Without hideInitialPair: iT[n] → R[n-1] (previous N cell)
+            const targetRegIndex = hideInitialPair ? index : index - 1;
+            const regInput = container.querySelector(`.n-it-registry-input[data-index="${targetRegIndex}"]`);
             if (regInput) regInput.focus();
           } else if (type === 'note' && index > 0) {
-            // N[n](nota) → iT[n] (zigzag pattern: iT[n] precedes N[n])
-            const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
+            // With hideInitialPair: N[n] → iT[n-1] (previous iT)
+            // Without hideInitialPair: N[n] → iT[n] (same index iT)
+            const targetItIndex = hideInitialPair ? index - 1 : index;
+            const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
             if (itInput) {
               itInput.focus();
             } else {
