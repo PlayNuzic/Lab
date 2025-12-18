@@ -10,8 +10,6 @@ let sampler = null;
 let isLoaded = false;
 let loadPromise = null;
 let preloadInitiated = false;
-let connectedToMelodicChannel = false;
-let fallbackGain = null; // Used when melodic channel not available at load time
 
 /**
  * Load piano sampler with Salamander samples from CDN
@@ -36,83 +34,52 @@ export async function loadPiano() {
   const Tone = window.Tone;
 
   loadPromise = (async () => {
-    // Ensure Tone.js AudioContext is started (requires user gesture)
-    if (Tone.context.state !== 'running') {
-      await Tone.start();
+    try {
+      // Ensure Tone.js AudioContext is started (requires user gesture)
+      if (Tone.context.state !== 'running') {
+        await Tone.start();
+      }
+
+      // Create URLs for Salamander piano samples (C and F# for each octave)
+      const urls = {};
+      for (let octave = 1; octave <= 7; octave++) {
+        urls[`C${octave}`] = `C${octave}.mp3`;
+        urls[`F#${octave}`] = `Fs${octave}.mp3`;
+      }
+
+      sampler = new Tone.Sampler({
+        urls,
+        release: 1,
+        baseUrl: 'https://tonejs.github.io/audio/salamander/'
+      });
+
+      // Connect to melodic channel if available, otherwise direct to destination
+      const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+      if (melodicChannel) {
+        sampler.connect(melodicChannel);
+      } else {
+        // No melodic channel - connect directly to destination
+        sampler.toDestination();
+      }
+
+      // Wait for all samples to load
+      await Tone.loaded();
+      isLoaded = true;
+
+      console.log('Piano loaded successfully');
+      return sampler;
+    } catch (err) {
+      // Reset state on failure so retry is possible
+      loadPromise = null;
+      sampler = null;
+      isLoaded = false;
+      throw err;
     }
-
-    // Create URLs for Salamander piano samples (C and F# for each octave)
-    const urls = {};
-    for (let octave = 1; octave <= 7; octave++) {
-      urls[`C${octave}`] = `C${octave}.mp3`;
-      urls[`F#${octave}`] = `Fs${octave}.mp3`;
-    }
-
-    sampler = new Tone.Sampler({
-      urls,
-      release: 1,
-      baseUrl: 'https://tonejs.github.io/audio/salamander/'
-    });
-
-    // Connect to melodic channel if available, otherwise use fallback gain node
-    const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
-    if (melodicChannel) {
-      sampler.connect(melodicChannel);
-      connectedToMelodicChannel = true;
-    } else {
-      // Create a gain node we can disconnect later (toDestination() cannot be disconnected)
-      const Tone = window.Tone;
-      fallbackGain = new Tone.Gain(1).toDestination();
-      sampler.connect(fallbackGain);
-      connectedToMelodicChannel = false;
-    }
-
-    // Wait for all samples to load
-    await Tone.loaded();
-    isLoaded = true;
-
-    console.log('Piano loaded successfully');
-    return sampler;
   })();
 
   return loadPromise;
 }
 
-/**
- * Ensure sampler is connected to melodic channel if available
- * Reconnects from fallback gain node to melodic channel for mixer control
- *
- * NOTE: If MelodicTimelineAudio.setInstrument() already reconnected the sampler,
- * this function should detect that and skip reconnection to avoid errors.
- */
-function ensureMelodicConnection() {
-  if (!sampler || connectedToMelodicChannel) return;
-
-  const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
-  if (melodicChannel) {
-    // Check if sampler was already reconnected by MelodicTimelineAudio
-    // If fallbackGain is null but we're not marked as connected, setInstrument did it
-    if (!fallbackGain) {
-      // MelodicTimelineAudio already handled the connection
-      connectedToMelodicChannel = true;
-      return;
-    }
-
-    try {
-      // Disconnect from fallback gain and connect to melodic channel
-      sampler.disconnect(fallbackGain);
-      fallbackGain.dispose();
-      fallbackGain = null;
-      sampler.connect(melodicChannel);
-      connectedToMelodicChannel = true;
-    } catch (err) {
-      // If disconnect fails, the sampler may have already been reconnected
-      // by MelodicTimelineAudio - mark as connected and continue
-      connectedToMelodicChannel = true;
-      fallbackGain = null;
-    }
-  }
-}
 
 /**
  * Play a single note
@@ -125,9 +92,6 @@ export async function playNote(midiNumber, duration, when = 0) {
     console.warn('Piano not loaded, loading now...');
     await loadPiano();
   }
-
-  // Ensure connected to melodic channel for mixer control
-  ensureMelodicConnection();
 
   const Tone = window.Tone;
   const note = Tone.Frequency(midiNumber, 'midi').toNote();

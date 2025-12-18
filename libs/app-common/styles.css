@@ -454,7 +454,7 @@ body[data-theme='dark'] .fraction-info-bubble {
   transform: translate(-50%, -50%);
   padding: 1rem;
   border-radius: 8px;
-  z-index: 10000;  /* Above all app elements (some apps use z-index up to 9999) */
+  z-index: 1100;  /* Above dropdowns (z-index: 1000) but below portrait warnings */
   max-height: 80vh;
   overflow-y: auto;
   color: var(--text-light);
@@ -474,7 +474,7 @@ body[data-theme='dark'] .fraction-info-bubble {
   padding: 1rem 1.25rem;
   border: 2px solid var(--line-color);
   border-radius: 12px;
-  z-index: 10000;  /* Above all app elements (some apps use z-index up to 9999) */
+  z-index: 1100;  /* Above dropdowns (z-index: 1000) but below portrait warnings */
   background-color: var(--bg-light);
   color: var(--text-light);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
