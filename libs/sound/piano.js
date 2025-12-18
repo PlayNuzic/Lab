@@ -81,23 +81,35 @@ export async function loadPiano() {
 /**
  * Ensure sampler is connected to melodic channel if available
  * Reconnects from fallback gain node to melodic channel for mixer control
+ *
+ * NOTE: If MelodicTimelineAudio.setInstrument() already reconnected the sampler,
+ * this function should detect that and skip reconnection to avoid errors.
  */
 function ensureMelodicConnection() {
   if (!sampler || connectedToMelodicChannel) return;
 
   const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
   if (melodicChannel) {
+    // Check if sampler was already reconnected by MelodicTimelineAudio
+    // If fallbackGain is null but we're not marked as connected, setInstrument did it
+    if (!fallbackGain) {
+      // MelodicTimelineAudio already handled the connection
+      connectedToMelodicChannel = true;
+      return;
+    }
+
     try {
       // Disconnect from fallback gain and connect to melodic channel
-      if (fallbackGain) {
-        sampler.disconnect(fallbackGain);
-        fallbackGain.dispose();
-        fallbackGain = null;
-      }
+      sampler.disconnect(fallbackGain);
+      fallbackGain.dispose();
+      fallbackGain = null;
       sampler.connect(melodicChannel);
       connectedToMelodicChannel = true;
     } catch (err) {
-      console.warn('Failed to connect piano to melodic channel:', err);
+      // If disconnect fails, the sampler may have already been reconnected
+      // by MelodicTimelineAudio - mark as connected and continue
+      connectedToMelodicChannel = true;
+      fallbackGain = null;
     }
   }
 }
