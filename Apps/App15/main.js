@@ -664,13 +664,42 @@ function createIntervalLine(note1Index, note2Index, pulseIndex, intervalIndex = 
   }
 
   // Calculate vertical positions (grid is inverted: note 0 at bottom)
-  // Note positions in grid: higher note index = higher in the grid = lower CSS top value
-  const topNote = Math.max(note1Index, note2Index);
-  const bottomNote = Math.min(note1Index, note2Index);
+  // Cell edges: TOP = (TOTAL_NOTES - 1 - noteIndex) / TOTAL_NOTES * 100
+  //             BOTTOM = (TOTAL_NOTES - noteIndex) / TOTAL_NOTES * 100
 
-  // Calculate top and bottom edges in percentages
-  const topEdge = (TOTAL_NOTES - 1 - topNote) / TOTAL_NOTES * 100;
-  const bottomEdge = (TOTAL_NOTES - bottomNote) / TOTAL_NOTES * 100;
+  let topEdge, bottomEdge;
+
+  if (absInterval <= 1) {
+    // ±1: line spans full edge-to-edge (current behavior)
+    const topNote = Math.max(note1Index, note2Index);
+    topEdge = (TOTAL_NOTES - 1 - topNote) / TOTAL_NOTES * 100;
+    // First interval from base (0,0): extend to bottom of grid
+    if (intervalIndex === 0 && note1Index === 0) {
+      bottomEdge = 100; // Extend to very bottom of grid
+    } else {
+      const bottomNote = Math.min(note1Index, note2Index);
+      bottomEdge = (TOTAL_NOTES - bottomNote) / TOTAL_NOTES * 100;
+    }
+  } else if (isAscending) {
+    // Ascending (+2 or more): TOP of origin → BOTTOM of destination
+    // Origin is note1Index (lower), destination is note2Index (higher)
+    const originCellTop = (TOTAL_NOTES - 1 - note1Index) / TOTAL_NOTES * 100;
+    const destCellBottom = (TOTAL_NOTES - note2Index) / TOTAL_NOTES * 100;
+    topEdge = destCellBottom; // Line's top = destination's bottom edge
+    // First interval: extend to bottom of grid (base pair 0,0)
+    if (intervalIndex === 0 && note1Index === 0) {
+      bottomEdge = 100; // Extend to very bottom of grid
+    } else {
+      bottomEdge = originCellTop; // Line's bottom = origin's top edge
+    }
+  } else {
+    // Descending (-2 or more): BOTTOM of origin → TOP of destination
+    // Origin is note1Index (higher), destination is note2Index (lower)
+    const originCellBottom = (TOTAL_NOTES - note1Index) / TOTAL_NOTES * 100;
+    const destCellTop = (TOTAL_NOTES - 1 - note2Index) / TOTAL_NOTES * 100;
+    topEdge = originCellBottom; // Line's top = origin's bottom edge
+    bottomEdge = destCellTop; // Line's bottom = destination's top edge
+  }
 
   const finalHeight = bottomEdge - topEdge;
 
