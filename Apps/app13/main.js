@@ -2,7 +2,6 @@
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
-import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 
 // ========== CONFIGURACIÓN ==========
 const TOTAL_PULSES = 9;  // Pulsos 0-8 (8 es endpoint visual)
@@ -10,10 +9,6 @@ const MAX_LENGTH = 8;    // Suma total de iTs
 const MAX_ITS = 4;       // Máximo 4 inputs de iT
 const MIN_BPM = 75;
 const MAX_BPM = 150;
-const FADEOUT_TIME = 0.05; // 50ms fadeout para evitar cracks
-
-// Sons disponibles (Synth Voice 1 i 2)
-const INTERVAL_SOUNDS = ['click12', 'click13'];
 
 // Colors ben diferenciats per les barres (màxim 4 iTs)
 const VIBRANT_COLORS = [
@@ -30,8 +25,11 @@ let currentIntervals = []; // Array de valores iT entrats
 let playbackTimeouts = []; // Per cancel·lar reproducció
 
 // Persistència de sons i colors (es manté fins canvi d'editor o random)
-let currentSoundAssignments = null;
+let currentSoundAssignments = null;  // MIDI notes per interval
 let currentColorAssignments = null;
+
+// Instrument actual (piano o violí)
+let currentInstrument = 'violin';  // Default: violín
 
 // So actual del metrònom (seleccionable via header dropdown)
 // Llegir de localStorage per respectar selecció prèvia de l'usuari
@@ -64,26 +62,36 @@ function getRandomBPM() {
 }
 
 /**
- * Assigna sons als intervals alternant entre click12 i click13
- * Mai repeteix el mateix so dues vegades seguides
- * @param {number[]} intervals - Array de duracions dels intervals
- * @returns {string[]} - Array de sons assignats (un per cada interval)
+ * Genera una nota MIDI aleatoria del registro 4 (C4-B4)
+ * @returns {number} MIDI 60-71
  */
-function assignSoundsToIntervals(intervals) {
+function getRandomMidiNote() {
+  return 60 + Math.floor(Math.random() * 12);
+}
+
+/**
+ * Assigna notes MIDI als intervals (una nota diferent per cada interval)
+ * @param {number[]} intervals - Array de duracions dels intervals
+ * @returns {number[]} - Array de notes MIDI (una per cada interval)
+ */
+function assignNotesToIntervals(intervals) {
   if (intervals.length === 0) return [];
+  return intervals.map(() => getRandomMidiNote());
+}
 
-  const result = [];
-  // Començar amb un so aleatori
-  let lastSound = INTERVAL_SOUNDS[Math.floor(Math.random() * 2)];
-  result.push(lastSound);
-
-  // Per cada interval següent, usar l'altre so
-  for (let i = 1; i < intervals.length; i++) {
-    lastSound = lastSound === 'click12' ? 'click13' : 'click12';
-    result.push(lastSound);
+/**
+ * Reproduce una nota melódica con el instrumento seleccionado
+ * @param {number} midiNumber - Número MIDI (60-71 para registro 4)
+ * @param {number} durationSec - Duración en segundos
+ */
+async function playMelodicNote(midiNumber, durationSec) {
+  if (currentInstrument === 'piano') {
+    const { playNote } = await import('../../libs/sound/piano.js');
+    await playNote(midiNumber, durationSec);
+  } else {
+    const { playNote } = await import('../../libs/sound/violin.js');
+    await playNote(midiNumber, durationSec);
   }
-
-  return result;
 }
 
 /**
@@ -138,51 +146,6 @@ async function initAudio() {
 
 if (typeof window !== 'undefined') {
   window.__labInitAudio = initAudio;
-}
-
-/**
- * Reprodueix un so amb durada exacta i fadeout
- * @param {string} soundKey - Clau del so (click12-click17)
- * @param {number} duration - Durada en segons
- */
-async function playSoundWithDuration(soundKey, duration) {
-  await ensureToneLoaded();
-
-  // Obtenir URL del so
-  const soundUrl = new URL(`../../libs/sound/samples/${soundKey.replace('click', 'Click')}.wav`, import.meta.url).href;
-
-  // Crear context d'audio si no existeix
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-  try {
-    // Carregar el buffer
-    const response = await fetch(soundUrl);
-    const arrayBuffer = await response.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-    // Crear source i gain per fadeout
-    const source = audioContext.createBufferSource();
-    const gainNode = audioContext.createGain();
-
-    source.buffer = audioBuffer;
-    source.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    // Calcular temps
-    const playDuration = Math.max(0.01, duration - FADEOUT_TIME);
-
-    // Programar fadeout
-    gainNode.gain.setValueAtTime(1, audioContext.currentTime);
-    gainNode.gain.setValueAtTime(1, audioContext.currentTime + playDuration);
-    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + playDuration + FADEOUT_TIME);
-
-    // Reproduir i aturar
-    source.start(0);
-    source.stop(audioContext.currentTime + duration);
-
-  } catch (err) {
-    console.warn(`Error reproduint ${soundKey}:`, err);
-  }
 }
 
 /**
@@ -586,14 +549,14 @@ async function handlePlay() {
   }
 
   // MODE INTERVALS
-  console.log(`BPM: ${bpm}, intervals: ${intervals.join(', ')}`);
+  console.log(`BPM: ${bpm}, intervals: ${intervals.join(', ')}, instrument: ${currentInstrument}`);
 
-  // Usar sons persistents (només regenerar si no existeixen o han canviat els intervals)
+  // Usar notes MIDI persistents (només regenerar si no existeixen o han canviat els intervals)
   // NOTA: Els colors es gestionen a updateTimeline() per persistència visual
   if (!currentSoundAssignments || currentSoundAssignments.length !== intervals.length) {
-    currentSoundAssignments = assignSoundsToIntervals(intervals);
+    currentSoundAssignments = assignNotesToIntervals(intervals);
   }
-  const soundsForThisPlay = currentSoundAssignments;
+  const notesForThisPlay = currentSoundAssignments;
   // Usar colors ja assignats per updateTimeline()
   const colorsForThisPlay = currentColorAssignments || intervals.map((_, idx) => VIBRANT_COLORS[idx % VIBRANT_COLORS.length]);
 
@@ -605,13 +568,13 @@ async function handlePlay() {
     const iT = intervals[i];
     const duration = iT * beatDuration;
     const color = colorsForThisPlay[i];
-    const sound = soundsForThisPlay[i];
+    const midiNote = notesForThisPlay[i];
 
     // Crear barra animada
     createIntervalBar(currentPulse, iT, color, true);
 
-    // Reproduir so de l'interval amb durada exacta
-    playSoundWithDuration(sound, duration);
+    // Reproduir nota melòdica amb durada exacta
+    playMelodicNote(midiNote, duration);
 
     // Loop per cada puls dins l'interval (metrònom + flash)
     for (let p = 0; p < iT; p++) {
@@ -792,6 +755,12 @@ function initApp() {
     if (type === 'baseSound' && value) {
       currentMetronomeSound = value;
     }
+  });
+
+  // Escoltar canvis d'instrument
+  window.addEventListener('sharedui:instrument', (e) => {
+    currentInstrument = e.detail.instrument;
+    console.log(`Instrument seleccionat: ${currentInstrument}`);
   });
 
   // Focus inicial
