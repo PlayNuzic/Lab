@@ -523,15 +523,15 @@ export function createGridEditor(config = {}) {
       }
     } else if (hideInitialPair) {
       // With hideInitialPair: each note N[i] has its corresponding iT[i]
-      // intervals[i] contains the temporalInterval for pairs[i]
       // N[0] shows pairs[0], iT[0] shows distance from basePair to pairs[0]
       pairs.forEach((pair, index) => {
         // N cell in row 1 (pass isRest for silence support)
         const nCell = createNItNoteCell(index, pair.note, pair.registry, pair.isRest);
         row1.appendChild(nCell);
 
-        // iT cell in row 2 - use temporalInterval from pair directly
-        const itCell = createNItTemporalCell(index, pair.temporalInterval);
+        // iT cell in row 2 - use temporalInterval from intervals array (calculated from basePair)
+        const intervalData = intervals[index];
+        const itCell = createNItTemporalCell(index, intervalData?.temporalInterval ?? pair.temporalInterval);
         row2.appendChild(itCell);
       });
     } else {
@@ -1058,16 +1058,19 @@ export function createGridEditor(config = {}) {
       case 'ArrowRight':
         if (isAtEnd(input)) {
           event.preventDefault();
-          // With hideInitialPair: N[n] → R[n] → iT[n] → N[n+1] → R[n+1] → iT[n+1] ...
-          // The iT[n] corresponds to N[n], not to N[n-1]
+          const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+          // hideInitialPair=true:  N[n] → R[n] → iT[n] → N[n+1] ...
+          // hideInitialPair=false: N[n] → R[n] → iT[n+1] → N[n+1] ...
+
           if (type === 'note') {
             // Note → Registry (same cell)
             const regInput = cell?.querySelector('.n-it-registry-input');
             if (regInput && !regInput.disabled) {
               regInput.focus();
             } else {
-              // Silence or no registry - go to iT[index]
-              const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
+              // Silence or no registry - go to iT
+              const targetItIndex = hideInitialPair ? index : index + 1;
+              const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
               if (itInput) {
                 itInput.focus();
               } else {
@@ -1075,21 +1078,24 @@ export function createGridEditor(config = {}) {
               }
             }
           } else if (type === 'registry') {
-            // Registry[n] → iT[n] (always same index with hideInitialPair)
-            const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
+            // Registry[n] → iT
+            const targetItIndex = hideInitialPair ? index : index + 1;
+            const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
             if (itInput) {
               itInput.focus();
             } else {
               // iT doesn't exist, create next cell pair and focus the iT
               jumpToNextNItCell(index);
               requestAnimationFrame(() => {
-                const newItInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
+                const newItInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
                 if (newItInput) newItInput.focus();
               });
             }
           } else if (type === 'it') {
-            // iT[n] → N[n+1]
-            const targetNIndex = index + 1;
+            // iT[n] → N[next]
+            // With hideInitialPair: iT[n] → N[n+1]
+            // Without hideInitialPair: iT[n] → N[n] (because iT[n] follows R[n-1])
+            const targetNIndex = hideInitialPair ? index + 1 : index;
             let noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
             if (!noteInput) {
               jumpToNextNItCell(index);
@@ -1107,24 +1113,32 @@ export function createGridEditor(config = {}) {
       case 'ArrowLeft':
         if (isAtStart(input)) {
           event.preventDefault();
-          // With hideInitialPair: ... ← iT[n] ← R[n] ← N[n] ← iT[n-1] ← R[n-1] ← N[n-1]
+          const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+          // hideInitialPair=true:  ... ← iT[n] ← R[n] ← N[n] ← iT[n-1] ...
+          // hideInitialPair=false: ... ← iT[n] ← R[n-1] ← N[n-1] ← iT[n-1] ...
+
           if (type === 'registry') {
             // Registry → Note (same cell)
             const noteInput = cell?.querySelector('.n-it-note-input');
             if (noteInput) noteInput.focus();
           } else if (type === 'it') {
-            // iT[n] → R[n] (same index)
-            const regInput = container.querySelector(`.n-it-registry-input[data-index="${index}"]`);
+            // iT[n] → R[?]
+            // hideInitialPair=true: iT[n] → R[n] (same index)
+            // hideInitialPair=false: iT[n] → R[n-1]
+            const targetRegIndex = hideInitialPair ? index : index - 1;
+            const regInput = container.querySelector(`.n-it-registry-input[data-index="${targetRegIndex}"]`);
             if (regInput && !regInput.disabled) {
               regInput.focus();
             } else {
-              // Registry disabled (silence) - go directly to N[n]
-              const noteInput = container.querySelector(`.n-it-note-input[data-index="${index}"]`);
+              // Registry disabled (silence) - go directly to N
+              const noteInput = container.querySelector(`.n-it-note-input[data-index="${targetRegIndex}"]`);
               if (noteInput) noteInput.focus();
             }
           } else if (type === 'note' && index > 0) {
-            // N[n] → iT[n-1]
-            const targetItIndex = index - 1;
+            // N[n] → iT[?]
+            // hideInitialPair=true: N[n] → iT[n-1]
+            // hideInitialPair=false: N[n] → iT[n]
+            const targetItIndex = hideInitialPair ? index - 1 : index;
             const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
             if (itInput) {
               itInput.focus();
@@ -1242,11 +1256,27 @@ export function createGridEditor(config = {}) {
     const row2 = container.querySelector('.zigzag-row--bottom');
     if (!row1 || !row2) return;
 
+    const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+
     // Find empty N cells (no note value) and remove them with their iT
+    // BUT: always keep at least one empty slot at the end for new input
+    // AND: with hideInitialPair, never remove N[0]/iT[0] pair
     const nInputs = Array.from(container.querySelectorAll('.n-it-note-input'));
-    nInputs.forEach(nInput => {
-      const idx = nInput.dataset.index;
+    const totalCells = nInputs.length;
+
+    nInputs.forEach((nInput, arrayIndex) => {
+      const idx = parseInt(nInput.dataset.index);
       const itInput = container.querySelector(`.n-it-temporal-input[data-index="${idx}"]`);
+
+      // With hideInitialPair, NEVER remove the first pair (index 0)
+      if (hideInitialPair && idx === 0) {
+        return; // Skip, don't remove
+      }
+
+      // Always keep the last empty cell for new input
+      if (arrayIndex === totalCells - 1 && !nInput.value.trim()) {
+        return; // Skip, keep last empty for input
+      }
 
       // Only remove if N is empty (no note entered)
       if (!nInput.value.trim()) {
@@ -1269,6 +1299,7 @@ export function createGridEditor(config = {}) {
    * Re-indexes all N-iT cells after deletion
    */
   function reindexNItCells() {
+    const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
     const nInputs = container.querySelectorAll('.n-it-note-input');
     const regInputs = container.querySelectorAll('.n-it-registry-input');
     const itInputs = container.querySelectorAll('.n-it-temporal-input');
@@ -1282,7 +1313,10 @@ export function createGridEditor(config = {}) {
     });
 
     itInputs.forEach((input, idx) => {
-      input.dataset.index = String(idx + 1); // iT starts at index 1
+      // With hideInitialPair: iT[0] corresponds to N[0], so indices match
+      // Without hideInitialPair: iT starts at index 1 (N[0] has ghost, not iT)
+      const itIndex = hideInitialPair ? idx : idx + 1;
+      input.dataset.index = String(itIndex);
     });
   }
 
