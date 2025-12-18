@@ -522,14 +522,16 @@ export function createGridEditor(config = {}) {
         row2.appendChild(ghost);
       }
     } else if (hideInitialPair) {
-      // With hideInitialPair: each note has its iT visible
-      intervals.forEach((interval, index) => {
+      // With hideInitialPair: each note N[i] has its corresponding iT[i]
+      // intervals[i] contains the temporalInterval for pairs[i]
+      // N[0] shows pairs[0], iT[0] shows distance from basePair to pairs[0]
+      pairs.forEach((pair, index) => {
         // N cell in row 1 (pass isRest for silence support)
-        const nCell = createNItNoteCell(index, interval.note, interval.registry, interval.isRest);
+        const nCell = createNItNoteCell(index, pair.note, pair.registry, pair.isRest);
         row1.appendChild(nCell);
 
-        // iT cell in row 2 (shows interval from previous note/base)
-        const itCell = createNItTemporalCell(index, interval.temporalInterval);
+        // iT cell in row 2 - use temporalInterval from pair directly
+        const itCell = createNItTemporalCell(index, pair.temporalInterval);
         row2.appendChild(itCell);
       });
     } else {
