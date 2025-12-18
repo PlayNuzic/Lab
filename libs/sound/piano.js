@@ -11,6 +11,7 @@ let isLoaded = false;
 let loadPromise = null;
 let preloadInitiated = false;
 let connectedToMelodicChannel = false;
+let fallbackGain = null; // Used when melodic channel not available at load time
 
 /**
  * Load piano sampler with Salamander samples from CDN
@@ -48,13 +49,16 @@ export async function loadPiano() {
       baseUrl: 'https://tonejs.github.io/audio/salamander/'
     });
 
-    // Connect to melodic channel if available, otherwise fallback to destination
+    // Connect to melodic channel if available, otherwise use fallback gain node
     const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
     if (melodicChannel) {
       sampler.connect(melodicChannel);
       connectedToMelodicChannel = true;
     } else {
-      sampler.toDestination();
+      // Create a gain node we can disconnect later (toDestination() cannot be disconnected)
+      const Tone = window.Tone;
+      fallbackGain = new Tone.Gain(1).toDestination();
+      sampler.connect(fallbackGain);
       connectedToMelodicChannel = false;
     }
 
@@ -71,7 +75,7 @@ export async function loadPiano() {
 
 /**
  * Ensure sampler is connected to melodic channel if available
- * Reconnects if previously connected to destination but melodic channel now exists
+ * Reconnects from fallback gain node to melodic channel for mixer control
  */
 function ensureMelodicConnection() {
   if (!sampler || connectedToMelodicChannel) return;
@@ -79,11 +83,16 @@ function ensureMelodicConnection() {
   const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
   if (melodicChannel) {
     try {
-      sampler.disconnect();
+      // Disconnect from fallback gain and connect to melodic channel
+      if (fallbackGain) {
+        sampler.disconnect(fallbackGain);
+        fallbackGain.dispose();
+        fallbackGain = null;
+      }
       sampler.connect(melodicChannel);
       connectedToMelodicChannel = true;
     } catch (err) {
-      console.warn('Failed to reconnect piano to melodic channel:', err);
+      console.warn('Failed to connect piano to melodic channel:', err);
     }
   }
 }
