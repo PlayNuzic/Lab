@@ -478,7 +478,7 @@ export class TimelineAudio {
     this._schedulerOverrideSec = null;
 
     this._bus = { master: null, pulso: null, start: null, seleccionados: null, cycle: null, effects: null };
-    this._effectsEnabled = true; // Master effects chain enabled by default
+    this._effectsEnabled = false; // Master effects chain disabled by default
 
     this._sampleMap = null;
 
@@ -663,15 +663,22 @@ export class TimelineAudio {
       this._node = new AudioWorkletNode(ctx, 'timeline-processor');
 
       this._bus.master = ctx.createGain();
+      this._bus.master.gain.value = 0.75; // Default master volume at 75%
       this._bus.pulso = ctx.createGain();
+      this._bus.pulso.gain.value = 0.75; // Default channel volume at 75%
       this._bus.start = ctx.createGain();
       this._bus.seleccionados = ctx.createGain();
+      this._bus.seleccionados.gain.value = 0.75; // Default channel volume at 75%
       this._bus.cycle = ctx.createGain();
+      this._bus.cycle.gain.value = 0.75; // Default channel volume at 75%
+      this._bus.melodic = ctx.createGain(); // Channel for melodic instruments (piano, violin)
+      this._bus.melodic.gain.value = 0.75; // Default channel volume at 75%
 
       this._bus.pulso.connect(this._bus.master);
       this._bus.start.connect(this._bus.master);
       this._bus.seleccionados.connect(this._bus.master);
       this._bus.cycle.connect(this._bus.master);
+      this._bus.melodic.connect(this._bus.master);
 
       // Create master effects chain: EQ → Compressor → Limiter
       // Only create if context supports these methods (not available in some test mocks)
@@ -685,32 +692,38 @@ export class TimelineAudio {
           limiter: ctx.createDynamicsCompressor()
         };
 
-        // Configure EQ (highshelf for presence)
+        // Configure EQ (highshelf for subtle presence)
         this._bus.effects.eq.type = 'highshelf';
-        this._bus.effects.eq.frequency.value = 3000;
-        this._bus.effects.eq.gain.value = 2;
+        this._bus.effects.eq.frequency.value = 4000;
+        this._bus.effects.eq.gain.value = 1;  // Very subtle
 
-        // Configure Compressor
+        // Configure Compressor (gentle settings - only catches peaks)
         const comp = this._bus.effects.compressor;
-        comp.threshold.value = -18;
-        comp.knee.value = 12;
-        comp.ratio.value = 4;
-        comp.attack.value = 0.003;
-        comp.release.value = 0.25;
+        comp.threshold.value = -6;   // Only compress loud peaks
+        comp.knee.value = 20;        // Soft knee for transparent compression
+        comp.ratio.value = 2;        // Gentle ratio
+        comp.attack.value = 0.01;    // 10ms - allows transients through
+        comp.release.value = 0.2;    // 200ms - smooth release
 
-        // Configure Limiter (brick wall)
+        // Configure Limiter (safety limiter - transparent unless clipping)
         const lim = this._bus.effects.limiter;
-        lim.threshold.value = -1;
-        lim.knee.value = 0;
-        lim.ratio.value = 20;
-        lim.attack.value = 0.001;
-        lim.release.value = 0.1;
+        lim.threshold.value = -0.5;  // Only limits near clipping
+        lim.knee.value = 0;          // Hard knee for limiting
+        lim.ratio.value = 20;        // High ratio for true limiting
+        lim.attack.value = 0.001;    // Fast attack for limiting
+        lim.release.value = 0.05;    // 50ms - quick recovery
 
-        // Connect effects chain: master → eq → compressor → limiter → destination
-        this._bus.master.connect(this._bus.effects.eq);
-        this._bus.effects.eq.connect(this._bus.effects.compressor);
-        this._bus.effects.compressor.connect(this._bus.effects.limiter);
-        this._bus.effects.limiter.connect(ctx.destination);
+        // Connect based on effects enabled state
+        if (this._effectsEnabled) {
+          // Connect effects chain: master → eq → compressor → limiter → destination
+          this._bus.master.connect(this._bus.effects.eq);
+          this._bus.effects.eq.connect(this._bus.effects.compressor);
+          this._bus.effects.compressor.connect(this._bus.effects.limiter);
+          this._bus.effects.limiter.connect(ctx.destination);
+        } else {
+          // Effects disabled: connect master directly to destination
+          this._bus.master.connect(ctx.destination);
+        }
       } else {
         // Fallback: connect master directly to destination (no effects)
         this._bus.effects = null;
@@ -995,6 +1008,57 @@ export class TimelineAudio {
       previewSources.add(source);
     } catch (error) {
       console.warn('Failed to preview sound', error);
+    }
+  }
+
+  /**
+   * Play a sound through the master bus (affected by mixer controls)
+   * Unlike preview(), this uses the main audio context and respects mute/volume
+   * @param {string} soundKey - Sound key to play (e.g., 'click9')
+   * @param {string} channel - Channel to use: 'pulse', 'accent', 'subdivision' (default: 'pulse')
+   */
+  async playSound(soundKey, channel = 'pulse') {
+    await this._ensureContext();
+    if (!this._ctx || !this._bus.master) return;
+
+    const { url } = normalizeSound(soundKey, this._defaultAssignments.pulso);
+    if (!url) return;
+
+    try {
+      const buffer = await loadBufferForContext(this._ctx, url);
+      if (!buffer) return;
+
+      const source = this._ctx.createBufferSource();
+      source.buffer = buffer;
+
+      // Route to appropriate bus based on channel
+      let targetBus;
+      switch (channel) {
+        case 'accent':
+          targetBus = this._bus.seleccionados;
+          break;
+        case 'subdivision':
+          targetBus = this._bus.cycle;
+          break;
+        case 'pulse':
+        default:
+          targetBus = this._bus.pulso;
+          break;
+      }
+
+      if (targetBus) {
+        source.connect(targetBus);
+      } else {
+        source.connect(this._bus.master);
+      }
+
+      source.onended = () => {
+        try { source.disconnect(); } catch {}
+      };
+
+      source.start(this._ctx.currentTime + 0.01);
+    } catch (error) {
+      console.warn('Failed to play sound:', error);
     }
   }
 
@@ -1752,6 +1816,10 @@ export class TimelineAudio {
     const { eq, compressor, limiter } = this._bus.effects;
     return {
       enabled: this._effectsEnabled,
+      // Quick access for mixer knobs
+      compressorThreshold: compressor.threshold.value,
+      limiterThreshold: limiter.threshold.value,
+      // Detailed config
       eq: {
         type: eq.type,
         frequency: eq.frequency.value,
@@ -1773,15 +1841,24 @@ export class TimelineAudio {
       }
     };
   }
+
+  /**
+   * Get the melodic channel GainNode for external instruments (piano, violin)
+   * @returns {GainNode|null} The melodic channel GainNode or null if not initialized
+   */
+  getMelodicChannel() {
+    return this._bus?.melodic || null;
+  }
+
+  /**
+   * Set the volume of the melodic channel
+   * @param {number} volume - Volume level (0 to 1)
+   */
+  setMelodicVolume(volume) {
+    if (this._bus?.melodic && Number.isFinite(volume)) {
+      this._bus.melodic.gain.value = Math.max(0, Math.min(1, volume));
+    }
+  }
 }
 
 export default TimelineAudio;
-
-/**
- * Get the master output node for external instruments (piano, violin, etc.)
- * External instruments should connect to this node to pass through the master effects chain
- * @returns {GainNode|null} Master output node or null if not initialized
- */
-export function getMasterOutputNode() {
-  return window.NuzicAudioEngine?._bus?.master || null;
-}

@@ -151,11 +151,12 @@ if (typeof window !== 'undefined') {
 /**
  * Reprodueix un click curt de metrònom usant l'AudioContext compartit
  * Usa el so seleccionat al dropdown "Pulso" del header
+ * Passa pel bus master per respectar mute/fader del mixer
  */
 async function playMetronomeClick() {
   if (!audio) return;
   try {
-    await audio.preview(currentMetronomeSound);
+    await audio.playSound(currentMetronomeSound, 'pulse');
   } catch (err) {
     console.warn('Error reproduint metrònom:', err);
   }

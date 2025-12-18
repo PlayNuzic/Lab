@@ -553,6 +553,8 @@ body[data-theme='dark'] .fraction-info-bubble {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 10;
 }
 
 .mixer-channel__slider {
@@ -563,6 +565,8 @@ body[data-theme='dark'] .fraction-info-bubble {
   transform: rotate(-90deg);
   background: transparent;
   cursor: pointer;
+  position: relative;
+  z-index: 11;
 }
 
 .mixer-channel__slider:focus {
@@ -578,12 +582,13 @@ body[data-theme='dark'] .fraction-info-bubble {
 .mixer-channel__slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--selection-color);
-  margin-top: -6px;
+  margin-top: -9px;
   box-shadow: 0 0 0 2px currentColor;
+  cursor: grab;
 }
 
 .mixer-channel__slider::-moz-range-track {
@@ -593,11 +598,12 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .mixer-channel__slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--selection-color);
   border: 2px solid currentColor;
+  cursor: grab;
 }
 
 .mixer-channel__actions {
@@ -708,6 +714,93 @@ body[data-theme='dark'] .fraction-info-bubble {
 .mixer-action--p1-toggle .icon-on,
 .mixer-action--p1-toggle .icon-off {
   transition: opacity 0.2s ease;
+}
+
+/* FX Effects Column */
+.mixer-channel--fx {
+  min-width: 70px;
+}
+
+.mixer-channel__knobs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  height: 150px;
+  justify-content: center;
+}
+
+/* Circular Knob */
+.mixer-knob {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.mixer-knob__label {
+  font-size: 0.65rem;
+  color: var(--text-muted, #888);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.mixer-knob__dial {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+}
+
+.mixer-knob__dial svg {
+  display: block;
+}
+
+.mixer-knob__input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.mixer-knob__value {
+  font-size: 0.6rem;
+  color: var(--text-color);
+  font-variant-numeric: tabular-nums;
+}
+
+/* FX Toggle */
+.mixer-action--fx {
+  width: 100%;
+  max-width: 44px;
+}
+
+.mixer-channel--fx.suppressed .mixer-knob__dial svg circle:last-child {
+  stroke: var(--line-color, #444);
+}
+
+.mixer-channel__actions--empty {
+  height: 32px;
+  visibility: hidden;
+}
+
+@media (max-width: 600px) {
+  .mixer-channel--fx {
+    min-width: 60px;
+  }
+
+  .mixer-channel__knobs {
+    height: 130px;
+    gap: 0.4rem;
+  }
+
+  .mixer-knob__dial {
+    width: 38px;
+    height: 38px;
+  }
 }
 
 body[data-theme='dark'] .mixer-menu {

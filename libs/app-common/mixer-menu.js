@@ -23,6 +23,91 @@ function clamp01(value) {
   return Math.max(0, Math.min(1, num));
 }
 
+function createKnob({ label, min, max, value, onChange }) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'mixer-knob';
+
+  const labelEl = document.createElement('span');
+  labelEl.className = 'mixer-knob__label';
+  labelEl.textContent = label;
+
+  const knobContainer = document.createElement('div');
+  knobContainer.className = 'mixer-knob__dial';
+
+  // SVG circular knob
+  const size = 44;
+  const strokeWidth = 4;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  svg.setAttribute('width', size);
+  svg.setAttribute('height', size);
+
+  // Background track
+  const bgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  bgCircle.setAttribute('cx', size / 2);
+  bgCircle.setAttribute('cy', size / 2);
+  bgCircle.setAttribute('r', radius);
+  bgCircle.setAttribute('fill', 'none');
+  bgCircle.setAttribute('stroke', 'var(--line-color, #444)');
+  bgCircle.setAttribute('stroke-width', strokeWidth);
+  svg.appendChild(bgCircle);
+
+  // Value arc
+  const valueArc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  valueArc.setAttribute('cx', size / 2);
+  valueArc.setAttribute('cy', size / 2);
+  valueArc.setAttribute('r', radius);
+  valueArc.setAttribute('fill', 'none');
+  valueArc.setAttribute('stroke', 'var(--selection-color, #4a9eff)');
+  valueArc.setAttribute('stroke-width', strokeWidth);
+  valueArc.setAttribute('stroke-linecap', 'round');
+  valueArc.setAttribute('stroke-dasharray', circumference);
+  valueArc.setAttribute('transform', `rotate(-90 ${size / 2} ${size / 2})`);
+  svg.appendChild(valueArc);
+
+  knobContainer.appendChild(svg);
+
+  // Hidden input for interaction
+  const input = document.createElement('input');
+  input.type = 'range';
+  input.min = min;
+  input.max = max;
+  input.step = '1';
+  input.value = value;
+  input.className = 'mixer-knob__input';
+  knobContainer.appendChild(input);
+
+  // Value display
+  const valueDisplay = document.createElement('span');
+  valueDisplay.className = 'mixer-knob__value';
+  valueDisplay.textContent = `${value}`;
+
+  wrapper.appendChild(labelEl);
+  wrapper.appendChild(knobContainer);
+  wrapper.appendChild(valueDisplay);
+
+  // Update function
+  const updateKnob = (val) => {
+    const normalized = (val - min) / (max - min);
+    const offset = circumference * (1 - normalized * 0.75); // 270° arc
+    valueArc.setAttribute('stroke-dashoffset', offset);
+    valueDisplay.textContent = `${Math.round(val)}`;
+  };
+
+  updateKnob(value);
+
+  input.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    updateKnob(val);
+    onChange(val);
+  });
+
+  return { element: wrapper, input, update: updateKnob };
+}
+
 export function initMixerMenu({ menu, triggers = [], channels = [], longPress = DEFAULT_LONG_PRESS } = {}) {
   if (!menu || menu.dataset.enhanced === '1') return;
   const triggerButtons = Array.isArray(triggers) ? triggers.filter(Boolean) : [];
@@ -151,7 +236,7 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     slider.min = '0';
     slider.max = '1';
     slider.step = '0.01';
-    slider.value = '1';
+    slider.value = '0.75';
     slider.className = 'mixer-channel__slider';
     slider.dataset.channel = channelId;
     sliderWrapper.appendChild(slider);
@@ -186,6 +271,69 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
       soloBtn,
       labelEl
     });
+  });
+
+  // ========== EFFECTS COLUMN ==========
+  const fxWrapper = document.createElement('div');
+  fxWrapper.className = 'mixer-channel mixer-channel--fx suppressed';
+  fxWrapper.dataset.channel = 'fx';
+
+  // Label row: [FX] toggle button
+  const fxLabel = document.createElement('span');
+  fxLabel.className = 'mixer-channel__label';
+
+  const fxToggle = document.createElement('button');
+  fxToggle.type = 'button';
+  fxToggle.className = 'mixer-action mixer-action--fx';
+  fxToggle.setAttribute('aria-label', 'Toggle master effects');
+  fxToggle.innerHTML = createLetterIcon('FX');
+  fxLabel.appendChild(fxToggle);
+  fxWrapper.appendChild(fxLabel);
+
+  // Knobs container (replaces slider wrapper for FX column)
+  const knobsWrapper = document.createElement('div');
+  knobsWrapper.className = 'mixer-channel__knobs';
+
+  // Compressor knob
+  const compKnob = createKnob({
+    label: 'Comp',
+    min: -24,
+    max: 0,
+    value: -6,
+    onChange: (val) => window.NuzicAudioEngine?.setCompressorThreshold(val)
+  });
+  knobsWrapper.appendChild(compKnob.element);
+
+  // Limiter knob
+  const limKnob = createKnob({
+    label: 'Limit',
+    min: -6,
+    max: 0,
+    value: -0.5,
+    onChange: (val) => window.NuzicAudioEngine?.setLimiterThreshold(val)
+  });
+  knobsWrapper.appendChild(limKnob.element);
+
+  fxWrapper.appendChild(knobsWrapper);
+
+  // Empty actions row to maintain vertical alignment
+  const fxActions = document.createElement('div');
+  fxActions.className = 'mixer-channel__actions mixer-channel__actions--empty';
+  fxWrapper.appendChild(fxActions);
+
+  content.appendChild(fxWrapper);
+
+  // Store knob references for state sync
+  const fxControls = { fxToggle, fxWrapper, compKnob, limKnob };
+
+  // FX Toggle event listener
+  fxToggle.addEventListener('click', () => {
+    const audio = window.NuzicAudioEngine;
+    if (!audio) return;
+    const enabled = !audio.getEffectsEnabled();
+    audio.setEffectsEnabled(enabled);
+    fxToggle.classList.toggle('active', enabled);
+    fxWrapper.classList.toggle('suppressed', !enabled);
   });
 
   menu.innerHTML = '';
@@ -238,6 +386,23 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
         const iconOff = p1ToggleBtn.querySelector('.icon-off');
         if (iconOn) iconOn.style.display = currentState ? 'block' : 'none';
         if (iconOff) iconOff.style.display = currentState ? 'none' : 'block';
+      }
+    }
+
+    // Synchronize FX effects state when opening
+    const audio = window.NuzicAudioEngine;
+    if (audio?.getEffectsConfig) {
+      const config = audio.getEffectsConfig();
+      if (config && fxControls) {
+        // Update FX toggle state
+        fxControls.fxToggle.classList.toggle('active', config.enabled);
+        fxControls.fxWrapper.classList.toggle('suppressed', !config.enabled);
+
+        // Update knob values
+        fxControls.compKnob.update(config.compressorThreshold);
+        fxControls.compKnob.input.value = config.compressorThreshold;
+        fxControls.limKnob.update(config.limiterThreshold);
+        fxControls.limKnob.input.value = config.limiterThreshold;
       }
     }
 

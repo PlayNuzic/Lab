@@ -10,6 +10,7 @@ let sampler = null;
 let isLoaded = false;
 let loadPromise = null;
 let preloadInitiated = false;
+let connectedToMelodicChannel = false;
 
 /**
  * Load piano sampler with Salamander samples from CDN
@@ -47,14 +48,14 @@ export async function loadPiano() {
       baseUrl: 'https://tonejs.github.io/audio/salamander/'
     });
 
-    // Connect to master output node (to pass through master effects chain)
-    // Fallback to destination if TimelineAudio not initialized
-    const { getMasterOutputNode } = await import('./index.js');
-    const masterOutput = getMasterOutputNode();
-    if (masterOutput) {
-      sampler.connect(masterOutput);
+    // Connect to melodic channel if available, otherwise fallback to destination
+    const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+    if (melodicChannel) {
+      sampler.connect(melodicChannel);
+      connectedToMelodicChannel = true;
     } else {
       sampler.toDestination();
+      connectedToMelodicChannel = false;
     }
 
     // Wait for all samples to load
@@ -69,6 +70,25 @@ export async function loadPiano() {
 }
 
 /**
+ * Ensure sampler is connected to melodic channel if available
+ * Reconnects if previously connected to destination but melodic channel now exists
+ */
+function ensureMelodicConnection() {
+  if (!sampler || connectedToMelodicChannel) return;
+
+  const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+  if (melodicChannel) {
+    try {
+      sampler.disconnect();
+      sampler.connect(melodicChannel);
+      connectedToMelodicChannel = true;
+    } catch (err) {
+      console.warn('Failed to reconnect piano to melodic channel:', err);
+    }
+  }
+}
+
+/**
  * Play a single note
  * @param {number} midiNumber - MIDI note number (e.g., 60 = C4)
  * @param {number} duration - Note duration in seconds
@@ -79,6 +99,9 @@ export async function playNote(midiNumber, duration, when = 0) {
     console.warn('Piano not loaded, loading now...');
     await loadPiano();
   }
+
+  // Ensure connected to melodic channel for mixer control
+  ensureMelodicConnection();
 
   const Tone = window.Tone;
   const note = Tone.Frequency(midiNumber, 'midi').toNote();
