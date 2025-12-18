@@ -221,6 +221,27 @@ function updateLongitud() {
 }
 
 /**
+ * Fill gaps in pairs with silences for grid-editor display
+ * Uses fillGapsWithSilences but preserves registry from previous note
+ */
+function pairsWithSilencesForEditor(pairs) {
+  const basePair = { note: 0, pulse: 0, registry: CONFIG.DEFAULT_REGISTRO };
+  const filled = fillGapsWithSilences(pairs, basePair);
+
+  // Ensure silences have registry from previous note
+  let lastRegistry = CONFIG.DEFAULT_REGISTRO;
+  return filled.map(pair => {
+    if (!pair.isRest) {
+      lastRegistry = pair.registry ?? CONFIG.DEFAULT_REGISTRO;
+    }
+    return {
+      ...pair,
+      registry: pair.registry ?? lastRegistry
+    };
+  });
+}
+
+/**
  * Update cycle digit color based on current step
  * Blue on beat 0 of each cycle, orange otherwise
  */
@@ -712,9 +733,9 @@ function handleDragEnd() {
     // Sync grid directly (uses loadSelection + refresh for reliable update)
     syncGridFromPairs(currentPairs);
 
-    // Update grid editor
+    // Update grid editor (with silences filled in gaps)
     if (gridEditor) {
-      gridEditor.setPairs([...currentPairs]);
+      gridEditor.setPairs(pairsWithSilencesForEditor(currentPairs));
     }
 
     // Play preview sound (not for silences)
@@ -745,9 +766,9 @@ function handleDragEnd() {
       // Re-sync grid and temporal bars
       syncGridFromPairs(currentPairs);
 
-      // Update grid editor
+      // Update grid editor (with silences filled in gaps)
       if (gridEditor) {
-        gridEditor.setPairs([...currentPairs]);
+        gridEditor.setPairs(pairsWithSilencesForEditor(currentPairs));
       }
 
       // Play preview sound (not for silences)
@@ -997,15 +1018,15 @@ async function handleCellClick(rowData, colIndex, isSelected) {
       // Sort by pulse
       currentPairs.sort((a, b) => a.pulse - b.pulse);
 
-      // Update editor
-      gridEditor.setPairs(currentPairs);
+      // Update editor (with silences filled in gaps)
+      gridEditor.setPairs(pairsWithSilencesForEditor(currentPairs));
     }
   } else {
     // Cell was deselected - remove from grid-editor
     if (gridEditor) {
-      const currentPairs = gridEditor.getPairs();
+      const currentPairs = gridEditor.getPairs().filter(p => !p.isRest); // Remove silences first
       const updatedPairs = currentPairs.filter(p => p.pulse !== colIndex);
-      gridEditor.setPairs(updatedPairs);
+      gridEditor.setPairs(pairsWithSilencesForEditor(updatedPairs));
     }
   }
 }
@@ -1136,9 +1157,9 @@ function updateGridEditorMaxPulse() {
 
     // Restore pairs (if they fit within new max)
     if (currentPairs.length > 0) {
-      const validPairs = currentPairs.filter(p => p.pulse < totalPulses);
+      const validPairs = currentPairs.filter(p => !p.isRest && p.pulse < totalPulses);
       if (validPairs.length > 0) {
-        gridEditor.setPairs(validPairs);
+        gridEditor.setPairs(pairsWithSilencesForEditor(validPairs));
       }
     }
   }
@@ -1486,13 +1507,13 @@ function handleRandom() {
     accumulatedPulse += temporalInterval;
   }
 
-  // Update grid-editor with generated pairs
+  // Update grid-editor with generated pairs (with silences filled in gaps)
   if (gridEditor) {
-    gridEditor.setPairs(pairs);
+    gridEditor.setPairs(pairsWithSilencesForEditor(pairs));
   }
 
-  // Sync Grid 2D from pairs
-  syncGridFromPairs(pairs);
+  // Sync Grid 2D from pairs (without silences - gaps are implicit)
+  syncGridFromPairs(pairs.filter(p => !p.isRest));
 }
 
 // ========== RESET ==========
