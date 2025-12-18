@@ -36,6 +36,11 @@ export async function loadPiano() {
   const Tone = window.Tone;
 
   loadPromise = (async () => {
+    // Ensure Tone.js AudioContext is started (requires user gesture)
+    if (Tone.context.state !== 'running') {
+      await Tone.start();
+    }
+
     // Create URLs for Salamander piano samples (C and F# for each octave)
     const urls = {};
     for (let octave = 1; octave <= 7; octave++) {

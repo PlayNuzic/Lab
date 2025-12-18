@@ -51,6 +51,11 @@ export async function loadViolin() {
   const Tone = window.Tone;
 
   loadPromise = (async () => {
+    // Ensure Tone.js AudioContext is started (requires user gesture)
+    if (Tone.context.state !== 'running') {
+      await Tone.start();
+    }
+
     // Create URLs object mapping note names to files
     const urls = {};
     VIOLIN_NOTES.forEach(note => {
