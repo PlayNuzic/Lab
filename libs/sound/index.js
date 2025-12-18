@@ -477,7 +477,8 @@ export class TimelineAudio {
     this._schedulerEverySec = 0.02;
     this._schedulerOverrideSec = null;
 
-    this._bus = { master: null, pulso: null, start: null, seleccionados: null, cycle: null };
+    this._bus = { master: null, pulso: null, start: null, seleccionados: null, cycle: null, effects: null };
+    this._effectsEnabled = true; // Master effects chain enabled by default
 
     this._sampleMap = null;
 
@@ -551,7 +552,14 @@ export class TimelineAudio {
 
     Object.keys(this._bus).forEach((key) => {
       const node = this._bus[key];
-      if (node) {
+      if (key === 'effects' && node) {
+        // Disconnect all effects nodes
+        Object.values(node).forEach((effectNode) => {
+          if (effectNode) {
+            try { effectNode.disconnect(); } catch {}
+          }
+        });
+      } else if (node) {
         try { node.disconnect(); } catch {}
       }
       this._bus[key] = null;
@@ -664,7 +672,50 @@ export class TimelineAudio {
       this._bus.start.connect(this._bus.master);
       this._bus.seleccionados.connect(this._bus.master);
       this._bus.cycle.connect(this._bus.master);
-      this._bus.master.connect(ctx.destination);
+
+      // Create master effects chain: EQ → Compressor → Limiter
+      // Only create if context supports these methods (not available in some test mocks)
+      const supportsEffects = typeof ctx.createBiquadFilter === 'function' &&
+                              typeof ctx.createDynamicsCompressor === 'function';
+
+      if (supportsEffects) {
+        this._bus.effects = {
+          eq: ctx.createBiquadFilter(),
+          compressor: ctx.createDynamicsCompressor(),
+          limiter: ctx.createDynamicsCompressor()
+        };
+
+        // Configure EQ (highshelf for presence)
+        this._bus.effects.eq.type = 'highshelf';
+        this._bus.effects.eq.frequency.value = 3000;
+        this._bus.effects.eq.gain.value = 2;
+
+        // Configure Compressor
+        const comp = this._bus.effects.compressor;
+        comp.threshold.value = -18;
+        comp.knee.value = 12;
+        comp.ratio.value = 4;
+        comp.attack.value = 0.003;
+        comp.release.value = 0.25;
+
+        // Configure Limiter (brick wall)
+        const lim = this._bus.effects.limiter;
+        lim.threshold.value = -1;
+        lim.knee.value = 0;
+        lim.ratio.value = 20;
+        lim.attack.value = 0.001;
+        lim.release.value = 0.1;
+
+        // Connect effects chain: master → eq → compressor → limiter → destination
+        this._bus.master.connect(this._bus.effects.eq);
+        this._bus.effects.eq.connect(this._bus.effects.compressor);
+        this._bus.effects.compressor.connect(this._bus.effects.limiter);
+        this._bus.effects.limiter.connect(ctx.destination);
+      } else {
+        // Fallback: connect master directly to destination (no effects)
+        this._bus.effects = null;
+        this._bus.master.connect(ctx.destination);
+      }
 
       await this._initPlayers();
 
@@ -1632,6 +1683,105 @@ export class TimelineAudio {
 
     return { bpm, taps, remaining, applied };
   }
+
+  // ========== MASTER EFFECTS CHAIN CONTROL ==========
+
+  /**
+   * Enable or disable the master effects chain (EQ + Compressor + Limiter)
+   * When disabled, audio goes directly from master to destination (bypass)
+   * @param {boolean} enabled - Whether effects should be enabled
+   */
+  setEffectsEnabled(enabled) {
+    if (!this._bus.master || !this._ctx) return;
+
+    const wasEnabled = this._effectsEnabled;
+    this._effectsEnabled = !!enabled;
+
+    if (wasEnabled === this._effectsEnabled) return;
+
+    try {
+      if (enabled) {
+        // Reconnect through effects chain
+        this._bus.master.disconnect();
+        this._bus.master.connect(this._bus.effects.eq);
+      } else {
+        // Bypass: connect master directly to destination
+        this._bus.master.disconnect();
+        this._bus.master.connect(this._ctx.destination);
+      }
+    } catch (err) {
+      console.warn('Failed to toggle effects chain:', err);
+    }
+  }
+
+  /**
+   * Check if master effects chain is enabled
+   * @returns {boolean}
+   */
+  getEffectsEnabled() {
+    return this._effectsEnabled;
+  }
+
+  /**
+   * Set compressor threshold
+   * @param {number} db - Threshold in dB (typical range: -50 to 0)
+   */
+  setCompressorThreshold(db) {
+    if (this._bus.effects?.compressor && Number.isFinite(db)) {
+      this._bus.effects.compressor.threshold.value = db;
+    }
+  }
+
+  /**
+   * Set limiter threshold
+   * @param {number} db - Threshold in dB (typical range: -10 to 0)
+   */
+  setLimiterThreshold(db) {
+    if (this._bus.effects?.limiter && Number.isFinite(db)) {
+      this._bus.effects.limiter.threshold.value = db;
+    }
+  }
+
+  /**
+   * Get current effects parameters
+   * @returns {Object|null} Current effects configuration
+   */
+  getEffectsConfig() {
+    if (!this._bus.effects) return null;
+
+    const { eq, compressor, limiter } = this._bus.effects;
+    return {
+      enabled: this._effectsEnabled,
+      eq: {
+        type: eq.type,
+        frequency: eq.frequency.value,
+        gain: eq.gain.value
+      },
+      compressor: {
+        threshold: compressor.threshold.value,
+        knee: compressor.knee.value,
+        ratio: compressor.ratio.value,
+        attack: compressor.attack.value,
+        release: compressor.release.value
+      },
+      limiter: {
+        threshold: limiter.threshold.value,
+        knee: limiter.knee.value,
+        ratio: limiter.ratio.value,
+        attack: limiter.attack.value,
+        release: limiter.release.value
+      }
+    };
+  }
 }
 
 export default TimelineAudio;
+
+/**
+ * Get the master output node for external instruments (piano, violin, etc.)
+ * External instruments should connect to this node to pass through the master effects chain
+ * @returns {GainNode|null} Master output node or null if not initialized
+ */
+export function getMasterOutputNode() {
+  return window.NuzicAudioEngine?._bus?.master || null;
+}

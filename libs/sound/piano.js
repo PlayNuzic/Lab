@@ -45,7 +45,17 @@ export async function loadPiano() {
       urls,
       release: 1,
       baseUrl: 'https://tonejs.github.io/audio/salamander/'
-    }).toDestination();
+    });
+
+    // Connect to master output node (to pass through master effects chain)
+    // Fallback to destination if TimelineAudio not initialized
+    const { getMasterOutputNode } = await import('./index.js');
+    const masterOutput = getMasterOutputNode();
+    if (masterOutput) {
+      sampler.connect(masterOutput);
+    } else {
+      sampler.toDestination();
+    }
 
     // Wait for all samples to load
     await Tone.loaded();

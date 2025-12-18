@@ -59,7 +59,17 @@ export async function loadViolin() {
       urls,
       release: 0.8,  // Slightly shorter release than piano for violin character
       baseUrl: BASE_URL
-    }).toDestination();
+    });
+
+    // Connect to master output node (to pass through master effects chain)
+    // Fallback to destination if TimelineAudio not initialized
+    const { getMasterOutputNode } = await import('./index.js');
+    const masterOutput = getMasterOutputNode();
+    if (masterOutput) {
+      sampler.connect(masterOutput);
+    } else {
+      sampler.toDestination();
+    }
 
     // Wait for all samples to load
     await Tone.loaded();
