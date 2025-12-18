@@ -799,6 +799,8 @@ export function createGridEditor(config = {}) {
       if (text && !isNaN(noteVal) && (noteVal < noteRange[0] || noteVal > noteRange[1])) {
         showInputTooltip(input, `Nota: ${noteRange[0]}-${noteRange[1]}`);
         input.classList.add('invalid');
+        input.value = ''; // Clear invalid value
+        input.focus();    // Keep caret in same cell
         return;
       }
 
@@ -844,6 +846,8 @@ export function createGridEditor(config = {}) {
       if (text && !isNaN(regVal) && (regVal < regRange[0] || regVal > regRange[1])) {
         showInputTooltip(input, `Registro: ${regRange[0]}-${regRange[1]}`);
         input.classList.add('invalid');
+        input.value = ''; // Clear invalid value
+        input.focus();    // Keep caret in same cell
         return;
       }
 
@@ -891,11 +895,15 @@ export function createGridEditor(config = {}) {
       if (text && !isNaN(itVal) && itVal < 1) {
         showInputTooltip(input, 'iT debe ser ≥ 1');
         input.classList.add('invalid');
+        input.value = ''; // Clear invalid value
+        input.focus();    // Keep caret in same cell
         return;
       }
       if (text && !isNaN(itVal) && currentTotal > maxTotalPulse) {
         showInputTooltip(input, `iT máximo: ${maxTotalPulse - currentTotal + itVal}`);
         input.classList.add('invalid');
+        input.value = ''; // Clear invalid value
+        input.focus();    // Keep caret in same cell
         return;
       }
 
@@ -1493,6 +1501,8 @@ export function createGridEditor(config = {}) {
       if (text && !isNaN(noteVal) && (noteVal < 0 || noteVal > 11)) {
         showInputTooltip(input, 'Nota: 0-11');
         input.classList.add('invalid');
+        input.value = ''; // Clear invalid value
+        input.focus();    // Keep caret in same cell
         return;
       }
       // Auto-jump to registry after valid note
@@ -1516,6 +1526,8 @@ export function createGridEditor(config = {}) {
       if (text && !isNaN(regVal) && (regVal < registryRange[0] || regVal > registryRange[1])) {
         showInputTooltip(input, `Registro: ${registryRange[0]}-${registryRange[1]}`);
         input.classList.add('invalid');
+        input.value = ''; // Clear invalid value
+        input.focus();    // Keep caret in same cell
         return;
       }
       // Auto-jump to iT after valid registry (if not first cell)
@@ -1548,11 +1560,15 @@ export function createGridEditor(config = {}) {
       if (text && !isNaN(itVal) && itVal < 1) {
         showInputTooltip(input, 'iT debe ser ≥ 1');
         input.classList.add('invalid');
+        input.value = ''; // Clear invalid value
+        input.focus();    // Keep caret in same cell
         return;
       }
       if (text && !isNaN(itVal) && currentTotal > maxTotalPulse) {
         showInputTooltip(input, `iT máximo: ${maxTotalPulse - currentTotal + itVal}`);
         input.classList.add('invalid');
+        input.value = ''; // Clear invalid value
+        input.focus();    // Keep caret in same cell
         return;
       }
       // Auto-jump to next NrX after valid iT
@@ -2305,6 +2321,8 @@ export function createGridEditor(config = {}) {
         const maxIT = maxPulse - notePulse;
         showInputTooltip(itInput, `iT máximo: ${maxIT}`);
         itInput.classList.add('invalid');
+        itInput.value = ''; // Clear invalid value
+        itInput.focus();    // Keep caret in same cell
         break;
       }
 
@@ -2330,6 +2348,8 @@ export function createGridEditor(config = {}) {
 
           // Mark input as invalid (add CSS class for visual feedback)
           isInput.classList.add('invalid');
+          isInput.value = ''; // Clear invalid value
+          isInput.focus();    // Keep caret in same cell
 
           // Break parsing (preserve subsequent data per previous fix)
           break;
