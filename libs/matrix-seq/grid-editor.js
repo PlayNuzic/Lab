@@ -1058,36 +1058,49 @@ export function createGridEditor(config = {}) {
           event.preventDefault();
           const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
           if (type === 'note') {
-            // Note → Registry
+            // Note → Registry (same cell)
             const regInput = cell?.querySelector('.n-it-registry-input');
-            if (regInput && regInput.style.display !== 'none') {
+            if (regInput && !regInput.disabled) {
               regInput.focus();
             } else {
-              jumpToNextNItCell(index);
+              // Silence or no registry - go to iT
+              const targetItIndex = hideInitialPair ? index : index + 1;
+              const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+              if (itInput) {
+                itInput.focus();
+              } else {
+                jumpToNextNItCell(index);
+              }
             }
           } else if (type === 'registry') {
             // With hideInitialPair: R[n] → iT[n] (same index)
             // Without hideInitialPair: R[n] → iT[n+1] (next index)
             const targetItIndex = hideInitialPair ? index : index + 1;
-            // Ensure target iT cell exists
-            if (!container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`)) {
+            let itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+            if (!itInput) {
               jumpToNextNItCell(index);
+              // After creating, try to find it again
+              requestAnimationFrame(() => {
+                itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+                if (itInput) itInput.focus();
+              });
+            } else {
+              itInput.focus();
             }
-            requestAnimationFrame(() => {
-              const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
-              if (itInput) itInput.focus();
-            });
           } else if (type === 'it') {
             // With hideInitialPair: iT[n] → N[n+1]
             // Without hideInitialPair: iT[n] → N[n]
             const targetNIndex = hideInitialPair ? index + 1 : index;
-            if (!container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`)) {
+            let noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
+            if (!noteInput) {
               jumpToNextNItCell(index);
+              requestAnimationFrame(() => {
+                noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
+                if (noteInput) noteInput.focus();
+              });
+            } else {
+              noteInput.focus();
             }
-            requestAnimationFrame(() => {
-              const noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
-              if (noteInput) noteInput.focus();
-            });
           }
         }
         break;
