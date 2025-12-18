@@ -16,8 +16,9 @@ import {
 let pulses = [];
 let isPlaying = false;
 let audio = null;
-let noises = [];  // Array de {startPulse, duration, barElement} para 2 ruidos
+let notes = [];  // Array de {startPulse, duration, midi, barElement} para 2 notas
 let currentBPM = 0;
+let currentInstrument = 'violin';  // Default: violín
 
 // Referencias a elementos del DOM
 let timeline = null;
@@ -53,6 +54,12 @@ bindSharedSoundEvents({
     baseSound: 'setBase',      // Dropdown "Pulso" → audio.setBase()
     accentSound: 'setAccent'   // Dropdown "Seleccionado" → audio.setAccent()
   }
+});
+
+// ========== LISTENER DE INSTRUMENTO ==========
+window.addEventListener('sharedui:instrument', (e) => {
+  currentInstrument = e.detail.instrument;
+  console.log(`Instrumento seleccionado: ${currentInstrument}`);
 });
 
 // ========== FUNCIONES DE DIBUJO DEL TIMELINE ==========
@@ -207,12 +214,20 @@ function getRandomPulseIndex() {
 }
 
 /**
- * Genera 2 notas de 1 pulso cada una
+ * Genera una nota MIDI aleatoria del registro 4 (C4-B4)
+ * @returns {number} MIDI 60-71
+ */
+function getRandomMidiNote() {
+  return 60 + Math.floor(Math.random() * 12);
+}
+
+/**
+ * Genera 2 notas de 1 pulso cada una con altura MIDI del registro 4
  * Primera nota: aleatoria entre pulsos 0-3
  * Segunda nota: aleatoria entre pulsos 4-7
- * @returns {Array} [{startPulse: number, duration: 1}, {startPulse: number, duration: 1}]
+ * @returns {Array} [{startPulse: number, duration: 1, midi: number}, ...]
  */
-function generate2Noises() {
+function generate2Notes() {
   // Primera nota: aleatoria entre 0-3
   const start1 = Math.floor(Math.random() * 4);
 
@@ -220,9 +235,24 @@ function generate2Noises() {
   const start2 = 4 + Math.floor(Math.random() * 4);
 
   return [
-    { startPulse: start1, duration: 1 },
-    { startPulse: start2, duration: 1 }
+    { startPulse: start1, duration: 1, midi: getRandomMidiNote() },
+    { startPulse: start2, duration: 1, midi: getRandomMidiNote() }
   ];
+}
+
+/**
+ * Reproduce una nota melódica con el instrumento seleccionado
+ * @param {number} midiNumber - Número MIDI (60-71 para registro 4)
+ * @param {number} durationSec - Duración en segundos
+ */
+async function playMelodicNote(midiNumber, durationSec) {
+  if (currentInstrument === 'piano') {
+    const { playNote } = await import('../../libs/sound/piano.js');
+    await playNote(midiNumber, durationSec);
+  } else {
+    const { playNote } = await import('../../libs/sound/violin.js');
+    await playNote(midiNumber, durationSec);
+  }
 }
 
 async function handlePlay() {
@@ -233,24 +263,19 @@ async function handlePlay() {
     await initAudio();
   }
 
-  // Generar BPM y 2 ruidos aleatorios sin solapamiento
+  // Generar BPM y 2 notas aleatorias con MIDI del registro 4
   currentBPM = getRandomBPM();
-  noises = generate2Noises();
+  notes = generate2Notes();
 
-  console.log(`BPM: ${currentBPM}`);
-  console.log(`Ruido 1: pulso ${noises[0].startPulse}, duración ${noises[0].duration}`);
-  console.log(`Ruido 2: pulso ${noises[1].startPulse}, duración ${noises[1].duration}`);
+  console.log(`BPM: ${currentBPM}, Instrumento: ${currentInstrument}`);
+  console.log(`Nota 1: pulso ${notes[0].startPulse}, MIDI ${notes[0].midi}`);
+  console.log(`Nota 2: pulso ${notes[1].startPulse}, MIDI ${notes[1].midi}`);
 
   // Calcular intervalo entre pulsos (en segundos)
   const intervalSec = 60 / currentBPM;
 
-  // Crear Set con todos los pulsos que deben reproducir ruido
+  // Set vacío - las notas melódicas se reproducen en el callback, no por audio.play()
   const selectedPulses = new Set();
-  noises.forEach(noise => {
-    for (let i = 0; i < noise.duration; i++) {
-      selectedPulses.add(noise.startPulse + i);
-    }
-  });
 
   // Marcar como reproduciendo
   isPlaying = true;
@@ -262,11 +287,11 @@ async function handlePlay() {
   // Limpiar highlights previos y barras de duración previas
   highlightController.clearHighlights();
   clearIntervalHighlights(timeline, 'interval-bar');
-  // Limpiar cualquier barra anterior de noises previos
-  noises.forEach(noise => {
-    if (noise.barElement) {
-      noise.barElement.remove();
-      noise.barElement = null;
+  // Limpiar cualquier barra anterior de notes previos
+  notes.forEach(note => {
+    if (note.barElement) {
+      note.barElement.remove();
+      note.barElement = null;
     }
   });
 
@@ -274,7 +299,7 @@ async function handlePlay() {
   audio.play(
     TOTAL_PULSES,      // 9 pasos para reproducir índices 0-8
     intervalSec,       // Intervalo entre pulsos
-    selectedPulses,    // Set con índices de pulsos que tienen ruido
+    selectedPulses,    // Set con índices de pulsos que tienen nota
     false,             // Sin loop
     (step) => {
       // Callback por cada pulso
@@ -288,22 +313,24 @@ async function handlePlay() {
         highlightIntervalBar(timeline, intervalIndex, intervalSec * 1000, 'interval-bar');
       }
 
-      // Verificar si algún ruido empieza en este pulso
-      noises.forEach((noise) => {
-        if (step === noise.startPulse) {
-          // Crear barra de duración y guardar referencia en el objeto noise
-          noise.barElement = createDurationBar(noise, intervalSec);
+      // Verificar si alguna nota empieza en este pulso
+      notes.forEach((note) => {
+        if (step === note.startPulse) {
+          // Crear barra de duración y guardar referencia en el objeto note
+          note.barElement = createDurationBar(note, intervalSec);
+          // Reproducir nota melódica con el instrumento seleccionado
+          playMelodicNote(note.midi, intervalSec * note.duration);
         }
       });
 
-      // Verificar si algún ruido termina en este pulso
-      noises.forEach((noise) => {
-        if (step === noise.startPulse + noise.duration - 1) {
+      // Verificar si alguna nota termina en este pulso
+      notes.forEach((note) => {
+        if (step === note.startPulse + note.duration - 1) {
           // Programar eliminación de barra después del pulso
           setTimeout(() => {
-            if (noise.barElement) {
-              noise.barElement.remove();
-              noise.barElement = null;
+            if (note.barElement) {
+              note.barElement.remove();
+              note.barElement = null;
             }
           }, intervalSec * 1000);
         }
@@ -321,10 +348,10 @@ async function handlePlay() {
       highlightController.clearHighlights();
       clearIntervalHighlights(timeline, 'interval-bar');
       // Limpiar todas las barras de duración
-      noises.forEach(noise => {
-        if (noise.barElement) {
-          noise.barElement.remove();
-          noise.barElement = null;
+      notes.forEach(note => {
+        if (note.barElement) {
+          note.barElement.remove();
+          note.barElement = null;
         }
       });
       console.log('Metrónomo finalizado');
@@ -336,21 +363,21 @@ async function handlePlay() {
 }
 
 /**
- * Crea y anima una barra de duración para un ruido
- * @param {Object} noise - {startPulse, duration}
+ * Crea y anima una barra de duración para una nota
+ * @param {Object} note - {startPulse, duration, midi}
  * @param {number} intervalSec - Intervalo entre pulsos en segundos
  * @returns {HTMLElement} Referencia al elemento de barra creado
  */
-function createDurationBar(noise, intervalSec) {
+function createDurationBar(note, intervalSec) {
   if (!timeline) return null;
 
   // Calcular posiciones en porcentaje
   const pulseSpacing = 100 / (TOTAL_PULSES - 1); // Espaciado entre pulsos: 100% / 8 = 12.5%
-  const startPercent = noise.startPulse * pulseSpacing;
-  const widthPercent = noise.duration * pulseSpacing;
+  const startPercent = note.startPulse * pulseSpacing;
+  const widthPercent = note.duration * pulseSpacing;
 
   // Calcular duración de animación
-  const animationDuration = intervalSec * noise.duration;
+  const animationDuration = intervalSec * note.duration;
 
   // Crear elemento de barra
   const bar = document.createElement('div');
