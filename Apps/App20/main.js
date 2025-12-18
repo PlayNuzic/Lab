@@ -717,6 +717,11 @@ function handleDragEnd() {
       gridEditor.setPairs([...currentPairs]);
     }
 
+    // Play preview sound (not for silences)
+    if (!originalPair.isRest) {
+      playNotePreview(originalPair.note, originalPair.registry, newIT);
+    }
+
     // Reset flag after next animation frame (covers both sync and async operations)
     requestAnimationFrame(() => {
       isUpdatingFromDrag = false;
@@ -745,6 +750,11 @@ function handleDragEnd() {
         gridEditor.setPairs([...currentPairs]);
       }
 
+      // Play preview sound (not for silences)
+      if (!originalPair.isRest) {
+        playNotePreview(originalPair.note, originalPair.registry, newIT);
+      }
+
       // Reset flag after next animation frame
       requestAnimationFrame(() => {
         isUpdatingFromDrag = false;
@@ -764,6 +774,23 @@ function handleDragEnd() {
     mode: null,
     previewElement: null
   };
+}
+
+/**
+ * Play a preview sound for a note with given duration
+ * @param {number} note - Note index (0-11)
+ * @param {number} registry - Registry (3, 4, or 5)
+ * @param {number} iT - Temporal interval (duration in pulses)
+ */
+async function playNotePreview(note, registry, iT) {
+  const audioInstance = await initAudio();
+  if (!window.Tone || !audioInstance) return;
+
+  // Calculate MIDI: registry * 12 + note + 12 (midiOffset)
+  const midi = registry * CONFIG.NOTES_PER_REGISTRY + note + CONFIG.MIDI_OFFSET;
+  const bpm = bpmController?.getValue() || CONFIG.DEFAULT_BPM;
+  const duration = (iT * (60 / bpm)) * 0.9;
+  audioInstance.playNote(midi, duration, window.Tone.now());
 }
 
 /**
