@@ -1056,16 +1056,16 @@ export function createGridEditor(config = {}) {
       case 'ArrowRight':
         if (isAtEnd(input)) {
           event.preventDefault();
-          const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+          // With hideInitialPair: N[n] → R[n] → iT[n] → N[n+1] → R[n+1] → iT[n+1] ...
+          // The iT[n] corresponds to N[n], not to N[n-1]
           if (type === 'note') {
             // Note → Registry (same cell)
             const regInput = cell?.querySelector('.n-it-registry-input');
             if (regInput && !regInput.disabled) {
               regInput.focus();
             } else {
-              // Silence or no registry - go to iT
-              const targetItIndex = hideInitialPair ? index : index + 1;
-              const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+              // Silence or no registry - go to iT[index]
+              const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
               if (itInput) {
                 itInput.focus();
               } else {
@@ -1073,24 +1073,21 @@ export function createGridEditor(config = {}) {
               }
             }
           } else if (type === 'registry') {
-            // With hideInitialPair: R[n] → iT[n] (same index)
-            // Without hideInitialPair: R[n] → iT[n+1] (next index)
-            const targetItIndex = hideInitialPair ? index : index + 1;
-            let itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
-            if (!itInput) {
-              jumpToNextNItCell(index);
-              // After creating, try to find it again
-              requestAnimationFrame(() => {
-                itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
-                if (itInput) itInput.focus();
-              });
-            } else {
+            // Registry[n] → iT[n] (always same index with hideInitialPair)
+            const itInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
+            if (itInput) {
               itInput.focus();
+            } else {
+              // iT doesn't exist, create next cell pair and focus the iT
+              jumpToNextNItCell(index);
+              requestAnimationFrame(() => {
+                const newItInput = container.querySelector(`.n-it-temporal-input[data-index="${index}"]`);
+                if (newItInput) newItInput.focus();
+              });
             }
           } else if (type === 'it') {
-            // With hideInitialPair: iT[n] → N[n+1]
-            // Without hideInitialPair: iT[n] → N[n]
-            const targetNIndex = hideInitialPair ? index + 1 : index;
+            // iT[n] → N[n+1]
+            const targetNIndex = index + 1;
             let noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
             if (!noteInput) {
               jumpToNextNItCell(index);
@@ -1108,21 +1105,24 @@ export function createGridEditor(config = {}) {
       case 'ArrowLeft':
         if (isAtStart(input)) {
           event.preventDefault();
-          const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+          // With hideInitialPair: ... ← iT[n] ← R[n] ← N[n] ← iT[n-1] ← R[n-1] ← N[n-1]
           if (type === 'registry') {
             // Registry → Note (same cell)
             const noteInput = cell?.querySelector('.n-it-note-input');
             if (noteInput) noteInput.focus();
           } else if (type === 'it') {
-            // With hideInitialPair: iT[n] → R[n] (same N cell)
-            // Without hideInitialPair: iT[n] → R[n-1] (previous N cell)
-            const targetRegIndex = hideInitialPair ? index : index - 1;
-            const regInput = container.querySelector(`.n-it-registry-input[data-index="${targetRegIndex}"]`);
-            if (regInput) regInput.focus();
+            // iT[n] → R[n] (same index)
+            const regInput = container.querySelector(`.n-it-registry-input[data-index="${index}"]`);
+            if (regInput && !regInput.disabled) {
+              regInput.focus();
+            } else {
+              // Registry disabled (silence) - go directly to N[n]
+              const noteInput = container.querySelector(`.n-it-note-input[data-index="${index}"]`);
+              if (noteInput) noteInput.focus();
+            }
           } else if (type === 'note' && index > 0) {
-            // With hideInitialPair: N[n] → iT[n-1] (previous iT)
-            // Without hideInitialPair: N[n] → iT[n] (same index iT)
-            const targetItIndex = hideInitialPair ? index - 1 : index;
+            // N[n] → iT[n-1]
+            const targetItIndex = index - 1;
             const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
             if (itInput) {
               itInput.focus();
