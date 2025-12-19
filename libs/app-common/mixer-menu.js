@@ -603,7 +603,13 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     }, true);
   });
 
+  // Track if pointer down happened inside menu (for focusout handling)
+  let lastPointerDownInside = false;
+
   document.addEventListener('pointerdown', (event) => {
+    // Track pointer down location for focusout handling
+    lastPointerDownInside = menu.contains(event.target);
+
     if (!menuOpen) return;
     if (menu.contains(event.target)) return;
     if (triggerButtons.some(btn => btn.contains(event.target))) return;
@@ -625,9 +631,13 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   menu.addEventListener('focusout', (event) => {
     if (!menuOpen) return;
     const next = event.relatedTarget;
-    if (!next || menu.contains(next)) return;
+    // If focus stays inside the menu, don't close
+    if (next && menu.contains(next)) return;
     // Don't close if focus moved to a trigger button (Play/Tap)
     if (triggerButtons.includes(next)) return;
+    // If relatedTarget is null but pointer down was inside menu, don't close
+    // (happens when clicking on non-focusable elements like <li> in dropdowns)
+    if (!next && lastPointerDownInside) return;
     closeMenu();
   });
 
