@@ -34,47 +34,26 @@ export async function loadPiano() {
   const Tone = window.Tone;
 
   loadPromise = (async () => {
-    try {
-      // Ensure Tone.js AudioContext is started (requires user gesture)
-      if (Tone.context.state !== 'running') {
-        await Tone.start();
-      }
-
-      // Create URLs for Salamander piano samples (C and F# for each octave)
-      const urls = {};
-      for (let octave = 1; octave <= 7; octave++) {
-        urls[`C${octave}`] = `C${octave}.mp3`;
-        urls[`F#${octave}`] = `Fs${octave}.mp3`;
-      }
-
-      sampler = new Tone.Sampler({
-        urls,
-        release: 1,
-        baseUrl: 'https://tonejs.github.io/audio/salamander/'
-      });
-
-      // Connect to melodic channel if available, otherwise direct to destination
-      const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
-      if (melodicChannel) {
-        sampler.connect(melodicChannel);
-      } else {
-        // No melodic channel - connect directly to destination
-        sampler.toDestination();
-      }
-
-      // Wait for all samples to load
-      await Tone.loaded();
-      isLoaded = true;
-
-      console.log('Piano loaded successfully');
-      return sampler;
-    } catch (err) {
-      // Reset state on failure so retry is possible
-      loadPromise = null;
-      sampler = null;
-      isLoaded = false;
-      throw err;
+    // Create URLs for Salamander piano samples (C and F# for each octave)
+    const urls = {};
+    for (let octave = 1; octave <= 7; octave++) {
+      urls[`C${octave}`] = `C${octave}.mp3`;
+      urls[`F#${octave}`] = `Fs${octave}.mp3`;
     }
+
+    // Create sampler and connect to destination in one chain (Tone.js pattern)
+    sampler = new Tone.Sampler({
+      urls,
+      release: 1,
+      baseUrl: 'https://tonejs.github.io/audio/salamander/'
+    }).toDestination();
+
+    // Wait for all samples to load
+    await Tone.loaded();
+    isLoaded = true;
+
+    console.log('Piano loaded successfully');
+    return sampler;
   })();
 
   return loadPromise;
@@ -190,7 +169,10 @@ export async function preloadPiano(options = {}) {
   } catch (err) {
     preloadInitiated = false; // Allow retry
     onError?.(err);
-    console.warn('Piano preload failed:', err);
+    // Only log non-access errors (InvalidAccessError is expected during early preload)
+    if (!(err instanceof DOMException && err.name === 'InvalidAccessError')) {
+      console.warn('Piano preload failed:', err);
+    }
   }
 }
 
