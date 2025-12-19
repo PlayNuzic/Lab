@@ -1,13 +1,13 @@
 // App10: Línea Sonora - Visual melodic line with piano playback
 import { createSoundline } from '../../libs/app-common/soundline.js';
-import { loadPiano, setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
+import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { createNoteHighlightController } from '../../libs/app-common/note-highlight.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 
 // ========== ESTADO ==========
 let isPlaying = false;
-let piano = null;
+let audio = null;
 let soundline = null;
 let noteHighlightController = null;
 let randomNotes = [];
@@ -59,31 +59,55 @@ function drawSoundline() {
   console.log('Soundline creada correctamente');
 }
 
-// ========== FUNCIONES DE AUDIO ==========
-async function initPiano() {
-  if (!piano) {
-    console.log('Asegurando que Tone.js esté cargado...');
-    await ensureToneLoaded();
-    console.log('Cargando piano...');
-    piano = await loadPiano();
-    console.log('Piano cargado correctamente');
+// ========== AUDIO ==========
+// Usar el mismo patrón que App13 - createRhythmAudioInitializer
+const _baseInitAudio = createRhythmAudioInitializer({
+  getSoundSelects: () => ({
+    baseSoundSelect: document.querySelector('#baseSoundSelect'),
+    accentSoundSelect: document.querySelector('#accentSoundSelect')
+  })
+});
+
+async function initAudio() {
+  if (!audio) {
+    audio = await _baseInitAudio();
+    if (typeof window !== 'undefined') {
+      window.__labAudio = audio;
+      window.NuzicAudioEngine = audio;
+    }
+    console.log('Audio engine inicializado');
   }
-  return piano;
+  return audio;
+}
+
+if (typeof window !== 'undefined') {
+  window.__labInitAudio = initAudio;
+}
+
+/**
+ * Reproduce una nota melódica con piano (patrón App13)
+ * @param {number} midiNumber - Número MIDI (60-71 para registro 4)
+ * @param {number} durationSec - Duración en segundos
+ */
+async function playMelodicNote(midiNumber, durationSec) {
+  const { playNote } = await import('../../libs/sound/piano.js');
+  await playNote(midiNumber, durationSec);
 }
 
 async function handlePlay() {
   if (isPlaying) return; // Bloquear si ya está reproduciendo
 
-  // Show loading indicator if piano not yet loaded
+  // Show loading indicator
   const playIcon = playBtn?.querySelector('.icon-play');
-  if (!isPianoLoaded() && playIcon) {
+  if (playIcon) {
     playIcon.style.opacity = '0.5';
   }
 
-  // Inicializar piano si es necesario
-  if (!piano) {
-    await initPiano();
-  }
+  // Ensure Tone.js is loaded
+  await ensureToneLoaded();
+
+  // Initialize audio engine if needed
+  await initAudio();
 
   // Restore button opacity after loading
   if (playIcon) {
@@ -115,31 +139,26 @@ async function handlePlay() {
   noteHighlightController.clearHighlights();
 
   // Reproducir secuencia de 6 notas aleatorias
-  const Tone = window.Tone;
-  const startTime = Tone.now();
   let currentTime = 0; // Tiempo acumulado en segundos
 
-  randomNotes.forEach((noteIndex, idx) => {
+  for (let idx = 0; idx < randomNotes.length; idx++) {
+    const noteIndex = randomNotes[idx];
     const midi = soundline.getMidiForNote(noteIndex);
-    const note = Tone.Frequency(midi, 'midi').toNote();
 
     // Todas las notas tienen la misma duración (1 pulso)
     const noteDurationSec = intervalSec;
 
-    // Programar reproducción de la nota
-    const when = startTime + currentTime;
-    piano.triggerAttackRelease(note, noteDurationSec * 0.9, when);
-
-    // Programar highlight
+    // Programar reproducción y highlight
     const delayMs = currentTime * 1000;
-    setTimeout(() => {
+    setTimeout(async () => {
       console.log(`[RANDOM] Nota ${idx + 1}/6: ${noteIndex} (MIDI ${midi})`);
+      await playMelodicNote(midi, noteDurationSec * 0.9);
       noteHighlightController.highlightNote(noteIndex, noteDurationSec * 1000 * 0.9);
     }, delayMs);
 
     // Avanzar tiempo para la próxima nota
     currentTime += noteDurationSec;
-  });
+  }
 
   // Callback al completar toda la secuencia
   setTimeout(() => {
@@ -158,37 +177,24 @@ async function handlePlay() {
  * @param {number[]} notes - Array of note indices (0-11)
  * @param {number} intervalMs - Time between notes in milliseconds
  */
-function playChromaticScale(notes, intervalMs) {
-  let currentIndex = 0;
-
-  const playNextNote = () => {
-    if (currentIndex >= notes.length) {
-      console.log('Chromatic scale completed');
-      return;
-    }
-
-    const noteIndex = notes[currentIndex];
+async function playChromaticScale(notes, intervalMs) {
+  for (let i = 0; i < notes.length; i++) {
+    const noteIndex = notes[i];
     const midi = soundline.getMidiForNote(noteIndex);
-    const note = window.Tone.Frequency(midi, 'midi').toNote();
 
-    // Play note
-    piano.triggerAttackRelease(note, (intervalMs / 1000) * 0.9);
+    console.log(`[INTRO] Nota ${i}: ${noteIndex} (MIDI ${midi})`);
 
-    // Highlight note visually
+    // Play note and highlight
+    await playMelodicNote(midi, (intervalMs / 1000) * 0.9);
     noteHighlightController.highlightNote(noteIndex, intervalMs * 0.9);
 
-    console.log(`[INTRO] Nota ${currentIndex}: ${noteIndex} (MIDI ${midi})`);
-
-    currentIndex++;
-
-    // Schedule next note
-    if (currentIndex < notes.length) {
-      setTimeout(playNextNote, intervalMs);
+    // Wait for next note
+    if (i < notes.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
     }
-  };
+  }
 
-  // Start sequence
-  playNextNote();
+  console.log('Chromatic scale completed');
 }
 
 /**
@@ -201,8 +207,11 @@ async function handleStartOverlay() {
   // Hide overlay
   startOverlay.classList.add('hidden');
 
-  // Initialize piano (deferred from initApp)
-  await initPiano();
+  // Ensure Tone.js is loaded first
+  await ensureToneLoaded();
+
+  // Initialize audio engine
+  await initAudio();
 
   // Play chromatic scale: notes 0-11 ascending at BPM 160
   const chromaticNotes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
@@ -211,7 +220,7 @@ async function handleStartOverlay() {
   console.log(`Playing chromatic scale at ${CHROMATIC_BPM} BPM (interval: ${intervalMs.toFixed(0)}ms)`);
 
   // Play scale with visual feedback
-  playChromaticScale(chromaticNotes, intervalMs);
+  await playChromaticScale(chromaticNotes, intervalMs);
 }
 
 // ========== EVENT HANDLERS ==========
@@ -224,7 +233,7 @@ function setupEventHandlers() {
   }
 
   // Manejo de cambios de tema (manejado por header compartido)
-  document.addEventListener('sharedui:theme', (e) => {
+  document.addEventListener('sharedui:theme', () => {
     // El tema ya es manejado automáticamente
   });
 
@@ -241,9 +250,6 @@ registerFactoryReset({ storage: preferenceStorage });
 // ========== INICIALIZACIÓN ==========
 function initApp() {
   console.log('Inicializando App10: Línea Sonora');
-
-  // Setup piano preload in background (reduces latency on first play)
-  setupPianoPreload({ delay: 300 });
 
   // Get timeline element from template
   const timeline = document.getElementById('timeline');
