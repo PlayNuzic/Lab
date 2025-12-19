@@ -51,8 +51,8 @@
   border: 1px solid rgba(0, 0, 0, 0.12) !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18) !important;
 
-  /* Above timeline-wrapper (z-index: 1500) */
-  z-index: 2000 !important;
+  /* Above timeline-wrapper but below menus */
+  z-index: 100 !important;
 }
 
 /* Dark theme - opaque background */
@@ -197,7 +197,7 @@ main {
   height: 550px;
   margin: 0 auto;
   position: relative;
-  z-index: 1500;
+  z-index: 1;
   padding: 20px 0px;
   display: flex;
   align-items: center;
