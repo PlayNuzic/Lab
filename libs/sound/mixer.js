@@ -39,7 +39,7 @@ export class AudioMixer {
     this.master = {
       id: 'master',
       label: masterLabel,
-      volume: 1,
+      volume: 0.75,
       muted: false,
       allowSolo: false,
       node: null
@@ -290,7 +290,7 @@ export class AudioMixer {
       channel = {
         id,
         label: options.label || id,
-        volume: clampVolume(options.volume ?? 1),
+        volume: clampVolume(options.volume ?? 0.75),
         muted: !!options.muted,
         solo: !!options.solo,
         allowSolo: options.allowSolo !== false,

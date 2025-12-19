@@ -817,7 +817,7 @@ export class TimelineAudio {
 
     const channels = new Map((state.channels || []).map(ch => [ch.id, ch]));
     const masterMuted = !!state.master?.effectiveMuted;
-    const masterVolume = state.master?.volume ?? 1;
+    const masterVolume = state.master?.volume ?? 0.75;
 
     this._pulseMutedForFallback = masterMuted || !!channels.get('pulse')?.effectiveMuted;
     this._cycleMutedForFallback = masterMuted || !!channels.get('subdivision')?.effectiveMuted;
@@ -825,7 +825,7 @@ export class TimelineAudio {
     const applyGain = (node, channelId) => {
       if (!node) return;
       const ch = channels.get(channelId);
-      const vol = ch?.volume ?? 1;
+      const vol = ch?.volume ?? 0.75;
       const muted = masterMuted || !!ch?.effectiveMuted;
       try { node.gain.value = muted ? 0 : vol; } catch {}
     };
