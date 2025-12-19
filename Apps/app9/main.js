@@ -57,9 +57,13 @@ bindSharedSoundEvents({
 });
 
 // ========== LISTENER DE INSTRUMENTO ==========
-window.addEventListener('sharedui:instrument', (e) => {
+window.addEventListener('sharedui:instrument', async (e) => {
   currentInstrument = e.detail.instrument;
   console.log(`Instrumento seleccionado: ${currentInstrument}`);
+  // Update audio engine instrument for immediate playback
+  if (audio) {
+    await audio.setInstrument(currentInstrument);
+  }
 });
 
 // ========== FUNCIONES DE DIBUJO DEL TIMELINE ==========
@@ -238,18 +242,14 @@ function generate2Notes() {
 }
 
 /**
- * Reproduce una nota melódica con el instrumento seleccionado
+ * Reproduce una nota melódica usando el audio engine (sin latencia)
  * @param {number} midiNumber - Número MIDI (60-71 para registro 4)
  * @param {number} durationSec - Duración en segundos
  */
-async function playMelodicNote(midiNumber, durationSec) {
-  if (currentInstrument === 'piano') {
-    const { playNote } = await import('../../libs/sound/piano.js');
-    await playNote(midiNumber, durationSec);
-  } else {
-    const { playNote } = await import('../../libs/sound/violin.js');
-    await playNote(midiNumber, durationSec);
-  }
+function playMelodicNote(midiNumber, durationSec) {
+  if (!audio) return;
+  // Use MelodicTimelineAudio.playNote() - sampler already loaded, no async overhead
+  audio.playNote(midiNumber, durationSec, Tone.now());
 }
 
 async function handlePlay() {
