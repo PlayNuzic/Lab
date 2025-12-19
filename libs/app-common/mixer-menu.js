@@ -294,22 +294,22 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   const knobsWrapper = document.createElement('div');
   knobsWrapper.className = 'mixer-channel__knobs';
 
-  // Compressor knob
+  // Compressor knob (threshold range: -18dB to 0dB)
   const compKnob = createKnob({
     label: 'Comp',
-    min: -24,
+    min: -18,
     max: 0,
-    value: -6,
+    value: -12,
     onChange: (val) => window.NuzicAudioEngine?.setCompressorThreshold(val)
   });
   knobsWrapper.appendChild(compKnob.element);
 
-  // Limiter knob
+  // Limiter knob (threshold range: -3dB to -0.5dB)
   const limKnob = createKnob({
     label: 'Limit',
-    min: -6,
-    max: 0,
-    value: -0.5,
+    min: -3,
+    max: -0.5,
+    value: -1,
     onChange: (val) => window.NuzicAudioEngine?.setLimiterThreshold(val)
   });
   knobsWrapper.appendChild(limKnob.element);
