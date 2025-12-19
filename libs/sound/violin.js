@@ -17,6 +17,26 @@ let isLoaded = false;
 let loadPromise = null;
 let preloadInitiated = false;
 
+/**
+ * Reset violin sampler (needed when AudioContext changes)
+ * Called by MelodicTimelineAudio when Tone.setContext() is used
+ */
+export function resetViolin() {
+  if (sampler) {
+    try {
+      sampler.disconnect();
+      sampler.dispose();
+    } catch (e) {
+      // Ignore errors during cleanup
+    }
+  }
+  sampler = null;
+  isLoaded = false;
+  loadPromise = null;
+  preloadInitiated = false;
+  console.log('Violin sampler reset');
+}
+
 // Base URL for tonejs-instruments samples on GitHub Pages
 const BASE_URL = 'https://nbrosowsky.github.io/tonejs-instruments/samples/violin/';
 

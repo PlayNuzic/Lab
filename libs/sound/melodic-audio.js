@@ -10,8 +10,8 @@
  */
 
 import TimelineAudio from './index.js';
-import { loadPiano } from './piano.js';
-import { loadViolin } from './violin.js';
+import { loadPiano, resetPiano } from './piano.js';
+import { loadViolin, resetViolin } from './violin.js';
 import { ensureToneLoaded } from './tone-loader.js';
 
 export class MelodicTimelineAudio extends TimelineAudio {
@@ -56,10 +56,23 @@ export class MelodicTimelineAudio extends TimelineAudio {
     if (this._ctx && Tone.getContext().rawContext !== this._ctx) {
       console.log('Setting Tone.js to use TimelineAudio AudioContext');
       Tone.setContext(this._ctx);
+
+      // Reset existing samplers - they were created with the old context
+      // This forces them to be recreated with the new context on next load
+      resetPiano();
+      resetViolin();
     }
 
-    // Note: Don't disconnect/dispose the previous sampler - they are singletons
-    // managed by piano.js and violin.js. Just update our reference.
+    // Disconnect previous sampler if exists (prevents overlapping sounds)
+    // Note: We don't dispose singletons, just disconnect them
+    if (this._instrumentSampler && this._currentInstrument !== key) {
+      try {
+        this._instrumentSampler.disconnect();
+        console.log(`Disconnected previous instrument: ${this._currentInstrument}`);
+      } catch (e) {
+        // Ignore disconnect errors
+      }
+    }
 
     // Load new instrument sampler
     // Note: piano.js and violin.js now connect to melodicChannel automatically
@@ -80,10 +93,31 @@ export class MelodicTimelineAudio extends TimelineAudio {
       return;
     }
 
+    // Ensure sampler is connected to melodic channel
+    // This is needed because we disconnect the previous sampler above
+    // and the singleton sampler might have been disconnected from a previous switch
+    const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+    if (melodicChannel && sampler) {
+      try {
+        // Disconnect first to avoid double connections
+        sampler.disconnect();
+        sampler.connect(melodicChannel);
+        console.log(`${key} connected to melodic channel`);
+      } catch (e) {
+        // If connection fails, try toDestination as fallback
+        try {
+          sampler.toDestination();
+          console.log(`${key} connected to destination (fallback)`);
+        } catch (e2) {
+          console.warn(`Failed to connect ${key}:`, e2.message);
+        }
+      }
+    }
+
     this._instrumentSampler = sampler;
     this._currentInstrument = key;
 
-    console.log(`Instrument ${key} loaded (routed through melodic channel)`);
+    console.log(`Instrument ${key} loaded and set as current (sampler:`, !!sampler, ')');
   }
 
   /**

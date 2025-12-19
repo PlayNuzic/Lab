@@ -18,6 +18,26 @@ let preloadInitiated = false;
  * Load piano sampler with Salamander samples from CDN
  * @returns {Promise<Tone.Sampler>} Loaded sampler instance
  */
+/**
+ * Reset piano sampler (needed when AudioContext changes)
+ * Called by MelodicTimelineAudio when Tone.setContext() is used
+ */
+export function resetPiano() {
+  if (sampler) {
+    try {
+      sampler.disconnect();
+      sampler.dispose();
+    } catch (e) {
+      // Ignore errors during cleanup
+    }
+  }
+  sampler = null;
+  isLoaded = false;
+  loadPromise = null;
+  preloadInitiated = false;
+  console.log('Piano sampler reset');
+}
+
 export async function loadPiano() {
   // Return existing sampler if already loaded
   if (sampler && isLoaded) {
