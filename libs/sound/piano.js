@@ -4,6 +4,9 @@
 /**
  * Piano instrument manager using Tone.js Sampler
  * Loads samples from Tone.js CDN (Salamander piano)
+ *
+ * IMPORTANT: This module assumes the AudioContext is already running.
+ * The audio engine (MelodicTimelineAudio) must call ready() before loading instruments.
  */
 
 let sampler = null;
@@ -35,8 +38,19 @@ export async function loadPiano() {
 
   loadPromise = (async () => {
     try {
-      // Ensure AudioContext is started (required for toDestination fallback)
-      await Tone.start();
+      // Verify AudioContext is running before creating sampler
+      const ctx = Tone.context?.rawContext || Tone.context;
+      console.log('Piano: AudioContext state before creating sampler:', ctx?.state);
+
+      if (ctx?.state === 'suspended') {
+        console.log('Piano: Context suspended, attempting resume...');
+        try {
+          await ctx.resume();
+          console.log('Piano: Context resumed, state:', ctx.state);
+        } catch (resumeErr) {
+          console.warn('Piano: Resume failed:', resumeErr.message);
+        }
+      }
 
       // Create URLs for Salamander piano samples (C and F# for each octave)
       const urls = {};
@@ -45,27 +59,58 @@ export async function loadPiano() {
         urls[`F#${octave}`] = `Fs${octave}.mp3`;
       }
 
-      // Create sampler
-      sampler = new Tone.Sampler({
-        urls,
-        release: 1,
-        baseUrl: 'https://tonejs.github.io/audio/salamander/'
-      });
+      // Create sampler - wrap in try-catch to see exact error
+      console.log('Piano: About to create Tone.Sampler...');
+      try {
+        sampler = new Tone.Sampler({
+          urls,
+          release: 1,
+          baseUrl: 'https://tonejs.github.io/audio/salamander/'
+        });
+        console.log('Piano: Tone.Sampler created successfully');
+      } catch (samplerErr) {
+        console.error('Piano: Tone.Sampler constructor failed:', samplerErr.name, samplerErr.message);
+        console.error('Piano: Full error:', samplerErr);
+        throw samplerErr;
+      }
+
+      // Wait for melodic channel to be available (audio engine initialization)
+      // Retry up to 10 times with 100ms delay
+      let melodicChannel = null;
+      console.log('Piano: Waiting for melodic channel...');
+      for (let i = 0; i < 10 && !melodicChannel; i++) {
+        melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+        if (!melodicChannel && i < 9) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
 
       // Connect to melodic channel (goes through master effects chain) or fallback to destination
-      const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
-      if (melodicChannel) {
-        sampler.connect(melodicChannel);
-        console.log('Piano connected to melodic channel (through effects chain)');
-      } else {
-        sampler.toDestination();
-        console.log('Piano connected directly to destination (no effects chain)');
+      console.log('Piano: About to connect sampler, melodicChannel:', !!melodicChannel);
+      try {
+        if (melodicChannel) {
+          sampler.connect(melodicChannel);
+          console.log('Piano connected to melodic channel (through effects chain)');
+        } else {
+          sampler.toDestination();
+          console.log('Piano connected directly to destination (no effects chain)');
+        }
+      } catch (connectErr) {
+        console.error('Piano: Connect failed:', connectErr.name, connectErr.message);
+        throw connectErr;
       }
 
       // Wait for all samples to load
-      await Tone.loaded();
-      isLoaded = true;
+      console.log('Piano: Calling Tone.loaded()...');
+      try {
+        await Tone.loaded();
+        console.log('Piano: Tone.loaded() completed');
+      } catch (loadedErr) {
+        console.error('Piano: Tone.loaded() failed:', loadedErr.name, loadedErr.message);
+        throw loadedErr;
+      }
 
+      isLoaded = true;
       console.log('Piano loaded successfully');
       return sampler;
     } catch (err) {

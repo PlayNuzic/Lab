@@ -7,6 +7,9 @@
  *
  * Sample source: https://github.com/nbrosowsky/tonejs-instruments
  * License: Check repository for licensing details
+ *
+ * IMPORTANT: This module assumes the AudioContext is already running.
+ * The audio engine (MelodicTimelineAudio) must call ready() before loading instruments.
  */
 
 let sampler = null;
@@ -50,8 +53,19 @@ export async function loadViolin() {
 
   loadPromise = (async () => {
     try {
-      // Ensure AudioContext is started (required for toDestination fallback)
-      await Tone.start();
+      // Verify AudioContext is running before creating sampler
+      const ctx = Tone.context?.rawContext || Tone.context;
+      console.log('Violin: AudioContext state before creating sampler:', ctx?.state);
+
+      if (ctx?.state === 'suspended') {
+        console.log('Violin: Context suspended, attempting resume...');
+        try {
+          await ctx.resume();
+          console.log('Violin: Context resumed, state:', ctx.state);
+        } catch (resumeErr) {
+          console.warn('Violin: Resume failed:', resumeErr.message);
+        }
+      }
 
       // Create URLs object mapping note names to files
       const urls = {};
@@ -59,27 +73,58 @@ export async function loadViolin() {
         urls[note] = `${note}.mp3`;
       });
 
-      // Create sampler
-      sampler = new Tone.Sampler({
-        urls,
-        release: 0.8,  // Slightly shorter release than piano for violin character
-        baseUrl: BASE_URL
-      });
+      // Create sampler - wrap in try-catch to see exact error
+      console.log('Violin: About to create Tone.Sampler...');
+      try {
+        sampler = new Tone.Sampler({
+          urls,
+          release: 0.8,  // Slightly shorter release than piano for violin character
+          baseUrl: BASE_URL
+        });
+        console.log('Violin: Tone.Sampler created successfully');
+      } catch (samplerErr) {
+        console.error('Violin: Tone.Sampler constructor failed:', samplerErr.name, samplerErr.message);
+        console.error('Violin: Full error:', samplerErr);
+        throw samplerErr;
+      }
+
+      // Wait for melodic channel to be available (audio engine initialization)
+      // Retry up to 10 times with 100ms delay
+      let melodicChannel = null;
+      console.log('Violin: Waiting for melodic channel...');
+      for (let i = 0; i < 10 && !melodicChannel; i++) {
+        melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+        if (!melodicChannel && i < 9) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
 
       // Connect to melodic channel (goes through master effects chain) or fallback to destination
-      const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
-      if (melodicChannel) {
-        sampler.connect(melodicChannel);
-        console.log('Violin connected to melodic channel (through effects chain)');
-      } else {
-        sampler.toDestination();
-        console.log('Violin connected directly to destination (no effects chain)');
+      console.log('Violin: About to connect sampler, melodicChannel:', !!melodicChannel);
+      try {
+        if (melodicChannel) {
+          sampler.connect(melodicChannel);
+          console.log('Violin connected to melodic channel (through effects chain)');
+        } else {
+          sampler.toDestination();
+          console.log('Violin connected directly to destination (no effects chain)');
+        }
+      } catch (connectErr) {
+        console.error('Violin: Connect failed:', connectErr.name, connectErr.message);
+        throw connectErr;
       }
 
       // Wait for all samples to load
-      await Tone.loaded();
-      isLoaded = true;
+      console.log('Violin: Calling Tone.loaded()...');
+      try {
+        await Tone.loaded();
+        console.log('Violin: Tone.loaded() completed');
+      } catch (loadedErr) {
+        console.error('Violin: Tone.loaded() failed:', loadedErr.name, loadedErr.message);
+        throw loadedErr;
+      }
 
+      isLoaded = true;
       console.log('Violin loaded successfully');
       return sampler;
     } catch (err) {

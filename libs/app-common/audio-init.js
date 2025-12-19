@@ -172,18 +172,29 @@ export function createMelodicAudioInitializer(config = {}) {
     if (!audioInitPromise) {
       audioInitPromise = (async () => {
         // 1. Load Tone.js FIRST (critical for avoiding race condition)
+        // ensureToneLoaded() waits for user interaction internally
         await ensureToneLoaded();
 
-        // 2. Wait for user interaction before creating AudioContext
-        await waitForUserInteraction();
+        // 2. Start Tone.js AudioContext IMMEDIATELY after user gesture
+        // This MUST happen before any other async operations to avoid InvalidAccessError
+        // The user gesture from ensureToneLoaded() is still valid here
+        if (typeof Tone !== 'undefined' && typeof Tone.start === 'function') {
+          try {
+            await Tone.start();
+            console.log('Tone.js AudioContext started successfully');
+          } catch (err) {
+            // Log but don't fail - context might already be running
+            console.warn('Tone.start() warning:', err.message);
+          }
+        }
 
         // 3. Dynamic import to avoid circular dependencies
         const { MelodicTimelineAudio } = await import('../sound/melodic-audio.js');
 
-        // 4. Create instance AFTER Tone.js is loaded
+        // 4. Create instance AFTER Tone.js is loaded and started
         const instance = new MelodicTimelineAudio();
 
-        // 5. Ready (Tone.js guaranteed to be available)
+        // 5. Ready (Tone.js guaranteed to be available and running)
         await instance.ready();
 
         // 6. Load instrument

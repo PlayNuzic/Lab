@@ -50,6 +50,14 @@ export class MelodicTimelineAudio extends TimelineAudio {
       return;
     }
 
+    // CRITICAL: Make Tone.js use the same AudioContext as TimelineAudio
+    // This prevents InvalidAccessError when connecting Tone.js nodes to our GainNodes
+    const Tone = window.Tone;
+    if (this._ctx && Tone.getContext().rawContext !== this._ctx) {
+      console.log('Setting Tone.js to use TimelineAudio AudioContext');
+      Tone.setContext(this._ctx);
+    }
+
     // Note: Don't disconnect/dispose the previous sampler - they are singletons
     // managed by piano.js and violin.js. Just update our reference.
 

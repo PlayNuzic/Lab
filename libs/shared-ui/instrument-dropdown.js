@@ -125,12 +125,23 @@ export function initInstrumentDropdown(container, { storageKey, eventType, onSel
   // Initialize label
   updateLabel();
 
-  // Preload the initially selected instrument after first user interaction
-  // This ensures samples are ready before user clicks Play
-  const preloadOnFirstInteraction = () => {
-    preloadInstrument(selected);
+  // Preload the initially selected instrument after audio engine is ready
+  // This ensures samples are connected to the correct audio routing
+  const preloadOnFirstInteraction = async () => {
     document.removeEventListener('click', preloadOnFirstInteraction, { capture: true });
     document.removeEventListener('touchstart', preloadOnFirstInteraction, { capture: true });
+
+    // Wait for audio engine to be initialized (up to 2 seconds)
+    let attempts = 0;
+    while (!window.NuzicAudioEngine && attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+
+    // Only preload if audio engine is ready
+    if (window.NuzicAudioEngine) {
+      preloadInstrument(selected);
+    }
   };
   document.addEventListener('click', preloadOnFirstInteraction, { capture: true, once: true });
   document.addEventListener('touchstart', preloadOnFirstInteraction, { capture: true, once: true });
