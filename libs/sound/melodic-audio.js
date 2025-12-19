@@ -50,13 +50,12 @@ export class MelodicTimelineAudio extends TimelineAudio {
       return;
     }
 
-    // Disconnect previous instrument if exists
-    if (this._instrumentSampler) {
-      this._instrumentSampler.disconnect();
-      this._instrumentSampler.dispose();
-    }
+    // Note: Don't disconnect/dispose the previous sampler - they are singletons
+    // managed by piano.js and violin.js. Just update our reference.
 
     // Load new instrument sampler
+    // Note: piano.js and violin.js now connect to melodicChannel automatically
+    // which routes through the master effects chain (EQ → Compressor → Limiter)
     let sampler;
     try {
       switch (key) {
@@ -73,41 +72,10 @@ export class MelodicTimelineAudio extends TimelineAudio {
       return;
     }
 
-    // Connect sampler to mixer channel (NOT toDestination!)
-    const instrumentChannel = this.mixer.getChannelNode('instrument');
-
-    if (!instrumentChannel) {
-      console.error('Instrument channel not found in mixer');
-      return;
-    }
-
-    // Safely disconnect any existing connections before connecting to mixer
-    // Note: Tone.js samplers may throw InvalidAccessError when disconnecting
-    // if connected via toDestination() which uses internal routing
-    try {
-      // Try to disconnect from destination first
-      if (sampler.output && typeof sampler.output.disconnect === 'function') {
-        sampler.output.disconnect();
-      } else {
-        sampler.disconnect();
-      }
-    } catch (e) {
-      // InvalidAccessError is expected when disconnecting from toDestination()
-      // The sampler is still usable, just already connected somewhere
-      console.log('Note: sampler disconnect skipped (already routed)');
-    }
-
-    // Connect to our mixer channel
-    try {
-      sampler.connect(instrumentChannel);
-    } catch (e) {
-      console.warn('Could not connect sampler to instrument channel:', e);
-    }
-
     this._instrumentSampler = sampler;
     this._currentInstrument = key;
 
-    console.log(`Instrument ${key} loaded and connected to mixer channel`);
+    console.log(`Instrument ${key} loaded (routed through melodic channel)`);
   }
 
   /**
@@ -166,19 +134,28 @@ export class MelodicTimelineAudio extends TimelineAudio {
     // CRITICAL: Disconnect and reconnect sampler to clear all scheduled events
     // releaseAll() only stops currently playing notes, not future scheduled ones
     if (this._instrumentSampler) {
-      const instrumentChannel = this.mixer.getChannelNode('instrument');
+      // Get melodic channel from audio engine (preferred) or fall back to mixer instrument channel
+      const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+      const targetChannel = melodicChannel || this.mixer.getChannelNode('instrument');
 
-      if (instrumentChannel) {
-        // 1. Disconnect from mixer (stops all audio immediately)
-        this._instrumentSampler.disconnect();
+      if (targetChannel) {
+        try {
+          // 1. Disconnect from channel (stops all audio immediately)
+          this._instrumentSampler.disconnect();
 
-        // 2. Release all active notes (cleanup internal state)
-        if (typeof this._instrumentSampler.releaseAll === 'function') {
-          this._instrumentSampler.releaseAll();
+          // 2. Release all active notes (cleanup internal state)
+          if (typeof this._instrumentSampler.releaseAll === 'function') {
+            this._instrumentSampler.releaseAll();
+          }
+
+          // 3. Reconnect to channel (ready for next playback)
+          this._instrumentSampler.connect(targetChannel);
+        } catch (e) {
+          // If disconnect/reconnect fails, just release notes
+          if (typeof this._instrumentSampler.releaseAll === 'function') {
+            this._instrumentSampler.releaseAll();
+          }
         }
-
-        // 3. Reconnect to mixer (ready for next playback)
-        this._instrumentSampler.connect(instrumentChannel);
       }
     }
   }

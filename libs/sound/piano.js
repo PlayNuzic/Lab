@@ -34,36 +34,47 @@ export async function loadPiano() {
   const Tone = window.Tone;
 
   loadPromise = (async () => {
-    // Create URLs for Salamander piano samples (C and F# for each octave)
-    const urls = {};
-    for (let octave = 1; octave <= 7; octave++) {
-      urls[`C${octave}`] = `C${octave}.mp3`;
-      urls[`F#${octave}`] = `Fs${octave}.mp3`;
+    try {
+      // Ensure AudioContext is started (required for toDestination fallback)
+      await Tone.start();
+
+      // Create URLs for Salamander piano samples (C and F# for each octave)
+      const urls = {};
+      for (let octave = 1; octave <= 7; octave++) {
+        urls[`C${octave}`] = `C${octave}.mp3`;
+        urls[`F#${octave}`] = `Fs${octave}.mp3`;
+      }
+
+      // Create sampler
+      sampler = new Tone.Sampler({
+        urls,
+        release: 1,
+        baseUrl: 'https://tonejs.github.io/audio/salamander/'
+      });
+
+      // Connect to melodic channel (goes through master effects chain) or fallback to destination
+      const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+      if (melodicChannel) {
+        sampler.connect(melodicChannel);
+        console.log('Piano connected to melodic channel (through effects chain)');
+      } else {
+        sampler.toDestination();
+        console.log('Piano connected directly to destination (no effects chain)');
+      }
+
+      // Wait for all samples to load
+      await Tone.loaded();
+      isLoaded = true;
+
+      console.log('Piano loaded successfully');
+      return sampler;
+    } catch (err) {
+      // Reset state on failure to allow retry
+      loadPromise = null;
+      sampler = null;
+      isLoaded = false;
+      throw err;
     }
-
-    // Create sampler
-    sampler = new Tone.Sampler({
-      urls,
-      release: 1,
-      baseUrl: 'https://tonejs.github.io/audio/salamander/'
-    });
-
-    // Connect to melodic channel (goes through master effects chain) or fallback to destination
-    const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
-    if (melodicChannel) {
-      sampler.connect(melodicChannel);
-      console.log('Piano connected to melodic channel (through effects chain)');
-    } else {
-      sampler.toDestination();
-      console.log('Piano connected directly to destination (no effects chain)');
-    }
-
-    // Wait for all samples to load
-    await Tone.loaded();
-    isLoaded = true;
-
-    console.log('Piano loaded successfully');
-    return sampler;
   })();
 
   return loadPromise;
@@ -86,7 +97,7 @@ export async function playNote(midiNumber, duration, when = 0) {
   const note = Tone.Frequency(midiNumber, 'midi').toNote();
   const playTime = when === 0 ? Tone.now() : Tone.now() + when;
 
-  sampler.triggerAttackRelease(note, duration, playTime);
+  sampler.triggerAttackRelease(note, duration, playTime, 0.8);
 }
 
 /**
@@ -112,7 +123,7 @@ export async function playSequence(midiNumbers, intervalSec, onNote, onComplete)
 
     // Duration is 90% of interval to leave small gap
     const noteDuration = intervalSec * 0.9;
-    sampler.triggerAttackRelease(note, noteDuration, when);
+    sampler.triggerAttackRelease(note, noteDuration, when, 0.8);
 
     // Call onNote callback at the right time
     if (onNote) {

@@ -49,35 +49,46 @@ export async function loadViolin() {
   const Tone = window.Tone;
 
   loadPromise = (async () => {
-    // Create URLs object mapping note names to files
-    const urls = {};
-    VIOLIN_NOTES.forEach(note => {
-      urls[note] = `${note}.mp3`;
-    });
+    try {
+      // Ensure AudioContext is started (required for toDestination fallback)
+      await Tone.start();
 
-    // Create sampler
-    sampler = new Tone.Sampler({
-      urls,
-      release: 0.8,  // Slightly shorter release than piano for violin character
-      baseUrl: BASE_URL
-    });
+      // Create URLs object mapping note names to files
+      const urls = {};
+      VIOLIN_NOTES.forEach(note => {
+        urls[note] = `${note}.mp3`;
+      });
 
-    // Connect to melodic channel (goes through master effects chain) or fallback to destination
-    const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
-    if (melodicChannel) {
-      sampler.connect(melodicChannel);
-      console.log('Violin connected to melodic channel (through effects chain)');
-    } else {
-      sampler.toDestination();
-      console.log('Violin connected directly to destination (no effects chain)');
+      // Create sampler
+      sampler = new Tone.Sampler({
+        urls,
+        release: 0.8,  // Slightly shorter release than piano for violin character
+        baseUrl: BASE_URL
+      });
+
+      // Connect to melodic channel (goes through master effects chain) or fallback to destination
+      const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+      if (melodicChannel) {
+        sampler.connect(melodicChannel);
+        console.log('Violin connected to melodic channel (through effects chain)');
+      } else {
+        sampler.toDestination();
+        console.log('Violin connected directly to destination (no effects chain)');
+      }
+
+      // Wait for all samples to load
+      await Tone.loaded();
+      isLoaded = true;
+
+      console.log('Violin loaded successfully');
+      return sampler;
+    } catch (err) {
+      // Reset state on failure to allow retry
+      loadPromise = null;
+      sampler = null;
+      isLoaded = false;
+      throw err;
     }
-
-    // Wait for all samples to load
-    await Tone.loaded();
-    isLoaded = true;
-
-    console.log('Violin loaded successfully');
-    return sampler;
   })();
 
   return loadPromise;
@@ -99,7 +110,7 @@ export async function playNote(midiNumber, duration, when = 0) {
   const note = Tone.Frequency(midiNumber, 'midi').toNote();
   const playTime = when === 0 ? Tone.now() : Tone.now() + when;
 
-  sampler.triggerAttackRelease(note, duration, playTime);
+  sampler.triggerAttackRelease(note, duration, playTime, 0.6);
 }
 
 /**
@@ -125,7 +136,7 @@ export async function playSequence(midiNumbers, intervalSec, onNote, onComplete)
 
     // Duration is 90% of interval to leave small gap
     const noteDuration = intervalSec * 0.9;
-    sampler.triggerAttackRelease(note, noteDuration, when);
+    sampler.triggerAttackRelease(note, noteDuration, when, 0.6);
 
     // Call onNote callback at the right time
     if (onNote) {
