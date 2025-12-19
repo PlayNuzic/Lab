@@ -1,5 +1,5 @@
 // App13: Intervalos Temporales - Editor de secuencias de iT con reproducción
-import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 
@@ -127,11 +127,8 @@ function updateSumDisplay() {
 }
 
 // ========== AUDIO ==========
-const _baseInitAudio = createRhythmAudioInitializer({
-  getSoundSelects: () => ({
-    baseSoundSelect: document.querySelector('#baseSoundSelect'),
-    accentSoundSelect: document.querySelector('#accentSoundSelect')
-  })
+const _baseInitAudio = createMelodicAudioInitializer({
+  defaultInstrument: 'violin'
 });
 
 async function initAudio() {
@@ -139,6 +136,7 @@ async function initAudio() {
     audio = await _baseInitAudio();
     if (typeof window !== 'undefined') {
       window.__labAudio = audio;
+      window.NuzicAudioEngine = audio;
     }
   }
   return audio;
@@ -763,6 +761,22 @@ function initApp() {
     currentInstrument = e.detail.instrument;
     console.log(`Instrument seleccionat: ${currentInstrument}`);
   });
+
+  // Precargar audio engine tras primera interacción (reduce latencia en Play)
+  const preloadOnFirstInteraction = async () => {
+    document.removeEventListener('click', preloadOnFirstInteraction);
+    document.removeEventListener('touchstart', preloadOnFirstInteraction);
+
+    // Inicializar audio en background (carga Tone.js + instrumento)
+    try {
+      await initAudio();
+      console.log('Audio preloaded on first interaction');
+    } catch (err) {
+      console.warn('Audio preload failed:', err);
+    }
+  };
+  document.addEventListener('click', preloadOnFirstInteraction, { once: true });
+  document.addEventListener('touchstart', preloadOnFirstInteraction, { once: true });
 
   // Focus inicial
   setTimeout(focusFirstInput, 100);
