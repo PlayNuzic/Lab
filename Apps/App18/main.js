@@ -213,7 +213,7 @@ function setupVolumeControl() {
 
   // Listen to volume changes from header slider
   window.addEventListener('sharedui:volume', (e) => {
-    const volume = e.detail?.value ?? 1;
+    const volume = e.detail?.value ?? 0.75;
     // Convert linear 0-1 to dB (-Infinity to 0)
     const dB = volume > 0 ? 20 * Math.log10(volume) : -Infinity;
     Tone.getDestination().volume.value = dB;

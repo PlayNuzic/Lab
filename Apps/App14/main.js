@@ -491,7 +491,7 @@ function setupVolumeControl() {
   if (!Tone) return;
 
   window.addEventListener('sharedui:volume', (e) => {
-    const volume = e.detail?.value ?? 1;
+    const volume = e.detail?.value ?? 0.75;
     const dB = volume > 0 ? 20 * Math.log10(volume) : -Infinity;
     Tone.getDestination().volume.value = dB;
   });
