@@ -692,26 +692,26 @@ export class TimelineAudio {
           limiter: ctx.createDynamicsCompressor()
         };
 
-        // Configure EQ (highshelf for subtle presence)
+        // Configure EQ (highshelf for subtle presence boost)
         this._bus.effects.eq.type = 'highshelf';
-        this._bus.effects.eq.frequency.value = 4000;
-        this._bus.effects.eq.gain.value = 1;  // Very subtle
+        this._bus.effects.eq.frequency.value = 3000;  // 3kHz - presence range
+        this._bus.effects.eq.gain.value = 1.5;        // Subtle +1.5dB boost
 
-        // Configure Compressor (gentle settings - only catches peaks)
+        // Configure Compressor (transparent glue - very gentle)
         const comp = this._bus.effects.compressor;
-        comp.threshold.value = -6;   // Only compress loud peaks
-        comp.knee.value = 20;        // Soft knee for transparent compression
-        comp.ratio.value = 2;        // Gentle ratio
-        comp.attack.value = 0.01;    // 10ms - allows transients through
-        comp.release.value = 0.2;    // 200ms - smooth release
+        comp.threshold.value = -12;  // Only loud peaks trigger compression
+        comp.knee.value = 30;        // Soft knee = transparent transition
+        comp.ratio.value = 2;        // Low ratio = gentle glue
+        comp.attack.value = 0.02;    // 20ms - lets transients through
+        comp.release.value = 0.25;   // 250ms - natural release
 
-        // Configure Limiter (safety limiter - transparent unless clipping)
+        // Configure Limiter (safety only - transparent unless clipping)
         const lim = this._bus.effects.limiter;
-        lim.threshold.value = -0.5;  // Only limits near clipping
-        lim.knee.value = 0;          // Hard knee for limiting
-        lim.ratio.value = 20;        // High ratio for true limiting
-        lim.attack.value = 0.001;    // Fast attack for limiting
-        lim.release.value = 0.05;    // 50ms - quick recovery
+        lim.threshold.value = -1;    // Only triggers near clipping
+        lim.knee.value = 0;          // Hard knee for true limiting
+        lim.ratio.value = 20;        // Maximum ratio
+        lim.attack.value = 0.003;    // 3ms - fast but not instant
+        lim.release.value = 0.1;     // 100ms - smoother recovery
 
         // Connect based on effects enabled state
         if (this._effectsEnabled) {
