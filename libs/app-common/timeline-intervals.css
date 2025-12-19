@@ -108,7 +108,7 @@
   top: var(--timeline-interval-number-position) !important;
   font-size: var(--timeline-interval-number-size);
   font-weight: 400;
-  color: var(--timeline-interval-color);
+  color: var(--color-lg);
   transform: translateX(-50%);
   user-select: none;
   z-index: 15;
