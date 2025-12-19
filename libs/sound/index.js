@@ -478,7 +478,7 @@ export class TimelineAudio {
     this._schedulerOverrideSec = null;
 
     this._bus = { master: null, pulso: null, start: null, seleccionados: null, cycle: null, effects: null };
-    this._effectsEnabled = false; // Master effects chain disabled by default
+    this._effectsEnabled = true; // Master effects chain enabled for testing
 
     this._sampleMap = null;
 
