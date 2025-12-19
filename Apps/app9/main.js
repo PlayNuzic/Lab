@@ -1,7 +1,7 @@
 // App9: Línea Temporal - Metrónomo visual con pulso de ruido aleatorio
 import { createSimpleVisualSync } from '../../libs/app-common/visual-sync.js';
 import { createSimpleHighlightController } from '../../libs/app-common/simple-highlight-controller.js';
-import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import {
@@ -173,12 +173,9 @@ function layoutLinear() {
 }
 
 // ========== FUNCIONES DE AUDIO ==========
-// Crear inicializador de audio usando el sistema compartido
-const _baseInitAudio = createRhythmAudioInitializer({
-  getSoundSelects: () => ({
-    baseSoundSelect: document.querySelector('#baseSoundSelect'),
-    accentSoundSelect: document.querySelector('#accentSoundSelect')
-  })
+// Usar MelodicTimelineAudio para soporte de violin/piano
+const _baseInitAudio = createMelodicAudioInitializer({
+  defaultInstrument: 'violin'
 });
 
 async function initAudio() {
