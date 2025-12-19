@@ -81,6 +81,18 @@ async function initAudio() {
   if (!audio) {
     audio = await _initAudio();
 
+    // Configure FX defaults: FX On, Comp -3, Lim -1
+    if (audio) {
+      audio.setEffectsEnabled(true);
+      audio.setCompressorThreshold(-3);
+      audio.setLimiterThreshold(-1);
+
+      // Set all mixer faders to 0.75 (75%)
+      setVolume(0.75); // Master
+      setChannelVolume('pulse', 0.75);
+      setChannelVolume('instrument', 0.75);
+    }
+
     // Sync P1 toggle state with audio engine (P1 defaults to enabled in audio,
     // but user may have saved it as disabled - sync from localStorage)
     const p1Stored = localStorage.getItem('app15:p1Toggle');

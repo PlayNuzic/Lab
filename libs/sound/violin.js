@@ -98,7 +98,7 @@ export async function loadViolin() {
       try {
         sampler = new Tone.Sampler({
           urls,
-          release: 0.8,  // Slightly shorter release than piano for violin character
+          release: 0.1,
           baseUrl: BASE_URL
         });
         console.log('Violin: Tone.Sampler created successfully');

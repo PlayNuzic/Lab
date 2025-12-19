@@ -50,6 +50,13 @@ async function initAudio() {
   if (!audio) {
     audio = await _initAudio();
 
+    // Configure FX defaults: FX On, Comp -3, Lim -1
+    if (audio) {
+      audio.setEffectsEnabled(true);
+      audio.setCompressorThreshold(-3);
+      audio.setLimiterThreshold(-1);
+    }
+
     // Sync P1 toggle state with audio engine (P1 defaults to enabled in audio,
     // but user may have saved it as disabled - sync from localStorage)
     const p1Stored = localStorage.getItem('app12:p1Toggle');
