@@ -82,12 +82,27 @@ export class MelodicTimelineAudio extends TimelineAudio {
     }
 
     // Safely disconnect any existing connections before connecting to mixer
+    // Note: Tone.js samplers may throw InvalidAccessError when disconnecting
+    // if connected via toDestination() which uses internal routing
     try {
-      sampler.disconnect();
+      // Try to disconnect from destination first
+      if (sampler.output && typeof sampler.output.disconnect === 'function') {
+        sampler.output.disconnect();
+      } else {
+        sampler.disconnect();
+      }
     } catch (e) {
-      // Ignore disconnect errors - sampler may not have been connected
+      // InvalidAccessError is expected when disconnecting from toDestination()
+      // The sampler is still usable, just already connected somewhere
+      console.log('Note: sampler disconnect skipped (already routed)');
     }
-    sampler.connect(instrumentChannel);
+
+    // Connect to our mixer channel
+    try {
+      sampler.connect(instrumentChannel);
+    } catch (e) {
+      console.warn('Could not connect sampler to instrument channel:', e);
+    }
 
     this._instrumentSampler = sampler;
     this._currentInstrument = key;
