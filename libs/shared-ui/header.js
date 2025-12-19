@@ -81,6 +81,60 @@ function setMute(value) {
     window.dispatchEvent(new CustomEvent('sharedui:mute', { detail: { value: v } }));
 }
 
+// --- Screen Wake Lock API ---
+const WAKE_LOCK_KEY = 'sharedui:wakeLockEnabled';
+let wakeLockSentinel = null;
+
+function isWakeLockSupported() {
+    return 'wakeLock' in navigator;
+}
+
+function getStoredWakeLockEnabled() {
+    try {
+        const stored = localStorage.getItem(WAKE_LOCK_KEY);
+        return stored === null ? null : stored === 'true';
+    } catch (e) { return null; }
+}
+
+function setStoredWakeLockEnabled(value) {
+    try { localStorage.setItem(WAKE_LOCK_KEY, String(value)); } catch (e) { /* ignore */ }
+}
+
+async function requestWakeLock() {
+    if (!isWakeLockSupported()) return false;
+    try {
+        wakeLockSentinel = await navigator.wakeLock.request('screen');
+        wakeLockSentinel.addEventListener('release', () => {
+            console.log('[WakeLock] Released');
+        });
+        console.log('[WakeLock] Acquired');
+        return true;
+    } catch (err) {
+        console.warn('[WakeLock] Failed to acquire:', err.message);
+        return false;
+    }
+}
+
+async function releaseWakeLock() {
+    if (wakeLockSentinel) {
+        try {
+            await wakeLockSentinel.release();
+            wakeLockSentinel = null;
+        } catch (err) {
+            console.warn('[WakeLock] Failed to release:', err.message);
+        }
+    }
+}
+
+// Re-acquire wake lock when page becomes visible again (required by API)
+function setupWakeLockVisibilityHandler() {
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible' && getStoredWakeLockEnabled()) {
+            await requestWakeLock();
+        }
+    });
+}
+
 function wireMenu(detailsEl) {
     if (!detailsEl) return;
     const content = detailsEl.querySelector('.options-content');
@@ -172,6 +226,19 @@ function wireMenu(detailsEl) {
         }
     };
     document.addEventListener('click', handleDocumentClick);
+
+    // Keyboard shortcut: Cmd+M (Mac) / Ctrl+M (Windows/Linux) to toggle menu
+    const handleKeyboardShortcut = (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'm') {
+            e.preventDefault();
+            if (detailsEl.open) {
+                detailsEl.removeAttribute('open');
+            } else {
+                detailsEl.setAttribute('open', '');
+            }
+        }
+    };
+    document.addEventListener('keydown', handleKeyboardShortcut);
 }
 
 function wireControls(root) {
@@ -527,6 +594,47 @@ function wireControls(root) {
                 scheduleHide();
             }
         });
+    }
+
+    // Wake Lock toggle - keep screen active during app usage
+    const wakeLockToggle = root.querySelector('#wakeLockToggle');
+    if (wakeLockToggle) {
+        // Setup visibility handler once
+        setupWakeLockVisibilityHandler();
+
+        // Determine default: Apps 1-5 default ON, others default OFF
+        // Check URL path to determine which app we're in
+        const path = window.location.pathname;
+        const appMatch = path.match(/App(\d+)/i);
+        const appNum = appMatch ? parseInt(appMatch[1], 10) : 0;
+        const defaultEnabled = appNum >= 1 && appNum <= 5;
+
+        // Restore saved preference or use app-specific default
+        const stored = getStoredWakeLockEnabled();
+        const enabled = stored !== null ? stored : defaultEnabled;
+        wakeLockToggle.checked = enabled;
+
+        // Apply initial state
+        if (enabled && isWakeLockSupported()) {
+            requestWakeLock();
+        }
+
+        wakeLockToggle.addEventListener('change', async (e) => {
+            const value = e.target.checked;
+            setStoredWakeLockEnabled(value);
+
+            if (value) {
+                await requestWakeLock();
+            } else {
+                await releaseWakeLock();
+            }
+        });
+
+        // Hide toggle if Wake Lock API not supported
+        if (!isWakeLockSupported()) {
+            const label = wakeLockToggle.closest('label');
+            if (label) label.style.display = 'none';
+        }
     }
 
     applySchedulingProfile(detectDeviceProfile());

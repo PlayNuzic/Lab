@@ -56,6 +56,7 @@ export function renderApp({
   showInstrumentDropdown = false,
   showPolyphonyToggle = false,
   showCycleHighlightToggle = false,
+  showWakeLockToggle = false,
   controlsLayout = null
 }) {
   if (!root) throw new Error('root element required');
@@ -202,6 +203,7 @@ ${togglesMarkup}
         ${showComplexFractions ? '<label for="enableComplexFractions">Activar fracciones complejas <input type="checkbox" id="enableComplexFractions" /></label>' : ''}
         ${showPolyphonyToggle ? '<label for="polyphonyToggle">Permitir Polifonía <input type="checkbox" id="polyphonyToggle" /></label>' : ''}
         ${showCycleHighlightToggle ? '<label for="cycleHighlightToggle">Highlight de ciclo <input type="checkbox" id="cycleHighlightToggle" checked /></label>' : ''}
+        ${showWakeLockToggle ? '<label for="wakeLockToggle">Mantener pantalla activa <input type="checkbox" id="wakeLockToggle" /></label>' : ''}
         <button type="button" id="factoryResetBtn" class="factory-reset">Volver a ajustes de fábrica</button>
         <details>
           <summary>Sonidos</summary>

@@ -209,6 +209,9 @@ body[data-theme='dark'] {
   font-family: 'Ubuntu', sans-serif;
   font-weight: 700;
   font-size: 2rem;
+  color: transparent;
+  /* Invisible icon but keep clickable area */
+  user-select: none;
 }
 
 /* Hide marker for main menu */
