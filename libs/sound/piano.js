@@ -41,12 +41,22 @@ export async function loadPiano() {
       urls[`F#${octave}`] = `Fs${octave}.mp3`;
     }
 
-    // Create sampler and connect to destination in one chain (Tone.js pattern)
+    // Create sampler
     sampler = new Tone.Sampler({
       urls,
       release: 1,
       baseUrl: 'https://tonejs.github.io/audio/salamander/'
-    }).toDestination();
+    });
+
+    // Connect to melodic channel (goes through master effects chain) or fallback to destination
+    const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+    if (melodicChannel) {
+      sampler.connect(melodicChannel);
+      console.log('Piano connected to melodic channel (through effects chain)');
+    } else {
+      sampler.toDestination();
+      console.log('Piano connected directly to destination (no effects chain)');
+    }
 
     // Wait for all samples to load
     await Tone.loaded();

@@ -55,12 +55,22 @@ export async function loadViolin() {
       urls[note] = `${note}.mp3`;
     });
 
-    // Create sampler and connect to destination in one chain (Tone.js pattern)
+    // Create sampler
     sampler = new Tone.Sampler({
       urls,
       release: 0.8,  // Slightly shorter release than piano for violin character
       baseUrl: BASE_URL
-    }).toDestination();
+    });
+
+    // Connect to melodic channel (goes through master effects chain) or fallback to destination
+    const melodicChannel = window.NuzicAudioEngine?.getMelodicChannel?.();
+    if (melodicChannel) {
+      sampler.connect(melodicChannel);
+      console.log('Violin connected to melodic channel (through effects chain)');
+    } else {
+      sampler.toDestination();
+      console.log('Violin connected directly to destination (no effects chain)');
+    }
 
     // Wait for all samples to load
     await Tone.loaded();
