@@ -446,8 +446,8 @@ function setupEventHandlers() {
     // Theme is handled automatically
   });
 
-  // Instrument changes
-  document.addEventListener('sharedui:instrument', (e) => {
+  // Instrument changes (header dispatches on window)
+  window.addEventListener('sharedui:instrument', (e) => {
     console.log('Instrument changed:', e.detail.instrument);
   });
 }

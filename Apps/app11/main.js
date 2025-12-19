@@ -335,9 +335,11 @@ async function init() {
   };
   document.addEventListener('sharedui:sound', eventHandlers.sharedSound);
 
-  // Listen for instrument changes
+  // Listen for instrument changes (header dispatches on window)
   eventHandlers.sharedInstrument = async (e) => {
     const instrument = e.detail.instrument;
+    console.log('Instrument changed to:', instrument);
+
     await initAudio();
     await audio.setInstrument(instrument);
 
@@ -345,7 +347,7 @@ async function init() {
     currentPrefs.selectedInstrument = instrument;
     preferenceStorage.save(currentPrefs);
   };
-  document.addEventListener('sharedui:instrument', eventHandlers.sharedInstrument);
+  window.addEventListener('sharedui:instrument', eventHandlers.sharedInstrument);
 
   // Initialize P1 toggle
   const startIntervalToggle = document.getElementById('startIntervalToggle');
@@ -477,7 +479,7 @@ window.addEventListener('beforeunload', () => {
   }
 
   if (eventHandlers.sharedInstrument) {
-    document.removeEventListener('sharedui:instrument', eventHandlers.sharedInstrument);
+    window.removeEventListener('sharedui:instrument', eventHandlers.sharedInstrument);
   }
 });
 
