@@ -1,6 +1,6 @@
 // App10: Línea Sonora - Visual melodic line with piano playback
 import { createSoundline } from '../../libs/app-common/soundline.js';
-import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { createNoteHighlightController } from '../../libs/app-common/note-highlight.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
@@ -60,12 +60,9 @@ function drawSoundline() {
 }
 
 // ========== AUDIO ==========
-// Usar el mismo patrón que App13 - createRhythmAudioInitializer
-const _baseInitAudio = createRhythmAudioInitializer({
-  getSoundSelects: () => ({
-    baseSoundSelect: document.querySelector('#baseSoundSelect'),
-    accentSoundSelect: document.querySelector('#accentSoundSelect')
-  })
+// Usar MelodicTimelineAudio para soporte de piano
+const _baseInitAudio = createMelodicAudioInitializer({
+  defaultInstrument: 'piano'
 });
 
 async function initAudio() {
