@@ -582,11 +582,11 @@ body[data-theme='dark'] .fraction-info-bubble {
 .mixer-channel__slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--selection-color);
-  margin-top: -9px;
+  margin-top: -11px;
   box-shadow: 0 0 0 2px currentColor;
   cursor: grab;
 }
@@ -598,8 +598,8 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .mixer-channel__slider::-moz-range-thumb {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--selection-color);
   border: 2px solid currentColor;
