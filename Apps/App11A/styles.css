@@ -10,21 +10,18 @@
   --note-highlight-color: var(--selection-color, #FFBB33);
   --z-active: 20;
 
-  /* TwoColumnLayout customization - preserves exact App11 positioning */
-  --controls-padding-top: 50px;
-  --controls-margin: 50px;
-  --controls-inner-margin: 30px;
-  --controls-justify: start;
-  /* Reduce gap to align grid more to the left */
-  --layout-gap: 1rem;
-
-  /* Toggle positioning for satellite button */
-  --toggle-pulse-offset-x: -115px;
-  --toggle-pulse-offset-y: -20px;
-
-  /* Fine-tuning for button positioning */
-  --play-row-margin-left: -20px;
-  --play-row-margin-top: -20px;
+  /* TwoColumnLayout customization - narrow left column */
+  --col-left: 120px;
+  --col-left-tablet: 100px;
+  --col-left-mobile: 90px;
+  --col-left-small: 80px;
+  --col-left-tiny: 70px;
+  --col-left-ultra: 60px;
+  --controls-padding-top: 0px;
+  --controls-margin: 10px;
+  --controls-inner-margin: 10px;
+  --controls-justify: center;
+  --layout-gap: 0.5rem;
 }
 
 [data-theme="dark"] {
@@ -81,39 +78,54 @@ html, body {
 }
 
 /* ========== APP11A-SPECIFIC OVERRIDES ========== */
+/* Center controls vertically and horizontally */
+.app11-controls-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 10px !important;
+  margin: 0 !important;
+}
+
 .app11-controls-container .controls[data-layout="vertical"] {
-  flex-direction: column;
-  gap: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: auto;
   height: auto;
-  margin: 30px;
-  position: static;
-  align-items: flex-start;
+  margin: 0;
+  position: relative;
 }
 
-/* Play-row: use static positioning instead of absolute centering */
+/* Play-row contains play button + sound toggles */
 .app11-controls-container .play-row {
-  position: static;
-  transform: none;
-  margin-left: var(--play-row-margin-left);
-  margin-top: var(--play-row-margin-top);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
 }
 
-/* Force vertical layout for control-buttons-row */
-.app11-controls-container .control-buttons-row {
-  display: flex;
-  flex-direction: column !important;
-  gap: 0.5rem;
-  align-items: start;
+/* Play button above toggles */
+.app11-controls-container .play-row > #playBtn {
+  z-index: 2;
+}
+
+/* Sound toggles positioned below play button, overlapping into its space */
+.app11-controls-container .play-row > .control-sound-toggles {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: var(--sound-toggles-offset-y, -20px);
+  z-index: 1;
+  pointer-events: auto;
 }
 
 /* Override shared-ui margins for tighter spacing */
 .app11-controls-container #playBtn {
-  margin: 0px !important;
+  margin: 0 !important;
 }
-
-/* Toggle positioning now uses CSS variables:
-   --toggle-pulse-offset-x/y in :root */
 
 .app11-controls-container .button-row {
   margin: 0 !important;
@@ -212,12 +224,11 @@ html, body {
 /* Tablet Landscape (900px) */
 @media (max-width: 900px) {
   :root {
-    --controls-padding-top: 30px;
-    --controls-margin: 30px;
-    --controls-inner-margin: 20px;
-    --layout-gap: 0.8rem;
-    --play-row-margin-left: -15px;
-    --play-row-margin-top: -15px;
+    --controls-padding-top: 15px;
+    --controls-margin: 8px;
+    --controls-inner-margin: 8px;
+    --layout-gap: 0.4rem;
+    --sound-toggles-offset-y: 8px;
   }
 
   .app11-controls-container .play {
@@ -230,12 +241,11 @@ html, body {
 /* Tablet Portrait (768px) */
 @media (max-width: 768px) {
   :root {
-    --controls-padding-top: 20px;
-    --controls-margin: 20px;
-    --controls-inner-margin: 15px;
-    --layout-gap: 0.6rem;
-    --play-row-margin-left: -12px;
-    --play-row-margin-top: -12px;
+    --controls-padding-top: 10px;
+    --controls-margin: 5px;
+    --controls-inner-margin: 5px;
+    --layout-gap: 0.3rem;
+    --sound-toggles-offset-y: 6px;
   }
 
   .app11-controls-container .play {
@@ -248,12 +258,11 @@ html, body {
 /* Mobile (600px) */
 @media (max-width: 600px) {
   :root {
-    --controls-padding-top: 15px;
-    --controls-margin: 15px;
-    --controls-inner-margin: 10px;
-    --layout-gap: 0.5rem;
-    --play-row-margin-left: -10px;
-    --play-row-margin-top: -10px;
+    --controls-padding-top: 8px;
+    --controls-margin: 4px;
+    --controls-inner-margin: 4px;
+    --layout-gap: 0.25rem;
+    --sound-toggles-offset-y: 5px;
   }
 
   .app11-controls-container .play {
@@ -266,22 +275,16 @@ html, body {
     width: 55%;
     height: 55%;
   }
-
-  .app11-controls-container .controls[data-layout="vertical"] {
-    margin: 15px;
-    gap: 1rem;
-  }
 }
 
 /* Mobile Landscape (480px) */
 @media (max-width: 480px) {
   :root {
-    --controls-padding-top: 10px;
-    --controls-margin: 10px;
-    --controls-inner-margin: 8px;
-    --layout-gap: 0.4rem;
-    --play-row-margin-left: -8px;
-    --play-row-margin-top: -8px;
+    --controls-padding-top: 5px;
+    --controls-margin: 3px;
+    --controls-inner-margin: 3px;
+    --layout-gap: 0.2rem;
+    --sound-toggles-offset-y: 4px;
   }
 
   .app11-controls-container .play {
@@ -289,37 +292,22 @@ html, body {
     height: clamp(45px, 18vw, 55px);
     font-size: 0.9rem;
   }
-
-  .app11-controls-container .control-buttons-row {
-    gap: 0.3rem;
-  }
-
-  .app11-controls-container .controls[data-layout="vertical"] {
-    margin: 10px;
-    gap: 0.8rem;
-  }
 }
 
 /* Ultra-small (400px) */
 @media (max-width: 400px) {
   :root {
-    --controls-padding-top: 5px;
-    --controls-margin: 5px;
-    --controls-inner-margin: 5px;
-    --layout-gap: 0.3rem;
-    --play-row-margin-left: -5px;
-    --play-row-margin-top: -5px;
+    --controls-padding-top: 3px;
+    --controls-margin: 2px;
+    --controls-inner-margin: 2px;
+    --layout-gap: 0.15rem;
+    --sound-toggles-offset-y: 3px;
   }
 
   .app11-controls-container .play {
     width: 40px;
     height: 40px;
     font-size: 0.8rem;
-  }
-
-  .app11-controls-container .controls[data-layout="vertical"] {
-    gap: 0.6rem;
-    margin: 5px;
   }
 }
 
