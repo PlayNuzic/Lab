@@ -965,19 +965,12 @@ function injectGridEditor() {
     const mainElement = appRoot.querySelector('main');
     if (mainElement) {
       const gridWrapper = document.createElement('div');
-      gridWrapper.className = 'two-column-layout app12-main-grid';
+      gridWrapper.className = 'app12-main-grid';
 
-      // Move existing grid-container into wrapper
-      const gridContainer = mainElement.querySelector('.grid-container');
-      if (gridContainer) {
-        gridContainer.classList.add('two-column-layout__main');
-        gridWrapper.appendChild(gridContainer);
-      }
+      // Add grid-editor container to wrapper (first row)
+      gridWrapper.appendChild(gridEditorContainer);
 
-      // Add grid-seq to wrapper
-      gridWrapper.insertBefore(gridEditorContainer, gridWrapper.firstChild);
-
-      // Append wrapper to main
+      // Append wrapper to main (musical-grid will be added later)
       mainElement.appendChild(gridWrapper);
     } else {
       // Fallback: append directly to app-root
@@ -1083,23 +1076,20 @@ async function initializeApp() {
     resizeObserver.observe(matrixContainer);
   }
 
-  // Reposition controls into grid wrapper (match App12)
+  // Reposition controls into grid wrapper (CSS Grid handles placement)
   const controls = document.querySelector('.controls');
   const gridWrapper = document.querySelector('.app12-main-grid');
 
   if (controls && gridWrapper) {
     controls.remove();
 
+    // Create container for controls (grid-column: 1, grid-row: 2 via CSS)
     const controlsContainer = document.createElement('div');
-    controlsContainer.className = 'two-column-layout__controls app12-controls-container';
+    controlsContainer.className = 'app12-controls-container';
     controlsContainer.appendChild(controls);
 
-    const gridContainer = gridWrapper.querySelector('.grid-container');
-    if (gridContainer) {
-      gridContainer.before(controlsContainer);
-    } else {
-      gridWrapper.appendChild(controlsContainer);
-    }
+    // Add to wrapper - CSS Grid will position it in bottom-left
+    gridWrapper.appendChild(controlsContainer);
   }
 
   // Create grid editor with scroll enabled on mobile, using interval zigzag mode

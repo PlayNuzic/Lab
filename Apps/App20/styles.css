@@ -6,8 +6,31 @@
 
 /* Block both horizontal and vertical global scroll for this app */
 html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+#app-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#app-root > header,
+.app-scale-wrapper > header {
+  flex-shrink: 0;
+}
+
+.app-scale-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ============================================
@@ -121,10 +144,12 @@ html, body {
    ============================================ */
 
 main {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 60px);
+  min-height: 0;  /* Permite compresión en iframes */
   padding: 0;
+  overflow: hidden;
 }
 
 /* ============================================

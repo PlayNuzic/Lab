@@ -10,70 +10,181 @@
   --note-highlight-color: var(--selection-color, #FFBB33);
   --z-active: 20;
 
-  /* TwoColumnLayout customization - preserves exact App11 positioning */
-  --controls-padding-top: 50px;
-  --controls-margin: 50px;
-  --controls-inner-margin: 30px;
-  --controls-justify: start;
-  /* Reduce gap to align grid more to the left */
-  --layout-gap: 1rem;
+  /* Play button fine-tuning */
+  --play-size: 80px;
+  --play-font-size: 2rem;
+  --play-offset-x: 0px;
+  --play-offset-y: -90px;
 
-  /* Toggle positioning for satellite button */
-  --toggle-pulse-offset-x: -115px;
-  --toggle-pulse-offset-y: -20px;
+  /* Pulse toggle positioning (satellite button) */
+  --toggle-pulse-offset-x: 0px;
+  --toggle-pulse-offset-y: -80px;
 
-  /* Fine-tuning for button positioning */
-  --play-row-margin-left: -20px;
-  --play-row-margin-top: -20px;
+  /* TwoColumnLayout customization - wider for PULSO button */
+  --col-left: 240px;
+  --col-left-tablet: 100px;
+  --col-left-mobile: 90px;
+  --col-left-small: 80px;
+  --col-left-tiny: 70px;
+  --col-left-ultra: 60px;
+  --controls-padding-top: 0px;
+  --controls-margin: 10px;
+  --controls-inner-margin: 10px;
+  --controls-justify: center;
+  --layout-gap: 0.5rem;
+
+  /* iframe fallback min-height */
+  --grid-min-height: 400px;
+
+  /* Grid padding for soundline visibility */
+  --grid-padding-right: 60px;
 }
 
 [data-theme="dark"] {
   --line-color: #999;
 }
 
-/* ========== APP11-SPECIFIC OVERRIDES ========== */
-.app11-controls-container .controls[data-layout="vertical"] {
+/* ========== VIEWPORT FILL LAYOUT ========== */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  overflow: hidden;
+}
+
+#app-root > header,
+.app-scale-wrapper > header {
+  flex-shrink: 0;
+}
+
+#app-root > main,
+.app-scale-wrapper > main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-scale-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Two-column layout fills main */
+.app11-main-grid {
+  flex: 1;
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ========== APP11-SPECIFIC OVERRIDES ========== */
+/* Center controls vertically and horizontally */
+.app11-controls-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 10px !important;
+  margin: 0 !important;
+}
+
+.app11-controls-container .controls[data-layout="vertical"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: auto;
   height: auto;
-  margin: 30px;
-  position: static;
-  align-items: flex-start;
+  margin: 0;
+  position: relative;
 }
 
-/* Play-row: use static positioning instead of absolute centering */
+/* Play-row contains play button + sound toggles */
 .app11-controls-container .play-row {
-  position: static;
-  transform: none;
-  margin-left: var(--play-row-margin-left);
-  margin-top: var(--play-row-margin-top);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  /* Fine-tuning offsets applied to entire play-row */
+  transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0));
 }
 
-/* Force vertical layout for control-buttons-row */
-.app11-controls-container .control-buttons-row {
-  display: flex;
-  flex-direction: column !important;
-  gap: 0.5rem;
-  align-items: start;
+/* Play button above toggles */
+.app11-controls-container .play-row > #playBtn {
+  z-index: 2;
+}
+
+/* Sound toggles positioned below play button, overlapping into its space */
+.app11-controls-container .play-row > .control-sound-toggles {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: var(--sound-toggles-offset-y, -20px);
+  z-index: 1;
+  pointer-events: auto;
 }
 
 /* Override shared-ui margins for tighter spacing */
 .app11-controls-container #playBtn {
-  margin: 0px !important;
+  margin: 0 !important;
 }
-
-/* Toggle positioning now uses CSS variables:
-   --toggle-pulse-offset-x/y in :root */
 
 .app11-controls-container .button-row {
   margin: 0 !important;
 }
 
+/* Pulse toggle anchored to play button (satellite position) */
+.app11-controls-container #pulseToggleBtn {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translate(var(--toggle-pulse-offset-x, 0), var(--toggle-pulse-offset-y, -50%));
+  z-index: 3;
+}
+
 /* ========== GRID CONTAINER (CENTER COLUMN) ========== */
 #grid-container {
-  /* Grid positioning inherited from three-column-layout__main */
-  height: 70vh; /* App11-specific height */
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 10px;
+  padding-right: var(--grid-padding-right, 60px);
+}
+
+#grid-container > .grid-container {
+  position: relative !important;
+  left: 0 !important;
+  top: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: var(--grid-min-height, 400px);
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* ========== SOUNDLINE & TIMELINE NUMBER ALIGNMENT ========== */
+/* Unify font sizes between soundline and timeline numbers */
+.soundline-number,
+.pulse-marker {
+  font-size: 1.4rem;
 }
 
 /* ========== HIDE UNNECESSARY CONTROLS ========== */
@@ -107,11 +218,11 @@
 
 /* ========== RESPONSIVE BUTTON ADAPTATIONS ========== */
 
-/* Desktop sizes (explicit baseline for overrides) */
+/* Desktop sizes - use CSS variables for fine-tuning */
 .app11-controls-container .play {
-  width: 80px;
-  height: 80px;
-  font-size: 2rem;
+  width: var(--play-size, 80px);
+  height: var(--play-size, 80px);
+  font-size: var(--play-font-size, 2rem);
 }
 
 .app11-controls-container .play svg {
@@ -120,3 +231,118 @@
 }
 
 /* Responsive button sizes handled by shared-ui */
+
+/* ========== RESPONSIVE BREAKPOINTS ========== */
+
+/* Tablet Landscape (900px) */
+@media (max-width: 900px) {
+  :root {
+    --controls-padding-top: 15px;
+    --controls-margin: 8px;
+    --controls-inner-margin: 8px;
+    --layout-gap: 0.4rem;
+    --sound-toggles-offset-y: 8px;
+  }
+
+  .app11-controls-container .play {
+    width: 65px;
+    height: 65px;
+    font-size: 1.6rem;
+  }
+}
+
+/* Tablet Portrait (768px) */
+@media (max-width: 768px) {
+  :root {
+    --controls-padding-top: 10px;
+    --controls-margin: 5px;
+    --controls-inner-margin: 5px;
+    --layout-gap: 0.3rem;
+    --sound-toggles-offset-y: 6px;
+  }
+
+  .app11-controls-container .play {
+    width: 55px;
+    height: 55px;
+    font-size: 1.4rem;
+  }
+}
+
+/* Mobile (600px) */
+@media (max-width: 600px) {
+  :root {
+    --controls-padding-top: 8px;
+    --controls-margin: 4px;
+    --controls-inner-margin: 4px;
+    --layout-gap: 0.25rem;
+    --sound-toggles-offset-y: 5px;
+  }
+
+  .app11-controls-container .play {
+    width: clamp(50px, 20vw, 60px);
+    height: clamp(50px, 20vw, 60px);
+    font-size: clamp(1rem, 3vw, 1.4rem);
+  }
+
+  .app11-controls-container .play svg {
+    width: 55%;
+    height: 55%;
+  }
+}
+
+/* Mobile Landscape (480px) */
+@media (max-width: 480px) {
+  :root {
+    --controls-padding-top: 5px;
+    --controls-margin: 3px;
+    --controls-inner-margin: 3px;
+    --layout-gap: 0.2rem;
+    --sound-toggles-offset-y: 4px;
+  }
+
+  .app11-controls-container .play {
+    width: clamp(45px, 18vw, 55px);
+    height: clamp(45px, 18vw, 55px);
+    font-size: 0.9rem;
+  }
+}
+
+/* Ultra-small (400px) */
+@media (max-width: 400px) {
+  :root {
+    --controls-padding-top: 3px;
+    --controls-margin: 2px;
+    --controls-inner-margin: 2px;
+    --layout-gap: 0.15rem;
+    --sound-toggles-offset-y: 3px;
+  }
+
+  .app11-controls-container .play {
+    width: 40px;
+    height: 40px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ========== PORTRAIT ORIENTATION WARNING ========== */
+@media (max-width: 768px) and (orientation: portrait) {
+  body::before {
+    content: '⟲ Por favor, gira tu dispositivo para usar esta aplicación';
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+    z-index: 9999;
+    padding: 2rem;
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}

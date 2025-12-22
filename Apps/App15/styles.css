@@ -26,33 +26,130 @@
   --z-active: 20;        /* Active/playing states */
   --z-overlay: 100;      /* Overlays: tooltips, modals */
 
-  /* TwoColumnLayout customization - preserves exact App12 positioning */
+  /* App15 2-row layout customization */
+  --col-left: 150px;
+  --col-left-tablet: 100px;
+  --col-left-mobile: 80px;
+  --col-left-small: 70px;
+  --col-left-tiny: 60px;
   --controls-padding-top: 0px;
   --controls-margin: 5px;
   --controls-inner-margin: 0;
   --controls-justify: center;
   --buttons-align: center;
-
-  /* Reduce gap to align grid more to the left */
-  --layout-gap: 1rem;
+  --layout-gap: 0.5rem;
 
   /* Cursor for N-P dots in interval mode (controlled by JS) */
   --np-dot-cursor: grab;
 
   /* Toggle positioning for satellite button */
-  --toggle-pulse-offset-x: -115px;
-  --toggle-pulse-offset-y: -20px;
+  --toggle-pulse-offset-x: 0px;
+  --toggle-pulse-offset-y: -70px;
 
-  /* Fine-tuning for button positioning (same pattern as App12) */
-  --play-row-margin-left: 45px;
-  --play-row-margin-top: -60px;
-  --button-row-margin-left: -50px;
-  --button-row-margin-top: 0px;
-  --controls-vertical-gap: 0.1rem;
+  /* Controls vertical gap */
+  --controls-vertical-gap: 0.5rem;
+
+  /* Fine-tuning: Play button position */
+  --play-offset-x: -65px;
+  --play-offset-y: -150px;
+
+  /* Fine-tuning: Secondary buttons (random, reset) position */
+  --buttons-row-offset-x: 0px;
+  --buttons-row-offset-y: -30px;
+  --buttons-row-gap: 0rem;
+
+  /* iframe fallback min-height */
+  --grid-min-height: 400px;
 }
 
 [data-theme="dark"] {
   --line-color: #999;
+}
+
+/* ========== VIEWPORT FILL LAYOUT ========== */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#app-root > header,
+.app-scale-wrapper > header {
+  flex-shrink: 0;
+}
+
+#app-root > main,
+.app-scale-wrapper > main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-scale-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========== APP15 MAIN GRID: 2-ROW LAYOUT ========== */
+/* Row 1: Grid Editor (full width)
+   Row 2: Controls (left) + Musical Grid (right) */
+.app12-main-grid {
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: var(--col-left, 150px) 1fr;
+  gap: var(--layout-gap, 0.5rem);
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+/* Grid Editor spans full width in first row */
+#gridEditorContainer {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+/* Controls container in bottom-left */
+.app12-controls-container {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Musical grid fills bottom-right */
+.app12-main-grid > .grid-container {
+  grid-column: 2;
+  grid-row: 2;
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: var(--grid-min-height, 300px);
+  min-width: 0;
+}
+
+/* ========== SOUNDLINE & TIMELINE NUMBER ALIGNMENT ========== */
+/* Unify font sizes between soundline and timeline numbers */
+.soundline-number,
+.pulse-marker {
+  font-size: 1.4rem;
 }
 
 /* ========== Drag Preview ========== */
@@ -240,18 +337,50 @@ body.dragging-note * {
   /* Template's original layout is preserved */
 }
 
-/* Play-row: use static positioning instead of absolute centering */
-.app12-controls-container .play-row {
-  position: static;
-  transform: none;
-  margin-left: var(--play-row-margin-left);
-  margin-top: var(--play-row-margin-top);
+/* control-buttons-row: CSS Grid for 2-row layout */
+/* Row 1: play-row (centered) | Row 2: random + reset (horizontal) */
+.app12-controls-container .control-buttons-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 0.8rem;
+  justify-items: center;
+  align-items: center;
 }
 
-.app12-controls-container .button-row {
-  gap: 1.5rem;
-  margin-top: var(--button-row-margin-top) !important;
-  margin-left: var(--button-row-margin-left) !important;
+/* play-row spans both columns, centered */
+.app12-controls-container .play-row {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  /* Fine-tuning via CSS variables */
+  transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0));
+}
+
+.app12-controls-container #playBtn {
+  margin: 0 !important;
+}
+
+/* Random and Reset in row 2, side by side */
+.app12-controls-container .random {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: end;
+  /* Fine-tuning via CSS variables */
+  transform: translate(var(--buttons-row-offset-x, 0), var(--buttons-row-offset-y, 0));
+  margin-right: calc(var(--buttons-row-gap, 0.5rem) / 2);
+}
+
+.app12-controls-container .reset {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: start;
+  /* Fine-tuning via CSS variables */
+  transform: translate(var(--buttons-row-offset-x, 0), var(--buttons-row-offset-y, 0));
+  margin-left: calc(var(--buttons-row-gap, 0.5rem) / 2);
 }
 
 /* Hide Loop button */
@@ -304,28 +433,20 @@ body.dragging-note * {
   z-index: var(--z-interactive);
 }
 
-/* ========== APP12-SPECIFIC LAYOUT CUSTOMIZATIONS ========== */
-/* Grid-seq takes full width in first row */
-#gridEditorContainer {
-  grid-column: 1 / -1;
-  grid-row: 1;
-}
-
-/* App12-specific control spacing overrides */
+/* ========== APP15-SPECIFIC LAYOUT CUSTOMIZATIONS ========== */
+/* App15-specific control spacing overrides */
 .app12-controls-container .controls[data-layout="vertical"] {
-  gap: var(--controls-vertical-gap, 1.5rem);
-  align-items: flex-start; /* Keep content left-aligned */
+  display: flex;
+  flex-direction: column;
+  gap: var(--controls-vertical-gap, 0.5rem);
+  align-items: center;
 }
 
-.app12-controls-container .control-buttons-row {
-  gap: 0.5rem;  /* Tighter than default */
+/* Toggle positioning via CSS variables */
+.app12-controls-container #pulseToggleBtn {
+  position: relative;
+  transform: translate(var(--toggle-pulse-offset-x, 0), var(--toggle-pulse-offset-y, 0));
 }
-
-.app12-controls-container #playBtn {
-  margin: 0 !important;  /* Remove 2rem bottom margin from shared-ui */
-}
-
-/* Toggle positioning now uses CSS variables in :root */
 
 /* ========== RESPONSIVE ADAPTATIONS ========== */
 
@@ -387,8 +508,8 @@ body.dragging-note * {
 @media (max-width: 900px) {
   /* Reduce padding and margins for tighter layout */
   .app12-main-grid {
-    grid-template-columns: 80px 1fr 80px;
-    gap: 0.8rem;
+    grid-template-columns: var(--col-left-tablet, 100px) 1fr;
+    gap: 0.4rem;
     padding: 0.4rem;
   }
 
@@ -481,8 +602,8 @@ body.dragging-note * {
 /* ========== MOBILE (≤ 768px) ========== */
 @media (max-width: 768px) {
   .app12-main-grid {
-    grid-template-columns: 70px 1fr 70px;
-    gap: 0.6rem;
+    grid-template-columns: var(--col-left-mobile, 80px) 1fr;
+    gap: 0.3rem;
     padding: 0.3rem;
   }
 
@@ -504,9 +625,9 @@ body.dragging-note * {
 /* ========== SMALL SCREENS (≤ 600px) ========== */
 @media (max-width: 600px) {
   .app12-main-grid {
-    grid-template-columns: 60px 1fr 60px;
-    gap: 0.55rem;
-    padding: 0.28rem;
+    grid-template-columns: var(--col-left-small, 70px) 1fr;
+    gap: 0.25rem;
+    padding: 0.25rem;
   }
 
   .app12-controls-container {
@@ -520,8 +641,8 @@ body.dragging-note * {
 /* ========== TINY MOBILE (≤ 480px) ========== */
 @media (max-width: 480px) {
   .app12-main-grid {
-    grid-template-columns: 60px 1fr 60px;
-    gap: 0.4rem;
+    grid-template-columns: var(--col-left-tiny, 60px) 1fr;
+    gap: 0.2rem;
     padding: 0.2rem;
   }
 
@@ -542,9 +663,9 @@ body.dragging-note * {
 /* ========== ULTRA COMPACT (≤ 400px) ========== */
 @media (max-width: 400px) {
   .app12-main-grid {
-    grid-template-columns: 50px 1fr 50px;
-    gap: 0.35rem;
-    padding: 0.18rem;
+    grid-template-columns: 50px 1fr;
+    gap: 0.15rem;
+    padding: 0.15rem;
   }
 
   .app12-controls-container {

@@ -166,6 +166,13 @@ html, body {
   max-height: none !important;
 }
 
+/* ========== SOUNDLINE & TIMELINE NUMBER ALIGNMENT ========== */
+/* Unify font sizes between soundline and timeline numbers */
+.soundline-number,
+.pulse-marker {
+  font-size: 1.4rem;
+}
+
 /* ========== HIDE UNNECESSARY CONTROLS ========== */
 .controls #loopBtn,
 .controls #randomBtn,
