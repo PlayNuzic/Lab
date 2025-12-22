@@ -5,7 +5,11 @@
   --line-color: #666;
   --soundline-width: 3px;
   --note-highlight-color: var(--selection-color, #FFBB33);
+
+  /* Soundline sizing and positioning (matching App14) */
   --soundline-height: 100%;
+  --soundline-offset-x: 35px;
+  --timeline-offset-y: -30px;
 }
 
 [data-theme="dark"] {
@@ -23,8 +27,9 @@
   z-index: 100;
   cursor: pointer;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding-top: 35vh; /* Alinear con la soundline */
   font-size: 1.5rem;
   color: var(--line-color);
   opacity: 0.3;
@@ -47,12 +52,12 @@
 .timeline-wrapper {
   width: 100%;
   max-width: 600px;
-  height: 625px;
+  height: 500px;
   margin: 0 auto;
   position: relative;
   z-index: 1;
   opacity: 1 !important;
-  padding: 40px;
+  padding: 20px 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -75,6 +80,7 @@
   justify-content: center; /* Centrar soundline */
   align-items: center;
   overflow: visible; /* Allow soundline to extend beyond 100% */
+  transform: translateY(var(--timeline-offset-y, 0px)); /* Ajust fi vertical */
 }
 
 /* Ocultar la línea horizontal del timeline (no necesaria en App10) */
@@ -88,6 +94,7 @@
   width: 300px; /* Más ancho para acomodar números a la izquierda */
   height: var(--soundline-height, 100%); /* Altura ajustable con variable */
   margin: 0 auto;
+  transform: translateX(var(--soundline-offset-x, 0px)); /* Ajust fi horitzontal */
 }
 
 /* Línea vertical principal */
