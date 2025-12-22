@@ -17,7 +17,7 @@ let pulses = [];
 let isPlaying = false;
 let audio = null;
 let notes = [];  // Array de {startPulse, duration, midi, barElement} para 2 notas
-let currentBPM = 0;
+let currentBPM = 90;
 let currentInstrument = 'violin';  // Default: violín
 
 // Referencias a elementos del DOM
@@ -27,8 +27,7 @@ let playBtn = null;
 
 // ========== CONFIGURACIÓN ==========
 const TOTAL_PULSES = 9;  // Dibuja 9 pulsos (0-8)
-const MIN_BPM = 75;
-const MAX_BPM = 150;
+const FIXED_BPM = 90;    // BPM fijo
 
 // Storage de preferencias
 const preferenceStorage = createPreferenceStorage('app9');
@@ -206,10 +205,6 @@ if (typeof window !== 'undefined') {
   window.__labInitAudio = initAudio;
 }
 
-function getRandomBPM() {
-  return Math.floor(Math.random() * (MAX_BPM - MIN_BPM + 1)) + MIN_BPM;
-}
-
 function getRandomPulseIndex() {
   return Math.floor(Math.random() * TOTAL_PULSES);
 }
@@ -260,8 +255,8 @@ async function handlePlay() {
     await initAudio();
   }
 
-  // Generar BPM y 2 notas aleatorias con MIDI del registro 4
-  currentBPM = getRandomBPM();
+  // Usar BPM fijo y generar 2 notas aleatorias con MIDI del registro 4
+  currentBPM = FIXED_BPM;
   notes = generate2Notes();
 
   console.log(`BPM: ${currentBPM}, Instrumento: ${currentInstrument}`);
