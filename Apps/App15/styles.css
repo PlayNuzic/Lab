@@ -27,7 +27,7 @@
   --z-overlay: 100;      /* Overlays: tooltips, modals */
 
   /* App15 2-row layout customization */
-  --col-left: 150px;
+  --col-left: 250px;
   --col-left-tablet: 100px;
   --col-left-mobile: 80px;
   --col-left-small: 70px;
@@ -50,11 +50,11 @@
   --controls-vertical-gap: 0.5rem;
 
   /* Fine-tuning: Play button position */
-  --play-offset-x: -65px;
+  --play-offset-x: -95px;
   --play-offset-y: -150px;
 
   /* Fine-tuning: Secondary buttons (random, reset) position */
-  --buttons-row-offset-x: 0px;
+  --buttons-row-offset-x: -20px;
   --buttons-row-offset-y: -30px;
   --buttons-row-gap: 0rem;
 
