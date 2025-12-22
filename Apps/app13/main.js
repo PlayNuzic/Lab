@@ -63,20 +63,39 @@ function getRandomBPM() {
 
 /**
  * Genera una nota MIDI aleatoria del registro 4 (C4-B4)
+ * @param {Set<number>} [excludeSet] - Set de notas MIDI a excluir
  * @returns {number} MIDI 60-71
  */
-function getRandomMidiNote() {
-  return 60 + Math.floor(Math.random() * 12);
+function getRandomMidiNote(excludeSet) {
+  const allNotes = [];
+  for (let i = 60; i <= 71; i++) {
+    if (!excludeSet || !excludeSet.has(i)) {
+      allNotes.push(i);
+    }
+  }
+  // Si no quedan notas disponibles, usar cualquiera
+  if (allNotes.length === 0) {
+    return 60 + Math.floor(Math.random() * 12);
+  }
+  return allNotes[Math.floor(Math.random() * allNotes.length)];
 }
 
 /**
- * Assigna notes MIDI als intervals (una nota diferent per cada interval)
+ * Assigna notes MIDI als intervals (totes les notes diferents)
+ * Cap nota es repeteix dins de la mateixa seqüència
  * @param {number[]} intervals - Array de duracions dels intervals
- * @returns {number[]} - Array de notes MIDI (una per cada interval)
+ * @returns {number[]} - Array de notes MIDI (una per cada interval, totes úniques)
  */
 function assignNotesToIntervals(intervals) {
   if (intervals.length === 0) return [];
-  return intervals.map(() => getRandomMidiNote());
+  const notes = [];
+  const usedNotes = new Set();
+  for (let i = 0; i < intervals.length; i++) {
+    const note = getRandomMidiNote(usedNotes);
+    notes.push(note);
+    usedNotes.add(note);
+  }
+  return notes;
 }
 
 /**

@@ -211,16 +211,21 @@ function getRandomPulseIndex() {
 
 /**
  * Genera una nota MIDI aleatoria del registro 4 (C4-B4)
+ * @param {number} [exclude] - Nota MIDI a excluir (para evitar repeticiones)
  * @returns {number} MIDI 60-71
  */
-function getRandomMidiNote() {
-  return 60 + Math.floor(Math.random() * 12);
+function getRandomMidiNote(exclude) {
+  let note;
+  do {
+    note = 60 + Math.floor(Math.random() * 12);
+  } while (note === exclude);
+  return note;
 }
 
 /**
  * Genera 2 notas de 1 pulso cada una con altura MIDI del registro 4
  * Primera nota: aleatoria entre pulsos 0-3
- * Segunda nota: aleatoria entre pulsos 4-7
+ * Segunda nota: aleatoria entre pulsos 4-7 (diferente a la primera)
  * @returns {Array} [{startPulse: number, duration: 1, midi: number}, ...]
  */
 function generate2Notes() {
@@ -230,9 +235,12 @@ function generate2Notes() {
   // Segunda nota: aleatoria entre 4-7
   const start2 = 4 + Math.floor(Math.random() * 4);
 
+  const midi1 = getRandomMidiNote();
+  const midi2 = getRandomMidiNote(midi1); // Evitar nota idéntica consecutiva
+
   return [
-    { startPulse: start1, duration: 1, midi: getRandomMidiNote() },
-    { startPulse: start2, duration: 1, midi: getRandomMidiNote() }
+    { startPulse: start1, duration: 1, midi: midi1 },
+    { startPulse: start2, duration: 1, midi: midi2 }
   ];
 }
 
