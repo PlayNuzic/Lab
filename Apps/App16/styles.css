@@ -17,13 +17,11 @@
   --bpm-offset-x: 18px;
   --bpm-offset-y: -107px;
 
-  /* Circular layout fine-tuning for App16 */
-  --play-row-offset-x: 75px;
-  --play-row-offset-y: -5px;
+  /* Circular layout - toggles are now siblings, not inside play-row */
   --control-toggles-offset-x: 0px;
   --control-toggles-offset-y: 0px;
-  --toggle-pulse-offset-x: -115px;
-  --toggle-pulse-offset-y: -35px;
+  --toggle-pulse-offset-x: 0px;
+  --toggle-pulse-offset-y: 0px;
   --toggle-selected-offset-x: 0px;
   --toggle-selected-offset-y: 0px;
   --toggle-cycle-offset-x: 0px;

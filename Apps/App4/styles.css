@@ -1,17 +1,17 @@
 /* App4 specific overrides */
 
-/* Circular layout fine-tuning for App4 (Pulse + Selected + Cycle toggles) */
+/* Circular layout - toggles are now siblings, not inside play-row */
 :root {
-  --play-row-offset-x: 225px;
-  --play-row-offset-y: -5px;
+  /* Toggle offsets no longer needed - using default absolute positioning */
   --control-toggles-offset-x: 0px;
   --control-toggles-offset-y: 0px;
-  --toggle-pulse-offset-x: -118px;
-  --toggle-pulse-offset-y: -35px;
-  --toggle-selected-offset-x: -265px;
-  --toggle-selected-offset-y: -33px;
-  --toggle-cycle-offset-x: -412px;
-  --toggle-cycle-offset-y: -35px;
+  --toggle-pulse-offset-x: 0px;
+  --toggle-pulse-offset-y: 1px;
+  --toggle-selected-offset-x: 75px;
+  --toggle-selected-offset-y: 1px;
+  --toggle-cycle-offset-x: 0px;
+  --toggle-cycle-offset-y: 1px;
+  /* Button offsets */
   --btn-loop-offset-x: 0px;
   --btn-loop-offset-y: 0px;
   --btn-random-offset-x: 0px;

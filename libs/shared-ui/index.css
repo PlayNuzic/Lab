@@ -896,6 +896,7 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   align-items: center;
   gap: 0;
   z-index: 2;
+  pointer-events: none; /* Allow clicks to pass through to buttons below */
 }
 
 /* Sound toggles inside play-row: positioned relative, not absolute */
@@ -931,17 +932,30 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   transform: translateX(var(--toggle-cycle-offset-x)) translateY(var(--toggle-cycle-offset-y));
 }
 
-/* Central play button */
+/* Central play button - base styles */
 .play {
-  position: relative;
-  top: auto;
-  left: auto;
-  transform: none;
   width: var(--play-button-size);
   height: var(--play-button-size);
   font-size: 2rem;
   z-index: 2;
+}
+
+/* Play button in circular layout (default, no data-layout) */
+.controls:not([data-layout]) .play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Play button inside play-row (vertical/horizontal layouts) */
+.play-row .play {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
   flex-shrink: 0;
+  pointer-events: auto;
 }
 
 /* Positioning buttons around the play button using precise angles */

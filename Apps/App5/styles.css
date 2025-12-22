@@ -1,15 +1,14 @@
 /* App5 specific overrides */
 
-/* Circular layout fine-tuning for App5 (Pulse + Selected + startInterval toggles) */
+/* Circular layout - toggles are now siblings, not inside play-row */
 :root {
-  --play-row-offset-x: 150px;
-  --play-row-offset-y: -5px;
   --control-toggles-offset-x: 0px;
   --control-toggles-offset-y: 0px;
-  --toggle-pulse-offset-x: -118px;
-  --toggle-pulse-offset-y: -35px;
-  --toggle-selected-offset-x: -265px;
-  --toggle-selected-offset-y: -33px;
+  --toggle-pulse-offset-x: 0px;
+  --toggle-pulse-offset-y: 1px;
+  --toggle-selected-offset-x: 75px;
+  --toggle-selected-offset-y: 1px;
+  /* Button offsets */
   --btn-loop-offset-x: 0px;
   --btn-loop-offset-y: 0px;
   --btn-random-offset-x: 0px;

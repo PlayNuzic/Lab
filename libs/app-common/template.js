@@ -291,20 +291,31 @@ ${togglesMarkup}
       <div class="controls"${controlsLayout ? ` data-layout="${controlsLayout.mode}"` : ''}>
       ${controlsLayout?.mode === 'vertical' ? '<div class="control-buttons-row">' : ''}
 
-      <!-- Fila 1: Play Button + Sound Toggles -->
+      ${controlsLayout ? `
+      <!-- Layout vertical/horizontal: Play Button + Sound Toggles en play-row -->
       <div class="play-row">
         <button id="playBtn" class="play" aria-label="Play">
-          <!-- Icona Play (triangle) -->
           <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
             <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
           </svg>
-          <!-- Icona Stop (quadrat) -->
           <svg class="icon-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" style="display:none">
             <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
           </svg>
         </button>
         ${soundToggleMarkup}
       </div>
+      ` : `
+      <!-- Layout circular: Play Button solo, Sound Toggles como hermanos -->
+      <button id="playBtn" class="play" aria-label="Play">
+        <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
+          <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
+        </svg>
+        <svg class="icon-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" style="display:none">
+          <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
+        </svg>
+      </button>
+      ${soundToggleMarkup}
+      `}
 
       <!-- Loop Button -->
       <button id="loopBtn" class="loop" aria-label="Loop">
@@ -325,8 +336,7 @@ ${togglesMarkup}
       <!-- Tap Help Text -->
       <span id="tapHelp" class="tap-help" style="display:none;">Se necesitan 3 clicks</span>
 
-      <!-- Fila 2: Random y Reset en la misma fila -->
-      <div class="button-row">
+      <!-- Random Button -->
       <button id="randomBtn" class="random" aria-label="Random">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor" stroke="currentColor">
     <path d="M449.531,105.602L288.463,8.989C278.473,2.994,267.235,0,256.01,0c-11.238,0-22.483,2.994-32.466,8.989 L62.475,105.602c-19.012,11.406-30.647,31.949-30.647,54.117v192.562c0,22.168,11.635,42.711,30.647,54.117l161.069,96.613 c9.982,5.988,21.228,8.989,32.466,8.989c11.226,0,22.463-3.001,32.453-8.989l161.069-96.613 c19.013-11.406,30.64-31.95,30.64-54.117V159.719C480.172,137.551,468.544,117.008,449.531,105.602z M250.599,492.733 c-6.028-0.745-11.929-2.713-17.32-5.949L72.209,390.171c-13.306-7.989-21.456-22.369-21.456-37.89V159.719 c0-6.022,1.235-11.862,3.518-17.234l196.328,117.76V492.733z M59.669,133.114c3.364-4.464,7.593-8.318,12.54-11.286l161.069-96.613 c6.995-4.196,14.85-6.29,22.731-6.29c7.868,0,15.724,2.095,22.718,6.29l161.069,96.613c4.942,2.968,9.184,6.821,12.54,11.286 L256.01,250.881L59.669,133.114z M461.253,352.281c0,15.521-8.15,29.901-21.456,37.89l-161.069,96.613 c-5.397,3.236-11.292,5.204-17.32,5.949V260.246l196.328-117.76c2.282,5.371,3.518,11.212,3.518,17.234V352.281z"/>
@@ -352,12 +362,13 @@ ${togglesMarkup}
       <path d="M202.061,422.55c11.158,6.082,20.207,1.967,20.207-9.191c0-11.151-9.05-25.128-20.207-31.211 c-11.151-6.076-20.194-1.96-20.194,9.191C181.867,402.497,190.910,416.468,202.061,422.55z"/>
       <path d="M361.948,282.911c-17.858,9.728-32.319,32.084-32.319,49.928c0,17.85,14.461,24.437,32.319,14.709 c17.844-9.734,32.319-32.09,32.319-49.941C394.267,279.762,379.792,273.176,361.948,282.911z"/>
       </svg></h2>${randomMenuContent}</div>
+
+      <!-- Reset Button -->
       <button id="resetBtn" class="reset" aria-label="Reset">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 25" fill="none">
     <path d="M18 7L7 18M7 7L18 18" stroke="currentColor" stroke-width="1.2"/>
   </svg>
 </button>
-      </div>
 
       <div id="mixerMenu"></div>
       ${controlsLayout?.mode === 'vertical' ? '</div>' : ''}

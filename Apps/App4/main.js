@@ -1477,13 +1477,15 @@ layoutTimeline();
 // Initialize loop controller with shared component
 loopController.attach();
 
-resetBtn.addEventListener('click', () => {
-  pulseMemoryApi.clear();
-  clearOpt(FRACTION_NUMERATOR_KEY);
-  clearOpt(FRACTION_DENOMINATOR_KEY);
-  sessionStorage.setItem('volumeResetFlag', 'true');
-  window.location.reload();
-});
+if (resetBtn) {
+  resetBtn.addEventListener('click', () => {
+    pulseMemoryApi.clear();
+    clearOpt(FRACTION_NUMERATOR_KEY);
+    clearOpt(FRACTION_DENOMINATOR_KEY);
+    sessionStorage.setItem('volumeResetFlag', 'true');
+    window.location.reload();
+  });
+}
 
 async function handleTapTempo() {
   try {
