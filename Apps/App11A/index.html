@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plano Visual</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="../../libs/musical-grid/musical-grid.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+
+   <!-- Eliminar espacio blanco para iframe -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body data-theme="system">
+  <div id="app-root"></div>
+  <!-- Tone.js is now loaded lazily after user interaction via tone-loader.js -->
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    // Set defaults in localStorage BEFORE header initializes
+    const app11aPrefs = localStorage.getItem('app11a-preferences');
+    if (!app11aPrefs) {
+      // First time - set factory defaults
+      localStorage.setItem('app11a-preferences', JSON.stringify({
+        selectedInstrument: 'piano',
+        selectColor: '#FFBB33'
+      }));
+    }
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Plano Visual',
+      showSelectColor: true,
+      showAccent: false,
+      showComplexFractions: false,
+      hideT: true,
+      hideLeds: true,
+      showCircularTimelineToggle: false,
+      showHoverToggle: false,
+      showIntervalLinesToggle: false,
+      showStartSoundDropdown: true,
+      showInstrumentDropdown: true,
+      showPulseToggle: true,
+      showP1Toggle: true,
+      randomMenuContent: '',
+      controlsLayout: { mode: 'vertical' }
+    });
+    initHeader();
+
+    // Remove template-generated elements (inputs, middle section)
+    document.querySelector('.inputs')?.remove();
+    document.querySelector('.middle')?.remove();
+
+    // Extract .controls from timeline-wrapper before removing it
+    const timelineWrapper = document.querySelector('.timeline-wrapper');
+    const controls = timelineWrapper?.querySelector('.controls');
+    if (controls && timelineWrapper) {
+      timelineWrapper.before(controls);  // Move controls out of wrapper
+      timelineWrapper.remove();          // Now remove the wrapper
+    }
+
+    import('./main.js');
+  </script>
+
+  <!-- Rendimiento Audio (menú flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <!-- Long-press para abrir el mixer -->
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+</body>
+</html>

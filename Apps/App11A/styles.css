@@ -1,0 +1,299 @@
+/* App11A: Plano Visual - Estilos */
+
+/* Import shared modules */
+@import url('../../libs/musical-grid/musical-grid.css');
+@import url('../../libs/shared-ui/two-column-layout.css');
+
+/* Variables CSS */
+:root {
+  --cell-highlight-color: var(--selection-color, #FFBB33);
+  --note-highlight-color: var(--selection-color, #FFBB33);
+  --z-active: 20;
+
+  /* TwoColumnLayout customization - preserves exact App11 positioning */
+  --controls-padding-top: 50px;
+  --controls-margin: 50px;
+  --controls-inner-margin: 30px;
+  --controls-justify: start;
+  /* Reduce gap to align grid more to the left */
+  --layout-gap: 1rem;
+
+  /* Toggle positioning for satellite button */
+  --toggle-pulse-offset-x: -115px;
+  --toggle-pulse-offset-y: -20px;
+
+  /* Fine-tuning for button positioning */
+  --play-row-margin-left: -20px;
+  --play-row-margin-top: -20px;
+}
+
+[data-theme="dark"] {
+  --line-color: #999;
+}
+
+/* ========== APP11A-SPECIFIC OVERRIDES ========== */
+.app11-controls-container .controls[data-layout="vertical"] {
+  flex-direction: column;
+  gap: 1.5rem;
+  width: auto;
+  height: auto;
+  margin: 30px;
+  position: static;
+  align-items: flex-start;
+}
+
+/* Play-row: use static positioning instead of absolute centering */
+.app11-controls-container .play-row {
+  position: static;
+  transform: none;
+  margin-left: var(--play-row-margin-left);
+  margin-top: var(--play-row-margin-top);
+}
+
+/* Force vertical layout for control-buttons-row */
+.app11-controls-container .control-buttons-row {
+  display: flex;
+  flex-direction: column !important;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+/* Override shared-ui margins for tighter spacing */
+.app11-controls-container #playBtn {
+  margin: 0px !important;
+}
+
+/* Toggle positioning now uses CSS variables:
+   --toggle-pulse-offset-x/y in :root */
+
+.app11-controls-container .button-row {
+  margin: 0 !important;
+}
+
+/* ========== GRID CONTAINER (CENTER COLUMN) ========== */
+#grid-container {
+  /* Grid positioning inherited from three-column-layout__main */
+  height: 70vh; /* App11A-specific height */
+}
+
+/* ========== HIDE UNNECESSARY CONTROLS ========== */
+.controls #loopBtn,
+.controls #randomBtn,
+.controls #resetBtn,
+.controls #tapTempoBtn,
+.controls .loop,
+.controls .random,
+.controls .reset,
+.controls .tap,
+.controls #randomMenu,
+.controls #mixerMenu {
+  display: none !important;
+}
+
+/* Show only play button */
+.controls #playBtn,
+.controls .play {
+  display: flex !important;
+}
+
+/* Center play button */
+.controls {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 10px;
+  margin: 20px auto;
+}
+
+/* ========== RESPONSIVE BUTTON ADAPTATIONS ========== */
+
+/* Desktop sizes (explicit baseline for overrides) */
+.app11-controls-container .play {
+  width: 80px;
+  height: 80px;
+  font-size: 2rem;
+}
+
+.app11-controls-container .play svg {
+  width: 50%;
+  height: 50%;
+}
+
+/* Responsive button sizes handled by shared-ui */
+
+/* ========== DISABLE CELL HOVER ========== */
+/* App11A is visual-only, no cell interaction */
+.grid-container:not(.interval-mode) .musical-cell:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+  cursor: default !important;
+}
+
+[data-theme="dark"] .grid-container:not(.interval-mode) .musical-cell:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* ========== HIDE PULSE TOGGLE ========== */
+#pulseToggleBtn {
+  display: none !important;
+}
+
+/* ========== RESPONSIVE BREAKPOINTS ========== */
+
+/* Tablet Landscape (900px) */
+@media (max-width: 900px) {
+  :root {
+    --controls-padding-top: 30px;
+    --controls-margin: 30px;
+    --controls-inner-margin: 20px;
+    --layout-gap: 0.8rem;
+    --play-row-margin-left: -15px;
+    --play-row-margin-top: -15px;
+  }
+
+  .app11-controls-container .play {
+    width: 65px;
+    height: 65px;
+    font-size: 1.6rem;
+  }
+
+  #grid-container {
+    height: 60vh;
+  }
+}
+
+/* Tablet Portrait (768px) */
+@media (max-width: 768px) {
+  :root {
+    --controls-padding-top: 20px;
+    --controls-margin: 20px;
+    --controls-inner-margin: 15px;
+    --layout-gap: 0.6rem;
+    --play-row-margin-left: -12px;
+    --play-row-margin-top: -12px;
+  }
+
+  .app11-controls-container .play {
+    width: 55px;
+    height: 55px;
+    font-size: 1.4rem;
+  }
+
+  #grid-container {
+    height: 55vh;
+  }
+}
+
+/* Mobile (600px) */
+@media (max-width: 600px) {
+  :root {
+    --controls-padding-top: 15px;
+    --controls-margin: 15px;
+    --controls-inner-margin: 10px;
+    --layout-gap: 0.5rem;
+    --play-row-margin-left: -10px;
+    --play-row-margin-top: -10px;
+  }
+
+  .app11-controls-container .play {
+    width: clamp(50px, 20vw, 60px);
+    height: clamp(50px, 20vw, 60px);
+    font-size: clamp(1rem, 3vw, 1.4rem);
+  }
+
+  .app11-controls-container .play svg {
+    width: 55%;
+    height: 55%;
+  }
+
+  #grid-container {
+    height: 50vh;
+  }
+
+  .app11-controls-container .controls[data-layout="vertical"] {
+    margin: 15px;
+    gap: 1rem;
+  }
+}
+
+/* Mobile Landscape (480px) */
+@media (max-width: 480px) {
+  :root {
+    --controls-padding-top: 10px;
+    --controls-margin: 10px;
+    --controls-inner-margin: 8px;
+    --layout-gap: 0.4rem;
+    --play-row-margin-left: -8px;
+    --play-row-margin-top: -8px;
+  }
+
+  .app11-controls-container .play {
+    width: clamp(45px, 18vw, 55px);
+    height: clamp(45px, 18vw, 55px);
+    font-size: 0.9rem;
+  }
+
+  .app11-controls-container .control-buttons-row {
+    gap: 0.3rem;
+  }
+
+  #grid-container {
+    height: 48vh;
+  }
+
+  .app11-controls-container .controls[data-layout="vertical"] {
+    margin: 10px;
+    gap: 0.8rem;
+  }
+}
+
+/* Ultra-small (400px) */
+@media (max-width: 400px) {
+  :root {
+    --controls-padding-top: 5px;
+    --controls-margin: 5px;
+    --controls-inner-margin: 5px;
+    --layout-gap: 0.3rem;
+    --play-row-margin-left: -5px;
+    --play-row-margin-top: -5px;
+  }
+
+  .app11-controls-container .play {
+    width: 40px;
+    height: 40px;
+    font-size: 0.8rem;
+  }
+
+  #grid-container {
+    height: 45vh;
+  }
+
+  .app11-controls-container .controls[data-layout="vertical"] {
+    gap: 0.6rem;
+    margin: 5px;
+  }
+}
+
+/* ========== PORTRAIT ORIENTATION WARNING ========== */
+@media (max-width: 768px) and (orientation: portrait) {
+  body::before {
+    content: '⟲ Por favor, gira tu dispositivo para usar esta aplicación';
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+    z-index: 9999;
+    padding: 2rem;
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}
