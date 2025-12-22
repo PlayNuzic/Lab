@@ -10,6 +10,12 @@
   --note-highlight-color: var(--selection-color, #FFBB33);
   --z-active: 20;
 
+  /* Play button fine-tuning */
+  --play-size: 80px;
+  --play-font-size: 2rem;
+  --play-offset-x: -10px;
+  --play-offset-y: -90px;
+
   /* TwoColumnLayout customization - narrow left column */
   --col-left: 120px;
   --col-left-tablet: 100px;
@@ -104,6 +110,8 @@ html, body {
   flex-direction: column;
   align-items: center;
   margin: 0;
+  /* Fine-tuning offsets applied to entire play-row */
+  transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0));
 }
 
 /* Play button above toggles */
@@ -141,6 +149,7 @@ html, body {
   box-sizing: border-box;
   overflow: hidden;
   padding: 10px;
+  padding-right: var(--grid-padding-right, 60px);
 }
 
 /* Override musical-grid.css defaults to fill container */
@@ -187,11 +196,11 @@ html, body {
 
 /* ========== RESPONSIVE BUTTON ADAPTATIONS ========== */
 
-/* Desktop sizes (explicit baseline for overrides) */
+/* Desktop sizes - use CSS variables for fine-tuning */
 .app11-controls-container .play {
-  width: 80px;
-  height: 80px;
-  font-size: 2rem;
+  width: var(--play-size, 80px);
+  height: var(--play-size, 80px);
+  font-size: var(--play-font-size, 2rem);
 }
 
 .app11-controls-container .play svg {
