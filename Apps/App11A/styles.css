@@ -73,7 +73,27 @@
 /* ========== GRID CONTAINER (CENTER COLUMN) ========== */
 #grid-container {
   /* Grid positioning inherited from three-column-layout__main */
-  height: 70vh; /* App11A-specific height */
+  height: auto; /* Let content determine height */
+  min-height: 400px;
+  max-height: 550px;
+}
+
+/* ========== COMPACT LAYOUT FOR IFRAME EMBEDDING ========== */
+/* Reduce dead space at bottom */
+main {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.app11-main-grid {
+  margin-bottom: 0 !important;
+  padding-bottom: 10px !important;
+}
+
+/* Make grid-container fit content better */
+.grid-container {
+  height: auto !important;
+  max-height: 480px !important;
 }
 
 /* ========== HIDE UNNECESSARY CONTROLS ========== */
@@ -159,7 +179,11 @@
   }
 
   #grid-container {
-    height: 60vh;
+    max-height: 450px;
+  }
+
+  .grid-container {
+    max-height: 400px !important;
   }
 }
 
@@ -181,7 +205,11 @@
   }
 
   #grid-container {
-    height: 55vh;
+    max-height: 400px;
+  }
+
+  .grid-container {
+    max-height: 350px !important;
   }
 }
 
@@ -208,7 +236,11 @@
   }
 
   #grid-container {
-    height: 50vh;
+    max-height: 350px;
+  }
+
+  .grid-container {
+    max-height: 300px !important;
   }
 
   .app11-controls-container .controls[data-layout="vertical"] {
@@ -239,7 +271,11 @@
   }
 
   #grid-container {
-    height: 48vh;
+    max-height: 300px;
+  }
+
+  .grid-container {
+    max-height: 260px !important;
   }
 
   .app11-controls-container .controls[data-layout="vertical"] {
@@ -266,7 +302,11 @@
   }
 
   #grid-container {
-    height: 45vh;
+    max-height: 250px;
+  }
+
+  .grid-container {
+    max-height: 220px !important;
   }
 
   .app11-controls-container .controls[data-layout="vertical"] {
