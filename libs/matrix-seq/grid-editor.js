@@ -1140,12 +1140,27 @@ export function createGridEditor(config = {}) {
         if (type === 'note') {
           // Note → Registry (same cell)
           const regInput = cell?.querySelector('.n-it-registry-input');
-          if (regInput && regInput.style.display !== 'none') {
+          if (regInput && regInput.style.display !== 'none' && !regInput.disabled) {
             regInput.focus();
             regInput.select();
           } else {
-            // No registry visible yet, jump to next N (creates new pair)
-            jumpToNextNItCell(index);
+            // Silence or no registry - go to iT (respecting hideInitialPair)
+            const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+            const targetItIndex = hideInitialPair ? index : index + 1;
+            let itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+            if (itInput) {
+              itInput.focus();
+              itInput.select();
+            } else {
+              jumpToNextNItCell(index);
+              requestAnimationFrame(() => {
+                itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+                if (itInput) {
+                  itInput.focus();
+                  itInput.select();
+                }
+              });
+            }
           }
         } else if (type === 'registry') {
           // Validate or auto-fill registry before navigating
@@ -1153,21 +1168,44 @@ export function createGridEditor(config = {}) {
           if (!validateOrAutoFillRegistry(regInput, index)) {
             return; // Blocked - stay in registry input
           }
-          // Registry → iT[index+1] (zigzag pattern)
-          // First ensure next N cell exists (which also creates iT[index+1])
-          jumpToNextNItCell(index);
-          // Then focus iT[index+1]
-          requestAnimationFrame(() => {
-            const nextItIndex = index + 1;
-            const itInput = container.querySelector(`.n-it-temporal-input[data-index="${nextItIndex}"]`);
-            if (itInput) {
-              itInput.focus();
-              itInput.select();
-            }
-          });
+          // Registry[n] → iT (respecting hideInitialPair)
+          const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+          const targetItIndex = hideInitialPair ? index : index + 1;
+          let itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+          if (itInput) {
+            itInput.focus();
+            itInput.select();
+          } else {
+            // iT doesn't exist, create next cell pair and focus the iT
+            jumpToNextNItCell(index);
+            requestAnimationFrame(() => {
+              itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+              if (itInput) {
+                itInput.focus();
+                itInput.select();
+              }
+            });
+          }
         } else if (type === 'it') {
-          // iT → Next N (note input)
-          jumpToNextNItCell(index);
+          // iT[n] → N[next] (respecting hideInitialPair)
+          const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+          // With hideInitialPair: iT[n] → N[n+1]
+          // Without hideInitialPair: iT[n] → N[n] (because iT[n] follows R[n-1])
+          const targetNIndex = hideInitialPair ? index + 1 : index;
+          let noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
+          if (!noteInput) {
+            jumpToNextNItCell(index);
+            requestAnimationFrame(() => {
+              noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
+              if (noteInput) {
+                noteInput.focus();
+                noteInput.select();
+              }
+            });
+          } else {
+            noteInput.focus();
+            noteInput.select();
+          }
         }
         break;
 
