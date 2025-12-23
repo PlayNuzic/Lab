@@ -84,7 +84,7 @@ export async function loadPiano() {
       try {
         sampler = new Tone.Sampler({
           urls,
-          release: 0.1,
+          release: 0.8,
           baseUrl: 'https://tonejs.github.io/audio/salamander/'
         });
         console.log('Piano: Tone.Sampler created successfully');
