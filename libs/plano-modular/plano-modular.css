@@ -218,6 +218,7 @@
   overflow-y: visible;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  position: relative;  /* Anchor for absolute positioned children like it-bars */
 }
 
 .plano-timeline-container::-webkit-scrollbar {

@@ -22,13 +22,8 @@ import { createApp19Grid } from '../../libs/plano-modular/index.js';
 // Import grid-editor for NrX-iT input
 import { createGridEditor } from '../../libs/matrix-seq/index.js';
 
-// Import interval-sequencer module for drag stretching and temporal bars
-import {
-  fillGapsWithSilences,
-  pairsToIntervals,
-  buildPairsFromIntervals,
-  createIntervalRenderer
-} from '../../libs/interval-sequencer/index.js';
+// Import interval-sequencer module for gap filling
+import { fillGapsWithSilences } from '../../libs/interval-sequencer/index.js';
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
@@ -180,11 +175,8 @@ let grid = null;
 // Grid editor instance (NrX-iT zigzag)
 let gridEditor = null;
 
-// Interval renderer for visualizing temporal bars
-let intervalRenderer = null;
 
-// Store current intervals and pairs
-let currentIntervals = [];
+// Store current pairs
 let currentPairs = [];
 
 // Flag to prevent onPairsChange from overwriting during drag operations
@@ -380,14 +372,6 @@ function syncGridFromPairs(pairs) {
     addDotsToAllCells();
   });
 
-  // Convert pairs to intervals and render temporal bars on timeline
-  if (pairs.length > 0) {
-    currentIntervals = pairsToIntervals(pairs, { basePair: pairs[0] });
-    renderTemporalBars(currentIntervals);
-  } else {
-    currentIntervals = [];
-    clearTemporalBars();
-  }
 }
 
 /**
@@ -420,159 +404,6 @@ function clearDurationHighlights() {
   matrixContainer.querySelectorAll('.plano-cell.duration-highlight').forEach(cell => {
     cell.classList.remove('duration-highlight');
   });
-}
-
-/**
- * Add a draggable dot to a cell
- */
-function addDotToCell(rowId, colIndex) {
-  if (!grid) return;
-
-  // Get matrix container from plano-modular API
-  const elements = grid.getElements?.();
-  const matrixContainer = elements?.matrixContainer;
-  if (!matrixContainer) return;
-
-  const cell = matrixContainer.querySelector(
-    `.plano-cell[data-row-id="${rowId}"][data-col-index="${colIndex}"]`
-  );
-  if (!cell) return;
-
-  // Remove existing dot if any
-  const existingDot = cell.querySelector('.np-dot');
-  if (existingDot) existingDot.remove();
-
-  // Create dot
-  const dot = document.createElement('div');
-  dot.className = 'np-dot np-dot-clickable';
-  dot.dataset.rowId = rowId;
-  dot.dataset.colIndex = colIndex;
-
-  cell.appendChild(dot);
-}
-
-/**
- * Clear all dots from the grid
- */
-function clearAllDots() {
-  if (!grid) return;
-
-  const matrixContainer = grid.getElements?.()?.matrixContainer;
-  if (!matrixContainer) return;
-
-  matrixContainer.querySelectorAll('.np-dot').forEach(dot => dot.remove());
-}
-
-/**
- * Render a duration bar showing note length (iT > 1)
- */
-function renderDurationBar(rowId, startPulse, iT) {
-  if (!grid || iT <= 1) return;
-
-  const matrixContainer = grid.getElements?.()?.matrixContainer;
-  if (!matrixContainer) return;
-
-  const startCell = matrixContainer.querySelector(
-    `.plano-cell[data-row-id="${rowId}"][data-col-index="${startPulse}"]`
-  );
-  if (!startCell) return;
-
-  const cellWidth = startCell.offsetWidth;
-  const cellHeight = startCell.offsetHeight;
-
-  // Create duration bar
-  const bar = document.createElement('div');
-  bar.className = 'duration-bar';
-  bar.dataset.rowId = rowId;
-  bar.dataset.startPulse = startPulse;
-  bar.style.position = 'absolute';
-  bar.style.left = '0';
-  bar.style.top = '50%';
-  bar.style.transform = 'translateY(-50%)';
-  bar.style.width = `${iT * cellWidth}px`;
-  bar.style.height = '8px';
-  bar.style.background = 'var(--plano-select-color, #FFBB33)';
-  bar.style.borderRadius = '4px';
-  bar.style.opacity = '0.7';
-  bar.style.pointerEvents = 'none';
-  bar.style.zIndex = '5';
-
-  startCell.appendChild(bar);
-}
-
-/**
- * Clear all duration bars
- */
-function clearDurationBars() {
-  if (!grid) return;
-
-  const matrixContainer = grid.getElements?.()?.matrixContainer;
-  if (!matrixContainer) return;
-
-  matrixContainer.querySelectorAll('.duration-bar').forEach(bar => bar.remove());
-}
-
-/**
- * Render temporal bars (iT visualization) on the grid
- */
-function renderTemporalBars(intervals) {
-  if (!intervalRenderer || !grid) return;
-
-  // Get timeline container from plano-modular grid
-  const timelineContainer = grid.getElements?.()?.timelineContainer;
-  if (!timelineContainer) return;
-
-  // Clear existing bars
-  intervalRenderer.clear();
-
-  // Calculate cell width from grid
-  const matrixContainer = grid.getElements?.()?.matrixContainer;
-  if (!matrixContainer) return;
-
-  const firstCell = matrixContainer.querySelector('.plano-cell');
-  if (!firstCell) return;
-
-  const cellWidth = firstCell.offsetWidth;
-
-  // Render bars for each interval (skip first - base note has no iT)
-  let accumulatedPulse = 0;
-  intervals.forEach((interval, index) => {
-    if (index === 0) {
-      // Base note - store its pulse position
-      accumulatedPulse = 0;
-      return;
-    }
-
-    const iT = interval.temporalInterval || 1;
-    const startPulse = accumulatedPulse;
-    const endPulse = accumulatedPulse + iT;
-
-    // Create bar element
-    const bar = document.createElement('div');
-    bar.className = 'it-bar';
-    bar.style.position = 'absolute';
-    bar.style.left = `${startPulse * cellWidth}px`;
-    bar.style.width = `${iT * cellWidth}px`;
-    bar.style.height = '4px';
-    bar.style.background = 'var(--interval-temporal-color, #4A9EFF)';
-    bar.style.bottom = '0';
-    bar.style.borderRadius = '2px';
-
-    timelineContainer.appendChild(bar);
-
-    accumulatedPulse = endPulse;
-  });
-}
-
-/**
- * Clear temporal bars
- */
-function clearTemporalBars() {
-  if (!grid) return;
-  const timelineContainer = grid.getElements?.()?.timelineContainer;
-  if (!timelineContainer) return;
-
-  timelineContainer.querySelectorAll('.it-bar').forEach(bar => bar.remove());
 }
 
 // ========== DRAG SYSTEM FOR iT MODIFICATION ==========
@@ -953,13 +784,6 @@ function initGrid() {
       elements.inputRegistro.value = closestRegistry;
     });
   }
-
-  // Initialize interval renderer for temporal bars (iT visualization)
-  intervalRenderer = createIntervalRenderer({
-    getTimelineContainer: () => grid?.getElements?.()?.timelineContainer,
-    getMatrixContainer: () => grid?.getElements?.()?.matrixContainer,
-    totalSpaces: getTotalPulses() || 28
-  });
 
   // Add np-dots to ALL cells (like App15/musical-grid)
   addDotsToAllCells();
