@@ -464,6 +464,9 @@ export class TimelineAudio {
     this._pulseCounter = -1;
     this._lastCycleState = null;
 
+    // Map of scheduled times by step index (for passing precise timing to onPulse)
+    this._scheduledTimes = new Map();
+
     this.selectedRef = new Set();
     this._selectedResolution = 1;
     this._voiceDefs = new Map();
@@ -1292,6 +1295,7 @@ export class TimelineAudio {
     this.isPlaying = false;
     this._onPulseRef = null;
     this.onCompleteRef = null;
+    this._scheduledTimes.clear();
 
     if (this._schedulerId != null) {
       clearInterval(this._schedulerId);
@@ -1547,6 +1551,10 @@ export class TimelineAudio {
         if (when == null || when > horizon) break;
 
         const stepIndex = this._resolveStepIndex(n);
+
+        // Store scheduled time for this step (used by onPulse callback for sample-accurate timing)
+        this._scheduledTimes.set(stepIndex, when);
+
         // Measure system: check if this step is a measure start (compás beginning)
         const isMeasureStart = this._measureStarts?.has(stepIndex) ?? (stepIndex === 0);
         const resolution = Math.max(1, Math.round(this._baseResolution || 1));
@@ -1641,7 +1649,12 @@ export class TimelineAudio {
         this.intervalRef = msg.interval;
       }
       this._evaluatePendingTempo();
-      if (typeof this._onPulseRef === 'function') this._onPulseRef(msg.step);
+      if (typeof this._onPulseRef === 'function') {
+        // Pass the scheduled time (when) as second parameter for sample-accurate timing
+        // Falls back to current time if not available (backwards compatible)
+        const scheduledTime = this._scheduledTimes.get(msg.step) ?? now;
+        this._onPulseRef(msg.step, scheduledTime);
+      }
     } else if (msg.type === 'cycle') {
       if (msg.payload && typeof msg.payload === 'object') {
         this._lastCycleState = {

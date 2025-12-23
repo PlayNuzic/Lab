@@ -138,8 +138,9 @@ async function handlePlay() {
     intervalSec,
     new Set(), // No accent sounds (pulse plays automatically on all beats)
     false, // No loop initially
-    (step) => {
+    (step, scheduledTime) => {
       // onPulse callback: Called on EVERY pulse (0-8), even if empty
+      // scheduledTime is the precise AudioContext time for sample-accurate playback
 
       // 1) Visual feedback for pulse column
       highlightController?.highlightPulse(step);
@@ -148,7 +149,8 @@ async function handlePlay() {
       const notes = pulseGroups[step];
       if (notes && notes.length > 0) {
         const duration = intervalSec * 0.9;
-        const when = Tone.now(); // Immediate (already scheduled by transport)
+        // Use scheduledTime for sample-accurate sync with metronome
+        const when = scheduledTime ?? Tone.now();
 
         // Polyphonic: trigger all notes simultaneously
         notes.forEach(midi => {
