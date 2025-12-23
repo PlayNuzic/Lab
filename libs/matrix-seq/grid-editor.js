@@ -749,6 +749,79 @@ export function createGridEditor(config = {}) {
   }
 
   /**
+   * Gets the last used registry value from previous N cells
+   * @param {number} currentIndex - Current cell index to search backwards from
+   * @returns {number|null} Last registry value or null if none found
+   */
+  function getLastUsedRegistry(currentIndex) {
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      const regInput = container.querySelector(`.n-it-registry-input[data-index="${i}"]`);
+      if (regInput && regInput.value) {
+        const regVal = parseInt(regInput.value);
+        if (!isNaN(regVal)) return regVal;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Validates and auto-fills registry when navigating away from registry input
+   * @param {HTMLElement} regInput - Registry input element
+   * @param {number} index - Cell index
+   * @returns {boolean} True if navigation should proceed, false if blocked
+   */
+  function validateOrAutoFillRegistry(regInput, index) {
+    const regValue = regInput?.value?.trim();
+
+    // If registry has value, allow navigation
+    if (regValue) return true;
+
+    // Registry is empty - check if this is the first note
+    if (index === 0) {
+      // First note: require registry, show tooltip
+      showInputTooltip(regInput, 'Define el registro');
+      regInput.classList.add('invalid');
+      regInput.focus();
+      return false;
+    }
+
+    // Not first note: try to auto-fill from last used registry
+    const lastRegistry = getLastUsedRegistry(index);
+    if (lastRegistry !== null) {
+      regInput.value = lastRegistry;
+      regInput.classList.remove('invalid');
+
+      // Validate the auto-filled registry with current note
+      if (nrxModeOptions?.validateNoteRegistry) {
+        const cell = regInput.closest('.zigzag-cell--n-it-note');
+        const noteInput = cell?.querySelector('.n-it-note-input');
+        const noteVal = noteInput ? parseInt(noteInput.value) : NaN;
+        if (!isNaN(noteVal)) {
+          const validation = nrxModeOptions.validateNoteRegistry(noteVal, lastRegistry);
+          if (!validation.valid) {
+            // Auto-filled registry is invalid for this note
+            regInput.value = '';
+            showInputTooltip(regInput, validation.message || 'Define el registro');
+            regInput.classList.add('invalid');
+            regInput.focus();
+            return false;
+          }
+        }
+      }
+
+      // Update pairs with auto-filled registry
+      updateNItPairsFromDOM();
+      return true;
+    }
+
+    // No previous registry found - require input
+    showInputTooltip(regInput, 'Define el registro');
+    regInput.classList.add('invalid');
+    regInput.focus();
+    return false;
+  }
+
+  /**
    * Handles input changes in N-iT mode (note, registry, it)
    */
   function handleNItInputChange(event, index, type) {
@@ -1075,6 +1148,11 @@ export function createGridEditor(config = {}) {
             jumpToNextNItCell(index);
           }
         } else if (type === 'registry') {
+          // Validate or auto-fill registry before navigating
+          const regInput = cell?.querySelector('.n-it-registry-input');
+          if (!validateOrAutoFillRegistry(regInput, index)) {
+            return; // Blocked - stay in registry input
+          }
           // Registry → iT[index+1] (zigzag pattern)
           // First ensure next N cell exists (which also creates iT[index+1])
           jumpToNextNItCell(index);
@@ -1116,6 +1194,11 @@ export function createGridEditor(config = {}) {
               }
             }
           } else if (type === 'registry') {
+            // Validate or auto-fill registry before navigating
+            const regInput = cell?.querySelector('.n-it-registry-input');
+            if (!validateOrAutoFillRegistry(regInput, index)) {
+              return; // Blocked - stay in registry input
+            }
             // Registry[n] → iT
             const targetItIndex = hideInitialPair ? index : index + 1;
             const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
