@@ -494,7 +494,9 @@ async function startPlayback() {
     intervalSec,
     new Set(),
     false,  // No loop
-    (step) => {
+    (step, scheduledTime) => {
+      // scheduledTime is the precise AudioContext time for sample-accurate playback
+
       // 1. Update playhead position
       grid.updatePlayhead(step);
 
@@ -510,7 +512,9 @@ async function startPlayback() {
       const midi = midiMap.get(step);
       if (midi !== undefined) {
         const noteDuration = intervalSec * 0.95;
-        audioInstance.playNote(midi, noteDuration, Tone.now());
+        // Use scheduledTime for sample-accurate sync with metronome
+        const when = scheduledTime ?? Tone.now();
+        audioInstance.playNote(midi, noteDuration, when);
 
         // Find and highlight the selected cell
         const selected = grid.getSelectedArray().find(s => s.colIndex === step);
