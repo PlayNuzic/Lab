@@ -60,7 +60,7 @@ html, body {
   /* Registry circle */
   --registro-circle-size: 70px;
   --registro-offset-x: 3px;
-  --registro-offset-y: 45px;
+  --registro-offset-y: 55px;
 
   /* Compás param offset */
   --compas-offset-x: 75px;
@@ -89,17 +89,17 @@ html, body {
 
   /* Button fine-tuning offsets (x, y) */
   --btn-play-offset-x: 75px;
-  --btn-play-offset-y: 70px;
+  --btn-play-offset-y: -40px;
   --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 30px;
+  --btn-random-offset-y: 170px;
   --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 30px;
+  --btn-reset-offset-y: 170px;
   --btn-taptempo-offset-x: 0px;
   --btn-taptempo-offset-y: 30px;
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
   --bpm-offset-x: 0px;
-  --bpm-offset-y: 30px;
+  --bpm-offset-y: 40px;
 
   /* BPM sizing */
   --bpm-scale: 0.8;
@@ -421,7 +421,7 @@ main {
 .param.registro .circle {
   width: var(--registro-circle-size);
   height: var(--registro-circle-size);
-  border: 2px solid var(--circle-border, #333);
+  border: 2px solid var(--interval-sound-color, #333);
   border-radius: 50%;
   display: flex;
   align-items: center;
