@@ -205,6 +205,12 @@ export function createPlanoModular(config) {
       cellWidth,
       cycleConfig
     });
+
+    // Sync timeline scroll with matrix after both are updated
+    // This ensures horizontal alignment even if internal scroll restoration differed
+    if (timelineContainer && matrixContainer) {
+      timelineContainer.scrollLeft = matrixContainer.scrollLeft;
+    }
   }
 
   // Initial render - creates .plano-matrix
