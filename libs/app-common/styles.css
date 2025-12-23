@@ -465,11 +465,6 @@ body[data-theme='dark'] .fraction-info-bubble {
   display: block;
 }
 
-/* Mixer menu container - pointer-events: none when hidden to not block other elements */
-#mixerMenu {
-  pointer-events: none;
-}
-
 .mixer-menu {
   display: none;
   position: fixed;

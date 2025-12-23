@@ -370,11 +370,11 @@ ${togglesMarkup}
   </svg>
 </button>
 
-      <div id="mixerMenu"></div>
       ${controlsLayout?.mode === 'vertical' ? '</div>' : ''}
       </div>
     </section>
-  </main>`;
+  </main>
+  <div id="mixerMenu"></div>`;
 }
 
 /**
