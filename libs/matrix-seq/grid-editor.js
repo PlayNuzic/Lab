@@ -76,7 +76,7 @@ export function createGridEditor(config = {}) {
     leftZigzagLabels = null,
     autoJumpDelayMs = 300,  // Custom auto-jump delay (ms)
     intervalModeOptions = null,  // Options for interval mode (basePair, maxTotalPulse, etc.)
-    nrxModeOptions = null  // Options for nrx-it mode (registryRange, etc.)
+    nrxModeOptions = null  // Options for nrx-it mode (registryRange, validateNoteRegistry, etc.)
   } = config;
 
   let currentPairs = [];
@@ -806,6 +806,22 @@ export function createGridEditor(config = {}) {
         return;
       }
 
+      // Validate note+registry combination if custom validator provided and registry is set
+      if (text && !isNaN(noteVal) && nrxModeOptions?.validateNoteRegistry) {
+        const regInput = cell?.querySelector('.n-it-registry-input');
+        const regVal = regInput ? parseInt(regInput.value) : NaN;
+        if (!isNaN(regVal)) {
+          const validation = nrxModeOptions.validateNoteRegistry(noteVal, regVal);
+          if (!validation.valid) {
+            showInputTooltip(input, validation.message || 'Combinación inválida');
+            input.classList.add('invalid');
+            input.value = ''; // Clear invalid note
+            input.focus();
+            return;
+          }
+        }
+      }
+
       // Update opacity of 'r' separator and registry input based on note value
       if (cell) {
         const rSeparator = cell.querySelector('.nrx-separator');
@@ -825,6 +841,9 @@ export function createGridEditor(config = {}) {
           cell.classList.add('zigzag-cell--empty');
         }
       }
+
+      // Update pairs when note changes (triggers grid sync and auto-scroll)
+      updateNItPairsFromDOM();
 
       // Auto-jump to registry input after valid note (300ms fixed delay)
       if (text && !isNaN(noteVal)) {
@@ -852,6 +871,25 @@ export function createGridEditor(config = {}) {
         input.focus();    // Keep caret in same cell
         return;
       }
+
+      // Validate note+registry combination if custom validator provided
+      if (text && !isNaN(regVal) && nrxModeOptions?.validateNoteRegistry) {
+        const noteInput = cell?.querySelector('.n-it-note-input');
+        const noteVal = noteInput ? parseInt(noteInput.value) : NaN;
+        if (!isNaN(noteVal)) {
+          const validation = nrxModeOptions.validateNoteRegistry(noteVal, regVal);
+          if (!validation.valid) {
+            showInputTooltip(input, validation.message || 'Combinación inválida');
+            input.classList.add('invalid');
+            input.value = ''; // Clear invalid registry
+            input.focus();
+            return;
+          }
+        }
+      }
+
+      // Update pairs when registry changes
+      updateNItPairsFromDOM();
 
       // Auto-jump after valid registry - ZIGZAG navigation
       // With hideInitialPair: N[n](registry) → iT[n] (same index)
@@ -1572,6 +1610,23 @@ export function createGridEditor(config = {}) {
         input.focus();    // Keep caret in same cell
         return;
       }
+
+      // Validate note+registry combination if custom validator provided and registry is set
+      if (text && !isNaN(noteVal) && nrxModeOptions?.validateNoteRegistry) {
+        const regInput = input.parentElement.querySelector('.nrx-registry-input');
+        const regVal = regInput ? parseInt(regInput.value) : NaN;
+        if (!isNaN(regVal)) {
+          const validation = nrxModeOptions.validateNoteRegistry(noteVal, regVal);
+          if (!validation.valid) {
+            showInputTooltip(input, validation.message || 'Combinación inválida');
+            input.classList.add('invalid');
+            input.value = ''; // Clear invalid note
+            input.focus();
+            return;
+          }
+        }
+      }
+
       // Auto-jump to registry after valid note
       if (text.length >= 2 || (text.length === 1 && noteVal >= 2)) {
         clearTimeout(autoJumpTimer);
@@ -1597,6 +1652,23 @@ export function createGridEditor(config = {}) {
         input.focus();    // Keep caret in same cell
         return;
       }
+
+      // Validate note+registry combination if custom validator provided
+      if (text && !isNaN(regVal) && nrxModeOptions?.validateNoteRegistry) {
+        const noteInput = input.parentElement.querySelector('.nrx-note-input');
+        const noteVal = noteInput ? parseInt(noteInput.value) : NaN;
+        if (!isNaN(noteVal)) {
+          const validation = nrxModeOptions.validateNoteRegistry(noteVal, regVal);
+          if (!validation.valid) {
+            showInputTooltip(input, validation.message || 'Combinación inválida');
+            input.classList.add('invalid');
+            input.value = ''; // Clear invalid registry
+            input.focus();
+            return;
+          }
+        }
+      }
+
       // Auto-jump to iT after valid registry (if not first cell)
       if (text && index > 0) {
         clearTimeout(autoJumpTimer);
@@ -1902,10 +1974,9 @@ export function createGridEditor(config = {}) {
   }
 
   /**
-   * Formats interval value with sign
+   * Formats interval value (no + sign for positive, just number)
    */
   function formatIntervalValue(value) {
-    if (value > 0) return `+${value}`;
     return String(value);
   }
 

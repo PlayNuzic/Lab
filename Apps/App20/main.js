@@ -32,10 +32,24 @@ import {
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
-  // Registry limits (3 registries: 3, 4, 5)
-  MIN_REGISTRO: 3,
+  // Registry limits (4 registries: 2, 3, 4, 5)
+  MIN_REGISTRO: 2,
   MAX_REGISTRO: 5,
   DEFAULT_REGISTRO: 4,
+
+  // Notes per registry
+  NOTES_PER_REGISTRY: 12,
+
+  // Visual grid range: 7r2 to 7r5
+  // This means:
+  // - Registry 2: notes 7-11 valid
+  // - Registry 3: notes 0-11 valid (full)
+  // - Registry 4: notes 0-11 valid (full)
+  // - Registry 5: notes 0-7 valid
+  RANGE_MIN_NOTE: 7,
+  RANGE_MIN_REGISTRY: 2,
+  RANGE_MAX_NOTE: 7,
+  RANGE_MAX_REGISTRY: 5,
 
   // Compás limits
   MIN_COMPAS: 1,
@@ -52,9 +66,27 @@ const CONFIG = {
 
   // Grid display
   VISIBLE_PULSES: 12,
-  NOTES_PER_REGISTRY: 12,
   MIDI_OFFSET: 12
 };
+
+/**
+ * Validates if a note+registry combination is within the visual grid range (7r2 to 7r5)
+ * @param {number} note - Note value (0-11)
+ * @param {number} registry - Registry value (2-5)
+ * @returns {{ valid: boolean, message?: string }}
+ */
+function validateNoteRegistry(note, registry) {
+  // Registry 2: notes 7-11 only
+  if (registry === 2 && note < 7) {
+    return { valid: false, message: `r2: notas 7-11` };
+  }
+  // Registry 5: notes 0-7 only
+  if (registry === 5 && note > 7) {
+    return { valid: false, message: `r5: notas 0-7` };
+  }
+  // Registry 3 and 4: all notes 0-11 are valid
+  return { valid: true };
+}
 
 // ========== AUTOSCROLL VERTICAL HELPERS ==========
 
@@ -883,6 +915,9 @@ function initGrid() {
     },
     bpm: bpmController?.getValue() || CONFIG.DEFAULT_BPM,
     defaultRegistry: CONFIG.DEFAULT_REGISTRO,
+    registryConfig: {
+      selectableRegistries: [2, 3, 4, 5]  // App20 uses extended range including registry 2
+    },
     onCellClick: handleCellClick,
     onSelectionChange: null  // Selections not persisted
   });
@@ -1071,7 +1106,7 @@ function initGridEditor() {
     showIntervalLabels: false,
     leftZigzagLabels: { topText: 'N', bottomText: 'iT' },
     autoJumpDelayMs: 500,
-    noteRange: [0, 11],
+    noteRange: [0, 11],  // Basic range; validateNoteRegistry handles per-registry limits
     pulseRange: [0, totalPulses - 1],
     maxPairs: totalPulses,
     intervalModeOptions: {
@@ -1081,7 +1116,8 @@ function initGridEditor() {
       allowSilence: true
     },
     nrxModeOptions: {
-      registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO]
+      registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO],
+      validateNoteRegistry
     },
     scrollEnabled: isMobile,
     containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
@@ -1092,18 +1128,18 @@ function initGridEditor() {
       // Sync Grid 2D when editor changes
       syncGridFromPairs(pairs);
 
-      // Auto-scroll to registry of last note when not playing
+      // Auto-scroll to registry of last entered note when not playing
       if (!isPlaying && pairs.length > 0) {
-        // Find the last non-silence pair with a valid registry
-        const lastPairWithRegistry = [...pairs].reverse().find(p => !p.isRest && p.registry != null);
-        if (lastPairWithRegistry && lastPairWithRegistry.registry != null) {
-          scrollToRegistry(lastPairWithRegistry.registry, true);
+        // Find the last non-silence pair (with or without registry)
+        const lastNonSilence = [...pairs].reverse().find(p => !p.isRest && p.note != null);
+        if (lastNonSilence) {
+          // Use explicit registry or default
+          const targetRegistry = lastNonSilence.registry ?? CONFIG.DEFAULT_REGISTRO;
+          scrollToRegistry(targetRegistry, true);
         }
       }
     }
   });
-
-  console.log('Grid editor initialized in N-iT zigzag mode with NrX format');
 }
 
 /**
@@ -1125,17 +1161,18 @@ function updateGridEditorMaxPulse() {
       showIntervalLabels: false,
       leftZigzagLabels: { topText: 'N', bottomText: 'iT' },
       autoJumpDelayMs: 500,
-      noteRange: [0, 11],
+      noteRange: [0, 11],  // Basic range; validateNoteRegistry handles per-registry limits
       pulseRange: [0, totalPulses - 1],
       maxPairs: totalPulses,
       intervalModeOptions: {
         basePair: { note: 0, pulse: 0, registry: CONFIG.DEFAULT_REGISTRO },
         hideInitialPair: true,
-        maxTotalPulse: totalPulses,  // Sum of iTs should equal total pulses (not -1)
+        maxTotalPulse: totalPulses,
         allowSilence: true
       },
       nrxModeOptions: {
-        registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO]
+        registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO],
+        validateNoteRegistry
       },
       scrollEnabled: isMobile,
       containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
@@ -1145,11 +1182,14 @@ function updateGridEditorMaxPulse() {
         if (isUpdatingFromDrag) return;
         syncGridFromPairs(pairs);
 
-        // Auto-scroll to registry of last note when not playing
+        // Auto-scroll to registry of last entered note when not playing
         if (!isPlaying && pairs.length > 0) {
-          const lastPairWithRegistry = [...pairs].reverse().find(p => !p.isRest && p.registry != null);
-          if (lastPairWithRegistry && lastPairWithRegistry.registry != null) {
-            scrollToRegistry(lastPairWithRegistry.registry, true);
+          // Find the last non-silence pair (with or without registry)
+          const lastNonSilence = [...pairs].reverse().find(p => !p.isRest && p.note != null);
+          if (lastNonSilence) {
+            // Use explicit registry or default
+            const targetRegistry = lastNonSilence.registry ?? CONFIG.DEFAULT_REGISTRO;
+            scrollToRegistry(targetRegistry, true);
           }
         }
       }

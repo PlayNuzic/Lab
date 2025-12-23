@@ -95,12 +95,26 @@ export function buildRegistryRows(config = {}) {
  */
 export function calculateNote0RowMap(rows) {
   const map = {};
+  const lastNoteInRegistry = {};  // Track last note for each registry (used as fallback)
 
   rows.forEach((row, index) => {
-    if (row.data && row.data.note === 0) {
-      map[row.data.registry] = index;
+    if (row.data) {
+      const reg = row.data.registry;
+      // Prefer note 0 as the scroll target
+      if (row.data.note === 0) {
+        map[reg] = index;
+      }
+      // Track the last row of each registry as fallback (for registries without note 0)
+      lastNoteInRegistry[reg] = index;
     }
   });
+
+  // For registries without note 0, use their last row
+  for (const reg in lastNoteInRegistry) {
+    if (map[reg] === undefined) {
+      map[reg] = lastNoteInRegistry[reg];
+    }
+  }
 
   return map;
 }

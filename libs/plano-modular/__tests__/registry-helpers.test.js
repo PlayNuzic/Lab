@@ -107,16 +107,17 @@ describe('registry-helpers', () => {
       expect(map).toEqual({
         5: 7,   // 0r5 at row 7 (after 8 notes 7-0 of r5)
         4: 19,  // 0r4 at row 19 (8 + 12 - 1 = 19)
-        3: 31   // 0r3 at row 31 (8 + 12 + 12 - 1 = 31)
+        3: 31,  // 0r3 at row 31 (8 + 12 + 12 - 1 = 31)
+        2: 38   // r2 has no note 0, so uses last row (note 5 at row 38)
       });
     });
 
-    it('should not include registries without note 0', () => {
+    it('should use last row for registries without note 0', () => {
       const rows = buildRegistryRows();
       const map = calculateNote0RowMap(rows);
 
-      // r2 only has notes 11-5, no note 0
-      expect(map[2]).toBeUndefined();
+      // r2 only has notes 11-5, no note 0 - should fallback to last row
+      expect(map[2]).toBe(38);
     });
 
     it('should work with custom rows', () => {
@@ -128,6 +129,18 @@ describe('registry-helpers', () => {
 
       const map = calculateNote0RowMap(rows);
       expect(map[5]).toBe(2);
+    });
+
+    it('should fallback to last row when note 0 is not present', () => {
+      const rows = [
+        { id: '11r2', data: { registry: 2, note: 11 } },
+        { id: '10r2', data: { registry: 2, note: 10 } },
+        { id: '9r2', data: { registry: 2, note: 9 } }
+      ];
+
+      const map = calculateNote0RowMap(rows);
+      // No note 0, should use last row (index 2)
+      expect(map[2]).toBe(2);
     });
   });
 

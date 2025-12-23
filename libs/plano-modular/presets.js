@@ -326,19 +326,20 @@ export function createApp19Grid(config) {
     bpm = 100,
     onCellClick,
     onSelectionChange,
-    defaultRegistry = 4
+    defaultRegistry = 4,
+    registryConfig: customRegistryConfig = {}
   } = config;
 
-  // Create with App19 defaults
+  // Create with App19 defaults, allowing overrides via customRegistryConfig
   const grid = createPlanoMusical({
     parent,
     columns,
     registryConfig: {
-      registries: APP19_CONFIG.registries,
-      visibleRows: APP19_CONFIG.visibleRows,
-      selectableRegistries: APP19_CONFIG.selectableRegistries,
-      notesPerRegistry: APP19_CONFIG.notesPerRegistry,
-      midiOffset: APP19_CONFIG.midiOffset
+      registries: customRegistryConfig.registries || APP19_CONFIG.registries,
+      visibleRows: customRegistryConfig.visibleRows || APP19_CONFIG.visibleRows,
+      selectableRegistries: customRegistryConfig.selectableRegistries || APP19_CONFIG.selectableRegistries,
+      notesPerRegistry: customRegistryConfig.notesPerRegistry || APP19_CONFIG.notesPerRegistry,
+      midiOffset: customRegistryConfig.midiOffset || APP19_CONFIG.midiOffset
     },
     initialRegistry: defaultRegistry,
     cycleConfig,
