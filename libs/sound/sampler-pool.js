@@ -69,18 +69,32 @@ export function createSamplerPool(config) {
       return false;
     }
 
-    for (const [noteName, toneBuffer] of internalMap) {
+    for (const [key, toneBuffer] of internalMap) {
       // ToneAudioBuffer.get() returns the raw AudioBuffer
       const audioBuffer = toneBuffer.get ? toneBuffer.get() : toneBuffer;
       // Use duck-typing instead of instanceof for test compatibility
       // AudioBuffer has: numberOfChannels, length, sampleRate, duration
       if (audioBuffer && typeof audioBuffer.length === 'number' && typeof audioBuffer.sampleRate === 'number') {
+        // Tone.Sampler stores buffers with MIDI numbers as keys (numbers or numeric strings)
+        // Convert to note name for our internal storage
+        let midiNum;
+        if (typeof key === 'number') {
+          midiNum = key;
+        } else if (!isNaN(parseInt(key))) {
+          // Numeric string (e.g., "60")
+          midiNum = parseInt(key);
+        } else {
+          // Note name string (e.g., "C4") - convert to MIDI
+          midiNum = noteNameToMidi(key);
+        }
+
+        const noteName = midiToNoteName(midiNum);
         bufferMap.set(noteName, audioBuffer);
         sampleNotes.push(noteName);
       }
     }
 
-    console.log(`SamplerPool: Extracted ${bufferMap.size} buffers:`, sampleNotes);
+    console.log(`SamplerPool: Extracted ${bufferMap.size} buffers from keys:`, [...internalMap.keys()].slice(0, 5), '...');
     return bufferMap.size > 0;
   }
 
@@ -192,6 +206,9 @@ export function createSamplerPool(config) {
       console.warn(`SamplerPool: No sample found for MIDI ${midi}`);
       return null;
     }
+
+    // Debug logging (remove in production)
+    // console.log(`SamplerPool.playNote: MIDI ${midi} -> sample "${sample.noteName}" detune ${sample.detuneCents}cents`);
 
     const now = context.currentTime;
     const startTime = Math.max(when, now);

@@ -385,5 +385,47 @@ describe('sampler-pool', () => {
       const voiceD4 = pool.playNote(62, 1, 0);
       expect(voiceD4.source.detune.value).toBe(0); // Exact match
     });
+
+    it('should handle numeric MIDI keys (real Tone.Sampler behavior)', () => {
+      // Tone.Sampler internally converts note names to MIDI numbers
+      // So _buffers._buffers Map has numeric keys like 60, 66, 72
+      const buffersMap = new Map();
+      buffersMap.set(60, new MockToneAudioBuffer(new MockAudioBuffer())); // C4
+      buffersMap.set(66, new MockToneAudioBuffer(new MockAudioBuffer())); // F#4
+      buffersMap.set(72, new MockToneAudioBuffer(new MockAudioBuffer())); // C5
+
+      const sampler = {
+        _buffers: {
+          _buffers: buffersMap
+        },
+        disconnect: jest.fn(),
+        connect: jest.fn()
+      };
+
+      const pool = createSamplerPool({
+        sampler,
+        context,
+        destination
+      });
+
+      const result = pool.init();
+      expect(result).toBe(true);
+      expect(pool.isReady()).toBe(true);
+
+      // Play C4 (MIDI 60) - should be exact match
+      const voiceC4 = pool.playNote(60, 1, 0);
+      expect(voiceC4).not.toBeNull();
+      expect(voiceC4.source.detune.value).toBe(0);
+
+      // Play D4 (MIDI 62) - should detune from C4 by +200 cents
+      const voiceD4 = pool.playNote(62, 1, 0);
+      expect(voiceD4).not.toBeNull();
+      expect(voiceD4.source.detune.value).toBe(200);
+
+      // Play F#4 (MIDI 66) - should be exact match
+      const voiceFs4 = pool.playNote(66, 1, 0);
+      expect(voiceFs4).not.toBeNull();
+      expect(voiceFs4.source.detune.value).toBe(0);
+    });
   });
 });
