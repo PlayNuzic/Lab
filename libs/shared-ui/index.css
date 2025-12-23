@@ -152,6 +152,7 @@ body[data-theme='dark'] {
   flex-direction: column;
   align-items: center;
   padding: 12px 6px;
+  z-index: 100;  /* Ensure volume slider is above other elements */
 }
 
 .top-bar .sound {
@@ -181,7 +182,7 @@ body[data-theme='dark'] {
   display: none;
   margin-right: 0;
   margin-top: 8px;
-  width: 4px;
+  width: 24px;  /* Wider clickable area */
   height: 80px;
   writing-mode: bt-lr;
   writing-mode: vertical-lr;
@@ -189,6 +190,7 @@ body[data-theme='dark'] {
   -webkit-appearance: none;
   appearance: none;
   order: 1;
+  background: transparent;  /* Hide default background */
   /* Propiedades para la animación */
   transform: scaleY(0);
   transform-origin: top center;
@@ -202,6 +204,73 @@ body[data-theme='dark'] {
 
 .top-bar .sound-wrapper #volumeSlider.hide {
   transform: scaleY(0);
+}
+
+/* Volume slider track styling */
+.top-bar .sound-wrapper #volumeSlider::-webkit-slider-runnable-track {
+  width: 4px;
+  height: 100%;
+  background: var(--line-color, #333);
+  border-radius: 2px;
+}
+
+.top-bar .sound-wrapper #volumeSlider::-moz-range-track {
+  width: 4px;
+  height: 100%;
+  background: var(--line-color, #333);
+  border-radius: 2px;
+}
+
+/* Volume slider thumb styling - larger and more visible */
+.top-bar .sound-wrapper #volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--accent-color, #FFBB33);
+  border-radius: 50%;
+  cursor: grab;
+  border: 2px solid var(--bg-light, #fff);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  /* For vertical slider: center thumb horizontally on 4px track */
+  margin-left: -8px;
+}
+
+.top-bar .sound-wrapper #volumeSlider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--accent-color, #FFBB33);
+  border-radius: 50%;
+  cursor: grab;
+  border: none;  /* Firefox adds extra border by default */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.top-bar .sound-wrapper #volumeSlider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.top-bar .sound-wrapper #volumeSlider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.top-bar .sound-wrapper #volumeSlider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+
+.top-bar .sound-wrapper #volumeSlider::-moz-range-thumb:active {
+  cursor: grabbing;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .top-bar .sound-wrapper #volumeSlider::-webkit-slider-thumb {
+  border-color: var(--bg-dark, #1a1a1a);
+}
+
+[data-theme="dark"] .top-bar .sound-wrapper #volumeSlider::-moz-range-thumb {
+  border-color: var(--bg-dark, #1a1a1a);
 }
 
 .menu summary {
