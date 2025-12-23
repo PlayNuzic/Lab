@@ -556,10 +556,14 @@ async function startPlayback() {
       updateTotalLengthDisplay(step);
     },
     () => {
-      // onComplete
+      // onComplete - delay stop to let the last note ring out
+      // Wait 90% of the beat interval before stopping audio
+      const bpm = bpmController?.getValue() || CONFIG.DEFAULT_BPM;
+      const intervalSec = 60 / bpm;
+      const lastNoteDelay = intervalSec * 0.9 * 1000;
       setTimeout(() => {
         stopPlayback();
-      }, 590);
+      }, lastNoteDelay);
     }
   );
 }
@@ -577,6 +581,7 @@ function stopPlayback() {
   if (iconPlay) iconPlay.style.display = 'block';
   if (iconStop) iconStop.style.display = 'none';
 
+  // audio.stop() internally calls samplerPool.stopAll() with fade-out
   audio?.stop();
 
   // Show input, hide cycle digit

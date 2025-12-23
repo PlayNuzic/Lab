@@ -172,8 +172,9 @@ async function handlePlay() {
       // onComplete - delay stop to let the last note ring out
       console.log('Sequence completed - waiting for last note to finish...');
 
-      // Wait for last note duration before stopping audio
-      const lastNoteDelay = intervalSec * 1000;
+      // Wait for last note duration (90% of interval) before stopping audio engine
+      // audio.stop() internally calls samplerPool.stopAll() with fade-out
+      const lastNoteDelay = intervalSec * 0.9 * 1000;
       setTimeout(() => {
         audio.stop();
       }, lastNoteDelay);
