@@ -969,7 +969,7 @@ function injectGridEditor() {
     const mainElement = appRoot.querySelector('main');
     if (mainElement) {
       const gridWrapper = document.createElement('div');
-      gridWrapper.className = 'app12-main-grid';
+      gridWrapper.className = 'app15-main-grid';
 
       // Add grid-editor container to wrapper (first row)
       gridWrapper.appendChild(gridEditorContainer);
@@ -998,7 +998,7 @@ async function initializeApp() {
   await new Promise(resolve => setTimeout(resolve, 50));
 
   // Create musical grid (aligned to timeline like App12)
-  const mainGridWrapper = document.querySelector('.app12-main-grid');
+  const mainGridWrapper = document.querySelector('.app15-main-grid');
   musicalGrid = createMusicalGrid({
     parent: mainGridWrapper || document.getElementById('app-root'),
     notes: TOTAL_NOTES,
@@ -1082,14 +1082,14 @@ async function initializeApp() {
 
   // Reposition controls into grid wrapper (CSS Grid handles placement)
   const controls = document.querySelector('.controls');
-  const gridWrapper = document.querySelector('.app12-main-grid');
+  const gridWrapper = document.querySelector('.app15-main-grid');
 
   if (controls && gridWrapper) {
     controls.remove();
 
     // Create container for controls (grid-column: 1, grid-row: 2 via CSS)
     const controlsContainer = document.createElement('div');
-    controlsContainer.className = 'app12-controls-container';
+    controlsContainer.className = 'app15-controls-container';
     controlsContainer.appendChild(controls);
 
     // Add to wrapper - CSS Grid will position it in bottom-left

@@ -106,7 +106,7 @@ html, body {
 /* ========== APP15 MAIN GRID: 2-ROW LAYOUT ========== */
 /* Row 1: Grid Editor (full width)
    Row 2: Controls (left) + Musical Grid (right) */
-.app12-main-grid {
+.app15-main-grid {
   flex: 1;
   display: grid;
   grid-template-rows: auto 1fr;
@@ -126,7 +126,7 @@ html, body {
 }
 
 /* Controls container in bottom-left */
-.app12-controls-container {
+.app15-controls-container {
   grid-column: 1;
   grid-row: 2;
   display: flex;
@@ -135,7 +135,7 @@ html, body {
 }
 
 /* Musical grid fills bottom-right */
-.app12-main-grid > .grid-container {
+.app15-main-grid > .grid-container {
   grid-column: 2;
   grid-row: 2;
   position: relative !important;
@@ -324,22 +324,22 @@ body.dragging-note * {
 }
 
 /* Ensure reset and random buttons are clickable */
-.app12-controls-container .reset,
-.app12-controls-container .random {
+.app15-controls-container .reset,
+.app15-controls-container .random {
   z-index: 10 !important;  /* Below overlays (mixer=12) but above base content */
   pointer-events: auto !important;
   position: relative;
 }
 
 /* Preserve concentric circle layout */
-.app12-controls-container .controls {
+.app15-controls-container .controls {
   position: relative;
   /* Template's original layout is preserved */
 }
 
 /* control-buttons-row: CSS Grid for 2-row layout */
 /* Row 1: play-row (centered) | Row 2: random + reset (horizontal) */
-.app12-controls-container .control-buttons-row {
+.app15-controls-container .control-buttons-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto auto;
@@ -349,7 +349,7 @@ body.dragging-note * {
 }
 
 /* play-row spans both columns, centered */
-.app12-controls-container .play-row {
+.app15-controls-container .play-row {
   grid-column: 1 / -1;
   grid-row: 1;
   display: flex;
@@ -360,12 +360,12 @@ body.dragging-note * {
   transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0));
 }
 
-.app12-controls-container #playBtn {
+.app15-controls-container #playBtn {
   margin: 0 !important;
 }
 
 /* Random and Reset in row 2, side by side */
-.app12-controls-container .random {
+.app15-controls-container .random {
   grid-column: 1;
   grid-row: 2;
   justify-self: end;
@@ -374,7 +374,7 @@ body.dragging-note * {
   margin-right: calc(var(--buttons-row-gap, 0.5rem) / 2);
 }
 
-.app12-controls-container .reset {
+.app15-controls-container .reset {
   grid-column: 2;
   grid-row: 2;
   justify-self: start;
@@ -435,7 +435,7 @@ body.dragging-note * {
 
 /* ========== APP15-SPECIFIC LAYOUT CUSTOMIZATIONS ========== */
 /* App15-specific control spacing overrides */
-.app12-controls-container .controls[data-layout="vertical"] {
+.app15-controls-container .controls[data-layout="vertical"] {
   display: flex;
   flex-direction: column;
   gap: var(--controls-vertical-gap, 0.5rem);
@@ -443,7 +443,7 @@ body.dragging-note * {
 }
 
 /* Toggle positioning via CSS variables */
-.app12-controls-container #pulseToggleBtn {
+.app15-controls-container #pulseToggleBtn {
   position: relative;
   transform: translate(var(--toggle-pulse-offset-x, 0), var(--toggle-pulse-offset-y, 0));
 }
@@ -451,28 +451,28 @@ body.dragging-note * {
 /* ========== RESPONSIVE ADAPTATIONS ========== */
 
 /* Desktop sizes (explicit baseline for overrides) */
-.app12-controls-container .play {
+.app15-controls-container .play {
   width: 80px;
   height: 80px;
   font-size: 2rem;
 }
 
-.app12-controls-container .play svg {
+.app15-controls-container .play svg {
   width: 50%;
   height: 50%;
 }
 
-.app12-controls-container .random,
-.app12-controls-container .reset,
-.app12-controls-container .tap {
+.app15-controls-container .random,
+.app15-controls-container .reset,
+.app15-controls-container .tap {
   width: 48px;
   height: 48px;
   font-size: 1.2rem;
 }
 
-.app12-controls-container .random svg,
-.app12-controls-container .reset svg,
-.app12-controls-container .tap svg {
+.app15-controls-container .random svg,
+.app15-controls-container .reset svg,
+.app15-controls-container .tap svg {
   width: 100%;
   height: 100%;
 }
@@ -507,32 +507,32 @@ body.dragging-note * {
 /* ========== TABLET (≤ 900px) ========== */
 @media (max-width: 900px) {
   /* Reduce padding and margins for tighter layout */
-  .app12-main-grid {
+  .app15-main-grid {
     grid-template-columns: var(--col-left-tablet, 100px) 1fr;
     gap: 0.4rem;
     padding: 0.4rem;
   }
 
-  .app12-controls-container {
+  .app15-controls-container {
     margin: 8px;
     margin-bottom: 1.5rem;
   }
 
   /* Scale ALL controls 35% smaller and reposition to left column */
-  .app12-controls-container .controls {
+  .app15-controls-container .controls {
     transform: scale(0.65);
     transform-origin: top left;
   }
 
-  .app12-controls-container #playBtn {
+  .app15-controls-container #playBtn {
     margin-left: 0 !important;
   }
 
-  .app12-controls-container .control-sound-toggles {
+  .app15-controls-container .control-sound-toggles {
     margin-left: 0 !important;
   }
 
-  .app12-controls-container .button-row {
+  .app15-controls-container .button-row {
     margin-left: 0 !important;
   }
 
@@ -601,13 +601,13 @@ body.dragging-note * {
 
 /* ========== MOBILE (≤ 768px) ========== */
 @media (max-width: 768px) {
-  .app12-main-grid {
+  .app15-main-grid {
     grid-template-columns: var(--col-left-mobile, 80px) 1fr;
     gap: 0.3rem;
     padding: 0.3rem;
   }
 
-  .app12-controls-container {
+  .app15-controls-container {
     margin: 6px;
     margin-bottom: 1.2rem;
   }
@@ -624,13 +624,13 @@ body.dragging-note * {
 
 /* ========== SMALL SCREENS (≤ 600px) ========== */
 @media (max-width: 600px) {
-  .app12-main-grid {
+  .app15-main-grid {
     grid-template-columns: var(--col-left-small, 70px) 1fr;
     gap: 0.25rem;
     padding: 0.25rem;
   }
 
-  .app12-controls-container {
+  .app15-controls-container {
     margin: 5px;
     margin-bottom: 1.1rem;
   }
@@ -640,13 +640,13 @@ body.dragging-note * {
 
 /* ========== TINY MOBILE (≤ 480px) ========== */
 @media (max-width: 480px) {
-  .app12-main-grid {
+  .app15-main-grid {
     grid-template-columns: var(--col-left-tiny, 60px) 1fr;
     gap: 0.2rem;
     padding: 0.2rem;
   }
 
-  .app12-controls-container {
+  .app15-controls-container {
     margin: 5px;
     margin-bottom: 1rem;
   }
@@ -662,13 +662,13 @@ body.dragging-note * {
 
 /* ========== ULTRA COMPACT (≤ 400px) ========== */
 @media (max-width: 400px) {
-  .app12-main-grid {
+  .app15-main-grid {
     grid-template-columns: 50px 1fr;
     gap: 0.15rem;
     padding: 0.15rem;
   }
 
-  .app12-controls-container {
+  .app15-controls-container {
     margin: 3px;
     margin-bottom: 0.8rem;
   }
