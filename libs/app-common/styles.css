@@ -726,32 +726,43 @@ body[data-theme='dark'] .fraction-info-bubble {
 .mixer-channel__knobs {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: flex-start;
+  gap: 0.25rem;
   height: 150px;
   justify-content: center;
+  padding-left: 4px;
 }
 
-/* Circular Knob */
+/* Circular Knob - horizontal layout: dial | label+value */
 .mixer-knob {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+}
+
+.mixer-knob__label-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-width: 36px;
 }
 
 .mixer-knob__label {
-  font-size: 0.65rem;
+  font-size: 0.55rem;
   color: var(--text-muted, #888);
   text-transform: uppercase;
   font-weight: 600;
+  line-height: 1.1;
 }
 
 .mixer-knob__dial {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .mixer-knob__dial svg {
@@ -791,17 +802,21 @@ body[data-theme='dark'] .fraction-info-bubble {
 
 @media (max-width: 600px) {
   .mixer-channel--fx {
-    min-width: 60px;
+    min-width: 70px;
   }
 
   .mixer-channel__knobs {
     height: 130px;
-    gap: 0.4rem;
+    gap: 0.2rem;
   }
 
   .mixer-knob__dial {
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .mixer-knob__label {
+    font-size: 0.5rem;
   }
 }
 

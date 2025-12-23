@@ -34,9 +34,9 @@ function createKnob({ label, min, max, value, onChange }) {
   const knobContainer = document.createElement('div');
   knobContainer.className = 'mixer-knob__dial';
 
-  // SVG circular knob
-  const size = 44;
-  const strokeWidth = 4;
+  // SVG circular knob (compact size for horizontal layout)
+  const size = 36;
+  const strokeWidth = 3;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -85,9 +85,13 @@ function createKnob({ label, min, max, value, onChange }) {
   valueDisplay.className = 'mixer-knob__value';
   valueDisplay.textContent = `${value}`;
 
-  wrapper.appendChild(labelEl);
+  // Layout: dial on left, label+value stacked on right
   wrapper.appendChild(knobContainer);
-  wrapper.appendChild(valueDisplay);
+  const labelValueWrapper = document.createElement('div');
+  labelValueWrapper.className = 'mixer-knob__label-value';
+  labelValueWrapper.appendChild(labelEl);
+  labelValueWrapper.appendChild(valueDisplay);
+  wrapper.appendChild(labelValueWrapper);
 
   // Update function
   const updateKnob = (val) => {
@@ -308,12 +312,12 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   });
   knobsWrapper.appendChild(limKnob.element);
 
-  // Reverb knob (wet amount: 0-100%)
+  // Reverb knob (wet amount: 0-75%)
   const reverbKnob = createKnob({
     label: 'Reverb',
     min: 0,
-    max: 100,
-    value: 33,
+    max: 75,
+    value: 18,
     onChange: (val) => window.NuzicAudioEngine?.setReverbWet(val / 100)
   });
   knobsWrapper.appendChild(reverbKnob.element);

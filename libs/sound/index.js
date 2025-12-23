@@ -721,9 +721,9 @@ export class TimelineAudio {
 
         // Configure Reverb (synthetic impulse response)
         this._bus.effects.reverb.buffer = this._createReverbImpulse(ctx, 1.5, 2);
-        this._bus.effects.reverbDry.gain.value = 0.67;  // 67% dry (default 33% wet)
-        this._bus.effects.reverbWet.gain.value = 0.33;  // 33% wet by default
-        this._reverbWetValue = 0.33;
+        this._bus.effects.reverbDry.gain.value = 0.82;  // 82% dry (default 18% wet)
+        this._bus.effects.reverbWet.gain.value = 0.18;  // 18% wet by default
+        this._reverbWetValue = 0.18;
 
         // Wire up reverb dry/wet parallel paths:
         // limiter → [dry path] → reverbMix
@@ -1881,7 +1881,7 @@ export class TimelineAudio {
       // Quick access for mixer knobs
       compressorThreshold: compressor.threshold.value,
       limiterThreshold: limiter.threshold.value,
-      reverbWet: this._reverbWetValue ?? 0.33,
+      reverbWet: this._reverbWetValue ?? 0.18,
       // Detailed config
       eq: {
         type: eq.type,
