@@ -919,15 +919,51 @@ main {
 }
 
 /* ============================================
-   RESPONSIVE - Tablet landscape
+   MINIMUM SCREEN SIZE WARNING (Landscape <600px)
+   ============================================ */
+
+@media (max-width: 600px) and (orientation: landscape) {
+  body::before {
+    content: '📱 Esta aplicación requiere una pantalla más grande';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 2rem;
+    z-index: 9999;
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - Tablet landscape (900px)
    ============================================ */
 
 @media (max-width: 900px) {
   :root {
     --left-column-width: 120px;
-    --registro-circle-size: 70px;
+    --registro-circle-size: 60px;
     --grid-cell-min-width: 45px;
     --grid-cell-height: 28px;
+    /* Reduce button offsets */
+    --btn-play-offset-x: 50px;
+    --btn-play-offset-y: -100px;
+    --btn-random-offset-y: 50px;
+    --btn-reset-offset-y: 60px;
+    --registro-offset-y: -80px;
+    --left-column-offset-y: -20px;
   }
 
   .inputs {
@@ -937,26 +973,98 @@ main {
 
   .param.compas .circle,
   .param.cycle-display .circle {
-    width: 85px;
-    height: 85px;
+    width: 75px;
+    height: 75px;
   }
 
   .param.compas input,
   .param.cycle-display .cycle-circle input {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 
   .total-length-inline .circle {
-    width: 56px;
-    height: 56px;
+    width: 50px;
+    height: 50px;
   }
 
   .total-length-inline .total-length__digit {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
 
   .param.registro input {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
+  }
+
+  /* Scale ALL controls 35% smaller - center origin prevents left overflow */
+  .controls-container .controls {
+    transform: scale(0.65);
+    transform-origin: top center;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - Small tablet (850px)
+   ============================================ */
+
+@media (max-width: 850px) {
+  :root {
+    --left-column-width: 100px;
+    --registro-circle-size: 55px;
+    --btn-play-offset-x: 35px;
+    --btn-play-offset-y: -70px;
+    --btn-random-offset-y: 35px;
+    --btn-reset-offset-y: 45px;
+    --registro-offset-y: -50px;
+    --left-column-offset-y: -10px;
+  }
+
+  .inputs {
+    gap: 1rem;
+    padding: 0.5rem 0.75rem 0.25rem;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 65px;
+    height: 65px;
+  }
+
+  .param.compas input,
+  .param.cycle-display .cycle-circle input {
+    font-size: 1.6rem;
+  }
+
+  .param.cycle-display .cycle-circle .cycle-counter__digit {
+    font-size: 1.6rem;
+  }
+
+  .total-length-inline .circle {
+    width: 45px;
+    height: 45px;
+  }
+
+  .total-length-inline .total-length__digit {
+    font-size: 1.2rem;
+  }
+
+  .total-length-inline .abbr {
+    font-size: 0.9rem;
+  }
+
+  .param.registro input {
+    font-size: 1.4rem;
+  }
+
+  .param.registro .abbr,
+  .param.compas .abbr,
+  .param.cycle-display .abbr {
+    font-size: 1rem;
+  }
+
+  /* Controls smaller - center origin prevents left overflow */
+  .controls-container .controls {
+    transform: scale(0.55);
+    transform-origin: top center;
   }
 }
 

@@ -504,6 +504,32 @@ body.dragging-note * {
   }
 }
 
+/* ========== MINIMUM SCREEN SIZE WARNING (Landscape <600px) ========== */
+@media (max-width: 600px) and (orientation: landscape) {
+  body::before {
+    content: '📱 Esta aplicación requiere una pantalla más grande';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    z-index: 9999;
+    padding: 20px;
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}
+
 /* ========== TABLET (≤ 900px) ========== */
 @media (max-width: 900px) {
   /* Reduce padding and margins for tighter layout */
@@ -518,10 +544,10 @@ body.dragging-note * {
     margin-bottom: 1.5rem;
   }
 
-  /* Scale ALL controls 35% smaller and reposition to left column */
+  /* Scale ALL controls 35% smaller - center origin prevents left overflow */
   .app15-controls-container .controls {
     transform: scale(0.65);
-    transform-origin: top left;
+    transform-origin: top center;
   }
 
   .app15-controls-container #playBtn {
@@ -596,6 +622,79 @@ body.dragging-note * {
   .soundline-number,
   .pulse-marker {
     font-size: 1rem !important;
+  }
+
+  /* Zigzag editor - iS/iT labels smaller */
+  .zigzag-left-label {
+    font-size: 1.5rem;
+    min-width: 40px;
+    padding: 0 6px;
+  }
+
+  .zigzag-input {
+    font-size: 1.5rem !important;
+    padding: 4px 6px !important;
+  }
+
+  .zigzag-cell {
+    flex: 0 0 60px !important;
+  }
+
+  .zigzag-row {
+    gap: 12px;
+  }
+}
+
+/* ========== SMALL TABLET (≤ 700px) ========== */
+@media (max-width: 700px) {
+  .app15-main-grid {
+    grid-template-columns: var(--col-left-mobile, 80px) 1fr;
+    gap: 0.3rem;
+    padding: 0.3rem;
+  }
+
+  .app15-controls-container {
+    margin: 5px;
+    margin-bottom: 1rem;
+  }
+
+  /* Controls even smaller - center origin prevents left overflow */
+  .app15-controls-container .controls {
+    transform: scale(0.55);
+    transform-origin: top center;
+  }
+
+  /* Zigzag editor - even more compact */
+  .zigzag-left-label {
+    font-size: 1.2rem;
+    min-width: 35px;
+    padding: 0 4px;
+  }
+
+  .zigzag-input {
+    font-size: 1.2rem !important;
+    padding: 3px 4px !important;
+  }
+
+  .zigzag-cell {
+    flex: 0 0 50px !important;
+  }
+
+  .zigzag-row {
+    gap: 8px;
+  }
+
+  /* Musical-grid more compact */
+  .grid-container {
+    height: 45vh !important;
+    max-height: calc(100vh - 220px) !important;
+    gap: 8px !important;
+    grid-template-columns: 70px 1fr !important;
+  }
+
+  .soundline-number,
+  .pulse-marker {
+    font-size: 0.9rem !important;
   }
 }
 

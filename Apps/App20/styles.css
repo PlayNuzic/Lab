@@ -1118,7 +1118,36 @@ main {
 }
 
 /* ============================================
-   RESPONSIVE - Tablet landscape
+   MINIMUM SCREEN SIZE WARNING (Landscape <600px)
+   ============================================ */
+
+@media (max-width: 600px) and (orientation: landscape) {
+  body::before {
+    content: '📱 Esta aplicación requiere una pantalla más grande';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 2rem;
+    z-index: 9999;
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - Tablet landscape (900px)
    ============================================ */
 
 @media (max-width: 900px) {
@@ -1127,35 +1156,149 @@ main {
     --registro-circle-size: 70px;
     --grid-cell-min-width: 45px;
     --grid-cell-height: 28px;
+    /* Reduce offsets to prevent content from going off-screen */
+    --timeline-wrapper-offset-y: -30px;
+    --left-column-offset-y: -20px;
+    --compas-offset-x: 50px;
+    --compas-offset-y: -15px;
+    --cycles-offset-x: 30px;
+    --cycles-offset-y: -15px;
+    --grid-editor-offset-x: -20px;
+    --grid-editor-offset-y: -20px;
+    --registro-offset-y: 30px;
+    --btn-play-offset-x: 50px;
+    --btn-play-offset-y: -20px;
+    --btn-random-offset-y: 120px;
+    --btn-reset-offset-y: 120px;
   }
 
   .inputs {
-    gap: 1.5rem;
-    padding: 0.75rem 1rem 0.5rem;
+    gap: 1rem;
+    padding: 0.5rem 0.75rem 0.25rem;
   }
 
   .param.compas .circle,
   .param.cycle-display .circle {
-    width: 85px;
-    height: 85px;
+    width: 70px;
+    height: 70px;
   }
 
   .param.compas input,
   .param.cycle-display .cycle-circle input {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 
   .total-length-inline .circle {
-    width: 56px;
-    height: 56px;
+    width: 50px;
+    height: 50px;
   }
 
   .total-length-inline .total-length__digit {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
 
   .param.registro input {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
+  }
+
+  /* Scale ALL controls 35% smaller - center origin prevents left overflow */
+  .controls-container .controls {
+    transform: scale(0.65);
+    transform-origin: top center;
+  }
+
+  /* Ensure grid 2D remains visible */
+  .timeline-wrapper {
+    min-height: 200px;
+  }
+}
+
+/* ============================================
+   RESPONSIVE - Small tablet (850px)
+   ============================================ */
+
+@media (max-width: 850px) {
+  :root {
+    --left-column-width: 100px;
+    --registro-circle-size: 60px;
+    --timeline-wrapper-offset-y: -15px;
+    --left-column-offset-y: -10px;
+    --compas-offset-x: 30px;
+    --compas-offset-y: -10px;
+    --cycles-offset-x: 20px;
+    --cycles-offset-y: -10px;
+    --grid-editor-offset-x: -10px;
+    --grid-editor-offset-y: -10px;
+    --registro-offset-y: 20px;
+    --btn-play-offset-x: 30px;
+    --btn-play-offset-y: -10px;
+    --btn-random-offset-y: 80px;
+    --btn-reset-offset-y: 80px;
+    --separator-height: 130px;
+  }
+
+  .inputs {
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem 0.25rem;
+  }
+
+  .param.compas .circle,
+  .param.cycle-display .circle {
+    width: 60px;
+    height: 60px;
+  }
+
+  .param.compas input,
+  .param.cycle-display .cycle-circle input {
+    font-size: 1.5rem;
+  }
+
+  .param.cycle-display .cycle-circle .cycle-counter__digit {
+    font-size: 1.5rem;
+  }
+
+  .total-length-inline .circle {
+    width: 45px;
+    height: 45px;
+  }
+
+  .total-length-inline .total-length__digit {
+    font-size: 1.2rem;
+  }
+
+  .total-length-inline .abbr {
+    font-size: 1rem;
+  }
+
+  .param.registro input {
+    font-size: 1.4rem;
+  }
+
+  .param.registro .abbr,
+  .param.compas .abbr,
+  .param.cycle-display .abbr {
+    font-size: 1rem;
+  }
+
+  /* Grid editor compacto */
+  .zigzag-input {
+    font-size: 1.5rem !important;
+    padding: 4px 6px !important;
+  }
+
+  .zigzag-cell {
+    flex: 0 0 60px !important;
+  }
+
+  .zigzag-left-label {
+    font-size: 1.2rem;
+    min-width: 40px;
+  }
+
+  /* Controls even smaller - center origin prevents left overflow */
+  .controls-container .controls {
+    transform: scale(0.55);
+    transform-origin: top center;
   }
 }
 
