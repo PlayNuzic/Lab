@@ -1128,14 +1128,14 @@ function initGridEditor() {
       // Sync Grid 2D when editor changes
       syncGridFromPairs(pairs);
 
-      // Auto-scroll to registry of last entered note when not playing
+      // Auto-scroll to show the last entered note when not playing
       if (!isPlaying && pairs.length > 0) {
-        // Find the last non-silence pair (with or without registry)
+        // Find the last non-silence pair (with note and registry)
         const lastNonSilence = [...pairs].reverse().find(p => !p.isRest && p.note != null);
         if (lastNonSilence) {
-          // Use explicit registry or default
-          const targetRegistry = lastNonSilence.registry ?? CONFIG.DEFAULT_REGISTRO;
-          scrollToRegistry(targetRegistry, true);
+          const note = lastNonSilence.note;
+          const registry = lastNonSilence.registry ?? CONFIG.DEFAULT_REGISTRO;
+          scrollToNote(note, registry, true);
         }
       }
     }
@@ -1182,14 +1182,14 @@ function updateGridEditorMaxPulse() {
         if (isUpdatingFromDrag) return;
         syncGridFromPairs(pairs);
 
-        // Auto-scroll to registry of last entered note when not playing
+        // Auto-scroll to show the last entered note when not playing
         if (!isPlaying && pairs.length > 0) {
-          // Find the last non-silence pair (with or without registry)
+          // Find the last non-silence pair (with note and registry)
           const lastNonSilence = [...pairs].reverse().find(p => !p.isRest && p.note != null);
           if (lastNonSilence) {
-            // Use explicit registry or default
-            const targetRegistry = lastNonSilence.registry ?? CONFIG.DEFAULT_REGISTRO;
-            scrollToRegistry(targetRegistry, true);
+            const note = lastNonSilence.note;
+            const registry = lastNonSilence.registry ?? CONFIG.DEFAULT_REGISTRO;
+            scrollToNote(note, registry, true);
           }
         }
       }
@@ -1228,6 +1228,30 @@ function maybeApplyInitialScroll() {
 function scrollToRegistry(targetRegistry, animated = false) {
   if (grid) {
     grid.setRegistry(targetRegistry, animated);
+  }
+}
+
+/**
+ * Scroll to a specific note within a registry
+ * @param {number} note - Note value (0-11)
+ * @param {number} registry - Registry value (2-5)
+ * @param {boolean} animated - Whether to animate the scroll
+ */
+function scrollToNote(note, registry, animated = false) {
+  if (!grid) return;
+
+  // Get row definitions to find the exact row index
+  const rows = grid.getRowDefinitions();
+  const targetRowId = `${note}r${registry}`;
+
+  // Find the row index for this note+registry
+  const rowIndex = rows.findIndex(row => row.id === targetRowId);
+
+  if (rowIndex !== -1) {
+    grid.scrollToRow(rowIndex, animated);
+  } else {
+    // Fallback to registry scroll if specific note not found
+    grid.setRegistry(registry, animated);
   }
 }
 
