@@ -732,9 +732,9 @@ function createIntervalLine(note1Index, note2Index, pulseIndex, intervalIndex = 
   currentIntervalElements.push(intervalBar);
 
   // Create interval number label (like App14)
-  // Ascending intervals: just the number (no + sign)
-  // Descending intervals: negative sign
-  const displayValue = interval > 0 ? `${absInterval}` : `-${absInterval}`;
+  // Ascending intervals: show + sign
+  // Descending intervals: show - sign
+  const displayValue = interval > 0 ? `+${absInterval}` : `-${absInterval}`;
 
   // Calculate vertical center of the interval bar
   let centerY = (topEdge + bottomEdge) / 2;
