@@ -471,7 +471,7 @@ body[data-theme='dark'] .fraction-info-bubble {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.5rem 1rem 1.25rem;  /* Extra padding on right for FX knob values */
   border: 2px solid var(--line-color);
   border-radius: 12px;
   z-index: 1100;  /* Above dropdowns (z-index: 1000) but below portrait warnings */
@@ -720,41 +720,34 @@ body[data-theme='dark'] .fraction-info-bubble {
 
 /* FX Effects Column */
 .mixer-channel--fx {
-  min-width: 70px;
+  min-width: 110px;
 }
 
 .mixer-channel__knobs {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.25rem;
   height: 150px;
   justify-content: center;
-  padding-left: 4px;
 }
 
-/* Circular Knob - horizontal layout: dial | label+value */
+/* Circular Knob - horizontal layout: label | dial | value */
 .mixer-knob {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 4px;
-}
-
-.mixer-knob__label-value {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-  min-width: 36px;
+  justify-content: center;
 }
 
 .mixer-knob__label {
-  font-size: 0.55rem;
+  font-size: 0.8rem;
   color: var(--text-muted, #888);
   text-transform: uppercase;
   font-weight: 600;
-  line-height: 1.1;
+  min-width: 32px;
+  text-align: right;
 }
 
 .mixer-knob__dial {
@@ -780,9 +773,11 @@ body[data-theme='dark'] .fraction-info-bubble {
 }
 
 .mixer-knob__value {
-  font-size: 0.6rem;
+  font-size: 0.9rem;
   color: var(--text-color);
   font-variant-numeric: tabular-nums;
+  min-width: 24px;
+  text-align: left;
 }
 
 /* FX Toggle (P1-style ON/OFF button in actions row) */

@@ -23,7 +23,7 @@ function clamp01(value) {
   return Math.max(0, Math.min(1, num));
 }
 
-function createKnob({ label, min, max, value, onChange }) {
+function createKnob({ label, min, max, value, onChange, inverted = false }) {
   const wrapper = document.createElement('div');
   wrapper.className = 'mixer-knob';
 
@@ -85,17 +85,16 @@ function createKnob({ label, min, max, value, onChange }) {
   valueDisplay.className = 'mixer-knob__value';
   valueDisplay.textContent = `${value}`;
 
-  // Layout: dial on left, label+value stacked on right
+  // Layout: label (left) | dial (center) | value (right)
+  wrapper.appendChild(labelEl);
   wrapper.appendChild(knobContainer);
-  const labelValueWrapper = document.createElement('div');
-  labelValueWrapper.className = 'mixer-knob__label-value';
-  labelValueWrapper.appendChild(labelEl);
-  labelValueWrapper.appendChild(valueDisplay);
-  wrapper.appendChild(labelValueWrapper);
+  wrapper.appendChild(valueDisplay);
 
   // Update function
+  // inverted: for negative-value knobs (Comp, Limit), arc fills from min→max visually inverted
   const updateKnob = (val) => {
-    const normalized = (val - min) / (max - min);
+    let normalized = (val - min) / (max - min);
+    if (inverted) normalized = 1 - normalized; // Invert: full arc at min, empty at max
     const offset = circumference * (1 - normalized * 0.75); // 270° arc
     valueArc.setAttribute('stroke-dashoffset', offset);
     valueDisplay.textContent = `${Math.round(val)}`;
@@ -293,28 +292,32 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   knobsWrapper.className = 'mixer-channel__knobs';
 
   // Compressor knob (threshold range: -18dB to 0dB)
+  // inverted: arc fills at -18dB (max compression), empties at 0dB (no compression)
   const compKnob = createKnob({
     label: 'Comp',
     min: -18,
     max: 0,
     value: -12,
+    inverted: true,
     onChange: (val) => window.NuzicAudioEngine?.setCompressorThreshold(val)
   });
   knobsWrapper.appendChild(compKnob.element);
 
   // Limiter knob (threshold range: -3dB to -0.5dB)
+  // inverted: arc fills at -3dB (max limiting), empties at -0.5dB (minimal limiting)
   const limKnob = createKnob({
     label: 'Limit',
     min: -3,
     max: -0.5,
     value: -1,
+    inverted: true,
     onChange: (val) => window.NuzicAudioEngine?.setLimiterThreshold(val)
   });
   knobsWrapper.appendChild(limKnob.element);
 
   // Reverb knob (wet amount: 0-75%)
   const reverbKnob = createKnob({
-    label: 'Reverb',
+    label: 'Revb',
     min: 0,
     max: 75,
     value: 18,
