@@ -13,6 +13,7 @@ import TimelineAudio from './index.js';
 import { loadPiano, resetPiano } from './piano.js';
 import { loadViolin, resetViolin } from './violin.js';
 import { ensureToneLoaded } from './tone-loader.js';
+import { createSamplerPool, ADSR_PRESETS } from './sampler-pool.js';
 
 export class MelodicTimelineAudio extends TimelineAudio {
   constructor() {
@@ -20,6 +21,10 @@ export class MelodicTimelineAudio extends TimelineAudio {
 
     this._instrumentSampler = null;
     this._currentInstrument = null;
+
+    // Low-latency sampler pool (bypasses Tone.js for sample-accurate timing)
+    this._samplerPool = null;
+    this._useLowLatencyMode = true; // Enable by default
 
     // Register "instrument" channel in mixer
     this.mixer.registerChannel('instrument', {
@@ -117,16 +122,52 @@ export class MelodicTimelineAudio extends TimelineAudio {
     this._instrumentSampler = sampler;
     this._currentInstrument = key;
 
-    console.log(`Instrument ${key} loaded and set as current (sampler:`, !!sampler, ')');
+    // Initialize low-latency sampler pool if enabled
+    if (this._useLowLatencyMode && sampler && this._ctx) {
+      try {
+        const adsr = ADSR_PRESETS[key] || ADSR_PRESETS.piano;
+        this._samplerPool = createSamplerPool({
+          sampler,
+          context: this._ctx,
+          destination: melodicChannel || this._ctx.destination,
+          adsr
+        });
+
+        // Extract buffers from Tone.Sampler
+        if (this._samplerPool.init()) {
+          console.log(`SamplerPool initialized for ${key} (low-latency mode enabled)`);
+        } else {
+          console.warn(`SamplerPool failed to extract buffers, falling back to Tone.js`);
+          this._samplerPool = null;
+        }
+      } catch (poolError) {
+        console.warn('SamplerPool creation failed:', poolError.message);
+        this._samplerPool = null;
+      }
+    }
+
+    console.log(`Instrument ${key} loaded and set as current (sampler:`, !!sampler, ', pool:', !!this._samplerPool, ')');
   }
 
   /**
    * Play a note using the current instrument
+   * Uses low-latency SamplerPool if available, falls back to Tone.js
+   *
    * @param {number} midi - MIDI note number (0-127)
    * @param {number} duration - Note duration in seconds
-   * @param {number} when - When to play (Tone.now() + offset)
+   * @param {number} when - When to play (AudioContext.currentTime or Tone.now())
+   * @param {number} velocity - Note velocity 0-1 (default 0.8)
    */
-  playNote(midi, duration, when) {
+  playNote(midi, duration, when, velocity = 0.8) {
+    // Try low-latency pool first (sample-accurate timing)
+    if (this._samplerPool && this._samplerPool.isReady()) {
+      // Convert Tone.now() to AudioContext.currentTime if needed
+      const audioTime = this._ctx ? when : when;
+      this._samplerPool.playNote(midi, duration, audioTime, velocity);
+      return;
+    }
+
+    // Fallback to Tone.js Sampler
     if (!this._instrumentSampler) {
       console.warn('No instrument loaded, cannot play note');
       return;
@@ -140,7 +181,7 @@ export class MelodicTimelineAudio extends TimelineAudio {
     const Tone = window.Tone;
     const note = Tone.Frequency(midi, 'midi').toNote();
 
-    this._instrumentSampler.triggerAttackRelease(note, duration, when);
+    this._instrumentSampler.triggerAttackRelease(note, duration, when, velocity);
   }
 
   /**
@@ -148,8 +189,18 @@ export class MelodicTimelineAudio extends TimelineAudio {
    * @param {number[]} midiNotes - Array of MIDI note numbers
    * @param {number} duration - Note duration in seconds
    * @param {number} when - When to play
+   * @param {number} velocity - Note velocity 0-1 (default 0.8)
    */
-  playChord(midiNotes, duration, when) {
+  playChord(midiNotes, duration, when, velocity = 0.8) {
+    // Try low-latency pool first
+    if (this._samplerPool && this._samplerPool.isReady()) {
+      for (const midi of midiNotes) {
+        this._samplerPool.playNote(midi, duration, when, velocity);
+      }
+      return;
+    }
+
+    // Fallback to Tone.js Sampler
     if (!this._instrumentSampler) {
       console.warn('No instrument loaded, cannot play chord');
       return;
@@ -163,7 +214,7 @@ export class MelodicTimelineAudio extends TimelineAudio {
     const Tone = window.Tone;
     const notes = midiNotes.map(midi => Tone.Frequency(midi, 'midi').toNote());
 
-    this._instrumentSampler.triggerAttackRelease(notes, duration, when);
+    this._instrumentSampler.triggerAttackRelease(notes, duration, when, velocity);
   }
 
   /**
@@ -172,9 +223,35 @@ export class MelodicTimelineAudio extends TimelineAudio {
   stop() {
     super.stop();
 
+    // Stop low-latency pool
+    if (this._samplerPool) {
+      this._samplerPool.stopAll();
+    }
+
+    // Also stop Tone.js sampler
     if (this._instrumentSampler && typeof this._instrumentSampler.releaseAll === 'function') {
       this._instrumentSampler.releaseAll();
     }
+  }
+
+  /**
+   * Enable or disable low-latency mode
+   * When enabled, uses native Web Audio API for sample-accurate timing
+   * When disabled, uses Tone.js (more features but ~20-50ms latency)
+   *
+   * @param {boolean} enabled
+   */
+  setLowLatencyMode(enabled) {
+    this._useLowLatencyMode = enabled;
+    console.log(`Low-latency mode ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Check if low-latency mode is active
+   * @returns {boolean}
+   */
+  isLowLatencyMode() {
+    return this._useLowLatencyMode && this._samplerPool && this._samplerPool.isReady();
   }
 
   /**
