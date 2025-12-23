@@ -278,16 +278,10 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   fxWrapper.className = 'mixer-channel mixer-channel--fx suppressed';
   fxWrapper.dataset.channel = 'fx';
 
-  // Label row: [FX] toggle button
+  // Label row: "FX" text label (no button here anymore)
   const fxLabel = document.createElement('span');
   fxLabel.className = 'mixer-channel__label';
-
-  const fxToggle = document.createElement('button');
-  fxToggle.type = 'button';
-  fxToggle.className = 'mixer-action mixer-action--fx';
-  fxToggle.setAttribute('aria-label', 'Toggle master effects');
-  fxToggle.innerHTML = createLetterIcon('FX');
-  fxLabel.appendChild(fxToggle);
+  fxLabel.textContent = 'FX';
   fxWrapper.appendChild(fxLabel);
 
   // Knobs container (replaces slider wrapper for FX column)
@@ -314,17 +308,43 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   });
   knobsWrapper.appendChild(limKnob.element);
 
+  // Reverb knob (wet amount: 0-100%)
+  const reverbKnob = createKnob({
+    label: 'Reverb',
+    min: 0,
+    max: 100,
+    value: 33,
+    onChange: (val) => window.NuzicAudioEngine?.setReverbWet(val / 100)
+  });
+  knobsWrapper.appendChild(reverbKnob.element);
+
   fxWrapper.appendChild(knobsWrapper);
 
-  // Empty actions row to maintain vertical alignment
+  // Actions row with FX toggle button (P1 style: ON/OFF)
   const fxActions = document.createElement('div');
-  fxActions.className = 'mixer-channel__actions mixer-channel__actions--empty';
+  fxActions.className = 'mixer-channel__actions mixer-channel__actions--single';
+
+  const fxToggle = document.createElement('button');
+  fxToggle.type = 'button';
+  fxToggle.className = 'mixer-action mixer-action--fx-toggle';
+  fxToggle.setAttribute('aria-label', 'Alternar efectos master');
+  fxToggle.innerHTML = `
+    <svg aria-hidden="true" viewBox="0 0 40 40" focusable="false" class="icon-on">
+      <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle"
+            font-family="inherit" font-size="20" font-weight="bold" fill="currentColor">ON</text>
+    </svg>
+    <svg aria-hidden="true" viewBox="0 0 40 40" focusable="false" class="icon-off" style="display:none;">
+      <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle"
+            font-family="inherit" font-size="20" font-weight="bold" fill="currentColor">OFF</text>
+    </svg>
+  `;
+  fxActions.appendChild(fxToggle);
   fxWrapper.appendChild(fxActions);
 
   content.appendChild(fxWrapper);
 
   // Store knob references for state sync
-  const fxControls = { fxToggle, fxWrapper, compKnob, limKnob };
+  const fxControls = { fxToggle, fxWrapper, compKnob, limKnob, reverbKnob };
 
   // FX Toggle event listener
   fxToggle.addEventListener('click', () => {
@@ -332,8 +352,14 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     if (!audio) return;
     const enabled = !audio.getEffectsEnabled();
     audio.setEffectsEnabled(enabled);
+
+    // Update button UI (P1 style)
     fxToggle.classList.toggle('active', enabled);
     fxWrapper.classList.toggle('suppressed', !enabled);
+    const iconOn = fxToggle.querySelector('.icon-on');
+    const iconOff = fxToggle.querySelector('.icon-off');
+    if (iconOn) iconOn.style.display = enabled ? 'block' : 'none';
+    if (iconOff) iconOff.style.display = enabled ? 'none' : 'block';
   });
 
   menu.innerHTML = '';
@@ -394,15 +420,25 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     if (audio?.getEffectsConfig) {
       const config = audio.getEffectsConfig();
       if (config && fxControls) {
-        // Update FX toggle state
-        fxControls.fxToggle.classList.toggle('active', config.enabled);
-        fxControls.fxWrapper.classList.toggle('suppressed', !config.enabled);
+        // Update FX toggle state (P1 style: ON/OFF icons)
+        const fxEnabled = config.enabled;
+        fxControls.fxToggle.classList.toggle('active', fxEnabled);
+        fxControls.fxWrapper.classList.toggle('suppressed', !fxEnabled);
+        const iconOn = fxControls.fxToggle.querySelector('.icon-on');
+        const iconOff = fxControls.fxToggle.querySelector('.icon-off');
+        if (iconOn) iconOn.style.display = fxEnabled ? 'block' : 'none';
+        if (iconOff) iconOff.style.display = fxEnabled ? 'none' : 'block';
 
         // Update knob values
         fxControls.compKnob.update(config.compressorThreshold);
         fxControls.compKnob.input.value = config.compressorThreshold;
         fxControls.limKnob.update(config.limiterThreshold);
         fxControls.limKnob.input.value = config.limiterThreshold;
+
+        // Update reverb knob (wet value 0-1 → 0-100 display)
+        const reverbPercent = Math.round((config.reverbWet || 0) * 100);
+        fxControls.reverbKnob.update(reverbPercent);
+        fxControls.reverbKnob.input.value = reverbPercent;
       }
     }
 

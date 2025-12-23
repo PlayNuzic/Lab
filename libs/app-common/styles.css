@@ -774,19 +774,19 @@ body[data-theme='dark'] .fraction-info-bubble {
   font-variant-numeric: tabular-nums;
 }
 
-/* FX Toggle */
-.mixer-action--fx {
-  width: 100%;
-  max-width: 44px;
+/* FX Toggle (P1-style ON/OFF button in actions row) */
+.mixer-action--fx-toggle {
+  min-width: 48px;
+  position: relative;
+}
+
+.mixer-action--fx-toggle .icon-on,
+.mixer-action--fx-toggle .icon-off {
+  transition: opacity 0.2s ease;
 }
 
 .mixer-channel--fx.suppressed .mixer-knob__dial svg circle:last-child {
   stroke: var(--line-color, #444);
-}
-
-.mixer-channel__actions--empty {
-  height: 32px;
-  visibility: hidden;
 }
 
 @media (max-width: 600px) {

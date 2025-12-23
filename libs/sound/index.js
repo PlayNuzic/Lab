@@ -680,16 +680,22 @@ export class TimelineAudio {
       this._bus.cycle.connect(this._bus.master);
       this._bus.melodic.connect(this._bus.master);
 
-      // Create master effects chain: EQ → Compressor → Limiter
+      // Create master effects chain: EQ → Compressor → Limiter → Reverb → destination
       // Only create if context supports these methods (not available in some test mocks)
       const supportsEffects = typeof ctx.createBiquadFilter === 'function' &&
-                              typeof ctx.createDynamicsCompressor === 'function';
+                              typeof ctx.createDynamicsCompressor === 'function' &&
+                              typeof ctx.createConvolver === 'function';
 
       if (supportsEffects) {
         this._bus.effects = {
           eq: ctx.createBiquadFilter(),
           compressor: ctx.createDynamicsCompressor(),
-          limiter: ctx.createDynamicsCompressor()
+          limiter: ctx.createDynamicsCompressor(),
+          // Reverb: dry/wet parallel mix using native ConvolverNode
+          reverb: ctx.createConvolver(),
+          reverbDry: ctx.createGain(),
+          reverbWet: ctx.createGain(),
+          reverbMix: ctx.createGain()  // Output node after dry/wet mixing
         };
 
         // Configure EQ (highshelf for subtle presence boost)
@@ -713,13 +719,28 @@ export class TimelineAudio {
         lim.attack.value = 0.003;    // 3ms - fast but not instant
         lim.release.value = 0.1;     // 100ms - smoother recovery
 
+        // Configure Reverb (synthetic impulse response)
+        this._bus.effects.reverb.buffer = this._createReverbImpulse(ctx, 1.5, 2);
+        this._bus.effects.reverbDry.gain.value = 0.67;  // 67% dry (default 33% wet)
+        this._bus.effects.reverbWet.gain.value = 0.33;  // 33% wet by default
+        this._reverbWetValue = 0.33;
+
+        // Wire up reverb dry/wet parallel paths:
+        // limiter → [dry path] → reverbMix
+        // limiter → [wet path: reverb] → reverbMix
+        this._bus.effects.limiter.connect(this._bus.effects.reverbDry);
+        this._bus.effects.limiter.connect(this._bus.effects.reverb);
+        this._bus.effects.reverb.connect(this._bus.effects.reverbWet);
+        this._bus.effects.reverbDry.connect(this._bus.effects.reverbMix);
+        this._bus.effects.reverbWet.connect(this._bus.effects.reverbMix);
+
         // Connect based on effects enabled state
         if (this._effectsEnabled) {
-          // Connect effects chain: master → eq → compressor → limiter → destination
+          // Connect effects chain: master → eq → compressor → limiter → reverb → destination
           this._bus.master.connect(this._bus.effects.eq);
           this._bus.effects.eq.connect(this._bus.effects.compressor);
           this._bus.effects.compressor.connect(this._bus.effects.limiter);
-          this._bus.effects.limiter.connect(ctx.destination);
+          this._bus.effects.reverbMix.connect(ctx.destination);
         } else {
           // Effects disabled: connect master directly to destination
           this._bus.master.connect(ctx.destination);
@@ -860,6 +881,31 @@ export class TimelineAudio {
       try { this._fallbackGain.disconnect(); } catch {}
       this._fallbackGain = null;
     }
+  }
+
+  /**
+   * Create a synthetic reverb impulse response buffer
+   * Uses exponential decay noise to simulate room reverb
+   * @param {AudioContext} ctx - The audio context
+   * @param {number} duration - Reverb duration in seconds (default: 1.5)
+   * @param {number} decay - Decay rate (higher = faster decay, default: 2)
+   * @returns {AudioBuffer} The impulse response buffer
+   */
+  _createReverbImpulse(ctx, duration = 1.5, decay = 2) {
+    const sampleRate = ctx.sampleRate;
+    const length = Math.floor(sampleRate * duration);
+    const impulse = ctx.createBuffer(2, length, sampleRate);
+
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        // Exponential decay envelope applied to white noise
+        const envelope = Math.pow(1 - i / length, decay);
+        channelData[i] = (Math.random() * 2 - 1) * envelope;
+      }
+    }
+
+    return impulse;
   }
 
   _resolveBusForSampleKey(key) {
@@ -1807,6 +1853,22 @@ export class TimelineAudio {
   }
 
   /**
+   * Set reverb wet amount (dry/wet mix)
+   * @param {number} wet - Wet amount 0-1 (0 = fully dry, 1 = fully wet)
+   */
+  setReverbWet(wet) {
+    if (!this._bus.effects?.reverbDry || !this._bus.effects?.reverbWet) return;
+    if (!Number.isFinite(wet)) return;
+
+    const wetValue = Math.max(0, Math.min(1, wet));
+    const dryValue = 1 - wetValue;
+
+    this._reverbWetValue = wetValue;
+    this._bus.effects.reverbDry.gain.value = dryValue;
+    this._bus.effects.reverbWet.gain.value = wetValue;
+  }
+
+  /**
    * Get current effects parameters
    * @returns {Object|null} Current effects configuration
    */
@@ -1819,6 +1881,7 @@ export class TimelineAudio {
       // Quick access for mixer knobs
       compressorThreshold: compressor.threshold.value,
       limiterThreshold: limiter.threshold.value,
+      reverbWet: this._reverbWetValue ?? 0.33,
       // Detailed config
       eq: {
         type: eq.type,
