@@ -133,6 +133,36 @@
   gap: 1rem;
 }
 
+/* ============================================================================
+   SOUNDLINE HEADERS (títulos y subtítulos)
+   ============================================================================ */
+
+.soundline-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  text-align: center;
+  min-width: 120px;
+  /* Centrar sobre la línia vertical de la soundline (left: 50px dins contenidor 150px) */
+  transform: translateX(-23px);
+}
+
+.soundline-title {
+  font-size: 1.375rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-lg, #7BB4CD);
+  line-height: 1.2;
+}
+
+.soundline-subtitle {
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--line-color, #666);
+  opacity: 0.8;
+}
+
 .soundline-container {
   position: relative;
   width: 150px;
@@ -218,6 +248,9 @@
   width: 180px;
   height: 100%;
   min-height: 500px;
+  /* Alinear amb soundline-container (saltar l'alçada del header + gap) */
+  margin-top: calc(1.375rem * 1.2 + 1.25rem * 1.2 + 0.2rem + 1rem);
+  margin-bottom: calc(52px + 1rem); /* Alçada botó play + gap */
 }
 
 .connection-lines {
@@ -350,6 +383,7 @@
   .connection-area {
     width: 120px;
     min-height: 400px;
+    margin-top: calc(1.25rem * 1.2 + 1.06rem * 1.2 + 0.2rem + 1rem);
   }
 
   .soundline-number {
@@ -359,6 +393,14 @@
   .note-highlight {
     width: 60px;
     height: 24px;
+  }
+
+  .soundline-title {
+    font-size: 1.25rem;
+  }
+
+  .soundline-subtitle {
+    font-size: 1.06rem;
   }
 }
 
@@ -375,6 +417,7 @@
   .connection-area {
     width: 80px;
     min-height: 350px;
+    margin-top: calc(1.125rem * 1.2 + 1rem * 1.2 + 0.2rem + 1rem);
   }
 
   .soundline::before {
@@ -403,5 +446,17 @@
     left: 55px;
     width: 50px;
     height: 20px;
+  }
+
+  .soundline-header {
+    min-width: 80px;
+  }
+
+  .soundline-title {
+    font-size: 1.125rem;
+  }
+
+  .soundline-subtitle {
+    font-size: 1rem;
   }
 }

@@ -22,6 +22,7 @@ let scaleContainer = null;
 let connectionSvg = null;
 let playChromaticBtn = null;
 let playScaleBtn = null;
+let scaleSoundlineTitle = null;
 
 // Soundline APIs
 let chromaticSoundline = null;
@@ -400,12 +401,33 @@ function populateScaleSelector() {
   });
 }
 
+/**
+ * Obtiene el nombre de visualización de la escala actual
+ */
+function getScaleDisplayName(scaleId, rotation) {
+  const scaleData = motherScalesData[scaleId];
+  if (!scaleData) return 'Escala';
+
+  // Si tiene nombres de rotación y no es modo 0, usar el nombre del modo
+  if (scaleData.rotNames && scaleData.rotNames[rotation]) {
+    return scaleData.rotNames[rotation];
+  }
+
+  // Si no, usar el nombre de la escala madre
+  return scaleData.name;
+}
+
 function onScaleChange(value) {
   const [scaleId, rot] = value.split('-');
   const rotation = parseInt(rot, 10);
 
   currentScale = { id: scaleId, rot: rotation };
   currentScaleNotes = getRotatedScaleNotes(scaleId, rotation);
+
+  // Actualizar título de la soundline de escala
+  if (scaleSoundlineTitle) {
+    scaleSoundlineTitle.textContent = getScaleDisplayName(scaleId, rotation);
+  }
 
   // Redibujar soundline de escala
   updateScaleSoundline(currentScaleNotes);
@@ -442,6 +464,10 @@ function createAppLayout() {
       <div class="soundlines-wrapper">
         <!-- Soundline cromática -->
         <div class="soundline-column">
+          <div class="soundline-header">
+            <h3 class="soundline-title">Escala Cromática</h3>
+            <span class="soundline-subtitle">N Modulares</span>
+          </div>
           <div id="chromaticSoundline" class="soundline-container"></div>
           <button id="playChromaticBtn" class="play" aria-label="Reproducir escala cromática">
             <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
@@ -460,6 +486,10 @@ function createAppLayout() {
 
         <!-- Soundline de escala -->
         <div class="soundline-column">
+          <div class="soundline-header">
+            <h3 id="scaleSoundlineTitle" class="soundline-title">Mayor</h3>
+            <span class="soundline-subtitle">N de grado</span>
+          </div>
           <div id="scaleSoundline" class="soundline-container"></div>
           <button id="playScaleBtn" class="play" aria-label="Reproducir escala seleccionada">
             <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
@@ -503,6 +533,7 @@ function initApp() {
   connectionSvg = document.getElementById('connectionLines');
   playChromaticBtn = document.getElementById('playChromaticBtn');
   playScaleBtn = document.getElementById('playScaleBtn');
+  scaleSoundlineTitle = document.getElementById('scaleSoundlineTitle');
 
   // Poblar selector
   populateScaleSelector();
