@@ -59,9 +59,7 @@ html, body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  /* overflow-x hidden per evitar scroll horitzontal, però visible verticalment pel Play */
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: hidden;
 }
 
 /* ============================================================================
@@ -273,10 +271,11 @@ html, body {
   flex: 1;
   padding: 0.5rem;
   padding-top: 0;
+  /* Espai extra a sota per acomodar el botó play */
+  padding-bottom: calc(var(--play-offset-y, 75px) + 30px);
   min-width: 0;
-  /* Permetre overflow horitzontal pels títols */
-  overflow-x: visible;
-  overflow-y: hidden;
+  /* Permetre overflow pels títols i el botó play */
+  overflow: visible;
 }
 
 .soundlines-wrapper {
@@ -425,7 +424,6 @@ html, body {
   transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0)) !important;
   transform-origin: top center;
   flex-shrink: 0;
-  /* Sempre per sobre de tot */
   z-index: 100;
 }
 
