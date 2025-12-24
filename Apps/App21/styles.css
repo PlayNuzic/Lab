@@ -16,8 +16,8 @@
   --scale-selector-gap: 1.5rem;
   --scale-selector-padding: 1.5rem 1.2rem;
 
-  /* Soundlines sizing */
-  --soundlines-height: clamp(400px, 75vh, 650px);
+  /* Soundlines sizing - deixar espai pel Play a sota */
+  --soundlines-height: clamp(350px, 65vh, 550px);
   --soundline-container-width: 150px;
   --connection-area-width: 180px;
 
