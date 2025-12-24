@@ -156,6 +156,8 @@ html, body {
 .scale-select[size] {
   flex: 1;
   min-height: 0;
+  /* Limitar altura per deixar espai al transpose-selector */
+  max-height: clamp(150px, 40vh, 300px);
   overflow-y: auto;
   padding: 0.3rem;
 }
@@ -519,6 +521,11 @@ html, body {
 
   .scale-selector-title {
     font-size: 0.95rem;
+  }
+
+  /* Limitar altura del select per deixar espai al transpose */
+  .scale-select[size] {
+    max-height: clamp(120px, 30vh, 200px);
   }
 }
 
