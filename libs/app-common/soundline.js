@@ -13,6 +13,9 @@
  * @param {number} [options.startMidi=60] - MIDI note assigned to index 0.
  * @param {Function} [options.labelFormatter] - Custom text for each label.
  * @param {Function} [options.onNoteClick] - Click handler for labels.
+ * @param {number[]} [options.visibleNotes] - Array of note indices to show with full division.
+ *        Notes NOT in this array will be shown as dots. If null/undefined, all notes shown.
+ * @param {string} [options.dotClass='soundline-dot'] - CSS class for dot elements.
  * @returns {Object} Soundline API.
  */
 export function createSoundline(options) {
@@ -21,7 +24,9 @@ export function createSoundline(options) {
     totalNotes,
     startMidi,
     labelFormatter,
-    onNoteClick
+    onNoteClick,
+    visibleNotes,
+    dotClass
   } = normalizeOptions(options);
 
   // Create main soundline container
@@ -30,26 +35,46 @@ export function createSoundline(options) {
   soundline.id = 'soundline';
 
   // Create horizontal division lines (indices 0 to totalNotes-1)
+  // If visibleNotes is defined, only those indices get full divisions; others get dots
+  const hasVisibleFilter = Array.isArray(visibleNotes);
+
   for (let i = 0; i < totalNotes; i++) {
-    const line = document.createElement('div');
-    line.className = 'soundline-division';
-    line.dataset.index = i;
-    line.dataset.noteIndex = i;
-    line.dataset.midi = startMidi + i;
+    const isVisible = !hasVisibleFilter || visibleNotes.includes(i);
+    const midi = startMidi + i;
 
-    if (onNoteClick) {
-      line.style.cursor = 'pointer';
-      line.addEventListener('click', (event) => {
-        onNoteClick(i, startMidi + i, event);
-      });
+    if (isVisible) {
+      // Full division line
+      const line = document.createElement('div');
+      line.className = 'soundline-division';
+      line.dataset.index = i;
+      line.dataset.noteIndex = i;
+      line.dataset.midi = midi;
+
+      if (onNoteClick) {
+        line.style.cursor = 'pointer';
+        line.addEventListener('click', (event) => {
+          onNoteClick(i, midi, event);
+        });
+      }
+
+      soundline.appendChild(line);
+    } else {
+      // Dot for non-visible notes
+      const dot = document.createElement('div');
+      dot.className = dotClass;
+      dot.dataset.index = i;
+      dot.dataset.noteIndex = i;
+      dot.dataset.midi = midi;
+      soundline.appendChild(dot);
     }
-
-    soundline.appendChild(line);
   }
 
 
-  // Create number labels (0-totalNotes-1) positioned in spaces between lines
+  // Create number labels only for visible notes
   for (let i = 0; i < totalNotes; i++) {
+    const isVisible = !hasVisibleFilter || visibleNotes.includes(i);
+    if (!isVisible) continue; // Skip labels for non-visible notes
+
     const label = document.createElement('div');
     label.className = 'soundline-number';
 
@@ -161,7 +186,82 @@ export function createSoundline(options) {
     /**
      * Force layout recomputation (e.g., after resize or font change).
      */
-    relayout: () => layoutSoundline(soundline, totalNotes)
+    relayout: () => layoutSoundline(soundline, totalNotes),
+
+    /**
+     * Update which notes are visible (have divisions vs dots).
+     * Rebuilds the soundline content with new visible notes.
+     * @param {number[]} newVisibleNotes - Array of note indices to show with full division.
+     * @param {Function} [newLabelFormatter] - Optional new label formatter.
+     */
+    setVisibleNotes: (newVisibleNotes, newLabelFormatter) => {
+      // Clear existing content
+      soundline.innerHTML = '';
+
+      const hasVisibleFilter = Array.isArray(newVisibleNotes);
+      const formatter = newLabelFormatter || labelFormatter;
+
+      // Rebuild divisions/dots
+      for (let i = 0; i < totalNotes; i++) {
+        const isVisible = !hasVisibleFilter || newVisibleNotes.includes(i);
+        const midi = startMidi + i;
+
+        if (isVisible) {
+          const line = document.createElement('div');
+          line.className = 'soundline-division';
+          line.dataset.index = i;
+          line.dataset.noteIndex = i;
+          line.dataset.midi = midi;
+
+          if (onNoteClick) {
+            line.style.cursor = 'pointer';
+            line.addEventListener('click', (event) => {
+              onNoteClick(i, midi, event);
+            });
+          }
+          soundline.appendChild(line);
+        } else {
+          const dot = document.createElement('div');
+          dot.className = dotClass;
+          dot.dataset.index = i;
+          dot.dataset.noteIndex = i;
+          dot.dataset.midi = midi;
+          soundline.appendChild(dot);
+        }
+      }
+
+      // Rebuild labels for visible notes
+      for (let i = 0; i < totalNotes; i++) {
+        const isVisible = !hasVisibleFilter || newVisibleNotes.includes(i);
+        if (!isVisible) continue;
+
+        const label = document.createElement('div');
+        label.className = 'soundline-number';
+
+        const midi = startMidi + i;
+        label.dataset.note = i;
+        label.dataset.noteIndex = i;
+        label.dataset.midi = midi;
+        label.textContent = formatLabel(formatter, i, midi);
+
+        if (onNoteClick) {
+          label.tabIndex = 0;
+          label.addEventListener('click', (event) => {
+            onNoteClick(i, midi, event);
+          });
+          label.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              onNoteClick(i, midi, event);
+            }
+          });
+        }
+        soundline.appendChild(label);
+      }
+
+      // Re-layout
+      layoutSoundline(soundline, totalNotes);
+    }
   };
 
   return soundlineApi;
@@ -187,7 +287,9 @@ function normalizeOptions(options) {
     totalNotes: 12,
     startMidi: 60,
     labelFormatter: null,
-    onNoteClick: null
+    onNoteClick: null,
+    visibleNotes: null,
+    dotClass: 'soundline-dot'
   };
 
   if (isDomElement(options)) {
@@ -206,12 +308,17 @@ function normalizeOptions(options) {
 
   const normalizedStartMidi = Number.isInteger(config.startMidi) ? config.startMidi : defaultOptions.startMidi;
 
+  // Validate visibleNotes if provided
+  const visibleNotes = Array.isArray(config.visibleNotes) ? config.visibleNotes : null;
+
   return {
     container,
     totalNotes: safeTotalNotes,
     startMidi: normalizedStartMidi,
     labelFormatter: config.labelFormatter,
-    onNoteClick: typeof config.onNoteClick === 'function' ? config.onNoteClick : null
+    onNoteClick: typeof config.onNoteClick === 'function' ? config.onNoteClick : null,
+    visibleNotes,
+    dotClass: typeof config.dotClass === 'string' ? config.dotClass : defaultOptions.dotClass
   };
 }
 
@@ -229,6 +336,7 @@ function layoutSoundline(soundline, totalNotes = 12) {
   const safeTotalNotes = Math.max(1, totalNotes);
   const divisions = soundline.querySelectorAll('.soundline-division');
   const numbers = soundline.querySelectorAll('.soundline-number');
+  const dots = soundline.querySelectorAll('.soundline-dot');
 
   // Calculate top and bottom positions for vertical line
   const topNotePct = ((safeTotalNotes - 0.5) / safeTotalNotes) * 100;  // note 11 position
@@ -240,13 +348,23 @@ function layoutSoundline(soundline, totalNotes = 12) {
   soundline.style.setProperty('--line-top', `${lineTop}%`);
   soundline.style.setProperty('--line-bottom', `${100 - lineBottom}%`);
 
-  // Position divisions and numbers at same height (aligned)
-  divisions.forEach((div, idx) => {
+  // Position divisions at their note index height
+  divisions.forEach((div) => {
+    const idx = parseInt(div.dataset.noteIndex, 10);
     const pct = ((idx + 0.5) / safeTotalNotes) * 100;
     const invertedPct = 100 - pct;
     div.style.top = `${invertedPct}%`;
   });
 
+  // Position dots at their note index height
+  dots.forEach((dot) => {
+    const idx = parseInt(dot.dataset.noteIndex, 10);
+    const pct = ((idx + 0.5) / safeTotalNotes) * 100;
+    const invertedPct = 100 - pct;
+    dot.style.top = `${invertedPct}%`;
+  });
+
+  // Position numbers at their note index height
   numbers.forEach((num) => {
     const idx = parseInt(num.dataset.noteIndex, 10);
     const pct = ((idx + 0.5) / safeTotalNotes) * 100;
