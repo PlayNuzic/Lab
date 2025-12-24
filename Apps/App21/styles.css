@@ -26,7 +26,7 @@
 
   /* Ajuste fino del botón Play */
   --play-offset-x: -30px;
-  --play-offset-y: 20px;
+  --play-offset-y: 75px;
 
   /* Longitud de las líneas de conexión (0-100%) */
   --connection-length: 70%;
@@ -423,6 +423,8 @@ html, body {
   transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0)) !important;
   transform-origin: top center;
   flex-shrink: 0;
+  /* Sempre per sobre de tot */
+  z-index: 100;
 }
 
 .connection-lines {
