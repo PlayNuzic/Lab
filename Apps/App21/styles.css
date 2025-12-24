@@ -1,0 +1,402 @@
+/* App21: Escalas - Styles */
+/* Estilo de soundlines basado en App10 */
+
+/* ============================================================================
+   VARIABLES CSS (matching App10)
+   ============================================================================ */
+
+:root {
+  --line-color: #666;
+  --soundline-width: 3px;
+  --note-highlight-color: var(--selection-color, #FFBB33);
+}
+
+[data-theme="dark"] {
+  --line-color: #999;
+}
+
+/* ============================================================================
+   LAYOUT - Integración con app-wrap del template
+   ============================================================================ */
+
+/* El contenido de App21 va dentro de .timeline-wrapper */
+.timeline-wrapper {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  padding: 1rem !important;
+  gap: 0 !important;
+  height: auto !important;
+  min-height: 500px !important;
+}
+
+/* Ocultar el timeline por defecto del template */
+.timeline {
+  display: none !important;
+}
+
+/* Ocultar controles del template que no usamos */
+.controls {
+  display: none !important;
+}
+
+/* ============================================================================
+   SELECTOR DE ESCALAS (Columna izquierda)
+   ============================================================================ */
+
+.scale-selector {
+  background: rgba(0, 0, 0, 0.03);
+  padding: 1.5rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  min-width: 180px;
+  max-width: 220px;
+}
+
+[data-theme="dark"] .scale-selector {
+  background: rgba(255, 255, 255, 0.03);
+  border-right-color: rgba(255, 255, 255, 0.1);
+}
+
+.scale-selector-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+  color: var(--color-lg, #7BB4CD);
+}
+
+.scale-select {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  font-size: 1.1rem;
+  font-family: inherit;
+  border: 2px solid var(--line-color, #666);
+  border-radius: 8px;
+  background: var(--bg-light, #ECECEC);
+  color: inherit;
+  cursor: pointer;
+}
+
+[data-theme="dark"] .scale-select {
+  background: var(--bg-dark, #43433B);
+  border-color: #888;
+}
+
+.scale-select:focus {
+  outline: none;
+  border-color: var(--selection-color, #FFBB33);
+}
+
+.scale-select optgroup {
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* ============================================================================
+   AREA DE SOUNDLINES (Zona central-derecha)
+   ============================================================================ */
+
+.soundlines-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 1rem;
+}
+
+.soundlines-wrapper {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  height: 500px;
+  max-height: 75vh;
+}
+
+.soundline-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.soundline-container {
+  position: relative;
+  width: 150px;
+  height: 100%;
+  min-height: 500px;
+}
+
+/* ============================================================================
+   SOUNDLINE (estilo App10 con línea vertical via ::before)
+   ============================================================================ */
+
+.soundline {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Línea vertical principal (como App10) */
+.soundline::before {
+  content: '';
+  position: absolute;
+  left: 50px;
+  top: var(--line-top, 0);
+  bottom: var(--line-bottom, 0);
+  width: var(--soundline-width);
+  background: var(--line-color);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Divisiones horizontales (como App10) */
+.soundline-division {
+  position: absolute;
+  width: 30px;
+  height: 2px;
+  background: var(--line-color);
+  left: 35px; /* Empiezan 15px antes de la línea vertical */
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Números (estilo App10) */
+.soundline-number {
+  position: absolute;
+  font-size: 1.8rem;
+  font-weight: 400;
+  color: var(--text-color, #333);
+  user-select: none;
+  z-index: 3;
+  opacity: 0.85;
+  left: 0;
+  text-align: right;
+  width: 30px;
+}
+
+[data-theme="dark"] .soundline-number {
+  color: var(--text-dark, #e0e0e0);
+}
+
+/* ============================================================================
+   SOUNDLINE DE ESCALA (con dots para notas no incluidas)
+   ============================================================================ */
+
+.soundline-dot {
+  position: absolute;
+  /* Línea vertical: left=50px, width=3px → centro en 51.5px */
+  /* Punto 10px centrado: 51.5px - 5px = 46.5px */
+  left: 46.5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--line-color);
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+/* ============================================================================
+   LÍNEAS DE CONEXIÓN
+   ============================================================================ */
+
+.connection-area {
+  position: relative;
+  width: 180px;
+  height: 100%;
+  min-height: 500px;
+}
+
+.connection-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.connection-line {
+  stroke: var(--line-color);
+  stroke-width: 2;
+  stroke-dasharray: 4 4; /* Línia puntejada */
+  opacity: 0.5;
+  transition: all 0.15s ease;
+}
+
+.connection-line.active {
+  stroke: var(--selection-color, #FFBB33);
+  stroke-width: 3;
+  stroke-dasharray: none; /* Sòlida quan activa */
+  opacity: 1;
+}
+
+/* ============================================================================
+   HIGHLIGHTS
+   ============================================================================ */
+
+.note-highlight {
+  position: absolute;
+  width: 80px;
+  height: 30px;
+  left: 70px; /* A la derecha de la línea vertical */
+  background: var(--note-highlight-color);
+  opacity: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 10;
+  transform: translateY(-50%); /* Centrar verticalmente sobre la nota */
+}
+
+.note-highlight.active {
+  opacity: 0.8;
+  box-shadow: 0 0 14px var(--note-highlight-color);
+  animation: noteFlash 0.3s ease-out;
+}
+
+@keyframes noteFlash {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.05);
+  }
+  100% {
+    opacity: 0.8;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+/* ============================================================================
+   BOTONES PLAY (usa estilos del template .play)
+   ============================================================================ */
+
+/* Variables de ajuste fino para los botones Play */
+:root {
+  --play-offset-x: -25px; /* Ajuste horizontal */
+}
+
+/* Sobrescribir posicionamiento para que no sea absoluto */
+.soundline-column .play {
+  position: relative;
+  left: var(--play-offset-x);
+  transform: none;
+  flex-shrink: 0;
+}
+
+/* Estado activo durante reproducción */
+.soundline-column .play.playing {
+  color: var(--selection-color);
+  border-color: var(--selection-color);
+  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .timeline-wrapper {
+    flex-direction: column !important;
+    min-height: auto !important;
+    padding: 0.5rem !important;
+  }
+
+  .scale-selector {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    border-right: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 0.8rem;
+    min-width: auto;
+    max-width: none;
+    width: 100%;
+  }
+
+  [data-theme="dark"] .scale-selector {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .scale-selector-title {
+    font-size: 1.1rem;
+  }
+
+  .scale-select {
+    width: auto;
+    min-width: 160px;
+  }
+
+  .soundlines-wrapper {
+    height: 400px;
+  }
+
+  .soundline-container {
+    width: 120px;
+    min-height: 400px;
+  }
+
+  .connection-area {
+    width: 120px;
+    min-height: 400px;
+  }
+
+  .soundline-number {
+    font-size: 1.4rem;
+  }
+
+  .note-highlight {
+    width: 60px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .soundlines-wrapper {
+    height: 350px;
+  }
+
+  .soundline-container {
+    width: 100px;
+    min-height: 350px;
+  }
+
+  .connection-area {
+    width: 80px;
+    min-height: 350px;
+  }
+
+  .soundline::before {
+    left: 40px;
+  }
+
+  .soundline-division {
+    width: 24px;
+    left: 28px;
+  }
+
+  .soundline-number {
+    font-size: 1.2rem;
+    width: 24px;
+  }
+
+  .soundline-dot {
+    /* Línea vertical: left=40px, width=3px → centro en 41.5px */
+    /* Punto 8px centrado: 41.5px - 4px = 37.5px */
+    left: 37.5px;
+    width: 8px;
+    height: 8px;
+  }
+
+  .note-highlight {
+    left: 55px;
+    width: 50px;
+    height: 20px;
+  }
+}
