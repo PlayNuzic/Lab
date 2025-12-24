@@ -14,7 +14,7 @@
   /* Layout responsive - valors per defecte (>900px) */
   --scale-selector-width: 380px;
   --scale-selector-gap: 1.5rem;
-  --scale-selector-padding: 1.5rem 1.2rem;
+  --scale-selector-padding: 0.2rem 1rem;
 
   /* Soundlines sizing - deixar espai pel Play a sota */
   --soundlines-height: clamp(350px, 65vh, 550px);
@@ -59,7 +59,9 @@ html, body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* overflow-x hidden per evitar scroll horitzontal, però visible verticalment pel Play */
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 /* ============================================================================
