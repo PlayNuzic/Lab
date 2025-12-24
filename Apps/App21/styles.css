@@ -12,7 +12,7 @@
   --note-highlight-color: var(--selection-color, #FFBB33);
 
   /* Layout responsive - valors per defecte (>900px) */
-  --scale-selector-width: 360px;
+  --scale-selector-width: 380px;
   --scale-selector-gap: 1.5rem;
   --scale-selector-padding: 1.5rem 1.2rem;
 
@@ -22,11 +22,11 @@
   --connection-area-width: 180px;
 
   /* Ajuste fino horizontal del contenedor de soundlines */
-  --soundlines-offset-x: -200px;
+  --soundlines-offset-x: 0px;
 
   /* Ajuste fino del botón Play */
   --play-offset-x: -30px;
-  --play-offset-y: 120px;
+  --play-offset-y: 20px;
 
   /* Longitud de las líneas de conexión (0-100%) */
   --connection-length: 70%;
