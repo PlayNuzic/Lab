@@ -145,7 +145,7 @@
    ============================================================================ */
 
 .transpose-selector {
-  display: flex;
+  display: none; /* Ocult per defecte, s'activa des del menú d'opcions */
   flex-direction: column;
   gap: 0.5rem;
   padding-top: 0.5rem;

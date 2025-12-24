@@ -13,6 +13,7 @@ let stopRequested = false;
 let audio = null; // MelodicTimelineAudio instance
 let currentScaleNotes = []; // Semitonos de la escala actual
 let transposeValue = 0; // Transposición (0-11)
+let transposeEnabled = false; // Opció per mostrar/ocultar selector de nota de sortida
 
 // Referencias DOM
 let timelineWrapper = null;
@@ -109,6 +110,16 @@ function setupInstrumentListener() {
 // SOUNDLINE CROMÁTICA
 // ============================================================================
 
+/**
+ * Formateador de etiquetas para cromática: rota según transposición
+ * La nota en posición visual 0 muestra transposeValue, posición 1 muestra (transposeValue+1)%12, etc.
+ */
+function createChromaticLabelFormatter() {
+  return (noteIndex) => {
+    return (noteIndex + transposeValue) % TOTAL_CHROMATIC;
+  };
+}
+
 function initChromaticSoundline() {
   chromaticContainer.innerHTML = '';
 
@@ -116,8 +127,14 @@ function initChromaticSoundline() {
   chromaticSoundline = createSoundline({
     container: chromaticContainer,
     totalNotes: TOTAL_CHROMATIC,
-    startMidi: BASE_MIDI
+    startMidi: BASE_MIDI,
+    labelFormatter: createChromaticLabelFormatter()
   });
+}
+
+function updateChromaticSoundline() {
+  // Redibujar con nuevo labelFormatter cuando cambia transposición
+  chromaticSoundline.setVisibleNotes(null, createChromaticLabelFormatter());
 }
 
 // ============================================================================
@@ -125,7 +142,8 @@ function initChromaticSoundline() {
 // ============================================================================
 
 /**
- * Formateador de etiquetas: muestra el índice del grado en la escala
+ * Formateador de etiquetas para escala: muestra el grado (0-N) en cada posición visible
+ * Los semitonos de la escala se mapean a grados (0, 1, 2...)
  */
 function createScaleLabelFormatter(scaleNotes) {
   return (noteIndex) => {
@@ -137,7 +155,8 @@ function createScaleLabelFormatter(scaleNotes) {
 function initScaleSoundline(scaleNotes) {
   scaleContainer.innerHTML = '';
 
-  // Usar módulo compartido con visibleNotes para mostrar solo notas de la escala
+  // Soundline de 12 notas, con visibleNotes = los semitonos de la escala
+  // Las notas fuera de la escala se muestran como puntos
   scaleSoundline = createSoundline({
     container: scaleContainer,
     totalNotes: TOTAL_CHROMATIC,
@@ -168,8 +187,9 @@ function drawConnectionLines(scaleNotes) {
   // Parsejar el valor (percentatge): línia comença a 0% i s'estén fins a lengthPct%
   const lengthPct = parseFloat(lengthRaw) || 80;
 
+  // Línies horitzontals per cada semitono de l'escala
   scaleNotes.forEach((semitone, degree) => {
-    // Usar la API del soundline cromático para obtener la posición correcta
+    // Posició vertical basada en el semitono (igual a ambdues soundlines)
     const yPct = chromaticSoundline.getNotePosition(semitone);
 
     const line = document.createElementNS(svgNS, 'line');
@@ -315,7 +335,7 @@ async function playSelectedScale() {
     // Reproducir nota
     playNote(midi, noteDuration);
 
-    // Highlight sincronizado en AMBAS soundlines (usando API del módulo)
+    // Highlight sincronizado en AMBAS soundlines (usando semitono)
     highlightNote(chromaticSoundline, semitone, intervalMs * 0.9, 'chromatic');
     highlightNote(scaleSoundline, semitone, intervalMs * 0.9, 'scale');
 
@@ -414,7 +434,7 @@ function createAppLayout() {
 
       <!-- Selector de transposición -->
       <div class="transpose-selector">
-        <span class="transpose-label">Transposición</span>
+        <span class="transpose-label">Nota de Salida</span>
         <div class="transpose-buttons">
           <button class="transpose-btn active" data-transpose="0">0</button>
           <button class="transpose-btn" data-transpose="1">1</button>
@@ -479,6 +499,76 @@ function createAppLayout() {
 registerFactoryReset({ storage: preferenceStorage });
 
 // ============================================================================
+// OPCIÓ TRANSPOSE AL MENÚ
+// ============================================================================
+
+function addTransposeOptionToMenu() {
+  const factoryResetBtn = document.getElementById('factoryResetBtn');
+  if (!factoryResetBtn) {
+    // El header encara no s'ha creat, reintentar després
+    setTimeout(addTransposeOptionToMenu, 100);
+    return;
+  }
+
+  // Crear el label amb checkbox
+  const label = document.createElement('label');
+  label.htmlFor = 'enableTranspose';
+  label.innerHTML = 'Activar N de Salida <input type="checkbox" id="enableTranspose">';
+  label.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; cursor: pointer;';
+
+  // Inserir just abans del botó factory reset
+  factoryResetBtn.parentNode.insertBefore(label, factoryResetBtn);
+
+  const checkbox = document.getElementById('enableTranspose');
+
+  // Carregar preferència guardada
+  const stored = preferenceStorage.load('transposeEnabled');
+  transposeEnabled = stored === 'true';
+  checkbox.checked = transposeEnabled;
+
+  // Aplicar visibilitat inicial
+  updateTransposeSelectorVisibility();
+
+  // Event listener per canvis
+  checkbox.addEventListener('change', () => {
+    transposeEnabled = checkbox.checked;
+    preferenceStorage.save('transposeEnabled', String(transposeEnabled));
+    updateTransposeSelectorVisibility();
+  });
+
+  // Escoltar factory reset per resetejar el checkbox
+  window.addEventListener('sharedui:factoryreset', () => {
+    transposeEnabled = false;
+    checkbox.checked = false;
+    updateTransposeSelectorVisibility();
+  });
+}
+
+function updateTransposeSelectorVisibility() {
+  const transposeSelector = document.querySelector('.transpose-selector');
+  if (!transposeSelector) {
+    console.warn('[App21] .transpose-selector no trobat');
+    return;
+  }
+
+  if (transposeEnabled) {
+    transposeSelector.style.display = 'flex';
+  } else {
+    transposeSelector.style.display = 'none';
+    // Reset a 0 quan es desactiva
+    if (transposeValue !== 0) {
+      transposeValue = 0;
+      transposeButtons.forEach(b => b.classList.remove('active'));
+      const zeroBtn = document.querySelector('.transpose-btn[data-transpose="0"]');
+      if (zeroBtn) zeroBtn.classList.add('active');
+      updateChromaticSoundline();
+      updateScaleSoundline(currentScaleNotes);
+      drawConnectionLines(currentScaleNotes);
+    }
+  }
+}
+
+// ============================================================================
 // INICIALIZACIÓN
 // ============================================================================
 
@@ -528,11 +618,19 @@ function initApp() {
       // Actualizar estado visual
       transposeButtons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+
+      // Refrescar visualizaciones con nueva transposición
+      updateChromaticSoundline();
+      updateScaleSoundline(currentScaleNotes);
+      drawConnectionLines(currentScaleNotes);
     });
   });
 
   // Escolta canvis d'instrument des del dropdown del header
   setupInstrumentListener();
+
+  // Afegir opció de transpose al menú d'opcions
+  addTransposeOptionToMenu();
 
   console.log('App21 inicializada correctamente');
 }
