@@ -11,7 +11,7 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 let isPlaying = false;
 let stopRequested = false;
 let audio = null; // MelodicTimelineAudio instance
-let currentScale = { id: 'DIAT', rot: 0 };
+let currentScale = { id: 'CROM', rot: 0 };
 let currentScaleNotes = []; // Semitonos de la escala actual
 
 // Referencias DOM
@@ -20,7 +20,6 @@ let scaleSel = null;
 let chromaticContainer = null;
 let scaleContainer = null;
 let connectionSvg = null;
-let playChromaticBtn = null;
 let playScaleBtn = null;
 let scaleSoundlineTitle = null;
 
@@ -276,55 +275,12 @@ function stopPlayback() {
   stopRequested = true;
 }
 
-function resetPlaybackState(btn) {
+function resetPlaybackState() {
   isPlaying = false;
   stopRequested = false;
-  playChromaticBtn.disabled = false;
-  playScaleBtn.disabled = false;
-  btn.classList.remove('playing');
-  setPlayIcon(btn, false);
+  playScaleBtn.classList.remove('playing');
+  setPlayIcon(playScaleBtn, false);
   clearAllHighlights();
-}
-
-async function playChromaticScale() {
-  // Si ya está sonando, detener
-  if (isPlaying) {
-    stopPlayback();
-    return;
-  }
-
-  isPlaying = true;
-  stopRequested = false;
-  playChromaticBtn.disabled = false; // Permitir clic para detener
-  playScaleBtn.disabled = true;
-  playChromaticBtn.classList.add('playing');
-  setPlayIcon(playChromaticBtn, true);
-
-  // Initialize audio if needed
-  if (!audio) {
-    audio = await initAudio();
-  }
-
-  const intervalMs = (60 / BPM) * 1000;
-  const noteDuration = intervalMs * 0.9 / 1000;
-
-  // Reproducir 12 notas cromáticas
-  for (let i = 0; i < TOTAL_CHROMATIC; i++) {
-    if (stopRequested) break;
-
-    const midi = BASE_MIDI + i;
-
-    // Reproducir nota
-    playNote(midi, noteDuration);
-
-    // Highlight solo en soundline cromática (usando API del módulo)
-    highlightNote(chromaticSoundline, i, intervalMs * 0.9, 'chromatic');
-
-    // Esperar antes de la siguiente nota
-    await sleep(intervalMs);
-  }
-
-  resetPlaybackState(playChromaticBtn);
 }
 
 async function playSelectedScale() {
@@ -336,8 +292,6 @@ async function playSelectedScale() {
 
   isPlaying = true;
   stopRequested = false;
-  playChromaticBtn.disabled = true;
-  playScaleBtn.disabled = false; // Permitir clic para detener
   playScaleBtn.classList.add('playing');
   setPlayIcon(playScaleBtn, true);
 
@@ -370,7 +324,7 @@ async function playSelectedScale() {
     await sleep(intervalMs);
   }
 
-  resetPlaybackState(playScaleBtn);
+  resetPlaybackState();
 }
 
 // ============================================================================
@@ -380,16 +334,13 @@ async function playSelectedScale() {
 function populateScaleSelector() {
   scaleSel.innerHTML = '';
 
-  // Diatónica con todos sus modos
-  const diatGroup = document.createElement('optgroup');
-  diatGroup.label = motherScalesData.DIAT.name;
+  // Modes de la diatònica (sense optgroup, directament com opcions)
   motherScalesData.DIAT.rotNames.forEach((name, i) => {
     const opt = document.createElement('option');
     opt.value = `DIAT-${i}`;
     opt.textContent = name;
-    diatGroup.appendChild(opt);
+    scaleSel.appendChild(opt);
   });
-  scaleSel.appendChild(diatGroup);
 
   // Resto de escalas madre (solo modo 0, sin sus rotaciones)
   const otherScales = ['ACUS', 'ARMme', 'ARMma', 'OCT', 'HEX', 'TON', 'CROM'];
@@ -402,18 +353,20 @@ function populateScaleSelector() {
 }
 
 /**
- * Obtiene el nombre de visualización de la escala actual
+ * Obtiene el nombre de visualización de la escala actual.
+ * Per la diatònica usa els noms dels modes (Mayor, Dórica, etc.)
+ * Per la resta d'escales usa el nom de l'escala mare (Cromática, Tonos, etc.)
  */
 function getScaleDisplayName(scaleId, rotation) {
   const scaleData = motherScalesData[scaleId];
   if (!scaleData) return 'Escala';
 
-  // Si tiene nombres de rotación y no es modo 0, usar el nombre del modo
-  if (scaleData.rotNames && scaleData.rotNames[rotation]) {
+  // Només per la diatònica usem els noms dels modes
+  if (scaleId === 'DIAT' && scaleData.rotNames && scaleData.rotNames[rotation]) {
     return scaleData.rotNames[rotation];
   }
 
-  // Si no, usar el nombre de la escala madre
+  // Per la resta d'escales, usar el nom de l'escala mare
   return scaleData.name;
 }
 
@@ -455,8 +408,8 @@ function createAppLayout() {
   timelineWrapper.innerHTML = `
     <!-- Selector de escalas -->
     <aside class="scale-selector">
-      <h2 class="scale-selector-title">Escala</h2>
-      <select id="scaleSel" class="scale-select"></select>
+      <h2 class="scale-selector-title">Escoge una escala y verás su numeración de grado en la segunda línea sonora</h2>
+      <select id="scaleSel" class="scale-select" size="14"></select>
     </aside>
 
     <!-- Area de soundlines -->
@@ -469,7 +422,12 @@ function createAppLayout() {
             <span class="soundline-subtitle">N Modulares</span>
           </div>
           <div id="chromaticSoundline" class="soundline-container"></div>
-          <button id="playChromaticBtn" class="play" aria-label="Reproducir escala cromática">
+        </div>
+
+        <!-- Líneas de conexión + botón Play centrado -->
+        <div class="connection-area">
+          <svg id="connectionLines" class="connection-lines"></svg>
+          <button id="playScaleBtn" class="play connection-play" aria-label="Reproducir escala seleccionada">
             <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
               <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
             </svg>
@@ -477,28 +435,15 @@ function createAppLayout() {
               <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
             </svg>
           </button>
-        </div>
-
-        <!-- Líneas de conexión -->
-        <div class="connection-area">
-          <svg id="connectionLines" class="connection-lines"></svg>
         </div>
 
         <!-- Soundline de escala -->
         <div class="soundline-column">
           <div class="soundline-header">
-            <h3 id="scaleSoundlineTitle" class="soundline-title">Mayor</h3>
+            <h3 id="scaleSoundlineTitle" class="soundline-title">Cromática</h3>
             <span class="soundline-subtitle">N de grado</span>
           </div>
           <div id="scaleSoundline" class="soundline-container"></div>
-          <button id="playScaleBtn" class="play" aria-label="Reproducir escala seleccionada">
-            <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
-              <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
-            </svg>
-            <svg class="icon-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" style="display:none">
-              <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
-            </svg>
-          </button>
         </div>
       </div>
     </div>
@@ -531,7 +476,6 @@ function initApp() {
   chromaticContainer = document.getElementById('chromaticSoundline');
   scaleContainer = document.getElementById('scaleSoundline');
   connectionSvg = document.getElementById('connectionLines');
-  playChromaticBtn = document.getElementById('playChromaticBtn');
   playScaleBtn = document.getElementById('playScaleBtn');
   scaleSoundlineTitle = document.getElementById('scaleSoundlineTitle');
 
@@ -541,9 +485,10 @@ function initApp() {
   // Crear soundline cromática (usa módulo compartido)
   initChromaticSoundline();
 
-  // Inicializar con escala Mayor (DIAT-0)
-  currentScaleNotes = getRotatedScaleNotes('DIAT', 0);
+  // Inicializar con escala Cromática (CROM-0)
+  currentScaleNotes = getRotatedScaleNotes('CROM', 0);
   initScaleSoundline(currentScaleNotes);
+  scaleSel.value = 'CROM-0';
   drawConnectionLines(currentScaleNotes);
 
   // Event listeners
@@ -551,7 +496,6 @@ function initApp() {
     onScaleChange(e.target.value);
   });
 
-  playChromaticBtn.addEventListener('click', playChromaticScale);
   playScaleBtn.addEventListener('click', playSelectedScale);
 
   // Escolta canvis d'instrument des del dropdown del header
