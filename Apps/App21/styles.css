@@ -77,7 +77,8 @@ html, body {
   /* Ocupar todo el espacio disponible */
   flex: 1 !important;
   min-height: 0 !important;
-  overflow: hidden !important;
+  /* Permetre que els títols de soundlines siguin visibles */
+  overflow: visible !important;
 }
 
 /* Ocultar el timeline por defecto del template */
@@ -114,13 +115,16 @@ html, body {
 }
 
 .scale-selector-title {
-  font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+  font-size: clamp(0.85rem, 2.5vw, 1.2rem);
   font-weight: 700;
   margin: 0;
   text-align: center;
   color: var(--color-lg, #7BB4CD);
   line-height: 1.3;
   flex-shrink: 0;
+  /* Permetre wrap en pantalles petites */
+  word-wrap: break-word;
+  hyphens: auto;
 }
 
 .scale-select {
@@ -265,7 +269,9 @@ html, body {
   padding: 0.5rem;
   padding-top: 0;
   min-width: 0;
-  overflow: hidden;
+  /* Permetre overflow horitzontal pels títols */
+  overflow-x: visible;
+  overflow-y: hidden;
 }
 
 .soundlines-wrapper {
@@ -296,6 +302,8 @@ html, body {
   min-width: 100px;
   transform: translateX(var(--soundline-header-offset));
   flex-shrink: 0;
+  /* Evitar que es talli */
+  overflow: visible;
 }
 
 .soundline-title {
@@ -305,6 +313,7 @@ html, body {
   color: var(--color-lg, #7BB4CD);
   line-height: 1.2;
   white-space: nowrap;
+  overflow: visible;
 }
 
 .soundline-subtitle {
@@ -313,6 +322,7 @@ html, body {
   color: var(--line-color, #666);
   opacity: 0.8;
   white-space: nowrap;
+  overflow: visible;
 }
 
 .soundline-container {
@@ -726,5 +736,34 @@ html, body {
     left: 45px;
     width: 40px;
     height: 16px;
+  }
+}
+
+/* ============================================================================
+   ALERTA D'ESPAI MÍNIM - Pantalles molt petites (< 360px width o < 400px height)
+   ============================================================================ */
+
+@media (max-width: 360px), (max-height: 400px) {
+  body::before {
+    content: '⟲ Pantalla massa petita. Gira el dispositiu o usa una pantalla més gran.';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    z-index: 99999;
+  }
+
+  #app-root {
+    display: none !important;
   }
 }
