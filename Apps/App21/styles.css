@@ -12,9 +12,9 @@
   --note-highlight-color: var(--selection-color, #FFBB33);
 
   /* Layout responsive */
-  --scale-selector-width: 320px;
-  --scale-selector-gap: 1rem;
-  --scale-selector-padding: 1rem;
+  --scale-selector-width: 280px;
+  --scale-selector-gap: 0.8rem;
+  --scale-selector-padding: 0.8rem;
 
   /* Soundlines sizing */
   --soundlines-height: clamp(350px, 70vh, 600px);
@@ -106,7 +106,10 @@ html, body {
   min-width: 0;
   max-width: var(--scale-selector-width);
   flex-shrink: 0;
-  overflow: hidden;
+  /* Permetre scroll intern */
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 [data-theme="dark"] .scale-selector {
@@ -502,16 +505,20 @@ html, body {
 
 @media (max-width: 900px) {
   :root {
-    --scale-selector-width: 280px;
-    --scale-selector-gap: 0.8rem;
-    --scale-selector-padding: 0.8rem;
-    --soundlines-offset-x: -80px;
+    --scale-selector-width: 220px;
+    --scale-selector-gap: 0.6rem;
+    --scale-selector-padding: 0.6rem;
+    --soundlines-offset-x: -60px;
     --soundline-container-width: 130px;
     --connection-area-width: 150px;
     --soundline-title-size: 1.1rem;
     --soundline-subtitle-size: 1rem;
     --soundline-number-size: 1.4rem;
     --play-offset-y: 60px;
+  }
+
+  .scale-selector-title {
+    font-size: 0.95rem;
   }
 }
 
