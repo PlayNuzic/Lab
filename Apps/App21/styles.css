@@ -15,7 +15,7 @@
 
   /* Ajuste fino del botón Play */
   --play-offset-x: -30px;
-  --play-offset-y: 90px;
+  --play-offset-y: 120px;
 
   /* Longitud de las líneas de conexión (0-100%) */
   --connection-length: 70%;
@@ -39,7 +39,7 @@
   gap: 0 !important;
   /* Ocupar tot l'espai vertical disponible */
   flex: 1 !important;
-  min-height: 500px !important;
+  min-height: 600px !important;
 }
 
 /* Ocultar el timeline por defecto del template */
@@ -141,23 +141,93 @@
 }
 
 /* ============================================================================
+   SELECTOR DE TRANSPOSICIÓN (botons tipus casset)
+   ============================================================================ */
+
+.transpose-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .transpose-selector {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.transpose-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-lg, #7BB4CD);
+  text-align: center;
+}
+
+.transpose-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+
+.transpose-btn {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--line-color, #666);
+  border-radius: 4px;
+  background: var(--bg-light, #ECECEC);
+  color: var(--text-color, #333);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-theme="dark"] .transpose-btn {
+  background: var(--bg-dark, #43433B);
+  color: var(--text-dark, #e0e0e0);
+  border-color: #888;
+}
+
+.transpose-btn:hover {
+  border-color: var(--selection-color, #FFBB33);
+  transform: scale(1.05);
+}
+
+.transpose-btn.active {
+  background: var(--selection-color, #FFBB33);
+  border-color: var(--selection-color, #FFBB33);
+  color: #333;
+  box-shadow: 0 0 8px rgba(255, 187, 51, 0.4);
+}
+
+.transpose-btn:focus {
+  outline: none;
+  border-color: var(--selection-color, #FFBB33);
+}
+
+/* ============================================================================
    AREA DE SOUNDLINES (Zona central-derecha)
    ============================================================================ */
 
 .soundlines-area {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   flex: 1;
   padding: 1rem;
+  padding-top: 0;
 }
 
 .soundlines-wrapper {
   display: flex;
   align-items: stretch;
   gap: 0;
-  height: 500px;
-  max-height: 75vh;
+  height: 600px;
   transform: translateX(var(--soundlines-offset-x, 0));
 }
 
@@ -202,7 +272,6 @@
   position: relative;
   width: 150px;
   height: 100%;
-  min-height: 500px;
 }
 
 /* ============================================================================
@@ -281,8 +350,8 @@
 .connection-area {
   position: relative;
   width: 180px;
-  height: 100%;
-  min-height: 500px;
+  /* Mateixa altura que soundline-container (descomptant header + gap) */
+  height: calc(100% - 1.375rem * 1.2 - 1.25rem * 1.2 - 0.2rem - 1rem);
   /* Alinear amb soundline-container (saltar l'alçada del header + gap) */
   margin-top: calc(1.375rem * 1.2 + 1.25rem * 1.2 + 0.2rem + 1rem);
   display: flex;

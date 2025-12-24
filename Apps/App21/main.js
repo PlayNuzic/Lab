@@ -11,8 +11,8 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 let isPlaying = false;
 let stopRequested = false;
 let audio = null; // MelodicTimelineAudio instance
-let currentScale = { id: 'CROM', rot: 0 };
 let currentScaleNotes = []; // Semitonos de la escala actual
+let transposeValue = 0; // Transposición (0-11)
 
 // Referencias DOM
 let timelineWrapper = null;
@@ -22,6 +22,7 @@ let scaleContainer = null;
 let connectionSvg = null;
 let playScaleBtn = null;
 let scaleSoundlineTitle = null;
+let transposeButtons = null;
 
 // Soundline APIs
 let chromaticSoundline = null;
@@ -79,13 +80,14 @@ const initAudio = createMelodicAudioInitializer({
 
 /**
  * Reproduce una nota usando MelodicTimelineAudio (sample pool de baixa latència)
+ * Aplica la transposición actual
  */
 function playNote(midiNumber, durationSec) {
   if (!audio) return;
-  // Tone.now() ja és correcte pel sampler pool
   const Tone = window.Tone;
   if (Tone) {
-    audio.playNote(midiNumber, durationSec, Tone.now());
+    const transposedMidi = midiNumber + transposeValue;
+    audio.playNote(transposedMidi, durationSec, Tone.now());
   }
 }
 
@@ -374,7 +376,6 @@ function onScaleChange(value) {
   const [scaleId, rot] = value.split('-');
   const rotation = parseInt(rot, 10);
 
-  currentScale = { id: scaleId, rot: rotation };
   currentScaleNotes = getRotatedScaleNotes(scaleId, rotation);
 
   // Actualizar título de la soundline de escala
@@ -410,6 +411,25 @@ function createAppLayout() {
     <aside class="scale-selector">
       <h2 class="scale-selector-title">Escoge una escala y verás su numeración de grado en la segunda línea sonora</h2>
       <select id="scaleSel" class="scale-select" size="14"></select>
+
+      <!-- Selector de transposición -->
+      <div class="transpose-selector">
+        <span class="transpose-label">Transposición</span>
+        <div class="transpose-buttons">
+          <button class="transpose-btn active" data-transpose="0">0</button>
+          <button class="transpose-btn" data-transpose="1">1</button>
+          <button class="transpose-btn" data-transpose="2">2</button>
+          <button class="transpose-btn" data-transpose="3">3</button>
+          <button class="transpose-btn" data-transpose="4">4</button>
+          <button class="transpose-btn" data-transpose="5">5</button>
+          <button class="transpose-btn" data-transpose="6">6</button>
+          <button class="transpose-btn" data-transpose="7">7</button>
+          <button class="transpose-btn" data-transpose="8">8</button>
+          <button class="transpose-btn" data-transpose="9">9</button>
+          <button class="transpose-btn" data-transpose="10">10</button>
+          <button class="transpose-btn" data-transpose="11">11</button>
+        </div>
+      </div>
     </aside>
 
     <!-- Area de soundlines -->
@@ -478,6 +498,7 @@ function initApp() {
   connectionSvg = document.getElementById('connectionLines');
   playScaleBtn = document.getElementById('playScaleBtn');
   scaleSoundlineTitle = document.getElementById('scaleSoundlineTitle');
+  transposeButtons = document.querySelectorAll('.transpose-btn');
 
   // Poblar selector
   populateScaleSelector();
@@ -497,6 +518,18 @@ function initApp() {
   });
 
   playScaleBtn.addEventListener('click', playSelectedScale);
+
+  // Event listeners para transposición
+  transposeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const value = parseInt(btn.dataset.transpose, 10);
+      transposeValue = value;
+
+      // Actualizar estado visual
+      transposeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
 
   // Escolta canvis d'instrument des del dropdown del header
   setupInstrumentListener();
