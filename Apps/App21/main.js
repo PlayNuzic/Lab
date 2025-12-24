@@ -159,17 +159,21 @@ function drawConnectionLines(scaleNotes) {
 
   const svgNS = 'http://www.w3.org/2000/svg';
 
-  // Marge horitzontal simètric (5% a cada banda)
-  const marginPct = 5;
+  // Llegir llargada des de la variable CSS --connection-length
+  const styles = getComputedStyle(document.documentElement);
+  const lengthRaw = styles.getPropertyValue('--connection-length').trim() || '80%';
+
+  // Parsejar el valor (percentatge): línia comença a 0% i s'estén fins a lengthPct%
+  const lengthPct = parseFloat(lengthRaw) || 80;
 
   scaleNotes.forEach((semitone, degree) => {
     // Usar la API del soundline cromático para obtener la posición correcta
     const yPct = chromaticSoundline.getNotePosition(semitone);
 
     const line = document.createElementNS(svgNS, 'line');
-    line.setAttribute('x1', `${marginPct}%`);
+    line.setAttribute('x1', '0%');
     line.setAttribute('y1', `${yPct}%`);
-    line.setAttribute('x2', `${100 - marginPct}%`);
+    line.setAttribute('x2', `${lengthPct}%`);
     line.setAttribute('y2', `${yPct}%`);
     line.setAttribute('class', 'connection-line');
     line.setAttribute('data-semitone', semitone);
