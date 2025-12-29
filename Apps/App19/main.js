@@ -750,10 +750,7 @@ function setupEventHandlers() {
     if (audio && audio.setInstrument) {
       await audio.setInstrument(instrument);
     }
-    // Guardar preferència d'instrument (per-app storage)
-    const currentPrefs = preferenceStorage.load() || {};
-    currentPrefs.selectedInstrument = instrument;
-    preferenceStorage.save(currentPrefs);
+    // Nota: El header ja guarda l'instrument a localStorage amb clau per-app
   });
 
   // Compás input with arrow keys
@@ -880,14 +877,7 @@ function initApp() {
   // Bind DOM elements
   bindElements();
 
-  // Carregar instrument guardat
-  const savedPrefs = preferenceStorage.load() || {};
-  if (savedPrefs.selectedInstrument) {
-    const instrumentDropdown = document.getElementById('instrumentDropdown');
-    if (instrumentDropdown) {
-      instrumentDropdown.value = savedPrefs.selectedInstrument;
-    }
-  }
+  // Nota: L'instrument es carrega automàticament pel header des de localStorage
 
   // Initialize BPM controller
   if (elements.inputBpm && elements.bpmUp && elements.bpmDown) {

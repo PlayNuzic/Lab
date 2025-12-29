@@ -80,10 +80,7 @@ function setupInstrumentListener() {
     if (audio && audio.setInstrument) {
       await audio.setInstrument(instrument);
     }
-    // Guardar preferència d'instrument
-    const currentPrefs = preferenceStorage.load() || {};
-    currentPrefs.selectedInstrument = instrument;
-    preferenceStorage.save(currentPrefs);
+    // Nota: El header ja guarda l'instrument a localStorage amb clau per-app
   });
 }
 
@@ -325,14 +322,7 @@ function initApp() {
   intervalContainer = document.getElementById('intervalContainer');
   playBtn = document.getElementById('playBtn');
 
-  // Carregar instrument guardat
-  const savedPrefs = preferenceStorage.load() || {};
-  if (savedPrefs.selectedInstrument) {
-    const instrumentDropdown = document.getElementById('instrumentDropdown');
-    if (instrumentDropdown) {
-      instrumentDropdown.value = savedPrefs.selectedInstrument;
-    }
-  }
+  // Nota: L'instrument es carrega automàticament pel header des de localStorage
 
   // Crear soundline
   initSoundline();

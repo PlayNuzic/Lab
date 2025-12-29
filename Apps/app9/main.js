@@ -63,10 +63,7 @@ window.addEventListener('sharedui:instrument', async (e) => {
   if (audio) {
     await audio.setInstrument(currentInstrument);
   }
-  // Guardar preferència d'instrument
-  const currentPrefs = preferenceStorage.load() || {};
-  currentPrefs.selectedInstrument = currentInstrument;
-  preferenceStorage.save(currentPrefs);
+  // Nota: El header ja guarda l'instrument a localStorage amb clau per-app
 });
 
 // ========== FUNCIONES DE DIBUJO DEL TIMELINE ==========
@@ -435,15 +432,10 @@ function initApp() {
     return;
   }
 
-  // Carregar instrument guardat
-  const savedPrefs = preferenceStorage.load() || {};
-  if (savedPrefs.selectedInstrument) {
-    currentInstrument = savedPrefs.selectedInstrument;
-    // Sincronitzar amb el dropdown del header
-    const instrumentDropdown = document.getElementById('instrumentDropdown');
-    if (instrumentDropdown) {
-      instrumentDropdown.value = currentInstrument;
-    }
+  // Carregar instrument guardat (el header usa localStorage amb clau per-app)
+  const savedInstrument = localStorage.getItem('app9:selectedInstrument');
+  if (savedInstrument) {
+    currentInstrument = savedInstrument;
   }
 
   // Dibujar timeline con 6 pulsos (0-5)

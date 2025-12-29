@@ -310,8 +310,14 @@ function wireControls(root) {
     // Initialize instrument dropdown if present (used in melodic apps like App10)
     const instrumentSelect = root.querySelector('#instrumentSelect');
     if (instrumentSelect) {
+        // Detectar app per crear storage key específica
+        const path = window.location.pathname;
+        const appMatch = path.match(/App(\d+[A-Za-z]*)/i);
+        const appId = appMatch ? appMatch[1].toLowerCase() : null;
+        const instrumentStorageKey = appId ? `app${appId}:selectedInstrument` : 'selectedInstrument';
+
         initInstrumentDropdown(instrumentSelect, {
-            storageKey: 'selectedInstrument',
+            storageKey: instrumentStorageKey,
             eventType: 'instrument',
             onSelect: (instrument) => {
                 // Dispatch event for app to handle
