@@ -198,8 +198,15 @@ export function createMelodicAudioInitializer(config = {}) {
         await instance.ready();
 
         // 6. Load instrument
-        // Priority: localStorage.selectedInstrument (header dropdown) > app prefs > config default
-        const storedInstrument = localStorage.getItem('selectedInstrument');
+        // Priority: per-app localStorage > global localStorage > app prefs > config default
+        // Detectar app per llegir la clau correcta
+        const path = typeof window !== 'undefined' ? window.location.pathname : '';
+        const appMatch = path.match(/App(\d+[A-Za-z]*)/i);
+        const appId = appMatch ? appMatch[1].toLowerCase() : null;
+        const perAppKey = appId ? `app${appId}:selectedInstrument` : null;
+
+        const storedInstrument = (perAppKey && localStorage.getItem(perAppKey)) ||
+                                  localStorage.getItem('selectedInstrument');
         const prefs = config.getPreferences?.() || {};
         const instrument = storedInstrument || prefs.selectedInstrument || config.defaultInstrument || 'piano';
         await instance.setInstrument(instrument);
