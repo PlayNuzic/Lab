@@ -51,7 +51,7 @@ html, body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* ============================================================================
@@ -357,6 +357,7 @@ html, body {
     --soundline-title-size: 1rem;
     --soundline-subtitle-size: 0.9rem;
     --soundline-number-size: 1.3rem;
+    --soundlines-height: clamp(320px, 60vh, 420px);
   }
 
   .soundlines-area {
@@ -365,8 +366,8 @@ html, body {
   }
 
   .soundlines-wrapper {
-    height: 100%;
-    max-height: 400px;
+    max-height: none;
+    height: var(--soundlines-height);
   }
 
   .soundline-header {
@@ -392,10 +393,12 @@ html, body {
     --soundline-title-size: 0.9rem;
     --soundline-subtitle-size: 0.8rem;
     --soundline-number-size: 1.2rem;
+    --soundlines-height: clamp(280px, 55vh, 380px);
   }
 
   .soundlines-wrapper {
-    max-height: 350px;
+    max-height: none;
+    height: var(--soundlines-height);
   }
 
   .soundline-header {
@@ -422,6 +425,7 @@ html, body {
     --soundline-title-size: 0.85rem;
     --soundline-subtitle-size: 0.75rem;
     --soundline-number-size: 1.1rem;
+    --soundlines-height: clamp(250px, 50vh, 320px);
   }
 
   .soundline::before {
@@ -444,7 +448,8 @@ html, body {
   }
 
   .soundlines-wrapper {
-    max-height: 300px;
+    max-height: none;
+    height: var(--soundlines-height);
   }
 
   .soundline-header {
@@ -471,6 +476,7 @@ html, body {
     --soundline-title-size: 0.8rem;
     --soundline-subtitle-size: 0.7rem;
     --soundline-number-size: 1rem;
+    --soundlines-height: clamp(220px, 45vh, 280px);
   }
 
   .soundline::before {
@@ -493,7 +499,8 @@ html, body {
   }
 
   .soundlines-wrapper {
-    max-height: 260px;
+    max-height: none;
+    height: var(--soundlines-height);
   }
 
   .note-highlight {

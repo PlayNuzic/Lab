@@ -190,6 +190,12 @@ function drawConnectionLines() {
   const containerHeight = containerRect.height;
   const svgHeight = svgRect.height;
 
+  // Guard against zero dimensions (element not visible)
+  if (svgHeight === 0 || containerHeight === 0) {
+    console.warn('Connection SVG or container has zero height, skipping line drawing');
+    return;
+  }
+
   // Línies horitzontals per cada semitono de l'escala Mayor
   MAJOR_SCALE_NOTES.forEach((semitone, degree) => {
     // Posició relativa dins del soundline-container (0-100%)
