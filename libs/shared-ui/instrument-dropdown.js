@@ -125,6 +125,21 @@ export function initInstrumentDropdown(container, { storageKey, eventType, onSel
   // Initialize label
   updateLabel();
 
+  // Si hi ha un instrument guardat, disparar event perquè l'app el carregui
+  if (stored && stored !== defaultValue) {
+    // Delay per assegurar que l'app ha registrat el listener
+    setTimeout(() => {
+      if (eventType) {
+        window.dispatchEvent(new CustomEvent(eventType, {
+          detail: { instrument: selected }
+        }));
+      }
+      if (onSelect) {
+        onSelect(selected);
+      }
+    }, 100);
+  }
+
   // Preload the initially selected instrument after audio engine is ready
   // This ensures samples are connected to the correct audio routing
   const preloadOnFirstInteraction = async () => {
