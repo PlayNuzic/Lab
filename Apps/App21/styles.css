@@ -12,7 +12,7 @@
   --note-highlight-color: var(--selection-color, #FFBB33);
 
   /* Soundlines sizing */
-  --soundlines-height: clamp(350px, 65vh, 550px);
+  --soundlines-height: clamp(400px, 75vh, 650px);
   --soundline-container-width: 150px;
   --connection-area-width: 180px;
 
