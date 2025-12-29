@@ -1252,6 +1252,27 @@ body[data-theme='dark'] .random {
     font-size: 0.85rem;
   }
 
+  /* Adjust circular button positions for smaller container */
+  .loop {
+    top: calc(50% + 48px);
+    left: calc(50% - 22px);
+  }
+
+  .tap {
+    top: calc(50% + 48px);
+    left: calc(50% + 22px);
+  }
+
+  .random {
+    top: calc(50% + 12px);
+    left: calc(50% - 52px);
+  }
+
+  .reset {
+    top: calc(50% + 12px);
+    left: calc(50% + 52px);
+  }
+
 }
 
 /* Header title stays centered and clear of the icons */

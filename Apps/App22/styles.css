@@ -46,7 +46,7 @@ html, body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* ============================================================================
@@ -433,10 +433,12 @@ html, body {
     --soundline-title-size: 0.9rem;
     --soundline-subtitle-size: 0.8rem;
     --soundline-number-size: 1.2rem;
+    --soundlines-height: clamp(280px, 55vh, 380px);
   }
 
   .soundline-with-intervals {
-    max-height: 400px;
+    max-height: none;
+    height: var(--soundlines-height);
   }
 
   .soundline-header {
@@ -451,6 +453,19 @@ html, body {
 
   .interval-number {
     font-size: 1rem;
+  }
+
+  .ee-display {
+    gap: 0.3rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .ee-label {
+    font-size: 1.4rem;
+  }
+
+  .ee-number {
+    font-size: 1.5rem;
   }
 }
 
@@ -467,6 +482,7 @@ html, body {
     --soundline-title-size: 0.85rem;
     --soundline-subtitle-size: 0.75rem;
     --soundline-number-size: 1.1rem;
+    --soundlines-height: clamp(250px, 50vh, 320px);
   }
 
   .soundline::before {
@@ -489,7 +505,8 @@ html, body {
   }
 
   .soundline-with-intervals {
-    max-height: 350px;
+    max-height: none;
+    height: var(--soundlines-height);
   }
 
   .soundline-header {
@@ -507,16 +524,16 @@ html, body {
   }
 
   .ee-display {
-    gap: 0.3rem;
-    padding: 0.4rem 0.5rem;
+    gap: 0.25rem;
+    padding: 0.3rem 0.4rem;
   }
 
   .ee-label {
-    font-size: 0.85rem;
+    font-size: 1.2rem;
   }
 
   .ee-number {
-    font-size: 0.95rem;
+    font-size: 1.3rem;
   }
 }
 
@@ -533,6 +550,7 @@ html, body {
     --soundline-title-size: 0.8rem;
     --soundline-subtitle-size: 0.7rem;
     --soundline-number-size: 1rem;
+    --soundlines-height: clamp(220px, 45vh, 280px);
   }
 
   .soundline::before {
@@ -555,7 +573,8 @@ html, body {
   }
 
   .soundline-with-intervals {
-    max-height: 300px;
+    max-height: none;
+    height: var(--soundlines-height);
   }
 
   .note-highlight {
@@ -569,16 +588,16 @@ html, body {
   }
 
   .ee-display {
-    gap: 0.25rem;
-    padding: 0.3rem 0.4rem;
+    gap: 0.2rem;
+    padding: 0.25rem 0.35rem;
   }
 
   .ee-label {
-    font-size: 0.75rem;
+    font-size: 1rem;
   }
 
   .ee-number {
-    font-size: 0.85rem;
+    font-size: 1.1rem;
   }
 }
 
