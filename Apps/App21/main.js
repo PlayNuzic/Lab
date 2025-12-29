@@ -1,5 +1,5 @@
 // App21: Escalas - Dos soundlines paralelas con líneas de conexión
-import { motherScalesData, scaleSemis } from '../../libs/scales/index.js';
+import { scaleSemis } from '../../libs/scales/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
@@ -8,22 +8,22 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 // ESTADO
 // ============================================================================
 
-let isPlaying = false;
-let stopRequested = false;
+let isPlayingChromatic = false;
+let isPlayingScale = false;
+let stopChromaticRequested = false;
+let stopScaleRequested = false;
 let audio = null; // MelodicTimelineAudio instance
-let currentScaleNotes = []; // Semitonos de la escala actual
-let transposeValue = 0; // Transposición (0-11)
-let transposeEnabled = false; // Opció per mostrar/ocultar selector de nota de sortida
+
+// Escala Mayor fija (DIAT modo 0)
+const MAJOR_SCALE_NOTES = scaleSemis('DIAT'); // [0, 2, 4, 5, 7, 9, 11]
 
 // Referencias DOM
 let timelineWrapper = null;
-let scaleSel = null;
 let chromaticContainer = null;
 let scaleContainer = null;
 let connectionSvg = null;
+let playChromaticBtn = null;
 let playScaleBtn = null;
-let scaleSoundlineTitle = null;
-let transposeButtons = null;
 
 // Soundline APIs
 let chromaticSoundline = null;
@@ -51,26 +51,6 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * Rota los semitonos de una escala según el modo
- */
-function getRotatedScaleNotes(scaleId, rotation) {
-  const baseSemis = scaleSemis(scaleId);
-  if (rotation === 0) return baseSemis;
-
-  // Para rotaciones, calculamos los semitonos relativos al nuevo modo
-  const ee = motherScalesData[scaleId].ee;
-  const rotatedEE = [...ee.slice(rotation), ...ee.slice(0, rotation)];
-
-  let acc = 0;
-  const result = [0];
-  for (let i = 0; i < rotatedEE.length - 1; i++) {
-    acc += rotatedEE[i];
-    result.push(acc);
-  }
-  return result;
-}
-
 // ============================================================================
 // AUDIO (usa MelodicTimelineAudio amb sample pool per baixa latència)
 // ============================================================================
@@ -80,15 +60,13 @@ const initAudio = createMelodicAudioInitializer({
 });
 
 /**
- * Reproduce una nota usando MelodicTimelineAudio (sample pool de baixa latència)
- * Aplica la transposición actual
+ * Reproduce una nota usando MelodicTimelineAudio
  */
 function playNote(midiNumber, durationSec) {
   if (!audio) return;
   const Tone = window.Tone;
   if (Tone) {
-    const transposedMidi = midiNumber + transposeValue;
-    audio.playNote(transposedMidi, durationSec, Tone.now());
+    audio.playNote(midiNumber, durationSec, Tone.now());
   }
 }
 
@@ -111,71 +89,87 @@ function setupInstrumentListener() {
 // ============================================================================
 
 /**
- * Formateador de etiquetas para cromática: rota según transposición
- * La nota en posición visual 0 muestra transposeValue, posición 1 muestra (transposeValue+1)%12, etc.
+ * Formateador de etiquetas para cromática
  */
 function createChromaticLabelFormatter() {
-  return (noteIndex) => {
-    return (noteIndex + transposeValue) % TOTAL_CHROMATIC;
-  };
+  return (noteIndex) => noteIndex;
 }
 
 function initChromaticSoundline() {
   chromaticContainer.innerHTML = '';
 
-  // Usar módulo compartido para soundline cromática (todas las notas visibles)
   chromaticSoundline = createSoundline({
     container: chromaticContainer,
     totalNotes: TOTAL_CHROMATIC,
     startMidi: BASE_MIDI,
     labelFormatter: createChromaticLabelFormatter()
   });
-}
 
-function updateChromaticSoundline() {
-  // Redibujar con nuevo labelFormatter cuando cambia transposición
-  chromaticSoundline.setVisibleNotes(null, createChromaticLabelFormatter());
+  // Colorar en selectcolor els números que coincideixen amb la Mayor
+  applyHighlightColors(chromaticSoundline.element, MAJOR_SCALE_NOTES);
 }
 
 // ============================================================================
-// SOUNDLINE DE ESCALA (con dots para notas fuera de escala)
+// SOUNDLINE DE ESCALA MAYOR
 // ============================================================================
 
 /**
- * Formateador de etiquetas para escala: muestra el grado (0-N) en cada posición visible
- * Los semitonos de la escala se mapean a grados (0, 1, 2...)
+ * Formateador de etiquetas para escala: muestra el grado (0-6)
  */
-function createScaleLabelFormatter(scaleNotes) {
+function createScaleLabelFormatter() {
   return (noteIndex) => {
-    const degreeIndex = scaleNotes.indexOf(noteIndex);
+    const degreeIndex = MAJOR_SCALE_NOTES.indexOf(noteIndex);
     return degreeIndex !== -1 ? degreeIndex : '';
   };
 }
 
-function initScaleSoundline(scaleNotes) {
+function initScaleSoundline() {
   scaleContainer.innerHTML = '';
 
-  // Soundline de 12 notas, con visibleNotes = los semitonos de la escala
-  // Las notas fuera de la escala se muestran como puntos
   scaleSoundline = createSoundline({
     container: scaleContainer,
     totalNotes: TOTAL_CHROMATIC,
     startMidi: BASE_MIDI,
-    visibleNotes: scaleNotes,
-    labelFormatter: createScaleLabelFormatter(scaleNotes)
+    visibleNotes: MAJOR_SCALE_NOTES,
+    labelFormatter: createScaleLabelFormatter()
+  });
+
+  // Tots els números de l'escala en selectcolor
+  applyHighlightColorsAll(scaleSoundline.element);
+}
+
+// ============================================================================
+// COLORACIÓN DE NÚMEROS
+// ============================================================================
+
+/**
+ * Aplica color destacat als números que coincideixen amb les notes donades
+ */
+function applyHighlightColors(soundlineElement, highlightedNotes) {
+  const numbers = soundlineElement.querySelectorAll('.soundline-number');
+  numbers.forEach(num => {
+    const noteIndex = parseInt(num.dataset.note, 10);
+    if (highlightedNotes.includes(noteIndex)) {
+      num.classList.add('highlighted');
+    }
   });
 }
 
-function updateScaleSoundline(scaleNotes) {
-  // Actualizar visibleNotes y etiquetas cuando cambia la escala
-  scaleSoundline.setVisibleNotes(scaleNotes, createScaleLabelFormatter(scaleNotes));
+/**
+ * Aplica color destacat a tots els números
+ */
+function applyHighlightColorsAll(soundlineElement) {
+  const numbers = soundlineElement.querySelectorAll('.soundline-number');
+  numbers.forEach(num => {
+    num.classList.add('highlighted');
+  });
 }
 
 // ============================================================================
 // LÍNEAS DE CONEXIÓN
 // ============================================================================
 
-function drawConnectionLines(scaleNotes) {
+function drawConnectionLines() {
   connectionSvg.innerHTML = '';
 
   const svgNS = 'http://www.w3.org/2000/svg';
@@ -187,8 +181,8 @@ function drawConnectionLines(scaleNotes) {
   // Parsejar el valor (percentatge): línia comença a 0% i s'estén fins a lengthPct%
   const lengthPct = parseFloat(lengthRaw) || 80;
 
-  // Línies horitzontals per cada semitono de l'escala
-  scaleNotes.forEach((semitone, degree) => {
+  // Línies horitzontals per cada semitono de l'escala Mayor
+  MAJOR_SCALE_NOTES.forEach((semitone, degree) => {
     // Posició vertical basada en el semitono (igual a ambdues soundlines)
     const yPct = chromaticSoundline.getNotePosition(semitone);
 
@@ -211,8 +205,6 @@ function drawConnectionLines(scaleNotes) {
 
 /**
  * Crea un highlight en la soundline usando la API del módulo
- * @param {Object} soundlineApi - API del módulo soundline (chromaticSoundline o scaleSoundline)
- * @param {number} noteIndex - Índice de la nota (0-11)
  */
 function createHighlight(soundlineApi, noteIndex) {
   const yPct = soundlineApi.getNotePosition(noteIndex);
@@ -222,20 +214,14 @@ function createHighlight(soundlineApi, noteIndex) {
   highlight.style.top = `${yPct}%`;
   highlight.dataset.note = noteIndex;
 
-  // Añadir al elemento soundline interno
   soundlineApi.element.appendChild(highlight);
   return highlight;
 }
 
 /**
  * Destaca una nota en una soundline
- * @param {Object} soundlineApi - API del módulo soundline
- * @param {number} noteIndex - Índice de la nota
- * @param {number} durationMs - Duración del highlight en ms
- * @param {string} key - Clave única para este tipo de highlight
  */
 function highlightNote(soundlineApi, noteIndex, durationMs, key) {
-  // Remover highlight previo si existe
   const existingKey = `${key}-${noteIndex}`;
   if (activeHighlights.has(existingKey)) {
     const prev = activeHighlights.get(existingKey);
@@ -244,11 +230,9 @@ function highlightNote(soundlineApi, noteIndex, durationMs, key) {
     activeHighlights.delete(existingKey);
   }
 
-  // Crear nuevo highlight usando la API del soundline
   const highlight = createHighlight(soundlineApi, noteIndex);
   highlight.classList.add('active');
 
-  // Programar eliminación
   const timeout = setTimeout(() => {
     highlight.classList.remove('active');
     setTimeout(() => highlight.remove(), 150);
@@ -276,7 +260,6 @@ function clearAllHighlights() {
   });
   activeHighlights.clear();
 
-  // Limpiar líneas activas
   connectionSvg.querySelectorAll('.connection-line.active').forEach(line => {
     line.classList.remove('active');
   });
@@ -293,31 +276,20 @@ function setPlayIcon(btn, playing) {
   if (iconStop) iconStop.style.display = playing ? 'block' : 'none';
 }
 
-function stopPlayback() {
-  stopRequested = true;
-}
-
-function resetPlaybackState() {
-  isPlaying = false;
-  stopRequested = false;
-  playScaleBtn.classList.remove('playing');
-  setPlayIcon(playScaleBtn, false);
-  clearAllHighlights();
-}
-
-async function playSelectedScale() {
-  // Si ya está sonando, detener
-  if (isPlaying) {
-    stopPlayback();
+/**
+ * Reproduce la escala cromática (12 notas)
+ */
+async function playChromatic() {
+  if (isPlayingChromatic) {
+    stopChromaticRequested = true;
     return;
   }
 
-  isPlaying = true;
-  stopRequested = false;
-  playScaleBtn.classList.add('playing');
-  setPlayIcon(playScaleBtn, true);
+  isPlayingChromatic = true;
+  stopChromaticRequested = false;
+  playChromaticBtn.classList.add('playing');
+  setPlayIcon(playChromaticBtn, true);
 
-  // Initialize audio if needed
   if (!audio) {
     audio = await initAudio();
   }
@@ -325,133 +297,99 @@ async function playSelectedScale() {
   const intervalMs = (60 / BPM) * 1000;
   const noteDuration = intervalMs * 0.9 / 1000;
 
-  // Reproducir notas de la escala seleccionada
-  for (let degree = 0; degree < currentScaleNotes.length; degree++) {
-    if (stopRequested) break;
+  for (let i = 0; i < TOTAL_CHROMATIC; i++) {
+    if (stopChromaticRequested) break;
 
-    const semitone = currentScaleNotes[degree];
-    const midi = BASE_MIDI + semitone;
-
-    // Reproducir nota
+    const midi = BASE_MIDI + i;
     playNote(midi, noteDuration);
 
-    // Highlight sincronizado en AMBAS soundlines (usando semitono)
-    highlightNote(chromaticSoundline, semitone, intervalMs * 0.9, 'chromatic');
-    highlightNote(scaleSoundline, semitone, intervalMs * 0.9, 'scale');
+    // Highlight en cromática
+    highlightNote(chromaticSoundline, i, intervalMs * 0.9, 'chromatic');
 
-    // Highlight en línea de conexión
-    highlightConnectionLine(semitone, intervalMs * 0.9);
+    // També highlight en escala i línia de connexió si la nota està a la Mayor
+    if (MAJOR_SCALE_NOTES.includes(i)) {
+      highlightNote(scaleSoundline, i, intervalMs * 0.9, 'scale');
+      highlightConnectionLine(i, intervalMs * 0.9);
+    }
 
-    // Esperar antes de la siguiente nota
     await sleep(intervalMs);
   }
 
-  resetPlaybackState();
-}
-
-// ============================================================================
-// SELECTOR DE ESCALAS
-// ============================================================================
-
-function populateScaleSelector() {
-  scaleSel.innerHTML = '';
-
-  // Modes de la diatònica (sense optgroup, directament com opcions)
-  motherScalesData.DIAT.rotNames.forEach((name, i) => {
-    const opt = document.createElement('option');
-    opt.value = `DIAT-${i}`;
-    opt.textContent = name;
-    scaleSel.appendChild(opt);
-  });
-
-  // Resto de escalas madre (solo modo 0, sin sus rotaciones)
-  const otherScales = ['ACUS', 'ARMme', 'ARMma', 'OCT', 'HEX', 'TON', 'CROM'];
-  otherScales.forEach(id => {
-    const opt = document.createElement('option');
-    opt.value = `${id}-0`;
-    opt.textContent = motherScalesData[id].name;
-    scaleSel.appendChild(opt);
-  });
+  isPlayingChromatic = false;
+  stopChromaticRequested = false;
+  playChromaticBtn.classList.remove('playing');
+  setPlayIcon(playChromaticBtn, false);
 }
 
 /**
- * Obtiene el nombre de visualización de la escala actual.
- * Per la diatònica usa els noms dels modes (Mayor, Dórica, etc.)
- * Per la resta d'escales usa el nom de l'escala mare (Cromática, Tonos, etc.)
+ * Reproduce la escala Mayor (7 notas)
  */
-function getScaleDisplayName(scaleId, rotation) {
-  const scaleData = motherScalesData[scaleId];
-  if (!scaleData) return 'Escala';
-
-  // Només per la diatònica usem els noms dels modes
-  if (scaleId === 'DIAT' && scaleData.rotNames && scaleData.rotNames[rotation]) {
-    return scaleData.rotNames[rotation];
+async function playMajorScale() {
+  if (isPlayingScale) {
+    stopScaleRequested = true;
+    return;
   }
 
-  // Per la resta d'escales, usar el nom de l'escala mare
-  return scaleData.name;
-}
+  isPlayingScale = true;
+  stopScaleRequested = false;
+  playScaleBtn.classList.add('playing');
+  setPlayIcon(playScaleBtn, true);
 
-function onScaleChange(value) {
-  const [scaleId, rot] = value.split('-');
-  const rotation = parseInt(rot, 10);
-
-  currentScaleNotes = getRotatedScaleNotes(scaleId, rotation);
-
-  // Actualizar título de la soundline de escala
-  if (scaleSoundlineTitle) {
-    scaleSoundlineTitle.textContent = getScaleDisplayName(scaleId, rotation);
+  if (!audio) {
+    audio = await initAudio();
   }
 
-  // Redibujar soundline de escala
-  updateScaleSoundline(currentScaleNotes);
+  const intervalMs = (60 / BPM) * 1000;
+  const noteDuration = intervalMs * 0.9 / 1000;
 
-  // Redibujar líneas de conexión
-  drawConnectionLines(currentScaleNotes);
+  for (let i = 0; i < MAJOR_SCALE_NOTES.length; i++) {
+    if (stopScaleRequested) break;
+
+    const semitone = MAJOR_SCALE_NOTES[i];
+    const midi = BASE_MIDI + semitone;
+    playNote(midi, noteDuration);
+
+    // Highlight en ambdues soundlines i línia de connexió
+    highlightNote(chromaticSoundline, semitone, intervalMs * 0.9, 'chromatic');
+    highlightNote(scaleSoundline, semitone, intervalMs * 0.9, 'scale');
+    highlightConnectionLine(semitone, intervalMs * 0.9);
+
+    await sleep(intervalMs);
+  }
+
+  isPlayingScale = false;
+  stopScaleRequested = false;
+  playScaleBtn.classList.remove('playing');
+  setPlayIcon(playScaleBtn, false);
 }
 
 // ============================================================================
 // CREACIÓN DEL LAYOUT
 // ============================================================================
 
+function createPlayButton(id, ariaLabel) {
+  return `
+    <button id="${id}" class="play soundline-play" aria-label="${ariaLabel}">
+      <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
+        <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
+      </svg>
+      <svg class="icon-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" style="display:none">
+        <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
+      </svg>
+    </button>
+  `;
+}
+
 function createAppLayout() {
-  // Obtener el timeline-wrapper del template
   timelineWrapper = document.querySelector('.timeline-wrapper');
   if (!timelineWrapper) {
     console.error('No se encontró .timeline-wrapper');
     return false;
   }
 
-  // Limpiar contenido del template
   timelineWrapper.innerHTML = '';
 
-  // Crear estructura del layout
   timelineWrapper.innerHTML = `
-    <!-- Selector de escalas -->
-    <aside class="scale-selector">
-      <h2 class="scale-selector-title">Escoge una escala y verás su numeración de grado en la segunda línea sonora</h2>
-      <select id="scaleSel" class="scale-select" size="14"></select>
-
-      <!-- Selector de transposición -->
-      <div class="transpose-selector">
-        <span class="transpose-label">Nota de Salida</span>
-        <div class="transpose-buttons">
-          <button class="transpose-btn active" data-transpose="0">0</button>
-          <button class="transpose-btn" data-transpose="1">1</button>
-          <button class="transpose-btn" data-transpose="2">2</button>
-          <button class="transpose-btn" data-transpose="3">3</button>
-          <button class="transpose-btn" data-transpose="4">4</button>
-          <button class="transpose-btn" data-transpose="5">5</button>
-          <button class="transpose-btn" data-transpose="6">6</button>
-          <button class="transpose-btn" data-transpose="7">7</button>
-          <button class="transpose-btn" data-transpose="8">8</button>
-          <button class="transpose-btn" data-transpose="9">9</button>
-          <button class="transpose-btn" data-transpose="10">10</button>
-          <button class="transpose-btn" data-transpose="11">11</button>
-        </div>
-      </div>
-    </aside>
-
     <!-- Area de soundlines -->
     <div class="soundlines-area">
       <div class="soundlines-wrapper">
@@ -462,28 +400,22 @@ function createAppLayout() {
             <span class="soundline-subtitle">N Modulares</span>
           </div>
           <div id="chromaticSoundline" class="soundline-container"></div>
+          ${createPlayButton('playChromaticBtn', 'Reproducir escala cromática')}
         </div>
 
-        <!-- Líneas de conexión + botón Play centrado -->
+        <!-- Líneas de conexión -->
         <div class="connection-area">
           <svg id="connectionLines" class="connection-lines"></svg>
-          <button id="playScaleBtn" class="play connection-play" aria-label="Reproducir escala seleccionada">
-            <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
-              <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
-            </svg>
-            <svg class="icon-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" style="display:none">
-              <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
-            </svg>
-          </button>
         </div>
 
-        <!-- Soundline de escala -->
+        <!-- Soundline de escala Mayor -->
         <div class="soundline-column">
           <div class="soundline-header">
-            <h3 id="scaleSoundlineTitle" class="soundline-title">Cromática</h3>
+            <h3 class="soundline-title">Escala Mayor</h3>
             <span class="soundline-subtitle">N de grado</span>
           </div>
           <div id="scaleSoundline" class="soundline-container"></div>
+          ${createPlayButton('playScaleBtn', 'Reproducir escala Mayor')}
         </div>
       </div>
     </div>
@@ -499,138 +431,37 @@ function createAppLayout() {
 registerFactoryReset({ storage: preferenceStorage });
 
 // ============================================================================
-// OPCIÓ TRANSPOSE AL MENÚ
-// ============================================================================
-
-function addTransposeOptionToMenu() {
-  const factoryResetBtn = document.getElementById('factoryResetBtn');
-  if (!factoryResetBtn) {
-    // El header encara no s'ha creat, reintentar després
-    setTimeout(addTransposeOptionToMenu, 100);
-    return;
-  }
-
-  // Crear el label amb checkbox
-  const label = document.createElement('label');
-  label.htmlFor = 'enableTranspose';
-  label.innerHTML = 'Activar N de Salida <input type="checkbox" id="enableTranspose">';
-  label.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; cursor: pointer;';
-
-  // Inserir just abans del botó factory reset
-  factoryResetBtn.parentNode.insertBefore(label, factoryResetBtn);
-
-  const checkbox = document.getElementById('enableTranspose');
-
-  // Carregar preferència guardada
-  const stored = preferenceStorage.load('transposeEnabled');
-  transposeEnabled = stored === 'true';
-  checkbox.checked = transposeEnabled;
-
-  // Aplicar visibilitat inicial
-  updateTransposeSelectorVisibility();
-
-  // Event listener per canvis
-  checkbox.addEventListener('change', () => {
-    transposeEnabled = checkbox.checked;
-    preferenceStorage.save('transposeEnabled', String(transposeEnabled));
-    updateTransposeSelectorVisibility();
-  });
-
-  // Escoltar factory reset per resetejar el checkbox
-  window.addEventListener('sharedui:factoryreset', () => {
-    transposeEnabled = false;
-    checkbox.checked = false;
-    updateTransposeSelectorVisibility();
-  });
-}
-
-function updateTransposeSelectorVisibility() {
-  const transposeSelector = document.querySelector('.transpose-selector');
-  if (!transposeSelector) {
-    console.warn('[App21] .transpose-selector no trobat');
-    return;
-  }
-
-  if (transposeEnabled) {
-    transposeSelector.style.display = 'flex';
-  } else {
-    transposeSelector.style.display = 'none';
-    // Reset a 0 quan es desactiva
-    if (transposeValue !== 0) {
-      transposeValue = 0;
-      transposeButtons.forEach(b => b.classList.remove('active'));
-      const zeroBtn = document.querySelector('.transpose-btn[data-transpose="0"]');
-      if (zeroBtn) zeroBtn.classList.add('active');
-      updateChromaticSoundline();
-      updateScaleSoundline(currentScaleNotes);
-      drawConnectionLines(currentScaleNotes);
-    }
-  }
-}
-
-// ============================================================================
 // INICIALIZACIÓN
 // ============================================================================
 
 function initApp() {
-  console.log('Inicializando App21: Escalas');
+  console.log('Inicializando App21: Escalas (simplificada)');
 
-  // Crear layout dentro del template
   if (!createAppLayout()) {
     console.error('Error creando layout');
     return;
   }
 
   // Referencias DOM
-  scaleSel = document.getElementById('scaleSel');
   chromaticContainer = document.getElementById('chromaticSoundline');
   scaleContainer = document.getElementById('scaleSoundline');
   connectionSvg = document.getElementById('connectionLines');
+  playChromaticBtn = document.getElementById('playChromaticBtn');
   playScaleBtn = document.getElementById('playScaleBtn');
-  scaleSoundlineTitle = document.getElementById('scaleSoundlineTitle');
-  transposeButtons = document.querySelectorAll('.transpose-btn');
 
-  // Poblar selector
-  populateScaleSelector();
-
-  // Crear soundline cromática (usa módulo compartido)
+  // Crear soundlines
   initChromaticSoundline();
+  initScaleSoundline();
 
-  // Inicializar con escala Cromática (CROM-0)
-  currentScaleNotes = getRotatedScaleNotes('CROM', 0);
-  initScaleSoundline(currentScaleNotes);
-  scaleSel.value = 'CROM-0';
-  drawConnectionLines(currentScaleNotes);
+  // Dibujar líneas de conexión
+  drawConnectionLines();
 
   // Event listeners
-  scaleSel.addEventListener('change', (e) => {
-    onScaleChange(e.target.value);
-  });
-
-  playScaleBtn.addEventListener('click', playSelectedScale);
-
-  // Event listeners para transposición
-  transposeButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const value = parseInt(btn.dataset.transpose, 10);
-      transposeValue = value;
-
-      // Actualizar estado visual
-      transposeButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      // Refrescar visualizaciones con nueva transposición
-      updateChromaticSoundline();
-      updateScaleSoundline(currentScaleNotes);
-      drawConnectionLines(currentScaleNotes);
-    });
-  });
+  playChromaticBtn.addEventListener('click', playChromatic);
+  playScaleBtn.addEventListener('click', playMajorScale);
 
   // Escolta canvis d'instrument des del dropdown del header
   setupInstrumentListener();
-
-  // Afegir opció de transpose al menú d'opcions
-  addTransposeOptionToMenu();
 
   console.log('App21 inicializada correctamente');
 }
