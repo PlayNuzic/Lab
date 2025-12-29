@@ -177,14 +177,27 @@ function drawConnectionLines() {
   // Llegir llargada des de la variable CSS --connection-length
   const styles = getComputedStyle(document.documentElement);
   const lengthRaw = styles.getPropertyValue('--connection-length').trim() || '80%';
-
-  // Parsejar el valor (percentatge): línia comença a 0% i s'estén fins a lengthPct%
   const lengthPct = parseFloat(lengthRaw) || 80;
+
+  // Obtenir dimensions reals per alinear SVG amb soundline-container
+  const containerRect = chromaticContainer.getBoundingClientRect();
+  const svgRect = connectionSvg.getBoundingClientRect();
+
+  // Offset vertical entre l'SVG i el soundline-container
+  const offsetY = containerRect.top - svgRect.top;
+  const containerHeight = containerRect.height;
+  const svgHeight = svgRect.height;
 
   // Línies horitzontals per cada semitono de l'escala Mayor
   MAJOR_SCALE_NOTES.forEach((semitone, degree) => {
-    // Posició vertical basada en el semitono (igual a ambdues soundlines)
-    const yPct = chromaticSoundline.getNotePosition(semitone);
+    // Posició relativa dins del soundline-container (0-100%)
+    const notePct = chromaticSoundline.getNotePosition(semitone);
+    // Convertir a posició absoluta dins del soundline-container
+    const noteY = (notePct / 100) * containerHeight;
+    // Afegir offset per convertir a coordenades de l'SVG
+    const svgY = offsetY + noteY;
+    // Convertir a percentatge de l'SVG
+    const yPct = (svgY / svgHeight) * 100;
 
     const line = document.createElementNS(svgNS, 'line');
     line.setAttribute('x1', '0%');
@@ -455,6 +468,9 @@ function initApp() {
 
   // Dibujar líneas de conexión
   drawConnectionLines();
+
+  // Redibujar línies quan canvia la mida de la finestra
+  window.addEventListener('resize', drawConnectionLines);
 
   // Event listeners
   playChromaticBtn.addEventListener('click', playChromatic);

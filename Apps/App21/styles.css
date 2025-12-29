@@ -238,11 +238,11 @@ html, body {
 .connection-area {
   position: relative;
   width: var(--connection-area-width);
-  height: calc(100% - var(--soundline-title-size) * 1.2 - var(--soundline-subtitle-size) * 1.2 - 0.1rem - 0.5rem);
-  margin-top: calc(var(--soundline-title-size) * 1.2 + var(--soundline-subtitle-size) * 1.2 + 0.1rem + 0.5rem);
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Ocupar tot l'espai vertical disponible */
+  align-self: stretch;
 }
 
 .connection-lines {
