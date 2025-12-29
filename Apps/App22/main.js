@@ -14,8 +14,11 @@ let audio = null; // MelodicTimelineAudio instance
 // Escala Major - semitons des de la tònica (inclou octava)
 const MAJOR_SCALE_SEMITONES = [0, 2, 4, 5, 7, 9, 11, 12];
 
-// Estructura escalar - intervals entre notes consecutives
+// Estructura escalar - intervals entre notes consecutives (EE)
 const SCALE_STRUCTURE = [2, 2, 1, 2, 2, 2, 1];
+
+// Total de semitons per la soundline (cromàtica amb octava)
+const TOTAL_SEMITONES = 13; // 0-12
 
 // Referències DOM
 let soundlineContainer = null;
@@ -38,7 +41,6 @@ const preferenceStorage = createPreferenceStorage('app22');
 // CONFIGURACIÓ
 // ============================================================================
 
-const TOTAL_DEGREES = 8; // 8 graus (0-7, on 7 és l'octava)
 const BPM = 120;
 const BASE_MIDI = 60; // C4
 
@@ -88,19 +90,25 @@ function setupInstrumentListener() {
 // ============================================================================
 
 /**
- * Formateador d'etiquetes: mostra el grau (0-7)
+ * Formateador d'etiquetes: mostra el grau de l'escala (0-7) per les notes visibles
  */
 function createLabelFormatter() {
-  return (noteIndex) => noteIndex;
+  return (noteIndex) => {
+    // noteIndex és el semitò (0-12), retornem el grau de l'escala
+    const degreeIndex = MAJOR_SCALE_SEMITONES.indexOf(noteIndex);
+    return degreeIndex !== -1 ? degreeIndex : '';
+  };
 }
 
 function initSoundline() {
   soundlineContainer.innerHTML = '';
 
+  // Soundline cromàtica de 13 semitons (0-12) amb només les notes de l'escala visibles
   scaleSoundline = createSoundline({
     container: soundlineContainer,
-    totalNotes: TOTAL_DEGREES,
+    totalNotes: TOTAL_SEMITONES,
     startMidi: BASE_MIDI,
+    visibleNotes: MAJOR_SCALE_SEMITONES, // Notes visibles: 0, 2, 4, 5, 7, 9, 11, 12
     labelFormatter: createLabelFormatter()
   });
 }
@@ -110,15 +118,21 @@ function initSoundline() {
 // ============================================================================
 
 /**
- * Crea les barres d'interval entre notes consecutives
+ * Crea les barres d'interval entre notes consecutives de l'escala
+ * Cada barra es posiciona entre dos semitons consecutius de l'escala
  */
 function createIntervalBars() {
   intervalContainer.innerHTML = '';
   intervalBars.length = 0;
 
   SCALE_STRUCTURE.forEach((interval, index) => {
-    const topY = scaleSoundline.getNotePosition(index);
-    const bottomY = scaleSoundline.getNotePosition(index + 1);
+    // Obtenir els semitons de les notes consecutives
+    const semitoneTop = MAJOR_SCALE_SEMITONES[index];
+    const semitoneBottom = MAJOR_SCALE_SEMITONES[index + 1];
+
+    // Posicions en % (getNotePosition usa l'índex de semitò)
+    const topY = scaleSoundline.getNotePosition(semitoneTop);
+    const bottomY = scaleSoundline.getNotePosition(semitoneBottom);
     const centerY = (topY + bottomY) / 2;
     const height = Math.abs(bottomY - topY);
 
@@ -241,8 +255,8 @@ async function playScale() {
     const midi = BASE_MIDI + semitone;
     playNote(midi, noteDuration);
 
-    // Highlight nota (grau)
-    highlightNote(scaleSoundline, degree, intervalMs * 0.9, 'scale');
+    // Highlight nota (usant semitò com a índex perquè la soundline té 13 posicions)
+    highlightNote(scaleSoundline, semitone, intervalMs * 0.9, 'scale');
 
     // Highlight interval bar (si no és l'última nota)
     if (degree < SCALE_STRUCTURE.length) {
@@ -284,6 +298,9 @@ function createAppLayout() {
 
   timelineWrapper.innerHTML = '';
 
+  // Crear el display EE amb els intervals
+  const eeDisplay = SCALE_STRUCTURE.map(n => `<span class="ee-number">${n}</span>`).join(' ');
+
   timelineWrapper.innerHTML = `
     <!-- Area de soundlines -->
     <div class="soundlines-area">
@@ -295,6 +312,10 @@ function createAppLayout() {
         <div class="soundline-with-intervals">
           <div id="scaleSoundline" class="soundline-container"></div>
           <div id="intervalContainer" class="interval-container"></div>
+        </div>
+        <div class="ee-display">
+          <span class="ee-label">EE:</span>
+          ${eeDisplay}
         </div>
         ${createPlayButton('playBtn', 'Reproducir escala')}
       </div>

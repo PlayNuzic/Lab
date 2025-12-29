@@ -203,6 +203,18 @@ html, body {
   color: var(--text-dark, #e0e0e0);
 }
 
+/* Dots per notes no pertanyents a l'escala */
+.soundline-dot {
+  position: absolute;
+  left: 46.5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--line-color);
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
 /* ============================================================================
    INTERVAL CONTAINER I BARS
    ============================================================================ */
@@ -287,6 +299,43 @@ html, body {
     opacity: 0.8;
     transform: translateY(-50%) scale(1);
   }
+}
+
+/* ============================================================================
+   EE DISPLAY - Estructura Escalar horitzontal
+   ============================================================================ */
+
+.ee-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary, rgba(0, 0, 0, 0.05));
+  border-radius: 6px;
+  transform: translateX(var(--soundline-header-offset, -10px));
+}
+
+[data-theme="dark"] .ee-display {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ee-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-lg, #7BB4CD);
+  margin-right: 0.25rem;
+}
+
+.ee-number {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-color, #333);
+  font-family: monospace;
+}
+
+[data-theme="dark"] .ee-number {
+  color: var(--text-dark, #e0e0e0);
 }
 
 /* ============================================================================
@@ -426,6 +475,12 @@ html, body {
     width: 24px;
   }
 
+  .soundline-dot {
+    left: 37.5px;
+    width: 8px;
+    height: 8px;
+  }
+
   .soundline-with-intervals {
     max-height: 350px;
   }
@@ -442,6 +497,19 @@ html, body {
 
   .interval-number {
     font-size: 0.9rem;
+  }
+
+  .ee-display {
+    gap: 0.3rem;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .ee-label {
+    font-size: 0.85rem;
+  }
+
+  .ee-number {
+    font-size: 0.95rem;
   }
 }
 
@@ -473,6 +541,12 @@ html, body {
     width: 22px;
   }
 
+  .soundline-dot {
+    left: 32.5px;
+    width: 7px;
+    height: 7px;
+  }
+
   .soundline-with-intervals {
     max-height: 300px;
   }
@@ -484,6 +558,19 @@ html, body {
   }
 
   .interval-number {
+    font-size: 0.85rem;
+  }
+
+  .ee-display {
+    gap: 0.25rem;
+    padding: 0.3rem 0.4rem;
+  }
+
+  .ee-label {
+    font-size: 0.75rem;
+  }
+
+  .ee-number {
     font-size: 0.85rem;
   }
 }
