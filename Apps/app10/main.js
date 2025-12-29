@@ -4,6 +4,7 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 import { createNoteHighlightController } from '../../libs/app-common/note-highlight.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
+import { setupPianoPreload } from '../../libs/sound/piano.js';
 
 // ========== ESTADO ==========
 let isPlaying = false;
@@ -210,6 +211,9 @@ async function handleStartOverlay() {
   // Initialize audio engine
   await initAudio();
 
+  // Petit delay per assegurar que els samples estan preparats
+  await new Promise(resolve => setTimeout(resolve, 250));
+
   // Play chromatic scale: notes 0-11 ascending at BPM 160
   const chromaticNotes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
   const intervalMs = (60 / CHROMATIC_BPM) * 1000;
@@ -298,6 +302,9 @@ function initApp() {
 
   // Start overlay click handler
   startOverlay.addEventListener('click', handleStartOverlay);
+
+  // Precargar samples de piano para evitar latencia en el primer play
+  setupPianoPreload({ delay: 300 });
 
   console.log('App10 inicializada correctamente - esperando interacción del usuario');
 }

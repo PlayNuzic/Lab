@@ -2,6 +2,7 @@
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { setupPianoPreload } from '../../libs/sound/piano.js';
 
 // ============================================================================
 // ESTAT
@@ -38,7 +39,7 @@ const preferenceStorage = createPreferenceStorage('app22');
 // CONFIGURACIÓ
 // ============================================================================
 
-const BPM = 120;
+const BPM = 75;
 const BASE_MIDI = 60; // C4
 
 // ============================================================================
@@ -211,6 +212,8 @@ async function playScale() {
 
   if (!audio) {
     audio = await initAudio();
+    // Petit delay per assegurar que els samples estan preparats
+    await sleep(250);
   }
 
   const intervalMs = (60 / BPM) * 1000;
@@ -329,6 +332,9 @@ function initApp() {
 
   // Escolta canvis d'instrument des del dropdown del header
   setupInstrumentListener();
+
+  // Precarregar samples de piano per evitar latència al primer play
+  setupPianoPreload({ delay: 300 });
 
   console.log('App22 inicialitzada correctament');
 }

@@ -3,6 +3,7 @@ import { scaleSemis } from '../../libs/scales/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { setupPianoPreload } from '../../libs/sound/piano.js';
 
 // ============================================================================
 // ESTADO
@@ -40,7 +41,7 @@ const preferenceStorage = createPreferenceStorage('app21');
 // ============================================================================
 
 const TOTAL_CHROMATIC = 12;
-const BPM = 120;
+const BPM = 75;
 const BASE_MIDI = 60; // C4
 
 // ============================================================================
@@ -305,6 +306,8 @@ async function playChromatic() {
 
   if (!audio) {
     audio = await initAudio();
+    // Petit delay per assegurar que els samples estan preparats
+    await sleep(250);
   }
 
   const intervalMs = (60 / BPM) * 1000;
@@ -350,6 +353,8 @@ async function playMajorScale() {
 
   if (!audio) {
     audio = await initAudio();
+    // Petit delay per assegurar que els samples estan preparats
+    await sleep(250);
   }
 
   const intervalMs = (60 / BPM) * 1000;
@@ -478,6 +483,9 @@ function initApp() {
 
   // Escolta canvis d'instrument des del dropdown del header
   setupInstrumentListener();
+
+  // Precargar samples de piano para evitar latencia en el primer play
+  setupPianoPreload({ delay: 300 });
 
   console.log('App21 inicializada correctamente');
 }
