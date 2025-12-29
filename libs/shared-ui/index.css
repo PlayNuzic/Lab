@@ -754,42 +754,46 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   :root {
     /* === AJUSTE FINO PARA <600px === */
 
-    /* Play button offset */
-    --sm-play-x: -38px;
-    --sm-play-y: 5px;
+    /* Play button offset - centered */
+    --sm-play-x: 0px;
+    --sm-play-y: 0px;
 
     /* Toggles container offset */
     --sm-toggles-x: 0px;
     --sm-toggles-y: 0px;
 
-    /* Toggle Pulse (izquierda) */
-    --sm-toggle-pulse-x: -19px;
-    --sm-toggle-pulse-y: 8px;
+    /* Toggle Pulse (izquierda) - reduced offset */
+    --sm-toggle-pulse-x: -8px;
+    --sm-toggle-pulse-y: 4px;
 
-    /* Toggle Selected/Select (centro) */
-    --sm-toggle-selected-x: 69px;
-    --sm-toggle-selected-y: 7px;
+    /* Toggle Selected/Select (centro) - reduced offset */
+    --sm-toggle-selected-x: 50px;
+    --sm-toggle-selected-y: 4px;
 
-    /* Toggle Cycle/Sub (derecha) */
-    --sm-toggle-cycle-x: 33px;
-    --sm-toggle-cycle-y: 8px;
+    /* Toggle Cycle/Sub (derecha) - reduced offset */
+    --sm-toggle-cycle-x: 20px;
+    --sm-toggle-cycle-y: 4px;
+
+    /* Reduce toggle sizes for small screens */
+    --control-toggle-size: clamp(50px, 26vw, 70px);
+    --control-toggle-width: clamp(80px, 48vw, 110px);
   }
 
   .control-sound-toggles {
     top: calc(59% + var(--sm-toggles-y));
     left: calc(50% + var(--sm-toggles-x));
     transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + 8px)));
-    width: min(90vw, calc(var(--control-toggle-width) * 1.45 + var(--control-toggle-gap) * 2));
+    width: min(95vw, calc(var(--control-toggle-width) * 1.5 + var(--control-toggle-gap) * 2));
   }
 
   .control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) {
-    width: min(84vw, calc(var(--control-toggle-width) * 1.35 + var(--control-toggle-gap) * 2));
+    width: min(90vw, calc(var(--control-toggle-width) * 1.4 + var(--control-toggle-gap) * 2));
   }
 
   /* Caso específico móvil: solo Pulse + Cycle (sin Selected) - App3 */
   .control-sound-toggles:has(.control-sound-toggle-container--pulse):has(.control-sound-toggle-container--cycle):not(:has(.control-sound-toggle-container--selected)) {
     left: calc(50% + var(--sm-toggles-x));
-    width: min(84vw, calc(var(--control-toggle-width) * 1.45 + var(--control-toggle-gap) * 2));
+    width: min(90vw, calc(var(--control-toggle-width) * 1.5 + var(--control-toggle-gap) * 2));
   }
 
   .control-sound-toggle-container--pulse {
@@ -806,7 +810,7 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
     transform: translateX(calc(var(--toggle-cycle-offset-x) + var(--sm-toggle-cycle-x))) translateY(calc(var(--toggle-cycle-offset-y) + var(--sm-toggle-cycle-y))) !important;
   }
 
-  /* Play button offset */
+  /* Play button offset - keep centered */
   .controls .play {
     position: relative;
     top: var(--sm-play-y);
