@@ -82,6 +82,10 @@ function setupInstrumentListener() {
     if (audio && audio.setInstrument) {
       await audio.setInstrument(instrument);
     }
+    // Guardar preferència d'instrument
+    const currentPrefs = preferenceStorage.load() || {};
+    currentPrefs.selectedInstrument = instrument;
+    preferenceStorage.save(currentPrefs);
   });
 }
 
@@ -466,6 +470,15 @@ function initApp() {
   connectionSvg = document.getElementById('connectionLines');
   playChromaticBtn = document.getElementById('playChromaticBtn');
   playScaleBtn = document.getElementById('playScaleBtn');
+
+  // Carregar instrument guardat
+  const savedPrefs = preferenceStorage.load() || {};
+  if (savedPrefs.selectedInstrument) {
+    const instrumentDropdown = document.getElementById('instrumentDropdown');
+    if (instrumentDropdown) {
+      instrumentDropdown.value = savedPrefs.selectedInstrument;
+    }
+  }
 
   // Crear soundlines
   initChromaticSoundline();

@@ -752,6 +752,17 @@ function initApp() {
   const editor = createItEditor();
   timelineWrapper.insertBefore(editor, timeline);
 
+  // Carregar instrument guardat
+  const savedPrefs = preferenceStorage.load() || {};
+  if (savedPrefs.selectedInstrument) {
+    currentInstrument = savedPrefs.selectedInstrument;
+    // Sincronitzar amb el dropdown del header
+    const instrumentDropdown = document.getElementById('instrumentDropdown');
+    if (instrumentDropdown) {
+      instrumentDropdown.value = currentInstrument;
+    }
+  }
+
   // Dibuixar timeline
   drawTimeline();
 
@@ -779,6 +790,10 @@ function initApp() {
   window.addEventListener('sharedui:instrument', (e) => {
     currentInstrument = e.detail.instrument;
     console.log(`Instrument seleccionat: ${currentInstrument}`);
+    // Guardar preferència d'instrument
+    const currentPrefs = preferenceStorage.load() || {};
+    currentPrefs.selectedInstrument = currentInstrument;
+    preferenceStorage.save(currentPrefs);
   });
 
   // Precargar audio engine tras primera interacción (reduce latencia en Play)

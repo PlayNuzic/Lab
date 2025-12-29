@@ -1504,7 +1504,6 @@ function decrementCycles() {
 
 function setupEventHandlers() {
   // Listen for instrument changes from dropdown (sharedui header)
-  // Note: The header already saves to localStorage.selectedInstrument
   window.addEventListener('sharedui:instrument', async (e) => {
     const { instrument } = e.detail;
     console.log('Instrument changed to:', instrument);
@@ -1513,6 +1512,10 @@ function setupEventHandlers() {
     if (audio && audio.setInstrument) {
       await audio.setInstrument(instrument);
     }
+    // Guardar preferència d'instrument (per-app storage)
+    const currentPrefs = preferenceStorage.load() || {};
+    currentPrefs.selectedInstrument = instrument;
+    preferenceStorage.save(currentPrefs);
   });
 
   // Compás input with arrow keys
@@ -1647,6 +1650,15 @@ function initApp() {
 
   // Bind DOM elements
   bindElements();
+
+  // Carregar instrument guardat
+  const savedPrefs = preferenceStorage.load() || {};
+  if (savedPrefs.selectedInstrument) {
+    const instrumentDropdown = document.getElementById('instrumentDropdown');
+    if (instrumentDropdown) {
+      instrumentDropdown.value = savedPrefs.selectedInstrument;
+    }
+  }
 
   // Initialize BPM controller
   if (elements.inputBpm && elements.bpmUp && elements.bpmDown) {

@@ -63,6 +63,10 @@ window.addEventListener('sharedui:instrument', async (e) => {
   if (audio) {
     await audio.setInstrument(currentInstrument);
   }
+  // Guardar preferència d'instrument
+  const currentPrefs = preferenceStorage.load() || {};
+  currentPrefs.selectedInstrument = currentInstrument;
+  preferenceStorage.save(currentPrefs);
 });
 
 // ========== FUNCIONES DE DIBUJO DEL TIMELINE ==========
@@ -429,6 +433,17 @@ function initApp() {
   if (!timeline || !timelineWrapper) {
     console.error('Timeline no encontrado en el template');
     return;
+  }
+
+  // Carregar instrument guardat
+  const savedPrefs = preferenceStorage.load() || {};
+  if (savedPrefs.selectedInstrument) {
+    currentInstrument = savedPrefs.selectedInstrument;
+    // Sincronitzar amb el dropdown del header
+    const instrumentDropdown = document.getElementById('instrumentDropdown');
+    if (instrumentDropdown) {
+      instrumentDropdown.value = currentInstrument;
+    }
   }
 
   // Dibujar timeline con 6 pulsos (0-5)
