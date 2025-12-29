@@ -27,6 +27,7 @@
   --soundline-title-size: 1.25rem;
   --soundline-subtitle-size: 1.1rem;
   --soundline-number-size: 1.6rem;
+
 }
 
 [data-theme="dark"] {
@@ -316,7 +317,10 @@ html, body {
 .soundline-play {
   margin-top: 0.5rem;
   flex-shrink: 0;
+  /* Alinear amb la línia vertical de la soundline (mateix offset que els headers) */
+  transform: translateX(var(--soundline-header-offset, -23px));
 }
+
 
 /* Estado activo durante reproducción */
 .soundline-play.playing {
