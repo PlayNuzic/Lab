@@ -1,6 +1,13 @@
 /* App10: Línea Sonora - Estilos */
 
-/* Variables CSS */
+/* ========== IFRAME COMPATIBILITY ========== */
+/* Només reset de marges - NO canviem l'estructura flex del template */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* ========== CSS VARIABLES ========== */
 :root {
   --line-color: #666;
   --soundline-width: 3px;

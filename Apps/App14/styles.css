@@ -1,6 +1,13 @@
 /* App14: Intervalo Sonoro - Estilos */
 
-/* Variables CSS */
+/* ========== IFRAME COMPATIBILITY ========== */
+/* Només reset de marges - NO canviem l'estructura flex del template */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* ========== CSS VARIABLES ========== */
 :root {
   --line-color: #666;
   --soundline-width: 3px;
@@ -155,8 +162,8 @@
 
 /* ========== TWO-COLUMN LAYOUT CUSTOMIZATION ========== */
 .app14-main-layout {
-  height: 100vh;
-  padding-top: 80px; /* Espacio para header */
+  flex: 1;
+  min-height: 0;
 }
 
 .app14-controls-container {
@@ -173,12 +180,12 @@
 .timeline-wrapper {
   width: 100%;
   max-width: 600px;
-  height: 625px;
+  height: 700px;
   margin: 0 auto;
   position: relative;
   z-index: 1;
   opacity: 1 !important;
-  padding: 40px;
+  padding: 20px 40px;
   display: flex;
   flex-direction: column;
   align-items: center;

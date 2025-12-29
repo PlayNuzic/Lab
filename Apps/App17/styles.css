@@ -1,6 +1,15 @@
 /* App17 - Módulo Temporal - Circular */
 
 /* ============================================
+   IFRAME COMPATIBILITY
+   ============================================ */
+/* Només reset de marges - NO canviem l'estructura flex del template */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================
    SHARED COMPONENT IMPORTS
    ============================================ */
 @import '../../libs/shared-ui/bpm-inline.css';
@@ -15,7 +24,7 @@
   --control-toggle-gap: -29px;
   /* BPM position fine-tuning */
   --bpm-offset-x: 0px;
-  --bpm-offset-y: -180px;
+  --bpm-offset-y: 240px;
   /* Total Length position fine-tuning */
   --total-offset-x: -30px;
   --total-offset-y: 0px;
@@ -211,14 +220,23 @@
 }
 
 /* ============================================
+   TIMELINE WRAPPER - Ensure proper positioning context
+   ============================================ */
+
+.timeline-wrapper {
+  position: relative;
+  min-height: 400px;
+}
+
+/* ============================================
    BPM INLINE - Position override for circular
    ============================================ */
 
 .bpm-inline {
-  bottom: var(--bpm-offset-y);
-  left: calc(50% + var(--bpm-offset-x));
-  transform: translateX(-50%);
-  top: auto;  /* Override from shared */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(calc(-50% + var(--bpm-offset-x)), calc(-50% + var(--bpm-offset-y)));
 }
 
 /* ============================================

@@ -1,5 +1,22 @@
 /* App13: Intervalos Temporales - Estilos específicos de la app */
 
+/* ========== IFRAME COMPATIBILITY ========== */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* ========== VARIABLES DE COLOR ========== */
 :root {
   --timeline-interval-color: #7BB4CD;

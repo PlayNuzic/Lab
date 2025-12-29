@@ -1,6 +1,15 @@
 /* App16 - Módulo Temporal - Compás */
 
 /* ============================================
+   IFRAME COMPATIBILITY
+   ============================================ */
+/* Només reset de marges - NO canviem l'estructura flex del template */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================
    SHARED COMPONENT IMPORTS
    ============================================ */
 @import '../../libs/shared-ui/bpm-inline.css';
@@ -14,8 +23,8 @@
 :root {
   --control-toggle-gap: -29px;
   /* BPM position fine-tuning */
-  --bpm-offset-x: 18px;
-  --bpm-offset-y: -107px;
+  --bpm-offset-x: -720px;
+  --bpm-offset-y: -30px;
 
   /* Circular layout - toggles are now siblings, not inside play-row */
   --control-toggles-offset-x: 0px;
@@ -104,12 +113,23 @@
 }
 
 /* ============================================
+   TIMELINE WRAPPER - Ensure proper positioning context
+   ============================================ */
+
+.timeline-wrapper {
+  position: relative;
+  min-height: 400px;
+}
+
+/* ============================================
    BPM INLINE - Position override
    ============================================ */
 
 .bpm-inline {
-  top: var(--bpm-offset-y);
-  left: var(--bpm-offset-x);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(calc(-50% + var(--bpm-offset-x)), calc(-50% + var(--bpm-offset-y)));
 }
 
 /* ============================================

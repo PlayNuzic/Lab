@@ -1,9 +1,26 @@
 /* App18: Modulo Sonoro - Registro */
 
 /* ============================================
-   SHARED COMPONENT IMPORTS
+   IFRAME COMPATIBILITY
    ============================================ */
-@import '../../libs/shared-ui/soundline.css';
+/* Només reset de marges - NO canviem l'estructura flex del template */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================
+   CSS VARIABLES
+   ============================================ */
+:root {
+  --line-color: #666;
+  --soundline-width: 3px;
+  --note-highlight-color: var(--selection-color, #FFBB33);
+}
+
+[data-theme="dark"] {
+  --line-color: #999;
+}
 
 /* ============================================
    HIDE TEMPLATE ELEMENTS NOT NEEDED
@@ -71,6 +88,7 @@
   display: flex;
   justify-content: center;
   gap: 2rem;
+  margin-bottom: 0;
 }
 
 /* Registro param styling - custom layout with external spinners */
@@ -198,26 +216,137 @@ main {
   margin: 0 auto;
   position: relative;
   z-index: 1;
-  padding: 20px 0px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Timeline (soundline container) - centered with input Registro */
+/* Timeline - positioning context for soundline */
 .timeline {
   width: 300px;
-  height: 100%;
+  height: 500px;
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  --soundline-offset-x: 60px;  /* Fine-tune: positive = right, negative = left */
-  margin-left: var(--soundline-offset-x);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  margin-left: 60px; /* Fine-tune: positive = right, negative = left */
   overflow: visible;
+}
+
+/* Soundline container inside timeline (pattern from App10/14) */
+.soundline-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================
+   SOUNDLINE STYLES (from App10 pattern)
+   ============================================ */
+
+.soundline {
+  position: relative;
+  width: 300px;
+  height: 100%;
+  margin: 0 auto;
+}
+
+/* Línea vertical principal */
+.soundline::before {
+  content: '';
+  position: absolute;
+  left: 100px;
+  top: var(--line-top, 0);
+  bottom: var(--line-bottom, 0);
+  width: var(--soundline-width, 3px);
+  background: var(--line-color, #666);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Divisiones horizontales */
+.soundline-division {
+  position: absolute;
+  width: 30px;
+  height: 16px;
+  margin-top: -7px;
+  background: transparent;
+  left: 85px;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.soundline-division::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+  height: 2px;
+  background: var(--line-color, #666);
+}
+
+/* Números */
+.soundline-number {
+  position: absolute;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-color, #333);
+  user-select: none;
+  z-index: 3;
+  opacity: 0.85;
+  left: 20px;
+  text-align: right;
+  width: 60px;
+  font-family: 'Courier New', Courier, monospace;
+  cursor: pointer;
+}
+
+[data-theme="dark"] .soundline-number {
+  color: var(--text-dark, #e0e0e0);
+}
+
+/* ============================================
+   NOTE HIGHLIGHTS
+   ============================================ */
+
+.note-highlight {
+  position: absolute;
+  width: 80px;
+  height: 6.67%; /* 100/15 notes */
+  left: 120px;
+  background: var(--note-highlight-color);
+  opacity: 0;
+  border-radius: 4px;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.note-highlight.highlight {
+  opacity: 0.8;
+  box-shadow: 0 0 14px var(--note-highlight-color), 0 0 20px currentColor;
+  animation: noteFlash 0.35s ease-out;
+}
+
+@keyframes noteFlash {
+  0% {
+    transform: translateY(-100%) scale(0.95);
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(-100%) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100%) scale(1);
+    opacity: 0.8;
+  }
 }
 
 /* Controls - positioned absolutely relative to timeline-wrapper */
@@ -289,6 +418,10 @@ main {
     padding: 20px 15px;
   }
 
+  .timeline {
+    height: 450px;
+  }
+
   /* Adjust controls position for narrower soundline */
   .timeline-wrapper .controls {
     --controls-offset-x: -140px;
@@ -326,6 +459,10 @@ main {
   .timeline-wrapper {
     height: 450px;
     padding: 15px 10px;
+  }
+
+  .timeline {
+    height: 400px;
   }
 
   /* Adjust controls position for narrower soundline */
@@ -377,6 +514,10 @@ main {
 
   .timeline-wrapper {
     height: 400px;
+  }
+
+  .timeline {
+    height: 350px;
   }
 
   /* Adjust controls position for narrower soundline */

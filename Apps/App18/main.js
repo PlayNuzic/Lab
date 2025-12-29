@@ -7,7 +7,7 @@ import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-co
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { createRegistryController } from '../../libs/sound/registry-controller.js';
-import { generateMelodicSequence, getRandomBPM, getRandomRegistry } from '../../libs/sound/melodic-sequence.js';
+import { getRandomBPM, getRandomRegistry } from '../../libs/sound/melodic-sequence.js';
 
 // ========== STATE ==========
 let isPlaying = false;
@@ -253,13 +253,7 @@ async function handlePlay() {
 
   // Generate random sequence only if we don't have one yet
   if (randomNotes.length === 0) {
-    currentBPM = getRandomBPM(MIN_BPM, MAX_BPM);
-    randomNotes = generateMelodicSequence({
-      registry,
-      length: SEQUENCE_LENGTH,
-      minRegistry: MIN_REGISTRO,
-      maxRegistry: MAX_REGISTRO
-    });
+    handleRandom();
   }
 
   console.log(`BPM: ${currentBPM}`);
@@ -472,11 +466,11 @@ function initApp() {
   setupPianoPreload({ delay: 300 });
 
   // Get template elements
-  soundlineWrapper = document.getElementById('timeline');
+  const timeline = document.getElementById('timeline');
   const timelineWrapper = document.querySelector('.timeline-wrapper');
   const controls = document.querySelector('.controls');
 
-  if (!soundlineWrapper || !timelineWrapper || !controls) {
+  if (!timeline || !timelineWrapper || !controls) {
     console.error('Template elements not found');
     return;
   }
@@ -487,7 +481,18 @@ function initApp() {
   document.querySelector('.middle')?.remove();
 
   // Move controls inside timeline-wrapper (before timeline)
-  timelineWrapper.insertBefore(controls, soundlineWrapper);
+  timelineWrapper.insertBefore(controls, timeline);
+
+  // Create soundline-container inside timeline (pattern from App10/14)
+  const soundlineContainer = document.createElement('div');
+  soundlineContainer.className = 'soundline-container';
+  soundlineContainer.style.position = 'relative';
+  soundlineContainer.style.width = '100%';
+  soundlineContainer.style.height = '100%';
+  timeline.appendChild(soundlineContainer);
+
+  // Set soundlineWrapper to the container (not timeline directly)
+  soundlineWrapper = soundlineContainer;
 
   // Draw initial soundline (empty)
   drawSoundline();
