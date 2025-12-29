@@ -175,7 +175,7 @@ export async function playNote(midiNumber, duration, when = 0) {
   const note = Tone.Frequency(midiNumber, 'midi').toNote();
   const playTime = when === 0 ? Tone.now() : Tone.now() + when;
 
-  sampler.triggerAttackRelease(note, duration, playTime, 0.6);
+  sampler.triggerAttackRelease(note, duration, playTime, 0.2);
 }
 
 /**
@@ -201,7 +201,7 @@ export async function playSequence(midiNumbers, intervalSec, onNote, onComplete)
 
     // Duration is 90% of interval to leave small gap
     const noteDuration = intervalSec * 0.9;
-    sampler.triggerAttackRelease(note, noteDuration, when, 0.6);
+    sampler.triggerAttackRelease(note, noteDuration, when, 0.2);
 
     // Call onNote callback at the right time
     if (onNote) {
