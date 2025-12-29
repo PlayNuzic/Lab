@@ -1,0 +1,518 @@
+/* App22: Estructura Escalar - Styles */
+/* Visualització de l'estructura d'intervals de l'escala Major */
+
+/* ============================================================================
+   VARIABLES CSS - Responsive amb valors per defecte
+   ============================================================================ */
+
+:root {
+  --line-color: #666;
+  --soundline-width: 3px;
+  --note-highlight-color: var(--selection-color, #FFBB33);
+
+  /* Soundlines sizing */
+  --soundlines-height: clamp(400px, 70vh, 600px);
+  --soundline-container-width: 120px;
+
+  /* Interval bars */
+  --interval-container-width: 60px;
+  --interval-bar-width: 40px;
+
+  /* Header sizing */
+  --soundline-header-offset: -10px;
+  --soundline-title-size: 1.25rem;
+  --soundline-subtitle-size: 1.1rem;
+  --soundline-number-size: 1.6rem;
+}
+
+[data-theme="dark"] {
+  --line-color: #999;
+}
+
+/* ============================================================================
+   IFRAME COMPATIBILITY - Base layout
+   ============================================================================ */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ============================================================================
+   LAYOUT - Integració amb app-wrap del template
+   ============================================================================ */
+
+.timeline-wrapper {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  padding: 0.5rem 1rem !important;
+  gap: 0 !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+/* Ocultar el timeline per defecte del template */
+.timeline {
+  display: none !important;
+}
+
+/* Ocultar controls del template que no usem */
+.controls {
+  display: none !important;
+}
+
+/* ============================================================================
+   AREA DE SOUNDLINES
+   ============================================================================ */
+
+.soundlines-area {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex: 1;
+  padding: 0.5rem;
+  padding-top: 0;
+  padding-bottom: 1rem;
+  min-width: 0;
+  overflow: visible;
+}
+
+.soundline-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+/* ============================================================================
+   SOUNDLINE HEADERS (títols i subtítols)
+   ============================================================================ */
+
+.soundline-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-align: center;
+  min-width: 100px;
+  transform: translateX(var(--soundline-header-offset));
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.soundline-title {
+  font-size: var(--soundline-title-size);
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-lg, #7BB4CD);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.soundline-subtitle {
+  font-size: var(--soundline-subtitle-size);
+  font-weight: 400;
+  color: var(--line-color, #666);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* ============================================================================
+   SOUNDLINE + INTERVALS CONTAINER
+   ============================================================================ */
+
+.soundline-with-intervals {
+  display: flex;
+  gap: 0.5rem;
+  height: var(--soundlines-height);
+}
+
+.soundline-container {
+  position: relative;
+  width: var(--soundline-container-width);
+  height: 100%;
+  min-height: 0;
+}
+
+/* ============================================================================
+   SOUNDLINE (estil amb línia vertical via ::before)
+   ============================================================================ */
+
+.soundline {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Línia vertical principal */
+.soundline::before {
+  content: '';
+  position: absolute;
+  left: 50px;
+  top: var(--line-top, 0);
+  bottom: var(--line-bottom, 0);
+  width: var(--soundline-width);
+  background: var(--line-color);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Divisions horitzontals */
+.soundline-division {
+  position: absolute;
+  width: 30px;
+  height: 2px;
+  background: var(--line-color);
+  left: 35px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Números */
+.soundline-number {
+  position: absolute;
+  font-size: var(--soundline-number-size);
+  font-weight: 400;
+  color: var(--text-color, #333);
+  user-select: none;
+  z-index: 3;
+  opacity: 0.85;
+  left: 0;
+  text-align: right;
+  width: 30px;
+}
+
+[data-theme="dark"] .soundline-number {
+  color: var(--text-dark, #e0e0e0);
+}
+
+/* ============================================================================
+   INTERVAL CONTAINER I BARS
+   ============================================================================ */
+
+.interval-container {
+  position: relative;
+  width: var(--interval-container-width);
+  height: 100%;
+}
+
+.interval-bar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  width: var(--interval-bar-width);
+  background: transparent;
+  border: 2px solid var(--line-color);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.interval-bar.active {
+  background: var(--selection-color, #FFBB33);
+  border-color: var(--selection-color, #FFBB33);
+  opacity: 1;
+  box-shadow: 0 0 12px var(--selection-color, #FFBB33);
+}
+
+.interval-number {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--line-color);
+  transition: color 0.15s ease;
+}
+
+.interval-bar.active .interval-number {
+  color: #000;
+}
+
+[data-theme="dark"] .interval-bar.active .interval-number {
+  color: #000;
+}
+
+/* ============================================================================
+   HIGHLIGHTS
+   ============================================================================ */
+
+.note-highlight {
+  position: absolute;
+  width: 80px;
+  height: 30px;
+  left: 70px;
+  background: var(--note-highlight-color);
+  opacity: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 10;
+  transform: translateY(-50%);
+}
+
+.note-highlight.active {
+  opacity: 0.8;
+  box-shadow: 0 0 14px var(--note-highlight-color);
+  animation: noteFlash 0.3s ease-out;
+}
+
+@keyframes noteFlash {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.05);
+  }
+  100% {
+    opacity: 0.8;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+/* ============================================================================
+   BOTÓ PLAY
+   ============================================================================ */
+
+.soundline-play {
+  margin-top: 0.5rem;
+  flex-shrink: 0;
+  transform: translateX(var(--soundline-header-offset, -10px));
+}
+
+/* Estat actiu durant reproducció */
+.soundline-play.playing {
+  color: var(--selection-color);
+  border-color: var(--selection-color);
+  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+}
+
+/* ============================================================================
+   RESPONSIVE - Tablet landscape (900px)
+   ============================================================================ */
+
+@media (max-width: 900px) {
+  :root {
+    --soundline-container-width: 110px;
+    --interval-container-width: 50px;
+    --interval-bar-width: 36px;
+    --soundline-title-size: 1.1rem;
+    --soundline-subtitle-size: 1rem;
+    --soundline-number-size: 1.4rem;
+  }
+
+  .interval-number {
+    font-size: 1.2rem;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Tablet portrait (768px)
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  :root {
+    --soundline-container-width: 100px;
+    --interval-container-width: 45px;
+    --interval-bar-width: 32px;
+    --soundline-header-offset: -8px;
+    --soundline-title-size: 1rem;
+    --soundline-subtitle-size: 0.9rem;
+    --soundline-number-size: 1.3rem;
+  }
+
+  .soundlines-area {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .soundline-with-intervals {
+    height: 100%;
+    max-height: 450px;
+  }
+
+  .soundline-header {
+    min-width: 80px;
+  }
+
+  .note-highlight {
+    width: 60px;
+    height: 24px;
+  }
+
+  .interval-number {
+    font-size: 1.1rem;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Small screens (600px)
+   ============================================================================ */
+
+@media (max-width: 600px) {
+  :root {
+    --soundline-container-width: 90px;
+    --interval-container-width: 40px;
+    --interval-bar-width: 28px;
+    --soundline-header-offset: -6px;
+    --soundline-title-size: 0.9rem;
+    --soundline-subtitle-size: 0.8rem;
+    --soundline-number-size: 1.2rem;
+  }
+
+  .soundline-with-intervals {
+    max-height: 400px;
+  }
+
+  .soundline-header {
+    min-width: 70px;
+  }
+
+  .note-highlight {
+    width: 50px;
+    height: 20px;
+    left: 60px;
+  }
+
+  .interval-number {
+    font-size: 1rem;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Mobile (480px)
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  :root {
+    --soundline-container-width: 80px;
+    --interval-container-width: 35px;
+    --interval-bar-width: 24px;
+    --soundline-header-offset: -5px;
+    --soundline-title-size: 0.85rem;
+    --soundline-subtitle-size: 0.75rem;
+    --soundline-number-size: 1.1rem;
+  }
+
+  .soundline::before {
+    left: 40px;
+  }
+
+  .soundline-division {
+    width: 24px;
+    left: 28px;
+  }
+
+  .soundline-number {
+    width: 24px;
+  }
+
+  .soundline-with-intervals {
+    max-height: 350px;
+  }
+
+  .soundline-header {
+    min-width: 60px;
+  }
+
+  .note-highlight {
+    left: 50px;
+    width: 45px;
+    height: 18px;
+  }
+
+  .interval-number {
+    font-size: 0.9rem;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Ultra compact (400px)
+   ============================================================================ */
+
+@media (max-width: 400px) {
+  :root {
+    --soundline-container-width: 70px;
+    --interval-container-width: 30px;
+    --interval-bar-width: 22px;
+    --soundline-header-offset: -4px;
+    --soundline-title-size: 0.8rem;
+    --soundline-subtitle-size: 0.7rem;
+    --soundline-number-size: 1rem;
+  }
+
+  .soundline::before {
+    left: 35px;
+  }
+
+  .soundline-division {
+    width: 20px;
+    left: 25px;
+  }
+
+  .soundline-number {
+    width: 22px;
+  }
+
+  .soundline-with-intervals {
+    max-height: 300px;
+  }
+
+  .note-highlight {
+    left: 45px;
+    width: 40px;
+    height: 16px;
+  }
+
+  .interval-number {
+    font-size: 0.85rem;
+  }
+}
+
+/* ============================================================================
+   ALERTA D'ESPAI MÍNIM - Pantalles molt petites (< 360px width o < 400px height)
+   ============================================================================ */
+
+@media (max-width: 360px), (max-height: 400px) {
+  body::before {
+    content: 'Pantalla massa petita. Gira el dispositiu o usa una pantalla més gran.';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    z-index: 99999;
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}
