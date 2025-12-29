@@ -774,20 +774,23 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
     width: min(88vw, 200px);
   }
 
-  /* ELIMINAT !important - usar left/bottom directes per sobreescriure base */
+  /* Posicionament toggle <600px - cal sobreescriure també transforms */
   .control-sound-toggle-container--pulse {
-    left: -5px;
+    left: 0;
     bottom: 3px;
+    transform: translateX(-10%) translateY(0);
   }
 
   .control-sound-toggle-container--selected {
-    left: 0;
+    left: 50%;
     bottom: 2px;
+    transform: translateX(-50%) translateY(0);
   }
 
   .control-sound-toggle-container--cycle {
-    right: -5px;
+    right: 0;
     bottom: 3px;
+    transform: translateX(10%) translateY(0);
   }
 
   /* Play button - mantenir centrat */
