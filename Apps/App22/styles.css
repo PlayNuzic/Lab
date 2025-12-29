@@ -19,8 +19,8 @@
   --interval-bar-width: 40px;
 
   /* Header sizing */
-  --soundline-header-offset: -10px;
-  --soundline-title-size: 1.25rem;
+  --soundline-header-offset: -20px;
+  --soundline-title-size: 1.4rem;
   --soundline-subtitle-size: 1.1rem;
   --soundline-number-size: 1.6rem;
 }
@@ -118,7 +118,7 @@ html, body {
 .soundline-title {
   font-size: var(--soundline-title-size);
   font-weight: 600;
-  margin: 0;
+  margin: -10px;
   color: var(--color-lg, #7BB4CD);
   line-height: 1.2;
   white-space: nowrap;
@@ -140,7 +140,7 @@ html, body {
 
 .soundline-with-intervals {
   display: flex;
-  gap: 0.5rem;
+  gap: 0;
   height: var(--soundlines-height);
 }
 
@@ -203,6 +203,13 @@ html, body {
   color: var(--text-dark, #e0e0e0);
 }
 
+/* Números il·luminats durant reproducció */
+.soundline-number.active {
+  color: var(--selection-color, #FFBB33);
+  font-weight: 600;
+  text-shadow: 0 0 8px var(--selection-color, #FFBB33);
+}
+
 /* Dots per notes no pertanyents a l'escala */
 .soundline-dot {
   position: absolute;
@@ -227,8 +234,8 @@ html, body {
 
 .interval-bar {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%) translateY(-50%);
+  left: -111%;
+  transform: translateY(-50%);
   width: var(--interval-bar-width);
   background: transparent;
   border: 2px solid var(--line-color);
@@ -309,7 +316,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.75rem;
+  margin-top: 0rem;
   padding: 0.5rem 0.75rem;
   background: var(--bg-secondary, rgba(0, 0, 0, 0.05));
   border-radius: 6px;
@@ -321,15 +328,15 @@ html, body {
 }
 
 .ee-label {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 525;
   color: var(--color-lg, #7BB4CD);
   margin-right: 0.25rem;
 }
 
 .ee-number {
-  font-size: 1.1rem;
-  font-weight: 500;
+  font-size: 2.1rem;
+  font-weight: 525rem;
   color: var(--text-color, #333);
   font-family: monospace;
 }

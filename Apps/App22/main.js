@@ -31,9 +31,6 @@ let scaleSoundline = null;
 // Interval bars
 const intervalBars = [];
 
-// Highlights actius
-const activeHighlights = new Map();
-
 // Preference storage
 const preferenceStorage = createPreferenceStorage('app22');
 
@@ -96,7 +93,9 @@ function createLabelFormatter() {
   return (noteIndex) => {
     // noteIndex és el semitò (0-12), retornem el grau de l'escala
     const degreeIndex = MAJOR_SCALE_SEMITONES.indexOf(noteIndex);
-    return degreeIndex !== -1 ? degreeIndex : '';
+    if (degreeIndex === -1) return '';
+    // L'octava (grau 7) es mostra com a 0
+    return degreeIndex === 7 ? 0 : degreeIndex;
   };
 }
 
@@ -168,52 +167,21 @@ function highlightIntervalBar(index, durationMs) {
 // ============================================================================
 
 /**
- * Crea un highlight a la soundline usant l'API del mòdul
+ * Il·lumina el número de la soundline corresponent al semitò
  */
-function createHighlight(soundlineApi, noteIndex) {
-  const yPct = soundlineApi.getNotePosition(noteIndex);
+function highlightSoundlineNumber(semitone, durationMs) {
+  const numberEl = scaleSoundline.element.querySelector(`.soundline-number[data-midi="${BASE_MIDI + semitone}"]`);
+  if (!numberEl) return;
 
-  const highlight = document.createElement('div');
-  highlight.className = 'note-highlight';
-  highlight.style.top = `${yPct}%`;
-  highlight.dataset.note = noteIndex;
-
-  soundlineApi.element.appendChild(highlight);
-  return highlight;
-}
-
-/**
- * Destaca una nota a la soundline
- */
-function highlightNote(soundlineApi, noteIndex, durationMs, key) {
-  const existingKey = `${key}-${noteIndex}`;
-  if (activeHighlights.has(existingKey)) {
-    const prev = activeHighlights.get(existingKey);
-    prev.element.remove();
-    clearTimeout(prev.timeout);
-    activeHighlights.delete(existingKey);
-  }
-
-  const highlight = createHighlight(soundlineApi, noteIndex);
-  highlight.classList.add('active');
-
-  const timeout = setTimeout(() => {
-    highlight.classList.remove('active');
-    setTimeout(() => highlight.remove(), 150);
-    activeHighlights.delete(existingKey);
-  }, durationMs);
-
-  activeHighlights.set(existingKey, { element: highlight, timeout });
+  numberEl.classList.add('active');
+  setTimeout(() => numberEl.classList.remove('active'), durationMs);
 }
 
 function clearAllHighlights() {
-  activeHighlights.forEach(({ element, timeout }) => {
-    clearTimeout(timeout);
-    element.remove();
-  });
-  activeHighlights.clear();
-
   intervalBars.forEach(bar => bar.classList.remove('active'));
+  scaleSoundline.element.querySelectorAll('.soundline-number.active').forEach(el => {
+    el.classList.remove('active');
+  });
 }
 
 // ============================================================================
@@ -255,12 +223,15 @@ async function playScale() {
     const midi = BASE_MIDI + semitone;
     playNote(midi, noteDuration);
 
-    // Highlight nota (usant semitò com a índex perquè la soundline té 13 posicions)
-    highlightNote(scaleSoundline, semitone, intervalMs * 0.9, 'scale');
+    // Highlight número de la soundline
+    highlightSoundlineNumber(semitone, intervalMs * 0.9);
 
     // Highlight interval bar (si no és l'última nota)
     if (degree < SCALE_STRUCTURE.length) {
-      highlightIntervalBar(degree, intervalMs * 0.9);
+      const isLastInterval = degree === SCALE_STRUCTURE.length - 1;
+      // L'últim interval dura fins que acaba l'última nota (2 beats)
+      const duration = isLastInterval ? intervalMs * 1.9 : intervalMs * 0.9;
+      highlightIntervalBar(degree, duration);
     }
 
     await sleep(intervalMs);
@@ -307,7 +278,6 @@ function createAppLayout() {
       <div class="soundline-column">
         <div class="soundline-header">
           <h3 class="soundline-title">Escala Mayor</h3>
-          <span class="soundline-subtitle">Nº</span>
         </div>
         <div class="soundline-with-intervals">
           <div id="scaleSoundline" class="soundline-container"></div>
