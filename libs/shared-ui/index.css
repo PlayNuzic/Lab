@@ -751,70 +751,50 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
 }
 
 @media (max-width: 600px) {
-  :root {
-    /* === AJUSTE FINO PARA <600px === */
-
-    /* Play button offset - centered */
-    --sm-play-x: 0px;
-    --sm-play-y: 0px;
-
-    /* Toggles container offset */
-    --sm-toggles-x: 0px;
-    --sm-toggles-y: 0px;
-
-    /* Toggle Pulse (izquierda) - reduced offset */
-    --sm-toggle-pulse-x: -8px;
-    --sm-toggle-pulse-y: 4px;
-
-    /* Toggle Selected/Select (centro) - reduced offset */
-    --sm-toggle-selected-x: 50px;
-    --sm-toggle-selected-y: 4px;
-
-    /* Toggle Cycle/Sub (derecha) - reduced offset */
-    --sm-toggle-cycle-x: 20px;
-    --sm-toggle-cycle-y: 4px;
-
-    /* Reduce toggle sizes for small screens */
-    --control-toggle-size: clamp(50px, 26vw, 70px);
-    --control-toggle-width: clamp(80px, 48vw, 110px);
-  }
+  /* === AJUSTE FINO PARA <600px === */
+  /* NOTE: Las variables --control-toggle-* ya están definidas en líneas 55-62 */
+  /* NO redefinir aquí para evitar conflictos de cascada */
 
   .control-sound-toggles {
-    top: calc(59% + var(--sm-toggles-y));
-    left: calc(50% + var(--sm-toggles-x));
+    /* Simplificar posicionamiento - usar valores directos */
+    top: 59%;
+    left: 50%;
     transform: translate(-50%, calc(-50% - (var(--play-button-size) / 2 + 8px)));
-    width: min(95vw, calc(var(--control-toggle-width) * 1.5 + var(--control-toggle-gap) * 2));
+    /* Width fijo para evitar cálculos complejos */
+    width: min(92vw, 220px);
   }
 
   .control-sound-toggles:not(:has(.control-sound-toggle-container--selected)) {
-    width: min(90vw, calc(var(--control-toggle-width) * 1.4 + var(--control-toggle-gap) * 2));
+    width: min(88vw, 200px);
   }
 
   /* Caso específico móvil: solo Pulse + Cycle (sin Selected) - App3 */
   .control-sound-toggles:has(.control-sound-toggle-container--pulse):has(.control-sound-toggle-container--cycle):not(:has(.control-sound-toggle-container--selected)) {
-    left: calc(50% + var(--sm-toggles-x));
-    width: min(90vw, calc(var(--control-toggle-width) * 1.5 + var(--control-toggle-gap) * 2));
+    left: 50%;
+    width: min(88vw, 200px);
   }
 
+  /* ELIMINAT !important - usar left/bottom directes per sobreescriure base */
   .control-sound-toggle-container--pulse {
-    transform: translateX(calc(var(--toggle-pulse-offset-x) + var(--sm-toggle-pulse-x))) translateY(calc(var(--toggle-pulse-offset-y) + var(--sm-toggle-pulse-y))) !important;
+    left: -5px;
+    bottom: 3px;
   }
 
   .control-sound-toggle-container--selected {
-    bottom: 1px;
-    transform: translateX(calc(-50% + var(--toggle-selected-offset-x) + var(--sm-toggle-selected-x))) translateY(calc(var(--toggle-selected-offset-y) + var(--sm-toggle-selected-y))) !important;
+    left: 0;
+    bottom: 2px;
   }
 
   .control-sound-toggle-container--cycle {
-    right: -3px;
-    transform: translateX(calc(var(--toggle-cycle-offset-x) + var(--sm-toggle-cycle-x))) translateY(calc(var(--toggle-cycle-offset-y) + var(--sm-toggle-cycle-y))) !important;
+    right: -5px;
+    bottom: 3px;
   }
 
-  /* Play button offset - keep centered */
+  /* Play button - mantenir centrat */
   .controls .play {
     position: relative;
-    top: var(--sm-play-y);
-    left: var(--sm-play-x);
+    top: 0;
+    left: 0;
   }
 }
 
