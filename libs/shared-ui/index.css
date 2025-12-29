@@ -778,7 +778,7 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   .control-sound-toggle-container--pulse {
     left: 0;
     bottom: 3px;
-    transform: translateX(-10%) translateY(0);
+    transform: translateX(35%) translateY(0);
   }
 
   .control-sound-toggle-container--selected {
@@ -790,7 +790,7 @@ body[data-theme='dark'] .custom-dropdown .dropdown-panel {
   .control-sound-toggle-container--cycle {
     right: 0;
     bottom: 3px;
-    transform: translateX(10%) translateY(0);
+    transform: translateX(-35%) translateY(0);
   }
 
   /* Play button - mantenir centrat */
