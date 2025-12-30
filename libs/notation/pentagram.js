@@ -1,7 +1,7 @@
 import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, StaveConnector, GhostNote } from '../vendor/vexflow/entry/vexflow.js';
 // Import helpers directly to avoid circular dependency with index.js
 import { midiToParts, midiToPartsByKeySig, midiSequenceToChromaticParts, applyKeySignature, parseKeySignatureArray, letterToPc } from './helpers.js';
-// import { getKeySignature } from '../vendor/chromatone-theory/scales.js';
+import { getKeySignature } from '../scales/index.js';
 
 export function drawIntervalEllipse(svg, p1, p2, color){
   const yTop = Math.min(p1.y, p2.y);
@@ -35,20 +35,23 @@ export function needsAccidental(parts, ksMap){
 
 export function drawPentagram(container, midis = [], options = {}) {
   container.innerHTML = '';
-  const { chord = false, paired = false, duration = 'q', noteColors = [], highlightInterval = null, highlightIntervals = [], highlightChordIdx = null, highlightChordColor = null, useKeySig = true, singleClef = null, width = 550 } = options;
+  const { chord = false, paired = false, duration = 'q', noteColors = [], highlightInterval = null, highlightIntervals = [], highlightChordIdx = null, highlightChordColor = null, useKeySig = true, singleClef = null, width = 550, height = null } = options;
   const scaleId = options.scaleId ? String(options.scaleId) : '';
   const ksArray = getKeySignature(scaleId, options.root);
   const ksMap = parseKeySignatureArray(ksArray);
   const renderer = new Renderer(container, Renderer.Backends.SVG);
   if(singleClef){
-    renderer.resize(width, 240);
+    const h = height || 240;
+    renderer.resize(width, h);
   }else{
     renderer.resize(625, 340);
   }
   const context = renderer.getContext();
 
   if(singleClef){
-    const stave = new Stave(10, 80, width - 20);
+    // Ajustar stave Y segons altura (centrat vertical)
+    const staveY = height ? Math.max(10, (height - 80) / 2) : 80;
+    const stave = new Stave(10, staveY, width - 20);
     stave.addClef(singleClef);
     if(useKeySig){
       applyKeySignature(stave, ksArray, singleClef, options.root);
@@ -168,7 +171,7 @@ export function drawPentagram(container, midis = [], options = {}) {
         }
         midis.forEach((m, idx) => {
           const parts = (useKs || keepSpelling) ? midiToPartsByKeySig(m, ksMap) : partsSeq[idx];
-          const note = new StaveNote({ keys: [parts.key], duration, clef: singleClef });
+          const note = new StaveNote({ keys: [parts.key], duration, clef: singleClef, auto_stem: true });
           const need = useKs ? needsAccidental(parts, ksMap) : !!parts.accidental;
           if (need){
             const acc = new Accidental(parts.accidental);

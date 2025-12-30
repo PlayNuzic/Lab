@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transposición</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+</head>
+<body data-theme="system">
+  <div id="app-root"></div>
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    // Set defaults in localStorage BEFORE header initializes
+    const app23Prefs = localStorage.getItem('app23-preferences');
+    if (!app23Prefs) {
+      localStorage.setItem('app23-preferences', JSON.stringify({
+        selectedInstrument: 'piano'
+      }));
+    }
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Transposición',
+      showSelectColor: false,
+      showAccent: false,
+      showComplexFractions: false,
+      hideT: true,
+      hideLeds: true,
+      showCircularTimelineToggle: false,
+      showHoverToggle: false,
+      showStartSoundDropdown: false,
+      showInstrumentDropdown: true,
+      randomMenuContent: ''
+    });
+
+    // Remove default template sections we don't need
+    document.querySelector('.inputs')?.remove();
+    document.querySelector('.middle')?.remove();
+
+    initHeader();
+    import('./main.js');
+  </script>
+
+  <!-- Rendimiento Audio (menú flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <!-- Long-press para abrir el mixer -->
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+</body>
+</html>
