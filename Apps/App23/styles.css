@@ -163,7 +163,7 @@ html, body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  flex: 1;
+  /* NO flex: 1 - mantenir tamany natural per no empènyer el pentagrama */
   padding: 0.5rem;
   padding-top: 0;
   padding-bottom: 1rem;
@@ -406,22 +406,15 @@ html, body {
    ============================================================================ */
 
 .pentagram-area {
+  /* Simplement ocupar l'espai necessari i centrar contingut */
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0;
-  margin-right: 2rem;
-  flex-shrink: 0;
 }
 
 .pentagram-container {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
   background: white;
   border-radius: 6px;
   padding: 0.25rem 0.5rem;
-  margin-left: 0;
 }
 
 .pentagram-container svg {

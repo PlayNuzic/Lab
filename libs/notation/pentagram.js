@@ -174,7 +174,13 @@ export function drawPentagram(container, midis = [], options = {}) {
           const note = new StaveNote({ keys: [parts.key], duration, clef: singleClef });
           // Assignar stave i calcular auto_stem DESPRÉS per tenir les keyProps correctes
           note.setStave(stave);
-          note.autoStem();
+          // Per notes molt altes (B4=71 o superior en treble), forçar stem down
+          // autoStem pot fallar en aquests casos límit
+          if (singleClef === 'treble' && m >= 71) {
+            note.setStemDirection(-1); // STEM_DOWN
+          } else {
+            note.autoStem();
+          }
           const need = useKs ? needsAccidental(parts, ksMap) : !!parts.accidental;
           if (need){
             const acc = new Accidental(parts.accidental);
