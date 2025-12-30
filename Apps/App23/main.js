@@ -318,6 +318,21 @@ function renderPentagram() {
   // Calcular notes MIDI de l'escala transposada
   const scaleMidis = getScaleMidis(outputNote);
 
+  // Width responsive segons tamany de pantalla
+  const screenWidth = window.innerWidth;
+  let pentagramWidth = 400;
+  let pentagramHeight = 140;
+  if (screenWidth <= 480) {
+    pentagramWidth = 200;
+    pentagramHeight = 100;
+  } else if (screenWidth <= 600) {
+    pentagramWidth = 250;
+    pentagramHeight = 110;
+  } else if (screenWidth <= 768) {
+    pentagramWidth = 300;
+    pentagramHeight = 120;
+  }
+
   // Renderitzar pentagrama amb armadura
   drawPentagram(pentagramContainer, scaleMidis, {
     scaleId: 'DIAT',
@@ -325,8 +340,8 @@ function renderPentagram() {
     useKeySig: true,
     singleClef: 'treble',
     chord: false,
-    width: 400,
-    height: 140
+    width: pentagramWidth,
+    height: pentagramHeight
   });
 }
 

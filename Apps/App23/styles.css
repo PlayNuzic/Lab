@@ -542,31 +542,50 @@ html, body {
     height: 24px;
   }
 
-  .selector-title {
-    font-size: 0.95rem;
-  }
-
-  .note-btn {
-    width: 30px;
-    height: 30px;
-    font-size: 0.85rem;
-  }
-
-  .pentagram-area {
-    min-width: 160px;
+  .output-note-selector {
     padding: 0.5rem;
   }
 
+  .selector-title {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .note-buttons-grid {
+    gap: 0.25rem;
+  }
+
+  .note-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 0.75rem;
+  }
+
+  .pentagram-area {
+    min-width: auto;
+    padding: 0.25rem;
+  }
+
+  /* Reduir botons play */
+  .soundline-play {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ee-display {
+    margin-top: 22rem;
+  }
+
   .ee-label {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
   }
 
   .ee-number {
-    font-size: 1.6rem;
+    font-size: 1.2rem;
   }
 
   .ee-function {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
   }
 }
 
@@ -602,35 +621,48 @@ html, body {
   }
 
   .output-note-selector {
-    padding: 0.5rem;
+    padding: 0.3rem;
   }
 
   .selector-title {
-    font-size: 0.85rem;
-    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .note-buttons-grid {
+    gap: 0.2rem;
   }
 
   .note-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 0.8rem;
+    width: 22px;
+    height: 22px;
+    font-size: 0.65rem;
   }
 
   .pentagram-area {
-    min-width: 140px;
-    padding: 0.5rem;
+    min-width: auto;
+    padding: 0.2rem;
+  }
+
+  .soundline-play {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ee-display {
+    margin-top: 18rem;
   }
 
   .ee-label {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
   }
 
   .ee-number {
-    font-size: 1.4rem;
+    font-size: 1rem;
   }
 
   .ee-function {
-    font-size: 1.3rem;
+    font-size: 1rem;
   }
 }
 
@@ -685,31 +717,46 @@ html, body {
   }
 
   .output-note-selector {
-    padding: 0.4rem;
+    padding: 0.2rem;
   }
 
   .selector-title {
-    font-size: 0.8rem;
-    margin-bottom: 0.4rem;
+    font-size: 0.65rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .note-buttons-grid {
+    gap: 0.15rem;
   }
 
   .note-btn {
-    width: 26px;
-    height: 26px;
-    font-size: 0.75rem;
+    width: 20px;
+    height: 20px;
+    font-size: 0.6rem;
+    border-width: 1px;
   }
 
   .pentagram-area {
-    min-width: 120px;
-    padding: 0.4rem;
+    min-width: auto;
+    padding: 0.15rem;
+  }
+
+  .soundline-play {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ee-display {
+    margin-top: 16rem;
+    padding: 0.3rem;
   }
 
   .ee-label {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
   }
 
   .ee-number {
-    font-size: 1.2rem;
+    font-size: 0.85rem;
   }
 
   .ee-function {
