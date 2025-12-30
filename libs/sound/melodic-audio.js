@@ -12,6 +12,7 @@
 import TimelineAudio from './index.js';
 import { loadPiano, resetPiano } from './piano.js';
 import { loadViolin, resetViolin } from './violin.js';
+import { loadFlute, resetFlute } from './flute.js';
 import { ensureToneLoaded } from './tone-loader.js';
 import { createSamplerPool, ADSR_PRESETS } from './sampler-pool.js';
 
@@ -66,6 +67,7 @@ export class MelodicTimelineAudio extends TimelineAudio {
       // This forces them to be recreated with the new context on next load
       resetPiano();
       resetViolin();
+      resetFlute();
     }
 
     // Disconnect previous sampler if exists (prevents overlapping sounds)
@@ -87,6 +89,9 @@ export class MelodicTimelineAudio extends TimelineAudio {
       switch (key) {
         case 'violin':
           sampler = await loadViolin();
+          break;
+        case 'flute':
+          sampler = await loadFlute();
           break;
         case 'piano':
         default:
