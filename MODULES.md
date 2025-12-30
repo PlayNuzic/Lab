@@ -1027,9 +1027,16 @@ audio.getStartEnabled()          // Retorna el estado actual
 
 ## App-Common (libs/app-common/)
 
-Conjunto de **40 módulos** compartidos entre Apps, organizados en categorías funcionales.
+Conjunto de **43 módulos** compartidos entre Apps, organizados en categorías funcionales.
 
-**Última consolidación:** 2025-10-30 Fase 2
+**Última consolidación:** 2025-12-30 Fase 5
+- **+3 nuevos módulos para N-iT:**
+  - `grid-2d-sync-controller.js` - Sync bidireccional Grid 2D ↔ Editor
+  - `interval-note-drag.js` - Drag handler para iT en grids 2D
+  - `registry-playback-autoscroll.js` - Autoscroll vertical durante playback
+- **App20 modularizada:** Reducción de 1823 → 1383 LOC (24%)
+
+**Consolidación anterior:** 2025-10-30 Fase 2
 - **Eliminados 9 módulos** movidos a sub-packages:
   - pulse-seq-parser.js, pulse-seq-state.js, pulse-seq-editor.js → `libs/pulse-seq/`
   - notation-panel.js, notation-utils.js, notation-renderer.js, fraction-notation.js → `libs/notation/`
@@ -1520,6 +1527,124 @@ calculateHitSize(...)
 
 ---
 
+#### `grid-2d-sync-controller.js` ⭐ **NUEVO (2025-12)**
+**Propósito:** Sincronización bidireccional entre Grid 2D (plano-modular) y Grid Editor
+
+**Exports:**
+```javascript
+createGrid2DSyncController({
+  grid,           // plano-modular instance
+  gridEditor,     // createGridEditor instance
+  getPairs,       // () => currentPairs
+  setPairs,       // (pairs) => void
+  config: {
+    defaultRegistry,
+    validateNoteRegistry,
+    fillGapsWithSilences
+  },
+  onSyncComplete  // callback
+})
+```
+
+**Métodos:**
+- `syncGridFromPairs(pairs)` - Editor → Grid 2D sync
+- `handleCellClick(rowData, colIndex, isSelected)` - Grid 2D → Editor sync
+- `enableDragMode(enabled)` - Enable/disable drag dots
+- `addDotsToAllCells()` - Add np-dots to cells
+- `highlightDragRange(rowId, startPulse, endPulse)` - Highlight during drag
+- `clearDragHighlight()` - Clear drag highlights
+- `refreshDots()` - Restore dots after grid refresh
+- `destroy()` - Cleanup
+
+**Características:**
+- Sincronización Editor → Grid 2D (loadSelection + duration highlights)
+- Sincronización Grid 2D → Editor (click handlers)
+- Gestión de dots para drag-to-create
+- Duration highlighting para notas multi-pulse
+- **Tests:** 30 tests en `__tests__/grid-2d-sync-controller.test.js`
+
+**Apps:** App20
+
+---
+
+#### `interval-note-drag.js` ⭐ **NUEVO (2025-12)**
+**Propósito:** Drag handler para modificar intervalos temporales (iT) en grids 2D
+
+**Exports:**
+```javascript
+createIntervalNoteDragHandler({
+  grid,           // plano-modular instance
+  gridEditor,     // createGridEditor instance
+  getPairs,
+  setPairs,
+  getTotalPulses, // () => number
+  syncController, // Optional: grid-2d-sync-controller
+  config: {
+    defaultRegistry,
+    monophonic: true
+  },
+  playNotePreview,  // (note, registry, iT) => void
+  fillGapsWithSilences
+})
+```
+
+**Métodos:**
+- `attach()` - Start listening for drag events
+- `detach()` - Stop listening
+- `isDragging()` - Check if drag active
+- `isFromDrag()` - Check if update came from drag (prevent loops)
+- `cancelDrag()` - Cancel active drag
+- `destroy()` - Cleanup
+
+**Características:**
+- Modo CREATE: Drag on empty cell → create new note
+- Modo EDIT: Drag on existing note → modify iT
+- Monophonic: Cuts overlapping notes
+- Visual feedback during drag
+- Audio preview on drag end
+- **Tests:** 25 tests en `__tests__/interval-note-drag.test.js`
+
+**Apps:** App20
+
+---
+
+#### `registry-playback-autoscroll.js` ⭐ **NUEVO (2025-12)**
+**Propósito:** Autoscroll vertical durante playback basado en registros de notas
+
+**Exports:**
+```javascript
+createRegistryAutoscrollController({
+  grid,           // plano-modular instance with setRegistry
+  getSelectedArray, // () => selected items
+  config: {
+    minRegistry,
+    maxRegistry,
+    notesPerRegistry,
+    visibleRows,
+    zeroPosition,
+    smoothScroll
+  }
+})
+```
+
+**Métodos:**
+- `buildPulseRegistryMap()` - Pre-calculate pulse → registry map
+- `scrollToRegistryForPulse(pulse, map)` - Scroll during playback
+- `getRegistryForPulse(pulse, map)` - Get registry without scrolling
+- `scheduleAnticipatedScroll(nextPulse, map, delayMs, isPlayingCheck)` - Anticipatory scroll
+- `scrollToRegistry(registry, animated)` - Manual scroll
+- `getVisibleRegistriesForNote(note, registry)` - Get visible registries
+
+**Características:**
+- Calcula registros óptimos para cada pulse durante playback
+- Scroll anticipado (75% del beat anterior)
+- Smooth scrolling configurable
+- **Tests:** 26 tests en `__tests__/registry-playback-autoscroll.test.js`
+
+**Apps:** App20
+
+---
+
 ---
 
 ## Vendor (libs/vendor/)
@@ -1636,7 +1761,7 @@ audio.play(totalPulses, interval, selectedPulses, loop, onPulse);
 
 ## Cobertura de Tests
 
-El proyecto cuenta con **27 test suites** y **280 tests** que cubren los módulos más críticos.
+El proyecto cuenta con **60 test suites** y **1168 tests** que cubren los módulos más críticos.
 
 ### Tests Implementados
 
