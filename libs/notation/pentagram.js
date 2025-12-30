@@ -171,7 +171,10 @@ export function drawPentagram(container, midis = [], options = {}) {
         }
         midis.forEach((m, idx) => {
           const parts = (useKs || keepSpelling) ? midiToPartsByKeySig(m, ksMap) : partsSeq[idx];
-          const note = new StaveNote({ keys: [parts.key], duration, clef: singleClef, auto_stem: true });
+          const note = new StaveNote({ keys: [parts.key], duration, clef: singleClef });
+          // Assignar stave i calcular auto_stem DESPRÉS per tenir les keyProps correctes
+          note.setStave(stave);
+          note.autoStem();
           const need = useKs ? needsAccidental(parts, ksMap) : !!parts.accidental;
           if (need){
             const acc = new Accidental(parts.accidental);
