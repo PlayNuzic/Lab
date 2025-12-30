@@ -436,10 +436,12 @@ async function playChromatic() {
   for (let i = 0; i < TOTAL_CHROMATIC; i++) {
     if (stopChromaticRequested) break;
 
-    // Nota MIDI que sona (comença des de outputNote)
-    const midiNote = (outputNote + i) % 12;
-    const midi = BASE_MIDI + midiNote;
+    // Nota MIDI que sona (escala cromàtica ascendent des de outputNote)
+    const midi = BASE_MIDI + outputNote + i;
     playNote(midi, noteDuration);
+
+    // Nota cromàtica per comprovar si està a la Major transposada
+    const midiNote = (outputNote + i) % 12;
 
     // Highlight en cromática: posició física = i (0 és baix, 11 és dalt)
     // El label a posició i mostra (i + outputNote) % 12
