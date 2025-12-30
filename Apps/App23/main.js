@@ -3,7 +3,6 @@ import { scaleSemis } from '../../libs/scales/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
-import { setupPianoPreload } from '../../libs/sound/piano.js';
 import { drawPentagram } from '../../libs/notation/index.js';
 
 // ============================================================================
@@ -648,8 +647,22 @@ function initApp() {
   // Escolta canvis d'instrument des del dropdown del header
   setupInstrumentListener();
 
-  // Precargar samples de piano para evitar latencia en el primer play
-  setupPianoPreload({ delay: 300 });
+  // Precargar audio al primer clic dins l'app (redueix latència en Play)
+  const preloadOnFirstInteraction = async () => {
+    document.removeEventListener('click', preloadOnFirstInteraction);
+    document.removeEventListener('touchstart', preloadOnFirstInteraction);
+
+    try {
+      if (!audio) {
+        audio = await initAudio();
+        console.log('Audio preloaded on first interaction');
+      }
+    } catch (err) {
+      console.warn('Audio preload failed:', err);
+    }
+  };
+  document.addEventListener('click', preloadOnFirstInteraction, { once: true });
+  document.addEventListener('touchstart', preloadOnFirstInteraction, { once: true });
 
   console.log('App23 inicializada correctamente');
 }
