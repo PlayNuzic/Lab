@@ -273,8 +273,8 @@ function createAppLayout() {
 
   timelineWrapper.innerHTML = '';
 
-  // Crear el display EE amb els intervals
-  const eeDisplay = SCALE_STRUCTURE.map(n => `<span class="ee-number">${n}</span>`).join(' ');
+  // Crear el display EE amb els intervals en format iS( ... )
+  const eeNumbers = SCALE_STRUCTURE.map(n => `<span class="ee-number">${n}</span>`).join(' ');
 
   timelineWrapper.innerHTML = `
     <!-- Area de soundlines -->
@@ -288,8 +288,8 @@ function createAppLayout() {
           <div id="intervalContainer" class="interval-container"></div>
         </div>
         <div class="ee-display">
-          <span class="ee-label">EE:</span>
-          ${eeDisplay}
+          <span class="ee-label">eE:</span>
+          <span class="ee-function">iS(</span>${eeNumbers}<span class="ee-function">)</span>
         </div>
         ${createPlayButton('playBtn', 'Reproducir escala')}
       </div>
