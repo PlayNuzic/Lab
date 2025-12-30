@@ -1,5 +1,6 @@
 // App20: Plano y sucesión N-iT
 // Grid 2D (plano-modular) + zigzag grid-editor for NrX-iT sequences
+// REFACTORED: Using modular controllers from libs/app-common/
 
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
@@ -24,6 +25,11 @@ import { createGridEditor } from '../../libs/matrix-seq/index.js';
 
 // Import interval-sequencer module for gap filling
 import { fillGapsWithSilences } from '../../libs/interval-sequencer/index.js';
+
+// Import modular controllers (NEW)
+import { createGrid2DSyncController } from '../../libs/app-common/grid-2d-sync-controller.js';
+import { createIntervalNoteDragHandler } from '../../libs/app-common/interval-note-drag.js';
+import { createRegistryAutoscrollController } from '../../libs/app-common/registry-playback-autoscroll.js';
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
@@ -83,81 +89,6 @@ function validateNoteRegistry(note, registry) {
   return { valid: true };
 }
 
-// ========== AUTOSCROLL VERTICAL HELPERS ==========
-
-/**
- * Build a map of pulse → optimal registry for vertical autoscroll
- * During playback, this determines which registry to show for each note
- * @param {Array} selectedArray - From grid.getSelectedArray()
- * @returns {Object} Map of pulseIndex → registryId
- */
-function buildPulseRegistryMap(selectedArray) {
-  const TOTAL_VISIBLE = 15;
-  const ZERO_POS = 7;
-  const pulseRegistry = {};
-
-  // Helper: Get all registries where a note would be visible
-  function getVisibleRegistries(noteNum, noteReg) {
-    const visibleIn = [];
-    for (let testReg = CONFIG.MIN_REGISTRO; testReg <= CONFIG.MAX_REGISTRO; testReg++) {
-      for (let visualIdx = 0; visualIdx < TOTAL_VISIBLE; visualIdx++) {
-        const offset = visualIdx - ZERO_POS;
-        let checkNote, checkReg;
-        if (offset < 0) {
-          const absOffset = Math.abs(offset);
-          checkNote = (CONFIG.NOTES_PER_REGISTRY - absOffset % CONFIG.NOTES_PER_REGISTRY) % CONFIG.NOTES_PER_REGISTRY;
-          checkReg = testReg - Math.ceil(absOffset / CONFIG.NOTES_PER_REGISTRY);
-          if (absOffset % CONFIG.NOTES_PER_REGISTRY === 0) {
-            checkNote = 0;
-            checkReg = testReg - (absOffset / CONFIG.NOTES_PER_REGISTRY) + 1;
-          }
-        } else {
-          checkNote = offset % CONFIG.NOTES_PER_REGISTRY;
-          checkReg = testReg + Math.floor(offset / CONFIG.NOTES_PER_REGISTRY);
-        }
-        if (checkNote === noteNum && checkReg === noteReg) {
-          visibleIn.push(testReg);
-          break;
-        }
-      }
-    }
-    return visibleIn;
-  }
-
-  // Count notes visible per registry
-  const registryCounts = { 3: 0, 4: 0, 5: 0 };
-  const notesInfo = selectedArray.map(item => {
-    // Parse rowId: "5r4" → note=5, reg=4
-    const match = item.rowId.match(/^(\d+)r(\d+)$/);
-    if (!match) return null;
-    const noteNum = parseInt(match[1]);
-    const noteReg = parseInt(match[2]);
-    const visibleIn = getVisibleRegistries(noteNum, noteReg);
-    for (const r of visibleIn) registryCounts[r]++;
-    return { noteNum, noteReg, pulseIndex: item.colIndex, visibleIn };
-  }).filter(Boolean);
-
-  // For each note, pick the registry with most visible notes
-  for (const info of notesInfo) {
-    if (info.visibleIn.length === 0) {
-      pulseRegistry[info.pulseIndex] = info.noteReg;
-    } else if (info.visibleIn.length === 1) {
-      pulseRegistry[info.pulseIndex] = info.visibleIn[0];
-    } else {
-      let bestReg = info.visibleIn[0];
-      let bestCount = registryCounts[bestReg];
-      for (const r of info.visibleIn) {
-        if (registryCounts[r] > bestCount) {
-          bestCount = registryCounts[r];
-          bestReg = r;
-        }
-      }
-      pulseRegistry[info.pulseIndex] = bestReg;
-    }
-  }
-  return pulseRegistry;
-}
-
 // ========== STATE ==========
 let isPlaying = false;
 let audio = null;
@@ -175,24 +106,13 @@ let grid = null;
 // Grid editor instance (NrX-iT zigzag)
 let gridEditor = null;
 
-
 // Store current pairs
 let currentPairs = [];
 
-// Flag to prevent onPairsChange from overwriting during drag operations
-let isUpdatingFromDrag = false;
-
-// Drag state for horizontal iT modification
-let dragState = {
-  active: false,
-  startSpaceIndex: null,
-  currentSpaceIndex: null,
-  noteIndex: null,
-  registryIndex: null,
-  originalPair: null,
-  mode: null,             // 'create' | 'edit'
-  previewElement: null
-};
+// Modular controllers (NEW)
+let syncController = null;
+let dragHandler = null;
+let autoscrollController = null;
 
 // Mixer storage key
 const MIXER_STORAGE_KEY = 'app20-mixer';
@@ -314,356 +234,12 @@ function updateGridVisibility() {
   }
 }
 
-// ========== GRID FUNCTIONS (using plano-modular) ==========
-
-/**
- * Sync Grid 2D from grid-editor pairs (Editor → Grid 2D)
- * Called when user edits the N-iT zigzag editor
- * @param {Array} pairs - Array of { note, pulse, temporalInterval, registry }
- *
- * Each note illuminates `temporalInterval` cells starting from `pulse`
- * - pulse is where the note STARTS
- * - temporalInterval is how many pulses the note lasts
- * - So cells from pulse to (pulse + temporalInterval - 1) are illuminated
- */
-function syncGridFromPairs(pairs) {
-  if (!grid) return;
-
-  // Save pairs to state
-  currentPairs = [...pairs];
-
-  // Clear duration highlights (will be re-applied after refresh)
-  clearDurationHighlights();
-
-  // Build selection keys for loadSelection
-  const selectionKeys = [];
-  const durationCells = []; // Cells for duration highlight
-
-  pairs.forEach((pair) => {
-    // Skip silences (isRest) - they don't illuminate cells in the grid
-    if (pair.isRest) return;
-    if (pair.note === null || pair.note === undefined) return;
-
-    const registry = pair.registry ?? CONFIG.DEFAULT_REGISTRO;
-    const rowId = `${pair.note}r${registry}`;
-    const iT = pair.temporalInterval || 1;
-    const startPulse = pair.pulse;
-
-    // First cell: selection key
-    selectionKeys.push(`${rowId}-${startPulse}`);
-
-    // Additional cells: duration highlights
-    for (let pulse = startPulse + 1; pulse < startPulse + iT; pulse++) {
-      durationCells.push({ rowId, pulse });
-    }
-  });
-
-  // loadSelection clears existing selection, loads new keys, and calls refresh()
-  // This is atomic and ensures DOM is properly rebuilt with selections
-  grid.loadSelection(selectionKeys);
-
-  // Apply duration highlights and restore dots after refresh completes
-  requestAnimationFrame(() => {
-    durationCells.forEach(({ rowId, pulse }) => {
-      highlightSingleCell(rowId, pulse);
-    });
-
-    // Re-add dots that were removed during refresh
-    addDotsToAllCells();
-  });
-
-}
-
-/**
- * Highlight a single cell with duration-highlight class
- * Used for cells that extend a note's duration (not the starting cell)
- */
-function highlightSingleCell(rowId, pulse) {
-  if (!grid) return;
-
-  const matrixContainer = grid.getElements?.()?.matrixContainer;
-  if (!matrixContainer) return;
-
-  const cell = matrixContainer.querySelector(
-    `.plano-cell[data-row-id="${rowId}"][data-col-index="${pulse}"]`
-  );
-  if (cell) {
-    cell.classList.add('duration-highlight');
-  }
-}
-
-/**
- * Clear all duration highlights
- */
-function clearDurationHighlights() {
-  if (!grid) return;
-
-  const matrixContainer = grid.getElements?.()?.matrixContainer;
-  if (!matrixContainer) return;
-
-  matrixContainer.querySelectorAll('.plano-cell.duration-highlight').forEach(cell => {
-    cell.classList.remove('duration-highlight');
-  });
-}
-
-// ========== DRAG SYSTEM FOR iT MODIFICATION ==========
-
-/**
- * Setup drag listeners for horizontal iT modification
- */
-function setupDragListeners() {
-  if (!grid) return;
-
-  const matrixContainer = grid.getElements?.()?.matrixContainer;
-  if (!matrixContainer) return;
-
-  // Event delegation for mousedown on dots (clickable points)
-  matrixContainer.addEventListener('mousedown', handleDragStart);
-
-  // Global mousemove and mouseup
-  document.addEventListener('mousemove', handleDragMove);
-  document.addEventListener('mouseup', handleDragEnd);
-
-  // Set cursor style for dots
-  document.documentElement.style.setProperty('--np-dot-cursor', 'grab');
-}
-
-/**
- * Handle drag start - initiate dragging on a dot
- * Supports both EDIT mode (existing pair) and CREATE mode (new note)
- */
-function handleDragStart(e) {
-  // Only start drag from dots
-  const dot = e.target.closest('.np-dot');
-  if (!dot) return;
-
-  const cell = dot.closest('.plano-cell');
-  if (!cell) return;
-
-  // Get cell coordinates from data attributes
-  const rowId = cell.dataset.rowId; // Format: "NrR" e.g., "5r4"
-  const colIndex = parseInt(cell.dataset.colIndex);
-
-  if (!rowId || isNaN(colIndex)) return;
-
-  // Parse note and registry from rowId
-  const match = rowId.match(/^(\d+)r(\d+)$/);
-  if (!match) return;
-
-  const note = parseInt(match[1]);
-  const registry = parseInt(match[2]);
-
-  // Find existing pair at this position (if any)
-  const existingPair = currentPairs.find(p =>
-    p.note === note &&
-    (p.registry ?? CONFIG.DEFAULT_REGISTRO) === registry &&
-    p.pulse === colIndex
-  );
-
-  // Determine mode: edit existing or create new
-  const mode = existingPair ? 'edit' : 'create';
-  const pair = existingPair || {
-    note,
-    registry,
-    pulse: colIndex,
-    temporalInterval: 1
-  };
-
-  // Start drag state
-  dragState = {
-    active: true,
-    startSpaceIndex: colIndex,
-    currentSpaceIndex: colIndex,
-    noteIndex: note,
-    registryIndex: registry,
-    rowId: rowId,
-    originalPair: { ...pair },
-    mode: mode,
-    previewElement: null
-  };
-
-  // Change cursor to grabbing
-  document.documentElement.style.setProperty('--np-dot-cursor', 'grabbing');
-  document.body.style.cursor = 'grabbing';
-
-  // Prevent text selection during drag
-  e.preventDefault();
-
-  // Initial highlight
-  updateDragHighlight();
-}
-
-/**
- * Handle drag move - update duration preview and cell highlighting
- */
-function handleDragMove(e) {
-  if (!dragState.active || !grid) return;
-
-  const matrixContainer = grid.getElements?.()?.matrixContainer;
-  if (!matrixContainer) return;
-
-  // Calculate current space index from mouse position
-  const rect = matrixContainer.getBoundingClientRect();
-  const relativeX = e.clientX - rect.left + matrixContainer.scrollLeft;
-
-  const firstCell = matrixContainer.querySelector('.plano-cell');
-  if (!firstCell) return;
-
-  const cellWidth = firstCell.offsetWidth;
-  const totalPulses = getTotalPulses();
-  const newSpaceIndex = Math.max(
-    dragState.startSpaceIndex,
-    Math.min(totalPulses - 1, Math.floor(relativeX / cellWidth))
-  );
-
-  // Only update if space changed
-  if (newSpaceIndex !== dragState.currentSpaceIndex) {
-    dragState.currentSpaceIndex = newSpaceIndex;
-    updateDragHighlight();
-  }
-}
-
-/**
- * Handle drag end - finalize the duration change or create new note
- */
-function handleDragEnd() {
-  if (!dragState.active) return;
-
-  const originalPair = dragState.originalPair;
-  const newEndPulse = dragState.currentSpaceIndex;
-  const mode = dragState.mode;
-
-  // Calculate new temporal interval
-  const newIT = Math.max(1, newEndPulse - originalPair.pulse + 1);
-
-  // Clear drag highlight before updating
-  clearDragHighlight();
-
-  // Restore cursor
-  document.documentElement.style.setProperty('--np-dot-cursor', 'grab');
-  document.body.style.cursor = '';
-
-  if (mode === 'create') {
-    // CREATE MODE: Add a new note with the dragged duration
-    // App is MONOPHONIC - only one note at a time
-    const newPair = {
-      note: originalPair.note,
-      registry: originalPair.registry,
-      pulse: originalPair.pulse,
-      temporalInterval: newIT
-    };
-
-    const targetPulse = originalPair.pulse;
-
-    // Check if there's a note that STARTS at this exact pulse - replace it
-    const exactMatchIndex = currentPairs.findIndex(p => p.pulse === targetPulse);
-
-    if (exactMatchIndex >= 0) {
-      // Replace the note that starts at this pulse
-      currentPairs[exactMatchIndex] = newPair;
-    } else {
-      // Check if we're clicking in the MIDDLE of an existing note's duration
-      // Find a note whose range [pulse, pulse+iT) contains targetPulse
-      const overlappingIndex = currentPairs.findIndex(p => {
-        const noteStart = p.pulse;
-        const noteEnd = noteStart + (p.temporalInterval || 1);
-        return targetPulse > noteStart && targetPulse < noteEnd;
-      });
-
-      if (overlappingIndex >= 0) {
-        // Cut the overlapping note at targetPulse
-        const overlappingNote = currentPairs[overlappingIndex];
-        const newDuration = targetPulse - overlappingNote.pulse;
-        overlappingNote.temporalInterval = newDuration;
-
-        // Add the new note after the cut
-        currentPairs.push(newPair);
-      } else {
-        // No overlap - just add the new note
-        currentPairs.push(newPair);
-      }
-
-      // Sort by pulse position
-      currentPairs.sort((a, b) => a.pulse - b.pulse);
-    }
-
-    // NOTE: Do NOT recalculate pulse positions - respect where the user clicked
-    // Gaps between notes are valid (implicit silences)
-
-    // Set flag to prevent onPairsChange from overwriting our pairs
-    isUpdatingFromDrag = true;
-
-    // Sync grid directly (uses loadSelection + refresh for reliable update)
-    syncGridFromPairs(currentPairs);
-
-    // Update grid editor (with silences filled in gaps)
-    if (gridEditor) {
-      gridEditor.setPairs(pairsWithSilencesForEditor(currentPairs));
-    }
-
-    // Play preview sound (not for silences)
-    if (!originalPair.isRest) {
-      playNotePreview(originalPair.note, originalPair.registry, newIT);
-    }
-
-    // Reset flag after next animation frame (covers both sync and async operations)
-    requestAnimationFrame(() => {
-      isUpdatingFromDrag = false;
-    });
-  } else {
-    // EDIT MODE: Update existing pair's temporalInterval
-    const pairIndex = currentPairs.findIndex(p =>
-      p.note === originalPair.note &&
-      p.pulse === originalPair.pulse
-    );
-
-    if (pairIndex >= 0) {
-      currentPairs[pairIndex].temporalInterval = newIT;
-
-      // NOTE: Do NOT recalculate pulse positions - editing duration doesn't move other notes
-      // This allows gaps (implicit silences) between notes
-
-      // Set flag to prevent onPairsChange from overwriting
-      isUpdatingFromDrag = true;
-
-      // Re-sync grid and temporal bars
-      syncGridFromPairs(currentPairs);
-
-      // Update grid editor (with silences filled in gaps)
-      if (gridEditor) {
-        gridEditor.setPairs(pairsWithSilencesForEditor(currentPairs));
-      }
-
-      // Play preview sound (not for silences)
-      if (!originalPair.isRest) {
-        playNotePreview(originalPair.note, originalPair.registry, newIT);
-      }
-
-      // Reset flag after next animation frame
-      requestAnimationFrame(() => {
-        isUpdatingFromDrag = false;
-      });
-    }
-  }
-
-  // Reset drag state
-  dragState = {
-    active: false,
-    startSpaceIndex: null,
-    currentSpaceIndex: null,
-    noteIndex: null,
-    registryIndex: null,
-    rowId: null,
-    originalPair: null,
-    mode: null,
-    previewElement: null
-  };
-}
+// ========== GRID FUNCTIONS (using plano-modular + modular controllers) ==========
 
 /**
  * Play a preview sound for a note with given duration
  * @param {number} note - Note index (0-11)
- * @param {number} registry - Registry (3, 4, or 5)
+ * @param {number} registry - Registry (2-5)
  * @param {number} iT - Temporal interval (duration in pulses)
  */
 async function playNotePreview(note, registry, iT) {
@@ -678,48 +254,76 @@ async function playNotePreview(note, registry, iT) {
 }
 
 /**
- * Update drag highlight - illuminate cells being stretched
+ * Handle cell click from grid (Grid 2D → Editor sync)
+ * Custom handler that integrates with grid-editor and plays preview
  */
-function updateDragHighlight() {
-  if (!dragState.active || !grid) return;
+async function handleCellClick(rowData, colIndex, isSelected) {
+  if (isSelected) {
+    // Play the note
+    const audioInstance = await initAudio();
+    if (audioInstance && rowData.midi) {
+      const Tone = window.Tone;
+      if (Tone) {
+        const noteDuration = 0.3;
+        audioInstance.playNote(rowData.midi, noteDuration, Tone.now());
+      }
+    }
 
-  // Clear previous highlight
-  clearDragHighlight();
+    // Sync to grid-editor: parse rowId to get note and registry
+    const match = rowData.id.match(/^(\d+)r(\d+)$/);
+    if (match && gridEditor) {
+      const note = parseInt(match[1]);
+      const registry = parseInt(match[2]);
 
-  const matrixContainer = grid.getElements?.()?.matrixContainer;
-  if (!matrixContainer) return;
+      // Get current pairs from editor
+      const editorPairs = gridEditor.getPairs();
 
-  const rowId = dragState.rowId;
-  const startPulse = dragState.startSpaceIndex;
-  const endPulse = dragState.currentSpaceIndex;
+      // Check if this pulse already has a note
+      const existingIndex = editorPairs.findIndex(p => p.pulse === colIndex);
 
-  // Highlight all cells in the range
-  for (let pulse = startPulse; pulse <= endPulse; pulse++) {
-    const cell = matrixContainer.querySelector(
-      `.plano-cell[data-row-id="${rowId}"][data-col-index="${pulse}"]`
-    );
-    if (cell) {
-      cell.classList.add('drag-highlight');
+      if (existingIndex >= 0) {
+        // Update existing pair
+        editorPairs[existingIndex] = {
+          ...editorPairs[existingIndex],
+          note,
+          registry
+        };
+      } else {
+        // Add new pair - calculate temporalInterval from previous note
+        let temporalInterval = 1;
+        if (editorPairs.length > 0) {
+          const lastPair = editorPairs[editorPairs.length - 1];
+          const lastPulse = lastPair.pulse + (lastPair.temporalInterval || 1);
+          temporalInterval = colIndex - lastPulse + 1;
+          if (temporalInterval < 1) temporalInterval = 1;
+        }
+
+        editorPairs.push({
+          note,
+          registry,
+          pulse: colIndex,
+          temporalInterval
+        });
+      }
+
+      // Sort by pulse
+      editorPairs.sort((a, b) => a.pulse - b.pulse);
+
+      // Update editor (with silences filled in gaps)
+      gridEditor.setPairs(pairsWithSilencesForEditor(editorPairs));
+    }
+  } else {
+    // Cell was deselected - remove from grid-editor
+    if (gridEditor) {
+      const editorPairs = gridEditor.getPairs().filter(p => !p.isRest); // Remove silences first
+      const updatedPairs = editorPairs.filter(p => p.pulse !== colIndex);
+      gridEditor.setPairs(pairsWithSilencesForEditor(updatedPairs));
     }
   }
 }
 
 /**
- * Clear drag highlight from all cells
- */
-function clearDragHighlight() {
-  if (!grid) return;
-
-  const matrixContainer = grid.getElements?.()?.matrixContainer;
-  if (!matrixContainer) return;
-
-  matrixContainer.querySelectorAll('.plano-cell.drag-highlight').forEach(cell => {
-    cell.classList.remove('drag-highlight');
-  });
-}
-
-/**
- * Initialize the grid using plano-modular
+ * Initialize the grid using plano-modular and modular controllers
  */
 function initGrid() {
   const gridContainer = document.getElementById('rightColumn');
@@ -785,109 +389,61 @@ function initGrid() {
     });
   }
 
-  // Add np-dots to ALL cells (like App15/musical-grid)
-  addDotsToAllCells();
-
-  // Setup drag listeners for horizontal iT modification
-  setupDragListeners();
-
-  console.log('Grid initialized with plano-modular + interval renderer');
-}
-
-/**
- * Add np-dot elements to ALL cells in the grid (bottom-left corner)
- * This enables drag-to-create functionality like App15
- */
-function addDotsToAllCells() {
-  if (!grid) return;
-
-  const matrixContainer = grid.getElements?.()?.matrixContainer;
-  if (!matrixContainer) return;
-
-  // Get all plano-cells
-  const cells = matrixContainer.querySelectorAll('.plano-cell');
-
-  cells.forEach(cell => {
-    // Skip if dot already exists
-    if (cell.querySelector('.np-dot')) return;
-
-    // Create dot element (bottom-left corner)
-    const dot = document.createElement('div');
-    dot.className = 'np-dot np-dot-clickable';
-    dot.dataset.rowId = cell.dataset.rowId;
-    dot.dataset.colIndex = cell.dataset.colIndex;
-
-    cell.appendChild(dot);
+  // Initialize sync controller (handles Editor ↔ Grid 2D sync)
+  syncController = createGrid2DSyncController({
+    grid,
+    gridEditor,
+    getPairs: () => currentPairs,
+    setPairs: (pairs) => { currentPairs = pairs; },
+    config: {
+      defaultRegistry: CONFIG.DEFAULT_REGISTRO,
+      validateNoteRegistry,
+      fillGapsWithSilences: pairsWithSilencesForEditor
+    },
+    onSyncComplete: () => {
+      // Refresh dots after sync
+      syncController?.refreshDots();
+    }
   });
-}
 
-/**
- * Handle cell click from grid (Grid 2D → Editor sync)
- * When user clicks on Grid 2D, we need to update the grid-editor
- */
-async function handleCellClick(rowData, colIndex, isSelected) {
-  if (isSelected) {
-    // Play the note
-    const audioInstance = await initAudio();
-    if (audioInstance && rowData.midi) {
-      const Tone = window.Tone;
-      if (Tone) {
-        const noteDuration = 0.3;
-        audioInstance.playNote(rowData.midi, noteDuration, Tone.now());
-      }
+  // Enable drag mode (adds dots to all cells)
+  syncController.enableDragMode(true);
+
+  // Initialize drag handler (handles drag-to-create/edit)
+  // Use getter function because gridEditor may be null at this point
+  dragHandler = createIntervalNoteDragHandler({
+    grid,
+    gridEditor: () => gridEditor,
+    getPairs: () => currentPairs,
+    setPairs: (pairs) => { currentPairs = pairs; },
+    getTotalPulses,
+    syncController,
+    config: {
+      defaultRegistry: CONFIG.DEFAULT_REGISTRO,
+      monophonic: true
+    },
+    playNotePreview,
+    fillGapsWithSilences: pairsWithSilencesForEditor
+  });
+
+  // Attach drag listeners
+  dragHandler.attach();
+
+  // Initialize autoscroll controller (handles vertical scroll during playback)
+  autoscrollController = createRegistryAutoscrollController({
+    grid,
+    getSelectedArray: () => grid.getSelectedArray(),
+    config: {
+      minRegistry: CONFIG.MIN_REGISTRO,
+      maxRegistry: CONFIG.MAX_REGISTRO,
+      notesPerRegistry: CONFIG.NOTES_PER_REGISTRY,
+      visibleRows: 15,
+      zeroPosition: 7,
+      smoothScroll: true
     }
+  });
 
-    // Sync to grid-editor: parse rowId to get note and registry
-    const match = rowData.id.match(/^(\d+)r(\d+)$/);
-    if (match && gridEditor) {
-      const note = parseInt(match[1]);
-      const registry = parseInt(match[2]);
-
-      // Get current pairs from editor
-      const currentPairs = gridEditor.getPairs();
-
-      // Check if this pulse already has a note
-      const existingIndex = currentPairs.findIndex(p => p.pulse === colIndex);
-
-      if (existingIndex >= 0) {
-        // Update existing pair
-        currentPairs[existingIndex] = {
-          ...currentPairs[existingIndex],
-          note,
-          registry
-        };
-      } else {
-        // Add new pair - calculate temporalInterval from previous note
-        let temporalInterval = 1;
-        if (currentPairs.length > 0) {
-          const lastPair = currentPairs[currentPairs.length - 1];
-          const lastPulse = lastPair.pulse + (lastPair.temporalInterval || 1);
-          temporalInterval = colIndex - lastPulse + 1;
-          if (temporalInterval < 1) temporalInterval = 1;
-        }
-
-        currentPairs.push({
-          note,
-          registry,
-          pulse: colIndex,
-          temporalInterval
-        });
-      }
-
-      // Sort by pulse
-      currentPairs.sort((a, b) => a.pulse - b.pulse);
-
-      // Update editor (with silences filled in gaps)
-      gridEditor.setPairs(pairsWithSilencesForEditor(currentPairs));
-    }
-  } else {
-    // Cell was deselected - remove from grid-editor
-    if (gridEditor) {
-      const currentPairs = gridEditor.getPairs().filter(p => !p.isRest); // Remove silences first
-      const updatedPairs = currentPairs.filter(p => p.pulse !== colIndex);
-      gridEditor.setPairs(pairsWithSilencesForEditor(updatedPairs));
-    }
-  }
+  console.log('Grid initialized with plano-modular + modular controllers');
 }
 
 /**
@@ -902,12 +458,21 @@ function updateGrid() {
     grid.setCompas(compas || 1);
 
     // Re-add dots to all cells (they get removed when grid refreshes)
-    requestAnimationFrame(() => {
-      addDotsToAllCells();
-    });
+    if (syncController) {
+      syncController.refreshDots();
+    }
 
     // Apply initial scroll once the grid has real content
     maybeApplyInitialScroll();
+  }
+}
+
+/**
+ * Sync Grid 2D from pairs - wrapper for sync controller
+ */
+function syncGridFromPairs(pairs) {
+  if (syncController) {
+    syncController.syncGridFromPairs(pairs);
   }
 }
 
@@ -948,7 +513,7 @@ function initGridEditor() {
     columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
     onPairsChange: (pairs) => {
       // Skip if update came from drag (to prevent overwriting)
-      if (isUpdatingFromDrag) return;
+      if (dragHandler?.isFromDrag()) return;
       // Sync Grid 2D when editor changes
       syncGridFromPairs(pairs);
 
@@ -973,7 +538,7 @@ function updateGridEditorMaxPulse() {
   const totalPulses = getTotalPulses();
   if (totalPulses > 0 && elements.gridEditorContainer) {
     // Save current pairs before re-initializing
-    const currentPairs = gridEditor ? gridEditor.getPairs() : [];
+    const savedPairs = gridEditor ? gridEditor.getPairs() : [];
 
     const isMobile = window.innerWidth <= 900;
 
@@ -1003,7 +568,7 @@ function updateGridEditorMaxPulse() {
       columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
       onPairsChange: (pairs) => {
         // Skip if update came from drag (to prevent overwriting)
-        if (isUpdatingFromDrag) return;
+        if (dragHandler?.isFromDrag()) return;
         syncGridFromPairs(pairs);
 
         // Auto-scroll to show the last entered note when not playing
@@ -1020,8 +585,8 @@ function updateGridEditorMaxPulse() {
     });
 
     // Restore pairs (if they fit within new max)
-    if (currentPairs.length > 0) {
-      const validPairs = currentPairs.filter(p => !p.isRest && p.pulse < totalPulses);
+    if (savedPairs.length > 0) {
+      const validPairs = savedPairs.filter(p => !p.isRest && p.pulse < totalPulses);
       if (validPairs.length > 0) {
         gridEditor.setPairs(pairsWithSilencesForEditor(validPairs));
       }
@@ -1050,7 +615,9 @@ function maybeApplyInitialScroll() {
  * Scroll to a specific registry
  */
 function scrollToRegistry(targetRegistry, animated = false) {
-  if (grid) {
+  if (autoscrollController) {
+    autoscrollController.scrollToRegistry(targetRegistry, animated);
+  } else if (grid) {
     grid.setRegistry(targetRegistry, animated);
   }
 }
@@ -1075,7 +642,7 @@ function scrollToNote(note, registry, animated = false) {
     grid.scrollToRow(rowIndex, animated);
   } else {
     // Fallback to registry scroll if specific note not found
-    grid.setRegistry(registry, animated);
+    scrollToRegistry(registry, animated);
   }
 }
 
@@ -1138,8 +705,6 @@ function handleCyclesChange() {
   updateGridEditorMaxPulse();
 }
 
-// Registry handling removed - now entered via grid-editor NrX cells
-
 // ========== PLAYBACK ==========
 
 /**
@@ -1194,8 +759,10 @@ async function startPlayback() {
   // Get MIDI notes from grid selection
   const midiMap = grid.getSelectedMidiNotes();
 
-  // Build pulse → registry map for vertical autoscroll
-  const pulseRegistry = buildPulseRegistryMap(grid.getSelectedArray());
+  // Build pulse → registry map for vertical autoscroll (using modular controller)
+  const pulseRegistry = autoscrollController
+    ? autoscrollController.buildPulseRegistryMap()
+    : {};
 
   // Build pulse → pair map for accessing temporalInterval during playback
   const pulsePairMap = new Map();
@@ -1237,9 +804,9 @@ async function startPlayback() {
       // 1. Update playhead position
       grid.updatePlayhead(step);
 
-      // 2. Autoscroll VERTICAL: switch to registry of current note
-      if (pulseRegistry[step] !== undefined) {
-        grid.setRegistry(pulseRegistry[step], true);  // animated=true
+      // 2. Autoscroll VERTICAL: switch to registry of current note (using modular controller)
+      if (autoscrollController) {
+        autoscrollController.scrollToRegistryForPulse(step, pulseRegistry);
       }
 
       // 3. Highlight timeline number
@@ -1264,15 +831,16 @@ async function startPlayback() {
         }
       }
 
-      // 5. Anticipate registry change for NEXT pulse (after 75% of beat)
+      // 5. Anticipate registry change for NEXT pulse (using modular controller)
       const nextPulse = step + 1;
-      if (pulseRegistry[nextPulse] !== undefined && nextPulse < totalPulses) {
+      if (nextPulse < totalPulses && autoscrollController) {
         const registryChangeDelay = intervalSec * 1000 * 0.75;
-        setTimeout(() => {
-          if (isPlaying) {
-            grid.setRegistry(pulseRegistry[nextPulse], true);
-          }
-        }, registryChangeDelay);
+        autoscrollController.scheduleAnticipatedScroll(
+          nextPulse,
+          pulseRegistry,
+          registryChangeDelay,
+          () => isPlaying
+        );
       }
 
       // 6. Update cycle counter
@@ -1451,8 +1019,6 @@ function handleReset() {
 }
 
 // ========== PREFERENCES ==========
-// NOTE: App19 does NOT persist compas, cycles, or selections between sessions
-// Only BPM is saved (via shared-ui header preferences)
 
 function savePreferences() {
   // Only save BPM - compas, cycles and selections are NOT persisted
@@ -1512,7 +1078,6 @@ function setupEventHandlers() {
     if (audio && audio.setInstrument) {
       await audio.setInstrument(instrument);
     }
-    // Nota: El header ja guarda l'instrument a localStorage amb clau per-app
   });
 
   // Compás input with arrow keys
@@ -1530,7 +1095,7 @@ function setupEventHandlers() {
     }
   });
 
-  // Compás spinners - correct API: attachSpinnerRepeat(element, callback)
+  // Compás spinners
   attachSpinnerRepeat(elements.compasUp, incrementCompas);
   attachSpinnerRepeat(elements.compasDown, decrementCompas);
 
@@ -1551,11 +1116,9 @@ function setupEventHandlers() {
     }
   });
 
-  // Cycles spinners - correct API: attachSpinnerRepeat(element, callback)
+  // Cycles spinners
   attachSpinnerRepeat(elements.cycleUp, incrementCycles);
   attachSpinnerRepeat(elements.cycleDown, decrementCycles);
-
-  // Registry buttons removed - now entered via grid-editor
 
   // Play button
   elements.playBtn?.addEventListener('click', togglePlayback);
@@ -1640,15 +1203,13 @@ function bindElements() {
 }
 
 function initApp() {
-  console.log('Initializing App20: Plano y sucesión N-iT');
+  console.log('Initializing App20: Plano y sucesión N-iT (MODULAR)');
 
   // Setup piano preload in background (reduces latency on first play)
   setupPianoPreload({ delay: 300 });
 
   // Bind DOM elements
   bindElements();
-
-  // Nota: L'instrument es carrega automàticament pel header des de localStorage
 
   // Initialize BPM controller
   if (elements.inputBpm && elements.bpmUp && elements.bpmDown) {
@@ -1744,8 +1305,7 @@ function initApp() {
     loadMixerState();
   }
 
-  // Wire pulseToggleBtn using initAudioToggles (pattern from App15/App12)
-  // This handles race conditions and proper mixer sync
+  // Wire pulseToggleBtn using initAudioToggles
   if (elements.pulseToggleBtn) {
     initAudioToggles({
       toggles: [{
@@ -1775,7 +1335,7 @@ function initApp() {
   // Load saved preferences FIRST (to get compas/cycles)
   loadPreferences();
 
-  // Initialize the grid (plano-modular)
+  // Initialize the grid (plano-modular + modular controllers)
   initGrid();
 
   // Initialize the grid-editor (NrX-iT zigzag)
@@ -1790,7 +1350,7 @@ function initApp() {
     elements.inputCompas?.focus();
   });
 
-  console.log('App20 initialized');
+  console.log('App20 initialized (MODULAR)');
 }
 
 function loadMixerState() {
