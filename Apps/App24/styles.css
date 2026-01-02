@@ -562,32 +562,87 @@ html, body {
 }
 
 /* ============================================================================
-   RESPONSIVE - Small screens (600px)
+   RESPONSIVE - Small screens (600px) - LAYOUT VERTICAL
    ============================================================================ */
 
 @media (max-width: 600px) {
   :root {
-    --soundline-container-width: 110px;
+    --soundline-container-width: 120px;
     --connection-area-width: 100px;
-    --soundline-header-offset: -15px;
-    --soundline-title-size: 0.9rem;
-    --soundline-subtitle-size: 0.8rem;
+    --soundline-header-offset: 0px;
+    --soundline-title-size: 1rem;
+    --soundline-subtitle-size: 0.85rem;
     --soundline-number-size: 1.2rem;
-    --soundlines-height: clamp(280px, 55vh, 380px);
+    --soundlines-height: clamp(200px, 40vh, 280px);
   }
 
+  /* LAYOUT VERTICAL */
+  .timeline-wrapper {
+    flex-direction: column !important;
+    align-items: center !important;
+    padding: 0.25rem 0.5rem !important;
+    gap: 0.5rem !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  /* SELECTOR AL TOP */
+  .scale-selector-area {
+    order: -1;
+    width: 100%;
+    max-width: 100%;
+    min-width: auto;
+    margin-left: 0;
+    padding: 0.5rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .scale-selector-area .scale-selector {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .scale-selector-area .transpose-buttons {
+    grid-template-columns: repeat(6, 1fr);
+    max-width: 220px;
+    gap: 4px;
+  }
+
+  .scale-selector-area .transpose-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  /* SOUNDLINES AL CENTRE */
   .soundlines-area {
-    margin-left: 5px;
+    order: 0;
+    width: 100%;
+    margin-left: 0;
+    padding: 0.25rem;
+    justify-content: center;
   }
 
   .soundlines-wrapper {
-    max-height: none;
+    transform: none;
     height: var(--soundlines-height);
-    transform: translateX(-35px);
+    justify-content: center;
   }
 
   .soundline-header {
-    min-width: 70px;
+    min-width: auto;
+    transform: none;
+  }
+
+  .soundline-play {
+    transform: none;
+    width: 36px;
+    height: 36px;
   }
 
   .note-highlight {
@@ -596,27 +651,20 @@ html, body {
     left: 60px;
   }
 
-  .scale-selector-area {
-    min-width: 120px;
-    max-width: 140px;
-    padding: 0.2rem;
-    margin-left: -20px;
-  }
-
-  .scale-selector-area .transpose-btn {
-    width: 20px;
-    height: 20px;
-    font-size: 0.7rem;
-  }
-
+  /* PENTAGRAM + EE AL BOTTOM */
   .pentagram-area {
-    min-width: auto;
-    padding: 0.2rem;
+    order: 1;
+    width: 100%;
+    flex-direction: row;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem;
   }
 
-  .soundline-play {
-    width: 36px;
-    height: 36px;
+  .ee-display {
+    order: -1;
+    flex-direction: column;
+    gap: 0.2rem;
   }
 
   .ee-label {
@@ -624,7 +672,7 @@ html, body {
   }
 
   .ee-number {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 
   .ee-function {
@@ -633,18 +681,17 @@ html, body {
 }
 
 /* ============================================================================
-   RESPONSIVE - Mobile (480px)
+   RESPONSIVE - Mobile (480px) - Hereda layout vertical de 600px
    ============================================================================ */
 
 @media (max-width: 480px) {
   :root {
     --soundline-container-width: 100px;
     --connection-area-width: 80px;
-    --soundline-header-offset: -12px;
-    --soundline-title-size: 0.85rem;
-    --soundline-subtitle-size: 0.75rem;
+    --soundline-title-size: 0.9rem;
+    --soundline-subtitle-size: 0.8rem;
     --soundline-number-size: 1.1rem;
-    --soundlines-height: clamp(250px, 50vh, 320px);
+    --soundlines-height: clamp(180px, 35vh, 240px);
   }
 
   .soundline::before {
@@ -666,36 +713,16 @@ html, body {
     height: 8px;
   }
 
-  .soundlines-area {
-    margin-left: 0;
-  }
-
-  .soundlines-wrapper {
-    max-height: none;
-    height: var(--soundlines-height);
-    transform: translateX(-25px);
-  }
-
-  .soundline-header {
-    min-width: 60px;
-  }
-
   .note-highlight {
     left: 50px;
     width: 45px;
     height: 18px;
   }
 
-  .scale-selector-area {
-    min-width: 100px;
-    max-width: 120px;
-    padding: 0.15rem;
-    margin-left: -15px;
-  }
-
-  .pentagram-area {
-    min-width: auto;
-    padding: 0.15rem;
+  .scale-selector-area .transpose-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
   }
 
   .soundline-play {
@@ -704,31 +731,30 @@ html, body {
   }
 
   .ee-label {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
 
   .ee-number {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
   }
 
   .ee-function {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
   }
 }
 
 /* ============================================================================
-   RESPONSIVE - Ultra compact (400px)
+   RESPONSIVE - Ultra compact (400px) - Hereda layout vertical
    ============================================================================ */
 
 @media (max-width: 400px) {
   :root {
-    --soundline-container-width: 90px;
+    --soundline-container-width: 85px;
     --connection-area-width: 60px;
-    --soundline-header-offset: -10px;
-    --soundline-title-size: 0.8rem;
-    --soundline-subtitle-size: 0.7rem;
+    --soundline-title-size: 0.85rem;
+    --soundline-subtitle-size: 0.75rem;
     --soundline-number-size: 1rem;
-    --soundlines-height: clamp(220px, 45vh, 280px);
+    --soundlines-height: clamp(160px, 30vh, 220px);
   }
 
   .soundline::before {
@@ -750,59 +776,42 @@ html, body {
     height: 7px;
   }
 
-  .soundlines-area {
-    margin-left: 0;
-  }
-
-  .soundlines-wrapper {
-    max-height: none;
-    height: var(--soundlines-height);
-    transform: translateX(-15px);
-  }
-
   .note-highlight {
     left: 45px;
     width: 40px;
     height: 16px;
   }
 
-  .scale-selector-area {
-    min-width: 90px;
-    max-width: 100px;
-    padding: 0.1rem;
-    margin-left: -10px;
-  }
-
-  .pentagram-area {
-    min-width: 100px;
-    padding: 0.3rem;
-  }
-
-  .ee-label {
+  .scale-selector-area .transpose-btn {
+    width: 26px;
+    height: 26px;
     font-size: 0.75rem;
   }
 
+  .ee-label {
+    font-size: 0.8rem;
+  }
+
   .ee-number {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
   }
 
   .ee-function {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
 
   .ee-display {
-    gap: 0.2rem;
-    padding: 0.2rem 0.3rem;
+    gap: 0.15rem;
   }
 }
 
 /* ============================================================================
-   ALERTA D'ESPAI MÍNIM - Pantalles molt petites (< 360px width o < 400px height)
+   ALERTA D'ESPAI MÍNIM - Només per pantalles EXTREMADAMENT petites
    ============================================================================ */
 
-@media (max-width: 360px), (max-height: 400px) {
+@media (max-width: 320px) {
   body::before {
-    content: '⟲ Pantalla massa petita. Gira el dispositiu o usa una pantalla més gran.';
+    content: '📱 Pantalla massa petita per aquesta aplicació.';
     position: fixed;
     top: 0;
     left: 0;
@@ -815,7 +824,7 @@ html, body {
     justify-content: center;
     text-align: center;
     padding: 2rem;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     line-height: 1.5;
     z-index: 99999;
   }
