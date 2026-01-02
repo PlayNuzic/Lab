@@ -97,7 +97,8 @@ export async function loadFlute() {
       try {
         sampler = new Tone.Sampler({
           urls,
-          release: 0.4,  // Shorter release than violin - flute sound decays faster
+          attack: 0.1,    // Soft attack to smooth the start
+          release: 0.8,   // Longer release for smoother decay
           baseUrl: BASE_URL
         });
         console.log('Flute: Tone.Sampler created successfully');
