@@ -171,16 +171,16 @@ export function drawPentagram(container, midis = [], options = {}) {
         }
         midis.forEach((m, idx) => {
           const parts = (useKs || keepSpelling) ? midiToPartsByKeySig(m, ksMap) : partsSeq[idx];
-          const note = new StaveNote({ keys: [parts.key], duration, clef: singleClef });
-          // Assignar stave i calcular auto_stem DESPRÉS per tenir les keyProps correctes
-          note.setStave(stave);
           // Per notes molt altes (B4=71 o superior en treble), forçar stem down
           // autoStem pot fallar en aquests casos límit
-          if (singleClef === 'treble' && m >= 71) {
-            note.setStemDirection(-1); // STEM_DOWN
-          } else {
-            note.autoStem();
-          }
+          const stemDir = (singleClef === 'treble' && m >= 71) ? -1 : undefined;
+          const note = new StaveNote({
+            keys: [parts.key],
+            duration,
+            clef: singleClef,
+            autoStem: stemDir === undefined,
+            stemDirection: stemDir
+          });
           const need = useKs ? needsAccidental(parts, ksMap) : !!parts.accidental;
           if (need){
             const acc = new Accidental(parts.accidental);
