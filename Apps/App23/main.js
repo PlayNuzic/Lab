@@ -643,8 +643,11 @@ function initApp() {
   // Dibujar líneas de conexión
   drawConnectionLines();
 
-  // Renderitzar pentagrama inicial
-  renderPentagram();
+  // Renderitzar pentagrama inicial (amb delay per assegurar DOM llest)
+  // Usem requestAnimationFrame per esperar al següent frame del navegador
+  requestAnimationFrame(() => {
+    renderPentagram();
+  });
 
   // Setup selector de nota de salida
   setupOutputNoteListeners();
