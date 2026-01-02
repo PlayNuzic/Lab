@@ -495,6 +495,9 @@ async function playChromatic() {
     return;
   }
 
+  // No permetre si l'altre play està actiu
+  if (isPlayingScale) return;
+
   isPlayingChromatic = true;
   stopChromaticRequested = false;
   playChromaticBtn.classList.add('playing');
@@ -544,6 +547,9 @@ async function playScale() {
     stopScaleRequested = true;
     return;
   }
+
+  // No permetre si l'altre play està actiu
+  if (isPlayingChromatic) return;
 
   isPlayingScale = true;
   stopScaleRequested = false;
