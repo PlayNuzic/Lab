@@ -267,7 +267,9 @@ function updateChromaticHighlights() {
 
   numbers.forEach(num => {
     const noteIndex = parseInt(num.dataset.note, 10);
-    if (transposedNotes.includes(noteIndex)) {
+    // La nota mostrada és (noteIndex + outputNote) % 12
+    const displayedNote = (noteIndex + outputNote) % 12;
+    if (transposedNotes.includes(displayedNote)) {
       num.classList.add('highlighted');
     } else {
       num.classList.remove('highlighted');
