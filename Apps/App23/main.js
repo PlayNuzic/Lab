@@ -4,6 +4,7 @@ import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-co
 import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { drawPentagram } from '../../libs/notation/index.js';
+import { setupPianoPreload } from '../../libs/sound/piano.js';
 
 // ============================================================================
 // ESTADO
@@ -665,22 +666,8 @@ function initApp() {
   // Escolta canvis d'instrument des del dropdown del header
   setupInstrumentListener();
 
-  // Precargar audio al primer clic dins l'app (redueix latència en Play)
-  const preloadOnFirstInteraction = async () => {
-    document.removeEventListener('click', preloadOnFirstInteraction);
-    document.removeEventListener('touchstart', preloadOnFirstInteraction);
-
-    try {
-      if (!audio) {
-        audio = await initAudio();
-        console.log('Audio preloaded on first interaction');
-      }
-    } catch (err) {
-      console.warn('Audio preload failed:', err);
-    }
-  };
-  document.addEventListener('click', preloadOnFirstInteraction, { once: true });
-  document.addEventListener('touchstart', preloadOnFirstInteraction, { once: true });
+  // Precargar samples de piano en background (redueix latència en el primer play)
+  setupPianoPreload({ delay: 300 });
 
   console.log('App23 inicializada correctamente');
 }
