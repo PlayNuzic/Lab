@@ -1,0 +1,400 @@
+/* libs/soundlines/soundlines.css */
+/* Estils compartits per soundlines a Apps 21, 23, 24 */
+
+/* ============================================================================
+   VARIABLES CSS - Valors per defecte
+   ============================================================================ */
+
+:root {
+  --line-color: #666;
+  --soundline-width: 3px;
+  --note-highlight-color: var(--selection-color, #FFBB33);
+
+  /* Soundlines sizing */
+  --soundlines-height: clamp(400px, 75vh, 650px);
+  --soundline-container-width: 150px;
+  --connection-area-width: 180px;
+
+  /* Ajust fi horitzontal del contenidor de soundlines */
+  --soundlines-offset-x: 0px;
+
+  /* Llargada de les línies de connexió (0-100%) */
+  --connection-length: 70%;
+
+  /* Header sizing */
+  --soundline-header-offset: -23px;
+  --soundline-title-size: 1.25rem;
+  --soundline-subtitle-size: 1.1rem;
+  --soundline-number-size: 1.6rem;
+}
+
+[data-theme="dark"] {
+  --line-color: #999;
+}
+
+/* ============================================================================
+   IFRAME COMPATIBILITY - Base layout (patró App11A/App12/App15)
+   ============================================================================ */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+/* ============================================================================
+   LAYOUT - Integració amb app-wrap del template
+   ============================================================================ */
+
+.timeline-wrapper {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  padding: 0.5rem 1rem !important;
+  gap: 0 !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+/* Ocultar el timeline per defecte del template */
+.timeline {
+  display: none !important;
+}
+
+/* Ocultar controls del template que no usem */
+.controls {
+  display: none !important;
+}
+
+/* ============================================================================
+   AREA DE SOUNDLINES
+   ============================================================================ */
+
+.soundlines-area {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex: 1;
+  padding: 0.5rem;
+  padding-top: 0;
+  padding-bottom: 1rem;
+  min-width: 0;
+  overflow: visible;
+}
+
+.soundlines-wrapper {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  height: var(--soundlines-height);
+  transform: translateX(var(--soundlines-offset-x, 0));
+}
+
+.soundline-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+/* ============================================================================
+   SOUNDLINE HEADERS (títols i subtítols)
+   ============================================================================ */
+
+.soundline-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-align: center;
+  min-width: 100px;
+  transform: translateX(var(--soundline-header-offset));
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.soundline-title {
+  font-size: var(--soundline-title-size);
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-lg, #7BB4CD);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.soundline-subtitle {
+  font-size: var(--soundline-subtitle-size);
+  font-weight: 400;
+  color: var(--line-color, #666);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.soundline-container {
+  position: relative;
+  width: var(--soundline-container-width);
+  height: 100%;
+  min-height: 0;
+}
+
+/* ============================================================================
+   SOUNDLINE (estil App10 amb línia vertical via ::before)
+   ============================================================================ */
+
+.soundline {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Línia vertical principal */
+.soundline::before {
+  content: '';
+  position: absolute;
+  left: 50px;
+  top: var(--line-top, 0);
+  bottom: var(--line-bottom, 0);
+  width: var(--soundline-width);
+  background: var(--line-color);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Divisions horitzontals */
+.soundline-division {
+  position: absolute;
+  width: 30px;
+  height: 2px;
+  background: var(--line-color);
+  left: 35px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Números */
+.soundline-number {
+  position: absolute;
+  font-size: var(--soundline-number-size);
+  font-weight: 400;
+  color: var(--text-color, #333);
+  user-select: none;
+  z-index: 3;
+  opacity: 0.85;
+  left: 0;
+  text-align: right;
+  width: 30px;
+}
+
+[data-theme="dark"] .soundline-number {
+  color: var(--text-dark, #e0e0e0);
+}
+
+/* Números destacats (graus de l'escala) */
+.soundline-number.highlighted {
+  color: var(--selection-color, #FFBB33);
+  font-weight: 600;
+}
+
+/* ============================================================================
+   SOUNDLINE D'ESCALA (amb dots per notes no incloses)
+   ============================================================================ */
+
+.soundline-dot {
+  position: absolute;
+  left: 46.5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--line-color);
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+/* ============================================================================
+   LÍNIES DE CONNEXIÓ
+   ============================================================================ */
+
+.connection-area {
+  position: relative;
+  width: var(--connection-area-width);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+}
+
+.connection-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.connection-line {
+  stroke: var(--line-color);
+  stroke-width: 2;
+  stroke-dasharray: 2 2;
+  opacity: 0.5;
+  transition: all 0.15s ease;
+}
+
+.connection-line.active {
+  stroke: var(--selection-color, #FFBB33);
+  stroke-width: 3;
+  stroke-dasharray: 2 2;
+  opacity: 1;
+}
+
+/* ============================================================================
+   HIGHLIGHTS
+   ============================================================================ */
+
+.note-highlight {
+  position: absolute;
+  width: 80px;
+  height: 30px;
+  left: 70px;
+  background: var(--note-highlight-color);
+  opacity: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 10;
+  transform: translateY(-50%);
+}
+
+.note-highlight.active {
+  opacity: 0.8;
+  box-shadow: 0 0 14px var(--note-highlight-color);
+  animation: noteFlash 0.3s ease-out;
+}
+
+@keyframes noteFlash {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.05);
+  }
+  100% {
+    opacity: 0.8;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+/* ============================================================================
+   BOTONS PLAY (un sota cada soundline)
+   ============================================================================ */
+
+.soundline-play {
+  margin-top: 0.5rem;
+  flex-shrink: 0;
+  transform: translateX(var(--soundline-header-offset, -23px));
+}
+
+/* Estat actiu durant reproducció */
+.soundline-play.playing {
+  color: var(--selection-color);
+  border-color: var(--selection-color);
+  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+}
+
+/* ============================================================================
+   EE DISPLAY (estructura escalar)
+   ============================================================================ */
+
+.ee-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0;
+  background: transparent;
+  margin-top: 0rem;
+}
+
+.ee-label {
+  font-size: 1.2rem;
+  font-weight: 525;
+  color: var(--color-lg, #7BB4CD);
+  margin-right: 0.25rem;
+}
+
+.ee-number {
+  font-size: 1.2rem;
+  font-weight: 525;
+  color: var(--text-color, #333);
+  font-family: monospace;
+}
+
+.ee-function {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--text-color, #333);
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .ee-number {
+  color: var(--text-dark, #e0e0e0);
+}
+
+[data-theme="dark"] .ee-function {
+  color: var(--text-dark, #e0e0e0);
+}
+
+/* ============================================================================
+   PENTAGRAM AREA
+   ============================================================================ */
+
+.pentagram-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.pentagram-container {
+  background: white;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+}
+
+.pentagram-container svg {
+  display: block;
+}
+
+/* ============================================================================
+   TITLE WRAPPER (títol + ee-display apilats) - Per App23
+   ============================================================================ */
+
+.title-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 150px;
+}
+
+.title-wrapper h1 {
+  margin: 0;
+}

@@ -1,0 +1,291 @@
+/* libs/soundlines/soundlines-responsive.css */
+/* Estils responsive per soundlines - Importat després de soundlines.css */
+
+/* ============================================================================
+   RESPONSIVE - Tablet landscape (900px)
+   ============================================================================ */
+
+@media (max-width: 900px) {
+  :root {
+    --soundlines-offset-x: -60px;
+    --soundline-container-width: 130px;
+    --connection-area-width: 150px;
+    --soundline-title-size: 1.1rem;
+    --soundline-subtitle-size: 1rem;
+    --soundline-number-size: 1.4rem;
+  }
+
+  .ee-label {
+    font-size: 1.7rem;
+  }
+
+  .ee-number {
+    font-size: 1.8rem;
+  }
+
+  .ee-function {
+    font-size: 1.7rem;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Tablet portrait (768px)
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  :root {
+    --soundlines-offset-x: -60px;
+    --soundline-container-width: 120px;
+    --connection-area-width: 120px;
+    --soundline-header-offset: -18px;
+    --soundline-title-size: 1rem;
+    --soundline-subtitle-size: 0.9rem;
+    --soundline-number-size: 1.3rem;
+    --soundlines-height: clamp(320px, 60vh, 420px);
+  }
+
+  .soundlines-area {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .soundlines-wrapper {
+    max-height: none;
+    height: var(--soundlines-height);
+  }
+
+  .soundline-header {
+    min-width: 80px;
+  }
+
+  .note-highlight {
+    width: 60px;
+    height: 24px;
+  }
+
+  /* Reduir botons play */
+  .soundline-play {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ee-label {
+    font-size: 1.3rem;
+  }
+
+  .ee-number {
+    font-size: 1.2rem;
+  }
+
+  .ee-function {
+    font-size: 1.2rem;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Small screens (600px)
+   ============================================================================ */
+
+@media (max-width: 600px) {
+  :root {
+    --soundlines-offset-x: -40px;
+    --soundline-container-width: 110px;
+    --connection-area-width: 100px;
+    --soundline-header-offset: -15px;
+    --soundline-title-size: 0.9rem;
+    --soundline-subtitle-size: 0.8rem;
+    --soundline-number-size: 1.2rem;
+    --soundlines-height: clamp(280px, 55vh, 380px);
+  }
+
+  .soundlines-wrapper {
+    max-height: none;
+    height: var(--soundlines-height);
+  }
+
+  .soundline-header {
+    min-width: 70px;
+  }
+
+  .note-highlight {
+    width: 50px;
+    height: 20px;
+    left: 60px;
+  }
+
+  .ee-label {
+    font-size: 1rem;
+  }
+
+  .ee-number {
+    font-size: 1rem;
+  }
+
+  .ee-function {
+    font-size: 0.9rem;
+  }
+
+  .title-wrapper {
+    margin-right: 0;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Mobile (480px)
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  :root {
+    --soundlines-offset-x: -30px;
+    --soundline-container-width: 100px;
+    --connection-area-width: 80px;
+    --soundline-header-offset: -12px;
+    --soundline-title-size: 0.85rem;
+    --soundline-subtitle-size: 0.75rem;
+    --soundline-number-size: 1.1rem;
+    --soundlines-height: clamp(250px, 50vh, 320px);
+  }
+
+  .soundline::before {
+    left: 40px;
+  }
+
+  .soundline-division {
+    width: 24px;
+    left: 28px;
+  }
+
+  .soundline-number {
+    width: 24px;
+  }
+
+  .soundline-dot {
+    left: 37.5px;
+    width: 8px;
+    height: 8px;
+  }
+
+  .soundlines-wrapper {
+    max-height: none;
+    height: var(--soundlines-height);
+  }
+
+  .soundline-header {
+    min-width: 60px;
+  }
+
+  .note-highlight {
+    left: 50px;
+    width: 45px;
+    height: 18px;
+  }
+
+  .soundline-play {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ee-label {
+    font-size: 0.9rem;
+  }
+
+  .ee-number {
+    font-size: 0.9rem;
+  }
+
+  .ee-function {
+    font-size: 0.85rem;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Ultra compact (400px)
+   ============================================================================ */
+
+@media (max-width: 400px) {
+  :root {
+    --soundlines-offset-x: -20px;
+    --soundline-container-width: 90px;
+    --connection-area-width: 60px;
+    --soundline-header-offset: -10px;
+    --soundline-title-size: 0.8rem;
+    --soundline-subtitle-size: 0.7rem;
+    --soundline-number-size: 1rem;
+    --soundlines-height: clamp(220px, 45vh, 280px);
+  }
+
+  .soundline::before {
+    left: 35px;
+  }
+
+  .soundline-division {
+    width: 20px;
+    left: 25px;
+  }
+
+  .soundline-number {
+    width: 22px;
+  }
+
+  .soundline-dot {
+    left: 32.5px;
+    width: 7px;
+    height: 7px;
+  }
+
+  .soundlines-wrapper {
+    max-height: none;
+    height: var(--soundlines-height);
+  }
+
+  .note-highlight {
+    left: 45px;
+    width: 40px;
+    height: 16px;
+  }
+
+  .ee-label {
+    font-size: 0.85rem;
+  }
+
+  .ee-number {
+    font-size: 0.85rem;
+  }
+
+  .ee-function {
+    font-size: 0.8rem;
+  }
+
+  .ee-display {
+    gap: 0.2rem;
+  }
+}
+
+/* ============================================================================
+   ALERTA D'ESPAI MÍNIM - Pantalles molt petites (< 360px width o < 400px height)
+   ============================================================================ */
+
+@media (max-width: 360px), (max-height: 400px) {
+  body::before {
+    content: '⟲ Pantalla massa petita. Gira el dispositiu o usa una pantalla més gran.';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    z-index: 99999;
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}

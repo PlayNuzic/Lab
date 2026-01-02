@@ -6,6 +6,16 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 import { drawPentagram } from '../../libs/notation/index.js';
 import { setupPianoPreload } from '../../libs/sound/piano.js';
 
+// Imports del mòdul soundlines compartit
+import {
+  createHighlightManager,
+  drawConnectionLines,
+  sleep,
+  setPlayIcon,
+  createPlayButtonHTML,
+  createEEDisplayHTML
+} from '../../libs/soundlines/index.js';
+
 // ============================================================================
 // ESTADO
 // ============================================================================
@@ -37,8 +47,8 @@ let outputNoteButtons = [];
 let chromaticSoundline = null;
 let scaleSoundline = null;
 
-// Highlights activos
-const activeHighlights = new Map();
+// Highlight manager
+let highlightManager = null;
 
 // Preference storage
 const preferenceStorage = createPreferenceStorage('app23');
@@ -54,10 +64,6 @@ const BASE_MIDI = 60; // C4
 // ============================================================================
 // UTILIDADES
 // ============================================================================
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 /**
  * Calcula les notes MIDI de l'escala Major transposada
@@ -199,18 +205,7 @@ function updateChromaticSoundlineLabels() {
 
 function updateChromaticHighlights() {
   const transposedNotes = getTransposedScaleNotes(outputNote);
-  const numbers = chromaticSoundline.element.querySelectorAll('.soundline-number');
-
-  numbers.forEach(num => {
-    const noteIndex = parseInt(num.dataset.note, 10);
-    // La nota mostrada és (noteIndex + outputNote) % 12
-    const displayedNote = (noteIndex + outputNote) % 12;
-    if (transposedNotes.includes(displayedNote)) {
-      num.classList.add('highlighted');
-    } else {
-      num.classList.remove('highlighted');
-    }
-  });
+  highlightManager.updateChromaticHighlights(chromaticSoundline, transposedNotes, outputNote);
 }
 
 // ============================================================================
@@ -239,73 +234,19 @@ function initScaleSoundline() {
   });
 
   // Tots els números de l'escala en selectcolor
-  applyHighlightColorsAll(scaleSoundline.element);
-}
-
-// ============================================================================
-// COLORACIÓN DE NÚMEROS
-// ============================================================================
-
-/**
- * Aplica color destacat a tots els números
- */
-function applyHighlightColorsAll(soundlineElement) {
-  const numbers = soundlineElement.querySelectorAll('.soundline-number');
-  numbers.forEach(num => {
-    num.classList.add('highlighted');
-  });
+  highlightManager.applyHighlightColorsAll(scaleSoundline.element);
 }
 
 // ============================================================================
 // LÍNEAS DE CONEXIÓN
 // ============================================================================
 
-function drawConnectionLines() {
-  connectionSvg.innerHTML = '';
-
-  const svgNS = 'http://www.w3.org/2000/svg';
-
-  // Llegir llargada des de la variable CSS --connection-length
-  const styles = getComputedStyle(document.documentElement);
-  const lengthRaw = styles.getPropertyValue('--connection-length').trim() || '80%';
-  const lengthPct = parseFloat(lengthRaw) || 80;
-
-  // Obtenir dimensions reals per alinear SVG amb soundline-container
-  const containerRect = chromaticContainer.getBoundingClientRect();
-  const svgRect = connectionSvg.getBoundingClientRect();
-
-  // Offset vertical entre l'SVG i el soundline-container
-  const offsetY = containerRect.top - svgRect.top;
-  const containerHeight = containerRect.height;
-  const svgHeight = svgRect.height;
-
-  // Guard against zero dimensions (element not visible)
-  if (svgHeight === 0 || containerHeight === 0) {
-    console.warn('Connection SVG or container has zero height, skipping line drawing');
-    return;
-  }
-
-  // Línies horitzontals per cada semitono de l'escala Mayor (posicions fixes 0,2,4,5,7,9,11)
-  MAJOR_SCALE_INTERVALS.forEach((semitone, degree) => {
-    // Posició relativa dins del soundline-container (0-100%)
-    const notePct = chromaticSoundline.getNotePosition(semitone);
-    // Convertir a posició absoluta dins del soundline-container
-    const noteY = (notePct / 100) * containerHeight;
-    // Afegir offset per convertir a coordenades de l'SVG
-    const svgY = offsetY + noteY;
-    // Convertir a percentatge de l'SVG
-    const yPct = (svgY / svgHeight) * 100;
-
-    const line = document.createElementNS(svgNS, 'line');
-    line.setAttribute('x1', '0%');
-    line.setAttribute('y1', `${yPct}%`);
-    line.setAttribute('x2', `${lengthPct}%`);
-    line.setAttribute('y2', `${yPct}%`);
-    line.setAttribute('class', 'connection-line');
-    line.setAttribute('data-semitone', semitone);
-    line.setAttribute('data-degree', degree);
-
-    connectionSvg.appendChild(line);
+function redrawConnectionLines() {
+  drawConnectionLines({
+    svg: connectionSvg,
+    chromaticContainer,
+    chromaticSoundline,
+    scaleNotes: MAJOR_SCALE_INTERVALS
   });
 }
 
@@ -349,81 +290,8 @@ function renderPentagram() {
 }
 
 // ============================================================================
-// HIGHLIGHTING
-// ============================================================================
-
-/**
- * Crea un highlight en la soundline usando la API del módulo
- */
-function createHighlight(soundlineApi, noteIndex) {
-  const yPct = soundlineApi.getNotePosition(noteIndex);
-
-  const highlight = document.createElement('div');
-  highlight.className = 'note-highlight';
-  highlight.style.top = `${yPct}%`;
-  highlight.dataset.note = noteIndex;
-
-  soundlineApi.element.appendChild(highlight);
-  return highlight;
-}
-
-/**
- * Destaca una nota en una soundline
- */
-function highlightNote(soundlineApi, noteIndex, durationMs, key) {
-  const existingKey = `${key}-${noteIndex}`;
-  if (activeHighlights.has(existingKey)) {
-    const prev = activeHighlights.get(existingKey);
-    prev.element.remove();
-    clearTimeout(prev.timeout);
-    activeHighlights.delete(existingKey);
-  }
-
-  const highlight = createHighlight(soundlineApi, noteIndex);
-  highlight.classList.add('active');
-
-  const timeout = setTimeout(() => {
-    highlight.classList.remove('active');
-    setTimeout(() => highlight.remove(), 150);
-    activeHighlights.delete(existingKey);
-  }, durationMs);
-
-  activeHighlights.set(existingKey, { element: highlight, timeout });
-}
-
-function highlightConnectionLine(semitone, durationMs) {
-  const line = connectionSvg.querySelector(`[data-semitone="${semitone}"]`);
-  if (!line) return;
-
-  line.classList.add('active');
-
-  setTimeout(() => {
-    line.classList.remove('active');
-  }, durationMs);
-}
-
-function clearAllHighlights() {
-  activeHighlights.forEach(({ element, timeout }) => {
-    clearTimeout(timeout);
-    element.remove();
-  });
-  activeHighlights.clear();
-
-  connectionSvg.querySelectorAll('.connection-line.active').forEach(line => {
-    line.classList.remove('active');
-  });
-}
-
-// ============================================================================
 // REPRODUCCIÓN
 // ============================================================================
-
-function setPlayIcon(btn, playing) {
-  const iconPlay = btn.querySelector('.icon-play');
-  const iconStop = btn.querySelector('.icon-stop');
-  if (iconPlay) iconPlay.style.display = playing ? 'none' : 'block';
-  if (iconStop) iconStop.style.display = playing ? 'block' : 'none';
-}
 
 /**
  * Reproduce la escala cromática (12 notas) desde la nota de salida
@@ -464,15 +332,14 @@ async function playChromatic() {
     const midiNote = (outputNote + i) % 12;
 
     // Highlight en cromática: posició física = i (0 és baix, 11 és dalt)
-    // El label a posició i mostra (i + outputNote) % 12
-    highlightNote(chromaticSoundline, i, intervalMs * 0.9, 'chromatic');
+    highlightManager.highlightNote(chromaticSoundline, i, intervalMs * 0.9, 'chromatic');
 
     // També highlight en escala i línia de connexió si la nota està a la Mayor transposada
     if (transposedNotes.includes(midiNote)) {
       // Trobar el semitone original (posició a la soundline escala)
       const originalSemitone = MAJOR_SCALE_INTERVALS[transposedNotes.indexOf(midiNote)];
-      highlightNote(scaleSoundline, originalSemitone, intervalMs * 0.9, 'scale');
-      highlightConnectionLine(originalSemitone, intervalMs * 0.9);
+      highlightManager.highlightNote(scaleSoundline, originalSemitone, intervalMs * 0.9, 'scale');
+      highlightManager.highlightConnectionLine(originalSemitone, intervalMs * 0.9);
     }
 
     await sleep(intervalMs);
@@ -520,15 +387,10 @@ async function playMajorScale() {
 
     playNote(midi, noteDuration);
 
-    // Highlight cromàtica: trobar la posició física on es mostra aquesta nota
-    // La nota MIDI que sona és (outputNote + originalSemitone) % 12
-    // La posició física que mostra aquesta nota és: originalSemitone
-    // (perquè a posició física p, es mostra el valor (p + outputNote) % 12)
-    // Volem trobar p tal que (p + outputNote) % 12 == (outputNote + originalSemitone) % 12
-    // Això és simplement p = originalSemitone
-    highlightNote(chromaticSoundline, originalSemitone, intervalMs * 0.9, 'chromatic');
-    highlightNote(scaleSoundline, originalSemitone, intervalMs * 0.9, 'scale');
-    highlightConnectionLine(originalSemitone, intervalMs * 0.9);
+    // Highlight en ambdues soundlines i línia de connexió
+    highlightManager.highlightNote(chromaticSoundline, originalSemitone, intervalMs * 0.9, 'chromatic');
+    highlightManager.highlightNote(scaleSoundline, originalSemitone, intervalMs * 0.9, 'scale');
+    highlightManager.highlightConnectionLine(originalSemitone, intervalMs * 0.9);
 
     await sleep(intervalMs);
   }
@@ -542,29 +404,6 @@ async function playMajorScale() {
 // ============================================================================
 // CREACIÓN DEL LAYOUT
 // ============================================================================
-
-function createPlayButton(id, ariaLabel) {
-  return `
-    <button id="${id}" class="play soundline-play" aria-label="${ariaLabel}">
-      <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="currentColor">
-        <path d="M73 39c-14.8-9-33 2.5-33 19v396c0 16.5 18.2 28 33 19l305-198c13.3-8.6 13.3-29.4 0-38L73 39z"/>
-      </svg>
-      <svg class="icon-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor" style="display:none">
-        <path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z"/>
-      </svg>
-    </button>
-  `;
-}
-
-function createEEDisplay() {
-  const eeNumbers = MAJOR_EE.map(n => `<span class="ee-number">${n}</span>`).join(' ');
-  return `
-    <div class="ee-display">
-      <span class="ee-label">eE:</span>
-      <span class="ee-function">iS(</span>${eeNumbers}<span class="ee-function">)</span>
-    </div>
-  `;
-}
 
 function createAppLayout() {
   timelineWrapper = document.querySelector('.timeline-wrapper');
@@ -589,7 +428,7 @@ function createAppLayout() {
             <span class="soundline-subtitle">Nm</span>
           </div>
           <div id="chromaticSoundline" class="soundline-container"></div>
-          ${createPlayButton('playChromaticBtn', 'Reproducir escala cromática')}
+          ${createPlayButtonHTML('playChromaticBtn', 'Reproducir escala cromática')}
         </div>
 
         <!-- Líneas de conexión -->
@@ -604,7 +443,7 @@ function createAppLayout() {
             <span class="soundline-subtitle">Nº</span>
           </div>
           <div id="scaleSoundline" class="soundline-container"></div>
-          ${createPlayButton('playScaleBtn', 'Reproducir escala Mayor')}
+          ${createPlayButtonHTML('playScaleBtn', 'Reproducir escala Mayor')}
         </div>
       </div>
     </div>
@@ -644,7 +483,7 @@ function initApp() {
     titleWrapper.className = 'title-wrapper';
     headerH1.parentNode.insertBefore(titleWrapper, headerH1);
     titleWrapper.appendChild(headerH1);
-    titleWrapper.insertAdjacentHTML('beforeend', createEEDisplay());
+    titleWrapper.insertAdjacentHTML('beforeend', createEEDisplayHTML(MAJOR_EE));
   }
 
   // Referencias DOM
@@ -655,15 +494,19 @@ function initApp() {
   playScaleBtn = document.getElementById('playScaleBtn');
   pentagramContainer = document.getElementById('pentagramContainer');
 
+  // Crear highlight manager (ara que tenim connectionSvg)
+  highlightManager = createHighlightManager({
+    connectionSvg
+  });
+
   // Crear soundlines
   initChromaticSoundline();
   initScaleSoundline();
 
   // Dibujar líneas de conexión
-  drawConnectionLines();
+  redrawConnectionLines();
 
   // Renderitzar pentagrama inicial (amb delay per assegurar DOM llest)
-  // Usem requestAnimationFrame per esperar al següent frame del navegador
   requestAnimationFrame(() => {
     renderPentagram();
   });
@@ -673,7 +516,7 @@ function initApp() {
 
   // Redibujar línies quan canvia la mida de la finestra
   window.addEventListener('resize', () => {
-    drawConnectionLines();
+    redrawConnectionLines();
     renderPentagram();
   });
 
