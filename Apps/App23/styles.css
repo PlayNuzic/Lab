@@ -430,7 +430,8 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
+  gap: 0.5rem;
+  margin-right: 150px;
 }
 
 .title-wrapper h1 {
@@ -448,7 +449,7 @@ html, body {
   gap: 0.4rem;
   padding: 0;
   background: transparent;
-  margin-top: -0.2rem;
+  margin-top: 0rem;
 }
 
 .ee-label {
