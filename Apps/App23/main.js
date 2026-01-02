@@ -628,10 +628,15 @@ function initApp() {
     return;
   }
 
-  // Inserir ee-display sota el títol
-  const header = document.querySelector('header h1');
-  if (header) {
-    header.insertAdjacentHTML('afterend', createEEDisplay());
+  // Inserir ee-display sota el títol (dins un wrapper per apilar-los)
+  const headerH1 = document.querySelector('header h1');
+  if (headerH1) {
+    // Crear wrapper per títol + ee-display
+    const titleWrapper = document.createElement('div');
+    titleWrapper.className = 'title-wrapper';
+    headerH1.parentNode.insertBefore(titleWrapper, headerH1);
+    titleWrapper.appendChild(headerH1);
+    titleWrapper.insertAdjacentHTML('beforeend', createEEDisplay());
   }
 
   // Referencias DOM
