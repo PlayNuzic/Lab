@@ -197,6 +197,19 @@ export function drawPentagram(container, midis = [], options = {}) {
       new Formatter().joinVoices([voice]).format([voice], width - 145);
       voice.draw(context, stave);
 
+      // Afegir data-idx als elements SVG de les notes per permetre highlights
+      noteObjs.forEach((o, i) => {
+        if (!o) return;
+        let el = o.note && o.note.attrs && o.note.attrs.el;
+        if (!el && o.note && typeof o.note.getSVGElement === 'function') {
+          el = o.note.getSVGElement();
+        }
+        if (el) {
+          el.dataset.idx = i;
+          el.dataset.clef = singleClef;
+        }
+      });
+
       const svg = container.querySelector('svg');
       const getPos = idx => {
         const obj = noteObjs[idx];
