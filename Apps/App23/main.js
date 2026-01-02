@@ -584,10 +584,9 @@ function createAppLayout() {
           ${createPlayButton('playChromaticBtn', 'Reproducir escala cromática')}
         </div>
 
-        <!-- Líneas de conexión + EE -->
+        <!-- Líneas de conexión -->
         <div class="connection-area">
           <svg id="connectionLines" class="connection-lines"></svg>
-          ${createEEDisplay()}
         </div>
 
         <!-- Soundline de escala Mayor -->
@@ -627,6 +626,12 @@ function initApp() {
   if (!createAppLayout()) {
     console.error('Error creando layout');
     return;
+  }
+
+  // Inserir ee-display sota el títol
+  const header = document.querySelector('header h1');
+  if (header) {
+    header.insertAdjacentHTML('afterend', createEEDisplay());
   }
 
   // Referencias DOM

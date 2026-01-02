@@ -423,18 +423,16 @@ html, body {
 }
 
 /* ============================================================================
-   EE DISPLAY (entre soundlines, bajo las conexiones)
+   EE DISPLAY (sota el títol de l'app)
    ============================================================================ */
 
 .ee-display {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  margin-top: 34.3rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.75rem;
   background: transparent;
-  border-radius: 6px;
-  transform: translateX(var(--soundline-header-offset, -10px));
 }
 
 .ee-label {
@@ -573,10 +571,6 @@ html, body {
     height: 40px;
   }
 
-  .ee-display {
-    margin-top: 22rem;
-  }
-
   .ee-label {
     font-size: 1.3rem;
   }
@@ -648,10 +642,6 @@ html, body {
   .soundline-play {
     width: 36px;
     height: 36px;
-  }
-
-  .ee-display {
-    margin-top: 18rem;
   }
 
   .ee-label {
@@ -747,11 +737,6 @@ html, body {
     height: 32px;
   }
 
-  .ee-display {
-    margin-top: 16rem;
-    padding: 0.3rem;
-  }
-
   .ee-label {
     font-size: 0.9rem;
   }
@@ -761,7 +746,7 @@ html, body {
   }
 
   .ee-function {
-    font-size: 1.1rem;
+    font-size: 0.85rem;
   }
 }
 
