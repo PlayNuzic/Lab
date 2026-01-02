@@ -37,8 +37,9 @@ describe('SCALE_IDS', () => {
     expect(SCALE_IDS).toContain('TON');
   });
 
-  test('should have 8 mother scales', () => {
-    expect(SCALE_IDS.length).toBe(8);
+  test('should have 9 mother scales', () => {
+    expect(SCALE_IDS).toContain('PENT');
+    expect(SCALE_IDS.length).toBe(9);
   });
 });
 
@@ -92,6 +93,11 @@ describe('ALL_SCALES', () => {
     expect(cromScales.length).toBe(1);
   });
 
+  test('should include PENT rotations (2 modes)', () => {
+    const pentScales = ALL_SCALES.filter(s => s.id === 'PENT');
+    expect(pentScales.length).toBe(2);
+  });
+
   test('each scale should have required properties', () => {
     ALL_SCALES.forEach(scale => {
       expect(scale).toHaveProperty('id');
@@ -111,8 +117,9 @@ describe('ALL_SCALES', () => {
     });
   });
 
-  test('total scales should be 34 (7+7+7+7+2+2+1+1)', () => {
-    expect(ALL_SCALES.length).toBe(34);
+  test('total scales should be 36 (7+7+7+7+2+2+2+1+1)', () => {
+    // DIAT(7) + ACUS(7) + ARMme(7) + ARMma(7) + OCT(2) + HEX(2) + PENT(2) + TON(1) + CROM(1) = 36
+    expect(ALL_SCALES.length).toBe(36);
   });
 });
 
@@ -305,7 +312,7 @@ describe('filterScales', () => {
 
   test('onlyFirstRotation should return only mode 0 of each scale', () => {
     const result = filterScales({ onlyFirstRotation: true });
-    expect(result.length).toBe(8); // One per mother scale
+    expect(result.length).toBe(9); // One per mother scale (including PENT)
     expect(result.every(s => s.rotation === 0)).toBe(true);
   });
 
@@ -424,7 +431,7 @@ describe('getScalesByPreset', () => {
 
   test('motherScalesOnly preset should return only first rotations', () => {
     const result = getScalesByPreset('motherScalesOnly');
-    expect(result.length).toBe(8);
+    expect(result.length).toBe(9); // Including PENT
     expect(result.every(s => s.rotation === 0)).toBe(true);
   });
 
