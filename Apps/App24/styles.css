@@ -542,7 +542,6 @@ html, body {
     padding: 0.25rem;
   }
 
-  /* Reduir botons play */
   .soundline-play {
     width: 40px;
     height: 40px;
@@ -576,41 +575,46 @@ html, body {
     --soundlines-height: clamp(200px, 40vh, 280px);
   }
 
-  /* LAYOUT VERTICAL */
+  /* LAYOUT VERTICAL amb scroll activat */
   .timeline-wrapper {
     flex-direction: column !important;
     align-items: center !important;
-    padding: 0.25rem 0.5rem !important;
-    gap: 0.5rem !important;
+    padding: 0.5rem !important;
+    gap: 1rem !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
+    height: 100% !important;
   }
 
-  /* SELECTOR AL TOP */
+  /* SELECTOR AL TOP - CENTRAT */
   .scale-selector-area {
     order: -1;
     width: 100%;
     max-width: 100%;
     min-width: auto;
     margin-left: 0;
-    padding: 0.5rem;
-    flex-direction: row;
-    flex-wrap: wrap;
+    padding: 0.75rem;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    flex-shrink: 0;
   }
 
   .scale-selector-area .scale-selector {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     gap: 0.5rem;
+    width: 100%;
   }
 
+  /* Botons de transposició CENTRATS */
   .scale-selector-area .transpose-buttons {
     grid-template-columns: repeat(6, 1fr);
-    max-width: 220px;
-    gap: 4px;
+    max-width: 260px;
+    gap: 6px;
+    margin: 0 auto;
+    justify-content: center;
   }
 
   .scale-selector-area .transpose-btn {
@@ -624,8 +628,9 @@ html, body {
     order: 0;
     width: 100%;
     margin-left: 0;
-    padding: 0.25rem;
+    padding: 0.5rem;
     justify-content: center;
+    flex-shrink: 0;
   }
 
   .soundlines-wrapper {
@@ -651,20 +656,23 @@ html, body {
     left: 60px;
   }
 
-  /* PENTAGRAM + EE AL BOTTOM */
+  /* PENTAGRAM + EE AL BOTTOM - eE HORITZONTAL sobre pentagrama */
   .pentagram-area {
     order: 1;
     width: 100%;
-    flex-direction: row;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    gap: 1rem;
+    gap: 0.5rem;
     padding: 0.5rem;
+    flex-shrink: 0;
   }
 
+  /* eE HORITZONTAL sobre pentagrama (NO vertical) */
   .ee-display {
     order: -1;
-    flex-direction: column;
-    gap: 0.2rem;
+    flex-direction: row;
+    gap: 0.4rem;
   }
 
   .ee-label {
