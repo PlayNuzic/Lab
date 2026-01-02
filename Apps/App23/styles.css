@@ -6,6 +6,20 @@
 @import '../../libs/soundlines/soundlines-responsive.css';
 
 /* ============================================================================
+   APP23-SPECIFIC: EE-DISPLAY MÉS GRAN (igual que App24)
+   ============================================================================ */
+
+.ee-display {
+  font-size: 1.5em;
+}
+
+.ee-label,
+.ee-number,
+.ee-function {
+  font-size: 1.5em;
+}
+
+/* ============================================================================
    APP23-SPECIFIC: OUTPUT NOTE SELECTOR (esquerra, centrat verticalment)
    ============================================================================ */
 
