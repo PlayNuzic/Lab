@@ -15,6 +15,7 @@ export const motherScalesData = {
   ACUS: { name: 'Acústica', ee: [2,2,2,1,2,1,2], rotNames: ['Acústica','Mixol b6','Semidim','Alterada','Menor Mel.','Dórica b2','Lidia Aum'] },
   ARMme: { name: 'Armónica Menor', ee: [2,1,2,2,1,3,1], rotNames: ['Arm Menor','Locria Nat','Mayor Aum','Lidia Dim','Frigia Dom','Aeo Arm','Ultralocr'] },
   ARMma: { name: 'Armónica Mayor', ee: [2,2,1,2,1,3,1], rotNames: ['Arm Mayor','Dórica b5','Frigia b4','Lidia b3','Mixo b9','Lidia #2','Locria bb7'] },
+  PENT: { name: 'Pentatónica', ee: [2,2,3,2,3], rotNames: ['Mayor','Menor'] },
   OCT: { name: 'Octatónica', ee: [1,2,1,2,1,2,1,2], rotNames: ['Modo 1','Modo 2'] },
   HEX: { name: 'Hexatónica', ee: [1,3,1,3,1,3], rotNames: ['Aumentada','Inversa'] },
   TON: { name: 'Tonos', ee: [2,2,2,2,2,2], rotNames: ['Único'] }
@@ -61,6 +62,21 @@ export function scaleSemis(id) {
 // ============================================================================
 
 export const scaleKeySignatures = {
+  // Pentatònica: subconjunt de diatònica, mateixos accidentals
+  PENT: [
+    [],                              // C: cap
+    ['Bb','Eb'],                     // Db: 2 bemolls
+    ['F#','C#'],                     // D: 2 sostinguts
+    ['Bb','Eb','Ab'],                // Eb: 3 bemolls
+    ['F#','C#','G#','D#'],           // E: 4 sostinguts
+    ['Bb'],                          // F: 1 bemoll
+    ['F#','C#','G#','D#','A#'],      // F#/Gb: 5 sostinguts
+    ['F#'],                          // G: 1 sostingut
+    ['Bb','Eb','Ab','Db'],           // Ab: 4 bemolls
+    ['F#','C#','G#'],                // A: 3 sostinguts
+    ['Bb','Eb'],                     // Bb: 2 bemolls
+    ['F#','C#','G#','D#','A#']       // B: 5 sostinguts
+  ],
   DIAT: [
     [],
     ['Bb','Eb','Ab','Db','Gb'],

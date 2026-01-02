@@ -1,0 +1,826 @@
+/* App24: Escalas y Transposición - Styles */
+/* Basado en App23, con scale-selector en lugar de output-note-selector */
+/* Refactorizado para iframe compatibility (siguiendo patrón App11A/App12/App15) */
+
+/* Import scale-selector styles */
+@import '../../libs/scale-selector/scale-selector.css';
+
+/* ============================================================================
+   VARIABLES CSS - Responsive con valores por defecto
+   ============================================================================ */
+
+:root {
+  --line-color: #666;
+  --soundline-width: 3px;
+  --note-highlight-color: var(--selection-color, #FFBB33);
+
+  /* Soundlines sizing */
+  --soundlines-height: clamp(400px, 75vh, 650px);
+  --soundline-container-width: 150px;
+  --connection-area-width: 180px;
+
+  /* Longitud de las líneas de conexión (0-100%) */
+  --connection-length: 70%;
+
+  /* Header sizing */
+  --soundline-header-offset: -23px;
+  --soundline-title-size: 1.25rem;
+  --soundline-subtitle-size: 1.1rem;
+  --soundline-number-size: 1.6rem;
+}
+
+[data-theme="dark"] {
+  --line-color: #999;
+}
+
+/* ============================================================================
+   IFRAME COMPATIBILITY - Base layout (patrón App11A/App12/App15)
+   ============================================================================ */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+/* ============================================================================
+   LAYOUT - Integración con app-wrap del template
+   ============================================================================ */
+
+/* El contenido de App21 va dentro de .timeline-wrapper */
+.timeline-wrapper {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  padding: 0.5rem 1rem !important;
+  gap: 0 !important;
+  /* Ocupar todo el espacio disponible */
+  flex: 1 !important;
+  min-height: 0 !important;
+  /* Permetre que els títols de soundlines siguin visibles */
+  overflow: visible !important;
+}
+
+/* Ocultar el timeline por defecto del template */
+.timeline {
+  display: none !important;
+}
+
+/* Ocultar controles del template que no usamos */
+.controls {
+  display: none !important;
+}
+
+/* ============================================================================
+   SCALE SELECTOR AREA (izquierda, centrado verticalmente)
+   ============================================================================ */
+
+.scale-selector-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  padding-right: 1rem;
+  flex-shrink: 0;
+  min-width: 180px;
+  max-width: 220px;
+  /* Margin negatiu per compensar l'espai visual sense usar transform */
+  margin-left: 10px;
+}
+
+/* Override scale-selector defaults for App24 */
+.scale-selector-area .scale-selector {
+  border-right: none;
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  align-items: center;
+}
+
+/* Transpose buttons: 2 rows (0-5 and 6-11) */
+.scale-selector-area .transpose-buttons {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+  justify-content: center;
+  max-width: 200px;
+}
+
+.scale-selector-area .transpose-btn {
+  width: 28px;
+  height: 28px;
+}
+
+/* ============================================================================
+   AREA DE SOUNDLINES
+   ============================================================================ */
+
+.soundlines-area {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  /* NO flex: 1 - mantenir tamany natural per no empènyer el pentagrama */
+  padding: 0.5rem;
+  padding-top: 0;
+  padding-bottom: 1rem;
+  min-width: 0;
+  /* Permetre overflow pels títols */
+  overflow: visible;
+  /* Margin per centrar visualment sense transform */
+  margin-left: 150px;
+}
+
+.soundlines-wrapper {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  height: var(--soundlines-height);
+  /* Offset per centrar visualment les soundlines */
+  transform: translateX(-60px);
+}
+
+.soundline-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+/* ============================================================================
+   SOUNDLINE HEADERS (títulos y subtítulos)
+   ============================================================================ */
+
+.soundline-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-align: center;
+  min-width: 100px;
+  transform: translateX(var(--soundline-header-offset));
+  flex-shrink: 0;
+  /* Evitar que es talli */
+  overflow: visible;
+}
+
+.soundline-title {
+  font-size: var(--soundline-title-size);
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-lg, #7BB4CD);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.soundline-subtitle {
+  font-size: var(--soundline-subtitle-size);
+  font-weight: 400;
+  color: var(--line-color, #666);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.soundline-container {
+  position: relative;
+  width: var(--soundline-container-width);
+  height: 100%;
+  min-height: 0;
+}
+
+/* ============================================================================
+   SOUNDLINE (estilo App10 con línea vertical via ::before)
+   ============================================================================ */
+
+.soundline {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Línea vertical principal (como App10) */
+.soundline::before {
+  content: '';
+  position: absolute;
+  left: 50px;
+  top: var(--line-top, 0);
+  bottom: var(--line-bottom, 0);
+  width: var(--soundline-width);
+  background: var(--line-color);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Divisiones horizontales (como App10) */
+.soundline-division {
+  position: absolute;
+  width: 30px;
+  height: 2px;
+  background: var(--line-color);
+  left: 35px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Números (estilo App10) */
+.soundline-number {
+  position: absolute;
+  font-size: var(--soundline-number-size);
+  font-weight: 400;
+  color: var(--text-color, #333);
+  user-select: none;
+  z-index: 3;
+  opacity: 0.85;
+  left: 0;
+  text-align: right;
+  width: 30px;
+}
+
+[data-theme="dark"] .soundline-number {
+  color: var(--text-dark, #e0e0e0);
+}
+
+/* Números destacats (graus de l'escala) */
+.soundline-number.highlighted {
+  color: var(--selection-color, #FFBB33);
+  font-weight: 600;
+}
+
+/* ============================================================================
+   SOUNDLINE DE ESCALA (con dots para notas no incluidas)
+   ============================================================================ */
+
+.soundline-dot {
+  position: absolute;
+  left: 46.5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--line-color);
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+/* ============================================================================
+   LÍNEAS DE CONEXIÓN
+   ============================================================================ */
+
+.connection-area {
+  position: relative;
+  width: var(--connection-area-width);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Ocupar tot l'espai vertical disponible */
+  align-self: stretch;
+}
+
+.connection-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.connection-line {
+  stroke: var(--line-color);
+  stroke-width: 2;
+  stroke-dasharray: 2 2;
+  opacity: 0.5;
+  transition: all 0.15s ease;
+}
+
+.connection-line.active {
+  stroke: var(--selection-color, #FFBB33);
+  stroke-width: 3;
+  stroke-dasharray: 2 2;
+  opacity: 1;
+}
+
+/* ============================================================================
+   HIGHLIGHTS
+   ============================================================================ */
+
+.note-highlight {
+  position: absolute;
+  width: 80px;
+  height: 30px;
+  left: 70px;
+  background: var(--note-highlight-color);
+  opacity: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 10;
+  transform: translateY(-50%);
+}
+
+.note-highlight.active {
+  opacity: 0.8;
+  box-shadow: 0 0 14px var(--note-highlight-color);
+  animation: noteFlash 0.3s ease-out;
+}
+
+@keyframes noteFlash {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.05);
+  }
+  100% {
+    opacity: 0.8;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+/* ============================================================================
+   BOTONES PLAY (un bajo cada soundline)
+   ============================================================================ */
+
+/* Botó play de cada soundline */
+.soundline-play {
+  margin-top: 0.5rem;
+  flex-shrink: 0;
+  /* Alinear amb la línia vertical de la soundline (mateix offset que els headers) */
+  transform: translateX(var(--soundline-header-offset, -23px));
+}
+
+
+/* Estado activo durante reproducción */
+.soundline-play.playing {
+  color: var(--selection-color);
+  border-color: var(--selection-color);
+  box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
+}
+
+/* ============================================================================
+   PENTAGRAM AREA (derecha, con ee-display arriba)
+   ============================================================================ */
+
+.pentagram-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.pentagram-container {
+  background: white;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+}
+
+.pentagram-container svg {
+  display: block;
+}
+
+/* ============================================================================
+   EE DISPLAY (sobre el pentagrama)
+   ============================================================================ */
+
+.ee-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  background: transparent;
+  margin: 0;
+}
+
+.ee-label {
+  font-size: 1.2rem;
+  font-weight: 525;
+  color: var(--color-lg, #7BB4CD);
+  margin-right: 0.25rem;
+}
+
+.ee-number {
+  font-size: 1.2rem;
+  font-weight: 525;
+  color: var(--text-color, #333);
+  font-family: monospace;
+}
+
+.ee-function {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--text-color, #333);
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .ee-number {
+  color: var(--text-dark, #e0e0e0);
+}
+
+[data-theme="dark"] .ee-function {
+  color: var(--text-dark, #e0e0e0);
+}
+
+/* ============================================================================
+   RESPONSIVE - Tablet landscape (900px)
+   ============================================================================ */
+
+@media (max-width: 900px) {
+  :root {
+    --soundline-container-width: 130px;
+    --connection-area-width: 150px;
+    --soundline-title-size: 1.1rem;
+    --soundline-subtitle-size: 1rem;
+    --soundline-number-size: 1.4rem;
+  }
+
+  .scale-selector-area {
+    min-width: 160px;
+    max-width: 180px;
+    margin-left: -30px;
+  }
+
+  .soundlines-area {
+    margin-left: 15px;
+  }
+
+  .soundlines-wrapper {
+    transform: translateX(-50px);
+  }
+
+  .scale-selector-area .transpose-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 0.85rem;
+  }
+
+  .pentagram-area {
+    min-width: 180px;
+    padding: 0.75rem;
+  }
+
+  .ee-label {
+    font-size: 1.1rem;
+  }
+
+  .ee-number {
+    font-size: 1.1rem;
+  }
+
+  .ee-function {
+    font-size: 1rem;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Tablet portrait (768px)
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  :root {
+    --soundline-container-width: 120px;
+    --connection-area-width: 120px;
+    --soundline-header-offset: -18px;
+    --soundline-title-size: 1rem;
+    --soundline-subtitle-size: 0.9rem;
+    --soundline-number-size: 1.3rem;
+    --soundlines-height: clamp(320px, 60vh, 420px);
+  }
+
+  .soundlines-area {
+    flex: 1;
+    min-height: 0;
+    margin-left: 10px;
+  }
+
+  .soundlines-wrapper {
+    max-height: none;
+    height: var(--soundlines-height);
+    transform: translateX(-50px);
+  }
+
+  .soundline-header {
+    min-width: 80px;
+  }
+
+  .note-highlight {
+    width: 60px;
+    height: 24px;
+  }
+
+  .scale-selector-area {
+    min-width: 140px;
+    max-width: 160px;
+    padding: 0.3rem;
+    margin-left: -25px;
+  }
+
+  .scale-selector-area .transpose-btn {
+    width: 22px;
+    height: 22px;
+    font-size: 0.75rem;
+  }
+
+  .pentagram-area {
+    min-width: auto;
+    padding: 0.25rem;
+  }
+
+  /* Reduir botons play */
+  .soundline-play {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ee-label {
+    font-size: 1rem;
+  }
+
+  .ee-number {
+    font-size: 0.95rem;
+  }
+
+  .ee-function {
+    font-size: 0.9rem;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Small screens (600px)
+   ============================================================================ */
+
+@media (max-width: 600px) {
+  :root {
+    --soundline-container-width: 110px;
+    --connection-area-width: 100px;
+    --soundline-header-offset: -15px;
+    --soundline-title-size: 0.9rem;
+    --soundline-subtitle-size: 0.8rem;
+    --soundline-number-size: 1.2rem;
+    --soundlines-height: clamp(280px, 55vh, 380px);
+  }
+
+  .soundlines-area {
+    margin-left: 5px;
+  }
+
+  .soundlines-wrapper {
+    max-height: none;
+    height: var(--soundlines-height);
+    transform: translateX(-35px);
+  }
+
+  .soundline-header {
+    min-width: 70px;
+  }
+
+  .note-highlight {
+    width: 50px;
+    height: 20px;
+    left: 60px;
+  }
+
+  .scale-selector-area {
+    min-width: 120px;
+    max-width: 140px;
+    padding: 0.2rem;
+    margin-left: -20px;
+  }
+
+  .scale-selector-area .transpose-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+  }
+
+  .pentagram-area {
+    min-width: auto;
+    padding: 0.2rem;
+  }
+
+  .soundline-play {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ee-label {
+    font-size: 0.9rem;
+  }
+
+  .ee-number {
+    font-size: 0.85rem;
+  }
+
+  .ee-function {
+    font-size: 0.85rem;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Mobile (480px)
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  :root {
+    --soundline-container-width: 100px;
+    --connection-area-width: 80px;
+    --soundline-header-offset: -12px;
+    --soundline-title-size: 0.85rem;
+    --soundline-subtitle-size: 0.75rem;
+    --soundline-number-size: 1.1rem;
+    --soundlines-height: clamp(250px, 50vh, 320px);
+  }
+
+  .soundline::before {
+    left: 40px;
+  }
+
+  .soundline-division {
+    width: 24px;
+    left: 28px;
+  }
+
+  .soundline-number {
+    width: 24px;
+  }
+
+  .soundline-dot {
+    left: 37.5px;
+    width: 8px;
+    height: 8px;
+  }
+
+  .soundlines-area {
+    margin-left: 0;
+  }
+
+  .soundlines-wrapper {
+    max-height: none;
+    height: var(--soundlines-height);
+    transform: translateX(-25px);
+  }
+
+  .soundline-header {
+    min-width: 60px;
+  }
+
+  .note-highlight {
+    left: 50px;
+    width: 45px;
+    height: 18px;
+  }
+
+  .scale-selector-area {
+    min-width: 100px;
+    max-width: 120px;
+    padding: 0.15rem;
+    margin-left: -15px;
+  }
+
+  .pentagram-area {
+    min-width: auto;
+    padding: 0.15rem;
+  }
+
+  .soundline-play {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ee-label {
+    font-size: 0.8rem;
+  }
+
+  .ee-number {
+    font-size: 0.75rem;
+  }
+
+  .ee-function {
+    font-size: 0.75rem;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE - Ultra compact (400px)
+   ============================================================================ */
+
+@media (max-width: 400px) {
+  :root {
+    --soundline-container-width: 90px;
+    --connection-area-width: 60px;
+    --soundline-header-offset: -10px;
+    --soundline-title-size: 0.8rem;
+    --soundline-subtitle-size: 0.7rem;
+    --soundline-number-size: 1rem;
+    --soundlines-height: clamp(220px, 45vh, 280px);
+  }
+
+  .soundline::before {
+    left: 35px;
+  }
+
+  .soundline-division {
+    width: 20px;
+    left: 25px;
+  }
+
+  .soundline-number {
+    width: 22px;
+  }
+
+  .soundline-dot {
+    left: 32.5px;
+    width: 7px;
+    height: 7px;
+  }
+
+  .soundlines-area {
+    margin-left: 0;
+  }
+
+  .soundlines-wrapper {
+    max-height: none;
+    height: var(--soundlines-height);
+    transform: translateX(-15px);
+  }
+
+  .note-highlight {
+    left: 45px;
+    width: 40px;
+    height: 16px;
+  }
+
+  .scale-selector-area {
+    min-width: 90px;
+    max-width: 100px;
+    padding: 0.1rem;
+    margin-left: -10px;
+  }
+
+  .pentagram-area {
+    min-width: 100px;
+    padding: 0.3rem;
+  }
+
+  .ee-label {
+    font-size: 0.75rem;
+  }
+
+  .ee-number {
+    font-size: 0.7rem;
+  }
+
+  .ee-function {
+    font-size: 0.7rem;
+  }
+
+  .ee-display {
+    gap: 0.2rem;
+    padding: 0.2rem 0.3rem;
+  }
+}
+
+/* ============================================================================
+   ALERTA D'ESPAI MÍNIM - Pantalles molt petites (< 360px width o < 400px height)
+   ============================================================================ */
+
+@media (max-width: 360px), (max-height: 400px) {
+  body::before {
+    content: '⟲ Pantalla massa petita. Gira el dispositiu o usa una pantalla més gran.';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    z-index: 99999;
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}

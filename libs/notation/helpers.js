@@ -1,4 +1,5 @@
 import { KeySignature } from '../vendor/vexflow/entry/vexflow.js';
+import { getKeySignature } from '../scales/index.js';
 
 // Single reference array for diatonic letter cycle
 const NOTE_CYCLE = ['c','d','e','f','g','a','b'];
@@ -298,8 +299,6 @@ export function keySignatureFrom(options){
   const idx = ((root % 12) + 12) % 12;
   return names[idx];
 }
-
-// import { getKeySignature } from '../vendor/chromatone-theory/scales.js';
 
 const DOUBLE_SHARP = '\uD834\uDD2A';
 const DOUBLE_FLAT = '\uD834\uDD2B';
