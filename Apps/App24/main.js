@@ -45,6 +45,7 @@ const APP24_SCALES = [
   { id: 'ARMma', rotation: 0, value: 'ARMma-0', name: 'Mayor Harmónica', rootOffset: 0 },
   { id: 'PENT', rotation: 0, value: 'PENT-0', name: 'Pentatónica', rootOffset: 0 },
   { id: 'TON', rotation: 0, value: 'TON-0', name: 'Tonos', rootOffset: 0 },
+  { id: 'CROM', rotation: 0, value: 'CROM-0', name: 'Cromática', rootOffset: 0 },
   { id: 'OCT', rotation: 0, value: 'OCT-0', name: 'Octatónica', rootOffset: 0 },
   { id: 'HEX', rotation: 0, value: 'HEX-0', name: 'Hexatónica', rootOffset: 0 }
 ];
@@ -448,6 +449,7 @@ async function playScale() {
     highlightManager.highlightNote(chromaticSoundline, originalSemitone, intervalMs * 0.9, 'chromatic');
     highlightManager.highlightNote(scaleSoundline, originalSemitone, intervalMs * 0.9, 'scale');
     highlightManager.highlightConnectionLine(originalSemitone, intervalMs * 0.9);
+    highlightManager.highlightPentagramNote(pentagramContainer, i, intervalMs * 0.9);
 
     await sleep(intervalMs);
   }

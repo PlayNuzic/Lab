@@ -383,6 +383,18 @@ html, body {
   display: block;
 }
 
+/* Highlight de notes del pentagrama durant playback */
+.pentagram-note-highlight {
+  fill: var(--selection-color, #FFBB33);
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.pentagram-note-highlight.active {
+  opacity: 0.6;
+}
+
 /* ============================================================================
    TITLE WRAPPER (títol + ee-display apilats) - Per App23
    ============================================================================ */

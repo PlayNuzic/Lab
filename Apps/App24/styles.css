@@ -7,6 +7,20 @@
 @import '../../libs/scale-selector/scale-selector.css';
 
 /* ============================================================================
+   APP24-SPECIFIC: EE-DISPLAY 15% MÉS GRAN
+   ============================================================================ */
+
+.ee-display {
+  font-size: 1.5em; /* 15% més gran que el base */
+}
+
+.ee-label,
+.ee-number,
+.ee-function {
+  font-size: 1.5em;
+}
+
+/* ============================================================================
    APP24-SPECIFIC: SCALE SELECTOR AREA (esquerra, centrat verticalment)
    ============================================================================ */
 

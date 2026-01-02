@@ -387,10 +387,11 @@ async function playMajorScale() {
 
     playNote(midi, noteDuration);
 
-    // Highlight en ambdues soundlines i línia de connexió
+    // Highlight en ambdues soundlines, línia de connexió i pentagrama
     highlightManager.highlightNote(chromaticSoundline, originalSemitone, intervalMs * 0.9, 'chromatic');
     highlightManager.highlightNote(scaleSoundline, originalSemitone, intervalMs * 0.9, 'scale');
     highlightManager.highlightConnectionLine(originalSemitone, intervalMs * 0.9);
+    highlightManager.highlightPentagramNote(pentagramContainer, i, intervalMs * 0.9);
 
     await sleep(intervalMs);
   }

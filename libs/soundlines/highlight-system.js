@@ -145,6 +145,43 @@ export function createHighlightManager(options = {}) {
     });
   }
 
+  /**
+   * Destaca una nota al pentagrama amb duració temporal
+   * @param {HTMLElement} pentagramContainer - Contenidor del pentagrama
+   * @param {number} noteIndex - Índex de la nota a destacar (0-based)
+   * @param {number} durationMs - Duració del highlight en ms
+   */
+  function highlightPentagramNote(pentagramContainer, noteIndex, durationMs) {
+    if (!pentagramContainer) return;
+
+    const svg = pentagramContainer.querySelector('svg');
+    if (!svg) return;
+
+    // Trobar l'element SVG de la nota pel seu data-idx
+    const noteElement = svg.querySelector(`[data-idx="${noteIndex}"]`);
+    if (!noteElement) return;
+
+    // Obtenir bounding box de la nota
+    const bbox = noteElement.getBBox();
+
+    // Crear cercle/ellipse de highlight
+    const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+    highlight.setAttribute('cx', bbox.x + bbox.width / 2);
+    highlight.setAttribute('cy', bbox.y + bbox.height / 2);
+    highlight.setAttribute('rx', bbox.width / 2 + 8);
+    highlight.setAttribute('ry', bbox.height / 2 + 4);
+    highlight.setAttribute('class', 'pentagram-note-highlight active');
+
+    // Inserir al principi perquè quedi darrere de la nota
+    svg.insertBefore(highlight, svg.firstChild);
+
+    // Eliminar després de la duració
+    setTimeout(() => {
+      highlight.classList.remove('active');
+      setTimeout(() => highlight.remove(), 150);
+    }, durationMs);
+  }
+
   return {
     highlightNote,
     highlightConnectionLine,
@@ -152,6 +189,7 @@ export function createHighlightManager(options = {}) {
     applyHighlightColors,
     applyHighlightColorsAll,
     updateChromaticHighlights,
+    highlightPentagramNote,
     // Exposar el map per debugging si cal
     get activeHighlights() { return activeHighlights; }
   };
