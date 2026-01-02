@@ -161,24 +161,25 @@ export function createHighlightManager(options = {}) {
     const noteElement = svg.querySelector(`[data-idx="${noteIndex}"]`);
     if (!noteElement) return;
 
-    // Obtenir bounding box de la nota
-    const bbox = noteElement.getBBox();
+    // Buscar el notehead dins del grup VexFlow
+    const noteheadGroup = noteElement.querySelector('.vf-notehead');
+    if (!noteheadGroup) return;
 
-    // Crear cercle/ellipse de highlight
-    const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-    highlight.setAttribute('cx', bbox.x + bbox.width / 2);
-    highlight.setAttribute('cy', bbox.y + bbox.height / 2);
-    highlight.setAttribute('rx', bbox.width / 2 + 8);
-    highlight.setAttribute('ry', bbox.height / 2 + 4);
-    highlight.setAttribute('class', 'pentagram-note-highlight active');
+    // VexFlow usa <text> amb font musical per dibuixar els caps de les notes
+    const noteheadText = noteheadGroup.querySelector('text');
+    if (!noteheadText) return;
 
-    // Inserir al principi perquè quedi darrere de la nota
-    svg.insertBefore(highlight, svg.firstChild);
+    // Guardar el color original
+    const originalFill = noteheadText.getAttribute('fill') || 'black';
 
-    // Eliminar després de la duració
+    // Canviar el color del cap de la nota directament
+    const highlightColor = getComputedStyle(document.documentElement)
+      .getPropertyValue('--selection-color').trim() || '#FFBB33';
+    noteheadText.setAttribute('fill', highlightColor);
+
+    // Restaurar el color original després de la duració
     setTimeout(() => {
-      highlight.classList.remove('active');
-      setTimeout(() => highlight.remove(), 150);
+      noteheadText.setAttribute('fill', originalFill);
     }, durationMs);
   }
 
