@@ -13,8 +13,8 @@ import { getMixer, subscribeMixer, setChannelVolume, setChannelMute, setVolume, 
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
-import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
-import { isViolinLoaded, setupViolinPreload } from '../../libs/sound/violin.js';
+import { isPianoLoaded } from '../../libs/sound/piano.js';
+import { isViolinLoaded } from '../../libs/sound/violin.js';
 import { createScaleSelector } from '../../libs/scale-selector/index.js';
 import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
@@ -615,13 +615,8 @@ function injectLayout() {
 async function init() {
   console.log('Initializing App25: Melodias con Escalas...');
 
-  // Setup instrument preload based on stored preference
-  const storedInstrument = localStorage.getItem('app25:selectedInstrument') || 'piano';
-  if (storedInstrument === 'violin') {
-    setupViolinPreload({ delay: 300 });
-  } else {
-    setupPianoPreload({ delay: 300 });
-  }
+  // Note: Audio preload is now handled by first-interaction listener (see below)
+  // This avoids the delay and ensures immediate response on first cell click
 
   // Create layout
   const gridWrapper = injectLayout();
@@ -778,14 +773,22 @@ async function init() {
     currentBPM: currentBPM
   });
 
-  // Initialize audio on grid-editor interaction
-  let audioInitializedFromGrid = false;
-  gridEditorContainer?.addEventListener('focusin', async () => {
-    if (!audioInitializedFromGrid) {
-      audioInitializedFromGrid = true;
-      await initAudio();
-    }
-  }, { once: true });
+  // Preload audio on first user interaction anywhere in the app
+  // This ensures Tone.js and the instrument are ready before the user clicks a cell
+  let audioPreloadStarted = false;
+  const preloadAudioOnFirstInteraction = async () => {
+    if (audioPreloadStarted) return;
+    audioPreloadStarted = true;
+    // Remove listeners immediately to avoid duplicate calls
+    document.removeEventListener('click', preloadAudioOnFirstInteraction, { capture: true });
+    document.removeEventListener('touchstart', preloadAudioOnFirstInteraction, { capture: true });
+    document.removeEventListener('keydown', preloadAudioOnFirstInteraction, { capture: true });
+    // Start audio initialization (loads Tone.js + instrument)
+    await initAudio();
+  };
+  document.addEventListener('click', preloadAudioOnFirstInteraction, { capture: true, once: true });
+  document.addEventListener('touchstart', preloadAudioOnFirstInteraction, { capture: true, once: true });
+  document.addEventListener('keydown', preloadAudioOnFirstInteraction, { capture: true, once: true });
 
   // Wait for DOM
   await new Promise(resolve => setTimeout(resolve, 50));
