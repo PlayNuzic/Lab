@@ -692,7 +692,7 @@ async function init() {
 
       // Check if note is in scale
       if (!scaleSems.includes(noteIndex)) {
-        infoTooltip.show(cellElement, 'Usa +/- al grid-editor per a notes cromatiques', 'info');
+        infoTooltip.show('Usa +/- al grid-editor per a notes cromàtiques', cellElement);
         return;
       }
 
