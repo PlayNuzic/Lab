@@ -2374,7 +2374,7 @@ export function createGridEditor(config = {}) {
   function showDegreeError(input, message) {
     input.value = '';
     input.dataset.filled = '';
-    infoTooltip.show(input, message, 'warning');
+    infoTooltip.show(message, input);
     input.focus();
   }
 
@@ -2408,11 +2408,13 @@ export function createGridEditor(config = {}) {
 
   /**
    * Handles keydown for degree mode - sanitization and navigation
-   * Allowed: digits (0-9), +, -, r, s, and navigation keys
+   * Allowed: digits (0-9), s (silence), and navigation keys
+   * Modifiers (+, -, r) only allowed after a digit is entered
    */
   function handleDegreeKeyDown(event, pulse, getScaleLength) {
     const { key } = event;
     const input = event.target;
+    const currentValue = input.value.trim();
 
     // Clear auto-jump timer on any key
     if (autoJumpTimer) {
@@ -2423,14 +2425,33 @@ export function createGridEditor(config = {}) {
     // Navigation keys - always allowed
     const navigationKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Tab', 'Enter'];
 
-    // Character sanitization - only allow valid degree input characters
-    // Valid: 0-9, +, -, r, s (for silence)
-    const validChars = /^[0-9+\-rs]$/i;
+    if (navigationKeys.includes(key)) {
+      // Handle navigation (code below)
+    } else {
+      // Character sanitization
+      const isDigit = /^[0-9]$/.test(key);
+      const isSilence = key.toLowerCase() === 's';
+      const isModifier = /^[+\-r]$/i.test(key);
 
-    if (!validChars.test(key) && !navigationKeys.includes(key)) {
-      // Block invalid characters
-      event.preventDefault();
-      return;
+      // Digits and silence 's' always allowed (when cell empty or has digit)
+      if (isDigit || isSilence) {
+        // Allow - will be processed by input handler
+      }
+      // Modifiers (+, -, r) only allowed after a digit
+      else if (isModifier) {
+        const hasDigit = /^\d+$/.test(currentValue);
+        if (!hasDigit) {
+          // Block modifier without digit
+          event.preventDefault();
+          return;
+        }
+        // Allow modifier after digit
+      }
+      // Block all other characters
+      else {
+        event.preventDefault();
+        return;
+      }
     }
 
     // Handle navigation keys
