@@ -320,9 +320,9 @@ html, body {
 /* ========== DISABLED CELLS (notes outside scale) ========== */
 .musical-cell.disabled {
   opacity: 0.2;
-  pointer-events: none;
+  pointer-events: auto;  /* Allow clicks to show tooltip */
   background: transparent !important;
-  cursor: default;
+  cursor: not-allowed;
 }
 
 /* Small dot for chromatic notes */
