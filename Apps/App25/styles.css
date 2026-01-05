@@ -36,16 +36,16 @@
   --buttons-align: center;
 
   /* Fine-tuning: Play button position */
-  --play-offset-x: 0px;
-  --play-offset-y: 0px;
+  --play-offset-x: 125px;
+  --play-offset-y: -5px;
 
   /* Fine-tuning: Secondary buttons (random, reset) position */
-  --buttons-row-offset-x: -105px;
-  --buttons-row-offset-y: 0px;
+  --buttons-row-offset-x: -60px;
+  --buttons-row-offset-y: -40px;
 
   /* Toggle positioning */
   --toggle-pulse-offset-x: -1px;
-  --toggle-pulse-offset-y: -70px;
+  --toggle-pulse-offset-y: -80px;
 
   /* Controls vertical gap */
   --controls-vertical-gap: 0.5rem;
