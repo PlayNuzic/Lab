@@ -139,6 +139,7 @@ html, body {
   grid-column: 2;
   grid-row: 2;
   position: relative !important;
+  left: -120px;
   width: 100% !important;
   height: 100% !important;
   min-height: var(--grid-min-height, 300px);
