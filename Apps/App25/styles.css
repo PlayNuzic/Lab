@@ -293,6 +293,11 @@ html, body {
   display: none !important;
 }
 
+/* Hide last pulse marker number (12) - grid-area has margin-right for visibility */
+.pulse-marker[data-pulse-index="12"] {
+  display: none !important;
+}
+
 /* ========== SOUNDLINE SCALE NOTES ========== */
 /* Hide top-zero label (we have 13 notes, note 12 shows degree 0) */
 .soundline-number.top-zero {
