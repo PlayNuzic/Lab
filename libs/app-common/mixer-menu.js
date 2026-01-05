@@ -780,7 +780,14 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     open: openMenu,
     close: closeMenu,
     toggle: toggleMenu,
-    isOpen: () => menuOpen
+    isOpen: () => menuOpen,
+    updateChannelLabel: (channelId, newLabel) => {
+      const control = controlMap.get(channelId);
+      if (control?.labelEl) {
+        control.labelEl.textContent = newLabel;
+        control.config.label = newLabel;
+      }
+    }
   };
 
   if (typeof window !== 'undefined') {
@@ -788,5 +795,16 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   }
 
   return api;
+}
+
+/**
+ * Update the label of a mixer channel (for dynamic instrument changes)
+ * @param {string} channelId - Channel ID (e.g., 'instrument')
+ * @param {string} newLabel - New label to display (e.g., 'Piano', 'Violín')
+ */
+export function updateMixerChannelLabel(channelId, newLabel) {
+  if (typeof window !== 'undefined' && window.NuzicMixer?.updateChannelLabel) {
+    window.NuzicMixer.updateChannelLabel(channelId, newLabel);
+  }
 }
 

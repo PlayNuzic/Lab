@@ -5,7 +5,7 @@
 
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
 import { createGridEditor } from '../../libs/matrix-seq/index.js';
-import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
+import { initMixerMenu, updateMixerChannelLabel } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
@@ -14,6 +14,7 @@ import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-co
 import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
+import { isViolinLoaded, setupViolinPreload } from '../../libs/sound/violin.js';
 import { createScaleSelector } from '../../libs/scale-selector/index.js';
 import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
@@ -262,7 +263,11 @@ async function handlePlay() {
   const stopIcon = playBtn?.querySelector('.icon-stop');
   let wasLoading = false;
 
-  if (!isPianoLoaded() && playBtn) {
+  // Check if current instrument is loaded
+  const currentInstrument = localStorage.getItem('app25:selectedInstrument') || 'piano';
+  const isInstrumentLoaded = currentInstrument === 'violin' ? isViolinLoaded() : isPianoLoaded();
+
+  if (!isInstrumentLoaded && playBtn) {
     wasLoading = true;
     playBtn.disabled = true;
     if (playIcon) playIcon.style.opacity = '0.5';
@@ -610,7 +615,13 @@ function injectLayout() {
 async function init() {
   console.log('Initializing App25: Melodias con Escalas...');
 
-  setupPianoPreload({ delay: 300 });
+  // Setup instrument preload based on stored preference
+  const storedInstrument = localStorage.getItem('app25:selectedInstrument') || 'piano';
+  if (storedInstrument === 'violin') {
+    setupViolinPreload({ delay: 300 });
+  } else {
+    setupPianoPreload({ delay: 300 });
+  }
 
   // Create layout
   const gridWrapper = injectLayout();
@@ -809,12 +820,16 @@ async function init() {
   // Mixer integration
   const mixerMenu = document.getElementById('mixerMenu');
   if (mixerMenu) {
+    // Get initial instrument label from stored preference
+    const initialInstrument = localStorage.getItem('app25:selectedInstrument') || 'piano';
+    const instrumentLabel = initialInstrument === 'violin' ? 'Violín' : 'Piano';
+
     initMixerMenu({
       menu: mixerMenu,
       triggers: [playBtn].filter(Boolean),
       channels: [
         { id: 'pulse', label: 'Pulso', allowSolo: true },
-        { id: 'instrument', label: 'Piano', allowSolo: true },
+        { id: 'instrument', label: instrumentLabel, allowSolo: true },
         { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
       ]
     });
@@ -932,6 +947,10 @@ async function init() {
 
     await initAudio();
     await audio.setInstrument(instrument);
+
+    // Update mixer channel label to reflect new instrument
+    const instrumentLabel = instrument === 'violin' ? 'Violín' : 'Piano';
+    updateMixerChannelLabel('instrument', instrumentLabel);
 
     const currentPrefs = preferenceStorage.load() || {};
     currentPrefs.selectedInstrument = instrument;
