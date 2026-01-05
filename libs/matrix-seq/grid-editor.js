@@ -70,13 +70,14 @@ export function createGridEditor(config = {}) {
     scrollEnabled = false,
     containerSize = null,
     columnSize = null,
-    mode = 'standard',  // 'standard' | 'interval' | 'nrx-it'
+    mode = 'standard',  // 'standard' | 'interval' | 'nrx-it' | 'degree'
     showZigzag = false,
     showIntervalLabels = true,
     leftZigzagLabels = null,
     autoJumpDelayMs = 300,  // Custom auto-jump delay (ms)
     intervalModeOptions = null,  // Options for interval mode (basePair, maxTotalPulse, etc.)
-    nrxModeOptions = null  // Options for nrx-it mode (registryRange, validateNoteRegistry, etc.)
+    nrxModeOptions = null,  // Options for nrx-it mode (registryRange, validateNoteRegistry, etc.)
+    degreeModeOptions = null  // Options for degree mode (totalPulses, getScaleLength, validateDegree)
   } = config;
 
   let currentPairs = [];
@@ -153,6 +154,11 @@ export function createGridEditor(config = {}) {
 
     if (mode === 'nrx-it') {
       renderNrxItMode(pairs);
+      return;
+    }
+
+    if (mode === 'degree') {
+      renderDegreeMode(pairs);
       return;
     }
 
@@ -2092,6 +2098,288 @@ export function createGridEditor(config = {}) {
 
     currentPairs = pairs;
     onPairsChange(pairs);
+  }
+
+  // ========== DEGREE MODE ==========
+  // Simple single-row editor for scale degrees (0-N) with optional +/- modifiers
+
+  /**
+   * Renders the grid in degree mode - single row of degree inputs
+   * Format: 0, 1, 2+, 3-, s (silence)
+   */
+  function renderDegreeMode(pairs = []) {
+    currentPairs = [...pairs];
+
+    container.innerHTML = '';
+    container.className = 'matrix-grid-editor matrix-grid-editor--degree';
+
+    // Get options
+    const totalPulses = degreeModeOptions?.totalPulses || 12;
+    const getScaleLength = degreeModeOptions?.getScaleLength || (() => 7);
+
+    // Apply scroll mode if enabled
+    if (scrollEnabled) {
+      container.classList.add('matrix-grid-editor--scrollable');
+    }
+
+    // Apply container size if provided
+    if (containerSize) {
+      if (containerSize.width) container.style.width = containerSize.width;
+      if (containerSize.height) container.style.height = containerSize.height;
+      if (containerSize.maxWidth) container.style.maxWidth = containerSize.maxWidth;
+      if (containerSize.maxHeight) container.style.maxHeight = containerSize.maxHeight;
+    }
+
+    // Create main container with label and inputs
+    const mainRow = document.createElement('div');
+    mainRow.className = 'degree-main-row';
+
+    // Label column
+    const labelColumn = document.createElement('div');
+    labelColumn.className = 'grid-label-column grid-label-column--degree';
+
+    const degreeLabel = document.createElement('div');
+    degreeLabel.className = 'grid-row-label grid-row-label--degree';
+    degreeLabel.textContent = 'Nº';
+    labelColumn.appendChild(degreeLabel);
+
+    mainRow.appendChild(labelColumn);
+
+    // Columns container
+    const columnsContainer = document.createElement('div');
+    columnsContainer.className = 'grid-columns-container degree-columns-container';
+
+    if (scrollEnabled) {
+      columnsContainer.classList.add('grid-columns-container--scrollable');
+    }
+
+    // Create a column for each pulse
+    for (let pulse = 0; pulse < totalPulses; pulse++) {
+      const column = createDegreeColumn(pulse, pairs, getScaleLength);
+      columnsContainer.appendChild(column);
+    }
+
+    mainRow.appendChild(columnsContainer);
+    container.appendChild(mainRow);
+
+    // Focus first empty input
+    requestAnimationFrame(() => {
+      const firstEmptyInput = container.querySelector('.degree-input:not([data-filled="true"])');
+      if (firstEmptyInput) {
+        firstEmptyInput.focus();
+      }
+    });
+  }
+
+  /**
+   * Creates a degree column for a single pulse
+   */
+  function createDegreeColumn(pulse, pairs, getScaleLength) {
+    const column = document.createElement('div');
+    column.className = 'degree-column';
+    column.dataset.pulse = pulse;
+
+    // Header with pulse number
+    const header = document.createElement('div');
+    header.className = 'degree-column-header';
+    header.textContent = String(pulse);
+    column.appendChild(header);
+
+    // Find pair for this pulse
+    const pair = pairs.find(p => p.pulse === pulse);
+
+    // Degree input
+    const input = document.createElement('input');
+    input.className = 'degree-input';
+    input.type = 'text';
+    input.maxLength = 2;
+    input.dataset.pulse = pulse;
+
+    if (pair) {
+      if (pair.isRest) {
+        input.value = 's';
+        input.dataset.filled = 'true';
+      } else if (pair.degree !== null && pair.degree !== undefined) {
+        input.value = formatDegreeValue(pair.degree, pair.modifier);
+        input.dataset.filled = 'true';
+      }
+    }
+
+    input.addEventListener('input', (e) => handleDegreeInput(e, pulse, getScaleLength));
+    input.addEventListener('keydown', (e) => handleDegreeKeyDown(e, pulse));
+    input.addEventListener('focus', () => input.select());
+
+    column.appendChild(input);
+
+    return column;
+  }
+
+  /**
+   * Formats degree value with optional modifier
+   */
+  function formatDegreeValue(degree, modifier) {
+    if (degree === null || degree === undefined) return '';
+    if (modifier === '+') return `${degree}+`;
+    if (modifier === '-') return `${degree}-`;
+    return String(degree);
+  }
+
+  /**
+   * Parses degree input value
+   * Valid formats: 0-9, 0+, 0-, s (silence)
+   */
+  function parseDegreeInput(value) {
+    if (!value || value.trim() === '') return null;
+
+    const trimmed = value.trim().toLowerCase();
+
+    // Check for silence
+    if (trimmed === 's') {
+      return { isRest: true, degree: null, modifier: null };
+    }
+
+    // Check for degree with modifier (e.g., "2+", "3-")
+    const matchWithMod = trimmed.match(/^(\d+)([+-])$/);
+    if (matchWithMod) {
+      return {
+        isRest: false,
+        degree: parseInt(matchWithMod[1], 10),
+        modifier: matchWithMod[2]
+      };
+    }
+
+    // Check for plain degree
+    const matchPlain = trimmed.match(/^(\d+)$/);
+    if (matchPlain) {
+      return {
+        isRest: false,
+        degree: parseInt(matchPlain[1], 10),
+        modifier: null
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Handles input change for degree mode
+   */
+  function handleDegreeInput(event, pulse, getScaleLength) {
+    const input = event.target;
+    const value = input.value;
+
+    // Clear auto-jump timer
+    if (autoJumpTimer) {
+      clearTimeout(autoJumpTimer);
+      autoJumpTimer = null;
+    }
+
+    // Allow empty input
+    if (!value || value.trim() === '') {
+      // Remove pair for this pulse
+      const newPairs = currentPairs.filter(p => p.pulse !== pulse);
+      currentPairs = newPairs;
+      input.dataset.filled = '';
+      onPairsChange(newPairs);
+      return;
+    }
+
+    const parsed = parseDegreeInput(value);
+
+    if (parsed) {
+      // Validate degree if not a rest
+      const scaleLength = getScaleLength();
+      if (!parsed.isRest && parsed.degree >= scaleLength) {
+        // Invalid degree - reset input and show warning
+        // Find previous value for this pulse
+        const existingPair = currentPairs.find(p => p.pulse === pulse);
+        if (existingPair && !existingPair.isRest) {
+          // Restore previous valid value
+          input.value = formatDegreeValue(existingPair.degree, existingPair.modifier);
+        } else if (existingPair?.isRest) {
+          input.value = 's';
+        } else {
+          // No previous value, clear it
+          input.value = '';
+          input.dataset.filled = '';
+        }
+        // Show tooltip with the invalid degree
+        infoTooltip.show(input, `${parsed.degree} no es un grado de la escala (max: ${scaleLength - 1})`, 'warning');
+        // Keep focus on this input
+        input.focus();
+        return;
+      }
+
+      // Update pairs
+      const newPairs = currentPairs.filter(p => p.pulse !== pulse);
+      newPairs.push({
+        pulse,
+        degree: parsed.degree,
+        modifier: parsed.modifier,
+        isRest: parsed.isRest
+      });
+
+      // Sort by pulse
+      newPairs.sort((a, b) => a.pulse - b.pulse);
+
+      currentPairs = newPairs;
+      input.dataset.filled = 'true';
+      onPairsChange(newPairs);
+
+      // Auto-advance to next column after delay
+      autoJumpTimer = setTimeout(() => {
+        const nextInput = container.querySelector(`.degree-input[data-pulse="${pulse + 1}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();
+        }
+      }, AUTO_JUMP_DELAY);
+    }
+  }
+
+  /**
+   * Handles keydown for degree mode navigation
+   */
+  function handleDegreeKeyDown(event, pulse) {
+    const { key } = event;
+
+    // Clear auto-jump timer on any key
+    if (autoJumpTimer) {
+      clearTimeout(autoJumpTimer);
+      autoJumpTimer = null;
+    }
+
+    // Arrow navigation
+    if (key === 'ArrowRight' || key === 'Tab') {
+      event.preventDefault();
+      const nextInput = container.querySelector(`.degree-input[data-pulse="${pulse + 1}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+    } else if (key === 'ArrowLeft') {
+      event.preventDefault();
+      const prevInput = container.querySelector(`.degree-input[data-pulse="${pulse - 1}"]`);
+      if (prevInput) {
+        prevInput.focus();
+        prevInput.select();
+      }
+    } else if (key === 'Enter') {
+      event.preventDefault();
+      const nextInput = container.querySelector(`.degree-input[data-pulse="${pulse + 1}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+    } else if (key === 'Backspace' && event.target.value === '') {
+      // Navigate to previous on empty backspace
+      event.preventDefault();
+      const prevInput = container.querySelector(`.degree-input[data-pulse="${pulse - 1}"]`);
+      if (prevInput) {
+        prevInput.focus();
+        prevInput.select();
+      }
+    }
   }
 
   /**

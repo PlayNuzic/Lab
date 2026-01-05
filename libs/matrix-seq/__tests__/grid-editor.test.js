@@ -393,4 +393,229 @@ describe('matrix-seq/grid-editor', () => {
       expect(noteInput.value).toBe('s');
     });
   });
+
+  describe('degree mode', () => {
+    it('crea editor en modo degree', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        degreeModeOptions: {
+          getScaleLength: () => 7
+        }
+      });
+
+      expect(editor).toBeDefined();
+      expect(container.classList.contains('matrix-grid-editor--degree')).toBe(true);
+    });
+
+    it('renderiza estructura DOM con fila única de graus', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        pulseRange: [0, 11],
+        degreeModeOptions: {
+          getScaleLength: () => 7,
+          totalPulses: 12
+        }
+      });
+
+      // Debe tener un main row container
+      const degreeMainRow = container.querySelector('.degree-main-row');
+      expect(degreeMainRow).not.toBeNull();
+
+      // Debe tener 12 columnas (pulsos 0-11)
+      const columns = container.querySelectorAll('.degree-column');
+      expect(columns.length).toBe(12);
+    });
+
+    it('acepta valores de grau válidos (0-6)', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        degreeModeOptions: {
+          getScaleLength: () => 7
+        }
+      });
+
+      const input = container.querySelector('.degree-input');
+      expect(input).not.toBeNull();
+
+      // Simular input de grau válido
+      input.value = '3';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // El valor debe aceptarse
+      expect(input.value).toBe('3');
+    });
+
+    it('acepta graus con modificador + (sostingut)', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        degreeModeOptions: {
+          getScaleLength: () => 7
+        }
+      });
+
+      const input = container.querySelector('.degree-input');
+      input.value = '2+';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      expect(input.value).toBe('2+');
+    });
+
+    it('acepta graus con modificador - (bemoll)', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        degreeModeOptions: {
+          getScaleLength: () => 7
+        }
+      });
+
+      const input = container.querySelector('.degree-input');
+      input.value = '5-';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      expect(input.value).toBe('5-');
+    });
+
+    it('acepta silencio con "s"', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        degreeModeOptions: {
+          getScaleLength: () => 7
+        }
+      });
+
+      const input = container.querySelector('.degree-input');
+      input.value = 's';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      expect(input.value).toBe('s');
+    });
+
+    it('setPairs establece graus correctamente', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        degreeModeOptions: {
+          getScaleLength: () => 7
+        }
+      });
+
+      const pairs = [
+        { degree: 0, modifier: null, pulse: 0 },
+        { degree: 2, modifier: '+', pulse: 3 },
+        { degree: 4, modifier: '-', pulse: 6 }
+      ];
+      editor.setPairs(pairs);
+
+      const inputs = container.querySelectorAll('.degree-input');
+      expect(inputs[0].value).toBe('0');
+      expect(inputs[3].value).toBe('2+');
+      expect(inputs[6].value).toBe('4-');
+    });
+
+    it('setPairs maneja silencios correctamente', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        degreeModeOptions: {
+          getScaleLength: () => 7
+        }
+      });
+
+      const pairs = [
+        { degree: null, isRest: true, pulse: 2 }
+      ];
+      editor.setPairs(pairs);
+
+      const inputs = container.querySelectorAll('.degree-input');
+      expect(inputs[2].value).toBe('s');
+    });
+
+    it('getPairs retorna format correcte', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        degreeModeOptions: {
+          getScaleLength: () => 7
+        }
+      });
+
+      // Establecer valores directamente
+      const inputs = container.querySelectorAll('.degree-input');
+      inputs[0].value = '3';
+      inputs[0].dispatchEvent(new Event('input', { bubbles: true }));
+      inputs[4].value = '5+';
+      inputs[4].dispatchEvent(new Event('input', { bubbles: true }));
+
+      const pairs = editor.getPairs();
+      expect(pairs.length).toBe(2);
+      // Note: isRest:false is included in all non-rest pairs
+      expect(pairs[0]).toEqual({ degree: 3, modifier: null, pulse: 0, isRest: false });
+      expect(pairs[1]).toEqual({ degree: 5, modifier: '+', pulse: 4, isRest: false });
+    });
+
+    it('clear limpia todos los inputs', () => {
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        degreeModeOptions: {
+          getScaleLength: () => 7
+        }
+      });
+
+      editor.setPairs([
+        { degree: 2, modifier: null, pulse: 1 },
+        { degree: 4, modifier: '+', pulse: 5 }
+      ]);
+      editor.clear();
+
+      const pairs = editor.getPairs();
+      expect(pairs).toEqual([]);
+
+      const inputs = container.querySelectorAll('.degree-input');
+      inputs.forEach(input => expect(input.value).toBe(''));
+    });
+
+    it('respeta rango de graus según escala - valores válidos', () => {
+      // Escala pentatónica (5 graus: 0-4)
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        degreeModeOptions: {
+          getScaleLength: () => 5
+        }
+      });
+
+      const input = container.querySelector('.degree-input');
+
+      // Grau 4 válido (dentro del rango 0-4)
+      input.value = '4';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      expect(input.value).toBe('4');
+    });
+
+    it('onPairsChange se llama cuando cambia input', () => {
+      let callbackCalled = false;
+      const mockCallback = () => { callbackCalled = true; };
+      editor = createGridEditor({
+        container,
+        mode: 'degree',
+        degreeModeOptions: {
+          getScaleLength: () => 7
+        },
+        onPairsChange: mockCallback
+      });
+
+      const input = container.querySelector('.degree-input');
+      input.value = '3';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      expect(callbackCalled).toBe(true);
+    });
+  });
 });

@@ -664,3 +664,155 @@
 [data-theme="dark"] .zigzag-cell--silence .zigzag-input--is {
   color: var(--silence-color, #aaa) !important;
 }
+
+/* ========== DEGREE MODE ========== */
+/* Simple single-row editor for scale degrees */
+
+.matrix-grid-editor--degree {
+  flex-direction: column;
+  padding: 10px 15px;
+}
+
+.degree-main-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.grid-label-column--degree {
+  padding: 5px 15px;
+  flex-shrink: 0;
+}
+
+.grid-row-label--degree {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
+  min-width: 50px;
+}
+
+[data-theme="dark"] .grid-row-label--degree {
+  color: var(--text-dark, #e0e0e0);
+}
+
+.degree-columns-container {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 5px 0;
+}
+
+.degree-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 45px;
+}
+
+.degree-column-header {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted, #888);
+  text-align: center;
+}
+
+[data-theme="dark"] .degree-column-header {
+  color: var(--text-muted-dark, #aaa);
+}
+
+.degree-input {
+  width: 38px;
+  height: 38px;
+  border: 2px solid var(--border-color, #ccc);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.02);
+  color: var(--text-color, #333);
+  transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .degree-input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-dark, #555);
+  color: var(--text-dark, #e0e0e0);
+}
+
+.degree-input:focus {
+  outline: none;
+  border-color: var(--select-color, #FFBB33);
+  background: rgba(255, 187, 51, 0.1);
+  box-shadow: 0 0 8px rgba(255, 187, 51, 0.3);
+}
+
+.degree-input[data-filled="true"] {
+  background: rgba(255, 187, 51, 0.15);
+  border-color: var(--select-color, #FFBB33);
+}
+
+[data-theme="dark"] .degree-input[data-filled="true"] {
+  background: rgba(255, 187, 51, 0.2);
+}
+
+/* Silence styling */
+.degree-input[value="s"] {
+  font-style: italic;
+  color: var(--silence-color, #888);
+}
+
+/* Responsive - Tablet */
+@media (max-width: 900px) {
+  .matrix-grid-editor--degree {
+    padding: 8px 10px;
+  }
+
+  .grid-row-label--degree {
+    font-size: 1.2rem;
+    min-width: 45px;
+  }
+
+  .degree-column {
+    min-width: 40px;
+  }
+
+  .degree-input {
+    width: 34px;
+    height: 34px;
+    font-size: 1.1rem;
+  }
+
+  .degree-column-header {
+    font-size: 0.75rem;
+  }
+}
+
+/* Responsive - Mobile */
+@media (max-width: 600px) {
+  .matrix-grid-editor--degree {
+    padding: 6px 8px;
+  }
+
+  .grid-row-label--degree {
+    font-size: 1rem;
+    min-width: 40px;
+  }
+
+  .degree-column {
+    min-width: 35px;
+  }
+
+  .degree-input {
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+  }
+
+  .degree-column-header {
+    font-size: 0.7rem;
+  }
+}
