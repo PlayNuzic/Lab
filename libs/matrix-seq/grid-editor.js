@@ -2206,7 +2206,7 @@ export function createGridEditor(config = {}) {
     }
 
     input.addEventListener('input', (e) => handleDegreeInput(e, pulse, getScaleLength));
-    input.addEventListener('keydown', (e) => handleDegreeKeyDown(e, pulse));
+    input.addEventListener('keydown', (e) => handleDegreeKeyDown(e, pulse, getScaleLength));
     input.addEventListener('focus', () => input.select());
 
     column.appendChild(input);
@@ -2407,10 +2407,12 @@ export function createGridEditor(config = {}) {
   }
 
   /**
-   * Handles keydown for degree mode navigation
+   * Handles keydown for degree mode - sanitization and navigation
+   * Allowed: digits (0-9), +, -, r, s, and navigation keys
    */
-  function handleDegreeKeyDown(event, pulse) {
+  function handleDegreeKeyDown(event, pulse, getScaleLength) {
     const { key } = event;
+    const input = event.target;
 
     // Clear auto-jump timer on any key
     if (autoJumpTimer) {
@@ -2418,36 +2420,64 @@ export function createGridEditor(config = {}) {
       autoJumpTimer = null;
     }
 
-    // Arrow navigation
-    if (key === 'ArrowRight' || key === 'Tab') {
+    // Navigation keys - always allowed
+    const navigationKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Tab', 'Enter'];
+
+    // Character sanitization - only allow valid degree input characters
+    // Valid: 0-9, +, -, r, s (for silence)
+    const validChars = /^[0-9+\-rs]$/i;
+
+    if (!validChars.test(key) && !navigationKeys.includes(key)) {
+      // Block invalid characters
       event.preventDefault();
-      const nextInput = container.querySelector(`.degree-input[data-pulse="${pulse + 1}"]`);
-      if (nextInput) {
-        nextInput.focus();
-        nextInput.select();
-      }
-    } else if (key === 'ArrowLeft') {
-      event.preventDefault();
-      const prevInput = container.querySelector(`.degree-input[data-pulse="${pulse - 1}"]`);
-      if (prevInput) {
-        prevInput.focus();
-        prevInput.select();
-      }
-    } else if (key === 'Enter') {
-      event.preventDefault();
-      const nextInput = container.querySelector(`.degree-input[data-pulse="${pulse + 1}"]`);
-      if (nextInput) {
-        nextInput.focus();
-        nextInput.select();
-      }
-    } else if (key === 'Backspace' && event.target.value === '') {
-      // Navigate to previous on empty backspace
-      event.preventDefault();
-      const prevInput = container.querySelector(`.degree-input[data-pulse="${pulse - 1}"]`);
-      if (prevInput) {
-        prevInput.focus();
-        prevInput.select();
-      }
+      return;
+    }
+
+    // Handle navigation keys
+    switch (key) {
+      case 'Tab':
+        // Let Tab work naturally but clear timer
+        break;
+
+      case 'ArrowRight':
+        event.preventDefault();
+        {
+          const nextInput = container.querySelector(`.degree-input[data-pulse="${pulse + 1}"]`);
+          if (nextInput) {
+            nextInput.focus();
+            nextInput.select();
+          }
+        }
+        break;
+
+      case 'ArrowLeft':
+        event.preventDefault();
+        {
+          const prevInput = container.querySelector(`.degree-input[data-pulse="${pulse - 1}"]`);
+          if (prevInput) {
+            prevInput.focus();
+            prevInput.select();
+          }
+        }
+        break;
+
+      case 'Enter':
+        event.preventDefault();
+        // Validate current input and advance
+        validateAndProcessDegreeInput(input, pulse, getScaleLength);
+        break;
+
+      case 'Backspace':
+        if (input.value === '') {
+          // Navigate to previous on empty backspace
+          event.preventDefault();
+          const prevInput = container.querySelector(`.degree-input[data-pulse="${pulse - 1}"]`);
+          if (prevInput) {
+            prevInput.focus();
+            prevInput.select();
+          }
+        }
+        break;
     }
   }
 
