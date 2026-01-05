@@ -2297,54 +2297,112 @@ export function createGridEditor(config = {}) {
 
     const parsed = parseDegreeInput(value);
 
-    if (parsed) {
-      // Validate degree if not a rest
-      const scaleLength = getScaleLength();
-      if (!parsed.isRest && parsed.degree >= scaleLength) {
-        // Invalid degree - reset input and show warning
-        // Find previous value for this pulse
-        const existingPair = currentPairs.find(p => p.pulse === pulse);
-        if (existingPair && !existingPair.isRest) {
-          // Restore previous valid value
-          input.value = formatDegreeValue(existingPair.degree, existingPair.modifier);
-        } else if (existingPair?.isRest) {
-          input.value = 's';
-        } else {
-          // No previous value, clear it
-          input.value = '';
-          input.dataset.filled = '';
-        }
-        // Show tooltip with the invalid degree
-        infoTooltip.show(input, `${parsed.degree} no es un grado de la escala (max: ${scaleLength - 1})`, 'warning');
-        // Keep focus on this input
-        input.focus();
-        return;
-      }
-
-      // Update pairs
-      const newPairs = currentPairs.filter(p => p.pulse !== pulse);
-      newPairs.push({
-        pulse,
-        degree: parsed.degree,
-        modifier: parsed.modifier,
-        isRest: parsed.isRest
-      });
-
-      // Sort by pulse
-      newPairs.sort((a, b) => a.pulse - b.pulse);
-
-      currentPairs = newPairs;
-      input.dataset.filled = 'true';
-      onPairsChange(newPairs);
-
-      // Auto-advance to next column after delay
+    // If input is just a digit, wait for possible modifier (+, -, r+)
+    // Don't validate yet, just set timer for auto-advance
+    const trimmed = value.trim();
+    if (/^\d+$/.test(trimmed)) {
+      // Schedule auto-advance after 300ms delay
       autoJumpTimer = setTimeout(() => {
-        const nextInput = container.querySelector(`.degree-input[data-pulse="${pulse + 1}"]`);
-        if (nextInput) {
-          nextInput.focus();
-          nextInput.select();
-        }
-      }, AUTO_JUMP_DELAY);
+        // Re-validate and process after delay
+        validateAndProcessDegreeInput(input, pulse, getScaleLength);
+      }, 300);
+      return;
+    }
+
+    // For complete inputs (with modifier or silence), validate immediately
+    if (parsed) {
+      validateAndProcessDegreeInput(input, pulse, getScaleLength);
+    }
+  }
+
+  /**
+   * Validates and processes degree input after delay or when complete
+   */
+  function validateAndProcessDegreeInput(input, pulse, getScaleLength) {
+    const value = input.value;
+    const parsed = parseDegreeInput(value);
+
+    if (!parsed) {
+      // Invalid format - clear and keep focus
+      input.value = '';
+      input.dataset.filled = '';
+      input.focus();
+      return;
+    }
+
+    // Skip validation for rests
+    if (parsed.isRest) {
+      saveDegreeInput(input, pulse, parsed);
+      return;
+    }
+
+    const scaleLength = getScaleLength();
+    const maxDegree = scaleLength - 1;
+
+    // Validation 1: Degree must be within scale range
+    // Exception: 0r+ is always valid (upper octave)
+    if (parsed.modifier !== 'r+' && parsed.degree >= scaleLength) {
+      showDegreeError(input, `${parsed.degree} no és un grau de l'escala (màx: ${maxDegree})`);
+      return;
+    }
+
+    // Validation 2: 0- is not allowed (below the scale)
+    if (parsed.degree === 0 && parsed.modifier === '-') {
+      showDegreeError(input, `0- no és vàlid (no hi ha nota per sota del grau 0)`);
+      return;
+    }
+
+    // Validation 3: Last degree + is not allowed (use 0r+ instead)
+    if (parsed.degree === maxDegree && parsed.modifier === '+') {
+      showDegreeError(input, `${maxDegree}+ no és vàlid (usa 0r+ per l'octava superior)`);
+      return;
+    }
+
+    // Validation 4: Only degree 0 can have r+ modifier
+    if (parsed.modifier === 'r+' && parsed.degree !== 0) {
+      showDegreeError(input, `Només el grau 0 pot tenir r+ (octava superior)`);
+      return;
+    }
+
+    // All validations passed - save the input
+    saveDegreeInput(input, pulse, parsed);
+  }
+
+  /**
+   * Shows error tooltip and clears input
+   */
+  function showDegreeError(input, message) {
+    input.value = '';
+    input.dataset.filled = '';
+    infoTooltip.show(input, message, 'warning');
+    input.focus();
+  }
+
+  /**
+   * Saves valid degree input to pairs
+   */
+  function saveDegreeInput(input, pulse, parsed) {
+    // Update pairs
+    const newPairs = currentPairs.filter(p => p.pulse !== pulse);
+    newPairs.push({
+      pulse,
+      degree: parsed.degree,
+      modifier: parsed.modifier,
+      isRest: parsed.isRest
+    });
+
+    // Sort by pulse
+    newPairs.sort((a, b) => a.pulse - b.pulse);
+
+    currentPairs = newPairs;
+    input.dataset.filled = 'true';
+    onPairsChange(newPairs);
+
+    // Auto-advance to next column
+    const nextInput = container.querySelector(`.degree-input[data-pulse="${pulse + 1}"]`);
+    if (nextInput) {
+      nextInput.focus();
+      nextInput.select();
     }
   }
 

@@ -3,6 +3,7 @@
  * @jest-environment jsdom
  */
 
+import { jest } from '@jest/globals';
 import { createGridEditor } from '../grid-editor.js';
 
 describe('matrix-seq/grid-editor', () => {
@@ -537,6 +538,8 @@ describe('matrix-seq/grid-editor', () => {
     });
 
     it('getPairs retorna format correcte', () => {
+      jest.useFakeTimers();
+
       editor = createGridEditor({
         container,
         mode: 'degree',
@@ -549,8 +552,11 @@ describe('matrix-seq/grid-editor', () => {
       const inputs = container.querySelectorAll('.degree-input');
       inputs[0].value = '3';
       inputs[0].dispatchEvent(new Event('input', { bubbles: true }));
+      jest.advanceTimersByTime(300); // Wait for delayed validation
+
       inputs[4].value = '5+';
       inputs[4].dispatchEvent(new Event('input', { bubbles: true }));
+      // No need to wait for 5+ as it has modifier and validates immediately
 
       const pairs = editor.getPairs();
       expect(pairs.length).toBe(2);
@@ -600,6 +606,8 @@ describe('matrix-seq/grid-editor', () => {
     });
 
     it('onPairsChange se llama cuando cambia input', () => {
+      jest.useFakeTimers();
+
       let callbackCalled = false;
       const mockCallback = () => { callbackCalled = true; };
       editor = createGridEditor({
@@ -614,6 +622,7 @@ describe('matrix-seq/grid-editor', () => {
       const input = container.querySelector('.degree-input');
       input.value = '3';
       input.dispatchEvent(new Event('input', { bubbles: true }));
+      jest.advanceTimersByTime(300); // Wait for delayed validation
 
       expect(callbackCalled).toBe(true);
     });
