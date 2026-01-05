@@ -28,30 +28,27 @@
   --col-left-mobile: 180px;
   --layout-gap: 0.75rem;
 
-  /* Control layout fine-tuning (shared-ui .controls) */
-  --controls-offset-y: 0px;
-  --controls-offset-x: 50px;
-  --play-button-size: 72px;
-  --control-toggle-size: 86px;
-  --control-toggle-width: 120px;
-  --control-toggle-gap: 0px;
-  --control-toggle-overlap: 12px;
-  --play-row-offset-x: 0px;
-  --play-row-offset-y: 0px;
-  --control-toggles-offset-x: 0px;
-  --control-toggles-offset-y: 0px;
-  --btn-loop-offset-x: 0px;
-  --btn-loop-offset-y: 0px;
-  --btn-random-offset-x: -120px;
-  --btn-random-offset-y: -20px;
-  --btn-reset-offset-x: -120px;
-  --btn-reset-offset-y: -20px;
-  --toggle-pulse-offset-x: 0px;
-  --toggle-pulse-offset-y: -140px;
-  --toggle-selected-offset-x: 10px;
-  --toggle-selected-offset-y: 0px;
-  --toggle-cycle-offset-x: 0px;
-  --toggle-cycle-offset-y: 0px;
+  /* Control layout - use shared-ui defaults */
+  --controls-padding-top: 0px;
+  --controls-margin: 5px;
+  --controls-inner-margin: 0;
+  --controls-justify: center;
+  --buttons-align: center;
+
+  /* Fine-tuning: Play button position */
+  --play-offset-x: 40px;
+  --play-offset-y: 0px;
+
+  /* Fine-tuning: Secondary buttons (random, reset) position */
+  --buttons-row-offset-x: -105px;
+  --buttons-row-offset-y: 0px;
+
+  /* Toggle positioning */
+  --toggle-pulse-offset-x: -1px;
+  --toggle-pulse-offset-y: -70px;
+
+  /* Controls vertical gap */
+  --controls-vertical-gap: 0.5rem;
 }
 
 [data-theme="dark"] {
@@ -259,28 +256,23 @@ html, body {
   gap: 0.3rem;
 }
 
-/* Control sizes - restored */
+/* Control sizes - match App12 */
 .app25-controls-container .play {
-  width: 60px;
-  height: 60px;
-  font-size: 1.6rem;
+  width: 80px;
+  height: 80px;
+  font-size: 2rem;
 }
 
 .app25-controls-container .play svg {
-  width: 55%;
-  height: 55%;
+  width: 50%;
+  height: 50%;
 }
 
 .app25-controls-container .random,
 .app25-controls-container .reset {
-  width: 40px;
-  height: 40px;
-  font-size: 1rem;
-  transform: translate(var(--btn-random-offset-x), var(--btn-random-offset-y));
-}
-
-.app25-controls-container .reset {
-  transform: translate(var(--btn-reset-offset-x), var(--btn-reset-offset-y));
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
 }
 
 .app25-controls-container .random svg,
