@@ -320,7 +320,7 @@ html, body {
 /* ========== DISABLED CELLS (notes outside scale) ========== */
 .musical-cell.disabled {
   opacity: 0.2;
-  pointer-events: auto;  /* Allow clicks to show tooltip */
+  pointer-events: auto !important;  /* Override JS to allow clicks for tooltip */
   background: transparent !important;
   cursor: not-allowed;
 }
@@ -356,6 +356,15 @@ html, body {
 /* Labels with modifiers (+, -, r+) use selection color */
 .cell-label--modified {
   color: var(--select-color, #FFBB33) !important;
+}
+
+/* Ensure active cells and their labels are fully visible even on disabled rows */
+.musical-cell.active {
+  opacity: 1 !important;
+}
+
+.musical-cell.active .cell-label {
+  opacity: 1 !important;
 }
 
 /* ========== HEADER CONTROLS ========== */
