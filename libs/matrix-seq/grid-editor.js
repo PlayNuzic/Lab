@@ -2298,14 +2298,14 @@ export function createGridEditor(config = {}) {
     const parsed = parseDegreeInput(value);
 
     // If input is just a digit, wait for possible modifier (+, -, r+)
-    // Don't validate yet, just set timer for auto-advance
+    // Don't validate yet, just set timer for auto-advance after 300ms
     const trimmed = value.trim();
     if (/^\d+$/.test(trimmed)) {
-      // Schedule auto-advance after 300ms delay
+      // Schedule auto-advance after delay (default 300ms)
       autoJumpTimer = setTimeout(() => {
         // Re-validate and process after delay
         validateAndProcessDegreeInput(input, pulse, getScaleLength);
-      }, 300);
+      }, AUTO_JUMP_DELAY);
       return;
     }
 
