@@ -428,7 +428,7 @@ function syncGridFromDegrees(pairs) {
 
       // Add degree label
       const label = document.createElement('span');
-      label.className = 'cell-label';
+      label.className = modifier ? 'cell-label cell-label--modified' : 'cell-label';
       label.textContent = formatDegreeLabel(degree, modifier);
       cell.appendChild(label);
     }
@@ -699,16 +699,22 @@ async function init() {
       if (!gridEditor) return;
 
       const currentPairs = gridEditor.getPairs();
-      const existingIndex = currentPairs.findIndex(p => p.pulse === pulseIndex && !p.isRest);
+      const existingPair = currentPairs.find(p => p.pulse === pulseIndex && !p.isRest);
 
       let newPairs;
-      if (existingIndex !== -1) {
-        // Remove pair (toggle off)
-        newPairs = currentPairs.filter((_, i) => i !== existingIndex);
-      } else {
-        // Replace any existing pair at this pulse (monophonic)
+      // Check if clicking on the SAME note (same degree) - toggle off
+      const isSameNote = existingPair && existingPair.degree === degree && !existingPair.modifier;
+
+      if (isSameNote) {
+        // Toggle off - remove the note
         newPairs = currentPairs.filter(p => p.pulse !== pulseIndex);
-        newPairs.push({ degree, modifier: null, pulse: pulseIndex, isRest: false });
+      } else {
+        // Replace with new note (removes any existing at this pulse)
+        newPairs = currentPairs.filter(p => p.pulse !== pulseIndex);
+        // Handle note 12 as 0r+ (upper octave)
+        const modifier = noteIndex === 12 ? 'r+' : null;
+        const actualDegree = noteIndex === 12 ? 0 : degree;
+        newPairs.push({ degree: actualDegree, modifier, pulse: pulseIndex, isRest: false });
       }
 
       gridEditor.setPairs(newPairs);
