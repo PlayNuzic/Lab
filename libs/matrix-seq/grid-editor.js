@@ -2192,7 +2192,7 @@ export function createGridEditor(config = {}) {
     const input = document.createElement('input');
     input.className = 'degree-input';
     input.type = 'text';
-    input.maxLength = 2;
+    input.maxLength = 3;  // Allow "0r+" format
     input.dataset.pulse = pulse;
 
     if (pair) {
@@ -2219,6 +2219,7 @@ export function createGridEditor(config = {}) {
    */
   function formatDegreeValue(degree, modifier) {
     if (degree === null || degree === undefined) return '';
+    if (modifier === 'r+') return `${degree}r+`;
     if (modifier === '+') return `${degree}+`;
     if (modifier === '-') return `${degree}-`;
     return String(degree);
@@ -2226,7 +2227,7 @@ export function createGridEditor(config = {}) {
 
   /**
    * Parses degree input value
-   * Valid formats: 0-9, 0+, 0-, s (silence)
+   * Valid formats: 0-9, 0+, 0-, 0r+ (upper octave), s (silence)
    */
   function parseDegreeInput(value) {
     if (!value || value.trim() === '') return null;
@@ -2236,6 +2237,16 @@ export function createGridEditor(config = {}) {
     // Check for silence
     if (trimmed === 's') {
       return { isRest: true, degree: null, modifier: null };
+    }
+
+    // Check for upper octave format (e.g., "0r+")
+    const matchUpperOctave = trimmed.match(/^(\d+)r\+$/);
+    if (matchUpperOctave) {
+      return {
+        isRest: false,
+        degree: parseInt(matchUpperOctave[1], 10),
+        modifier: 'r+'
+      };
     }
 
     // Check for degree with modifier (e.g., "2+", "3-")

@@ -295,6 +295,11 @@ html, body {
 }
 
 /* ========== SOUNDLINE SCALE NOTES ========== */
+/* Hide top-zero label (we have 13 notes, note 12 shows degree 0) */
+.soundline-number.top-zero {
+  display: none;
+}
+
 /* Scale notes: show degree number as line */
 .soundline-number.scale-note {
   font-weight: 600;

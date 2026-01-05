@@ -20,7 +20,7 @@ import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
-const TOTAL_NOTES = 12;    // Vertical: 0-11 (one octave)
+const TOTAL_NOTES = 13;    // Vertical: 0-12 (one octave + degree 0 of upper octave)
 const TOTAL_SPACES = 12;   // Spaces between pulses
 const DEFAULT_BPM = 120;
 
@@ -110,8 +110,9 @@ async function initAudio() {
  * Only rootOffset is applied to compensate for rotated modes.
  * The user's "Nota de Sortida" (root) does NOT affect visual positions.
  *
- * Example: Major scale always shows degrees at semitones [0,2,4,5,7,9,11]
+ * Example: Major scale always shows degrees at semitones [0,2,4,5,7,9,11,12]
  * regardless of what "Nota de Sortida" is selected.
+ * Note 12 is degree 0 of the upper octave (for scale changes 7→5 notes).
  */
 function getVisualScaleSemitones() {
   // Only apply rootOffset to compensate for rotated modes (NOT user's root)
@@ -122,6 +123,11 @@ function getVisualScaleSemitones() {
   for (let d = 0; d < sems.length; d++) {
     result.push(degToSemi(visualState, d));
   }
+
+  // Always include note 12 (degree 0 of upper octave)
+  // This is needed when switching from 7-note to 5-note scales
+  result.push(12);
+
   return result;
 }
 
@@ -144,12 +150,21 @@ function getPlaybackScaleSemitones() {
 }
 
 /**
- * Convert degree + modifier to VISUAL note index (0-11)
+ * Convert degree + modifier to VISUAL note index (0-12)
  * Used for positioning cells on the grid - INDEPENDENT of user's transpose.
  * Only applies rootOffset for mode compensation.
+ *
+ * @param {number} degree - Scale degree (0 to N-1)
+ * @param {string|null} modifier - '+' (sharp), '-' (flat), 'r+' (upper octave), or null
+ * @returns {number|null} Note index 0-12 (12 = degree 0 upper octave)
  */
 function degreeToVisualNoteIndex(degree, modifier = null) {
   if (degree === null || degree === undefined) return null;
+
+  // Special case: degree 0 with 'r+' modifier = upper octave (note index 12)
+  if (degree === 0 && modifier === 'r+') {
+    return 12;
+  }
 
   // Only apply rootOffset (NOT user's root) for visual positioning
   const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
@@ -169,7 +184,7 @@ function degreeToVisualNoteIndex(degree, modifier = null) {
  * Convert degree + modifier to MIDI note (for playback)
  * Includes both rootOffset AND user's transpose (Nota de Sortida).
  * degree: 0 to N-1 (scale degree)
- * modifier: '+' (sharp) or '-' (flat) or null
+ * modifier: '+' (sharp), '-' (flat), 'r+' (upper octave), or null
  *
  * OCTAVE LOGIC: Notes ascend continuously from degree 0.
  * For rotated modes, we detect where semitones "wrap" (decrease) to handle octave.
@@ -180,6 +195,7 @@ function degreeToVisualNoteIndex(degree, modifier = null) {
  *   - Degrees 0,1 in upper octave; degrees 2+ in lower octave
  * - Menor Melòdica (rot=4): semitones [9,11,1,2,4,6,7] → wraps at degree 2
  *   - Degrees 0,1,2 in upper octave; degrees 3+ in lower octave
+ * - 0r+ → Degree 0 of upper octave (MIDI +12)
  */
 function degreeToMidi(degree, modifier = null) {
   if (degree === null || degree === undefined) return null;
@@ -187,6 +203,13 @@ function degreeToMidi(degree, modifier = null) {
   // The effective root determines the starting pitch
   const effectiveRoot = (scaleState.root + currentRootOffset) % 12;
   const effectiveState = { ...scaleState, root: effectiveRoot };
+
+  // Special case: degree 0 with 'r+' modifier = upper octave
+  if (degree === 0 && modifier === 'r+') {
+    // Degree 0 semitone + 12 for upper octave
+    const semitone = degToSemi(effectiveState, 0);
+    return 60 + semitone + 12;
+  }
 
   // Get all semitones of the scale to detect octave wrap point
   const sems = scaleSemis(scaleState.id);
@@ -413,6 +436,7 @@ function syncGridFromDegrees(pairs) {
 }
 
 function formatDegreeLabel(degree, modifier) {
+  if (modifier === 'r+') return `${degree}r+`;
   if (modifier === '+') return `${degree}+`;
   if (modifier === '-') return `${degree}-`;
   return `${degree}`;
@@ -444,6 +468,10 @@ function updateSoundlineLabels() {
   // Use the API if available
   if (musicalGrid.updateSoundlineLabels) {
     musicalGrid.updateSoundlineLabels(scaleSemitones, (noteIndex) => {
+      // Note 12 is degree 0 of upper octave
+      if (noteIndex === 12) {
+        return '0';
+      }
       const degreeIndex = scaleSemitones.indexOf(noteIndex);
       return degreeIndex !== -1 ? String(degreeIndex) : '·';
     });
@@ -483,13 +511,28 @@ function handleScaleChange({ scaleId, rotation, value }) {
   if (gridEditor) {
     const currentPairs = gridEditor.getPairs();
 
-    // Filter out pairs with degrees that exceed the new scale length
+    // Adapt pairs to new scale length
     const adaptedPairs = currentPairs.map(pair => {
       if (pair.isRest) return pair;
+
+      // Handle 0r+ (upper octave) - stays as 0r+
+      if (pair.degree === 0 && pair.modifier === 'r+') {
+        return pair;
+      }
 
       // If degree is valid for new scale, keep it
       if (pair.degree < currentScaleLength) {
         return pair;
+      }
+
+      // If degree equals new scale length, it becomes 0r+ (upper octave)
+      // Example: degree 5 in 6-note scale → 0r+ in 5-note scale
+      if (pair.degree === currentScaleLength) {
+        return {
+          ...pair,
+          degree: 0,
+          modifier: 'r+'
+        };
       }
 
       // If degree exceeds new scale, wrap it around
