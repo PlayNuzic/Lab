@@ -2431,21 +2431,38 @@ export function createGridEditor(config = {}) {
       // Character sanitization
       const isDigit = /^[0-9]$/.test(key);
       const isSilence = key.toLowerCase() === 's';
-      const isModifier = /^[+\-r]$/i.test(key);
+      const keyLower = key.toLowerCase();
 
       // Digits and silence 's' always allowed (when cell empty or has digit)
       if (isDigit || isSilence) {
         // Allow - will be processed by input handler
       }
-      // Modifiers (+, -, r) only allowed after a digit
-      else if (isModifier) {
-        const hasDigit = /^\d+$/.test(currentValue);
-        if (!hasDigit) {
-          // Block modifier without digit
+      // 'r' only allowed after '0' (for 0r+ format)
+      else if (keyLower === 'r') {
+        if (currentValue !== '0') {
           event.preventDefault();
           return;
         }
-        // Allow modifier after digit
+        // Allow 'r' after '0'
+      }
+      // '+' allowed after digit OR after '0r' (for 0r+ format)
+      else if (key === '+') {
+        const hasDigit = /^\d+$/.test(currentValue);
+        const isZeroR = currentValue.toLowerCase() === '0r';
+        if (!hasDigit && !isZeroR) {
+          event.preventDefault();
+          return;
+        }
+        // Allow '+' after digit or '0r'
+      }
+      // '-' only allowed after digit (not after 0r)
+      else if (key === '-') {
+        const hasDigit = /^\d+$/.test(currentValue);
+        if (!hasDigit) {
+          event.preventDefault();
+          return;
+        }
+        // Allow '-' after digit
       }
       // Block all other characters
       else {
