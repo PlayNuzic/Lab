@@ -399,4 +399,108 @@ describe('musical-grid', () => {
       expect(interval2.classList.contains('active')).toBe(true);
     });
   });
+
+  describe('setEnabledNotes', () => {
+    it('deshabilita celdas fuera de las notas habilitadas', () => {
+      const grid = createMusicalGrid({
+        parent,
+        notes: 12,
+        pulses: 9
+      });
+
+      // Habilitar solo notas de escala mayor (C, D, E, F, G, A, B = 0, 2, 4, 5, 7, 9, 11)
+      const scaleNotes = [0, 2, 4, 5, 7, 9, 11];
+      grid.setEnabledNotes(scaleNotes);
+
+      // Verificar que las notas fuera de la escala están deshabilitadas
+      const disabledCells = parent.querySelectorAll('.musical-cell.disabled');
+      // 5 notas cromáticas (1, 3, 6, 8, 10) × 8 pulsos = 40 celdas
+      expect(disabledCells.length).toBe(5 * 8);
+
+      // Verificar que las notas de la escala están habilitadas
+      const enabledCells = parent.querySelectorAll('.musical-cell:not(.disabled)');
+      // 7 notas de escala × 8 pulsos = 56 celdas
+      expect(enabledCells.length).toBe(7 * 8);
+    });
+
+    it('actualiza pointer-events correctamente', () => {
+      const grid = createMusicalGrid({
+        parent,
+        notes: 12,
+        pulses: 9
+      });
+
+      grid.setEnabledNotes([0, 4, 7]); // Solo triada
+
+      // Celda habilitada tiene pointer-events: auto
+      const enabledCell = grid.getCellElement(0, 0);
+      expect(enabledCell.style.pointerEvents).toBe('auto');
+
+      // Celda deshabilitada tiene pointer-events: none
+      const disabledCell = grid.getCellElement(1, 0);
+      expect(disabledCell.style.pointerEvents).toBe('none');
+    });
+
+    it('puede re-habilitar todas las notas', () => {
+      const grid = createMusicalGrid({
+        parent,
+        notes: 12,
+        pulses: 9
+      });
+
+      // Primero deshabilitar algunas
+      grid.setEnabledNotes([0, 2, 4]);
+
+      // Luego habilitar todas
+      const allNotes = Array.from({ length: 12 }, (_, i) => i);
+      grid.setEnabledNotes(allNotes);
+
+      const disabledCells = parent.querySelectorAll('.musical-cell.disabled');
+      expect(disabledCells.length).toBe(0);
+    });
+  });
+
+  describe('updateSoundlineLabels', () => {
+    it('actualiza clases de notas de escala y cromáticas', () => {
+      const grid = createMusicalGrid({
+        parent,
+        notes: 12,
+        pulses: 9
+      });
+
+      const scaleNotes = [0, 2, 4, 5, 7, 9, 11];
+      grid.updateSoundlineLabels(scaleNotes, (noteIndex) => {
+        const degreeIndex = scaleNotes.indexOf(noteIndex);
+        return degreeIndex !== -1 ? String(degreeIndex) : '';
+      });
+
+      // Verificar clases en soundline numbers
+      const scaleNumbers = parent.querySelectorAll('.soundline-number.scale-note');
+      const chromaticNumbers = parent.querySelectorAll('.soundline-number.chromatic-note');
+
+      // 7 notas de escala + 1 top-zero label
+      expect(scaleNumbers.length).toBeGreaterThanOrEqual(7);
+
+      // 5 notas cromáticas
+      expect(chromaticNumbers.length).toBe(5);
+    });
+
+    it('aplica formatter personalizado a las etiquetas', () => {
+      const grid = createMusicalGrid({
+        parent,
+        notes: 12,
+        pulses: 9
+      });
+
+      const scaleNotes = [0, 2, 4];
+      grid.updateSoundlineLabels(scaleNotes, (noteIndex) => {
+        return scaleNotes.includes(noteIndex) ? `D${scaleNotes.indexOf(noteIndex)}` : '·';
+      });
+
+      // Verificar que los labels fueron actualizados
+      const allNumbers = parent.querySelectorAll('.soundline-number:not(.top-zero)');
+      const labelsWithD = Array.from(allNumbers).filter(el => el.textContent.startsWith('D'));
+      expect(labelsWithD.length).toBe(3);
+    });
+  });
 });

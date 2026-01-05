@@ -1378,6 +1378,41 @@ export function createMusicalGrid(config) {
     // Container access (if needed for advanced use)
     containers,
 
+    /**
+     * Enable/disable cells based on note indices (for scale-based apps)
+     * @param {number[]} enabledNotes - Array of note indices (0-11) that should be enabled
+     */
+    setEnabledNotes(enabledNotes) {
+      const enabledSet = new Set(enabledNotes);
+      cells.forEach(({ element, noteIndex }) => {
+        const isEnabled = enabledSet.has(noteIndex);
+        element.classList.toggle('disabled', !isEnabled);
+        element.style.pointerEvents = isEnabled ? 'auto' : 'none';
+      });
+    },
+
+    /**
+     * Update soundline labels with custom formatter
+     * @param {number[]} visibleNotes - Array of note indices that are visible (scale notes)
+     * @param {Function} labelFormatter - (noteIndex) => string - Custom label formatter
+     */
+    updateSoundlineLabels(visibleNotes, labelFormatter) {
+      const visibleSet = new Set(visibleNotes);
+      const soundlineContainer = containers.soundlineInner || containers.soundline;
+      if (!soundlineContainer) return;
+
+      // Update note labels
+      noteElements.forEach(({ index, element }) => {
+        const isVisible = visibleSet.has(index);
+        if (labelFormatter) {
+          element.textContent = labelFormatter(index);
+        }
+        // Add/remove class for styling (line vs dot)
+        element.classList.toggle('scale-note', isVisible);
+        element.classList.toggle('chromatic-note', !isVisible);
+      });
+    },
+
     // Getters
     get isRendered() { return isRendered; },
     get cellCount() { return cells.length; },

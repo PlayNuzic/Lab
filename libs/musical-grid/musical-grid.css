@@ -75,8 +75,8 @@
 /* ========== GRID CONTAINER ========== */
 .grid-container {
   position: relative;
-  top: 20px;
-  left: -120px;
+  top: 0;
+  left: 0;
   width: 100%;
   max-width: 1200px; /* Expanded from 900px to utilize space from removed third column */
   height: 52.5vh; /* Reduced 25% from 70vh */
@@ -585,40 +585,7 @@
 }
 
 /* ========== GRID CONTAINER RESPONSIVE POSITIONING ========== */
-/* Fix: Adjust left offset to prevent overflow on small screens */
-
-@media (max-width: 900px) {
-  .grid-container {
-    left: -40px !important;  /* Reduce from -120px for tablet */
-  }
-}
-
-@media (max-width: 768px) {
-  .grid-container {
-    left: -30px !important;  /* Further reduce for mobile */
-  }
-}
-
-@media (max-width: 600px) {
-  .grid-container {
-    left: -20px !important;  /* Minimal offset for small screens */
-    top: 10px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .grid-container {
-    left: 0 !important;      /* No offset on tiny screens */
-    top: 5px !important;
-  }
-}
-
-@media (max-width: 400px) {
-  .grid-container {
-    left: 5px !important;    /* Slight padding for ultra-tiny */
-    top: 0 !important;
-  }
-}
+/* Note: left/top offsets removed - apps can customize via CSS if needed */
 
 /* ========== INTERVAL BARS AND NUMBERS ========== */
 /* Interval system integrated into musical-grid - plug&play */
@@ -745,4 +712,40 @@
 /* ========== iS=0 SEPARATOR LINE (same note repetition) ========== */
 .interval-label-zero {
   text-align: center;
+}
+
+/* ========== DISABLED CELLS (scale-based apps) ========== */
+/* Cells for notes outside the current scale */
+.musical-cell.disabled {
+  opacity: 0.25;
+  pointer-events: none;
+  background: transparent !important;
+  border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="dark"] .musical-cell.disabled {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Disabled cells show small dot instead of full cell */
+.musical-cell.disabled .np-dot::after {
+  width: 4px;
+  height: 4px;
+  background: var(--line-color, #666);
+  border: none;
+  opacity: 0.5;
+}
+
+/* ========== SOUNDLINE SCALE/CHROMATIC NOTES ========== */
+/* Scale notes: full line display */
+.soundline-number.scale-note {
+  font-weight: 600;
+  opacity: 1;
+}
+
+/* Chromatic notes: smaller, dimmer appearance */
+.soundline-number.chromatic-note {
+  font-size: 0.85rem;
+  opacity: 0.4;
+  font-weight: 300;
 }
