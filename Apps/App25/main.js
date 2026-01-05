@@ -744,6 +744,7 @@ async function init() {
     noteRange: [0, 11],
     pulseRange: [0, TOTAL_SPACES - 1],
     maxPairs: TOTAL_SPACES,
+    autoJumpDelayMs: 500,  // Wait 500ms after digit for modifier input
     scrollEnabled: isMobile,
     containerSize: isMobile ? { maxHeight: '100px', width: '100%' } : null,
     columnSize: isMobile ? { width: '50px', minHeight: '80px' } : null,
