@@ -1,0 +1,489 @@
+/* App25: Melodias con Escalas - Step Sequencer Styles */
+
+/* Import shared module styles */
+@import url('../../libs/matrix-seq/grid-editor.css');
+@import url('../../libs/musical-grid/musical-grid.css');
+@import url('../../libs/scale-selector/scale-selector.css');
+
+/* Variables CSS */
+:root {
+  --line-color: #666;
+  --soundline-width: 3px;
+  --timeline-height: 2px;
+  --cell-highlight-color: var(--select-color, #FFBB33);
+  --pulse-marker-height: 15px;
+  --note-highlight-color: var(--select-color, #FFBB33);
+
+  /* Z-index system */
+  --z-base: 1;
+  --z-content: 5;
+  --z-interactive: 10;
+  --z-active: 20;
+  --z-overlay: 100;
+
+  /* App25 2-column layout */
+  --scale-selector-width: 280px;
+  --col-left: var(--scale-selector-width);
+  --col-left-tablet: 220px;
+  --col-left-mobile: 180px;
+  --layout-gap: 0.75rem;
+
+  /* Control layout fine-tuning (shared-ui .controls) */
+  --controls-offset-y: 0px;
+  --controls-offset-x: 50px;
+  --play-button-size: 72px;
+  --control-toggle-size: 86px;
+  --control-toggle-width: 120px;
+  --control-toggle-gap: 0px;
+  --control-toggle-overlap: 12px;
+  --play-row-offset-x: 0px;
+  --play-row-offset-y: 0px;
+  --control-toggles-offset-x: 0px;
+  --control-toggles-offset-y: 0px;
+  --btn-loop-offset-x: 0px;
+  --btn-loop-offset-y: 0px;
+  --btn-random-offset-x: -120px;
+  --btn-random-offset-y: -20px;
+  --btn-reset-offset-x: -120px;
+  --btn-reset-offset-y: -20px;
+  --toggle-pulse-offset-x: 0px;
+  --toggle-pulse-offset-y: -140px;
+  --toggle-selected-offset-x: 10px;
+  --toggle-selected-offset-y: 0px;
+  --toggle-cycle-offset-x: 0px;
+  --toggle-cycle-offset-y: 0px;
+}
+
+[data-theme="dark"] {
+  --line-color: #999;
+}
+
+/* ========== VIEWPORT FILL LAYOUT ========== */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#app-root > header {
+  flex-shrink: 0;
+}
+
+#app-root > main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ========== APP25 MAIN LAYOUT: 2 COLUMNS ========== */
+/* Left: Scale Selector + Controls
+   Right: Grid Editor + Musical Grid (stacked) */
+
+.app25-main-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: var(--col-left) minmax(0, 1fr);
+  grid-template-rows: 1fr;
+  gap: var(--layout-gap);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+/* ========== LEFT COLUMN: Scale Selector ========== */
+.app25-scale-selector {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.5rem;
+  gap: 1rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 1px solid var(--line-color);
+  padding-right: 0.5rem;
+  position: relative;
+  z-index: var(--z-content);
+  background: var(--bg-light, #ECECEC);
+}
+
+[data-theme="dark"] .app25-scale-selector {
+  background: var(--bg-dark, #43433B);
+}
+
+/* Override scale-selector defaults for App25 compact layout */
+.app25-scale-selector .scale-selector {
+  border-right: none;
+  width: var(--scale-selector-width);
+  max-width: var(--scale-selector-width);
+  padding: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Scale title - keep normal size */
+.app25-scale-selector .scale-selector-title {
+  margin-bottom: 0;
+}
+
+/* Scale select: compact size (selectSize: 3 set in JS) */
+.app25-scale-selector .scale-select {
+  width: 70%;
+  align-self: center;
+}
+
+/* Ensure scale select shows exactly 3 options with scroll */
+.app25-scale-selector .scale-select[size] {
+  flex: none !important;
+  height: 230px !important;  /* ~24px per option × 3 */
+  max-height: 230x !important;
+  min-height: auto !important;
+  overflow-y: auto;
+}
+
+/* Transpose section compact */
+.app25-scale-selector .transpose-selector {
+  padding-top: 0.5rem;
+  gap: 0.3rem;
+  width: 100%;
+  align-items: center;
+}
+
+.app25-scale-selector .transpose-label {
+  font-size: 0.8rem;
+}
+
+/* Transpose buttons: 2 rows (0-5 and 6-11) - 15% larger */
+.app25-scale-selector .transpose-buttons {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  justify-content: center;
+  max-width: 253px;  /* 220px * 1.15 */
+  margin: 0 auto;
+}
+
+.app25-scale-selector .transpose-btn {
+  width: 28px;   /* 24px * 1.15 ≈ 28px */
+  height: 28px;
+  font-size: 0.86rem;  /* 0.75rem * 1.15 */
+}
+
+/* ========== RIGHT COLUMN: Grid Area (stacked) ========== */
+.app25-grid-area {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+  min-width: 0; /* Critical: allow flex child to shrink */
+  overflow: hidden;
+  position: relative;
+  z-index: var(--z-base);
+}
+
+/* Grid Editor at top - fixed height */
+#gridEditorContainer {
+  flex-shrink: 0;
+  max-height: 100px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* Musical grid fills remaining space */
+/* Note: left/top overrides are at the END of this file to beat module media queries */
+.app25-grid-area > .grid-container {
+  flex: 1;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  min-height: 300px;
+  min-width: 0 !important;
+  overflow: hidden;
+  margin: 0 !important;
+  box-sizing: border-box;
+  justify-self: stretch;
+}
+
+/* ========== CONTROLS (inside scale selector area) ========== */
+.app25-controls-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 50px;
+  padding-top: 0.25rem;
+  transform: translate(var(--controls-offset-x), var(--controls-offset-y));
+}
+
+.app25-controls-container .controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app25-controls-container .control-buttons-row {
+  display: flex;
+  flex-direction: row;
+  gap: 0.3rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.app25-controls-container .play-row {
+  position: static;
+  transform: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Control sizes - restored */
+.app25-controls-container .play {
+  width: 60px;
+  height: 60px;
+  font-size: 1.6rem;
+}
+
+.app25-controls-container .play svg {
+  width: 55%;
+  height: 55%;
+}
+
+.app25-controls-container .random,
+.app25-controls-container .reset {
+  width: 40px;
+  height: 40px;
+  font-size: 1rem;
+  transform: translate(var(--btn-random-offset-x), var(--btn-random-offset-y));
+}
+
+.app25-controls-container .reset {
+  transform: translate(var(--btn-reset-offset-x), var(--btn-reset-offset-y));
+}
+
+.app25-controls-container .random svg,
+.app25-controls-container .reset svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Hide unnecessary controls */
+#loopBtn, .loop, .controls .loop,
+.bpm-display, #tapTempoBtn {
+  display: none !important;
+}
+
+/* ========== SOUNDLINE SCALE NOTES ========== */
+/* Scale notes: show degree number as line */
+.soundline-number.scale-note {
+  font-weight: 600;
+  opacity: 1;
+}
+
+/* Chromatic notes: small dot */
+.soundline-number.chromatic-note {
+  font-size: 0.7rem !important;
+  opacity: 0.35;
+  font-weight: 300;
+}
+
+/* ========== DISABLED CELLS (notes outside scale) ========== */
+.musical-cell.disabled {
+  opacity: 0.2;
+  pointer-events: none;
+  background: transparent !important;
+  cursor: default;
+}
+
+/* Small dot for chromatic notes */
+.musical-cell.disabled .np-dot::after {
+  width: 4px;
+  height: 4px;
+  background: var(--line-color);
+  border: none;
+  opacity: 0.6;
+}
+
+/* ========== DEGREE LABELS ON ACTIVE CELLS ========== */
+.cell-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(0.7rem, 1.5vw, 1rem);
+  font-weight: 600;
+  color: #333;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 15;
+}
+
+[data-theme="dark"] .cell-label {
+  color: #f0f0f0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* ========== HEADER CONTROLS ========== */
+.header-controls {
+  display: flex !important;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ========== LANDSCAPE ORIENTATION WARNING ========== */
+@media (max-width: 768px) and (orientation: portrait) {
+  body::before {
+    content: '⟲ Por favor, gira tu dispositivo para usar esta aplicacion';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    z-index: 9999;
+    padding: 20px;
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}
+
+/* ========== MINIMUM SCREEN SIZE WARNING ========== */
+@media (max-width: 600px) and (orientation: landscape) {
+  body::before {
+    content: '📱 Esta aplicacion requiere una pantalla mas grande';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    z-index: 9999;
+    padding: 20px;
+  }
+
+  #app-root {
+    display: none !important;
+  }
+}
+
+/* ========== TABLET (≤ 900px) ========== */
+@media (max-width: 900px) {
+  :root {
+    --scale-selector-width: var(--col-left-tablet);
+  }
+
+  .app25-main-grid {
+    grid-template-columns: var(--col-left-tablet) minmax(0, 1fr);
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .app25-scale-selector .transpose-btn {
+    width: 21px;   /* 18px * 1.15 */
+    height: 21px;
+    font-size: 0.75rem;
+  }
+
+  .app25-controls-container .play {
+    width: 55px;
+    height: 55px;
+  }
+
+  .app25-controls-container .random,
+  .app25-controls-container .reset {
+    width: 36px;
+    height: 36px;
+  }
+
+  .soundline-number,
+  .pulse-marker {
+    font-size: 1rem !important;
+  }
+}
+
+/* ========== MOBILE (≤ 768px) ========== */
+@media (max-width: 768px) {
+  :root {
+    --scale-selector-width: var(--col-left-mobile);
+  }
+
+  .app25-main-grid {
+    grid-template-columns: var(--col-left-mobile) minmax(0, 1fr);
+    gap: 0.4rem;
+    padding: 0.4rem;
+  }
+
+  .app25-scale-selector .transpose-btn {
+    width: 18px;   /* 16px * 1.15 */
+    height: 18px;
+    font-size: 0.69rem;
+  }
+
+}
+
+/* ========== SMALL SCREENS (≤ 600px) ========== */
+@media (max-width: 600px) {
+  :root {
+    --scale-selector-width: 85px;
+  }
+
+  .app25-main-grid {
+    grid-template-columns: 85px minmax(0, 1fr);
+    gap: 0.3rem;
+    padding: 0.3rem;
+  }
+
+  .app25-scale-selector .transpose-btn {
+    width: 17px;   /* 15px * 1.15 */
+    height: 17px;
+    font-size: 0.63rem;
+  }
+
+  .app25-controls-container .play {
+    width: 50px;
+    height: 50px;
+  }
+
+  .app25-controls-container .random,
+  .app25-controls-container .reset {
+    width: 32px;
+    height: 32px;
+  }
+}

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Melodias con Escalas</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="../../libs/musical-grid/musical-grid.css" />
+  <link rel="stylesheet" href="../../libs/scale-selector/scale-selector.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+</head>
+<body data-theme="system">
+  <div id="app-root"></div>
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    // Set defaults in localStorage BEFORE header initializes
+    const app25Prefs = localStorage.getItem('app25::preferences');
+    if (!app25Prefs) {
+      localStorage.setItem('app25::preferences', JSON.stringify({
+        selectedInstrument: 'piano',
+        selectColor: '#FFBB33'
+      }));
+    }
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Melodias con Escalas',
+      showSelectColor: true,
+      showAccent: false,
+      showComplexFractions: false,
+      hideT: true,
+      hideLeds: true,
+      showCircularTimelineToggle: false,
+      showHoverToggle: false,
+      showIntervalLinesToggle: false,
+      showStartSoundDropdown: true,
+      showInstrumentDropdown: true,
+      showP1Toggle: true,
+      showPulseToggle: true,
+      showPolyphonyToggle: false,  // No polyphony for melodic mode
+      controlsLayout: {
+        mode: 'vertical'
+      },
+      randomMenuContent: `
+        <label>
+          <span>Densidad (0-12)</span>
+          <input type="number" id="randDensity" value="8" min="1" max="12">
+        </label>
+      `
+    });
+
+    // Load selection color BEFORE header initializes
+    const app25PrefsJson = localStorage.getItem('app25::preferences');
+    const app25PrefsObj = app25PrefsJson ? JSON.parse(app25PrefsJson) : {};
+    const storedColor = app25PrefsObj.selectColor || '#FFBB33';
+    document.documentElement.style.setProperty('--select-color', storedColor);
+    document.documentElement.style.setProperty('--selection-color', storedColor);
+
+    initHeader();
+
+    // After header is initialized, sync color picker value
+    const selectColor = document.getElementById('selectColor');
+    if (selectColor) {
+      selectColor.value = storedColor;
+    }
+
+    // Remove template-generated elements (inputs, middle section)
+    document.querySelector('.inputs')?.remove();
+    document.querySelector('.middle')?.remove();
+
+    // Extract .controls from timeline-wrapper before removing it
+    const timelineWrapper = document.querySelector('.timeline-wrapper');
+    const controls = timelineWrapper?.querySelector('.controls');
+    if (controls && timelineWrapper) {
+      timelineWrapper.before(controls);
+      timelineWrapper.remove();
+    }
+
+    import('./main.js');
+  </script>
+
+  <!-- Rendimiento Audio (menu flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <!-- Long-press para abrir el mixer -->
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+</body>
+</html>
