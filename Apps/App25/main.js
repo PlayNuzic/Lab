@@ -380,9 +380,21 @@ function handleReset() {
 function handleRandom() {
   if (isPlaying) return;
 
+  // 1. Randomize scale
+  const randomScaleIndex = Math.floor(Math.random() * APP25_SCALES.length);
+  const randomScale = APP25_SCALES[randomScaleIndex];
+  scaleSelector?.setScale(randomScale.value);
+
+  // 2. Randomize transpose (nota de salida: 0-11)
+  const randomTranspose = Math.floor(Math.random() * 12);
+  scaleSelector?.setTranspose(randomTranspose);
+
+  // 3. Randomize sequence
   const randDensity = parseInt(document.getElementById('randDensity')?.value || 8, 10);
 
   // Generate random pairs based on density
+  // Use the NEW scale length after scale change
+  const newScaleLength = motherScalesData[randomScale.id]?.ee?.length || 7;
   const numPairs = Math.max(1, Math.min(randDensity, TOTAL_SPACES));
   const allPulses = Array.from({ length: TOTAL_SPACES }, (_, i) => i);
 
@@ -392,19 +404,37 @@ function handleRandom() {
     [allPulses[i], allPulses[j]] = [allPulses[j], allPulses[i]];
   }
 
-  const selectedPulses = allPulses.slice(0, numPairs).sort((a, b) => a - b);
+  const selectedPulses = new Set(allPulses.slice(0, numPairs));
 
-  const pairs = selectedPulses.map(pulse => ({
-    degree: Math.floor(Math.random() * currentScaleLength),
-    modifier: null,
-    pulse: pulse,
-    isRest: false
-  }));
+  // Generate pairs for ALL pulses: notes for selected, rests for others
+  const pairs = allPulses.map(pulse => {
+    if (selectedPulses.has(pulse)) {
+      return {
+        degree: Math.floor(Math.random() * newScaleLength),
+        modifier: null,
+        pulse: pulse,
+        isRest: false
+      };
+    } else {
+      return {
+        degree: null,
+        modifier: null,
+        pulse: pulse,
+        isRest: true
+      };
+    }
+  });
 
   gridEditor?.setPairs(pairs);
   syncGridFromDegrees(pairs);
 
-  console.log('Random generation:', { pairs, numPairs, scaleLength: currentScaleLength });
+  console.log('Random generation:', {
+    scale: randomScale.name,
+    transpose: randomTranspose,
+    pairs,
+    numPairs,
+    scaleLength: newScaleLength
+  });
 }
 
 // ========== SYNCHRONIZATION ==========

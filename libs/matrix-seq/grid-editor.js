@@ -2408,11 +2408,14 @@ export function createGridEditor(config = {}) {
     input.dataset.filled = 'true';
     onPairsChange(newPairs);
 
-    // Auto-advance to next column
+    // Auto-advance to next column, or blur if last column
     const nextInput = container.querySelector(`.degree-input[data-pulse="${pulse + 1}"]`);
     if (nextInput) {
       nextInput.focus();
       nextInput.select();
+    } else {
+      // Last column - blur to close caret
+      input.blur();
     }
   }
 
