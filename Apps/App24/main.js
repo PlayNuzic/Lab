@@ -91,7 +91,7 @@ const preferenceStorage = createPreferenceStorage('app24');
 // CONFIGURACIÓ
 // ============================================================================
 
-const TOTAL_CHROMATIC = 12;
+const TOTAL_CHROMATIC = 13; // 0-12 (incluye octava)
 const BPM = 75;
 const BASE_MIDI = 60; // C4
 
@@ -100,11 +100,12 @@ const BASE_MIDI = 60; // C4
 // ============================================================================
 
 /**
- * Calcula les notes MIDI de l'escala transposada
+ * Calcula les notes MIDI de l'escala transposada (amb octava)
  */
 function getScaleMidis() {
   const baseMidi = BASE_MIDI + outputNote;
-  return currentScaleNotes.map(interval => baseMidi + interval);
+  // Afegir nota 12 (octava = grau 0 superior)
+  return [...currentScaleNotes, 12].map(interval => baseMidi + interval);
 }
 
 /**
@@ -112,6 +113,13 @@ function getScaleMidis() {
  */
 function getTransposedScaleNotes() {
   return currentScaleNotes.map(interval => (outputNote + interval) % 12);
+}
+
+/**
+ * Retorna les notes de l'escala actual amb l'octava (grau 0 superior)
+ */
+function getScaleNotesWithOctave() {
+  return [...currentScaleNotes, 12];
 }
 
 /**
@@ -278,10 +286,12 @@ function updateChromaticHighlights() {
 // ============================================================================
 
 /**
- * Formateador d'etiquetes per escala: mostra el grau (0 a N-1)
+ * Formateador d'etiquetes per escala: mostra el grau (0 a N-1, i 0 per l'octava)
  */
 function createScaleLabelFormatter() {
   return (noteIndex) => {
+    // Nota 12 és el grau 0 de l'octava superior
+    if (noteIndex === 12) return 0;
     const degreeIndex = currentScaleNotes.indexOf(noteIndex);
     return degreeIndex !== -1 ? degreeIndex : '';
   };
@@ -294,7 +304,7 @@ function initScaleSoundline() {
     container: scaleContainer,
     totalNotes: TOTAL_CHROMATIC,
     startMidi: BASE_MIDI,
-    visibleNotes: currentScaleNotes,
+    visibleNotes: getScaleNotesWithOctave(),
     labelFormatter: createScaleLabelFormatter()
   });
 
@@ -311,7 +321,7 @@ function redrawConnectionLines() {
     svg: connectionSvg,
     chromaticContainer,
     chromaticSoundline,
-    scaleNotes: currentScaleNotes
+    scaleNotes: getScaleNotesWithOctave()
   });
 }
 
@@ -412,7 +422,7 @@ async function playChromatic() {
 }
 
 /**
- * Reprodueix l'escala seleccionada
+ * Reprodueix l'escala seleccionada (amb octava)
  */
 async function playScale() {
   if (isPlayingScale) {
@@ -437,12 +447,13 @@ async function playScale() {
   const noteDuration = intervalMs * 0.9 / 1000;
 
   const scaleMidis = getScaleMidis();
+  const scaleNotesWithOctave = getScaleNotesWithOctave();
 
-  for (let i = 0; i < currentScaleNotes.length; i++) {
+  for (let i = 0; i < scaleNotesWithOctave.length; i++) {
     if (stopScaleRequested) break;
 
     const midi = scaleMidis[i];
-    const originalSemitone = currentScaleNotes[i];
+    const originalSemitone = scaleNotesWithOctave[i];
 
     playNote(midi, noteDuration);
 

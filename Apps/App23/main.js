@@ -31,6 +31,8 @@ let outputNote = 0;
 
 // Escala Mayor fija (DIAT modo 0)
 const MAJOR_SCALE_INTERVALS = scaleSemis('DIAT'); // [0, 2, 4, 5, 7, 9, 11]
+// Incluir nota 12 (octava = grado 0 superior) para visualización completa
+const MAJOR_SCALE_INTERVALS_WITH_OCTAVE = [...MAJOR_SCALE_INTERVALS, 12];
 const MAJOR_EE = [2, 2, 1, 2, 2, 2, 1]; // Estructura escalar
 
 // Referencias DOM
@@ -57,7 +59,7 @@ const preferenceStorage = createPreferenceStorage('app23');
 // CONFIGURACIÓN
 // ============================================================================
 
-const TOTAL_CHROMATIC = 12;
+const TOTAL_CHROMATIC = 13; // 0-12 (incluye octava)
 const BPM = 75;
 const BASE_MIDI = 60; // C4
 
@@ -66,12 +68,12 @@ const BASE_MIDI = 60; // C4
 // ============================================================================
 
 /**
- * Calcula les notes MIDI de l'escala Major transposada
- * Escala ascendent real (pot superar una octava)
+ * Calcula les notes MIDI de l'escala Major transposada (amb octava)
+ * Escala ascendent real (inclou grau 0 de l'octava superior)
  */
 function getScaleMidis(root) {
   const baseMidi = BASE_MIDI + root;
-  return MAJOR_SCALE_INTERVALS.map(interval => baseMidi + interval);
+  return MAJOR_SCALE_INTERVALS_WITH_OCTAVE.map(interval => baseMidi + interval);
 }
 
 /**
@@ -213,10 +215,12 @@ function updateChromaticHighlights() {
 // ============================================================================
 
 /**
- * Formateador de etiquetas para escala: muestra el grado (0-6)
+ * Formateador de etiquetas para escala: muestra el grado (0-6, y 0 para la octava)
  */
 function createScaleLabelFormatter() {
   return (noteIndex) => {
+    // Nota 12 es el grado 0 de la octava superior
+    if (noteIndex === 12) return 0;
     const degreeIndex = MAJOR_SCALE_INTERVALS.indexOf(noteIndex);
     return degreeIndex !== -1 ? degreeIndex : '';
   };
@@ -229,7 +233,7 @@ function initScaleSoundline() {
     container: scaleContainer,
     totalNotes: TOTAL_CHROMATIC,
     startMidi: BASE_MIDI,
-    visibleNotes: MAJOR_SCALE_INTERVALS,
+    visibleNotes: MAJOR_SCALE_INTERVALS_WITH_OCTAVE,
     labelFormatter: createScaleLabelFormatter()
   });
 
@@ -246,7 +250,7 @@ function redrawConnectionLines() {
     svg: connectionSvg,
     chromaticContainer,
     chromaticSoundline,
-    scaleNotes: MAJOR_SCALE_INTERVALS
+    scaleNotes: MAJOR_SCALE_INTERVALS_WITH_OCTAVE
   });
 }
 
@@ -352,7 +356,7 @@ async function playChromatic() {
 }
 
 /**
- * Reproduce la escala Mayor (7 notas) desde la nota de salida
+ * Reproduce la escala Mayor (8 notas, incluyendo octava) desde la nota de salida
  */
 async function playMajorScale() {
   if (isPlayingScale) {
@@ -376,14 +380,14 @@ async function playMajorScale() {
   const intervalMs = (60 / BPM) * 1000;
   const noteDuration = intervalMs * 0.9 / 1000;
 
-  // Notes MIDI de l'escala transposada
+  // Notes MIDI de l'escala transposada (amb octava)
   const scaleMidis = getScaleMidis(outputNote);
 
-  for (let i = 0; i < MAJOR_SCALE_INTERVALS.length; i++) {
+  for (let i = 0; i < MAJOR_SCALE_INTERVALS_WITH_OCTAVE.length; i++) {
     if (stopScaleRequested) break;
 
     const midi = scaleMidis[i];
-    const originalSemitone = MAJOR_SCALE_INTERVALS[i]; // Posició a la soundline escala
+    const originalSemitone = MAJOR_SCALE_INTERVALS_WITH_OCTAVE[i]; // Posició a la soundline escala
 
     playNote(midi, noteDuration);
 
