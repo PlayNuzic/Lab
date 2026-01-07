@@ -339,7 +339,7 @@ html, body {
 
 /* Degree input cells - styled like App20 zigzag-cell */
 .degree-input {
-  width: 50px;
+  width: 60px;
   height: 50px;
   border: 1px solid var(--select-color, #FFBB33) !important;
   border-radius: 6px;
