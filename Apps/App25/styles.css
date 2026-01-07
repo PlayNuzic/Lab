@@ -299,6 +299,15 @@ html, body {
 }
 
 /* ========== SOUNDLINE SCALE NOTES ========== */
+/* Match soundline-number style to pulse-marker */
+.soundline-number {
+  font-size: 1.4rem !important;
+  font-weight: 400 !important;
+  opacity: 0.85;
+  /* Align with horizontal division lines */
+  transform: translateY(30%) !important;
+}
+
 /* Hide top-zero label (we have 13 notes, note 12 shows degree 0) */
 .soundline-number.top-zero {
   display: none;
@@ -306,7 +315,7 @@ html, body {
 
 /* Scale notes: show degree number as line */
 .soundline-number.scale-note {
-  font-weight: 600;
+  font-weight: 400 !important;
   opacity: 1;
 }
 
@@ -314,7 +323,108 @@ html, body {
 .soundline-number.chromatic-note {
   font-size: 0.7rem !important;
   opacity: 0.35;
-  font-weight: 300;
+  font-weight: 300 !important;
+}
+
+/* ========== GRID-EDITOR STYLES (App20-like) ========== */
+/* Label "Nº" - styled like App20 zigzag-left-label */
+.grid-row-label--degree {
+  font-size: 2.8rem;
+  font-weight: 700;
+  min-width: 52px;
+  padding: 0 10px;
+  color: var(--select-color, #FFBB33);
+}
+
+/* Degree input cells - styled like App20 zigzag-cell */
+.degree-input {
+  width: 50px;
+  height: 50px;
+  border: 1px solid var(--select-color, #FFBB33) !important;
+  border-radius: 6px;
+  background: transparent !important;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--select-color, #FFBB33);
+}
+
+[data-theme="dark"] .degree-input {
+  background: transparent !important;
+  border-color: var(--select-color, #FFBB33) !important;
+  color: var(--select-color, #FFBB33);
+}
+
+.degree-input:focus {
+  border-color: var(--select-color, #FFBB33) !important;
+  box-shadow: 0 0 6px rgba(255, 187, 51, 0.35);
+  background: rgba(255, 187, 51, 0.08) !important;
+}
+
+.degree-input[data-filled="true"] {
+  background: rgba(255, 187, 51, 0.08) !important;
+}
+
+[data-theme="dark"] .degree-input[data-filled="true"] {
+  background: rgba(255, 187, 51, 0.12) !important;
+}
+
+/* Column header - match pulse-marker style */
+.degree-column-header {
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: var(--grid-number-color, var(--text-color, #333));
+  opacity: 0.85;
+}
+
+[data-theme="dark"] .degree-column-header {
+  color: var(--grid-number-color-dark, var(--text-dark, #e0e0e0));
+}
+
+/* Responsive adjustments for App25 grid-editor */
+@media (max-width: 900px) {
+  .grid-row-label--degree {
+    font-size: 1.8rem;
+    min-width: 40px;
+    padding: 0 6px;
+  }
+
+  .degree-input {
+    width: 42px;
+    height: 42px;
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-row-label--degree {
+    font-size: 1.4rem;
+    min-width: 35px;
+    padding: 0 4px;
+  }
+
+  .degree-input {
+    width: 36px;
+    height: 36px;
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .grid-row-label--degree {
+    font-size: 1.2rem;
+    min-width: 30px;
+    padding: 0 3px;
+  }
+
+  .degree-input {
+    width: 30px;
+    height: 30px;
+    font-size: 1.2rem;
+  }
+
+  .degree-column-header {
+    font-size: 0.7rem;
+  }
 }
 
 /* ========== DISABLED CELLS (notes outside scale) ========== */
@@ -343,13 +453,13 @@ html, body {
   background: var(--bg-light, #ECECEC);
   border: 2px solid var(--line-color);
   border-radius: 9px;
-  padding: 7px 14px;
+  padding: 14px 14px;
   font-family: 'Courier New', monospace;
-  font-size: 1.15rem;
+  font-size: 1.7rem;
   font-weight: 600;
   color: var(--text-light);
   transition: border-color 0.15s ease, background-color 0.15s ease;
-  margin: auto;
+  margin: 0 8px;
   width: fit-content;
 }
 
