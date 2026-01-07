@@ -13,7 +13,7 @@ import { getMixer, subscribeMixer, setChannelVolume, setChannelMute, setVolume, 
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
-import { isPianoLoaded } from '../../libs/sound/piano.js';
+import { isPianoLoaded, setupPianoPreload } from '../../libs/sound/piano.js';
 import { isViolinLoaded } from '../../libs/sound/violin.js';
 import { createScaleSelector } from '../../libs/scale-selector/index.js';
 import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index.js';
@@ -1125,6 +1125,9 @@ async function init() {
       if (randDensity) randDensity.value = '8';
     }
   });
+
+  // Preload piano samples in background (reduces latency on first play)
+  setupPianoPreload({ delay: 300 });
 
   console.log('App25 initialized successfully');
 }
