@@ -68,6 +68,7 @@ let randomBtn = null;
 let gridEditorContainer = null;
 let scaleSelectorContainer = null;
 let gridAreaContainer = null;
+let nmVisualizerElement = null;
 
 // ========== STORAGE HELPERS ==========
 const preferenceStorage = createPreferenceStorage('app25');
@@ -250,6 +251,61 @@ function degreeToMidi(degree, modifier = null) {
 
 // ========== VISUAL FEEDBACK ==========
 let highlightController = null;
+
+// ========== Nm VISUALIZER ==========
+
+/**
+ * Create Nm(X) visualizer element inside the grid spacer (grid-area: 2/1)
+ * @param {HTMLElement} gridContainer - The .grid-container element
+ */
+function createNmVisualizer(gridContainer) {
+  // Find the spacer element (grid-area: 2/1)
+  // Structure: soundline-wrapper, matrix-container, spacer (3rd child), timeline-wrapper
+  const children = gridContainer.children;
+  let spacer = null;
+
+  // Find spacer by checking grid position (it's the only one with gridRow: 2 and gridColumn: 1)
+  for (const child of children) {
+    if (child.style.gridRow === '2' && child.style.gridColumn === '1') {
+      spacer = child;
+      break;
+    }
+  }
+
+  if (!spacer) {
+    console.warn('Nm visualizer: spacer element not found');
+    return null;
+  }
+
+  // Create visualizer element
+  const visualizer = document.createElement('div');
+  visualizer.className = 'nm-visualizer';
+  visualizer.innerHTML = `<span class="nm-label">Nm(</span><span class="nm-value">${scaleState.root}</span><span class="nm-label">)</span>`;
+
+  spacer.appendChild(visualizer);
+  nmVisualizerElement = visualizer;
+
+  return visualizer;
+}
+
+/**
+ * Update Nm(X) visualizer value and trigger flash animation
+ * @param {number} newValue - New transpose value (0-11)
+ */
+function updateNmVisualizer(newValue) {
+  if (!nmVisualizerElement) return;
+
+  const valueSpan = nmVisualizerElement.querySelector('.nm-value');
+  if (valueSpan) {
+    valueSpan.textContent = newValue;
+  }
+
+  // Trigger flash animation
+  nmVisualizerElement.classList.remove('flash');
+  // Force reflow to restart animation
+  void nmVisualizerElement.offsetWidth;
+  nmVisualizerElement.classList.add('flash');
+}
 
 // ========== PLAYBACK ==========
 
@@ -602,7 +658,10 @@ function handleScaleChange({ scaleId, rotation, value }) {
 function handleTransposeChange(transpose) {
   scaleState.root = transpose;
 
-  // NO visual updates needed - visual display is FIXED
+  // Update Nm(X) visualizer with flash animation
+  updateNmVisualizer(transpose);
+
+  // NO visual grid updates needed - visual display is FIXED
   // Only MIDI playback is affected via degreeToMidi()
 
   console.log('Transpose changed:', transpose, '(visual unchanged, only MIDI output affected)');
@@ -760,6 +819,12 @@ async function init() {
 
   // Initial cell states
   updateGridCellStates();
+
+  // Create Nm(X) visualizer in grid spacer (grid-area: 2/1)
+  const gridContainer = gridAreaContainer.querySelector('.grid-container');
+  if (gridContainer) {
+    createNmVisualizer(gridContainer);
+  }
 
   // Move controls into scale selector area
   const controls = document.querySelector('.controls');

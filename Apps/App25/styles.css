@@ -334,6 +334,102 @@ html, body {
   opacity: 0.6;
 }
 
+/* ========== Nm(X) OUTPUT NOTE VISUALIZER ========== */
+/* Located in the spacer area (grid-area: 2/1) of the musical grid */
+.nm-visualizer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-light, #ECECEC);
+  border: 2px solid var(--line-color);
+  border-radius: 9px;
+  padding: 7px 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-light);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  margin: auto;
+  width: fit-content;
+}
+
+[data-theme="dark"] .nm-visualizer {
+  background: var(--bg-dark, #43433B);
+  color: var(--text-dark);
+}
+
+.nm-visualizer .nm-label {
+  opacity: 0.7;
+}
+
+.nm-visualizer .nm-value {
+  color: var(--select-color, #FFBB33);
+  margin-left: 1px;
+}
+
+/* Flash animation on value change */
+.nm-visualizer.flash {
+  animation: nm-flash 0.4s ease-out;
+}
+
+@keyframes nm-flash {
+  0% {
+    border-color: var(--select-color, #FFBB33);
+    background-color: rgba(255, 187, 51, 0.3);
+    transform: scale(1.08);
+  }
+  50% {
+    border-color: var(--select-color, #FFBB33);
+  }
+  100% {
+    border-color: var(--line-color);
+    background-color: var(--bg-light, #ECECEC);
+    transform: scale(1);
+  }
+}
+
+[data-theme="dark"] .nm-visualizer.flash {
+  animation: nm-flash-dark 0.4s ease-out;
+}
+
+@keyframes nm-flash-dark {
+  0% {
+    border-color: var(--select-color, #FFBB33);
+    background-color: rgba(255, 187, 51, 0.25);
+    transform: scale(1.08);
+  }
+  50% {
+    border-color: var(--select-color, #FFBB33);
+  }
+  100% {
+    border-color: var(--line-color);
+    background-color: var(--bg-dark, #43433B);
+    transform: scale(1);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .nm-visualizer {
+    font-size: 1.03rem;
+    padding: 5px 11px;
+  }
+}
+
+@media (max-width: 768px) {
+  .nm-visualizer {
+    font-size: 0.92rem;
+    padding: 4px 9px;
+  }
+}
+
+@media (max-width: 600px) {
+  .nm-visualizer {
+    font-size: 0.8rem;
+    padding: 3px 7px;
+  }
+}
+
 /* ========== DEGREE LABELS ON ACTIVE CELLS ========== */
 .cell-label {
   position: absolute;
