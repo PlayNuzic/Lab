@@ -27,16 +27,16 @@ const DEFAULT_BPM = 120;
 
 // Scale configuration (from App24)
 const APP25_SCALES = [
-  { id: 'DIAT', rotation: 0, value: 'DIAT-0', name: 'Major', rootOffset: 0 },
+  { id: 'DIAT', rotation: 0, value: 'DIAT-0', name: 'Mayor', rootOffset: 0 },
   { id: 'DIAT', rotation: 5, value: 'DIAT-5', name: 'Menor Natural', rootOffset: 3 },
-  { id: 'ACUS', rotation: 4, value: 'ACUS-4', name: 'Menor Melodica', rootOffset: 5 },
-  { id: 'ARMme', rotation: 0, value: 'ARMme-0', name: 'Menor Harmonica', rootOffset: 0 },
-  { id: 'ARMma', rotation: 0, value: 'ARMma-0', name: 'Mayor Harmonica', rootOffset: 0 },
-  { id: 'PENT', rotation: 0, value: 'PENT-0', name: 'Pentatonica', rootOffset: 0 },
+  { id: 'ACUS', rotation: 4, value: 'ACUS-4', name: 'Menor Melódica', rootOffset: 5 },
+  { id: 'ARMme', rotation: 0, value: 'ARMme-0', name: 'Menor Armónica', rootOffset: 0 },
+  { id: 'ARMma', rotation: 0, value: 'ARMma-0', name: 'Mayor Armónica', rootOffset: 0 },
+  { id: 'PENT', rotation: 0, value: 'PENT-0', name: 'Pentatónica', rootOffset: 0 },
   { id: 'TON', rotation: 0, value: 'TON-0', name: 'Tonos', rootOffset: 0 },
-  { id: 'CROM', rotation: 0, value: 'CROM-0', name: 'Cromatica', rootOffset: 0 },
-  { id: 'OCT', rotation: 0, value: 'OCT-0', name: 'Octatonica', rootOffset: 0 },
-  { id: 'HEX', rotation: 0, value: 'HEX-0', name: 'Hexatonica', rootOffset: 0 }
+  { id: 'CROM', rotation: 0, value: 'CROM-0', name: 'Cromática', rootOffset: 0 },
+  { id: 'OCT', rotation: 0, value: 'OCT-0', name: 'Octatónica', rootOffset: 0 },
+  { id: 'HEX', rotation: 0, value: 'HEX-0', name: 'Hexatónica', rootOffset: 0 }
 ];
 
 // ========== STATE ==========
@@ -60,6 +60,10 @@ let currentRootOffset = 0;
 
 // Current scale length (for degree validation)
 let currentScaleLength = 7;
+
+// Memory for degrees that exceed current scale length
+// Key: pulse index, Value: { degree, modifier } - the original pair before being hidden
+const lostDegreesMemory = new Map();
 
 // Elements
 let playBtn = null;
@@ -420,6 +424,9 @@ function handleReset() {
   gridEditor?.clear();
   musicalGrid?.clear();
 
+  // Clear lost degrees memory on reset
+  lostDegreesMemory.clear();
+
   if (musicalGrid?.clearIntervalPaths) {
     musicalGrid.clearIntervalPaths();
   }
@@ -598,45 +605,64 @@ function handleScaleChange({ scaleId, rotation, value }) {
   // Update grid cell states (which notes are enabled based on new scale)
   updateGridCellStates();
 
-  // Get current pairs and adapt them to new scale
+  // Adapt pairs to new scale: hide degrees that exceed scale length, restore from memory
   if (gridEditor) {
     const currentPairs = gridEditor.getPairs();
+    const adaptedPairs = [];
 
-    // Adapt pairs to new scale length
-    const adaptedPairs = currentPairs.map(pair => {
-      if (pair.isRest) return pair;
+    for (const pair of currentPairs) {
+      const pulse = pair.pulse;
 
-      // Handle 0r+ (upper octave) - stays as 0r+
+      // Case 1: Current pair is a rest - check memory for recoverable degree
+      if (pair.isRest) {
+        const memorized = lostDegreesMemory.get(pulse);
+        if (memorized && memorized.degree < currentScaleLength) {
+          // Restore from memory - degree is now valid
+          adaptedPairs.push({
+            degree: memorized.degree,
+            modifier: memorized.modifier,
+            pulse,
+            isRest: false
+          });
+          lostDegreesMemory.delete(pulse);
+        } else {
+          // Keep as rest
+          adaptedPairs.push(pair);
+        }
+        continue;
+      }
+
+      // Case 2: Handle 0r+ (upper octave) - always valid
       if (pair.degree === 0 && pair.modifier === 'r+') {
-        return pair;
+        adaptedPairs.push(pair);
+        continue;
       }
 
-      // If degree is valid for new scale, keep it
+      // Case 3: Degree is valid for new scale - keep it
       if (pair.degree < currentScaleLength) {
-        return pair;
+        adaptedPairs.push(pair);
+        // Also check if there's a memorized degree at this pulse that can be cleared
+        // (because user manually placed a new note here)
+        continue;
       }
 
-      // If degree equals new scale length, it becomes 0r+ (upper octave)
-      // Example: degree 5 in 6-note scale → 0r+ in 5-note scale
-      if (pair.degree === currentScaleLength) {
-        return {
-          ...pair,
-          degree: 0,
-          modifier: 'r+'
-        };
-      }
-
-      // If degree exceeds new scale, wrap it around
-      return {
-        ...pair,
-        degree: pair.degree % currentScaleLength
-      };
-    });
+      // Case 4: Degree exceeds new scale - hide it (convert to rest) and save to memory
+      lostDegreesMemory.set(pulse, {
+        degree: pair.degree,
+        modifier: pair.modifier
+      });
+      adaptedPairs.push({
+        degree: null,
+        modifier: null,
+        pulse,
+        isRest: true
+      });
+    }
 
     // Update grid editor with adapted pairs
     gridEditor.setPairs(adaptedPairs);
 
-    // Re-sync visual grid with new MIDI positions
+    // Re-sync visual grid with new positions
     syncGridFromDegrees(adaptedPairs);
   }
 
@@ -879,6 +905,13 @@ async function init() {
     containerSize: isMobile ? { maxHeight: '100px', width: '100%' } : null,
     columnSize: isMobile ? { width: '50px', minHeight: '80px' } : null,
     onPairsChange: (pairs) => {
+      // Clear memory for any manually edited pulses
+      pairs.forEach(pair => {
+        if (!pair.isRest) {
+          // User placed a note manually - clear any memorized degree for this pulse
+          lostDegreesMemory.delete(pair.pulse);
+        }
+      });
       syncGridFromDegrees(pairs);
     }
   });
