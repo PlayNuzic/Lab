@@ -2342,26 +2342,36 @@ export function createGridEditor(config = {}) {
     // Validation 1: Degree must be within scale range
     // Exception: 0r+ is always valid (upper octave)
     if (parsed.modifier !== 'r+' && parsed.degree >= scaleLength) {
-      showDegreeError(input, `${parsed.degree} no és un grau de l'escala (màx: ${maxDegree})`);
+      showDegreeError(input, `${parsed.degree} no es un grado de la escala (máx: ${maxDegree})`);
       return;
     }
 
     // Validation 2: 0- is not allowed (below the scale)
     if (parsed.degree === 0 && parsed.modifier === '-') {
-      showDegreeError(input, `0- no és vàlid (no hi ha nota per sota del grau 0)`);
+      showDegreeError(input, `0- no es válido (no hay nota por debajo del grado 0)`);
       return;
     }
 
     // Validation 3: Last degree + is not allowed (use 0r+ instead)
     if (parsed.degree === maxDegree && parsed.modifier === '+') {
-      showDegreeError(input, `${maxDegree}+ no és vàlid (usa 0r+ per l'octava superior)`);
+      showDegreeError(input, `${maxDegree}+ no es válido (usa 0r+ para la octava superior)`);
       return;
     }
 
     // Validation 4: Only degree 0 can have r+ modifier
     if (parsed.modifier === 'r+' && parsed.degree !== 0) {
-      showDegreeError(input, `Només el grau 0 pot tenir r+ (octava superior)`);
+      showDegreeError(input, `Sólo el grado 0 puede tener r+ (octava superior)`);
       return;
+    }
+
+    // Validation 5: Custom modifier validation (e.g., chromatic modifier lands on scale degree)
+    const validateModifier = degreeModeOptions?.validateModifier;
+    if (validateModifier && parsed.modifier && parsed.modifier !== 'r+') {
+      const result = validateModifier(parsed.degree, parsed.modifier);
+      if (result && !result.valid) {
+        showDegreeError(input, result.message || 'Modificador no válido');
+        return;
+      }
     }
 
     // All validations passed - save the input

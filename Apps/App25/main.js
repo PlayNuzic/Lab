@@ -751,7 +751,30 @@ async function init() {
     degreeModeOptions: {
       totalPulses: TOTAL_SPACES,
       getScaleLength: () => currentScaleLength,
-      validateDegree: (degree) => degree >= 0 && degree < currentScaleLength
+      validateDegree: (degree) => degree >= 0 && degree < currentScaleLength,
+      validateModifier: (degree, modifier) => {
+        // Get the visual scale semitones (which notes are in the scale)
+        const scaleSemitones = getVisualScaleSemitones();
+
+        // Calculate the altered semitone
+        const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
+        const baseSemitone = degToSemi(visualState, degree);
+        let alteredSemitone = baseSemitone;
+        if (modifier === '+') alteredSemitone = (baseSemitone + 1) % 12;
+        if (modifier === '-') alteredSemitone = (baseSemitone + 11) % 12;
+
+        // Check if the altered semitone coincides with a scale degree
+        if (scaleSemitones.includes(alteredSemitone)) {
+          // Find which degree it coincides with
+          const coincidingDegree = scaleSemitones.indexOf(alteredSemitone);
+          return {
+            valid: false,
+            message: `${degree}${modifier} coincide con el grado ${coincidingDegree}. Usa ${coincidingDegree} directamente.`
+          };
+        }
+
+        return { valid: true };
+      }
     },
     noteRange: [0, 11],
     pulseRange: [0, TOTAL_SPACES - 1],
