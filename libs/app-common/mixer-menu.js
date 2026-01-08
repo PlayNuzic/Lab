@@ -688,6 +688,19 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
     if (menuOpen) solidMenuBackground(menu);
   });
 
+  // Sync mixer mute button when header mute button changes
+  window.addEventListener('sharedui:mute', (event) => {
+    const masterControl = controlMap.get('master');
+    if (!masterControl?.muteBtn) return;
+    const isMutedNow = event.detail?.value;
+    masterControl.muteBtn.classList.toggle('active', isMutedNow);
+    masterControl.muteBtn.setAttribute('aria-pressed', isMutedNow ? 'true' : 'false');
+    // Also update suppressed state on wrapper
+    if (masterControl.wrapper) {
+      masterControl.wrapper.classList.toggle('suppressed', isMutedNow);
+    }
+  });
+
   const latestState = {
     master: null,
     channels: new Map()
