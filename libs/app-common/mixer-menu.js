@@ -689,19 +689,13 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   });
 
   // Sync mixer mute button when header mute button changes
+  // This ensures visual sync even if subscribeMixer update hasn't fired yet
   window.addEventListener('sharedui:mute', (event) => {
     const masterControl = controlMap.get('master');
     if (!masterControl?.muteBtn) return;
     const isMutedNow = !!event.detail?.value;
-
-    // Update internal state so click handler reads correct value
-    if (latestState.master) {
-      latestState.master.muted = isMutedNow;
-    }
-
     masterControl.muteBtn.classList.toggle('active', isMutedNow);
     masterControl.muteBtn.setAttribute('aria-pressed', isMutedNow ? 'true' : 'false');
-    // Also update suppressed state on wrapper
     if (masterControl.wrapper) {
       masterControl.wrapper.classList.toggle('suppressed', isMutedNow);
     }

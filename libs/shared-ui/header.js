@@ -526,7 +526,9 @@ function wireControls(root) {
                     }
                     volumeSlider.value = 0;
                 } else {
+                    // Restore previous volume when unmuting from external source (e.g., mixer)
                     volumeSlider.value = previousVolume;
+                    setVolume(previousVolume);
                 }
             }
         };
