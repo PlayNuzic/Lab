@@ -334,7 +334,7 @@ html, body {
   min-width: 52px;
   padding: 0px 0px;
   margin-top: 30px;
-  color: var(--select-color, #FFBB33);
+  //color: var(--select-color, #FFBB33);
 }
 
 /* Degree input cells - styled like App20 zigzag-cell */
@@ -346,13 +346,13 @@ html, body {
   background: transparent !important;
   font-size: 2rem;
   font-weight: 700;
-  color: var(--select-color, #FFBB33);
+  color: var(--text-color, #333);
 }
 
 [data-theme="dark"] .degree-input {
   background: transparent !important;
   border-color: var(--select-color, #FFBB33) !important;
-  color: var(--select-color, #FFBB33);
+  color: var(--text-dark, #e0e0e0);
 }
 
 .degree-input:focus {
@@ -471,10 +471,10 @@ html, body {
 
 .nm-visualizer .nm-label {
   opacity: 0.7;
+  //color: var(--select-color, #FFBB33);
 }
 
 .nm-visualizer .nm-value {
-  color: var(--select-color, #FFBB33);
   margin-left: 1px;
 }
 
@@ -562,7 +562,7 @@ html, body {
 
 /* Labels with modifiers (+, -, r+) use selection color */
 .cell-label--modified {
-  color: var(--select-color, #FFBB33) !important;
+  //color: var(--select-color, #FFBB33) !important;
 }
 
 /* Ensure active cells and their labels are fully visible even on disabled rows */
