@@ -37,6 +37,17 @@
     // Remove elements not needed for App27
     document.querySelector('.inputs')?.remove();
 
+    // Rename "Intervalo 1" to "Pulso 0" in the menu
+    const intervalToggleLabel = document.querySelector('.interval-toggle-label');
+    if (intervalToggleLabel) {
+      const checkbox = intervalToggleLabel.querySelector('input');
+      if (checkbox) {
+        intervalToggleLabel.textContent = '';
+        intervalToggleLabel.appendChild(checkbox);
+        intervalToggleLabel.append(' Pulso 0');
+      }
+    }
+
     // Setup sound groups: Base + Cycle (Subdivisión)
     const soundGroup = document.querySelector('.sound-group');
     if (soundGroup) {
