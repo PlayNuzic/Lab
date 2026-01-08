@@ -692,7 +692,13 @@ export function initMixerMenu({ menu, triggers = [], channels = [], longPress = 
   window.addEventListener('sharedui:mute', (event) => {
     const masterControl = controlMap.get('master');
     if (!masterControl?.muteBtn) return;
-    const isMutedNow = event.detail?.value;
+    const isMutedNow = !!event.detail?.value;
+
+    // Update internal state so click handler reads correct value
+    if (latestState.master) {
+      latestState.master.muted = isMutedNow;
+    }
+
     masterControl.muteBtn.classList.toggle('active', isMutedNow);
     masterControl.muteBtn.setAttribute('aria-pressed', isMutedNow ? 'true' : 'false');
     // Also update suppressed state on wrapper
