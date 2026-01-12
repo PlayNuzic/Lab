@@ -302,25 +302,16 @@ if (typeof window !== 'undefined') {
 function initFractionEditorController() {
   if (!formula) return;
 
-  // Load saved denominator
-  const savedD = loadOpt('d');
-  const initialD = savedD ? parseInt(savedD, 10) : DEFAULT_DENOMINATOR;
-  currentDenominator = Number.isFinite(initialD) && initialD >= MIN_DENOMINATOR && initialD <= MAX_DENOMINATOR
-    ? initialD
-    : DEFAULT_DENOMINATOR;
+  // Always start with default denominator (no persistence)
+  currentDenominator = DEFAULT_DENOMINATOR;
 
   const controller = createFractionEditor({
     mode: 'block',
     host: formula,
-    defaults: { numerator: FIXED_NUMERATOR, denominator: currentDenominator },
+    defaults: { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
-    storage: {
-      load: loadOpt,
-      save: saveOpt,
-      clear: clearOpt,
-      numeratorKey: 'n',
-      denominatorKey: 'd'
-    },
+    // No storage - always start fresh with defaults
+    storage: {},
     addRepeatPress,
     labels: {
       numerator: {

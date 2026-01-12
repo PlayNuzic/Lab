@@ -308,32 +308,17 @@ if (typeof window !== 'undefined') {
 function initFractionEditorController() {
   if (!formula) return;
 
-  // Load saved fraction
-  const savedN = loadOpt('n');
-  const savedD = loadOpt('d');
-
-  const initialN = savedN ? parseInt(savedN, 10) : DEFAULT_NUMERATOR;
-  const initialD = savedD ? parseInt(savedD, 10) : DEFAULT_DENOMINATOR;
-
-  currentNumerator = Number.isFinite(initialN) && initialN >= MIN_NUMERATOR && initialN <= MAX_NUMERATOR
-    ? initialN
-    : DEFAULT_NUMERATOR;
-  currentDenominator = Number.isFinite(initialD) && initialD >= MIN_DENOMINATOR && initialD <= MAX_DENOMINATOR
-    ? initialD
-    : DEFAULT_DENOMINATOR;
+  // Always start with default fraction (no persistence)
+  currentNumerator = DEFAULT_NUMERATOR;
+  currentDenominator = DEFAULT_DENOMINATOR;
 
   const controller = createFractionEditor({
     mode: 'block',
     host: formula,
-    defaults: { numerator: currentNumerator, denominator: currentDenominator },
+    defaults: { numerator: DEFAULT_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
-    storage: {
-      load: loadOpt,
-      save: saveOpt,
-      clear: clearOpt,
-      numeratorKey: 'n',
-      denominatorKey: 'd'
-    },
+    // No storage - always start fresh with defaults
+    storage: {},
     addRepeatPress,
     labels: {
       numerator: {
