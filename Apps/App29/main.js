@@ -904,14 +904,16 @@ function attachSelectionHandlers() {
     pulse.addEventListener('click', () => {
       const idx = pulse.dataset.index;
       const token = idx;
+
       if (selectedPulses.has(token)) {
         selectedPulses.delete(token);
-        pulse.classList.remove('selected');
       } else {
         selectedPulses.add(token);
-        pulse.classList.add('selected');
       }
+
+      // Update both pulseSeq text AND timeline visual (including integer labels)
       syncPulseSeqFromSelection();
+      syncTimelineFromSelection();
     });
   });
 
