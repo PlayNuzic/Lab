@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sucesion de Pulsos Fraccionados Complejos</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+</head>
+<body class="app29" data-theme="system">
+  <div id="app-root"></div>
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Sucesion de Pulsos Fraccionados Complejos',
+      showSelectColor: false,
+      showAccent: false,
+      showComplexFractions: false,
+      hideT: true,
+      hideLeds: true,
+      showCircularTimelineToggle: false,
+      showHoverToggle: false,
+      showStartSoundDropdown: true,
+      showInstrumentDropdown: false,
+      showPulseToggle: true,
+      showSelectedToggle: true,
+      showCycleToggle: true,
+      showP1Toggle: true,
+      useIntervalMode: true,
+      randomMenuContent: ''
+    });
+
+    // Remove elements not needed for App29
+    document.querySelector('.inputs')?.remove();
+
+    // Rename "Intervalo 1" to "Pulso 0" in the menu
+    const intervalToggleLabel = document.querySelector('.interval-toggle-label');
+    if (intervalToggleLabel) {
+      const checkbox = intervalToggleLabel.querySelector('input');
+      if (checkbox) {
+        intervalToggleLabel.textContent = '';
+        intervalToggleLabel.appendChild(checkbox);
+        intervalToggleLabel.append(' Pulso 0');
+      }
+    }
+
+    // Setup sound groups: Base + Selected + Cycle (Subdivision)
+    const soundGroup = document.querySelector('.sound-group');
+    if (soundGroup) {
+      // Rename "Pulso" to appropriate label
+      const labels = soundGroup.querySelectorAll('p');
+      const startLabel = labels?.[1];
+      if (startLabel) startLabel.textContent = 'Pulso';
+
+      // Add accent/selected sound dropdown
+      const accentTitle = document.createElement('p');
+      accentTitle.textContent = 'Seleccion';
+      soundGroup.appendChild(accentTitle);
+
+      const accentRow = document.createElement('div');
+      accentRow.className = 'preview-row';
+
+      const accentHiddenLabel = document.createElement('label');
+      accentHiddenLabel.setAttribute('for', 'accentSoundSelect');
+      accentHiddenLabel.style.display = 'none';
+      accentRow.appendChild(accentHiddenLabel);
+
+      const accentSlot = document.createElement('div');
+      accentSlot.id = 'accentSoundSelect';
+      accentRow.appendChild(accentSlot);
+      soundGroup.appendChild(accentRow);
+
+      // Add cycle sound dropdown
+      const cycleTitle = document.createElement('p');
+      cycleTitle.textContent = 'Subdivision';
+      soundGroup.appendChild(cycleTitle);
+
+      const cycleRow = document.createElement('div');
+      cycleRow.className = 'preview-row';
+
+      const hiddenLabel = document.createElement('label');
+      hiddenLabel.setAttribute('for', 'cycleSoundSelect');
+      hiddenLabel.style.display = 'none';
+      cycleRow.appendChild(hiddenLabel);
+
+      const slot = document.createElement('div');
+      slot.id = 'cycleSoundSelect';
+      cycleRow.appendChild(slot);
+      soundGroup.appendChild(cycleRow);
+    }
+
+    initHeader();
+    import('./main.js');
+  </script>
+  <!-- Rendimiento Audio (menu flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <!-- Long-press para abrir el mixer -->
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+</body>
+</html>
