@@ -53,15 +53,7 @@ Lab/
 
 ### Documentació Detallada
 
-Per documentació completa dels mòduls, consulta:
-- **@MODULES.md** - Documentació de tots els mòduls (2000+ línies)
-- **@libs/app-common/README.md** - Mòduls core
-- **@libs/matrix-seq/README.md** - Editor grid N-P
-- **@libs/musical-grid/README.md** - Grid 2D amb scroll
-- **@libs/interval-sequencer/README.md** - Seqüenciador intervals
-- **@libs/notation/README.md** - Sistema de notació
-- **@libs/plano-modular/README.md** - Grid 2D modular
-- **@libs/scale-selector/README.md** - Selector d'escales
+Per documentació completa dels mòduls, consulta `docs/modules-reference.md`.
 
 ---
 
@@ -122,7 +114,7 @@ tapHandler.attach();
 
 ## Sistema d'Agentes
 
-Claude Code té agents especialitzats. Consulta **@.claude-code/agents-context.md** per detalls.
+Claude Code té agents especialitzats. Consulta `docs/agents-context.md` per detalls.
 
 ### Agents Disponibles
 1. **🎨 UI Agent** - Interfícies, components UI
