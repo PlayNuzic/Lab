@@ -537,6 +537,9 @@ function initPulseSeqEditor() {
   pulseSeqEditEl.addEventListener('input', handlePulseSeqInput);
 }
 
+// Track if we're in a backspace/delete operation to avoid caret repositioning
+let isDeleting = false;
+
 function handlePulseSeqKeydown(e) {
   // Enter: sanitize and blur
   if (e.key === 'Enter') {
@@ -558,9 +561,15 @@ function handlePulseSeqKeydown(e) {
     return;
   }
 
-  // Allow: digits, dot, space, backspace, delete, arrows
+  // Track delete operations to prevent caret repositioning
+  if (e.key === 'Backspace' || e.key === 'Delete') {
+    isDeleting = true;
+    return; // Allow default behavior
+  }
+
+  // Allow: digits, dot, space, arrows
   const allowed = new Set([
-    'Backspace', 'Delete', 'ArrowUp', 'ArrowDown', 'Tab'
+    'ArrowUp', 'ArrowDown', 'Tab'
   ]);
 
   if (/^[0-9]$/.test(e.key) || e.key === '.' || e.key === ' ' || allowed.has(e.key)) {
@@ -583,6 +592,11 @@ function handlePulseSeqFocus() {
 }
 
 function handlePulseSeqInput() {
+  // Skip caret repositioning during delete operations
+  if (isDeleting) {
+    isDeleting = false;
+    return;
+  }
   // After input, move caret to nearest midpoint
   setTimeout(() => {
     pulseSeqController.moveCaretToNearestMidpoint();
@@ -854,9 +868,8 @@ function renderTimeline() {
  * Attach click handlers to pulses and cycle markers for selection
  */
 function attachSelectionHandlers() {
-  // Integer pulses (not endpoints, only selectable ones)
+  // All integer pulses (including endpoints 0 and lg, skip non-selectable)
   pulses.forEach((pulse) => {
-    if (pulse.classList.contains('endpoint')) return; // Skip endpoints
     if (pulse.classList.contains('non-selectable')) return; // Skip non-selectable
 
     pulse.addEventListener('click', () => {

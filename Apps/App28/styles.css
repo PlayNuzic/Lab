@@ -250,7 +250,6 @@ body.app28 {
 .pulse.endpoint {
   width: 18px;
   height: 18px;
-  cursor: default;
 }
 
 .pulse.active {
@@ -258,20 +257,20 @@ body.app28 {
   box-shadow: 0 0 12px var(--selection-color);
 }
 
-/* Selected pulses illuminate with selection color */
-.pulse.selected:not(.endpoint) {
+/* Selected pulses illuminate with selection color (including endpoints) */
+.pulse.selected {
   background: var(--selection-color);
   box-shadow: 0 0 12px var(--selection-color);
 }
 
 /* Selected + active pulses scale up for visual feedback */
-.pulse.selected.active:not(.endpoint) {
+.pulse.selected.active {
   transform: translate(-50%, -50%) scale(1.5);
   box-shadow: 0 0 18px var(--selection-color);
 }
 
-/* Clickable pulses */
-.pulse:not(.endpoint) {
+/* All pulses are clickable (including endpoints) */
+.pulse {
   cursor: pointer;
   pointer-events: auto;
 }
