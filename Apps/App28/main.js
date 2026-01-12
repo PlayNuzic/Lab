@@ -658,7 +658,8 @@ function syncTimelineFromSelection() {
       );
       const label = cycleLabels.find(l =>
         Number(l.dataset.base) === base &&
-        Number(l.dataset.subdivision) === subdiv
+        Number(l.dataset.subdivision) === subdiv &&
+        l.dataset.integerPulse === undefined  // Exclude integer labels
       );
 
       if (marker) marker.classList.add('selected');
@@ -669,6 +670,11 @@ function syncTimelineFromSelection() {
       const pulse = pulses.find(p => parseInt(p.dataset.index, 10) === idx);
       if (pulse) {
         pulse.classList.add('selected');
+      }
+      // Also mark the integer label
+      const integerLabel = cycleLabels.find(l => l.dataset.integerPulse === token);
+      if (integerLabel) {
+        integerLabel.classList.add('selected');
       }
     }
   }
@@ -773,9 +779,25 @@ function renderTimeline() {
   const grid = gridFromOrigin({ lg, numerator, denominator });
   const subdivisionFontRem = computeSubdivisionFontRem(lg);
 
+  // Create cycle labels for ALL integers (0 to lg) - App28 shows all integers
+  for (let i = 0; i <= lg; i++) {
+    const label = document.createElement('div');
+    label.className = 'cycle-label cycle-label--integer';
+    if (i === 0 || i === lg) label.classList.add('cycle-label--origin');
+    label.dataset.cycleIndex = String(Math.floor(i / numerator));
+    label.dataset.subdivision = '0';
+    label.dataset.position = String(i);
+    label.dataset.base = String(i);
+    label.dataset.integerPulse = String(i);
+    label.textContent = String(i);
+    label.style.fontSize = `${subdivisionFontRem}rem`;
+    timeline.appendChild(label);
+    cycleLabels.push(label);
+  }
+
   if (grid.cycles > 0 && grid.subdivisions.length) {
     grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
-      // Skip integer positions (subdivisionIndex === 0), they're already created as pulses
+      // Skip integer positions (subdivisionIndex === 0), labels already created above
       if (subdivisionIndex === 0) return;
 
       const base = cycleIndex * numerator;
@@ -850,9 +872,30 @@ function attachSelectionHandlers() {
     });
   });
 
-  // Subdivision labels (clickable)
+  // Cycle labels (clickable) - both integer and subdivision labels
   cycleLabels.forEach((label) => {
     label.addEventListener('click', () => {
+      const integerPulse = label.dataset.integerPulse;
+
+      // Integer pulse label
+      if (integerPulse !== undefined) {
+        const token = integerPulse;
+        const pulse = pulses.find(p => p.dataset.index === integerPulse);
+
+        if (selectedPulses.has(token)) {
+          selectedPulses.delete(token);
+          if (pulse) pulse.classList.remove('selected');
+          label.classList.remove('selected');
+        } else {
+          selectedPulses.add(token);
+          if (pulse) pulse.classList.add('selected');
+          label.classList.add('selected');
+        }
+        syncPulseSeqFromSelection();
+        return;
+      }
+
+      // Subdivision label
       const base = label.dataset.base;
       const subdivision = label.dataset.subdivision;
       const token = `${base}.${subdivision}`;
@@ -1012,21 +1055,25 @@ function applyCycleConfig() {
 /**
  * Convert selectedPulses Set to audio selection object with scaled indices
  * Scale factor = denominator, so subdivisions become integers
- * Example with d=4: pulse 0 → 0, pulse 0.1 → 1, pulse 1 → 4, pulse 1.2 → 6
+ * For subdivision tokens like "0.2" with n=1, d=3:
+ * - ScaledIndex = base * d + subdivisionIndex * n = 0 * 3 + 2 * 1 = 2
+ *
  * @returns {{ values: Set<number>, resolution: number }}
  */
 function getAudioSelection() {
+  const n = FIXED_NUMERATOR;
   const d = currentDenominator;
   const audioSet = new Set();
 
   for (const token of selectedPulses) {
     if (token.includes('.')) {
-      // Subdivision: base.subdiv → base * d + subdiv
+      // Subdivision: base.subdiv
+      // ScaledIndex = base * d + subdivisionIndex * numerator
       const [baseStr, subdivStr] = token.split('.');
       const base = parseInt(baseStr, 10);
       const subdiv = parseInt(subdivStr, 10);
       if (Number.isFinite(base) && Number.isFinite(subdiv)) {
-        const scaledIndex = base * d + subdiv;
+        const scaledIndex = base * d + subdiv * n;
         audioSet.add(scaledIndex);
       }
     } else {
