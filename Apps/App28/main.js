@@ -153,7 +153,7 @@ if (globalMixer) {
 
 // ========== HOVER TOOLTIPS ==========
 if (playBtn) attachHover(playBtn, { text: 'Play / Stop' });
-if (randomBtn) attachHover(randomBtn, { text: 'Aleatorizar denominador' });
+if (randomBtn) attachHover(randomBtn, { text: 'Aleatorizar fraccion y pulsos' });
 if (resetBtn) attachHover(resetBtn, { text: 'Reset App' });
 if (pulseToggleBtn) attachHover(pulseToggleBtn, { text: 'Activar o silenciar el pulso' });
 if (selectedToggleBtn) attachHover(selectedToggleBtn, { text: 'Activar o silenciar la seleccion' });
@@ -388,23 +388,6 @@ function handleFractionChange() {
   }
 }
 
-function setDenominator(d) {
-  const clamped = Math.max(MIN_DENOMINATOR, Math.min(MAX_DENOMINATOR, d));
-  currentDenominator = clamped;
-
-  if (fractionEditorController && typeof fractionEditorController.setFraction === 'function') {
-    fractionEditorController.setFraction(
-      { numerator: FIXED_NUMERATOR, denominator: clamped },
-      { cause: 'external', persist: true, silent: false, reveal: true }
-    );
-  }
-
-  // Filter out invalid pulses from selection
-  filterInvalidPulses();
-
-  renderTimeline();
-  syncPulseSeqFromSelection();
-}
 
 // ========== PULSE VALIDATION ==========
 /**
@@ -1118,10 +1101,56 @@ async function stopPlayback() {
 }
 
 // ========== RANDOM & RESET ==========
+/**
+ * Randomize denominator and fractional pulse selection
+ * Selects random valid pulses (integers + subdivisions)
+ */
 function randomize() {
-  // Random denominator between 2 and MAX_DENOMINATOR
+  // 1. Random denominator between 2 and MAX_DENOMINATOR
   const newD = randomInt(2, MAX_DENOMINATOR);
-  setDenominator(newD);
+  currentDenominator = newD;
+
+  if (fractionEditorController && typeof fractionEditorController.setFraction === 'function') {
+    fractionEditorController.setFraction(
+      { numerator: FIXED_NUMERATOR, denominator: newD },
+      { cause: 'random', persist: true, silent: true, reveal: true }
+    );
+  }
+
+  // 2. Clear current selection
+  selectedPulses.clear();
+
+  // 3. Build list of all valid pulse tokens
+  const lg = FIXED_LG;
+  const d = newD;
+  const validTokens = [];
+
+  // Add integers (1 to lg-1, skip 0 and lg as they're endpoints)
+  for (let i = 1; i < lg; i++) {
+    validTokens.push(String(i));
+  }
+
+  // Add subdivisions (.1 to .d-1 for each base 0 to lg-1)
+  for (let base = 0; base < lg; base++) {
+    for (let subdiv = 1; subdiv < d; subdiv++) {
+      validTokens.push(`${base}.${subdiv}`);
+    }
+  }
+
+  // 4. Random selection (50% density or min 1, max lg)
+  const density = 0.5;
+  const targetCount = Math.max(1, Math.min(lg, Math.round(validTokens.length * density * Math.random())));
+
+  // Shuffle and pick
+  const shuffled = [...validTokens].sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, targetCount);
+
+  // Add to selection
+  selected.forEach(token => selectedPulses.add(token));
+
+  // 5. Render and sync
+  renderTimeline();
+  syncPulseSeqFromSelection();
 }
 
 function handleReset() {

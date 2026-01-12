@@ -159,7 +159,7 @@ if (globalMixer) {
 
 // ========== HOVER TOOLTIPS ==========
 if (playBtn) attachHover(playBtn, { text: 'Play / Stop' });
-if (randomBtn) attachHover(randomBtn, { text: 'Aleatorizar fraccion' });
+if (randomBtn) attachHover(randomBtn, { text: 'Aleatorizar fraccion y pulsos' });
 if (resetBtn) attachHover(resetBtn, { text: 'Reset App' });
 if (pulseToggleBtn) attachHover(pulseToggleBtn, { text: 'Activar o silenciar el pulso' });
 if (selectedToggleBtn) attachHover(selectedToggleBtn, { text: 'Activar o silenciar la seleccion' });
@@ -411,25 +411,6 @@ function handleFractionChange() {
   }
 }
 
-function setFraction(n, d) {
-  const clampedN = Math.max(MIN_NUMERATOR, Math.min(MAX_NUMERATOR, n));
-  const clampedD = Math.max(MIN_DENOMINATOR, Math.min(MAX_DENOMINATOR, d));
-  currentNumerator = clampedN;
-  currentDenominator = clampedD;
-
-  if (fractionEditorController && typeof fractionEditorController.setFraction === 'function') {
-    fractionEditorController.setFraction(
-      { numerator: clampedN, denominator: clampedD },
-      { cause: 'external', persist: true, silent: false, reveal: true }
-    );
-  }
-
-  // Filter out invalid pulses from selection
-  filterInvalidPulses();
-
-  renderTimeline();
-  syncPulseSeqFromSelection();
-}
 
 // ========== PULSE VALIDATION (App4-style: multiples of numerator + remainder) ==========
 /**
@@ -1245,11 +1226,69 @@ async function stopPlayback() {
 }
 
 // ========== RANDOM & RESET ==========
+/**
+ * Randomize fraction and fractional pulse selection
+ * Selects random valid pulses (selectable integers + their subdivisions)
+ */
 function randomize() {
-  // Random numerador (1-6) i denominador (2-8)
+  // 1. Random numerator (1-6) and denominator (2-8)
   const newN = randomInt(MIN_NUMERATOR, MAX_NUMERATOR);
   const newD = randomInt(2, MAX_DENOMINATOR);
-  setFraction(newN, newD);
+  currentNumerator = newN;
+  currentDenominator = newD;
+
+  if (fractionEditorController && typeof fractionEditorController.setFraction === 'function') {
+    fractionEditorController.setFraction(
+      { numerator: newN, denominator: newD },
+      { cause: 'random', persist: true, silent: true, reveal: true }
+    );
+  }
+
+  // 2. Clear current selection
+  selectedPulses.clear();
+
+  // 3. Build list of all valid pulse tokens (App29: only selectable pulses)
+  const lg = FIXED_LG;
+  const n = newN;
+  const d = newD;
+  const validTokens = [];
+
+  // Add selectable integers (multiples of numerator + remainder, skip endpoints)
+  for (let i = 1; i < lg; i++) {
+    if (isIntegerPulseSelectable(i, n, d, lg)) {
+      validTokens.push(String(i));
+    }
+  }
+
+  // Add subdivisions for selectable bases (including 0)
+  // Base 0 is always valid for subdivisions
+  for (let subdiv = 1; subdiv < d; subdiv++) {
+    validTokens.push(`0.${subdiv}`);
+  }
+
+  // For other selectable bases (multiples of numerator)
+  for (let base = n; base < lg; base += n) {
+    if (isIntegerPulseSelectable(base, n, d, lg)) {
+      for (let subdiv = 1; subdiv < d; subdiv++) {
+        validTokens.push(`${base}.${subdiv}`);
+      }
+    }
+  }
+
+  // 4. Random selection (50% density or min 1, max lg)
+  const density = 0.5;
+  const targetCount = Math.max(1, Math.min(lg, Math.round(validTokens.length * density * Math.random())));
+
+  // Shuffle and pick
+  const shuffled = [...validTokens].sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, targetCount);
+
+  // Add to selection
+  selected.forEach(token => selectedPulses.add(token));
+
+  // 5. Render and sync
+  renderTimeline();
+  syncPulseSeqFromSelection();
 }
 
 function handleReset() {
