@@ -249,7 +249,7 @@ body.app27 {
 }
 
 .cycle-label--integer {
-  color: var(--selection-color);
+  color: var(--cycle-color);
 }
 
 .cycle-label--origin {
@@ -257,7 +257,7 @@ body.app27 {
   font-weight: 600;
 }
 
-.cycle-label.active:not(.cycle-label--origin) {
+.cycle-label.active {
   color: var(--selection-color);
   font-weight: 600;
 }
