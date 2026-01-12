@@ -271,8 +271,8 @@ body.app28 {
   box-shadow: 0 0 18px var(--selection-color);
 }
 
-/* All pulses are clickable (including endpoints) */
-.pulse {
+/* Clickable pulses */
+.pulse:not(.endpoint) {
   cursor: pointer;
   pointer-events: auto;
 }
