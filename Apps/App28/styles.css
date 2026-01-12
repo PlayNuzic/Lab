@@ -250,6 +250,8 @@ body.app28 {
 .pulse.endpoint {
   width: 18px;
   height: 18px;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .pulse.active {
