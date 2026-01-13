@@ -19,7 +19,7 @@ import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
-const FIXED_BPM = 60;            // BPM fix
+const FIXED_BPM = 70;            // BPM fix
 const FIXED_NUMERATOR = 1;       // Numerador sempre 1
 const DEFAULT_DENOMINATOR = 2;   // Per defecte 1/2
 const MIN_DENOMINATOR = 1;

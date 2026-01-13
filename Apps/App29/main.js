@@ -21,7 +21,7 @@ import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
-const FIXED_BPM = 60;            // BPM fix
+const FIXED_BPM = 70;            // BPM fix
 const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
 const DEFAULT_DENOMINATOR = 3;   // Per defecte 2/3
 const MIN_NUMERATOR = 2;         // Fraccions complexes (n>1)
