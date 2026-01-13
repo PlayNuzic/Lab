@@ -775,7 +775,12 @@ function renderTimeline() {
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
-    if (i === 0 || i === lg) num.classList.add('endpoint');
+    const isEndpoint = i === 0 || i === lg;
+    if (isEndpoint) num.classList.add('endpoint');
+    // Mark non-selectable pulses (not endpoints and not selectable)
+    if (!isEndpoint && !isIntegerSelectable(i)) {
+      num.classList.add('non-selectable');
+    }
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);

@@ -307,11 +307,16 @@ body.app29 {
   font-weight: 700;
 }
 
+.pulse-number.non-selectable {
+  color: var(--text-muted, #888);
+  opacity: 0.5;
+}
+
 /* ========== CYCLE MARKERS (from App3) ========== */
 .cycle-marker {
   position: absolute;
   width: 3px;
-  height: 14px;
+  height: 20px;
   background: var(--line-color);
   transform: translate(-50%, -50%);
   opacity: 0.75;
@@ -320,6 +325,16 @@ body.app29 {
   pointer-events: auto;
   cursor: pointer;
   z-index: 6;
+}
+
+/* Extend clickable area with invisible pseudo-element */
+.cycle-marker::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -6px;
+  right: -6px;
+  bottom: 0;
 }
 
 .cycle-marker.start {
@@ -347,9 +362,8 @@ body.app29 {
   box-shadow: 0 0 12px var(--selection-color);
 }
 
-/* Selected + active cycle markers scale up for visual feedback */
+/* Selected + active cycle markers - just glow, no transform */
 .cycle-marker.selected.active:not(.start) {
-  transform: translate(-50%, -50%) scale(1.5);
   box-shadow: 0 0 18px var(--selection-color);
 }
 
