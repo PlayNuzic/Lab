@@ -827,7 +827,8 @@ function applySelectionToAudio() {
   if (!audio || typeof audio.setSelected !== 'function') return;
 
   const audioSelection = getAudioSelection();
-  audio.setSelected(audioSelection.values, audioSelection.resolution);
+  // Pass object with values and resolution (like App4)
+  audio.setSelected({ values: audioSelection.values, resolution: 1 });
 }
 
 // ========== REPEAT PRESS HELPER ==========
