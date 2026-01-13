@@ -747,28 +747,66 @@ function sanitizePulseSeq() {
   // Validate and collect valid tokens
   const validTokens = [];
   const invalidTokens = [];
+  const duplicateTokens = [];
+  const normalizedTokens = []; // Track tokens that were normalized
   for (const token of tokens) {
     if (isValidPulseToken(token)) {
       // Normalize format (remove leading zeros, etc)
       const normalized = normalizeToken(token);
       if (!validTokens.includes(normalized)) {
         validTokens.push(normalized);
+        // Track if normalization changed the token
+        if (normalized !== token) {
+          normalizedTokens.push({ original: token, normalized });
+        }
+      } else {
+        duplicateTokens.push(token);
       }
     } else if (token.length > 0) {
       invalidTokens.push(token);
     }
   }
 
-  // Show validation warning if tokens were filtered
-  if (invalidTokens.length > 0 && pulseSeqEl) {
-    const msg = invalidTokens.length === 1
+  // Check if tokens will be reordered
+  const sortedTokens = [...validTokens].sort((a, b) => pulseTokenValue(a) - pulseTokenValue(b));
+  const willReorder = validTokens.length > 1 && validTokens.some((t, i) => t !== sortedTokens[i]);
+
+  // Build warning messages
+  const warnings = [];
+
+  // Invalid tokens
+  if (invalidTokens.length > 0) {
+    warnings.push(invalidTokens.length === 1
       ? `"${invalidTokens[0]}" no es válido`
-      : `Tokens inválidos: ${invalidTokens.join(', ')}`;
-    showValidationWarning(pulseSeqEl, msg);
+      : `Inválidos: ${invalidTokens.join(', ')}`);
   }
 
-  // Sort by value
-  validTokens.sort((a, b) => pulseTokenValue(a) - pulseTokenValue(b));
+  // Duplicate tokens
+  if (duplicateTokens.length > 0) {
+    warnings.push(duplicateTokens.length === 1
+      ? `"${duplicateTokens[0]}" duplicado`
+      : `Duplicados: ${duplicateTokens.join(', ')}`);
+  }
+
+  // Normalized tokens
+  if (normalizedTokens.length > 0) {
+    const normMsgs = normalizedTokens.map(t => `${t.original}→${t.normalized}`);
+    warnings.push(`Corregido: ${normMsgs.join(', ')}`);
+  }
+
+  // Reordered tokens
+  if (willReorder) {
+    warnings.push('Reposicionando pulsos');
+  }
+
+  // Show combined warning
+  if (warnings.length > 0 && pulseSeqEl) {
+    showValidationWarning(pulseSeqEl, warnings.join(' | '));
+  }
+
+  // Sort by value (use already computed sorted array)
+  validTokens.length = 0;
+  validTokens.push(...sortedTokens);
 
   // Update selection
   selectedPulses.clear();

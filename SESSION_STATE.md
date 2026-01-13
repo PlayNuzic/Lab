@@ -18,7 +18,12 @@
 4. **Highlighting pulse-seq** - overlays (#pulseSeqHighlight) amb animació flash ✓
 5. **Caret management** - moveCaretToNearestMidpoint, double-space gaps ✓
 6. **Tooltips de validació** - showValidationWarning quan tokens invàlids ✓
+   - Tokens invàlids: `"X" no es válido`
+   - Tokens duplicats: `"X" duplicado`
+   - Tokens normalitzats: `Corregido: 01→1` (NOTE: "01" cau a "invàlid", el normalized no funciona)
+   - Reposicionant: `Reposicionando pulsos`
 7. **Backspace/Delete tokens sencers** - deleteTokenLeft/deleteTokenRight ✓
+8. **BPM fix a 70** - FIXED_BPM = 70 per App28 i App29 ✓
 
 ### CSS Overlays (WORKING - ja a styles.css)
 ```css
