@@ -20,10 +20,10 @@ import { isIntegerPulseSelectable, isPulseRemainder } from '../../libs/app-commo
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
-const FIXED_BPM = 85;            // BPM fix
+const FIXED_BPM = 60;            // BPM fix
 const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
 const DEFAULT_DENOMINATOR = 3;   // Per defecte 2/3
-const MIN_NUMERATOR = 1;
+const MIN_NUMERATOR = 2;         // Fraccions complexes (n>1)
 const MAX_NUMERATOR = 6;
 const MIN_DENOMINATOR = 1;
 const MAX_DENOMINATOR = 8;
@@ -1225,9 +1225,12 @@ async function stopPlayback() {
  * Selects random valid pulses (selectable integers + their subdivisions)
  */
 function randomize() {
-  // 1. Random numerator (1-6) and denominator (2-8)
-  const newN = randomInt(MIN_NUMERATOR, MAX_NUMERATOR);
-  const newD = randomInt(2, MAX_DENOMINATOR);
+  // 1. Random numerator (2-6) and denominator (2-8), avoiding n/n
+  let newN, newD;
+  do {
+    newN = randomInt(MIN_NUMERATOR, MAX_NUMERATOR);
+    newD = randomInt(2, MAX_DENOMINATOR);
+  } while (newN === newD); // Avoid fractions like 2/2, 3/3, etc.
   currentNumerator = newN;
   currentDenominator = newD;
 
