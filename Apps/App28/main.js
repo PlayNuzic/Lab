@@ -993,6 +993,10 @@ function attachSelectionHandlers() {
         pulse.classList.add('selected');
       }
       syncPulseSeqFromSelection();
+      // Hot reload: apply selection to audio during playback
+      if (isPlaying && audio) {
+        applySelectionToAudio();
+      }
     });
   });
 
@@ -1042,6 +1046,10 @@ function toggleSubdivisionSelection(token, base, subdivision) {
   if (label) label.classList.toggle('selected', isSelected);
 
   syncPulseSeqFromSelection();
+  // Hot reload: apply selection to audio during playback
+  if (isPlaying && audio) {
+    applySelectionToAudio();
+  }
 }
 
 function layoutTimeline() {

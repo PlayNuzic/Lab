@@ -11,8 +11,9 @@
 ### Funcionalitats Implementades (WORKING)
 1. **Bidireccionalitat timeline ↔ pulse-seq** ✓
 2. **Hot reload** - canvis a selecció s'apliquen en temps real durant playback ✓
-   - `applySelectionToAudio()` crida `audio.setSelected()` amb la nova selecció
+   - `applySelectionToAudio()` crida `audio.setSelected({ values, resolution: 1 })`
    - Es crida automàticament des de `syncTimelineFromSelection()` si `isPlaying`
+   - **IMPORTANT**: També es crida des dels click handlers a `attachSelectionHandlers()` i `toggleSubdivisionSelection()`
 3. **Sync endpoints 0 i Lg** - seleccionar un selecciona l'altre ✓
 4. **Highlighting pulse-seq** - overlays (#pulseSeqHighlight) amb animació flash ✓
 5. **Caret management** - moveCaretToNearestMidpoint, double-space gaps ✓

@@ -1067,6 +1067,10 @@ function attachSelectionHandlers() {
       // Update both pulseSeq text AND timeline visual (including integer labels)
       syncPulseSeqFromSelection();
       syncTimelineFromSelection();
+      // Hot reload: apply selection to audio during playback
+      if (isPlaying && audio) {
+        applySelectionToAudio();
+      }
     });
   });
 
@@ -1105,6 +1109,10 @@ function attachSelectionHandlers() {
           label.classList.add('selected');
         }
         syncPulseSeqFromSelection();
+        // Hot reload: apply selection to audio during playback
+        if (isPlaying && audio) {
+          applySelectionToAudio();
+        }
         return;
       }
 
@@ -1141,6 +1149,10 @@ function toggleSubdivisionSelection(token, base, subdivision) {
   if (label) label.classList.toggle('selected', isSelected);
 
   syncPulseSeqFromSelection();
+  // Hot reload: apply selection to audio during playback
+  if (isPlaying && audio) {
+    applySelectionToAudio();
+  }
 }
 
 function layoutTimeline() {
