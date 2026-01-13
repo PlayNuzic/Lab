@@ -16,6 +16,12 @@ Guia per Claude Code al repositori Lab.
 1. Actualitzar `SESSION_STATE.md`
 2. Resumir a l'usuari
 
+### 4. ABANS de Modificar Fitxers
+**OBLIGATORI**: Si existeix `SESSION_STATE.md` a l'arrel, LLEGIR-LO PRIMER abans de fer qualsevol edició.
+- Conté funcionalitats que JA FUNCIONEN i NO s'han de trencar
+- Conté restriccions específiques sobre què NO modificar
+- Ignorar això pot causar regressions greus
+
 ---
 
 ## Comandes de Desenvolupament

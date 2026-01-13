@@ -17,6 +17,7 @@ import { randomInt } from '../../libs/app-common/number-utils.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import createPulseSeqController from '../../libs/pulse-seq/pulse-seq.js';
 import { isIntegerPulseSelectable, isPulseRemainder } from '../../libs/app-common/pulse-selectability.js';
+import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
@@ -108,7 +109,7 @@ let pulseSeqEditEl = null;
 let pulseSeqController = null;
 
 /**
- * Custom markup builder for App29: Pfr: [edit]
+ * Custom markup builder for App29: Pfr( [edit] )
  * El camp editable permet entrar 0 i Lg (6) com a pulsos vàlids
  */
 function app29MarkupBuilder({ root, initialText }) {
@@ -121,12 +122,13 @@ function app29MarkupBuilder({ root, initialText }) {
   };
   root.textContent = '';
 
-  const labelSpan = mk('label', 'Pfr:');
+  const labelSpan = mk('label', 'Pfr(');
   const edit = mk('edit', initialText || '  ');
   edit.contentEditable = 'true';
   edit.spellcheck = false;
+  const closeParen = mk('close', ')');
 
-  root.append(labelSpan, edit);
+  root.append(labelSpan, edit, closeParen);
 
   // Store references
   pulseSeqEditEl = edit;
@@ -503,9 +505,6 @@ function initPulseSeqEditor() {
   pulseSeqEditEl.addEventListener('input', handlePulseSeqInput);
 }
 
-// Track if we're in a backspace/delete operation to avoid caret repositioning
-let isDeleting = false;
-
 function handlePulseSeqKeydown(e) {
   // Enter: sanitize and blur
   if (e.key === 'Enter') {
@@ -527,10 +526,18 @@ function handlePulseSeqKeydown(e) {
     return;
   }
 
-  // Track delete operations to prevent caret repositioning
-  if (e.key === 'Backspace' || e.key === 'Delete') {
-    isDeleting = true;
-    return; // Allow default behavior
+  // Backspace: delete entire token to the left
+  if (e.key === 'Backspace') {
+    e.preventDefault();
+    deleteTokenLeft();
+    return;
+  }
+
+  // Delete: delete entire token to the right
+  if (e.key === 'Delete') {
+    e.preventDefault();
+    deleteTokenRight();
+    return;
   }
 
   // Allow: digits, dot, space, arrows
@@ -558,15 +565,163 @@ function handlePulseSeqFocus() {
 }
 
 function handlePulseSeqInput() {
-  // Skip caret repositioning during delete operations
-  if (isDeleting) {
-    isDeleting = false;
-    return;
+  // Don't move caret during input - let user type freely
+  // Caret positioning happens on blur (via sanitizePulseSeq)
+}
+
+/**
+ * Helper: get midpoints (positions between double spaces)
+ */
+function getMidpoints(text) {
+  const mids = [];
+  for (let i = 1; i < text.length; i++) {
+    if (text[i - 1] === ' ' && text[i] === ' ') {
+      mids.push(i);
+    }
   }
-  // After input, move caret to nearest midpoint
-  setTimeout(() => {
-    pulseSeqController.moveCaretToNearestMidpoint();
-  }, 0);
+  return mids;
+}
+
+/**
+ * Helper: set caret position in pulseSeqEditEl
+ */
+function setCaretPosition(pos) {
+  if (!pulseSeqEditEl) return;
+  const node = pulseSeqEditEl.firstChild || pulseSeqEditEl;
+  const sel = window.getSelection();
+  if (!sel) return;
+  const range = document.createRange();
+  const safePos = Math.min(pos, (node.textContent || '').length);
+  range.setStart(node, safePos);
+  range.setEnd(node, safePos);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+/**
+ * Delete the entire token to the left of the caret (like App4)
+ */
+function deleteTokenLeft() {
+  if (!pulseSeqEditEl) return;
+  const node = pulseSeqEditEl.firstChild || pulseSeqEditEl;
+  let text = node.textContent || '';
+  if (text.length === 0) return;
+
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const range = sel.getRangeAt(0);
+  if (!pulseSeqEditEl.contains(range.startContainer)) return;
+
+  let pos = range.startOffset;
+  if (pos <= 0) return;
+
+  // Adjust to nearest midpoint
+  const mids = getMidpoints(text);
+  if (mids.length) {
+    let best = mids[0], d = Math.abs(pos - best);
+    for (const m of mids) {
+      const dd = Math.abs(pos - m);
+      if (dd < d) { best = m; d = dd; }
+    }
+    pos = best;
+  }
+
+  // Find token to the left
+  const isDigit = (c) => c >= '0' && c <= '9';
+  let i = pos - 1;
+  while (i >= 0 && text[i] === ' ') i--;
+  if (i < 0) return; // no token to the left
+
+  if (!(isDigit(text[i]) || text[i] === '.')) return;
+  let startNum = i;
+  while (startNum >= 0 && isDigit(text[startNum])) startNum--;
+  if (startNum >= 0 && text[startNum] === '.') {
+    startNum--;
+    while (startNum >= 0 && isDigit(text[startNum])) startNum--;
+  }
+  startNum = Math.max(0, startNum + 1);
+
+  // Rebuild: left + gap + right (skip one space after midpoint)
+  const left = text.slice(0, startNum);
+  const right = text.slice(pos + 1);
+  const out = left + '  ' + right;
+  const normalizedOut = normalizeGaps(out);
+  node.textContent = normalizedOut;
+
+  // Position caret
+  const caret = Math.min(normalizedOut.length, left.length + 1);
+  setCaretPosition(caret);
+  pulseSeqController.moveCaretToNearestMidpoint();
+}
+
+/**
+ * Delete the entire token to the right of the caret (like App4)
+ */
+function deleteTokenRight() {
+  if (!pulseSeqEditEl) return;
+  const node = pulseSeqEditEl.firstChild || pulseSeqEditEl;
+  let text = node.textContent || '';
+  if (text.length === 0) return;
+
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const range = sel.getRangeAt(0);
+  if (!pulseSeqEditEl.contains(range.startContainer)) return;
+
+  let pos = range.startOffset;
+  if (pos >= text.length) return;
+
+  // Adjust to nearest midpoint
+  const mids = getMidpoints(text);
+  if (mids.length) {
+    let best = mids[0], d = Math.abs(pos - best);
+    for (const m of mids) {
+      const dd = Math.abs(pos - m);
+      if (dd < d) { best = m; d = dd; }
+    }
+    pos = best;
+  }
+
+  // Find token to the right
+  const isDigit = (c) => c >= '0' && c <= '9';
+  let k = pos;
+  while (k < text.length && text[k] === ' ') k++;
+  if (k >= text.length) return;
+
+  if (!(isDigit(text[k]) || text[k] === '.')) return;
+  let end = k;
+  let dotConsumed = text[end] === '.';
+  if (dotConsumed) end++;
+
+  while (end < text.length) {
+    const ch = text[end];
+    if (isDigit(ch)) {
+      end++;
+      continue;
+    }
+    if (ch === '.' && !dotConsumed) {
+      dotConsumed = true;
+      end++;
+      continue;
+    }
+    break;
+  }
+
+  // Skip trailing spaces (up to 2)
+  let s = 0;
+  while (end + s < text.length && text[end + s] === ' ') s++;
+
+  // Rebuild: left (minus one space) + gap + right
+  const left = text.slice(0, pos - 1);
+  const right = text.slice(end + Math.min(s, 2));
+  const out = left + '  ' + right;
+  const normalizedOut = normalizeGaps(out);
+  node.textContent = normalizedOut;
+
+  // Position caret
+  const caret = Math.min(normalizedOut.length, left.length + 1);
+  setCaretPosition(caret);
+  pulseSeqController.moveCaretToNearestMidpoint();
 }
 
 /**
@@ -591,6 +746,7 @@ function sanitizePulseSeq() {
 
   // Validate and collect valid tokens
   const validTokens = [];
+  const invalidTokens = [];
   for (const token of tokens) {
     if (isValidPulseToken(token)) {
       // Normalize format (remove leading zeros, etc)
@@ -598,7 +754,17 @@ function sanitizePulseSeq() {
       if (!validTokens.includes(normalized)) {
         validTokens.push(normalized);
       }
+    } else if (token.length > 0) {
+      invalidTokens.push(token);
     }
+  }
+
+  // Show validation warning if tokens were filtered
+  if (invalidTokens.length > 0 && pulseSeqEl) {
+    const msg = invalidTokens.length === 1
+      ? `"${invalidTokens[0]}" no es válido`
+      : `Tokens inválidos: ${invalidTokens.join(', ')}`;
+    showValidationWarning(pulseSeqEl, msg);
   }
 
   // Sort by value
@@ -681,6 +847,21 @@ function syncTimelineFromSelection() {
       }
     }
   }
+
+  // Hot reload: update audio selection if playing
+  if (isPlaying && audio) {
+    applySelectionToAudio();
+  }
+}
+
+/**
+ * Apply current selection to audio engine (hot reload during playback)
+ */
+function applySelectionToAudio() {
+  if (!audio || typeof audio.setSelected !== 'function') return;
+
+  const audioSelection = getAudioSelection();
+  audio.setSelected(audioSelection.values, audioSelection.resolution);
 }
 
 // ========== REPEAT PRESS HELPER ==========
