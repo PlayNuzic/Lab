@@ -919,6 +919,15 @@ function highlightPulse(scaledIndex) {
     void pulse.offsetWidth;
     pulse.classList.add('active');
   }
+
+  // In loop mode, pulse 0 and endpoint (FIXED_LG) illuminate together
+  if (pulseIndex === 0) {
+    const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
+    if (endpoint) {
+      void endpoint.offsetWidth;
+      endpoint.classList.add('active');
+    }
+  }
 }
 
 function highlightCycle(payload = {}) {
@@ -1012,7 +1021,7 @@ async function startPlayback() {
   // Scale by denominator to include subdivisions
   // Interval must be divided by d so that integer pulses maintain correct tempo
   const baseResolution = d;
-  const scaledTotal = lg * d + 1; // Total steps including all subdivisions
+  const scaledTotal = lg * d; // Total steps (without endpoint, loop mode)
   const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
 
   const audioInstance = await initAudio();
@@ -1057,7 +1066,7 @@ async function startPlayback() {
     scaledTotal,
     scaledInterval,  // Interval divided by d so integer pulses maintain tempo
     audioSelection,  // Pass selection with scaled indices
-    false,           // Loop DISABLED (one-shot)
+    true,            // Loop ENABLED (horizontal loop always)
     highlightPulse,
     onFinish,
     playOptions
