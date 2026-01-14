@@ -20,9 +20,8 @@ const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
 const FIXED_BPM = 70;            // BPM fix
 const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
 const DEFAULT_DENOMINATOR = 3;
-const MIN_NUMERATOR = 2;
+const MIN_NUMERATOR = 1;
 const MAX_NUMERATOR = 6;
-const MIN_DENOMINATOR = 1;
 const MAX_DENOMINATOR = 8;
 
 // Colors per rectangles iT
@@ -380,29 +379,26 @@ function handleFractionChange() {
   let newN = fraction?.numerator;
   let newD = fraction?.denominator;
 
-  // Clamp numerator (2-6 for App31)
-  if (!Number.isFinite(newN) || newN < MIN_NUMERATOR) {
-    newN = MIN_NUMERATOR;
+  // Skip if values are not yet valid numbers (user is typing)
+  if (!Number.isFinite(newN) || !Number.isFinite(newD)) {
+    return;
+  }
+
+  // Clamp numerator (1-6)
+  if (newN < 1) {
+    newN = 1;
   } else if (newN > MAX_NUMERATOR) {
     newN = MAX_NUMERATOR;
   }
 
-  // Clamp denominator
-  if (!Number.isFinite(newD) || newD < MIN_DENOMINATOR) {
-    newD = MIN_DENOMINATOR;
+  // Clamp denominator (1-8)
+  if (newD < 1) {
+    newD = 1;
   } else if (newD > MAX_DENOMINATOR) {
     newD = MAX_DENOMINATOR;
   }
 
-  // Ensure denominator > numerator for proper fractions
-  if (newD <= newN) {
-    newD = newN + 1;
-    if (newD > MAX_DENOMINATOR) {
-      newD = MAX_DENOMINATOR;
-      newN = newD - 1;
-      if (newN < MIN_NUMERATOR) newN = MIN_NUMERATOR;
-    }
-  }
+  // No restriction on d > n - allow any valid combination
 
   if (newN !== fraction?.numerator || newD !== fraction?.denominator) {
     fractionEditorController.setFraction(
@@ -1319,6 +1315,14 @@ function highlightBarAtPosition(position) {
 function updateControlsState() {
   if (playBtn) {
     playBtn.classList.toggle('playing', isPlaying);
+
+    // Toggle play/stop icons
+    const iconPlay = playBtn.querySelector('.icon-play');
+    const iconStop = playBtn.querySelector('.icon-stop');
+    if (iconPlay && iconStop) {
+      iconPlay.style.display = isPlaying ? 'none' : 'block';
+      iconStop.style.display = isPlaying ? 'block' : 'none';
+    }
   }
 }
 

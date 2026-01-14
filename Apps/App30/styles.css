@@ -153,6 +153,53 @@ body.app30 {
   min-width: 0;
 }
 
+/* ========== GHOST FRACTION (múltiples) - inline a l'esquerra ========== */
+.fraction-ghost {
+  position: absolute;
+  left: 0px;
+  top: 15%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--line-color);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.fraction-ghost__numerator,
+.fraction-ghost__denominator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fraction-ghost__number {
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+
+.fraction-ghost__bar {
+  width: 28px;
+  height: 2px;
+  background: currentColor;
+  margin: 2px 0;
+  opacity: 0.5;
+  border-radius: 999px;
+}
+
+.fraction-ghost--hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.fraction-ghost--visible {
+  opacity: 0.45;
+  visibility: visible;
+}
+
 .fraction-editor--inline {
   position: relative;
   display: inline-flex;

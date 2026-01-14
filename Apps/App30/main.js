@@ -383,7 +383,13 @@ function handleFractionChange() {
   const fraction = fractionEditorController.getFraction();
   let newD = fraction?.denominator;
 
-  if (!Number.isFinite(newD) || newD < MIN_DENOMINATOR) {
+  // Skip if value is not yet valid (user is typing)
+  if (!Number.isFinite(newD)) {
+    return;
+  }
+
+  // Clamp denominator (2-8)
+  if (newD < MIN_DENOMINATOR) {
     newD = MIN_DENOMINATOR;
   } else if (newD > MAX_DENOMINATOR) {
     newD = MAX_DENOMINATOR;
@@ -1248,6 +1254,14 @@ function highlightBarAtPosition(position) {
 function updateControlsState() {
   if (playBtn) {
     playBtn.classList.toggle('playing', isPlaying);
+
+    // Toggle play/stop icons
+    const iconPlay = playBtn.querySelector('.icon-play');
+    const iconStop = playBtn.querySelector('.icon-stop');
+    if (iconPlay && iconStop) {
+      iconPlay.style.display = isPlaying ? 'none' : 'block';
+      iconStop.style.display = isPlaying ? 'block' : 'none';
+    }
   }
 }
 
