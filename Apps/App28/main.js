@@ -375,9 +375,9 @@ function handleFractionChange() {
   // Update pulseSeq from selection
   syncPulseSeqFromSelection();
 
-  // Update audio cycle config if playing
+  // Update audio transport config if playing (hot reload)
   if (audio && isPlaying) {
-    applyCycleConfig();
+    applyTransportConfig();
   }
 }
 
@@ -1205,19 +1205,42 @@ function highlightCycle(payload = {}) {
   }
 }
 
-// ========== AUDIO CYCLE CONFIG ==========
-function applyCycleConfig() {
-  if (!audio) return;
+// ========== AUDIO TRANSPORT CONFIG ==========
+/**
+ * Apply full transport config during hot reload (fraction change while playing)
+ * Updates totalPulses, bpm (scaled), baseResolution, patternBeats, and cycle config
+ *
+ * Key insight: interval = (60/bpm)/d, so scaledBpm = bpm * d
+ * This ensures integer pulses maintain correct tempo while subdivisions fit between them
+ */
+function applyTransportConfig() {
+  if (!audio || typeof audio.updateTransport !== 'function') return;
 
-  const hasCycle = currentDenominator > 0 && Math.floor(FIXED_LG / FIXED_NUMERATOR) > 0;
+  const lg = FIXED_LG;
+  const bpm = FIXED_BPM;
+  const d = currentDenominator;
+  const n = FIXED_NUMERATOR;
+  const hasCycle = d > 0 && Math.floor(lg / n) > 0;
 
-  if (typeof audio.updateCycleConfig === 'function') {
-    audio.updateCycleConfig({
-      numerator: hasCycle ? FIXED_NUMERATOR : 0,
-      denominator: hasCycle ? currentDenominator : 0,
-      onTick: hasCycle ? highlightCycle : null
-    });
-  }
+  // Scale values by denominator (same as startPlayback)
+  const scaledTotal = lg * d;
+  // scaledBpm ensures interval = (60/bpm)/d
+  const scaledBpm = bpm * d;
+
+  audio.updateTransport({
+    totalPulses: scaledTotal,
+    bpm: scaledBpm,
+    baseResolution: d,
+    patternBeats: scaledTotal,
+    cycle: hasCycle ? {
+      numerator: n * d,
+      denominator: d,
+      onTick: highlightCycle
+    } : null
+  });
+
+  // Also update selection for new scale
+  applySelectionToAudio();
 }
 
 // ========== CONVERT SELECTION TO AUDIO FORMAT ==========
