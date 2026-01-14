@@ -58,10 +58,28 @@ App29/main.js:
 ```
 
 ## FITXERS MODIFICATS RECENTMENT
-- `Apps/App28/main.js` - pulse-seq editor complet amb hot reload
-- `Apps/App28/styles.css` - overlay animations
-- `Apps/App29/main.js` - pulse-seq editor complet amb hot reload
-- `Apps/App29/styles.css` - overlay animations
+- `Apps/App28/main.js` - pulse-seq editor complet amb hot reload + autoscroll
+- `Apps/App28/styles.css` - overlay animations + centrat pulse-seq
+- `Apps/App29/main.js` - pulse-seq editor complet amb hot reload + autoscroll
+- `Apps/App29/styles.css` - overlay animations + centrat pulse-seq
+
+## AUTOSCROLL (COMPLETAT - commit 4b10967)
+
+### Funcionalitat
+- Autoscroll durant playback: el token actual es manté visible
+- Autoscroll quan s'afegeixen tokens: nous tokens es mostren automàticament
+- Centrat quan hi ha poc contingut, scroll quan excedeix el contenidor
+
+### CSS (App28/styles.css i App29/styles.css)
+- `.pulse-seq-wrapper`: overflow-x: auto (scroll al wrapper)
+- `#pulseSeq`: min-width: 100% + width: max-content + justify-content: center
+
+### JS (ambdues apps)
+- `pulseSeqTokenRanges` Map - tracking posicions tokens amb text ranges
+- `getPulseSeqRectForToken()` - obté rect d'un token via createRange()
+- `scrollPulseSeqToRect()` - fa scroll a `pulseSeqWrapper`
+- `highlightPulseSeqToken()` - highlight + scroll durant playback
+- `syncPulseSeqFromSelection(scrollToToken)` - scroll opcional quan s'afegeix token
 
 ## RECORDATORIS
 - **SEMPRE llegir el fitxer ABANS de modificar-lo**
