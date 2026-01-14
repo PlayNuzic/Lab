@@ -812,7 +812,11 @@ const pulseSeqTokenRanges = new Map();
  * Sync pulseSeq text from current selection
  * Also builds token position map for autoscroll
  */
-function syncPulseSeqFromSelection() {
+/**
+ * Sync pulseSeq text from current selection
+ * @param {string} [scrollToToken] - Optional token to scroll into view after sync
+ */
+function syncPulseSeqFromSelection(scrollToToken = null) {
   if (!pulseSeqEditEl) return;
 
   const tokens = Array.from(selectedPulses).sort((a, b) => pulseTokenValue(a) - pulseTokenValue(b));
@@ -837,6 +841,17 @@ function syncPulseSeqFromSelection() {
   });
 
   pulseSeqEditEl.textContent = text;
+
+  // Scroll to specified token if provided
+  if (scrollToToken && pulseSeqTokenRanges.has(scrollToToken)) {
+    // Use requestAnimationFrame to ensure DOM has updated
+    requestAnimationFrame(() => {
+      const rect = getPulseSeqRectForToken(scrollToToken);
+      if (rect) {
+        scrollPulseSeqToRect(rect);
+      }
+    });
+  }
 }
 
 /**
@@ -863,18 +878,19 @@ function getPulseSeqRectForToken(token) {
 
 /**
  * Scroll pulseSeq to center the given rect
+ * Note: scroll happens on pulseSeqWrapper (the container with overflow)
  */
 function scrollPulseSeqToRect(rect) {
-  if (!pulseSeqEditEl || !rect) return;
+  if (!pulseSeqWrapper || !rect) return;
 
-  const containerRect = pulseSeqEditEl.getBoundingClientRect();
-  const tokenLeft = rect.left - containerRect.left + pulseSeqEditEl.scrollLeft;
+  const containerRect = pulseSeqWrapper.getBoundingClientRect();
+  const tokenLeft = rect.left - containerRect.left + pulseSeqWrapper.scrollLeft;
   const tokenCenter = tokenLeft + rect.width / 2;
   const containerCenter = containerRect.width / 2;
   const targetScroll = tokenCenter - containerCenter;
 
-  const maxScroll = pulseSeqEditEl.scrollWidth - pulseSeqEditEl.clientWidth;
-  pulseSeqEditEl.scrollLeft = Math.max(0, Math.min(targetScroll, maxScroll));
+  const maxScroll = pulseSeqWrapper.scrollWidth - pulseSeqWrapper.clientWidth;
+  pulseSeqWrapper.scrollLeft = Math.max(0, Math.min(targetScroll, maxScroll));
 }
 
 /**
@@ -1084,14 +1100,16 @@ function attachSelectionHandlers() {
     pulse.addEventListener('click', () => {
       const idx = pulse.dataset.index;
       const token = idx;
-      if (selectedPulses.has(token)) {
+      const wasSelected = selectedPulses.has(token);
+      if (wasSelected) {
         selectedPulses.delete(token);
         pulse.classList.remove('selected');
       } else {
         selectedPulses.add(token);
         pulse.classList.add('selected');
       }
-      syncPulseSeqFromSelection();
+      // Scroll to token if it was just added
+      syncPulseSeqFromSelection(wasSelected ? null : token);
       // Hot reload: apply selection to audio during playback
       if (isPlaying && audio) {
         applySelectionToAudio();
@@ -1126,7 +1144,8 @@ function attachSelectionHandlers() {
  * Toggle selection of a subdivision
  */
 function toggleSubdivisionSelection(token, base, subdivision) {
-  if (selectedPulses.has(token)) {
+  const wasSelected = selectedPulses.has(token);
+  if (wasSelected) {
     selectedPulses.delete(token);
   } else {
     selectedPulses.add(token);
@@ -1144,7 +1163,8 @@ function toggleSubdivisionSelection(token, base, subdivision) {
   if (marker) marker.classList.toggle('selected', isSelected);
   if (label) label.classList.toggle('selected', isSelected);
 
-  syncPulseSeqFromSelection();
+  // Scroll to token if it was just added
+  syncPulseSeqFromSelection(wasSelected ? null : token);
   // Hot reload: apply selection to audio during playback
   if (isPlaying && audio) {
     applySelectionToAudio();

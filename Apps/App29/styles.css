@@ -174,21 +174,21 @@ body.app29 {
   width: 90%;
   max-width: 1200px;
   margin: 20px auto;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 #pulseSeq {
   font-size: 3rem;
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   gap: 12px;
-  width: fit-content;
-  max-width: 100%;
+  min-width: 100%;
+  width: max-content;
   box-sizing: border-box;
   padding: 0 20px;
-  margin: 20px auto;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: visible;
   position: relative;
   color: var(--line-color);
 }
