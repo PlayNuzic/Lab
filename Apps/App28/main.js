@@ -805,15 +805,76 @@ function normalizeToken(token) {
   return String(parseInt(token, 10));
 }
 
+// Token position ranges for autoscroll (token -> [startIndex, endIndex])
+const pulseSeqTokenRanges = new Map();
+
 /**
  * Sync pulseSeq text from current selection
+ * Also builds token position map for autoscroll
  */
 function syncPulseSeqFromSelection() {
   if (!pulseSeqEditEl) return;
 
   const tokens = Array.from(selectedPulses).sort((a, b) => pulseTokenValue(a) - pulseTokenValue(b));
-  const newText = tokens.length > 0 ? `  ${tokens.join('  ')}  ` : '  ';
-  pulseSeqEditEl.textContent = newText;
+
+  // Clear token ranges
+  pulseSeqTokenRanges.clear();
+
+  if (tokens.length === 0) {
+    pulseSeqEditEl.textContent = '  ';
+    return;
+  }
+
+  // Build text and track token positions
+  // Format: "  token1  token2  token3  "
+  let text = '  ';
+  tokens.forEach((token) => {
+    const start = text.length;
+    text += token;
+    const end = text.length;
+    pulseSeqTokenRanges.set(token, [start, end]);
+    text += '  ';
+  });
+
+  pulseSeqEditEl.textContent = text;
+}
+
+/**
+ * Get bounding rect for a token in pulseSeq using text range
+ */
+function getPulseSeqRectForToken(token) {
+  if (!pulseSeqEditEl) return null;
+
+  const range = pulseSeqTokenRanges.get(token);
+  if (!range) return null;
+
+  const node = pulseSeqEditEl.firstChild;
+  if (!node || node.nodeType !== Node.TEXT_NODE) return null;
+
+  try {
+    const textRange = document.createRange();
+    textRange.setStart(node, Math.min(range[0], node.length));
+    textRange.setEnd(node, Math.min(range[1], node.length));
+    return textRange.getBoundingClientRect();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Scroll pulseSeq to center the given rect
+ */
+function scrollPulseSeqToRect(rect) {
+  if (!pulseSeqEditEl || !rect) return;
+
+  const containerRect = pulseSeqEditEl.getBoundingClientRect();
+  const tokenLeft = rect.left - containerRect.left + pulseSeqEditEl.scrollLeft;
+  const tokenCenter = tokenLeft + rect.width / 2;
+  const containerCenter = containerRect.width / 2;
+  const targetScroll = tokenCenter - containerCenter;
+
+  const maxScroll = pulseSeqEditEl.scrollWidth - pulseSeqEditEl.clientWidth;
+  pulseSeqEditEl.scrollLeft = Math.max(0, Math.min(targetScroll, maxScroll));
 }
 
 /**
@@ -1142,6 +1203,20 @@ function clearHighlights() {
   pulses.forEach(p => p.classList.remove('active'));
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
+  pulseSeqController?.clearActive();
+}
+
+/**
+ * Highlight a token in pulseSeq with overlay and scroll
+ */
+function highlightPulseSeqToken(token) {
+  if (!pulseSeqController || !selectedPulses.has(token)) return;
+
+  const rect = getPulseSeqRectForToken(token);
+  if (rect) {
+    scrollPulseSeqToRect(rect);
+    pulseSeqController.setActiveIndex(0, { rect });
+  }
 }
 
 function highlightPulse(scaledIndex) {
@@ -1171,6 +1246,9 @@ function highlightPulse(scaledIndex) {
       endpoint.classList.add('active');
     }
   }
+
+  // Highlight and scroll pulseSeq token
+  highlightPulseSeqToken(String(pulseIndex));
 }
 
 function highlightCycle(payload = {}) {
@@ -1203,6 +1281,11 @@ function highlightCycle(payload = {}) {
   if (label) {
     label.classList.add('active');
   }
+
+  // Highlight and scroll pulseSeq subdivision token
+  const base = cycleIndex * FIXED_NUMERATOR;
+  const token = `${base}.${subdivisionIndex}`;
+  highlightPulseSeqToken(token);
 }
 
 // ========== AUDIO TRANSPORT CONFIG ==========
