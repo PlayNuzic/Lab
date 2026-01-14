@@ -20,7 +20,6 @@ const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
 const FIXED_BPM = 70;            // BPM fix
 const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
 const DEFAULT_DENOMINATOR = 3;
-const MIN_NUMERATOR = 1;
 const MAX_NUMERATOR = 6;
 const MAX_DENOMINATOR = 8;
 
@@ -68,7 +67,6 @@ let dragState = {
 
 // Playback state
 let playbackAbort = null;
-let currentInstrument = 'violin';
 let currentMetronomeSound = (() => {
   try {
     const stored = localStorage.getItem('baseSound');
@@ -103,10 +101,10 @@ window.addEventListener('sharedui:baseSound', (e) => {
   }
 });
 
-// Listen for instrument changes
-window.addEventListener('sharedui:instrument', (e) => {
-  if (e.detail?.instrument) {
-    currentInstrument = e.detail.instrument;
+// Listen for instrument changes - sync with audio engine
+window.addEventListener('sharedui:instrument', async (e) => {
+  if (e.detail?.instrument && audio && audio.setInstrument) {
+    await audio.setInstrument(e.detail.instrument);
   }
 });
 
@@ -824,8 +822,10 @@ function attachDragHandlers() {
 function handleDragStartFromPulse(e) {
   const pulse = e.currentTarget;
   const idx = parseInt(pulse.dataset.index, 10);
+  const n = currentNumerator;
   const d = currentDenominator;
-  const globalSubdiv = idx * d;
+  // Convert pulse index to subdivision: each cycle has d subdivisions and spans n pulses
+  const globalSubdiv = Math.round(idx * d / n);
 
   startDrag(globalSubdiv, e);
 }
@@ -1041,58 +1041,6 @@ function getItIndexAtScaledStart(scaledIndex) {
   return -1;
 }
 
-/**
- * Schedule melodic notes for all iTs at the start of playback
- * Uses audio context scheduling for precise timing
- */
-function scheduleMelodicNotes(audioInstance, startTime) {
-  const bpm = FIXED_BPM;
-  const beatDuration = 60 / bpm;
-  const n = currentNumerator;
-  const d = currentDenominator;
-
-  let cyclePosition = 0;
-
-  for (const item of itSequence) {
-    if (item.isSilence) {
-      cyclePosition = (cyclePosition + item.it) % d;
-      continue;
-    }
-
-    // Calculate when this iT starts (in seconds from startTime)
-    const startPulses = subdivToPosition(item.start);
-    const noteStartTime = startTime + (startPulses * beatDuration);
-
-    // Calculate note duration
-    const durationPulses = item.it * n / d;
-    const durationSeconds = durationPulses * beatDuration;
-
-    // Determine note based on cycle position
-    const isFirstInCycle = cyclePosition === 0;
-    const note = isFirstInCycle ? NOTE_CYCLE_START : NOTE_CYCLE_REST;
-
-    // Schedule the note (fire and forget)
-    scheduleMelodicNote(note, noteStartTime, durationSeconds);
-
-    cyclePosition = (cyclePosition + item.it) % d;
-  }
-}
-
-/**
- * Schedule a single melodic note at a specific time
- */
-function scheduleMelodicNote(midiNumber, startTime, durationSec) {
-  // Use setTimeout to trigger at the right moment
-  // This is a simplified approach - for production, use Web Audio API scheduling
-  const now = audio?._ctx?.currentTime || 0;
-  const delay = Math.max(0, (startTime - now) * 1000);
-
-  setTimeout(() => {
-    if (!isPlaying) return;
-    playMelodicNote(midiNumber, durationSec);
-  }, delay);
-}
-
 async function startPlayback() {
   if (itSequence.length === 0) {
     showValidationWarning(itfrSeq, 'Afegeix iTs per reproduir');
@@ -1117,6 +1065,14 @@ async function startPlayback() {
   // But we need an empty set so audio.play() doesn't crash
   const audioSelection = { values: new Set(), resolution: 1 };
 
+  // Pre-calculate cyclePosition for each iT (for melodic note selection)
+  // cyclePosition determines if note is C4 (start of cycle) or G4 (rest)
+  let cyclePos = 0;
+  for (const item of itSequence) {
+    item.cyclePosition = cyclePos;
+    cyclePos = (cyclePos + item.it) % d;
+  }
+
   const onFinish = () => {
     isPlaying = false;
     updateControlsState();
@@ -1140,6 +1096,7 @@ async function startPlayback() {
   }
 
   // Start playback with audio.play() - this handles metronome and subdivision sounds
+  // highlightPulse receives (scaledIndex, scheduledTime) for sample-accurate melodic notes
   audioInstance.play(
     scaledTotal,
     scaledInterval,
@@ -1152,10 +1109,6 @@ async function startPlayback() {
 
   isPlaying = true;
   updateControlsState();
-
-  // Schedule melodic notes for iTs
-  const startTime = audioInstance._ctx?.currentTime || 0;
-  scheduleMelodicNotes(audioInstance, startTime);
 }
 
 async function stopPlayback() {
@@ -1165,28 +1118,6 @@ async function stopPlayback() {
   isPlaying = false;
   clearHighlights();
   updateControlsState();
-}
-
-async function playMelodicNote(midiNumber, durationSec) {
-  try {
-    // Ensure Tone.js context is running
-    if (window.Tone?.context?.state === 'suspended') {
-      await window.Tone.context.resume();
-    }
-
-    if (currentInstrument === 'piano') {
-      const { playNote } = await import('../../libs/sound/piano.js');
-      await playNote(midiNumber, durationSec);
-    } else if (currentInstrument === 'flute') {
-      const { playNote } = await import('../../libs/sound/flute.js');
-      await playNote(midiNumber, durationSec);
-    } else {
-      const { playNote } = await import('../../libs/sound/violin.js');
-      await playNote(midiNumber, durationSec);
-    }
-  } catch (err) {
-    console.warn('Error playing melodic note:', err);
-  }
 }
 
 async function playMetronomeClick() {
@@ -1216,12 +1147,34 @@ function clearHighlights() {
 }
 
 /**
- * Highlight pulse - receives scaledIndex from audio.play()
+ * Highlight pulse - receives scaledIndex and scheduledTime from audio.play()
  * Like App29: scaledIndex = pulseIndex * d for integer pulses
+ * scheduledTime is the precise AudioContext time for sample-accurate playback
  */
-function highlightPulse(scaledIndex) {
+function highlightPulse(scaledIndex, scheduledTime) {
   if (!isPlaying) return;
   const d = currentDenominator;
+  const n = currentNumerator;
+
+  // Play melodic note if an iT starts at this scaled index
+  const itIndex = getItIndexAtScaledStart(scaledIndex);
+  if (itIndex >= 0 && audio) {
+    const item = itSequence[itIndex];
+    if (!item.isSilence) {
+      // Calculate note duration
+      const bpm = FIXED_BPM;
+      const beatDuration = 60 / bpm;
+      const durationPulses = item.it * n / d;
+      const durationSeconds = durationPulses * beatDuration * 0.95; // Slight gap
+
+      // Determine note based on cycle position (tracked in item)
+      const note = item.cyclePosition === 0 ? NOTE_CYCLE_START : NOTE_CYCLE_REST;
+
+      // Use scheduledTime for sample-accurate sync with metronome
+      const when = scheduledTime ?? (window.Tone?.now() || 0);
+      audio.playNote(note, durationSeconds, when);
+    }
+  }
 
   // Convert scaled index to pulse index (only highlight integer pulses)
   // scaledIndex = pulseIndex * d for integer pulses
@@ -1337,10 +1290,12 @@ function handlePlay() {
 function handleRandom() {
   if (isPlaying) return;
 
-  // Random numerator (2-6) and denominator (must be > numerator)
-  const newN = Math.floor(Math.random() * (MAX_NUMERATOR - MIN_NUMERATOR + 1)) + MIN_NUMERATOR;
-  const minD = newN + 1;
-  const newD = Math.floor(Math.random() * (MAX_DENOMINATOR - minD + 1)) + minD;
+  // Random numerator (1-6) and denominator (1-8), but n != d
+  let newN, newD;
+  do {
+    newN = Math.floor(Math.random() * MAX_NUMERATOR) + 1;
+    newD = Math.floor(Math.random() * MAX_DENOMINATOR) + 1;
+  } while (newN === newD);
 
   if (fractionEditorController) {
     fractionEditorController.setFraction(
