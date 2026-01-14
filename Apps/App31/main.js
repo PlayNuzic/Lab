@@ -183,6 +183,10 @@ async function initAudio() {
 
 if (typeof window !== 'undefined') {
   window.__labInitAudio = initAudio;
+  // Initialize audio on first interaction to ensure NuzicAudioEngine is ready
+  // before instrument-dropdown tries to preload instruments
+  document.addEventListener('click', () => initAudio(), { once: true });
+  document.addEventListener('touchstart', () => initAudio(), { once: true });
 }
 
 // ========== UTILITY FUNCTIONS ==========

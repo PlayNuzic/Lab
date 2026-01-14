@@ -40,13 +40,13 @@
     // Remove elements not needed for App31
     document.querySelector('.inputs')?.remove();
 
-    // Setup sound groups: Metrónomo + Subdivisión
+    // Setup sound groups: Instrumento + Metrónomo + Subdivisión
     const soundGroup = document.querySelector('.sound-group');
     if (soundGroup) {
-      // Rename "Pulso" to "Metrónomo"
+      // Rename "Pulso" to "Metrónomo" (index 2 = third label after "Pulso 0" and "Instrumento")
       const labels = soundGroup.querySelectorAll('p');
-      const startLabel = labels?.[1];
-      if (startLabel) startLabel.textContent = 'Metrónomo';
+      const pulsoLabel = labels?.[2];
+      if (pulsoLabel) pulsoLabel.textContent = 'Metrónomo';
 
       // Add cycle sound dropdown (Subdivisión)
       const cycleTitle = document.createElement('p');
