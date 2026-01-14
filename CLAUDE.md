@@ -10,13 +10,19 @@ Guia per Claude Code al repositori Lab.
 ### 2. Gestió de Sessions
 **OBLIGATORI per tasques incompletes:**
 - **Crear/Actualitzar** `SESSION_STATE.md` a l'arrel
-- **Eliminar** quan la tasca estigui completa
+- **Arxivar** a `docs/session-history/` quan la tasca estigui completa (format: `YYYY-MM-DD-apps-descripcio.md`)
 
-### 3. Ordre al Finalitzar
-1. Actualitzar `SESSION_STATE.md`
-2. Resumir a l'usuari
+### 3. Historial de Sessions
+**Consulta sota demanda**: `docs/session-history/` conté solucions a problemes anteriors.
+- Útil per errors recurrents o patrons ja resolts
+- NO es carrega automàticament - només quan es demana explícitament
 
-### 4. ABANS de Modificar Fitxers
+### 4. Ordre al Finalitzar
+1. Arxivar `SESSION_STATE.md` a `docs/session-history/`
+2. Eliminar o buidar `SESSION_STATE.md`
+3. Resumir a l'usuari
+
+### 5. ABANS de Modificar Fitxers
 **OBLIGATORI**: Si existeix `SESSION_STATE.md` a l'arrel, LLEGIR-LO PRIMER abans de fer qualsevol edició.
 - Conté funcionalitats que JA FUNCIONEN i NO s'han de trencar
 - Conté restriccions específiques sobre què NO modificar

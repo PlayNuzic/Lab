@@ -1,0 +1,87 @@
+# SESSION_STATE - App28/App29 Development
+
+## CRITICAL: DO NOT MODIFY THESE WORKING FEATURES
+
+### Pulse-Seq Format (WORKING - DO NOT CHANGE)
+- Format: `Pfr( [editable area] )` - UNA SOLA LÍNIA
+- Markup builder: `app28MarkupBuilder` / `app29MarkupBuilder`
+- Estructura: `labelSpan('Pfr(') + edit(contentEditable) + closeParen(')')`
+- **IMPORTANT**: Mantenir estructura simple de 3 spans, no afegir més elements
+
+### Funcionalitats Implementades (WORKING)
+1. **Bidireccionalitat timeline ↔ pulse-seq** ✓
+2. **Hot reload** - canvis a selecció s'apliquen en temps real durant playback ✓
+   - `applySelectionToAudio()` crida `audio.setSelected({ values, resolution: 1 })`
+   - Es crida automàticament des de `syncTimelineFromSelection()` si `isPlaying`
+   - **IMPORTANT**: També es crida des dels click handlers a `attachSelectionHandlers()` i `toggleSubdivisionSelection()`
+3. **Sync endpoints 0 i Lg** - seleccionar un selecciona l'altre ✓
+4. **Highlighting pulse-seq** - overlays (#pulseSeqHighlight) amb animació flash ✓
+5. **Caret management** - moveCaretToNearestMidpoint, double-space gaps ✓
+6. **Tooltips de validació** - showValidationWarning quan tokens invàlids ✓
+   - Tokens invàlids: `"X" no es válido`
+   - Tokens duplicats: `"X" duplicado`
+   - Tokens normalitzats: `Corregido: 01→1` (NOTE: "01" cau a "invàlid", el normalized no funciona)
+   - Reposicionant: `Reposicionando pulsos`
+7. **Backspace/Delete tokens sencers** - deleteTokenLeft/deleteTokenRight ✓
+8. **BPM fix a 70** - FIXED_BPM = 70 per App28 i App29 ✓
+
+### CSS Overlays (WORKING - ja a styles.css)
+```css
+#pulseSeqHighlight, #pulseSeqHighlight2 - position: absolute, opacity: 0
+@keyframes pulseSeqFlash - acaba amb opacity: 0 (s'apaga completament)
+```
+
+## ARQUITECTURA ACTUAL
+
+```
+App28/main.js:
+├── app28MarkupBuilder() - genera: labelSpan + edit + closeParen
+├── createPulseSeqElement() - crea wrapper i munta
+├── initPulseSeqEditor() - munta controller amb highlightParent
+├── getPulseSeqRectForIndex() - retorna rect per highlighting
+├── handlePulseSeqKeydown() - gestiona teclat (Enter, arrows, Backspace, Delete)
+├── deleteTokenLeft() - esborra token sencer a l'esquerra (adaptat d'App4)
+├── deleteTokenRight() - esborra token sencer a la dreta (adaptat d'App4)
+├── getMidpoints() - helper per trobar gaps entre tokens
+├── setCaretPosition() - helper per posicionar caret
+├── sanitizePulseSeq() - valida i sincronitza
+├── syncPulseSeqFromSelection() - selecció → text
+├── syncTimelineFromSelection() - selecció → timeline visual + hot reload
+├── applySelectionToAudio() - actualitza àudio durant playback (hot reload)
+└── getAudioSelection() - converteix selectedPulses a format d'àudio
+
+App29/main.js:
+├── Igual que App28 però amb:
+├── currentNumerator editable (2-6)
+├── isIntegerPulseSelectable() - només múltiples de n
+└── isPulseRemainder() - per remainder pulses
+```
+
+## FITXERS MODIFICATS RECENTMENT
+- `Apps/App28/main.js` - pulse-seq editor complet amb hot reload + autoscroll
+- `Apps/App28/styles.css` - overlay animations + centrat pulse-seq
+- `Apps/App29/main.js` - pulse-seq editor complet amb hot reload + autoscroll
+- `Apps/App29/styles.css` - overlay animations + centrat pulse-seq
+
+## AUTOSCROLL (COMPLETAT - commit 4b10967)
+
+### Funcionalitat
+- Autoscroll durant playback: el token actual es manté visible
+- Autoscroll quan s'afegeixen tokens: nous tokens es mostren automàticament
+- Centrat quan hi ha poc contingut, scroll quan excedeix el contenidor
+
+### CSS (App28/styles.css i App29/styles.css)
+- `.pulse-seq-wrapper`: overflow-x: auto (scroll al wrapper)
+- `#pulseSeq`: min-width: 100% + width: max-content + justify-content: center
+
+### JS (ambdues apps)
+- `pulseSeqTokenRanges` Map - tracking posicions tokens amb text ranges
+- `getPulseSeqRectForToken()` - obté rect d'un token via createRange()
+- `scrollPulseSeqToRect()` - fa scroll a `pulseSeqWrapper`
+- `highlightPulseSeqToken()` - highlight + scroll durant playback
+- `syncPulseSeqFromSelection(scrollToToken)` - scroll opcional quan s'afegeix token
+
+## RECORDATORIS
+- **SEMPRE llegir el fitxer ABANS de modificar-lo**
+- **MAI canviar el markup builder sense verificar que no trenca res**
+- **Testejar després de cada canvi petit**
