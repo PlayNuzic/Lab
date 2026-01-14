@@ -151,6 +151,7 @@ const globalMixer = getMixer();
 if (globalMixer) {
   globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Metrónomo' });
   globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivisión' });
+  globalMixer.registerChannel('instrument', { allowSolo: true, label: 'Instrumento' });
 }
 
 initMixerMenu({
@@ -159,6 +160,7 @@ initMixerMenu({
   channels: [
     { id: 'pulse', label: 'Metrónomo', allowSolo: true },
     { id: 'subdivision', label: 'Subdivisión', allowSolo: true },
+    { id: 'instrument', label: 'Instrumento', allowSolo: true },
     { id: 'master', label: 'Master', allowSolo: false, isMaster: true }
   ]
 });
