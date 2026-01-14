@@ -13,6 +13,7 @@ import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
+import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectability.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
@@ -597,15 +598,22 @@ function renderTimeline() {
   timeline.appendChild(line);
 
   // Create pulses (0 to lg inclusive)
+  // Mark non-selectable pulses (not at cycle start) in gray
   for (let i = 0; i <= lg; i++) {
     const pulse = document.createElement('div');
     pulse.className = 'pulse';
     pulse.dataset.index = i;
-    if (i === 0 || i === lg) pulse.classList.add('endpoint');
+    const isEndpoint = i === 0 || i === lg;
+    if (isEndpoint) {
+      pulse.classList.add('endpoint');
+    } else if (!isIntegerPulseSelectable(i, n, d, lg)) {
+      // Pulse not at cycle start (not multiple of numerator, not remainder)
+      pulse.classList.add('non-selectable');
+    }
     timeline.appendChild(pulse);
     pulses.push(pulse);
 
-    if (i === 0 || i === lg) {
+    if (isEndpoint) {
       const bar = document.createElement('div');
       bar.className = 'bar';
       timeline.appendChild(bar);
@@ -617,7 +625,12 @@ function renderTimeline() {
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
-    if (i === 0 || i === lg) num.classList.add('endpoint');
+    const isEndpoint = i === 0 || i === lg;
+    if (isEndpoint) {
+      num.classList.add('endpoint');
+    } else if (!isIntegerPulseSelectable(i, n, d, lg)) {
+      num.classList.add('non-selectable');
+    }
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);

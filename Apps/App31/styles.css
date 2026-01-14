@@ -346,6 +346,17 @@ body.app31 {
   font-weight: 700;
 }
 
+/* Non-selectable pulses (not at cycle start) - shown in gray */
+.pulse.non-selectable {
+  opacity: 0.35;
+  filter: grayscale(0.5);
+}
+
+.pulse-number.non-selectable {
+  color: var(--text-muted, #888);
+  opacity: 0.5;
+}
+
 /* ========== CYCLE MARKERS ========== */
 .cycle-marker {
   position: absolute;
