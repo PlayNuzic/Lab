@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sucesión de iTs Fraccionados Simples</title>
+  <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
+  <link rel="stylesheet" href="../../libs/app-common/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../../favicon.ico" />
+</head>
+<body class="app30" data-theme="system">
+  <div id="app-root"></div>
+  <script type="module">
+    import { initHeader } from '../../libs/shared-ui/header.js';
+    import { renderApp } from '../../libs/app-common/template.js';
+
+    renderApp({
+      root: document.getElementById('app-root'),
+      title: 'Sucesión de iTs Fraccionados Simples',
+      pulseSequence: false,
+      inlineFractionSlot: true,
+      showSelectColor: false,
+      showAccent: false,
+      showComplexFractions: false,
+      hideT: true,
+      hideLeds: true,
+      showCircularTimelineToggle: false,
+      showHoverToggle: false,
+      showStartSoundDropdown: true,
+      showInstrumentDropdown: true,
+      showPulseToggle: false,
+      showSelectedToggle: false,
+      showCycleToggle: false,
+      showP1Toggle: false,
+      useIntervalMode: false,
+      randomMenuContent: ''
+    });
+
+    // Remove elements not needed for App30
+    document.querySelector('.inputs')?.remove();
+
+    // Setup sound groups: Metrónomo + Subdivisión
+    const soundGroup = document.querySelector('.sound-group');
+    if (soundGroup) {
+      // Rename "Pulso" to "Metrónomo"
+      const labels = soundGroup.querySelectorAll('p');
+      const startLabel = labels?.[1];
+      if (startLabel) startLabel.textContent = 'Metrónomo';
+
+      // Add cycle sound dropdown (Subdivisión)
+      const cycleTitle = document.createElement('p');
+      cycleTitle.textContent = 'Subdivisión';
+      soundGroup.appendChild(cycleTitle);
+
+      const cycleRow = document.createElement('div');
+      cycleRow.className = 'preview-row';
+
+      const hiddenLabel = document.createElement('label');
+      hiddenLabel.setAttribute('for', 'cycleSoundSelect');
+      hiddenLabel.style.display = 'none';
+      cycleRow.appendChild(hiddenLabel);
+
+      const slot = document.createElement('div');
+      slot.id = 'cycleSoundSelect';
+      cycleRow.appendChild(slot);
+      soundGroup.appendChild(cycleRow);
+    }
+
+    initHeader();
+    import('./main.js');
+  </script>
+  <!-- Rendimiento Audio (menu flotante) -->
+  <script type="module" src="../../libs/shared-ui/performance-audio-menu.js"></script>
+  <!-- Long-press para abrir el mixer -->
+  <script type="module" src="../../libs/app-common/mixer-longpress.js"></script>
+</body>
+</html>

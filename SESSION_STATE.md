@@ -1,87 +1,90 @@
-# SESSION_STATE - App28/App29 Development
+# SESSION_STATE - App30/App31 Development
 
-## CRITICAL: DO NOT MODIFY THESE WORKING FEATURES
+## ESTAT ACTUAL (Gener 2026)
 
-### Pulse-Seq Format (WORKING - DO NOT CHANGE)
-- Format: `Pfr( [editable area] )` - UNA SOLA LÍNIA
-- Markup builder: `app28MarkupBuilder` / `app29MarkupBuilder`
-- Estructura: `labelSpan('Pfr(') + edit(contentEditable) + closeParen(')')`
-- **IMPORTANT**: Mantenir estructura simple de 3 spans, no afegir més elements
+### ✅ FIXES COMPLETATS
 
-### Funcionalitats Implementades (WORKING)
-1. **Bidireccionalitat timeline ↔ pulse-seq** ✓
-2. **Hot reload** - canvis a selecció s'apliquen en temps real durant playback ✓
-   - `applySelectionToAudio()` crida `audio.setSelected({ values, resolution: 1 })`
-   - Es crida automàticament des de `syncTimelineFromSelection()` si `isPlaying`
-   - **IMPORTANT**: També es crida des dels click handlers a `attachSelectionHandlers()` i `toggleSubdivisionSelection()`
-3. **Sync endpoints 0 i Lg** - seleccionar un selecciona l'altre ✓
-4. **Highlighting pulse-seq** - overlays (#pulseSeqHighlight) amb animació flash ✓
-5. **Caret management** - moveCaretToNearestMidpoint, double-space gaps ✓
-6. **Tooltips de validació** - showValidationWarning quan tokens invàlids ✓
-   - Tokens invàlids: `"X" no es válido`
-   - Tokens duplicats: `"X" duplicado`
-   - Tokens normalitzats: `Corregido: 01→1` (NOTE: "01" cau a "invàlid", el normalized no funciona)
-   - Reposicionant: `Reposicionando pulsos`
-7. **Backspace/Delete tokens sencers** - deleteTokenLeft/deleteTokenRight ✓
-8. **BPM fix a 70** - FIXED_BPM = 70 per App28 i App29 ✓
+#### Fix 1: InvalidAccessError Tone.js (RESOLT)
+- **Problema**: Samplers (violin, piano, flute) fallaven amb `InvalidAccessError` en connectar-se al `melodicChannel`
+- **Causa**: `createRhythmAudioInitializer` creava `TimelineAudio`, però instruments melòdics necessiten `MelodicTimelineAudio` que sincronitza el context amb `Tone.setContext(this._ctx)`
+- **Solució aplicada**: Canviat a `createMelodicAudioInitializer({ defaultInstrument: 'violin' })`
+- **Apps afectades**: App30, App31
 
-### CSS Overlays (WORKING - ja a styles.css)
-```css
-#pulseSeqHighlight, #pulseSeqHighlight2 - position: absolute, opacity: 0
-@keyframes pulseSeqFlash - acaba amb opacity: 0 (s'apaga completament)
-```
+#### Fix 2: Label i càlcul L Pfr (RESOLT)
+- **Canvi**: `L iT` → `L Pfr` (Longitud Pulsos Fraccionats)
+- **Càlcul nou**: `getTotalSubdivisions()` = `Lg × d / n`
+  - Exemple amb 1/2: 6 × 2 / 1 = **12** pulsos fraccionats
+  - Exemple amb 2/3: 6 × 3 / 2 = **9** pulsos fraccionats
+- **Apps afectades**: App30, App31
+
+---
+
+## ✅ FUNCIONALITATS QUE JA FUNCIONEN
+
+1. **Àudio melòdic** - Instruments (violin, piano, flute) sonen correctament ✓
+2. **So del cicle (Subdivisión)** - Desplegable i so funcionen ✓
+3. **So del metrònom** - Desplegable i so funcionen ✓
+4. **Bidireccionalitat timeline ↔ iT-seq** ✓
+5. **Rectangles iT** (interval-bar-visual) amb colors i etiquetes ✓
+6. **Info column** - Σ iT i L Pfr amb càlculs correctes ✓
+7. **Fracció inline** amb spinners ✓
+8. **Drag des de cycle-markers** ✓
+9. **Drag des de pulsos sencers (boles)** ✓
+10. **Suport per silencis amb 's'** ✓
+11. **Gaps a timeline es converteixen en silencis** ✓
+12. **Mixer via longpress sobre play** ✓
+13. **BPM fix a 70** ✓
+14. **Lg fix a 6** ✓
+15. **Random i Reset** funcionen correctament ✓
+
+---
 
 ## ARQUITECTURA ACTUAL
 
 ```
-App28/main.js:
-├── app28MarkupBuilder() - genera: labelSpan + edit + closeParen
-├── createPulseSeqElement() - crea wrapper i munta
-├── initPulseSeqEditor() - munta controller amb highlightParent
-├── getPulseSeqRectForIndex() - retorna rect per highlighting
-├── handlePulseSeqKeydown() - gestiona teclat (Enter, arrows, Backspace, Delete)
-├── deleteTokenLeft() - esborra token sencer a l'esquerra (adaptat d'App4)
-├── deleteTokenRight() - esborra token sencer a la dreta (adaptat d'App4)
-├── getMidpoints() - helper per trobar gaps entre tokens
-├── setCaretPosition() - helper per posicionar caret
-├── sanitizePulseSeq() - valida i sincronitza
-├── syncPulseSeqFromSelection() - selecció → text
-├── syncTimelineFromSelection() - selecció → timeline visual + hot reload
-├── applySelectionToAudio() - actualitza àudio durant playback (hot reload)
-└── getAudioSelection() - converteix selectedPulses a format d'àudio
+App30/main.js (Fraccions Simples - n=1 fix):
+├── createMelodicAudioInitializer({ defaultInstrument: 'violin' })
+├── FIXED_NUMERATOR = 1
+├── DEFAULT_DENOMINATOR = 2
+├── createItfrLayout() - genera estructura iTfr amb L Pfr
+├── initFractionEditorController() - mode inline, setSimpleMode()
+├── renderTimeline() - pulses + cycle-markers
+├── updateIntervalBars() - rectangles iT
+├── attachDragHandlers() - drag des de markers i pulses
+├── sanitizeItSeq() - valida entrada manual (inclou 's' per silencis)
+├── syncItSeqFromSequence() - sequence → text
+├── startPlayback() - àudio melòdic + metrònom + cicle
+├── updateInfoDisplays() - Σ iT i L Pfr (getTotalSubdivisions)
+└── handleRandom/handleReset - botons
 
-App29/main.js:
-├── Igual que App28 però amb:
-├── currentNumerator editable (2-6)
-├── isIntegerPulseSelectable() - només múltiples de n
-└── isPulseRemainder() - per remainder pulses
+App31/main.js (Fraccions Compostes - n editable 2-6):
+├── createMelodicAudioInitializer({ defaultInstrument: 'violin' })
+├── DEFAULT_NUMERATOR = 2, DEFAULT_DENOMINATOR = 3
+├── MIN_NUMERATOR = 2, MAX_NUMERATOR = 6
+├── initFractionEditorController() - mode inline, setComplexMode()
+└── Resta igual que App30
 ```
 
-## FITXERS MODIFICATS RECENTMENT
-- `Apps/App28/main.js` - pulse-seq editor complet amb hot reload + autoscroll
-- `Apps/App28/styles.css` - overlay animations + centrat pulse-seq
-- `Apps/App29/main.js` - pulse-seq editor complet amb hot reload + autoscroll
-- `Apps/App29/styles.css` - overlay animations + centrat pulse-seq
+## DIFERÈNCIES APP30 vs APP31
 
-## AUTOSCROLL (COMPLETAT - commit 4b10967)
+| Aspecte | App30 | App31 |
+|---------|-------|-------|
+| Fracció inicial | 1/2 | 2/3 |
+| Numerador | Fix a 1 | Editable (2-6) |
+| Mode fracció | setSimpleMode() | setComplexMode() |
 
-### Funcionalitat
-- Autoscroll durant playback: el token actual es manté visible
-- Autoscroll quan s'afegeixen tokens: nous tokens es mostren automàticament
-- Centrat quan hi ha poc contingut, scroll quan excedeix el contenidor
+---
 
-### CSS (App28/styles.css i App29/styles.css)
-- `.pulse-seq-wrapper`: overflow-x: auto (scroll al wrapper)
-- `#pulseSeq`: min-width: 100% + width: max-content + justify-content: center
+## PENDENTS / POSSIBLES MILLORES FUTURES
 
-### JS (ambdues apps)
-- `pulseSeqTokenRanges` Map - tracking posicions tokens amb text ranges
-- `getPulseSeqRectForToken()` - obté rect d'un token via createRange()
-- `scrollPulseSeqToRect()` - fa scroll a `pulseSeqWrapper`
-- `highlightPulseSeqToken()` - highlight + scroll durant playback
-- `syncPulseSeqFromSelection(scrollToToken)` - scroll opcional quan s'afegeix token
+1. **Verificar playback complet** - Testejar que tot sona bé amb diferents fraccions
+2. **Responsive mobile** - Verificar comportament en mòbil
+3. **Millores UX** - Feedback visual durant playback
+
+---
 
 ## RECORDATORIS
+
 - **SEMPRE llegir el fitxer ABANS de modificar-lo**
-- **MAI canviar el markup builder sense verificar que no trenca res**
 - **Testejar després de cada canvi petit**
+- **Canvis s'han d'aplicar a AMBDUES apps (App30 i App31)**
