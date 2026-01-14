@@ -178,6 +178,15 @@ async function initAudio() {
       window.__labAudio = audio;
       window.NuzicAudioEngine = audio;
     }
+
+    // Configure sounds from dropdowns (like createRhythmAudioInitializer does)
+    // This ensures the metronome and cycle sounds are properly initialized
+    if (baseSoundSelect?.dataset?.value) {
+      await audio.setBase(baseSoundSelect.dataset.value);
+    }
+    if (cycleSoundSelect?.dataset?.value) {
+      await audio.setCycle(cycleSoundSelect.dataset.value);
+    }
   }
   return audio;
 }
@@ -637,31 +646,63 @@ function renderTimeline() {
     pulseNumberLabels.push(num);
   }
 
-  // Create cycle markers
+  // Create cycle labels for integer pulses (like App29)
+  // Shows numbers at cycle start positions (multiples of numerator + endpoints)
+  const subdivisionFontRem = 1.2; // Fixed font size for subdivision labels
+  for (let i = 0; i <= lg; i++) {
+    const isEndpoint = i === 0 || i === lg;
+    const isSelectable = isEndpoint || isIntegerPulseSelectable(i, n, d, lg);
+
+    // Create integer cycle labels for selectable positions
+    if (isSelectable) {
+      const label = document.createElement('div');
+      label.className = 'cycle-label cycle-label--integer';
+      if (isEndpoint) label.classList.add('cycle-label--origin');
+      label.dataset.cycleIndex = String(Math.floor(i / n));
+      label.dataset.subdivision = '0';
+      label.dataset.position = String(i);
+      label.dataset.base = String(i);
+      label.dataset.integerPulse = String(i);
+      label.textContent = String(i);
+      label.style.fontSize = `${subdivisionFontRem}rem`;
+      timeline.appendChild(label);
+      cycleLabels.push(label);
+    }
+  }
+
+  // Create cycle markers for subdivisions
   const grid = gridFromOrigin({ lg, numerator: n, denominator: d });
 
   if (grid.cycles > 0 && grid.subdivisions.length) {
     grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
-      if (subdivisionIndex === 0) return; // Skip integers
+      if (subdivisionIndex === 0) return; // Skip integers (already created above)
 
       const globalSubdiv = cycleIndex * d + subdivisionIndex;
+      const base = cycleIndex * n;
+      // Subdivision is selectable if its base is 0 or a multiple of n
+      const isSelectable = base === 0 || isIntegerPulseSelectable(base, n, d, lg);
 
       const marker = document.createElement('div');
       marker.className = 'cycle-marker';
+      if (!isSelectable) marker.classList.add('non-selectable');
       marker.dataset.cycleIndex = String(cycleIndex);
       marker.dataset.subdivision = String(subdivisionIndex);
       marker.dataset.globalSubdiv = String(globalSubdiv);
       marker.dataset.position = String(position);
+      marker.dataset.base = String(base);
       timeline.appendChild(marker);
       cycleMarkers.push(marker);
 
       const label = document.createElement('div');
       label.className = 'cycle-label';
+      if (!isSelectable) label.classList.add('non-selectable');
       label.dataset.cycleIndex = String(cycleIndex);
       label.dataset.subdivision = String(subdivisionIndex);
       label.dataset.globalSubdiv = String(globalSubdiv);
       label.dataset.position = String(position);
+      label.dataset.base = String(base);
       label.textContent = `.${subdivisionIndex}`;
+      label.style.fontSize = `${subdivisionFontRem}rem`;
       timeline.appendChild(label);
       cycleLabels.push(label);
     });
@@ -984,103 +1025,147 @@ function updateDragHighlight() {
 }
 
 // ========== PLAYBACK ==========
+/**
+ * Get the iT index that starts at a given scaled index
+ * Returns -1 if no iT starts at that position
+ */
+function getItIndexAtScaledStart(scaledIndex) {
+  const n = currentNumerator;
+  const d = currentDenominator;
+
+  for (let i = 0; i < itSequence.length; i++) {
+    const item = itSequence[i];
+    // Convert iT start (in subdivisions) to scaled index
+    // item.start is in subdivision units, scaledIndex is in d-based units
+    const itScaledStart = item.start * n;
+    if (itScaledStart === scaledIndex) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Schedule melodic notes for all iTs at the start of playback
+ * Uses audio context scheduling for precise timing
+ */
+function scheduleMelodicNotes(audioInstance, startTime) {
+  const bpm = FIXED_BPM;
+  const beatDuration = 60 / bpm;
+  const n = currentNumerator;
+  const d = currentDenominator;
+
+  let cyclePosition = 0;
+
+  for (const item of itSequence) {
+    if (item.isSilence) {
+      cyclePosition = (cyclePosition + item.it) % d;
+      continue;
+    }
+
+    // Calculate when this iT starts (in seconds from startTime)
+    const startPulses = subdivToPosition(item.start);
+    const noteStartTime = startTime + (startPulses * beatDuration);
+
+    // Calculate note duration
+    const durationPulses = item.it * n / d;
+    const durationSeconds = durationPulses * beatDuration;
+
+    // Determine note based on cycle position
+    const isFirstInCycle = cyclePosition === 0;
+    const note = isFirstInCycle ? NOTE_CYCLE_START : NOTE_CYCLE_REST;
+
+    // Schedule the note (fire and forget)
+    scheduleMelodicNote(note, noteStartTime, durationSeconds);
+
+    cyclePosition = (cyclePosition + item.it) % d;
+  }
+}
+
+/**
+ * Schedule a single melodic note at a specific time
+ */
+function scheduleMelodicNote(midiNumber, startTime, durationSec) {
+  // Use setTimeout to trigger at the right moment
+  // This is a simplified approach - for production, use Web Audio API scheduling
+  const now = audio?._ctx?.currentTime || 0;
+  const delay = Math.max(0, (startTime - now) * 1000);
+
+  setTimeout(() => {
+    if (!isPlaying) return;
+    playMelodicNote(midiNumber, durationSec);
+  }, delay);
+}
+
 async function startPlayback() {
   if (itSequence.length === 0) {
     showValidationWarning(itfrSeq, 'Afegeix iTs per reproduir');
     return;
   }
 
-  await initAudio();
+  const lg = FIXED_LG;
   const bpm = FIXED_BPM;
-  const beatDuration = 60 / bpm;
-  const d = currentDenominator;
   const n = currentNumerator;
+  const d = currentDenominator;
+
+  // Scale by denominator to include subdivisions (like App29)
+  const baseResolution = d;
+  const scaledTotal = lg * d; // Total steps
+  const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
+
+  const audioInstance = await initAudio();
+
+  const hasCycle = n > 0 && d > 0 && Math.floor(lg / n) > 0;
+
+  // No accent selection for App31 - we use melodic notes instead
+  // But we need an empty set so audio.play() doesn't crash
+  const audioSelection = { values: new Set(), resolution: 1 };
+
+  const onFinish = () => {
+    isPlaying = false;
+    updateControlsState();
+    clearHighlights();
+    audioInstance.stop();
+  };
+
+  // Build play options
+  const playOptions = {
+    baseResolution,
+    patternBeats: lg * d // Scaled pattern length
+  };
+
+  if (hasCycle) {
+    // Scale numerator by d to match scaled timeline
+    playOptions.cycle = {
+      numerator: n * d,
+      denominator: d,
+      onTick: highlightCycle
+    };
+  }
+
+  // Start playback with audio.play() - this handles metronome and subdivision sounds
+  audioInstance.play(
+    scaledTotal,
+    scaledInterval,
+    audioSelection,
+    false,  // No loop - one-shot playback
+    highlightPulse,
+    onFinish,
+    playOptions
+  );
 
   isPlaying = true;
   updateControlsState();
 
-  // Create abort controller
-  const abortController = { aborted: false };
-  playbackAbort = abortController;
-
-  let cyclePosition = 0; // Track position within fractional cycle (0 to d-1)
-
-  for (let i = 0; i < itSequence.length; i++) {
-    if (abortController.aborted) break;
-
-    const item = itSequence[i];
-    const durationPulses = item.it * n / d;
-    const durationSeconds = durationPulses * beatDuration;
-
-    // Highlight bar
-    highlightBar(i);
-
-    // Play melodic note (skip for silences)
-    if (!item.isSilence) {
-      const isFirstInCycle = cyclePosition === 0;
-      const note = isFirstInCycle ? NOTE_CYCLE_START : NOTE_CYCLE_REST;
-      await playMelodicNote(note, durationSeconds);
-    }
-
-    // Duration per subdivision unit
-    const subdivDuration = (n / d) * beatDuration;
-
-    // Play subdivision sounds for each subdivision unit in this iT
-    for (let s = 0; s < item.it; s++) {
-      if (abortController.aborted) break;
-
-      const globalSubdiv = item.start + s;
-      const subdivPos = subdivToPosition(globalSubdiv);
-      const isOnPulse = Number.isInteger(subdivPos);
-
-      if (isOnPulse) {
-        highlightPulse(Math.floor(subdivPos));
-        await playMetronomeClick();
-      } else {
-        highlightCycleMarker(globalSubdiv);
-        await playCycleSound();
-      }
-
-      await sleep(subdivDuration * 1000);
-    }
-
-    // Update cycle position
-    cyclePosition = (cyclePosition + item.it) % d;
-  }
-
-  // Continue playing until end of timeline (6 pulses) if sequence doesn't fill it
-  const lastEndSubdiv = itSequence.length > 0
-    ? itSequence[itSequence.length - 1].start + itSequence[itSequence.length - 1].it
-    : 0;
-  const totalSubdivs = getTotalSubdivisions();
-  const remainingSubdivDuration = (n / d) * beatDuration;
-
-  for (let s = lastEndSubdiv; s < totalSubdivs && !abortController.aborted; s++) {
-    const subdivPos = subdivToPosition(s);
-    const isOnPulse = Number.isInteger(subdivPos);
-
-    if (isOnPulse) {
-      highlightPulse(Math.floor(subdivPos));
-      await playMetronomeClick();
-    } else {
-      highlightCycleMarker(s);
-      await playCycleSound();
-    }
-
-    await sleep(remainingSubdivDuration * 1000);
-  }
-
-  // Clean up
-  clearHighlights();
-  isPlaying = false;
-  playbackAbort = null;
-  updateControlsState();
+  // Schedule melodic notes for iTs
+  const startTime = audioInstance._ctx?.currentTime || 0;
+  scheduleMelodicNotes(audioInstance, startTime);
 }
 
-function stopPlayback() {
-  if (playbackAbort) {
-    playbackAbort.aborted = true;
-  }
+async function stopPlayback() {
+  if (!audio) return;
+
+  audio.stop();
   isPlaying = false;
   clearHighlights();
   updateControlsState();
@@ -1134,52 +1219,100 @@ function clearHighlights() {
   intervalBars.forEach(b => b.classList.remove('highlight'));
 }
 
-function highlightPulse(pulseIndex) {
+/**
+ * Highlight pulse - receives scaledIndex from audio.play()
+ * Like App29: scaledIndex = pulseIndex * d for integer pulses
+ */
+function highlightPulse(scaledIndex) {
   if (!isPlaying) return;
+  const d = currentDenominator;
+
+  // Convert scaled index to pulse index (only highlight integer pulses)
+  // scaledIndex = pulseIndex * d for integer pulses
+  if (scaledIndex % d !== 0) return; // Skip subdivisions (handled by highlightCycle)
+
+  const pulseIndex = scaledIndex / d;
 
   pulses.forEach(p => p.classList.remove('active'));
+  const total = pulses.length > 1 ? pulses.length - 1 : 0;
+  if (total <= 0) return;
 
-  const pulse = pulses.find(p => parseInt(p.dataset.index, 10) === pulseIndex);
+  const normalized = Math.max(0, Math.min(pulseIndex, total));
+  const pulse = pulses[normalized];
   if (pulse) {
     void pulse.offsetWidth;
     pulse.classList.add('active');
   }
+
+  // Also highlight the iT bar that contains this pulse
+  highlightBarAtPosition(pulseIndex);
 }
 
-function highlightCycleMarker(globalSubdiv) {
+/**
+ * Highlight cycle subdivision - receives payload from audio.play() cycle callback
+ * Like App29: { cycleIndex, subdivisionIndex }
+ */
+function highlightCycle(payload = {}) {
   if (!isPlaying) return;
 
-  pulses.forEach(p => p.classList.remove('active'));
+  const { cycleIndex: rawCycleIndex, subdivisionIndex: rawSubdivisionIndex } = payload;
+  const cycleIndex = Number(rawCycleIndex);
+  const subdivisionIndex = Number(rawSubdivisionIndex);
+
+  if (!Number.isFinite(cycleIndex) || !Number.isFinite(subdivisionIndex)) return;
+
+  // Clear previous highlights
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
 
+  // Find and highlight matching marker/label
   const marker = cycleMarkers.find(m =>
-    parseInt(m.dataset.globalSubdiv, 10) === globalSubdiv
+    Number(m.dataset.cycleIndex) === cycleIndex &&
+    Number(m.dataset.subdivision) === subdivisionIndex
   );
+  const label = cycleLabels.find(l =>
+    Number(l.dataset.cycleIndex) === cycleIndex &&
+    Number(l.dataset.subdivision) === subdivisionIndex
+  );
+
   if (marker) {
     void marker.offsetWidth;
     marker.classList.add('active');
   }
-
-  const label = cycleLabels.find(l =>
-    parseInt(l.dataset.globalSubdiv, 10) === globalSubdiv
-  );
   if (label) {
-    void label.offsetWidth;
     label.classList.add('active');
   }
+
+  // Calculate position and highlight iT bar
+  const n = currentNumerator;
+  const position = cycleIndex * n + subdivisionIndex * n / currentDenominator;
+  highlightBarAtPosition(position);
 }
 
-function highlightBar(barIndex) {
-  if (!isPlaying) return;
+/**
+ * Highlight the iT bar that contains a given position (in pulses)
+ */
+function highlightBarAtPosition(position) {
+  // Find which iT contains this position
+  for (let i = 0; i < itSequence.length; i++) {
+    const item = itSequence[i];
+    const startPos = subdivToPosition(item.start);
+    const endPos = subdivToPosition(item.start + item.it);
 
-  intervalBars.forEach(b => b.classList.remove('highlight'));
-
-  const bar = intervalBars[barIndex];
-  if (bar) {
-    void bar.offsetWidth;
-    bar.classList.add('highlight');
+    if (position >= startPos && position < endPos) {
+      // Highlight this bar
+      intervalBars.forEach(b => b.classList.remove('highlight'));
+      const bar = intervalBars[i];
+      if (bar) {
+        void bar.offsetWidth;
+        bar.classList.add('highlight');
+      }
+      return;
+    }
   }
+
+  // No iT at this position - clear bar highlights
+  intervalBars.forEach(b => b.classList.remove('highlight'));
 }
 
 // ========== CONTROLS ==========

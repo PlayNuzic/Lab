@@ -17,6 +17,27 @@
   - Exemple amb 2/3: 6 × 3 / 2 = **9** pulsos fraccionats
 - **Apps afectades**: App30, App31
 
+#### Fix 3: Inicialització sons metrònom/cicle (RESOLT)
+- **Problema**: El metrònom no sonava durant playback a App31
+- **Causa**: `createMelodicAudioInitializer` no configura sons des dels dropdowns (a diferència de `createRhythmAudioInitializer`)
+- **Solució aplicada**: Afegit `setBase()` i `setCycle()` a `initAudio()` per configurar sons des dels dropdowns
+- **Apps afectades**: App30, App31
+
+#### Fix 4: Visualització pulsos no-selectables (App31)
+- **Canvi**: Pulsos que no coincideixen amb inici de cicle es mostren en gris
+- **Implementació**: Afegit classe `non-selectable` als pulsos i números
+- **Afegit**: Labels `cycle-label--integer` per mostrar números als polsos sencers
+
+#### Fix 5: Playback oficial com App29 (RESOLT)
+- **Problema**: Pulsos sencers no sonaven ni s'il·luminaven durant playback
+- **Causa**: Playback manual amb `sleep()` i `playSound()` en lloc del sistema oficial
+- **Solució aplicada**: Implementat `audio.play()` amb scheduling integrat (com App29)
+  - Metrònom sona a TOTS els pulsos sencers (0-6)
+  - Subdivisió sona a TOTES les subdivisions
+  - Highlighting amb `highlightPulse()` i `highlightCycle()` callbacks
+  - Notes melòdiques programades amb `scheduleMelodicNotes()`
+- **Apps afectades**: App30, App31
+
 ---
 
 ## ✅ FUNCIONALITATS QUE JA FUNCIONEN
@@ -77,9 +98,8 @@ App31/main.js (Fraccions Compostes - n editable 2-6):
 
 ## PENDENTS / POSSIBLES MILLORES FUTURES
 
-1. **Verificar playback complet** - Testejar que tot sona bé amb diferents fraccions
-2. **Responsive mobile** - Verificar comportament en mòbil
-3. **Millores UX** - Feedback visual durant playback
+1. **Responsive mobile** - Verificar comportament en mòbil
+2. **Millores UX** - Feedback visual durant playback
 
 ---
 
