@@ -1307,20 +1307,24 @@ function handleRandom() {
   currentDenominator = newD;
 
   // Generate random iTs filling full length, with silences
+  // iTs cannot cross integer pulses (which occur every n subdivisions)
   const maxSubdivs = getTotalSubdivisions();
   let remaining = maxSubdivs;
   const newSequence = [];
   let pos = 0;
 
   while (remaining > 0) {
-    // Max for current cycle
+    // Find next integer pulse boundary (every n subdivisions)
+    const nextIntegerPulse = (Math.floor(pos / newN) + 1) * newN;
+    // Also respect cycle boundary
     const cycleStart = Math.floor(pos / newD) * newD;
     const cycleEnd = cycleStart + newD;
-    const maxInCycle = Math.min(cycleEnd - pos, remaining);
+    // Max is the minimum of: next integer pulse, cycle end, remaining space
+    const maxIt = Math.min(nextIntegerPulse - pos, cycleEnd - pos, remaining);
 
-    if (maxInCycle <= 0) break;
+    if (maxIt <= 0) break;
 
-    const it = Math.floor(Math.random() * maxInCycle) + 1;
+    const it = Math.floor(Math.random() * maxIt) + 1;
     // 30% chance of silence
     const isSilence = Math.random() < 0.3;
     newSequence.push({ start: pos, it, isSilence });
