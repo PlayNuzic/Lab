@@ -74,6 +74,29 @@
 - **Implementació**: Afegit toggle d'icona play ↔ stop a `updateControlsState()`
 - **Apps afectades**: App30, App31
 
+#### Fix 11: iTs poden traspassar polsos (RESOLT)
+- **Canvi de comportament**: Abans els iTs no podien creuar límits de cicle/pols
+- **Nou comportament**: Els iTs ara poden traspassar polsos, només limitats per **Lg Fr** (longitud total)
+- **Canvis aplicats**:
+  - `getMaxItForStart()` → ara retorna `maxTotal - startSubdiv` (sense límit de cicle)
+  - `sanitizeItSeq()` → eliminada restricció `maxInCycle`, només valida contra Lg Fr
+  - `startDrag()` → `maxSubdiv` ara és `maxTotal - 1` (sense límit de cicle)
+  - `handleRandom()` → genera iTs de qualsevol mida fins a `remaining`
+- **Apps afectades**: App30, App31
+
+#### Fix 12: Renomenat label "L Pfr" → "Lg Fr" (RESOLT)
+- **Canvi**: El label de longitud ara mostra "Lg Fr" (Longitud Fraccionada)
+- **Apps afectades**: App30, App31
+
+#### Fix 13: Random no supera Lg Fr quan és decimal (RESOLT)
+- **Problema**: Amb fraccions com 5/2 (Lg Fr = 2.4), l'aleatori generava seqüències que superaven el límit
+- **Causa**: `Math.floor(Math.random() * remaining) + 1` amb `remaining` decimal podia donar valors > remaining
+- **Solució aplicada**:
+  - Canviat `while (remaining > 0)` → `while (remaining >= 1)`
+  - Canviat `maxIt = remaining` → `maxIt = Math.floor(remaining)`
+  - Afegit `if (maxIt < 1) break;` per seguretat
+- **Apps afectades**: App30, App31
+
 ---
 
 ## ✅ FUNCIONALITATS QUE JA FUNCIONEN
@@ -83,7 +106,7 @@
 3. **So del metrònom** - Desplegable i so funcionen ✓
 4. **Bidireccionalitat timeline ↔ iT-seq** ✓
 5. **Rectangles iT** (interval-bar-visual) amb colors i etiquetes ✓
-6. **Info column** - Σ iT i L Pfr amb càlculs correctes ✓
+6. **Info column** - Σ iT i Lg Fr amb càlculs correctes ✓
 7. **Fracció inline** amb spinners ✓
 8. **Drag des de cycle-markers** ✓
 9. **Drag des de pulsos sencers (boles)** ✓
@@ -92,10 +115,11 @@
 12. **Mixer via longpress sobre play** ✓
 13. **BPM fix a 70** ✓
 14. **Lg fix a 6** ✓
-15. **Random i Reset** funcionen correctament ✓
+15. **Random i Reset** funcionen correctament (amb silencis, omplint Lg Fr) ✓
 16. **Sincronització sample-accurate àudio melòdic** ✓
 17. **Ghost-fraction a l'esquerra** ✓
 18. **Toggle icona play/stop** ✓
+19. **iTs poden traspassar polsos** - només limitats per Lg Fr ✓
 
 ---
 
@@ -106,7 +130,7 @@ App30/main.js (Fraccions Simples - n=1 fix):
 ├── createMelodicAudioInitializer({ defaultInstrument: 'violin' })
 ├── FIXED_NUMERATOR = 1
 ├── DEFAULT_DENOMINATOR = 2
-├── createItfrLayout() - genera estructura iTfr amb L Pfr
+├── createItfrLayout() - genera estructura iTfr amb Lg Fr
 ├── initFractionEditorController() - mode inline, setSimpleMode()
 ├── renderTimeline() - pulses + cycle-markers
 ├── updateIntervalBars() - rectangles iT
@@ -117,7 +141,7 @@ App30/main.js (Fraccions Simples - n=1 fix):
 ├── startPlayback() - àudio melòdic + metrònom + cicle
 ├── highlightPulse(scaledIndex, scheduledTime) - notes melòdiques sample-accurate
 ├── getItIndexAtScaledStart() - detecta inici d'iT per tocar nota
-├── updateInfoDisplays() - Σ iT i L Pfr (getTotalSubdivisions)
+├── updateInfoDisplays() - Σ iT i Lg Fr (getTotalSubdivisions)
 └── handleRandom/handleReset - botons
 
 App31/main.js (Fraccions Compostes - n editable 1-6):

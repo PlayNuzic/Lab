@@ -1300,9 +1300,10 @@ function handleRandom() {
   const newSequence = [];
   let pos = 0;
 
-  while (remaining > 0) {
-    // Random iT size from 1 to remaining (no cycle/pulse limit)
-    const maxIt = remaining;
+  while (remaining >= 1) {
+    // Random iT size from 1 to floor(remaining) - ensures we don't exceed Lg Fr
+    const maxIt = Math.floor(remaining);
+    if (maxIt < 1) break;
     const it = Math.floor(Math.random() * maxIt) + 1;
     // 30% chance of silence
     const isSilence = Math.random() < 0.3;
