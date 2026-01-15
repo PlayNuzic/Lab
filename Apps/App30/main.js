@@ -1262,13 +1262,13 @@ function handleRandom() {
   }
   currentDenominator = newD;
 
-  // Generate random iTs
+  // Generate random iTs filling full length, with silences
   const maxSubdivs = getTotalSubdivisions();
   let remaining = maxSubdivs;
   const newSequence = [];
   let pos = 0;
 
-  while (remaining > 0 && newSequence.length < 4) {
+  while (remaining > 0) {
     // Max for current cycle
     const cycleStart = Math.floor(pos / newD) * newD;
     const cycleEnd = cycleStart + newD;
@@ -1277,12 +1277,11 @@ function handleRandom() {
     if (maxInCycle <= 0) break;
 
     const it = Math.floor(Math.random() * maxInCycle) + 1;
-    newSequence.push({ start: pos, it });
+    // 30% chance of silence
+    const isSilence = Math.random() < 0.3;
+    newSequence.push({ start: pos, it, isSilence });
     pos += it;
     remaining -= it;
-
-    // 40% chance to stop early
-    if (Math.random() < 0.4 && newSequence.length >= 2) break;
   }
 
   itSequence = newSequence;
