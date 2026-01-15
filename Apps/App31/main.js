@@ -234,12 +234,11 @@ function getTotalLengthPulses() {
 
 /**
  * Get maximum iT value for a given start position
+ * iTs can now cross pulse boundaries, only limited by Lg Fr
  */
 function getMaxItForStart(startSubdiv) {
-  const d = currentDenominator;
-  const cycleStart = Math.floor(startSubdiv / d) * d;
-  const cycleEnd = cycleStart + d;
-  return cycleEnd - startSubdiv;
+  const maxTotal = getTotalSubdivisions();
+  return maxTotal - startSubdiv;
 }
 
 /**
@@ -280,7 +279,7 @@ function createItfrLayout() {
   lengthBox.className = 'it-info-box';
   const lengthLabel = document.createElement('span');
   lengthLabel.className = 'it-info-label';
-  lengthLabel.textContent = 'L Pfr';
+  lengthLabel.textContent = 'Lg Fr';
   lengthDisplay = document.createElement('input');
   lengthDisplay.type = 'text';
   lengthDisplay.className = 'it-input';
@@ -491,7 +490,6 @@ function sanitizeItSeq() {
   const invalidTokens = [];
   const warnings = [];
   let currentPos = 0;
-  const d = currentDenominator;
   const maxTotal = getTotalSubdivisions();
 
   for (const token of tokens) {
@@ -513,19 +511,9 @@ function sanitizeItSeq() {
       continue;
     }
 
-    // Check if it fits in current cycle
-    const cycleStart = Math.floor(currentPos / d) * d;
-    const cycleEnd = cycleStart + d;
-    const maxInCycle = cycleEnd - currentPos;
-
-    if (value > maxInCycle) {
-      warnings.push(`iT ${value} > max ${maxInCycle} en cicle`);
-      continue;
-    }
-
-    // Check total doesn't exceed timeline
+    // Check total doesn't exceed timeline (iTs can now cross pulse boundaries)
     if (currentPos + value > maxTotal) {
-      warnings.push(`iT ${value} excedeix timeline`);
+      warnings.push(`iT ${value} excedeix Lg Fr`);
       continue;
     }
 
@@ -841,8 +829,6 @@ function startDrag(startSubdiv, e) {
   e.preventDefault();
 
   const d = currentDenominator;
-  const cycleStart = Math.floor(startSubdiv / d) * d;
-  const cycleEnd = cycleStart + d;
   const maxTotal = getTotalSubdivisions();
 
   // Can't start beyond timeline
@@ -856,11 +842,12 @@ function startDrag(startSubdiv, e) {
 
   // If occupied, we'll replace on drag end
 
+  // iTs can now cross pulse boundaries, only limited by Lg Fr
   dragState = {
     active: true,
     startSubdiv: startSubdiv,
     currentSubdiv: startSubdiv,
-    maxSubdiv: Math.min(cycleEnd - 1, maxTotal - 1),
+    maxSubdiv: maxTotal - 1,
     previewBar: null
   };
 
@@ -1307,23 +1294,15 @@ function handleRandom() {
   currentDenominator = newD;
 
   // Generate random iTs filling full length, with silences
-  // iTs cannot cross integer pulses (which occur every n subdivisions)
+  // iTs can now cross pulse boundaries, only limited by Lg Fr
   const maxSubdivs = getTotalSubdivisions();
   let remaining = maxSubdivs;
   const newSequence = [];
   let pos = 0;
 
   while (remaining > 0) {
-    // Find next integer pulse boundary (every n subdivisions)
-    const nextIntegerPulse = (Math.floor(pos / newN) + 1) * newN;
-    // Also respect cycle boundary
-    const cycleStart = Math.floor(pos / newD) * newD;
-    const cycleEnd = cycleStart + newD;
-    // Max is the minimum of: next integer pulse, cycle end, remaining space
-    const maxIt = Math.min(nextIntegerPulse - pos, cycleEnd - pos, remaining);
-
-    if (maxIt <= 0) break;
-
+    // Random iT size from 1 to remaining (no cycle/pulse limit)
+    const maxIt = remaining;
     const it = Math.floor(Math.random() * maxIt) + 1;
     // 30% chance of silence
     const isSilence = Math.random() < 0.3;
