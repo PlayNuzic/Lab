@@ -208,12 +208,11 @@ function sleep(ms) {
 }
 
 /**
- * Get total subdivisions available (d × Lg) / n
- * Lg Fr = (denominador × longitud) / numerador
- * Result is always integer (floor)
+ * Get total subdivisions available (Lg * d)
+ * Lg Fr = longitud en polsos × denominador
  */
 function getTotalSubdivisions() {
-  return Math.floor((currentDenominator * FIXED_LG) / FIXED_NUMERATOR);
+  return FIXED_LG * currentDenominator;
 }
 
 /**
@@ -306,7 +305,7 @@ function createItfrLayout() {
 
   const labelSpan = document.createElement('span');
   labelSpan.className = 'pz label';
-  labelSpan.textContent = 'iTfr';
+  labelSpan.textContent = 'iT';
 
   fractionSlot = document.createElement('span');
   fractionSlot.id = 'fractionInlineSlot';

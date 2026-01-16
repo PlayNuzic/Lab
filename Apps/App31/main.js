@@ -299,7 +299,7 @@ function createItfrLayout() {
 
   const labelSpan = document.createElement('span');
   labelSpan.className = 'pz label';
-  labelSpan.textContent = 'iTfr';
+  labelSpan.textContent = 'iT';
 
   fractionSlot = document.createElement('span');
   fractionSlot.id = 'fractionInlineSlot';
