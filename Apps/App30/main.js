@@ -1296,15 +1296,18 @@ function handleRandom() {
   }
   currentDenominator = newD;
 
-  // Generate random iTs filling full length, with silences
-  // iTs can now cross pulse boundaries, only limited by Lg Fr
+  // Generate random iTs filling only complete cycles (not loose pulses)
+  // With fraction n/d, only fill subdivisions that fit in complete cycles
   const maxSubdivs = getTotalSubdivisions();
-  let remaining = maxSubdivs;
+  const subsPerCycle = newD;  // Each cycle has d subdivisions
+  const completeCycleSubdivs = Math.floor(maxSubdivs / subsPerCycle) * subsPerCycle;
+
+  let remaining = completeCycleSubdivs;
   const newSequence = [];
   let pos = 0;
 
   while (remaining >= 1) {
-    // Random iT size from 1 to floor(remaining) - ensures we don't exceed Lg Fr
+    // Random iT size from 1 to floor(remaining) - ensures we don't exceed complete cycles
     const maxIt = Math.floor(remaining);
     if (maxIt < 1) break;
     const it = Math.floor(Math.random() * maxIt) + 1;
