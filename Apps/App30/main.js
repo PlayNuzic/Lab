@@ -208,10 +208,12 @@ function sleep(ms) {
 }
 
 /**
- * Get total subdivisions available (Lg * d / n)
+ * Get total subdivisions available (d × Lg) / n
+ * Lg Fr = (denominador × longitud) / numerador
+ * Result is always integer (floor)
  */
 function getTotalSubdivisions() {
-  return (FIXED_LG * currentDenominator) / FIXED_NUMERATOR;
+  return Math.floor((currentDenominator * FIXED_LG) / FIXED_NUMERATOR);
 }
 
 /**

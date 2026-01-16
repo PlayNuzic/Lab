@@ -202,10 +202,12 @@ function sleep(ms) {
 }
 
 /**
- * Get total subdivisions available (Lg * d / n)
+ * Get total subdivisions available (d × Lg) / n
+ * Lg Fr = (denominador × longitud) / numerador
+ * Result is always integer (floor)
  */
 function getTotalSubdivisions() {
-  return (FIXED_LG * currentDenominator) / currentNumerator;
+  return Math.floor((currentDenominator * FIXED_LG) / currentNumerator);
 }
 
 /**
@@ -1295,9 +1297,11 @@ function handleRandom() {
 
   // Generate random iTs filling full length, with silences
   // iTs can now cross pulse boundaries, only limited by Lg Fr
+  // Rule: at least 50% of Lg Fr must be covered by iTs (not silences)
   const maxSubdivs = getTotalSubdivisions();
+  const minItSubdivs = Math.ceil(maxSubdivs / 2); // 50% of Lg Fr must be iTs
   let remaining = maxSubdivs;
-  const newSequence = [];
+  let newSequence = [];
   let pos = 0;
 
   while (remaining >= 1) {
@@ -1310,6 +1314,27 @@ function handleRandom() {
     newSequence.push({ start: pos, it, isSilence });
     pos += it;
     remaining -= it;
+  }
+
+  // Ensure at least 50% of Lg Fr is covered by iTs (not silences)
+  const currentItSubdivs = newSequence
+    .filter(item => !item.isSilence)
+    .reduce((sum, item) => sum + item.it, 0);
+
+  if (currentItSubdivs < minItSubdivs) {
+    // Convert silences to iTs until we have enough subdivisions covered
+    // Sort silences by size (largest first) to minimize conversions needed
+    const silenceIndices = newSequence
+      .map((item, idx) => item.isSilence ? idx : -1)
+      .filter(idx => idx >= 0)
+      .sort((a, b) => newSequence[b].it - newSequence[a].it);
+
+    let neededSubdivs = minItSubdivs - currentItSubdivs;
+    for (const idx of silenceIndices) {
+      if (neededSubdivs <= 0) break;
+      newSequence[idx].isSilence = false;
+      neededSubdivs -= newSequence[idx].it;
+    }
   }
 
   itSequence = newSequence;
