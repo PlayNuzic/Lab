@@ -635,7 +635,8 @@ function renderTimeline() {
     const pulse = document.createElement('div');
     pulse.className = 'pulse';
     pulse.dataset.index = i;
-    if (i === 0 || i === lg) pulse.classList.add('endpoint');
+    if (i === 0) pulse.classList.add('startpoint');
+    if (i === lg) pulse.classList.add('endpoint');
     timeline.appendChild(pulse);
     pulses.push(pulse);
 
@@ -651,7 +652,8 @@ function renderTimeline() {
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
-    if (i === 0 || i === lg) num.classList.add('endpoint');
+    if (i === 0) num.classList.add('startpoint');
+    if (i === lg) num.classList.add('endpoint');
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);

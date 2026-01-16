@@ -341,7 +341,8 @@ body.app30 {
   z-index: 10;
 }
 
-.pulse.endpoint {
+.pulse.endpoint,
+.pulse.startpoint {
   width: 18px;
   height: 18px;
 }
@@ -388,7 +389,8 @@ body.app30 {
   top: -35%;
 }
 
-.pulse-number.endpoint {
+.pulse-number.endpoint,
+.pulse-number.startpoint {
   color: var(--color-lg);
   font-weight: 700;
 }
@@ -512,8 +514,9 @@ body.app30 {
 }
 
 /* ========== DRAG STATES ========== */
-/* Make pulses draggable (except endpoint) */
-.pulse:not(.endpoint) {
+/* Make pulses draggable (startpoint yes, endpoint no) */
+.pulse:not(.endpoint),
+.pulse.startpoint {
   pointer-events: auto;
   cursor: grab;
 }

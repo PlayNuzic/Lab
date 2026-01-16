@@ -642,8 +642,9 @@ function renderTimeline() {
     const pulse = document.createElement('div');
     pulse.className = 'pulse';
     pulse.dataset.index = i;
-    const isEndpoint = i === 0 || i === lg;
-    if (isEndpoint) {
+    if (i === 0) {
+      pulse.classList.add('startpoint');
+    } else if (i === lg) {
       pulse.classList.add('endpoint');
     } else if (!isIntegerPulseSelectable(i, n, d, lg)) {
       // Pulse not at cycle start (not multiple of numerator, not remainder)
@@ -652,7 +653,7 @@ function renderTimeline() {
     timeline.appendChild(pulse);
     pulses.push(pulse);
 
-    if (isEndpoint) {
+    if (i === 0 || i === lg) {
       const bar = document.createElement('div');
       bar.className = 'bar';
       timeline.appendChild(bar);
@@ -664,8 +665,9 @@ function renderTimeline() {
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
-    const isEndpoint = i === 0 || i === lg;
-    if (isEndpoint) {
+    if (i === 0) {
+      num.classList.add('startpoint');
+    } else if (i === lg) {
       num.classList.add('endpoint');
     } else if (!isIntegerPulseSelectable(i, n, d, lg)) {
       num.classList.add('non-selectable');
