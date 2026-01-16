@@ -342,6 +342,7 @@ function createItfrLayout() {
   // Attach event listeners to edit element
   itfrSeqEditEl.addEventListener('blur', sanitizeItSeq);
   itfrSeqEditEl.addEventListener('keydown', handleItSeqKeydown);
+  itfrSeqEditEl.addEventListener('input', previewItSeq);
 }
 
 // ========== FRACTION EDITOR ==========
@@ -476,6 +477,61 @@ function handleItSeqKeydown(e) {
   e.preventDefault();
 }
 
+// Parse a single token: "3" = iT of 3, "3s" = silence of 3
+function parseToken(token) {
+  const lower = token.toLowerCase();
+
+  // Check for silence format: "3s" (number followed by s)
+  const silenceMatch = lower.match(/^(\d+)s$/);
+  if (silenceMatch) {
+    const value = parseInt(silenceMatch[1], 10);
+    if (Number.isFinite(value) && value >= 1) {
+      return { value, isSilence: true };
+    }
+    return null;
+  }
+
+  // Regular iT: just a number
+  const value = parseInt(token, 10);
+  if (Number.isFinite(value) && value >= 1) {
+    return { value, isSilence: false };
+  }
+
+  return null;
+}
+
+// Preview iT-seq in real-time while typing (no warnings, no state update)
+function previewItSeq() {
+  if (!itfrSeqEditEl) return;
+
+  const text = itfrSeqEditEl.textContent || '';
+  const tokens = text.trim().split(/\s+/).filter(Boolean);
+
+  const previewIts = [];
+  let currentPos = 0;
+  const maxTotal = getTotalSubdivisions();
+
+  for (const token of tokens) {
+    const parsed = parseToken(token);
+    if (!parsed) continue;
+
+    if (currentPos + parsed.value > maxTotal) continue;
+
+    previewIts.push({ start: currentPos, it: parsed.value, isSilence: parsed.isSilence });
+    currentPos += parsed.value;
+  }
+
+  // Update timeline preview (without changing itSequence)
+  updateIntervalBars(previewIts);
+
+  // Update sum display in real-time
+  if (sumDisplay) {
+    const sum = previewIts.filter(item => !item.isSilence).reduce((acc, item) => acc + item.it, 0);
+    sumDisplay.value = sum;
+    sumDisplay.classList.toggle('complete', currentPos >= maxTotal);
+  }
+}
+
 function sanitizeItSeq() {
   if (!itfrSeqEditEl) return;
 
@@ -489,33 +545,21 @@ function sanitizeItSeq() {
   const maxTotal = getTotalSubdivisions();
 
   for (const token of tokens) {
-    // Check for silence token
-    if (token.toLowerCase() === 's') {
-      // Silence has duration 1
-      if (currentPos + 1 > maxTotal) {
-        warnings.push('Silenci excedeix timeline');
-        continue;
-      }
-      validIts.push({ start: currentPos, it: 1, isSilence: true });
-      currentPos += 1;
-      continue;
-    }
+    const parsed = parseToken(token);
 
-    const value = parseInt(token, 10);
-
-    if (!Number.isFinite(value) || value < 1) {
+    if (!parsed) {
       invalidTokens.push(token);
       continue;
     }
 
-    // Check total doesn't exceed timeline (iTs can now cross pulse boundaries)
-    if (currentPos + value > maxTotal) {
-      warnings.push(`iT ${value} excedeix L Pfr`);
+    // Check total doesn't exceed timeline
+    if (currentPos + parsed.value > maxTotal) {
+      warnings.push(`iT ${parsed.value} excedeix Lg Fr`);
       continue;
     }
 
-    validIts.push({ start: currentPos, it: value, isSilence: false });
-    currentPos += value;
+    validIts.push({ start: currentPos, it: parsed.value, isSilence: parsed.isSilence });
+    currentPos += parsed.value;
   }
 
   if (invalidTokens.length > 0) {
@@ -543,7 +587,8 @@ function syncItSeqFromSequence() {
     return;
   }
 
-  const tokens = itSequence.map(item => item.isSilence ? 's' : item.it);
+  // Syntax: "3s" for silence of 3, "3" for iT of 3
+  const tokens = itSequence.map(item => item.isSilence ? `${item.it}s` : item.it);
   itfrSeqEditEl.textContent = `  ${tokens.join('  ')}  `;
 }
 
@@ -695,17 +740,18 @@ function layoutTimeline() {
 }
 
 // ========== INTERVAL BARS ==========
-function updateIntervalBars() {
+function updateIntervalBars(previewSequence = null) {
   // Remove existing bars
   intervalBars.forEach(bar => bar.remove());
   intervalBars = [];
 
-  if (itSequence.length === 0) return;
+  const sequence = previewSequence || itSequence;
+  if (sequence.length === 0) return;
 
   const lg = FIXED_LG;
   let colorIndex = 0;
 
-  itSequence.forEach((item, idx) => {
+  sequence.forEach((item, idx) => {
     const startPos = subdivToPosition(item.start);
     const endPos = subdivToPosition(item.start + item.it);
     const width = endPos - startPos;
