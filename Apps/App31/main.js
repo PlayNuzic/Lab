@@ -221,9 +221,8 @@ function subdivToPosition(subdiv) {
  * Get current sum of iTs (excluding silences)
  */
 function getItSum() {
-  return itSequence
-    .filter(item => !item.isSilence)
-    .reduce((sum, item) => sum + item.it, 0);
+  // Count all items (iTs and silences) in the sum
+  return itSequence.reduce((sum, item) => sum + item.it, 0);
 }
 
 /**
@@ -351,6 +350,9 @@ function initFractionEditorController() {
     host: fractionSlot,
     defaults: { numerator: DEFAULT_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
+    autoReduce: true,
+    minNumerator: 2,
+    minDenominator: 2,
     storage: {},
     addRepeatPress,
     labels: {
@@ -530,9 +532,9 @@ function previewItSeq() {
   // Update timeline preview (without changing itSequence)
   updateIntervalBars(previewIts);
 
-  // Update sum display in real-time
+  // Update sum display in real-time (include silences)
   if (sumDisplay) {
-    const sum = previewIts.filter(item => !item.isSilence).reduce((acc, item) => acc + item.it, 0);
+    const sum = previewIts.reduce((acc, item) => acc + item.it, 0);
     sumDisplay.value = sum;
     sumDisplay.classList.toggle('complete', currentPos >= maxTotal);
   }

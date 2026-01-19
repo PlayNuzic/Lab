@@ -248,6 +248,9 @@ function initFractionEditorController() {
     host: formula,
     defaults: { numerator: currentNumerator, denominator: currentDenominator },
     startEmpty: false,
+    autoReduce: true,
+    minNumerator: 2,
+    minDenominator: 2,
     storage: {
       load: loadOpt,
       save: saveOpt,

@@ -212,6 +212,61 @@ body[data-theme='dark'] .fraction-info-bubble {
   transform: translate(-50%, calc(-100% - 12px)) scale(1);
 }
 
+/* Auto-reduce tooltip - positioned below the editor */
+.fraction-info-bubble--reduction {
+  transform: translateX(-50%) scale(1);
+  font-weight: 500;
+}
+
+/* ========== Auto-Reduce Animation Styles ========== */
+
+/* Flash animation keyframes */
+@keyframes fraction-flash {
+  0% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+  50% {
+    background-color: rgba(255, 140, 0, 0.35);
+    box-shadow: 0 0 12px rgba(255, 140, 0, 0.5);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+/* Flash state - warning flash before reduction */
+.fraction-editor--flash {
+  animation: fraction-flash 600ms ease-out;
+  border-radius: 4px;
+}
+
+/* Morphing state - smooth number transition */
+.fraction-editor--morphing input {
+  transition: opacity 400ms ease-in-out;
+}
+
+.fraction-editor--morphing input.numerator,
+.fraction-editor--morphing input.denominator {
+  animation: fraction-morph-number 800ms ease-out;
+}
+
+@keyframes fraction-morph-number {
+  0% {
+    opacity: 0.4;
+    transform: scale(1.1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Title info tooltip specific styles */
 .top-bar-info-tip {
   white-space: normal;

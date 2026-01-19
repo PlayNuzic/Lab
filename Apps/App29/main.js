@@ -319,6 +319,9 @@ function initFractionEditorController() {
     host: formula,
     defaults: { numerator: DEFAULT_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
+    autoReduce: true,
+    minNumerator: 2,
+    minDenominator: 2,
     // No storage - always start fresh with defaults
     storage: {},
     addRepeatPress,

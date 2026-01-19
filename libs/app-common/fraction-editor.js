@@ -57,6 +57,15 @@ function buildReductionHoverText(info) {
   return `Esta fracción es múltiple de ${info.reducedNumerator}/${info.reducedDenominator}. Se repite ${accentEvery} veces la misma ${noun} en cada fracción ${info.numerator}/${info.denominator}.`;
 }
 
+function buildAutoReduceMessage(originalN, originalD, reducedN, reducedD) {
+  return `${originalN}/${originalD} → ${reducedN}/${reducedD} (simplificado)`;
+}
+
+// Animation timing constants
+const FLASH_DURATION_MS = 600;
+const MORPH_DURATION_MS = 800;
+const TOOLTIP_EXTRA_DELAY_MS = 2000;
+
 function noop() {}
 
 function ensureBackground(fn) {
@@ -91,7 +100,10 @@ export function createFractionEditor({
   hoverTexts = {},
   labels = {},
   autoHideMs = 3000,
-  startEmpty = false
+  startEmpty = false,
+  autoReduce = false,
+  minDenominator = 1, // Minimum denominator for user input (auto-reduce can go below this)
+  minNumerator = 1 // Minimum numerator for user input (auto-reduce can go below this)
 } = {}) {
   const safeHost = host ?? null;
   if (!safeHost) return null;
@@ -135,6 +147,10 @@ export function createFractionEditor({
   let currentMessage = '';
   let hideTimer = null;
   let isApplying = false;
+  let isReducing = false; // Tracks if auto-reduce animation is in progress
+  let reduceTooltipTimer = null;
+  let spinnerDebounceTimer = null; // Debounce timer for spinner auto-reduce
+  const SPINNER_DEBOUNCE_MS = 400;
   const currentValues = { numerator: null, denominator: null };
   const inlineState = {
     resizeObserver: null,
@@ -183,6 +199,106 @@ export function createFractionEditor({
         hideInfo();
       }, autoHideMs);
     }
+  }
+
+  /**
+   * Shows a prominent tooltip below the fraction editor for auto-reduce feedback
+   * Positioned fixed below the editor, not following cursor
+   */
+  function showReductionTooltip(message, totalDurationMs) {
+    const bubble = elements.infoBubble;
+    if (!bubble) return;
+
+    // Clear any existing timers
+    clearHideTimer();
+    if (reduceTooltipTimer) {
+      clearTimeout(reduceTooltipTimer);
+      reduceTooltipTimer = null;
+    }
+
+    // Position below the editor (fixed position, not cursor-following)
+    const container = elements.container;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      bubble.style.left = (rect.left + rect.width / 2) + 'px';
+      bubble.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+      bubble.style.transform = 'translateX(-50%)';
+    }
+
+    applyBackground(bubble);
+    bubble.textContent = message;
+    bubble.classList.remove('fraction-info-bubble--hidden');
+    bubble.classList.add('fraction-info-bubble--visible', 'fraction-info-bubble--reduction');
+
+    // Hide after total duration
+    reduceTooltipTimer = setTimeout(() => {
+      bubble.classList.remove('fraction-info-bubble--reduction');
+      bubble.style.transform = '';
+      hideInfo({ clearMessage: true });
+      reduceTooltipTimer = null;
+    }, totalDurationMs);
+  }
+
+  /**
+   * Animates the reduction of a fraction with flash + morphing effect
+   * @param {Object} info - Fraction info with original and reduced values
+   * @param {Function} onComplete - Callback when animation completes
+   */
+  function animateReduction(info, onComplete = noop) {
+    if (!info || !info.isMultiple) {
+      onComplete();
+      return;
+    }
+
+    isReducing = true;
+    const container = elements.container;
+    const numeratorInput = elements.numerator;
+    const denominatorInput = elements.denominator;
+
+    if (!container || !numeratorInput || !denominatorInput) {
+      isReducing = false;
+      onComplete();
+      return;
+    }
+
+    const originalN = info.numerator;
+    const originalD = info.denominator;
+    const reducedN = info.reducedNumerator;
+    const reducedD = info.reducedDenominator;
+
+    // Show tooltip immediately with the reduction message
+    const totalTooltipTime = FLASH_DURATION_MS + MORPH_DURATION_MS + TOOLTIP_EXTRA_DELAY_MS;
+    const message = buildAutoReduceMessage(originalN, originalD, reducedN, reducedD);
+    showReductionTooltip(message, totalTooltipTime);
+
+    // Phase 1: Flash effect
+    container.classList.add('fraction-editor--flash');
+
+    setTimeout(() => {
+      // End flash, start morph
+      container.classList.remove('fraction-editor--flash');
+      container.classList.add('fraction-editor--morphing');
+
+      // Apply the reduced values with morphing transition
+      isApplying = true;
+      numeratorInput.value = String(reducedN);
+      denominatorInput.value = String(reducedD);
+      isApplying = false;
+
+      // Update internal state
+      currentValues.numerator = reducedN;
+      currentValues.denominator = reducedD;
+
+      setTimeout(() => {
+        // End morph animation
+        container.classList.remove('fraction-editor--morphing');
+        isReducing = false;
+
+        // Update state and notify
+        applyState({ reveal: false, cause: 'auto-reduce', persist: true, silent: false });
+        onComplete();
+      }, MORPH_DURATION_MS);
+    }, FLASH_DURATION_MS);
   }
 
   function registerHoverTarget(target, { useFocus = false } = {}) {
@@ -356,7 +472,8 @@ export function createFractionEditor({
     const top = elements.ghost.numerator;
     const bottom = elements.ghost.denominator;
     if (!ghost || !top || !bottom) return;
-    if (!info || !info.isMultiple) {
+    // Don't show ghost when autoReduce is enabled (fraction will be auto-reduced anyway)
+    if (autoReduce || !info || !info.isMultiple) {
       ghost.classList.add('fraction-ghost--hidden');
       ghost.classList.remove('fraction-ghost--visible');
       top.textContent = '';
@@ -425,18 +542,67 @@ export function createFractionEditor({
     return applyState({ reveal, cause, persist, silent });
   }
 
+  function showMinValueWarning(field, minValue) {
+    const fieldName = field === 'numerator' ? 'numerador' : 'denominador';
+    const message = `El ${fieldName} mínimo es ${minValue}`;
+    showReductionTooltip(message, 2000);
+  }
+
   function handleInputChange(field, cause) {
-    if (isApplying) return;
+    if (isApplying || isReducing) return;
     const input = field === 'numerator' ? elements.numerator : elements.denominator;
-    const value = parsePositiveInt(input?.value);
-    setFraction({ [field]: value }, { reveal: true, cause });
+    let value = parsePositiveInt(input?.value);
+
+    // Apply minNumerator constraint for user input
+    if (field === 'numerator' && Number.isFinite(value) && value < minNumerator) {
+      showMinValueWarning(field, minNumerator);
+      value = minNumerator;
+      setInputValue(input, value);
+    }
+
+    // Apply minDenominator constraint for user input
+    if (field === 'denominator' && Number.isFinite(value) && value < minDenominator) {
+      showMinValueWarning(field, minDenominator);
+      value = minDenominator;
+      setInputValue(input, value);
+    }
+
+    setFraction({ [field]: value }, { reveal: !autoReduce, cause });
+
+    // Auto-reduce on blur if enabled and fraction is reducible
+    if (autoReduce && cause === 'blur' && currentInfo.isMultiple) {
+      animateReduction(currentInfo);
+    }
   }
 
   function adjustInput(field, delta) {
+    if (isReducing) return;
     const current = field === 'numerator' ? currentValues.numerator : currentValues.denominator;
     const nextBase = Number.isFinite(current) && current > 0 ? current : 1;
-    const next = Math.max(1, nextBase + delta);
-    setFraction({ [field]: next }, { cause: 'spinner' });
+    // Apply min constraints for spinner
+    const minValue = field === 'denominator' ? minDenominator : minNumerator;
+    const next = Math.max(minValue, nextBase + delta);
+
+    // Show warning if trying to go below minimum
+    if (nextBase + delta < minValue && delta < 0) {
+      showMinValueWarning(field, minValue);
+      return; // Don't update value, just show warning
+    }
+
+    setFraction({ [field]: next }, { cause: 'spinner', reveal: !autoReduce });
+
+    // Auto-reduce on spinner with debounce (allows user to keep clicking without interruption)
+    if (autoReduce) {
+      if (spinnerDebounceTimer) {
+        clearTimeout(spinnerDebounceTimer);
+      }
+      spinnerDebounceTimer = setTimeout(() => {
+        spinnerDebounceTimer = null;
+        if (currentInfo.isMultiple && !isReducing) {
+          animateReduction(currentInfo);
+        }
+      }, SPINNER_DEBOUNCE_MS);
+    }
   }
 
   function createField(field, labelOptions) {
@@ -705,7 +871,16 @@ export function createFractionEditor({
         inlineState.resizeListener = null;
       }
       clearHideTimer();
+      if (reduceTooltipTimer) {
+        clearTimeout(reduceTooltipTimer);
+        reduceTooltipTimer = null;
+      }
+      if (spinnerDebounceTimer) {
+        clearTimeout(spinnerDebounceTimer);
+        spinnerDebounceTimer = null;
+      }
       currentMessage = '';
+      isReducing = false;
       delete safeHost[CONTROLLER_SYMBOL];
     },
     setSimpleMode() {
