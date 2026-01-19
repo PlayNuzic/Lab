@@ -214,6 +214,17 @@ body.app27 {
   font-weight: 700;
 }
 
+/* Non-selectable pulses (don't align with cycle starts) */
+.pulse.non-selectable {
+  opacity: 0.35;
+  filter: grayscale(0.5);
+}
+
+.pulse-number.non-selectable {
+  color: var(--text-muted, #888);
+  opacity: 0.5;
+}
+
 /* ========== CYCLE MARKERS (from App3) ========== */
 .cycle-marker {
   position: absolute;

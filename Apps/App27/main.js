@@ -229,35 +229,19 @@ if (typeof window !== 'undefined') {
 function initFractionEditorController() {
   if (!formula) return;
 
-  // Load saved fraction
-  const savedN = loadOpt('n');
-  const savedD = loadOpt('d');
-
-  const initialN = savedN ? parseInt(savedN, 10) : DEFAULT_NUMERATOR;
-  const initialD = savedD ? parseInt(savedD, 10) : DEFAULT_DENOMINATOR;
-
-  currentNumerator = Number.isFinite(initialN) && initialN >= MIN_NUMERATOR && initialN <= MAX_NUMERATOR
-    ? initialN
-    : DEFAULT_NUMERATOR;
-  currentDenominator = Number.isFinite(initialD) && initialD >= MIN_DENOMINATOR && initialD <= MAX_DENOMINATOR
-    ? initialD
-    : DEFAULT_DENOMINATOR;
+  // Always start with default fraction (no persistence)
+  currentNumerator = DEFAULT_NUMERATOR;
+  currentDenominator = DEFAULT_DENOMINATOR;
 
   const controller = createFractionEditor({
     mode: 'block',
     host: formula,
-    defaults: { numerator: currentNumerator, denominator: currentDenominator },
+    defaults: { numerator: DEFAULT_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
     autoReduce: true,
     minNumerator: 2,
     minDenominator: 2,
-    storage: {
-      load: loadOpt,
-      save: saveOpt,
-      clear: clearOpt,
-      numeratorKey: 'n',
-      denominatorKey: 'd'
-    },
+    storage: {},
     addRepeatPress,
     labels: {
       numerator: {
@@ -410,12 +394,19 @@ function renderTimeline() {
   const numerator = currentNumerator;
   const denominator = currentDenominator;
 
+  // Helper: check if pulse aligns with a cycle start (multiple of numerator)
+  const isPulseAligned = (i) => i === 0 || i === lg || (numerator > 0 && i % numerator === 0);
+
   // Create pulses (0 to lg inclusive for endpoint)
   for (let i = 0; i <= lg; i++) {
     const pulse = document.createElement('div');
     pulse.className = 'pulse';
     pulse.dataset.index = i;
-    if (i === 0 || i === lg) pulse.classList.add('endpoint');
+    if (i === 0 || i === lg) {
+      pulse.classList.add('endpoint');
+    } else if (!isPulseAligned(i)) {
+      pulse.classList.add('non-selectable');
+    }
     timeline.appendChild(pulse);
     pulses.push(pulse);
 
@@ -432,7 +423,11 @@ function renderTimeline() {
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
-    if (i === 0 || i === lg) num.classList.add('endpoint');
+    if (i === 0 || i === lg) {
+      num.classList.add('endpoint');
+    } else if (!isPulseAligned(i)) {
+      num.classList.add('non-selectable');
+    }
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);
