@@ -226,10 +226,8 @@ function subdivToPosition(subdiv) {
  * Get current sum of iTs
  */
 function getItSum() {
-  // Only count non-silence iTs in the sum
-  return itSequence
-    .filter(item => !item.isSilence)
-    .reduce((sum, item) => sum + item.it, 0);
+  // Count all items (iTs and silences) in the sum
+  return itSequence.reduce((sum, item) => sum + item.it, 0);
 }
 
 /**
@@ -524,9 +522,9 @@ function previewItSeq() {
   // Update timeline preview (without changing itSequence)
   updateIntervalBars(previewIts);
 
-  // Update sum display in real-time
+  // Update sum display in real-time (include silences)
   if (sumDisplay) {
-    const sum = previewIts.filter(item => !item.isSilence).reduce((acc, item) => acc + item.it, 0);
+    const sum = previewIts.reduce((acc, item) => acc + item.it, 0);
     sumDisplay.value = sum;
     sumDisplay.classList.toggle('complete', currentPos >= maxTotal);
   }
