@@ -577,7 +577,8 @@ export function createFractionEditor({
     // Don't interfere with reduction tooltip or simple fraction tooltip
     if (reduceTooltipTimer || isShowingSimpleFractionTooltip) return;
     clearHideTimer();
-    if (!info || !info.isMultiple) {
+    // With autoReduce, never show the "multiple fraction" hover text
+    if (autoReduce || !info || !info.isMultiple) {
       currentMessage = '';
       hideInfo({ clearMessage: true });
       return;
