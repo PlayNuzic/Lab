@@ -64,7 +64,7 @@ function buildAutoReduceMessage(originalN, originalD, reducedN, reducedD) {
 // Animation timing constants
 const FLASH_DURATION_MS = 600;
 const MORPH_DURATION_MS = 800;
-const TOOLTIP_EXTRA_DELAY_MS = 2000;
+const TOOLTIP_EXTRA_DELAY_MS = 1000;
 
 function noop() {}
 
@@ -150,6 +150,7 @@ export function createFractionEditor({
   let isReducing = false; // Tracks if auto-reduce animation is in progress
   let reduceTooltipTimer = null;
   let spinnerDebounceTimer = null; // Debounce timer for spinner auto-reduce
+  let isShowingSimpleFractionTooltip = false; // Tracks if simple fraction tooltip is active
   const SPINNER_DEBOUNCE_MS = 400;
   const currentValues = { numerator: null, denominator: null };
   const inlineState = {
@@ -169,7 +170,10 @@ export function createFractionEditor({
     }
   }
 
-  function hideInfo({ clearMessage = false } = {}) {
+  function hideInfo({ clearMessage = false, force = false } = {}) {
+    // Don't hide if simple fraction tooltip is active (unless forced)
+    if (isShowingSimpleFractionTooltip && !force) return;
+
     const bubble = elements.infoBubble;
     if (!bubble) return;
     clearHideTimer();
@@ -185,6 +189,9 @@ export function createFractionEditor({
   }
 
   function showInfo({ message, autoHide = false } = {}) {
+    // Don't show hover info if simple fraction tooltip is active
+    if (isShowingSimpleFractionTooltip) return;
+
     const bubble = elements.infoBubble;
     if (!bubble) return;
     const resolved = message || currentMessage;
@@ -198,6 +205,71 @@ export function createFractionEditor({
       hideTimer = setTimeout(() => {
         hideInfo();
       }, autoHideMs);
+    }
+  }
+
+  /**
+   * Positions the tooltip below the fraction editor (fixed position)
+   */
+  function positionTooltipBelow() {
+    const bubble = elements.infoBubble;
+    const container = elements.container;
+    if (!bubble || !container) return;
+    const rect = container.getBoundingClientRect();
+    bubble.style.left = (rect.left + rect.width / 2) + 'px';
+    bubble.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+    bubble.style.transform = 'translateX(-50%)';
+  }
+
+  /**
+   * Shows a persistent tooltip indicating the fraction is simple (n=1 or d=1)
+   * Stays visible until fraction changes to non-simple
+   */
+  function showSimpleFractionTooltip() {
+    const bubble = elements.infoBubble;
+    if (!bubble) return;
+
+    // Clear any existing timers
+    clearHideTimer();
+    if (reduceTooltipTimer) {
+      clearTimeout(reduceTooltipTimer);
+      reduceTooltipTimer = null;
+    }
+
+    isShowingSimpleFractionTooltip = true;
+    positionTooltipBelow();
+    applyBackground(bubble);
+    bubble.textContent = 'Fracción simple';
+    bubble.classList.remove('fraction-info-bubble--hidden');
+    bubble.classList.add('fraction-info-bubble--visible', 'fraction-info-bubble--reduction');
+    // No timer - stays visible until fraction changes
+  }
+
+  /**
+   * Hides the simple fraction tooltip
+   */
+  function hideSimpleFractionTooltip() {
+    if (!isShowingSimpleFractionTooltip) return;
+    isShowingSimpleFractionTooltip = false;
+    const bubble = elements.infoBubble;
+    if (!bubble) return;
+    bubble.classList.remove('fraction-info-bubble--reduction');
+    bubble.style.transform = '';
+    hideInfo({ clearMessage: true, force: true });
+  }
+
+  /**
+   * Checks if current fraction is simple (n=1 or d=1) and shows/hides tooltip accordingly
+   */
+  function updateSimpleFractionTooltip() {
+    if (!autoReduce) return;
+    const n = currentValues.numerator;
+    const d = currentValues.denominator;
+    const isSimple = (n === 1 || d === 1) && Number.isFinite(n) && Number.isFinite(d);
+    if (isSimple) {
+      showSimpleFractionTooltip();
+    } else {
+      hideSimpleFractionTooltip();
     }
   }
 
@@ -216,26 +288,34 @@ export function createFractionEditor({
       reduceTooltipTimer = null;
     }
 
-    // Position below the editor (fixed position, not cursor-following)
-    const container = elements.container;
-    if (container) {
-      const rect = container.getBoundingClientRect();
-      bubble.style.left = (rect.left + rect.width / 2) + 'px';
-      bubble.style.top = (rect.bottom + window.scrollY + 8) + 'px';
-      bubble.style.transform = 'translateX(-50%)';
-    }
+    positionTooltipBelow();
 
     applyBackground(bubble);
     bubble.textContent = message;
     bubble.classList.remove('fraction-info-bubble--hidden');
     bubble.classList.add('fraction-info-bubble--visible', 'fraction-info-bubble--reduction');
 
-    // Hide after total duration
+    // Hide after total duration, then check for simple fraction
     reduceTooltipTimer = setTimeout(() => {
-      bubble.classList.remove('fraction-info-bubble--reduction');
-      bubble.style.transform = '';
-      hideInfo({ clearMessage: true });
       reduceTooltipTimer = null;
+
+      // Check if result is a simple fraction BEFORE hiding
+      const n = currentValues.numerator;
+      const d = currentValues.denominator;
+      const isSimple = (n === 1 || d === 1) && Number.isFinite(n) && Number.isFinite(d);
+
+      if (isSimple && autoReduce) {
+        // Transition directly to simple fraction tooltip without hiding first
+        // Keep --reduction class for prominent style, just change the text
+        isShowingSimpleFractionTooltip = true;
+        bubble.textContent = 'Fracción simple';
+        // Ensure position stays correct (re-apply in case of any CSS conflicts)
+        positionTooltipBelow();
+      } else {
+        bubble.classList.remove('fraction-info-bubble--reduction');
+        bubble.style.transform = '';
+        hideInfo({ clearMessage: true, force: true });
+      }
     }, totalDurationMs);
   }
 
@@ -310,6 +390,9 @@ export function createFractionEditor({
     }
 
     function updateBubblePosition(evt) {
+      // Don't move tooltip if simple fraction tooltip is active
+      if (isShowingSimpleFractionTooltip) return;
+
       const bubble = elements.infoBubble;
       if (!bubble || !evt) return;
       // desfasament de 20 px cap amunt i 10 px cap a la dreta
@@ -318,7 +401,10 @@ export function createFractionEditor({
     }
 
     target.addEventListener('mouseenter', (event) => {
-      updateBubblePosition(event);
+      // Don't update position if simple fraction tooltip is active
+      if (!isShowingSimpleFractionTooltip) {
+        updateBubblePosition(event);
+      }
       // IMPORTANT: no assignem a currentMessage aquí; així el tipus correcte
       // (numerator/denominator) determina el text per defecte cada vegada
       showInfo({ message: computeHoverMessage(event.currentTarget) });
@@ -488,6 +574,8 @@ export function createFractionEditor({
 
   function updateInfoBubble(info, { reveal = false } = {}) {
     if (!elements.infoBubble) return;
+    // Don't interfere with reduction tooltip or simple fraction tooltip
+    if (reduceTooltipTimer || isShowingSimpleFractionTooltip) return;
     clearHideTimer();
     if (!info || !info.isMultiple) {
       currentMessage = '';
@@ -515,6 +603,11 @@ export function createFractionEditor({
     if (persist) {
       persistValue('numerator', currentValues.numerator);
       persistValue('denominator', currentValues.denominator);
+    }
+
+    // Update simple fraction tooltip when fraction changes (but not during reduction animation)
+    if (!isReducing && cause !== 'auto-reduce') {
+      updateSimpleFractionTooltip();
     }
 
     if (!silent) {
