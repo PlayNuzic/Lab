@@ -1094,8 +1094,9 @@ async function startPlayback() {
 
   // Scale by denominator to include subdivisions (like App29)
   const baseResolution = d;
-  const scaledTotal = lg * d; // Total steps
   const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
+  // Add padding (1 extra step) to allow last note's release to complete
+  const scaledTotal = lg * d + 1;
 
   const audioInstance = await initAudio();
 
@@ -1205,7 +1206,7 @@ function highlightPulse(scaledIndex, scheduledTime) {
       const bpm = FIXED_BPM;
       const beatDuration = 60 / bpm;
       const durationPulses = item.it * n / d;
-      const durationSeconds = durationPulses * beatDuration * 0.95; // Slight gap
+      const durationSeconds = durationPulses * beatDuration;
 
       // Determine note based on cycle position (tracked in item)
       const note = item.cyclePosition === 0 ? NOTE_CYCLE_START : NOTE_CYCLE_REST;
