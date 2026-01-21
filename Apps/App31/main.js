@@ -1,6 +1,7 @@
 // App31: Sucesión de iTs Fraccionados Compuestos
-// Basat en App30, amb numerador editable (2-6) i denominador editable (1-8)
-// Lg=6 fix, BPM=70 fix
+// Basat en App30, amb numerador editable (2-6) i denominador editable (2-8)
+// Lg = numerador (dinàmic, 2-6), dibuixa 1 cicle de la fracció
+// BPM=70 fix, playback en loop
 // Bi-direccionalitat: timeline <-> iT-seq
 // Àudio melòdic amb selector d'instrument
 
@@ -17,11 +18,13 @@ import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectabil
 import { gcd } from '../../libs/app-common/number-utils.js';
 
 // ========== CONSTANTS ==========
-const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
+// Lg = currentNumerator (dinàmic) - es calcula en cada renderització
 const FIXED_BPM = 70;            // BPM fix
 const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
 const DEFAULT_DENOMINATOR = 3;
+const MIN_NUMERATOR = 2;         // Mínim 2 (fraccions complexes)
 const MAX_NUMERATOR = 6;
+const MIN_DENOMINATOR = 2;       // Mínim 2 subdivisions
 const MAX_DENOMINATOR = 8;
 
 // Colors per rectangles iT
@@ -205,10 +208,12 @@ function sleep(ms) {
 /**
  * Get total subdivisions available (d × Lg) / n
  * Lg Fr = (denominador × longitud) / numerador
+ * Amb lg = numerador, total = (d × n) / n = d
  * Result is always integer (floor)
  */
 function getTotalSubdivisions() {
-  return Math.floor((currentDenominator * FIXED_LG) / currentNumerator);
+  // Amb lg = numerador: total = denominador (1 cicle complet)
+  return currentDenominator;
 }
 
 /**
@@ -632,7 +637,8 @@ function renderTimeline() {
   intervalBars = [];
   timeline.innerHTML = '';
 
-  const lg = FIXED_LG;
+  // lg = numerador → dibuixa exactament 1 cicle de la fracció
+  const lg = currentNumerator;
   const n = currentNumerator;
   const d = currentDenominator;
 
@@ -755,7 +761,7 @@ function renderTimeline() {
 }
 
 function layoutTimeline() {
-  const lg = FIXED_LG;
+  const lg = currentNumerator;
 
   pulses.forEach((p, i) => {
     const pct = (i / lg) * 100;
@@ -805,7 +811,7 @@ function updateIntervalBars(previewSequence = null) {
   const sequence = previewSequence || itSequence;
   if (sequence.length === 0) return;
 
-  const lg = FIXED_LG;
+  const lg = currentNumerator;
 
   sequence.forEach((item, idx) => {
     const startPos = subdivToPosition(item.start);
@@ -847,10 +853,10 @@ function attachDragHandlers() {
     marker.addEventListener('touchstart', handleDragStart, { passive: false });
   });
 
-  // Also allow starting from integer pulses (0 to LG-1, not the endpoint)
+  // Also allow starting from integer pulses (0 to lg-1, not the endpoint)
   pulses.forEach(pulse => {
     const idx = parseInt(pulse.dataset.index, 10);
-    if (idx >= 0 && idx < FIXED_LG) {
+    if (idx >= 0 && idx < currentNumerator) {
       pulse.addEventListener('mousedown', handleDragStartFromPulse);
       pulse.addEventListener('touchstart', handleDragStartFromPulse, { passive: false });
       pulse.style.cursor = 'grab';
@@ -934,7 +940,7 @@ function handleDragMove(e) {
   const rect = timeline.getBoundingClientRect();
   const relX = clientX - rect.left;
   const pct = Math.max(0, Math.min(1, relX / rect.width));
-  const posInPulses = pct * FIXED_LG;
+  const posInPulses = pct * currentNumerator;
 
   // Convert to subdivision
   const d = currentDenominator;
@@ -1039,7 +1045,7 @@ function updatePreviewBar() {
   const endPos = subdivToPosition(dragState.currentSubdiv + 1);
   const width = endPos - startPos;
 
-  const lg = FIXED_LG;
+  const lg = currentNumerator;
   dragState.previewBar.style.left = `${(startPos / lg) * 100}%`;
   dragState.previewBar.style.width = `${(width / lg) * 100}%`;
 }
@@ -1090,7 +1096,8 @@ async function startPlayback() {
     return;
   }
 
-  const lg = FIXED_LG;
+  // lg = numerador → 1 cicle de la fracció
+  const lg = currentNumerator;
   const bpm = FIXED_BPM;
   const n = currentNumerator;
   const d = currentDenominator;
@@ -1098,12 +1105,13 @@ async function startPlayback() {
   // Scale by denominator to include subdivisions (like App29)
   const baseResolution = d;
   const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
-  // Add padding (1 extra step) to allow last note's release to complete
-  const scaledTotal = lg * d + 1;
+  // En mode loop, no necessitem padding extra
+  const scaledTotal = lg * d;
 
   const audioInstance = await initAudio();
 
-  const hasCycle = n > 0 && d > 0 && Math.floor(lg / n) > 0;
+  // Amb lg = numerador, sempre hi ha exactament 1 cicle
+  const hasCycle = n > 0 && d > 0;
 
   // No accent selection for App31 - we use melodic notes instead
   // But we need an empty set so audio.play() doesn't crash
@@ -1145,7 +1153,7 @@ async function startPlayback() {
     scaledTotal,
     scaledInterval,
     audioSelection,
-    false,  // No loop - one-shot playback
+    true,   // Loop ENABLED (1 cicle en bucle)
     highlightPulse,
     onFinish,
     playOptions
@@ -1235,6 +1243,15 @@ function highlightPulse(scaledIndex, scheduledTime) {
   if (pulse) {
     void pulse.offsetWidth;
     pulse.classList.add('active');
+  }
+
+  // In loop mode, pulse 0 and endpoint (lg) illuminate together
+  if (pulseIndex === 0) {
+    const endpoint = pulses[currentNumerator];
+    if (endpoint) {
+      void endpoint.offsetWidth;
+      endpoint.classList.add('active');
+    }
   }
 
   // Also highlight the iT bar that contains this pulse

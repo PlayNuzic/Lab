@@ -1,7 +1,7 @@
 // App27: Fracciones Complejas
 // Igual que App26, però amb fraccions complexes (numerador editable)
-// Lg=6 fix, BPM=85 fix, numerador editable (1-6), denominador editable (1-8)
-// Default: 2/3, Playback one-shot (sense loop)
+// Lg = numerador (dinàmic, 2-6), dibuixa 1 cicle de la fracció
+// BPM=85 fix, denominador editable (2-8), playback en loop
 
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
@@ -15,13 +15,13 @@ import { randomInt, gcd } from '../../libs/app-common/number-utils.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 
 // ========== CONSTANTS ==========
-const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
+// Lg = currentNumerator (dinàmic) - es calcula en cada renderització
 const FIXED_BPM = 85;            // BPM fix
 const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
 const DEFAULT_DENOMINATOR = 3;   // Per defecte 2/3
-const MIN_NUMERATOR = 1;
+const MIN_NUMERATOR = 1;         // Mínim 1 (permet 1/1)
 const MAX_NUMERATOR = 6;
-const MIN_DENOMINATOR = 1;
+const MIN_DENOMINATOR = 1;       // Mínim 1 (permet 1/1)
 const MAX_DENOMINATOR = 8;
 
 // ========== STATE ==========
@@ -392,7 +392,8 @@ function renderTimeline() {
   pulseNumberLabels = [];
   timeline.innerHTML = '';
 
-  const lg = FIXED_LG;
+  // lg = numerador → dibuixa exactament 1 cicle de la fracció
+  const lg = currentNumerator;
   const numerator = currentNumerator;
   const denominator = currentDenominator;
 
@@ -485,7 +486,7 @@ function renderTimeline() {
 }
 
 function layoutTimeline() {
-  const lg = FIXED_LG;
+  const lg = currentNumerator;
 
   // Position pulses linearly
   pulses.forEach((p, i) => {
@@ -537,15 +538,38 @@ function clearHighlights() {
   cycleLabels.forEach(l => l.classList.remove('active'));
 }
 
-function highlightPulse(index) {
+function highlightPulse(scaledIndex) {
   if (!isPlaying) return;
 
   pulses.forEach(p => p.classList.remove('active'));
-  const total = pulses.length > 1 ? pulses.length - 1 : 0;
-  if (total <= 0) return;
+  const lg = currentNumerator;
+  const d = currentDenominator;
+  const scaledTotal = lg * d;
 
-  const raw = Number.isFinite(index) ? index : 0;
-  const normalized = Math.max(0, Math.min(raw, total));
+  const raw = Number.isFinite(scaledIndex) ? scaledIndex : 0;
+
+  // En mode loop, quan scaledIndex = scaledTotal (inici del següent cicle),
+  // il·luminem tant pols 0 com endpoint (lg)
+  if (raw === 0 || raw === scaledTotal) {
+    // Il·luminar pols 0
+    const pulse0 = pulses[0];
+    if (pulse0) {
+      void pulse0.offsetWidth;
+      pulse0.classList.add('active');
+    }
+    // Il·luminar endpoint (lg) també
+    const endpoint = pulses[lg];
+    if (endpoint) {
+      void endpoint.offsetWidth;
+      endpoint.classList.add('active');
+    }
+    return;
+  }
+
+  // Convertir índex escalat a índex de pols enter
+  // scaledIndex = pulseIndex * d, així que pulseIndex = floor(scaledIndex / d)
+  const pulseIndex = Math.floor(raw / d);
+  const normalized = Math.max(0, Math.min(pulseIndex, lg));
   const pulse = pulses[normalized];
   if (pulse) {
     void pulse.offsetWidth;
@@ -589,7 +613,8 @@ function highlightCycle(payload = {}) {
 function applyCycleConfig() {
   if (!audio) return;
 
-  const hasCycle = currentNumerator > 0 && currentDenominator > 0 && Math.floor(FIXED_LG / currentNumerator) > 0;
+  // Amb lg = numerador, sempre hi ha exactament 1 cicle
+  const hasCycle = currentNumerator > 0 && currentDenominator > 0;
 
   if (typeof audio.updateCycleConfig === 'function') {
     audio.updateCycleConfig({
@@ -602,14 +627,20 @@ function applyCycleConfig() {
 
 // ========== PLAYBACK ==========
 async function startPlayback() {
-  const lg = FIXED_LG;
+  // lg = numerador → 1 cicle de la fracció
+  const lg = currentNumerator;
   const bpm = FIXED_BPM;
-  const interval = 60 / bpm;
-  const playbackTotal = lg + 1; // One-shot: play lg+1 pulses (0 to lg inclusive)
+  const d = currentDenominator;
+
+  // Escalar per denominador per incloure subdivisions
+  const baseResolution = d;
+  const scaledTotal = lg * d; // Total steps (loop mode, sense endpoint extra)
+  const scaledInterval = (60 / bpm) / d; // Cada step = 1/d d'un beat
 
   const audioInstance = await initAudio();
 
-  const hasCycle = currentNumerator > 0 && currentDenominator > 0 && Math.floor(lg / currentNumerator) > 0;
+  // Amb lg = numerador, sempre hi ha exactament 1 cicle
+  const hasCycle = currentNumerator > 0 && currentDenominator > 0;
 
   const onFinish = () => {
     isPlaying = false;
@@ -626,16 +657,29 @@ async function startPlayback() {
     audioInstance.stop();
   };
 
+  // Build play options
+  const playOptions = {
+    baseResolution,
+    patternBeats: lg * d // Scaled pattern length
+  };
+
+  if (hasCycle) {
+    // Scale numerator by d to match scaled timeline
+    playOptions.cycle = {
+      numerator: lg * d, // 1 cicle = lg * d steps
+      denominator: d,
+      onTick: highlightCycle
+    };
+  }
+
   audioInstance.play(
-    playbackTotal,
-    interval,
+    scaledTotal,
+    scaledInterval,
     new Set(),       // No selection
-    false,           // Loop DISABLED (one-shot)
+    true,            // Loop ENABLED (1 cicle en bucle)
     highlightPulse,
     onFinish,
-    hasCycle
-      ? { cycle: { numerator: currentNumerator, denominator: currentDenominator, onTick: highlightCycle }, patternBeats: lg }
-      : { patternBeats: lg }
+    playOptions
   );
 
   isPlaying = true;

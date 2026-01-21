@@ -1,9 +1,9 @@
 // App29: Sucesion de Pulsos Fraccionados Complejos
 // Basat en App27 + pulseSeq editor per seleccionar pulsos
-// Lg=6 fix, BPM=85 fix, numerador editable (1-6), denominador editable (1-8)
-// Validacio com App4: nomes multiples del numerador + remainder
+// Lg = numerador (dinàmic, 2-6), dibuixa 1 cicle de la fracció
+// BPM=70 fix, denominador editable (2-8)
 // Bi-direccionalitat: timeline <-> pulseSeq
-// Playback one-shot (sense loop)
+// Playback en loop
 
 import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
@@ -20,13 +20,13 @@ import { isIntegerPulseSelectable, isPulseRemainder } from '../../libs/app-commo
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 
 // ========== CONSTANTS ==========
-const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
+// Lg = currentNumerator (dinàmic) - es calcula en cada renderització
 const FIXED_BPM = 70;            // BPM fix
 const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
 const DEFAULT_DENOMINATOR = 3;   // Per defecte 2/3
-const MIN_NUMERATOR = 2;         // Fraccions complexes (n>1)
+const MIN_NUMERATOR = 1;         // Mínim 1 (permet 1/1)
 const MAX_NUMERATOR = 6;
-const MIN_DENOMINATOR = 1;
+const MIN_DENOMINATOR = 1;       // Mínim 1 (permet 1/1)
 const MAX_DENOMINATOR = 8;
 
 // ========== STATE ==========
@@ -408,7 +408,7 @@ function handleFractionChange() {
  * Check if an integer pulse index is selectable (multiple of numerator or remainder)
  */
 function isIntegerSelectable(idx) {
-  return isIntegerPulseSelectable(idx, currentNumerator, currentDenominator, FIXED_LG);
+  return isIntegerPulseSelectable(idx, currentNumerator, currentDenominator, currentNumerator);
 }
 
 /**
@@ -418,7 +418,7 @@ function isIntegerSelectable(idx) {
 function isValidPulseToken(token) {
   if (typeof token !== 'string') return false;
 
-  const lg = FIXED_LG;
+  const lg = currentNumerator;
   const n = currentNumerator;
   const d = currentDenominator;
 
@@ -755,13 +755,14 @@ function sanitizePulseSeq() {
   const invalidTokens = [];
   const duplicateTokens = [];
   const normalizedTokens = []; // Track tokens that were normalized
-  let pulse6Entered = false; // Track if user entered pulse 6
+  let pulseLgEntered = false; // Track if user entered pulse lg (endpoint)
+  const lg = currentNumerator;
   for (const token of tokens) {
-    // Special case: pulse 6 is equivalent to pulse 0
+    // Special case: pulse lg (endpoint) is equivalent to pulse 0
     let normalized = normalizeToken(token);
-    if (normalized === '6' || normalized === String(FIXED_LG)) {
-      pulse6Entered = true;
-      normalized = '0'; // Convert 6 to 0
+    if (normalized === String(lg)) {
+      pulseLgEntered = true;
+      normalized = '0'; // Convert lg to 0
     }
     if (isValidPulseToken(normalized)) {
       // Normalize format (remove leading zeros, etc)
@@ -786,9 +787,9 @@ function sanitizePulseSeq() {
   // Build warning messages
   const warnings = [];
 
-  // Pulse 6 entered (equivalent to pulse 0)
-  if (pulse6Entered) {
-    warnings.push('6 es el mismo pulso que 0');
+  // Pulse lg entered (equivalent to pulse 0)
+  if (pulseLgEntered) {
+    warnings.push(`${lg} es el mismo pulso que 0`);
   }
 
   // Invalid tokens
@@ -978,9 +979,9 @@ function syncTimelineFromSelection() {
       if (integerLabel) {
         integerLabel.classList.add('selected');
       }
-      // When pulse 0 is selected, also illuminate endpoint (lg=6)
+      // When pulse 0 is selected, also illuminate endpoint (lg)
       if (idx === 0) {
-        const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
+        const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === currentNumerator);
         if (endpoint) endpoint.classList.add('selected');
       }
     }
@@ -1065,7 +1066,8 @@ function renderTimeline() {
   pulseNumberLabels = [];
   timeline.innerHTML = '';
 
-  const lg = FIXED_LG;
+  // lg = numerador → dibuixa exactament 1 cicle de la fracció
+  const lg = currentNumerator;
   const numerator = currentNumerator;
   const denominator = currentDenominator;
 
@@ -1188,11 +1190,12 @@ function renderTimeline() {
  * Attach click handlers to pulses and cycle markers for selection
  */
 function attachSelectionHandlers() {
+  const lg = currentNumerator;
   // All integer pulses (0 to lg-1, skip non-selectable and endpoint lg which only illuminates with 0)
   pulses.forEach((pulse) => {
     const idx = parseInt(pulse.dataset.index, 10);
-    // Skip endpoint (lg=6) - it's not selectable, only illuminates with pulse 0
-    if (idx === FIXED_LG) return;
+    // Skip endpoint (lg) - it's not selectable, only illuminates with pulse 0
+    if (idx === lg) return;
     if (pulse.classList.contains('non-selectable')) return; // Skip non-selectable
 
     pulse.addEventListener('click', () => {
@@ -1203,14 +1206,14 @@ function attachSelectionHandlers() {
         selectedPulses.delete(token);
         // If deselecting pulse 0, also remove visual from endpoint
         if (idx === 0) {
-          const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
+          const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === currentNumerator);
           if (endpoint) endpoint.classList.remove('selected');
         }
       } else {
         selectedPulses.add(token);
         // If selecting pulse 0, also show visual on endpoint
         if (idx === 0) {
-          const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
+          const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === currentNumerator);
           if (endpoint) endpoint.classList.add('selected');
         }
       }
@@ -1249,8 +1252,8 @@ function attachSelectionHandlers() {
       // Integer pulse label
       if (integerPulse !== undefined) {
         const idx = parseInt(integerPulse, 10);
-        // Skip endpoint (lg=6) - it's not selectable, only illuminates with pulse 0
-        if (idx === FIXED_LG) return;
+        // Skip endpoint (lg) - it's not selectable, only illuminates with pulse 0
+        if (idx === currentNumerator) return;
 
         const token = integerPulse;
         const pulse = pulses.find(p => p.dataset.index === integerPulse);
@@ -1262,7 +1265,7 @@ function attachSelectionHandlers() {
           label.classList.remove('selected');
           // If deselecting pulse 0, also remove visual from endpoint
           if (idx === 0) {
-            const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
+            const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === currentNumerator);
             if (endpoint) endpoint.classList.remove('selected');
           }
         } else {
@@ -1271,7 +1274,7 @@ function attachSelectionHandlers() {
           label.classList.add('selected');
           // If selecting pulse 0, also show visual on endpoint
           if (idx === 0) {
-            const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
+            const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === currentNumerator);
             if (endpoint) endpoint.classList.add('selected');
           }
         }
@@ -1326,7 +1329,7 @@ function toggleSubdivisionSelection(token, base, subdivision) {
 }
 
 function layoutTimeline() {
-  const lg = FIXED_LG;
+  const lg = currentNumerator;
 
   // Position pulses linearly
   pulses.forEach((p, i) => {
@@ -1414,9 +1417,9 @@ function highlightPulse(scaledIndex) {
     pulse.classList.add('active');
   }
 
-  // In loop mode, pulse 0 and endpoint (FIXED_LG) illuminate together
+  // In loop mode, pulse 0 and endpoint (lg) illuminate together
   if (pulseIndex === 0) {
-    const endpoint = pulses[FIXED_LG];
+    const endpoint = pulses[currentNumerator];
     if (endpoint) {
       void endpoint.offsetWidth;
       endpoint.classList.add('active');
@@ -1475,11 +1478,12 @@ function highlightCycle(payload = {}) {
 function applyTransportConfig() {
   if (!audio || typeof audio.updateTransport !== 'function') return;
 
-  const lg = FIXED_LG;
+  const lg = currentNumerator;
   const bpm = FIXED_BPM;
   const n = currentNumerator;
   const d = currentDenominator;
-  const hasCycle = n > 0 && d > 0 && Math.floor(lg / n) > 0;
+  // Amb lg = numerador, sempre hi ha exactament 1 cicle
+  const hasCycle = n > 0 && d > 0;
 
   // Scale values by denominator (same as startPlayback)
   const scaledTotal = lg * d;
@@ -1534,7 +1538,7 @@ function getAudioSelection() {
     } else {
       // Integer pulse: idx → idx * d (only 0 to lg-1, lg is not selectable)
       const idx = parseInt(token, 10);
-      if (Number.isFinite(idx) && idx >= 0 && idx < FIXED_LG) {
+      if (Number.isFinite(idx) && idx >= 0 && idx < currentNumerator) {
         const scaledIndex = idx * d;
         audioSet.add(scaledIndex);
       }
@@ -1546,7 +1550,7 @@ function getAudioSelection() {
 
 // ========== PLAYBACK ==========
 async function startPlayback() {
-  const lg = FIXED_LG;
+  const lg = currentNumerator;
   const bpm = FIXED_BPM;
   const n = currentNumerator;
   const d = currentDenominator;
@@ -1559,7 +1563,8 @@ async function startPlayback() {
 
   const audioInstance = await initAudio();
 
-  const hasCycle = n > 0 && d > 0 && Math.floor(lg / n) > 0;
+  // Amb lg = numerador, sempre hi ha exactament 1 cicle
+  const hasCycle = n > 0 && d > 0;
 
   // Get audio selection with scaled indices
   const audioSelection = getAudioSelection();
@@ -1659,7 +1664,8 @@ function randomize() {
   selectedPulses.clear();
 
   // 3. Build list of all valid pulse tokens (App29: only selectable pulses)
-  const lg = FIXED_LG;
+  // Amb lg = numerador, lg és dinàmic
+  const lg = newN;
   const n = newN;
   const d = newD;
   const validTokens = [];
