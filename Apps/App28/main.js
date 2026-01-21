@@ -94,17 +94,17 @@ const baseSoundSelect = document.getElementById('baseSoundSelect');
 const accentSoundSelect = document.getElementById('accentSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
 const cycleSoundSelect = document.getElementById('cycleSoundSelect');
-const formula = document.querySelector('.middle');
 
-// PulseSeq elements
-let pulseSeqWrapper = null;
+// Pfr elements (created dynamically)
+let pfrRow = null;
 let pulseSeqEl = null;
 let pulseSeqEditEl = null;
 let pulseSeqController = null;
+let fractionSlot = null;
 
 /**
- * Custom markup builder for App28: Pfr( [edit] )
- * El camp editable permet entrar 0 i Lg (6) com a pulsos vàlids
+ * Custom markup builder for App28: Pfr n/d( [edit] )
+ * Includes inline fraction slot between label and parentheses
  */
 function app28MarkupBuilder({ root, initialText }) {
   if (!root) return { editEl: null };
@@ -116,13 +116,19 @@ function app28MarkupBuilder({ root, initialText }) {
   };
   root.textContent = '';
 
-  const labelSpan = mk('label', 'Pfr(');
+  const labelSpan = mk('label', 'Pfr');
+
+  fractionSlot = document.createElement('span');
+  fractionSlot.id = 'fractionInlineSlot';
+  fractionSlot.className = 'pz fraction-inline-container';
+
+  const openParen = mk('open', '(');
   const edit = mk('edit', initialText || '  ');
   edit.contentEditable = 'true';
   edit.spellcheck = false;
   const closeParen = mk('close', ')');
 
-  root.append(labelSpan, edit, closeParen);
+  root.append(labelSpan, fractionSlot, openParen, edit, closeParen);
 
   // Store references
   pulseSeqEditEl = edit;
@@ -130,18 +136,20 @@ function app28MarkupBuilder({ root, initialText }) {
   return { editEl: edit };
 }
 
-function createPulseSeqElement() {
-  pulseSeqWrapper = document.createElement('div');
-  pulseSeqWrapper.className = 'pulse-seq-wrapper';
+function createPfrLayout() {
+  // Create Pfr row
+  pfrRow = document.createElement('div');
+  pfrRow.className = 'pfr-row';
 
+  // Create pulseSeq element
   pulseSeqEl = document.createElement('div');
   pulseSeqEl.id = 'pulseSeq';
 
-  pulseSeqWrapper.appendChild(pulseSeqEl);
+  pfrRow.appendChild(pulseSeqEl);
 
-  // Insert after .middle (formula) and before .timeline-wrapper
+  // Insert before timeline
   if (timelineWrapper && timelineWrapper.parentNode) {
-    timelineWrapper.parentNode.insertBefore(pulseSeqWrapper, timelineWrapper);
+    timelineWrapper.parentNode.insertBefore(pfrRow, timelineWrapper);
   }
 }
 
@@ -302,14 +310,14 @@ if (typeof window !== 'undefined') {
 
 // ========== FRACTION EDITOR ==========
 function initFractionEditorController() {
-  if (!formula) return;
+  if (!fractionSlot) return;
 
   // Always start with default denominator (no persistence)
   currentDenominator = DEFAULT_DENOMINATOR;
 
   const controller = createFractionEditor({
-    mode: 'block',
-    host: formula,
+    mode: 'inline',
+    host: fractionSlot,
     defaults: { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
     maxDenominator: MAX_DENOMINATOR,
@@ -317,16 +325,8 @@ function initFractionEditorController() {
     storage: {},
     addRepeatPress,
     labels: {
-      numerator: {
-        placeholder: '1',
-        ariaUp: 'Incrementar numerador',
-        ariaDown: 'Decrementar numerador'
-      },
-      denominator: {
-        placeholder: 'd',
-        ariaUp: 'Incrementar denominador',
-        ariaDown: 'Decrementar denominador'
-      }
+      numerator: { placeholder: '1' },
+      denominator: { placeholder: 'd' }
     },
     onChange: ({ cause }) => {
       if (cause !== 'init') {
@@ -341,7 +341,6 @@ function initFractionEditorController() {
   if (fractionEditorController && typeof fractionEditorController.setSimpleMode === 'function') {
     fractionEditorController.setSimpleMode();
   }
-
 }
 
 function handleFractionChange() {
@@ -459,9 +458,10 @@ function filterInvalidPulses() {
 
 // ========== PULSE SEQUENCE EDITOR ==========
 function initPulseSeqEditor() {
-  createPulseSeqElement();
+  // Create Pfr row layout (includes pulseSeqEl)
+  createPfrLayout();
 
-  // Initialize pulse-seq controller
+  // Initialize pulse-seq controller with markup builder
   pulseSeqController = createPulseSeqController();
   pulseSeqController.mount({
     root: pulseSeqEl,
@@ -1575,11 +1575,11 @@ resetBtn?.addEventListener('click', handleReset);
 
 // ========== INITIALIZATION ==========
 function init() {
-  // Initialize fraction editor
-  initFractionEditorController();
-
-  // Initialize pulse sequence editor
+  // Initialize pulse sequence editor FIRST (creates fractionSlot)
   initPulseSeqEditor();
+
+  // Initialize fraction editor AFTER pulseSeq (fractionSlot now exists)
+  initFractionEditorController();
 
   // Render timeline
   renderTimeline();

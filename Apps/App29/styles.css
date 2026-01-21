@@ -33,44 +33,129 @@ body.app29 {
   --unit-label-offset: -20px;
 }
 
-/* ========== MIDDLE SECTION ========== */
+/* ========== MIDDLE SECTION (oculta) ========== */
 .middle {
-  margin-bottom: 20px;
+  display: none;
 }
 
-/* ========== FRACTION EDITOR (from App4) ========== */
-.fraction-editor-wrapper {
-  position: relative;
+/* ========== Pfr ROW LAYOUT ========== */
+.pfr-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 10px;
+  margin: 20px auto;
+  padding: 0 20px;
 }
 
-.fraction-editor {
+/* ========== Pfr SEQUENCE EDITOR ========== */
+#pulseSeq {
+  font-size: 2.8rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--line-color);
+  position: relative;
+}
+
+#pulseSeq .pz.label {
+  color: var(--selection-color);
+  font-weight: 700;
+  user-select: none;
+}
+
+#pulseSeq .pz.open,
+#pulseSeq .pz.close {
+  color: var(--line-color);
+  opacity: 1;
+  user-select: none;
+}
+
+#pulseSeq .pz.edit {
+  outline: none;
+  white-space: pre;
+  display: inline-block;
+  caret-color: var(--line-color);
+  min-height: 1.2em;
+  min-width: 2ch;
+}
+
+#pulseSeq .pz.edit:empty::before {
+  content: '  ';
+}
+
+/* ========== FRACTION INLINE ========== */
+/* Hide placeholders that overlap with spinners */
+.fraction-field-placeholder {
+  display: none !important;
+}
+
+.fraction-inline-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.fraction-editor-wrapper--inline {
+  position: relative;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  color: var(--line-color);
-}
-
-.fraction-editor .top,
-.fraction-editor .bottom {
-  display: flex;
   justify-content: center;
+  gap: 0.28em;
+  min-width: 0;
+}
+
+.fraction-editor--inline {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  gap: 0.28em;
+  z-index: 1;
 }
 
-.fraction-editor .top {
-  border-bottom: 4px solid var(--line-color);
-  padding: 0 24px;
+.fraction-editor--inline .fraction-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 5.5ch;
+  max-width: 180px;
+  min-height: 0.18em;
+  height: 0.18em;
+  background: currentColor;
+  border-radius: 999px;
+  transition: width 0.2s ease;
 }
 
-.fraction-editor input {
-  width: 80px;
+.fraction-editor--inline .top,
+.fraction-editor--inline .bottom {
+  border: none;
+  padding: 0;
+  display: flex;
+}
+
+.fraction-editor--inline .top {
+  margin-bottom: 0.1em;
+}
+
+.fraction-editor--inline .bottom {
+  margin-top: 0.1em;
+}
+
+.fraction-editor--inline .fraction-field {
+  min-width: 3ch;
+}
+
+.fraction-editor--inline input {
+  width: 3ch;
+  font-size: 2.8rem;
+  font-weight: 500;
+  padding-right: 28px;
   text-align: center;
-  font-size: 3rem;
   background: none;
   border: none;
   color: inherit;
@@ -78,42 +163,24 @@ body.app29 {
   outline: none;
 }
 
-.fraction-editor input:focus {
-  border-bottom: 2px solid var(--selection-color);
-}
-
-.fraction-editor input:disabled,
-.fraction-editor input:read-only {
+.fraction-editor--inline input:disabled,
+.fraction-editor--inline input:read-only {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.fraction-field {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.fraction-field input {
-  padding-right: 28px;
-}
-
-.fraction-field .spinner {
+.fraction-editor-wrapper--inline .spinner {
+  width: 24px;
   position: absolute;
-  right: 0;
+  right: -4px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   gap: 2px;
-  width: 24px;
-  color: var(--fraction-spinner-color, var(--line-color));
-  transition: opacity 0.2s ease;
 }
 
-.fraction-field .spinner .spin {
+.fraction-editor--inline .spinner .spin {
   width: 100%;
   height: 12px;
   border: none;
@@ -123,119 +190,25 @@ body.app29 {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: inherit;
+  color: var(--fraction-spinner-color, var(--line-color));
 }
 
-.fraction-field .spinner .spin::before {
+.fraction-editor--inline .spinner .spin::before {
   content: '';
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
 }
 
-.fraction-field .spinner .spin.up::before {
+.fraction-editor--inline .spinner .spin.up::before {
   border-bottom: 6px solid currentColor;
 }
 
-.fraction-field .spinner .spin.down::before {
+.fraction-editor--inline .spinner .spin.down::before {
   border-top: 6px solid currentColor;
 }
 
-.fraction-field .spinner .spin:active {
+.fraction-editor--inline .spinner .spin:active {
   color: var(--selection-color);
-}
-
-.fraction-field--empty .spinner {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.fraction-field-placeholder {
-  position: absolute;
-  inset: 0 28px 0 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
-  font-weight: 500;
-  color: var(--line-color);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  text-transform: lowercase;
-  letter-spacing: 0.05em;
-}
-
-.fraction-field-placeholder--visible {
-  opacity: 0.45;
-}
-
-/* ========== PULSE SEQUENCE EDITOR (Matching App4) ========== */
-.pulse-seq-wrapper {
-  width: 90%;
-  max-width: 1200px;
-  margin: 20px auto;
-  overflow-x: auto;
-  overflow-y: visible;
-}
-
-#pulseSeq {
-  font-size: 3rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  min-width: 100%;
-  width: max-content;
-  box-sizing: border-box;
-  padding: 0 20px;
-  overflow: visible;
-  position: relative;
-  color: var(--line-color);
-}
-
-#pulseSeq .pz.prefix {
-  color: var(--line-color);
-  opacity: 0.6;
-  user-select: none;
-}
-
-#pulseSeq .pz.fraction-display {
-  color: var(--line-color);
-  font-weight: 600;
-  user-select: none;
-}
-
-#pulseSeq .pz.open,
-#pulseSeq .pz.close {
-  color: var(--line-color);
-  opacity:1;
-  user-select: none;
-}
-
-#pulseSeq .pz.zero,
-#pulseSeq .pz.lg {
-  color: var(--color-lg);
-  font-weight: 600;
-  user-select: none;
-}
-
-#pulseSeq .pz.edit-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-#pulseSeq .pz.edit {
-  outline: none;
-  white-space: pre;
-  position: relative;
-  display: inline-block;
-  caret-color: var(--line-color);
-  min-height: 1.2em;
-  min-width: 2ch;
-}
-
-#pulseSeq .pz.edit:empty::before {
-  content: '  ';
 }
 
 /* ========== TIMELINE ========== */
@@ -542,24 +515,24 @@ body.app29 {
     --unit-label-offset: -5px;
   }
 
-  .fraction-editor input {
-    font-size: 2.2rem;
-    width: 64px;
-  }
-
-  .fraction-editor .top {
-    padding: 0 16px;
-  }
-
-  .pulse-seq-wrapper {
-    max-width: 100%;
-    padding: 0 15px;
+  .pfr-row {
+    gap: 8px;
+    flex-wrap: wrap;
   }
 
   #pulseSeq {
-    font-size: 1.7rem;
+    font-size: 2rem;
     gap: 8px;
-    padding: 0 12px;
+  }
+
+  .fraction-editor--inline input {
+    font-size: 2rem;
+    width: 2.5ch;
+    padding-right: 22px;
+  }
+
+  .fraction-editor-wrapper--inline .spinner {
+    width: 20px;
   }
 
   .timeline-wrapper {
@@ -600,13 +573,19 @@ body.app29 {
 }
 
 @media (max-width: 480px) {
-  .fraction-editor input {
-    font-size: 1.8rem;
-    width: 56px;
+  .pfr-row {
+    flex-direction: column;
+    gap: 10px;
   }
 
   #pulseSeq {
-    font-size: 1.4rem;
+    font-size: 1.6rem;
+  }
+
+  .fraction-editor--inline input {
+    font-size: 1.6rem;
+    width: 2ch;
+    padding-right: 18px;
   }
 
   .pulse-number {
