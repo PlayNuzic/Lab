@@ -354,6 +354,7 @@ function initFractionEditorController() {
     host: fractionSlot,
     defaults: { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
+    maxDenominator: MAX_DENOMINATOR,
     storage: {},
     addRepeatPress,
     labels: {

@@ -104,7 +104,9 @@ export function createFractionEditor({
   startEmpty = false,
   autoReduce = false,
   minDenominator = 1, // Minimum denominator for user input (auto-reduce can go below this)
-  minNumerator = 1 // Minimum numerator for user input (auto-reduce can go below this)
+  minNumerator = 1, // Minimum numerator for user input (auto-reduce can go below this)
+  maxDenominator = Infinity, // Maximum denominator for user input
+  maxNumerator = Infinity // Maximum numerator for user input
 } = {}) {
   const safeHost = host ?? null;
   if (!safeHost) return null;
@@ -668,6 +670,12 @@ export function createFractionEditor({
     showReductionTooltip(message, 2000);
   }
 
+  function showMaxValueWarning(field, maxValue) {
+    const fieldName = field === 'numerator' ? 'numerador' : 'denominador';
+    const message = `El ${fieldName} máximo es ${maxValue}`;
+    showReductionTooltip(message, 2000);
+  }
+
   function handleInputChange(field, cause) {
     if (isApplying || isReducing) return;
     const input = field === 'numerator' ? elements.numerator : elements.denominator;
@@ -680,10 +688,24 @@ export function createFractionEditor({
       setInputValue(input, value);
     }
 
+    // Apply maxNumerator constraint for user input
+    if (field === 'numerator' && Number.isFinite(value) && value > maxNumerator) {
+      showMaxValueWarning(field, maxNumerator);
+      value = maxNumerator;
+      setInputValue(input, value);
+    }
+
     // Apply minDenominator constraint for user input
     if (field === 'denominator' && Number.isFinite(value) && value < minDenominator) {
       showMinValueWarning(field, minDenominator);
       value = minDenominator;
+      setInputValue(input, value);
+    }
+
+    // Apply maxDenominator constraint for user input
+    if (field === 'denominator' && Number.isFinite(value) && value > maxDenominator) {
+      showMaxValueWarning(field, maxDenominator);
+      value = maxDenominator;
       setInputValue(input, value);
     }
 
@@ -699,13 +721,20 @@ export function createFractionEditor({
     if (isReducing) return;
     const current = field === 'numerator' ? currentValues.numerator : currentValues.denominator;
     const nextBase = Number.isFinite(current) && current > 0 ? current : 1;
-    // Apply min constraints for spinner
+    // Apply min/max constraints for spinner
     const minValue = field === 'denominator' ? minDenominator : minNumerator;
-    const next = Math.max(minValue, nextBase + delta);
+    const maxValue = field === 'denominator' ? maxDenominator : maxNumerator;
+    const next = Math.max(minValue, Math.min(maxValue, nextBase + delta));
 
     // Show warning if trying to go below minimum
     if (nextBase + delta < minValue && delta < 0) {
       showMinValueWarning(field, minValue);
+      return; // Don't update value, just show warning
+    }
+
+    // Show warning if trying to go above maximum
+    if (nextBase + delta > maxValue && delta > 0) {
+      showMaxValueWarning(field, maxValue);
       return; // Don't update value, just show warning
     }
 

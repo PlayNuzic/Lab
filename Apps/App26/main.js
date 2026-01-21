@@ -238,6 +238,7 @@ function initFractionEditorController() {
     host: formula,
     defaults: { numerator: FIXED_NUMERATOR, denominator: currentDenominator },
     startEmpty: false,
+    maxDenominator: MAX_DENOMINATOR,
     storage: {
       load: loadOpt,
       save: saveOpt,
@@ -271,11 +272,6 @@ function initFractionEditorController() {
   if (fractionEditorController && typeof fractionEditorController.setSimpleMode === 'function') {
     fractionEditorController.setSimpleMode();
   }
-
-  // Set denominator range
-  if (fractionEditorController && typeof fractionEditorController.setDenominatorRange === 'function') {
-    fractionEditorController.setDenominatorRange(MIN_DENOMINATOR, MAX_DENOMINATOR);
-  }
 }
 
 function handleFractionChange() {
@@ -289,6 +285,14 @@ function handleFractionChange() {
     newD = MIN_DENOMINATOR;
   } else if (newD > MAX_DENOMINATOR) {
     newD = MAX_DENOMINATOR;
+  }
+
+  // If clamped, update the input visually
+  if (newD !== fraction?.denominator) {
+    fractionEditorController.setFraction(
+      { numerator: FIXED_NUMERATOR, denominator: newD },
+      { cause: 'clamp', persist: true, silent: true }
+    );
   }
 
   currentDenominator = newD;

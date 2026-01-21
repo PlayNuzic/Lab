@@ -241,6 +241,8 @@ function initFractionEditorController() {
     autoReduce: true,
     minNumerator: 2,
     minDenominator: 2,
+    maxNumerator: MAX_NUMERATOR,
+    maxDenominator: MAX_DENOMINATOR,
     storage: {},
     addRepeatPress,
     labels: {
@@ -269,14 +271,6 @@ function initFractionEditorController() {
   if (fractionEditorController && typeof fractionEditorController.setComplexMode === 'function') {
     fractionEditorController.setComplexMode();
   }
-
-  // Set ranges
-  if (fractionEditorController && typeof fractionEditorController.setNumeratorRange === 'function') {
-    fractionEditorController.setNumeratorRange(MIN_NUMERATOR, MAX_NUMERATOR);
-  }
-  if (fractionEditorController && typeof fractionEditorController.setDenominatorRange === 'function') {
-    fractionEditorController.setDenominatorRange(MIN_DENOMINATOR, MAX_DENOMINATOR);
-  }
 }
 
 function handleFractionChange() {
@@ -298,6 +292,14 @@ function handleFractionChange() {
     newD = MIN_DENOMINATOR;
   } else if (newD > MAX_DENOMINATOR) {
     newD = MAX_DENOMINATOR;
+  }
+
+  // If clamped, update the input visually
+  if (newN !== fraction?.numerator || newD !== fraction?.denominator) {
+    fractionEditorController.setFraction(
+      { numerator: newN, denominator: newD },
+      { cause: 'clamp', persist: true, silent: true }
+    );
   }
 
   currentNumerator = newN;

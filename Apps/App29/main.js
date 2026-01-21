@@ -322,6 +322,8 @@ function initFractionEditorController() {
     autoReduce: true,
     minNumerator: 2,
     minDenominator: 2,
+    maxNumerator: MAX_NUMERATOR,
+    maxDenominator: MAX_DENOMINATOR,
     // No storage - always start fresh with defaults
     storage: {},
     addRepeatPress,
