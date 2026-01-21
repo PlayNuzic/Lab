@@ -224,6 +224,7 @@ export function createFractionEditor({
   /**
    * Shows a persistent tooltip indicating the fraction is simple (n=1 or d=1)
    * Stays visible until fraction changes to non-simple
+   * Shows special message for 1/1 (equivalent to pulse)
    */
   function showSimpleFractionTooltip() {
     const bubble = elements.infoBubble;
@@ -239,7 +240,16 @@ export function createFractionEditor({
     isShowingSimpleFractionTooltip = true;
     positionTooltipBelow();
     applyBackground(bubble);
-    bubble.textContent = 'Fracción simple';
+
+    // Special message for 1/1 (equivalent to one full pulse)
+    const n = currentValues.numerator;
+    const d = currentValues.denominator;
+    if (n === 1 && d === 1) {
+      bubble.textContent = 'Fracción equivalente al Pulso';
+    } else {
+      bubble.textContent = 'Fracción simple';
+    }
+
     bubble.classList.remove('fraction-info-bubble--hidden');
     bubble.classList.add('fraction-info-bubble--visible', 'fraction-info-bubble--reduction');
     // No timer - stays visible until fraction changes
@@ -260,13 +270,16 @@ export function createFractionEditor({
 
   /**
    * Checks if current fraction is simple (n=1 or d=1) and shows/hides tooltip accordingly
+   * Always shows tooltip for 1/1 (pulse equivalent) regardless of autoReduce setting
    */
   function updateSimpleFractionTooltip() {
-    if (!autoReduce) return;
     const n = currentValues.numerator;
     const d = currentValues.denominator;
+    const isPulseEquivalent = n === 1 && d === 1;
     const isSimple = (n === 1 || d === 1) && Number.isFinite(n) && Number.isFinite(d);
-    if (isSimple) {
+
+    // Always show tooltip for 1/1 (pulse equivalent), or for other simple fractions if autoReduce is enabled
+    if (isPulseEquivalent || (isSimple && autoReduce)) {
       showSimpleFractionTooltip();
     } else {
       hideSimpleFractionTooltip();
@@ -276,8 +289,11 @@ export function createFractionEditor({
   /**
    * Shows a prominent tooltip below the fraction editor for auto-reduce feedback
    * Positioned fixed below the editor, not following cursor
+   * @param {string} message - The message to display
+   * @param {number} totalDurationMs - Duration to show the message before checking for simple fraction
+   * @param {Object} reducedValues - Optional reduced values {n, d} to check after timeout (avoids race conditions with app callbacks)
    */
-  function showReductionTooltip(message, totalDurationMs) {
+  function showReductionTooltip(message, totalDurationMs, reducedValues = null) {
     const bubble = elements.infoBubble;
     if (!bubble) return;
 
@@ -299,16 +315,22 @@ export function createFractionEditor({
     reduceTooltipTimer = setTimeout(() => {
       reduceTooltipTimer = null;
 
-      // Check if result is a simple fraction BEFORE hiding
-      const n = currentValues.numerator;
-      const d = currentValues.denominator;
+      // Use provided reduced values if available (to avoid race conditions with app callbacks)
+      // Otherwise fall back to current values
+      const n = reducedValues?.n ?? currentValues.numerator;
+      const d = reducedValues?.d ?? currentValues.denominator;
       const isSimple = (n === 1 || d === 1) && Number.isFinite(n) && Number.isFinite(d);
 
       if (isSimple && autoReduce) {
         // Transition directly to simple fraction tooltip without hiding first
         // Keep --reduction class for prominent style, just change the text
         isShowingSimpleFractionTooltip = true;
-        bubble.textContent = 'Fracción simple';
+        // Special message for 1/1 (equivalent to one full pulse)
+        if (n === 1 && d === 1) {
+          bubble.textContent = 'Fracción equivalente al Pulso';
+        } else {
+          bubble.textContent = 'Fracción simple';
+        }
         // Ensure position stays correct (re-apply in case of any CSS conflicts)
         positionTooltipBelow();
       } else {
@@ -347,9 +369,10 @@ export function createFractionEditor({
     const reducedD = info.reducedDenominator;
 
     // Show tooltip immediately with the reduction message
+    // Pass reduced values to avoid race conditions with app callbacks that might clamp values
     const totalTooltipTime = FLASH_DURATION_MS + MORPH_DURATION_MS + TOOLTIP_EXTRA_DELAY_MS;
     const message = buildAutoReduceMessage(originalN, originalD, reducedN, reducedD);
-    showReductionTooltip(message, totalTooltipTime);
+    showReductionTooltip(message, totalTooltipTime, { n: reducedN, d: reducedD });
 
     // Phase 1: Flash effect
     container.classList.add('fraction-editor--flash');
