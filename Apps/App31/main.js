@@ -565,7 +565,7 @@ function sanitizeItSeq() {
 
     // Check total doesn't exceed timeline
     if (currentPos + parsed.value > maxTotal) {
-      warnings.push(`iT ${parsed.value} excedeix Lg Fr`);
+      warnings.push(`iT ${parsed.value} excede Lg Fr`);
       continue;
     }
 
@@ -574,7 +574,7 @@ function sanitizeItSeq() {
   }
 
   if (invalidTokens.length > 0) {
-    warnings.push(`Invàlids: ${invalidTokens.join(', ')}`);
+    warnings.push(`Inválidos: ${invalidTokens.join(', ')}`);
   }
 
   if (warnings.length > 0 && itfrSeq) {
