@@ -121,9 +121,18 @@ function setupDom() {
 
 describe('loop resize keeps circular selection', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.resetModules();
     setupDom();
     localStorage.clear();
+  });
+
+  afterEach(async () => {
+    // Flush pending timers and microtasks to avoid teardown errors
+    jest.runAllTimers();
+    jest.useRealTimers();
+    // Allow any remaining microtasks to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
   });
 
   test('expand/contract loop redraws timeline while preserving selection', async () => {
