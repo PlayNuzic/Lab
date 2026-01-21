@@ -417,11 +417,11 @@ function isValidPulseToken(token) {
     return true;
   }
 
-  // Integer pulse - accepta 0 a lg (inclosos)
+  // Integer pulse - accepta 0 a lg-1 (el pols lg NO és seleccionable, només s'il·lumina amb el 0)
   const num = parseInt(trimmed, 10);
   if (!Number.isFinite(num)) return false;
 
-  return num >= 0 && num <= lg;
+  return num >= 0 && num < lg;
 }
 
 /**
@@ -722,10 +722,16 @@ function sanitizePulseSeq() {
   const invalidTokens = [];
   const duplicateTokens = [];
   const normalizedTokens = []; // Track tokens that were normalized
+  let pulse6Entered = false; // Track if user entered pulse 6
   for (const token of tokens) {
-    if (isValidPulseToken(token)) {
+    // Special case: pulse 6 is equivalent to pulse 0
+    let normalized = normalizeToken(token);
+    if (normalized === '6' || normalized === String(FIXED_LG)) {
+      pulse6Entered = true;
+      normalized = '0'; // Convert 6 to 0
+    }
+    if (isValidPulseToken(normalized)) {
       // Normalize format (remove leading zeros, etc)
-      const normalized = normalizeToken(token);
       if (!validTokens.includes(normalized)) {
         validTokens.push(normalized);
         // Track if normalization changed the token
@@ -746,6 +752,11 @@ function sanitizePulseSeq() {
 
   // Build warning messages
   const warnings = [];
+
+  // Pulse 6 entered (equivalent to pulse 0)
+  if (pulse6Entered) {
+    warnings.push('6 es el mismo pulso que 0');
+  }
 
   // Invalid tokens
   if (invalidTokens.length > 0) {
@@ -921,11 +932,16 @@ function syncTimelineFromSelection() {
       if (marker) marker.classList.add('selected');
       if (label) label.classList.add('selected');
     } else {
-      // Integer pulse (including endpoints 0 and lg)
+      // Integer pulse (0 to lg-1, lg is not selectable)
       const idx = parseInt(token, 10);
       const pulse = pulses.find(p => parseInt(p.dataset.index, 10) === idx);
       if (pulse) {
         pulse.classList.add('selected');
+      }
+      // When pulse 0 is selected, also illuminate endpoint (lg=6)
+      if (idx === 0) {
+        const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
+        if (endpoint) endpoint.classList.add('selected');
       }
     }
   }
@@ -1096,18 +1112,31 @@ function renderTimeline() {
  * Attach click handlers to pulses and cycle markers for selection
  */
 function attachSelectionHandlers() {
-  // All integer pulses (including endpoints)
+  // All integer pulses (0 to lg-1, skip endpoint lg which only illuminates with 0)
   pulses.forEach((pulse) => {
+    const idx = parseInt(pulse.dataset.index, 10);
+    // Skip endpoint (lg=6) - it's not selectable, only illuminates with pulse 0
+    if (idx === FIXED_LG) return;
+
     pulse.addEventListener('click', () => {
-      const idx = pulse.dataset.index;
-      const token = idx;
+      const token = String(idx);
       const wasSelected = selectedPulses.has(token);
       if (wasSelected) {
         selectedPulses.delete(token);
         pulse.classList.remove('selected');
+        // If deselecting pulse 0, also remove visual from endpoint
+        if (idx === 0) {
+          const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
+          if (endpoint) endpoint.classList.remove('selected');
+        }
       } else {
         selectedPulses.add(token);
         pulse.classList.add('selected');
+        // If selecting pulse 0, also show visual on endpoint
+        if (idx === 0) {
+          const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
+          if (endpoint) endpoint.classList.add('selected');
+        }
       }
       // Scroll to token if it was just added
       syncPulseSeqFromSelection(wasSelected ? null : token);
@@ -1369,9 +1398,9 @@ function getAudioSelection() {
         audioSet.add(scaledIndex);
       }
     } else {
-      // Integer pulse: idx → idx * d
+      // Integer pulse: idx → idx * d (only 0 to lg-1, lg is not selectable)
       const idx = parseInt(token, 10);
-      if (Number.isFinite(idx) && idx >= 0 && idx <= FIXED_LG) {
+      if (Number.isFinite(idx) && idx >= 0 && idx < FIXED_LG) {
         const scaledIndex = idx * d;
         audioSet.add(scaledIndex);
       }
