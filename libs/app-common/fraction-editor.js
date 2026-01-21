@@ -58,13 +58,14 @@ function buildReductionHoverText(info) {
 }
 
 function buildAutoReduceMessage(originalN, originalD, reducedN, reducedD) {
-  return `${originalN}/${originalD} → ${reducedN}/${reducedD} (simplificado)`;
+  return `${originalN}/${originalD} → ${reducedN}/${reducedD} Simplificando`;
 }
 
 // Animation timing constants
-const FLASH_DURATION_MS = 600;
-const MORPH_DURATION_MS = 800;
-const TOOLTIP_EXTRA_DELAY_MS = 1000;
+const TOOLTIP_BEFORE_ANIMATION_MS = 1000; // Tooltip shown alone before animation starts
+const FLASH_DURATION_MS = 1000;           // Flash effect duration
+const MORPH_DURATION_MS = 1000;           // Morphing transition duration
+const TOOLTIP_EXTRA_DELAY_MS = 1000;      // Extra time after animation before checking for simple fraction
 
 function noop() {}
 
@@ -151,7 +152,7 @@ export function createFractionEditor({
   let reduceTooltipTimer = null;
   let spinnerDebounceTimer = null; // Debounce timer for spinner auto-reduce
   let isShowingSimpleFractionTooltip = false; // Tracks if simple fraction tooltip is active
-  const SPINNER_DEBOUNCE_MS = 400;
+  const SPINNER_DEBOUNCE_MS = 1300;
   const currentValues = { numerator: null, denominator: null };
   const inlineState = {
     resizeObserver: null,
@@ -342,7 +343,7 @@ export function createFractionEditor({
   }
 
   /**
-   * Animates the reduction of a fraction with flash + morphing effect
+   * Animates the reduction of a fraction with tooltip first, then flash + morphing effect
    * @param {Object} info - Fraction info with original and reduced values
    * @param {Function} onComplete - Callback when animation completes
    */
@@ -368,40 +369,42 @@ export function createFractionEditor({
     const reducedN = info.reducedNumerator;
     const reducedD = info.reducedDenominator;
 
-    // Show tooltip immediately with the reduction message
-    // Pass reduced values to avoid race conditions with app callbacks that might clamp values
-    const totalTooltipTime = FLASH_DURATION_MS + MORPH_DURATION_MS + TOOLTIP_EXTRA_DELAY_MS;
+    // Phase 1: Show tooltip first (before any animation)
+    // Total tooltip time = time before animation + flash + morph + extra delay
+    const totalTooltipTime = TOOLTIP_BEFORE_ANIMATION_MS + FLASH_DURATION_MS + MORPH_DURATION_MS + TOOLTIP_EXTRA_DELAY_MS;
     const message = buildAutoReduceMessage(originalN, originalD, reducedN, reducedD);
     showReductionTooltip(message, totalTooltipTime, { n: reducedN, d: reducedD });
 
-    // Phase 1: Flash effect
-    container.classList.add('fraction-editor--flash');
-
+    // Phase 2: After tooltip display time, start flash effect
     setTimeout(() => {
-      // End flash, start morph
-      container.classList.remove('fraction-editor--flash');
-      container.classList.add('fraction-editor--morphing');
-
-      // Apply the reduced values with morphing transition
-      isApplying = true;
-      numeratorInput.value = String(reducedN);
-      denominatorInput.value = String(reducedD);
-      isApplying = false;
-
-      // Update internal state
-      currentValues.numerator = reducedN;
-      currentValues.denominator = reducedD;
+      container.classList.add('fraction-editor--flash');
 
       setTimeout(() => {
-        // End morph animation
-        container.classList.remove('fraction-editor--morphing');
-        isReducing = false;
+        // Phase 3: End flash, start morph
+        container.classList.remove('fraction-editor--flash');
+        container.classList.add('fraction-editor--morphing');
 
-        // Update state and notify
-        applyState({ reveal: false, cause: 'auto-reduce', persist: true, silent: false });
-        onComplete();
-      }, MORPH_DURATION_MS);
-    }, FLASH_DURATION_MS);
+        // Apply the reduced values with morphing transition
+        isApplying = true;
+        numeratorInput.value = String(reducedN);
+        denominatorInput.value = String(reducedD);
+        isApplying = false;
+
+        // Update internal state
+        currentValues.numerator = reducedN;
+        currentValues.denominator = reducedD;
+
+        setTimeout(() => {
+          // Phase 4: End morph animation
+          container.classList.remove('fraction-editor--morphing');
+          isReducing = false;
+
+          // Update state and notify
+          applyState({ reveal: false, cause: 'auto-reduce', persist: true, silent: false });
+          onComplete();
+        }, MORPH_DURATION_MS);
+      }, FLASH_DURATION_MS);
+    }, TOOLTIP_BEFORE_ANIMATION_MS);
   }
 
   function registerHoverTarget(target, { useFocus = false } = {}) {
