@@ -272,7 +272,7 @@ function createItfrLayout() {
   sumBox.className = 'it-info-box';
   const sumLabel = document.createElement('span');
   sumLabel.className = 'it-info-label';
-  sumLabel.textContent = 'Σ iT';
+  sumLabel.textContent = 'Suma iT';
   sumDisplay = document.createElement('input');
   sumDisplay.type = 'text';
   sumDisplay.className = 'it-input';
@@ -286,7 +286,7 @@ function createItfrLayout() {
   lengthBox.className = 'it-info-box';
   const lengthLabel = document.createElement('span');
   lengthLabel.className = 'it-info-label';
-  lengthLabel.textContent = 'Lg Fr';
+  lengthLabel.innerHTML = 'iT<br>Disponibles';
   lengthDisplay = document.createElement('input');
   lengthDisplay.type = 'text';
   lengthDisplay.className = 'it-input';
@@ -295,8 +295,8 @@ function createItfrLayout() {
   lengthBox.appendChild(lengthLabel);
   lengthBox.appendChild(lengthDisplay);
 
-  itfrInfoColumn.appendChild(sumBox);
   itfrInfoColumn.appendChild(lengthBox);
+  itfrInfoColumn.appendChild(sumBox);
 
   // Create iT-seq editor
   itfrSeq = document.createElement('div');
@@ -541,10 +541,14 @@ function previewItSeq() {
   updateIntervalBars(previewIts);
 
   // Update sum display in real-time (include silences)
+  const sum = previewIts.reduce((acc, item) => acc + item.it, 0);
   if (sumDisplay) {
-    const sum = previewIts.reduce((acc, item) => acc + item.it, 0);
     sumDisplay.value = sum;
     sumDisplay.classList.toggle('complete', currentPos >= maxTotal);
+  }
+  if (lengthDisplay) {
+    lengthDisplay.value = maxTotal - sum;
+    lengthDisplay.classList.toggle('complete', sum === 0);
   }
 }
 
@@ -618,7 +622,8 @@ function updateInfoDisplays() {
   }
 
   if (lengthDisplay) {
-    lengthDisplay.value = totalPfr;
+    lengthDisplay.value = totalPfr - sum;
+    lengthDisplay.classList.toggle('complete', sum === 0);
   }
 }
 

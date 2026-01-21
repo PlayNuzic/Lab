@@ -59,6 +59,7 @@ body.app30 {
   font-weight: 600;
   color: var(--line-color);
   opacity: 0.8;
+  text-align: center;
 }
 
 .it-input {
