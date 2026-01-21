@@ -14,6 +14,7 @@ import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectability.js';
+import { gcd } from '../../libs/app-common/number-utils.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
@@ -1333,12 +1334,12 @@ function handlePlay() {
 function handleRandom() {
   if (isPlaying) return;
 
-  // Random numerator (1-6) and denominator (1-8), but n != d
+  // Random numerator (1-6) and denominator (1-8), only reduced fractions (gcd = 1)
   let newN, newD;
   do {
     newN = Math.floor(Math.random() * MAX_NUMERATOR) + 1;
     newD = Math.floor(Math.random() * MAX_DENOMINATOR) + 1;
-  } while (newN === newD);
+  } while (gcd(newN, newD) !== 1); // Only reduced fractions
 
   if (fractionEditorController) {
     fractionEditorController.setFraction(

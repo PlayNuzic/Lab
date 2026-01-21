@@ -11,7 +11,7 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
-import { randomInt } from '../../libs/app-common/number-utils.js';
+import { randomInt, gcd } from '../../libs/app-common/number-utils.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 
 // ========== CONSTANTS ==========
@@ -668,9 +668,12 @@ async function stopPlayback() {
 
 // ========== RANDOM & RESET ==========
 function randomize() {
-  // Random numerador (1-6) i denominador (2-8)
-  const newN = randomInt(MIN_NUMERATOR, MAX_NUMERATOR);
-  const newD = randomInt(2, MAX_DENOMINATOR);
+  // Random numerador (1-6) i denominador (2-8), only reduced fractions (gcd = 1)
+  let newN, newD;
+  do {
+    newN = randomInt(MIN_NUMERATOR, MAX_NUMERATOR);
+    newD = randomInt(2, MAX_DENOMINATOR);
+  } while (gcd(newN, newD) !== 1);
   setFraction(newN, newD);
 }
 

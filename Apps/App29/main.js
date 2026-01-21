@@ -13,7 +13,7 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
 import { gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
-import { randomInt } from '../../libs/app-common/number-utils.js';
+import { randomInt, gcd } from '../../libs/app-common/number-utils.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import createPulseSeqController from '../../libs/pulse-seq/pulse-seq.js';
 import { isIntegerPulseSelectable, isPulseRemainder } from '../../libs/app-common/pulse-selectability.js';
@@ -1639,12 +1639,12 @@ async function stopPlayback() {
  * Selects random valid pulses (selectable integers + their subdivisions)
  */
 function randomize() {
-  // 1. Random numerator (2-6) and denominator (2-8), avoiding n/n
+  // 1. Random numerator (2-6) and denominator (2-8), only reduced fractions (gcd = 1)
   let newN, newD;
   do {
     newN = randomInt(MIN_NUMERATOR, MAX_NUMERATOR);
     newD = randomInt(2, MAX_DENOMINATOR);
-  } while (newN === newD); // Avoid fractions like 2/2, 3/3, etc.
+  } while (gcd(newN, newD) !== 1); // Only reduced fractions
   currentNumerator = newN;
   currentDenominator = newD;
 
