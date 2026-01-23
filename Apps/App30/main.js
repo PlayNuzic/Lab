@@ -412,6 +412,46 @@ function handleFractionChange() {
   // Update displays
   updateInfoDisplays();
   syncItSeqFromSequence();
+
+  // Hot-reload audio if playing
+  if (audio && isPlaying) {
+    applyTransportConfig();
+  }
+}
+
+/**
+ * Apply current fraction config to running audio transport
+ * Enables hot-reload when fraction changes during playback
+ */
+function applyTransportConfig() {
+  if (!audio || typeof audio.updateTransport !== 'function') return;
+
+  const lg = FIXED_LG;
+  const bpm = FIXED_BPM;
+  const n = FIXED_NUMERATOR;
+  const d = currentDenominator;
+
+  const scaledTotal = lg * d + 1; // +1 padding for last note release
+  const scaledBpm = bpm * d;
+
+  audio.updateTransport({
+    totalPulses: scaledTotal,
+    bpm: scaledBpm,
+    baseResolution: d,
+    patternBeats: lg * d,
+    cycle: {
+      numerator: n * d,
+      denominator: d,
+      onTick: highlightCycle
+    }
+  });
+
+  // Recalculate cyclePosition for melodic notes
+  let cyclePos = 0;
+  for (const item of itSequence) {
+    item.cyclePosition = cyclePos;
+    cyclePos = (cyclePos + item.it) % d;
+  }
 }
 
 function filterInvalidIts() {
