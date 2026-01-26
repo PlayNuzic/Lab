@@ -388,8 +388,10 @@ async function handlePlay() {
   isPlaying = true;
   currentStep = -1;
 
-  // Reset timeline to original state (clear any fade-out numbers from previous play)
+  // Reset timeline to original state (clear any fade-out classes from previous play)
   renderPulseNumbers();
+  pulses.forEach(p => p.classList.remove('fade-out'));
+  timeline?.querySelector('.bar')?.classList.remove('hidden');
 
   // Update play button state
   playBtn?.classList.add('active');
