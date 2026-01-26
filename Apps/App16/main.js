@@ -312,9 +312,6 @@ function highlightNumber(step, isFadeOut = false) {
   // Use data-index selector for reliable element selection
   const numberEl = timeline.querySelector(`.pulse-number[data-index="${step}"]`);
 
-  // DEBUG
-  console.log('[highlightNumber] step:', step, 'isFadeOut:', isFadeOut, 'numberEl:', numberEl, 'compas:', compas);
-
   if (numberEl) {
     if (isFadeOut) {
       // On FIRST fade-out pulse (step 0): update ALL visible numbers at once
@@ -339,10 +336,7 @@ function highlightNumber(step, isFadeOut = false) {
       numberEl.classList.add(highlightClass, 'fade-out');
     } else {
       const modValue = step % compas;
-      const className = modValue === 0 ? 'active-zero' : 'active';
-      console.log('[highlightNumber] Adding class:', className, 'to element:', numberEl);
-      numberEl.classList.add(className);
-      console.log('[highlightNumber] Element classes after:', numberEl.className);
+      numberEl.classList.add(modValue === 0 ? 'active-zero' : 'active');
     }
   }
 }
