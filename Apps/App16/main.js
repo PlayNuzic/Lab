@@ -285,11 +285,11 @@ function highlightPulse(step, isFadeOut = false) {
 
   // Add highlight to current pulse
   if (pulses[step]) {
+    const modValue = step % compas;
+    const highlightClass = modValue === 0 ? 'active-zero' : 'active';
+    pulses[step].classList.add(highlightClass);
     if (isFadeOut) {
       pulses[step].classList.add('fade-out');
-    } else {
-      const modValue = step % compas;
-      pulses[step].classList.add(modValue === 0 ? 'active-zero' : 'active');
     }
   }
 }
@@ -333,8 +333,10 @@ function highlightNumber(step, isFadeOut = false) {
         });
       }
 
-      // Highlight current number with fade-out effect
-      numberEl.classList.add('fade-out');
+      // Highlight current number with same style as normal + fade-out opacity
+      const modValue = step % compas;
+      const highlightClass = modValue === 0 ? 'active-zero' : 'active';
+      numberEl.classList.add(highlightClass, 'fade-out');
     } else {
       const modValue = step % compas;
       const className = modValue === 0 ? 'active-zero' : 'active';
