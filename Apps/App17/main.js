@@ -765,13 +765,6 @@ async function initializeApp() {
   resetBtn = document.getElementById('resetBtn');
   randomBtn = document.getElementById('randomBtn');
   randomMenu = document.getElementById('randomMenu');
-  inputBpm = document.getElementById('inputBpm');
-  bpmUpBtn = document.getElementById('bpmUp');
-  bpmDownBtn = document.getElementById('bpmDown');
-  bpmParam = document.getElementById('bpmParam');
-  tapTempoBtn = document.getElementById('tapTempoBtn');
-  tapHelp = document.getElementById('tapHelp');
-  showBpmToggle = document.getElementById('showBpmToggle');
 
   // Create timeline controller
   timelineController = createCircularTimeline({
@@ -896,26 +889,6 @@ async function initializeApp() {
     });
   }
 
-  // Initialize audio toggles for Pulse
-  const pulseToggle = document.getElementById('pulseToggleBtn');
-  if (pulseToggle) {
-    const savedPulseEnabled = localStorage.getItem('app17:pulseAudio');
-    const pulseEnabled = savedPulseEnabled !== null ? savedPulseEnabled === 'true' : true;
-
-    pulseToggle.classList.toggle('active', pulseEnabled);
-    if (audio?.setPulseEnabled) {
-      audio.setPulseEnabled(pulseEnabled);
-    }
-
-    pulseToggle.addEventListener('click', () => {
-      const isActive = pulseToggle.classList.toggle('active');
-      localStorage.setItem('app17:pulseAudio', String(isActive));
-      if (audio?.setPulseEnabled) {
-        audio.setPulseEnabled(isActive);
-      }
-    });
-  }
-
   // Initialize cycle highlight toggle
   const cycleHighlightToggle = document.getElementById('cycleHighlightToggle');
   if (cycleHighlightToggle) {
@@ -934,7 +907,6 @@ async function initializeApp() {
     onBeforeReload: () => {
       stopPlayback();
       localStorage.removeItem('app17:p1Toggle');
-      localStorage.removeItem('app17:pulseAudio');
       localStorage.removeItem('app17:cycleHighlight');
       localStorage.removeItem(MIXER_STORAGE_KEY);
     }
