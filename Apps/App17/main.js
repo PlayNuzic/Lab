@@ -14,11 +14,9 @@ import { initRandomMenu } from '../../libs/random/index.js';
 import { createPreferenceStorage, registerFactoryReset } from '../../libs/app-common/preferences.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
-import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
 import { createTotalLengthDisplay } from '../../libs/app-common/total-length-display.js';
-import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ============================================
 // CONSTANTS
@@ -29,9 +27,7 @@ const MAX_PULSOS = 99;
 const MIN_CYCLES = 1;
 const MAX_CYCLES = 12;
 const DEFAULT_CYCLES = 4;
-const DEFAULT_BPM = 100;
-const MIN_BPM = 30;
-const MAX_BPM = 240;
+const BPM = 100;              // Fixed BPM for this app
 
 // ============================================
 // STATE
@@ -47,8 +43,6 @@ let currentStep = -1;
 let p0Enabled = true;         // P0 toggle state (not persisted between sessions)
 let cycleHighlightTimeout = null;  // For auto-dimming cycle circle
 let cycleHighlightEnabled = true;  // Cycle highlight toggle state
-let bpm = DEFAULT_BPM;        // BPM value (editable when showBpm is true)
-let showBpmEnabled = false;   // BPM visibility toggle
 let autoJumpTimer = null;     // Timer for auto-jump from Compás to Cycle
 const AUTO_JUMP_DELAY = 300;  // Delay in ms before auto-jumping
 
@@ -69,15 +63,6 @@ let playBtn;
 let resetBtn;
 let randomBtn;
 let randomMenu;
-let inputBpm;
-let bpmUpBtn;
-let bpmDownBtn;
-let bpmParam;
-let tapTempoBtn;
-let tapHelp;
-let showBpmToggle;
-let tapTempoHandler = null;
-let bpmController = null;
 let totalLengthDigit;
 let superscriptController;   // Shared module for cycle superscripts
 let totalLengthController;   // Shared module for total length display
@@ -474,7 +459,7 @@ async function handlePlay() {
   // Disable random button during playback
   if (randomBtn) randomBtn.disabled = true;
 
-  const intervalSec = 60 / bpm;
+  const intervalSec = 60 / BPM;
 
   // Total pulses = pulsosCompas * cycles
   const totalPulses = pulsosCompas * cycles;
@@ -687,49 +672,6 @@ function decrementCycle() {
 
 
 // ============================================
-// BPM HANDLING (via shared bpm-controller)
-// ============================================
-
-// BPM is handled by bpmController (shared module)
-// Local bpm variable is synced via onChange callback
-
-/**
- * Toggle BPM visibility - shows/hides BPM input and tap tempo button
- */
-function toggleBpmVisibility(enabled) {
-  showBpmEnabled = enabled;
-
-  // Show/hide BPM param via controller or direct class toggle
-  if (bpmController) {
-    bpmController.setVisible(enabled);
-  } else if (bpmParam) {
-    bpmParam.classList.toggle('visible', enabled);
-  }
-
-  // Show/hide tap tempo button
-  if (tapTempoBtn) {
-    tapTempoBtn.style.display = enabled ? '' : 'none';
-  }
-
-  // Show/hide tap help text
-  if (tapHelp) {
-    tapHelp.style.display = enabled ? '' : 'none';
-  }
-
-  // Reset BPM to default when hidden
-  if (!enabled) {
-    if (bpmController) {
-      bpmController.setValue(DEFAULT_BPM);
-      bpm = DEFAULT_BPM;
-    } else {
-      bpm = DEFAULT_BPM;
-      if (inputBpm) inputBpm.value = bpm;
-    }
-  }
-  // Note: showBpmEnabled is NOT persisted
-}
-
-// ============================================
 // RANDOM
 // ============================================
 
@@ -742,18 +684,6 @@ function handleRandom() {
 
   handleCompasChange(newPulsos);
   handleCycleChange(newCycles);
-
-  // Only randomize BPM if it's visible
-  if (showBpmEnabled && bpmController) {
-    const minBpm = parseInt(document.getElementById('randBpmMin')?.value || '60', 10);
-    const maxBpm = parseInt(document.getElementById('randBpmMax')?.value || '180', 10);
-    const clampedMin = Math.max(MIN_BPM, Math.min(minBpm, MAX_BPM));
-    const clampedMax = Math.max(MIN_BPM, Math.min(maxBpm, MAX_BPM));
-    const newBpm = Math.floor(Math.random() * (clampedMax - clampedMin + 1)) + clampedMin;
-    bpmController.setValue(newBpm);
-    bpm = newBpm;
-    saveState();
-  }
 }
 
 // ============================================
@@ -788,11 +718,9 @@ function handleReset() {
 // ============================================
 
 function saveState() {
-  // Note: showBpmEnabled is NOT persisted - always starts as false
   preferenceStorage.save({
     pulsosCompas,
     cycles,
-    bpm,
     randPulsosMax: parseInt(document.getElementById('randPulsosMax')?.value || '12', 10),
     randCyclesMax: parseInt(document.getElementById('randCyclesMax')?.value || '8', 10)
   });
@@ -815,12 +743,6 @@ function loadState() {
   if (prefs?.cycles) {
     cycles = prefs.cycles;
   }
-
-  // Load BPM value (but NOT showBpmEnabled - always starts false)
-  if (typeof prefs?.bpm === 'number') {
-    bpm = prefs.bpm;
-  }
-  // showBpmEnabled always starts as false (not persisted)
 }
 
 // ============================================
@@ -927,64 +849,11 @@ async function initializeApp() {
     handleCycleChange(inputCycle.value);
   });
 
-  // Spinner buttons with auto-repeat (compás and cycle only - BPM handled by controller)
+  // Spinner buttons with auto-repeat
   attachSpinnerRepeat(compasUpBtn, incrementCompas);
   attachSpinnerRepeat(compasDownBtn, decrementCompas);
   attachSpinnerRepeat(cycleUpBtn, incrementCycle);
   attachSpinnerRepeat(cycleDownBtn, decrementCycle);
-
-  // Initialize BPM controller (shared module handles input/blur/spinners)
-  if (inputBpm) {
-    bpmController = createBpmController({
-      inputEl: inputBpm,
-      upBtn: bpmUpBtn,
-      downBtn: bpmDownBtn,
-      container: bpmParam,
-      min: MIN_BPM,
-      max: MAX_BPM,
-      defaultValue: bpm,
-      onChange: (newBpm) => {
-        bpm = newBpm;
-        saveState();
-      }
-    });
-    bpmController.attach();
-  }
-
-  // Load showBpm preference (defaults to true)
-  const savedShowBpm = localStorage.getItem('app17:showBpm');
-  showBpmEnabled = savedShowBpm !== null ? savedShowBpm === 'true' : true;
-
-  // Initialize BPM visibility from loaded state
-  toggleBpmVisibility(showBpmEnabled);
-
-  // Initialize showBpmToggle checkbox
-  if (showBpmToggle) {
-    showBpmToggle.checked = showBpmEnabled;
-    showBpmToggle.addEventListener('change', () => {
-      toggleBpmVisibility(showBpmToggle.checked);
-      localStorage.setItem('app17:showBpm', String(showBpmToggle.checked));
-    });
-  }
-
-  // Initialize tap tempo handler
-  if (tapTempoBtn) {
-    tapTempoHandler = createTapTempoHandler({
-      getAudioInstance: initAudio,
-      tapBtn: tapTempoBtn,
-      tapHelp: tapHelp,
-      onBpmDetected: (newBpm) => {
-        // Use controller to set BPM (handles clamping)
-        const clampedBpm = Math.min(MAX_BPM, Math.max(MIN_BPM, Math.round(newBpm)));
-        if (bpmController) {
-          bpmController.setValue(clampedBpm);
-        }
-        bpm = clampedBpm;
-        saveState();
-      }
-    });
-    tapTempoHandler.attach();
-  }
 
   // Play button
   playBtn?.addEventListener('click', handlePlay);
@@ -1067,7 +936,6 @@ async function initializeApp() {
       localStorage.removeItem('app17:p1Toggle');
       localStorage.removeItem('app17:pulseAudio');
       localStorage.removeItem('app17:cycleHighlight');
-      localStorage.removeItem('app17:showBpm');
       localStorage.removeItem(MIXER_STORAGE_KEY);
     }
   });

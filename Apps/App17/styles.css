@@ -12,7 +12,6 @@ html, body {
 /* ============================================
    SHARED COMPONENT IMPORTS
    ============================================ */
-@import '../../libs/shared-ui/bpm-inline.css';
 @import '../../libs/shared-ui/cycle-counter.css';
 @import '../../libs/shared-ui/pulse-highlight.css';
 
@@ -22,30 +21,9 @@ html, body {
 
 :root {
   --control-toggle-gap: -29px;
-  /* BPM position fine-tuning */
-  --bpm-offset-x: 0px;
-  --bpm-offset-y: 240px;
   /* Total Length position fine-tuning */
   --total-offset-x: -30px;
   --total-offset-y: 0px;
-
-  /* Circular layout - toggles are now siblings, not inside play-row */
-  --control-toggles-offset-x: 0px;
-  --control-toggles-offset-y: 0px;
-  --toggle-pulse-offset-x: 0px;
-  --toggle-pulse-offset-y: 0px;
-  --toggle-selected-offset-x: 0px;
-  --toggle-selected-offset-y: 0px;
-  --toggle-cycle-offset-x: 0px;
-  --toggle-cycle-offset-y: 0px;
-  --btn-loop-offset-x: 0px;
-  --btn-loop-offset-y: 0px;
-  --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 0px;
-  --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 0px;
-  --btn-tap-offset-x: 0px;
-  --btn-tap-offset-y: 0px;
 }
 
 /* ============================================
@@ -57,7 +35,16 @@ html, body {
   display: none !important;
 }
 
-/* Tap tempo button is controlled via JS (toggleBpmVisibility) */
+/* Hide tap tempo button */
+#tapTempoBtn {
+  display: none !important;
+}
+
+/* Hide pulse toggle button */
+#pulseToggleBtn,
+.control-sound-toggle-container--pulse {
+  display: none !important;
+}
 
 /* Hide formula section */
 .middle {
@@ -229,17 +216,6 @@ html, body {
 }
 
 /* ============================================
-   BPM INLINE - Position override for circular
-   ============================================ */
-
-.bpm-inline {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(calc(-50% + var(--bpm-offset-x)), calc(-50% + var(--bpm-offset-y)));
-}
-
-/* ============================================
    DARK THEME ADJUSTMENTS
    ============================================ */
 
@@ -267,15 +243,13 @@ html, body {
   }
 
   .param.compas .circle,
-  .param.cycle-display .circle.cycle-circle,
-  .param.bpm .circle {
+  .param.cycle-display .circle.cycle-circle {
     width: 80px;
     height: 80px;
   }
 
   .param.compas input,
-  .param.cycle-display input,
-  .param.bpm input {
+  .param.cycle-display input {
     font-size: 2rem;
   }
 
@@ -305,21 +279,18 @@ html, body {
   }
 
   .param.compas .spinner,
-  .param.cycle-display .spinner,
-  .param.bpm .spinner {
+  .param.cycle-display .spinner {
     width: 15px;
   }
 
   .param.compas .circle,
-  .param.cycle-display .circle.cycle-circle,
-  .param.bpm .circle {
+  .param.cycle-display .circle.cycle-circle {
     width: 70px;
     height: 70px;
   }
 
   .param.compas input,
-  .param.cycle-display input,
-  .param.bpm input {
+  .param.cycle-display input {
     font-size: 1.75rem;
   }
 
@@ -349,21 +320,18 @@ html, body {
   }
 
   .param.compas .circle,
-  .param.cycle-display .circle.cycle-circle,
-  .param.bpm .circle {
+  .param.cycle-display .circle.cycle-circle {
     width: 60px;
     height: 60px;
   }
 
   .param.compas input,
-  .param.cycle-display input,
-  .param.bpm input {
+  .param.cycle-display input {
     font-size: 1.5rem;
   }
 
   .param.compas .spinner,
-  .param.cycle-display .spinner,
-  .param.bpm .spinner {
+  .param.cycle-display .spinner {
     width: 14px;
   }
 
