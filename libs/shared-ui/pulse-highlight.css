@@ -28,14 +28,14 @@
 
 /* Active pulse - orange */
 .pulse-number.active {
-  color: var(--selection-color, #FFBB33);
-  transform: translateX(-50%) scale(1.35);
+  color: var(--selection-color, #FFBB33) !important;
+  transform: translateX(-50%) scale(1.35) !important;
 }
 
 /* Zero position - blue with glow */
 .pulse-number.active-zero {
-  color: var(--color-lg, #7BB4CD);
-  transform: translateX(-50%) scale(1.5);
+  color: var(--color-lg, #7BB4CD) !important;
+  transform: translateX(-50%) scale(1.5) !important;
   text-shadow: 0 0 12px var(--color-lg, #7BB4CD);
 }
 
