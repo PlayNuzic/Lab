@@ -23,7 +23,7 @@ import { createTotalLengthDisplay } from '../../libs/app-common/total-length-dis
 // ============================================
 
 const MIN_PULSOS = 1;
-const MAX_PULSOS = 99;
+const MAX_PULSOS = 12;
 const MIN_CYCLES = 1;
 const MAX_CYCLES = 12;
 const DEFAULT_CYCLES = 4;
