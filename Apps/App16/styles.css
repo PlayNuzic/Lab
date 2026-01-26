@@ -12,8 +12,6 @@ html, body {
 /* ============================================
    SHARED COMPONENT IMPORTS
    ============================================ */
-@import '../../libs/shared-ui/bpm-inline.css';
-@import '../../libs/shared-ui/cycle-counter.css';
 @import '../../libs/shared-ui/pulse-highlight.css';
 
 /* ============================================
@@ -22,27 +20,6 @@ html, body {
 
 :root {
   --control-toggle-gap: -29px;
-  /* BPM position fine-tuning */
-  --bpm-offset-x: -720px;
-  --bpm-offset-y: -30px;
-
-  /* Circular layout - toggles are now siblings, not inside play-row */
-  --control-toggles-offset-x: 0px;
-  --control-toggles-offset-y: 0px;
-  --toggle-pulse-offset-x: 0px;
-  --toggle-pulse-offset-y: 0px;
-  --toggle-selected-offset-x: 0px;
-  --toggle-selected-offset-y: 0px;
-  --toggle-cycle-offset-x: 0px;
-  --toggle-cycle-offset-y: 0px;
-  --btn-loop-offset-x: 0px;
-  --btn-loop-offset-y: 0px;
-  --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 0px;
-  --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 0px;
-  --btn-tap-offset-x: 0px;
-  --btn-tap-offset-y: 0px;
 }
 
 /* ============================================
@@ -51,6 +28,11 @@ html, body {
 
 /* Hide loop button */
 #loopBtn {
+  display: none !important;
+}
+
+/* Hide tap tempo button */
+#tapTempoBtn {
   display: none !important;
 }
 
@@ -161,17 +143,6 @@ html, body {
 .timeline-wrapper {
   position: relative;
   min-height: 400px;
-}
-
-/* ============================================
-   BPM INLINE - Position override
-   ============================================ */
-
-.bpm-inline {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(calc(-50% + var(--bpm-offset-x)), calc(-50% + var(--bpm-offset-y)));
 }
 
 /* ============================================
