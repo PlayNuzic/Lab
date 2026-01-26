@@ -51,6 +51,11 @@ html, body {
   display: none !important;
 }
 
+/* Hide circle guide (not needed in this app) */
+.circle-guide {
+  display: none !important;
+}
+
 /* ============================================
    INPUTS SECTION: Pulsos Compás + Cycle + Counter
    ============================================ */
@@ -207,12 +212,12 @@ html, body {
 }
 
 /* ============================================
-   TIMELINE WRAPPER - Ensure proper positioning context
+   TIMELINE WRAPPER - Match circular timeline size
    ============================================ */
 
 .timeline-wrapper {
   position: relative;
-  min-height: 400px;
+  /* Remove min-height so wrapper matches timeline size exactly */
 }
 
 /* ============================================
