@@ -13,19 +13,15 @@ import { initRandomMenu } from '../../libs/random/index.js';
 import { createPreferenceStorage, registerFactoryReset } from '../../libs/app-common/preferences.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute, getVolume } from '../../libs/sound/index.js';
-import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
-import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ============================================
 // CONSTANTS
 // ============================================
 
 const MAX_COMPAS = 7;         // Maximum compás value
-const DEFAULT_BPM = 100;
-const MIN_BPM = 30;
-const MAX_BPM = 240;
+const BPM = 100;              // Fixed BPM for this app
 
 // ============================================
 // STATE
@@ -37,8 +33,6 @@ let compas = null;            // Starts as null (empty input)
 let pulses = [];              // DOM pulse elements
 let currentStep = -1;
 let p0Enabled = true;         // P0 toggle state (not persisted between sessions)
-let bpm = DEFAULT_BPM;        // Current BPM value
-let showBpmEnabled = false;   // BPM visibility toggle state (not persisted)
 
 // Fade-out state
 const FADE_OUT_PULSES = 3;    // Pulses 0, 1, 2 after the jump
@@ -56,15 +50,6 @@ let playBtn;
 let resetBtn;
 let randomBtn;
 let randomMenu;
-let inputBpm;
-let bpmUpBtn;
-let bpmDownBtn;
-let bpmParam;
-let tapTempoBtn;
-let tapHelp;
-let showBpmToggle;
-let tapTempoHandler = null;
-let bpmController = null;
 
 // ============================================
 // STORAGE
@@ -399,15 +384,16 @@ async function handlePlay() {
   // Disable random button during playback
   if (randomBtn) randomBtn.disabled = true;
 
-  const intervalSec = 60 / bpm;
+  const intervalSec = 60 / BPM;
   const totalPulses = getTotalPulses();  // compás × 2
-
-  // Configure Measure system: P0 sounds at 0, compás
-  audioInstance.configureMeasure(compas, totalPulses);
-  audioInstance.setMeasureEnabled(p0Enabled);
 
   // Total steps = main pulses + fade-out pulses
   const totalSteps = totalPulses + FADE_OUT_PULSES;
+
+  // Configure Measure system: P0 sounds at positions 0, compás, compás*2, etc.
+  // Use totalSteps so fade-out pulses also get the P0 sound when appropriate
+  audioInstance.configureMeasure(compas, totalSteps);
+  audioInstance.setMeasureEnabled(p0Enabled);
 
   // Calculate fade-out volumes (descending: 0.5, 0.25, 0.1)
   const fadeVolumes = [0.5, 0.25, 0.1];
@@ -563,45 +549,6 @@ function handleRandom() {
 }
 
 // ============================================
-// BPM HANDLING (via shared bpm-controller)
-// ============================================
-
-/**
- * Toggle BPM visibility - shows/hides BPM input and tap tempo button
- */
-function toggleBpmVisibility(enabled) {
-  showBpmEnabled = enabled;
-
-  // Show/hide BPM param via controller or direct class toggle
-  if (bpmController) {
-    bpmController.setVisible(enabled);
-  } else if (bpmParam) {
-    bpmParam.classList.toggle('visible', enabled);
-  }
-
-  // Show/hide tap tempo button
-  if (tapTempoBtn) {
-    tapTempoBtn.style.display = enabled ? '' : 'none';
-  }
-
-  // Show/hide tap help text
-  if (tapHelp) {
-    tapHelp.style.display = enabled ? '' : 'none';
-  }
-
-  // Reset BPM to default when hidden
-  if (!enabled) {
-    if (bpmController) {
-      bpmController.setValue(DEFAULT_BPM);
-      bpm = DEFAULT_BPM;
-    } else {
-      bpm = DEFAULT_BPM;
-      if (inputBpm) inputBpm.value = bpm;
-    }
-  }
-}
-
-// ============================================
 // RESET
 // ============================================
 
@@ -656,13 +603,6 @@ async function initializeApp() {
   resetBtn = document.getElementById('resetBtn');
   randomBtn = document.getElementById('randomBtn');
   randomMenu = document.getElementById('randomMenu');
-  inputBpm = document.getElementById('inputBpm');
-  bpmUpBtn = document.getElementById('bpmUp');
-  bpmDownBtn = document.getElementById('bpmDown');
-  bpmParam = document.getElementById('bpmParam');
-  tapTempoBtn = document.getElementById('tapTempoBtn');
-  tapHelp = document.getElementById('tapHelp');
-  showBpmToggle = document.getElementById('showBpmToggle');
 
   // Create timeline controller
   timelineController = createCircularTimeline({
@@ -749,85 +689,12 @@ async function initializeApp() {
     });
   }
 
-  // Initialize audio toggles for Pulse only (P0 handled separately above)
-  const pulseToggle = document.getElementById('pulseToggleBtn');
-  if (pulseToggle) {
-    const savedPulseEnabled = localStorage.getItem('app16:pulseAudio');
-    const pulseEnabled = savedPulseEnabled !== null ? savedPulseEnabled === 'true' : true;
-
-    pulseToggle.classList.toggle('active', pulseEnabled);
-    if (audio?.setPulseEnabled) {
-      audio.setPulseEnabled(pulseEnabled);
-    }
-
-    pulseToggle.addEventListener('click', () => {
-      const isActive = pulseToggle.classList.toggle('active');
-      localStorage.setItem('app16:pulseAudio', String(isActive));
-      if (audio?.setPulseEnabled) {
-        audio.setPulseEnabled(isActive);
-      }
-    });
-  }
-
-  // Initialize BPM controller (shared module handles input/blur/spinners)
-  if (inputBpm) {
-    bpmController = createBpmController({
-      inputEl: inputBpm,
-      upBtn: bpmUpBtn,
-      downBtn: bpmDownBtn,
-      container: bpmParam,
-      min: MIN_BPM,
-      max: MAX_BPM,
-      defaultValue: bpm,
-      onChange: (newBpm) => {
-        bpm = newBpm;
-      }
-    });
-    bpmController.attach();
-  }
-
-  // Load showBpm preference (defaults to true)
-  const savedShowBpm = localStorage.getItem('app16:showBpm');
-  showBpmEnabled = savedShowBpm !== null ? savedShowBpm === 'true' : true;
-
-  // Initialize BPM visibility toggle
-  if (showBpmToggle) {
-    showBpmToggle.checked = showBpmEnabled;
-    showBpmToggle.addEventListener('change', () => {
-      toggleBpmVisibility(showBpmToggle.checked);
-      localStorage.setItem('app16:showBpm', String(showBpmToggle.checked));
-    });
-  }
-
-  // Initialize BPM visibility from state
-  toggleBpmVisibility(showBpmEnabled);
-
-  // Initialize tap tempo handler
-  if (tapTempoBtn) {
-    tapTempoHandler = createTapTempoHandler({
-      getAudioInstance: initAudio,
-      tapBtn: tapTempoBtn,
-      tapHelp: tapHelp,
-      onBpmDetected: (newBpm) => {
-        // Use controller to set BPM (handles clamping)
-        const clampedBpm = Math.min(MAX_BPM, Math.max(MIN_BPM, Math.round(newBpm)));
-        if (bpmController) {
-          bpmController.setValue(clampedBpm);
-        }
-        bpm = clampedBpm;
-      }
-    });
-    tapTempoHandler.attach();
-  }
-
   // Register factory reset
   registerFactoryReset({
     storage: preferenceStorage,
     onBeforeReload: () => {
       stopPlayback();
       localStorage.removeItem('app16:p1Toggle');
-      localStorage.removeItem('app16:pulseAudio');
-      localStorage.removeItem('app16:showBpm');
       localStorage.removeItem(MIXER_STORAGE_KEY);
     }
   });
