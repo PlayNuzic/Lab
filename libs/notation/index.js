@@ -1,4 +1,4 @@
-import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, StaveConnector } from '../vendor/vexflow/entry/vexflow.js';
+import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, StaveConnector, fontsReady } from '../vendor/vexflow/entry/vexflow.js';
 import { midiToParts, midiSequenceToChromaticParts, needsDoubleStaff, createNote, createChord,
          keySignatureMap, keySignatureFrom, applyKeySignature } from './helpers.js';
 // NOTE: getKeySignature import commented out - scales.js doesn't export this function
@@ -180,6 +180,7 @@ export function drawInterval(container, note1, note2, mode='iS', keySig, options
 
 export * from './helpers.js';
 export { drawPentagram, drawIntervalEllipse } from './pentagram.js';
+export { fontsReady };
 export { createRhythmStaff } from './rhythm-staff.js';
 
 // Rhythm notation utilities (Phase 2 consolidation)

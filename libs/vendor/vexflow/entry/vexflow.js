@@ -25,7 +25,10 @@ const fontLoadPromises = [
 ];
 VexFlow.BUILD.INFO = 'vexflow';
 VexFlow.setFonts('Bravura', 'Academico');
-Promise.allSettled(fontLoadPromises).then(() => {
-});
+
+// Export a promise that resolves when all fonts are loaded
+// This allows apps to await font loading before rendering
+export const fontsReady = Promise.allSettled(fontLoadPromises);
+
 export * from '../src/index.js';
 export default VexFlow;

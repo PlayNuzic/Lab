@@ -3,7 +3,7 @@ import { motherScalesData } from '../../libs/scales/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
-import { drawPentagram } from '../../libs/notation/index.js';
+import { drawPentagram, fontsReady } from '../../libs/notation/index.js';
 import { setupPianoPreload } from '../../libs/sound/piano.js';
 import { createScaleSelector, getRotatedScaleNotes } from '../../libs/scale-selector/index.js';
 
@@ -33,6 +33,7 @@ let currentRotation = 0;
 let outputNote = 0; // Transposició (0-11)
 let currentScaleNotes = [0, 2, 4, 5, 7, 9, 11]; // Semitons de l'escala actual
 let currentEE = [2, 2, 1, 2, 2, 2, 1]; // Estructura escalar actual
+let useKeySig = true; // Armadura activada per defecte
 
 // Escales disponibles per App24
 // rootOffset: compensació per obtenir l'armadura correcta en rotacions
@@ -356,7 +357,7 @@ function renderPentagram() {
   drawPentagram(pentagramContainer, scaleMidis, {
     scaleId: currentScaleId,
     root: keySignatureRoot,
-    useKeySig: true,
+    useKeySig: useKeySig,
     singleClef: 'treble',
     chord: false,
     width: pentagramWidth,
@@ -529,6 +530,57 @@ function createAppLayout() {
 }
 
 // ============================================================================
+// ARMADURA (KEY SIGNATURE TOGGLE)
+// ============================================================================
+
+/**
+ * Afegeix l'opció d'Armadura al menú d'opcions
+ * Similar a la implementació d'Indexlab/App7
+ */
+function addKeySigOptionToMenu() {
+  const factoryResetBtn = document.getElementById('factoryResetBtn');
+  if (!factoryResetBtn) {
+    // El header encara no s'ha creat, reintentar després
+    setTimeout(addKeySigOptionToMenu, 100);
+    return;
+  }
+
+  const parentNode = factoryResetBtn.parentNode;
+
+  // Crear el label amb checkbox
+  const label = document.createElement('label');
+  label.htmlFor = 'app24-enableKeySig';
+  label.innerHTML = `Armadura <input type="checkbox" id="app24-enableKeySig">`;
+  label.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; cursor: pointer;';
+
+  // Inserir just abans del botó factory reset
+  parentNode.insertBefore(label, factoryResetBtn);
+
+  const checkbox = document.getElementById('app24-enableKeySig');
+
+  // Carregar preferència guardada
+  const stored = preferenceStorage.load('useKeySig');
+  if (stored !== null) {
+    useKeySig = stored === 'true';
+  }
+  checkbox.checked = useKeySig;
+
+  // Event listener per canvis
+  checkbox.addEventListener('change', () => {
+    useKeySig = checkbox.checked;
+    preferenceStorage.save('useKeySig', String(useKeySig));
+    renderPentagram();
+  });
+
+  // Escoltar factory reset per resetejar el checkbox
+  window.addEventListener('sharedui:factoryreset', () => {
+    useKeySig = true; // Valor per defecte
+    checkbox.checked = true;
+    renderPentagram();
+  });
+}
+
+// ============================================================================
 // FACTORY RESET
 // ============================================================================
 
@@ -575,9 +627,11 @@ function initApp() {
   // Actualitzar ee-display
   updateEEDisplay(eeDisplayContainer, currentEE);
 
-  // Renderitzar pentagrama inicial (amb delay per assegurar DOM llest)
-  requestAnimationFrame(() => {
-    renderPentagram();
+  // Renderitzar pentagrama inicial (esperar fonts VexFlow + DOM llest)
+  fontsReady.then(() => {
+    requestAnimationFrame(() => {
+      renderPentagram();
+    });
   });
 
   // Redibuixar línies quan canvia la mida de la finestra
@@ -595,6 +649,9 @@ function initApp() {
 
   // Precargar samples de piano en background
   setupPianoPreload({ delay: 300 });
+
+  // Afegir opció d'Armadura al menú
+  addKeySigOptionToMenu();
 
   console.log('App24 inicializada correctamente');
 }
