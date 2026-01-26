@@ -352,6 +352,21 @@ function resetTotalLengthDisplay() {
 }
 
 // ============================================
+// VISUAL FEEDBACK
+// ============================================
+
+/**
+ * Flash a circle element to indicate missing input
+ */
+function flashMissingInput(element) {
+  if (!element) return;
+  element.classList.add('flash-warning');
+  setTimeout(() => {
+    element.classList.remove('flash-warning');
+  }, 600);
+}
+
+// ============================================
 // HIGHLIGHTING
 // ============================================
 
@@ -435,7 +450,16 @@ async function handlePlay() {
     return;
   }
 
-  if (pulsosCompas === null || cycles === null) return; // Can't play without pulsos or cycles
+  // Flash missing inputs if trying to play without values
+  if (pulsosCompas === null || cycles === null) {
+    if (pulsosCompas === null) {
+      flashMissingInput(inputCompas?.closest('.circle'));
+    }
+    if (cycles === null) {
+      flashMissingInput(document.querySelector('.cycle-circle'));
+    }
+    return;
+  }
 
   const audioInstance = await initAudio();
   if (!audioInstance) return;
