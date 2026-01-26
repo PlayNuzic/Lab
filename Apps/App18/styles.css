@@ -43,6 +43,29 @@ html, body {
 }
 
 /* ============================================
+   FLASH WARNING ANIMATION
+   ============================================ */
+
+.circle.flash-warning {
+  animation: flashWarning 1s ease;
+}
+
+@keyframes flashWarning {
+  0%, 100% {
+    border-color: var(--circle-border, #333);
+    box-shadow: none;
+  }
+  10%, 30%, 50%, 70%, 90% {
+    border-color: var(--selection-color, #EA570C);
+    box-shadow: 0 0 12px var(--selection-color, #EA570C);
+  }
+  20%, 40%, 60%, 80% {
+    border-color: var(--circle-border, #333);
+    box-shadow: none;
+  }
+}
+
+/* ============================================
    HOVER TOOLTIPS - Style like fraction-info-bubble
    ============================================ */
 
@@ -265,12 +288,12 @@ main {
   z-index: 1;
 }
 
-/* Divisiones horizontales */
+/* Divisiones horizontales - ampliar zona clicable verticalmente */
 .soundline-division {
   position: absolute;
   width: 30px;
-  height: 16px;
-  margin-top: -7px;
+  height: 28px;
+  margin-top: -13px;
   background: transparent;
   left: 85px;
   z-index: 2;
@@ -288,24 +311,63 @@ main {
   background: var(--line-color, #666);
 }
 
-/* Números */
+/* Números - estil com App16 pulse-number */
 .soundline-number {
   position: absolute;
   font-size: 1.6rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-color, #333);
   user-select: none;
   z-index: 3;
-  opacity: 0.85;
   left: 20px;
   text-align: right;
   width: 60px;
-  font-family: 'Courier New', Courier, monospace;
   cursor: pointer;
+  transition: transform 0.12s ease, color 0.12s ease;
+}
+
+/* Àrea clicable expandida sense afectar layout */
+.soundline-number::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  left: -5px;
+  right: -5px;
 }
 
 [data-theme="dark"] .soundline-number {
   color: var(--text-dark, #e0e0e0);
+}
+
+/* Superscript styling - com App16 */
+.soundline-number sup {
+  font-size: 0.55em;
+  vertical-align: super;
+  margin-left: 1px;
+  opacity: 0.8;
+}
+
+/* Nota 0 del registre actual - rosa */
+.soundline-number.note-zero {
+  color: #F28AAD;
+}
+
+[data-theme="dark"] .soundline-number.note-zero {
+  color: #F28AAD;
+}
+
+/* Animació al clicar - com pulse-highlight */
+.soundline-number.active {
+  color: var(--selection-color, #FFBB33) !important;
+  transform: translateY(-50%) scale(1.35) !important;
+}
+
+/* Animació per nota 0 - rosa amb glow */
+.soundline-number.active-zero {
+  color: #F28AAD !important;
+  transform: translateY(-50%) scale(1.5) !important;
+  text-shadow: 0 0 12px #F28AAD;
 }
 
 /* ============================================

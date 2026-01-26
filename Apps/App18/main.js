@@ -49,6 +49,8 @@ const registryController = createRegistryController({
 });
 
 // ========== NOTE CLICK HANDLER ==========
+const ZERO_POSITION = 7; // Note 0 of current registry is at index 7
+
 /**
  * Handle click on soundline note (number or division line)
  */
@@ -72,10 +74,39 @@ async function handleNoteClick(noteIndex) {
   const note = Tone.Frequency(midi, 'midi').toNote();
   piano.triggerAttackRelease(note, 0.5);
 
-  // Show highlight
+  // Animate the number element
+  animateNumberClick(noteIndex);
+
+  // Show highlight rectangle
   highlightNote(noteIndex, 300);
 
   console.log(`Click: index=${noteIndex}, noteInRegistry=${noteInRegistry}, MIDI=${midi}`);
+}
+
+/**
+ * Animate a soundline number when clicked (scale + color change)
+ */
+function animateNumberClick(noteIndex) {
+  const numberEl = soundlineWrapper?.querySelector(`.soundline-number[data-note-index="${noteIndex}"]`);
+  if (!numberEl) return;
+
+  // Determine if this is note-zero (pink) or regular (orange)
+  const isZero = noteIndex === ZERO_POSITION;
+  const activeClass = isZero ? 'active-zero' : 'active';
+
+  // Remove any existing active classes
+  numberEl.classList.remove('active', 'active-zero');
+
+  // Force reflow to restart animation
+  void numberEl.offsetWidth;
+
+  // Add the active class
+  numberEl.classList.add(activeClass);
+
+  // Remove after animation duration
+  setTimeout(() => {
+    numberEl.classList.remove(activeClass);
+  }, 300);
 }
 
 // ========== SOUNDLINE DRAWING ==========
@@ -99,9 +130,10 @@ function drawSoundline() {
     onNoteClick: handleNoteClick
   });
 
-  // Add CSS classes for styling registry boundaries
+  // Add CSS classes for styling registry boundaries and note-zero
   if (registry !== null) {
     const numbers = soundlineWrapper.querySelectorAll('.soundline-number');
+    const ZERO_POSITION = 7; // Note 0 of current registry is at index 7
 
     numbers.forEach((num) => {
       const idx = parseInt(num.dataset.noteIndex, 10);
@@ -109,6 +141,11 @@ function drawSoundline() {
       // Mark boundary notes using controller
       if (registryController.isBoundaryNote(idx)) {
         num.classList.add('registry-boundary');
+      }
+
+      // Mark note 0 of current registry with pink color
+      if (idx === ZERO_POSITION) {
+        num.classList.add('note-zero');
       }
     });
   }
@@ -226,11 +263,24 @@ function setupVolumeControl() {
   });
 }
 
+/**
+ * Flash a circle element to indicate missing input
+ */
+function flashMissingInput(element) {
+  if (!element) return;
+  element.classList.add('flash-warning');
+  setTimeout(() => {
+    element.classList.remove('flash-warning');
+  }, 1000);
+}
+
 async function handlePlay() {
   if (isPlaying) return;
 
   const registry = registryController.getRegistry();
   if (registry === null) {
+    // Flash the registro circle to indicate missing input
+    flashMissingInput(inputRegistro?.closest('.circle'));
     console.log('No registry selected');
     return;
   }
