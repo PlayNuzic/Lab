@@ -61,7 +61,7 @@ html, body {
    ============================================ */
 
 .circle.flash-warning {
-  animation: flashWarning 0.6s ease;
+  animation: flashWarning 1s ease;
 }
 
 @keyframes flashWarning {
@@ -69,9 +69,13 @@ html, body {
     border-color: var(--circle-border, #333);
     box-shadow: none;
   }
-  25%, 75% {
+  10%, 30%, 50%, 70%, 90% {
     border-color: var(--selection-color, #EA570C);
     box-shadow: 0 0 12px var(--selection-color, #EA570C);
+  }
+  20%, 40%, 60%, 80% {
+    border-color: var(--circle-border, #333);
+    box-shadow: none;
   }
 }
 

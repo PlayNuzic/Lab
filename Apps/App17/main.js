@@ -363,7 +363,7 @@ function flashMissingInput(element) {
   element.classList.add('flash-warning');
   setTimeout(() => {
     element.classList.remove('flash-warning');
-  }, 600);
+  }, 1000);
 }
 
 // ============================================
