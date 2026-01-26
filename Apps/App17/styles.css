@@ -125,10 +125,27 @@ html, body {
 
 .param.cycle-display .cycle-circle .cycle-counter__digit {
   display: none;
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--text-color, #333);
+  line-height: 1;
+  transition: transform 0.15s ease, color 0.15s ease;
 }
 
 .param.cycle-display .cycle-circle.playing .cycle-counter__digit {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Cycle digit playing states - override shared styles for App17 colors */
+.param.cycle-display .cycle-counter__digit.playing-zero {
+  color: var(--color-lg, #4A90D9);
+}
+
+.param.cycle-display .cycle-counter__digit.playing-active {
+  color: var(--selection-color, #EA570C);
 }
 
 .param.compas input {
@@ -156,7 +173,7 @@ html, body {
   flex-direction: row;
   align-items: center;
   gap: 0.5rem;
-  margin-left: calc(0px + var(--total-offset-x));
+  margin-left: calc(50px + var(--total-offset-x));
   margin-top: var(--total-offset-y);
 }
 
@@ -283,7 +300,8 @@ html, body {
 }
 
 [data-theme="dark"] .param.compas input,
-[data-theme="dark"] .param.cycle-display input {
+[data-theme="dark"] .param.cycle-display input,
+[data-theme="dark"] .param.cycle-display .cycle-counter__digit {
   color: var(--text-color, #eee);
 }
 
@@ -308,7 +326,8 @@ html, body {
   }
 
   .param.compas input,
-  .param.cycle-display input {
+  .param.cycle-display input,
+  .param.cycle-display .cycle-counter__digit {
     font-size: 2rem;
   }
 
@@ -349,7 +368,8 @@ html, body {
   }
 
   .param.compas input,
-  .param.cycle-display input {
+  .param.cycle-display input,
+  .param.cycle-display .cycle-counter__digit {
     font-size: 1.75rem;
   }
 
@@ -385,7 +405,8 @@ html, body {
   }
 
   .param.compas input,
-  .param.cycle-display input {
+  .param.cycle-display input,
+  .param.cycle-display .cycle-counter__digit {
     font-size: 1.5rem;
   }
 
