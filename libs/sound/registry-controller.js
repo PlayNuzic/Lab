@@ -199,7 +199,7 @@ export function createRegistryController(config = {}) {
       noteRegistry = registry + Math.floor(offset / notesPerRegistry);
     }
 
-    return `${noteNum}r${noteRegistry}`;
+    return `${noteNum}<sup>${noteRegistry}</sup>`;
   }
 
   /**

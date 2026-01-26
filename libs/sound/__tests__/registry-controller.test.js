@@ -297,33 +297,33 @@ describe('registry-controller', () => {
         const controller = createRegistryController();
         controller.setRegistry(4);
 
-        // Index 7 should be 0r4 (note 0 of registry 4)
-        expect(controller.formatLabel(7)).toBe('0r4');
+        // Index 7 should be 0^4 (note 0 of registry 4) - now uses HTML superscript
+        expect(controller.formatLabel(7)).toBe('0<sup>4</sup>');
 
         // Indices above 7 (higher pitch within current registry)
-        expect(controller.formatLabel(8)).toBe('1r4');
-        expect(controller.formatLabel(14)).toBe('7r4');
+        expect(controller.formatLabel(8)).toBe('1<sup>4</sup>');
+        expect(controller.formatLabel(14)).toBe('7<sup>4</sup>');
 
         // Indices below 7 (lower pitch, previous registry)
-        expect(controller.formatLabel(6)).toBe('11r3');
-        expect(controller.formatLabel(5)).toBe('10r3');
-        expect(controller.formatLabel(0)).toBe('5r3');
+        expect(controller.formatLabel(6)).toBe('11<sup>3</sup>');
+        expect(controller.formatLabel(5)).toBe('10<sup>3</sup>');
+        expect(controller.formatLabel(0)).toBe('5<sup>3</sup>');
       });
 
       test('formats correctly for any registry', () => {
         const controller = createRegistryController();
         controller.setRegistry(0);
 
-        // Index 7 should be 0r0
-        expect(controller.formatLabel(7)).toBe('0r0');
+        // Index 7 should be 0^0 - now uses HTML superscript
+        expect(controller.formatLabel(7)).toBe('0<sup>0</sup>');
 
         // Notes above 0r0 are in current registry
-        expect(controller.formatLabel(8)).toBe('1r0');
-        expect(controller.formatLabel(14)).toBe('7r0');
+        expect(controller.formatLabel(8)).toBe('1<sup>0</sup>');
+        expect(controller.formatLabel(14)).toBe('7<sup>0</sup>');
 
         // Notes below 0r0 would be in "registry -1" (negative, but still calculated)
-        expect(controller.formatLabel(6)).toBe('11r-1');
-        expect(controller.formatLabel(0)).toBe('5r-1');
+        expect(controller.formatLabel(6)).toBe('11<sup>-1</sup>');
+        expect(controller.formatLabel(0)).toBe('5<sup>-1</sup>');
       });
     });
 

@@ -82,7 +82,7 @@ export function createSoundline(options) {
     label.dataset.note = i;
     label.dataset.noteIndex = i;
     label.dataset.midi = midi;
-    label.textContent = formatLabel(labelFormatter, i, midi);
+    label.innerHTML = formatLabel(labelFormatter, i, midi);
 
     if (onNoteClick) {
       label.tabIndex = 0;
@@ -242,7 +242,7 @@ export function createSoundline(options) {
         label.dataset.note = i;
         label.dataset.noteIndex = i;
         label.dataset.midi = midi;
-        label.textContent = formatLabel(formatter, i, midi);
+        label.innerHTML = formatLabel(formatter, i, midi);
 
         if (onNoteClick) {
           label.tabIndex = 0;
