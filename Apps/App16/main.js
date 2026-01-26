@@ -2,7 +2,7 @@
  * App16 - Módulo Temporal - Compás
  *
  * Enseña el concepto de aritmética modular en música.
- * Timeline de 13 pulsos con numeración cíclica basada en el valor de Compás.
+ * Timeline dinámica que muestra 2 compases completos con fade-out al repetir.
  */
 
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
@@ -12,7 +12,7 @@ import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/index.js';
 import { createPreferenceStorage, registerFactoryReset } from '../../libs/app-common/preferences.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
-import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
+import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute, getVolume } from '../../libs/sound/index.js';
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
@@ -22,9 +22,7 @@ import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 // CONSTANTS
 // ============================================
 
-const TOTAL_PULSES = 13;      // 0-12 (12 = end marker, no suena)
-const PLAYABLE_PULSES = 12;   // Solo 0-11 suenan
-const DEFAULT_COMPAS = 4;
+const MAX_COMPAS = 7;         // Maximum compás value
 const DEFAULT_BPM = 100;
 const MIN_BPM = 30;
 const MAX_BPM = 240;
@@ -36,14 +34,14 @@ const MAX_BPM = 240;
 let audio = null;
 let isPlaying = false;
 let compas = null;            // Starts as null (empty input)
-let currentCycle = 1;
 let pulses = [];              // DOM pulse elements
 let currentStep = -1;
 let p0Enabled = true;         // P0 toggle state (not persisted between sessions)
-let cycleHighlightTimeout = null;  // For auto-dimming cycle circle
-let cycleHighlightEnabled = true; // Cycle highlight toggle state
 let bpm = DEFAULT_BPM;        // Current BPM value
 let showBpmEnabled = false;   // BPM visibility toggle state (not persisted)
+
+// Fade-out state
+const FADE_OUT_PULSES = 3;    // Pulses 0, 1, 2 after the jump
 
 // ============================================
 // DOM ELEMENTS
@@ -52,7 +50,6 @@ let showBpmEnabled = false;   // BPM visibility toggle state (not persisted)
 let inputCompas;
 let compasUpBtn;
 let compasDownBtn;
-let cycleDigit;
 let timeline;
 let timelineWrapper;
 let playBtn;
@@ -175,6 +172,14 @@ let timelineController;
 let superscriptController;
 
 /**
+ * Get the total number of pulses based on compás (2 compases)
+ */
+function getTotalPulses() {
+  if (compas === null || compas < 1) return 0;
+  return compas * 2;
+}
+
+/**
  * Render pulse numbers using shared superscript module (linear mode)
  */
 function renderPulseNumbers() {
@@ -183,182 +188,186 @@ function renderPulseNumbers() {
   // Remove existing numbers
   timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
 
-  const lg = TOTAL_PULSES - 1; // 12
+  const totalPulses = getTotalPulses();
+  if (totalPulses === 0) return;
 
-  // Create numbers only for pulses 0-11 (not 12)
-  for (let i = 0; i < PLAYABLE_PULSES; i++) {
+  // Create numbers for all visible pulses
+  for (let i = 0; i < totalPulses; i++) {
     const label = superscriptController.createNumberElement(i);
     // Position linearly
-    const percent = (i / lg) * 100;
+    const percent = (i / totalPulses) * 100;
     label.style.left = percent + '%';
     timeline.appendChild(label);
   }
-}
 
-/**
- * Create the "12" end label above the final bar
- */
-function renderEndLabel() {
-  if (!timeline) return;
-
-  // Remove existing end label if any
-  timeline.querySelector('.timeline-end-label')?.remove();
-
+  // Add 0³ at the end (shows continuation, will be hidden during fade-out)
   const endLabel = document.createElement('div');
-  endLabel.className = 'timeline-end-label';
-  endLabel.textContent = '12';
+  endLabel.className = 'pulse-number';
+  endLabel.innerHTML = '0<sup>3</sup>';
+  endLabel.style.left = '100%';
+  endLabel.dataset.index = String(totalPulses); // Index after all pulses
   timeline.appendChild(endLabel);
 }
 
-// ============================================
-// CYCLE COUNTER
-// ============================================
-
 /**
- * Calculate complete cycles and remainder beats
+ * Remove end bar from timeline (we don't want visual end point)
  */
-function getCycleInfo() {
-  if (compas === null || compas < 1) return { complete: 0, remainder: 0 };
-  const complete = Math.floor(PLAYABLE_PULSES / compas);
-  const remainder = PLAYABLE_PULSES % compas;
-  return { complete, remainder };
-}
-
-/**
- * Show total cycles (when stopped) - uses Compás color (text-color)
- * Shows complete cycles with remainder in subscript: "2₍₃₎" means 2 complete cycles + 3 extra beats
- */
-function showTotalCycles() {
-  if (!cycleDigit) return;
-
-  const { complete, remainder } = getCycleInfo();
-
-  if (complete === 0 && remainder === 0) {
-    cycleDigit.innerHTML = '';
-  } else if (remainder === 0) {
-    // Perfect fit - no remainder
-    cycleDigit.innerHTML = String(complete);
-  } else {
-    // Show complete cycles + remainder in subscript
-    cycleDigit.innerHTML = `${complete}<sub>${remainder}</sub>`;
-  }
-
-  cycleDigit.classList.remove('playing-zero', 'playing-active');
-}
-
-/**
- * Update cycle counter during playback (with animation)
- */
-function updateCycleCounter(newCycle) {
-  if (!cycleDigit) return;
-  if (newCycle === currentCycle && cycleDigit.textContent === String(newCycle)) return;
-
-  currentCycle = newCycle;
-
-  // Flip animation
-  cycleDigit.classList.add('flip-out');
-
-  setTimeout(() => {
-    cycleDigit.textContent = String(newCycle);
-    cycleDigit.classList.remove('flip-out');
-    cycleDigit.classList.add('flip-in');
-
-    setTimeout(() => {
-      cycleDigit.classList.remove('flip-in');
-    }, 150);
-  }, 150);
-}
-
-/**
- * Update cycle digit color based on current step
- */
-function updateCycleDigitColor(step) {
-  if (!cycleDigit || compas === null) return;
-
-  cycleDigit.classList.remove('playing-zero', 'playing-active');
-
-  const modValue = step % compas;
-  if (modValue === 0) {
-    cycleDigit.classList.add('playing-zero');
-  } else {
-    cycleDigit.classList.add('playing-active');
+function removeEndBar() {
+  if (!timeline) return;
+  // Remove any end label
+  timeline.querySelector('.timeline-end-label')?.remove();
+  // Remove the right bar (endpoint)
+  const bars = timeline.querySelectorAll('.bar');
+  if (bars.length > 1) {
+    bars[bars.length - 1].remove();
   }
 }
+
+/**
+ * Render the complete timeline (pulses + numbers + end label)
+ */
+function renderTimeline() {
+  if (!timeline || !timelineController) return;
+
+  const totalPulses = getTotalPulses();
+
+  if (totalPulses === 0) {
+    // Clear timeline when no compás
+    timeline.querySelectorAll('.pulse').forEach(p => p.remove());
+    timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
+    timeline.querySelectorAll('.bar').forEach(b => b.remove());
+    pulses = [];
+    return;
+  }
+
+  // Render timeline with new pulse count
+  pulses = timelineController.render(totalPulses, {
+    isCircular: false,
+    silent: true
+  });
+
+  // Remove end bar (no visual endpoint - timeline continues)
+  removeEndBar();
+
+  // Render numbers
+  renderPulseNumbers();
+}
+
 
 // ============================================
 // HIGHLIGHTING
 // ============================================
 
-function highlightPulse(step) {
-  // Clear previous highlights
-  pulses.forEach(p => p.classList.remove('active', 'active-zero'));
+/**
+ * Highlight a pulse dot and optionally the endpoint bars
+ */
+function highlightPulse(step, isFadeOut = false) {
+  // Clear previous highlights from pulses
+  pulses.forEach(p => p.classList.remove('active', 'active-zero', 'fade-out'));
+
+  // Handle bars visibility and highlighting
+  const bars = timeline?.querySelectorAll('.bar');
+  const leftBar = bars?.[0];
+
+  if (leftBar) {
+    if (isFadeOut) {
+      leftBar.classList.add('hidden');
+    } else {
+      leftBar.classList.remove('hidden');
+      // Highlight left bar when step 0 is active
+      if (step === 0) {
+        leftBar.classList.add('active-zero');
+      } else {
+        leftBar.classList.remove('active-zero');
+      }
+    }
+  }
 
   // Add highlight to current pulse
   if (pulses[step]) {
-    const modValue = step % compas;
-    if (modValue === 0) {
-      pulses[step].classList.add('active-zero');
+    if (isFadeOut) {
+      pulses[step].classList.add('fade-out');
     } else {
-      pulses[step].classList.add('active');
+      const modValue = step % compas;
+      pulses[step].classList.add(modValue === 0 ? 'active-zero' : 'active');
     }
   }
 }
 
-function highlightNumber(step) {
-  // Clear previous highlights
-  document.querySelectorAll('.pulse-number').forEach(n => {
+/**
+ * Highlight a number using data-index selector (more reliable than array index)
+ * During fade-out: ALL visible numbers change to cycle 3 at once when step 0 activates
+ */
+function highlightNumber(step, isFadeOut = false) {
+  if (!timeline) return;
+
+  // Clear previous highlights (but NOT fade-out state during fade-out phase)
+  timeline.querySelectorAll('.pulse-number').forEach(n => {
     n.classList.remove('active', 'active-zero');
+    if (!isFadeOut) {
+      n.classList.remove('fade-out', 'hidden');
+    }
   });
 
-  // Add highlight to current number
-  const numberEl = document.querySelector(`.pulse-number[data-index="${step}"]`);
+  // Use data-index selector for reliable element selection
+  const numberEl = timeline.querySelector(`.pulse-number[data-index="${step}"]`);
+
+  // DEBUG
+  console.log('[highlightNumber] step:', step, 'isFadeOut:', isFadeOut, 'numberEl:', numberEl, 'compas:', compas);
+
   if (numberEl) {
-    const modValue = step % compas;
-    if (modValue === 0) {
-      numberEl.classList.add('active-zero');
+    if (isFadeOut) {
+      // On FIRST fade-out pulse (step 0): update ALL visible numbers at once
+      if (step === 0) {
+        timeline.querySelectorAll('.pulse-number').forEach(n => {
+          const idx = parseInt(n.dataset.index, 10);
+          if (idx < FADE_OUT_PULSES) {
+            // Update superscript to cycle 3 for all fade-out numbers
+            const posInCycle = idx % compas;
+            const fadeOutCycle = Math.floor(idx / compas) + 3;
+            n.innerHTML = `${posInCycle}<sup>${fadeOutCycle}</sup>`;
+          } else {
+            // Hide numbers outside fade-out range
+            n.classList.add('hidden');
+          }
+        });
+      }
+
+      // Highlight current number with fade-out effect
+      numberEl.classList.add('fade-out');
     } else {
-      numberEl.classList.add('active');
+      const modValue = step % compas;
+      const className = modValue === 0 ? 'active-zero' : 'active';
+      console.log('[highlightNumber] Adding class:', className, 'to element:', numberEl);
+      numberEl.classList.add(className);
+      console.log('[highlightNumber] Element classes after:', numberEl.className);
     }
   }
 }
 
-function highlightCycleCircle(step) {
-  const cycleCircle = document.querySelector('.cycle-circle');
-  if (!cycleCircle) return;
+function clearHighlights(keepFadeOut = false) {
+  pulses.forEach(p => p.classList.remove('active', 'active-zero', 'fade-out'));
 
-  // Clear any pending timeout
-  if (cycleHighlightTimeout) {
-    clearTimeout(cycleHighlightTimeout);
-    cycleHighlightTimeout = null;
+  // Handle left bar
+  const leftBar = timeline?.querySelector('.bar');
+  if (leftBar) {
+    leftBar.classList.remove('active-zero');
+    if (!keepFadeOut) {
+      leftBar.classList.remove('hidden');
+    }
   }
 
-  cycleCircle.classList.remove('active', 'active-zero');
-
-  if (!cycleHighlightEnabled) return;
-  if (compas === null) return;
-
-  const modValue = step % compas;
-  if (modValue === 0) {
-    cycleCircle.classList.add('active-zero');
+  if (keepFadeOut) {
+    // Only remove active states, keep fade-out visible
+    timeline?.querySelectorAll('.pulse-number').forEach(n => {
+      n.classList.remove('active', 'active-zero');
+    });
   } else {
-    cycleCircle.classList.add('active');
+    // Full clear including fade-out
+    timeline?.querySelectorAll('.pulse-number').forEach(n => {
+      n.classList.remove('active', 'active-zero', 'fade-out', 'hidden');
+    });
   }
-
-  // Auto-dim after 300ms
-  cycleHighlightTimeout = setTimeout(() => {
-    cycleCircle.classList.remove('active', 'active-zero');
-    cycleHighlightTimeout = null;
-  }, 300);
-}
-
-function clearHighlights() {
-  pulses.forEach(p => p.classList.remove('active', 'active-zero'));
-  document.querySelectorAll('.pulse-number').forEach(n => {
-    n.classList.remove('active', 'active-zero');
-  });
-  // Clear cycle circle highlight
-  const cycleCircle = document.querySelector('.cycle-circle');
-  cycleCircle?.classList.remove('active', 'active-zero');
 }
 
 // ============================================
@@ -377,9 +386,10 @@ async function handlePlay() {
   if (!audioInstance) return;
 
   isPlaying = true;
-  currentCycle = 1;
   currentStep = -1;
-  updateCycleCounter(1);
+
+  // Reset timeline to original state (clear any fade-out numbers from previous play)
+  renderPulseNumbers();
 
   // Update play button state
   playBtn?.classList.add('active');
@@ -392,35 +402,52 @@ async function handlePlay() {
   if (randomBtn) randomBtn.disabled = true;
 
   const intervalSec = 60 / bpm;
+  const totalPulses = getTotalPulses();  // compás × 2
 
-  // Configure Measure system: P0 sounds at 0, compás, compás*2, etc.
-  audioInstance.configureMeasure(compas, PLAYABLE_PULSES);
+  // Configure Measure system: P0 sounds at 0, compás
+  audioInstance.configureMeasure(compas, totalPulses);
   audioInstance.setMeasureEnabled(p0Enabled);
 
+  // Total steps = main pulses + fade-out pulses
+  const totalSteps = totalPulses + FADE_OUT_PULSES;
+
+  // Calculate fade-out volumes (descending: 0.5, 0.25, 0.1)
+  const fadeVolumes = [0.5, 0.25, 0.1];
+
+  // Store original volume to restore later
+  const originalVolume = getVolume();
+
   audioInstance.play(
-    PLAYABLE_PULSES,
+    totalSteps,
     intervalSec,
     new Set(),    // No selected pulses
     false,        // NO loop (single-shot)
     (step) => {
       currentStep = step;
-      highlightPulse(step);
-      highlightNumber(step);
-      highlightCycleCircle(step);
-      updateCycleDigitColor(step);
 
-      // Update cycle counter when hitting a new cycle start (except first)
-      if (step > 0 && step % compas === 0) {
-        const newCycle = Math.floor(step / compas) + 1;
-        updateCycleCounter(newCycle);
+      // Determine if we're in fade-out phase
+      const isFadeOut = step >= totalPulses;
+      const displayStep = isFadeOut ? step - totalPulses : step;
+
+      // Set volume for fade-out pulses
+      if (isFadeOut) {
+        const fadeIndex = step - totalPulses;
+        const volume = fadeVolumes[fadeIndex] ?? 0.1;
+        setVolume(volume);
+      } else if (step === 0) {
+        // Ensure full volume at start
+        setVolume(originalVolume);
       }
+
+      highlightPulse(displayStep, isFadeOut);
+      highlightNumber(displayStep, isFadeOut);
     },
     () => {
-      // onComplete callback - delay 590ms to let last pulse ring out (10ms silence before end)
-      // This is App16-specific timing, not applied globally
+      // onComplete callback
       setTimeout(() => {
-        audio?.stop();  // Stop audio after delay
-        stopPlayback(false);  // Update UI without calling stop again
+        setVolume(originalVolume);  // Restore original volume
+        audio?.stop();
+        stopPlayback(false);
       }, 590);
     }
   );
@@ -433,6 +460,11 @@ async function handlePlay() {
 function stopPlayback(forceStop = true) {
   isPlaying = false;
   currentStep = -1;
+
+  // Restore volume to 1.0 (in case stopped during fade-out)
+  if (forceStop) {
+    setVolume(1.0);
+  }
 
   // Only force stop if user clicked stop (not on natural completion)
   // The audio engine already handles the delay to let the last pulse finish
@@ -450,10 +482,8 @@ function stopPlayback(forceStop = true) {
   // Re-enable random button after playback
   if (randomBtn) randomBtn.disabled = false;
 
-  clearHighlights();
-
-  // Show total cycles again (stopped state)
-  showTotalCycles();
+  // Clear highlights - keep fade-out numbers visible on natural completion
+  clearHighlights(!forceStop);
 }
 
 // ============================================
@@ -461,11 +491,10 @@ function stopPlayback(forceStop = true) {
 // ============================================
 
 function handleCompasChange(newValue) {
-  // Handle empty input - clear numbers and cycles
+  // Handle empty input - clear timeline
   if (newValue === '' || newValue === null || newValue === undefined) {
     compas = null;
-    timeline?.querySelectorAll('.pulse-number').forEach(n => n.remove());
-    showTotalCycles();  // Shows empty when no compás
+    renderTimeline();  // Clears timeline when no compás
     return;
   }
 
@@ -483,14 +512,14 @@ function handleCompasChange(newValue) {
 
   // Validate range with tooltips - clear input and keep focus on error
   if (parsed < 1) {
-    showValidationWarning(inputCompas, 'El Compás mínimo es <strong>1</strong>', 2000);
+    showValidationWarning(inputCompas, 'El mínimo es <strong>1</strong>', 2000);
     if (inputCompas) {
       inputCompas.value = '';
       inputCompas.focus();
     }
     return;
-  } else if (parsed > 12) {
-    showValidationWarning(inputCompas, 'El Compás máximo es <strong>12</strong>', 2000);
+  } else if (parsed > MAX_COMPAS) {
+    showValidationWarning(inputCompas, `El máximo es <strong>${MAX_COMPAS}</strong>`, 2000);
     if (inputCompas) {
       inputCompas.value = '';
       inputCompas.focus();
@@ -501,11 +530,8 @@ function handleCompasChange(newValue) {
     if (inputCompas) inputCompas.value = compas;
   }
 
-  // Re-render numbers with new compás
-  renderPulseNumbers();
-
-  // Show total cycles (stopped state)
-  showTotalCycles();
+  // Re-render timeline with new compás
+  renderTimeline();
 
   // Save state
   saveState();
@@ -513,7 +539,7 @@ function handleCompasChange(newValue) {
 
 function incrementCompas() {
   const current = compas ?? 0;
-  if (current < 12) {
+  if (current < MAX_COMPAS) {
     handleCompasChange(current + 1);
   }
 }
@@ -530,9 +556,9 @@ function decrementCompas() {
 // ============================================
 
 function handleRandom() {
-  const maxCompas = parseInt(document.getElementById('randCompasMax')?.value || '12', 10);
+  const maxCompas = parseInt(document.getElementById('randCompasMax')?.value || String(MAX_COMPAS), 10);
   const min = 1;
-  const max = Math.min(Math.max(maxCompas, 1), 12);
+  const max = Math.min(Math.max(maxCompas, 1), MAX_COMPAS);
   const newCompas = Math.floor(Math.random() * (max - min + 1)) + min;
 
   handleCompasChange(newCompas);
@@ -541,15 +567,6 @@ function handleRandom() {
 // ============================================
 // BPM HANDLING (via shared bpm-controller)
 // ============================================
-
-/**
- * Sync local bpm variable from controller
- */
-function syncBpmFromController() {
-  if (bpmController) {
-    bpm = bpmController.getValue();
-  }
-}
 
 /**
  * Toggle BPM visibility - shows/hides BPM input and tap tempo button
@@ -600,11 +617,8 @@ function handleReset() {
     inputCompas.focus();
   }
 
-  // Clear pulse numbers from timeline
-  timeline?.querySelectorAll('.pulse-number').forEach(n => n.remove());
-
-  // Clear cycle display
-  showTotalCycles();
+  // Clear timeline
+  renderTimeline();
 
   // Note: P0 toggle state is NOT reset - it persists through Reset
 }
@@ -638,7 +652,6 @@ async function initializeApp() {
   inputCompas = document.getElementById('inputCompas');
   compasUpBtn = document.getElementById('compasUp');
   compasDownBtn = document.getElementById('compasDown');
-  cycleDigit = document.getElementById('cycleDigit');
   timeline = document.getElementById('timeline');
   timelineWrapper = document.getElementById('timelineWrapper');
   playBtn = document.getElementById('playBtn');
@@ -677,17 +690,8 @@ async function initializeApp() {
   }
   compas = null;
 
-  // Render timeline WITHOUT numbers (user will see them appear when entering compás)
-  if (timelineController) {
-    pulses = timelineController.render(TOTAL_PULSES - 1, {
-      isCircular: false,
-      silent: true
-    });
-  }
-  // Don't call renderPulseNumbers() - wait for user input
-
-  // Always show the "12" end label
-  renderEndLabel();
+  // Don't render timeline yet - wait for user to enter compás
+  // Timeline will be rendered when user enters a value
 
   // Give focus to input so user can start typing
   inputCompas?.focus();
@@ -767,18 +771,6 @@ async function initializeApp() {
     });
   }
 
-  // Initialize cycle highlight toggle
-  const cycleHighlightToggle = document.getElementById('cycleHighlightToggle');
-  if (cycleHighlightToggle) {
-    const savedHighlight = localStorage.getItem('app16:cycleHighlight');
-    cycleHighlightEnabled = savedHighlight !== null ? savedHighlight === 'true' : true;
-    cycleHighlightToggle.checked = cycleHighlightEnabled;
-    cycleHighlightToggle.addEventListener('change', () => {
-      cycleHighlightEnabled = cycleHighlightToggle.checked;
-      localStorage.setItem('app16:cycleHighlight', String(cycleHighlightEnabled));
-    });
-  }
-
   // Initialize BPM controller (shared module handles input/blur/spinners)
   if (inputBpm) {
     bpmController = createBpmController({
@@ -837,7 +829,6 @@ async function initializeApp() {
       stopPlayback();
       localStorage.removeItem('app16:p1Toggle');
       localStorage.removeItem('app16:pulseAudio');
-      localStorage.removeItem('app16:cycleHighlight');
       localStorage.removeItem('app16:showBpm');
       localStorage.removeItem(MIXER_STORAGE_KEY);
     }

@@ -27,13 +27,13 @@
       showPulseToggle: true,
       showP1Toggle: true,
       showCircularTimelineToggle: false,
-      showCycleHighlightToggle: true,
+      showCycleHighlightToggle: false,
       hideT: true,
       hideLeds: true,
       randomMenuContent: `
         <label>
-          <span>Compás máximo</span>
-          <input type="number" id="randCompasMax" value="12" min="1" max="12">
+          <span>Pulsos máximo</span>
+          <input type="number" id="randCompasMax" value="7" min="1" max="7">
         </label>
       `
     });
@@ -43,19 +43,13 @@
     if (inputsSection) {
       inputsSection.innerHTML = `
         <div class="param compas">
-          <span class="abbr">Compás</span>
+          <span class="abbr">Pulsos por<br>Compás</span>
           <div class="circle">
-            <input id="inputCompas" type="number" min="1" max="12" value="" />
+            <input id="inputCompas" type="number" min="1" max="7" value="" />
             <div class="spinner">
               <button id="compasUp" class="spin up" type="button" aria-label="Incrementar Compás"></button>
               <button id="compasDown" class="spin down" type="button" aria-label="Decrementar Compás"></button>
             </div>
-          </div>
-        </div>
-        <div class="param cycle-display">
-          <span class="abbr">Nº Compases</span>
-          <div class="circle cycle-circle">
-            <div class="cycle-counter__digit" id="cycleDigit"></div>
           </div>
         </div>
       `;
