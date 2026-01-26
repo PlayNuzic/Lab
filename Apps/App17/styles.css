@@ -214,12 +214,19 @@ html, body {
 /* ============================================
    CIRCULAR MODE HIGHLIGHT OVERRIDES
    Maintain circular positioning while adding scale effect
+   Scale from center outward (away from timeline circle)
    ============================================ */
 
-/* Active pulse number - orange (circular mode uses translate(-50%, -50%)) */
+/* Base: scale from inner edge so numbers move outward */
+.timeline.circular .pulse-number {
+  transform-origin: center center;
+  transition: transform 0.12s ease, color 0.12s ease;
+}
+
+/* Active pulse number - orange */
 .timeline.circular .pulse-number.active {
   color: var(--selection-color, #EA570C) !important;
-  transform: translate(-50%, -50%) scale(1.35) !important;
+  transform: translate(-50%, -50%) scale(1.4) !important;
 }
 
 /* Zero position - blue with glow */
@@ -230,8 +237,9 @@ html, body {
 }
 
 /* Special case: pulse 0 at bottom has different positioning */
-.timeline.circular .pulse-number[data-index="0"].active-zero {
-  transform: translate(50%, 20%) scale(1.5) !important;
+.timeline.circular .pulse-number[data-index="0"].active-zero,
+.timeline.circular .pulse-number[data-index="0"].active {
+  transform: translate(50%, 30%) scale(1.5) !important;
 }
 
 /* ============================================
