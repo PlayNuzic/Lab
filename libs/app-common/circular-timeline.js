@@ -8,7 +8,7 @@
  */
 
 const NUMBER_HIDE_THRESHOLD = 100;   // Hide numbers when Lg >= 100
-const NUMBER_CIRCLE_OFFSET = 34;     // Distance from circle to number label (px)
+const NUMBER_CIRCLE_OFFSET = 44;     // Distance from circle to number label (px)
 
 /**
  * Creates a circular timeline controller
