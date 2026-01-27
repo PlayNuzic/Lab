@@ -201,11 +201,11 @@ html, body {
   overflow: hidden;
 }
 
-/* Plano container customizations for App25B */
+/* Plano container customizations for App25B - 3 registries, 15 visible rows */
 .app25-plano-container .plano-container {
-  --plano-visible-rows: 13;
-  --plano-cell-height: 32px;
-  --plano-soundline-width: 55px;
+  --plano-visible-rows: 15;
+  --plano-cell-height: 30px;
+  --plano-soundline-width: 50px;
   --plano-cell-min-width: 55px;
   height: 100%;
 }

@@ -28,9 +28,10 @@ const TOTAL_SPACES = 12;   // Spaces between pulses
 const DEFAULT_BPM = 120;
 const BASE_DEGREE = 0;     // Implicit starting degree
 
-// Registry configuration for App25B
-const VISIBLE_ROWS = 13;   // Show 13 rows at a time (one octave + 1)
-const DEFAULT_REGISTRY = 3;
+// Registry configuration for App25B - 3 registries (3, 4, 5) like App19
+const VISIBLE_ROWS = 15;   // Show 15 rows at a time (like App19)
+const DEFAULT_REGISTRY = 4;  // Middle registry by default
+const SELECTABLE_REGISTRIES = [3, 4, 5];
 
 // Scale configuration (from App24)
 const APP25_SCALES = [
@@ -207,6 +208,7 @@ function degreeIntervalsToAbsoluteDegrees(intervals, baseDegree = BASE_DEGREE) {
  * Convert absolute degree to registry and degree within registry
  * For App25B: registry 3 = degrees 0 to scaleLength-1
  *            registry 4 = degrees scaleLength to 2*scaleLength-1
+ *            registry 5 = degrees 2*scaleLength to 3*scaleLength-1
  */
 function degreeToRegistryAndNote(absoluteDegree, scaleLength) {
   if (absoluteDegree === null || absoluteDegree === undefined) return null;
@@ -214,12 +216,13 @@ function degreeToRegistryAndNote(absoluteDegree, scaleLength) {
 
   // Registry 3 = first octave (degrees 0 to scaleLength-1)
   // Registry 4 = second octave (degrees scaleLength to 2*scaleLength-1)
+  // Registry 5 = third octave (degrees 2*scaleLength to 3*scaleLength-1)
   const registryOffset = Math.floor(absoluteDegree / scaleLength);
   const registry = 3 + registryOffset;  // Start at registry 3
   const degreeInRegistry = absoluteDegree % scaleLength;
 
-  // Only support registries 3 and 4
-  if (registry > 4) return null;
+  // Support registries 3, 4, and 5
+  if (registry > 5) return null;
 
   return { registry, degreeInRegistry };
 }
@@ -237,7 +240,7 @@ function absoluteDegreeToMidi(absoluteDegree) {
   const baseMidi = degreeToMidi(degreeInRegistry, null);
   if (baseMidi === null) return null;
 
-  // Add octave offset for registry 4
+  // Add octave offset for registry 4 and 5
   const registryOffset = (registry - 3) * 12;
   return baseMidi + registryOffset;
 }
@@ -265,18 +268,36 @@ function buildPulseRegistryMap(absoluteDegrees, scaleLength) {
 /**
  * Build rows for the grid based on current scale
  * Each row represents a degree in the scale
- * Rows are labeled as Nº^r (degree with registry superscript)
+ * Rows are labeled as Nº^r (MODULAR degree with registry superscript)
+ *
+ * Registry 5: degrees 2*scaleLength to 3*scaleLength-1 (modular: 0-N)
+ * Registry 4: degrees scaleLength to 2*scaleLength-1 (modular: 0-N)
+ * Registry 3: degrees 0 to scaleLength-1 (modular: 0-N)
  */
 function buildScaleRows() {
   const rows = [];
 
-  // Registry 4 (upper octave): degrees scaleLength to 2*scaleLength-1
+  // Registry 5 (highest octave)
   // Show from highest to lowest
+  for (let d = currentScaleLength - 1; d >= 0; d--) {
+    const absoluteDegree = d + 2 * currentScaleLength;
+    rows.push({
+      id: `${d}r5`,
+      label: `${d}`,  // MODULAR degree (0 to scaleLength-1)
+      data: {
+        registry: 5,
+        note: d,
+        absoluteDegree: absoluteDegree
+      }
+    });
+  }
+
+  // Registry 4 (middle octave)
   for (let d = currentScaleLength - 1; d >= 0; d--) {
     const absoluteDegree = d + currentScaleLength;
     rows.push({
       id: `${d}r4`,
-      label: `${absoluteDegree}`,  // Show absolute degree
+      label: `${d}`,  // MODULAR degree (0 to scaleLength-1)
       data: {
         registry: 4,
         note: d,
@@ -285,12 +306,11 @@ function buildScaleRows() {
     });
   }
 
-  // Registry 3 (lower octave): degrees 0 to scaleLength-1
-  // Show from highest to lowest
+  // Registry 3 (lowest octave)
   for (let d = currentScaleLength - 1; d >= 0; d--) {
     rows.push({
       id: `${d}r3`,
-      label: `${d}`,  // Show degree
+      label: `${d}`,  // MODULAR degree (0 to scaleLength-1)
       data: {
         registry: 3,
         note: d,
@@ -315,6 +335,36 @@ function calculateScaleNote0RowMap(rows) {
   });
 
   return map;
+}
+
+/**
+ * Update soundline labels to show Nº^r format (MODULAR degree with registry superscript)
+ * Called after grid creation and after scale change
+ */
+function updateSoundlineLabels() {
+  if (!planoGrid) return;
+
+  const elements = planoGrid.getElements();
+  if (!elements?.soundlineContainer) return;
+
+  const soundlineRow = elements.soundlineContainer.querySelector('.plano-soundline-row');
+  if (!soundlineRow) return;
+
+  const noteEls = soundlineRow.querySelectorAll('.plano-soundline-note');
+  noteEls.forEach(noteEl => {
+    const registry = noteEl.dataset.registry;
+    const note = noteEl.dataset.note;  // MODULAR degree (0 to scaleLength-1)
+
+    if (note !== undefined && registry !== undefined) {
+      // Format: Nº^r where Nº is the modular degree and r is the registry
+      noteEl.innerHTML = `${note}<sup>${registry}</sup>`;
+
+      // Highlight degree 0 of each registry (boundary)
+      if (note === '0') {
+        noteEl.classList.add('plano-boundary');
+      }
+    }
+  });
 }
 
 // ========== SCROLL FUNCTIONS ==========
@@ -393,6 +443,7 @@ function clearIntervalLines() {
 
 /**
  * Create interval line between two degrees
+ * Uses PERCENTAGES for positioning (like App15) to avoid displacement issues
  */
 function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 0) {
   if (!planoGrid) return;
@@ -407,6 +458,7 @@ function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 
 
   // Find the cell positions
   const rows = planoGrid.getRows();
+  const totalRows = rows.length;
   const reg1 = degreeToRegistryAndNote(degree1, currentScaleLength);
   const reg2 = degreeToRegistryAndNote(degree2, currentScaleLength);
 
@@ -418,52 +470,131 @@ function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 
 
   if (rowIndex1 === -1 || rowIndex2 === -1) return;
 
-  // Get cell dimensions
-  const cellHeight = matrix.scrollHeight / rows.length;
-  const cellWidth = matrix.scrollWidth / TOTAL_SPACES;
+  // Calculate positions in PERCENTAGES (like App15)
+  const leftPosPercent = (pulseIndex / TOTAL_SPACES) * 100;
 
-  // Calculate positions
-  const leftPos = pulseIndex * cellWidth;
-
-  // Vertical positions (from top of matrix)
-  const y1 = rowIndex1 * cellHeight + cellHeight / 2;
-  const y2 = rowIndex2 * cellHeight + cellHeight / 2;
-
-  // Create interval bar
-  const intervalBar = document.createElement('div');
-  intervalBar.className = 'interval-bar-vertical';
+  // Special case: interval 0 - draw vertical line spanning the full cell height
   if (absInterval === 0) {
-    intervalBar.classList.add('interval-zero');
-  } else {
-    intervalBar.classList.add(isAscending ? 'ascending' : 'descending');
+    const cellHeightPercent = 100 / totalRows;
+    const topEdgePercent = (rowIndex2 / totalRows) * 100;
+
+    const intervalBar = document.createElement('div');
+    intervalBar.className = 'interval-bar-vertical interval-zero';
+
+    intervalBar.style.position = 'absolute';
+    intervalBar.style.top = `${topEdgePercent}%`;
+    intervalBar.style.left = `${leftPosPercent}%`;
+    intervalBar.style.transform = 'translateX(-50%)';
+    intervalBar.style.width = '4px';
+    intervalBar.style.height = `${cellHeightPercent}%`;
+    intervalBar.style.zIndex = '15';
+
+    matrix.appendChild(intervalBar);
+    currentIntervalElements.push(intervalBar);
+
+    // Number "0" ABOVE the bar
+    const intervalNum = document.createElement('div');
+    intervalNum.className = 'interval-number';
+    intervalNum.textContent = '0';
+    intervalNum.style.position = 'absolute';
+    intervalNum.style.zIndex = '16';
+    intervalNum.style.top = `${topEdgePercent}%`;
+    intervalNum.style.left = `${leftPosPercent}%`;
+    intervalNum.style.transform = 'translate(-50%, -100%)';
+
+    matrix.appendChild(intervalNum);
+    currentIntervalElements.push(intervalNum);
+    return;
   }
 
-  const topY = Math.min(y1, y2);
-  const height = Math.abs(y2 - y1);
+  // Calculate vertical positions in percentages
+  // Each cell: top edge = rowIndex / totalRows * 100
+  //           bottom edge = (rowIndex + 1) / totalRows * 100
+  let topEdgePercent, bottomEdgePercent;
+
+  if (absInterval <= 1) {
+    // ±1: line spans full edge-to-edge
+    const topRowIndex = Math.min(rowIndex1, rowIndex2);
+    const bottomRowIndex = Math.max(rowIndex1, rowIndex2);
+    topEdgePercent = (topRowIndex / totalRows) * 100;
+
+    // First interval from base (0,0): extend to bottom of its cell
+    if (intervalIndex === 0 && degree1 === BASE_DEGREE) {
+      bottomEdgePercent = ((bottomRowIndex + 1) / totalRows) * 100;
+    } else {
+      bottomEdgePercent = ((bottomRowIndex + 1) / totalRows) * 100;
+    }
+  } else if (isAscending) {
+    // Ascending: from origin top to destination bottom
+    topEdgePercent = (rowIndex2 / totalRows) * 100;  // Destination top
+    if (intervalIndex === 0 && degree1 === BASE_DEGREE) {
+      bottomEdgePercent = ((rowIndex1 + 1) / totalRows) * 100;  // Origin bottom
+    } else {
+      bottomEdgePercent = (rowIndex1 / totalRows) * 100 + (100 / totalRows);  // Origin bottom
+    }
+  } else {
+    // Descending: from origin bottom to destination top
+    topEdgePercent = (rowIndex1 / totalRows) * 100;  // Origin top
+    bottomEdgePercent = ((rowIndex2 + 1) / totalRows) * 100;  // Destination bottom
+  }
+
+  const finalHeightPercent = Math.abs(bottomEdgePercent - topEdgePercent);
+
+  const intervalBar = document.createElement('div');
+  intervalBar.className = 'interval-bar-vertical';
+  intervalBar.classList.add(isAscending ? 'ascending' : 'descending');
 
   intervalBar.style.position = 'absolute';
-  intervalBar.style.left = `${leftPos}px`;
-  intervalBar.style.top = `${topY}px`;
-  intervalBar.style.height = `${height || cellHeight * 0.8}px`;
-  intervalBar.style.width = '4px';
+  intervalBar.style.left = `${leftPosPercent}%`;
   intervalBar.style.transform = 'translateX(-50%)';
+  intervalBar.style.width = '4px';
+  intervalBar.style.top = `${Math.min(topEdgePercent, bottomEdgePercent)}%`;
+  intervalBar.style.height = `${finalHeightPercent}%`;
   intervalBar.style.zIndex = '15';
 
   matrix.appendChild(intervalBar);
   currentIntervalElements.push(intervalBar);
 
-  // Create interval number
-  const displayValue = degreeInterval > 0 ? `+${absInterval}` :
-                       degreeInterval < 0 ? `-${absInterval}` : '0';
+  // Create interval number label
+  const displayValue = degreeInterval > 0 ? `+${absInterval}` : `-${absInterval}`;
+  const centerYPercent = (topEdgePercent + bottomEdgePercent) / 2;
 
   const intervalNum = document.createElement('div');
   intervalNum.className = 'interval-number';
   intervalNum.textContent = displayValue;
   intervalNum.style.position = 'absolute';
   intervalNum.style.zIndex = '16';
-  intervalNum.style.top = `${topY + height / 2}px`;
-  intervalNum.style.left = `${leftPos + 15}px`;
-  intervalNum.style.transform = 'translateY(-50%)';
+
+  // Position: first interval always right, ascending left, descending right
+  const isFirstInterval = intervalIndex === 0;
+
+  if (absInterval === 1) {
+    // ±1: number always goes RIGHT of the bar
+    let adjustedCenterY = centerYPercent;
+    if (isAscending) {
+      adjustedCenterY = bottomEdgePercent - 2;
+    } else {
+      adjustedCenterY = topEdgePercent + 2;
+    }
+    intervalNum.style.top = `${adjustedCenterY}%`;
+    intervalNum.style.left = `calc(${leftPosPercent}% + 12px)`;
+    intervalNum.style.transform = 'translateY(-50%)';
+  } else if (isFirstInterval) {
+    // First interval: number always goes RIGHT
+    intervalNum.style.top = `${centerYPercent}%`;
+    intervalNum.style.left = `calc(${leftPosPercent}% + 12px)`;
+    intervalNum.style.transform = 'translateY(-50%)';
+  } else if (isAscending) {
+    // Ascending (except ±1 and first): number LEFT of the bar
+    intervalNum.style.top = `${centerYPercent}%`;
+    intervalNum.style.left = `calc(${leftPosPercent}% - 12px)`;
+    intervalNum.style.transform = 'translate(-100%, -50%)';
+  } else {
+    // Descending (except ±1): number RIGHT of the bar
+    intervalNum.style.top = `${centerYPercent}%`;
+    intervalNum.style.left = `calc(${leftPosPercent}% + 12px)`;
+    intervalNum.style.transform = 'translateY(-50%)';
+  }
 
   matrix.appendChild(intervalNum);
   currentIntervalElements.push(intervalNum);
@@ -474,31 +605,115 @@ function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 
 function syncGridFromDegreeIntervals(absoluteDegrees) {
   if (!planoGrid) return;
 
-  // Clear previous selections and interval lines
-  planoGrid.clearSelection();
+  // IMPORTANT: Clear ALL previous state first to avoid visual duplication
   clearIntervalLines();
+  planoGrid.clearSelection();
 
-  // Filter valid degrees
-  const validDegrees = absoluteDegrees.filter(d => !d.isRest && d.degree !== null);
+  // Small delay to ensure DOM updates before adding new selections
+  requestAnimationFrame(() => {
+    // Filter valid degrees
+    const validDegrees = absoluteDegrees.filter(d => !d.isRest && d.degree !== null);
 
-  // Select cells for each degree
-  validDegrees.forEach(({ degree, pulse }) => {
-    const regInfo = degreeToRegistryAndNote(degree, currentScaleLength);
-    if (!regInfo) return;
+    // Select cells for each degree
+    validDegrees.forEach(({ degree, pulse }) => {
+      const regInfo = degreeToRegistryAndNote(degree, currentScaleLength);
+      if (!regInfo) return;
 
-    const rowId = `${regInfo.degreeInRegistry}r${regInfo.registry}`;
-    planoGrid.selectCell(rowId, pulse);
+      const rowId = `${regInfo.degreeInRegistry}r${regInfo.registry}`;
+      planoGrid.selectCell(rowId, pulse);
+    });
+
+    // Draw interval lines
+    let prevDegree = BASE_DEGREE;
+    validDegrees.forEach(({ degree, pulse }, idx) => {
+      createDegreeIntervalLine(prevDegree, degree, pulse, idx);
+      prevDegree = degree;
+    });
+
+    // Build registry map for autoscroll
+    pulseRegistryMap = buildPulseRegistryMap(absoluteDegrees, currentScaleLength);
+  });
+}
+
+// ========== BIDIRECTIONAL: Grid2D -> iSº Editor ==========
+
+/**
+ * Handle click on grid cell - update the iSº editor row
+ * This makes the grid2D bidirectional like App15
+ */
+function handleGridCellClick(absoluteDegree, pulseIndex) {
+  if (!gridEditor) return;
+
+  // Get all selected cells from the grid
+  const selectedCells = planoGrid.getSelectedCells();
+
+  // Build intervals array from selected cells
+  // Sort by pulse index
+  const sortedSelections = [];
+  selectedCells.forEach((value, key) => {
+    // key format: "NrR-P" (e.g., "3r4-2")
+    const match = key.match(/^(\d+)r(\d+)-(\d+)$/);
+    if (match) {
+      const [, note, registry, pulse] = match.map(Number);
+      const absD = (registry - 3) * currentScaleLength + note;
+      sortedSelections.push({ absoluteDegree: absD, pulse });
+    }
   });
 
-  // Draw interval lines
+  sortedSelections.sort((a, b) => a.pulse - b.pulse);
+
+  // Convert to intervals
+  const newIntervals = [];
   let prevDegree = BASE_DEGREE;
-  validDegrees.forEach(({ degree, pulse }, idx) => {
-    createDegreeIntervalLine(prevDegree, degree, pulse, idx);
-    prevDegree = degree;
+
+  for (let p = 0; p < TOTAL_SPACES; p++) {
+    const selection = sortedSelections.find(s => s.pulse === p);
+    if (selection) {
+      const degreeInterval = selection.absoluteDegree - prevDegree;
+      newIntervals.push({
+        degreeInterval,
+        isRest: false
+      });
+      prevDegree = selection.absoluteDegree;
+    } else {
+      // Empty pulse = rest or skip
+      newIntervals.push({
+        degreeInterval: 0,
+        isRest: true
+      });
+    }
+  }
+
+  // Update the grid editor with new intervals
+  currentDegreeIntervals = newIntervals;
+  gridEditor.setPairs(newIntervals);
+
+  // Redraw interval lines
+  clearIntervalLines();
+  let prevD = BASE_DEGREE;
+  sortedSelections.forEach(({ absoluteDegree: deg, pulse }, idx) => {
+    createDegreeIntervalLine(prevD, deg, pulse, idx);
+    prevD = deg;
   });
 
-  // Build registry map for autoscroll
+  // Update registry map
+  const absoluteDegrees = sortedSelections.map((s, i) => ({
+    degree: s.absoluteDegree,
+    pulse: s.pulse,
+    isRest: false
+  }));
   pulseRegistryMap = buildPulseRegistryMap(absoluteDegrees, currentScaleLength);
+
+  saveCurrentState();
+}
+
+/**
+ * Handle deselection of a grid cell
+ */
+function handleGridCellDeselect(pulseIndex) {
+  // Recalculate intervals after deselection
+  // Use the same logic as handleGridCellClick but without the clicked cell
+  handleGridCellClick(null, pulseIndex);
 }
 
 // ========== PLAYBACK ==========
@@ -613,16 +828,26 @@ function stopPlayback(delayMs = 0) {
 // ========== RESET ==========
 
 function handleReset() {
-  gridEditor?.clear();
-  planoGrid?.clearSelection();
-  clearIntervalLines();
-
-  currentDegreeIntervals = [];
-  pulseRegistryMap = {};
-
+  // Stop playback first if playing
   if (isPlaying) {
     stopPlayback();
   }
+
+  // Clear the grid editor (input row)
+  gridEditor?.clear();
+
+  // IMPORTANT: Clear interval lines BEFORE clearing selection
+  clearIntervalLines();
+
+  // Clear the 2D grid selection
+  planoGrid?.clearSelection();
+
+  // Clear any highlights
+  planoGrid?.clearHighlights();
+
+  // Reset state
+  currentDegreeIntervals = [];
+  pulseRegistryMap = {};
 
   saveCurrentState();
   console.log('Reset to default state');
@@ -648,13 +873,18 @@ function handleRandom() {
   const numIntervals = Math.max(1, Math.min(randDensity, TOTAL_SPACES));
   const maxInterval = newScaleLength - 1;
 
+  // Clear previous state FIRST
+  clearIntervalLines();
+  planoGrid?.clearSelection();
+
   let accumulatedDegree = BASE_DEGREE;
   const intervals = [];
 
   for (let pulse = 0; pulse < TOTAL_SPACES; pulse++) {
     if (pulse < numIntervals) {
       const minAllowed = -accumulatedDegree;
-      const maxAllowed = (2 * newScaleLength - 1) - accumulatedDegree;
+      // 3 registries: max absolute degree is 3*scaleLength - 1
+      const maxAllowed = (3 * newScaleLength - 1) - accumulatedDegree;
       const minInterval = Math.max(-maxInterval, minAllowed);
       const maxIntervalClamped = Math.min(maxInterval, maxAllowed);
 
@@ -733,6 +963,9 @@ function rebuildGrid() {
 
   const rows = buildScaleRows();
   planoGrid.updateRows(rows);
+
+  // Update soundline labels with Nº^r format
+  updateSoundlineLabels();
 
   // Scroll to default registry
   setTimeout(() => {
@@ -834,41 +1067,34 @@ async function init() {
       visibleColumns: TOTAL_SPACES,
       note0RowMap
     },
-    selectionMode: 'none',  // We handle selection manually
+    selectionMode: 'monophonic',  // One note per column - BIDIRECTIONAL
     showPlayhead: true,
     playheadOffset: 0,
     onCellClick: async (rowData, colIndex, isSelected) => {
       const audioInstance = await initAudio();
-      if (!window.Tone || !audioInstance) return;
 
       // Play the note
       const absoluteDegree = rowData.data.absoluteDegree;
       const midi = absoluteDegreeToMidi(absoluteDegree);
-      if (midi !== null) {
+      if (midi !== null && window.Tone && audioInstance) {
         const duration = (60 / currentBPM) * 0.9;
         audioInstance.playNote(midi, duration, window.Tone.now());
+      }
+
+      // BIDIRECTIONAL: Update the iSº editor row when clicking on grid
+      if (isSelected) {
+        handleGridCellClick(absoluteDegree, colIndex);
+      } else {
+        // Cell was deselected - clear the interval at this position
+        handleGridCellDeselect(colIndex);
       }
     }
   });
 
-  // Soundline label formatter
-  const elements = planoGrid.getElements();
-  if (elements?.soundlineContainer) {
-    // Update soundline labels to show Nº^r format
-    const soundlineRow = elements.soundlineContainer.querySelector('.plano-soundline-row');
-    if (soundlineRow) {
-      const noteEls = soundlineRow.querySelectorAll('.plano-soundline-note');
-      noteEls.forEach(noteEl => {
-        const registry = noteEl.dataset.registry;
-        const degree = noteEl.dataset.absoluteDegree;
-        if (degree !== undefined && registry !== undefined) {
-          noteEl.innerHTML = `${degree}<sup>${registry}</sup>`;
-        }
-      });
-    }
-  }
+  // Update soundline labels to show Nº^r format (MODULAR degree with registry superscript)
+  updateSoundlineLabels();
 
-  // Initial scroll to registry 3
+  // Initial scroll to default registry
   setTimeout(() => {
     scrollToRegistry(DEFAULT_REGISTRY, false);
   }, 100);
