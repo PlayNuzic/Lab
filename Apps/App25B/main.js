@@ -673,6 +673,7 @@ function stopPlayback(delayMs = 0) {
 
 /**
  * Scroll to keep a note visible (autoscroll during playback)
+ * Only scrolls the matrix - soundline sync is handled by musical-grid's setupScrollSync()
  */
 function scrollToNoteIfNeeded(noteIndex) {
   if (noteIndex === null || noteIndex === undefined) return;
@@ -681,7 +682,6 @@ function scrollToNoteIfNeeded(noteIndex) {
   if (!gridContainer) return;
 
   const matrixContainer = gridContainer.querySelector('.matrix-container');
-  const soundlineWrapper = gridContainer.querySelector('.soundline-wrapper');
 
   if (!matrixContainer) return;
   if (matrixContainer.scrollHeight <= matrixContainer.clientHeight) return;
@@ -695,10 +695,8 @@ function scrollToNoteIfNeeded(noteIndex) {
   const maxScroll = matrixContainer.scrollHeight - visibleHeight;
   const clampedScroll = Math.max(0, Math.min(targetScroll, maxScroll));
 
+  // Scroll matrix only - soundline sync is automatic via setupScrollSync()
   matrixContainer.scrollTo({ top: clampedScroll, behavior: 'smooth' });
-  if (soundlineWrapper) {
-    soundlineWrapper.scrollTo({ top: clampedScroll, behavior: 'smooth' });
-  }
 }
 
 // ========== RESET ==========
