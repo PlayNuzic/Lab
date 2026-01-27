@@ -782,17 +782,17 @@ function updateSoundlineLabels() {
 
   if (musicalGrid.updateSoundlineLabels) {
     musicalGrid.updateSoundlineLabels(scaleSemitones, (noteIndex) => {
-      // Calculate degree from note index
-      const octave = Math.floor(noteIndex / 12);
-      const semitoneInOctave = noteIndex % 12;
+      // Note 12 is upper registry - don't show number
+      if (noteIndex === 12) {
+        return '';
+      }
 
+      // For notes 0-11, find the degree
       const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
-      const scaleLen = currentScaleLength;
 
-      for (let d = 0; d < scaleLen; d++) {
-        if (degToSemi(visualState, d) === semitoneInOctave) {
-          const absoluteDegree = d + (octave * scaleLen);
-          return String(absoluteDegree);
+      for (let d = 0; d < currentScaleLength; d++) {
+        if (degToSemi(visualState, d) === noteIndex) {
+          return String(d);
         }
       }
       return '·';
@@ -915,11 +915,11 @@ async function init() {
     intervalColor: '#4A9EFF',  // Blue for timeline numbers (iSº arrows use separate pink)
     noteFormatter: (noteIndex) => {
       // Show degree number if note is in scale, otherwise dot
-      // Note 12 is degree 0 of upper octave (registry 2)
-      const scaleSems = getVisualScaleSemitones();
+      // Note 12 is degree 0 of upper octave - don't show number (it's implicit)
       if (noteIndex === 12) {
-        return '0';  // Upper registry note 0
+        return '';  // Upper registry note 0 - no label needed
       }
+      const scaleSems = getVisualScaleSemitones();
       const degreeIndex = scaleSems.indexOf(noteIndex);
       return degreeIndex !== -1 ? String(degreeIndex) : '·';
     },
