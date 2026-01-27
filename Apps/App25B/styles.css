@@ -2,7 +2,7 @@
 
 /* Import shared module styles */
 @import url('../../libs/matrix-seq/grid-editor.css');
-@import url('../../libs/plano-modular/plano-modular.css');
+@import url('../../libs/musical-grid/musical-grid.css');
 @import url('../../libs/scale-selector/scale-selector.css');
 
 /* Variables CSS */
@@ -194,41 +194,11 @@ html, body {
   overflow-x: auto;
 }
 
-/* Plano container fills remaining space */
-.app25-plano-container {
+/* Musical grid fills remaining space */
+.app25-grid-area .grid-container {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-}
-
-/* Plano container customizations for App25B - 3 registries, 15 visible rows */
-.app25-plano-container .plano-container {
-  --plano-visible-rows: 15;
-  --plano-cell-height: 30px;
-  --plano-soundline-width: 50px;
-  --plano-cell-min-width: 55px;
-  height: 100%;
-}
-
-/* Soundline with superscript format Nº^r */
-.app25-plano-container .plano-soundline-note {
-  font-size: 1.3rem;
-}
-
-.app25-plano-container .plano-soundline-note sup {
-  font-size: 0.7em;
-  vertical-align: super;
-  line-height: 0;
-  margin-left: 1px;
-}
-
-/* Timeline fills full width */
-.app25-plano-container .plano-timeline-container {
-  width: 100%;
-}
-
-.app25-plano-container .plano-timeline-row {
-  width: 100%;
 }
 
 /* ========== CONTROLS ========== */
@@ -377,6 +347,47 @@ html, body {
 }
 
 /* ========== GRID-EDITOR STYLES ========== */
+.grid-row-label--degree-interval {
+  font-size: 2.8rem;
+  font-weight: 700;
+  min-width: 52px;
+  padding: 0px 0px;
+  margin-top: 30px;
+  color: var(--interval-sound-color);
+}
+
+.degree-interval-input {
+  width: 60px;
+  height: 50px;
+  border: 1px solid var(--interval-sound-color) !important;
+  border-radius: 6px;
+  background: transparent !important;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-color, #333);
+}
+
+[data-theme="dark"] .degree-interval-input {
+  background: transparent !important;
+  border-color: var(--interval-sound-color) !important;
+  color: var(--text-dark, #e0e0e0);
+}
+
+.degree-interval-input:focus {
+  border-color: var(--interval-sound-color) !important;
+  box-shadow: 0 0 6px rgba(242, 138, 173, 0.35);
+  background: rgba(242, 138, 173, 0.08) !important;
+}
+
+.degree-interval-input[data-filled="true"] {
+  background: rgba(242, 138, 173, 0.08) !important;
+}
+
+[data-theme="dark"] .degree-interval-input[data-filled="true"] {
+  background: rgba(242, 138, 173, 0.12) !important;
+}
+
+/* Fallback for degree mode */
 .grid-row-label--degree {
   font-size: 2.8rem;
   font-weight: 700;
@@ -483,6 +494,32 @@ html, body {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
+/* ========== CELL LABELS ========== */
+.musical-cell .cell-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  pointer-events: none;
+  z-index: 5;
+}
+
+[data-theme="dark"] .musical-cell .cell-label {
+  color: #eee;
+}
+
+.musical-cell.active .cell-label {
+  color: #333;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .musical-cell.active .cell-label {
+  color: #111;
+}
+
 /* ========== HEADER CONTROLS ========== */
 .header-controls {
   display: flex !important;
@@ -571,19 +608,15 @@ html, body {
     height: 36px;
   }
 
-  .app25-plano-container .plano-container {
-    --plano-visible-rows: 12;
-    --plano-cell-height: 28px;
-    --plano-soundline-width: 50px;
-  }
-
-  .grid-row-label--degree {
+  .grid-row-label--degree,
+  .grid-row-label--degree-interval {
     font-size: 1.8rem;
     min-width: 40px;
     padding: 0 6px;
   }
 
-  .degree-input {
+  .degree-input,
+  .degree-interval-input {
     width: 42px;
     height: 42px;
     font-size: 1.6rem;
@@ -621,19 +654,15 @@ html, body {
     font-size: 0.69rem;
   }
 
-  .app25-plano-container .plano-container {
-    --plano-visible-rows: 10;
-    --plano-cell-height: 24px;
-    --plano-soundline-width: 45px;
-  }
-
-  .grid-row-label--degree {
+  .grid-row-label--degree,
+  .grid-row-label--degree-interval {
     font-size: 1.4rem;
     min-width: 35px;
     padding: 0 4px;
   }
 
-  .degree-input {
+  .degree-input,
+  .degree-interval-input {
     width: 36px;
     height: 36px;
     font-size: 1.4rem;
@@ -674,18 +703,15 @@ html, body {
     height: 32px;
   }
 
-  .app25-plano-container .plano-container {
-    --plano-cell-height: 20px;
-    --plano-soundline-width: 40px;
-  }
-
-  .grid-row-label--degree {
+  .grid-row-label--degree,
+  .grid-row-label--degree-interval {
     font-size: 1.2rem;
     min-width: 30px;
     padding: 0 3px;
   }
 
-  .degree-input {
+  .degree-input,
+  .degree-interval-input {
     width: 30px;
     height: 30px;
     font-size: 1.2rem;
