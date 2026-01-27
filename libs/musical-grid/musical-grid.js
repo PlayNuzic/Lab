@@ -755,25 +755,31 @@ export function createMusicalGrid(config) {
 
   /**
    * Setup scroll synchronization between matrix and axes
+   * Uses inner containers when scrollEnabled (they have the scrollable content)
    */
   function setupScrollSync() {
     if (!scrollEnabled) return;
 
+    // Use inner containers (scrollable) when they exist, fallback to wrappers
+    const soundlineScroll = containers.soundline;  // Wrapper has overflow:auto when scrollEnabled
+    const timelineScroll = containers.timeline;
+    const matrixScroll = containers.matrix;
+
+    if (!soundlineScroll || !matrixScroll) return;
+
     let isScrolling = false;
 
     // Sync scroll from matrix to axes
-    containers.matrix.addEventListener('scroll', () => {
+    matrixScroll.addEventListener('scroll', () => {
       if (isScrolling) return;
       isScrolling = true;
 
       // Sync vertical scroll to soundline
-      if (containers.soundline) {
-        containers.soundline.scrollTop = containers.matrix.scrollTop;
-      }
+      soundlineScroll.scrollTop = matrixScroll.scrollTop;
 
       // Sync horizontal scroll to timeline
-      if (containers.timeline) {
-        containers.timeline.scrollLeft = containers.matrix.scrollLeft;
+      if (timelineScroll) {
+        timelineScroll.scrollLeft = matrixScroll.scrollLeft;
       }
 
       requestAnimationFrame(() => {
@@ -782,11 +788,11 @@ export function createMusicalGrid(config) {
     });
 
     // Sync scroll from soundline to matrix (vertical only)
-    containers.soundline.addEventListener('scroll', () => {
+    soundlineScroll.addEventListener('scroll', () => {
       if (isScrolling) return;
       isScrolling = true;
 
-      containers.matrix.scrollTop = containers.soundline.scrollTop;
+      matrixScroll.scrollTop = soundlineScroll.scrollTop;
 
       requestAnimationFrame(() => {
         isScrolling = false;
@@ -794,16 +800,18 @@ export function createMusicalGrid(config) {
     });
 
     // Sync scroll from timeline to matrix (horizontal only)
-    containers.timeline.addEventListener('scroll', () => {
-      if (isScrolling) return;
-      isScrolling = true;
+    if (timelineScroll) {
+      timelineScroll.addEventListener('scroll', () => {
+        if (isScrolling) return;
+        isScrolling = true;
 
-      containers.matrix.scrollLeft = containers.timeline.scrollLeft;
+        matrixScroll.scrollLeft = timelineScroll.scrollLeft;
 
-      requestAnimationFrame(() => {
-        isScrolling = false;
+        requestAnimationFrame(() => {
+          isScrolling = false;
+        });
       });
-    });
+    }
   }
 
   /**

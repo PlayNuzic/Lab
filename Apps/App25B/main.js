@@ -818,12 +818,13 @@ function updateSoundlineLabels() {
 
   if (musicalGrid.updateSoundlineLabels) {
     musicalGrid.updateSoundlineLabels(scaleSemitones, (noteIndex) => {
-      // Notes 12 and 24 are octave boundaries - no label needed
-      if (noteIndex === 12 || noteIndex === 24) {
+      // Note 24 is upper boundary - no label needed
+      if (noteIndex === 24) {
         return '';
       }
 
       // Get semitone within octave (0-11)
+      // Note 12 has semitoneInOctave = 0, which correctly shows "0" for second registry
       const semitoneInOctave = noteIndex % 12;
       const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
 
@@ -953,12 +954,13 @@ async function init() {
     },
     intervalColor: '#4A9EFF',  // Blue for timeline numbers (iSº arrows use separate pink)
     noteFormatter: (noteIndex) => {
-      // Notes 12 and 24 are octave boundaries - no label needed
-      if (noteIndex === 12 || noteIndex === 24) {
+      // Note 24 is upper boundary - no label needed
+      if (noteIndex === 24) {
         return '';
       }
 
       // Get semitone within octave (0-11)
+      // Note 12 has semitoneInOctave = 0, which correctly shows "0" for second registry
       const semitoneInOctave = noteIndex % 12;
       const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
 
