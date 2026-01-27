@@ -205,14 +205,7 @@ export function createMusicalGrid(config) {
     line.className = 'soundline';
     innerContainer.appendChild(line);
 
-    // Create top zero label (above first division)
-    const topZeroLabel = document.createElement('div');
-    topZeroLabel.className = 'soundline-number top-zero';
-    topZeroLabel.dataset.noteIndex = '0-top';
-    topZeroLabel.textContent = '0';
-    topZeroLabel.style.top = '0%';
-    topZeroLabel.style.transform = 'translateY(-50%)';  // Align with first division
-    innerContainer.appendChild(topZeroLabel);
+    // Note: Top label removed - all notes are handled by noteFormatter in the loop below
 
     // Create note elements (0 to notes-1, from bottom to top visually)
     for (let i = 0; i < notes; i++) {

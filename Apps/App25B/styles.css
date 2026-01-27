@@ -201,14 +201,21 @@ html, body {
   overflow: hidden;
 }
 
-/* Hide soundline scrollbar but allow scroll */
+/* Hide soundline scrollbar and disable mouse scroll interaction */
+/* Scroll is controlled programmatically via matrix sync */
 .app25-grid-area .soundline-wrapper {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  pointer-events: none;  /* Disable mouse/touch scroll on soundline */
 }
 
 .app25-grid-area .soundline-wrapper::-webkit-scrollbar {
   display: none;
+}
+
+/* Re-enable pointer events for clickable note labels inside soundline */
+.app25-grid-area .soundline-wrapper .soundline-number {
+  pointer-events: auto;
 }
 
 /* Matrix: only vertical scroll, no horizontal */
