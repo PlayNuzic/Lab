@@ -221,17 +221,24 @@ function absoluteDegreeToMidi(absoluteDegree) {
 
 /**
  * Convert degree intervals to absolute degrees
+ * IMPORTANT: intervals array has objects with { pulse, degreeInterval, isRest }
+ * The pulse property is the actual pulse index, not the array index!
  */
 function degreeIntervalsToAbsoluteDegrees(intervals) {
   const degrees = [];
   let currentDegree = BASE_DEGREE;
 
-  intervals.forEach((interval, pulse) => {
+  // Sort by pulse to ensure correct order
+  const sortedIntervals = [...intervals].sort((a, b) => a.pulse - b.pulse);
+
+  sortedIntervals.forEach((interval) => {
     if (interval.isRest) {
-      degrees.push({ degree: null, pulse, isRest: true });
+      // Silence: record the pulse but don't change currentDegree
+      degrees.push({ degree: null, pulse: interval.pulse, isRest: true });
     } else {
+      // Sound: accumulate the interval
       currentDegree += interval.degreeInterval;
-      degrees.push({ degree: currentDegree, pulse, isRest: false });
+      degrees.push({ degree: currentDegree, pulse: interval.pulse, isRest: false });
     }
   });
 
@@ -240,15 +247,21 @@ function degreeIntervalsToAbsoluteDegrees(intervals) {
 
 /**
  * Convert absolute degrees back to intervals
+ * IMPORTANT: Silences don't change prevDegree - next note is relative to last sounding note
  */
 function absoluteDegreesToIntervals(absoluteDegrees) {
   const intervals = [];
   let prevDegree = BASE_DEGREE;
 
-  absoluteDegrees.forEach(({ degree, pulse, isRest }) => {
+  // Sort by pulse to ensure correct order
+  const sorted = [...absoluteDegrees].sort((a, b) => a.pulse - b.pulse);
+
+  sorted.forEach(({ degree, pulse, isRest }) => {
     if (isRest || degree === null) {
-      intervals.push({ degreeInterval: 0, pulse, isRest: true });
+      // Silence: degreeInterval is null, prevDegree stays the same
+      intervals.push({ degreeInterval: null, pulse, isRest: true });
     } else {
+      // Sound: calculate interval from previous sounding note
       intervals.push({ degreeInterval: degree - prevDegree, pulse, isRest: false });
       prevDegree = degree;
     }
@@ -903,7 +916,7 @@ async function init() {
       horizontal: true,
       vertical: false
     },
-    intervalColor: '#F28AAD',
+    intervalColor: '#4A9EFF',  // Blue for timeline numbers (iSº arrows use separate pink)
     noteFormatter: (noteIndex) => {
       const scaleSems = getVisualScaleSemitones();
       const octave = Math.floor(noteIndex / 12);
