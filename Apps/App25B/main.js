@@ -696,7 +696,12 @@ function scrollToNoteIfNeeded(noteIndex) {
   const clampedScroll = Math.max(0, Math.min(targetScroll, maxScroll));
 
   // Scroll matrix only - soundline sync is automatic via setupScrollSync()
-  matrixContainer.scrollTo({ top: clampedScroll, behavior: 'smooth' });
+  // Use 'smooth' for small jumps, 'auto' for large jumps (faster response)
+  const currentScroll = matrixContainer.scrollTop;
+  const scrollDistance = Math.abs(clampedScroll - currentScroll);
+  const threshold = visibleHeight * 0.5;  // Half visible height
+  const behavior = scrollDistance > threshold ? 'auto' : 'smooth';
+  matrixContainer.scrollTo({ top: clampedScroll, behavior });
 }
 
 // ========== RESET ==========

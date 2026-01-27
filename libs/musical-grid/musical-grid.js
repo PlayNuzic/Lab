@@ -226,8 +226,8 @@ export function createMusicalGrid(config) {
       noteLabel.dataset.midi = midi;
       noteLabel.textContent = noteFormatter ? noteFormatter(noteIndex, midi) : noteIndex;
 
-      // Align label with the division line (at the top edge of the cell)
-      const yPos = (i / notes) * 100;
+      // Align label with the bottom division line of the cell (i + 1)
+      const yPos = ((i + 1) / notes) * 100;
       noteLabel.style.top = `${yPos}%`;
       noteLabel.style.transform = 'translateY(-50%)';  // Center on the division line
 
