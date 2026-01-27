@@ -25,7 +25,8 @@ import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
-const TOTAL_NOTES = 13;    // Vertical: 0-12 (one octave + note 12 for upper registry)
+const TOTAL_NOTES = 25;    // Vertical: 0-24 (2 octaves real grid)
+const VISIBLE_NOTES = 13;  // Visible window: 13 notes, scroll reveals the rest
 const TOTAL_SPACES = 12;   // Spaces between pulses
 const DEFAULT_BPM = 120;
 const BASE_DEGREE = 0;     // Implicit starting degree
@@ -137,16 +138,21 @@ function getVisualScaleSemitones() {
     result.push(degToSemi(visualState, d));
   }
 
-  // Add note 12 (degree 0 of upper registry)
-  result.push(12);
+  // Second octave (12-23)
+  for (let d = 0; d < sems.length; d++) {
+    result.push(degToSemi(visualState, d) + 12);
+  }
+
+  // Add note 24 (upper registry boundary)
+  result.push(24);
 
   return result;
 }
 
 /**
- * Convert absolute degree to visual note index (0-12)
- * Absolute degree can exceed scale length - maps to appropriate semitone
- * Note 12 = degree 0 of upper registry (octave above)
+ * Convert absolute degree to visual note index (0-24)
+ * Maps degree to semitone position across 2 octaves
+ * Note 24 = upper registry boundary
  */
 function absoluteDegreeToVisualNoteIndex(absoluteDegree) {
   if (absoluteDegree === null || absoluteDegree === undefined) return null;
@@ -158,19 +164,17 @@ function absoluteDegreeToVisualNoteIndex(absoluteDegree) {
   const octave = Math.floor(absoluteDegree / scaleLen);
   const degreeInOctave = absoluteDegree % scaleLen;
 
-  // Get semitone for this degree
+  // Get semitone for this degree within the octave
   const semitone = degToSemi(visualState, degreeInOctave);
 
-  // Map to visual position (0-12 range)
-  // octave 0: semitones 0-11
-  // octave 1+: note 12 (upper registry) for degree 0, otherwise clamp to visible range
+  // Map to visual position (0-24 range)
   if (octave === 0) {
     return semitone;
-  } else if (degreeInOctave === 0) {
-    return 12;  // Upper registry note 0
+  } else if (octave === 1) {
+    return semitone + 12;
   } else {
-    // For higher degrees in upper octave, show at note 12 (clamped)
-    return 12;
+    // Clamp to note 24 for higher octaves
+    return 24;
   }
 }
 
@@ -627,6 +631,9 @@ async function handlePlay() {
           cell.classList.add('playing');
           setTimeout(() => cell.classList.remove('playing'), duration * 1000);
         }
+
+        // Autoscroll to keep current note visible
+        scrollToNoteIfNeeded(noteIndex);
       }
     },
     () => {
@@ -663,7 +670,68 @@ function stopPlayback(delayMs = 0) {
   }
 }
 
-// Note: scrollToNoteIfNeeded removed - no scroll with TOTAL_NOTES=13
+/**
+ * Setup vertical scroll synchronization between soundline and matrix
+ */
+function setupVerticalScrollSync() {
+  if (!musicalGrid) return;
+
+  const gridContainer = document.querySelector('.app25-grid-area .grid-container');
+  if (!gridContainer) return;
+
+  const soundlineWrapper = gridContainer.querySelector('.soundline-wrapper');
+  const matrixContainer = gridContainer.querySelector('.matrix-container');
+
+  if (!soundlineWrapper || !matrixContainer) return;
+
+  let isScrolling = false;
+
+  // Sync matrix scroll to soundline
+  matrixContainer.addEventListener('scroll', () => {
+    if (isScrolling) return;
+    isScrolling = true;
+    soundlineWrapper.scrollTop = matrixContainer.scrollTop;
+    requestAnimationFrame(() => { isScrolling = false; });
+  });
+
+  // Sync soundline scroll to matrix
+  soundlineWrapper.addEventListener('scroll', () => {
+    if (isScrolling) return;
+    isScrolling = true;
+    matrixContainer.scrollTop = soundlineWrapper.scrollTop;
+    requestAnimationFrame(() => { isScrolling = false; });
+  });
+}
+
+/**
+ * Scroll to keep a note visible (autoscroll during playback)
+ */
+function scrollToNoteIfNeeded(noteIndex) {
+  if (noteIndex === null || noteIndex === undefined) return;
+
+  const gridContainer = document.querySelector('.app25-grid-area .grid-container');
+  if (!gridContainer) return;
+
+  const matrixContainer = gridContainer.querySelector('.matrix-container');
+  const soundlineWrapper = gridContainer.querySelector('.soundline-wrapper');
+
+  if (!matrixContainer) return;
+  if (matrixContainer.scrollHeight <= matrixContainer.clientHeight) return;
+
+  // Calculate target scroll position to center the note
+  const cellHeight = matrixContainer.scrollHeight / TOTAL_NOTES;
+  const rowIndex = TOTAL_NOTES - 1 - noteIndex;  // Invert: note 0 is at bottom
+  const visibleHeight = matrixContainer.clientHeight;
+  const targetScroll = (rowIndex * cellHeight) - (visibleHeight / 2) + (cellHeight / 2);
+
+  const maxScroll = matrixContainer.scrollHeight - visibleHeight;
+  const clampedScroll = Math.max(0, Math.min(targetScroll, maxScroll));
+
+  matrixContainer.scrollTo({ top: clampedScroll, behavior: 'smooth' });
+  if (soundlineWrapper) {
+    soundlineWrapper.scrollTo({ top: clampedScroll, behavior: 'smooth' });
+  }
+}
 
 // ========== RESET ==========
 
@@ -782,17 +850,15 @@ function updateSoundlineLabels() {
 
   if (musicalGrid.updateSoundlineLabels) {
     musicalGrid.updateSoundlineLabels(scaleSemitones, (noteIndex) => {
-      // Note 12 is upper registry - don't show number
-      if (noteIndex === 12) {
-        return '';
-      }
-
-      // For notes 0-11, find the degree
+      // Show degree number for scale notes across 2 octaves
+      const octave = Math.floor(noteIndex / 12);
+      const semitoneInOctave = noteIndex % 12;
       const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
 
       for (let d = 0; d < currentScaleLength; d++) {
-        if (degToSemi(visualState, d) === noteIndex) {
-          return String(d);
+        if (degToSemi(visualState, d) === semitoneInOctave) {
+          const absoluteDegree = d + (octave * currentScaleLength);
+          return String(absoluteDegree);
         }
       }
       return '·';
@@ -896,8 +962,8 @@ async function init() {
     currentScaleLength = motherScalesData['DIAT']?.ee?.length || 7;
   }
 
-  // Create musical grid - NO scroll, responsive like App25
-  // Grid adapts to container size automatically
+  // Create musical grid with scroll enabled for fixed cell heights
+  // We'll use CSS to make timeline responsive while keeping vertical scroll
   musicalGrid = createMusicalGrid({
     parent: gridAreaContainer,
     notes: TOTAL_NOTES,
@@ -907,7 +973,8 @@ async function init() {
     cellClassName: 'musical-cell',
     activeClassName: 'active',
     highlightClassName: 'highlight',
-    scrollEnabled: false,  // NO scroll - grid adapts to container
+    scrollEnabled: true,
+    cellSize: { minHeight: 28 },  // Fixed height for vertical scroll
     showIntervals: {
       horizontal: true,
       vertical: false
@@ -915,13 +982,17 @@ async function init() {
     intervalColor: '#4A9EFF',  // Blue for timeline numbers (iSº arrows use separate pink)
     noteFormatter: (noteIndex) => {
       // Show degree number if note is in scale, otherwise dot
-      // Note 12 is degree 0 of upper octave - don't show number (it's implicit)
-      if (noteIndex === 12) {
-        return '';  // Upper registry note 0 - no label needed
+      const octave = Math.floor(noteIndex / 12);
+      const semitoneInOctave = noteIndex % 12;
+      const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
+
+      for (let d = 0; d < currentScaleLength; d++) {
+        if (degToSemi(visualState, d) === semitoneInOctave) {
+          const absoluteDegree = d + (octave * currentScaleLength);
+          return String(absoluteDegree);
+        }
       }
-      const scaleSems = getVisualScaleSemitones();
-      const degreeIndex = scaleSems.indexOf(noteIndex);
-      return degreeIndex !== -1 ? String(degreeIndex) : '·';
+      return '·';
     },
     onCellClick: async (noteIndex, pulseIndex, cellElement) => {
       const audioInstance = await initAudio();
@@ -956,6 +1027,9 @@ async function init() {
   if (gridContainer) {
     createNmVisualizer(gridContainer);
   }
+
+  // Setup vertical scroll sync between soundline and matrix
+  setupVerticalScrollSync();
 
   // Move controls into scale selector area
   const controls = document.querySelector('.controls');

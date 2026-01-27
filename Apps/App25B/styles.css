@@ -201,6 +201,46 @@ html, body {
   overflow: hidden;
 }
 
+/* Hide soundline scrollbar but allow scroll */
+.app25-grid-area .soundline-wrapper {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.app25-grid-area .soundline-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+/* Matrix: only vertical scroll, no horizontal */
+.app25-grid-area .matrix-container {
+  overflow-x: hidden !important;
+}
+
+/* Force timeline to be responsive (override scrollEnabled fixed width) */
+.app25-grid-area .timeline-wrapper {
+  overflow-x: hidden !important;
+}
+
+.app25-grid-area .timeline-wrapper .timeline-inner {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.app25-grid-area .timeline-wrapper .timeline-line {
+  width: 100% !important;
+}
+
+/* Force matrix inner to be responsive horizontally */
+.app25-grid-area .matrix-container .matrix-inner {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Make cells fill available width responsively */
+.app25-grid-area .matrix-container .musical-cell {
+  /* Let cells be responsive horizontally */
+}
+
 /* ========== CONTROLS ========== */
 .app25-controls-container {
   display: flex;
