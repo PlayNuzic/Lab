@@ -162,6 +162,11 @@ export function createGridEditor(config = {}) {
       return;
     }
 
+    if (mode === 'degree-interval') {
+      renderDegreeIntervalMode(pairs);
+      return;
+    }
+
     // Apply scroll mode class if enabled
     if (scrollEnabled) {
       container.classList.add('matrix-grid-editor--scrollable');
@@ -3970,6 +3975,365 @@ export function createGridEditor(config = {}) {
     container.querySelectorAll('.pulse-column.highlighted').forEach(col => {
       col.classList.remove('highlighted');
     });
+  }
+
+  // ========== DEGREE-INTERVAL MODE ==========
+  // Single-row editor for degree intervals (iSº): +2, -1, 0, +3, s (silence)
+
+  /**
+   * Renders the grid in degree-interval mode - single row of interval inputs
+   * Format: +2, -1, 0, +3, 5 (positive without sign), s (silence)
+   */
+  function renderDegreeIntervalMode(pairs = []) {
+    currentPairs = [...pairs];
+
+    container.innerHTML = '';
+    container.className = 'matrix-grid-editor matrix-grid-editor--degree-interval';
+
+    // Get options
+    const totalPulses = degreeModeOptions?.totalPulses || 12;
+    const getScaleLength = degreeModeOptions?.getScaleLength || (() => 7);
+
+    // Apply scroll mode if enabled
+    if (scrollEnabled) {
+      container.classList.add('matrix-grid-editor--scrollable');
+    }
+
+    // Apply container size if provided
+    if (containerSize) {
+      if (containerSize.width) container.style.width = containerSize.width;
+      if (containerSize.height) container.style.height = containerSize.height;
+      if (containerSize.maxWidth) container.style.maxWidth = containerSize.maxWidth;
+      if (containerSize.maxHeight) container.style.maxHeight = containerSize.maxHeight;
+    }
+
+    // Create main container with label and inputs
+    const mainRow = document.createElement('div');
+    mainRow.className = 'degree-main-row degree-interval-main-row';
+
+    // Label column
+    const labelColumn = document.createElement('div');
+    labelColumn.className = 'grid-label-column grid-label-column--degree-interval';
+
+    const intervalLabel = document.createElement('div');
+    intervalLabel.className = 'grid-row-label grid-row-label--degree-interval';
+    intervalLabel.textContent = 'iSº';
+    labelColumn.appendChild(intervalLabel);
+
+    mainRow.appendChild(labelColumn);
+
+    // Columns container
+    const columnsContainer = document.createElement('div');
+    columnsContainer.className = 'grid-columns-container degree-columns-container degree-interval-columns-container';
+
+    if (scrollEnabled) {
+      columnsContainer.classList.add('grid-columns-container--scrollable');
+    }
+
+    // Create a column for each pulse
+    for (let pulse = 0; pulse < totalPulses; pulse++) {
+      const column = createDegreeIntervalColumn(pulse, pairs, getScaleLength);
+      columnsContainer.appendChild(column);
+    }
+
+    mainRow.appendChild(columnsContainer);
+    container.appendChild(mainRow);
+
+    // Focus first empty input
+    requestAnimationFrame(() => {
+      const firstEmptyInput = container.querySelector('.degree-interval-input:not([data-filled="true"])');
+      if (firstEmptyInput) {
+        firstEmptyInput.focus();
+      }
+    });
+  }
+
+  /**
+   * Creates a degree-interval column for a single pulse
+   */
+  function createDegreeIntervalColumn(pulse, pairs, getScaleLength) {
+    const column = document.createElement('div');
+    column.className = 'degree-column degree-interval-column';
+    column.dataset.pulse = pulse;
+
+    // Header with pulse number
+    const header = document.createElement('div');
+    header.className = 'degree-column-header';
+    header.textContent = String(pulse);
+    column.appendChild(header);
+
+    // Find pair for this pulse
+    const pair = pairs.find(p => p.pulse === pulse);
+
+    // Interval input
+    const input = document.createElement('input');
+    input.className = 'degree-input degree-interval-input';
+    input.type = 'text';
+    input.maxLength = 3;  // Allow "-12" format
+    input.dataset.pulse = pulse;
+
+    if (pair) {
+      if (pair.isRest) {
+        input.value = 's';
+        input.dataset.filled = 'true';
+      } else if (pair.degreeInterval !== null && pair.degreeInterval !== undefined) {
+        input.value = formatDegreeIntervalValue(pair.degreeInterval);
+        input.dataset.filled = 'true';
+      }
+    }
+
+    input.addEventListener('input', (e) => handleDegreeIntervalInput(e, pulse, getScaleLength));
+    input.addEventListener('keydown', (e) => handleDegreeIntervalKeyDown(e, pulse, getScaleLength));
+    input.addEventListener('focus', () => input.select());
+
+    column.appendChild(input);
+
+    return column;
+  }
+
+  /**
+   * Formats degree interval value with sign
+   * +2 → "+2", -1 → "-1", 0 → "0"
+   */
+  function formatDegreeIntervalValue(interval) {
+    if (interval === null || interval === undefined) return '';
+    if (interval > 0) return `+${interval}`;
+    if (interval < 0) return String(interval);  // Already has minus sign
+    return '0';
+  }
+
+  /**
+   * Parses degree interval input value
+   * Valid formats: +2, -1, 0, 5 (positive without sign), s (silence)
+   */
+  function parseDegreeIntervalInput(value) {
+    if (!value || value.trim() === '') return null;
+
+    const trimmed = value.trim().toLowerCase();
+
+    // Check for silence
+    if (trimmed === 's') {
+      return { isRest: true, degreeInterval: null };
+    }
+
+    // Check for signed interval (e.g., "+2", "-3")
+    const matchSigned = trimmed.match(/^([+-])(\d+)$/);
+    if (matchSigned) {
+      const sign = matchSigned[1] === '+' ? 1 : -1;
+      const num = parseInt(matchSigned[2], 10);
+      return { isRest: false, degreeInterval: sign * num };
+    }
+
+    // Check for unsigned number (treated as positive)
+    const matchUnsigned = trimmed.match(/^(\d+)$/);
+    if (matchUnsigned) {
+      return {
+        isRest: false,
+        degreeInterval: parseInt(matchUnsigned[1], 10)
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Handles input change for degree-interval mode
+   */
+  function handleDegreeIntervalInput(event, pulse, getScaleLength) {
+    const input = event.target;
+    const value = input.value;
+
+    // Clear auto-jump timer
+    if (autoJumpTimer) {
+      clearTimeout(autoJumpTimer);
+      autoJumpTimer = null;
+    }
+
+    // Allow empty input
+    if (!value || value.trim() === '') {
+      // Remove pair for this pulse
+      const newPairs = currentPairs.filter(p => p.pulse !== pulse);
+      currentPairs = newPairs;
+      input.dataset.filled = '';
+      onPairsChange(newPairs);
+      return;
+    }
+
+    const parsed = parseDegreeIntervalInput(value);
+
+    // If input is just a sign or digit(s), wait for possible completion
+    const trimmed = value.trim();
+    if (/^[+-]?\d*$/.test(trimmed) && trimmed !== '0') {
+      // If it's a complete number (digit only or sign+digit), schedule auto-advance
+      if (/^[+-]?\d+$/.test(trimmed)) {
+        autoJumpTimer = setTimeout(() => {
+          validateAndProcessDegreeIntervalInput(input, pulse, getScaleLength);
+        }, AUTO_JUMP_DELAY);
+      }
+      return;
+    }
+
+    // For complete inputs (silence), validate immediately
+    if (parsed) {
+      validateAndProcessDegreeIntervalInput(input, pulse, getScaleLength);
+    }
+  }
+
+  /**
+   * Validates and processes degree interval input
+   */
+  function validateAndProcessDegreeIntervalInput(input, pulse, getScaleLength) {
+    const value = input.value;
+    const parsed = parseDegreeIntervalInput(value);
+
+    if (!parsed) {
+      // Invalid format - clear and keep focus
+      input.value = '';
+      input.dataset.filled = '';
+      input.focus();
+      return;
+    }
+
+    // Skip validation for rests
+    if (parsed.isRest) {
+      saveDegreeIntervalInput(input, pulse, parsed);
+      return;
+    }
+
+    // Calculate current accumulated degree to validate range
+    const scaleLength = getScaleLength();
+    let accumulatedDegree = 0;
+
+    // Sum up all intervals before this pulse
+    const sortedPairs = [...currentPairs].filter(p => p.pulse < pulse).sort((a, b) => a.pulse - b.pulse);
+    for (const p of sortedPairs) {
+      if (!p.isRest && p.degreeInterval !== null) {
+        accumulatedDegree += p.degreeInterval;
+      }
+    }
+
+    const newDegree = accumulatedDegree + parsed.degreeInterval;
+
+    // Validation: Can't go below degree 0
+    if (newDegree < 0) {
+      showDegreeError(input, `Grado resultante ${newDegree} es negativo`);
+      return;
+    }
+
+    // Note: We allow going above scaleLength (will use registry 2)
+    // But warn if it's very high (more than 2 registries)
+    const maxAllowedDegree = scaleLength * 2 - 1;
+    if (newDegree > maxAllowedDegree) {
+      showDegreeError(input, `Grado ${newDegree} excede el rango (máx: ${maxAllowedDegree})`);
+      return;
+    }
+
+    saveDegreeIntervalInput(input, pulse, parsed);
+  }
+
+  /**
+   * Saves degree interval input and updates pairs
+   */
+  function saveDegreeIntervalInput(input, pulse, parsed) {
+    // Remove existing pair for this pulse
+    const newPairs = currentPairs.filter(p => p.pulse !== pulse);
+
+    // Add new pair
+    newPairs.push({
+      pulse,
+      degreeInterval: parsed.degreeInterval,
+      isRest: parsed.isRest || false
+    });
+
+    // Sort by pulse
+    newPairs.sort((a, b) => a.pulse - b.pulse);
+
+    currentPairs = newPairs;
+    input.dataset.filled = 'true';
+
+    onPairsChange(newPairs);
+
+    // Auto-advance to next empty input
+    const totalPulses = degreeModeOptions?.totalPulses || 12;
+    if (pulse < totalPulses - 1) {
+      const nextInput = container.querySelector(`.degree-interval-input[data-pulse="${pulse + 1}"]`);
+      if (nextInput && nextInput.dataset.filled !== 'true') {
+        nextInput.focus();
+        nextInput.select();
+      }
+    }
+  }
+
+  /**
+   * Handles keydown for degree-interval mode
+   */
+  function handleDegreeIntervalKeyDown(event, pulse, getScaleLength) {
+    const input = event.target;
+    const totalPulses = degreeModeOptions?.totalPulses || 12;
+
+    // Clear auto-jump timer on any key
+    if (autoJumpTimer) {
+      clearTimeout(autoJumpTimer);
+      autoJumpTimer = null;
+    }
+
+    // Enter: validate and move to next
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      validateAndProcessDegreeIntervalInput(input, pulse, getScaleLength);
+      return;
+    }
+
+    // Tab: move to next/prev column
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      const nextPulse = event.shiftKey ? pulse - 1 : pulse + 1;
+      if (nextPulse >= 0 && nextPulse < totalPulses) {
+        const nextInput = container.querySelector(`.degree-interval-input[data-pulse="${nextPulse}"]`);
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();
+        }
+      }
+      return;
+    }
+
+    // Arrow keys
+    if (event.key === 'ArrowLeft' && pulse > 0) {
+      event.preventDefault();
+      const prevInput = container.querySelector(`.degree-interval-input[data-pulse="${pulse - 1}"]`);
+      if (prevInput) {
+        prevInput.focus();
+        prevInput.select();
+      }
+      return;
+    }
+
+    if (event.key === 'ArrowRight' && pulse < totalPulses - 1) {
+      event.preventDefault();
+      const nextInput = container.querySelector(`.degree-interval-input[data-pulse="${pulse + 1}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+      return;
+    }
+
+    // Backspace on empty: move to previous and clear
+    if (event.key === 'Backspace' && input.value === '' && pulse > 0) {
+      event.preventDefault();
+      const prevInput = container.querySelector(`.degree-interval-input[data-pulse="${pulse - 1}"]`);
+      if (prevInput) {
+        prevInput.value = '';
+        prevInput.dataset.filled = '';
+        // Remove pair for previous pulse
+        const newPairs = currentPairs.filter(p => p.pulse !== pulse - 1);
+        currentPairs = newPairs;
+        onPairsChange(newPairs);
+        prevInput.focus();
+      }
+      return;
+    }
   }
 
   /**

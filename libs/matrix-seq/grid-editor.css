@@ -816,3 +816,132 @@
     font-size: 0.7rem;
   }
 }
+
+/* ========== DEGREE-INTERVAL MODE ==========
+   Editor for degree intervals (iSº): +2, -1, 0, +3
+   ========================================== */
+
+.matrix-grid-editor--degree-interval {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  gap: 8px;
+}
+
+.degree-interval-main-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.grid-label-column--degree-interval {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.grid-row-label--degree-interval {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--interval-sound-color, #F28AAD);
+  min-width: 50px;
+  text-align: center;
+}
+
+[data-theme="dark"] .grid-row-label--degree-interval {
+  color: var(--interval-sound-color, #F28AAD);
+}
+
+.degree-interval-columns-container {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 5px 0;
+}
+
+.degree-interval-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 45px;
+}
+
+.degree-interval-input {
+  width: 42px;
+  height: 42px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border: 2px solid var(--interval-sound-color, #F28AAD);
+  border-radius: 8px;
+  background: var(--bg-secondary, #f5f5f5);
+  color: var(--text-color, #333);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.degree-interval-input:focus {
+  border-color: var(--interval-sound-color, #F28AAD);
+  box-shadow: 0 0 0 3px rgba(242, 138, 173, 0.3);
+}
+
+.degree-interval-input[data-filled="true"] {
+  background: rgba(242, 138, 173, 0.15);
+}
+
+[data-theme="dark"] .degree-interval-input {
+  background: var(--bg-dark-secondary, #2a2a2a);
+  color: var(--text-dark, #e0e0e0);
+  border-color: var(--interval-sound-color, #F28AAD);
+}
+
+[data-theme="dark"] .degree-interval-input[data-filled="true"] {
+  background: rgba(242, 138, 173, 0.2);
+}
+
+/* Responsive - Tablet */
+@media (max-width: 900px) {
+  .matrix-grid-editor--degree-interval {
+    padding: 8px 10px;
+  }
+
+  .grid-row-label--degree-interval {
+    font-size: 1.2rem;
+    min-width: 45px;
+  }
+
+  .degree-interval-column {
+    min-width: 40px;
+  }
+
+  .degree-interval-input {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+}
+
+/* Responsive - Mobile */
+@media (max-width: 600px) {
+  .matrix-grid-editor--degree-interval {
+    padding: 6px 8px;
+  }
+
+  .grid-row-label--degree-interval {
+    font-size: 1rem;
+    min-width: 40px;
+  }
+
+  .degree-interval-column {
+    min-width: 35px;
+  }
+
+  .degree-interval-input {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+}
