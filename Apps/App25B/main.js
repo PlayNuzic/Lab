@@ -631,9 +631,14 @@ async function handlePlay() {
           cell.classList.add('playing');
           setTimeout(() => cell.classList.remove('playing'), duration * 1000);
         }
+      }
 
-        // Autoscroll to keep current note visible
-        scrollToNoteIfNeeded(noteIndex);
+      // Anticipate scroll: look ahead to next note and scroll early
+      const nextStep = step + 1;
+      const nextDegreeData = absoluteDegrees.find(d => d.pulse === nextStep && !d.isRest && d.degree !== null);
+      if (nextDegreeData) {
+        const nextNoteIndex = absoluteDegreeToVisualNoteIndex(nextDegreeData.degree);
+        scrollToNoteIfNeeded(nextNoteIndex);
       }
     },
     () => {
