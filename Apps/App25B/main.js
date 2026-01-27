@@ -850,15 +850,19 @@ function updateSoundlineLabels() {
 
   if (musicalGrid.updateSoundlineLabels) {
     musicalGrid.updateSoundlineLabels(scaleSemitones, (noteIndex) => {
-      // Show degree number for scale notes across 2 octaves
-      const octave = Math.floor(noteIndex / 12);
+      // Notes 12 and 24 are octave boundaries - no label needed
+      if (noteIndex === 12 || noteIndex === 24) {
+        return '';
+      }
+
+      // Get semitone within octave (0-11)
       const semitoneInOctave = noteIndex % 12;
       const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
 
+      // Find which degree this semitone corresponds to (0-6 for major)
       for (let d = 0; d < currentScaleLength; d++) {
         if (degToSemi(visualState, d) === semitoneInOctave) {
-          const absoluteDegree = d + (octave * currentScaleLength);
-          return String(absoluteDegree);
+          return String(d);  // Show degree within octave, not absolute
         }
       }
       return '·';
@@ -981,15 +985,19 @@ async function init() {
     },
     intervalColor: '#4A9EFF',  // Blue for timeline numbers (iSº arrows use separate pink)
     noteFormatter: (noteIndex) => {
-      // Show degree number if note is in scale, otherwise dot
-      const octave = Math.floor(noteIndex / 12);
+      // Notes 12 and 24 are octave boundaries - no label needed
+      if (noteIndex === 12 || noteIndex === 24) {
+        return '';
+      }
+
+      // Get semitone within octave (0-11)
       const semitoneInOctave = noteIndex % 12;
       const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
 
+      // Find which degree this semitone corresponds to (0-6 for major)
       for (let d = 0; d < currentScaleLength; d++) {
         if (degToSemi(visualState, d) === semitoneInOctave) {
-          const absoluteDegree = d + (octave * currentScaleLength);
-          return String(absoluteDegree);
+          return String(d);  // Show degree within octave, not absolute
         }
       }
       return '·';
