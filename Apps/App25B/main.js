@@ -25,8 +25,7 @@ import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
-const TOTAL_NOTES = 25;    // Vertical: 0-24 (2 octaves)
-const VISIBLE_NOTES = 13;  // Show 13 notes at a time
+const TOTAL_NOTES = 13;    // Vertical: 0-12 (one octave + note 12 for upper registry)
 const TOTAL_SPACES = 12;   // Spaces between pulses
 const DEFAULT_BPM = 120;
 const BASE_DEGREE = 0;     // Implicit starting degree
@@ -88,21 +87,14 @@ let highlightController = null;
 const preferenceStorage = createPreferenceStorage('app25b');
 
 function saveCurrentState() {
-  const prefs = preferenceStorage.load() || {};
-  prefs.intervals = currentDegreeIntervals;
-  prefs.scaleState = scaleState;
-  preferenceStorage.save(prefs);
+  // NOTE: App always starts fresh - we don't save intervals or scale state
+  // Only instrument preference is saved (handled by audio-init)
 }
 
 function loadSavedState() {
-  const prefs = preferenceStorage.load() || {};
-  if (prefs.intervals && Array.isArray(prefs.intervals)) {
-    currentDegreeIntervals = prefs.intervals;
-  }
-  if (prefs.scaleState) {
-    scaleState = { ...scaleState, ...prefs.scaleState };
-  }
-  return prefs;
+  // NOTE: App always starts fresh - we don't load intervals or scale state
+  // Only instrument preference is loaded (handled by audio-init)
+  return preferenceStorage.load() || {};
 }
 
 // ========== AUDIO INITIALIZATION ==========
@@ -132,7 +124,7 @@ async function initAudio() {
 // ========== SCALE CONVERSIONS ==========
 
 /**
- * Get VISUAL scale semitones for 2 octaves (0-24)
+ * Get VISUAL scale semitones for one octave (0-11) + note 12
  * Returns array of semitone positions that belong to the scale
  */
 function getVisualScaleSemitones() {
@@ -145,20 +137,16 @@ function getVisualScaleSemitones() {
     result.push(degToSemi(visualState, d));
   }
 
-  // Second octave (12-24)
-  for (let d = 0; d < sems.length; d++) {
-    result.push(degToSemi(visualState, d) + 12);
-  }
-
-  // Add note 24 (degree 0 of third octave) for boundary
-  result.push(24);
+  // Add note 12 (degree 0 of upper registry)
+  result.push(12);
 
   return result;
 }
 
 /**
- * Convert absolute degree to visual note index (0-24)
- * Absolute degree: 0 to 2*scaleLength-1 (spans 2 octaves)
+ * Convert absolute degree to visual note index (0-12)
+ * Absolute degree can exceed scale length - maps to appropriate semitone
+ * Note 12 = degree 0 of upper registry (octave above)
  */
 function absoluteDegreeToVisualNoteIndex(absoluteDegree) {
   if (absoluteDegree === null || absoluteDegree === undefined) return null;
@@ -173,7 +161,17 @@ function absoluteDegreeToVisualNoteIndex(absoluteDegree) {
   // Get semitone for this degree
   const semitone = degToSemi(visualState, degreeInOctave);
 
-  return semitone + (octave * 12);
+  // Map to visual position (0-12 range)
+  // octave 0: semitones 0-11
+  // octave 1+: note 12 (upper registry) for degree 0, otherwise clamp to visible range
+  if (octave === 0) {
+    return semitone;
+  } else if (degreeInOctave === 0) {
+    return 12;  // Upper registry note 0
+  } else {
+    // For higher degrees in upper octave, show at note 12 (clamped)
+    return 12;
+  }
 }
 
 /**
@@ -248,6 +246,7 @@ function degreeIntervalsToAbsoluteDegrees(intervals) {
 /**
  * Convert absolute degrees back to intervals
  * IMPORTANT: Silences don't change prevDegree - next note is relative to last sounding note
+ * Also fills gaps between notes with explicit silences
  */
 function absoluteDegreesToIntervals(absoluteDegrees) {
   const intervals = [];
@@ -256,16 +255,34 @@ function absoluteDegreesToIntervals(absoluteDegrees) {
   // Sort by pulse to ensure correct order
   const sorted = [...absoluteDegrees].sort((a, b) => a.pulse - b.pulse);
 
-  sorted.forEach(({ degree, pulse, isRest }) => {
-    if (isRest || degree === null) {
-      // Silence: degreeInterval is null, prevDegree stays the same
-      intervals.push({ degreeInterval: null, pulse, isRest: true });
+  if (sorted.length === 0) return intervals;
+
+  // Find the range of pulses (from first entry to last entry)
+  const firstPulse = sorted[0].pulse;
+  const lastPulse = sorted[sorted.length - 1].pulse;
+
+  // Create a map of existing entries by pulse
+  const pulseMap = new Map();
+  sorted.forEach(entry => pulseMap.set(entry.pulse, entry));
+
+  // Fill all pulses from first to last, creating silences for gaps
+  for (let pulse = firstPulse; pulse <= lastPulse; pulse++) {
+    const entry = pulseMap.get(pulse);
+
+    if (entry) {
+      if (entry.isRest || entry.degree === null) {
+        // Explicit silence
+        intervals.push({ degreeInterval: null, pulse, isRest: true });
+      } else {
+        // Sound: calculate interval from previous sounding note
+        intervals.push({ degreeInterval: entry.degree - prevDegree, pulse, isRest: false });
+        prevDegree = entry.degree;
+      }
     } else {
-      // Sound: calculate interval from previous sounding note
-      intervals.push({ degreeInterval: degree - prevDegree, pulse, isRest: false });
-      prevDegree = degree;
+      // Gap - create implicit silence
+      intervals.push({ degreeInterval: null, pulse, isRest: true });
     }
-  });
+  }
 
   return intervals;
 }
@@ -610,9 +627,6 @@ async function handlePlay() {
           cell.classList.add('playing');
           setTimeout(() => cell.classList.remove('playing'), duration * 1000);
         }
-
-        // Autoscroll to keep current note visible
-        scrollToNoteIfNeeded(noteIndex);
       }
     },
     () => {
@@ -649,28 +663,7 @@ function stopPlayback(delayMs = 0) {
   }
 }
 
-/**
- * Scroll to keep a note visible (autoscroll during playback)
- */
-function scrollToNoteIfNeeded(noteIndex) {
-  if (!musicalGrid || noteIndex === null) return;
-
-  const matrixContainer = musicalGrid.getMatrixContainer?.();
-  if (!matrixContainer) return;
-
-  // Only scroll if we have scroll enabled
-  if (matrixContainer.scrollHeight <= matrixContainer.clientHeight) return;
-
-  // Calculate target scroll position to center the note
-  const cellHeight = matrixContainer.scrollHeight / TOTAL_NOTES;
-  const rowIndex = TOTAL_NOTES - 1 - noteIndex;
-  const targetScroll = (rowIndex - VISIBLE_NOTES / 2) * cellHeight;
-
-  matrixContainer.scrollTo({
-    top: Math.max(0, targetScroll),
-    behavior: 'smooth'
-  });
-}
+// Note: scrollToNoteIfNeeded removed - no scroll with TOTAL_NOTES=13
 
 // ========== RESET ==========
 
@@ -685,7 +678,11 @@ function handleReset() {
 
   currentDegreeIntervals = [];
 
-  saveCurrentState();
+  // Clear saved intervals from localStorage (keep other prefs like instrument)
+  const prefs = preferenceStorage.load() || {};
+  delete prefs.intervals;
+  preferenceStorage.save(prefs);
+
   console.log('Reset to default state');
 }
 
@@ -899,7 +896,8 @@ async function init() {
     currentScaleLength = motherScalesData['DIAT']?.ee?.length || 7;
   }
 
-  // Create musical grid with scroll for 2 octaves
+  // Create musical grid - NO scroll, responsive like App25
+  // Grid adapts to container size automatically
   musicalGrid = createMusicalGrid({
     parent: gridAreaContainer,
     notes: TOTAL_NOTES,
@@ -909,28 +907,21 @@ async function init() {
     cellClassName: 'musical-cell',
     activeClassName: 'active',
     highlightClassName: 'highlight',
-    scrollEnabled: true,
-    visibleCells: { notes: VISIBLE_NOTES },
-    cellSize: { minHeight: 30, minWidth: 50 },
+    scrollEnabled: false,  // NO scroll - grid adapts to container
     showIntervals: {
       horizontal: true,
       vertical: false
     },
     intervalColor: '#4A9EFF',  // Blue for timeline numbers (iSº arrows use separate pink)
     noteFormatter: (noteIndex) => {
+      // Show degree number if note is in scale, otherwise dot
+      // Note 12 is degree 0 of upper octave (registry 2)
       const scaleSems = getVisualScaleSemitones();
-      const octave = Math.floor(noteIndex / 12);
-      const semitoneInOctave = noteIndex % 12;
-
-      const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
-
-      for (let d = 0; d < currentScaleLength; d++) {
-        if (degToSemi(visualState, d) === semitoneInOctave) {
-          const absoluteDegree = d + (octave * currentScaleLength);
-          return String(absoluteDegree);
-        }
+      if (noteIndex === 12) {
+        return '0';  // Upper registry note 0
       }
-      return '·';
+      const degreeIndex = scaleSems.indexOf(noteIndex);
+      return degreeIndex !== -1 ? String(degreeIndex) : '·';
     },
     onCellClick: async (noteIndex, pulseIndex, cellElement) => {
       const audioInstance = await initAudio();
@@ -1004,12 +995,7 @@ async function init() {
     }
   });
 
-  // Load saved intervals
-  if (currentDegreeIntervals.length > 0) {
-    gridEditor.setPairs(currentDegreeIntervals);
-    const absoluteDegrees = degreeIntervalsToAbsoluteDegrees(currentDegreeIntervals);
-    syncGridFromDegreeIntervals(absoluteDegrees);
-  }
+  // NOTE: App always starts empty - no saved intervals loaded
 
   // Initialize highlight controller
   highlightController = createMatrixHighlightController({
