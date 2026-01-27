@@ -234,7 +234,7 @@ html, body {
 }
 
 /* Hide last pulse marker (12) - it's cut off at the edge */
-.app25-grid-area .pulse-marker:last-child {
+.app25-grid-area .pulse-marker[data-pulse-index="12"] {
   display: none;
 }
 
