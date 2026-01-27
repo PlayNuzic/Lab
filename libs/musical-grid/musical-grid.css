@@ -96,8 +96,6 @@
   width: 100%;
   height: 100%;
   overflow: visible;  /* Allow elements to extend beyond edges */
-  padding-top: 30px;  /* Space for top zero label */
-  padding-bottom: 5px; /* Space for bottom division */
   box-sizing: border-box;
 }
 
