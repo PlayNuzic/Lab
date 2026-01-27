@@ -3,11 +3,13 @@
 // Base degree is always 0 (implicit starting point)
 // One interval per pulse, 12 pulses total
 // KEY FEATURES:
-// - 2 registries with vertical scroll (like App19)
+// - 2 registries (3 and 4) with vertical scroll using plano-modular
 // - Autoscroll during playback when registry changes
 // - Interval lines with arrows (like App15)
+// - Soundline shows Nº^r format (degree + registry superscript)
 
-import { createMusicalGrid } from '../../libs/musical-grid/index.js';
+import { createPlanoModular } from '../../libs/plano-modular/index.js';
+import { smoothScrollTo } from '../../libs/plano-modular/plano-scroll.js';
 import { createGridEditor } from '../../libs/matrix-seq/index.js';
 import { initMixerMenu, updateMixerChannelLabel } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
@@ -15,23 +17,20 @@ import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { getMixer, subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } from '../../libs/sound/index.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
-import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { isPianoLoaded, setupPianoPreload } from '../../libs/sound/piano.js';
 import { isViolinLoaded } from '../../libs/sound/violin.js';
 import { createScaleSelector } from '../../libs/scale-selector/index.js';
 import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index.js';
-import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 
 // ========== CONFIGURATION ==========
-const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
-const NOTES_PER_REGISTRY = 13;  // Vertical: 0-12 per registry (one octave + degree 0)
-const NUM_REGISTRIES = 2;  // 2 registries for vertical scroll
-const TOTAL_NOTES = NOTES_PER_REGISTRY * NUM_REGISTRIES - 1;  // 25 notes total (shared note 0/12)
-const VISIBLE_NOTES = 13;  // Only show 13 notes at a time (1 registry)
 const TOTAL_SPACES = 12;   // Spaces between pulses
 const DEFAULT_BPM = 120;
 const BASE_DEGREE = 0;     // Implicit starting degree
+
+// Registry configuration for App25B
+const VISIBLE_ROWS = 13;   // Show 13 rows at a time (one octave + 1)
+const DEFAULT_REGISTRY = 3;
 
 // Scale configuration (from App24)
 const APP25_SCALES = [
@@ -49,7 +48,7 @@ const APP25_SCALES = [
 
 // ========== STATE ==========
 let audio = null;
-let musicalGrid = null;
+let planoGrid = null;
 let gridEditor = null;
 let scaleSelector = null;
 const currentBPM = DEFAULT_BPM;
@@ -62,8 +61,7 @@ let scaleState = {
   root: 0  // This is the "Nota de Salida" - user-selected transpose
 };
 
-// Root offset for rotated modes (to keep degree 0 at the selected output note)
-// For example: Menor Natural (rot=5) needs rootOffset=3 to compensate
+// Root offset for rotated modes
 let currentRootOffset = 0;
 
 // Current scale length (for degree validation)
@@ -73,7 +71,7 @@ let currentScaleLength = 7;
 let currentDegreeIntervals = [];
 
 // Current registry for scroll
-let currentRegistry = 1;
+let currentRegistry = DEFAULT_REGISTRY;
 
 // Pulse to registry map for autoscroll
 let pulseRegistryMap = {};
@@ -90,9 +88,6 @@ let nmVisualizerElement = null;
 // ========== STORAGE HELPERS ==========
 const preferenceStorage = createPreferenceStorage('app25b');
 
-/**
- * Save current state (intervals) to localStorage
- */
 function saveCurrentState() {
   const prefs = preferenceStorage.load() || {};
   prefs.intervals = currentDegreeIntervals;
@@ -100,9 +95,6 @@ function saveCurrentState() {
   preferenceStorage.save(prefs);
 }
 
-/**
- * Load saved state from localStorage
- */
 function loadSavedState() {
   const prefs = preferenceStorage.load() || {};
   if (prefs.intervals && Array.isArray(prefs.intervals)) {
@@ -111,12 +103,6 @@ function loadSavedState() {
   }
   return [];
 }
-
-// Info tooltip for warnings
-const infoTooltip = createInfoTooltip({
-  className: 'fraction-info-bubble auto-tip-below',
-  autoRemoveDelay: 2000
-});
 
 // ========== AUDIO INITIALIZATION ==========
 const _initAudio = createMelodicAudioInitializer({
@@ -142,130 +128,44 @@ async function initAudio() {
   return audio;
 }
 
-// ========== SCALE CONVERSIONS (using libs/scales) ==========
+// ========== SCALE CONVERSIONS ==========
 
 /**
  * Get VISUAL scale semitones (for soundline and grid display)
- *
- * FIXED VISUAL: Degree 0 is ALWAYS at soundline position 0 (bottom).
- * Only rootOffset is applied to compensate for rotated modes.
- * The user's "Nota de Sortida" (root) does NOT affect visual positions.
- *
- * Example: Major scale always shows degrees at semitones [0,2,4,5,7,9,11,12]
- * regardless of what "Nota de Sortida" is selected.
- * Note 12 is degree 0 of the upper octave (for scale changes 7→5 notes).
  */
 function getVisualScaleSemitones() {
-  // Only apply rootOffset to compensate for rotated modes (NOT user's root)
   const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
-
   const sems = scaleSemis(scaleState.id);
   const result = [];
   for (let d = 0; d < sems.length; d++) {
     result.push(degToSemi(visualState, d));
   }
-
-  // Always include note 12 (degree 0 of upper octave)
-  // This is needed when switching from 7-note to 5-note scales
-  result.push(12);
-
+  result.push(12);  // Always include octave
   return result;
-}
-
-/**
- * Get PLAYBACK scale semitones (for MIDI output)
- *
- * Includes both rootOffset (mode compensation) AND user's root (Nota de Sortida).
- * This determines what actual notes are played.
- */
-function getPlaybackScaleSemitones() {
-  const effectiveRoot = (scaleState.root + currentRootOffset) % 12;
-  const playbackState = { ...scaleState, root: effectiveRoot };
-
-  const sems = scaleSemis(scaleState.id);
-  const result = [];
-  for (let d = 0; d < sems.length; d++) {
-    result.push(degToSemi(playbackState, d));
-  }
-  return result;
-}
-
-/**
- * Convert degree + modifier to VISUAL note index (0-12)
- * Used for positioning cells on the grid - INDEPENDENT of user's transpose.
- * Only applies rootOffset for mode compensation.
- *
- * @param {number} degree - Scale degree (0 to N-1)
- * @param {string|null} modifier - '+' (sharp), '-' (flat), 'r+' (upper octave), or null
- * @returns {number|null} Note index 0-12 (12 = degree 0 upper octave)
- */
-function degreeToVisualNoteIndex(degree, modifier = null) {
-  if (degree === null || degree === undefined) return null;
-
-  // Special case: degree 0 with 'r+' modifier = upper octave (note index 12)
-  if (degree === 0 && modifier === 'r+') {
-    return 12;
-  }
-
-  // Only apply rootOffset (NOT user's root) for visual positioning
-  const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
-
-  // Get semitone for this degree
-  const semitone = degToSemi(visualState, degree);
-
-  // Apply chromatic modifier
-  let alteredSemitone = semitone;
-  if (modifier === '+') alteredSemitone = (semitone + 1) % 12;
-  if (modifier === '-') alteredSemitone = (semitone + 11) % 12;
-
-  return alteredSemitone;
 }
 
 /**
  * Convert degree + modifier to MIDI note (for playback)
- * Includes both rootOffset AND user's transpose (Nota de Sortida).
- * degree: 0 to N-1 (scale degree)
- * modifier: '+' (sharp), '-' (flat), 'r+' (upper octave), or null
- *
- * OCTAVE LOGIC: Notes ascend continuously from degree 0.
- * For rotated modes, we detect where semitones "wrap" (decrease) to handle octave.
- *
- * Examples:
- * - Major (rot=0): semitones [0,2,4,5,7,9,11] → all ascending, octave at wrap
- * - Menor Natural (rot=5): semitones [9,11,0,2,4,5,7] → wraps at degree 2
- *   - Degrees 0,1 in upper octave; degrees 2+ in lower octave
- * - Menor Melòdica (rot=4): semitones [9,11,1,2,4,6,7] → wraps at degree 2
- *   - Degrees 0,1,2 in upper octave; degrees 3+ in lower octave
- * - 0r+ → Degree 0 of upper octave (MIDI +12)
  */
 function degreeToMidi(degree, modifier = null) {
   if (degree === null || degree === undefined) return null;
 
-  // The effective root determines the starting pitch
   const effectiveRoot = (scaleState.root + currentRootOffset) % 12;
   const effectiveState = { ...scaleState, root: effectiveRoot };
 
-  // Special case: degree 0 with 'r+' modifier = upper octave
   if (degree === 0 && modifier === 'r+') {
-    // Degree 0 semitone + 12 for upper octave
     const semitone = degToSemi(effectiveState, 0);
     return 60 + semitone + 12;
   }
 
-  // Get all semitones of the scale to detect octave wrap point
   const sems = scaleSemis(scaleState.id);
   const scaleLength = sems.length;
-
-  // Build array of semitones for each degree (with effective root)
   const degreeSemitones = [];
   for (let d = 0; d < scaleLength; d++) {
     degreeSemitones.push(degToSemi(effectiveState, d));
   }
 
-  // Find where the octave wraps (where semitone decreases)
-  // For Major: no wrap within octave (all ascending)
-  // For Menor Natural rot=5: [9,11,0,...] → wraps at index 2 (0 < 11)
-  let wrapIndex = scaleLength; // Default: wrap happens at the end (next octave)
+  let wrapIndex = scaleLength;
   for (let i = 1; i < scaleLength; i++) {
     if (degreeSemitones[i] < degreeSemitones[i - 1]) {
       wrapIndex = i;
@@ -273,18 +173,12 @@ function degreeToMidi(degree, modifier = null) {
     }
   }
 
-  // Get semitone for this degree
   const semitone = degToSemi(effectiveState, degree);
-
-  // Apply chromatic modifier
   let alteredSemitone = semitone;
   if (modifier === '+') alteredSemitone = (semitone + 1) % 12;
   if (modifier === '-') alteredSemitone = (semitone + 11) % 12;
 
-  // Calculate octave: degrees before wrap are in "upper" position,
-  // degrees at/after wrap are in "lower" position (add 12 to make them higher)
   const octaveOffset = degree >= wrapIndex ? 12 : 0;
-
   return 60 + alteredSemitone + octaveOffset;
 }
 
@@ -292,11 +186,6 @@ function degreeToMidi(degree, modifier = null) {
 
 /**
  * Convert degree intervals to absolute degrees
- * Starting from BASE_DEGREE (0), accumulates intervals
- *
- * @param {Array} intervals - Array of {degreeInterval, isRest}
- * @param {number} baseDegree - Starting degree (default 0)
- * @returns {Array} Array of {degree, pulse, isRest}
  */
 function degreeIntervalsToAbsoluteDegrees(intervals, baseDegree = BASE_DEGREE) {
   const degrees = [];
@@ -316,55 +205,27 @@ function degreeIntervalsToAbsoluteDegrees(intervals, baseDegree = BASE_DEGREE) {
 
 /**
  * Convert absolute degree to registry and degree within registry
- * Degrees >= scaleLength go to registry 2
- *
- * @param {number} absoluteDegree - The absolute degree (can exceed scaleLength)
- * @param {number} scaleLength - Current scale length
- * @returns {{registry: number, degreeInRegistry: number}|null}
+ * For App25B: registry 3 = degrees 0 to scaleLength-1
+ *            registry 4 = degrees scaleLength to 2*scaleLength-1
  */
 function degreeToRegistryAndNote(absoluteDegree, scaleLength) {
   if (absoluteDegree === null || absoluteDegree === undefined) return null;
+  if (absoluteDegree < 0) return null;
 
-  if (absoluteDegree < 0) {
-    // Negative degrees not supported
-    return null;
-  }
-
-  const registry = Math.floor(absoluteDegree / scaleLength) + 1;
+  // Registry 3 = first octave (degrees 0 to scaleLength-1)
+  // Registry 4 = second octave (degrees scaleLength to 2*scaleLength-1)
+  const registryOffset = Math.floor(absoluteDegree / scaleLength);
+  const registry = 3 + registryOffset;  // Start at registry 3
   const degreeInRegistry = absoluteDegree % scaleLength;
+
+  // Only support registries 3 and 4
+  if (registry > 4) return null;
 
   return { registry, degreeInRegistry };
 }
 
 /**
- * Convert absolute degree to VISUAL note index considering registry
- * Uses degToSemi() to get semitone position
- *
- * @param {number} absoluteDegree - The absolute degree
- * @param {number} scaleLength - Current scale length
- * @returns {{noteIndex: number, registry: number}|null}
- */
-function absoluteDegreeToVisual(absoluteDegree, scaleLength) {
-  if (absoluteDegree === null || absoluteDegree === undefined) return null;
-
-  const regInfo = degreeToRegistryAndNote(absoluteDegree, scaleLength);
-  if (!regInfo) return null;
-
-  const { registry, degreeInRegistry } = regInfo;
-
-  // Get visual position using degToSemi (this applies scale structure)
-  const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
-  const semitone = degToSemi(visualState, degreeInRegistry);
-
-  return { noteIndex: semitone, registry };
-}
-
-/**
  * Convert absolute degree to MIDI note for playback
- * Includes registry offset (12 semitones per octave)
- *
- * @param {number} absoluteDegree - The absolute degree
- * @returns {number|null} MIDI note number
  */
 function absoluteDegreeToMidi(absoluteDegree) {
   if (absoluteDegree === null || absoluteDegree === undefined) return null;
@@ -373,24 +234,16 @@ function absoluteDegreeToMidi(absoluteDegree) {
   if (!regInfo) return null;
 
   const { registry, degreeInRegistry } = regInfo;
-
-  // Get MIDI for the degree within registry
   const baseMidi = degreeToMidi(degreeInRegistry, null);
   if (baseMidi === null) return null;
 
-  // Add octave offset for higher registries
-  const registryOffset = (registry - 1) * 12;
-
+  // Add octave offset for registry 4
+  const registryOffset = (registry - 3) * 12;
   return baseMidi + registryOffset;
 }
 
 /**
  * Build pulse to registry map for autoscroll
- * Maps each pulse to the registry needed to display its note
- *
- * @param {Array} absoluteDegrees - Array of {degree, pulse, isRest}
- * @param {number} scaleLength - Current scale length
- * @returns {Object} Map of pulse index to registry number
  */
 function buildPulseRegistryMap(absoluteDegrees, scaleLength) {
   const map = {};
@@ -407,187 +260,245 @@ function buildPulseRegistryMap(absoluteDegrees, scaleLength) {
   return map;
 }
 
-// ========== SCROLL FUNCTIONS ==========
+// ========== GRID ROW BUILDING ==========
 
 /**
- * Smooth scroll animation using requestAnimationFrame
- * @param {HTMLElement} element - Element to scroll
- * @param {number} target - Target scroll position
- * @param {number} duration - Animation duration in ms
- * @returns {Promise<void>}
+ * Build rows for the grid based on current scale
+ * Each row represents a degree in the scale
+ * Rows are labeled as Nº^r (degree with registry superscript)
  */
-function smoothScrollTo(element, target, duration = 200) {
-  return new Promise((resolve) => {
-    if (!element) {
-      resolve();
-      return;
-    }
+function buildScaleRows() {
+  const rows = [];
 
-    const start = element.scrollTop;
-    const distance = target - start;
-
-    if (Math.abs(distance) < 1) {
-      resolve();
-      return;
-    }
-
-    const startTime = performance.now();
-
-    function animate(currentTime) {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Ease out cubic for smooth deceleration
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-
-      element.scrollTop = start + (distance * easeOut);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        resolve();
+  // Registry 4 (upper octave): degrees scaleLength to 2*scaleLength-1
+  // Show from highest to lowest
+  for (let d = currentScaleLength - 1; d >= 0; d--) {
+    const absoluteDegree = d + currentScaleLength;
+    rows.push({
+      id: `${d}r4`,
+      label: `${absoluteDegree}`,  // Show absolute degree
+      data: {
+        registry: 4,
+        note: d,
+        absoluteDegree: absoluteDegree
       }
-    }
+    });
+  }
 
-    requestAnimationFrame(animate);
-  });
+  // Registry 3 (lower octave): degrees 0 to scaleLength-1
+  // Show from highest to lowest
+  for (let d = currentScaleLength - 1; d >= 0; d--) {
+    rows.push({
+      id: `${d}r3`,
+      label: `${d}`,  // Show degree
+      data: {
+        registry: 3,
+        note: d,
+        absoluteDegree: d
+      }
+    });
+  }
+
+  return rows;
 }
 
 /**
+ * Calculate note0RowMap for scroll positioning
+ */
+function calculateScaleNote0RowMap(rows) {
+  const map = {};
+
+  rows.forEach((row, index) => {
+    if (row.data && row.data.note === 0) {
+      map[row.data.registry] = index;
+    }
+  });
+
+  return map;
+}
+
+// ========== SCROLL FUNCTIONS ==========
+
+/**
  * Scroll to a specific registry
- * Registry 1: note 0 at bottom (scrollTop = max)
- * Registry 2: note 12 at bottom (scrollTop = 0 or middle)
- *
- * @param {number} registryId - 1 or 2
- * @param {boolean} animated - Whether to animate the scroll
  */
 function scrollToRegistry(registryId, animated = true) {
-  const matrixContainer = musicalGrid?.getMatrixContainer?.();
-  const soundlineWrapper = document.querySelector('.soundline-wrapper');
+  if (!planoGrid) return;
 
-  if (!matrixContainer) return;
+  const elements = planoGrid.getElements();
+  if (!elements || !elements.matrixContainer) return;
 
-  // Calculate cell height (total height / number of notes)
-  const matrixInner = matrixContainer.querySelector('.matrix-inner') || matrixContainer;
-  const totalHeight = matrixInner.scrollHeight;
-  const cellHeight = totalHeight / TOTAL_NOTES;
+  const rows = planoGrid.getRows();
+  const note0RowMap = calculateScaleNote0RowMap(rows);
 
-  // Calculate target scroll position
-  // Registry 1: show notes 0-12 (scroll to bottom)
-  // Registry 2: show notes 12-24 (scroll to top/middle)
-  let targetScrollTop;
+  const targetRowIndex = note0RowMap[registryId];
+  if (targetRowIndex === undefined) return;
 
-  if (registryId === 1) {
-    // Scroll to bottom to show registry 1 (notes 0-12)
-    targetScrollTop = totalHeight - matrixContainer.clientHeight;
-  } else {
-    // Scroll to top to show registry 2 (notes 12-24)
-    targetScrollTop = 0;
-  }
+  // Calculate cell height
+  const matrix = elements.matrixContainer.querySelector('.plano-matrix');
+  if (!matrix) return;
+
+  const cellHeight = matrix.scrollHeight / rows.length;
+  const visibleHeight = elements.matrixContainer.clientHeight;
+
+  // Center the row
+  const centerOffset = Math.floor(VISIBLE_ROWS / 2);
+  let targetScrollTop = Math.max(0, (targetRowIndex - centerOffset) * cellHeight);
 
   // Clamp to valid range
-  const maxScroll = totalHeight - matrixContainer.clientHeight;
+  const maxScroll = matrix.scrollHeight - visibleHeight;
   targetScrollTop = Math.max(0, Math.min(targetScrollTop, maxScroll));
 
   if (animated) {
-    smoothScrollTo(matrixContainer, targetScrollTop);
-    if (soundlineWrapper) {
-      smoothScrollTo(soundlineWrapper, targetScrollTop);
-    }
+    smoothScrollTo(elements.matrixContainer, targetScrollTop, 'top', 200);
+    smoothScrollTo(elements.soundlineContainer, targetScrollTop, 'top', 200);
   } else {
-    matrixContainer.scrollTop = targetScrollTop;
-    if (soundlineWrapper) {
-      soundlineWrapper.scrollTop = targetScrollTop;
-    }
+    elements.matrixContainer.scrollTop = targetScrollTop;
+    elements.soundlineContainer.scrollTop = targetScrollTop;
   }
 
   currentRegistry = registryId;
 }
 
-/**
- * Get the note index for an absolute degree considering registry
- * This maps degree to visual note position in the 25-note grid
- *
- * @param {number} absoluteDegree - Absolute degree (can exceed scaleLength)
- * @returns {number|null} Note index in the grid (0-24)
- */
-function absoluteDegreeToNoteIndex(absoluteDegree) {
-  if (absoluteDegree === null || absoluteDegree === undefined) return null;
-
-  const regInfo = degreeToRegistryAndNote(absoluteDegree, currentScaleLength);
-  if (!regInfo) return null;
-
-  const { registry, degreeInRegistry } = regInfo;
-
-  // Get semitone for the degree within registry
-  const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
-  const semitone = degToSemi(visualState, degreeInRegistry);
-
-  // Calculate note index based on registry
-  if (registry === 1) {
-    return semitone;
-  } else {
-    // Registry 2: offset by 12 semitones
-    return semitone + 12;
-  }
-}
-
-// ========== VISUAL FEEDBACK ==========
-let highlightController = null;
-
 // ========== Nm VISUALIZER ==========
 
-/**
- * Create Nm(X) visualizer element inside the grid spacer (grid-area: 2/1)
- * @param {HTMLElement} gridContainer - The .grid-container element
- */
-function createNmVisualizer(gridContainer) {
-  // Find the spacer element (grid-area: 2/1)
-  // Structure: soundline-wrapper, matrix-container, spacer (3rd child), timeline-wrapper
-  const children = gridContainer.children;
-  let spacer = null;
-
-  // Find spacer by checking grid position (it's the only one with gridRow: 2 and gridColumn: 1)
-  for (const child of children) {
-    if (child.style.gridRow === '2' && child.style.gridColumn === '1') {
-      spacer = child;
-      break;
-    }
-  }
-
-  if (!spacer) {
-    console.warn('Nm visualizer: spacer element not found');
-    return null;
-  }
-
-  // Create visualizer element
+function createNmVisualizer(container) {
   const visualizer = document.createElement('div');
   visualizer.className = 'nm-visualizer';
   visualizer.innerHTML = `<span class="nm-label">Nm(</span><span class="nm-value">${scaleState.root}</span><span class="nm-label">)</span>`;
-
-  spacer.appendChild(visualizer);
+  container.appendChild(visualizer);
   nmVisualizerElement = visualizer;
-
   return visualizer;
 }
 
-/**
- * Update Nm(X) visualizer value and trigger flash animation
- * @param {number} newValue - New transpose value (0-11)
- */
 function updateNmVisualizer(newValue) {
   if (!nmVisualizerElement) return;
-
   const valueSpan = nmVisualizerElement.querySelector('.nm-value');
   if (valueSpan) {
     valueSpan.textContent = newValue;
   }
-
-  // Trigger flash animation
   nmVisualizerElement.classList.remove('flash');
-  // Force reflow to restart animation
   void nmVisualizerElement.offsetWidth;
   nmVisualizerElement.classList.add('flash');
+}
+
+// ========== INTERVAL LINES ==========
+
+let currentIntervalElements = [];
+
+function clearIntervalLines() {
+  currentIntervalElements.forEach(el => el.remove());
+  currentIntervalElements = [];
+}
+
+/**
+ * Create interval line between two degrees
+ */
+function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 0) {
+  if (!planoGrid) return;
+
+  const elements = planoGrid.getElements();
+  const matrix = elements?.matrixContainer?.querySelector('.plano-matrix');
+  if (!matrix) return;
+
+  const degreeInterval = degree2 - degree1;
+  const absInterval = Math.abs(degreeInterval);
+  const isAscending = degreeInterval > 0;
+
+  // Find the cell positions
+  const rows = planoGrid.getRows();
+  const reg1 = degreeToRegistryAndNote(degree1, currentScaleLength);
+  const reg2 = degreeToRegistryAndNote(degree2, currentScaleLength);
+
+  if (!reg1 || !reg2) return;
+
+  // Find row indices
+  const rowIndex1 = rows.findIndex(r => r.data.registry === reg1.registry && r.data.note === reg1.degreeInRegistry);
+  const rowIndex2 = rows.findIndex(r => r.data.registry === reg2.registry && r.data.note === reg2.degreeInRegistry);
+
+  if (rowIndex1 === -1 || rowIndex2 === -1) return;
+
+  // Get cell dimensions
+  const cellHeight = matrix.scrollHeight / rows.length;
+  const cellWidth = matrix.scrollWidth / TOTAL_SPACES;
+
+  // Calculate positions
+  const leftPos = pulseIndex * cellWidth;
+
+  // Vertical positions (from top of matrix)
+  const y1 = rowIndex1 * cellHeight + cellHeight / 2;
+  const y2 = rowIndex2 * cellHeight + cellHeight / 2;
+
+  // Create interval bar
+  const intervalBar = document.createElement('div');
+  intervalBar.className = 'interval-bar-vertical';
+  if (absInterval === 0) {
+    intervalBar.classList.add('interval-zero');
+  } else {
+    intervalBar.classList.add(isAscending ? 'ascending' : 'descending');
+  }
+
+  const topY = Math.min(y1, y2);
+  const height = Math.abs(y2 - y1);
+
+  intervalBar.style.position = 'absolute';
+  intervalBar.style.left = `${leftPos}px`;
+  intervalBar.style.top = `${topY}px`;
+  intervalBar.style.height = `${height || cellHeight * 0.8}px`;
+  intervalBar.style.width = '4px';
+  intervalBar.style.transform = 'translateX(-50%)';
+  intervalBar.style.zIndex = '15';
+
+  matrix.appendChild(intervalBar);
+  currentIntervalElements.push(intervalBar);
+
+  // Create interval number
+  const displayValue = degreeInterval > 0 ? `+${absInterval}` :
+                       degreeInterval < 0 ? `-${absInterval}` : '0';
+
+  const intervalNum = document.createElement('div');
+  intervalNum.className = 'interval-number';
+  intervalNum.textContent = displayValue;
+  intervalNum.style.position = 'absolute';
+  intervalNum.style.zIndex = '16';
+  intervalNum.style.top = `${topY + height / 2}px`;
+  intervalNum.style.left = `${leftPos + 15}px`;
+  intervalNum.style.transform = 'translateY(-50%)';
+
+  matrix.appendChild(intervalNum);
+  currentIntervalElements.push(intervalNum);
+}
+
+// ========== SYNCHRONIZATION ==========
+
+function syncGridFromDegreeIntervals(absoluteDegrees) {
+  if (!planoGrid) return;
+
+  // Clear previous selections and interval lines
+  planoGrid.clearSelection();
+  clearIntervalLines();
+
+  // Filter valid degrees
+  const validDegrees = absoluteDegrees.filter(d => !d.isRest && d.degree !== null);
+
+  // Select cells for each degree
+  validDegrees.forEach(({ degree, pulse }) => {
+    const regInfo = degreeToRegistryAndNote(degree, currentScaleLength);
+    if (!regInfo) return;
+
+    const rowId = `${regInfo.degreeInRegistry}r${regInfo.registry}`;
+    planoGrid.selectCell(rowId, pulse);
+  });
+
+  // Draw interval lines
+  let prevDegree = BASE_DEGREE;
+  validDegrees.forEach(({ degree, pulse }, idx) => {
+    createDegreeIntervalLine(prevDegree, degree, pulse, idx);
+    prevDegree = degree;
+  });
+
+  // Build registry map for autoscroll
+  pulseRegistryMap = buildPulseRegistryMap(absoluteDegrees, currentScaleLength);
 }
 
 // ========== PLAYBACK ==========
@@ -602,7 +513,6 @@ async function handlePlay() {
   const stopIcon = playBtn?.querySelector('.icon-stop');
   let wasLoading = false;
 
-  // Check if current instrument is loaded
   const currentInstrument = localStorage.getItem('app25b:selectedInstrument') || 'piano';
   const isInstrumentLoaded = currentInstrument === 'violin' ? isViolinLoaded() : isPianoLoaded();
 
@@ -624,15 +534,11 @@ async function handlePlay() {
     return;
   }
 
-  // Get intervals and convert to absolute degrees
   const allIntervals = gridEditor.getPairs();
   const absoluteDegrees = degreeIntervalsToAbsoluteDegrees(allIntervals, BASE_DEGREE);
-
-  // Build registry map for autoscroll
   const playbackRegistryMap = buildPulseRegistryMap(absoluteDegrees, currentScaleLength);
 
   isPlaying = true;
-
   if (randomBtn) randomBtn.disabled = true;
 
   if (playIcon && stopIcon) {
@@ -649,12 +555,11 @@ async function handlePlay() {
     new Set(),
     false,
     (step, scheduledTime) => {
-      highlightController?.highlightPulse(step);
+      // Highlight timeline
+      planoGrid.highlightTimelineNumber(step, intervalSec * 1000 * 0.9);
 
-      // Find the absolute degree for this step
       const degreeData = absoluteDegrees.find(d => d.pulse === step);
       if (degreeData && !degreeData.isRest && degreeData.degree !== null) {
-        // Get MIDI note using the new function
         const midi = absoluteDegreeToMidi(degreeData.degree);
         const duration = intervalSec * 0.9;
         const when = scheduledTime ?? Tone.now();
@@ -663,14 +568,11 @@ async function handlePlay() {
           audio.playNote(midi, duration, when);
         }
 
-        // Visual feedback on grid
-        const noteIndex = absoluteDegreeToNoteIndex(degreeData.degree);
-        if (noteIndex !== null) {
-          const cell = musicalGrid.getCellElement(noteIndex, step);
-          if (cell) {
-            cell.classList.add('playing');
-            setTimeout(() => cell.classList.remove('playing'), duration * 1000);
-          }
+        // Visual feedback - highlight the cell
+        const regInfo = degreeToRegistryAndNote(degreeData.degree, currentScaleLength);
+        if (regInfo) {
+          const rowId = `${regInfo.degreeInRegistry}r${regInfo.registry}`;
+          planoGrid.highlightCell(rowId, step, duration * 1000);
         }
       }
 
@@ -688,7 +590,6 @@ async function handlePlay() {
 
 function stopPlayback(delayMs = 0) {
   isPlaying = false;
-
   if (randomBtn) randomBtn.disabled = false;
 
   if (delayMs > 0) {
@@ -699,11 +600,7 @@ function stopPlayback(delayMs = 0) {
     audio?.stop();
   }
 
-  highlightController?.clearHighlights();
-
-  document.querySelectorAll('.musical-cell.playing').forEach(cell => {
-    cell.classList.remove('playing');
-  });
+  planoGrid?.clearHighlights();
 
   const playIcon = playBtn?.querySelector('.icon-play');
   const stopIcon = playBtn?.querySelector('.icon-stop');
@@ -717,12 +614,9 @@ function stopPlayback(delayMs = 0) {
 
 function handleReset() {
   gridEditor?.clear();
-  musicalGrid?.clear();
-
-  // Clear interval lines
+  planoGrid?.clearSelection();
   clearIntervalLines();
 
-  // Clear degree intervals state
   currentDegreeIntervals = [];
   pulseRegistryMap = {};
 
@@ -730,9 +624,7 @@ function handleReset() {
     stopPlayback();
   }
 
-  // Save empty state
   saveCurrentState();
-
   console.log('Reset to default state');
 }
 
@@ -746,42 +638,31 @@ function handleRandom() {
   const randomScale = APP25_SCALES[randomScaleIndex];
   scaleSelector?.setScale(randomScale.value);
 
-  // 2. Randomize transpose (nota de salida: 0-11)
+  // 2. Randomize transpose
   const randomTranspose = Math.floor(Math.random() * 12);
   scaleSelector?.setTranspose(randomTranspose);
 
   // 3. Randomize sequence of INTERVALS (iSº)
   const randDensity = parseInt(document.getElementById('randDensity')?.value || 8, 10);
-
-  // Use the NEW scale length after scale change
   const newScaleLength = motherScalesData[randomScale.id]?.ee?.length || 7;
   const numIntervals = Math.max(1, Math.min(randDensity, TOTAL_SPACES));
-
-  // Generate random degree intervals
-  // Max interval range: ±(scaleLength - 1) to stay within reasonable bounds
   const maxInterval = newScaleLength - 1;
 
-  // Track accumulated degree to ensure we stay within valid range (0 to 2*scaleLength-1)
   let accumulatedDegree = BASE_DEGREE;
   const intervals = [];
 
   for (let pulse = 0; pulse < TOTAL_SPACES; pulse++) {
     if (pulse < numIntervals) {
-      // Generate a random interval that keeps us in valid range
-      // Min degree: 0, Max degree: 2*scaleLength - 1 (2 registries)
-      const minAllowed = -accumulatedDegree; // Can't go below 0
-      const maxAllowed = (2 * newScaleLength - 1) - accumulatedDegree; // Can't exceed 2 registries
-
-      // Clamp to reasonable interval range
+      const minAllowed = -accumulatedDegree;
+      const maxAllowed = (2 * newScaleLength - 1) - accumulatedDegree;
       const minInterval = Math.max(-maxInterval, minAllowed);
       const maxIntervalClamped = Math.min(maxInterval, maxAllowed);
 
-      // Random interval within range
       let randomInterval;
       if (minInterval <= maxIntervalClamped) {
         randomInterval = Math.floor(Math.random() * (maxIntervalClamped - minInterval + 1)) + minInterval;
       } else {
-        randomInterval = 0; // Fallback if range is invalid
+        randomInterval = 0;
       }
 
       accumulatedDegree += randomInterval;
@@ -791,7 +672,6 @@ function handleRandom() {
         isRest: false
       });
     } else {
-      // Rest for remaining pulses
       intervals.push({
         degreeInterval: 0,
         isRest: true
@@ -799,15 +679,12 @@ function handleRandom() {
     }
   }
 
-  // Update state and UI
   currentDegreeIntervals = intervals;
   gridEditor?.setPairs(intervals);
 
-  // Sync grid visualization
   const absoluteDegrees = degreeIntervalsToAbsoluteDegrees(intervals, BASE_DEGREE);
   syncGridFromDegreeIntervals(absoluteDegrees);
 
-  // Save state
   saveCurrentState();
 
   console.log('Random generation:', {
@@ -819,361 +696,48 @@ function handleRandom() {
   });
 }
 
-// ========== SYNCHRONIZATION ==========
-
-// Store interval line elements for cleanup
-let currentIntervalElements = [];
-
-/**
- * Sync grid from degree intervals (iSº)
- * - Converts intervals to absolute degrees
- * - Activates cells with degree labels
- * - Draws interval lines with arrows
- *
- * @param {Array} absoluteDegrees - Array of {degree, pulse, isRest}
- */
-function syncGridFromDegreeIntervals(absoluteDegrees) {
-  if (!musicalGrid) return;
-
-  // Clear all active cells, labels, and interval lines
-  document.querySelectorAll('.musical-cell.active').forEach(cell => {
-    cell.classList.remove('active');
-    const label = cell.querySelector('.cell-label');
-    if (label) label.remove();
-  });
-  clearIntervalLines();
-
-  // Filter valid degrees
-  const validDegrees = absoluteDegrees.filter(d => !d.isRest && d.degree !== null);
-
-  // Activate cells for each degree
-  validDegrees.forEach(({ degree, pulse }) => {
-    // Get note index in the 25-note grid
-    const noteIndex = absoluteDegreeToNoteIndex(degree);
-    if (noteIndex === null) return;
-
-    const cell = musicalGrid.getCellElement(noteIndex, pulse);
-
-    if (cell) {
-      cell.classList.add('active');
-
-      // Add degree label (show absolute degree)
-      const label = document.createElement('span');
-      label.className = 'cell-label';
-      label.textContent = String(degree);
-      cell.appendChild(label);
-    }
-  });
-
-  // Draw interval lines
-  let prevDegree = BASE_DEGREE;
-
-  validDegrees.forEach(({ degree, pulse }, idx) => {
-    createDegreeIntervalLine(prevDegree, degree, pulse, idx);
-    prevDegree = degree;
-  });
-
-  // Build registry map for autoscroll
-  pulseRegistryMap = buildPulseRegistryMap(absoluteDegrees, currentScaleLength);
-}
-
-/**
- * Clear all interval line elements
- */
-function clearIntervalLines() {
-  currentIntervalElements.forEach(el => el.remove());
-  currentIntervalElements = [];
-}
-
-/**
- * Create interval line between two degrees
- * Adapted from App15 createIntervalLine
- *
- * @param {number} degree1 - Source degree
- * @param {number} degree2 - Target degree
- * @param {number} pulseIndex - Pulse position
- * @param {number} intervalIndex - Index in sequence (0 = first)
- */
-function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 0) {
-  const matrixContainer = musicalGrid?.getMatrixContainer?.();
-  if (!matrixContainer) return;
-
-  // Calculate interval in DEGREES (for display)
-  const degreeInterval = degree2 - degree1;
-  const absInterval = Math.abs(degreeInterval);
-  const isAscending = degreeInterval > 0;
-
-  // Get note indices in the 25-note grid
-  const note1Index = absoluteDegreeToNoteIndex(degree1);
-  const note2Index = absoluteDegreeToNoteIndex(degree2);
-
-  if (note1Index === null || note2Index === null) return;
-
-  // Calculate horizontal position (left edge of pulse column)
-  const leftPos = pulseIndex / TOTAL_SPACES * 100;
-
-  // Special case: interval 0 - vertical line spanning full cell
-  if (absInterval === 0) {
-    const cellHeight = 100 / TOTAL_NOTES;
-    const topEdge = (TOTAL_NOTES - 1 - note2Index) / TOTAL_NOTES * 100;
-
-    const intervalBar = document.createElement('div');
-    intervalBar.className = 'interval-bar-vertical interval-zero';
-    intervalBar.style.position = 'absolute';
-    intervalBar.style.top = `${topEdge}%`;
-    intervalBar.style.left = `${leftPos}%`;
-    intervalBar.style.transform = 'translateX(-50%)';
-    intervalBar.style.width = '4px';
-    intervalBar.style.height = `${cellHeight}%`;
-    intervalBar.style.zIndex = '15';
-
-    matrixContainer.appendChild(intervalBar);
-    currentIntervalElements.push(intervalBar);
-
-    // Number "0" above the bar
-    const intervalNum = document.createElement('div');
-    intervalNum.className = 'interval-number';
-    intervalNum.textContent = '0';
-    intervalNum.style.position = 'absolute';
-    intervalNum.style.zIndex = '16';
-    intervalNum.style.top = `${topEdge}%`;
-    intervalNum.style.left = `${leftPos}%`;
-    intervalNum.style.transform = 'translate(-50%, -100%)';
-
-    matrixContainer.appendChild(intervalNum);
-    currentIntervalElements.push(intervalNum);
-    return;
-  }
-
-  // Calculate vertical positions
-  let topEdge, bottomEdge;
-  const cellHeight = 100 / TOTAL_NOTES;
-
-  if (Math.abs(note2Index - note1Index) <= 1) {
-    // ±1 semitone: line spans edge-to-edge
-    const topNote = Math.max(note1Index, note2Index);
-    topEdge = (TOTAL_NOTES - 1 - topNote) / TOTAL_NOTES * 100;
-
-    if (intervalIndex === 0 && note1Index === 0) {
-      bottomEdge = 100;
-    } else {
-      const bottomNote = Math.min(note1Index, note2Index);
-      bottomEdge = (TOTAL_NOTES - bottomNote) / TOTAL_NOTES * 100;
-    }
-  } else if (isAscending) {
-    // Ascending: TOP of origin → BOTTOM of destination
-    const originCellTop = (TOTAL_NOTES - 1 - note1Index) / TOTAL_NOTES * 100;
-    const destCellBottom = (TOTAL_NOTES - note2Index) / TOTAL_NOTES * 100;
-    topEdge = destCellBottom;
-
-    if (intervalIndex === 0 && note1Index === 0) {
-      bottomEdge = 100;
-    } else {
-      bottomEdge = originCellTop;
-    }
-  } else {
-    // Descending: BOTTOM of origin → TOP of destination
-    const originCellBottom = (TOTAL_NOTES - note1Index) / TOTAL_NOTES * 100;
-    const destCellTop = (TOTAL_NOTES - 1 - note2Index) / TOTAL_NOTES * 100;
-    topEdge = originCellBottom;
-    bottomEdge = destCellTop;
-  }
-
-  const finalHeight = Math.abs(bottomEdge - topEdge);
-
-  const intervalBar = document.createElement('div');
-  intervalBar.className = 'interval-bar-vertical';
-  intervalBar.classList.add(isAscending ? 'ascending' : 'descending');
-
-  intervalBar.style.position = 'absolute';
-  intervalBar.style.left = `${leftPos}%`;
-  intervalBar.style.transform = 'translateX(-50%)';
-  intervalBar.style.width = '4px';
-  intervalBar.style.top = `${Math.min(topEdge, bottomEdge)}%`;
-  intervalBar.style.height = `${finalHeight}%`;
-  intervalBar.style.zIndex = '15';
-
-  matrixContainer.appendChild(intervalBar);
-  currentIntervalElements.push(intervalBar);
-
-  // Create interval number label (shows DEGREE interval, not semitones)
-  const displayValue = degreeInterval > 0 ? `+${absInterval}` : `-${absInterval}`;
-
-  const centerY = (topEdge + bottomEdge) / 2;
-
-  const intervalNum = document.createElement('div');
-  intervalNum.className = 'interval-number';
-  intervalNum.textContent = displayValue;
-  intervalNum.style.position = 'absolute';
-  intervalNum.style.zIndex = '16';
-
-  // Position: first interval always right, ascending left, descending right
-  const isFirstInterval = intervalIndex === 0;
-
-  if (isFirstInterval || !isAscending) {
-    intervalNum.style.top = `${centerY}%`;
-    intervalNum.style.left = `calc(${leftPos}% + 12px)`;
-    intervalNum.style.transform = 'translateY(-50%)';
-  } else {
-    intervalNum.style.top = `${centerY}%`;
-    intervalNum.style.left = `calc(${leftPos}% - 12px)`;
-    intervalNum.style.transform = 'translate(-100%, -50%)';
-  }
-
-  matrixContainer.appendChild(intervalNum);
-  currentIntervalElements.push(intervalNum);
-}
-
-// Legacy function for compatibility
-function syncGridFromDegrees(pairs) {
-  const absoluteDegrees = pairs.map(p => ({
-    degree: p.degree,
-    pulse: p.pulse,
-    isRest: p.isRest
-  }));
-  syncGridFromDegreeIntervals(absoluteDegrees);
-}
-
-function formatDegreeLabel(degree, modifier) {
-  if (modifier === 'r+') return `${degree}r+`;
-  if (modifier === '+') return `${degree}+`;
-  if (modifier === '-') return `${degree}-`;
-  return `${degree}`;
-}
-
 // ========== SCALE CHANGE HANDLERS ==========
 
-function updateGridCellStates() {
-  if (!musicalGrid) return;
-
-  // Use BASE scale (no transpose) for VISUAL display
-  const scaleSemitones = getVisualScaleSemitones();
-
-  // Build extended scale semitones for 2 registries
-  // Registry 1: notes 0-12 (semitones 0-12)
-  // Registry 2: notes 13-24 (semitones 0-11 + 12 offset)
-  const extendedScaleSemitones = [...scaleSemitones];
-  scaleSemitones.forEach(s => {
-    if (s < 12) {
-      extendedScaleSemitones.push(s + 12);
-    }
-  });
-
-  // Update cell enabled states for both registries
-  if (musicalGrid.setEnabledNotes) {
-    musicalGrid.setEnabledNotes(extendedScaleSemitones);
-  }
-
-  // Update degree labels on soundline
-  updateSoundlineLabels();
-}
-
-function updateSoundlineLabels() {
-  if (!musicalGrid) return;
-
-  // Use BASE scale (no transpose) for VISUAL display
-  const scaleSemitones = getVisualScaleSemitones();
-
-  // Build extended scale semitones for 2 registries
-  // Registry 1: notes 0-12 (semitones 0-12)
-  // Registry 2: notes 13-24 (semitones 0-11 + 12 offset)
-  const extendedScaleSemitones = [...scaleSemitones];
-  // Add registry 2 semitones (offset by 12)
-  scaleSemitones.forEach(s => {
-    if (s < 12) {
-      extendedScaleSemitones.push(s + 12);
-    }
-  });
-
-  // Use the API if available
-  if (musicalGrid.updateSoundlineLabels) {
-    musicalGrid.updateSoundlineLabels(extendedScaleSemitones, (noteIndex) => {
-      // Determine registry
-      if (noteIndex < NOTES_PER_REGISTRY) {
-        // Registry 1: notes 0-12
-        if (noteIndex === 12) {
-          // Note 12 = shared boundary (degree 0 of r2 or scaleLength of r1)
-          return `${currentScaleLength}`;
-        }
-        const degreeIndex = scaleSemitones.indexOf(noteIndex);
-        return degreeIndex !== -1 ? String(degreeIndex) : '·';
-      } else {
-        // Registry 2: notes 13-24
-        const adjustedNote = noteIndex - 12;
-        const degreeIndex = scaleSemitones.indexOf(adjustedNote);
-        if (degreeIndex !== -1) {
-          // Show absolute degree (degree + scaleLength)
-          return String(degreeIndex + currentScaleLength);
-        }
-        return '·';
-      }
-    });
-  }
-}
-
-/**
- * Handle scale change - PARALLEL MODE
- *
- * VISUAL IS FIXED: Soundline positions 0-11 are fixed semitones (C=0, C#=1, etc.)
- * Scale degrees are assigned to their corresponding semitone positions.
- *
- * When scale changes:
- * - The ROOT stays the same (parallel mode - Do Major → Do minor)
- * - Visual positions change based on which semitones belong to the new scale
- * - Degrees are re-mapped to the new scale structure
- */
 function handleScaleChange({ scaleId, rotation, value }) {
   const oldScaleLength = currentScaleLength;
 
-  // Update scale state - ROOT STAYS THE SAME (parallel mode)
   scaleState.id = scaleId;
   scaleState.rot = rotation;
 
-  // Find rootOffset from our scale configuration
   const scaleConfig = APP25_SCALES.find(s => s.value === value);
   currentRootOffset = scaleConfig?.rootOffset || 0;
-
   currentScaleLength = motherScalesData[scaleId]?.ee?.length || 7;
 
-  // Update grid cell states (which notes are enabled based on new scale)
-  updateGridCellStates();
+  // Rebuild grid rows for new scale
+  rebuildGrid();
 
-  // With intervals, the same intervals produce different absolute degrees
-  // depending on the scale. We keep the intervals unchanged.
-  // The visual representation will update automatically.
-  if (gridEditor && currentDegreeIntervals.length > 0) {
-    // Recalculate absolute degrees with new scale
+  // Recalculate and sync intervals
+  if (currentDegreeIntervals.length > 0) {
     const absoluteDegrees = degreeIntervalsToAbsoluteDegrees(currentDegreeIntervals, BASE_DEGREE);
-
-    // Sync grid with new positions
     syncGridFromDegreeIntervals(absoluteDegrees);
   }
 
-  console.log('Scale changed:', {
-    scaleId, rotation,
-    root: scaleState.root,
-    oldScaleLength,
-    newScaleLength: currentScaleLength
-  });
+  console.log('Scale changed:', { scaleId, rotation, oldScaleLength, newScaleLength: currentScaleLength });
 }
 
-/**
- * Handle transpose change - updates root/output note
- *
- * FIXED VISUAL MODE: Visual positions do NOT change when transpose changes.
- * - Degree 0 is ALWAYS at soundline position 0 (bottom)
- * - Only the MIDI notes played change based on root
- */
 function handleTransposeChange(transpose) {
   scaleState.root = transpose;
-
-  // Update Nm(X) visualizer with flash animation
   updateNmVisualizer(transpose);
+  console.log('Transpose changed:', transpose);
+}
 
-  // NO visual grid updates needed - visual display is FIXED
-  // Only MIDI playback is affected via degreeToMidi()
+// ========== GRID REBUILD ==========
 
-  console.log('Transpose changed:', transpose, '(visual unchanged, only MIDI output affected)');
+function rebuildGrid() {
+  if (!planoGrid) return;
+
+  const rows = buildScaleRows();
+  planoGrid.updateRows(rows);
+
+  // Scroll to default registry
+  setTimeout(() => {
+    scrollToRegistry(DEFAULT_REGISTRY, false);
+  }, 50);
 }
 
 // ========== DOM INJECTION ==========
@@ -1181,43 +745,39 @@ function handleTransposeChange(transpose) {
 function injectLayout() {
   const appRoot = document.getElementById('app-root');
   const mainElement = appRoot?.querySelector('main');
-
   if (!mainElement) return null;
 
-  // Main grid container
   const gridWrapper = document.createElement('div');
   gridWrapper.className = 'app25-main-grid';
 
-  // Left column: Scale selector
   scaleSelectorContainer = document.createElement('div');
   scaleSelectorContainer.className = 'app25-scale-selector';
   gridWrapper.appendChild(scaleSelectorContainer);
 
-  // Right column: Grid area (editor + musical grid)
   gridAreaContainer = document.createElement('div');
   gridAreaContainer.className = 'app25-grid-area';
   gridWrapper.appendChild(gridAreaContainer);
 
-  // Grid editor container (inside grid area)
   gridEditorContainer = document.createElement('div');
   gridEditorContainer.id = 'gridEditorContainer';
   gridAreaContainer.appendChild(gridEditorContainer);
 
+  // Container for plano grid
+  const planoContainer = document.createElement('div');
+  planoContainer.className = 'app25-plano-container';
+  gridAreaContainer.appendChild(planoContainer);
+
   mainElement.appendChild(gridWrapper);
 
-  return gridWrapper;
+  return { gridWrapper, planoContainer };
 }
 
 // ========== INITIALIZATION ==========
 
 async function init() {
-  console.log('Initializing App25: Melodias con Escalas...');
+  console.log('Initializing App25B: Melodías con iSº...');
 
-  // Note: Audio preload is now handled by first-interaction listener (see below)
-  // This avoids the delay and ensures immediate response on first cell click
-
-  // Create layout
-  const gridWrapper = injectLayout();
+  const { gridWrapper, planoContainer } = injectLayout();
   if (!gridWrapper) {
     console.error('Failed to create layout');
     return;
@@ -1235,14 +795,14 @@ async function init() {
     transposeHiddenByDefault: false,
     title: 'Escala',
     transposeTitle: 'Nota de Salida',
-    selectSize: 3,  // Show only 3 scales, scroll for rest
+    selectSize: 3,
     onScaleChange: handleScaleChange,
     onTransposeChange: handleTransposeChange
   });
 
   scaleSelector.render();
 
-  // Set initial scale state from preferences or default
+  // Set initial scale state
   const initialScaleValue = prefs.scaleValue || 'DIAT-0';
   const initialScaleConfig = APP25_SCALES.find(s => s.value === initialScaleValue);
   if (initialScaleConfig) {
@@ -1254,159 +814,89 @@ async function init() {
     currentScaleLength = motherScalesData['DIAT']?.ee?.length || 7;
   }
 
-  // Create musical grid - WITH SCROLL for 2 registries (25 notes, show 13 at a time)
-  musicalGrid = createMusicalGrid({
-    parent: gridAreaContainer,
-    notes: TOTAL_NOTES,
-    pulses: TOTAL_PULSES,
-    startMidi: 60,
-    fillSpaces: true,
-    cellClassName: 'musical-cell',
-    activeClassName: 'active',
-    highlightClassName: 'highlight',
-    scrollEnabled: true,  // Enable scroll for 2 registries
-    visibleCells: { notes: VISIBLE_NOTES, pulses: TOTAL_PULSES },
-    cellSize: { minHeight: 28, minWidth: 40 },  // Fixed cell size for scroll
-    showIntervals: {
-      horizontal: true,
-      vertical: false
-    },
-    intervalColor: '#4A9EFF',
-    noteFormatter: (noteIndex) => {
-      // Show degree number based on registry
-      // Registry 1: notes 0-12 (degrees 0-12, where 12 = degree 0 of r2)
-      // Registry 2: notes 13-24 (degrees 0-11 of r2)
-      const registry = noteIndex < NOTES_PER_REGISTRY ? 1 : 2;
-      const degreeInRegistry = noteIndex < NOTES_PER_REGISTRY
-        ? noteIndex
-        : noteIndex - NOTES_PER_REGISTRY + 1;  // +1 because note 12 = note 13 (shared)
+  // Build initial rows
+  const rows = buildScaleRows();
+  const note0RowMap = calculateScaleNote0RowMap(rows);
 
-      // Get scale semitones for this registry
-      const scaleSems = getVisualScaleSemitones();
-
-      // For registry 1, check if note is in scale
-      if (registry === 1) {
-        const degreeIndex = scaleSems.indexOf(noteIndex);
-        return degreeIndex !== -1 ? String(degreeIndex) : '·';
-      } else {
-        // For registry 2, offset by 12 semitones and check
-        const adjustedNote = noteIndex - 12;
-        const degreeIndex = scaleSems.indexOf(adjustedNote);
-        if (degreeIndex !== -1) {
-          // Show degree + scaleLength to indicate it's in registry 2
-          return String(degreeIndex + currentScaleLength);
-        }
-        return '·';
-      }
+  // Create plano grid
+  planoGrid = createPlanoModular({
+    parent: planoContainer,
+    rows,
+    columns: TOTAL_SPACES,
+    cycleConfig: {
+      compas: TOTAL_SPACES,
+      showCycle: false
     },
-    onCellClick: async (noteIndex, pulseIndex, cellElement) => {
+    bpm: currentBPM,
+    scrollConfig: {
+      blockVerticalWheel: false,  // Allow smooth scroll
+      visibleRows: VISIBLE_ROWS,
+      visibleColumns: TOTAL_SPACES,
+      note0RowMap
+    },
+    selectionMode: 'none',  // We handle selection manually
+    showPlayhead: true,
+    playheadOffset: 0,
+    onCellClick: async (rowData, colIndex, isSelected) => {
       const audioInstance = await initAudio();
+      if (!window.Tone || !audioInstance) return;
 
-      if (!window.Tone || !audioInstance) {
-        console.warn('Audio not available');
-        return;
+      // Play the note
+      const absoluteDegree = rowData.data.absoluteDegree;
+      const midi = absoluteDegreeToMidi(absoluteDegree);
+      if (midi !== null) {
+        const duration = (60 / currentBPM) * 0.9;
+        audioInstance.playNote(midi, duration, window.Tone.now());
       }
-
-      // Use BASE scale (no transpose) for VISUAL click detection
-      const scaleSems = getVisualScaleSemitones();
-
-      // Check if note is in scale
-      if (!scaleSems.includes(noteIndex)) {
-        infoTooltip.show('Usa +/- en grid-editor para notas cromáticas', cellElement);
-        return;
-      }
-
-      const degree = scaleSems.indexOf(noteIndex);
-      const midi = 60 + noteIndex;
-      const duration = (60 / currentBPM) * 0.9;
-      const Tone = window.Tone;
-      audioInstance.playNote(midi, duration, Tone.now());
-
-      if (!gridEditor) return;
-
-      const currentPairs = gridEditor.getPairs();
-      const existingPair = currentPairs.find(p => p.pulse === pulseIndex && !p.isRest);
-
-      let newPairs;
-      // Check if clicking on the SAME note (same degree) - toggle off
-      const isSameNote = existingPair && existingPair.degree === degree && !existingPair.modifier;
-
-      if (isSameNote) {
-        // Toggle off - remove the note
-        newPairs = currentPairs.filter(p => p.pulse !== pulseIndex);
-      } else {
-        // Replace with new note (removes any existing at this pulse)
-        newPairs = currentPairs.filter(p => p.pulse !== pulseIndex);
-        // Handle note 12 as 0r+ (upper octave)
-        const modifier = noteIndex === 12 ? 'r+' : null;
-        const actualDegree = noteIndex === 12 ? 0 : degree;
-        newPairs.push({ degree: actualDegree, modifier, pulse: pulseIndex, isRest: false });
-      }
-
-      gridEditor.setPairs(newPairs);
-      syncGridFromDegrees(newPairs);
     }
   });
 
-  // Initial cell states
-  updateGridCellStates();
-
-  // Initial scroll to registry 1 (bottom, showing notes 0-12)
-  // Use setTimeout to ensure grid is fully rendered
-  setTimeout(() => {
-    scrollToRegistry(1, false);
-
-    // Setup scroll sync between matrix and soundline
-    const matrixContainer = musicalGrid?.getMatrixContainer?.();
-    const soundlineWrapper = document.querySelector('.soundline-wrapper');
-
-    if (matrixContainer && soundlineWrapper) {
-      let isScrollSyncing = false;
-
-      matrixContainer.addEventListener('scroll', () => {
-        if (isScrollSyncing) return;
-        isScrollSyncing = true;
-        soundlineWrapper.scrollTop = matrixContainer.scrollTop;
-        requestAnimationFrame(() => { isScrollSyncing = false; });
-      });
-
-      soundlineWrapper.addEventListener('scroll', () => {
-        if (isScrollSyncing) return;
-        isScrollSyncing = true;
-        matrixContainer.scrollTop = soundlineWrapper.scrollTop;
-        requestAnimationFrame(() => { isScrollSyncing = false; });
+  // Soundline label formatter
+  const elements = planoGrid.getElements();
+  if (elements?.soundlineContainer) {
+    // Update soundline labels to show Nº^r format
+    const soundlineRow = elements.soundlineContainer.querySelector('.plano-soundline-row');
+    if (soundlineRow) {
+      const noteEls = soundlineRow.querySelectorAll('.plano-soundline-note');
+      noteEls.forEach(noteEl => {
+        const registry = noteEl.dataset.registry;
+        const degree = noteEl.dataset.absoluteDegree;
+        if (degree !== undefined && registry !== undefined) {
+          noteEl.innerHTML = `${degree}<sup>${registry}</sup>`;
+        }
       });
     }
+  }
+
+  // Initial scroll to registry 3
+  setTimeout(() => {
+    scrollToRegistry(DEFAULT_REGISTRY, false);
   }, 100);
 
-  // Create Nm(X) visualizer in grid spacer (grid-area: 2/1)
-  const gridContainer = gridAreaContainer.querySelector('.grid-container');
-  if (gridContainer) {
-    createNmVisualizer(gridContainer);
-  }
+  // Create Nm(X) visualizer
+  const nmContainer = document.createElement('div');
+  nmContainer.className = 'nm-container';
+  scaleSelectorContainer.appendChild(nmContainer);
+  createNmVisualizer(nmContainer);
 
   // Move controls into scale selector area
   const controls = document.querySelector('.controls');
   if (controls && scaleSelectorContainer) {
     controls.remove();
-
     const controlsContainer = document.createElement('div');
     controlsContainer.className = 'app25-controls-container';
     controlsContainer.appendChild(controls);
-
     scaleSelectorContainer.appendChild(controlsContainer);
   }
 
-  // Create grid editor with degree mode
+  // Create grid editor
   const isMobile = window.innerWidth <= 900;
   gridEditor = createGridEditor({
     container: gridEditorContainer,
     mode: 'degree-interval',
     degreeModeOptions: {
       totalPulses: TOTAL_SPACES,
-      getScaleLength: () => currentScaleLength,
-      // For degree-interval mode, validation is done internally
-      // based on accumulated degrees and scale length * 2 (2 registries)
+      getScaleLength: () => currentScaleLength
     },
     noteRange: [0, 11],
     pulseRange: [0, TOTAL_SPACES - 1],
@@ -1416,46 +906,27 @@ async function init() {
     containerSize: isMobile ? { maxHeight: '100px', width: '100%' } : null,
     columnSize: isMobile ? { width: '50px', minHeight: '80px' } : null,
     onPairsChange: (intervals) => {
-      // Store current intervals
       currentDegreeIntervals = intervals;
-
-      // Convert intervals to absolute degrees
       const absoluteDegrees = degreeIntervalsToAbsoluteDegrees(intervals, BASE_DEGREE);
-
-      // Sync grid visualization
       syncGridFromDegreeIntervals(absoluteDegrees);
-
-      // Save state
       saveCurrentState();
     }
   });
 
-  // Initialize highlight controller
-  highlightController = createMatrixHighlightController({
-    musicalGrid,
-    gridEditor,
-    totalNotes: TOTAL_NOTES,
-    currentBPM: currentBPM
-  });
-
-  // Preload audio on first user interaction anywhere in the app
-  // This ensures Tone.js and the instrument are ready before the user clicks a cell
+  // Audio preload on first interaction
   let audioPreloadStarted = false;
   const preloadAudioOnFirstInteraction = async () => {
     if (audioPreloadStarted) return;
     audioPreloadStarted = true;
-    // Remove listeners immediately to avoid duplicate calls
     document.removeEventListener('click', preloadAudioOnFirstInteraction, { capture: true });
     document.removeEventListener('touchstart', preloadAudioOnFirstInteraction, { capture: true });
     document.removeEventListener('keydown', preloadAudioOnFirstInteraction, { capture: true });
-    // Start audio initialization (loads Tone.js + instrument)
     await initAudio();
   };
   document.addEventListener('click', preloadAudioOnFirstInteraction, { capture: true, once: true });
   document.addEventListener('touchstart', preloadAudioOnFirstInteraction, { capture: true, once: true });
   document.addEventListener('keydown', preloadAudioOnFirstInteraction, { capture: true, once: true });
 
-  // Wait for DOM
   await new Promise(resolve => setTimeout(resolve, 50));
 
   // Query control buttons
@@ -1463,7 +934,6 @@ async function init() {
   randomBtn = document.getElementById('randomBtn');
   resetBtn = document.getElementById('resetBtn');
 
-  // Event listeners
   playBtn?.addEventListener('click', handlePlay);
   resetBtn?.addEventListener('click', handleReset);
   randomBtn?.addEventListener('click', handleRandom);
@@ -1488,7 +958,6 @@ async function init() {
   // Mixer integration
   const mixerMenu = document.getElementById('mixerMenu');
   if (mixerMenu) {
-    // Get initial instrument label from stored preference
     const initialInstrument = localStorage.getItem('app25b:selectedInstrument') || 'piano';
     const instrumentLabel = initialInstrument === 'violin' ? 'Violín' : 'Piano';
 
@@ -1537,18 +1006,12 @@ async function init() {
     if (mixerSaveTimeout) clearTimeout(mixerSaveTimeout);
     mixerSaveTimeout = setTimeout(() => {
       const state = {
-        master: {
-          volume: snapshot.master.volume,
-          muted: snapshot.master.muted
-        },
+        master: { volume: snapshot.master.volume, muted: snapshot.master.muted },
         channels: {}
       };
       snapshot.channels.forEach(ch => {
         if (MIXER_CHANNELS.includes(ch.id)) {
-          state.channels[ch.id] = {
-            volume: ch.volume,
-            muted: ch.muted
-          };
+          state.channels[ch.id] = { volume: ch.volume, muted: ch.muted };
         }
       });
       localStorage.setItem(MIXER_STORAGE_KEY, JSON.stringify(state));
@@ -1562,20 +1025,18 @@ async function init() {
   if (pulseToggleBtn) {
     const globalMixer = getMixer();
     initAudioToggles({
-      toggles: [
-        {
-          id: 'pulse',
-          button: pulseToggleBtn,
-          storageKey: 'app25b:pulseAudio',
-          mixerChannel: 'pulse',
-          defaultEnabled: true,
-          onChange: (enabled) => {
-            if (audio && typeof audio.setPulseEnabled === 'function') {
-              audio.setPulseEnabled(enabled);
-            }
+      toggles: [{
+        id: 'pulse',
+        button: pulseToggleBtn,
+        storageKey: 'app25b:pulseAudio',
+        mixerChannel: 'pulse',
+        defaultEnabled: true,
+        onChange: (enabled) => {
+          if (audio && typeof audio.setPulseEnabled === 'function') {
+            audio.setPulseEnabled(enabled);
           }
         }
-      ],
+      }],
       storage: {
         load: () => preferenceStorage.load() || {},
         save: (data) => {
@@ -1608,7 +1069,7 @@ async function init() {
     });
   }
 
-  // Wire instrument dropdown
+  // Instrument dropdown
   window.addEventListener('sharedui:instrument', async (e) => {
     const instrument = e.detail.instrument;
     console.log('Instrument changed to:', instrument);
@@ -1616,7 +1077,6 @@ async function init() {
     await initAudio();
     await audio.setInstrument(instrument);
 
-    // Update mixer channel label to reflect new instrument
     const instrumentLabel = instrument === 'violin' ? 'Violín' : 'Piano';
     updateMixerChannelLabel('instrument', instrumentLabel);
 
@@ -1630,39 +1090,29 @@ async function init() {
     storage: preferenceStorage,
     onBeforeReload: () => {
       handleReset();
-
       localStorage.removeItem('app25b:p1Toggle');
       localStorage.removeItem('app25b:pulseAudio');
       localStorage.removeItem('app25-mixer');
-
       const randDensity = document.getElementById('randDensity');
       if (randDensity) randDensity.value = '8';
     }
   });
 
-  // Preload piano samples in background (reduces latency on first play)
+  // Preload piano
   setupPianoPreload({ delay: 300 });
 
-  console.log('App25 initialized successfully');
+  console.log('App25B initialized successfully');
 }
 
 // ========== CLEANUP ==========
 
 window.addEventListener('beforeunload', () => {
-  if (audio) {
-    audio.stop();
-  }
-
-  if (musicalGrid) {
-    musicalGrid.destroy?.();
-  }
-
-  if (gridEditor) {
-    gridEditor.destroy?.();
-  }
+  if (audio) audio.stop();
+  if (planoGrid) planoGrid.destroy?.();
+  if (gridEditor) gridEditor.destroy?.();
 });
 
 // Start initialization
 init().catch(err => {
-  console.error('Failed to initialize App25:', err);
+  console.error('Failed to initialize App25B:', err);
 });
