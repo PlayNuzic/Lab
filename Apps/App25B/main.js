@@ -994,8 +994,11 @@ async function init() {
         return; // Ignore clicks on non-scale notes
       }
 
-      // Play the note
-      const midi = 60 + noteIndex;
+      // Play the note (using transpose from Nota de Salida)
+      const absoluteDegree = visualNoteIndexToAbsoluteDegree(noteIndex);
+      const midi = absoluteDegreeToMidi(absoluteDegree);
+      if (midi === null) return;
+
       const duration = (60 / currentBPM) * 0.9;
       const Tone = window.Tone;
       audioInstance.playNote(midi, duration, Tone.now());
