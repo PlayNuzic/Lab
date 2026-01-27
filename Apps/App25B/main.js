@@ -670,38 +670,6 @@ function stopPlayback(delayMs = 0) {
   }
 }
 
-/**
- * Setup vertical scroll synchronization between soundline and matrix
- */
-function setupVerticalScrollSync() {
-  if (!musicalGrid) return;
-
-  const gridContainer = document.querySelector('.app25-grid-area .grid-container');
-  if (!gridContainer) return;
-
-  const soundlineWrapper = gridContainer.querySelector('.soundline-wrapper');
-  const matrixContainer = gridContainer.querySelector('.matrix-container');
-
-  if (!soundlineWrapper || !matrixContainer) return;
-
-  let isScrolling = false;
-
-  // Sync matrix scroll to soundline
-  matrixContainer.addEventListener('scroll', () => {
-    if (isScrolling) return;
-    isScrolling = true;
-    soundlineWrapper.scrollTop = matrixContainer.scrollTop;
-    requestAnimationFrame(() => { isScrolling = false; });
-  });
-
-  // Sync soundline scroll to matrix
-  soundlineWrapper.addEventListener('scroll', () => {
-    if (isScrolling) return;
-    isScrolling = true;
-    matrixContainer.scrollTop = soundlineWrapper.scrollTop;
-    requestAnimationFrame(() => { isScrolling = false; });
-  });
-}
 
 /**
  * Scroll to keep a note visible (autoscroll during playback)
@@ -1036,8 +1004,7 @@ async function init() {
     createNmVisualizer(gridContainer);
   }
 
-  // Setup vertical scroll sync between soundline and matrix
-  setupVerticalScrollSync();
+  // Note: Vertical scroll sync is handled by musical-grid's setupScrollSync()
 
   // Move controls into scale selector area
   const controls = document.querySelector('.controls');
