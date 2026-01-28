@@ -541,12 +541,17 @@ function clearHighlights() {
 function highlightPulse(scaledIndex) {
   if (!isPlaying) return;
 
-  pulses.forEach(p => p.classList.remove('active'));
   const lg = currentNumerator;
   const d = currentDenominator;
   const scaledTotal = lg * d;
 
   const raw = Number.isFinite(scaledIndex) ? scaledIndex : 0;
+
+  // Only highlight on integer pulse boundaries (multiples of d)
+  // Subdivisions are handled by highlightCycle
+  if (raw % d !== 0 && raw !== scaledTotal) return;
+
+  pulses.forEach(p => p.classList.remove('active'));
 
   // En mode loop, quan scaledIndex = scaledTotal (inici del següent cicle),
   // il·luminem tant pols 0 com endpoint (lg)
