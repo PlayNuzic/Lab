@@ -448,10 +448,11 @@ function syncGridFromDegreeIntervals(absoluteDegrees) {
     if (cell) {
       cell.classList.add('active');
 
-      // Add degree label
+      // Add degree label (show degree within octave, same as soundline)
+      const degreeInOctave = degree % currentScaleLength;
       const label = document.createElement('span');
       label.className = 'cell-label';
-      label.textContent = String(degree);
+      label.textContent = String(degreeInOctave);
       cell.appendChild(label);
     }
   });

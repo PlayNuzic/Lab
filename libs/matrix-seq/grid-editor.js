@@ -4092,14 +4092,12 @@ export function createGridEditor(config = {}) {
   }
 
   /**
-   * Formats degree interval value with sign
-   * +2 → "+2", -1 → "-1", 0 → "0"
+   * Formats degree interval value with sign (only for negative values)
+   * 2 → "2", -1 → "-1", 0 → "0"
    */
   function formatDegreeIntervalValue(interval) {
     if (interval === null || interval === undefined) return '';
-    if (interval > 0) return `+${interval}`;
-    if (interval < 0) return String(interval);  // Already has minus sign
-    return '0';
+    return String(interval);  // Negative numbers already have minus sign
   }
 
   /**
