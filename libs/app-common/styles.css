@@ -93,6 +93,10 @@ main>.inputs>* {
   padding: 0 24px;
 }
 
+.fraction-editor .bottom input {
+  color: var(--timeline-interval-color, #7BB4CD);
+}
+
 .fraction-editor input {
   width: 80px;
   text-align: center;
