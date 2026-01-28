@@ -203,20 +203,27 @@ function visualNoteIndexToAbsoluteDegree(noteIndex) {
 
 /**
  * Convert absolute degree to MIDI note
+ * Handles octave wrapping when root + scale semitone exceeds 11
  */
 function absoluteDegreeToMidi(absoluteDegree) {
   if (absoluteDegree === null || absoluteDegree === undefined) return null;
 
   const effectiveRoot = (scaleState.root + currentRootOffset) % 12;
-  const effectiveState = { ...scaleState, root: effectiveRoot };
   const scaleLen = currentScaleLength;
 
   const octave = Math.floor(absoluteDegree / scaleLen);
   const degreeInOctave = absoluteDegree % scaleLen;
 
-  const semitone = degToSemi(effectiveState, degreeInOctave);
+  // Get raw semitone for this degree (without root)
+  const rawState = { id: scaleState.id, rot: scaleState.rot, root: 0 };
+  const rawSemitone = degToSemi(rawState, degreeInOctave);
 
-  return 60 + semitone + (octave * 12);
+  // Calculate actual semitone with root, detecting octave wrap
+  const semitoneWithRoot = rawSemitone + effectiveRoot;
+  const extraOctave = Math.floor(semitoneWithRoot / 12);
+  const finalSemitone = semitoneWithRoot % 12;
+
+  return 60 + finalSemitone + ((octave + extraOctave) * 12);
 }
 
 // ========== DEGREE INTERVAL CONVERSION ==========
