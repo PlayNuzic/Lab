@@ -34,8 +34,8 @@ body.app32 {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin: 20px auto;
+  gap: 24px;
+  margin: 10px auto;
   padding: 0 20px;
   font-size: 2.8rem;
   color: var(--line-color);
@@ -45,6 +45,63 @@ body.app32 {
   color: var(--timeline-interval-color);
   font-weight: 700;
   user-select: none;
+}
+
+/* ========== INFO COLUMN ========== */
+.info-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.fraction-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.it-info-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.it-info-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--line-color);
+  opacity: 0.8;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.it-input {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--border-color, #ccc);
+  border-radius: 8px;
+  background: var(--bg-input, transparent);
+  color: var(--text-color, currentColor);
+  font-size: 1.3rem;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  transition: all 0.2s ease;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.it-input::-webkit-outer-spin-button,
+.it-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.it-input[readonly] {
+  cursor: default;
+  pointer-events: none;
 }
 
 /* ========== FRACTION INLINE (from App4) ========== */
@@ -546,7 +603,21 @@ body.dragging-it * {
 
   .pz-row {
     font-size: 2rem;
-    gap: 8px;
+    gap: 15px;
+  }
+
+  .info-column {
+    gap: 10px;
+  }
+
+  .it-info-label {
+    font-size: 0.85rem;
+  }
+
+  .it-input {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
   }
 
   .fraction-editor--inline input {
@@ -607,6 +678,23 @@ body.dragging-it * {
 @media (max-width: 480px) {
   .pz-row {
     font-size: 1.6rem;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .info-column {
+    gap: 8px;
+    flex-direction: row;
+  }
+
+  .it-info-label {
+    font-size: 0.75rem;
+  }
+
+  .it-input {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
   }
 
   .fraction-editor--inline input {

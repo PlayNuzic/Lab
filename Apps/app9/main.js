@@ -179,7 +179,7 @@ function layoutLinear() {
 // ========== FUNCIONES DE AUDIO ==========
 // Usar MelodicTimelineAudio para soporte de violin/piano
 const _baseInitAudio = createMelodicAudioInitializer({
-  defaultInstrument: 'violin'
+  defaultInstrument: 'piano'
 });
 
 async function initAudio() {

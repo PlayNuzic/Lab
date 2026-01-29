@@ -131,6 +131,9 @@ const mixerMenu = document.getElementById('mixerMenu');
 // P row elements (created dynamically)
 let pzRow = null;
 let fractionSlot = null;
+let infoColumn = null;
+let sumDisplay = null;
+let availableDisplay = null;
 
 // ========== HOVER TOOLTIPS ==========
 if (playBtn) attachHover(playBtn, { text: 'Play / Stop' });
@@ -170,7 +173,7 @@ initMixerMenu({
 
 // ========== AUDIO INITIALIZATION ==========
 const _baseInitAudio = createMelodicAudioInitializer({
-  defaultInstrument: 'violin'
+  defaultInstrument: 'piano'
 });
 
 async function initAudio() {
@@ -185,10 +188,10 @@ async function initAudio() {
 
     // Configure sounds from dropdowns (like createRhythmAudioInitializer does)
     // This ensures the metronome and cycle sounds are properly initialized
-    if (baseSoundSelect?.dataset?.value) {
+    if (baseSoundSelect?.dataset?.value && typeof audio.setBase === 'function') {
       await audio.setBase(baseSoundSelect.dataset.value);
     }
-    if (cycleSoundSelect?.dataset?.value) {
+    if (cycleSoundSelect?.dataset?.value && typeof audio.setCycle === 'function') {
       await audio.setCycle(cycleSoundSelect.dataset.value);
     }
 
@@ -255,6 +258,45 @@ function createPzRow() {
   pzRow = document.createElement('div');
   pzRow.className = 'pz-row';
 
+  // Info column (left side)
+  infoColumn = document.createElement('div');
+  infoColumn.className = 'info-column';
+
+  // Available iT display (iT no col·locats)
+  const availableBox = document.createElement('div');
+  availableBox.className = 'it-info-box';
+  const availableLabel = document.createElement('span');
+  availableLabel.className = 'it-info-label';
+  availableLabel.innerHTML = 'iT<br>Disponibles';
+  availableDisplay = document.createElement('input');
+  availableDisplay.type = 'text';
+  availableDisplay.className = 'it-input';
+  availableDisplay.readOnly = true;
+  availableDisplay.value = '0';
+  availableBox.appendChild(availableLabel);
+  availableBox.appendChild(availableDisplay);
+
+  // Sum of iT display (iT col·locats = suma de durades)
+  const sumBox = document.createElement('div');
+  sumBox.className = 'it-info-box';
+  const sumLabel = document.createElement('span');
+  sumLabel.className = 'it-info-label';
+  sumLabel.textContent = 'Suma iT';
+  sumDisplay = document.createElement('input');
+  sumDisplay.type = 'text';
+  sumDisplay.className = 'it-input';
+  sumDisplay.readOnly = true;
+  sumDisplay.value = '0';
+  sumBox.appendChild(sumLabel);
+  sumBox.appendChild(sumDisplay);
+
+  infoColumn.appendChild(availableBox);
+  infoColumn.appendChild(sumBox);
+
+  // Fraction section (center)
+  const fractionSection = document.createElement('div');
+  fractionSection.className = 'fraction-section';
+
   const labelSpan = document.createElement('span');
   labelSpan.className = 'pz label';
   labelSpan.textContent = 'P';
@@ -263,12 +305,33 @@ function createPzRow() {
   fractionSlot.id = 'fractionInlineSlot';
   fractionSlot.className = 'pz fraction-inline-container';
 
-  pzRow.appendChild(labelSpan);
-  pzRow.appendChild(fractionSlot);
+  fractionSection.appendChild(labelSpan);
+  fractionSection.appendChild(fractionSlot);
+
+  pzRow.appendChild(infoColumn);
+  pzRow.appendChild(fractionSection);
 
   // Insert before timeline
   if (timelineWrapper && timelineWrapper.parentNode) {
     timelineWrapper.parentNode.insertBefore(pzRow, timelineWrapper);
+  }
+}
+
+/**
+ * Update info displays (iT disponibles i suma iT)
+ * - Suma iT: total de columnes ocupades (suma de durades de totes les notes)
+ * - iT Disponibles: columnes lliures (total - ocupades)
+ */
+function updateInfoDisplays() {
+  const totalColumns = getTotalSubdivisions();
+  const usedColumns = notes.reduce((sum, n) => sum + n.duration, 0);
+  const available = totalColumns - usedColumns;
+
+  if (availableDisplay) {
+    availableDisplay.value = String(available);
+  }
+  if (sumDisplay) {
+    sumDisplay.value = String(usedColumns);
   }
 }
 
@@ -334,6 +397,9 @@ function renderGrid() {
 
   // Render existing notes
   renderNotes();
+
+  // Update info displays
+  updateInfoDisplays();
 }
 
 function renderGridTimeline() {
@@ -467,17 +533,20 @@ function addNote(noteData) {
   notes.sort((a, b) => a.startSubdiv - b.startSubdiv || a.note - b.note);
   renderNotes();
   updateIntervalBars();
+  updateInfoDisplays();
 }
 
 function removeNote(idx) {
   notes.splice(idx, 1);
   renderNotes();
   updateIntervalBars();
+  updateInfoDisplays();
 }
 
 function clearNotes() {
   notes = [];
   renderNotes();
+  updateInfoDisplays();
 }
 
 // ========== GRID DRAG HANDLERS ==========
@@ -566,11 +635,15 @@ function handleGridDragEnd() {
   }
 
   if (duration >= 1) {
-    addNote({
+    const noteData = {
       note: dragState.note,
       startSubdiv: dragState.startSubdiv,
       duration
-    });
+    };
+    addNote(noteData);
+
+    // Play preview sound when note is created
+    playNotePreview(noteData);
   }
 
   dragState.active = false;
@@ -923,6 +996,29 @@ function updateIntervalBars() {
 function attachDragHandlers() {
   // Timeline drag disabled - notes are created via grid drag
   // Keep function for renderTimeline() compatibility
+}
+
+// ========== NOTE PREVIEW ==========
+/**
+ * Play a preview sound when a note is created
+ */
+async function playNotePreview(noteData) {
+  const audioInstance = await initAudio();
+  if (!audioInstance) return;
+
+  // Calculate note duration based on current BPM and denominator
+  const d = currentDenominator;
+  const n = FIXED_NUMERATOR;
+  const bpm = FIXED_BPM;
+  const beatDuration = 60 / bpm;
+  const durationPulses = noteData.duration * n / d;
+  const durationSeconds = Math.min(durationPulses * beatDuration, 2); // Cap at 2 seconds for preview
+
+  // MIDI note = BASE_MIDI + note (0-11)
+  const midiNote = BASE_MIDI + noteData.note;
+
+  // Play the note immediately (time=0 means "now")
+  audioInstance.playNote(midiNote, durationSeconds, 0);
 }
 
 // ========== PLAYBACK ==========

@@ -164,7 +164,7 @@ initMixerMenu({
 
 // ========== AUDIO INITIALIZATION ==========
 const _baseInitAudio = createMelodicAudioInitializer({
-  defaultInstrument: 'violin'
+  defaultInstrument: 'piano'
 });
 
 async function initAudio() {
