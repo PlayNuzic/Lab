@@ -40,20 +40,32 @@
 
     // Remove elements not needed for App32
     document.querySelector('.inputs')?.remove();
-    document.querySelector('.middle')?.remove();
 
-    // Replace timeline-wrapper with grid container
-    const timelineWrapper = document.querySelector('.timeline-wrapper');
-    if (timelineWrapper) {
-      timelineWrapper.innerHTML = '<div id="gridContainer" class="grid-container"></div>';
-    }
-
-    // Setup sound groups: Instrumento + Metrónomo
+    // Setup sound groups: Instrumento + Metrónomo + Subdivisión
     const soundGroup = document.querySelector('.sound-group');
     if (soundGroup) {
+      // Rename "Pulso" to "Metrónomo" (index 2 = third label after "Pulso 0" and "Instrumento")
       const labels = soundGroup.querySelectorAll('p');
       const pulsoLabel = labels?.[2];
       if (pulsoLabel) pulsoLabel.textContent = 'Metrónomo';
+
+      // Add cycle sound dropdown (Subdivisión)
+      const cycleTitle = document.createElement('p');
+      cycleTitle.textContent = 'Subdivisión';
+      soundGroup.appendChild(cycleTitle);
+
+      const cycleRow = document.createElement('div');
+      cycleRow.className = 'preview-row';
+
+      const hiddenLabel = document.createElement('label');
+      hiddenLabel.setAttribute('for', 'cycleSoundSelect');
+      hiddenLabel.style.display = 'none';
+      cycleRow.appendChild(hiddenLabel);
+
+      const slot = document.createElement('div');
+      slot.id = 'cycleSoundSelect';
+      cycleRow.appendChild(slot);
+      soundGroup.appendChild(cycleRow);
     }
 
     initHeader();
