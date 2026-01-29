@@ -122,7 +122,7 @@ function app29MarkupBuilder({ root, initialText }) {
   };
   root.textContent = '';
 
-  const labelSpan = mk('label', 'Pfr');
+  const labelSpan = mk('label', 'P');
 
   fractionSlot = document.createElement('span');
   fractionSlot.id = 'fractionInlineSlot';
