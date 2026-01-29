@@ -4,7 +4,7 @@
   --cycle-color: var(--color-v);
   --fraction-spinner-color: var(--line-color);
   --timeline-interval-color: #7BB4CD;
-
+  --controls-offset-y: -40px;
   /* Colors per notes */
   --note-color-1: #E76F68;
   --note-color-2: #FFBB33;
@@ -222,7 +222,8 @@ body.app32 {
 }
 
 /* ========== TIMELINE (hidden - using grid timeline instead) ========== */
-.timeline-wrapper {
+/* Only hide the timeline section, not the wrapper (which contains controls) */
+.timeline-wrapper .timeline {
   display: none;
 }
 
