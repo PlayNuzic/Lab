@@ -1,0 +1,221 @@
+/* App32: Plano con Fracción Simple - Styles */
+
+/* ========== GRID CONTAINER ========== */
+.grid-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ========== PLANO OVERRIDES ========== */
+.app32 .plano-container {
+  --plano-cell-height: 32px;
+  --plano-cell-width: 40px;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 0;
+  width: 100%;
+  height: auto;
+}
+
+.app32 .plano-soundline-container {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-color);
+  border-right: 1px solid var(--line-color);
+}
+
+.app32 .plano-soundline-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.app32 .plano-soundline-note {
+  height: var(--plano-cell-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-color);
+  border-bottom: 1px solid var(--line-color);
+}
+
+.app32 .plano-grid-area {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.app32 .plano-matrix-container {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  position: relative;
+}
+
+.app32 .plano-matrix {
+  display: grid;
+  position: relative;
+}
+
+.app32 .plano-cell {
+  height: var(--plano-cell-height);
+  border-right: 1px solid var(--line-color-soft, rgba(128, 128, 128, 0.2));
+  border-bottom: 1px solid var(--line-color);
+  background: var(--bg-color);
+  cursor: crosshair;
+  transition: background-color 0.1s;
+}
+
+.app32 .plano-cell:hover {
+  background: var(--hover-color, rgba(128, 128, 128, 0.1));
+}
+
+/* Pulse boundary cells (every d columns) */
+.app32 .plano-cell.pulse-boundary {
+  border-right: 2px solid var(--line-color);
+}
+
+/* ========== TIMELINE (FRACTIONAL) ========== */
+.app32 .plano-timeline-container {
+  height: 28px;
+  border-top: 1px solid var(--line-color);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.app32 .plano-timeline-container::-webkit-scrollbar {
+  display: none;
+}
+
+.app32 .plano-timeline-row {
+  display: grid;
+  height: 100%;
+}
+
+.app32 .plano-timeline-number {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 0.75rem;
+  color: var(--text-color-muted, #888);
+  padding-left: 2px;
+}
+
+.app32 .plano-timeline-number.pulse-start {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+/* ========== NOTE BARS ========== */
+.note-bar {
+  position: absolute;
+  border-radius: 4px;
+  z-index: 10;
+  pointer-events: auto;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.note-bar:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.note-bar.highlight {
+  box-shadow: 0 0 16px currentColor;
+  transform: scaleY(1.08);
+}
+
+.note-bar__label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ========== DRAG PREVIEW ========== */
+.note-bar-preview {
+  position: absolute;
+  background: var(--select-color, #E4570C);
+  opacity: 0.4;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+body.dragging-note {
+  cursor: ew-resize !important;
+}
+
+body.dragging-note .plano-cell {
+  cursor: ew-resize !important;
+}
+
+/* ========== FRACTION DISPLAY ========== */
+.app32 .fraction-inline-container {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+/* ========== PLAYHEAD ========== */
+.app32 .plano-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent-color, #E4570C);
+  z-index: 20;
+  pointer-events: none;
+  transition: left 0.05s linear;
+}
+
+/* ========== COLORS ========== */
+:root {
+  --note-color-0: #E76F68;
+  --note-color-1: #FFBB33;
+  --note-color-2: #7CD6B3;
+  --note-color-3: #7BB4CD;
+}
+
+/* ========== PLAYING STATE ========== */
+.app32 .plano-cell.playing {
+  background: var(--accent-color, #E4570C);
+  opacity: 0.3;
+}
+
+.app32 .plano-timeline-number.playing {
+  color: var(--accent-color, #E4570C);
+  font-weight: 700;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .app32 .plano-container {
+    --plano-cell-height: 28px;
+    --plano-cell-width: 32px;
+    grid-template-columns: 32px 1fr;
+  }
+
+  .app32 .plano-soundline-note {
+    font-size: 0.8rem;
+  }
+
+  .note-bar__label {
+    font-size: 0.75rem;
+  }
+}
