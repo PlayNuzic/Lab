@@ -1,6 +1,6 @@
-// App32: Plano con Fracción Simple
-// Basat en App30, substitueix iT-seq per grid 2D amb notes
-// Lg=12 fix, BPM=70 fix, numerador=1 fix, denominador editable (1-8)
+// App33: Plano con Fracción Compleja
+// Basat en App32, amb fraccions complexes (n=2-6, d=2-8) i longitud variable
+// Lg = floor(12/n) * n (cicles complets que més s'aproximen a 12 sense superar-lo)
 // Grid 2D amb 12 notes (0-11) + soundline
 // Àudio melòdic amb selector d'instrument + so de cicle
 
@@ -21,11 +21,13 @@ import {
 import { createPlayheadController } from '../../libs/plano-modular/plano-playhead.js';
 
 // ========== CONSTANTS ==========
-const FIXED_LG = 12;             // 12 pulsos (0-11)
+const BASE_LG = 12;              // Longitud màxima de referència
 const FIXED_BPM = 70;            // BPM fix
-const FIXED_NUMERATOR = 1;       // Numerador sempre 1 (App30)
-const DEFAULT_DENOMINATOR = 2;   // Per defecte 1/2
-const MIN_DENOMINATOR = 1;
+const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
+const DEFAULT_DENOMINATOR = 3;
+const MIN_NUMERATOR = 2;
+const MAX_NUMERATOR = 6;
+const MIN_DENOMINATOR = 2;
 const MAX_DENOMINATOR = 8;
 
 // Colors per rectangles iT
@@ -43,7 +45,9 @@ const BASE_MIDI = 48;        // C3 = 48
 // ========== STATE ==========
 let audio = null;
 let isPlaying = false;
+let currentNumerator = DEFAULT_NUMERATOR;
 let currentDenominator = DEFAULT_DENOMINATOR;
+let currentLg = 12;  // Calculat dinàmicament
 
 // Notes array: { note: 0-11, startSubdiv: number, duration: number }
 let notes = [];
@@ -86,7 +90,7 @@ let currentMetronomeSound = (() => {
 })();
 
 // ========== PREFERENCE STORAGE ==========
-const preferenceStorage = createPreferenceStorage({ prefix: 'app32', separator: '::' });
+const preferenceStorage = createPreferenceStorage({ prefix: 'app33', separator: '::' });
 const { load: loadOpt, save: saveOpt, clear: clearOpt } = preferenceStorage;
 
 registerFactoryReset({
@@ -134,6 +138,7 @@ let fractionSlot = null;
 let infoColumn = null;
 let sumDisplay = null;
 let availableDisplay = null;
+let lgDisplay = null;
 
 // ========== HOVER TOOLTIPS ==========
 if (playBtn) attachHover(playBtn, { text: 'Play / Stop' });
@@ -217,18 +222,43 @@ function sleep(ms) {
 }
 
 /**
+ * Calcula la longitud (Lg) com el nombre de cicles complets
+ * de la fracció que més s'aproximi a BASE_LG sense superar-lo MAI.
+ *
+ * Cada cicle té durada = numerador pulsos
+ * Nombre de cicles = floor(BASE_LG / numerador)
+ * Lg final = cicles * numerador
+ *
+ * Exemples:
+ * - 5/7: cicle=5, floor(12/5)=2, Lg=10
+ * - 2/3: cicle=2, floor(12/2)=6, Lg=12
+ * - 3/4: cicle=3, floor(12/3)=4, Lg=12
+ * - 4/5: cicle=4, floor(12/4)=3, Lg=12
+ * - 6/7: cicle=6, floor(12/6)=2, Lg=12
+ */
+function calculateVariableLg(numerator) {
+  const cycleLength = numerator;
+  const completeCycles = Math.floor(BASE_LG / cycleLength);
+
+  // Garantir almenys 1 cicle complet
+  const safeCycles = Math.max(1, completeCycles);
+
+  return safeCycles * cycleLength;
+}
+
+/**
  * Get total subdivisions available (Lg * d)
  * Lg Fr = longitud en polsos × denominador
  */
 function getTotalSubdivisions() {
-  return FIXED_LG * currentDenominator;
+  return currentLg * currentDenominator;
 }
 
 /**
  * Convert subdivision index to timeline position (pulses)
  */
 function subdivToPosition(subdiv) {
-  return subdiv * FIXED_NUMERATOR / currentDenominator;
+  return subdiv * currentNumerator / currentDenominator;
 }
 
 // ========== GRID HELPERS ==========
@@ -258,7 +288,7 @@ function createPzRow() {
   pzRow = document.createElement('div');
   pzRow.className = 'pz-row';
 
-  // Info column (left side)
+  // Info column (left side - iT disponibles i suma iT)
   infoColumn = document.createElement('div');
   infoColumn.className = 'info-column';
 
@@ -308,8 +338,23 @@ function createPzRow() {
   fractionSection.appendChild(labelSpan);
   fractionSection.appendChild(fractionSlot);
 
+  // Lg display (right side - longitud actual)
+  const lgBox = document.createElement('div');
+  lgBox.className = 'it-info-box';
+  const lgLabel = document.createElement('span');
+  lgLabel.className = 'it-info-label';
+  lgLabel.textContent = 'Lg';
+  lgDisplay = document.createElement('input');
+  lgDisplay.type = 'text';
+  lgDisplay.className = 'it-input';
+  lgDisplay.readOnly = true;
+  lgDisplay.value = String(currentLg);
+  lgBox.appendChild(lgLabel);
+  lgBox.appendChild(lgDisplay);
+
   pzRow.appendChild(infoColumn);
   pzRow.appendChild(fractionSection);
+  pzRow.appendChild(lgBox);
 
   // Insert before timeline
   if (timelineWrapper && timelineWrapper.parentNode) {
@@ -318,15 +363,16 @@ function createPzRow() {
 }
 
 /**
- * Update info displays (iT disponibles i suma iT)
- * - Suma iT: total de columnes ocupades (suma de durades de totes les notes)
- * - iT Disponibles: columnes lliures (total - ocupades)
+ * Update info displays (Lg, iT disponibles i suma iT)
  */
 function updateInfoDisplays() {
   const totalColumns = getTotalSubdivisions();
   const usedColumns = notes.reduce((sum, n) => sum + n.duration, 0);
   const available = totalColumns - usedColumns;
 
+  if (lgDisplay) {
+    lgDisplay.value = String(currentLg);
+  }
   if (availableDisplay) {
     availableDisplay.value = String(available);
   }
@@ -681,18 +727,23 @@ function updateGridPreviewBar() {
 function initFractionEditorController() {
   if (!fractionSlot) return;
 
+  currentNumerator = DEFAULT_NUMERATOR;
   currentDenominator = DEFAULT_DENOMINATOR;
 
   const controller = createFractionEditor({
     mode: 'inline',
     host: fractionSlot,
-    defaults: { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
+    defaults: { numerator: DEFAULT_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
+    autoReduce: true,
+    minNumerator: MIN_NUMERATOR,
+    minDenominator: MIN_DENOMINATOR,
+    maxNumerator: MAX_NUMERATOR,
     maxDenominator: MAX_DENOMINATOR,
     storage: {},
     addRepeatPress,
     labels: {
-      numerator: { placeholder: '1' },
+      numerator: { placeholder: 'n' },
       denominator: { placeholder: 'd' }
     },
     onChange: ({ cause }) => {
@@ -704,9 +755,9 @@ function initFractionEditorController() {
 
   fractionEditorController = controller || null;
 
-  // Set simple mode (numerator fixed at 1)
-  if (fractionEditorController && typeof fractionEditorController.setSimpleMode === 'function') {
-    fractionEditorController.setSimpleMode();
+  // Set complex mode (numerator editable)
+  if (fractionEditorController && typeof fractionEditorController.setComplexMode === 'function') {
+    fractionEditorController.setComplexMode();
   }
 }
 
@@ -714,11 +765,19 @@ function handleFractionChange() {
   if (!fractionEditorController) return;
 
   const fraction = fractionEditorController.getFraction();
+  let newN = fraction?.numerator;
   let newD = fraction?.denominator;
 
-  // Skip if value is not yet valid (user is typing)
-  if (!Number.isFinite(newD)) {
+  // Skip if values are not yet valid (user is typing)
+  if (!Number.isFinite(newN) || !Number.isFinite(newD)) {
     return;
+  }
+
+  // Clamp numerator (2-6)
+  if (newN < MIN_NUMERATOR) {
+    newN = MIN_NUMERATOR;
+  } else if (newN > MAX_NUMERATOR) {
+    newN = MAX_NUMERATOR;
   }
 
   // Clamp denominator (2-8)
@@ -728,14 +787,18 @@ function handleFractionChange() {
     newD = MAX_DENOMINATOR;
   }
 
-  if (newD !== fraction?.denominator) {
+  if (newN !== fraction?.numerator || newD !== fraction?.denominator) {
     fractionEditorController.setFraction(
-      { numerator: FIXED_NUMERATOR, denominator: newD },
+      { numerator: newN, denominator: newD },
       { cause: 'clamp', persist: true, silent: true }
     );
   }
 
+  currentNumerator = newN;
   currentDenominator = newD;
+
+  // Recalcular longitud variable
+  currentLg = calculateVariableLg(currentNumerator);
 
   // Filter invalid notes
   filterInvalidNotes();
@@ -758,6 +821,8 @@ function filterInvalidNotes() {
       n.duration = maxSubdiv - n.startSubdiv;
     }
   });
+  // Si una nota queda amb durada 0, eliminar-la
+  notes = notes.filter(n => n.duration > 0);
 }
 
 /**
@@ -767,9 +832,9 @@ function filterInvalidNotes() {
 function applyTransportConfig() {
   if (!audio || typeof audio.updateTransport !== 'function') return;
 
-  const lg = FIXED_LG;
+  const lg = currentLg;
   const bpm = FIXED_BPM;
-  const n = FIXED_NUMERATOR;
+  const n = currentNumerator;
   const d = currentDenominator;
 
   const scaledTotal = lg * d + 1; // +1 padding for last note release
@@ -837,8 +902,8 @@ function renderTimeline() {
   intervalBars = [];
   timeline.innerHTML = '';
 
-  const lg = FIXED_LG;
-  const n = FIXED_NUMERATOR;
+  const lg = currentLg;
+  const n = currentNumerator;
   const d = currentDenominator;
 
   // Add timeline line
@@ -916,7 +981,7 @@ function renderTimeline() {
 }
 
 function layoutTimeline() {
-  const lg = FIXED_LG;
+  const lg = currentLg;
 
   pulses.forEach((p, i) => {
     const pct = (i / lg) * 100;
@@ -965,7 +1030,7 @@ function updateIntervalBars() {
 
   if (notes.length === 0) return;
 
-  const lg = FIXED_LG;
+  const lg = currentLg;
   const d = currentDenominator;
 
   notes.forEach((noteData, idx) => {
@@ -1007,11 +1072,11 @@ async function playNotePreview(noteData) {
   if (!audioInstance) return;
 
   // Calculate note duration based on current BPM and denominator
+  // duration is in subdivisions, convert to pulses: duration / d
   const d = currentDenominator;
-  const n = FIXED_NUMERATOR;
   const bpm = FIXED_BPM;
   const beatDuration = 60 / bpm;
-  const durationPulses = noteData.duration * n / d;
+  const durationPulses = noteData.duration / d;
   const durationSeconds = Math.min(durationPulses * beatDuration, 2); // Cap at 2 seconds for preview
 
   // MIDI note = BASE_MIDI + note (0-11)
@@ -1025,14 +1090,12 @@ async function playNotePreview(noteData) {
 /**
  * Get note that starts at a given scaled index
  * Returns the note object or null if no note starts there
+ * scaledIndex goes from 0 to lg*d, same as startSubdiv
  */
 function getNoteAtScaledStart(scaledIndex) {
-  const n = FIXED_NUMERATOR;
-
   for (const noteData of notes) {
-    // Convert note start (in subdivisions) to scaled index
-    const noteScaledStart = noteData.startSubdiv * n;
-    if (noteScaledStart === scaledIndex) {
+    // startSubdiv is already in the same scale as scaledIndex (0 to lg*d)
+    if (noteData.startSubdiv === scaledIndex) {
       return noteData;
     }
   }
@@ -1042,9 +1105,9 @@ function getNoteAtScaledStart(scaledIndex) {
 async function startPlayback() {
   // Allow playback even with no notes (just metronome)
 
-  const lg = FIXED_LG;
+  const lg = currentLg;
   const bpm = FIXED_BPM;
-  const n = FIXED_NUMERATOR;
+  const n = currentNumerator;
   const d = currentDenominator;
 
   // Scale by denominator to include subdivisions (like App29)
@@ -1145,7 +1208,6 @@ function clearHighlights() {
 function highlightPulse(scaledIndex, scheduledTime) {
   if (!isPlaying) return;
   const d = currentDenominator;
-  const n = FIXED_NUMERATOR;
 
   // Update playhead position (scaledIndex is the column index)
   if (playheadController) {
@@ -1156,9 +1218,10 @@ function highlightPulse(scaledIndex, scheduledTime) {
   const noteData = getNoteAtScaledStart(scaledIndex);
   if (noteData && audio) {
     // Calculate note duration
+    // duration is in subdivisions, convert to pulses: duration / d
     const bpm = FIXED_BPM;
     const beatDuration = 60 / bpm;
-    const durationPulses = noteData.duration * n / d;
+    const durationPulses = noteData.duration / d;
     const durationSeconds = durationPulses * beatDuration;
 
     // MIDI note = BASE_MIDI + note (0-11)
@@ -1226,7 +1289,7 @@ function highlightCycle(payload = {}) {
   }
 
   // Calculate position and highlight iT bar
-  const n = FIXED_NUMERATOR;
+  const n = currentNumerator;
   const position = cycleIndex * n + subdivisionIndex * n / currentDenominator;
   highlightBarAtPosition(position);
 }
@@ -1285,16 +1348,21 @@ function handlePlay() {
 function handleRandom() {
   if (isPlaying) return;
 
-  // Random denominator (2-8)
-  const newD = Math.floor(Math.random() * (MAX_DENOMINATOR - 1)) + 2;
+  // Random numerator (2-6) and denominator (2-8)
+  const newN = Math.floor(Math.random() * (MAX_NUMERATOR - MIN_NUMERATOR + 1)) + MIN_NUMERATOR;
+  const newD = Math.floor(Math.random() * (MAX_DENOMINATOR - MIN_DENOMINATOR + 1)) + MIN_DENOMINATOR;
 
   if (fractionEditorController) {
     fractionEditorController.setFraction(
-      { numerator: FIXED_NUMERATOR, denominator: newD },
+      { numerator: newN, denominator: newD },
       { cause: 'random', persist: true }
     );
   }
+  currentNumerator = newN;
   currentDenominator = newD;
+
+  // Recalcular Lg
+  currentLg = calculateVariableLg(currentNumerator);
 
   // Generate random monophonic notes (consecutive, no overlap)
   // Fill at least 75% of subdivisions
@@ -1309,7 +1377,7 @@ function handleRandom() {
 
     // Random duration (1 to min of remaining space or d*2)
     const remaining = maxSubdivs - currentPos;
-    const maxDur = Math.min(remaining, newD * 2);
+    const maxDur = Math.min(remaining, currentDenominator * 2);
     const duration = Math.floor(Math.random() * maxDur) + 1;
 
     newNotes.push({ note, startSubdiv: currentPos, duration });
@@ -1334,11 +1402,13 @@ function handleReset() {
   }
 
   // Reset to defaults
+  currentNumerator = DEFAULT_NUMERATOR;
   currentDenominator = DEFAULT_DENOMINATOR;
+  currentLg = calculateVariableLg(currentNumerator);
 
   if (fractionEditorController) {
     fractionEditorController.setFraction(
-      { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
+      { numerator: DEFAULT_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
       { cause: 'reset', persist: true }
     );
   }
@@ -1365,6 +1435,9 @@ if (resetBtn) {
 
 // ========== INITIALIZATION ==========
 function init() {
+  // Inicialitzar Lg amb els defaults
+  currentLg = calculateVariableLg(DEFAULT_NUMERATOR);
+
   // Create P row with fraction
   createPzRow();
 
@@ -1379,6 +1452,9 @@ function init() {
 
   // Update interval bars
   updateIntervalBars();
+
+  // Update info displays
+  updateInfoDisplays();
 }
 
 // Run initialization
