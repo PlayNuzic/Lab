@@ -325,15 +325,10 @@ function createPzRow() {
 function updateInfoDisplays() {
   const totalColumns = getTotalSubdivisions();
 
-  // Suma iT: from 0 to end of last note (includes silences)
-  let usedColumns = 0;
-  if (notes.length > 0) {
-    const lastNote = notes.reduce((max, n) =>
-      (n.startSubdiv + n.duration > max.startSubdiv + max.duration) ? n : max
-    , notes[0]);
-    usedColumns = lastNote.startSubdiv + lastNote.duration;
-  }
+  // Suma iT: sum of all note durations (each column = 1 iT)
+  const usedColumns = notes.reduce((sum, n) => sum + n.duration, 0);
 
+  // iT Disponibles: total - used
   const available = totalColumns - usedColumns;
 
   if (availableDisplay) {

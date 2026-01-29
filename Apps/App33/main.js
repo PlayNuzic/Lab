@@ -338,17 +338,17 @@ function createPzRow() {
   fractionSection.appendChild(labelSpan);
   fractionSection.appendChild(fractionSlot);
 
-  // Lg display (right side - longitud actual)
+  // Ciclos display (right side - number of complete fraction cycles)
   const lgBox = document.createElement('div');
   lgBox.className = 'it-info-box';
   const lgLabel = document.createElement('span');
   lgLabel.className = 'it-info-label';
-  lgLabel.textContent = 'Lg';
+  lgLabel.textContent = 'Ciclos';
   lgDisplay = document.createElement('input');
   lgDisplay.type = 'text';
   lgDisplay.className = 'it-input';
   lgDisplay.readOnly = true;
-  lgDisplay.value = String(currentLg);
+  lgDisplay.value = String(Math.floor(currentLg / currentNumerator));
   lgBox.appendChild(lgLabel);
   lgBox.appendChild(lgDisplay);
 
@@ -363,24 +363,22 @@ function createPzRow() {
 }
 
 /**
- * Update info displays (Lg, iT disponibles i suma iT)
+ * Update info displays (Ciclos, iT disponibles i suma iT)
  */
 function updateInfoDisplays() {
   const totalColumns = getTotalSubdivisions();
 
-  // Suma iT: from 0 to end of last note (includes silences)
-  let usedColumns = 0;
-  if (notes.length > 0) {
-    const lastNote = notes.reduce((max, n) =>
-      (n.startSubdiv + n.duration > max.startSubdiv + max.duration) ? n : max
-    , notes[0]);
-    usedColumns = lastNote.startSubdiv + lastNote.duration;
-  }
+  // Suma iT: sum of all note durations (each column = 1 iT)
+  const usedColumns = notes.reduce((sum, n) => sum + n.duration, 0);
 
+  // iT Disponibles: total - used
   const available = totalColumns - usedColumns;
 
+  // Ciclos: number of complete cycles of the fraction
+  const cycles = Math.floor(currentLg / currentNumerator);
+
   if (lgDisplay) {
-    lgDisplay.value = String(currentLg);
+    lgDisplay.value = String(cycles);
   }
   if (availableDisplay) {
     availableDisplay.value = String(available);
