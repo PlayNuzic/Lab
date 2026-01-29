@@ -324,7 +324,16 @@ function createPzRow() {
  */
 function updateInfoDisplays() {
   const totalColumns = getTotalSubdivisions();
-  const usedColumns = notes.reduce((sum, n) => sum + n.duration, 0);
+
+  // Suma iT: from 0 to end of last note (includes silences)
+  let usedColumns = 0;
+  if (notes.length > 0) {
+    const lastNote = notes.reduce((max, n) =>
+      (n.startSubdiv + n.duration > max.startSubdiv + max.duration) ? n : max
+    , notes[0]);
+    usedColumns = lastNote.startSubdiv + lastNote.duration;
+  }
+
   const available = totalColumns - usedColumns;
 
   if (availableDisplay) {
@@ -1135,6 +1144,11 @@ function clearHighlights() {
   if (playheadController) {
     playheadController.hide();
   }
+  // Reset scroll to start
+  const matrix = gridElements?.matrixContainer;
+  if (matrix) {
+    matrix.scrollLeft = 0;
+  }
 }
 
 /**
@@ -1150,6 +1164,24 @@ function highlightPulse(scaledIndex, scheduledTime) {
   // Update playhead position (scaledIndex is the column index)
   if (playheadController) {
     playheadController.update(scaledIndex);
+
+    // Autoscroll to keep playhead visible
+    const matrix = gridElements?.matrixContainer;
+    if (matrix) {
+      const playheadLeft = scaledIndex * cellWidth;
+      const viewportWidth = matrix.clientWidth;
+      const scrollLeft = matrix.scrollLeft;
+      const margin = viewportWidth * 0.2; // 20% margin before edge
+
+      // Scroll right if playhead approaches right edge
+      if (playheadLeft > scrollLeft + viewportWidth - margin) {
+        matrix.scrollLeft = playheadLeft - margin;
+      }
+      // Scroll left if playhead approaches left edge (for looping)
+      if (playheadLeft < scrollLeft + margin) {
+        matrix.scrollLeft = Math.max(0, playheadLeft - margin);
+      }
+    }
   }
 
   // Play melodic note if a note starts at this scaled index
