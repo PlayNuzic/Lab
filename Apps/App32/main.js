@@ -290,6 +290,10 @@ function createPzRow() {
   sumBox.appendChild(sumLabel);
   sumBox.appendChild(sumDisplay);
 
+  // Hide info boxes (keep for potential future use)
+  availableBox.style.display = 'none';
+  sumBox.style.display = 'none';
+
   infoColumn.appendChild(availableBox);
   infoColumn.appendChild(sumBox);
 
