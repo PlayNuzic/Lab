@@ -247,11 +247,11 @@ function calculateVariableLg(numerator) {
 }
 
 /**
- * Get total subdivisions available (Lg * d)
- * Lg Fr = longitud en polsos × denominador
+ * Get total subdivisions available
+ * Amb fracció n/d: cicles = Lg / n, subdivisions = cicles * d = Lg * d / n
  */
 function getTotalSubdivisions() {
-  return currentLg * currentDenominator;
+  return (currentLg * currentDenominator) / currentNumerator;
 }
 
 /**
@@ -433,15 +433,19 @@ function renderGrid() {
     onCellClick: null
   });
 
-  // Mark pulse boundaries
+  // Mark pulse boundaries (cycle ends)
   const d = currentDenominator;
   const cells = gridElements.matrixContainer.querySelectorAll('.plano-cell');
   cells.forEach(cell => {
     const colIndex = parseInt(cell.dataset.colIndex, 10);
+    // Línia gruixuda al final de cada cicle de fracció
     if ((colIndex + 1) % d === 0) {
       cell.classList.add('pulse-boundary');
     }
   });
+
+  // Add ghost pulse lines (integer pulses that fall between subdivisions)
+  renderGhostPulseLines();
 
   // Render fractional timeline in grid
   renderGridTimeline();
@@ -464,6 +468,7 @@ function renderGridTimeline() {
   if (!container) return;
 
   const columns = getTotalSubdivisions();
+  const n = currentNumerator;
   const d = currentDenominator;
 
   container.innerHTML = '';
@@ -477,12 +482,23 @@ function renderGridTimeline() {
     numEl.className = 'plano-timeline-number';
     numEl.dataset.colIndex = colIdx;
 
-    const pulseIndex = Math.floor(colIdx / d);
+    // Cada cicle de fracció té d subdivisions i n polsos
+    const cycleIndex = Math.floor(colIdx / d);
     const subdivIndex = colIdx % d;
 
+    // Pols real dins del cicle: subdivIndex * n / d
+    // El pols sencer actual = cycleIndex * n + floor(subdivIndex * n / d)
+    const pulseWithinCycle = Math.floor(subdivIndex * n / d);
+    const realPulse = cycleIndex * n + pulseWithinCycle;
+
     if (subdivIndex === 0) {
+      // Inici de cicle - mostrar el pols real
       numEl.classList.add('pulse-start');
-      numEl.textContent = String(pulseIndex);
+      numEl.textContent = String(realPulse);
+    } else if (subdivIndex * n % d === 0) {
+      // Ghost pulse - pols sencer dins del cicle
+      numEl.classList.add('ghost-pulse');
+      numEl.textContent = String(realPulse);
     } else {
       numEl.textContent = `.${subdivIndex}`;
     }
@@ -491,6 +507,53 @@ function renderGridTimeline() {
   }
 
   container.appendChild(timelineRow);
+}
+
+/**
+ * Render ghost pulse lines - vertical dashed lines for integer pulses
+ * that fall between subdivisions (e.g., pulse 1 at position 1.5 with fraction 2/3)
+ */
+function renderGhostPulseLines() {
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+  const timeline = gridElements?.timelineContainer;
+  if (!matrix || !timeline) return;
+
+  // Remove existing ghost lines
+  matrix.querySelectorAll('.ghost-pulse-line').forEach(el => el.remove());
+  timeline.querySelectorAll('.ghost-pulse-label').forEach(el => el.remove());
+
+  const n = currentNumerator;
+  const d = currentDenominator;
+  const totalSubdivs = getTotalSubdivisions();
+  const totalPulses = currentLg;
+
+  // Find integer pulses that don't align with subdivision boundaries
+  // Pulse p is at subdivision position: p * d / n
+  for (let pulse = 0; pulse <= totalPulses; pulse++) {
+    const subdivPos = pulse * d / n;
+
+    // Skip if this pulse aligns with a subdivision start (integer position)
+    if (subdivPos % 1 === 0) continue;
+
+    // Skip if beyond grid
+    if (subdivPos >= totalSubdivs) continue;
+
+    // Calculate pixel position
+    const leftPx = subdivPos * cellWidth;
+
+    // Create vertical line in matrix
+    const line = document.createElement('div');
+    line.className = 'ghost-pulse-line';
+    line.style.left = `${leftPx}px`;
+    matrix.appendChild(line);
+
+    // Create label in timeline
+    const label = document.createElement('div');
+    label.className = 'ghost-pulse-label';
+    label.style.left = `${leftPx}px`;
+    label.textContent = String(pulse);
+    timeline.querySelector('.plano-timeline-row')?.appendChild(label);
+  }
 }
 
 function syncGridScrolls() {

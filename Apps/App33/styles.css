@@ -785,6 +785,10 @@ body.dragging-it * {
   border-right: 2px solid var(--line-color);
 }
 
+.plano-cell.ghost-pulse-boundary {
+  border-right: 1px dashed var(--cycle-color);
+}
+
 /* Timeline row in grid */
 .plano-timeline-wrapper {
   overflow-x: auto;
@@ -813,6 +817,35 @@ body.dragging-it * {
   font-weight: 700;
   opacity: 1;
   color: var(--color-lg);
+}
+
+.plano-timeline-number.ghost-pulse {
+  font-weight: 600;
+  opacity: 0.8;
+  color: var(--cycle-color);
+}
+
+/* Ghost pulse lines - integer pulses between subdivisions */
+.ghost-pulse-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px dashed var(--line-color);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.ghost-pulse-label {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  color: var(--line-color);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 5;
 }
 
 /* ========== NOTE BARS ========== */
