@@ -534,7 +534,7 @@ function renderNotes() {
 
     const label = document.createElement('span');
     label.className = 'note-bar__label';
-    label.textContent = noteData.note;
+    label.textContent = noteData.duration;
     bar.appendChild(label);
 
     bar.addEventListener('click', (e) => {
