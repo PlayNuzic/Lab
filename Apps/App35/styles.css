@@ -1034,7 +1034,30 @@ body.dragging-note * {
   flex-shrink: 0;
   max-width: 500px;
   overflow-x: auto;
+  overflow-y: hidden;
   padding: 0 10px;
+  /* Enable smooth scrolling */
+  scroll-behavior: smooth;
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.zigzag-editor-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.zigzag-editor-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.zigzag-editor-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+[data-theme="dark"] .zigzag-editor-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Compact zigzag for inline display */
@@ -1107,15 +1130,6 @@ body.dragging-note * {
   border-color: var(--select-color, #FFBB33);
   box-shadow: 0 0 6px rgba(255, 187, 51, 0.35);
   background: rgba(255, 187, 51, 0.08);
-}
-
-/* HIDE registry elements (r separator + registry input) */
-.pz-row .nrx-separator {
-  display: none !important;
-}
-
-.pz-row .n-it-registry-input {
-  display: none !important;
 }
 
 /* Left labels (N / iT) */

@@ -430,6 +430,7 @@ function initZigzagEditor() {
     },
     intervalModeOptions: {
       hideInitialPair: true,
+      hideRegistry: true,  // Hide registry for simple N → iT navigation
       basePair: { note: 0, pulse: 0 },
       maxTotalPulse: getTotalSubdivisions()
     },

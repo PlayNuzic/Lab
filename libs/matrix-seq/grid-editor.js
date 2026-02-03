@@ -626,31 +626,36 @@ export function createGridEditor(config = {}) {
     noteInput.addEventListener('keydown', (e) => handleNItKeyDown(e, index, 'note'));
     cell.appendChild(noteInput);
 
-    // 'r' separator (always visible for unified cell appearance)
-    const rSeparator = document.createElement('span');
-    rSeparator.className = 'nrx-separator';
-    rSeparator.textContent = 'r';
-    // Hidden for silences, visible but dimmed when note is empty
-    rSeparator.style.opacity = isRest ? '0' : (note !== null ? '0.6' : '0.3');
-    cell.appendChild(rSeparator);
+    // Check if registry should be hidden
+    const hideRegistry = intervalModeOptions?.hideRegistry || false;
 
-    // Registry input (always visible for unified cell appearance)
-    const regInput = document.createElement('input');
-    regInput.className = 'zigzag-input n-it-registry-input zigzag-input--n';
-    regInput.type = 'text';
-    regInput.value = isRest ? '' : (registry !== null ? String(registry) : '');
-    regInput.maxLength = 1;
-    regInput.dataset.index = String(index);
-    regInput.dataset.type = 'n-it-registry';
-    regInput.placeholder = 'R';
-    // Hidden for silences, visible but dimmed when note is empty
-    regInput.style.opacity = isRest ? '0' : (note !== null ? '1' : '0.4');
-    if (isRest) {
-      regInput.disabled = true;
+    if (!hideRegistry) {
+      // 'r' separator (always visible for unified cell appearance)
+      const rSeparator = document.createElement('span');
+      rSeparator.className = 'nrx-separator';
+      rSeparator.textContent = 'r';
+      // Hidden for silences, visible but dimmed when note is empty
+      rSeparator.style.opacity = isRest ? '0' : (note !== null ? '0.6' : '0.3');
+      cell.appendChild(rSeparator);
+
+      // Registry input (always visible for unified cell appearance)
+      const regInput = document.createElement('input');
+      regInput.className = 'zigzag-input n-it-registry-input zigzag-input--n';
+      regInput.type = 'text';
+      regInput.value = isRest ? '' : (registry !== null ? String(registry) : '');
+      regInput.maxLength = 1;
+      regInput.dataset.index = String(index);
+      regInput.dataset.type = 'n-it-registry';
+      regInput.placeholder = 'R';
+      // Hidden for silences, visible but dimmed when note is empty
+      regInput.style.opacity = isRest ? '0' : (note !== null ? '1' : '0.4');
+      if (isRest) {
+        regInput.disabled = true;
+      }
+      regInput.addEventListener('input', (e) => handleNItInputChange(e, index, 'registry'));
+      regInput.addEventListener('keydown', (e) => handleNItKeyDown(e, index, 'registry'));
+      cell.appendChild(regInput);
     }
-    regInput.addEventListener('input', (e) => handleNItInputChange(e, index, 'registry'));
-    regInput.addEventListener('keydown', (e) => handleNItKeyDown(e, index, 'registry'));
-    cell.appendChild(regInput);
 
     return cell;
   }
@@ -929,16 +934,30 @@ export function createGridEditor(config = {}) {
       // Update pairs when note changes (triggers grid sync and auto-scroll)
       updateNItPairsFromDOM();
 
-      // Auto-jump to registry input after valid note (300ms fixed delay)
+      // Auto-jump after valid note
       if (text && !isNaN(noteVal)) {
         clearTimeout(autoJumpTimer);
         autoJumpTimer = setTimeout(() => {
-          const regInput = cell?.querySelector('.n-it-registry-input');
-          if (regInput) {
-            regInput.focus();
-            regInput.select();
+          const hideRegistry = intervalModeOptions?.hideRegistry || false;
+
+          if (hideRegistry) {
+            // Jump directly to iT when registry is hidden
+            const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+            const targetItIndex = hideInitialPair ? index : index + 1;
+            const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+            if (itInput) {
+              itInput.focus();
+              itInput.select();
+            }
+          } else {
+            // Jump to registry (original behavior)
+            const regInput = cell?.querySelector('.n-it-registry-input');
+            if (regInput) {
+              regInput.focus();
+              regInput.select();
+            }
           }
-        }, 300); // Fixed 300ms for N → r transition
+        }, 300); // Fixed 300ms for N → r/iT transition
       }
     } else if (type === 'registry') {
       // Registry must be 3-5 (configurable via nrxModeOptions)
@@ -1149,13 +1168,10 @@ export function createGridEditor(config = {}) {
         event.preventDefault();
         clearTimeout(autoJumpTimer);
         if (type === 'note') {
-          // Note → Registry (same cell)
-          const regInput = cell?.querySelector('.n-it-registry-input');
-          if (regInput && regInput.style.display !== 'none' && !regInput.disabled) {
-            regInput.focus();
-            regInput.select();
-          } else {
-            // Silence or no registry - go to iT (respecting hideInitialPair)
+          const hideRegistry = intervalModeOptions?.hideRegistry || false;
+
+          if (hideRegistry) {
+            // Registry hidden - jump directly to iT
             const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
             const targetItIndex = hideInitialPair ? index : index + 1;
             let itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
@@ -1171,6 +1187,31 @@ export function createGridEditor(config = {}) {
                   itInput.select();
                 }
               });
+            }
+          } else {
+            // Note → Registry (same cell)
+            const regInput = cell?.querySelector('.n-it-registry-input');
+            if (regInput && !regInput.disabled) {
+              regInput.focus();
+              regInput.select();
+            } else {
+              // Silence or no registry - go to iT (respecting hideInitialPair)
+              const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
+              const targetItIndex = hideInitialPair ? index : index + 1;
+              let itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+              if (itInput) {
+                itInput.focus();
+                itInput.select();
+              } else {
+                jumpToNextNItCell(index);
+                requestAnimationFrame(() => {
+                  itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+                  if (itInput) {
+                    itInput.focus();
+                    itInput.select();
+                  }
+                });
+              }
             }
           }
         } else if (type === 'registry') {
@@ -1223,23 +1264,33 @@ export function createGridEditor(config = {}) {
       case 'ArrowRight':
         if (isAtEnd(input)) {
           event.preventDefault();
+          const hideRegistry = intervalModeOptions?.hideRegistry || false;
           const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
-          // hideInitialPair=true:  N[n] → R[n] → iT[n] → N[n+1] ...
-          // hideInitialPair=false: N[n] → R[n] → iT[n+1] → N[n+1] ...
 
           if (type === 'note') {
-            // Note → Registry (same cell)
-            const regInput = cell?.querySelector('.n-it-registry-input');
-            if (regInput && !regInput.disabled) {
-              regInput.focus();
-            } else {
-              // Silence or no registry - go to iT
+            if (hideRegistry) {
+              // Registry hidden - jump directly to iT
               const targetItIndex = hideInitialPair ? index : index + 1;
               const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
               if (itInput) {
                 itInput.focus();
               } else {
                 jumpToNextNItCell(index);
+              }
+            } else {
+              // Note → Registry (same cell)
+              const regInput = cell?.querySelector('.n-it-registry-input');
+              if (regInput && !regInput.disabled) {
+                regInput.focus();
+              } else {
+                // Silence or no registry - go to iT
+                const targetItIndex = hideInitialPair ? index : index + 1;
+                const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
+                if (itInput) {
+                  itInput.focus();
+                } else {
+                  jumpToNextNItCell(index);
+                }
               }
             }
           } else if (type === 'registry') {
@@ -1283,26 +1334,32 @@ export function createGridEditor(config = {}) {
       case 'ArrowLeft':
         if (isAtStart(input)) {
           event.preventDefault();
+          const hideRegistry = intervalModeOptions?.hideRegistry || false;
           const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
-          // hideInitialPair=true:  ... ← iT[n] ← R[n] ← N[n] ← iT[n-1] ...
-          // hideInitialPair=false: ... ← iT[n] ← R[n-1] ← N[n-1] ← iT[n-1] ...
 
           if (type === 'registry') {
             // Registry → Note (same cell)
             const noteInput = cell?.querySelector('.n-it-note-input');
             if (noteInput) noteInput.focus();
           } else if (type === 'it') {
-            // iT[n] → R[?]
-            // hideInitialPair=true: iT[n] → R[n] (same index)
-            // hideInitialPair=false: iT[n] → R[n-1]
-            const targetRegIndex = hideInitialPair ? index : index - 1;
-            const regInput = container.querySelector(`.n-it-registry-input[data-index="${targetRegIndex}"]`);
-            if (regInput && !regInput.disabled) {
-              regInput.focus();
-            } else {
-              // Registry disabled (silence) - go directly to N
-              const noteInput = container.querySelector(`.n-it-note-input[data-index="${targetRegIndex}"]`);
+            if (hideRegistry) {
+              // Registry hidden - jump directly to N
+              const targetNIndex = hideInitialPair ? index : index - 1;
+              const noteInput = container.querySelector(`.n-it-note-input[data-index="${targetNIndex}"]`);
               if (noteInput) noteInput.focus();
+            } else {
+              // iT[n] → R[?]
+              // hideInitialPair=true: iT[n] → R[n] (same index)
+              // hideInitialPair=false: iT[n] → R[n-1]
+              const targetRegIndex = hideInitialPair ? index : index - 1;
+              const regInput = container.querySelector(`.n-it-registry-input[data-index="${targetRegIndex}"]`);
+              if (regInput && !regInput.disabled) {
+                regInput.focus();
+              } else {
+                // Registry disabled (silence) - go directly to N
+                const noteInput = container.querySelector(`.n-it-note-input[data-index="${targetRegIndex}"]`);
+                if (noteInput) noteInput.focus();
+              }
             }
           } else if (type === 'note' && index > 0) {
             // N[n] → iT[?]
@@ -1312,8 +1369,8 @@ export function createGridEditor(config = {}) {
             const itInput = container.querySelector(`.n-it-temporal-input[data-index="${targetItIndex}"]`);
             if (itInput) {
               itInput.focus();
-            } else {
-              // Fallback to previous registry if no iT exists
+            } else if (!hideRegistry) {
+              // Fallback to previous registry if no iT exists (only when registry is visible)
               const prevRegInput = container.querySelector(`.n-it-registry-input[data-index="${index - 1}"]`);
               if (prevRegInput) prevRegInput.focus();
             }
