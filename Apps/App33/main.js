@@ -283,7 +283,13 @@ function calculateCellWidth() {
   if (!container) return 40;
   const totalColumns = getTotalSubdivisions();
   const containerWidth = container.clientWidth || 600;
-  const calculatedWidth = Math.floor(containerWidth / Math.min(totalColumns, 24));
+  if (!Number.isFinite(totalColumns) || totalColumns <= 0) return 40;
+  const maxColumns = 24;
+  const calculatedWidth = Math.floor(containerWidth / Math.min(totalColumns, maxColumns));
+  if (totalColumns <= maxColumns) {
+    // For few columns, expand to fill the container width
+    return Math.max(30, calculatedWidth);
+  }
   return Math.max(30, Math.min(60, calculatedWidth));
 }
 
