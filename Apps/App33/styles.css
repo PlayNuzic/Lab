@@ -22,6 +22,7 @@ body[data-theme='dark'] {
 
 body.app33 {
   --unit-label-offset: -20px;
+  --plano-timeline-height: 56px;
 }
 
 /* ========== MIDDLE SECTION (oculta) ========== */
@@ -797,21 +798,30 @@ body.dragging-it * {
   border-top: 1px solid var(--border-color, rgba(128, 128, 128, 0.3));
 }
 
+.plano-timeline-container {
+  overflow-y: visible;
+  position: relative;
+}
+
 .plano-timeline-row {
   display: grid;
   min-width: max-content;
   position: relative;
+  align-items: flex-start;
+  padding-bottom: 18px;
 }
 
 .plano-timeline-number {
   height: 24px;
-  display: flow-root;
-  align-items: start;
-  justify-content: start;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: center;
+  transform: translateX(-6px);
   font-size: 1rem;
   color: var(--line-color);
   opacity: 0.7;
-  border-right: 1px solid var(--border-color, rgba(128, 128, 128, 0.15));
+  border-right: none;
 }
 
 .plano-timeline-number.pulse-start {
@@ -829,8 +839,7 @@ body.dragging-it * {
 /* Overlay for integer pulses (cycle starts + ghosts) */
 .plano-timeline-overlay {
   position: absolute;
-  top: 100%;
-  margin-top: 4px;
+  bottom: 2px;
   left: 0;
   width: 100%;
   height: 18px;
@@ -841,7 +850,7 @@ body.dragging-it * {
 .plano-timeline-pulse-label {
   position: absolute;
   top: 0;
-  transform: translate(-50%, 0);
+  transform: translate(-50%, 0) translateX(-1px);
   font-size: 0.75rem;
   color: var(--line-color);
   opacity: 0.7;

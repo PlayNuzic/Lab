@@ -490,9 +490,9 @@ function renderGridTimeline() {
     numEl.dataset.colIndex = idx;
 
     if (subdivisionIndex === 0) {
+      const realPulse = cycleIndex * n;
       numEl.classList.add('pulse-start');
-      // Keep empty to avoid duplicating integer pulse overlay
-      numEl.textContent = '';
+      numEl.textContent = String(realPulse);
     } else {
       // Subdivisió fraccionada (.1, .2)
       numEl.textContent = `.${subdivisionIndex}`;
