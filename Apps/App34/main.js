@@ -316,14 +316,19 @@ function createPzRow() {
   fractionSection.appendChild(labelSpan);
   fractionSection.appendChild(fractionSlot);
 
-  // Zigzag editor container (between fraction and ciclos)
+  // Zigzag editor with wrapper for isolated scroll
+  const zigzagWrapper = document.createElement('div');
+  zigzagWrapper.className = 'zigzag-scroll-wrapper';
+
   const zigzagContainer = document.createElement('div');
   zigzagContainer.id = 'zigzagEditorContainer';
   zigzagContainer.className = 'zigzag-editor-container';
 
+  zigzagWrapper.appendChild(zigzagContainer);
+
   pzRow.appendChild(infoColumn);
   pzRow.appendChild(fractionSection);
-  pzRow.appendChild(zigzagContainer);
+  pzRow.appendChild(zigzagWrapper);
 
   // Insert before timeline
   if (timelineWrapper && timelineWrapper.parentNode) {
