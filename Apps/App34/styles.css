@@ -41,7 +41,7 @@ body.app34 {
   font-size: 2.8rem;
   color: var(--line-color);
   max-width: 100%;
-  overflow: hidden; /* Prevent pz-row from expanding beyond viewport */
+  overflow: visible; /* Allow child scrollbars to be visible */
 }
 
 .pz-row .pz.label {
@@ -955,7 +955,7 @@ body.dragging-note * {
   flex-shrink: 1;
   min-width: 0;
   max-width: 500px;
-  overflow-x: auto;
+  overflow-x: scroll; /* Force scrollbar to always show */
   overflow-y: hidden;
   padding: 0 10px 10px 10px; /* Extra bottom padding for scrollbar */
   /* Enable smooth scrolling */
