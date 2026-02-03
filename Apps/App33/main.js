@@ -1501,8 +1501,13 @@ function handleRandom() {
   if (isPlaying) return;
 
   // Random numerator (2-6) and denominator (2-8)
-  const newN = Math.floor(Math.random() * (MAX_NUMERATOR - MIN_NUMERATOR + 1)) + MIN_NUMERATOR;
-  const newD = Math.floor(Math.random() * (MAX_DENOMINATOR - MIN_DENOMINATOR + 1)) + MIN_DENOMINATOR;
+  // Disallow simple fractions (n=1) and n === d
+  let newN;
+  let newD;
+  do {
+    newN = Math.floor(Math.random() * (MAX_NUMERATOR - MIN_NUMERATOR + 1)) + MIN_NUMERATOR;
+    newD = Math.floor(Math.random() * (MAX_DENOMINATOR - MIN_DENOMINATOR + 1)) + MIN_DENOMINATOR;
+  } while (newN === newD);
 
   if (fractionEditorController) {
     fractionEditorController.setFraction(
@@ -1553,17 +1558,8 @@ function handleReset() {
     stopPlayback();
   }
 
-  // Reset to defaults
-  currentNumerator = DEFAULT_NUMERATOR;
-  currentDenominator = DEFAULT_DENOMINATOR;
+  // Keep current fraction; only reset notes and visuals
   currentLg = calculateVariableLg(currentNumerator);
-
-  if (fractionEditorController) {
-    fractionEditorController.setFraction(
-      { numerator: DEFAULT_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
-      { cause: 'reset', persist: true }
-    );
-  }
 
   clearNotes();
 
