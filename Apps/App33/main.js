@@ -65,6 +65,8 @@ let cycleLabels = [];
 let pulseNumberLabels = [];
 let intervalBars = []; // Rectangles iT (mantinguts per timeline)
 let noteBars = [];     // Rectangles notes al grid
+let gridPulseLabels = [];
+let matrixGhostLines = [];
 
 // Controllers
 let fractionEditorController = null;
@@ -502,17 +504,12 @@ function renderGridTimeline() {
   // Overlay for integer pulses (cycle starts + ghosts)
   const overlay = document.createElement('div');
   overlay.className = 'plano-timeline-overlay';
+  gridPulseLabels = [];
 
   for (let pulse = 0; pulse <= lg; pulse++) {
     const positionInColumns = pulse * d / n;
     const leftPx = positionInColumns * cellWidth;
     const isCycleStart = pulse % n === 0;
-
-    const line = document.createElement('div');
-    line.className = 'plano-timeline-pulse-line';
-    if (!isCycleStart) line.classList.add('ghost');
-    line.style.left = `${leftPx}px`;
-    overlay.appendChild(line);
 
     const label = document.createElement('div');
     label.className = 'plano-timeline-pulse-label';
@@ -520,7 +517,9 @@ function renderGridTimeline() {
     if (!isCycleStart) label.classList.add('ghost');
     label.style.left = `${leftPx}px`;
     label.textContent = String(pulse);
+    label.dataset.pulse = String(pulse);
     overlay.appendChild(label);
+    gridPulseLabels[pulse] = label;
   }
 
   timelineRow.appendChild(overlay);
@@ -537,6 +536,7 @@ function renderGhostPulseLines() {
 
   // Remove existing ghost lines
   matrix.querySelectorAll('.ghost-pulse-line').forEach(el => el.remove());
+  matrixGhostLines = [];
 
   const n = currentNumerator;
   const d = currentDenominator;
@@ -561,7 +561,9 @@ function renderGhostPulseLines() {
     const line = document.createElement('div');
     line.className = 'ghost-pulse-line';
     line.style.left = `${leftPx}px`;
+    line.dataset.pulse = String(pulse);
     matrix.appendChild(line);
+    matrixGhostLines[pulse] = line;
   }
 }
 
@@ -1275,6 +1277,8 @@ function clearHighlights() {
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   intervalBars.forEach(b => b.classList.remove('highlight'));
+  gridPulseLabels.forEach(label => label?.classList.remove('active'));
+  matrixGhostLines.forEach(line => line?.classList.remove('active'));
   // Hide playhead
   if (playheadController) {
     playheadController.hide();
@@ -1325,12 +1329,23 @@ function highlightSubdivision(scaledIndex, scheduledTime) {
   if (scaledIndex % d === 0) {
     const pulseIndex = scaledIndex / d;
     pulses.forEach(p => p.classList.remove('active'));
+    gridPulseLabels.forEach(label => label?.classList.remove('active'));
+    matrixGhostLines.forEach(line => line?.classList.remove('active'));
     if (pulseIndex >= 0 && pulseIndex < pulses.length) {
       const pulse = pulses[pulseIndex];
       if (pulse) {
         void pulse.offsetWidth;
         pulse.classList.add('active');
       }
+    }
+    const label = gridPulseLabels[pulseIndex];
+    if (label) {
+      label.classList.add('active');
+    }
+    const ghostLine = matrixGhostLines[pulseIndex];
+    if (ghostLine) {
+      void ghostLine.offsetWidth;
+      ghostLine.classList.add('active');
     }
   }
 
