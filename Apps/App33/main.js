@@ -67,6 +67,8 @@ let intervalBars = []; // Rectangles iT (mantinguts per timeline)
 let noteBars = [];     // Rectangles notes al grid
 let gridPulseLabels = [];
 let matrixGhostLines = [];
+let gridIntegerLabels = [];
+let gridFractionLabels = [];
 
 // Controllers
 let fractionEditorController = null;
@@ -483,19 +485,26 @@ function renderGridTimeline() {
   timelineRow.className = 'plano-timeline-row';
   timelineRow.style.gridTemplateColumns = `repeat(${columns}, ${cellWidth}px)`;
 
+  gridIntegerLabels = [];
+  gridFractionLabels = [];
+
   // Crear una cel·la per cada subdivisió
   grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex }, idx) => {
     const numEl = document.createElement('div');
     numEl.className = 'plano-timeline-number';
     numEl.dataset.colIndex = idx;
+    numEl.dataset.cycleIndex = String(cycleIndex);
+    numEl.dataset.subdivision = String(subdivisionIndex);
 
     if (subdivisionIndex === 0) {
       const realPulse = cycleIndex * n;
       numEl.classList.add('pulse-start');
       numEl.textContent = String(realPulse);
+      gridIntegerLabels[realPulse] = numEl;
     } else {
       // Subdivisió fraccionada (.1, .2)
       numEl.textContent = `.${subdivisionIndex}`;
+      gridFractionLabels.push(numEl);
     }
 
     timelineRow.appendChild(numEl);
@@ -1281,6 +1290,8 @@ function clearHighlights() {
   intervalBars.forEach(b => b.classList.remove('highlight'));
   gridPulseLabels.forEach(label => label?.classList.remove('active'));
   matrixGhostLines.forEach(line => line?.classList.remove('active'));
+  gridIntegerLabels.forEach(label => label?.classList.remove('active'));
+  gridFractionLabels.forEach(label => label?.classList.remove('active'));
   // Hide playhead
   if (playheadController) {
     playheadController.hide();
@@ -1335,12 +1346,18 @@ function highlightSubdivision(scaledIndex, scheduledTime) {
     const pulseIndex = scaledIndex / d;
     pulses.forEach(p => p.classList.remove('active'));
     gridPulseLabels.forEach(label => label?.classList.remove('active'));
+    matrixGhostLines.forEach(line => line?.classList.remove('active'));
+    gridIntegerLabels.forEach(label => label?.classList.remove('active'));
     if (pulseIndex >= 0 && pulseIndex < pulses.length) {
       const pulse = pulses[pulseIndex];
       if (pulse) {
         void pulse.offsetWidth;
         pulse.classList.add('active');
       }
+    }
+    const integerLabel = gridIntegerLabels[pulseIndex];
+    if (integerLabel) {
+      integerLabel.classList.add('active');
     }
     const label = gridPulseLabels[pulseIndex];
     if (label) {
@@ -1384,6 +1401,18 @@ function highlightCycle(payload = {}, scheduledTime) {
   const subdivisionIndex = Number(rawSubdivisionIndex);
 
   if (!Number.isFinite(cycleIndex)) return;
+
+  // Highlight fractional timeline numbers
+  gridFractionLabels.forEach(label => label?.classList.remove('active'));
+  if (subdivisionIndex > 0) {
+    const fractionalLabel = gridFractionLabels.find(label =>
+      Number(label?.dataset?.cycleIndex) === cycleIndex
+      && Number(label?.dataset?.subdivision) === subdivisionIndex
+    );
+    if (fractionalLabel) {
+      fractionalLabel.classList.add('active');
+    }
+  }
 
   // Clear previous highlights on timeline markers
   cycleMarkers.forEach(m => m.classList.remove('active'));

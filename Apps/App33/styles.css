@@ -830,6 +830,16 @@ body.dragging-it * {
   color: var(--color-lg);
 }
 
+.plano-timeline-number.active {
+  color: var(--plano-select-color);
+  opacity: 1;
+  font-weight: 700;
+}
+
+.plano-timeline-number.pulse-start.active {
+  color: var(--color-lg);
+}
+
 .plano-timeline-number.pulse-integer {
   font-weight: 600;
   opacity: 1;
@@ -869,9 +879,12 @@ body.dragging-it * {
 }
 
 .plano-timeline-pulse-label.active {
-  color: var(--color-lg);
   opacity: 1;
   font-weight: 600;
+}
+
+.plano-timeline-pulse-label.ghost.active {
+  color: var(--color-t);
 }
 
 /* Ghost pulse lines - integer pulses between subdivisions */
@@ -887,7 +900,7 @@ body.dragging-it * {
 }
 
 .ghost-pulse-line.active {
-  border-left-color: var(--note-color-1);
+  border-left-color: var(--color-t);
   border-left-style: solid;
   border-left-width: 2px;
   opacity: 1;
