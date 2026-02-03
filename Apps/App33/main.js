@@ -1300,6 +1300,9 @@ function highlightSubdivision(scaledIndex, scheduledTime) {
   const n = currentNumerator;
   const d = currentDenominator;
 
+  // Ghost pulse line highlight should only last until the next subdivision tick
+  matrixGhostLines.forEach(line => line?.classList.remove('active'));
+
   // Update playhead on column boundaries (every n steps)
   if (playheadController && scaledIndex % n === 0) {
     const visualColumn = scaledIndex / n;
@@ -1330,7 +1333,6 @@ function highlightSubdivision(scaledIndex, scheduledTime) {
     const pulseIndex = scaledIndex / d;
     pulses.forEach(p => p.classList.remove('active'));
     gridPulseLabels.forEach(label => label?.classList.remove('active'));
-    matrixGhostLines.forEach(line => line?.classList.remove('active'));
     if (pulseIndex >= 0 && pulseIndex < pulses.length) {
       const pulse = pulses[pulseIndex];
       if (pulse) {
