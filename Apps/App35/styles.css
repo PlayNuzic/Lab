@@ -1033,7 +1033,8 @@ body.dragging-note * {
 .zigzag-editor-container {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
   max-width: 500px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -1073,6 +1074,7 @@ body.dragging-note * {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: min-content;
 }
 
 /* Zigzag rows: horizontal layout */
@@ -1080,6 +1082,8 @@ body.dragging-note * {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: nowrap;
+  min-width: min-content;
 }
 
 /* Zigzag cells: contain inputs */
