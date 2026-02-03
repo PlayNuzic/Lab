@@ -40,6 +40,8 @@ body.app35 {
   padding: 0 20px;
   font-size: 2.8rem;
   color: var(--line-color);
+  max-width: 100%;
+  overflow: hidden; /* Prevent pz-row from expanding beyond viewport */
 }
 
 .pz-row .pz.label {

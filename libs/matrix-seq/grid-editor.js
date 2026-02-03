@@ -1054,8 +1054,8 @@ export function createGridEditor(config = {}) {
       if (text && !isNaN(itVal) && currentTotal === maxTotalPulse) {
         // Update pairs first
         updateNItPairsFromDOM();
-        // Remove any empty slots
-        removeEmptyNItSlots();
+        // Remove ALL empty slots (including last one) when sequence is complete
+        removeEmptyNItSlots(true); // Pass true to remove all empty slots
         // Blur to end editing
         input.blur();
         showInputTooltip(input, 'Sucesión completa');
@@ -1478,7 +1478,7 @@ export function createGridEditor(config = {}) {
    * Removes empty N-iT slots (cells with no note value)
    * Called when sequence is complete to clean up trailing empty cells
    */
-  function removeEmptyNItSlots() {
+  function removeEmptyNItSlots(removeAll = false) {
     const row1 = container.querySelector('.zigzag-row--top');
     const row2 = container.querySelector('.zigzag-row--bottom');
     if (!row1 || !row2) return;
@@ -1486,8 +1486,8 @@ export function createGridEditor(config = {}) {
     const hideInitialPair = intervalModeOptions?.hideInitialPair || false;
 
     // Find empty N cells (no note value) and remove them with their iT
-    // BUT: always keep at least one empty slot at the end for new input
-    // AND: with hideInitialPair, never remove N[0]/iT[0] pair
+    // By default: always keep at least one empty slot at the end for new input
+    // When removeAll=true (sequence complete): remove ALL empty slots
     const nInputs = Array.from(container.querySelectorAll('.n-it-note-input'));
     const totalCells = nInputs.length;
 
@@ -1500,8 +1500,8 @@ export function createGridEditor(config = {}) {
         return; // Skip, don't remove
       }
 
-      // Always keep the last empty cell for new input
-      if (arrayIndex === totalCells - 1 && !nInput.value.trim()) {
+      // Keep the last empty cell for new input (unless removeAll=true)
+      if (!removeAll && arrayIndex === totalCells - 1 && !nInput.value.trim()) {
         return; // Skip, keep last empty for input
       }
 
