@@ -818,6 +818,7 @@ body.dragging-it * {
   justify-content: flex-start;
   text-align: center;
   transform: translateX(-6px);
+  transition: transform 0.12s ease, color 0.12s ease, opacity 0.12s ease;
   font-size: 1rem;
   color: var(--line-color);
   opacity: 0.7;
@@ -834,10 +835,12 @@ body.dragging-it * {
   color: var(--plano-select-color);
   opacity: 1;
   font-weight: 700;
+  transform: translateX(-6px) scale(1.1);
 }
 
 .plano-timeline-number.pulse-start.active {
   color: var(--color-lg);
+  transform: translateX(-6px) scale(1.15);
 }
 
 .plano-timeline-number.pulse-integer {
