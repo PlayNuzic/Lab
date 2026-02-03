@@ -37,11 +37,12 @@ body.app34 {
   justify-content: center;
   gap: 24px;
   margin: 10px auto;
-  padding: 0 20px;
+  padding: 0 20px 20px 20px; /* Extra bottom padding for zigzag scrollbar */
   font-size: 2.8rem;
   color: var(--line-color);
   max-width: 100%;
-  overflow: visible; /* Allow child scrollbars to be visible */
+  overflow-x: hidden; /* Prevent page horizontal scroll */
+  overflow-y: visible; /* Allow vertical overflow (scrollbar space) */
 }
 
 .pz-row .pz.label {
