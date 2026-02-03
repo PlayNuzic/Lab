@@ -800,6 +800,7 @@ body.dragging-it * {
 .plano-timeline-row {
   display: grid;
   min-width: max-content;
+  position: relative;
 }
 
 .plano-timeline-number {
@@ -823,6 +824,50 @@ body.dragging-it * {
   font-weight: 600;
   opacity: 1;
   color: var(--cycle-color);
+}
+
+/* Overlay for integer pulses (cycle starts + ghosts) */
+.plano-timeline-overlay {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  width: 100%;
+  height: calc(var(--plano-timeline-height) + 18px);
+  pointer-events: none;
+  z-index: 6;
+}
+
+.plano-timeline-pulse-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid var(--cycle-color);
+  opacity: 0.8;
+}
+
+.plano-timeline-pulse-line.ghost {
+  border-left: 1px dashed var(--line-color);
+  opacity: 0.5;
+}
+
+.plano-timeline-pulse-label {
+  position: absolute;
+  top: 0;
+  transform: translate(-50%, 0);
+  font-size: 0.75rem;
+  color: var(--line-color);
+  opacity: 0.7;
+}
+
+.plano-timeline-pulse-label.pulse-start {
+  color: var(--color-lg);
+  opacity: 1;
+  font-weight: 600;
+}
+
+.plano-timeline-pulse-label.ghost {
+  opacity: 0.5;
 }
 
 /* Ghost pulse lines - integer pulses between subdivisions */

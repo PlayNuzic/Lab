@@ -488,10 +488,9 @@ function renderGridTimeline() {
     numEl.dataset.colIndex = idx;
 
     if (subdivisionIndex === 0) {
-      // Inici de cicle - mostrar el pols sencer (0, 2, 4, 6...)
-      const realPulse = cycleIndex * n;
       numEl.classList.add('pulse-start');
-      numEl.textContent = String(realPulse);
+      // Keep empty to avoid duplicating integer pulse overlay
+      numEl.textContent = '';
     } else {
       // Subdivisió fraccionada (.1, .2)
       numEl.textContent = `.${subdivisionIndex}`;
@@ -500,31 +499,32 @@ function renderGridTimeline() {
     timelineRow.appendChild(numEl);
   });
 
-  container.appendChild(timelineRow);
+  // Overlay for integer pulses (cycle starts + ghosts)
+  const overlay = document.createElement('div');
+  overlay.className = 'plano-timeline-overlay';
 
-  // Afegir overlays pels polsos sencers que NO són inici de cicle (ghost pulses)
-  // Aquests cauen a posicions entre subdivisions
-  for (let pulse = 1; pulse < lg; pulse++) {
-    // Saltar si és inici de cicle (múltiple de n)
-    if (pulse % n === 0) continue;
-
-    // Posició del pols en columnes: pulse * d / n
+  for (let pulse = 0; pulse <= lg; pulse++) {
     const positionInColumns = pulse * d / n;
     const leftPx = positionInColumns * cellWidth;
+    const isCycleStart = pulse % n === 0;
 
-    // Línia discontínua
     const line = document.createElement('div');
-    line.className = 'ghost-pulse-line';
+    line.className = 'plano-timeline-pulse-line';
+    if (!isCycleStart) line.classList.add('ghost');
     line.style.left = `${leftPx}px`;
-    timelineRow.appendChild(line);
+    overlay.appendChild(line);
 
-    // Label del pols
     const label = document.createElement('div');
-    label.className = 'ghost-pulse-label';
+    label.className = 'plano-timeline-pulse-label';
+    if (isCycleStart) label.classList.add('pulse-start');
+    if (!isCycleStart) label.classList.add('ghost');
     label.style.left = `${leftPx}px`;
     label.textContent = String(pulse);
-    timelineRow.appendChild(label);
+    overlay.appendChild(label);
   }
+
+  timelineRow.appendChild(overlay);
+  container.appendChild(timelineRow);
 }
 
 /**
@@ -917,20 +917,17 @@ function applyTransportConfig() {
 
   const n = currentNumerator;
   const d = currentDenominator;
-  const totalSubdivisions = getTotalSubdivisions();
-
-  // SUBDIVISION-BASED: BPM is scaled to subdivision rate
-  // subdivInterval = (60/BPM) * (n/d), so subdivBPM = BPM * d / n
-  const subdivBpm = FIXED_BPM * d / n;
+  const scaledTotal = currentLg * d + 1;
+  const scaledBpm = FIXED_BPM * d;
 
   audio.updateTransport({
-    totalPulses: totalSubdivisions + 1,
-    bpm: subdivBpm,
-    baseResolution: 9999,  // Disable auto-metronome
-    patternBeats: totalSubdivisions,
+    totalPulses: scaledTotal,
+    bpm: scaledBpm,
+    baseResolution: d,
+    patternBeats: currentLg * d,
     cycle: {
-      numerator: d,  // Cycle fires every d subdivisions
-      denominator: 1,
+      numerator: n * d,
+      denominator: d,
       onTick: highlightCycle
     }
   });
@@ -1115,10 +1112,11 @@ function updateIntervalBars() {
 
   const lg = currentLg;
   const d = currentDenominator;
+  const n = currentNumerator;
 
   notes.forEach((noteData, idx) => {
-    const startPos = noteData.startSubdiv / d;
-    const endPos = (noteData.startSubdiv + noteData.duration) / d;
+    const startPos = noteData.startSubdiv * n / d;
+    const endPos = (noteData.startSubdiv + noteData.duration) * n / d;
     const width = endPos - startPos;
 
     const bar = document.createElement('div');
@@ -1156,10 +1154,11 @@ async function playNotePreview(noteData) {
 
   // Calculate note duration based on current BPM and denominator
   // duration is in subdivisions, convert to pulses: duration / d
+  const n = currentNumerator;
   const d = currentDenominator;
   const bpm = FIXED_BPM;
   const beatDuration = 60 / bpm;
-  const durationPulses = noteData.duration / d;
+  const durationPulses = noteData.duration * n / d;
   const durationSeconds = Math.min(durationPulses * beatDuration, 2); // Cap at 2 seconds for preview
 
   // MIDI note = BASE_MIDI + note (0-11)
@@ -1173,12 +1172,14 @@ async function playNotePreview(noteData) {
 /**
  * Get note that starts at a given scaled index
  * Returns the note object or null if no note starts there
- * scaledIndex goes from 0 to lg*d, same as startSubdiv
+ * scaledIndex goes from 0 to lg*d (1/d steps)
  */
 function getNoteAtScaledStart(scaledIndex) {
+  const n = currentNumerator;
   for (const noteData of notes) {
-    // startSubdiv is already in the same scale as scaledIndex (0 to lg*d)
-    if (noteData.startSubdiv === scaledIndex) {
+    // startSubdiv is in column units; convert to scaledIndex (1/d steps)
+    const noteScaledStart = noteData.startSubdiv * n;
+    if (noteScaledStart === scaledIndex) {
       return noteData;
     }
   }
@@ -1193,15 +1194,10 @@ async function startPlayback() {
   const n = currentNumerator;
   const d = currentDenominator;
 
-  // SUBDIVISION-BASED with visual column mapping:
-  // - Each subdivision = n/d of a pulse (keeps BPM relationship)
-  // - With 2/3: each subdiv = 2/3 pulse, so 3 subdivs = 2 pulses
-  // - Total subdivisions = (lg * d) / n = visual columns
-  // - Interval per subdivision = (60/bpm) * (n/d)
-
-  const totalSubdivisions = getTotalSubdivisions();  // (lg * d) / n
-  const subdivInterval = (60 / bpm) * (n / d);       // Time per subdivision
-  const scaledTotal = totalSubdivisions + 1;         // +1 for final note release
+  // BASE 1/d scheduling (App4/App31 model)
+  // Each step = 1/d of a pulse; columns advance every n steps
+  const scaledInterval = (60 / bpm) / d; // Time per 1/d pulse
+  const scaledTotal = lg * d + 1;        // +1 for final note release
 
   const audioInstance = await initAudio();
 
@@ -1218,29 +1214,23 @@ async function startPlayback() {
   };
 
   // Build play options
-  // baseResolution = d means metronome sounds every d subdivisions
-  // But with complex fractions, integer pulses don't align with d subdivisions!
-  // So we set baseResolution very high to disable auto-metronome,
-  // and handle it manually in highlightPulse
   const playOptions = {
-    baseResolution: 9999,  // Disable auto-metronome (we'll do it manually)
-    patternBeats: totalSubdivisions
+    baseResolution: d,
+    patternBeats: lg * d
   };
 
   if (hasCycle) {
-    // Cycle fires every d subdivisions (= 1 fraction cycle = n integer pulses)
+    // Cycle fires every n pulses, subdivided by d (1/d steps)
     playOptions.cycle = {
-      numerator: d,
-      denominator: 1,
+      numerator: n * d,
+      denominator: d,
       onTick: highlightCycle
     };
   }
 
-  // Start playback - subdivIndex goes from 0 to totalSubdivisions
-  // subdivIndex IS the visual column index!
   audioInstance.play(
     scaledTotal,
-    subdivInterval,
+    scaledInterval,
     audioSelection,
     false,  // No loop - one-shot playback
     highlightSubdivision,  // Renamed for clarity
@@ -1297,57 +1287,46 @@ function clearHighlights() {
 }
 
 /**
- * Highlight subdivision - receives subdivIndex (visual column) and scheduledTime
- * SUBDIVISION-BASED: subdivIndex IS the visual column (0 to totalSubdivisions)
- * Convert to pulse position: pulse = subdivIndex * n / d
+ * Highlight subdivision - receives scaledIndex (1/d steps) and scheduledTime
+ * Columns advance every n steps; integer pulses every d steps
  */
-function highlightSubdivision(subdivIndex, scheduledTime) {
+function highlightSubdivision(scaledIndex, scheduledTime) {
   if (!isPlaying) return;
 
   const n = currentNumerator;
   const d = currentDenominator;
 
-  // subdivIndex IS the visual column
-  const visualColumn = subdivIndex;
+  // Update playhead on column boundaries (every n steps)
+  if (playheadController && scaledIndex % n === 0) {
+    const visualColumn = scaledIndex / n;
+    const totalColumns = getTotalSubdivisions();
+    if (visualColumn >= 0 && visualColumn < totalColumns) {
+      playheadController.update(visualColumn);
 
-  // Convert to pulse position for timeline highlighting
-  // With 2/3: col 0 → pulse 0, col 1.5 → pulse 1, col 3 → pulse 2, etc.
-  const pulsePosition = subdivIndex * n / d;
+      // Autoscroll to keep playhead visible
+      const matrix = gridElements?.matrixContainer;
+      if (matrix) {
+        const playheadLeft = visualColumn * cellWidth;
+        const viewportWidth = matrix.clientWidth;
+        const scrollLeft = matrix.scrollLeft;
+        const margin = viewportWidth * 0.2;
 
-  // Update playhead position (column index)
-  if (playheadController) {
-    playheadController.update(visualColumn);
-
-    // Autoscroll to keep playhead visible
-    const matrix = gridElements?.matrixContainer;
-    if (matrix) {
-      const playheadLeft = visualColumn * cellWidth;
-      const viewportWidth = matrix.clientWidth;
-      const scrollLeft = matrix.scrollLeft;
-      const margin = viewportWidth * 0.2;
-
-      if (playheadLeft > scrollLeft + viewportWidth - margin) {
-        matrix.scrollLeft = playheadLeft - margin;
-      }
-      if (playheadLeft < scrollLeft + margin) {
-        matrix.scrollLeft = Math.max(0, playheadLeft - margin);
+        if (playheadLeft > scrollLeft + viewportWidth - margin) {
+          matrix.scrollLeft = playheadLeft - margin;
+        }
+        if (playheadLeft < scrollLeft + margin) {
+          matrix.scrollLeft = Math.max(0, playheadLeft - margin);
+        }
       }
     }
   }
 
-  // Check if this is an integer pulse (for metronome sound)
-  // Integer pulse when pulsePosition is very close to an integer
-  const isIntegerPulse = Math.abs(pulsePosition - Math.round(pulsePosition)) < 0.001;
-  if (isIntegerPulse && audio) {
-    // Play metronome sound manually
-    const when = scheduledTime ?? 0;
-    audio.playSound(currentMetronomeSound, 'pulse', when);
-
-    // Highlight pulse marker on timeline
-    const intPulse = Math.round(pulsePosition);
+  // Highlight integer pulses (every d steps)
+  if (scaledIndex % d === 0) {
+    const pulseIndex = scaledIndex / d;
     pulses.forEach(p => p.classList.remove('active'));
-    if (intPulse >= 0 && intPulse < pulses.length) {
-      const pulse = pulses[intPulse];
+    if (pulseIndex >= 0 && pulseIndex < pulses.length) {
+      const pulse = pulses[pulseIndex];
       if (pulse) {
         void pulse.offsetWidth;
         pulse.classList.add('active');
@@ -1355,8 +1334,8 @@ function highlightSubdivision(subdivIndex, scheduledTime) {
     }
   }
 
-  // Check if any note starts at this column
-  const noteData = getNoteAtScaledStart(subdivIndex);
+  // Check if any note starts at this scaled index
+  const noteData = getNoteAtScaledStart(scaledIndex);
   if (noteData && audio) {
     // Note duration is in visual columns
     // Convert to seconds: duration columns * (n/d) pulses/column * (60/bpm) seconds/pulse
@@ -1369,6 +1348,7 @@ function highlightSubdivision(subdivIndex, scheduledTime) {
   }
 
   // Highlight the note bar that contains this pulse position
+  const pulsePosition = scaledIndex / d;
   highlightBarAtPosition(pulsePosition);
 }
 
@@ -1385,12 +1365,6 @@ function highlightCycle(payload = {}, scheduledTime) {
   const subdivisionIndex = Number(rawSubdivisionIndex);
 
   if (!Number.isFinite(cycleIndex)) return;
-
-  // Play subdivision sound (except at cycle start which is an integer pulse)
-  if (subdivisionIndex > 0 && audio) {
-    const when = scheduledTime ?? 0;
-    audio.playSound(audio._soundAssignments?.cycle || 'click2', 'subdivision', when);
-  }
 
   // Clear previous highlights on timeline markers
   cycleMarkers.forEach(m => m.classList.remove('active'));
