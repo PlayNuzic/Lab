@@ -501,20 +501,23 @@ function renderGridTimeline() {
     timelineRow.appendChild(numEl);
   });
 
-  // Overlay for integer pulses (cycle starts + ghosts)
+  container.appendChild(timelineRow);
+
+  // Overlay for ghost integer pulses (below the subdivisions row)
   const overlay = document.createElement('div');
   overlay.className = 'plano-timeline-overlay';
+  overlay.style.width = `${columns * cellWidth}px`;
   gridPulseLabels = [];
 
   for (let pulse = 0; pulse <= lg; pulse++) {
+    const isCycleStart = pulse % n === 0;
+    if (isCycleStart) continue;
+
     const positionInColumns = pulse * d / n;
     const leftPx = positionInColumns * cellWidth;
-    const isCycleStart = pulse % n === 0;
 
     const label = document.createElement('div');
-    label.className = 'plano-timeline-pulse-label';
-    if (isCycleStart) label.classList.add('pulse-start');
-    if (!isCycleStart) label.classList.add('ghost');
+    label.className = 'plano-timeline-pulse-label ghost';
     label.style.left = `${leftPx}px`;
     label.textContent = String(pulse);
     label.dataset.pulse = String(pulse);
@@ -522,8 +525,7 @@ function renderGridTimeline() {
     gridPulseLabels[pulse] = label;
   }
 
-  timelineRow.appendChild(overlay);
-  container.appendChild(timelineRow);
+  container.appendChild(overlay);
 }
 
 /**
