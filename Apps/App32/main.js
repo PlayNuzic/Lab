@@ -61,6 +61,8 @@ let cycleLabels = [];
 let pulseNumberLabels = [];
 let intervalBars = []; // Rectangles iT (mantinguts per timeline)
 let noteBars = [];     // Rectangles notes al grid
+let gridIntegerLabels = [];
+let gridFractionLabels = [];
 
 // Controllers
 let fractionEditorController = null;
@@ -418,6 +420,8 @@ function renderGridTimeline() {
   const d = currentDenominator;
 
   container.innerHTML = '';
+  gridIntegerLabels = [];
+  gridFractionLabels = [];
 
   const timelineRow = document.createElement('div');
   timelineRow.className = 'plano-timeline-row';
@@ -434,8 +438,10 @@ function renderGridTimeline() {
     if (subdivIndex === 0) {
       numEl.classList.add('pulse-start');
       numEl.textContent = String(pulseIndex);
+      gridIntegerLabels[pulseIndex] = numEl;
     } else {
       numEl.textContent = `.${subdivIndex}`;
+      gridFractionLabels.push(numEl);
     }
 
     timelineRow.appendChild(numEl);
@@ -1139,6 +1145,8 @@ function clearHighlights() {
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
   intervalBars.forEach(b => b.classList.remove('highlight'));
+  gridIntegerLabels.forEach(label => label?.classList.remove('active'));
+  gridFractionLabels.forEach(label => label?.classList.remove('active'));
   // Hide playhead
   if (playheadController) {
     playheadController.hide();
@@ -1207,6 +1215,7 @@ function highlightPulse(scaledIndex, scheduledTime) {
   const pulseIndex = scaledIndex / d;
 
   pulses.forEach(p => p.classList.remove('active'));
+  gridIntegerLabels.forEach(label => label?.classList.remove('active'));
   const total = pulses.length > 1 ? pulses.length - 1 : 0;
   if (total <= 0) return;
 
@@ -1215,6 +1224,10 @@ function highlightPulse(scaledIndex, scheduledTime) {
   if (pulse) {
     void pulse.offsetWidth;
     pulse.classList.add('active');
+  }
+  const integerLabel = gridIntegerLabels[pulseIndex];
+  if (integerLabel) {
+    integerLabel.classList.add('active');
   }
 
   // Also highlight the note bar that contains this pulse
@@ -1233,6 +1246,16 @@ function highlightCycle(payload = {}) {
   const subdivisionIndex = Number(rawSubdivisionIndex);
 
   if (!Number.isFinite(cycleIndex) || !Number.isFinite(subdivisionIndex)) return;
+
+  // Highlight fractional timeline numbers
+  gridFractionLabels.forEach(label => label?.classList.remove('active'));
+  if (subdivisionIndex > 0) {
+    const fractionalIndex = cycleIndex * currentDenominator + subdivisionIndex - 1;
+    const fractionalLabel = gridFractionLabels[fractionalIndex];
+    if (fractionalLabel) {
+      fractionalLabel.classList.add('active');
+    }
+  }
 
   // Clear previous highlights
   cycleMarkers.forEach(m => m.classList.remove('active'));
