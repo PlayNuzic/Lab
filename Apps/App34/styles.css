@@ -458,6 +458,7 @@ body.app34 {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 20px;
 }
 
 .interval-bar-visual.highlight {
@@ -471,6 +472,10 @@ body.app34 {
   font-weight: 700;
   color: var(--bg-color);
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
 }
 
 [data-theme="dark"] .interval-bar-visual__label {
@@ -672,11 +677,18 @@ body.dragging-it * {
   }
 
   .interval-bar-visual {
-    height: 26px;
+    height: 24px;
+    min-height: 18px;
+    border-radius: 4px;
   }
 
   .interval-bar-visual__label {
-    font-size: 1.1rem;
+    font-size: 1rem;
+    padding: 0 3px;
+  }
+
+  .interval-bar-preview {
+    height: 24px;
   }
 }
 
@@ -717,11 +729,18 @@ body.dragging-it * {
   }
 
   .interval-bar-visual {
-    height: 22px;
+    height: 18px;
+    min-height: 16px;
+    border-radius: 3px;
   }
 
   .interval-bar-visual__label {
-    font-size: 1rem;
+    font-size: 0.8rem;
+    padding: 0 2px;
+  }
+
+  .interval-bar-preview {
+    height: 18px;
   }
 }
 
@@ -854,6 +873,7 @@ body.dragging-it * {
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  min-height: 20px;
 }
 
 .note-bar:hover {
@@ -867,6 +887,10 @@ body.dragging-it * {
   color: var(--bg-color);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
 }
 
 [data-theme="dark"] .note-bar__label {
@@ -908,8 +932,19 @@ body.dragging-note * {
     height: 28px;
   }
 
+  .note-bar {
+    min-height: 18px;
+    border-radius: 3px;
+  }
+
+  .note-bar {
+    min-height: 16px;
+    border-radius: 2px;
+  }
+
   .note-bar__label {
-    font-size: 0.8rem;
+    font-size: 0.65rem;
+    padding: 0 2px;
   }
 
   .plano-timeline-number {
