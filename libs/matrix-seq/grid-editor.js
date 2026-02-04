@@ -892,6 +892,11 @@ export function createGridEditor(config = {}) {
         input.classList.add('invalid');
         input.value = ''; // Clear invalid value
         input.focus();    // Keep caret in same cell
+        // Cancel auto-jump timer
+        if (autoJumpTimer) {
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = null;
+        }
         return;
       }
 
@@ -1040,6 +1045,11 @@ export function createGridEditor(config = {}) {
         input.classList.add('invalid');
         input.value = ''; // Clear invalid value
         input.focus();    // Keep caret in same cell
+        // Cancel auto-jump timer
+        if (autoJumpTimer) {
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = null;
+        }
         return;
       }
       if (text && !isNaN(itVal) && currentTotal > maxTotalPulse) {
@@ -1047,6 +1057,11 @@ export function createGridEditor(config = {}) {
         input.classList.add('invalid');
         input.value = ''; // Clear invalid value
         input.focus();    // Keep caret in same cell
+        // Cancel auto-jump timer
+        if (autoJumpTimer) {
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = null;
+        }
         return;
       }
 
@@ -1890,6 +1905,11 @@ export function createGridEditor(config = {}) {
         input.classList.add('invalid');
         input.value = ''; // Clear invalid value
         input.focus();    // Keep caret in same cell
+        // Cancel auto-jump timer
+        if (autoJumpTimer) {
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = null;
+        }
         return;
       }
       if (text && !isNaN(itVal) && currentTotal > maxTotalPulse) {
@@ -1897,6 +1917,11 @@ export function createGridEditor(config = {}) {
         input.classList.add('invalid');
         input.value = ''; // Clear invalid value
         input.focus();    // Keep caret in same cell
+        // Cancel auto-jump timer
+        if (autoJumpTimer) {
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = null;
+        }
         return;
       }
       // Auto-jump to next NrX after valid iT
