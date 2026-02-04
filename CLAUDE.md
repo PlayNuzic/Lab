@@ -124,17 +124,22 @@ tapHandler.attach();
 
 ---
 
-## Sistema d'Agentes
+## Sistema de Skills
 
-Claude Code té agents especialitzats. Consulta `docs/agents-context.md` per detalls.
+Claude Code utilitza **Skills reals** (`~/.claude/skills/`) per assistència especialitzada.
 
-### Agents Disponibles
-1. **🎨 UI Agent** - Interfícies, components UI
-2. **🔊 Audio Agent** - Audio, timing, sincronització
-3. **📱 Responsive Agent** - Mobile, responsive
-4. **📦 Modules Agent** - Arquitectura, refactoring
-5. **🏗️ Creator Agent** - Crear apps noves
-6. **🎮 Gamification Agent** - Logros, badges
+### Invocar Skills
+```
+/ui           # Interfícies, components UI
+/audio        # Àudio, timing, sincronització (protegeix fitxers crítics)
+/modules      # Arquitectura, refactoring, detecció duplicació
+/creator      # Crear apps noves completes
+/gamification # Logros, badges, motivació
+/responsive   # Mobile-first, responsive design
+```
+
+**Guia ràpida:** `~/.claude/skills/README.md`
+**Context general:** `docs/agents-context.md`
 
 ---
 
