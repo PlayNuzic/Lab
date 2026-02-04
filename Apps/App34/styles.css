@@ -34,7 +34,7 @@ body.app34 {
 .pz-row {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;      /* Start from left - don't lose content */
   gap: 24px;
   margin: 10px auto;
   padding: 0 20px 20px 20px;
