@@ -37,12 +37,13 @@ body.app35 {
   justify-content: center;
   gap: 24px;
   margin: 10px auto;
-  padding: 0 20px 20px 20px; /* Extra bottom padding for zigzag scrollbar */
+  padding: 0 20px 20px 20px;
   font-size: 2.8rem;
   color: var(--line-color);
-  max-width: 100%;
-  overflow-x: hidden; /* Prevent page horizontal scroll */
-  overflow-y: visible; /* Allow vertical overflow (scrollbar space) */
+  width: fit-content;               /* Adjust to content like App4 */
+  max-width: 100%;                  /* Don't exceed viewport */
+  overflow-x: auto;                 /* Enable horizontal scroll */
+  overflow-y: visible;              /* Allow scrollbar to be visible */
 }
 
 .pz-row .pz.label {
@@ -1032,58 +1033,47 @@ body.dragging-note * {
 
 /* ========== ZIGZAG EDITOR (N-iT) IN PZ-ROW ========== */
 
-/* Replicating App4 #pulseSeq pattern for horizontal scroll */
+/* Zigzag editor inside pz-row (scroll handled by parent) */
 .zigzag-editor-container {
   display: flex;
   justify-content: flex-start;
   align-items: center;
   gap: 12px;
-  width: fit-content;               /* Adjust to content */
-  max-width: 500px;                 /* Forces scroll when content > 500px */
-  box-sizing: border-box;
-  padding: 0 20px;
-  margin: 20px auto;
-  overflow-x: auto;                 /* Horizontal scroll when needed */
-  overflow-y: visible;              /* KEY: Allow scrollbar to be visible */
-  position: relative;
-  /* Enable smooth scrolling */
-  scroll-behavior: smooth;
-  /* Visible and elegant scrollbar */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.4) rgba(0, 0, 0, 0.1);
+  /* No width/overflow here - parent pz-row handles scroll */
 }
 
-.zigzag-editor-container::-webkit-scrollbar {
-  height: 10px; /* Elegant size */
+/* Scrollbar styling for pz-row (parent container) */
+.pz-row::-webkit-scrollbar {
+  height: 10px;
 }
 
-.zigzag-editor-container::-webkit-scrollbar-track {
+.pz-row::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.05);
   border-radius: 5px;
 }
 
-.zigzag-editor-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.35); /* More visible */
+.pz-row::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.35);
   border-radius: 5px;
   border: 2px solid rgba(0, 0, 0, 0.05);
   background-clip: padding-box;
 }
 
-.zigzag-editor-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.55); /* Even more visible on hover */
+.pz-row::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.55);
   background-clip: padding-box;
 }
 
-[data-theme="dark"] .zigzag-editor-container::-webkit-scrollbar-track {
+[data-theme="dark"] .pz-row::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.08);
 }
 
-[data-theme="dark"] .zigzag-editor-container::-webkit-scrollbar-thumb {
+[data-theme="dark"] .pz-row::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.4);
   background-clip: padding-box;
 }
 
-[data-theme="dark"] .zigzag-editor-container::-webkit-scrollbar-thumb:hover {
+[data-theme="dark"] .pz-row::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.6);
   background-clip: padding-box;
 }
@@ -1185,9 +1175,6 @@ body.dragging-note * {
 
 /* Responsive */
 @media (max-width: 768px) {
-  .zigzag-editor-container {
-    max-width: 350px;
-  }
 
   .pz-row .zigzag-row {
     gap: 10px;
@@ -1212,9 +1199,6 @@ body.dragging-note * {
 }
 
 @media (max-width: 480px) {
-  .zigzag-editor-container {
-    max-width: 250px;
-  }
 
   .pz-row .zigzag-row {
     gap: 8px;
