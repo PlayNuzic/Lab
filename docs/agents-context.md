@@ -1,213 +1,395 @@
-# 🎭 Sistema de Agentes - PlayNuzic Lab
+# 🎭 Sistema de Skills - PlayNuzic Lab
 
-## Los 6 Agentes Disponibles
+## ✨ Skills Reals de Claude Code
 
-### 🎨 UI Agent
-**Especialidad:** Diseño de interfaces, componentes UI, accesibilidad
-**Usa para:** Crear componentes visuales, análisis de diseño, mejoras de UX
+PlayNuzic Lab utilitza **Skills reals de Claude Code** ubicats a `~/.claude/skills/` per proporcionar assistència especialitzada per domini.
 
-### 🔊 Audio Agent  
-**Especialidad:** Sistema de audio, timing, sincronización
-**Usa para:** Optimización de audio, debugging de timing, performance
-**⚠️ CRÍTICO:** NO puede modificar clock.js, pulse-interval-calc.js, voice-sync.js
+### Com Funciona
 
-### 📱 Responsive Agent
-**Especialidad:** Adaptación móvil, responsive design
-**Usa para:** Media queries, touch interactions, mobile layouts
+Els Skills són comandes que pots invocar directament:
 
-### 📦 Modules Agent
-**Especialidad:** Arquitectura, código duplicado, refactoring
-**Usa para:** Detectar duplicados, mejorar estructura, extracción de componentes
-**Ejemplos recientes:**
-- Creación de `libs/matrix-seq/` (grid-editor: 945 líneas JS, 275 CSS, 18 tests)
-- Creación de `libs/musical-grid/` (musical-grid: 565 líneas JS, 357 CSS, 26 tests con scroll)
-- Creación de `libs/interval-sequencer/` (6 módulos, ~1400 líneas, 113 tests) ⭐ NUEVO
-
-### 🏗️ Creator Agent
-**Especialidad:** Crear nuevas apps y componentes
-**Usa para:** Generar apps completas, componentes complejos, features nuevas
-
-### 🎮 Gamification Agent
-**Especialidad:** Sistema de logros, engagement
-**Usa para:** Achievements, tracking de progreso, badges
+```
+/ui           → UI Skill (interfícies, components)
+/audio        → Audio Skill (àudio, timing, sync)
+/modules      → Modules Skill (arquitectura, refactoring)
+/creator      → Creator Skill (crear apps noves)
+/gamification → Gamification Skill (logros, badges)
+/responsive   → Responsive Skill (mobile, responsive)
+```
 
 ---
 
-## ⚠️ Reglas Críticas (TODAS LAS SESIONES)
+## 📋 Els 6 Skills Disponibles
 
-### 🚫 NUNCA MODIFICAR:
-- `libs/sound/clock.js` - Sistema de timing crítico
-- `libs/app-common/pulse-interval-calc.js` - Cálculos de intervalos
-- `libs/app-common/voice-sync.js` - Sincronización de voces
+### 🎨 `/ui` - UI Skill
+**Especialitat:** Interfícies d'usuari, components visuals, experiència d'usuari
 
-### ✅ SIEMPRE:
-1. **Mostrar código ANTES de crear archivos**
-2. **Esperar aprobación explícita (✅) del usuario**
-3. **Crear nuevos archivos en vez de modificar existentes**
-4. **Escribir tests para nuevos componentes**
-5. **Ejecutar `npm test` después de cambios**
-6. **Usar overlays/wrappers en vez de modificaciones directas**
+**Utilitza per:**
+- Crear components UI nous
+- Millorar components existents
+- Anàlisi de disseny
+- Millores d'UX i accessibilitat
 
-### 📁 Estructura del Proyecto:
+**Capacitats especials:**
+- Detecta components duplicats automàticament
+- Coneix tots els components de `libs/shared-ui/`
+- Garanteix estètica minimalista consistent
+- Verifica responsive design
+
+**Exemple:**
+```
+/ui Necessito un selector de escales per App34
+```
+
+**Documentació completa:** `~/.claude/skills/ui/SKILL.md`
+
+---
+
+### 🔊 `/audio` - Audio Skill
+**Especialitat:** Sistema d'àudio, timing precís, sincronització
+
+**Utilitza per:**
+- Optimització d'àudio
+- Debugging de timing
+- Configuració de veus
+- Performance d'àudio
+
+**⚠️ CRÍTIC - Fitxers Protegits:**
+- `libs/sound/clock.js`
+- `libs/app-common/pulse-interval-calc.js`
+- `libs/app-common/voice-sync.js`
+
+**Capacitats especials:**
+- Prevé automàticament modificacions als fitxers crítics
+- Proposa wrappers en lloc de modificacions directes
+- Coneix tot el sistema TimelineAudio
+- Expert en seqüenciadors (pulse-seq, matrix-seq, interval-sequencer)
+
+**Exemple:**
+```
+/audio Debug problema de sincronització a App22
+```
+
+**Documentació completa:** `~/.claude/skills/audio/SKILL.md`
+
+---
+
+### 📦 `/modules` - Modules Skill
+**Especialitat:** Arquitectura, detecció de duplicació, refactoring
+
+**Utilitza per:**
+- Detectar codi duplicat
+- Extreure funcionalitat a `libs/`
+- Reorganitzar estructura de mòduls
+- Refactoritzar mantenint compatibilitat
+
+**Capacitats especials:**
+- Analitza automàticament duplicació entre Apps
+- Coneix els 43+ mòduls de `libs/app-common/`
+- Proposa extraccions a `libs/` quan detecta >70% similitud
+- Garanteix que tots els tests passen després de refactoritzar
+
+**Exemples recents d'èxit:**
+- Creació de `libs/matrix-seq/` (945 línies JS, 275 CSS, 18 tests)
+- Creació de `libs/musical-grid/` (565 línies JS, 357 CSS, 26 tests)
+- Creació de `libs/interval-sequencer/` (6 mòduls, ~1400 línies, 113 tests)
+
+**Exemple:**
+```
+/modules Analitza si puc extreure el sistema de notes a libs/
+```
+
+**Documentació completa:** `~/.claude/skills/modules/SKILL.md`
+
+---
+
+### 🏗️ `/creator` - Creator Skill
+**Especialitat:** Crear aplicacions noves completes des de zero
+
+**Utilitza per:**
+- Generar apps completes (AppXX)
+- Crear features complexes noves
+- Implementar conceptes musicals nous
+
+**Capacitats especials:**
+- Coneix tots els patrons d'Apps existents (App1-App35+)
+- Utilitza templates optimitzats
+- Integra automàticament mòduls compartits
+- Garanteix estètica consistent
+
+**Workflow:**
+1. Analitza Apps similars
+2. Identifica mòduls reutilitzables
+3. Genera estructura completa (HTML + CSS + JS)
+4. Integra àudio, LEDs i controls
+5. Assegura responsive design
+
+**Exemple:**
+```
+/creator Crea App36: Sequencer de ritmes africans
+```
+
+**Documentació completa:** `~/.claude/skills/creator/SKILL.md`
+
+---
+
+### 🎮 `/gamification` - Gamification Skill
+**Especialitat:** Logros (achievements), badges, motivació d'usuari
+
+**Utilitza per:**
+- Implementar sistema de logros
+- Crear badges i recompenses
+- Tracking de progrés
+- Motivació i engagement
+
+**Capacitats especials:**
+- Coneix tot el sistema de `libs/gamification/`
+- Proposa logros apropiats per cada tipus d'app
+- Implementa notificacions elegants i no invasives
+- Tot funciona offline (localStorage)
+
+**Filosofia:**
+- Opcional (mai obligatori)
+- Discret (no molesta l'experiència musical)
+- Local (sense servers)
+- Elegant (consistent amb estètica minimalista)
+
+**Exemple:**
+```
+/gamification Afegeix logros per App34 (ritmes zigzag)
+```
+
+**Documentació completa:** `~/.claude/skills/gamification/SKILL.md`
+
+---
+
+### 📱 `/responsive` - Responsive Skill
+**Especialitat:** Mobile-first, adaptabilitat cross-device
+
+**Utilitza per:**
+- Fer apps responsive
+- Optimitzar per mobile
+- Touch interactions
+- Media queries i breakpoints
+
+**Capacitats especials:**
+- Filosofia mobile-first automàtica
+- Coneix tots els breakpoints estàndard
+- Garanteix controls tactils adequats (min 44x44px)
+- Verifica en múltiples dispositius
+
+**Breakpoints:**
+- Mobile: 320px - 767px (base)
+- Tablet: 768px - 1023px
+- Desktop: 1024px+
+- Large: 1440px+
+
+**Exemple:**
+```
+/responsive Optimitza App28 per mobile
+```
+
+**Documentació completa:** `~/.claude/skills/responsive/SKILL.md`
+
+---
+
+## 🚀 Com Utilitzar els Skills
+
+### Sintaxi Bàsica
+```
+/skill [descripció de la tasca]
+```
+
+### Exemples Reals
+
+```bash
+# Crear Component UI
+/ui Crea un selector de tonalitats amb visualització de notes
+
+# Debug Àudio
+/audio Les veus de App15 es desincronitzen després de 30 segons
+
+# Detectar Duplicació
+/modules Revisa si el sistema de notes de App12, App15 i App22 es pot unificar
+
+# Nova App
+/creator App36: Visualitzador de polirítmies amb 4 veus independents
+
+# Afegir Gamificació
+/gamification Implementa logros per App34 (primera sessió, 10 ritmes, etc.)
+
+# Fer Responsive
+/responsive App29 no funciona bé en iPhone, corregeix-ho
+```
+
+---
+
+## ⚠️ Regles Crítiques (TOTES LES SESSIONS)
+
+### 🚫 FITXERS INTOCABLES:
+Aquests fitxers són el core del sistema i **MAI** es poden modificar:
+
+- `libs/sound/clock.js` - Sistema de timing crític
+- `libs/app-common/pulse-interval-calc.js` - Càlculs d'intervals
+- `libs/app-common/voice-sync.js` - Sincronització de veus
+
+**Si cal canviar alguna cosa relacionada amb aquests fitxers:**
+✅ Crear wrappers o extensions
+✅ Utilitzar hooks i callbacks existents
+❌ NO modificar els fitxers directament
+
+### ✅ SEMPRE:
+1. **Mostrar codi ABANS de crear fitxers**
+2. **Esperar aprovació explícita (✅) de l'usuari**
+3. **Crear nous fitxers en comptes de modificar existents**
+4. **Escriure tests per nous components**
+5. **Executar `npm test` després de canvis**
+6. **Usar overlays/wrappers en comptes de modificacions directes**
+
+---
+
+## 📁 Estructura del Projecte
 
 ```
 Lab/
-├── Apps/                    # 15 apps (app1-app15)
+├── Apps/                    # 29+ apps (App1-App35+)
 ├── libs/
-│   ├── app-common/         # 40 módulos compartidos (Fase 2) ✅
-│   ├── pulse-seq/          # Secuencias de pulsos (5 módulos)
-│   ├── matrix-seq/         # Grid editor N-P (4 módulos + tests)
-│   ├── musical-grid/       # Grid 2D con scroll (3 módulos + tests)
-│   ├── interval-sequencer/ # Secuenciador iS-iT (6 módulos + tests) ⭐ NUEVO
-│   ├── notation/           # VexFlow rendering (9 módulos)
-│   ├── random/             # Randomización (5 módulos)
-│   ├── sound/              # Audio engine (9 módulos)
-│   ├── shared-ui/          # UI components (4 módulos)
-│   ├── gamification/       # Achievement system (17 módulos)
-│   └── audio-capture/      # Audio/rhythm capture (4 módulos)
-├── .claude-code/           # Configuración de agentes
-└── tests/                  # 41 test suites, 584 tests ✅
+│   ├── app-common/         # 43 mòduls compartits
+│   ├── pulse-seq/          # Seqüències de pulsos (8 modes)
+│   ├── matrix-seq/         # Grid editor N-P
+│   ├── musical-grid/       # Grid 2D amb scroll
+│   ├── interval-sequencer/ # Sequencer iS-iT
+│   ├── notation/           # VexFlow rendering
+│   ├── random/             # Randomització
+│   ├── sound/              # Audio engine TimelineAudio
+│   ├── shared-ui/          # Components UI
+│   ├── gamification/       # Sistema de logros
+│   ├── plano-modular/      # Grid 2D modular
+│   └── audio-capture/      # Captura d'àudio/ritmes
+└── tests/                  # 60+ suites, 1100+ tests
+
+~/.claude/skills/            # Skills reals de Claude Code ⭐
+├── ui/SKILL.md             # UI Skill (147 línies)
+├── audio/SKILL.md          # Audio Skill (206 línies)
+├── modules/SKILL.md        # Modules Skill (301 línies)
+├── creator/SKILL.md        # Creator Skill (449 línies)
+├── gamification/SKILL.md   # Gamification Skill (401 línies)
+├── responsive/SKILL.md     # Responsive Skill (658 línies)
+└── README.md               # Guia d'ús (253 línies)
 ```
 
 ---
 
-## 🎯 Flujo de Trabajo Estándar
+## 🎯 Avantatges dels Skills Reals
 
-1. **Usuario especifica agente y tarea:**
-   ```
-   🎨 UI Agent: Crea componente "scale-selector"
-   ```
+### Context Especialitzat Automàtic
+Cada skill coneix completament el seu domini sense necessitat d'explicacions.
 
-2. **Agente analiza contexto:**
-   - Lee archivos relevantes
-   - Identifica patrones existentes
-   - Planifica solución
+### Restriccions de Seguretat Automàtiques
+- **Audio Skill** bloqueja modificacions a fitxers crítics
+- **Modules Skill** garanteix tests després de refactoritzar
+- **UI Skill** força buscar a `libs/shared-ui/` primer
 
-3. **Agente muestra propuesta:**
-   - Código completo
-   - Explicación de decisiones
-   - Impacto en sistema existente
+### Detecció Intel·ligent
+- **Modules Skill** detecta duplicació >70% automàticament
+- **UI Skill** identifica components reutilitzables
+- **Creator Skill** analitza Apps similars abans de crear
 
-4. **Usuario revisa y aprueba:**
-   ```
-   ✅ Aprobado, créalo
-   ```
-   O:
-   ```
-   ❌ Cambia [aspecto específico]
-   ```
-
-5. **Agente implementa:**
-   - Crea archivos
-   - Ejecuta tests
-   - Reporta resultados
-
-6. **Verificación:**
-   ```bash
-   npm test
-   cd agents && npm run verify
-   ```
+### Templates Optimitzats
+- **Creator Skill** proporciona templates complets
+- **Gamification Skill** té patrons predefinits de logros
+- **Responsive Skill** té breakpoints estàndard
 
 ---
 
-## 🔄 Ejemplo de Conversación
+## 💡 Templates Ràpids
 
-**Usuario:**
+### Crear Component
 ```
-Hola! Lee este contexto: @.claude-code/agents-context.md
-Confirma que entiendes los 6 agentes y las reglas.
-```
-
-**Claude Code:**
-```
-¡Entendido! He leído el contexto. Confirmo que comprendo:
-- Los 6 agentes: UI, Audio, Responsive, Modules, Creator, Gamification
-- Archivos críticos que NO deben modificarse
-- Proceso: mostrar → esperar ✅ → crear
-¿Con qué agente empezamos?
+/ui Crea component [nom] amb [requisits]
 ```
 
-**Usuario:**
+### Debug Àudio
 ```
-🎨 UI Agent: Analiza @Apps/app1/ y dame resumen de componentes UI
-```
+/audio Debug problema a [App/fitxer]
 
----
-
-## 💡 Templates Rápidos
-
-### Crear Componente
-```
-🎨 UI Agent: Crea componente "[nombre]"
-
-1. Analiza componentes similares en @libs/app-common/
-2. Muéstrame el código completo
-3. Espera mi ✅
-4. Crea archivo + tests
+Símptomes: [descripció]
 ```
 
-### Debugging
+### Nova App
 ```
-🔊 Audio Agent: Debug problema en @[archivo]
+/creator App[N] - [nom descriptiu]
 
-Síntomas: [descripción]
-NO tocar: clock.js, pulse-interval-calc.js
-Propón fix sin modificar archivos críticos
+Concepte musical: [descripció]
 ```
 
-### Nueva App
+### Extreure Mòdul
 ```
-🏗️ Creator Agent: Plan para app[N]-[nombre]
+/modules Extreu [funcionalitat] de App[X] a libs/
 
-Concepto: [descripción]
-Proceso:
-1. Analiza estructura existente
-2. Lista componentes a reutilizar
-3. Crea plan detallado
-4. Espera mi ✅
-5. Implementa paso a paso
+Duplicació detectada amb App[Y] i App[Z]
 ```
 
-### Modularizar Código
+### Afegir Gamificació
 ```
-📦 Modules Agent: Modulariza [componente] de @Apps/[app]/
+/gamification Implementa logros per App[N]
 
-Proceso:
-1. Analiza duplicación en múltiples apps
-2. Identifica patrón común
-3. Propón estructura en libs/[nombre]/
-4. Crea módulo con:
-   - Código JS modular
-   - CSS compartido extraído
-   - Tests completos (jsdom si es UI)
-   - README.md con ejemplos
-5. Actualiza MODULES.md
-6. Espera mi ✅
-7. Implementa y ejecuta tests
+Tipus: [creació, exploració, mestria, etc.]
+```
 
-Ejemplo reciente: libs/musical-grid/ con scroll support
+### Optimitzar Responsive
+```
+/responsive App[N] necessita suport mobile
+
+Problemes: [descripció]
 ```
 
 ---
 
-## 🎨 Filosofía de PlayNuzic Lab
+## 🎨 Filosofia de PlayNuzic Lab
 
-- **Minimalismo**: UI limpia, código simple
-- **Reutilización**: ~70% código compartido
-- **No invasión**: Nunca romper lo existente
-- **Testing**: 584 tests deben pasar siempre (41 suites)
-- **Modularización**: Extraer a libs/ cuando hay duplicación (ver matrix-seq, musical-grid e interval-sequencer como ejemplos)
-
----
-
-## 📚 Recursos Adicionales
-
-- **CLAUDE.md**: Guía principal de desarrollo con Claude Code
-- **MODULES.md**: Documentación completa de todos los módulos compartidos
-- **libs/matrix-seq/README.md**: Guía del grid editor (N-P pairs)
-- **libs/musical-grid/README.md**: Guía de visualización 2D con scroll
-- **libs/interval-sequencer/README.md**: Guía del secuenciador de intervalos (iS-iT)
+- **Minimalisme**: UI neta, codi simple
+- **Reutilització**: ~70% codi compartit
+- **No invasió**: Mai trencar l'existent
+- **Testing**: 1100+ tests han de passar sempre
+- **Modularització**: Extreure a `libs/` quan hi ha duplicació
+- **Mobile-first**: Responsive per defecte
+- **Offline-first**: Tot funciona sense connexió
 
 ---
 
-**Este archivo define cómo Claude Code debe trabajar con el proyecto PlayNuzic Lab usando el sistema de agentes.**
+## 📚 Documentació
+
+### Guies d'Ús
+- **Guia ràpida dels Skills:** `~/.claude/skills/README.md`
+- **Guia principal del projecte:** `CLAUDE.md`
+- **Context general:** Aquest document (`docs/agents-context.md`)
+
+### Documentació de Skills
+- `~/.claude/skills/ui/SKILL.md` - UI Skill complet
+- `~/.claude/skills/audio/SKILL.md` - Audio Skill complet
+- `~/.claude/skills/modules/SKILL.md` - Modules Skill complet
+- `~/.claude/skills/creator/SKILL.md` - Creator Skill complet
+- `~/.claude/skills/gamification/SKILL.md` - Gamification Skill complet
+- `~/.claude/skills/responsive/SKILL.md` - Responsive Skill complet
+
+### Referència Tècnica
+- `docs/modules-reference.md` - Documentació completa de mòduls
+- `libs/*/README.md` - Documentació de cada llibreria
+
+---
+
+## 🎯 Començar a Utilitzar
+
+1. **Els skills estan actius automàticament** (ubicats a `~/.claude/skills/`)
+2. **Invoca'ls directament:** `/ui [tasca]`, `/audio [tasca]`, etc.
+3. **Consulta la guia ràpida:** `~/.claude/skills/README.md`
+4. **Confia en el context especialitzat** de cada skill
+
+---
+
+**Sistema de Skills reals completament funcional per PlayNuzic Lab!** 🎉
+
+**Ubicació:** `~/.claude/skills/`
+**Total documentació:** 2,415 línies
+**Data implementació:** 2026-02-04
