@@ -963,7 +963,7 @@ body.dragging-note * {
 }
 
 .zigzag-editor-container {
-  display: flex;
+  display: block;
   align-items: center;
   flex: 1;
   min-width: 0;
@@ -1024,7 +1024,8 @@ body.dragging-note * {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-width: min-content;
+  width: max-content;
+  min-width: 100%;
 }
 
 /* Zigzag rows: horizontal layout */
