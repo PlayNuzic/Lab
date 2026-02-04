@@ -1032,26 +1032,20 @@ body.dragging-note * {
 
 /* ========== ZIGZAG EDITOR (N-iT) IN PZ-ROW ========== */
 
-/* Wrapper to isolate scroll and prevent page-wide scrolling */
-.zigzag-scroll-wrapper {
-  display: flex;
-  align-items: center;
-  flex-shrink: 1;
-  min-width: 0;
-  max-width: 500px;
-  overflow: visible; /* Allow scrollbar to be visible */
-  position: relative; /* Create positioning context */
-}
-
+/* Replicating App4 #pulseSeq pattern for horizontal scroll */
 .zigzag-editor-container {
-  display: block;
+  display: flex;
+  justify-content: flex-start;
   align-items: center;
-  flex: 1;
-  min-width: 0;
-  overflow-x: auto; /* Show scrollbar only when content overflows */
-  overflow-y: hidden;
-  padding: 0 10px 0 10px;
-  margin-bottom: 12px; /* Space for scrollbar */
+  gap: 12px;
+  width: fit-content;               /* Adjust to content */
+  max-width: 500px;                 /* Forces scroll when content > 500px */
+  box-sizing: border-box;
+  padding: 0 20px;
+  margin: 20px auto;
+  overflow-x: auto;                 /* Horizontal scroll when needed */
+  overflow-y: visible;              /* KEY: Allow scrollbar to be visible */
+  position: relative;
   /* Enable smooth scrolling */
   scroll-behavior: smooth;
   /* Visible and elegant scrollbar */
@@ -1105,8 +1099,7 @@ body.dragging-note * {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: max-content;
-  min-width: 100%;
+  min-width: min-content;           /* Reverted to original */
 }
 
 /* Zigzag rows: horizontal layout */
@@ -1192,7 +1185,7 @@ body.dragging-note * {
 
 /* Responsive */
 @media (max-width: 768px) {
-  .zigzag-scroll-wrapper {
+  .zigzag-editor-container {
     max-width: 350px;
   }
 
@@ -1219,7 +1212,7 @@ body.dragging-note * {
 }
 
 @media (max-width: 480px) {
-  .zigzag-scroll-wrapper {
+  .zigzag-editor-container {
     max-width: 250px;
   }
 

@@ -316,19 +316,14 @@ function createPzRow() {
   fractionSection.appendChild(labelSpan);
   fractionSection.appendChild(fractionSlot);
 
-  // Zigzag editor with wrapper for isolated scroll
-  const zigzagWrapper = document.createElement('div');
-  zigzagWrapper.className = 'zigzag-scroll-wrapper';
-
+  // Zigzag editor container (App4 pattern: no wrapper, direct overflow)
   const zigzagContainer = document.createElement('div');
   zigzagContainer.id = 'zigzagEditorContainer';
   zigzagContainer.className = 'zigzag-editor-container';
 
-  zigzagWrapper.appendChild(zigzagContainer);
-
   pzRow.appendChild(infoColumn);
   pzRow.appendChild(fractionSection);
-  pzRow.appendChild(zigzagWrapper);
+  pzRow.appendChild(zigzagContainer);
 
   // Insert before timeline
   if (timelineWrapper && timelineWrapper.parentNode) {
