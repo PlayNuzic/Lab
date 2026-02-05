@@ -98,7 +98,8 @@ const _baseInitAudio = createRhythmAudioInitializer({
   schedulingBridge,
   channels: [
     { id: 'start', options: { allowSolo: true, label: 'P0' }, assignment: 'start' }
-  ]
+  ],
+  defaultInstrument: 'piano'
 });
 
 async function initAudio() {

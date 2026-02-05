@@ -192,7 +192,8 @@ const _baseInitAudio = createRhythmAudioInitializer({
     cycleSoundSelect
   }),
   schedulingBridge,
-  channels: []
+  channels: [],
+  defaultInstrument: 'piano'
 });
 
 async function initAudio() {
