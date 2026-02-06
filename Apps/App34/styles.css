@@ -795,7 +795,7 @@ body.dragging-it * {
 
 .plano-cell {
   height: 32px;
-  border-right: 1px solid var(--border-color, rgba(128, 128, 128, 0.15));
+  border-right: 1px solid var(--border-color, rgba(128, 128, 128, 0.8));
   border-bottom: 1px solid var(--border-color, rgba(128, 128, 128, 0.2));
   cursor: crosshair;
   transition: background-color 0.1s ease;
