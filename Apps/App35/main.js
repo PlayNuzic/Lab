@@ -1615,10 +1615,13 @@ function handleRandom() {
     // Random note (0-11)
     const note = Math.floor(Math.random() * NOTE_COUNT);
 
-    // Random duration (1 to min of remaining space or d*2)
+    // Random duration: 50% short (1-3), 50% any length
     const remaining = maxSubdivs - currentPos;
     const maxDur = Math.min(remaining, currentDenominator * 2);
-    const duration = Math.floor(Math.random() * maxDur) + 1;
+    const useShort = Math.random() < 0.5;
+    const duration = useShort
+      ? Math.floor(Math.random() * Math.min(3, maxDur)) + 1
+      : Math.floor(Math.random() * maxDur) + 1;
 
     newNotes.push({ note, startSubdiv: currentPos, duration });
     currentPos += duration;
@@ -1634,6 +1637,7 @@ function handleRandom() {
   renderTimeline();
   renderGrid();
   updateIntervalBars();
+  syncGridToZigzag();
 }
 
 function handleReset() {

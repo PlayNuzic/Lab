@@ -901,7 +901,7 @@ body.dragging-it * {
   font-size: 1rem;
   font-weight: 600;
   color: var(--line-color);
-  opacity: 0.45;
+  opacity: 0.25;
 }
 
 .plano-timeline-pulse-label.active {
@@ -920,7 +920,7 @@ body.dragging-it * {
   bottom: 0;
   width: 0;
   border-left: 1px dashed var(--line-color);
-  opacity: 0.4;
+  opacity: 0.2;
   pointer-events: none;
   z-index: 5;
 }
