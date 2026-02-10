@@ -375,7 +375,8 @@ function initZigzagEditor() {
       hideInitialPair: true,
       hideRegistry: true,  // Hide registry for simple N → iT navigation
       basePair: { note: 0, pulse: 0 },
-      maxTotalPulse: getTotalSubdivisions()
+      maxTotalPulse: getTotalSubdivisions(),
+      allowSilence: true
     },
     onPairsChange: handleZigzagChange
   });
@@ -389,12 +390,21 @@ function handleZigzagChange(pairs) {
   let currentStart = 0;
 
   pairs.forEach(pair => {
-    if (pair.note !== null && pair.temporalInterval) {
-      newNotes.push({
-        note: pair.note,
-        startSubdiv: currentStart,
-        duration: pair.temporalInterval
-      });
+    if (pair.temporalInterval) {
+      if (pair.isRest) {
+        newNotes.push({
+          note: null,
+          startSubdiv: currentStart,
+          duration: pair.temporalInterval,
+          isRest: true
+        });
+      } else if (pair.note !== null) {
+        newNotes.push({
+          note: pair.note,
+          startSubdiv: currentStart,
+          duration: pair.temporalInterval
+        });
+      }
       currentStart += pair.temporalInterval;
     }
   });
@@ -414,14 +424,28 @@ function handleZigzagChange(pairs) {
 function syncGridToZigzag() {
   if (!zigzagEditor) return;
 
-  // Convert notes array to N-iT pairs
-  const pairs = notes.map(noteData => ({
-    note: noteData.note,
-    pulse: noteData.startSubdiv,
-    temporalInterval: noteData.duration
-  }));
+  // Build pairs inserting silences for gaps between notes
+  const sorted = [...notes].filter(n => !n.isRest).sort((a, b) => a.startSubdiv - b.startSubdiv);
+  const pairs = [];
+  let cursor = 0;
 
-  // Update zigzag editor without triggering onChange
+  for (const noteData of sorted) {
+    if (noteData.startSubdiv > cursor) {
+      pairs.push({
+        note: null,
+        pulse: cursor,
+        temporalInterval: noteData.startSubdiv - cursor,
+        isRest: true
+      });
+    }
+    pairs.push({
+      note: noteData.note,
+      pulse: noteData.startSubdiv,
+      temporalInterval: noteData.duration
+    });
+    cursor = noteData.startSubdiv + noteData.duration;
+  }
+
   zigzagEditor.setPairs(pairs);
 }
 
@@ -554,6 +578,8 @@ function renderNotes() {
   const cellHeight = 32;
 
   notes.forEach((noteData, idx) => {
+    if (noteData.isRest) return; // Silences are empty space in the grid
+
     const bar = document.createElement('div');
     bar.className = 'note-bar';
     bar.dataset.noteIndex = idx;
@@ -1076,13 +1102,21 @@ function updateIntervalBars() {
     bar.style.left = `${(startPos / lg) * 100}%`;
     bar.style.width = `${(width / lg) * 100}%`;
 
-    const color = VIBRANT_COLORS[idx % VIBRANT_COLORS.length];
-    bar.style.background = color;
+    if (noteData.isRest) {
+      bar.classList.add('interval-bar-visual--silence');
+      const label = document.createElement('span');
+      label.className = 'interval-bar-visual__label';
+      label.textContent = 's';
+      bar.appendChild(label);
+    } else {
+      const color = VIBRANT_COLORS[idx % VIBRANT_COLORS.length];
+      bar.style.background = color;
 
-    const label = document.createElement('span');
-    label.className = 'interval-bar-visual__label';
-    label.textContent = noteData.note;
-    bar.appendChild(label);
+      const label = document.createElement('span');
+      label.className = 'interval-bar-visual__label';
+      label.textContent = noteData.note;
+      bar.appendChild(label);
+    }
 
     timeline.appendChild(bar);
     intervalBars.push(bar);
@@ -1273,9 +1307,9 @@ function highlightPulse(scaledIndex, scheduledTime) {
     }
   }
 
-  // Play melodic note if a note starts at this scaled index
+  // Play melodic note if a note starts at this scaled index (skip silences)
   const noteData = getNoteAtScaledStart(scaledIndex);
-  if (noteData && audio) {
+  if (noteData && audio && !noteData.isRest) {
     // Calculate note duration
     const bpm = FIXED_BPM;
     const beatDuration = 60 / bpm;

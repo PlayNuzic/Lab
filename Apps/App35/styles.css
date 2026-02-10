@@ -978,6 +978,40 @@ body.dragging-it * {
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.2);
 }
 
+/* Silence bars in grid */
+.note-bar--silence {
+  background: transparent;
+  border: 2px dashed var(--line-color, #888);
+  opacity: 0.4;
+  box-shadow: none;
+  z-index: 5;
+}
+
+.note-bar--silence .note-bar__label {
+  color: var(--line-color, #888);
+  font-style: italic;
+  text-shadow: none;
+}
+
+.note-bar--silence:hover {
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Silence bars in timeline */
+.interval-bar-visual--silence {
+  background: transparent !important;
+  border: 2px dashed var(--line-color, #888);
+  opacity: 0.4;
+}
+
+.interval-bar-visual--silence .interval-bar-visual__label {
+  color: var(--line-color, #888);
+  font-style: italic;
+  text-shadow: none;
+}
+
 /* Preview bar during drag */
 .note-bar-preview {
   position: absolute;
