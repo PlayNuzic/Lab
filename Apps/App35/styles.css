@@ -892,9 +892,10 @@ body.dragging-it * {
 }
 
 .plano-timeline-pulse-label.pulse-start {
+  font-size: 1rem;
   color: var(--color-lg);
   opacity: 1;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .plano-timeline-pulse-label.ghost {
@@ -907,6 +908,12 @@ body.dragging-it * {
 .plano-timeline-pulse-label.active {
   opacity: 1;
   font-weight: 600;
+}
+
+.plano-timeline-pulse-label.pulse-start.active {
+  color: var(--color-lg);
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1.15);
 }
 
 .plano-timeline-pulse-label.ghost.active {

@@ -598,7 +598,7 @@ function renderGridTimeline() {
   gridIntegerLabels = [];
   gridFractionLabels = [];
 
-  // Crear una cel·la per cada subdivisió
+  // Crear una cel·la per cada subdivisió (només fraccionals)
   grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex }, idx) => {
     const numEl = document.createElement('div');
     numEl.className = 'plano-timeline-number';
@@ -607,10 +607,8 @@ function renderGridTimeline() {
     numEl.dataset.subdivision = String(subdivisionIndex);
 
     if (subdivisionIndex === 0) {
-      const realPulse = cycleIndex * n;
-      numEl.classList.add('pulse-start');
-      numEl.textContent = String(realPulse);
-      gridIntegerLabels[realPulse] = numEl;
+      // Leave cell empty — pulse-start labels go in the overlay
+      numEl.textContent = '';
     } else {
       // Subdivisió fraccionada (.1, .2)
       numEl.textContent = `.${subdivisionIndex}`;
@@ -622,25 +620,29 @@ function renderGridTimeline() {
 
   container.appendChild(timelineRow);
 
-  // Overlay for ghost integer pulses (below the subdivisions row)
+  // Overlay for all integer pulses (cycle starts + ghosts)
   const overlay = document.createElement('div');
   overlay.className = 'plano-timeline-overlay';
   overlay.style.width = `${columns * cellWidth}px`;
   gridPulseLabels = [];
 
   for (let pulse = 0; pulse <= lg; pulse++) {
-    const isCycleStart = pulse % n === 0;
-    if (isCycleStart) continue;
-
     const positionInColumns = pulse * d / n;
     const leftPx = positionInColumns * cellWidth;
 
     const label = document.createElement('div');
-    label.className = 'plano-timeline-pulse-label ghost';
+    const isCycleStart = pulse % n === 0;
+    label.className = isCycleStart
+      ? 'plano-timeline-pulse-label pulse-start'
+      : 'plano-timeline-pulse-label ghost';
     label.style.left = `${leftPx}px`;
     label.textContent = String(pulse);
     label.dataset.pulse = String(pulse);
     overlay.appendChild(label);
+
+    if (isCycleStart) {
+      gridIntegerLabels[pulse] = label;
+    }
     gridPulseLabels[pulse] = label;
   }
 
