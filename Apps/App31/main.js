@@ -463,7 +463,16 @@ function applyTransportConfig() {
     }
   });
 
-  // Recalculate cyclePosition for melodic notes
+  recalculateCyclePositions();
+}
+
+/**
+ * Recalculate cyclePosition for all iTs in the sequence.
+ * Called whenever itSequence changes during playback,
+ * so that highlightPulse plays the correct melodic note (C4 vs G4).
+ */
+function recalculateCyclePositions() {
+  const d = currentDenominator;
   let cyclePos = 0;
   for (const item of itSequence) {
     item.cyclePosition = cyclePos;
@@ -632,6 +641,7 @@ function sanitizeItSeq() {
 
   // Update sequence
   itSequence = validIts;
+  recalculateCyclePositions();
 
   // Update displays and timeline
   updateInfoDisplays();
@@ -1045,6 +1055,7 @@ function insertItAtPosition(startSubdiv, newIt) {
 
   // Fill gaps with silences
   fillGapsWithSilences();
+  recalculateCyclePositions();
 
   // Update everything
   updateInfoDisplays();
@@ -1163,12 +1174,7 @@ async function startPlayback() {
   const audioSelection = { values: new Set(), resolution: 1 };
 
   // Pre-calculate cyclePosition for each iT (for melodic note selection)
-  // cyclePosition determines if note is C4 (start of cycle) or G4 (rest)
-  let cyclePos = 0;
-  for (const item of itSequence) {
-    item.cyclePosition = cyclePos;
-    cyclePos = (cyclePos + item.it) % d;
-  }
+  recalculateCyclePositions();
 
   const onFinish = () => {
     isPlaying = false;

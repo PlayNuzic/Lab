@@ -869,7 +869,7 @@ function applyTransportConfig() {
   const n = FIXED_NUMERATOR;
   const d = currentDenominator;
 
-  const scaledTotal = lg * d + 1; // +1 padding for last note release
+  const scaledTotal = lg * d;
   const scaledBpm = bpm * d;
 
   audio.updateTransport({
@@ -1147,8 +1147,7 @@ async function startPlayback() {
   // Scale by denominator to include subdivisions (like App29)
   const baseResolution = d;
   const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
-  // Add padding (1 extra step) to allow last note's release to complete
-  const scaledTotal = lg * d + 1;
+  const scaledTotal = lg * d;
 
   const audioInstance = await initAudio();
 
@@ -1185,7 +1184,7 @@ async function startPlayback() {
     scaledTotal,
     scaledInterval,
     audioSelection,
-    false,  // No loop - one-shot playback
+    true,   // Loop ENABLED (1 cicle en bucle)
     highlightPulse,
     onFinish,
     playOptions

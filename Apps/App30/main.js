@@ -431,7 +431,7 @@ function applyTransportConfig() {
   const n = FIXED_NUMERATOR;
   const d = currentDenominator;
 
-  const scaledTotal = lg * d + 1; // +1 padding for last note release
+  const scaledTotal = lg * d;
   const scaledBpm = bpm * d;
 
   audio.updateTransport({
@@ -446,7 +446,16 @@ function applyTransportConfig() {
     }
   });
 
-  // Recalculate cyclePosition for melodic notes
+  recalculateCyclePositions();
+}
+
+/**
+ * Recalculate cyclePosition for all iTs in the sequence.
+ * Called whenever itSequence changes during playback,
+ * so that highlightPulse plays the correct melodic note (C4 vs G4).
+ */
+function recalculateCyclePositions() {
+  const d = currentDenominator;
   let cyclePos = 0;
   for (const item of itSequence) {
     item.cyclePosition = cyclePos;
@@ -615,6 +624,7 @@ function sanitizeItSeq() {
 
   // Update sequence
   itSequence = validIts;
+  recalculateCyclePositions();
 
   // Update displays and timeline
   updateInfoDisplays();
@@ -990,6 +1000,7 @@ function insertItAtPosition(startSubdiv, newIt) {
 
   // Fill gaps with silences
   fillGapsWithSilences();
+  recalculateCyclePositions();
 
   // Update everything
   updateInfoDisplays();
@@ -1097,8 +1108,7 @@ async function startPlayback() {
   // Scale by denominator to include subdivisions (like App29)
   const baseResolution = d;
   const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
-  // Add padding (1 extra step) to allow last note's release to complete
-  const scaledTotal = lg * d + 1;
+  const scaledTotal = lg * d;
 
   const audioInstance = await initAudio();
 
@@ -1108,12 +1118,7 @@ async function startPlayback() {
   const audioSelection = { values: new Set(), resolution: 1 };
 
   // Pre-calculate cyclePosition for each iT (for melodic note selection)
-  // cyclePosition determines if note is C4 (start of cycle) or G4 (rest)
-  let cyclePos = 0;
-  for (const item of itSequence) {
-    item.cyclePosition = cyclePos;
-    cyclePos = (cyclePos + item.it) % d;
-  }
+  recalculateCyclePositions();
 
   const onFinish = () => {
     isPlaying = false;
@@ -1143,7 +1148,7 @@ async function startPlayback() {
     scaledTotal,
     scaledInterval,
     audioSelection,
-    false,  // No loop - one-shot playback
+    true,   // Loop ENABLED (1 cicle en bucle)
     highlightPulse,
     onFinish,
     playOptions

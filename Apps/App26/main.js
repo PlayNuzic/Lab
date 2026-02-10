@@ -585,7 +585,7 @@ async function startPlayback() {
   const lg = FIXED_LG;
   const bpm = FIXED_BPM;
   const interval = 60 / bpm;
-  const playbackTotal = lg + 1; // One-shot: play lg+1 pulses (0 to lg inclusive)
+  const playbackTotal = lg; // Loop mode: lg pulses per cycle
 
   const audioInstance = await initAudio();
 
@@ -610,7 +610,7 @@ async function startPlayback() {
     playbackTotal,
     interval,
     new Set(),       // No selection
-    false,           // Loop DISABLED (one-shot)
+    true,            // Loop ENABLED (1 cicle en bucle)
     highlightPulse,
     onFinish,
     hasCycle

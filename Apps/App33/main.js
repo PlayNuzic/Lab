@@ -936,7 +936,7 @@ function applyTransportConfig() {
 
   const n = currentNumerator;
   const d = currentDenominator;
-  const scaledTotal = currentLg * d + 1;
+  const scaledTotal = currentLg * d;
   const scaledBpm = FIXED_BPM * d;
 
   audio.updateTransport({
@@ -1216,7 +1216,7 @@ async function startPlayback() {
   // BASE 1/d scheduling (App4/App31 model)
   // Each step = 1/d of a pulse; columns advance every n steps
   const scaledInterval = (60 / bpm) / d; // Time per 1/d pulse
-  const scaledTotal = lg * d + 1;        // +1 for final note release
+  const scaledTotal = lg * d;
 
   const audioInstance = await initAudio();
 
@@ -1251,8 +1251,8 @@ async function startPlayback() {
     scaledTotal,
     scaledInterval,
     audioSelection,
-    false,  // No loop - one-shot playback
-    highlightSubdivision,  // Renamed for clarity
+    true,   // Loop ENABLED (1 cicle en bucle)
+    highlightSubdivision,
     onFinish,
     playOptions
   );
