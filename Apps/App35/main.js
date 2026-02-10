@@ -618,9 +618,7 @@ function renderGridTimeline() {
     timelineRow.appendChild(numEl);
   });
 
-  container.appendChild(timelineRow);
-
-  // Overlay for all integer pulses (cycle starts + ghosts)
+  // Overlay for all integer pulses (cycle starts + ghosts) — above subdivisions
   const overlay = document.createElement('div');
   overlay.className = 'plano-timeline-overlay';
   overlay.style.width = `${columns * cellWidth}px`;
@@ -647,6 +645,7 @@ function renderGridTimeline() {
   }
 
   container.appendChild(overlay);
+  container.appendChild(timelineRow);
 }
 
 /**

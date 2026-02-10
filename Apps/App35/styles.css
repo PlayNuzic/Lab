@@ -831,7 +831,6 @@ body.dragging-it * {
   min-width: max-content;
   position: relative;
   align-items: flex-start;
-  padding-bottom: 18px;
 }
 
 .plano-timeline-number {
@@ -874,8 +873,7 @@ body.dragging-it * {
 
 /* Overlay for integer pulses (cycle starts + ghosts) */
 .plano-timeline-overlay {
-  position: absolute;
-  bottom: 2px;
+  position: relative;
   left: var(--plano-margin-left);
   height: 20px;
   pointer-events: none;
