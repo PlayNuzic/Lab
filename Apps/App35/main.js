@@ -373,10 +373,11 @@ function createPzRow() {
   lgBox.appendChild(lgLabel);
   lgBox.appendChild(lgDisplay);
 
+  infoColumn.appendChild(lgBox);
+
   pzRow.appendChild(infoColumn);
   pzRow.appendChild(fractionSection);
   pzRow.appendChild(zigzagContainer);
-  pzRow.appendChild(lgBox);
 
   // Insert before timeline
   if (timelineWrapper && timelineWrapper.parentNode) {
