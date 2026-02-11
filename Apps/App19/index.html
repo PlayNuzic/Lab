@@ -150,11 +150,15 @@
       timelineWrapper.innerHTML = `
         <!-- Left Column: Registry + Controls -->
         <div class="left-column" id="leftColumn">
-          <!-- Registry display (read-only, updated by grid scroll) -->
+          <!-- Registry input (editable, also updated by grid scroll) -->
           <div class="param registro" id="registroParam">
             <span class="abbr">Registro</span>
             <div class="circle">
-              <input id="inputRegistro" type="number" min="3" max="5" value="4" readonly />
+              <input id="inputRegistro" type="number" min="3" max="5" value="4" />
+              <div class="spinner">
+                <button id="registroUp" class="spin up" type="button" aria-label="Incrementar Registro"></button>
+                <button id="registroDown" class="spin down" type="button" aria-label="Decrementar Registro"></button>
+              </div>
             </div>
           </div>
 

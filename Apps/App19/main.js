@@ -740,6 +740,28 @@ function decrementCycles() {
   handleCyclesChange();
 }
 
+function incrementRegistro() {
+  const current = parseInt(elements.inputRegistro.value) || CONFIG.DEFAULT_REGISTRO;
+  const next = Math.min(CONFIG.MAX_REGISTRO, current + 1);
+  if (next !== current) scrollToRegistry(next, true);
+}
+
+function decrementRegistro() {
+  const current = parseInt(elements.inputRegistro.value) || CONFIG.DEFAULT_REGISTRO;
+  const next = Math.max(CONFIG.MIN_REGISTRO, current - 1);
+  if (next !== current) scrollToRegistry(next, true);
+}
+
+function handleRegistroInput() {
+  const value = elements.inputRegistro?.value?.trim();
+  if (value === '') return;
+  const num = parseInt(value, 10);
+  if (!isNaN(num)) {
+    const clamped = Math.max(CONFIG.MIN_REGISTRO, Math.min(CONFIG.MAX_REGISTRO, num));
+    scrollToRegistry(clamped, true);
+  }
+}
+
 function setupEventHandlers() {
   // Listen for instrument changes from dropdown (sharedui header)
   window.addEventListener('sharedui:instrument', async (e) => {
@@ -788,6 +810,25 @@ function setupEventHandlers() {
   attachSpinnerRepeat(elements.cycleUp, incrementCycles);
   attachSpinnerRepeat(elements.cycleDown, decrementCycles);
 
+  // Registro input with arrow keys and direct typing
+  elements.inputRegistro?.addEventListener('change', handleRegistroInput);
+  elements.inputRegistro?.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      incrementRegistro();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      decrementRegistro();
+    } else if (e.key === 'Enter') {
+      handleRegistroInput();
+      elements.inputRegistro.blur();
+    }
+  });
+
+  // Registro spinners
+  attachSpinnerRepeat(elements.registroUp, incrementRegistro);
+  attachSpinnerRepeat(elements.registroDown, decrementRegistro);
+
   // Play button
   elements.playBtn?.addEventListener('click', togglePlayback);
 
@@ -800,7 +841,7 @@ function setupEventHandlers() {
 function setupHovers() {
   attachHover(elements.inputCompas, 'Compás (pulsos por ciclo)');
   attachHover(elements.inputCycle, 'Nº de compases a tocar');
-  attachHover(elements.inputRegistro, 'Registro actual (octava)');
+  attachHover(elements.inputRegistro, 'Registro (octava) — editable');
   attachHover(elements.inputBpm, 'Tempo en pulsos por minuto');
   attachHover(elements.playBtn, 'Reproducir / Detener');
   attachHover(elements.randomBtn, 'Valores aleatorios');
@@ -853,6 +894,8 @@ function bindElements() {
     compasDown: document.getElementById('compasDown'),
     cycleUp: document.getElementById('cycleUp'),
     cycleDown: document.getElementById('cycleDown'),
+    registroUp: document.getElementById('registroUp'),
+    registroDown: document.getElementById('registroDown'),
     bpmUp: document.getElementById('bpmUp'),
     bpmDown: document.getElementById('bpmDown'),
 
