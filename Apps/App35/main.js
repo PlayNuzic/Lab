@@ -145,6 +145,7 @@ let infoColumn = null;
 let sumDisplay = null;
 let availableDisplay = null;
 let lgDisplay = null;
+let usedPulsesDisplay = null;
 
 // ========== HOVER TOOLTIPS ==========
 if (playBtn) attachHover(playBtn, { text: 'Play / Stop' });
@@ -267,6 +268,12 @@ function subdivToPosition(subdiv) {
   return subdiv * currentNumerator / currentDenominator;
 }
 
+function formatPulseValue(value) {
+  if (!Number.isFinite(value)) return '0';
+  if (Number.isInteger(value)) return String(value);
+  return String(Number(value.toFixed(2)));
+}
+
 // ========== GRID HELPERS ==========
 function buildSimple12Rows() {
   const rows = [];
@@ -359,7 +366,7 @@ function createPzRow() {
   zigzagContainer.id = 'zigzagEditorContainer';
   zigzagContainer.className = 'zigzag-editor-container';
 
-  // Ciclos display (right side - number of complete fraction cycles)
+  // Ciclos display
   const lgBox = document.createElement('div');
   lgBox.className = 'it-info-box';
   const lgLabel = document.createElement('span');
@@ -373,7 +380,22 @@ function createPzRow() {
   lgBox.appendChild(lgLabel);
   lgBox.appendChild(lgDisplay);
 
+  // Pulsos display (total pulses in full length)
+  const pulsesBox = document.createElement('div');
+  pulsesBox.className = 'it-info-box';
+  const pulsesLabel = document.createElement('span');
+  pulsesLabel.className = 'it-info-label';
+  pulsesLabel.textContent = 'Pulsos';
+  usedPulsesDisplay = document.createElement('input');
+  usedPulsesDisplay.type = 'text';
+  usedPulsesDisplay.className = 'it-input';
+  usedPulsesDisplay.readOnly = true;
+  usedPulsesDisplay.value = String(Math.floor(currentLg / currentNumerator) * currentNumerator);
+  pulsesBox.appendChild(pulsesLabel);
+  pulsesBox.appendChild(usedPulsesDisplay);
+
   infoColumn.appendChild(lgBox);
+  infoColumn.appendChild(pulsesBox);
 
   pzRow.appendChild(infoColumn);
   pzRow.appendChild(fractionSection);
@@ -386,19 +408,19 @@ function createPzRow() {
 }
 
 /**
- * Update info displays (Ciclos, iT disponibles i suma iT)
+ * Update info displays (Ciclos, Pulsos totals, iT disponibles i suma iT)
  */
 function updateInfoDisplays() {
   const totalColumns = getTotalSubdivisions();
 
   // Suma iT: sum of all note durations (each column = 1 iT)
   const usedColumns = notes.reduce((sum, n) => sum + n.duration, 0);
-
   // iT Disponibles: total - used
   const available = totalColumns - usedColumns;
 
   // Ciclos: number of complete cycles of the fraction
   const cycles = Math.floor(currentLg / currentNumerator);
+  const totalPulses = cycles * currentNumerator;
 
   if (lgDisplay) {
     lgDisplay.value = String(cycles);
@@ -408,6 +430,9 @@ function updateInfoDisplays() {
   }
   if (sumDisplay) {
     sumDisplay.value = String(usedColumns);
+  }
+  if (usedPulsesDisplay) {
+    usedPulsesDisplay.value = formatPulseValue(totalPulses);
   }
 }
 
@@ -1019,6 +1044,7 @@ function handleFractionChange() {
   // Redraw timeline and grid
   renderTimeline();
   renderGrid();
+  updateInfoDisplays();
 
   // Hot-reload audio if playing
   if (audio && isPlaying) {
