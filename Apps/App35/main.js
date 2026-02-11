@@ -984,9 +984,9 @@ function initFractionEditorController() {
       numerator: { placeholder: 'n' },
       denominator: { placeholder: 'd' }
     },
-    onChange: ({ cause }) => {
+    onChange: ({ cause, numerator, denominator }) => {
       if (cause !== 'init') {
-        handleFractionChange();
+        handleFractionChange({ numerator, denominator });
       }
     }
   });
@@ -999,37 +999,21 @@ function initFractionEditorController() {
   }
 }
 
-function handleFractionChange() {
+function handleFractionChange(nextFraction = null) {
   if (!fractionEditorController) return;
 
-  const fraction = fractionEditorController.getFraction();
-  let newN = fraction?.numerator;
-  let newD = fraction?.denominator;
+  let newN = nextFraction?.numerator;
+  let newD = nextFraction?.denominator;
+
+  if (!Number.isFinite(newN) || !Number.isFinite(newD)) {
+    const fraction = fractionEditorController.getFraction();
+    newN = fraction?.numerator;
+    newD = fraction?.denominator;
+  }
 
   // Skip if values are not yet valid (user is typing)
   if (!Number.isFinite(newN) || !Number.isFinite(newD)) {
     return;
-  }
-
-  // Clamp numerator (2-6)
-  if (newN < MIN_NUMERATOR) {
-    newN = MIN_NUMERATOR;
-  } else if (newN > MAX_NUMERATOR) {
-    newN = MAX_NUMERATOR;
-  }
-
-  // Clamp denominator (2-8)
-  if (newD < MIN_DENOMINATOR) {
-    newD = MIN_DENOMINATOR;
-  } else if (newD > MAX_DENOMINATOR) {
-    newD = MAX_DENOMINATOR;
-  }
-
-  if (newN !== fraction?.numerator || newD !== fraction?.denominator) {
-    fractionEditorController.setFraction(
-      { numerator: newN, denominator: newD },
-      { cause: 'clamp', persist: true, silent: true }
-    );
   }
 
   currentNumerator = newN;
