@@ -11,7 +11,7 @@ html, body {
 :root {
   --line-color: #666;
   --soundline-width: 3px;
-  --note-highlight-color: var(--selection-color, #FFBB33);
+  --note-highlight-color: #7CD6B3;
 
   /* Soundline sizing and positioning (matching App14) */
   --soundline-height: 100%;
@@ -149,6 +149,7 @@ html, body {
 
 /* ========== NOTE HIGHLIGHTS ========== */
 .note-highlight {
+  --note-highlight-color: #7CD6B3;
   position: absolute;
   width: 80px;
   height: 8.33%;
@@ -162,6 +163,15 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.note-highlight[data-note="1"],
+.note-highlight[data-note="3"],
+.note-highlight[data-note="5"],
+.note-highlight[data-note="7"],
+.note-highlight[data-note="9"],
+.note-highlight[data-note="11"] {
+  --note-highlight-color: #F5C6C2;
 }
 
 .note-highlight.highlight {

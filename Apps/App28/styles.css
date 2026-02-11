@@ -1,7 +1,7 @@
 /* App28: Sucesion de Pulsos Fraccionados Simples - Estilos especificos */
 
 :root {
-  --cycle-color: var(--color-v);
+  --cycle-color: #FFBB33;
   --fraction-spinner-color: var(--line-color);
   /* Button offsets for App28 */
   --btn-loop-offset-x: 0px;
@@ -221,7 +221,7 @@ body.app28 {
 .timeline {
   position: relative;
   height: 120px;
-  --cycle-color: var(--cycle-color);
+  --cycle-color: #FFBB33;
 }
 
 /* Pulses */

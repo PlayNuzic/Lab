@@ -1,15 +1,15 @@
 /* App34: Sucesión en plano de fracciones simples - Estilos específicos */
 
 :root {
-  --cycle-color: var(--color-v);
+  --cycle-color: #FFBB33;
   --fraction-spinner-color: var(--line-color);
-  --timeline-interval-color: #7BB4CD;
+  --timeline-interval-color: #FFBB33;
   --controls-offset-y: -40px;
   /* Colors per notes */
-  --note-color-1: #E76F68;
-  --note-color-2: #FFBB33;
+  --note-color-1: #7CD6B3;
+  --note-color-2: #F5C6C2;
   --note-color-3: #7CD6B3;
-  --note-color-4: #7BB4CD;
+  --note-color-4: #F5C6C2;
 }
 
 body[data-theme='light'] {

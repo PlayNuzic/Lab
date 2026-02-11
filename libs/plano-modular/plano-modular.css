@@ -23,17 +23,17 @@
   /* Colors */
   --plano-bg-color: #fff;
   --plano-cell-bg: #fafafa;
-  --plano-cell-hover: rgba(255, 187, 51, 0.3);
+  --plano-cell-hover: rgba(123, 180, 205, 0.3);
   --plano-grid-line-color: rgba(0, 0, 0, 0.1);
-  --plano-select-color: #FFBB33;
-  --plano-cycle-color: #7BB4CD;
-  --plano-highlight-color: rgba(255, 187, 51, 0.5);
+  --plano-select-color: #7BB4CD;
+  --plano-cycle-color: #FFBB33;
+  --plano-highlight-color: rgba(123, 180, 205, 0.5);
   --plano-text-color: #333;
   --plano-boundary-color: rgba(74, 144, 217, 0.2);
 
   /* Playhead */
   --plano-playhead-width: 2px;
-  --plano-playhead-color: var(--plano-select-color);
+  --plano-playhead-color: #FFBB33;
 
   /* Spacing */
   --plano-grid-gap: 0;

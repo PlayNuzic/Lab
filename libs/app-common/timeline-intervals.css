@@ -8,9 +8,9 @@
 /* ========== VARIABLES CSS ========== */
 :root {
   /* Colores de timeline */
-  --timeline-line-color: #666;
-  --timeline-pulse-color: currentColor;
-  --timeline-interval-color: #4A9EFF;
+  --timeline-line-color: #FFBB33;
+  --timeline-pulse-color: #FFBB33;
+  --timeline-interval-color: #FFBB33;
 
   /* Tamaños de elementos */
   --timeline-pulse-size: 12px;
@@ -32,7 +32,7 @@
 }
 
 [data-theme="dark"] {
-  --timeline-line-color: #999;
+  --timeline-line-color: #FFBB33;
 }
 
 /* ========== TIMELINE CONTAINER ========== */

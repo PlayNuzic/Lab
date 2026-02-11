@@ -10,14 +10,14 @@
   --line-color: #666;
   --soundline-width: 3px;
   --timeline-height: 2px;
-  --cell-highlight-color: var(--select-color, #FFBB33);
+  --cell-highlight-color: #7CD6B3;
   --pulse-marker-height: 15px;
-  --note-highlight-color: var(--select-color, #FFBB33);
-  --select-color-rgb: 255, 187, 51;
+  --note-highlight-color: #7BB4CD;
+  --select-color-rgb: 123, 180, 205;
 
   /* Interval colors */
   --interval-sound-color: #F28AAD; /* Rosa Nuzic para iS (intervalos sonoros) */
-  --interval-temporal-color: #4A9EFF; /* Azul para iT (intervalos temporales) */
+  --interval-temporal-color: #FFBB33; /* Groc per iT (dimensió temporal) */
 
   /* Z-index system */
   --z-base: 1;           /* Base elements: lines, markers */
@@ -60,6 +60,16 @@
 
   /* iframe fallback min-height */
   --grid-min-height: 400px;
+}
+
+/* App15 requirement: active corner dots use pink */
+.musical-cell.active .np-dot::after {
+  background: #F5C6C2;
+  border-color: #F5C6C2;
+  box-shadow:
+    0 0 8px #F5C6C2,
+    0 0 16px #F5C6C2,
+    0 0 24px color-mix(in srgb, #F5C6C2 60%, transparent);
 }
 
 [data-theme="dark"] {

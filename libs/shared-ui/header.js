@@ -46,7 +46,7 @@ function applyTheme(value) {
     window.dispatchEvent(new CustomEvent('sharedui:theme', { detail: { value: document.body.dataset.theme, raw: v } }));
 }
 
-const SELECTION_COLOR_DEFAULT = '#FFBB33';
+const SELECTION_COLOR_DEFAULT = '#7BB4CD';
 const SELECTION_COLOR_KEY = 'sharedui:selectionColor';
 const HOVER_ENABLED_KEY = 'sharedui:hoverEnabled';
 
@@ -691,7 +691,7 @@ export function renderHeader({ title = 'App', mount } = {}) {
                 <label for="hoverToggle">Etiquetas de ayuda</label>
                 <input type="checkbox" id="hoverToggle" checked>
                 <label for="selectColor">Color selección</label>
-                <input type="color" id="selectColor" value="#F97C39">
+                <input type="color" id="selectColor" value="#7BB4CD">
                 <label for="circularTimelineToggle">Línea temporal circular <input type="checkbox" id="circularTimelineToggle"></label>
                 <label for="enableComplexFractions">Activar fracciones complejas <input type="checkbox" id="enableComplexFractions"></label>
                 <button type="button" id="factoryResetBtn" class="factory-reset">Volver a ajustes de fábrica</button>

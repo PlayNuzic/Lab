@@ -6,8 +6,8 @@
 
 /* Variables CSS */
 :root {
-  --cell-highlight-color: var(--selection-color, #FFBB33);
-  --note-highlight-color: var(--selection-color, #FFBB33);
+  --cell-highlight-color: #7CD6B3;
+  --note-highlight-color: #7CD6B3;
   --z-active: 20;
 
   /* Play button fine-tuning */
@@ -38,6 +38,16 @@
 
   /* Grid padding for soundline visibility */
   --grid-padding-right: 60px;
+}
+
+/* App11 requirement: active corner dots use pink, independent from cell highlight */
+.musical-cell.active .np-dot::after {
+  background: #F5C6C2;
+  border-color: #F5C6C2;
+  box-shadow:
+    0 0 8px #F5C6C2,
+    0 0 16px #F5C6C2,
+    0 0 24px color-mix(in srgb, #F5C6C2 60%, transparent);
 }
 
 [data-theme="dark"] {

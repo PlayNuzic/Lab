@@ -12,10 +12,10 @@ const MAX_BPM = 150;
 
 // Colors ben diferenciats per les barres (màxim 4 iTs)
 const VIBRANT_COLORS = [
-  '#E76F68', // vermell
-  '#FFBB33', // groc
   '#7CD6B3', // verd
-  '#7BB4CD'  // blau
+  '#F5C6C2', // rosa clar
+  '#7CD6B3', // verd
+  '#F5C6C2'  // rosa clar
 ];
 
 // ========== ESTADO ==========

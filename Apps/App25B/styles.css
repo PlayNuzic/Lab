@@ -8,8 +8,8 @@
 /* Variables CSS */
 :root {
   --line-color: #666;
-  --cell-highlight-color: var(--select-color, #FFBB33);
-  --note-highlight-color: var(--select-color, #FFBB33);
+  --cell-highlight-color: #7BB4CD;
+  --note-highlight-color: #7BB4CD;
   --interval-sound-color: #F28AAD;  /* Rosa Nuzic for iSº */
 
   /* Z-index system */

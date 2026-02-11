@@ -10,9 +10,9 @@
   --line-color: #666;
   --soundline-width: 3px;
   --timeline-height: 2px;
-  --cell-highlight-color: var(--select-color, #FFBB33);
+  --cell-highlight-color: #7BB4CD;
   --pulse-marker-height: 15px;
-  --note-highlight-color: var(--select-color, #FFBB33);
+  --note-highlight-color: #7BB4CD;
 
   /* Z-index system */
   --z-base: 1;

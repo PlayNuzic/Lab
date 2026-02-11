@@ -19,7 +19,7 @@ html, body {
 
 /* ========== VARIABLES DE COLOR ========== */
 :root {
-  --timeline-interval-color: #7BB4CD;
+  --timeline-interval-color: #F28AAD;
   --timeline-pulse-color: currentColor;
   --timeline-line-color: #666;
 
@@ -44,7 +44,7 @@ html, body {
 
 .it-editor-label,
 .it-editor__label {
-  color: #7BB4CD;
+  color: #F28AAD;
   font-weight: 700;
   font-size: 2.8rem;
   margin-right: 8px;

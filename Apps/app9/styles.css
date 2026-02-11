@@ -32,6 +32,11 @@ html, body {
 /* Los estilos de timeline, pulsos, números y barras de intervalos
    están ahora en libs/app-common/timeline-intervals.css */
 
+/* App9 requirement: only interval-number above uses temporal color */
+.timeline .interval-number.above {
+  color: #FFBB33;
+}
+
 /* ========== CONTROLES ========== */
 .controls-wrapper {
   display: flex;

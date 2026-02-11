@@ -1,7 +1,7 @@
 /* App27: Fracciones Complejas - Estilos específicos */
 
 :root {
-  --cycle-color: var(--color-v);
+  --cycle-color: #FFBB33;
   --fraction-spinner-color: var(--line-color);
 }
 
@@ -163,7 +163,7 @@ body.app27 {
 .timeline {
   position: relative;
   height: 120px;
-  --cycle-color: var(--cycle-color);
+  --cycle-color: #FFBB33;
 }
 
 /* Pulses */

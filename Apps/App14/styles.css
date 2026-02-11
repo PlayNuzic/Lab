@@ -11,8 +11,8 @@ html, body {
 :root {
   --line-color: #666;
   --soundline-width: 3px;
-  --note-highlight-color: var(--selection-color, #FFBB33);
-  --interval-color: #F28AAD; /* Rosa Nuzic para intervalos sonoros */
+  --note-highlight-color: #7BB4CD;
+  --interval-color: #F28AAD; /* Dimensió sonora (editor iS) */
 
   /* Two-column layout customization */
   --col-left: 150px;

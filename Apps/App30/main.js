@@ -24,10 +24,10 @@ const MAX_DENOMINATOR = 8;
 
 // Colors per rectangles iT
 const VIBRANT_COLORS = [
-  '#E76F68', // vermell
-  '#FFBB33', // groc
   '#7CD6B3', // verd
-  '#7BB4CD'  // blau
+  '#F5C6C2', // rosa clar
+  '#7CD6B3', // verd
+  '#F5C6C2'  // rosa clar
 ];
 
 // Notes per àudio

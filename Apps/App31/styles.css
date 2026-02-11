@@ -1,15 +1,15 @@
 /* App31: Sucesión de iTs Fraccionados Compuestos - Estilos específicos */
 
 :root {
-  --cycle-color: var(--color-v);
+  --cycle-color: #FFBB33;
   --fraction-spinner-color: var(--line-color);
-  --timeline-interval-color: #7BB4CD;
+  --timeline-interval-color: #FFBB33;
 
   /* Colors per rectangles iT */
-  --it-color-1: #E76F68;
-  --it-color-2: #FFBB33;
+  --it-color-1: #7CD6B3;
+  --it-color-2: #F5C6C2;
   --it-color-3: #7CD6B3;
-  --it-color-4: #7BB4CD;
+  --it-color-4: #F5C6C2;
 }
 
 body[data-theme='light'] {
@@ -314,7 +314,7 @@ body.app31 {
 .timeline {
   position: relative;
   height: 140px;
-  --cycle-color: var(--cycle-color);
+  --cycle-color: #FFBB33;
 }
 
 /* Línia de base (opcional) */

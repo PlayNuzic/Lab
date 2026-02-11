@@ -109,16 +109,16 @@ html, body {
 
   /* Colors */
   --grid-line-color: rgba(0, 0, 0, 0.15);
-  --grid-hover-color: rgba(255, 187, 51, 0.3);
-  --grid-selected-color: #FFBB33;
-  --plano-select-color: #FFBB33;
+  --grid-hover-color: rgba(123, 180, 205, 0.3);
+  --grid-selected-color: #7BB4CD;
+  --plano-select-color: #7BB4CD;
   /* Grid-editor selection color (used by matrix-seq module) */
-  --select-color: #FFBB33;
+  --select-color: #7BB4CD;
 }
 
 [data-theme="dark"] {
   --grid-line-color: rgba(255, 255, 255, 0.15);
-  --grid-hover-color: rgba(255, 187, 51, 0.4);
+  --grid-hover-color: rgba(123, 180, 205, 0.4);
   /* Grid area bg is visible when grid doesn't fill the space */
   --grid-area-bg: #252525;
   /* Cells have different (darker) bg to differentiate from empty space */
@@ -1751,7 +1751,7 @@ main {
 /* CSS Variables for interval colors */
 :root {
   --interval-sound-color: #F28AAD;  /* Rosa Nuzic for N/iS */
-  --interval-temporal-color: #4A9EFF;  /* Blue for iT */
+  --interval-temporal-color: #FFBB33;  /* Groc for iT (temporal dimension) */
 }
 
 /* Interval mode container */

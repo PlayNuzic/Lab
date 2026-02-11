@@ -8,7 +8,7 @@
 :root {
   --line-color: #666;
   --soundline-width: 3px;
-  --note-highlight-color: var(--selection-color, #FFBB33);
+  --note-highlight-color: #7BB4CD;
   --soundline-height: 100%;
 }
 

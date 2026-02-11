@@ -84,13 +84,13 @@ html, body {
 
   /* Colors */
   --grid-line-color: rgba(0, 0, 0, 0.15);
-  --grid-hover-color: rgba(255, 187, 51, 0.3);
-  --grid-selected-color: #FFBB33;
+  --grid-hover-color: rgba(123, 180, 205, 0.3);
+  --grid-selected-color: #7BB4CD;
 }
 
 [data-theme="dark"] {
   --grid-line-color: rgba(255, 255, 255, 0.15);
-  --grid-hover-color: rgba(255, 187, 51, 0.4);
+  --grid-hover-color: rgba(123, 180, 205, 0.4);
   /* Grid area bg is visible when grid doesn't fill the space */
   --grid-area-bg: #252525;
   /* Cells have different (darker) bg to differentiate from empty space */
