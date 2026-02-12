@@ -230,12 +230,15 @@ async function playScale() {
     // Highlight número de la soundline
     highlightSoundlineNumber(semitone, intervalMs * 0.9);
 
-    // Highlight interval bar (si no és l'última nota)
-    if (degree < SCALE_STRUCTURE.length) {
-      const isLastInterval = degree === SCALE_STRUCTURE.length - 1;
-      // L'últim interval dura fins que acaba l'última nota (2 beats)
-      const duration = isLastInterval ? intervalMs * 1.9 : intervalMs * 0.9;
-      highlightIntervalBar(degree, duration);
+    // Interval bars s'encenen a partir del grau 1 (amb el bar anterior)
+    // Grau 0: només soundline-number, sense bar
+    // Grau N (1+): s'encén interval-bar N-1 (el rectangle EE entre nota N-1 i N)
+    // L'última nota (grau 7) sona amb l'últim interval-bar (6)
+    if (degree > 0 && degree - 1 < SCALE_STRUCTURE.length) {
+      const barIndex = degree - 1;
+      const isLastBar = barIndex === SCALE_STRUCTURE.length - 1;
+      const duration = isLastBar ? intervalMs * 1.9 : intervalMs * 0.9;
+      highlightIntervalBar(barIndex, duration);
     }
 
     await sleep(intervalMs);
