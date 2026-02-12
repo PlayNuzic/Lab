@@ -223,28 +223,9 @@ html, body {
   overflow-x: hidden !important;
 }
 
-/* Force timeline to be responsive (override scrollEnabled fixed width) */
+/* Hide timeline completely */
 .app25-grid-area .timeline-wrapper {
-  overflow: visible !important;  /* Allow pulse numbers to extend beyond wrapper */
-}
-
-/* Fix timeline numbers - transform to move into visible area */
-.app25-grid-area .pulse-marker {
-  transform: translateX(-50%) translateY(0px);
-}
-
-/* Hide last pulse marker (12) - it's cut off at the edge */
-.app25-grid-area .pulse-marker[data-pulse-index="12"] {
-  display: none;
-}
-
-.app25-grid-area .timeline-wrapper .timeline-inner {
-  width: 100% !important;
-  min-width: 0 !important;
-}
-
-.app25-grid-area .timeline-wrapper .timeline-line {
-  width: 100% !important;
+  display: none !important;
 }
 
 /* Force matrix inner to be responsive horizontally */
