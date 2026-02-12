@@ -29,9 +29,9 @@ const DEFAULT_BPM = 120;
 const APP25_SCALES = [
   { id: 'DIAT', rotation: 0, value: 'DIAT-0', name: 'Mayor', rootOffset: 0 },
   { id: 'DIAT', rotation: 5, value: 'DIAT-5', name: 'Menor Natural', rootOffset: 3 },
-  { id: 'ACUS', rotation: 4, value: 'ACUS-4', name: 'Menor Melódica', rootOffset: 5 },
   { id: 'ARMme', rotation: 0, value: 'ARMme-0', name: 'Menor Armónica', rootOffset: 0 },
   { id: 'ARMma', rotation: 0, value: 'ARMma-0', name: 'Mayor Armónica', rootOffset: 0 },
+  { id: 'ACUS', rotation: 0, value: 'ACUS-0', name: 'Acústica', rootOffset: 0 },
   { id: 'PENT', rotation: 0, value: 'PENT-0', name: 'Pentatónica', rootOffset: 0 },
   { id: 'TON', rotation: 0, value: 'TON-0', name: 'Tonos', rootOffset: 0 },
   { id: 'CROM', rotation: 0, value: 'CROM-0', name: 'Cromática', rootOffset: 0 },
@@ -199,8 +199,7 @@ function degreeToVisualNoteIndex(degree, modifier = null) {
  * - Major (rot=0): semitones [0,2,4,5,7,9,11] → all ascending, octave at wrap
  * - Menor Natural (rot=5): semitones [9,11,0,2,4,5,7] → wraps at degree 2
  *   - Degrees 0,1 in upper octave; degrees 2+ in lower octave
- * - Menor Melòdica (rot=4): semitones [9,11,1,2,4,6,7] → wraps at degree 2
- *   - Degrees 0,1,2 in upper octave; degrees 3+ in lower octave
+ * - Acústica (rot=0): semitones [0,2,4,6,7,9,10] → all ascending, no wrap
  * - 0r+ → Degree 0 of upper octave (MIDI +12)
  */
 function degreeToMidi(degree, modifier = null) {
