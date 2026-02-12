@@ -261,31 +261,12 @@ let highlightController = null;
  * Create Nm(X) visualizer element inside the grid spacer (grid-area: 2/1)
  * @param {HTMLElement} gridContainer - The .grid-container element
  */
-function createNmVisualizer(gridContainer) {
-  // Find the spacer element (grid-area: 2/1)
-  // Structure: soundline-wrapper, matrix-container, spacer (3rd child), timeline-wrapper
-  const children = gridContainer.children;
-  let spacer = null;
-
-  // Find spacer by checking grid position (it's the only one with gridRow: 2 and gridColumn: 1)
-  for (const child of children) {
-    if (child.style.gridRow === '2' && child.style.gridColumn === '1') {
-      spacer = child;
-      break;
-    }
-  }
-
-  if (!spacer) {
-    console.warn('Nm visualizer: spacer element not found');
-    return null;
-  }
-
-  // Create visualizer element
+function createNmVisualizer(container) {
   const visualizer = document.createElement('div');
   visualizer.className = 'nm-visualizer';
-  visualizer.innerHTML = `<span class="nm-label">Nm(</span><span class="nm-value">${scaleState.root}</span><span class="nm-label">)</span>`;
+  visualizer.innerHTML = `<span class="nm-label">Nm(</span><span class="nm-value">${scaleState.root}</span><span class="nm-label">)</span><span class="nm-arrow">→</span>`;
 
-  spacer.appendChild(visualizer);
+  container.appendChild(visualizer);
   nmVisualizerElement = visualizer;
 
   return visualizer;
@@ -845,12 +826,6 @@ async function init() {
   // Initial cell states
   updateGridCellStates();
 
-  // Create Nm(X) visualizer in grid spacer (grid-area: 2/1)
-  const gridContainer = gridAreaContainer.querySelector('.grid-container');
-  if (gridContainer) {
-    createNmVisualizer(gridContainer);
-  }
-
   // Move controls into scale selector area
   const controls = document.querySelector('.controls');
   if (controls && scaleSelectorContainer) {
@@ -861,6 +836,11 @@ async function init() {
     controlsContainer.appendChild(controls);
 
     scaleSelectorContainer.appendChild(controlsContainer);
+  }
+
+  // Create Nm(X)→ visualizer at the bottom of scale selector
+  if (scaleSelectorContainer) {
+    createNmVisualizer(scaleSelectorContainer);
   }
 
   // Create grid editor with degree mode
