@@ -538,27 +538,12 @@ function handleGridCellClick(noteIndex, pulseIndex) {
 
 // ========== Nm VISUALIZER ==========
 
-function createNmVisualizer(gridContainer) {
-  const children = gridContainer.children;
-  let spacer = null;
-
-  for (const child of children) {
-    if (child.style.gridRow === '2' && child.style.gridColumn === '1') {
-      spacer = child;
-      break;
-    }
-  }
-
-  if (!spacer) {
-    console.warn('Nm visualizer: spacer element not found');
-    return null;
-  }
-
+function createNmVisualizer(container) {
   const visualizer = document.createElement('div');
   visualizer.className = 'nm-visualizer';
-  visualizer.innerHTML = `<span class="nm-label">Nm(</span><span class="nm-value">${scaleState.root}</span><span class="nm-label">)</span>`;
+  visualizer.innerHTML = `<span class="nm-label">Nm(</span><span class="nm-value">${scaleState.root}</span><span class="nm-label">)</span><span class="nm-arrow">→</span>`;
 
-  spacer.appendChild(visualizer);
+  container.appendChild(visualizer);
   nmVisualizerElement = visualizer;
 
   return visualizer;
@@ -1028,12 +1013,6 @@ async function init() {
   // Initial cell states
   updateGridCellStates();
 
-  // Create Nm(X) visualizer
-  const gridContainer = gridAreaContainer.querySelector('.grid-container');
-  if (gridContainer) {
-    createNmVisualizer(gridContainer);
-  }
-
   // Note: Vertical scroll sync is handled by musical-grid's setupScrollSync()
 
   // Move controls into scale selector area
@@ -1046,6 +1025,11 @@ async function init() {
     controlsContainer.appendChild(controls);
 
     scaleSelectorContainer.appendChild(controlsContainer);
+  }
+
+  // Create Nm(X)→ visualizer at the bottom of scale selector
+  if (scaleSelectorContainer) {
+    createNmVisualizer(scaleSelectorContainer);
   }
 
   // Create grid editor with degree-interval mode
