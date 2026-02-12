@@ -304,8 +304,6 @@ html, body {
   font-size: 1.4rem !important;
   font-weight: 400 !important;
   opacity: 0.85;
-  /* Align with horizontal division lines */
-  transform: translateY(30%) !important;
 }
 
 /* Hide top-zero label (we have 13 notes, note 12 shows degree 0) */
