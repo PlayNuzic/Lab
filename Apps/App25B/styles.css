@@ -199,6 +199,7 @@ html, body {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  grid-template-rows: 1fr !important; /* Timeline hidden, grid uses full height */
 }
 
 /* Hide soundline scrollbar and disable mouse scroll interaction */
@@ -309,9 +310,10 @@ html, body {
 }
 
 /* ========== Nm(X) OUTPUT NOTE VISUALIZER ========== */
-/* Absolute-positioned at scale-selector bottom-right, overflows into grid area */
+/* Hidden in App25B - scroll sync makes positioning unreliable */
 .nm-visualizer {
-  --nm-y: -75px;
+  display: none !important;
+  --nm-y: -85px;
   position: absolute;
   bottom: 0;
   right: 0;
