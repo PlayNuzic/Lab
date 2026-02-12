@@ -209,21 +209,30 @@ function absoluteDegreeToMidi(absoluteDegree) {
   if (absoluteDegree === null || absoluteDegree === undefined) return null;
 
   const effectiveRoot = (scaleState.root + currentRootOffset) % 12;
+  const effectiveState = { id: scaleState.id, rot: scaleState.rot, root: effectiveRoot };
   const scaleLen = currentScaleLength;
+  const ee = motherScalesData[scaleState.id].ee;
+
+  // Build rotated intervals (ee rotated by scaleState.rot)
+  const rot = ((scaleState.rot % scaleLen) + scaleLen) % scaleLen;
+  const rotatedEE = [...ee.slice(rot), ...ee.slice(0, rot)];
+
+  // Semitone of degree 0 (includes root transposition, modulo 12)
+  const degree0Semi = degToSemi(effectiveState, 0);
 
   const octave = Math.floor(absoluteDegree / scaleLen);
   const degreeInOctave = absoluteDegree % scaleLen;
 
-  // Get raw semitone for this degree (without root)
-  const rawState = { id: scaleState.id, rot: scaleState.rot, root: 0 };
-  const rawSemitone = degToSemi(rawState, degreeInOctave);
+  // Accumulate intervals from degree 0 — always ascending, no modulo
+  let semitonesFromDegree0 = 0;
+  for (let i = 0; i < degreeInOctave; i++) {
+    semitonesFromDegree0 += rotatedEE[i];
+  }
 
-  // Calculate actual semitone with root, detecting octave wrap
-  const semitoneWithRoot = rawSemitone + effectiveRoot;
-  const extraOctave = Math.floor(semitoneWithRoot / 12);
-  const finalSemitone = semitoneWithRoot % 12;
+  // Add full octaves (12 semitones each)
+  semitonesFromDegree0 += octave * 12;
 
-  return 60 + finalSemitone + ((octave + extraOctave) * 12);
+  return 60 + degree0Semi + semitonesFromDegree0;
 }
 
 // ========== DEGREE INTERVAL CONVERSION ==========
