@@ -18,7 +18,7 @@ let isPlaying = false;
 let audio = null;
 let notes = [];  // Array de {startPulse, duration, midi, barElement} para 2 notas
 let currentBPM = 90;
-let currentInstrument = 'violin';  // Default: violín
+let currentInstrument = 'piano';  // Default: piano
 
 // Referencias a elementos del DOM
 let timeline = null;
@@ -177,7 +177,7 @@ function layoutLinear() {
 }
 
 // ========== FUNCIONES DE AUDIO ==========
-// Usar MelodicTimelineAudio para soporte de violin/piano
+// Usar MelodicTimelineAudio para soporte de piano/flauta
 const _baseInitAudio = createMelodicAudioInitializer({
   defaultInstrument: 'piano'
 });

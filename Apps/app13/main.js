@@ -29,7 +29,7 @@ let currentSoundAssignments = null;  // MIDI notes per interval
 let currentColorAssignments = null;
 
 // Instrument actual (piano o violí)
-let currentInstrument = 'violin';  // Default: violín
+let currentInstrument = 'piano';  // Default: piano
 
 // So actual del metrònom (seleccionable via header dropdown)
 // Llegir de localStorage per respectar selecció prèvia de l'usuari
@@ -104,11 +104,11 @@ function assignNotesToIntervals(intervals) {
  * @param {number} durationSec - Duración en segundos
  */
 async function playMelodicNote(midiNumber, durationSec) {
-  if (currentInstrument === 'piano') {
-    const { playNote } = await import('../../libs/sound/piano.js');
+  if (currentInstrument === 'flute') {
+    const { playNote } = await import('../../libs/sound/flute.js');
     await playNote(midiNumber, durationSec);
   } else {
-    const { playNote } = await import('../../libs/sound/violin.js');
+    const { playNote } = await import('../../libs/sound/piano.js');
     await playNote(midiNumber, durationSec);
   }
 }

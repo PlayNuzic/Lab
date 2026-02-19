@@ -14,7 +14,7 @@ import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-co
 import { createMatrixHighlightController } from '../../libs/app-common/matrix-highlight-controller.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { isPianoLoaded, setupPianoPreload } from '../../libs/sound/piano.js';
-import { isViolinLoaded } from '../../libs/sound/violin.js';
+import { isFluteLoaded } from '../../libs/sound/flute.js';
 import { createScaleSelector } from '../../libs/scale-selector/index.js';
 import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
@@ -305,7 +305,7 @@ async function handlePlay() {
 
   // Check if current instrument is loaded
   const currentInstrument = localStorage.getItem('app25:selectedInstrument') || 'piano';
-  const isInstrumentLoaded = currentInstrument === 'violin' ? isViolinLoaded() : isPianoLoaded();
+  const isInstrumentLoaded = currentInstrument === 'flute' ? isFluteLoaded() : isPianoLoaded();
 
   if (!isInstrumentLoaded && playBtn) {
     wasLoading = true;
@@ -955,7 +955,7 @@ async function init() {
   if (mixerMenu) {
     // Get initial instrument label from stored preference
     const initialInstrument = localStorage.getItem('app25:selectedInstrument') || 'piano';
-    const instrumentLabel = initialInstrument === 'violin' ? 'Violín' : 'Piano';
+    const instrumentLabel = initialInstrument === 'flute' ? 'Flauta' : 'Piano';
 
     initMixerMenu({
       menu: mixerMenu,
@@ -1082,7 +1082,7 @@ async function init() {
     await audio.setInstrument(instrument);
 
     // Update mixer channel label to reflect new instrument
-    const instrumentLabel = instrument === 'violin' ? 'Violín' : 'Piano';
+    const instrumentLabel = instrument === 'flute' ? 'Flauta' : 'Piano';
     updateMixerChannelLabel('instrument', instrumentLabel);
 
     const currentPrefs = preferenceStorage.load() || {};

@@ -2,11 +2,10 @@
 // Dropdown for selecting melodic instruments
 
 // Available instruments
-export const instrumentNames = ['piano', 'violin', 'flute'];
+export const instrumentNames = ['piano', 'flute'];
 
 export const instrumentLabels = {
   piano: 'Piano',
-  violin: 'Violín',
   flute: 'Flauta'
 };
 
@@ -23,12 +22,6 @@ async function preloadInstrument(instrument) {
 
     // Dynamically import and preload the selected instrument
     switch (instrument) {
-      case 'violin': {
-        const { preloadViolin } = await import('../sound/violin.js');
-        preloadViolin({ delay: 0 }); // No delay - start immediately
-        console.log('Violin preload initiated');
-        break;
-      }
       case 'piano': {
         const { preloadPiano } = await import('../sound/piano.js');
         preloadPiano({ delay: 0 });

@@ -362,12 +362,6 @@ export const ADSR_PRESETS = {
     sustain: 0.7,
     release: 0.4
   },
-  violin: {
-    attack: 0.05,
-    decay: 0.1,
-    sustain: 0.9,
-    release: 0.2
-  },
   flute: {
     attack: 0.08,    // Slower attack than violin - breath onset
     decay: 0.05,     // Quick decay to sustain

@@ -10,7 +10,7 @@ import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
-import { isViolinLoaded } from '../../libs/sound/violin.js';
+import { isFluteLoaded } from '../../libs/sound/flute.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { subscribeMixer, getMixer } from '../../libs/sound/index.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
@@ -724,7 +724,7 @@ async function togglePlayback() {
 async function startPlayback() {
   // Check if current instrument is loaded (read from shared localStorage key)
   const currentInstrument = localStorage.getItem('selectedInstrument') || 'piano';
-  const isInstrumentLoaded = currentInstrument === 'violin' ? isViolinLoaded() : isPianoLoaded();
+  const isInstrumentLoaded = currentInstrument === 'flute' ? isFluteLoaded() : isPianoLoaded();
 
   // Show loading indicator if instrument not yet loaded
   const iconPlay = elements.playBtn?.querySelector('.icon-play');
@@ -1272,7 +1272,7 @@ function initApp() {
   if (mixerMenu && elements.playBtn) {
     // Get initial instrument label from shared localStorage
     const initialInstrument = localStorage.getItem('selectedInstrument') || 'piano';
-    const instrumentLabel = initialInstrument === 'violin' ? 'Violín' : 'Piano';
+    const instrumentLabel = initialInstrument === 'flute' ? 'Flauta' : 'Piano';
 
     initMixerMenu({
       menu: mixerMenu,

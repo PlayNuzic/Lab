@@ -11,7 +11,6 @@
 
 import TimelineAudio from './index.js';
 import { loadPiano, resetPiano } from './piano.js';
-import { loadViolin, resetViolin } from './violin.js';
 import { loadFlute, resetFlute } from './flute.js';
 import { ensureToneLoaded } from './tone-loader.js';
 import { createSamplerPool, ADSR_PRESETS } from './sampler-pool.js';
@@ -66,7 +65,6 @@ export class MelodicTimelineAudio extends TimelineAudio {
       // Reset existing samplers - they were created with the old context
       // This forces them to be recreated with the new context on next load
       resetPiano();
-      resetViolin();
       resetFlute();
     }
 
@@ -82,14 +80,11 @@ export class MelodicTimelineAudio extends TimelineAudio {
     }
 
     // Load new instrument sampler
-    // Note: piano.js and violin.js now connect to melodicChannel automatically
+    // Note: piano.js and flute.js now connect to melodicChannel automatically
     // which routes through the master effects chain (EQ → Compressor → Limiter)
     let sampler;
     try {
       switch (key) {
-        case 'violin':
-          sampler = await loadViolin();
-          break;
         case 'flute':
           sampler = await loadFlute();
           break;

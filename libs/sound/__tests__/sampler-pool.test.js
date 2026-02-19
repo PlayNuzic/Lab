@@ -341,7 +341,7 @@ describe('sampler-pool', () => {
   describe('ADSR_PRESETS', () => {
     it('should have presets for common instruments', () => {
       expect(ADSR_PRESETS.piano).toBeDefined();
-      expect(ADSR_PRESETS.violin).toBeDefined();
+      expect(ADSR_PRESETS.flute).toBeDefined();
       expect(ADSR_PRESETS.pluck).toBeDefined();
       expect(ADSR_PRESETS.pad).toBeDefined();
     });

@@ -1,6 +1,6 @@
 // libs/sound/audio-context-helper.js
 // Helper functions for AudioContext management
-// Extracted to avoid circular dependencies with piano.js/violin.js
+// Extracted to avoid circular dependencies with piano.js/flute.js
 
 import { waitForUserInteraction } from './user-interaction.js';
 import { ensureToneLoaded } from './tone-loader.js';
