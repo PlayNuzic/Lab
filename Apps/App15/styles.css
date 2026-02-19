@@ -149,6 +149,7 @@ html, body {
   grid-column: 2;
   grid-row: 2;
   position: relative !important;
+  top: 60px;
   left: -120px;
   width: 100% !important;
   height: 100% !important;
@@ -453,10 +454,9 @@ body.dragging-note * {
   align-items: center;
 }
 
-/* Toggle positioning via CSS variables */
+/* Pulse toggle hidden */
 .app15-controls-container #pulseToggleBtn {
-  position: relative;
-  transform: translate(var(--toggle-pulse-offset-x, 0), var(--toggle-pulse-offset-y, 0));
+  display: none !important;
 }
 
 /* ========== RESPONSIVE ADAPTATIONS ========== */
@@ -630,6 +630,11 @@ body.dragging-note * {
     grid-template-columns: 80px 1fr !important;
   }
 
+  /* Reduce grid offset for smaller screens */
+  .app15-main-grid > .grid-container {
+    left: -60px;
+  }
+
   .soundline-number,
   .pulse-marker {
     font-size: 1rem !important;
@@ -673,6 +678,11 @@ body.dragging-note * {
   .app15-controls-container .controls {
     transform: scale(0.55);
     transform-origin: top center;
+  }
+
+  /* Reduce grid offset further */
+  .app15-main-grid > .grid-container {
+    left: -40px;
   }
 
   /* Zigzag editor - even more compact */
@@ -745,6 +755,11 @@ body.dragging-note * {
     margin-bottom: 1.1rem;
   }
 
+  /* Remove grid offset on small screens */
+  .app15-main-grid > .grid-container {
+    left: -20px;
+  }
+
   /* Controls scale inherited from 900px breakpoint */
 }
 
@@ -765,6 +780,11 @@ body.dragging-note * {
   .plane-wrapper {
     width: calc(100% - 20px);
     margin: 10px;
+  }
+
+  /* No grid offset on tiny screens */
+  .app15-main-grid > .grid-container {
+    left: 0;
   }
 
   /* Controls scale inherited from 900px breakpoint */
