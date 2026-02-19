@@ -141,6 +141,7 @@ html, body {
   grid-column: 2;
   grid-row: 2;
   position: relative !important;
+  top: 60px;
   left: -120px;
   width: 100% !important;
   height: 100% !important;
@@ -549,6 +550,12 @@ html, body {
     grid-template-columns: 80px 1fr !important;
   }
 
+  /* Reduce grid offset for smaller screens */
+  .app12-main-grid > .grid-container {
+    top: 30px;
+    left: -60px;
+  }
+
   .soundline-number,
   .pulse-marker {
     font-size: 1rem !important;
@@ -575,6 +582,12 @@ html, body {
     padding: 0 12px;
   }
 
+  /* Reduce grid offset further */
+  .app12-main-grid > .grid-container {
+    top: 20px;
+    left: -40px;
+  }
+
   /* Controls scale inherited from 900px breakpoint */
 }
 
@@ -589,6 +602,12 @@ html, body {
   .app12-controls-container {
     margin: 5px;
     margin-bottom: 1.1rem;
+  }
+
+  /* Remove grid offset on small screens */
+  .app12-main-grid > .grid-container {
+    top: 10px;
+    left: -20px;
   }
 
   /* Controls scale inherited from 900px breakpoint */
@@ -611,6 +630,12 @@ html, body {
   .plane-wrapper {
     width: calc(100% - 20px);
     margin: 10px;
+  }
+
+  /* No grid offset on tiny screens */
+  .app12-main-grid > .grid-container {
+    top: 0;
+    left: 0;
   }
 
   /* Controls scale inherited from 900px breakpoint */
