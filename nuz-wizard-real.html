@@ -1,0 +1,419 @@
+<!--
+  ============================================================
+  NUZ WIZARD — Sistema Interactivo Paso a Paso
+  Contingut real de nuzic.org
+  ============================================================
+-->
+
+<style>
+.nuz-wizard * { box-sizing: border-box; }
+.nuz-wizard {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 16px;
+  color: #1a1a2e;
+}
+
+/* ── Progrés ── */
+.nuz-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.nuz-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.nuz-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  width: 0%;
+}
+.nuz-progress-text {
+  min-width: 65px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 14px;
+  color: #555;
+}
+
+/* ── Passos ── */
+.nuz-step {
+  display: none;
+  animation: nuzFadeIn 0.35s ease;
+}
+.nuz-step.nuz-active {
+  display: block;
+}
+@keyframes nuzFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Contingut ── */
+.nuz-step h2 {
+  font-size: 1.6em;
+  margin: 0 0 16px 0;
+  color: #1a1a2e;
+}
+.nuz-step h3 {
+  font-size: 1.25em;
+  margin: 20px 0 10px 0;
+  color: #2d2d44;
+}
+.nuz-step h4 {
+  font-size: 1.05em;
+  margin: 16px 0 8px 0;
+  color: #444;
+}
+.nuz-step p {
+  font-size: 1.05em;
+  line-height: 1.7;
+  margin: 0 0 14px 0;
+  color: #333;
+}
+.nuz-step ol, .nuz-step ul {
+  margin: 10px 0 16px 24px;
+  line-height: 1.8;
+  font-size: 1.02em;
+  color: #333;
+}
+.nuz-step img.nuz-img {
+  display: block;
+  max-width: 300px;
+  height: auto;
+  margin: 16px auto;
+  border-radius: 6px;
+}
+.nuz-step img.nuz-img-left {
+  float: left;
+  max-width: 280px;
+  margin: 0 20px 16px 0;
+  border-radius: 6px;
+}
+.nuz-step .nuz-clear { clear: both; }
+
+/* ── Iframe ── */
+.nuz-app-wrap {
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 0;
+  background: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.nuz-app-wrap iframe {
+  display: block;
+  border: 1px solid #333;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Separador visual ── */
+.nuz-separator {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #ddd, transparent);
+  margin: 24px 0;
+}
+
+/* ── Navegació ── */
+.nuz-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  gap: 12px;
+}
+.nuz-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.nuz-btn-prev {
+  background: #f0f0f0;
+  color: #444;
+}
+.nuz-btn-prev:hover { background: #e0e0e0; }
+.nuz-btn-next {
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  color: white;
+}
+.nuz-btn-next:hover {
+  background: linear-gradient(135deg, #5a4bd1, #8b7ff0);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(108,92,231,0.3);
+}
+.nuz-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+.nuz-nav-center {
+  font-size: 14px;
+  color: #888;
+  font-weight: 500;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .nuz-wizard { padding: 12px 10px; }
+  .nuz-step h2 { font-size: 1.3em; }
+  .nuz-step img.nuz-img-left { float: none; display: block; margin: 12px auto; }
+  .nuz-btn { padding: 10px 18px; font-size: 14px; }
+}
+</style>
+
+
+<div class="nuz-wizard" id="nuzWizard">
+
+  <!-- Barra de progrés -->
+  <div class="nuz-progress">
+    <div class="nuz-progress-bar">
+      <div class="nuz-progress-fill" id="nuzProgressFill"></div>
+    </div>
+    <div class="nuz-progress-text" id="nuzProgressText"></div>
+  </div>
+
+
+  <!-- ═══════════════ PAS 1: INTRODUCCIÓ ═══════════════ -->
+  <div class="nuz-step" data-step="1">
+    <h2>Sistema Interactivo – Paso a Paso</h2>
+
+    <img class="nuz-img-left" src="https://www.nuzic.org/wp-content/uploads/nuzic/nodos/Captura-de-pantalla-2025-11-13-a-les-21.03.29-300x300.png" alt="Nuzic" />
+
+    <p><strong>Cuando vemos el mundo, conectamos con otras personas y lugares que existen en un momento compartido.</strong> <strong>La percepción de la realidad sincroniza personas y lugares, que se mueven en el espacio y tiempo.</strong></p>
+
+    <p>Por ejemplo, quedamos a las 8 en casa de Juan para ver el partido en la tele. Luego vamos a cenar a tu restaurante favorito.</p>
+
+    <p><strong>Los números son la herramienta ideal para describir la realidad y sus cambios con precisión.</strong> <strong>La música forma parte de la realidad cotidiana y también se basa en los mismos principios.</strong></p>
+
+    <div class="nuz-clear"></div>
+  </div>
+
+
+  <!-- ═══════════════ PAS 2: MÚSICA Y MOVIMIENTO ═══════════════ -->
+  <div class="nuz-step" data-step="2">
+    <h2>Música y Movimiento</h2>
+
+    <p>Para poder medir un movimiento tenemos que poder definir qué es lo que se mueve y qué pasa cuando se mueve. ¿Qué es lo que se mueve en la música? Los sonidos y sus duraciones temporales.</p>
+
+    <p>La expresión musical consiste en ordenar estos movimientos de una manera significativa para el compositor y elocuente para el oyente.</p>
+
+    <p>El sistema <strong>Nuzic</strong> tiene como objetivo <strong>medir</strong> los movimientos que se producen en la música. Utiliza los números para definir los sonidos y medir sus movimientos.</p>
+  </div>
+
+
+  <!-- ═══════════════ PAS 3: MEDIR LA MÚSICA ═══════════════ -->
+  <div class="nuz-step" data-step="3">
+    <h2>Medir la Música</h2>
+
+    <p>Los sistemas de medida están basados en herramientas que usan escalas numéricas: cintas métricas para medir longitudes, termómetros para medir temperaturas, balanzas para medir pesos, etc.</p>
+
+    <img class="nuz-img-left" src="https://www.nuzic.org/wp-content/uploads/nuzic/nodos/Cinta-metrica-300x174.png" alt="Cinta métrica" />
+
+    <p>Para hacer un instrumento de medida debemos crear una línea con la unidad de medida escogida y numerar cada marca. El primer número es el 0, que es el punto de partida de la medición. Los números siguientes nos dicen la distancia a la que están del principio.</p>
+
+    <p>Por ejemplo, en una cinta métrica el número 15 indica que está a 15 unidades de distancia del principio. Nuzic es un sistema que usa los números como herramienta para medir los movimientos del sonido en el tiempo.</p>
+
+    <div class="nuz-clear"></div>
+  </div>
+
+
+  <!-- ═══════════════ PAS 4: QUÈ ES MOU? ═══════════════ -->
+  <div class="nuz-step" data-step="4">
+    <h2>¿Qué se mueve en la música?</h2>
+
+    <p>Si partimos de una experiencia básica, por un lado tenemos sonidos (notas, silencios o percusiones) y por otro lado tenemos el paso del tiempo.</p>
+
+    <p>En el sistema Nuzic usamos dos instrumentos de medición, uno para los sonidos y otro para el tiempo; para eso creamos dos líneas numéricas: la línea temporal y la línea sonora.</p>
+
+    <p><strong>Las líneas musicales empiezan en el número 0, como cualquier instrumento de medición.</strong></p>
+  </div>
+
+
+  <!-- ═══════════════ PAS 5: LÍNEA TEMPORAL + APP 9 ═══════════════ -->
+  <div class="nuz-step" data-step="5">
+    <h2>Las Líneas del Plano</h2>
+    <h3>Línea temporal</h3>
+
+    <p>La línea temporal usa los pasos del tiempo como unidad de medida para determinar dónde se producen los sonidos y cuánto duran. Los puntos de medida los llamamos <strong>Pulsos</strong> y empiezan en el número 0 para poder medir el tiempo.</p>
+
+    <p>Cuando contamos los pasos temporales es más natural empezar en el 1. Contamos distancias. El paso 1 va desde el pulso 0 al pulso 1, el paso 2 del 1 al 2, etc. Los <strong>pasos</strong> entre pulsos son unidades de duración para medir cuánto duran los sonidos.</p>
+
+    <hr class="nuz-separator" />
+
+    <h4>Ejemplo interactivo:</h4>
+    <p><strong>¿Qué hace?</strong> Visualiza los pulsos en la línea temporal para entender duración y posición. <strong>Uso básico:</strong></p>
+    <ol>
+      <li>Pulsa <strong>Play</strong> → El metrónomo inicia con tempo aleatorio (75–200 BPM).</li>
+      <li>Aparecen dos ruidos de diferente duración (1 y 2 pulsos) en posiciones aleatorias.</li>
+      <li>Las barras de duración emergen cuando suena cada ruido.</li>
+    </ol>
+
+    <div class="nuz-app-wrap">
+      <iframe title="Línea Temporal" src="https://playnuzic.github.io/Lab/Apps/app9/index.html" height="420" frameborder="0" scrolling="no"></iframe>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════ PAS 6: LÍNEA SONORA + APP 10 ═══════════════ -->
+  <div class="nuz-step" data-step="6">
+    <h3>Línea sonora</h3>
+
+    <p>En la línea sonora los puntos para contar son las <strong>notas</strong> de la escala cromática. A la primera nota le damos el número <strong>0</strong>. Entre la nota 0 y la 1 hay una distancia de 1 paso.</p>
+
+    <hr class="nuz-separator" />
+
+    <h4>Ejemplo interactivo:</h4>
+
+    <div class="nuz-app-wrap">
+      <iframe title="Línea Sonora" src="https://playnuzic.github.io/Lab/Apps/app10/index.html" height="980" frameborder="0" scrolling="no"></iframe>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════ PAS 7: EL PLANO + APP 11 ═══════════════ -->
+  <div class="nuz-step" data-step="7">
+    <h2>El Plano</h2>
+
+    <p>Si juntamos las dos líneas creamos un plano donde se relacionan sonidos y tiempos. Así vemos cómo se organizan en el tiempo.</p>
+
+    <hr class="nuz-separator" />
+
+    <h4>Ejemplo interactivo:</h4>
+    <p><strong>¿Qué hace?</strong> Combina línea temporal y línea sonora en un plano interactivo. <strong>Uso básico:</strong></p>
+    <ol>
+      <li>Pulsa <strong>Play</strong> → Suenan 4–8 notas aleatorias en 8 pulsos.</li>
+      <li><strong>Interacción manual:</strong> clic en cualquier celda para escuchar su par N–P.</li>
+      <li>Pulsa <strong>Pulse</strong> para mutear el metrónomo.</li>
+    </ol>
+
+    <div class="nuz-app-wrap">
+      <iframe title="El Plano" src="https://playnuzic.github.io/Lab/Apps/app11/index.html" height="760" frameborder="0" scrolling="no"></iframe>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════ PAS 8: SEQÜÈNCIES N-P + APP 12 ═══════════════ -->
+  <div class="nuz-step" data-step="8">
+    <h2>Empezamos a hacer música</h2>
+    <h3>Secuencias de Notas y Pulsos</h3>
+
+    <p>Ya tenemos un espacio donde colocar notas en el tiempo. Vamos a hacer música con números.</p>
+
+    <p>Usamos dos números sincronizados: uno elige la nota y el otro la sitúa en el tiempo. N para la nota y P para el pulso. Tenemos un pequeño lienzo musical con 12 notas (0–11) y 8 pulsos (0–7).</p>
+
+    <hr class="nuz-separator" />
+
+    <h4>Ejemplo interactivo:</h4>
+    <p><strong>¿Qué hace?</strong> Añade una sucesión de pares N–P al plano. <strong>Uso básico:</strong></p>
+    <ol>
+      <li><strong>Edita manualmente</strong> → escribe pares N–P.</li>
+      <li><strong>Random</strong> → genera secuencia automática.</li>
+      <li><strong>Play</strong> → reproduce la secuencia.</li>
+      <li><strong>Reset</strong> → borra todo.</li>
+    </ol>
+
+    <div class="nuz-app-wrap">
+      <iframe title="Plano - Sucesión N-P" src="https://playnuzic.github.io/Lab/Apps/App12/index.html" height="760" frameborder="0" scrolling="no"></iframe>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════ NAVEGACIÓ ═══════════════ -->
+  <div class="nuz-nav">
+    <button class="nuz-btn nuz-btn-prev" id="nuzPrev" onclick="nuzGo(-1)">&#8592; Anterior</button>
+    <span class="nuz-nav-center" id="nuzNavCenter"></span>
+    <button class="nuz-btn nuz-btn-next" id="nuzNext" onclick="nuzGo(1)">Siguiente &#8594;</button>
+  </div>
+
+</div>
+
+
+<script>
+(function() {
+  var SCROLL_ON_NAV = true;
+
+  var steps   = document.querySelectorAll('#nuzWizard .nuz-step');
+  var total   = steps.length;
+  var current = 0;
+
+  /* Llegir pas de la URL */
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var urlStep = parseInt(params.get('nuz-step'));
+    if (urlStep && urlStep >= 1 && urlStep <= total) current = urlStep - 1;
+  } catch(e) {}
+
+  function showStep(index) {
+    if (index < 0 || index >= total) return;
+    current = index;
+
+    for (var i = 0; i < steps.length; i++) {
+      steps[i].classList.remove('nuz-active');
+    }
+    steps[current].classList.add('nuz-active');
+
+    /* Botons */
+    document.getElementById('nuzPrev').disabled = (current === 0);
+    var nextBtn = document.getElementById('nuzNext');
+    if (current === total - 1) {
+      nextBtn.innerHTML = '&#10003; Final';
+      nextBtn.disabled = true;
+    } else {
+      nextBtn.innerHTML = 'Siguiente &#8594;';
+      nextBtn.disabled = false;
+    }
+
+    /* Progrés */
+    var pct = Math.round(((current + 1) / total) * 100);
+    document.getElementById('nuzProgressFill').style.width = pct + '%';
+    document.getElementById('nuzProgressText').textContent = (current + 1) + ' / ' + total;
+    document.getElementById('nuzNavCenter').textContent = (current + 1) + ' de ' + total;
+
+    /* Scroll */
+    if (SCROLL_ON_NAV) {
+      var wizard = document.getElementById('nuzWizard');
+      if (wizard) wizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* URL */
+    try {
+      if (window.history && window.history.replaceState) {
+        var url = new URL(window.location.href);
+        url.searchParams.set('nuz-step', current + 1);
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch(e) {}
+  }
+
+  window.nuzGo = function(dir) { showStep(current + dir); };
+
+  /* Teclat */
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); window.nuzGo(1); }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); window.nuzGo(-1); }
+  });
+
+  showStep(current);
+})();
+</script>

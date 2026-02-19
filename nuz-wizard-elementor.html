@@ -1,0 +1,336 @@
+<!--
+  ============================================================
+  NUZ WIZARD — Sistema Pas a Pas per Elementor (Free)
+  ============================================================
+  INSTRUCCIONS:
+  1. A Elementor, afegeix un widget "HTML" (o "Code Snippet")
+  2. Enganxa TOT aquest codi dins del widget
+  3. Modifica els passos (step-1, step-2...) amb el teu contingut
+  4. Guarda i publica
+  ============================================================
+-->
+
+<style>
+/* ── Reset i contenidor ── */
+.nuz-wizard * { box-sizing: border-box; margin: 0; padding: 0; }
+.nuz-wizard {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 16px;
+  color: #1a1a2e;
+}
+
+/* ── Barra de progrés ── */
+.nuz-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: #555;
+}
+.nuz-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.nuz-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  width: 0%;
+}
+.nuz-progress-text {
+  min-width: 70px;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* ── Passos ── */
+.nuz-step {
+  display: none;
+  animation: nuzFadeIn 0.35s ease;
+}
+.nuz-step.nuz-active {
+  display: block;
+}
+@keyframes nuzFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Contingut del pas ── */
+.nuz-step h2 {
+  font-size: 1.6em;
+  margin-bottom: 12px;
+  color: #1a1a2e;
+}
+.nuz-step .nuz-text {
+  font-size: 1.05em;
+  line-height: 1.7;
+  margin-bottom: 20px;
+  color: #333;
+}
+.nuz-step .nuz-text p {
+  margin-bottom: 12px;
+}
+
+/* ── Iframe (app incrustada) ── */
+.nuz-iframe-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 per defecte */
+  margin: 20px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+.nuz-iframe-wrap iframe {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+/* Variant: alçada fixa (afegir classe nuz-iframe-fixed) */
+.nuz-iframe-wrap.nuz-iframe-fixed {
+  padding-bottom: 0;
+  height: 500px;
+}
+
+/* ── Navegació ── */
+.nuz-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  gap: 12px;
+}
+.nuz-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+.nuz-btn-prev {
+  background: #f0f0f0;
+  color: #444;
+}
+.nuz-btn-prev:hover { background: #e0e0e0; }
+.nuz-btn-next {
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  color: white;
+}
+.nuz-btn-next:hover {
+  background: linear-gradient(135deg, #5a4bd1, #8b7ff0);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(108,92,231,0.3);
+}
+.nuz-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+.nuz-nav-center {
+  font-size: 14px;
+  color: #888;
+  font-weight: 500;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .nuz-wizard { padding: 12px 10px; }
+  .nuz-step h2 { font-size: 1.3em; }
+  .nuz-btn { padding: 10px 18px; font-size: 14px; }
+  .nuz-iframe-wrap.nuz-iframe-fixed { height: 350px; }
+}
+</style>
+
+
+<div class="nuz-wizard" id="nuzWizard">
+
+  <!-- Barra de progrés -->
+  <div class="nuz-progress">
+    <div class="nuz-progress-bar">
+      <div class="nuz-progress-fill" id="nuzProgressFill"></div>
+    </div>
+    <div class="nuz-progress-text" id="nuzProgressText"></div>
+  </div>
+
+  <!-- ============================================================
+       PASSOS — Edita el contingut de cada pas aquí sota
+       Per afegir més passos: copia un bloc nuz-step i canvia el títol/text/iframe
+       ============================================================ -->
+
+  <!-- PAS 1 -->
+  <div class="nuz-step" data-step="1">
+    <h2>Pas 1: Títol del primer pas</h2>
+    <div class="nuz-text">
+      <p>Aquí va el text explicatiu del pas 1. Pots posar paràgrafs, llistes, el que necessitis.</p>
+      <p>Explica què ha de fer l'alumne o què s'ensenyarà en aquest pas.</p>
+    </div>
+    <!-- Iframe de l'app (canvia la URL src) -->
+    <div class="nuz-iframe-wrap nuz-iframe-fixed">
+      <iframe src="https://la-teva-app.com/exercici-1" loading="lazy" allow="autoplay"></iframe>
+    </div>
+  </div>
+
+  <!-- PAS 2 -->
+  <div class="nuz-step" data-step="2">
+    <h2>Pas 2: Títol del segon pas</h2>
+    <div class="nuz-text">
+      <p>Text del pas 2. Cada pas pot tenir contingut diferent.</p>
+    </div>
+    <div class="nuz-iframe-wrap nuz-iframe-fixed">
+      <iframe src="https://la-teva-app.com/exercici-2" loading="lazy" allow="autoplay"></iframe>
+    </div>
+  </div>
+
+  <!-- PAS 3 -->
+  <div class="nuz-step" data-step="3">
+    <h2>Pas 3: Títol del tercer pas</h2>
+    <div class="nuz-text">
+      <p>Text del pas 3.</p>
+    </div>
+    <div class="nuz-iframe-wrap nuz-iframe-fixed">
+      <iframe src="https://la-teva-app.com/exercici-3" loading="lazy" allow="autoplay"></iframe>
+    </div>
+  </div>
+
+  <!-- PAS 4 (exemple sense iframe, només text) -->
+  <div class="nuz-step" data-step="4">
+    <h2>Pas 4: Pas de només text</h2>
+    <div class="nuz-text">
+      <p>No tots els passos necessiten iframe. Pots tenir passos que siguin només explicació teòrica.</p>
+      <p>Simplement no posis el div nuz-iframe-wrap i ja està.</p>
+    </div>
+  </div>
+
+  <!--
+    ════════════════════════════════════════
+    COPIA AQUEST BLOC PER AFEGIR MÉS PASSOS:
+    ════════════════════════════════════════
+
+  <div class="nuz-step" data-step="5">
+    <h2>Pas 5: Títol</h2>
+    <div class="nuz-text">
+      <p>Text explicatiu.</p>
+    </div>
+    <div class="nuz-iframe-wrap nuz-iframe-fixed">
+      <iframe src="URL_DE_LA_APP" loading="lazy" allow="autoplay"></iframe>
+    </div>
+  </div>
+
+  -->
+
+  <!-- Navegació -->
+  <div class="nuz-nav">
+    <button class="nuz-btn nuz-btn-prev" id="nuzPrev" onclick="nuzGo(-1)">← Anterior</button>
+    <span class="nuz-nav-center" id="nuzNavCenter"></span>
+    <button class="nuz-btn nuz-btn-next" id="nuzNext" onclick="nuzGo(1)">Següent →</button>
+  </div>
+
+</div>
+
+
+<script>
+(function() {
+  /* ── Configuració ── */
+  var SCROLL_ON_NAV = true;       /* scroll amunt en canviar de pas */
+  var LAZY_IFRAMES  = true;       /* només carrega l'iframe del pas actiu */
+
+  /* ── Estat ── */
+  var steps   = document.querySelectorAll('#nuzWizard .nuz-step');
+  var total   = steps.length;
+  var current = 0;
+
+  /* ── Llegir pas de la URL (?nuz-step=3) ── */
+  var params = new URLSearchParams(window.location.search);
+  var urlStep = parseInt(params.get('nuz-step'));
+  if (urlStep && urlStep >= 1 && urlStep <= total) {
+    current = urlStep - 1;
+  }
+
+  /* ── Funcions ── */
+  function showStep(index) {
+    if (index < 0 || index >= total) return;
+    current = index;
+
+    for (var i = 0; i < steps.length; i++) {
+      steps[i].classList.remove('nuz-active');
+    }
+    steps[current].classList.add('nuz-active');
+
+    /* Lazy load iframes */
+    if (LAZY_IFRAMES) {
+      var iframes = steps[current].querySelectorAll('iframe[data-src]');
+      for (var j = 0; j < iframes.length; j++) {
+        iframes[j].src = iframes[j].getAttribute('data-src');
+        iframes[j].removeAttribute('data-src');
+      }
+    }
+
+    /* Actualitzar botons */
+    document.getElementById('nuzPrev').disabled = (current === 0);
+    var nextBtn = document.getElementById('nuzNext');
+    if (current === total - 1) {
+      nextBtn.textContent = '✓ Final';
+      nextBtn.disabled = true;
+    } else {
+      nextBtn.innerHTML = 'Següent →';
+      nextBtn.disabled = false;
+    }
+
+    /* Progrés */
+    var pct = Math.round(((current + 1) / total) * 100);
+    document.getElementById('nuzProgressFill').style.width = pct + '%';
+    document.getElementById('nuzProgressText').textContent = (current + 1) + ' / ' + total;
+    document.getElementById('nuzNavCenter').textContent = (current + 1) + ' de ' + total;
+
+    /* Scroll amunt */
+    if (SCROLL_ON_NAV) {
+      var wizard = document.getElementById('nuzWizard');
+      if (wizard) {
+        wizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    /* Actualitzar URL sense recarregar */
+    if (window.history && window.history.replaceState) {
+      var url = new URL(window.location.href);
+      url.searchParams.set('nuz-step', current + 1);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }
+
+  /* Funció global per als botons */
+  window.nuzGo = function(dir) {
+    showStep(current + dir);
+  };
+
+  /* Navegació amb teclat */
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); window.nuzGo(1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); window.nuzGo(-1); }
+  });
+
+  /* Inicialitzar */
+  showStep(current);
+})();
+</script>
