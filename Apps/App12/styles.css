@@ -373,10 +373,9 @@ html, body {
   margin-left: calc(var(--buttons-row-gap, 0.5rem) / 2);
 }
 
-/* Toggle positioning via CSS variables */
+/* Pulse toggle hidden */
 .app12-controls-container #pulseToggleBtn {
-  position: relative;
-  transform: translate(var(--toggle-pulse-offset-x, 0), var(--toggle-pulse-offset-y, 0));
+  display: none !important;
 }
 
 /* ========== RESPONSIVE ADAPTATIONS ========== */

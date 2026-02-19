@@ -156,13 +156,9 @@ html, body {
   margin: 0 !important;
 }
 
-/* Pulse toggle anchored to play button (satellite position) */
+/* Pulse toggle hidden */
 .app11-controls-container #pulseToggleBtn {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  transform: translate(var(--toggle-pulse-offset-x, 0), var(--toggle-pulse-offset-y, -50%));
-  z-index: 3;
+  display: none !important;
 }
 
 /* ========== GRID CONTAINER (CENTER COLUMN) ========== */
