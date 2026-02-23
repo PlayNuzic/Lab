@@ -62,6 +62,17 @@
   --grid-min-height: 400px;
 }
 
+/* BPM inline input container */
+.inputs {
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+.inputs .bpm-inline {
+  position: relative;
+}
+
 /* App15 requirement: active corner dots use pink */
 .musical-cell.active .np-dot::after {
   background: #F5C6C2;

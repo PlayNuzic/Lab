@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="../../libs/musical-grid/musical-grid.css" />
   <link rel="stylesheet" href="../../libs/scale-selector/scale-selector.css" />
+  <link rel="stylesheet" href="../../libs/shared-ui/bpm-inline.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../../favicon.ico" />
 </head>
@@ -68,8 +69,22 @@
       selectColor.value = storedColor;
     }
 
-    // Remove template-generated elements (inputs, middle section)
-    document.querySelector('.inputs')?.remove();
+    // Replace inputs section with BPM inline control, remove middle section
+    const inputsSection = document.querySelector('.inputs');
+    if (inputsSection) {
+      inputsSection.innerHTML = `
+        <div class="bpm-inline visible" id="bpmParam">
+          <span class="abbr">BPM</span>
+          <div class="circle">
+            <input id="inputBpm" type="number" min="50" max="150" value="90" />
+            <div class="spinner">
+              <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
+              <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
     document.querySelector('.middle')?.remove();
 
     // Extract .controls from timeline-wrapper before removing it

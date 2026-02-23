@@ -14,18 +14,22 @@ import { createMatrixHighlightController } from '../../libs/app-common/matrix-hi
 import { clearElement } from '../../libs/app-common/dom-utils.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
 const TOTAL_NOTES = 12;   // Vertical: 0-11 (MIDI 60-71)
 const TOTAL_SPACES = 8;   // Spaces between pulses: 0-7
-const DEFAULT_BPM = 120;
+const DEFAULT_BPM = 90;
+const MIN_BPM = 50;
+const MAX_BPM = 150;
 
 // ========== STATE ==========
 let audio = null;
 let musicalGrid = null;
 let gridEditor = null;
-const currentBPM = DEFAULT_BPM; // Locked to 120 BPM
+let bpmController = null;
+let currentBPM = DEFAULT_BPM;
 let isPlaying = false;
 let polyphonyEnabled = false; // Default: polyphony DISABLED (monophonic mode)
 
@@ -520,6 +524,23 @@ async function init() {
   playBtn?.addEventListener('click', handlePlay);
   resetBtn?.addEventListener('click', handleReset);
   randomBtn?.addEventListener('click', handleRandom);
+
+  // BPM Controller
+  const inputBpm = document.getElementById('inputBpm');
+  const bpmUp = document.getElementById('bpmUp');
+  const bpmDown = document.getElementById('bpmDown');
+  if (inputBpm && bpmUp && bpmDown) {
+    bpmController = createBpmController({
+      inputEl: inputBpm,
+      upBtn: bpmUp,
+      downBtn: bpmDown,
+      min: MIN_BPM,
+      max: MAX_BPM,
+      defaultValue: DEFAULT_BPM,
+      onChange: (bpm) => { currentBPM = bpm; }
+    });
+    bpmController.attach();
+  }
 
   // P1 Toggle (Pulse 0 special sound) - MUST be before mixer init
   const startIntervalToggle = document.getElementById('startIntervalToggle');

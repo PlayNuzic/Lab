@@ -1026,3 +1026,15 @@ body.dragging-note * {
 .plano-playhead--hidden {
   display: none;
 }
+
+/* ========== BPM INLINE ========== */
+.inputs {
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+.inputs .bpm-inline {
+  position: relative;
+}

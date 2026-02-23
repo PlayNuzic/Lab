@@ -19,10 +19,13 @@ import {
   updateMatrix
 } from '../../libs/plano-modular/plano-grid.js';
 import { createPlayheadController } from '../../libs/plano-modular/plano-playhead.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ========== CONSTANTS ==========
 const BASE_LG = 12;              // Longitud màxima de referència
-const FIXED_BPM = 70;            // BPM fix
+const DEFAULT_BPM = 90;
+const MIN_BPM = 50;
+const MAX_BPM = 150;
 const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
 const DEFAULT_DENOMINATOR = 3;
 const MIN_NUMERATOR = 2;
@@ -45,6 +48,7 @@ const BASE_MIDI = 48;        // C3 = 48
 // ========== STATE ==========
 let audio = null;
 let isPlaying = false;
+let bpmController = null;
 let currentNumerator = DEFAULT_NUMERATOR;
 let currentDenominator = DEFAULT_DENOMINATOR;
 let currentLg = 12;  // Calculat dinàmicament
@@ -948,7 +952,7 @@ function applyTransportConfig() {
   const n = currentNumerator;
   const d = currentDenominator;
   const scaledTotal = currentLg * d;
-  const scaledBpm = FIXED_BPM * d;
+  const scaledBpm = (bpmController?.getValue() || DEFAULT_BPM) * d;
 
   audio.updateTransport({
     totalPulses: scaledTotal,
@@ -1186,7 +1190,7 @@ async function playNotePreview(noteData) {
   // duration is in subdivisions, convert to pulses: duration / d
   const n = currentNumerator;
   const d = currentDenominator;
-  const bpm = FIXED_BPM;
+  const bpm = (bpmController?.getValue() || DEFAULT_BPM);
   const beatDuration = 60 / bpm;
   const durationPulses = noteData.duration * n / d;
   const durationSeconds = Math.min(durationPulses * beatDuration, 2); // Cap at 2 seconds for preview
@@ -1220,7 +1224,7 @@ async function startPlayback() {
   // Allow playback even with no notes (just metronome)
 
   const lg = currentLg;
-  const bpm = FIXED_BPM;
+  const bpm = (bpmController?.getValue() || DEFAULT_BPM);
   const n = currentNumerator;
   const d = currentDenominator;
 
@@ -1393,7 +1397,7 @@ function highlightSubdivision(scaledIndex, scheduledTime) {
     // Note duration is in visual columns
     // Convert to seconds: duration columns * (n/d) pulses/column * (60/bpm) seconds/pulse
     const durationPulses = noteData.duration * n / d;
-    const durationSeconds = durationPulses * (60 / FIXED_BPM);
+    const durationSeconds = durationPulses * (60 / (bpmController?.getValue() || DEFAULT_BPM));
 
     const midiNote = BASE_MIDI + noteData.note;
     const when = scheduledTime ?? (window.Tone?.now() || 0);
@@ -1594,6 +1598,27 @@ if (resetBtn) {
 
 // ========== INITIALIZATION ==========
 function init() {
+  // Initialize BPM controller
+  const bpmInput = document.getElementById('inputBpm');
+  const bpmDown = document.getElementById('bpmDown');
+  const bpmUp = document.getElementById('bpmUp');
+  if (bpmInput && bpmDown && bpmUp) {
+    bpmController = createBpmController({
+      inputEl: bpmInput,
+      upBtn: bpmUp,
+      downBtn: bpmDown,
+      min: MIN_BPM,
+      max: MAX_BPM,
+      defaultValue: DEFAULT_BPM,
+      onChange: () => {
+        if (isPlaying) {
+          applyTransportConfig();
+        }
+      }
+    });
+    bpmController.attach();
+  }
+
   // Inicialitzar Lg amb els defaults
   currentLg = calculateVariableLg(DEFAULT_NUMERATOR);
 

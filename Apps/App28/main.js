@@ -16,10 +16,13 @@ import { randomInt } from '../../libs/app-common/number-utils.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import createPulseSeqController from '../../libs/pulse-seq/pulse-seq.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
-const FIXED_BPM = 70;            // BPM fix
+const DEFAULT_BPM = 90;
+const MIN_BPM = 50;
+const MAX_BPM = 150;
 const FIXED_NUMERATOR = 1;       // Numerador sempre 1
 const DEFAULT_DENOMINATOR = 2;   // Per defecte 1/2
 const MIN_DENOMINATOR = 1;
@@ -27,6 +30,7 @@ const MAX_DENOMINATOR = 8;
 
 // ========== STATE ==========
 let audio = null;
+let bpmController = null;
 let isPlaying = false;
 let currentDenominator = DEFAULT_DENOMINATOR;
 
@@ -1351,7 +1355,7 @@ function applyTransportConfig() {
   if (!audio || typeof audio.updateTransport !== 'function') return;
 
   const lg = FIXED_LG;
-  const bpm = FIXED_BPM;
+  const bpm = bpmController?.getValue() || DEFAULT_BPM;
   const d = currentDenominator;
   const n = FIXED_NUMERATOR;
   const hasCycle = d > 0 && Math.floor(lg / n) > 0;
@@ -1414,7 +1418,7 @@ function getAudioSelection() {
 // ========== PLAYBACK ==========
 async function startPlayback() {
   const lg = FIXED_LG;
-  const bpm = FIXED_BPM;
+  const bpm = bpmController?.getValue() || DEFAULT_BPM;
   const d = currentDenominator;
   const n = FIXED_NUMERATOR;
 
@@ -1576,6 +1580,23 @@ resetBtn?.addEventListener('click', handleReset);
 
 // ========== INITIALIZATION ==========
 function init() {
+  // Initialize BPM controller
+  const inputBpm = document.getElementById('inputBpm');
+  const bpmUp = document.getElementById('bpmUp');
+  const bpmDown = document.getElementById('bpmDown');
+  if (inputBpm && bpmUp && bpmDown) {
+    bpmController = createBpmController({
+      inputEl: inputBpm,
+      upBtn: bpmUp,
+      downBtn: bpmDown,
+      min: MIN_BPM,
+      max: MAX_BPM,
+      defaultValue: DEFAULT_BPM,
+      onChange: (bpm) => { /* BPM read on playback */ }
+    });
+    bpmController.attach();
+  }
+
   // Initialize pulse sequence editor FIRST (creates fractionSlot)
   initPulseSeqEditor();
 

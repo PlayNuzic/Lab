@@ -16,10 +16,13 @@ import { attachHover } from '../../libs/shared-ui/hover.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectability.js';
 import { gcd } from '../../libs/app-common/number-utils.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ========== CONSTANTS ==========
 // Lg = currentNumerator (dinàmic) - es calcula en cada renderització
-const FIXED_BPM = 70;            // BPM fix
+const DEFAULT_BPM = 90;
+const MIN_BPM = 50;
+const MAX_BPM = 150;
 const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
 const DEFAULT_DENOMINATOR = 3;
 const MIN_NUMERATOR = 2;         // Mínim 2 (fraccions complexes)
@@ -41,6 +44,7 @@ const NOTE_CYCLE_REST = 67;  // G4 - resta d'iTs
 
 // ========== STATE ==========
 let audio = null;
+let bpmController = null;
 let isPlaying = false;
 let currentNumerator = DEFAULT_NUMERATOR;
 let currentDenominator = DEFAULT_DENOMINATOR;
@@ -444,7 +448,7 @@ function applyTransportConfig() {
   if (!audio || typeof audio.updateTransport !== 'function') return;
 
   const lg = currentNumerator;
-  const bpm = FIXED_BPM;
+  const bpm = bpmController?.getValue() || DEFAULT_BPM;
   const n = currentNumerator;
   const d = currentDenominator;
 
@@ -1154,7 +1158,7 @@ async function startPlayback() {
 
   // lg = numerador → 1 cicle de la fracció
   const lg = currentNumerator;
-  const bpm = FIXED_BPM;
+  const bpm = bpmController?.getValue() || DEFAULT_BPM;
   const n = currentNumerator;
   const d = currentDenominator;
 
@@ -1265,7 +1269,7 @@ function highlightPulse(scaledIndex, scheduledTime) {
     const item = itSequence[itIndex];
     if (!item.isSilence) {
       // Calculate note duration
-      const bpm = FIXED_BPM;
+      const bpm = bpmController?.getValue() || DEFAULT_BPM;
       const beatDuration = 60 / bpm;
       const durationPulses = item.it * n / d;
       const durationSeconds = durationPulses * beatDuration;
@@ -1508,6 +1512,23 @@ if (resetBtn) {
 
 // ========== INITIALIZATION ==========
 function init() {
+  // Initialize BPM controller
+  const inputBpm = document.getElementById('inputBpm');
+  const bpmUp = document.getElementById('bpmUp');
+  const bpmDown = document.getElementById('bpmDown');
+  if (inputBpm && bpmUp && bpmDown) {
+    bpmController = createBpmController({
+      inputEl: inputBpm,
+      upBtn: bpmUp,
+      downBtn: bpmDown,
+      min: MIN_BPM,
+      max: MAX_BPM,
+      defaultValue: DEFAULT_BPM,
+      onChange: (bpm) => { /* BPM read on playback */ }
+    });
+    bpmController.attach();
+  }
+
   // Create iTfr layout
   createItfrLayout();
 

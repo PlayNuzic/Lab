@@ -2,6 +2,7 @@
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ========== CONFIGURACIÓN ==========
 const TOTAL_PULSES = 9;  // Pulsos 0-8 (8 es endpoint visual)
@@ -9,6 +10,7 @@ const MAX_LENGTH = 8;    // Suma total de iTs
 const MAX_ITS = 4;       // Máximo 4 inputs de iT
 const MIN_BPM = 75;
 const MAX_BPM = 150;
+const DEFAULT_BPM = 90;
 
 // Colors ben diferenciats per les barres (màxim 4 iTs)
 const VIBRANT_COLORS = [
@@ -21,6 +23,7 @@ const VIBRANT_COLORS = [
 // ========== ESTADO ==========
 let isPlaying = false;
 let audio = null;
+let bpmController = null;
 let currentIntervals = []; // Array de valores iT entrats
 let playbackTimeouts = []; // Per cancel·lar reproducció
 
@@ -540,8 +543,8 @@ async function handlePlay() {
   isPlaying = true;
   updateControlsState();
 
-  // Generar BPM aleatori
-  const bpm = getRandomBPM();
+  // Obtenir BPM del controlador (o default)
+  const bpm = bpmController?.getValue() || DEFAULT_BPM;
   const beatDuration = 60 / bpm; // segons per puls
 
   // Netejar barres
@@ -763,6 +766,23 @@ function initApp() {
 
   // Setup controls
   setupControls();
+
+  // BPM controller
+  const inputBpm = document.getElementById('inputBpm');
+  const bpmUp = document.getElementById('bpmUp');
+  const bpmDown = document.getElementById('bpmDown');
+  if (inputBpm && bpmUp && bpmDown) {
+    bpmController = createBpmController({
+      inputEl: inputBpm,
+      upBtn: bpmUp,
+      downBtn: bpmDown,
+      min: MIN_BPM,
+      max: MAX_BPM,
+      defaultValue: DEFAULT_BPM,
+      onChange: (bpm) => { console.log('BPM changed to:', bpm); }
+    });
+    bpmController.attach();
+  }
 
   // Cablear events de so compartits (selector Pulso → metrònom)
   bindSharedSoundEvents({

@@ -24,6 +24,18 @@ body.app30 {
   --unit-label-offset: -20px;
 }
 
+/* ========== INPUTS (BPM) ========== */
+.inputs {
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+.inputs .bpm-inline {
+  position: relative;
+}
+
 /* ========== MIDDLE SECTION (oculta) ========== */
 .middle {
   display: none;

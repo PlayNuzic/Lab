@@ -18,12 +18,15 @@ import { isFluteLoaded } from '../../libs/sound/flute.js';
 import { createScaleSelector } from '../../libs/scale-selector/index.js';
 import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
 const TOTAL_NOTES = 13;    // Vertical: 0-12 (one octave + degree 0 of upper octave)
 const TOTAL_SPACES = 12;   // Spaces between pulses
-const DEFAULT_BPM = 120;
+const DEFAULT_BPM = 90;
+const MIN_BPM = 50;
+const MAX_BPM = 150;
 
 // Scale configuration (from App24)
 const APP25_SCALES = [
@@ -44,7 +47,8 @@ let audio = null;
 let musicalGrid = null;
 let gridEditor = null;
 let scaleSelector = null;
-const currentBPM = DEFAULT_BPM;
+let bpmController = null;
+let currentBPM = DEFAULT_BPM;
 let isPlaying = false;
 
 // Scale state (format compatible with libs/scales)
@@ -932,6 +936,23 @@ async function init() {
   playBtn?.addEventListener('click', handlePlay);
   resetBtn?.addEventListener('click', handleReset);
   randomBtn?.addEventListener('click', handleRandom);
+
+  // BPM Controller
+  const inputBpm = document.getElementById('inputBpm');
+  const bpmUp = document.getElementById('bpmUp');
+  const bpmDown = document.getElementById('bpmDown');
+  if (inputBpm && bpmUp && bpmDown) {
+    bpmController = createBpmController({
+      inputEl: inputBpm,
+      upBtn: bpmUp,
+      downBtn: bpmDown,
+      min: MIN_BPM,
+      max: MAX_BPM,
+      defaultValue: DEFAULT_BPM,
+      onChange: (bpm) => { currentBPM = bpm; }
+    });
+    bpmController.attach();
+  }
 
   // P1 Toggle
   const startIntervalToggle = document.getElementById('startIntervalToggle');

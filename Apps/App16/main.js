@@ -15,19 +15,23 @@ import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute, getVolume } from '../../libs/sound/index.js';
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ============================================
 // CONSTANTS
 // ============================================
 
 const MAX_COMPAS = 7;         // Maximum compás value
-const BPM = 100;              // Fixed BPM for this app
+const DEFAULT_BPM = 90;
+const MIN_BPM = 50;
+const MAX_BPM = 150;
 
 // ============================================
 // STATE
 // ============================================
 
 let audio = null;
+let bpmController = null;
 let isPlaying = false;
 let compas = null;            // Starts as null (empty input)
 let pulses = [];              // DOM pulse elements
@@ -385,7 +389,7 @@ async function handlePlay() {
   // Disable random button during playback
   if (randomBtn) randomBtn.disabled = true;
 
-  const intervalSec = 60 / BPM;
+  const intervalSec = 60 / (bpmController?.getValue() || DEFAULT_BPM);
   const totalPulses = getTotalPulses();  // compás × 2
 
   // Total steps = main pulses + fade-out pulses
@@ -604,6 +608,18 @@ async function initializeApp() {
   resetBtn = document.getElementById('resetBtn');
   randomBtn = document.getElementById('randomBtn');
   randomMenu = document.getElementById('randomMenu');
+
+  // Create BPM controller
+  bpmController = createBpmController({
+    inputEl: document.getElementById('inputBpm'),
+    upBtn: document.getElementById('bpmUp'),
+    downBtn: document.getElementById('bpmDown'),
+    container: document.getElementById('bpmParam'),
+    min: MIN_BPM,
+    max: MAX_BPM,
+    defaultValue: DEFAULT_BPM
+  });
+  bpmController.attach();
 
   // Create timeline controller
   timelineController = createCircularTimeline({

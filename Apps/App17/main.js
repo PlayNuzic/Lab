@@ -17,6 +17,7 @@ import { subscribeMixer, setChannelVolume, setChannelMute, setVolume, setMute } 
 import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
 import { createTotalLengthDisplay } from '../../libs/app-common/total-length-display.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ============================================
 // CONSTANTS
@@ -27,13 +28,16 @@ const MAX_PULSOS = 12;
 const MIN_CYCLES = 1;
 const MAX_CYCLES = 12;
 const DEFAULT_CYCLES = 4;
-const BPM = 100;              // Fixed BPM for this app
+const DEFAULT_BPM = 90;
+const MIN_BPM = 50;
+const MAX_BPM = 150;
 
 // ============================================
 // STATE
 // ============================================
 
 let audio = null;
+let bpmController = null;
 let isPlaying = false;
 let pulsosCompas = null;      // Starts as null (empty input)
 let cycles = DEFAULT_CYCLES;  // Número de repeticiones del módulo
@@ -484,7 +488,7 @@ async function handlePlay() {
   // Disable random button during playback
   if (randomBtn) randomBtn.disabled = true;
 
-  const intervalSec = 60 / BPM;
+  const intervalSec = 60 / (bpmController?.getValue() || DEFAULT_BPM);
 
   // Total pulses = pulsosCompas * cycles
   const totalPulses = pulsosCompas * cycles;
@@ -790,6 +794,18 @@ async function initializeApp() {
   resetBtn = document.getElementById('resetBtn');
   randomBtn = document.getElementById('randomBtn');
   randomMenu = document.getElementById('randomMenu');
+
+  // Create BPM controller
+  bpmController = createBpmController({
+    inputEl: document.getElementById('inputBpm'),
+    upBtn: document.getElementById('bpmUp'),
+    downBtn: document.getElementById('bpmDown'),
+    container: document.getElementById('bpmParam'),
+    min: MIN_BPM,
+    max: MAX_BPM,
+    defaultValue: DEFAULT_BPM
+  });
+  bpmController.attach();
 
   // Create timeline controller
   timelineController = createCircularTimeline({

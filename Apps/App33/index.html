@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="../../libs/plano-modular/plano-modular.css" />
+  <link rel="stylesheet" href="../../libs/shared-ui/bpm-inline.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../../favicon.ico" />
 </head>
@@ -38,8 +39,21 @@
       randomMenuContent: ''
     });
 
-    // Remove elements not needed for App33
-    document.querySelector('.inputs')?.remove();
+    // Inject BPM inline into .inputs
+    const inputsDiv = document.querySelector('.inputs');
+    if (inputsDiv) {
+      inputsDiv.innerHTML = `
+        <div class="bpm-inline visible" id="bpmParam">
+          <span class="abbr">BPM</span>
+          <div class="circle">
+            <input id="inputBpm" type="number" min="50" max="150" value="90" />
+            <div class="spinner">
+              <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
+              <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
+            </div>
+          </div>
+        </div>`;
+    }
 
     // Setup sound groups: Instrumento + Metrónomo + Subdivisión
     const soundGroup = document.querySelector('.sound-group');

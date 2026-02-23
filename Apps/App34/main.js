@@ -20,10 +20,13 @@ import {
 } from '../../libs/plano-modular/plano-grid.js';
 import { createPlayheadController } from '../../libs/plano-modular/plano-playhead.js';
 import { createGridEditor } from '../../libs/matrix-seq/index.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 12;             // 12 pulsos (0-11)
-const FIXED_BPM = 70;            // BPM fix
+const DEFAULT_BPM = 90;
+const MIN_BPM = 50;
+const MAX_BPM = 150;
 const FIXED_NUMERATOR = 1;       // Numerador sempre 1 (App30)
 const DEFAULT_DENOMINATOR = 2;   // Per defecte 1/2
 const MIN_DENOMINATOR = 1;
@@ -44,6 +47,7 @@ const BASE_MIDI = 48;        // C3 = 48
 // ========== STATE ==========
 let audio = null;
 let isPlaying = false;
+let bpmController = null;
 let currentDenominator = DEFAULT_DENOMINATOR;
 
 // Notes array: { note: 0-11, startSubdiv: number, duration: number }
@@ -891,7 +895,7 @@ function applyTransportConfig() {
   if (!audio || typeof audio.updateTransport !== 'function') return;
 
   const lg = FIXED_LG;
-  const bpm = FIXED_BPM;
+  const bpm = (bpmController?.getValue() || DEFAULT_BPM);
   const n = FIXED_NUMERATOR;
   const d = currentDenominator;
 
@@ -1140,7 +1144,7 @@ async function playNotePreview(noteData) {
   // Calculate note duration based on current BPM and denominator
   const d = currentDenominator;
   const n = FIXED_NUMERATOR;
-  const bpm = FIXED_BPM;
+  const bpm = (bpmController?.getValue() || DEFAULT_BPM);
   const beatDuration = 60 / bpm;
   const durationPulses = noteData.duration * n / d;
   const durationSeconds = Math.min(durationPulses * beatDuration, 2); // Cap at 2 seconds for preview
@@ -1174,7 +1178,7 @@ async function startPlayback() {
   // Allow playback even with no notes (just metronome)
 
   const lg = FIXED_LG;
-  const bpm = FIXED_BPM;
+  const bpm = (bpmController?.getValue() || DEFAULT_BPM);
   const n = FIXED_NUMERATOR;
   const d = currentDenominator;
 
@@ -1311,7 +1315,7 @@ function highlightPulse(scaledIndex, scheduledTime) {
   const noteData = getNoteAtScaledStart(scaledIndex);
   if (noteData && audio && !noteData.isRest) {
     // Calculate note duration
-    const bpm = FIXED_BPM;
+    const bpm = (bpmController?.getValue() || DEFAULT_BPM);
     const beatDuration = 60 / bpm;
     const durationPulses = noteData.duration * n / d;
     const durationSeconds = durationPulses * beatDuration;
@@ -1539,6 +1543,27 @@ if (resetBtn) {
 
 // ========== INITIALIZATION ==========
 function init() {
+  // Initialize BPM controller
+  const bpmInput = document.getElementById('inputBpm');
+  const bpmDown = document.getElementById('bpmDown');
+  const bpmUp = document.getElementById('bpmUp');
+  if (bpmInput && bpmDown && bpmUp) {
+    bpmController = createBpmController({
+      inputEl: bpmInput,
+      upBtn: bpmUp,
+      downBtn: bpmDown,
+      min: MIN_BPM,
+      max: MAX_BPM,
+      defaultValue: DEFAULT_BPM,
+      onChange: () => {
+        if (isPlaying) {
+          applyTransportConfig();
+        }
+      }
+    });
+    bpmController.attach();
+  }
+
   // Create P row with fraction
   createPzRow();
 

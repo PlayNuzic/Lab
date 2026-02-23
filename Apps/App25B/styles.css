@@ -49,6 +49,17 @@
   --controls-vertical-gap: 0.5rem;
 }
 
+/* BPM inline input container */
+.inputs {
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+.inputs .bpm-inline {
+  position: relative;
+}
+
 [data-theme="dark"] {
   --line-color: #999;
 }
