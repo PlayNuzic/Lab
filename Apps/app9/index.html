@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="../../libs/app-common/timeline-intervals.css" />
+  <link rel="stylesheet" href="../../libs/shared-ui/bpm-inline.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../../favicon.ico" />
 </head>
@@ -50,9 +51,25 @@
     });
     initHeader();
 
-    // Remove template-generated elements
-    document.querySelector('.inputs')?.remove();
+    // Remove template-generated elements not needed
     document.querySelector('.middle')?.remove();
+
+    // Replace .inputs content with BPM inline control
+    const inputsSection = document.querySelector('.inputs');
+    if (inputsSection) {
+      inputsSection.innerHTML = `
+        <div class="bpm-inline visible" id="bpmParam">
+          <span class="abbr">BPM</span>
+          <div class="circle">
+            <input id="inputBpm" type="number" min="50" max="150" value="90" />
+            <div class="spinner">
+              <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
+              <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     import('./main.js');
   </script>

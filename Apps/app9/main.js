@@ -4,6 +4,7 @@ import { createSimpleHighlightController } from '../../libs/app-common/simple-hi
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
+import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import {
   createIntervalBars,
   highlightIntervalBar,
@@ -24,10 +25,13 @@ let currentInstrument = 'piano';  // Default: piano
 let timeline = null;
 let timelineWrapper = null;
 let playBtn = null;
+let bpmController = null;
 
 // ========== CONFIGURACIÓN ==========
 const TOTAL_PULSES = 9;  // Dibuja 9 pulsos (0-8)
-const FIXED_BPM = 90;    // BPM fijo
+const DEFAULT_BPM = 90;
+const MIN_BPM = 50;
+const MAX_BPM = 150;
 
 // Storage de preferencias
 const preferenceStorage = createPreferenceStorage('app9');
@@ -264,8 +268,8 @@ async function handlePlay() {
     await initAudio();
   }
 
-  // Usar BPM fijo y generar 2 notas aleatorias con MIDI del registro 4
-  currentBPM = FIXED_BPM;
+  // Usar BPM del controlador y generar 2 notas aleatorias con MIDI del registro 4
+  currentBPM = bpmController?.getValue() || DEFAULT_BPM;
   notes = generate2Notes();
 
   console.log(`BPM: ${currentBPM}, Instrumento: ${currentInstrument}`);
@@ -438,7 +442,27 @@ function initApp() {
     currentInstrument = savedInstrument;
   }
 
-  // Dibujar timeline con 6 pulsos (0-5)
+  // Inicializar BPM controller
+  const inputBpm = document.getElementById('inputBpm');
+  const bpmUp = document.getElementById('bpmUp');
+  const bpmDown = document.getElementById('bpmDown');
+
+  if (inputBpm && bpmUp && bpmDown) {
+    bpmController = createBpmController({
+      inputEl: inputBpm,
+      upBtn: bpmUp,
+      downBtn: bpmDown,
+      min: MIN_BPM,
+      max: MAX_BPM,
+      defaultValue: DEFAULT_BPM,
+      onChange: (bpm) => {
+        currentBPM = bpm;
+      }
+    });
+    bpmController.attach();
+  }
+
+  // Dibujar timeline
   drawTimeline();
 
   // Configurar event listeners

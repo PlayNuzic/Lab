@@ -23,6 +23,7 @@ html, body {
   --timeline-interval-color: #4A9EFF;
   --timeline-pulse-color: currentColor;
   --timeline-line-color: #666;
+  --controls-offset-y: 20px;
 }
 
 [data-theme="dark"] {
@@ -35,6 +36,18 @@ html, body {
 /* App9 requirement: only interval-number above uses temporal color */
 .timeline .interval-number.above {
   color: #FFBB33;
+}
+
+/* ========== BPM INPUT ========== */
+.inputs {
+  display: flex;
+  justify-content: center;
+  padding: 30px 0 50px 30px;
+  margin: 0;
+}
+
+.inputs .bpm-inline {
+  position: relative;
 }
 
 /* ========== CONTROLES ========== */
