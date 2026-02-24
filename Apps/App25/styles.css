@@ -49,17 +49,23 @@
 
   /* Controls vertical gap */
   --controls-vertical-gap: 0.5rem;
+
+  /* BPM tuning (inside app25-controls-container) */
+  --bpm-offset-x: -4px;
+  --bpm-offset-y: -28px;
+  --bpm-scale: 1;
+  --bpm-gap: 8px;
 }
 
 /* BPM inline input container */
 .inputs {
-  display: flex;
-  justify-content: center;
+  display: block;
   padding: 0;
   margin: 0;
+  min-height: 0;
 }
 .inputs .bpm-inline {
-  position: relative;
+  position: static;
 }
 
 [data-theme="dark"] {
@@ -241,6 +247,16 @@ html, body {
   gap: 0.5rem;
   margin-top: 50px;
   padding-top: 0.25rem;
+}
+
+.app25-controls-container .bpm-inline {
+  position: relative;
+  align-self: center;
+  flex-shrink: 0;
+  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
+  transform-origin: top center;
+  margin: 0 0 var(--bpm-gap) 0;
+  z-index: var(--z-interactive);
 }
 
 .app25-controls-container .controls {
@@ -640,6 +656,9 @@ html, body {
 @media (max-width: 900px) {
   :root {
     --scale-selector-width: var(--col-left-tablet);
+    --bpm-offset-y: -4px;
+    --bpm-scale: 0.9;
+    --bpm-gap: 6px;
   }
 
   .app25-main-grid {
@@ -675,6 +694,9 @@ html, body {
 @media (max-width: 768px) {
   :root {
     --scale-selector-width: var(--col-left-mobile);
+    --bpm-offset-y: -2px;
+    --bpm-scale: 0.84;
+    --bpm-gap: 4px;
   }
 
   .app25-main-grid {
@@ -695,6 +717,9 @@ html, body {
 @media (max-width: 600px) {
   :root {
     --scale-selector-width: 85px;
+    --bpm-offset-y: 0px;
+    --bpm-scale: 0.78;
+    --bpm-gap: 3px;
   }
 
   .app25-main-grid {

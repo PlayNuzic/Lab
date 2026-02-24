@@ -42,13 +42,19 @@
   --controls-vertical-gap: 0.5rem;
 
   /* Fine-tuning: Play button position */
-  --play-offset-x: 40px;
-  --play-offset-y: 0px;
+  --play-offset-x: -16px;
+  --play-offset-y: 30px;
 
   /* Fine-tuning: Secondary buttons (random, reset) position */
-  --buttons-row-offset-x: -105px;
-  --buttons-row-offset-y: 0px;
+  --buttons-row-offset-x: -165px;
+  --buttons-row-offset-y: 30px;
   --buttons-row-gap: 0.5rem;
+
+  /* BPM tuning (inside app12-controls-container) */
+  --bpm-offset-x: 100px;
+  --bpm-offset-y: -150px;
+  --bpm-scale: 1;
+  --bpm-gap: 18px;
 
   /* iframe fallback min-height */
   --grid-min-height: 400px;
@@ -56,13 +62,13 @@
 
 /* BPM inline input container */
 .inputs {
-  display: flex;
-  justify-content: center;
+  display: block;
   padding: 0;
   margin: 0;
+  min-height: 0;
 }
 .inputs .bpm-inline {
-  position: relative;
+  position: static;
 }
 
 /* App12 requirement: active corner dots use pink */
@@ -145,6 +151,15 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.app12-controls-container .bpm-inline {
+  position: relative;
+  flex-shrink: 0;
+  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
+  transform-origin: top center;
+  margin-right: var(--bpm-gap);
+  z-index: var(--z-interactive);
 }
 
 /* Musical grid fills bottom-right */
@@ -474,6 +489,12 @@ html, body {
 
 /* ========== TABLET (≤ 900px) ========== */
 @media (max-width: 900px) {
+  :root {
+    --bpm-offset-y: -14px;
+    --bpm-scale: 0.88;
+    --bpm-gap: 10px;
+  }
+
   /* Reduce padding and margins for tighter layout */
   .app12-main-grid {
     grid-template-columns: var(--col-left-tablet, 100px) 1fr;
@@ -575,6 +596,12 @@ html, body {
 
 /* ========== MOBILE (≤ 768px) ========== */
 @media (max-width: 768px) {
+  :root {
+    --bpm-offset-y: -8px;
+    --bpm-scale: 0.82;
+    --bpm-gap: 8px;
+  }
+
   .app12-main-grid {
     grid-template-columns: var(--col-left-mobile, 80px) 1fr;
     gap: 0.3rem;
@@ -604,6 +631,12 @@ html, body {
 
 /* ========== SMALL SCREENS (≤ 600px) ========== */
 @media (max-width: 600px) {
+  :root {
+    --bpm-offset-y: -4px;
+    --bpm-scale: 0.76;
+    --bpm-gap: 6px;
+  }
+
   .app12-main-grid {
     grid-template-columns: var(--col-left-small, 70px) 1fr;
     gap: 0.25rem;
@@ -626,6 +659,12 @@ html, body {
 
 /* ========== TINY MOBILE (≤ 480px) ========== */
 @media (max-width: 480px) {
+  :root {
+    --bpm-offset-y: -2px;
+    --bpm-scale: 0.72;
+    --bpm-gap: 4px;
+  }
+
   .app12-main-grid {
     grid-template-columns: var(--col-left-tiny, 60px) 1fr;
     gap: 0.2rem;

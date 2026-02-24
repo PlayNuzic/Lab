@@ -473,6 +473,10 @@ async function init() {
     // Create container for controls (grid-column: 1, grid-row: 2 via CSS)
     const controlsContainer = document.createElement('div');
     controlsContainer.className = 'app12-controls-container';
+    const bpmParam = document.getElementById('bpmParam');
+    if (bpmParam) {
+      controlsContainer.prepend(bpmParam);
+    }
     controlsContainer.appendChild(controls);
 
     // Add to wrapper - CSS Grid will position it in bottom-left

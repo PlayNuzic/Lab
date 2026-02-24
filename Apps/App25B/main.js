@@ -1026,6 +1026,10 @@ async function init() {
 
     const controlsContainer = document.createElement('div');
     controlsContainer.className = 'app25-controls-container';
+    const bpmParam = document.getElementById('bpmParam');
+    if (bpmParam) {
+      controlsContainer.prepend(bpmParam);
+    }
     controlsContainer.appendChild(controls);
 
     scaleSelectorContainer.appendChild(controlsContainer);
