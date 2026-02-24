@@ -570,8 +570,12 @@ body.dragging-note * {
 /* ========== TABLET (≤ 900px) ========== */
 @media (max-width: 900px) {
   :root {
-    --bpm-offset-x: -16px;
-    --bpm-offset-y: -24px;
+    --play-offset-x: -105px;
+    --play-offset-y: -45px;
+    --buttons-row-offset-x: -58px;
+    --buttons-row-offset-y: 18px;
+    --bpm-offset-x: 24px;
+    --bpm-offset-y: -95px;
     --bpm-scale: 0.86;
     --bpm-gap: 8px;
   }
@@ -697,8 +701,12 @@ body.dragging-note * {
 /* ========== SMALL TABLET (≤ 700px) ========== */
 @media (max-width: 700px) {
   :root {
-    --bpm-offset-x: -10px;
-    --bpm-offset-y: -14px;
+    --play-offset-x: -72px;
+    --play-offset-y: -24px;
+    --buttons-row-offset-x: -40px;
+    --buttons-row-offset-y: 10px;
+    --bpm-offset-x: 8px;
+    --bpm-offset-y: -62px;
     --bpm-scale: 0.76;
     --bpm-gap: 6px;
   }
@@ -785,8 +793,12 @@ body.dragging-note * {
 /* ========== SMALL SCREENS (≤ 600px) ========== */
 @media (max-width: 600px) {
   :root {
-    --bpm-offset-x: -6px;
-    --bpm-offset-y: -8px;
+    --play-offset-x: -54px;
+    --play-offset-y: -14px;
+    --buttons-row-offset-x: -30px;
+    --buttons-row-offset-y: 6px;
+    --bpm-offset-x: 2px;
+    --bpm-offset-y: -44px;
     --bpm-scale: 0.7;
     --bpm-gap: 4px;
   }
@@ -813,8 +825,12 @@ body.dragging-note * {
 /* ========== TINY MOBILE (≤ 480px) ========== */
 @media (max-width: 480px) {
   :root {
-    --bpm-offset-x: -2px;
-    --bpm-offset-y: -4px;
+    --play-offset-x: -40px;
+    --play-offset-y: -8px;
+    --buttons-row-offset-x: -22px;
+    --buttons-row-offset-y: 4px;
+    --bpm-offset-x: 0px;
+    --bpm-offset-y: -30px;
     --bpm-scale: 0.66;
     --bpm-gap: 3px;
   }

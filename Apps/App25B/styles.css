@@ -642,6 +642,7 @@ html, body {
 @media (max-width: 900px) {
   :root {
     --scale-selector-width: var(--col-left-tablet);
+    --bpm-offset-x: -2px;
     --bpm-offset-y: -4px;
     --bpm-scale: 0.9;
     --bpm-gap: 6px;
@@ -701,6 +702,7 @@ html, body {
 @media (max-width: 768px) {
   :root {
     --scale-selector-width: var(--col-left-mobile);
+    --bpm-offset-x: 0px;
     --bpm-offset-y: -2px;
     --bpm-scale: 0.84;
     --bpm-gap: 4px;
@@ -741,6 +743,7 @@ html, body {
 @media (max-width: 600px) {
   :root {
     --scale-selector-width: 85px;
+    --bpm-offset-x: 0px;
     --bpm-offset-y: 0px;
     --bpm-scale: 0.78;
     --bpm-gap: 3px;

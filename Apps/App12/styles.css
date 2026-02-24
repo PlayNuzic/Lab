@@ -490,6 +490,11 @@ html, body {
 /* ========== TABLET (≤ 900px) ========== */
 @media (max-width: 900px) {
   :root {
+    --play-offset-x: -12px;
+    --play-offset-y: 18px;
+    --buttons-row-offset-x: -115px;
+    --buttons-row-offset-y: 18px;
+    --bpm-offset-x: 70px;
     --bpm-offset-y: -14px;
     --bpm-scale: 0.88;
     --bpm-gap: 10px;
@@ -597,6 +602,11 @@ html, body {
 /* ========== MOBILE (≤ 768px) ========== */
 @media (max-width: 768px) {
   :root {
+    --play-offset-x: -10px;
+    --play-offset-y: 12px;
+    --buttons-row-offset-x: -90px;
+    --buttons-row-offset-y: 14px;
+    --bpm-offset-x: 50px;
     --bpm-offset-y: -8px;
     --bpm-scale: 0.82;
     --bpm-gap: 8px;
@@ -632,6 +642,11 @@ html, body {
 /* ========== SMALL SCREENS (≤ 600px) ========== */
 @media (max-width: 600px) {
   :root {
+    --play-offset-x: -8px;
+    --play-offset-y: 8px;
+    --buttons-row-offset-x: -70px;
+    --buttons-row-offset-y: 10px;
+    --bpm-offset-x: 35px;
     --bpm-offset-y: -4px;
     --bpm-scale: 0.76;
     --bpm-gap: 6px;
@@ -660,6 +675,11 @@ html, body {
 /* ========== TINY MOBILE (≤ 480px) ========== */
 @media (max-width: 480px) {
   :root {
+    --play-offset-x: -6px;
+    --play-offset-y: 6px;
+    --buttons-row-offset-x: -55px;
+    --buttons-row-offset-y: 8px;
+    --bpm-offset-x: 22px;
     --bpm-offset-y: -2px;
     --bpm-scale: 0.72;
     --bpm-gap: 4px;
