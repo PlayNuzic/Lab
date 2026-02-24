@@ -22,7 +22,7 @@
   /* App25 2-column layout */
   --scale-selector-width: 280px;
   --col-left: var(--scale-selector-width);
-  --col-left-tablet: 220px;
+  --col-left-tablet: 2220px;
   --col-left-mobile: 180px;
   --layout-gap: 0.75rem;
 
@@ -34,11 +34,11 @@
   --buttons-align: center;
 
   /* Fine-tuning: Play button position */
-  --play-offset-x: 125px;
+  --play-offset-x: 120px;
   --play-offset-y: -5px;
 
   /* Fine-tuning: Secondary buttons position */
-  --buttons-row-offset-x: -60px;
+  --buttons-row-offset-x: -65px;
   --buttons-row-offset-y: -40px;
 
   /* Toggle positioning */
