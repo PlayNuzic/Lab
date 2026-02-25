@@ -55,6 +55,13 @@
       `;
     }
 
+    const bpmParam = document.getElementById('bpmParam');
+    const timelineWrapper = document.getElementById('timelineWrapper');
+    if (bpmParam && timelineWrapper) {
+      timelineWrapper.prepend(bpmParam);
+      timelineWrapper.classList.add('timeline-wrapper--bpm-left');
+    }
+
     // Setup sound groups: Instrumento + Metrónomo + Subdivisión
     const soundGroup = document.querySelector('.sound-group');
     if (soundGroup) {

@@ -31,18 +31,45 @@ body[data-theme='dark'] {
 
 body.app28 {
   --unit-label-offset: -20px;
+  --bpm-offset-x: -70px;
+  --bpm-offset-y: -15px;
+  --bpm-scale: 1;
+  --bpm-timeline-gap: 24px;
 }
 
 /* ========== INPUTS (BPM) ========== */
 .inputs {
-  display: flex;
-  justify-content: center;
-  padding: 0;
+  display: none;
+}
+
+/* ========== BPM + TIMELINE LAYOUT ========== */
+.timeline-wrapper--bpm-left {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "bpm timeline"
+    "controls controls";
+  column-gap: var(--bpm-timeline-gap);
+  align-items: center;
+}
+
+.timeline-wrapper--bpm-left > .bpm-inline {
+  grid-area: bpm;
+  position: relative;
+  justify-self: start;
+  align-self: center;
+  transform-origin: left center;
+  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
+}
+
+.timeline-wrapper--bpm-left > .timeline {
+  grid-area: timeline;
+  width: 100%;
   margin: 0;
 }
 
-.inputs .bpm-inline {
-  position: relative;
+.timeline-wrapper--bpm-left > .controls {
+  grid-area: controls;
 }
 
 /* ========== MIDDLE SECTION (oculta) ========== */
@@ -504,6 +531,8 @@ body.app28 {
 @media (max-width: 768px) {
   body.app28 {
     --unit-label-offset: -5px;
+    --bpm-scale: 0.9;
+    --bpm-timeline-gap: 12px;
   }
 
   .pfr-row {
@@ -564,6 +593,11 @@ body.app28 {
 }
 
 @media (max-width: 480px) {
+  body.app28 {
+    --bpm-scale: 0.8;
+    --bpm-timeline-gap: 8px;
+  }
+
   .pfr-row {
     flex-direction: column;
     gap: 10px;
