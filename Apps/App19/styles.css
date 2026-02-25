@@ -1,5 +1,9 @@
 /* App19 - Plano Modular */
 
+.control-sound-toggle-container--pulse {
+  display: none;
+}
+
 /* ============================================
    GLOBAL SCROLL OVERRIDE
    ============================================ */
@@ -63,14 +67,14 @@ html, body {
   --registro-offset-y: -125px;
 
   /* Button fine-tuning offsets (x, y) */
-  --btn-play-offset-x: 75px;
+  --btn-play-offset-x: 0px;
   --btn-play-offset-y: -150px;
   --btn-random-offset-x: 0px;
   --btn-random-offset-y: 75px;
   --btn-reset-offset-x: 0px;
   --btn-reset-offset-y: 90px;
   --btn-taptempo-offset-x: 0px;
-  --btn-taptempo-offset-y: -40px;
+  --btn-taptempo-offset-y: -20px;
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
   --bpm-offset-x: 0px;
