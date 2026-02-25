@@ -23,6 +23,10 @@ body[data-theme='dark'] {
 body.app33 {
   --unit-label-offset: -20px;
   --plano-timeline-height: 56px;
+  --bpm-left-distance: 150px;
+  --bpm-offset-x: 0px;
+  --bpm-offset-y: -40px;
+  --bpm-scale: 1;
 }
 
 /* ========== MIDDLE SECTION (oculta) ========== */
@@ -600,6 +604,8 @@ body.dragging-it * {
 @media (max-width: 768px) {
   body.app33 {
     --unit-label-offset: -5px;
+    --bpm-left-distance: 118px;
+    --bpm-scale: 0.9;
   }
 
   .pz-row {
@@ -677,6 +683,11 @@ body.dragging-it * {
 }
 
 @media (max-width: 480px) {
+  body.app33 {
+    --bpm-left-distance: 96px;
+    --bpm-scale: 0.8;
+  }
+
   .pz-row {
     font-size: 1.6rem;
     flex-wrap: wrap;
@@ -1029,12 +1040,24 @@ body.dragging-note * {
 
 /* ========== BPM INLINE ========== */
 .inputs {
-  display: flex;
-  justify-content: center;
-  padding: 0;
-  margin: 0;
+  display: none;
 }
 
-.inputs .bpm-inline {
+.grid-container--bpm-left {
   position: relative;
+  overflow: visible;
+}
+
+.grid-container--bpm-left > .bpm-inline {
+  position: absolute;
+  left: calc(-1 * var(--bpm-left-distance));
+  top: 50%;
+  z-index: 20;
+  transform-origin: left center;
+  transform: translate(var(--bpm-offset-x), calc(-50% + var(--bpm-offset-y))) scale(var(--bpm-scale));
+}
+
+.grid-container--bpm-left > .plano-container {
+  width: 100%;
+  min-width: 0;
 }

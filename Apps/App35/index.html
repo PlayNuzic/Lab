@@ -56,6 +56,24 @@
         </div>`;
     }
 
+    const placeBpmNearGrid = () => {
+      const bpmParam = document.getElementById('bpmParam');
+      const gridContainer = document.getElementById('gridContainer');
+      if (!bpmParam || !gridContainer) return false;
+      if (bpmParam.parentElement !== gridContainer) {
+        gridContainer.prepend(bpmParam);
+      }
+      gridContainer.classList.add('grid-container--bpm-left');
+      return true;
+    };
+
+    if (!placeBpmNearGrid()) {
+      const observer = new MutationObserver(() => {
+        if (placeBpmNearGrid()) observer.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+
     // Setup sound groups: Instrumento + Metrónomo + Subdivisión
     const soundGroup = document.querySelector('.sound-group');
     if (soundGroup) {
