@@ -42,6 +42,8 @@ body.app30 {
     "controls controls";
   column-gap: var(--bpm-timeline-gap);
   align-items: center;
+  box-sizing: border-box;
+  padding-left: max(0px, calc(-1 * var(--bpm-offset-x)));
 }
 
 .timeline-wrapper--bpm-left > .bpm-inline {

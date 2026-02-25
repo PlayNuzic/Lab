@@ -1317,11 +1317,13 @@ body.dragging-note * {
 .grid-container--bpm-left {
   position: relative;
   overflow: visible;
+  box-sizing: border-box;
+  padding-left: var(--bpm-left-distance);
 }
 
 .grid-container--bpm-left > .bpm-inline {
   position: absolute;
-  left: calc(-1 * var(--bpm-left-distance));
+  left: 0;
   top: 50%;
   z-index: 20;
   transform-origin: left center;

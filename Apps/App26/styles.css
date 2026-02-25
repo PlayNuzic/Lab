@@ -1,5 +1,10 @@
 /* App26: Fracciones Simples - Estilos específicos */
 
+.control-sound-toggle-container--pulse,
+.control-sound-toggle-container--cycle {
+  display: none;
+}
+
 :root {
   --cycle-color: #FFBB33;
   --fraction-spinner-color: var(--line-color);
@@ -35,6 +40,8 @@ body.app26 {
     "controls controls";
   column-gap: var(--bpm-timeline-gap);
   align-items: center;
+  box-sizing: border-box;
+  padding-left: max(0px, calc(-1 * var(--bpm-offset-x)));
 }
 
 .timeline-wrapper--bpm-left > .bpm-inline {
