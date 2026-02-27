@@ -1053,7 +1053,12 @@ export function createGridEditor(config = {}) {
         return;
       }
       if (text && !isNaN(itVal) && currentTotal > maxTotalPulse) {
-        showInputTooltip(input, `iT máximo: ${maxTotalPulse - currentTotal + itVal}`);
+        const availableIT = maxTotalPulse - currentTotal + itVal;
+        if (availableIT < 1) {
+          showInputTooltip(input, 'Sucesión completa');
+        } else {
+          showInputTooltip(input, `iT máximo: ${availableIT}`);
+        }
         input.classList.add('invalid');
         input.value = ''; // Clear invalid value
         input.focus();    // Keep caret in same cell
@@ -1913,7 +1918,12 @@ export function createGridEditor(config = {}) {
         return;
       }
       if (text && !isNaN(itVal) && currentTotal > maxTotalPulse) {
-        showInputTooltip(input, `iT máximo: ${maxTotalPulse - currentTotal + itVal}`);
+        const availableIT = maxTotalPulse - currentTotal + itVal;
+        if (availableIT < 1) {
+          showInputTooltip(input, 'Sucesión completa');
+        } else {
+          showInputTooltip(input, `iT máximo: ${availableIT}`);
+        }
         input.classList.add('invalid');
         input.value = ''; // Clear invalid value
         input.focus();    // Keep caret in same cell
