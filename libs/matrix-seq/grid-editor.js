@@ -4460,6 +4460,15 @@ export function createGridEditor(config = {}) {
     render();
   }
 
+  /**
+   * Update maxTotalPulse dynamically (e.g. when fraction changes).
+   * Works for n-it, nrx-it and interval modes.
+   */
+  function setMaxTotalPulse(value) {
+    if (intervalModeOptions) intervalModeOptions.maxTotalPulse = value;
+    if (nrxModeOptions) nrxModeOptions.maxTotalPulse = value;
+  }
+
   return {
     render,
     getPairs,
@@ -4468,6 +4477,7 @@ export function createGridEditor(config = {}) {
     highlightCell,
     clearHighlights,
     removeEmptyIntervalSlots,
-    focusFirstNCell
+    focusFirstNCell,
+    setMaxTotalPulse
   };
 }

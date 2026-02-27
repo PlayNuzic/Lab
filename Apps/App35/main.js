@@ -1026,6 +1026,11 @@ function handleFractionChange(nextFraction = null) {
   // Recalcular longitud variable
   currentLg = calculateVariableLg(currentNumerator);
 
+  // Update zigzag editor maxTotalPulse before filtering
+  if (zigzagEditor) {
+    zigzagEditor.setMaxTotalPulse(getTotalSubdivisions());
+  }
+
   // Filter invalid notes
   filterInvalidNotes();
 

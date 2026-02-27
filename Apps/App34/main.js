@@ -864,6 +864,11 @@ function handleFractionChange() {
 
   currentDenominator = newD;
 
+  // Update zigzag editor maxTotalPulse before filtering
+  if (zigzagEditor) {
+    zigzagEditor.setMaxTotalPulse(getTotalSubdivisions());
+  }
+
   // Filter invalid notes
   filterInvalidNotes();
 
