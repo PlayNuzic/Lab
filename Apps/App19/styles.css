@@ -611,6 +611,7 @@ main {
   gap: 0;
   min-height: 0;
   overflow: hidden;
+  margin-right: 1rem;
 }
 
 /* Override plano-modular defaults for 24 visible rows */
