@@ -29,7 +29,7 @@ import { fillGapsWithSilences } from '../../libs/interval-sequencer/index.js';
 // Import modular controllers (NEW)
 import { createGrid2DSyncController } from '../../libs/app-common/grid-2d-sync-controller.js';
 import { createIntervalNoteDragHandler } from '../../libs/app-common/interval-note-drag.js';
-import { createRegistryAutoscrollController } from '../../libs/app-common/registry-playback-autoscroll.js';
+// Registry autoscroll removed — now using grid.scrollToRowIdIfNeeded() for smooth per-note autoscroll
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
@@ -112,7 +112,6 @@ let currentPairs = [];
 // Modular controllers (NEW)
 let syncController = null;
 let dragHandler = null;
-let autoscrollController = null;
 
 // Mixer storage key
 const MIXER_STORAGE_KEY = 'app20-mixer';
@@ -351,41 +350,48 @@ function initGrid() {
     bpm: bpmController?.getValue() || CONFIG.DEFAULT_BPM,
     defaultRegistry: CONFIG.DEFAULT_REGISTRO,
     registryConfig: {
+      visibleRows: 24,
       selectableRegistries: [2, 3, 4, 5]  // App20 uses extended range including registry 2
     },
     onCellClick: handleCellClick,
     onSelectionChange: null  // Selections not persisted
   });
 
-  // Add scroll listener to update registry display based on visible position
+  // Add scroll listener to detect 2 visible registries and update display
   const soundline = gridContainer.querySelector('.plano-soundline-container');
   if (soundline) {
     soundline.addEventListener('scroll', () => {
-      if (!grid || !elements.inputRegistro) return;
+      if (!grid || !elements.registroText) return;
 
-      // Get note0RowMap to find registry boundaries
-      const note0RowMap = grid.getNote0RowMap();
-      if (!note0RowMap) return;
+      const rows = grid.getRowDefinitions();
+      if (!rows || rows.length === 0) return;
 
-      // Calculate which registry is most visible based on scroll position
       const scrollTop = soundline.scrollTop;
-      const cellHeight = 32; // var(--grid-cell-height)
-      const visibleMiddleRow = Math.floor(scrollTop / cellHeight) + 7; // +7 for center of 15 visible rows
+      const cellHeight = 26; // var(--grid-cell-height)
+      const firstVisibleRow = Math.floor(scrollTop / cellHeight);
+      const lastVisibleRow = Math.min(firstVisibleRow + 23, rows.length - 1);
 
-      // Find the closest registry based on its note0 row position
-      let closestRegistry = CONFIG.DEFAULT_REGISTRO;
-      let minDistance = Infinity;
-
-      for (const [regStr, rowIndex] of Object.entries(note0RowMap)) {
-        const reg = parseInt(regStr);
-        const distance = Math.abs(rowIndex - visibleMiddleRow);
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestRegistry = reg;
+      // Find which registries are visible
+      const visibleRegistries = new Set();
+      for (let r = firstVisibleRow; r <= lastVisibleRow; r++) {
+        if (rows[r]?.data?.registry) {
+          visibleRegistries.add(rows[r].data.registry);
         }
       }
 
-      elements.inputRegistro.value = closestRegistry;
+      const regArray = [...visibleRegistries].sort((a, b) => a - b);
+      if (regArray.length === 1) {
+        elements.registroText.textContent = String(regArray[0]);
+      } else if (regArray.length >= 2) {
+        // Show the 2 most prominent registries
+        const note0RowMap = grid.getNote0RowMap();
+        const middleRow = firstVisibleRow + 12;
+        const sorted = regArray
+          .map(reg => ({ reg, dist: Math.abs((note0RowMap[reg] ?? 0) - middleRow) }))
+          .sort((a, b) => a.dist - b.dist);
+        const pair = [sorted[0].reg, sorted[1].reg].sort((a, b) => a - b);
+        elements.registroText.textContent = `${pair[0]} y ${pair[1]}`;
+      }
     });
   }
 
@@ -428,20 +434,6 @@ function initGrid() {
 
   // Attach drag listeners
   dragHandler.attach();
-
-  // Initialize autoscroll controller (handles vertical scroll during playback)
-  autoscrollController = createRegistryAutoscrollController({
-    grid,
-    getSelectedArray: () => grid.getSelectedArray(),
-    config: {
-      minRegistry: CONFIG.MIN_REGISTRO,
-      maxRegistry: CONFIG.MAX_REGISTRO,
-      notesPerRegistry: CONFIG.NOTES_PER_REGISTRY,
-      visibleRows: 15,
-      zeroPosition: 7,
-      smoothScroll: true
-    }
-  });
 
   console.log('Grid initialized with plano-modular + modular controllers');
 }
@@ -606,44 +598,84 @@ function maybeApplyInitialScroll() {
 
   // Use requestAnimationFrame to ensure DOM is rendered
   requestAnimationFrame(() => {
-    grid.setRegistry(CONFIG.DEFAULT_REGISTRO, false);
+    // Show registries 3 and 4 initially
+    scrollToRegistryPair(3, false);
     isInitialized = true;
   });
 }
 
 /**
- * Scroll to a specific registry
+ * Scroll to show a registry pair (bottomReg and bottomReg+1)
+ * Positions note 0 of bottomReg near the bottom of the visible area.
  */
-function scrollToRegistry(targetRegistry, animated = false) {
-  if (autoscrollController) {
-    autoscrollController.scrollToRegistry(targetRegistry, animated);
-  } else if (grid) {
-    grid.setRegistry(targetRegistry, animated);
+function scrollToRegistryPair(bottomReg, animated = false) {
+  if (!grid) return;
+
+  const note0RowMap = grid.getNote0RowMap();
+  const bottomRowIdx = note0RowMap[bottomReg];
+  if (bottomRowIdx === undefined) return;
+
+  // Scroll so that note 0 of bottomReg is near the bottom of 24 visible rows
+  const cellHeight = 26;
+  const visibleRows = 24;
+  const targetScrollTop = Math.max(0, (bottomRowIdx - visibleRows + 2) * cellHeight);
+
+  // Scroll both containers
+  const gridContainer = document.getElementById('rightColumn');
+  const soundline = gridContainer?.querySelector('.plano-soundline-container');
+  const matrix = gridContainer?.querySelector('.plano-matrix-container');
+
+  if (animated) {
+    [soundline, matrix].forEach(el => {
+      if (el) el.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+    });
+  } else {
+    [soundline, matrix].forEach(el => {
+      if (el) el.scrollTop = targetScrollTop;
+    });
   }
 }
 
 /**
- * Scroll to a specific note within a registry
+ * Scroll to a specific note within a registry (only if not visible)
  * @param {number} note - Note value (0-11)
  * @param {number} registry - Registry value (2-5)
  * @param {boolean} animated - Whether to animate the scroll
  */
 function scrollToNote(note, registry, animated = false) {
   if (!grid) return;
-
-  // Get row definitions to find the exact row index
-  const rows = grid.getRowDefinitions();
   const targetRowId = `${note}r${registry}`;
+  grid.scrollToRowIdIfNeeded(targetRowId, animated, 2, 350);
+}
 
-  // Find the row index for this note+registry
-  const rowIndex = rows.findIndex(row => row.id === targetRowId);
+function incrementRegistro() {
+  // Scroll up by one registry (12 rows)
+  if (!grid) return;
+  const gridContainer = document.getElementById('rightColumn');
+  const soundline = gridContainer?.querySelector('.plano-soundline-container');
+  if (!soundline) return;
+  const cellHeight = 26;
+  const targetScrollTop = Math.max(0, soundline.scrollTop - 12 * cellHeight);
+  const matrix = gridContainer?.querySelector('.plano-matrix-container');
+  [soundline, matrix].forEach(el => {
+    if (el) el.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+  });
+}
 
-  if (rowIndex !== -1) {
-    grid.scrollToRow(rowIndex, animated);
-  } else {
-    // Fallback to registry scroll if specific note not found
-    scrollToRegistry(registry, animated);
-  }
+function decrementRegistro() {
+  // Scroll down by one registry (12 rows)
+  if (!grid) return;
+  const gridContainer = document.getElementById('rightColumn');
+  const soundline = gridContainer?.querySelector('.plano-soundline-container');
+  if (!soundline) return;
+  const cellHeight = 26;
+  const rows = grid.getRowDefinitions();
+  const maxScrollTop = Math.max(0, (rows.length - 24) * cellHeight);
+  const targetScrollTop = Math.min(maxScrollTop, soundline.scrollTop + 12 * cellHeight);
+  const matrix = gridContainer?.querySelector('.plano-matrix-container');
+  [soundline, matrix].forEach(el => {
+    if (el) el.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+  });
 }
 
 // ========== INPUT HANDLERS ==========
@@ -759,10 +791,8 @@ async function startPlayback() {
   // Get MIDI notes from grid selection
   const midiMap = grid.getSelectedMidiNotes();
 
-  // Build pulse → registry map for vertical autoscroll (using modular controller)
-  const pulseRegistry = autoscrollController
-    ? autoscrollController.buildPulseRegistryMap()
-    : {};
+  // Get selected array for per-note autoscroll
+  const selectedArray = grid.getSelectedArray();
 
   // Build pulse → pair map for accessing temporalInterval during playback
   const pulsePairMap = new Map();
@@ -804,9 +834,10 @@ async function startPlayback() {
       // 1. Update playhead position
       grid.updatePlayhead(step);
 
-      // 2. Autoscroll VERTICAL: switch to registry of current note (using modular controller)
-      if (autoscrollController) {
-        autoscrollController.scrollToRegistryForPulse(step, pulseRegistry);
+      // 2. Autoscroll VERTICAL: scroll to note row only if not already visible
+      const selectedForStep = selectedArray.find(s => s.colIndex === step);
+      if (selectedForStep) {
+        grid.scrollToRowIdIfNeeded(selectedForStep.rowId, true, 2, 350);
       }
 
       // 3. Highlight timeline number
@@ -831,19 +862,7 @@ async function startPlayback() {
         }
       }
 
-      // 5. Anticipate registry change for NEXT pulse (using modular controller)
-      const nextPulse = step + 1;
-      if (nextPulse < totalPulses && autoscrollController) {
-        const registryChangeDelay = intervalSec * 1000 * 0.75;
-        autoscrollController.scheduleAnticipatedScroll(
-          nextPulse,
-          pulseRegistry,
-          registryChangeDelay,
-          () => isPlaying
-        );
-      }
-
-      // 6. Update cycle counter
+      // 5. Update cycle counter
       const cycleNum = Math.floor(step / compas) + 1;
       if (step === 0 && elements.cycleDigit) {
         elements.cycleDigit.textContent = '1';
@@ -855,13 +874,13 @@ async function startPlayback() {
         }
       }
 
-      // 7. Auto-scroll HORIZONTAL to keep pulse visible
+      // 6. Auto-scroll HORIZONTAL to keep pulse visible
       grid.scrollToColumn(step, false);
 
-      // 8. Update cycle digit color
+      // 7. Update cycle digit color
       updateCycleDigitColor(step);
 
-      // 9. Update total length display with flip animation
+      // 8. Update total length display with flip animation
       updateTotalLengthDisplay(step);
     },
     () => {
@@ -998,8 +1017,9 @@ function handleReset() {
   // Reset BPM to default
   bpmController?.setValue(CONFIG.DEFAULT_BPM);
 
-  // Reset registry
-  scrollToRegistry(CONFIG.DEFAULT_REGISTRO, false);
+  // Reset registry (show registries 3 and 4)
+  scrollToRegistryPair(3, false);
+  if (elements.registroText) elements.registroText.textContent = '3 y 4';
 
   // Clear grid-editor
   gridEditor?.clear();
@@ -1120,6 +1140,10 @@ function setupEventHandlers() {
   attachSpinnerRepeat(elements.cycleUp, incrementCycles);
   attachSpinnerRepeat(elements.cycleDown, decrementCycles);
 
+  // Registro spinners
+  attachSpinnerRepeat(elements.registroUp, incrementRegistro);
+  attachSpinnerRepeat(elements.registroDown, decrementRegistro);
+
   // Play button
   elements.playBtn?.addEventListener('click', togglePlayback);
 
@@ -1132,6 +1156,7 @@ function setupEventHandlers() {
 function setupHovers() {
   attachHover(elements.inputCompas, 'Compás (pulsos por ciclo)');
   attachHover(elements.inputCycle, 'Nº de compases a tocar');
+  attachHover(elements.registroText, 'Registros visibles (octavas)');
   attachHover(elements.inputBpm, 'Tempo en pulsos por minuto');
   attachHover(elements.playBtn, 'Reproducir / Detener');
   attachHover(elements.randomBtn, 'Valores aleatorios');
@@ -1150,10 +1175,14 @@ registerFactoryReset({
     // Reset UI
     if (elements.inputCompas) elements.inputCompas.value = '';
     if (elements.inputCycle) elements.inputCycle.value = '';
+    if (elements.registroText) elements.registroText.textContent = '3 y 4';
     if (elements.cycleDigit) elements.cycleDigit.textContent = '';
 
     // Reset BPM
     bpmController?.setValue(CONFIG.DEFAULT_BPM);
+
+    // Reset registry (show registries 3 and 4)
+    scrollToRegistryPair(3, false);
 
     // Clear grid-editor
     gridEditor?.clear();
@@ -1175,7 +1204,7 @@ function bindElements() {
     // Inputs
     inputCompas: document.getElementById('inputCompas'),
     inputCycle: document.getElementById('inputCycle'),
-    inputRegistro: document.getElementById('inputRegistro'),
+    registroText: document.getElementById('registroText'),
     inputBpm: document.getElementById('inputBpm'),
 
     // Grid-editor container
@@ -1186,6 +1215,8 @@ function bindElements() {
     compasDown: document.getElementById('compasDown'),
     cycleUp: document.getElementById('cycleUp'),
     cycleDown: document.getElementById('cycleDown'),
+    registroUp: document.getElementById('registroUp'),
+    registroDown: document.getElementById('registroDown'),
     bpmUp: document.getElementById('bpmUp'),
     bpmDown: document.getElementById('bpmDown'),
 
