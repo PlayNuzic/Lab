@@ -622,9 +622,7 @@ main {
 }
 
 .controls-container .controls #tapTempoBtn {
-  position: static;
-  display: flex !important;
-  transform: translate(var(--btn-taptempo-offset-x), var(--btn-taptempo-offset-y));
+  display: none !important;
 }
 
 /* Reorder buttons: Play → Random → Reset → TapTempo */
