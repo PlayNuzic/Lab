@@ -64,7 +64,7 @@ html, body {
   /* Registry circle */
   --registro-circle-size: 70px;
   --registro-offset-x: 0px;
-  --registro-offset-y: 75px;
+  --registro-offset-y: 100px;
 
   /* Compás param offset */
   --compas-offset-x: 65px;
@@ -72,7 +72,7 @@ html, body {
 
   /* Cycles param offset */
   --cycles-offset-x: 45px;
-  --cycles-offset-y: 0px;
+  --cycles-offset-y: 10px;
 
   /* Grid editor offset */
   --grid-editor-offset-x: -40px;
@@ -89,21 +89,21 @@ html, body {
   --total-length-offset-y: 17px;
 
   /* Controls container offset */
-  --controls-offset-y: 50px;
+  --controls-offset-y: 90px;
 
   /* Button fine-tuning offsets (x, y) */
   --btn-play-offset-x: 0px;
-  --btn-play-offset-y: -40px;
+  --btn-play-offset-y: 40px;
   --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 170px;
+  --btn-random-offset-y: 0px;
   --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 170px;
+  --btn-reset-offset-y: 0px;
   --btn-taptempo-offset-x: 0px;
   --btn-taptempo-offset-y: 50px;
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
   --bpm-offset-x: 0px;
-  --bpm-offset-y: 100px;
+  --bpm-offset-y: 150px;
 
   /* BPM sizing */
   --bpm-scale: 0.8;
@@ -565,7 +565,7 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 /* Play row: static positioning for vertical layout */
@@ -602,12 +602,13 @@ main {
   opacity: 0.4 !important;
 }
 
-/* Hide button-row wrapper, show buttons directly */
+/* Button row: Random + Reset side by side below Play */
 .controls-container .controls .button-row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 1rem;
 }
 
 /* Button fine-tuning offsets */
@@ -1208,10 +1209,10 @@ main {
     --grid-editor-offset-x: -20px;
     --grid-editor-offset-y: -20px;
     --registro-offset-y: 30px;
-    --btn-play-offset-x: 50px;
-    --btn-play-offset-y: -20px;
-    --btn-random-offset-y: 120px;
-    --btn-reset-offset-y: 120px;
+    --btn-play-offset-x: 0px;
+    --btn-play-offset-y: 0px;
+    --btn-random-offset-y: 0px;
+    --btn-reset-offset-y: 0px;
   }
 
   .inputs {
@@ -1272,10 +1273,10 @@ main {
     --grid-editor-offset-x: -10px;
     --grid-editor-offset-y: -10px;
     --registro-offset-y: 20px;
-    --btn-play-offset-x: 30px;
-    --btn-play-offset-y: -10px;
-    --btn-random-offset-y: 80px;
-    --btn-reset-offset-y: 80px;
+    --btn-play-offset-x: 0px;
+    --btn-play-offset-y: 0px;
+    --btn-random-offset-y: 0px;
+    --btn-reset-offset-y: 0px;
     --separator-height: 130px;
   }
 

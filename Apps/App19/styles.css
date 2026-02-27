@@ -68,17 +68,17 @@ html, body {
 
   /* Button fine-tuning offsets (x, y) */
   --btn-play-offset-x: 0px;
-  --btn-play-offset-y: -150px;
+  --btn-play-offset-y: 0px;
   --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 75px;
+  --btn-random-offset-y: 0px;
   --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 90px;
+  --btn-reset-offset-y: 0px;
   --btn-taptempo-offset-x: 0px;
   --btn-taptempo-offset-y: -20px;
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
   --bpm-offset-x: 0px;
-  --bpm-offset-y: 0px;
+  --bpm-offset-y: 150px;
 
   /* BPM sizing */
   --bpm-scale: 0.8;
@@ -378,8 +378,7 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  transform: translateY(40px);
+  gap: 0.75rem;
 }
 
 /* Play row: static positioning for vertical layout */
@@ -404,12 +403,13 @@ main {
   transform: translate(var(--btn-pulse-toggle-offset-x), var(--btn-pulse-toggle-offset-y)) !important;
 }
 
-/* Hide button-row wrapper, show buttons directly */
+/* Button row: Random + Reset side by side below Play */
 .controls-container .controls .button-row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 1rem;
 }
 
 /* Button fine-tuning offsets */
@@ -1001,10 +1001,10 @@ main {
     --grid-cell-min-width: 45px;
     --grid-cell-height: 28px;
     /* Reduce button offsets */
-    --btn-play-offset-x: 50px;
-    --btn-play-offset-y: -100px;
-    --btn-random-offset-y: 50px;
-    --btn-reset-offset-y: 60px;
+    --btn-play-offset-x: 0px;
+    --btn-play-offset-y: 0px;
+    --btn-random-offset-y: 0px;
+    --btn-reset-offset-y: 0px;
     --registro-offset-y: -80px;
     --left-column-offset-y: -20px;
   }
@@ -1053,10 +1053,10 @@ main {
   :root {
     --left-column-width: 100px;
     --registro-circle-size: 55px;
-    --btn-play-offset-x: 35px;
-    --btn-play-offset-y: -70px;
-    --btn-random-offset-y: 35px;
-    --btn-reset-offset-y: 45px;
+    --btn-play-offset-x: 0px;
+    --btn-play-offset-y: 0px;
+    --btn-random-offset-y: 0px;
+    --btn-reset-offset-y: 0px;
     --registro-offset-y: -50px;
     --left-column-offset-y: -10px;
   }

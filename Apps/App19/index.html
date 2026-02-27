@@ -189,6 +189,19 @@
       if (controlsContainer && controls) {
         controlsContainer.appendChild(controls);
       }
+
+      // Wrap Random + Reset in a row so they sit side by side below Play
+      const randomBtn = controls?.querySelector('#randomBtn');
+      const randomMenu = controls?.querySelector('#randomMenu');
+      const resetBtn = controls?.querySelector('#resetBtn');
+      if (randomBtn && resetBtn) {
+        const buttonRow = document.createElement('div');
+        buttonRow.className = 'button-row';
+        randomBtn.before(buttonRow);
+        buttonRow.appendChild(randomBtn);
+        if (randomMenu) buttonRow.appendChild(randomMenu);
+        buttonRow.appendChild(resetBtn);
+      }
     } else {
       console.error('Failed to restructure template - timelineWrapper or controls not found');
     }
