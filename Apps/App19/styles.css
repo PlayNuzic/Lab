@@ -59,8 +59,8 @@ html, body {
   --layout-gap: 0rem;
   --controls-gap: 0.75rem;
 
-  /* Registry circle */
-  --registro-circle-size: 70px;
+  /* Registry box */
+  --registro-height: 44px;
   --registro-offset-x: 0px;
   --registro-offset-y: 20px;
 
@@ -302,10 +302,10 @@ main {
 }
 
 .param.registro .circle {
-  width: var(--registro-circle-size);
-  height: var(--registro-circle-size);
-  border: 2px solid var(--circle-border, #333);
-  border-radius: 50%;
+  height: var(--registro-height);
+  padding: 0 1rem;
+  border: 2px solid #F28AAD;
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -313,39 +313,29 @@ main {
   position: relative;
 }
 
-.param.registro input,
 .param.registro .registro-text {
-  font-size: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
   font-weight: 700;
-  text-align: center;
-  width: 100%;
-  height: 100%;
+  line-height: 1;
+  white-space: nowrap;
   border: none;
   background: transparent;
   color: var(--text-color, #333);
   font-family: 'Courier New', Courier, monospace;
 }
 
-.param.registro .registro-text {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.3rem;
-  line-height: 1.1;
-  white-space: nowrap;
-}
-
-.param.registro input:focus {
-  outline: none;
-}
-
 /* Dark theme for registro */
 [data-theme="dark"] .param.registro .circle {
-  border-color: var(--text-color, #eee);
+  border-color: #F28AAD;
 }
 
-[data-theme="dark"] .param.registro input,
-[data-theme="dark"] .param.registro .registro-text,
+[data-theme="dark"] .param.registro .registro-text {
+  color: var(--text-color, #eee);
+}
+
 [data-theme="dark"] .param.registro .abbr {
   color: var(--text-color, #eee);
 }
@@ -457,14 +447,6 @@ main {
 /* ============================================
    COLOR IDENTIFICATION FOR SECTIONS
    ============================================ */
-
-/* Bordes de botones .controls → naranja (color de selección) */
-.controls-container .controls .play,
-.controls-container .controls .random,
-.controls-container .controls .reset,
-.controls-container .controls .tap {
-  border-color: var(--selection-color);
-}
 
 /* Círculos de parámetros → azul (color Lg) */
 .param.compas .circle,
@@ -997,7 +979,7 @@ main {
 @media (max-width: 900px) {
   :root {
     --left-column-width: 120px;
-    --registro-circle-size: 60px;
+    --registro-height: 60px;
     --grid-cell-height: 28px;
     /* Reduce button offsets */
     --btn-play-offset-x: 0px;
@@ -1051,7 +1033,7 @@ main {
 @media (max-width: 850px) {
   :root {
     --left-column-width: 100px;
-    --registro-circle-size: 55px;
+    --registro-height: 55px;
     --btn-play-offset-x: 0px;
     --btn-play-offset-y: 0px;
     --btn-random-offset-y: 0px;
@@ -1117,7 +1099,7 @@ main {
 @media (max-width: 768px) and (orientation: landscape) {
   :root {
     --left-column-width: 100px;
-    --registro-circle-size: 60px;
+    --registro-height: 60px;
     --grid-cell-height: 24px;
   }
 
@@ -1264,7 +1246,7 @@ main {
     --visible-rows: 39;  /* Show ALL rows (full grid height) */
     --grid-cell-height: 18px;
     --left-column-width: 80px;
-    --registro-circle-size: 50px;
+    --registro-height: 50px;
   }
 
   /* Compact inputs section */
@@ -1356,7 +1338,7 @@ main {
   :root {
     --grid-cell-height: 16px;
     --left-column-width: 70px;
-    --registro-circle-size: 45px;
+    --registro-height: 45px;
   }
 
   .param.compas .circle,

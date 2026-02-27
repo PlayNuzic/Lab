@@ -59,8 +59,8 @@ html, body {
   --layout-gap: 0rem;
   --controls-gap: 0.75rem;
 
-  /* Registry circle */
-  --registro-circle-size: 70px;
+  /* Registry box */
+  --registro-height: 44px;
   --registro-offset-x: 0px;
   --registro-offset-y: 100px;
 
@@ -420,28 +420,14 @@ main {
 }
 
 .param.registro .circle {
-  width: var(--registro-circle-size);
-  height: var(--registro-circle-size);
-  border: 2px solid var(--interval-sound-color, #333);
-  border-radius: 50%;
+  height: var(--registro-height);
+  padding: 0 1rem;
+  border: 2px solid #F28AAD;
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-}
-
-.param.registro input,
-.param.registro .registro-text {
-  font-size: 2.2rem;
-  font-weight: 700;
-  text-align: center;
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-color, #333);
-  font-family: 'Courier New', Courier, monospace;
-  cursor: default;
 }
 
 .param.registro .registro-text {
@@ -449,8 +435,14 @@ main {
   align-items: center;
   justify-content: center;
   font-size: 1.3rem;
-  line-height: 1.1;
+  font-weight: 700;
+  line-height: 1;
   white-space: nowrap;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+  cursor: default;
 }
 
 .param.registro input:focus {
@@ -508,11 +500,13 @@ main {
 
 /* Dark theme */
 [data-theme="dark"] .param.registro .circle {
-  border-color: var(--text-color, #eee);
+  border-color: #F28AAD;
 }
 
-[data-theme="dark"] .param.registro input,
-[data-theme="dark"] .param.registro .registro-text,
+[data-theme="dark"] .param.registro .registro-text {
+  color: var(--text-color, #eee);
+}
+
 [data-theme="dark"] .param.registro .abbr {
   color: var(--text-color, #eee);
 }
@@ -652,14 +646,6 @@ main {
 /* ============================================
    COLOR IDENTIFICATION FOR SECTIONS
    ============================================ */
-
-/* Bordes de botones .controls → naranja (color de selección) */
-.controls-container .controls .play,
-.controls-container .controls .random,
-.controls-container .controls .reset,
-.controls-container .controls .tap {
-  border-color: var(--selection-color);
-}
 
 /* Círculos de parámetros → azul (color Lg) */
 .param.compas .circle,
@@ -1192,7 +1178,7 @@ main {
 @media (max-width: 900px) {
   :root {
     --left-column-width: 120px;
-    --registro-circle-size: 70px;
+    --registro-height: 70px;
     --grid-cell-height: 28px;
     /* Reduce offsets to prevent content from going off-screen */
     --timeline-wrapper-offset-y: -30px;
@@ -1258,7 +1244,7 @@ main {
 @media (max-width: 850px) {
   :root {
     --left-column-width: 100px;
-    --registro-circle-size: 60px;
+    --registro-height: 60px;
     --timeline-wrapper-offset-y: -15px;
     --left-column-offset-y: -10px;
     --compas-offset-x: 30px;
@@ -1347,7 +1333,7 @@ main {
 @media (max-width: 768px) and (orientation: landscape) {
   :root {
     --left-column-width: 100px;
-    --registro-circle-size: 60px;
+    --registro-height: 60px;
     --grid-cell-height: 24px;
   }
 
@@ -1504,7 +1490,7 @@ main {
     --visible-rows: 39;  /* Show ALL rows (full grid height) */
     --grid-cell-height: 18px;
     --left-column-width: 80px;
-    --registro-circle-size: 50px;
+    --registro-height: 50px;
   }
 
   /* Compact inputs section */
@@ -1596,7 +1582,7 @@ main {
   :root {
     --grid-cell-height: 16px;
     --left-column-width: 70px;
-    --registro-circle-size: 45px;
+    --registro-height: 45px;
   }
 
   .param.compas .circle,
