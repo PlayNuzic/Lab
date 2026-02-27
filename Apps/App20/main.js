@@ -691,7 +691,7 @@ function handleCompasChange() {
 /**
  * Handle Nº Compases (cycles) input change
  */
-function handleCyclesChange() {
+function handleCyclesChange({ focusGrid = false } = {}) {
   const value = elements.inputCycle?.value?.trim();
 
   if (value === '') {
@@ -702,12 +702,14 @@ function handleCyclesChange() {
       cycles = Math.max(CONFIG.MIN_CYCLES, Math.min(CONFIG.MAX_CYCLES, num));
       elements.inputCycle.value = cycles;
 
-      // Auto-focus to first N cell in grid-editor after entering cycles
-      setTimeout(() => {
-        if (gridEditor && gridEditor.focusFirstNCell) {
-          gridEditor.focusFirstNCell();
-        }
-      }, 50);
+      // Only auto-focus grid-editor on explicit confirmation (Enter key)
+      if (focusGrid) {
+        setTimeout(() => {
+          if (gridEditor && gridEditor.focusFirstNCell) {
+            gridEditor.focusFirstNCell();
+          }
+        }, 50);
+      }
     }
   }
 
