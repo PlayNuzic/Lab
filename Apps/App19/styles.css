@@ -53,18 +53,18 @@ html, body {
   /* Layout dimensions */
   --left-column-width: 150px;
   --grid-cell-min-width: 50px;
-  --grid-cell-height: 32px;
-  --visible-rows: 15;
+  --grid-cell-height: 26px;
+  --visible-rows: 24;
   --visible-pulses: 12;
 
   /* Spacing */
-  --layout-gap: 1rem;
+  --layout-gap: 0rem;
   --controls-gap: 0.75rem;
 
   /* Registry circle */
   --registro-circle-size: 70px;
   --registro-offset-x: 0px;
-  --registro-offset-y: -125px;
+  --registro-offset-y: -37px;
 
   /* Button fine-tuning offsets (x, y) */
   --btn-play-offset-x: 0px;
@@ -137,7 +137,8 @@ main {
   justify-content: center;
   align-items: flex-end;
   gap: 2rem;
-  padding: 1rem 1rem 0.5rem;
+  padding: 0rem 1rem 0rem;
+  margin-top: 0px;
   flex-shrink: 0;
   position: relative;
   z-index: 1;
@@ -146,8 +147,8 @@ main {
 /* All param circles same size */
 .param.compas .circle,
 .param.cycle-display .circle {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
 }
 
 /* Cycle circle: contains both input (when stopped) and digit (when playing) */
@@ -158,7 +159,7 @@ main {
 /* Input styling for compas and cycle */
 .param.compas input,
 .param.cycle-display .cycle-circle input {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   text-align: center;
   width: 100%;
@@ -181,7 +182,7 @@ main {
 
 .param.cycle-display .cycle-circle .cycle-counter__digit {
   display: none;
-  font-size: 2.5rem;
+  font-size: 2rem;
 }
 
 .param.cycle-display .cycle-circle.playing .cycle-counter__digit {
@@ -313,7 +314,8 @@ main {
   position: relative;
 }
 
-.param.registro input {
+.param.registro input,
+.param.registro .registro-text {
   font-size: 2.2rem;
   font-weight: 700;
   text-align: center;
@@ -323,7 +325,15 @@ main {
   background: transparent;
   color: var(--text-color, #333);
   font-family: 'Courier New', Courier, monospace;
-  cursor: text;
+}
+
+.param.registro .registro-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .param.registro input:focus {
@@ -336,6 +346,7 @@ main {
 }
 
 [data-theme="dark"] .param.registro input,
+[data-theme="dark"] .param.registro .registro-text,
 [data-theme="dark"] .param.registro .abbr {
   color: var(--text-color, #eee);
 }
@@ -368,6 +379,7 @@ main {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  transform: translateY(40px);
 }
 
 /* Play row: static positioning for vertical layout */
@@ -601,6 +613,12 @@ main {
   gap: 0;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Override plano-modular defaults for 24 visible rows */
+.plano-container {
+  --plano-cell-height: 26px;
+  --plano-visible-rows: 24;
 }
 
 /* Soundline container (Y-axis: notes) */
