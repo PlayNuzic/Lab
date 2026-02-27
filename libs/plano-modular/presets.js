@@ -239,6 +239,20 @@ export function createPlanoMusical(config) {
       return midiMap;
     },
 
+    /**
+     * Scroll to a specific row only if it's not already visible
+     * @param {string} rowId - Row identifier (e.g., "5r4")
+     * @param {boolean} [animated=false] - Use animation
+     * @param {number} [margin=2] - Margin rows from edge
+     * @param {number} [duration=350] - Animation duration in ms
+     * @returns {Promise}
+     */
+    scrollToRowIdIfNeeded(rowId, animated = false, margin = 2, duration = 350) {
+      const idx = rows.findIndex(r => r.id === rowId);
+      if (idx === -1) return Promise.resolve();
+      return plano.scrollToRowIfNeeded(idx, animated, margin, duration);
+    },
+
     // Configuration access
     /**
      * Get the note0RowMap for external use

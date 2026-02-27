@@ -212,6 +212,47 @@ export function scrollToRegistry(container, registryId, note0RowMap, cellHeight,
 }
 
 /**
+ * Scroll to make a specific row visible, only if it's not already in the viewport.
+ * When scrolling is needed, moves the minimum distance to bring the row into view.
+ * @param {HTMLElement} container - Scrollable container
+ * @param {number} rowIndex - Target row index
+ * @param {number} cellHeight - Height of each cell
+ * @param {number} visibleRows - Number of visible rows
+ * @param {boolean} animated - Whether to animate scroll
+ * @param {number} margin - Rows of margin from edge (default 2)
+ * @param {number} duration - Animation duration in ms (default 350)
+ * @returns {Promise<void>}
+ */
+export function scrollToRowIfNeeded(container, rowIndex, cellHeight, visibleRows, animated = false, margin = 2, duration = 350) {
+  if (!container) return Promise.resolve();
+
+  const currentScrollTop = container.scrollTop;
+  const firstVisible = Math.floor(currentScrollTop / cellHeight);
+  const lastVisible = firstVisible + visibleRows - 1;
+
+  // Already visible with sufficient margin — no scroll needed
+  if (rowIndex >= firstVisible + margin && rowIndex <= lastVisible - margin) {
+    return Promise.resolve();
+  }
+
+  let targetScrollTop;
+  if (rowIndex < firstVisible + margin) {
+    // Row above viewport: place it near the top with margin
+    targetScrollTop = Math.max(0, (rowIndex - margin) * cellHeight);
+  } else {
+    // Row below viewport: place it near the bottom with margin
+    targetScrollTop = Math.max(0, (rowIndex - visibleRows + 1 + margin) * cellHeight);
+  }
+
+  if (animated) {
+    return smoothScrollTo(container, targetScrollTop, 'top', duration);
+  } else {
+    container.scrollTop = targetScrollTop;
+    return Promise.resolve();
+  }
+}
+
+/**
  * Sync scroll position between multiple containers
  * @param {Array<HTMLElement>} containers - Containers to sync
  * @param {number} scrollTop - Target scrollTop value

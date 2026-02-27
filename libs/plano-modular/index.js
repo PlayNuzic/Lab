@@ -28,6 +28,7 @@ import {
   setupScrollSync,
   blockVerticalWheel,
   scrollToRow,
+  scrollToRowIfNeeded,
   scrollToColumn,
   scrollToRegistry,
   smoothScrollTo
@@ -343,6 +344,14 @@ export function createPlanoModular(config) {
       ]);
     },
 
+    scrollToRowIfNeeded(rowIndex, animated = false, margin = 2, duration = 350) {
+      const cellHeight = getCellHeight(container);
+      return Promise.all([
+        scrollToRowIfNeeded(matrixContainer, rowIndex, cellHeight, visibleRows, animated, margin, duration),
+        scrollToRowIfNeeded(soundlineContainer, rowIndex, cellHeight, visibleRows, animated, margin, duration)
+      ]);
+    },
+
     // Playhead API
     updatePlayhead(colIndex) {
       if (playheadController) {
@@ -434,7 +443,7 @@ export function createPlanoModular(config) {
 
 // Re-export submodules for advanced usage
 export { createSelectionManager } from './plano-selection.js';
-export { setupScrollSync, blockVerticalWheel, smoothScrollTo, scrollToRegistry } from './plano-scroll.js';
+export { setupScrollSync, blockVerticalWheel, smoothScrollTo, scrollToRegistry, scrollToRowIfNeeded } from './plano-scroll.js';
 export { createPlayheadController, updatePlayhead, hidePlayhead } from './plano-playhead.js';
 export {
   buildGridDOM,
