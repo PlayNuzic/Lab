@@ -49,7 +49,8 @@ const registryController = createRegistryController({
 });
 
 // ========== NOTE CLICK HANDLER ==========
-const ZERO_POSITION = 7; // Note 0 of current registry is at index 7
+const ZERO_POSITION = 0; // Note 0 of current registry is at index 0 (bottom)
+const TOP_ZERO_POSITION = 12; // Note 0 of next registry at index 12 (top)
 
 /**
  * Handle click on soundline note (number or division line)
@@ -91,7 +92,7 @@ function animateNumberClick(noteIndex) {
   if (!numberEl) return;
 
   // Determine if this is note-zero (pink) or regular (orange)
-  const isZero = noteIndex === ZERO_POSITION;
+  const isZero = noteIndex === ZERO_POSITION || noteIndex === TOP_ZERO_POSITION;
   const activeClass = isZero ? 'active-zero' : 'active';
 
   // Remove any existing active classes
@@ -133,18 +134,17 @@ function drawSoundline() {
   // Add CSS classes for styling registry boundaries and note-zero
   if (registry !== null) {
     const numbers = soundlineWrapper.querySelectorAll('.soundline-number');
-    const ZERO_POSITION = 7; // Note 0 of current registry is at index 7
 
     numbers.forEach((num) => {
       const idx = parseInt(num.dataset.noteIndex, 10);
 
-      // Mark boundary notes using controller
+      // Mark boundary notes using controller (index 12 = next registry)
       if (registryController.isBoundaryNote(idx)) {
         num.classList.add('registry-boundary');
       }
 
-      // Mark note 0 of current registry with pink color
-      if (idx === ZERO_POSITION) {
+      // Mark both zeros (bottom 0^r and top 0^(r+1)) with pink color
+      if (idx === ZERO_POSITION || idx === TOP_ZERO_POSITION) {
         num.classList.add('note-zero');
       }
     });

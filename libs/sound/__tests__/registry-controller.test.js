@@ -161,51 +161,49 @@ describe('registry-controller', () => {
     });
 
     describe('getTotalNotes', () => {
-      test('returns 15 for null registry', () => {
+      test('returns 13 (0-11 + top zero)', () => {
         const controller = createRegistryController();
 
-        expect(controller.getTotalNotes()).toBe(15);
+        expect(controller.getTotalNotes()).toBe(13);
       });
 
-      test('returns 15 for min registry (always 15 with centered zero)', () => {
+      test('returns 13 for min registry', () => {
         const controller = createRegistryController({ min: 0 });
         controller.setRegistry(0);
 
-        expect(controller.getTotalNotes()).toBe(15);
+        expect(controller.getTotalNotes()).toBe(13);
       });
 
-      test('returns 15 for max registry (always 15 with centered zero)', () => {
+      test('returns 13 for max registry', () => {
         const controller = createRegistryController({ max: 7 });
         controller.setRegistry(7);
 
-        expect(controller.getTotalNotes()).toBe(15);
+        expect(controller.getTotalNotes()).toBe(13);
       });
 
-      test('returns 15 for middle registry', () => {
+      test('returns 13 for middle registry', () => {
         const controller = createRegistryController();
         controller.setRegistry(3);
 
-        expect(controller.getTotalNotes()).toBe(15);
+        expect(controller.getTotalNotes()).toBe(13);
       });
     });
 
     describe('getOutsideNotes', () => {
-      test('returns boundary note indices (notes below 0 are previous registry)', () => {
+      test('returns index 12 as boundary (note 0 of next registry)', () => {
         const controller = createRegistryController();
         controller.setRegistry(3);
 
-        // With 0 centered at position 7, notes at indices 0-6 are previous registry
         const outsideNotes = controller.getOutsideNotes();
-        expect(outsideNotes).toEqual([0, 1, 2, 3, 4, 5, 6]);
+        expect(outsideNotes).toEqual([12]);
       });
 
-      test('returns same boundary notes for any registry (structure is consistent)', () => {
+      test('returns same boundary for any registry', () => {
         const controller = createRegistryController();
         controller.setRegistry(0);
 
-        // Even at min registry, the structure is the same
         const outsideNotes = controller.getOutsideNotes();
-        expect(outsideNotes).toEqual([0, 1, 2, 3, 4, 5, 6]);
+        expect(outsideNotes).toEqual([12]);
       });
     });
 
@@ -216,18 +214,20 @@ describe('registry-controller', () => {
         expect(controller.getStartMidi()).toBe(60);
       });
 
-      test('returns 0 for min registry', () => {
+      test('returns midiOffset for registry 0', () => {
         const controller = createRegistryController();
         controller.setRegistry(0);
 
-        expect(controller.getStartMidi()).toBe(0);
+        // registry 0: 0 * 12 + 12 = 12
+        expect(controller.getStartMidi()).toBe(12);
       });
 
       test('returns correct value for registry 3', () => {
         const controller = createRegistryController();
         controller.setRegistry(3);
 
-        expect(controller.getStartMidi()).toBe(35); // 3*12 - 1
+        // registry 3: 3 * 12 + 12 = 48
+        expect(controller.getStartMidi()).toBe(48);
       });
     });
 
@@ -244,33 +244,26 @@ describe('registry-controller', () => {
         const controller = createRegistryController({ midiOffset: 12 });
         controller.setRegistry(3);
 
+        // note 5 in registry 3: 5 + (3*12) + 12 = 53
         const result = controller.getMidiForNote(5);
 
-        expect(result).toEqual({ midi: 3 * 12 + 5 + 12, clampedNote: 5 });
+        expect(result).toEqual({ midi: 5 + 3 * 12 + 12, clampedNote: 5 });
       });
 
-      test('returns MIDI for prev registry note (-1)', () => {
+      test('clamps negative note to 0', () => {
         const controller = createRegistryController({ midiOffset: 12 });
         controller.setRegistry(3);
-
-        const result = controller.getMidiForNote(-1);
-
-        expect(result).toEqual({ midi: 2 * 12 + 11 + 12, clampedNote: -1 });
-      });
-
-      test('clamps prev note at min registry', () => {
-        const controller = createRegistryController({ midiOffset: 12 });
-        controller.setRegistry(0);
 
         const result = controller.getMidiForNote(-1);
 
         expect(result.clampedNote).toBe(0);
       });
 
-      test('returns MIDI for next registry note (12)', () => {
+      test('returns MIDI for next registry note (index 12)', () => {
         const controller = createRegistryController({ midiOffset: 12 });
         controller.setRegistry(3);
 
+        // note 12 = note 0 of registry 4: (4*12) + 0 + 12 = 60
         const result = controller.getMidiForNote(12);
 
         expect(result).toEqual({ midi: 4 * 12 + 0 + 12, clampedNote: 12 });
@@ -293,53 +286,49 @@ describe('registry-controller', () => {
         expect(controller.formatLabel(0)).toBe('');
       });
 
-      test('formats with 0 centered at position 7 (index 7)', () => {
+      test('formats with 0 at bottom (index 0) and 0 of next registry at top (index 12)', () => {
         const controller = createRegistryController();
         controller.setRegistry(4);
 
-        // Index 7 should be 0^4 (note 0 of registry 4) - now uses HTML superscript
-        expect(controller.formatLabel(7)).toBe('0<sup>4</sup>');
+        // Index 0 = note 0 of registry 4
+        expect(controller.formatLabel(0)).toBe('0<sup>4</sup>');
 
-        // Indices above 7 (higher pitch within current registry)
-        expect(controller.formatLabel(8)).toBe('1<sup>4</sup>');
-        expect(controller.formatLabel(14)).toBe('7<sup>4</sup>');
+        // Index 1-11 = notes 1-11 of registry 4
+        expect(controller.formatLabel(1)).toBe('1<sup>4</sup>');
+        expect(controller.formatLabel(11)).toBe('11<sup>4</sup>');
 
-        // Indices below 7 (lower pitch, previous registry)
-        expect(controller.formatLabel(6)).toBe('11<sup>3</sup>');
-        expect(controller.formatLabel(5)).toBe('10<sup>3</sup>');
-        expect(controller.formatLabel(0)).toBe('5<sup>3</sup>');
+        // Index 12 = note 0 of registry 5
+        expect(controller.formatLabel(12)).toBe('0<sup>5</sup>');
       });
 
-      test('formats correctly for any registry', () => {
+      test('formats correctly for registry 0', () => {
         const controller = createRegistryController();
         controller.setRegistry(0);
 
-        // Index 7 should be 0^0 - now uses HTML superscript
-        expect(controller.formatLabel(7)).toBe('0<sup>0</sup>');
+        // Index 0 = note 0 of registry 0
+        expect(controller.formatLabel(0)).toBe('0<sup>0</sup>');
 
-        // Notes above 0r0 are in current registry
-        expect(controller.formatLabel(8)).toBe('1<sup>0</sup>');
-        expect(controller.formatLabel(14)).toBe('7<sup>0</sup>');
+        // Index 11 = note 11 of registry 0
+        expect(controller.formatLabel(11)).toBe('11<sup>0</sup>');
 
-        // Notes below 0r0 would be in "registry -1" (negative, but still calculated)
-        expect(controller.formatLabel(6)).toBe('11<sup>-1</sup>');
-        expect(controller.formatLabel(0)).toBe('5<sup>-1</sup>');
+        // Index 12 = note 0 of registry 1
+        expect(controller.formatLabel(12)).toBe('0<sup>1</sup>');
       });
     });
 
     describe('getNoteInRegistry', () => {
-      test('returns offset from ZERO_POSITION (7)', () => {
+      test('returns offset from ZERO_POSITION (0)', () => {
         const controller = createRegistryController();
         controller.setRegistry(4);
 
-        // Index 7 is 0 (note 0 of current registry)
-        expect(controller.getNoteInRegistry(7)).toBe(0);
+        // Index 0 = note 0
+        expect(controller.getNoteInRegistry(0)).toBe(0);
 
-        // Index 0 is -7 (7 notes below 0)
-        expect(controller.getNoteInRegistry(0)).toBe(-7);
+        // Index 5 = note 5
+        expect(controller.getNoteInRegistry(5)).toBe(5);
 
-        // Index 14 is +7 (7 notes above 0)
-        expect(controller.getNoteInRegistry(14)).toBe(7);
+        // Index 12 = note 12 (next registry)
+        expect(controller.getNoteInRegistry(12)).toBe(12);
       });
     });
 
@@ -348,42 +337,38 @@ describe('registry-controller', () => {
         const controller = createRegistryController();
         controller.setRegistry(4);
 
-        // Note 0 (offset 0) is at index 7
-        expect(controller.getHighlightIndex(0)).toBe(7);
+        // Note 0 is at index 0
+        expect(controller.getHighlightIndex(0)).toBe(0);
 
-        // Note -7 is at index 0
-        expect(controller.getHighlightIndex(-7)).toBe(0);
+        // Note 5 is at index 5
+        expect(controller.getHighlightIndex(5)).toBe(5);
 
-        // Note +7 is at index 14
-        expect(controller.getHighlightIndex(7)).toBe(14);
+        // Note 12 is at index 12
+        expect(controller.getHighlightIndex(12)).toBe(12);
       });
     });
 
     describe('isBoundaryNote', () => {
-      test('identifies boundary notes (indices 0-6 are previous registry)', () => {
+      test('index 12 is boundary (next registry), 0-11 are not', () => {
         const controller = createRegistryController();
         controller.setRegistry(4);
 
-        // Indices 0-6 are boundary (previous registry)
-        expect(controller.isBoundaryNote(0)).toBe(true);
-        expect(controller.isBoundaryNote(6)).toBe(true);
+        // Indices 0-11 are current registry
+        expect(controller.isBoundaryNote(0)).toBe(false);
+        expect(controller.isBoundaryNote(6)).toBe(false);
+        expect(controller.isBoundaryNote(11)).toBe(false);
 
-        // Index 7 is note 0 of current registry
-        expect(controller.isBoundaryNote(7)).toBe(false);
-
-        // Indices 8-14 are current registry (notes 1-7)
-        expect(controller.isBoundaryNote(8)).toBe(false);
-        expect(controller.isBoundaryNote(14)).toBe(false);
+        // Index 12 is next registry
+        expect(controller.isBoundaryNote(12)).toBe(true);
       });
 
       test('boundary detection is consistent across registries', () => {
         const controller = createRegistryController();
         controller.setRegistry(0);
 
-        // Same pattern for any registry
-        expect(controller.isBoundaryNote(6)).toBe(true);
-        expect(controller.isBoundaryNote(7)).toBe(false);
-        expect(controller.isBoundaryNote(8)).toBe(false);
+        expect(controller.isBoundaryNote(0)).toBe(false);
+        expect(controller.isBoundaryNote(11)).toBe(false);
+        expect(controller.isBoundaryNote(12)).toBe(true);
       });
     });
   });
