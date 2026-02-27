@@ -52,10 +52,8 @@ html, body {
 :root {
   /* Layout dimensions */
   --left-column-width: 150px;
-  --grid-cell-min-width: 50px;
   --grid-cell-height: 24px;
   --visible-rows: 24;
-  --visible-pulses: 12;
 
   /* Spacing */
   --layout-gap: 0rem;
@@ -98,8 +96,6 @@ html, body {
   --btn-random-offset-y: 0px;
   --btn-reset-offset-x: 0px;
   --btn-reset-offset-y: 0px;
-  --btn-taptempo-offset-x: 0px;
-  --btn-taptempo-offset-y: 50px;
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
   --bpm-offset-x: 0px;
@@ -1197,7 +1193,6 @@ main {
   :root {
     --left-column-width: 120px;
     --registro-circle-size: 70px;
-    --grid-cell-min-width: 45px;
     --grid-cell-height: 28px;
     /* Reduce offsets to prevent content from going off-screen */
     --timeline-wrapper-offset-y: -30px;
@@ -1353,7 +1348,6 @@ main {
   :root {
     --left-column-width: 100px;
     --registro-circle-size: 60px;
-    --grid-cell-min-width: 40px;
     --grid-cell-height: 24px;
   }
 
