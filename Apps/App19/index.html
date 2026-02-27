@@ -150,6 +150,18 @@
       timelineWrapper.innerHTML = `
         <!-- Left Column: Registry + Controls -->
         <div class="left-column" id="leftColumn">
+          <!-- BPM at top of left column -->
+          <div class="bpm-inline" id="bpmParam">
+            <span class="abbr">BPM</span>
+            <div class="circle">
+              <input id="inputBpm" type="number" min="30" max="300" value="100" />
+              <div class="spinner">
+                <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
+                <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
+              </div>
+            </div>
+          </div>
+
           <!-- Registry display (shows two visible registries) -->
           <div class="param registro" id="registroParam">
             <span class="abbr">Registro</span>
@@ -164,18 +176,6 @@
 
           <!-- Controls will be inserted here -->
           <div class="controls-container" id="controlsContainer"></div>
-
-          <!-- BPM inline at bottom -->
-          <div class="bpm-inline" id="bpmParam">
-            <span class="abbr">BPM</span>
-            <div class="circle">
-              <input id="inputBpm" type="number" min="30" max="300" value="100" />
-              <div class="spinner">
-                <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
-                <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- Right Column: Grid 2D (plano-modular renders here) -->

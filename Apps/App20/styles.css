@@ -99,7 +99,7 @@ html, body {
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
   --bpm-offset-x: 0px;
-  --bpm-offset-y: 150px;
+  --bpm-offset-y: 90px;
 
   /* BPM sizing */
   --bpm-scale: 0.8;
