@@ -63,16 +63,16 @@ html, body {
 
   /* Registry circle */
   --registro-circle-size: 70px;
-  --registro-offset-x: 3px;
-  --registro-offset-y: 55px;
+  --registro-offset-x: 0px;
+  --registro-offset-y: 75px;
 
   /* Compás param offset */
-  --compas-offset-x: 75px;
-  --compas-offset-y: -30px;
+  --compas-offset-x: 65px;
+  --compas-offset-y: 0px;
 
   /* Cycles param offset */
-  --cycles-offset-x: 50px;
-  --cycles-offset-y: -25px;
+  --cycles-offset-x: 45px;
+  --cycles-offset-y: 0px;
 
   /* Grid editor offset */
   --grid-editor-offset-x: -40px;
@@ -89,7 +89,7 @@ html, body {
   --total-length-offset-y: 17px;
 
   /* Controls container offset */
-  --controls-offset-y: 0px;
+  --controls-offset-y: 50px;
 
   /* Button fine-tuning offsets (x, y) */
   --btn-play-offset-x: 0px;
@@ -103,7 +103,7 @@ html, body {
   --btn-pulse-toggle-offset-x: -115px;
   --btn-pulse-toggle-offset-y: -35px;
   --bpm-offset-x: 0px;
-  --bpm-offset-y: 40px;
+  --bpm-offset-y: 100px;
 
   /* BPM sizing */
   --bpm-scale: 0.8;
