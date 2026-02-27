@@ -20,9 +20,9 @@ import { createApp19Grid } from '../../libs/plano-modular/index.js';
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
-  // Registry limits (3 registries: 3, 4, 5)
+  // Registry limits (4 registries: 3, 4, 5, 6)
   MIN_REGISTRO: 3,
-  MAX_REGISTRO: 5,
+  MAX_REGISTRO: 6,
   DEFAULT_REGISTRO: 4,
 
   // Compás limits
@@ -44,12 +44,21 @@ const CONFIG = {
   MIDI_OFFSET: 12
 };
 
+// Screen definitions: 3 snap positions (bottom registry of each pair)
+// Screen 0: "3 y 4" (bottom), Screen 1: "4 y 5", Screen 2: "5 y 6" (top)
+const SCREENS = [
+  { bottomReg: 3, label: '3 y 4', scrollTop: 24 * 26 },  // rows 24-47
+  { bottomReg: 4, label: '4 y 5', scrollTop: 12 * 26 },  // rows 12-35
+  { bottomReg: 5, label: '5 y 6', scrollTop: 0 }          // rows 0-23
+];
+
 // ========== STATE ==========
 let isPlaying = false;
 let audio = null;
 let tapTempoHandler = null;
 let mixerSaveTimeout = null;
 let isInitialized = false;  // Flag to track if initial scroll to default registry has been applied
+let currentScreen = 0;  // Index into SCREENS array (starts at "3 y 4")
 
 // Input values
 let compas = null;      // null = empty, 1-7 = value
@@ -194,43 +203,23 @@ function initGrid() {
     onSelectionChange: null  // Selections not persisted
   });
 
-  // Add scroll listener to update registry display (shows 2 visible registries)
+  // Block free vertical scroll — quantize to screen positions (throttled)
   const soundline = gridContainer.querySelector('.plano-soundline-container');
-  if (soundline) {
-    soundline.addEventListener('scroll', () => {
-      if (!grid || !elements.registroText) return;
-
-      const rows = grid.getRowDefinitions();
-      if (!rows || rows.length === 0) return;
-
-      const scrollTop = soundline.scrollTop;
-      const cellHeight = 26; // var(--grid-cell-height)
-      const firstVisibleRow = Math.floor(scrollTop / cellHeight);
-      const lastVisibleRow = Math.min(firstVisibleRow + 23, rows.length - 1);
-
-      // Find which registries are visible
-      const visibleRegistries = new Set();
-      for (let r = firstVisibleRow; r <= lastVisibleRow; r++) {
-        if (rows[r]?.data?.registry) {
-          visibleRegistries.add(rows[r].data.registry);
-        }
+  const matrix = gridContainer.querySelector('.plano-matrix-container');
+  let wheelCooldown = false;
+  [soundline, matrix].forEach(el => {
+    if (!el) return;
+    el.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        if (wheelCooldown) return;
+        wheelCooldown = true;
+        setTimeout(() => { wheelCooldown = false; }, 400);
+        if (e.deltaY > 0) decrementRegistro();  // scroll down → lower registries
+        else incrementRegistro();                // scroll up → higher registries
       }
-
-      const regArray = [...visibleRegistries].sort((a, b) => a - b);
-      if (regArray.length === 1) {
-        elements.registroText.textContent = String(regArray[0]);
-      } else if (regArray.length >= 2) {
-        // Show the 2 most prominent registries
-        const note0RowMap = grid.getNote0RowMap();
-        const middleRow = firstVisibleRow + 12;
-        const sorted = regArray
-          .map(reg => ({ reg, dist: Math.abs((note0RowMap[reg] ?? 0) - middleRow) }))
-          .sort((a, b) => a.dist - b.dist);
-        const pair = [sorted[0].reg, sorted[1].reg].sort((a, b) => a - b);
-        elements.registroText.textContent = `${pair[0]} y ${pair[1]}`;
-      }
-    });
-  }
+    }, { passive: false });
+  });
 
   console.log('Grid initialized with plano-modular');
 }
@@ -280,46 +269,52 @@ function maybeApplyInitialScroll() {
 
   // Use requestAnimationFrame to ensure DOM is rendered
   requestAnimationFrame(() => {
-    // Show registries 3 and 4 initially (scroll so note 0 of r3 is near the bottom)
-    scrollToRegistryPair(CONFIG.MIN_REGISTRO, false);
+    scrollToScreen(0, false);  // Start at screen "3 y 4"
     isInitialized = true;
   });
 }
 
 /**
- * Scroll to show a registry pair (bottomReg and bottomReg+1)
- * Positions note 0 of bottomReg near the bottom of the visible area.
+ * Scroll to a specific screen (quantized snap position).
+ * @param {number} screenIndex - 0="3 y 4", 1="4 y 5", 2="5 y 6"
+ * @param {boolean} animated - Use smooth scroll
  */
-function scrollToRegistryPair(bottomReg, animated = false) {
+function scrollToScreen(screenIndex, animated = false) {
   if (!grid) return;
+  screenIndex = Math.max(0, Math.min(SCREENS.length - 1, screenIndex));
+  currentScreen = screenIndex;
 
-  const note0RowMap = grid.getNote0RowMap();
-  const bottomRowIdx = note0RowMap[bottomReg];
-  if (bottomRowIdx === undefined) return;
-
-  // Scroll so that note 0 of bottomReg is near the bottom of 24 visible rows
-  const cellHeight = 26;
-  const visibleRows = 24;
-  const targetScrollTop = Math.max(0, (bottomRowIdx - visibleRows + 2) * cellHeight);
-
-  // Scroll both containers via grid's internal scroll
+  const screen = SCREENS[screenIndex];
   const gridContainer = document.getElementById('rightColumn');
   const soundline = gridContainer?.querySelector('.plano-soundline-container');
   const matrix = gridContainer?.querySelector('.plano-matrix-container');
 
   if (animated) {
-    const { smoothScrollTo } = grid.getElements ? {} : {};
-    // Use direct DOM scroll with smooth behavior
     [soundline, matrix].forEach(el => {
-      if (el) {
-        el.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
-      }
+      if (el) el.scrollTo({ top: screen.scrollTop, behavior: 'smooth' });
     });
   } else {
     [soundline, matrix].forEach(el => {
-      if (el) el.scrollTop = targetScrollTop;
+      if (el) el.scrollTop = screen.scrollTop;
     });
   }
+
+  if (elements.registroText) {
+    elements.registroText.textContent = screen.label;
+  }
+}
+
+/**
+ * Find the screen index that contains a given row index.
+ */
+function screenForRow(rowIndex) {
+  // Screen 2: rows 0-23, Screen 1: rows 12-35, Screen 0: rows 24-47
+  // Prefer the screen where the row is most centered
+  for (let i = 0; i < SCREENS.length; i++) {
+    const startRow = SCREENS[i].scrollTop / 26;
+    if (rowIndex >= startRow && rowIndex < startRow + 24) return i;
+  }
+  return currentScreen;
 }
 
 // ========== INPUT HANDLERS ==========
@@ -461,10 +456,17 @@ async function startPlayback() {
       // 1. Update playhead position
       grid.updatePlayhead(step);
 
-      // 2. Autoscroll VERTICAL: scroll to note row only if not already visible
+      // 2. Autoscroll VERTICAL: snap to the screen containing the active note
       const selectedForStep = selectedArray.find(s => s.colIndex === step);
       if (selectedForStep) {
-        grid.scrollToRowIdIfNeeded(selectedForStep.rowId, true, 2, 350);
+        const rows = grid.getRowDefinitions();
+        const rowIdx = rows.findIndex(r => r.id === selectedForStep.rowId);
+        if (rowIdx !== -1) {
+          const targetScreen = screenForRow(rowIdx);
+          if (targetScreen !== currentScreen) {
+            scrollToScreen(targetScreen, true);
+          }
+        }
       }
 
       // 3. Highlight timeline number
@@ -586,7 +588,7 @@ function handleRandom() {
 
   // Generate random notes (one per pulse)
   const totalPulses = compas * cycles;
-  const selectableRegs = [3, 4, 5];
+  const selectableRegs = [3, 4, 5, 6];
 
   for (let pulse = 0; pulse < totalPulses; pulse++) {
     // Random registry from selectable ones
@@ -622,7 +624,7 @@ function handleReset() {
   bpmController?.setValue(CONFIG.DEFAULT_BPM);
 
   // Reset registry (show registries 3 and 4)
-  scrollToRegistryPair(CONFIG.MIN_REGISTRO, false);
+  scrollToScreen(0, false);
 
   // Clear selection
   grid?.clearSelection();
@@ -691,33 +693,17 @@ function decrementCycles() {
 }
 
 function incrementRegistro() {
-  // Scroll up by one registry (12 rows)
-  if (!grid) return;
-  const gridContainer = document.getElementById('rightColumn');
-  const soundline = gridContainer?.querySelector('.plano-soundline-container');
-  if (!soundline) return;
-  const cellHeight = 26;
-  const targetScrollTop = Math.max(0, soundline.scrollTop - 12 * cellHeight);
-  const matrix = gridContainer?.querySelector('.plano-matrix-container');
-  [soundline, matrix].forEach(el => {
-    if (el) el.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
-  });
+  // Go to next screen (higher registries)
+  if (currentScreen < SCREENS.length - 1) {
+    scrollToScreen(currentScreen + 1, true);
+  }
 }
 
 function decrementRegistro() {
-  // Scroll down by one registry (12 rows)
-  if (!grid) return;
-  const gridContainer = document.getElementById('rightColumn');
-  const soundline = gridContainer?.querySelector('.plano-soundline-container');
-  if (!soundline) return;
-  const cellHeight = 26;
-  const rows = grid.getRowDefinitions();
-  const maxScrollTop = Math.max(0, (rows.length - 24) * cellHeight);
-  const targetScrollTop = Math.min(maxScrollTop, soundline.scrollTop + 12 * cellHeight);
-  const matrix = gridContainer?.querySelector('.plano-matrix-container');
-  [soundline, matrix].forEach(el => {
-    if (el) el.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
-  });
+  // Go to previous screen (lower registries)
+  if (currentScreen > 0) {
+    scrollToScreen(currentScreen - 1, true);
+  }
 }
 
 function setupEventHandlers() {
@@ -803,14 +789,14 @@ registerFactoryReset({
     // Reset UI
     if (elements.inputCompas) elements.inputCompas.value = '';
     if (elements.inputCycle) elements.inputCycle.value = '';
-    if (elements.registroText) elements.registroText.textContent = `${CONFIG.MIN_REGISTRO} y ${CONFIG.MIN_REGISTRO + 1}`;
+    if (elements.registroText) elements.registroText.textContent = '3 y 4';
     if (elements.cycleDigit) elements.cycleDigit.textContent = '';
 
     // Reset BPM
     bpmController?.setValue(CONFIG.DEFAULT_BPM);
 
     // Reset registry (show registries 3 and 4)
-    scrollToRegistryPair(CONFIG.MIN_REGISTRO, false);
+    scrollToScreen(0, false);
 
     // Clear selections
     grid?.clearSelection();

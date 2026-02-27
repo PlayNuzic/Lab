@@ -621,6 +621,27 @@ main {
   --plano-visible-rows: 24;
 }
 
+/* Note 0 of each registry: pink (matching App18) */
+.plano-soundline-note[data-note="0"] {
+  color: #F28AAD !important;
+}
+
+[data-theme="dark"] .plano-soundline-note[data-note="0"] {
+  color: #F28AAD !important;
+}
+
+/* Hide vertical scrollbar — scroll is quantized via buttons/wheel */
+.plano-soundline-container,
+.plano-matrix-container {
+  scrollbar-width: none;
+}
+
+.plano-soundline-container::-webkit-scrollbar,
+.plano-matrix-container::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
 /* Soundline container (Y-axis: notes) */
 .soundline-container {
   grid-column: 1;
@@ -885,9 +906,9 @@ main {
   font-weight: 500;
 }
 
-/* Note 0 of any registry: selection color */
+/* Note 0 of any registry: pink */
 .soundline-note[data-noteinreg="0"] {
-  color: var(--select-color, #E4570C) !important;
+  color: #F28AAD !important;
   font-weight: 700;
 }
 
