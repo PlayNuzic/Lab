@@ -691,7 +691,7 @@ function handleCompasChange() {
 /**
  * Handle Nº Compases (cycles) input change
  */
-function handleCyclesChange({ focusGrid = false } = {}) {
+function handleCyclesChange({ updateEditor = false } = {}) {
   const value = elements.inputCycle?.value?.trim();
 
   if (value === '') {
@@ -701,15 +701,6 @@ function handleCyclesChange({ focusGrid = false } = {}) {
     if (!isNaN(num)) {
       cycles = Math.max(CONFIG.MIN_CYCLES, Math.min(CONFIG.MAX_CYCLES, num));
       elements.inputCycle.value = cycles;
-
-      // Only auto-focus grid-editor on explicit confirmation (Enter key)
-      if (focusGrid) {
-        setTimeout(() => {
-          if (gridEditor && gridEditor.focusFirstNCell) {
-            gridEditor.focusFirstNCell();
-          }
-        }, 50);
-      }
     }
   }
 
@@ -720,7 +711,12 @@ function handleCyclesChange({ focusGrid = false } = {}) {
   updateLongitud();
   updateGridVisibility();
   updateGrid();
-  updateGridEditorMaxPulse();
+
+  // Only recreate grid editor on confirmed changes (spinners, Enter),
+  // NOT on every keystroke — recreating the editor steals focus from the input
+  if (updateEditor) {
+    updateGridEditorMaxPulse();
+  }
 }
 
 // ========== PLAYBACK ==========
@@ -949,6 +945,7 @@ function handleRandom() {
   updateLongitud();
   updateGridVisibility();
   updateGrid();
+  updateGridEditorMaxPulse();
 
   // Generate random NrX-iT sequence
   const totalPulses = compas * cycles;
@@ -1070,14 +1067,14 @@ function incrementCycles() {
   if (cycles === null) cycles = 0;
   cycles = Math.min(CONFIG.MAX_CYCLES, cycles + 1);
   elements.inputCycle.value = cycles;
-  handleCyclesChange();
+  handleCyclesChange({ updateEditor: true });
 }
 
 function decrementCycles() {
   if (cycles === null) return;
   cycles = Math.max(CONFIG.MIN_CYCLES, cycles - 1);
   elements.inputCycle.value = cycles;
-  handleCyclesChange();
+  handleCyclesChange({ updateEditor: true });
 }
 
 function setupEventHandlers() {
@@ -1112,7 +1109,7 @@ function setupEventHandlers() {
   attachSpinnerRepeat(elements.compasDown, decrementCompas);
 
   // Cycles input with arrow keys
-  elements.inputCycle?.addEventListener('input', handleCyclesChange);
+  elements.inputCycle?.addEventListener('input', () => handleCyclesChange());
   elements.inputCycle?.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowUp') {
       e.preventDefault();
@@ -1121,12 +1118,16 @@ function setupEventHandlers() {
       e.preventDefault();
       decrementCycles();
     } else if (e.key === 'Enter') {
-      // Move focus to first N cell in grid-editor
+      // Confirm value: update grid editor and move focus
+      handleCyclesChange({ updateEditor: true });
       if (gridEditor?.focusFirstNCell) {
         gridEditor.focusFirstNCell();
       }
     }
   });
+
+  // Confirm cycles value when leaving the input
+  elements.inputCycle?.addEventListener('blur', () => handleCyclesChange({ updateEditor: true }));
 
   // Cycles spinners
   attachSpinnerRepeat(elements.cycleUp, incrementCycles);

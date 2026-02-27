@@ -206,6 +206,9 @@ main {
   min-width: 0;
   /* Fine-tuning position */
   transform: translate(var(--grid-editor-offset-x), var(--grid-editor-offset-y));
+  /* Stay behind inputs-left-stack (z-index: 10) so negative transform doesn't cover spinners */
+  position: relative;
+  z-index: 1;
 }
 
 /* Grid editor container - target by ID since createGridEditor replaces classes */
