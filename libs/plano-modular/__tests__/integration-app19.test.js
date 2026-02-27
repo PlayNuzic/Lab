@@ -29,14 +29,14 @@ describe('App19 Integration', () => {
   });
 
   describe('Grid Creation', () => {
-    it('should create grid with 39 rows', () => {
+    it('should create grid with 48 rows', () => {
       grid = createApp19Grid({
         parent: container,
         columns: 8,
         cycleConfig: { compas: 4 }
       });
 
-      expect(grid.getRowDefinitions()).toHaveLength(39);
+      expect(grid.getRowDefinitions()).toHaveLength(48);
     });
 
     it('should create correct number of cells', () => {
@@ -47,7 +47,7 @@ describe('App19 Integration', () => {
       });
 
       const cells = container.querySelectorAll('.plano-cell');
-      expect(cells.length).toBe(39 * 16); // 39 rows × 16 columns
+      expect(cells.length).toBe(48 * 16); // 48 rows × 16 columns
     });
 
     it('should create soundline with note labels', () => {
@@ -57,10 +57,10 @@ describe('App19 Integration', () => {
       });
 
       const soundlineNotes = container.querySelectorAll('.plano-soundline-note');
-      expect(soundlineNotes.length).toBe(39);
+      expect(soundlineNotes.length).toBe(48);
 
-      // Check first label is 7r5
-      expect(soundlineNotes[0].textContent).toBe('7r5');
+      // Check first label is 11r6
+      expect(soundlineNotes[0].textContent).toBe('11r6');
     });
 
     it('should create timeline with pulse numbers', () => {
@@ -302,7 +302,7 @@ describe('App19 Integration', () => {
       expect(grid.getColumns()).toBe(16);
 
       const cells = container.querySelectorAll('.plano-cell');
-      expect(cells.length).toBe(39 * 16);
+      expect(cells.length).toBe(48 * 16);
     });
 
     it('should update compas', () => {

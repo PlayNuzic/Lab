@@ -24,48 +24,48 @@ describe('registry-helpers', () => {
   describe('APP19_CONFIG', () => {
     it('should have correct registry definitions', () => {
       expect(APP19_CONFIG.registries).toHaveLength(4);
-      expect(APP19_CONFIG.registries[0]).toEqual({ id: 5, notes: { from: 7, to: 0 } });
-      expect(APP19_CONFIG.registries[1]).toEqual({ id: 4, notes: { from: 11, to: 0 } });
-      expect(APP19_CONFIG.registries[2]).toEqual({ id: 3, notes: { from: 11, to: 0 } });
-      expect(APP19_CONFIG.registries[3]).toEqual({ id: 2, notes: { from: 11, to: 5 } });
+      expect(APP19_CONFIG.registries[0]).toEqual({ id: 6, notes: { from: 11, to: 0 } });
+      expect(APP19_CONFIG.registries[1]).toEqual({ id: 5, notes: { from: 11, to: 0 } });
+      expect(APP19_CONFIG.registries[2]).toEqual({ id: 4, notes: { from: 11, to: 0 } });
+      expect(APP19_CONFIG.registries[3]).toEqual({ id: 3, notes: { from: 11, to: 0 } });
     });
 
     it('should have correct visible rows', () => {
-      expect(APP19_CONFIG.visibleRows).toBe(15);
+      expect(APP19_CONFIG.visibleRows).toBe(24);
     });
 
     it('should have correct selectable registries', () => {
-      expect(APP19_CONFIG.selectableRegistries).toEqual([3, 4, 5]);
+      expect(APP19_CONFIG.selectableRegistries).toEqual([3, 4, 5, 6]);
     });
   });
 
   describe('buildRegistryRows', () => {
-    it('should build 39 rows for App19 default config', () => {
+    it('should build 48 rows for App19 default config', () => {
       const rows = buildRegistryRows();
-      expect(rows).toHaveLength(39); // 8 + 12 + 12 + 7 = 39
+      expect(rows).toHaveLength(48); // 12 + 12 + 12 + 12 = 48
     });
 
     it('should build rows in descending order (highest pitch first)', () => {
       const rows = buildRegistryRows();
 
-      // First row should be 7r5 (highest)
-      expect(rows[0].id).toBe('7r5');
-      expect(rows[0].label).toBe('7r5');
-      expect(rows[0].data).toEqual({ registry: 5, note: 7, noteInReg: 7 });
+      // First row should be 11r6 (highest)
+      expect(rows[0].id).toBe('11r6');
+      expect(rows[0].label).toBe('11r6');
+      expect(rows[0].data).toEqual({ registry: 6, note: 11, noteInReg: 11 });
 
-      // Last row should be 5r2 (lowest in config)
-      expect(rows[38].id).toBe('5r2');
-      expect(rows[38].data.registry).toBe(2);
-      expect(rows[38].data.note).toBe(5);
+      // Last row should be 0r3 (lowest in config)
+      expect(rows[47].id).toBe('0r3');
+      expect(rows[47].data.registry).toBe(3);
+      expect(rows[47].data.note).toBe(0);
     });
 
-    it('should have correct rows for r5 (notes 7-0)', () => {
+    it('should have correct rows for r6 (notes 11-0)', () => {
       const rows = buildRegistryRows();
-      const r5Rows = rows.filter(r => r.data.registry === 5);
+      const r6Rows = rows.filter(r => r.data.registry === 6);
 
-      expect(r5Rows).toHaveLength(8);
-      expect(r5Rows[0].data.note).toBe(7);
-      expect(r5Rows[7].data.note).toBe(0);
+      expect(r6Rows).toHaveLength(12);
+      expect(r6Rows[0].data.note).toBe(11);
+      expect(r6Rows[11].data.note).toBe(0);
     });
 
     it('should have correct rows for r4 (notes 11-0)', () => {
@@ -77,13 +77,13 @@ describe('registry-helpers', () => {
       expect(r4Rows[11].data.note).toBe(0);
     });
 
-    it('should have correct rows for r2 (notes 11-5 only)', () => {
+    it('should have correct rows for r3 (notes 11-0)', () => {
       const rows = buildRegistryRows();
-      const r2Rows = rows.filter(r => r.data.registry === 2);
+      const r3Rows = rows.filter(r => r.data.registry === 3);
 
-      expect(r2Rows).toHaveLength(7);
-      expect(r2Rows[0].data.note).toBe(11);
-      expect(r2Rows[6].data.note).toBe(5);
+      expect(r3Rows).toHaveLength(12);
+      expect(r3Rows[0].data.note).toBe(11);
+      expect(r3Rows[11].data.note).toBe(0);
     });
 
     it('should work with custom config', () => {
@@ -105,19 +105,11 @@ describe('registry-helpers', () => {
       const map = calculateNote0RowMap(rows);
 
       expect(map).toEqual({
-        5: 7,   // 0r5 at row 7 (after 8 notes 7-0 of r5)
-        4: 19,  // 0r4 at row 19 (8 + 12 - 1 = 19)
-        3: 31,  // 0r3 at row 31 (8 + 12 + 12 - 1 = 31)
-        2: 38   // r2 has no note 0, so uses last row (note 5 at row 38)
+        6: 11,  // 0r6 at row 11 (12 notes of r6, index 11)
+        5: 23,  // 0r5 at row 23 (12 + 12 - 1 = 23)
+        4: 35,  // 0r4 at row 35 (12 + 12 + 12 - 1 = 35)
+        3: 47   // 0r3 at row 47 (12 + 12 + 12 + 12 - 1 = 47)
       });
-    });
-
-    it('should use last row for registries without note 0', () => {
-      const rows = buildRegistryRows();
-      const map = calculateNote0RowMap(rows);
-
-      // r2 only has notes 11-5, no note 0 - should fallback to last row
-      expect(map[2]).toBe(38);
     });
 
     it('should work with custom rows', () => {
@@ -149,8 +141,8 @@ describe('registry-helpers', () => {
       const config = getApp19DefaultConfig();
 
       expect(config).toHaveProperty('registries');
-      expect(config).toHaveProperty('visibleRows', 15);
-      expect(config).toHaveProperty('selectableRegistries', [3, 4, 5]);
+      expect(config).toHaveProperty('visibleRows', 24);
+      expect(config).toHaveProperty('selectableRegistries', [3, 4, 5, 6]);
       expect(config).toHaveProperty('notesPerRegistry', 12);
       expect(config).toHaveProperty('midiOffset', 12);
     });
@@ -380,6 +372,9 @@ describe('registry-helpers', () => {
       const note0RowMap = calculateNote0RowMap(rows);
 
       // Verify that note0RowMap points to actual note 0 rows
+      expect(rows[note0RowMap[6]].data.note).toBe(0);
+      expect(rows[note0RowMap[6]].data.registry).toBe(6);
+
       expect(rows[note0RowMap[5]].data.note).toBe(0);
       expect(rows[note0RowMap[5]].data.registry).toBe(5);
 

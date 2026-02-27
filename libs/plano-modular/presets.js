@@ -291,9 +291,9 @@ export function createPlanoMusical(config) {
  *
  * This is the "out of the box" function for creating grids exactly like App19.
  * It handles:
- * - 39 rows (r5: 0-7, r4: 0-11, r3: 0-11, r2: 5-11)
- * - 15 visible rows with blocked vertical scroll
- * - Registry navigation (3, 4, 5)
+ * - 48 rows (r6: 0-11, r5: 0-11, r4: 0-11, r3: 0-11)
+ * - 24 visible rows with snap-scroll between registry pairs
+ * - Registry navigation (3, 4, 5, 6)
  * - Monophonic selection (1 note per pulse)
  * - Soundline, timeline, matrix, playhead
  *
@@ -440,8 +440,8 @@ export const PRESETS = {
    */
   APP19: {
     registries: APP19_CONFIG.registries,
-    visibleRows: 15,
-    selectableRegistries: [3, 4, 5],
+    visibleRows: 24,
+    selectableRegistries: [3, 4, 5, 6],
     selectionMode: 'monophonic',
     blockVerticalWheel: true
   },

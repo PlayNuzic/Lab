@@ -30,8 +30,8 @@ describe('presets', () => {
   describe('PRESETS', () => {
     it('should have APP19 preset', () => {
       expect(PRESETS.APP19).toBeDefined();
-      expect(PRESETS.APP19.visibleRows).toBe(15);
-      expect(PRESETS.APP19.selectableRegistries).toEqual([3, 4, 5]);
+      expect(PRESETS.APP19.visibleRows).toBe(24);
+      expect(PRESETS.APP19.selectableRegistries).toEqual([3, 4, 5, 6]);
       expect(PRESETS.APP19.selectionMode).toBe('monophonic');
       expect(PRESETS.APP19.blockVerticalWheel).toBe(true);
     });
@@ -78,14 +78,14 @@ describe('presets', () => {
       grid.destroy();
     });
 
-    it('should build 39 rows with default config', () => {
+    it('should build 48 rows with default config', () => {
       const grid = createPlanoMusical({
         parent: container,
         columns: 4
       });
 
       const rows = grid.getRowDefinitions();
-      expect(rows).toHaveLength(39);
+      expect(rows).toHaveLength(48);
 
       grid.destroy();
     });
@@ -96,8 +96,8 @@ describe('presets', () => {
         columns: 4
       });
 
-      // Default is middle of selectableRegistries (4)
-      expect(grid.getCurrentRegistry()).toBe(4);
+      // Default is middle of selectableRegistries (5)
+      expect(grid.getCurrentRegistry()).toBe(5);
 
       grid.destroy();
     });
@@ -129,7 +129,7 @@ describe('presets', () => {
 
       await grid.setRegistry(99);
       expect(warnCalled).toBe(true);
-      expect(grid.getCurrentRegistry()).toBe(4); // Unchanged
+      expect(grid.getCurrentRegistry()).toBe(5); // Unchanged
 
       console.warn = originalWarn;
       grid.destroy();
@@ -141,20 +141,20 @@ describe('presets', () => {
         columns: 4
       });
 
-      // Start at 4
-      expect(grid.getCurrentRegistry()).toBe(4);
-
-      // Next (higher pitch) goes to 5
-      await grid.nextRegistry();
+      // Start at 5 (middle of [3,4,5,6])
       expect(grid.getCurrentRegistry()).toBe(5);
 
-      // Next at max stays at 5
+      // Next (higher pitch) goes to 6
       await grid.nextRegistry();
-      expect(grid.getCurrentRegistry()).toBe(5);
+      expect(grid.getCurrentRegistry()).toBe(6);
 
-      // Prev goes back to 4
+      // Next at max stays at 6
+      await grid.nextRegistry();
+      expect(grid.getCurrentRegistry()).toBe(6);
+
+      // Prev goes back to 5
       await grid.prevRegistry();
-      expect(grid.getCurrentRegistry()).toBe(4);
+      expect(grid.getCurrentRegistry()).toBe(5);
 
       grid.destroy();
     });
@@ -222,9 +222,10 @@ describe('presets', () => {
       });
 
       const map = grid.getNote0RowMap();
-      expect(map[5]).toBe(7);
-      expect(map[4]).toBe(19);
-      expect(map[3]).toBe(31);
+      expect(map[6]).toBe(11);
+      expect(map[5]).toBe(23);
+      expect(map[4]).toBe(35);
+      expect(map[3]).toBe(47);
 
       grid.destroy();
     });
@@ -254,8 +255,8 @@ describe('presets', () => {
       });
 
       const config = grid.getRegistryConfig();
-      expect(config.visibleRows).toBe(15);
-      expect(config.selectableRegistries).toEqual([3, 4, 5]);
+      expect(config.visibleRows).toBe(24);
+      expect(config.selectableRegistries).toEqual([3, 4, 5, 6]);
       expect(config.notesPerRegistry).toBe(12);
       expect(config.midiOffset).toBe(12);
 
@@ -291,8 +292,8 @@ describe('presets', () => {
       });
 
       expect(grid).toBeDefined();
-      expect(grid.getRowDefinitions()).toHaveLength(39);
-      expect(grid.getSelectableRegistries()).toEqual([3, 4, 5]);
+      expect(grid.getRowDefinitions()).toHaveLength(48);
+      expect(grid.getSelectableRegistries()).toEqual([3, 4, 5, 6]);
 
       grid.destroy();
     });

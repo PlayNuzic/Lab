@@ -16,19 +16,19 @@
  * @type {Object}
  */
 export const APP19_CONFIG = {
-  // Registry definitions (from highest to lowest)
+  // Registry definitions (from highest to lowest) - 4 full registries, 48 rows
   registries: [
-    { id: 5, notes: { from: 7, to: 0 } },   // r5: notes 7-0 (8 notes)
+    { id: 6, notes: { from: 11, to: 0 } },  // r6: notes 11-0 (12 notes)
+    { id: 5, notes: { from: 11, to: 0 } },   // r5: notes 11-0 (12 notes)
     { id: 4, notes: { from: 11, to: 0 } },  // r4: notes 11-0 (12 notes)
-    { id: 3, notes: { from: 11, to: 0 } },  // r3: notes 11-0 (12 notes)
-    { id: 2, notes: { from: 11, to: 5 } }   // r2: notes 11-5 (7 notes for padding)
+    { id: 3, notes: { from: 11, to: 0 } }   // r3: notes 11-0 (12 notes)
   ],
 
   // Scroll configuration
-  visibleRows: 15,
+  visibleRows: 24,
 
   // Selectable registries (external registry selector)
-  selectableRegistries: [3, 4, 5],
+  selectableRegistries: [3, 4, 5, 6],
 
   // MIDI calculation
   notesPerRegistry: 12,
