@@ -390,10 +390,11 @@ function handleRandom() {
     console.log(`Random registry: ${newRegistry}`);
   }
 
-  // Generate 6 random notes within range -7 to +7 (15 notes centered at 0)
+  // Generate 6 random notes within registry range (0-12: notes 0-11 + note 0 of next registry)
+  const totalNotes = registryController.getTotalNotes(); // 13
   randomNotes = [];
   for (let i = 0; i < SEQUENCE_LENGTH; i++) {
-    const note = Math.floor(Math.random() * 15) - 7; // -7 to +7
+    const note = Math.floor(Math.random() * totalNotes); // 0 to 12
     randomNotes.push(note);
   }
   currentBPM = getRandomBPM(MIN_BPM, MAX_BPM);
