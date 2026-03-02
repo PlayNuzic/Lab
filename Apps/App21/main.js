@@ -275,7 +275,7 @@ function createAppLayout() {
         <div class="soundline-column">
           <div class="soundline-header">
             <h3 class="soundline-title">Escala Cromática</h3>
-            <span class="soundline-subtitle">Nm</span>
+            <span class="soundline-subtitle">N</span>
           </div>
           <div id="chromaticSoundline" class="soundline-container"></div>
           ${createPlayButtonHTML('playChromaticBtn', 'Reproducir escala cromática')}
