@@ -1063,6 +1063,15 @@ async function init() {
       const absoluteDegrees = degreeIntervalsToAbsoluteDegrees(pairs);
       syncGridFromDegreeIntervals(absoluteDegrees);
       saveCurrentState();
+
+      // Autoscroll grid to show the last entered note
+      if (!isPlaying) {
+        const lastNote = [...absoluteDegrees].reverse().find(d => !d.isRest && d.degree !== null);
+        if (lastNote) {
+          const noteIndex = absoluteDegreeToVisualNoteIndex(lastNote.degree);
+          scrollToNoteIfNeeded(noteIndex);
+        }
+      }
     }
   });
 
