@@ -954,8 +954,15 @@ function initApp() {
   // Setup hover labels
   setupHovers();
 
-  // Load saved preferences FIRST (to get compas/cycles)
+  // Load saved preferences FIRST (to get BPM)
   loadPreferences();
+
+  // Set default Compás=4 and Nº Compases=3 so the grid starts pre-created
+  compas = 4;
+  cycles = 3;
+  if (elements.inputCompas) elements.inputCompas.value = compas;
+  if (elements.inputCycle) elements.inputCycle.value = cycles;
+  if (elements.cycleDigit) elements.cycleDigit.textContent = String(cycles);
 
   // Initialize the grid (plano-modular)
   initGrid();
@@ -964,9 +971,7 @@ function initApp() {
   updateLongitud();
   updateGridVisibility();
 
-  // Focus on Compás input
-  elements.inputCompas?.focus();
-
+  // No initial focus — user decides where to start
   console.log('App19 initialized (Migrated to plano-modular)');
 }
 

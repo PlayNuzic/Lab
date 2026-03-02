@@ -1356,8 +1356,15 @@ function initApp() {
   // Setup hover labels
   setupHovers();
 
-  // Load saved preferences FIRST (to get compas/cycles)
+  // Load saved preferences FIRST (to get BPM)
   loadPreferences();
+
+  // Set default Compás=4 and Nº Compases=3 so the grid starts pre-created
+  compas = 4;
+  cycles = 3;
+  if (elements.inputCompas) elements.inputCompas.value = compas;
+  if (elements.inputCycle) elements.inputCycle.value = cycles;
+  if (elements.cycleDigit) elements.cycleDigit.textContent = String(cycles);
 
   // Initialize the grid (plano-modular + modular controllers)
   initGrid();
@@ -1369,9 +1376,11 @@ function initApp() {
   updateLongitud();
   updateGridVisibility();
 
-  // Focus on Compás input (after render completes)
+  // Focus on the first N cell of the zigzag editor (after render completes)
   requestAnimationFrame(() => {
-    elements.inputCompas?.focus();
+    if (gridEditor?.focusFirstNCell) {
+      gridEditor.focusFirstNCell();
+    }
   });
 
   console.log('App20 initialized (MODULAR)');
