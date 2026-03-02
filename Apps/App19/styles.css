@@ -264,7 +264,7 @@ main {
   gap: var(--layout-gap);
   padding: var(--layout-gap);
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
   z-index: 2;
 }
@@ -587,10 +587,6 @@ main {
    ============================================ */
 
 .right-column {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: 1fr auto;
-  gap: 0;
   min-height: 0;
   overflow: hidden;
   margin-right: 1rem;
@@ -600,6 +596,12 @@ main {
 .plano-container {
   --plano-cell-height: 26px;
   --plano-visible-rows: 24;
+}
+
+/* Fit grid vertically: cap the scroll containers to available space */
+.right-column .plano-soundline-container,
+.right-column .plano-matrix-container {
+  max-height: calc(100dvh - 170px);
 }
 
 /* Note 0 of each registry: pink (matching App18) */
