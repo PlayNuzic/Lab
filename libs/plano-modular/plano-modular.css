@@ -161,6 +161,7 @@
 
 .plano-cell:hover {
   background: transparent;
+  z-index: 2;
 }
 
 .plano-cell:hover::before {

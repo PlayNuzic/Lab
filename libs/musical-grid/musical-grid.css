@@ -213,8 +213,6 @@
 }
 
 .grid-container:not(.interval-mode) .musical-cell:hover {
-  background: transparent;
-  border-color: transparent;
   box-shadow: none;
   z-index: var(--z-interactive, 10);
 }
@@ -281,8 +279,6 @@
 
 /* Active cell (selected) - visual note centered ON the soundline division (bottom edge) */
 .musical-cell.active {
-  background: transparent;
-  border-color: transparent;
   box-shadow: none;
   z-index: var(--z-interactive, 10);
 }
@@ -302,10 +298,9 @@
   pointer-events: none;
 }
 
-/* Dark theme: stronger background for better visibility */
+/* Dark theme: stronger ::before for better visibility */
 [data-theme="dark"] .musical-cell.active {
-  background: transparent;
-  border-color: transparent;
+  /* Inherits dark theme base background */
 }
 
 [data-theme="dark"] .musical-cell.active::before {

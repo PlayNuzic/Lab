@@ -192,8 +192,21 @@ html, body {
 
 /* ========== Drag Preview ========== */
 .musical-cell.drag-preview {
-  background: var(--select-color, #FFBB33) !important;
   opacity: 0.3;
+  z-index: var(--z-interactive, 10);
+}
+
+.musical-cell.drag-preview::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -50%;
+  height: 100%;
+  background: var(--select-color, #FFBB33);
+  border-radius: 2px;
+  z-index: 1;
+  pointer-events: none;
 }
 
 /* ========== Drag Cursors ========== */

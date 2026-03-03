@@ -1738,6 +1738,7 @@ main {
 .plano-cell.drag-highlight {
   background: transparent !important;
   opacity: 0.7;
+  z-index: 2;
 }
 
 .plano-cell.drag-highlight::before {
@@ -1765,6 +1766,7 @@ main {
 
 .plano-cell.duration-highlight {
   background: transparent !important;
+  z-index: 2;
 }
 
 .plano-cell.duration-highlight::before {
