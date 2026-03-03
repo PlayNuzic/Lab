@@ -1,0 +1,1421 @@
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+/* ====== RESET & BASE ====== */
+#nuz-sistema * { box-sizing: border-box; margin: 0; padding: 0; }
+#nuz-sistema {
+  font-family: 'Ubuntu', 'Bariol', Arial, sans-serif;
+  color: #43433B;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ====== TIPOGRAF&Iacute;ES NUZIC ====== */
+#nuz-sistema h2.nuz-title {
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #43433B;
+  margin-bottom: 20px;
+  line-height: 1.3;
+}
+#nuz-sistema h4.nuz-cta {
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 300;
+  font-size: 18px;
+  color: #7BB4CD;
+  margin: 24px 0 12px;
+  letter-spacing: 0.5px;
+}
+#nuz-sistema .nuz-theory {
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 300;
+  font-size: 18px;
+  line-height: 1.7;
+  color: #43433B;
+}
+#nuz-sistema .nuz-app-info {
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #43433B;
+  background: #F5F5F0;
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin-bottom: 12px;
+}
+#nuz-sistema .nuz-app-info strong {
+  font-weight: 500;
+  color: #E76F68;
+}
+#nuz-sistema .nuz-app-info p {
+  margin-bottom: 8px;
+}
+#nuz-sistema .nuz-app-info p:last-child {
+  margin-bottom: 0;
+}
+
+/* ====== MINI-&Iacute;NDEX PERSISTENT ====== */
+#nuz-miniindex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 10px 16px;
+  background: rgba(238,232,216,0.85);
+  border-radius: 0 0 10px 10px;
+  margin-bottom: 20px;
+  justify-content: center;
+  font-size: 13px;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 400;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+#nuz-miniindex a {
+  color: #43433B;
+  text-decoration: none;
+  padding: 3px 8px;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+#nuz-miniindex a:hover,
+#nuz-miniindex a.nuz-active-section {
+  background: #7BB4CD;
+  color: #fff;
+}
+#nuz-miniindex .nuz-step-num {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-left: 8px;
+}
+
+/* ====== PROGRESS BAR ====== */
+#nuz-progress-wrap {
+  height: 6px;
+  background: #EEE8D8;
+  border-radius: 3px;
+  margin-bottom: 16px;
+  transition: height 0.15s ease;
+}
+#nuz-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #7CD6B3, #7BB4CD);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+/* ====== PASSOS: SHOW/HIDE ====== */
+.nuz-paso {
+  display: none;
+  padding: 0;
+  flex-direction: column;
+}
+.nuz-paso.nuz-visible {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 60px);
+}
+/* Container d'scroll amb snap (teoria + app) */
+.nuz-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  scroll-snap-type: none;
+  scroll-behavior: smooth;
+  padding: 0 24px;
+}
+/* Snap s'activa nom&eacute;s despr&eacute;s de la primera interacci&oacute; de l'usuari */
+.nuz-scroll-container.nuz-snap-active {
+  scroll-snap-type: y mandatory;
+}
+/* Cada "p&agrave;gina" dins l'scroll */
+.nuz-snap-section {
+  min-height: calc(100vh - 130px);
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 30px 0;
+  flex-shrink: 0;
+}
+.nuz-snap-section.nuz-app-section {
+  justify-content: flex-start;
+  padding: 20px 0;
+  align-items: stretch;
+  min-height: auto;
+}
+/* Steps sense app: sense scroll-snap */
+.nuz-paso:not(.nuz-has-app) .nuz-snap-section {
+  min-height: auto;
+  padding: 20px 0 10px;
+}
+/* BOTONS SEMPRE VISIBLES - fora del scroll container */
+.nuz-paso > .nuz-nav-row {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 12px 0;
+  z-index: 50;
+  border-top: 1px solid rgba(67,67,59,0.06);
+}
+
+/* ====== ZOOM PER IDEES (HOVER GROW) ====== */
+.nuz-idea-block {
+  background: #FAFAF6;
+  border: 1px solid rgba(67,67,59,0.08);
+  border-radius: 10px;
+  padding: 22px 26px;
+  margin-bottom: 32px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  cursor: default;
+}
+.nuz-idea-block p + p {
+  margin-top: 14px;
+}
+.nuz-idea-block:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 16px rgba(67,67,59,0.10);
+  border-color: rgba(123,180,205,0.3);
+}
+
+/* ====== IFRAMES ====== */
+.nuz-iframe-wrap {
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 12px 0 20px;
+  background: #f0f0ec;
+  flex: 1;
+  min-height: 0;
+}
+.nuz-iframe-wrap iframe {
+  width: 100%;
+  border: none;
+  display: block;
+}
+/* Apps de planol: trencar el max-width per usar tot l'ample */
+.nuz-iframe-fullwidth {
+  width: 100%;
+  max-width: none;
+  border-radius: 0;
+}
+/* Apps soundline vertical: aprofitar tota l'al&ccedil;ada disponible */
+.nuz-iframe-tall iframe {
+  height: calc(100vh - 200px) !important;
+  min-height: 500px;
+}
+
+/* ====== BOTONS NAV ====== */
+.nuz-nav-row {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 48px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.nuz-btn {
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 500;
+  font-size: 17px;
+  padding: 14px 38px;
+  border-radius: 30px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  text-decoration: none;
+  display: inline-block;
+  letter-spacing: 0.3px;
+}
+.nuz-btn:active { transform: scale(0.97); }
+.nuz-btn-next {
+  background: #7BB4CD;
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(123,180,205,0.35);
+}
+.nuz-btn-next:hover { background: #5a9ab8; box-shadow: 0 4px 16px rgba(123,180,205,0.5); }
+.nuz-btn-prev {
+  background: #EEE8D8;
+  color: #43433B;
+  border-color: rgba(67,67,59,0.12);
+}
+.nuz-btn-prev:hover { background: #ddd6c4; }
+
+/* ====== TOGGLE (Paso 21) ====== */
+.nuz-toggle-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: #7BB4CD;
+  cursor: pointer;
+  padding: 14px 0 8px;
+  opacity: 0.55;
+  transition: opacity 0.3s;
+  user-select: none;
+  letter-spacing: 0.5px;
+}
+.nuz-toggle-header:hover { opacity: 0.9; }
+.nuz-toggle-header .nuz-toggle-chevron {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  transition: transform 0.3s;
+}
+.nuz-toggle-header.nuz-open .nuz-toggle-chevron {
+  transform: rotate(180deg);
+}
+.nuz-toggle-body { display: none; padding: 16px 0; }
+.nuz-toggle-body.nuz-open { display: block; }
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 768px) {
+  #nuz-sistema { padding: 0 8px; }
+  #nuz-sistema h2.nuz-title { font-size: 22px; }
+  #nuz-sistema .nuz-theory { font-size: 16px; }
+  #nuz-miniindex { font-size: 12px; gap: 4px 8px; padding: 8px 10px; }
+  .nuz-idea-block { padding: 14px 16px; margin-bottom: 24px; margin-left: 8px; margin-right: 8px; }
+  .nuz-idea-block:hover { transform: none; }
+  .nuz-iframe-wrap iframe { height: 500px !important; }
+  .nuz-iframe-tall iframe { height: calc(100vh - 160px) !important; }
+  .nuz-btn { font-size: 15px; padding: 12px 28px; }
+  .nuz-snap-section { padding: 20px 0; }
+  .nuz-snap-section > h2, .nuz-snap-section > .nuz-idea-block, .nuz-snap-section > .nuz-spacer, .nuz-snap-section > h4, .nuz-snap-section > .nuz-app-info, .nuz-snap-section > .nuz-scroll-indicator { padding-left: 12px; padding-right: 12px; }
+}
+
+/* ====== v4: SEPARADORS ENTRE BLOCS ====== */
+.nuz-spacer {
+  height: 36px;
+  flex-shrink: 0;
+}
+
+/* ====== v4b: INDICADOR SCROLL CAP A APP ====== */
+.nuz-scroll-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 0 8px;
+  opacity: 0.5;
+  transition: opacity 0.3s;
+  cursor: pointer;
+}
+.nuz-scroll-indicator:hover { opacity: 0.9; }
+.nuz-scroll-indicator span {
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: #7BB4CD;
+  letter-spacing: 0.5px;
+}
+.nuz-scroll-chevron {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  animation: nuzBounce 1.8s ease-in-out infinite;
+}
+@keyframes nuzBounce {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(5px); opacity: 1; }
+}
+
+/* ====== v4: PROGRESS BAR CLICABLE ====== */
+#nuz-progress-wrap {
+  cursor: pointer;
+  position: relative;
+  height: 6px;
+}
+#nuz-progress-wrap:hover {
+  height: 10px;
+}
+#nuz-progress-wrap::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+}
+#nuz-progress-tooltip {
+  display: none;
+  position: absolute;
+  top: -30px;
+  transform: translateX(-50%);
+  background: #43433B;
+  color: #fff;
+  font-family: 'Ubuntu', sans-serif;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 110;
+}
+
+/* ====== v4: MINI-INDEX BOTTOM ====== */
+.nuz-miniindex-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 10px 16px;
+  background: rgba(238,232,216,0.85);
+  border-radius: 10px 10px 0 0;
+  margin-top: 20px;
+  justify-content: center;
+  font-size: 13px;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 400;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.nuz-miniindex-bottom a {
+  color: #43433B;
+  text-decoration: none;
+  padding: 3px 8px;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+.nuz-miniindex-bottom a:hover,
+.nuz-miniindex-bottom a.nuz-active-section {
+  background: #7BB4CD;
+  color: #fff;
+}
+.nuz-miniindex-bottom .nuz-step-num {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-left: 8px;
+}
+
+/* ====== v4b: RESPONSIVE ADDITIONS ====== */
+@media (max-width: 768px) {
+  .nuz-scroll-indicator span { font-size: 11px; }
+  .nuz-scroll-chevron { width: 18px; height: 18px; }
+  .nuz-scroll-indicator { gap: 6px; }
+}
+
+/* ====== v4c: CONTINGUT CENTRAT (max-width per text, no per iframes) ====== */
+.nuz-snap-section > h2,
+.nuz-snap-section > .nuz-idea-block,
+.nuz-snap-section > .nuz-spacer,
+.nuz-snap-section > h4,
+.nuz-snap-section > .nuz-app-info,
+.nuz-snap-section > .nuz-scroll-indicator,
+.nuz-snap-section.nuz-app-section > h4 {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+/* Idea blocks: max-width amb marge extra pel zoom (1.03 = +1.5% cada costat ~ 16px) */
+.nuz-snap-section > .nuz-idea-block {
+  max-width: 1040px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 26px;
+  padding-right: 26px;
+}
+/* Nav row centered */
+.nuz-paso > .nuz-nav-row {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+}
+/* Mini-index centered */
+#nuz-miniindex,
+.nuz-miniindex-bottom {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+}
+/* Progress bar centered */
+#nuz-progress-wrap {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Iframes NO fullwidth: centrats dins el max-width */
+.nuz-iframe-wrap:not(.nuz-iframe-fullwidth) {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+}
+  </style>
+
+<div id="nuz-sistema">
+
+<!-- MINI-&Iacute;NDEX PERSISTENT -->
+<nav id="nuz-miniindex">
+  <a href="#" onclick="nuzGo(0);return false;">Introducci&oacute;n</a>
+  <a href="#" onclick="nuzGo(6);return false;">Descubriendo</a>
+  <a href="#" onclick="nuzGo(9);return false;">Intervalos</a>
+  <a href="#" onclick="nuzGo(12);return false;">Ampliando</a>
+  <a href="#" onclick="nuzGo(18);return false;">Fraccionando</a>
+  <a href="#" onclick="nuzGo(21);return false;">Escalas</a>
+  <span class="nuz-step-num" id="nuz-step-indicator">1/27</span>
+</nav>
+
+<!-- PROGRESS BAR -->
+<div id="nuz-progress-wrap"><div id="nuz-progress-bar"></div><div id="nuz-progress-tooltip"></div></div>
+
+<!-- ===== PASO 01 ===== -->
+<div class="nuz-paso" data-step="0">
+  <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 1 &mdash; Introducci&oacute;n</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>&iquest;Te gustar&iacute;a saber qu&eacute; movimientos se producen en la m&uacute;sica?</p>
+      <p>Imaginemos el seguimiento de una persona en un d&iacute;a. Para conocer sus movimientos hay que saber en qu&eacute; puntos ha estado, en qu&eacute; momento y cu&aacute;nto tiempo se ha quedado. A partir de esa informaci&oacute;n puedes deducir y trazar en un mapa c&oacute;mo se ha movido la persona.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Las coordenadas de los puntos donde ha estado, la hora y el tiempo, incluso la velocidad para ir de un punto a otro, se puede describir con n&uacute;meros.</p>
+      <p>&iquest;Es aplicable a la m&uacute;sica? &iexcl;S&Iacute;!</p>
+    </div>
+    <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(1)">Siguiente paso &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PASO 02 ===== -->
+<div class="nuz-paso" data-step="1">
+  <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 2 &mdash; Contar y Medir</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Contar es calcular con n&uacute;meros cu&aacute;ntas cosas hay. Empezamos a contar unidades con el 1; a continuaci&oacute;n le siguen el 2, el 3, el 4, el 5&hellip; hasta el infinito.</p>
+      <p>Medir es usar n&uacute;meros para calcular la magnitud de algo. Puede ser una longitud, un peso, una temperatura, un intervalo de tiempo&hellip;</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Para medir usamos herramientas con escalas num&eacute;ricas: cintas m&eacute;tricas para medir longitudes, term&oacute;metros para medir temperaturas, balanzas para medir pesos, etc.</p>
+      <p>Los instrumentos de medida tienen una l&iacute;nea con las unidades de medida marcadas y numeradas.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>La marca inicial es el n&uacute;mero 0, el punto de partida de la medici&oacute;n. Los n&uacute;meros que siguen nos permiten contar a cu&aacute;ntos pasos est&aacute; cada punto del inicio.</p>
+      <p>Cada n&uacute;mero marca el punto donde est&aacute; y mide a qu&eacute; distancia est&aacute; del principio. Por ejemplo, en una cinta m&eacute;trica, el n&uacute;mero 15 indica que est&aacute; a 15 unidades de distancia del principio.</p>
+    </div>
+    <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(0)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(2)">Siguiente paso &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PASO 03 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="2">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 3 &mdash; Contar y Medir la M&uacute;sica</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>La m&uacute;sica, como los movimientos de una persona en un d&iacute;a, podemos describirla y medirla con n&uacute;meros.</p>
+      <p>Si vas por una calle, escuchas unos pasos, un coche que pasa, una puerta que se cierra y, al fondo, alguien silbando una melod&iacute;a. Todo esto se mueve en un tiempo y un espacio determinados, en un orden concreto.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>&iquest;Qu&eacute; se mueve en la m&uacute;sica? Habr&aacute; que saber d&oacute;nde est&aacute;n los sonidos y c&oacute;mo se mueven en el tiempo para poder ordenarlos y medirlos.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Para empezar partimos de dos l&iacute;neas num&eacute;ricas donde poder visualizar la m&uacute;sica. Una l&iacute;nea para los sonidos y otra l&iacute;nea para el paso del tiempo, sincronizadas para describir lo que suena y plasmarlo en un plano musical.</p>
+      <p>Las dos l&iacute;neas, sonora y temporal, como todos los instrumentos de medici&oacute;n, tienen marcas numeradas. La marca de inicio es el n&uacute;mero 0.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Combina la l&iacute;nea temporal (horizontal) y la l&iacute;nea sonora (vertical) en un plano interactivo de 12 notas y 9 pulsos. Genera secuencias aleatorias.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Pulsa &play; para escuchar de 4 a 8 notas aleatorias distribuidas en 8 pulsos.</p>
+      <p><strong>Tips:</strong> El plano revela que la m&uacute;sica tiene dos dimensiones inseparables: el sonido y el tiempo.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-fullwidth"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App11A/index.html" height="650" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(1)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(3)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 04 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="3">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 4 &mdash; L&iacute;nea Temporal</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>La l&iacute;nea temporal es horizontal y representa el movimiento en el tiempo. En ella marcamos unos puntos equidistantes que representan una velocidad constante, como si fueran los segundos de un reloj. Definimos esta velocidad con un n&uacute;mero, que se conoce como BPM (Beats Per Minute).</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>A los puntos de la l&iacute;nea temporal los llamamos pulsos, y los numeramos. Como buen instrumento de medici&oacute;n el pulso de partida es el 0.</p>
+      <p>Los pulsos nos permiten marcar exactamente en qu&eacute; instante se producen los sonidos. El tiempo en la m&uacute;sica se tiene que medir con gran precisi&oacute;n.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Como la pulsaci&oacute;n del coraz&oacute;n, un paso temporal es el tiempo que pasa entre dos pulsos consecutivos. Este paso es la unidad temporal que usaremos para medir cu&aacute;nto dura un sonido.</p>
+      <p>Cuando contamos pasos, es natural hacerlo desde el 1: El paso 1 va del pulso 0 al 1, el paso 2 va del 1 al 2, etc.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Genera 2 sonidos en dos pulsos aleatorios de la l&iacute;nea temporal.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Pulsa &play; y escucha. La app genera dos notas aleatorias en posiciones distintas de la l&iacute;nea temporal. Ajusta el BPM entre 50 y 150 para escuchar la l&iacute;nea m&aacute;s r&aacute;pido o m&aacute;s lento.</p>
+      <p><strong>Tips:</strong> En la l&iacute;nea temporal podemos visualizar el paso del tiempo marcado por los pulsos y o&iacute;r un sonido que ocurre en un pulso y que dura una pulsaci&oacute;n o paso.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-tall"><iframe data-src="https://playnuzic.github.io/Lab/Apps/app9/index.html" height="550" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(2)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(4)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 05 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="4">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 5 &mdash; L&iacute;nea Sonora</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>La l&iacute;nea sonora representa los sonidos que crean la m&uacute;sica. Los sonidos que usamos para empezar son las notas musicales. Cada punto de la l&iacute;nea es una nota de la escala crom&aacute;tica con su sonido caracter&iacute;stico.</p>
+      <p>A la primera nota le damos el n&uacute;mero 0. Es la nota de salida de la escala. Cada nota tiene su propio n&uacute;mero para poder identificarla.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>La l&iacute;nea sonora la colocamos en vertical para formar el plano con la l&iacute;nea temporal, as&iacute; se ve muy bien la altura de cada nota. Las notas est&aacute;n organizadas en orden ascendente, de m&aacute;s grave a m&aacute;s aguda.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Las notas pueden seguir cualquier orden, pueden subir y bajar libremente creando as&iacute; una melod&iacute;a.</p>
+      <p>El paso entre dos notas consecutivas es la unidad de medida que nos permite medir los movimientos de una melod&iacute;a.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> La app muestra la l&iacute;nea sonora con 12 notas (0&ndash;11) y donde puedes escuchar melod&iacute;as.</p>
+      <p><strong>Uso b&aacute;sico:</strong> En la primera interacci&oacute;n, suena la escala crom&aacute;tica completa como introducci&oacute;n. A partir de la segunda, pulsa &play; para reproducir melod&iacute;as aleatorias de 6 notas.</p>
+      <p><strong>Tips:</strong> La primera escucha es siempre la escala crom&aacute;tica ascendente. Sirve para mostrar las 12 notas, antes de escucharlas en melod&iacute;as aleatorias.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-tall"><iframe data-src="https://playnuzic.github.io/Lab/Apps/app10/index.html" height="550" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(3)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(5)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 06 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="5">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 6 &mdash; El Plano Musical</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Si colocamos la l&iacute;nea temporal en horizontal y la l&iacute;nea sonora en vertical creamos un plano que representa el espacio donde va a sonar la m&uacute;sica.</p>
+      <p>Es un mapa donde podemos ver c&oacute;mo las notas van ocurriendo en el tiempo, cada una en su instante preciso.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>A cada nota le corresponde un punto en el mapa. Cada punto tiene dos n&uacute;meros que lo definen, como las coordenadas de un lugar en el mapa.</p>
+      <p>El primer n&uacute;mero es la nota escogida y el segundo es el pulso donde est&aacute; ubicada. Un pulso no puede tener m&aacute;s de una nota, igual que al cantar solo podemos cantar una nota a la vez.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Genera secuencias aleatorias y tambi&eacute;n permite explorar notas individualmente en el plano musical.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Haz clic en cualquier celda del plano para escuchar su nota y ver sus coordenadas (nota &mdash; pulso). Pulsa &play; para escuchar de 4 a 8 notas aleatorias distribuidas en 8 pulsos.</p>
+      <p><strong>Tips:</strong> Prueba a hacer clic en varias celdas seguidas para explorar la relaci&oacute;n entre posici&oacute;n en el plano y sonido. Las coordenadas de las notas desaparecen suavemente tras 1 segundo.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-fullwidth"><iframe data-src="https://playnuzic.github.io/Lab/Apps/app11/index.html" height="650" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(4)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(6)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 07 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="6">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 7 &mdash; DESCUBRIENDO LA M&Uacute;SICA</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Ya tenemos el mapa para crear m&uacute;sica movi&eacute;ndonos a trav&eacute;s de n&uacute;meros.</p>
+      <p>Cada nota tendr&aacute; dos n&uacute;meros distintos, sincronizados e interdependientes. Un n&uacute;mero define una nota y otro n&uacute;mero la sit&uacute;a en el tiempo; uno lo elegimos en la l&iacute;nea sonora, otro en la l&iacute;nea temporal.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Para distinguir los dos n&uacute;meros les ponemos una letra delante, una N para la nota, N(x), y una P para el pulso, P(y).</p>
+      <p>Para crear una melod&iacute;a, escogemos y ordenamos sucesiones de n&uacute;meros. A cada n&uacute;mero de una nota le corresponder&aacute; un n&uacute;mero de pulso. Estamos ordenando sonidos en el tiempo.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Las dos l&iacute;neas num&eacute;ricas funcionan de manera muy distinta: Los n&uacute;meros de la l&iacute;nea sonora pueden subir y bajar (movimiento ascendente o descendente) y se pueden repetir. Los n&uacute;meros de la l&iacute;nea temporal s&oacute;lo pueden ir en una direcci&oacute;n y no se pueden repetir, como el paso del tiempo.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>&iquest;Podemos elegir cualquier n&uacute;mero? No, nos regimos por la estructura del plano: 12 n&uacute;meros para las notas (del 0 al 11) y 8 n&uacute;meros para los pulsos (del 0 al 7).</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Puedes clicar las notas en el plano y ver como aparecen los n&uacute;meros en la sucesi&oacute;n. O escribir los n&uacute;meros y ver como aparecen en el plano.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Usa el editor para introducir pares N-P para crear una sucesi&oacute;n. O haz clic en celdas del plano para a&ntilde;adir o quitar notas. Pulsa &play; para reproducir, &dice; para generar una sucesi&oacute;n aleatoria, &cross; para borrar.</p>
+      <p><strong>Tips:</strong> Pasar del azar a la intenci&oacute;n es el salto creativo fundamental. Es el primer paso hacia la composici&oacute;n consciente: en lugar de escuchar resultados aleatorios, aqu&iacute; decides t&uacute; qu&eacute; nota suena en qu&eacute; momento.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-fullwidth"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App12/index.html" height="700" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(5)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(7)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 08 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="7">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 8 &mdash; Midiendo el movimiento: Los Intervalos</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Ya sabemos d&oacute;nde est&aacute;n situadas las notas y los pulsos. Vamos a fijarnos ahora en sus movimientos, usando nuevos n&uacute;meros para medirlos.</p>
+      <p>Los n&uacute;meros que miden los movimientos se llaman intervalos.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Cada l&iacute;nea del plano tiene su intervalo caracter&iacute;stico. Los de la l&iacute;nea temporal miden las duraciones, los de la l&iacute;nea sonora los saltos de las notas. Son muy diferentes pero la idea es la misma: medir movimientos.</p>
+      <p>Los intervalos muestran los espacios que se van formando entre las notas, c&oacute;mo se construye una melod&iacute;a y permiten entender la esencia de su expresi&oacute;n.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p><strong>iT(n):</strong> El intervalo temporal iT(n) mide la distancia entre dos pulsos escogidos. La unidad que usaremos para medir el tiempo que dura cada sonido es el paso temporal entre dos pulsos adyacentes. El n&uacute;mero del iT nos dice cu&aacute;ntas unidades, o sea, cu&aacute;ntos pasos dura un sonido.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Para calcular el iT: iT &equals; P2 &mdash; P1. El resultado es siempre positivo. Cada iT puede contener un sonido o un silencio. Los iT dividen el tiempo total en partes; la suma de todos los iT da la duraci&oacute;n total. Para definir un ritmo creamos una sucesi&oacute;n de iT.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Crea sucesiones de intervalos temporales (iT) que suman exactamente 8. Cada intervalo se visualiza como una barra animada de color sobre la l&iacute;nea temporal.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Introduce hasta 4 valores de iT en los cuadros. La suma no puede superar 8. Pulsa &play; para reproducir, &dice; para generar una sucesi&oacute;n aleatoria, &cross; para borrar.</p>
+      <p><strong>Tips:</strong> Aqu&iacute; se descubre como la distancia entre los sonidos crea el movimiento. Cambiar el orden de los IT cambia completamente el ritmo.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/app13/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(6)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(8)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 09 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="8">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 9 &mdash; Intervalo Sonoro</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p><strong>iS(n):</strong> El n&uacute;mero del intervalo sonoro mide la distancia entre dos notas de una melod&iacute;a. Cada distancia define un salto mel&oacute;dico.</p>
+      <p>Usamos como unidad de medida la distancia entre dos notas seguidas. Es el caso del iS(1), al que le corresponde una unidad mel&oacute;dica.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Para calcular el iS: iS &equals; N2 &mdash; N1. El resultado puede ser positivo o negativo. Si N2 &gt; N1, movimiento ascendente. Si N2 &lt; N1, movimiento descendente.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>La nota final de una sucesi&oacute;n es el resultado de ir sumando o restando los n&uacute;meros de los iS consecutivos.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Editor de intervalos sonoros (iS) con una l&iacute;nea sonora visual. Permite introducir hasta 4 valores de iS para crear secuencias mel&oacute;dicas basadas en movimiento interv&aacute;lico. Las notas deben estar dentro de un registro de 12 notas.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Escribe valores de iS en los campos de entrada. Pulsa &play; para reproducir, &dice; para generar una sucesi&oacute;n aleatoria, &cross; para borrar.</p>
+      <p><strong>Tips:</strong> El iS ense&ntilde;a que una melod&iacute;a es movimiento: no solo importa desde d&oacute;nde empieces, sino cu&aacute;nto te mueves. Observa c&oacute;mo la l&iacute;nea sonora destaca los iS con flechas durante la reproducci&oacute;n. Los valores positivos suben y los negativos bajan.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App14/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(7)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(9)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 10 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="9">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 10 &mdash; Intervalos en el Plano Musical</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Para componer una peque&ntilde;a melod&iacute;a desde el punto de vista del movimiento, combinamos una sucesi&oacute;n de iS sincronizada con una sucesi&oacute;n de iT.</p>
+      <p>El punto de salida ser&aacute; una nota situada en el pulso 0. Luego los pares iS-iT van dibujando la melod&iacute;a. Podemos escoger silencios escribiendo una &quot;s&quot; en los iS.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Combina intervalos sonoros y temporales para dibujar melod&iacute;as en el plano. En las filas de n&uacute;meros, los iT est&aacute;n intercalados entre los iS para representar la duraci&oacute;n de la nota.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Entra un n&uacute;mero de iS, para definir la primera nota. A continuaci&oacute;n entra el n&uacute;mero del IT, para definir su duraci&oacute;n. Entra pares iS-iT hasta acabar la sucesi&oacute;n. Escribe &quot;s&quot; en la l&iacute;nea iS para entrar un silencio en el editor. Tambi&eacute;n puedes introducir notas clicando en los puntos (en la esquina inferior de las celdas) del plano y arrastrarlas para crear el IT. Pulsa &play; para reproducir, &dice; para generar una secuencia aleatoria, &cross; para borrar.</p>
+      <p><strong>Tips:</strong> En esta App se juega con distancias en lugar de posiciones fijas. Es como la diferencia entre decir &quot;ve a la calle 5&quot; y &quot;avanza 3 calles&quot; &mdash; el mismo destino, dos formas de pensarlo.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-fullwidth"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App15/index.html" height="700" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(8)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(10)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 11 ===== -->
+<div class="nuz-paso" data-step="10">
+  <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 11 &mdash; AMPLIANDO EL MAPA: Patrones, Ciclos Y M&oacute;dulos</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>La realidad est&aacute; llena de ciclos: patrones que se repiten infinitamente o un n&uacute;mero determinado de veces. Est&aacute;n en todas partes; en la naturaleza (estaciones, ciclos lunares, &oacute;rbitas planetarias) y en el mundo del ser humano (horarios, etapas vitales&hellip; etc).</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>En matem&aacute;ticas se llaman m&oacute;dulos y crean la aritm&eacute;tica modular que es la base de muchas t&eacute;cnicas de c&aacute;lculo.</p>
+      <p>En la m&uacute;sica no es diferente. Los patrones repetitivos estructuran tanto el tiempo como el sonido. Ayudan a ordenar grandes espacios musicales.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Para contar todos los pulsos de una pieza, es m&aacute;s &uacute;til usar un patr&oacute;n como el comp&aacute;s. Decimos que una canci&oacute;n tiene 40 compases de 4 en vez de 160 pulsos.</p>
+      <p>Para entender la m&uacute;sica num&eacute;ricamente nos permiten trabajar con una cantidad reducida de n&uacute;meros que se repiten.</p>
+    </div>
+    <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(9)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(11)">Siguiente paso &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PASO 12 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="11">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 12 &mdash; El comp&aacute;s: el m&oacute;dulo temporal</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>El m&oacute;dulo temporal es el comp&aacute;s. El comp&aacute;s se repite las veces que queramos. Organiza los pulsos de la l&iacute;nea temporal en grupos.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>La numeraci&oacute;n es modular: vuelve a empezar en el 0 cada nuevo comp&aacute;s. El comp&aacute;s permite trabajar con pocos n&uacute;meros. Para indicar en qu&eacute; comp&aacute;s est&aacute; un pulso, le a&ntilde;adimos el n&uacute;mero de comp&aacute;s como super&iacute;ndice.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Representa la l&iacute;nea de tiempo organizada con compases. Muestra 2 compases completos con un efecto para visualizar la repetici&oacute;n.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Entra un n&uacute;mero en &quot;Pulsos por Comp&aacute;s&quot; y pulsa &play;. Observa c&oacute;mo la numeraci&oacute;n de la l&iacute;nea temporal se repite mostrando la estructura del comp&aacute;s.</p>
+      <p><strong>Tips:</strong> Revela que el comp&aacute;s es un ciclo num&eacute;rico que se repite.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App16/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(10)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(12)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 13 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="12">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 13 &mdash; L&iacute;nea temporal en c&iacute;rculo</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>La visualizaci&oacute;n como c&iacute;rculo es muy &uacute;til para entender la l&iacute;nea temporal con comp&aacute;s. La longitud total de la l&iacute;nea depender&aacute; de cu&aacute;ntos pulsos tenga el comp&aacute;s y de cu&aacute;ntas repeticiones definamos. Ejemplo: 3 pulsos &times; 5 repeticiones &equals; 15 pulsos totales.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Visualiza los pulsos del comp&aacute;s en un c&iacute;rculo que se repite. Los n&uacute;meros dentro del c&iacute;rculo indican los pulsos y sus super&iacute;ndices indican en qu&eacute; repetici&oacute;n del comp&aacute;s suenan. La &quot;Longitud&quot; total se calcula autom&aacute;ticamente (Comp&aacute;s &times; Ciclos).</p>
+      <p><strong>Uso b&aacute;sico:</strong> Entra un n&uacute;mero en &quot;Pulsos por Comp&aacute;s&quot; y otro en &quot;N&ordm; de Compases&quot;. Si multiplicas los dos n&uacute;meros tendr&aacute;s la Longitud Total. Pulsa &play; para ver la reproducci&oacute;n circular tantas veces como N&ordm; de compases hayas puesto. Observa como cambia el super&iacute;ndice en los mismos pulsos.</p>
+      <p><strong>Tips:</strong> Compara esta representaci&oacute;n circular con la lineal de App 16. Mismo concepto, dos visualizaciones. El c&iacute;rculo hace evidente lo que la l&iacute;nea sugiere. La m&uacute;sica no avanza solo en l&iacute;nea sino que &quot;gira&quot; para volver al siguiente &quot;punto de partida&quot;, creando espirales en el tiempo.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App17/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(11)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(13)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 14 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="13">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 14 &mdash; El registro de octava</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Las notas se organizan en m&oacute;dulos de 12 que se repiten (0&ndash;11). El 0 corresponde a Do. Esta estructura fija se llama registro de octava.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Hay ocho registros (0&ndash;7). Del 0 al 2 graves, del 3 al 5 medios, 6 y 7 agudos. El registro 4 es el Do central del piano (C4).</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Reproduce una secuencia aleatoria de 6 notas. Muestra una l&iacute;nea sonora de un registro y un selector de registro (0&ndash;7).</p>
+      <p><strong>Uso b&aacute;sico:</strong> Introduce un n&uacute;mero de registro o cambialo con las flechas. Clica en las notas de la l&iacute;nea sonora para reproducirlas individualmente. Pulsa &play; para reproducir una secuencia aleatoria de 6 notas.</p>
+      <p><strong>Tips:</strong> La nota 0 est&aacute; resaltada en rosa para marcar el inicio de cada registro. El registro 4 corresponde al Do central del piano (C4).</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App18/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(12)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(14)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 15 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="14">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 15 &mdash; Plano Modular</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>En el plano se puede escoger el registro de cada nota y el comp&aacute;s de cada pulso. Cada par Nota-Pulso lleva los super&iacute;ndices que especifican el registro y el comp&aacute;s.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Muestra en el plano musical con l&iacute;neas num&eacute;ricas modulares. En las casillas se muestran los pares Nota-Pulso modulares.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Introduce un Comp&aacute;s y N&ordm; Compases para que aparezca el plano modular, que calcula autom&aacute;ticamente la longitud total de pulsos. Los registros de salida inicial son 3 y 4. Haz clic en las celdas del plano para crear notas. Usa el scroll para moverte entre los registros. Pulsa &play; para reproducir, &dice; para generar aleatoriamente, &cross; para borrar. Usa los spinners para reajustar comp&aacute;s, ciclos y BPM.</p>
+      <p><strong>Tips:</strong> Combina los conceptos de m&oacute;dulo temporal y m&oacute;dulo sonoro en un solo plano interactivo. Usa el scroll vertical para moverte entre registros y el horizontal para moverte por los compases.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-fullwidth"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App19/index.html" height="700" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(13)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(15)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 16 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="15">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 16 &mdash; Plano y Sucesi&oacute;n N-iT</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>El par N-iT combina una nota con registro y un intervalo temporal, permitiendo crear sucesiones mel&oacute;dicas con notaci&oacute;n compacta.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Plano con registros y un editor zigzag para crear sucesiones de nota con registro (NrX) e intervalo temporal (iT).</p>
+      <p><strong>Uso b&aacute;sico:</strong> Ajusta Comp&aacute;s, N&ordm; y Compases. Aparecer&aacute; el plano. Usa el editor zigzag para crear sucesiones N-iT. O haz clic en celdas del plano. Pulsa &play; para reproducir, &dice; para generar aleatoriamente, &cross; para borrar.</p>
+      <p><strong>Tips:</strong> Esta app combina conceptualmente el par usado al escribir con notaci&oacute;n musical. El par N-iT es conceptualmente el par usado al escribir con notaci&oacute;n musical. Los registros tienen restricciones de notas: r2 solo acepta notas 7&ndash;11 y r5 solo notas 0&ndash;7.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-fullwidth"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App20/index.html" height="700" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(14)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(16)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 17 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="16">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 17 &mdash; FRACCIONANDO LA L&Iacute;NEA TEMPORAL: Fracciones</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Los pulsos crean una sola velocidad constante. Si queremos otras velocidades, dividimos los pulsos enteros mediante fracciones. El resultado ser&aacute;n pulsos m&aacute;s peque&ntilde;os y m&aacute;s r&aacute;pidos.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Estas fracciones sencillas tienen siempre un 1 en el numerador. Cuanto mayor el denominador, m&aacute;s r&aacute;pido se suceden los nuevos pulsos. Los pulsos fraccionados permiten ritmos muy variados con gran precisi&oacute;n.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Para numerar los pulsos fraccionados (Pfr): punto despu&eacute;s del pulso entero + posici&oacute;n. Ejemplo: &quot;0&quot; &equals; pulso entero, &quot;0.1&quot; &equals; primera subdivisi&oacute;n, &quot;0.2&quot; &equals; segunda.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Visualiza fracciones simples (1/d) en una l&iacute;nea temporal de 6 pulsos. Subdivide cada pulso seg&uacute;n el denominador y los numera.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Edita el denominador en la fracci&oacute;n. Pulsa &play; para escuchar la subdivisi&oacute;n.</p>
+      <p><strong>Tips:</strong> Esta app revela la subdivisi&oacute;n de los pulsos: entre un pulso y el siguiente cabe un tejido fino de tiempo. 1/1 &equals; solo pulsos enteros sin subdivisi&oacute;n. 1/2 &equals; divide cada pulso en 2. 1/3 &equals; los tresillos tradicionales. Escucha c&oacute;mo la subdivisi&oacute;n se acelera al aumentar el denominador.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App26/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(15)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(17)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 18 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="17">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 18 &mdash; Sucesi&oacute;n de Pulsos Fraccionados (Pfr)</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Conociendo los Pfr podemos crear sucesiones que expresar&aacute;n ritmos en la nueva velocidad. Escogemos una fracci&oacute;n y ponemos la sucesi&oacute;n: Ej: P &frac13;( 1.2  3.1  4 &hellip;)</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Combina las fracciones simples con un editor de sucesi&oacute;n de pulsos fraccionados. Selecciona qu&eacute; pulsos y subdivisiones suenan dentro de la misma l&iacute;nea temporal fraccionada que la anterior app.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Edita el denominador en la fracci&oacute;n. Escribe la sucesi&oacute;n de pulsos en el campo Pfr. Tambi&eacute;n puedes hacer clic directamente en los pulsos y subdivisiones de la l&iacute;nea temporal. Pulsa &play; para reproducir, &dice; para generar aleatoriamente, &cross; para borrar.</p>
+      <p><strong>Tips:</strong> Prueba a usar distintas sucesiones de Pfr para crear diferentes ritmos. Una misma sucesi&oacute;n de PFr cambiando el numerador de la fracci&oacute;n. Por ejemplo: la sucesi&oacute;n Pfr(0.3 1.2 2.1) en fracciones de &frac14; a &frac18;. En esta app se oyen tres capas de audio: Pulso, Seleccionados y Subdivisi&oacute;n (haz una pulsaci&oacute;n larga sobre play para cambiar sus vol&uacute;menes).</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App28/index.html" height="650" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(16)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(18)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 19 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="18">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 19 &mdash; Sucesi&oacute;n de iT Fraccionados Simples</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>El iT fraccionado (iTFr) mide la distancia entre dos pulsos fraccionados. Cada intervalo se visualiza como una barra animada de color sobre la l&iacute;nea temporal.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>La suma de todos los iTFr equivale a la longitud total. Con iTFr puedes crear ritmos con mayor precisi&oacute;n: pasas de pensar en puntos (Pfr) a pensar en distancias (iTFr).</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Combina fracciones simples con intervalos temporales (iT). En lugar de seleccionar pulsos, arrastras para crear rect&aacute;ngulos de duraci&oacute;n que representan intervalos temporales r&iacute;tmicos.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Edita el denominador en el editor de fracci&oacute;n. Arrastra sobre la l&iacute;nea temporal para crear intervalos temporales. Pulsa &play; para reproducir, &dice; para generar aleatoriamente, &cross; para borrar.</p>
+      <p><strong>Tips:</strong> Pasar de seleccionar puntos a trazar duraciones cambia la forma de pensar el ritmo: ya no son momentos aislados sino bloques de tiempo con peso y presencia. El display de suma de iT y iT disponibles se actualiza para mostrar cuantos iT hay en cada momento. Cada iT suena como una nota mel&oacute;dica. La primera nota de cada ciclo es Do4, las dem&aacute;s Sol4. Haz clic en un intervalo para eliminarlo.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App30/index.html" height="650" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(17)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(19)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 20 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="19">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 20 &mdash; Sucesi&oacute;n en Plano de Fracciones Simples</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Si repartes los iTFr por la l&iacute;nea sonora puedes crear muchas melod&iacute;as con un car&aacute;cter r&iacute;tmico intr&iacute;nseco. Otra manera de pensar melod&iacute;as que toman coherencia desde las distancias r&iacute;tmicas entre las notas.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Combina el plano fraccionado simple con un editor zigzag para crear sucesiones N-iT.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Edita el denominador. Usa el editor zigzag para introducir pares N-iT. O arrastra sobre el plano para crear notas. Pulsa &play; para reproducir, &dice; para generar aleatoriamente, &cross; para borrar.</p>
+      <p><strong>Tips:</strong> El editor zigzag permite pensar la melod&iacute;a como una sucesi&oacute;n num&eacute;rica, mientras el plano muestra el resultado visual global. Ver ambas representaciones a la vez conecta el pensamiento num&eacute;rico con la visi&oacute;n espacial y las formas geom&eacute;tricas.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-fullwidth"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App34/index.html" height="900" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(18)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(20)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 21 (ESPECIAL) ===== -->
+<div class="nuz-paso nuz-has-app" data-step="20">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 21 &mdash; Fracciones Complejas</h2>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Visualiza fracciones complejas en la l&iacute;nea temporal. Subdivide cada grupo de pulsos (numerador) seg&uacute;n el denominador.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Edita numerador y denominador en la fracci&oacute;n. Pulsa &play; para escuchar en loop, &dice; para generar fracci&oacute;n aleatoria, &cross; para borrar.</p>
+      <p><strong>Tips:</strong> La fracci&oacute;n define a la vez la subdivisi&oacute;n y la longitud del ciclo. La app siempre muestra las fracciones simplificada (reducci&oacute;n por MCD). La longitud de la l&iacute;nea temporal se adapta al numerador.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-fullwidth"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App27/index.html" height="800" loading="lazy" allow="autoplay"></iframe></div>
+    <!-- Toggle extra App35 -->
+    <div class="nuz-toggle-header" onclick="this.classList.toggle('nuz-open');this.nextElementSibling.classList.toggle('nuz-open');var tb=this.nextElementSibling;if(tb.classList.contains('nuz-open')){var f=tb.querySelector('iframe[data-src]');if(f&&(!f.src||f.src==='about:blank'))f.src=f.getAttribute('data-src');}"><svg class="nuz-toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Experimentar en profundidad</span></div>
+    <div class="nuz-toggle-body">
+      <p style="font-family:'Ubuntu',sans-serif;font-weight:300;font-size:15px;color:#43433B;margin-bottom:12px;">Si quieres experimentar en profundidad, prueba este plano de pares N-iT con fracciones complejas:</p>
+      <div class="nuz-iframe-wrap nuz-iframe-fullwidth"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App35/index.html" height="900" loading="lazy" allow="autoplay"></iframe></div>
+    </div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(19)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(21)">Continuar al punto 22 &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 22 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="21">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 22 &mdash; ESCALAS: Escogiendo Notas</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>El sistema Nuzic parte con la escala crom&aacute;tica como base para el resto de escalas.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Una escala es un grupo de notas que escogemos entre las 12 disponibles del registro crom&aacute;tico. Estas notas escogidas son las Notas de Grado (N&ordm;), con numeraci&oacute;n propia desde N&ordm;(0). Empieza con la escala mayor: la m&aacute;s usada, la m&aacute;s vers&aacute;til.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Muestra dos l&iacute;neas sonoras: en la primera est&aacute;n las 12 notas del registro que tambi&eacute;n llamamos escala crom&aacute;tica. Y en la segunda las notas de la escala mayor, conectadas por l&iacute;neas que visualizan las notas de grado.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Pulsa &play; en la escala crom&aacute;tica para escuchar la escala crom&aacute;tica completa. Pulsa &play; en la escala mayor para escuchar la escala mayor.</p>
+      <p><strong>Tips:</strong> F&iacute;jate en c&oacute;mo cambia la numeraci&oacute;n para la misma nota en la escala mayor o en la crom&aacute;tica. Observa las l&iacute;neas de conexi&oacute;n entre ambas escalas &mdash; las 12 notas de la escala crom&aacute;tica son el conjunto base para el resto de escalas.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App21/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(20)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(22)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 23 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="22">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 23 &mdash; Estructura Escalar</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>La estructura escalar (eE) define la sucesi&oacute;n de distancias entre las Notas de Grado de una escala. Cada escala tiene su propia eE. Las distancias se miden en iS.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Visualiza la eE de la escala mayor mediante barras de intervalos que muestran los pasos entre cada grado de la escala.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Pulsa &play; para escuchar la escala mayor con una animaci&oacute;n que destaca la eE.</p>
+      <p><strong>Tips:</strong> La estructura de la escala mayor es eE(2 2 1 2 2 2 1). La numeraci&oacute;n de notas muestra los grados de la escala mayor. La eE es la &quot;receta&quot; de una escala &mdash; cambiar la receta cambia completamente el car&aacute;cter sonoro.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App22/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(21)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(23)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 24 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="23">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 24 &mdash; Transposici&oacute;n</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Las escalas pueden empezar en cualquier nota. Transportar es aplicar la misma receta (eE) desde un punto de partida diferente. La escala suena &quot;igual pero distinta&quot;.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Permite transportar la escala mayor a cualquiera de las 12 notas. Incluye visualizaci&oacute;n en pentagrama y l&iacute;neas de conexi&oacute;n entre la escala crom&aacute;tica y la escala transportada.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Selecciona una nota de salida con los botones. Pulsa &play; en la escala crom&aacute;tica o &play; en la escala mayor para escuchar. Ver&aacute;s que el pentagrama se actualiza autom&aacute;ticamente.</p>
+      <p><strong>Tips:</strong> Transportar es aplicar la misma receta (eE) desde un punto de partida diferente. La escala suena &quot;igual pero distinta&quot; &mdash; conserva su car&aacute;cter pero cambia de altura. Es como cantar la misma canci&oacute;n m&aacute;s aguda o m&aacute;s grave.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App23/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(22)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(24)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 25 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="24">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 25 &mdash; Probando diferentes Escalas</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Hay 4096 escalas posibles. Cada una con su propia eE y transportable a las 12 notas. Las combinaciones son enormes. En la teor&iacute;a tradicional cada combinaci&oacute;n tiene su propia armadura.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> 10 escalas con transposici&oacute;n y pentagrama con armadura.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Selecciona escala y nota de salida. Pulsa &play;.</p>
+      <p><strong>Tips:</strong> Cada escala es un mundo sonoro distinto. T&oacute;mate tiempo para descubrirlas.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App24/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(23)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(25)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 26 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="25">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 26 &mdash; Melod&iacute;as con Escalas</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Podemos crear sucesiones de N&ordm; que definen melod&iacute;as. Al cambiar de escala y transposici&oacute;n las notas cambian, aunque los N&ordm; son los mismos.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Plano basado en grados de escala. Las melod&iacute;as se adaptan al cambiar de escala.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Selecciona escala y nota. Usa el editor de N&ordm; o haz clic en el plano. Pulsa &play;.</p>
+      <p><strong>Tips:</strong> La melod&iacute;a son las relaciones entre grados, no las notas concretas.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-fullwidth"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App25/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(24)">&larr; Anterior</button>
+      <button class="nuz-btn nuz-btn-next" onclick="nuzGo(26)">Siguiente paso &rarr;</button>
+    </div>
+</div>
+
+<!-- ===== PASO 27 ===== -->
+<div class="nuz-paso nuz-has-app" data-step="26">
+  <div class="nuz-scroll-container">
+    <div class="nuz-snap-section">
+    <h2 class="nuz-title">Paso 27 &mdash; Intervalos con Escalas</h2>
+    <div class="nuz-idea-block nuz-theory">
+      <p>Podemos crear sucesiones de iS&ordm; que definen melod&iacute;as. Al cambiar de escala y transposici&oacute;n las distancias &quot;reales&quot; cambian, aunque los iS&ordm; son los mismos.</p>
+    </div>
+    <div class="nuz-spacer"></div>
+    <h4 class="nuz-cta" style="margin-top:0;">Ejemplo interactivo</h4>
+    <div class="nuz-app-info">
+      <p><strong>&iquest;Qu&eacute; hace?</strong> Plano basado en intervalos de grado. Las melod&iacute;as se adaptan sonoramente.</p>
+      <p><strong>Uso b&aacute;sico:</strong> Selecciona escala y nota. Usa el editor de iS&ordm; o haz clic en el plano. Pulsa &play;.</p>
+      <p><strong>Tips:</strong> Las distancias de grado se mantienen pero el car&aacute;cter cambia completamente.</p>
+    </div>
+<div class="nuz-scroll-indicator" onclick="var sc=this.closest('.nuz-scroll-container');sc.classList.add('nuz-snap-active');if(sc._loadIframes)sc._loadIframes();sc.querySelector('.nuz-app-section').scrollIntoView({behavior:'smooth'})"><svg class="nuz-scroll-chevron" viewBox="0 0 24 24" fill="none" stroke="#7BB4CD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg><span>Desliza para probar la app</span></div>
+  </div>
+  <div class="nuz-snap-section nuz-app-section"><h4 class="nuz-cta">Prueba con el ejemplo interactivo</h4>
+    <div class="nuz-iframe-wrap nuz-iframe-fullwidth"><iframe data-src="https://playnuzic.github.io/Lab/Apps/App25B/index.html" height="600" loading="lazy" allow="autoplay"></iframe></div></div>
+  </div>
+  <div class="nuz-nav-row">
+      <button class="nuz-btn nuz-btn-prev" onclick="nuzGo(25)">&larr; Anterior</button>
+    </div>
+</div>
+
+
+<!-- MINI-&Iacute;NDEX BOTTOM (DUPLICAT) -->
+<nav class="nuz-miniindex-bottom" id="nuz-miniindex-bottom">
+  <a href="#" onclick="nuzGo(0);return false;">Introducci&oacute;n</a>
+  <a href="#" onclick="nuzGo(6);return false;">Descubriendo</a>
+  <a href="#" onclick="nuzGo(9);return false;">Intervalos</a>
+  <a href="#" onclick="nuzGo(12);return false;">Ampliando</a>
+  <a href="#" onclick="nuzGo(18);return false;">Fraccionando</a>
+  <a href="#" onclick="nuzGo(21);return false;">Escalas</a>
+  <span class="nuz-step-num" id="nuz-step-indicator-bottom">1/27</span>
+</nav>
+
+</div><!-- fin #nuz-sistema -->
+
+<script>
+(function(){
+  var current = 0;
+  var pasos = document.querySelectorAll('#nuz-sistema .nuz-paso');
+  var total = pasos.length;
+  var indicator = document.getElementById('nuz-step-indicator');
+  var indicatorBottom = document.getElementById('nuz-step-indicator-bottom');
+  var progressBar = document.getElementById('nuz-progress-bar');
+  var progressWrap = document.getElementById('nuz-progress-wrap');
+  var progressTooltip = document.getElementById('nuz-progress-tooltip');
+
+  // Seccions del mini-index per highlight
+  var sectionStarts = [0,6,9,12,18,21];
+  var menuLinks = document.querySelectorAll('#nuz-miniindex a');
+  var menuLinksBottom = document.querySelectorAll('#nuz-miniindex-bottom a');
+
+  // Step titles for tooltip
+  var stepTitles = [];
+  pasos.forEach(function(p) {
+    var h2 = p.querySelector('h2.nuz-title');
+    stepTitles.push(h2 ? h2.textContent : 'Paso ' + (stepTitles.length+1));
+  });
+
+  window.nuzGo = function(n) {
+    if (n < 0 || n >= total) return;
+    pasos[current].classList.remove('nuz-visible');
+    var oldIframes = pasos[current].querySelectorAll('iframe[src]');
+    oldIframes.forEach(function(f) { f.removeAttribute('src'); });
+
+    current = n;
+    pasos[current].classList.add('nuz-visible');
+    var sc = pasos[current].querySelector('.nuz-scroll-container');
+    if (sc) {
+      // Desactivar snap, reset scroll, activar snap després d'interacció
+      sc.classList.remove('nuz-snap-active');
+      sc.scrollTop = 0;
+      // Activar snap només quan l'usuari fa scroll manualment
+      var activateSnap = function() {
+        sc.classList.add('nuz-snap-active');
+        sc.removeEventListener('scroll', activateSnap);
+        sc.removeEventListener('touchmove', activateSnap);
+        sc.removeEventListener('wheel', activateSnap);
+      };
+      // Petit delay per evitar que el scroll programàtic activi el snap
+      setTimeout(function() {
+        sc.addEventListener('scroll', activateSnap, { once: true, passive: true });
+        sc.addEventListener('touchmove', activateSnap, { once: true, passive: true });
+        sc.addEventListener('wheel', activateSnap, { once: true, passive: true });
+      }, 300);
+
+      // DEFER iframe loading: carregar iframes NOMÉS quan l'usuari fa scroll
+      // deliberat (>200px) o clica el chevron. Evita auto-scroll per caret/focus.
+      var _iframesLoaded = false;
+      var _loadIframes = function() {
+        if (_iframesLoaded) return;
+        _iframesLoaded = true;
+        var iframes = pasos[current].querySelectorAll('iframe[data-src]');
+        iframes.forEach(function(f) {
+          if (!f.src || f.src === 'about:blank' || !f.hasAttribute('src')) {
+            f.src = f.getAttribute('data-src');
+            // Disparar resize quan l'iframe carregui per apps que depenen de la mida
+            f.addEventListener('load', function() {
+              try { f.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {}
+            }, { once: true });
+          }
+        });
+      };
+      // Guardar referència per poder-la cridar des del chevron
+      sc._loadIframes = _loadIframes;
+      sc.addEventListener('scroll', function _scrollCheck() {
+        if (sc.scrollTop > 200) {
+          _loadIframes();
+          sc.removeEventListener('scroll', _scrollCheck);
+        }
+      }, { passive: true });
+    }
+    // Fallback per passos sense scroll-container (text-only)
+    if (!pasos[current].querySelector('.nuz-scroll-container')) {
+      var newIframes = pasos[current].querySelectorAll('iframe[data-src]');
+      newIframes.forEach(function(f) {
+        if (!f.src || f.src === '') f.src = f.getAttribute('data-src');
+      });
+    }
+
+    // Actualitzar indicadors (top + bottom)
+    var label = (current+1) + '/' + total;
+    indicator.textContent = label;
+    if (indicatorBottom) indicatorBottom.textContent = label;
+    // Actualitzar progress bar
+    progressBar.style.width = ((current+1)/total*100) + '%';
+    // Highlight seccio activa als dos mini-index
+    var activeSection = 0;
+    for (var i = sectionStarts.length-1; i >= 0; i--) {
+      if (current >= sectionStarts[i]) { activeSection = i; break; }
+    }
+    menuLinks.forEach(function(a,i) {
+      a.classList.toggle('nuz-active-section', i === activeSection);
+    });
+    menuLinksBottom.forEach(function(a,i) {
+      a.classList.toggle('nuz-active-section', i === activeSection);
+    });
+    // Scroll a dalt
+    var sistema = document.getElementById('nuz-sistema');
+    if (sistema) sistema.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    history.replaceState(null, '', '?paso=' + (current+1));
+  };
+
+  // ====== PROGRESS BAR CLICABLE ======
+  function getStepFromClick(e) {
+    var rect = progressWrap.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    var pct = Math.max(0, Math.min(1, x / rect.width));
+    return Math.min(Math.floor(pct * total), total - 1);
+  }
+  progressWrap.addEventListener('click', function(e) {
+    nuzGo(getStepFromClick(e));
+  });
+  progressWrap.addEventListener('mousemove', function(e) {
+    var step = getStepFromClick(e);
+    var rect = progressWrap.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    progressTooltip.style.display = 'block';
+    progressTooltip.style.left = x + 'px';
+    progressTooltip.textContent = stepTitles[step] || ('Paso ' + (step+1));
+  });
+  progressWrap.addEventListener('mouseleave', function() {
+    progressTooltip.style.display = 'none';
+  });
+
+  // Inicialitzar
+  var urlParams = new URLSearchParams(window.location.search);
+  var startStep = parseInt(urlParams.get('paso')) || 1;
+  nuzGo(Math.max(0, Math.min(startStep-1, total-1)));
+
+  // Navegacio per teclat
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); nuzGo(current+1); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); nuzGo(current-1); }
+  });
+})();
+</script>
