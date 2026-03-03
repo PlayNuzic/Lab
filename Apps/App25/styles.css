@@ -563,9 +563,9 @@ html, body {
 /* ========== DEGREE LABELS ON ACTIVE CELLS ========== */
 .cell-label {
   position: absolute;
-  top: 50%;
+  bottom: 0;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, 50%);
   font-size: clamp(0.7rem, 1.5vw, 1rem);
   font-weight: 600;
   color: #333;

@@ -1086,12 +1086,13 @@ export function createMusicalGrid(config) {
       if (soundInterval === 0) {
         // iS=0: Same note as base - draw short separator bar with label below
         const bounds = computeCellBounds(firstPair.note, 0);
+        const divisionLine = bounds.top + bounds.height; // Division line = bottom edge of cell
 
-        // Create short vertical separator line (same height as cell)
+        // Create short vertical separator line (centered on division line)
         const line = document.createElement('div');
         line.className = 'interval-line-vertical interval-line-first interval-line-zero';
         line.style.left = '0px';
-        line.style.top = `${bounds.top}px`;
+        line.style.top = `${divisionLine - bounds.height / 2}px`;
         line.style.height = `${bounds.height}px`;
         linesContainer.appendChild(line);
 
@@ -1099,7 +1100,7 @@ export function createMusicalGrid(config) {
         const label = document.createElement('div');
         label.className = 'interval-label interval-label-first interval-label-zero';
         label.style.left = '0px';
-        label.style.top = `${bounds.top + bounds.height + 5}px`; // Below the cell
+        label.style.top = `${divisionLine + bounds.height / 2 + 5}px`; // Below the visual note
         label.style.transform = 'translateX(-50%)';
         label.textContent = '0';
         linesContainer.appendChild(label);
@@ -1111,13 +1112,16 @@ export function createMusicalGrid(config) {
         // Position at left edge (space 0, but use left: 0 to align with grid border)
         const topBounds = computeCellBounds(maxNote, 0);
         const bottomBounds = computeCellBounds(minNote, 0);
+        // Division lines are at bottom edge of each cell
+        const topDivision = topBounds.top + topBounds.height;
+        const bottomDivision = bottomBounds.top + bottomBounds.height;
 
-        // Create first vertical line at left edge
+        // Create first vertical line at left edge (between division lines)
         const firstLine = document.createElement('div');
         firstLine.className = 'interval-line-vertical interval-line-first';
         firstLine.style.left = '0px'; // Align with left edge of grid
-        firstLine.style.top = `${topBounds.top}px`;
-        firstLine.style.height = `${bottomBounds.top + bottomBounds.height - topBounds.top}px`;
+        firstLine.style.top = `${topDivision}px`;
+        firstLine.style.height = `${bottomDivision - topDivision}px`;
         linesContainer.appendChild(firstLine);
 
         // Add first iS label (positioned to the RIGHT to avoid overlapping soundline)
@@ -1126,7 +1130,7 @@ export function createMusicalGrid(config) {
         const firstLabel = document.createElement('div');
         firstLabel.className = 'interval-label interval-label-first';
         firstLabel.style.left = '10px'; // Position to the RIGHT of the first line
-        firstLabel.style.top = `${middleBounds.top + middleBounds.height / 2}px`;
+        firstLabel.style.top = `${middleBounds.top + middleBounds.height}px`; // At division line
         firstLabel.style.transform = 'translateY(-50%)';
         firstLabel.textContent = soundInterval > 0 ? `+${soundInterval}` : `${soundInterval}`;
         linesContainer.appendChild(firstLabel);
@@ -1160,20 +1164,21 @@ export function createMusicalGrid(config) {
           if (soundInterval === 0) {
             // iS=0: Same note - draw short separator bar with label below
             const bounds = computeCellBounds(current.note, currentStartSpace);
+            const divisionLine = bounds.top + bounds.height; // Division line = bottom edge of cell
 
-            // Create short vertical separator line (same height as cell)
+            // Create short vertical separator line (centered on division line)
             const line = document.createElement('div');
             line.className = 'interval-line-vertical interval-line-zero';
             line.style.left = `${bounds.left}px`;
-            line.style.top = `${bounds.top}px`;
+            line.style.top = `${divisionLine - bounds.height / 2}px`;
             line.style.height = `${bounds.height}px`;
             linesContainer.appendChild(line);
 
-            // Add "0" label centered BELOW the line
+            // Add "0" label centered BELOW the visual note
             const label = document.createElement('div');
             label.className = 'interval-label interval-label-zero';
             label.style.left = `${bounds.left}px`;
-            label.style.top = `${bounds.top + bounds.height + 5}px`; // Below the cell
+            label.style.top = `${divisionLine + bounds.height / 2 + 5}px`;
             label.style.transform = 'translateX(-50%)';
             label.textContent = '0';
             linesContainer.appendChild(label);
@@ -1182,18 +1187,19 @@ export function createMusicalGrid(config) {
             const minNote = Math.min(lastPlayableNote, current.note);
             const maxNote = Math.max(lastPlayableNote, current.note);
 
-            // Use computeCellBounds() for positioning - same method as cells
-            // This ensures lines resize correctly like cells do
+            // Use computeCellBounds() for positioning
             const topBounds = computeCellBounds(maxNote, currentStartSpace);
             const bottomBounds = computeCellBounds(minNote, currentStartSpace);
+            // Division lines are at bottom edge of each cell
+            const topDivision = topBounds.top + topBounds.height;
+            const bottomDivision = bottomBounds.top + bottomBounds.height;
 
-            // Create vertical line element
+            // Create vertical line element (between division lines)
             const line = document.createElement('div');
             line.className = 'interval-line-vertical';
-            // Position line using computed bounds (same as cells)
             line.style.left = `${topBounds.left}px`;
-            line.style.top = `${topBounds.top}px`;
-            line.style.height = `${bottomBounds.top + bottomBounds.height - topBounds.top}px`;
+            line.style.top = `${topDivision}px`;
+            line.style.height = `${bottomDivision - topDivision}px`;
             linesContainer.appendChild(line);
 
             // Add interval label (iS value) to the middle of the vertical line
@@ -1207,7 +1213,7 @@ export function createMusicalGrid(config) {
             } else {
               label.style.left = `${middleBounds.left - 45}px`;
             }
-            label.style.top = `${middleBounds.top + middleBounds.height / 2}px`;
+            label.style.top = `${middleBounds.top + middleBounds.height}px`; // At division line
             label.style.transform = 'translateY(-50%)';
             // Format with sign
             label.textContent = soundInterval > 0 ? `+${soundInterval}` : `${soundInterval}`;
