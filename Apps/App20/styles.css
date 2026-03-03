@@ -803,7 +803,7 @@ main {
 /* Fit grid vertically: cap the scroll containers to available space */
 .right-column .plano-soundline-container,
 .right-column .plano-matrix-container {
-  max-height: calc(100dvh - 310px);
+  max-height: min(calc(100dvh - 310px), calc(var(--plano-visible-rows) * var(--plano-cell-height)));
 }
 
 /* Note 0 of each registry: pink (matching App18) */
