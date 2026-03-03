@@ -138,7 +138,7 @@ html, body {
   pointer-events: none;
   z-index: 5;
   user-select: none;
-  transform: translateY(-100%);
+  transform: translateY(-50%);
   transition-property: width, opacity;
   transition-timing-function: linear;
 }

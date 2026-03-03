@@ -484,7 +484,7 @@ body[data-theme='dark'] .timeline .pulse {
   pointer-events: none;
   z-index: 5;
   user-select: none;
-  transform: translateY(-100%); /* Position above the line, aligned with top of pulse dots */
+  transform: translateY(-50%); /* Centered on the soundline */
 }
 
 /* ========================================

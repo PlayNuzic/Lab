@@ -182,7 +182,7 @@ function highlightNote(noteIndex, duration = 300) {
     // Position rectangle
     const yPos = soundline.getNotePosition(noteIndex);
     rect.style.top = `${yPos}%`;
-    rect.style.transform = 'translateY(-100%)';
+    rect.style.transform = 'translateY(-50%)';
 
     soundline.element.appendChild(rect);
     activeHighlights.set(noteIndex, rect);

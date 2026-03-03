@@ -50,7 +50,7 @@ export function createNoteHighlightController(config = {}) {
       // left se maneja en CSS (120px)
       rect.style.width = '80px';
       rect.style.height = '8.33%'; // 100% / 12 spaces = 8.33%
-      rect.style.transform = 'translateY(-100%)';
+      rect.style.transform = 'translateY(-50%)';
 
       // Label with note number
       const label = document.createElement('span');

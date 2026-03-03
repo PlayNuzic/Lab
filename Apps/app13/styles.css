@@ -239,7 +239,7 @@ html, body {
   height: 28px;
   border-radius: 6px;
   z-index: 5;
-  transform: translateY(-100%);
+  transform: translateY(-50%);
   transition: box-shadow 0.2s ease;
   pointer-events: none;
 }
