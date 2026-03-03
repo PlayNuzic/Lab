@@ -46,10 +46,13 @@ const CONFIG = {
 
 // Screen definitions: 3 snap positions (bottom registry of each pair)
 // Screen 0: "3 y 4" (bottom), Screen 1: "4 y 5", Screen 2: "5 y 6" (top)
+// scrollTop = startRow * cellHeight + half-cell offset (for translateY(50%) on soundline labels)
+const CELL_H = 26;  // Must match --plano-cell-height in styles.css
+const HALF_CELL = CELL_H / 2;
 const SCREENS = [
-  { bottomReg: 3, label: '3 y 4', scrollTop: 24 * 26 },  // rows 24-47
-  { bottomReg: 4, label: '4 y 5', scrollTop: 12 * 26 },  // rows 12-35
-  { bottomReg: 5, label: '5 y 6', scrollTop: 0 }          // rows 0-23
+  { bottomReg: 3, label: '3 y 4', scrollTop: 24 * CELL_H + HALF_CELL },  // rows 24-47
+  { bottomReg: 4, label: '4 y 5', scrollTop: 12 * CELL_H + HALF_CELL },  // rows 12-35
+  { bottomReg: 5, label: '5 y 6', scrollTop: 0 }                          // rows 0-23
 ];
 
 // ========== STATE ==========
@@ -319,7 +322,7 @@ function screenForRow(rowIndex) {
   // Screen 2: rows 0-23, Screen 1: rows 12-35, Screen 0: rows 24-47
   // Prefer the screen where the row is most centered
   for (let i = 0; i < SCREENS.length; i++) {
-    const startRow = SCREENS[i].scrollTop / 26;
+    const startRow = Math.round((SCREENS[i].scrollTop - (i > 0 ? HALF_CELL : 0)) / CELL_H);
     if (rowIndex >= startRow && rowIndex < startRow + 24) return i;
   }
   return currentScreen;
