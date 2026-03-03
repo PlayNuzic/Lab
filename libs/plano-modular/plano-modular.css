@@ -83,7 +83,7 @@
 .plano-soundline-note {
   height: var(--plano-cell-height);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
   padding-right: 0.5rem;
   font-size: 1.2rem;
@@ -91,6 +91,7 @@
   color: var(--plano-text-color);
   white-space: nowrap;
   box-sizing: border-box;
+  transform: translateY(50%);  /* Center text on division line (bottom border) */
 }
 
 .plano-soundline-note.plano-boundary {
@@ -159,32 +160,71 @@
 }
 
 .plano-cell:hover {
+  background: transparent;
+}
+
+.plano-cell:hover::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -50%;
+  height: 100%;
   background: var(--plano-cell-hover);
+  border-radius: 2px;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .plano-cell.plano-selected {
+  background: transparent;
+}
+
+.plano-cell.plano-selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -50%;
+  height: 100%;
   background: var(--plano-select-color);
+  border-radius: 2px;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .plano-cell.plano-highlight {
-  background: var(--plano-select-color) !important;
-  transform: scale(1.1);
-  transition: transform 0.1s ease, background 0.1s ease;
-  box-shadow: 0 0 8px var(--plano-select-color);
+  background: transparent !important;
   z-index: 10;
 }
 
-[data-theme="dark"] .plano-cell.plano-highlight {
+.plano-cell.plano-highlight::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -50%;
+  height: 100%;
+  background: var(--plano-select-color);
+  border-radius: 2px;
+  z-index: -1;
+  pointer-events: none;
+  transform: scale(1.1);
+  transition: transform 0.1s ease;
+  box-shadow: 0 0 8px var(--plano-select-color);
+}
+
+[data-theme="dark"] .plano-cell.plano-highlight::before {
   box-shadow: 0 0 12px var(--plano-select-color);
 }
 
-/* Cell labels - same font-size as soundline */
+/* Cell labels - centered on the division line (bottom edge of cell) */
 .plano-cell-label,
 .plano-highlight-label {
   position: absolute;
-  top: 50%;
+  bottom: 0;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, 50%);
   font-size: 1.2rem;  /* Same as .plano-soundline-note */
   font-weight: 600;
   color: #43433B;  /* Light mode: dark text on yellow background */

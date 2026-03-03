@@ -757,9 +757,22 @@ main {
   outline: none;
 }
 
-/* plano-modular highlight override */
+/* plano-modular highlight override — visual note straddles division line via ::before */
 .plano-cell.plano-highlight {
-  background: #FFBB33 !important;
+  background: transparent !important;
+}
+
+.plano-cell.plano-highlight::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -50%;
+  height: 100%;
+  background: #FFBB33;
+  border-radius: 2px;
+  z-index: -1;
+  pointer-events: none;
   transform: scale(1.05);
   box-shadow: 0 0 8px #FFBB33;
 }
@@ -873,7 +886,7 @@ main {
 .soundline-note {
   height: var(--grid-cell-height);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
   padding-right: 0.5rem;
   font-size: 1.2rem;
@@ -881,6 +894,7 @@ main {
   color: var(--text-color, #333);
   border-bottom: 1px solid var(--grid-line-color);
   box-sizing: border-box;
+  transform: translateY(50%);  /* Center text on division line */
 }
 
 /* Registry boundary: same color as other notes (no blue) */
