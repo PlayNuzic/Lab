@@ -135,29 +135,24 @@ function clearHighlights() {
  * @param {number} note2Index - Nota destí (segon del parell)
  */
 function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeats = 2) {
-  // getNotePosition retorna el BOTTOM de la cel·la (en %)
-  // La cel·la ocupa des de (bottom - cellHeight) fins a bottom
+  // getNotePosition retorna la línia de divisió (en %), on ara es centra la nota visual
   const cellHeight = 100 / 12; // ≈ 8.33%
 
-  const pos1 = soundline.getNotePosition(note1Index); // Bottom de cel·la origen
-  const pos2 = soundline.getNotePosition(note2Index); // Bottom de cel·la destí
+  const pos1 = soundline.getNotePosition(note1Index); // Línia de divisió origen
+  const pos2 = soundline.getNotePosition(note2Index); // Línia de divisió destí
 
   // Determinar direcció: positiu (puja, note2 > note1) o negatiu (baixa)
   // En la soundline, nota 0 està a BAIX (% alt), nota 11 a DALT (% baix)
   const isAscending = note2Index > note1Index;
 
-  // Línia de borde a borde:
-  // - Interval ascendent (+): des del TOP de cel·la origen fins al BOTTOM de cel·la destí
-  //   top origen = pos1 - cellHeight, bottom destí = pos2
-  // - Interval descendent (-): des del BOTTOM de cel·la origen fins al TOP de cel·la destí
-  //   bottom origen = pos1, top destí = pos2 - cellHeight
+  // Línia de divisió a divisió (les notes es centren a les línies de divisió)
   let start1, end2;
   if (isAscending) {
-    start1 = pos1 - cellHeight; // Top de cel·la origen
-    end2 = pos2;                 // Bottom de cel·la destí
+    start1 = pos1; // Línia de divisió origen
+    end2 = pos2;   // Línia de divisió destí
   } else {
-    start1 = pos1;               // Bottom de cel·la origen
-    end2 = pos2 - cellHeight;    // Top de cel·la destí
+    start1 = pos1; // Línia de divisió origen
+    end2 = pos2;   // Línia de divisió destí
   }
 
   const intervalBar = document.createElement('div');
@@ -221,19 +216,12 @@ function showIntervalNumber(note1Index, note2Index, delayBeats = 1) {
   const absInterval = Math.abs(interval);
   const direction = interval > 0 ? '+' : interval < 0 ? '-' : '';
 
-  // Calcular centre de cada cel·la (igual que createIntervalLine)
-  const cellHeight = 100 / 12;
-  const halfCell = cellHeight / 2;
-
+  // getNotePosition retorna la línia de divisió (centre visual de la nota)
   const pos1 = soundline.getNotePosition(note1Index);
   const pos2 = soundline.getNotePosition(note2Index);
 
-  // Centre de cada cel·la
-  const center1 = pos1 - halfCell;
-  const center2 = pos2 - halfCell;
-
-  // Punt mig entre els dos centres
-  const centerY = (center1 + center2) / 2;
+  // Punt mig entre les dues línies de divisió
+  const centerY = (pos1 + pos2) / 2;
 
   const delayMs = (60 / FIXED_BPM) * delayBeats * 1000;
 

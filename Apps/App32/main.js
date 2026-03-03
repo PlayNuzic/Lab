@@ -485,12 +485,13 @@ function renderNotes() {
     const left = noteData.startSubdiv * cellWidth;
     const width = noteData.duration * cellWidth;
     const rowIndex = (NOTE_COUNT - 1) - noteData.note;
-    const top = rowIndex * cellHeight;
+    const barHeight = cellHeight - 2;
+    const top = (rowIndex + 1) * cellHeight - barHeight / 2;  // Center on division line (bottom edge of row)
 
     bar.style.left = `${left}px`;
     bar.style.width = `${width}px`;
     bar.style.top = `${top}px`;
-    bar.style.height = `${cellHeight - 2}px`;
+    bar.style.height = `${barHeight}px`;
     bar.style.background = VIBRANT_COLORS[idx % VIBRANT_COLORS.length];
 
     const label = document.createElement('span');
@@ -687,12 +688,13 @@ function updateGridPreviewBar() {
   const rowIndex = (NOTE_COUNT - 1) - dragState.note;
   const left = dragState.startSubdiv * cellWidth;
   const width = (dragState.currentSubdiv - dragState.startSubdiv + 1) * cellWidth;
-  const top = rowIndex * cellHeight;
+  const barHeight = cellHeight - 2;
+  const top = (rowIndex + 1) * cellHeight - barHeight / 2;  // Center on division line
 
   dragState.previewBar.style.left = `${left}px`;
   dragState.previewBar.style.width = `${width}px`;
   dragState.previewBar.style.top = `${top}px`;
-  dragState.previewBar.style.height = `${cellHeight - 2}px`;
+  dragState.previewBar.style.height = `${barHeight}px`;
 }
 
 // ========== FRACTION EDITOR ==========

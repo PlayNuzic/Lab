@@ -646,17 +646,19 @@ function createIntervalLine(note1Index, note2Index, pulseIndex, intervalIndex = 
   // Calculate horizontal position (left edge of the pulse column where the new note starts)
   const leftPos = pulseIndex / TOTAL_SPACES * 100;
 
-  // Special case: interval 0 - draw vertical line spanning the full cell height
+  // Division line for a noteIndex (where the visual note is now centered):
+  // divisionPct = (TOTAL_NOTES - noteIndex) / TOTAL_NOTES * 100
+  const cellHeight = 100 / TOTAL_NOTES; // Height of one cell in %
+
+  // Special case: interval 0 - draw vertical line centered on the division line
   if (absInterval === 0) {
-    // Vertical line from top to bottom of the cell (full cell height)
-    const cellHeight = 100 / TOTAL_NOTES; // Height of one cell in %
-    const topEdge = (TOTAL_NOTES - 1 - note2Index) / TOTAL_NOTES * 100;
+    const divisionPct = (TOTAL_NOTES - note2Index) / TOTAL_NOTES * 100;
 
     const intervalBar = document.createElement('div');
     intervalBar.className = 'interval-bar-vertical interval-zero';
 
     intervalBar.style.position = 'absolute';
-    intervalBar.style.top = `${topEdge}%`;
+    intervalBar.style.top = `${divisionPct - cellHeight / 2}%`;
     intervalBar.style.left = `${leftPos}%`;
     intervalBar.style.transform = 'translateX(-50%)';
     intervalBar.style.width = '4px';
@@ -672,7 +674,7 @@ function createIntervalLine(note1Index, note2Index, pulseIndex, intervalIndex = 
     intervalNum.textContent = '0';
     intervalNum.style.position = 'absolute';
     intervalNum.style.zIndex = '16';
-    intervalNum.style.top = `${topEdge}%`;
+    intervalNum.style.top = `${divisionPct - cellHeight / 2}%`;
     intervalNum.style.left = `${leftPos}%`;
     intervalNum.style.transform = 'translate(-50%, -100%)'; // Center horizontally, position above
 
@@ -681,42 +683,26 @@ function createIntervalLine(note1Index, note2Index, pulseIndex, intervalIndex = 
     return;
   }
 
-  // Calculate vertical positions (grid is inverted: note 0 at bottom)
-  // Cell edges: TOP = (TOTAL_NOTES - 1 - noteIndex) / TOTAL_NOTES * 100
-  //             BOTTOM = (TOTAL_NOTES - noteIndex) / TOTAL_NOTES * 100
+  // Calculate vertical positions using division lines (bottom edge of each cell)
+  // Division line of noteIndex = (TOTAL_NOTES - noteIndex) / TOTAL_NOTES * 100
+
+  const note1Division = (TOTAL_NOTES - note1Index) / TOTAL_NOTES * 100;
+  const note2Division = (TOTAL_NOTES - note2Index) / TOTAL_NOTES * 100;
 
   let topEdge, bottomEdge;
 
-  if (absInterval <= 1) {
-    // ±1: line spans full edge-to-edge (current behavior)
-    const topNote = Math.max(note1Index, note2Index);
-    topEdge = (TOTAL_NOTES - 1 - topNote) / TOTAL_NOTES * 100;
-    // First interval from base (0,0): extend to bottom of grid
+  if (isAscending) {
+    // note2 is higher → its division line is visually higher (lower %)
+    topEdge = note2Division;
     if (intervalIndex === 0 && note1Index === 0) {
       bottomEdge = 100; // Extend to very bottom of grid
     } else {
-      const bottomNote = Math.min(note1Index, note2Index);
-      bottomEdge = (TOTAL_NOTES - bottomNote) / TOTAL_NOTES * 100;
-    }
-  } else if (isAscending) {
-    // Ascending (+2 or more): TOP of origin → BOTTOM of destination
-    // Origin is note1Index (lower), destination is note2Index (higher)
-    const originCellTop = (TOTAL_NOTES - 1 - note1Index) / TOTAL_NOTES * 100;
-    const destCellBottom = (TOTAL_NOTES - note2Index) / TOTAL_NOTES * 100;
-    topEdge = destCellBottom; // Line's top = destination's bottom edge
-    // First interval: extend to bottom of grid (base pair 0,0)
-    if (intervalIndex === 0 && note1Index === 0) {
-      bottomEdge = 100; // Extend to very bottom of grid
-    } else {
-      bottomEdge = originCellTop; // Line's bottom = origin's top edge
+      bottomEdge = note1Division;
     }
   } else {
-    // Descending (-2 or more): BOTTOM of origin → TOP of destination
-    // Origin is note1Index (higher), destination is note2Index (lower)
-    const originCellBottom = (TOTAL_NOTES - note1Index) / TOTAL_NOTES * 100;
-    const destCellTop = (TOTAL_NOTES - 1 - note2Index) / TOTAL_NOTES * 100;
-    topEdge = originCellBottom; // Line's top = origin's bottom edge
-    bottomEdge = destCellTop; // Line's bottom = destination's top edge
+    // note1 is higher → its division line is visually higher (lower %)
+    topEdge = note1Division;
+    bottomEdge = note2Division;
   }
 
   const finalHeight = bottomEdge - topEdge;
