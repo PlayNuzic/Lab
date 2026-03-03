@@ -771,7 +771,7 @@ main {
   height: 100%;
   background: #FFBB33;
   border-radius: 2px;
-  z-index: -1;
+  z-index: 1;
   pointer-events: none;
   transform: scale(1.05);
   box-shadow: 0 0 8px #FFBB33;
@@ -886,7 +886,7 @@ main {
 .soundline-note {
   height: var(--grid-cell-height);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: flex-end;
   padding-right: 0.5rem;
   font-size: 1.2rem;

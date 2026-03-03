@@ -83,7 +83,7 @@
 .plano-soundline-note {
   height: var(--plano-cell-height);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: flex-end;
   padding-right: 0.5rem;
   font-size: 1.2rem;
@@ -172,12 +172,13 @@
   height: 100%;
   background: var(--plano-cell-hover);
   border-radius: 2px;
-  z-index: -1;
+  z-index: 1;
   pointer-events: none;
 }
 
 .plano-cell.plano-selected {
   background: transparent;
+  z-index: 2;  /* Above adjacent cells so ::before is visible */
 }
 
 .plano-cell.plano-selected::before {
@@ -189,7 +190,7 @@
   height: 100%;
   background: var(--plano-select-color);
   border-radius: 2px;
-  z-index: -1;
+  z-index: 1;
   pointer-events: none;
 }
 
@@ -207,7 +208,7 @@
   height: 100%;
   background: var(--plano-select-color);
   border-radius: 2px;
-  z-index: -1;
+  z-index: 1;
   pointer-events: none;
   transform: scale(1.1);
   transition: transform 0.1s ease;
