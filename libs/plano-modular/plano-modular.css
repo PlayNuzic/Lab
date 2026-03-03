@@ -78,6 +78,7 @@
 .plano-soundline-row {
   display: flex;
   flex-direction: column;
+  padding-bottom: calc(var(--plano-cell-height) / 2);  /* Space for last note's translateY(50%) */
 }
 
 .plano-soundline-note {
@@ -142,6 +143,7 @@
   min-width: max-content;
   position: relative;
   margin-left: var(--plano-margin-left);
+  padding-bottom: calc(var(--plano-cell-height) / 2);  /* Space for last note's ::before overflow */
 }
 
 /* ============================================
