@@ -592,10 +592,10 @@ main {
   margin-right: 1rem;
 }
 
-/* Override plano-modular defaults for 16 visible rows */
+/* Override plano-modular defaults for 19 visible rows */
 .plano-container {
   --plano-cell-height: 26px;
-  --plano-visible-rows: 16;
+  --plano-visible-rows: 19;
 }
 
 /* Fit grid vertically: cap the scroll containers to available space */
