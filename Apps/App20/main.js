@@ -84,13 +84,13 @@ function validateNoteRegistry(note, registry) {
 
 // Screen definitions: 3 snap positions (bottom registry of each pair)
 // Screen 0: "3 y 4" (bottom), Screen 1: "4 y 5", Screen 2: "5 y 6" (top)
-// scrollTop = startRow * cellHeight + half-cell offset (for translateY(50%) on soundline labels)
+// lastRow = last row index that must be visible at the bottom of the screen
 const CELL_H = 24;  // Must match --plano-cell-height in styles.css
 const HALF_CELL = CELL_H / 2;
 const SCREENS = [
-  { bottomReg: 3, label: '3 y 4', scrollTop: 24 * CELL_H + HALF_CELL },  // rows 24-47
-  { bottomReg: 4, label: '4 y 5', scrollTop: 12 * CELL_H + HALF_CELL },  // rows 12-35
-  { bottomReg: 5, label: '5 y 6', scrollTop: 0 }                          // rows 0-23
+  { bottomReg: 3, label: '3 y 4', lastRow: 47 },  // 0r3 = row 47
+  { bottomReg: 4, label: '4 y 5', lastRow: 35 },  // 0r4 = row 35
+  { bottomReg: 5, label: '5 y 6', lastRow: 0 }     // top of grid
 ];
 
 // ========== STATE ==========
@@ -601,23 +601,35 @@ function maybeApplyInitialScroll() {
  * @param {number} screenIndex - 0="3 y 4", 1="4 y 5", 2="5 y 6"
  * @param {boolean} animated - Use smooth scroll
  */
+function getScreenScrollTop(screen) {
+  if (screen.lastRow === 0) return 0;  // Top of grid
+  // Calculate scrollTop so that lastRow is at the bottom of the visible area
+  const gridContainer = document.getElementById('rightColumn');
+  const container = gridContainer?.querySelector('.plano-soundline-container');
+  const visibleHeight = container?.clientHeight || (24 * CELL_H);
+  // Bottom edge of lastRow + half-cell for translateY(50%) label
+  const bottomEdge = (screen.lastRow + 1) * CELL_H + HALF_CELL;
+  return Math.max(0, bottomEdge - visibleHeight);
+}
+
 function scrollToScreen(screenIndex, animated = false) {
   if (!grid) return;
   screenIndex = Math.max(0, Math.min(SCREENS.length - 1, screenIndex));
   currentScreen = screenIndex;
 
   const screen = SCREENS[screenIndex];
+  const scrollTop = getScreenScrollTop(screen);
   const gridContainer = document.getElementById('rightColumn');
   const soundline = gridContainer?.querySelector('.plano-soundline-container');
   const matrix = gridContainer?.querySelector('.plano-matrix-container');
 
   if (animated) {
     [soundline, matrix].forEach(el => {
-      if (el) el.scrollTo({ top: screen.scrollTop, behavior: 'smooth' });
+      if (el) el.scrollTo({ top: scrollTop, behavior: 'smooth' });
     });
   } else {
     [soundline, matrix].forEach(el => {
-      if (el) el.scrollTop = screen.scrollTop;
+      if (el) el.scrollTop = scrollTop;
     });
   }
 
@@ -630,9 +642,12 @@ function scrollToScreen(screenIndex, animated = false) {
  * Find the screen index that contains a given row index.
  */
 function screenForRow(rowIndex) {
+  // Each screen shows rows from (lastRow - visibleRows + 1) to lastRow
+  // Find the screen whose range contains rowIndex
   for (let i = 0; i < SCREENS.length; i++) {
-    const startRow = Math.round((SCREENS[i].scrollTop - (i > 0 ? HALF_CELL : 0)) / CELL_H);
-    if (rowIndex >= startRow && rowIndex < startRow + 24) return i;
+    const lastRow = SCREENS[i].lastRow;
+    const firstRow = i === SCREENS.length - 1 ? 0 : SCREENS[i + 1].lastRow + 1;
+    if (rowIndex >= firstRow && rowIndex <= lastRow) return i;
   }
   return currentScreen;
 }
