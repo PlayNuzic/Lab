@@ -994,13 +994,16 @@ function handleRandom() {
     accumulatedPulse += temporalInterval;
   }
 
+  // Fill gaps with silences (note + registry preserved)
+  const filledPairs = pairsWithSilencesForEditor(pairs);
+
   // Update grid-editor with generated pairs (with silences filled in gaps)
   if (gridEditor) {
-    gridEditor.setPairs(pairsWithSilencesForEditor(pairs));
+    gridEditor.setPairs(filledPairs);
   }
 
-  // Sync Grid 2D from pairs (without silences - gaps are implicit)
-  syncGridFromPairs(pairs.filter(p => !p.isRest));
+  // Sync Grid 2D from pairs (including silences for dotted line visualization)
+  syncGridFromPairs(filledPairs);
 }
 
 // ========== RESET ==========
