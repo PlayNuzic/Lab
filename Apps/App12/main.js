@@ -291,8 +291,22 @@ function syncGridFromPairs(pairs) {
   // Track which cells should be active (skip rests)
   const activeCells = new Set(pairs.filter(p => !p.isRest && p.note !== null).map(p => `${p.note}-${p.pulse}`));
 
-  // Clear only cells that are no longer active
-  document.querySelectorAll('.musical-cell.active').forEach(cell => {
+  // Track which cells should show rest (silence dotted line)
+  // Resolve note for silences with note:null by using the previous playable note
+  const restCells = new Set();
+  const sortedForRest = [...pairs].sort((a, b) => a.pulse - b.pulse);
+  let lastRestNote = 0;
+  sortedForRest.forEach(p => {
+    if (!p.isRest && p.note !== null) {
+      lastRestNote = p.note;
+    } else if (p.isRest) {
+      const noteForRest = p.note !== null && p.note !== undefined ? p.note : lastRestNote;
+      restCells.add(`${noteForRest}-${p.pulse}`);
+    }
+  });
+
+  // Clear only cells that are no longer active or rest
+  document.querySelectorAll('.musical-cell.active, .musical-cell.rest').forEach(cell => {
     const note = parseInt(cell.dataset.note);
     const pulse = parseInt(cell.dataset.pulse);
     const key = `${note}-${pulse}`;
@@ -304,6 +318,9 @@ function syncGridFromPairs(pairs) {
         label.remove();
       }
     }
+    if (!restCells.has(key)) {
+      cell.classList.remove('rest');
+    }
   });
 
   // Clear interval paths before updating
@@ -311,8 +328,8 @@ function syncGridFromPairs(pairs) {
     musicalGrid.clearIntervalPaths();
   }
 
-  // Filter out null notes
-  const validPairs = pairs.filter(p => p.note !== null);
+  // Filter out null notes and rests for active cell rendering
+  const validPairs = pairs.filter(p => !p.isRest && p.note !== null);
 
   // Calculate labels - always in N-P coordinate mode
   const labelsMap = new Map(); // Map: "note-pulse" -> label text
@@ -338,6 +355,15 @@ function syncGridFromPairs(pairs) {
       } else if (label.textContent !== expectedText) {
         label.textContent = expectedText;
       }
+    }
+  });
+
+  // Render silence cells (dotted line on the note row)
+  restCells.forEach(key => {
+    const [note, pulse] = key.split('-').map(Number);
+    const cell = musicalGrid.getCellElement(note, pulse);
+    if (cell) {
+      cell.classList.add('rest');
     }
   });
 
