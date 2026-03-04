@@ -301,30 +301,32 @@ function syncGridFromPairs(pairs) {
   // Track which cells should be active
   const visiblePairs = pairs.filter(p => p.note !== null && p.note !== undefined);
   // Convert pulse to space indices for cell tracking (fillSpaces mode)
-  // Each note occupies spaces from pulse (START) to (pulse + iT - 1) (END)
-  // The note STARTS at pulse, and ENDS at (pulse + iT - 1)
   const activeCells = new Set();
+  const restCells = new Set();
   visiblePairs.forEach(p => {
-    if (p.isRest) return; // Silences don't illuminate cells
     const iT = p.temporalInterval || 1;
     const startSpace = p.pulse;
     const endSpace = p.pulse + iT - 1;
-    for (let space = startSpace; space <= endSpace; space++) {
-      if (space >= 0) {
-        activeCells.add(`${p.note}-${space}`);
+    if (p.isRest) {
+      // Track rest cells for dotted line rendering
+      for (let space = startSpace; space <= endSpace; space++) {
+        if (space >= 0) restCells.add(`${p.note}-${space}`);
+      }
+    } else {
+      for (let space = startSpace; space <= endSpace; space++) {
+        if (space >= 0) activeCells.add(`${p.note}-${space}`);
       }
     }
   });
 
-  // Clear only cells that are no longer active
-  document.querySelectorAll('.musical-cell.active').forEach(cell => {
+  // Clear only cells that are no longer active or rest
+  document.querySelectorAll('.musical-cell.active, .musical-cell.rest').forEach(cell => {
     const note = parseInt(cell.dataset.note);
     const pulse = parseInt(cell.dataset.pulse);
     const key = `${note}-${pulse}`;
 
-    if (!activeCells.has(key)) {
-      cell.classList.remove('active');
-    }
+    if (!activeCells.has(key)) cell.classList.remove('active');
+    if (!restCells.has(key)) cell.classList.remove('rest');
   });
 
   // Clear interval lines (App14 style vertical bars)
@@ -336,24 +338,24 @@ function syncGridFromPairs(pairs) {
     p.note >= 0 && p.note <= TOTAL_NOTES - 1
   );
 
-  // Activate cells (no labels in grid-2D)
-  // With fillSpaces=true, cells represent SPACES between pulses
-  // Each note occupies spaces from pulse (START) to (pulse + iT - 1) (END)
-  // The note STARTS at pulse, showing its full duration
+  // Activate cells and render silences
   validPairs.forEach(({ note, pulse, isRest, temporalInterval }) => {
-    // Silences (isRest) don't illuminate cells - they represent absence of sound
-    if (isRest) return;
-
-    // Calculate start and end spaces based on temporalInterval
     const iT = temporalInterval || 1;
     const startSpace = pulse;
     const endSpace = pulse + iT - 1;
 
-    for (let space = startSpace; space <= endSpace; space++) {
-      if (space < 0) continue;
-      const cell = musicalGrid.getCellElement(note, space);
-      if (cell) {
-        cell.classList.add('active');
+    if (isRest) {
+      // Silence: dotted line on the note row
+      for (let space = startSpace; space <= endSpace; space++) {
+        if (space < 0) continue;
+        const cell = musicalGrid.getCellElement(note, space);
+        if (cell) cell.classList.add('rest');
+      }
+    } else {
+      for (let space = startSpace; space <= endSpace; space++) {
+        if (space < 0) continue;
+        const cell = musicalGrid.getCellElement(note, space);
+        if (cell) cell.classList.add('active');
       }
     }
   });
