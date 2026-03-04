@@ -162,12 +162,12 @@
 }
 
 .plano-cell:hover {
-  background: transparent;
   z-index: 2;
 }
 
 /* Hover band centered on the cell's bottom edge — where notes render.
-   Uses ::after with z-index:3 so it paints above neighbouring cells. */
+   Uses ::after with z-index:3 so it paints above neighbouring cells.
+   Cell keeps its normal background; only the ::after band shows the hover. */
 .plano-cell:hover::after {
   content: '';
   position: absolute;
@@ -377,7 +377,7 @@
 [data-theme="dark"] .plano-container {
   --plano-bg-color: #1e1e1e;
   --plano-cell-bg: #252525;
-  --plano-cell-hover: rgba(255, 255, 255, 0.05);
+  --plano-cell-hover: rgba(255, 255, 255, 0.12);
   --plano-grid-line-color: rgba(255, 255, 255, 0.1);
   --plano-text-color: #eee;
   --plano-boundary-color: rgba(74, 144, 217, 0.15);
