@@ -581,8 +581,29 @@ function renderNotes() {
 
   const cellHeight = 32;
 
+  let lastNoteRow = Math.floor(NOTE_COUNT / 2); // Default to middle row
   notes.forEach((noteData, idx) => {
-    if (noteData.isRest) return; // Silences are empty space in the grid
+    if (noteData.isRest) {
+      // Silence: thin dotted-line bar (~1/6 height) centered on the division line
+      const bar = document.createElement('div');
+      bar.className = 'note-bar note-bar--silence';
+      const left = noteData.startSubdiv * cellWidth;
+      const width = noteData.duration * cellWidth;
+      const rowIndex = (NOTE_COUNT - 1) - lastNoteRow;
+      const restHeight = Math.max(3, (cellHeight - 2) / 6);
+      // Center on division line (bottom edge of row = (rowIndex+1)*cellHeight)
+      const top = (rowIndex + 1) * cellHeight - restHeight / 2;
+
+      bar.style.left = `${left}px`;
+      bar.style.width = `${width}px`;
+      bar.style.top = `${top}px`;
+      bar.style.height = `${restHeight}px`;
+
+      matrix.appendChild(bar);
+      return;
+    }
+
+    lastNoteRow = noteData.note;
 
     const bar = document.createElement('div');
     bar.className = 'note-bar';

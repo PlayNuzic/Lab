@@ -908,23 +908,29 @@ body.dragging-it * {
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.2);
 }
 
-/* Silence bars in grid */
+/* Silence bars in grid - thin dotted line on the note row */
 .note-bar--silence {
-  background: transparent;
-  border: 2px dashed var(--line-color, #888);
-  opacity: 0.4;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--rest-color, #4A9EFF) 0px,
+    var(--rest-color, #4A9EFF) 4px,
+    transparent 4px,
+    transparent 10px
+  );
+  opacity: 0.5;
   box-shadow: none;
   z-index: 5;
+  cursor: default;
+  border: none;
+  min-height: 0;
+  border-radius: 1px;
 }
 
-.note-bar--silence .note-bar__label {
-  color: var(--line-color, #888);
-  font-style: italic;
-  text-shadow: none;
+[data-theme="dark"] .note-bar--silence {
+  opacity: 0.6;
 }
 
 .note-bar--silence:hover {
-  opacity: 0.6;
   transform: none;
   box-shadow: none;
 }
