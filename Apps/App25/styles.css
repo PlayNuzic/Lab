@@ -474,12 +474,7 @@ html, body {
 /* ========== Nm(X) OUTPUT NOTE VISUALIZER ========== */
 /* Absolute-positioned at scale-selector bottom-right, overflows into grid area */
 .nm-visualizer {
-  --nm-y: -75px;
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  transform: translateY(var(--nm-y));
-  display: flex;
+  display: none;
   align-items: center;
   white-space: nowrap;
   font-family: 'Courier New', monospace;
