@@ -518,7 +518,7 @@ function syncGridFromDegrees(pairs) {
 }
 
 function formatDegreeLabel(degree, modifier) {
-  if (modifier === 'r+') return `${degree}r+`;
+  if (modifier === 'r+') return `${degree}r5`;
   if (modifier === '+') return `${degree}+`;
   if (modifier === '-') return `${degree}-`;
   return `${degree}`;
@@ -550,12 +550,15 @@ function updateSoundlineLabels() {
   // Use the API if available
   if (musicalGrid.updateSoundlineLabels) {
     musicalGrid.updateSoundlineLabels(scaleSemitones, (noteIndex) => {
-      // Note 12 is degree 0 of upper octave
+      // Note 12 is degree 0 of upper octave (register 5)
       if (noteIndex === 12) {
-        return '0';
+        return '0r5';
       }
       const degreeIndex = scaleSemitones.indexOf(noteIndex);
-      return degreeIndex !== -1 ? String(degreeIndex) : '·';
+      if (degreeIndex === -1) return '·';
+      // Degree 0 at bottom shows register 4
+      if (degreeIndex === 0) return '0r4';
+      return String(degreeIndex);
     });
   }
 }
@@ -772,11 +775,12 @@ async function init() {
     },
     intervalColor: '#4A9EFF',
     noteFormatter: (noteIndex) => {
-      // Show degree number if note is in scale, otherwise dot
-      // Use BASE scale (no transpose) for VISUAL display
       const scaleSems = getVisualScaleSemitones();
+      if (noteIndex === 12) return '0r5';
       const degreeIndex = scaleSems.indexOf(noteIndex);
-      return degreeIndex !== -1 ? String(degreeIndex) : '·';
+      if (degreeIndex === -1) return '·';
+      if (degreeIndex === 0) return '0r4';
+      return String(degreeIndex);
     },
     onCellClick: async (noteIndex, pulseIndex, cellElement) => {
       const audioInstance = await initAudio();
@@ -791,7 +795,7 @@ async function init() {
 
       // Check if note is in scale
       if (!scaleSems.includes(noteIndex)) {
-        infoTooltip.show('Usa +/- en grid-editor para notas cromáticas', cellElement);
+        infoTooltip.show('Solo se permiten notas de la escala', cellElement);
         return;
       }
 
@@ -860,27 +864,20 @@ async function init() {
       totalPulses: TOTAL_SPACES,
       getScaleLength: () => currentScaleLength,
       validateDegree: (degree) => degree >= 0 && degree < currentScaleLength,
+      formatDegreeDisplay: (degree, modifier) => {
+        if (modifier === 'r+') return `${degree}r5`;
+        if (modifier === '+') return `${degree}+`;
+        if (modifier === '-') return `${degree}-`;
+        return String(degree);
+      },
       validateModifier: (degree, modifier) => {
-        // Get the visual scale semitones (which notes are in the scale)
-        const scaleSemitones = getVisualScaleSemitones();
-
-        // Calculate the altered semitone
-        const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
-        const baseSemitone = degToSemi(visualState, degree);
-        let alteredSemitone = baseSemitone;
-        if (modifier === '+') alteredSemitone = (baseSemitone + 1) % 12;
-        if (modifier === '-') alteredSemitone = (baseSemitone + 11) % 12;
-
-        // Check if the altered semitone coincides with a scale degree
-        if (scaleSemitones.includes(alteredSemitone)) {
-          // Find which degree it coincides with
-          const coincidingDegree = scaleSemitones.indexOf(alteredSemitone);
+        // Only allow r+ (register change), block +/- chromatic modifiers
+        if (modifier === '+' || modifier === '-') {
           return {
             valid: false,
-            message: `${degree}${modifier} coincide con el grado ${coincidingDegree}. Usa ${coincidingDegree} directamente.`
+            message: `Solo se permiten notas de la escala`
           };
         }
-
         return { valid: true };
       }
     },
