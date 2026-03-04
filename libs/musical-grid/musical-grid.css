@@ -760,6 +760,41 @@
   text-align: center;
 }
 
+/* ========== REST/SILENCE CELLS ========== */
+/* Silence visualization: thin dotted line on the note row (~1/4 height of active notes) */
+.musical-cell.rest {
+  z-index: var(--z-content, 5);
+}
+
+.musical-cell.rest::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -12.5%;
+  height: 25%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--rest-color, var(--interval-color, #4A9EFF)) 0px,
+    var(--rest-color, var(--interval-color, #4A9EFF)) 4px,
+    transparent 4px,
+    transparent 10px
+  );
+  opacity: 0.5;
+  border-radius: 1px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .musical-cell.rest::before {
+  opacity: 0.6;
+}
+
+/* Hide the np-dot on rest cells */
+.musical-cell.rest .np-dot::after {
+  display: none;
+}
+
 /* ========== DISABLED CELLS (scale-based apps) ========== */
 /* Cells for notes outside the current scale */
 .musical-cell.disabled {
