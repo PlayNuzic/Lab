@@ -162,21 +162,8 @@
 }
 
 .plano-cell:hover {
-  background: transparent;
-  z-index: 2;
-}
-
-.plano-cell:hover::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -50%;
-  height: 100%;
   background: var(--plano-cell-hover);
-  border-radius: 2px;
-  z-index: 1;
-  pointer-events: none;
+  z-index: 2;
 }
 
 .plano-cell.plano-selected {
