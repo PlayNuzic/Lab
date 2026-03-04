@@ -97,12 +97,13 @@ export function createGridEditor(config = {}) {
    */
   function groupPairsByPulse(pairs) {
     const grouped = {};
-    pairs.forEach(({ note, pulse }) => {
+    pairs.forEach(({ note, pulse, isRest }) => {
       if (!grouped[pulse]) {
         grouped[pulse] = [];
       }
-      // Only add note if it's not null (preserve empty pulses with empty array)
-      if (note !== null) {
+      if (isRest) {
+        grouped[pulse].push('s');
+      } else if (note !== null) {
         grouped[pulse].push(note);
       }
     });
@@ -3320,7 +3321,8 @@ export function createGridEditor(config = {}) {
     // Note rows
     if (notes.length > 0) {
       notes.forEach((note, index) => {
-        const row = createNoteRow(pulse, note, index);
+        const isRest = note === 's';
+        const row = createNoteRow(pulse, isRest ? null : note, index, isRest);
         notesArea.appendChild(row);
       });
       // Empty row (for adding more notes to this pulse)
@@ -3365,15 +3367,16 @@ export function createGridEditor(config = {}) {
    * @param {number} voiceIndex - Voice index (0 = first note, 1 = second, etc.)
    * @returns {HTMLElement} - Input element (no wrapper row)
    */
-  function createNoteRow(pulse, note, voiceIndex) {
+  function createNoteRow(pulse, note, voiceIndex, isRest = false) {
     const input = document.createElement('input');
     input.className = 'note-input';
     input.type = 'text';
-    input.value = note !== null ? String(note) : '';
+    input.value = isRest ? 's' : (note !== null ? String(note) : '');
     input.dataset.pulse = pulse !== null ? pulse : '';
     input.dataset.voice = voiceIndex;
-    input.maxLength = 2; // Allow two digits
+    input.maxLength = 2; // Allow two digits or 's'
     input.placeholder = '';
+    if (isRest) input.dataset.isSilence = 'true';
 
     input.addEventListener('input', (e) => handleNoteInputChange(e, pulse, voiceIndex));
     input.addEventListener('keydown', (e) => handleKeyDown(e, input, 'N', pulse, voiceIndex));
@@ -3389,6 +3392,21 @@ export function createGridEditor(config = {}) {
   function handleNoteInputChange(event, pulse, voiceIndex) {
     const input = event.target;
     const text = input.value.trim();
+
+    // Silence: 's' is a valid rest input
+    if (text.toLowerCase() === 's') {
+      input.dataset.isSilence = 'true';
+      // Jump to pulse input
+      const column = input.closest('.pulse-column');
+      const pulseInput = column?.querySelector('.pulse-input');
+      if (pulseInput) {
+        pulseInput.focus();
+        pulseInput.select();
+      }
+      updatePairsFromDOM();
+      return;
+    }
+    delete input.dataset.isSilence;
 
     // Validate: only digits
     if (text && !/^\d+$/.test(text)) {
@@ -3509,7 +3527,8 @@ export function createGridEditor(config = {}) {
    */
   function handleKeyDown(event, input, type, pulse, voiceIndex = 0) {
     const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Tab', 'Enter'];
-    if (!/^[0-9]$/.test(event.key) && !allowed.includes(event.key)) {
+    const isSilenceKey = type === 'N' && event.key.toLowerCase() === 's' && !input.value.trim();
+    if (!/^[0-9]$/.test(event.key) && !allowed.includes(event.key) && !isSilenceKey) {
       event.preventDefault();
       return;
     }
@@ -3973,6 +3992,12 @@ export function createGridEditor(config = {}) {
       noteInputs.forEach(input => {
         const noteText = input.value.trim();
         if (noteText) {
+          // Check for silence
+          if (noteText.toLowerCase() === 's' || input.dataset.isSilence === 'true') {
+            newPairs.push({ note: null, pulse, isRest: true });
+            hasAtLeastOneNote = true;
+            return;
+          }
           const note = parseInt(noteText, 10);
           if (!isNaN(note) && note >= noteRange[0] && note <= noteRange[1]) {
             newPairs.push({ note, pulse });

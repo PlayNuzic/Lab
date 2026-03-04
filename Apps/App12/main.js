@@ -112,13 +112,14 @@ async function handlePlay() {
 
   const allPairs = gridEditor.getPairs();
 
-  // Group pairs by pulse for polyphonic playback
+  // Group pairs by pulse for polyphonic playback (skip rests)
   const pulseGroups = {};
   allPairs.forEach(pair => {
+    if (pair.isRest || pair.note === null) return;
     if (!pulseGroups[pair.pulse]) {
       pulseGroups[pair.pulse] = [];
     }
-    pulseGroups[pair.pulse].push(60 + pair.note); // Store as MIDI notes
+    pulseGroups[pair.pulse].push(60 + pair.note);
   });
 
   isPlaying = true;
@@ -264,11 +265,13 @@ function handleRandom() {
   // Select first numPairs pulses from shuffled array
   const selectedPulses = allPulses.slice(0, numPairs).sort((a, b) => a - b);
 
-  // Generate pairs with random notes
-  const pairs = selectedPulses.map(pulse => ({
-    note: Math.floor(Math.random() * (randNMax + 1)),
-    pulse: pulse
-  }));
+  // Generate pairs with random notes (20% chance of silence)
+  const pairs = selectedPulses.map(pulse => {
+    if (Math.random() < 0.2) {
+      return { note: null, pulse, isRest: true };
+    }
+    return { note: Math.floor(Math.random() * (randNMax + 1)), pulse };
+  });
 
   // Set pairs
   gridEditor?.setPairs(pairs);
@@ -285,8 +288,8 @@ function syncGridFromPairs(pairs) {
   if (!musicalGrid) return;
 
   // PERFORMANCE: Incremental update instead of full redraw
-  // Track which cells should be active
-  const activeCells = new Set(pairs.map(p => `${p.note}-${p.pulse}`));
+  // Track which cells should be active (skip rests)
+  const activeCells = new Set(pairs.filter(p => !p.isRest && p.note !== null).map(p => `${p.note}-${p.pulse}`));
 
   // Clear only cells that are no longer active
   document.querySelectorAll('.musical-cell.active').forEach(cell => {
