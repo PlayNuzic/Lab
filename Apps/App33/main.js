@@ -292,16 +292,11 @@ function buildSimple12Rows() {
 function calculateCellWidth() {
   const container = gridElements?.matrixContainer;
   if (!container) return 40;
-  const totalColumns = getTotalSubdivisions();
   const containerWidth = container.clientWidth || 600;
-  if (!Number.isFinite(totalColumns) || totalColumns <= 0) return 40;
-  const maxColumns = 24;
-  const calculatedWidth = Math.floor(containerWidth / Math.min(totalColumns, maxColumns));
-  if (totalColumns <= maxColumns) {
-    // For few columns, expand to fill the container width
-    return Math.max(30, calculatedWidth);
-  }
-  return Math.max(30, Math.min(60, calculatedWidth));
+  if (!Number.isFinite(currentLg) || currentLg <= 0) return 40;
+  // pulseWidth fix: 2.5x espai per puls (scroll si cal)
+  const pulseWidth = containerWidth / (currentLg / 2.5);
+  return pulseWidth / currentDenominator;
 }
 
 // ========== PZ ROW + GRID CREATION ==========
