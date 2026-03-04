@@ -812,10 +812,6 @@ body.dragging-it * {
   transition: background-color 0.1s ease;
 }
 
-.plano-cell:hover {
-  background: rgba(var(--selection-color-rgb, 0, 120, 212), 0.15);
-}
-
 .plano-cell.pulse-boundary {
   border-right: 2px solid var(--line-color);
 }
