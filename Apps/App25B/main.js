@@ -453,16 +453,30 @@ function syncGridFromDegreeIntervals(absoluteDegrees) {
   // Clear previous state
   clearIntervalLines();
   musicalGrid.clear();
+  document.querySelectorAll('.musical-cell.rest').forEach(el => el.classList.remove('rest'));
 
   // Clear any existing labels
   document.querySelectorAll('.musical-cell .cell-label').forEach(el => el.remove());
 
-  // Activate cells for each valid degree
-  const validDegrees = absoluteDegrees.filter(d => !d.isRest && d.degree !== null);
+  // Sort by pulse and track last playable noteIndex for silence placement
+  const sorted = [...absoluteDegrees].sort((a, b) => a.pulse - b.pulse);
+  const validDegrees = [];
+  let lastNoteIndex = 0;
 
-  validDegrees.forEach(({ degree, pulse }) => {
+  sorted.forEach(({ degree, pulse, isRest }) => {
+    if (isRest) {
+      // Silence: dotted line on the last playable note row
+      const cell = musicalGrid.getCellElement(lastNoteIndex, pulse);
+      if (cell) cell.classList.add('rest');
+      return;
+    }
+    if (degree === null) return;
+
     const noteIndex = absoluteDegreeToVisualNoteIndex(degree);
     if (noteIndex === null || noteIndex < 0 || noteIndex >= TOTAL_NOTES) return;
+
+    lastNoteIndex = noteIndex;
+    validDegrees.push({ degree, pulse });
 
     const cell = musicalGrid.getCellElement(noteIndex, pulse);
     if (cell) {
