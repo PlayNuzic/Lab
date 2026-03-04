@@ -121,14 +121,36 @@ export function createGrid2DSyncController(config = {}) {
     // Clear duration highlights
     clearDurationHighlights();
 
-    // Build selection keys and duration cells
+    // Build selection keys, duration cells, and rest cells
     const selectionKeys = [];
     const durationCells = [];
+    const restCells = [];
 
-    pairs.forEach((pair) => {
-      // Skip silences
-      if (pair.isRest) return;
+    // Track last playable note/registry for silences with note:null
+    let lastNote = 0;
+    let lastRegistry = defaultRegistry;
+
+    // Sort by pulse to ensure correct previous-note tracking
+    const sorted = [...pairs].sort((a, b) => a.pulse - b.pulse);
+
+    sorted.forEach((pair) => {
+      // Handle silences: render as dotted line on the note row
+      if (pair.isRest) {
+        // Use pair's note if available, otherwise fall back to last playable note
+        const note = (pair.note !== null && pair.note !== undefined) ? pair.note : lastNote;
+        const registry = pair.registry ?? lastRegistry;
+        const rowId = buildRowId(note, registry);
+        const iT = pair.temporalInterval || 1;
+        for (let pulse = pair.pulse; pulse < pair.pulse + iT; pulse++) {
+          restCells.push({ rowId, pulse });
+        }
+        return;
+      }
       if (pair.note === null || pair.note === undefined) return;
+
+      // Track last playable note for silence fallback
+      lastNote = pair.note;
+      lastRegistry = pair.registry ?? defaultRegistry;
 
       const registry = pair.registry ?? defaultRegistry;
       const rowId = buildRowId(pair.note, registry);
@@ -147,10 +169,15 @@ export function createGrid2DSyncController(config = {}) {
     // Load selection (clears existing, loads new, calls refresh)
     grid.loadSelection(selectionKeys);
 
-    // Apply duration highlights and restore dots after refresh
+    // Apply duration highlights, rest cells, and restore dots after refresh
     requestAnimationFrame(() => {
       durationCells.forEach(({ rowId, pulse }) => {
         highlightSingleCell(rowId, pulse);
+      });
+
+      // Apply rest (silence) styling
+      restCells.forEach(({ rowId, pulse }) => {
+        highlightRestCell(rowId, pulse);
       });
 
       // Re-add dots if enabled
@@ -185,7 +212,25 @@ export function createGrid2DSyncController(config = {}) {
   }
 
   /**
-   * Clear all duration highlights from the grid
+   * Highlight a single cell with rest class (silence dotted line)
+   *
+   * @param {string} rowId - Row ID in format "NrR"
+   * @param {number} pulse - Pulse index
+   */
+  function highlightRestCell(rowId, pulse) {
+    const matrixContainer = getMatrixContainer();
+    if (!matrixContainer) return;
+
+    const cell = matrixContainer.querySelector(
+      `.plano-cell[data-row-id="${rowId}"][data-col-index="${pulse}"]`
+    );
+    if (cell) {
+      cell.classList.add('rest');
+    }
+  }
+
+  /**
+   * Clear all duration highlights and rest highlights from the grid
    */
   function clearDurationHighlights() {
     const matrixContainer = getMatrixContainer();
@@ -193,6 +238,9 @@ export function createGrid2DSyncController(config = {}) {
 
     matrixContainer.querySelectorAll('.plano-cell.duration-highlight').forEach(cell => {
       cell.classList.remove('duration-highlight');
+    });
+    matrixContainer.querySelectorAll('.plano-cell.rest').forEach(cell => {
+      cell.classList.remove('rest');
     });
   }
 
