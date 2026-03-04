@@ -162,8 +162,22 @@
 }
 
 .plano-cell:hover {
-  background: var(--plano-cell-hover);
+  background: transparent;
   z-index: 2;
+}
+
+/* Hover band centered on the cell's bottom edge — where notes render.
+   Uses ::after with z-index:3 so it paints above neighbouring cells. */
+.plano-cell:hover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-0.5 * var(--plano-cell-height) + 1px);
+  height: calc(var(--plano-cell-height) - 2px);
+  background: var(--plano-cell-hover);
+  z-index: 3;
+  pointer-events: none;
 }
 
 .plano-cell.plano-selected {
