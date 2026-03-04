@@ -535,8 +535,8 @@ function handleItSeqKeydown(e) {
     return;
   }
 
-  // Allow digits, 's' for silence, space, navigation
-  if (/^[0-9sS]$/.test(e.key) || e.key === ' ' ||
+  // Allow digits, space, navigation
+  if (/^[0-9]$/.test(e.key) || e.key === ' ' ||
       e.key === 'ArrowLeft' || e.key === 'ArrowRight' ||
       e.key === 'Backspace' || e.key === 'Delete' ||
       e.key === 'Tab') {
@@ -546,26 +546,12 @@ function handleItSeqKeydown(e) {
   e.preventDefault();
 }
 
-// Parse a single token: "3" = iT of 3, "3s" = silence of 3
+// Parse a single token: "3" = iT of 3 (only numbers accepted)
 function parseToken(token) {
-  const lower = token.toLowerCase();
-
-  // Check for silence format: "3s" (number followed by s)
-  const silenceMatch = lower.match(/^(\d+)s$/);
-  if (silenceMatch) {
-    const value = parseInt(silenceMatch[1], 10);
-    if (Number.isFinite(value) && value >= 1) {
-      return { value, isSilence: true };
-    }
-    return null;
-  }
-
-  // Regular iT: just a number
   const value = parseInt(token, 10);
   if (Number.isFinite(value) && value >= 1) {
     return { value, isSilence: false };
   }
-
   return null;
 }
 
