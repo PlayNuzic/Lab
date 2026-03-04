@@ -489,20 +489,31 @@ function handleRandom() {
 function syncGridFromDegrees(pairs) {
   if (!musicalGrid) return;
 
-  // Clear all active cells and labels
-  document.querySelectorAll('.musical-cell.active').forEach(cell => {
-    cell.classList.remove('active');
+  // Clear all active cells, rest cells, and labels
+  document.querySelectorAll('.musical-cell.active, .musical-cell.rest').forEach(cell => {
+    cell.classList.remove('active', 'rest');
     const label = cell.querySelector('.cell-label');
     if (label) label.remove();
   });
 
-  // Activate cells for each pair
-  const validPairs = pairs.filter(p => !p.isRest && p.degree !== null && p.degree !== undefined);
+  // Sort by pulse and track last playable noteIndex for silence placement
+  const sorted = [...pairs].sort((a, b) => a.pulse - b.pulse);
+  let lastNoteIndex = 0; // Base note row for silences
 
-  validPairs.forEach(({ degree, modifier, pulse }) => {
+  sorted.forEach(({ degree, modifier, pulse, isRest }) => {
+    if (isRest) {
+      // Silence: dotted line on the last playable note row
+      const cell = musicalGrid.getCellElement(lastNoteIndex, pulse);
+      if (cell) cell.classList.add('rest');
+      return;
+    }
+    if (degree === null || degree === undefined) return;
+
     // Use VISUAL positioning (independent of user's transpose)
     const noteIndex = degreeToVisualNoteIndex(degree, modifier);
     if (noteIndex === null) return;
+
+    lastNoteIndex = noteIndex;
 
     const cell = musicalGrid.getCellElement(noteIndex, pulse);
     if (cell) {
