@@ -77,7 +77,8 @@ export function createGridEditor(config = {}) {
     autoJumpDelayMs = 300,  // Custom auto-jump delay (ms)
     intervalModeOptions = null,  // Options for interval mode (basePair, maxTotalPulse, etc.)
     nrxModeOptions = null,  // Options for nrx-it mode (registryRange, validateNoteRegistry, etc.)
-    degreeModeOptions = null  // Options for degree mode (totalPulses, getScaleLength, validateDegree)
+    degreeModeOptions = null,  // Options for degree mode (totalPulses, getScaleLength, validateDegree)
+    notesHeight = null  // Override dynamic --notes-height (e.g. '100px')
   } = config;
 
   let currentPairs = [];
@@ -189,8 +190,8 @@ export function createGridEditor(config = {}) {
     const maxVoices = calculateMaxVoices(grouped);
     const dynamicHeight = maxVoices * 60; // 60px per voice row
 
-    // Set CSS custom property for dynamic height
-    container.style.setProperty('--notes-height', `${dynamicHeight}px`);
+    // Set CSS custom property for dynamic height (override with notesHeight if provided)
+    container.style.setProperty('--notes-height', notesHeight || `${dynamicHeight}px`);
 
     // Set CSS custom property for fixed column size in scroll mode
     if (scrollEnabled && columnSize) {

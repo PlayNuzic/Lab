@@ -523,6 +523,7 @@ async function init() {
     scrollEnabled: isMobile,
     containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
     columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
+    notesHeight: '100px',
     onPairsChange: (pairs) => {
       syncGridFromPairs(pairs);
     }
