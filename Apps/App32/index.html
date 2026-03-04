@@ -7,7 +7,9 @@
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="../../libs/plano-modular/plano-modular.css" />
+  <link rel="stylesheet" href="../../libs/plano-modular/plano-hover-centered.css" />
   <link rel="stylesheet" href="../../libs/shared-ui/bpm-inline.css" />
+  <link rel="stylesheet" href="../../libs/plano-fraccion/plano-fraccion.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../../favicon.ico" />
 </head>
@@ -16,6 +18,7 @@
   <script type="module">
     import { initHeader } from '../../libs/shared-ui/header.js';
     import { renderApp } from '../../libs/app-common/template.js';
+    import { injectBpmAndSoundGroup } from '../../libs/app-common/bpm-inline-injector.js';
 
     renderApp({
       root: document.getElementById('app-root'),
@@ -39,67 +42,7 @@
       randomMenuContent: ''
     });
 
-    // Inject BPM inline into .inputs
-    const inputsDiv = document.querySelector('.inputs');
-    if (inputsDiv) {
-      inputsDiv.innerHTML = `
-        <div class="bpm-inline visible" id="bpmParam">
-          <span class="abbr">BPM</span>
-          <div class="circle">
-            <input id="inputBpm" type="number" min="50" max="150" value="90" />
-            <div class="spinner">
-              <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
-              <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    const placeBpmNearGrid = () => {
-      const bpmParam = document.getElementById('bpmParam');
-      const gridContainer = document.getElementById('gridContainer');
-      if (!bpmParam || !gridContainer) return false;
-      if (bpmParam.parentElement !== gridContainer) {
-        gridContainer.prepend(bpmParam);
-      }
-      gridContainer.classList.add('grid-container--bpm-left');
-      return true;
-    };
-
-    if (!placeBpmNearGrid()) {
-      const observer = new MutationObserver(() => {
-        if (placeBpmNearGrid()) observer.disconnect();
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
-
-    // Setup sound groups: Instrumento + Metrónomo + Subdivisión
-    const soundGroup = document.querySelector('.sound-group');
-    if (soundGroup) {
-      // Rename "Pulso" to "Metrónomo" (index 2 = third label after "Pulso 0" and "Instrumento")
-      const labels = soundGroup.querySelectorAll('p');
-      const pulsoLabel = labels?.[2];
-      if (pulsoLabel) pulsoLabel.textContent = 'Metrónomo';
-
-      // Add cycle sound dropdown (Subdivisión)
-      const cycleTitle = document.createElement('p');
-      cycleTitle.textContent = 'Subdivisión';
-      soundGroup.appendChild(cycleTitle);
-
-      const cycleRow = document.createElement('div');
-      cycleRow.className = 'preview-row';
-
-      const hiddenLabel = document.createElement('label');
-      hiddenLabel.setAttribute('for', 'cycleSoundSelect');
-      hiddenLabel.style.display = 'none';
-      cycleRow.appendChild(hiddenLabel);
-
-      const slot = document.createElement('div');
-      slot.id = 'cycleSoundSelect';
-      cycleRow.appendChild(slot);
-      soundGroup.appendChild(cycleRow);
-    }
-
+    injectBpmAndSoundGroup();
     initHeader();
     import('./main.js');
   </script>

@@ -20,6 +20,12 @@ import {
 } from '../../libs/plano-modular/plano-grid.js';
 import { createPlayheadController } from '../../libs/plano-modular/plano-playhead.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
+import { setupScrollSync } from '../../libs/plano-modular/plano-scroll.js';
+import { buildSimple12Rows } from '../../libs/app-common/plano-grid-rows.js';
+import { calculateVariableLg as _calcLg, getTotalSubdivisions as _getTotalSubdivs, subdivToPosition as _subdivToPos, formatPulseValue, filterInvalidNotes as _filterInvalid } from '../../libs/plano-fraccion/fraction-math.js';
+import { renderGhostPulseLines } from '../../libs/plano-fraccion/ghost-pulse.js';
+import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
 
 // ========== CONSTANTS ==========
 const BASE_LG = 12;              // Longitud màxima de referència
@@ -226,9 +232,6 @@ if (typeof window !== 'undefined') {
 }
 
 // ========== UTILITY FUNCTIONS ==========
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 /**
  * Calcula la longitud (Lg) com el nombre de cicles complets
@@ -246,48 +249,18 @@ function sleep(ms) {
  * - 6/7: cicle=6, floor(12/6)=2, Lg=12
  */
 function calculateVariableLg(numerator) {
-  const cycleLength = numerator;
-  const completeCycles = Math.floor(BASE_LG / cycleLength);
-
-  // Garantir almenys 1 cicle complet
-  const safeCycles = Math.max(1, completeCycles);
-
-  return safeCycles * cycleLength;
+  return _calcLg(numerator, BASE_LG);
 }
 
-/**
- * Get total subdivisions available
- * Amb fracció n/d: cicles = Lg / n, subdivisions = cicles * d = Lg * d / n
- */
 function getTotalSubdivisions() {
-  return (currentLg * currentDenominator) / currentNumerator;
+  return _getTotalSubdivs(currentLg, currentNumerator, currentDenominator);
 }
 
-/**
- * Convert subdivision index to timeline position (pulses)
- */
 function subdivToPosition(subdiv) {
-  return subdiv * currentNumerator / currentDenominator;
-}
-
-function formatPulseValue(value) {
-  if (!Number.isFinite(value)) return '0';
-  if (Number.isInteger(value)) return String(value);
-  return String(Number(value.toFixed(2)));
+  return _subdivToPos(subdiv, currentNumerator, currentDenominator);
 }
 
 // ========== GRID HELPERS ==========
-function buildSimple12Rows() {
-  const rows = [];
-  for (let note = NOTE_COUNT - 1; note >= 0; note--) {
-    rows.push({
-      id: `note-${note}`,
-      label: String(note),
-      data: { note }
-    });
-  }
-  return rows;
-}
 
 function calculateCellWidth() {
   const container = gridElements?.matrixContainer;
@@ -480,7 +453,7 @@ function renderGrid() {
   });
 
   // Add ghost pulse lines (integer pulses that fall between subdivisions)
-  renderGhostPulseLines();
+  _renderGhostPulseLines();
 
   // Render fractional timeline in grid
   renderGridTimeline();
@@ -572,131 +545,39 @@ function renderGridTimeline() {
  * Render ghost pulse lines - vertical dashed lines in the grid matrix
  * for integer pulses that fall between subdivisions
  */
-function renderGhostPulseLines() {
+function _renderGhostPulseLines() {
   const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
   if (!matrix) return;
-
-  // Remove existing ghost lines
-  matrix.querySelectorAll('.ghost-pulse-line').forEach(el => el.remove());
-  matrixGhostLines = [];
-
-  const n = currentNumerator;
-  const d = currentDenominator;
-  const totalSubdivs = getTotalSubdivisions();
-  const lg = currentLg;
-
-  // Find integer pulses that don't align with subdivision boundaries
-  // Pulse p is at subdivision position: p * d / n
-  for (let pulse = 0; pulse < lg; pulse++) {
-    const subdivPos = pulse * d / n;
-
-    // Skip if this pulse aligns with a subdivision start (integer position)
-    if (subdivPos % 1 === 0) continue;
-
-    // Skip if beyond grid
-    if (subdivPos >= totalSubdivs) continue;
-
-    // Calculate pixel position
-    const leftPx = subdivPos * cellWidth;
-
-    // Create vertical line in matrix
-    const line = document.createElement('div');
-    line.className = 'ghost-pulse-line';
-    line.style.left = `${leftPx}px`;
-    line.dataset.pulse = String(pulse);
-    matrix.appendChild(line);
-    matrixGhostLines[pulse] = line;
-  }
+  matrixGhostLines = renderGhostPulseLines(matrix, {
+    lg: currentLg,
+    numerator: currentNumerator,
+    denominator: currentDenominator,
+    cellWidth
+  });
 }
 
 function syncGridScrolls() {
   const matrix = gridElements?.matrixContainer;
   const timeline = gridElements?.timelineContainer;
-
-  if (matrix && timeline) {
-    matrix.addEventListener('scroll', () => {
-      timeline.scrollLeft = matrix.scrollLeft;
-    });
-  }
+  const soundline = gridElements?.soundlineContainer;
+  if (matrix) setupScrollSync(matrix, soundline, timeline);
 }
 
 // ========== NOTE RENDERING ==========
 function renderNotes() {
-  const existingBars = gridElements?.matrixContainer?.querySelectorAll('.note-bar');
-  existingBars?.forEach(bar => bar.remove());
-
-  if (notes.length === 0) return;
-
-  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
-  if (!matrix) return;
-
-  const cellHeight = 32;
-
-  notes.forEach((noteData, idx) => {
-    const bar = document.createElement('div');
-    bar.className = 'note-bar';
-    bar.dataset.noteIndex = idx;
-
-    const left = noteData.startSubdiv * cellWidth;
-    const width = noteData.duration * cellWidth;
-    const rowIndex = (NOTE_COUNT - 1) - noteData.note;
-    const barHeight = cellHeight - 2;
-    const top = (rowIndex + 1) * cellHeight - barHeight / 2;  // Center on division line (bottom edge of row)
-
-    bar.style.left = `${left}px`;
-    bar.style.width = `${width}px`;
-    bar.style.top = `${top}px`;
-    bar.style.height = `${barHeight}px`;
-    bar.style.background = VIBRANT_COLORS[idx % VIBRANT_COLORS.length];
-
-    const label = document.createElement('span');
-    label.className = 'note-bar__label';
-    label.textContent = noteData.duration;
-    bar.appendChild(label);
-
-    bar.addEventListener('click', (e) => {
-      e.stopPropagation();
-      removeNote(idx);
-    });
-
-    matrix.appendChild(bar);
+  renderNoteBars({
+    matrixContainer: gridElements?.matrixContainer,
+    notes,
+    cellWidth,
+    noteCount: NOTE_COUNT,
+    colors: VIBRANT_COLORS,
+    onClickNote: removeNote
   });
 }
 
 // ========== NOTE MANAGEMENT ==========
-/**
- * Check if a note would overlap with existing notes (monophonic mode)
- * In monophonic mode, no two notes can occupy the same column
- */
-function wouldOverlap(noteData) {
-  const newStart = noteData.startSubdiv;
-  const newEnd = noteData.startSubdiv + noteData.duration;
-
-  for (const n of notes) {
-    const existingStart = n.startSubdiv;
-    const existingEnd = n.startSubdiv + n.duration;
-
-    // Check if columns overlap (regardless of note row)
-    const columnsOverlap = !(newEnd <= existingStart || newStart >= existingEnd);
-    if (columnsOverlap) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Remove any notes that overlap with the given range (monophonic mode)
- */
 function removeOverlappingNotes(startSubdiv, duration) {
-  const newEnd = startSubdiv + duration;
-
-  notes = notes.filter(n => {
-    const existingStart = n.startSubdiv;
-    const existingEnd = n.startSubdiv + n.duration;
-    // Keep notes that don't overlap
-    return newEnd <= existingStart || startSubdiv >= existingEnd;
-  });
+  notes = _removeOverlapping(notes, startSubdiv, duration);
 }
 
 function addNote(noteData) {
@@ -928,15 +809,7 @@ function handleFractionChange(nextFraction = null) {
 }
 
 function filterInvalidNotes() {
-  const maxSubdiv = getTotalSubdivisions();
-  notes = notes.filter(n => n.startSubdiv < maxSubdiv);
-  notes.forEach(n => {
-    if (n.startSubdiv + n.duration > maxSubdiv) {
-      n.duration = maxSubdiv - n.startSubdiv;
-    }
-  });
-  // Si una nota queda amb durada 0, eliminar-la
-  notes = notes.filter(n => n.duration > 0);
+  notes = _filterInvalid(notes, getTotalSubdivisions());
 }
 
 /**
@@ -962,40 +835,6 @@ function applyTransportConfig() {
       onTick: highlightCycle
     }
   });
-}
-
-// ========== REPEAT PRESS HELPER ==========
-function addRepeatPress(el, fn) {
-  if (!el) return;
-  let timeoutId = null;
-  let intervalId = null;
-
-  const clearTimers = () => {
-    if (timeoutId) clearTimeout(timeoutId);
-    if (intervalId) clearInterval(intervalId);
-    timeoutId = null;
-    intervalId = null;
-  };
-
-  const start = (event) => {
-    if (event.type === 'mousedown' && event.button !== 0) return;
-    clearTimers();
-    fn();
-    timeoutId = setTimeout(() => {
-      intervalId = setInterval(fn, 80);
-    }, 320);
-    event.preventDefault();
-  };
-
-  const stop = () => clearTimers();
-
-  el.addEventListener('mousedown', start);
-  el.addEventListener('touchstart', start, { passive: false });
-  ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(name => {
-    el.addEventListener(name, stop);
-  });
-  document.addEventListener('mouseup', stop);
-  document.addEventListener('touchend', stop);
 }
 
 // ========== TIMELINE RENDERING ==========

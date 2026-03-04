@@ -21,6 +21,11 @@ import {
 import { createPlayheadController } from '../../libs/plano-modular/plano-playhead.js';
 import { createGridEditor } from '../../libs/matrix-seq/index.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
+import { setupScrollSync } from '../../libs/plano-modular/plano-scroll.js';
+import { buildSimple12Rows } from '../../libs/app-common/plano-grid-rows.js';
+import { getTotalSubdivisions as _getTotalSubdivs, subdivToPosition as _subdivToPos, filterInvalidNotes as _filterInvalid } from '../../libs/plano-fraccion/fraction-math.js';
+import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 12;             // 12 pulsos (0-11)
@@ -220,37 +225,16 @@ if (typeof window !== 'undefined') {
 }
 
 // ========== UTILITY FUNCTIONS ==========
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
-/**
- * Get total subdivisions available (Lg * d)
- * Lg Fr = longitud en polsos × denominador
- */
 function getTotalSubdivisions() {
-  return FIXED_LG * currentDenominator;
+  return _getTotalSubdivs(FIXED_LG, FIXED_NUMERATOR, currentDenominator);
 }
 
-/**
- * Convert subdivision index to timeline position (pulses)
- */
 function subdivToPosition(subdiv) {
-  return subdiv * FIXED_NUMERATOR / currentDenominator;
+  return _subdivToPos(subdiv, FIXED_NUMERATOR, currentDenominator);
 }
 
 // ========== GRID HELPERS ==========
-function buildSimple12Rows() {
-  const rows = [];
-  for (let note = NOTE_COUNT - 1; note >= 0; note--) {
-    rows.push({
-      id: `note-${note}`,
-      label: String(note),
-      data: { note }
-    });
-  }
-  return rows;
-}
 
 function calculateCellWidth() {
   const container = gridElements?.matrixContainer;
@@ -561,114 +545,25 @@ function renderGridTimeline() {
 function syncGridScrolls() {
   const matrix = gridElements?.matrixContainer;
   const timeline = gridElements?.timelineContainer;
-
-  if (matrix && timeline) {
-    matrix.addEventListener('scroll', () => {
-      timeline.scrollLeft = matrix.scrollLeft;
-    });
-  }
+  const soundline = gridElements?.soundlineContainer;
+  if (matrix) setupScrollSync(matrix, soundline, timeline);
 }
 
 // ========== NOTE RENDERING ==========
 function renderNotes() {
-  const existingBars = gridElements?.matrixContainer?.querySelectorAll('.note-bar');
-  existingBars?.forEach(bar => bar.remove());
-
-  if (notes.length === 0) return;
-
-  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
-  if (!matrix) return;
-
-  const cellHeight = 32;
-
-  let lastNoteRow = Math.floor(NOTE_COUNT / 2); // Default to middle row
-  notes.forEach((noteData, idx) => {
-    if (noteData.isRest) {
-      // Silence: thin dotted-line bar (~1/6 height) centered on the division line
-      const bar = document.createElement('div');
-      bar.className = 'note-bar note-bar--silence';
-      const left = noteData.startSubdiv * cellWidth;
-      const width = noteData.duration * cellWidth;
-      const rowIndex = (NOTE_COUNT - 1) - lastNoteRow;
-      const restHeight = Math.max(3, (cellHeight - 2) / 6);
-      // Center on division line (bottom edge of row = (rowIndex+1)*cellHeight)
-      const top = (rowIndex + 1) * cellHeight - restHeight / 2;
-
-      bar.style.left = `${left}px`;
-      bar.style.width = `${width}px`;
-      bar.style.top = `${top}px`;
-      bar.style.height = `${restHeight}px`;
-
-      matrix.appendChild(bar);
-      return;
-    }
-
-    lastNoteRow = noteData.note;
-
-    const bar = document.createElement('div');
-    bar.className = 'note-bar';
-    bar.dataset.noteIndex = idx;
-
-    const left = noteData.startSubdiv * cellWidth;
-    const width = noteData.duration * cellWidth;
-    const rowIndex = (NOTE_COUNT - 1) - noteData.note;
-    const barHeight = cellHeight - 2;
-    const top = (rowIndex + 1) * cellHeight - barHeight / 2;  // Center on division line (bottom edge of row)
-
-    bar.style.left = `${left}px`;
-    bar.style.width = `${width}px`;
-    bar.style.top = `${top}px`;
-    bar.style.height = `${barHeight}px`;
-    bar.style.background = VIBRANT_COLORS[idx % VIBRANT_COLORS.length];
-
-    const label = document.createElement('span');
-    label.className = 'note-bar__label';
-    label.textContent = noteData.duration;
-    bar.appendChild(label);
-
-    bar.addEventListener('click', (e) => {
-      e.stopPropagation();
-      removeNote(idx);
-    });
-
-    matrix.appendChild(bar);
+  renderNoteBars({
+    matrixContainer: gridElements?.matrixContainer,
+    notes,
+    cellWidth,
+    noteCount: NOTE_COUNT,
+    colors: VIBRANT_COLORS,
+    onClickNote: removeNote
   });
 }
 
 // ========== NOTE MANAGEMENT ==========
-/**
- * Check if a note would overlap with existing notes (monophonic mode)
- * In monophonic mode, no two notes can occupy the same column
- */
-function wouldOverlap(noteData) {
-  const newStart = noteData.startSubdiv;
-  const newEnd = noteData.startSubdiv + noteData.duration;
-
-  for (const n of notes) {
-    const existingStart = n.startSubdiv;
-    const existingEnd = n.startSubdiv + n.duration;
-
-    // Check if columns overlap (regardless of note row)
-    const columnsOverlap = !(newEnd <= existingStart || newStart >= existingEnd);
-    if (columnsOverlap) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Remove any notes that overlap with the given range (monophonic mode)
- */
 function removeOverlappingNotes(startSubdiv, duration) {
-  const newEnd = startSubdiv + duration;
-
-  notes = notes.filter(n => {
-    const existingStart = n.startSubdiv;
-    const existingEnd = n.startSubdiv + n.duration;
-    // Keep notes that don't overlap
-    return newEnd <= existingStart || startSubdiv >= existingEnd;
-  });
+  notes = _removeOverlapping(notes, startSubdiv, duration);
 }
 
 function addNote(noteData) {
@@ -906,13 +801,7 @@ function handleFractionChange() {
 }
 
 function filterInvalidNotes() {
-  const maxSubdiv = getTotalSubdivisions();
-  notes = notes.filter(n => n.startSubdiv < maxSubdiv);
-  notes.forEach(n => {
-    if (n.startSubdiv + n.duration > maxSubdiv) {
-      n.duration = maxSubdiv - n.startSubdiv;
-    }
-  });
+  notes = _filterInvalid(notes, getTotalSubdivisions());
 }
 
 /**
@@ -941,40 +830,6 @@ function applyTransportConfig() {
       onTick: highlightCycle
     }
   });
-}
-
-// ========== REPEAT PRESS HELPER ==========
-function addRepeatPress(el, fn) {
-  if (!el) return;
-  let timeoutId = null;
-  let intervalId = null;
-
-  const clearTimers = () => {
-    if (timeoutId) clearTimeout(timeoutId);
-    if (intervalId) clearInterval(intervalId);
-    timeoutId = null;
-    intervalId = null;
-  };
-
-  const start = (event) => {
-    if (event.type === 'mousedown' && event.button !== 0) return;
-    clearTimers();
-    fn();
-    timeoutId = setTimeout(() => {
-      intervalId = setInterval(fn, 80);
-    }, 320);
-    event.preventDefault();
-  };
-
-  const stop = () => clearTimers();
-
-  el.addEventListener('mousedown', start);
-  el.addEventListener('touchstart', start, { passive: false });
-  ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(name => {
-    el.addEventListener(name, stop);
-  });
-  document.addEventListener('mouseup', stop);
-  document.addEventListener('touchend', stop);
 }
 
 // ========== TIMELINE RENDERING ==========
