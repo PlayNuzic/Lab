@@ -2316,6 +2316,9 @@ export function createGridEditor(config = {}) {
    */
   function formatDegreeValue(degree, modifier) {
     if (degree === null || degree === undefined) return '';
+    // Use custom formatter if provided
+    const customFormatter = degreeModeOptions?.formatDegreeDisplay;
+    if (customFormatter) return customFormatter(degree, modifier);
     if (modifier === 'r+') return `${degree}r+`;
     if (modifier === '+') return `${degree}+`;
     if (modifier === '-') return `${degree}-`;
@@ -2336,13 +2339,23 @@ export function createGridEditor(config = {}) {
       return { isRest: true, degree: null, modifier: null };
     }
 
-    // Check for upper octave format (e.g., "0r+")
-    const matchUpperOctave = trimmed.match(/^(\d+)r\+$/);
+    // Check for upper octave format (e.g., "0r+", "0r5")
+    const matchUpperOctave = trimmed.match(/^(\d+)r[+5]$/);
     if (matchUpperOctave) {
       return {
         isRest: false,
         degree: parseInt(matchUpperOctave[1], 10),
         modifier: 'r+'
+      };
+    }
+
+    // Check for lower register format (e.g., "0r4") - treated as plain degree
+    const matchLowerRegister = trimmed.match(/^(\d+)r4$/);
+    if (matchLowerRegister) {
+      return {
+        isRest: false,
+        degree: parseInt(matchLowerRegister[1], 10),
+        modifier: null
       };
     }
 
@@ -2449,9 +2462,9 @@ export function createGridEditor(config = {}) {
       return;
     }
 
-    // Validation 3: Last degree + is not allowed (use 0r+ instead)
+    // Validation 3: Last degree + is not allowed (use 0r5 instead)
     if (parsed.degree === maxDegree && parsed.modifier === '+') {
-      showDegreeError(input, `${maxDegree}+ no es válido (usa 0r+ para la octava superior)`);
+      showDegreeError(input, `${maxDegree}+ no es válido (usa 0r5 para la octava superior)`);
       return;
     }
 
@@ -2545,9 +2558,15 @@ export function createGridEditor(config = {}) {
 
       // Digits and silence 's' always allowed (when cell empty or has digit)
       if (isDigit || isSilence) {
+        // After '0r', only '4' and '5' are valid register digits
+        if (currentValue.toLowerCase() === '0r' && isDigit && key !== '4' && key !== '5') {
+          event.preventDefault();
+          infoTooltip.show('Solo registros 4 y 5 (0r4 o 0r5)', input);
+          return;
+        }
         // Allow - will be processed by input handler
       }
-      // 'r' only allowed after '0' (for 0r+ format)
+      // 'r' only allowed after '0' (for 0r+/0r4/0r5 format)
       else if (keyLower === 'r') {
         if (currentValue !== '0') {
           event.preventDefault();
@@ -2555,15 +2574,14 @@ export function createGridEditor(config = {}) {
         }
         // Allow 'r' after '0'
       }
-      // '+' allowed after digit OR after '0r' (for 0r+ format)
+      // '+' allowed after digit only (not after '0r' — use 0r4/0r5 instead)
       else if (key === '+') {
         const hasDigit = /^\d+$/.test(currentValue);
-        const isZeroR = currentValue.toLowerCase() === '0r';
-        if (!hasDigit && !isZeroR) {
+        if (!hasDigit) {
           event.preventDefault();
           return;
         }
-        // Allow '+' after digit or '0r'
+        // Allow '+' after digit
       }
       // '-' only allowed after digit (not after 0r)
       else if (key === '-') {
