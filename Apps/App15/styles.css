@@ -93,6 +93,15 @@
   --line-color: #999;
 }
 
+/* Preserve iS/iT label colors in dark mode (override shared grid-editor.css reset) */
+[data-theme="dark"] .zigzag-left-label--top {
+  color: var(--interval-sound-color, #F28AAD);
+}
+
+[data-theme="dark"] .zigzag-left-label--bottom {
+  color: var(--interval-temporal-color, #4A9EFF);
+}
+
 /* ========== VIEWPORT FILL LAYOUT ========== */
 html, body {
   margin: 0;
@@ -1204,9 +1213,19 @@ body.dragging-note * {
 
 .zigzag-input:focus {
   outline: none;
-  background: var(--select-color);
-  color: white;
+  background: transparent;
+  border-color: var(--select-color, #FFBB33);
+  box-shadow: 0 0 6px rgba(var(--select-color-rgb, 228, 87, 12), 0.35);
   z-index: 10;
+}
+
+/* Keep iS/iT colors when focused (not white) */
+.zigzag-input.zigzag-input--is:focus {
+  color: var(--interval-sound-color, #F28AAD) !important;
+}
+
+.zigzag-input.zigzag-input--it:focus {
+  color: var(--interval-temporal-color, #4A9EFF) !important;
 }
 
 /* Visual zigzag pattern with connecting lines */
