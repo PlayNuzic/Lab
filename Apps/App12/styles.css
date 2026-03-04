@@ -142,6 +142,7 @@ html, body {
 #gridEditorContainer {
   grid-column: 1 / -1;
   grid-row: 1;
+  --notes-height: 100px;
 }
 
 /* Controls container in bottom-left */
