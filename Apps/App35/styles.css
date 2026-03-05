@@ -65,6 +65,8 @@ body.app35 {
 /* Ghost pulse style tweaks for complex fractions */
 .plano-timeline-overlay {
   position: relative;
+  left: var(--plano-margin-left);
+  height: 20px;
 }
 
 .plano-timeline-pulse-label.pulse-start {

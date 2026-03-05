@@ -21,6 +21,26 @@ body.app33 {
   --secondary-row-offset-y: 0px;
 }
 
+/* Ghost pulse timeline alignment (complex fractions) */
+.plano-timeline-overlay {
+  position: absolute;
+  bottom: 2px;
+  left: var(--plano-margin-left);
+  height: 20px;
+}
+
+.plano-timeline-pulse-label {
+  bottom: 0;
+  top: auto;
+  transform: translateX(-50%);
+}
+
+.plano-timeline-pulse-label.ghost {
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.45;
+}
+
 @media (max-width: 768px) {
   body.app33 {
     --unit-label-offset: -5px;
