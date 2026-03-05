@@ -797,13 +797,61 @@ body.dragging-note * {
   padding-left: var(--bpm-left-distance);
 }
 
+/* --- Left-column group: BPM + controls stacked vertically ---
+   Both sit inside the padding-left zone (width = --bpm-left-distance).
+   We use left:0 + width:--bpm-left-distance so they center naturally. */
+
 .grid-container--bpm-left > .bpm-inline {
   position: absolute;
-  left: 0;
-  top: 50%;
+  left: var(--bpm-offset-x, 0px);
+  top: var(--bpm-top, 20%);
   z-index: 20;
-  transform-origin: left center;
-  transform: translate(var(--bpm-offset-x), calc(-50% + var(--bpm-offset-y))) scale(var(--bpm-scale));
+  width: var(--bpm-left-distance, 150px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: scale(var(--bpm-scale, 1));
+  transform-origin: center top;
+}
+
+.grid-container--bpm-left > .bpm-inline .circle {
+  width: var(--bpm-circle-size, 66px);
+  height: var(--bpm-circle-size, 66px);
+}
+
+.grid-container--bpm-left > .controls {
+  position: absolute;
+  left: var(--bpm-offset-x, 0px);
+  top: var(--controls-top, 52%);
+  z-index: 20;
+  width: var(--bpm-left-distance, 150px);
+  height: auto;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--controls-gap, 10px);
+  transform: scale(var(--bpm-scale, 1));
+  transform-origin: center top;
+}
+
+.grid-container--bpm-left > .controls .play,
+.grid-container--bpm-left > .controls .random,
+.grid-container--bpm-left > .controls .reset {
+  position: static;
+}
+
+.grid-container--bpm-left > .controls .play {
+  transform: translate(var(--play-offset-x, 0px), var(--play-offset-y, 0px));
+}
+
+/* Row for random + reset side by side */
+.grid-container--bpm-left > .controls .ctrl-secondary-row {
+  display: flex;
+  flex-direction: row;
+  gap: var(--ctrl-secondary-gap, 12px);
+  align-items: center;
+  transform: translate(var(--secondary-row-offset-x, 0px), var(--secondary-row-offset-y, 0px));
 }
 
 .grid-container--bpm-left > .plano-container {

@@ -25,6 +25,23 @@ function placeBpmNearGrid() {
     gridContainer.prepend(bpmParam);
   }
   gridContainer.classList.add('grid-container--bpm-left');
+  // Move .controls under BPM (inside gridContainer, after bpmParam)
+  const controls = document.querySelector('.controls');
+  if (controls && controls.parentElement !== gridContainer) {
+    bpmParam.insertAdjacentElement('afterend', controls);
+    // Group random + reset into a horizontal row
+    const randomBtn = controls.querySelector('.random');
+    const randomMenu = controls.querySelector('.random-menu');
+    const resetBtn = controls.querySelector('.reset');
+    if (randomBtn && resetBtn) {
+      const row = document.createElement('div');
+      row.className = 'ctrl-secondary-row';
+      controls.appendChild(row);
+      row.appendChild(randomBtn);
+      if (randomMenu) row.appendChild(randomMenu);
+      row.appendChild(resetBtn);
+    }
+  }
   return true;
 }
 

@@ -3,10 +3,22 @@
 body.app35 {
   --unit-label-offset: -20px;
   --plano-timeline-height: 56px;
-  --bpm-left-distance: 150px;
-  --bpm-offset-x: 0px;
-  --bpm-offset-y: -40px;
+  --bpm-left-distance: 0px;
   --bpm-scale: 1;
+  --bpm-offset-x: -150px;
+  /* BPM circle */
+  --bpm-circle-size: 66px;
+  --bpm-top: 10%;
+  /* Controls under BPM */
+  --controls-top: 50%;
+  --controls-gap: 6px;
+  --ctrl-secondary-gap: 14px;
+  /* Play button offset */
+  --play-offset-x: 12px;
+  --play-offset-y: -30px;
+  /* Secondary row (random + reset) offset */
+  --secondary-row-offset-x: 35px;
+  --secondary-row-offset-y: 0px;
 }
 
 /* ========== SUCCESSION-SPECIFIC: PZ ROW ========== */
@@ -227,7 +239,8 @@ body.app35 {
   body.app35 {
     --unit-label-offset: -5px;
     --bpm-left-distance: 118px;
-    --bpm-scale: 0.9;
+    --bpm-scale: 0.85;
+    --bpm-circle-size: 56px;
   }
 
   .note-bar {
@@ -265,7 +278,8 @@ body.app35 {
 @media (max-width: 480px) {
   body.app35 {
     --bpm-left-distance: 96px;
-    --bpm-scale: 0.8;
+    --bpm-scale: 0.75;
+    --bpm-circle-size: 50px;
   }
 
   .pz-row .zigzag-row {
