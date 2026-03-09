@@ -794,7 +794,7 @@ body.dragging-note * {
   position: relative;
   overflow: visible;
   box-sizing: border-box;
-  padding-left: var(--bpm-left-distance);
+  padding-left: var(--bpm-left-distance, 120px);
 }
 
 /* --- Left-column group: BPM + controls stacked vertically ---
@@ -803,10 +803,10 @@ body.dragging-note * {
 
 .grid-container--bpm-left > .bpm-inline {
   position: absolute;
-  left: var(--bpm-offset-x, 0px);
+  left: 0;
   top: var(--bpm-top, 20%);
   z-index: 20;
-  width: var(--bpm-left-distance, 150px);
+  width: var(--bpm-left-distance, 120px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -821,10 +821,10 @@ body.dragging-note * {
 
 .grid-container--bpm-left > .controls {
   position: absolute;
-  left: var(--bpm-offset-x, 0px);
+  left: 0;
   top: var(--controls-top, 52%);
   z-index: 20;
-  width: var(--bpm-left-distance, 150px);
+  width: var(--bpm-left-distance, 120px);
   height: auto;
   margin: 0;
   display: flex;
