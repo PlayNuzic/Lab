@@ -686,7 +686,7 @@ function decrementRegistro() {
 /**
  * Handle Compás input change
  */
-function handleCompasChange() {
+function handleCompasChange({ updateEditor = false, autoFocus = false } = {}) {
   const value = elements.inputCompas?.value?.trim();
 
   if (value === '') {
@@ -696,15 +696,20 @@ function handleCompasChange() {
     if (!isNaN(num)) {
       compas = Math.max(CONFIG.MIN_COMPAS, Math.min(CONFIG.MAX_COMPAS, num));
       elements.inputCompas.value = compas;
-      elements.inputCycle?.focus();
-      elements.inputCycle?.select();
+      if (autoFocus) {
+        elements.inputCycle?.focus();
+        elements.inputCycle?.select();
+      }
     }
   }
 
   updateLongitud();
   updateGridVisibility();
   updateGrid();
-  updateGridEditorMaxPulse();
+
+  if (updateEditor) {
+    updateGridEditorMaxPulse();
+  }
 }
 
 /**
@@ -1075,14 +1080,14 @@ function incrementCompas() {
   if (compas === null) compas = 0;
   compas = Math.min(CONFIG.MAX_COMPAS, compas + 1);
   elements.inputCompas.value = compas;
-  handleCompasChange();
+  handleCompasChange({ updateEditor: true });
 }
 
 function decrementCompas() {
   if (compas === null) return;
   compas = Math.max(CONFIG.MIN_COMPAS, compas - 1);
   elements.inputCompas.value = compas;
-  handleCompasChange();
+  handleCompasChange({ updateEditor: true });
 }
 
 function incrementCycles() {
@@ -1112,7 +1117,7 @@ function setupEventHandlers() {
   });
 
   // Compás input with arrow keys
-  elements.inputCompas?.addEventListener('input', handleCompasChange);
+  elements.inputCompas?.addEventListener('input', () => handleCompasChange());
   elements.inputCompas?.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowUp') {
       e.preventDefault();
@@ -1121,10 +1126,12 @@ function setupEventHandlers() {
       e.preventDefault();
       decrementCompas();
     } else if (e.key === 'Enter') {
-      elements.inputCycle?.focus();
-      elements.inputCycle?.select();
+      handleCompasChange({ updateEditor: true, autoFocus: true });
     }
   });
+
+  // Confirm compás value when leaving the input
+  elements.inputCompas?.addEventListener('blur', () => handleCompasChange({ updateEditor: true }));
 
   // Compás spinners
   attachSpinnerRepeat(elements.compasUp, incrementCompas);

@@ -206,9 +206,17 @@ main {
   min-width: 0;
   /* Fine-tuning position */
   transform: translate(var(--grid-editor-offset-x), var(--grid-editor-offset-y));
-  /* Stay behind inputs-left-stack (z-index: 10) so negative transform doesn't cover spinners */
+  /* Negative transform creates a new stacking context that overlaps inputs-left-stack.
+     pointer-events: none on the wrapper prevents the overlap zone from stealing clicks.
+     Children re-enable pointer-events individually. */
   position: relative;
   z-index: 1;
+  pointer-events: none;
+}
+
+/* Re-enable pointer events on actual interactive children */
+.grid-editor-wrapper > * {
+  pointer-events: auto;
 }
 
 /* Grid editor container - target by ID since createGridEditor replaces classes */
@@ -390,6 +398,14 @@ main {
   position: relative;
   z-index: 2;
   transform: translateY(var(--timeline-wrapper-offset-y, 0px));
+  /* Negative translateY shifts this over the inputs area above.
+     Disable pointer-events so the overlap zone doesn't block controls above. */
+  pointer-events: none;
+}
+
+/* Re-enable pointer events on timeline-wrapper children */
+.timeline-wrapper > * {
+  pointer-events: auto;
 }
 
 /* ============================================
@@ -405,6 +421,15 @@ main {
   transform: translateY(var(--left-column-offset-y));
   position: relative;
   z-index: 10;
+  /* Negative translateY shifts this column on top of the inputs area above.
+     Disable pointer-events on the container so the overlap zone doesn't
+     steal clicks from Nº Compases / Compás spinners. */
+  pointer-events: none;
+}
+
+/* Re-enable pointer events on interactive children inside left-column */
+.left-column > * {
+  pointer-events: auto;
 }
 
 /* Registry param - vertical layout with label on top */
