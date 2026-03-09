@@ -395,12 +395,12 @@ function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 
   let topEdgePercent, bottomEdgePercent;
 
   if (isAscending) {
-    // Ascending: from origin (lower) to destination (higher)
-    topEdgePercent = (rowIndex2 / TOTAL_NOTES) * 100;
+    // Ascending: from origin bottom-edge (lower) to destination bottom-edge (higher)
+    topEdgePercent = ((rowIndex2 + 1) / TOTAL_NOTES) * 100;
     bottomEdgePercent = ((rowIndex1 + 1) / TOTAL_NOTES) * 100;
   } else {
-    // Descending: from origin (higher) to destination (lower)
-    topEdgePercent = (rowIndex1 / TOTAL_NOTES) * 100;
+    // Descending: from origin bottom-edge (higher) to destination bottom-edge (lower)
+    topEdgePercent = ((rowIndex1 + 1) / TOTAL_NOTES) * 100;
     bottomEdgePercent = ((rowIndex2 + 1) / TOTAL_NOTES) * 100;
   }
 
@@ -413,8 +413,9 @@ function createDegreeIntervalLine(degree1, degree2, pulseIndex, intervalIndex = 
   intervalBar.style.left = `${leftPosPercent}%`;
   intervalBar.style.transform = 'translateX(-50%)';
   intervalBar.style.width = '4px';
-  intervalBar.style.top = `${Math.min(topEdgePercent, bottomEdgePercent)}%`;
-  intervalBar.style.height = `${heightPercent}%`;
+  // Offset 6px from each np-dot to avoid overlapping them
+  intervalBar.style.top = `calc(${Math.min(topEdgePercent, bottomEdgePercent)}% + 6px)`;
+  intervalBar.style.height = `calc(${heightPercent}% - 12px)`;
   intervalBar.style.zIndex = '15';
 
   matrixContainer.appendChild(intervalBar);
@@ -972,8 +973,7 @@ async function init() {
     currentScaleLength = motherScalesData['DIAT']?.ee?.length || 7;
   }
 
-  // Create musical grid with scroll enabled for fixed cell heights
-  // We'll use CSS to make timeline responsive while keeping vertical scroll
+  // Create musical grid (all notes visible, no scroll)
   musicalGrid = createMusicalGrid({
     parent: gridAreaContainer,
     notes: TOTAL_NOTES,
@@ -984,7 +984,6 @@ async function init() {
     activeClassName: 'active',
     highlightClassName: 'highlight',
     scrollEnabled: false,
-    cellSize: { minHeight: 28 },  // Fixed height for vertical scroll
     showIntervals: {
       horizontal: true,
       vertical: false
