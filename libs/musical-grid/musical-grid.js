@@ -215,7 +215,7 @@ export function createMusicalGrid(config) {
       // Division marker (horizontal line)
       const division = document.createElement('div');
       division.className = 'soundline-division';
-      const yPct = (i / notes) * 100;
+      const yPct = ((i + 0.5) / (notes + 1)) * 100;
       division.style.top = `${yPct}%`;
       innerContainer.appendChild(division);
 
@@ -227,7 +227,7 @@ export function createMusicalGrid(config) {
       noteLabel.textContent = noteFormatter ? noteFormatter(noteIndex, midi) : noteIndex;
 
       // Align label with the bottom division line of the cell (i + 1)
-      const yPos = ((i + 1) / notes) * 100;
+      const yPos = ((i + 1.5) / (notes + 1)) * 100;
       noteLabel.style.top = `${yPos}%`;
       noteLabel.style.transform = 'translateY(-50%)';  // Center on the division line
 
@@ -246,7 +246,7 @@ export function createMusicalGrid(config) {
     // Create final division at bottom edge
     const finalDivision = document.createElement('div');
     finalDivision.className = 'soundline-division';
-    finalDivision.style.top = '100%';
+    finalDivision.style.top = `${((notes + 0.5) / (notes + 1)) * 100}%`;
     innerContainer.appendChild(finalDivision);
 
     // Render interval bars and numbers if enabled
@@ -271,7 +271,7 @@ export function createMusicalGrid(config) {
 
       // Position centered between note (i-1) and note (i)
       // Uses same spacing as note divisions to maintain alignment with cell rows
-      const yPct = ((i - 0.5) / totalIntervals) * 100;
+      const yPct = ((i) / (notes + 1)) * 100;
       intervalNum.style.top = `${yPct}%`;
       intervalNum.style.transform = 'translateY(-50%)';
 
@@ -286,8 +286,8 @@ export function createMusicalGrid(config) {
 
       // Calculate position and height to match cell rows exactly
       // Bar starts at note (i-1) and ends at note (i)
-      const startPct = ((i - 1) / totalIntervals) * 100;
-      const heightPct = 100 / totalIntervals;
+      const startPct = ((i - 1 + 0.5) / (notes + 1)) * 100;
+      const heightPct = 100 / (notes + 1);
 
       bar.style.top = `${startPct}%`;
       bar.style.height = `${heightPct}%`;
@@ -476,10 +476,10 @@ export function createMusicalGrid(config) {
     let noteHeight, top;
     if (scrollEnabled && cellSize && cellSize.minHeight) {
       noteHeight = cellSize.minHeight;
-      top = visualNoteIndex * noteHeight;
+      top = noteHeight * 0.5 + visualNoteIndex * noteHeight;
     } else {
-      noteHeight = matrixRect.height / notes;
-      top = visualNoteIndex * noteHeight;
+      noteHeight = matrixRect.height / (notes + 1);
+      top = noteHeight * 0.5 + visualNoteIndex * noteHeight;
     }
 
     // Horizontal: pulse space position
@@ -534,7 +534,7 @@ export function createMusicalGrid(config) {
           innerContainer.style.width = `${expandedWidth}px`;
         }
         if (cellSize.minHeight) {
-          const expandedHeight = notes * cellSize.minHeight;
+          const expandedHeight = (notes + 1) * cellSize.minHeight;
           innerContainer.style.minHeight = `${expandedHeight}px`;
           innerContainer.style.height = `${expandedHeight}px`;
         }
@@ -736,8 +736,8 @@ export function createMusicalGrid(config) {
 
           // Vertical bars already use percentage system which works correctly
           // No need to recalculate unless we switch to pixel system
-          const startPct = ((i - 1) / totalNoteIntervals) * 100;
-          const heightPct = 100 / totalNoteIntervals;
+          const startPct = ((i - 1 + 0.5) / (notes + 1)) * 100;
+          const heightPct = 100 / (notes + 1);
 
           bar.style.top = `${startPct}%`;
           bar.style.height = `${heightPct}%`;
