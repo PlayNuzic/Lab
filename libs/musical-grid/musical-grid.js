@@ -212,12 +212,14 @@ export function createMusicalGrid(config) {
       const noteIndex = notes - 1 - i; // Reverse for visual top-to-bottom = high-to-low
       const midi = startMidi + noteIndex;
 
-      // Division marker (horizontal line)
-      const division = document.createElement('div');
-      division.className = 'soundline-division';
+      // Division marker (horizontal line) — skip top and bottom edges
       const yPct = ((i + 0.5) / (notes + 1)) * 100;
-      division.style.top = `${yPct}%`;
-      innerContainer.appendChild(division);
+      if (i > 0) {
+        const division = document.createElement('div');
+        division.className = 'soundline-division';
+        division.style.top = `${yPct}%`;
+        innerContainer.appendChild(division);
+      }
 
       // Note label (clickable number) - CENTERED between divisions
       const noteLabel = document.createElement('div');
@@ -243,11 +245,7 @@ export function createMusicalGrid(config) {
       noteElements.push({ index: noteIndex, element: noteLabel, midi });
     }
 
-    // Create final division at bottom edge
-    const finalDivision = document.createElement('div');
-    finalDivision.className = 'soundline-division';
-    finalDivision.style.top = `${((notes + 0.5) / (notes + 1)) * 100}%`;
-    innerContainer.appendChild(finalDivision);
+    // Bottom edge division removed — grid left open at top and bottom
 
     // Render interval bars and numbers if enabled
     if (intervalsConfig.vertical) {
@@ -260,8 +258,6 @@ export function createMusicalGrid(config) {
    */
   function renderSoundlineIntervals(container) {
     // Total number of intervals (spaces between notes)
-    const totalIntervals = notes - 1;
-
     // Create interval numbers (1 to notes-1) - positioned between notes
     for (let i = 1; i < notes; i++) {
       const intervalNum = document.createElement('div');
@@ -729,8 +725,6 @@ export function createMusicalGrid(config) {
       const soundlineContainer = containers.soundlineInner || containers.soundline;
       if (soundlineContainer) {
         const verticalBars = soundlineContainer.querySelectorAll('.interval-bar.vertical');
-        const totalNoteIntervals = notes - 1;
-
         verticalBars.forEach(bar => {
           const i = parseInt(bar.dataset.intervalIndex);
 
