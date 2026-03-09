@@ -29,7 +29,8 @@ export class MelodicTimelineAudio extends TimelineAudio {
     // Register "instrument" channel in mixer
     this.mixer.registerChannel('instrument', {
       allowSolo: true,
-      label: 'Instrumento'
+      label: 'Instrumento',
+      volume: 1
     });
 
     console.log('MelodicTimelineAudio initialized with instrument channel');

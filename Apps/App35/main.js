@@ -167,7 +167,7 @@ const globalMixer = getMixer();
 if (globalMixer) {
   globalMixer.registerChannel('pulse', { allowSolo: true, label: 'Metrónomo' });
   globalMixer.registerChannel('subdivision', { allowSolo: true, label: 'Subdivisión' });
-  globalMixer.registerChannel('instrument', { allowSolo: true, label: 'Instrumento' });
+  globalMixer.registerChannel('instrument', { allowSolo: true, label: 'Instrumento', volume: 1 });
 }
 
 // ========== THEME & MUTE PERSISTENCE ==========
