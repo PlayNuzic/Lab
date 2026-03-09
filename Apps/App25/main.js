@@ -56,7 +56,7 @@ let isPlaying = false;
 let scaleState = {
   id: 'DIAT',
   rot: 0,
-  root: 0  // This is the "Nota de Salida" - user-selected transpose
+  root: 0
 };
 
 // Root offset for rotated modes (to keep degree 0 at the selected output note)
@@ -77,7 +77,7 @@ let randomBtn = null;
 let gridEditorContainer = null;
 let scaleSelectorContainer = null;
 let gridAreaContainer = null;
-let nmVisualizerElement = null;
+
 
 // ========== STORAGE HELPERS ==========
 const preferenceStorage = createPreferenceStorage('app25');
@@ -119,10 +119,7 @@ async function initAudio() {
  *
  * FIXED VISUAL: Degree 0 is ALWAYS at soundline position 0 (bottom).
  * Only rootOffset is applied to compensate for rotated modes.
- * The user's "Nota de Sortida" (root) does NOT affect visual positions.
- *
- * Example: Major scale always shows degrees at semitones [0,2,4,5,7,9,11,12]
- * regardless of what "Nota de Sortida" is selected.
+ * Example: Major scale always shows degrees at semitones [0,2,4,5,7,9,11,12].
  * Note 12 is degree 0 of the upper octave (for scale changes 7→5 notes).
  */
 function getVisualScaleSemitones() {
@@ -144,9 +141,7 @@ function getVisualScaleSemitones() {
 
 /**
  * Get PLAYBACK scale semitones (for MIDI output)
- *
- * Includes both rootOffset (mode compensation) AND user's root (Nota de Sortida).
- * This determines what actual notes are played.
+ * Includes rootOffset for mode compensation.
  */
 function getPlaybackScaleSemitones() {
   const effectiveRoot = (scaleState.root + currentRootOffset) % 12;
@@ -162,8 +157,7 @@ function getPlaybackScaleSemitones() {
 
 /**
  * Convert degree + modifier to VISUAL note index (0-12)
- * Used for positioning cells on the grid - INDEPENDENT of user's transpose.
- * Only applies rootOffset for mode compensation.
+ * Used for positioning cells on the grid.
  *
  * @param {number} degree - Scale degree (0 to N-1)
  * @param {string|null} modifier - '+' (sharp), '-' (flat), 'r+' (upper octave), or null
@@ -193,7 +187,6 @@ function degreeToVisualNoteIndex(degree, modifier = null) {
 
 /**
  * Convert degree + modifier to MIDI note (for playback)
- * Includes both rootOffset AND user's transpose (Nota de Sortida).
  * degree: 0 to N-1 (scale degree)
  * modifier: '+' (sharp), '-' (flat), 'r+' (upper octave), or null
  *
@@ -259,42 +252,6 @@ function degreeToMidi(degree, modifier = null) {
 
 // ========== VISUAL FEEDBACK ==========
 let highlightController = null;
-
-// ========== Nm VISUALIZER ==========
-
-/**
- * Create Nm(X) visualizer element inside the grid spacer (grid-area: 2/1)
- * @param {HTMLElement} gridContainer - The .grid-container element
- */
-function createNmVisualizer(container) {
-  const visualizer = document.createElement('div');
-  visualizer.className = 'nm-visualizer';
-  visualizer.innerHTML = `<span class="nm-label">Nm(</span><span class="nm-value">${scaleState.root}</span><span class="nm-label">)</span><span class="nm-arrow">→</span>`;
-
-  container.appendChild(visualizer);
-  nmVisualizerElement = visualizer;
-
-  return visualizer;
-}
-
-/**
- * Update Nm(X) visualizer value and trigger flash animation
- * @param {number} newValue - New transpose value (0-11)
- */
-function updateNmVisualizer(newValue) {
-  if (!nmVisualizerElement) return;
-
-  const valueSpan = nmVisualizerElement.querySelector('.nm-value');
-  if (valueSpan) {
-    valueSpan.textContent = newValue;
-  }
-
-  // Trigger flash animation
-  nmVisualizerElement.classList.remove('flash');
-  // Force reflow to restart animation
-  void nmVisualizerElement.offsetWidth;
-  nmVisualizerElement.classList.add('flash');
-}
 
 // ========== PLAYBACK ==========
 
@@ -433,11 +390,7 @@ function handleRandom() {
   const randomScale = APP25_SCALES[randomScaleIndex];
   scaleSelector?.setScale(randomScale.value);
 
-  // 2. Randomize transpose (nota de salida: 0-11)
-  const randomTranspose = Math.floor(Math.random() * 12);
-  scaleSelector?.setTranspose(randomTranspose);
-
-  // 3. Randomize sequence
+  // 2. Randomize sequence
   const randDensity = parseInt(document.getElementById('randDensity')?.value || 8, 10);
 
   // Generate random pairs based on density
@@ -478,7 +431,6 @@ function handleRandom() {
 
   console.log('Random generation:', {
     scale: randomScale.name,
-    transpose: randomTranspose,
     pairs,
     numPairs,
     scaleLength: newScaleLength
@@ -541,7 +493,7 @@ function formatDegreeLabel(degree, modifier) {
 function updateGridCellStates() {
   if (!musicalGrid) return;
 
-  // Use BASE scale (no transpose) for VISUAL display
+  // Use base scale for visual display
   const scaleSemitones = getVisualScaleSemitones();
 
   // Update cell enabled states
@@ -556,7 +508,7 @@ function updateGridCellStates() {
 function updateSoundlineLabels() {
   if (!musicalGrid) return;
 
-  // Use BASE scale (no transpose) for VISUAL display
+  // Use base scale for visual display
   const scaleSemitones = getVisualScaleSemitones();
 
   // Use the API if available
@@ -667,29 +619,9 @@ function handleScaleChange({ scaleId, rotation, value }) {
 
   console.log('Scale changed (parallel):', {
     scaleId, rotation,
-    root: scaleState.root,
     oldScaleLength,
     newScaleLength: currentScaleLength
   });
-}
-
-/**
- * Handle transpose change - updates root/output note
- *
- * FIXED VISUAL MODE: Visual positions do NOT change when transpose changes.
- * - Degree 0 is ALWAYS at soundline position 0 (bottom)
- * - Only the MIDI notes played change based on root
- */
-function handleTransposeChange(transpose) {
-  scaleState.root = transpose;
-
-  // Update Nm(X) visualizer with flash animation
-  updateNmVisualizer(transpose);
-
-  // NO visual grid updates needed - visual display is FIXED
-  // Only MIDI playback is affected via degreeToMidi()
-
-  console.log('Transpose changed:', transpose, '(visual unchanged, only MIDI output affected)');
 }
 
 // ========== DOM INJECTION ==========
@@ -747,13 +679,10 @@ async function init() {
     appId: 'app25',
     scales: APP25_SCALES,
     initialScale: prefs.scaleValue || 'DIAT-0',
-    enableTranspose: true,
-    transposeHiddenByDefault: false,
+    enableTranspose: false,
     title: 'Escala',
-    transposeTitle: 'Nota de Salida',
     selectSize: 3,  // Show only 3 scales, scroll for rest
-    onScaleChange: handleScaleChange,
-    onTransposeChange: handleTransposeChange
+    onScaleChange: handleScaleChange
   });
 
   scaleSelector.render();
@@ -802,7 +731,7 @@ async function init() {
         return;
       }
 
-      // Use BASE scale (no transpose) for VISUAL click detection
+      // Use base scale for visual click detection
       const scaleSems = getVisualScaleSemitones();
 
       // Check if note is in scale
@@ -860,11 +789,6 @@ async function init() {
     controlsContainer.appendChild(controls);
 
     scaleSelectorContainer.appendChild(controlsContainer);
-  }
-
-  // Create Nm(X)→ visualizer at the bottom of scale selector
-  if (scaleSelectorContainer) {
-    createNmVisualizer(scaleSelectorContainer);
   }
 
   // Create grid editor with degree mode

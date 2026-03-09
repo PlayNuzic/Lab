@@ -61,7 +61,7 @@ let isPlaying = false;
 let scaleState = {
   id: 'DIAT',
   rot: 0,
-  root: 0  // This is the "Nota de Salida" - user-selected transpose
+  root: 0
 };
 
 // Root offset for rotated modes
@@ -83,7 +83,7 @@ let randomBtn = null;
 let gridEditorContainer = null;
 let scaleSelectorContainer = null;
 let gridAreaContainer = null;
-let nmVisualizerElement = null;
+
 
 // Highlight controller
 let highlightController = null;
@@ -564,32 +564,6 @@ function handleGridCellClick(noteIndex, pulseIndex) {
   saveCurrentState();
 }
 
-// ========== Nm VISUALIZER ==========
-
-function createNmVisualizer(container) {
-  const visualizer = document.createElement('div');
-  visualizer.className = 'nm-visualizer';
-  visualizer.innerHTML = `<span class="nm-label">Nm(</span><span class="nm-value">${scaleState.root}</span><span class="nm-label">)</span><span class="nm-arrow">→</span>`;
-
-  container.appendChild(visualizer);
-  nmVisualizerElement = visualizer;
-
-  return visualizer;
-}
-
-function updateNmVisualizer(newValue) {
-  if (!nmVisualizerElement) return;
-
-  const valueSpan = nmVisualizerElement.querySelector('.nm-value');
-  if (valueSpan) {
-    valueSpan.textContent = newValue;
-  }
-
-  nmVisualizerElement.classList.remove('flash');
-  void nmVisualizerElement.offsetWidth;
-  nmVisualizerElement.classList.add('flash');
-}
-
 // ========== PLAYBACK ==========
 
 async function handlePlay() {
@@ -770,11 +744,7 @@ function handleRandom() {
   const randomScale = APP25_SCALES[randomScaleIndex];
   scaleSelector?.setScale(randomScale.value);
 
-  // 2. Randomize transpose (nota de salida: 0-11)
-  const randomTranspose = Math.floor(Math.random() * 12);
-  scaleSelector?.setTranspose(randomTranspose);
-
-  // 3. Randomize sequence of INTERVALS (iSº)
+  // 2. Randomize sequence of INTERVALS (iSº)
   const randDensity = parseInt(document.getElementById('randDensity')?.value || 8, 10);
   const newScaleLength = motherScalesData[randomScale.id]?.ee?.length || 7;
   const numIntervals = Math.max(1, Math.min(randDensity, TOTAL_SPACES));
@@ -828,7 +798,6 @@ function handleRandom() {
 
   console.log('Random generation:', {
     scale: randomScale.name,
-    transpose: randomTranspose,
     intervals,
     numIntervals,
     scaleLength: newScaleLength
@@ -894,12 +863,6 @@ function handleScaleChange({ scaleId, rotation, value }) {
   console.log('Scale changed:', { scaleId, rotation, scaleLength: currentScaleLength });
 }
 
-function handleTransposeChange(transpose) {
-  scaleState.root = transpose;
-  updateNmVisualizer(transpose);
-  console.log('Transpose changed:', transpose);
-}
-
 // ========== DOM INJECTION ==========
 
 function injectLayout() {
@@ -950,13 +913,10 @@ async function init() {
     appId: 'app25b',
     scales: APP25_SCALES,
     initialScale: prefs.scaleValue || 'DIAT-0',
-    enableTranspose: true,
-    transposeHiddenByDefault: false,
+    enableTranspose: false,
     title: 'Escala',
-    transposeTitle: 'Nota de Salida',
     selectSize: 3,
-    onScaleChange: handleScaleChange,
-    onTransposeChange: handleTransposeChange
+    onScaleChange: handleScaleChange
   });
 
   scaleSelector.render();
@@ -1022,7 +982,7 @@ async function init() {
         return; // Ignore clicks on non-scale notes
       }
 
-      // Play the note (using transpose from Nota de Salida)
+      // Play the note
       const absoluteDegree = visualNoteIndexToAbsoluteDegree(noteIndex);
       const midi = absoluteDegreeToMidi(absoluteDegree);
       if (midi === null) return;
@@ -1055,11 +1015,6 @@ async function init() {
     controlsContainer.appendChild(controls);
 
     scaleSelectorContainer.appendChild(controlsContainer);
-  }
-
-  // Create Nm(X)→ visualizer at the bottom of scale selector
-  if (scaleSelectorContainer) {
-    createNmVisualizer(scaleSelectorContainer);
   }
 
   // Create grid editor with degree-interval mode
