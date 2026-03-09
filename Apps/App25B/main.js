@@ -3,8 +3,7 @@
 // Base degree is always 0 (implicit starting point)
 // One interval per pulse, 12 pulses total
 // KEY FEATURES:
-// - 2 octaves (25 notes: 0-24) with vertical scroll using musical-grid
-// - Autoscroll during playback when octave changes
+// - 21 notes (0-20) using musical-grid, no vertical scroll
 // - Interval lines with arrows (like App15)
 // - Bidirectional: grid clicks update iSº editor
 
@@ -27,8 +26,8 @@ import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
-const TOTAL_NOTES = 25;    // Vertical: 0-24 (2 octaves real grid)
-const VISIBLE_NOTES = 13;  // Visible window: 13 notes, scroll reveals the rest
+const TOTAL_NOTES = 21;    // Vertical: 0-20
+const VISIBLE_NOTES = 21;  // Show all notes, no vertical scroll
 const TOTAL_SPACES = 12;   // Spaces between pulses
 const DEFAULT_BPM = 90;
 const MIN_BPM = 50;
@@ -138,26 +137,41 @@ function getVisualScaleSemitones() {
   const sems = scaleSemis(scaleState.id);
   const result = [];
 
-  // First octave (0-11)
-  for (let d = 0; d < sems.length; d++) {
-    result.push(degToSemi(visualState, d));
+  // Generate scale semitones up to TOTAL_NOTES - 1
+  const maxSemi = TOTAL_NOTES - 1;
+  for (let octave = 0; octave * 12 <= maxSemi; octave++) {
+    for (let d = 0; d < sems.length; d++) {
+      const semi = degToSemi(visualState, d) + octave * 12;
+      if (semi <= maxSemi) result.push(semi);
+    }
   }
 
-  // Second octave (12-23)
-  for (let d = 0; d < sems.length; d++) {
-    result.push(degToSemi(visualState, d) + 12);
-  }
-
-  // Add note 24 (upper registry boundary)
-  result.push(24);
+  // Add upper boundary
+  result.push(maxSemi);
 
   return result;
 }
 
 /**
- * Convert absolute degree to visual note index (0-24)
- * Maps degree to semitone position across 2 octaves
- * Note 24 = upper registry boundary
+ * Calculate max absolute degree that fits within TOTAL_NOTES semitones
+ */
+function getMaxAbsoluteDegree() {
+  const visualState = { id: scaleState.id, rot: scaleState.rot, root: currentRootOffset };
+  const maxSemi = TOTAL_NOTES - 1;
+  let degree = 0;
+  while (true) {
+    const octave = Math.floor(degree / currentScaleLength);
+    const degInOctave = degree % currentScaleLength;
+    const semi = degToSemi(visualState, degInOctave) + octave * 12;
+    if (semi > maxSemi) return degree - 1;
+    degree++;
+    if (degree > 100) return degree - 1; // safety
+  }
+}
+
+/**
+ * Convert absolute degree to visual note index
+ * Maps degree to semitone position across available range
  */
 function absoluteDegreeToVisualNoteIndex(absoluteDegree) {
   if (absoluteDegree === null || absoluteDegree === undefined) return null;
@@ -172,15 +186,9 @@ function absoluteDegreeToVisualNoteIndex(absoluteDegree) {
   // Get semitone for this degree within the octave
   const semitone = degToSemi(visualState, degreeInOctave);
 
-  // Map to visual position (0-24 range)
-  if (octave === 0) {
-    return semitone;
-  } else if (octave === 1) {
-    return semitone + 12;
-  } else {
-    // Clamp to note 24 for higher octaves
-    return 24;
-  }
+  // Map to visual position
+  const noteIndex = semitone + octave * 12;
+  return Math.min(noteIndex, TOTAL_NOTES - 1);
 }
 
 /**
@@ -770,8 +778,8 @@ function handleRandom() {
   const newScaleLength = motherScalesData[randomScale.id]?.ee?.length || 7;
   const numIntervals = Math.max(1, Math.min(randDensity, TOTAL_SPACES));
 
-  // Max absolute degree: 2 octaves worth of scale degrees
-  const maxAbsoluteDegree = newScaleLength * 2 - 1;
+  // Max absolute degree that fits in the grid
+  const maxAbsoluteDegree = getMaxAbsoluteDegree();
 
   let accumulatedDegree = BASE_DEGREE;
   const intervals = [];
@@ -847,8 +855,8 @@ function updateSoundlineLabels() {
 
   if (musicalGrid.updateSoundlineLabels) {
     musicalGrid.updateSoundlineLabels(scaleSemitones, (noteIndex) => {
-      // Note 24 is upper boundary - no label needed
-      if (noteIndex === 24) {
+      // Upper boundary - no label needed
+      if (noteIndex >= TOTAL_NOTES - 1) {
         return '';
       }
 
@@ -975,7 +983,7 @@ async function init() {
     cellClassName: 'musical-cell',
     activeClassName: 'active',
     highlightClassName: 'highlight',
-    scrollEnabled: true,
+    scrollEnabled: false,
     cellSize: { minHeight: 28 },  // Fixed height for vertical scroll
     showIntervals: {
       horizontal: true,
@@ -983,8 +991,8 @@ async function init() {
     },
     intervalColor: '#4A9EFF',  // Blue for timeline numbers (iSº arrows use separate pink)
     noteFormatter: (noteIndex) => {
-      // Note 24 is upper boundary - no label needed
-      if (noteIndex === 24) {
+      // Upper boundary - no label needed
+      if (noteIndex >= TOTAL_NOTES - 1) {
         return '';
       }
 
@@ -1064,7 +1072,7 @@ async function init() {
       baseDegree: BASE_DEGREE,
       getScaleLength: () => currentScaleLength,
       totalPulses: TOTAL_SPACES,
-      maxAbsoluteDegree: () => currentScaleLength * 2 - 1
+      maxAbsoluteDegree: () => getMaxAbsoluteDegree()
     },
     noteRange: [0, 11],
     pulseRange: [0, TOTAL_SPACES - 1],

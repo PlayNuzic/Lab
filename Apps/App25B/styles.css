@@ -211,6 +211,10 @@ html, body {
   overflow-x: auto;
 }
 
+#gridEditorContainer .matrix-grid-editor {
+  margin: 20px 50px 0px 50px;
+}
+
 /* Musical grid fills remaining space */
 .app25-grid-area .grid-container {
   flex: 1;
