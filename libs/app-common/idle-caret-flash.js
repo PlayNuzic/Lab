@@ -1,5 +1,6 @@
 // libs/app-common/idle-caret-flash.js
-// Triple-flash on the main interactive element after 5s of inactivity.
+// One-shot triple-flash on the main interactive element after 5s of inactivity.
+// Fires once at startup as a UX hint, then auto-cleans up.
 // Designed to work inside iframes (WordPress embeds).
 
 const IDLE_TIMEOUT = 5000;
@@ -20,9 +21,11 @@ export function initIdleCaretFlash({ targets = [] } = {}) {
   let timer = null;
   let hidden = false;
   let blurHandler = null;
+  let fired = false;
 
   function triggerFlash() {
     timer = null;
+    fired = true;
     for (const t of targets) {
       if (!t.isConnected) continue;
       t.classList.remove(FLASH_CLASS);
@@ -34,14 +37,13 @@ export function initIdleCaretFlash({ targets = [] } = {}) {
   function onFlashEnd(e) {
     if (e.animationName === 'idleCaretFlash') {
       e.currentTarget.classList.remove(FLASH_CLASS);
-      // Re-schedule next flash after animation completes (no setTimeout chain)
-      if (!hidden && !timer) {
-        timer = setTimeout(triggerFlash, IDLE_TIMEOUT);
-      }
+      // One-shot: auto-cleanup after flash completes
+      if (fired) handle.destroy();
     }
   }
 
   function resetTimer() {
+    if (fired) return;
     if (timer) { clearTimeout(timer); timer = null; }
     for (const t of targets) {
       t.classList.remove(FLASH_CLASS);
@@ -76,7 +78,7 @@ export function initIdleCaretFlash({ targets = [] } = {}) {
   // Start first cycle
   resetTimer();
 
-  return {
+  const handle = {
     destroy() {
       if (timer) clearTimeout(timer);
       for (const evt of ACTIVITY_EVENTS) {
@@ -91,4 +93,6 @@ export function initIdleCaretFlash({ targets = [] } = {}) {
       }
     }
   };
+
+  return handle;
 }
