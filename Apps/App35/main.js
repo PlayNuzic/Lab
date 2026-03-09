@@ -77,7 +77,7 @@ let pulseNumberLabels = [];
 let intervalBars = []; // Rectangles iT (mantinguts per timeline)
 let noteBars = [];     // Rectangles notes al grid
 let gridPulseLabels = [];
-let matrixGhostLines = [];
+let matrixGhostLines = {};
 let gridIntegerLabels = [];
 let gridFractionLabels = [];
 
@@ -1252,7 +1252,7 @@ function clearHighlights() {
   cycleLabels.forEach(l => l.classList.remove('active'));
   intervalBars.forEach(b => b.classList.remove('highlight'));
   gridPulseLabels.forEach(label => label?.classList.remove('active'));
-  matrixGhostLines.forEach(line => line?.classList.remove('active'));
+  Object.values(matrixGhostLines).forEach(line => line?.classList.remove('active'));
   gridIntegerLabels.forEach(label => label?.classList.remove('active'));
   gridFractionLabels.forEach(label => label?.classList.remove('active'));
   // Hide playhead
@@ -1277,7 +1277,7 @@ function highlightSubdivision(scaledIndex, scheduledTime) {
   const d = currentDenominator;
 
   // Ghost pulse line highlight should only last until the next subdivision tick
-  matrixGhostLines.forEach(line => line?.classList.remove('active'));
+  Object.values(matrixGhostLines).forEach(line => line?.classList.remove('active'));
 
   // Update playhead on column boundaries (every n steps)
   if (playheadController && scaledIndex % n === 0) {
@@ -1309,7 +1309,7 @@ function highlightSubdivision(scaledIndex, scheduledTime) {
     const pulseIndex = scaledIndex / d;
     pulses.forEach(p => p.classList.remove('active'));
     gridPulseLabels.forEach(label => label?.classList.remove('active'));
-    matrixGhostLines.forEach(line => line?.classList.remove('active'));
+    Object.values(matrixGhostLines).forEach(line => line?.classList.remove('active'));
     gridIntegerLabels.forEach(label => label?.classList.remove('active'));
     if (pulseIndex >= 0 && pulseIndex < pulses.length) {
       const pulse = pulses[pulseIndex];
