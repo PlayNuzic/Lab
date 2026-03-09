@@ -3,9 +3,9 @@
 body.app32 {
   --unit-label-offset: -20px;
   --plano-timeline-height: 56px;
-  --bpm-left-distance: 0px;
+  --bpm-left-distance: 165px;
   --bpm-scale: 1;
-  --bpm-offset-x: -150px;
+  --bpm-offset-x: 0px;
   /* BPM circle */
   --bpm-circle-size: 66px;
   --bpm-top: 10%;
