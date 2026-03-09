@@ -17,6 +17,7 @@ import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectability.js';
 import { gcd } from '../../libs/app-common/number-utils.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONSTANTS ==========
 // Lg = currentNumerator (dinàmic) - es calcula en cada renderització
@@ -346,6 +347,9 @@ function createItfrLayout() {
   itfrSeqEditEl.addEventListener('blur', sanitizeItSeq);
   itfrSeqEditEl.addEventListener('keydown', handleItSeqKeydown);
   itfrSeqEditEl.addEventListener('input', previewItSeq);
+
+  // Idle caret flash on iTfr sequence editor
+  initIdleCaretFlash({ targets: [itfrSeq] });
 }
 
 // ========== FRACTION EDITOR ==========
@@ -1425,32 +1429,9 @@ function handleRandom() {
     const maxIt = Math.floor(remaining);
     if (maxIt < 1) break;
     const it = Math.floor(Math.random() * maxIt) + 1;
-    // 30% chance of silence
-    const isSilence = Math.random() < 0.3;
-    newSequence.push({ start: pos, it, isSilence });
+    newSequence.push({ start: pos, it, isSilence: false });
     pos += it;
     remaining -= it;
-  }
-
-  // Ensure at least 50% of complete cycles is covered by iTs (not silences)
-  const currentItSubdivs = newSequence
-    .filter(item => !item.isSilence)
-    .reduce((sum, item) => sum + item.it, 0);
-
-  if (currentItSubdivs < minItSubdivs) {
-    // Convert silences to iTs until we have enough subdivisions covered
-    // Sort silences by size (largest first) to minimize conversions needed
-    const silenceIndices = newSequence
-      .map((item, idx) => item.isSilence ? idx : -1)
-      .filter(idx => idx >= 0)
-      .sort((a, b) => newSequence[b].it - newSequence[a].it);
-
-    let neededSubdivs = minItSubdivs - currentItSubdivs;
-    for (const idx of silenceIndices) {
-      if (neededSubdivs <= 0) break;
-      newSequence[idx].isSilence = false;
-      neededSubdivs -= newSequence[idx].it;
-    }
   }
 
   itSequence = newSequence;

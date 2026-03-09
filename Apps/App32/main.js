@@ -25,6 +25,7 @@ import { setupScrollSync } from '../../libs/plano-modular/plano-scroll.js';
 import { buildSimple12Rows } from '../../libs/app-common/plano-grid-rows.js';
 import { getTotalSubdivisions as _getTotalSubdivs, subdivToPosition as _subdivToPos, filterInvalidNotes as _filterInvalid } from '../../libs/plano-fraccion/fraction-math.js';
 import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 12;             // 12 pulsos (0-11)
@@ -1234,9 +1235,7 @@ function handleRandom() {
   currentDenominator = newD;
 
   // Generate random monophonic notes (consecutive, no overlap)
-  // Fill at least 75% of subdivisions
   const maxSubdivs = getTotalSubdivisions();
-  const targetFill = Math.ceil(maxSubdivs * 0.75);
   const newNotes = [];
   let currentPos = 0;
 
@@ -1251,11 +1250,6 @@ function handleRandom() {
 
     newNotes.push({ note, startSubdiv: currentPos, duration });
     currentPos += duration;
-
-    // Stop if we've filled at least 75% (with 30% chance to stop early)
-    if (currentPos >= targetFill && Math.random() < 0.3) {
-      break;
-    }
   }
 
   notes = newNotes;
@@ -1337,6 +1331,9 @@ function init() {
 
   // Update interval bars
   updateIntervalBars();
+
+  // Idle caret flash on BPM circle
+  initIdleCaretFlash({ targets: [document.getElementById('inputBpm')?.closest('.circle')] });
 }
 
 // Run initialization
