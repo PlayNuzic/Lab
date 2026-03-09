@@ -577,8 +577,8 @@ async function init() {
     bpmController.attach();
   }
 
-  // Idle caret flash on BPM circle
-  initIdleCaretFlash({ targets: [document.getElementById('inputBpm')?.closest('.circle')] });
+  // Idle caret flash on grid editor (note inputs)
+  initIdleCaretFlash({ targets: [gridEditorContainer] });
 
   // P1 Toggle (Pulse 0 special sound) - MUST be before mixer init
   const startIntervalToggle = document.getElementById('startIntervalToggle');
