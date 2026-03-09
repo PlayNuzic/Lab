@@ -634,8 +634,7 @@ function syncItSeqFromSequence() {
     return;
   }
 
-  // Syntax: "3s" for silence of 3, "3" for iT of 3
-  const tokens = itSequence.map(item => item.isSilence ? `${item.it}s` : item.it);
+  const tokens = itSequence.filter(item => !item.isSilence).map(item => item.it);
   itfrSeqEditEl.textContent = `  ${tokens.join('  ')}  `;
 }
 
@@ -802,6 +801,8 @@ function updateIntervalBars(previewSequence = null) {
   let colorIndex = 0;
 
   sequence.forEach((item, idx) => {
+    if (item.isSilence) return; // Skip silences — leave space empty
+
     const startPos = subdivToPosition(item.start);
     const endPos = subdivToPosition(item.start + item.it);
     const width = endPos - startPos;
@@ -812,28 +813,14 @@ function updateIntervalBars(previewSequence = null) {
     bar.style.left = `${(startPos / lg) * 100}%`;
     bar.style.width = `${(width / lg) * 100}%`;
 
-    if (item.isSilence) {
-      // Render silence as transparent with dashed border
-      bar.classList.add('silence');
-      bar.style.background = 'transparent';
-      bar.style.border = '2px dashed var(--line-color)';
-      bar.style.opacity = '0.5';
+    const color = VIBRANT_COLORS[colorIndex % VIBRANT_COLORS.length];
+    bar.style.background = color;
+    colorIndex++;
 
-      const label = document.createElement('span');
-      label.className = 'interval-bar-visual__label';
-      label.textContent = 's';
-      label.style.color = 'var(--line-color)';
-      bar.appendChild(label);
-    } else {
-      const color = VIBRANT_COLORS[colorIndex % VIBRANT_COLORS.length];
-      bar.style.background = color;
-      colorIndex++;
-
-      const label = document.createElement('span');
-      label.className = 'interval-bar-visual__label';
-      label.textContent = item.it;
-      bar.appendChild(label);
-    }
+    const label = document.createElement('span');
+    label.className = 'interval-bar-visual__label';
+    label.textContent = item.it;
+    bar.appendChild(label);
 
     timeline.appendChild(bar);
     intervalBars.push(bar);
@@ -992,8 +979,6 @@ function insertItAtPosition(startSubdiv, newIt) {
   // Sort by start position
   itSequence.sort((a, b) => a.start - b.start);
 
-  // Fill gaps with silences
-  fillGapsWithSilences();
   recalculateCyclePositions();
 
   // Update everything
