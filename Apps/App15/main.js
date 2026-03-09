@@ -15,6 +15,7 @@ import { intervalsToPairs } from '../../libs/matrix-seq/index.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // Import interval-sequencer module utilities
 import {
@@ -1385,6 +1386,9 @@ async function initializeApp() {
   loadSavedState();
 
   // Auto-focus is handled by grid-editor's renderIntervalMode()
+
+  // Idle caret flash on grid editor container
+  initIdleCaretFlash({ targets: [gridEditorContainer] });
 
   console.log('App15 initialized successfully');
 }

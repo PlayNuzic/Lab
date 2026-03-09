@@ -18,6 +18,7 @@ import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
 import { createTotalLengthDisplay } from '../../libs/app-common/total-length-display.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ============================================
 // CONSTANTS
@@ -956,6 +957,9 @@ async function initializeApp() {
   // Listen for random settings changes
   document.getElementById('randPulsosMax')?.addEventListener('change', saveState);
   document.getElementById('randCyclesMax')?.addEventListener('change', saveState);
+
+  // Idle caret flash on compás circle
+  initIdleCaretFlash({ targets: [document.getElementById('inputCompas')?.closest('.circle')] });
 }
 
 // Start initialization

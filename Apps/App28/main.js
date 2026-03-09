@@ -17,6 +17,7 @@ import { attachHover } from '../../libs/shared-ui/hover.js';
 import createPulseSeqController from '../../libs/pulse-seq/pulse-seq.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
@@ -472,6 +473,9 @@ function initPulseSeqEditor() {
     root: pulseSeqEl,
     markupBuilder: app28MarkupBuilder
   });
+
+  // Idle caret flash on pulse sequence editor
+  initIdleCaretFlash({ targets: [document.querySelector('.pz.edit')] });
 
   if (!pulseSeqEditEl) return;
 

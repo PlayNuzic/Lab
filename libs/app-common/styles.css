@@ -969,6 +969,23 @@ body[data-theme='dark'] .circle-guide {
   }
 }
 
+/* ========== Idle Caret Flash ========== */
+/* Triple flash on focused input container after inactivity */
+.idle-caret-flash {
+  animation: idleCaretFlash 0.9s ease-out;
+}
+
+@keyframes idleCaretFlash {
+  0%   { box-shadow: none; }
+  8%   { box-shadow: 0 0 8px 2px var(--idle-flash-color, rgba(255, 160, 0, 0.7)); }
+  20%  { box-shadow: none; }
+  36%  { box-shadow: 0 0 8px 2px var(--idle-flash-color, rgba(255, 160, 0, 0.7)); }
+  50%  { box-shadow: none; }
+  66%  { box-shadow: 0 0 8px 2px var(--idle-flash-color, rgba(255, 160, 0, 0.7)); }
+  80%  { box-shadow: none; }
+  100% { box-shadow: none; }
+}
+
 /* Position the auto-calculation tip below the input */
 .hover-tip.auto-tip-below {
   transform: translate(-50%, 8px);

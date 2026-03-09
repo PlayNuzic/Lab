@@ -3,6 +3,7 @@ import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createNoteHighlightController } from '../../libs/app-common/note-highlight.js';
 import { loadPiano, setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONSTANTS ==========
 const MIN_NOTE = 0;
@@ -722,6 +723,9 @@ function initApp() {
   if (timelineWrapper) {
     timelineWrapper.insertBefore(editor, timeline);
   }
+
+  // Idle caret flash on iS editor
+  initIdleCaretFlash({ targets: [editor] });
 
   // Setup controls
   setupControls();

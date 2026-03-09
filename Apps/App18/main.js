@@ -8,6 +8,7 @@ import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { createRegistryController } from '../../libs/sound/registry-controller.js';
 import { getRandomBPM, getRandomRegistry } from '../../libs/sound/melodic-sequence.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== STATE ==========
 let isPlaying = false;
@@ -558,6 +559,9 @@ function initApp() {
   if (inputRegistro) {
     inputRegistro.focus();
   }
+
+  // Idle caret flash on registro circle
+  initIdleCaretFlash({ targets: [document.getElementById('inputRegistro')?.closest('.circle')] });
 
   console.log('App18 initialized - waiting for registry input');
 }

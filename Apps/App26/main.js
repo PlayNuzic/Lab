@@ -14,6 +14,7 @@ import { gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common
 import { randomInt } from '../../libs/app-common/number-utils.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
@@ -702,6 +703,9 @@ function init() {
 
   // Render timeline
   renderTimeline();
+
+  // Idle caret flash on BPM circle
+  initIdleCaretFlash({ targets: [document.getElementById('inputBpm')?.closest('.circle')] });
 }
 
 // Run init when DOM is ready

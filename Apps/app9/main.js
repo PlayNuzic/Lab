@@ -12,6 +12,7 @@ import {
   layoutHorizontalIntervalBars,
   applyTimelineStyles
 } from '../../libs/app-common/timeline-intervals.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== ESTADO ==========
 let pulses = [];
@@ -467,6 +468,9 @@ function initApp() {
 
   // Configurar event listeners
   setupEventHandlers();
+
+  // Idle caret flash on BPM circle
+  initIdleCaretFlash({ targets: [document.getElementById('inputBpm')?.closest('.circle')] });
 
   console.log('App9 inicializada correctamente');
 }

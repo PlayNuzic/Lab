@@ -23,6 +23,7 @@ import { isFluteLoaded } from '../../libs/sound/flute.js';
 import { createScaleSelector } from '../../libs/scale-selector/index.js';
 import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
@@ -1314,6 +1315,9 @@ async function init() {
 
   // Preload piano samples
   setupPianoPreload({ delay: 300 });
+
+  // Idle caret flash on grid editor container
+  initIdleCaretFlash({ targets: [gridEditorContainer] });
 
   console.log('App25B initialized successfully');
 }

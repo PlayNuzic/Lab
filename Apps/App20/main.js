@@ -29,6 +29,7 @@ import { fillGapsWithSilences } from '../../libs/interval-sequencer/index.js';
 // Import modular controllers (NEW)
 import { createGrid2DSyncController } from '../../libs/app-common/grid-2d-sync-controller.js';
 import { createIntervalNoteDragHandler } from '../../libs/app-common/interval-note-drag.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 // Registry autoscroll removed — now using grid.scrollToRowIdIfNeeded() for smooth per-note autoscroll
 
 // ========== CONFIGURATION ==========
@@ -1403,6 +1404,9 @@ function initApp() {
       gridEditor.focusFirstNCell();
     }
   });
+
+  // Idle caret flash on grid editor container
+  initIdleCaretFlash({ targets: [document.getElementById('gridEditorContainer')] });
 
   console.log('App20 initialized (MODULAR)');
 }

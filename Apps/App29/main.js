@@ -19,6 +19,7 @@ import createPulseSeqController from '../../libs/pulse-seq/pulse-seq.js';
 import { isIntegerPulseSelectable, isPulseRemainder } from '../../libs/app-common/pulse-selectability.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONSTANTS ==========
 // Lg = currentNumerator (dinàmic) - es calcula en cada renderització
@@ -506,6 +507,9 @@ function initPulseSeqEditor() {
     root: pulseSeqEl,
     markupBuilder: app29MarkupBuilder
   });
+
+  // Idle caret flash on pulse sequence editor
+  initIdleCaretFlash({ targets: [document.querySelector('.pz.edit')] });
 
   if (!pulseSeqEditEl) return;
 

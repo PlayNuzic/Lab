@@ -15,6 +15,7 @@ import { clearElement } from '../../libs/app-common/dom-utils.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -575,6 +576,9 @@ async function init() {
     });
     bpmController.attach();
   }
+
+  // Idle caret flash on BPM circle
+  initIdleCaretFlash({ targets: [document.getElementById('inputBpm')?.closest('.circle')] });
 
   // P1 Toggle (Pulse 0 special sound) - MUST be before mixer init
   const startIntervalToggle = document.getElementById('startIntervalToggle');
