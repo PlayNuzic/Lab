@@ -33,6 +33,11 @@ export class MelodicTimelineAudio extends TimelineAudio {
       volume: 1
     });
 
+    // Lower rhythm channel volumes so instrument stands out
+    for (const ch of ['pulse', 'start', 'accent', 'subdivision']) {
+      this.mixer.registerChannel(ch, { volume: 0.1 });
+    }
+
     console.log('MelodicTimelineAudio initialized with instrument channel');
   }
 
