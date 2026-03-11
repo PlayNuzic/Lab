@@ -18,7 +18,7 @@ import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
-const DEFAULT_BPM = 90;
+const DEFAULT_BPM = 60;
 const MIN_BPM = 50;
 const MAX_BPM = 150;
 const FIXED_NUMERATOR = 1;       // Numerador sempre 1 (App30)

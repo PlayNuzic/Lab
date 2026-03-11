@@ -31,7 +31,7 @@ import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONSTANTS ==========
 const BASE_LG = 12;              // Longitud màxima de referència
-const DEFAULT_BPM = 90;
+const DEFAULT_BPM = 60;
 const MIN_BPM = 50;
 const MAX_BPM = 150;
 const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3

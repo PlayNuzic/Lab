@@ -18,7 +18,7 @@ import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONSTANTS ==========
 // Lg = currentNumerator (dinàmic) - es calcula en cada renderització
-const DEFAULT_BPM = 90;
+const DEFAULT_BPM = 60;
 const MIN_BPM = 50;
 const MAX_BPM = 150;
 const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
