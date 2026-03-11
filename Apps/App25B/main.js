@@ -73,6 +73,10 @@ let currentScaleLength = 7;
 // Current degree intervals (iSº)
 let currentDegreeIntervals = [];
 
+// Memory for absolute degrees that exceed current scale length
+// Key: pulse index, Value: { degree, degInOctave } - the original values before being hidden
+const lostDegreesMemory = new Map();
+
 // Interval line elements for cleanup
 let currentIntervalElements = [];
 
@@ -521,6 +525,9 @@ function handleGridCellClick(noteIndex, pulseIndex) {
   const clickedDegree = visualNoteIndexToAbsoluteDegree(noteIndex);
   if (clickedDegree === null) return; // Not on scale
 
+  // User manually placed a note - clear any memorized degree for this pulse
+  lostDegreesMemory.delete(pulseIndex);
+
   // Get current intervals
   const currentIntervals = gridEditor.getPairs ? gridEditor.getPairs() : currentDegreeIntervals;
 
@@ -725,6 +732,7 @@ function handleReset() {
   musicalGrid?.clear();
 
   currentDegreeIntervals = [];
+  lostDegreesMemory.clear();
 
   // Clear saved intervals from localStorage (keep other prefs like instrument)
   const prefs = preferenceStorage.load() || {};
@@ -847,6 +855,8 @@ function updateSoundlineLabels() {
 }
 
 function handleScaleChange({ scaleId, rotation, value }) {
+  const oldScaleLength = currentScaleLength;
+
   scaleState.id = scaleId;
   scaleState.rot = rotation;
 
@@ -856,11 +866,49 @@ function handleScaleChange({ scaleId, rotation, value }) {
 
   updateGridCellStates();
 
-  // Re-sync visual grid with current intervals
+  // Adapt degrees to new scale: hide degrees that exceed scale, restore from memory
   const absoluteDegrees = degreeIntervalsToAbsoluteDegrees(currentDegreeIntervals);
-  syncGridFromDegreeIntervals(absoluteDegrees);
+  const adaptedDegrees = [];
 
-  console.log('Scale changed:', { scaleId, rotation, scaleLength: currentScaleLength });
+  for (const entry of absoluteDegrees) {
+    const pulse = entry.pulse;
+
+    // Case 1: Current entry is a rest - check memory for recoverable degree
+    if (entry.isRest) {
+      const memorized = lostDegreesMemory.get(pulse);
+      if (memorized && memorized.degInOctave < currentScaleLength) {
+        // Restore from memory - degree-in-octave now fits in the new scale
+        adaptedDegrees.push({ degree: memorized.degree, pulse, isRest: false });
+        lostDegreesMemory.delete(pulse);
+      } else {
+        adaptedDegrees.push(entry);
+      }
+      continue;
+    }
+
+    // Case 2: Check if degree fits in new scale
+    // A degree's position within its octave (relative to old scale) must be < newScaleLength
+    const degInOctave = entry.degree % oldScaleLength;
+    if (degInOctave < currentScaleLength) {
+      adaptedDegrees.push(entry);
+      continue;
+    }
+
+    // Case 3: Degree exceeds new scale - hide and memorize
+    lostDegreesMemory.set(pulse, { degree: entry.degree, degInOctave });
+    adaptedDegrees.push({ degree: null, pulse, isRest: true });
+  }
+
+  // Convert adapted degrees back to intervals and update state
+  currentDegreeIntervals = absoluteDegreesToIntervals(adaptedDegrees);
+  gridEditor?.setPairs(currentDegreeIntervals);
+  syncGridFromDegreeIntervals(adaptedDegrees);
+
+  console.log('Scale changed:', {
+    scaleId, rotation,
+    oldScaleLength,
+    newScaleLength: currentScaleLength
+  });
 }
 
 // ========== DOM INJECTION ==========
@@ -1036,6 +1084,12 @@ async function init() {
     containerSize: isMobile ? { maxHeight: '100px', width: '100%' } : null,
     columnSize: isMobile ? { width: '50px', minHeight: '80px' } : null,
     onPairsChange: (pairs) => {
+      // Clear memory for any manually edited pulses
+      pairs.forEach(pair => {
+        if (!pair.isRest) {
+          lostDegreesMemory.delete(pair.pulse);
+        }
+      });
       currentDegreeIntervals = pairs;
       const absoluteDegrees = degreeIntervalsToAbsoluteDegrees(pairs);
       syncGridFromDegreeIntervals(absoluteDegrees);
