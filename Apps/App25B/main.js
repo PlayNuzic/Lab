@@ -26,8 +26,8 @@ import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
-const TOTAL_NOTES = 21;    // Vertical: 0-20
-const VISIBLE_NOTES = 21;  // Show all notes, no vertical scroll
+const TOTAL_NOTES = 20;    // Vertical: 0-19 (semitones across ~2 octaves)
+const VISIBLE_NOTES = 20;  // Show all notes, no vertical scroll
 const TOTAL_SPACES = 12;   // Spaces between pulses
 const DEFAULT_BPM = 90;
 const MIN_BPM = 50;
@@ -830,11 +830,6 @@ function updateSoundlineLabels() {
 
   if (musicalGrid.updateSoundlineLabels) {
     musicalGrid.updateSoundlineLabels(scaleSemitones, (noteIndex) => {
-      // Upper boundary - no label needed
-      if (noteIndex >= TOTAL_NOTES - 1) {
-        return '';
-      }
-
       // Get semitone within octave (0-11)
       // Note 12 has semitoneInOctave = 0, which correctly shows "0" for second registry
       const semitoneInOctave = noteIndex % 12;
@@ -995,11 +990,6 @@ async function init() {
     },
     intervalColor: '#4A9EFF',  // Blue for timeline numbers (iSº arrows use separate pink)
     noteFormatter: (noteIndex) => {
-      // Upper boundary - no label needed
-      if (noteIndex >= TOTAL_NOTES - 1) {
-        return '';
-      }
-
       // Get semitone within octave (0-11)
       // Note 12 has semitoneInOctave = 0, which correctly shows "0" for second registry
       const semitoneInOctave = noteIndex % 12;
@@ -1043,20 +1033,6 @@ async function init() {
 
   // Initial cell states
   updateGridCellStates();
-
-  // Fix soundline divisions for hidden note 20:
-  // Remove the first division (orphaned above note 19) and add one below note 0.
-  const soundlineInner = gridAreaContainer.querySelector('.soundline-inner') ||
-                          gridAreaContainer.querySelector('.soundline-wrapper');
-  if (soundlineInner) {
-    const firstDivision = soundlineInner.querySelector('.soundline-division');
-    if (firstDivision) firstDivision.remove();
-    // Add division below note 0 (at bottom edge of note 0's cell)
-    const bottomDiv = document.createElement('div');
-    bottomDiv.className = 'soundline-division';
-    bottomDiv.style.top = `${((TOTAL_NOTES + 0.5) / (TOTAL_NOTES + 1)) * 100}%`;
-    soundlineInner.appendChild(bottomDiv);
-  }
 
   // Note: Vertical scroll sync is handled by musical-grid's setupScrollSync()
 
