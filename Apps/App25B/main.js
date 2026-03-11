@@ -150,9 +150,6 @@ function getVisualScaleSemitones() {
     }
   }
 
-  // Add upper boundary
-  result.push(maxSemi);
-
   return result;
 }
 
@@ -1046,6 +1043,20 @@ async function init() {
 
   // Initial cell states
   updateGridCellStates();
+
+  // Fix soundline divisions for hidden note 20:
+  // Remove the first division (orphaned above note 19) and add one below note 0.
+  const soundlineInner = gridAreaContainer.querySelector('.soundline-inner') ||
+                          gridAreaContainer.querySelector('.soundline-wrapper');
+  if (soundlineInner) {
+    const firstDivision = soundlineInner.querySelector('.soundline-division');
+    if (firstDivision) firstDivision.remove();
+    // Add division below note 0 (at bottom edge of note 0's cell)
+    const bottomDiv = document.createElement('div');
+    bottomDiv.className = 'soundline-division';
+    bottomDiv.style.top = `${((TOTAL_NOTES + 0.5) / (TOTAL_NOTES + 1)) * 100}%`;
+    soundlineInner.appendChild(bottomDiv);
+  }
 
   // Note: Vertical scroll sync is handled by musical-grid's setupScrollSync()
 

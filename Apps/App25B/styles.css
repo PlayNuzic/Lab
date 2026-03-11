@@ -261,6 +261,17 @@ html, body {
   /* Let cells be responsive horizontally */
 }
 
+/* Hide upper boundary row (note 20) - not interactive */
+.app25-grid-area .musical-cell[data-note="20"] {
+  display: none;
+}
+
+.app25-grid-area .soundline-number[data-note-index="20"] {
+  display: none;
+}
+
+
+
 /* ========== CONTROLS ========== */
 .app25-controls-container {
   display: flex;
