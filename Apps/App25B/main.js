@@ -1034,6 +1034,17 @@ async function init() {
   // Initial cell states
   updateGridCellStates();
 
+  // Add missing bottom soundline division below note 0
+  // (musical-grid only creates divisions between notes, not at the bottom edge)
+  const soundlineInner = gridAreaContainer.querySelector('.soundline-inner') ||
+                          gridAreaContainer.querySelector('.soundline-wrapper');
+  if (soundlineInner) {
+    const bottomDiv = document.createElement('div');
+    bottomDiv.className = 'soundline-division';
+    bottomDiv.style.top = `${((TOTAL_NOTES + 0.5) / (TOTAL_NOTES + 1)) * 100}%`;
+    soundlineInner.appendChild(bottomDiv);
+  }
+
   // Note: Vertical scroll sync is handled by musical-grid's setupScrollSync()
 
   // Move controls into scale selector area
@@ -1057,13 +1068,13 @@ async function init() {
   gridEditor = createGridEditor({
     container: gridEditorContainer,
     mode: 'degree-interval',
-    degreeIntervalModeOptions: {
+    degreeModeOptions: {
       baseDegree: BASE_DEGREE,
       getScaleLength: () => currentScaleLength,
       totalPulses: TOTAL_SPACES,
       maxAbsoluteDegree: () => getMaxAbsoluteDegree()
     },
-    noteRange: [0, 11],
+    noteRange: [0, getMaxAbsoluteDegree()],
     pulseRange: [0, TOTAL_SPACES - 1],
     maxPairs: TOTAL_SPACES,
     autoJumpDelayMs: 500,

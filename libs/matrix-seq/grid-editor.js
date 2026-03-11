@@ -4354,9 +4354,10 @@ export function createGridEditor(config = {}) {
       return;
     }
 
-    // Note: We allow going above scaleLength (will use registry 2)
-    // But warn if it's very high (more than 2 registries)
-    const maxAllowedDegree = scaleLength * 2 - 1;
+    // Use maxAbsoluteDegree if provided (accounts for actual grid size),
+    // otherwise fall back to 2 registries worth of degrees
+    const maxAbsoluteDegreeFunc = degreeModeOptions?.maxAbsoluteDegree;
+    const maxAllowedDegree = maxAbsoluteDegreeFunc ? maxAbsoluteDegreeFunc() : scaleLength * 2 - 1;
     if (newDegree > maxAllowedDegree) {
       showDegreeError(input, `Grado ${newDegree} excede el rango (máx: ${maxAllowedDegree})`);
       return;
