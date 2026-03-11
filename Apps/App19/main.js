@@ -232,7 +232,37 @@ function initGrid() {
     }, { passive: false });
   });
 
+  addDotsToAllCells();
+
   console.log('Grid initialized with plano-modular');
+}
+
+/**
+ * Add np-dot elements to all grid cells (bottom-left corner)
+ * Dots are the clickable targets; cells have pointer-events: none
+ */
+function addDotsToAllCells() {
+  const gridContainer = document.getElementById('rightColumn');
+  if (!gridContainer) return;
+
+  const matrixContainer = gridContainer.querySelector('.plano-matrix-container');
+  if (!matrixContainer) return;
+
+  const cells = matrixContainer.querySelectorAll('.plano-cell');
+  cells.forEach(cell => {
+    if (cell.querySelector('.np-dot')) return;
+
+    const dot = document.createElement('div');
+    dot.className = 'np-dot np-dot-clickable';
+
+    // Click on dot → dispatch click on parent cell (triggers selection)
+    dot.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cell.click();
+    });
+
+    cell.appendChild(dot);
+  });
 }
 
 /**
@@ -262,6 +292,9 @@ function updateGrid() {
   if (totalPulses > 0) {
     grid.updateColumns(totalPulses);
     grid.setCompas(compas || 1);
+
+    // Re-add dots after grid refresh (updateColumns rebuilds cells)
+    addDotsToAllCells();
 
     // Apply initial scroll once the grid has real content
     maybeApplyInitialScroll();
