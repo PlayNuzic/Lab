@@ -1,0 +1,81 @@
+/* ==========================================================================
+   Nuzic Theme — Visual adaptation for Apps 9+
+
+   Activació: afegir data-visual="nuzic" al <body> i importar aquest fitxer.
+
+   Palette de referència (nuzic_app):
+     --Nuzic_white:        white
+     --Nuzic_light:        #eee8d8
+     --Nuzic_grey:         #AAA699
+     --Nuzic_dark:         #43433b
+     --Nuzic_red:          #e76f68    / light: #f5c6c2
+     --Nuzic_blue:         #7bb4cd    / light: #bdd9e6
+     --Nuzic_green:        #7cd6b3    / light: #cbefe1
+     --Nuzic_yellow:       #ffbb33    / light: #ffeecc
+     --Nuzic_pink:         #f28aad    / light: #ffe5ee
+   ========================================================================== */
+
+
+/* --------------------------------------------------------------------------
+   FASE 1: Tokens de color base (light mode)
+   -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"] {
+  /* Palette nuzic — colors primaris i variants clares */
+  --nuzic-white: white;
+  --nuzic-light: #eee8d8;
+  --nuzic-grey: #AAA699;
+  --nuzic-dark: #43433b;
+  --nuzic-red: #e76f68;
+  --nuzic-red-light: #f5c6c2;
+  --nuzic-blue: #7bb4cd;
+  --nuzic-blue-light: #bdd9e6;
+  --nuzic-green: #7cd6b3;
+  --nuzic-green-light: #cbefe1;
+  --nuzic-yellow: #ffbb33;
+  --nuzic-yellow-light: #ffeecc;
+  --nuzic-pink: #f28aad;
+  --nuzic-pink-light: #ffe5ee;
+
+  /* Override dels tokens compartits del Lab */
+  --bg-light: white;
+  --selection-color: var(--nuzic-blue-light);
+}
+
+body[data-visual="nuzic"][data-theme="light"] {
+  background: var(--nuzic-white);
+}
+
+
+/* --------------------------------------------------------------------------
+   FASE 1: Tokens de color base (dark mode)
+   -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"][data-theme="dark"] {
+  /* Variants fosques que mantenen l'estructura visual nuzic */
+  --nuzic-white: #1e1e1e;
+  --nuzic-light: #2a2a25;
+  --nuzic-dark: #eee8d8;
+  --nuzic-pink-light: #3d2832;
+  --nuzic-yellow-light: #3d3520;
+  --nuzic-blue-light: #2a4a5a;
+  --nuzic-green-light: #1e3d2e;
+  --nuzic-red-light: #3d2525;
+
+  --bg-light: #1e1e1e;
+  --selection-color: var(--nuzic-blue-light);
+}
+
+
+/* ==========================================================================
+   FASES PENDENTS (no implementades — veure docs/nuzic-theme-roadmap.md)
+
+   Fase 2: Soundline (fons rosa, números centrats amb guions)
+   Fase 3: Timeline (fons crema, pipes | i doble barra ||)
+   Fase 4: Graella — dots negres visibles, rectangles blau sòlid
+   Fase 5: Botons — play verd petit, +/- pastilla daurada
+   Fase 6: BPM inline horitzontal
+   Fase 7: Triangle decoratiu cantonada
+   Fase 9: Selectors plano-modular (DOM diferent)
+   Fase 10: Dark mode per totes les fases anteriors
+   ========================================================================== */
