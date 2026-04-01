@@ -1185,8 +1185,28 @@ async function startPlayback() {
     };
   }
 
+  // Declarative note provider: engine schedules notes automatically in tick()
+  audioInstance.registerNoteProvider('melody', (scaledIndex) => {
+    const d = currentDenominator;
+    const n = currentNumerator;
+
+    const itIndex = getItIndexAtScaledStart(scaledIndex);
+    if (itIndex >= 0) {
+      const item = itSequence[itIndex];
+      if (!item.isSilence) {
+        const bpm = bpmController?.getValue() || DEFAULT_BPM;
+        const beatDuration = 60 / bpm;
+        const durationPulses = item.it * n / d;
+        const durationSeconds = durationPulses * beatDuration;
+        const note = item.cyclePosition === 0 ? NOTE_CYCLE_START : NOTE_CYCLE_REST;
+        return [{ midi: note, duration: durationSeconds, velocity: 0.8 }];
+      }
+    }
+    return null;
+  });
+
   // Start playback with audio.play() - this handles metronome and subdivision sounds
-  // highlightPulse receives (scaledIndex, scheduledTime) for sample-accurate melodic notes
+  // highlightPulse handles ONLY visual updates; note provider handles audio
   audioInstance.play(
     scaledTotal,
     scaledInterval,
@@ -1237,34 +1257,13 @@ function clearHighlights() {
 }
 
 /**
- * Highlight pulse - receives scaledIndex and scheduledTime from audio.play()
+ * Highlight pulse - receives scaledIndex from audio.play()
  * Like App29: scaledIndex = pulseIndex * d for integer pulses
- * scheduledTime is the precise AudioContext time for sample-accurate playback
+ * Audio scheduling moved to note provider; this handles ONLY visuals.
  */
-function highlightPulse(scaledIndex, scheduledTime) {
+function highlightPulse(scaledIndex) {
   if (!isPlaying) return;
   const d = currentDenominator;
-  const n = currentNumerator;
-
-  // Play melodic note if an iT starts at this scaled index
-  const itIndex = getItIndexAtScaledStart(scaledIndex);
-  if (itIndex >= 0 && audio) {
-    const item = itSequence[itIndex];
-    if (!item.isSilence) {
-      // Calculate note duration
-      const bpm = bpmController?.getValue() || DEFAULT_BPM;
-      const beatDuration = 60 / bpm;
-      const durationPulses = item.it * n / d;
-      const durationSeconds = durationPulses * beatDuration;
-
-      // Determine note based on cycle position (tracked in item)
-      const note = item.cyclePosition === 0 ? NOTE_CYCLE_START : NOTE_CYCLE_REST;
-
-      // Use scheduledTime for sample-accurate sync with metronome
-      const when = scheduledTime ?? (window.Tone?.now() || 0);
-      audio.playNote(note, durationSeconds, when);
-    }
-  }
 
   // Convert scaled index to pulse index (only highlight integer pulses)
   // scaledIndex = pulseIndex * d for integer pulses

@@ -8,7 +8,7 @@ Unified header, sound controls, dropdowns, tooltips shared across all apps.
 - `initSoundDropdown()` — Sound selector with P1 toggle
 - `initP1ToggleUI()` — Pulse 1 toggle
 - Hover/tooltip helpers
-- `performance-audio-menu.js` — Look-ahead and update interval controls
+- `performance-audio-menu.js` — Look-ahead, update interval, and sample offset controls
 
 ## Event System
 Emits events that apps must handle:

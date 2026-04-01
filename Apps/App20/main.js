@@ -829,13 +829,25 @@ async function startPlayback() {
   // Scroll to first pulse before starting playback
   grid.scrollToColumn(0, false);
 
+  // Register note provider BEFORE play (declarative scheduling)
+  audioInstance.registerNoteProvider('melody', (step) => {
+    const midi = midiMap.get(step);
+    if (midi !== undefined) {
+      const pair = pulsePairMap.get(step);
+      const iT = pair?.temporalInterval || 1;
+      const noteDuration = intervalSec * iT * 0.95;
+      return [{ midi, duration: noteDuration, velocity: 0.8 }];
+    }
+    return null;
+  });
+
   audioInstance.play(
     totalPulses,
     intervalSec,
     new Set(),
     false,  // No loop
-    (step, scheduledTime) => {
-      // scheduledTime is the precise AudioContext time for sample-accurate playback
+    (step) => {
+      // onPulse callback: visual feedback only
 
       // 1. Update playhead position
       grid.updatePlayhead(step);
@@ -856,19 +868,9 @@ async function startPlayback() {
       // 3. Highlight timeline number
       grid.highlightTimelineNumber(step, intervalSec * 1000 * 0.9);
 
-      // 4. Find note for this pulse and highlight/play
+      // 4. Highlight the selected cell (visual only)
       const midi = midiMap.get(step);
       if (midi !== undefined) {
-        // Get temporalInterval from pair to determine note duration
-        const pair = pulsePairMap.get(step);
-        const iT = pair?.temporalInterval || 1;
-        // Duration = iT pulses (minus small gap for separation)
-        const noteDuration = intervalSec * iT * 0.95;
-        // Use scheduledTime for sample-accurate sync with metronome
-        const when = scheduledTime ?? Tone.now();
-        audioInstance.playNote(midi, noteDuration, when);
-
-        // Find and highlight the selected cell
         const selected = grid.getSelectedArray().find(s => s.colIndex === step);
         if (selected) {
           grid.highlightCell(selected.rowId, step, intervalSec * 1000 * 0.9);

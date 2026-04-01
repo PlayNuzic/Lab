@@ -177,7 +177,17 @@ async function handlePlay() {
 
   const intervalSec = (60 / currentBPM);
   const totalPulseSounds = TOTAL_SPACES; // 8 pulse sounds (spaces 0-7)
-  const Tone = window.Tone;
+
+  // Register declarative note provider: engine schedules notes automatically in tick()
+  audio.registerNoteProvider('melody', (step) => {
+    const notes = pulseGroups[step];
+    if (!notes || !notes.length) return null;
+    return notes.map(noteData => ({
+      midi: noteData.midi,
+      duration: (noteData.temporalInterval * intervalSec) * 0.9,
+      velocity: 0.8
+    }));
+  });
 
   // Start TimelineAudio transport-based playback
   audio.play(
@@ -185,37 +195,23 @@ async function handlePlay() {
     intervalSec,
     new Set(), // No accent sounds (pulse plays automatically on all beats)
     false, // No loop initially
-    (step, scheduledTime) => {
-      // onPulse callback: Called on EVERY space (0-7), even if empty
-      // scheduledTime is the precise AudioContext time for sample-accurate playback
-
-      // 1) Visual feedback for pulse column
+    (step) => {
+      // onPulse callback: visual feedback only (audio is scheduled by note provider)
       highlightController?.highlightPulse(step);
 
-      // 2) Play piano notes if any exist at this pulse
+      // Visual feedback for playing cells
       const notes = pulseGroups[step];
       if (notes && notes.length > 0) {
-        // Use scheduledTime for sample-accurate sync with metronome
-        const when = scheduledTime ?? Tone.now();
-
-        // Polyphonic: trigger all notes simultaneously
         notes.forEach(noteData => {
-          // Duration based on temporalInterval (iT)
-          const duration = (noteData.temporalInterval * intervalSec) * 0.9;
-          audio.playNote(noteData.midi, duration, when);
-
-          // Visual feedback per cell
           const noteIndex = noteData.midi - 60;
           const cell = musicalGrid.getCellElement(noteIndex, step);
           if (cell) {
+            const duration = (noteData.temporalInterval * intervalSec) * 0.9;
             cell.classList.add('playing');
             setTimeout(() => cell.classList.remove('playing'), duration * 1000);
           }
         });
       }
-
-      // 3) Pulse sound plays AUTOMATICALLY via TimelineAudio
-      //    (controlled by pulseToggleBtn + mixer 'pulse' channel)
     },
     () => {
       // onComplete callback: Delay stop to let last note ring out (90% of interval)

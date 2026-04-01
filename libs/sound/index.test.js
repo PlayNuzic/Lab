@@ -371,3 +371,134 @@ describe('mixer helpers', () => {
     expect(getMixer().isMasterMuted()).toBe(true);
   });
 });
+
+describe('sample offset (Tier 1)', () => {
+  test('_sampleOffsetSec defaults to 0', () => {
+    const audio = new TimelineAudio();
+    expect(audio._sampleOffsetSec).toBe(0);
+  });
+
+  test('setSampleOffset sets value within bounds', () => {
+    const audio = new TimelineAudio();
+    audio.setSampleOffset(0.005);
+    expect(audio._sampleOffsetSec).toBe(0.005);
+  });
+
+  test('setSampleOffset clamps to max 0.02', () => {
+    const audio = new TimelineAudio();
+    audio.setSampleOffset(0.05);
+    expect(audio._sampleOffsetSec).toBe(0.02);
+  });
+
+  test('setSampleOffset ignores negative values', () => {
+    const audio = new TimelineAudio();
+    audio.setSampleOffset(0.01);
+    audio.setSampleOffset(-0.005);
+    expect(audio._sampleOffsetSec).toBe(0.01);
+  });
+
+  test('setScheduling accepts sampleOffset', () => {
+    const audio = new TimelineAudio();
+    audio.setScheduling({ sampleOffset: 0.008 });
+    expect(audio._sampleOffsetSec).toBe(0.008);
+  });
+
+  test('configurePerformance accepts sampleOffsetMs and returns it', async () => {
+    const audio = new TimelineAudio();
+    await audio.ready();
+    const info = await audio.configurePerformance({ sampleOffsetMs: 6 });
+    expect(audio._sampleOffsetSec).toBeCloseTo(0.006);
+    expect(info.sampleOffsetMs).toBeCloseTo(6);
+  });
+
+  test('SCHEDULING_PRESETS include sampleOffset', async () => {
+    const audio = new TimelineAudio();
+    audio.setSchedulingProfile('desktop');
+    expect(audio._sampleOffsetSec).toBe(0.005);
+    audio.setSchedulingProfile('mobile');
+    expect(audio._sampleOffsetSec).toBe(0.008);
+  });
+});
+
+describe('onSchedule callback (Tier 2)', () => {
+  test('_onScheduleRef defaults to null', () => {
+    const audio = new TimelineAudio();
+    expect(audio._onScheduleRef).toBeNull();
+  });
+
+  test('setScheduleHandler sets and clears callback', () => {
+    const audio = new TimelineAudio();
+    const fn = jest.fn();
+    audio.setScheduleHandler(fn);
+    expect(audio._onScheduleRef).toBe(fn);
+    audio.setScheduleHandler(null);
+    expect(audio._onScheduleRef).toBeNull();
+  });
+
+  test('play() accepts onSchedule in options', async () => {
+    const audio = new TimelineAudio();
+    await audio.ready();
+    const fn = jest.fn();
+    try { await audio.play(4, 0.5, [], false, null, null, { onSchedule: fn }); } catch {}
+    expect(audio._onScheduleRef).toBe(fn);
+  });
+
+  test('stop() clears onScheduleRef', async () => {
+    const audio = new TimelineAudio();
+    await audio.ready();
+    const fn = jest.fn();
+    audio.setScheduleHandler(fn);
+    try { await audio.play(4, 0.5, [], false, null, null); } catch {}
+    audio.stop();
+    expect(audio._onScheduleRef).toBeNull();
+  });
+});
+
+describe('note providers (Tier 3)', () => {
+  test('_noteProviders defaults to empty Map', () => {
+    const audio = new TimelineAudio();
+    expect(audio._noteProviders).toBeInstanceOf(Map);
+    expect(audio._noteProviders.size).toBe(0);
+  });
+
+  test('registerNoteProvider adds provider', () => {
+    const audio = new TimelineAudio();
+    const fn = (step) => [{ midi: 60, duration: 0.5, velocity: 0.8 }];
+    audio.registerNoteProvider('melody', fn);
+    expect(audio._noteProviders.size).toBe(1);
+    expect(audio._noteProviders.get('melody')).toBe(fn);
+  });
+
+  test('removeNoteProvider removes provider', () => {
+    const audio = new TimelineAudio();
+    audio.registerNoteProvider('melody', () => []);
+    audio.removeNoteProvider('melody');
+    expect(audio._noteProviders.size).toBe(0);
+  });
+
+  test('registerNoteProvider rejects invalid args', () => {
+    const audio = new TimelineAudio();
+    audio.registerNoteProvider(123, () => []);
+    audio.registerNoteProvider('test', 'not a function');
+    expect(audio._noteProviders.size).toBe(0);
+  });
+
+  test('stop() clears note providers', async () => {
+    const audio = new TimelineAudio();
+    await audio.ready();
+    audio.registerNoteProvider('melody', () => []);
+    try { await audio.play(4, 0.5, [], false, null, null); } catch {}
+    audio.stop();
+    expect(audio._noteProviders.size).toBe(0);
+  });
+
+  test('multiple providers can coexist', () => {
+    const audio = new TimelineAudio();
+    audio.registerNoteProvider('melody', (step) => step === 0 ? [{ midi: 60 }] : []);
+    audio.registerNoteProvider('bass', (step) => step === 0 ? [{ midi: 36 }] : []);
+    expect(audio._noteProviders.size).toBe(2);
+    audio.removeNoteProvider('melody');
+    expect(audio._noteProviders.size).toBe(1);
+    expect(audio._noteProviders.has('bass')).toBe(true);
+  });
+});

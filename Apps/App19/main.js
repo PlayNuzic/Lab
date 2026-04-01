@@ -500,13 +500,23 @@ async function startPlayback() {
   // Scroll to first pulse before starting playback
   grid.scrollToColumn(0, false);
 
+  // Register note provider BEFORE play (declarative scheduling)
+  audioInstance.registerNoteProvider('melody', (step) => {
+    const midi = midiMap.get(step);
+    if (midi !== undefined) {
+      const noteDuration = intervalSec * 0.95;
+      return [{ midi, duration: noteDuration, velocity: 0.8 }];
+    }
+    return null;
+  });
+
   audioInstance.play(
     totalPulses,
     intervalSec,
     new Set(),
     false,  // No loop
-    (step, scheduledTime) => {
-      // scheduledTime is the precise AudioContext time for sample-accurate playback
+    (step) => {
+      // onPulse callback: visual feedback only
 
       // 1. Update playhead position
       grid.updatePlayhead(step);
@@ -527,21 +537,15 @@ async function startPlayback() {
       // 3. Highlight timeline number
       grid.highlightTimelineNumber(step, intervalSec * 1000 * 0.9);
 
-      // 4. Find note for this pulse and highlight/play
+      // 4. Highlight the selected cell (visual only)
       const midi = midiMap.get(step);
       if (midi !== undefined) {
-        const noteDuration = intervalSec * 0.95;
-        // Use scheduledTime for sample-accurate sync with metronome
-        const when = scheduledTime ?? Tone.now();
-        audioInstance.playNote(midi, noteDuration, when);
-
-        // Highlight the selected cell
         if (selectedForStep) {
           grid.highlightCell(selectedForStep.rowId, step, intervalSec * 1000 * 0.9);
         }
       }
 
-      // 6. Update cycle counter
+      // 5. Update cycle counter
       const cycleNum = Math.floor(step / compas) + 1;
       if (step === 0 && elements.cycleDigit) {
         elements.cycleDigit.textContent = '1';
@@ -553,13 +557,13 @@ async function startPlayback() {
         }
       }
 
-      // 7. Auto-scroll HORIZONTAL to keep pulse visible
+      // 6. Auto-scroll HORIZONTAL to keep pulse visible
       grid.scrollToColumn(step, false);
 
-      // 8. Update cycle digit color
+      // 7. Update cycle digit color
       updateCycleDigitColor(step);
 
-      // 9. Update total length display with flip animation
+      // 8. Update total length display with flip animation
       updateTotalLengthDisplay(step);
     },
     () => {

@@ -207,11 +207,11 @@ export function createSamplerPool(config) {
       return null;
     }
 
-    // Debug logging (remove in production)
-    // console.log(`SamplerPool.playNote: MIDI ${midi} -> sample "${sample.noteName}" detune ${sample.detuneCents}cents`);
-
     const now = context.currentTime;
+    // Compensate for callback drift: if when is in the past, shorten duration accordingly
+    const drift = Math.max(0, now - when);
     const startTime = Math.max(when, now);
+    const adjustedDuration = drift > 0 ? Math.max(0.01, duration - drift) : duration;
 
     // Create BufferSource
     const source = context.createBufferSource();
@@ -229,8 +229,8 @@ export function createSamplerPool(config) {
     source.connect(envelopeGain);
     envelopeGain.connect(destination);
 
-    // Apply ADSR envelope
-    const endTime = applyEnvelope(envelopeGain, startTime, duration, velocity);
+    // Apply ADSR envelope (use adjusted duration to compensate for callback drift)
+    const endTime = applyEnvelope(envelopeGain, startTime, adjustedDuration, velocity);
 
     // Start playback
     source.start(startTime);

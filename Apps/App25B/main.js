@@ -614,23 +614,29 @@ async function handlePlay() {
   }
 
   const intervalSec = (60 / currentBPM);
-  const Tone = window.Tone;
+
+  // Register note provider BEFORE play (declarative scheduling)
+  audio.registerNoteProvider('melody', (step) => {
+    const degreeData = absoluteDegrees.find(d => d.pulse === step);
+    if (degreeData && !degreeData.isRest && degreeData.degree !== null) {
+      const midi = absoluteDegreeToMidi(degreeData.degree);
+      const duration = intervalSec * 0.9;
+      return [{ midi, duration, velocity: 0.8 }];
+    }
+    return null;
+  });
 
   audio.play(
     TOTAL_SPACES,
     intervalSec,
     new Set(),
     false,
-    (step, scheduledTime) => {
+    (step) => {
       highlightController?.highlightPulse(step);
 
       const degreeData = absoluteDegrees.find(d => d.pulse === step);
       if (degreeData && !degreeData.isRest && degreeData.degree !== null) {
-        const midi = absoluteDegreeToMidi(degreeData.degree);
         const duration = intervalSec * 0.9;
-        const when = scheduledTime ?? Tone.now();
-
-        audio.playNote(midi, duration, when);
 
         // Visual feedback
         const noteIndex = absoluteDegreeToVisualNoteIndex(degreeData.degree);

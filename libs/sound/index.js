@@ -258,9 +258,9 @@ export function getChannelState(channelId) {
 }
 
 const SCHEDULING_PRESETS = {
-  desktop: { lookAhead: 0.02, updateInterval: 0.01 },
-  balanced: { lookAhead: 0.03, updateInterval: 0.015 },
-  mobile: { lookAhead: 0.06, updateInterval: 0.03 }
+  desktop: { lookAhead: 0.02, updateInterval: 0.01, sampleOffset: 0.005 },
+  balanced: { lookAhead: 0.03, updateInterval: 0.015, sampleOffset: 0.006 },
+  mobile: { lookAhead: 0.06, updateInterval: 0.03, sampleOffset: 0.008 }
 };
 
 function clamp(value, min, max) {
@@ -452,6 +452,8 @@ export class TimelineAudio {
     this._gamificationHooks = null;
 
     this._onPulseRef = null;
+    this._onScheduleRef = null;
+    this._noteProviders = new Map();
     this._onVoiceRef = null;
     this.onCompleteRef = null;
     this._cycleConfig = null;
@@ -479,6 +481,7 @@ export class TimelineAudio {
     this._lookAheadSec = 0.12;
     this._schedulerEverySec = 0.02;
     this._schedulerOverrideSec = null;
+    this._sampleOffsetSec = 0;
 
     this._bus = { master: null, pulso: null, start: null, seleccionados: null, cycle: null, effects: null };
     this._effectsEnabled = true; // Master effects chain enabled for testing
@@ -1143,7 +1146,7 @@ export class TimelineAudio {
     this._node?.port?.postMessage({ action: 'setLoop', loop: this.loopRef });
   }
 
-  setScheduling({ lookAhead, updateInterval } = {}) {
+  setScheduling({ lookAhead, updateInterval, sampleOffset } = {}) {
     if (Number.isFinite(lookAhead) && lookAhead > 0) {
       this._lookAheadSec = clamp(lookAhead, 0.01, 0.5);
     }
@@ -1152,12 +1155,35 @@ export class TimelineAudio {
     } else if (updateInterval === null) {
       this._schedulerOverrideSec = null;
     }
+    if (Number.isFinite(sampleOffset) && sampleOffset >= 0) {
+      this._sampleOffsetSec = clamp(sampleOffset, 0, 0.02);
+    }
     this._adaptSchedulerInterval();
+  }
+
+  setSampleOffset(seconds) {
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      this._sampleOffsetSec = clamp(seconds, 0, 0.02);
+    }
   }
 
   setSchedulingProfile(profile) {
     const preset = SCHEDULING_PRESETS[profile] || SCHEDULING_PRESETS.balanced;
     this.setScheduling(preset);
+  }
+
+  setScheduleHandler(fn) {
+    this._onScheduleRef = typeof fn === 'function' ? fn : null;
+  }
+
+  registerNoteProvider(id, fn) {
+    if (typeof id === 'string' && typeof fn === 'function') {
+      this._noteProviders.set(id, fn);
+    }
+  }
+
+  removeNoteProvider(id) {
+    this._noteProviders.delete(id);
   }
 
   getBaseResolution() {
@@ -1210,6 +1236,9 @@ export class TimelineAudio {
     this.selectedRef = toSet(selectionValues);
     this._selectedResolution = selectionResolution;
     this._onPulseRef = (typeof onPulse === 'function') ? onPulse : null;
+    if (typeof options?.onSchedule === 'function') {
+      this._onScheduleRef = options.onSchedule;
+    }
     this.onCompleteRef = (typeof onComplete === 'function') ? onComplete : null;
     this._pulseCounter = -1;
     this._lastAbsoluteStep = null;
@@ -1294,6 +1323,8 @@ export class TimelineAudio {
 
     this.isPlaying = false;
     this._onPulseRef = null;
+    this._onScheduleRef = null;
+    this._noteProviders.clear();
     this.onCompleteRef = null;
     this._scheduledTimes.clear();
 
@@ -1451,7 +1482,7 @@ export class TimelineAudio {
     }
   }
 
-  async configurePerformance({ requestedSampleRate, scheduleHorizonMs } = {}) {
+  async configurePerformance({ requestedSampleRate, scheduleHorizonMs, sampleOffsetMs } = {}) {
     if (requestedSampleRate && !this._node) {
       const Ctor = (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext))
         ? (window.AudioContext || window.webkitAudioContext)
@@ -1467,11 +1498,15 @@ export class TimelineAudio {
       this._lookAheadSec = clamp(+scheduleHorizonMs / 1000, 0.02, 0.4);
       this._adaptSchedulerInterval();
     }
+    if (Number.isFinite(+sampleOffsetMs) && +sampleOffsetMs >= 0) {
+      this._sampleOffsetSec = clamp(+sampleOffsetMs / 1000, 0, 0.02);
+    }
     return {
       requestedSampleRate: requestedSampleRate || null,
       actualSampleRate: this._ctx ? this._ctx.sampleRate : null,
       scheduleHorizonMs: Math.round(this._lookAheadSec * 1000),
-      schedulerIntervalMs: Math.round(this._schedulerEverySec * 1000)
+      schedulerIntervalMs: Math.round(this._schedulerEverySec * 1000),
+      sampleOffsetMs: Math.round(this._sampleOffsetSec * 1000 * 10) / 10
     };
   }
 
@@ -1555,6 +1590,25 @@ export class TimelineAudio {
         // Store scheduled time for this step (used by onPulse callback for sample-accurate timing)
         this._scheduledTimes.set(stepIndex, when);
 
+        // Proactive instrument scheduling: fire onSchedule with the same future time as samples
+        if (typeof this._onScheduleRef === 'function') {
+          this._onScheduleRef(stepIndex, when);
+        }
+
+        // Declarative note providers: engine-managed instrument scheduling
+        if (this._noteProviders.size > 0) {
+          for (const [, provider] of this._noteProviders) {
+            const notes = provider(stepIndex);
+            if (notes && notes.length) {
+              for (const note of notes) {
+                if (typeof this._playScheduledNote === 'function') {
+                  this._playScheduledNote(note.midi, note.duration, when, note.velocity);
+                }
+              }
+            }
+          }
+        }
+
         // Measure system: check if this step is a measure start (compás beginning)
         const isMeasureStart = this._measureStarts?.has(stepIndex) ?? (stepIndex === 0);
         const resolution = Math.max(1, Math.round(this._baseResolution || 1));
@@ -1566,6 +1620,8 @@ export class TimelineAudio {
         const isSelected = this.selectedRef.has(selectionIndex);
 
         let triggered = false;
+        // Apply sample offset to compensate for instrument callback latency
+        const sampleWhen = when + this._sampleOffsetSec;
         if (this._buffers && this._buffers.size) {
           const baseKey = (() => {
             if (!this._buffers || this._buffers.size === 0 || this._pulseMutedForFallback) return null;
@@ -1576,19 +1632,19 @@ export class TimelineAudio {
 
           // Play base pulse sound on ALL base steps (including step 0)
           if (baseKey && isBaseStep) {
-            triggerPlayer(baseKey, when);
+            triggerPlayer(baseKey, sampleWhen);
             triggered = true;
           }
 
           // Measure/P0: If measureEnabled, play ADDITIONAL special pulse0 sound on measure starts
           // This sound is ADDED to the base pulse, not replacing it
           if (isMeasureStart && this._measureEnabled && this._buffers.has('pulso0')) {
-            triggerPlayer('pulso0', when);
+            triggerPlayer('pulso0', sampleWhen);
             triggered = true;
           }
 
           if (isSelected && this._buffers.has('seleccionados')) {
-            triggerPlayer('seleccionados', when, this.intervalRef);
+            triggerPlayer('seleccionados', sampleWhen, this.intervalRef);
             triggered = true;
           }
         }
@@ -1597,10 +1653,10 @@ export class TimelineAudio {
         if (!triggered && !this._pulseMutedForFallback) {
           if (isSelected) {
             // Always beep for selected steps
-            triggerBeep(when, 1100);
+            triggerBeep(sampleWhen, 1100);
           } else if (isBaseStep) {
             // Beep for all base steps (including step 0)
-            triggerBeep(when, 900);
+            triggerBeep(sampleWhen, 900);
           }
         }
 
@@ -1668,7 +1724,8 @@ export class TimelineAudio {
       }
       if (this._cycleConfig?.onCycle) this._cycleConfig.onCycle(msg.payload);
       if (!this._cycleMutedForFallback && this._buffers?.has('cycle')) {
-        this._schedulePlayerStart('cycle', now + 0.001);
+        const cycleTime = this._scheduledTimes.get(this._lastStep) ?? (now + 0.001);
+        this._schedulePlayerStart('cycle', cycleTime);
       }
     } else if (msg.type === 'voice') {
       const payload = { id: msg.id, index: msg.index };
@@ -1686,7 +1743,8 @@ export class TimelineAudio {
           const subdivisionIndex = ((idx % perCycle) + perCycle) % perCycle;
           const fractionalStep = numerator * cycleIndex + (numerator / perCycle) * subdivisionIndex;
           if (Math.abs(fractionalStep - Math.round(fractionalStep)) > 1e-6) {
-            this._schedulePlayerStart('seleccionados', now + 0.001);
+            const voiceTime = this._scheduledTimes.get(this._lastStep) ?? (now + 0.001);
+            this._schedulePlayerStart('seleccionados', voiceTime);
           }
         }
       }

@@ -1205,6 +1205,21 @@ async function startPlayback() {
     };
   }
 
+  // Declarative note provider: engine schedules notes automatically in tick()
+  audioInstance.registerNoteProvider('melody', (scaledIndex) => {
+    const n = currentNumerator;
+    const d = currentDenominator;
+
+    const noteData = getNoteAtScaledStart(scaledIndex);
+    if (noteData && !noteData.isRest) {
+      const durationPulses = noteData.duration * n / d;
+      const durationSeconds = durationPulses * (60 / (bpmController?.getValue() || DEFAULT_BPM));
+      const midiNote = BASE_MIDI + noteData.note;
+      return [{ midi: midiNote, duration: durationSeconds, velocity: 0.8 }];
+    }
+    return null;
+  });
+
   audioInstance.play(
     scaledTotal,
     scaledInterval,
@@ -1268,10 +1283,11 @@ function clearHighlights() {
 }
 
 /**
- * Highlight subdivision - receives scaledIndex (1/d steps) and scheduledTime
+ * Highlight subdivision - receives scaledIndex (1/d steps)
  * Columns advance every n steps; integer pulses every d steps
+ * Audio scheduling moved to note provider; this handles ONLY visuals.
  */
-function highlightSubdivision(scaledIndex, scheduledTime) {
+function highlightSubdivision(scaledIndex) {
   if (!isPlaying) return;
 
   const n = currentNumerator;
@@ -1332,19 +1348,6 @@ function highlightSubdivision(scaledIndex, scheduledTime) {
       void ghostLine.offsetWidth;
       ghostLine.classList.add('active');
     }
-  }
-
-  // Check if any note starts at this scaled index (skip silences)
-  const noteData = getNoteAtScaledStart(scaledIndex);
-  if (noteData && audio && !noteData.isRest) {
-    // Note duration is in visual columns
-    // Convert to seconds: duration columns * (n/d) pulses/column * (60/bpm) seconds/pulse
-    const durationPulses = noteData.duration * n / d;
-    const durationSeconds = durationPulses * (60 / (bpmController?.getValue() || DEFAULT_BPM));
-
-    const midiNote = BASE_MIDI + noteData.note;
-    const when = scheduledTime ?? (window.Tone?.now() || 0);
-    audio.playNote(midiNote, durationSeconds, when);
   }
 
   // Highlight the note bar that contains this pulse position

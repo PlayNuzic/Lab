@@ -27,6 +27,16 @@
 - Latency hint: `'interactive'`
 - SamplerPool (1-3ms latency) preferred over Tone.Sampler (20-50ms)
 - Pool size: max 16 simultaneous voices per pitch class
+- SamplerPool has drift compensation: shortens duration when `when < now`
+
+## Scheduling Sync (sample-instrument alignment)
+- Samples scheduled proactively in `tick()` with future `when` time
+- `_sampleOffsetSec` (0-20ms): delays samples to compensate for instrument callback latency
+- `onSchedule(step, when)` callback: fires from `tick()` alongside samples for proactive instrument scheduling
+- `registerNoteProvider(id, fn)`: declarative API — provider returns `[{midi, duration, velocity}]`, engine handles timing
+- `onPulse` is for visual feedback only — never schedule audio in onPulse
+- Configurable via `setSampleOffset()`, `setScheduling({sampleOffset})`, or `configurePerformance({sampleOffsetMs})`
+- UI control in performance-audio-menu.js "Sample Offset (ms)" slider
 
 ## Sample Mapping
 - pulso → click9 (Hi-Hat), pulso0 → click7 (Bombo), seleccionados → click8 (Caja)

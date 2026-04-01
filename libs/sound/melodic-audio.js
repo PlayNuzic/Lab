@@ -139,12 +139,18 @@ export class MelodicTimelineAudio extends TimelineAudio {
           adsr
         });
 
-        // Extract buffers from Tone.Sampler
+        // Extract buffers from Tone.Sampler (retry once if samples not yet decoded)
         if (this._samplerPool.init()) {
           console.log(`SamplerPool initialized for ${key} (low-latency mode enabled)`);
         } else {
-          console.warn(`SamplerPool failed to extract buffers, falling back to Tone.js`);
-          this._samplerPool = null;
+          // Tone.Sampler may still be decoding buffers — retry after a short delay
+          await new Promise(r => setTimeout(r, 200));
+          if (this._samplerPool && this._samplerPool.init()) {
+            console.log(`SamplerPool initialized for ${key} on retry`);
+          } else {
+            console.warn(`SamplerPool failed to extract buffers, falling back to Tone.js`);
+            this._samplerPool = null;
+          }
         }
       } catch (poolError) {
         console.warn('SamplerPool creation failed:', poolError.message);
@@ -188,6 +194,14 @@ export class MelodicTimelineAudio extends TimelineAudio {
     const note = Tone.Frequency(midi, 'midi').toNote();
 
     this._instrumentSampler.triggerAttackRelease(note, duration, when, velocity);
+  }
+
+  /**
+   * Engine-internal: play a note from a registered note provider.
+   * Called by the scheduler tick() loop for declarative note scheduling.
+   */
+  _playScheduledNote(midi, duration, when, velocity = 0.8) {
+    this.playNote(midi, duration, when, velocity);
   }
 
   /**

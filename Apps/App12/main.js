@@ -136,7 +136,14 @@ async function handlePlay() {
 
   const intervalSec = (60 / currentBPM);
   const totalPulseSounds = TOTAL_SPACES; // 8 pulse sounds (spaces 0-7)
-  const Tone = window.Tone;
+
+  // Register note provider before play (declarative scheduling)
+  audio.registerNoteProvider('melody', (step) => {
+    const notes = pulseGroups[step];
+    if (!notes || notes.length === 0) return null;
+    const duration = intervalSec * 0.9;
+    return notes.map(midi => ({ midi, duration, velocity: 0.8 }));
+  });
 
   // Start TimelineAudio transport-based playback
   audio.play(
@@ -144,25 +151,18 @@ async function handlePlay() {
     intervalSec,
     new Set(), // No accent sounds (pulse plays automatically on all beats)
     false, // No loop initially
-    (step, scheduledTime) => {
-      // onPulse callback: Called on EVERY pulse (0-8), even if empty
-      // scheduledTime is the precise AudioContext time for sample-accurate playback
+    (step) => {
+      // onPulse callback: visual feedback only
 
       // 1) Visual feedback for pulse column
       highlightController?.highlightPulse(step);
 
-      // 2) Play piano notes if any exist at this pulse
+      // 2) Visual feedback for playing cells
       const notes = pulseGroups[step];
       if (notes && notes.length > 0) {
         const duration = intervalSec * 0.9;
-        // Use scheduledTime for sample-accurate sync with metronome
-        const when = scheduledTime ?? Tone.now();
 
-        // Polyphonic: trigger all notes simultaneously
         notes.forEach(midi => {
-          audio.playNote(midi, duration, when);
-
-          // Visual feedback per cell
           const noteIndex = midi - 60;
           const cell = musicalGrid.getCellElement(noteIndex, step);
           if (cell) {

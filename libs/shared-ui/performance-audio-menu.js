@@ -15,7 +15,9 @@
     const hz = container.querySelector('#nza-hz');
     const hzOut = container.querySelector('#nza-hz-out');
     const intMs = container.querySelector('#nza-int');
-    return { sr, apply, hz, hzOut, intMs };
+    const offset = container.querySelector('#nza-offset');
+    const offsetOut = container.querySelector('#nza-offset-out');
+    return { sr, apply, hz, hzOut, intMs, offset, offsetOut };
   }
 
   function createPanel() {
@@ -39,6 +41,11 @@
       <div class="perf-row readonly">
         <span>Scheduler Interval (ms)</span>
         <span id="nza-int" role="status" aria-live="polite">--</span>
+      </div>
+      <div class="perf-row">
+        <label for="nza-offset">Sample Offset (ms)</label>
+        <input id="nza-offset" type="range" min="0" max="20" step="0.5" value="5" />
+        <output id="nza-offset-out" for="nza-offset">5.0 ms</output>
       </div>
       <div class="perf-foot">Los cambios de Sample Rate solo aplican si el motor aún no inició.</div>
     `;
@@ -192,7 +199,7 @@
   }
 
   function applyPerformanceInfo(elements, info) {
-    const { sr } = elements;
+    const { sr, offset, offsetOut } = elements;
     if (!info) {
       refreshScheduleControls(elements);
       return;
@@ -204,6 +211,11 @@
     }
     const horizon = Number(info.scheduleHorizonMs);
     refreshScheduleControls(elements, Number.isFinite(horizon) ? horizon : undefined);
+    const offsetVal = Number(info.sampleOffsetMs);
+    if (offset && Number.isFinite(offsetVal)) {
+      offset.value = String(offsetVal);
+      if (offsetOut) offsetOut.textContent = formatMsLabel(offsetVal);
+    }
   }
 
   function syncFromEngine(elements) {
@@ -245,6 +257,20 @@
           applyPerformanceInfo(elements, info || null);
         } catch (err) {
           console.warn('[AudioPerf] schedule update failed', err);
+        }
+      });
+    }
+
+    if (elements.offset && elements.offsetOut) {
+      elements.offset.addEventListener('input', async () => {
+        const val = Number(elements.offset.value);
+        elements.offsetOut.textContent = formatMsLabel(val);
+        const engine = AUDIO();
+        if (!engine) return;
+        try {
+          await engine.configurePerformance({ sampleOffsetMs: val });
+        } catch (err) {
+          console.warn('[AudioPerf] sample offset update failed', err);
         }
       });
     }

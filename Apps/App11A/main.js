@@ -133,26 +133,21 @@ async function handlePlay() {
     notesByPulse[pulse] = note;
   });
 
-  const Tone = window.Tone;
-
-  // Pre-schedule all notes BEFORE starting playback
-  // This ensures notes sound DURING pulses, not after
-  const now = Tone.now();
-  notes.forEach(({note, pulse}) => {
-    const midi = BASE_MIDI + note;
-    const duration = intervalSec * 0.9;
-    const when = now + (pulse * intervalSec); // Calculate exact timing
-
-    audio.playNote(midi, duration, when);
+  // Register note provider before play (declarative scheduling)
+  audio.registerNoteProvider('melody', (step) => {
+    const note = notesByPulse[step];
+    if (note === undefined) return null;
+    return [{ midi: BASE_MIDI + note, duration: intervalSec * 0.9, velocity: 0.8 }];
   });
 
-  // Start playback (for visual feedback and pulse sounds only)
+  // Start playback
   audio.play(
     SEQUENCE_PULSES,
     intervalSec,
     new Set(),
     false,
     (step) => {
+      // onPulse callback: visual feedback only
       console.log(`Pulse ${step}`);
 
       // Use native interval highlighting from musical-grid
@@ -160,7 +155,6 @@ async function handlePlay() {
 
       const note = notesByPulse[step];
       if (note !== undefined) {
-        // Note: Audio already scheduled above - this is only visual feedback
         // Visual feedback: highlight cell (no label in App11A)
         const cell = musicalGrid.getCellElement(note, step);
         if (cell) {
