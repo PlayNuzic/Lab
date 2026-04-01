@@ -1,160 +1,70 @@
-# CLAUDE.md
+# PlayNuzic Lab — Guide for Claude
 
-Guia per Claude Code al repositori Lab.
+## Identity
+Monorepo for rhythmic/temporal music apps (Nuzic method). ES2022 modules, no build step, runs directly in browser.
+~70% shared code in `libs/`, individual apps in `Apps/`. 60+ test suites, 1100+ tests.
 
-## 🚨 PROCEDIMENTS CRÍTICS
+## Session Management (MANDATORY)
+- If `SESSION_STATE.md` exists at root → **READ IT FIRST** before any edit. It contains working features that must not break.
+- Incomplete tasks → create/update `SESSION_STATE.md`
+- Completed tasks → archive to `docs/session-history/YYYY-MM-DD-description.md`, then clear SESSION_STATE.md
+- Check `docs/session-history/` for previously solved problems when facing recurring errors
 
-### 1. Ubicació del Repositori
-**SEMPRE treballem a**: `/Users/workingburcet/Lab/`
+## Development Rules
+1. **SEARCH libs/ FIRST** for existing components. Create reusable module SECOND. App-specific code is LAST RESORT.
+2. Show code BEFORE creating files. Wait for explicit approval.
+3. Write tests for new components.
+4. Run `npm test` after changes. All tests must pass.
+5. Never break existing functionality.
 
-### 2. Gestió de Sessions
-**OBLIGATORI per tasques incompletes:**
-- **Crear/Actualitzar** `SESSION_STATE.md` a l'arrel
-- **Arxivar** a `docs/session-history/` quan la tasca estigui completa (format: `YYYY-MM-DD-apps-descripcio.md`)
+## High-Risk Files (modify with extreme caution)
+These files affect timing and synchronization across ALL apps. Before modifying:
+read existing tests, run full test suite, and show the complete diff for approval.
+- `libs/sound/clock.js` — AudioWorklet timing, epsilon 1e-9 for double-trigger prevention
+- `libs/app-common/pulse-interval-calc.js` — Interval calculations used by every app
+- `libs/app-common/voice-sync.js` — Polyrhythmic voice synchronization
 
-### 3. Historial de Sessions
-**Consulta sota demanda**: `docs/session-history/` conté solucions a problemes anteriors.
-- Útil per errors recurrents o patrons ja resolts
-- NO es carrega automàticament - només quan es demana explícitament
-
-### 4. Ordre al Finalitzar
-1. Arxivar `SESSION_STATE.md` a `docs/session-history/`
-2. Eliminar o buidar `SESSION_STATE.md`
-3. Resumir a l'usuari
-
-### 5. ABANS de Modificar Fitxers
-**OBLIGATORI**: Si existeix `SESSION_STATE.md` a l'arrel, LLEGIR-LO PRIMER abans de fer qualsevol edició.
-- Conté funcionalitats que JA FUNCIONEN i NO s'han de trencar
-- Conté restriccions específiques sobre què NO modificar
-- Ignorar això pot causar regressions greus
-
----
-
-## Comandes de Desenvolupament
-
-```bash
-./setup.sh          # Setup inicial (1 cop per sessió)
-npm test            # Executar tests (60+ suites, 1100+ tests)
-npm test -- --testPathPattern="nom-modul"  # Test específic
+## Architecture
+```
+Apps/          → App1-App35 (individual rhythm apps)
+libs/
+  sound/       → Audio engine (TimelineAudio, mixer, samples)
+  app-common/  → 43 core modules (DOM, audio-init, loop, fractions, LED, visual-sync...)
+  pulse-seq/   → Pulse sequence editor with parser and memory
+  matrix-seq/  → 2D grid editor for N-P pairs
+  notation/    → VexFlow rhythm staff rendering
+  random/      → Randomization system with menu UI
+  shared-ui/   → Header, dropdowns, tooltips, theme events
+  gamification/→ Achievement system, scoring, event tracking
+  interval-sequencer/ → Interval-based sequencing with drag editing
+  musical-grid/→ 2D musical grid with scroll and interval support
+  temporal-intervals/ → Visual interval blocks (iT) for timeline
+  scales/      → Musical scale definitions
+  vendor/      → Tone.js, VexFlow, chromatone-theory
 ```
 
----
-
-## Arquitectura del Projecte
-
-Monorepo amb workspaces per aplicacions musicals de ritme.
-
-### Estructura
-```
-Lab/
-├── Apps/           # App1-App29 (aplicacions individuals)
-├── libs/           # Mòduls compartits
-│   ├── app-common/     # 43 mòduls core
-│   ├── pulse-seq/      # Seqüències de pulsos
-│   ├── matrix-seq/     # Editor N-P grid
-│   ├── musical-grid/   # Visualització 2D
-│   ├── interval-sequencer/  # Seqüenciador d'intervals
-│   ├── notation/       # VexFlow rendering
-│   ├── random/         # Randomització
-│   ├── sound/          # Motor d'àudio
-│   ├── shared-ui/      # Components UI
-│   ├── gamification/   # Sistema de logros
-│   └── plano-modular/  # Grid 2D modular
-└── packages/       # Paquets addicionals
-```
-
-### Documentació Detallada
-
-Per documentació completa dels mòduls, consulta `docs/modules-reference.md`.
-
----
-
-## 🚨 PRINCIPIS CRÍTICS DE DESENVOLUPAMENT
-
-### Prioritzar Components Compartits
-
-1. **🔍 PRIMER**: Buscar si existeix a `libs/`
-2. **🛠️ SEGON**: Crear component reutilitzable
-3. **❌ ÚLTIM RECURS**: Codi específic d'app
-
-### Fitxers PROHIBITS de Modificar
-
-- `libs/sound/clock.js` - Timing crític
-- `libs/app-common/pulse-interval-calc.js` - Càlculs d'intervals
-- `libs/app-common/voice-sync.js` - Sincronització de veus
-
-### Regles de Desenvolupament
-
-1. Mostrar codi ABANS de crear fitxers
-2. Esperar aprovació explícita (✅)
-3. Escriure tests per nous components
-4. Executar `npm test` després de canvis
-5. Mai trencar funcionalitat existent
-
----
-
-## Patrons Comuns
-
-### Inicialització d'App
+## Standard App Initialization Pattern
 ```javascript
 import { bindRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import TimelineAudio from '../../libs/sound/index.js';
 
 const { elements, leds, ledHelpers } = bindRhythmElements({...});
-const audio = new TimelineAudio();
-await audio.ready();
+const initAudio = createRhythmAudioInitializer({...});
+const audio = await initAudio();
 ```
 
-### Loop Controller
-```javascript
-import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
+## LEGACY Patterns (DO NOT USE)
+`initRhythmApp()`, `createStandardElementMap()`, `bindRhythmAppEvents()` — all deprecated.
 
-const loopController = createPulseMemoryLoopController({...});
-loopController.attach();
+## Reference Documentation (consult on demand, not loaded automatically)
+- `LAB_SYSTEM_RULES.md` — Complete technical rules for timing, audio, loop, mixer (12KB+)
+- `MODULES.md` — Full module index with import patterns
+- `docs/agents-context.md` — Detailed skill/agent documentation
+
+## Commands
+```bash
+npm test                                    # Run all tests
+npm test -- --testPathPattern="module-name" # Specific module
+npx http-server                             # Serve apps locally
 ```
-
-### Tap Tempo
-```javascript
-import { createTapTempoHandler } from '../../libs/app-common/tap-tempo-handler.js';
-
-const tapHandler = createTapTempoHandler({...});
-tapHandler.attach();
-```
-
----
-
-## Sistema de Skills
-
-Claude Code utilitza **Skills reals** (`~/.claude/skills/`) per assistència especialitzada.
-
-### Invocar Skills
-```
-/ui           # Interfícies, components UI
-/audio        # Àudio, timing, sincronització (protegeix fitxers crítics)
-/modules      # Arquitectura, refactoring, detecció duplicació
-/creator      # Crear apps noves completes
-/gamification # Logros, badges, motivació
-/responsive   # Mobile-first, responsive design
-```
-
-**Guia ràpida:** `~/.claude/skills/README.md`
-**Context general:** `docs/agents-context.md`
-
----
-
-## Tests
-
-- **60+ test suites**, 1100+ tests
-- Tests a: `libs/*/tests/`, `libs/app-common/__tests__/`
-- Patrons: Unit tests, integration tests, DOM tests amb jsdom
-
----
-
-## Filosofia PlayNuzic Lab
-
-- **Minimalisme**: UI neta, codi simple
-- **Reutilització**: ~70% codi compartit
-- **No invasió**: Mai trencar l'existent
-- **Testing**: Tots els tests han de passar
-- **Modularització**: Extreure a libs/ quan hi ha duplicació
