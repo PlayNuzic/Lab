@@ -67,15 +67,156 @@ body[data-visual="nuzic"][data-theme="dark"] {
 }
 
 
+/* --------------------------------------------------------------------------
+   FASE 4: Graella — dots negres visibles, rectangles blau sòlid
+   -------------------------------------------------------------------------- */
+
+/* Cel·les base: fons transparent, sense vora visible */
+body[data-visual="nuzic"] .musical-cell {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* Hover: rectangle blau clar sòlid (sense transparència) */
+body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell:hover::before {
+  background: var(--nuzic-blue-light);
+  opacity: 0.35;
+}
+
+/* Dots: petits, negres, ben visibles a cada intersecció */
+body[data-visual="nuzic"] .np-dot::after {
+  width: 4px;
+  height: 4px;
+  background: var(--nuzic-dark);
+  border: none;
+  opacity: 1;
+}
+
+/* Rectangles actius: blau cel sòlid, sense glow */
+body[data-visual="nuzic"] .musical-cell.active::before {
+  background: var(--nuzic-blue-light);
+  border: 1px solid var(--nuzic-blue);
+  opacity: 1;
+}
+
+/* Dot actiu: blau sòlid, sense glow ni scale exagerat */
+body[data-visual="nuzic"] .musical-cell.active .np-dot::after {
+  background: var(--nuzic-blue);
+  border: 1px solid var(--nuzic-blue);
+  box-shadow: none;
+  width: 6px;
+  height: 6px;
+}
+
+/* Pulse highlight: mantenir sòlid */
+body[data-visual="nuzic"] .musical-cell.pulse-highlight::before {
+  background: var(--nuzic-blue-light);
+  opacity: 0.25;
+}
+
+body[data-visual="nuzic"] .musical-cell.active.pulse-highlight::before {
+  background: var(--nuzic-blue-light);
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   FASE 4: Dark mode — graella
+   -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"][data-theme="dark"] .musical-cell {
+  background: transparent;
+  border-color: transparent;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .np-dot::after {
+  background: var(--nuzic-grey);
+  border: none;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .musical-cell.active::before {
+  background: var(--nuzic-blue-light);
+  border-color: var(--nuzic-blue);
+  opacity: 1;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .musical-cell.active .np-dot::after {
+  background: var(--nuzic-blue);
+  border-color: var(--nuzic-blue);
+  box-shadow: none;
+}
+
+
+/* --------------------------------------------------------------------------
+   FASE 4 (plano-modular): Graella — cel·les netes, rectangles sòlids
+   -------------------------------------------------------------------------- */
+
+/* Cel·les base: fons transparent, sense vora visible */
+body[data-visual="nuzic"] .plano-container {
+  --plano-cell-bg: transparent;
+  --plano-grid-line-color: transparent;
+  --plano-bg-color: var(--nuzic-white);
+}
+
+/* Dots a les interseccions (cantonada inferior-esquerra).
+   Plano-modular usa ::before per rectangles i ::after per hover.
+   Solució: dot via radial-gradient al background-image, alliberant pseudo-elements. */
+body[data-visual="nuzic"] .plano-cell {
+  background-image: radial-gradient(circle 4px at 0% 100%, var(--nuzic-dark) 45%, transparent 46%);
+  background-repeat: no-repeat;
+}
+
+/* Hover: manté el ::after original posicionat a la divisòria */
+body[data-visual="nuzic"] .plano-cell:hover::after {
+  background: var(--nuzic-blue-light);
+  opacity: 0.35;
+}
+
+/* Rectangles seleccionats: blau cel sòlid amb vora, sense glow */
+body[data-visual="nuzic"] .plano-cell.plano-selected::before {
+  background: var(--nuzic-blue-light);
+  border: 1px solid var(--nuzic-blue);
+}
+
+/* Highlight (playback): sòlid, sense glow ni scale */
+body[data-visual="nuzic"] .plano-cell.plano-highlight::before {
+  background: var(--nuzic-blue-light);
+  border: 1px solid var(--nuzic-blue);
+  box-shadow: none;
+  transform: none;
+}
+
+/* --------------------------------------------------------------------------
+   FASE 4 (plano-modular): Dark mode
+   -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"][data-theme="dark"] .plano-container {
+  --plano-cell-bg: transparent;
+  --plano-grid-line-color: transparent;
+  --plano-bg-color: var(--nuzic-white);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .plano-cell {
+  background-image: radial-gradient(circle 4px at 0% 100%, var(--nuzic-grey) 45%, transparent 46%);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .plano-cell.plano-selected::before {
+  background: var(--nuzic-blue-light);
+  border-color: var(--nuzic-blue);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .plano-cell.plano-highlight::before {
+  background: var(--nuzic-blue-light);
+  border-color: var(--nuzic-blue);
+  box-shadow: none;
+}
+
+
 /* ==========================================================================
    FASES PENDENTS (no implementades — veure docs/nuzic-theme-roadmap.md)
 
    Fase 2: Soundline (fons rosa, números centrats amb guions)
    Fase 3: Timeline (fons crema, pipes | i doble barra ||)
-   Fase 4: Graella — dots negres visibles, rectangles blau sòlid
    Fase 5: Botons — play verd petit, +/- pastilla daurada
    Fase 6: BPM inline horitzontal
    Fase 7: Triangle decoratiu cantonada
-   Fase 9: Selectors plano-modular (DOM diferent)
-   Fase 10: Dark mode per totes les fases anteriors
    ========================================================================== */
