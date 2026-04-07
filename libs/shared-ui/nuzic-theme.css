@@ -361,10 +361,114 @@ body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-container {
 }
 
 
+/* --------------------------------------------------------------------------
+   FASE 5: Botons — play verd, +/- pastilla daurada, reset/random quadrat
+   -------------------------------------------------------------------------- */
+
+/* Play: cercle verd amb fons sòlid */
+body[data-visual="nuzic"] .play {
+  background: var(--nuzic-green);
+  border-color: var(--nuzic-green);
+  color: white;
+}
+
+body[data-visual="nuzic"] .play svg {
+  fill: white;
+}
+
+body[data-visual="nuzic"] .play.active {
+  background: var(--nuzic-green);
+  border-color: var(--nuzic-green);
+  color: white;
+  box-shadow: 0 0 10px var(--nuzic-green);
+}
+
+/* Loop: mantenir coherència amb play */
+body[data-visual="nuzic"] .loop {
+  border-color: var(--nuzic-grey);
+  color: var(--nuzic-grey);
+}
+
+body[data-visual="nuzic"] .loop.active {
+  background: var(--nuzic-green-light);
+  border-color: var(--nuzic-green);
+  color: var(--nuzic-green);
+}
+
+/* Random i Reset: quadrat arrodonit, fons verd clar */
+body[data-visual="nuzic"] .random,
+body[data-visual="nuzic"] .reset {
+  border-radius: 6px;
+  background: var(--nuzic-green-light);
+  border-color: var(--nuzic-green-light);
+  color: var(--nuzic-dark);
+  opacity: 1;
+}
+
+body[data-visual="nuzic"] .random svg,
+body[data-visual="nuzic"] .reset svg {
+  fill: var(--nuzic-dark);
+}
+
+/* Tap: quadrat arrodonit coherent */
+body[data-visual="nuzic"] .tap {
+  border-radius: 6px;
+  background: var(--nuzic-light);
+  border-color: var(--nuzic-light);
+  color: var(--nuzic-dark);
+}
+
+/* BPM spinner: pastilla daurada */
+body[data-visual="nuzic"] .bpm-inline .spin {
+  background: var(--nuzic-yellow);
+  border-radius: 6px;
+}
+
+body[data-visual="nuzic"] .bpm-inline .spin:hover {
+  background: #e6a82e;  /* daurat lleugerament més fosc */
+}
+
+body[data-visual="nuzic"] .bpm-inline .spin.up::before {
+  border-bottom-color: white;
+}
+
+body[data-visual="nuzic"] .bpm-inline .spin.down::before {
+  border-top-color: white;
+}
+
+/* --------------------------------------------------------------------------
+   FASE 5: Botons — dark mode
+   -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"][data-theme="dark"] .play {
+  background: var(--nuzic-green);
+  border-color: var(--nuzic-green);
+  color: white;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .random,
+body[data-visual="nuzic"][data-theme="dark"] .reset {
+  background: var(--nuzic-green-light);
+  border-color: var(--nuzic-green-light);
+  color: var(--nuzic-dark);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .spin {
+  background: var(--nuzic-yellow);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .spin.up::before {
+  border-bottom-color: var(--nuzic-dark);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .spin.down::before {
+  border-top-color: var(--nuzic-dark);
+}
+
+
 /* ==========================================================================
    FASES PENDENTS (no implementades — veure docs/nuzic-theme-roadmap.md)
 
-   Fase 5: Botons — play verd petit, +/- pastilla daurada
    Fase 6: BPM inline horitzontal
    Fase 7: Triangle decoratiu cantonada
    ========================================================================== */

@@ -8,7 +8,7 @@ Adaptació visual de les Apps 9+ a l'estètica de nuzic_app.
 - [x] **Fase 4**: Graella — dots negres visibles + rectangles blau sòlid (light + dark)
 - [x] **Fase 2**: Soundline — fons rosa, números centrats, `decorateLabels` a soundline.js
 - [x] **Fase 3**: Timeline — fons crema, sense línia horitzontal
-- [ ] Fase 5: Botons
+- [x] **Fase 5**: Botons — play verd, +/- pastilla daurada, reset/random quadrat verd
 - [ ] Fase 6: BPM inline
 - [ ] Fase 7: Triangle decoratiu
 - [ ] Fase 8: Opt-in per app (27 apps)
