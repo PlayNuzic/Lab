@@ -467,64 +467,76 @@ body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .spin.down::before {
 
 
 /* --------------------------------------------------------------------------
-   FASE 6: BPM inline horitzontal — [–] [120] [+] en pastilla
+   FASE 6: BPM inline horitzontal — BPM [–] 120 [+] en pastilla
    -------------------------------------------------------------------------- */
 
 /* Contenidor principal: fila horitzontal */
 body[data-visual="nuzic"] .bpm-inline {
   flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
-/* Circle → pastilla rectangular blanca amb el número */
+/* Circle → pastilla que conté [–] 120 [+] dins */
 body[data-visual="nuzic"] .bpm-inline .circle {
   width: auto;
-  height: 36px;
-  border-radius: 18px;
+  height: 32px;
+  border-radius: 16px;
   border: 1px solid var(--nuzic-grey);
   background: var(--nuzic-white);
   display: flex;
   align-items: center;
-  padding: 0 14px;
-  order: 2;  /* Al mig: [–] [120] [+] */
+  padding: 0 4px;
+  gap: 2px;
 }
 
 body[data-visual="nuzic"] .bpm-inline input {
-  font-size: 1.2rem;
-  width: 50px;
+  font-size: 1.1rem;
+  width: 42px;
   height: 100%;
   font-family: 'Ubuntu', sans-serif;
+  order: 2;  /* Número al mig */
 }
 
-/* Spinner: horitzontal, posició estàtica, separar up/down */
+/* Spinner: horitzontal dins la pastilla */
 body[data-visual="nuzic"] .bpm-inline .spinner {
   position: static;
-  display: contents;  /* Alliberar els fills al flux del pare */
+  display: contents;  /* Fills participen al flex de .circle */
   transform: none;
 }
 
-/* Botó down (–) a l'esquerra */
+/* Botó down (–) a l'esquerra dins la pastilla */
 body[data-visual="nuzic"] .bpm-inline .spin.down {
   order: 1;
-  width: 36px;
-  height: 36px;
-  border-radius: 18px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
 }
 
-/* Botó up (+) a la dreta */
+/* Botó up (+) a la dreta dins la pastilla */
 body[data-visual="nuzic"] .bpm-inline .spin.up {
   order: 3;
-  width: 36px;
-  height: 36px;
-  border-radius: 18px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
 }
 
-/* Label BPM a sobre (order 0 = primer) */
+/* Fletxes més petites per cabre als botons 24px */
+body[data-visual="nuzic"] .bpm-inline .spin.up::before {
+  border-left-width: 4px;
+  border-right-width: 4px;
+  border-bottom-width: 6px;
+}
+
+body[data-visual="nuzic"] .bpm-inline .spin.down::before {
+  border-left-width: 4px;
+  border-right-width: 4px;
+  border-top-width: 6px;
+}
+
+/* Label BPM: queda fora de la pastilla, a l'esquerra */
 body[data-visual="nuzic"] .bpm-inline .abbr {
-  order: 0;
-  font-size: 0.85rem;
-  margin-right: 0.25rem;
+  font-size: 0.8rem;
 }
 
 /* --------------------------------------------------------------------------
