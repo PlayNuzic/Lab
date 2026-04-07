@@ -215,10 +215,17 @@ body[data-visual="nuzic"][data-theme="dark"] .plano-cell.plano-highlight::before
    FASE 2: Soundline — fons rosa, sense línia vertical, números centrats
    -------------------------------------------------------------------------- */
 
+/* Musical-grid: reduir columna soundline i gap per encaixar millor */
+body[data-visual="nuzic"] .grid-container {
+  grid-template-columns: 60px 1fr;
+  grid-template-rows: 1fr 50px;
+  gap: 0;
+}
+
 /* Musical-grid soundline (dins .grid-container per evitar xocar amb App10) */
 body[data-visual="nuzic"] .grid-container .soundline-wrapper {
   background: var(--nuzic-pink-light);
-  border-radius: 4px 0 0 0;
+  border-radius: 4px 0 0 4px;
 }
 
 body[data-visual="nuzic"] .grid-container .soundline::before {
@@ -321,10 +328,24 @@ body[data-visual="nuzic"][data-theme="dark"] .soundline-container .soundline {
    FASE 3: Timeline — fons crema, números centrats
    -------------------------------------------------------------------------- */
 
-/* Musical-grid timeline (dins .grid-container) */
+/* Musical-grid timeline: fons groc expandit visualment sense moure el grid */
 body[data-visual="nuzic"] .grid-container .timeline-wrapper {
+  background: transparent;
+  overflow: visible;
+  position: relative;
+}
+
+body[data-visual="nuzic"] .grid-container .timeline-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -5px;  /* Expandir cap a l'esquerra (cobrir zona soundline) */
+  right: -10px;  /* Expandir una mica a la dreta */
   background: var(--nuzic-yellow-light);
-  border-radius: 0 0 4px 0;
+  border-radius: 4px 0 4px 4px;
+  z-index: -1;
+  pointer-events: none;
 }
 
 body[data-visual="nuzic"] .grid-container .timeline-line {
@@ -352,7 +373,7 @@ body[data-visual="nuzic"] .plano-timeline-number {
    FASE 3: Timeline — dark mode
    -------------------------------------------------------------------------- */
 
-body[data-visual="nuzic"][data-theme="dark"] .grid-container .timeline-wrapper {
+body[data-visual="nuzic"][data-theme="dark"] .grid-container .timeline-wrapper::before {
   background: var(--nuzic-yellow-light);
 }
 
