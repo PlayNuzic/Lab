@@ -13,7 +13,7 @@ Adaptació visual de les Apps 9+ a l'estètica de nuzic_app.
 - [ ] Fase 7: Triangle decoratiu
 - [ ] Fase 8: Opt-in per app (27 apps)
 - [ ] Fase 9: Plano-modular
-- [ ] Fase 10: Dark mode complet
+- [x] **Fase 10**: Dark mode complet — contrast per soundline, timeline, botons, labels
 
 ## Com activar el tema
 

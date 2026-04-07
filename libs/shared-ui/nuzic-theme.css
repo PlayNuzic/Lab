@@ -549,8 +549,73 @@ body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .circle {
 }
 
 
-/* ==========================================================================
-   FASES PENDENTS (no implementades — veure docs/nuzic-theme-roadmap.md)
+/* --------------------------------------------------------------------------
+   FASE 10: Dark mode — overrides addicionals de contrast
+   -------------------------------------------------------------------------- */
 
-   Fase 7: Triangle decoratiu cantonada
-   ========================================================================== */
+/* Soundline numbers: text clar sobre fons rosa fosc */
+body[data-visual="nuzic"][data-theme="dark"] .grid-container .soundline-number {
+  color: var(--nuzic-dark);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .plano-soundline-note {
+  color: var(--nuzic-dark);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .soundline-container .soundline-number {
+  color: var(--nuzic-dark);
+}
+
+/* Timeline numbers: text clar sobre fons crema fosc */
+body[data-visual="nuzic"][data-theme="dark"] .grid-container .pulse-marker {
+  color: var(--nuzic-dark);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-number {
+  color: var(--nuzic-dark);
+}
+
+/* BPM input text: clar sobre fons fosc */
+body[data-visual="nuzic"][data-theme="dark"] .bpm-inline input {
+  color: var(--nuzic-dark);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .abbr {
+  color: var(--nuzic-dark);
+}
+
+/* Cell labels: clar sobre fons fosc */
+body[data-visual="nuzic"][data-theme="dark"] .cell-label,
+body[data-visual="nuzic"][data-theme="dark"] .plano-cell-label,
+body[data-visual="nuzic"][data-theme="dark"] .plano-highlight-label {
+  color: var(--nuzic-dark);
+}
+
+/* Matrix container: fons coherent */
+body[data-visual="nuzic"][data-theme="dark"] .matrix-container {
+  background: transparent;
+}
+
+/* Hover en plano-modular dark */
+body[data-visual="nuzic"][data-theme="dark"] .plano-cell:hover::after {
+  background: var(--nuzic-blue-light);
+}
+
+/* Loop button dark */
+body[data-visual="nuzic"][data-theme="dark"] .loop {
+  border-color: var(--nuzic-grey);
+  color: var(--nuzic-grey);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .loop.active {
+  background: var(--nuzic-green-light);
+  border-color: var(--nuzic-green);
+  color: var(--nuzic-green);
+}
+
+/* Tap button dark */
+body[data-visual="nuzic"][data-theme="dark"] .tap {
+  background: var(--nuzic-light);
+  border-color: var(--nuzic-light);
+  color: var(--nuzic-dark);
+}
