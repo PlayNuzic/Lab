@@ -211,11 +211,159 @@ body[data-visual="nuzic"][data-theme="dark"] .plano-cell.plano-highlight::before
 }
 
 
+/* --------------------------------------------------------------------------
+   FASE 2: Soundline — fons rosa, sense línia vertical, números centrats
+   -------------------------------------------------------------------------- */
+
+/* Musical-grid soundline (dins .grid-container per evitar xocar amb App10) */
+body[data-visual="nuzic"] .grid-container .soundline-wrapper {
+  background: var(--nuzic-pink-light);
+  border-radius: 4px 0 0 0;
+}
+
+body[data-visual="nuzic"] .grid-container .soundline::before {
+  display: none;  /* Amagar línia vertical gruixuda */
+}
+
+body[data-visual="nuzic"] .grid-container .soundline-division {
+  display: none;  /* Amagar ticks horitzontals */
+}
+
+body[data-visual="nuzic"] .grid-container .soundline-number {
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  opacity: 1;
+}
+
+body[data-visual="nuzic"] .grid-container .soundline-number::before {
+  content: '\2013\2002';  /* en-dash + en-space */
+}
+
+body[data-visual="nuzic"] .grid-container .soundline-number::after {
+  content: '\2002\2013';  /* en-space + en-dash */
+}
+
+/* Plano-modular soundline */
+body[data-visual="nuzic"] .plano-soundline-container {
+  background: var(--nuzic-pink-light);
+}
+
+body[data-visual="nuzic"] .plano-soundline-note {
+  justify-content: center;
+  padding-right: 0;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+body[data-visual="nuzic"] .plano-soundline-note::before {
+  content: '\2013\2002';  /* en-dash + en-space */
+}
+
+body[data-visual="nuzic"] .plano-soundline-note::after {
+  content: '\2002\2013';  /* en-space + en-dash */
+}
+
+/* Soundline standalone (App10 — sense .grid-container ni .plano-container) */
+body[data-visual="nuzic"] .soundline-container .soundline {
+  width: 120px;
+  margin: 0 auto;
+  background: var(--nuzic-pink-light);
+  border-radius: 4px;
+  transform: none;
+}
+
+body[data-visual="nuzic"] .soundline-container .soundline::before {
+  display: none;
+}
+
+body[data-visual="nuzic"] .soundline-container .soundline-division {
+  display: none;
+}
+
+body[data-visual="nuzic"] .soundline-container .soundline-number {
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.4rem;
+  opacity: 1;
+}
+
+body[data-visual="nuzic"] .soundline-container .soundline-number::before {
+  content: '\2013\2002';
+}
+
+body[data-visual="nuzic"] .soundline-container .soundline-number::after {
+  content: '\2002\2013';
+}
+
+/* --------------------------------------------------------------------------
+   FASE 2: Soundline — dark mode
+   -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"][data-theme="dark"] .grid-container .soundline-wrapper {
+  background: var(--nuzic-pink-light);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .plano-soundline-container {
+  background: var(--nuzic-pink-light);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .soundline-container .soundline {
+  background: var(--nuzic-pink-light);
+}
+
+
+/* --------------------------------------------------------------------------
+   FASE 3: Timeline — fons crema, números centrats
+   -------------------------------------------------------------------------- */
+
+/* Musical-grid timeline (dins .grid-container) */
+body[data-visual="nuzic"] .grid-container .timeline-wrapper {
+  background: var(--nuzic-yellow-light);
+  border-radius: 0 0 4px 0;
+}
+
+body[data-visual="nuzic"] .grid-container .timeline-line {
+  display: none;  /* Amagar línia horitzontal */
+}
+
+body[data-visual="nuzic"] .grid-container .pulse-marker {
+  background: none;  /* Amagar línia vertical del marcador */
+  font-weight: 700;
+  font-size: 14px;
+  opacity: 1;
+}
+
+/* Plano-modular timeline */
+body[data-visual="nuzic"] .plano-timeline-container {
+  background: var(--nuzic-yellow-light);
+}
+
+body[data-visual="nuzic"] .plano-timeline-number {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* --------------------------------------------------------------------------
+   FASE 3: Timeline — dark mode
+   -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"][data-theme="dark"] .grid-container .timeline-wrapper {
+  background: var(--nuzic-yellow-light);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-container {
+  background: var(--nuzic-yellow-light);
+}
+
+
 /* ==========================================================================
    FASES PENDENTS (no implementades — veure docs/nuzic-theme-roadmap.md)
 
-   Fase 2: Soundline (fons rosa, números centrats amb guions)
-   Fase 3: Timeline (fons crema, pipes | i doble barra ||)
    Fase 5: Botons — play verd petit, +/- pastilla daurada
    Fase 6: BPM inline horitzontal
    Fase 7: Triangle decoratiu cantonada

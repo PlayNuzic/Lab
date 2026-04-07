@@ -6,8 +6,8 @@ Adaptació visual de les Apps 9+ a l'estètica de nuzic_app.
 
 - [x] **Fase 1**: Tokens de color base (light + dark) → `libs/shared-ui/nuzic-theme.css`
 - [x] **Fase 4**: Graella — dots negres visibles + rectangles blau sòlid (light + dark)
-- [ ] Fase 2: Soundline
-- [ ] Fase 3: Timeline
+- [x] **Fase 2**: Soundline — fons rosa, números centrats, `decorateLabels` a soundline.js
+- [x] **Fase 3**: Timeline — fons crema, sense línia horitzontal
 - [ ] Fase 5: Botons
 - [ ] Fase 6: BPM inline
 - [ ] Fase 7: Triangle decoratiu
