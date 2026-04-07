@@ -40,6 +40,9 @@ body[data-visual="nuzic"] {
   /* Override dels tokens compartits del Lab */
   --bg-light: white;
   --selection-color: var(--nuzic-blue-light);
+
+  /* Offset per separar controls de la soundline (ajustable per app) */
+  --nuzic-controls-offset-x: -30px;
 }
 
 body[data-visual="nuzic"][data-theme="light"] {
@@ -381,6 +384,14 @@ body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-container {
   background: var(--nuzic-yellow-light);
 }
 
+
+/* --------------------------------------------------------------------------
+   FASE 5: Controls — offset per separar de la soundline
+   -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"] .controls {
+  transform: translateX(var(--nuzic-controls-offset-x, 0px));
+}
 
 /* --------------------------------------------------------------------------
    FASE 5: Botons — play verd, +/- pastilla daurada, reset/random quadrat
