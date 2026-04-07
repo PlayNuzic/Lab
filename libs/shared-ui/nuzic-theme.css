@@ -56,8 +56,8 @@ body[data-visual="nuzic"][data-theme="dark"] {
   --nuzic-white: #1e1e1e;
   --nuzic-light: #2a2a25;
   --nuzic-dark: #eee8d8;
-  --nuzic-pink-light: #3d2832;
-  --nuzic-yellow-light: #3d3520;
+  --nuzic-pink-light: #ffe5ee;
+  --nuzic-yellow-light: #ffeecc;
   --nuzic-blue-light: #2a4a5a;
   --nuzic-green-light: #1e3d2e;
   --nuzic-red-light: #3d2525;
@@ -553,26 +553,26 @@ body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .circle {
    FASE 10: Dark mode — overrides addicionals de contrast
    -------------------------------------------------------------------------- */
 
-/* Soundline numbers: text clar sobre fons rosa fosc */
+/* Soundline numbers: text fosc sobre fons rosa (identitari, no canvia amb tema) */
 body[data-visual="nuzic"][data-theme="dark"] .grid-container .soundline-number {
-  color: var(--nuzic-dark);
+  color: #43433b;
 }
 
 body[data-visual="nuzic"][data-theme="dark"] .plano-soundline-note {
-  color: var(--nuzic-dark);
+  color: #43433b;
 }
 
 body[data-visual="nuzic"][data-theme="dark"] .soundline-container .soundline-number {
-  color: var(--nuzic-dark);
+  color: #43433b;
 }
 
-/* Timeline numbers: text clar sobre fons crema fosc */
+/* Timeline numbers: text fosc sobre fons crema (identitari, no canvia amb tema) */
 body[data-visual="nuzic"][data-theme="dark"] .grid-container .pulse-marker {
-  color: var(--nuzic-dark);
+  color: #43433b;
 }
 
 body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-number {
-  color: var(--nuzic-dark);
+  color: #43433b;
 }
 
 /* BPM input text: clar sobre fons fosc */
