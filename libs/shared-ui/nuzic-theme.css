@@ -466,9 +466,79 @@ body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .spin.down::before {
 }
 
 
+/* --------------------------------------------------------------------------
+   FASE 6: BPM inline horitzontal — [–] [120] [+] en pastilla
+   -------------------------------------------------------------------------- */
+
+/* Contenidor principal: fila horitzontal */
+body[data-visual="nuzic"] .bpm-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Circle → pastilla rectangular blanca amb el número */
+body[data-visual="nuzic"] .bpm-inline .circle {
+  width: auto;
+  height: 36px;
+  border-radius: 18px;
+  border: 1px solid var(--nuzic-grey);
+  background: var(--nuzic-white);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  order: 2;  /* Al mig: [–] [120] [+] */
+}
+
+body[data-visual="nuzic"] .bpm-inline input {
+  font-size: 1.2rem;
+  width: 50px;
+  height: 100%;
+  font-family: 'Ubuntu', sans-serif;
+}
+
+/* Spinner: horitzontal, posició estàtica, separar up/down */
+body[data-visual="nuzic"] .bpm-inline .spinner {
+  position: static;
+  display: contents;  /* Alliberar els fills al flux del pare */
+  transform: none;
+}
+
+/* Botó down (–) a l'esquerra */
+body[data-visual="nuzic"] .bpm-inline .spin.down {
+  order: 1;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+}
+
+/* Botó up (+) a la dreta */
+body[data-visual="nuzic"] .bpm-inline .spin.up {
+  order: 3;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+}
+
+/* Label BPM a sobre (order 0 = primer) */
+body[data-visual="nuzic"] .bpm-inline .abbr {
+  order: 0;
+  font-size: 0.85rem;
+  margin-right: 0.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   FASE 6: BPM inline — dark mode
+   -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .circle {
+  background: var(--nuzic-white);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+
 /* ==========================================================================
    FASES PENDENTS (no implementades — veure docs/nuzic-theme-roadmap.md)
 
-   Fase 6: BPM inline horitzontal
    Fase 7: Triangle decoratiu cantonada
    ========================================================================== */
