@@ -549,8 +549,44 @@ body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .circle {
 }
 
 
-/* ==========================================================================
-   FASES PENDENTS (no implementades — veure docs/nuzic-theme-roadmap.md)
+/* --------------------------------------------------------------------------
+   FASE 7: Triangle decoratiu — cantonada soundline-timeline
+   -------------------------------------------------------------------------- */
 
-   Fase 7: Triangle decoratiu cantonada
-   ========================================================================== */
+/* Musical-grid: cantonada inferior-esquerra del grid */
+body[data-visual="nuzic"] .grid-container {
+  position: relative;
+}
+
+body[data-visual="nuzic"] .grid-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 40px 0 0 40px;
+  border-color: transparent transparent transparent var(--nuzic-pink-light);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Plano-modular: cantonada inferior-esquerra */
+body[data-visual="nuzic"] .plano-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 40px 0 0 40px;
+  border-color: transparent transparent transparent var(--nuzic-pink-light);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   FASE 7: Triangle — dark mode (mateixos colors, ja redefinits a fase 1)
+   -------------------------------------------------------------------------- */
