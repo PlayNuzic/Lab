@@ -12,7 +12,7 @@ Adaptació visual de les Apps 9+ a l'estètica de nuzic_app.
 - [x] **Fase 6**: BPM inline horitzontal — pastilla [–] [120] [+]
 - [ ] Fase 7: Triangle decoratiu
 - [ ] Fase 8: Opt-in per app (27 apps)
-- [ ] Fase 9: Plano-modular
+- [x] **Fase 9**: Plano-modular (integrat dins fases 2, 3, 4 i 10)
 - [x] **Fase 10**: Dark mode complet — contrast per soundline, timeline, botons, labels
 
 ## Com activar el tema
