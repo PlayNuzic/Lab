@@ -373,21 +373,52 @@ body[data-visual="nuzic"] .plano-timeline-number {
 }
 
 /* Timeline standalone (apps sense .grid-container: app9, app13, App16, App26-31) */
-body[data-visual="nuzic"] .timeline-wrapper:has(.timeline) {
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline) .timeline {
   background: var(--nuzic-yellow-light);
   border-radius: 4px;
+  padding: 10px 20px;
 }
 
-body[data-visual="nuzic"] .timeline-wrapper .timeline-line {
-  display: none;
+/* Números de pulsos: color nuzic fosc */
+body[data-visual="nuzic"] .timeline .pulse-number {
+  color: var(--nuzic-dark);
+  font-weight: 700;
+}
+
+/* Números d'intervals: color nuzic */
+body[data-visual="nuzic"] .timeline .interval-number {
+  color: var(--nuzic-blue);
+  font-weight: 700;
+}
+
+/* Línia horitzontal: color nuzic */
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline) .timeline::before {
+  background: var(--nuzic-dark);
+}
+
+/* Dots de pulsos: color nuzic */
+body[data-visual="nuzic"] .timeline .pulse {
+  background: var(--nuzic-dark) !important;
 }
 
 /* --------------------------------------------------------------------------
    FASE 3: Timeline — dark mode
    -------------------------------------------------------------------------- */
 
-body[data-visual="nuzic"][data-theme="dark"] .timeline-wrapper:has(.timeline) {
+body[data-visual="nuzic"][data-theme="dark"] .timeline-wrapper:has(.timeline) .timeline {
   background: var(--nuzic-yellow-light);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .timeline .pulse-number {
+  color: #43433b;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .timeline .pulse {
+  background: #43433b !important;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .timeline-wrapper:has(.timeline) .timeline::before {
+  background: #43433b;
 }
 
 body[data-visual="nuzic"][data-theme="dark"] .grid-container .timeline-wrapper::before {
