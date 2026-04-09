@@ -402,11 +402,6 @@ body[data-visual="nuzic"] .timeline .pulse-number {
   z-index: 10;
 }
 
-/* Amagar endpoints (les fletxes blaves de principi/fi) */
-body[data-visual="nuzic"] .timeline .pulse-number.endpoint {
-  display: none;
-}
-
 /* Tick a dalt de cada número */
 body[data-visual="nuzic"] .timeline .pulse-number::before {
   content: '';
