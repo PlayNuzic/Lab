@@ -372,9 +372,23 @@ body[data-visual="nuzic"] .plano-timeline-number {
   font-size: 14px;
 }
 
+/* Timeline standalone (apps sense .grid-container: app9, app13, App16, App26-31) */
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline) {
+  background: var(--nuzic-yellow-light);
+  border-radius: 4px;
+}
+
+body[data-visual="nuzic"] .timeline-wrapper .timeline-line {
+  display: none;
+}
+
 /* --------------------------------------------------------------------------
    FASE 3: Timeline — dark mode
    -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"][data-theme="dark"] .timeline-wrapper:has(.timeline) {
+  background: var(--nuzic-yellow-light);
+}
 
 body[data-visual="nuzic"][data-theme="dark"] .grid-container .timeline-wrapper::before {
   background: var(--nuzic-yellow-light);
