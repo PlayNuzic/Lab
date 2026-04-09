@@ -372,33 +372,93 @@ body[data-visual="nuzic"] .plano-timeline-number {
   font-size: 14px;
 }
 
-/* Timeline standalone (apps sense .grid-container: app9, app13, App16, App26-31) */
+/* Timeline standalone (apps sense .grid-container: app9, app13, App16, App26-31)
+   Redisseny complet: fons crema, números centrats, ticks verticals, sense dots ni línia */
+
+/* Fons crema a la timeline */
 body[data-visual="nuzic"] .timeline-wrapper:has(.timeline) .timeline {
   background: var(--nuzic-yellow-light);
   border-radius: 4px;
-  padding: 10px 20px;
 }
 
-/* Números de pulsos: color nuzic fosc */
+/* Amagar línia horitzontal */
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline) .timeline::before {
+  display: none;
+}
+
+/* Amagar dots de pulsos (substituïts pels números) */
+body[data-visual="nuzic"] .timeline .pulse {
+  display: none !important;
+}
+
+/* Números de pulsos: centrats amb les barres i endpoints */
 body[data-visual="nuzic"] .timeline .pulse-number {
   color: var(--nuzic-dark);
   font-weight: 700;
+  font-size: 1.2rem;
+  top: 53% !important;
+  transform: translate(-50%, -80%) !important;
+  opacity: 1;
+  z-index: 10;
 }
 
-/* Números d'intervals: color nuzic */
+/* Amagar endpoints (les fletxes blaves de principi/fi) */
+body[data-visual="nuzic"] .timeline .pulse-number.endpoint {
+  display: none;
+}
+
+/* Tick a dalt de cada número */
+body[data-visual="nuzic"] .timeline .pulse-number::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  width: 1.5px;
+  height: 10px;
+  background: var(--nuzic-dark);
+  opacity: 0.4;
+  margin-bottom: 4px;
+}
+
+/* Tick a baix de cada número */
+body[data-visual="nuzic"] .timeline .pulse-number::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  width: 1.5px;
+  height: 10px;
+  background: var(--nuzic-dark);
+  opacity: 0.4;
+  margin-top: 4px;
+}
+
+/* Highlight de playback: barra daurada que cobreix número + ticks */
+body[data-visual="nuzic"] .timeline .pulse-number.active {
+  color: var(--nuzic-dark);
+  background: var(--nuzic-yellow);
+  border-radius: 2px;
+  padding: 2px 5px;
+  z-index: 15;
+}
+
+body[data-visual="nuzic"] .timeline .pulse-number.active::before,
+body[data-visual="nuzic"] .timeline .pulse-number.active::after {
+  background: var(--nuzic-yellow);
+  opacity: 1;
+  width: 4px;
+  border-radius: 1px;
+}
+
+/* Números d'intervals: blau nuzic, enganxats a les barres */
 body[data-visual="nuzic"] .timeline .interval-number {
   color: var(--nuzic-blue);
   font-weight: 700;
-}
-
-/* Línia horitzontal: color nuzic */
-body[data-visual="nuzic"] .timeline-wrapper:has(.timeline) .timeline::before {
-  background: var(--nuzic-dark);
-}
-
-/* Dots de pulsos: color nuzic */
-body[data-visual="nuzic"] .timeline .pulse {
-  background: var(--nuzic-dark) !important;
+  font-size: 1.2rem;
+  top: 20% !important;
+  opacity: 1;
 }
 
 /* --------------------------------------------------------------------------
@@ -413,12 +473,13 @@ body[data-visual="nuzic"][data-theme="dark"] .timeline .pulse-number {
   color: #43433b;
 }
 
-body[data-visual="nuzic"][data-theme="dark"] .timeline .pulse {
-  background: #43433b !important;
+body[data-visual="nuzic"][data-theme="dark"] .timeline .pulse-number::before,
+body[data-visual="nuzic"][data-theme="dark"] .timeline .pulse-number::after {
+  background: #43433b;
 }
 
-body[data-visual="nuzic"][data-theme="dark"] .timeline-wrapper:has(.timeline) .timeline::before {
-  background: #43433b;
+body[data-visual="nuzic"][data-theme="dark"] .timeline .pulse-number.active {
+  color: #43433b;
 }
 
 body[data-visual="nuzic"][data-theme="dark"] .grid-container .timeline-wrapper::before {

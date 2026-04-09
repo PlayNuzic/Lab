@@ -12,7 +12,7 @@ import {
   layoutHorizontalIntervalBars,
   applyTimelineStyles
 } from '../../libs/app-common/timeline-intervals.js';
-import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+
 
 // ========== ESTADO ==========
 let pulses = [];
@@ -131,7 +131,11 @@ function drawTimeline() {
   layoutLinear();
 
   // Actualizar array de pulsos
-  pulses = Array.from(timeline.querySelectorAll('.pulse'));
+  // Nuzic theme hides .pulse dots — use .pulse-number for highlights instead
+  const isNuzic = document.body.dataset.visual === 'nuzic';
+  pulses = Array.from(timeline.querySelectorAll(
+    isNuzic ? '.pulse-number' : '.pulse'
+  ));
 }
 
 function layoutLinear() {
@@ -469,8 +473,7 @@ function initApp() {
   // Configurar event listeners
   setupEventHandlers();
 
-  // Idle caret flash on BPM circle
-  initIdleCaretFlash({ targets: [document.getElementById('inputBpm')?.closest('.circle')] });
+  // Idle caret flash disabled — not needed for this app
 
   console.log('App9 inicializada correctamente');
 }
