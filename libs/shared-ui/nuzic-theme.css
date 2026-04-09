@@ -41,8 +41,19 @@ body[data-visual="nuzic"] {
   --bg-light: white;
   --selection-color: var(--nuzic-blue-light);
 
-  /* Offset per separar controls de la soundline (ajustable per app) */
+  /* Offset del grup .controls (ajustable per app) */
   --nuzic-controls-offset-x: -30px;
+  --nuzic-controls-offset-y: 0px;
+
+  /* Offsets individuals de botons dins .controls (ajustable per app) */
+  --nuzic-play-offset-x: 0px;
+  --nuzic-play-offset-y: 0px;
+  --nuzic-random-offset-x: 0px;
+  --nuzic-random-offset-y: 0px;
+  --nuzic-reset-offset-x: 0px;
+  --nuzic-reset-offset-y: 0px;
+  --nuzic-loop-offset-x: 0px;
+  --nuzic-loop-offset-y: 0px;
 }
 
 body[data-visual="nuzic"][data-theme="light"] {
@@ -491,7 +502,29 @@ body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-container {
    -------------------------------------------------------------------------- */
 
 body[data-visual="nuzic"] .controls {
-  transform: translateX(var(--nuzic-controls-offset-x, 0px));
+  transform: translate(var(--nuzic-controls-offset-x, 0px), var(--nuzic-controls-offset-y, 0px));
+}
+
+/* Offsets individuals de botons */
+body[data-visual="nuzic"] .play {
+  transform: translate(var(--nuzic-play-offset-x, 0px), var(--nuzic-play-offset-y, 0px));
+}
+
+body[data-visual="nuzic"] .controls:not([data-layout]) .play {
+  /* Quan el play té position:absolute (layout circular), combinar amb el translate original */
+  transform: translate(calc(-50% + var(--nuzic-play-offset-x, 0px)), calc(-50% + var(--nuzic-play-offset-y, 0px)));
+}
+
+body[data-visual="nuzic"] .random {
+  transform: translate(calc(-50% + var(--nuzic-random-offset-x, 0px)), calc(-50% + var(--nuzic-random-offset-y, 0px)));
+}
+
+body[data-visual="nuzic"] .reset {
+  transform: translate(calc(-50% + var(--nuzic-reset-offset-x, 0px)), calc(-50% + var(--nuzic-reset-offset-y, 0px)));
+}
+
+body[data-visual="nuzic"] .loop {
+  transform: translate(calc(-50% + var(--nuzic-loop-offset-x, 0px)), calc(-50% + var(--nuzic-loop-offset-y, 0px)));
 }
 
 /* --------------------------------------------------------------------------
