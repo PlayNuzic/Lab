@@ -384,27 +384,18 @@ function drawTimeline() {
 
   timeline.innerHTML = '';
 
-  // Crear 9 pulsos (0-8)
+  // Crear 9 pulsos (0-8) — dots amagats pel tema nuzic
   for (let i = 0; i <= 8; i++) {
     const pulse = document.createElement('div');
     pulse.className = 'pulse';
-    if (i === 0 || i === 8) pulse.classList.add('endpoint');
     pulse.dataset.index = i;
     timeline.appendChild(pulse);
-
-    // Barres en endpoints
-    if (i === 0 || i === 8) {
-      const bar = document.createElement('div');
-      bar.className = 'bar endpoint';
-      timeline.appendChild(bar);
-    }
   }
 
-  // Números de pulsos (0-8)
+  // Números de pulsos (0-8) — element principal amb tema nuzic
   for (let i = 0; i <= 8; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
-    if (i === 0 || i === 8) num.classList.add('endpoint');
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);
@@ -415,31 +406,13 @@ function drawTimeline() {
 }
 
 function layoutTimeline() {
-  const pulsesElems = timeline.querySelectorAll('.pulse');
-  const bars = timeline.querySelectorAll('.bar');
   const numbers = timeline.querySelectorAll('.pulse-number');
 
-  pulsesElems.forEach((p, i) => {
-    const pct = (i / (TOTAL_PULSES - 1)) * 100;
-    p.style.left = pct + '%';
-    p.style.top = '50%';
-    p.style.transform = 'translate(-50%, -50%)';
-  });
-
-  bars.forEach((bar, idx) => {
-    const i = idx === 0 ? 0 : (TOTAL_PULSES - 1);
-    const pct = (i / (TOTAL_PULSES - 1)) * 100;
-    bar.style.left = pct + '%';
-    bar.style.top = '30%';
-    bar.style.height = '40%';
-  });
-
+  // Posicionar números de pulsos (element principal)
   numbers.forEach(n => {
     const idx = parseInt(n.dataset.index);
     const pct = (idx / (TOTAL_PULSES - 1)) * 100;
     n.style.left = pct + '%';
-    n.style.top = 'calc(50% + 30px)';
-    n.style.transform = 'translate(-50%, 0)';
   });
 }
 
@@ -516,14 +489,14 @@ function clearTimelineBars() {
 }
 
 function highlightPulse(index, active = true) {
-  const pulse = timeline.querySelector(`.pulse[data-index="${index}"]`);
-  if (pulse) {
-    pulse.classList.toggle('active', active);
+  const num = timeline.querySelector(`.pulse-number[data-index="${index}"]`);
+  if (num) {
+    num.classList.toggle('active', active);
   }
 }
 
 function clearPulseHighlights() {
-  timeline.querySelectorAll('.pulse.active').forEach(p => p.classList.remove('active'));
+  timeline.querySelectorAll('.pulse-number.active').forEach(p => p.classList.remove('active'));
 }
 
 // ========== REPRODUCCIÓ ==========
