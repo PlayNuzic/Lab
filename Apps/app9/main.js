@@ -223,10 +223,9 @@ function generate2Notes() {
  * @param {number} midiNumber - Número MIDI (60-71 para registro 4)
  * @param {number} durationSec - Duración en segundos
  */
-function playMelodicNote(midiNumber, durationSec) {
+function playMelodicNote(midiNumber, durationSec, when) {
   if (!audio) return;
-  // Use MelodicTimelineAudio.playNote() - sampler already loaded, no async overhead
-  audio.playNote(midiNumber, durationSec, Tone.now());
+  audio.playNote(midiNumber, durationSec, when);
 }
 
 async function handlePlay() {
@@ -276,31 +275,26 @@ async function handlePlay() {
     selectedPulses,    // Set con índices de pulsos que tienen nota
     false,             // Sin loop
     (step) => {
-      // Callback por cada pulso
+      // onPulse: SOLO feedback visual (nunca programar audio aquí)
       console.log(`Paso ${step}`);
 
       // Iluminar barra de intervalo correspondiente
-      // Pulso N ilumina Intervalo N+1 (pulso 0 → intervalo 1, pulso 1 → intervalo 2, etc.)
       if (step < TOTAL_PULSES - 1) {
         const intervalIndex = step + 1;
         clearIntervalHighlights(timeline, 'interval-bar');
         highlightIntervalBar(timeline, intervalIndex, intervalSec * 1000, 'interval-bar');
       }
 
-      // Verificar si alguna nota empieza en este pulso
+      // Crear barras de duración visuales
       notes.forEach((note) => {
         if (step === note.startPulse) {
-          // Crear barra de duración y guardar referencia en el objeto note
           note.barElement = createDurationBar(note, intervalSec);
-          // Reproducir nota melódica con el instrumento seleccionado
-          playMelodicNote(note.midi, intervalSec * note.duration);
         }
       });
 
-      // Verificar si alguna nota termina en este pulso
+      // Eliminar barras cuando termina la nota
       notes.forEach((note) => {
         if (step === note.startPulse + note.duration - 1) {
-          // Programar eliminación de barra después del pulso
           setTimeout(() => {
             if (note.barElement) {
               note.barElement.remove();
@@ -329,6 +323,16 @@ async function handlePlay() {
         }
       });
       console.log('Metrónomo finalizado');
+    },
+    {
+      onSchedule: (step, when) => {
+        // Proactivo: misma precisión temporal que el metrónomo
+        notes.forEach(note => {
+          if (step === note.startPulse) {
+            playMelodicNote(note.midi, intervalSec * note.duration, when);
+          }
+        });
+      }
     }
   );
 
