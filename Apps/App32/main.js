@@ -753,7 +753,7 @@ function renderTimeline() {
     if (i === 0) pulse.classList.add('startpoint');
     if (i === lg) pulse.classList.add('endpoint');
     timeline.appendChild(pulse);
-    pulses.push(pulse);
+
 
     if (i === 0 || i === lg) {
       const bar = document.createElement('div');
@@ -773,6 +773,7 @@ function renderTimeline() {
     num.textContent = i;
     timeline.appendChild(num);
     pulseNumberLabels.push(num);
+    pulses.push(num);
   }
 
   // Create cycle markers

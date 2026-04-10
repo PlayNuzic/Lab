@@ -9,6 +9,12 @@ html, body {
   overflow: hidden;
 }
 
+/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+body[data-visual="nuzic"] {
+  --nuzic-controls-offset-x: 0px;
+  --nuzic-controls-offset-y: 0px;
+}
+
 #app-root {
   width: 100%;
   height: 100%;

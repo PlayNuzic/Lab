@@ -20,6 +20,12 @@ body.app35 {
   --secondary-row-offset-y: 0px;
 }
 
+/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+body[data-visual="nuzic"] {
+  --nuzic-controls-offset-x: 0px;
+  --nuzic-controls-offset-y: 0px;
+}
+
 /* ========== SUCCESSION-SPECIFIC: PZ ROW ========== */
 .pz-row {
   justify-content: flex-start;

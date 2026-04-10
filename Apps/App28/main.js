@@ -1043,28 +1043,19 @@ function renderTimeline() {
     const pulse = document.createElement('div');
     pulse.className = 'pulse';
     pulse.dataset.index = i;
-    if (i === 0 || i === lg) pulse.classList.add('endpoint');
     timeline.appendChild(pulse);
-    pulses.push(pulse);
 
-    // Create bars at endpoints
-    if (i === 0 || i === lg) {
-      const bar = document.createElement('div');
-      bar.className = 'bar';
-      timeline.appendChild(bar);
-      bars.push(bar);
-    }
   }
 
   // Create pulse numbers (0 to lg)
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
-    if (i === 0 || i === lg) num.classList.add('endpoint');
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);
     pulseNumberLabels.push(num);
+    pulses.push(num);
   }
 
   // Calculate cycle markers using gridFromOrigin

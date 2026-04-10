@@ -710,7 +710,7 @@ function renderTimeline() {
       pulse.classList.add('non-selectable');
     }
     timeline.appendChild(pulse);
-    pulses.push(pulse);
+
 
     if (i === 0 || i === lg) {
       const bar = document.createElement('div');
@@ -735,6 +735,7 @@ function renderTimeline() {
     num.textContent = i;
     timeline.appendChild(num);
     pulseNumberLabels.push(num);
+    pulses.push(num);
   }
 
   // Create cycle labels for integer pulses (like App29)

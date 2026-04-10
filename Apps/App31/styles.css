@@ -12,6 +12,12 @@
   --it-color-4: #F5C6C2;
 }
 
+/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+body[data-visual="nuzic"] {
+  --nuzic-controls-offset-x: 0px;
+  --nuzic-controls-offset-y: 0px;
+}
+
 body[data-theme='light'] {
   --fraction-spinner-color: var(--text-light);
 }
