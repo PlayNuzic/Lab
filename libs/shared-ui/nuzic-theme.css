@@ -55,9 +55,13 @@ body[data-visual="nuzic"] {
   --nuzic-loop-offset-x: 0px;
   --nuzic-loop-offset-y: 0px;
 
-  /* Offset de la fila de botons secundaris (random, reset, etc.) */
-  --nuzic-buttons-row-offset-x: 0px;
-  --nuzic-buttons-row-offset-y: 0px;
+  /* Offset del play-row (play + sound toggles) */
+  --nuzic-play-row-offset-x: 0px;
+  --nuzic-play-row-offset-y: 0px;
+
+  /* Offset del BPM inline */
+  --nuzic-bpm-offset-x: 0px;
+  --nuzic-bpm-offset-y: 0px;
 }
 
 body[data-visual="nuzic"][data-theme="light"] {
@@ -585,11 +589,39 @@ body[data-visual="nuzic"] .controls {
   top: var(--nuzic-controls-offset-y, 0px) !important;
 }
 
-body[data-visual="nuzic"] .control-buttons-row {
-  position: relative;
-  left: var(--nuzic-buttons-row-offset-x, 0px);
-  top: var(--nuzic-buttons-row-offset-y, 0px);
+/* Layout vertical: play centrat, botons secundaris en fila a sota, gap reduït */
+body[data-visual="nuzic"] .controls[data-layout="vertical"] .control-buttons-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
 }
+
+/* Play-row ocupa tota l'amplada per forçar els botons a la fila següent */
+body[data-visual="nuzic"] .controls[data-layout="vertical"] .control-buttons-row .play-row {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.25rem;
+}
+
+/* Reduir gaps dels controls verticals */
+body[data-visual="nuzic"] .controls[data-layout="vertical"] {
+  gap: 0.5rem !important;
+}
+
+body[data-visual="nuzic"] .control-buttons-row {
+  gap: 0.5rem !important;
+}
+
+/* Play-row ajustable */
+body[data-visual="nuzic"] .play-row {
+  position: relative;
+  left: var(--nuzic-play-row-offset-x, 0px);
+  top: var(--nuzic-play-row-offset-y, 0px);
+}
+
 
 /* Offsets individuals de botons */
 body[data-visual="nuzic"] .play {
@@ -722,11 +754,14 @@ body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .spin.down::before {
    FASE 6: BPM inline horitzontal — BPM [–] 120 [+] en pastilla
    -------------------------------------------------------------------------- */
 
-/* Contenidor principal: fila horitzontal */
+/* Contenidor principal: fila horitzontal + posició ajustable */
 body[data-visual="nuzic"] .bpm-inline {
   flex-direction: row;
   align-items: center;
   gap: 0.35rem;
+  position: relative;
+  left: var(--nuzic-bpm-offset-x, 0px);
+  top: var(--nuzic-bpm-offset-y, 0px);
 }
 
 /* Circle → pastilla que conté [–] 120 [+] dins */
