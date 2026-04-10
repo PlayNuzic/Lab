@@ -45,7 +45,8 @@ body[data-visual="nuzic"] {
 .timeline-wrapper {
   width: 100%;
   max-width: 600px;
-  height: 500px;
+  height: 70vh;
+  max-height: 600px;
   margin: 0 auto;
   position: relative;
   z-index: 1;
@@ -90,18 +91,13 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   border-radius: 2px;
 }
 
-/* Soundline més alta */
-.timeline-wrapper {
-  height: 70vh;
-  max-height: 600px;
-}
-
 /* Note highlights */
 .note-highlight {
   position: absolute;
   width: 80px;
   height: 8.33%;
   left: 55%;
+  background: var(--note-highlight-color);
   opacity: 0;
   border-radius: 4px;
   transition: opacity 0.15s ease;
