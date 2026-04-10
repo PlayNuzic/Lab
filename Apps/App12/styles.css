@@ -1,4 +1,4 @@
-/* App12: Plano-Sucesión - Step Sequencer Styles */
+/* App12: Plano-Sucesión - Nuzic Theme Styles */
 
 /* Import shared module styles */
 @import url('../../libs/matrix-seq/grid-editor.css');
@@ -7,84 +7,28 @@
 
 /* Variables CSS */
 :root {
-  --line-color: #666;
-  --soundline-width: 3px;
-  --timeline-height: 2px;
-  --cell-highlight-color: #7CD6B3;
-  --pulse-marker-height: 15px;
-  --note-highlight-color: #7BB4CD;
-
-  /* Z-index system */
-  --z-base: 1;           /* Base elements: lines, markers */
-  --z-content: 5;        /* Content elements: cells, numbers */
-  --z-interactive: 10;   /* Interactive elements: hover/focus states */
-  --z-active: 20;        /* Active/playing states */
-  --z-overlay: 100;      /* Overlays: tooltips, modals */
-
-  /* App12 2-row layout customization */
-  --col-left: 250px;
+  /* App12 2-row layout */
+  --col-left: 200px;
   --col-left-tablet: 100px;
   --col-left-mobile: 80px;
   --col-left-small: 70px;
   --col-left-tiny: 60px;
+  --layout-gap: 0.5rem;
   --controls-padding-top: 0px;
   --controls-margin: 5px;
   --controls-inner-margin: 0;
   --controls-justify: center;
-  --buttons-align: center;
-  --layout-gap: 0.5rem;
-
-  /* Toggle positioning for satellite button */
-  --toggle-pulse-offset-x: -1px;
-  --toggle-pulse-offset-y: -70px;
-
-  /* Controls vertical gap */
-  --controls-vertical-gap: 0.5rem;
-
-  /* Fine-tuning: Play button position */
-  --play-offset-x: -16px;
-  --play-offset-y: 30px;
-
-  /* Fine-tuning: Secondary buttons (random, reset) position */
-  --buttons-row-offset-x: -165px;
-  --buttons-row-offset-y: 30px;
-  --buttons-row-gap: 0.5rem;
-
-  /* BPM tuning (inside app12-controls-container) */
-  --bpm-offset-x: 100px;
-  --bpm-offset-y: -150px;
-  --bpm-scale: 1;
-  --bpm-gap: 18px;
 
   /* iframe fallback min-height */
   --grid-min-height: 400px;
 }
 
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+/* Nuzic theme overrides */
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: -25px;
   --nuzic-controls-offset-y: 0px;
-}
-
-/* BPM inline input container */
-.inputs {
-  display: block;
-  padding: 0;
-  margin: 0;
-  min-height: 0;
-}
-.inputs .bpm-inline {
-  position: static;
-}
-
-/* App12 requirement: active corner dots use pink */
-.musical-cell.active .np-dot::after {
-  background: #F5C6C2;
-  border-color: #F5C6C2;
-  box-shadow:
-    0 0 8px #F5C6C2,
-    0 0 16px #F5C6C2,
-    0 0 24px color-mix(in srgb, #F5C6C2 60%, transparent);
+  --nuzic-bpm-offset-x: -70px;
+  --nuzic-bpm-offset-y: -90px;
 }
 
 [data-theme="dark"] {
@@ -129,13 +73,11 @@ html, body {
 }
 
 /* ========== APP12 MAIN GRID: 2-ROW LAYOUT ========== */
-/* Row 1: Grid Editor (full width)
-   Row 2: Controls (left) + Musical Grid (right) */
 .app12-main-grid {
   flex: 1;
   display: grid;
   grid-template-rows: auto 1fr;
-  grid-template-columns: var(--col-left, 150px) 1fr;
+  grid-template-columns: var(--col-left, 200px) 1fr;
   gap: var(--layout-gap, 0.5rem);
   width: 100%;
   min-height: 0;
@@ -155,17 +97,21 @@ html, body {
   grid-column: 1;
   grid-row: 2;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: 10px;
 }
 
-.app12-controls-container .bpm-inline {
-  position: relative;
-  flex-shrink: 0;
-  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
-  transform-origin: top center;
-  margin-right: var(--bpm-gap);
-  z-index: var(--z-interactive);
+/* BPM inline: posició estàtica dins el contenidor */
+.inputs {
+  display: block;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+}
+.inputs .bpm-inline {
+  position: static;
 }
 
 /* Musical grid fills bottom-right */
@@ -173,24 +119,24 @@ html, body {
   grid-column: 2;
   grid-row: 2;
   position: relative !important;
-  top: 60px;
-  left: -120px;
   width: 100% !important;
   height: 100% !important;
   min-height: var(--grid-min-height, 300px);
   min-width: 0;
 }
 
-/* ========== SOUNDLINE & TIMELINE NUMBER ALIGNMENT ========== */
-/* Unify font sizes between soundline and timeline numbers */
-.soundline-number,
-.pulse-marker {
-  font-size: 1.4rem;
+/* Hide Loop and Tap Tempo buttons */
+#loopBtn, .loop, .controls .loop,
+.bpm-display, #tapTempoBtn {
+  display: none !important;
 }
 
-/* ========== SEQUENCES CONTAINER ========== */
-/* .sequences-container removed - element doesn't exist in DOM (orphaned CSS) */
+/* Hide Pulse toggle */
+.app12-controls-container #pulseToggleBtn {
+  display: none !important;
+}
 
+/* ========== GRID EDITOR (seq-input) ========== */
 .seq-wrapper {
   display: flex;
   align-items: center;
@@ -199,24 +145,23 @@ html, body {
 }
 
 .seq-input {
-  width: fit-content;          /* Shrink to content width */
-  max-width: 100%;             /* Prevent overflow beyond parent */
-  margin: 0 auto;              /* Center horizontally */
-  overflow-x: auto;            /* Enable horizontal scroll */
-  overflow-y: visible;         /* Tooltips can overflow vertically */
-  justify-content: flex-start; /* Content aligns left within container */
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  overflow-x: auto;
+  overflow-y: visible;
+  justify-content: flex-start;
   min-height: 50px;
-  font-size: 2.25rem; /* Reduced 25% from 3rem for consistency */
+  font-size: 2.25rem;
   font-family: 'Courier New', monospace;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 20px;             /* Add horizontal padding */
-  position: relative;          /* For absolute tooltips */
+  padding: 0 20px;
+  position: relative;
   box-sizing: border-box;
 }
 
-/* Pulse-seq styling for N and P inputs */
 .seq-input .pz {
   display: inline;
 }
@@ -263,75 +208,6 @@ html, body {
   font-style: italic;
 }
 
-/* ========== MAIN CONTAINER ========== */
-.plane-wrapper {
-  width: calc(100% - 60px);
-  margin: 20px 60px;
-  min-height: 60vh;
-  position: relative;
-}
-
-/* Note: Grid2D styles now imported from libs/musical-grid/musical-grid.css */
-
-/* ========== HEADER CONTROLS ========== */
-.header-controls {
-  display: flex !important;
-  gap: 10px;
-  align-items: center;
-}
-
-/* Ensure reset and random buttons are clickable */
-.app12-controls-container .reset,
-.app12-controls-container .random {
-  z-index: 10 !important;  /* Below overlays (mixer=12) but above base content */
-  pointer-events: auto !important;
-  position: relative;
-}
-
-/* Preserve concentric circle layout */
-.app12-controls-container .controls {
-  position: relative;
-  /* Template's original layout is preserved */
-}
-
-/* Play-row: centered in grid cell */
-.app12-controls-container .play-row {
-  position: static;
-  transform: none;
-  margin: 0;
-}
-
-/* Hide Loop button */
-#loopBtn,
-.loop,
-.controls .loop {
-  display: none !important;
-}
-
-/* Hide BPM display and Tap Tempo button */
-.bpm-display,
-#tapTempoBtn {
-  display: none !important;
-}
-
-/* WARNING TOOLTIPS: Now using shared styles from libs/shared-ui/index.css (.hover-tip.validation-warning) */
-
-.bpm-display {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-color, #333);
-  padding: 8px 15px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  min-width: 90px;
-  text-align: center;
-}
-
-[data-theme="dark"] .bpm-display {
-  color: var(--text-dark, #e0e0e0);
-  background: rgba(255, 255, 255, 0.05);
-}
-
 /* ========== SEQUENCE NUMBER HIGHLIGHTS ========== */
 .seq-input .pz.number {
   position: relative;
@@ -348,107 +224,16 @@ html, body {
   font-weight: 700;
   transform: scale(1.15);
   box-shadow: 0 0 8px var(--select-color, #FFBB33);
-  z-index: var(--z-interactive);
 }
 
-/* ========== APP12-SPECIFIC LAYOUT CUSTOMIZATIONS ========== */
-/* App12-specific control spacing overrides */
-.app12-controls-container .controls[data-layout="vertical"] {
-  display: flex;
-  flex-direction: column;
-  gap: var(--controls-vertical-gap, 0.5rem);
-  align-items: center;
-}
+/* ========== RESPONSIVE ========== */
 
-/* control-buttons-row: CSS Grid for 2-row layout */
-/* Row 1: play-row (centered) | Row 2: random + reset (horizontal) */
-.app12-controls-container .control-buttons-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto auto;
-  gap: 0.8rem;
-  justify-items: center;
-  align-items: center;
-}
-
-/* play-row spans both columns, centered */
-.app12-controls-container .play-row {
-  grid-column: 1 / -1;
-  grid-row: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  /* Fine-tuning via CSS variables */
-  transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0));
-}
-
-.app12-controls-container #playBtn {
-  margin: 0 !important;
-}
-
-/* Random and Reset in row 2, side by side */
-.app12-controls-container .random {
-  grid-column: 1;
-  grid-row: 2;
-  justify-self: end;
-  /* Fine-tuning via CSS variables */
-  transform: translate(var(--buttons-row-offset-x, 0), var(--buttons-row-offset-y, 0));
-  margin-right: calc(var(--buttons-row-gap, 0.5rem) / 2);
-}
-
-.app12-controls-container .reset {
-  grid-column: 2;
-  grid-row: 2;
-  justify-self: start;
-  /* Fine-tuning via CSS variables */
-  transform: translate(var(--buttons-row-offset-x, 0), var(--buttons-row-offset-y, 0));
-  margin-left: calc(var(--buttons-row-gap, 0.5rem) / 2);
-}
-
-/* Pulse toggle hidden */
-.app12-controls-container #pulseToggleBtn {
-  display: none !important;
-}
-
-/* ========== RESPONSIVE ADAPTATIONS ========== */
-
-/* Desktop sizes (explicit baseline for overrides) */
-.app12-controls-container .play {
-  width: 80px;
-  height: 80px;
-  font-size: 2rem;
-}
-
-.app12-controls-container .play svg {
-  width: 50%;
-  height: 50%;
-}
-
-.app12-controls-container .random,
-.app12-controls-container .reset,
-.app12-controls-container .tap {
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
-}
-
-.app12-controls-container .random svg,
-.app12-controls-container .reset svg,
-.app12-controls-container .tap svg {
-  width: 100%;
-  height: 100%;
-}
-
-/* ========== LANDSCAPE ORIENTATION WARNING (Portrait Mode) ========== */
+/* Landscape orientation warning */
 @media (max-width: 768px) and (orientation: portrait) {
   body::before {
     content: '⟲ Por favor, gira tu dispositivo para usar esta aplicación';
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.95);
     color: white;
     display: flex;
@@ -460,328 +245,55 @@ html, body {
     z-index: 9999;
     padding: 20px;
   }
-
-  /* Hide app content in portrait mode */
-  #app-root {
-    display: none !important;
-  }
+  #app-root { display: none !important; }
 }
 
-/* ========== MINIMUM SCREEN SIZE WARNING (Landscape <600px) ========== */
-@media (max-width: 600px) and (orientation: landscape) {
-  body::before {
-    content: '📱 Esta aplicación requiere una pantalla más grande';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-size: 1.2rem;
-    font-weight: 600;
-    z-index: 9999;
-    padding: 20px;
-  }
-
-  #app-root {
-    display: none !important;
-  }
-}
-
-/* ========== TABLET (≤ 900px) ========== */
 @media (max-width: 900px) {
-  :root {
-    --play-offset-x: -12px;
-    --play-offset-y: 18px;
-    --buttons-row-offset-x: -115px;
-    --buttons-row-offset-y: 18px;
-    --bpm-offset-x: 70px;
-    --bpm-offset-y: -14px;
-    --bpm-scale: 0.88;
-    --bpm-gap: 10px;
-  }
-
-  /* Reduce padding and margins for tighter layout */
   .app12-main-grid {
     grid-template-columns: var(--col-left-tablet, 100px) 1fr;
     gap: 0.4rem;
     padding: 0.4rem;
   }
 
-  .app12-controls-container {
-    margin: 8px;
-    margin-bottom: 1.5rem;
-  }
+  .seq-input { font-size: 1.8rem; gap: 8px; padding: 0 12px; }
 
-  /* Scale ALL controls 35% smaller - center origin prevents left overflow */
-  .app12-controls-container .controls {
-    transform: scale(0.65);
-    transform-origin: top center;
-  }
-
-  .app12-controls-container #playBtn {
-    margin-left: 0 !important;
-  }
-
-  .app12-controls-container .control-sound-toggles {
-    margin-left: 0 !important;
-  }
-
-  .app12-controls-container .button-row {
-    margin-left: 0 !important;
-  }
-
-  .plane-wrapper {
-    width: calc(100% - 20px);
-    margin: 10px;
-  }
-
-  /* Compact grid-editor with scroll enabled */
-  #gridEditorContainer {
-    font-size: 1.4rem !important;
-  }
-
-  .matrix-grid-editor {
-    font-size: 1.4rem !important;
-    margin: 10px 20px !important;
-    padding: 10px !important;
-    gap: 4px !important;
-  }
-
-  .grid-row-label {
-    font-size: 1.4rem !important;
-  }
-
-  .note-input,
-  .pulse-input {
-    font-size: 1.4rem !important;
-    width: 40px !important;
-    padding: 4px 6px !important;
-  }
-
-  .grid-label-column {
-    padding: 5px 8px !important;
-  }
-
-  /* CRITICAL: Force scroll mode in grid-editor for mobile */
-  .matrix-grid-editor--scrollable {
-    max-height: 180px !important;
-    overflow: auto !important;
-  }
-
-  .grid-columns-container--scrollable {
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-  }
-
-  .matrix-grid-editor--scrollable .pulse-column {
-    flex-shrink: 0 !important;
-    width: 80px !important;
-    min-height: 150px !important;
-  }
-
-  /* Musical-grid container - balance size vs control overlap */
-  .grid-container {
-    height: 50vh !important;
-    max-height: calc(100vh - 280px) !important;
-    gap: 10px !important;
-    grid-template-columns: 80px 1fr !important;
-  }
-
-  /* Reduce grid offset for smaller screens */
-  .app12-main-grid > .grid-container {
-    top: 30px;
-    left: -60px;
-  }
-
-  .soundline-number,
-  .pulse-marker {
-    font-size: 1rem !important;
-  }
+  #gridEditorContainer { font-size: 1.4rem !important; }
+  .matrix-grid-editor { font-size: 1.4rem !important; margin: 10px 20px !important; padding: 10px !important; gap: 4px !important; }
+  .grid-row-label { font-size: 1.4rem !important; }
+  .note-input, .pulse-input { font-size: 1.4rem !important; width: 40px !important; padding: 4px 6px !important; }
+  .grid-label-column { padding: 5px 8px !important; }
+  .matrix-grid-editor--scrollable { max-height: 180px !important; overflow: auto !important; }
+  .grid-columns-container--scrollable { flex-wrap: nowrap !important; overflow-x: auto !important; }
+  .matrix-grid-editor--scrollable .pulse-column { flex-shrink: 0 !important; width: 80px !important; min-height: 150px !important; }
 }
 
-/* ========== MOBILE (≤ 768px) ========== */
-@media (max-width: 768px) {
-  :root {
-    --play-offset-x: -10px;
-    --play-offset-y: 12px;
-    --buttons-row-offset-x: -90px;
-    --buttons-row-offset-y: 14px;
-    --bpm-offset-x: 50px;
-    --bpm-offset-y: -8px;
-    --bpm-scale: 0.82;
-    --bpm-gap: 8px;
-  }
-
-  .app12-main-grid {
-    grid-template-columns: var(--col-left-mobile, 80px) 1fr;
-    gap: 0.3rem;
-    padding: 0.3rem;
-  }
-
-  .app12-controls-container {
-    margin: 6px;
-    margin-bottom: 1.2rem;
-  }
-
-  /* Reduce seq-input font size for mobile */
-  .seq-input {
-    font-size: 1.8rem;
-    gap: 8px;
-    padding: 0 12px;
-  }
-
-  /* Reduce grid offset further */
-  .app12-main-grid > .grid-container {
-    top: 20px;
-    left: -40px;
-  }
-
-  /* Controls scale inherited from 900px breakpoint */
-}
-
-/* ========== SMALL SCREENS (≤ 600px) ========== */
 @media (max-width: 600px) {
-  :root {
-    --play-offset-x: -8px;
-    --play-offset-y: 8px;
-    --buttons-row-offset-x: -70px;
-    --buttons-row-offset-y: 10px;
-    --bpm-offset-x: 35px;
-    --bpm-offset-y: -4px;
-    --bpm-scale: 0.76;
-    --bpm-gap: 6px;
-  }
-
   .app12-main-grid {
     grid-template-columns: var(--col-left-small, 70px) 1fr;
     gap: 0.25rem;
     padding: 0.25rem;
   }
-
-  .app12-controls-container {
-    margin: 5px;
-    margin-bottom: 1.1rem;
-  }
-
-  /* Remove grid offset on small screens */
-  .app12-main-grid > .grid-container {
-    top: 10px;
-    left: -20px;
-  }
-
-  /* Controls scale inherited from 900px breakpoint */
 }
 
-/* ========== TINY MOBILE (≤ 480px) ========== */
 @media (max-width: 480px) {
-  :root {
-    --play-offset-x: -6px;
-    --play-offset-y: 6px;
-    --buttons-row-offset-x: -55px;
-    --buttons-row-offset-y: 8px;
-    --bpm-offset-x: 22px;
-    --bpm-offset-y: -2px;
-    --bpm-scale: 0.72;
-    --bpm-gap: 4px;
-  }
-
   .app12-main-grid {
     grid-template-columns: var(--col-left-tiny, 60px) 1fr;
     gap: 0.2rem;
     padding: 0.2rem;
   }
 
-  .app12-controls-container {
-    margin: 5px;
-    margin-bottom: 1rem;
-  }
-
-  /* Reduce plane-wrapper margins for more space */
-  .plane-wrapper {
-    width: calc(100% - 20px);
-    margin: 10px;
-  }
-
-  /* No grid offset on tiny screens */
-  .app12-main-grid > .grid-container {
-    top: 0;
-    left: 0;
-  }
-
-  /* Controls scale inherited from 900px breakpoint */
+  .seq-input { font-size: 1.5rem; }
+  .seq-input .pz.edit { min-width: unset; max-width: 85vw; padding: 6px 10px; }
+  #gridEditorContainer { font-size: 1rem !important; }
+  .matrix-grid-editor { font-size: 1rem !important; margin: 6px 12px !important; padding: 6px !important; gap: 2px !important; }
+  .grid-row-label { font-size: 1rem !important; }
+  .note-input, .pulse-input { font-size: 1rem !important; width: 32px !important; padding: 2px 4px !important; }
 }
 
-/* ========== ULTRA COMPACT (≤ 400px) ========== */
 @media (max-width: 400px) {
   .app12-main-grid {
     grid-template-columns: 50px 1fr;
     gap: 0.15rem;
     padding: 0.15rem;
   }
-
-  .app12-controls-container {
-    margin: 3px;
-    margin-bottom: 0.8rem;
-  }
-
-  /* Prevent horizontal overflow on seq-input */
-  .seq-input {
-    font-size: 1.5rem;
-  }
-
-  .seq-input .pz.edit {
-    min-width: unset;
-    max-width: 85vw;
-    padding: 6px 10px;
-  }
-
-  /* Controls scale inherited from 900px breakpoint */
-
-  /* Grid-editor ultra-compact */
-  #gridEditorContainer {
-    font-size: 1rem !important;
-  }
-
-  .matrix-grid-editor {
-    font-size: 1rem !important;
-    margin: 6px 12px !important;
-    padding: 6px !important;
-    gap: 2px !important;
-  }
-
-  .grid-row-label {
-    font-size: 1rem !important;
-  }
-
-  .note-input,
-  .pulse-input {
-    font-size: 1rem !important;
-    width: 32px !important;
-    padding: 2px 4px !important;
-  }
-}
-
-/* ========== MUSICAL GRID LANDSCAPE (≤ 480px) ========== */
-@media (max-width: 480px) and (orientation: landscape) {
-  /* Even smaller for tiny screens */
-  .grid-container {
-    height: 35vh !important;
-    max-height: 300px !important;
-    gap: 8px !important;
-    grid-template-columns: 80px 1fr !important;
-  }
-
-  .soundline-number,
-  .pulse-marker {
-    font-size: 0.85rem !important;
-  }
-
-  /* Note: Cell label hidden on landscape via musical-grid.css
-     @media (max-width: 480px) and (orientation: landscape) rule */
 }
