@@ -207,8 +207,10 @@ async function handlePlay() {
         }, 1000);
       }, 1000);
 
-      // Clear timeline pulse highlight
-      document.querySelectorAll('.pulse-marker.highlighted').forEach(el => el.classList.remove('highlighted'));
+      // Clear timeline pulse highlight (delay to show last pulse)
+      setTimeout(() => {
+        document.querySelectorAll('.pulse-marker.highlighted').forEach(el => el.classList.remove('highlighted'));
+      }, 500);
 
       // Reset state immediately (don't wait for animation)
       isPlaying = false;
