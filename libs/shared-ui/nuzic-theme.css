@@ -387,13 +387,13 @@ body[data-visual="nuzic"] .plano-timeline-number {
    Redisseny complet: fons crema, números centrats, ticks verticals, sense dots ni línia */
 
 /* Fons crema a la timeline */
-body[data-visual="nuzic"] .timeline-wrapper:has(.timeline) .timeline {
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline {
   background: var(--nuzic-yellow-light);
   border-radius: 4px;
 }
 
 /* Amagar línia horitzontal */
-body[data-visual="nuzic"] .timeline-wrapper:has(.timeline) .timeline::before {
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline::before {
   display: none;
 }
 
@@ -471,7 +471,7 @@ body[data-visual="nuzic"] .timeline .interval-number {
    FASE 3: Timeline — dark mode
    -------------------------------------------------------------------------- */
 
-body[data-visual="nuzic"][data-theme="dark"] .timeline-wrapper:has(.timeline) .timeline {
+body[data-visual="nuzic"][data-theme="dark"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline {
   background: var(--nuzic-yellow-light);
 }
 
