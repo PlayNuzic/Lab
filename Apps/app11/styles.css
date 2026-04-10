@@ -6,37 +6,14 @@
 
 /* Variables CSS */
 :root {
-  --cell-highlight-color: #7CD6B3;
-  --note-highlight-color: #7CD6B3;
-  --z-active: 20;
-
-  /* Play button fine-tuning */
-  --play-size: 80px;
-  --play-font-size: 2rem;
-  --play-offset-x: 0px;
-  --play-offset-y: -90px;
-
-  /* Pulse toggle positioning (satellite button) */
-  --toggle-pulse-offset-x: 0px;
-  --toggle-pulse-offset-y: -80px;
-
-  /* TwoColumnLayout customization - wider for PULSO button */
-  --col-left: 240px;
+  --col-left: 120px;
   --col-left-tablet: 100px;
   --col-left-mobile: 90px;
-  --col-left-small: 80px;
-  --col-left-tiny: 70px;
-  --col-left-ultra: 60px;
   --controls-padding-top: 0px;
   --controls-margin: 10px;
-  --controls-inner-margin: 10px;
   --controls-justify: center;
   --layout-gap: 0.5rem;
-
-  /* iframe fallback min-height */
   --grid-min-height: 400px;
-
-  /* Grid padding for soundline visibility */
   --grid-padding-right: 60px;
 }
 
@@ -106,8 +83,7 @@ html, body {
   overflow: hidden;
 }
 
-/* ========== APP11-SPECIFIC OVERRIDES ========== */
-/* Center controls vertically and horizontally */
+/* Controls: static positioning per nuzic theme */
 .app11-controls-container {
   display: flex !important;
   align-items: center !important;
@@ -116,53 +92,22 @@ html, body {
   margin: 0 !important;
 }
 
-.app11-controls-container .controls[data-layout="vertical"] {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.app11-controls-container .controls {
+  position: relative;
   width: auto;
   height: auto;
-  margin: 0;
-  position: relative;
 }
 
-/* Play-row contains play button + sound toggles */
 .app11-controls-container .play-row {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  position: static;
+  transform: none;
   margin: 0;
-  /* Fine-tuning offsets applied to entire play-row */
-  transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0));
 }
 
-/* Play button above toggles */
-.app11-controls-container .play-row > #playBtn {
-  z-index: 2;
-}
-
-/* Sound toggles positioned below play button, overlapping into its space */
-.app11-controls-container .play-row > .control-sound-toggles {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: var(--sound-toggles-offset-y, -20px);
-  z-index: 1;
-  pointer-events: auto;
-}
-
-/* Override shared-ui margins for tighter spacing */
 .app11-controls-container #playBtn {
   margin: 0 !important;
 }
 
-.app11-controls-container .button-row {
-  margin: 0 !important;
-}
-
-/* Pulse toggle hidden */
 .app11-controls-container #pulseToggleBtn {
   display: none !important;
 }
@@ -228,113 +173,7 @@ html, body {
   margin: 20px auto;
 }
 
-/* ========== RESPONSIVE BUTTON ADAPTATIONS ========== */
-
-/* Desktop sizes - use CSS variables for fine-tuning */
-.app11-controls-container .play {
-  width: var(--play-size, 80px);
-  height: var(--play-size, 80px);
-  font-size: var(--play-font-size, 2rem);
-}
-
-.app11-controls-container .play svg {
-  width: 50%;
-  height: 50%;
-}
-
-/* Responsive button sizes handled by shared-ui */
-
-/* ========== RESPONSIVE BREAKPOINTS ========== */
-
-/* Tablet Landscape (900px) */
-@media (max-width: 900px) {
-  :root {
-    --controls-padding-top: 15px;
-    --controls-margin: 8px;
-    --controls-inner-margin: 8px;
-    --layout-gap: 0.4rem;
-    --sound-toggles-offset-y: 8px;
-  }
-
-  .app11-controls-container .play {
-    width: 65px;
-    height: 65px;
-    font-size: 1.6rem;
-  }
-}
-
-/* Tablet Portrait (768px) */
-@media (max-width: 768px) {
-  :root {
-    --controls-padding-top: 10px;
-    --controls-margin: 5px;
-    --controls-inner-margin: 5px;
-    --layout-gap: 0.3rem;
-    --sound-toggles-offset-y: 6px;
-  }
-
-  .app11-controls-container .play {
-    width: 55px;
-    height: 55px;
-    font-size: 1.4rem;
-  }
-}
-
-/* Mobile (600px) */
-@media (max-width: 600px) {
-  :root {
-    --controls-padding-top: 8px;
-    --controls-margin: 4px;
-    --controls-inner-margin: 4px;
-    --layout-gap: 0.25rem;
-    --sound-toggles-offset-y: 5px;
-  }
-
-  .app11-controls-container .play {
-    width: clamp(50px, 20vw, 60px);
-    height: clamp(50px, 20vw, 60px);
-    font-size: clamp(1rem, 3vw, 1.4rem);
-  }
-
-  .app11-controls-container .play svg {
-    width: 55%;
-    height: 55%;
-  }
-}
-
-/* Mobile Landscape (480px) */
-@media (max-width: 480px) {
-  :root {
-    --controls-padding-top: 5px;
-    --controls-margin: 3px;
-    --controls-inner-margin: 3px;
-    --layout-gap: 0.2rem;
-    --sound-toggles-offset-y: 4px;
-  }
-
-  .app11-controls-container .play {
-    width: clamp(45px, 18vw, 55px);
-    height: clamp(45px, 18vw, 55px);
-    font-size: 0.9rem;
-  }
-}
-
-/* Ultra-small (400px) */
-@media (max-width: 400px) {
-  :root {
-    --controls-padding-top: 3px;
-    --controls-margin: 2px;
-    --controls-inner-margin: 2px;
-    --layout-gap: 0.15rem;
-    --sound-toggles-offset-y: 3px;
-  }
-
-  .app11-controls-container .play {
-    width: 40px;
-    height: 40px;
-    font-size: 0.8rem;
-  }
-}
+/* Button sizes handled by nuzic-theme */
 
 /* ========== PORTRAIT ORIENTATION WARNING ========== */
 @media (max-width: 768px) and (orientation: portrait) {

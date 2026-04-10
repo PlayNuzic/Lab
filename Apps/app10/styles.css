@@ -1,46 +1,35 @@
-/* App10: Línea Sonora - Estilos */
+/* App10: Línea Sonora - Nuzic Theme Styles */
 
-/* ========== IFRAME COMPATIBILITY ========== */
-/* Només reset de marges - NO canviem l'estructura flex del template */
 html, body {
   margin: 0;
   padding: 0;
 }
 
-/* ========== CSS VARIABLES ========== */
 :root {
-  --line-color: #666;
-  --soundline-width: 3px;
   --note-highlight-color: #7CD6B3;
-
-  /* Soundline sizing and positioning (matching App14) */
-  --soundline-height: 100%;
-  --soundline-offset-x: 35px;
-  --timeline-offset-y: -30px;
 }
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+
+/* Nuzic theme overrides */
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 0px;
   --nuzic-controls-offset-y: 50px;
 }
+
 [data-theme="dark"] {
   --line-color: #999;
 }
 
-/* ========== START OVERLAY (from App6) ========== */
+/* Start overlay */
 .start-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0; width: 100%; height: 100%;
   background: transparent;
   z-index: 100;
   cursor: pointer;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 35vh; /* Alinear con la soundline */
+  padding-top: 35vh;
   font-size: 1.5rem;
   color: var(--line-color);
   opacity: 0.3;
@@ -48,18 +37,10 @@ body[data-visual="nuzic"] {
   pointer-events: auto;
 }
 
-.start-overlay:hover {
-  opacity: 0.6;
-}
+.start-overlay:hover { opacity: 0.6; }
+.start-overlay.hidden { display: none; }
 
-.start-overlay.hidden {
-  display: none;
-}
-
-/* ========== TWO-COLUMN LAYOUT CUSTOMIZATION ========== */
-/* Controls se insertan directamente (patrón App14, sin wrapper) */
-
-/* ========== SOUNDLINE WRAPPER ========== */
+/* Soundline wrapper */
 .timeline-wrapper {
   width: 100%;
   max-width: 600px;
@@ -67,7 +48,6 @@ body[data-visual="nuzic"] {
   margin: 0 auto;
   position: relative;
   z-index: 1;
-  opacity: 1 !important;
   padding: 20px 40px;
   display: flex;
   flex-direction: column;
@@ -75,90 +55,32 @@ body[data-visual="nuzic"] {
   justify-content: center;
 }
 
-/* Soundline container (como App14) */
 .soundline-container {
   position: relative;
   width: 100%;
   height: 100%;
 }
 
-/* Timeline element (contains soundline) */
 .timeline {
   width: 100%;
   height: 100%;
   position: relative;
   display: flex;
-  justify-content: center; /* Centrar soundline */
+  justify-content: center;
   align-items: center;
-  overflow: visible; /* Allow soundline to extend beyond 100% */
-  transform: translateY(var(--timeline-offset-y, 0px)); /* Ajust fi vertical */
+  overflow: visible;
 }
 
-/* Ocultar la línea horizontal del timeline (no necesaria en App10) */
 .timeline::before {
   display: none !important;
 }
 
-/* ========== SOUNDLINE (VERTICAL LINE) ========== */
-.soundline {
-  position: relative;
-  width: 300px; /* Más ancho para acomodar números a la izquierda */
-  height: var(--soundline-height, 100%); /* Altura ajustable con variable */
-  margin: 0 auto;
-  transform: translateX(var(--soundline-offset-x, 0px)); /* Ajust fi horitzontal */
-}
-
-/* Línea vertical principal */
-.soundline::before {
-  content: '';
-  position: absolute;
-  left: 100px; /* Posicionada a 100px del borde izquierdo del soundline */
-  top: var(--line-top, 0);
-  bottom: var(--line-bottom, 0);
-  width: var(--soundline-width);
-  background: var(--line-color);
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* ========== DIVISIONES HORIZONTALES ========== */
-.soundline-division {
-  position: absolute;
-  width: 30px; /* Líneas cortas que cruzan la línea vertical */
-  height: 2px;
-  background: var(--line-color);
-  left: 85px; /* Empiezan 15px antes de la línea vertical */
-  pointer-events: none;
-  z-index: 2;
-}
-
-/* ========== NÚMEROS (0-11) ========== */
-.soundline-number {
-  position: absolute;
-  font-size: 1.8rem;
-  font-weight: 400;
-  color: var(--text-color, #333);
-  user-select: none;
-  z-index: 3;
-  opacity: 0.85;
-  transition: color 0.3s ease;
-  left: 40px; /* Posicionados a la izquierda de la línea */
-  text-align: right;
-  width: 40px;
-}
-
-[data-theme="dark"] .soundline-number {
-  color: var(--text-dark, #e0e0e0);
-}
-
-/* ========== NOTE HIGHLIGHTS ========== */
+/* Note highlights */
 .note-highlight {
-  --note-highlight-color: #7CD6B3;
   position: absolute;
   width: 80px;
   height: 8.33%;
-  left: 120px; /* A la derecha de la línea vertical (100px + 20px) */
-  background: var(--note-highlight-color);
+  left: 55%;
   opacity: 0;
   border-radius: 4px;
   transition: opacity 0.15s ease;
@@ -167,15 +89,6 @@ body[data-visual="nuzic"] {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.note-highlight[data-note="1"],
-.note-highlight[data-note="3"],
-.note-highlight[data-note="5"],
-.note-highlight[data-note="7"],
-.note-highlight[data-note="9"],
-.note-highlight[data-note="11"] {
-  --note-highlight-color: #F5C6C2;
 }
 
 .note-highlight.highlight {
@@ -198,25 +111,12 @@ body[data-visual="nuzic"] {
 }
 
 @keyframes noteFlash {
-  0% {
-    transform: translateY(-50%) scale(0.95);
-    opacity: 0;
-  }
-  50% {
-    transform: translateY(-50%) scale(1.05);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(-50%) scale(1);
-    opacity: 0.8;
-  }
+  0% { transform: translateY(-50%) scale(0.95); opacity: 0; }
+  50% { transform: translateY(-50%) scale(1.05); opacity: 1; }
+  100% { transform: translateY(-50%) scale(1); opacity: 0.8; }
 }
 
-/* ========== CONTROLES ========== */
-/* Estilos de botón Play heredados de shared-ui/.play */
-
-/* ========== MOSTRAR SOLO BOTÓN PLAY ========== */
-/* App10 solo necesita el botón Play */
+/* Only show Play button */
 .controls #tapTempoBtn,
 .controls #loopBtn,
 .controls #randomBtn,
@@ -230,28 +130,11 @@ body[data-visual="nuzic"] {
   display: none !important;
 }
 
-/* Asegurar que Play sea visible */
-.controls #playBtn,
-.controls .play,
-.controls .play-group {
-  display: flex !important;
-}
-
-/* Posicionamiento de .controls (patrón App14) */
 .controls {
-  position: relative;
-  top: -300px;
-  left: -200px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin: -50px;
-  width: auto;
-  height: auto;
+  justify-content: center !important;
 }
 
-/* ========== RESPONSIVE ========== */
+/* Responsive */
 @media (max-width: 768px) {
   .timeline-wrapper {
     max-width: 100%;
@@ -259,22 +142,8 @@ body[data-visual="nuzic"] {
     padding: 30px 20px;
     margin: 40px auto 30px;
   }
-
-  .soundline {
-    width: 150px;
-  }
-
-  .soundline-number {
-    font-size: 1.4rem;
-  }
-
-  .note-highlight {
-    width: 60px;
-  }
-
-  .note-highlight-label {
-    font-size: 1.2rem;
-  }
+  .note-highlight { width: 60px; }
+  .note-highlight-label { font-size: 1.2rem; }
 }
 
 @media (max-width: 480px) {
@@ -282,20 +151,6 @@ body[data-visual="nuzic"] {
     height: 350px;
     padding: 20px 15px;
   }
-
-  .soundline {
-    width: 120px;
-  }
-
-  .soundline-number {
-    font-size: 1.2rem;
-  }
-
-  .note-highlight {
-    width: 50px;
-  }
-
-  .note-highlight-label {
-    font-size: 1rem;
-  }
+  .note-highlight { width: 50px; }
+  .note-highlight-label { font-size: 1rem; }
 }

@@ -1,6 +1,5 @@
-/* App9: Línea Temporal - Estilos específicos de la app */
+/* App9: Línea Temporal - Nuzic Theme Styles */
 
-/* ========== IFRAME COMPATIBILITY ========== */
 html, body {
   margin: 0;
   padding: 0;
@@ -17,16 +16,13 @@ html, body {
   overflow: hidden;
 }
 
-/* ========== CSS VARIABLES ========== */
-/* Configuración de colores del timeline (override de defaults del módulo compartido) */
 :root {
   --timeline-interval-color: #4A9EFF;
   --timeline-pulse-color: currentColor;
   --timeline-line-color: #666;
-  --controls-offset-y: 20px;
 }
 
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+/* Nuzic theme overrides */
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 0px;
   --nuzic-controls-offset-y: -50px;
@@ -36,15 +32,7 @@ body[data-visual="nuzic"] {
   --timeline-line-color: #999;
 }
 
-/* Los estilos de timeline, pulsos, números y barras de intervalos
-   están ahora en libs/app-common/timeline-intervals.css */
-
-/* App9 requirement: only interval-number above uses temporal color */
-.timeline .interval-number.above {
-  color: #FFBB33;
-}
-
-/* ========== BPM INPUT ========== */
+/* BPM input */
 .inputs {
   display: flex;
   justify-content: center;
@@ -56,67 +44,7 @@ body[data-visual="nuzic"] {
   position: relative;
 }
 
-/* ========== CONTROLES ========== */
-.controls-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 40px;
-  gap: 20px;
-}
-
-.play-btn {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  background: transparent;
-  color: var(--selection-color, #FFBB33);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  padding: 0;
-}
-
-.play-btn:hover:not(:disabled) {
-  background: var(--selection-color, #FFBB33);
-  color: white;
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(255, 187, 51, 0.3);
-}
-
-.play-btn:active:not(:disabled) {
-  transform: scale(0.95);
-}
-
-.play-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.play-btn.playing {
-  animation: playingPulse 1s ease-in-out infinite;
-}
-
-@keyframes playingPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 rgba(255, 187, 51, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(255, 187, 51, 0.6);
-  }
-}
-
-.play-btn svg {
-  width: 28px;
-  height: 28px;
-  margin-left: 4px; /* Alineación visual del triángulo */
-}
-
-/* ========== OCULTAR BOTONES INNECESARIOS ========== */
-/* App9 solo necesita el botón Play */
+/* Hide unnecessary buttons */
 .controls #tapTempoBtn,
 .controls #loopBtn,
 .controls #randomBtn,
@@ -124,12 +52,11 @@ body[data-visual="nuzic"] {
   display: none !important;
 }
 
-/* Centrar botón Play en los controles */
 .controls {
   justify-content: center !important;
 }
 
-/* ========== DURATION BAR (INTERVAL BLOCK) ========== */
+/* Duration bar (interval block) */
 .interval-block {
   position: absolute;
   top: 50%;
@@ -152,57 +79,4 @@ body[data-visual="nuzic"] {
 .interval-block.active {
   opacity: 0.8;
   box-shadow: 0 0 8px var(--selection-color);
-}
-
-/* ========== RESPONSIVE ========== */
-@media (max-width: 768px) {
-  .timeline-wrapper {
-    max-width: 100%;
-    padding: 0 15px;
-    margin: 40px auto 30px;
-  }
-
-  .timeline {
-    height: 100px;
-  }
-
-  .timeline .pulse {
-    width: 10px;
-    height: 10px;
-  }
-
-  .timeline .pulse-number {
-    font-size: 2rem;
-    top: calc(50% + 25px);
-  }
-
-  .timeline .interval-number {
-    font-size: 2rem;
-  }
-
-  .play-btn {
-    width: 56px;
-    height: 56px;
-  }
-
-  .play-btn svg {
-    width: 24px;
-    height: 24px;
-  }
-}
-
-@media (max-width: 480px) {
-  .timeline .pulse-number {
-    font-size: 1.6rem;
-    top: calc(50% + 20px);
-  }
-
-  .timeline .interval-number {
-    font-size: 1.6rem;
-  }
-
-  .timeline .pulse {
-    width: 8px;
-    height: 8px;
-  }
 }
