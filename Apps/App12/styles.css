@@ -8,7 +8,7 @@
 /* Variables CSS */
 :root {
   /* App12 2-row layout */
-  --col-left: 200px;
+  --col-left: 150px;
   --col-left-tablet: 100px;
   --col-left-mobile: 80px;
   --col-left-small: 70px;
@@ -25,10 +25,11 @@
 
 /* Nuzic theme overrides */
 body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: -25px;
-  --nuzic-controls-offset-y: 0px;
-  --nuzic-bpm-offset-x: -70px;
-  --nuzic-bpm-offset-y: -90px;
+  --nuzic-controls-offset-x: 0px;
+  --nuzic-controls-offset-y: 75px;
+  --nuzic-play-row-offset-x: 50px;
+  --nuzic-bpm-offset-x: 0px;
+  --nuzic-bpm-offset-y: 0px;
 }
 
 [data-theme="dark"] {
@@ -123,6 +124,23 @@ html, body {
   height: 100% !important;
   min-height: var(--grid-min-height, 300px);
   min-width: 0;
+}
+
+/* Controls: static positioning per nuzic theme */
+.app12-controls-container .controls {
+  position: relative;
+  width: auto;
+  height: auto;
+}
+
+.app12-controls-container .play-row {
+  position: static;
+  transform: none;
+  margin: 0;
+}
+
+.app12-controls-container #playBtn {
+  margin: 0 !important;
 }
 
 /* Hide Loop and Tap Tempo buttons */
