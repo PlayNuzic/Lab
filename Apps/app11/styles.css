@@ -6,15 +6,18 @@
 
 /* Variables CSS */
 :root {
-  --col-left: 80px;
+  --col-left: 120px;
   --col-left-tablet: 100px;
   --col-left-mobile: 90px;
+  --col-left-small: 80px;
+  --col-left-tiny: 70px;
+  --col-left-ultra: 60px;
   --controls-padding-top: 0px;
   --controls-margin: 10px;
   --controls-justify: center;
   --layout-gap: 0.5rem;
   --grid-min-height: 400px;
-  --grid-padding-right: 10px;
+  --grid-padding-right: 60px;
 }
 
 /* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */

@@ -78,14 +78,20 @@ body[data-visual="nuzic"] {
   display: none !important;
 }
 
-/* Soundline: override nuzic-theme width for note-highlight space */
+/* Soundline: mantenir 300px per note-highlights, rosa només a la zona dels números */
 body[data-visual="nuzic"] .soundline-container .soundline {
   width: 300px;
+  background: transparent;
 }
 
-/* Note highlights position relative to soundline */
-body[data-visual="nuzic"] .note-highlight {
-  left: 55%;
+/* Columna rosa estreta centrada als números */
+body[data-visual="nuzic"] .soundline-container .soundline-number {
+  background: var(--nuzic-pink-light);
+  width: 80px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 4px 0;
+  border-radius: 2px;
 }
 
 /* Note highlights */
