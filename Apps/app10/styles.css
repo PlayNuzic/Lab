@@ -7,14 +7,13 @@ html, body {
 
 :root {
   --line-color: #666;
-  --note-highlight-color: #7CD6B3;
   --soundline-height: 100%;
 }
 
-/* Nuzic theme overrides */
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 0px;
   --nuzic-controls-offset-y: 50px;
+  --note-highlight-color: var(--nuzic-blue-light);
 }
 
 [data-theme="dark"] {
@@ -84,14 +83,17 @@ body[data-visual="nuzic"] .soundline-container .soundline {
   background: transparent;
 }
 
-/* Columna rosa estreta centrada als números */
+/* Números amb fons rosa individual */
 body[data-visual="nuzic"] .soundline-container .soundline-number {
   background: var(--nuzic-pink-light);
-  width: 80px;
-  left: 50%;
-  transform: translate(-50%, -50%);
   padding: 4px 0;
   border-radius: 2px;
+}
+
+/* Soundline més alta */
+.timeline-wrapper {
+  height: 70vh;
+  max-height: 600px;
 }
 
 /* Note highlights */
