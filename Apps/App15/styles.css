@@ -27,7 +27,7 @@
   --z-overlay: 100;      /* Overlays: tooltips, modals */
 
   /* App15 2-row layout customization */
-  --col-left: 250px;
+  --col-left: 150px;
   --col-left-tablet: 100px;
   --col-left-mobile: 80px;
   --col-left-small: 70px;
@@ -42,36 +42,20 @@
   /* Cursor for N-P dots in interval mode (controlled by JS) */
   --np-dot-cursor: grab;
 
-  /* Toggle positioning for satellite button */
-  --toggle-pulse-offset-x: -1px;
-  --toggle-pulse-offset-y: -70px;
-
-  /* Controls vertical gap */
-  --controls-vertical-gap: 0.5rem;
-
-  /* Fine-tuning: Play button position */
-  --play-offset-x: -160px;
-  --play-offset-y: -80px;
-
-  /* Fine-tuning: Secondary buttons (random, reset) position */
-  --buttons-row-offset-x: -80px;
-  --buttons-row-offset-y: 30px;
-  --buttons-row-gap: 0.5rem;
-
-  /* BPM tuning (inside app15-controls-container) */
-  --bpm-offset-x: 50px;
-  --bpm-offset-y: -150px;
-  --bpm-scale: 1;
-  --bpm-gap: 18px;
+  /* Cursor for N-P dots in interval mode */
+  --np-dot-cursor: grab;
 
   /* iframe fallback min-height */
   --grid-min-height: 400px;
 }
 
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+/* Nuzic theme overrides */
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 0px;
+  --nuzic-controls-offset-y: 75px;
+  --nuzic-play-row-offset-x: 50px;
+  --nuzic-bpm-offset-x: 0px;
+  --nuzic-bpm-offset-y: 0px;
 }
 
 /* BPM inline input container */
@@ -172,17 +156,21 @@ html, body {
   grid-column: 1;
   grid-row: 2;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: 10px;
 }
 
-.app15-controls-container .bpm-inline {
-  position: relative;
-  flex-shrink: 0;
-  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
-  transform-origin: top center;
-  margin-right: var(--bpm-gap);
-  z-index: var(--z-interactive);
+/* BPM: posició estàtica, controlada per nuzic-theme */
+.inputs {
+  display: block;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+}
+.inputs .bpm-inline {
+  position: static;
 }
 
 /* Musical grid fills bottom-right */
@@ -190,8 +178,6 @@ html, body {
   grid-column: 2;
   grid-row: 2;
   position: relative !important;
-  top: 60px;
-  left: -120px;
   width: 100% !important;
   height: 100% !important;
   min-height: var(--grid-min-height, 300px);
@@ -397,56 +383,21 @@ body.dragging-note * {
   position: relative;
 }
 
-/* Preserve concentric circle layout */
+/* Controls: static positioning per nuzic theme */
 .app15-controls-container .controls {
   position: relative;
-  /* Template's original layout is preserved */
+  width: auto;
+  height: auto;
 }
 
-/* control-buttons-row: CSS Grid for 2-row layout */
-/* Row 1: play-row (centered) | Row 2: random + reset (horizontal) */
-.app15-controls-container .control-buttons-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto auto;
-  gap: 0.8rem;
-  justify-items: center;
-  align-items: center;
-}
-
-/* play-row spans both columns, centered */
 .app15-controls-container .play-row {
-  grid-column: 1 / -1;
-  grid-row: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  /* Fine-tuning via CSS variables */
-  transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0));
+  position: static;
+  transform: none;
+  margin: 0;
 }
 
 .app15-controls-container #playBtn {
   margin: 0 !important;
-}
-
-/* Random and Reset in row 2, side by side */
-.app15-controls-container .random {
-  grid-column: 1;
-  grid-row: 2;
-  justify-self: end;
-  /* Fine-tuning via CSS variables */
-  transform: translate(var(--buttons-row-offset-x, 0), var(--buttons-row-offset-y, 0));
-  margin-right: calc(var(--buttons-row-gap, 0.5rem) / 2);
-}
-
-.app15-controls-container .reset {
-  grid-column: 2;
-  grid-row: 2;
-  justify-self: start;
-  /* Fine-tuning via CSS variables */
-  transform: translate(var(--buttons-row-offset-x, 0), var(--buttons-row-offset-y, 0));
-  margin-left: calc(var(--buttons-row-gap, 0.5rem) / 2);
 }
 
 /* Hide Loop button */
@@ -499,14 +450,6 @@ body.dragging-note * {
   z-index: var(--z-interactive);
 }
 
-/* ========== APP15-SPECIFIC LAYOUT CUSTOMIZATIONS ========== */
-/* App15-specific control spacing overrides */
-.app15-controls-container .controls[data-layout="vertical"] {
-  display: flex;
-  flex-direction: column;
-  gap: var(--controls-vertical-gap, 0.5rem);
-  align-items: center;
-}
 
 /* Pulse toggle hidden */
 .app15-controls-container #pulseToggleBtn {
