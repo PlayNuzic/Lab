@@ -226,7 +226,7 @@ html, body {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  grid-template-rows: 1fr !important; /* Timeline hidden, grid uses full height */
+  grid-template-rows: 1fr 50px !important; /* Grid + timeline row */
 }
 
 /* Hide soundline scrollbar and disable mouse scroll interaction */

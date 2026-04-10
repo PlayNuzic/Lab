@@ -54,6 +54,10 @@ body[data-visual="nuzic"] {
   --nuzic-reset-offset-y: 0px;
   --nuzic-loop-offset-x: 0px;
   --nuzic-loop-offset-y: 0px;
+
+  /* Offset de la fila de botons secundaris (random, reset, etc.) */
+  --nuzic-buttons-row-offset-x: 0px;
+  --nuzic-buttons-row-offset-y: 0px;
 }
 
 body[data-visual="nuzic"][data-theme="light"] {
@@ -385,6 +389,52 @@ body[data-visual="nuzic"] .grid-container .pulse-marker {
   font-weight: 700;
   font-size: 14px;
   opacity: 1;
+  position: relative;
+}
+
+/* Ticks verticals a dalt i baix de cada pulse-marker */
+body[data-visual="nuzic"] .grid-container .pulse-marker::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  width: 1.5px;
+  height: 10px;
+  background: var(--nuzic-dark);
+  opacity: 0.4;
+  margin-bottom: 4px;
+}
+
+body[data-visual="nuzic"] .grid-container .pulse-marker::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  width: 1.5px;
+  height: 10px;
+  background: var(--nuzic-dark);
+  opacity: 0.4;
+  margin-top: 4px;
+}
+
+/* Highlight de playback: barra daurada */
+body[data-visual="nuzic"] .grid-container .pulse-marker.highlighted {
+  background: var(--nuzic-yellow) !important;
+  border-radius: 2px;
+  padding: 2px 5px;
+  color: var(--nuzic-dark);
+  box-shadow: none;
+  transform: translateX(-50%);
+}
+
+body[data-visual="nuzic"] .grid-container .pulse-marker.highlighted::before,
+body[data-visual="nuzic"] .grid-container .pulse-marker.highlighted::after {
+  background: var(--nuzic-yellow);
+  opacity: 0.8;
+  width: 4px;
+  border-radius: 1px;
 }
 
 /* Plano-modular timeline */
@@ -519,6 +569,12 @@ body[data-visual="nuzic"] .controls {
   position: relative !important;
   left: var(--nuzic-controls-offset-x, 0px) !important;
   top: var(--nuzic-controls-offset-y, 0px) !important;
+}
+
+body[data-visual="nuzic"] .control-buttons-row {
+  position: relative;
+  left: var(--nuzic-buttons-row-offset-x, 0px);
+  top: var(--nuzic-buttons-row-offset-y, 0px);
 }
 
 /* Offsets individuals de botons */

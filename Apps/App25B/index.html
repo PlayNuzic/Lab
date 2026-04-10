@@ -88,12 +88,11 @@
     }
     document.querySelector('.middle')?.remove();
 
-    // Extract .controls from timeline-wrapper before removing it
+    // Move .controls out of timeline-wrapper (keep timeline visible)
     const timelineWrapper = document.querySelector('.timeline-wrapper');
     const controls = timelineWrapper?.querySelector('.controls');
     if (controls && timelineWrapper) {
       timelineWrapper.before(controls);
-      timelineWrapper.remove();
     }
 
     import('./main.js');

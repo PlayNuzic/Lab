@@ -242,7 +242,7 @@ html, body {
   margin: 0 !important;
   box-sizing: border-box;
   justify-self: stretch;
-  grid-template-rows: 1fr !important; /* Timeline hidden, grid uses full height */
+  grid-template-rows: 1fr 50px !important; /* Grid + timeline row */
 }
 
 /* ========== CONTROLS (inside scale selector area) ========== */
