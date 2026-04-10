@@ -14,13 +14,13 @@
   --controls-justify: center;
   --layout-gap: 0.5rem;
   --grid-min-height: 400px;
-  --grid-padding-right: 60px;
+  --grid-padding-right: 10px;
 }
 
 /* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
 body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: -25px;
-  --nuzic-controls-offset-y: 25px;
+  --nuzic-controls-offset-x: 0px;
+  --nuzic-controls-offset-y: -25px;
 }
 
 /* App11 requirement: active corner dots use pink, independent from cell highlight */

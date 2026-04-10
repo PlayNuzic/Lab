@@ -6,7 +6,9 @@ html, body {
 }
 
 :root {
+  --line-color: #666;
   --note-highlight-color: #7CD6B3;
+  --soundline-height: 100%;
 }
 
 /* Nuzic theme overrides */
@@ -69,10 +71,19 @@ body[data-visual="nuzic"] {
   justify-content: center;
   align-items: center;
   overflow: visible;
+  transform: translateY(-30px);
 }
 
 .timeline::before {
   display: none !important;
+}
+
+/* Soundline container size */
+.soundline {
+  position: relative;
+  width: 300px;
+  height: var(--soundline-height, 100%);
+  margin: 0 auto;
 }
 
 /* Note highlights */
