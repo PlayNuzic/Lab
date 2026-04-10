@@ -200,13 +200,17 @@ function stopPlayback(delayMs = 0) {
     audio?.stop();
   }
 
-  // Clear pulse highlights
+  // Save last highlighted pulse-marker before clearing
+  const lastHighlighted = document.querySelector('.pulse-marker.highlighted');
+
+  // Clear pulse highlights (this also clears .pulse-marker.highlighted)
   highlightController?.clearHighlights();
 
-  // Clear timeline pulse-marker highlight (delay to show last pulse)
-  setTimeout(() => {
-    document.querySelectorAll('.pulse-marker.highlighted').forEach(el => el.classList.remove('highlighted'));
-  }, 500);
+  // Re-apply highlight to last pulse, then clear after delay
+  if (lastHighlighted) {
+    lastHighlighted.classList.add('highlighted');
+    setTimeout(() => lastHighlighted.classList.remove('highlighted'), 500);
+  }
 
   // Clear any active playing animations
   document.querySelectorAll('.musical-cell.playing').forEach(cell => {
@@ -583,7 +587,7 @@ async function init() {
   }
 
   // Idle caret flash on grid editor (note inputs)
-  // Idle caret flash disabled — not needed for this app
+  initIdleCaretFlash({ targets: [gridEditorContainer] });
 
   // P1 Toggle (Pulse 0 special sound) - MUST be before mixer init
   const startIntervalToggle = document.getElementById('startIntervalToggle');

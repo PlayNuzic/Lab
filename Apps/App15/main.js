@@ -236,14 +236,18 @@ function stopPlayback(delayMs = 0) {
     audio?.stop();
   }
 
-  // Clear all highlights
+  // Save last highlighted pulse-marker before clearing
+  const lastHighlighted = document.querySelector('.pulse-marker.highlighted');
+
+  // Clear all highlights (this also clears .pulse-marker.highlighted)
   musicalGrid?.clearIntervalHighlights();
   highlightController?.clearHighlights();
 
-  // Clear timeline pulse-marker highlight (delay to show last pulse)
-  setTimeout(() => {
-    document.querySelectorAll('.pulse-marker.highlighted').forEach(el => el.classList.remove('highlighted'));
-  }, 500);
+  // Re-apply highlight to last pulse, then clear after delay
+  if (lastHighlighted) {
+    lastHighlighted.classList.add('highlighted');
+    setTimeout(() => lastHighlighted.classList.remove('highlighted'), 500);
+  }
 
   // Reset button icon
   const playIcon = playBtn?.querySelector('.icon-play');
@@ -1389,7 +1393,7 @@ async function initializeApp() {
   // Auto-focus is handled by grid-editor's renderIntervalMode()
 
   // Idle caret flash on grid editor container
-  // Idle caret flash disabled — not needed for this app
+  initIdleCaretFlash({ targets: [gridEditorContainer] });
 
   console.log('App15 initialized successfully');
 }
