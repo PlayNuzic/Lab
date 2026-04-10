@@ -42,7 +42,7 @@ body[data-visual="nuzic"] {
   --selection-color: var(--nuzic-blue-light);
 
   /* Offset del grup .controls (ajustable per app) */
-  --nuzic-controls-offset-x: -30px;
+  --nuzic-controls-offset-x: 0px;
   --nuzic-controls-offset-y: 0px;
 
   /* Offsets individuals de botons dins .controls (ajustable per app) */
@@ -502,7 +502,9 @@ body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-container {
    -------------------------------------------------------------------------- */
 
 body[data-visual="nuzic"] .controls {
-  transform: translate(var(--nuzic-controls-offset-x, 0px), var(--nuzic-controls-offset-y, 0px));
+  position: relative !important;
+  left: var(--nuzic-controls-offset-x, 0px) !important;
+  top: var(--nuzic-controls-offset-y, 0px) !important;
 }
 
 /* Offsets individuals de botons */

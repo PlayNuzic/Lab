@@ -26,6 +26,12 @@ html, body {
   --controls-offset-y: 20px;
 }
 
+/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+body[data-visual="nuzic"] {
+  --nuzic-controls-offset-x: 0px;
+  --nuzic-controls-offset-y: -50px;
+}
+
 [data-theme="dark"] {
   --timeline-line-color: #999;
 }
