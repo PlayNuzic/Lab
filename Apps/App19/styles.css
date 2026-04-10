@@ -4,6 +4,12 @@
   display: none;
 }
 
+/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+body[data-visual="nuzic"] {
+  --nuzic-controls-offset-x: 0px;
+  --nuzic-controls-offset-y: 0px;
+}
+
 /* ============================================
    GLOBAL SCROLL OVERRIDE
    ============================================ */

@@ -40,6 +40,12 @@
   --grid-padding-right: 60px;
 }
 
+/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+body[data-visual="nuzic"] {
+  --nuzic-controls-offset-x: 0px;
+  --nuzic-controls-offset-y: 0px;
+}
+
 /* App11 requirement: active corner dots use pink, independent from cell highlight */
 .musical-cell.active .np-dot::after {
   background: #F5C6C2;
