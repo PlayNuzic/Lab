@@ -295,12 +295,9 @@ body[data-visual="nuzic"] .plano-soundline-note::after {
   content: '\2002\2013';  /* en-space + en-dash */
 }
 
-/* Soundline standalone (App10 — sense .grid-container ni .plano-container) */
+/* Soundline standalone (sense .grid-container ni .plano-container) */
 body[data-visual="nuzic"] .soundline-container .soundline {
-  width: 120px;
   margin: 0 auto;
-  background: var(--nuzic-pink-light);
-  border-radius: 4px;
   transform: none;
 }
 
