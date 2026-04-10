@@ -78,17 +78,19 @@ body[data-visual="nuzic"] {
   display: none !important;
 }
 
-/* Soundline: mantenir 300px per note-highlights, rosa només a la zona dels números */
+/* Soundline: ample per note-highlights, rosa NOMÉS als números */
 body[data-visual="nuzic"] .soundline-container .soundline {
-  width: 300px;
-  background: transparent;
+  width: 300px !important;
+  background: transparent !important;
+  height: 100%;
 }
 
-/* Números amb fons rosa individual */
+/* Cada número té fons rosa individual */
 body[data-visual="nuzic"] .soundline-container .soundline-number {
-  background: var(--nuzic-pink-light);
-  padding: 4px 0;
-  border-radius: 2px;
+  background: var(--nuzic-pink-light) !important;
+  padding: 6px 8px;
+  border-radius: 3px;
+  margin-bottom: 2px;
 }
 
 /* Note highlights */
