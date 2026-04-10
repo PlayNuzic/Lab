@@ -435,14 +435,12 @@ body[data-visual="nuzic"] .grid-container .pulse-marker::after {
   margin-top: 4px;
 }
 
-/* Highlight de playback: barra daurada */
+/* Highlight de playback: barra daurada sense desplaçament */
 body[data-visual="nuzic"] .grid-container .pulse-marker.highlighted {
   background: var(--nuzic-yellow) !important;
   border-radius: 2px;
-  padding: 2px 5px;
   color: var(--nuzic-dark);
   box-shadow: none;
-  transform: translateX(-50%);
 }
 
 body[data-visual="nuzic"] .grid-container .pulse-marker.highlighted::before,

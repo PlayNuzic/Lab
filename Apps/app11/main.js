@@ -207,6 +207,9 @@ async function handlePlay() {
         }, 1000);
       }, 1000);
 
+      // Clear timeline pulse highlight
+      document.querySelectorAll('.pulse-marker.highlighted').forEach(el => el.classList.remove('highlighted'));
+
       // Reset state immediately (don't wait for animation)
       isPlaying = false;
       playBtn.disabled = false;
