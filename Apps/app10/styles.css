@@ -18,7 +18,11 @@ html, body {
   --soundline-offset-x: 35px;
   --timeline-offset-y: -30px;
 }
-
+/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+body[data-visual="nuzic"] {
+  --nuzic-controls-offset-x: 0px;
+  --nuzic-controls-offset-y: 50px;
+}
 [data-theme="dark"] {
   --line-color: #999;
 }
