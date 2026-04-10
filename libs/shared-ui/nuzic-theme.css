@@ -321,6 +321,20 @@ body[data-visual="nuzic"] .soundline-container .soundline-number::after {
   content: '\2002\2013';
 }
 
+/* Note highlights: unificar a blau nuzic (substitueix verd/rosa) */
+body[data-visual="nuzic"] .note-highlight {
+  --note-highlight-color: var(--nuzic-blue-light);
+}
+
+body[data-visual="nuzic"] .note-highlight[data-note="1"],
+body[data-visual="nuzic"] .note-highlight[data-note="3"],
+body[data-visual="nuzic"] .note-highlight[data-note="5"],
+body[data-visual="nuzic"] .note-highlight[data-note="7"],
+body[data-visual="nuzic"] .note-highlight[data-note="9"],
+body[data-visual="nuzic"] .note-highlight[data-note="11"] {
+  --note-highlight-color: var(--nuzic-blue-light);
+}
+
 /* --------------------------------------------------------------------------
    FASE 2: Soundline — dark mode
    -------------------------------------------------------------------------- */
