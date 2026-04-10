@@ -992,6 +992,9 @@ export function createMusicalGrid(config) {
         container.querySelectorAll('.interval-bar.horizontal.active').forEach(bar => {
           bar.classList.remove('active');
         });
+        container.querySelectorAll('.pulse-marker.highlighted').forEach(el => {
+          el.classList.remove('highlighted');
+        });
       }
     }
 
@@ -1013,6 +1016,14 @@ export function createMusicalGrid(config) {
   function onPulseStep(pulseIndex, durationMs = 0) {
     // Clear previous highlights
     clearIntervalHighlights('horizontal');
+
+    // Highlight pulse-marker in timeline
+    const timelineContainer = containers.timeline || containers.timelineInner;
+    if (timelineContainer) {
+      timelineContainer.querySelectorAll('.pulse-marker.highlighted').forEach(el => el.classList.remove('highlighted'));
+      const marker = timelineContainer.querySelector(`.pulse-marker[data-pulse-index="${pulseIndex}"]`);
+      if (marker) marker.classList.add('highlighted');
+    }
 
     // Highlight the interval after this pulse (pulse 0 -> interval 1)
     if (intervalsConfig.horizontal && pulseIndex < pulses - 1) {
