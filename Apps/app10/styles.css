@@ -78,12 +78,14 @@ body[data-visual="nuzic"] {
   display: none !important;
 }
 
-/* Soundline container size */
-.soundline {
-  position: relative;
+/* Soundline: override nuzic-theme width for note-highlight space */
+body[data-visual="nuzic"] .soundline-container .soundline {
   width: 300px;
-  height: var(--soundline-height, 100%);
-  margin: 0 auto;
+}
+
+/* Note highlights position relative to soundline */
+body[data-visual="nuzic"] .note-highlight {
+  left: 55%;
 }
 
 /* Note highlights */
