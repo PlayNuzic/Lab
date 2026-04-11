@@ -261,20 +261,22 @@ function renderEditorCells() {
     ext.readOnly = true;
     cellsContainer.insertBefore(ext, endMarker);
 
-    // White editable input (where user types)
+    // White editable input (where user types) — NO placeholder so it's white
     const input = document.createElement('input');
     input.type = 'text';
     input.inputMode = 'numeric';
     input.pattern = '[1-8]';
     input.maxLength = 1;
-    input.className = 'it-cell it-end';
-    input.placeholder = ' ';
+    input.className = 'it-cell it-input';
     input.readOnly = false;
     input.addEventListener('input', handleCellInput);
     input.addEventListener('keydown', handleCellKeydown);
     input.addEventListener('focus', () => hideTooltip());
     cellsContainer.insertBefore(input, endMarker);
     itInputs.push(input);
+
+    // Auto-focus the new input
+    setTimeout(() => input.focus(), 30);
   }
 
   // End marker: visible when sequence is full
