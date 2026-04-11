@@ -782,9 +782,16 @@ async function init() {
     onDotClick: null // N-P dots not clickable in N-P mode
   });
 
-  // Reorder controls: Play, BPM, Random, Reset (nuzic compact row)
+  // Create nuzic N-P editor below timeline
+  const timelineWrapper = document.querySelector('.timeline-wrapper');
+  if (timelineWrapper) {
+    createNuzicEditor(timelineWrapper);
+  }
+
+  // Move controls out of timeline-wrapper into main grid, reorder as compact row
   const controls = document.querySelector('.controls');
-  if (controls) {
+  const gridWrapper = document.querySelector('.app12-main-grid');
+  if (controls && gridWrapper) {
     const bpmParam = document.getElementById('bpmParam');
     const playBtnEl = controls.querySelector('.play') || document.getElementById('playBtn');
     const randomBtnEl = controls.querySelector('.random');
@@ -798,12 +805,9 @@ async function init() {
     if (randomBtnEl) controls.appendChild(randomBtnEl);
     if (randomMenu) controls.appendChild(randomMenu);
     if (resetBtnEl) controls.appendChild(resetBtnEl);
-  }
 
-  // Create nuzic N-P editor below timeline
-  const timelineWrapper = document.querySelector('.timeline-wrapper');
-  if (timelineWrapper) {
-    createNuzicEditor(timelineWrapper);
+    // Move controls to end of main grid (below editor)
+    gridWrapper.appendChild(controls);
   }
 
   // Initialize highlight controller using shared module
