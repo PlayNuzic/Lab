@@ -51,86 +51,115 @@ body[data-visual="nuzic"] {
   position: relative;
 }
 
-/* ========== EDITOR iT ========== */
-.it-editor-container {
+/* ========== EDITOR iT (nuzic style) ========== */
+.it-editor-bar {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 20px auto 30px;
-  gap: 10px;
+  align-items: stretch;
+  margin: 0 auto;
+  max-width: 700px;
+  padding: 0 20px;
+  height: 32px;
 }
 
-.it-editor-label,
-.it-editor__label {
-  color: #F28AAD;
+.it-label {
+  background: var(--nuzic-yellow);
+  color: white;
   font-weight: 700;
-  font-size: 2.8rem;
-  margin-right: 8px;
-}
-
-.it-editor {
+  font-size: 1rem;
+  padding: 0 10px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  white-space: nowrap;
+  border-radius: 2px 0 0 2px;
 }
 
-.it-input {
-  width: 48px;
-  height: 48px;
-  border: 2px solid var(--border-color, #ccc);
-  border-radius: 8px;
-  background: var(--bg-input, transparent);
-  color: var(--text-color, currentColor);
-  font-size: 1.5rem;
-  font-weight: 600;
+.it-cells {
+  display: flex;
+  flex: 1;
+  position: relative;
+  background: var(--nuzic-light);
+}
+
+.it-cell {
+  flex: 1;
+  height: 100%;
+  border: none;
+  border-radius: 0;
   text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--nuzic-dark);
+  background: var(--nuzic-yellow-light);
   outline: none;
-  transition: all 0.2s ease;
   -moz-appearance: textfield;
+  cursor: default;
+  padding: 0;
 }
 
-.it-input::-webkit-outer-spin-button,
-.it-input::-webkit-inner-spin-button {
+.it-cell::-webkit-outer-spin-button,
+.it-cell::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.it-input:focus {
-  border-color: var(--selection-color, #FFBB33);
-  box-shadow: 0 0 0 3px rgba(255, 187, 51, 0.2);
+/* Cel·la amb valor: fons blanc */
+.it-cell.it-end {
+  background: white;
+  z-index: 1;
 }
 
-.it-input::placeholder {
-  color: var(--text-muted, #888);
-  font-weight: 400;
-  font-size: 0.9rem;
+/* Input actiu: fons blanc amb vora */
+.it-cell.it-active {
+  background: white;
+  cursor: text;
+  z-index: 2;
 }
 
-.it-input.has-value {
-  border-color: var(--selection-color, #FFBB33);
-  background: rgba(255, 187, 51, 0.1);
+.it-cell.it-active:focus {
+  box-shadow: inset 0 0 0 2px var(--nuzic-yellow);
 }
 
-/* ========== SUM DISPLAY (readonly) ========== */
-.it-sum-display {
-  border-color: var(--border-color, #ccc);
-  color: var(--text-muted, #888);
-  cursor: default;
-  pointer-events: none;
-  margin-left: 24px;
-  position: relative;
+/* Cel·les buides (més enllà de la seqüència) */
+.it-cell.it-empty {
+  background: var(--nuzic-light);
 }
 
-.it-sum-display::before {
-  content: '';
+/* Marcador fi */
+.it-end-marker {
+  width: 32px;
+  min-width: 32px;
+  height: 100%;
+  background: var(--nuzic-dark);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.8rem;
+}
+
+.it-end-marker::after {
+  content: '●';
+}
+
+/* SVG separadors daurats */
+.it-separator-lines {
   position: absolute;
-  left: -16px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 32px;
-  background: var(--border-color, #ccc);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.it-separator-lines line {
+  stroke: var(--nuzic-yellow);
+  stroke-width: 2;
+}
+
+/* Highlight durant playback */
+.it-cell.it-playing {
+  background: var(--nuzic-green-light);
+}
   border-radius: 1px;
 }
 
