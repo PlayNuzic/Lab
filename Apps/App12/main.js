@@ -176,41 +176,24 @@ async function handlePlay() {
       //    (controlled by pulseToggleBtn + mixer 'pulse' channel)
     },
     () => {
-      // onComplete callback: Playback finished
-      // Delay audio.stop() to let the last note ring out (90% of interval)
+      // onComplete: delay stop to show last pulse highlight
       const lastNoteDelay = intervalSec * 0.9 * 1000;
-      stopPlayback(lastNoteDelay);
+      setTimeout(() => stopPlayback(), lastNoteDelay);
     }
   );
 }
 
-function stopPlayback(delayMs = 0) {
+function stopPlayback() {
   isPlaying = false;
 
   // Re-enable random button after playback
   if (randomBtn) randomBtn.disabled = false;
 
-  // Stop audio engine (stops transport + releases all instrument notes)
-  // delayMs > 0 allows last note to ring out before disconnecting sampler
-  if (delayMs > 0) {
-    setTimeout(() => {
-      audio?.stop();
-    }, delayMs);
-  } else {
-    audio?.stop();
-  }
+  // Stop audio
+  audio?.stop();
 
-  // Save last highlighted pulse-marker before clearing
-  const lastHighlighted = document.querySelector('.pulse-marker.highlighted');
-
-  // Clear pulse highlights (this also clears .pulse-marker.highlighted)
+  // Clear highlights
   highlightController?.clearHighlights();
-
-  // Re-apply highlight to last pulse, then clear after delay
-  if (lastHighlighted) {
-    lastHighlighted.classList.add('highlighted');
-    setTimeout(() => lastHighlighted.classList.remove('highlighted'), 500);
-  }
 
   // Clear any active playing animations
   document.querySelectorAll('.musical-cell.playing').forEach(cell => {
@@ -275,11 +258,8 @@ function handleRandom() {
   // Select first numPairs pulses from shuffled array
   const selectedPulses = allPulses.slice(0, numPairs).sort((a, b) => a - b);
 
-  // Generate pairs with random notes (20% chance of silence)
+  // Generate pairs with random notes (no silences in nuzic editor)
   const pairs = selectedPulses.map(pulse => {
-    if (Math.random() < 0.2) {
-      return { note: null, pulse, isRest: true };
-    }
     return { note: Math.floor(Math.random() * (randNMax + 1)), pulse };
   });
 
@@ -301,21 +281,7 @@ function syncGridFromPairs(pairs) {
   // Track which cells should be active (skip rests)
   const activeCells = new Set(pairs.filter(p => !p.isRest && p.note !== null).map(p => `${p.note}-${p.pulse}`));
 
-  // Track which cells should show rest (silence dotted line)
-  // Resolve note for silences with note:null by using the previous playable note
-  const restCells = new Set();
-  const sortedForRest = [...pairs].sort((a, b) => a.pulse - b.pulse);
-  let lastRestNote = 0;
-  sortedForRest.forEach(p => {
-    if (!p.isRest && p.note !== null) {
-      lastRestNote = p.note;
-    } else if (p.isRest) {
-      const noteForRest = p.note !== null && p.note !== undefined ? p.note : lastRestNote;
-      restCells.add(`${noteForRest}-${p.pulse}`);
-    }
-  });
-
-  // Clear only cells that are no longer active or rest
+  // Clear only cells that are no longer active
   document.querySelectorAll('.musical-cell.active, .musical-cell.rest').forEach(cell => {
     const note = parseInt(cell.dataset.note);
     const pulse = parseInt(cell.dataset.pulse);
@@ -328,9 +294,7 @@ function syncGridFromPairs(pairs) {
         label.remove();
       }
     }
-    if (!restCells.has(key)) {
-      cell.classList.remove('rest');
-    }
+    cell.classList.remove('rest');
   });
 
   // Clear interval paths before updating
@@ -365,15 +329,6 @@ function syncGridFromPairs(pairs) {
       } else if (label.textContent !== expectedText) {
         label.textContent = expectedText;
       }
-    }
-  });
-
-  // Render silence cells (dotted line on the note row)
-  restCells.forEach(key => {
-    const [note, pulse] = key.split('-').map(Number);
-    const cell = musicalGrid.getCellElement(note, pulse);
-    if (cell) {
-      cell.classList.add('rest');
     }
   });
 
