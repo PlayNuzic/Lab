@@ -725,9 +725,9 @@ function initApp() {
     return;
   }
 
-  // Crear editor iT i inserir-lo abans del timeline
+  // Crear editor iT i inserir-lo DESPRÉS del timeline (a sota)
   const editor = createItEditor();
-  timelineWrapper.insertBefore(editor, timeline);
+  timeline.insertAdjacentElement('afterend', editor);
 
   // Idle caret flash on iT editor
   initIdleCaretFlash({ targets: [editor] });
