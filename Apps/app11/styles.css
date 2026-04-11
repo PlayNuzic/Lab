@@ -36,12 +36,7 @@ body[data-visual="nuzic"] {
   --nuzic-controls-offset-y: 70px;
 }
 
-/* Desactivar hover de cel·les (App11A és visual-only) */
-body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell:hover::before {
-  display: none !important;
-}
-
-/* App11A requirement: active corner dots use pink, independent from cell highlight */
+/* App11 requirement: active corner dots use pink, independent from cell highlight */
 .musical-cell.active .np-dot::after {
   background: #F5C6C2;
   border-color: #F5C6C2;
