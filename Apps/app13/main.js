@@ -226,6 +226,14 @@ function renderEditorCells() {
 
   const sum = getCurrentSum();
 
+  // First cell: cream P0 (always present, aligned with pulse 0)
+  const p0 = document.createElement('input');
+  p0.type = 'text';
+  p0.className = 'it-cell';
+  p0.placeholder = ' ';
+  p0.readOnly = true;
+  cellsContainer.insertBefore(p0, endMarker);
+
   // Build cells for each entered interval
   // Pattern: [value WHITE] then [iT-1 cream extensions]
   for (const iT of currentIntervals) {
