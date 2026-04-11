@@ -241,16 +241,7 @@ html, body {
 
 /* ========== DISABLE CELL HOVER ========== */
 /* App11A is visual-only, no cell interaction */
-.grid-container:not(.interval-mode) .musical-cell:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
-  opacity: 1 !important;
-  box-shadow: none !important;
-  cursor: default !important;
-}
-
-[data-theme="dark"] .grid-container:not(.interval-mode) .musical-cell:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
-}
+/* Hover disabled — handled by nuzic-theme rule above */
 
 /* ========== HIDE PULSE TOGGLE ========== */
 #pulseToggleBtn {
