@@ -669,7 +669,11 @@ function createNuzicEditor(timelineWrapper) {
     clear: () => {
       currentPairs = [];
       pendingNote = null;
+      pendingPulse = null;
       renderEditor();
+    },
+    clearHighlights: () => {
+      // No-op: nuzic editor doesn't have per-cell highlights
     },
     destroy: () => {
       editorEl.remove();
