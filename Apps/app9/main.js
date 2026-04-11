@@ -5,6 +5,7 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import {
   createIntervalBars,
   highlightIntervalBar,
@@ -441,7 +442,7 @@ function initApp() {
   // Configurar event listeners
   setupEventHandlers();
 
-  // Idle caret flash disabled — not needed for this app
+  initIdleCaretFlash({ targets: [document.getElementById('inputBpm')?.closest('.circle')] });
 
   console.log('App9 inicializada correctamente');
 }

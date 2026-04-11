@@ -3,7 +3,7 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
-
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONFIGURACIÓN ==========
 const TOTAL_PULSES = 9;  // Pulsos 0-8 (8 es endpoint visual)
@@ -730,7 +730,7 @@ function initApp() {
   timelineWrapper.insertBefore(editor, timeline);
 
   // Idle caret flash on iT editor
-  // Idle caret flash disabled — not needed for this app
+  initIdleCaretFlash({ targets: [editor] });
 
   // Carregar instrument guardat (el header usa localStorage amb clau per-app)
   const savedInstrument = localStorage.getItem('app13:selectedInstrument');
