@@ -76,18 +76,21 @@ function generateRandomSequence() {
 
 async function handlePlay() {
   if (isPlaying) {
-    console.log('Already playing, ignoring click');
+    stopPlayback();
     return;
   }
 
-  // Set flag immediately to prevent double-click race condition
   isPlaying = true;
-  playBtn.disabled = true;
+
+  // Switch icon to stop
+  const playIcon = playBtn?.querySelector('.icon-play');
+  const stopIcon = playBtn?.querySelector('.icon-stop');
+  if (playIcon) playIcon.style.display = 'none';
+  if (stopIcon) stopIcon.style.display = 'block';
 
   // Show loading indicator if piano not yet loaded
-  const playIcon = playBtn?.querySelector('.icon-play');
-  if (!isPianoLoaded() && playIcon) {
-    playIcon.style.opacity = '0.5';
+  if (!isPianoLoaded() && stopIcon) {
+    stopIcon.style.opacity = '0.5';
   }
 
   playBtn.classList.add('playing');
@@ -98,17 +101,13 @@ async function handlePlay() {
   }
 
   // Restore button opacity after loading
-  if (playIcon) {
-    playIcon.style.opacity = '1';
-  }
+  const stopIconRestore = playBtn?.querySelector('.icon-stop');
+  if (stopIconRestore) stopIconRestore.style.opacity = '1';
 
   // Check Tone.js is available
   if (!window.Tone) {
     console.warn('Tone.js not available yet');
-    // Reset state if we can't play
-    isPlaying = false;
-    playBtn.disabled = false;
-    playBtn.classList.remove('playing');
+    stopPlayback();
     return;
   }
 
@@ -175,50 +174,31 @@ async function handlePlay() {
     },
     () => {
       // onComplete - delay stop to let the last note ring out
-      console.log('Sequence completed - waiting for last note to finish...');
-
-      // Wait for last note duration (90% of interval) before stopping audio engine
-      // audio.stop() internally calls samplerPool.stopAll() with fade-out
       const lastNoteDelay = intervalSec * 0.9 * 1000;
-      setTimeout(() => {
-        audio.stop();
-      }, lastNoteDelay);
-
-      // Elegant fade-out animation with delay
-      console.log('Starting visual fade-out after 1000ms...');
-
-      // Collect all active cells
-      const activeCells = document.querySelectorAll('.musical-cell.active');
-
-      // Wait 1000ms to show last pulse, then start fade-out
-      setTimeout(() => {
-        console.log('Starting fade-out animation...');
-        activeCells.forEach(cell => {
-          cell.classList.add('fading-out');
-        });
-
-        // After 1 second fade-out, clean up
-        setTimeout(() => {
-          activeCells.forEach(cell => {
-            cell.classList.remove('active', 'fading-out');
-            const label = cell.querySelector('.cell-label');
-            if (label) label.remove();
-          });
-          console.log('Fade-out complete - cells cleared');
-        }, 1000);
-      }, 1000);
-
-      // Clear timeline pulse highlight (delay to show last pulse)
-      setTimeout(() => {
-        document.querySelectorAll('.pulse-marker.highlighted').forEach(el => el.classList.remove('highlighted'));
-      }, 500);
-
-      // Reset state immediately (don't wait for animation)
-      isPlaying = false;
-      playBtn.disabled = false;
-      playBtn.classList.remove('playing');
+      setTimeout(() => stopPlayback(), lastNoteDelay);
     }
   );
+}
+
+function stopPlayback() {
+  if (!isPlaying) return;
+  isPlaying = false;
+
+  audio?.stop();
+
+  const playIcon = playBtn?.querySelector('.icon-play');
+  const stopIcon = playBtn?.querySelector('.icon-stop');
+  if (playIcon) playIcon.style.display = 'block';
+  if (stopIcon) stopIcon.style.display = 'none';
+  playBtn?.classList.remove('playing');
+
+  document.querySelectorAll('.musical-cell.active, .musical-cell.fading-out').forEach(cell => {
+    cell.classList.remove('active', 'fading-out');
+    const label = cell.querySelector('.cell-label');
+    if (label) label.remove();
+  });
+
+  document.querySelectorAll('.pulse-marker.highlighted').forEach(el => el.classList.remove('highlighted'));
 }
 
 // ========== INITIALIZATION ==========
