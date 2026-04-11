@@ -79,7 +79,7 @@ body[data-visual="nuzic"] {
 /* Soundline: necessita height explícit perquè els fills són position:absolute */
 .soundline {
   position: relative;
-  width: 100px;
+  width: 70px;
   height: 100%;
 }
 

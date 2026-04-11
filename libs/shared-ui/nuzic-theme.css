@@ -315,18 +315,24 @@ body[data-visual="nuzic"] .soundline-container .soundline-division {
 body[data-visual="nuzic"] .soundline-container .soundline-number {
   left: 0;
   width: 100%;
-  text-align: center;
   font-weight: 700;
   font-size: 1.4rem;
   opacity: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 6px;
+  box-sizing: border-box;
 }
 
 body[data-visual="nuzic"] .soundline-container .soundline-number::before {
-  content: '\2013\2002';
+  content: '\2013';
+  flex-shrink: 0;
 }
 
 body[data-visual="nuzic"] .soundline-container .soundline-number::after {
-  content: '\2002\2013';
+  content: '\2013';
+  flex-shrink: 0;
 }
 
 /* Note highlights: unificar a blau nuzic (substitueix verd/rosa) */
