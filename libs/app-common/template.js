@@ -365,8 +365,17 @@ ${togglesMarkup}
 
       <!-- Reset Button -->
       <button id="resetBtn" class="reset" aria-label="Reset">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 25" fill="none">
-    <path d="M18 7L7 18M7 7L18 18" stroke="currentColor" stroke-width="1.2"/>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor" stroke="currentColor">
+    <path d="M176 100 L256 60 L336 100 L256 140 Z" opacity="0.9" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M176 100 L176 120 L256 160 L256 140 Z" opacity="0.5" stroke-width="2"/>
+    <path d="M256 140 L256 160 L336 120 L336 100 Z" opacity="0.7" stroke-width="2"/>
+    <path d="M216 80 L256 60 L296 80 L256 100 Z" fill="none" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M186 150 L186 380 L256 420 L256 190 Z" opacity="0.5" stroke-width="3"/>
+    <path d="M256 190 L256 420 L326 380 L326 150 Z" opacity="0.7" stroke-width="3"/>
+    <path d="M186 150 L256 110 L326 150 L256 190 Z" opacity="0.3" stroke-width="3" stroke-linejoin="round"/>
+    <line x1="220" y1="165" x2="220" y2="395" stroke-width="3" opacity="0.3"/>
+    <line x1="256" y1="190" x2="256" y2="420" stroke-width="3" opacity="0.3"/>
+    <line x1="290" y1="165" x2="290" y2="395" stroke-width="3" opacity="0.3"/>
   </svg>
 </button>
 
