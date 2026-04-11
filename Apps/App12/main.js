@@ -707,6 +707,9 @@ async function init() {
   // Inject DOM elements
   injectGridEditor();
 
+  // Save BPM before removing obsolete sections
+  const bpmParam = document.getElementById('bpmParam');
+
   // Remove obsolete template sections (Lg/V/T inputs, formula, middle)
   document.querySelector('.inputs')?.remove();
   document.querySelector('.middle')?.remove();
@@ -796,7 +799,7 @@ async function init() {
   const controls = document.querySelector('.controls');
   const gridWrapper = document.querySelector('.app12-main-grid');
   if (controls && gridWrapper) {
-    const bpmParam = document.getElementById('bpmParam');
+    // bpmParam already saved before .inputs removal
     const playBtnEl = controls.querySelector('.play') || document.getElementById('playBtn');
     const randomBtnEl = controls.querySelector('.random');
     const resetBtnEl = controls.querySelector('.reset');
