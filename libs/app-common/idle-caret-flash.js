@@ -42,6 +42,11 @@ export function initIdleCaretFlash({ targets = [] } = {}) {
     }
   }
 
+  function cancelOnInteraction() {
+    // First interaction: destroy permanently
+    handle.destroy();
+  }
+
   function resetTimer() {
     if (fired) return;
     if (timer) { clearTimeout(timer); timer = null; }
@@ -66,7 +71,7 @@ export function initIdleCaretFlash({ targets = [] } = {}) {
   }
 
   for (const evt of ACTIVITY_EVENTS) {
-    document.addEventListener(evt, resetTimer, { passive: true, capture: true });
+    document.addEventListener(evt, cancelOnInteraction, { passive: true, capture: true });
   }
 
   document.addEventListener('visibilitychange', onVisibility);
@@ -82,7 +87,7 @@ export function initIdleCaretFlash({ targets = [] } = {}) {
     destroy() {
       if (timer) clearTimeout(timer);
       for (const evt of ACTIVITY_EVENTS) {
-        document.removeEventListener(evt, resetTimer, { capture: true });
+        document.removeEventListener(evt, cancelOnInteraction, { capture: true });
       }
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('focus', resetTimer);
