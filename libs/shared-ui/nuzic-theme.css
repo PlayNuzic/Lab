@@ -489,8 +489,8 @@ body[data-visual="nuzic"] .timeline .pulse-number {
   color: var(--nuzic-dark);
   font-weight: 700;
   font-size: 1.2rem;
-  top: 53% !important;
-  transform: translate(-50%, -80%) !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
   opacity: 1;
   z-index: 10;
 }
