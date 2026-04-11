@@ -424,12 +424,12 @@ function createNuzicEditor(timelineWrapper) {
   editorEl.appendChild(nBar);
   editorEl.appendChild(pBar);
 
-  // Insert after timeline
-  const timeline = timelineWrapper.querySelector('.timeline');
-  if (timeline) {
-    timeline.insertAdjacentElement('afterend', editorEl);
+  // Insert into .grid-container (grid-row: 3, aligned with matrix)
+  const gridContainer = timelineWrapper.closest('.grid-container');
+  if (gridContainer) {
+    gridContainer.appendChild(editorEl);
   } else {
-    timelineWrapper.appendChild(editorEl);
+    timelineWrapper.insertAdjacentElement('afterend', editorEl);
   }
 
   function renderEditor() {
@@ -437,38 +437,40 @@ function createNuzicEditor(timelineWrapper) {
     nCells.querySelectorAll('.editor-cell').forEach(c => c.remove());
     pCells.querySelectorAll('.editor-cell').forEach(c => c.remove());
 
-    // Build cells for each entered pair
+    // Build cells for each entered pair: [white:value][color] per row
     for (const pair of currentPairs) {
-      // N: cream + white value
-      const nCream = createCell('n', true);
-      nCells.insertBefore(nCream, nEndMarker);
+      // N: white value + pink separator
       const nVal = createCell('n', false);
       nVal.value = String(pair.note);
       nVal.readOnly = true;
       nCells.insertBefore(nVal, nEndMarker);
+      const nSep = createCell('n', true);
+      nCells.insertBefore(nSep, nEndMarker);
 
-      // P: cream + white value
-      const pCream = createCell('p', true);
-      pCells.insertBefore(pCream, pEndMarker);
+      // P: white value + cream separator
       const pVal = createCell('p', false);
       pVal.value = String(pair.pulse);
       pVal.readOnly = true;
       pCells.insertBefore(pVal, pEndMarker);
+      const pSep = createCell('p', true);
+      pCells.insertBefore(pSep, pEndMarker);
     }
 
-    // If not full: cream + active input for N and P
+    // If not full: white input + color separator
     if (currentPairs.length < TOTAL_SPACES) {
-      // N cream + input
-      const nCream = createCell('n', true);
-      nCells.insertBefore(nCream, nEndMarker);
+      // N: white input + pink
       const nInput = createInputCell('n');
       nCells.insertBefore(nInput, nEndMarker);
+      const nSep = createCell('n', true);
+      nCells.insertBefore(nSep, nEndMarker);
 
-      // P cream + input
-      const pCream = createCell('p', true);
-      pCells.insertBefore(pCream, pEndMarker);
+      // P: white input + cream (disabled until N is entered)
       const pInput = createInputCell('p');
+      pInput.readOnly = true;  // P disabled until N entered
+      pInput.className = 'editor-cell editor-cell--p editor-input editor-input--waiting';
       pCells.insertBefore(pInput, pEndMarker);
+      const pSep = createCell('p', true);
+      pCells.insertBefore(pSep, pEndMarker);
 
       // Auto-focus N input
       setTimeout(() => nInput.focus(), 30);
@@ -509,9 +511,13 @@ function createNuzicEditor(timelineWrapper) {
         // Note: 0-11
         if (num < 0 || num > 11) { e.target.value = ''; return; }
         pendingNote = num;
-        // Focus P input
-        const pInput = pCells.querySelector('.editor-input');
-        if (pInput) setTimeout(() => pInput.focus(), 30);
+        // Activate and focus P input
+        const pInput = pCells.querySelector('.editor-input--waiting');
+        if (pInput) {
+          pInput.readOnly = false;
+          pInput.classList.remove('editor-input--waiting');
+          setTimeout(() => pInput.focus(), 30);
+        }
       } else {
         // Pulse: 0-7
         if (num < 0 || num > 7) { e.target.value = ''; return; }

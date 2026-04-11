@@ -115,7 +115,7 @@ html, body {
   position: static;
 }
 
-/* Musical grid fills bottom-right */
+/* Musical grid fills bottom-right — add row for N-P editor */
 .app12-main-grid > .grid-container {
   grid-column: 2;
   grid-row: 2;
@@ -124,6 +124,7 @@ html, body {
   height: 100% !important;
   min-height: var(--grid-min-height, 300px);
   min-width: 0;
+  grid-template-rows: 1fr 50px auto !important;  /* matrix + timeline + editor */
 }
 
 /* Controls: static positioning per nuzic theme */
@@ -156,9 +157,8 @@ html, body {
 
 /* ========== NUZIC N-P EDITOR ========== */
 .np-editor {
-  max-width: 700px;
-  margin: 2px auto 0;
-  padding: 0 20px;
+  grid-column: 2;  /* alineat amb la matriu */
+  grid-row: 3;
 }
 
 .editor-bar {
@@ -243,6 +243,13 @@ html, body {
 
 .editor-input:focus {
   box-shadow: inset 0 0 0 2px var(--nuzic-yellow);
+}
+
+/* P input waiting for N to be entered */
+.editor-input--waiting {
+  background: var(--nuzic-yellow-light) !important;
+  cursor: default;
+  opacity: 0.5;
 }
 
 /* End marker */
