@@ -82,6 +82,7 @@ body[data-visual="nuzic"] {
   position: relative;
   height: var(--it-block, 35px);
   white-space: nowrap;
+  background: var(--nuzic-light);
 }
 
 /* Base cell: fixed width, nuzic_app pattern */
