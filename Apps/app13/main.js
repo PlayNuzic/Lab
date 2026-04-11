@@ -791,7 +791,7 @@ function initApp() {
   const bpmParam = document.getElementById('bpmParam');
   const controls = document.querySelector('.controls');
   if (bpmParam && controls) {
-    bpmParam.style.order = '3';
+    bpmParam.style.order = '2';
     controls.appendChild(bpmParam);
   }
 

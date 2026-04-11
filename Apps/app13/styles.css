@@ -83,13 +83,15 @@ body[data-visual="nuzic"] {
   order: 1;
 }
 
-.controls .random { order: 1; }
-.controls .reset { order: 2; }
-
-/* Play button */
+/* Order: play(1) bpm(2-via JS) random(3) reset(4) */
 .controls .play {
-  order: 4;
+  order: 1;
+  width: 48px !important;
+  height: 48px !important;
 }
+
+.controls .random { order: 3; }
+.controls .reset { order: 4; }
 
 /* ========== EDITOR iT (nuzic style) ========== */
 .it-editor-bar {
