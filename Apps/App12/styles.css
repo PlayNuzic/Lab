@@ -175,7 +175,7 @@ html, body {
   min-width: 25px;
   aspect-ratio: 1;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 1.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -197,8 +197,8 @@ html, body {
   min-width: 25px;
   aspect-ratio: 1;  /* keep square */
   text-align: center;
-  color: var(--nuzic-dark);
-  font-size: 14px;
+  color: #43433b;
+  font-size: 1.4rem;
   font-weight: 700;
   border-radius: 0;
   border-width: 0;
@@ -228,10 +228,10 @@ html, body {
   border: 2px solid var(--nuzic-yellow-light);
 }
 
-/* Filled cell: white with dark text */
+/* Filled cell: white with dark text (always dark, even in dark mode) */
 .editor-cell:not(:placeholder-shown) {
   background: white;
-  color: var(--nuzic-dark) !important;
+  color: #43433b !important;
   z-index: 1;
 }
 
