@@ -937,6 +937,10 @@ body[data-visual="nuzic"][data-theme="dark"] .plano-highlight-label {
 }
 
 /* Matrix container: fons coherent */
+body[data-visual="nuzic"] .matrix-container {
+  overflow: visible;
+}
+
 body[data-visual="nuzic"][data-theme="dark"] .matrix-container {
   background: transparent;
 }
