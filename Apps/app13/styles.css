@@ -1,18 +1,11 @@
-/* App13: Intervalos Temporales - Estilos específicos de la app */
+/* App13: Intervalos Temporales - Nuzic Theme Styles */
 
-/* ========== IFRAME COMPATIBILITY ========== */
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
-}
-
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
-body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 0px;
 }
 
 #app-root {
@@ -23,29 +16,29 @@ body[data-visual="nuzic"] {
   overflow: hidden;
 }
 
-/* ========== VARIABLES DE COLOR ========== */
 :root {
   --timeline-interval-color: #F28AAD;
   --timeline-pulse-color: currentColor;
   --timeline-line-color: #666;
+}
 
-  /* Ajust fi dels controls */
-  --controls-offset-x: 0px;
-  --controls-offset-y: -20px;
-  --controls-scale: 1;
+/* Nuzic theme overrides */
+body[data-visual="nuzic"] {
+  --nuzic-controls-offset-x: 0px;
+  --nuzic-controls-offset-y: 0px;
 }
 
 [data-theme="dark"] {
   --timeline-line-color: #999;
 }
 
-/* ========== BPM INPUT ========== */
+/* ========== BPM ========== */
 .inputs {
   display: none; /* BPM moved into controls block */
 }
 
 /* ========== CONTROLS BLOCK ========== */
-/* Compact horizontal layout: [random] [reset] [BPM] [play] */
+/* Order: Play, BPM, Random, Reset (reordered via JS) */
 .controls {
   display: flex !important;
   flex-direction: row !important;
@@ -56,42 +49,33 @@ body[data-visual="nuzic"] {
   height: auto !important;
   position: relative !important;
   margin: 10px auto !important;
+  transform: none !important;
 }
 
-/* All buttons: static position, no absolute */
 .controls .play,
 .controls .random,
-.controls .reset,
-.controls .loop,
-.controls .tap {
+.controls .reset {
   position: static !important;
   transform: none !important;
   margin: 0 !important;
 }
 
-/* Hide unused buttons */
 .controls .loop,
-.controls .tap {
+.controls .tap,
+.controls .control-sound-toggles {
   display: none !important;
 }
 
-/* Random and reset: smaller */
-.controls .random,
-.controls .reset {
-  width: 36px !important;
-  height: 36px !important;
-  order: 1;
-}
-
-/* Order: play(1) bpm(2-via JS) random(3) reset(4) */
 .controls .play {
-  order: 1;
   width: 48px !important;
   height: 48px !important;
 }
 
-.controls .random { order: 3; }
-.controls .reset { order: 4; }
+.controls .random,
+.controls .reset {
+  width: 36px !important;
+  height: 36px !important;
+}
 
 /* ========== EDITOR iT (nuzic style) ========== */
 .it-editor-bar {
@@ -127,7 +111,6 @@ body[data-visual="nuzic"] {
   background: var(--nuzic-light);
 }
 
-/* Base cell: fixed width, nuzic_app pattern */
 .it-cell {
   width: var(--it-block, 28px);
   min-width: var(--it-block, 28px);
@@ -152,25 +135,21 @@ body[data-visual="nuzic"] {
   margin: 0;
 }
 
-/* Empty cell (placeholder shown): cream */
 .it-cell:placeholder-shown {
   background: var(--nuzic-yellow-light);
   border: 2px solid var(--nuzic-yellow-light);
 }
 
-/* Filled cell (has value): white */
 .it-cell:not(:placeholder-shown) {
   background: white;
   z-index: 1;
 }
 
-/* End-of-interval separator (empty extension) */
 .it-cell.it-end {
   border: none;
   box-shadow: inset -2px 0 0 0 white;
 }
 
-/* End-of-interval with value */
 .it-cell.it-end:not(:placeholder-shown) {
   border: 2px solid var(--nuzic-yellow-light);
   margin-right: 2px;
@@ -178,7 +157,6 @@ body[data-visual="nuzic"] {
   min-width: calc(var(--it-block, 28px) - 2px);
 }
 
-/* Active input cell (white, editable) */
 .it-cell.it-input {
   background: white;
   border: 2px solid var(--nuzic-yellow-light);
@@ -190,12 +168,10 @@ body[data-visual="nuzic"] {
   border-color: var(--nuzic-yellow);
 }
 
-/* Hover on filled cells */
 .it-cell:not(:placeholder-shown):hover {
   background: var(--nuzic-green-light);
 }
 
-/* Last cell (dark end marker) */
 .it-end-marker {
   width: var(--it-block, 28px);
   min-width: var(--it-block, 28px);
@@ -212,26 +188,8 @@ body[data-visual="nuzic"] {
   content: '●';
 }
 
-/* Highlight durant playback */
 .it-cell.it-playing {
   background: var(--nuzic-green-light);
-}
-  border-radius: 1px;
-}
-
-.it-sum-display:focus {
-  border-color: var(--border-color, #ccc);
-  box-shadow: none;
-}
-
-/* Longitud completa - blau nuzic */
-.it-sum-display.complete {
-  border-color: #7BB4CD;
-  color: #7BB4CD;
-}
-
-.it-sum-display.complete::before {
-  background: #7BB4CD;
 }
 
 /* ========== TOOLTIP ========== */
@@ -249,25 +207,10 @@ body[data-visual="nuzic"] {
   white-space: nowrap;
 }
 
-.it-tooltip.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.it-tooltip.success {
-  background: #7BB4CD;
-  color: white;
-}
-
-.it-tooltip.error {
-  background: #EF4444;
-  color: white;
-}
-
-.it-tooltip.info {
-  background: #7BB4CD;
-  color: white;
-}
+.it-tooltip.visible { opacity: 1; transform: translateY(0); }
+.it-tooltip.success { background: #7BB4CD; color: white; }
+.it-tooltip.error { background: #EF4444; color: white; }
+.it-tooltip.info { background: #7BB4CD; color: white; }
 
 /* ========== TIMELINE ========== */
 .timeline-wrapper {
@@ -283,47 +226,7 @@ body[data-visual="nuzic"] {
   align-items: center;
 }
 
-.timeline-line {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--timeline-line-color);
-  transform: translateY(-50%);
-}
-
-/* Pulsos del timeline */
-.timeline .pulse {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--timeline-pulse-color, currentColor);
-  transform: translate(-50%, -50%);
-  top: 50%;
-  z-index: 10;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-
-/* Flash dels pulsos durant reproducció */
-.timeline .pulse.active {
-  transform: translate(-50%, -50%) scale(1.5);
-  background: var(--selection-color, #FFBB33);
-  box-shadow: 0 0 12px var(--selection-color, #FFBB33);
-}
-
-.timeline .pulse-number {
-  position: absolute;
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: var(--timeline-interval-color, #4A9EFF);
-  top: calc(50% + 25px);
-  transform: translateX(-50%);
-  user-select: none;
-}
-
-/* ========== BARRES D'INTERVALS VISUALS ========== */
+/* ========== INTERVAL BARS ========== */
 .interval-bar-visual {
   position: absolute;
   top: 50%;
@@ -331,7 +234,6 @@ body[data-visual="nuzic"] {
   border-radius: 6px;
   z-index: 5;
   transform: translateY(-50%);
-  transition: box-shadow 0.2s ease;
   pointer-events: none;
 }
 
@@ -339,7 +241,6 @@ body[data-visual="nuzic"] {
   box-shadow: 0 0 12px currentColor;
 }
 
-/* Número de duració sobre la barra */
 .interval-bar-visual .bar-duration {
   position: absolute;
   top: -24px;
@@ -349,88 +250,4 @@ body[data-visual="nuzic"] {
   font-weight: 600;
   color: inherit;
   opacity: 0.9;
-}
-
-/* ========== CONTROLES ========== */
-.controls {
-  transform: translate(var(--controls-offset-x), var(--controls-offset-y)) scale(var(--controls-scale));
-}
-
-/* Amagar botons innecessaris del template */
-.controls #tapTempoBtn,
-.controls #loopBtn {
-  display: none !important;
-}
-
-/* Ordre dels botons: Random primer */
-.controls #randomBtn {
-  order: -1;
-}
-
-/* ========== RESPONSIVE ========== */
-@media (max-width: 768px) {
-  .it-editor-container {
-    margin: 15px auto 25px;
-  }
-
-  .it-input {
-    width: 44px;
-    height: 44px;
-    font-size: 1.3rem;
-  }
-
-  .timeline-wrapper {
-    max-width: 100%;
-    padding: 0 15px;
-    margin: 25px auto;
-  }
-
-  .timeline {
-    height: 100px;
-  }
-
-  .timeline .pulse {
-    width: 10px;
-    height: 10px;
-  }
-
-  .timeline .pulse-number {
-    font-size: 1rem;
-    top: calc(50% + 20px);
-  }
-
-  .interval-bar-visual {
-    height: 24px;
-  }
-
-  .interval-bar-visual .bar-duration {
-    font-size: 1rem;
-    top: -20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .it-input {
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
-  }
-
-  .timeline .pulse-number {
-    font-size: 0.9rem;
-  }
-
-  .timeline .pulse {
-    width: 8px;
-    height: 8px;
-  }
-
-  .interval-bar-visual {
-    height: 20px;
-  }
-
-  .interval-bar-visual .bar-duration {
-    font-size: 0.9rem;
-    top: -18px;
-  }
 }
