@@ -53,17 +53,19 @@ body[data-visual="nuzic"] {
 
 /* ========== EDITOR iT (nuzic style) ========== */
 .it-editor-bar {
-  display: flex;
-  align-items: center;
+  position: relative;
   margin: 4px auto 0;
   max-width: 700px;
   padding: 0 20px;
+  padding-left: calc(20px + 35px + 4px); /* space for label outside */
   --it-block: 35px;
 }
 
 .it-label {
+  position: absolute;
+  left: 20px;
+  top: 0;
   width: var(--it-block, 35px);
-  min-width: var(--it-block, 35px);
   height: var(--it-block, 35px);
   background: var(--nuzic-yellow);
   color: white;
