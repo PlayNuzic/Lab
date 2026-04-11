@@ -3,6 +3,7 @@ import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-co
 import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload } from '../../libs/sound/piano.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ============================================================================
 // ESTAT
@@ -342,6 +343,7 @@ function initApp() {
   // Precarregar samples de piano per evitar latència al primer play
   setupPianoPreload({ delay: 300 });
 
+  initIdleCaretFlash({ targets: [document.getElementById('playBtn')] });
   console.log('App22 inicialitzada correctament');
 }
 

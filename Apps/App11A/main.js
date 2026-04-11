@@ -9,6 +9,7 @@ import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8 (9 markers)
@@ -433,6 +434,7 @@ window.addEventListener('beforeunload', () => {
     document.removeEventListener('sharedui:sound', eventHandlers.sharedSound);
   }
 
+  initIdleCaretFlash({ targets: [document.getElementById('playBtn')] });
   if (eventHandlers.sharedInstrument) {
     window.removeEventListener('sharedui:instrument', eventHandlers.sharedInstrument);
   }

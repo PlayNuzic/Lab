@@ -6,6 +6,8 @@ import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.
 import { drawPentagram } from '../../libs/notation/index.js';
 import { setupPianoPreload } from '../../libs/sound/piano.js';
 
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+
 // Imports del mòdul soundlines compartit
 import {
   createHighlightManager,
@@ -526,6 +528,7 @@ function initApp() {
   setupPianoPreload({ delay: 300 });
 
   console.log('App23 inicializada correctamente');
+  initIdleCaretFlash({ targets: [document.querySelector('.output-note-selector')] });
 }
 
 // Ejecutar cuando el DOM esté listo

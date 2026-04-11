@@ -5,6 +5,8 @@ import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { setupPianoPreload } from '../../libs/sound/piano.js';
 
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+
 // Imports del mòdul soundlines compartit
 import {
   createHighlightManager,
@@ -353,6 +355,7 @@ function initApp() {
   setupPianoPreload({ delay: 300 });
 
   console.log('App21 inicializada correctamente');
+  initIdleCaretFlash({ targets: [document.getElementById('playChromaticBtn'), document.getElementById('playScaleBtn')] });
 }
 
 // Ejecutar cuando el DOM esté listo

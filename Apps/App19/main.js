@@ -17,6 +17,7 @@ import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 
 // Import plano-modular (out of the box)
 import { createApp19Grid } from '../../libs/plano-modular/index.js';
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
@@ -1023,6 +1024,7 @@ function initApp() {
   updateGridVisibility();
 
   // No initial focus — user decides where to start
+  initIdleCaretFlash({ targets: [document.getElementById('inputRegistro')?.closest('.circle')] });
   console.log('App19 initialized (Migrated to plano-modular)');
 }
 

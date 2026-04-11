@@ -695,8 +695,8 @@ function init() {
   // Render timeline
   renderTimeline();
 
-  // Idle caret flash on BPM circle
-  initIdleCaretFlash({ targets: [document.getElementById('inputBpm')?.closest('.circle')] });
+  // Idle caret flash on play button
+  initIdleCaretFlash({ targets: [document.getElementById('playBtn')] });
 }
 
 // Run init when DOM is ready

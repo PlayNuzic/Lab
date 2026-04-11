@@ -7,6 +7,8 @@ import { drawPentagram, fontsReady } from '../../libs/notation/index.js';
 import { setupPianoPreload } from '../../libs/sound/piano.js';
 import { createScaleSelector, getRotatedScaleNotes } from '../../libs/scale-selector/index.js';
 
+import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+
 // Imports del mòdul soundlines compartit
 import {
   createHighlightManager,
@@ -654,6 +656,7 @@ function initApp() {
   addKeySigOptionToMenu();
 
   console.log('App24 inicializada correctamente');
+  initIdleCaretFlash({ targets: [document.getElementById('scaleSelectorContainer')] });
 }
 
 // Executar quan el DOM estigui llest
