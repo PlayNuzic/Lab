@@ -573,6 +573,8 @@ function createNuzicEditor(timelineWrapper) {
         if (num < 0 || num > 11) {
           showEditorTooltip(cell, 'Nota: 0-11');
           e.target.value = '';
+          clearTimeout(autoJumpTimer);
+          pendingNote = null;
           return;
         }
         pendingNote = num;

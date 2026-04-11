@@ -87,23 +87,22 @@ html, body {
 
 /* ========== NUZIC N-P EDITOR ========== */
 .np-editor {
-  grid-column: 2;  /* alineat amb la matriu */
+  grid-column: 1 / -1;  /* ocupa tota l'amplada del grid-container */
   grid-row: 3;
   margin-top: 5%;
 }
 
 .editor-bar {
-  position: relative;
+  display: flex;
+  align-items: stretch;
   margin-bottom: 1px;
 }
 
 .editor-label {
-  position: absolute;
-  left: calc(-6.25% - 4px);
-  top: 0;
   width: 6.25%;
   min-width: 25px;
   aspect-ratio: 1;
+  flex-shrink: 0;
   font-weight: 700;
   font-size: 1.6rem;
   display: flex;
