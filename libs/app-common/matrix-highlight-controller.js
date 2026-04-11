@@ -65,7 +65,7 @@ export function createMatrixHighlightController(config) {
 
     // Highlight pulse marker on timeline
     const pulseMarker = musicalGrid?.containers?.timeline
-      ?.querySelector(`[data-pulse="${pulse}"]`);
+      ?.querySelector(`.pulse-marker[data-pulse-index="${pulse}"]`);
     if (pulseMarker) {
       pulseMarker.classList.add('highlighted');
     }

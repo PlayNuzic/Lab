@@ -28,7 +28,7 @@ describe('createMatrixHighlightController', () => {
 
     // Create mock DOM elements
     mockPulseMarker = document.createElement('div');
-    mockPulseMarker.setAttribute('data-pulse', '0');
+    mockPulseMarker.setAttribute('data-pulse-index', '0');
     mockPulseMarker.className = 'pulse-marker';
 
     mockTimeline = document.createElement('div');
@@ -231,7 +231,7 @@ describe('createMatrixHighlightController', () => {
 
       // Create another pulse marker for pulse 1
       const marker1 = document.createElement('div');
-      marker1.setAttribute('data-pulse', '1');
+      marker1.setAttribute('data-pulse-index', '1');
       marker1.className = 'pulse-marker';
       mockTimeline.appendChild(marker1);
 

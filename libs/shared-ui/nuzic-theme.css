@@ -455,8 +455,8 @@ body[data-visual="nuzic"] .grid-container .pulse-marker.highlighted {
 
 body[data-visual="nuzic"] .grid-container .pulse-marker.highlighted::before,
 body[data-visual="nuzic"] .grid-container .pulse-marker.highlighted::after {
-  background: var(--nuzic-yellow);
-  opacity: 0.8;
+  background: var(--nuzic-yellow) !important;
+  opacity: 1 !important;
   width: 4px;
   border-radius: 1px;
 }
