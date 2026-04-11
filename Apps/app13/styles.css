@@ -53,28 +53,25 @@ body[data-visual="nuzic"] {
 
 /* ========== EDITOR iT (nuzic style) ========== */
 .it-editor-bar {
-  position: relative;
-  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  margin: 4px auto 0;
   max-width: 700px;
   padding: 0 20px;
   --it-block: 35px;
-  height: var(--it-block);
 }
 
 .it-label {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
+  width: var(--it-block, 35px);
+  min-width: var(--it-block, 35px);
+  height: var(--it-block, 35px);
   background: var(--nuzic-yellow);
   color: white;
   font-weight: 700;
-  font-size: 0.9rem;
-  padding: 0 6px;
+  font-size: 14px;
   display: flex;
   align-items: center;
-  white-space: nowrap;
-  z-index: 5;
+  justify-content: center;
 }
 
 .it-cells {
