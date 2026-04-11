@@ -911,6 +911,11 @@ body[data-visual="nuzic"][data-theme="dark"] .grid-container .pulse-marker {
   color: #43433b;
 }
 
+body[data-visual="nuzic"][data-theme="dark"] .grid-container .pulse-marker::before,
+body[data-visual="nuzic"][data-theme="dark"] .grid-container .pulse-marker::after {
+  background: #43433b;
+}
+
 body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-number {
   color: #43433b;
 }
