@@ -442,7 +442,7 @@ function initApp() {
   // Configurar event listeners
   setupEventHandlers();
 
-  initIdleCaretFlash({ targets: [document.getElementById('inputBpm')?.closest('.circle')] });
+  initIdleCaretFlash({ targets: [document.getElementById('playBtn')] });
 
   console.log('App9 inicializada correctamente');
 }
