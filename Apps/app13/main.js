@@ -790,14 +790,21 @@ function initApp() {
   // Reorder controls: Play, BPM, Random, Reset
   const bpmParam = document.getElementById('bpmParam');
   const controls = document.querySelector('.controls');
-  const playBtn = document.getElementById('playBtn');
-  const randomBtnEl = document.getElementById('randomBtn');
-  const resetBtnEl = document.getElementById('resetBtn');
-  if (controls && playBtn) {
-    // Clear and re-append in desired order
+  if (controls) {
+    // Remove all children, re-append in desired order
+    const playBtn = controls.querySelector('.play') || document.getElementById('playBtn');
+    const randomBtnEl = controls.querySelector('.random') || document.getElementById('randomBtn');
+    const resetBtnEl = controls.querySelector('.reset') || document.getElementById('resetBtn');
+    const randomMenu = controls.querySelector('.random-menu');
+
+    // Clear controls
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    // Re-append in order: Play, BPM, Random (+ menu), Reset
     if (playBtn) controls.appendChild(playBtn);
     if (bpmParam) controls.appendChild(bpmParam);
     if (randomBtnEl) controls.appendChild(randomBtnEl);
+    if (randomMenu) controls.appendChild(randomMenu);
     if (resetBtnEl) controls.appendChild(resetBtnEl);
   }
 
