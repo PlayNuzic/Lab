@@ -159,6 +159,7 @@ html, body {
 .np-editor {
   grid-column: 2;  /* alineat amb la matriu */
   grid-row: 3;
+  margin-top: 12px;
 }
 
 .editor-bar {

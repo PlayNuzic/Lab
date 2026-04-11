@@ -464,10 +464,8 @@ function createNuzicEditor(timelineWrapper) {
       const nSep = createCell('n', true);
       nCells.insertBefore(nSep, nEndMarker);
 
-      // P: white input + cream (disabled until N is entered)
+      // P: white input + cream (both N and P editable from start)
       const pInput = createInputCell('p');
-      pInput.readOnly = true;  // P disabled until N entered
-      pInput.className = 'editor-cell editor-cell--p editor-input editor-input--waiting';
       pCells.insertBefore(pInput, pEndMarker);
       const pSep = createCell('p', true);
       pCells.insertBefore(pSep, pEndMarker);
