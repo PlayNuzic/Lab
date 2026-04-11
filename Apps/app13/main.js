@@ -787,12 +787,18 @@ function initApp() {
     bpmController.attach();
   }
 
-  // Move BPM into controls block (between random/reset and play)
+  // Reorder controls: Play, BPM, Random, Reset
   const bpmParam = document.getElementById('bpmParam');
   const controls = document.querySelector('.controls');
-  if (bpmParam && controls) {
-    bpmParam.style.order = '2';
-    controls.appendChild(bpmParam);
+  const playBtn = document.getElementById('playBtn');
+  const randomBtnEl = document.getElementById('randomBtn');
+  const resetBtnEl = document.getElementById('resetBtn');
+  if (controls && playBtn) {
+    // Clear and re-append in desired order
+    if (playBtn) controls.appendChild(playBtn);
+    if (bpmParam) controls.appendChild(bpmParam);
+    if (randomBtnEl) controls.appendChild(randomBtnEl);
+    if (resetBtnEl) controls.appendChild(resetBtnEl);
   }
 
   // Cablear events de so compartits (selector Pulso → metrònom)
