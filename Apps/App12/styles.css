@@ -93,16 +93,12 @@ html, body {
 }
 
 .editor-bar {
-  display: flex;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: 60px 1fr;  /* matches .grid-container columns */
   margin-bottom: 1px;
 }
 
 .editor-label {
-  width: 6.25%;
-  min-width: 25px;
-  aspect-ratio: 1;
-  flex-shrink: 0;
   font-weight: 700;
   font-size: 1.6rem;
   display: flex;
