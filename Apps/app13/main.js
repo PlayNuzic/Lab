@@ -219,28 +219,7 @@ function createItEditor() {
 
   itEditor.appendChild(cellsContainer);
 
-  // SVG overlay for golden separator lines
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('class', 'it-separator-lines');
-  svg.setAttribute('viewBox', `0 0 ${MAX_LENGTH * 100} 28`);
-  svg.setAttribute('preserveAspectRatio', 'none');
-  // Horizontal baseline
-  const baseline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  baseline.setAttribute('x1', '0');
-  baseline.setAttribute('y1', '14');
-  baseline.setAttribute('x2', String(MAX_LENGTH * 100));
-  baseline.setAttribute('y2', '14');
-  svg.appendChild(baseline);
-  // Vertical ticks at each pulse boundary
-  for (let i = 0; i <= MAX_LENGTH; i++) {
-    const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    tick.setAttribute('x1', String(i * 100));
-    tick.setAttribute('y1', '6');
-    tick.setAttribute('x2', String(i * 100));
-    tick.setAttribute('y2', '22');
-    svg.appendChild(tick);
-  }
-  cellsContainer.appendChild(svg);
+  // SVG placeholder (regenerated in renderEditorCells)
 
   // Tooltip
   tooltip = document.createElement('div');
@@ -305,10 +284,63 @@ function renderEditorCells() {
     itInputs.push(activeCell);
   }
 
-  // End marker: always visible, positioned after used cells
+  // End marker: always visible
   if (endMarker) {
     endMarker.style.display = 'flex';
   }
+
+  // Regenerate SVG separator lines (only over cream cells, ticks at interval boundaries)
+  const cellsContainer = itEditor.querySelector('.it-cells');
+  const oldSvg = cellsContainer.querySelector('.it-separator-lines');
+  if (oldSvg) oldSvg.remove();
+
+  const blockSize = 28; // matches --it-block
+  const totalCells = cells.length;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('class', 'it-separator-lines');
+  svg.setAttribute('viewBox', `0 0 ${totalCells * blockSize} ${blockSize}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+
+  // Draw horizontal line and ticks only through cream (extension) cells
+  let p = 0;
+  for (const iT of currentIntervals) {
+    if (iT <= 0) break;
+
+    // Horizontal line through extension cells (pulse p to p+iT-2)
+    if (iT > 1) {
+      const x1 = p * blockSize + blockSize / 2;
+      const x2 = (p + iT - 1) * blockSize - blockSize / 2;
+      const hLine = document.createElementNS(svgNS, 'line');
+      hLine.setAttribute('x1', String(x1));
+      hLine.setAttribute('y1', '14');
+      hLine.setAttribute('x2', String(x2));
+      hLine.setAttribute('y2', '14');
+      svg.appendChild(hLine);
+    }
+
+    // Tick at start of interval
+    const startTick = document.createElementNS(svgNS, 'line');
+    startTick.setAttribute('x1', String(p * blockSize + blockSize / 2));
+    startTick.setAttribute('y1', '10');
+    startTick.setAttribute('x2', String(p * blockSize + blockSize / 2));
+    startTick.setAttribute('y2', '18');
+    svg.appendChild(startTick);
+
+    // Tick at end of interval (before value cell)
+    if (iT > 1) {
+      const endTick = document.createElementNS(svgNS, 'line');
+      endTick.setAttribute('x1', String((p + iT - 1) * blockSize - blockSize / 2));
+      endTick.setAttribute('y1', '10');
+      endTick.setAttribute('x2', String((p + iT - 1) * blockSize - blockSize / 2));
+      endTick.setAttribute('y2', '18');
+      svg.appendChild(endTick);
+    }
+
+    p += iT;
+  }
+
+  cellsContainer.appendChild(svg);
 
   updateSumDisplay();
 }
