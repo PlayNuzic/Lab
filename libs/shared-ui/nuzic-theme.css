@@ -580,10 +580,56 @@ body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-container {
 
 
 /* --------------------------------------------------------------------------
-   FASE 5: Controls — offset per separar de la soundline
+   FASE 5: Controls — layout compacte horitzontal nuzic
    -------------------------------------------------------------------------- */
 
-body[data-visual="nuzic"] .controls {
+/* Layout per defecte: fila horitzontal Play-BPM-Random-Reset */
+body[data-visual="nuzic"] .controls:not([data-layout]) {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: auto !important;
+  height: auto !important;
+  position: relative !important;
+  margin: 10px auto !important;
+  transform: none !important;
+  left: var(--nuzic-controls-offset-x, 0px);
+  top: var(--nuzic-controls-offset-y, 0px);
+}
+
+body[data-visual="nuzic"] .controls:not([data-layout]) .play,
+body[data-visual="nuzic"] .controls:not([data-layout]) .random,
+body[data-visual="nuzic"] .controls:not([data-layout]) .reset {
+  position: static !important;
+  transform: none !important;
+  margin: 0 !important;
+}
+
+body[data-visual="nuzic"] .controls:not([data-layout]) .loop,
+body[data-visual="nuzic"] .controls:not([data-layout]) .tap {
+  display: none !important;
+}
+
+body[data-visual="nuzic"] .controls:not([data-layout]) .play {
+  width: 48px !important;
+  height: 48px !important;
+}
+
+body[data-visual="nuzic"] .controls:not([data-layout]) .random,
+body[data-visual="nuzic"] .controls:not([data-layout]) .reset {
+  width: 36px !important;
+  height: 36px !important;
+}
+
+/* BPM: amagar .inputs original (BPM mogut dins .controls via JS) */
+body[data-visual="nuzic"] .inputs:has(.bpm-inline) {
+  display: none;
+}
+
+/* Controls amb data-layout (vertical/horizontal): offset posicional */
+body[data-visual="nuzic"] .controls[data-layout] {
   position: relative !important;
   left: var(--nuzic-controls-offset-x, 0px) !important;
   top: var(--nuzic-controls-offset-y, 0px) !important;

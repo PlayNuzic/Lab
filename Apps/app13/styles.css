@@ -32,51 +32,6 @@ body[data-visual="nuzic"] {
   --timeline-line-color: #999;
 }
 
-/* ========== BPM ========== */
-.inputs {
-  display: none; /* BPM moved into controls block */
-}
-
-/* ========== CONTROLS BLOCK ========== */
-/* Order: Play, BPM, Random, Reset (reordered via JS) */
-.controls {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  width: auto !important;
-  height: auto !important;
-  position: relative !important;
-  margin: 10px auto !important;
-  transform: none !important;
-}
-
-.controls .play,
-.controls .random,
-.controls .reset {
-  position: static !important;
-  transform: none !important;
-  margin: 0 !important;
-}
-
-.controls .loop,
-.controls .tap,
-.controls .control-sound-toggles {
-  display: none !important;
-}
-
-.controls .play {
-  width: 48px !important;
-  height: 48px !important;
-}
-
-.controls .random,
-.controls .reset {
-  width: 36px !important;
-  height: 36px !important;
-}
-
 /* ========== EDITOR iT (nuzic style) ========== */
 .it-editor-bar {
   position: relative;
