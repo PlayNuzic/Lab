@@ -3,10 +3,131 @@
 ## Estat
 
 - [x] **app13** — Editor iT implementat i funcionant
-- [ ] **App12** — Editor N-P (pròxim)
+- [ ] **App12** — Editor N-P (en curs, estructura bàsica feta, falta posicionament i regles)
 - [ ] **App14** — Editor iS + iT (zigzag)
 - [ ] **App15** — Editor N-P (similar a App12)
 - [ ] **App26-35** — Editors diversos
+
+## Problemes pendents de resoldre (detectats a App12)
+
+### P1: Posicionament de l'editor
+
+L'editor ha d'estar **a sota de la grid 2D**, NO superposat ni centrat.
+Ha d'estar **alineat a l'esquerra** amb el principi de la graella 2D.
+
+Això implica:
+- L'editor s'insereix dins el contenidor de la grid (`.app12-main-grid`)
+- NO dins `.timeline-wrapper` (que té `max-width: 700px` centrat)
+- Ha d'ocupar la mateixa columna que la grid 2D (columna 2 del layout grid)
+- L'amplada ha de coincidir amb la de la matriu (`.matrix-container`)
+
+Estructura DOM desitjada:
+```
+.app12-main-grid (CSS grid)
+  ├── #gridEditorContainer (fila 1, columnes 1-2) → ELIMINAR
+  ├── .app12-controls-container (fila 2, columna 1)
+  ├── .grid-container (fila 2, columna 2) → musical-grid
+  │     ├── .soundline-wrapper
+  │     ├── .matrix-container
+  │     └── .timeline-wrapper
+  │           ├── .timeline
+  │           └── .np-editor ← AQUÍ, dins timeline-wrapper, DESPRÉS de timeline
+  │                 ├── .editor-bar--n (fila N rosa)
+  │                 └── .editor-bar--p (fila P crema)
+```
+
+Alternativa: l'editor com a fila 3 del grid principal:
+```
+.app12-main-grid (CSS grid: 3 files)
+  ├── .app12-controls-container (fila 1-2, columna 1)
+  ├── .grid-container (fila 1, columna 2) → musical-grid (sense timeline)
+  └── .np-editor (fila 2, columna 2) → N + P + timeline integrada
+```
+
+**Decisió pendent**: quina estructura és millor?
+
+### P2: Ordre d'entrada N-P vs iT
+
+| | iT (app13) | N-P (App12) |
+|---|---|---|
+| Primera cel·la | Crema (extensió P0) | **Blanc editable** (N del primer parell) |
+| Direcció | Seqüencial (un valor rere l'altre) | **Columna** (N primer, P després) |
+| Extensions | Sí (iT-1 cel·les crema) | **No** (cada N i P ocupa 1 cel·la) |
+| Fons per defecte | Crema | Rosa (N) / Crema (P) |
+
+Per N-P l'estructura per parell és:
+```
+Columna k:  [blanc:N_k] [rosa]     ← fila N
+            [blanc:P_k] [crema]    ← fila P
+```
+
+El blanc va PRIMER (valor editable) i el color va DESPRÉS (separador).
+Excepció: quan la seqüència està plena, no hi ha blanc extra.
+
+Flux d'entrada:
+```
+Inici:      [N] [blanc_N] [rosa] [fons...]    ← cursor a N
+            [P] [blanc_P] [crema][fons...]
+
+Entra N=4:  [N] [blanc:4] [rosa] [blanc_N] [rosa] [fons...]  ← cursor salta a P
+            [P] [blanc_P] [crema][         ][     ][fons...]
+
+Entra P=0:  [N] [blanc:4] [rosa] [blanc_N] [rosa] [fons...]  ← cursor salta a N del pròxim parell
+            [P] [blanc:0] [crema][blanc_P] [crema][fons...]
+
+Entra N=3:  [N] [blanc:4] [rosa] [blanc:3] [rosa] [blanc_N] [rosa] [fons...]
+            [P] [blanc:0] [crema][blanc_P] [crema][         ][     ][fons...]  ← cursor a P
+```
+
+### P3: Regles d'entrada i validació (per app)
+
+Cada app té regles específiques que cal migrar del grid-editor antic al nuzic editor.
+Aquestes regles afecten: validació, tooltips, comportament del caret.
+
+#### App12 (N-P)
+- **N**: 0-11 (nota MIDI dins registre)
+- **P**: 0-7 (pols dins el compàs)
+- **Reordenar per P creixent** automàticament
+- **No duplicar polsos** (en mode monofònic)
+- **Tooltip**: mostrar error si P duplicat, N fora de rang, etc.
+
+#### App13 (iT)
+- **iT**: 1-8
+- **Suma**: no excedir Lg (8)
+- **Tooltip**: "iT debe ser ≥ 1", "iT máximo: N", "Longitud completa"
+
+#### App14 (iS + iT)
+- **iS**: interval melòdic (pot ser negatiu)
+- **iT**: 1-8, mateixa regla que app13
+- **Relació**: iS i iT estan aparellats
+
+#### App15 (N-P amb intervals)
+- Igual que App12 + càlcul automàtic d'intervals
+
+#### App26-31 (Fraccions)
+- Entrada de fraccions (numerador/denominador)
+- Regles de simplificació
+
+### P4: Tooltips i feedback visual
+
+El sistema de tooltips existent (`showTooltip/hideTooltip`) s'ha de mantenir.
+Regles per implementar:
+- Mostrar tooltip d'error al costat de la cel·la activa
+- Desaparèixer automàticament (timeout)
+- Colors: vermell per error, blau per info, verd per èxit
+
+### P5: Comportament del caret (focus)
+
+| Acció | Resultat |
+|-------|----------|
+| Entra N | Focus salta a P (mateixa columna) |
+| Entra P | Focus salta a N (pròxima columna) |
+| Backspace en P buit | Torna a N (mateixa columna) |
+| Backspace en N buit | Esborra últim parell, focus a N anterior |
+| Tab | Avança al pròxim camp buit |
+| Shift+Tab | Retrocedeix |
+| Click en cel·la amb valor | Seleccionar per editar |
+| Seqüència plena | Treure focus, mostrar tooltip "Longitud completa" |
 
 ## Aprenentatges clau (de la implementació d'app13)
 
