@@ -7,29 +7,13 @@
 
 /* Variables CSS */
 :root {
-  /* App12 2-row layout */
-  --col-left: 150px;
-  --col-left-tablet: 100px;
-  --col-left-mobile: 80px;
-  --col-left-small: 70px;
-  --col-left-tiny: 60px;
-  --layout-gap: 0.5rem;
-  --controls-padding-top: 0px;
-  --controls-margin: 5px;
-  --controls-inner-margin: 0;
-  --controls-justify: center;
-
-  /* iframe fallback min-height */
   --grid-min-height: 400px;
 }
 
 /* Nuzic theme overrides */
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 75px;
-  --nuzic-play-row-offset-x: 50px;
-  --nuzic-bpm-offset-x: 0px;
-  --nuzic-bpm-offset-y: 0px;
+  --nuzic-controls-offset-y: 0px;
 }
 
 [data-theme="dark"] {
@@ -73,13 +57,11 @@ html, body {
   flex-direction: column;
 }
 
-/* ========== APP12 MAIN GRID: 2-ROW LAYOUT ========== */
+/* ========== APP12 LAYOUT: single column ========== */
 .app12-main-grid {
   flex: 1;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: var(--col-left, 200px) 1fr;
-  gap: var(--layout-gap, 0.5rem);
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: 0;
   overflow: hidden;
@@ -87,71 +69,20 @@ html, body {
   box-sizing: border-box;
 }
 
-/* Grid Editor spans full width in first row */
-#gridEditorContainer {
-  grid-column: 1 / -1;
-  grid-row: 1;
-}
-
-/* Controls container in bottom-left */
-.app12-controls-container {
-  grid-column: 1;
-  grid-row: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 10px;
-}
-
-/* BPM inline: posició estàtica dins el contenidor */
-.inputs {
-  display: block;
-  padding: 0;
-  margin: 0;
-  min-height: 0;
-}
-.inputs .bpm-inline {
-  position: static;
-}
-
-/* Musical grid fills bottom-right — add row for N-P editor */
+/* Musical grid fills available space — add row for N-P editor */
 .app12-main-grid > .grid-container {
-  grid-column: 2;
-  grid-row: 2;
+  flex: 1;
   position: relative !important;
   width: 100% !important;
-  height: 100% !important;
   min-height: var(--grid-min-height, 300px);
   min-width: 0;
   grid-template-rows: 1fr 50px auto !important;  /* matrix + timeline + editor */
 }
 
-/* Controls: static positioning per nuzic theme */
-.app12-controls-container .controls {
-  position: relative;
-  width: auto;
-  height: auto;
-}
-
-.app12-controls-container .play-row {
-  position: static;
-  transform: none;
-  margin: 0;
-}
-
-.app12-controls-container #playBtn {
-  margin: 0 !important;
-}
-
-/* Hide Loop and Tap Tempo buttons */
+/* Hide Loop, Tap, BPM display, Pulse toggle */
 #loopBtn, .loop, .controls .loop,
-.bpm-display, #tapTempoBtn {
-  display: none !important;
-}
-
-/* Hide Pulse toggle */
-.app12-controls-container #pulseToggleBtn {
+.bpm-display, #tapTempoBtn,
+#pulseToggleBtn {
   display: none !important;
 }
 
@@ -403,51 +334,17 @@ html, body {
 }
 
 @media (max-width: 900px) {
-  .app12-main-grid {
-    grid-template-columns: var(--col-left-tablet, 100px) 1fr;
-    gap: 0.4rem;
-    padding: 0.4rem;
-  }
-
-  .seq-input { font-size: 1.8rem; gap: 8px; padding: 0 12px; }
-
-  #gridEditorContainer { font-size: 1.4rem !important; }
-  .matrix-grid-editor { font-size: 1.4rem !important; margin: 10px 20px !important; padding: 10px !important; gap: 4px !important; }
-  .grid-row-label { font-size: 1.4rem !important; }
-  .note-input, .pulse-input { font-size: 1.4rem !important; width: 40px !important; padding: 4px 6px !important; }
-  .grid-label-column { padding: 5px 8px !important; }
-  .matrix-grid-editor--scrollable { max-height: 180px !important; overflow: auto !important; }
-  .grid-columns-container--scrollable { flex-wrap: nowrap !important; overflow-x: auto !important; }
-  .matrix-grid-editor--scrollable .pulse-column { flex-shrink: 0 !important; width: 80px !important; min-height: 150px !important; }
+  .app12-main-grid { padding: 0.4rem; }
 }
 
 @media (max-width: 600px) {
-  .app12-main-grid {
-    grid-template-columns: var(--col-left-small, 70px) 1fr;
-    gap: 0.25rem;
-    padding: 0.25rem;
-  }
+  .app12-main-grid { padding: 0.25rem; }
 }
 
 @media (max-width: 480px) {
-  .app12-main-grid {
-    grid-template-columns: var(--col-left-tiny, 60px) 1fr;
-    gap: 0.2rem;
-    padding: 0.2rem;
-  }
-
-  .seq-input { font-size: 1.5rem; }
-  .seq-input .pz.edit { min-width: unset; max-width: 85vw; padding: 6px 10px; }
-  #gridEditorContainer { font-size: 1rem !important; }
-  .matrix-grid-editor { font-size: 1rem !important; margin: 6px 12px !important; padding: 6px !important; gap: 2px !important; }
-  .grid-row-label { font-size: 1rem !important; }
-  .note-input, .pulse-input { font-size: 1rem !important; width: 32px !important; padding: 2px 4px !important; }
+  .app12-main-grid { padding: 0.2rem; }
 }
 
 @media (max-width: 400px) {
-  .app12-main-grid {
-    grid-template-columns: 50px 1fr;
-    gap: 0.15rem;
-    padding: 0.15rem;
-  }
+  .app12-main-grid { padding: 0.15rem; }
 }

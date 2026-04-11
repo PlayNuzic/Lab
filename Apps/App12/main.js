@@ -782,25 +782,22 @@ async function init() {
     onDotClick: null // N-P dots not clickable in N-P mode
   });
 
-  // Reposition controls into grid wrapper (CSS Grid handles placement)
+  // Reorder controls: Play, BPM, Random, Reset (nuzic compact row)
   const controls = document.querySelector('.controls');
-  const gridWrapper = document.querySelector('.app12-main-grid');
-
-  if (controls && gridWrapper) {
-    // Extract controls from template
-    controls.remove();
-
-    // Create container for controls (grid-column: 1, grid-row: 2 via CSS)
-    const controlsContainer = document.createElement('div');
-    controlsContainer.className = 'app12-controls-container';
+  if (controls) {
     const bpmParam = document.getElementById('bpmParam');
-    if (bpmParam) {
-      controlsContainer.prepend(bpmParam);
-    }
-    controlsContainer.appendChild(controls);
+    const playBtnEl = controls.querySelector('.play') || document.getElementById('playBtn');
+    const randomBtnEl = controls.querySelector('.random');
+    const resetBtnEl = controls.querySelector('.reset');
+    const randomMenu = controls.querySelector('.random-menu');
 
-    // Add to wrapper - CSS Grid will position it in bottom-left
-    gridWrapper.appendChild(controlsContainer);
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playBtnEl) controls.appendChild(playBtnEl);
+    if (bpmParam) controls.appendChild(bpmParam);
+    if (randomBtnEl) controls.appendChild(randomBtnEl);
+    if (randomMenu) controls.appendChild(randomMenu);
+    if (resetBtnEl) controls.appendChild(resetBtnEl);
   }
 
   // Create nuzic N-P editor below timeline
