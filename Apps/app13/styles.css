@@ -174,12 +174,6 @@ body[data-visual="nuzic"] {
   padding: 0 20px;
 }
 
-.timeline {
-  position: relative;
-  height: 60px;
-  display: flex;
-  align-items: center;
-}
 
 /* ========== INTERVAL BARS ========== */
 .interval-bar-visual {

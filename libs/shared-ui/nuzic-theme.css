@@ -472,6 +472,7 @@ body[data-visual="nuzic"] .plano-timeline-number {
 body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline {
   background: var(--nuzic-yellow-light);
   border-radius: 4px;
+  height: 60px;
 }
 
 /* Amagar línia horitzontal */
