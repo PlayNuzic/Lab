@@ -264,59 +264,50 @@ function renderEditorCells() {
   itInputs = [];
 
   let pulse = 0;
-  let intervalIndex = 0;
+
+  // Reset all cells to cream (placeholder)
+  cells.forEach(cell => {
+    cell.value = '';
+    cell.placeholder = ' ';
+    cell.readOnly = true;
+    cell.className = 'it-cell';
+  });
 
   // Fill cells based on entered intervals
   for (const iT of currentIntervals) {
     if (iT <= 0) break;
 
-    // Extension cells (cream) for duration
+    // Extension cells: cream with end-column separator at boundaries
     for (let j = 0; j < iT - 1; j++) {
       if (pulse + j < cells.length) {
         const cell = cells[pulse + j];
-        cell.value = '';
-        cell.placeholder = ' ';
-        cell.readOnly = true;
-        cell.className = 'it-cell';
+        cell.className = 'it-cell'; // cream (placeholder)
       }
     }
 
-    // Value cell (white with number) at the end of the interval
-    const valueCell = cells[pulse + iT - 1];
-    if (valueCell) {
-      valueCell.value = String(iT);
-      valueCell.placeholder = ' ';
-      valueCell.readOnly = true;
-      valueCell.className = 'it-cell it-end';
-      itInputs.push(valueCell);
+    // Last cell of interval: has the value (white) + end separator
+    const lastCell = cells[pulse + iT - 1];
+    if (lastCell) {
+      lastCell.value = String(iT);
+      lastCell.className = 'it-cell it-end';
+      itInputs.push(lastCell);
     }
 
     pulse += iT;
-    intervalIndex++;
   }
 
-  // Active input cell (if sequence not full)
+  // Next editable cell (if sequence not full)
   const sum = getCurrentSum();
   if (sum < MAX_LENGTH && pulse < cells.length) {
     const activeCell = cells[pulse];
-    activeCell.value = '';
-    activeCell.placeholder = ' ';
     activeCell.readOnly = false;
-    activeCell.className = 'it-cell it-active';
+    activeCell.value = '';
     itInputs.push(activeCell);
   }
 
-  // Remaining cells: hidden or empty
-  for (let i = pulse + (sum < MAX_LENGTH ? 1 : 0); i < cells.length; i++) {
-    cells[i].value = '';
-    cells[i].placeholder = ' ';
-    cells[i].readOnly = true;
-    cells[i].className = 'it-cell it-empty';
-  }
-
-  // Position end marker
+  // End marker: always visible, positioned after used cells
   if (endMarker) {
-    endMarker.style.display = sum >= MAX_LENGTH ? 'flex' : 'none';
+    endMarker.style.display = 'flex';
   }
 
   updateSumDisplay();

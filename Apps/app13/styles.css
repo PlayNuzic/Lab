@@ -53,8 +53,7 @@ body[data-visual="nuzic"] {
 
 /* ========== EDITOR iT (nuzic style) ========== */
 .it-editor-bar {
-  display: flex;
-  align-items: stretch;
+  position: relative;
   margin: 0 auto;
   max-width: 700px;
   padding: 0 20px;
@@ -62,37 +61,46 @@ body[data-visual="nuzic"] {
 }
 
 .it-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
   background: var(--nuzic-yellow);
   color: white;
   font-weight: 700;
-  font-size: 1rem;
-  padding: 0 10px;
+  font-size: 0.9rem;
+  padding: 0 6px;
   display: flex;
   align-items: center;
   white-space: nowrap;
-  border-radius: 2px 0 0 2px;
+  z-index: 5;
 }
 
 .it-cells {
   display: flex;
-  flex: 1;
+  justify-content: flex-start;
   position: relative;
-  background: var(--nuzic-light);
+  height: var(--it-block, 28px);
+  overflow: hidden;
+  white-space: nowrap;
 }
 
+/* Base cell: fixed width, nuzic_app pattern */
 .it-cell {
-  flex: 1;
+  width: var(--it-block, 28px);
+  min-width: var(--it-block, 28px);
   height: 100%;
-  border: none;
-  border-radius: 0;
   text-align: center;
-  font-weight: 700;
-  font-size: 1rem;
   color: var(--nuzic-dark);
-  background: var(--nuzic-yellow-light);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 0;
+  border-width: 0;
   outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   -moz-appearance: textfield;
-  cursor: default;
   padding: 0;
 }
 
@@ -102,35 +110,50 @@ body[data-visual="nuzic"] {
   margin: 0;
 }
 
-/* Cel·la amb valor: fons blanc */
-.it-cell.it-end {
+/* Empty cell (placeholder shown): cream */
+.it-cell:placeholder-shown {
+  background: var(--nuzic-yellow-light);
+  border: 2px solid var(--nuzic-yellow-light);
+}
+
+/* Filled cell (has value): white */
+.it-cell:not(:placeholder-shown) {
   background: white;
   z-index: 1;
 }
 
-/* Input actiu: fons blanc amb vora */
-.it-cell.it-active {
-  background: white;
-  cursor: text;
+/* End-of-interval separator (empty extension) */
+.it-cell.it-end {
+  border: none;
+  box-shadow: inset -2px 0 0 0 white;
+}
+
+/* End-of-interval with value */
+.it-cell.it-end:not(:placeholder-shown) {
+  border: 2px solid var(--nuzic-yellow-light);
+  margin-right: 2px;
+  width: calc(var(--it-block, 28px) - 2px);
+  min-width: calc(var(--it-block, 28px) - 2px);
+}
+
+/* Hover on filled cells */
+.it-cell:not(:placeholder-shown):hover {
+  background: var(--nuzic-green-light);
+}
+
+/* Active input focus */
+.it-cell:focus {
+  box-shadow: inset 0 0 0 2px var(--nuzic-yellow);
   z-index: 2;
 }
 
-.it-cell.it-active:focus {
-  box-shadow: inset 0 0 0 2px var(--nuzic-yellow);
-}
-
-/* Cel·les buides (més enllà de la seqüència) */
-.it-cell.it-empty {
-  background: var(--nuzic-light);
-}
-
-/* Marcador fi */
+/* Last cell (dark end marker) */
 .it-end-marker {
-  width: 32px;
-  min-width: 32px;
+  width: var(--it-block, 28px);
+  min-width: var(--it-block, 28px);
   height: 100%;
   background: var(--nuzic-dark);
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   color: white;
