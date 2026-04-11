@@ -3,12 +3,57 @@
 ## Estat
 
 - [x] **app13** — Editor iT implementat i funcionant
-- [ ] **App12** — Editor N-P (en curs, estructura bàsica feta, falta posicionament i regles)
+- [x] **App12** — Editor N-P implementat (single-column layout, validació, tooltips)
 - [ ] **App14** — Editor iS + iT (zigzag)
-- [ ] **App15** — Editor N-P (similar a App12)
+- [ ] **App15** — Editor N-P (aplicar patró App12)
 - [ ] **App26-35** — Editors diversos
 
-## Problemes pendents de resoldre (detectats a App12)
+## Solucions implementades a App12 (referència per futures apps)
+
+### S1: Layout single-column
+
+- Treure `controlsLayout: { mode: 'vertical' }` del `renderApp` config
+- Treure `@import two-column-layout.css` i `@import grid-editor.css`
+- `.app12-main-grid` passa de CSS Grid 2 columnes a `display: flex; flex-direction: column`
+- Controls moguts de `.timeline-wrapper` a `.app12-main-grid` via JS
+- Seccions `.inputs` i `.middle` eliminades del DOM (salvar `bpmParam` ABANS)
+
+### S2: Editor N-P alineat amb grid 2D
+
+- `.np-editor` com `grid-row: 3; grid-column: 1 / -1` dins `.grid-container`
+- `.editor-bar` usa `display: grid; grid-template-columns: 60px 1fr` (coincideix amb `.grid-container`)
+- Label (N/P) ocupa 60px (= soundline), cel·les s'alineen amb matriu
+- Cel·les amb `width: 6.25%` (2 per pols) + `aspect-ratio: 1` (quadrades)
+
+### S3: Ordre d'entrada N-P
+
+- Per cada parell: `[blanc:valor][color separador]` (valor PRIMER)
+- Caret alterna N→P→N→P (cross-column) via `lastEnteredType`
+- Ambdós inputs (N i P) editables des del principi
+- Delay 300ms per N de 2 dígits (ex: "11")
+- `commitPair()` quan N i P estan complerts
+
+### S4: Validació i tooltips
+
+- N: 0-11, cancel·lar timer + esborrar valor si fora de rang
+- P: 0-7, no duplicats (tooltip "Pulso ya usado" + esborrar valor)
+- Auto-sort per P creixent amb tooltip "Reordenado por pulso"
+- P=7 auto-blur (no saltar al pròxim parell)
+- Tooltip CSS: `position: fixed`, `font-size: 1rem`, vermell per errors
+
+### S5: Controls compactes
+
+- Reordering JS: `while(controls.firstChild) controls.removeChild(...)` + appendChild en ordre
+- Ordre: Play(48px) → BPM → Random(36px) → Reset(36px)
+- Nuzic-theme `body[data-visual="nuzic"] .controls:not([data-layout])` gestiona el flex row
+
+### S6: Grid 2D expandida
+
+- Treure `max-height`, `max-width` del `.grid-container`
+- `flex: 1` per omplir tot l'espai disponible
+- `grid-template-rows: 1fr 50px auto !important` (matriu + timeline + editor)
+
+## Problemes resolts (originalment pendents)
 
 ### P1: Posicionament de l'editor
 
