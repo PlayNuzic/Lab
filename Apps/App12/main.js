@@ -543,6 +543,11 @@ function createNuzicEditor(timelineWrapper) {
       pendingPulse = null;
       renderEditor();
       syncGridFromPairs(currentPairs);
+    } else {
+      // Duplicate pulse — clear P input, keep caret
+      pendingPulse = null;
+      const pInput = pCells.querySelector('.editor-input');
+      if (pInput) { pInput.value = ''; pInput.focus(); }
     }
   }
 
@@ -599,7 +604,16 @@ function createNuzicEditor(timelineWrapper) {
         // If N already entered, commit pair
         if (pendingNote !== null) {
           clearTimeout(autoJumpTimer);
-          commitPair();
+          if (!addPair(pendingNote, num)) {
+            // Duplicate pulse — clear input, keep caret
+            e.target.value = '';
+            pendingPulse = null;
+            return;
+          }
+          pendingNote = null;
+          pendingPulse = null;
+          renderEditor();
+          syncGridFromPairs(currentPairs);
           // Rule 5: P=7 auto-blur (last pulse)
           if (num === 7) return;
         } else {
