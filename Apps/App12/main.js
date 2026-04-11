@@ -489,6 +489,51 @@ function createNuzicEditor(timelineWrapper) {
   }
 
   let pendingNote = null;
+  let pendingPulse = null;
+  let autoJumpTimer = null;
+
+  // Simple tooltip
+  let tooltipEl = null;
+  function showEditorTooltip(anchor, message) {
+    if (!tooltipEl) {
+      tooltipEl = document.createElement('div');
+      tooltipEl.className = 'editor-tooltip';
+      document.body.appendChild(tooltipEl);
+    }
+    tooltipEl.textContent = message;
+    const rect = anchor.getBoundingClientRect();
+    tooltipEl.style.left = `${rect.left}px`;
+    tooltipEl.style.top = `${rect.bottom + 4}px`;
+    tooltipEl.classList.add('visible');
+    clearTimeout(tooltipEl._timer);
+    tooltipEl._timer = setTimeout(() => tooltipEl.classList.remove('visible'), 2000);
+  }
+
+  function addPair(note, pulse) {
+    // Rule 3: no duplicate pulses
+    if (currentPairs.some(p => p.pulse === pulse)) {
+      const pInput = pCells.querySelector('.editor-input:not([readonly])');
+      if (pInput) showEditorTooltip(pInput, 'Pulso ya usado');
+      return false;
+    }
+    currentPairs.push({ note, pulse });
+    // Rule 4: auto-sort by pulse ascending
+    currentPairs.sort((a, b) => a.pulse - b.pulse);
+    return true;
+  }
+
+  function commitPair() {
+    const note = pendingNote;
+    const pulse = pendingPulse;
+    if (note === null || pulse === null) return;
+
+    if (addPair(note, pulse)) {
+      pendingNote = null;
+      pendingPulse = null;
+      renderEditor();
+      syncGridFromPairs(currentPairs);
+    }
+  }
 
   function createInputCell(type) {
     const cell = document.createElement('input');
@@ -500,45 +545,84 @@ function createNuzicEditor(timelineWrapper) {
 
     cell.addEventListener('input', (e) => {
       const val = e.target.value;
+      // Allow empty (user is deleting)
       if (val === '') return;
+      // Strip non-numeric
+      if (!/^-?\d+$/.test(val)) { e.target.value = ''; return; }
 
       const num = parseInt(val);
-      if (isNaN(num)) { e.target.value = ''; return; }
 
       if (type === 'n') {
-        // Note: 0-11
-        if (num < 0 || num > 11) { e.target.value = ''; return; }
-        pendingNote = num;
-        // Activate and focus P input
-        const pInput = pCells.querySelector('.editor-input--waiting');
-        if (pInput) {
-          pInput.readOnly = false;
-          pInput.classList.remove('editor-input--waiting');
-          setTimeout(() => pInput.focus(), 30);
+        // Rule 1: Note 0-11
+        if (num < 0 || num > 11) {
+          showEditorTooltip(cell, 'Nota: 0-11');
+          e.target.value = '';
+          return;
         }
+        pendingNote = num;
+
+        // Rule 6: delay 300ms for 2-digit input (e.g. "11")
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          // If P already entered, commit pair
+          if (pendingPulse !== null) {
+            commitPair();
+          } else {
+            // Jump to P input
+            const pInput = pCells.querySelector('.editor-input');
+            if (pInput) pInput.focus();
+          }
+        }, 300);
+
       } else {
-        // Pulse: 0-7
-        if (num < 0 || num > 7) { e.target.value = ''; return; }
-        const note = pendingNote !== null ? pendingNote : 0;
-        currentPairs.push({ note, pulse: num });
-        pendingNote = null;
-        renderEditor();
-        syncGridFromPairs(currentPairs);
+        // Rule 2: Pulse 0-7
+        if (num < 0 || num > 7) {
+          showEditorTooltip(cell, 'Pulso: 0-7');
+          e.target.value = '';
+          return;
+        }
+        pendingPulse = num;
+
+        // If N already entered, commit pair
+        if (pendingNote !== null) {
+          clearTimeout(autoJumpTimer);
+          commitPair();
+          // Rule 5: P=7 auto-blur (last pulse)
+          if (num === 7) return;
+        } else {
+          // Jump to N input
+          const nInput = nCells.querySelector('.editor-input');
+          if (nInput) nInput.focus();
+        }
       }
     });
 
     cell.addEventListener('keydown', (e) => {
       if (e.key === 'Backspace' && !e.target.value) {
         e.preventDefault();
-        if (type === 'p' && pendingNote !== null) {
-          // Go back to N input
-          pendingNote = null;
-          const nInput = nCells.querySelector('.editor-input');
-          if (nInput) { nInput.value = ''; setTimeout(() => nInput.focus(), 30); }
-        } else if (type === 'n' && currentPairs.length > 0) {
-          currentPairs.pop();
-          renderEditor();
-          syncGridFromPairs(currentPairs);
+        clearTimeout(autoJumpTimer);
+
+        if (type === 'p') {
+          if (pendingPulse !== null) {
+            pendingPulse = null;
+          } else if (pendingNote !== null) {
+            // Go back to N input
+            pendingNote = null;
+            const nInput = nCells.querySelector('.editor-input');
+            if (nInput) { nInput.value = ''; nInput.focus(); }
+          } else if (currentPairs.length > 0) {
+            currentPairs.pop();
+            renderEditor();
+            syncGridFromPairs(currentPairs);
+          }
+        } else if (type === 'n') {
+          if (pendingNote !== null) {
+            pendingNote = null;
+          } else if (currentPairs.length > 0) {
+            currentPairs.pop();
+            renderEditor();
+            syncGridFromPairs(currentPairs);
+          }
         }
       }
     });

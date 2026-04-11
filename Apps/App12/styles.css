@@ -159,7 +159,7 @@ html, body {
 .np-editor {
   grid-column: 2;  /* alineat amb la matriu */
   grid-row: 3;
-  margin-top: 12px;
+  margin-top: 5%;
 }
 
 .editor-bar {
@@ -268,6 +268,26 @@ html, body {
 
 .editor-end-marker::after {
   content: '●';
+}
+
+/* Editor tooltip */
+.editor-tooltip {
+  position: fixed;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #EF4444;
+  color: white;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+}
+
+.editor-tooltip.visible {
+  opacity: 1;
 }
 
 /* ========== GRID EDITOR (seq-input) ========== */
