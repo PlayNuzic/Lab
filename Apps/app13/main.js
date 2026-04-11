@@ -193,33 +193,12 @@ function createItEditor() {
   const cellsContainer = document.createElement('div');
   cellsContainer.className = 'it-cells';
 
-  // Create Lg cells (one per pulse, 0 to Lg-1)
-  for (let i = 0; i < MAX_LENGTH; i++) {
-    const cell = document.createElement('input');
-    cell.type = 'text';
-    cell.inputMode = 'numeric';
-    cell.pattern = '[1-8]';
-    cell.maxLength = 1;
-    cell.className = 'it-cell';
-    cell.dataset.pulse = i;
-    cell.placeholder = ' '; // Space placeholder → cream background when empty
-    cell.readOnly = true; // All cells start readonly (cream extension)
-
-    cell.addEventListener('input', handleCellInput);
-    cell.addEventListener('keydown', handleCellKeydown);
-    cell.addEventListener('focus', () => hideTooltip());
-
-    cellsContainer.appendChild(cell);
-  }
-
-  // End marker
+  // End marker (always last child, cells inserted before it)
   const endMarker = document.createElement('div');
   endMarker.className = 'it-end-marker';
   cellsContainer.appendChild(endMarker);
 
   itEditor.appendChild(cellsContainer);
-
-  // SVG placeholder (regenerated in renderEditorCells)
 
   // Tooltip
   tooltip = document.createElement('div');
@@ -238,109 +217,70 @@ function createItEditor() {
  * the next empty cell is the active input.
  */
 function renderEditorCells() {
-  const cells = itEditor.querySelectorAll('.it-cell');
+  const cellsContainer = itEditor.querySelector('.it-cells');
   const endMarker = itEditor.querySelector('.it-end-marker');
   itInputs = [];
 
-  let pulse = 0;
+  // Remove all existing cells (rebuild from scratch)
+  cellsContainer.querySelectorAll('.it-cell').forEach(c => c.remove());
 
-  // Reset all cells to cream (placeholder)
-  cells.forEach(cell => {
-    cell.value = '';
-    cell.placeholder = ' ';
-    cell.readOnly = true;
-    cell.className = 'it-cell';
-  });
-
-  // Fill cells based on entered intervals
-  for (const iT of currentIntervals) {
-    if (iT <= 0) break;
-
-    // Extension cells: cream with end-column separator at boundaries
-    for (let j = 0; j < iT - 1; j++) {
-      if (pulse + j < cells.length) {
-        const cell = cells[pulse + j];
-        cell.className = 'it-cell'; // cream (placeholder)
-      }
-    }
-
-    // Last cell of interval: has the value (white) + end separator
-    const lastCell = cells[pulse + iT - 1];
-    if (lastCell) {
-      lastCell.value = String(iT);
-      lastCell.className = 'it-cell it-end';
-      itInputs.push(lastCell);
-    }
-
-    pulse += iT;
-  }
-
-  // Next editable cell (if sequence not full)
   const sum = getCurrentSum();
-  if (sum < MAX_LENGTH && pulse < cells.length) {
-    const activeCell = cells[pulse];
-    activeCell.readOnly = false;
-    activeCell.value = '';
-    itInputs.push(activeCell);
-  }
 
-  // End marker: always visible
-  if (endMarker) {
-    endMarker.style.display = 'flex';
-  }
-
-  // Regenerate SVG separator lines (only over cream cells, ticks at interval boundaries)
-  const cellsContainer = itEditor.querySelector('.it-cells');
-  const oldSvg = cellsContainer.querySelector('.it-separator-lines');
-  if (oldSvg) oldSvg.remove();
-
-  const blockSize = 28; // matches --it-block
-  const totalCells = cells.length;
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('class', 'it-separator-lines');
-  svg.setAttribute('viewBox', `0 0 ${totalCells * blockSize} ${blockSize}`);
-  svg.setAttribute('preserveAspectRatio', 'none');
-
-  // Draw horizontal line and ticks only through cream (extension) cells
-  let p = 0;
+  // Build cells for each entered interval
   for (const iT of currentIntervals) {
     if (iT <= 0) break;
 
-    // Horizontal line through extension cells (pulse p to p+iT-2)
-    if (iT > 1) {
-      const x1 = p * blockSize + blockSize / 2;
-      const x2 = (p + iT - 1) * blockSize - blockSize / 2;
-      const hLine = document.createElementNS(svgNS, 'line');
-      hLine.setAttribute('x1', String(x1));
-      hLine.setAttribute('y1', '14');
-      hLine.setAttribute('x2', String(x2));
-      hLine.setAttribute('y2', '14');
-      svg.appendChild(hLine);
+    // Extension cells (cream): iT - 1 cells
+    for (let j = 0; j < iT - 1; j++) {
+      const ext = document.createElement('input');
+      ext.type = 'text';
+      ext.className = 'it-cell';
+      ext.placeholder = ' ';
+      ext.readOnly = true;
+      cellsContainer.insertBefore(ext, endMarker);
     }
 
-    // Tick at start of interval
-    const startTick = document.createElementNS(svgNS, 'line');
-    startTick.setAttribute('x1', String(p * blockSize + blockSize / 2));
-    startTick.setAttribute('y1', '10');
-    startTick.setAttribute('x2', String(p * blockSize + blockSize / 2));
-    startTick.setAttribute('y2', '18');
-    svg.appendChild(startTick);
-
-    // Tick at end of interval (before value cell)
-    if (iT > 1) {
-      const endTick = document.createElementNS(svgNS, 'line');
-      endTick.setAttribute('x1', String((p + iT - 1) * blockSize - blockSize / 2));
-      endTick.setAttribute('y1', '10');
-      endTick.setAttribute('x2', String((p + iT - 1) * blockSize - blockSize / 2));
-      endTick.setAttribute('y2', '18');
-      svg.appendChild(endTick);
-    }
-
-    p += iT;
+    // Value cell (white with number)
+    const val = document.createElement('input');
+    val.type = 'text';
+    val.className = 'it-cell it-end';
+    val.value = String(iT);
+    val.placeholder = ' ';
+    val.readOnly = true;
+    cellsContainer.insertBefore(val, endMarker);
+    itInputs.push(val);
   }
 
-  cellsContainer.appendChild(svg);
+  // If sequence not full: add 1 cream + 1 white input
+  if (sum < MAX_LENGTH) {
+    // Cream extension (start of next interval)
+    const ext = document.createElement('input');
+    ext.type = 'text';
+    ext.className = 'it-cell';
+    ext.placeholder = ' ';
+    ext.readOnly = true;
+    cellsContainer.insertBefore(ext, endMarker);
+
+    // White editable input (where user types)
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.pattern = '[1-8]';
+    input.maxLength = 1;
+    input.className = 'it-cell it-end';
+    input.placeholder = ' ';
+    input.readOnly = false;
+    input.addEventListener('input', handleCellInput);
+    input.addEventListener('keydown', handleCellKeydown);
+    input.addEventListener('focus', () => hideTooltip());
+    cellsContainer.insertBefore(input, endMarker);
+    itInputs.push(input);
+  }
+
+  // End marker: visible when sequence is full
+  if (endMarker) {
+    endMarker.style.display = sum >= MAX_LENGTH ? 'flex' : 'none';
+  }
 
   updateSumDisplay();
 }

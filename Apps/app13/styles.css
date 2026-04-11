@@ -164,21 +164,6 @@ body[data-visual="nuzic"] {
   content: '●';
 }
 
-/* SVG separadors daurats */
-.it-separator-lines {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 3;
-}
-
-.it-separator-lines line {
-  stroke: var(--nuzic-yellow);
-  stroke-width: 2;
-}
-
 /* Highlight durant playback */
 .it-cell.it-playing {
   background: var(--nuzic-green-light);
