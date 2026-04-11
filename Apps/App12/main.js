@@ -470,8 +470,9 @@ function createNuzicEditor(timelineWrapper) {
       const pSep = createCell('p', true);
       pCells.insertBefore(pSep, pEndMarker);
 
-      // Auto-focus N input
-      setTimeout(() => nInput.focus(), 30);
+      // Auto-focus: alternate between N and P based on last entered
+      const focusTarget = lastEnteredType === 'n' ? pInput : nInput;
+      setTimeout(() => focusTarget.focus(), 30);
     }
 
     // End markers
@@ -491,6 +492,7 @@ function createNuzicEditor(timelineWrapper) {
   let pendingNote = null;
   let pendingPulse = null;
   let autoJumpTimer = null;
+  let lastEnteredType = 'p'; // tracks which field was entered last → next focus goes to the OTHER
 
   // Simple tooltip
   let tooltipEl = null;
@@ -516,9 +518,18 @@ function createNuzicEditor(timelineWrapper) {
       if (pInput) showEditorTooltip(pInput, 'Pulso ya usado');
       return false;
     }
+    const wasLength = currentPairs.length;
     currentPairs.push({ note, pulse });
     // Rule 4: auto-sort by pulse ascending
     currentPairs.sort((a, b) => a.pulse - b.pulse);
+    // Tooltip when reordering happened
+    const newIndex = currentPairs.findIndex(p => p.note === note && p.pulse === pulse);
+    if (newIndex !== wasLength) {
+      const anchor = lastEnteredType === 'p'
+        ? pCells.querySelector('.editor-input')
+        : nCells.querySelector('.editor-input');
+      if (anchor) showEditorTooltip(anchor, 'Reordenado por pulso');
+    }
     return true;
   }
 
@@ -560,6 +571,7 @@ function createNuzicEditor(timelineWrapper) {
           return;
         }
         pendingNote = num;
+        lastEnteredType = 'n';
 
         // Rule 6: delay 300ms for 2-digit input (e.g. "11")
         clearTimeout(autoJumpTimer);
@@ -568,7 +580,7 @@ function createNuzicEditor(timelineWrapper) {
           if (pendingPulse !== null) {
             commitPair();
           } else {
-            // Jump to P input
+            // Jump to P input (same column)
             const pInput = pCells.querySelector('.editor-input');
             if (pInput) pInput.focus();
           }
@@ -582,6 +594,7 @@ function createNuzicEditor(timelineWrapper) {
           return;
         }
         pendingPulse = num;
+        lastEnteredType = 'p';
 
         // If N already entered, commit pair
         if (pendingNote !== null) {
@@ -590,7 +603,7 @@ function createNuzicEditor(timelineWrapper) {
           // Rule 5: P=7 auto-blur (last pulse)
           if (num === 7) return;
         } else {
-          // Jump to N input
+          // Jump to N input (same column)
           const nInput = nCells.querySelector('.editor-input');
           if (nInput) nInput.focus();
         }

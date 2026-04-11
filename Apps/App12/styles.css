@@ -164,16 +164,16 @@ html, body {
 
 .editor-bar {
   position: relative;
-  --it-block: 35px;
   margin-bottom: 1px;
 }
 
 .editor-label {
   position: absolute;
-  left: calc(-1 * var(--it-block) - 4px);
+  left: calc(-6.25% - 4px);
   top: 0;
-  width: var(--it-block);
-  height: var(--it-block);
+  width: 6.25%;
+  min-width: 25px;
+  aspect-ratio: 1;
   font-weight: 700;
   font-size: 14px;
   display: flex;
@@ -188,15 +188,14 @@ html, body {
 .editor-cells {
   display: flex;
   justify-content: flex-start;
-  align-items: center;
-  height: var(--it-block);
+  align-items: stretch;
   background: var(--nuzic-light);
 }
 
 .editor-cell {
-  width: var(--it-block);
-  min-width: var(--it-block);
-  height: 100%;
+  width: 6.25%;   /* 1/16 = 2 cells per pulse (8 pulses × 2 = 16) */
+  min-width: 25px;
+  aspect-ratio: 1;  /* keep square */
   text-align: center;
   color: var(--nuzic-dark);
   font-size: 14px;
@@ -229,9 +228,10 @@ html, body {
   border: 2px solid var(--nuzic-yellow-light);
 }
 
-/* Filled cell: white */
+/* Filled cell: white with dark text */
 .editor-cell:not(:placeholder-shown) {
   background: white;
+  color: var(--nuzic-dark) !important;
   z-index: 1;
 }
 
@@ -255,9 +255,9 @@ html, body {
 
 /* End marker */
 .editor-end-marker {
-  width: var(--it-block);
-  min-width: var(--it-block);
-  height: 100%;
+  width: 6.25%;
+  min-width: 25px;
+  aspect-ratio: 1;
   background: var(--nuzic-dark);
   display: none;
   align-items: center;
@@ -273,9 +273,9 @@ html, body {
 /* Editor tooltip */
 .editor-tooltip {
   position: fixed;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 1rem;
   font-weight: 600;
   background: #EF4444;
   color: white;
