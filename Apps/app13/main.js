@@ -787,6 +787,14 @@ function initApp() {
     bpmController.attach();
   }
 
+  // Move BPM into controls block (between random/reset and play)
+  const bpmParam = document.getElementById('bpmParam');
+  const controls = document.querySelector('.controls');
+  if (bpmParam && controls) {
+    bpmParam.style.order = '3';
+    controls.appendChild(bpmParam);
+  }
+
   // Cablear events de so compartits (selector Pulso → metrònom)
   bindSharedSoundEvents({
     getAudio: () => audio,
