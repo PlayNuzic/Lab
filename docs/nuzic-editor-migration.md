@@ -139,6 +139,64 @@ function renderEditorCells() {
 }
 ```
 
+## Controls compactes (compartit via nuzic-theme.css)
+
+El layout de controls és ara compartit a `libs/shared-ui/nuzic-theme.css`.
+
+### CSS (automàtic per totes les apps sense `data-layout`)
+
+El selector `body[data-visual="nuzic"] .controls:not([data-layout])` aplica:
+- Flex row, `gap: 8px`, centrat
+- Tots els botons `position: static`
+- Play: 48px, Random/Reset: 36px
+- Loop i Tap amagats
+- `.inputs:has(.bpm-inline)` amagat (BPM mogut dins `.controls`)
+
+### JS (cal afegir a cada app)
+
+Codi per moure BPM dins controls i reordenar:
+
+```javascript
+// Reorder controls: Play, BPM, Random, Reset
+const bpmParam = document.getElementById('bpmParam');
+const controls = document.querySelector('.controls');
+if (controls) {
+  const playBtn = controls.querySelector('.play') || document.getElementById('playBtn');
+  const randomBtnEl = controls.querySelector('.random');
+  const resetBtnEl = controls.querySelector('.reset');
+  const randomMenu = controls.querySelector('.random-menu');
+
+  while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+  if (playBtn) controls.appendChild(playBtn);
+  if (bpmParam) controls.appendChild(bpmParam);
+  if (randomBtnEl) controls.appendChild(randomBtnEl);
+  if (randomMenu) controls.appendChild(randomMenu);
+  if (resetBtnEl) controls.appendChild(resetBtnEl);
+}
+```
+
+### Apps que ho necessiten
+
+| App | Té BPM? | Té Random? | Necessita JS reorder? |
+|-----|---------|------------|----------------------|
+| app9 | Sí | No | Sí (Play + BPM) |
+| app10 | No | No | No |
+| app13 | Sí | Sí | Sí (implementat) |
+| App14 | Sí | Sí | Sí |
+| App16-18 | Sí | Varis | Revisar |
+| App21-24 | No/Sí | Varis | Revisar |
+| App26-31 | Sí | Sí | Sí |
+
+### Neteja CSS per app
+
+Les apps que tenien CSS legacy de controls (transforms, position absolute, offsets)
+cal netejar-lo perquè no xoqui amb el nuzic-theme compartit. Patró:
+- Treure qualsevol `.controls { transform: ... }` de l'app
+- Treure `order: -1` o similar als botons
+- Treure variables legacy (`--controls-offset-x`, `--controls-scale`, etc.)
+- Mantenir només el bloc `body[data-visual="nuzic"] { --nuzic-controls-offset-x/y }`
+
 ## Per App12 (pròxim): línies N i P
 
 App12 té un grid-editor amb línies N (nota) i P (pols). El patró serà similar:
