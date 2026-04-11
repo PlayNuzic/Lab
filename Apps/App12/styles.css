@@ -1,9 +1,7 @@
 /* App12: Plano-Sucesión - Nuzic Theme Styles */
 
 /* Import shared module styles */
-@import url('../../libs/matrix-seq/grid-editor.css');
 @import url('../../libs/musical-grid/musical-grid.css');
-@import url('../../libs/shared-ui/two-column-layout.css');
 
 /* Variables CSS */
 :root {
