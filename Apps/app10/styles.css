@@ -12,7 +12,7 @@ html, body {
 
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: -50px;
+  --nuzic-controls-offset-y: 0px;
   --note-highlight-color: var(--nuzic-blue-light);
 }
 
@@ -45,7 +45,7 @@ body[data-visual="nuzic"] {
 .timeline-wrapper {
   width: 100%;
   max-width: 300px;
-  height: 90vh;
+  height: 80vh;
   max-height: 900px;
   margin: 0 auto;
   position: relative;
@@ -136,22 +136,11 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   100% { transform: translateY(-50%) scale(1); opacity: 0.8; }
 }
 
-/* Only show Play button */
-.controls #tapTempoBtn,
-.controls #loopBtn,
-.controls #randomBtn,
-.controls #resetBtn,
+/* App10: only Play button (random/reset hidden by nuzic-theme + template) */
 .controls .random,
-.controls .loop,
-.controls .tap,
 .controls .reset,
-.controls #randomMenu,
-.controls #mixerMenu {
+.controls #randomMenu {
   display: none !important;
-}
-
-.controls {
-  justify-content: center !important;
 }
 
 /* Responsive */
