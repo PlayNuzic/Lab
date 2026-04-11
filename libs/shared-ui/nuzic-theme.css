@@ -682,7 +682,7 @@ body[data-visual="nuzic"] .loop.active {
 /* Random i Reset: quadrat arrodonit, fons verd clar */
 body[data-visual="nuzic"] .random,
 body[data-visual="nuzic"] .reset {
-  border-radius: 6px;
+  border-radius: 50%;
   background: var(--nuzic-green-light);
   border-color: var(--nuzic-green-light);
   color: var(--nuzic-dark);
