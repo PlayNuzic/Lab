@@ -227,20 +227,11 @@ function renderEditorCells() {
   const sum = getCurrentSum();
 
   // Build cells for each entered interval
+  // Pattern: [value WHITE] then [iT-1 cream extensions]
   for (const iT of currentIntervals) {
     if (iT <= 0) break;
 
-    // Extension cells (cream): iT - 1 cells
-    for (let j = 0; j < iT - 1; j++) {
-      const ext = document.createElement('input');
-      ext.type = 'text';
-      ext.className = 'it-cell';
-      ext.placeholder = ' ';
-      ext.readOnly = true;
-      cellsContainer.insertBefore(ext, endMarker);
-    }
-
-    // Value cell (white with number)
+    // Value cell FIRST (white with number)
     const val = document.createElement('input');
     val.type = 'text';
     val.className = 'it-cell it-end';
@@ -249,19 +240,21 @@ function renderEditorCells() {
     val.readOnly = true;
     cellsContainer.insertBefore(val, endMarker);
     itInputs.push(val);
+
+    // Extension cells AFTER (cream): iT - 1 cells
+    for (let j = 0; j < iT - 1; j++) {
+      const ext = document.createElement('input');
+      ext.type = 'text';
+      ext.className = 'it-cell';
+      ext.placeholder = ' ';
+      ext.readOnly = true;
+      cellsContainer.insertBefore(ext, endMarker);
+    }
   }
 
-  // If sequence not full: add 1 cream + 1 white input
+  // If sequence not full: add white input (next value) + 1 cream after
   if (sum < MAX_LENGTH) {
-    // Cream extension (start of next interval)
-    const ext = document.createElement('input');
-    ext.type = 'text';
-    ext.className = 'it-cell';
-    ext.placeholder = ' ';
-    ext.readOnly = true;
-    cellsContainer.insertBefore(ext, endMarker);
-
-    // White editable input (where user types) — NO placeholder so it's white
+    // White editable input (where user types)
     const input = document.createElement('input');
     input.type = 'text';
     input.inputMode = 'numeric';
@@ -275,7 +268,15 @@ function renderEditorCells() {
     cellsContainer.insertBefore(input, endMarker);
     itInputs.push(input);
 
-    // Auto-focus the new input
+    // Cream cell after input (pulse column placeholder)
+    const ext = document.createElement('input');
+    ext.type = 'text';
+    ext.className = 'it-cell';
+    ext.placeholder = ' ';
+    ext.readOnly = true;
+    cellsContainer.insertBefore(ext, endMarker);
+
+    // Auto-focus the input
     setTimeout(() => input.focus(), 30);
   }
 

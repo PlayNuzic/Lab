@@ -80,9 +80,9 @@ body[data-visual="nuzic"] {
 .it-cells {
   display: flex;
   justify-content: flex-start;
+  align-items: center;
   position: relative;
-  height: var(--it-block, 28px);
-  overflow: hidden;
+  height: var(--it-block, 35px);
   white-space: nowrap;
 }
 
