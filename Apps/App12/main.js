@@ -28,7 +28,7 @@ const MAX_BPM = 150;
 // ========== STATE ==========
 let audio = null;
 let musicalGrid = null;
-let gridEditor = null;
+let gridEditor = null; // Nuzic N-P editor (replaces matrix-seq grid-editor)
 let bpmController = null;
 let currentBPM = DEFAULT_BPM;
 let isPlaying = false;
@@ -384,30 +384,196 @@ function syncGridFromPairs(pairs) {
   }
 }
 
+// ========== NUZIC N-P EDITOR ==========
+
+let currentPairs = []; // Array of { note: 0-11, pulse: 0-7 }
+
+function createNuzicEditor(timelineWrapper) {
+  const BLOCK = 35;
+  const editorEl = document.createElement('div');
+  editorEl.className = 'np-editor';
+
+  // N row (notes - pink)
+  const nBar = document.createElement('div');
+  nBar.className = 'editor-bar editor-bar--n';
+  const nLabel = document.createElement('div');
+  nLabel.className = 'editor-label editor-label--n';
+  nLabel.textContent = 'N';
+  nBar.appendChild(nLabel);
+  const nCells = document.createElement('div');
+  nCells.className = 'editor-cells';
+  const nEndMarker = document.createElement('div');
+  nEndMarker.className = 'editor-end-marker';
+  nCells.appendChild(nEndMarker);
+  nBar.appendChild(nCells);
+
+  // P row (pulses - cream)
+  const pBar = document.createElement('div');
+  pBar.className = 'editor-bar editor-bar--p';
+  const pLabel = document.createElement('div');
+  pLabel.className = 'editor-label editor-label--p';
+  pLabel.textContent = 'P';
+  pBar.appendChild(pLabel);
+  const pCells = document.createElement('div');
+  pCells.className = 'editor-cells';
+  const pEndMarker = document.createElement('div');
+  pEndMarker.className = 'editor-end-marker';
+  pCells.appendChild(pEndMarker);
+  pBar.appendChild(pCells);
+
+  editorEl.appendChild(nBar);
+  editorEl.appendChild(pBar);
+
+  // Insert after timeline
+  const timeline = timelineWrapper.querySelector('.timeline');
+  if (timeline) {
+    timeline.insertAdjacentElement('afterend', editorEl);
+  } else {
+    timelineWrapper.appendChild(editorEl);
+  }
+
+  function renderEditor() {
+    // Clear existing cells
+    nCells.querySelectorAll('.editor-cell').forEach(c => c.remove());
+    pCells.querySelectorAll('.editor-cell').forEach(c => c.remove());
+
+    // Build cells for each entered pair
+    for (const pair of currentPairs) {
+      // N: cream + white value
+      const nCream = createCell('n', true);
+      nCells.insertBefore(nCream, nEndMarker);
+      const nVal = createCell('n', false);
+      nVal.value = String(pair.note);
+      nVal.readOnly = true;
+      nCells.insertBefore(nVal, nEndMarker);
+
+      // P: cream + white value
+      const pCream = createCell('p', true);
+      pCells.insertBefore(pCream, pEndMarker);
+      const pVal = createCell('p', false);
+      pVal.value = String(pair.pulse);
+      pVal.readOnly = true;
+      pCells.insertBefore(pVal, pEndMarker);
+    }
+
+    // If not full: cream + active input for N and P
+    if (currentPairs.length < TOTAL_SPACES) {
+      // N cream + input
+      const nCream = createCell('n', true);
+      nCells.insertBefore(nCream, nEndMarker);
+      const nInput = createInputCell('n');
+      nCells.insertBefore(nInput, nEndMarker);
+
+      // P cream + input
+      const pCream = createCell('p', true);
+      pCells.insertBefore(pCream, pEndMarker);
+      const pInput = createInputCell('p');
+      pCells.insertBefore(pInput, pEndMarker);
+
+      // Auto-focus N input
+      setTimeout(() => nInput.focus(), 30);
+    }
+
+    // End markers
+    nEndMarker.style.display = currentPairs.length >= TOTAL_SPACES ? 'flex' : 'none';
+    pEndMarker.style.display = currentPairs.length >= TOTAL_SPACES ? 'flex' : 'none';
+  }
+
+  function createCell(type, isCream) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.className = `editor-cell editor-cell--${type}`;
+    cell.placeholder = ' ';
+    cell.readOnly = true;
+    return cell;
+  }
+
+  let pendingNote = null;
+
+  function createInputCell(type) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.inputMode = 'numeric';
+    cell.maxLength = 2;
+    cell.className = `editor-cell editor-cell--${type} editor-input`;
+    cell.readOnly = false;
+
+    cell.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val === '') return;
+
+      const num = parseInt(val);
+      if (isNaN(num)) { e.target.value = ''; return; }
+
+      if (type === 'n') {
+        // Note: 0-11
+        if (num < 0 || num > 11) { e.target.value = ''; return; }
+        pendingNote = num;
+        // Focus P input
+        const pInput = pCells.querySelector('.editor-input');
+        if (pInput) setTimeout(() => pInput.focus(), 30);
+      } else {
+        // Pulse: 0-7
+        if (num < 0 || num > 7) { e.target.value = ''; return; }
+        const note = pendingNote !== null ? pendingNote : 0;
+        currentPairs.push({ note, pulse: num });
+        pendingNote = null;
+        renderEditor();
+        syncGridFromPairs(currentPairs);
+      }
+    });
+
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !e.target.value) {
+        e.preventDefault();
+        if (type === 'p' && pendingNote !== null) {
+          // Go back to N input
+          pendingNote = null;
+          const nInput = nCells.querySelector('.editor-input');
+          if (nInput) { nInput.value = ''; setTimeout(() => nInput.focus(), 30); }
+        } else if (type === 'n' && currentPairs.length > 0) {
+          currentPairs.pop();
+          renderEditor();
+          syncGridFromPairs(currentPairs);
+        }
+      }
+    });
+
+    return cell;
+  }
+
+  // Public API (compatible with old gridEditor interface)
+  gridEditor = {
+    getPairs: () => currentPairs.map(p => ({ ...p })),
+    setPairs: (pairs) => {
+      currentPairs = pairs.filter(p => p.note !== null && !p.isRest);
+      renderEditor();
+    },
+    clear: () => {
+      currentPairs = [];
+      pendingNote = null;
+      renderEditor();
+    },
+    destroy: () => {
+      editorEl.remove();
+    }
+  };
+
+  renderEditor();
+  return editorEl;
+}
+
 // ========== DOM INJECTION ==========
 
 function injectGridEditor() {
-  // Create container for grid editor
-  gridEditorContainer = document.createElement('div');
-  gridEditorContainer.id = 'gridEditorContainer';
-
   // Create main grid wrapper for proper CSS grid layout
   const appRoot = document.getElementById('app-root');
   if (appRoot) {
-    // Create wrapper inside main element
     const mainElement = appRoot.querySelector('main');
     if (mainElement) {
       const gridWrapper = document.createElement('div');
       gridWrapper.className = 'app12-main-grid';
-
-      // Add grid-editor container to wrapper (first row)
-      gridWrapper.appendChild(gridEditorContainer);
-
-      // Append wrapper to main (musical-grid will be added later)
       mainElement.appendChild(gridWrapper);
-    } else {
-      // Fallback: append directly to app-root
-      appRoot.appendChild(gridEditorContainer);
     }
   }
 }
@@ -522,22 +688,11 @@ async function init() {
     gridWrapper.appendChild(controlsContainer);
   }
 
-  // Create grid editor with scroll enabled on mobile
-  const isMobile = window.innerWidth <= 900;
-  gridEditor = createGridEditor({
-    container: gridEditorContainer,
-    noteRange: [0, 11],
-    pulseRange: [0, 7],
-    maxPairs: 8,
-    getPolyphonyEnabled: () => polyphonyEnabled,
-    scrollEnabled: isMobile,
-    containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
-    columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
-    notesHeight: '100px',
-    onPairsChange: (pairs) => {
-      syncGridFromPairs(pairs);
-    }
-  });
+  // Create nuzic N-P editor below timeline
+  const timelineWrapper = document.querySelector('.timeline-wrapper');
+  if (timelineWrapper) {
+    createNuzicEditor(timelineWrapper);
+  }
 
   // Initialize highlight controller using shared module
   highlightController = createMatrixHighlightController({
@@ -546,15 +701,6 @@ async function init() {
     totalNotes: TOTAL_NOTES,
     currentBPM: currentBPM
   });
-
-  // Initialize audio on first grid-editor interaction (improves responsiveness)
-  let audioInitializedFromGrid = false;
-  gridEditorContainer?.addEventListener('focusin', async () => {
-    if (!audioInitializedFromGrid) {
-      audioInitializedFromGrid = true;
-      await initAudio();
-    }
-  }, { once: true });
 
   // Wait for DOM to be fully populated by template system
   await new Promise(resolve => setTimeout(resolve, 50));
