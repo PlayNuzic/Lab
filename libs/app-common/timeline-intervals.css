@@ -121,7 +121,7 @@
 /* Barras individuales que representan cada intervalo, delimitadas por líneas de pulso */
 .timeline .interval-bar.horizontal {
   position: absolute;
-  top: 53%;
+  top: 60%;
   transform: translateY(-180%); /* Justo ENCIMA de la línea temporal */
   height: var(--timeline-interval-bar-height);
   background: var(--timeline-interval-color);
