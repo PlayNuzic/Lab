@@ -707,6 +707,10 @@ async function init() {
   // Inject DOM elements
   injectGridEditor();
 
+  // Remove obsolete template sections (Lg/V/T inputs, formula, middle)
+  document.querySelector('.inputs')?.remove();
+  document.querySelector('.middle')?.remove();
+
   // Load preferences
   const prefs = preferenceStorage.load() || {};
 
