@@ -388,30 +388,20 @@ function getIntervalsFromEditor() {
 }
 
 function setIntervalsToEditor(intervals) {
-  // Netejar
-  currentIntervals = [];
-  itInputs.forEach((input, i) => {
-    input.value = intervals[i] || '';
-    currentIntervals[i] = intervals[i] || 0;
-  });
-
-  updateSumDisplay();
+  currentIntervals = intervals.filter(v => v > 0);
+  renderEditorCells();
   updateTimeline();
 }
 
 function clearEditor() {
   currentIntervals = [];
-  itInputs.forEach(input => {
-    input.value = '';
-  });
-  updateSumDisplay();
+  renderEditorCells();
   updateTimeline();
 }
 
 function focusFirstInput() {
-  if (itInputs[0]) {
-    itInputs[0].focus();
-  }
+  const activeInput = itEditor?.querySelector('.it-input');
+  if (activeInput) activeInput.focus();
 }
 
 // ========== TIMELINE ==========
