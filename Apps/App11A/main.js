@@ -403,6 +403,7 @@ async function init() {
     });
   }
 
+  initIdleCaretFlash({ targets: [document.getElementById('playBtn')] });
   console.log('App11A initialized successfully');
 }
 
@@ -434,7 +435,6 @@ window.addEventListener('beforeunload', () => {
     document.removeEventListener('sharedui:sound', eventHandlers.sharedSound);
   }
 
-  initIdleCaretFlash({ targets: [document.getElementById('playBtn')] });
   if (eventHandlers.sharedInstrument) {
     window.removeEventListener('sharedui:instrument', eventHandlers.sharedInstrument);
   }

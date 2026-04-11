@@ -41,6 +41,9 @@ body[data-visual="nuzic"] {
   --bg-light: white;
   --selection-color: var(--nuzic-blue-light);
 
+  /* Flash color vermell nuzic */
+  --idle-flash-color: rgba(231, 111, 104, 0.7);  /* --nuzic-red amb opacitat */
+
   /* Offset del grup .controls (ajustable per app) */
   --nuzic-controls-offset-x: 0px;
   --nuzic-controls-offset-y: 0px;

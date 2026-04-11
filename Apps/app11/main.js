@@ -448,6 +448,7 @@ async function init() {
     });
   }
 
+  initIdleCaretFlash({ targets: [document.querySelector('#grid-container')] });
   console.log('App11 initialized successfully');
 }
 
@@ -479,7 +480,6 @@ window.addEventListener('beforeunload', () => {
     document.removeEventListener('sharedui:sound', eventHandlers.sharedSound);
   }
 
-  initIdleCaretFlash({ targets: [document.querySelector('#grid-container')] });
   if (eventHandlers.sharedInstrument) {
     window.removeEventListener('sharedui:instrument', eventHandlers.sharedInstrument);
   }

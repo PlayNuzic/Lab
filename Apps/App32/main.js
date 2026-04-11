@@ -1332,8 +1332,8 @@ function init() {
   // Update interval bars
   updateIntervalBars();
 
-  // Idle caret flash on BPM circle
-  initIdleCaretFlash({ targets: [document.getElementById('inputBpm')?.closest('.circle')] });
+  // Idle caret flash on fraction section
+  initIdleCaretFlash({ targets: [document.querySelector('.fraction-section')] });
 }
 
 // Run initialization
