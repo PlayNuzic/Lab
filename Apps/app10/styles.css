@@ -12,7 +12,7 @@ html, body {
 
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 50px;
+  --nuzic-controls-offset-y: -50px;
   --note-highlight-color: var(--nuzic-blue-light);
 }
 
@@ -44,9 +44,9 @@ body[data-visual="nuzic"] {
 /* Soundline wrapper */
 .timeline-wrapper {
   width: 100%;
-  max-width: 600px;
-  height: 70vh;
-  max-height: 600px;
+  max-width: 300px;
+  height: 90vh;
+  max-height: 900px;
   margin: 0 auto;
   position: relative;
   z-index: 1;
@@ -54,7 +54,6 @@ body[data-visual="nuzic"] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
 }
 
 .soundline-container {
@@ -69,27 +68,30 @@ body[data-visual="nuzic"] {
   position: relative;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
   overflow: visible;
-  transform: translateY(-30px);
 }
 
 .timeline::before {
   display: none !important;
 }
 
-/* Soundline: ample per note-highlights, rosa als números */
-body[data-visual="nuzic"] .soundline-container .soundline {
-  width: 300px;
-  background: transparent;
+/* Soundline: necessita height explícit perquè els fills són position:absolute */
+.soundline {
+  position: relative;
+  width: 100px;
   height: 100%;
 }
 
-/* Cada número té fons rosa individual */
-body[data-visual="nuzic"] .soundline-container .soundline-number {
+/* Fons rosa continu al soundline */
+body[data-visual="nuzic"] .soundline-container .soundline {
   background: var(--nuzic-pink-light);
-  padding: 6px 8px;
-  border-radius: 3px;
+  border-radius: 4px;
+}
+
+/* Números amb posició absoluta (necessari per top:XX% del JS) */
+body[data-visual="nuzic"] .soundline-container .soundline-number {
+  position: absolute;
 }
 
 /* Note highlights */
