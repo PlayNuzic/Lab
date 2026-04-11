@@ -176,7 +176,7 @@ body[data-visual="nuzic"] {
 
 .timeline {
   position: relative;
-  height: 120px;
+  height: 60px;
   display: flex;
   align-items: center;
 }
