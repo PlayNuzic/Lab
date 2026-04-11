@@ -1,6 +1,6 @@
 // libs/app-common/idle-caret-flash.js
-// One-shot triple-flash on the main interactive element after 5s of inactivity.
-// Fires once at startup as a UX hint, then auto-cleans up.
+// Repeating flash on the main interactive element after inactivity.
+// Keeps flashing every cycle until user interacts, then stops permanently.
 // Designed to work inside iframes (WordPress embeds).
 
 const IDLE_TIMEOUT = 5000;
@@ -8,8 +8,9 @@ const FLASH_CLASS = 'idle-caret-flash';
 const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'touchstart', 'wheel'];
 
 /**
- * Watches for user inactivity and triggers a triple flash on the
+ * Watches for user inactivity and triggers a repeating flash on the
  * primary interactive target (BPM circle, pulse-seq, etc.).
+ * Stops permanently on first user interaction.
  *
  * @param {Object} config
  * @param {HTMLElement[]} config.targets - Elements to flash (e.g. .circle, #pulseSeq)
@@ -21,11 +22,11 @@ export function initIdleCaretFlash({ targets = [] } = {}) {
   let timer = null;
   let hidden = false;
   let blurHandler = null;
-  let fired = false;
+  let destroyed = false;
 
   function triggerFlash() {
     timer = null;
-    fired = true;
+    if (destroyed) return;
     for (const t of targets) {
       if (!t.isConnected) continue;
       t.classList.remove(FLASH_CLASS);
@@ -37,8 +38,10 @@ export function initIdleCaretFlash({ targets = [] } = {}) {
   function onFlashEnd(e) {
     if (e.animationName === 'idleCaretFlash') {
       e.currentTarget.classList.remove(FLASH_CLASS);
-      // One-shot: auto-cleanup after flash completes
-      if (fired) handle.destroy();
+      // Schedule next flash cycle (unless destroyed by interaction)
+      if (!destroyed) {
+        timer = setTimeout(triggerFlash, IDLE_TIMEOUT);
+      }
     }
   }
 
@@ -47,22 +50,13 @@ export function initIdleCaretFlash({ targets = [] } = {}) {
     handle.destroy();
   }
 
-  function resetTimer() {
-    if (fired) return;
-    if (timer) { clearTimeout(timer); timer = null; }
-    for (const t of targets) {
-      t.classList.remove(FLASH_CLASS);
-    }
-    if (hidden) return;
-    timer = setTimeout(triggerFlash, IDLE_TIMEOUT);
-  }
-
   function onVisibility() {
     hidden = document.visibilityState === 'hidden';
     if (hidden) {
       if (timer) { clearTimeout(timer); timer = null; }
-    } else {
-      resetTimer();
+    } else if (!destroyed) {
+      if (timer) { clearTimeout(timer); timer = null; }
+      timer = setTimeout(triggerFlash, IDLE_TIMEOUT);
     }
   }
 
@@ -76,21 +70,25 @@ export function initIdleCaretFlash({ targets = [] } = {}) {
 
   document.addEventListener('visibilitychange', onVisibility);
 
-  window.addEventListener('focus', resetTimer);
+  window.addEventListener('focus', () => {
+    if (!destroyed && !timer) {
+      timer = setTimeout(triggerFlash, IDLE_TIMEOUT);
+    }
+  });
   blurHandler = () => { if (timer) { clearTimeout(timer); timer = null; } };
   window.addEventListener('blur', blurHandler);
 
   // Start first cycle
-  resetTimer();
+  timer = setTimeout(triggerFlash, IDLE_TIMEOUT);
 
   const handle = {
     destroy() {
-      if (timer) clearTimeout(timer);
+      destroyed = true;
+      if (timer) { clearTimeout(timer); timer = null; }
       for (const evt of ACTIVITY_EVENTS) {
         document.removeEventListener(evt, cancelOnInteraction, { capture: true });
       }
       document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('focus', resetTimer);
       window.removeEventListener('blur', blurHandler);
       for (const t of targets) {
         t.removeEventListener('animationend', onFlashEnd);
