@@ -223,26 +223,18 @@ async function init() {
     return;
   }
 
-  // Create main grid wrapper for 2-column layout
+  // Single-column layout: grid fills space, controls at bottom
   const mainGridWrapper = document.createElement('div');
-  mainGridWrapper.className = 'two-column-layout app11-main-grid';
+  mainGridWrapper.className = 'app11-main-grid';
 
-  // Create controls container (left column)
-  const controlsContainer = document.createElement('div');
-  controlsContainer.className = 'two-column-layout__controls app11-controls-container';
-  controlsContainer.appendChild(controls);
-
-  // Create grid container (center-right column, expanded)
   const gridContainer = document.createElement('div');
   gridContainer.id = 'grid-container';
-  gridContainer.className = 'two-column-layout__main';
 
-  // Append containers to main grid wrapper
-  mainGridWrapper.appendChild(controlsContainer);
   mainGridWrapper.appendChild(gridContainer);
 
-  // Append wrapper to main element
+  // Append wrapper to main, controls at bottom
   mainElement.appendChild(mainGridWrapper);
+  mainGridWrapper.appendChild(controls);
 
   // Load preferences
   const prefs = preferenceStorage.load() || {};

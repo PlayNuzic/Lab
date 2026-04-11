@@ -1,56 +1,19 @@
-/* App11: El Plano - Estilos (same layout as App11A) */
+/* App11: El Plano - Nuzic Theme Styles */
 
 /* Import shared modules */
 @import url('../../libs/musical-grid/musical-grid.css');
-@import url('../../libs/shared-ui/two-column-layout.css');
 
-/* Variables CSS */
-:root {
-  --cell-highlight-color: #7CD6B3;
-  --note-highlight-color: #7CD6B3;
-  --z-active: 20;
-
-  /* Play button fine-tuning */
-  --play-size: 80px;
-  --play-font-size: 2rem;
-  --play-offset-x: -10px;
-  --play-offset-y: -90px;
-
-  /* TwoColumnLayout customization - narrow left column */
-  --col-left: 120px;
-  --col-left-tablet: 100px;
-  --col-left-mobile: 90px;
-  --col-left-small: 80px;
-  --col-left-tiny: 70px;
-  --col-left-ultra: 60px;
-  --controls-padding-top: 0px;
-  --controls-margin: 10px;
-  --controls-inner-margin: 10px;
-  --controls-justify: center;
-  --layout-gap: 0.5rem;
-}
-
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+/* Nuzic theme overrides */
 body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 70px;
-}
-
-/* App11 requirement: active corner dots use pink, independent from cell highlight */
-.musical-cell.active .np-dot::after {
-  background: #F5C6C2;
-  border-color: #F5C6C2;
-  box-shadow:
-    0 0 8px #F5C6C2,
-    0 0 16px #F5C6C2,
-    0 0 24px color-mix(in srgb, #F5C6C2 60%, transparent);
+  --nuzic-controls-offset-x: 2%;
+  --nuzic-controls-offset-y: 0px;
 }
 
 [data-theme="dark"] {
   --line-color: #999;
 }
 
-/* ========== FILL VIEWPORT LAYOUT ========== */
+/* ========== VIEWPORT FILL LAYOUT ========== */
 html, body {
   margin: 0;
   padding: 0;
@@ -67,22 +30,20 @@ html, body {
   overflow: hidden;
 }
 
-/* Header at top */
 #app-root > header,
 .app-scale-wrapper > header {
   flex-shrink: 0;
 }
 
-/* Main fills remaining space */
 #app-root > main,
 .app-scale-wrapper > main {
   flex: 1;
   display: flex;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
 }
 
-/* Scale wrapper (if present) acts as pass-through */
 .app-scale-wrapper {
   width: 100%;
   height: 100%;
@@ -90,252 +51,46 @@ html, body {
   flex-direction: column;
 }
 
-/* Two-column layout fills main */
+/* ========== SINGLE-COLUMN LAYOUT ========== */
 .app11-main-grid {
   flex: 1;
   display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: 0;
   overflow: hidden;
 }
 
-/* ========== APP11A-SPECIFIC OVERRIDES ========== */
-/* Center controls vertically and horizontally */
-.app11-controls-container {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 10px !important;
-  margin: 0 !important;
-}
-
-.app11-controls-container .controls[data-layout="vertical"] {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: auto;
-  height: auto;
-  margin: 0;
-  position: relative;
-}
-
-/* Play-row contains play button + sound toggles */
-.app11-controls-container .play-row {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 0;
-  /* Fine-tuning offsets applied to entire play-row */
-  transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0));
-}
-
-/* Play button above toggles */
-.app11-controls-container .play-row > #playBtn {
-  z-index: 2;
-}
-
-/* Sound toggles positioned below play button, overlapping into its space */
-.app11-controls-container .play-row > .control-sound-toggles {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: var(--sound-toggles-offset-y, -20px);
-  z-index: 1;
-  pointer-events: auto;
-}
-
-/* Override shared-ui margins for tighter spacing */
-.app11-controls-container #playBtn {
-  margin: 0 !important;
-}
-
-.app11-controls-container .button-row {
-  margin: 0 !important;
-}
-
-/* ========== GRID CONTAINER (CENTER COLUMN) - FILLS REMAINING SPACE ========== */
 #grid-container {
   flex: 1;
-  height: 100%;
   min-height: 0;
   min-width: 0;
   display: flex;
   box-sizing: border-box;
   overflow: hidden;
   padding: 10px;
-  padding-right: var(--grid-padding-right, 60px);
 }
 
-/* Override musical-grid.css defaults to fill container */
 #grid-container > .grid-container {
   position: relative !important;
-  left: 0 !important;
-  top: 0 !important;
-  margin: 0 !important;
-  /* Fill available space with minimum height for iframes */
   width: 100% !important;
   height: 100% !important;
-  min-height: var(--grid-min-height, 400px);
   max-width: none !important;
   max-height: none !important;
 }
 
-/* ========== SOUNDLINE & TIMELINE NUMBER ALIGNMENT ========== */
-/* Unify font sizes between soundline and timeline numbers */
-.soundline-number,
-.pulse-marker {
-  font-size: 1.4rem;
-}
-
 /* ========== HIDE UNNECESSARY CONTROLS ========== */
-.controls #loopBtn,
-.controls #randomBtn,
-.controls #resetBtn,
-.controls #tapTempoBtn,
-.controls .loop,
 .controls .random,
 .controls .reset,
-.controls .tap,
-.controls #randomMenu,
-.controls #mixerMenu {
+.controls #randomMenu {
   display: none !important;
 }
 
-/* Show only play button */
-.controls #playBtn,
-.controls .play {
-  display: flex !important;
-}
-
-/* Center play button */
-.controls {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 10px;
-  margin: 20px auto;
-}
-
-/* ========== RESPONSIVE BUTTON ADAPTATIONS ========== */
-
-/* Desktop sizes - use CSS variables for fine-tuning */
-.app11-controls-container .play {
-  width: var(--play-size, 80px);
-  height: var(--play-size, 80px);
-  font-size: var(--play-font-size, 2rem);
-}
-
-.app11-controls-container .play svg {
-  width: 50%;
-  height: 50%;
-}
-
-/* Responsive button sizes handled by shared-ui */
-
-/* ========== DISABLE CELL HOVER ========== */
-/* App11A is visual-only, no cell interaction */
-/* Hover handled by nuzic-theme ::before */
-
-/* ========== HIDE PULSE TOGGLE ========== */
 #pulseToggleBtn {
   display: none !important;
 }
 
-/* ========== RESPONSIVE BREAKPOINTS ========== */
-
-/* Tablet Landscape (900px) */
-@media (max-width: 900px) {
-  :root {
-    --controls-padding-top: 15px;
-    --controls-margin: 8px;
-    --controls-inner-margin: 8px;
-    --layout-gap: 0.4rem;
-    --sound-toggles-offset-y: 8px;
-  }
-
-  .app11-controls-container .play {
-    width: 65px;
-    height: 65px;
-    font-size: 1.6rem;
-  }
-}
-
-/* Tablet Portrait (768px) */
-@media (max-width: 768px) {
-  :root {
-    --controls-padding-top: 10px;
-    --controls-margin: 5px;
-    --controls-inner-margin: 5px;
-    --layout-gap: 0.3rem;
-    --sound-toggles-offset-y: 6px;
-  }
-
-  .app11-controls-container .play {
-    width: 55px;
-    height: 55px;
-    font-size: 1.4rem;
-  }
-}
-
-/* Mobile (600px) */
-@media (max-width: 600px) {
-  :root {
-    --controls-padding-top: 8px;
-    --controls-margin: 4px;
-    --controls-inner-margin: 4px;
-    --layout-gap: 0.25rem;
-    --sound-toggles-offset-y: 5px;
-  }
-
-  .app11-controls-container .play {
-    width: clamp(50px, 20vw, 60px);
-    height: clamp(50px, 20vw, 60px);
-    font-size: clamp(1rem, 3vw, 1.4rem);
-  }
-
-  .app11-controls-container .play svg {
-    width: 55%;
-    height: 55%;
-  }
-}
-
-/* Mobile Landscape (480px) */
-@media (max-width: 480px) {
-  :root {
-    --controls-padding-top: 5px;
-    --controls-margin: 3px;
-    --controls-inner-margin: 3px;
-    --layout-gap: 0.2rem;
-    --sound-toggles-offset-y: 4px;
-  }
-
-  .app11-controls-container .play {
-    width: clamp(45px, 18vw, 55px);
-    height: clamp(45px, 18vw, 55px);
-    font-size: 0.9rem;
-  }
-}
-
-/* Ultra-small (400px) */
-@media (max-width: 400px) {
-  :root {
-    --controls-padding-top: 3px;
-    --controls-margin: 2px;
-    --controls-inner-margin: 2px;
-    --layout-gap: 0.15rem;
-    --sound-toggles-offset-y: 3px;
-  }
-
-  .app11-controls-container .play {
-    width: 40px;
-    height: 40px;
-    font-size: 0.8rem;
-  }
-}
-
-/* ========== PORTRAIT ORIENTATION WARNING ========== */
+/* ========== ORIENTATION WARNINGS ========== */
 @media (max-width: 768px) and (orientation: portrait) {
   body::before {
     content: '⟲ Por favor, gira tu dispositivo para usar esta aplicación';
@@ -352,13 +107,9 @@ html, body {
     z-index: 9999;
     padding: 2rem;
   }
-
-  #app-root {
-    display: none !important;
-  }
+  #app-root { display: none !important; }
 }
 
-/* ========== MINIMUM SCREEN SIZE WARNING (Landscape <600px) ========== */
 @media (max-width: 600px) and (orientation: landscape) {
   body::before {
     content: '📱 Esta aplicación requiere una pantalla más grande';
@@ -375,8 +126,5 @@ html, body {
     z-index: 9999;
     padding: 2rem;
   }
-
-  #app-root {
-    display: none !important;
-  }
+  #app-root { display: none !important; }
 }
