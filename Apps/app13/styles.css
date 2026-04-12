@@ -166,18 +166,18 @@ body[data-visual="nuzic"] {
   display: grid;
   grid-template-columns: 3.75rem 1fr;
   max-width: none;
-  margin: 1rem 1.25rem 0;
+  margin: 1rem 2.5rem 0;
   padding: 0;
 }
 
-/* Timeline ocupa columna 2 (a la dreta de l'espai de l'etiqueta) */
-.timeline-wrapper > .timeline {
-  grid-column: 2;
+/* Per defecte, tots els fills ocupen ambdues columnes */
+.timeline-wrapper > * {
+  grid-column: 1 / -1;
 }
 
-/* Editor ocupa ambdues columnes (la seva grid interna alinea etiqueta i cel·les) */
-.it-editor-bar {
-  grid-column: 1 / -1;
+/* Timeline ocupa NOMÉS columna 2 (a la dreta de l'espai de l'etiqueta) */
+.timeline-wrapper > .timeline {
+  grid-column: 2;
 }
 
 
