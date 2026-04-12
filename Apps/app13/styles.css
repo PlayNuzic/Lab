@@ -60,7 +60,7 @@ body[data-visual="nuzic"] {
 }
 
 .it-cell {
-  width: 5%;
+  width: 6.25%;
   min-width: 1.25rem;
   aspect-ratio: 1;
   text-align: center;
@@ -101,7 +101,7 @@ body[data-visual="nuzic"] {
 .it-cell.it-end:not(:placeholder-shown) {
   border: 2px solid var(--nuzic-yellow-light);
   margin-right: 2px;
-  width: calc(5% - 2px);
+  width: calc(6.25% - 2px);
   min-width: calc(1.25rem - 2px);
 }
 
@@ -121,7 +121,7 @@ body[data-visual="nuzic"] {
 }
 
 .it-end-marker {
-  width: 5%;
+  width: 6.25%;
   min-width: 1.25rem;
   aspect-ratio: 1;
   background: var(--nuzic-dark);
@@ -178,6 +178,7 @@ body[data-visual="nuzic"] {
 /* Timeline ocupa NOMÉS columna 2 (a la dreta de l'espai de l'etiqueta) */
 .timeline-wrapper > .timeline {
   grid-column: 2;
+  margin-left: 0rem;  /* ajusta aquest valor */
 }
 
 
