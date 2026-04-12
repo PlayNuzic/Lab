@@ -431,6 +431,7 @@ function initApp() {
       defaultValue: DEFAULT_BPM,
       onChange: (bpm) => {
         currentBPM = bpm;
+        if (isPlaying && audio) audio.setTempo(bpm);
       }
     });
     bpmController.attach();

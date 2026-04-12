@@ -1278,6 +1278,7 @@ function initApp() {
       onChange: (bpm) => {
         console.log('BPM changed to:', bpm);
         if (grid) grid.setBpm(bpm);
+        if (isPlaying && audio) audio.setTempo(bpm);
         savePreferences();
       }
     });

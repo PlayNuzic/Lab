@@ -782,7 +782,7 @@ function initApp() {
       min: MIN_BPM,
       max: MAX_BPM,
       defaultValue: DEFAULT_BPM,
-      onChange: (bpm) => { console.log('BPM changed to:', bpm); }
+      onChange: (bpm) => { if (isPlaying && audio) audio.setTempo(bpm); }
     });
     bpmController.attach();
   }

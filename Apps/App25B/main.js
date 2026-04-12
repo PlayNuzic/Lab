@@ -1158,7 +1158,7 @@ async function init() {
       min: MIN_BPM,
       max: MAX_BPM,
       defaultValue: DEFAULT_BPM,
-      onChange: (bpm) => { currentBPM = bpm; }
+      onChange: (bpm) => { currentBPM = bpm; if (isPlaying && audio) audio.setTempo(bpm); }
     });
     bpmController.attach();
   }

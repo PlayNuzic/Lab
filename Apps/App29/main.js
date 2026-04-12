@@ -1745,7 +1745,7 @@ function init() {
       min: MIN_BPM,
       max: MAX_BPM,
       defaultValue: DEFAULT_BPM,
-      onChange: (bpm) => { /* BPM read on playback */ }
+      onChange: (bpm) => { if (isPlaying && audio) audio.setTempo(bpm); }
     });
     bpmController.attach();
   }
