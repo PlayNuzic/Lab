@@ -474,14 +474,12 @@ body[data-visual="nuzic"] .plano-timeline-number {
 /* Timeline standalone (apps sense .grid-container: app9, app13, App16, App26-31)
    Redisseny complet: fons crema, números centrats, ticks verticals, sense dots ni línia */
 
-/* Fons crema a la timeline — al wrapper perquè el padding cobreixi pulsos 0 i 8 */
-body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) {
+/* Fons crema a la timeline — box-shadow estén el fons als polsos 0 i 8 sense canviar layout */
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline {
   background: var(--nuzic-yellow-light);
   border-radius: 4px;
-}
-
-body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline {
   height: 60px;
+  box-shadow: -1.25rem 0 0 var(--nuzic-yellow-light), 1.25rem 0 0 var(--nuzic-yellow-light);
 }
 
 /* Amagar línia horitzontal */
@@ -563,8 +561,9 @@ body[data-visual="nuzic"] .timeline .interval-number {
    FASE 3: Timeline — dark mode
    -------------------------------------------------------------------------- */
 
-body[data-visual="nuzic"][data-theme="dark"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) {
+body[data-visual="nuzic"][data-theme="dark"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline {
   background: var(--nuzic-yellow-light);
+  box-shadow: -1.25rem 0 0 var(--nuzic-yellow-light), 1.25rem 0 0 var(--nuzic-yellow-light);
 }
 
 body[data-visual="nuzic"][data-theme="dark"] .timeline .pulse-number {

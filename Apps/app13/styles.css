@@ -32,47 +32,40 @@ body[data-visual="nuzic"] {
   --timeline-line-color: #999;
 }
 
-/* ========== EDITOR iT (nuzic style) ========== */
+/* ========== EDITOR iT (nuzic style, proportional) ========== */
 .it-editor-bar {
   position: relative;
-  margin: 4px auto 0;
-  max-width: 700px;
-  padding: 0 20px;
-  --it-block: 35px;
+  margin: 0.25rem 0 0;
+  display: grid;
+  grid-template-columns: 3.75rem 1fr;
 }
 
 .it-label {
-  position: absolute;
-  left: calc(20px - var(--it-block) - 4px);
-  top: 0;
-  width: var(--it-block);
-  height: var(--it-block);
-  background: var(--nuzic-yellow);
-  color: white;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 1.4rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--nuzic-yellow);
+  color: white;
 }
 
 .it-cells {
   display: flex;
   justify-content: flex-start;
-  align-items: center;
+  align-items: stretch;
   position: relative;
-  height: var(--it-block, 35px);
   white-space: nowrap;
   background: var(--nuzic-light);
 }
 
 .it-cell {
-  width: var(--it-block, 28px);
-  min-width: var(--it-block, 28px);
-  height: 100%;
+  width: 5%;
+  min-width: 1.25rem;
+  aspect-ratio: 1;
   text-align: center;
   color: var(--nuzic-dark);
-  font-size: 14px;
+  font-size: 1.4rem;
   font-weight: 700;
   border-radius: 0;
   border-width: 0;
@@ -108,8 +101,8 @@ body[data-visual="nuzic"] {
 .it-cell.it-end:not(:placeholder-shown) {
   border: 2px solid var(--nuzic-yellow-light);
   margin-right: 2px;
-  width: calc(var(--it-block, 28px) - 2px);
-  min-width: calc(var(--it-block, 28px) - 2px);
+  width: calc(5% - 2px);
+  min-width: calc(1.25rem - 2px);
 }
 
 .it-cell.it-input {
@@ -128,9 +121,9 @@ body[data-visual="nuzic"] {
 }
 
 .it-end-marker {
-  width: var(--it-block, 28px);
-  min-width: var(--it-block, 28px);
-  height: 100%;
+  width: 5%;
+  min-width: 1.25rem;
+  aspect-ratio: 1;
   background: var(--nuzic-dark);
   display: flex;
   align-items: center;
@@ -150,7 +143,7 @@ body[data-visual="nuzic"] {
 /* ========== TOOLTIP ========== */
 .it-tooltip {
   position: fixed;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 500;
@@ -169,9 +162,8 @@ body[data-visual="nuzic"] {
 
 /* ========== TIMELINE ========== */
 .timeline-wrapper {
-  max-width: 700px;
-  margin: 30px auto;
-  padding: 0 20px;
+  margin: 1rem 0 0;
+  padding: 0 1.25rem;
 }
 
 

@@ -235,7 +235,7 @@ function renderEditorCells() {
   cellsContainer.insertBefore(p0, endMarker);
 
   // Build cells for each entered interval
-  // Pattern: [value WHITE] then [iT-1 cream extensions]
+  // 2 cells per pulse-space: [value WHITE] then [2*iT-1 cream extensions]
   for (const iT of currentIntervals) {
     if (iT <= 0) break;
 
@@ -249,8 +249,8 @@ function renderEditorCells() {
     cellsContainer.insertBefore(val, endMarker);
     itInputs.push(val);
 
-    // Extension cells AFTER (cream): iT - 1 cells
-    for (let j = 0; j < iT - 1; j++) {
+    // Extension cells AFTER (cream): 2*iT - 1 cells (2 cells per space)
+    for (let j = 0; j < 2 * iT - 1; j++) {
       const ext = document.createElement('input');
       ext.type = 'text';
       ext.className = 'it-cell';
