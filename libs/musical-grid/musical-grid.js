@@ -469,13 +469,15 @@ export function createMusicalGrid(config) {
     const visualNoteIndex = notes - 1 - noteIndex; // Convert to visual index
 
     // Use fixed cell size if scrollEnabled, otherwise responsive
+    // Cell shifted down by 1.0 (instead of 0.5) so its center aligns
+    // with the division line where notes visually render
     let noteHeight, top;
     if (scrollEnabled && cellSize && cellSize.minHeight) {
       noteHeight = cellSize.minHeight;
-      top = noteHeight * 0.5 + visualNoteIndex * noteHeight;
+      top = noteHeight * 1.0 + visualNoteIndex * noteHeight;
     } else {
       noteHeight = matrixRect.height / (notes + 1);
-      top = noteHeight * 0.5 + visualNoteIndex * noteHeight;
+      top = noteHeight * 1.0 + visualNoteIndex * noteHeight;
     }
 
     // Horizontal: pulse space position
