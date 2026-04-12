@@ -4,8 +4,8 @@
 
 - [x] **app13** — Editor iT implementat i funcionant
 - [x] **App12** — Editor N-P implementat (single-column layout, validació, tooltips)
-- [ ] **App14** — Editor iS + iT (zigzag)
-- [ ] **App15** — Editor N-P (aplicar patró App12)
+- [ ] **App14** — Editor iS + iT (zigzag) — aplicar patró App15
+- [x] **App15** — Editor iS-iT zigzag implementat (zigzag offset, cel·les editables, cascade validation)
 - [ ] **App26-35** — Editors diversos
 
 ## Solucions implementades a App12 (referència per futures apps)
@@ -363,12 +363,112 @@ cal netejar-lo perquè no xoqui amb el nuzic-theme compartit. Patró:
 - Treure variables legacy (`--controls-offset-x`, `--controls-scale`, etc.)
 - Mantenir només el bloc `body[data-visual="nuzic"] { --nuzic-controls-offset-x/y }`
 
-## Per App12 (pròxim): línies N i P
+## Solucions implementades a App15 (referència per iS-iT zigzag)
 
-App12 té un grid-editor amb línies N (nota) i P (pols). El patró serà similar:
-- **Fila N** (rosa): cel·les amb fons `--nuzic-pink-light`, valors en blanc
-- **Fila P** (crema): cel·les amb fons `--nuzic-yellow-light`, valors en blanc
-- Labels: "N" rosa, "P" daurat
-- Mateixa alineació amb timeline
+### S7: Editor iS-iT zigzag (substitueix createGridEditor mode 'interval')
 
-Diferència clau: N i P tenen cel·les independents (no extensions), una per columna del grid-editor existent (`libs/matrix-seq/grid-editor.css`).
+L'editor iS-iT crea dues files (iS rosa, iT crema) amb un patró zigzag
+on els valors iT estan desplaçats 1 cel·la a la dreta respecte als iS.
+
+Origen del patró: `nuzic_app/App/RE_General.js` — les files iS usen
+`index_columns[index]` i la fila iT usa `index_columns[index]+1`.
+
+#### Mida de cel·les: 2 per espai de pols
+
+```css
+.editor-cell { width: 5%; aspect-ratio: 1; }  /* quadrada */
+```
+
+Cada interval de iT=N ocupa `2*N` cel·les en ambdues files.
+
+#### Patró zigzag
+
+Per cada interval confirmat (iT=N):
+- **Fila iS**: `[valor blanc][ext rosa × (2*N - 1)]` — valor a posició 0
+- **Fila iT**: `[ext crema][valor blanc][ext crema × (2*N - 2)]` — valor a posició 1
+
+Per cel·les d'input (nou interval):
+- **Fila iS**: `[input blanc][ext rosa]` — input a l'esquerra
+- **Fila iT**: `[ext crema][input blanc]` — input a la dreta → ZIGZAG
+
+**Sense P0** — iS0 comença al pols 0 (presuposa nota base N=0).
+
+#### Cel·les editables (no readonly)
+
+Les cel·les amb valor NO són readonly. Al fer focus: selecciona text.
+Al fer blur: valida, actualitza interval, re-renderitza, sync grid.
+
+Per iS: **validació en cascada** — verifica que TOTS els intervals posteriors
+mantinguin la nota dins [0,11]:
+```javascript
+iv.soundInterval = num;
+let note = 0, valid = true;
+for (const interval of currentIntervals) {
+  if (!interval.isRest) note += interval.soundInterval || 0;
+  if (note < 0 || note > 11) { valid = false; break; }
+}
+if (!valid) { iv.soundInterval = oldIS; revert(); }
+```
+
+Per iT: verifica rang 1-8 i que la suma total no superi TOTAL_SPACES.
+
+#### Comportament del caret
+
+| Acció | Resultat |
+|-------|----------|
+| Entra iS | Timer 300ms → focus salta a iT (zigzag abaix-dreta) |
+| Entra iT | Commit interval, re-render, focus a pròxim iS |
+| Input invàlid | `clearTimeout(autoJumpTimer)` + clear pending + esborrar valor + quedar-se |
+| Backspace en buit (iT) | Torna a iS |
+| Backspace en buit (iS) | Esborra últim interval |
+| Click cel·la amb valor | Selecciona per editar |
+
+#### Imports necessaris
+
+```javascript
+import { intervalsToPairs } from '../../libs/matrix-seq/index.js';
+import { pairsToIntervals, fillGapsWithSilences } from '../../libs/interval-sequencer/index.js';
+```
+
+#### API compatible amb gridEditor antic
+
+```javascript
+gridEditor = {
+  getPairs: () => intervalsToPairs(basePair, currentIntervals).slice(1),
+  setPairs: (pairs) => {
+    currentIntervals = pairsToIntervals(pairs, basePair);
+    renderEditorCells();
+  },
+  clear: () => { currentIntervals = []; currentPairs = []; renderEditorCells(); },
+  clearHighlights: () => {},  // No-op OBLIGATORI (matrix-highlight-controller el crida)
+  destroy: () => editorEl.remove()
+};
+```
+
+### S8: Drag preview alineat
+
+El drag preview de cel·les a la grid 2D (App15) tenia dos bugs:
+- `bottom: -50%` → canviar a `top: 0` (igual que el fix de `.active::before`)
+- Color `--select-color` (groc) → canviar a `--nuzic-blue-light` (blau)
+
+### S9: stopPlayback simplificat
+
+El patró correcte per mostrar l'últim highlight:
+```javascript
+// onComplete callback:
+() => {
+  const lastNoteDelay = intervalSec * 0.9 * 1000;
+  setTimeout(() => stopPlayback(), lastNoteDelay);  // delay TOTA la funció
+}
+
+// stopPlayback sense delay intern:
+function stopPlayback() {
+  isPlaying = false;
+  audio?.stop();
+  highlightController?.clearHighlights();
+  // reset icons, clear .playing cells...
+}
+```
+
+**MAI** fer `stopPlayback(delayMs)` amb delay intern parcial — la neteja visual
+s'ha de retardar TOTA junta per veure l'últim highlight.
