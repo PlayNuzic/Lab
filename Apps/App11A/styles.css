@@ -5,7 +5,7 @@
 
 /* Nuzic theme overrides */
 body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
+  --nuzic-controls-offset-x: 2%;
   --nuzic-controls-offset-y: 0px;
 }
 
@@ -74,7 +74,7 @@ html, body {
   display: flex;
   box-sizing: border-box;
   overflow: hidden;
-  padding: 10px;
+  padding: 1%;
 }
 
 #grid-container > .grid-container {
