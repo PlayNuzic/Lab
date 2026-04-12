@@ -161,10 +161,23 @@ body[data-visual="nuzic"] {
 .it-tooltip.info { background: #7BB4CD; color: white; }
 
 /* ========== TIMELINE ========== */
+/* Grid 2 columnes: col 1 = espai per l'etiqueta iT, col 2 = timeline */
 .timeline-wrapper {
+  display: grid;
+  grid-template-columns: 3.75rem 1fr;
   max-width: none;
-  margin: 1rem 0 0;
-  padding: 0 1.25rem;
+  margin: 1rem 1.25rem 0;
+  padding: 0;
+}
+
+/* Timeline ocupa columna 2 (a la dreta de l'espai de l'etiqueta) */
+.timeline-wrapper > .timeline {
+  grid-column: 2;
+}
+
+/* Editor ocupa ambdues columnes (la seva grid interna alinea etiqueta i cel·les) */
+.it-editor-bar {
+  grid-column: 1 / -1;
 }
 
 
