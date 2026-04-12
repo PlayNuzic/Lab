@@ -1,46 +1,20 @@
-/* App15: Plano y Sucesión de Intervalos - Interval Grid Styles */
+/* App15: Plano y Sucesión de Intervalos - Nuzic Theme */
 
-/* Import shared module styles - IGUAL QUE APP12 */
-@import url('../../libs/matrix-seq/grid-editor.css');
+/* Import shared module styles */
 @import url('../../libs/musical-grid/musical-grid.css');
-@import url('../../libs/shared-ui/two-column-layout.css');
 
 /* Variables CSS */
 :root {
-  --line-color: #666;
-  --soundline-width: 3px;
-  --timeline-height: 2px;
-  --cell-highlight-color: #7CD6B3;
-  --pulse-marker-height: 15px;
-  --note-highlight-color: #7BB4CD;
-  --select-color-rgb: 123, 180, 205;
-
   /* Interval colors */
-  --interval-sound-color: #F28AAD; /* Rosa Nuzic para iS (intervalos sonoros) */
-  --interval-temporal-color: #FFBB33; /* Groc per iT (dimensió temporal) */
+  --interval-sound-color: #F28AAD;
+  --interval-temporal-color: #FFBB33;
 
   /* Z-index system */
-  --z-base: 1;           /* Base elements: lines, markers */
-  --z-content: 5;        /* Content elements: cells, numbers */
-  --z-interactive: 10;   /* Interactive elements: hover/focus states */
-  --z-active: 20;        /* Active/playing states */
-  --z-overlay: 100;      /* Overlays: tooltips, modals */
-
-  /* App15 2-row layout customization */
-  --col-left: 150px;
-  --col-left-tablet: 100px;
-  --col-left-mobile: 80px;
-  --col-left-small: 70px;
-  --col-left-tiny: 60px;
-  --controls-padding-top: 0px;
-  --controls-margin: 5px;
-  --controls-inner-margin: 0;
-  --controls-justify: center;
-  --buttons-align: center;
-  --layout-gap: 0.5rem;
-
-  /* Cursor for N-P dots in interval mode (controlled by JS) */
-  --np-dot-cursor: grab;
+  --z-base: 1;
+  --z-content: 5;
+  --z-interactive: 10;
+  --z-active: 20;
+  --z-overlay: 100;
 
   /* Cursor for N-P dots in interval mode */
   --np-dot-cursor: grab;
@@ -51,45 +25,12 @@
 
 /* Nuzic theme overrides */
 body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 75px;
-  --nuzic-play-row-offset-x: 50px;
-  --nuzic-bpm-offset-x: 0px;
-  --nuzic-bpm-offset-y: 0px;
-}
-
-/* BPM inline input container */
-.inputs {
-  display: block;
-  padding: 0;
-  margin: 0;
-  min-height: 0;
-}
-.inputs .bpm-inline {
-  position: static;
-}
-
-/* App15 requirement: active corner dots use pink */
-.musical-cell.active .np-dot::after {
-  background: #F5C6C2;
-  border-color: #F5C6C2;
-  box-shadow:
-    0 0 8px #F5C6C2,
-    0 0 16px #F5C6C2,
-    0 0 24px color-mix(in srgb, #F5C6C2 60%, transparent);
+  --nuzic-controls-offset-x: 0;
+  --nuzic-controls-offset-y: 0;
 }
 
 [data-theme="dark"] {
   --line-color: #999;
-}
-
-/* Preserve iS/iT label colors in dark mode (override shared grid-editor.css reset) */
-[data-theme="dark"] .zigzag-left-label--top {
-  color: var(--interval-sound-color, #F28AAD);
-}
-
-[data-theme="dark"] .zigzag-left-label--bottom {
-  color: var(--interval-temporal-color, #4A9EFF);
 }
 
 /* ========== VIEWPORT FILL LAYOUT ========== */
@@ -129,40 +70,30 @@ html, body {
   flex-direction: column;
 }
 
-/* ========== APP15 MAIN GRID: 2-ROW LAYOUT ========== */
-/* Row 1: Grid Editor (full width)
-   Row 2: Controls (left) + Musical Grid (right) */
+/* ========== SINGLE-COLUMN LAYOUT ========== */
 .app15-main-grid {
   flex: 1;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: var(--col-left, 150px) 1fr;
-  gap: var(--layout-gap, 0.5rem);
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: 0;
   overflow: hidden;
-  padding: 10px;
+  padding: 0.6rem;
   box-sizing: border-box;
 }
 
-/* Grid Editor spans full width in first row */
-#gridEditorContainer {
-  grid-column: 1 / -1;
-  grid-row: 1;
+/* Musical grid fills ALL available space */
+.app15-main-grid > .grid-container {
+  flex: 1;
+  position: relative !important;
+  width: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0;
+  grid-template-rows: 1fr 50px auto !important;
 }
 
-/* Controls container in bottom-left */
-.app15-controls-container {
-  grid-column: 1;
-  grid-row: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 10px;
-}
-
-/* BPM: posició estàtica, controlada per nuzic-theme */
+/* BPM inline static */
 .inputs {
   display: block;
   padding: 0;
@@ -173,25 +104,20 @@ html, body {
   position: static;
 }
 
-/* Musical grid fills bottom-right */
-.app15-main-grid > .grid-container {
-  grid-column: 2;
-  grid-row: 2;
-  position: relative !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-height: var(--grid-min-height, 300px);
-  min-width: 0;
+/* Hide Loop, BPM display, Tap, Pulse toggle */
+#loopBtn, .loop, .controls .loop,
+.bpm-display, #tapTempoBtn,
+#pulseToggleBtn {
+  display: none !important;
 }
 
-/* ========== SOUNDLINE & TIMELINE NUMBER ALIGNMENT ========== */
-/* Unify font sizes between soundline and timeline numbers */
+/* Soundline & timeline number alignment */
 .soundline-number,
 .pulse-marker {
   font-size: 1.4rem;
 }
 
-/* ========== Drag Preview ========== */
+/* ========== DRAG PREVIEW ========== */
 .musical-cell.drag-preview {
   opacity: 0.3;
   z-index: var(--z-interactive, 10);
@@ -202,28 +128,25 @@ html, body {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -50%;
+  top: 0;
   height: 100%;
-  background: var(--select-color, #FFBB33);
+  background: var(--nuzic-blue-light, #bdd9e6);
   border-radius: 2px;
   z-index: 1;
   pointer-events: none;
 }
 
-/* ========== Drag Cursors ========== */
-/* Cursor variable controlled by JavaScript via :root (see handleDotMouseDown/resetDragState) */
-/* Force grabbing cursor on ALL elements during drag to prevent cursor flickering */
+/* ========== DRAG CURSORS ========== */
 body.dragging-note,
 body.dragging-note * {
   cursor: grabbing !important;
 }
 
-/* ========== iT Bars Overlay (timeline) ========== */
+/* ========== iT BARS OVERLAY (timeline) ========== */
 .it-bars-layer {
   position: absolute;
   top: 0;
   left: 0;
-  /* width set dynamically by JS to match matrix container */
   height: 100%;
   pointer-events: none;
   display: block;
@@ -240,14 +163,11 @@ body.dragging-note * {
   opacity: 0.9;
 }
 
-/* Arrow tip for temporal intervals - DISABLED per user request */
-/* iT bars should NOT have arrows */
 .it-bar::after {
   display: none;
 }
 
 .it-bar--rest {
-  /* Dashed line effect for silences */
   background: repeating-linear-gradient(
     90deg,
     var(--interval-temporal-color, #4A9EFF) 0px,
@@ -257,7 +177,6 @@ body.dragging-note * {
   );
 }
 
-/* No arrow for rest bars */
 .it-bar--rest::after {
   display: none;
 }
@@ -278,214 +197,218 @@ body.dragging-note * {
   color: var(--interval-temporal-color, #4A9EFF);
 }
 
-.timeline-wrapper,
-.timeline-inner {
-  position: relative;
+/* ========== INTERVAL LINES (iS) - Vertical bars in matrix ========== */
+.interval-bar-vertical {
+  background: var(--interval-sound-color, #F28AAD);
+  border-radius: 2px;
+  opacity: 0.8;
+  z-index: 15;
+  box-shadow: 0 0 8px var(--interval-sound-color, #F28AAD);
 }
 
-/* ========== SEQUENCES CONTAINER ========== */
-/* .sequences-container removed - element doesn't exist in DOM (orphaned CSS) */
+.interval-bar-vertical.interval-zero::before,
+.interval-bar-vertical.interval-zero::after {
+  display: none;
+}
 
-.seq-wrapper {
+.interval-bar-vertical.ascending::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 10px solid var(--interval-sound-color, #F28AAD);
+}
+
+.interval-bar-vertical.descending::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 10px solid var(--interval-sound-color, #F28AAD);
+}
+
+.interval-number {
+  color: var(--interval-sound-color, #F28AAD);
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .interval-number {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* ========== MUSICAL CELL STYLES ========== */
+.musical-cell {
+  background: transparent;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .musical-cell {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Active corner dots use pink */
+.musical-cell.active .np-dot::after {
+  background: #F5C6C2;
+  border-color: #F5C6C2;
+  box-shadow:
+    0 0 8px #F5C6C2,
+    0 0 16px #F5C6C2,
+    0 0 24px color-mix(in srgb, #F5C6C2 60%, transparent);
+}
+
+/* ========== NUZIC iS-iT EDITOR ========== */
+.interval-editor {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin-top: 5%;
+}
+
+.editor-bar {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  margin-bottom: 1px;
+}
+
+.editor-label {
+  font-weight: 700;
+  font-size: 1.4rem;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 15px;
-}
-
-.seq-input {
-  width: fit-content;          /* Shrink to content width */
-  max-width: 100%;             /* Prevent overflow beyond parent */
-  margin: 0 auto;              /* Center horizontally */
-  overflow-x: auto;            /* Enable horizontal scroll */
-  overflow-y: visible;         /* Tooltips can overflow vertically */
-  justify-content: flex-start; /* Content aligns left within container */
-  min-height: 50px;
-  font-size: 2.25rem; /* Reduced 25% from 3rem for consistency */
-  font-family: 'Courier New', monospace;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 20px;             /* Add horizontal padding */
-  position: relative;          /* For absolute tooltips */
-  box-sizing: border-box;
-}
-
-/* Pulse-seq styling for N and P inputs */
-.seq-input .pz {
-  display: inline;
-}
-
-.seq-input .pz.prefix,
-.seq-input .pz.suffix {
-  font-weight: 600;
-  color: var(--text-color, #333);
-  margin: 0 5px;
-}
-
-.seq-input .pz.range {
-  font-size: 0.9em;
-  color: #888;
-  margin-left: 10px;
-}
-
-.seq-input .pz.edit {
-  padding: 8px 15px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 6px;
-  outline: none;
-  min-width: 250px;
-  display: inline-block;
-  white-space: pre;
-  font-size: inherit;
-  line-height: 1.4;
-}
-
-[data-theme="dark"] .seq-input .pz.edit {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.seq-input .pz.edit:focus {
-  background: var(--select-color, var(--cell-highlight-color));
+  justify-content: center;
   color: white;
-  box-shadow: 0 0 8px var(--select-color, var(--cell-highlight-color));
 }
 
-.seq-input .pz.edit:empty::before {
-  content: '...';
-  color: #999;
-  opacity: 0.5;
-  font-style: italic;
+.editor-label--is { background: var(--nuzic-pink); }
+.editor-label--it { background: var(--nuzic-yellow); }
+
+.editor-cells {
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+  background: var(--nuzic-light);
 }
 
-/* ========== MAIN CONTAINER ========== */
-.plane-wrapper {
-  width: calc(100% - 60px);
-  margin: 20px 60px;
-  min-height: 60vh;
-  position: relative;
-}
-
-/* Note: Grid2D styles now imported from libs/musical-grid/musical-grid.css */
-
-/* ========== HEADER CONTROLS ========== */
-.header-controls {
-  display: flex !important;
-  gap: 10px;
+.editor-cell {
+  width: 5%;
+  min-width: 20px;
+  aspect-ratio: 1;
+  text-align: center;
+  color: #43433b;
+  font-size: 1.4rem;
+  font-weight: 700;
+  border-radius: 0;
+  border-width: 0;
+  outline: none;
+  display: flex;
   align-items: center;
+  justify-content: center;
+  -moz-appearance: textfield;
+  padding: 0;
 }
 
-/* Ensure reset and random buttons are clickable */
-.app15-controls-container .reset,
-.app15-controls-container .random {
-  z-index: 10 !important;  /* Below overlays (mixer=12) but above base content */
-  pointer-events: auto !important;
-  position: relative;
-}
-
-/* Controls: static positioning per nuzic theme */
-.app15-controls-container .controls {
-  position: relative;
-  width: auto;
-  height: auto;
-}
-
-.app15-controls-container .play-row {
-  position: static;
-  transform: none;
+.editor-cell::-webkit-outer-spin-button,
+.editor-cell::-webkit-inner-spin-button {
+  -webkit-appearance: none;
   margin: 0;
 }
 
-.app15-controls-container #playBtn {
-  margin: 0 !important;
+/* iS cells: pink placeholder */
+.editor-cell--is:placeholder-shown {
+  background: var(--nuzic-pink-light);
+  border: 2px solid var(--nuzic-pink-light);
 }
 
-/* Hide Loop button */
-#loopBtn,
-.loop,
-.controls .loop {
-  display: none !important;
+/* iT cells: cream placeholder */
+.editor-cell--it:placeholder-shown {
+  background: var(--nuzic-yellow-light);
+  border: 2px solid var(--nuzic-yellow-light);
 }
 
-/* Hide BPM display and Tap Tempo button */
-.bpm-display,
-#tapTempoBtn {
-  display: none !important;
+/* Filled cell: white with dark text */
+.editor-cell:not(:placeholder-shown) {
+  background: white;
+  color: #43433b !important;
+  z-index: 1;
 }
 
-/* WARNING TOOLTIPS: Now using shared styles from libs/shared-ui/index.css (.hover-tip.validation-warning) */
-
-.bpm-display {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-color, #333);
-  padding: 8px 15px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  min-width: 90px;
-  text-align: center;
+/* Value cell separator (end of interval group) */
+.editor-cell.it-end:not(:placeholder-shown) {
+  border: 2px solid var(--nuzic-yellow-light);
+  margin-right: 2px;
+  width: calc(5% - 2px);
+  min-width: calc(20px - 2px);
 }
 
-[data-theme="dark"] .bpm-display {
-  color: var(--text-dark, #e0e0e0);
-  background: rgba(255, 255, 255, 0.05);
+.editor-cell--is.it-end:not(:placeholder-shown) {
+  border-color: var(--nuzic-pink-light);
 }
 
-/* ========== SEQUENCE NUMBER HIGHLIGHTS ========== */
-.seq-input .pz.number {
-  position: relative;
-  display: inline-block;
-  padding: 2px 4px;
-  margin: 0 2px;
-  border-radius: 3px;
-  transition: all 0.15s ease;
+/* Active input */
+.editor-input {
+  background: white !important;
+  cursor: text;
+  z-index: 2;
 }
 
-.seq-input .pz.number.highlighted {
-  background: var(--select-color, #FFBB33);
+.editor-cell--it.editor-input:focus {
+  box-shadow: inset 0 0 0 2px var(--nuzic-yellow);
+}
+
+.editor-cell--is.editor-input:focus {
+  box-shadow: inset 0 0 0 2px var(--nuzic-pink);
+}
+
+/* End marker */
+.editor-end-marker {
+  width: 5%;
+  min-width: 20px;
+  aspect-ratio: 1;
+  background: var(--nuzic-dark);
+  display: none;
+  align-items: center;
+  justify-content: center;
   color: white;
-  font-weight: 700;
-  transform: scale(1.15);
-  box-shadow: 0 0 8px var(--select-color, #FFBB33);
-  z-index: var(--z-interactive);
+  font-size: 0.8rem;
 }
 
-
-/* Pulse toggle hidden */
-.app15-controls-container #pulseToggleBtn {
-  display: none !important;
+.editor-end-marker::after {
+  content: '●';
 }
 
-/* ========== RESPONSIVE ADAPTATIONS ========== */
-
-/* Desktop sizes (explicit baseline for overrides) */
-.app15-controls-container .play {
-  width: 80px;
-  height: 80px;
-  font-size: 2rem;
+/* Editor tooltip */
+.editor-tooltip {
+  position: fixed;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  background: #EF4444;
+  color: white;
+  white-space: nowrap;
 }
 
-.app15-controls-container .play svg {
-  width: 50%;
-  height: 50%;
+.editor-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.app15-controls-container .random,
-.app15-controls-container .reset,
-.app15-controls-container .tap {
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
-}
-
-.app15-controls-container .random svg,
-.app15-controls-container .reset svg,
-.app15-controls-container .tap svg {
-  width: 100%;
-  height: 100%;
-}
-
-/* ========== LANDSCAPE ORIENTATION WARNING (Portrait Mode) ========== */
+/* ========== LANDSCAPE ORIENTATION WARNING ========== */
 @media (max-width: 768px) and (orientation: portrait) {
   body::before {
     content: '⟲ Por favor, gira tu dispositivo para usar esta aplicación';
@@ -506,13 +429,12 @@ body.dragging-note * {
     padding: 20px;
   }
 
-  /* Hide app content in portrait mode */
   #app-root {
     display: none !important;
   }
 }
 
-/* ========== MINIMUM SCREEN SIZE WARNING (Landscape <600px) ========== */
+/* ========== MINIMUM SCREEN SIZE WARNING ========== */
 @media (max-width: 600px) and (orientation: landscape) {
   body::before {
     content: '📱 Esta aplicación requiere una pantalla más grande';
@@ -540,720 +462,21 @@ body.dragging-note * {
 
 /* ========== TABLET (≤ 900px) ========== */
 @media (max-width: 900px) {
-  :root {
-    --play-offset-x: -105px;
-    --play-offset-y: -45px;
-    --buttons-row-offset-x: -58px;
-    --buttons-row-offset-y: 18px;
-    --bpm-offset-x: 24px;
-    --bpm-offset-y: -95px;
-    --bpm-scale: 0.86;
-    --bpm-gap: 8px;
-  }
-
-  /* Reduce padding and margins for tighter layout */
-  .app15-main-grid {
-    grid-template-columns: var(--col-left-tablet, 100px) 1fr;
-    gap: 0.4rem;
-    padding: 0.4rem;
-  }
-
-  .app15-controls-container {
-    margin: 8px;
-    margin-bottom: 1.5rem;
-  }
-
-  /* Scale ALL controls 35% smaller - center origin prevents left overflow */
-  .app15-controls-container .controls {
-    transform: scale(0.65);
-    transform-origin: top center;
-  }
-
-  .app15-controls-container #playBtn {
-    margin-left: 0 !important;
-  }
-
-  .app15-controls-container .control-sound-toggles {
-    margin-left: 0 !important;
-  }
-
-  .app15-controls-container .button-row {
-    margin-left: 0 !important;
-  }
-
-  .plane-wrapper {
-    width: calc(100% - 20px);
-    margin: 10px;
-  }
-
-  /* Compact grid-editor with scroll enabled */
-  #gridEditorContainer {
-    font-size: 1.4rem !important;
-  }
-
-  .matrix-grid-editor {
-    font-size: 1.4rem !important;
-    margin: 10px 20px !important;
-    padding: 10px !important;
-    gap: 4px !important;
-  }
-
-  .grid-row-label {
-    font-size: 1.4rem !important;
-  }
-
-  .note-input,
-  .pulse-input {
-    font-size: 1.4rem !important;
-    width: 40px !important;
-    padding: 4px 6px !important;
-  }
-
-  .grid-label-column {
-    padding: 5px 8px !important;
-  }
-
-  /* CRITICAL: Force scroll mode in grid-editor for mobile */
-  .matrix-grid-editor--scrollable {
-    max-height: 180px !important;
-    overflow: auto !important;
-  }
-
-  .grid-columns-container--scrollable {
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-  }
-
-  .matrix-grid-editor--scrollable .pulse-column {
-    flex-shrink: 0 !important;
-    width: 80px !important;
-    min-height: 150px !important;
-  }
-
-  /* Musical-grid container - balance size vs control overlap */
-  .grid-container {
-    height: 50vh !important;
-    max-height: calc(100vh - 280px) !important;
-    gap: 10px !important;
-    grid-template-columns: 80px 1fr !important;
-  }
-
-  /* Reduce grid offset for smaller screens */
-  .app15-main-grid > .grid-container {
-    left: -60px;
-  }
-
   .soundline-number,
   .pulse-marker {
     font-size: 1rem !important;
   }
-
-  /* Zigzag editor - iS/iT labels smaller */
-  .zigzag-left-label {
-    font-size: 1.5rem;
-    min-width: 40px;
-    padding: 0 6px;
-  }
-
-  .zigzag-input {
-    font-size: 1.5rem !important;
-    padding: 4px 6px !important;
-  }
-
-  .zigzag-cell {
-    flex: 0 0 60px !important;
-  }
-
-  .zigzag-row {
-    gap: 12px;
-  }
 }
 
-/* ========== SMALL TABLET (≤ 700px) ========== */
+/* ========== SMALL SCREENS (≤ 700px) ========== */
 @media (max-width: 700px) {
-  :root {
-    --play-offset-x: -72px;
-    --play-offset-y: -24px;
-    --buttons-row-offset-x: -40px;
-    --buttons-row-offset-y: 10px;
-    --bpm-offset-x: 8px;
-    --bpm-offset-y: -62px;
-    --bpm-scale: 0.76;
-    --bpm-gap: 6px;
-  }
-
-  .app15-main-grid {
-    grid-template-columns: var(--col-left-mobile, 80px) 1fr;
-    gap: 0.3rem;
-    padding: 0.3rem;
-  }
-
-  .app15-controls-container {
-    margin: 5px;
-    margin-bottom: 1rem;
-  }
-
-  /* Controls even smaller - center origin prevents left overflow */
-  .app15-controls-container .controls {
-    transform: scale(0.55);
-    transform-origin: top center;
-  }
-
-  /* Reduce grid offset further */
-  .app15-main-grid > .grid-container {
-    left: -40px;
-  }
-
-  /* Zigzag editor - even more compact */
-  .zigzag-left-label {
-    font-size: 1.2rem;
-    min-width: 35px;
-    padding: 0 4px;
-  }
-
-  .zigzag-input {
-    font-size: 1.2rem !important;
-    padding: 3px 4px !important;
-  }
-
-  .zigzag-cell {
-    flex: 0 0 50px !important;
-  }
-
-  .zigzag-row {
-    gap: 8px;
-  }
-
-  /* Musical-grid more compact */
-  .grid-container {
-    height: 45vh !important;
-    max-height: calc(100vh - 220px) !important;
-    gap: 8px !important;
-    grid-template-columns: 70px 1fr !important;
-  }
-
   .soundline-number,
   .pulse-marker {
     font-size: 0.9rem !important;
   }
-}
 
-/* ========== MOBILE (≤ 768px) ========== */
-@media (max-width: 768px) {
-  .app15-main-grid {
-    grid-template-columns: var(--col-left-mobile, 80px) 1fr;
-    gap: 0.3rem;
-    padding: 0.3rem;
-  }
-
-  .app15-controls-container {
-    margin: 6px;
-    margin-bottom: 1.2rem;
-  }
-
-  /* Reduce seq-input font size for mobile */
-  .seq-input {
-    font-size: 1.8rem;
-    gap: 8px;
-    padding: 0 12px;
-  }
-
-  /* Controls scale inherited from 900px breakpoint */
-}
-
-/* ========== SMALL SCREENS (≤ 600px) ========== */
-@media (max-width: 600px) {
-  :root {
-    --play-offset-x: -54px;
-    --play-offset-y: -14px;
-    --buttons-row-offset-x: -30px;
-    --buttons-row-offset-y: 6px;
-    --bpm-offset-x: 2px;
-    --bpm-offset-y: -44px;
-    --bpm-scale: 0.7;
-    --bpm-gap: 4px;
-  }
-
-  .app15-main-grid {
-    grid-template-columns: var(--col-left-small, 70px) 1fr;
-    gap: 0.25rem;
-    padding: 0.25rem;
-  }
-
-  .app15-controls-container {
-    margin: 5px;
-    margin-bottom: 1.1rem;
-  }
-
-  /* Remove grid offset on small screens */
-  .app15-main-grid > .grid-container {
-    left: -20px;
-  }
-
-  /* Controls scale inherited from 900px breakpoint */
-}
-
-/* ========== TINY MOBILE (≤ 480px) ========== */
-@media (max-width: 480px) {
-  :root {
-    --play-offset-x: -40px;
-    --play-offset-y: -8px;
-    --buttons-row-offset-x: -22px;
-    --buttons-row-offset-y: 4px;
-    --bpm-offset-x: 0px;
-    --bpm-offset-y: -30px;
-    --bpm-scale: 0.66;
-    --bpm-gap: 3px;
-  }
-
-  .app15-main-grid {
-    grid-template-columns: var(--col-left-tiny, 60px) 1fr;
-    gap: 0.2rem;
-    padding: 0.2rem;
-  }
-
-  .app15-controls-container {
-    margin: 5px;
-    margin-bottom: 1rem;
-  }
-
-  /* Reduce plane-wrapper margins for more space */
-  .plane-wrapper {
-    width: calc(100% - 20px);
-    margin: 10px;
-  }
-
-  /* No grid offset on tiny screens */
-  .app15-main-grid > .grid-container {
-    left: 0;
-  }
-
-  /* Controls scale inherited from 900px breakpoint */
-}
-
-/* ========== ULTRA COMPACT (≤ 400px) ========== */
-@media (max-width: 400px) {
-  .app15-main-grid {
-    grid-template-columns: 50px 1fr;
-    gap: 0.15rem;
-    padding: 0.15rem;
-  }
-
-  .app15-controls-container {
-    margin: 3px;
-    margin-bottom: 0.8rem;
-  }
-
-  /* Prevent horizontal overflow on seq-input */
-  .seq-input {
-    font-size: 1.5rem;
-  }
-
-  .seq-input .pz.edit {
-    min-width: unset;
-    max-width: 85vw;
-    padding: 6px 10px;
-  }
-
-  /* Controls scale inherited from 900px breakpoint */
-
-  /* Grid-editor ultra-compact */
-  #gridEditorContainer {
-    font-size: 1rem !important;
-  }
-
-  .matrix-grid-editor {
-    font-size: 1rem !important;
-    margin: 6px 12px !important;
-    padding: 6px !important;
-    gap: 2px !important;
-  }
-
-  .grid-row-label {
-    font-size: 1rem !important;
-  }
-
-  .note-input,
-  .pulse-input {
-    font-size: 1rem !important;
-    width: 32px !important;
-    padding: 2px 4px !important;
-  }
-}
-
-/* ========== MUSICAL GRID LANDSCAPE (≤ 480px) ========== */
-@media (max-width: 480px) and (orientation: landscape) {
-  /* Even smaller for tiny screens */
   .grid-container {
-    height: 35vh !important;
-    max-height: 300px !important;
     gap: 8px !important;
-    grid-template-columns: 80px 1fr !important;
+    grid-template-columns: 60px 1fr !important;
   }
-
-  .soundline-number,
-  .pulse-marker {
-    font-size: 0.85rem !important;
-  }
-
-  /* Note: Cell label hidden on landscape via musical-grid.css
-     @media (max-width: 480px) and (orientation: landscape) rule */
-}
-
-/* ========== GRID2D CELL COLORS (same as grid-editor) ========== */
-/* Override musical-grid default white background to be transparent like grid-editor */
-.musical-cell {
-  background: transparent;
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="dark"] .musical-cell {
-  background: transparent;
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-/* ========== INTERVAL LINES (iS) - App14 style vertical bars ========== */
-/* Separate DOM elements positioned on soundline instead of cell borders */
-.interval-bar-vertical {
-  background: var(--interval-sound-color, #F28AAD);
-  border-radius: 2px;
-  opacity: 0.8;
-  z-index: 15;
-  box-shadow: 0 0 8px var(--interval-sound-color, #F28AAD);
-}
-
-/* Interval 0 bar - no arrows (same note repeated) */
-.interval-bar-vertical.interval-zero::before,
-.interval-bar-vertical.interval-zero::after {
-  display: none;
-}
-
-/* Arrow tip for ascending intervals (pointing up) */
-.interval-bar-vertical.ascending::before {
-  content: '';
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 10px solid var(--interval-sound-color, #F28AAD);
-}
-
-/* Arrow tip for descending intervals (pointing down) */
-.interval-bar-vertical.descending::after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 10px solid var(--interval-sound-color, #F28AAD);
-}
-
-/* Interval number label (like App14) */
-.interval-number {
-  color: var(--interval-sound-color, #F28AAD);
-  font-size: 1.4rem;
-  font-weight: bold;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-[data-theme="dark"] .interval-number {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-/* ========== INTERVAL PATH COLORS - DEPRECATED (now using interval-bar-vertical) ========== */
-/* These styles are kept for backwards compatibility but no longer used */
-/* Cell border-based interval visualization replaced by App14-style DOM elements */
-/*
-.interval-path-horizontal {
-  border-bottom-color: var(--interval-sound-color, #F28AAD) !important;
-}
-
-.interval-path-vertical {
-  border-left-color: var(--interval-sound-color, #F28AAD) !important;
-  position: relative;
-}
-
-.interval-path-corner {
-  border-bottom-color: var(--interval-sound-color, #F28AAD) !important;
-  border-left-color: var(--interval-sound-color, #F28AAD) !important;
-}
-
-.interval-path-vertical::before {
-  content: '';
-  position: absolute;
-  left: -6px;
-  top: -5px;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 7px solid var(--interval-sound-color, #F28AAD);
-  z-index: 20;
-}
-*/
-
-/* ========== INTERVAL EXPANSION STYLES (Option B - Borders) ========== */
-.interval-duration {
-  background: rgba(var(--select-color-rgb), 0.15);
-  transition: background 0.2s ease;
-}
-
-.interval-start {
-  border-left: 3px solid var(--select-color);
-  border-radius: 4px 0 0 4px;
-}
-
-.interval-end {
-  border-right: 3px solid var(--select-color);
-  border-radius: 0 4px 4px 0;
-}
-
-/* Si es una celda única (start y end al mismo tiempo) */
-.interval-start.interval-end {
-  border: 3px solid var(--select-color);
-  border-radius: 4px;
-}
-
-/* Interval tubes across multiple cells (App15) */
-.musical-cell.interval-span {
-  background: rgba(var(--select-color-rgb), 0.18);
-  position: relative;
-}
-
-.musical-cell.interval-span-start {
-  border-left: 3px solid var(--select-color, #FFBB33);
-  border-radius: 6px 0 0 6px;
-}
-
-.musical-cell.interval-span-end {
-  border-right: 3px solid var(--select-color, #FFBB33);
-  border-radius: 0 6px 6px 6px;
-}
-
-.musical-cell.interval-span-start.interval-span-end {
-  border: 3px solid var(--select-color, #FFBB33);
-  border-radius: 6px;
-}
-
-/* ========== ZIGZAG INTERVAL MODE ========== */
-.matrix-grid-editor--interval {
-  padding: 0.2rem 0.4rem;
-  background: transparent;
-  border-radius: 6px;
-}
-
-.grid-zigzag-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  position: relative;
-}
-
-.zigzag-row {
-  display: flex;
-  gap: 18px;
-  align-items: center;
-}
-
-.zigzag-row--top {
-  margin-bottom: 8px;
-}
-
-.zigzag-cell {
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 72px;
-  position: relative;
-  box-sizing: border-box;
-}
-
-.matrix-grid-editor--interval .zigzag-label {
-  display: none;
-}
-
-.zigzag-input {
-  width: 100%;
-  padding: 6px 8px;
-  font-size: 2rem;
-  text-align: center;
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 6px;
-  color: var(--text-color, #333);
-  transition: all 0.15s ease;
-  box-shadow: none;
-}
-
-[data-theme="dark"] .zigzag-input {
-  background: transparent;
-  border-color: rgba(255, 255, 255, 0.18);
-  color: var(--text-dark, #e0e0e0);
-}
-
-.zigzag-input:focus {
-  outline: none;
-  border-color: var(--select-color, #FFBB33);
-  box-shadow: 0 0 6px rgba(var(--select-color-rgb, 228, 87, 12), 0.35);
-  background: rgba(var(--select-color-rgb, 228, 87, 12), 0.08);
-}
-
-.zigzag-cell--ghost {
-  visibility: hidden;
-  pointer-events: none;
-  background: #000;
-  opacity: 0.4;
-  min-height: 36px;
-  min-width: 72px;
-  flex: 0 0 72px;
-  margin: 0;
-  border-radius: 6px;
-  box-sizing: border-box;
-}
-
-/* Left rail labels (iS / iT to mimic App12 side labels) */
-.zigzag-left-label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
-  font-weight: 700;
-  min-width: 52px;
-}
-
-/* iS label in Rosa Nuzic */
-.zigzag-left-label--top {
-  color: var(--interval-sound-color, #F28AAD);
-}
-
-/* iT label in Blue */
-.zigzag-left-label--bottom {
-  color: var(--interval-temporal-color, #4A9EFF);
-}
-
-.zigzag-left-label--top,
-.zigzag-left-label--bottom {
-  margin-right: 8px;
-}
-
-/* Color accents for first pair vs interval pairs */
-.zigzag-input--n,
-.zigzag-input--p {
-  color: var(--select-color, #FFBB33);
-  font-weight: 700;
-}
-
-/* iS inputs - Rosa Nuzic */
-.zigzag-input.zigzag-input--is {
-  color: var(--interval-sound-color, #F28AAD) !important;
-  font-weight: 700;
-  opacity: 1;
-}
-
-/* iT inputs - Blue */
-.zigzag-input.zigzag-input--it {
-  color: var(--interval-temporal-color, #4A9EFF) !important;
-  font-weight: 700;
-  opacity: 1;
-}
-
-.zigzag-input:focus {
-  outline: none;
-  background: transparent;
-  border-color: var(--select-color, #FFBB33);
-  box-shadow: 0 0 6px rgba(var(--select-color-rgb, 228, 87, 12), 0.35);
-  z-index: 10;
-}
-
-/* Keep iS/iT colors when focused (not white) */
-.zigzag-input.zigzag-input--is:focus {
-  color: var(--interval-sound-color, #F28AAD) !important;
-}
-
-.zigzag-input.zigzag-input--it:focus {
-  color: var(--interval-temporal-color, #4A9EFF) !important;
-}
-
-/* Visual zigzag pattern with connecting lines */
-.zigzag-cell--p,
-.zigzag-cell--it {
-  position: relative;
-}
-
-/* Slightly thicker connectors for arrow-like zigzag */
-.zigzag-cell--p::after,
-.zigzag-cell--it::after {
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
-}
-
-/* Diagonal connecting lines using pseudo-elements - MORE VISIBLE */
-.zigzag-cell--p::after,
-.zigzag-cell--it::after {
-  content: '';
-  position: absolute;
-  width: 30px;         /* Increased from 20px */
-  height: 3px;         /* Increased from 2px */
-  background: var(--text-secondary);
-  opacity: 0.6;        /* Increased from 0.3 */
-  top: -10px;
-  right: -15px;        /* Adjusted for wider line */
-  transform: rotate(-45deg);
-  transform-origin: center;
-  z-index: 1;
-}
-
-.zigzag-cell--is:not(:first-child)::before {
-  content: '';
-  position: absolute;
-  width: 30px;         /* Increased from 20px */
-  height: 3px;         /* Increased from 2px */
-  background: var(--text-secondary);
-  opacity: 0.6;        /* Increased from 0.3 */
-  bottom: -10px;
-  left: -15px;         /* Adjusted for wider line */
-  transform: rotate(-45deg);
-  transform-origin: center;
-  z-index: 1;
-}
-
-/* Special styles for first N-P pair */
-.zigzag-cell--n .zigzag-label,
-.zigzag-cell--p .zigzag-label {
-  background: var(--accent-color);
-  color: white;
-  font-weight: 700;
-}
-
-/* Interval cells styling */
-/* iS labels - Rosa Nuzic */
-.zigzag-cell--is .zigzag-label {
-  color: var(--interval-sound-color, #F28AAD);
-  background: rgba(242, 138, 173, 0.1);
-  font-weight: 700;
-}
-
-/* iT labels - Blue */
-.zigzag-cell--it .zigzag-label {
-  color: var(--interval-temporal-color, #4A9EFF);
-  background: rgba(74, 158, 255, 0.15);
-  font-weight: 700;
-}
-
-/* Empty cells (for new interval input) */
-.zigzag-cell--empty .zigzag-input {
-  opacity: 0.6;
-}
-
-.zigzag-cell--empty .zigzag-label {
-  opacity: 0.5;
-}
-
-/* Invalid input warning */
-.zigzag-input.invalid {
-  background: rgba(255, 0, 0, 0.1) !important;
-  border-color: #ff0000 !important;
 }

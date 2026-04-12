@@ -2,7 +2,7 @@
 // Extended version of App12 that works with intervals (iS-iT) instead of absolute positions
 
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
-import { createGridEditor } from '../../libs/matrix-seq/index.js';
+// createGridEditor removed — replaced by nuzic interval editor
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
@@ -214,40 +214,24 @@ async function handlePlay() {
       }
     },
     () => {
-      // onComplete callback: Delay stop to let last note ring out (90% of interval)
+      // onComplete: delay stop so last pulse highlight is visible
       const lastNoteDelay = intervalSec * 0.9 * 1000;
-      stopPlayback(lastNoteDelay);
+      setTimeout(() => stopPlayback(), lastNoteDelay);
     }
   );
 }
 
-function stopPlayback(delayMs = 0) {
+function stopPlayback() {
   isPlaying = false;
 
   // Re-enable random button after playback
   if (randomBtn) randomBtn.disabled = false;
 
-  // Stop audio with delay to let last note ring out
-  if (delayMs > 0) {
-    setTimeout(() => {
-      audio?.stop();
-    }, delayMs);
-  } else {
-    audio?.stop();
-  }
+  // Stop audio
+  audio?.stop();
 
-  // Save last highlighted pulse-marker before clearing
-  const lastHighlighted = document.querySelector('.pulse-marker.highlighted');
-
-  // Clear all highlights (this also clears .pulse-marker.highlighted)
-  musicalGrid?.clearIntervalHighlights();
+  // Clear highlights
   highlightController?.clearHighlights();
-
-  // Re-apply highlight to last pulse, then clear after delay
-  if (lastHighlighted) {
-    lastHighlighted.classList.add('highlighted');
-    setTimeout(() => lastHighlighted.classList.remove('highlighted'), 500);
-  }
 
   // Reset button icon
   const playIcon = playBtn?.querySelector('.icon-play');
@@ -257,7 +241,7 @@ function stopPlayback(delayMs = 0) {
     stopIcon.style.display = 'none';
   }
 
-  // Clear any active playing animations
+  // Clear playing animations
   document.querySelectorAll('.musical-cell.playing').forEach(cell => {
     cell.classList.remove('playing');
   });
@@ -953,32 +937,404 @@ function loadSavedState() {
   // The grid-editor and grid-2D start with no pairs/intervals
 }
 
-// ========== DOM INJECTION ==========
+// ========== NUZIC iS-iT EDITOR ==========
 
-function injectGridEditor() {
-  // Create container for grid editor
-  gridEditorContainer = document.createElement('div');
-  gridEditorContainer.id = 'gridEditorContainer';
+function createNuzicIntervalEditor(gridContainer) {
+  const editorEl = document.createElement('div');
+  editorEl.className = 'interval-editor';
+  gridEditorContainer = editorEl; // For idle-caret-flash target
 
-  // Create main grid wrapper for proper CSS grid layout
-  const appRoot = document.getElementById('app-root');
-  if (appRoot) {
-    // Create wrapper inside main element
-    const mainElement = appRoot.querySelector('main');
-    if (mainElement) {
-      const gridWrapper = document.createElement('div');
-      gridWrapper.className = 'app15-main-grid';
+  // iS row (sound intervals — pink)
+  const isBar = document.createElement('div');
+  isBar.className = 'editor-bar editor-bar--is';
+  const isLabel = document.createElement('div');
+  isLabel.className = 'editor-label editor-label--is';
+  isLabel.textContent = 'iS';
+  isBar.appendChild(isLabel);
+  const isCells = document.createElement('div');
+  isCells.className = 'editor-cells';
+  const isEndMarker = document.createElement('div');
+  isEndMarker.className = 'editor-end-marker';
+  isCells.appendChild(isEndMarker);
+  isBar.appendChild(isCells);
 
-      // Add grid-editor container to wrapper (first row)
-      gridWrapper.appendChild(gridEditorContainer);
+  // iT row (temporal intervals — cream)
+  const itBar = document.createElement('div');
+  itBar.className = 'editor-bar editor-bar--it';
+  const itLabel = document.createElement('div');
+  itLabel.className = 'editor-label editor-label--it';
+  itLabel.textContent = 'iT';
+  itBar.appendChild(itLabel);
+  const itCells = document.createElement('div');
+  itCells.className = 'editor-cells';
+  const itEndMarker = document.createElement('div');
+  itEndMarker.className = 'editor-end-marker';
+  itCells.appendChild(itEndMarker);
+  itBar.appendChild(itCells);
 
-      // Append wrapper to main (musical-grid will be added later)
-      mainElement.appendChild(gridWrapper);
-    } else {
-      // Fallback: append directly to app-root
-      appRoot.appendChild(gridEditorContainer);
+  editorEl.appendChild(isBar);
+  editorEl.appendChild(itBar);
+
+  // Insert as grid-row: 3 inside grid-container
+  gridContainer.appendChild(editorEl);
+
+  // --- Tooltip ---
+  let tooltipEl = null;
+  let tooltipTimer = null;
+  function showTooltip(anchor, message) {
+    if (!tooltipEl) {
+      tooltipEl = document.createElement('div');
+      tooltipEl.className = 'editor-tooltip';
+      document.body.appendChild(tooltipEl);
+    }
+    tooltipEl.textContent = message;
+    const rect = anchor.getBoundingClientRect();
+    tooltipEl.style.left = `${rect.left}px`;
+    tooltipEl.style.top = `${rect.bottom + 4}px`;
+    tooltipEl.classList.add('visible');
+    clearTimeout(tooltipTimer);
+    tooltipTimer = setTimeout(() => tooltipEl.classList.remove('visible'), 2000);
+  }
+
+  // --- Editor state ---
+  let pendingIS = null;
+  let pendingIT = null;
+  let lastEnteredType = 'it'; // start focused on iS (opposite)
+  let autoJumpTimer = null;
+
+  function getCurrentSum() {
+    return currentIntervals.reduce((s, iv) => s + (iv.temporalInterval || 0), 0);
+  }
+
+  function getCurrentNote() {
+    return currentIntervals.reduce((n, iv) => n + (iv.isRest ? 0 : (iv.soundInterval || 0)), 0);
+  }
+
+  // --- Cell factories ---
+  function createReadonlyCell(type) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.className = `editor-cell editor-cell--${type}`;
+    cell.placeholder = ' ';
+    cell.readOnly = true;
+    return cell;
+  }
+
+  function createValueCell(type, displayValue, intervalIndex) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.inputMode = 'numeric';
+    cell.maxLength = 3;
+    cell.className = `editor-cell editor-cell--${type} it-end`;
+    cell.value = String(displayValue);
+    cell.placeholder = ' ';
+    cell.readOnly = false;
+    cell.dataset.intervalIndex = intervalIndex;
+
+    let originalValue = cell.value;
+
+    cell.addEventListener('focus', () => {
+      originalValue = cell.value;
+      cell.select();
+    });
+
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') cell.blur();
+    });
+
+    cell.addEventListener('blur', () => {
+      const val = cell.value.trim();
+      if (!val || val === originalValue) {
+        cell.value = originalValue;
+        return;
+      }
+      if (!/^[+-]?\d+$/.test(val)) {
+        cell.value = originalValue;
+        return;
+      }
+
+      const num = parseInt(val);
+      const idx = parseInt(cell.dataset.intervalIndex);
+      const iv = currentIntervals[idx];
+      if (!iv) { cell.value = originalValue; return; }
+
+      if (type === 'is') {
+        // First iS must be positive
+        if (idx === 0 && num <= 0) {
+          showTooltip(cell, 'Primer iS > 0');
+          cell.value = originalValue;
+          return;
+        }
+        // Validate: all subsequent notes must stay in [0,11]
+        const oldIS = iv.soundInterval;
+        iv.soundInterval = num;
+        let note = 0;
+        let valid = true;
+        for (const interval of currentIntervals) {
+          if (!interval.isRest) note += interval.soundInterval || 0;
+          if (note < 0 || note > 11) { valid = false; break; }
+        }
+        if (!valid) {
+          iv.soundInterval = oldIS;
+          showTooltip(cell, 'Valor invalida seqüència');
+          cell.value = originalValue;
+          return;
+        }
+      } else {
+        // iT: 1-8, total sum ≤ TOTAL_SPACES
+        if (num < 1 || num > 8) {
+          showTooltip(cell, 'iT: 1-8');
+          cell.value = originalValue;
+          return;
+        }
+        const oldIT = iv.temporalInterval;
+        const newSum = getCurrentSum() - oldIT + num;
+        if (newSum > TOTAL_SPACES) {
+          showTooltip(cell, `iT máximo: ${TOTAL_SPACES - getCurrentSum() + oldIT}`);
+          cell.value = originalValue;
+          return;
+        }
+        iv.temporalInterval = num;
+      }
+
+      // Update pairs, re-render, sync grid
+      updatePairsFromIntervals();
+      renderEditorCells();
+      syncGridFromPairs(currentPairs);
+    });
+
+    return cell;
+  }
+
+  // --- Render ---
+  // 2 cells per pulse-space (cells are half-space wide, square)
+  function renderEditorCells() {
+    isCells.querySelectorAll('.editor-cell').forEach(c => c.remove());
+    itCells.querySelectorAll('.editor-cell').forEach(c => c.remove());
+
+    const sum = getCurrentSum();
+
+    // Build cells for each entered interval (no P0 — iS0 starts at pulse 0)
+    // Each interval of iT spaces = 2*iT cells
+    // ZIGZAG: iS value at position 0, iT value at position 1 (shifted right)
+    for (let i = 0; i < currentIntervals.length; i++) {
+      const iv = currentIntervals[i];
+      const iT = iv.temporalInterval || 1;
+      const iS = iv.soundInterval || 0;
+      const isRest = iv.isRest || false;
+      const cellCount = 2 * iT;
+
+      // iS row: [value][ext × (cellCount-1)]  — value at position 0
+      const isDisplay = isRest ? 'S' : (iS > 0 ? `+${iS}` : String(iS));
+      isCells.insertBefore(createValueCell('is', isDisplay, i), isEndMarker);
+      for (let j = 0; j < cellCount - 1; j++) {
+        isCells.insertBefore(createReadonlyCell('is'), isEndMarker);
+      }
+
+      // iT row: [ext][value][ext × (cellCount-2)]  — value at position 1 (ZIGZAG)
+      itCells.insertBefore(createReadonlyCell('it'), itEndMarker);
+      itCells.insertBefore(createValueCell('it', String(iT), i), itEndMarker);
+      for (let j = 0; j < cellCount - 2; j++) {
+        itCells.insertBefore(createReadonlyCell('it'), itEndMarker);
+      }
+    }
+
+    // If sequence not full: add input cells with ZIGZAG offset
+    if (sum < TOTAL_SPACES) {
+      // iS: [white input][pink ext]  — input at left
+      const isInput = createInputCell('is');
+      isCells.insertBefore(isInput, isEndMarker);
+      isCells.insertBefore(createReadonlyCell('is'), isEndMarker);
+
+      // iT: [cream ext][white input]  — input shifted right (ZIGZAG)
+      itCells.insertBefore(createReadonlyCell('it'), itEndMarker);
+      const itInput = createInputCell('it');
+      itCells.insertBefore(itInput, itEndMarker);
+
+      // Zigzag focus: iS first, then iT after entering iS
+      const focusTarget = lastEnteredType === 'is' ? itInput : isInput;
+      setTimeout(() => focusTarget.focus(), 30);
+    }
+
+    // End markers
+    isEndMarker.style.display = sum >= TOTAL_SPACES ? 'flex' : 'none';
+    itEndMarker.style.display = sum >= TOTAL_SPACES ? 'flex' : 'none';
+  }
+
+  // --- Input cell ---
+  function createInputCell(type) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.inputMode = 'numeric';
+    cell.maxLength = 3;
+    cell.className = `editor-cell editor-cell--${type} editor-input`;
+    cell.readOnly = false;
+
+    cell.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val === '' || val === '-' || val === '+') return;
+      if (!/^[+-]?\d+$/.test(val)) { e.target.value = ''; return; }
+
+      const num = parseInt(val);
+
+      if (type === 'is') {
+        const curNote = getCurrentNote();
+        const isFirst = currentIntervals.length === 0;
+
+        if (isFirst && num <= 0) {
+          showTooltip(cell, 'Primer iS debe ser > 0');
+          e.target.value = '';
+          clearTimeout(autoJumpTimer);
+          pendingIS = null;
+          return;
+        }
+
+        const newNote = curNote + num;
+        if (newNote < 0 || newNote > 11) {
+          const maxUp = 11 - curNote;
+          const maxDown = -curNote;
+          showTooltip(cell, `iS: ${maxDown} a +${maxUp}`);
+          e.target.value = '';
+          clearTimeout(autoJumpTimer);
+          pendingIS = null;
+          return;
+        }
+
+        pendingIS = num;
+        lastEnteredType = 'is';
+
+        // Delay for multi-digit input (e.g. "11", "-5")
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          if (pendingIT !== null) {
+            commitInterval();
+          } else {
+            const itInput = itCells.querySelector('.editor-input');
+            if (itInput) itInput.focus();
+          }
+        }, 300);
+
+      } else {
+        // iT validation
+        if (num < 1 || num > 8) {
+          showTooltip(cell, 'iT: 1-8');
+          e.target.value = '';
+          clearTimeout(autoJumpTimer);
+          pendingIT = null;
+          return;
+        }
+
+        const remaining = TOTAL_SPACES - getCurrentSum();
+        if (num > remaining) {
+          showTooltip(cell, `iT máximo: ${remaining}`);
+          e.target.value = '';
+          clearTimeout(autoJumpTimer);
+          pendingIT = null;
+          return;
+        }
+
+        pendingIT = num;
+        lastEnteredType = 'it';
+
+        if (pendingIS !== null) {
+          clearTimeout(autoJumpTimer);
+          commitInterval();
+        } else {
+          const isInput = isCells.querySelector('.editor-input');
+          if (isInput) isInput.focus();
+        }
+      }
+    });
+
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !e.target.value) {
+        e.preventDefault();
+        clearTimeout(autoJumpTimer);
+
+        if (type === 'it') {
+          if (pendingIT !== null) {
+            pendingIT = null;
+          } else if (pendingIS !== null) {
+            pendingIS = null;
+            const isInput = isCells.querySelector('.editor-input');
+            if (isInput) { isInput.value = ''; isInput.focus(); }
+          } else if (currentIntervals.length > 0) {
+            currentIntervals.pop();
+            updatePairsFromIntervals();
+            renderEditorCells();
+            syncGridFromPairs(currentPairs);
+          }
+        } else {
+          if (pendingIS !== null) {
+            pendingIS = null;
+          } else if (currentIntervals.length > 0) {
+            currentIntervals.pop();
+            updatePairsFromIntervals();
+            renderEditorCells();
+            syncGridFromPairs(currentPairs);
+          }
+        }
+      }
+    });
+
+    return cell;
+  }
+
+  // --- Commit interval pair ---
+  function commitInterval() {
+    if (pendingIS === null || pendingIT === null) return;
+
+    currentIntervals.push({ soundInterval: pendingIS, temporalInterval: pendingIT });
+    pendingIS = null;
+    pendingIT = null;
+
+    updatePairsFromIntervals();
+    renderEditorCells();
+    syncGridFromPairs(currentPairs);
+
+    if (getCurrentSum() >= TOTAL_SPACES) {
+      const anchor = itCells.querySelector('.editor-end-marker');
+      if (anchor) showTooltip(anchor, 'Longitud completa');
     }
   }
+
+  function updatePairsFromIntervals() {
+    const basePair = { note: 0, pulse: 0 };
+    const allPairs = intervalsToPairs(basePair, currentIntervals);
+    currentPairs = allPairs.slice(1);
+  }
+
+  // --- Public API (compatible with old gridEditor) ---
+  gridEditor = {
+    getPairs: () => {
+      const basePair = { note: 0, pulse: 0 };
+      const allPairs = intervalsToPairs(basePair, currentIntervals);
+      return allPairs.slice(1).map(p => ({ ...p }));
+    },
+    setPairs: (pairs) => {
+      currentPairs = pairs.filter(p => p.note !== null);
+      currentIntervals = pairsToIntervals(pairs, { note: 0, pulse: 0 });
+      pendingIS = null;
+      pendingIT = null;
+      renderEditorCells();
+    },
+    clear: () => {
+      currentIntervals = [];
+      currentPairs = [];
+      pendingIS = null;
+      pendingIT = null;
+      renderEditorCells();
+    },
+    clearHighlights: () => {
+      // No-op: nuzic editor has no per-cell highlights
+    },
+    destroy: () => {
+      editorEl.remove();
+    }
+  };
+
+  renderEditorCells();
+  return editorEl;
 }
 
 // ========== INITIALIZATION ==========
@@ -989,16 +1345,23 @@ async function initializeApp() {
   // Setup piano preload in background (reduces latency on first play)
   setupPianoPreload({ delay: 300 });
 
-  // Inject DOM elements to mirror App12 layout (controls + grid)
-  injectGridEditor();
+  // Create single-column layout wrapper
+  const appRoot = document.getElementById('app-root');
+  const mainElement = appRoot?.querySelector('main');
+  const gridWrapper = document.createElement('div');
+  gridWrapper.className = 'app15-main-grid';
+  if (mainElement) {
+    mainElement.appendChild(gridWrapper);
+  } else {
+    appRoot.appendChild(gridWrapper);
+  }
 
   // Wait for template DOM to settle
   await new Promise(resolve => setTimeout(resolve, 50));
 
-  // Create musical grid (aligned to timeline like App12)
-  const mainGridWrapper = document.querySelector('.app15-main-grid');
+  // Create musical grid
   musicalGrid = createMusicalGrid({
-    parent: mainGridWrapper || document.getElementById('app-root'),
+    parent: gridWrapper,
     notes: TOTAL_NOTES,
     pulses: TOTAL_PULSES,
     startMidi: 60,
@@ -1021,10 +1384,7 @@ async function initializeApp() {
   });
 
   // Apply interval-mode class to disable cell hover and pointer cursor
-  const gridContainer = document.querySelector('.grid-container');
-  if (gridContainer) {
-    gridContainer.classList.add('interval-mode');
-  }
+  document.querySelector('.grid-container')?.classList.add('interval-mode');
 
   // Initialize interval renderer from interval-sequencer module
   intervalRenderer = createIntervalRenderer({
@@ -1078,55 +1438,31 @@ async function initializeApp() {
     resizeObserver.observe(matrixContainer);
   }
 
-  // Reposition controls into grid wrapper (CSS Grid handles placement)
+  // Reorder controls into compact row: Play → BPM → Random → Reset
   const controls = document.querySelector('.controls');
-  const gridWrapper = document.querySelector('.app15-main-grid');
-
   if (controls && gridWrapper) {
-    controls.remove();
-
-    // Create container for controls (grid-column: 1, grid-row: 2 via CSS)
-    const controlsContainer = document.createElement('div');
-    controlsContainer.className = 'app15-controls-container';
+    const playBtnEl = controls.querySelector('.play') || document.getElementById('playBtn');
     const bpmParam = document.getElementById('bpmParam');
-    if (bpmParam) {
-      controlsContainer.prepend(bpmParam);
-    }
-    controlsContainer.appendChild(controls);
+    const randomBtnEl = controls.querySelector('.random');
+    const resetBtnEl = controls.querySelector('.reset');
+    const randomMenu = controls.querySelector('.random-menu');
 
-    // Add to wrapper - CSS Grid will position it in bottom-left
-    gridWrapper.appendChild(controlsContainer);
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playBtnEl) controls.appendChild(playBtnEl);
+    if (bpmParam) controls.appendChild(bpmParam);
+    if (randomBtnEl) controls.appendChild(randomBtnEl);
+    if (randomMenu) controls.appendChild(randomMenu);
+    if (resetBtnEl) controls.appendChild(resetBtnEl);
+
+    gridWrapper.appendChild(controls);
   }
 
-  // Create grid editor with scroll enabled on mobile, using interval zigzag mode
-  const isMobile = window.innerWidth <= 900;
-  gridEditor = createGridEditor({
-    container: gridEditorContainer,
-    noteRange: [0, 11],
-    pulseRange: [0, TOTAL_SPACES - 1],
-    maxPairs: TOTAL_SPACES,
-    mode: 'interval',
-    showZigzag: true,
-    showIntervalLabels: false,
-    leftZigzagLabels: { topText: 'iS', bottomText: 'iT' },
-    autoJumpDelayMs: 500,
-    intervalModeOptions: {
-      basePair: { note: 0, pulse: 0 },
-      hideInitialPair: true,
-      allowSilence: true,
-      firstIntervalPositiveOnly: true,
-      maxTotalPulse: TOTAL_PULSES - 1
-    },
-    scrollEnabled: isMobile,
-    containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
-    columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
-    getPolyphonyEnabled: () => polyphonyEnabled,
-    onPairsChange: (pairs) => {
-      currentPairs = pairs;
-      updateIntervalsFromPairs(pairs);
-      syncGridFromPairs(pairs);
-    }
-  });
+  // Create nuzic iS-iT editor inside grid-container
+  const gridContainer = document.querySelector('.grid-container');
+  if (gridContainer) {
+    createNuzicIntervalEditor(gridContainer);
+  }
 
   // Initialize highlight controller using shared module
   highlightController = createMatrixHighlightController({
