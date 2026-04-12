@@ -32,6 +32,13 @@ body[data-visual="nuzic"] {
   --timeline-line-color: #999;
 }
 
+/* ========== TIMELINE FULL WIDTH ========== */
+.timeline-wrapper {
+  max-width: none;
+  margin: 1rem 0 0;
+  padding: 0 1.5rem 0 0;
+}
+
 /* BPM input */
 .inputs {
   display: flex;
