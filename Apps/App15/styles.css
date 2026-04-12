@@ -90,7 +90,7 @@ html, body {
   max-width: none !important;
   max-height: none !important;
   min-width: 0;
-  grid-template-rows: 1fr 50px auto !important;
+  grid-template-rows: 1fr 3.125rem auto !important;
 }
 
 /* BPM inline static */
@@ -157,8 +157,8 @@ body.dragging-note * {
   position: absolute;
   top: 20%;
   transform: translateY(-50%);
-  height: 8px;
-  border-radius: 8px;
+  height: 0.5rem;
+  border-radius: 0.5rem;
   background: var(--interval-temporal-color, #4A9EFF);
   opacity: 0.9;
 }
@@ -170,10 +170,10 @@ body.dragging-note * {
 .it-bar--rest {
   background: repeating-linear-gradient(
     90deg,
-    var(--interval-temporal-color, #4A9EFF) 0px,
-    var(--interval-temporal-color, #4A9EFF) 8px,
-    transparent 8px,
-    transparent 16px
+    var(--interval-temporal-color, #4A9EFF) 0,
+    var(--interval-temporal-color, #4A9EFF) 0.5rem,
+    transparent 0.5rem,
+    transparent 1rem
   );
 }
 
@@ -190,7 +190,7 @@ body.dragging-note * {
   font-weight: 700;
   color: var(--interval-temporal-color, #4A9EFF);
   white-space: nowrap;
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
 [data-theme="dark"] .it-bar__label {
@@ -214,23 +214,23 @@ body.dragging-note * {
 .interval-bar-vertical.ascending::before {
   content: '';
   position: absolute;
-  top: -8px;
+  top: -0.5rem;
   left: 50%;
   transform: translateX(-50%);
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 10px solid var(--interval-sound-color, #F28AAD);
+  border-left: 0.5rem solid transparent;
+  border-right: 0.5rem solid transparent;
+  border-bottom: 0.625rem solid var(--interval-sound-color, #F28AAD);
 }
 
 .interval-bar-vertical.descending::after {
   content: '';
   position: absolute;
-  bottom: -8px;
+  bottom: -0.5rem;
   left: 50%;
   transform: translateX(-50%);
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 10px solid var(--interval-sound-color, #F28AAD);
+  border-left: 0.5rem solid transparent;
+  border-right: 0.5rem solid transparent;
+  border-top: 0.625rem solid var(--interval-sound-color, #F28AAD);
 }
 
 .interval-number {
@@ -276,7 +276,7 @@ body.dragging-note * {
 
 .editor-bar {
   display: grid;
-  grid-template-columns: 60px 1fr;
+  grid-template-columns: 3.75rem 1fr;
   margin-bottom: 1px;
 }
 
@@ -301,7 +301,7 @@ body.dragging-note * {
 
 .editor-cell {
   width: 5%;
-  min-width: 20px;
+  min-width: 1.25rem;
   aspect-ratio: 1;
   text-align: center;
   color: #43433b;
@@ -347,7 +347,7 @@ body.dragging-note * {
   border: 2px solid var(--nuzic-yellow-light);
   margin-right: 2px;
   width: calc(5% - 2px);
-  min-width: calc(20px - 2px);
+  min-width: calc(1.25rem - 2px);
 }
 
 .editor-cell--is.it-end:not(:placeholder-shown) {
@@ -372,7 +372,7 @@ body.dragging-note * {
 /* End marker */
 .editor-end-marker {
   width: 5%;
-  min-width: 20px;
+  min-width: 1.25rem;
   aspect-ratio: 1;
   background: var(--nuzic-dark);
   display: none;
@@ -389,14 +389,14 @@ body.dragging-note * {
 /* Editor tooltip */
 .editor-tooltip {
   position: fixed;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
   font-size: 1rem;
   font-weight: 600;
   z-index: 1000;
   pointer-events: none;
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(-0.625rem);
   transition: opacity 0.2s ease, transform 0.2s ease;
   background: #EF4444;
   color: white;
@@ -426,7 +426,7 @@ body.dragging-note * {
     font-size: 1.5rem;
     font-weight: 600;
     z-index: 9999;
-    padding: 20px;
+    padding: 1.25rem;
   }
 
   #app-root {
@@ -452,7 +452,7 @@ body.dragging-note * {
     font-size: 1.2rem;
     font-weight: 600;
     z-index: 9999;
-    padding: 20px;
+    padding: 1.25rem;
   }
 
   #app-root {
@@ -476,7 +476,7 @@ body.dragging-note * {
   }
 
   .grid-container {
-    gap: 8px !important;
-    grid-template-columns: 60px 1fr !important;
+    gap: 0.5rem !important;
+    grid-template-columns: 3.75rem 1fr !important;
   }
 }

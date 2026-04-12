@@ -479,6 +479,9 @@ body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-c
   background: var(--nuzic-yellow-light);
   border-radius: 4px;
   height: 60px;
+  /* Extra padding so pulse numbers 0 and 8 stay inside the cream rect */
+  padding: 0 2.5%;
+  box-sizing: border-box;
 }
 
 /* Amagar línia horitzontal */
