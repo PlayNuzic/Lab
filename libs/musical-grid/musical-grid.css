@@ -369,9 +369,9 @@
 /* ========== CELL LABELS (COORDINATES) ========== */
 .cell-label {
   position: absolute;
-  bottom: 0;
+  top: 50%;
   left: 50%;
-  transform: translate(-50%, 50%);
+  transform: translate(-50%, -50%);
   display: none;
 
   /* ⭐ UPDATED: Adaptive font sizing */
