@@ -2,7 +2,6 @@
 // Extended version of App12 that works with intervals (iS-iT) instead of absolute positions
 
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
-// createGridEditor removed — replaced by nuzic interval editor
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
@@ -21,7 +20,6 @@ import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import {
   fillGapsWithSilences,
   pairsToIntervals,
-  buildPairsFromIntervals,
   createIntervalRenderer
 } from '../../libs/interval-sequencer/index.js';
 
@@ -249,29 +247,6 @@ function stopPlayback() {
 
 // ========== GRID SYNCHRONIZATION ==========
 
-// Helper: Separate pairs into independent voices (copy from App12)
-function separateIntoVoices(pairs) {
-  const voices = [];
-  const sortedPairs = [...pairs].sort((a, b) => a.pulse - b.pulse);
-
-  for (const pair of sortedPairs) {
-    // Find a voice that doesn't have a note at this pulse
-    let assignedVoice = voices.find(voice =>
-      !voice.some(p => p.pulse === pair.pulse)
-    );
-
-    if (!assignedVoice) {
-      // Create new voice
-      assignedVoice = [];
-      voices.push(assignedVoice);
-    }
-
-    assignedVoice.push(pair);
-  }
-
-  return voices;
-}
-
 // Note: interval-span tubes removed - iT bars in timeline are sufficient for showing duration
 
 /**
@@ -375,14 +350,6 @@ function syncGridFromPairs(pairs) {
 }
 
 // ========== DRAG HANDLERS FOR HORIZONTAL iT MODIFICATION ==========
-
-/**
- * Calculate space index from a pair based on its temporalInterval
- * Space index = pulse - 1 (the cell where the note ends)
- */
-function getSpaceIndexFromPair(pair) {
-  return pair.pulse - 1;
-}
 
 /**
  * Calculate space index from mouse X coordinate
@@ -788,28 +755,6 @@ function clearIntervalLines() {
 
 // ========== END INTERVAL LINES ==========
 
-function syncIntervalsFromGrid(noteIndex, pulseIndex, duration) {
-  // When a cell is dragged in the grid, update the corresponding interval
-  // This is complex and might need more context about which interval to update
-
-  // Find which interval this corresponds to
-  let pulseCount = 0;
-  for (let i = 0; i < currentIntervals.length; i++) {
-    if (pulseCount === pulseIndex) {
-      // Update this interval's temporal value
-      currentIntervals[i].temporalInterval = duration;
-
-      // Update the grid editor
-      gridEditor.setPairs(currentPairs);
-
-      // Save state
-      saveCurrentState();
-      break;
-    }
-    pulseCount += currentIntervals[i].temporalInterval;
-  }
-}
-
 // ========== RESET ==========
 
 function handleReset() {
@@ -931,11 +876,6 @@ function saveCurrentState() {
   preferenceStorage.save(prefs);
 }
 
-function loadSavedState() {
-  // App15 should always start empty - no persistence of sequences between sessions
-  // Only UI preferences (polyphony, selectColor, etc.) are persisted
-  // The grid-editor and grid-2D start with no pairs/intervals
-}
 
 // ========== NUZIC iS-iT EDITOR ==========
 
@@ -1723,10 +1663,7 @@ async function initializeApp() {
     }
   });
 
-  // Load saved state after wiring everything
-  loadSavedState();
-
-  // Auto-focus is handled by grid-editor's renderIntervalMode()
+  // Auto-focus is handled by editor's renderEditorCells()
 
   // Idle caret flash on grid editor container
   initIdleCaretFlash({ targets: [gridEditorContainer] });
