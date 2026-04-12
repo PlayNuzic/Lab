@@ -162,6 +162,7 @@ body[data-visual="nuzic"] {
 
 /* ========== TIMELINE ========== */
 .timeline-wrapper {
+  max-width: none;
   margin: 1rem 0 0;
   padding: 0 1.25rem;
 }
