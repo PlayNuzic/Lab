@@ -742,8 +742,9 @@ function initApp() {
   }
 
   // Reorder controls into compact row: Play, Random, Reset
+  // Controls go AFTER editor, inside soundline-area
   const controls = document.querySelector('.controls');
-  if (controls) {
+  if (controls && timelineWrapper) {
     const playBtnEl = controls.querySelector('.play') || document.getElementById('playBtn');
     const randomBtnEl = controls.querySelector('.random');
     const resetBtnEl = controls.querySelector('.reset');
@@ -754,7 +755,7 @@ function initApp() {
     if (randomBtnEl) controls.appendChild(randomBtnEl);
     if (resetBtnEl) controls.appendChild(resetBtnEl);
 
-    layoutWrapper.appendChild(controls);
+    timelineWrapper.appendChild(controls); // after editor, inside soundline-area
   }
 
   if (mainElement) {
