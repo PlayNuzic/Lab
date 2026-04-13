@@ -155,7 +155,7 @@ function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeat
   const intervalBar = document.createElement('div');
   intervalBar.className = 'interval-bar-vertical';
   intervalBar.style.position = 'absolute';
-  intervalBar.style.left = '160px';
+  intervalBar.style.left = 'calc(100% + 2.5rem)';
   intervalBar.style.width = '4px';
 
   // Padding per escurçar la barra i no tapar els números
@@ -228,7 +228,7 @@ function showIntervalNumber(note1Index, note2Index, delayBeats = 1) {
   intervalNum.textContent = `${direction}${absInterval}`;
   intervalNum.style.position = 'absolute';
   intervalNum.style.top = `${centerY}%`;
-  intervalNum.style.left = (absInterval === 0 || absInterval === 1) ? '220px' : '180px';
+  intervalNum.style.left = (absInterval === 0 || absInterval === 1) ? 'calc(100% + 5rem)' : 'calc(100% + 3rem)';
   intervalNum.style.transform = 'translateY(-50%)';
   intervalNum.style.opacity = '0';
 
@@ -725,17 +725,17 @@ function initApp() {
   const layoutWrapper = document.createElement('div');
   layoutWrapper.className = 'app14-main-layout';
 
-  // Create nuzic iS editor
-  const editor = createNuzicIsEditor();
-  layoutWrapper.appendChild(editor);
-
-  // Move soundline area (timeline wrapper) into layout
+  // Move soundline area FIRST (fills vertical space)
   const timelineWrapper = timeline.parentElement;
   if (timelineWrapper) {
     timelineWrapper.className = 'soundline-area';
     timelineWrapper.removeAttribute('style');
     layoutWrapper.appendChild(timelineWrapper);
   }
+
+  // Create nuzic iS editor BELOW soundline
+  const editor = createNuzicIsEditor();
+  layoutWrapper.appendChild(editor);
 
   // Reorder controls into compact row: Play, Random, Reset
   const controls = document.querySelector('.controls');
