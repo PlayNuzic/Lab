@@ -320,9 +320,8 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   border-top: 0.625rem solid var(--interval-color);
 }
 
-/* Override nuzic-theme's top:20%!important — App14 positions numbers via JS */
-body[data-visual="nuzic"] .timeline .interval-number {
-  top: auto !important;
+/* App14 positions interval-numbers via JS setProperty('top', ..., 'important') */
+.interval-number {
   color: var(--interval-color);
   font-size: 2rem;
   font-weight: bold;

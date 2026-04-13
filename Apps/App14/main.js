@@ -178,12 +178,12 @@ function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeat
     // Posicionem el BOTTOM de la barra al punt d'inici - padding (més avall)
     const bottomPos = 100 - start1 + padding;
     intervalBar.style.bottom = `${bottomPos}%`;
-    intervalBar.style.top = 'auto';
+    intervalBar.style.setProperty('top', 'auto', 'important');
     intervalBar.style.height = '0%';
   } else {
     // Interval negatiu: nota baixa (de dalt a baix en pantalla)
     // Posicionem el TOP de la barra al punt d'inici + padding (més avall)
-    intervalBar.style.top = `${start1 + padding}%`;
+    intervalBar.style.setProperty('top', `${start1 + padding}%`, 'important');
     intervalBar.style.height = '0%';
   }
 
@@ -236,7 +236,7 @@ function showIntervalNumber(note1Index, note2Index, delayBeats = 1) {
   intervalNum.className = 'interval-number';
   intervalNum.textContent = `${direction}${absInterval}`;
   intervalNum.style.position = 'absolute';
-  intervalNum.style.top = `${numberY}%`;
+  intervalNum.style.setProperty('top', `${numberY}%`, 'important');
   intervalNum.style.transform = 'translateY(-50%)';
   intervalNum.style.opacity = '0';
 
