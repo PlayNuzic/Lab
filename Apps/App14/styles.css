@@ -1,215 +1,207 @@
-/* App14: Intervalo Sonoro - Estilos */
+/* App14: Intervalo Sonoro - Nuzic Theme */
 
-/* ========== IFRAME COMPATIBILITY ========== */
-/* Només reset de marges - NO canviem l'estructura flex del template */
+/* ========== RESET ========== */
 html, body {
   margin: 0;
   padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
-/* ========== CSS VARIABLES ========== */
+#app-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#app-root > header,
+.app-scale-wrapper > header {
+  flex-shrink: 0;
+}
+
+#app-root > main,
+.app-scale-wrapper > main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-scale-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========== VARIABLES ========== */
 :root {
-  --line-color: #666;
-  --soundline-width: 3px;
-  --note-highlight-color: #7BB4CD;
-  --interval-color: #F28AAD; /* Dimensió sonora (editor iS) */
-
-  /* Two-column layout customization */
-  --col-left: 150px;
-  --controls-justify: center;
-  --layout-gap: 2rem;
-  --controls-padding-top: 0;
-  --controls-margin: 0;
-
-  /* Play button positioning */
-  --play-btn-offset: -200px; /* Distancia desde el borde derecho de la columna izquierda */
-
-  /* Soundline sizing and positioning */
-  --soundline-height: 100%; /* Altura de la soundline (100% = 625px del contenedor, 80% = 500px, etc.) */
-  --soundline-offset-x: 35px; /* Ajust fi horitzontal de la soundline */
-  --timeline-offset-y: 50px; /* Ajust fi vertical de la timeline (separació de l'editor iS) */
-
-  /* Ajust fi dels controls */
-  --controls-offset-x: 0px;
-  --controls-offset-y: 20px;
-  --controls-scale: 1;
+  --interval-color: #F28AAD;
 }
 
 [data-theme="dark"] {
   --line-color: #999;
 }
 
-/* ========== EDITOR iS ========== */
-.is-editor-container {
+body[data-visual="nuzic"] {
+  --nuzic-controls-offset-x: 0;
+  --nuzic-controls-offset-y: 0;
+}
+
+/* ========== SINGLE-COLUMN LAYOUT ========== */
+.app14-main-layout {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin: 20px auto 30px;
-  gap: 10px;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.6rem;
+  box-sizing: border-box;
 }
 
-.is-editor-label,
-.is-editor__label {
-  color: var(--interval-color, #F28AAD);
+/* Hide unnecessary buttons */
+.controls #tapTempoBtn,
+.controls #loopBtn,
+.controls .loop,
+.controls .tap,
+.controls #randomMenu,
+.controls #mixerMenu {
+  display: none !important;
+}
+
+/* ========== NUZIC iS EDITOR ========== */
+.is-editor-bar {
+  display: grid;
+  grid-template-columns: 3.75rem 1fr;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
+.editor-label {
   font-weight: 700;
-  font-size: 2.8rem;
-  margin-right: 8px;
-}
-
-.is-editor {
+  font-size: 1.4rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  color: white;
 }
 
-.is-input {
-  width: 48px;
-  height: 48px;
-  border: 2px solid var(--interval-color, #F28AAD);
-  border-radius: 8px;
-  background: var(--bg-input, transparent);
-  color: var(--text-color, #333);
-  font-size: 1.5rem;
-  font-weight: 600;
+.editor-label--is { background: var(--nuzic-pink); }
+
+.editor-cells {
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+  background: var(--nuzic-light);
+}
+
+.editor-cell {
+  width: 6.25%;
+  min-width: 1.25rem;
+  aspect-ratio: 1;
   text-align: center;
+  color: #43433b;
+  font-size: 1.4rem;
+  font-weight: 700;
+  border-radius: 0;
+  border-width: 0;
   outline: none;
-  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   -moz-appearance: textfield;
+  padding: 0;
 }
 
-[data-theme="dark"] .is-input {
-  color: var(--text-dark, #e0e0e0);
-}
-
-.is-input::-webkit-outer-spin-button,
-.is-input::-webkit-inner-spin-button {
+.editor-cell::-webkit-outer-spin-button,
+.editor-cell::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.is-input:focus {
-  border-color: var(--interval-color, #F28AAD);
-  box-shadow: 0 0 0 3px rgba(242, 138, 173, 0.3);
+.editor-cell--is:placeholder-shown {
+  background: var(--nuzic-pink-light);
+  border: 2px solid var(--nuzic-pink-light);
 }
 
-.is-input::placeholder {
-  color: var(--text-muted, #888);
-  font-weight: 400;
-  font-size: 0.9rem;
+.editor-cell:not(:placeholder-shown) {
+  background: white;
+  color: #43433b !important;
+  z-index: 1;
 }
 
-.is-input.has-value {
-  background: rgba(242, 138, 173, 0.1);
+.editor-cell.it-end:not(:placeholder-shown) {
+  border: 2px solid var(--nuzic-pink-light);
+  margin-right: 2px;
+  width: calc(6.25% - 2px);
+  min-width: calc(1.25rem - 2px);
 }
 
-/* Flash animation per caselles buides */
-@keyframes inputFlash {
-  0%, 100% {
-    border-color: var(--interval-color, #F28AAD);
-    box-shadow: none;
-  }
-  50% {
-    border-color: var(--selection-color, #FFBB33);
-    box-shadow: 0 0 12px var(--selection-color, #FFBB33);
-  }
+.editor-input {
+  background: white !important;
+  cursor: text;
+  z-index: 2;
 }
 
-.is-input.flash {
-  animation: inputFlash 0.3s ease-in-out;
+.editor-cell--is.editor-input:focus {
+  box-shadow: inset 0 0 0 2px var(--nuzic-pink);
 }
 
-/* Active input during playback */
-.is-input.input-active {
-  border-color: var(--selection-color, #FFBB33);
-  box-shadow: 0 0 12px var(--selection-color, #FFBB33);
+/* Playback highlight */
+.editor-cell.input-active {
+  box-shadow: inset 0 0 0 2px var(--nuzic-yellow);
 }
 
-/* ========== TOOLTIP ========== */
-.is-tooltip {
+.editor-end-marker {
+  width: 6.25%;
+  min-width: 1.25rem;
+  aspect-ratio: 1;
+  background: var(--nuzic-dark);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.8rem;
+}
+
+.editor-end-marker::after {
+  content: '●';
+}
+
+/* Editor tooltip */
+.editor-tooltip {
   position: fixed;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
   z-index: 1000;
   pointer-events: none;
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(-0.625rem);
   transition: opacity 0.2s ease, transform 0.2s ease;
+  background: #EF4444;
+  color: white;
   white-space: nowrap;
 }
 
-.is-tooltip.visible {
+.editor-tooltip.visible {
   opacity: 1;
   transform: translateY(0);
 }
 
-.is-tooltip.success {
-  background: #22C55E;
-  color: white;
-}
-
-.is-tooltip.error {
-  background: #EF4444;
-  color: white;
-}
-
-.is-tooltip.info {
-  background: var(--interval-color, #F28AAD);
-  color: white;
-}
-
-/* ========== TWO-COLUMN LAYOUT CUSTOMIZATION ========== */
-.app14-main-layout {
+/* ========== SOUNDLINE AREA ========== */
+.soundline-area {
   flex: 1;
+  position: relative;
   min-height: 0;
+  overflow: visible;
 }
 
-.app14-controls-container {
-  display: flex !important;
-  align-items: center;
-  justify-content: flex-end; /* Alinear a la derecha de la columna izquierda */
-  padding-right: var(--play-btn-offset, 20px);
-  height: 100%;
-  position: relative;
-  z-index: 1;
-}
-
-/* ========== SOUNDLINE WRAPPER ========== */
-.timeline-wrapper {
-  width: 100%;
-  max-width: 600px;
-  height: 700px;
-  margin: 0 auto;
-  position: relative;
-  z-index: 1;
-  opacity: 1 !important;
-  padding: 20px 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Timeline element (contains soundline) */
-.timeline {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  display: flex;
-  justify-content: center; /* Centrar soundline */
-  align-items: center;
-  overflow: visible; /* Allow soundline to extend beyond 100% */
-  transform: translateY(var(--timeline-offset-y, 0px)); /* Ajust fi vertical */
-}
-
-/* Ocultar la línea horizontal del timeline (no necesaria en App14) */
-.timeline::before {
-  display: none !important;
-}
-
-/* ========== SOUNDLINE (VERTICAL LINE) ========== */
 .soundline-container {
   position: relative;
   width: 100%;
@@ -218,37 +210,33 @@ html, body {
 
 .soundline {
   position: relative;
-  width: 300px; /* Más ancho para acomodar números a la izquierda */
-  height: var(--soundline-height, 100%); /* Altura ajustable con variable */
+  width: 18.75rem;
+  height: 100%;
   margin: 0 auto;
-  transform: translateX(var(--soundline-offset-x, 0px)); /* Ajust fi horitzontal */
 }
 
-/* Línea vertical principal */
 .soundline::before {
   content: '';
   position: absolute;
-  left: 100px; /* Posicionada a 100px del borde izquierdo del soundline */
-  top: var(--line-top, 0);
-  bottom: var(--line-bottom, 0);
-  width: var(--soundline-width);
-  background: var(--line-color);
+  left: 6.25rem;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--line-color, #666);
   pointer-events: none;
   z-index: 1;
 }
 
-/* ========== DIVISIONES HORIZONTALES ========== */
 .soundline-division {
   position: absolute;
-  width: 30px; /* Líneas cortas que cruzan la línea vertical */
+  width: 1.875rem;
   height: 2px;
-  background: var(--line-color);
-  left: 85px; /* Empiezan 15px antes de la línea vertical */
+  background: var(--line-color, #666);
+  left: 5.3125rem;
   pointer-events: none;
   z-index: 2;
 }
 
-/* ========== NÚMEROS (0-11) ========== */
 .soundline-number {
   position: absolute;
   font-size: 1.8rem;
@@ -257,10 +245,9 @@ html, body {
   user-select: none;
   z-index: 3;
   opacity: 0.85;
-  transition: color 0.3s ease;
-  left: 40px; /* Posicionados a la izquierda de la línea */
+  left: 2.5rem;
   text-align: right;
-  width: 40px;
+  width: 2.5rem;
 }
 
 [data-theme="dark"] .soundline-number {
@@ -270,10 +257,10 @@ html, body {
 /* ========== NOTE HIGHLIGHTS ========== */
 .note-highlight {
   position: absolute;
-  width: 80px;
+  width: 5rem;
   height: 8.33%;
-  left: 120px; /* A la derecha de la línea vertical (100px + 20px) */
-  background: var(--note-highlight-color);
+  left: 7.5rem;
+  background: var(--note-highlight-color, #7BB4CD);
   opacity: 0;
   border-radius: 4px;
   transition: opacity 0.15s ease;
@@ -286,8 +273,7 @@ html, body {
 
 .note-highlight.highlight {
   opacity: 0.8;
-  box-shadow: 0 0 7px var(--note-highlight-color), 0 0 10px currentColor;
-  /* No animation for permanent highlights */
+  box-shadow: 0 0 7px var(--note-highlight-color, #7BB4CD), 0 0 10px currentColor;
 }
 
 .note-highlight-label {
@@ -304,8 +290,6 @@ html, body {
 }
 
 /* ========== INTERVAL VISUALIZATION ========== */
-
-/* Vertical interval line */
 .interval-bar-vertical {
   background: var(--interval-color);
   border-radius: 2px;
@@ -315,37 +299,33 @@ html, body {
   animation: intervalFadeIn 0.3s ease-out;
 }
 
-/* Arrow tip for ascending intervals (pointing up) */
 .interval-bar-vertical.ascending::before {
   content: '';
   position: absolute;
-  top: -8px;
+  top: -0.5rem;
   left: 50%;
   transform: translateX(-50%);
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 10px solid var(--interval-color);
+  border-left: 0.5rem solid transparent;
+  border-right: 0.5rem solid transparent;
+  border-bottom: 0.625rem solid var(--interval-color);
 }
 
-/* Arrow tip for descending intervals (pointing down) */
 .interval-bar-vertical.descending::after {
   content: '';
   position: absolute;
-  bottom: -8px;
+  bottom: -0.5rem;
   left: 50%;
   transform: translateX(-50%);
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 10px solid var(--interval-color);
+  border-left: 0.5rem solid transparent;
+  border-right: 0.5rem solid transparent;
+  border-top: 0.625rem solid var(--interval-color);
 }
 
-/* Interval number */
 .interval-number {
   color: var(--interval-color);
   font-size: 2rem;
   font-weight: bold;
   z-index: 16;
-  /* Animació controlada des de JS amb delay */
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -353,149 +333,34 @@ html, body {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Animations for interval elements */
 @keyframes intervalFadeIn {
-  0% {
-    opacity: 0;
-    transform: scaleY(0.5);
-  }
-  100% {
-    opacity: 0.8;
-    transform: scaleY(1);
-  }
-}
-
-@keyframes intervalNumberFadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(-50%) scale(0.5);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(-50%) scale(1);
-  }
-}
-
-/* ========== CONTROLES ========== */
-.controls-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 40px;
-  gap: 20px;
-}
-
-.play-btn {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  background: transparent;
-  color: var(--selection-color, #FFBB33);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  padding: 0;
-}
-
-.play-btn:hover:not(:disabled) {
-  background: var(--selection-color, #FFBB33);
-  color: white;
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(255, 187, 51, 0.3);
-}
-
-.play-btn:active:not(:disabled) {
-  transform: scale(0.95);
-}
-
-.play-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.play-btn.playing {
-  animation: playingPulse 1s ease-in-out infinite;
-}
-
-@keyframes playingPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 rgba(255, 187, 51, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(255, 187, 51, 0.6);
-  }
-}
-
-.play-btn svg {
-  width: 28px;
-  height: 28px;
-  margin-left: 4px;
-}
-
-/* ========== CONTROLES ========== */
-/* App14 muestra Play, Random y Reset */
-.controls #tapTempoBtn,
-.controls #loopBtn,
-.controls .loop,
-.controls .tap,
-.controls #randomMenu,
-.controls #mixerMenu {
-  display: none !important;
-}
-
-/* Asegurar que Play, Random y Reset sean visibles */
-.controls #playBtn,
-.controls #randomBtn,
-.controls #resetBtn,
-.controls .play,
-.controls .random,
-.controls .reset,
-.controls .play-group {
-  display: flex !important;
-}
-
-/* Override de .controls para App14 */
-.controls {
-  transform: translate(var(--controls-offset-x), var(--controls-offset-y)) scale(var(--controls-scale));
-}
-
-/* Orden de botones: Random primero */
-.controls #randomBtn {
-  order: -1;
+  0% { opacity: 0; transform: scaleY(0.5); }
+  100% { opacity: 0.8; transform: scaleY(1); }
 }
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
-  .is-editor-container {
-    margin: 15px auto 25px;
-  }
-
-  .is-input {
-    width: 44px;
-    height: 44px;
-    font-size: 1.3rem;
-  }
-
-  .timeline-wrapper {
-    max-width: 100%;
-    height: 400px;
-    padding: 30px 20px;
-    margin: 40px auto 30px;
-  }
-
   .soundline {
-    width: 150px;
+    width: 12.5rem;
+  }
+
+  .soundline::before {
+    left: 4.375rem;
+  }
+
+  .soundline-division {
+    left: 3.4375rem;
   }
 
   .soundline-number {
     font-size: 1.4rem;
+    left: 1.25rem;
+    width: 2.5rem;
   }
 
   .note-highlight {
-    width: 60px;
+    width: 3.75rem;
+    left: 5.625rem;
   }
 
   .note-highlight-label {
@@ -504,48 +369,5 @@ html, body {
 
   .interval-number {
     font-size: 1.6rem;
-  }
-
-  .play-btn {
-    width: 56px;
-    height: 56px;
-  }
-
-  .play-btn svg {
-    width: 24px;
-    height: 24px;
-  }
-}
-
-@media (max-width: 480px) {
-  .is-input {
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
-  }
-
-  .timeline-wrapper {
-    height: 350px;
-    padding: 20px 15px;
-  }
-
-  .soundline {
-    width: 120px;
-  }
-
-  .soundline-number {
-    font-size: 1.2rem;
-  }
-
-  .note-highlight {
-    width: 50px;
-  }
-
-  .note-highlight-label {
-    font-size: 1rem;
-  }
-
-  .interval-number {
-    font-size: 1.4rem;
   }
 }

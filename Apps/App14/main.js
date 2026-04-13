@@ -45,13 +45,9 @@ if (controlsSection && timeline.parentElement) {
 }
 middle?.remove();
 
-// Create soundline container inside timeline
+// Create soundline container
 const soundlineContainer = document.createElement('div');
 soundlineContainer.className = 'soundline-container';
-soundlineContainer.style.position = 'relative';
-soundlineContainer.style.width = '100%';
-soundlineContainer.style.height = '100%';
-
 timeline.appendChild(soundlineContainer);
 
 // Create soundline
@@ -247,216 +243,227 @@ function showIntervalNumber(note1Index, note2Index, delayBeats = 1) {
   activeAnimationTimeouts.push(timeoutId);
 }
 
-// ========== EDITOR iS ==========
-function createIsEditor() {
-  isEditor = document.createElement('div');
-  isEditor.className = 'is-editor';
+// ========== NUZIC iS EDITOR ==========
+let cellsContainer = null;
+let endMarker = null;
+let autoJumpTimer = null;
 
-  // Etiqueta "iS:"
-  const label = document.createElement('span');
-  label.className = 'is-editor__label';
-  label.textContent = 'iS:';
+function createNuzicIsEditor() {
+  isEditor = document.createElement('div');
+  isEditor.className = 'is-editor-bar';
+
+  const label = document.createElement('div');
+  label.className = 'editor-label editor-label--is';
+  label.textContent = 'iS';
   isEditor.appendChild(label);
 
-  // Contenidor d'inputs
-  isInputsContainer = document.createElement('div');
-  isInputsContainer.className = 'is-editor__inputs';
-  isInputsContainer.style.display = 'flex';
-  isInputsContainer.style.gap = '8px';
+  cellsContainer = document.createElement('div');
+  cellsContainer.className = 'editor-cells';
+  endMarker = document.createElement('div');
+  endMarker.className = 'editor-end-marker';
+  cellsContainer.appendChild(endMarker);
+  isEditor.appendChild(cellsContainer);
 
-  // Crear 4 inputs
-  for (let i = 0; i < MAX_IS; i++) {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.inputMode = 'numeric';
-    input.pattern = '-?[0-9]*';
-    input.maxLength = 3; // -11 to 11
-    input.className = 'is-input';
-    input.dataset.index = i;
-    input.placeholder = '';
-
-    // Event handlers
-    input.addEventListener('input', (e) => handleIsInput(e, i));
-    input.addEventListener('keydown', (e) => handleIsKeydown(e, i));
-    input.addEventListener('focus', () => hideTooltip());
-
-    isInputsContainer.appendChild(input);
-    isInputs.push(input);
-  }
-
-  isEditor.appendChild(isInputsContainer);
-
-  // Tooltip (posició fixa al body)
   tooltip = document.createElement('div');
-  tooltip.className = 'is-tooltip';
+  tooltip.className = 'editor-tooltip';
   document.body.appendChild(tooltip);
 
+  renderEditorCells();
   return isEditor;
 }
 
-function handleIsInput(e, index) {
-  const input = e.target;
-  let value = input.value.trim();
-
-  // El primer iS (index 0) NO pot ser negatiu
-  const isFirst = index === 0;
-
-  // Permetre '-' sol mentre s'escriu (però no al primer input)
-  if (value === '-') {
-    if (isFirst) {
-      input.value = '';
-      showTooltip(input, 'El primer iS debe ser entre 0 y 11', false);
-    }
-    return;
-  }
-
-  // Només acceptar números i signe negatiu (negatiu només si no és el primer)
-  if (value && !/^-?\d+$/.test(value)) {
-    input.value = '';
-    return;
-  }
-
-  const numValue = parseInt(value);
-  if (isNaN(numValue)) {
-    currentIntervals[index] = undefined;
-    updateInputStates();
-    return;
-  }
-
-  // El primer iS sempre comença des de nota 0
-  // Calcular la nota acumulada fins aquest punt
-  let currentNote = 0; // Nota inicial sempre 0
-  for (let i = 0; i < index; i++) {
-    if (currentIntervals[i] !== undefined) {
-      currentNote += currentIntervals[i];
-    }
-  }
-
-  // Obtenir rang vàlid
-  const range = getValidIsRange(currentNote, isFirst);
-
-  // Validar que el valor està dins del rang
-  if (numValue < range.min || numValue > range.max) {
-    let message;
-    if (isFirst) {
-      message = `iS debe ser entre 0 y ${range.max}`;
-    } else {
-      const minStr = range.min >= 0 ? `${range.min}` : `${range.min}`;
-      const maxStr = range.max >= 0 ? `+${range.max}` : `${range.max}`;
-      message = `iS debe estar entre ${minStr} y ${maxStr}`;
-    }
-    showTooltip(input, message, false);
-    input.value = '';
-    currentIntervals[index] = undefined;
-    updateInputStates();
-    return;
-  }
-
-  // Actualitzar estat
-  currentIntervals[index] = numValue;
-  updateInputStates();
-
-  // Auto-avançar al següent input amb delay de 1000ms
-  // Això permet temps per escriure números de dos dígits (10, 11)
-  if (index < MAX_IS - 1) {
-    const nextInput = isInputs[index + 1];
-    if (nextInput && nextInput.value === '') {
-      setTimeout(() => {
-        // Només avançar si l'input actual segueix amb valor i el següent segueix buit
-        if (input.value !== '' && nextInput.value === '') {
-          nextInput.focus();
-        }
-      }, 1000);
-    }
-  }
+function createReadonlyCell() {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.className = 'editor-cell editor-cell--is';
+  cell.placeholder = ' ';
+  cell.readOnly = true;
+  return cell;
 }
 
-function handleIsKeydown(e, index) {
-  // Backspace en input buit → tornar enrere
-  if (e.key === 'Backspace' && !isInputs[index].value && index > 0) {
-    e.preventDefault();
-    isInputs[index - 1].focus();
-    return;
-  }
+function createValueCell(displayValue, intervalIndex) {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.inputMode = 'numeric';
+  cell.maxLength = 3;
+  cell.className = 'editor-cell editor-cell--is it-end';
+  cell.value = String(displayValue);
+  cell.placeholder = ' ';
+  cell.readOnly = false;
+  cell.dataset.intervalIndex = intervalIndex;
 
-  // Arrow keys per navegació
-  if (e.key === 'ArrowLeft' && index > 0) {
-    e.preventDefault();
-    isInputs[index - 1].focus();
-  } else if (e.key === 'ArrowRight' && index < MAX_IS - 1) {
-    e.preventDefault();
-    isInputs[index + 1].focus();
-  }
-}
+  let originalValue = cell.value;
 
-function updateInputStates() {
-  isInputs.forEach((input, idx) => {
-    const hasValue = currentIntervals[idx] !== undefined;
-    input.classList.toggle('has-value', hasValue);
+  cell.addEventListener('focus', () => { originalValue = cell.value; cell.select(); });
+  cell.addEventListener('keydown', (e) => { if (e.key === 'Enter') cell.blur(); });
+  cell.addEventListener('blur', () => {
+    const val = cell.value.trim();
+    if (!val || val === originalValue) { cell.value = originalValue; return; }
+    if (!/^-?\d+$/.test(val)) { cell.value = originalValue; return; }
+
+    const num = parseInt(val);
+    const idx = parseInt(cell.dataset.intervalIndex);
+    const isFirst = idx === 0;
+
+    if (isFirst && num < 0) {
+      showTooltip(cell, 'Primer iS ≥ 0');
+      cell.value = originalValue;
+      return;
+    }
+
+    // Cascade validation: check all notes stay in [0,11]
+    const oldVal = currentIntervals[idx];
+    currentIntervals[idx] = num;
+    let note = 0;
+    let valid = true;
+    for (const iv of currentIntervals) {
+      if (iv === undefined) break;
+      note += iv;
+      if (note < MIN_NOTE || note > MAX_NOTE) { valid = false; break; }
+    }
+    if (!valid) {
+      currentIntervals[idx] = oldVal;
+      showTooltip(cell, 'Valor invalida seqüència');
+      cell.value = originalValue;
+      return;
+    }
+
+    renderEditorCells();
   });
+
+  return cell;
 }
 
-function showTooltip(input, message, isSuccess = false) {
+function createInputCell() {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.inputMode = 'numeric';
+  cell.maxLength = 3;
+  cell.className = 'editor-cell editor-cell--is editor-input';
+  cell.readOnly = false;
+
+  cell.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (val === '' || val === '-' || val === '+') return;
+    if (!/^-?\d+$/.test(val)) { e.target.value = ''; return; }
+
+    const num = parseInt(val);
+    const isFirst = getValidIntervals().length === 0;
+
+    if (isFirst && num < 0) {
+      showTooltip(cell, 'Primer iS ≥ 0');
+      e.target.value = '';
+      clearTimeout(autoJumpTimer);
+      return;
+    }
+
+    // Check note range
+    let curNote = 0;
+    for (const iv of currentIntervals) {
+      if (iv === undefined) break;
+      curNote += iv;
+    }
+    const newNote = curNote + num;
+    if (newNote < MIN_NOTE || newNote > MAX_NOTE) {
+      const maxUp = MAX_NOTE - curNote;
+      const maxDown = MIN_NOTE - curNote;
+      showTooltip(cell, `iS: ${maxDown} a +${maxUp}`);
+      e.target.value = '';
+      clearTimeout(autoJumpTimer);
+      return;
+    }
+
+    // Commit after delay (allows 2-digit input like "11", "-5")
+    clearTimeout(autoJumpTimer);
+    autoJumpTimer = setTimeout(() => {
+      currentIntervals.push(num);
+      renderEditorCells();
+      // Auto-focus next input
+      const nextInput = cellsContainer.querySelector('.editor-input');
+      if (nextInput) setTimeout(() => nextInput.focus(), 30);
+      else if (getValidIntervals().length >= MAX_IS) {
+        showTooltip(endMarker, 'Seqüència completa');
+      }
+    }, 300);
+  });
+
+  cell.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' && !e.target.value) {
+      e.preventDefault();
+      clearTimeout(autoJumpTimer);
+      if (currentIntervals.length > 0) {
+        currentIntervals.pop();
+        renderEditorCells();
+        const input = cellsContainer.querySelector('.editor-input');
+        if (input) setTimeout(() => input.focus(), 30);
+      }
+    }
+  });
+
+  return cell;
+}
+
+function renderEditorCells() {
+  cellsContainer.querySelectorAll('.editor-cell').forEach(c => c.remove());
+
+  const intervals = getValidIntervals();
+
+  // Committed values: [pink][value][pink] per group
+  for (let i = 0; i < intervals.length; i++) {
+    const display = intervals[i] > 0 ? `+${intervals[i]}` : String(intervals[i]);
+    cellsContainer.insertBefore(createReadonlyCell(), endMarker); // pink before
+    cellsContainer.insertBefore(createValueCell(display, i), endMarker); // value
+    if (i < intervals.length - 1 || intervals.length < MAX_IS) {
+      cellsContainer.insertBefore(createReadonlyCell(), endMarker); // pink after
+    }
+  }
+
+  // Input for next value
+  if (intervals.length < MAX_IS) {
+    cellsContainer.insertBefore(createReadonlyCell(), endMarker); // pink before
+    cellsContainer.insertBefore(createInputCell(), endMarker); // input
+    cellsContainer.insertBefore(createReadonlyCell(), endMarker); // pink after
+  }
+
+  endMarker.style.display = intervals.length >= MAX_IS ? 'flex' : 'none';
+}
+
+function getValidIntervals() {
+  return currentIntervals.filter(v => v !== undefined);
+}
+
+function showTooltip(anchor, message) {
   if (!tooltip) return;
-
   tooltip.textContent = message;
-  tooltip.className = `is-tooltip ${isSuccess ? 'success' : 'error'} visible`;
-
-  const rect = input.getBoundingClientRect();
-  tooltip.style.left = `${rect.left + rect.width / 2}px`;
-  tooltip.style.top = `${rect.bottom + 8}px`;
-  tooltip.style.transform = 'translateX(-50%)';
-
+  tooltip.className = 'editor-tooltip visible';
+  const rect = anchor.getBoundingClientRect();
+  tooltip.style.left = `${rect.left}px`;
+  tooltip.style.top = `${rect.bottom + 4}px`;
   clearTimeout(tooltipTimeout);
   tooltipTimeout = setTimeout(hideTooltip, 2000);
 }
 
 function hideTooltip() {
-  if (tooltip) {
-    tooltip.classList.remove('visible');
-  }
+  if (tooltip) tooltip.classList.remove('visible');
 }
 
 function getIntervalsFromEditor() {
-  return currentIntervals.filter(v => v !== undefined);
+  return getValidIntervals();
 }
 
 function setIntervalsToEditor(intervals) {
-  currentIntervals = [];
-  isInputs.forEach((input, i) => {
-    if (intervals[i] !== undefined) {
-      input.value = intervals[i];
-      currentIntervals[i] = intervals[i];
-    } else {
-      input.value = '';
-    }
-  });
-  updateInputStates();
+  currentIntervals = [...intervals];
+  renderEditorCells();
 }
 
 function clearEditor() {
   currentIntervals = [];
-  isInputs.forEach(input => {
-    input.value = '';
-    input.classList.remove('has-value');
-  });
+  renderEditorCells();
 }
 
 function focusFirstInput() {
-  if (isInputs[0]) {
-    isInputs[0].focus();
-  }
-}
-
-// ========== FLASH ANIMATION ==========
-async function flashEmptyInputs() {
-  // 3 flashes
-  for (let i = 0; i < 3; i++) {
-    isInputs.forEach(input => input.classList.add('flash'));
-    await sleep(300);
-    isInputs.forEach(input => input.classList.remove('flash'));
-    if (i < 2) await sleep(100); // Pausa entre flashes
-  }
+  const input = cellsContainer?.querySelector('.editor-input');
+  if (input) input.focus();
 }
 
 // ========== AUDIO ==========
@@ -492,20 +499,15 @@ function setupVolumeControl() {
 }
 
 // ========== INPUT HIGHLIGHT ==========
-/**
- * Il·lumina el borde d'un input de l'editor iS
- */
 function highlightInput(index) {
-  if (isInputs[index]) {
-    isInputs[index].classList.add('input-active');
+  const valueCells = cellsContainer?.querySelectorAll('.it-end');
+  if (valueCells && valueCells[index]) {
+    valueCells[index].classList.add('input-active');
   }
 }
 
-/**
- * Treu la il·luminació de tots els inputs
- */
 function clearInputHighlights() {
-  isInputs.forEach(input => input.classList.remove('input-active'));
+  cellsContainer?.querySelectorAll('.input-active').forEach(c => c.classList.remove('input-active'));
 }
 
 // ========== REPRODUCCIÓ ==========
@@ -521,10 +523,10 @@ async function handlePlay() {
 
   const intervals = getIntervalsFromEditor();
 
-  // Si editor buit, mostrar avís i flash
+  // Si editor buit, mostrar avís
   if (intervals.length === 0) {
-    showTooltip(isInputsContainer, 'Introduce al menos un intervalo', false);
-    await flashEmptyInputs();
+    const input = cellsContainer?.querySelector('.editor-input');
+    if (input) showTooltip(input, 'Introduce al menos un intervalo');
     return;
   }
 
@@ -714,14 +716,47 @@ function setupControls() {
 function initApp() {
   console.log('Inicialitzant App14: Intervalo Sonoro');
 
-  // Setup piano preload in background (reduces latency on first play)
+  // Setup piano preload
   setupPianoPreload({ delay: 300 });
 
-  // Crear editor iS i inserir-lo abans del timeline
-  const editor = createIsEditor();
+  // Create single-column layout wrapper
+  const appRoot = document.getElementById('app-root');
+  const mainElement = appRoot?.querySelector('main');
+  const layoutWrapper = document.createElement('div');
+  layoutWrapper.className = 'app14-main-layout';
+
+  // Create nuzic iS editor
+  const editor = createNuzicIsEditor();
+  layoutWrapper.appendChild(editor);
+
+  // Move soundline area (timeline wrapper) into layout
   const timelineWrapper = timeline.parentElement;
   if (timelineWrapper) {
-    timelineWrapper.insertBefore(editor, timeline);
+    timelineWrapper.className = 'soundline-area';
+    timelineWrapper.removeAttribute('style');
+    layoutWrapper.appendChild(timelineWrapper);
+  }
+
+  // Reorder controls into compact row: Play, Random, Reset
+  const controls = document.querySelector('.controls');
+  if (controls) {
+    const playBtnEl = controls.querySelector('.play') || document.getElementById('playBtn');
+    const randomBtnEl = controls.querySelector('.random');
+    const resetBtnEl = controls.querySelector('.reset');
+
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playBtnEl) controls.appendChild(playBtnEl);
+    if (randomBtnEl) controls.appendChild(randomBtnEl);
+    if (resetBtnEl) controls.appendChild(resetBtnEl);
+
+    layoutWrapper.appendChild(controls);
+  }
+
+  if (mainElement) {
+    mainElement.appendChild(layoutWrapper);
+  } else {
+    appRoot.appendChild(layoutWrapper);
   }
 
   // Idle caret flash on iS editor
