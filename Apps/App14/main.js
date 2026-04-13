@@ -313,12 +313,29 @@ function createValueCell(displayValue, intervalIndex) {
 
   let originalValue = cell.value;
 
-  cell.addEventListener('focus', () => { originalValue = cell.value; cell.select(); });
-  cell.addEventListener('keydown', (e) => { if (e.key === 'Enter') cell.blur(); });
+  cell.addEventListener('focus', () => {
+    originalValue = cell.value;
+    cell.select();
+  });
+
+  cell.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { cell.blur(); return; }
+    // Arrow key navigation between value cells (legacy feature)
+    const valueCells = Array.from(cellsContainer.querySelectorAll('.it-end'));
+    const myIdx = valueCells.indexOf(cell);
+    if (e.key === 'ArrowLeft' && myIdx > 0) {
+      e.preventDefault();
+      valueCells[myIdx - 1].focus();
+    } else if (e.key === 'ArrowRight' && myIdx < valueCells.length - 1) {
+      e.preventDefault();
+      valueCells[myIdx + 1].focus();
+    }
+  });
+
   cell.addEventListener('blur', () => {
     const val = cell.value.trim();
     if (!val || val === originalValue) { cell.value = originalValue; return; }
-    if (!/^-?\d+$/.test(val)) { cell.value = originalValue; return; }
+    if (!/^[+-]?\d+$/.test(val)) { cell.value = originalValue; return; }
 
     const num = parseInt(val);
     const idx = parseInt(cell.dataset.intervalIndex);
