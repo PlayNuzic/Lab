@@ -140,10 +140,6 @@ function getCurrentSum() {
   return currentIntervals.reduce((sum, val) => sum + (val || 0), 0);
 }
 
-function updateSumDisplay() {
-  // Sum display now integrated into editor bar (end marker visibility)
-}
-
 // ========== AUDIO ==========
 const _baseInitAudio = createMelodicAudioInitializer({
   defaultInstrument: 'piano'
@@ -293,7 +289,6 @@ function renderEditorCells() {
     endMarker.style.display = sum >= MAX_LENGTH ? 'flex' : 'none';
   }
 
-  updateSumDisplay();
 }
 
 function handleCellInput(e) {
@@ -357,8 +352,6 @@ function handleCellKeydown(e) {
     }
   }
 }
-
-// Legacy handlers removed — replaced by handleCellInput/handleCellKeydown
 
 function showTooltip(input, message, isSuccess = false) {
   if (!tooltip) return;

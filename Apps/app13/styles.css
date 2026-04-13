@@ -24,8 +24,8 @@ html, body {
 
 /* Nuzic theme overrides */
 body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 0px;
+  --nuzic-controls-offset-x: 0;
+  --nuzic-controls-offset-y: 0;
 }
 
 [data-theme="dark"] {
@@ -150,7 +150,7 @@ body[data-visual="nuzic"] {
   z-index: 1000;
   pointer-events: none;
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(-0.625rem);
   transition: opacity 0.2s ease, transform 0.2s ease;
   white-space: nowrap;
 }
@@ -186,7 +186,7 @@ body[data-visual="nuzic"] {
 .interval-bar-visual {
   position: absolute;
   top: 50%;
-  height: 28px;
+  height: 1.75rem;
   border-radius: 6px;
   z-index: 5;
   transform: translateY(-50%);
@@ -199,7 +199,7 @@ body[data-visual="nuzic"] {
 
 .interval-bar-visual .bar-duration {
   position: absolute;
-  top: -24px;
+  top: -1.5rem;
   left: 50%;
   transform: translateX(-50%);
   font-size: 1.1rem;

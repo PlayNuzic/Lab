@@ -43,7 +43,7 @@ body[data-visual="nuzic"] {
 .inputs {
   display: flex;
   justify-content: center;
-  padding: 30px 0 50px 30px;
+  padding: 1.875rem 0 3.125rem 1.875rem;
   margin: 0;
 }
 
@@ -67,7 +67,7 @@ body[data-visual="nuzic"] {
 .interval-block {
   position: absolute;
   top: 50%;
-  height: 24px;
+  height: 1.5rem;
   background: var(--selection-color, #FFBB33);
   opacity: 0.25;
   border-radius: 4px;

@@ -180,10 +180,6 @@ if (typeof window !== 'undefined') {
   window.__labInitAudio = initAudio;
 }
 
-function getRandomPulseIndex() {
-  return Math.floor(Math.random() * TOTAL_PULSES);
-}
-
 /**
  * Genera una nota MIDI aleatoria del registro 4 (C4-B4)
  * @param {number} [exclude] - Nota MIDI a excluir (para evitar repeticiones)

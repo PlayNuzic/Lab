@@ -38,8 +38,6 @@ let polyphonyEnabled = false; // Default: polyphony DISABLED (monophonic mode)
 let playBtn = null;
 let resetBtn = null;
 let randomBtn = null;
-let gridEditorContainer = null;
-
 // ========== STORAGE HELPERS ==========
 // Use shared preference storage module
 const preferenceStorage = createPreferenceStorage('app12');
@@ -654,9 +652,6 @@ function injectGridEditor() {
   }
 }
 
-// createPlaneWrapper removed - now handled by createMusicalGrid()
-// injectControlButtons removed - buttons now queried after DOM is ready
-
 // ========== INITIALIZATION ==========
 
 async function init() {
@@ -820,7 +815,7 @@ async function init() {
   }
 
   // Idle caret flash on grid editor (note inputs)
-  initIdleCaretFlash({ targets: [gridEditorContainer] });
+  initIdleCaretFlash({ targets: [document.querySelector('.np-editor')] });
 
   // P1 Toggle (Pulse 0 special sound) - MUST be before mixer init
   const startIntervalToggle = document.getElementById('startIntervalToggle');
