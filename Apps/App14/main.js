@@ -725,7 +725,7 @@ function initApp() {
   const layoutWrapper = document.createElement('div');
   layoutWrapper.className = 'app14-main-layout';
 
-  // Move soundline area FIRST (fills vertical space)
+  // Move soundline area (fills vertical space)
   const timelineWrapper = timeline.parentElement;
   if (timelineWrapper) {
     timelineWrapper.className = 'soundline-area';
@@ -733,9 +733,13 @@ function initApp() {
     layoutWrapper.appendChild(timelineWrapper);
   }
 
-  // Create nuzic iS editor BELOW soundline
+  // Create nuzic iS editor INSIDE soundline area (just below the soundline)
   const editor = createNuzicIsEditor();
-  layoutWrapper.appendChild(editor);
+  if (timelineWrapper) {
+    timelineWrapper.appendChild(editor);
+  } else {
+    layoutWrapper.appendChild(editor);
+  }
 
   // Reorder controls into compact row: Play, Random, Reset
   const controls = document.querySelector('.controls');

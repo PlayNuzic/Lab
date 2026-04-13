@@ -202,7 +202,7 @@ body[data-visual="nuzic"] {
   overflow: visible;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   padding: 1.25rem 2.5rem;
 }
 
@@ -213,8 +213,9 @@ body[data-visual="nuzic"] {
 }
 
 .timeline {
+  flex: 1;
   width: 100%;
-  height: 100%;
+  min-height: 0;
   position: relative;
   display: flex;
   justify-content: center;
