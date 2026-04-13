@@ -208,25 +208,25 @@ function showIntervalNumber(note1Index, note2Index, delayBeats = 1) {
   const absInterval = Math.abs(interval);
   const direction = interval > 0 ? '+' : interval < 0 ? '-' : '';
 
-  // getNotePosition retorna la línia de divisió (centre visual de la nota)
-  const pos1 = soundline.getNotePosition(note1Index);
-  const pos2 = soundline.getNotePosition(note2Index);
-
   const isAscending = interval > 0;
   const cellHeight = 100 / 12;
 
+  // Calculate positions directly (same formula as getNotePosition/layoutSoundline)
+  const calcPos = (idx) => 100 - ((idx + 0.5) / 12) * 100;
+  const pos1 = calcPos(note1Index);
+  const pos2 = calcPos(note2Index);
+
   // Vertical position depends on interval size and direction
   let numberY;
-  const topEdge = Math.min(pos1, pos2);
-  const bottomEdge = Math.max(pos1, pos2);
-
   if (absInterval === 0) {
     numberY = pos1;
   } else if (absInterval === 1) {
-    // ±1: shift towards the destination end to avoid overlap with short bar
-    numberY = isAscending ? topEdge + cellHeight * 0.3 : bottomEdge - cellHeight * 0.3;
+    // ±1: shift towards destination to avoid overlap with short bar
+    numberY = isAscending
+      ? Math.min(pos1, pos2) + cellHeight * 0.3
+      : Math.max(pos1, pos2) - cellHeight * 0.3;
   } else {
-    // Center of the interval bar
+    // Center between the two notes
     numberY = (pos1 + pos2) / 2;
   }
 
