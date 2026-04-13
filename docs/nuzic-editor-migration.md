@@ -4,7 +4,7 @@
 
 - [x] **app13** — Editor iT implementat i funcionant
 - [x] **App12** — Editor N-P implementat (single-column layout, validació, tooltips)
-- [ ] **App14** — Editor iS + iT (zigzag) — aplicar patró App15
+- [x] **App14** — Editor iS-only (soundline vertical, cel·les rosa dinàmiques, interval bars/numbers)
 - [x] **App15** — Editor iS-iT zigzag implementat (zigzag offset, cel·les editables, cascade validation)
 - [ ] **App26-35** — Editors diversos
 
@@ -472,3 +472,50 @@ function stopPlayback() {
 
 **MAI** fer `stopPlayback(delayMs)` amb delay intern parcial — la neteja visual
 s'ha de retardar TOTA junta per veure l'últim highlight.
+
+## Solucions implementades a App14 (referència per soundline vertical)
+
+### S10: Controls generats dins `.timeline-wrapper` pel template
+
+`template.js` (línia 291) genera `.controls` **dins** `.timeline-wrapper`, NO dins `.middle`.
+L'extracció de controls de `.middle` és innecessària i crea confusió (controls duplicats).
+
+**Patró correcte**: simplement reordenar els fills del wrapper:
+```javascript
+document.querySelector('.middle')?.remove(); // netejar .middle
+// controls JA estan dins timelineWrapper — només reordenar
+const controls = timelineWrapper.querySelector('.controls');
+timelineWrapper.appendChild(controls); // mou al final (després de l'editor)
+```
+
+### S11: `nuzic-theme.css` `top: 20% !important` en `.interval-number`
+
+La regla `body[data-visual="nuzic"] .timeline .interval-number { top: 20% !important }`
+(línia 556 de nuzic-theme.css) està pensada per timelines horitzontals (app9/13).
+
+En apps amb soundline VERTICAL (App14) on els interval-numbers es posicionen
+dinàmicament via JS, aquest `!important` sobreescriu els inline styles.
+
+**Fix**: override a l'app's CSS amb especificitat igual o superior:
+```css
+body[data-visual="nuzic"] .timeline .interval-number {
+  top: auto !important;
+}
+```
+
+### S12: Editor iS-only (App14)
+
+App14 té un editor iS d'una sola fila (rosa) amb patró `[rosa][valor][rosa]` per cada interval.
+Diferències clau vs App15:
+- **1 fila** (iS, sense iT ni zigzag)
+- **Intervals fixos** (màxim 4, sense extensions temporals)
+- **Sense grid 2D** ni timeline de polsos
+- **Soundline vertical** amb barres d'interval animades
+
+L'editor va DINS `.soundline-area` (entre `.timeline` i `.controls`):
+```
+.soundline-area (flex column, flex: 1)
+  ├── .timeline (flex: 1, conté soundline)
+  ├── .is-editor-bar (flex-shrink: 0)
+  └── .controls (flex-shrink: 0)
+```
