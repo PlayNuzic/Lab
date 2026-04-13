@@ -37,13 +37,8 @@ let tooltipTimeout = null;
 const timeline = document.getElementById('timeline');
 if (!timeline) throw new Error('Cannot find #timeline element');
 
-// Extract .controls before removing .middle
-const middle = document.querySelector('.middle');
-const controlsSection = middle?.querySelector('.controls');
-if (controlsSection && timeline.parentElement) {
-  timeline.parentElement.parentElement.insertBefore(controlsSection, timeline.parentElement);
-}
-middle?.remove();
+// Remove .middle (controls are already inside .timeline-wrapper via template)
+document.querySelector('.middle')?.remove();
 
 // Create soundline container
 const soundlineContainer = document.createElement('div');
@@ -155,7 +150,7 @@ function createIntervalLine(note1Index, note2Index, delayBeats = 1, durationBeat
   const intervalBar = document.createElement('div');
   intervalBar.className = 'interval-bar-vertical';
   intervalBar.style.position = 'absolute';
-  intervalBar.style.left = 'calc(100% + 2.5rem)';
+  intervalBar.style.left = 'calc(100% + 5.5rem)';
   intervalBar.style.width = '4px';
 
   // Padding per escurçar la barra i no tapar els números
@@ -217,20 +212,44 @@ function showIntervalNumber(note1Index, note2Index, delayBeats = 1) {
   const pos1 = soundline.getNotePosition(note1Index);
   const pos2 = soundline.getNotePosition(note2Index);
 
-  // Punt mig entre les dues línies de divisió
-  const centerY = (pos1 + pos2) / 2;
+  const isAscending = interval > 0;
+  const cellHeight = 100 / 12;
+
+  // Vertical position depends on interval size and direction
+  let numberY;
+  const topEdge = Math.min(pos1, pos2);
+  const bottomEdge = Math.max(pos1, pos2);
+
+  if (absInterval === 0) {
+    numberY = pos1;
+  } else if (absInterval === 1) {
+    // ±1: shift towards the destination end to avoid overlap with short bar
+    numberY = isAscending ? topEdge + cellHeight * 0.3 : bottomEdge - cellHeight * 0.3;
+  } else {
+    // Center of the interval bar
+    numberY = (pos1 + pos2) / 2;
+  }
 
   const delayMs = (60 / FIXED_BPM) * delayBeats * 1000;
 
-  // Crear element però no mostrar-lo encara
   const intervalNum = document.createElement('div');
   intervalNum.className = 'interval-number';
   intervalNum.textContent = `${direction}${absInterval}`;
   intervalNum.style.position = 'absolute';
-  intervalNum.style.top = `${centerY}%`;
-  intervalNum.style.left = (absInterval === 0 || absInterval === 1) ? 'calc(100% + 5rem)' : 'calc(100% + 3rem)';
+  intervalNum.style.top = `${numberY}%`;
   intervalNum.style.transform = 'translateY(-50%)';
   intervalNum.style.opacity = '0';
+
+  // Horizontal: bar is at calc(100% + 5.5rem), number to its right
+  if (absInterval <= 1) {
+    intervalNum.style.left = 'calc(100% + 7rem)';
+  } else if (isAscending) {
+    // Ascending: number LEFT of bar
+    intervalNum.style.left = 'calc(100% + 3.5rem)';
+  } else {
+    // Descending: number RIGHT of bar
+    intervalNum.style.left = 'calc(100% + 7rem)';
+  }
 
   soundline.element.appendChild(intervalNum);
   currentIntervalElements.push(intervalNum);
@@ -741,10 +760,10 @@ function initApp() {
     layoutWrapper.appendChild(editor);
   }
 
-  // Reorder controls into compact row: Play, Random, Reset
-  // Controls go AFTER editor, inside soundline-area
-  const controls = document.querySelector('.controls');
-  if (controls && timelineWrapper) {
+  // Controls are inside timelineWrapper (from template) — reorder children
+  // and move controls AFTER editor (appendChild moves existing element)
+  const controls = timelineWrapper?.querySelector('.controls');
+  if (controls) {
     const playBtnEl = controls.querySelector('.play') || document.getElementById('playBtn');
     const randomBtnEl = controls.querySelector('.random');
     const resetBtnEl = controls.querySelector('.reset');
@@ -755,7 +774,8 @@ function initApp() {
     if (randomBtnEl) controls.appendChild(randomBtnEl);
     if (resetBtnEl) controls.appendChild(resetBtnEl);
 
-    timelineWrapper.appendChild(controls); // after editor, inside soundline-area
+    // appendChild moves it to the end (after editor)
+    timelineWrapper.appendChild(controls);
   }
 
   if (mainElement) {
