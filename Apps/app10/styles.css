@@ -11,8 +11,8 @@ html, body {
 }
 
 body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 0px;
+  --nuzic-controls-offset-x: 0rem;
+  --nuzic-controls-offset-y: 0rem;
   --note-highlight-color: var(--nuzic-blue-light);
 }
 

@@ -5,8 +5,8 @@
 
 /* Nuzic theme overrides */
 body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 2%;
-  --nuzic-controls-offset-y: 0px;
+  --nuzic-controls-offset-x: 1.9rem;
+  --nuzic-controls-offset-y: 0rem;
 }
 
 /* Desactivar hover de cel·les (App11A és visual-only) */
