@@ -18,58 +18,7 @@ html, body {
   padding: 0.5rem 0;
 }
 
-/* Compás styled as bpm-inline pastilla (larger) */
-.param.compas {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.param.compas .abbr {
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-align: right;
-  line-height: 1.2;
-}
-
-.param.compas .circle {
-  display: flex;
-  align-items: center;
-  background: var(--bg-input, white);
-  border: 2px solid var(--nuzic-grey, #ccc);
-  border-radius: 1.5rem;
-  padding: 0.25rem 0.5rem;
-  gap: 0.25rem;
-}
-
-.param.compas input {
-  font-size: 1.8rem;
-  font-weight: 700;
-  text-align: center;
-  width: 3rem;
-  border: none;
-  background: transparent;
-  color: var(--text-color, #333);
-  -moz-appearance: textfield;
-}
-
-.param.compas input::-webkit-outer-spin-button,
-.param.compas input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-}
-
-.param.compas input:focus {
-  outline: none;
-}
-
-[data-theme="dark"] .param.compas input {
-  color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .param.compas .circle {
-  background: var(--bg-dark, #2a2a2a);
-  border-color: var(--nuzic-grey, #666);
-}
+/* Compás uses bpm-inline class for pastilla style — no custom CSS needed */
 
 /* ========== FADE-OUT EFFECT (post-jump pulses) ========== */
 .pulse.fade-out,
@@ -127,8 +76,3 @@ html, body {
   min-height: 25rem;
 }
 
-/* ========== RESPONSIVE ========== */
-@media (max-width: 700px) {
-  .param.compas .abbr { font-size: 0.8rem; }
-  .param.compas input { font-size: 1.4rem; width: 2.5rem; }
-}
