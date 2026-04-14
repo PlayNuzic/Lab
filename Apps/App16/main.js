@@ -610,6 +610,24 @@ async function initializeApp() {
   randomBtn = document.getElementById('randomBtn');
   randomMenu = document.getElementById('randomMenu');
 
+  // Move BPM to controls row (Play | BPM | Random | Reset)
+  const bpmParam = document.getElementById('bpmParam');
+  const controls = document.querySelector('.controls');
+  if (controls && bpmParam) {
+    const playBtnEl = controls.querySelector('.play') || playBtn;
+    const randomBtnEl = controls.querySelector('.random');
+    const resetBtnEl = controls.querySelector('.reset');
+    const randomMenuEl = controls.querySelector('.random-menu');
+
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playBtnEl) controls.appendChild(playBtnEl);
+    controls.appendChild(bpmParam);
+    if (randomBtnEl) controls.appendChild(randomBtnEl);
+    if (randomMenuEl) controls.appendChild(randomMenuEl);
+    if (resetBtnEl) controls.appendChild(resetBtnEl);
+  }
+
   // Create BPM controller
   bpmController = createBpmController({
     inputEl: document.getElementById('inputBpm'),

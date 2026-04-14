@@ -11,32 +11,51 @@ html, body {
 #loopBtn, #tapTempoBtn { display: none !important; }
 .middle { display: none !important; }
 
-/* ========== INPUTS SECTION: BPM + Compás ========== */
+/* ========== INPUTS SECTION: Compás (BPM moved to controls) ========== */
 .inputs {
   display: flex;
   justify-content: center;
-  gap: 2rem;
+  padding: 0.5rem 0;
 }
 
-.inputs .bpm-inline {
-  position: relative;
+/* Compás styled as bpm-inline pastilla (larger) */
+.param.compas {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-/* Compás param */
+.param.compas .abbr {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: right;
+  line-height: 1.2;
+}
+
 .param.compas .circle {
-  width: 6.25rem;
-  height: 6.25rem;
+  display: flex;
+  align-items: center;
+  background: var(--bg-input, white);
+  border: 2px solid var(--nuzic-grey, #ccc);
+  border-radius: 1.5rem;
+  padding: 0.25rem 0.5rem;
+  gap: 0.25rem;
 }
 
 .param.compas input {
-  font-size: 2.5rem;
+  font-size: 1.8rem;
   font-weight: 700;
   text-align: center;
-  width: 100%;
-  height: 100%;
+  width: 3rem;
   border: none;
   background: transparent;
   color: var(--text-color, #333);
+  -moz-appearance: textfield;
+}
+
+.param.compas input::-webkit-outer-spin-button,
+.param.compas input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
 }
 
 .param.compas input:focus {
@@ -45,6 +64,11 @@ html, body {
 
 [data-theme="dark"] .param.compas input {
   color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .param.compas .circle {
+  background: var(--bg-dark, #2a2a2a);
+  border-color: var(--nuzic-grey, #666);
 }
 
 /* ========== FADE-OUT EFFECT (post-jump pulses) ========== */
@@ -105,8 +129,6 @@ html, body {
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 700px) {
-  .inputs { gap: 1rem; }
-  .param .abbr { font-size: 0.85rem; }
-  .param.compas .circle { width: 4.375rem; height: 4.375rem; }
-  .param.compas input { font-size: 1.75rem; }
+  .param.compas .abbr { font-size: 0.8rem; }
+  .param.compas input { font-size: 1.4rem; width: 2.5rem; }
 }

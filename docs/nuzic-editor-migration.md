@@ -520,6 +520,38 @@ L'editor va DINS `.soundline-area` (entre `.timeline` i `.controls`):
   └── .controls (flex-shrink: 0)
 ```
 
+## Solucions implementades a App16 (referència per apps amb params extra)
+
+### S13: Params extra dins `.inputs` (Compás, etc.)
+
+Quan una app té paràmetres propis (a més del BPM), el BPM es mou als controls
+i els params queden a `.inputs` amb estil pastilla nuzic:
+
+- **BPM** → dins `.controls` (Play | BPM | Random | Reset)
+- **Params extra** → dins `.inputs` amb estil `.bpm-inline` (pastilla amb border-radius)
+
+El nuzic-theme NO amaga `.inputs` si conté `.param`:
+```css
+body[data-visual="nuzic"] .inputs:has(.bpm-inline):not(:has(.param)) {
+  display: none;
+}
+```
+
+### S14: Estil pastilla per params
+
+Tots els params d'entrada (Compás, cycle counter, etc.) han de tenir l'estil
+pastilla nuzic (border-radius, inline flex, fons blanc amb border gris):
+```css
+.param .circle {
+  display: flex;
+  align-items: center;
+  background: var(--bg-input, white);
+  border: 2px solid var(--nuzic-grey, #ccc);
+  border-radius: 1.5rem;
+  padding: 0.25rem 0.5rem;
+}
+```
+
 ## Regles CSS per apps nuzic (aplicable a totes)
 
 ### R1: Sense orientation warnings
