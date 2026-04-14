@@ -109,6 +109,15 @@ function drawTimeline() {
   // Layout lineal (posicionar elementos)
   layoutLinear();
 
+  // Sync interval row width with timeline (align with pulse 0 and 8)
+  const syncRowWidth = () => {
+    if (intervalRow && timeline) {
+      intervalRow.style.width = `${timeline.offsetWidth}px`;
+    }
+  };
+  syncRowWidth();
+  new ResizeObserver(syncRowWidth).observe(timeline);
+
   // Actualizar array de pulsos
   pulses = Array.from(timeline.querySelectorAll('.pulse-number'));
 }

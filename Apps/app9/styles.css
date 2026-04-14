@@ -79,7 +79,7 @@ body[data-visual="nuzic"] {
   font-weight: 700;
   color: var(--nuzic-dark, #43433b);
   padding: 0.3rem 0;
-  background: var(--nuzic-light, #f5f0e8);
+  background: white;
   border-right: 2px solid var(--nuzic-yellow, #FFBB33);
   transition: background 0.1s ease;
   user-select: none;
