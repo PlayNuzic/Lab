@@ -33,11 +33,11 @@ body[data-visual="nuzic"] {
 }
 
 /* ========== EDITOR iT (nuzic style, proportional) ========== */
+/* display:contents makes label and cells direct grid items of the wrapper,
+   so .it-cells occupies EXACTLY the same column 2 as .timeline */
 .it-editor-bar {
-  position: relative;
-  margin: 0.25rem 0 0;
-  display: grid;
-  grid-template-columns: 3.75rem 1fr;
+  grid-column: 1 / -1;
+  display: contents;
 }
 
 .it-label {
@@ -57,8 +57,6 @@ body[data-visual="nuzic"] {
   position: relative;
   white-space: nowrap;
   background: var(--nuzic-light);
-  /* Extend cream to match timeline box-shadow (aligns with pulse 8) */
-  box-shadow: 1.25rem 0 0 var(--nuzic-light);
 }
 
 .it-cell {
