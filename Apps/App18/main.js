@@ -331,31 +331,26 @@ async function handlePlay() {
 
   clearHighlights();
 
-  // Play sequence
+  // Play sequence — each note triggered inside setTimeout (cancellable)
   const Tone = window.Tone;
-  const startTime = Tone.now();
   let currentTime = 0;
 
-  randomNotes.forEach((noteInRegistry, idx) => {
+  randomNotes.forEach((noteInRegistry) => {
     const { midi, clampedNote } = registryController.getMidiForNote(noteInRegistry);
     const note = Tone.Frequency(midi, 'midi').toNote();
     const noteDurationSec = intervalSec * 0.9;
-
-    const when = startTime + currentTime;
-    piano.triggerAttackRelease(note, noteDurationSec, when);
-
     const highlightIndex = registryController.getHighlightIndex(clampedNote);
     const delayMs = currentTime * 1000;
 
     playbackTimeouts.push(setTimeout(() => {
       if (!isPlaying) return;
+      piano.triggerAttackRelease(note, noteDurationSec);
       highlightNote(highlightIndex, noteDurationSec * 1000);
     }, delayMs));
 
     currentTime += noteDurationSec;
   });
 
-  // Completion callback
   playbackTimeouts.push(setTimeout(() => {
     stopPlayback();
   }, currentTime * 1000));
