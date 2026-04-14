@@ -63,6 +63,8 @@ body[data-visual="nuzic"] {
   position: relative;
   white-space: nowrap;
   background: var(--nuzic-light);
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .it-cell {
