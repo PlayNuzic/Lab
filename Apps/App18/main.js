@@ -365,6 +365,10 @@ function stopPlayback() {
   isPlaying = false;
   playbackTimeouts.forEach(id => clearTimeout(id));
   playbackTimeouts = [];
+  // Stop all scheduled/ringing notes in Tone.js sampler
+  if (piano && typeof piano.releaseAll === 'function') {
+    piano.releaseAll();
+  }
   clearHighlights();
 
   if (playBtn) {
