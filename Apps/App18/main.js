@@ -538,9 +538,6 @@ function initApp() {
   // Create soundline-container inside timeline (pattern from App10/14)
   const soundlineContainer = document.createElement('div');
   soundlineContainer.className = 'soundline-container';
-  soundlineContainer.style.position = 'relative';
-  soundlineContainer.style.width = '100%';
-  soundlineContainer.style.height = '100%';
   timeline.appendChild(soundlineContainer);
 
   // Set soundlineWrapper to the container (not timeline directly)
