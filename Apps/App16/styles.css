@@ -28,6 +28,7 @@ html, body {
 .param.compas .spin {
   background: var(--nuzic-yellow) !important;
   border-radius: 50% !important;
+  aspect-ratio: 1 !important;
 }
 .param.compas .spin.up::before {
   border-bottom-color: white !important;
