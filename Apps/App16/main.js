@@ -415,19 +415,9 @@ async function handlePlay() {
     (step) => {
       currentStep = step;
 
-      // Determine if we're in fade-out phase
+      // Visual feedback only (volume handled in onSchedule)
       const isFadeOut = step >= totalPulses;
       const displayStep = isFadeOut ? step - totalPulses : step;
-
-      // Set volume for fade-out pulses
-      if (isFadeOut) {
-        const fadeIndex = step - totalPulses;
-        const volume = fadeVolumes[fadeIndex] ?? 0.1;
-        setVolume(volume);
-      } else if (step === 0) {
-        // Ensure full volume at start
-        setVolume(originalVolume);
-      }
 
       highlightPulse(displayStep, isFadeOut);
       highlightNumber(displayStep, isFadeOut);
@@ -435,10 +425,21 @@ async function handlePlay() {
     () => {
       // onComplete callback
       setTimeout(() => {
-        setVolume(originalVolume);  // Restore original volume
+        setVolume(originalVolume);
         audio?.stop();
         stopPlayback(false);
       }, 590);
+    },
+    {
+      onSchedule: (step) => {
+        // Set volume BEFORE sound is emitted (not after in onPulse)
+        if (step >= totalPulses) {
+          const fadeIndex = step - totalPulses;
+          setVolume(fadeVolumes[fadeIndex] ?? 0.1);
+        } else if (step === 0) {
+          setVolume(originalVolume);
+        }
+      }
     }
   );
 }
