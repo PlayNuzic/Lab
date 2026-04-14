@@ -72,12 +72,6 @@ html, body {
   transform: translate(-50%, -50%) scale(1.6);
 }
 
-/* Cycle start color */
-.pulse-number.cycle-start {
-  color: var(--color-lg, #7BB4CD);
-  font-weight: 700;
-}
-
 /* Timeline wrapper */
 .timeline-wrapper {
   position: relative;
