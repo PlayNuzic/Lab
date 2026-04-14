@@ -176,8 +176,8 @@ body[data-visual="nuzic"] {
   padding: 0 1.5rem 0 0;  /* reset base 20px; right buffer for pulse 8 */
 }
 
-/* Per defecte, tots els fills ocupen ambdues columnes */
-.timeline-wrapper > * {
+/* Controls: span both columns (centered) */
+.timeline-wrapper > .controls {
   grid-column: 1 / -1;
 }
 
