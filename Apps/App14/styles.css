@@ -339,36 +339,3 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   100% { opacity: 0.8; transform: scaleY(1); }
 }
 
-/* ========== RESPONSIVE ========== */
-@media (max-width: 700px) {
-  .soundline {
-    width: 12.5rem;
-  }
-
-  .soundline::before {
-    left: 4.375rem;
-  }
-
-  .soundline-division {
-    left: 3.4375rem;
-  }
-
-  .soundline-number {
-    font-size: 1.4rem;
-    left: 1.25rem;
-    width: 2.5rem;
-  }
-
-  .note-highlight {
-    width: 3.75rem;
-    left: 5.625rem;
-  }
-
-  .note-highlight-label {
-    font-size: 1.2rem;
-  }
-
-  .interval-number {
-    font-size: 1.6rem;
-  }
-}
