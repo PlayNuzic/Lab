@@ -988,15 +988,32 @@ function createNuzicIntervalEditor(gridContainer) {
         cell.value = originalValue;
         return;
       }
+
+      const idx = parseInt(cell.dataset.intervalIndex);
+      const iv = currentIntervals[idx];
+      if (!iv) { cell.value = originalValue; return; }
+
+      // Accept 'S' or 's' to convert note → silence (iS row only)
+      if (type === 'is' && /^[sS]$/.test(val)) {
+        if (idx === 0) {
+          showTooltip(cell, 'Primer interval no pot ser silenci');
+          cell.value = originalValue;
+          return;
+        }
+        iv.soundInterval = 0;
+        iv.isRest = true;
+        updatePairsFromIntervals();
+        renderEditorCells();
+        syncGridFromPairs(currentPairs);
+        return;
+      }
+
       if (!/^[+-]?\d+$/.test(val)) {
         cell.value = originalValue;
         return;
       }
 
       const num = parseInt(val);
-      const idx = parseInt(cell.dataset.intervalIndex);
-      const iv = currentIntervals[idx];
-      if (!iv) { cell.value = originalValue; return; }
 
       if (type === 'is') {
         // First iS must be positive
