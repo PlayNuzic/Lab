@@ -18,7 +18,23 @@ html, body {
   padding: 0.5rem 0;
 }
 
-/* Compás uses bpm-inline class for pastilla style — no custom CSS needed */
+/* Compás: bpm-inline pastilla, 1/3 larger than BPM */
+.param.compas.bpm-inline {
+  transform: scale(1.33);
+  transform-origin: center;
+}
+
+/* Ensure golden spinners (same as BPM via nuzic-theme) */
+.param.compas .spin {
+  background: var(--nuzic-yellow) !important;
+  border-radius: 50% !important;
+}
+.param.compas .spin.up::before {
+  border-bottom-color: white !important;
+}
+.param.compas .spin.down::before {
+  border-top-color: white !important;
+}
 
 /* ========== FADE-OUT EFFECT (post-jump pulses) ========== */
 .pulse.fade-out,
