@@ -28,6 +28,7 @@ let registroDown = null;
 
 // Highlight tracking
 const activeHighlights = new Map();
+let playbackTimeouts = [];
 
 // ========== CONFIGURATION ==========
 const SEQUENCE_LENGTH = 6;        // Random notes per playback
@@ -276,7 +277,10 @@ function flashMissingInput(element) {
 }
 
 async function handlePlay() {
-  if (isPlaying) return;
+  if (isPlaying) {
+    stopPlayback();
+    return;
+  }
 
   const registry = registryController.getRegistry();
   if (registry === null) {
@@ -316,18 +320,15 @@ async function handlePlay() {
 
   // Mark as playing
   isPlaying = true;
+  playbackTimeouts = [];
   if (playBtn) {
-    playBtn.disabled = true;
     playBtn.classList.add('playing');
-    // Switch to stop icon
     const iconPlay = playBtn.querySelector('.icon-play');
     const iconStop = playBtn.querySelector('.icon-stop');
     if (iconPlay) iconPlay.style.display = 'none';
     if (iconStop) iconStop.style.display = 'block';
   }
-  // Note: randomBtn stays enabled so user can prepare next sequence
 
-  // Clear previous highlights
   clearHighlights();
 
   // Play sequence
@@ -336,45 +337,43 @@ async function handlePlay() {
   let currentTime = 0;
 
   randomNotes.forEach((noteInRegistry, idx) => {
-    // Calculate MIDI from note in registry using controller
     const { midi, clampedNote } = registryController.getMidiForNote(noteInRegistry);
     const note = Tone.Frequency(midi, 'midi').toNote();
     const noteDurationSec = intervalSec * 0.9;
 
-    // Schedule audio
     const when = startTime + currentTime;
     piano.triggerAttackRelease(note, noteDurationSec, when);
 
-    // Calculate highlight index using controller
     const highlightIndex = registryController.getHighlightIndex(clampedNote);
-
     const delayMs = currentTime * 1000;
 
-    setTimeout(() => {
-      // Format label for logging using controller
-      const label = registryController.formatLabel(highlightIndex);
-      console.log(`Note ${idx + 1}/${SEQUENCE_LENGTH}: ${label} (MIDI ${midi})`);
+    playbackTimeouts.push(setTimeout(() => {
+      if (!isPlaying) return;
       highlightNote(highlightIndex, noteDurationSec * 1000);
-    }, delayMs);
+    }, delayMs));
 
     currentTime += noteDurationSec;
   });
 
   // Completion callback
-  setTimeout(() => {
-    isPlaying = false;
-    if (playBtn) {
-      playBtn.disabled = false;
-      playBtn.classList.remove('playing');
-      // Switch back to play icon
-      const iconPlay = playBtn.querySelector('.icon-play');
-      const iconStop = playBtn.querySelector('.icon-stop');
-      if (iconPlay) iconPlay.style.display = 'block';
-      if (iconStop) iconStop.style.display = 'none';
-    }
-    clearHighlights();
-    console.log('Sequence finished');
-  }, currentTime * 1000);
+  playbackTimeouts.push(setTimeout(() => {
+    stopPlayback();
+  }, currentTime * 1000));
+}
+
+function stopPlayback() {
+  isPlaying = false;
+  playbackTimeouts.forEach(id => clearTimeout(id));
+  playbackTimeouts = [];
+  clearHighlights();
+
+  if (playBtn) {
+    playBtn.classList.remove('playing');
+    const iconPlay = playBtn.querySelector('.icon-play');
+    const iconStop = playBtn.querySelector('.icon-stop');
+    if (iconPlay) iconPlay.style.display = 'block';
+    if (iconStop) iconStop.style.display = 'none';
+  }
 }
 
 function handleRandom() {
@@ -404,7 +403,7 @@ function handleRandom() {
 }
 
 function handleReset() {
-  if (isPlaying) return;
+  if (isPlaying) stopPlayback();
 
   // Clear registry using controller
   registryController.setRegistry(null);
@@ -532,8 +531,8 @@ function initApp() {
   // Remove .middle section (formula)
   document.querySelector('.middle')?.remove();
 
-  // Move controls inside timeline-wrapper (before timeline)
-  timelineWrapper.insertBefore(controls, timeline);
+  // Move controls AFTER timeline (soundline first, controls below)
+  timelineWrapper.appendChild(controls);
 
   // Create soundline-container inside timeline (pattern from App10/14)
   const soundlineContainer = document.createElement('div');
