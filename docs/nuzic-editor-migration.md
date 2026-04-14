@@ -572,6 +572,49 @@ CSS necessari per l'app (els spinners no hereten el daurat automàticament):
 **IMPORTANT**: `aspect-ratio: 1` és necessari perquè `border-radius: 50%` faci
 cercles perfectes. Sense `aspect-ratio`, els spinners escalats es tornen el·líptics.
 
+## Solucions implementades a App16 (referència per standalone timelines amb highlight)
+
+### S15: Highlight nuzic a `.pulse-number` (no `.pulse` dots)
+
+El nuzic-theme amaga els `.pulse` dots (`display: none !important`). Apps que usaven
+dots per highlighting (App16, App17) han de canviar a `.pulse-number` elements:
+
+**JS**: canviar `pulses[step].classList.add('active')` per:
+```javascript
+const numberEl = timeline.querySelector(`.pulse-number[data-index="${step}"]`);
+if (numberEl) numberEl.classList.add('active');
+```
+
+**CSS**: estil barra daurada (com `.pulse-marker.highlighted` a grid apps):
+```css
+.timeline .pulse-number.active {
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 2px;
+  padding: 0.1rem 0.3rem;
+  color: var(--nuzic-dark) !important;
+}
+.timeline .pulse-number.active::before,
+.timeline .pulse-number.active::after {
+  background: var(--nuzic-yellow) !important;
+  opacity: 1 !important;
+}
+```
+
+**MAI** fer `display: block !important` als `.pulse` dots — són artefactes visuals legacy
+(cercles negres/blaus) que interfereixen amb el tema nuzic.
+
+### S16: Eliminar `@import pulse-highlight.css`
+
+El fitxer `libs/shared-ui/pulse-highlight.css` defineix estils legacy per `.pulse.active`,
+`.pulse.active-zero`, `.pulse-number.active` (blau) i `.pulse-number.active-zero` (daurat)
+que **conflicten** amb el highlight nuzic:
+- Doble highlight (daurat nuzic + blau/daurat legacy)
+- Dots visibles malgrat estar ocults pel nuzic-theme
+- Escala/transformacions no desitjades als números
+
+**Acció**: treure `@import '../../libs/shared-ui/pulse-highlight.css'` de l'app migrada.
+El highlight nuzic a `.pulse-number.active` (S15) el substitueix completament.
+
 ## Regles CSS per apps nuzic (aplicable a totes)
 
 ### R1: Sense orientation warnings
