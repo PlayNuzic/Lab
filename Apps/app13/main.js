@@ -231,11 +231,11 @@ function renderEditorCells() {
   cellsContainer.insertBefore(p0, endMarker);
 
   // Build cells for each entered interval
-  // 2 cells per pulse-space: [value WHITE] then [2*iT-1 cream extensions]
+  // Always 2 cells per interval: [value WHITE] + [1 cream separator]
   for (const iT of currentIntervals) {
     if (iT <= 0) break;
 
-    // Value cell FIRST (white with number)
+    // Value cell (white with number)
     const val = document.createElement('input');
     val.type = 'text';
     val.className = 'it-cell it-end';
@@ -245,15 +245,13 @@ function renderEditorCells() {
     cellsContainer.insertBefore(val, endMarker);
     itInputs.push(val);
 
-    // Extension cells AFTER (cream): 2*iT - 1 cells (2 cells per space)
-    for (let j = 0; j < 2 * iT - 1; j++) {
-      const ext = document.createElement('input');
-      ext.type = 'text';
-      ext.className = 'it-cell';
-      ext.placeholder = ' ';
-      ext.readOnly = true;
-      cellsContainer.insertBefore(ext, endMarker);
-    }
+    // 1 cream separator cell (nuzic-light background fills the rest)
+    const ext = document.createElement('input');
+    ext.type = 'text';
+    ext.className = 'it-cell';
+    ext.placeholder = ' ';
+    ext.readOnly = true;
+    cellsContainer.insertBefore(ext, endMarker);
   }
 
   // If sequence not full: add white input (next value) + 1 cream after

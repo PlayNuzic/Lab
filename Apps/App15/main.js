@@ -1055,28 +1055,22 @@ function createNuzicIntervalEditor(gridContainer) {
     const sum = getCurrentSum();
 
     // Build cells for each entered interval (no P0 — iS0 starts at pulse 0)
-    // Each interval of iT spaces = 2*iT cells
+    // Always 2 cells per interval (value + 1 separator), regardless of iT
     // ZIGZAG: iS value at position 0, iT value at position 1 (shifted right)
     for (let i = 0; i < currentIntervals.length; i++) {
       const iv = currentIntervals[i];
       const iT = iv.temporalInterval || 1;
       const iS = iv.soundInterval || 0;
       const isRest = iv.isRest || false;
-      const cellCount = 2 * iT;
 
-      // iS row: [value][ext × (cellCount-1)]  — value at position 0
+      // iS row: [value][pink separator]
       const isDisplay = isRest ? 'S' : (iS > 0 ? `+${iS}` : String(iS));
       isCells.insertBefore(createValueCell('is', isDisplay, i), isEndMarker);
-      for (let j = 0; j < cellCount - 1; j++) {
-        isCells.insertBefore(createReadonlyCell('is'), isEndMarker);
-      }
+      isCells.insertBefore(createReadonlyCell('is'), isEndMarker);
 
-      // iT row: [ext][value][ext × (cellCount-2)]  — value at position 1 (ZIGZAG)
+      // iT row: [cream separator][value]  — shifted right (ZIGZAG)
       itCells.insertBefore(createReadonlyCell('it'), itEndMarker);
       itCells.insertBefore(createValueCell('it', String(iT), i), itEndMarker);
-      for (let j = 0; j < cellCount - 2; j++) {
-        itCells.insertBefore(createReadonlyCell('it'), itEndMarker);
-      }
     }
 
     // If sequence not full: add input cells with ZIGZAG offset
