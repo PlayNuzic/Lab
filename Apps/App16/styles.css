@@ -49,24 +49,7 @@ html, body {
   visibility: hidden;
 }
 
-/* ========== PULSE NUMBER HIGHLIGHTS ========== */
-.timeline .pulse-number.active {
-  color: var(--selection-color, #FFBB33) !important;
-  transform: translateX(-50%) scale(1.35) !important;
-}
-
-.timeline .pulse-number.active-zero {
-  color: var(--color-lg, #7BB4CD) !important;
-  transform: translateX(-50%) scale(1.5) !important;
-  text-shadow: 0 0 12px var(--color-lg, #7BB4CD);
-}
-
-.pulse.active-zero {
-  background: var(--color-lg, #7BB4CD) !important;
-  transform: translate(-50%, -50%) scale(1.8);
-  box-shadow: 0 0 12px var(--color-lg, #7BB4CD);
-}
-
+/* ========== PULSE DOT HIGHLIGHT (golden nuzic, same for all pulses) ========== */
 .pulse.active {
   background: var(--selection-color, #FFBB33) !important;
   transform: translate(-50%, -50%) scale(1.6);

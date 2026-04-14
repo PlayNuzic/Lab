@@ -248,14 +248,10 @@ function renderTimeline() {
  * Highlight a pulse dot and optionally the endpoint bars
  */
 function highlightPulse(step, isFadeOut = false) {
-  // Clear previous highlights from pulses
-  pulses.forEach(p => p.classList.remove('active', 'active-zero', 'fade-out'));
+  pulses.forEach(p => p.classList.remove('active', 'fade-out'));
 
-  // Add highlight to current pulse
   if (pulses[step]) {
-    const modValue = step % compas;
-    const highlightClass = modValue === 0 ? 'active-zero' : 'active';
-    pulses[step].classList.add(highlightClass);
+    pulses[step].classList.add('active');
     if (isFadeOut) {
       pulses[step].classList.add('fade-out');
     }
@@ -269,58 +265,40 @@ function highlightPulse(step, isFadeOut = false) {
 function highlightNumber(step, isFadeOut = false) {
   if (!timeline) return;
 
-  // Clear previous highlights (but NOT fade-out state during fade-out phase)
-  timeline.querySelectorAll('.pulse-number').forEach(n => {
-    n.classList.remove('active', 'active-zero');
-    if (!isFadeOut) {
+  // Clear previous fade-out state (not during fade-out phase)
+  if (!isFadeOut) {
+    timeline.querySelectorAll('.pulse-number').forEach(n => {
       n.classList.remove('fade-out', 'hidden');
+    });
+  }
+
+  if (isFadeOut) {
+    const numberEl = timeline.querySelector(`.pulse-number[data-index="${step}"]`);
+
+    // On FIRST fade-out pulse (step 0): update ALL visible numbers at once
+    if (step === 0) {
+      timeline.querySelectorAll('.pulse-number').forEach(n => {
+        const idx = parseInt(n.dataset.index, 10);
+        if (idx < FADE_OUT_PULSES) {
+          const posInCycle = idx % compas;
+          const fadeOutCycle = Math.floor(idx / compas) + 3;
+          n.innerHTML = `${posInCycle}<sup>${fadeOutCycle}</sup>`;
+        } else {
+          n.classList.add('hidden');
+        }
+      });
     }
-  });
 
-  // Use data-index selector for reliable element selection
-  const numberEl = timeline.querySelector(`.pulse-number[data-index="${step}"]`);
-
-  if (numberEl) {
-    if (isFadeOut) {
-      // On FIRST fade-out pulse (step 0): update ALL visible numbers at once
-      if (step === 0) {
-        timeline.querySelectorAll('.pulse-number').forEach(n => {
-          const idx = parseInt(n.dataset.index, 10);
-          if (idx < FADE_OUT_PULSES) {
-            // Update superscript to cycle 3 for all fade-out numbers
-            const posInCycle = idx % compas;
-            const fadeOutCycle = Math.floor(idx / compas) + 3;
-            n.innerHTML = `${posInCycle}<sup>${fadeOutCycle}</sup>`;
-          } else {
-            // Hide numbers outside fade-out range
-            n.classList.add('hidden');
-          }
-        });
-      }
-
-      // Highlight current number with same style as normal + fade-out opacity
-      const modValue = step % compas;
-      const highlightClass = modValue === 0 ? 'active-zero' : 'active';
-      numberEl.classList.add(highlightClass, 'fade-out');
-    } else {
-      const modValue = step % compas;
-      numberEl.classList.add(modValue === 0 ? 'active-zero' : 'active');
-    }
+    if (numberEl) numberEl.classList.add('fade-out');
   }
 }
 
 function clearHighlights(keepFadeOut = false) {
-  pulses.forEach(p => p.classList.remove('active', 'active-zero', 'fade-out'));
+  pulses.forEach(p => p.classList.remove('active', 'fade-out'));
 
-  if (keepFadeOut) {
-    // Only remove active states, keep fade-out visible
+  if (!keepFadeOut) {
     timeline?.querySelectorAll('.pulse-number').forEach(n => {
-      n.classList.remove('active', 'active-zero');
-    });
-  } else {
-    // Full clear including fade-out
-    timeline?.querySelectorAll('.pulse-number').forEach(n => {
-      n.classList.remove('active', 'active-zero', 'fade-out', 'hidden');
+      n.classList.remove('fade-out', 'hidden');
     });
   }
 }
