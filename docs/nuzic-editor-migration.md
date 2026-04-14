@@ -615,6 +615,47 @@ que **conflicten** amb el highlight nuzic:
 **Acció**: treure `@import '../../libs/shared-ui/pulse-highlight.css'` de l'app migrada.
 El highlight nuzic a `.pulse-number.active` (S15) el substitueix completament.
 
+## Solucions implementades a App9 (referència per interval-row a standalone timelines)
+
+### S17: Interval Row (fila d'intervals sota la timeline)
+
+Les apps amb timeline standalone (app9, app13) mostren els intervals entre polsos
+en una fila dedicada SOTA la timeline. No és un editor — és visualització.
+
+#### Estructura
+- 8 cel·les `flex: 1` iguals dins un div amb vora daurada
+- Línies divisòries daurades (`border-right: 2px solid nuzic-yellow`)
+- Fons blanc (no crema), highlight daurat amb text blanc
+
+#### Alineació amb timeline (CRÍTIC)
+**Usar JS `ResizeObserver`** per sincronitzar amplada I posició esquerra:
+```javascript
+const syncRowWidth = () => {
+  intervalRow.style.width = `${timeline.offsetWidth}px`;
+  intervalRow.style.marginLeft = `${timeline.offsetLeft}px`;
+};
+syncRowWidth();
+new ResizeObserver(syncRowWidth).observe(timeline);
+```
+
+**MAI** usar marges CSS fixos per alinear — mesurar la posició real de `.timeline`.
+
+#### Highlight durant playback
+```javascript
+wrapper.querySelectorAll('.interval-cell.active').forEach(n => n.classList.remove('active'));
+const cell = wrapper.querySelector(`.interval-cell[data-index="${step + 1}"]`);
+if (cell) cell.classList.add('active');
+```
+
+### S18: Eliminar timeline-intervals.js imports obsolets
+
+Amb la nova interval-row, les funcions de `timeline-intervals.js` ja no calen:
+- `createIntervalBars` — substituïda per div cells
+- `highlightIntervalBar` → `.interval-cell.active`
+- `clearIntervalHighlights` → `querySelectorAll('.active').forEach(remove)`
+- `layoutHorizontalIntervalBars` — no cal posicionament absolut
+- `applyTimelineStyles` — no cal configuració de posicions
+
 ## Regles CSS per apps nuzic (aplicable a totes)
 
 ### R1: Sense orientation warnings
