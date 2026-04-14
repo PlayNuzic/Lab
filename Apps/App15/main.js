@@ -995,11 +995,6 @@ function createNuzicIntervalEditor(gridContainer) {
 
       // Accept 'S' or 's' to convert note → silence (iS row only)
       if (type === 'is' && /^[sS]$/.test(val)) {
-        if (idx === 0) {
-          showTooltip(cell, 'Primer interval no pot ser silenci');
-          cell.value = originalValue;
-          return;
-        }
         iv.soundInterval = 0;
         iv.isRest = true;
         updatePairsFromIntervals();
@@ -1128,14 +1123,8 @@ function createNuzicIntervalEditor(gridContainer) {
       const val = e.target.value;
       if (val === '' || val === '-' || val === '+') return;
 
-      // Accept 'S'/'s' for silence (iS input only, not first interval)
+      // Accept 'S'/'s' for silence (iS input only)
       if (type === 'is' && /^[sS]$/.test(val)) {
-        const isFirst = currentIntervals.length === 0;
-        if (isFirst) {
-          showTooltip(cell, 'Primer interval no pot ser silenci');
-          e.target.value = '';
-          return;
-        }
         // Silence needs an iT value — set pendingIS as silence marker
         pendingIS = 'S';
         lastEnteredType = 'is';
