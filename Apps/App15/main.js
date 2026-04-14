@@ -1127,6 +1127,30 @@ function createNuzicIntervalEditor(gridContainer) {
     cell.addEventListener('input', (e) => {
       const val = e.target.value;
       if (val === '' || val === '-' || val === '+') return;
+
+      // Accept 'S'/'s' for silence (iS input only, not first interval)
+      if (type === 'is' && /^[sS]$/.test(val)) {
+        const isFirst = currentIntervals.length === 0;
+        if (isFirst) {
+          showTooltip(cell, 'Primer interval no pot ser silenci');
+          e.target.value = '';
+          return;
+        }
+        // Silence needs an iT value — set pendingIS as silence marker
+        pendingIS = 'S';
+        lastEnteredType = 'is';
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          if (pendingIT !== null) {
+            commitInterval();
+          } else {
+            const itInput = itCells.querySelector('.editor-input');
+            if (itInput) itInput.focus();
+          }
+        }, 300);
+        return;
+      }
+
       if (!/^[+-]?\d+$/.test(val)) { e.target.value = ''; return; }
 
       const num = parseInt(val);
@@ -1238,7 +1262,12 @@ function createNuzicIntervalEditor(gridContainer) {
   function commitInterval() {
     if (pendingIS === null || pendingIT === null) return;
 
-    currentIntervals.push({ soundInterval: pendingIS, temporalInterval: pendingIT });
+    if (pendingIS === 'S') {
+      // Silence: soundInterval=0, isRest=true
+      currentIntervals.push({ soundInterval: 0, temporalInterval: pendingIT, isRest: true });
+    } else {
+      currentIntervals.push({ soundInterval: pendingIS, temporalInterval: pendingIT });
+    }
     pendingIS = null;
     pendingIT = null;
 
