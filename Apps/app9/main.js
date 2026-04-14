@@ -109,10 +109,11 @@ function drawTimeline() {
   // Layout lineal (posicionar elementos)
   layoutLinear();
 
-  // Sync interval row width with timeline (align with pulse 0 and 8)
+  // Sync interval row position and width with timeline (align with pulse 0 and 8)
   const syncRowWidth = () => {
     if (intervalRow && timeline) {
       intervalRow.style.width = `${timeline.offsetWidth}px`;
+      intervalRow.style.marginLeft = `${timeline.offsetLeft}px`;
     }
   };
   syncRowWidth();
