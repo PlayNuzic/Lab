@@ -49,7 +49,13 @@ html, body {
   visibility: hidden;
 }
 
-/* ========== PULSE DOT HIGHLIGHT (golden nuzic, same for all pulses) ========== */
+/* ========== PULSE DOTS: override nuzic-theme display:none ========== */
+/* App16 needs visible pulse dots for playback highlighting */
+body[data-visual="nuzic"] .timeline .pulse {
+  display: block !important;
+}
+
+/* Golden nuzic highlight (same for all pulses including position 0) */
 .pulse.active {
   background: var(--selection-color, #FFBB33) !important;
   transform: translate(-50%, -50%) scale(1.6);
