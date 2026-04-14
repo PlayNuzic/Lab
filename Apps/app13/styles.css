@@ -171,8 +171,9 @@ body[data-visual="nuzic"] {
 /* ========== TIMELINE ========== */
 .timeline-wrapper {
   max-width: none !important;
-  margin: 1rem 0 0;
-  padding: 0 1.5rem 0 3.75rem !important;  /* left: label space, right: pulse 8 buffer */
+  margin: 1rem 1.25rem 0 3.75rem;  /* left: label space, right: pulse 8 */
+  padding: 0 !important;           /* remove base padding — margins handle spacing */
+  overflow: visible;                /* allow label to sit in left margin area */
 }
 
 
