@@ -170,6 +170,7 @@ body[data-visual="nuzic"] {
 
 /* ========== TIMELINE ========== */
 .timeline-wrapper {
+  width: auto !important;             /* override base width:100% — let margins work */
   max-width: none !important;
   margin: 1rem 1.25rem 0 3.75rem;  /* left: label space, right: pulse 8 */
   padding: 0 !important;           /* remove base padding — margins handle spacing */
