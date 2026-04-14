@@ -57,6 +57,8 @@ body[data-visual="nuzic"] {
   position: relative;
   white-space: nowrap;
   background: var(--nuzic-light);
+  /* Extend cream to match timeline box-shadow (aligns with pulse 8) */
+  box-shadow: 1.25rem 0 0 var(--nuzic-light);
 }
 
 .it-cell {
