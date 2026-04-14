@@ -539,18 +539,38 @@ body[data-visual="nuzic"] .inputs:has(.bpm-inline):not(:has(.param)) {
 
 ### S14: Estil pastilla per params
 
-Tots els params d'entrada (Compás, cycle counter, etc.) han de tenir l'estil
-pastilla nuzic (border-radius, inline flex, fons blanc amb border gris):
+Tots els params d'entrada (Compás, cycle counter, etc.) han d'usar la classe
+`bpm-inline visible` per heretar l'estil pastilla nuzic automàticament.
+
+Afegir al HTML del param:
+```html
+<div class="bpm-inline visible param compas" id="compasParam">
+```
+
+CSS necessari per l'app (els spinners no hereten el daurat automàticament):
 ```css
-.param .circle {
-  display: flex;
-  align-items: center;
-  background: var(--bg-input, white);
-  border: 2px solid var(--nuzic-grey, #ccc);
-  border-radius: 1.5rem;
-  padding: 0.25rem 0.5rem;
+/* 1/3 més gran que el BPM */
+.param.compas.bpm-inline {
+  transform: scale(1.33);
+  transform-origin: center;
+}
+
+/* Spinners daurats circulars */
+.param.compas .spin {
+  background: var(--nuzic-yellow) !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 !important;  /* quadrat → cercle perfecte a qualsevol escala */
+}
+.param.compas .spin.up::before {
+  border-bottom-color: white !important;
+}
+.param.compas .spin.down::before {
+  border-top-color: white !important;
 }
 ```
+
+**IMPORTANT**: `aspect-ratio: 1` és necessari perquè `border-radius: 50%` faci
+cercles perfectes. Sense `aspect-ratio`, els spinners escalats es tornen el·líptics.
 
 ## Regles CSS per apps nuzic (aplicable a totes)
 
