@@ -33,7 +33,7 @@ body[data-visual="nuzic"] {
 }
 
 /* ========== EDITOR iT (nuzic style, proportional) ========== */
-/* Editor INSIDE .timeline — inherits exact same width */
+/* Editor is sibling of .timeline — width synced via JS ResizeObserver */
 .it-editor-bar {
   display: grid;
   grid-template-columns: 3.75rem 1fr;
@@ -163,9 +163,9 @@ body[data-visual="nuzic"] {
 
 /* ========== TIMELINE ========== */
 .timeline-wrapper {
-  max-width: none;
+  max-width: none !important;
   margin: 1rem 0 0;
-  padding: 0 1.5rem 0 0;
+  padding: 0 1.5rem 0 0 !important;  /* force override base padding: 0 20px */
 }
 
 

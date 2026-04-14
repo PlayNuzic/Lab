@@ -744,9 +744,16 @@ function initApp() {
     return;
   }
 
-  // Crear editor iT DINS del timeline (com App12/15 dins .grid-container)
+  // Crear editor iT DESPRÉS del timeline (no DINS perquè drawTimeline fa innerHTML='')
   const editor = createItEditor();
-  timeline.appendChild(editor);
+  timeline.insertAdjacentElement('afterend', editor);
+
+  // Sync editor width with timeline (guaranteed alignment)
+  const syncEditorWidth = () => {
+    editor.style.width = `${timeline.offsetWidth}px`;
+  };
+  syncEditorWidth();
+  new ResizeObserver(syncEditorWidth).observe(timeline);
 
   // Idle caret flash on iT editor
   initIdleCaretFlash({ targets: [editor] });
