@@ -172,7 +172,7 @@ body[data-visual="nuzic"] {
 .timeline-wrapper {
   max-width: none !important;
   margin: 1rem 0 0;
-  padding: 0 1.5rem 0 0 !important;  /* force override base padding: 0 20px */
+  padding: 0 1.5rem 0 3.75rem !important;  /* left: label space, right: pulse 8 buffer */
 }
 
 
