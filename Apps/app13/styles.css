@@ -35,12 +35,17 @@ body[data-visual="nuzic"] {
 /* ========== EDITOR iT (nuzic style, proportional) ========== */
 /* Editor is sibling of .timeline — width synced via JS ResizeObserver */
 .it-editor-bar {
-  display: grid;
-  grid-template-columns: 3.75rem 1fr;
+  position: relative;
   margin-top: 0.25rem;
 }
 
+/* Label outside the editor, in the left margin area */
 .it-label {
+  position: absolute;
+  right: 100%;
+  top: 0;
+  width: 3.75rem;
+  height: 100%;
   font-weight: 700;
   font-size: 1.4rem;
   display: flex;
