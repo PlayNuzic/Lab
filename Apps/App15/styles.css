@@ -408,15 +408,7 @@ body.dragging-note * {
   transform: translateY(0);
 }
 
-/* ========== TABLET (≤ 900px) ========== */
-@media (max-width: 900px) {
-  .soundline-number,
-  .pulse-marker {
-    font-size: 1rem !important;
-  }
-}
-
-/* ========== SMALL SCREENS (≤ 700px) ========== */
+/* ========== RESPONSIVE ========== */
 @media (max-width: 700px) {
   .soundline-number,
   .pulse-marker {

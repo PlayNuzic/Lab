@@ -340,7 +340,7 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
 }
 
 /* ========== RESPONSIVE ========== */
-@media (max-width: 768px) {
+@media (max-width: 700px) {
   .soundline {
     width: 12.5rem;
   }
