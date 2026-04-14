@@ -744,9 +744,9 @@ function initApp() {
     return;
   }
 
-  // Crear editor iT i inserir-lo DESPRÉS del timeline (a sota)
+  // Crear editor iT DINS del timeline (com App12/15 dins .grid-container)
   const editor = createItEditor();
-  timeline.insertAdjacentElement('afterend', editor);
+  timeline.appendChild(editor);
 
   // Idle caret flash on iT editor
   initIdleCaretFlash({ targets: [editor] });

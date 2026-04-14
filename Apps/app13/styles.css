@@ -33,20 +33,14 @@ body[data-visual="nuzic"] {
 }
 
 /* ========== EDITOR iT (nuzic style, proportional) ========== */
-/* Editor in column 2 (exact same width as .timeline) */
+/* Editor INSIDE .timeline — inherits exact same width */
 .it-editor-bar {
-  grid-column: 2;
-  position: relative;
+  display: grid;
+  grid-template-columns: 3.75rem 1fr;
   margin-top: 0.25rem;
 }
 
-/* Label positioned in the column 1 area via absolute */
 .it-label {
-  position: absolute;
-  right: 100%;
-  top: 0;
-  width: 3.75rem;
-  height: 100%;
   font-weight: 700;
   font-size: 1.4rem;
   display: flex;
@@ -64,7 +58,6 @@ body[data-visual="nuzic"] {
   white-space: nowrap;
   background: var(--nuzic-light);
   overflow: hidden;
-  max-width: 100%;
 }
 
 .it-cell {
@@ -169,24 +162,10 @@ body[data-visual="nuzic"] {
 .it-tooltip.info { background: #7BB4CD; color: white; }
 
 /* ========== TIMELINE ========== */
-/* Grid 2 columnes: col 1 = espai per l'etiqueta iT, col 2 = timeline */
 .timeline-wrapper {
-  display: grid;
-  grid-template-columns: 3.75rem 1fr;
   max-width: none;
   margin: 1rem 0 0;
-  padding: 0 1.5rem 0 0;  /* reset base 20px; right buffer for pulse 8 */
-}
-
-/* Controls: span both columns (centered) */
-.timeline-wrapper > .controls {
-  grid-column: 1 / -1;
-}
-
-/* Timeline ocupa NOMÉS columna 2 (a la dreta de l'espai de l'etiqueta) */
-.timeline-wrapper > .timeline {
-  grid-column: 2;
-  margin-left: 0rem;  /* ajusta aquest valor */
+  padding: 0 1.5rem 0 0;
 }
 
 
