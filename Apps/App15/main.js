@@ -1007,7 +1007,9 @@ function createNuzicIntervalEditor(gridContainer) {
         }
         // Validate: all subsequent notes must stay in [0,11]
         const oldIS = iv.soundInterval;
+        const wasRest = iv.isRest;
         iv.soundInterval = num;
+        delete iv.isRest;  // Converting silence to note
         let note = 0;
         let valid = true;
         for (const interval of currentIntervals) {
@@ -1016,6 +1018,7 @@ function createNuzicIntervalEditor(gridContainer) {
         }
         if (!valid) {
           iv.soundInterval = oldIS;
+          if (wasRest) iv.isRest = true;  // Restore rest flag on revert
           showTooltip(cell, 'Valor invalida seqüència');
           cell.value = originalValue;
           return;
