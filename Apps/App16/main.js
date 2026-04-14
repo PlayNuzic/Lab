@@ -432,11 +432,12 @@ async function handlePlay() {
     },
     {
       onSchedule: (step) => {
-        // Set volume BEFORE sound is emitted (not after in onPulse)
-        if (step >= totalPulses) {
-          const fadeIndex = step - totalPulses;
+        // Fade starts AFTER the 3rd compás P0 (not on it)
+        // P0 at totalPulses plays at full volume, matching compás 1 and 2
+        if (step > totalPulses) {
+          const fadeIndex = step - totalPulses - 1;
           setVolume(fadeVolumes[fadeIndex] ?? 0.1);
-        } else if (step === 0) {
+        } else if (step === 0 || step === totalPulses) {
           setVolume(originalVolume);
         }
       }
