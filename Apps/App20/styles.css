@@ -1160,68 +1160,6 @@ main {
 }
 
 /* ============================================
-   PORTRAIT WARNING (mobile)
-   ============================================ */
-
-@media (max-width: 768px) and (orientation: portrait) {
-  body::before {
-    content: '\21BB  Por favor, gira tu dispositivo para usar esta aplicación';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--bg-color, #fff);
-    color: var(--text-color, #333);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-size: 1.2rem;
-    padding: 2rem;
-    z-index: 9999;
-  }
-
-  [data-theme="dark"] body::before {
-    background: var(--bg-dark, #1a1a1a);
-    color: var(--text-color, #eee);
-  }
-
-  #app-root {
-    display: none !important;
-  }
-}
-
-/* ============================================
-   MINIMUM SCREEN SIZE WARNING (Landscape <600px)
-   ============================================ */
-
-@media (max-width: 600px) and (orientation: landscape) {
-  body::before {
-    content: '📱 Esta aplicación requiere una pantalla más grande';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-size: 1.2rem;
-    font-weight: 600;
-    padding: 2rem;
-    z-index: 9999;
-  }
-
-  #app-root {
-    display: none !important;
-  }
-}
-
-/* ============================================
    RESPONSIVE - Tablet landscape (900px)
    ============================================ */
 

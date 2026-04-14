@@ -517,58 +517,6 @@ html, body {
   align-items: center;
 }
 
-/* ========== LANDSCAPE ORIENTATION WARNING ========== */
-@media (max-width: 768px) and (orientation: portrait) {
-  body::before {
-    content: '⟲ Por favor, gira tu dispositivo para usar esta aplicacion';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-size: 1.5rem;
-    font-weight: 600;
-    z-index: 9999;
-    padding: 20px;
-  }
-
-  #app-root {
-    display: none !important;
-  }
-}
-
-/* ========== MINIMUM SCREEN SIZE WARNING ========== */
-@media (max-width: 600px) and (orientation: landscape) {
-  body::before {
-    content: '📱 Esta aplicacion requiere una pantalla mas grande';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-size: 1.2rem;
-    font-weight: 600;
-    z-index: 9999;
-    padding: 20px;
-  }
-
-  #app-root {
-    display: none !important;
-  }
-}
-
 /* ========== TABLET (≤ 900px) ========== */
 @media (max-width: 900px) {
   :root {

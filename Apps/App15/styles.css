@@ -408,58 +408,6 @@ body.dragging-note * {
   transform: translateY(0);
 }
 
-/* ========== LANDSCAPE ORIENTATION WARNING ========== */
-@media (max-width: 768px) and (orientation: portrait) {
-  body::before {
-    content: '⟲ Por favor, gira tu dispositivo para usar esta aplicación';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-size: 1.5rem;
-    font-weight: 600;
-    z-index: 9999;
-    padding: 1.25rem;
-  }
-
-  #app-root {
-    display: none !important;
-  }
-}
-
-/* ========== MINIMUM SCREEN SIZE WARNING ========== */
-@media (max-width: 600px) and (orientation: landscape) {
-  body::before {
-    content: '📱 Esta aplicación requiere una pantalla más grande';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-size: 1.2rem;
-    font-weight: 600;
-    z-index: 9999;
-    padding: 1.25rem;
-  }
-
-  #app-root {
-    display: none !important;
-  }
-}
-
 /* ========== TABLET (≤ 900px) ========== */
 @media (max-width: 900px) {
   .soundline-number,
