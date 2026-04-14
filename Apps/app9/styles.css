@@ -70,6 +70,8 @@ body[data-visual="nuzic"] {
   border-radius: 4px;
   overflow: hidden;
   margin-top: 0.25rem;
+  /* Align with timeline's visual left edge (box-shadow extends -1.25rem) */
+  margin-left: -1.25rem;
 }
 
 .interval-cell {
