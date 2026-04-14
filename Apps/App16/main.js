@@ -248,13 +248,12 @@ function renderTimeline() {
  * Highlight a pulse dot and optionally the endpoint bars
  */
 function highlightPulse(step, isFadeOut = false) {
-  pulses.forEach(p => p.classList.remove('active', 'fade-out'));
+  // Highlight on .pulse-number elements (dots hidden by nuzic-theme)
+  timeline?.querySelectorAll('.pulse-number').forEach(n => n.classList.remove('active'));
 
-  if (pulses[step]) {
-    pulses[step].classList.add('active');
-    if (isFadeOut) {
-      pulses[step].classList.add('fade-out');
-    }
+  const numberEl = timeline?.querySelector(`.pulse-number[data-index="${step}"]`);
+  if (numberEl) {
+    numberEl.classList.add('active');
   }
 }
 
@@ -294,13 +293,12 @@ function highlightNumber(step, isFadeOut = false) {
 }
 
 function clearHighlights(keepFadeOut = false) {
-  pulses.forEach(p => p.classList.remove('active', 'fade-out'));
-
-  if (!keepFadeOut) {
-    timeline?.querySelectorAll('.pulse-number').forEach(n => {
+  timeline?.querySelectorAll('.pulse-number').forEach(n => {
+    n.classList.remove('active');
+    if (!keepFadeOut) {
       n.classList.remove('fade-out', 'hidden');
-    });
-  }
+    }
+  });
 }
 
 // ============================================

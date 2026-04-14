@@ -49,16 +49,20 @@ html, body {
   visibility: hidden;
 }
 
-/* ========== PULSE DOTS: override nuzic-theme display:none ========== */
-/* App16 needs visible pulse dots for playback highlighting */
-body[data-visual="nuzic"] .timeline .pulse {
-  display: block !important;
+/* ========== PULSE NUMBER HIGHLIGHT (nuzic golden bar) ========== */
+/* App16 highlights .pulse-number elements (dots hidden by nuzic-theme) */
+.timeline .pulse-number.active {
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 2px;
+  padding: 0.1rem 0.3rem;
+  color: var(--nuzic-dark, #43433b) !important;
+  transition: background 0.1s ease;
 }
 
-/* Golden nuzic highlight (same for all pulses including position 0) */
-.pulse.active {
-  background: var(--selection-color, #FFBB33) !important;
-  transform: translate(-50%, -50%) scale(1.6);
+.timeline .pulse-number.active::before,
+.timeline .pulse-number.active::after {
+  background: var(--nuzic-yellow, #FFBB33) !important;
+  opacity: 1 !important;
 }
 
 /* Timeline wrapper */
