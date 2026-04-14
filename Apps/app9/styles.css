@@ -63,39 +63,35 @@ body[data-visual="nuzic"] {
   justify-content: center !important;
 }
 
-/* ========== INTERVAL ROW (below timeline) ========== */
+/* ========== INTERVAL ROW (below timeline, aligned with pulses) ========== */
 .interval-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  padding: 0.25rem 0;
-  background: var(--nuzic-light, #f5f0e8);
+  border: 2px solid var(--nuzic-yellow, #FFBB33);
   border-radius: 4px;
+  overflow: hidden;
   margin-top: 0.25rem;
 }
 
-.interval-dot {
-  font-size: 1.2rem;
-  color: var(--nuzic-yellow, #FFBB33);
-  padding: 0 0.15rem;
-  user-select: none;
-}
-
-.interval-num {
+.interval-cell {
+  flex: 1;
+  text-align: center;
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--nuzic-dark, #43433b);
-  background: transparent;
-  padding: 0.1rem 0.4rem;
-  border-radius: 2px;
+  padding: 0.3rem 0;
+  background: var(--nuzic-light, #f5f0e8);
+  border-right: 2px solid var(--nuzic-yellow, #FFBB33);
   transition: background 0.1s ease;
+  user-select: none;
 }
 
-.interval-num.active {
+.interval-cell:last-child {
+  border-right: none;
+}
+
+.interval-cell.active {
   background: var(--nuzic-yellow, #FFBB33);
   color: white;
-  border-radius: 4px;
 }
 
 /* Duration bar (interval block) */

@@ -88,34 +88,23 @@ function drawTimeline() {
     timeline.appendChild(num);
   }
 
-  // Crear fila d'intervals nuzic (sota la timeline)
+  // Crear fila d'intervals nuzic (sota la timeline, alineada amb polsos)
   let intervalRow = timelineWrapper?.querySelector('.interval-row');
   if (!intervalRow) {
     intervalRow = document.createElement('div');
     intervalRow.className = 'interval-row';
-    timelineWrapper?.appendChild(intervalRow);
+    timeline.insertAdjacentElement('afterend', intervalRow);
   }
   intervalRow.innerHTML = '';
 
+  // 8 cells, each centered between two pulse positions
   for (let i = 1; i <= 8; i++) {
-    // Dot separator
-    const dot = document.createElement('span');
-    dot.className = 'interval-dot';
-    dot.textContent = '·';
-    intervalRow.appendChild(dot);
-
-    // Interval number cell
-    const num = document.createElement('span');
-    num.className = 'interval-num';
-    num.dataset.index = i;
-    num.textContent = i;
-    intervalRow.appendChild(num);
+    const cell = document.createElement('div');
+    cell.className = 'interval-cell';
+    cell.dataset.index = i;
+    cell.textContent = i;
+    intervalRow.appendChild(cell);
   }
-  // Final dot
-  const dotEnd = document.createElement('span');
-  dotEnd.className = 'interval-dot';
-  dotEnd.textContent = '·';
-  intervalRow.appendChild(dotEnd);
 
   // Layout lineal (posicionar elementos)
   layoutLinear();
@@ -243,7 +232,7 @@ async function handlePlay() {
 
   // Limpiar highlights previos y barras de duración previas
   highlightController.clearHighlights();
-  timelineWrapper?.querySelectorAll('.interval-num.active').forEach(n => n.classList.remove('active'));
+  timelineWrapper?.querySelectorAll('.interval-cell.active').forEach(n => n.classList.remove('active'));
   // Limpiar cualquier barra anterior de notes previos
   notes.forEach(note => {
     if (note.barElement) {
@@ -263,10 +252,10 @@ async function handlePlay() {
       console.log(`Paso ${step}`);
 
       // Highlight interval number in the row below
-      timelineWrapper?.querySelectorAll('.interval-num.active').forEach(n => n.classList.remove('active'));
+      timelineWrapper?.querySelectorAll('.interval-cell.active').forEach(n => n.classList.remove('active'));
       if (step < TOTAL_PULSES - 1) {
         const intervalIndex = step + 1;
-        const numEl = timelineWrapper?.querySelector(`.interval-num[data-index="${intervalIndex}"]`);
+        const numEl = timelineWrapper?.querySelector(`.interval-cell[data-index="${intervalIndex}"]`);
         if (numEl) numEl.classList.add('active');
       }
 
@@ -299,7 +288,7 @@ async function handlePlay() {
       }
       visualSync.stop();
       highlightController.clearHighlights();
-      timelineWrapper?.querySelectorAll('.interval-num.active').forEach(n => n.classList.remove('active'));
+      timelineWrapper?.querySelectorAll('.interval-cell.active').forEach(n => n.classList.remove('active'));
       // Limpiar todas las barras de duración
       notes.forEach(note => {
         if (note.barElement) {
