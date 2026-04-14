@@ -632,8 +632,9 @@ body[data-visual="nuzic"] .controls:not([data-layout]) .reset {
   height: 36px !important;
 }
 
-/* BPM: amagar .inputs original (BPM mogut dins .controls via JS) */
-body[data-visual="nuzic"] .inputs:has(.bpm-inline) {
+/* BPM: amagar .inputs quan NOMÉS conté BPM (ja mogut dins .controls via JS) */
+/* NO amagar si conté altres params (.param) que l'app necessita */
+body[data-visual="nuzic"] .inputs:has(.bpm-inline):not(:has(.param)) {
   display: none;
 }
 
