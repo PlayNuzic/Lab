@@ -201,17 +201,12 @@ function renderPulseNumbers() {
 }
 
 /**
- * Remove end bar from timeline (we don't want visual end point)
+ * Remove all bars from timeline (obsolete visual endpoints)
  */
-function removeEndBar() {
+function removeBars() {
   if (!timeline) return;
-  // Remove any end label
   timeline.querySelector('.timeline-end-label')?.remove();
-  // Remove the right bar (endpoint)
-  const bars = timeline.querySelectorAll('.bar');
-  if (bars.length > 1) {
-    bars[bars.length - 1].remove();
-  }
+  timeline.querySelectorAll('.bar').forEach(b => b.remove());
 }
 
 /**
@@ -237,8 +232,8 @@ function renderTimeline() {
     silent: true
   });
 
-  // Remove end bar (no visual endpoint - timeline continues)
-  removeEndBar();
+  // Remove all bars (obsolete visual endpoints)
+  removeBars();
 
   // Render numbers
   renderPulseNumbers();
@@ -255,24 +250,6 @@ function renderTimeline() {
 function highlightPulse(step, isFadeOut = false) {
   // Clear previous highlights from pulses
   pulses.forEach(p => p.classList.remove('active', 'active-zero', 'fade-out'));
-
-  // Handle bars visibility and highlighting
-  const bars = timeline?.querySelectorAll('.bar');
-  const leftBar = bars?.[0];
-
-  if (leftBar) {
-    if (isFadeOut) {
-      leftBar.classList.add('hidden');
-    } else {
-      leftBar.classList.remove('hidden');
-      // Highlight left bar when step 0 is active
-      if (step === 0) {
-        leftBar.classList.add('active-zero');
-      } else {
-        leftBar.classList.remove('active-zero');
-      }
-    }
-  }
 
   // Add highlight to current pulse
   if (pulses[step]) {
@@ -335,15 +312,6 @@ function highlightNumber(step, isFadeOut = false) {
 function clearHighlights(keepFadeOut = false) {
   pulses.forEach(p => p.classList.remove('active', 'active-zero', 'fade-out'));
 
-  // Handle left bar
-  const leftBar = timeline?.querySelector('.bar');
-  if (leftBar) {
-    leftBar.classList.remove('active-zero');
-    if (!keepFadeOut) {
-      leftBar.classList.remove('hidden');
-    }
-  }
-
   if (keepFadeOut) {
     // Only remove active states, keep fade-out visible
     timeline?.querySelectorAll('.pulse-number').forEach(n => {
@@ -378,7 +346,6 @@ async function handlePlay() {
   // Reset timeline to original state (clear any fade-out classes from previous play)
   renderPulseNumbers();
   pulses.forEach(p => p.classList.remove('fade-out'));
-  timeline?.querySelector('.bar')?.classList.remove('hidden');
 
   // Update play button state
   playBtn?.classList.add('active');
