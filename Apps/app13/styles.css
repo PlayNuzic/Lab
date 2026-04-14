@@ -33,14 +33,20 @@ body[data-visual="nuzic"] {
 }
 
 /* ========== EDITOR iT (nuzic style, proportional) ========== */
-/* display:contents makes label and cells direct grid items of the wrapper,
-   so .it-cells occupies EXACTLY the same column 2 as .timeline */
+/* Editor in column 2 (exact same width as .timeline) */
 .it-editor-bar {
-  grid-column: 1 / -1;
-  display: contents;
+  grid-column: 2;
+  position: relative;
+  margin-top: 0.25rem;
 }
 
+/* Label positioned in the column 1 area via absolute */
 .it-label {
+  position: absolute;
+  right: 100%;
+  top: 0;
+  width: 3.75rem;
+  height: 100%;
   font-weight: 700;
   font-size: 1.4rem;
   display: flex;
