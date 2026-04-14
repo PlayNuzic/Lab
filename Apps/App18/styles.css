@@ -111,15 +111,14 @@ html, body {
   min-height: 0;
   position: relative;
   z-index: 1;
-  padding: 1rem 0;
+  padding: 0.5rem;
   display: flex;
-  align-items: stretch;
-  justify-content: center;
+  flex-direction: column;  /* timeline fills space, controls at bottom */
 }
 
 .timeline {
   flex: 1;
-  width: 100%;
+  min-height: 0;
   position: relative;
   display: flex;
   justify-content: center;
