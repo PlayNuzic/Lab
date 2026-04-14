@@ -6,13 +6,6 @@ import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
-import {
-  createIntervalBars,
-  highlightIntervalBar,
-  clearIntervalHighlights,
-  layoutHorizontalIntervalBars,
-  applyTimelineStyles
-} from '../../libs/app-common/timeline-intervals.js';
 
 
 // ========== ESTADO ==========
@@ -95,28 +88,34 @@ function drawTimeline() {
     timeline.appendChild(num);
   }
 
-  // Crear números de intervalos (1-8) - posicionados entre pulsos
-  for (let i = 1; i <= 8; i++) {
-    const intervalNum = document.createElement('div');
-    intervalNum.className = 'interval-number';
-    intervalNum.dataset.index = i;
-    intervalNum.textContent = i;
-    timeline.appendChild(intervalNum);
+  // Crear fila d'intervals nuzic (sota la timeline)
+  let intervalRow = timelineWrapper?.querySelector('.interval-row');
+  if (!intervalRow) {
+    intervalRow = document.createElement('div');
+    intervalRow.className = 'interval-row';
+    timelineWrapper?.appendChild(intervalRow);
   }
+  intervalRow.innerHTML = '';
 
-  // Crear barras de intervalos (1-8) usando módulo compartido
-  createIntervalBars({
-    container: timeline,
-    count: 8,
-    orientation: 'horizontal',
-    cssClass: 'interval-bar'
-  });
+  for (let i = 1; i <= 8; i++) {
+    // Dot separator
+    const dot = document.createElement('span');
+    dot.className = 'interval-dot';
+    dot.textContent = '·';
+    intervalRow.appendChild(dot);
 
-  // Aplicar configuración de estilos (posiciones de números específicas de App9)
-  applyTimelineStyles(timeline, {
-    pulseNumberPosition: 'below',     // Números de pulso abajo
-    intervalNumberPosition: 'above'   // Números de intervalo arriba
-  });
+    // Interval number cell
+    const num = document.createElement('span');
+    num.className = 'interval-num';
+    num.dataset.index = i;
+    num.textContent = i;
+    intervalRow.appendChild(num);
+  }
+  // Final dot
+  const dotEnd = document.createElement('span');
+  dotEnd.className = 'interval-dot';
+  dotEnd.textContent = '·';
+  intervalRow.appendChild(dotEnd);
 
   // Layout lineal (posicionar elementos)
   layoutLinear();
@@ -135,19 +134,7 @@ function layoutLinear() {
     n.style.left = pct + '%';
   });
 
-  // Posicionar números de intervalos (centrados entre pulsos)
-  const intervalNumbers = timeline.querySelectorAll('.interval-number');
-  intervalNumbers.forEach(n => {
-    const idx = parseInt(n.dataset.index);
-    // Posición en punto medio entre pulso (idx-1) y pulso (idx)
-    const pct = ((idx - 0.5) / (TOTAL_PULSES - 1)) * 100;
-    n.style.left = pct + '%';
-    n.style.top = '70%';
-    n.style.transform = 'translate(-50%, -50%)';
-  });
-
-  // Posicionar barras de intervalos
-  layoutHorizontalIntervalBars(timeline, TOTAL_PULSES, 'interval-bar');
+  // Interval row is a separate DOM element below timeline (not positioned here)
 }
 
 // ========== FUNCIONES DE AUDIO ==========
@@ -256,7 +243,7 @@ async function handlePlay() {
 
   // Limpiar highlights previos y barras de duración previas
   highlightController.clearHighlights();
-  clearIntervalHighlights(timeline, 'interval-bar');
+  timelineWrapper?.querySelectorAll('.interval-num.active').forEach(n => n.classList.remove('active'));
   // Limpiar cualquier barra anterior de notes previos
   notes.forEach(note => {
     if (note.barElement) {
@@ -275,11 +262,12 @@ async function handlePlay() {
       // onPulse: SOLO feedback visual (nunca programar audio aquí)
       console.log(`Paso ${step}`);
 
-      // Iluminar barra de intervalo correspondiente
+      // Highlight interval number in the row below
+      timelineWrapper?.querySelectorAll('.interval-num.active').forEach(n => n.classList.remove('active'));
       if (step < TOTAL_PULSES - 1) {
         const intervalIndex = step + 1;
-        clearIntervalHighlights(timeline, 'interval-bar');
-        highlightIntervalBar(timeline, intervalIndex, intervalSec * 1000, 'interval-bar');
+        const numEl = timelineWrapper?.querySelector(`.interval-num[data-index="${intervalIndex}"]`);
+        if (numEl) numEl.classList.add('active');
       }
 
       // Crear barras de duración visuales
@@ -311,7 +299,7 @@ async function handlePlay() {
       }
       visualSync.stop();
       highlightController.clearHighlights();
-      clearIntervalHighlights(timeline, 'interval-bar');
+      timelineWrapper?.querySelectorAll('.interval-num.active').forEach(n => n.classList.remove('active'));
       // Limpiar todas las barras de duración
       notes.forEach(note => {
         if (note.barElement) {
