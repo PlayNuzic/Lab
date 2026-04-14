@@ -519,3 +519,45 @@ L'editor va DINS `.soundline-area` (entre `.timeline` i `.controls`):
   ├── .is-editor-bar (flex-shrink: 0)
   └── .controls (flex-shrink: 0)
 ```
+
+## Regles CSS per apps nuzic (aplicable a totes)
+
+### R1: Sense orientation warnings
+
+NO incloure `@media (orientation: portrait)` ni `@media (orientation: landscape)` amb
+`body::before` overlays. Aquests warnings amb `z-index: 9999` bloquegen l'app completament
+dins iframes. El Sistema Interactivo gestiona el responsive (single-column en mòbil).
+
+Eliminats de: app11, App11A, App12, App15, App19, App20, App25, App25B.
+
+### R2: Sense breakpoints de dimensions de soundline/timeline
+
+Les soundlines i timelines usen rem — escalen naturalment. NO afegir breakpoints que
+redimensionin soundline width, note-highlight width, o interval-number font-size.
+Codi obsolet de l'era px.
+
+Eliminats de: app10, App14.
+
+### R3: Màxim 1 breakpoint per app
+
+Si cal, usar UN sol `@media (max-width: 700px)` per ajustar font-sizes o padding.
+Amb unitats relatives (rem, %), els elements escalen sols — no calen múltiples breakpoints.
+
+Exemple (App12):
+```css
+@media (max-width: 700px) {
+  .app12-main-grid { padding: 0.25rem; }
+}
+```
+
+### R4: `width: auto !important` per standalone timelines
+
+Les apps amb `.timeline-wrapper` standalone (app9, app13) necessiten sobreescriure
+la base `width: 100%` de `timeline-intervals.css` si usen marges:
+```css
+.timeline-wrapper {
+  width: auto !important;
+  margin: 1rem 1.25rem 0 3.75rem;  /* left: label, right: pulse 8 */
+  padding: 0 !important;
+}
+```
