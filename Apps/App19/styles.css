@@ -254,6 +254,11 @@ main {
   --plano-visible-rows: 19;
   width: 100%;
   min-width: 0;
+  background: var(--bg-light);
+}
+
+[data-theme="dark"] .plano-container {
+  background: var(--bg-dark);
 }
 
 /* Remove left margin so matrix starts flush with soundline edge */
