@@ -316,7 +316,7 @@ main {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  transform: translate(var(--registro-offset-x), var(--registro-offset-y));
+  transform: none;
 }
 
 .param.registro .abbr {
@@ -328,10 +328,11 @@ main {
 }
 
 .param.registro .circle {
+  width: auto !important;
   height: var(--registro-height);
-  padding: 0 1rem;
+  padding: 0 0.5rem;
   border: 2px solid #F28AAD;
-  border-radius: 22px;
+  border-radius: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -340,6 +341,7 @@ main {
 }
 
 .param.registro .registro-text {
+  width: auto !important;
   display: flex;
   align-items: center;
   justify-content: center;

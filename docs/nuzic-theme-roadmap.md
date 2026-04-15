@@ -166,7 +166,7 @@ Selectors equivalents per al DOM de plano-modular:
 | `.pulse-marker` | `.plano-timeline-number` |
 | `.musical-cell` | `.plano-cell` |
 | `.musical-cell.active::before` | `.plano-cell.plano-selected::before` |
-| `.np-dot::after` | (no existeixen dots a plano) |
+| `.np-dot::after` | `.plano-cell .np-dot::after` (App19, App20 — gradient amagat, DOM element a divisòria) |
 
 ### Fase 10: Dark mode complet
 
@@ -188,6 +188,7 @@ Cal afegir overrides específics per components (soundline, timeline, cells, but
 .plano-soundline-container, .plano-soundline-note
 .plano-matrix-container, .plano-matrix, .plano-cell
 .plano-cell.plano-selected, .plano-cell.plano-highlight
+.plano-cell .np-dot, .plano-cell .np-dot::after
 .plano-timeline-container, .plano-timeline-number
 
 /* Botons */
