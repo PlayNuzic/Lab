@@ -163,7 +163,7 @@ function updateTotalLengthDisplay(step) {
  * Update grid visibility based on whether we have data
  */
 function updateGridVisibility() {
-  const rightColumn = document.getElementById('rightColumn');
+  const rightColumn = document.querySelector('.timeline-wrapper');
   if (rightColumn) {
     const visible = getTotalPulses() > 0;
     rightColumn.style.display = visible ? '' : 'none';
@@ -176,7 +176,7 @@ function updateGridVisibility() {
  * Initialize the grid using plano-modular
  */
 function initGrid() {
-  const gridContainer = document.getElementById('rightColumn');
+  const gridContainer = document.querySelector('.timeline-wrapper');
   if (!gridContainer) {
     console.error('Grid container not found');
     return;
@@ -243,7 +243,7 @@ function initGrid() {
  * Dots are the clickable targets; cells have pointer-events: none
  */
 function addDotsToAllCells() {
-  const gridContainer = document.getElementById('rightColumn');
+  const gridContainer = document.querySelector('.timeline-wrapper');
   if (!gridContainer) return;
 
   const matrixContainer = gridContainer.querySelector('.plano-matrix-container');
@@ -327,7 +327,7 @@ function maybeApplyInitialScroll() {
 function getScreenScrollTop(screen) {
   if (screen.lastRow === 0) return 0;  // Top of grid
   // Calculate scrollTop so that lastRow is at the bottom of the visible area
-  const gridContainer = document.getElementById('rightColumn');
+  const gridContainer = document.querySelector('.timeline-wrapper');
   const container = gridContainer?.querySelector('.plano-soundline-container');
   const visibleHeight = container?.clientHeight || (24 * CELL_H);
   // Bottom edge of lastRow + half-cell for translateY(50%) label
@@ -342,7 +342,7 @@ function scrollToScreen(screenIndex, animated = false) {
 
   const screen = SCREENS[screenIndex];
   const scrollTop = getScreenScrollTop(screen);
-  const gridContainer = document.getElementById('rightColumn');
+  const gridContainer = document.querySelector('.timeline-wrapper');
   const soundline = gridContainer?.querySelector('.plano-soundline-container');
   const matrix = gridContainer?.querySelector('.plano-matrix-container');
 
@@ -1017,6 +1017,24 @@ function initApp() {
   if (elements.inputCycle) elements.inputCycle.value = cycles;
   if (elements.cycleDigit) elements.cycleDigit.textContent = String(cycles);
 
+  // Move BPM to controls row (Play | BPM | Random | Reset)
+  const bpmParam = document.getElementById('bpmParam');
+  const controls = document.querySelector('.controls');
+  if (controls && bpmParam) {
+    const playBtnEl = controls.querySelector('.play') || elements.playBtn;
+    const randomBtnEl = controls.querySelector('.random');
+    const resetBtnEl = controls.querySelector('.reset');
+    const randomMenuEl = controls.querySelector('.random-menu');
+
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playBtnEl) controls.appendChild(playBtnEl);
+    controls.appendChild(bpmParam);
+    if (randomBtnEl) controls.appendChild(randomBtnEl);
+    if (randomMenuEl) controls.appendChild(randomMenuEl);
+    if (resetBtnEl) controls.appendChild(resetBtnEl);
+  }
+
   // Initialize the grid (plano-modular)
   initGrid();
 
@@ -1025,7 +1043,7 @@ function initApp() {
   updateGridVisibility();
 
   // No initial focus — user decides where to start
-  initIdleCaretFlash({ targets: [document.getElementById('inputRegistro')?.closest('.circle')] });
+  initIdleCaretFlash({ targets: [document.getElementById('registroParam')?.querySelector('.circle')] });
   console.log('App19 initialized (Migrated to plano-modular)');
 }
 

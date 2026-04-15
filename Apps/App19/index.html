@@ -60,9 +60,6 @@
       showP1Toggle: true,
       showPulseToggle: true,
       showPolyphonyToggle: false,
-      controlsLayout: {
-        mode: 'vertical'
-      },
       randomMenuContent: `
         <label>
           <span>Compás máximo</span>
@@ -100,11 +97,21 @@
     // Remove template-generated elements we don't need
     document.querySelector('.middle')?.remove();
 
-    // Replace .inputs section with our custom layout (Compás, Nº Compases, Longitud)
+    // Replace .inputs section with params as bpm-inline pastilles
     const inputsSection = document.querySelector('.inputs');
     if (inputsSection) {
       inputsSection.innerHTML = `
-        <div class="param compas">
+        <div class="bpm-inline visible param registro" id="registroParam">
+          <span class="abbr">Registro</span>
+          <div class="circle">
+            <span id="registroText" class="registro-text">3 y 4</span>
+            <div class="spinner">
+              <button id="registroUp" class="spin up" type="button" aria-label="Subir registro"></button>
+              <button id="registroDown" class="spin down" type="button" aria-label="Bajar registro"></button>
+            </div>
+          </div>
+        </div>
+        <div class="bpm-inline visible param compas" id="compasParam">
           <span class="abbr">Compás</span>
           <div class="circle">
             <input id="inputCompas" type="number" min="1" max="7" value="" />
@@ -114,115 +121,42 @@
             </div>
           </div>
         </div>
-        <div class="param cycle-display">
+        <div class="bpm-inline visible param cycle-display" id="cycleParam">
           <span class="abbr">Nº Compases</span>
-          <div class="circle cycle-circle">
+          <div class="circle">
             <input id="inputCycle" type="number" min="1" max="4" value="" />
-            <div class="cycle-counter__digit" id="cycleDigit"></div>
             <div class="spinner">
               <button id="cycleUp" class="spin up" type="button" aria-label="Incrementar Nº Compases"></button>
               <button id="cycleDown" class="spin down" type="button" aria-label="Decrementar Nº Compases"></button>
             </div>
           </div>
         </div>
-        <div class="total-length-inline" id="totalLengthParam">
+        <div class="bpm-inline visible param longitud" id="totalLengthParam">
+          <span class="abbr">Longitud</span>
           <div class="circle">
             <span class="total-length__digit" id="totalLengthDigit">--</span>
           </div>
-          <span class="abbr">Longitud</span>
         </div>
       `;
     }
 
-    // Extract .controls from timeline-wrapper and restructure for 2-column layout
-    const timelineWrapper = document.querySelector('.timeline-wrapper');
-    const controls = timelineWrapper?.querySelector('.controls');
-
-    console.log('Template restructure:', {
-      timelineWrapper: !!timelineWrapper,
-      controls: !!controls
-    });
-
-    if (controls && timelineWrapper) {
-      // Move controls out of wrapper temporarily
-      timelineWrapper.before(controls);
-
-      // Clear timeline-wrapper and rebuild with 2-column structure
-      timelineWrapper.innerHTML = `
-        <!-- Left Column: Registry + Controls -->
-        <div class="left-column" id="leftColumn">
-          <!-- BPM at top of left column -->
-          <div class="bpm-inline" id="bpmParam">
-            <span class="abbr">BPM</span>
-            <div class="circle">
-              <input id="inputBpm" type="number" min="30" max="300" value="100" />
-              <div class="spinner">
-                <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
-                <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
-              </div>
+    // Inject BPM inside .inputs (will be moved to controls by main.js)
+    const inputsEl = document.querySelector('.inputs');
+    if (inputsEl) {
+      const bpmDiv = document.createElement('div');
+      bpmDiv.innerHTML = `
+        <div class="bpm-inline visible" id="bpmParam">
+          <span class="abbr">BPM</span>
+          <div class="circle">
+            <input id="inputBpm" type="number" min="30" max="300" value="100" />
+            <div class="spinner">
+              <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
+              <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
             </div>
           </div>
-
-          <!-- Registry display (shows two visible registries) -->
-          <div class="param registro" id="registroParam">
-            <span class="abbr">Registro</span>
-            <div class="circle">
-              <span id="registroText" class="registro-text">3 y 4</span>
-              <div class="spinner">
-                <button id="registroUp" class="spin up" type="button" aria-label="Subir registro"></button>
-                <button id="registroDown" class="spin down" type="button" aria-label="Bajar registro"></button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Controls will be inserted here -->
-          <div class="controls-container" id="controlsContainer"></div>
-        </div>
-
-        <!-- Right Column: Grid 2D (plano-modular renders here) -->
-        <div class="right-column" id="rightColumn">
-          <!-- plano-modular will render its grid here -->
         </div>
       `;
-
-      // Move controls into the left column
-      const controlsContainer = document.getElementById('controlsContainer');
-      if (controlsContainer && controls) {
-        controlsContainer.appendChild(controls);
-      }
-
-      // Wrap Random + Reset in a row so they sit side by side below Play
-      const randomBtn = controls?.querySelector('#randomBtn');
-      const randomMenu = controls?.querySelector('#randomMenu');
-      const resetBtn = controls?.querySelector('#resetBtn');
-      if (randomBtn && resetBtn) {
-        const buttonRow = document.createElement('div');
-        buttonRow.className = 'button-row';
-        randomBtn.before(buttonRow);
-        buttonRow.appendChild(randomBtn);
-        if (randomMenu) buttonRow.appendChild(randomMenu);
-        buttonRow.appendChild(resetBtn);
-      }
-    } else {
-      console.error('Failed to restructure template - timelineWrapper or controls not found');
-    }
-
-    // Add tap tempo button if not present (hidden by default, shown when BPM visible)
-    const controlGroup = document.querySelector('.controls');
-    if (controlGroup) {
-      // Check if tap button exists
-      let tapBtn = controlGroup.querySelector('#tapTempoBtn');
-      if (tapBtn) {
-        tapBtn.style.display = 'none'; // Hidden by default
-      }
-
-      // Add tap help span if not present
-      if (!controlGroup.querySelector('#tapHelp')) {
-        const tapHelp = document.createElement('span');
-        tapHelp.id = 'tapHelp';
-        tapHelp.style.display = 'none';
-        controlGroup.appendChild(tapHelp);
-      }
+      inputsEl.insertBefore(bpmDiv.firstElementChild, inputsEl.firstChild);
     }
 
     // Load main.js (migrated version is now the main)
