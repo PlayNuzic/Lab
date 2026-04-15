@@ -113,7 +113,7 @@ export function updateSoundline(container, rows, options = {}) {
 export function updateMatrix(container, rows, columns, options = {}) {
   if (!container) return;
 
-  const { cellWidth = 50, isSelected, cellFormatter, onCellClick } = options;
+  const { cellWidth = 50, columnSizing = 'px', isSelected, cellFormatter, onCellClick } = options;
 
   // Preserve scroll position
   const savedScrollTop = container.scrollTop;
@@ -130,7 +130,9 @@ export function updateMatrix(container, rows, columns, options = {}) {
   // Create grid
   const grid = document.createElement('div');
   grid.className = 'plano-matrix';
-  grid.style.gridTemplateColumns = `repeat(${columns}, ${cellWidth}px)`;
+  grid.style.gridTemplateColumns = columnSizing === 'fr'
+    ? `repeat(${columns}, 1fr)`
+    : `repeat(${columns}, ${cellWidth}px)`;
   grid.style.gridTemplateRows = `repeat(${rows.length}, var(--plano-cell-height, 32px))`;
 
   // Create cells
@@ -204,6 +206,7 @@ export function updateTimeline(container, columns, options = {}) {
 
   const {
     cellWidth = 50,
+    columnSizing = 'px',
     cycleConfig = {},
     labelFormatter
   } = options;
@@ -221,7 +224,9 @@ export function updateTimeline(container, columns, options = {}) {
   // Create timeline row
   const timelineRow = document.createElement('div');
   timelineRow.className = 'plano-timeline-row';
-  timelineRow.style.gridTemplateColumns = `repeat(${columns}, ${cellWidth}px)`;
+  timelineRow.style.gridTemplateColumns = columnSizing === 'fr'
+    ? `repeat(${columns}, 1fr)`
+    : `repeat(${columns}, ${cellWidth}px)`;
 
   for (let colIdx = 0; colIdx < columns; colIdx++) {
     const numEl = document.createElement('div');

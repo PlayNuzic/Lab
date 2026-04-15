@@ -73,7 +73,8 @@ export function createPlanoModular(config) {
     onCellClick,
     onSelectionChange,
     showPlayhead = true,
-    playheadOffset = 0
+    playheadOffset = 0,
+    columnSizing = 'px'  // 'px' (fixed width) or 'fr' (fill available space)
   } = config;
 
   // State
@@ -184,7 +185,8 @@ export function createPlanoModular(config) {
 
     // Update matrix
     updateMatrix(matrixContainer, rows, columns, {
-      cellWidth,
+      cellWidth: columnSizing === 'fr' ? null : cellWidth,
+      columnSizing,
       isSelected: (rowId, colIndex) => selectionManager.isSelected(rowId, colIndex),
       cellFormatter: (row, colIndex) => {
         // Generate N^r P^m label (same format as updateCellSelection)
@@ -203,7 +205,8 @@ export function createPlanoModular(config) {
 
     // Update timeline
     updateTimeline(timelineContainer, columns, {
-      cellWidth,
+      cellWidth: columnSizing === 'fr' ? null : cellWidth,
+      columnSizing,
       cycleConfig
     });
 

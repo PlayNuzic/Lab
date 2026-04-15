@@ -4,7 +4,7 @@
   display: none;
 }
 
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+/* Nuzic theme overrides */
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 0px;
   --nuzic-controls-offset-y: 0px;
@@ -14,7 +14,6 @@ body[data-visual="nuzic"] {
    GLOBAL SCROLL OVERRIDE
    ============================================ */
 
-/* Block both horizontal and vertical global scroll for this app */
 html, body {
   margin: 0;
   padding: 0;
@@ -46,52 +45,19 @@ html, body {
 /* ============================================
    SHARED COMPONENT IMPORTS
    ============================================ */
-@import '../../libs/shared-ui/bpm-inline.css';
+/* bpm-inline.css loaded via <link> in index.html (base for nuzic-theme overrides) */
 @import '../../libs/shared-ui/cycle-counter.css';
 @import '../../libs/shared-ui/pulse-highlight.css';
 @import '../../libs/shared-ui/soundline.css';
 
 /* ============================================
-   APP-SPECIFIC CSS VARIABLES
+   CSS VARIABLES
    ============================================ */
 
 :root {
-  /* Layout dimensions */
-  --left-column-width: 150px;
   --grid-cell-height: 26px;
   --visible-rows: 24;
-
-  /* Spacing */
-  --layout-gap: 0rem;
-  --controls-gap: 0.75rem;
-
-  /* Registry box */
-  --registro-height: 44px;
-  --registro-offset-x: 0px;
-  --registro-offset-y: 20px;
-
-  /* Controls container offset */
-  --controls-offset-y: 0px;
-
-  /* Button fine-tuning offsets (x, y) */
-  --btn-play-offset-x: 0px;
-  --btn-play-offset-y: 40px;
-  --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 0px;
-  --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 0px;
-  --btn-pulse-toggle-offset-x: -115px;
-  --btn-pulse-toggle-offset-y: -35px;
-  --bpm-offset-x: 0px;
-  --bpm-offset-y: 0px;
-
-  /* BPM sizing */
-  --bpm-scale: 0.8;
-
-  /* Left column offset */
-  --left-column-offset-y: -35px;
-
-  /* Colors */
+  --registro-height: 2.75rem;
   --grid-line-color: rgba(0, 0, 0, 0.15);
   --grid-hover-color: rgba(123, 180, 205, 0.3);
   --grid-selected-color: #7BB4CD;
@@ -100,22 +66,16 @@ html, body {
 [data-theme="dark"] {
   --grid-line-color: rgba(255, 255, 255, 0.15);
   --grid-hover-color: rgba(123, 180, 205, 0.4);
-  /* Grid area bg is visible when grid doesn't fill the space */
-  --grid-area-bg: #252525;
-  /* Cells have different (darker) bg to differentiate from empty space */
-  --grid-cell-bg: #1e1e1e;
 }
 
 /* ============================================
    HIDE TEMPLATE ELEMENTS NOT NEEDED
    ============================================ */
 
-/* Hide loop button - not used in this app */
 #loopBtn {
   display: none !important;
 }
 
-/* Hide formula section */
 .middle {
   display: none !important;
 }
@@ -128,13 +88,13 @@ main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;  /* Permite compresión en iframes */
+  min-height: 0;
   padding: 0;
   overflow: hidden;
 }
 
 /* ============================================
-   INPUTS SECTION: Compás + Nº Compases + Longitud
+   INPUTS SECTION: Params as pastilles
    ============================================ */
 
 .inputs {
@@ -142,8 +102,7 @@ main {
   justify-content: center;
   align-items: flex-end;
   gap: 2rem;
-  padding: 0rem 1rem 0rem;
-  margin-top: 0px;
+  padding: 0 1rem;
   flex-shrink: 0;
   position: relative;
   z-index: 1;
@@ -153,7 +112,6 @@ main {
    NUZIC PARAM SPINNERS (golden circles)
    ============================================ */
 
-/* All param spinners in .inputs get golden circle style */
 .inputs .param .spin {
   background: var(--nuzic-yellow) !important;
   border-radius: 50% !important;
@@ -169,163 +127,9 @@ main {
   border-top-color: white !important;
 }
 
-/* All param circles same size */
-.param.compas .circle,
-.param.cycle-display .circle {
-  width: 80px;
-  height: 80px;
-}
-
-/* Cycle circle: contains both input (when stopped) and digit (when playing) */
-.param.cycle-display .cycle-circle {
-  position: relative;
-}
-
-/* Input styling for compas and cycle */
-.param.compas input,
-.param.cycle-display .cycle-circle input {
-  font-size: 2rem;
-  font-weight: 700;
-  text-align: center;
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-color, #333);
-  font-family: 'Courier New', Courier, monospace;
-}
-
-.param.compas input:focus,
-.param.cycle-display .cycle-circle input:focus {
-  outline: none;
-}
-
-/* When playing, hide input and show digit */
-.param.cycle-display .cycle-circle.playing input {
-  display: none;
-}
-
-.param.cycle-display .cycle-circle .cycle-counter__digit {
-  display: none;
-  font-size: 2rem;
-}
-
-.param.cycle-display .cycle-circle.playing .cycle-counter__digit {
-  display: block;
-}
-
 /* ============================================
-   TOTAL LENGTH CIRCLE (2/3 size = 66px)
+   REGISTRO PARAM (capsule shape)
    ============================================ */
-
-.total-length-inline {
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.total-length-inline .circle {
-  width: 66px;
-  height: 66px;
-  border: 2px solid var(--circle-border, #333);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.total-length-inline .total-length__digit {
-  font-size: 1.8rem;
-  font-weight: 700;
-  font-family: 'Courier New', Courier, monospace;
-  color: var(--text-color, #333);
-  line-height: 1;
-}
-
-.total-length-inline .abbr {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: var(--text-color, #333);
-  opacity: 1;
-}
-
-/* Flip animations (reuse keyframes from cycle-counter) */
-.total-length__digit.flip-out {
-  animation: flipOut 0.15s ease-in forwards;
-}
-
-.total-length__digit.flip-in {
-  animation: flipIn 0.15s ease-out forwards;
-}
-
-/* Playback colors */
-.total-length__digit.playing-zero {
-  color: var(--color-lg, #4A90D9);
-}
-
-.total-length__digit.playing-active {
-  color: var(--selection-color, #EA570C);
-}
-
-/* Dark theme */
-[data-theme="dark"] .total-length-inline .circle {
-  border-color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .total-length-inline .total-length__digit,
-[data-theme="dark"] .total-length-inline .abbr {
-  color: var(--text-color, #eee);
-}
-
-/* ============================================
-   TIMELINE WRAPPER - 2 COLUMN LAYOUT
-   ============================================ */
-
-.timeline-wrapper {
-  flex: 1;
-  display: grid;
-  grid-template-columns: var(--left-column-width) 1fr;
-  gap: var(--layout-gap);
-  padding: var(--layout-gap);
-  min-height: 0;
-  overflow: hidden;
-  position: relative;
-  z-index: 2;
-}
-
-/* ============================================
-   LEFT COLUMN: Registry + Controls + BPM
-   ============================================ */
-
-.left-column {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--controls-gap);
-  padding: 0rem 0;
-  transform: translateY(var(--left-column-offset-y));
-  position: relative;
-  z-index: 10;
-}
-
-/* Registry param */
-.param.registro {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  transform: none;
-}
-
-.param.registro .abbr {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text-color, #333);
-  position: relative;
-  z-index: 10;
-}
 
 .param.registro .circle {
   width: auto !important;
@@ -355,7 +159,6 @@ main {
   font-family: 'Courier New', Courier, monospace;
 }
 
-/* Dark theme for registro */
 [data-theme="dark"] .param.registro .circle {
   border-color: #F28AAD;
 }
@@ -368,276 +171,164 @@ main {
   color: var(--text-color, #eee);
 }
 
-/* Controls container */
-.controls-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  transform: translateY(var(--controls-offset-y, 0px));
-}
+/* ============================================
+   TOTAL LENGTH DISPLAY
+   ============================================ */
 
-.controls-container .controls {
-  position: static;
-  margin: 0;
+.total-length-inline {
+  position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 0.5rem;
 }
 
-/* Vertical layout for controls */
-.controls-container .controls[data-layout="vertical"] {
-  flex-direction: column;
-}
-
-.controls-container .controls .control-buttons-row {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-/* Play row: static positioning for vertical layout */
-.controls-container .controls .play-row {
-  position: static;
-  transform: translate(var(--btn-play-offset-x), var(--btn-play-offset-y));
-  pointer-events: none;  /* Evitar que el contenedor tape otros elementos */
-}
-
-/* Re-activar pointer events en los elementos interactivos del play-row */
-.controls-container .controls .play-row > * {
-  pointer-events: auto;
-}
-
-/* Play button fine-tuning */
-.controls-container .controls #playBtn {
-  position: relative;
-}
-
-/* Pulse toggle fine-tuning */
-.controls-container .controls .play-row .control-sound-toggle-container {
-  transform: translate(var(--btn-pulse-toggle-offset-x), var(--btn-pulse-toggle-offset-y)) !important;
-}
-
-/* Button row: Random + Reset side by side below Play */
-.controls-container .controls .button-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-}
-
-/* Button fine-tuning offsets */
-/* Override shared-ui absolute positioning for vertical layout */
-.controls-container .controls #randomBtn {
-  position: static;
-  transform: translate(var(--btn-random-offset-x), var(--btn-random-offset-y));
-}
-
-.controls-container .controls #resetBtn {
-  position: static;
-  transform: translate(var(--btn-reset-offset-x), var(--btn-reset-offset-y));
-}
-
-.controls-container .controls #tapTempoBtn {
-  display: none !important;
-}
-
-/* Reorder buttons: Play → Random → Reset → TapTempo */
-.controls-container .controls .play-row {
-  order: 1;
-}
-
-.controls-container .controls .button-row {
-  order: 2;
-}
-
-.controls-container .controls #tapTempoBtn {
-  order: 3;
-}
-
-/* Inside .button-row: Random first, then Reset */
-.controls-container .controls .button-row #randomBtn {
-  order: 1;
-}
-
-.controls-container .controls .button-row #randomMenu {
-  order: 2;
-}
-
-.controls-container .controls .button-row #resetBtn {
-  order: 3;
-}
-
-/* ============================================
-   COLOR IDENTIFICATION FOR SECTIONS
-   ============================================ */
-
-/* Círculos de parámetros → azul (color Lg) */
-.param.compas .circle,
-.param.cycle-display .circle,
-.total-length-inline .circle,
-.bpm-inline .circle {
-  border-color: var(--color-lg);
-}
-
-/* BPM inline at bottom - always visible in App19 */
-.left-column .bpm-inline {
-  position: relative;
-  display: flex !important;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: auto;
-  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
-}
-
-/* BPM label above circle */
-.left-column .bpm-inline .abbr {
-  font-size: 1.4rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-color, #333);
-  opacity: 0.8;
-}
-
-/* BPM circle */
-.left-column .bpm-inline .circle {
-  width: 66px;
-  height: 66px;
-  border: 2px solid var(--color-lg, #4A90D9);
+.total-length-inline .circle {
+  width: 4.125rem;
+  height: 4.125rem;
+  border: 2px solid var(--circle-border, #333);
   border-radius: 50%;
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Override shared-ui/index.css spinner styles for BPM */
-.left-column .bpm-inline .spinner {
-  position: absolute;
-  right: -35px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 26px;
-  height: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.left-column .bpm-inline .spin {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  border: none;
-  background: #333;
-  cursor: pointer;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.left-column .bpm-inline .spin:hover {
-  background: #555;
-}
-
-.left-column .bpm-inline .spin::before {
-  content: '';
-  display: block;
-  width: 0;
-  height: 0;
-}
-
-.left-column .bpm-inline .spin.up::before {
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 8px solid #eee;
-  border-top: none;
-}
-
-.left-column .bpm-inline .spin.down::before {
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 8px solid #eee;
-  border-bottom: none;
-}
-
-/* BPM input styling */
-.left-column .bpm-inline input {
-  font-size: 1.65rem;
+.total-length-inline .total-length__digit {
+  font-size: 1.8rem;
   font-weight: 700;
-  text-align: center;
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-color, #333);
   font-family: 'Courier New', Courier, monospace;
-  padding: 0;
+  color: var(--text-color, #333);
+  line-height: 1;
 }
 
-.left-column .bpm-inline input:focus {
-  outline: none;
+.total-length-inline .abbr {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
 }
 
-/* BPM dark theme overrides */
-[data-theme="dark"] .left-column .bpm-inline .abbr {
+[data-theme="dark"] .total-length-inline .circle {
+  border-color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .total-length-inline .total-length__digit,
+[data-theme="dark"] .total-length-inline .abbr {
   color: var(--text-color, #eee);
 }
 
-[data-theme="dark"] .left-column .bpm-inline input {
-  color: var(--text-color, #eee);
+/* Playback colors */
+.total-length__digit.playing-zero {
+  color: var(--color-lg, #4A90D9);
 }
 
-[data-theme="dark"] .left-column .bpm-inline .spin {
-  background: #eee;
-}
-
-[data-theme="dark"] .left-column .bpm-inline .spin:hover {
-  background: #ccc;
-}
-
-[data-theme="dark"] .left-column .bpm-inline .spin.up::before {
-  border-bottom-color: #333;
-}
-
-[data-theme="dark"] .left-column .bpm-inline .spin.down::before {
-  border-top-color: #333;
+.total-length__digit.playing-active {
+  color: var(--selection-color, #EA570C);
 }
 
 /* ============================================
-   RIGHT COLUMN: Grid 2D
+   TIMELINE WRAPPER (single column)
    ============================================ */
 
-.right-column {
+.timeline-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  margin-right: 1rem;
+  position: relative;
+  z-index: 2;
 }
 
-/* Override plano-modular defaults for 19 visible rows */
+/* Plano grid fills available space, controls stay below */
+.timeline-wrapper .plano-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ============================================
+   PLANO-MODULAR OVERRIDES
+   ============================================ */
+
 .plano-container {
   --plano-cell-height: 26px;
   --plano-visible-rows: 19;
+  width: 100%;
+  min-width: 0;
+  background: white;
 }
 
-/* Fit grid vertically: cap the scroll containers to available space */
-.right-column .plano-soundline-container,
-.right-column .plano-matrix-container {
-  max-height: min(calc(100dvh - 170px), calc(var(--plano-visible-rows) * var(--plano-cell-height)));
+[data-theme="dark"] .plano-container {
+  background: #1e1e1e;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] .plano-container {
+    background: #1e1e1e;
+  }
+}
+
+/* Remove left margin so matrix starts flush with soundline edge */
+.plano-matrix,
+.plano-timeline-row {
+  margin-left: 0;
+}
+
+/* App19 uses columnSizing:'fr', so the grid tracks should fill the wrapper
+   instead of sizing to max-content and collapsing to their minimum width. */
+.plano-grid-area,
+.plano-matrix-container,
+.plano-timeline-container,
+.plano-matrix,
+.plano-timeline-row {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Note 0 of each registry: pink */
+.plano-soundline-note[data-note="0"] {
+  color: #F28AAD !important;
+}
+
+[data-theme="dark"] .plano-soundline-note[data-note="0"] {
+  color: #F28AAD !important;
+}
+
+/* Hide scrollbars — scroll is quantized via buttons/wheel */
+.plano-soundline-container,
+.plano-matrix-container {
+  scrollbar-width: none;
+}
+
+.plano-soundline-container::-webkit-scrollbar,
+.plano-matrix-container::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+/* plano-modular highlight override */
+.plano-cell.plano-highlight {
+  background: transparent !important;
+}
+
+.plano-cell.plano-highlight::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -50%;
+  height: 100%;
+  background: #FFBB33;
+  border-radius: 2px;
+  z-index: 1;
+  pointer-events: none;
+  transform: scale(1.05);
+  box-shadow: 0 0 8px #FFBB33;
 }
 
 /* ============================================
    NP-DOT (Clickable points in Grid 2D)
-   Styled like App20 for consistency
    ============================================ */
 
-/* Dot element - clickable area centered on intersection */
 .np-dot {
   position: absolute;
   bottom: -6px;
@@ -648,7 +339,6 @@ main {
   pointer-events: auto;
 }
 
-/* Visual dot via ::after pseudo-element */
 .np-dot::after {
   content: '';
   position: absolute;
@@ -668,7 +358,6 @@ main {
   border-color: rgba(153, 153, 153, 0.5);
 }
 
-/* Dot in selected/highlighted cell - filled and glowing */
 .plano-cell.plano-selected .np-dot::after,
 .plano-cell.duration-highlight .np-dot::after {
   background: var(--plano-select-color, #FFBB33);
@@ -682,7 +371,6 @@ main {
     0 0 16px var(--plano-select-color, #FFBB33);
 }
 
-/* Clickable dot */
 .np-dot-clickable {
   cursor: pointer;
   pointer-events: auto !important;
@@ -695,8 +383,7 @@ body[data-visual="nuzic"] .plano-cell {
 }
 
 /* np-dot at division line (bottom of cell = aligned with soundline marks).
-   translate(−50%, 50%) centers the element ON the bottom edge so
-   the circle straddles the line — full circle, not clipped. */
+   translate(−50%, 50%) centers the element ON the bottom edge. */
 body[data-visual="nuzic"] .plano-cell .np-dot {
   bottom: 0;
   left: 4px;
@@ -729,7 +416,6 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
    DISABLE CELL CLICK - Only dots are interactive
    ============================================ */
 
-/* Matrix container needs pointer-events for scroll */
 .plano-matrix-container {
   pointer-events: auto;
 }
@@ -738,198 +424,27 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   pointer-events: auto;
 }
 
-/* Disable pointer events on cells themselves */
 .plano-cell {
   pointer-events: none;
   cursor: default;
   position: relative;
 }
 
-/* Re-enable pointer events on dots only */
 .plano-cell .np-dot {
   pointer-events: auto;
 }
 
-/* Note 0 of each registry: pink (matching App18) */
-.plano-soundline-note[data-note="0"] {
-  color: #F28AAD !important;
-}
-
-[data-theme="dark"] .plano-soundline-note[data-note="0"] {
-  color: #F28AAD !important;
-}
-
-/* Hide vertical scrollbar — scroll is quantized via buttons/wheel */
+/* Plano scroll containers: fill available grid track height.
+   plano-modular.css caps these with max-height based on --plano-visible-rows,
+   which is smaller than the viewport space. Remove that cap so the 1fr grid
+   row inside .plano-container dictates the height instead. */
 .plano-soundline-container,
 .plano-matrix-container {
-  scrollbar-width: none;
-}
-
-.plano-soundline-container::-webkit-scrollbar,
-.plano-matrix-container::-webkit-scrollbar {
-  width: 0;
-  display: none;
-}
-
-/* Soundline container (Y-axis: notes) */
-.soundline-container {
-  grid-column: 1;
-  grid-row: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  padding-right: 0.5rem;
-  min-width: 50px;
-  position: relative;
-  z-index: 1;
-  /* Scroll enabled for user and programmatic control */
-  overflow-y: scroll;
-  overflow-x: hidden;
-  max-height: calc(var(--visible-rows) * var(--grid-cell-height));
-  /* Show thin scrollbar */
-  scrollbar-width: thin;  /* Firefox */
-}
-
-.soundline-container::-webkit-scrollbar {
-  width: 6px;  /* Chrome/Safari */
-}
-
-.soundline-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-}
-
-[data-theme="dark"] .soundline-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Grid area (matrix + timeline) */
-.grid-area {
-  grid-column: 2;
-  grid-row: 1 / 3;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-}
-
-/* Matrix container (cells) */
-.matrix-container {
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: scroll;  /* Scroll enabled for user and programmatic control */
-  min-height: 0;
-  max-height: calc(var(--visible-rows) * var(--grid-cell-height));
-  /* Show thin scrollbar */
-  scrollbar-width: thin;  /* Firefox */
-}
-
-.matrix-container::-webkit-scrollbar {
-  width: 6px;  /* Chrome/Safari */
-  height: 6px;
-}
-
-.matrix-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-}
-
-[data-theme="dark"] .matrix-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Timeline container (X-axis: pulses) */
-.timeline-container {
-  height: 40px;
-  flex-shrink: 0;
-  overflow-x: auto;
-  overflow-y: visible;
-  position: relative;
-  z-index: 10;
-  margin-left: -15px;
-  padding-left: 15px;
-}
-
-/* Sync scroll between matrix and timeline */
-.matrix-container,
-.timeline-container {
-  scrollbar-width: thin;
-  scrollbar-color: var(--grid-line-color) transparent;
-}
-
-/* Hide scrollbar on timeline (will be synced with matrix) */
-.timeline-container {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.timeline-container::-webkit-scrollbar {
-  display: none;
+  max-height: none;
 }
 
 /* ============================================
-   GRID CELLS
-   ============================================ */
-
-.grid-matrix {
-  display: grid;
-  gap: 0;
-  min-width: max-content;
-  position: relative;  /* For playhead positioning */
-  margin-left: 15px;   /* Space for pulse 0 visibility */
-}
-
-.grid-cell {
-  background: var(--bg-color, #fff);
-  height: var(--grid-cell-height);
-  cursor: pointer;
-  transition: background 0.1s ease;
-  border-right: 1px solid var(--grid-line-color);
-  border-bottom: 1px solid var(--grid-line-color);
-  box-sizing: border-box;
-}
-
-.grid-cell:hover {
-  background: var(--grid-hover-color);
-}
-
-.grid-cell.selected {
-  background: var(--grid-selected-color);
-}
-
-/* Legacy class - keep for compatibility */
-.grid-cell.highlighted {
-  background: #FFBB33 !important;
-  outline: none;
-}
-
-/* plano-modular highlight override — visual note straddles division line via ::before */
-.plano-cell.plano-highlight {
-  background: transparent !important;
-}
-
-.plano-cell.plano-highlight::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -50%;
-  height: 100%;
-  background: #FFBB33;
-  border-radius: 2px;
-  z-index: 1;
-  pointer-events: none;
-  transform: scale(1.05);
-  box-shadow: 0 0 8px #FFBB33;
-}
-
-/* Cell label styles managed by musical-grid.css */
-.grid-cell.selected {
-  position: relative;
-}
-
-/* ============================================
-   PLAYHEAD (vertical bar during playback)
+   PLAYBACK ANIMATIONS
    ============================================ */
 
 .playhead {
@@ -942,348 +457,14 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   z-index: 20;
   pointer-events: none;
   box-shadow: 0 0 6px var(--select-color, #EA570C);
-  margin-left: -4px;  /* Align with timeline numbers */
+  margin-left: -4px;
 }
 
-/* Hide playhead when not playing */
 .playhead.hidden {
   display: none;
 }
 
-/* Dark theme */
-[data-theme="dark"] .grid-area,
-[data-theme="dark"] .matrix-container {
-  background: var(--grid-area-bg, #252525);
-}
-
-[data-theme="dark"] .grid-cell {
-  background: var(--grid-cell-bg, #1e1e1e);
-}
-
-[data-theme="dark"] .grid-cell:hover {
-  background: var(--grid-hover-color);
-}
-
-[data-theme="dark"] .grid-cell.selected {
-  background: var(--grid-selected-color, #E4570C);
-}
-
-/* ============================================
-   TIMELINE NUMBERS
-   ============================================ */
-
-.timeline-row {
-  display: grid;
-  gap: 0;
-  min-width: max-content;
-  height: 100%;
-  align-items: center;
-  margin-left: 15px;  /* Match .grid-matrix margin for alignment */
-}
-
-.timeline-number {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: start;
-  margin-left: -4px;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text-color, #333);
-}
-
-.timeline-number .pulse-num {
-  line-height: 1;
-}
-
-.timeline-number .cycle-sup {
-  font-size: 0.8em;
-  vertical-align: super;
-  margin-left: 1px;
-  margin-top: -15px;
-  opacity: 0.7;
-  line-height: 1;
-}
-
-/* Cycle start (pulse 0) styling */
-.timeline-number.cycle-start {
-  color: var(--color-lg, #4A90D9);
-}
-
-/* Dark theme */
-[data-theme="dark"] .timeline-number {
-  color: var(--text-color, #eee);
-}
-
-/* Preserve blue color for cycle-start (pulse 0) in dark mode */
-[data-theme="dark"] .timeline-number.cycle-start {
-  color: var(--color-lg, #4A90D9);
-}
-
-/* ============================================
-   SOUNDLINE NOTES (Y-axis)
-   ============================================ */
-
-.soundline-row {
-  display: flex;
-  flex-direction: column;
-}
-
-.soundline-note {
-  height: var(--grid-cell-height);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 0.5rem;
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: var(--text-color, #333);
-  border-bottom: 1px solid var(--grid-line-color);
-  box-sizing: border-box;
-  transform: translateY(50%);  /* Center text on division line */
-}
-
-/* Registry boundary: same color as other notes (no blue) */
-.soundline-note.registry-boundary {
-  color: var(--text-color, #333);
-  font-weight: 500;
-}
-
-/* Note 0 of any registry: pink */
-.soundline-note[data-noteinreg="0"] {
-  color: #F28AAD !important;
-  font-weight: 700;
-}
-
-/* Out of range rows (r2 padding for scroll) - dimmed and non-interactive */
-.soundline-note.out-of-range {
-  opacity: 0.35;
-  pointer-events: none;
-}
-
-.grid-cell.out-of-range {
-  opacity: 0.25;
-  pointer-events: none;
-  cursor: default;
-}
-
-/* Dark theme */
-[data-theme="dark"] .soundline-note {
-  color: var(--text-color, #eee);
-}
-
-/* ============================================
-   RESPONSIVE - Tablet landscape (900px)
-   ============================================ */
-
-@media (max-width: 900px) {
-  :root {
-    --left-column-width: 120px;
-    --registro-height: 60px;
-    --grid-cell-height: 28px;
-    /* Reduce button offsets */
-    --btn-play-offset-x: 0px;
-    --btn-play-offset-y: 0px;
-    --btn-random-offset-y: 0px;
-    --btn-reset-offset-y: 0px;
-    --registro-offset-y: -80px;
-    --left-column-offset-y: -20px;
-  }
-
-  .inputs {
-    gap: 1.5rem;
-    padding: 0.75rem 1rem 0.5rem;
-  }
-
-  .param.compas .circle,
-  .param.cycle-display .circle {
-    width: 75px;
-    height: 75px;
-  }
-
-  .param.compas input,
-  .param.cycle-display .cycle-circle input {
-    font-size: 1.8rem;
-  }
-
-  .total-length-inline .circle {
-    width: 50px;
-    height: 50px;
-  }
-
-  .total-length-inline .total-length__digit {
-    font-size: 1.4rem;
-  }
-
-  .param.registro input {
-    font-size: 1.6rem;
-  }
-
-  /* Scale ALL controls 35% smaller - center origin prevents left overflow */
-  .controls-container .controls {
-    transform: scale(0.65);
-    transform-origin: top center;
-  }
-}
-
-/* ============================================
-   RESPONSIVE - Small tablet (850px)
-   ============================================ */
-
-@media (max-width: 850px) {
-  :root {
-    --left-column-width: 100px;
-    --registro-height: 55px;
-    --btn-play-offset-x: 0px;
-    --btn-play-offset-y: 0px;
-    --btn-random-offset-y: 0px;
-    --btn-reset-offset-y: 0px;
-    --registro-offset-y: -50px;
-    --left-column-offset-y: -10px;
-  }
-
-  .inputs {
-    gap: 1rem;
-    padding: 0.5rem 0.75rem 0.25rem;
-  }
-
-  .param.compas .circle,
-  .param.cycle-display .circle {
-    width: 65px;
-    height: 65px;
-  }
-
-  .param.compas input,
-  .param.cycle-display .cycle-circle input {
-    font-size: 1.6rem;
-  }
-
-  .param.cycle-display .cycle-circle .cycle-counter__digit {
-    font-size: 1.6rem;
-  }
-
-  .total-length-inline .circle {
-    width: 45px;
-    height: 45px;
-  }
-
-  .total-length-inline .total-length__digit {
-    font-size: 1.2rem;
-  }
-
-  .total-length-inline .abbr {
-    font-size: 0.9rem;
-  }
-
-  .param.registro input {
-    font-size: 1.4rem;
-  }
-
-  .param.registro .abbr,
-  .param.compas .abbr,
-  .param.cycle-display .abbr {
-    font-size: 1rem;
-  }
-
-  /* Controls smaller - center origin prevents left overflow */
-  .controls-container .controls {
-    transform: scale(0.55);
-    transform-origin: top center;
-  }
-}
-
-/* ============================================
-   RESPONSIVE - Tablet portrait / Small landscape
-   ============================================ */
-
-@media (max-width: 768px) and (orientation: landscape) {
-  :root {
-    --left-column-width: 100px;
-    --registro-height: 60px;
-    --grid-cell-height: 24px;
-  }
-
-  .inputs {
-    gap: 1rem;
-    padding: 0.5rem 0.75rem 0.25rem;
-  }
-
-  .param.compas .circle,
-  .param.cycle-display .circle {
-    width: 70px;
-    height: 70px;
-  }
-
-  .param.compas input,
-  .param.cycle-display .cycle-circle input {
-    font-size: 1.75rem;
-  }
-
-  .total-length-inline .circle {
-    width: 46px;
-    height: 46px;
-  }
-
-  .total-length-inline .total-length__digit {
-    font-size: 1.3rem;
-  }
-
-  .total-length-inline .abbr {
-    font-size: 0.75rem;
-  }
-
-  .param.registro input {
-    font-size: 1.5rem;
-  }
-}
-
-/* ============================================
-   DARK THEME ADJUSTMENTS
-   ============================================ */
-
-[data-theme="dark"] .param.compas input,
-[data-theme="dark"] .param.cycle-display input {
-  color: var(--text-color, #eee);
-}
-
-/* ============================================
-   PLAYBACK ANIMATIONS (Pattern from Apps 16/17)
-   ============================================ */
-
-/* Grid cell playing highlight */
-.grid-cell.playing {
-  background: var(--select-color, #EA570C) !important;
-  transform: scale(1.1);
-  transition: transform 0.1s ease, background 0.1s ease;
-  box-shadow: 0 0 8px var(--select-color, #EA570C);
-  z-index: 10;
-}
-
-[data-theme="dark"] .grid-cell.playing {
-  box-shadow: 0 0 12px var(--select-color, #EA570C);
-}
-
-/* Timeline numbers active states */
-.timeline-number.active {
-  color: var(--select-color, #EA570C) !important;
-  transform: scale(1.2);
-  font-weight: 700;
-  transition: transform 0.1s ease, color 0.1s ease;
-}
-
-.timeline-number.active-zero {
-  color: var(--color-lg, #4A90D9) !important;
-  transform: scale(1.3);
-  font-weight: 700;
-  text-shadow: 0 0 8px var(--color-lg, #4A90D9);
-  transition: transform 0.1s ease, color 0.1s ease;
-}
-
-[data-theme="dark"] .timeline-number.active-zero {
-  text-shadow: 0 0 12px var(--color-lg, #4A90D9);
-}
-
-/* Flip animations (keyframes) */
+/* Flip animations */
 @keyframes flipOut {
   from { transform: rotateX(0); opacity: 1; }
   to { transform: rotateX(-90deg); opacity: 0; }
@@ -1302,7 +483,6 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   animation: flipIn 0.15s ease-out forwards;
 }
 
-/* Colors for digits during playback */
 .cycle-counter__digit.playing-zero,
 .total-length__digit.playing-zero {
   color: var(--color-lg, #4A90D9) !important;
@@ -1314,156 +494,10 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
 }
 
 /* ============================================
-   RESPONSIVE BREAKPOINTS
+   DARK THEME
    ============================================ */
 
-/* Tablet landscape (900px) */
-@media (max-width: 900px) {
-  :root {
-    --visible-rows: 12;
-    --grid-cell-height: 28px;
-    --left-column-width: 120px;
-  }
-}
-
-/* Tablet portrait landscape (768px) */
-@media (max-width: 768px) {
-  :root {
-    --visible-rows: 10;
-    --grid-cell-height: 24px;
-    --left-column-width: 100px;
-  }
-
-  .inputs-section {
-    padding: 0.5rem;
-    gap: 0.5rem;
-  }
-}
-
-/* Small screens (700px) - Compact inputs to maximize grid space */
-@media (max-width: 700px) {
-  :root {
-    --visible-rows: 39;  /* Show ALL rows (full grid height) */
-    --grid-cell-height: 18px;
-    --left-column-width: 80px;
-    --registro-height: 50px;
-  }
-
-  /* Compact inputs section */
-  .inputs-section {
-    padding: 0.25rem;
-    gap: 0.25rem;
-  }
-
-  /* Smaller param circles */
-  .param.compas .circle,
-  .param.cycle-display .circle {
-    width: 60px;
-    height: 60px;
-  }
-
-  .param.compas input,
-  .param.cycle-display .cycle-circle input {
-    font-size: 1.5rem;
-  }
-
-  .param.cycle-display .cycle-circle .cycle-counter__digit {
-    font-size: 1.5rem;
-  }
-
-  /* Smaller total-length */
-  .total-length-inline .circle {
-    width: 50px;
-    height: 50px;
-  }
-
-  .total-length-inline input {
-    font-size: 1.2rem;
-  }
-
-  /* Compact param labels */
-  .param-inline .abbr,
-  .total-length-inline .abbr {
-    font-size: 0.9rem;
-  }
-
-  /* Smaller registry */
-  .param.registro .abbr {
-    font-size: 1rem;
-  }
-
-  .param.registro input {
-    font-size: 1.5rem;
-  }
-
-  /* Smaller buttons */
-  .left-column .action-btn {
-    width: 40px;
-    height: 40px;
-  }
-
-  /* Compact BPM */
-  .left-column .bpm-inline .abbr {
-    font-size: 1rem;
-  }
-
-  .left-column .bpm-inline .circle {
-    width: 50px;
-    height: 50px;
-  }
-
-  .left-column .bpm-inline input {
-    font-size: 1.2rem;
-  }
-
-  .left-column .bpm-inline .spin {
-    width: 20px;
-    height: 20px;
-  }
-
-  /* Smaller soundline labels */
-  .soundline-note {
-    font-size: 0.7rem;
-    min-width: 35px;
-  }
-
-  /* Smaller timeline numbers */
-  .timeline-number {
-    font-size: 0.9rem;
-  }
-}
-
-/* Extra small screens (500px) */
-@media (max-width: 500px) {
-  :root {
-    --grid-cell-height: 16px;
-    --left-column-width: 70px;
-    --registro-height: 45px;
-  }
-
-  .param.compas .circle,
-  .param.cycle-display .circle {
-    width: 50px;
-    height: 50px;
-  }
-
-  .param.compas input,
-  .param.cycle-display .cycle-circle input,
-  .param.cycle-display .cycle-circle .cycle-counter__digit {
-    font-size: 1.3rem;
-  }
-
-  .total-length-inline .circle {
-    width: 40px;
-    height: 40px;
-  }
-
-  .total-length-inline input {
-    font-size: 1rem;
-  }
-
-  .soundline-note {
-    font-size: 0.6rem;
-    min-width: 30px;
-  }
+[data-theme="dark"] .param.compas input,
+[data-theme="dark"] .param.cycle-display input {
+  color: var(--text-color, #eee);
 }

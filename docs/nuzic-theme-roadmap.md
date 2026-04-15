@@ -167,6 +167,7 @@ Selectors equivalents per al DOM de plano-modular:
 | `.musical-cell` | `.plano-cell` |
 | `.musical-cell.active::before` | `.plano-cell.plano-selected::before` |
 | `.np-dot::after` | `.plano-cell .np-dot::after` (App19, App20 — gradient amagat, DOM element a divisòria) |
+| Columnes fixes (px) | `columnSizing: 'fr'` + `width:100%; min-width:0` a tota la cadena (App19) |
 
 ### Fase 10: Dark mode complet
 

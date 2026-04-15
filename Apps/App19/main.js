@@ -194,6 +194,7 @@ function initGrid() {
   grid = createApp19Grid({
     parent: gridContainer,
     columns: getTotalPulses() || 1,
+    columnSizing: 'fr',
     cycleConfig: {
       compas: compas || 1,
       showCycle: true
@@ -357,7 +358,7 @@ function scrollToScreen(screenIndex, animated = false) {
   }
 
   if (elements.registroText) {
-    elements.registroText.textContent = screen.label;
+    elements.registroText.value = screen.label;
   }
 }
 
@@ -849,7 +850,7 @@ registerFactoryReset({
     // Reset UI
     if (elements.inputCompas) elements.inputCompas.value = '';
     if (elements.inputCycle) elements.inputCycle.value = '';
-    if (elements.registroText) elements.registroText.textContent = '3 y 4';
+    if (elements.registroText) elements.registroText.value = '3 y 4';
     if (elements.cycleDigit) elements.cycleDigit.textContent = '';
 
     // Reset BPM
@@ -1035,8 +1036,18 @@ function initApp() {
     if (resetBtnEl) controls.appendChild(resetBtnEl);
   }
 
+  // Save controls before initGrid clears .timeline-wrapper
+  const savedControls = controls?.parentNode === document.querySelector('.timeline-wrapper')
+    ? controls : null;
+  if (savedControls) savedControls.remove();
+
   // Initialize the grid (plano-modular)
   initGrid();
+
+  // Re-add controls after plano-container
+  if (savedControls) {
+    document.querySelector('.timeline-wrapper')?.appendChild(savedControls);
+  }
 
   // Initial renders
   updateLongitud();

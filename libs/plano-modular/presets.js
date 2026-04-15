@@ -52,6 +52,7 @@ export function createPlanoMusical(config) {
   const {
     parent,
     columns,
+    columnSizing = 'px',
     registryConfig = {},
     cycleConfig = {},
     bpm = 100,
@@ -91,6 +92,7 @@ export function createPlanoMusical(config) {
     parent,
     rows,
     columns,
+    columnSizing,
     cycleConfig,
     bpm,
     scrollConfig: {
@@ -336,6 +338,7 @@ export function createApp19Grid(config) {
   const {
     parent,
     columns,
+    columnSizing = 'px',
     cycleConfig = {},
     bpm = 100,
     onCellClick,
@@ -348,6 +351,7 @@ export function createApp19Grid(config) {
   const grid = createPlanoMusical({
     parent,
     columns,
+    columnSizing,
     registryConfig: {
       registries: customRegistryConfig.registries || APP19_CONFIG.registries,
       visibleRows: customRegistryConfig.visibleRows || APP19_CONFIG.visibleRows,
