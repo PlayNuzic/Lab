@@ -186,6 +186,7 @@ body[data-visual="nuzic"] .plano-container {
    Plano-modular usa ::before per rectangles i ::after per hover.
    Solució: dot via radial-gradient al background-image, alliberant pseudo-elements. */
 body[data-visual="nuzic"] .plano-cell {
+  /* Original dot position — apps with np-dot elements override this */
   background-image: radial-gradient(circle 4px at 0% 100%, var(--nuzic-dark) 45%, transparent 46%);
   background-repeat: no-repeat;
 }
