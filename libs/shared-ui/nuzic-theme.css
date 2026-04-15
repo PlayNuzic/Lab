@@ -465,11 +465,63 @@ body[data-visual="nuzic"] .grid-container .pulse-marker.highlighted::after {
 /* Plano-modular timeline */
 body[data-visual="nuzic"] .plano-timeline-container {
   background: var(--nuzic-yellow-light);
+  overflow-y: clip;
+  overflow-x: hidden;
 }
 
 body[data-visual="nuzic"] .plano-timeline-number {
+  position: relative;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 1.2rem;
+  color: var(--nuzic-dark);
+  justify-content: flex-start;
+}
+
+/* Tick above each number — aligned with np-dot at left: 4px */
+body[data-visual="nuzic"] .plano-timeline-number::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0;
+  width: 2.5px;
+  height: 8px;
+  background: var(--nuzic-dark);
+  opacity: 0.7;
+}
+
+/* Tick below each number */
+body[data-visual="nuzic"] .plano-timeline-number::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  bottom: 0;
+  width: 2.5px;
+  height: 8px;
+  background: var(--nuzic-dark);
+  opacity: 0.7;
+}
+
+/* Playback highlight: golden bar */
+body[data-visual="nuzic"] .plano-timeline-number.plano-highlight {
+  color: var(--nuzic-dark) !important;
+  background: var(--nuzic-yellow);
+  transform: none;
+  text-shadow: none;
+  box-shadow: none;
+}
+
+body[data-visual="nuzic"] .plano-timeline-number.plano-highlight::before,
+body[data-visual="nuzic"] .plano-timeline-number.plano-highlight::after {
+  background: var(--nuzic-yellow);
+  opacity: 1;
+  width: 4px;
+  border-radius: 1px;
+}
+
+body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-start.plano-highlight {
+  color: var(--nuzic-dark) !important;
+  transform: none;
+  text-shadow: none;
 }
 
 /* Timeline standalone (apps sense .grid-container: app9, app13, App16, App26-31)
@@ -922,6 +974,15 @@ body[data-visual="nuzic"][data-theme="dark"] .grid-container .pulse-marker::afte
 
 body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-number {
   color: #43433b;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-number::before,
+body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-number::after {
+  background: #43433b;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-number.plano-highlight {
+  color: #43433b !important;
 }
 
 /* BPM input text: clar sobre fons fosc */
