@@ -251,9 +251,8 @@ main {
 
 .plano-container {
   --plano-cell-height: 26px;
-  --plano-visible-rows: 19;
+  --plano-visible-rows: 24;
   width: 100%;
-  min-width: 0;
   background: var(--bg-light);
 }
 
@@ -267,11 +266,32 @@ main {
   margin-left: 0;
 }
 
+/* Reserve independent rows for matrix and timeline in App19.
+   The generic plano-modular flex layout can make the timeline appear to sit
+   "inside" the last visible grid row once note labels / np-dots straddle the
+   bottom boundary. Explicit rows keep the timeline in its own band. */
+.plano-grid-area {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.plano-matrix-container {
+  grid-row: 1;
+  min-height: 0;
+}
+
+.plano-timeline-container {
+  grid-row: 2;
+  position: relative;
+  z-index: 2;
+}
+
 /* App19 uses columnSizing:'fr', so the grid tracks should fill the wrapper
-   instead of sizing to max-content and collapsing to their minimum width. */
-.plano-grid-area,
+   instead of sizing to max-content and collapsing to their minimum width.
+   NOTE: plano-grid-area NOT included — width:100% on a grid item overflows
+   its track and covers the soundline column. The 1fr track handles its width. */
 .plano-matrix-container,
-.plano-timeline-container,
 .plano-matrix,
 .plano-timeline-row {
   width: 100%;
@@ -428,13 +448,11 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   pointer-events: auto;
 }
 
-/* Plano scroll containers: fill available grid track height.
-   plano-modular.css caps these with max-height based on --plano-visible-rows,
-   which is smaller than the viewport space. Remove that cap so the 1fr grid
-   row inside .plano-container dictates the height instead. */
+/* Limit scroll containers so the timeline (40px) stays visible below.
+   Soundline and matrix share the same height cap. */
 .plano-soundline-container,
 .plano-matrix-container {
-  max-height: none;
+  max-height: calc(var(--plano-visible-rows) * var(--plano-cell-height) - var(--plano-timeline-height, 40px) - var(--plano-cell-height)/2);
 }
 
 /* ============================================
