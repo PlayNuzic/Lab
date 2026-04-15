@@ -223,9 +223,11 @@ export function createPlanoModular(config) {
   // Initialize playhead controller AFTER refresh() creates .plano-matrix
   // This ensures .plano-matrix exists and has position: relative
   if (showPlayhead) {
+    // For 'fr' columns, pass 0 as cellWidth to trigger DOM-based positioning in playhead
+    const getCellWidthForPlayhead = columnSizing === 'fr' ? () => 0 : getCellWidthDynamic;
     playheadController = createPlayheadController(
       matrixContainer,
-      getCellWidthDynamic,
+      getCellWidthForPlayhead,
       playheadOffset
     );
   }

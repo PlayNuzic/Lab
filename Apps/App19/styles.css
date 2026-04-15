@@ -47,7 +47,7 @@ html, body {
    ============================================ */
 /* bpm-inline.css loaded via <link> in index.html (base for nuzic-theme overrides) */
 @import '../../libs/shared-ui/cycle-counter.css';
-@import '../../libs/shared-ui/pulse-highlight.css';
+
 @import '../../libs/shared-ui/soundline.css';
 
 /* ============================================
@@ -254,17 +254,6 @@ main {
   --plano-visible-rows: 19;
   width: 100%;
   min-width: 0;
-  background: white;
-}
-
-[data-theme="dark"] .plano-container {
-  background: #1e1e1e;
-}
-
-@media (prefers-color-scheme: dark) {
-  [data-theme="system"] .plano-container {
-    background: #1e1e1e;
-  }
 }
 
 /* Remove left margin so matrix starts flush with soundline edge */

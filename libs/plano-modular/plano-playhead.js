@@ -38,6 +38,19 @@ export function createPlayhead(container) {
 export function updatePlayhead(playhead, colIndex, cellWidth, offset = 0) {
   if (!playhead) return;
 
+  // When cellWidth is falsy (0 or null), use DOM-based positioning for flexible layouts (1fr columns)
+  if (!cellWidth) {
+    const matrix = playhead.closest('.plano-matrix') || playhead.parentElement;
+    if (matrix) {
+      const cell = matrix.querySelector(`.plano-cell[data-col-index="${colIndex}"]`);
+      if (cell) {
+        playhead.style.left = `${cell.offsetLeft + offset}px`;
+        playhead.classList.remove('plano-playhead--hidden');
+        return;
+      }
+    }
+  }
+
   const leftPosition = (colIndex * cellWidth) + offset;
   playhead.style.left = `${leftPosition}px`;
   playhead.classList.remove('plano-playhead--hidden');
