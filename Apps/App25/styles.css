@@ -140,11 +140,11 @@ main {
 /* ========== CELL LABELS (degree numbers on active cells) ========== */
 .cell-label {
   position: absolute;
-  bottom: 0;
+  top: 50%;
   left: 50%;
-  transform: translate(-50%, 50%);
-  font-size: clamp(0.6rem, 1.2vw, 0.85rem);
-  font-weight: 600;
+  transform: translate(-50%, -50%);
+  font-size: clamp(0.55rem, 1vw, 0.75rem);
+  font-weight: 700;
   color: var(--nuzic-dark, #43433B);
   pointer-events: none;
   z-index: 15;
@@ -192,6 +192,8 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 2rem;
+  margin-top: 0.53rem;
   color: white;
   background: var(--nuzic-yellow, #FFBB33);
 }
@@ -200,13 +202,15 @@ main {
   display: flex;
   justify-content: flex-start;
   align-items: stretch;
+  height: 2rem;
+  margin-top: 0.53rem;
   background: var(--nuzic-light, #EEE8D8);  /* cream extends to end */
 }
 
 .degree-editor-cell {
   width: 5%;
   min-width: 1.25rem;
-  aspect-ratio: 1;
+  height: 100%;
   border: none;
   text-align: center;
   font-weight: 700;
@@ -256,7 +260,7 @@ main {
 .degree-editor-end {
   width: 5%;
   min-width: 1.25rem;
-  aspect-ratio: 1;
+  height: 100%;
   background: var(--nuzic-dark, #43433B);
   display: none;
   align-items: center;
@@ -289,13 +293,4 @@ main {
   opacity: 1;
 }
 
-/* Dark theme editor */
-[data-theme="dark"] .degree-editor-cell:not(:placeholder-shown) {
-  background: var(--nuzic-white, #1e1e1e);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .degree-editor-end {
-  background: var(--nuzic-grey, #AAA699);
-}
+/* Editor stays light in both themes (nuzic standard — matches App12/15) */

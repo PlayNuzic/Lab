@@ -913,8 +913,16 @@ function injectLayout() {
   const timelineWrapper = document.querySelector('.timeline-wrapper');
   if (!timelineWrapper) return null;
 
+  // Save controls BEFORE clearing (they live inside timeline-wrapper)
+  const controls = timelineWrapper.querySelector('.controls');
+  const savedControls = controls ? controls.cloneNode(true) : null;
+  if (controls) controls.remove();
+
   // Clear timeline-wrapper (remove default timeline)
   timelineWrapper.innerHTML = '';
+
+  // Store saved controls for later re-insertion
+  timelineWrapper._savedControls = savedControls;
 
   return timelineWrapper;
 }
@@ -1042,35 +1050,32 @@ async function init() {
   // Initial cell states
   updateGridCellStates();
 
-  // Reorder controls: Play, BPM, Random, Reset (compact row)
-  const bpmParam = document.getElementById('bpmParam');
-  const controls = document.querySelector('.controls');
-  if (controls && bpmParam) {
-    const playBtnEl = controls.querySelector('.play') || document.getElementById('playBtn');
-    const randomBtnEl = controls.querySelector('.random');
-    const resetBtnEl = controls.querySelector('.reset');
-    const randomMenuEl = controls.querySelector('.random-menu');
-
-    while (controls.firstChild) controls.removeChild(controls.firstChild);
-
-    if (playBtnEl) controls.appendChild(playBtnEl);
-    controls.appendChild(bpmParam);
-    if (randomBtnEl) controls.appendChild(randomBtnEl);
-    if (randomMenuEl) controls.appendChild(randomMenuEl);
-    if (resetBtnEl) controls.appendChild(resetBtnEl);
-  }
-
-  // Save controls, create degree editor, restore controls — all inside gridWrapper
-  const savedControls = controls?.parentNode === gridWrapper ? controls : null;
-  if (savedControls) savedControls.remove();
-
   // Create nuzic degree editor (single row below grid)
   gridEditorContainer = document.createElement('div');
   gridEditorContainer.className = 'degree-editor';
   gridEditorContainer.id = 'degreeEditor';
   gridWrapper.appendChild(gridEditorContainer);
 
-  if (savedControls) gridWrapper.appendChild(savedControls);
+  // Restore saved controls (were saved before innerHTML='' in injectLayout)
+  const savedControls = gridWrapper._savedControls;
+  if (savedControls) {
+    // Reorder: Play, BPM, Random, Reset
+    const bpmParam = document.getElementById('bpmParam');
+    const playBtnEl = savedControls.querySelector('.play');
+    const randomBtnEl = savedControls.querySelector('.random');
+    const resetBtnEl = savedControls.querySelector('.reset');
+    const randomMenuEl = savedControls.querySelector('.random-menu');
+
+    while (savedControls.firstChild) savedControls.removeChild(savedControls.firstChild);
+
+    if (playBtnEl) savedControls.appendChild(playBtnEl);
+    if (bpmParam) savedControls.appendChild(bpmParam);
+    if (randomBtnEl) savedControls.appendChild(randomBtnEl);
+    if (randomMenuEl) savedControls.appendChild(randomMenuEl);
+    if (resetBtnEl) savedControls.appendChild(resetBtnEl);
+
+    gridWrapper.appendChild(savedControls);
+  }
 
   // Initialize the nuzic degree editor
   initDegreeEditor();
