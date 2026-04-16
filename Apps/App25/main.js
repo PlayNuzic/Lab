@@ -390,7 +390,10 @@ function handleRandom() {
   // 1. Randomize scale
   const randomScaleIndex = Math.floor(Math.random() * APP25_SCALES.length);
   const randomScale = APP25_SCALES[randomScaleIndex];
-  scaleSelector?.setScale(randomScale.value);
+  currentScaleIndex = randomScaleIndex;
+  const escalaSelect = document.getElementById('escalaSelect');
+  if (escalaSelect) escalaSelect.value = randomScale.value;
+  handleScaleChange({ scaleId: randomScale.id, rotation: randomScale.rotation, value: randomScale.value });
 
   // 2. Randomize sequence
   const randDensity = parseInt(document.getElementById('randDensity')?.value || 8, 10);
@@ -879,13 +882,13 @@ function initDegreeEditor() {
 
   // Public API (compatible with legacy gridEditor)
   gridEditor = {
-    getPairs: () => entries.map((e, i) => ({ ...e, pulse: i })),
+    getPairs: () => entries.map(e => ({ ...e })),
 
     setPairs: (pairs) => {
-      entries = pairs.filter(p => !p.isRest && p.degree != null).map((p, i) => ({
+      entries = pairs.filter(p => !p.isRest && p.degree != null).map(p => ({
         degree: p.degree,
         modifier: p.modifier || null,
-        pulse: i,
+        pulse: p.pulse,
         isRest: false
       }));
       clearTimeout(autoJumpTimer);
