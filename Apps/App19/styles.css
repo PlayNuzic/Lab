@@ -48,24 +48,12 @@ html, body {
 /* bpm-inline.css loaded via <link> in index.html (base for nuzic-theme overrides) */
 @import '../../libs/shared-ui/cycle-counter.css';
 
-@import '../../libs/shared-ui/soundline.css';
-
 /* ============================================
    CSS VARIABLES
    ============================================ */
 
 :root {
-  --grid-cell-height: 26px;
-  --visible-rows: 24;
   --registro-height: 2.75rem;
-  --grid-line-color: rgba(0, 0, 0, 0.15);
-  --grid-hover-color: rgba(123, 180, 205, 0.3);
-  --grid-selected-color: #7BB4CD;
-}
-
-[data-theme="dark"] {
-  --grid-line-color: rgba(255, 255, 255, 0.15);
-  --grid-hover-color: rgba(123, 180, 205, 0.4);
 }
 
 /* ============================================
@@ -168,51 +156,6 @@ main {
 }
 
 [data-theme="dark"] .param.registro .abbr {
-  color: var(--text-color, #eee);
-}
-
-/* ============================================
-   TOTAL LENGTH DISPLAY
-   ============================================ */
-
-.total-length-inline {
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.total-length-inline .circle {
-  width: 4.125rem;
-  height: 4.125rem;
-  border: 2px solid var(--circle-border, #333);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.total-length-inline .total-length__digit {
-  font-size: 1.8rem;
-  font-weight: 700;
-  font-family: 'Courier New', Courier, monospace;
-  color: var(--text-color, #333);
-  line-height: 1;
-}
-
-.total-length-inline .abbr {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: var(--text-color, #333);
-}
-
-[data-theme="dark"] .total-length-inline .circle {
-  border-color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .total-length-inline .total-length__digit,
-[data-theme="dark"] .total-length-inline .abbr {
   color: var(--text-color, #eee);
 }
 

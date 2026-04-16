@@ -182,12 +182,6 @@ function initGrid() {
     return;
   }
 
-  // Clear existing content (if any legacy elements exist)
-  const soundlineContainer = document.getElementById('soundlineContainer');
-  const gridArea = document.getElementById('gridArea');
-  soundlineContainer?.remove();
-  gridArea?.remove();
-
   // Clear the grid container
   gridContainer.innerHTML = '';
 
@@ -247,7 +241,7 @@ function addDotsToAllCells() {
 /**
  * Handle cell click from grid
  */
-async function handleCellClick(rowData, colIndex, isSelected) {
+async function handleCellClick(rowData, _colIndex, isSelected) {
   if (isSelected) {
     // Play the note
     const audioInstance = await initAudio();
@@ -346,7 +340,6 @@ function buildScrollPlan(selectedArray, rows) {
   const visibleHeight = container?.clientHeight || (24 * CELL_H);
 
   // Number of full rows visible (accounting for translateY(50%) overhang)
-  const visibleRows = Math.floor((visibleHeight - HALF_CELL) / CELL_H);
   const margin = 2;  // keep 2 rows of margin so notes aren't right at the edge
 
   // Track the "virtual" scroll position through the sequence
@@ -519,10 +512,6 @@ async function startPlayback() {
   const p0Enabled = window.__p1Controller?.getState() ?? true;
   audioInstance.setMeasureEnabled(p0Enabled);
 
-  // Hide input, show cycle digit
-  const cycleCircle = document.querySelector('.cycle-circle');
-  cycleCircle?.classList.add('playing');
-
   // Scroll to first pulse before starting playback
   grid.scrollToColumn(0, false);
 
@@ -562,15 +551,7 @@ async function startPlayback() {
       // 3. Highlight timeline number
       grid.highlightTimelineNumber(step, intervalSec * 1000 * 0.9);
 
-      // 4. Highlight the selected cell (visual only)
-      const midi = midiMap.get(step);
-      if (midi !== undefined) {
-        if (selectedForStep) {
-          grid.highlightCell(selectedForStep.rowId, step, intervalSec * 1000 * 0.9);
-        }
-      }
-
-      // 5. Update cycle counter
+      // 4. Update cycle counter
       const cycleNum = Math.floor(step / compas) + 1;
       if (step === 0 && elements.cycleDigit) {
         elements.cycleDigit.textContent = '1';
@@ -621,9 +602,6 @@ function stopPlayback() {
   audio?.stop();
 
   // Show input, hide cycle digit
-  const cycleCircle = document.querySelector('.cycle-circle');
-  cycleCircle?.classList.remove('playing');
-
   // Clear highlights
   grid?.clearHighlights();
   grid?.hidePlayhead();
