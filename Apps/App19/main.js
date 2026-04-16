@@ -796,15 +796,39 @@ function decrementCycles() {
   handleCyclesChange();
 }
 
+/**
+ * Detect current screen from actual scrollTop position
+ * (needed because free scroll can move between screens without updating currentScreen)
+ */
+function detectCurrentScreen() {
+  const gridContainer = document.querySelector('.timeline-wrapper');
+  const container = gridContainer?.querySelector('.plano-soundline-container');
+  if (!container) return currentScreen;
+
+  const scrollTop = container.scrollTop;
+  // Find the screen whose scrollTop is closest to current position
+  let closest = 0;
+  let minDist = Infinity;
+  for (let i = 0; i < SCREENS.length; i++) {
+    const target = getScreenScrollTop(SCREENS[i], i);
+    const dist = Math.abs(scrollTop - target);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = i;
+    }
+  }
+  return closest;
+}
+
 function incrementRegistro() {
-  // Go to next screen (higher registries)
+  currentScreen = detectCurrentScreen();
   if (currentScreen < SCREENS.length - 1) {
     scrollToScreen(currentScreen + 1, true);
   }
 }
 
 function decrementRegistro() {
-  // Go to previous screen (lower registries)
+  currentScreen = detectCurrentScreen();
   if (currentScreen > 0) {
     scrollToScreen(currentScreen - 1, true);
   }
