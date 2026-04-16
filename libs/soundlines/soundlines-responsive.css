@@ -261,31 +261,4 @@
   }
 }
 
-/* ============================================================================
-   ALERTA D'ESPAI MÍNIM - Pantalles molt petites (< 360px width o < 400px height)
-   ============================================================================ */
-
-@media (max-width: 360px), (max-height: 400px) {
-  body::before {
-    content: '⟲ Pantalla massa petita. Gira el dispositiu o usa una pantalla més gran.';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 2rem;
-    font-size: 1.2rem;
-    line-height: 1.5;
-    z-index: 99999;
-  }
-
-  #app-root {
-    display: none !important;
-  }
-}
+/* Orientation warning removed — Sistema Interactivo handles responsive layout */

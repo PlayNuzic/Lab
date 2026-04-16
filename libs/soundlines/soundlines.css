@@ -408,3 +408,89 @@ html, body {
 .title-wrapper h1 {
   margin: 0;
 }
+
+/* ============================================================================
+   NUZIC THEME OVERRIDES (data-visual="nuzic")
+   ============================================================================ */
+
+/* Soundline container: pink background matching nuzic soundlines */
+body[data-visual="nuzic"] .soundline-container {
+  background: var(--nuzic-pink-light, #ffe5ee);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Highlighted numbers: nuzic yellow instead of legacy --selection-color */
+body[data-visual="nuzic"] .soundline-number.highlighted {
+  color: var(--nuzic-yellow, #FFBB33);
+}
+
+/* Note highlight: nuzic blue */
+body[data-visual="nuzic"] .note-highlight {
+  --note-highlight-color: var(--nuzic-blue-light, #C0DDEE);
+}
+
+/* Connection lines: nuzic dark + golden active */
+body[data-visual="nuzic"] .connection-line {
+  stroke: var(--nuzic-grey, #AAA699);
+}
+
+body[data-visual="nuzic"] .connection-line.active {
+  stroke: var(--nuzic-yellow, #FFBB33);
+}
+
+/* Play buttons: nuzic green circles */
+body[data-visual="nuzic"] .soundline-play {
+  background: var(--nuzic-green, #4CAF50);
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body[data-visual="nuzic"] .soundline-play.playing {
+  background: var(--nuzic-green, #4CAF50);
+  box-shadow: 0 0 0.5rem var(--nuzic-green, #4CAF50);
+  border: none;
+}
+
+/* Titles: nuzic dark color */
+body[data-visual="nuzic"] .soundline-title {
+  color: var(--nuzic-dark, #43433B);
+}
+
+body[data-visual="nuzic"] .soundline-subtitle {
+  color: var(--nuzic-grey, #AAA699);
+}
+
+/* EE display: nuzic colors */
+body[data-visual="nuzic"] .ee-label {
+  color: var(--nuzic-dark, #43433B);
+}
+
+body[data-visual="nuzic"] .ee-number {
+  color: var(--nuzic-dark, #43433B);
+}
+
+/* Dark mode */
+body[data-visual="nuzic"][data-theme="dark"] .soundline-container {
+  background: var(--nuzic-pink-light, #ffe5ee);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .soundline-title {
+  color: var(--text-dark, #e0e0e0);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .soundline-subtitle {
+  color: var(--nuzic-grey, #AAA699);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .ee-label,
+body[data-visual="nuzic"][data-theme="dark"] .ee-number {
+  color: var(--text-dark, #e0e0e0);
+}
