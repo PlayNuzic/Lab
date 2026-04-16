@@ -377,8 +377,8 @@ function initGrid() {
       fillGapsWithSilences: pairsWithSilencesForEditor
     },
     onSyncComplete: () => {
-      // Refresh dots after sync
       syncController?.refreshDots();
+      markBarEdges();
     }
   });
 
@@ -434,6 +434,37 @@ function syncGridFromPairs(pairs) {
   if (syncController) {
     syncController.syncGridFromPairs(pairs);
   }
+}
+
+/**
+ * Mark bar edges for continuous bar CSS rendering.
+ * Adds 'has-duration' to selected cells that have duration extensions,
+ * and 'duration-last' to the last cell in each duration run.
+ */
+function markBarEdges() {
+  const mc = syncController?.getMatrixContainer();
+  if (!mc) return;
+
+  // Clear old marks
+  mc.querySelectorAll('.has-duration').forEach(c => c.classList.remove('has-duration'));
+  mc.querySelectorAll('.duration-last').forEach(c => c.classList.remove('duration-last'));
+  mc.querySelectorAll('.drag-last').forEach(c => c.classList.remove('drag-last'));
+
+  // For each selected cell, check if the next cell on the same row is duration-highlight
+  mc.querySelectorAll('.plano-cell.plano-selected').forEach(cell => {
+    const rowId = cell.dataset.rowId;
+    const col = parseInt(cell.dataset.colIndex);
+    const next = mc.querySelector(`.plano-cell[data-row-id="${rowId}"][data-col-index="${col + 1}"].duration-highlight`);
+    if (next) cell.classList.add('has-duration');
+  });
+
+  // Find last duration-highlight in each run
+  mc.querySelectorAll('.plano-cell.duration-highlight').forEach(cell => {
+    const rowId = cell.dataset.rowId;
+    const col = parseInt(cell.dataset.colIndex);
+    const next = mc.querySelector(`.plano-cell[data-row-id="${rowId}"][data-col-index="${col + 1}"].duration-highlight`);
+    if (!next) cell.classList.add('duration-last');
+  });
 }
 
 /**
@@ -604,14 +635,39 @@ function initGridEditor() {
       renderCells();
     });
 
-    // Arrow key navigation between value cells
     cell.addEventListener('keydown', (e) => {
+      // Enter: confirm edit (trigger blur)
+      if (e.key === 'Enter') { e.preventDefault(); cell.blur(); return; }
+
+      // Tab: confirm and move to next editable cell
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        cell.blur();
+        const parent = type === 'n' ? nCells : itCells;
+        const allCells = Array.from(parent.querySelectorAll('.nit-editor-cell:not([readonly])'));
+        const idx = allCells.indexOf(cell);
+        const next = e.shiftKey ? allCells[idx - 1] : allCells[idx + 1];
+        if (next) next.focus();
+        return;
+      }
+
+      // Arrow left/right: navigate between value cells
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         const parent = type === 'n' ? nCells : itCells;
-        const valueCells = Array.from(parent.querySelectorAll('.nit-editor-cell:not([readonly])'));
-        const idx = valueCells.indexOf(cell);
-        const next = e.key === 'ArrowRight' ? valueCells[idx + 1] : valueCells[idx - 1];
+        const allCells = Array.from(parent.querySelectorAll('.nit-editor-cell:not([readonly])'));
+        const idx = allCells.indexOf(cell);
+        const next = e.key === 'ArrowRight' ? allCells[idx + 1] : allCells[idx - 1];
         if (next) { e.preventDefault(); next.focus(); }
+      }
+
+      // Arrow up/down: jump between N and iT rows
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const otherRow = type === 'n' ? itCells : nCells;
+        const entryIdx = parseInt(cell.dataset.entryIndex);
+        // Find the matching value cell in the other row
+        const match = otherRow.querySelector(`.nit-editor-cell[data-entry-index="${entryIdx}"]:not([readonly])`);
+        if (match) match.focus();
       }
     });
 
@@ -705,8 +761,32 @@ function initGridEditor() {
       }
     });
 
-    // Backspace: delete last entry or pending value
     cell.addEventListener('keydown', (e) => {
+      // Enter / Tab → confirm current value and jump to zigzag partner
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        clearTimeout(autoJumpTimer);
+
+        // If cell has a value, process it first (trigger input handler)
+        if (cell.value) {
+          cell.dispatchEvent(new Event('input'));
+        }
+
+        // Jump to the other row's input
+        if (type === 'n') {
+          // If both pending, commit immediately
+          if (pendingN !== null && pendingIT !== null) { commitEntry(); return; }
+          const itInput = itCells.querySelector('.active-input');
+          if (itInput) itInput.focus();
+        } else {
+          if (pendingN !== null && pendingIT !== null) { commitEntry(); return; }
+          const nInput = nCells.querySelector('.active-input');
+          if (nInput) nInput.focus();
+        }
+        return;
+      }
+
+      // Backspace on empty: delete last entry or pending value
       if (e.key === 'Backspace' && !e.target.value) {
         e.preventDefault();
         clearTimeout(autoJumpTimer);
@@ -732,6 +812,24 @@ function initGridEditor() {
             renderCells();
           }
         }
+        return;
+      }
+
+      // Arrow keys: navigate between value cells on this row
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const parent = type === 'n' ? nCells : itCells;
+        const allCells = Array.from(parent.querySelectorAll('.nit-editor-cell:not([readonly])'));
+        const idx = allCells.indexOf(cell);
+        const next = e.key === 'ArrowRight' ? allCells[idx + 1] : allCells[idx - 1];
+        if (next) { e.preventDefault(); next.focus(); }
+      }
+
+      // Arrow up/down: jump between N and iT rows
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const otherRow = type === 'n' ? itCells : nCells;
+        const target = otherRow.querySelector('.active-input') || otherRow.querySelector('.nit-editor-cell:not([readonly])');
+        if (target) target.focus();
       }
     });
 
