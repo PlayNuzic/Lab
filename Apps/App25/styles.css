@@ -120,10 +120,10 @@ main {
   max-width: 100% !important;
   max-height: none !important;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   margin: 0 !important;
   box-sizing: border-box;
-  --cell-height: 1.5rem;  /* compact rows for more editor/controls space */
+  grid-template-rows: 1fr auto auto !important;  /* notes + timeline + editor */
 }
 
 /* ========== SOUNDLINE: hide top-zero, style scale/chromatic notes ========== */
@@ -178,12 +178,12 @@ main {
   opacity: 0.6;
 }
 
-/* ========== Nº EDITOR (single row, App12/13 style) ========== */
+/* ========== Nº EDITOR (inside .grid-container as grid-row 3) ========== */
 .degree-editor {
-  flex-shrink: 0;
+  grid-column: 1 / -1;
+  grid-row: 3;
   display: grid;
-  grid-template-columns: 3.75rem 1fr;  /* match soundline width */
-  margin-top: 0.53rem;
+  grid-template-columns: 60px 1fr;  /* matches .grid-container nuzic columns */
 }
 
 .degree-editor-label {

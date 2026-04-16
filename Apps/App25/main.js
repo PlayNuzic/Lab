@@ -1062,11 +1062,16 @@ async function init() {
   // Initial cell states
   updateGridCellStates();
 
-  // Create nuzic degree editor (single row below grid)
+  // Create nuzic degree editor INSIDE .grid-container (as grid-row 3)
+  const gridContainer = gridWrapper.querySelector('.grid-container');
   gridEditorContainer = document.createElement('div');
   gridEditorContainer.className = 'degree-editor';
   gridEditorContainer.id = 'degreeEditor';
-  gridWrapper.appendChild(gridEditorContainer);
+  if (gridContainer) {
+    gridContainer.appendChild(gridEditorContainer);
+  } else {
+    gridWrapper.appendChild(gridEditorContainer);
+  }
 
   // Restore saved controls (were saved before innerHTML='' in injectLayout)
   const savedControls = gridWrapper._savedControls;
