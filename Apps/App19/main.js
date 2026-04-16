@@ -17,6 +17,7 @@ import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 
 // Import plano-modular (out of the box)
 import { createApp19Grid } from '../../libs/plano-modular/index.js';
+import { smoothScrollTo } from '../../libs/plano-modular/plano-scroll.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONFIGURATION ==========
@@ -325,16 +326,24 @@ function maybeApplyInitialScroll() {
  * @param {number} screenIndex - 0="3 y 4", 1="4 y 5", 2="5 y 6"
  * @param {boolean} animated - Use smooth scroll
  */
-function getScreenScrollTop(screen) {
+/**
+ * Calculate scrollTop for a screen so that ALL its notes are visible:
+ * - First note (top) fully visible at the top edge
+ * - Last note (bottom) fully visible at the bottom edge
+ * Notes use translateY(50%) so labels straddle the cell bottom border.
+ */
+function getScreenScrollTop(screen, screenIndex) {
   if (screen.lastRow === 0) return 0;  // Top of grid
-  // Calculate scrollTop so that lastRow is at the bottom of the visible area
-  const gridContainer = document.querySelector('.timeline-wrapper');
-  const container = gridContainer?.querySelector('.plano-soundline-container');
-  const visibleHeight = container?.clientHeight || (24 * CELL_H);
-  // Bottom edge of lastRow + half-cell for translateY(50%) label
-  const bottomEdge = (screen.lastRow + 1) * CELL_H + HALF_CELL;
-  return Math.max(0, bottomEdge - visibleHeight);
+
+  // First row of this screen = lastRow of next screen + 1 (or 0 if last screen)
+  const nextScreen = SCREENS[screenIndex + 1];
+  const firstRow = nextScreen ? nextScreen.lastRow + 1 : 0;
+
+  // Position so firstRow's top is visible (with a small margin for translateY(50%) label above)
+  return Math.max(0, firstRow * CELL_H - HALF_CELL);
 }
+
+const SCROLL_DURATION = 650;  // ms for screen transitions
 
 function scrollToScreen(screenIndex, animated = false) {
   if (!grid) return;
@@ -342,14 +351,15 @@ function scrollToScreen(screenIndex, animated = false) {
   currentScreen = screenIndex;
 
   const screen = SCREENS[screenIndex];
-  const scrollTop = getScreenScrollTop(screen);
+  const scrollTop = getScreenScrollTop(screen, screenIndex);
   const gridContainer = document.querySelector('.timeline-wrapper');
   const soundline = gridContainer?.querySelector('.plano-soundline-container');
   const matrix = gridContainer?.querySelector('.plano-matrix-container');
 
   if (animated) {
+    // Custom easeInOut for gentle page-turn feel
     [soundline, matrix].forEach(el => {
-      if (el) el.scrollTo({ top: scrollTop, behavior: 'smooth' });
+      if (el) smoothScrollTo(el, scrollTop, 'top', SCROLL_DURATION, 'easeInOut');
     });
   } else {
     [soundline, matrix].forEach(el => {
@@ -363,15 +373,70 @@ function scrollToScreen(screenIndex, animated = false) {
 }
 
 /**
- * Find the screen index that contains a given row index.
+ * Pre-compute a scroll plan for playback.
+ * For each pulse, determines the minimum scrollTop needed to keep the note visible.
+ * Returns an array of { step, scrollTop } only for steps that require scrolling.
+ *
+ * The algorithm:
+ * 1. For each pulse with a note, get its rowIndex
+ * 2. Check if the row is within the current visible window
+ * 3. If not, scroll the minimum amount (row at top or bottom of window)
+ * 4. Look ahead: if a scroll is needed, schedule it 1 pulse early
  */
-function screenForRow(rowIndex) {
-  for (let i = 0; i < SCREENS.length; i++) {
-    const lastRow = SCREENS[i].lastRow;
-    const firstRow = i === SCREENS.length - 1 ? 0 : SCREENS[i + 1].lastRow + 1;
-    if (rowIndex >= firstRow && rowIndex <= lastRow) return i;
+function buildScrollPlan(selectedArray, rows) {
+  const gridContainer = document.querySelector('.timeline-wrapper');
+  const container = gridContainer?.querySelector('.plano-soundline-container');
+  const visibleHeight = container?.clientHeight || (24 * CELL_H);
+
+  // Number of full rows visible (accounting for translateY(50%) overhang)
+  const visibleRows = Math.floor((visibleHeight - HALF_CELL) / CELL_H);
+  const margin = 2;  // keep 2 rows of margin so notes aren't right at the edge
+
+  // Track the "virtual" scroll position through the sequence
+  let currentTop = container?.scrollTop || 0;
+
+  const plan = [];  // { step, scrollTop, duration }
+
+  for (let step = 0; step < 1000; step++) {
+    const sel = selectedArray.find(s => s.colIndex === step);
+    if (!sel) continue;
+
+    const rowIdx = rows.findIndex(r => r.id === sel.rowId);
+    if (rowIdx === -1) continue;
+
+    // The note's visual position (center of the label, accounting for translateY(50%))
+    const noteTop = rowIdx * CELL_H;
+    const noteBottom = noteTop + CELL_H + HALF_CELL;
+
+    // Current visible window
+    const windowTop = currentTop;
+    const windowBottom = currentTop + visibleHeight;
+
+    let newTop = currentTop;
+
+    if (noteTop - margin * CELL_H < windowTop) {
+      // Note is above visible window — scroll up
+      newTop = Math.max(0, noteTop - margin * CELL_H);
+    } else if (noteBottom + margin * CELL_H > windowBottom) {
+      // Note is below visible window — scroll down
+      newTop = noteBottom + margin * CELL_H - visibleHeight;
+    }
+
+    if (Math.abs(newTop - currentTop) > CELL_H / 2) {
+      const distance = Math.abs(newTop - currentTop);
+      // Duration proportional to distance: 300ms minimum, 800ms for full screen jumps
+      const duration = Math.min(800, Math.max(300, distance * 1.2));
+
+      plan.push({ step, scrollTop: newTop, duration });
+      currentTop = newTop;
+    }
   }
-  return currentScreen;
+
+  // Apply look-ahead: shift each scroll 1 step earlier (if possible)
+  return plan.map(entry => ({
+    ...entry,
+    step: Math.max(0, entry.step - 1)
+  }));
 }
 
 // ========== INPUT HANDLERS ==========
@@ -478,8 +543,10 @@ async function startPlayback() {
   // Get MIDI notes from grid selection
   const midiMap = grid.getSelectedMidiNotes();
 
-  // Cache selected array for autoscroll (avoid repeated calls)
+  // Pre-compute scroll plan before playback starts
   const selectedArray = grid.getSelectedArray();
+  const scrollPlan = buildScrollPlan(selectedArray, grid.getRowDefinitions());
+  let scrollPlanIndex = 0;  // pointer into the plan
 
   isPlaying = true;
   elements.playBtn?.classList.add('playing');
@@ -523,17 +590,16 @@ async function startPlayback() {
       // 1. Update playhead position
       grid.updatePlayhead(step);
 
-      // 2. Autoscroll VERTICAL: snap to the screen containing the active note
-      const selectedForStep = selectedArray.find(s => s.colIndex === step);
-      if (selectedForStep) {
-        const rows = grid.getRowDefinitions();
-        const rowIdx = rows.findIndex(r => r.id === selectedForStep.rowId);
-        if (rowIdx !== -1) {
-          const targetScreen = screenForRow(rowIdx);
-          if (targetScreen !== currentScreen) {
-            scrollToScreen(targetScreen, true);
-          }
-        }
+      // 2. Autoscroll VERTICAL: execute pre-computed scroll plan
+      while (scrollPlanIndex < scrollPlan.length && scrollPlan[scrollPlanIndex].step <= step) {
+        const entry = scrollPlan[scrollPlanIndex];
+        const gridContainer = document.querySelector('.timeline-wrapper');
+        const soundline = gridContainer?.querySelector('.plano-soundline-container');
+        const matrix = gridContainer?.querySelector('.plano-matrix-container');
+        [soundline, matrix].forEach(el => {
+          if (el) smoothScrollTo(el, entry.scrollTop, 'top', entry.duration, 'easeInOut');
+        });
+        scrollPlanIndex++;
       }
 
       // 3. Highlight timeline number

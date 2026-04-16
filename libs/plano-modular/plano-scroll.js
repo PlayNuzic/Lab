@@ -99,9 +99,17 @@ export function blockVerticalWheel(...elements) {
  * @param {number} duration - Animation duration in ms (default 200)
  * @returns {Promise<void>} Resolves when animation completes
  */
-export function smoothScrollTo(element, target, direction = 'top', duration = 200) {
+export function smoothScrollTo(element, target, direction = 'top', duration = 200, easing = 'easeOut') {
   return new Promise((resolve) => {
     if (!element) {
+      resolve();
+      return;
+    }
+
+    // Respect prefers-reduced-motion
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      const prop = direction === 'top' ? 'scrollTop' : 'scrollLeft';
+      element[prop] = target;
       resolve();
       return;
     }
@@ -110,10 +118,21 @@ export function smoothScrollTo(element, target, direction = 'top', duration = 20
     const start = element[prop];
     const distance = target - start;
 
-    if (distance === 0) {
+    if (Math.abs(distance) < 1) {
       resolve();
       return;
     }
+
+    // Cancel any previous animation on this element
+    if (element._smoothScrollRafId) {
+      cancelAnimationFrame(element._smoothScrollRafId);
+    }
+
+    const easingFunctions = {
+      easeOut: (t) => 1 - Math.pow(1 - t, 3),
+      easeInOut: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+    };
+    const easeFn = easingFunctions[easing] || easingFunctions.easeOut;
 
     const startTime = performance.now();
 
@@ -121,19 +140,17 @@ export function smoothScrollTo(element, target, direction = 'top', duration = 20
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      // Ease out cubic for smooth deceleration
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-
-      element[prop] = start + (distance * easeOut);
+      element[prop] = start + (distance * easeFn(progress));
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        element._smoothScrollRafId = requestAnimationFrame(animate);
       } else {
+        element._smoothScrollRafId = null;
         resolve();
       }
     }
 
-    requestAnimationFrame(animate);
+    element._smoothScrollRafId = requestAnimationFrame(animate);
   });
 }
 
