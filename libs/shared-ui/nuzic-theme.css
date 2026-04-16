@@ -267,7 +267,7 @@ body[data-visual="nuzic"] .grid-container .soundline-number {
   width: 100%;
   text-align: center;
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
   opacity: 1;
 }
 
@@ -288,7 +288,7 @@ body[data-visual="nuzic"] .plano-soundline-note {
   justify-content: center;
   padding-right: 0;
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
 }
 
 body[data-visual="nuzic"] .plano-soundline-note::before {
@@ -398,7 +398,7 @@ body[data-visual="nuzic"] .grid-container .timeline-line {
 body[data-visual="nuzic"] .grid-container .pulse-marker {
   background: none;  /* Amagar línia vertical del marcador */
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
   opacity: 1;
   width: auto;
   height: auto;
@@ -472,7 +472,7 @@ body[data-visual="nuzic"] .plano-timeline-container {
 body[data-visual="nuzic"] .plano-timeline-number {
   position: relative;
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: clamp(0.85rem, 1.6vw, 1.2rem);
   color: var(--nuzic-dark);
   justify-content: flex-start;
 }
@@ -552,7 +552,7 @@ body[data-visual="nuzic"] .timeline .pulse {
 body[data-visual="nuzic"] .timeline .pulse-number {
   color: var(--nuzic-dark);
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: clamp(0.85rem, 1.6vw, 1.2rem);
   top: 50% !important;
   transform: translate(-50%, -50%) !important;
   opacity: 1;
@@ -608,7 +608,7 @@ body[data-visual="nuzic"] .timeline .pulse-number.active::after {
 body[data-visual="nuzic"] .timeline .interval-number {
   color: var(--nuzic-blue);
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: clamp(0.85rem, 1.6vw, 1.2rem);
   top: 20% !important;
   opacity: 1;
 }
@@ -935,7 +935,7 @@ body[data-visual="nuzic"] .bpm-inline .spin.down::before {
 
 /* Label BPM: queda fora de la pastilla, a l'esquerra */
 body[data-visual="nuzic"] .bpm-inline .abbr {
-  font-size: 0.8rem;
+  font-size: clamp(0.65rem, 1.2vw, 0.8rem);
 }
 
 /* --------------------------------------------------------------------------

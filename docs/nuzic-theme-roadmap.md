@@ -14,6 +14,7 @@ Adaptació visual de les Apps 9+ a l'estètica de nuzic_app.
 - [ ] Fase 8: Opt-in per app (27 apps)
 - [x] **Fase 9**: Plano-modular (integrat dins fases 2, 3, 4 i 10)
 - [x] **Fase 10**: Dark mode complet — contrast per soundline, timeline, botons, labels
+- [x] **Fase 11**: Fluid font-sizes — `clamp(min, vw, max)` a nuzic-theme, plano-modular, soundlines, i totes les apps
 
 ## Com activar el tema
 

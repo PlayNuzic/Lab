@@ -87,7 +87,7 @@ html, body {
   border-radius: 1rem !important;
   max-width: min(20rem, 85vw) !important;
   white-space: normal !important;
-  font-size: 1.05rem !important;
+  font-size: clamp(0.8rem, 1.5vw, 1.05rem) !important;
   line-height: 1.4 !important;
   text-align: center !important;
   background: #fff !important;
@@ -161,7 +161,7 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
 
 /* Superscript styling */
 .soundline-number sup {
-  font-size: 0.75em;
+  font-size: clamp(0.6rem, 1.1vw, 0.75rem);
   vertical-align: super;
   margin-left: 1px;
   opacity: 0.8;

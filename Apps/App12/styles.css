@@ -100,7 +100,7 @@ html, body {
 
 .editor-label {
   font-weight: 700;
-  font-size: 1.4rem;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -123,7 +123,7 @@ html, body {
   aspect-ratio: 1;  /* keep square */
   text-align: center;
   color: #43433b;
-  font-size: 1.4rem;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
   font-weight: 700;
   border-radius: 0;
   border-width: 0;
@@ -188,7 +188,7 @@ html, body {
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 0.8rem;
+  font-size: clamp(0.65rem, 1.2vw, 0.8rem);
 }
 
 .editor-end-marker::after {
@@ -200,7 +200,7 @@ html, body {
   position: fixed;
   padding: 8px 16px;
   border-radius: 6px;
-  font-size: 1rem;
+  font-size: clamp(0.8rem, 1.5vw, 1rem);
   font-weight: 600;
   background: #EF4444;
   color: white;
@@ -231,7 +231,7 @@ html, body {
   overflow-y: visible;
   justify-content: flex-start;
   min-height: 50px;
-  font-size: 2.25rem;
+  font-size: clamp(1.5rem, 3.5vw, 2.25rem);
   font-family: 'Courier New', monospace;
   display: flex;
   align-items: center;
@@ -253,7 +253,7 @@ html, body {
 }
 
 .seq-input .pz.range {
-  font-size: 0.9em;
+  font-size: clamp(0.7rem, 1.3vw, 0.9rem);
   color: #888;
   margin-left: 10px;
 }

@@ -114,7 +114,7 @@ html, body {
 /* Soundline & timeline number alignment */
 .soundline-number,
 .pulse-marker {
-  font-size: 1.4rem;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
 }
 
 /* ========== DRAG PREVIEW ========== */
@@ -186,7 +186,7 @@ body.dragging-note * {
   bottom: 10%;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 1.6rem;
+  font-size: clamp(1rem, 2vw, 1.6rem);
   font-weight: 700;
   color: var(--interval-temporal-color, #4A9EFF);
   white-space: nowrap;
@@ -235,7 +235,7 @@ body.dragging-note * {
 
 .interval-number {
   color: var(--interval-sound-color, #F28AAD);
-  font-size: 1.4rem;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
   font-weight: bold;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   pointer-events: none;
@@ -282,7 +282,7 @@ body.dragging-note * {
 
 .editor-label {
   font-weight: 700;
-  font-size: 1.4rem;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -305,7 +305,7 @@ body.dragging-note * {
   aspect-ratio: 1;
   text-align: center;
   color: #43433b;
-  font-size: 1.4rem;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
   font-weight: 700;
   border-radius: 0;
   border-width: 0;
@@ -379,7 +379,7 @@ body.dragging-note * {
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 0.8rem;
+  font-size: clamp(0.65rem, 1.2vw, 0.8rem);
 }
 
 .editor-end-marker::after {
@@ -391,7 +391,7 @@ body.dragging-note * {
   position: fixed;
   padding: 0.5rem 1rem;
   border-radius: 6px;
-  font-size: 1rem;
+  font-size: clamp(0.8rem, 1.5vw, 1rem);
   font-weight: 600;
   z-index: 1000;
   pointer-events: none;
@@ -408,15 +408,3 @@ body.dragging-note * {
   transform: translateY(0);
 }
 
-/* ========== RESPONSIVE ========== */
-@media (max-width: 700px) {
-  .soundline-number,
-  .pulse-marker {
-    font-size: 0.9rem !important;
-  }
-
-  .grid-container {
-    gap: 0.5rem !important;
-    grid-template-columns: 3.75rem 1fr !important;
-  }
-}

@@ -87,7 +87,7 @@
   align-items: center;
   justify-content: flex-end;
   padding-right: 0.5rem;
-  font-size: 1.2rem;
+  font-size: clamp(0.7rem, 1.4vw, 1.2rem);
   font-weight: 500;
   color: var(--plano-text-color);
   white-space: nowrap;
@@ -259,7 +259,7 @@
   bottom: 0;
   left: 50%;
   transform: translate(-50%, 50%);
-  font-size: 1.2rem;  /* Same as .plano-soundline-note */
+  font-size: clamp(0.7rem, 1.4vw, 1.2rem);
   font-weight: 600;
   color: #43433B;  /* Light mode: dark text on yellow background */
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
@@ -313,7 +313,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  font-size: 1.2rem;
+  font-size: clamp(0.7rem, 1.4vw, 1.2rem);
   font-weight: 600;
   color: var(--plano-text-color);
 }
@@ -344,7 +344,7 @@
 }
 
 .plano-cycle-num {
-  font-size: 0.8rem;
+  font-size: clamp(0.55rem, 1vw, 0.8rem);
   opacity: 0.8;
   margin-left: 1px;
   margin-top: -15px;
@@ -387,24 +387,14 @@
    RESPONSIVE BREAKPOINTS
    ============================================ */
 
+/* Font-sizes removed from breakpoints — clamp() handles fluid scaling.
+   Only CSS variables (cell-height, soundline-width) remain for grid layout. */
+
 @media (max-width: 900px) {
   .plano-container {
     --plano-visible-rows: 12;
     --plano-cell-height: 28px;
     --plano-soundline-width: 45px;
-  }
-
-  .plano-soundline-note {
-    font-size: 0.8rem;
-  }
-
-  .plano-timeline-number {
-    font-size: 1rem;
-  }
-
-  .plano-cell-label,
-  .plano-highlight-label {
-    font-size: 0.8rem;  /* Same as soundline at this breakpoint */
   }
 }
 
@@ -413,19 +403,6 @@
     --plano-visible-rows: 10;
     --plano-cell-height: 24px;
     --plano-soundline-width: 40px;
-  }
-
-  .plano-soundline-note {
-    font-size: 0.75rem;
-  }
-
-  .plano-timeline-number {
-    font-size: 0.9rem;
-  }
-
-  .plano-cell-label,
-  .plano-highlight-label {
-    font-size: 0.75rem;  /* Same as soundline at this breakpoint */
   }
 }
 
@@ -436,19 +413,6 @@
     --plano-soundline-width: 35px;
     --plano-timeline-height: 30px;
   }
-
-  .plano-soundline-note {
-    font-size: 0.7rem;
-  }
-
-  .plano-timeline-number {
-    font-size: 0.8rem;
-  }
-
-  .plano-cell-label,
-  .plano-highlight-label {
-    font-size: 0.7rem;  /* Same as soundline at this breakpoint */
-  }
 }
 
 @media (max-width: 500px) {
@@ -458,16 +422,6 @@
   }
 
   .plano-soundline-note {
-    font-size: 0.6rem;
     padding-right: 0.25rem;
-  }
-
-  .plano-timeline-number {
-    font-size: 0.7rem;
-  }
-
-  .plano-cell-label,
-  .plano-highlight-label {
-    font-size: 0.6rem;  /* Same as soundline at this breakpoint */
   }
 }
