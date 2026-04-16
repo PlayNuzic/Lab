@@ -309,6 +309,25 @@ main {
   border-color: rgba(153, 153, 153, 0.5);
 }
 
+/* Drag-highlight: visual feedback while stretching a note */
+.plano-cell.drag-highlight {
+  z-index: 3;
+}
+
+.plano-cell.drag-highlight::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -50%;
+  height: 100%;
+  background: var(--plano-select-color, #FFBB33);
+  opacity: 0.35;
+  border-radius: 2px;
+  z-index: 1;
+  pointer-events: none;
+}
+
 /* Duration-highlight cells: extend the note's visual bar across iT columns */
 .plano-cell.duration-highlight {
   z-index: 2;
