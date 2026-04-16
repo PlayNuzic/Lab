@@ -761,13 +761,20 @@ function initDegreeEditor() {
       const val = e.target.value;
       if (val === '') return;
 
+      // Partial: "0r" — waiting for "+" to complete "0r+"
+      if (/^\d+r$/.test(val)) {
+        clearTimeout(autoJumpTimer);
+        return;
+      }
+
       const parsed = parseDegreeInput(val);
       if (!parsed) {
-        // Could be partial (e.g., just a digit, waiting for modifier)
+        // Bare number: wait for possible modifier (+, -, r+)
         if (/^\d+$/.test(val)) {
           clearTimeout(autoJumpTimer);
           autoJumpTimer = setTimeout(() => {
             const current = cell.value;
+            if (/^\d+r$/.test(current)) return; // still typing r+
             const p = parseDegreeInput(current);
             if (!p || !validateDegree(p.degree)) {
               showTooltip(cell, `Grado: 0-${currentScaleLength - 1}`);
@@ -775,7 +782,7 @@ function initDegreeEditor() {
               return;
             }
             commitDegree(p);
-          }, 500);
+          }, 800);
           return;
         }
         e.target.value = '';
