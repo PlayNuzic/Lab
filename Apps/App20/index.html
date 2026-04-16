@@ -6,27 +6,12 @@
   <title>Plano y sucesión N-iT</title>
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
-  <link rel="stylesheet" href="../../libs/musical-grid/musical-grid.css" />
   <!-- Estilos del módulo plano-modular -->
   <link rel="stylesheet" href="../../libs/plano-modular/plano-modular.css" />
-  <!-- Estilos del grid-editor -->
-  <link rel="stylesheet" href="../../libs/matrix-seq/grid-editor.css" />
+  <link rel="stylesheet" href="../../libs/shared-ui/bpm-inline.css" />
   <link rel="stylesheet" href="../../libs/shared-ui/nuzic-theme.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../../favicon.ico" />
-  <style>
-    /* Ajuste para integrar plano-modular con el layout de App19 */
-    .plano-container {
-      grid-column: 1 / -1;
-      grid-row: 1 / -1;
-    }
-
-    /* Ocultar contenedores originales si existen */
-    #soundlineContainer, #gridArea, #matrixContainer, #timelineContainer {
-      display: none !important;
-    }
-
-  </style>
 </head>
 <body data-theme="system" data-visual="nuzic">
   <div id="app-root"></div>
@@ -69,9 +54,6 @@
       showP1Toggle: true,
       showPulseToggle: true,
       showPolyphonyToggle: false,
-      controlsLayout: {
-        mode: 'vertical'
-      },
       randomMenuContent: `
         <label>
           <span>Compás máximo</span>
@@ -109,147 +91,69 @@
     // Remove template-generated elements we don't need
     document.querySelector('.middle')?.remove();
 
-    // Replace .inputs section with new layout: Compás/Cycles stacked + separator + grid-editor
+    // Replace .inputs section with params as bpm-inline pastilles (like App19)
     const inputsSection = document.querySelector('.inputs');
     if (inputsSection) {
       inputsSection.innerHTML = `
-        <!-- Left: Compás + Cycles stacked -->
-        <div class="inputs-left-stack">
-          <div class="param compas">
-            <span class="abbr">Compás</span>
-            <div class="circle">
-              <input id="inputCompas" type="number" min="1" max="7" value="" />
-              <div class="spinner">
-                <button id="compasUp" class="spin up" type="button" aria-label="Incrementar Compás"></button>
-                <button id="compasDown" class="spin down" type="button" aria-label="Decrementar Compás"></button>
-              </div>
-            </div>
-          </div>
-          <div class="param cycle-display">
-            <span class="abbr">Nº Compases</span>
-            <div class="circle cycle-circle">
-              <input id="inputCycle" type="number" min="1" max="4" value="" />
-              <div class="cycle-counter__digit" id="cycleDigit"></div>
-              <div class="spinner">
-                <button id="cycleUp" class="spin up" type="button" aria-label="Incrementar Nº Compases"></button>
-                <button id="cycleDown" class="spin down" type="button" aria-label="Decrementar Nº Compases"></button>
-              </div>
+        <div class="bpm-inline visible param registro" id="registroParam">
+          <span class="abbr">Registro</span>
+          <div class="circle">
+            <input id="registroText" class="registro-text" type="text" value="3 y 4" size="5" readonly />
+            <div class="spinner">
+              <button id="registroUp" class="spin up" type="button" aria-label="Subir registro"></button>
+              <button id="registroDown" class="spin down" type="button" aria-label="Bajar registro"></button>
             </div>
           </div>
         </div>
-
-        <!-- Vertical separator -->
-        <div class="inputs-separator"></div>
-
-        <!-- Right: Grid-editor + Longitud wrapper (flex row) -->
-        <div class="grid-editor-wrapper">
-          <div class="inputs-grid-editor" id="gridEditorContainer">
-            <!-- Grid editor will be initialized by main.js -->
-          </div>
-
-          <!-- Longitud display (attached to right of grid-editor) -->
-          <div class="total-length-inline" id="totalLengthParam">
-            <div class="circle">
-              <span class="total-length__digit" id="totalLengthDigit">--</span>
+        <div class="bpm-inline visible param compas" id="compasParam">
+          <span class="abbr">Compás</span>
+          <div class="circle">
+            <input id="inputCompas" type="number" min="1" max="7" value="" />
+            <div class="spinner">
+              <button id="compasUp" class="spin up" type="button" aria-label="Incrementar Compás"></button>
+              <button id="compasDown" class="spin down" type="button" aria-label="Decrementar Compás"></button>
             </div>
-            <span class="abbr">Longitud</span>
+          </div>
+        </div>
+        <div class="bpm-inline visible param cycle-display" id="cycleParam">
+          <span class="abbr">Nº Compases</span>
+          <div class="circle">
+            <input id="inputCycle" type="number" min="1" max="4" value="" />
+            <div class="spinner">
+              <button id="cycleUp" class="spin up" type="button" aria-label="Incrementar Nº Compases"></button>
+              <button id="cycleDown" class="spin down" type="button" aria-label="Decrementar Nº Compases"></button>
+            </div>
+          </div>
+        </div>
+        <div class="bpm-inline visible param longitud" id="totalLengthParam">
+          <span class="abbr">Longitud</span>
+          <div class="circle">
+            <span class="total-length__digit" id="totalLengthDigit">--</span>
           </div>
         </div>
       `;
     }
 
-    // Extract .controls from timeline-wrapper and restructure for 2-column layout
-    const timelineWrapper = document.querySelector('.timeline-wrapper');
-    const controls = timelineWrapper?.querySelector('.controls');
-
-    console.log('Template restructure:', {
-      timelineWrapper: !!timelineWrapper,
-      controls: !!controls
-    });
-
-    if (controls && timelineWrapper) {
-      // Move controls out of wrapper temporarily
-      timelineWrapper.before(controls);
-
-      // Clear timeline-wrapper and rebuild with 2-column structure
-      timelineWrapper.innerHTML = `
-        <!-- Left Column: Registry + Controls + BPM -->
-        <div class="left-column" id="leftColumn">
-          <!-- BPM at top of left column -->
-          <div class="bpm-inline" id="bpmParam">
-            <span class="abbr">BPM</span>
-            <div class="circle">
-              <input id="inputBpm" type="number" min="30" max="300" value="100" />
-              <div class="spinner">
-                <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
-                <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
-              </div>
+    // Inject BPM inside .inputs (will be moved to controls by main.js)
+    const inputsEl = document.querySelector('.inputs');
+    if (inputsEl) {
+      const bpmDiv = document.createElement('div');
+      bpmDiv.innerHTML = `
+        <div class="bpm-inline visible" id="bpmParam">
+          <span class="abbr">BPM</span>
+          <div class="circle">
+            <input id="inputBpm" type="number" min="30" max="300" value="100" />
+            <div class="spinner">
+              <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
+              <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
             </div>
           </div>
-
-          <!-- Registry display (shows two visible registries) -->
-          <div class="param registro" id="registroParam">
-            <span class="abbr">Registro</span>
-            <div class="circle">
-              <span id="registroText" class="registro-text">3 y 4</span>
-              <div class="spinner">
-                <button id="registroUp" class="spin up" type="button" aria-label="Subir registro"></button>
-                <button id="registroDown" class="spin down" type="button" aria-label="Bajar registro"></button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Controls will be inserted here -->
-          <div class="controls-container" id="controlsContainer"></div>
-        </div>
-
-        <!-- Right Column: Grid 2D (plano-modular renders here) -->
-        <div class="right-column" id="rightColumn">
-          <!-- plano-modular will render its grid here -->
         </div>
       `;
-
-      // Move controls into the left column
-      const controlsContainer = document.getElementById('controlsContainer');
-      if (controlsContainer && controls) {
-        controlsContainer.appendChild(controls);
-      }
-
-      // Wrap Random + Reset in a row so they sit side by side below Play
-      const randomBtn = controls?.querySelector('#randomBtn');
-      const randomMenu = controls?.querySelector('#randomMenu');
-      const resetBtn = controls?.querySelector('#resetBtn');
-      if (randomBtn && resetBtn) {
-        const buttonRow = document.createElement('div');
-        buttonRow.className = 'button-row';
-        randomBtn.before(buttonRow);
-        buttonRow.appendChild(randomBtn);
-        if (randomMenu) buttonRow.appendChild(randomMenu);
-        buttonRow.appendChild(resetBtn);
-      }
-    } else {
-      console.error('Failed to restructure template - timelineWrapper or controls not found');
+      inputsEl.insertBefore(bpmDiv.firstElementChild, inputsEl.firstChild);
     }
 
-    // Add tap tempo button if not present (hidden by default, shown when BPM visible)
-    const controlGroup = document.querySelector('.controls');
-    if (controlGroup) {
-      // Check if tap button exists
-      let tapBtn = controlGroup.querySelector('#tapTempoBtn');
-      if (tapBtn) {
-        tapBtn.style.display = 'none'; // Hidden by default
-      }
-
-      // Add tap help span if not present
-      if (!controlGroup.querySelector('#tapHelp')) {
-        const tapHelp = document.createElement('span');
-        tapHelp.id = 'tapHelp';
-        tapHelp.style.display = 'none';
-        controlGroup.appendChild(tapHelp);
-      }
-    }
-
-    // Load main.js (migrated version is now the main)
+    // Load main.js
     import('./main.js');
   </script>
 
