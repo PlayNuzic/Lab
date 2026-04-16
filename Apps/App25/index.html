@@ -74,12 +74,8 @@
       inputsSection.innerHTML = `
         <div class="bpm-inline visible param escala" id="escalaParam">
           <span class="abbr">Escala</span>
-          <div class="circle">
-            <input id="escalaText" class="escala-text" type="text" value="Mayor" size="12" readonly />
-            <div class="spinner">
-              <button id="escalaUp" class="spin up" type="button" aria-label="Siguiente escala"></button>
-              <button id="escalaDown" class="spin down" type="button" aria-label="Anterior escala"></button>
-            </div>
+          <div class="circle escala-circle">
+            <select id="escalaSelect" class="escala-select"></select>
           </div>
         </div>
         <div class="bpm-inline visible" id="bpmParam">

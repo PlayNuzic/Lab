@@ -17,7 +17,6 @@ import { isFluteLoaded } from '../../libs/sound/flute.js';
 import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
-import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONFIGURATION ==========
@@ -951,21 +950,21 @@ async function init() {
   }
 
   // Create musical grid - NO SCROLL, fits all 12 notes
-  // Initialize scale spinner
-  const escalaText = document.getElementById('escalaText');
-  const initialIdx = APP25_SCALES.findIndex(s => s.value === initialScaleValue);
-  currentScaleIndex = initialIdx >= 0 ? initialIdx : 0;
-  if (escalaText) escalaText.value = APP25_SCALES[currentScaleIndex].name;
-
-  function cycleScale(dir) {
-    currentScaleIndex = (currentScaleIndex + dir + APP25_SCALES.length) % APP25_SCALES.length;
-    const sc = APP25_SCALES[currentScaleIndex];
-    if (escalaText) escalaText.value = sc.name;
-    handleScaleChange({ scaleId: sc.id, rotation: sc.rotation, value: sc.value });
+  // Initialize scale dropdown
+  const escalaSelect = document.getElementById('escalaSelect');
+  if (escalaSelect) {
+    APP25_SCALES.forEach((sc, i) => {
+      const opt = document.createElement('option');
+      opt.value = sc.value;
+      opt.textContent = sc.name;
+      escalaSelect.appendChild(opt);
+    });
+    escalaSelect.value = initialScaleValue;
+    escalaSelect.addEventListener('change', () => {
+      const sc = APP25_SCALES.find(s => s.value === escalaSelect.value);
+      if (sc) handleScaleChange({ scaleId: sc.id, rotation: sc.rotation, value: sc.value });
+    });
   }
-
-  attachSpinnerRepeat(document.getElementById('escalaUp'), () => cycleScale(1));
-  attachSpinnerRepeat(document.getElementById('escalaDown'), () => cycleScale(-1));
 
   // Create musical grid inside timeline-wrapper
   musicalGrid = createMusicalGrid({

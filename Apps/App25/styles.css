@@ -1,8 +1,6 @@
 /* App25: Melodias con Escalas - Nuzic Theme */
 
-/* Import shared module styles */
 @import url('../../libs/musical-grid/musical-grid.css');
-@import url('../../libs/scale-selector/scale-selector.css');
 
 /* Nuzic theme overrides */
 body[data-visual="nuzic"] {
@@ -10,7 +8,7 @@ body[data-visual="nuzic"] {
   --nuzic-controls-offset-y: 0;
 }
 
-/* ========== VIEWPORT FILL LAYOUT ========== */
+/* ========== VIEWPORT FILL ========== */
 html, body {
   margin: 0;
   padding: 0;
@@ -39,7 +37,7 @@ html, body {
   flex-direction: column;
 }
 
-/* ========== MAIN LAYOUT: Single column ========== */
+/* ========== MAIN LAYOUT ========== */
 main {
   flex: 1;
   display: flex;
@@ -49,7 +47,7 @@ main {
   overflow: hidden;
 }
 
-/* ========== INPUTS: Scale selector as pastilla param ========== */
+/* ========== INPUTS: Scale dropdown + BPM ========== */
 .inputs {
   display: flex;
   justify-content: center;
@@ -61,24 +59,8 @@ main {
   z-index: 1;
 }
 
-/* Golden spinners for all params */
-.inputs .param .spin {
-  background: var(--nuzic-yellow) !important;
-  border-radius: 50% !important;
-  aspect-ratio: 1 !important;
-  border: none !important;
-}
-
-.inputs .param .spin.up::before {
-  border-bottom-color: white !important;
-}
-
-.inputs .param .spin.down::before {
-  border-top-color: white !important;
-}
-
-/* Scale selector param: capsule with pink border */
-.param.escala .circle {
+/* Scale dropdown param: capsule with pink border */
+.param.escala .escala-circle {
   width: auto !important;
   height: 2.75rem;
   padding: 0 0.5rem;
@@ -90,30 +72,37 @@ main {
   background: transparent;
 }
 
-.param.escala .escala-text {
-  width: auto !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: clamp(0.85rem, 1.8vw, 1.3rem);
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
+.escala-select {
   border: none;
   background: transparent;
+  font-size: clamp(0.85rem, 1.8vw, 1.2rem);
+  font-weight: 700;
   color: var(--text-color, #333);
   font-family: 'Courier New', Courier, monospace;
+  cursor: pointer;
+  outline: none;
+  padding: 0 0.25rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23F28AAD'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.25rem center;
+  padding-right: 1.25rem;
 }
 
-[data-theme="dark"] .param.escala .circle {
+[data-theme="dark"] .param.escala .escala-circle {
   border-color: var(--nuzic-pink, #F28AAD);
 }
 
-[data-theme="dark"] .param.escala .escala-text {
+[data-theme="dark"] .escala-select {
   color: var(--text-color, #eee);
 }
 
-/* ========== TIMELINE WRAPPER (grid + editor + controls) ========== */
+/* Hide loop button */
+#loopBtn { display: none !important; }
+
+/* ========== TIMELINE WRAPPER ========== */
 .timeline-wrapper {
   flex: 1;
   display: flex;
@@ -124,7 +113,7 @@ main {
   z-index: 2;
 }
 
-/* Musical grid fills available space */
+/* Musical grid fills available space — compact rows */
 .timeline-wrapper > .grid-container {
   flex: 1;
   width: 100% !important;
@@ -134,60 +123,84 @@ main {
   overflow: hidden;
   margin: 0 !important;
   box-sizing: border-box;
+  --cell-height: 1.5rem;  /* compact rows for more editor/controls space */
 }
 
-/* ========== HIDE UNNECESSARY ELEMENTS ========== */
-#loopBtn {
-  display: none !important;
-}
-
-/* ========== SOUNDLINE SCALE NOTES ========== */
-/* Hide top-zero label (note 12 = degree 0 upper octave) */
+/* ========== SOUNDLINE: hide top-zero, style scale/chromatic notes ========== */
 .soundline-number.top-zero {
   display: none;
 }
 
-/* Scale notes: normal weight */
-.soundline-number.scale-note {
-  font-weight: 400 !important;
-  opacity: 1;
-}
-
-/* Chromatic notes: small and faded */
 .soundline-number.chromatic-note {
-  font-size: clamp(0.5rem, 0.9vw, 0.7rem) !important;
+  font-size: clamp(0.4rem, 0.8vw, 0.6rem) !important;
   opacity: 0.35;
   font-weight: 300 !important;
 }
 
-/* ========== Nº EDITOR (single row below grid) ========== */
+/* ========== CELL LABELS (degree numbers on active cells) ========== */
+.cell-label {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 50%);
+  font-size: clamp(0.6rem, 1.2vw, 0.85rem);
+  font-weight: 600;
+  color: var(--nuzic-dark, #43433B);
+  pointer-events: none;
+  z-index: 15;
+}
+
+[data-theme="dark"] .cell-label {
+  color: #f0f0f0;
+}
+
+.musical-cell.active {
+  opacity: 1 !important;
+}
+
+.musical-cell.active .cell-label {
+  opacity: 1 !important;
+}
+
+/* ========== DISABLED CELLS (notes outside scale) ========== */
+.musical-cell.disabled {
+  opacity: 0.2;
+  pointer-events: auto !important;
+  background: transparent !important;
+  cursor: not-allowed;
+}
+
+.musical-cell.disabled .np-dot::after {
+  width: 4px;
+  height: 4px;
+  background: var(--line-color, #666);
+  border: none;
+  opacity: 0.6;
+}
+
+/* ========== Nº EDITOR (single row, App12/13 style) ========== */
 .degree-editor {
   flex-shrink: 0;
-  display: flex;
-  align-items: stretch;
-  height: 2rem;
-  padding: 0.25rem 0;
+  display: grid;
+  grid-template-columns: 3.75rem 1fr;  /* match soundline width */
+  margin-bottom: 1px;
 }
 
 .degree-editor-label {
-  width: 3.75rem;
-  flex-shrink: 0;
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
   color: white;
   background: var(--nuzic-yellow, #FFBB33);
 }
 
 .degree-editor-cells {
   display: flex;
-  flex: 1;
-  min-width: 0;
   justify-content: flex-start;
   align-items: stretch;
-  background: var(--nuzic-light, #EEE8D8);
+  background: var(--nuzic-light, #EEE8D8);  /* cream extends to end */
 }
 
 .degree-editor-cell {
@@ -199,12 +212,14 @@ main {
   font-weight: 700;
   font-size: clamp(0.7rem, 1.4vw, 0.875rem);
   font-family: 'Courier New', Courier, monospace;
+  color: var(--nuzic-dark, #43433B);
   padding: 0;
   outline: none;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 0;
   -moz-appearance: textfield;
 }
 
@@ -217,32 +232,37 @@ main {
 /* Empty cells: yellow placeholder */
 .degree-editor-cell:placeholder-shown {
   background: var(--nuzic-yellow-light, #ffeecc);
-  border: 1px solid var(--nuzic-yellow-light, #ffeecc);
+  border: 2px solid var(--nuzic-yellow-light, #ffeecc);
 }
 
 /* Value cells: white */
 .degree-editor-cell:not(:placeholder-shown) {
   background: white;
-  border: 1px solid #ddd;
+  z-index: 1;
 }
 
 /* Active input cell */
 .degree-editor-cell.active-input {
-  background: white;
-  border: 2px solid var(--nuzic-yellow, #FFBB33);
+  background: white !important;
   cursor: text;
+  z-index: 2;
+}
+
+.degree-editor-cell.active-input:focus {
+  box-shadow: inset 0 0 0 2px var(--nuzic-yellow, #FFBB33);
 }
 
 /* End marker */
 .degree-editor-end {
-  width: 1.5rem;
-  flex-shrink: 0;
+  width: 5%;
+  min-width: 1.25rem;
+  aspect-ratio: 1;
+  background: var(--nuzic-dark, #43433B);
   display: none;
   align-items: center;
   justify-content: center;
-  background: var(--nuzic-dark, #43433B);
   color: white;
-  font-size: clamp(0.6rem, 1.1vw, 0.75rem);
+  font-size: clamp(0.5rem, 1vw, 0.8rem);
 }
 
 .degree-editor-end::after {
@@ -278,48 +298,4 @@ main {
 
 [data-theme="dark"] .degree-editor-end {
   background: var(--nuzic-grey, #AAA699);
-}
-
-/* ========== DISABLED CELLS (notes outside scale) ========== */
-.musical-cell.disabled {
-  opacity: 0.2;
-  pointer-events: auto !important;
-  background: transparent !important;
-  cursor: not-allowed;
-}
-
-.musical-cell.disabled .np-dot::after {
-  width: 4px;
-  height: 4px;
-  background: var(--line-color, #666);
-  border: none;
-  opacity: 0.6;
-}
-
-/* ========== DEGREE LABELS ON ACTIVE CELLS ========== */
-.cell-label {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translate(-50%, 50%);
-  font-size: clamp(0.7rem, 1.5vw, 1rem);
-  font-weight: 600;
-  color: #333;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-  pointer-events: none;
-  z-index: 15;
-}
-
-[data-theme="dark"] .cell-label {
-  color: #f0f0f0;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-/* Active cells fully visible even on disabled rows */
-.musical-cell.active {
-  opacity: 1 !important;
-}
-
-.musical-cell.active .cell-label {
-  opacity: 1 !important;
 }
