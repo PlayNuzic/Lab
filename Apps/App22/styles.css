@@ -234,7 +234,7 @@ html, body {
 
 .interval-bar {
   position: absolute;
-  left: -111%;
+  left: 0%;
   transform: translateY(-50%);
   width: var(--interval-bar-width);
   background: transparent;
@@ -624,31 +624,146 @@ html, body {
   }
 }
 
+/* Orientation warning removed — Sistema Interactivo handles responsive layout */
+
 /* ============================================================================
-   ALERTA D'ESPAI MÍNIM - Pantalles molt petites (< 360px width o < 400px height)
+   NUZIC THEME OVERRIDES
    ============================================================================ */
 
-@media (max-width: 360px), (max-height: 400px) {
-  body::before {
-    content: 'Pantalla massa petita. Gira el dispositiu o usa una pantalla més gran.';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 2rem;
-    font-size: 1.2rem;
-    line-height: 1.5;
-    z-index: 99999;
-  }
+/* Soundline container: narrow pink strip */
+body[data-visual="nuzic"] .soundline-container {
+  width: 4.5rem;
+  background: var(--nuzic-pink-light, #ffe5ee);
+  border-radius: 4px;
+  overflow: hidden;
+}
 
-  #app-root {
-    display: none !important;
-  }
+/* Hide legacy line + divisions */
+body[data-visual="nuzic"] .soundline::before { display: none; }
+body[data-visual="nuzic"] .soundline-division { display: none; }
+
+/* Numbers: centered with dashes */
+body[data-visual="nuzic"] .soundline-number {
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--nuzic-dark, #43433B);
+  opacity: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0 0.25rem;
+  box-sizing: border-box;
+}
+
+body[data-visual="nuzic"] .soundline-number::before {
+  content: '\2013';
+  flex-shrink: 0;
+  color: var(--nuzic-dark, #43433B);
+}
+
+body[data-visual="nuzic"] .soundline-number::after {
+  content: '\2013';
+  flex-shrink: 0;
+  color: var(--nuzic-dark, #43433B);
+}
+
+/* Active numbers during playback: nuzic yellow */
+body[data-visual="nuzic"] .soundline-number.active {
+  color: var(--nuzic-yellow, #FFBB33);
+  text-shadow: none;
+}
+
+body[data-visual="nuzic"] .soundline-number.active::before,
+body[data-visual="nuzic"] .soundline-number.active::after {
+  color: var(--nuzic-yellow, #FFBB33);
+}
+
+/* Dots: centered */
+body[data-visual="nuzic"] .soundline-dot {
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.4rem;
+  height: 0.4rem;
+  background: var(--nuzic-dark, #43433B);
+}
+
+/* Note highlight: fit narrow container */
+body[data-visual="nuzic"] .note-highlight {
+  --note-highlight-color: var(--nuzic-blue-light, #C0DDEE);
+  left: 0;
+  width: 100%;
+}
+
+/* Interval bars: nuzic pink when active */
+body[data-visual="nuzic"] .interval-bar {
+  border-color: var(--nuzic-grey, #AAA699);
+}
+
+body[data-visual="nuzic"] .interval-bar.active {
+  background: var(--nuzic-pink, #F28AAD);
+  border-color: var(--nuzic-pink, #F28AAD);
+  box-shadow: 0 0 0.5rem var(--nuzic-pink, #F28AAD);
+}
+
+body[data-visual="nuzic"] .interval-bar.active .interval-number {
+  color: white;
+}
+
+/* Header + play + ee-display: center (remove legacy offset) */
+body[data-visual="nuzic"] .soundline-header { transform: none; }
+body[data-visual="nuzic"] .soundline-play { transform: none; }
+body[data-visual="nuzic"] .ee-display { transform: none; }
+
+/* Play button: nuzic green circle */
+body[data-visual="nuzic"] .soundline-play {
+  background: var(--nuzic-green, #4CAF50);
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body[data-visual="nuzic"] .soundline-play.playing {
+  background: var(--nuzic-green, #4CAF50);
+  box-shadow: 0 0 0.5rem var(--nuzic-green, #4CAF50);
+  border: none;
+}
+
+/* Titles: nuzic colors */
+body[data-visual="nuzic"] .soundline-title {
+  color: var(--nuzic-dark, #43433B);
+}
+
+body[data-visual="nuzic"] .soundline-subtitle {
+  color: var(--nuzic-grey, #AAA699);
+}
+
+body[data-visual="nuzic"] .ee-label {
+  color: var(--nuzic-dark, #43433B);
+}
+
+/* Dark mode */
+body[data-visual="nuzic"][data-theme="dark"] .soundline-container {
+  background: var(--nuzic-pink-light, #ffe5ee);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .soundline-number {
+  color: var(--nuzic-dark, #43433B);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .soundline-title {
+  color: var(--text-dark, #e0e0e0);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .soundline-subtitle {
+  color: var(--nuzic-grey, #AAA699);
 }
