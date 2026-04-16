@@ -10,14 +10,9 @@
    APP24-SPECIFIC: EE-DISPLAY 15% MÉS GRAN
    ============================================================================ */
 
+/* eE 15% larger than base — applied only to container to avoid cascade */
 .ee-display {
-  font-size: 1.5em;
-}
-
-.ee-label,
-.ee-number,
-.ee-function {
-  font-size: 1.5em;
+  font-size: 1.15em;
 }
 
 /* ============================================================================

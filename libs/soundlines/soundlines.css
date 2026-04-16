@@ -21,11 +21,16 @@
   /* Llargada de les línies de connexió (0-100%) */
   --connection-length: 70%;
 
-  /* Header sizing */
+  /* Header sizing — fluid with clamp(min, preferred, max) */
   --soundline-header-offset: -1.4375rem;
-  --soundline-title-size: 1.25rem;
-  --soundline-subtitle-size: 1.1rem;
-  --soundline-number-size: 1.6rem;
+  --soundline-title-size: clamp(0.9rem, 1.5vw, 1.25rem);
+  --soundline-subtitle-size: clamp(0.75rem, 1.2vw, 1.1rem);
+  --soundline-number-size: clamp(0.9rem, 1.8vw, 1.6rem);
+
+  /* EE display sizing — fluid */
+  --ee-label-size: clamp(1rem, 2.5vw, 2rem);
+  --ee-number-size: clamp(1rem, 2.6vw, 2.1rem);
+  --ee-function-size: clamp(0.9rem, 2.4vw, 2rem);
 }
 
 [data-theme="dark"] {
@@ -333,21 +338,21 @@ html, body {
 }
 
 .ee-label {
-  font-size: 1.2rem;
+  font-size: var(--ee-label-size);
   font-weight: 525;
   color: var(--color-lg, #7BB4CD);
   margin-right: 0.25rem;
 }
 
 .ee-number {
-  font-size: 1.2rem;
+  font-size: var(--ee-number-size);
   font-weight: 525;
   color: var(--text-color, #333);
   font-family: monospace;
 }
 
 .ee-function {
-  font-size: 1.2rem;
+  font-size: var(--ee-function-size);
   font-weight: 400;
   color: var(--text-color, #333);
   opacity: 0.7;
