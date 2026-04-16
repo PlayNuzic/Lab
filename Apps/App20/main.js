@@ -701,8 +701,8 @@ function initGridEditor() {
           return;
         }
 
-        // Partial NrR input (user still typing, e.g., "5r")
-        if (/^\d+r?$/.test(val)) return;
+        // Partial NrR: only if user typed "5r" (ending with 'r', waiting for registry)
+        if (/^\d+r$/.test(val)) return;
 
         const parsed = parseNoteInput(val);
         if (!parsed) { e.target.value = ''; return; }
@@ -719,13 +719,14 @@ function initGridEditor() {
         lastEnteredType = 'n';
 
         clearTimeout(autoJumpTimer);
+        // Delay: allow multi-digit note (e.g., "11") or NrR completion
         autoJumpTimer = setTimeout(() => {
           if (pendingIT !== null) commitEntry();
           else {
             const itInput = itCells.querySelector('.active-input');
             if (itInput) itInput.focus();
           }
-        }, 500);
+        }, 400);
 
       } else {
         // iT input
