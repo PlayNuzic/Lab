@@ -30,10 +30,12 @@ const CONFIG = {
   // Compás limits
   MIN_COMPAS: 1,
   MAX_COMPAS: 7,
+  DEFAULT_COMPAS: 4,
 
   // Nº Compases (cycles) limits
   MIN_CYCLES: 1,
   MAX_CYCLES: 4,
+  DEFAULT_CYCLES: 3,
 
   // BPM limits
   MIN_BPM: 30,
@@ -680,22 +682,19 @@ function handleReset() {
     stopPlayback();
   }
 
-  // Clear all inputs
-  compas = null;
-  cycles = null;
+  // Restore default values (not null — that would erase the grid)
+  compas = CONFIG.DEFAULT_COMPAS;
+  cycles = CONFIG.DEFAULT_CYCLES;
 
-  elements.inputCompas.value = '';
-  elements.inputCycle.value = '';
+  elements.inputCompas.value = compas;
+  elements.inputCycle.value = cycles;
 
   if (elements.cycleDigit) {
-    elements.cycleDigit.textContent = '';
+    elements.cycleDigit.textContent = String(cycles);
   }
 
   // Reset BPM to default
   bpmController?.setValue(CONFIG.DEFAULT_BPM);
-
-  // Reset registry (show registries 3 and 4)
-  scrollToScreen(0, false);
 
   // Clear selection
   grid?.clearSelection();
@@ -707,7 +706,9 @@ function handleReset() {
   updateGridVisibility();
   updateGrid();
 
-  elements.inputCompas?.focus();
+  // Reset registry (show registries 3 and 4) after grid is rebuilt
+  scrollToScreen(0, false);
+
   console.log('Reset complete');
 }
 
@@ -877,21 +878,18 @@ function setupHovers() {
 registerFactoryReset({
   storage: preferenceStorage,
   onReset: () => {
-    // Reset all state
-    compas = null;
-    cycles = null;
+    // Restore defaults (not null)
+    compas = CONFIG.DEFAULT_COMPAS;
+    cycles = CONFIG.DEFAULT_CYCLES;
 
     // Reset UI
-    if (elements.inputCompas) elements.inputCompas.value = '';
-    if (elements.inputCycle) elements.inputCycle.value = '';
+    if (elements.inputCompas) elements.inputCompas.value = compas;
+    if (elements.inputCycle) elements.inputCycle.value = cycles;
     if (elements.registroText) elements.registroText.value = '3 y 4';
-    if (elements.cycleDigit) elements.cycleDigit.textContent = '';
+    if (elements.cycleDigit) elements.cycleDigit.textContent = String(cycles);
 
     // Reset BPM
     bpmController?.setValue(CONFIG.DEFAULT_BPM);
-
-    // Reset registry (show registries 3 and 4)
-    scrollToScreen(0, false);
 
     // Clear selections
     grid?.clearSelection();
@@ -900,6 +898,9 @@ registerFactoryReset({
     updateLongitud();
     updateGridVisibility();
     updateGrid();
+
+    // Reset registry after grid rebuild
+    scrollToScreen(0, false);
   }
 });
 
