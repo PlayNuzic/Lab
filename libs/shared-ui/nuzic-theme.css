@@ -317,7 +317,7 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   left: 0;
   width: 100%;
   font-weight: 700;
-  font-size: 1.4rem;
+  font-size: var(--soundline-number-size, clamp(0.9rem, 1.8vw, 1.6rem));
   opacity: 1;
   display: flex;
   justify-content: space-between;
