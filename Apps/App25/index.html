@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="../../libs/musical-grid/musical-grid.css" />
-  <link rel="stylesheet" href="../../libs/scale-selector/scale-selector.css" />
   <link rel="stylesheet" href="../../libs/shared-ui/bpm-inline.css" />
   <link rel="stylesheet" href="../../libs/shared-ui/nuzic-theme.css" />
   <link rel="stylesheet" href="styles.css" />
@@ -43,10 +42,7 @@
       showInstrumentDropdown: true,
       showP1Toggle: true,
       showPulseToggle: false,
-      showPolyphonyToggle: false,  // No polyphony for melodic mode
-      controlsLayout: {
-        mode: 'vertical'
-      },
+      showPolyphonyToggle: false,
       randomMenuContent: `
         <label>
           <span>Densidad (0-12)</span>
@@ -70,10 +66,22 @@
       selectColor.value = storedColor;
     }
 
-    // Replace inputs section with BPM inline control, remove middle section
+    // Remove .middle, replace .inputs with scale + BPM params
+    document.querySelector('.middle')?.remove();
+
     const inputsSection = document.querySelector('.inputs');
     if (inputsSection) {
       inputsSection.innerHTML = `
+        <div class="bpm-inline visible param escala" id="escalaParam">
+          <span class="abbr">Escala</span>
+          <div class="circle">
+            <input id="escalaText" class="escala-text" type="text" value="Mayor" size="12" readonly />
+            <div class="spinner">
+              <button id="escalaUp" class="spin up" type="button" aria-label="Siguiente escala"></button>
+              <button id="escalaDown" class="spin down" type="button" aria-label="Anterior escala"></button>
+            </div>
+          </div>
+        </div>
         <div class="bpm-inline visible" id="bpmParam">
           <span class="abbr">BPM</span>
           <div class="circle">
@@ -85,14 +93,6 @@
           </div>
         </div>
       `;
-    }
-    document.querySelector('.middle')?.remove();
-
-    // Move .controls out of timeline-wrapper (keep timeline visible)
-    const timelineWrapper = document.querySelector('.timeline-wrapper');
-    const controls = timelineWrapper?.querySelector('.controls');
-    if (controls && timelineWrapper) {
-      timelineWrapper.before(controls);
     }
 
     import('./main.js');

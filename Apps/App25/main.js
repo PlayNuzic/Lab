@@ -4,7 +4,6 @@
 // KEY FEATURE: Melody adapts when scale changes (degrees stay, MIDI changes)
 
 import { createMusicalGrid } from '../../libs/musical-grid/index.js';
-import { createGridEditor } from '../../libs/matrix-seq/index.js';
 import { initMixerMenu, updateMixerChannelLabel } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/menu.js';
 import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
@@ -15,10 +14,10 @@ import { createMatrixHighlightController } from '../../libs/app-common/matrix-hi
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { isPianoLoaded, setupPianoPreload } from '../../libs/sound/piano.js';
 import { isFluteLoaded } from '../../libs/sound/flute.js';
-import { createScaleSelector } from '../../libs/scale-selector/index.js';
 import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index.js';
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
+import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONFIGURATION ==========
@@ -47,8 +46,8 @@ const APP25_SCALES = [
 let audio = null;
 let musicalGrid = null;
 let gridEditor = null;
-let scaleSelector = null;
 let bpmController = null;
+let currentScaleIndex = 0;
 let currentBPM = DEFAULT_BPM;
 let isPlaying = false;
 
@@ -75,8 +74,6 @@ let playBtn = null;
 let resetBtn = null;
 let randomBtn = null;
 let gridEditorContainer = null;
-let scaleSelectorContainer = null;
-let gridAreaContainer = null;
 
 
 // ========== STORAGE HELPERS ==========
@@ -630,36 +627,297 @@ function handleScaleChange({ scaleId, rotation, value }) {
   });
 }
 
+// ========== NUZIC DEGREE EDITOR (single row) ==========
+
+function initDegreeEditor() {
+  const container = gridEditorContainer;
+  if (!container) return;
+  container.innerHTML = '';
+
+  // Label
+  const label = document.createElement('div');
+  label.className = 'degree-editor-label';
+  label.textContent = 'Nº';
+
+  // Cells container
+  const cellsContainer = document.createElement('div');
+  cellsContainer.className = 'degree-editor-cells';
+
+  // End marker
+  const endMarker = document.createElement('div');
+  endMarker.className = 'degree-editor-end';
+  endMarker.style.display = 'none';
+  cellsContainer.appendChild(endMarker);
+
+  container.appendChild(label);
+  container.appendChild(cellsContainer);
+
+  // State
+  let entries = []; // [{degree, modifier, pulse}]
+  let autoJumpTimer = null;
+
+  function showTooltip(cell, message) {
+    let tooltip = document.querySelector('.degree-editor-tooltip');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.className = 'degree-editor-tooltip';
+      document.body.appendChild(tooltip);
+    }
+    tooltip.textContent = message;
+    const rect = cell.getBoundingClientRect();
+    tooltip.style.left = `${rect.left + rect.width / 2}px`;
+    tooltip.style.top = `${rect.top - 8}px`;
+    tooltip.style.transform = 'translate(-50%, -100%)';
+    tooltip.classList.add('visible');
+    setTimeout(() => tooltip.classList.remove('visible'), 1500);
+  }
+
+  function formatDegree(entry) {
+    if (entry.modifier === 'r+') return `${entry.degree}r5`;
+    if (entry.modifier === '+') return `${entry.degree}+`;
+    if (entry.modifier === '-') return `${entry.degree}-`;
+    return String(entry.degree);
+  }
+
+  function createReadonlyCell() {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.className = 'degree-editor-cell';
+    cell.placeholder = ' ';
+    cell.readOnly = true;
+    cell.tabIndex = -1;
+    return cell;
+  }
+
+  function createValueCell(displayValue, entryIndex) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.inputMode = 'numeric';
+    cell.maxLength = 3;
+    cell.className = 'degree-editor-cell';
+    cell.value = displayValue;
+    cell.dataset.entryIndex = entryIndex;
+    cell.readOnly = false;
+    cell.style.cursor = 'text';
+
+    let originalValue = cell.value;
+
+    cell.addEventListener('focus', () => { originalValue = cell.value; cell.select(); });
+
+    cell.addEventListener('blur', () => {
+      const val = cell.value.trim();
+      if (!val || val === originalValue) { cell.value = originalValue; return; }
+
+      const idx = parseInt(cell.dataset.entryIndex);
+      const entry = entries[idx];
+      if (!entry) { cell.value = originalValue; return; }
+
+      const parsed = parseDegreeInput(val);
+      if (!parsed || !validateDegree(parsed.degree)) {
+        showTooltip(cell, `Grado: 0-${currentScaleLength - 1}`);
+        cell.value = originalValue;
+        return;
+      }
+
+      entry.degree = parsed.degree;
+      entry.modifier = parsed.modifier;
+      notifyChange();
+      renderCells();
+    });
+
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); cell.blur(); return; }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        cell.blur();
+        const allCells = Array.from(cellsContainer.querySelectorAll('.degree-editor-cell:not([readonly])'));
+        const idx = allCells.indexOf(cell);
+        const next = e.shiftKey ? allCells[idx - 1] : allCells[idx + 1];
+        if (next) next.focus();
+        return;
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const allCells = Array.from(cellsContainer.querySelectorAll('.degree-editor-cell:not([readonly])'));
+        const idx = allCells.indexOf(cell);
+        const next = e.key === 'ArrowRight' ? allCells[idx + 1] : allCells[idx - 1];
+        if (next) { e.preventDefault(); next.focus(); }
+      }
+    });
+
+    return cell;
+  }
+
+  function createInputCell() {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.inputMode = 'numeric';
+    cell.maxLength = 3;
+    cell.className = 'degree-editor-cell active-input';
+    cell.readOnly = false;
+
+    cell.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val === '') return;
+
+      const parsed = parseDegreeInput(val);
+      if (!parsed) {
+        // Could be partial (e.g., just a digit, waiting for modifier)
+        if (/^\d+$/.test(val)) {
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = setTimeout(() => {
+            const current = cell.value;
+            const p = parseDegreeInput(current);
+            if (!p || !validateDegree(p.degree)) {
+              showTooltip(cell, `Grado: 0-${currentScaleLength - 1}`);
+              cell.value = '';
+              return;
+            }
+            commitDegree(p);
+          }, 500);
+          return;
+        }
+        e.target.value = '';
+        return;
+      }
+
+      if (!validateDegree(parsed.degree)) {
+        showTooltip(cell, `Grado: 0-${currentScaleLength - 1}`);
+        e.target.value = '';
+        clearTimeout(autoJumpTimer);
+        return;
+      }
+
+      clearTimeout(autoJumpTimer);
+      // If modifier present, commit immediately
+      if (parsed.modifier) {
+        commitDegree(parsed);
+      } else {
+        // Wait for possible modifier
+        autoJumpTimer = setTimeout(() => commitDegree(parsed), 500);
+      }
+    });
+
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        clearTimeout(autoJumpTimer);
+        const val = cell.value.trim();
+        if (val) {
+          const parsed = parseDegreeInput(val);
+          if (parsed && validateDegree(parsed.degree)) commitDegree(parsed);
+        }
+        return;
+      }
+
+      if (e.key === 'Backspace' && !e.target.value) {
+        e.preventDefault();
+        clearTimeout(autoJumpTimer);
+        if (entries.length > 0) {
+          entries.pop();
+          notifyChange();
+          renderCells();
+        }
+      }
+    });
+
+    return cell;
+  }
+
+  function parseDegreeInput(val) {
+    // "3r+" → degree 3, modifier r+
+    const matchR = val.match(/^(\d+)r\+$/);
+    if (matchR) return { degree: parseInt(matchR[1]), modifier: 'r+' };
+    // "3+" → degree 3, modifier +
+    const matchPlus = val.match(/^(\d+)\+$/);
+    if (matchPlus) return { degree: parseInt(matchPlus[1]), modifier: '+' };
+    // "3-" → degree 3, modifier -
+    const matchMinus = val.match(/^(\d+)-$/);
+    if (matchMinus) return { degree: parseInt(matchMinus[1]), modifier: '-' };
+    // "3" → degree 3, no modifier
+    const num = parseInt(val);
+    if (!isNaN(num) && num >= 0) return { degree: num, modifier: null };
+    return null;
+  }
+
+  function validateDegree(degree) {
+    return degree >= 0 && degree < currentScaleLength;
+  }
+
+  function commitDegree(parsed) {
+    const pulse = entries.length;
+    if (pulse >= TOTAL_SPACES) return;
+
+    entries.push({ degree: parsed.degree, modifier: parsed.modifier, pulse, isRest: false });
+    lostDegreesMemory.delete(pulse);
+    notifyChange();
+    renderCells();
+  }
+
+  function notifyChange() {
+    const pairs = entries.map((e, i) => ({ ...e, pulse: i }));
+    syncGridFromDegrees(pairs);
+  }
+
+  function renderCells() {
+    cellsContainer.querySelectorAll('.degree-editor-cell').forEach(c => c.remove());
+
+    for (let i = 0; i < entries.length; i++) {
+      cellsContainer.insertBefore(createValueCell(formatDegree(entries[i]), i), endMarker);
+      cellsContainer.insertBefore(createReadonlyCell(), endMarker);
+    }
+
+    if (entries.length < TOTAL_SPACES) {
+      const input = createInputCell();
+      cellsContainer.insertBefore(input, endMarker);
+      cellsContainer.insertBefore(createReadonlyCell(), endMarker);
+      setTimeout(() => input.focus(), 30);
+    }
+
+    endMarker.style.display = entries.length >= TOTAL_SPACES ? 'flex' : 'none';
+  }
+
+  renderCells();
+
+  // Public API (compatible with legacy gridEditor)
+  gridEditor = {
+    getPairs: () => entries.map((e, i) => ({ ...e, pulse: i })),
+
+    setPairs: (pairs) => {
+      entries = pairs.filter(p => !p.isRest && p.degree != null).map((p, i) => ({
+        degree: p.degree,
+        modifier: p.modifier || null,
+        pulse: i,
+        isRest: false
+      }));
+      clearTimeout(autoJumpTimer);
+      renderCells();
+    },
+
+    clear: () => {
+      entries = [];
+      clearTimeout(autoJumpTimer);
+      renderCells();
+    },
+
+    clearHighlights: () => {},
+
+    destroy: () => {
+      clearTimeout(autoJumpTimer);
+      container.innerHTML = '';
+    }
+  };
+}
+
 // ========== DOM INJECTION ==========
 
 function injectLayout() {
-  const appRoot = document.getElementById('app-root');
-  const mainElement = appRoot?.querySelector('main');
+  const timelineWrapper = document.querySelector('.timeline-wrapper');
+  if (!timelineWrapper) return null;
 
-  if (!mainElement) return null;
+  // Clear timeline-wrapper (remove default timeline)
+  timelineWrapper.innerHTML = '';
 
-  // Main grid container
-  const gridWrapper = document.createElement('div');
-  gridWrapper.className = 'app25-main-grid';
-
-  // Left column: Scale selector
-  scaleSelectorContainer = document.createElement('div');
-  scaleSelectorContainer.className = 'app25-scale-selector';
-  gridWrapper.appendChild(scaleSelectorContainer);
-
-  // Right column: Grid area (editor + musical grid)
-  gridAreaContainer = document.createElement('div');
-  gridAreaContainer.className = 'app25-grid-area';
-  gridWrapper.appendChild(gridAreaContainer);
-
-  // Grid editor container (inside grid area)
-  gridEditorContainer = document.createElement('div');
-  gridEditorContainer.id = 'gridEditorContainer';
-  gridAreaContainer.appendChild(gridEditorContainer);
-
-  mainElement.appendChild(gridWrapper);
-
-  return gridWrapper;
+  return timelineWrapper;
 }
 
 // ========== INITIALIZATION ==========
@@ -680,19 +938,6 @@ async function init() {
   const prefs = preferenceStorage.load() || {};
 
   // Initialize scale selector
-  scaleSelector = createScaleSelector({
-    container: scaleSelectorContainer,
-    appId: 'app25',
-    scales: APP25_SCALES,
-    initialScale: prefs.scaleValue || 'DIAT-0',
-    enableTranspose: false,
-    title: 'Escala',
-    selectSize: 3,  // Show only 3 scales, scroll for rest
-    onScaleChange: handleScaleChange
-  });
-
-  scaleSelector.render();
-
   // Set initial scale state from preferences or default
   const initialScaleValue = prefs.scaleValue || 'DIAT-0';
   const initialScaleConfig = APP25_SCALES.find(s => s.value === initialScaleValue);
@@ -706,8 +951,25 @@ async function init() {
   }
 
   // Create musical grid - NO SCROLL, fits all 12 notes
+  // Initialize scale spinner
+  const escalaText = document.getElementById('escalaText');
+  const initialIdx = APP25_SCALES.findIndex(s => s.value === initialScaleValue);
+  currentScaleIndex = initialIdx >= 0 ? initialIdx : 0;
+  if (escalaText) escalaText.value = APP25_SCALES[currentScaleIndex].name;
+
+  function cycleScale(dir) {
+    currentScaleIndex = (currentScaleIndex + dir + APP25_SCALES.length) % APP25_SCALES.length;
+    const sc = APP25_SCALES[currentScaleIndex];
+    if (escalaText) escalaText.value = sc.name;
+    handleScaleChange({ scaleId: sc.id, rotation: sc.rotation, value: sc.value });
+  }
+
+  attachSpinnerRepeat(document.getElementById('escalaUp'), () => cycleScale(1));
+  attachSpinnerRepeat(document.getElementById('escalaDown'), () => cycleScale(-1));
+
+  // Create musical grid inside timeline-wrapper
   musicalGrid = createMusicalGrid({
-    parent: gridAreaContainer,
+    parent: gridWrapper,
     notes: TOTAL_NOTES,
     pulses: TOTAL_PULSES,
     startMidi: 60,
@@ -781,66 +1043,39 @@ async function init() {
   // Initial cell states
   updateGridCellStates();
 
-  // Move controls into scale selector area
+  // Reorder controls: Play, BPM, Random, Reset (compact row)
+  const bpmParam = document.getElementById('bpmParam');
   const controls = document.querySelector('.controls');
-  if (controls && scaleSelectorContainer) {
-    controls.remove();
+  if (controls && bpmParam) {
+    const playBtnEl = controls.querySelector('.play') || document.getElementById('playBtn');
+    const randomBtnEl = controls.querySelector('.random');
+    const resetBtnEl = controls.querySelector('.reset');
+    const randomMenuEl = controls.querySelector('.random-menu');
 
-    const controlsContainer = document.createElement('div');
-    controlsContainer.className = 'app25-controls-container';
-    const bpmParam = document.getElementById('bpmParam');
-    if (bpmParam) {
-      controlsContainer.prepend(bpmParam);
-    }
-    controlsContainer.appendChild(controls);
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
 
-    scaleSelectorContainer.appendChild(controlsContainer);
+    if (playBtnEl) controls.appendChild(playBtnEl);
+    controls.appendChild(bpmParam);
+    if (randomBtnEl) controls.appendChild(randomBtnEl);
+    if (randomMenuEl) controls.appendChild(randomMenuEl);
+    if (resetBtnEl) controls.appendChild(resetBtnEl);
   }
 
-  // Create grid editor with degree mode
-  const isMobile = window.innerWidth <= 900;
-  gridEditor = createGridEditor({
-    container: gridEditorContainer,
-    mode: 'degree',
-    degreeModeOptions: {
-      totalPulses: TOTAL_SPACES,
-      getScaleLength: () => currentScaleLength,
-      validateDegree: (degree) => degree >= 0 && degree < currentScaleLength,
-      formatDegreeDisplay: (degree, modifier) => {
-        if (modifier === 'r+') return `${degree}r5`;
-        if (modifier === '+') return `${degree}+`;
-        if (modifier === '-') return `${degree}-`;
-        return String(degree);
-      },
-      validateModifier: (degree, modifier) => {
-        // Only allow r+ (register change), block +/- chromatic modifiers
-        if (modifier === '+' || modifier === '-') {
-          return {
-            valid: false,
-            message: `Solo se permiten notas de la escala`
-          };
-        }
-        return { valid: true };
-      }
-    },
-    noteRange: [0, 11],
-    pulseRange: [0, TOTAL_SPACES - 1],
-    maxPairs: TOTAL_SPACES,
-    autoJumpDelayMs: 500,  // Wait 500ms after digit for modifier input
-    scrollEnabled: isMobile,
-    containerSize: isMobile ? { maxHeight: '100px', width: '100%' } : null,
-    columnSize: isMobile ? { width: '50px', minHeight: '80px' } : null,
-    onPairsChange: (pairs) => {
-      // Clear memory for any manually edited pulses
-      pairs.forEach(pair => {
-        if (!pair.isRest) {
-          // User placed a note manually - clear any memorized degree for this pulse
-          lostDegreesMemory.delete(pair.pulse);
-        }
-      });
-      syncGridFromDegrees(pairs);
-    }
-  });
+  // Save controls, create degree editor, restore controls — all inside gridWrapper
+  const savedControls = controls?.parentNode === gridWrapper ? controls : null;
+  if (savedControls) savedControls.remove();
+
+  // Create nuzic degree editor (single row below grid)
+  gridEditorContainer = document.createElement('div');
+  gridEditorContainer.className = 'degree-editor';
+  gridEditorContainer.id = 'degreeEditor';
+  gridWrapper.appendChild(gridEditorContainer);
+
+  if (savedControls) gridWrapper.appendChild(savedControls);
+
+  // Initialize the nuzic degree editor
+  initDegreeEditor();
+
 
   // Initialize highlight controller
   highlightController = createMatrixHighlightController({

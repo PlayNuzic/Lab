@@ -1,81 +1,13 @@
-/* App25: Melodias con Escalas - Step Sequencer Styles */
+/* App25: Melodias con Escalas - Nuzic Theme */
 
 /* Import shared module styles */
-@import url('../../libs/matrix-seq/grid-editor.css');
 @import url('../../libs/musical-grid/musical-grid.css');
 @import url('../../libs/scale-selector/scale-selector.css');
 
-/* Variables CSS */
-:root {
-  --line-color: #666;
-  --soundline-width: 3px;
-  --timeline-height: 2px;
-  --cell-highlight-color: #7BB4CD;
-  --pulse-marker-height: 15px;
-  --note-highlight-color: #7BB4CD;
-
-  /* Z-index system */
-  --z-base: 1;
-  --z-content: 5;
-  --z-interactive: 10;
-  --z-active: 20;
-  --z-overlay: 100;
-
-  /* App25 2-column layout */
-  --scale-selector-width: 280px;
-  --col-left: var(--scale-selector-width);
-  --col-left-tablet: 220px;
-  --col-left-mobile: 180px;
-  --layout-gap: 0.75rem;
-
-  /* Control layout - use shared-ui defaults */
-  --controls-padding-top: 0px;
-  --controls-margin: 5px;
-  --controls-inner-margin: 0;
-  --controls-justify: center;
-  --buttons-align: center;
-
-  /* Fine-tuning: Play button position */
-  --play-offset-x: 90px;
-  --play-offset-y: -75px;
-
-  /* Fine-tuning: Secondary buttons (random, reset) position */
-  --buttons-row-offset-x: -25px;
-  --buttons-row-offset-y: 0px;
-
-  /* Toggle positioning */
-  --toggle-pulse-offset-x: -1px;
-  --toggle-pulse-offset-y: -80px;
-
-  /* Controls vertical gap */
-  --controls-vertical-gap: 0.5rem;
-
-  /* BPM tuning (inside app25-controls-container) */
-  --bpm-offset-x: -4px;
-  --bpm-offset-y: -28px;
-  --bpm-scale: 1;
-  --bpm-gap: 8px;
-}
-
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+/* Nuzic theme overrides */
 body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 0px;
-}
-
-/* BPM inline input container */
-.inputs {
-  display: block;
-  padding: 0;
-  margin: 0;
-  min-height: 0;
-}
-.inputs .bpm-inline {
-  position: static;
-}
-
-[data-theme="dark"] {
-  --line-color: #999;
+  --nuzic-controls-offset-x: 0;
+  --nuzic-controls-offset-y: 0;
 }
 
 /* ========== VIEWPORT FILL LAYOUT ========== */
@@ -95,384 +27,271 @@ html, body {
   overflow: hidden;
 }
 
-#app-root > header {
+#app-root > header,
+.app-scale-wrapper > header {
   flex-shrink: 0;
 }
 
-#app-root > main {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* ========== APP25 MAIN LAYOUT: 2 COLUMNS ========== */
-/* Left: Scale Selector + Controls
-   Right: Grid Editor + Musical Grid (stacked) */
-
-.app25-main-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: var(--col-left) minmax(0, 1fr);
-  grid-template-rows: 1fr;
-  gap: var(--layout-gap);
+.app-scale-wrapper {
   width: 100%;
   height: 100%;
-  min-height: 0;
-  overflow: visible;
-  padding: 1rem;
-  box-sizing: border-box;
-}
-
-/* ========== LEFT COLUMN: Scale Selector ========== */
-.app25-scale-selector {
-  grid-column: 1;
-  grid-row: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0.5rem;
-  gap: 1rem;
-  overflow-y: auto;
-  overflow-x: visible;
-  border-right: 1px solid var(--line-color);
-  padding-right: 0.5rem;
-  position: relative;
-  z-index: var(--z-content);
-  background: var(--bg-light, #ECECEC);
 }
 
-[data-theme="dark"] .app25-scale-selector {
-  background: var(--bg-dark, #43433B);
-}
-
-/* Override scale-selector defaults for App25 compact layout */
-.app25-scale-selector .scale-selector {
-  border-right: none;
-  width: var(--scale-selector-width);
-  max-width: var(--scale-selector-width);
+/* ========== MAIN LAYOUT: Single column ========== */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   padding: 0;
-  align-items: center;
-  gap: 0.5rem;
+  overflow: hidden;
 }
 
-/* Scale title - keep normal size */
-.app25-scale-selector .scale-selector-title {
-  margin-bottom: 0;
-}
-
-/* Scale select: compact size (selectSize: 3 set in JS) */
-.app25-scale-selector .scale-select {
-  width: 70%;
-  align-self: center;
-}
-
-/* Ensure scale select shows exactly 3 options with scroll */
-.app25-scale-selector .scale-select[size] {
-  flex: none !important;
-  height: 230px !important;  /* ~24px per option × 3 */
-  max-height: 230x !important;
-  min-height: auto !important;
-  overflow-y: auto;
-}
-
-/* Transpose section compact */
-.app25-scale-selector .transpose-selector {
-  padding-top: 0.5rem;
-  gap: 0.3rem;
-  width: 100%;
-  align-items: center;
-}
-
-.app25-scale-selector .transpose-label {
-  font-size: 0.8rem;
-}
-
-/* Transpose buttons: 2 rows (0-5 and 6-11) - 15% larger */
-.app25-scale-selector .transpose-buttons {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
+/* ========== INPUTS: Scale selector as pastilla param ========== */
+.inputs {
+  display: flex;
   justify-content: center;
-  max-width: 253px;  /* 220px * 1.15 */
-  margin: 0 auto;
+  align-items: flex-end;
+  gap: 2rem;
+  padding: 0 1rem;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
-.app25-scale-selector .transpose-btn {
-  width: 28px;   /* 24px * 1.15 ≈ 28px */
-  height: 28px;
-  font-size: 0.86rem;  /* 0.75rem * 1.15 */
+/* Golden spinners for all params */
+.inputs .param .spin {
+  background: var(--nuzic-yellow) !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 !important;
+  border: none !important;
 }
 
-/* ========== RIGHT COLUMN: Grid Area (stacked) ========== */
-.app25-grid-area {
-  grid-column: 2;
-  grid-row: 1;
+.inputs .param .spin.up::before {
+  border-bottom-color: white !important;
+}
+
+.inputs .param .spin.down::before {
+  border-top-color: white !important;
+}
+
+/* Scale selector param: capsule with pink border */
+.param.escala .circle {
+  width: auto !important;
+  height: 2.75rem;
+  padding: 0 0.5rem;
+  border: 2px solid var(--nuzic-pink, #F28AAD);
+  border-radius: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.param.escala .escala-text {
+  width: auto !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.85rem, 1.8vw, 1.3rem);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+[data-theme="dark"] .param.escala .circle {
+  border-color: var(--nuzic-pink, #F28AAD);
+}
+
+[data-theme="dark"] .param.escala .escala-text {
+  color: var(--text-color, #eee);
+}
+
+/* ========== TIMELINE WRAPPER (grid + editor + controls) ========== */
+.timeline-wrapper {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
   min-height: 0;
-  min-width: 0; /* Critical: allow flex child to shrink */
   overflow: hidden;
   position: relative;
-  z-index: var(--z-base);
-  margin-right: 30px; /* Space for last timeline number */
+  z-index: 2;
 }
 
-/* Grid Editor at top - fixed height */
-#gridEditorContainer {
-  flex-shrink: 0;
-  max-height: 100px;
-  min-width: 0;
-  overflow-x: auto;
-}
-
-/* Musical grid fills remaining space */
-/* Note: left/top overrides are at the END of this file to beat module media queries */
-.app25-grid-area > .grid-container {
+/* Musical grid fills available space */
+.timeline-wrapper > .grid-container {
   flex: 1;
   width: 100% !important;
-  height: 100% !important;
   max-width: 100% !important;
   max-height: none !important;
-  min-height: 300px;
-  min-width: 0 !important;
+  min-height: 0;
   overflow: hidden;
   margin: 0 !important;
   box-sizing: border-box;
-  justify-self: stretch;
-  grid-template-rows: 1fr 50px !important; /* Grid + timeline row */
 }
 
-/* ========== CONTROLS (inside scale selector area) ========== */
-.app25-controls-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 50px;
-  padding-top: 0.25rem;
-}
-
-.app25-controls-container .bpm-inline {
-  position: relative;
-  align-self: center;
-  flex-shrink: 0;
-  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
-  transform-origin: top center;
-  margin: 0 0 var(--bpm-gap) 0;
-  z-index: var(--z-interactive);
-}
-
-.app25-controls-container .controls {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.app25-controls-container .control-buttons-row {
-  display: flex;
-  flex-direction: row;
-  gap: 0.3rem;
-  align-items: center;
-  justify-content: center;
-  transform: translate(var(--buttons-row-offset-x, 0), var(--buttons-row-offset-y, 0));
-}
-
-.app25-controls-container .play-row {
-  position: static;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0));
-}
-
-/* Control sizes - match App12 */
-.app25-controls-container .play {
-  width: 80px;
-  height: 80px;
-  font-size: 2rem;
-}
-
-.app25-controls-container .play svg {
-  width: 50%;
-  height: 50%;
-}
-
-.app25-controls-container .random,
-.app25-controls-container .reset {
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
-}
-
-.app25-controls-container .random svg,
-.app25-controls-container .reset svg {
-  width: 100%;
-  height: 100%;
-}
-
-/* Pulse toggle positioning */
-.app25-controls-container #pulseToggleBtn {
-  position: relative;
-  transform: translate(var(--toggle-pulse-offset-x, 0), var(--toggle-pulse-offset-y, 0));
-}
-
-/* Hide unnecessary controls */
-#loopBtn, .loop, .controls .loop,
-.bpm-display, #tapTempoBtn {
-  display: none !important;
-}
-
-/* Hide timeline completely */
-.timeline-wrapper {
+/* ========== HIDE UNNECESSARY ELEMENTS ========== */
+#loopBtn {
   display: none !important;
 }
 
 /* ========== SOUNDLINE SCALE NOTES ========== */
-/* Match soundline-number style to pulse-marker */
-.soundline-number {
-  font-size: 1.4rem !important;
-  font-weight: 400 !important;
-  opacity: 0.85;
-}
-
-/* Hide top-zero label (we have 13 notes, note 12 shows degree 0) */
+/* Hide top-zero label (note 12 = degree 0 upper octave) */
 .soundline-number.top-zero {
   display: none;
 }
 
-/* Scale notes: show degree number as line */
+/* Scale notes: normal weight */
 .soundline-number.scale-note {
   font-weight: 400 !important;
   opacity: 1;
 }
 
-/* Chromatic notes: small dot */
+/* Chromatic notes: small and faded */
 .soundline-number.chromatic-note {
-  font-size: 0.7rem !important;
+  font-size: clamp(0.5rem, 0.9vw, 0.7rem) !important;
   opacity: 0.35;
   font-weight: 300 !important;
 }
 
-/* ========== GRID-EDITOR STYLES (App20-like) ========== */
-/* Label "Nº" - styled like App20 zigzag-left-label */
-.grid-row-label--degree {
-  font-size: 2.8rem;
-  font-weight: 700;
-  min-width: 52px;
-  padding: 0px 0px;
-  margin-top: 30px;
-  //color: var(--select-color, #FFBB33);
+/* ========== Nº EDITOR (single row below grid) ========== */
+.degree-editor {
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  height: 2rem;
+  padding: 0.25rem 0;
 }
 
-/* Degree input cells - styled like App20 zigzag-cell */
-.degree-input {
-  width: 60px;
-  height: 50px;
-  border: 1px solid var(--select-color, #FFBB33) !important;
+.degree-editor-label {
+  width: 3.75rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
+  color: white;
+  background: var(--nuzic-yellow, #FFBB33);
+}
+
+.degree-editor-cells {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  align-items: stretch;
+  background: var(--nuzic-light, #EEE8D8);
+}
+
+.degree-editor-cell {
+  width: 5%;
+  min-width: 1.25rem;
+  aspect-ratio: 1;
+  border: none;
+  text-align: center;
+  font-weight: 700;
+  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
+  font-family: 'Courier New', Courier, monospace;
+  padding: 0;
+  outline: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -moz-appearance: textfield;
+}
+
+.degree-editor-cell::-webkit-outer-spin-button,
+.degree-editor-cell::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Empty cells: yellow placeholder */
+.degree-editor-cell:placeholder-shown {
+  background: var(--nuzic-yellow-light, #ffeecc);
+  border: 1px solid var(--nuzic-yellow-light, #ffeecc);
+}
+
+/* Value cells: white */
+.degree-editor-cell:not(:placeholder-shown) {
+  background: white;
+  border: 1px solid #ddd;
+}
+
+/* Active input cell */
+.degree-editor-cell.active-input {
+  background: white;
+  border: 2px solid var(--nuzic-yellow, #FFBB33);
+  cursor: text;
+}
+
+/* End marker */
+.degree-editor-end {
+  width: 1.5rem;
+  flex-shrink: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--nuzic-dark, #43433B);
+  color: white;
+  font-size: clamp(0.6rem, 1.1vw, 0.75rem);
+}
+
+.degree-editor-end::after {
+  content: '\25CF';
+}
+
+/* Tooltip */
+.degree-editor-tooltip {
+  position: fixed;
+  padding: 0.4rem 0.8rem;
   border-radius: 6px;
-  background: transparent !important;
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-color, #333);
+  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
+  font-weight: 600;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  background: #EF4444;
+  color: white;
+  white-space: nowrap;
 }
 
-[data-theme="dark"] .degree-input {
-  background: transparent !important;
-  border-color: var(--select-color, #FFBB33) !important;
-  color: var(--text-dark, #e0e0e0);
+.degree-editor-tooltip.visible {
+  opacity: 1;
 }
 
-.degree-input:focus {
-  border-color: var(--select-color, #FFBB33) !important;
-  box-shadow: 0 0 6px rgba(255, 187, 51, 0.35);
-  background: rgba(255, 187, 51, 0.08) !important;
+/* Dark theme editor */
+[data-theme="dark"] .degree-editor-cell:not(:placeholder-shown) {
+  background: var(--nuzic-white, #1e1e1e);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-color, #eee);
 }
 
-.degree-input[data-filled="true"] {
-  background: rgba(255, 187, 51, 0.08) !important;
-}
-
-[data-theme="dark"] .degree-input[data-filled="true"] {
-  background: rgba(255, 187, 51, 0.12) !important;
-}
-
-/* Column header - match pulse-marker style */
-.degree-column-header {
-  font-size: 1.4rem;
-  font-weight: 400;
-  color: var(--grid-number-color, var(--text-color, #333));
-  opacity: 0.85;
-}
-
-[data-theme="dark"] .degree-column-header {
-  color: var(--grid-number-color-dark, var(--text-dark, #e0e0e0));
-}
-
-/* Responsive adjustments for App25 grid-editor */
-@media (max-width: 900px) {
-  .grid-row-label--degree {
-    font-size: 1.8rem;
-    min-width: 40px;
-    padding: 0 6px;
-  }
-
-  .degree-input {
-    width: 42px;
-    height: 42px;
-    font-size: 1.6rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .grid-row-label--degree {
-    font-size: 1.4rem;
-    min-width: 35px;
-    padding: 0 4px;
-  }
-
-  .degree-input {
-    width: 36px;
-    height: 36px;
-    font-size: 1.4rem;
-  }
-}
-
-@media (max-width: 600px) {
-  .grid-row-label--degree {
-    font-size: 1.2rem;
-    min-width: 30px;
-    padding: 0 3px;
-  }
-
-  .degree-input {
-    width: 30px;
-    height: 30px;
-    font-size: 1.2rem;
-  }
-
-  .degree-column-header {
-    font-size: 0.7rem;
-  }
+[data-theme="dark"] .degree-editor-end {
+  background: var(--nuzic-grey, #AAA699);
 }
 
 /* ========== DISABLED CELLS (notes outside scale) ========== */
 .musical-cell.disabled {
   opacity: 0.2;
-  pointer-events: auto !important;  /* Override JS to allow clicks for tooltip */
+  pointer-events: auto !important;
   background: transparent !important;
   cursor: not-allowed;
 }
 
-/* Small dot for chromatic notes */
 .musical-cell.disabled .np-dot::after {
   width: 4px;
   height: 4px;
-  background: var(--line-color);
+  background: var(--line-color, #666);
   border: none;
   opacity: 0.6;
 }
@@ -496,120 +315,11 @@ html, body {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Labels with modifiers (+, -, r+) use selection color */
-.cell-label--modified {
-  //color: var(--select-color, #FFBB33) !important;
-}
-
-/* Ensure active cells and their labels are fully visible even on disabled rows */
+/* Active cells fully visible even on disabled rows */
 .musical-cell.active {
   opacity: 1 !important;
 }
 
 .musical-cell.active .cell-label {
   opacity: 1 !important;
-}
-
-/* ========== HEADER CONTROLS ========== */
-.header-controls {
-  display: flex !important;
-  gap: 10px;
-  align-items: center;
-}
-
-/* ========== TABLET (≤ 900px) ========== */
-@media (max-width: 900px) {
-  :root {
-    --scale-selector-width: var(--col-left-tablet);
-    --bpm-offset-x: -2px;
-    --bpm-offset-y: -4px;
-    --bpm-scale: 0.9;
-    --bpm-gap: 6px;
-  }
-
-  .app25-main-grid {
-    grid-template-columns: var(--col-left-tablet) minmax(0, 1fr);
-    gap: 0.5rem;
-    padding: 0.5rem;
-  }
-
-  .app25-scale-selector .transpose-btn {
-    width: 21px;   /* 18px * 1.15 */
-    height: 21px;
-    font-size: 0.75rem;
-  }
-
-  .app25-controls-container .play {
-    width: 55px;
-    height: 55px;
-  }
-
-  .app25-controls-container .random,
-  .app25-controls-container .reset {
-    width: 36px;
-    height: 36px;
-  }
-
-  .soundline-number,
-  .pulse-marker {
-    font-size: 1rem !important;
-  }
-}
-
-/* ========== MOBILE (≤ 768px) ========== */
-@media (max-width: 768px) {
-  :root {
-    --scale-selector-width: var(--col-left-mobile);
-    --bpm-offset-x: 0px;
-    --bpm-offset-y: -2px;
-    --bpm-scale: 0.84;
-    --bpm-gap: 4px;
-  }
-
-  .app25-main-grid {
-    grid-template-columns: var(--col-left-mobile) minmax(0, 1fr);
-    gap: 0.4rem;
-    padding: 0.4rem;
-  }
-
-  .app25-scale-selector .transpose-btn {
-    width: 18px;   /* 16px * 1.15 */
-    height: 18px;
-    font-size: 0.69rem;
-  }
-
-}
-
-/* ========== SMALL SCREENS (≤ 600px) ========== */
-@media (max-width: 600px) {
-  :root {
-    --scale-selector-width: 85px;
-    --bpm-offset-x: 0px;
-    --bpm-offset-y: 0px;
-    --bpm-scale: 0.78;
-    --bpm-gap: 3px;
-  }
-
-  .app25-main-grid {
-    grid-template-columns: 85px minmax(0, 1fr);
-    gap: 0.3rem;
-    padding: 0.3rem;
-  }
-
-  .app25-scale-selector .transpose-btn {
-    width: 17px;   /* 15px * 1.15 */
-    height: 17px;
-    font-size: 0.63rem;
-  }
-
-  .app25-controls-container .play {
-    width: 50px;
-    height: 50px;
-  }
-
-  .app25-controls-container .random,
-  .app25-controls-container .reset {
-    width: 32px;
-    height: 32px;
-  }
 }
