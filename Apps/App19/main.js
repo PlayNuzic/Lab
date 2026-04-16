@@ -649,17 +649,26 @@ function handleRandom() {
   updateGrid();
 
   // Generate random notes (one per pulse)
+  // Rule: stay in the same registry for at least 3 notes before changing
   const totalPulses = compas * cycles;
   const selectableRegs = [3, 4, 5, 6];
+  const MIN_NOTES_PER_REGISTRY = 3;
+
+  let currentReg = selectableRegs[Math.floor(Math.random() * selectableRegs.length)];
+  let notesInCurrentReg = 0;
 
   for (let pulse = 0; pulse < totalPulses; pulse++) {
-    // Random registry from selectable ones
-    const registry = selectableRegs[Math.floor(Math.random() * selectableRegs.length)];
-    // Random note within registry (0-11)
+    // After MIN_NOTES_PER_REGISTRY, allow registry change (50% chance)
+    if (notesInCurrentReg >= MIN_NOTES_PER_REGISTRY && Math.random() < 0.5) {
+      const otherRegs = selectableRegs.filter(r => r !== currentReg);
+      currentReg = otherRegs[Math.floor(Math.random() * otherRegs.length)];
+      notesInCurrentReg = 0;
+    }
+
     const note = Math.floor(Math.random() * CONFIG.NOTES_PER_REGISTRY);
-    // Build rowId (e.g., "5r4" = note 5, registry 4)
-    const rowId = `${note}r${registry}`;
+    const rowId = `${note}r${currentReg}`;
     grid?.selectCell(rowId, pulse);
+    notesInCurrentReg++;
   }
 }
 
