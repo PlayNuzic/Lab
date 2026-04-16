@@ -199,28 +199,27 @@ main {
 .degree-editor-cells {
   display: flex;
   justify-content: flex-start;
-  align-items: center;
-  min-height: 2rem;
-  background: var(--nuzic-light, #EEE8D8);  /* cream extends full width */
+  align-items: stretch;
+  background: var(--nuzic-light, #EEE8D8);
 }
 
 .degree-editor-cell {
-  width: 2rem;
-  height: 2rem;
-  border: none;
+  width: 5%;
+  min-width: 1.25rem;
+  aspect-ratio: 1;
   text-align: center;
+  color: #43433b;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
   font-weight: 700;
-  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
-  font-family: 'Courier New', Courier, monospace;
-  color: #43433B;
-  padding: 0;
+  border-radius: 0;
+  border-width: 0;
   outline: none;
-  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0;
   -moz-appearance: textfield;
+  appearance: textfield;
+  padding: 0;
 }
 
 .degree-editor-cell::-webkit-outer-spin-button,
@@ -254,8 +253,9 @@ main {
 
 /* End marker */
 .degree-editor-end {
-  width: 2rem;
-  height: 2rem;
+  width: 5%;
+  min-width: 1.25rem;
+  aspect-ratio: 1;
   background: var(--nuzic-dark, #43433B);
   display: none;
   align-items: center;

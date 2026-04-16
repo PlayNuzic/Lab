@@ -863,9 +863,18 @@ function initDegreeEditor() {
   function renderCells() {
     cellsContainer.querySelectorAll('.degree-editor-cell').forEach(c => c.remove());
 
+    const nonRestCount = entries.filter(e => !e.isRest).length;
+
     for (let i = 0; i < entries.length; i++) {
-      cellsContainer.insertBefore(createValueCell(formatDegree(entries[i]), i), endMarker);
-      cellsContainer.insertBefore(createReadonlyCell(), endMarker);
+      const entry = entries[i];
+      if (entry.isRest) {
+        // Rest: show empty readonly cell (cream placeholder)
+        cellsContainer.insertBefore(createReadonlyCell(), endMarker);
+        cellsContainer.insertBefore(createReadonlyCell(), endMarker);
+      } else {
+        cellsContainer.insertBefore(createValueCell(formatDegree(entry), i), endMarker);
+        cellsContainer.insertBefore(createReadonlyCell(), endMarker);
+      }
     }
 
     if (entries.length < TOTAL_SPACES) {
@@ -885,11 +894,12 @@ function initDegreeEditor() {
     getPairs: () => entries.map(e => ({ ...e })),
 
     setPairs: (pairs) => {
-      entries = pairs.filter(p => !p.isRest && p.degree != null).map(p => ({
-        degree: p.degree,
+      // Keep ALL pairs (including rests — needed for lostDegreesMemory)
+      entries = pairs.map(p => ({
+        degree: p.degree ?? null,
         modifier: p.modifier || null,
         pulse: p.pulse,
-        isRest: false
+        isRest: p.isRest || false
       }));
       clearTimeout(autoJumpTimer);
       renderCells();
