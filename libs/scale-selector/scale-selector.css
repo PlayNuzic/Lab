@@ -153,7 +153,7 @@
 }
 
 .transpose-label {
-  font-size: 0.9rem;
+  font-size: clamp(0.7rem, 1.1vw, 0.9rem);
   font-weight: 600;
   color: var(--scale-selector-title-color);
   text-align: center;
@@ -162,18 +162,18 @@
 .transpose-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: 0.1875rem;
   justify-content: center;
 }
 
 .transpose-btn {
-  width: 28px;
-  height: 28px;
+  width: 1.75rem;
+  height: 1.75rem;
   border: 2px solid var(--scale-selector-line-color);
   border-radius: 4px;
   background: var(--bg-light, #ECECEC);
   color: var(--text-color, #333);
-  font-size: 0.8rem;
+  font-size: clamp(0.65rem, 1vw, 0.8rem);
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -206,107 +206,4 @@
   border-color: var(--selection-color, #FFBB33);
 }
 
-/* ============================================================================
-   RESPONSIVE - Tablet landscape (900px)
-   ============================================================================ */
-
-@media (max-width: 900px) {
-  :root {
-    --scale-selector-width: 220px;
-    --scale-selector-gap: 0.6rem;
-    --scale-selector-padding: 0.6rem;
-  }
-
-  .scale-selector-title {
-    font-size: 0.95rem;
-  }
-
-  /* Limitar altura del select per deixar espai al transpose */
-  .scale-select[size] {
-    max-height: clamp(120px, 30vh, 200px);
-  }
-}
-
-/* ============================================================================
-   RESPONSIVE - Tablet portrait (768px)
-   ============================================================================ */
-
-@media (max-width: 768px) {
-  :root {
-    --scale-selector-width: 100%;
-    --scale-selector-gap: 0.5rem;
-    --scale-selector-padding: 0.5rem;
-  }
-
-  .scale-selector {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    border-right: none;
-    border-bottom: 1px solid var(--scale-selector-border-color);
-    width: 100%;
-    max-width: none;
-    gap: 0.5rem;
-  }
-
-  [data-theme="dark"] .scale-selector {
-    border-bottom-color: var(--scale-selector-border-color);
-  }
-
-  .scale-selector-title {
-    width: 100%;
-    font-size: 0.95rem;
-  }
-
-  .scale-select {
-    width: auto;
-    min-width: 180px;
-    flex: 1;
-    max-width: 300px;
-  }
-
-  .scale-select[size] {
-    max-height: 150px;
-  }
-
-  .transpose-selector {
-    width: 100%;
-    border-top: none;
-    padding-top: 0;
-  }
-}
-
-/* ============================================================================
-   RESPONSIVE - Small screens (600px)
-   ============================================================================ */
-
-@media (max-width: 600px) {
-  .scale-selector-title {
-    font-size: 0.85rem;
-  }
-}
-
-/* ============================================================================
-   RESPONSIVE - Mobile (480px)
-   ============================================================================ */
-
-@media (max-width: 480px) {
-  .transpose-btn {
-    width: 24px;
-    height: 24px;
-    font-size: 0.7rem;
-  }
-}
-
-/* ============================================================================
-   RESPONSIVE - Ultra compact (400px)
-   ============================================================================ */
-
-@media (max-width: 400px) {
-  .transpose-btn {
-    width: 22px;
-    height: 22px;
-    font-size: 0.65rem;
-  }
-}
+/* Responsive breakpoints removed — nuzic theme uses rem/clamp that scale naturally */

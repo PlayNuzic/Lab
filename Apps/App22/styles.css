@@ -22,7 +22,7 @@
   --soundline-header-offset: -1.25rem;
   --soundline-title-size: 1.4rem;
   --soundline-subtitle-size: 1.1rem;
-  --soundline-number-size: 1.6rem;
+  --soundline-number-size: clamp(0.9rem, 1.8vw, 1.6rem);
 }
 
 [data-theme="dark"] {
@@ -370,7 +370,7 @@ body[data-visual="nuzic"] .soundline-number {
   width: 100%;
   text-align: center;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: var(--soundline-number-size);
   color: var(--nuzic-dark, #43433B);
   opacity: 1;
   display: flex;
