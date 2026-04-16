@@ -44,7 +44,7 @@ export function updatePlayhead(playhead, colIndex, cellWidth, offset = 0) {
     if (matrix) {
       const cell = matrix.querySelector(`.plano-cell[data-col-index="${colIndex}"]`);
       if (cell) {
-        playhead.style.left = `${cell.offsetLeft + offset}px`;
+        playhead.style.left = `${cell.offsetLeft + offset + 7}px`;
         playhead.classList.remove('plano-playhead--hidden');
         return;
       }

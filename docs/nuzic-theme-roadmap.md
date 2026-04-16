@@ -168,6 +168,8 @@ Selectors equivalents per al DOM de plano-modular:
 | `.musical-cell.active::before` | `.plano-cell.plano-selected::before` |
 | `.np-dot::after` | `.plano-cell .np-dot::after` (App19, App20 — gradient amagat, DOM element a divisòria) |
 | Columnes fixes (px) | `columnSizing: 'fr'` + `width:100%; min-width:0` a tota la cadena (App19) |
+| Scroll quantitzat (wheel) | Scroll lliure natiu + `scrollToScreen()` per spinners registre |
+| Autoscroll reactiu (onPulse) | `buildScrollPlan()` pre-calculat: finestra adaptativa, moviment mínim, easeInOut |
 
 ### Fase 10: Dark mode complet
 
