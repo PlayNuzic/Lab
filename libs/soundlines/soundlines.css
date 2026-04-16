@@ -451,6 +451,15 @@ body[data-visual="nuzic"] .soundline-number::after {
   color: var(--nuzic-dark, #43433B);
 }
 
+/* Header + play button: remove legacy offset, center with pink container */
+body[data-visual="nuzic"] .soundline-header {
+  transform: none;
+}
+
+body[data-visual="nuzic"] .soundline-play {
+  transform: none;
+}
+
 /* Highlighted numbers: same color as regular (no distinction) */
 body[data-visual="nuzic"] .soundline-number.highlighted {
   color: var(--nuzic-dark, #43433B);
