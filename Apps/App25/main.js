@@ -913,16 +913,15 @@ function injectLayout() {
   const timelineWrapper = document.querySelector('.timeline-wrapper');
   if (!timelineWrapper) return null;
 
-  // Save controls BEFORE clearing (they live inside timeline-wrapper)
+  // Save controls BEFORE clearing (detach, don't clone — preserves IDs and future listeners)
   const controls = timelineWrapper.querySelector('.controls');
-  const savedControls = controls ? controls.cloneNode(true) : null;
   if (controls) controls.remove();
 
   // Clear timeline-wrapper (remove default timeline)
   timelineWrapper.innerHTML = '';
 
-  // Store saved controls for later re-insertion
-  timelineWrapper._savedControls = savedControls;
+  // Store reference for later re-insertion
+  timelineWrapper._savedControls = controls;
 
   return timelineWrapper;
 }
