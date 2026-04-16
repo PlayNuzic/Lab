@@ -694,8 +694,7 @@ function initDegreeEditor() {
   function createValueCell(displayValue, entryIndex) {
     const cell = document.createElement('input');
     cell.type = 'text';
-    cell.inputMode = 'numeric';
-    cell.maxLength = 3;
+    cell.maxLength = 4;
     cell.className = 'degree-editor-cell';
     cell.value = displayValue;
     cell.dataset.entryIndex = entryIndex;
@@ -752,8 +751,7 @@ function initDegreeEditor() {
   function createInputCell() {
     const cell = document.createElement('input');
     cell.type = 'text';
-    cell.inputMode = 'numeric';
-    cell.maxLength = 3;
+    cell.maxLength = 4;  // allow "0r+" (3 chars) + safety
     cell.className = 'degree-editor-cell active-input';
     cell.readOnly = false;
 
