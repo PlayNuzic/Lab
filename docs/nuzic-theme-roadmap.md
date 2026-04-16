@@ -170,6 +170,8 @@ Selectors equivalents per al DOM de plano-modular:
 | Columnes fixes (px) | `columnSizing: 'fr'` + `width:100%; min-width:0` a tota la cadena (App19) |
 | Scroll quantitzat (wheel) | Scroll lliure natiu + `scrollToScreen()` per spinners registre |
 | Autoscroll reactiu (onPulse) | `buildScrollPlan()` pre-calculat: finestra adaptativa, moviment mínim, easeInOut |
+| Random salts de registre | Mínim 3 notes per registre abans de canviar (50% prob), evita salts caòtics |
+| Reset esborra graella | Reset ha de restaurar defaults (compas=4, cycles=3), MAI posar null |
 
 ### Fase 10: Dark mode complet
 
