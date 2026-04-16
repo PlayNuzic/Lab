@@ -651,11 +651,11 @@ body[data-visual="nuzic"] .controls:not([data-layout]) {
   flex-direction: row !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
+  gap: 0.5rem !important;
   width: auto !important;
   height: auto !important;
   position: relative !important;
-  margin: 10px auto !important;
+  margin: 0.625rem auto !important;
   transform: none !important;
   left: var(--nuzic-controls-offset-x, 0px);
   top: var(--nuzic-controls-offset-y, 0px);
@@ -675,14 +675,14 @@ body[data-visual="nuzic"] .controls:not([data-layout]) .tap {
 }
 
 body[data-visual="nuzic"] .controls:not([data-layout]) .play {
-  width: 48px !important;
-  height: 48px !important;
+  width: 3rem !important;
+  height: 3rem !important;
 }
 
 body[data-visual="nuzic"] .controls:not([data-layout]) .random,
 body[data-visual="nuzic"] .controls:not([data-layout]) .reset {
-  width: 36px !important;
-  height: 36px !important;
+  width: 2.25rem !important;
+  height: 2.25rem !important;
 }
 
 /* BPM: amagar .inputs quan NOMÉS conté BPM (ja mogut dins .controls via JS) */
@@ -876,19 +876,19 @@ body[data-visual="nuzic"] .bpm-inline {
 /* Circle → pastilla que conté [–] 120 [+] dins */
 body[data-visual="nuzic"] .bpm-inline .circle {
   width: auto;
-  height: 32px;
-  border-radius: 16px;
+  height: 2rem;
+  border-radius: 1rem;
   border: 1px solid var(--nuzic-grey);
   background: var(--nuzic-white);
   display: flex;
   align-items: center;
-  padding: 0 4px;
+  padding: 0 0.25rem;
   gap: 2px;
 }
 
 body[data-visual="nuzic"] .bpm-inline input {
   font-size: 1.1rem;
-  width: 42px;
+  width: 2.625rem;
   height: 100%;
   font-family: 'Ubuntu', sans-serif;
   order: 2;  /* Número al mig */
@@ -904,16 +904,16 @@ body[data-visual="nuzic"] .bpm-inline .spinner {
 /* Botó down (–) a l'esquerra dins la pastilla */
 body[data-visual="nuzic"] .bpm-inline .spin.down {
   order: 1;
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   border-radius: 50%;
 }
 
 /* Botó up (+) a la dreta dins la pastilla */
 body[data-visual="nuzic"] .bpm-inline .spin.up {
   order: 3;
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   border-radius: 50%;
 }
 
