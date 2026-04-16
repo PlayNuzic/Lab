@@ -267,7 +267,7 @@ body[data-visual="nuzic"] .grid-container .soundline-number {
   width: 100%;
   text-align: center;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 0.875rem;
   opacity: 1;
 }
 
@@ -288,7 +288,7 @@ body[data-visual="nuzic"] .plano-soundline-note {
   justify-content: center;
   padding-right: 0;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 body[data-visual="nuzic"] .plano-soundline-note::before {
@@ -398,7 +398,7 @@ body[data-visual="nuzic"] .grid-container .timeline-line {
 body[data-visual="nuzic"] .grid-container .pulse-marker {
   background: none;  /* Amagar línia vertical del marcador */
   font-weight: 700;
-  font-size: 14px;
+  font-size: 0.875rem;
   opacity: 1;
   width: auto;
   height: auto;
@@ -675,14 +675,14 @@ body[data-visual="nuzic"] .controls:not([data-layout]) .tap {
 }
 
 body[data-visual="nuzic"] .controls:not([data-layout]) .play {
-  width: 3rem !important;
-  height: 3rem !important;
+  width: clamp(2rem, 5vw, 3rem) !important;
+  height: clamp(2rem, 5vw, 3rem) !important;
 }
 
 body[data-visual="nuzic"] .controls:not([data-layout]) .random,
 body[data-visual="nuzic"] .controls:not([data-layout]) .reset {
-  width: 2.25rem !important;
-  height: 2.25rem !important;
+  width: clamp(1.5rem, 3.5vw, 2.25rem) !important;
+  height: clamp(1.5rem, 3.5vw, 2.25rem) !important;
 }
 
 /* BPM: amagar .inputs quan NOMÉS conté BPM (ja mogut dins .controls via JS) */
@@ -876,7 +876,7 @@ body[data-visual="nuzic"] .bpm-inline {
 /* Circle → pastilla que conté [–] 120 [+] dins */
 body[data-visual="nuzic"] .bpm-inline .circle {
   width: auto;
-  height: 2rem;
+  height: clamp(1.5rem, 3.5vw, 2rem);
   border-radius: 1rem;
   border: 1px solid var(--nuzic-grey);
   background: var(--nuzic-white);
@@ -887,8 +887,8 @@ body[data-visual="nuzic"] .bpm-inline .circle {
 }
 
 body[data-visual="nuzic"] .bpm-inline input {
-  font-size: 1.1rem;
-  width: 2.625rem;
+  font-size: clamp(0.8rem, 1.5vw, 1.1rem);
+  width: clamp(1.75rem, 4vw, 2.625rem);
   height: 100%;
   font-family: 'Ubuntu', sans-serif;
   order: 2;  /* Número al mig */
@@ -904,16 +904,16 @@ body[data-visual="nuzic"] .bpm-inline .spinner {
 /* Botó down (–) a l'esquerra dins la pastilla */
 body[data-visual="nuzic"] .bpm-inline .spin.down {
   order: 1;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: clamp(1rem, 2.5vw, 1.5rem);
+  height: clamp(1rem, 2.5vw, 1.5rem);
   border-radius: 50%;
 }
 
 /* Botó up (+) a la dreta dins la pastilla */
 body[data-visual="nuzic"] .bpm-inline .spin.up {
   order: 3;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: clamp(1rem, 2.5vw, 1.5rem);
+  height: clamp(1rem, 2.5vw, 1.5rem);
   border-radius: 50%;
 }
 
