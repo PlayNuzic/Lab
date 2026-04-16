@@ -11,7 +11,7 @@
    ============================================================================ */
 
 .ee-display {
-  font-size: 1.5em; /* 15% més gran que el base */
+  font-size: 1.5em;
 }
 
 .ee-label,
@@ -32,10 +32,9 @@
   padding: 0.5rem;
   padding-right: 1rem;
   flex-shrink: 0;
-  min-width: 180px;
-  max-width: 220px;
-  /* Margin negatiu per compensar l'espai visual sense usar transform */
-  margin-left: 10px;
+  min-width: 11.25rem;
+  max-width: 13.75rem;
+  margin-left: 0.625rem;
 }
 
 /* Override scale-selector defaults for App24 */
@@ -51,14 +50,14 @@
 .scale-selector-area .transpose-buttons {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 3px;
+  gap: 0.1875rem;
   justify-content: center;
-  max-width: 200px;
+  max-width: 12.5rem;
 }
 
 .scale-selector-area .transpose-btn {
-  width: 28px;
-  height: 28px;
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 /* ============================================================================
@@ -68,192 +67,6 @@
 .soundlines-area {
   /* NO flex: 1 - mantenir tamany natural per no empènyer el pentagrama */
   flex: none;
-  /* Margin per centrar visualment sense transform */
-  margin-left: 150px;
 }
 
-.soundlines-wrapper {
-  /* Offset per centrar visualment les soundlines */
-  transform: translateX(-60px);
-}
-
-/* ============================================================================
-   RESPONSIVE - LAYOUT VERTICAL (900px i menys)
-   ============================================================================ */
-
-@media (max-width: 900px) {
-  :root {
-    --soundline-container-width: 140px;
-    --connection-area-width: 120px;
-    --soundline-header-offset: 0px;
-    --soundline-title-size: 1.1rem;
-    --soundline-subtitle-size: 0.95rem;
-    --soundline-number-size: 1.3rem;
-    --soundlines-height: clamp(280px, 50vh, 380px);
-  }
-
-  /* LAYOUT VERTICAL amb scroll activat */
-  .timeline-wrapper {
-    flex-direction: column !important;
-    align-items: center !important;
-    padding: 1rem !important;
-    gap: 1.5rem !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    height: 100% !important;
-  }
-
-  /* SELECTOR AL TOP - CENTRAT */
-  .scale-selector-area {
-    order: -1;
-    width: 100%;
-    max-width: 100%;
-    min-width: auto;
-    margin-left: 0;
-    padding: 1rem;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    flex-shrink: 0;
-  }
-
-  .scale-selector-area .scale-selector {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    width: 100%;
-  }
-
-  /* Botons de transposició CENTRATS */
-  .scale-selector-area .transpose-buttons {
-    grid-template-columns: repeat(6, 1fr);
-    max-width: 300px;
-    gap: 8px;
-    margin: 0 auto;
-    justify-content: center;
-  }
-
-  .scale-selector-area .transpose-btn {
-    width: 38px;
-    height: 38px;
-    font-size: 0.95rem;
-  }
-
-  /* SOUNDLINES AL CENTRE */
-  .soundlines-area {
-    order: 0;
-    width: 100%;
-    margin-left: 0;
-    padding: 0.75rem;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .soundlines-wrapper {
-    transform: none;
-    height: var(--soundlines-height);
-    justify-content: center;
-  }
-
-  .soundline-header {
-    min-width: auto;
-    transform: none;
-  }
-
-  .soundline-play {
-    transform: none;
-    width: 48px;
-    height: 48px;
-  }
-
-  .note-highlight {
-    width: 60px;
-    height: 24px;
-    left: 70px;
-  }
-
-  /* PENTAGRAM + EE AL BOTTOM - eE HORITZONTAL sobre pentagrama */
-  .pentagram-area {
-    order: 1;
-    width: 100%;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    flex-shrink: 0;
-  }
-
-  /* eE HORITZONTAL sobre pentagrama (NO vertical) */
-  .ee-display {
-    order: -1;
-    flex-direction: row;
-    gap: 0.5rem;
-  }
-
-  .ee-label {
-    font-size: 1.1rem;
-  }
-
-  .ee-number {
-    font-size: 1.1rem;
-  }
-
-  .ee-function {
-    font-size: 1rem;
-  }
-}
-
-/* ============================================================================
-   RESPONSIVE - Mobile (480px) - Hereda layout vertical de 900px
-   ============================================================================ */
-
-@media (max-width: 480px) {
-  .scale-selector-area .transpose-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 0.8rem;
-  }
-}
-
-/* ============================================================================
-   RESPONSIVE - Ultra compact (400px) - Hereda layout vertical
-   ============================================================================ */
-
-@media (max-width: 400px) {
-  .scale-selector-area .transpose-btn {
-    width: 26px;
-    height: 26px;
-    font-size: 0.75rem;
-  }
-}
-
-/* ============================================================================
-   ALERTA D'ESPAI MÍNIM - Només per pantalles EXTREMADAMENT petites
-   ============================================================================ */
-
-@media (max-width: 320px) {
-  body::before {
-    content: '📱 Pantalla massa petita per aquesta aplicació.';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 2rem;
-    font-size: 1.1rem;
-    line-height: 1.5;
-    z-index: 99999;
-  }
-
-  #app-root {
-    display: none !important;
-  }
-}
+/* Responsive breakpoints removed — nuzic theme uses rem units that scale naturally */

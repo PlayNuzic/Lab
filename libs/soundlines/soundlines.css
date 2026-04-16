@@ -11,18 +11,18 @@
   --note-highlight-color: var(--selection-color, #FFBB33);
 
   /* Soundlines sizing */
-  --soundlines-height: clamp(400px, 75vh, 650px);
-  --soundline-container-width: 150px;
-  --connection-area-width: 180px;
+  --soundlines-height: clamp(25rem, 75vh, 40.625rem);
+  --soundline-container-width: 9.375rem;
+  --connection-area-width: 11.25rem;
 
   /* Ajust fi horitzontal del contenidor de soundlines */
-  --soundlines-offset-x: 0px;
+  --soundlines-offset-x: 0;
 
   /* Llargada de les línies de connexió (0-100%) */
   --connection-length: 70%;
 
   /* Header sizing */
-  --soundline-header-offset: -23px;
+  --soundline-header-offset: -1.4375rem;
   --soundline-title-size: 1.25rem;
   --soundline-subtitle-size: 1.1rem;
   --soundline-number-size: 1.6rem;
@@ -120,7 +120,7 @@ html, body {
   align-items: center;
   gap: 0.1rem;
   text-align: center;
-  min-width: 100px;
+  min-width: 6.25rem;
   transform: translateX(var(--soundline-header-offset));
   flex-shrink: 0;
   overflow: visible;
@@ -166,7 +166,7 @@ html, body {
 .soundline::before {
   content: '';
   position: absolute;
-  left: 50px;
+  left: 3.125rem;
   top: var(--line-top, 0);
   bottom: var(--line-bottom, 0);
   width: var(--soundline-width);
@@ -178,10 +178,10 @@ html, body {
 /* Divisions horitzontals */
 .soundline-division {
   position: absolute;
-  width: 30px;
+  width: 1.875rem;
   height: 2px;
   background: var(--line-color);
-  left: 35px;
+  left: 2.1875rem;
   pointer-events: none;
   z-index: 2;
 }
@@ -197,7 +197,7 @@ html, body {
   opacity: 0.85;
   left: 0;
   text-align: right;
-  width: 30px;
+  width: 1.875rem;
 }
 
 [data-theme="dark"] .soundline-number {
@@ -216,9 +216,9 @@ html, body {
 
 .soundline-dot {
   position: absolute;
-  left: 46.5px;
-  width: 10px;
-  height: 10px;
+  left: 2.9rem;
+  width: 0.625rem;
+  height: 0.625rem;
   border-radius: 50%;
   background: var(--line-color);
   transform: translateY(-50%);
@@ -269,9 +269,9 @@ html, body {
 
 .note-highlight {
   position: absolute;
-  width: 80px;
-  height: 30px;
-  left: 70px;
+  width: 5rem;
+  height: 1.875rem;
+  left: 4.375rem;
   background: var(--note-highlight-color);
   opacity: 0;
   border-radius: 4px;
@@ -402,7 +402,7 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  margin-right: 150px;
+  margin-right: 9.375rem;
 }
 
 .title-wrapper h1 {

@@ -11,15 +11,15 @@
   --note-highlight-color: #7BB4CD;
 
   /* Soundlines sizing */
-  --soundlines-height: clamp(400px, 70vh, 600px);
-  --soundline-container-width: 120px;
+  --soundlines-height: clamp(25rem, 70vh, 37.5rem);
+  --soundline-container-width: 7.5rem;
 
   /* Interval bars */
-  --interval-container-width: 60px;
-  --interval-bar-width: 40px;
+  --interval-container-width: 3.75rem;
+  --interval-bar-width: 2.5rem;
 
   /* Header sizing */
-  --soundline-header-offset: -20px;
+  --soundline-header-offset: -1.25rem;
   --soundline-title-size: 1.4rem;
   --soundline-subtitle-size: 1.1rem;
   --soundline-number-size: 1.6rem;
@@ -109,7 +109,7 @@ html, body {
   align-items: center;
   gap: 0.1rem;
   text-align: center;
-  min-width: 100px;
+  min-width: 6.25rem;
   transform: translateX(var(--soundline-header-offset));
   flex-shrink: 0;
   overflow: visible;
@@ -118,7 +118,7 @@ html, body {
 .soundline-title {
   font-size: var(--soundline-title-size);
   font-weight: 600;
-  margin: -10px;
+  margin: -0.625rem;
   color: var(--color-lg, #7BB4CD);
   line-height: 1.2;
   white-space: nowrap;
@@ -165,7 +165,7 @@ html, body {
 .soundline::before {
   content: '';
   position: absolute;
-  left: 50px;
+  left: 3.125rem;
   top: var(--line-top, 0);
   bottom: var(--line-bottom, 0);
   width: var(--soundline-width);
@@ -177,10 +177,10 @@ html, body {
 /* Divisions horitzontals */
 .soundline-division {
   position: absolute;
-  width: 30px;
+  width: 1.875rem;
   height: 2px;
   background: var(--line-color);
-  left: 35px;
+  left: 2.1875rem;
   pointer-events: none;
   z-index: 2;
 }
@@ -196,7 +196,7 @@ html, body {
   opacity: 0.85;
   left: 0;
   text-align: right;
-  width: 30px;
+  width: 1.875rem;
 }
 
 [data-theme="dark"] .soundline-number {
@@ -213,9 +213,9 @@ html, body {
 /* Dots per notes no pertanyents a l'escala */
 .soundline-dot {
   position: absolute;
-  left: 46.5px;
-  width: 10px;
-  height: 10px;
+  left: 2.9rem;
+  width: 0.625rem;
+  height: 0.625rem;
   border-radius: 50%;
   background: var(--line-color);
   transform: translateY(-50%);
@@ -276,9 +276,9 @@ html, body {
 
 .note-highlight {
   position: absolute;
-  width: 80px;
-  height: 30px;
-  left: 70px;
+  width: 5rem;
+  height: 1.875rem;
+  left: 4.375rem;
   background: var(--note-highlight-color);
   opacity: 0;
   border-radius: 4px;
@@ -373,258 +373,7 @@ html, body {
   box-shadow: 0 0 10px var(--selection-color), 0 0 4px var(--selection-color) inset;
 }
 
-/* ============================================================================
-   RESPONSIVE - Tablet landscape (900px)
-   ============================================================================ */
-
-@media (max-width: 900px) {
-  :root {
-    --soundline-container-width: 110px;
-    --interval-container-width: 50px;
-    --interval-bar-width: 36px;
-    --soundline-title-size: 1.1rem;
-    --soundline-subtitle-size: 1rem;
-    --soundline-number-size: 1.4rem;
-  }
-
-  .interval-number {
-    font-size: 1.2rem;
-  }
-}
-
-/* ============================================================================
-   RESPONSIVE - Tablet portrait (768px)
-   ============================================================================ */
-
-@media (max-width: 768px) {
-  :root {
-    --soundline-container-width: 100px;
-    --interval-container-width: 45px;
-    --interval-bar-width: 32px;
-    --soundline-header-offset: -8px;
-    --soundline-title-size: 1rem;
-    --soundline-subtitle-size: 0.9rem;
-    --soundline-number-size: 1.3rem;
-  }
-
-  .soundlines-area {
-    flex: 1;
-    min-height: 0;
-  }
-
-  .soundline-with-intervals {
-    height: 100%;
-    max-height: 450px;
-  }
-
-  .soundline-header {
-    min-width: 80px;
-  }
-
-  .note-highlight {
-    width: 60px;
-    height: 24px;
-  }
-
-  .interval-number {
-    font-size: 1.1rem;
-  }
-}
-
-/* ============================================================================
-   RESPONSIVE - Small screens (600px)
-   ============================================================================ */
-
-@media (max-width: 600px) {
-  :root {
-    --soundline-container-width: 90px;
-    --interval-container-width: 40px;
-    --interval-bar-width: 28px;
-    --soundline-header-offset: -6px;
-    --soundline-title-size: 0.9rem;
-    --soundline-subtitle-size: 0.8rem;
-    --soundline-number-size: 1.2rem;
-    --soundlines-height: clamp(280px, 55vh, 380px);
-  }
-
-  .soundline-with-intervals {
-    max-height: none;
-    height: var(--soundlines-height);
-  }
-
-  .soundline-header {
-    min-width: 70px;
-  }
-
-  .note-highlight {
-    width: 50px;
-    height: 20px;
-    left: 60px;
-  }
-
-  .interval-number {
-    font-size: 1rem;
-  }
-
-  .ee-display {
-    gap: 0.3rem;
-    padding: 0.3rem 0.5rem;
-  }
-
-  .ee-label {
-    font-size: 1.4rem;
-  }
-
-  .ee-number {
-    font-size: 1.5rem;
-  }
-
-  .ee-function {
-    font-size: 1.4rem;
-  }
-}
-
-/* ============================================================================
-   RESPONSIVE - Mobile (480px)
-   ============================================================================ */
-
-@media (max-width: 480px) {
-  :root {
-    --soundline-container-width: 80px;
-    --interval-container-width: 35px;
-    --interval-bar-width: 24px;
-    --soundline-header-offset: -5px;
-    --soundline-title-size: 0.85rem;
-    --soundline-subtitle-size: 0.75rem;
-    --soundline-number-size: 1.1rem;
-    --soundlines-height: clamp(250px, 50vh, 320px);
-  }
-
-  .soundline::before {
-    left: 40px;
-  }
-
-  .soundline-division {
-    width: 24px;
-    left: 28px;
-  }
-
-  .soundline-number {
-    width: 24px;
-  }
-
-  .soundline-dot {
-    left: 37.5px;
-    width: 8px;
-    height: 8px;
-  }
-
-  .soundline-with-intervals {
-    max-height: none;
-    height: var(--soundlines-height);
-  }
-
-  .soundline-header {
-    min-width: 60px;
-  }
-
-  .note-highlight {
-    left: 50px;
-    width: 45px;
-    height: 18px;
-  }
-
-  .interval-number {
-    font-size: 0.9rem;
-  }
-
-  .ee-display {
-    gap: 0.25rem;
-    padding: 0.3rem 0.4rem;
-  }
-
-  .ee-label {
-    font-size: 1.2rem;
-  }
-
-  .ee-number {
-    font-size: 1.3rem;
-  }
-
-  .ee-function {
-    font-size: 1.2rem;
-  }
-}
-
-/* ============================================================================
-   RESPONSIVE - Ultra compact (400px)
-   ============================================================================ */
-
-@media (max-width: 400px) {
-  :root {
-    --soundline-container-width: 70px;
-    --interval-container-width: 30px;
-    --interval-bar-width: 22px;
-    --soundline-header-offset: -4px;
-    --soundline-title-size: 0.8rem;
-    --soundline-subtitle-size: 0.7rem;
-    --soundline-number-size: 1rem;
-    --soundlines-height: clamp(220px, 45vh, 280px);
-  }
-
-  .soundline::before {
-    left: 35px;
-  }
-
-  .soundline-division {
-    width: 20px;
-    left: 25px;
-  }
-
-  .soundline-number {
-    width: 22px;
-  }
-
-  .soundline-dot {
-    left: 32.5px;
-    width: 7px;
-    height: 7px;
-  }
-
-  .soundline-with-intervals {
-    max-height: none;
-    height: var(--soundlines-height);
-  }
-
-  .note-highlight {
-    left: 45px;
-    width: 40px;
-    height: 16px;
-  }
-
-  .interval-number {
-    font-size: 0.85rem;
-  }
-
-  .ee-display {
-    gap: 0.2rem;
-    padding: 0.25rem 0.35rem;
-  }
-
-  .ee-label {
-    font-size: 1rem;
-  }
-
-  .ee-number {
-    font-size: 1.1rem;
-  }
-
-  .ee-function {
-    font-size: 1rem;
-  }
-}
-
-/* Orientation warning removed — Sistema Interactivo handles responsive layout */
+/* Responsive breakpoints removed — nuzic theme uses rem units that scale naturally */
 
 /* ============================================================================
    NUZIC THEME OVERRIDES
