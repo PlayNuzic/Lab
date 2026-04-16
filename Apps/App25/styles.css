@@ -123,7 +123,7 @@ main {
   overflow: visible;
   margin: 0 !important;
   box-sizing: border-box;
-  grid-template-rows: 1fr auto auto !important;  /* notes + timeline + editor */
+  grid-template-rows: 1fr 3rem auto !important;  /* notes + timeline + editor */
 }
 
 /* ========== SOUNDLINE: hide top-zero, style scale/chromatic notes ========== */
