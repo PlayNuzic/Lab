@@ -448,11 +448,10 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   pointer-events: auto;
 }
 
-/* Limit scroll containers so the timeline (40px) stays visible below.
-   Soundline and matrix share the same height cap. */
+/* Limit scroll containers so the timeline stays visible below. */
 .plano-soundline-container,
 .plano-matrix-container {
-  max-height: calc(var(--plano-visible-rows) * var(--plano-cell-height) - var(--plano-timeline-height, 40px) - var(--plano-cell-height)/2);
+  max-height: calc(var(--plano-visible-rows) * var(--plano-cell-height) - var(--plano-timeline-height, 40px) - var(--plano-cell-height) / 2);
 }
 
 /* ============================================

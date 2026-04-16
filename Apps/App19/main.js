@@ -52,9 +52,9 @@ const CONFIG = {
 const CELL_H = 26;  // Must match --plano-cell-height in styles.css
 const HALF_CELL = CELL_H / 2;
 const SCREENS = [
-  { bottomReg: 3, label: '3 y 4', lastRow: 47 },  // 0r3 = row 47
-  { bottomReg: 4, label: '4 y 5', lastRow: 35 },  // 0r4 = row 35
-  { bottomReg: 5, label: '5 y 6', lastRow: 0 }     // top of grid
+  { label: '3 y 4', firstRow: 27, lastRow: 47 },  // 0r3 (row 47) to 8r4 (row 27)
+  { label: '4 y 5', firstRow: 12, lastRow: 35 },  // 0r4 (row 35) to 0r5 (row 23)
+  { label: '5 y 6', firstRow: 0,  lastRow: 23 }   // 0r5 (row 23) to 11r6 (row 0)
 ];
 
 // ========== STATE ==========
@@ -62,7 +62,6 @@ let isPlaying = false;
 let audio = null;
 let tapTempoHandler = null;
 let mixerSaveTimeout = null;
-let isInitialized = false;  // Flag to track if initial scroll to default registry has been applied
 let currentScreen = 0;  // Index into SCREENS array (starts at "3 y 4")
 
 // Input values
@@ -277,26 +276,9 @@ function updateGrid() {
     addDotsToAllCells();
 
     // Apply initial scroll once the grid has real content
-    maybeApplyInitialScroll();
   }
 }
 
-/**
- * Apply the initial scroll to the default registry once the grid exists and has content.
- * This runs only once, after the first meaningful render (when pulses > 0).
- */
-function maybeApplyInitialScroll() {
-  if (isInitialized) return;
-
-  const totalPulses = getTotalPulses();
-  if (!grid || totalPulses === 0) return;
-
-  // Use requestAnimationFrame to ensure DOM is rendered
-  requestAnimationFrame(() => {
-    scrollToScreen(0, false);  // Start at screen "3 y 4"
-    isInitialized = true;
-  });
-}
 
 /**
  * Scroll to a specific screen (quantized snap position).
@@ -309,15 +291,13 @@ function maybeApplyInitialScroll() {
  * - Last note (bottom) fully visible at the bottom edge
  * Notes use translateY(50%) so labels straddle the cell bottom border.
  */
-function getScreenScrollTop(screen, screenIndex) {
-  if (screen.lastRow === 0) return 0;  // Top of grid
-
-  // First row of this screen = lastRow of next screen + 1 (or 0 if last screen)
-  const nextScreen = SCREENS[screenIndex + 1];
-  const firstRow = nextScreen ? nextScreen.lastRow + 1 : 0;
-
-  // Position so firstRow's top is visible (with a small margin for translateY(50%) label above)
-  return Math.max(0, firstRow * CELL_H - HALF_CELL);
+function getScreenScrollTop(screen) {
+  // Position so lastRow (0rN) is fully visible at the BOTTOM of the window
+  const gridContainer = document.querySelector('.timeline-wrapper');
+  const container = gridContainer?.querySelector('.plano-soundline-container');
+  const visibleHeight = container?.clientHeight || (24 * CELL_H);
+  const bottomEdge = (screen.lastRow + 1) * CELL_H + HALF_CELL;
+  return Math.max(0, bottomEdge - visibleHeight);
 }
 
 const SCROLL_DURATION = 650;  // ms for screen transitions
@@ -328,7 +308,7 @@ function scrollToScreen(screenIndex, animated = false) {
   currentScreen = screenIndex;
 
   const screen = SCREENS[screenIndex];
-  const scrollTop = getScreenScrollTop(screen, screenIndex);
+  const scrollTop = getScreenScrollTop(screen);
   const gridContainer = document.querySelector('.timeline-wrapper');
   const soundline = gridContainer?.querySelector('.plano-soundline-container');
   const matrix = gridContainer?.querySelector('.plano-matrix-container');
@@ -810,7 +790,7 @@ function detectCurrentScreen() {
   let closest = 0;
   let minDist = Infinity;
   for (let i = 0; i < SCREENS.length; i++) {
-    const target = getScreenScrollTop(SCREENS[i], i);
+    const target = getScreenScrollTop(SCREENS[i]);
     const dist = Math.abs(scrollTop - target);
     if (dist < minDist) {
       minDist = dist;
@@ -1119,6 +1099,14 @@ function initApp() {
   // Initial renders
   updateLongitud();
   updateGridVisibility();
+
+  // Position to screen "3 y 4" AFTER the preset's setRegistry(4) has completed.
+  // The preset uses setTimeout(0)+rAF, so we use a longer delay to run after it.
+  setTimeout(() => {
+    requestAnimationFrame(() => {
+      scrollToScreen(0, false);
+    });
+  }, 100);
 
   // No initial focus — user decides where to start
   initIdleCaretFlash({ targets: [document.getElementById('registroParam')?.querySelector('.circle')] });
