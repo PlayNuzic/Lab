@@ -831,9 +831,12 @@ function initDegreeEditor() {
   }
 
   function parseDegreeInput(val) {
-    // "3r+" → degree 3, modifier r+
-    const matchR = val.match(/^(\d+)r\+$/);
-    if (matchR) return { degree: parseInt(matchR[1]), modifier: 'r+' };
+    // "0r5" → upper octave (degree 0, modifier r+)
+    if (/^0r5$/.test(val)) return { degree: 0, modifier: 'r+' };
+    // "0r4" → base octave (degree 0, no modifier — explicit)
+    if (/^0r4$/.test(val)) return { degree: 0, modifier: null };
+    // "0r+" → upper octave (same as 0r5)
+    if (/^(\d+)r\+$/.test(val)) return { degree: parseInt(val), modifier: 'r+' };
     // "3+" → degree 3, modifier +
     const matchPlus = val.match(/^(\d+)\+$/);
     if (matchPlus) return { degree: parseInt(matchPlus[1]), modifier: '+' };
