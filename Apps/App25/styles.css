@@ -189,7 +189,6 @@ main {
 .degree-editor-label {
   font-weight: 700;
   font-size: clamp(0.85rem, 1.8vw, 1.4rem);
-  height: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -201,15 +200,14 @@ main {
   display: flex;
   justify-content: flex-start;
   align-items: stretch;
-  height: 2.5rem;
   background: var(--nuzic-light, #EEE8D8);
-  overflow: hidden;
 }
 
+/* Exact same sizing as App12/App15 editor cells */
 .degree-editor-cell {
-  width: 2.5rem;
-  min-width: 2.5rem;
-  height: 2.5rem;
+  width: 5%;
+  min-width: 1.5625rem;
+  aspect-ratio: 1;
   text-align: center;
   color: #43433b;
   font-size: clamp(0.85rem, 1.8vw, 1.4rem);
@@ -223,7 +221,6 @@ main {
   -moz-appearance: textfield;
   appearance: textfield;
   padding: 0;
-  flex-shrink: 0;
 }
 
 .degree-editor-cell::-webkit-outer-spin-button,
@@ -257,10 +254,9 @@ main {
 
 /* End marker */
 .degree-editor-end {
-  width: 2.5rem;
-  min-width: 2.5rem;
-  height: 2.5rem;
-  flex-shrink: 0;
+  width: 5%;
+  min-width: 1.5625rem;
+  aspect-ratio: 1;
   background: var(--nuzic-dark, #43433B);
   display: none;
   align-items: center;
