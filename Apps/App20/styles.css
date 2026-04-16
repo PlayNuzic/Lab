@@ -1,9 +1,5 @@
 /* App20 - Plano y sucesión N-iT */
 
-.control-sound-toggle-container--pulse {
-  display: none;
-}
-
 /* Nuzic theme overrides */
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 0px;
@@ -59,14 +55,6 @@ html, body {
 /* ============================================
    HIDE TEMPLATE ELEMENTS NOT NEEDED
    ============================================ */
-
-#loopBtn {
-  display: none !important;
-}
-
-.middle {
-  display: none !important;
-}
 
 /* ============================================
    MAIN LAYOUT

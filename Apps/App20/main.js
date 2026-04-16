@@ -1,6 +1,5 @@
 // App20: Plano y sucesión N-iT
-// Grid 2D (plano-modular) + zigzag grid-editor for NrX-iT sequences
-// REFACTORED: Using modular controllers from libs/app-common/
+// Grid 2D (plano-modular) + nuzic N-iT zigzag editor
 
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
@@ -113,7 +112,6 @@ let gridEditor = null;
 // Store current pairs
 let currentPairs = [];
 
-// Modular controllers (NEW)
 let syncController = null;
 let dragHandler = null;
 
