@@ -413,21 +413,68 @@ html, body {
    NUZIC THEME OVERRIDES (data-visual="nuzic")
    ============================================================================ */
 
-/* Soundline container: pink background matching nuzic soundlines */
+/* Soundline container: narrower, pink background */
 body[data-visual="nuzic"] .soundline-container {
+  width: 4.5rem;
   background: var(--nuzic-pink-light, #ffe5ee);
   border-radius: 4px;
   overflow: hidden;
 }
 
-/* Highlighted numbers: nuzic yellow instead of legacy --selection-color */
+/* Numbers: flex centered with dashes, override legacy absolute positioning */
+body[data-visual="nuzic"] .soundline-number {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--nuzic-dark, #43433B);
+  opacity: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0 0.25rem;
+  box-sizing: border-box;
+}
+
+body[data-visual="nuzic"] .soundline-number::before {
+  content: '\2013';
+  flex-shrink: 0;
+  color: var(--nuzic-dark, #43433B);
+}
+
+body[data-visual="nuzic"] .soundline-number::after {
+  content: '\2013';
+  flex-shrink: 0;
+  color: var(--nuzic-dark, #43433B);
+}
+
+/* Highlighted numbers: nuzic yellow */
 body[data-visual="nuzic"] .soundline-number.highlighted {
   color: var(--nuzic-yellow, #FFBB33);
 }
 
-/* Note highlight: nuzic blue */
+body[data-visual="nuzic"] .soundline-number.highlighted::before,
+body[data-visual="nuzic"] .soundline-number.highlighted::after {
+  color: var(--nuzic-yellow, #FFBB33);
+}
+
+/* Dots (non-scale notes): centered in container */
+body[data-visual="nuzic"] .soundline-dot {
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.4rem;
+  height: 0.4rem;
+  background: var(--nuzic-dark, #43433B);
+}
+
+/* Note highlight: nuzic blue, fit narrower container */
 body[data-visual="nuzic"] .note-highlight {
   --note-highlight-color: var(--nuzic-blue-light, #C0DDEE);
+  left: 0;
+  width: 100%;
 }
 
 /* Connection lines: nuzic dark + golden active */
