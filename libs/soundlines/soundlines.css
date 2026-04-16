@@ -451,14 +451,10 @@ body[data-visual="nuzic"] .soundline-number::after {
   color: var(--nuzic-dark, #43433B);
 }
 
-/* Highlighted numbers: nuzic yellow */
+/* Highlighted numbers: same color as regular (no distinction) */
 body[data-visual="nuzic"] .soundline-number.highlighted {
-  color: var(--nuzic-yellow, #FFBB33);
-}
-
-body[data-visual="nuzic"] .soundline-number.highlighted::before,
-body[data-visual="nuzic"] .soundline-number.highlighted::after {
-  color: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-dark, #43433B);
+  font-weight: 700;
 }
 
 /* Dots (non-scale notes): centered in container */
