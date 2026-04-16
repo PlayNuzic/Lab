@@ -4,7 +4,7 @@
   display: none;
 }
 
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+/* Nuzic theme overrides */
 body[data-visual="nuzic"] {
   --nuzic-controls-offset-x: 0px;
   --nuzic-controls-offset-y: 0px;
@@ -14,7 +14,6 @@ body[data-visual="nuzic"] {
    GLOBAL SCROLL OVERRIDE
    ============================================ */
 
-/* Block both horizontal and vertical global scroll for this app */
 html, body {
   margin: 0;
   padding: 0;
@@ -46,101 +45,25 @@ html, body {
 /* ============================================
    SHARED COMPONENT IMPORTS
    ============================================ */
-@import '../../libs/shared-ui/bpm-inline.css';
+/* bpm-inline.css loaded via <link> in index.html (base for nuzic-theme overrides) */
 @import '../../libs/shared-ui/cycle-counter.css';
-@import '../../libs/shared-ui/pulse-highlight.css';
-@import '../../libs/shared-ui/soundline.css';
 
 /* ============================================
-   APP-SPECIFIC CSS VARIABLES
+   CSS VARIABLES
    ============================================ */
 
 :root {
-  /* Layout dimensions */
-  --left-column-width: 150px;
-  --grid-cell-height: 24px;
-  --visible-rows: 24;
-
-  /* Spacing */
-  --layout-gap: 0rem;
-  --controls-gap: 0.75rem;
-
-  /* Registry box */
-  --registro-height: 44px;
-  --registro-offset-x: 0px;
-  --registro-offset-y: 100px;
-
-  /* Compás param offset */
-  --compas-offset-x: 65px;
-  --compas-offset-y: 0px;
-
-  /* Cycles param offset */
-  --cycles-offset-x: 45px;
-  --cycles-offset-y: 10px;
-
-  /* Grid editor offset */
-  --grid-editor-offset-x: -40px;
-  --grid-editor-offset-y: -35px;
-
-  /* Separator height */
-  --separator-height: 120px;
-
-  /* Timeline wrapper (grid 2D) offset */
-  --timeline-wrapper-offset-y: -40px;
-
-  /* Total length offset */
-  --total-length-offset-x: 0px;
-  --total-length-offset-y: 17px;
-
-  /* Controls container offset */
-  --controls-offset-y: 90px;
-
-  /* Button fine-tuning offsets (x, y) */
-  --btn-play-offset-x: 0px;
-  --btn-play-offset-y: 40px;
-  --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 0px;
-  --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 0px;
-  --btn-pulse-toggle-offset-x: -115px;
-  --btn-pulse-toggle-offset-y: -35px;
-  --bpm-offset-x: 0px;
-  --bpm-offset-y: 90px;
-
-  /* BPM sizing */
-  --bpm-scale: 0.8;
-
-  /* Left column offset */
-  --left-column-offset-y: -35px;
-
-  /* Colors */
-  --grid-line-color: rgba(0, 0, 0, 0.15);
-  --grid-hover-color: rgba(123, 180, 205, 0.3);
-  --grid-selected-color: #7BB4CD;
-  --plano-select-color: #7BB4CD;
-  /* Grid-editor selection color (used by matrix-seq module) */
-  --select-color: #7BB4CD;
-}
-
-[data-theme="dark"] {
-  --grid-line-color: rgba(255, 255, 255, 0.15);
-  --grid-hover-color: rgba(123, 180, 205, 0.4);
-  /* Grid area bg is visible when grid doesn't fill the space */
-  --grid-area-bg: #252525;
-  /* Cells have different (darker) bg to differentiate from empty space */
-  --grid-cell-bg: #1e1e1e;
+  --registro-height: 2.75rem;
 }
 
 /* ============================================
    HIDE TEMPLATE ELEMENTS NOT NEEDED
    ============================================ */
 
-/* Hide loop button - not used in this app */
 #loopBtn {
   display: none !important;
 }
 
-/* Hide formula section */
 .middle {
   display: none !important;
 }
@@ -153,318 +76,64 @@ main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;  /* Permite compresión en iframes */
+  min-height: 0;
   padding: 0;
   overflow: hidden;
 }
 
 /* ============================================
-   INPUTS SECTION: Compás/Cycles stacked + separator + grid-editor
+   INPUTS SECTION: Params as pastilles
    ============================================ */
 
 .inputs {
   display: flex;
-  justify-content: flex-start;
-  align-items: stretch;
-  gap: 0.1rem;
-  padding: 0.5rem 0.1rem;
-  margin: 0;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 1;
-  max-width: 100vw;
-  /* FIXED: Allow child scroll to be visible */
-  overflow: visible;
-}
-
-/* Left stack: Compás + Cycles vertically */
-.inputs-left-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.1rem;
-  flex-shrink: 0;
-  /* Ensure spinners are above grid-editor (which uses negative transform) */
-  position: relative;
-  z-index: 10;
-}
-
-/* Vertical separator */
-.inputs-separator {
-  width: 2px;
-  height: var(--separator-height, 80px);
-  background: var(--grid-line-color, rgba(0, 0, 0, 0.15));
-  align-self: flex-start;
-  margin: 0 1.9rem;
-}
-
-[data-theme="dark"] .inputs-separator {
-  background: var(--grid-line-color, rgba(255, 255, 255, 0.15));
-}
-
-/* Grid editor + Longitud wrapper */
-.grid-editor-wrapper {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 0.5rem;
-  flex: 1 1 0;
-  min-width: 0;
-  /* Fine-tuning position */
-  transform: translate(var(--grid-editor-offset-x), var(--grid-editor-offset-y));
-  /* Negative transform creates a new stacking context that overlaps inputs-left-stack.
-     pointer-events: none on the wrapper prevents the overlap zone from stealing clicks.
-     Children re-enable pointer-events individually. */
-  position: relative;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Re-enable pointer events on actual interactive children */
-.grid-editor-wrapper > * {
-  pointer-events: auto;
-}
-
-/* Grid editor container - target by ID since createGridEditor replaces classes */
-#gridEditorContainer {
-  /* Take remaining space but allow shrinking */
-  flex: 0 1 auto;
-  min-width: 0;  /* Allow shrinking below content size */
-  /* CRITICAL: This makes the container scroll instead of growing */
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-behavior: smooth;
-  /* FIXED: block instead of flex - flex conflicts with overflow-x: auto */
-  display: block;
-  /* Remove transform - now on wrapper */
-}
-
-/* The grid content inside must use max-content to enable scroll */
-#gridEditorContainer .grid-zigzag-container {
-  width: max-content;
-  min-width: 100%;
-}
-
-/* All param circles - smaller for stacked layout */
-/* Compás param - vertical layout with label on top */
-.param.compas {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  transform: translate(var(--compas-offset-x), var(--compas-offset-y));
-}
-
-.param.compas .abbr {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-color, #333);
-}
-
-/* Cycles param - vertical layout with label on top */
-.param.cycle-display {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  transform: translate(var(--cycles-offset-x), var(--cycles-offset-y));
-}
-
-.param.cycle-display .abbr {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-color, #333);
-}
-
-.param.compas .circle,
-.param.cycle-display .circle {
-  width: 60px;
-  height: 60px;
-}
-
-/* Cycle circle: contains both input (when stopped) and digit (when playing) */
-.param.cycle-display .cycle-circle {
-  position: relative;
-}
-
-/* Input styling for compas and cycle - smaller font for stacked layout */
-.param.compas input,
-.param.cycle-display .cycle-circle input {
-  font-size: 1.6rem;
-  font-weight: 700;
-  text-align: center;
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-color, #333);
-  font-family: 'Courier New', Courier, monospace;
-}
-
-.param.compas input:focus,
-.param.cycle-display .cycle-circle input:focus {
-  outline: none;
-}
-
-/* When playing, hide input and show digit */
-.param.cycle-display .cycle-circle.playing input {
-  display: none;
-}
-
-.param.cycle-display .cycle-circle .cycle-counter__digit {
-  display: none;
-  font-size: 1.6rem;
-}
-
-.param.cycle-display .cycle-circle.playing .cycle-counter__digit {
-  display: block;
-}
-
-/* ============================================
-   TOTAL LENGTH CIRCLE (2/3 size = 66px)
-   ============================================ */
-
-/* Inside .grid-editor-wrapper - stays attached to grid-editor */
-.total-length-inline {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  flex-shrink: 0;
-  /* Fine-tune position relative to wrapper */
-  transform: translate(var(--total-length-offset-x), var(--total-length-offset-y));
-}
-
-.total-length-inline .circle {
-  width: 55px;
-  height: 55px;
-  border: 2px solid var(--circle-border, #333);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
   justify-content: center;
-}
-
-.total-length-inline .total-length__digit {
-  font-size: 1.5rem;
-  font-weight: 700;
-  font-family: 'Courier New', Courier, monospace;
-  color: var(--text-color, #333);
-  line-height: 1;
-}
-
-.total-length-inline .abbr {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-color, #333);
-  opacity: 1;
-}
-
-/* Flip animations (reuse keyframes from cycle-counter) */
-.total-length__digit.flip-out {
-  animation: flipOut 0.15s ease-in forwards;
-}
-
-.total-length__digit.flip-in {
-  animation: flipIn 0.15s ease-out forwards;
-}
-
-/* Playback colors */
-.total-length__digit.playing-zero {
-  color: var(--color-lg, #4A90D9);
-}
-
-.total-length__digit.playing-active {
-  color: var(--selection-color, #EA570C);
-}
-
-/* Dark theme */
-[data-theme="dark"] .total-length-inline .circle {
-  border-color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .total-length-inline .total-length__digit,
-[data-theme="dark"] .total-length-inline .abbr {
-  color: var(--text-color, #eee);
+  align-items: flex-end;
+  gap: 2rem;
+  padding: 0 1rem;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 /* ============================================
-   TIMELINE WRAPPER - 2 COLUMN LAYOUT
+   NUZIC PARAM SPINNERS (golden circles)
    ============================================ */
 
-.timeline-wrapper {
-  flex: 1;
-  display: grid;
-  grid-template-columns: var(--left-column-width) 1fr;
-  gap: var(--layout-gap);
-  padding: var(--layout-gap);
-  min-height: 0;
-  overflow: hidden;
-  position: relative;
-  z-index: 2;
-  transform: translateY(var(--timeline-wrapper-offset-y, 0px));
-  /* Negative translateY shifts this over the inputs area above.
-     Disable pointer-events so the overlap zone doesn't block controls above. */
-  pointer-events: none;
+.inputs .param .spin {
+  background: var(--nuzic-yellow) !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 !important;
+  border: none !important;
 }
 
-/* Re-enable pointer events on timeline-wrapper children */
-.timeline-wrapper > * {
-  pointer-events: auto;
+.inputs .param .spin.up::before {
+  border-bottom-color: white !important;
+}
+
+.inputs .param .spin.down::before {
+  border-top-color: white !important;
 }
 
 /* ============================================
-   LEFT COLUMN: Registry + Controls + BPM
+   REGISTRO PARAM (capsule shape)
    ============================================ */
-
-.left-column {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--controls-gap);
-  padding: 0rem 0;
-  transform: translateY(var(--left-column-offset-y));
-  position: relative;
-  z-index: 10;
-  /* Negative translateY shifts this column on top of the inputs area above.
-     Disable pointer-events on the container so the overlap zone doesn't
-     steal clicks from Nº Compases / Compás spinners. */
-  pointer-events: none;
-}
-
-/* Re-enable pointer events on interactive children inside left-column */
-.left-column > * {
-  pointer-events: auto;
-}
-
-/* Registry param - vertical layout with label on top */
-.param.registro {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  transform: translate(var(--registro-offset-x), var(--registro-offset-y));
-}
-
-.param.registro .abbr {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text-color, #333);
-}
 
 .param.registro .circle {
+  width: auto !important;
   height: var(--registro-height);
-  padding: 0 1rem;
+  padding: 0 0.5rem;
   border: 2px solid #F28AAD;
-  border-radius: 22px;
+  border-radius: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
+  position: relative;
 }
 
 .param.registro .registro-text {
+  width: auto !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -476,63 +145,8 @@ main {
   background: transparent;
   color: var(--text-color, #333);
   font-family: 'Courier New', Courier, monospace;
-  cursor: default;
 }
 
-.param.registro input:focus {
-  outline: none;
-}
-
-/* Registry navigation buttons */
-.registro-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.registro-nav .spin {
-  width: 60px;
-  height: 35px;
-  border: 1px solid var(--circle-border, #333);
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-  position: relative;
-  transition: background 0.15s ease;
-}
-
-.registro-nav .spin:hover {
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.registro-nav .spin:active {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-/* Arrow indicators */
-.registro-nav .spin::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-}
-
-.registro-nav .spin.up::before {
-  border-bottom: 10px solid var(--text-color, #333);
-  margin-top: -2px;
-}
-
-.registro-nav .spin.down::before {
-  border-top: 10px solid var(--text-color, #333);
-  margin-top: 2px;
-}
-
-/* Dark theme */
 [data-theme="dark"] .param.registro .circle {
   border-color: #F28AAD;
 }
@@ -545,299 +159,83 @@ main {
   color: var(--text-color, #eee);
 }
 
-[data-theme="dark"] .registro-nav .spin {
-  border-color: var(--text-color, #eee);
+/* Playback colors */
+.total-length__digit.playing-zero {
+  color: var(--color-lg, #4A90D9);
 }
 
-[data-theme="dark"] .registro-nav .spin:hover {
-  background: rgba(255, 255, 255, 0.1);
+.total-length__digit.playing-active {
+  color: var(--selection-color, #EA570C);
 }
 
-[data-theme="dark"] .registro-nav .spin.up::before {
-  border-bottom-color: var(--text-color, #eee);
-}
+/* ============================================
+   TIMELINE WRAPPER (single column)
+   ============================================ */
 
-[data-theme="dark"] .registro-nav .spin.down::before {
-  border-top-color: var(--text-color, #eee);
-}
-
-/* Controls container */
-.controls-container {
+.timeline-wrapper {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  transform: translateY(var(--controls-offset-y, 0px));
-}
-
-.controls-container .controls {
-  position: static;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* Vertical layout for controls */
-.controls-container .controls[data-layout="vertical"] {
-  flex-direction: column;
-}
-
-.controls-container .controls .control-buttons-row {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-/* Play row: static positioning for vertical layout */
-.controls-container .controls .play-row {
-  position: static;
-  transform: translate(var(--btn-play-offset-x), var(--btn-play-offset-y));
-  pointer-events: none;  /* Evitar que el contenedor tape otros elementos */
-}
-
-/* Re-activar pointer events en los elementos interactivos del play-row */
-.controls-container .controls .play-row > * {
-  pointer-events: auto;
-}
-
-/* Play button fine-tuning */
-.controls-container .controls #playBtn {
-  position: relative;
-}
-
-/* Pulse toggle fine-tuning */
-.controls-container .controls .play-row .control-sound-toggle-container {
-  transform: translate(var(--btn-pulse-toggle-offset-x), var(--btn-pulse-toggle-offset-y)) !important;
-}
-
-/* Pulse toggle inactive state - style children directly, NOT parent opacity */
-.control-sound-toggle.control-sound-toggle--pulse:not(.active) .control-sound-toggle__shape {
-  stroke: currentColor !important;
-  stroke-opacity: 0.25 !important;
-  stroke-width: 2 !important;
-  filter: none !important;
-}
-
-.control-sound-toggle.control-sound-toggle--pulse:not(.active) .control-sound-toggle__label {
-  opacity: 0.4 !important;
-}
-
-/* Button row: Random + Reset side by side below Play */
-.controls-container .controls .button-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-}
-
-/* Button fine-tuning offsets */
-/* Override shared-ui absolute positioning for vertical layout */
-.controls-container .controls #randomBtn {
-  position: static;
-  transform: translate(var(--btn-random-offset-x), var(--btn-random-offset-y));
-}
-
-.controls-container .controls #resetBtn {
-  position: static;
-  transform: translate(var(--btn-reset-offset-x), var(--btn-reset-offset-y));
-}
-
-.controls-container .controls #tapTempoBtn {
-  display: none !important;
-}
-
-/* Reorder buttons: Play → Random → Reset → TapTempo */
-.controls-container .controls .play-row {
-  order: 1;
-}
-
-.controls-container .controls .button-row {
-  order: 2;
-}
-
-.controls-container .controls #tapTempoBtn {
-  order: 3;
-}
-
-/* Inside .button-row: Random first, then Reset */
-.controls-container .controls .button-row #randomBtn {
-  order: 1;
-}
-
-.controls-container .controls .button-row #randomMenu {
-  order: 2;
-}
-
-.controls-container .controls .button-row #resetBtn {
-  order: 3;
-}
-
-/* ============================================
-   COLOR IDENTIFICATION FOR SECTIONS
-   ============================================ */
-
-/* Círculos de parámetros → azul (color Lg) */
-.param.compas .circle,
-.param.cycle-display .circle,
-.total-length-inline .circle,
-.bpm-inline .circle {
-  border-color: var(--color-lg);
-}
-
-/* BPM inline at bottom - always visible in App19 */
-.left-column .bpm-inline {
-  position: relative;
-  display: flex !important;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: auto;
-  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
-}
-
-/* BPM label above circle */
-.left-column .bpm-inline .abbr {
-  font-size: 1.4rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-color, #333);
-  opacity: 0.8;
-}
-
-/* BPM circle */
-.left-column .bpm-inline .circle {
-  width: 66px;
-  height: 66px;
-  border: 2px solid var(--color-lg, #4A90D9);
-  border-radius: 50%;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Override shared-ui/index.css spinner styles for BPM */
-.left-column .bpm-inline .spinner {
-  position: absolute;
-  right: -35px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 26px;
-  height: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.left-column .bpm-inline .spin {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  border: none;
-  background: #333;
-  cursor: pointer;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.left-column .bpm-inline .spin:hover {
-  background: #555;
-}
-
-.left-column .bpm-inline .spin::before {
-  content: '';
-  display: block;
-  width: 0;
-  height: 0;
-}
-
-.left-column .bpm-inline .spin.up::before {
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 8px solid #eee;
-  border-top: none;
-}
-
-.left-column .bpm-inline .spin.down::before {
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 8px solid #eee;
-  border-bottom: none;
-}
-
-/* BPM input styling */
-.left-column .bpm-inline input {
-  font-size: 1.65rem;
-  font-weight: 700;
-  text-align: center;
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-color, #333);
-  font-family: 'Courier New', Courier, monospace;
-  padding: 0;
-}
-
-.left-column .bpm-inline input:focus {
-  outline: none;
-}
-
-/* BPM dark theme overrides */
-[data-theme="dark"] .left-column .bpm-inline .abbr {
-  color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .left-column .bpm-inline input {
-  color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .left-column .bpm-inline .spin {
-  background: #eee;
-}
-
-[data-theme="dark"] .left-column .bpm-inline .spin:hover {
-  background: #ccc;
-}
-
-[data-theme="dark"] .left-column .bpm-inline .spin.up::before {
-  border-bottom-color: #333;
-}
-
-[data-theme="dark"] .left-column .bpm-inline .spin.down::before {
-  border-top-color: #333;
-}
-
-/* ============================================
-   RIGHT COLUMN: Grid 2D
-   ============================================ */
-
-.right-column {
   min-height: 0;
   overflow: hidden;
-  margin-right: 1rem;
+  position: relative;
+  z-index: 2;
 }
 
-/* Override plano-modular defaults for 24 visible rows */
+/* Plano grid fills available space, editor + controls stay below */
+.timeline-wrapper .plano-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ============================================
+   PLANO-MODULAR OVERRIDES
+   ============================================ */
+
 .plano-container {
-  --plano-cell-height: 24px;
-  --plano-visible-rows: 24;
+  --plano-cell-height: 26px;
+  --plano-visible-rows: 21;  /* 24 in App19 but App20 needs room for N-iT editor below */
+  width: 100%;
+  background: var(--bg-light);
 }
 
-/* Fit grid vertically: cap the scroll containers to available space */
-.right-column .plano-soundline-container,
-.right-column .plano-matrix-container {
-  max-height: min(calc(100dvh - 310px), calc(var(--plano-visible-rows) * var(--plano-cell-height)));
+[data-theme="dark"] .plano-container {
+  background: var(--bg-dark);
 }
 
-/* Note 0 of each registry: pink (matching App18) */
+/* Remove left margin so matrix starts flush with soundline edge */
+.plano-matrix,
+.plano-timeline-row {
+  margin-left: 0;
+}
+
+/* Separate matrix from timeline in grid-area */
+.plano-grid-area {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.plano-matrix-container {
+  grid-row: 1;
+  min-height: 0;
+}
+
+.plano-timeline-container {
+  grid-row: 2;
+  position: relative;
+  z-index: 2;
+}
+
+/* columnSizing:'fr' — fill available width */
+.plano-matrix-container,
+.plano-matrix,
+.plano-timeline-row {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Note 0 of each registry: pink */
 .plano-soundline-note[data-note="0"] {
   color: #F28AAD !important;
 }
@@ -846,7 +244,7 @@ main {
   color: #F28AAD !important;
 }
 
-/* Hide vertical scrollbar — scroll is quantized via buttons/wheel */
+/* Hide scrollbars — free scroll via wheel/trackpad */
 .plano-soundline-container,
 .plano-matrix-container {
   scrollbar-width: none;
@@ -858,139 +256,7 @@ main {
   display: none;
 }
 
-/* Soundline container (Y-axis: notes) */
-.soundline-container {
-  grid-column: 1;
-  grid-row: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  padding-right: 0.5rem;
-  min-width: 50px;
-  position: relative;
-  z-index: 1;
-  /* Scroll enabled for user and programmatic control */
-  overflow-y: scroll;
-  overflow-x: hidden;
-  max-height: calc(var(--visible-rows) * var(--grid-cell-height));
-  /* Show thin scrollbar */
-  scrollbar-width: thin;  /* Firefox */
-}
-
-.soundline-container::-webkit-scrollbar {
-  width: 6px;  /* Chrome/Safari */
-}
-
-.soundline-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-}
-
-[data-theme="dark"] .soundline-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Grid area (matrix + timeline) */
-.grid-area {
-  grid-column: 2;
-  grid-row: 1 / 3;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-}
-
-/* Matrix container (cells) */
-.matrix-container {
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: scroll;  /* Scroll enabled for user and programmatic control */
-  min-height: 0;
-  max-height: calc(var(--visible-rows) * var(--grid-cell-height));
-  /* Show thin scrollbar */
-  scrollbar-width: thin;  /* Firefox */
-}
-
-.matrix-container::-webkit-scrollbar {
-  width: 6px;  /* Chrome/Safari */
-  height: 6px;
-}
-
-.matrix-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-}
-
-[data-theme="dark"] .matrix-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Timeline container (X-axis: pulses) */
-.timeline-container {
-  height: 40px;
-  flex-shrink: 0;
-  overflow-x: auto;
-  overflow-y: visible;
-  position: relative;
-  z-index: 10;
-  margin-left: -15px;
-  padding-left: 15px;
-}
-
-/* Sync scroll between matrix and timeline */
-.matrix-container,
-.timeline-container {
-  scrollbar-width: thin;
-  scrollbar-color: var(--grid-line-color) transparent;
-}
-
-/* Hide scrollbar on timeline (will be synced with matrix) */
-.timeline-container {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.timeline-container::-webkit-scrollbar {
-  display: none;
-}
-
-/* ============================================
-   GRID CELLS
-   ============================================ */
-
-.grid-matrix {
-  display: grid;
-  gap: 0;
-  min-width: max-content;
-  position: relative;  /* For playhead positioning */
-  margin-left: 15px;   /* Space for pulse 0 visibility */
-}
-
-.grid-cell {
-  background: var(--bg-color, #fff);
-  height: var(--grid-cell-height);
-  cursor: pointer;
-  transition: background 0.1s ease;
-  border-right: 1px solid var(--grid-line-color);
-  border-bottom: 1px solid var(--grid-line-color);
-  box-sizing: border-box;
-}
-
-.grid-cell:hover {
-  background: var(--grid-hover-color);
-}
-
-.grid-cell.selected {
-  background: var(--grid-selected-color);
-}
-
-/* Legacy class - keep for compatibility */
-.grid-cell.highlighted {
-  background: #FFBB33 !important;
-  outline: none;
-}
-
-/* plano-modular highlight override — visual note straddles division line via ::before */
+/* plano-modular highlight override */
 .plano-cell.plano-highlight {
   background: transparent !important;
 }
@@ -1010,602 +276,10 @@ main {
   box-shadow: 0 0 8px #FFBB33;
 }
 
-/* Cell label styles managed by musical-grid.css */
-.grid-cell.selected {
-  position: relative;
-}
-
 /* ============================================
-   PLAYHEAD (vertical bar during playback)
+   NP-DOT (Clickable points in Grid 2D)
    ============================================ */
 
-.playhead {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--select-color, #EA570C);
-  opacity: 0.85;
-  z-index: 20;
-  pointer-events: none;
-  box-shadow: 0 0 6px var(--select-color, #EA570C);
-  margin-left: -4px;  /* Align with timeline numbers */
-}
-
-/* Hide playhead when not playing */
-.playhead.hidden {
-  display: none;
-}
-
-/* Dark theme */
-[data-theme="dark"] .grid-area,
-[data-theme="dark"] .matrix-container {
-  background: var(--grid-area-bg, #252525);
-}
-
-[data-theme="dark"] .grid-cell {
-  background: var(--grid-cell-bg, #1e1e1e);
-}
-
-[data-theme="dark"] .grid-cell:hover {
-  background: var(--grid-hover-color);
-}
-
-[data-theme="dark"] .grid-cell.selected {
-  background: var(--grid-selected-color, #FFBB33);
-}
-
-/* ============================================
-   TIMELINE NUMBERS
-   ============================================ */
-
-.timeline-row {
-  display: grid;
-  gap: 0;
-  min-width: max-content;
-  height: 100%;
-  align-items: center;
-  margin-left: 15px;  /* Match .grid-matrix margin for alignment */
-}
-
-.timeline-number {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: start;
-  margin-left: -4px;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text-color, #333);
-}
-
-.timeline-number .pulse-num {
-  line-height: 1;
-}
-
-.timeline-number .cycle-sup {
-  font-size: 0.8em;
-  vertical-align: super;
-  margin-left: 1px;
-  margin-top: -15px;
-  opacity: 0.7;
-  line-height: 1;
-}
-
-/* Cycle start (pulse 0) styling */
-.timeline-number.cycle-start {
-  color: var(--color-lg, #4A90D9);
-}
-
-/* Dark theme */
-[data-theme="dark"] .timeline-number {
-  color: var(--text-color, #eee);
-}
-
-/* Preserve blue color for cycle-start (pulse 0) in dark mode */
-[data-theme="dark"] .timeline-number.cycle-start {
-  color: var(--color-lg, #4A90D9);
-}
-
-/* ============================================
-   SOUNDLINE NOTES (Y-axis)
-   ============================================ */
-
-.soundline-row {
-  display: flex;
-  flex-direction: column;
-}
-
-.soundline-note {
-  height: var(--grid-cell-height);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 0.5rem;
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: var(--text-color, #333);
-  border-bottom: 1px solid var(--grid-line-color);
-  box-sizing: border-box;
-  transform: translateY(50%);  /* Center text on division line */
-}
-
-/* Registry boundary: same color as other notes (no blue) */
-.soundline-note.registry-boundary {
-  color: var(--text-color, #333);
-  font-weight: 500;
-}
-
-/* Note 0 of any registry: selection color */
-.soundline-note[data-noteinreg="0"] {
-  color: var(--select-color, #FFBB33) !important;
-  font-weight: 700;
-}
-
-/* Out of range rows (r2 padding for scroll) - dimmed and non-interactive */
-.soundline-note.out-of-range {
-  opacity: 0.35;
-  pointer-events: none;
-}
-
-.grid-cell.out-of-range {
-  opacity: 0.25;
-  pointer-events: none;
-  cursor: default;
-}
-
-/* Dark theme */
-[data-theme="dark"] .soundline-note {
-  color: var(--text-color, #eee);
-}
-
-/* ============================================
-   RESPONSIVE - Tablet landscape (900px)
-   ============================================ */
-
-@media (max-width: 900px) {
-  :root {
-    --left-column-width: 120px;
-    --registro-height: 70px;
-    --grid-cell-height: 28px;
-    /* Reduce offsets to prevent content from going off-screen */
-    --timeline-wrapper-offset-y: -30px;
-    --left-column-offset-y: -20px;
-    --compas-offset-x: 50px;
-    --compas-offset-y: -15px;
-    --cycles-offset-x: 30px;
-    --cycles-offset-y: -15px;
-    --grid-editor-offset-x: -20px;
-    --grid-editor-offset-y: -20px;
-    --registro-offset-y: 30px;
-    --btn-play-offset-x: 0px;
-    --btn-play-offset-y: 0px;
-    --btn-random-offset-y: 0px;
-    --btn-reset-offset-y: 0px;
-  }
-
-  .inputs {
-    gap: 1rem;
-    padding: 0.5rem 0.75rem 0.25rem;
-  }
-
-  .param.compas .circle,
-  .param.cycle-display .circle {
-    width: 70px;
-    height: 70px;
-  }
-
-  .param.compas input,
-  .param.cycle-display .cycle-circle input {
-    font-size: 1.8rem;
-  }
-
-  .total-length-inline .circle {
-    width: 50px;
-    height: 50px;
-  }
-
-  .total-length-inline .total-length__digit {
-    font-size: 1.4rem;
-  }
-
-  .param.registro input {
-    font-size: 1.6rem;
-  }
-
-  /* Scale ALL controls 35% smaller - center origin prevents left overflow */
-  .controls-container .controls {
-    transform: scale(0.65);
-    transform-origin: top center;
-  }
-
-  /* Ensure grid 2D remains visible */
-  .timeline-wrapper {
-    min-height: 200px;
-  }
-}
-
-/* ============================================
-   RESPONSIVE - Small tablet (850px)
-   ============================================ */
-
-@media (max-width: 850px) {
-  :root {
-    --left-column-width: 100px;
-    --registro-height: 60px;
-    --timeline-wrapper-offset-y: -15px;
-    --left-column-offset-y: -10px;
-    --compas-offset-x: 30px;
-    --compas-offset-y: -10px;
-    --cycles-offset-x: 20px;
-    --cycles-offset-y: -10px;
-    --grid-editor-offset-x: -10px;
-    --grid-editor-offset-y: -10px;
-    --registro-offset-y: 20px;
-    --btn-play-offset-x: 0px;
-    --btn-play-offset-y: 0px;
-    --btn-random-offset-y: 0px;
-    --btn-reset-offset-y: 0px;
-    --separator-height: 130px;
-  }
-
-  .inputs {
-    gap: 0.5rem;
-    padding: 0.25rem 0.5rem 0.25rem;
-  }
-
-  .param.compas .circle,
-  .param.cycle-display .circle {
-    width: 60px;
-    height: 60px;
-  }
-
-  .param.compas input,
-  .param.cycle-display .cycle-circle input {
-    font-size: 1.5rem;
-  }
-
-  .param.cycle-display .cycle-circle .cycle-counter__digit {
-    font-size: 1.5rem;
-  }
-
-  .total-length-inline .circle {
-    width: 45px;
-    height: 45px;
-  }
-
-  .total-length-inline .total-length__digit {
-    font-size: 1.2rem;
-  }
-
-  .total-length-inline .abbr {
-    font-size: 1rem;
-  }
-
-  .param.registro input {
-    font-size: 1.4rem;
-  }
-
-  .param.registro .abbr,
-  .param.compas .abbr,
-  .param.cycle-display .abbr {
-    font-size: 1rem;
-  }
-
-  /* Grid editor compacto */
-  .zigzag-input {
-    font-size: 1.5rem !important;
-    padding: 4px 6px !important;
-  }
-
-  .zigzag-cell {
-    flex: 0 0 60px !important;
-  }
-
-  .zigzag-left-label {
-    font-size: 1.2rem;
-    min-width: 40px;
-  }
-
-  /* Controls even smaller - center origin prevents left overflow */
-  .controls-container .controls {
-    transform: scale(0.55);
-    transform-origin: top center;
-  }
-}
-
-/* ============================================
-   RESPONSIVE - Tablet portrait / Small landscape
-   ============================================ */
-
-@media (max-width: 768px) and (orientation: landscape) {
-  :root {
-    --left-column-width: 100px;
-    --registro-height: 60px;
-    --grid-cell-height: 24px;
-  }
-
-  .inputs {
-    gap: 1rem;
-    padding: 0.5rem 0.75rem 0.25rem;
-  }
-
-  .param.compas .circle,
-  .param.cycle-display .circle {
-    width: 70px;
-    height: 70px;
-  }
-
-  .param.compas input,
-  .param.cycle-display .cycle-circle input {
-    font-size: 1.75rem;
-  }
-
-  .total-length-inline .circle {
-    width: 46px;
-    height: 46px;
-  }
-
-  .total-length-inline .total-length__digit {
-    font-size: 1.3rem;
-  }
-
-  .total-length-inline .abbr {
-    font-size: 0.75rem;
-  }
-
-  .param.registro input {
-    font-size: 1.5rem;
-  }
-
-  .registro-nav .spin {
-    width: 35px;
-    height: 25px;
-  }
-}
-
-/* ============================================
-   DARK THEME ADJUSTMENTS
-   ============================================ */
-
-[data-theme="dark"] .param.compas .abbr,
-[data-theme="dark"] .param.cycle-display .abbr {
-  color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .param.compas input,
-[data-theme="dark"] .param.cycle-display input {
-  color: var(--text-color, #eee);
-}
-
-/* ============================================
-   PLAYBACK ANIMATIONS (Pattern from Apps 16/17)
-   ============================================ */
-
-/* Grid cell playing highlight */
-.grid-cell.playing {
-  background: var(--select-color, #EA570C) !important;
-  transform: scale(1.1);
-  transition: transform 0.1s ease, background 0.1s ease;
-  box-shadow: 0 0 8px var(--select-color, #EA570C);
-  z-index: 10;
-}
-
-[data-theme="dark"] .grid-cell.playing {
-  box-shadow: 0 0 12px var(--select-color, #EA570C);
-}
-
-/* Timeline numbers active states */
-.timeline-number.active {
-  color: var(--select-color, #EA570C) !important;
-  transform: scale(1.2);
-  font-weight: 700;
-  transition: transform 0.1s ease, color 0.1s ease;
-}
-
-.timeline-number.active-zero {
-  color: var(--color-lg, #4A90D9) !important;
-  transform: scale(1.3);
-  font-weight: 700;
-  text-shadow: 0 0 8px var(--color-lg, #4A90D9);
-  transition: transform 0.1s ease, color 0.1s ease;
-}
-
-[data-theme="dark"] .timeline-number.active-zero {
-  text-shadow: 0 0 12px var(--color-lg, #4A90D9);
-}
-
-/* Flip animations (keyframes) */
-@keyframes flipOut {
-  from { transform: rotateX(0); opacity: 1; }
-  to { transform: rotateX(-90deg); opacity: 0; }
-}
-
-@keyframes flipIn {
-  from { transform: rotateX(90deg); opacity: 0; }
-  to { transform: rotateX(0); opacity: 1; }
-}
-
-.flip-out {
-  animation: flipOut 0.15s ease-in forwards;
-}
-
-.flip-in {
-  animation: flipIn 0.15s ease-out forwards;
-}
-
-/* Colors for digits during playback */
-.cycle-counter__digit.playing-zero,
-.total-length__digit.playing-zero {
-  color: var(--color-lg, #4A90D9) !important;
-}
-
-.cycle-counter__digit.playing-active,
-.total-length__digit.playing-active {
-  color: var(--select-color, #EA570C) !important;
-}
-
-/* ============================================
-   RESPONSIVE BREAKPOINTS
-   ============================================ */
-
-/* Tablet landscape (900px) */
-@media (max-width: 900px) {
-  :root {
-    --visible-rows: 12;
-    --grid-cell-height: 28px;
-    --left-column-width: 120px;
-  }
-}
-
-/* Tablet portrait landscape (768px) */
-@media (max-width: 768px) {
-  :root {
-    --visible-rows: 10;
-    --grid-cell-height: 24px;
-    --left-column-width: 100px;
-  }
-
-  .inputs-section {
-    padding: 0.5rem;
-    gap: 0.5rem;
-  }
-}
-
-/* Small screens (700px) - Compact inputs to maximize grid space */
-@media (max-width: 700px) {
-  :root {
-    --visible-rows: 39;  /* Show ALL rows (full grid height) */
-    --grid-cell-height: 18px;
-    --left-column-width: 80px;
-    --registro-height: 50px;
-  }
-
-  /* Compact inputs section */
-  .inputs-section {
-    padding: 0.25rem;
-    gap: 0.25rem;
-  }
-
-  /* Smaller param circles */
-  .param.compas .circle,
-  .param.cycle-display .circle {
-    width: 60px;
-    height: 60px;
-  }
-
-  .param.compas input,
-  .param.cycle-display .cycle-circle input {
-    font-size: 1.5rem;
-  }
-
-  .param.cycle-display .cycle-circle .cycle-counter__digit {
-    font-size: 1.5rem;
-  }
-
-  /* Smaller total-length */
-  .total-length-inline .circle {
-    width: 50px;
-    height: 50px;
-  }
-
-  .total-length-inline input {
-    font-size: 1.2rem;
-  }
-
-  /* Compact param labels */
-  .param-inline .abbr,
-  .total-length-inline .abbr {
-    font-size: 0.9rem;
-  }
-
-  /* Smaller registry */
-  .param.registro .abbr {
-    font-size: 1rem;
-  }
-
-  .param.registro input {
-    font-size: 1.5rem;
-  }
-
-  /* Smaller buttons */
-  .left-column .action-btn {
-    width: 40px;
-    height: 40px;
-  }
-
-  /* Compact BPM */
-  .left-column .bpm-inline .abbr {
-    font-size: 1rem;
-  }
-
-  .left-column .bpm-inline .circle {
-    width: 50px;
-    height: 50px;
-  }
-
-  .left-column .bpm-inline input {
-    font-size: 1.2rem;
-  }
-
-  .left-column .bpm-inline .spin {
-    width: 20px;
-    height: 20px;
-  }
-
-  /* Smaller soundline labels */
-  .soundline-note {
-    font-size: 0.7rem;
-    min-width: 35px;
-  }
-
-  /* Smaller timeline numbers */
-  .timeline-number {
-    font-size: 0.9rem;
-  }
-}
-
-/* Extra small screens (500px) */
-@media (max-width: 500px) {
-  :root {
-    --grid-cell-height: 16px;
-    --left-column-width: 70px;
-    --registro-height: 45px;
-  }
-
-  .param.compas .circle,
-  .param.cycle-display .circle {
-    width: 50px;
-    height: 50px;
-  }
-
-  .param.compas input,
-  .param.cycle-display .cycle-circle input,
-  .param.cycle-display .cycle-circle .cycle-counter__digit {
-    font-size: 1.3rem;
-  }
-
-  .total-length-inline .circle {
-    width: 40px;
-    height: 40px;
-  }
-
-  .total-length-inline input {
-    font-size: 1rem;
-  }
-
-  .soundline-note {
-    font-size: 0.6rem;
-    min-width: 30px;
-  }
-}
-
-/* ============================================
-   NP-DOT (Draggable points in Grid 2D)
-   Styled like App15/musical-grid for consistency
-   ============================================ */
-
-/* Dot element - clickable area centered on intersection */
 .np-dot {
   position: absolute;
   bottom: -6px;
@@ -1616,7 +290,6 @@ main {
   pointer-events: auto;
 }
 
-/* Visual dot via ::after pseudo-element (like musical-grid) */
 .np-dot::after {
   content: '';
   position: absolute;
@@ -1636,7 +309,25 @@ main {
   border-color: rgba(153, 153, 153, 0.5);
 }
 
-/* Dot in selected/highlighted cell - filled and glowing */
+/* Duration-highlight cells: extend the note's visual bar across iT columns */
+.plano-cell.duration-highlight {
+  z-index: 2;
+}
+
+.plano-cell.duration-highlight::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -50%;
+  height: 100%;
+  background: var(--plano-select-color, #FFBB33);
+  opacity: 0.5;
+  border-radius: 2px;
+  z-index: 1;
+  pointer-events: none;
+}
+
 .plano-cell.plano-selected .np-dot::after,
 .plano-cell.duration-highlight .np-dot::after {
   background: var(--plano-select-color, #FFBB33);
@@ -1650,617 +341,279 @@ main {
     0 0 16px var(--plano-select-color, #FFBB33);
 }
 
-/* Clickable/draggable dot */
 .np-dot-clickable {
-  cursor: var(--np-dot-cursor, grab);
+  cursor: grab;
   pointer-events: auto !important;
   z-index: 25 !important;
-}
-
-/* Hover effect - orange glow */
-.np-dot-clickable:hover::after {
-  background: rgba(255, 139, 77, 0.4);
-  border-color: var(--plano-select-color, #FFBB33);
-  border-width: 2px;
-  box-shadow: 0 0 8px var(--plano-select-color, #FFBB33);
-  transform: translate(-50%, -50%) scale(1.3);
 }
 
 .np-dot-clickable:active {
   cursor: grabbing;
 }
 
+/* Hide gradient — np-dot elements provide full circles at division lines */
+body[data-visual="nuzic"] .plano-cell {
+  background-image: none !important;
+}
+
+body[data-visual="nuzic"] .plano-cell .np-dot {
+  bottom: 0;
+  left: 4px;
+  top: auto;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, 50%);
+}
+
+body[data-visual="nuzic"] .plano-cell .np-dot::after {
+  width: 3px;
+  height: 3px;
+  background: var(--nuzic-dark, #43433B);
+  border: none;
+  border-radius: 50%;
+  opacity: 1;
+}
+
+body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 187, 51, 0.6);
+  border: 2px solid var(--nuzic-yellow, #FFBB33);
+  box-shadow: 0 0 6px var(--nuzic-yellow, #FFBB33);
+}
+
 /* ============================================
    DISABLE CELL CLICK - Only dots are interactive
    ============================================ */
 
-/* Matrix container needs pointer-events for scroll */
 .plano-matrix-container {
   pointer-events: auto;
 }
 
-/* Matrix grid also needs pointer-events */
 .plano-matrix {
   pointer-events: auto;
 }
 
-/* Disable pointer events on cells themselves */
 .plano-cell {
   pointer-events: none;
   cursor: default;
+  position: relative;
 }
 
-/* Re-enable pointer events on dots only */
 .plano-cell .np-dot {
   pointer-events: auto;
 }
 
-/* Cells need position relative for dot positioning */
-.plano-cell {
-  position: relative;
+/* Limit scroll containers so the timeline stays visible below. */
+.plano-soundline-container,
+.plano-matrix-container {
+  max-height: calc(var(--plano-visible-rows) * var(--plano-cell-height) - var(--plano-timeline-height, 40px) - var(--plano-cell-height) / 2);
 }
 
 /* ============================================
-   DRAG HIGHLIGHT (Cell illumination during drag)
+   N-iT EDITOR (zigzag pattern below grid)
    ============================================ */
 
-.plano-cell.drag-highlight {
-  background: transparent !important;
-  opacity: 0.7;
-  z-index: 2;
-}
-
-.plano-cell.drag-highlight::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -50%;
-  height: 100%;
-  background: var(--plano-select-color, #FFBB33);
-  border-radius: 2px;
-  z-index: 1;
-  pointer-events: none;
-  box-shadow: inset 0 0 8px rgba(255, 187, 51, 0.5);
-}
-
-[data-theme="dark"] .plano-cell.drag-highlight::before {
-  box-shadow: inset 0 0 12px rgba(255, 187, 51, 0.6);
-}
-
-/* ============================================
-   DURATION HIGHLIGHT (Cell illumination for note duration)
-   Same color as selected cell - no opacity difference
-   ============================================ */
-
-.plano-cell.duration-highlight {
-  background: transparent !important;
-  z-index: 2;
-}
-
-.plano-cell.duration-highlight::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -50%;
-  height: 100%;
-  background: var(--plano-select-color, #FFBB33);
-  border-radius: 2px;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* ============================================
-   DURATION BAR (Horizontal bar showing note duration)
-   ============================================ */
-
-.duration-bar {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 8px;
-  background: var(--plano-select-color, #FFBB33);
-  border-radius: 4px;
-  opacity: 0.6;
-  pointer-events: none;
-  z-index: 5;
-}
-
-/* ============================================
-   IT-BAR (Temporal interval bars on timeline)
-   ============================================ */
-
-.it-bar {
-  position: absolute;
-  bottom: 0;
-  height: 4px;
-  background: var(--interval-temporal-color, #4A9EFF);
-  border-radius: 2px;
-  opacity: 0.8;
-  pointer-events: none;
-}
-
-/* ============================================
-   ZIGZAG GRID-EDITOR (N-iT MODE)
-   Copied from App15 interval mode with adaptations
-   ============================================ */
-
-/* CSS Variables for interval colors */
-:root {
-  --interval-sound-color: #F28AAD;  /* Rosa Nuzic for N/iS */
-  --interval-temporal-color: #FFBB33;  /* Groc for iT (temporal dimension) */
-}
-
-/* Interval mode container */
-.matrix-grid-editor--interval {
-  padding: 0.2rem 0.4rem;
-  background: transparent;
-  border-radius: 6px;
-}
-
-/* N-iT specific container - same as interval */
-.matrix-grid-editor--n-it {
-  /* Inherits from --interval */
-  margin-left: 0;
-  margin-right: 0;
-}
-
-/* Zigzag container - 2 rows */
-.grid-zigzag-container {
+.nit-editor {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 0;
-  position: relative;
-  /* CRITICAL: Allow container to grow beyond parent to enable scroll */
-  width: max-content;
-  min-width: 100%;
+  padding: 0.25rem 0;
 }
 
-/* Zigzag rows */
-.zigzag-row {
+/* Each editor row: label + cells */
+.nit-editor-bar {
   display: flex;
-  gap: 18px;
+  align-items: stretch;
+  height: 2rem;
+}
+
+/* Label (N or iT) — matches plano-soundline-container width */
+.nit-editor-label {
+  width: var(--plano-soundline-width, 50px);
+  flex-shrink: 0;
+  display: flex;
   align-items: center;
-  /* CRITICAL: Prevent wrapping to enable horizontal scroll */
-  flex-wrap: nowrap;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: white;
 }
 
-.zigzag-row--top {
-  margin-bottom: 8px;
+.nit-editor-label.n-label {
+  background: var(--nuzic-pink, #f28aad);
 }
 
-/* Zigzag cells - base style (column for iT cells, row for N cells) */
-.zigzag-cell {
+.nit-editor-label.it-label {
+  background: var(--nuzic-yellow, #FFBB33);
+}
+
+/* Cells container */
+.nit-editor-cells {
   display: flex;
-  flex-direction: column;  /* Default for iT cells */
-  flex: 0 0 72px;
-  position: relative;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+/* Individual cell — fixed width with aspect-ratio like App15 */
+.nit-editor-cell {
+  width: 5%;
+  min-width: 1.25rem;
+  aspect-ratio: 1;
+  border: none;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  font-family: 'Courier New', Courier, monospace;
+  padding: 0;
+  outline: none;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -moz-appearance: textfield;
 }
 
-/* Override: NrX cells must be HORIZONTAL (row direction) */
-.zigzag-cell.zigzag-cell--n-it-note {
-  flex-direction: row !important;
+.nit-editor-cell::-webkit-outer-spin-button,
+.nit-editor-cell::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
-/* Hide labels in App20 (showIntervalLabels: false) */
-.matrix-grid-editor--interval .zigzag-label {
+/* Empty cells (placeholder-shown) use row color */
+.nit-editor-cell.n-cell:placeholder-shown {
+  background: var(--nuzic-pink-light, #ffe5ee);
+  border: 1px solid var(--nuzic-pink-light, #ffe5ee);
+}
+
+.nit-editor-cell.it-cell:placeholder-shown {
+  background: var(--nuzic-yellow-light, #ffeecc);
+  border: 1px solid var(--nuzic-yellow-light, #ffeecc);
+}
+
+/* Value cells (has content) are white */
+.nit-editor-cell:not(:placeholder-shown) {
+  background: white;
+  border: 1px solid #ddd;
+}
+
+/* Active input cell */
+.nit-editor-cell.active-input {
+  background: white;
+  border: 2px solid var(--nuzic-yellow, #FFBB33);
+  cursor: text;
+}
+
+/* End marker */
+.nit-editor-end {
+  width: 1.5rem;
+  flex-shrink: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--nuzic-dark, #43433B);
+  color: white;
+  font-size: 0.75rem;
+}
+
+.nit-editor-end::after {
+  content: '\25CF';
+}
+
+/* Background fill for remaining space */
+.nit-editor-cells {
+  background: var(--nuzic-light, #EEE8D8);
+}
+
+/* Tooltip for validation errors */
+.nit-editor-tooltip {
+  position: fixed;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  background: #EF4444;
+  color: white;
+  white-space: nowrap;
+}
+
+.nit-editor-tooltip.visible {
+  opacity: 1;
+}
+
+/* Dark theme */
+[data-theme="dark"] .nit-editor-cell:not(:placeholder-shown) {
+  background: var(--nuzic-white, #1e1e1e);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .nit-editor-end {
+  background: var(--nuzic-grey, #AAA699);
+}
+
+/* ============================================
+   PLAYBACK ANIMATIONS
+   ============================================ */
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--select-color, #EA570C);
+  opacity: 0.85;
+  z-index: 20;
+  pointer-events: none;
+  box-shadow: 0 0 6px var(--select-color, #EA570C);
+  margin-left: -4px;
+}
+
+.playhead.hidden {
   display: none;
 }
 
-/* Zigzag inputs - general (for iT cells) */
-.zigzag-input {
-  width: 100%;
-  padding: 6px 8px;
-  font-size: 2rem;
-  text-align: center;
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 6px;
-  color: var(--text-color, #333);
-  transition: all 0.15s ease;
-  box-shadow: none;
+/* Flip animations */
+@keyframes flipOut {
+  from { transform: rotateX(0); opacity: 1; }
+  to { transform: rotateX(-90deg); opacity: 0; }
 }
 
-[data-theme="dark"] .zigzag-input {
-  background: transparent;
-  border-color: rgba(255, 255, 255, 0.18);
-  color: var(--text-dark, #e0e0e0);
+@keyframes flipIn {
+  from { transform: rotateX(90deg); opacity: 0; }
+  to { transform: rotateX(0); opacity: 1; }
 }
 
-.zigzag-input:focus {
-  outline: none;
-  border-color: var(--select-color, #FFBB33);
-  box-shadow: 0 0 6px rgba(255, 187, 51, 0.35);
-  background: rgba(255, 187, 51, 0.08);
+.flip-out {
+  animation: flipOut 0.15s ease-in forwards;
 }
 
-/* N-iT note cell inputs - NO borders (border is on container) */
-.zigzag-cell--n-it-note .zigzag-input {
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 2px 4px;
+.flip-in {
+  animation: flipIn 0.15s ease-out forwards;
 }
 
-.zigzag-cell--n-it-note .zigzag-input:focus {
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
+.cycle-counter__digit.playing-zero,
+.total-length__digit.playing-zero {
+  color: var(--color-lg, #4A90D9) !important;
 }
 
-/* N-iT temporal cell inputs - NO borders (border is on container) */
-.zigzag-cell--n-it-temporal .zigzag-input {
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 6px 8px;
-}
-
-.zigzag-cell--n-it-temporal .zigzag-input:focus {
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-}
-
-/* Ghost cells for zigzag pattern */
-.zigzag-cell--ghost {
-  visibility: hidden;
-  pointer-events: none;
-  background: transparent;
-  opacity: 0;
-  min-height: 36px;
-  min-width: 10px !important;
-  width: 10px !important;
-  flex: 0 0 10px !important;
-  margin: 0;
-  border-radius: 6px;
-  box-sizing: border-box;
-}
-
-/* Left rail labels (N / iT) */
-.zigzag-left-label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
-  font-weight: 700;
-  min-width: 52px;
-  font-size: 2.8rem;
-}
-
-/* N label - Rosa Nuzic */
-.zigzag-left-label--top {
-  color: var(--interval-sound-color, #F28AAD);
-}
-
-/* iT label - Blue */
-.zigzag-left-label--bottom {
-  color: var(--interval-temporal-color, #4A9EFF);
-}
-
-.zigzag-left-label--top,
-.zigzag-left-label--bottom {
-  margin-right: 8px;
-}
-
-/* N inputs - Rosa Nuzic */
-.zigzag-input.zigzag-input--n {
-  color: var(--interval-sound-color, #F28AAD) !important;
-  font-weight: 700;
-  opacity: 1;
-}
-
-/* iT inputs - Blue */
-.zigzag-input.zigzag-input--it {
-  color: var(--interval-temporal-color, #4A9EFF) !important;
-  font-weight: 700;
-  opacity: 1;
-}
-
-/* Visual zigzag pattern with connecting lines */
-.zigzag-cell--n-it-temporal,
-.zigzag-cell--it {
-  position: relative;
-}
-
-/* Diagonal connecting lines - MORE VISIBLE */
-.zigzag-cell--n-it-temporal::after,
-.zigzag-cell--it::after {
-  content: '';
-  position: absolute;
-  width: 30px;
-  height: 3px;
-  background: var(--text-secondary);
-  opacity: 0.6;
-  top: -10px;
-  right: -15px;
-  transform: rotate(-45deg);
-  transform-origin: center;
-  z-index: 1;
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
-}
-
-.zigzag-cell--n-it-note:not(:first-child)::before {
-  content: '';
-  position: absolute;
-  width: 30px;
-  height: 3px;
-  background: var(--text-secondary);
-  opacity: 0.6;
-  bottom: -10px;
-  left: -15px;
-  transform: rotate(-45deg);
-  transform-origin: center;
-  z-index: 1;
-  border-radius: 2px;
-}
-
-/* Empty cells styling */
-.zigzag-cell--empty .zigzag-input {
-  opacity: 0.6;
-}
-
-.zigzag-cell--empty .zigzag-label {
-  opacity: 0.5;
-}
-
-/* Invalid input warning */
-.zigzag-input.invalid {
-  background: rgba(255, 0, 0, 0.1) !important;
-  border-color: #ff0000 !important;
+.cycle-counter__digit.playing-active,
+.total-length__digit.playing-active {
+  color: var(--select-color, #EA570C) !important;
 }
 
 /* ============================================
-   NrX FORMAT (Note + 'r' + Registry)
+   DARK THEME
    ============================================ */
 
-/* 'r' separator - no margins for compact display (5r3) */
-.nrx-separator {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-/* Unified cell size for all cells (N, iT) */
-.zigzag-cell,
-.zigzag-cell--n-it-note,
-.zigzag-cell--n-it-temporal {
-  min-width: 80px !important;
-  width: 80px !important;
-  max-width: 80px !important;
-  flex: 0 0 80px !important;
-}
-
-/* Ghost cells - much thinner */
-.zigzag-cell--ghost {
-  min-width: 10px !important;
-  width: 10px !important;
-  max-width: 10px !important;
-  flex: 0 0 10px !important;
-}
-
-/* NrX cell container - transparent with FFBB33 border */
-.zigzag-cell--n-it-note {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  gap: 0;
-  flex-wrap: nowrap !important;
-  max-height: 50px;
-  justify-content: center;
-  /* Transparent background with orange border */
-  border: 1px solid var(--select-color, #FFBB33) !important;
-  border-radius: 6px;
-  background: transparent !important;
-}
-
-[data-theme="dark"] .zigzag-cell--n-it-note {
-  background: transparent !important;
-  border-color: var(--select-color, #FFBB33) !important;
-}
-
-/* iT cell container - transparent with FFBB33 border */
-.zigzag-cell--n-it-temporal {
-  border: 1px solid var(--select-color, #FFBB33) !important;
-  border-radius: 6px;
-  background: transparent !important;
-  max-height: 50px;
-}
-
-[data-theme="dark"] .zigzag-cell--n-it-temporal {
-  background: transparent !important;
-  border-color: var(--select-color, #FFBB33) !important;
-}
-
-/* Ghost cells - same size but transparent/hidden */
-.zigzag-cell--ghost {
-  visibility: hidden;
-  border: none !important;
-  background: transparent !important;
-}
-
-/* Note input - size only */
-.zigzag-cell--n-it-note .n-it-note-input {
-  width: 36px;
-  flex-shrink: 0;
-  text-align: center;
-  font-size: 1.8rem;
-}
-
-/* Registry input - size only */
-.zigzag-cell--n-it-note .n-it-registry-input {
-  width: 28px;
-  flex-shrink: 0;
-  font-size: 1.6rem;
-  text-align: center;
-}
-
-/* ============================================
-   ZIGZAG RESPONSIVE ADJUSTMENTS
-   ============================================ */
-
-@media (max-width: 900px) {
-  .zigzag-cell {
-    flex: 0 0 64px;
-  }
-
-  .zigzag-cell--ghost {
-    min-width: 10px !important;
-    width: 10px !important;
-    flex: 0 0 10px !important;
-  }
-
-  .zigzag-input {
-    font-size: 1.6rem;
-    padding: 4px 6px;
-  }
-
-  .zigzag-row {
-    gap: 14px;
-  }
-
-  .zigzag-left-label {
-    min-width: 40px;
-    font-size: 1.4rem;
-  }
-
-  /* NrX unified cell - tablet */
-  .zigzag-cell--n-it-note {
-    min-width: 72px;
-    padding: 3px 4px;
-  }
-
-  .zigzag-cell--n-it-note .n-it-note-input {
-    width: 32px;
-    font-size: 1.5rem;
-  }
-
-  .zigzag-cell--n-it-note .n-it-registry-input {
-    width: 24px;
-    font-size: 1.4rem;
-  }
-
-  .nrx-separator {
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 700px) {
-  .zigzag-cell {
-    flex: 0 0 56px;
-  }
-
-  .zigzag-cell--ghost {
-    min-width: 10px !important;
-    width: 10px !important;
-    flex: 0 0 10px !important;
-  }
-
-  .zigzag-input {
-    font-size: 1.4rem;
-    padding: 3px 4px;
-  }
-
-  .zigzag-row {
-    gap: 10px;
-  }
-
-  .zigzag-left-label {
-    min-width: 32px;
-    font-size: 1.2rem;
-    padding: 0 6px;
-  }
-
-  /* NrX unified cell - small tablet */
-  .zigzag-cell--n-it-note {
-    min-width: 64px;
-    padding: 2px 3px;
-  }
-
-  .zigzag-cell--n-it-note .n-it-note-input {
-    width: 28px;
-    font-size: 1.3rem;
-  }
-
-  .zigzag-cell--n-it-note .n-it-registry-input {
-    width: 22px;
-    font-size: 1.2rem;
-  }
-
-  .nrx-separator {
-    font-size: 0.9rem;
-  }
-
-  /* Smaller diagonal lines */
-  .zigzag-cell--n-it-temporal::after,
-  .zigzag-cell--it::after,
-  .zigzag-cell--n-it-note:not(:first-child)::before {
-    width: 22px;
-    height: 2px;
-  }
-}
-
-@media (max-width: 500px) {
-  .zigzag-cell {
-    flex: 0 0 48px;
-  }
-
-  .zigzag-cell--ghost {
-    min-width: 10px !important;
-    width: 10px !important;
-    flex: 0 0 10px !important;
-    min-height: 28px;
-  }
-
-  .zigzag-input {
-    font-size: 1.2rem;
-    padding: 2px 3px;
-  }
-
-  .zigzag-row {
-    gap: 8px;
-  }
-
-  .zigzag-row--top {
-    margin-bottom: 4px;
-  }
-
-  .zigzag-left-label {
-    min-width: 28px;
-    font-size: 1rem;
-    padding: 0 4px;
-  }
-
-  /* NrX unified cell - mobile */
-  .zigzag-cell--n-it-note {
-    min-width: 56px;
-    padding: 2px 2px;
-  }
-
-  .zigzag-cell--n-it-note .n-it-note-input {
-    width: 24px;
-    font-size: 1.1rem;
-  }
-
-  .zigzag-cell--n-it-note .n-it-registry-input {
-    width: 18px;
-    font-size: 1rem;
-  }
-
-  .nrx-separator {
-    font-size: 0.8rem;
-    padding: 0;
-  }
-
-  /* Even smaller diagonal lines */
-  .zigzag-cell--n-it-temporal::after,
-  .zigzag-cell--it::after,
-  .zigzag-cell--n-it-note:not(:first-child)::before {
-    width: 16px;
-    height: 2px;
-    opacity: 0.5;
-  }
+[data-theme="dark"] .param.compas input,
+[data-theme="dark"] .param.cycle-display input {
+  color: var(--text-color, #eee);
 }

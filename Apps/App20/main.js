@@ -19,18 +19,15 @@ import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 
 // Import plano-modular (out of the box)
 import { createApp19Grid } from '../../libs/plano-modular/index.js';
-
-// Import grid-editor for NrX-iT input
-import { createGridEditor } from '../../libs/matrix-seq/index.js';
+import { smoothScrollTo } from '../../libs/plano-modular/plano-scroll.js';
 
 // Import interval-sequencer module for gap filling
 import { fillGapsWithSilences } from '../../libs/interval-sequencer/index.js';
 
-// Import modular controllers (NEW)
+// Import modular controllers
 import { createGrid2DSyncController } from '../../libs/app-common/grid-2d-sync-controller.js';
 import { createIntervalNoteDragHandler } from '../../libs/app-common/interval-note-drag.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
-// Registry autoscroll removed — now using grid.scrollToRowIdIfNeeded() for smooth per-note autoscroll
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
@@ -51,10 +48,12 @@ const CONFIG = {
   // Compás limits
   MIN_COMPAS: 1,
   MAX_COMPAS: 7,
+  DEFAULT_COMPAS: 4,
 
   // Nº Compases (cycles) limits
   MIN_CYCLES: 1,
   MAX_CYCLES: 4,
+  DEFAULT_CYCLES: 3,
 
   // BPM limits
   MIN_BPM: 30,
@@ -83,15 +82,15 @@ function validateNoteRegistry(note, registry) {
   return { valid: true };
 }
 
-// Screen definitions: 3 snap positions (bottom registry of each pair)
-// Screen 0: "3 y 4" (bottom), Screen 1: "4 y 5", Screen 2: "5 y 6" (top)
-// lastRow = last row index that must be visible at the bottom of the screen
-const CELL_H = 24;  // Must match --plano-cell-height in styles.css
+// Screen definitions: 3 snap positions
+// 21 visible rows → 0rX to 6r(X+1) visible per screen
+// Grid rows: 11r6=0, 10r6=1, ... 0r6=11, 11r5=12, ... 0r3=47
+const CELL_H = 26;  // Must match --plano-cell-height in styles.css
 const HALF_CELL = CELL_H / 2;
 const SCREENS = [
-  { bottomReg: 3, label: '3 y 4', lastRow: 47 },  // 0r3 = row 47
-  { bottomReg: 4, label: '4 y 5', lastRow: 35 },  // 0r4 = row 35
-  { bottomReg: 5, label: '5 y 6', lastRow: 0 }     // top of grid
+  { label: '3 y 4', bottomReg: 3, firstRow: 29, lastRow: 47 },  // 0r3(47) to 6r4(29)
+  { label: '4 y 5', bottomReg: 4, firstRow: 17, lastRow: 35 },  // 0r4(35) to 6r5(17)
+  { label: '5 y 6', bottomReg: 5, firstRow: 5,  lastRow: 23 }   // 0r5(23) to 6r6(5)
 ];
 
 // ========== STATE ==========
@@ -99,7 +98,6 @@ let isPlaying = false;
 let audio = null;
 let tapTempoHandler = null;
 let mixerSaveTimeout = null;
-let isInitialized = false;  // Flag to track if initial scroll to default registry has been applied
 let currentScreen = 0;  // Index into SCREENS array (starts at "3 y 4")
 
 // Input values
@@ -232,10 +230,10 @@ function updateTotalLengthDisplay(step) {
  * Update grid visibility based on whether we have data
  */
 function updateGridVisibility() {
-  const rightColumn = document.getElementById('rightColumn');
-  if (rightColumn) {
+  const wrapper = document.querySelector('.timeline-wrapper');
+  if (wrapper) {
     const visible = getTotalPulses() > 0;
-    rightColumn.style.display = visible ? '' : 'none';
+    wrapper.style.display = visible ? '' : 'none';
   }
 }
 
@@ -262,7 +260,13 @@ async function playNotePreview(note, registry, iT) {
  * Handle cell click from grid (Grid 2D → Editor sync)
  * Custom handler that integrates with grid-editor and plays preview
  */
+let _lastDragEndTime = 0;
+
 async function handleCellClick(rowData, colIndex, isSelected) {
+  // Skip if this click was triggered after a drag operation
+  // Check both the drag flag and a 200ms debounce window
+  if (dragHandler?.isFromDrag() || (Date.now() - _lastDragEndTime) < 200) return;
+
   if (isSelected) {
     // Play the note
     const audioInstance = await initAudio();
@@ -331,17 +335,11 @@ async function handleCellClick(rowData, colIndex, isSelected) {
  * Initialize the grid using plano-modular and modular controllers
  */
 function initGrid() {
-  const gridContainer = document.getElementById('rightColumn');
+  const gridContainer = document.querySelector('.timeline-wrapper');
   if (!gridContainer) {
     console.error('Grid container not found');
     return;
   }
-
-  // Clear existing content (if any legacy elements exist)
-  const soundlineContainer = document.getElementById('soundlineContainer');
-  const gridArea = document.getElementById('gridArea');
-  soundlineContainer?.remove();
-  gridArea?.remove();
 
   // Clear the grid container
   gridContainer.innerHTML = '';
@@ -349,6 +347,7 @@ function initGrid() {
   grid = createApp19Grid({
     parent: gridContainer,
     columns: getTotalPulses() || 1,
+    columnSizing: 'fr',
     cycleConfig: {
       compas: compas || 1,
       showCycle: true
@@ -363,31 +362,8 @@ function initGrid() {
     onSelectionChange: null  // Selections not persisted
   });
 
-  // Block free vertical scroll — quantize to screen positions
-  // Accumulate delta to require a deliberate gesture before changing screen
-  const soundline = gridContainer.querySelector('.plano-soundline-container');
-  const matrix = gridContainer.querySelector('.plano-matrix-container');
-  let accumulatedDelta = 0;
-  let wheelCooldown = false;
-  const WHEEL_THRESHOLD = 150;
-  [soundline, matrix].forEach(el => {
-    if (!el) return;
-    el.addEventListener('wheel', (e) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault();
-        if (wheelCooldown) return;
-        accumulatedDelta += e.deltaY;
-        if (Math.abs(accumulatedDelta) >= WHEEL_THRESHOLD) {
-          wheelCooldown = true;
-          const down = accumulatedDelta > 0;
-          accumulatedDelta = 0;
-          setTimeout(() => { wheelCooldown = false; }, 500);
-          if (down) decrementRegistro();
-          else incrementRegistro();
-        }
-      }
-    }, { passive: false });
-  });
+  // Free vertical scroll — native scroll with sync handled by setupScrollSync
+  // (no quantization, no cooldown, no blocked wheel events)
 
   // Initialize sync controller (handles Editor ↔ Grid 2D sync)
   syncController = createGrid2DSyncController({
@@ -423,7 +399,8 @@ function initGrid() {
       monophonic: true
     },
     playNotePreview,
-    fillGapsWithSilences: pairsWithSilencesForEditor
+    fillGapsWithSilences: pairsWithSilencesForEditor,
+    onDragComplete: () => { _lastDragEndTime = Date.now(); }
   });
 
   // Attach drag listeners
@@ -447,9 +424,6 @@ function updateGrid() {
     if (syncController) {
       syncController.refreshDots();
     }
-
-    // Apply initial scroll once the grid has real content
-    maybeApplyInitialScroll();
   }
 }
 
@@ -463,155 +437,475 @@ function syncGridFromPairs(pairs) {
 }
 
 /**
- * Initialize the grid-editor for NrX-iT input
+ * Initialize the nuzic N-iT zigzag editor
+ * Pattern: N row (pink) + iT row (yellow) with zigzag offset
+ * N: [value][pink sep] | iT: [yellow sep][value]
  */
 function initGridEditor() {
-  if (!elements.gridEditorContainer) {
+  const container = elements.gridEditorContainer;
+  if (!container) {
     console.warn('Grid editor container not found');
     return;
   }
+  container.innerHTML = '';
 
-  const isMobile = window.innerWidth <= 900;
-  const totalPulses = getTotalPulses() || 28;
+  // ---- DOM structure ----
+  // N row (pink)
+  const nBar = document.createElement('div');
+  nBar.className = 'nit-editor-bar';
+  const nLabel = document.createElement('div');
+  nLabel.className = 'nit-editor-label n-label';
+  nLabel.textContent = 'N';
+  const nCells = document.createElement('div');
+  nCells.className = 'nit-editor-cells';
+  const nEnd = document.createElement('div');
+  nEnd.className = 'nit-editor-end';
+  nEnd.style.display = 'none';
+  nCells.appendChild(nEnd);
+  nBar.appendChild(nLabel);
+  nBar.appendChild(nCells);
 
-  gridEditor = createGridEditor({
-    container: elements.gridEditorContainer,
-    mode: 'n-it',
-    showZigzag: true,
-    showIntervalLabels: false,
-    leftZigzagLabels: { topText: 'N', bottomText: 'iT' },
-    autoJumpDelayMs: 500,
-    noteRange: [0, 11],  // Basic range; validateNoteRegistry handles per-registry limits
-    pulseRange: [0, totalPulses - 1],
-    maxPairs: totalPulses,
-    intervalModeOptions: {
-      basePair: { note: 0, pulse: 0, registry: CONFIG.DEFAULT_REGISTRO },
-      hideInitialPair: true,
-      maxTotalPulse: totalPulses,  // Sum of iTs should equal total pulses (not -1)
-      allowSilence: true
-    },
-    nrxModeOptions: {
-      registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO],
-      validateNoteRegistry
-    },
-    scrollEnabled: isMobile,
-    containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
-    columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
-    onPairsChange: (pairs) => {
-      // Skip if update came from drag (to prevent overwriting)
-      if (dragHandler?.isFromDrag()) return;
-      // Sync Grid 2D when editor changes
-      syncGridFromPairs(pairs);
+  // iT row (yellow)
+  const itBar = document.createElement('div');
+  itBar.className = 'nit-editor-bar';
+  const itLabel = document.createElement('div');
+  itLabel.className = 'nit-editor-label it-label';
+  itLabel.textContent = 'iT';
+  const itCells = document.createElement('div');
+  itCells.className = 'nit-editor-cells';
+  const itEnd = document.createElement('div');
+  itEnd.className = 'nit-editor-end';
+  itEnd.style.display = 'none';
+  itCells.appendChild(itEnd);
+  itBar.appendChild(itLabel);
+  itBar.appendChild(itCells);
 
-      // Auto-scroll to show the last entered note when not playing
-      if (!isPlaying && pairs.length > 0) {
-        // Find the last non-silence pair (with note and registry)
-        const lastNonSilence = [...pairs].reverse().find(p => !p.isRest && p.note != null);
-        if (lastNonSilence) {
-          const note = lastNonSilence.note;
-          const registry = lastNonSilence.registry ?? CONFIG.DEFAULT_REGISTRO;
-          scrollToNote(note, registry, true);
+  container.appendChild(nBar);
+  container.appendChild(itBar);
+
+  // ---- State ----
+  let entries = []; // [{note, registry, temporalInterval, isRest}]
+  let pendingN = null; // {note, registry} or 'S' or null
+  let pendingIT = null; // number or null
+  let lastEnteredType = 'it'; // start focus on N (zigzag: opposite of last)
+  let autoJumpTimer = null;
+
+  function getMaxPulses() { return getTotalPulses(); }
+  function getCurrentSum() { return entries.reduce((s, e) => s + (e.temporalInterval || 0), 0); }
+
+  // ---- Tooltip ----
+  function showTooltip(cell, message) {
+    let tooltip = document.querySelector('.nit-editor-tooltip');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.className = 'nit-editor-tooltip';
+      document.body.appendChild(tooltip);
+    }
+    tooltip.textContent = message;
+    const rect = cell.getBoundingClientRect();
+    tooltip.style.left = `${rect.left + rect.width / 2}px`;
+    tooltip.style.top = `${rect.top - 8}px`;
+    tooltip.style.transform = 'translate(-50%, -100%)';
+    tooltip.classList.add('visible');
+    setTimeout(() => tooltip.classList.remove('visible'), 1500);
+  }
+
+  // ---- Parse N input ----
+  function parseNoteInput(val) {
+    // NrR format (e.g., "5r4")
+    const match = val.match(/^(\d+)r(\d+)$/);
+    if (match) return { note: parseInt(match[1]), registry: parseInt(match[2]) };
+    // Just a number → use current screen's bottom registry
+    const num = parseInt(val);
+    if (!isNaN(num) && num >= 0 && num <= 11) {
+      return { note: num, registry: SCREENS[currentScreen].bottomReg };
+    }
+    return null;
+  }
+
+  function formatN(entry) {
+    if (entry.isRest) return 'S';
+    return `${entry.note}r${entry.registry}`;
+  }
+
+  // ---- Cell factories ----
+  function createReadonlyCell(type) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.className = `nit-editor-cell ${type}-cell`;
+    cell.placeholder = ' ';
+    cell.readOnly = true;
+    cell.tabIndex = -1;
+    return cell;
+  }
+
+  function createValueCell(type, displayValue, entryIndex) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.inputMode = type === 'it' ? 'numeric' : 'text';
+    cell.maxLength = type === 'n' ? 5 : 2;
+    cell.className = `nit-editor-cell ${type}-cell`;
+    cell.value = displayValue;
+    cell.dataset.entryIndex = entryIndex;
+    cell.readOnly = false;
+    cell.style.cursor = 'text';
+
+    let originalValue = cell.value;
+
+    cell.addEventListener('focus', () => {
+      originalValue = cell.value;
+      cell.select();
+    });
+
+    cell.addEventListener('blur', () => {
+      const val = cell.value.trim();
+      if (!val || val === originalValue) { cell.value = originalValue; return; }
+
+      const idx = parseInt(cell.dataset.entryIndex);
+      const entry = entries[idx];
+      if (!entry) { cell.value = originalValue; return; }
+
+      if (type === 'n') {
+        if (/^[sS]$/.test(val)) {
+          entry.isRest = true;
+          entry.note = 0;
+          entry.registry = CONFIG.DEFAULT_REGISTRO;
+        } else {
+          const parsed = parseNoteInput(val);
+          if (!parsed) {
+            showTooltip(cell, 'Format: NrR (ex: 5r4) o S');
+            cell.value = originalValue;
+            return;
+          }
+          const v = validateNoteRegistry(parsed.note, parsed.registry);
+          if (!v.valid) { showTooltip(cell, v.message); cell.value = originalValue; return; }
+          entry.note = parsed.note;
+          entry.registry = parsed.registry;
+          entry.isRest = false;
+        }
+      } else {
+        const num = parseInt(val);
+        if (isNaN(num) || num < 1 || num > 8) {
+          showTooltip(cell, 'iT: 1-8');
+          cell.value = originalValue;
+          return;
+        }
+        const oldIT = entry.temporalInterval;
+        const newSum = getCurrentSum() - oldIT + num;
+        if (newSum > getMaxPulses()) {
+          showTooltip(cell, `iT máx: ${getMaxPulses() - getCurrentSum() + oldIT}`);
+          cell.value = originalValue;
+          return;
+        }
+        entry.temporalInterval = num;
+      }
+
+      notifyChange();
+      renderCells();
+    });
+
+    // Arrow key navigation between value cells
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const parent = type === 'n' ? nCells : itCells;
+        const valueCells = Array.from(parent.querySelectorAll('.nit-editor-cell:not([readonly])'));
+        const idx = valueCells.indexOf(cell);
+        const next = e.key === 'ArrowRight' ? valueCells[idx + 1] : valueCells[idx - 1];
+        if (next) { e.preventDefault(); next.focus(); }
+      }
+    });
+
+    return cell;
+  }
+
+  function createInputCell(type) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.inputMode = type === 'it' ? 'numeric' : 'text';
+    cell.maxLength = type === 'n' ? 5 : 2;
+    cell.className = `nit-editor-cell ${type}-cell active-input`;
+    cell.readOnly = false;
+
+    cell.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val === '' || val === '-' || val === '+') return;
+
+      if (type === 'n') {
+        // Accept S for silence
+        if (/^[sS]$/.test(val)) {
+          pendingN = 'S';
+          lastEnteredType = 'n';
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = setTimeout(() => {
+            const itInput = itCells.querySelector('.active-input');
+            if (itInput) itInput.focus();
+          }, 300);
+          return;
+        }
+
+        // Partial NrR input (user still typing, e.g., "5r")
+        if (/^\d+r?$/.test(val)) return;
+
+        const parsed = parseNoteInput(val);
+        if (!parsed) { e.target.value = ''; return; }
+
+        const v = validateNoteRegistry(parsed.note, parsed.registry);
+        if (!v.valid) {
+          showTooltip(cell, v.message);
+          e.target.value = '';
+          clearTimeout(autoJumpTimer);
+          return;
+        }
+
+        pendingN = parsed;
+        lastEnteredType = 'n';
+
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          if (pendingIT !== null) commitEntry();
+          else {
+            const itInput = itCells.querySelector('.active-input');
+            if (itInput) itInput.focus();
+          }
+        }, 500);
+
+      } else {
+        // iT input
+        if (!/^\d+$/.test(val)) { e.target.value = ''; return; }
+        const num = parseInt(val);
+
+        if (num < 1 || num > 8) {
+          showTooltip(cell, 'iT: 1-8');
+          e.target.value = '';
+          clearTimeout(autoJumpTimer);
+          return;
+        }
+
+        const remaining = getMaxPulses() - getCurrentSum();
+        if (num > remaining) {
+          showTooltip(cell, `iT máx: ${remaining}`);
+          e.target.value = '';
+          clearTimeout(autoJumpTimer);
+          return;
+        }
+
+        pendingIT = num;
+        lastEnteredType = 'it';
+
+        if (pendingN !== null) {
+          clearTimeout(autoJumpTimer);
+          commitEntry();
+        } else {
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = setTimeout(() => {
+            const nInput = nCells.querySelector('.active-input');
+            if (nInput) nInput.focus();
+          }, 300);
         }
       }
-    }
-  });
-}
+    });
 
-/**
- * Update grid-editor maxTotalPulse when Compás/Cycles change
- */
-function updateGridEditorMaxPulse() {
-  const totalPulses = getTotalPulses();
-  if (totalPulses > 0 && elements.gridEditorContainer) {
-    // Save current pairs before re-initializing
-    const savedPairs = gridEditor ? gridEditor.getPairs() : [];
+    // Backspace: delete last entry or pending value
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !e.target.value) {
+        e.preventDefault();
+        clearTimeout(autoJumpTimer);
 
-    const isMobile = window.innerWidth <= 900;
-
-    // Re-initialize with updated maxTotalPulse
-    gridEditor = createGridEditor({
-      container: elements.gridEditorContainer,
-      mode: 'n-it',
-      showZigzag: true,
-      showIntervalLabels: false,
-      leftZigzagLabels: { topText: 'N', bottomText: 'iT' },
-      autoJumpDelayMs: 500,
-      noteRange: [0, 11],  // Basic range; validateNoteRegistry handles per-registry limits
-      pulseRange: [0, totalPulses - 1],
-      maxPairs: totalPulses,
-      intervalModeOptions: {
-        basePair: { note: 0, pulse: 0, registry: CONFIG.DEFAULT_REGISTRO },
-        hideInitialPair: true,
-        maxTotalPulse: totalPulses,
-        allowSilence: true
-      },
-      nrxModeOptions: {
-        registryRange: [CONFIG.MIN_REGISTRO, CONFIG.MAX_REGISTRO],
-        validateNoteRegistry
-      },
-      scrollEnabled: isMobile,
-      containerSize: isMobile ? { maxHeight: '180px', width: '100%' } : null,
-      columnSize: isMobile ? { width: '80px', minHeight: '150px' } : null,
-      onPairsChange: (pairs) => {
-        // Skip if update came from drag (to prevent overwriting)
-        if (dragHandler?.isFromDrag()) return;
-        syncGridFromPairs(pairs);
-
-        // Auto-scroll to show the last entered note when not playing
-        if (!isPlaying && pairs.length > 0) {
-          // Find the last non-silence pair (with note and registry)
-          const lastNonSilence = [...pairs].reverse().find(p => !p.isRest && p.note != null);
-          if (lastNonSilence) {
-            const note = lastNonSilence.note;
-            const registry = lastNonSilence.registry ?? CONFIG.DEFAULT_REGISTRO;
-            scrollToNote(note, registry, true);
+        if (type === 'it') {
+          if (pendingIT !== null) {
+            pendingIT = null;
+          } else if (pendingN !== null) {
+            pendingN = null;
+            const nInput = nCells.querySelector('.active-input');
+            if (nInput) { nInput.value = ''; nInput.focus(); }
+          } else if (entries.length > 0) {
+            entries.pop();
+            notifyChange();
+            renderCells();
+          }
+        } else {
+          if (pendingN !== null) {
+            pendingN = null;
+          } else if (entries.length > 0) {
+            entries.pop();
+            notifyChange();
+            renderCells();
           }
         }
       }
     });
 
-    // Restore pairs (if they fit within new max)
-    if (savedPairs.length > 0) {
-      const validPairs = savedPairs.filter(p => !p.isRest && p.pulse < totalPulses);
-      if (validPairs.length > 0) {
-        gridEditor.setPairs(pairsWithSilencesForEditor(validPairs));
-      }
+    return cell;
+  }
+
+  // ---- Commit ----
+  function commitEntry() {
+    if (pendingN === null || pendingIT === null) return;
+
+    if (pendingN === 'S') {
+      entries.push({ note: 0, registry: CONFIG.DEFAULT_REGISTRO, temporalInterval: pendingIT, isRest: true });
+    } else {
+      entries.push({ note: pendingN.note, registry: pendingN.registry, temporalInterval: pendingIT, isRest: false });
+    }
+
+    pendingN = null;
+    pendingIT = null;
+
+    notifyChange();
+    renderCells();
+
+    if (getCurrentSum() >= getMaxPulses()) {
+      showTooltip(itEnd, 'Longitud completa');
     }
   }
+
+  // ---- Sync ----
+  function entriesToPairs() {
+    let pulse = 0;
+    return entries.map(e => {
+      const pair = { note: e.note, registry: e.registry, pulse, temporalInterval: e.temporalInterval, isRest: e.isRest || false };
+      pulse += e.temporalInterval;
+      return pair;
+    });
+  }
+
+  function notifyChange() {
+    const pairs = entriesToPairs();
+    currentPairs = pairs;
+
+    // Skip sync if update came from drag
+    if (dragHandler?.isFromDrag()) return;
+
+    syncGridFromPairs(pairsWithSilencesForEditor(pairs));
+
+    // Auto-scroll to last note
+    if (!isPlaying && entries.length > 0) {
+      const last = [...entries].reverse().find(e => !e.isRest);
+      if (last) scrollToNote(last.note, last.registry, true);
+    }
+  }
+
+  // ---- Render ----
+  function renderCells() {
+    nCells.querySelectorAll('.nit-editor-cell').forEach(c => c.remove());
+    itCells.querySelectorAll('.nit-editor-cell').forEach(c => c.remove());
+
+    const sum = getCurrentSum();
+    const maxPulses = getMaxPulses();
+
+    // Committed entries (zigzag)
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+
+      // N row: [value][pink sep]
+      nCells.insertBefore(createValueCell('n', formatN(entry), i), nEnd);
+      nCells.insertBefore(createReadonlyCell('n'), nEnd);
+
+      // iT row: [yellow sep][value]  (zigzag offset)
+      itCells.insertBefore(createReadonlyCell('it'), itEnd);
+      itCells.insertBefore(createValueCell('it', String(entry.temporalInterval), i), itEnd);
+    }
+
+    // Input cells (if not full)
+    if (sum < maxPulses && maxPulses > 0) {
+      // N: [input][pink readonly]
+      const nInput = createInputCell('n');
+      nCells.insertBefore(nInput, nEnd);
+      nCells.insertBefore(createReadonlyCell('n'), nEnd);
+
+      // iT: [yellow readonly][input]  (zigzag)
+      itCells.insertBefore(createReadonlyCell('it'), itEnd);
+      const itInput = createInputCell('it');
+      itCells.insertBefore(itInput, itEnd);
+
+      // Focus based on zigzag: opposite of last entered
+      const focusTarget = lastEnteredType === 'n' ? itInput : nInput;
+      setTimeout(() => focusTarget?.focus(), 30);
+    }
+
+    // End markers
+    nEnd.style.display = sum >= maxPulses && maxPulses > 0 ? 'flex' : 'none';
+    itEnd.style.display = sum >= maxPulses && maxPulses > 0 ? 'flex' : 'none';
+  }
+
+  // Initial render
+  renderCells();
+
+  // ---- Public API ----
+  gridEditor = {
+    getPairs: () => entriesToPairs().map(p => ({ ...p })),
+
+    setPairs: (pairs) => {
+      // Accept both notes and silences
+      entries = pairs
+        .filter(p => (p.note != null && p.note !== undefined) || p.isRest)
+        .map(p => ({
+          note: p.isRest ? 0 : p.note,
+          registry: p.isRest ? CONFIG.DEFAULT_REGISTRO : (p.registry ?? CONFIG.DEFAULT_REGISTRO),
+          temporalInterval: p.temporalInterval || 1,
+          isRest: p.isRest || false
+        }));
+      pendingN = null;
+      pendingIT = null;
+      clearTimeout(autoJumpTimer);
+      renderCells();
+    },
+
+    clear: () => {
+      entries = [];
+      pendingN = null;
+      pendingIT = null;
+      clearTimeout(autoJumpTimer);
+      renderCells();
+    },
+
+    clearHighlights: () => {}, // Required no-op
+
+    destroy: () => {
+      clearTimeout(autoJumpTimer);
+      container.innerHTML = '';
+    },
+
+    focusFirstNCell: () => {
+      const input = nCells.querySelector('.active-input');
+      if (input) setTimeout(() => input.focus(), 30);
+    }
+  };
 }
 
 /**
- * Apply the initial scroll to the default registry once the grid exists and has content.
- * This runs only once, after the first meaningful render (when pulses > 0).
+ * Update grid-editor when Compás/Cycles change
  */
-function maybeApplyInitialScroll() {
-  if (isInitialized) return;
-
+function updateGridEditorMaxPulse() {
+  if (!gridEditor) return;
   const totalPulses = getTotalPulses();
-  if (!grid || totalPulses === 0) return;
+  if (totalPulses <= 0) return;
 
-  // Use requestAnimationFrame to ensure DOM is rendered
-  requestAnimationFrame(() => {
-    scrollToScreen(0, false);  // Start at screen "3 y 4"
-    isInitialized = true;
-  });
+  // Trim entries that exceed new max
+  const pairs = gridEditor.getPairs().filter(p => !p.isRest);
+  let sum = 0;
+  const valid = [];
+  for (const p of pairs) {
+    if (sum + (p.temporalInterval || 1) > totalPulses) break;
+    valid.push(p);
+    sum += p.temporalInterval || 1;
+  }
+  gridEditor.setPairs(valid);
 }
 
 /**
- * Scroll to a specific screen (quantized snap position).
- * @param {number} screenIndex - 0="3 y 4", 1="4 y 5", 2="5 y 6"
- * @param {boolean} animated - Use smooth scroll
+ * Calculate scrollTop for a screen so that ALL its notes are visible.
+ * Notes use translateY(50%) so labels straddle the cell bottom border.
  */
 function getScreenScrollTop(screen) {
-  if (screen.lastRow === 0) return 0;  // Top of grid
-  // Calculate scrollTop so that lastRow is at the bottom of the visible area
-  const gridContainer = document.getElementById('rightColumn');
+  const gridContainer = document.querySelector('.timeline-wrapper');
   const container = gridContainer?.querySelector('.plano-soundline-container');
-  const visibleHeight = container?.clientHeight || (24 * CELL_H);
-  // Bottom edge of lastRow + half-cell for translateY(50%) label
+  const visibleHeight = container?.clientHeight || (21 * CELL_H);
   const bottomEdge = (screen.lastRow + 1) * CELL_H + HALF_CELL;
   return Math.max(0, bottomEdge - visibleHeight);
 }
+
+const SCROLL_DURATION = 650;  // ms for screen transitions
 
 function scrollToScreen(screenIndex, animated = false) {
   if (!grid) return;
@@ -620,13 +914,13 @@ function scrollToScreen(screenIndex, animated = false) {
 
   const screen = SCREENS[screenIndex];
   const scrollTop = getScreenScrollTop(screen);
-  const gridContainer = document.getElementById('rightColumn');
+  const gridContainer = document.querySelector('.timeline-wrapper');
   const soundline = gridContainer?.querySelector('.plano-soundline-container');
   const matrix = gridContainer?.querySelector('.plano-matrix-container');
 
   if (animated) {
     [soundline, matrix].forEach(el => {
-      if (el) el.scrollTo({ top: scrollTop, behavior: 'smooth' });
+      if (el) smoothScrollTo(el, scrollTop, 'top', SCROLL_DURATION, 'easeInOut');
     });
   } else {
     [soundline, matrix].forEach(el => {
@@ -635,47 +929,117 @@ function scrollToScreen(screenIndex, animated = false) {
   }
 
   if (elements.registroText) {
-    elements.registroText.textContent = screen.label;
+    elements.registroText.value = screen.label;
   }
 }
 
 /**
- * Find the screen index that contains a given row index.
+ * Pre-compute a scroll plan for playback.
+ * For each pulse with a note, check if it's visible and schedule minimum scroll.
  */
-function screenForRow(rowIndex) {
-  // Each screen shows rows from (lastRow - visibleRows + 1) to lastRow
-  // Find the screen whose range contains rowIndex
-  for (let i = 0; i < SCREENS.length; i++) {
-    const lastRow = SCREENS[i].lastRow;
-    const firstRow = i === SCREENS.length - 1 ? 0 : SCREENS[i + 1].lastRow + 1;
-    if (rowIndex >= firstRow && rowIndex <= lastRow) return i;
+function buildScrollPlan(selectedArray, rows) {
+  const gridContainer = document.querySelector('.timeline-wrapper');
+  const container = gridContainer?.querySelector('.plano-soundline-container');
+  const visibleHeight = container?.clientHeight || (21 * CELL_H);
+  const margin = 2;
+
+  let currentTop = container?.scrollTop || 0;
+  const plan = [];
+
+  for (let step = 0; step < 1000; step++) {
+    const sel = selectedArray.find(s => s.colIndex === step);
+    if (!sel) continue;
+
+    const rowIdx = rows.findIndex(r => r.id === sel.rowId);
+    if (rowIdx === -1) continue;
+
+    const noteTop = rowIdx * CELL_H;
+    const noteBottom = noteTop + CELL_H + HALF_CELL;
+
+    const windowTop = currentTop;
+    const windowBottom = currentTop + visibleHeight;
+
+    let newTop = currentTop;
+
+    if (noteTop - margin * CELL_H < windowTop) {
+      newTop = Math.max(0, noteTop - margin * CELL_H);
+    } else if (noteBottom + margin * CELL_H > windowBottom) {
+      newTop = noteBottom + margin * CELL_H - visibleHeight;
+    }
+
+    if (Math.abs(newTop - currentTop) > CELL_H / 2) {
+      const distance = Math.abs(newTop - currentTop);
+      const duration = Math.min(800, Math.max(300, distance * 1.2));
+      plan.push({ step, scrollTop: newTop, duration });
+      currentTop = newTop;
+    }
   }
-  return currentScreen;
+
+  // Look-ahead: shift each scroll 1 step earlier
+  return plan.map(entry => ({
+    ...entry,
+    step: Math.max(0, entry.step - 1)
+  }));
 }
 
 /**
- * Scroll to a specific note within a registry (snaps to correct screen)
+ * Detect current screen from scrollTop (free-scroll aware).
+ */
+function detectCurrentScreen() {
+  const gridContainer = document.querySelector('.timeline-wrapper');
+  const container = gridContainer?.querySelector('.plano-soundline-container');
+  if (!container) return currentScreen;
+
+  const scrollTop = container.scrollTop;
+  let closest = 0;
+  let minDist = Infinity;
+  for (let i = 0; i < SCREENS.length; i++) {
+    const target = getScreenScrollTop(SCREENS[i]);
+    const dist = Math.abs(scrollTop - target);
+    if (dist < minDist) { minDist = dist; closest = i; }
+  }
+  return closest;
+}
+
+/**
+ * Scroll to a specific note within a registry
  */
 function scrollToNote(note, registry, animated = false) {
   if (!grid) return;
   const targetRowId = `${note}r${registry}`;
   const rows = grid.getRowDefinitions();
   const rowIdx = rows.findIndex(r => r.id === targetRowId);
-  if (rowIdx !== -1) {
-    const targetScreen = screenForRow(rowIdx);
-    if (targetScreen !== currentScreen) {
-      scrollToScreen(targetScreen, animated);
-    }
+  if (rowIdx === -1) return;
+
+  const gridContainer = document.querySelector('.timeline-wrapper');
+  const container = gridContainer?.querySelector('.plano-soundline-container');
+  if (!container) return;
+
+  const noteTop = rowIdx * CELL_H;
+  const noteBottom = noteTop + CELL_H + HALF_CELL;
+  const visibleHeight = container.clientHeight;
+  const scrollTop = container.scrollTop;
+
+  // Only scroll if note is outside visible window
+  if (noteTop < scrollTop || noteBottom > scrollTop + visibleHeight) {
+    const target = Math.max(0, noteTop - 2 * CELL_H);
+    const soundline = gridContainer?.querySelector('.plano-soundline-container');
+    const matrix = gridContainer?.querySelector('.plano-matrix-container');
+    [soundline, matrix].forEach(el => {
+      if (el) smoothScrollTo(el, target, 'top', 400, 'easeInOut');
+    });
   }
 }
 
 function incrementRegistro() {
+  currentScreen = detectCurrentScreen();
   if (currentScreen < SCREENS.length - 1) {
     scrollToScreen(currentScreen + 1, true);
   }
 }
 
 function decrementRegistro() {
+  currentScreen = detectCurrentScreen();
   if (currentScreen > 0) {
     scrollToScreen(currentScreen - 1, true);
   }
@@ -797,8 +1161,10 @@ async function startPlayback() {
   // Get MIDI notes from grid selection
   const midiMap = grid.getSelectedMidiNotes();
 
-  // Get selected array for per-note autoscroll
+  // Pre-compute scroll plan before playback starts
   const selectedArray = grid.getSelectedArray();
+  const scrollPlan = buildScrollPlan(selectedArray, grid.getRowDefinitions());
+  let scrollPlanIndex = 0;
 
   // Build pulse → pair map for accessing temporalInterval during playback
   const pulsePairMap = new Map();
@@ -852,17 +1218,16 @@ async function startPlayback() {
       // 1. Update playhead position
       grid.updatePlayhead(step);
 
-      // 2. Autoscroll VERTICAL: snap to the screen containing the active note
-      const selectedForStep = selectedArray.find(s => s.colIndex === step);
-      if (selectedForStep) {
-        const rows = grid.getRowDefinitions();
-        const rowIdx = rows.findIndex(r => r.id === selectedForStep.rowId);
-        if (rowIdx !== -1) {
-          const targetScreen = screenForRow(rowIdx);
-          if (targetScreen !== currentScreen) {
-            scrollToScreen(targetScreen, true);
-          }
-        }
+      // 2. Autoscroll VERTICAL: execute pre-computed scroll plan
+      while (scrollPlanIndex < scrollPlan.length && scrollPlan[scrollPlanIndex].step <= step) {
+        const entry = scrollPlan[scrollPlanIndex];
+        const gridContainer = document.querySelector('.timeline-wrapper');
+        const soundline = gridContainer?.querySelector('.plano-soundline-container');
+        const matrix = gridContainer?.querySelector('.plano-matrix-container');
+        [soundline, matrix].forEach(el => {
+          if (el) smoothScrollTo(el, entry.scrollTop, 'top', entry.duration, 'easeInOut');
+        });
+        scrollPlanIndex++;
       }
 
       // 3. Highlight timeline number
@@ -1022,22 +1387,19 @@ function handleReset() {
     stopPlayback();
   }
 
-  // Clear all inputs
-  compas = null;
-  cycles = null;
+  // Restore defaults (NOT null — null makes getTotalPulses() return 0 and erases the grid)
+  compas = CONFIG.DEFAULT_COMPAS;
+  cycles = CONFIG.DEFAULT_CYCLES;
 
-  elements.inputCompas.value = '';
-  elements.inputCycle.value = '';
+  elements.inputCompas.value = compas;
+  elements.inputCycle.value = cycles;
 
   if (elements.cycleDigit) {
-    elements.cycleDigit.textContent = '';
+    elements.cycleDigit.textContent = String(cycles);
   }
 
   // Reset BPM to default
   bpmController?.setValue(CONFIG.DEFAULT_BPM);
-
-  // Reset registry (show registries 3 and 4)
-  scrollToScreen(0, false);
 
   // Clear grid-editor
   gridEditor?.clear();
@@ -1051,6 +1413,10 @@ function handleReset() {
   updateLongitud();
   updateGridVisibility();
   updateGrid();
+  updateGridEditorMaxPulse();
+
+  // Reset registry AFTER updateGrid so the grid exists
+  scrollToScreen(0, false);
 
   elements.inputCompas?.focus();
   console.log('Reset complete');
@@ -1192,15 +1558,15 @@ function setupHovers() {
 registerFactoryReset({
   storage: preferenceStorage,
   onReset: () => {
-    // Reset all state
-    compas = null;
-    cycles = null;
+    // Restore defaults (NOT null)
+    compas = CONFIG.DEFAULT_COMPAS;
+    cycles = CONFIG.DEFAULT_CYCLES;
 
     // Reset UI
-    if (elements.inputCompas) elements.inputCompas.value = '';
-    if (elements.inputCycle) elements.inputCycle.value = '';
-    if (elements.registroText) elements.registroText.textContent = '3 y 4';
-    if (elements.cycleDigit) elements.cycleDigit.textContent = '';
+    if (elements.inputCompas) elements.inputCompas.value = compas;
+    if (elements.inputCycle) elements.inputCycle.value = cycles;
+    if (elements.registroText) elements.registroText.value = '3 y 4';
+    if (elements.cycleDigit) elements.cycleDigit.textContent = String(cycles);
 
     // Reset BPM
     bpmController?.setValue(CONFIG.DEFAULT_BPM);
@@ -1398,25 +1764,60 @@ function initApp() {
   if (elements.inputCycle) elements.inputCycle.value = cycles;
   if (elements.cycleDigit) elements.cycleDigit.textContent = String(cycles);
 
+  // Reorder controls: Play, BPM, Random, Reset (compact row)
+  const bpmParam = document.getElementById('bpmParam');
+  const controls = document.querySelector('.controls');
+  if (controls && bpmParam) {
+    const playBtnEl = controls.querySelector('.play') || elements.playBtn;
+    const randomBtnEl = controls.querySelector('.random');
+    const resetBtnEl = controls.querySelector('.reset');
+    const randomMenuEl = controls.querySelector('.random-menu');
+
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playBtnEl) controls.appendChild(playBtnEl);
+    controls.appendChild(bpmParam);
+    if (randomBtnEl) controls.appendChild(randomBtnEl);
+    if (randomMenuEl) controls.appendChild(randomMenuEl);
+    if (resetBtnEl) controls.appendChild(resetBtnEl);
+  }
+
+  // Save controls before initGrid clears .timeline-wrapper
+  const timelineWrapper = document.querySelector('.timeline-wrapper');
+  const savedControls = controls?.parentNode === timelineWrapper ? controls : null;
+  if (savedControls) savedControls.remove();
+
   // Initialize the grid (plano-modular + modular controllers)
   initGrid();
 
+  // Create N-iT editor container and add it after plano-container
+  const nitEditorEl = document.createElement('div');
+  nitEditorEl.className = 'nit-editor';
+  nitEditorEl.id = 'nitEditor';
+  timelineWrapper?.appendChild(nitEditorEl);
+
+  // Re-add controls after editor
+  if (savedControls) {
+    timelineWrapper?.appendChild(savedControls);
+  }
+
   // Initialize the grid-editor (NrX-iT zigzag)
+  elements.gridEditorContainer = nitEditorEl;
   initGridEditor();
 
   // Initial renders
   updateLongitud();
   updateGridVisibility();
 
-  // Focus on the first N cell of the zigzag editor (after render completes)
-  requestAnimationFrame(() => {
-    if (gridEditor?.focusFirstNCell) {
-      gridEditor.focusFirstNCell();
-    }
-  });
+  // Position to screen "3 y 4" AFTER the preset's setRegistry(4) has completed
+  setTimeout(() => {
+    requestAnimationFrame(() => {
+      scrollToScreen(0, false);
+    });
+  }, 100);
 
-  // Idle caret flash on grid editor container
-  initIdleCaretFlash({ targets: [document.getElementById('gridEditorContainer')] });
+  // Idle caret flash on the N-iT editor
+  initIdleCaretFlash({ targets: [nitEditorEl] });
 
   console.log('App20 initialized (MODULAR)');
 }
