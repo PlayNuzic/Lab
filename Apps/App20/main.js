@@ -701,9 +701,32 @@ function initGridEditor() {
           return;
         }
 
-        // Partial NrR: only if user typed "5r" (ending with 'r', waiting for registry)
+        // Partial NrR: "5r" — waiting for registry digit
         if (/^\d+r$/.test(val)) return;
 
+        // Bare number (e.g., "5" or "11"): could become "5r4" — wait before parsing
+        if (/^\d+$/.test(val)) {
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = setTimeout(() => {
+            // Re-read cell value in case user kept typing
+            const current = cell.value;
+            if (/^\d+r/.test(current)) return; // user started typing NrR
+            const parsed = parseNoteInput(current);
+            if (!parsed) return;
+            const v = validateNoteRegistry(parsed.note, parsed.registry);
+            if (!v.valid) { showTooltip(cell, v.message); cell.value = ''; return; }
+            pendingN = parsed;
+            lastEnteredType = 'n';
+            if (pendingIT !== null) commitEntry();
+            else {
+              const itInput = itCells.querySelector('.active-input');
+              if (itInput) itInput.focus();
+            }
+          }, 800);
+          return;
+        }
+
+        // Full NrR (e.g., "5r4"): parse immediately
         const parsed = parseNoteInput(val);
         if (!parsed) { e.target.value = ''; return; }
 
@@ -719,14 +742,13 @@ function initGridEditor() {
         lastEnteredType = 'n';
 
         clearTimeout(autoJumpTimer);
-        // Delay: allow multi-digit note (e.g., "11") or NrR completion
         autoJumpTimer = setTimeout(() => {
           if (pendingIT !== null) commitEntry();
           else {
             const itInput = itCells.querySelector('.active-input');
             if (itInput) itInput.focus();
           }
-        }, 400);
+        }, 300);
 
       } else {
         // iT input
