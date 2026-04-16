@@ -264,10 +264,10 @@ main {
 .plano-cell.plano-highlight::before {
   content: '';
   position: absolute;
-  top: 15%;
-  bottom: 15%;
   left: 0;
   right: 0;
+  bottom: -50%;
+  height: 100%;
   background: #FFBB33;
   border-radius: 4px;
   z-index: 1;
@@ -310,16 +310,16 @@ main {
 
 /* ---- Continuous bar: selected + duration + drag cells form one strip ---- */
 
-/* Shared bar shape */
+/* Shared bar shape — centred on cell bottom border (where soundline labels sit) */
 .plano-cell.plano-selected::before,
 .plano-cell.duration-highlight::before,
 .plano-cell.drag-highlight::before {
   content: '';
   position: absolute;
-  top: 15%;
-  bottom: 15%;
   left: 0;
   right: -1px;           /* overlap into next cell to hide seam */
+  bottom: -50%;
+  height: 100%;
   background: var(--plano-select-color, #FFBB33);
   border-radius: 0;
   z-index: 1;

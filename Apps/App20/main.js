@@ -546,10 +546,12 @@ function initGridEditor() {
     // NrR format (e.g., "5r4")
     const match = val.match(/^(\d+)r(\d+)$/);
     if (match) return { note: parseInt(match[1]), registry: parseInt(match[2]) };
-    // Just a number → use current screen's bottom registry
+    // Just a number → use last entry's registry, or DEFAULT_REGISTRO (4) if first
     const num = parseInt(val);
     if (!isNaN(num) && num >= 0 && num <= 11) {
-      return { note: num, registry: SCREENS[currentScreen].bottomReg };
+      const lastEntry = [...entries].reverse().find(e => !e.isRest);
+      const reg = lastEntry ? lastEntry.registry : CONFIG.DEFAULT_REGISTRO;
+      return { note: num, registry: reg };
     }
     return null;
   }
