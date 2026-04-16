@@ -206,7 +206,7 @@ main {
 /* Remove left margin so matrix starts flush with soundline edge */
 .plano-matrix,
 .plano-timeline-row {
-  margin-left: 0;
+  margin-left: 0.437rem;
 }
 
 /* Reserve independent rows for matrix and timeline in App19.

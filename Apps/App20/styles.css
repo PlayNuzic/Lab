@@ -194,7 +194,7 @@ main {
 /* Remove left margin so matrix starts flush with soundline edge */
 .plano-matrix,
 .plano-timeline-row {
-  margin-left: 0;
+  margin-left: 0.437rem;
 }
 
 /* Separate matrix from timeline in grid-area */
@@ -213,6 +213,7 @@ main {
   grid-row: 2;
   position: relative;
   z-index: 2;
+  margin-bottom: 0.59rem
 }
 
 /* columnSizing:'fr' — fill available width */
