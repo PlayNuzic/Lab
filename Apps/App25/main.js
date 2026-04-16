@@ -868,10 +868,10 @@ function initDegreeEditor() {
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
       if (entry.isRest) {
-        // Rest: show empty readonly cell (cream placeholder)
-        cellsContainer.insertBefore(createReadonlyCell(), endMarker);
+        // Rest: 1 empty cream cell (same space as a note+separator)
         cellsContainer.insertBefore(createReadonlyCell(), endMarker);
       } else {
+        // Note: value cell + cream separator
         cellsContainer.insertBefore(createValueCell(formatDegree(entry), i), endMarker);
         cellsContainer.insertBefore(createReadonlyCell(), endMarker);
       }
