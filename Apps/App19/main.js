@@ -209,31 +209,8 @@ function initGrid() {
     onSelectionChange: null  // Selections not persisted
   });
 
-  // Block free vertical scroll — quantize to screen positions
-  // Accumulate delta to require a deliberate gesture before changing screen
-  const soundline = gridContainer.querySelector('.plano-soundline-container');
-  const matrix = gridContainer.querySelector('.plano-matrix-container');
-  let accumulatedDelta = 0;
-  let wheelCooldown = false;
-  const WHEEL_THRESHOLD = 150;
-  [soundline, matrix].forEach(el => {
-    if (!el) return;
-    el.addEventListener('wheel', (e) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault();
-        if (wheelCooldown) return;
-        accumulatedDelta += e.deltaY;
-        if (Math.abs(accumulatedDelta) >= WHEEL_THRESHOLD) {
-          wheelCooldown = true;
-          const down = accumulatedDelta > 0;
-          accumulatedDelta = 0;
-          setTimeout(() => { wheelCooldown = false; }, 500);
-          if (down) decrementRegistro();
-          else incrementRegistro();
-        }
-      }
-    }, { passive: false });
-  });
+  // Free vertical scroll — native scroll with sync handled by setupScrollSync
+  // (no quantization, no cooldown, no blocked wheel events)
 
   addDotsToAllCells();
 

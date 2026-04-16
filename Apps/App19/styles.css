@@ -307,7 +307,7 @@ main {
   color: #F28AAD !important;
 }
 
-/* Hide scrollbars — scroll is quantized via buttons/wheel */
+/* Hide scrollbars — free scroll via wheel/trackpad, no visible scrollbar needed */
 .plano-soundline-container,
 .plano-matrix-container {
   scrollbar-width: none;
