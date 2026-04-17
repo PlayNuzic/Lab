@@ -370,10 +370,13 @@ async function handlePlay() {
       highlightNumber(displayStep, isFadeOut);
     },
     () => {
-      // onComplete callback: restore master volume IMMEDIATELY so a quick
-      // replay doesn't capture the fade level as originalVolume. Delay only
-      // audio.stop()/stopPlayback() so the last click rings out.
-      setVolume(originalVolume);
+      // onComplete fires right after the worklet emits the final pulse, but
+      // the scheduled click sample is still ringing out at its fade volume.
+      // Restoring master volume immediately would swap the tail of the last
+      // click to full volume, making P2 sound LOUDER than P1.
+      // Defer just long enough for the click to finish (~150ms), then
+      // restore master so a quick replay captures the correct originalVolume.
+      setTimeout(() => setVolume(originalVolume), 150);
       setTimeout(() => {
         audio?.stop();
         stopPlayback(false);
