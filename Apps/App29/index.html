@@ -21,7 +21,6 @@
       root: document.getElementById('app-root'),
       title: 'Sucesion de Pulsos Fraccionados Complejos',
       pulseSequence: true,
-      inlineFractionSlot: true,
       showSelectColor: false,
       showAccent: false,
       showComplexFractions: false,
@@ -54,13 +53,6 @@
           </div>
         </div>
       `;
-    }
-
-    const bpmParam = document.getElementById('bpmParam');
-    const timelineWrapper = document.getElementById('timelineWrapper');
-    if (bpmParam && timelineWrapper) {
-      timelineWrapper.prepend(bpmParam);
-      timelineWrapper.classList.add('timeline-wrapper--bpm-left');
     }
 
     // Rename "Intervalo 1" to "Pulso 0" in the menu

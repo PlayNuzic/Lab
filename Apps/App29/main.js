@@ -12,10 +12,9 @@ import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
-import { gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
+import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { randomInt, gcd } from '../../libs/app-common/number-utils.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
-import createPulseSeqController from '../../libs/pulse-seq/pulse-seq.js';
 import { isIntegerPulseSelectable, isPulseRemainder } from '../../libs/app-common/pulse-selectability.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
@@ -44,18 +43,15 @@ let currentDenominator = DEFAULT_DENOMINATOR;
 const selectedPulses = new Set(); // Set of pulse keys like "2.1", "4", "6.2"
 
 // DOM elements
-let pulses = [];
-let bars = [];
+let pulses = [];         // .pulse-number elements (clickable for selection)
 let cycleMarkers = [];
 let cycleLabels = [];
-let pulseNumberLabels = [];
 
 // Controllers
 let fractionEditorController = null;
 let pulseToggleController = null;
 let selectedToggleController = null;
 let cycleToggleController = null;
-let pulseSeqEditorController = null;
 
 // Storage keys
 const PULSE_AUDIO_KEY = 'pulseAudio';
@@ -106,61 +102,57 @@ const accentSoundSelect = document.getElementById('accentSoundSelect');
 const startSoundSelect = document.getElementById('startSoundSelect');
 const cycleSoundSelect = document.getElementById('cycleSoundSelect');
 
-// Pfr elements (created dynamically)
+// Pfr editor state (cell-based, App12 P-row pattern)
 let pfrRow = null;
-let pulseSeqEl = null;
-let pulseSeqEditEl = null;
-let pulseSeqController = null;
-let fractionSlot = null;
+let pfrEditorEl = null;
+let pfrCellsEl = null;
+let pfrEndMarkerEl = null;
+let pfrActiveInputEl = null;
+let pfrCommitTimer = null;
 
 /**
- * Custom markup builder for App29: Pfr n/d( [edit] )
- * Includes inline fraction slot between label and parentheses
+ * Build the Pfr editor scaffold and insert it AFTER the timeline-wrapper.
+ * Also move .controls to sit BELOW the editor (timeline → editor → controls).
+ * Detach the template's #pulseSeq from .middle so .middle can host the
+ * block-mode fraction editor (App26/27 pattern).
  */
-function app29MarkupBuilder({ root, initialText }) {
-  if (!root) return { editEl: null };
-  const mk = (cls, txt) => {
-    const span = document.createElement('span');
-    span.className = `pz ${cls}`;
-    if (txt != null) span.textContent = txt;
-    return span;
-  };
-  root.textContent = '';
-
-  const labelSpan = mk('label', 'P');
-
-  fractionSlot = document.createElement('span');
-  fractionSlot.id = 'fractionInlineSlot';
-  fractionSlot.className = 'pz fraction-inline-container';
-
-  const openParen = mk('open', '(');
-  const edit = mk('edit', initialText || '  ');
-  edit.contentEditable = 'true';
-  edit.spellcheck = false;
-  const closeParen = mk('close', ')');
-
-  root.append(labelSpan, fractionSlot, openParen, edit, closeParen);
-
-  // Store references
-  pulseSeqEditEl = edit;
-
-  return { editEl: edit };
-}
-
 function createPfrLayout() {
-  // Create Pfr row
+  const templatePulseSeq = document.getElementById('pulseSeq');
+  if (templatePulseSeq?.parentNode) {
+    templatePulseSeq.parentNode.removeChild(templatePulseSeq);
+  }
+
   pfrRow = document.createElement('div');
   pfrRow.className = 'pfr-row';
 
-  // Create pulseSeq element
-  pulseSeqEl = document.createElement('div');
-  pulseSeqEl.id = 'pulseSeq';
+  pfrEditorEl = document.createElement('div');
+  pfrEditorEl.className = 'pfr-editor';
+  pfrEditorEl.id = 'pfrEditor';
 
-  pfrRow.appendChild(pulseSeqEl);
+  const label = document.createElement('div');
+  label.className = 'editor-label editor-label--p';
+  label.textContent = 'Pfr';
 
-  // Insert before timeline
+  pfrCellsEl = document.createElement('div');
+  pfrCellsEl.className = 'editor-cells';
+
+  pfrEndMarkerEl = document.createElement('div');
+  pfrEndMarkerEl.className = 'editor-end-marker';
+  pfrEndMarkerEl.style.display = 'none';
+  pfrCellsEl.appendChild(pfrEndMarkerEl);
+
+  pfrEditorEl.appendChild(label);
+  pfrEditorEl.appendChild(pfrCellsEl);
+  pfrRow.appendChild(pfrEditorEl);
+
   if (timelineWrapper && timelineWrapper.parentNode) {
-    timelineWrapper.parentNode.insertBefore(pfrRow, timelineWrapper);
+    const parent = timelineWrapper.parentNode;
+    parent.insertBefore(pfrRow, timelineWrapper.nextSibling);
+
+    const controls = timelineWrapper.querySelector('.controls');
+    if (controls) {
+      parent.insertBefore(controls, pfrRow.nextSibling);
+    }
   }
 }
 
@@ -322,15 +314,17 @@ if (typeof window !== 'undefined') {
 
 // ========== FRACTION EDITOR ==========
 function initFractionEditorController() {
-  if (!fractionSlot) return;
+  // Host is .middle (block mode above timeline, App26/27 pattern).
+  const host = document.querySelector('.middle');
+  if (!host) return;
 
   // Always start with default fraction (no persistence)
   currentNumerator = DEFAULT_NUMERATOR;
   currentDenominator = DEFAULT_DENOMINATOR;
 
   const controller = createFractionEditor({
-    mode: 'inline',
-    host: fractionSlot,
+    mode: 'block',
+    host,
     defaults: { numerator: DEFAULT_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
     autoReduce: true,
@@ -338,12 +332,19 @@ function initFractionEditorController() {
     minDenominator: 2,
     maxNumerator: MAX_NUMERATOR,
     maxDenominator: MAX_DENOMINATOR,
-    // No storage - always start fresh with defaults
     storage: {},
     addRepeatPress,
     labels: {
-      numerator: { placeholder: 'n' },
-      denominator: { placeholder: 'd' }
+      numerator: {
+        placeholder: 'n',
+        ariaUp: 'Incrementar numerador',
+        ariaDown: 'Decrementar numerador'
+      },
+      denominator: {
+        placeholder: 'd',
+        ariaUp: 'Incrementar denominador',
+        ariaDown: 'Decrementar denominador'
+      }
     },
     onChange: ({ cause }) => {
       if (cause !== 'init') {
@@ -354,8 +355,7 @@ function initFractionEditorController() {
 
   fractionEditorController = controller || null;
 
-  // NO setSimpleMode() - fraccions complexes actives (numerador editable)
-  // Set complex mode explicitly
+  // Complex mode (both numerator and denominator editable).
   if (fractionEditorController && typeof fractionEditorController.setComplexMode === 'function') {
     fractionEditorController.setComplexMode();
   }
@@ -482,6 +482,22 @@ function pulseTokenValue(token) {
 }
 
 /**
+ * Normalise a raw token: strip leading zeros, ensure "N.M" form.
+ * "01" → "1"; "1.03" → "1.3"; "3" → "3".
+ */
+function normalizeToken(token) {
+  if (typeof token !== 'string') return '';
+  const trimmed = token.trim();
+  if (!trimmed) return '';
+  if (trimmed.includes('.')) {
+    const [base, subdiv] = trimmed.split('.');
+    return `${parseInt(base, 10) || 0}.${parseInt(subdiv, 10) || 0}`;
+  }
+  const n = parseInt(trimmed, 10);
+  return Number.isFinite(n) ? String(n) : '';
+}
+
+/**
  * Filter out invalid pulses from selection when fraction changes
  */
 function filterInvalidPulses() {
@@ -496,457 +512,259 @@ function filterInvalidPulses() {
   }
 }
 
-// ========== PULSE SEQUENCE EDITOR ==========
+// ========== PFR EDITOR (cell-based, App12 P-row pattern) ==========
 function initPulseSeqEditor() {
-  // Create Pfr row layout (includes pulseSeqEl)
   createPfrLayout();
+  renderPfrEditor();
 
-  // Initialize pulse-seq controller with markup builder
-  pulseSeqController = createPulseSeqController();
-  pulseSeqController.mount({
-    root: pulseSeqEl,
-    markupBuilder: app29MarkupBuilder
-  });
-
-  // Idle caret flash on pulse sequence editor
-  initIdleCaretFlash({ targets: [document.querySelector('.pz.edit')] });
-
-  if (!pulseSeqEditEl) return;
-
-  // Attach event listeners
-  pulseSeqEditEl.addEventListener('blur', sanitizePulseSeq);
-  pulseSeqEditEl.addEventListener('keydown', handlePulseSeqKeydown);
-  pulseSeqEditEl.addEventListener('focus', handlePulseSeqFocus);
-  pulseSeqEditEl.addEventListener('input', handlePulseSeqInput);
+  // Anchor idle-flash on the persistent editor container.
+  if (pfrEditorEl) {
+    initIdleCaretFlash({ targets: [pfrEditorEl] });
+  }
 }
 
-function handlePulseSeqKeydown(e) {
-  // Enter: sanitize and blur
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    sanitizePulseSeq();
-    pulseSeqEditEl.blur();
-    return;
-  }
+function renderPfrEditor() {
+  if (!pfrCellsEl) return;
 
-  // Arrow navigation: move between midpoints (gaps between tokens)
-  if (e.key === 'ArrowLeft' || e.key === 'Home') {
-    e.preventDefault();
-    pulseSeqController.moveCaretStep(-1);
-    return;
-  }
-  if (e.key === 'ArrowRight' || e.key === 'End') {
-    e.preventDefault();
-    pulseSeqController.moveCaretStep(1);
-    return;
-  }
-
-  // Backspace: delete entire token to the left
-  if (e.key === 'Backspace') {
-    e.preventDefault();
-    deleteTokenLeft();
-    return;
-  }
-
-  // Delete: delete entire token to the right
-  if (e.key === 'Delete') {
-    e.preventDefault();
-    deleteTokenRight();
-    return;
-  }
-
-  // Allow: digits, dot, space, arrows
-  const allowed = new Set([
-    'ArrowUp', 'ArrowDown', 'Tab'
-  ]);
-
-  if (/^[0-9]$/.test(e.key) || e.key === '.' || e.key === ' ' || allowed.has(e.key)) {
-    return; // Allow
-  }
-
-  e.preventDefault();
-}
-
-function handlePulseSeqFocus() {
-  // Normalize gaps and move to nearest midpoint
-  setTimeout(() => {
-    const text = pulseSeqEditEl.textContent || '';
-    const normalized = normalizeGaps(text);
-    if (normalized !== text) {
-      pulseSeqEditEl.textContent = normalized;
-    }
-    pulseSeqController.moveCaretToNearestMidpoint();
-  }, 0);
-}
-
-function handlePulseSeqInput() {
-  // Don't move caret during input - let user type freely
-  // Caret positioning happens on blur (via sanitizePulseSeq)
-}
-
-/**
- * Helper: get midpoints (positions between double spaces)
- */
-function getMidpoints(text) {
-  const mids = [];
-  for (let i = 1; i < text.length; i++) {
-    if (text[i - 1] === ' ' && text[i] === ' ') {
-      mids.push(i);
-    }
-  }
-  return mids;
-}
-
-/**
- * Helper: set caret position in pulseSeqEditEl
- */
-function setCaretPosition(pos) {
-  if (!pulseSeqEditEl) return;
-  const node = pulseSeqEditEl.firstChild || pulseSeqEditEl;
-  const sel = window.getSelection();
-  if (!sel) return;
-  const range = document.createRange();
-  const safePos = Math.min(pos, (node.textContent || '').length);
-  range.setStart(node, safePos);
-  range.setEnd(node, safePos);
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-
-/**
- * Delete the entire token to the left of the caret (like App4)
- */
-function deleteTokenLeft() {
-  if (!pulseSeqEditEl) return;
-  const node = pulseSeqEditEl.firstChild || pulseSeqEditEl;
-  let text = node.textContent || '';
-  if (text.length === 0) return;
-
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return;
-  const range = sel.getRangeAt(0);
-  if (!pulseSeqEditEl.contains(range.startContainer)) return;
-
-  let pos = range.startOffset;
-  if (pos <= 0) return;
-
-  // Adjust to nearest midpoint
-  const mids = getMidpoints(text);
-  if (mids.length) {
-    let best = mids[0], d = Math.abs(pos - best);
-    for (const m of mids) {
-      const dd = Math.abs(pos - m);
-      if (dd < d) { best = m; d = dd; }
-    }
-    pos = best;
-  }
-
-  // Find token to the left
-  const isDigit = (c) => c >= '0' && c <= '9';
-  let i = pos - 1;
-  while (i >= 0 && text[i] === ' ') i--;
-  if (i < 0) return; // no token to the left
-
-  if (!(isDigit(text[i]) || text[i] === '.')) return;
-  let startNum = i;
-  while (startNum >= 0 && isDigit(text[startNum])) startNum--;
-  if (startNum >= 0 && text[startNum] === '.') {
-    startNum--;
-    while (startNum >= 0 && isDigit(text[startNum])) startNum--;
-  }
-  startNum = Math.max(0, startNum + 1);
-
-  // Rebuild: left + gap + right (skip one space after midpoint)
-  const left = text.slice(0, startNum);
-  const right = text.slice(pos + 1);
-  const out = left + '  ' + right;
-  const normalizedOut = normalizeGaps(out);
-  node.textContent = normalizedOut;
-
-  // Position caret
-  const caret = Math.min(normalizedOut.length, left.length + 1);
-  setCaretPosition(caret);
-  pulseSeqController.moveCaretToNearestMidpoint();
-}
-
-/**
- * Delete the entire token to the right of the caret (like App4)
- */
-function deleteTokenRight() {
-  if (!pulseSeqEditEl) return;
-  const node = pulseSeqEditEl.firstChild || pulseSeqEditEl;
-  let text = node.textContent || '';
-  if (text.length === 0) return;
-
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return;
-  const range = sel.getRangeAt(0);
-  if (!pulseSeqEditEl.contains(range.startContainer)) return;
-
-  let pos = range.startOffset;
-  if (pos >= text.length) return;
-
-  // Adjust to nearest midpoint
-  const mids = getMidpoints(text);
-  if (mids.length) {
-    let best = mids[0], d = Math.abs(pos - best);
-    for (const m of mids) {
-      const dd = Math.abs(pos - m);
-      if (dd < d) { best = m; d = dd; }
-    }
-    pos = best;
-  }
-
-  // Find token to the right
-  const isDigit = (c) => c >= '0' && c <= '9';
-  let k = pos;
-  while (k < text.length && text[k] === ' ') k++;
-  if (k >= text.length) return;
-
-  if (!(isDigit(text[k]) || text[k] === '.')) return;
-  let end = k;
-  let dotConsumed = text[end] === '.';
-  if (dotConsumed) end++;
-
-  while (end < text.length) {
-    const ch = text[end];
-    if (isDigit(ch)) {
-      end++;
-      continue;
-    }
-    if (ch === '.' && !dotConsumed) {
-      dotConsumed = true;
-      end++;
-      continue;
-    }
-    break;
-  }
-
-  // Skip trailing spaces (up to 2)
-  let s = 0;
-  while (end + s < text.length && text[end + s] === ' ') s++;
-
-  // Rebuild: left (minus one space) + gap + right
-  const left = text.slice(0, pos - 1);
-  const right = text.slice(end + Math.min(s, 2));
-  const out = left + '  ' + right;
-  const normalizedOut = normalizeGaps(out);
-  node.textContent = normalizedOut;
-
-  // Position caret
-  const caret = Math.min(normalizedOut.length, left.length + 1);
-  setCaretPosition(caret);
-  pulseSeqController.moveCaretToNearestMidpoint();
-}
-
-/**
- * Normalize gaps: ensure double spaces between tokens
- */
-function normalizeGaps(text) {
-  if (typeof text !== 'string') return '  ';
-  const trimmed = text.trim();
-  if (!trimmed) return '  ';
-  const tokens = trimmed.split(/\s+/).filter(Boolean);
-  return tokens.length ? `  ${tokens.join('  ')}  ` : '  ';
-}
-
-/**
- * Sanitize and validate pulse sequence input
- */
-function sanitizePulseSeq() {
-  if (!pulseSeqEditEl) return;
-
-  const text = pulseSeqEditEl.textContent || '';
-  const tokens = text.trim().split(/\s+/).filter(Boolean);
-
-  // Validate and collect valid tokens
-  const validTokens = [];
-  const invalidTokens = [];
-  const duplicateTokens = [];
-  const normalizedTokens = []; // Track tokens that were normalized
-  let pulseLgEntered = false; // Track if user entered pulse lg (endpoint)
-  const lg = currentNumerator;
-  for (const token of tokens) {
-    // Special case: pulse lg (endpoint) is equivalent to pulse 0
-    let normalized = normalizeToken(token);
-    if (normalized === String(lg)) {
-      pulseLgEntered = true;
-      normalized = '0'; // Convert lg to 0
-    }
-    if (isValidPulseToken(normalized)) {
-      // Normalize format (remove leading zeros, etc)
-      if (!validTokens.includes(normalized)) {
-        validTokens.push(normalized);
-        // Track if normalization changed the token
-        if (normalized !== token) {
-          normalizedTokens.push({ original: token, normalized });
-        }
-      } else {
-        duplicateTokens.push(token);
-      }
-    } else if (token.length > 0) {
-      invalidTokens.push(token);
-    }
-  }
-
-  // Check if tokens will be reordered
-  const sortedTokens = [...validTokens].sort((a, b) => pulseTokenValue(a) - pulseTokenValue(b));
-  const willReorder = validTokens.length > 1 && validTokens.some((t, i) => t !== sortedTokens[i]);
-
-  // Build warning messages
-  const warnings = [];
-
-  // Pulse lg entered (equivalent to pulse 0)
-  if (pulseLgEntered) {
-    warnings.push(`${lg} es el mismo pulso que 0`);
-  }
-
-  // Invalid tokens
-  if (invalidTokens.length > 0) {
-    warnings.push(invalidTokens.length === 1
-      ? `"${invalidTokens[0]}" no es válido`
-      : `Inválidos: ${invalidTokens.join(', ')}`);
-  }
-
-  // Duplicate tokens
-  if (duplicateTokens.length > 0) {
-    warnings.push(duplicateTokens.length === 1
-      ? `"${duplicateTokens[0]}" duplicado`
-      : `Duplicados: ${duplicateTokens.join(', ')}`);
-  }
-
-  // Normalized tokens
-  if (normalizedTokens.length > 0) {
-    const normMsgs = normalizedTokens.map(t => `${t.original}→${t.normalized}`);
-    warnings.push(`Corregido: ${normMsgs.join(', ')}`);
-  }
-
-  // Reordered tokens
-  if (willReorder) {
-    warnings.push('Reposicionando pulsos');
-  }
-
-  // Show combined warning
-  if (warnings.length > 0 && pulseSeqEl) {
-    showValidationWarning(pulseSeqEl, warnings.join(' | '));
-  }
-
-  // Sort by value (use already computed sorted array)
-  validTokens.length = 0;
-  validTokens.push(...sortedTokens);
-
-  // Update selection
-  selectedPulses.clear();
-  for (const token of validTokens) {
-    selectedPulses.add(token);
-  }
-
-  // Update pulseSeq display with proper double-space gaps
-  const newText = validTokens.length > 0 ? `  ${validTokens.join('  ')}  ` : '  ';
-  pulseSeqEditEl.textContent = newText;
-
-  // Sync timeline
-  syncTimelineFromSelection();
-}
-
-/**
- * Normalize a token (e.g., "01" -> "1", "1.01" -> "1.1")
- */
-function normalizeToken(token) {
-  if (token.includes('.')) {
-    const parts = token.split('.');
-    return `${parseInt(parts[0], 10)}.${parseInt(parts[1], 10)}`;
-  }
-  return String(parseInt(token, 10));
-}
-
-/**
- * Sync pulseSeq text from current selection
- */
-
-// Token position ranges for autoscroll (token -> [startIndex, endIndex])
-const pulseSeqTokenRanges = new Map();
-
-/**
- * Sync pulseSeq text from current selection
- * Also builds token position map for autoscroll
- * @param {string} [scrollToToken] - Optional token to scroll into view after sync
- */
-function syncPulseSeqFromSelection(scrollToToken = null) {
-  if (!pulseSeqEditEl) return;
+  pfrCellsEl.querySelectorAll('.editor-cell').forEach(c => c.remove());
+  pfrActiveInputEl = null;
 
   const tokens = Array.from(selectedPulses).sort((a, b) => pulseTokenValue(a) - pulseTokenValue(b));
 
-  // Clear token ranges
-  pulseSeqTokenRanges.clear();
+  tokens.forEach((token, idx) => {
+    pfrCellsEl.insertBefore(createPfrValueCell(token, idx), pfrEndMarkerEl);
+    pfrCellsEl.insertBefore(createPfrSeparatorCell(), pfrEndMarkerEl);
+  });
 
-  if (tokens.length === 0) {
-    pulseSeqEditEl.textContent = '  ';
+  const input = createPfrInputCell();
+  pfrCellsEl.insertBefore(input, pfrEndMarkerEl);
+  pfrCellsEl.insertBefore(createPfrSeparatorCell(), pfrEndMarkerEl);
+  pfrActiveInputEl = input;
+}
+
+function createPfrSeparatorCell() {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.className = 'editor-cell editor-cell--p';
+  cell.placeholder = ' ';
+  cell.readOnly = true;
+  cell.tabIndex = -1;
+  return cell;
+}
+
+function createPfrValueCell(token, entryIndex) {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.className = 'editor-cell editor-cell--p';
+  cell.value = token;
+  cell.dataset.token = token;
+  cell.dataset.entryIndex = String(entryIndex);
+  cell.readOnly = false;
+  cell.style.cursor = 'text';
+
+  let originalValue = cell.value;
+
+  cell.addEventListener('focus', () => {
+    originalValue = cell.value;
+    cell.select();
+  });
+
+  cell.addEventListener('blur', () => {
+    const raw = cell.value.trim();
+    if (raw === originalValue) { cell.value = originalValue; return; }
+
+    if (raw === '') {
+      selectedPulses.delete(originalValue);
+      syncTimelineFromSelection();
+      syncAudioAndRender();
+      renderPfrEditor();
+      return;
+    }
+
+    const parsed = parseAndValidateToken(raw);
+    if (!parsed) {
+      showValidationWarning(pfrEditorEl, `"${raw}" no es válido`);
+      cell.value = originalValue;
+      return;
+    }
+    if (parsed.warning) showValidationWarning(pfrEditorEl, parsed.warning);
+
+    if (parsed.token === originalValue) { cell.value = originalValue; return; }
+
+    if (selectedPulses.has(parsed.token)) {
+      showValidationWarning(pfrEditorEl, `"${parsed.token}" duplicado`);
+      cell.value = originalValue;
+      return;
+    }
+
+    if (wouldReorderInsert(parsed.token, originalValue)) {
+      showValidationWarning(pfrEditorEl, 'Reposicionando pulsos');
+    }
+
+    selectedPulses.delete(originalValue);
+    selectedPulses.add(parsed.token);
+    syncTimelineFromSelection();
+    syncAudioAndRender();
+    renderPfrEditor();
+  });
+
+  cell.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); cell.blur(); return; }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      cell.blur();
+      const next = e.shiftKey ? prevEditableCell(cell) : nextEditableCell(cell);
+      if (next) next.focus();
+      return;
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const atStart = cell.selectionStart === 0 && cell.selectionEnd === 0;
+      const atEnd = cell.selectionStart === cell.value.length && cell.selectionEnd === cell.value.length;
+      if (e.key === 'ArrowLeft' && !atStart) return;
+      if (e.key === 'ArrowRight' && !atEnd) return;
+      const target = e.key === 'ArrowRight' ? nextEditableCell(cell) : prevEditableCell(cell);
+      if (target) { e.preventDefault(); target.focus(); }
+    }
+  });
+
+  return cell;
+}
+
+function createPfrInputCell() {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.maxLength = 4;
+  cell.className = 'editor-cell editor-cell--p editor-input';
+  cell.readOnly = false;
+
+  cell.addEventListener('input', () => {
+    const raw = cell.value.trim();
+    if (!raw) { clearTimeout(pfrCommitTimer); return; }
+
+    if (/^\d+$/.test(raw)) {
+      clearTimeout(pfrCommitTimer);
+      pfrCommitTimer = setTimeout(() => tryCommitFromInput(cell), 500);
+      return;
+    }
+    if (/^\d+\.$/.test(raw)) { clearTimeout(pfrCommitTimer); return; }
+    if (/^\d+\.\d+$/.test(raw)) {
+      clearTimeout(pfrCommitTimer);
+      tryCommitFromInput(cell);
+      return;
+    }
+    cell.value = '';
+    clearTimeout(pfrCommitTimer);
+  });
+
+  cell.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      clearTimeout(pfrCommitTimer);
+      if (cell.value.trim()) tryCommitFromInput(cell);
+      return;
+    }
+    if (e.key === 'Backspace' && !cell.value) {
+      e.preventDefault();
+      clearTimeout(pfrCommitTimer);
+      const tokens = Array.from(selectedPulses).sort((a, b) => pulseTokenValue(a) - pulseTokenValue(b));
+      if (tokens.length) {
+        selectedPulses.delete(tokens[tokens.length - 1]);
+        syncTimelineFromSelection();
+        syncAudioAndRender();
+        renderPfrEditor();
+      }
+    }
+  });
+
+  setTimeout(() => cell.focus(), 30);
+  return cell;
+}
+
+function tryCommitFromInput(cell) {
+  const raw = cell.value.trim();
+  if (!raw) return;
+
+  const parsed = parseAndValidateToken(raw);
+  if (!parsed) {
+    showValidationWarning(pfrEditorEl, `"${raw}" no es válido`);
+    cell.value = '';
+    return;
+  }
+  if (parsed.warning) showValidationWarning(pfrEditorEl, parsed.warning);
+
+  if (selectedPulses.has(parsed.token)) {
+    showValidationWarning(pfrEditorEl, `"${parsed.token}" duplicado`);
+    cell.value = '';
     return;
   }
 
-  // Build text and track token positions
-  // Format: "  token1  token2  token3  "
-  let text = '  ';
-  tokens.forEach((token) => {
-    const start = text.length;
-    text += token;
-    const end = text.length;
-    pulseSeqTokenRanges.set(token, [start, end]);
-    text += '  ';
-  });
-
-  pulseSeqEditEl.textContent = text;
-
-  // Scroll to specified token if provided
-  if (scrollToToken && pulseSeqTokenRanges.has(scrollToToken)) {
-    // Use requestAnimationFrame to ensure DOM has updated
-    requestAnimationFrame(() => {
-      const rect = getPulseSeqRectForToken(scrollToToken);
-      if (rect) {
-        scrollPulseSeqToRect(rect);
-      }
-    });
+  if (wouldReorderInsert(parsed.token)) {
+    showValidationWarning(pfrEditorEl, 'Reposicionando pulsos');
   }
+
+  selectedPulses.add(parsed.token);
+  syncTimelineFromSelection();
+  syncAudioAndRender();
+  renderPfrEditor();
 }
 
 /**
- * Get bounding rect for a token in pulseSeq using text range
+ * Parse and validate a user-entered token. Returns:
+ *   { token: normalizedString, warning?: string }  on success
+ *   null  if the token can never be valid (format error)
+ *
+ * App29-specific: Lg equals the numerator (1 cycle rendered). When the
+ * user types the Lg endpoint value, it normalises to "0" (cycle wrap).
  */
-function getPulseSeqRectForToken(token) {
-  if (!pulseSeqEditEl) return null;
+function parseAndValidateToken(raw) {
+  let token = normalizeToken(raw);
+  let warning = null;
 
-  const range = pulseSeqTokenRanges.get(token);
-  if (!range) return null;
-
-  const node = pulseSeqEditEl.firstChild;
-  if (!node || node.nodeType !== Node.TEXT_NODE) return null;
-
-  try {
-    const textRange = document.createRange();
-    textRange.setStart(node, Math.min(range[0], node.length));
-    textRange.setEnd(node, Math.min(range[1], node.length));
-    return textRange.getBoundingClientRect();
-  } catch {
-    return null;
+  const lg = currentNumerator;
+  if (token === String(lg)) {
+    token = '0';
+    warning = `${lg} es el mismo pulso que 0`;
   }
+
+  if (!isValidPulseToken(token)) return null;
+
+  if (token !== raw && !warning) {
+    warning = `Corregido: ${raw}→${token}`;
+  }
+  return { token, warning };
+}
+
+function wouldReorderInsert(token, excludeOriginal = null) {
+  const newVal = pulseTokenValue(token);
+  for (const existing of selectedPulses) {
+    if (excludeOriginal && existing === excludeOriginal) continue;
+    if (pulseTokenValue(existing) > newVal) return true;
+  }
+  return false;
+}
+
+function nextEditableCell(cell) {
+  const all = Array.from(pfrCellsEl.querySelectorAll('.editor-cell:not([readonly])'));
+  return all[all.indexOf(cell) + 1] || null;
+}
+
+function prevEditableCell(cell) {
+  const all = Array.from(pfrCellsEl.querySelectorAll('.editor-cell:not([readonly])'));
+  return all[all.indexOf(cell) - 1] || null;
+}
+
+function syncAudioAndRender() {
+  if (isPlaying && audio) applySelectionToAudio();
 }
 
 /**
- * Scroll pulseSeq to center the given rect
- * Note: scroll happens on pulseSeqWrapper (the container with overflow)
+ * Public sync entry point — rebuilds the Pfr editor cells from the
+ * selectedPulses set. Called from timeline click handlers and on
+ * fraction change. Legacy signature accepted a scroll token; not
+ * needed with the cell-based editor.
  */
-function scrollPulseSeqToRect(rect) {
-  if (!pulseSeqWrapper || !rect) return;
-
-  const containerRect = pulseSeqWrapper.getBoundingClientRect();
-  const tokenLeft = rect.left - containerRect.left + pulseSeqWrapper.scrollLeft;
-  const tokenCenter = tokenLeft + rect.width / 2;
-  const containerCenter = containerRect.width / 2;
-  const targetScroll = tokenCenter - containerCenter;
-
-  const maxScroll = pulseSeqWrapper.scrollWidth - pulseSeqWrapper.clientWidth;
-  pulseSeqWrapper.scrollLeft = Math.max(0, Math.min(targetScroll, maxScroll));
+function syncPulseSeqFromSelection(/* scrollToToken */) {
+  renderPfrEditor();
 }
 
 /**
@@ -1064,90 +882,49 @@ function addRepeatPress(el, fn) {
 function renderTimeline() {
   if (!timeline) return;
 
-  // Disable transitions during render
   timeline.classList.add('no-anim');
 
-  // Clear previous elements
   pulses = [];
-  bars = [];
   cycleMarkers = [];
   cycleLabels = [];
-  pulseNumberLabels = [];
   timeline.innerHTML = '';
 
-  // lg = numerador → dibuixa exactament 1 cicle de la fracció
+  // Lg = numerator → draws exactly one cycle of the fraction
   const lg = currentNumerator;
   const numerator = currentNumerator;
   const denominator = currentDenominator;
 
-  // Create pulses (0 to lg inclusive for endpoint)
-  for (let i = 0; i <= lg; i++) {
-    const pulse = document.createElement('div');
-    pulse.className = 'pulse';
-    pulse.dataset.index = i;
-    if (i === 0 || i === lg) {
-      pulse.classList.add('endpoint');
-    } else if (!isIntegerSelectable(i)) {
-      pulse.classList.add('non-selectable');
-    }
-    timeline.appendChild(pulse);
-
-  }
-
-  // Create pulse numbers (0 to lg)
+  // Pulse numbers — nuzic-theme renders ticks via ::before/::after and hides
+  // legacy .pulse dots. App29 marks non-selectable integers (those that
+  // don't align with the numerator cycle) with .non-selectable.
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
     const isEndpoint = i === 0 || i === lg;
     if (isEndpoint) num.classList.add('endpoint');
-    // Mark non-selectable pulses (not endpoints and not selectable)
-    if (!isEndpoint && !isIntegerSelectable(i)) {
-      num.classList.add('non-selectable');
-    }
+    if (!isEndpoint && !isIntegerSelectable(i)) num.classList.add('non-selectable');
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);
-    pulseNumberLabels.push(num);
     pulses.push(num);
   }
 
-  // Calculate cycle markers using gridFromOrigin
+  // "N/D" subdivision label anchored to the left of the subdivision row.
+  const subdivisionLabel = document.createElement('div');
+  subdivisionLabel.className = 'subdivision-label';
+  subdivisionLabel.textContent = `${numerator}/${denominator}`;
+  timeline.appendChild(subdivisionLabel);
+
+  // Subdivision ticks + ".N" labels for fractional positions. Integers are
+  // already covered by pulse-number::before ticks (nuzic-theme).
   const grid = gridFromOrigin({ lg, numerator, denominator });
-  const subdivisionFontRem = computeSubdivisionFontRem(lg);
-
-  // Create cycle labels for selectable integers only (0, multiples of numerator, remainder, lg)
-  // In App29, 0 and lg are always selectable as endpoints
-  for (let i = 0; i <= lg; i++) {
-    // Endpoints (0 and lg) always shown, others only if selectable
-    const isEndpoint = i === 0 || i === lg;
-    const isSelectable = isEndpoint || isIntegerSelectable(i);
-
-    if (!isSelectable) continue; // Skip non-selectable integers
-
-    const label = document.createElement('div');
-    label.className = 'cycle-label cycle-label--integer';
-    if (isEndpoint) label.classList.add('cycle-label--origin');
-    label.dataset.cycleIndex = String(Math.floor(i / numerator));
-    label.dataset.subdivision = '0';
-    label.dataset.position = String(i);
-    label.dataset.base = String(i);
-    label.dataset.integerPulse = String(i);
-    label.textContent = String(i);
-    label.style.fontSize = `${subdivisionFontRem}rem`;
-    timeline.appendChild(label);
-    cycleLabels.push(label);
-  }
-
   if (grid.cycles > 0 && grid.subdivisions.length) {
     grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
-      // Skip integer positions (subdivisionIndex === 0), labels already created above
       if (subdivisionIndex === 0) return;
 
       const base = cycleIndex * numerator;
-      // Subdivisions are selectable if base is 0 OR if base is selectable (multiple of numerator)
       const isSelectable = base === 0 || isIntegerSelectable(base);
 
-      // Create subdivision marker
       const marker = document.createElement('div');
       marker.className = 'cycle-marker';
       if (!isSelectable) marker.classList.add('non-selectable');
@@ -1158,7 +935,6 @@ function renderTimeline() {
       timeline.appendChild(marker);
       cycleMarkers.push(marker);
 
-      // Create subdivision label (format: .n not base.n)
       const label = document.createElement('div');
       label.className = 'cycle-label';
       if (!isSelectable) label.classList.add('non-selectable');
@@ -1167,7 +943,6 @@ function renderTimeline() {
       label.dataset.position = String(position);
       label.dataset.base = String(base);
       label.textContent = `.${subdivisionIndex}`;
-      label.style.fontSize = `${subdivisionFontRem}rem`;
       timeline.appendChild(label);
       cycleLabels.push(label);
     });
@@ -1333,47 +1108,21 @@ function toggleSubdivisionSelection(token, base, subdivision) {
 function layoutTimeline() {
   const lg = currentNumerator;
 
-  // Position pulses linearly
-  pulses.forEach((p, i) => {
-    const pct = (i / lg) * 100;
-    p.style.left = pct + '%';
-    p.style.top = '50%';
-    p.style.transform = 'translate(-50%, -50%)';
-  });
-
-  // Position bars at endpoints
-  bars.forEach((bar, idx) => {
-    const i = idx === 0 ? 0 : lg;
-    const pct = (i / lg) * 100;
-    bar.style.left = pct + '%';
-    bar.style.top = '30%';
-    bar.style.height = '40%';
-    bar.style.transform = 'translateX(-50%)';
-  });
-
-  // Position pulse numbers (top: 0, transform: translate(-50%, 0%))
-  pulseNumberLabels.forEach((num) => {
+  // nuzic-theme positions pulse-numbers vertically; only horizontal % dynamic.
+  pulses.forEach((num) => {
     const idx = parseInt(num.dataset.index, 10);
-    const pct = (idx / lg) * 100;
-    num.style.left = pct + '%';
-    num.style.top = '0';
-    num.style.transform = 'translate(-50%, 0%)';
+    num.style.left = (idx / lg) * 100 + '%';
   });
 
-  // Position cycle markers
+  // Subdivision ticks/labels: vertical positioning static in CSS.
   cycleMarkers.forEach((marker) => {
     const pos = parseFloat(marker.dataset.position);
-    const pct = (pos / lg) * 100;
-    marker.style.left = pct + '%';
-    marker.style.top = '50%';
+    marker.style.left = (pos / lg) * 100 + '%';
   });
 
-  // Position cycle labels (subdivisions)
   cycleLabels.forEach((label) => {
     const pos = parseFloat(label.dataset.position);
-    const pct = (pos / lg) * 100;
-    label.style.left = pct + '%';
-    label.style.top = '75%';
+    label.style.left = (pos / lg) * 100 + '%';
   });
 }
 
@@ -1382,19 +1131,20 @@ function clearHighlights() {
   pulses.forEach(p => p.classList.remove('active'));
   cycleMarkers.forEach(m => m.classList.remove('active'));
   cycleLabels.forEach(l => l.classList.remove('active'));
-  pulseSeqController?.clearActive();
+  pfrCellsEl?.querySelectorAll('.editor-cell.active').forEach(c => c.classList.remove('active'));
 }
 
 /**
- * Highlight a token in pulseSeq with overlay and scroll
+ * Highlight the Pfr cell matching `token` during playback.
  */
 function highlightPulseSeqToken(token) {
-  if (!pulseSeqController || !selectedPulses.has(token)) return;
+  if (!pfrCellsEl || !selectedPulses.has(token)) return;
 
-  const rect = getPulseSeqRectForToken(token);
-  if (rect) {
-    scrollPulseSeqToRect(rect);
-    pulseSeqController.setActiveIndex(0, { rect });
+  pfrCellsEl.querySelectorAll('.editor-cell.active').forEach(c => c.classList.remove('active'));
+  const cell = pfrCellsEl.querySelector(`.editor-cell[data-token="${CSS.escape(token)}"]`);
+  if (cell) {
+    cell.classList.add('active');
+    cell.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   }
 }
 
@@ -1750,10 +1500,29 @@ function init() {
     bpmController.attach();
   }
 
-  // Initialize pulse sequence editor FIRST (creates fractionSlot)
+  // Reorder controls: Play, BPM, Random, Reset (nuzic compact row)
+  const bpmParam = document.getElementById('bpmParam');
+  const controls = document.querySelector('.controls');
+  if (controls) {
+    const playEl = controls.querySelector('.play') || document.getElementById('playBtn');
+    const randomEl = controls.querySelector('.random');
+    const resetEl = controls.querySelector('.reset');
+    const randomMenuEl = controls.querySelector('.random-menu');
+
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playEl) controls.appendChild(playEl);
+    if (bpmParam) controls.appendChild(bpmParam);
+    if (randomEl) controls.appendChild(randomEl);
+    if (randomMenuEl) controls.appendChild(randomMenuEl);
+    if (resetEl) controls.appendChild(resetEl);
+  }
+
+  // PulseSeq editor FIRST — moves the template's #pulseSeq out of .middle
+  // into the pfrRow below the timeline, freeing .middle for the fraction editor.
   initPulseSeqEditor();
 
-  // Initialize fraction editor AFTER pulseSeq (fractionSlot now exists)
+  // Fraction editor AFTER — hosted in the now-empty .middle above the timeline.
   initFractionEditorController();
 
   // Render timeline
