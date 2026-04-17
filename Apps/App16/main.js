@@ -341,10 +341,9 @@ async function handlePlay() {
   // Total steps = main pulses + fade-out pulses
   const totalSteps = totalPulses + FADE_OUT_PULSES;
 
-  // Configure Measure system: P0 sounds only within the two main compases
-  // (positions 0 and compás). The fade-out region (step ≥ totalPulses) is
-  // visual-only — no extra P0 sound at the start of the 3rd compás.
-  audioInstance.configureMeasure(compas, totalPulses);
+  // Configure Measure system: P0 sounds at positions 0, compás, compás*2, etc.
+  // Use totalSteps so fade-out pulses also get the P0 sound when appropriate
+  audioInstance.configureMeasure(compas, totalSteps);
   audioInstance.setMeasureEnabled(p0Enabled);
 
   // Calculate fade-out volumes (descending: 0.5, 0.25, 0.1)
@@ -378,14 +377,12 @@ async function handlePlay() {
     },
     {
       onSchedule: (step) => {
-        // Fade-out volume ramp for any sounds scheduled during the fade region.
-        // Currently the fade region has no P0 (configureMeasure capped at
-        // totalPulses), but keep the volume gradient so any future audio
-        // (e.g. polyphonic voices) fades naturally.
-        if (step >= totalPulses) {
-          const fadeIndex = step - totalPulses;
+        // Fade starts AFTER the 3rd compás P0 (not on it)
+        // P0 at totalPulses plays at full volume, matching compás 1 and 2
+        if (step > totalPulses) {
+          const fadeIndex = step - totalPulses - 1;
           setVolume(fadeVolumes[fadeIndex] ?? 0.1);
-        } else if (step === 0) {
+        } else if (step === 0 || step === totalPulses) {
           setVolume(originalVolume);
         }
       }
