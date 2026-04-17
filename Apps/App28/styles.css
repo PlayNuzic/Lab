@@ -7,9 +7,7 @@
   display: none;
 }
 
-/* ========== Pfr ROW (pulse-seq editor, lives BELOW timeline — App13 pattern) ========== */
-/* Full-width band matching .timeline-wrapper; yellow "P" label on the left,
-   cream background, white edit area with pulse-index tokens. */
+/* ========== Pfr EDITOR (cell-based, App12 P-row pattern) ========== */
 .pfr-row {
   width: 90%;
   max-width: 75rem;
@@ -18,67 +16,83 @@
   box-sizing: border-box;
 }
 
-#pulseSeq {
+.pfr-editor {
   position: relative;
-  display: flex;
-  align-items: center;
-  min-height: 2.75rem;
-  padding: 0.375rem 0.75rem;
-  background: var(--nuzic-light, #EEE8D8);
-  /* Extend cream band past the left/right edges to match timeline's box-shadow */
-  box-shadow: 1.25rem 0 0 var(--nuzic-light, #EEE8D8),
-             -1.25rem 0 0 var(--nuzic-light, #EEE8D8);
-  color: var(--nuzic-dark, #43433B);
-  font-size: clamp(0.95rem, 2vw, 1.3rem);
-  font-weight: 600;
+  display: grid;
+  grid-template-columns: 3.75rem 1fr;
 }
 
-/* Yellow "P" label, absolute OUTSIDE the left edge (sits in the padding area
-   the box-shadow creates). Matches App13's iT label exactly. */
-#pulseSeq .pz.label {
-  position: absolute;
-  right: 100%;
-  top: 0;
-  width: 3.75rem;
-  height: 100%;
+/* Yellow "Pfr" label on the left, matching App12's .editor-label--p. */
+.pfr-editor .editor-label {
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--nuzic-yellow, #FFBB33);
   color: white;
-  font-weight: 700;
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
   user-select: none;
 }
 
-#pulseSeq .pz.open,
-#pulseSeq .pz.close {
-  color: var(--nuzic-dark, #43433B);
-  opacity: 0.55;
-  padding: 0 0.25rem;
-  user-select: none;
-  flex-shrink: 0;
-}
+.pfr-editor .editor-label--p { background: var(--nuzic-yellow, #FFBB33); }
 
-/* White editable area with token tokens (e.g. "0  0.1  3  5.1"). */
-#pulseSeq .pz.edit {
-  flex: 1;
-  outline: none;
-  display: inline-block;
-  white-space: pre-wrap;
-  background: white;
+/* Cream strip behind the cells (matches App12). */
+.pfr-editor .editor-cells {
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 0;
+  background: var(--nuzic-light, #EEE8D8);
   padding: 0.25rem 0.5rem;
-  min-height: 1.5em;
-  min-width: 3ch;
-  caret-color: var(--nuzic-dark, #43433B);
-  font-weight: 700;
-  border-radius: 2px;
+  min-height: 2.75rem;
 }
 
-#pulseSeq .pz.edit:empty::before {
-  content: '  ';
-  color: var(--nuzic-dark, #43433B);
-  opacity: 0.35;
+/* Cell: square, monospace-ish, alternating white (value) + yellow (separator). */
+.pfr-editor .editor-cell {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  margin: 0;
+  text-align: center;
+  color: #43433b;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  font-weight: 700;
+  border: none;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Yellow separator (empty, readonly — shows placeholder color). */
+.pfr-editor .editor-cell--p:placeholder-shown {
+  background: var(--nuzic-yellow-light, #ffeecc);
+}
+
+/* Committed / value cells (have value): white. */
+.pfr-editor .editor-cell--p:not(:placeholder-shown) {
+  background: white;
+  z-index: 1;
+}
+
+/* Active input cell: white with caret. */
+.pfr-editor .editor-cell.editor-input {
+  background: white !important;
+  cursor: text;
+  z-index: 2;
+}
+
+.pfr-editor .editor-cell.editor-input:focus {
+  box-shadow: inset 0 0 0 2px var(--nuzic-yellow, #FFBB33);
+}
+
+/* Playback highlight. */
+.pfr-editor .editor-cell.active {
+  background: var(--nuzic-yellow, #FFBB33) !important;
+  color: white;
+}
+
+/* End marker (hidden for Pfr — no fixed maximum). */
+.pfr-editor .editor-end-marker {
+  display: none !important;
 }
 
 /* ========== FRACTION EDITOR (block mode, lives in .middle above timeline) ========== */
