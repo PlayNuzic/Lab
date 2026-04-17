@@ -857,6 +857,13 @@ function initIntervalEditor() {
         return;
       }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // Only jump between cells when caret is at the edge — otherwise let
+        // arrows move the caret within the text (useful for editing "-12" etc.)
+        const atStart = cell.selectionStart === 0 && cell.selectionEnd === 0;
+        const atEnd = cell.selectionStart === cell.value.length && cell.selectionEnd === cell.value.length;
+        if (e.key === 'ArrowLeft' && !atStart) return;
+        if (e.key === 'ArrowRight' && !atEnd) return;
+
         const allCells = Array.from(cellsContainer.querySelectorAll('.interval-editor-cell:not([readonly])'));
         const idx = allCells.indexOf(cell);
         const next = e.key === 'ArrowRight' ? allCells[idx + 1] : allCells[idx - 1];
@@ -936,6 +943,22 @@ function initIntervalEditor() {
           }
           commitInterval(parsed);
         }
+        return;
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // Only navigate when caret is at the edge (or input is empty).
+        // Otherwise let the arrow move the caret within the text.
+        const atStart = cell.selectionStart === 0 && cell.selectionEnd === 0;
+        const atEnd = cell.selectionStart === cell.value.length && cell.selectionEnd === cell.value.length;
+        if (e.key === 'ArrowLeft' && !atStart) return;
+        if (e.key === 'ArrowRight' && !atEnd) return;
+
+        clearTimeout(autoJumpTimer);
+        cell.value = '';
+        const allCells = Array.from(cellsContainer.querySelectorAll('.interval-editor-cell:not([readonly])'));
+        const idx = allCells.indexOf(cell);
+        const next = e.key === 'ArrowRight' ? allCells[idx + 1] : allCells[idx - 1];
+        if (next) { e.preventDefault(); next.focus(); }
         return;
       }
       if (e.key === 'Backspace' && !e.target.value) {
