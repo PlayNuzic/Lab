@@ -10,7 +10,7 @@ import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
-import { gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
+import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { randomInt, gcd } from '../../libs/app-common/number-utils.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
@@ -36,11 +36,9 @@ let currentNumerator = DEFAULT_NUMERATOR;
 let currentDenominator = DEFAULT_DENOMINATOR;
 
 // DOM elements
-let pulses = [];
-let bars = [];
+let pulses = [];       // .pulse-number elements (nuzic-theme hides legacy .pulse dots)
 let cycleMarkers = [];
 let cycleLabels = [];
-let pulseNumberLabels = [];
 
 // Controllers
 let fractionEditorController = null;
@@ -79,7 +77,6 @@ bindSharedSoundEvents({
 
 // ========== DOM ELEMENTS ==========
 const timeline = document.getElementById('timeline');
-const timelineWrapper = document.getElementById('timelineWrapper');
 const playBtn = document.getElementById('playBtn');
 const randomBtn = document.getElementById('randomBtn');
 const resetBtn = document.getElementById('resetBtn');
@@ -387,98 +384,64 @@ function addRepeatPress(el, fn) {
 function renderTimeline() {
   if (!timeline) return;
 
-  // Disable transitions during render
   timeline.classList.add('no-anim');
 
-  // Clear previous elements
   pulses = [];
-  bars = [];
   cycleMarkers = [];
   cycleLabels = [];
-  pulseNumberLabels = [];
   timeline.innerHTML = '';
 
-  // lg = numerador → dibuixa exactament 1 cicle de la fracció
+  // lg = numerator → draws exactly one cycle of the fraction
   const lg = currentNumerator;
   const numerator = currentNumerator;
   const denominator = currentDenominator;
 
-  // Helper: check if pulse aligns with a cycle start (multiple of numerator)
-  const isPulseAligned = (i) => i === 0 || i === lg || (numerator > 0 && i % numerator === 0);
-
-  // Create pulses (0 to lg inclusive for endpoint)
-  for (let i = 0; i <= lg; i++) {
-    const pulse = document.createElement('div');
-    pulse.className = 'pulse';
-    pulse.dataset.index = i;
-    if (i === 0 || i === lg) {
-      pulse.classList.add('endpoint');
-    } else if (!isPulseAligned(i)) {
-      pulse.classList.add('non-selectable');
-    }
-    timeline.appendChild(pulse);
-
-  }
-
-  // Create pulse numbers
+  // Pulse numbers (nuzic-theme handles ticks via ::before/::after and hides
+  // legacy .pulse dots).
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
-    if (i === 0 || i === lg) {
-      num.classList.add('endpoint');
-    } else if (!isPulseAligned(i)) {
-      num.classList.add('non-selectable');
-    }
+    if (i === 0 || i === lg) num.classList.add('endpoint');
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);
-    pulseNumberLabels.push(num);
     pulses.push(num);
   }
 
-  // Calculate cycle markers using gridFromOrigin
+  // "N/D" subdivision label anchored to the left of the subdivision row.
+  const subdivisionLabel = document.createElement('div');
+  subdivisionLabel.className = 'subdivision-label';
+  subdivisionLabel.textContent = `${numerator}/${denominator}`;
+  timeline.appendChild(subdivisionLabel);
+
+  // Subdivision ticks: skip integer positions (they already have a tick from
+  // pulse-number::before in nuzic-theme).
   const grid = gridFromOrigin({ lg, numerator, denominator });
-  const subdivisionFontRem = computeSubdivisionFontRem(lg);
-
   if (grid.cycles > 0 && grid.subdivisions.length) {
-    const labelFormatter = (cycleIndex, subdivision) => {
-      const base = cycleIndex * numerator;
-      return subdivision === 0 ? String(base) : `.${subdivision}`;
-    };
-
     grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
-      // Create marker
+      if (subdivisionIndex === 0) return;
+
       const marker = document.createElement('div');
       marker.className = 'cycle-marker';
-      if (subdivisionIndex === 0) marker.classList.add('start');
       marker.dataset.cycleIndex = String(cycleIndex);
       marker.dataset.subdivision = String(subdivisionIndex);
       marker.dataset.position = String(position);
       timeline.appendChild(marker);
       cycleMarkers.push(marker);
 
-      // Create label
-      const formatted = labelFormatter(cycleIndex, subdivisionIndex);
-      if (formatted != null) {
-        const label = document.createElement('div');
-        label.className = 'cycle-label';
-        if (subdivisionIndex === 0) label.classList.add('cycle-label--integer');
-        if (cycleIndex === 0 && subdivisionIndex === 0) label.classList.add('cycle-label--origin');
-        label.dataset.cycleIndex = String(cycleIndex);
-        label.dataset.subdivision = String(subdivisionIndex);
-        label.dataset.position = String(position);
-        label.textContent = formatted;
-        label.style.fontSize = `${subdivisionFontRem}rem`;
-        timeline.appendChild(label);
-        cycleLabels.push(label);
-      }
+      const label = document.createElement('div');
+      label.className = 'cycle-label';
+      label.dataset.cycleIndex = String(cycleIndex);
+      label.dataset.subdivision = String(subdivisionIndex);
+      label.dataset.position = String(position);
+      label.textContent = `.${subdivisionIndex}`;
+      timeline.appendChild(label);
+      cycleLabels.push(label);
     });
   }
 
-  // Layout elements
   layoutTimeline();
 
-  // Re-enable transitions
   requestAnimationFrame(() => {
     timeline.classList.remove('no-anim');
   });
@@ -487,46 +450,21 @@ function renderTimeline() {
 function layoutTimeline() {
   const lg = currentNumerator;
 
-  // Position pulses linearly
-  pulses.forEach((p, i) => {
-    const pct = (i / lg) * 100;
-    p.style.left = pct + '%';
-    p.style.top = '50%';
-    p.style.transform = 'translate(-50%, -50%)';
-  });
-
-  // Position bars at endpoints
-  bars.forEach((bar, idx) => {
-    const i = idx === 0 ? 0 : lg;
-    const pct = (i / lg) * 100;
-    bar.style.left = pct + '%';
-    bar.style.top = '30%';
-    bar.style.height = '40%';
-    bar.style.transform = 'translateX(-50%)';
-  });
-
-  // Position pulse numbers
-  pulseNumberLabels.forEach((num) => {
+  // nuzic-theme positions pulse-numbers vertically; only horizontal % dynamic.
+  pulses.forEach((num) => {
     const idx = parseInt(num.dataset.index, 10);
-    const pct = (idx / lg) * 100;
-    num.style.left = pct + '%';
-    num.style.top = '-10px';
-    num.style.transform = 'translate(-50%, -100%)';
+    num.style.left = (idx / lg) * 100 + '%';
   });
 
-  // Position cycle markers and labels
+  // Subdivision ticks/labels: vertical positioning is static in CSS.
   cycleMarkers.forEach((marker) => {
     const pos = parseFloat(marker.dataset.position);
-    const pct = (pos / lg) * 100;
-    marker.style.left = pct + '%';
-    marker.style.top = '50%';
+    marker.style.left = (pos / lg) * 100 + '%';
   });
 
   cycleLabels.forEach((label) => {
     const pos = parseFloat(label.dataset.position);
-    const pct = (pos / lg) * 100;
-    label.style.left = pct + '%';
-    label.style.top = '75%';
+    label.style.left = (pos / lg) * 100 + '%';
   });
 }
 
@@ -763,6 +701,24 @@ function init() {
       onChange: (bpm) => { if (isPlaying && audio) audio.setTempo(bpm); }
     });
     bpmController.attach();
+  }
+
+  // Reorder controls: Play, BPM, Random, Reset (nuzic compact row)
+  const bpmParam = document.getElementById('bpmParam');
+  const controls = document.querySelector('.controls');
+  if (controls) {
+    const playEl = controls.querySelector('.play') || document.getElementById('playBtn');
+    const randomEl = controls.querySelector('.random');
+    const resetEl = controls.querySelector('.reset');
+    const randomMenuEl = controls.querySelector('.random-menu');
+
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playEl) controls.appendChild(playEl);
+    if (bpmParam) controls.appendChild(bpmParam);
+    if (randomEl) controls.appendChild(randomEl);
+    if (randomMenuEl) controls.appendChild(randomMenuEl);
+    if (resetEl) controls.appendChild(resetEl);
   }
 
   // Initialize fraction editor

@@ -1,94 +1,26 @@
-/* App27: Fracciones Complejas - Estilos específicos */
+/* App27: Fracciones Complejas — Nuzic Theme */
 
+/* Hide legacy sound-toggle containers (managed via mixer now). */
 .control-sound-toggle-container--pulse,
 .control-sound-toggle-container--cycle {
   display: none;
 }
 
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
-body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 0px;
-}
-
-:root {
-  --cycle-color: #FFBB33;
-  --fraction-spinner-color: var(--line-color);
-}
-
-body[data-theme='light'] {
-  --fraction-spinner-color: var(--text-light);
-}
-
-body[data-theme='dark'] {
-  --fraction-spinner-color: var(--text-dark);
-}
-
-body.app27 {
-  --unit-label-offset: -20px;
-  --bpm-offset-x: -70px;
-  --bpm-offset-y: -15px;
-  --bpm-scale: 1;
-  --bpm-timeline-gap: 26px;
-}
-
-/* ========== INPUTS (BPM) ========== */
-.inputs {
-  display: none;
-}
-
-/* ========== BPM + TIMELINE LAYOUT ========== */
-.timeline-wrapper--bpm-left {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas:
-    "bpm timeline"
-    "controls controls";
-  column-gap: var(--bpm-timeline-gap);
-  align-items: center;
-  box-sizing: border-box;
-  padding-left: max(0px, calc(-1 * var(--bpm-offset-x)));
-}
-
-.timeline-wrapper--bpm-left > .bpm-inline {
-  grid-area: bpm;
-  position: relative;
-  justify-self: start;
-  align-self: center;
-  transform-origin: left center;
-  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
-}
-
-.timeline-wrapper--bpm-left > .timeline {
-  grid-area: timeline;
-  width: 100%;
-  margin: 0;
-}
-
-.timeline-wrapper--bpm-left > .controls {
-  grid-area: controls;
-}
-
-/* ========== MIDDLE SECTION ========== */
-.middle {
-  margin-bottom: 40px;
-}
-
-/* ========== FRACTION EDITOR (from App4) ========== */
+/* ========== FRACTION EDITOR (N/D input, stays in .middle above timeline) ========== */
 .fraction-editor-wrapper {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 1.125rem;
 }
 
 .fraction-editor {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  color: var(--line-color);
+  gap: 0.375rem;
+  color: var(--nuzic-dark, #43433B);
 }
 
 .fraction-editor .top,
@@ -99,14 +31,14 @@ body.app27 {
 }
 
 .fraction-editor .top {
-  border-bottom: 4px solid var(--line-color);
-  padding: 0 24px;
+  border-bottom: 4px solid var(--nuzic-dark, #43433B);
+  padding: 0 1.5rem;
 }
 
 .fraction-editor input {
-  width: 80px;
+  width: 5rem;
   text-align: center;
-  font-size: 3rem;
+  font-size: clamp(1.75rem, 4vw, 3rem);
   background: none;
   border: none;
   color: inherit;
@@ -115,7 +47,7 @@ body.app27 {
 }
 
 .fraction-editor input:focus {
-  border-bottom: 2px solid var(--selection-color);
+  border-bottom: 2px solid var(--nuzic-yellow, #FFBB33);
 }
 
 .fraction-editor input:disabled,
@@ -131,7 +63,7 @@ body.app27 {
 }
 
 .fraction-field input {
-  padding-right: 28px;
+  padding-right: 1.75rem;
 }
 
 .fraction-field .spinner {
@@ -143,15 +75,15 @@ body.app27 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  width: 24px;
-  color: var(--fraction-spinner-color, var(--line-color));
+  gap: 0.125rem;
+  width: 1.5rem;
+  color: var(--nuzic-dark, #43433B);
   transition: opacity 0.2s ease;
 }
 
 .fraction-field .spinner .spin {
   width: 100%;
-  height: 12px;
+  height: 0.75rem;
   border: none;
   background: transparent;
   padding: 0;
@@ -177,7 +109,7 @@ body.app27 {
 }
 
 .fraction-field .spinner .spin:active {
-  color: var(--selection-color);
+  color: var(--nuzic-yellow, #FFBB33);
 }
 
 .fraction-field--empty .spinner {
@@ -187,13 +119,13 @@ body.app27 {
 
 .fraction-field-placeholder {
   position: absolute;
-  inset: 0 28px 0 0;
+  inset: 0 1.75rem 0 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
+  font-size: clamp(1.75rem, 4vw, 3rem);
   font-weight: 500;
-  color: var(--line-color);
+  color: var(--nuzic-dark, #43433B);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
@@ -206,209 +138,93 @@ body.app27 {
 }
 
 /* ========== TIMELINE ========== */
+/* nuzic-theme handles most of the timeline styling. Only App27-specific
+   additions here: endpoint/non-selectable states + the subdivision row. */
+
 .timeline-wrapper {
   width: 90%;
-  max-width: 1200px;
-  margin: 60px auto 30px;
+  max-width: 75rem;
+  margin: 3.75rem auto 1.875rem;
+  position: relative;
 }
 
 .timeline {
   position: relative;
-  height: 120px;
-  --cycle-color: #FFBB33;
+  margin-top: 1.75rem;
 }
 
-/* Pulses */
-.pulse {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  background: var(--line-color);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  top: 50%;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  z-index: 10;
-}
-
-.pulse.endpoint {
-  width: 18px;
-  height: 18px;
-}
-
-.pulse.active {
-  background: var(--selection-color);
-  box-shadow: 0 0 12px var(--selection-color);
-}
-
-/* Bars at endpoints */
-.bar {
-  position: absolute;
-  width: 3px;
-  background: var(--line-color);
-  transform: translateX(-50%);
-  z-index: 5;
-}
-
-/* Pulse numbers */
-.pulse-number {
-  position: absolute;
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: var(--line-color);
-  transform: translate(-50%, 0);
-  pointer-events: none;
-  top: -35%;
-}
-
-.pulse-number.endpoint {
-  color: var(--color-lg);
+/* Endpoint pulse numbers (0 and Lg) stand out slightly (App27-specific). */
+.timeline .pulse-number.endpoint {
   font-weight: 700;
 }
 
-/* Non-selectable pulses (don't align with cycle starts) */
-.pulse.non-selectable {
-  opacity: 0.35;
-  filter: grayscale(0.5);
-}
+/* ========== SUBDIVISION ROW (BELOW the timeline, nuzic-main style) ========== */
 
-.pulse-number.non-selectable {
-  color: var(--text-muted, #888);
-  opacity: 0.5;
-}
-
-/* ========== CYCLE MARKERS (from App3) ========== */
-.cycle-marker {
+.timeline .cycle-marker {
   position: absolute;
-  width: 3px;
-  height: 14px;
-  background: var(--line-color);
-  transform: translate(-50%, -50%);
-  opacity: 0.75;
-  border-radius: 2px;
-  transition: opacity 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
-  pointer-events: none;
+  top: 2.95rem;
+  width: 2px;
+  height: 0.5rem;
+  background: var(--nuzic-dark, #43433B);
+  opacity: 0.55;
+  border-radius: 1px;
+  transform: translateX(-50%);
   z-index: 6;
-}
-
-.cycle-marker.start {
-  height: 30px;
-}
-
-.cycle-marker.active {
-  opacity: 1;
-  background: var(--selection-color);
-  box-shadow: 0 0 8px var(--selection-color);
-}
-
-/* Cycle labels */
-.cycle-label {
-  position: absolute;
-  color: var(--cycle-color);
-  font-size: 1.2rem;
-  transform: translate(-50%, 0);
   pointer-events: none;
-  transition: color 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.cycle-label--integer {
-  color: var(--cycle-color);
+.timeline .cycle-marker.active {
+  opacity: 1;
+  background: var(--nuzic-yellow, #FFBB33);
+  box-shadow: 0 0 6px var(--nuzic-yellow, #FFBB33);
 }
 
-.cycle-label--origin {
-  color: var(--color-lg);
+.timeline .cycle-label {
+  position: absolute;
+  top: 3.8rem;
+  color: var(--nuzic-dark, #43433B);
+  font-size: clamp(0.95rem, 2vw, 1rem);
+  opacity: 0.55;
   font-weight: 600;
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+  transition: color 0.3s ease, opacity 0.3s ease;
 }
 
-.cycle-label.active {
-  color: var(--selection-color);
-  font-weight: 600;
+.timeline .cycle-label.active {
+  color: var(--nuzic-yellow, #FFBB33);
+  opacity: 1;
+  font-weight: 700;
+}
+
+.timeline .cycle-label--integer {
+  display: none;
+}
+
+.timeline .subdivision-label {
+  position: absolute;
+  right: calc(100% + 0.5rem);
+  top: 3.8rem;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+  opacity: 0.75;
+  pointer-events: none;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 /* Disable transitions during render */
 .timeline.no-anim .cycle-marker,
 .timeline.no-anim .cycle-label,
-.timeline.no-anim .pulse {
+.timeline.no-anim .pulse-number {
   transition: none;
 }
 
 /* ========== CONTROLS ========== */
-/* Hide unnecessary buttons */
 .controls #tapTempoBtn,
 .controls #loopBtn {
   display: none !important;
-}
-
-/* ========== RESPONSIVE ========== */
-@media (max-width: 768px) {
-  body.app27 {
-    --unit-label-offset: -5px;
-    --bpm-scale: 0.9;
-    --bpm-timeline-gap: 14px;
-  }
-
-  .fraction-editor input {
-    font-size: 2.2rem;
-    width: 64px;
-  }
-
-  .fraction-editor .top {
-    padding: 0 16px;
-  }
-
-  .timeline-wrapper {
-    max-width: 100%;
-    padding: 0 15px;
-    margin: 40px auto 30px;
-  }
-
-  .timeline {
-    height: 100px;
-  }
-
-  .pulse {
-    width: 10px;
-    height: 10px;
-  }
-
-  .pulse.endpoint {
-    width: 14px;
-    height: 14px;
-  }
-
-  .pulse-number {
-    font-size: 1.2rem;
-  }
-
-  .cycle-marker {
-    height: 12px;
-  }
-
-  .cycle-marker.start {
-    height: 24px;
-  }
-
-  .cycle-label {
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  body.app27 {
-    --bpm-scale: 0.82;
-    --bpm-timeline-gap: 10px;
-  }
-
-  .fraction-editor input {
-    font-size: 1.8rem;
-    width: 56px;
-  }
-
-  .pulse-number {
-    font-size: 1rem;
-  }
-
-  .cycle-label {
-    font-size: 0.85rem;
-  }
 }
