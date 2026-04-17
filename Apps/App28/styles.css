@@ -35,31 +35,38 @@
 
 .pfr-editor .editor-label--p { background: var(--nuzic-yellow, #FFBB33); }
 
-/* Cream strip behind the cells (matches App12). */
+/* Cream strip behind the cells (single line, NO wrap). */
 .pfr-editor .editor-cells {
   display: flex;
   justify-content: flex-start;
   align-items: stretch;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0;
   background: var(--nuzic-light, #EEE8D8);
-  padding: 0.25rem 0.5rem;
-  min-height: 2.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 2.5rem;
 }
 
-/* Cell: square, monospace-ish, alternating white (value) + yellow (separator). */
+/* Square cells (App13 pattern: percent width + aspect-ratio). */
 .pfr-editor .editor-cell {
-  min-width: 2rem;
-  height: 2rem;
-  padding: 0 0.5rem;
+  width: 4%;
+  min-width: 1.875rem;
+  flex: none;
+  aspect-ratio: 1;
+  padding: 0;
   margin: 0;
   text-align: center;
   color: #43433b;
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  font-size: clamp(0.75rem, 1.5vw, 1.1rem);
   font-weight: 700;
   border: none;
   outline: none;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
 }
 
 /* Yellow separator (empty, readonly — shows placeholder color). */
