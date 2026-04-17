@@ -288,26 +288,6 @@ main {
   content: '\25CF';
 }
 
-/* Tooltip */
-.interval-editor-tooltip {
-  position: fixed;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
-  font-weight: 600;
-  z-index: 1000;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  background: #EF4444;
-  color: white;
-  white-space: nowrap;
-}
-
-.interval-editor-tooltip.visible {
-  opacity: 1;
-}
-
 /* ========== INTERVAL LINES (iSº arrows on grid) ========== */
 .interval-bar-vertical {
   position: absolute;

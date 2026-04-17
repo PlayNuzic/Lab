@@ -21,6 +21,7 @@ import { isFluteLoaded } from '../../libs/sound/flute.js';
 import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
@@ -75,6 +76,12 @@ let highlightController = null;
 
 // ========== STORAGE HELPERS ==========
 const preferenceStorage = createPreferenceStorage('app25b');
+
+// Shared info tooltip for validation warnings (matches legacy + App25 style)
+const infoTooltip = createInfoTooltip({
+  className: 'fraction-info-bubble auto-tip-below',
+  autoRemoveDelay: 2000
+});
 
 // ========== AUDIO INITIALIZATION ==========
 const _initAudio = createMelodicAudioInitializer({
@@ -726,55 +733,61 @@ function initIntervalEditor() {
   let entries = [];
   let autoJumpTimer = null;
 
-  function showTooltip(cell, message) {
-    let tooltip = document.querySelector('.interval-editor-tooltip');
-    if (!tooltip) {
-      tooltip = document.createElement('div');
-      tooltip.className = 'interval-editor-tooltip';
-      document.body.appendChild(tooltip);
-    }
-    tooltip.textContent = message;
-    const rect = cell.getBoundingClientRect();
-    tooltip.style.left = `${rect.left + rect.width / 2}px`;
-    tooltip.style.top = `${rect.top - 8}px`;
-    tooltip.style.transform = 'translate(-50%, -100%)';
-    tooltip.classList.add('visible');
-    setTimeout(() => tooltip.classList.remove('visible'), 1500);
+  function showError(cell, message) {
+    infoTooltip.show(message, cell);
   }
 
   function formatInterval(entry) {
-    if (entry.isRest) return '·';
+    if (entry.isRest) return 's';
     const v = entry.degreeInterval;
     if (v > 0) return `+${v}`;
     if (v < 0) return `${v}`;
     return '0';
   }
 
-  // Parse: "+3", "-2", "0", "2" → { degreeInterval: N, isRest: false }
-  //        ".", "r", "R" → { isRest: true }
+  // Parse (matches legacy): "s" → rest, "+N"/"-N"/"N" → signed interval.
+  // Aliases for convenience: ".", "r", "·" also mean rest.
   function parseIntervalInput(val) {
-    if (/^[.rR·]$/.test(val)) return { isRest: true };
-    const m = val.match(/^([+-]?\d+)$/);
-    if (m) {
-      const n = parseInt(m[1], 10);
-      if (!Number.isNaN(n)) return { degreeInterval: n, isRest: false };
+    const trimmed = val.trim().toLowerCase();
+    if (trimmed === 's' || trimmed === '.' || trimmed === 'r' || trimmed === '·') {
+      return { isRest: true };
+    }
+    const signed = trimmed.match(/^([+-])(\d+)$/);
+    if (signed) {
+      const sign = signed[1] === '+' ? 1 : -1;
+      return { degreeInterval: sign * parseInt(signed[2], 10), isRest: false };
+    }
+    const unsigned = trimmed.match(/^(\d+)$/);
+    if (unsigned) {
+      return { degreeInterval: parseInt(unsigned[1], 10), isRest: false };
     }
     return null;
   }
 
-  // Validate: accumulated degree stays within [0, maxAbsoluteDegree]
-  function validateInterval(parsed, entryIndex) {
-    if (parsed.isRest) return true;
-    const maxDeg = getMaxAbsoluteDegree();
+  // Validate change at entryIndex — cascade check across all entries.
+  // Returns { valid, message } with legacy error messages.
+  // entryIndex === null → appending a new entry at entries.length.
+  function validateIntervalChange(parsed, entryIndex) {
+    if (parsed.isRest) return { valid: true };
 
-    // Re-compute accumulated degree considering this change
+    const maxDeg = getMaxAbsoluteDegree();
+    const isNew = entryIndex === null || entryIndex >= entries.length;
+    const projected = entries.map((e, i) => (i === entryIndex ? parsed : e));
+    if (isNew) projected.push(parsed);
+
     let acc = BASE_DEGREE;
-    for (let i = 0; i < entries.length; i++) {
-      const e = i === entryIndex ? parsed : entries[i];
-      if (!e.isRest && typeof e.degreeInterval === 'number') acc += e.degreeInterval;
-      if (acc < 0 || acc > maxDeg) return false;
+    for (const e of projected) {
+      if (!e.isRest && typeof e.degreeInterval === 'number') {
+        acc += e.degreeInterval;
+        if (acc < 0) {
+          return { valid: false, message: `Grado resultante ${acc} es negativo` };
+        }
+        if (acc > maxDeg) {
+          return { valid: false, message: `Grado ${acc} excede el rango (máx: ${maxDeg})` };
+        }
+      }
     }
-    return true;
+    return { valid: true };
   }
 
   function createReadonlyCell(isRest = false) {
@@ -811,13 +824,14 @@ function initIntervalEditor() {
       const idx = parseInt(cell.dataset.entryIndex);
       const parsed = parseIntervalInput(val);
       if (!parsed) {
-        showTooltip(cell, 'iSº: ±N o · (rest)');
+        showError(cell, 'iSº: usa ±N (ej: +2, -1, 0) o s para silencio');
         cell.value = originalValue;
         return;
       }
 
-      if (!validateInterval(parsed, idx)) {
-        showTooltip(cell, 'Valor invalida seqüència');
+      const validation = validateIntervalChange(parsed, idx);
+      if (!validation.valid) {
+        showError(cell, validation.message);
         cell.value = originalValue;
         return;
       }
@@ -862,48 +876,44 @@ function initIntervalEditor() {
 
     cell.addEventListener('input', (e) => {
       const val = e.target.value;
-      if (val === '') return;
+      if (val === '') { clearTimeout(autoJumpTimer); return; }
 
-      // Rest: single char "·", ".", "r", "R"
-      if (/^[.rR·]$/.test(val)) {
+      const trimmed = val.trim().toLowerCase();
+
+      // Rest: single character 's' (legacy) or convenience aliases "·", ".", "r"
+      if (/^[s.r·]$/.test(trimmed)) {
         clearTimeout(autoJumpTimer);
         commitInterval({ isRest: true });
         return;
       }
 
       // Partial: only sign, wait for digits
-      if (/^[+-]$/.test(val)) {
+      if (/^[+-]$/.test(trimmed)) {
         clearTimeout(autoJumpTimer);
         return;
       }
 
-      const parsed = parseIntervalInput(val);
-      if (!parsed) {
-        e.target.value = '';
-        return;
-      }
-
-      clearTimeout(autoJumpTimer);
-      // Give 500ms to allow typing multi-digit or further keys
-      autoJumpTimer = setTimeout(() => {
-        const current = cell.value.trim();
-        const p = parseIntervalInput(current);
-        if (!p) { cell.value = ''; return; }
-        if (!p.isRest) {
-          // Hypothetical new entry at position entries.length
-          const hypothetical = { degreeInterval: p.degreeInterval, pulse: entries.length, isRest: false };
-          const entriesBackup = entries;
-          entries = [...entries, hypothetical];
-          const valid = validateInterval(hypothetical, entries.length - 1);
-          entries = entriesBackup;
-          if (!valid) {
-            showTooltip(cell, 'iSº fora de rang');
+      // Complete number (signed or unsigned): schedule validation after AUTO_JUMP delay
+      if (/^[+-]?\d+$/.test(trimmed)) {
+        clearTimeout(autoJumpTimer);
+        autoJumpTimer = setTimeout(() => {
+          const current = cell.value.trim();
+          const p = parseIntervalInput(current);
+          if (!p) { cell.value = ''; return; }
+          const validation = validateIntervalChange(p, null);
+          if (!validation.valid) {
+            showError(cell, validation.message);
             cell.value = '';
             return;
           }
-        }
-        commitInterval(p);
-      }, 500);
+          commitInterval(p);
+        }, 500);
+        return;
+      }
+
+      // Any other input is invalid — clear
+      e.target.value = '';
+      clearTimeout(autoJumpTimer);
     });
 
     cell.addEventListener('keydown', (e) => {
@@ -913,7 +923,18 @@ function initIntervalEditor() {
         const val = cell.value.trim();
         if (val) {
           const parsed = parseIntervalInput(val);
-          if (parsed) commitInterval(parsed);
+          if (!parsed) {
+            showError(cell, 'iSº: usa ±N (ej: +2, -1, 0) o s para silencio');
+            cell.value = '';
+            return;
+          }
+          const validation = validateIntervalChange(parsed, null);
+          if (!validation.valid) {
+            showError(cell, validation.message);
+            cell.value = '';
+            return;
+          }
+          commitInterval(parsed);
         }
         return;
       }
