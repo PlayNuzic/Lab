@@ -584,6 +584,10 @@ function createPfrValueCell(token, entryIndex) {
       return;
     }
 
+    if (wouldReorderInsert(parsed.token, originalValue)) {
+      showValidationWarning(pfrEditorEl, 'Reposicionando pulsos');
+    }
+
     selectedPulses.delete(originalValue);
     selectedPulses.add(parsed.token);
     syncTimelineFromSelection();
@@ -686,6 +690,10 @@ function tryCommitFromInput(cell) {
     return;
   }
 
+  if (wouldReorderInsert(parsed.token)) {
+    showValidationWarning(pfrEditorEl, 'Reposicionando pulsos');
+  }
+
   selectedPulses.add(parsed.token);
   syncTimelineFromSelection();
   syncAudioAndRender();
@@ -715,6 +723,20 @@ function parseAndValidateToken(raw) {
     warning = `Corregido: ${raw}→${token}`;
   }
   return { token, warning };
+}
+
+/**
+ * True if inserting `token` would cause existing tokens to be pushed after
+ * it (i.e. the new token's value is smaller than at least one existing).
+ * Used to fire the legacy "Reposicionando pulsos" warning.
+ */
+function wouldReorderInsert(token, excludeOriginal = null) {
+  const newVal = pulseTokenValue(token);
+  for (const existing of selectedPulses) {
+    if (excludeOriginal && existing === excludeOriginal) continue;
+    if (pulseTokenValue(existing) > newVal) return true;
+  }
+  return false;
 }
 
 function nextEditableCell(cell) {
