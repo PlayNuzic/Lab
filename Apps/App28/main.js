@@ -148,9 +148,16 @@ function createPfrLayout() {
   pfrRow.className = 'pfr-row';
   pfrRow.appendChild(pulseSeqEl);
 
-  // Insert AFTER timeline (editor lives below timeline, app13-style).
+  // Insert AFTER timeline-wrapper AND move the .controls block to sit BELOW
+  // the editor (visual stack: timeline → editor → controls — App13 pattern).
   if (timelineWrapper && timelineWrapper.parentNode) {
-    timelineWrapper.parentNode.insertBefore(pfrRow, timelineWrapper.nextSibling);
+    const parent = timelineWrapper.parentNode;
+    parent.insertBefore(pfrRow, timelineWrapper.nextSibling);
+
+    const controls = timelineWrapper.querySelector('.controls');
+    if (controls) {
+      parent.insertBefore(controls, pfrRow.nextSibling);
+    }
   }
 }
 
