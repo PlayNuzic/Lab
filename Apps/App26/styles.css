@@ -185,7 +185,7 @@
   position: absolute;
   top: 3.8rem;
   color: var(--nuzic-dark, #43433B);
-  font-size: clamp(0.55rem, 1vw, 0.75rem);
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
   opacity: 0.55;
   font-weight: 600;
   transform: translateX(-50%);
@@ -210,7 +210,7 @@
   position: absolute;
   right: calc(100% + 0.5rem);
   top: 3.8rem;
-  font-size: clamp(0.7rem, 1.3vw, 0.95rem);
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
   font-weight: 700;
   color: var(--nuzic-dark, #43433B);
   opacity: 0.75;
