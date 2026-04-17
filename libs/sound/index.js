@@ -1582,6 +1582,12 @@ export class TimelineAudio {
       let n = Math.max(baseStep, scheduledStep + 1);
 
       while (true) {
+        // Single-shot playback: do not pre-schedule beyond the final step.
+        // _resolveStepIndex would wrap n → 0, and the worklet's 'done' message
+        // can race with the tick's look-ahead, producing an extra pulse at the
+        // wrapped index before stop() propagates.
+        if (!this.loopRef && this.totalRef > 0 && n >= this.totalRef) break;
+
         const when = this._stepTime(n);
         if (when == null || when > horizon) break;
 
