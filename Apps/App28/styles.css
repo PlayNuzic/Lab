@@ -1,119 +1,41 @@
-/* App28: Sucesion de Pulsos Fraccionados Simples - Estilos especificos */
+/* App28: Sucesion de Pulsos Fraccionados Simples — Nuzic Theme */
 
-:root {
-  --cycle-color: #FFBB33;
-  --fraction-spinner-color: var(--line-color);
-  /* Button offsets for App28 */
-  --btn-loop-offset-x: 0px;
-  --btn-loop-offset-y: 0px;
-  --btn-random-offset-x: 0px;
-  --btn-random-offset-y: 0px;
-  --btn-reset-offset-x: 0px;
-  --btn-reset-offset-y: 0px;
-  --btn-tap-offset-x: 0px;
-  --btn-tap-offset-y: 0px;
-  /* Toggle button offsets */
-  --toggle-pulse-offset-x: 0px;
-  --toggle-pulse-offset-y: 0px;
-  --toggle-selected-offset-x: 75px;
-  --toggle-selected-offset-y: 0px;
-  --toggle-cycle-offset-x: 0px;
-  --toggle-cycle-offset-y: 0px;
-}
-
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
-body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 0px;
-}
-
-body[data-theme='light'] {
-  --fraction-spinner-color: var(--text-light);
-}
-
-body[data-theme='dark'] {
-  --fraction-spinner-color: var(--text-dark);
-}
-
-body.app28 {
-  --unit-label-offset: -20px;
-  --bpm-offset-x: -70px;
-  --bpm-offset-y: -15px;
-  --bpm-scale: 1;
-  --bpm-timeline-gap: 24px;
-}
-
-/* ========== INPUTS (BPM) ========== */
-.inputs {
+/* Hide legacy sound-toggle containers (managed via mixer now). */
+.control-sound-toggle-container--pulse,
+.control-sound-toggle-container--selected,
+.control-sound-toggle-container--cycle {
   display: none;
 }
 
-/* ========== BPM + TIMELINE LAYOUT ========== */
-.timeline-wrapper--bpm-left {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas:
-    "bpm timeline"
-    "controls controls";
-  column-gap: var(--bpm-timeline-gap);
-  align-items: center;
-  box-sizing: border-box;
-  padding-left: max(0px, calc(-1 * var(--bpm-offset-x)));
-}
-
-.timeline-wrapper--bpm-left > .bpm-inline {
-  grid-area: bpm;
-  position: relative;
-  justify-self: start;
-  align-self: center;
-  transform-origin: left center;
-  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
-}
-
-.timeline-wrapper--bpm-left > .timeline {
-  grid-area: timeline;
-  width: 100%;
-  margin: 0;
-}
-
-.timeline-wrapper--bpm-left > .controls {
-  grid-area: controls;
-}
-
-/* ========== MIDDLE SECTION (oculta) ========== */
-.middle {
-  display: none;
-}
-
-/* ========== Pfr ROW LAYOUT ========== */
+/* ========== Pfr ROW (pulse-seq editor, lives BELOW timeline) ========== */
 .pfr-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin: 20px auto;
-  padding: 0 20px;
+  gap: 0.625rem;
+  margin: 1.25rem auto;
+  padding: 0 1.25rem;
 }
 
-/* ========== Pfr SEQUENCE EDITOR ========== */
 #pulseSeq {
-  font-size: 2.8rem;
+  font-size: clamp(1.6rem, 3.5vw, 2.8rem);
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: var(--line-color);
+  gap: 0.625rem;
+  color: var(--nuzic-dark, #43433B);
   position: relative;
+  font-weight: 600;
 }
 
 #pulseSeq .pz.label {
-  color: var(--selection-color);
+  color: var(--nuzic-yellow, #FFBB33);
   font-weight: 700;
   user-select: none;
 }
 
 #pulseSeq .pz.open,
 #pulseSeq .pz.close {
-  color: var(--line-color);
+  color: var(--nuzic-dark, #43433B);
   opacity: 1;
   user-select: none;
 }
@@ -122,7 +44,7 @@ body.app28 {
   outline: none;
   white-space: pre;
   display: inline-block;
-  caret-color: var(--line-color);
+  caret-color: var(--nuzic-dark, #43433B);
   min-height: 1.2em;
   min-width: 2ch;
 }
@@ -131,8 +53,7 @@ body.app28 {
   content: '  ';
 }
 
-/* ========== FRACTION INLINE ========== */
-/* Hide placeholders that overlap with spinners */
+/* ========== INLINE FRACTION EDITOR (inside #pulseSeq label) ========== */
 .fraction-field-placeholder {
   display: none !important;
 }
@@ -170,7 +91,7 @@ body.app28 {
   align-items: center;
   justify-content: center;
   width: 5.5ch;
-  max-width: 180px;
+  max-width: 11.25rem;
   min-height: 0.18em;
   height: 0.18em;
   background: currentColor;
@@ -199,9 +120,9 @@ body.app28 {
 
 .fraction-editor--inline input {
   width: 3ch;
-  font-size: 2.8rem;
+  font-size: clamp(1.6rem, 3.5vw, 2.8rem);
   font-weight: 500;
-  padding-right: 28px;
+  padding-right: 1.75rem;
   text-align: center;
   background: none;
   border: none;
@@ -217,19 +138,19 @@ body.app28 {
 }
 
 .fraction-editor-wrapper--inline .spinner {
-  width: 24px;
+  width: 1.5rem;
   position: absolute;
-  right: -4px;
+  right: -0.25rem;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.125rem;
 }
 
 .fraction-editor--inline .spinner .spin {
   width: 100%;
-  height: 12px;
+  height: 0.75rem;
   border: none;
   background: transparent;
   padding: 0;
@@ -237,7 +158,7 @@ body.app28 {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--fraction-spinner-color, var(--line-color));
+  color: var(--nuzic-dark, #43433B);
 }
 
 .fraction-editor--inline .spinner .spin::before {
@@ -255,258 +176,118 @@ body.app28 {
 }
 
 .fraction-editor--inline .spinner .spin:active {
-  color: var(--selection-color);
+  color: var(--nuzic-yellow, #FFBB33);
 }
 
 /* ========== TIMELINE ========== */
+/* nuzic-theme handles timeline/pulse-number styling. App28-specific: selection
+   states on clickable pulses + the subdivision row below. */
 .timeline-wrapper {
   width: 90%;
-  max-width: 1200px;
-  margin: 40px auto 30px;
+  max-width: 75rem;
+  margin: 2.5rem auto 1.875rem;
+  position: relative;
 }
 
 .timeline {
   position: relative;
-  height: 120px;
-  --cycle-color: #FFBB33;
+  margin-top: 1.75rem;
 }
 
-/* Pulses */
-.pulse {
+/* Selected pulse-number: blue pill (nuzic selection color). */
+.timeline .pulse-number.selected {
+  background: var(--nuzic-blue-light, #c8e4f2);
+  color: var(--nuzic-dark, #43433B);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+}
+
+.timeline .pulse-number {
+  cursor: pointer;
+}
+
+/* ========== SUBDIVISION ROW (BELOW timeline, nuzic-main style) ========== */
+.timeline .cycle-marker {
   position: absolute;
-  width: 14px;
-  height: 14px;
-  background: var(--line-color);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  top: 50%;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  z-index: 10;
-  cursor: pointer;
-}
-
-.pulse.endpoint {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-.pulse.active {
-  background: var(--selection-color);
-  animation: pulseFlash var(--pulse-anim-duration, 0.35s) ease-out forwards;
-}
-
-@keyframes pulseFlash {
-  0% {
-    box-shadow: 0 0 0px var(--selection-color);
-    transform: translate(-50%, -50%) scale(1);
-    background: var(--selection-color);
-    opacity: 1;
-  }
-  40% {
-    box-shadow: 0 0 16px var(--selection-color);
-    transform: translate(-50%, -50%) scale(1.3);
-    background: var(--selection-color);
-    opacity: 1;
-  }
-  80% {
-    box-shadow: 0 0 8px var(--selection-color);
-    transform: translate(-50%, -50%) scale(1.05);
-    background: var(--selection-color);
-    opacity: 0.6;
-  }
-  100% {
-    box-shadow: 0 0 0px var(--selection-color);
-    transform: translate(-50%, -50%) scale(1);
-    background: var(--line-color);
-    opacity: 1;
-  }
-}
-
-/* Selected pulses illuminate with selection color (including endpoints) */
-.pulse.selected {
-  background: var(--selection-color);
-  box-shadow: 0 0 12px var(--selection-color);
-}
-
-/* Selected + active pulses scale up for visual feedback */
-.pulse.selected.active {
-  transform: translate(-50%, -50%) scale(1.5);
-  box-shadow: 0 0 18px var(--selection-color);
-}
-
-/* Clickable pulses */
-.pulse:not(.endpoint) {
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-/* Bars at endpoints */
-.bar {
-  position: absolute;
-  width: 3px;
-  background: var(--line-color);
+  top: 2.95rem;
+  width: 2px;
+  height: 0.5rem;
+  background: var(--nuzic-dark, #43433B);
+  opacity: 0.55;
+  border-radius: 1px;
   transform: translateX(-50%);
-  z-index: 5;
+  z-index: 6;
+  cursor: pointer;
+  transition: opacity 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Pulse numbers */
-.pulse-number {
+.timeline .cycle-marker.active {
+  opacity: 1;
+  background: var(--nuzic-yellow, #FFBB33);
+  box-shadow: 0 0 6px var(--nuzic-yellow, #FFBB33);
+}
+
+.timeline .cycle-marker.selected {
+  opacity: 1;
+  background: var(--nuzic-blue, #4A9EFF);
+  box-shadow: 0 0 4px var(--nuzic-blue-light, #c8e4f2);
+}
+
+.timeline .cycle-label {
   position: absolute;
-  font-size: 1.4rem;
+  top: 3.8rem;
+  color: var(--nuzic-dark, #43433B);
+  font-size: clamp(0.95rem, 2vw, 1rem);
+  opacity: 0.55;
   font-weight: 600;
-  color: var(--line-color);
-  transform: translate(-50%, 0);
-  pointer-events: none;
-  top: -35%;
+  transform: translateX(-50%);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.3s ease, opacity 0.3s ease;
 }
 
-.pulse-number.endpoint {
-  color: var(--color-lg);
+.timeline .cycle-label.active {
+  color: var(--nuzic-yellow, #FFBB33);
+  opacity: 1;
   font-weight: 700;
 }
 
-/* ========== CYCLE MARKERS (from App3) ========== */
-.cycle-marker {
+.timeline .cycle-label.selected {
+  color: var(--nuzic-blue, #4A9EFF);
+  opacity: 1;
+  font-weight: 700;
+}
+
+.timeline .cycle-label--integer {
+  display: none;
+}
+
+.timeline .subdivision-label {
   position: absolute;
-  width: 3px;
-  height: 20px;
-  background: var(--line-color);
-  transform: translate(-50%, -50%);
+  right: calc(100% + 0.5rem);
+  top: 3.8rem;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
   opacity: 0.75;
-  border-radius: 2px;
-  transition: opacity 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
-  pointer-events: auto;
-  cursor: pointer;
-  z-index: 6;
+  pointer-events: none;
+  white-space: nowrap;
+  line-height: 1;
 }
 
-/* Extend clickable area with invisible pseudo-element */
-.cycle-marker::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -6px;
-  right: -6px;
-  bottom: 0;
-}
-
-.cycle-marker.start {
-  height: 30px;
-  cursor: default;
-}
-
-.cycle-marker.active {
-  background: var(--selection-color);
-  animation: cycleMarkerFlash var(--pulse-anim-duration, 0.35s) ease-out forwards;
-  opacity: 1;
-}
-
-@keyframes cycleMarkerFlash {
-  0% {
-    box-shadow: 0 0 0px var(--selection-color);
-    transform: translate(-50%, -50%) scale(1);
-    background: var(--selection-color);
-    opacity: 1;
-  }
-  40% {
-    box-shadow: 0 0 16px var(--selection-color);
-    transform: translate(-50%, -50%) scale(1.3);
-    background: var(--selection-color);
-    opacity: 1;
-  }
-  80% {
-    box-shadow: 0 0 8px var(--selection-color);
-    transform: translate(-50%, -50%) scale(1.05);
-    background: var(--selection-color);
-    opacity: 0.6;
-  }
-  100% {
-    box-shadow: 0 0 0px var(--selection-color);
-    transform: translate(-50%, -50%) scale(1);
-    background: var(--line-color);
-    opacity: 0.75;
-  }
-}
-
-/* Selected cycle markers illuminate with selection color */
-.cycle-marker.selected:not(.start) {
-  opacity: 1;
-  background: var(--selection-color);
-  box-shadow: 0 0 12px var(--selection-color);
-}
-
-/* Selected + active cycle markers - just glow, no transform */
-.cycle-marker.selected.active:not(.start) {
-  box-shadow: 0 0 18px var(--selection-color);
-}
-
-/* Clickable cycle markers */
-.cycle-marker:not(.start) {
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-/* Cycle labels */
-.cycle-label {
-  position: absolute;
-  color: var(--cycle-color);
-  font-size: 1.2rem;
-  transform: translate(-50%, 0);
-  pointer-events: auto;
-  cursor: pointer;
-  transition: color 0.3s ease, transform 0.3s ease;
-}
-
-.cycle-label--integer {
-  color: var(--cycle-color);
-}
-
-.cycle-label--origin {
-  color: var(--color-lg);
-  font-weight: 600;
-}
-
-.cycle-label.active {
-  color: var(--selection-color);
-  font-weight: 600;
-}
-
-/* Selected cycle labels use selection color */
-.cycle-label.selected:not(.cycle-label--origin) {
-  color: var(--selection-color);
-  font-weight: 600;
-  text-shadow: 0 0 10px var(--selection-color);
-}
-
-/* Selected + active cycle labels scale up for visual feedback */
-.cycle-label.selected.active:not(.cycle-label--origin) {
-  transform: translate(-50%, 0) scale(1.3);
-  text-shadow: 0 0 15px var(--selection-color);
-}
-
-/* Disable transitions during render */
 .timeline.no-anim .cycle-marker,
 .timeline.no-anim .cycle-label,
-.timeline.no-anim .pulse {
+.timeline.no-anim .pulse-number {
   transition: none;
 }
 
-/* ========== CONTROLS ========== */
-/* Hide unnecessary buttons */
-.controls #tapTempoBtn,
-.controls #loopBtn {
-  display: none !important;
-}
-
-/* ========== PULSE SEQUENCE HIGHLIGHT OVERLAYS ========== */
+/* ========== PULSE-SEQ HIGHLIGHT OVERLAYS (playback flash) ========== */
 #pulseSeqHighlight,
 #pulseSeqHighlight2 {
   position: absolute;
   border-radius: 50%;
-  background: var(--selection-color);
-  color: var(--selection-color);
+  background: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-yellow, #FFBB33);
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%);
@@ -520,112 +301,23 @@ body.app28 {
 @keyframes pulseSeqFlash {
   0% {
     opacity: 0.7;
-    box-shadow: 0 0 14px var(--selection-color), 0 0 20px currentColor;
+    box-shadow: 0 0 14px var(--nuzic-yellow, #FFBB33), 0 0 20px currentColor;
     transform: translate(-50%, -50%) scale(1);
   }
   40% {
     opacity: 0.9;
-    box-shadow: 0 0 20px var(--selection-color), 0 0 28px currentColor;
+    box-shadow: 0 0 20px var(--nuzic-yellow, #FFBB33), 0 0 28px currentColor;
     transform: translate(-50%, -50%) scale(1.3);
   }
   100% {
     opacity: 0;
-    box-shadow: 0 0 0px var(--selection-color);
+    box-shadow: 0 0 0px var(--nuzic-yellow, #FFBB33);
     transform: translate(-50%, -50%) scale(1);
   }
 }
 
-/* ========== RESPONSIVE ========== */
-@media (max-width: 768px) {
-  body.app28 {
-    --unit-label-offset: -5px;
-    --bpm-scale: 0.9;
-    --bpm-timeline-gap: 12px;
-  }
-
-  .pfr-row {
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  #pulseSeq {
-    font-size: 2rem;
-    gap: 8px;
-  }
-
-  .fraction-editor--inline input {
-    font-size: 2rem;
-    width: 2.5ch;
-    padding-right: 22px;
-  }
-
-  .fraction-editor-wrapper--inline .spinner {
-    width: 20px;
-  }
-
-  .timeline-wrapper {
-    max-width: 100%;
-    padding: 0 15px;
-    margin: 30px auto 30px;
-  }
-
-  .timeline {
-    height: 100px;
-  }
-
-  .pulse {
-    width: 10px;
-    height: 10px;
-  }
-
-  .pulse.endpoint {
-    width: 14px;
-    height: 14px;
-  }
-
-  .pulse-number {
-    font-size: 1.2rem;
-  }
-
-  .cycle-marker {
-    height: 12px;
-  }
-
-  .cycle-marker.start {
-    height: 24px;
-  }
-
-  .cycle-label {
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  body.app28 {
-    --bpm-scale: 0.8;
-    --bpm-timeline-gap: 8px;
-  }
-
-  .pfr-row {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  #pulseSeq {
-    font-size: 1.6rem;
-  }
-
-  .fraction-editor--inline input {
-    font-size: 1.6rem;
-    width: 2ch;
-    padding-right: 18px;
-  }
-
-  .pulse-number {
-    font-size: 1rem;
-  }
-
-  .cycle-label {
-    font-size: 0.85rem;
-  }
+/* ========== CONTROLS ========== */
+.controls #tapTempoBtn,
+.controls #loopBtn {
+  display: none !important;
 }

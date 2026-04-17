@@ -11,7 +11,7 @@ import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
-import { gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
+import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { randomInt } from '../../libs/app-common/number-utils.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import createPulseSeqController from '../../libs/pulse-seq/pulse-seq.js';
@@ -39,11 +39,9 @@ let currentDenominator = DEFAULT_DENOMINATOR;
 const selectedPulses = new Set(); // Set of pulse keys like "0.1", "3", "5.2"
 
 // DOM elements
-let pulses = [];
-let bars = [];
+let pulses = [];       // .pulse-number elements (clickable for selection)
 let cycleMarkers = [];
 let cycleLabels = [];
-let pulseNumberLabels = [];
 
 // Controllers
 let fractionEditorController = null;
@@ -86,7 +84,7 @@ bindSharedSoundEvents({
 
 // ========== DOM ELEMENTS ==========
 const timeline = document.getElementById('timeline');
-const timelineWrapper = document.getElementById('timelineWrapper');
+const timelineWrapper = document.getElementById('timelineWrapper');  // used to insert pfrRow after
 const playBtn = document.getElementById('playBtn');
 const randomBtn = document.getElementById('randomBtn');
 const resetBtn = document.getElementById('resetBtn');
@@ -152,9 +150,9 @@ function createPfrLayout() {
 
   pfrRow.appendChild(pulseSeqEl);
 
-  // Insert before timeline
+  // Insert AFTER timeline (editor lives below timeline, app13-style)
   if (timelineWrapper && timelineWrapper.parentNode) {
-    timelineWrapper.parentNode.insertBefore(pfrRow, timelineWrapper);
+    timelineWrapper.parentNode.insertBefore(pfrRow, timelineWrapper.nextSibling);
   }
 }
 
@@ -1023,53 +1021,43 @@ function addRepeatPress(el, fn) {
 function renderTimeline() {
   if (!timeline) return;
 
-  // Disable transitions during render
   timeline.classList.add('no-anim');
 
-  // Clear previous elements
   pulses = [];
-  bars = [];
   cycleMarkers = [];
   cycleLabels = [];
-  pulseNumberLabels = [];
   timeline.innerHTML = '';
 
   const lg = FIXED_LG;
   const numerator = FIXED_NUMERATOR;
   const denominator = currentDenominator;
 
-  // Create pulses (0 to lg inclusive for endpoint)
-  for (let i = 0; i <= lg; i++) {
-    const pulse = document.createElement('div');
-    pulse.className = 'pulse';
-    pulse.dataset.index = i;
-    timeline.appendChild(pulse);
-
-  }
-
-  // Create pulse numbers (0 to lg)
+  // Pulse numbers — nuzic-theme renders ticks via ::before/::after and hides
+  // legacy .pulse dots. The numbers themselves are the clickable targets.
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);
-    pulseNumberLabels.push(num);
     pulses.push(num);
   }
 
-  // Calculate cycle markers using gridFromOrigin
-  const grid = gridFromOrigin({ lg, numerator, denominator });
-  const subdivisionFontRem = computeSubdivisionFontRem(lg);
+  // Single "1/N" subdivision label anchored to the left of the subdivision row.
+  const subdivisionLabel = document.createElement('div');
+  subdivisionLabel.className = 'subdivision-label';
+  subdivisionLabel.textContent = `${numerator}/${denominator}`;
+  timeline.appendChild(subdivisionLabel);
 
+  // Subdivision ticks + ".N" labels for fractional positions. Integers are
+  // skipped — already marked by pulse-number::before (nuzic-theme).
+  const grid = gridFromOrigin({ lg, numerator, denominator });
   if (grid.cycles > 0 && grid.subdivisions.length) {
     grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
-      // Skip integer positions (subdivisionIndex === 0), they're already created as pulses
       if (subdivisionIndex === 0) return;
 
       const base = cycleIndex * numerator;
 
-      // Create subdivision marker
       const marker = document.createElement('div');
       marker.className = 'cycle-marker';
       marker.dataset.cycleIndex = String(cycleIndex);
@@ -1079,7 +1067,6 @@ function renderTimeline() {
       timeline.appendChild(marker);
       cycleMarkers.push(marker);
 
-      // Create subdivision label (format: .n not base.n)
       const label = document.createElement('div');
       label.className = 'cycle-label';
       label.dataset.cycleIndex = String(cycleIndex);
@@ -1087,22 +1074,15 @@ function renderTimeline() {
       label.dataset.position = String(position);
       label.dataset.base = String(base);
       label.textContent = `.${subdivisionIndex}`;
-      label.style.fontSize = `${subdivisionFontRem}rem`;
       timeline.appendChild(label);
       cycleLabels.push(label);
     });
   }
 
-  // Attach click handlers for selection
   attachSelectionHandlers();
-
-  // Layout elements
   layoutTimeline();
-
-  // Apply current selection
   syncTimelineFromSelection();
 
-  // Re-enable transitions
   requestAnimationFrame(() => {
     timeline.classList.remove('no-anim');
   });
@@ -1204,47 +1184,22 @@ function toggleSubdivisionSelection(token, base, subdivision) {
 function layoutTimeline() {
   const lg = FIXED_LG;
 
-  // Position pulses linearly
-  pulses.forEach((p, i) => {
-    const pct = (i / lg) * 100;
-    p.style.left = pct + '%';
-    p.style.top = '50%';
-    p.style.transform = 'translate(-50%, -50%)';
-  });
-
-  // Position bars at endpoints
-  bars.forEach((bar, idx) => {
-    const i = idx === 0 ? 0 : lg;
-    const pct = (i / lg) * 100;
-    bar.style.left = pct + '%';
-    bar.style.top = '30%';
-    bar.style.height = '40%';
-    bar.style.transform = 'translateX(-50%)';
-  });
-
-  // Position pulse numbers (top: 0, transform: translate(-50%, 0%))
-  pulseNumberLabels.forEach((num) => {
+  // Vertical positioning is handled by nuzic-theme (.pulse-number) and
+  // App28 styles.css (.cycle-marker, .cycle-label). Only horizontal
+  // percentage is dynamic per render.
+  pulses.forEach((num) => {
     const idx = parseInt(num.dataset.index, 10);
-    const pct = (idx / lg) * 100;
-    num.style.left = pct + '%';
-    num.style.top = '0';
-    num.style.transform = 'translate(-50%, 0%)';
+    num.style.left = (idx / lg) * 100 + '%';
   });
 
-  // Position cycle markers
   cycleMarkers.forEach((marker) => {
     const pos = parseFloat(marker.dataset.position);
-    const pct = (pos / lg) * 100;
-    marker.style.left = pct + '%';
-    marker.style.top = '50%';
+    marker.style.left = (pos / lg) * 100 + '%';
   });
 
-  // Position cycle labels (subdivisions)
   cycleLabels.forEach((label) => {
     const pos = parseFloat(label.dataset.position);
-    const pct = (pos / lg) * 100;
-    label.style.left = pct + '%';
-    label.style.top = '75%';
+    label.style.left = (pos / lg) * 100 + '%';
   });
 }
 
@@ -1590,6 +1545,24 @@ function init() {
       onChange: (bpm) => { if (isPlaying && audio) audio.setTempo(bpm); }
     });
     bpmController.attach();
+  }
+
+  // Reorder controls: Play, BPM, Random, Reset (nuzic compact row)
+  const bpmParam = document.getElementById('bpmParam');
+  const controls = document.querySelector('.controls');
+  if (controls) {
+    const playEl = controls.querySelector('.play') || document.getElementById('playBtn');
+    const randomEl = controls.querySelector('.random');
+    const resetEl = controls.querySelector('.reset');
+    const randomMenuEl = controls.querySelector('.random-menu');
+
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playEl) controls.appendChild(playEl);
+    if (bpmParam) controls.appendChild(bpmParam);
+    if (randomEl) controls.appendChild(randomEl);
+    if (randomMenuEl) controls.appendChild(randomMenuEl);
+    if (resetEl) controls.appendChild(resetEl);
   }
 
   // Initialize pulse sequence editor FIRST (creates fractionSlot)
