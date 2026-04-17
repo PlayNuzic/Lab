@@ -351,7 +351,14 @@ function handleReset() {
   gridEditor?.clear();
   musicalGrid?.clear();
 
-  // Clear lost degrees memory on reset
+  // musicalGrid.clear() only removes .active/.highlight classes. Strip the
+  // App25-specific .rest markers (silence dotted lines) and any cell labels
+  // the silence sync added.
+  document.querySelectorAll('.musical-cell.rest').forEach(cell => {
+    cell.classList.remove('rest');
+  });
+  document.querySelectorAll('.musical-cell .cell-label').forEach(el => el.remove());
+
   lostDegreesMemory.clear();
 
   if (musicalGrid?.clearIntervalPaths) {
