@@ -346,11 +346,13 @@ async function handlePlay() {
   audioInstance.configureMeasure(compas, totalSteps);
   audioInstance.setMeasureEnabled(p0Enabled);
 
-  // Calculate fade-out volumes (descending: 0.5, 0.25, 0.1)
-  const fadeVolumes = [0.5, 0.25, 0.1];
-
-  // Store original volume to restore later
+  // Store original volume (captured once, used as fade reference)
   const originalVolume = getVolume();
+
+  // Fade-out volumes as fractions of originalVolume so the cadence always
+  // fades DOWN from the main-sequence level regardless of the user's master
+  // volume setting. Fractions: 50%, 25%, 10%.
+  const fadeVolumes = [originalVolume * 0.5, originalVolume * 0.25, originalVolume * 0.1];
 
   audioInstance.play(
     totalSteps,
