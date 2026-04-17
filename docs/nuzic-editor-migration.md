@@ -9,7 +9,9 @@
 - [x] **App25** — Editor Nº (graus d'escala) single-row dins `.grid-container` com a grid-row 3
 - [x] **App25B** — Editor iSº (intervals de graus) single-row, validació cascade, fletxes ←/→
 - [x] **App26** — Timeline standalone amb fila de subdivisions (fraccions 1/d) — primera app del grup fraccions
-- [ ] **App27-31** — Fraccions diverses (pendent, patró de subdivision-row validat a App26)
+- [x] **App27** — Fraccions complexes N/D (numerador i denominador editables, lg=numerador)
+- [x] **App28** — Pulsos fraccionats simples amb editor Pfr cell-based (App12 P-row pattern)
+- [ ] **App29-31** — Pendents (App29 complex, App30-31 variants)
 - [ ] **App32-35** — Editors diversos
 
 ## Solucions implementades a App12 (referència per futures apps)
@@ -821,3 +823,96 @@ Durant la migració de timeline-apps amb subdivision-row, buscar i eliminar:
 - **`timelineWrapper` const** — orfe del hack `timeline-wrapper--bpm-left` (si s'ha tret)
 - **`computeSubdivisionFontRem` import** — ja no es crida si la mida del `.cycle-label`
   viu a CSS amb `clamp()`
+
+## Solucions implementades a App28 (referència per fraction-pulse apps — App29-31)
+
+App28 afegeix al patró d'App26/27 un **editor Pfr cell-based** (App12 P-row
+mechanics, App13 aesthetic) per seleccionar pulsos fraccionats.
+
+### S21: Editor Pfr cell-based
+
+**Estructura DOM** (creada amb `createPfrLayout` + `renderPfrEditor`):
+
+```html
+<div class="pfr-row">
+  <div class="pfr-editor">
+    <div class="editor-label editor-label--p">Pfr</div>
+    <div class="editor-cells">
+      <input class="editor-cell editor-cell--p" value="0" readonly /> <!-- valor -->
+      <input class="editor-cell editor-cell--p" placeholder=" " readonly /> <!-- separador groc -->
+      <input class="editor-cell editor-cell--p" value="0.1" readonly />
+      <input class="editor-cell editor-cell--p" placeholder=" " readonly />
+      <input class="editor-cell editor-cell--p editor-input" /> <!-- input actiu -->
+      <input class="editor-cell editor-cell--p" placeholder=" " readonly />
+    </div>
+  </div>
+</div>
+```
+
+**Ubicació** (App13-style, sota timeline):
+
+```javascript
+// createPfrLayout
+timelineWrapper.parentNode.insertBefore(pfrRow, timelineWrapper.nextSibling);
+
+// I MOURE els controls sota l'editor (regla crítica Step 7):
+const controls = timelineWrapper.querySelector('.controls');
+if (controls) parent.insertBefore(controls, pfrRow.nextSibling);
+```
+
+**Format del token**: `"N"` enter (0 ≤ N < Lg) o `"N.M"` subdivisió.
+Les cel·les de valor són `readOnly: false` però recreen el patró "select on focus,
+validate on blur". Al hover mostren cursor: text.
+
+**Token de pulso Lg == 0**: quan l'usuari escriu `"6"` (i `Lg == 6`), es normalitza
+automàticament a `"0"` amb el tooltip `"6 es el mismo pulso que 0"`. Aquest cas
+és específic del glosari sistèmic Nuzic (el pols final coincideix amb P0 al loop).
+
+### S22: Checklist exhaustiu de migració de validacions
+
+**Abans d'eliminar cap lògica legacy**, cerca al codi antic:
+
+1. **Missatges d'usuari**: `grep "showValidationWarning\|showTooltip\|infoTooltip\.show"`.
+   Copia-les **literalment**, amb accents i puntuació. Aquests strings són
+   contracte UX; qualsevol canvi és regressió visible.
+2. **Helpers matemàtics**: `isValid*`, `normalize*`, `pulseTokenValue`, etc.
+   Migra'ls verbatim — les validacions dependen de la seva semàntica exacta.
+3. **Casos especials del sistema Nuzic**: ex. `"6" → "0"` (App28), `"0r+"`
+   (App25), `P=7 auto-blur` (App12). No són convencions nuzic-theme, són
+   regles del glosari. Han de viatjar amb l'app.
+4. **Auto-sort i re-posicionament**: detecta la condició (generalment
+   "el nou valor és menor que algun existent") i dispara el tooltip
+   equivalent (`"Reposicionando pulsos"` a App28).
+5. **Validació batch vs per-token**: editors antics contenteditable validaven
+   tot el text al `blur`. Editors cell-based ho fan per-token al commit.
+   Tradueix els missatges plurals (`"Inválidos: a, b, c"`) a equivalents
+   singulars (un tooltip per token no-vàlid).
+
+**Verificació manual** al navegador: entra seqüencialment un token invàlid,
+un duplicat, un normalitzable i un que causi reordenació. Si algun dels
+quatre warnings no es dispara, s'ha perdut una regla.
+
+### S23: Pitfalls específics d'App28 (evitar a App29-31)
+
+Errors que vaig trobar durant la migració d'App28 — tots verificats al navegador:
+
+1. **`flex-wrap: wrap` al `.editor-cells`** → cel·les fan zigzag en 5 files.
+   Usa `flex-wrap: nowrap` + `overflow-x: auto` per gestionar alts denominadors.
+2. **Cel·les rectangulars** → han de ser quadrades com App13/App15.
+   `width: 4%; min-width: 1.875rem; flex: none; aspect-ratio: 1`.
+   Font-size `clamp(0.75rem, 1.5vw, 1.1rem)` perquè `"5.1"` hi càpiga.
+3. **`initIdleCaretFlash({ targets: [() => ...] })`** → crash. La lib espera
+   elements DOM, no funcions. Ancora el flash al contenidor persistent
+   (`pfrEditorEl`), no a l'input actiu (es recrea a cada render).
+4. **Eliminar `normalizeToken` amb el bloc legacy** → `ReferenceError` al
+   commit. Reextreu-la abans de `sed`-deletar. Mou-la a la secció de helpers.
+5. **`#pulseSeq` duplicat** → template.js crea un amb `pulseSequence: true`
+   dins `.middle`. Si crees un altre manualment amb el mateix ID, tens
+   duplicate-ID. **Detach** el del template abans de construir el teu editor.
+6. **Fraction editor "inline" dins el pulseSeq** → visualment confús. La
+   fracció editor viu a `.middle` en mode `block` (com App26/27). L'editor
+   Pfr no inclou la fracció N/D — només els tokens.
+7. **Controls entre timeline i editor** → regla crítica del Step 7. Després
+   d'insertar `pfrRow` després de `timelineWrapper`, **mou `.controls`**
+   a després del `pfrRow`. Template.js els posa dins `timelineWrapper` per
+   defecte.
