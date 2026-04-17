@@ -916,3 +916,163 @@ Errors que vaig trobar durant la migració d'App28 — tots verificats al navega
    d'insertar `pfrRow` després de `timelineWrapper`, **mou `.controls`**
    a després del `pfrRow`. Template.js els posa dins `timelineWrapper` per
    defecte.
+
+### S24: iTfr editor pattern (App30-31)
+
+App30 és com App28 però amb un editor **d'iTs** (durades) en lloc de pulses
+seleccionats. La diferència no és trivial — els iTs tenen una **longitud**
+(quantes subdivisions ocupen), i cal reflectir-ho sense caure en un patró
+"una cel·la per subdivisió" (que jo vaig provar i no funciona).
+
+**Patró correcte (hereda d'App28):**
+
+- **1 cel·la blanca quadrada per iT + 1 separador groc-clar entre** —
+  independentment del valor de l'iT. El valor és només un NÚMERO dins la
+  cel·la, no una amplada visual.
+- **Cel·les editables** (`readOnly=false`). Click sobre un iT existent
+  permet canviar-ne el valor. Blur buit → esborra aquell iT.
+- **Trailing input cell** al final (blanc, buit) per escriure el següent iT.
+
+**Layout de `.middle` amb grid de 3 columnes** (learning d'App30):
+
+Per alinear les pastilles d'info (`Suma iT`, `iT Disponibles`) amb l'inici de
+la timeline i centrar la fracció visualment, el contenidor `.middle` ha de
+ser un **grid** amb la mateixa amplada i padding que `.timeline-wrapper`:
+
+```css
+body[data-visual="nuzic"] .middle.appNN-middle {
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr;
+  width: 90%;
+  max-width: 75rem;
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+}
+
+.itfr-info-group {
+  grid-column: 1;
+  justify-self: start;   /* aliniat amb inici timeline */
+}
+
+.itfr-fraction-slot {
+  grid-column: 2;
+  justify-self: center;  /* fracció centrada sota timeline */
+}
+```
+
+NO usar `justify-content: center` amb flex — deixaria l'info-group al mig
+i no alineat amb la timeline.
+
+**Reflow de `start` després de qualsevol mutació:**
+
+```javascript
+function reflowItSequenceStarts() {
+  let pos = 0;
+  for (const item of itSequence) {
+    if (item.isSilence) continue;
+    item.start = pos;
+    pos += item.it;
+  }
+}
+```
+
+Cal cridar-lo sempre que esborris o modifiquis un iT, per mantenir els
+`item.start` contigus des de 0. Sense això, el drag next-available no
+troba la posició correcta i els interval bars es dibuixen malament.
+
+### S25: Double-commit guard al trailing input (App30)
+
+El trailing input cell escolta tres esdeveniments: `input` (amb debounce de
+500ms), `keydown` (Enter/Tab) i `blur`. **Tots tres intenten fer commit.**
+
+Sense protecció, si l'usuari escriu `4` i pressiona Tab, es dispara primer
+el keydown → commit; després el blur → segon commit → **iT duplicat al
+sequence**.
+
+**Solució: flag `committed` local al closure de la cel·la.**
+
+```javascript
+let committed = false;
+
+// input debounce
+itfrCommitTimer = setTimeout(() => {
+  if (committed) return;
+  committed = true;
+  const ok = tryCommitFromInput(cell);
+  if (!ok) committed = false;   // permetre reintentar després de fallar
+}, 500);
+
+// keydown Enter/Tab
+if (cell.value.trim() && !committed) {
+  committed = true;
+  const ok = tryCommitFromInput(cell);
+  if (!ok) committed = false;
+}
+
+// blur
+if (cell.value.trim() && !committed) {
+  committed = true;
+  const ok = tryCommitFromInput(cell);
+  if (!ok) committed = false;
+}
+```
+
+`tryCommitFromInput` retorna `true` si valida i afegeix; `false` si falla.
+El flag `committed` es reseteja a `false` quan falla perquè l'usuari pugui
+retentar sense haver de re-enfocar.
+
+### S26: UX de validació — no silenciar, no desaprofitar el caret (App30)
+
+Entrar `0` a l'input era inicialment un **silent reject**: la cel·la no feia
+res i el caret perdia focus. Confús — l'usuari no sap si ha passat res o no.
+
+**Correcció aplicada a App30:**
+
+```javascript
+function tryCommitFromInput(cell) {
+  const parsed = parseAndValidateIt(raw);
+  if (!parsed) {
+    cell.value = '';                            // neteja
+    setTimeout(() => cell.focus(), 10);         // manté caret actiu
+    return false;                               // caller reseteja committed
+  }
+  // ... commit
+  return true;
+}
+```
+
+**Missatges específics, no genèrics:**
+
+- `"iT debe ser ≥ 1"` quan `value < 1` (no `"no es válido"` genèric)
+- `"iT {n} excede L iTfr ({x} disponibles)"` quan es sobrepassa el total
+  (mostra el budget restant per orientar)
+
+El tooltip de validació és la ÚNICA pista visual d'un reject. Si falla,
+la cel·la es buida visiblement i el caret hi queda; si passa, apareix un
+tooltip curt prop de l'editor. Els dos feedbacks junts fan l'UX clara.
+
+### S27: Ordre d'init amb fraction editor + info pastilles (App30)
+
+Les pastilles d'info (Suma iT, iT Disponibles) viuen a `.middle` — les crea
+`initFractionEditorController()` com a part del mateix flux que posa la
+fracció. Per tant l'ordre d'init importa:
+
+```javascript
+function init() {
+  // 1. BPM controller
+  // 2. Reorder controls
+  // 3. Fraction editor PRIMER — crea les pastilles a .middle
+  initFractionEditorController();
+  // 4. Editor iTfr (sota timeline)
+  createItfrLayout();
+  // 5. Mou controls a sota de l'editor
+  // 6. Renderitza timeline + cel·les
+  renderTimeline();
+  renderItfrEditor();
+}
+```
+
+Si cridis `renderItfrEditor()` (o `updateInfoDisplays()`) abans de
+`initFractionEditorController()`, `sumDisplay` i `lengthDisplay` són `null`
+i no es pinta el valor inicial. El bug és silent — no crash, només displays
+buits al primer render.

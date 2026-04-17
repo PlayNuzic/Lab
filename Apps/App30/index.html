@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sucesión de iT Fraccionados Simples</title>
+  <title>Sucesion de iT Fraccionados Simples</title>
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="../../libs/shared-ui/bpm-inline.css" />
@@ -19,9 +19,8 @@
 
     renderApp({
       root: document.getElementById('app-root'),
-      title: 'Sucesión de iT Fraccionados Simples',
+      title: 'Sucesion de iT Fraccionados Simples',
       pulseSequence: false,
-      inlineFractionSlot: true,
       showSelectColor: false,
       showAccent: false,
       showComplexFractions: false,
@@ -39,7 +38,8 @@
       randomMenuContent: ''
     });
 
-    // Replace .inputs with BPM inline widget
+    // Replace .inputs with BPM pastilla only (Suma/Disponibles live in .middle
+    // next to the fraction, built by main.js).
     const inputsEl = document.querySelector('.inputs');
     if (inputsEl) {
       inputsEl.innerHTML = `
@@ -54,13 +54,6 @@
           </div>
         </div>
       `;
-    }
-
-    const bpmParam = document.getElementById('bpmParam');
-    const timelineWrapper = document.getElementById('timelineWrapper');
-    if (bpmParam && timelineWrapper) {
-      timelineWrapper.prepend(bpmParam);
-      timelineWrapper.classList.add('timeline-wrapper--bpm-left');
     }
 
     // Setup sound groups: Instrumento + Metrónomo + Subdivisión

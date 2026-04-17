@@ -50,7 +50,6 @@ let itSequence = [];
 
 // DOM elements
 let pulses = [];
-let bars = [];
 let cycleMarkers = [];
 let cycleLabels = [];
 let pulseNumberLabels = [];
@@ -122,14 +121,15 @@ const baseSoundSelect = document.getElementById('baseSoundSelect');
 const cycleSoundSelect = document.getElementById('cycleSoundSelect');
 const mixerMenu = document.getElementById('mixerMenu');
 
-// iTfr elements (created dynamically)
+// iTfr elements
 let itfrRow = null;
-let itfrInfoColumn = null;
-let itfrSeq = null;
-let itfrSeqEditEl = null;
+let itfrEditorEl = null;     // .itfr-editor root (label + cells)
+let itfrCellsEl = null;      // .itfr-cells container
+let itfrActiveInputEl = null; // current editable cell
+let itfrCommitTimer = null;
+// Info displays (live in .inputs as pastilles, created via index.html)
 let sumDisplay = null;
 let lengthDisplay = null;
-let fractionSlot = null;
 
 // ========== HOVER TOOLTIPS ==========
 if (playBtn) attachHover(playBtn, { text: 'Play / Stop' });
@@ -262,103 +262,353 @@ function getNextAvailableStart() {
 }
 
 // ========== iTfr LAYOUT CREATION ==========
+// Builds the cell-based iTfr editor BELOW the timeline (nuzic order:
+// timeline → editor → controls). Cells are squares (App13 pattern):
+// [value WHITE with number] + [1 cream separator] per iT, plus a running
+// white input cell at the end where the user types the next iT.
 function createItfrLayout() {
-  // Create iTfr row
+  // Editor row (Suma/Disponibles live next to fraction in .middle)
   itfrRow = document.createElement('div');
   itfrRow.className = 'itfr-row';
 
-  // Create info column
-  itfrInfoColumn = document.createElement('div');
-  itfrInfoColumn.className = 'itfr-info-column';
+  itfrEditorEl = document.createElement('div');
+  itfrEditorEl.className = 'itfr-editor';
 
-  // Sum display
-  const sumBox = document.createElement('div');
-  sumBox.className = 'it-info-box';
-  const sumLabel = document.createElement('span');
-  sumLabel.className = 'it-info-label';
-  sumLabel.textContent = 'Suma iT';
-  sumDisplay = document.createElement('input');
-  sumDisplay.type = 'text';
-  sumDisplay.className = 'it-input';
-  sumDisplay.readOnly = true;
-  sumDisplay.value = '0';
-  sumBox.appendChild(sumLabel);
-  sumBox.appendChild(sumDisplay);
+  const label = document.createElement('div');
+  label.className = 'itfr-label';
+  label.textContent = 'iT';
 
-  // Length display
-  const lengthBox = document.createElement('div');
-  lengthBox.className = 'it-info-box';
-  const lengthLabel = document.createElement('span');
-  lengthLabel.className = 'it-info-label';
-  lengthLabel.innerHTML = 'iT<br>Disponibles';
-  lengthDisplay = document.createElement('input');
-  lengthDisplay.type = 'text';
-  lengthDisplay.className = 'it-input';
-  lengthDisplay.readOnly = true;
-  lengthDisplay.value = '0';
-  lengthBox.appendChild(lengthLabel);
-  lengthBox.appendChild(lengthDisplay);
+  itfrCellsEl = document.createElement('div');
+  itfrCellsEl.className = 'itfr-cells';
 
-  itfrInfoColumn.appendChild(lengthBox);
-  itfrInfoColumn.appendChild(sumBox);
+  itfrEditorEl.appendChild(label);
+  itfrEditorEl.appendChild(itfrCellsEl);
+  itfrRow.appendChild(itfrEditorEl);
 
-  // Create iT-seq editor
-  itfrSeq = document.createElement('div');
-  itfrSeq.id = 'itfrSeq';
-
-  const labelSpan = document.createElement('span');
-  labelSpan.className = 'pz label';
-  labelSpan.textContent = 'iT';
-
-  fractionSlot = document.createElement('span');
-  fractionSlot.id = 'fractionInlineSlot';
-  fractionSlot.className = 'pz fraction-inline-container';
-
-  const openParen = document.createElement('span');
-  openParen.className = 'pz open';
-  openParen.textContent = '(';
-
-  itfrSeqEditEl = document.createElement('span');
-  itfrSeqEditEl.className = 'pz edit';
-  itfrSeqEditEl.contentEditable = 'true';
-  itfrSeqEditEl.spellcheck = false;
-  itfrSeqEditEl.textContent = '  ';
-
-  const closeParen = document.createElement('span');
-  closeParen.className = 'pz close';
-  closeParen.textContent = ')';
-
-  itfrSeq.appendChild(labelSpan);
-  itfrSeq.appendChild(fractionSlot);
-  itfrSeq.appendChild(openParen);
-  itfrSeq.appendChild(itfrSeqEditEl);
-  itfrSeq.appendChild(closeParen);
-
-  itfrRow.appendChild(itfrInfoColumn);
-  itfrRow.appendChild(itfrSeq);
-
-  // Insert before timeline
+  // Insert AFTER timeline (nuzic order). Controls get moved below in init().
   if (timelineWrapper && timelineWrapper.parentNode) {
-    timelineWrapper.parentNode.insertBefore(itfrRow, timelineWrapper);
+    const parent = timelineWrapper.parentNode;
+    parent.insertBefore(itfrRow, timelineWrapper.nextSibling);
   }
 
-  // Attach event listeners to edit element
-  itfrSeqEditEl.addEventListener('blur', sanitizeItSeq);
-  itfrSeqEditEl.addEventListener('keydown', handleItSeqKeydown);
-  itfrSeqEditEl.addEventListener('input', previewItSeq);
+  // Idle caret flash anchored on editor container
+  initIdleCaretFlash({ targets: [itfrEditorEl] });
+}
 
-  // Idle caret flash on iTfr sequence editor
-  initIdleCaretFlash({ targets: [itfrSeq] });
+// ========== CELL-BASED EDITOR RENDERING ==========
+// One cell per iT (value white, editable) + one yellow-light separator between cells.
+// A trailing white input cell accepts the next iT, followed by a final separator.
+// This matches the App28 Pfr pattern (not one cell per subdivision).
+function renderItfrEditor() {
+  if (!itfrCellsEl) return;
+
+  itfrCellsEl.innerHTML = '';
+  itfrActiveInputEl = null;
+
+  // Render committed iTs (skip silences — they are implicit gaps in playback).
+  const realIts = itSequence.filter(item => !item.isSilence);
+  realIts.forEach((item, idx) => {
+    itfrCellsEl.appendChild(createItfrValueCell(item.it, idx));
+    itfrCellsEl.appendChild(createItfrSeparatorCell());
+  });
+
+  // Trailing input (only if space remains).
+  const sum = realIts.reduce((a, b) => a + b.it, 0);
+  const maxTotal = getTotalSubdivisions();
+  if (sum < maxTotal) {
+    const input = createItfrInputCell();
+    itfrCellsEl.appendChild(input);
+    itfrCellsEl.appendChild(createItfrSeparatorCell());
+    itfrActiveInputEl = input;
+  }
+}
+
+function createItfrSeparatorCell() {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.className = 'itfr-cell itfr-separator';
+  cell.placeholder = ' ';
+  cell.readOnly = true;
+  cell.tabIndex = -1;
+  return cell;
+}
+
+/**
+ * Editable value cell. Blur validates and updates itSequence by index.
+ * Empty value deletes the iT. Invalid → revert + warning tooltip.
+ */
+function createItfrValueCell(value, entryIndex) {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.className = 'itfr-cell itfr-value';
+  cell.value = String(value);
+  cell.dataset.entryIndex = String(entryIndex);
+  cell.readOnly = false;
+  cell.style.cursor = 'text';
+
+  let originalValue = cell.value;
+
+  cell.addEventListener('focus', () => {
+    originalValue = cell.value;
+    cell.select();
+  });
+
+  cell.addEventListener('blur', () => {
+    const raw = cell.value.trim();
+    if (raw === originalValue) { cell.value = originalValue; return; }
+
+    if (raw === '') {
+      // Empty → delete this iT entry.
+      removeItAtIndex(entryIndex);
+      return;
+    }
+
+    const parsed = parseAndValidateIt(raw, entryIndex);
+    if (!parsed) {
+      cell.value = originalValue;
+      return;
+    }
+    if (parsed.warning) showValidationWarning(itfrEditorEl, parsed.warning);
+
+    updateItAtIndex(entryIndex, parsed.value);
+  });
+
+  cell.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); cell.blur(); return; }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      cell.blur();
+      const cells = Array.from(itfrCellsEl.querySelectorAll('.itfr-value, .itfr-input'));
+      const i = cells.indexOf(cell);
+      const next = e.shiftKey ? cells[i - 1] : cells[i + 1];
+      if (next) next.focus();
+    }
+  });
+
+  return cell;
+}
+
+/**
+ * Trailing white input cell. Commits on blur, Enter or after a 500ms debounce.
+ */
+function createItfrInputCell() {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.inputMode = 'numeric';
+  cell.maxLength = 2;
+  cell.className = 'itfr-cell itfr-input';
+  cell.readOnly = false;
+
+  // Guard against double-commit. `input` debounce + `blur` both trigger
+  // tryCommitFromInput; after a successful commit the cell is re-rendered
+  // (detached from DOM) and blur fires on the detached element — this flag
+  // prevents a second commit being processed.
+  let committed = false;
+
+  cell.addEventListener('input', () => {
+    const raw = cell.value.trim();
+    if (!raw) { clearTimeout(itfrCommitTimer); return; }
+
+    // Strip non-digits
+    if (!/^\d+$/.test(raw)) {
+      cell.value = raw.replace(/\D/g, '');
+      return;
+    }
+
+    clearTimeout(itfrCommitTimer);
+    itfrCommitTimer = setTimeout(() => {
+      if (committed) return;
+      committed = true;
+      const ok = tryCommitFromInput(cell);
+      if (!ok) committed = false;
+    }, 500);
+  });
+
+  cell.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      clearTimeout(itfrCommitTimer);
+      if (cell.value.trim() && !committed) {
+        committed = true;
+        const ok = tryCommitFromInput(cell);
+        if (!ok) committed = false;
+      }
+      return;
+    }
+    if (e.key === 'Backspace' && !cell.value) {
+      // Delete the last committed iT.
+      e.preventDefault();
+      clearTimeout(itfrCommitTimer);
+      const realIts = itSequence.filter(it => !it.isSilence);
+      if (realIts.length > 0) {
+        removeItAtIndex(realIts.length - 1);
+      }
+    }
+  });
+
+  cell.addEventListener('blur', () => {
+    clearTimeout(itfrCommitTimer);
+    if (cell.value.trim() && !committed) {
+      committed = true;
+      const ok = tryCommitFromInput(cell);
+      if (!ok) committed = false;
+    }
+  });
+
+  setTimeout(() => cell.focus(), 30);
+  return cell;
+}
+
+/**
+ * Parse and validate an iT value. Returns { value, warning? } or null on format error.
+ * Accounts for any existing iT being replaced at editIndex.
+ */
+function parseAndValidateIt(raw, editIndex = null) {
+  const value = parseInt(raw, 10);
+  if (!Number.isFinite(value)) {
+    showValidationWarning(itfrEditorEl, `"${raw}" no es válido`);
+    return null;
+  }
+  if (value < 1) {
+    showValidationWarning(itfrEditorEl, 'iT debe ser ≥ 1');
+    return null;
+  }
+
+  const maxTotal = getTotalSubdivisions();
+  const realIts = itSequence.filter(it => !it.isSilence);
+  const sumExcluding = realIts.reduce((acc, it, i) => {
+    return (i === editIndex) ? acc : acc + it.it;
+  }, 0);
+  const available = maxTotal - sumExcluding;
+
+  if (value > available) {
+    showValidationWarning(itfrEditorEl, `iT ${value} excede L iTfr (${available} disponibles)`);
+    return null;
+  }
+
+  return { value, warning: null };
+}
+
+/**
+ * Commit the input cell's value. Returns true if committed, false if validation
+ * failed (caller should reset its `committed` flag so the user can retry).
+ */
+function tryCommitFromInput(cell) {
+  const raw = cell.value.trim();
+  if (!raw) return false;
+
+  const parsed = parseAndValidateIt(raw);
+  if (!parsed) {
+    // Clear the cell, keep focus — user can type a new value.
+    cell.value = '';
+    setTimeout(() => cell.focus(), 10);
+    return false;
+  }
+  if (parsed.warning) showValidationWarning(itfrEditorEl, parsed.warning);
+
+  const startSubdiv = getNextAvailableStart();
+  itSequence.push({ start: startSubdiv, it: parsed.value, isSilence: false });
+  recalculateCyclePositions();
+  updateInfoDisplays();
+  renderItfrEditor();
+  updateIntervalBars();
+
+  if (itfrActiveInputEl) {
+    setTimeout(() => itfrActiveInputEl?.focus(), 10);
+  }
+  return true;
+}
+
+/** Remove the iT at the given real-index (ignoring silences). */
+function removeItAtIndex(entryIndex) {
+  const realIts = itSequence.filter(it => !it.isSilence);
+  if (entryIndex < 0 || entryIndex >= realIts.length) return;
+
+  const target = realIts[entryIndex];
+  itSequence = itSequence.filter(it => it !== target);
+  reflowItSequenceStarts();
+  recalculateCyclePositions();
+  updateInfoDisplays();
+  renderItfrEditor();
+  updateIntervalBars();
+}
+
+/** Replace the iT value at the given real-index. */
+function updateItAtIndex(entryIndex, newValue) {
+  const realIts = itSequence.filter(it => !it.isSilence);
+  if (entryIndex < 0 || entryIndex >= realIts.length) return;
+
+  const target = realIts[entryIndex];
+  target.it = newValue;
+  reflowItSequenceStarts();
+  recalculateCyclePositions();
+  updateInfoDisplays();
+  renderItfrEditor();
+  updateIntervalBars();
+}
+
+/** Reflow `start` for all iTs so they are contiguous from 0. */
+function reflowItSequenceStarts() {
+  let pos = 0;
+  for (const item of itSequence) {
+    if (item.isSilence) continue;
+    item.start = pos;
+    pos += item.it;
+  }
 }
 
 // ========== FRACTION EDITOR ==========
+// Block mode in `.middle` above the timeline (App26-28 pattern).
+// Flanks the fraction with Suma iT and iT Disponibles pastilles on the left.
 function initFractionEditorController() {
-  if (!fractionSlot) return;
+  const host = document.querySelector('.middle');
+  if (!host) return;
+
+  // Clear .middle and build: [info pastilles | fraction slot].
+  host.innerHTML = '';
+  host.classList.add('app30-middle');
+
+  // Info pastilles (left of fraction)
+  const infoGroup = document.createElement('div');
+  infoGroup.className = 'itfr-info-group';
+
+  const sumBox = document.createElement('div');
+  sumBox.className = 'bpm-inline visible param sum-it';
+  sumBox.id = 'sumItParam';
+  sumBox.innerHTML = `
+    <span class="abbr">Suma iT</span>
+    <div class="circle">
+      <input id="sumItDisplay" type="text" value="0" readonly />
+    </div>
+  `;
+
+  const dispBox = document.createElement('div');
+  dispBox.className = 'bpm-inline visible param it-disponibles';
+  dispBox.id = 'itDisponiblesParam';
+  dispBox.innerHTML = `
+    <span class="abbr">iT Disponibles</span>
+    <div class="circle">
+      <input id="itDisponiblesDisplay" type="text" value="0" readonly />
+    </div>
+  `;
+
+  infoGroup.appendChild(sumBox);
+  infoGroup.appendChild(dispBox);
+  host.appendChild(infoGroup);
+
+  // Fraction slot (right of pastilles)
+  const fractionSlot = document.createElement('div');
+  fractionSlot.className = 'itfr-fraction-slot';
+  host.appendChild(fractionSlot);
+
+  // Resolve info displays now they exist
+  sumDisplay = document.getElementById('sumItDisplay');
+  lengthDisplay = document.getElementById('itDisponiblesDisplay');
 
   currentDenominator = DEFAULT_DENOMINATOR;
 
   const controller = createFractionEditor({
-    mode: 'inline',
+    mode: 'block',
     host: fractionSlot,
     defaults: { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
@@ -366,8 +616,16 @@ function initFractionEditorController() {
     storage: {},
     addRepeatPress,
     labels: {
-      numerator: { placeholder: '1' },
-      denominator: { placeholder: 'd' }
+      numerator: {
+        placeholder: '1',
+        ariaUp: 'Incrementar numerador',
+        ariaDown: 'Decrementar numerador'
+      },
+      denominator: {
+        placeholder: 'd',
+        ariaUp: 'Incrementar denominador',
+        ariaDown: 'Decrementar denominador'
+      }
     },
     onChange: ({ cause }) => {
       if (cause !== 'init') {
@@ -419,7 +677,7 @@ function handleFractionChange() {
 
   // Update displays
   updateInfoDisplays();
-  syncItSeqFromSequence();
+  renderItfrEditor();
 
   // Hot-reload audio if playing
   if (audio && isPlaying) {
@@ -513,131 +771,7 @@ function addRepeatPress(el, fn) {
   document.addEventListener('touchend', stop);
 }
 
-// ========== iT-SEQ EDITOR ==========
-function handleItSeqKeydown(e) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    sanitizeItSeq();
-    itfrSeqEditEl.blur();
-    return;
-  }
-
-  // Allow digits, space, navigation
-  if (/^[0-9]$/.test(e.key) || e.key === ' ' ||
-      e.key === 'ArrowLeft' || e.key === 'ArrowRight' ||
-      e.key === 'Backspace' || e.key === 'Delete' ||
-      e.key === 'Tab') {
-    return;
-  }
-
-  e.preventDefault();
-}
-
-// Parse a single token: "3" = iT of 3 (only numbers accepted)
-function parseToken(token) {
-  const value = parseInt(token, 10);
-  if (Number.isFinite(value) && value >= 1) {
-    return { value, isSilence: false };
-  }
-  return null;
-}
-
-// Preview iT-seq in real-time while typing (no warnings, no state update)
-function previewItSeq() {
-  if (!itfrSeqEditEl) return;
-
-  const text = itfrSeqEditEl.textContent || '';
-  const tokens = text.trim().split(/\s+/).filter(Boolean);
-
-  const previewIts = [];
-  let currentPos = 0;
-  const maxTotal = getTotalSubdivisions();
-
-  for (const token of tokens) {
-    const parsed = parseToken(token);
-    if (!parsed) continue;
-
-    if (currentPos + parsed.value > maxTotal) continue;
-
-    previewIts.push({ start: currentPos, it: parsed.value, isSilence: parsed.isSilence });
-    currentPos += parsed.value;
-  }
-
-  // Update timeline preview (without changing itSequence)
-  updateIntervalBars(previewIts);
-
-  // Update sum display in real-time (include silences)
-  const sum = previewIts.reduce((acc, item) => acc + item.it, 0);
-  if (sumDisplay) {
-    sumDisplay.value = sum;
-    sumDisplay.classList.toggle('complete', currentPos >= maxTotal);
-  }
-  if (lengthDisplay) {
-    lengthDisplay.value = maxTotal - sum;
-    lengthDisplay.classList.toggle('complete', sum === 0);
-  }
-}
-
-function sanitizeItSeq() {
-  if (!itfrSeqEditEl) return;
-
-  const text = itfrSeqEditEl.textContent || '';
-  const tokens = text.trim().split(/\s+/).filter(Boolean);
-
-  const validIts = [];
-  const invalidTokens = [];
-  const warnings = [];
-  let currentPos = 0;
-  const maxTotal = getTotalSubdivisions();
-
-  for (const token of tokens) {
-    const parsed = parseToken(token);
-
-    if (!parsed) {
-      invalidTokens.push(token);
-      continue;
-    }
-
-    // Check total doesn't exceed timeline
-    if (currentPos + parsed.value > maxTotal) {
-      warnings.push(`iT ${parsed.value} excede Lg Fr`);
-      continue;
-    }
-
-    validIts.push({ start: currentPos, it: parsed.value, isSilence: parsed.isSilence });
-    currentPos += parsed.value;
-  }
-
-  if (invalidTokens.length > 0) {
-    warnings.push(`Inválidos: ${invalidTokens.join(', ')}`);
-  }
-
-  if (warnings.length > 0 && itfrSeq) {
-    showValidationWarning(itfrSeq, warnings.join(' | '));
-  }
-
-  // Update sequence
-  itSequence = validIts;
-  recalculateCyclePositions();
-
-  // Update displays and timeline
-  updateInfoDisplays();
-  syncItSeqFromSequence();
-  updateIntervalBars();
-}
-
-function syncItSeqFromSequence() {
-  if (!itfrSeqEditEl) return;
-
-  if (itSequence.length === 0) {
-    itfrSeqEditEl.textContent = '  ';
-    return;
-  }
-
-  const tokens = itSequence.filter(item => !item.isSilence).map(item => item.it);
-  itfrSeqEditEl.textContent = `  ${tokens.join('  ')}  `;
-}
-
+// ========== INFO DISPLAYS ==========
 function updateInfoDisplays() {
   const sum = getItSum();
   const totalPfr = getTotalSubdivisions();  // Lg * d / n = total pulsos fraccionats
@@ -661,7 +795,6 @@ function renderTimeline() {
 
   // Clear previous
   pulses = [];
-  bars = [];
   cycleMarkers = [];
   cycleLabels = [];
   pulseNumberLabels = [];
@@ -672,30 +805,7 @@ function renderTimeline() {
   const n = FIXED_NUMERATOR;
   const d = currentDenominator;
 
-  // Add timeline line
-  const line = document.createElement('div');
-  line.className = 'timeline-line';
-  timeline.appendChild(line);
-
-  // Create pulses (0 to lg inclusive)
-  for (let i = 0; i <= lg; i++) {
-    const pulse = document.createElement('div');
-    pulse.className = 'pulse';
-    pulse.dataset.index = i;
-    if (i === 0) pulse.classList.add('startpoint');
-    if (i === lg) pulse.classList.add('endpoint');
-    timeline.appendChild(pulse);
-
-
-    if (i === 0 || i === lg) {
-      const bar = document.createElement('div');
-      bar.className = 'bar';
-      timeline.appendChild(bar);
-      bars.push(bar);
-    }
-  }
-
-  // Create pulse numbers
+  // Pulse numbers (nuzic-theme renders ticks via ::before/::after).
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
@@ -708,7 +818,13 @@ function renderTimeline() {
     pulses.push(num);
   }
 
-  // Create cycle markers
+  // Single "1/N" subdivision label anchored to the left of the subdivision row.
+  const subdivisionLabel = document.createElement('div');
+  subdivisionLabel.className = 'subdivision-label';
+  subdivisionLabel.textContent = `${n}/${d}`;
+  timeline.appendChild(subdivisionLabel);
+
+  // Create cycle markers + labels below the timeline (subdivision row).
   const grid = gridFromOrigin({ lg, numerator: n, denominator: d });
 
   if (grid.cycles > 0 && grid.subdivisions.length) {
@@ -750,42 +866,21 @@ function renderTimeline() {
 function layoutTimeline() {
   const lg = FIXED_LG;
 
-  pulses.forEach((p, i) => {
-    const pct = (i / lg) * 100;
-    p.style.left = pct + '%';
-    p.style.top = '50%';
-    p.style.transform = 'translate(-50%, -50%)';
-  });
-
-  bars.forEach((bar, idx) => {
-    const i = idx === 0 ? 0 : lg;
-    const pct = (i / lg) * 100;
-    bar.style.left = pct + '%';
-    bar.style.top = '30%';
-    bar.style.height = '40%';
-    bar.style.transform = 'translateX(-50%)';
-  });
-
+  // Vertical positioning handled by nuzic-theme + App30 styles.css.
+  // Only horizontal percentage is dynamic per render.
   pulseNumberLabels.forEach((num) => {
     const idx = parseInt(num.dataset.index, 10);
-    const pct = (idx / lg) * 100;
-    num.style.left = pct + '%';
-    num.style.top = '0';
-    num.style.transform = 'translate(-50%, 0%)';
+    num.style.left = (idx / lg) * 100 + '%';
   });
 
   cycleMarkers.forEach((marker) => {
     const pos = parseFloat(marker.dataset.position);
-    const pct = (pos / lg) * 100;
-    marker.style.left = pct + '%';
-    marker.style.top = '50%';
+    marker.style.left = (pos / lg) * 100 + '%';
   });
 
   cycleLabels.forEach((label) => {
     const pos = parseFloat(label.dataset.position);
-    const pct = (pos / lg) * 100;
-    label.style.left = pct + '%';
-    label.style.top = '75%';
+    label.style.left = (pos / lg) * 100 + '%';
   });
 }
 
@@ -984,7 +1079,7 @@ function insertItAtPosition(startSubdiv, newIt) {
 
   // Update everything
   updateInfoDisplays();
-  syncItSeqFromSequence();
+  renderItfrEditor();
   updateIntervalBars();
 }
 
@@ -1076,7 +1171,7 @@ function getItIndexAtScaledStart(scaledIndex) {
 
 async function startPlayback() {
   if (itSequence.length === 0) {
-    showValidationWarning(itfrSeq, 'Afegeix iTs per reproduir');
+    showValidationWarning(itfrEditorEl, 'Afegeix iTs per reproduir');
     return;
   }
 
@@ -1351,7 +1446,7 @@ function handleRandom() {
 
   renderTimeline();
   updateInfoDisplays();
-  syncItSeqFromSequence();
+  renderItfrEditor();
 }
 
 function handleReset() {
@@ -1373,7 +1468,7 @@ function handleReset() {
 
   renderTimeline();
   updateInfoDisplays();
-  syncItSeqFromSequence();
+  renderItfrEditor();
 }
 
 // ========== EVENT LISTENERS ==========
@@ -1408,14 +1503,39 @@ function init() {
     bpmController.attach();
   }
 
-  // Create iTfr layout
-  createItfrLayout();
+  // Reorder controls: Play, BPM, Random, Reset (nuzic compact row)
+  const bpmParam = document.getElementById('bpmParam');
+  const controls = document.querySelector('.controls');
+  if (controls) {
+    const playEl = controls.querySelector('.play') || document.getElementById('playBtn');
+    const randomEl = controls.querySelector('.random');
+    const resetEl = controls.querySelector('.reset');
+    const randomMenuEl = controls.querySelector('.random-menu');
 
-  // Initialize fraction editor
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playEl) controls.appendChild(playEl);
+    if (bpmParam) controls.appendChild(bpmParam);
+    if (randomEl) controls.appendChild(randomEl);
+    if (randomMenuEl) controls.appendChild(randomMenuEl);
+    if (resetEl) controls.appendChild(resetEl);
+  }
+
+  // Initialize fraction editor FIRST so info pastilles (Suma/Disponibles) exist
+  // before any updateInfoDisplays() call.
   initFractionEditorController();
 
-  // Render timeline
+  // Create iTfr editor row (placed AFTER timeline-wrapper)
+  createItfrLayout();
+
+  // Move .controls BELOW the editor (nuzic order: timeline → editor → controls).
+  if (controls && itfrRow?.parentNode) {
+    itfrRow.parentNode.insertBefore(controls, itfrRow.nextSibling);
+  }
+
+  // Render timeline and editor cells
   renderTimeline();
+  renderItfrEditor();
 
   // Update displays
   updateInfoDisplays();
