@@ -188,12 +188,14 @@ function renderPulseNumbers() {
     // Position linearly
     const percent = (i / totalPulses) * 100;
     label.style.left = percent + '%';
+    // Mark downbeats (start of each compás) — thicker top tick via nuzic-theme
+    if (i % compas === 0) label.classList.add('cycle-start');
     timeline.appendChild(label);
   }
 
   // Add 0³ at the end (shows continuation, will be hidden during fade-out)
   const endLabel = document.createElement('div');
-  endLabel.className = 'pulse-number';
+  endLabel.className = 'pulse-number cycle-start';
   endLabel.innerHTML = '0<sup>3</sup>';
   endLabel.style.left = '100%';
   endLabel.dataset.index = String(totalPulses); // Index after all pulses

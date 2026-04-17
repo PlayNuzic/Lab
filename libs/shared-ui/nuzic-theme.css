@@ -501,6 +501,12 @@ body[data-visual="nuzic"] .plano-timeline-number::after {
   opacity: 0.7;
 }
 
+/* Downbeat (inici de compàs): tick superior més gruixut */
+body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-start::before {
+  width: 5px;
+  opacity: 1;
+}
+
 /* Playback highlight: golden bar around number + ticks only (not full cell) */
 body[data-visual="nuzic"] .plano-timeline-number.plano-highlight {
   color: var(--nuzic-dark) !important;
@@ -585,6 +591,12 @@ body[data-visual="nuzic"] .timeline .pulse-number::after {
   background: var(--nuzic-dark);
   opacity: 0.7;
   margin-top: 4px;
+}
+
+/* Downbeat (inici de compàs): tick superior més gruixut */
+body[data-visual="nuzic"] .timeline .pulse-number.cycle-start::before {
+  width: 5px;
+  opacity: 1;
 }
 
 /* Highlight de playback: barra daurada que cobreix número + ticks */
