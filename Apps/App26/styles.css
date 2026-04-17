@@ -155,13 +155,14 @@
   margin-top: 1.75rem;
 }
 
-/* ========== SUBDIVISION ROW (ABOVE timeline — "fracció a dalt") ========== */
+/* ========== SUBDIVISION ROW (BELOW the timeline, nuzic-main style) ========== */
 
-/* Each cycle-marker from gridFromOrigin is a small tick mark ABOVE the
-   pulse-numbers. Integer positions are skipped via JS since they already
-   have pulse-number::before ticks. */
+/* cycle-marker = small tick sitting just below the pulse-number bottom ticks,
+   hanging into the subdivision row area. Integer positions are skipped via JS
+   since pulse-number::before already marks them. */
 .timeline .cycle-marker {
   position: absolute;
+  top: 2.95rem;
   width: 2px;
   height: 0.5rem;
   background: var(--nuzic-dark, #43433B);
@@ -179,10 +180,10 @@
   box-shadow: 0 0 6px var(--nuzic-yellow, #FFBB33);
 }
 
-/* Cycle labels: small ".1 .2" fractional numbers under the subdivision ticks.
-   Color matches nuzic palette for visual hierarchy. */
+/* cycle-label = ".1 .2 ..." fractional number directly under its cycle-marker. */
 .timeline .cycle-label {
   position: absolute;
+  top: 3.8rem;
   color: var(--nuzic-dark, #43433B);
   font-size: clamp(0.55rem, 1vw, 0.75rem);
   opacity: 0.55;
@@ -199,16 +200,16 @@
   font-weight: 700;
 }
 
-/* Hide the integer cycle labels (coincide with pulse-numbers below). */
+/* Hide the integer cycle labels (coincide with pulse-numbers). */
 .timeline .cycle-label--integer {
   display: none;
 }
 
-/* The "1/N" label anchored to the LEFT of the subdivision row. */
+/* "1/N" label anchored to the LEFT, on the SAME line as the ".1 .2" cycle-labels. */
 .timeline .subdivision-label {
   position: absolute;
   right: calc(100% + 0.5rem);
-  top: -1.25rem;
+  top: 3.8rem;
   font-size: clamp(0.7rem, 1.3vw, 0.95rem);
   font-weight: 700;
   color: var(--nuzic-dark, #43433B);

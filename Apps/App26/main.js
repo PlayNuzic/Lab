@@ -459,22 +459,17 @@ function layoutTimeline() {
     num.style.left = pct + '%';
   });
 
-  // Subdivision ticks: position above the timeline box (top: -0.75rem) so
-  // they sit in a dedicated row ABOVE the pulse-numbers.
+  // Subdivision ticks and labels: vertical positioning is static and handled
+  // by CSS (.timeline .cycle-marker / .cycle-label). Only horizontal
+  // placement is dynamic (fractional position along the timeline).
   cycleMarkers.forEach((marker) => {
     const pos = parseFloat(marker.dataset.position);
-    const pct = (pos / lg) * 100;
-    marker.style.left = pct + '%';
-    marker.style.top = '-0.75rem';
+    marker.style.left = (pos / lg) * 100 + '%';
   });
 
-  // Fractional labels ".1", ".2" — just below the subdivision ticks,
-  // above the pulse-numbers.
   cycleLabels.forEach((label) => {
     const pos = parseFloat(label.dataset.position);
-    const pct = (pos / lg) * 100;
-    label.style.left = pct + '%';
-    label.style.top = '-1.6rem';
+    label.style.left = (pos / lg) * 100 + '%';
   });
 }
 
