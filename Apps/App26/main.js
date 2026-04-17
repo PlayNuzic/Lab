@@ -10,7 +10,7 @@ import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { createPreferenceStorage, registerFactoryReset, setupThemeSync, setupMutePersistence } from '../../libs/app-common/preferences.js';
 import createFractionEditor from '../../libs/app-common/fraction-editor.js';
-import { gridFromOrigin, computeSubdivisionFontRem } from '../../libs/app-common/subdivision.js';
+import { gridFromOrigin } from '../../libs/app-common/subdivision.js';
 import { randomInt } from '../../libs/app-common/number-utils.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
@@ -33,11 +33,9 @@ let isPlaying = false;
 let currentDenominator = DEFAULT_DENOMINATOR;
 
 // DOM elements
-let pulses = [];
-let bars = [];
+let pulses = [];       // .pulse-number elements (nuzic-theme hides legacy .pulse dots)
 let cycleMarkers = [];
 let cycleLabels = [];
-let pulseNumberLabels = [];
 
 // Controllers
 let fractionEditorController = null;
@@ -76,7 +74,6 @@ bindSharedSoundEvents({
 
 // ========== DOM ELEMENTS ==========
 const timeline = document.getElementById('timeline');
-const timelineWrapper = document.getElementById('timelineWrapper');
 const playBtn = document.getElementById('playBtn');
 const randomBtn = document.getElementById('randomBtn');
 const resetBtn = document.getElementById('resetBtn');
@@ -380,12 +377,10 @@ function renderTimeline() {
   // Disable transitions during render
   timeline.classList.add('no-anim');
 
-  // Clear previous elements (preserve nuzic subdivision-label between renders)
+  // Clear previous elements
   pulses = [];
-  bars = [];
   cycleMarkers = [];
   cycleLabels = [];
-  pulseNumberLabels = [];
   timeline.innerHTML = '';
 
   const lg = FIXED_LG;
@@ -400,7 +395,6 @@ function renderTimeline() {
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);
-    pulseNumberLabels.push(num);
     pulses.push(num);
   }
 
@@ -453,10 +447,9 @@ function layoutTimeline() {
 
   // nuzic-theme positions pulse-numbers centered (top: 50%, transform). No JS
   // vertical positioning needed — just set horizontal percentage.
-  pulseNumberLabels.forEach((num) => {
+  pulses.forEach((num) => {
     const idx = parseInt(num.dataset.index, 10);
-    const pct = (idx / lg) * 100;
-    num.style.left = pct + '%';
+    num.style.left = (idx / lg) * 100 + '%';
   });
 
   // Subdivision ticks and labels: vertical positioning is static and handled
