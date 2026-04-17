@@ -1,82 +1,15 @@
-/* App25B: Melodías con iSº - Interval Sequencer Styles */
+/* App25B: Melodías con iSº - Nuzic Theme */
 
-/* Import shared module styles */
-@import url('../../libs/matrix-seq/grid-editor.css');
 @import url('../../libs/musical-grid/musical-grid.css');
-@import url('../../libs/scale-selector/scale-selector.css');
 
-/* Variables CSS */
-:root {
-  --line-color: #666;
-  --cell-highlight-color: #7BB4CD;
-  --note-highlight-color: #7BB4CD;
-  --interval-sound-color: #F28AAD;  /* Rosa Nuzic for iSº */
-
-  /* Z-index system */
-  --z-base: 1;
-  --z-content: 5;
-  --z-interactive: 10;
-  --z-active: 20;
-  --z-overlay: 100;
-
-  /* App25 2-column layout */
-  --scale-selector-width: 280px;
-  --col-left: var(--scale-selector-width);
-  --col-left-tablet: 2220px;
-  --col-left-mobile: 180px;
-  --layout-gap: 0.75rem;
-
-  /* Control layout */
-  --controls-padding-top: 0px;
-  --controls-margin: 5px;
-  --controls-inner-margin: 0;
-  --controls-justify: center;
-  --buttons-align: center;
-
-  /* Fine-tuning: Play button position */
-  --play-offset-x: 120px;
-  --play-offset-y: -5px;
-
-  /* Fine-tuning: Secondary buttons position */
-  --buttons-row-offset-x: -65px;
-  --buttons-row-offset-y: -40px;
-
-  /* Toggle positioning */
-  --toggle-pulse-offset-x: -1px;
-  --toggle-pulse-offset-y: -80px;
-
-  /* Controls vertical gap */
-  --controls-vertical-gap: 0.5rem;
-
-  /* BPM tuning (inside app25-controls-container) */
-  --bpm-offset-x: -4px;
-  --bpm-offset-y: -8px;
-  --bpm-scale: 1;
-  --bpm-gap: 8px;
-}
-
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
+/* Nuzic theme overrides */
 body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 0px;
+  --nuzic-controls-offset-x: 0;
+  --nuzic-controls-offset-y: 0;
+  --interval-sound-color: var(--nuzic-pink, #F28AAD);
 }
 
-/* BPM inline input container */
-.inputs {
-  display: block;
-  padding: 0;
-  margin: 0;
-  min-height: 0;
-}
-.inputs .bpm-inline {
-  position: static;
-}
-
-[data-theme="dark"] {
-  --line-color: #999;
-}
-
-/* ========== VIEWPORT FILL LAYOUT ========== */
+/* ========== VIEWPORT FILL ========== */
 html, body {
   margin: 0;
   padding: 0;
@@ -93,353 +26,289 @@ html, body {
   overflow: hidden;
 }
 
-#app-root > header {
+#app-root > header,
+.app-scale-wrapper > header {
   flex-shrink: 0;
 }
 
-#app-root > main {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* ========== APP25 MAIN LAYOUT: 2 COLUMNS ========== */
-.app25-main-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: var(--col-left) minmax(0, 1fr);
-  grid-template-rows: 1fr;
-  gap: var(--layout-gap);
+.app-scale-wrapper {
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========== MAIN LAYOUT ========== */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ========== INPUTS: Scale dropdown + BPM ========== */
+.inputs {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2rem;
+  padding: 0 1rem;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* Scale dropdown param: capsule with pink border */
+.param.escala .escala-circle {
+  width: auto !important;
+  height: 2.75rem;
+  padding: 0 0.5rem;
+  border: 2px solid var(--nuzic-pink, #F28AAD);
+  border-radius: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.escala-select {
+  border: none;
+  background: transparent;
+  font-size: clamp(0.85rem, 1.8vw, 1.2rem);
+  font-weight: 700;
+  color: var(--text-color, #333);
+  font-family: 'Courier New', Courier, monospace;
+  cursor: pointer;
+  outline: none;
+  padding: 0 0.25rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23F28AAD'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.25rem center;
+  padding-right: 1.25rem;
+}
+
+[data-theme="dark"] .param.escala .escala-circle {
+  border-color: var(--nuzic-pink, #F28AAD);
+}
+
+[data-theme="dark"] .escala-select {
+  color: var(--text-color, #eee);
+}
+
+/* Hide loop button */
+#loopBtn { display: none !important; }
+
+/* ========== TIMELINE WRAPPER ========== */
+.timeline-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+}
+
+/* Musical grid fills available space — compact rows */
+.timeline-wrapper > .grid-container {
+  flex: 1;
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
   min-height: 0;
   overflow: visible;
-  padding: 1rem;
+  margin: 0 !important;
   box-sizing: border-box;
+  grid-template-rows: 1fr 3rem auto !important;  /* notes + timeline + editor */
 }
 
-/* ========== LEFT COLUMN: Scale Selector ========== */
-.app25-scale-selector {
-  grid-column: 1;
-  grid-row: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0.5rem;
-  gap: 1rem;
-  overflow-y: auto;
-  overflow-x: visible;
-  border-right: 1px solid var(--line-color);
-  padding-right: 0.5rem;
-  position: relative;
-  z-index: var(--z-content);
-  background: var(--bg-light, #ECECEC);
-}
-
-[data-theme="dark"] .app25-scale-selector {
-  background: var(--bg-dark, #43433B);
-}
-
-/* Override scale-selector defaults for App25 compact layout */
-.app25-scale-selector .scale-selector {
-  border-right: none;
-  width: var(--scale-selector-width);
-  max-width: var(--scale-selector-width);
-  padding: 0;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.app25-scale-selector .scale-selector-title {
-  margin-bottom: 0;
-}
-
-.app25-scale-selector .scale-select {
-  width: 70%;
-  align-self: center;
-}
-
-.app25-scale-selector .scale-select[size] {
-  flex: none !important;
-  height: 230px !important;
-  max-height: 230x !important;
-  min-height: auto !important;
-  overflow-y: auto;
-}
-
-.app25-scale-selector .transpose-selector {
-  padding-top: 0.5rem;
-  gap: 0.3rem;
-  width: 100%;
-  align-items: center;
-}
-
-.app25-scale-selector .transpose-label {
-  font-size: 0.8rem;
-}
-
-.app25-scale-selector .transpose-buttons {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
-  justify-content: center;
-  max-width: 253px;
-  margin: 0 auto;
-}
-
-.app25-scale-selector .transpose-btn {
-  width: 28px;
-  height: 28px;
-  font-size: 0.86rem;
-}
-
-/* ========== RIGHT COLUMN: Grid Area ========== */
-.app25-grid-area {
-  grid-column: 2;
-  grid-row: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-height: 0;
-  min-width: 0;
-  overflow: hidden;
-  position: relative;
-  z-index: var(--z-base);
-}
-
-/* Grid Editor at top */
-#gridEditorContainer {
-  flex-shrink: 0;
-  max-height: 100px;
-  min-width: 0;
-  overflow-x: auto;
-}
-
-#gridEditorContainer .matrix-grid-editor {
-  margin: 20px 50px 0px 50px;
-}
-
-/* Musical grid fills remaining space */
-.app25-grid-area .grid-container {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  grid-template-rows: 1fr 50px !important; /* Grid + timeline row */
-}
-
-/* Hide soundline scrollbar and disable mouse scroll interaction */
-/* Scroll is controlled programmatically via matrix sync */
-.app25-grid-area .soundline-wrapper {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  pointer-events: none;  /* Disable mouse/touch scroll on soundline */
-}
-
-.app25-grid-area .soundline-wrapper::-webkit-scrollbar {
+/* ========== SOUNDLINE ========== */
+.soundline-number.top-zero {
   display: none;
 }
 
-/* Re-enable pointer events for clickable note labels inside soundline */
-.app25-grid-area .soundline-wrapper .soundline-number {
-  pointer-events: auto;
+.soundline-number.chromatic-note {
+  font-size: clamp(0.4rem, 0.8vw, 0.6rem) !important;
+  opacity: 0.35;
+  font-weight: 300 !important;
 }
 
-/* Matrix: only vertical scroll, no horizontal */
-.app25-grid-area .matrix-container {
-  overflow-x: hidden !important;
+/* ========== CELL LABELS (degree numbers on active cells) ========== */
+.cell-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(0.55rem, 1vw, 0.75rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+  pointer-events: none;
+  z-index: 15;
 }
 
-/* Hide timeline completely */
-.app25-grid-area .timeline-wrapper {
-  display: none !important;
+[data-theme="dark"] .cell-label {
+  color: #f0f0f0;
 }
 
-/* Force matrix inner to be responsive horizontally */
-.app25-grid-area .matrix-container .matrix-inner {
-  width: 100% !important;
-  min-width: 0 !important;
+.musical-cell.active {
+  opacity: 1 !important;
 }
 
-/* Make cells fill available width responsively */
-.app25-grid-area .matrix-container .musical-cell {
-  /* Let cells be responsive horizontally */
+.musical-cell.active .cell-label {
+  opacity: 1 !important;
 }
 
+/* ========== DISABLED CELLS (notes outside scale) ========== */
+.musical-cell.disabled {
+  opacity: 0.2;
+  pointer-events: auto !important;
+  background: transparent !important;
+  cursor: not-allowed;
+}
 
-/* ========== CONTROLS ========== */
-.app25-controls-container {
+.musical-cell.disabled .np-dot::after {
+  width: 4px;
+  height: 4px;
+  background: var(--line-color, #666);
+  border: none;
+  opacity: 0.6;
+}
+
+/* ========== REST CELLS (silences shown as dotted line) ========== */
+.musical-cell.rest {
+  background-image: linear-gradient(to right, var(--interval-sound-color) 50%, transparent 50%);
+  background-size: 8px 2px;
+  background-repeat: repeat-x;
+  background-position: center;
+  opacity: 0.6;
+}
+
+/* ========== iSº EDITOR (inside .grid-container as grid-row 3) ========== */
+.interval-editor {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: 60px 1fr;  /* matches .grid-container nuzic columns */
+}
+
+.interval-editor-label {
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 50px;
-  padding-top: 0.25rem;
-}
-
-.app25-controls-container .bpm-inline {
-  position: relative;
-  align-self: center;
-  flex-shrink: 0;
-  transform: translate(var(--bpm-offset-x), var(--bpm-offset-y)) scale(var(--bpm-scale));
-  transform-origin: top center;
-  margin: 0 0 var(--bpm-gap) 0;
-  z-index: var(--z-interactive);
-}
-
-.app25-controls-container .controls {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.app25-controls-container .control-buttons-row {
-  display: flex;
-  flex-direction: row;
-  gap: 0.3rem;
   align-items: center;
   justify-content: center;
-  transform: translate(var(--buttons-row-offset-x, 0), var(--buttons-row-offset-y, 0));
+  color: white;
+  background: var(--nuzic-pink, #F28AAD);
 }
 
-.app25-controls-container .play-row {
-  position: static;
+.interval-editor-cells {
   display: flex;
-  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  background: var(--nuzic-light, #EEE8D8);
+}
+
+.interval-editor-cell {
+  width: 5%;
+  min-width: 1.5625rem;
+  aspect-ratio: 1;
+  text-align: center;
+  color: #43433b;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  font-weight: 700;
+  border-radius: 0;
+  border-width: 0;
+  outline: none;
+  display: flex;
   align-items: center;
-  gap: 0.3rem;
-  transform: translate(var(--play-offset-x, 0), var(--play-offset-y, 0));
+  justify-content: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+  padding: 0;
 }
 
-.app25-controls-container .play {
-  width: 80px;
-  height: 80px;
-  font-size: 2rem;
+.interval-editor-cell::-webkit-outer-spin-button,
+.interval-editor-cell::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
-.app25-controls-container .play svg {
-  width: 50%;
-  height: 50%;
+/* Empty separator cells: pink placeholder */
+.interval-editor-cell:placeholder-shown {
+  background: var(--nuzic-pink-light, #ffe5ee);
+  border: 2px solid var(--nuzic-pink-light, #ffe5ee);
 }
 
-.app25-controls-container .random,
-.app25-controls-container .reset {
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
+/* Separator cells that belong to a rest: dotted */
+.interval-editor-cell.is-rest {
+  background-image: linear-gradient(to right, var(--nuzic-pink, #F28AAD) 50%, transparent 50%);
+  background-size: 6px 2px;
+  background-repeat: repeat-x;
+  background-position: center;
+  background-color: var(--nuzic-pink-light, #ffe5ee);
+  opacity: 0.75;
 }
 
-.app25-controls-container .random svg,
-.app25-controls-container .reset svg {
-  width: 100%;
-  height: 100%;
+/* Value cells: white */
+.interval-editor-cell:not(:placeholder-shown) {
+  background: white;
+  z-index: 1;
 }
 
-.app25-controls-container #pulseToggleBtn {
-  display: none;  /* Hide pulse toggle - not used in App25B */
+/* Active input cell */
+.interval-editor-cell.active-input {
+  background: white !important;
+  cursor: text;
+  z-index: 2;
 }
 
-/* Hide unnecessary controls */
-#loopBtn, .loop, .controls .loop,
-.bpm-display, #tapTempoBtn {
-  display: none !important;
+.interval-editor-cell.active-input:focus {
+  box-shadow: inset 0 0 0 2px var(--nuzic-pink, #F28AAD);
 }
 
-/* ========== GRID-EDITOR STYLES ========== */
-.grid-row-label--degree-interval {
-  font-size: 2.8rem;
-  font-weight: 700;
-  min-width: 52px;
-  padding: 0px 0px;
-  margin-top: 30px;
-  color: var(--interval-sound-color);
+/* End marker */
+.interval-editor-end {
+  width: 5%;
+  min-width: 1.5625rem;
+  aspect-ratio: 1;
+  background: var(--nuzic-dark, #43433B);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: clamp(0.5rem, 1vw, 0.8rem);
 }
 
-.degree-interval-input {
-  width: 60px;
-  height: 50px;
-  border: 1px solid var(--interval-sound-color) !important;
+.interval-editor-end::after {
+  content: '\25CF';
+}
+
+/* Tooltip */
+.interval-editor-tooltip {
+  position: fixed;
+  padding: 0.4rem 0.8rem;
   border-radius: 6px;
-  background: transparent !important;
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-color, #333);
+  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
+  font-weight: 600;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  background: #EF4444;
+  color: white;
+  white-space: nowrap;
 }
 
-[data-theme="dark"] .degree-interval-input {
-  background: transparent !important;
-  border-color: var(--interval-sound-color) !important;
-  color: var(--text-dark, #e0e0e0);
+.interval-editor-tooltip.visible {
+  opacity: 1;
 }
 
-.degree-interval-input:focus {
-  border-color: var(--interval-sound-color) !important;
-  box-shadow: 0 0 6px rgba(242, 138, 173, 0.35);
-  background: rgba(242, 138, 173, 0.08) !important;
-}
-
-.degree-interval-input[data-filled="true"] {
-  background: rgba(242, 138, 173, 0.08) !important;
-}
-
-[data-theme="dark"] .degree-interval-input[data-filled="true"] {
-  background: rgba(242, 138, 173, 0.12) !important;
-}
-
-/* Fallback for degree mode */
-.grid-row-label--degree {
-  font-size: 2.8rem;
-  font-weight: 700;
-  min-width: 52px;
-  padding: 0px 0px;
-  margin-top: 30px;
-}
-
-.degree-input {
-  width: 60px;
-  height: 50px;
-  border: 1px solid var(--select-color, #FFBB33) !important;
-  border-radius: 6px;
-  background: transparent !important;
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-color, #333);
-}
-
-[data-theme="dark"] .degree-input {
-  background: transparent !important;
-  border-color: var(--select-color, #FFBB33) !important;
-  color: var(--text-dark, #e0e0e0);
-}
-
-.degree-input:focus {
-  border-color: var(--select-color, #FFBB33) !important;
-  box-shadow: 0 0 6px rgba(255, 187, 51, 0.35);
-  background: rgba(255, 187, 51, 0.08) !important;
-}
-
-.degree-input[data-filled="true"] {
-  background: rgba(255, 187, 51, 0.08) !important;
-}
-
-[data-theme="dark"] .degree-input[data-filled="true"] {
-  background: rgba(255, 187, 51, 0.12) !important;
-}
-
-.degree-column-header {
-  font-size: 1.4rem;
-  font-weight: 400;
-  color: var(--grid-number-color, var(--text-color, #333));
-  opacity: 0.85;
-}
-
-[data-theme="dark"] .degree-column-header {
-  color: var(--grid-number-color-dark, var(--text-dark, #e0e0e0));
-}
-
-/* ========== INTERVAL LINES (iSº) ========== */
+/* ========== INTERVAL LINES (iSº arrows on grid) ========== */
 .interval-bar-vertical {
   position: absolute;
   background: var(--interval-sound-color);
@@ -476,10 +345,10 @@ html, body {
   /* Simple bar without arrows */
 }
 
-.interval-number {
+.musical-grid .matrix-container .interval-number {
   position: absolute;
   color: var(--interval-sound-color);
-  font-size: 1.2rem;
+  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
   font-weight: bold;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   pointer-events: none;
@@ -491,195 +360,6 @@ html, body {
   box-shadow: 0 0 8px var(--interval-sound-color);
 }
 
-[data-theme="dark"] .interval-number {
+[data-theme="dark"] .musical-grid .matrix-container .interval-number {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-/* ========== CELL LABELS ========== */
-.musical-cell .cell-label {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translate(-50%, 50%);
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #333;
-  pointer-events: none;
-  z-index: 5;
-}
-
-[data-theme="dark"] .musical-cell .cell-label {
-  color: #eee;
-}
-
-.musical-cell.active .cell-label {
-  color: #333;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
-}
-
-[data-theme="dark"] .musical-cell.active .cell-label {
-  color: #111;
-}
-
-/* ========== HEADER CONTROLS ========== */
-.header-controls {
-  display: flex !important;
-  gap: 10px;
-  align-items: center;
-}
-
-/* ========== RESPONSIVE: TABLET ========== */
-@media (max-width: 900px) {
-  :root {
-    --scale-selector-width: var(--col-left-tablet);
-    --bpm-offset-x: -2px;
-    --bpm-offset-y: -4px;
-    --bpm-scale: 0.9;
-    --bpm-gap: 6px;
-  }
-
-  .app25-main-grid {
-    grid-template-columns: var(--col-left-tablet) minmax(0, 1fr);
-    gap: 0.5rem;
-    padding: 0.5rem;
-  }
-
-  .app25-scale-selector .transpose-btn {
-    width: 21px;
-    height: 21px;
-    font-size: 0.75rem;
-  }
-
-  .app25-controls-container .play {
-    width: 55px;
-    height: 55px;
-  }
-
-  .app25-controls-container .random,
-  .app25-controls-container .reset {
-    width: 36px;
-    height: 36px;
-  }
-
-  .grid-row-label--degree,
-  .grid-row-label--degree-interval {
-    font-size: 1.8rem;
-    min-width: 40px;
-    padding: 0 6px;
-  }
-
-  .degree-input,
-  .degree-interval-input {
-    width: 42px;
-    height: 42px;
-    font-size: 1.6rem;
-  }
-
-  .interval-bar-vertical {
-    width: 3px;
-  }
-
-  .interval-number {
-    font-size: 1rem;
-  }
-
-}
-
-/* ========== RESPONSIVE: MOBILE ========== */
-@media (max-width: 768px) {
-  :root {
-    --scale-selector-width: var(--col-left-mobile);
-    --bpm-offset-x: 0px;
-    --bpm-offset-y: -2px;
-    --bpm-scale: 0.84;
-    --bpm-gap: 4px;
-  }
-
-  .app25-main-grid {
-    grid-template-columns: var(--col-left-mobile) minmax(0, 1fr);
-    gap: 0.4rem;
-    padding: 0.4rem;
-  }
-
-  .app25-scale-selector .transpose-btn {
-    width: 18px;
-    height: 18px;
-    font-size: 0.69rem;
-  }
-
-  .grid-row-label--degree,
-  .grid-row-label--degree-interval {
-    font-size: 1.4rem;
-    min-width: 35px;
-    padding: 0 4px;
-  }
-
-  .degree-input,
-  .degree-interval-input {
-    width: 36px;
-    height: 36px;
-    font-size: 1.4rem;
-  }
-
-}
-
-/* ========== RESPONSIVE: SMALL SCREENS ========== */
-@media (max-width: 600px) {
-  :root {
-    --scale-selector-width: 85px;
-    --bpm-offset-x: 0px;
-    --bpm-offset-y: 0px;
-    --bpm-scale: 0.78;
-    --bpm-gap: 3px;
-  }
-
-  .app25-main-grid {
-    grid-template-columns: 85px minmax(0, 1fr);
-    gap: 0.3rem;
-    padding: 0.3rem;
-  }
-
-  .app25-scale-selector .transpose-btn {
-    width: 17px;
-    height: 17px;
-    font-size: 0.63rem;
-  }
-
-  .app25-controls-container .play {
-    width: 50px;
-    height: 50px;
-  }
-
-  .app25-controls-container .random,
-  .app25-controls-container .reset {
-    width: 32px;
-    height: 32px;
-  }
-
-  .grid-row-label--degree,
-  .grid-row-label--degree-interval {
-    font-size: 1.2rem;
-    min-width: 30px;
-    padding: 0 3px;
-  }
-
-  .degree-input,
-  .degree-interval-input {
-    width: 30px;
-    height: 30px;
-    font-size: 1.2rem;
-  }
-
-  .degree-column-header {
-    font-size: 0.7rem;
-  }
-
-  .interval-bar-vertical {
-    width: 2px;
-  }
-
-  .interval-number {
-    font-size: 0.85rem;
-  }
-
 }
