@@ -570,14 +570,16 @@ function handleReset() {
   clearIntervalLines();
   musicalGrid?.clear();
 
+  // musicalGrid.clear() only strips .active/.highlight. Remove the App25B-
+  // specific .rest silence markers and any .cell-label spans that
+  // syncGridFromDegreeIntervals added.
+  document.querySelectorAll('.musical-cell.rest').forEach(cell => {
+    cell.classList.remove('rest');
+  });
+  document.querySelectorAll('.musical-cell .cell-label').forEach(el => el.remove());
+
   currentDegreeIntervals = [];
   lostDegreesMemory.clear();
-
-  const prefs = preferenceStorage.load() || {};
-  delete prefs.intervals;
-  preferenceStorage.save(prefs);
-
-  console.log('Reset to default state');
 }
 
 // ========== RANDOM GENERATION ==========
@@ -627,8 +629,6 @@ function handleRandom() {
 
   const absoluteDegrees = degreeIntervalsToAbsoluteDegrees(intervals);
   syncGridFromDegreeIntervals(absoluteDegrees);
-
-  console.log('Random generation:', { scale: randomScale.name, intervals, numIntervals, scaleLength: newScaleLength });
 }
 
 // ========== SCALE CHANGE HANDLERS ==========
@@ -700,8 +700,6 @@ function handleScaleChange({ scaleId, rotation, value }) {
   currentDegreeIntervals = absoluteDegreesToIntervals(adaptedDegrees);
   gridEditor?.setPairs(currentDegreeIntervals);
   syncGridFromDegreeIntervals(adaptedDegrees);
-
-  console.log('Scale changed:', { scaleId, rotation, oldScaleLength, newScaleLength: currentScaleLength });
 }
 
 // ========== NUZIC iSº EDITOR (single row) ==========
@@ -1066,8 +1064,6 @@ function injectLayout() {
 // ========== INITIALIZATION ==========
 
 async function init() {
-  console.log('Initializing App25B: Melodías con iSº...');
-
   const gridWrapper = injectLayout();
   if (!gridWrapper) {
     console.error('Failed to create layout');
@@ -1406,8 +1402,6 @@ async function init() {
 
   // Idle caret flash on editor container
   initIdleCaretFlash({ targets: [gridEditorContainer] });
-
-  console.log('App25B initialized successfully');
 }
 
 // ========== CLEANUP ==========
