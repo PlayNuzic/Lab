@@ -103,11 +103,10 @@ let pfrRow = null;
 let pulseSeqEl = null;
 let pulseSeqEditEl = null;
 let pulseSeqController = null;
-let fractionSlot = null;
 
 /**
- * Custom markup builder for App28: Pfr n/d( [edit] )
- * Includes inline fraction slot between label and parentheses
+ * Custom markup builder for App28: P( [edit] )
+ * Fraction editor lives separately in .middle (above timeline, App26 style).
  */
 function app28MarkupBuilder({ root, initialText }) {
   if (!root) return { editEl: null };
@@ -120,37 +119,36 @@ function app28MarkupBuilder({ root, initialText }) {
   root.textContent = '';
 
   const labelSpan = mk('label', 'P');
-
-  fractionSlot = document.createElement('span');
-  fractionSlot.id = 'fractionInlineSlot';
-  fractionSlot.className = 'pz fraction-inline-container';
-
   const openParen = mk('open', '(');
   const edit = mk('edit', initialText || '  ');
   edit.contentEditable = 'true';
   edit.spellcheck = false;
   const closeParen = mk('close', ')');
 
-  root.append(labelSpan, fractionSlot, openParen, edit, closeParen);
+  root.append(labelSpan, openParen, edit, closeParen);
 
-  // Store references
   pulseSeqEditEl = edit;
 
   return { editEl: edit };
 }
 
 function createPfrLayout() {
-  // Create Pfr row
+  // Reuse the template.js #pulseSeq (created inside .middle). Detach it from
+  // .middle, move it into the pfrRow, and insert the row BELOW the timeline.
+  // This frees up .middle to host the fraction editor (App26/27 pattern).
+  pulseSeqEl = document.getElementById('pulseSeq');
+  if (!pulseSeqEl) {
+    pulseSeqEl = document.createElement('div');
+    pulseSeqEl.id = 'pulseSeq';
+  } else if (pulseSeqEl.parentNode) {
+    pulseSeqEl.parentNode.removeChild(pulseSeqEl);
+  }
+
   pfrRow = document.createElement('div');
   pfrRow.className = 'pfr-row';
-
-  // Create pulseSeq element
-  pulseSeqEl = document.createElement('div');
-  pulseSeqEl.id = 'pulseSeq';
-
   pfrRow.appendChild(pulseSeqEl);
 
-  // Insert AFTER timeline (editor lives below timeline, app13-style)
+  // Insert AFTER timeline (editor lives below timeline, app13-style).
   if (timelineWrapper && timelineWrapper.parentNode) {
     timelineWrapper.parentNode.insertBefore(pfrRow, timelineWrapper.nextSibling);
   }
@@ -314,23 +312,34 @@ if (typeof window !== 'undefined') {
 
 // ========== FRACTION EDITOR ==========
 function initFractionEditorController() {
-  if (!fractionSlot) return;
+  // Host is `.middle` (above timeline, App26 pattern). After createPfrLayout
+  // moved the template's #pulseSeq out, .middle is empty and ready to host
+  // the block-mode fraction editor.
+  const host = document.querySelector('.middle');
+  if (!host) return;
 
   // Always start with default denominator (no persistence)
   currentDenominator = DEFAULT_DENOMINATOR;
 
   const controller = createFractionEditor({
-    mode: 'inline',
-    host: fractionSlot,
+    mode: 'block',
+    host,
     defaults: { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
     maxDenominator: MAX_DENOMINATOR,
-    // No storage - always start fresh with defaults
     storage: {},
     addRepeatPress,
     labels: {
-      numerator: { placeholder: '1' },
-      denominator: { placeholder: 'd' }
+      numerator: {
+        placeholder: '1',
+        ariaUp: 'Incrementar numerador',
+        ariaDown: 'Decrementar numerador'
+      },
+      denominator: {
+        placeholder: 'd',
+        ariaUp: 'Incrementar denominador',
+        ariaDown: 'Decrementar denominador'
+      }
     },
     onChange: ({ cause }) => {
       if (cause !== 'init') {
@@ -1565,10 +1574,11 @@ function init() {
     if (resetEl) controls.appendChild(resetEl);
   }
 
-  // Initialize pulse sequence editor FIRST (creates fractionSlot)
+  // PulseSeq editor FIRST — moves the template's #pulseSeq out of .middle
+  // into the pfrRow below the timeline, freeing .middle for the fraction editor.
   initPulseSeqEditor();
 
-  // Initialize fraction editor AFTER pulseSeq (fractionSlot now exists)
+  // Fraction editor AFTER — hosted in the now-empty .middle above the timeline.
   initFractionEditorController();
 
   // Render timeline
