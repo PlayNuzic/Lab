@@ -6,7 +6,11 @@
 - [x] **App12** — Editor N-P implementat (single-column layout, validació, tooltips)
 - [x] **App14** — Editor iS-only (soundline vertical, cel·les rosa dinàmiques, interval bars/numbers)
 - [x] **App15** — Editor iS-iT zigzag implementat (zigzag offset, cel·les editables, cascade validation)
-- [ ] **App26-35** — Editors diversos
+- [x] **App25** — Editor Nº (graus d'escala) single-row dins `.grid-container` com a grid-row 3
+- [x] **App25B** — Editor iSº (intervals de graus) single-row, validació cascade, fletxes ←/→
+- [x] **App26** — Timeline standalone amb fila de subdivisions (fraccions 1/d) — primera app del grup fraccions
+- [ ] **App27-31** — Fraccions diverses (pendent, patró de subdivision-row validat a App26)
+- [ ] **App32-35** — Editors diversos
 
 ## Solucions implementades a App12 (referència per futures apps)
 
@@ -697,3 +701,123 @@ la base `width: 100%` de `timeline-intervals.css` si usen marges:
   padding: 0 !important;
 }
 ```
+
+## Solucions implementades a App26 (referència per fraction apps — App27-31)
+
+### S19: Fila de subdivisions sota la timeline standalone
+
+Les apps de fraccions mostren un marcador de subdivisió (1/d, 1/3, 2/5, etc.) amb
+ticks petits i labels `.1 .2 ...` sota la timeline principal. Patró inspirat al
+Nuzic Main — sota (no sobre) els pulse-numbers.
+
+#### DOM generat per JS (dins `.timeline`)
+
+```javascript
+// Label "1/N" ancorat a l'esquerra (una sola vegada per render)
+const subdivisionLabel = document.createElement('div');
+subdivisionLabel.className = 'subdivision-label';
+subdivisionLabel.textContent = `${numerator}/${denominator}`;
+timeline.appendChild(subdivisionLabel);
+
+// Ticks + ".1 .2" per cada subdivisió fraccionària
+const grid = gridFromOrigin({ lg, numerator, denominator });
+grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
+  // CRÍTIC: saltar subdivisionIndex === 0 — ja marcat pel pulse-number::before del nuzic-theme
+  if (subdivisionIndex === 0) return;
+
+  const marker = document.createElement('div');
+  marker.className = 'cycle-marker';
+  marker.dataset.position = String(position);
+  timeline.appendChild(marker);
+
+  const label = document.createElement('div');
+  label.className = 'cycle-label';
+  label.dataset.position = String(position);
+  label.textContent = `.${subdivisionIndex}`;
+  timeline.appendChild(label);
+});
+```
+
+#### layoutTimeline simplificat (només `left: %`)
+
+Posicionament vertical **estàtic a CSS**; només el `left: %` és dinàmic:
+
+```javascript
+function layoutTimeline() {
+  pulses.forEach((num) => {
+    const idx = parseInt(num.dataset.index, 10);
+    num.style.left = (idx / lg) * 100 + '%';
+  });
+  cycleMarkers.forEach((marker) => {
+    const pos = parseFloat(marker.dataset.position);
+    marker.style.left = (pos / lg) * 100 + '%';
+  });
+  cycleLabels.forEach((label) => {
+    const pos = parseFloat(label.dataset.position);
+    label.style.left = (pos / lg) * 100 + '%';
+  });
+}
+```
+
+#### CSS: posicions fixes + mida x2 respecte al clamp habitual
+
+```css
+.timeline .cycle-marker {
+  position: absolute;
+  top: 2.95rem;       /* sota els pulse-number bottom ticks del nuzic-theme */
+  width: 2px;
+  height: 0.5rem;
+  background: var(--nuzic-dark);
+  opacity: 0.55;
+  transform: translateX(-50%);
+}
+
+.timeline .cycle-marker.active {
+  opacity: 1;
+  background: var(--nuzic-yellow);
+  box-shadow: 0 0 6px var(--nuzic-yellow);
+}
+
+.timeline .cycle-label {
+  position: absolute;
+  top: 3.8rem;                           /* sota el marker */
+  font-size: clamp(0.95rem, 2vw, 1rem);  /* doble del standard nuzic small */
+  opacity: 0.55;
+  transform: translateX(-50%);
+}
+
+.timeline .subdivision-label {
+  position: absolute;
+  right: calc(100% + 0.5rem);            /* fora del timeline, a l'esquerra */
+  top: 3.8rem;                           /* MATEIXA línia que .cycle-label */
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  font-weight: 700;
+}
+
+/* Els cycle-labels a índex sencer coincideixen amb els pulse-numbers — amagar */
+.timeline .cycle-label--integer { display: none; }
+```
+
+#### Regles clau
+
+- **`subdivisionIndex === 0` es SALTA al JS** — aquestes posicions ja tenen el tick
+  del `pulse-number::before` del nuzic-theme. Afegir-n'hi un de propi crea doble tick.
+- **Vertical en CSS, no inline** — `top` és estàtic per classe, només el `left: %`
+  canvia per cada element. Evita treball innecessari al render.
+- **`subdivision-label` i `cycle-label` en la mateixa línia** (`top: 3.8rem`), una sola
+  línia visual coherent: `1/N  .1  .2  .1  .2  ...`.
+- **Mida del text doble del clamp standard "Small text"** (0.55/1vw/0.75 → 1.1/2vw/1.5
+  pel subdivision-label; cycle-label ajustat a 0.95/2vw/1 a mà per l'usuari segons
+  proporció visual amb els pulse-numbers).
+
+### S20: Dead code típic en fraction apps migrades
+
+Durant la migració de timeline-apps amb subdivision-row, buscar i eliminar:
+
+- **`bars = []`** — array legacy dels endpoint bars verticals (el timeline del nuzic-theme
+  ja té els caps extes via box-shadow)
+- **`pulseNumberLabels`** — sovint és duplicat exacte de `pulses` (mateix loop fa push a
+  les dues). Eliminar i usar `pulses` directament a `layoutTimeline`
+- **`timelineWrapper` const** — orfe del hack `timeline-wrapper--bpm-left` (si s'ha tret)
+- **`computeSubdivisionFontRem` import** — ja no es crida si la mida del `.cycle-label`
+  viu a CSS amb `clamp()`
