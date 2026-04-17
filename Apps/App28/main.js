@@ -455,6 +455,22 @@ function pulseTokenValue(token) {
 }
 
 /**
+ * Normalise a raw token: strip leading zeros, ensure "N.M" form.
+ * "01" → "1"; "1.03" → "1.3"; "3" → "3".
+ */
+function normalizeToken(token) {
+  if (typeof token !== 'string') return '';
+  const trimmed = token.trim();
+  if (!trimmed) return '';
+  if (trimmed.includes('.')) {
+    const [base, subdiv] = trimmed.split('.');
+    return `${parseInt(base, 10) || 0}.${parseInt(subdiv, 10) || 0}`;
+  }
+  const n = parseInt(trimmed, 10);
+  return Number.isFinite(n) ? String(n) : '';
+}
+
+/**
  * Filter out invalid pulses from selection when fraction changes
  */
 function filterInvalidPulses() {
@@ -478,10 +494,11 @@ function initPulseSeqEditor() {
   createPfrLayout();
   renderPfrEditor();
 
-  // Idle caret flash on the active input cell.
-  initIdleCaretFlash({
-    targets: [() => pfrCellsEl?.querySelector('.editor-input') || null]
-  });
+  // Idle caret flash on the editor container (active input is recreated on
+  // every render, but the container persists — so anchor the flash there).
+  if (pfrEditorEl) {
+    initIdleCaretFlash({ targets: [pfrEditorEl] });
+  }
 }
 
 /**
