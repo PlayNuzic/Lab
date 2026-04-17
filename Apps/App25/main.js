@@ -46,7 +46,6 @@ let audio = null;
 let musicalGrid = null;
 let gridEditor = null;
 let bpmController = null;
-let currentScaleIndex = 0;
 let currentBPM = DEFAULT_BPM;
 let isPlaying = false;
 
@@ -132,22 +131,6 @@ function getVisualScaleSemitones() {
   // This is needed when switching from 7-note to 5-note scales
   result.push(12);
 
-  return result;
-}
-
-/**
- * Get PLAYBACK scale semitones (for MIDI output)
- * Includes rootOffset for mode compensation.
- */
-function getPlaybackScaleSemitones() {
-  const effectiveRoot = (scaleState.root + currentRootOffset) % 12;
-  const playbackState = { ...scaleState, root: effectiveRoot };
-
-  const sems = scaleSemis(scaleState.id);
-  const result = [];
-  for (let d = 0; d < sems.length; d++) {
-    result.push(degToSemi(playbackState, d));
-  }
   return result;
 }
 
@@ -378,8 +361,6 @@ function handleReset() {
   if (isPlaying) {
     stopPlayback();
   }
-
-  console.log('Reset to default state');
 }
 
 // ========== RANDOM GENERATION ==========
@@ -390,7 +371,6 @@ function handleRandom() {
   // 1. Randomize scale
   const randomScaleIndex = Math.floor(Math.random() * APP25_SCALES.length);
   const randomScale = APP25_SCALES[randomScaleIndex];
-  currentScaleIndex = randomScaleIndex;
   const escalaSelect = document.getElementById('escalaSelect');
   if (escalaSelect) escalaSelect.value = randomScale.value;
   handleScaleChange({ scaleId: randomScale.id, rotation: randomScale.rotation, value: randomScale.value });
@@ -433,13 +413,6 @@ function handleRandom() {
 
   gridEditor?.setPairs(pairs);
   syncGridFromDegrees(pairs);
-
-  console.log('Random generation:', {
-    scale: randomScale.name,
-    pairs,
-    numPairs,
-    scaleLength: newScaleLength
-  });
 }
 
 // ========== SYNCHRONIZATION ==========
@@ -621,12 +594,6 @@ function handleScaleChange({ scaleId, rotation, value }) {
     // Re-sync visual grid with new positions
     syncGridFromDegrees(adaptedPairs);
   }
-
-  console.log('Scale changed (parallel):', {
-    scaleId, rotation,
-    oldScaleLength,
-    newScaleLength: currentScaleLength
-  });
 }
 
 // ========== NUZIC DEGREE EDITOR (single row) ==========
@@ -950,8 +917,6 @@ function injectLayout() {
 // ========== INITIALIZATION ==========
 
 async function init() {
-  console.log('Initializing App25: Melodias con Escalas...');
-
   // Note: Audio preload is now handled by first-interaction listener (see below)
   // This avoids the delay and ensures immediate response on first cell click
 
@@ -1304,7 +1269,6 @@ async function init() {
   // Wire instrument dropdown
   window.addEventListener('sharedui:instrument', async (e) => {
     const instrument = e.detail.instrument;
-    console.log('Instrument changed to:', instrument);
 
     await initAudio();
     await audio.setInstrument(instrument);
@@ -1338,8 +1302,6 @@ async function init() {
 
   // Idle caret flash on grid editor container
   initIdleCaretFlash({ targets: [gridEditorContainer] });
-
-  console.log('App25 initialized successfully');
 }
 
 // ========== CLEANUP ==========

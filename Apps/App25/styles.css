@@ -2,12 +2,6 @@
 
 @import url('../../libs/musical-grid/musical-grid.css');
 
-/* Nuzic theme overrides */
-body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0;
-  --nuzic-controls-offset-y: 0;
-}
-
 /* ========== VIEWPORT FILL ========== */
 html, body {
   margin: 0;
@@ -170,11 +164,9 @@ main {
   cursor: not-allowed;
 }
 
+/* Inherit np-dot::after size from nuzic-theme; only change color + opacity. */
 .musical-cell.disabled .np-dot::after {
-  width: 4px;
-  height: 4px;
   background: var(--line-color, #666);
-  border: none;
   opacity: 0.6;
 }
 
