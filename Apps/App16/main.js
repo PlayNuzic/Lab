@@ -368,9 +368,11 @@ async function handlePlay() {
       highlightNumber(displayStep, isFadeOut);
     },
     () => {
-      // onComplete callback
+      // onComplete callback: restore master volume IMMEDIATELY so a quick
+      // replay doesn't capture the fade level as originalVolume. Delay only
+      // audio.stop()/stopPlayback() so the last click rings out.
+      setVolume(originalVolume);
       setTimeout(() => {
-        setVolume(originalVolume);
         audio?.stop();
         stopPlayback(false);
       }, 590);
