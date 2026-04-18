@@ -660,11 +660,61 @@ export function initHeader() {
     if (header && menu) {
         wireMenu(menu);
         wireControls(header);
+        relocateSoundWrapperForNuzic(header);
         return { header, menu };
     }
     // If header doesn't exist, warn but don't auto-render to avoid duplication
     console.warn('[initHeader] No header found. Call renderApp() or renderHeader() first.');
     return undefined;
+}
+
+/**
+ * In nuzic-themed apps, move `.sound-wrapper` (speaker button + volume fader)
+ * from the page header into the `.controls` row (after the reset button). The
+ * element keeps its original ID/wiring, so mute, fader animation, volume event
+ * dispatch, and factory-reset integration all continue working.
+ *
+ * Apps typically wipe `.controls` via `while (firstChild) removeChild(...)` in
+ * their `init()` and re-append ordered children. A MutationObserver re-appends
+ * the sound-wrapper whenever it disappears from `.controls`. MutationObserver
+ * callbacks fire as a microtask AFTER the synchronous re-append loop finishes,
+ * so the wrapper lands at the end (after reset) regardless of re-ordering.
+ */
+function relocateSoundWrapperForNuzic(header) {
+    if (typeof document === 'undefined') return;
+    if (document.body?.getAttribute('data-visual') !== 'nuzic') return;
+
+    const soundWrapper = header.querySelector('.sound-wrapper');
+    if (!soundWrapper) return;
+
+    const ensureInControls = () => {
+        const controls = document.querySelector('.controls');
+        if (!controls) return false;
+        if (!controls.contains(soundWrapper)) {
+            controls.appendChild(soundWrapper);
+        }
+        return true;
+    };
+
+    const placed = ensureInControls();
+
+    if (typeof MutationObserver === 'undefined') return;
+    const observer = new MutationObserver(() => { ensureInControls(); });
+
+    if (placed) {
+        observer.observe(soundWrapper.parentElement, { childList: true });
+    } else {
+        // `.controls` not in DOM yet — observe <body> for it, then switch to
+        // observing `.controls` once it appears. Covers apps that create the
+        // controls row asynchronously.
+        const bodyObserver = new MutationObserver(() => {
+            if (ensureInControls()) {
+                bodyObserver.disconnect();
+                observer.observe(soundWrapper.parentElement, { childList: true });
+            }
+        });
+        bodyObserver.observe(document.body, { childList: true, subtree: true });
+    }
 }
 
 /**
