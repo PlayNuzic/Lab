@@ -1032,9 +1032,17 @@ function highlightCycle(payload = {}) {
 }
 
 /**
- * Highlight the note bar (inside the grid matrix) that contains a given position.
+ * Highlight the note bar (inside the grid matrix) that contains a given
+ * position (in user-pulses).
+ *
+ * `noteData.startSubdiv` and `.duration` are in GRID CELLS (not pulses).
+ * Each grid cell is `n/d` pulses wide. So to compare with `position` we
+ * convert cells → pulses by multiplying by `n/d`. For n=1 this reduces
+ * to `/d` (App32 formula); for n>1 the `n` factor is essential,
+ * otherwise the note bar appears to highlight n-times faster than audio.
  */
 function highlightBarAtPosition(position) {
+  const n = currentNumerator;
   const d = currentDenominator;
   const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
   const bars = matrix?.querySelectorAll('.note-bar');
@@ -1043,8 +1051,8 @@ function highlightBarAtPosition(position) {
   let activeIdx = -1;
   for (let i = 0; i < notes.length; i++) {
     const noteData = notes[i];
-    const startPos = noteData.startSubdiv / d;
-    const endPos = (noteData.startSubdiv + noteData.duration) / d;
+    const startPos = (noteData.startSubdiv * n) / d;
+    const endPos = ((noteData.startSubdiv + noteData.duration) * n) / d;
     if (position >= startPos && position < endPos) {
       activeIdx = i;
       break;
