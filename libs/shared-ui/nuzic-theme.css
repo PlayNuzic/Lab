@@ -647,6 +647,18 @@ body[data-visual="nuzic"][data-theme="dark"] .timeline .pulse-number.active {
   color: #43433b;
 }
 
+body[data-visual="nuzic"][data-theme="dark"] .timeline .cycle-marker {
+  background: #43433b;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .timeline .cycle-marker.active {
+  background: var(--nuzic-yellow, #FFBB33);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .timeline .cycle-label {
+  color: #43433b;
+}
+
 body[data-visual="nuzic"][data-theme="dark"] .grid-container .timeline-wrapper::before {
   background: var(--nuzic-yellow-light);
 }
