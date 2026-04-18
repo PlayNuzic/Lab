@@ -884,26 +884,34 @@ body[data-visual="nuzic"][data-theme="dark"] .reset svg {
 }
 
 /* --------------------------------------------------------------------------
-   Volume button (.sound-wrapper) relocated into .controls in nuzic mode.
-   header.js moves the element from <header> into `.controls` and a
-   MutationObserver keeps it there after app-side re-orderings.
-   Styling matches .random/.reset; the volume fader pops up above the button.
+   Volume button (.sound-wrapper) relocated by header.js in nuzic mode.
+   Two placements coexist:
+     • `.nuzic-inline`   — inside `.controls`, after random/reset (App34, etc.)
+     • `.nuzic-floating` — absolutely positioned between play buttons, used
+                            by scale apps (App21-24) that have no `.controls`
+                            and render two (or one) `.soundline-play` buttons.
+   The shared button + fader popup styles target `.nuzic-inline`, which both
+   modes carry. `.nuzic-floating` adds the `position: fixed` placement on top.
    -------------------------------------------------------------------------- */
 
-body[data-visual="nuzic"] .controls .sound-wrapper {
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline {
   position: relative;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
-  /* Top/right absolute positioning from index.css only applies via
-     `.top-bar .sound-wrapper` — once moved into .controls, it resolves to
-     the default static/relative flow. No reset needed. */
+}
+
+/* Floating mode: JS sets `left`/`top` inline from the play-button rects.
+   `translate(-50%, -50%)` centers the wrapper on that coordinate. */
+body[data-visual="nuzic"] .sound-wrapper.nuzic-floating {
+  position: fixed;
+  transform: translate(-50%, -50%);
 }
 
 /* Round speaker button — same shape/size as .random and .reset. */
-body[data-visual="nuzic"] .controls .sound {
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline .sound {
   width: clamp(1.5rem, 3.5vw, 2.25rem);
   height: clamp(1.5rem, 3.5vw, 2.25rem);
   padding: 0;
@@ -917,7 +925,7 @@ body[data-visual="nuzic"] .controls .sound {
   cursor: pointer;
 }
 
-body[data-visual="nuzic"] .controls .sound svg {
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline .sound svg {
   width: 60%;
   height: 60%;
   fill: var(--nuzic-dark);
@@ -927,7 +935,7 @@ body[data-visual="nuzic"] .controls .sound svg {
 /* Volume fader: floating popup above the button. `transform-origin: bottom
    center` means the scaleY(0→1) animation grows upward into view. The
    `show`/`hide` classes come from `wireControls()` in header.js. */
-body[data-visual="nuzic"] .controls #volumeSlider {
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider {
   position: absolute;
   bottom: calc(100% + 0.5rem);
   left: 50%;
@@ -945,22 +953,22 @@ body[data-visual="nuzic"] .controls #volumeSlider {
   margin: 0;
 }
 
-body[data-visual="nuzic"] .controls #volumeSlider.show {
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider.show {
   transform: translateX(-50%) scaleY(1);
 }
 
-body[data-visual="nuzic"] .controls #volumeSlider.hide {
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider.hide {
   transform: translateX(-50%) scaleY(0);
 }
 
-body[data-visual="nuzic"] .controls #volumeSlider::-webkit-slider-runnable-track {
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-webkit-slider-runnable-track {
   width: 0.25rem;
   height: 100%;
   background: var(--nuzic-dark, #43433b);
   border-radius: 0.125rem;
 }
 
-body[data-visual="nuzic"] .controls #volumeSlider::-moz-range-track {
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-moz-range-track {
   width: 0.25rem;
   height: 100%;
   background: var(--nuzic-dark, #43433b);
@@ -970,7 +978,7 @@ body[data-visual="nuzic"] .controls #volumeSlider::-moz-range-track {
 /* Thumb colors are hardcoded (not `var(--nuzic-*)`) so the ball stays the
    same pale mint across light/dark themes. The border uses the dark nuzic
    hex for visibility on both backgrounds. */
-body[data-visual="nuzic"] .controls #volumeSlider::-webkit-slider-thumb {
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 1.125rem;
@@ -983,7 +991,7 @@ body[data-visual="nuzic"] .controls #volumeSlider::-webkit-slider-thumb {
   margin-left: -0.4375rem;
 }
 
-body[data-visual="nuzic"] .controls #volumeSlider::-moz-range-thumb {
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-moz-range-thumb {
   width: 1.125rem;
   height: 1.125rem;
   background: #cbefe1;
@@ -993,14 +1001,14 @@ body[data-visual="nuzic"] .controls #volumeSlider::-moz-range-thumb {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-body[data-visual="nuzic"] .controls #volumeSlider::-webkit-slider-thumb:active,
-body[data-visual="nuzic"] .controls #volumeSlider::-moz-range-thumb:active {
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-webkit-slider-thumb:active,
+body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-moz-range-thumb:active {
   cursor: grabbing;
 }
 
 /* Dark mode anti-flip: keep the pale-mint look across themes, same as
    .random and .reset above. */
-body[data-visual="nuzic"][data-theme="dark"] .controls .sound {
+body[data-visual="nuzic"][data-theme="dark"] .sound-wrapper.nuzic-inline .sound {
   background: #cbefe1;
   border-color: #cbefe1;
   color: #43433b;
@@ -1009,7 +1017,7 @@ body[data-visual="nuzic"][data-theme="dark"] .controls .sound {
 /* Icon color: the path uses `fill="currentColor"`, so the fill follows the
    svg's `color`. Force both to the dark nuzic hex so the speaker stays dark
    in dark mode (don't flip to cream like `--nuzic-dark` does). */
-body[data-visual="nuzic"][data-theme="dark"] .controls .sound svg {
+body[data-visual="nuzic"][data-theme="dark"] .sound-wrapper.nuzic-inline .sound svg {
   color: #43433b;
   fill: #43433b;
 }

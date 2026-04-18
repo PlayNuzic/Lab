@@ -669,16 +669,27 @@ export function initHeader() {
 }
 
 /**
- * In nuzic-themed apps, move `.sound-wrapper` (speaker button + volume fader)
- * from the page header into the `.controls` row (after the reset button). The
- * element keeps its original ID/wiring, so mute, fader animation, volume event
- * dispatch, and factory-reset integration all continue working.
+ * In nuzic-themed apps, relocate `.sound-wrapper` (speaker button + volume
+ * fader) out of the page header so it lives alongside the rest of the
+ * control buttons. Two placements coexist and the function auto-detects
+ * which one to apply:
  *
- * Apps typically wipe `.controls` via `while (firstChild) removeChild(...)` in
- * their `init()` and re-append ordered children. A MutationObserver re-appends
- * the sound-wrapper whenever it disappears from `.controls`. MutationObserver
- * callbacks fire as a microtask AFTER the synchronous re-append loop finishes,
- * so the wrapper lands at the end (after reset) regardless of re-ordering.
+ *   • **inline**  — append into `.controls` (after random/reset). Used by
+ *     every standard-layout app (App26, App32-35, …).
+ *   • **floating** — absolutely positioned horizontally centered between
+ *     the `.soundline-play` buttons (or just to the right of a single one).
+ *     Used by scale apps (App21-24) that wipe `.timeline-wrapper` — and
+ *     with it the template-generated `.controls` — to render their own
+ *     soundline layout.
+ *
+ * The element is always the same DOM node: its ID, wiring (mute, fader
+ * animation, volume event dispatch, factoryReset) all continue working.
+ * A MutationObserver re-evaluates placement when the DOM mutates (apps
+ * wipe `.controls` and re-append children in specific order). Because
+ * MutationObserver callbacks fire as a microtask after synchronous DOM
+ * work, the wrapper consistently ends up at the end of `.controls` (or
+ * correctly repositioned in floating mode). A resize listener keeps the
+ * floating placement tracking the play buttons' bounding rects.
  */
 function relocateSoundWrapperForNuzic(header) {
     if (typeof document === 'undefined') return;
@@ -687,34 +698,95 @@ function relocateSoundWrapperForNuzic(header) {
     const soundWrapper = header.querySelector('.sound-wrapper');
     if (!soundWrapper) return;
 
-    const ensureInControls = () => {
-        const controls = document.querySelector('.controls');
-        if (!controls) return false;
-        if (!controls.contains(soundWrapper)) {
-            controls.appendChild(soundWrapper);
+    // Position the wrapper between/near soundline-play buttons. Called for
+    // floating mode: horizontal center = midpoint of the outermost play
+    // centers; vertical center = vertical center of the first play button.
+    const repositionFloating = () => {
+        const plays = Array.from(document.querySelectorAll('.soundline-play'));
+        if (plays.length === 0) return;
+        const rects = plays.map(btn => btn.getBoundingClientRect());
+        let cx, cy;
+        if (rects.length === 1) {
+            // Single play button: place the volume to the right, at a
+            // button-width distance (keeps the rhythm visually consistent).
+            const r = rects[0];
+            cx = r.right + r.width;
+            cy = (r.top + r.bottom) / 2;
+        } else {
+            // Two or more: center horizontally between first-center and
+            // last-center → literal "same distance from each".
+            const firstCenter = (rects[0].left + rects[0].right) / 2;
+            const lastCenter = (rects[rects.length - 1].left + rects[rects.length - 1].right) / 2;
+            cx = (firstCenter + lastCenter) / 2;
+            cy = (rects[0].top + rects[0].bottom) / 2;
         }
-        return true;
+        soundWrapper.style.left = `${cx}px`;
+        soundWrapper.style.top = `${cy}px`;
     };
 
-    const placed = ensureInControls();
+    let currentMode = 'header';
 
-    if (typeof MutationObserver === 'undefined') return;
-    const observer = new MutationObserver(() => { ensureInControls(); });
-
-    if (placed) {
-        observer.observe(soundWrapper.parentElement, { childList: true });
-    } else {
-        // `.controls` not in DOM yet — observe <body> for it, then switch to
-        // observing `.controls` once it appears. Covers apps that create the
-        // controls row asynchronously.
-        const bodyObserver = new MutationObserver(() => {
-            if (ensureInControls()) {
-                bodyObserver.disconnect();
-                observer.observe(soundWrapper.parentElement, { childList: true });
+    const update = () => {
+        const controls = document.querySelector('.controls');
+        if (controls) {
+            // Inline mode: append into .controls (idempotent).
+            if (!controls.contains(soundWrapper)) {
+                controls.appendChild(soundWrapper);
             }
-        });
-        bodyObserver.observe(document.body, { childList: true, subtree: true });
+            soundWrapper.classList.add('nuzic-inline');
+            soundWrapper.classList.remove('nuzic-floating');
+            soundWrapper.style.left = '';
+            soundWrapper.style.top = '';
+            currentMode = 'inline';
+            return;
+        }
+
+        const plays = document.querySelectorAll('.soundline-play');
+        if (plays.length > 0) {
+            // Floating mode: attach to body + position via inline left/top.
+            if (soundWrapper.parentElement !== document.body) {
+                document.body.appendChild(soundWrapper);
+            }
+            soundWrapper.classList.add('nuzic-inline');
+            soundWrapper.classList.add('nuzic-floating');
+            repositionFloating();
+            currentMode = 'floating';
+            return;
+        }
+
+        // Neither `.controls` nor `.soundline-play` present — leave the
+        // wrapper wherever it currently sits (header by default). Cleared
+        // class tokens so no stray nuzic styles apply.
+        soundWrapper.classList.remove('nuzic-inline', 'nuzic-floating');
+        soundWrapper.style.left = '';
+        soundWrapper.style.top = '';
+        currentMode = 'header';
+    };
+
+    update();
+
+    if (typeof MutationObserver !== 'undefined') {
+        // Debounce with rAF so grid-heavy apps (note drags etc) don't fire
+        // `update()` on every cell mutation. rAF means at most one call per
+        // frame regardless of mutation volume.
+        let pending = false;
+        const scheduleUpdate = () => {
+            if (pending) return;
+            pending = true;
+            requestAnimationFrame(() => {
+                pending = false;
+                update();
+            });
+        };
+        const observer = new MutationObserver(scheduleUpdate);
+        observer.observe(document.body, { childList: true, subtree: true });
     }
+
+    // Keep the floating placement tracking the play buttons on viewport
+    // changes. Inline mode doesn't need this — CSS handles layout shifts.
+    window.addEventListener('resize', () => {
+        if (currentMode === 'floating') repositionFloating();
+    });
 }
 
 /**
