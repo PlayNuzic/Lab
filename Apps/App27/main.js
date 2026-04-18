@@ -397,11 +397,14 @@ function renderTimeline() {
   const denominator = currentDenominator;
 
   // Pulse numbers (nuzic-theme handles ticks via ::before/::after and hides
-  // legacy .pulse dots).
+  // legacy .pulse dots). Intermediate integers (0<i<lg) are marked as
+  // "ghost" pulses — in a reduced fraction n/d they never fall on a
+  // subdivision boundary (Nuzic glossary).
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
     if (i === 0 || i === lg) num.classList.add('endpoint');
+    else num.classList.add('ghost');
     num.dataset.index = i;
     num.textContent = i;
     timeline.appendChild(num);
