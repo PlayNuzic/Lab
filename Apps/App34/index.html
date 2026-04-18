@@ -7,10 +7,7 @@
   <link rel="stylesheet" href="../../libs/shared-ui/index.css" />
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="../../libs/plano-modular/plano-modular.css" />
-
-  <link rel="stylesheet" href="../../libs/matrix-seq/grid-editor.css" />
   <link rel="stylesheet" href="../../libs/shared-ui/bpm-inline.css" />
-  <link rel="stylesheet" href="../../libs/plano-fraccion/plano-fraccion.css" />
   <link rel="stylesheet" href="../../libs/shared-ui/nuzic-theme.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../../favicon.ico" />
@@ -20,7 +17,6 @@
   <script type="module">
     import { initHeader } from '../../libs/shared-ui/header.js';
     import { renderApp } from '../../libs/app-common/template.js';
-    import { injectBpmAndSoundGroup } from '../../libs/app-common/bpm-inline-injector.js';
 
     renderApp({
       root: document.getElementById('app-root'),
@@ -44,7 +40,48 @@
       randomMenuContent: ''
     });
 
-    injectBpmAndSoundGroup();
+    // Replace .inputs with BPM pastilla (main.js moves it into .controls).
+    const inputsEl = document.querySelector('.inputs');
+    if (inputsEl) {
+      inputsEl.innerHTML = `
+        <div class="bpm-inline visible" id="bpmParam">
+          <span class="abbr">BPM</span>
+          <div class="circle">
+            <input id="inputBpm" type="number" min="50" max="150" value="90" />
+            <div class="spinner">
+              <button id="bpmUp" class="spin up" type="button" aria-label="Incrementar BPM"></button>
+              <button id="bpmDown" class="spin down" type="button" aria-label="Decrementar BPM"></button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Setup sound group: rename Pulso → Metrónomo, add Subdivisión slot.
+    const soundGroup = document.querySelector('.sound-group');
+    if (soundGroup) {
+      const labels = soundGroup.querySelectorAll('p');
+      const pulsoLabel = labels?.[2];
+      if (pulsoLabel) pulsoLabel.textContent = 'Metrónomo';
+
+      const cycleTitle = document.createElement('p');
+      cycleTitle.textContent = 'Subdivisión';
+      soundGroup.appendChild(cycleTitle);
+
+      const cycleRow = document.createElement('div');
+      cycleRow.className = 'preview-row';
+
+      const hiddenLabel = document.createElement('label');
+      hiddenLabel.setAttribute('for', 'cycleSoundSelect');
+      hiddenLabel.style.display = 'none';
+      cycleRow.appendChild(hiddenLabel);
+
+      const slot = document.createElement('div');
+      slot.id = 'cycleSoundSelect';
+      cycleRow.appendChild(slot);
+      soundGroup.appendChild(cycleRow);
+    }
+
     initHeader();
     import('./main.js');
   </script>

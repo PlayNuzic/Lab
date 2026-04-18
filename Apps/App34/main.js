@@ -1,7 +1,7 @@
-// App34: Sucesión en plano de fracciones simples
-// Basat en App32, afegeix zigzag editor N-iT (notes + intervals temporals)
+// App34: Plano con Fracción Simple
+// Basat en App30, substitueix iT-seq per grid 2D amb notes
 // Lg=12 fix, BPM=70 fix, numerador=1 fix, denominador editable (1-8)
-// Grid 2D amb 12 notes (0-11) + soundline + zigzag editor N-iT
+// Grid 2D amb 12 notes (0-11) + soundline
 // Àudio melòdic amb selector d'instrument + so de cicle
 
 import { getMixer } from '../../libs/sound/index.js';
@@ -19,7 +19,6 @@ import {
   updateMatrix
 } from '../../libs/plano-modular/plano-grid.js';
 import { createPlayheadController } from '../../libs/plano-modular/plano-playhead.js';
-import { createGridEditor } from '../../libs/matrix-seq/index.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 import { setupScrollSync } from '../../libs/plano-modular/plano-scroll.js';
@@ -65,19 +64,13 @@ let cellWidth = 40;
 let playheadController = null;
 
 // DOM elements
-let pulses = [];
-let bars = [];
-let cycleMarkers = [];
-let cycleLabels = [];
-let pulseNumberLabels = [];
-let intervalBars = []; // Rectangles iT (mantinguts per timeline)
-let noteBars = [];     // Rectangles notes al grid
+// Timeline-integer and fraction labels inside the plano grid (used for highlight during playback).
 let gridIntegerLabels = [];
 let gridFractionLabels = [];
+let noteBars = [];     // Rectangles notes al grid
 
 // Controllers
 let fractionEditorController = null;
-let zigzagEditor = null;
 
 // Drag state
 let dragState = {
@@ -132,7 +125,6 @@ window.addEventListener('sharedui:instrument', async (e) => {
 });
 
 // ========== DOM ELEMENTS ==========
-const timeline = document.getElementById('timeline');
 const timelineWrapper = document.getElementById('timelineWrapper');
 const playBtn = document.getElementById('playBtn');
 const randomBtn = document.getElementById('randomBtn');
@@ -142,12 +134,11 @@ const baseSoundSelect = document.getElementById('baseSoundSelect');
 const cycleSoundSelect = document.getElementById('cycleSoundSelect');
 const mixerMenu = document.getElementById('mixerMenu');
 
-// P row elements (created dynamically)
-let pzRow = null;
+// .middle layout elements (fraction slot + info pastilles in .middle).
 let fractionSlot = null;
-let infoColumn = null;
 let sumDisplay = null;
 let availableDisplay = null;
+let zigzagEditor = null;
 
 // ========== HOVER TOOLTIPS ==========
 if (playBtn) attachHover(playBtn, { text: 'Play / Stop' });
@@ -237,87 +228,71 @@ function subdivToPosition(subdiv) {
 
 // ========== GRID HELPERS ==========
 
+/**
+ * Compute current cell width by reading the actual rendered cell's offsetWidth.
+ * With columnSizing='fr' the grid fills all horizontal space, so cell width is
+ * dynamic and must be read from the DOM after render (not computed ahead).
+ * Returns 40 as fallback before first render.
+ */
 function calculateCellWidth() {
-  const container = gridElements?.matrixContainer;
-  if (!container) return 40;
-  const containerWidth = container.clientWidth || 600;
-  // pulseWidth fix: 2.5x espai per puls (scroll si cal)
-  const pulseWidth = containerWidth / (FIXED_LG / 2.5);
-  return pulseWidth / currentDenominator;
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+  const firstCell = matrix?.querySelector('.plano-cell');
+  return firstCell?.offsetWidth || 40;
 }
 
-// ========== PZ ROW + GRID CREATION ==========
-function createPzRow() {
-  pzRow = document.createElement('div');
-  pzRow.className = 'pz-row';
+// ========== MIDDLE LAYOUT (info pastilles + fraction) ==========
+// Three-column grid in `.middle`: [info pastilles | fraction centered | empty
+// spacer mirroring pastilles width so the fraction stays visually centered].
+function buildMiddleLayout() {
+  const middle = document.querySelector('.middle');
+  if (!middle) return null;
 
-  // Info column (left side)
-  infoColumn = document.createElement('div');
-  infoColumn.className = 'info-column';
+  middle.innerHTML = '';
+  middle.classList.add('app34-middle');
 
-  // Available iT display (iT no col·locats)
-  const availableBox = document.createElement('div');
-  availableBox.className = 'it-info-box';
-  const availableLabel = document.createElement('span');
-  availableLabel.className = 'it-info-label';
-  availableLabel.innerHTML = 'iT<br>Disponibles';
-  availableDisplay = document.createElement('input');
-  availableDisplay.type = 'text';
-  availableDisplay.className = 'it-input';
-  availableDisplay.readOnly = true;
-  availableDisplay.value = '0';
-  availableBox.appendChild(availableLabel);
-  availableBox.appendChild(availableDisplay);
+  // Info pastilles group
+  const infoGroup = document.createElement('div');
+  infoGroup.className = 'itfr-info-group';
 
-  // Sum of iT display (iT col·locats = suma de durades)
   const sumBox = document.createElement('div');
-  sumBox.className = 'it-info-box';
-  const sumLabel = document.createElement('span');
-  sumLabel.className = 'it-info-label';
-  sumLabel.textContent = 'Suma iT';
-  sumDisplay = document.createElement('input');
-  sumDisplay.type = 'text';
-  sumDisplay.className = 'it-input';
-  sumDisplay.readOnly = true;
-  sumDisplay.value = '0';
-  sumBox.appendChild(sumLabel);
-  sumBox.appendChild(sumDisplay);
+  sumBox.className = 'bpm-inline visible param sum-it';
+  sumBox.innerHTML = `
+    <span class="abbr">Suma iT</span>
+    <div class="circle">
+      <input id="sumItDisplay" type="text" value="0" readonly />
+    </div>
+  `;
 
-  // Hide info boxes (keep for potential future use)
-  availableBox.style.display = 'none';
-  sumBox.style.display = 'none';
+  const dispBox = document.createElement('div');
+  dispBox.className = 'bpm-inline visible param it-disponibles';
+  dispBox.innerHTML = `
+    <span class="abbr">iT Disponibles</span>
+    <div class="circle">
+      <input id="itDisponiblesDisplay" type="text" value="0" readonly />
+    </div>
+  `;
 
-  infoColumn.appendChild(availableBox);
-  infoColumn.appendChild(sumBox);
+  infoGroup.appendChild(sumBox);
+  infoGroup.appendChild(dispBox);
+  middle.appendChild(infoGroup);
 
-  // Fraction section (center)
-  const fractionSection = document.createElement('div');
-  fractionSection.className = 'fraction-section';
+  // Fraction slot (center column)
+  fractionSlot = document.createElement('div');
+  fractionSlot.className = 'itfr-fraction-slot';
+  middle.appendChild(fractionSlot);
 
-  const labelSpan = document.createElement('span');
-  labelSpan.className = 'pz label';
-  labelSpan.textContent = 'P';
+  // Invisible spacer column mirrors pastilles group width so fraction renders
+  // visually centered despite pastilles on the left.
+  const spacer = document.createElement('div');
+  spacer.className = 'itfr-spacer';
+  spacer.setAttribute('aria-hidden', 'true');
+  middle.appendChild(spacer);
 
-  fractionSlot = document.createElement('span');
-  fractionSlot.id = 'fractionInlineSlot';
-  fractionSlot.className = 'pz fraction-inline-container';
+  // Resolve info displays
+  sumDisplay = document.getElementById('sumItDisplay');
+  availableDisplay = document.getElementById('itDisponiblesDisplay');
 
-  fractionSection.appendChild(labelSpan);
-  fractionSection.appendChild(fractionSlot);
-
-  // Zigzag editor container (App4 pattern: no wrapper, direct overflow)
-  const zigzagContainer = document.createElement('div');
-  zigzagContainer.id = 'zigzagEditorContainer';
-  zigzagContainer.className = 'zigzag-editor-container';
-
-  pzRow.appendChild(infoColumn);
-  pzRow.appendChild(fractionSection);
-  pzRow.appendChild(zigzagContainer);
-
-  // Insert before timeline
-  if (timelineWrapper && timelineWrapper.parentNode) {
-    timelineWrapper.parentNode.insertBefore(pzRow, timelineWrapper);
-  }
+  return middle;
 }
 
 /**
@@ -342,121 +317,43 @@ function updateInfoDisplays() {
   }
 }
 
-// ========== ZIGZAG EDITOR (N-iT) ==========
-/**
- * Initialize zigzag matrix editor with N (notes 0-11) and iT (temporal intervals)
- */
-function initZigzagEditor() {
-  const container = document.getElementById('zigzagEditorContainer');
-  if (!container) return;
-
-  zigzagEditor = createGridEditor({
-    container,
-    mode: 'n-it',
-    showZigzag: true,
-    noteRange: [0, 11],
-    showIntervalLabels: false,  // Compact mode
-    leftZigzagLabels: {
-      topText: 'N',
-      bottomText: 'iT'
-    },
-    intervalModeOptions: {
-      hideInitialPair: true,
-      hideRegistry: true,  // Hide registry for simple N → iT navigation
-      basePair: { note: 0, pulse: 0 },
-      maxTotalPulse: getTotalSubdivisions(),
-      allowSilence: true
-    },
-    onPairsChange: handleZigzagChange
-  });
-}
-
-/**
- * Handle zigzag editor changes: convert N-iT pairs to notes array
- */
-function handleZigzagChange(pairs) {
-  const newNotes = [];
-  let currentStart = 0;
-
-  pairs.forEach(pair => {
-    if (pair.temporalInterval) {
-      if (pair.isRest) {
-        newNotes.push({
-          note: null,
-          startSubdiv: currentStart,
-          duration: pair.temporalInterval,
-          isRest: true
-        });
-      } else if (pair.note !== null) {
-        newNotes.push({
-          note: pair.note,
-          startSubdiv: currentStart,
-          duration: pair.temporalInterval
-        });
-      }
-      currentStart += pair.temporalInterval;
-    }
-  });
-
-  // Update internal notes array
-  notes = newNotes;
-
-  // Re-render the 2D grid
-  renderNotes();
-  updateIntervalBars();
-  updateInfoDisplays();
-}
-
-/**
- * Sync 2D grid notes to zigzag editor
- */
-function syncGridToZigzag() {
-  if (!zigzagEditor) return;
-
-  // Build pairs inserting silences for gaps between notes
-  const sorted = [...notes].filter(n => !n.isRest).sort((a, b) => a.startSubdiv - b.startSubdiv);
-  const pairs = [];
-  let cursor = 0;
-
-  for (const noteData of sorted) {
-    if (noteData.startSubdiv > cursor) {
-      pairs.push({
-        note: null,
-        pulse: cursor,
-        temporalInterval: noteData.startSubdiv - cursor,
-        isRest: true
-      });
-    }
-    pairs.push({
-      note: noteData.note,
-      pulse: noteData.startSubdiv,
-      temporalInterval: noteData.duration
-    });
-    cursor = noteData.startSubdiv + noteData.duration;
-  }
-
-  zigzagEditor.setPairs(pairs);
-}
-
 function createGrid() {
-  // Create grid container before timeline
+  // Create grid container AFTER timeline-wrapper (nuzic order: timeline →
+  // grid → editor → controls; here there's no editor so grid becomes the
+  // dominant visual element, replacing the timeline).
   let gridContainer = document.getElementById('gridContainer');
   if (!gridContainer) {
     gridContainer = document.createElement('div');
     gridContainer.id = 'gridContainer';
     gridContainer.className = 'grid-container';
     if (timelineWrapper && timelineWrapper.parentNode) {
-      timelineWrapper.parentNode.insertBefore(gridContainer, timelineWrapper);
+      timelineWrapper.parentNode.insertBefore(gridContainer, timelineWrapper.nextSibling);
     }
   }
 
   // Build grid DOM
   gridElements = buildGridDOM(gridContainer);
 
-  // Create playhead controller
+  // ResizeObserver: refresh cellWidth on viewport changes so note bars
+  // stay aligned with the dynamic 1fr columns. Debounced via rAF.
+  if (gridElements?.matrixContainer && typeof ResizeObserver !== 'undefined') {
+    let rafId = 0;
+    const ro = new ResizeObserver(() => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        cellWidth = calculateCellWidth();
+        renderNotes();
+      });
+    });
+    ro.observe(gridElements.matrixContainer);
+  }
+
+  // Create playhead controller. With columnSizing='fr' we pass 0 so the
+  // controller uses DOM-based positioning (cell.offsetLeft) — see
+  // plano-playhead.js line 42-51.
   playheadController = createPlayheadController(
     gridElements.matrixContainer,
-    () => cellWidth,
+    () => 0,
     0
   );
 
@@ -468,23 +365,24 @@ function renderGrid() {
 
   const rows = buildSimple12Rows();
   const columns = getTotalSubdivisions();
-  cellWidth = calculateCellWidth();
 
   // Update soundline (Y-axis: notes 11 to 0)
   updateSoundline(gridElements.soundlineContainer, rows);
 
-  // Update matrix (cells)
+  // Update matrix with columnSizing='fr' — cells fill all horizontal space.
   updateMatrix(gridElements.matrixContainer, rows, columns, {
-    cellWidth,
+    columnSizing: 'fr',
     onCellClick: null
   });
 
-  // Mark pulse boundaries
   const d = currentDenominator;
+
+  // Mark pulse-start cells (colIndex % d === 0). Their left edge coincides
+  // with the pulse boundary line.
   const cells = gridElements.matrixContainer.querySelectorAll('.plano-cell');
   cells.forEach(cell => {
     const colIndex = parseInt(cell.dataset.colIndex, 10);
-    if ((colIndex + 1) % d === 0) {
+    if (colIndex % d === 0) {
       cell.classList.add('pulse-boundary');
     }
   });
@@ -492,13 +390,16 @@ function renderGrid() {
   // Render fractional timeline in grid
   renderGridTimeline();
 
+  // Read actual cell width from DOM now that grid is rendered.
+  cellWidth = calculateCellWidth();
+
   // Attach drag handlers to cells
   attachGridDragHandlers();
 
   // Sync scroll
   syncGridScrolls();
 
-  // Render existing notes
+  // Render existing notes (uses cellWidth for positioning bars).
   renderNotes();
 
   // Update info displays
@@ -518,8 +419,13 @@ function renderGridTimeline() {
 
   const timelineRow = document.createElement('div');
   timelineRow.className = 'plano-timeline-row';
-  timelineRow.style.gridTemplateColumns = `repeat(${columns}, ${cellWidth}px)`;
 
+  // Each number is positioned by absolute percentage (NOT by grid).
+  // Position of cell N (N = pulseIndex*d + subdivIndex) is `N / columns * 100%`,
+  // which matches exactly the left edge of the corresponding matrix cell
+  // (since the matrix uses `repeat(columns, 1fr)`). transform: translateX(-50%)
+  // centers the text on that line. No bearing compensation, no margin hack,
+  // no accumulated floating-point drift: one computation per number.
   for (let colIdx = 0; colIdx < columns; colIdx++) {
     const numEl = document.createElement('div');
     numEl.className = 'plano-timeline-number';
@@ -527,12 +433,19 @@ function renderGridTimeline() {
 
     const pulseIndex = Math.floor(colIdx / d);
     const subdivIndex = colIdx % d;
+    const leftPercent = (colIdx / columns) * 100;
+    numEl.style.left = `${leftPercent}%`;
 
     if (subdivIndex === 0) {
-      numEl.classList.add('pulse-start');
+      numEl.classList.add('plano-cycle-start');
+      // Single-digit pulses get a narrower tick offset (4px vs 7px) so the
+      // vertical mark sits under the center of the text. Two-digit pulses
+      // (10, 11, ...) keep the nuzic-theme default of 7px.
+      if (pulseIndex < 10) numEl.classList.add('plano-single-digit');
       numEl.textContent = String(pulseIndex);
       gridIntegerLabels[pulseIndex] = numEl;
     } else {
+      numEl.classList.add('plano-subdivision');
       numEl.textContent = `.${subdivIndex}`;
       gridFractionLabels.push(numEl);
     }
@@ -549,6 +462,515 @@ function syncGridScrolls() {
   const soundline = gridElements?.soundlineContainer;
   if (matrix) setupScrollSync(matrix, soundline, timeline);
 }
+
+// ========== NUZIC N-iT EDITOR ==========
+// Zigzag two-row editor (N pink / iT yellow) adapted from App20. Pairs are
+// committed as the user types alternately into N and iT inputs. The editor
+// is the authoritative source: every commit calls `handleZigzagChange` which
+// rebuilds `notes[]` and re-renders the 2D grid. Direct grid edits sync back
+// via `syncGridToZigzag()` → `zigzagEditor.setPairs()`.
+//
+// Differences vs App20 (which uses NrR note+registry):
+//   - N value is a bare note 0-11 (no registry) or 'S' for silence.
+//   - No `validateNoteRegistry` — the range check is inline.
+//   - Auto-jump delay is 500 ms (covers "11" two-digit case without NrR).
+//
+// Validation rules (migrated from App20):
+//   N      → 0..11 or 'S'            error "N: 0-11 o S"
+//   iT     → 1..8                     error "iT: 1-8"
+//   iT sum → ≤ getTotalSubdivisions() error "iT máx: N"
+//   Full   → tooltip "Longitud completa" on the end marker
+//   Edit of a committed cell that breaks a rule → revert to original value.
+function initZigzagEditor() {
+  const container = document.getElementById('zigzagEditorContainer');
+  if (!container) return;
+
+  container.innerHTML = '';
+  container.classList.add('nit-editor');
+
+  // ---- DOM structure ----
+  const nBar = document.createElement('div');
+  nBar.className = 'nit-editor-bar';
+  const nLabel = document.createElement('div');
+  nLabel.className = 'nit-editor-label n-label';
+  nLabel.textContent = 'N';
+  const nCells = document.createElement('div');
+  nCells.className = 'nit-editor-cells';
+  const nEnd = document.createElement('div');
+  nEnd.className = 'nit-editor-end';
+  nEnd.style.display = 'none';
+  nCells.appendChild(nEnd);
+  nBar.appendChild(nLabel);
+  nBar.appendChild(nCells);
+
+  const itBar = document.createElement('div');
+  itBar.className = 'nit-editor-bar';
+  const itLabel = document.createElement('div');
+  itLabel.className = 'nit-editor-label it-label';
+  itLabel.textContent = 'iT';
+  const itCells = document.createElement('div');
+  itCells.className = 'nit-editor-cells';
+  const itEnd = document.createElement('div');
+  itEnd.className = 'nit-editor-end';
+  itEnd.style.display = 'none';
+  itCells.appendChild(itEnd);
+  itBar.appendChild(itLabel);
+  itBar.appendChild(itCells);
+
+  container.appendChild(nBar);
+  container.appendChild(itBar);
+
+  // ---- State ----
+  let entries = [];            // [{ note, temporalInterval, isRest }]
+  let pendingN = null;         // number | 'S' | null
+  let pendingIT = null;        // number | null
+  let lastEnteredType = 'it';  // starts so first focus is on N
+  let autoJumpTimer = null;
+  let maxTotalPulse = getTotalSubdivisions();
+  let suppressNotify = false;  // set when setPairs() drives the change
+
+  const currentSum = () => entries.reduce((s, e) => s + (e.temporalInterval || 0), 0);
+
+  // ---- Tooltip (single DOM node shared across cells) ----
+  function showTooltip(cell, message) {
+    let tooltip = document.querySelector('.nit-editor-tooltip');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.className = 'nit-editor-tooltip';
+      document.body.appendChild(tooltip);
+    }
+    tooltip.textContent = message;
+    const rect = cell.getBoundingClientRect();
+    tooltip.style.left = `${rect.left + rect.width / 2}px`;
+    tooltip.style.top = `${rect.top - 8}px`;
+    tooltip.style.transform = 'translate(-50%, -100%)';
+    tooltip.classList.add('visible');
+    setTimeout(() => tooltip.classList.remove('visible'), 1500);
+  }
+
+  // ---- Parsing ----
+  // Accepts: 'S'/'s' → silence, '0'..'11' → note. Returns 'S' | number | null.
+  function parseN(raw) {
+    const val = raw.trim();
+    if (/^[sS]$/.test(val)) return 'S';
+    if (/^\d+$/.test(val)) {
+      const n = parseInt(val, 10);
+      if (n >= 0 && n <= 11) return n;
+    }
+    return null;
+  }
+  const formatN = entry => (entry.isRest ? 'S' : String(entry.note));
+
+  // ---- Cell factories ----
+  function createReadonlyCell(type) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.className = `nit-editor-cell ${type}-cell`;
+    cell.placeholder = ' ';
+    cell.readOnly = true;
+    cell.tabIndex = -1;
+    return cell;
+  }
+
+  function createValueCell(type, displayValue, entryIndex) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.inputMode = type === 'it' ? 'numeric' : 'text';
+    cell.maxLength = 2;
+    cell.className = `nit-editor-cell ${type}-cell`;
+    cell.value = displayValue;
+    cell.dataset.entryIndex = entryIndex;
+    cell.readOnly = false;
+    cell.style.cursor = 'text';
+
+    let originalValue = cell.value;
+
+    cell.addEventListener('focus', () => {
+      originalValue = cell.value;
+      cell.select();
+    });
+
+    cell.addEventListener('blur', () => {
+      const val = cell.value.trim();
+      if (!val || val === originalValue) { cell.value = originalValue; return; }
+      const idx = parseInt(cell.dataset.entryIndex, 10);
+      const entry = entries[idx];
+      if (!entry) { cell.value = originalValue; return; }
+
+      if (type === 'n') {
+        const parsed = parseN(val);
+        if (parsed === null) {
+          showTooltip(cell, 'N: 0-11 o S');
+          cell.value = originalValue;
+          return;
+        }
+        if (parsed === 'S') { entry.isRest = true; entry.note = 0; }
+        else { entry.isRest = false; entry.note = parsed; }
+      } else {
+        const num = parseInt(val, 10);
+        if (isNaN(num) || num < 1 || num > 8) {
+          showTooltip(cell, 'iT: 1-8');
+          cell.value = originalValue;
+          return;
+        }
+        const oldIT = entry.temporalInterval;
+        const newSum = currentSum() - oldIT + num;
+        if (newSum > maxTotalPulse) {
+          showTooltip(cell, `iT máx: ${maxTotalPulse - currentSum() + oldIT}`);
+          cell.value = originalValue;
+          return;
+        }
+        entry.temporalInterval = num;
+      }
+
+      notifyChange();
+      renderCells();
+    });
+
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); cell.blur(); return; }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        cell.blur();
+        const parent = type === 'n' ? nCells : itCells;
+        const all = Array.from(parent.querySelectorAll('.nit-editor-cell:not([readonly])'));
+        const i = all.indexOf(cell);
+        const next = e.shiftKey ? all[i - 1] : all[i + 1];
+        if (next) next.focus();
+        return;
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const parent = type === 'n' ? nCells : itCells;
+        const all = Array.from(parent.querySelectorAll('.nit-editor-cell:not([readonly])'));
+        const i = all.indexOf(cell);
+        const next = e.key === 'ArrowRight' ? all[i + 1] : all[i - 1];
+        if (next) { e.preventDefault(); next.focus(); }
+      }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const other = type === 'n' ? itCells : nCells;
+        const entryIdx = parseInt(cell.dataset.entryIndex, 10);
+        const match = other.querySelector(`.nit-editor-cell[data-entry-index="${entryIdx}"]:not([readonly])`);
+        if (match) match.focus();
+      }
+    });
+
+    return cell;
+  }
+
+  function createInputCell(type) {
+    const cell = document.createElement('input');
+    cell.type = 'text';
+    cell.inputMode = type === 'it' ? 'numeric' : 'text';
+    cell.maxLength = 2;
+    cell.className = `nit-editor-cell ${type}-cell active-input`;
+    cell.readOnly = false;
+
+    cell.addEventListener('input', () => {
+      const val = cell.value;
+      if (val === '') return;
+
+      if (type === 'n') {
+        // 'S' for silence — commit partner immediately if iT ready.
+        if (/^[sS]$/.test(val)) {
+          pendingN = 'S';
+          lastEnteredType = 'n';
+          clearTimeout(autoJumpTimer);
+          if (pendingIT !== null) { commitEntry(); return; }
+          autoJumpTimer = setTimeout(() => {
+            const itInput = itCells.querySelector('.active-input');
+            if (itInput) itInput.focus();
+          }, 300);
+          return;
+        }
+
+        // Single digit "1".."9" could still become "10"/"11" — wait briefly.
+        if (/^\d$/.test(val)) {
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = setTimeout(() => {
+            const current = cell.value;
+            if (/^\d{2}$/.test(current)) return; // second digit arrived — wait for the 2-digit branch
+            const parsed = parseN(current);
+            if (parsed === null || parsed === 'S') { cell.value = ''; return; }
+            pendingN = parsed;
+            lastEnteredType = 'n';
+            if (pendingIT !== null) commitEntry();
+            else {
+              const itInput = itCells.querySelector('.active-input');
+              if (itInput) itInput.focus();
+            }
+          }, 500);
+          return;
+        }
+
+        // Two-digit "10"/"11" — parse now.
+        if (/^\d{2}$/.test(val)) {
+          const parsed = parseN(val);
+          if (parsed === null) {
+            showTooltip(cell, 'N: 0-11 o S');
+            cell.value = '';
+            clearTimeout(autoJumpTimer);
+            return;
+          }
+          pendingN = parsed;
+          lastEnteredType = 'n';
+          clearTimeout(autoJumpTimer);
+          if (pendingIT !== null) commitEntry();
+          else {
+            autoJumpTimer = setTimeout(() => {
+              const itInput = itCells.querySelector('.active-input');
+              if (itInput) itInput.focus();
+            }, 200);
+          }
+          return;
+        }
+
+        // Anything else → invalid char.
+        cell.value = '';
+      } else {
+        // iT: must be digit 1..8 and fit remaining.
+        if (!/^\d+$/.test(val)) { cell.value = ''; return; }
+        const num = parseInt(val, 10);
+        if (num < 1 || num > 8) {
+          showTooltip(cell, 'iT: 1-8');
+          cell.value = '';
+          clearTimeout(autoJumpTimer);
+          return;
+        }
+        const remaining = maxTotalPulse - currentSum();
+        if (num > remaining) {
+          showTooltip(cell, `iT máx: ${remaining}`);
+          cell.value = '';
+          clearTimeout(autoJumpTimer);
+          return;
+        }
+        pendingIT = num;
+        lastEnteredType = 'it';
+        clearTimeout(autoJumpTimer);
+        if (pendingN !== null) { commitEntry(); return; }
+        autoJumpTimer = setTimeout(() => {
+          const nInput = nCells.querySelector('.active-input');
+          if (nInput) nInput.focus();
+        }, 300);
+      }
+    });
+
+    cell.addEventListener('keydown', (e) => {
+      // Enter / Tab → force-evaluate current value and jump to partner row.
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        clearTimeout(autoJumpTimer);
+        if (cell.value) cell.dispatchEvent(new Event('input'));
+        if (pendingN !== null && pendingIT !== null) { commitEntry(); return; }
+        const other = type === 'n' ? itCells : nCells;
+        const target = other.querySelector('.active-input');
+        if (target) target.focus();
+        return;
+      }
+
+      // Backspace on empty: unwind pending state, then pop last entry.
+      if (e.key === 'Backspace' && !cell.value) {
+        e.preventDefault();
+        clearTimeout(autoJumpTimer);
+        if (type === 'it') {
+          if (pendingIT !== null) pendingIT = null;
+          else if (pendingN !== null) {
+            pendingN = null;
+            const nInput = nCells.querySelector('.active-input');
+            if (nInput) { nInput.value = ''; nInput.focus(); }
+          } else if (entries.length > 0) {
+            entries.pop();
+            notifyChange();
+            renderCells();
+          }
+        } else {
+          if (pendingN !== null) pendingN = null;
+          else if (entries.length > 0) {
+            entries.pop();
+            notifyChange();
+            renderCells();
+          }
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const parent = type === 'n' ? nCells : itCells;
+        const all = Array.from(parent.querySelectorAll('.nit-editor-cell:not([readonly])'));
+        const i = all.indexOf(cell);
+        const next = e.key === 'ArrowRight' ? all[i + 1] : all[i - 1];
+        if (next) { e.preventDefault(); next.focus(); }
+      }
+
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const other = type === 'n' ? itCells : nCells;
+        const target = other.querySelector('.active-input') || other.querySelector('.nit-editor-cell:not([readonly])');
+        if (target) target.focus();
+      }
+    });
+
+    return cell;
+  }
+
+  // ---- Commit ----
+  function commitEntry() {
+    if (pendingN === null || pendingIT === null) return;
+    if (pendingN === 'S') {
+      entries.push({ note: 0, temporalInterval: pendingIT, isRest: true });
+    } else {
+      entries.push({ note: pendingN, temporalInterval: pendingIT, isRest: false });
+    }
+    pendingN = null;
+    pendingIT = null;
+    notifyChange();
+    renderCells();
+    if (currentSum() >= maxTotalPulse) showTooltip(itEnd, 'Longitud completa');
+  }
+
+  // ---- Sync ----
+  function entriesToPairs() {
+    let pulse = 0;
+    return entries.map(e => {
+      const pair = {
+        note: e.isRest ? null : e.note,
+        pulse,
+        temporalInterval: e.temporalInterval,
+        isRest: e.isRest || false
+      };
+      pulse += e.temporalInterval;
+      return pair;
+    });
+  }
+
+  function notifyChange() {
+    if (suppressNotify) return;
+    handleZigzagChange(entriesToPairs());
+  }
+
+  // ---- Render ----
+  function renderCells() {
+    nCells.querySelectorAll('.nit-editor-cell').forEach(c => c.remove());
+    itCells.querySelectorAll('.nit-editor-cell').forEach(c => c.remove());
+
+    // Committed entries — zigzag pattern: N [value][sep]  iT [sep][value]
+    for (let i = 0; i < entries.length; i++) {
+      nCells.insertBefore(createValueCell('n', formatN(entries[i]), i), nEnd);
+      nCells.insertBefore(createReadonlyCell('n'), nEnd);
+      itCells.insertBefore(createReadonlyCell('it'), itEnd);
+      itCells.insertBefore(createValueCell('it', String(entries[i].temporalInterval), i), itEnd);
+    }
+
+    // Input pair when there's still pulse budget.
+    const full = currentSum() >= maxTotalPulse || maxTotalPulse <= 0;
+    if (!full) {
+      const nInput = createInputCell('n');
+      nCells.insertBefore(nInput, nEnd);
+      nCells.insertBefore(createReadonlyCell('n'), nEnd);
+
+      itCells.insertBefore(createReadonlyCell('it'), itEnd);
+      const itInput = createInputCell('it');
+      itCells.insertBefore(itInput, itEnd);
+
+      const focusTarget = lastEnteredType === 'n' ? itInput : nInput;
+      setTimeout(() => focusTarget?.focus(), 30);
+    }
+
+    nEnd.style.display = full ? 'flex' : 'none';
+    itEnd.style.display = full ? 'flex' : 'none';
+  }
+
+  renderCells();
+
+  // ---- Public API (matches the old createGridEditor surface) ----
+  zigzagEditor = {
+    getPairs: () => entriesToPairs().map(p => ({ ...p })),
+
+    setPairs: (pairs) => {
+      suppressNotify = true;
+      entries = pairs
+        .filter(p => p.isRest || (p.note !== null && p.note !== undefined))
+        .map(p => ({
+          note: p.isRest ? 0 : p.note,
+          temporalInterval: p.temporalInterval || 1,
+          isRest: p.isRest || false
+        }));
+      pendingN = null;
+      pendingIT = null;
+      clearTimeout(autoJumpTimer);
+      renderCells();
+      suppressNotify = false;
+    },
+
+    clear: () => {
+      suppressNotify = true;
+      entries = [];
+      pendingN = null;
+      pendingIT = null;
+      clearTimeout(autoJumpTimer);
+      renderCells();
+      suppressNotify = false;
+    },
+
+    clearHighlights: () => {},
+
+    setMaxTotalPulse: (n) => {
+      maxTotalPulse = Math.max(0, n || 0);
+      // Trim entries that no longer fit.
+      let running = 0;
+      const kept = [];
+      for (const e of entries) {
+        if (running + e.temporalInterval > maxTotalPulse) break;
+        kept.push(e);
+        running += e.temporalInterval;
+      }
+      if (kept.length !== entries.length) {
+        entries = kept;
+        notifyChange();
+      }
+      renderCells();
+    },
+
+    destroy: () => {
+      clearTimeout(autoJumpTimer);
+      container.innerHTML = '';
+    }
+  };
+}
+
+function handleZigzagChange(pairs) {
+  const newNotes = [];
+  let currentStart = 0;
+  pairs.forEach(pair => {
+    if (!pair.temporalInterval) return;
+    if (pair.isRest) {
+      newNotes.push({ note: null, startSubdiv: currentStart, duration: pair.temporalInterval, isRest: true });
+    } else if (pair.note !== null) {
+      newNotes.push({ note: pair.note, startSubdiv: currentStart, duration: pair.temporalInterval });
+    }
+    currentStart += pair.temporalInterval;
+  });
+  notes = newNotes;
+  renderNotes();
+  updateInfoDisplays();
+}
+
+function syncGridToZigzag() {
+  if (!zigzagEditor) return;
+  const sorted = [...notes].filter(n => !n.isRest).sort((a, b) => a.startSubdiv - b.startSubdiv);
+  const pairs = [];
+  let cursor = 0;
+  for (const noteData of sorted) {
+    if (noteData.startSubdiv > cursor) {
+      pairs.push({ note: null, pulse: cursor, temporalInterval: noteData.startSubdiv - cursor, isRest: true });
+    }
+    pairs.push({ note: noteData.note, pulse: noteData.startSubdiv, temporalInterval: noteData.duration });
+    cursor = noteData.startSubdiv + noteData.duration;
+  }
+  zigzagEditor.setPairs(pairs);
+}
+
+// (pulse-start alignment handled via CSS `transform: translateX(-50%)`.)
 
 // ========== NOTE RENDERING ==========
 function renderNotes() {
@@ -574,7 +996,6 @@ function addNote(noteData) {
   notes.push(noteData);
   notes.sort((a, b) => a.startSubdiv - b.startSubdiv || a.note - b.note);
   renderNotes();
-  updateIntervalBars();
   updateInfoDisplays();
   syncGridToZigzag();
 }
@@ -582,7 +1003,6 @@ function addNote(noteData) {
 function removeNote(idx) {
   notes.splice(idx, 1);
   renderNotes();
-  updateIntervalBars();
   updateInfoDisplays();
   syncGridToZigzag();
 }
@@ -730,7 +1150,7 @@ function initFractionEditorController() {
   currentDenominator = DEFAULT_DENOMINATOR;
 
   const controller = createFractionEditor({
-    mode: 'inline',
+    mode: 'block',
     host: fractionSlot,
     defaults: { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
@@ -738,8 +1158,16 @@ function initFractionEditorController() {
     storage: {},
     addRepeatPress,
     labels: {
-      numerator: { placeholder: '1' },
-      denominator: { placeholder: 'd' }
+      numerator: {
+        placeholder: '1',
+        ariaUp: 'Incrementar numerador',
+        ariaDown: 'Decrementar numerador'
+      },
+      denominator: {
+        placeholder: 'd',
+        ariaUp: 'Incrementar denominador',
+        ariaDown: 'Decrementar denominador'
+      }
     },
     onChange: ({ cause }) => {
       if (cause !== 'init') {
@@ -783,16 +1211,15 @@ function handleFractionChange() {
 
   currentDenominator = newD;
 
-  // Update zigzag editor maxTotalPulse before filtering
-  if (zigzagEditor) {
-    zigzagEditor.setMaxTotalPulse(getTotalSubdivisions());
-  }
-
   // Filter invalid notes
   filterInvalidNotes();
 
-  // Redraw timeline and grid
-  renderTimeline();
+  // Keep the zigzag editor's max bound in sync with the new subdivisions.
+  if (zigzagEditor?.setMaxTotalPulse) {
+    zigzagEditor.setMaxTotalPulse(getTotalSubdivisions());
+  }
+
+  // Redraw grid (contains both the grid and the timeline row).
   renderGrid();
 
   // Hot-reload audio if playing
@@ -834,189 +1261,9 @@ function applyTransportConfig() {
 }
 
 // ========== TIMELINE RENDERING ==========
-function renderTimeline() {
-  if (!timeline) return;
-
-  timeline.classList.add('no-anim');
-
-  // Clear previous
-  pulses = [];
-  bars = [];
-  cycleMarkers = [];
-  cycleLabels = [];
-  pulseNumberLabels = [];
-  intervalBars = [];
-  timeline.innerHTML = '';
-
-  const lg = FIXED_LG;
-  const n = FIXED_NUMERATOR;
-  const d = currentDenominator;
-
-  // Add timeline line
-  const line = document.createElement('div');
-  line.className = 'timeline-line';
-  timeline.appendChild(line);
-
-  // Create pulses (0 to lg inclusive)
-  for (let i = 0; i <= lg; i++) {
-    const pulse = document.createElement('div');
-    pulse.className = 'pulse';
-    pulse.dataset.index = i;
-    if (i === 0) pulse.classList.add('startpoint');
-    if (i === lg) pulse.classList.add('endpoint');
-    timeline.appendChild(pulse);
-
-
-    if (i === 0 || i === lg) {
-      const bar = document.createElement('div');
-      bar.className = 'bar';
-      timeline.appendChild(bar);
-      bars.push(bar);
-    }
-  }
-
-  // Create pulse numbers
-  for (let i = 0; i <= lg; i++) {
-    const num = document.createElement('div');
-    num.className = 'pulse-number';
-    if (i === 0) num.classList.add('startpoint');
-    if (i === lg) num.classList.add('endpoint');
-    num.dataset.index = i;
-    num.textContent = i;
-    timeline.appendChild(num);
-    pulseNumberLabels.push(num);
-    pulses.push(num);
-  }
-
-  // Create cycle markers
-  const grid = gridFromOrigin({ lg, numerator: n, denominator: d });
-
-  if (grid.cycles > 0 && grid.subdivisions.length) {
-    grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
-      if (subdivisionIndex === 0) return; // Skip integers
-
-      const globalSubdiv = cycleIndex * d + subdivisionIndex;
-
-      const marker = document.createElement('div');
-      marker.className = 'cycle-marker';
-      marker.dataset.cycleIndex = String(cycleIndex);
-      marker.dataset.subdivision = String(subdivisionIndex);
-      marker.dataset.globalSubdiv = String(globalSubdiv);
-      marker.dataset.position = String(position);
-      timeline.appendChild(marker);
-      cycleMarkers.push(marker);
-
-      const label = document.createElement('div');
-      label.className = 'cycle-label';
-      label.dataset.cycleIndex = String(cycleIndex);
-      label.dataset.subdivision = String(subdivisionIndex);
-      label.dataset.globalSubdiv = String(globalSubdiv);
-      label.dataset.position = String(position);
-      label.textContent = `.${subdivisionIndex}`;
-      timeline.appendChild(label);
-      cycleLabels.push(label);
-    });
-  }
-
-  layoutTimeline();
-  attachDragHandlers();
-  updateIntervalBars();
-
-  requestAnimationFrame(() => {
-    timeline.classList.remove('no-anim');
-  });
-}
-
-function layoutTimeline() {
-  const lg = FIXED_LG;
-
-  pulses.forEach((p, i) => {
-    const pct = (i / lg) * 100;
-    p.style.left = pct + '%';
-    p.style.top = '50%';
-    p.style.transform = 'translate(-50%, -50%)';
-  });
-
-  bars.forEach((bar, idx) => {
-    const i = idx === 0 ? 0 : lg;
-    const pct = (i / lg) * 100;
-    bar.style.left = pct + '%';
-    bar.style.top = '30%';
-    bar.style.height = '40%';
-    bar.style.transform = 'translateX(-50%)';
-  });
-
-  pulseNumberLabels.forEach((num) => {
-    const idx = parseInt(num.dataset.index, 10);
-    const pct = (idx / lg) * 100;
-    num.style.left = pct + '%';
-    num.style.top = '0';
-    num.style.transform = 'translate(-50%, 0%)';
-  });
-
-  cycleMarkers.forEach((marker) => {
-    const pos = parseFloat(marker.dataset.position);
-    const pct = (pos / lg) * 100;
-    marker.style.left = pct + '%';
-    marker.style.top = '50%';
-  });
-
-  cycleLabels.forEach((label) => {
-    const pos = parseFloat(label.dataset.position);
-    const pct = (pos / lg) * 100;
-    label.style.left = pct + '%';
-    label.style.top = '75%';
-  });
-}
-
-// ========== INTERVAL BARS (now represents notes on timeline) ==========
-function updateIntervalBars() {
-  // Remove existing bars
-  intervalBars.forEach(bar => bar.remove());
-  intervalBars = [];
-
-  if (notes.length === 0) return;
-
-  const lg = FIXED_LG;
-  const d = currentDenominator;
-
-  notes.forEach((noteData, idx) => {
-    const startPos = noteData.startSubdiv / d;
-    const endPos = (noteData.startSubdiv + noteData.duration) / d;
-    const width = endPos - startPos;
-
-    const bar = document.createElement('div');
-    bar.className = 'interval-bar-visual';
-    bar.dataset.index = idx;
-    bar.style.left = `${(startPos / lg) * 100}%`;
-    bar.style.width = `${(width / lg) * 100}%`;
-
-    if (noteData.isRest) {
-      bar.classList.add('interval-bar-visual--silence');
-      const label = document.createElement('span');
-      label.className = 'interval-bar-visual__label';
-      label.textContent = 's';
-      bar.appendChild(label);
-    } else {
-      const color = VIBRANT_COLORS[idx % VIBRANT_COLORS.length];
-      bar.style.background = color;
-
-      const label = document.createElement('span');
-      label.className = 'interval-bar-visual__label';
-      label.textContent = noteData.note;
-      bar.appendChild(label);
-    }
-
-    timeline.appendChild(bar);
-    intervalBars.push(bar);
-  });
-}
-
-// ========== TIMELINE DRAG (removed - drag is now on grid) ==========
-function attachDragHandlers() {
-  // Timeline drag disabled - notes are created via grid drag
-  // Keep function for renderTimeline() compatibility
-}
+// Legacy timeline rendering removed — the plano-modular grid handles its own
+// timeline row, and notes are drawn as `.note-bar` elements inside the matrix
+// via renderNoteBars(). No external #timeline is needed.
 
 // ========== NOTE PREVIEW ==========
 /**
@@ -1107,7 +1354,7 @@ async function startPlayback() {
     const n = FIXED_NUMERATOR;
 
     const noteData = getNoteAtScaledStart(scaledIndex);
-    if (noteData && !noteData.isRest) {
+    if (noteData) {
       const bpm = bpmController?.getValue() || DEFAULT_BPM;
       const beatDuration = 60 / bpm;
       const durationPulses = noteData.duration * n / d;
@@ -1163,10 +1410,6 @@ async function playCycleSound() {
 
 // ========== HIGHLIGHTING ==========
 function clearHighlights() {
-  pulses.forEach(p => p.classList.remove('active'));
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
-  intervalBars.forEach(b => b.classList.remove('highlight'));
   gridIntegerLabels.forEach(label => label?.classList.remove('active'));
   gridFractionLabels.forEach(label => label?.classList.remove('active'));
   // Hide playhead
@@ -1218,19 +1461,10 @@ function highlightPulse(scaledIndex) {
 
   const pulseIndex = scaledIndex / d;
 
-  pulses.forEach(p => p.classList.remove('active'));
   gridIntegerLabels.forEach(label => label?.classList.remove('active'));
-  const total = pulses.length > 1 ? pulses.length - 1 : 0;
-  if (total <= 0) return;
-
-  const normalized = Math.max(0, Math.min(pulseIndex, total));
-  const pulse = pulses[normalized];
-  if (pulse) {
-    void pulse.offsetWidth;
-    pulse.classList.add('active');
-  }
   const integerLabel = gridIntegerLabels[pulseIndex];
   if (integerLabel) {
+    void integerLabel.offsetWidth;
     integerLabel.classList.add('active');
   }
 
@@ -1251,7 +1485,7 @@ function highlightCycle(payload = {}) {
 
   if (!Number.isFinite(cycleIndex) || !Number.isFinite(subdivisionIndex)) return;
 
-  // Highlight fractional timeline numbers
+  // Highlight fractional timeline numbers in the grid's timeline row.
   gridFractionLabels.forEach(label => label?.classList.remove('active'));
   if (subdivisionIndex > 0) {
     const fractionalIndex = cycleIndex * currentDenominator + subdivisionIndex - 1;
@@ -1261,60 +1495,33 @@ function highlightCycle(payload = {}) {
     }
   }
 
-  // Clear previous highlights
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
-
-  // Find and highlight matching marker/label
-  const marker = cycleMarkers.find(m =>
-    Number(m.dataset.cycleIndex) === cycleIndex &&
-    Number(m.dataset.subdivision) === subdivisionIndex
-  );
-  const label = cycleLabels.find(l =>
-    Number(l.dataset.cycleIndex) === cycleIndex &&
-    Number(l.dataset.subdivision) === subdivisionIndex
-  );
-
-  if (marker) {
-    void marker.offsetWidth;
-    marker.classList.add('active');
-  }
-  if (label) {
-    label.classList.add('active');
-  }
-
-  // Calculate position and highlight iT bar
+  // Calculate position and highlight note bar in grid.
   const n = FIXED_NUMERATOR;
   const position = cycleIndex * n + subdivisionIndex * n / currentDenominator;
   highlightBarAtPosition(position);
 }
 
 /**
- * Highlight the note bar that contains a given position (in pulses)
+ * Highlight the note bar (inside the grid matrix) that contains a given position.
  */
 function highlightBarAtPosition(position) {
-  // Find which note contains this position
   const d = currentDenominator;
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+  const bars = matrix?.querySelectorAll('.note-bar');
+  if (!bars) return;
 
+  let activeIdx = -1;
   for (let i = 0; i < notes.length; i++) {
     const noteData = notes[i];
     const startPos = noteData.startSubdiv / d;
     const endPos = (noteData.startSubdiv + noteData.duration) / d;
-
     if (position >= startPos && position < endPos) {
-      // Highlight this bar
-      intervalBars.forEach(b => b.classList.remove('highlight'));
-      const bar = intervalBars[i];
-      if (bar) {
-        void bar.offsetWidth;
-        bar.classList.add('highlight');
-      }
-      return;
+      activeIdx = i;
+      break;
     }
   }
 
-  // No note at this position - clear bar highlights
-  intervalBars.forEach(b => b.classList.remove('highlight'));
+  bars.forEach((b, i) => b.classList.toggle('highlight', i === activeIdx));
 }
 
 // ========== CONTROLS ==========
@@ -1363,13 +1570,10 @@ function handleRandom() {
     // Random note (0-11)
     const note = Math.floor(Math.random() * NOTE_COUNT);
 
-    // Random duration: 50% short (1-3), 50% any length
+    // Random duration (1 to min of remaining space or d*2)
     const remaining = maxSubdivs - currentPos;
     const maxDur = Math.min(remaining, newD * 2);
-    const useShort = Math.random() < 0.5;
-    const duration = useShort
-      ? Math.floor(Math.random() * Math.min(3, maxDur)) + 1
-      : Math.floor(Math.random() * maxDur) + 1;
+    const duration = Math.floor(Math.random() * maxDur) + 1;
 
     newNotes.push({ note, startSubdiv: currentPos, duration });
     currentPos += duration;
@@ -1377,9 +1581,10 @@ function handleRandom() {
 
   notes = newNotes;
 
-  renderTimeline();
+  if (zigzagEditor?.setMaxTotalPulse) {
+    zigzagEditor.setMaxTotalPulse(maxSubdivs);
+  }
   renderGrid();
-  updateIntervalBars();
   syncGridToZigzag();
 }
 
@@ -1400,9 +1605,7 @@ function handleReset() {
 
   clearNotes();
 
-  renderTimeline();
   renderGrid();
-  updateIntervalBars();
 }
 
 // ========== EVENT LISTENERS ==========
@@ -1441,26 +1644,66 @@ function init() {
     bpmController.attach();
   }
 
-  // Create P row with fraction
-  createPzRow();
+  // Build .middle layout: info pastilles + fraction (creates fractionSlot).
+  buildMiddleLayout();
 
-  // Initialize fraction editor
+  // Initialize fraction editor in block mode into fractionSlot.
   initFractionEditorController();
 
-  // Initialize zigzag editor (N-iT)
-  initZigzagEditor();
-
-  // Create grid
+  // Create grid (inserted AFTER timeline-wrapper).
   createGrid();
 
-  // Render timeline
-  renderTimeline();
+  // Create zigzag editor container immediately AFTER #gridContainer so it
+  // lives full-width below the grid (App20-style N-iT strip). Built here
+  // rather than in buildMiddleLayout so insertion order is grid → editor.
+  const gridContainerEl = document.getElementById('gridContainer');
+  if (gridContainerEl?.parentNode) {
+    const zigzagContainer = document.createElement('div');
+    zigzagContainer.id = 'zigzagEditorContainer';
+    zigzagContainer.className = 'zigzag-editor-container';
+    gridContainerEl.parentNode.insertBefore(zigzagContainer, gridContainerEl.nextSibling);
+  }
 
-  // Update interval bars
-  updateIntervalBars();
+  // Initialize the N-iT zigzag editor (now that its container exists below
+  // the grid). `createGridEditor` ships with built-in range validation and
+  // contextual tooltips (`iT máx`, invalid-note messages, etc.) — no custom
+  // validation layer is required on the app side.
+  initZigzagEditor();
 
-  // Idle caret flash on zigzag editor container
-  initIdleCaretFlash({ targets: [document.getElementById('zigzagEditorContainer')] });
+  // Reorder controls AFTER injectBpmAndSoundGroup has moved BPM into #gridContainer.
+  // The injector runs synchronously on page load, but on a slow grid-create it
+  // may defer via MutationObserver — so we re-fetch bpmParam right before reorder.
+  const bpmParam = document.getElementById('bpmParam');
+  const controls = document.querySelector('.controls');
+  const gridContainer = document.getElementById('gridContainer');
+
+  if (controls) {
+    const playEl = controls.querySelector('.play') || document.getElementById('playBtn');
+    const randomEl = controls.querySelector('.random');
+    const resetEl = controls.querySelector('.reset');
+    const randomMenuEl = controls.querySelector('.random-menu');
+
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playEl) controls.appendChild(playEl);
+    if (bpmParam) controls.appendChild(bpmParam);
+    if (randomEl) controls.appendChild(randomEl);
+    if (randomMenuEl) controls.appendChild(randomMenuEl);
+    if (resetEl) controls.appendChild(resetEl);
+
+    // Move .controls to the very bottom so final DOM order is:
+    // middle → grid → zigzag editor → controls.
+    const zigzagEl = document.getElementById('zigzagEditorContainer');
+    const anchor = zigzagEl || gridContainer;
+    if (anchor?.parentNode) {
+      anchor.parentNode.insertBefore(controls, anchor.nextSibling);
+    }
+  }
+
+  // Idle caret flash on the zigzag editor (the primary input target).
+  initIdleCaretFlash({
+    targets: [document.getElementById('zigzagEditorContainer')].filter(Boolean)
+  });
 }
 
 // Run initialization
