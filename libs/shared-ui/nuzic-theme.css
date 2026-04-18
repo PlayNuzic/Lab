@@ -866,11 +866,21 @@ body[data-visual="nuzic"][data-theme="dark"] .play {
   color: white;
 }
 
+/* Random / Reset: keep the same pale-mint appearance in dark mode.
+   `--nuzic-green-light` and `--nuzic-dark` both flip in dark mode (to a
+   dark-green surface and cream text). Force the light-mode hex values
+   here so the buttons keep their identity across themes. The icon fill
+   is forced below in the shared svg rule. */
 body[data-visual="nuzic"][data-theme="dark"] .random,
 body[data-visual="nuzic"][data-theme="dark"] .reset {
-  background: var(--nuzic-green-light);
-  border-color: var(--nuzic-green-light);
-  color: var(--nuzic-dark);
+  background: #cbefe1;
+  border-color: #cbefe1;
+  color: #43433b;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .random svg,
+body[data-visual="nuzic"][data-theme="dark"] .reset svg {
+  fill: #43433b;
 }
 
 body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .spin {
