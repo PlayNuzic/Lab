@@ -1,6 +1,6 @@
 // App33: Plano con Fracción Compleja
-// Basat en App32, amb fraccions complexes (n=2-6, d=2-8) i longitud variable
-// Lg = floor(12/n) * n (cicles complets que més s'aproximen a 12 sense superar-lo)
+// Basat en App32, amb fraccions complexes (n=2-6, d=2-8) i Lg variable.
+// Lg = floor(BASE_LG/n) * n  (cicles complets més propers a 12 sense superar).
 // Grid 2D amb 12 notes (0-11) + soundline
 // Àudio melòdic amb selector d'instrument + so de cicle
 
@@ -23,21 +23,27 @@ import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { addRepeatPress } from '../../libs/app-common/spinner-repeat.js';
 import { setupScrollSync } from '../../libs/plano-modular/plano-scroll.js';
 import { buildSimple12Rows } from '../../libs/app-common/plano-grid-rows.js';
-import { calculateVariableLg as _calcLg, getTotalSubdivisions as _getTotalSubdivs, subdivToPosition as _subdivToPos, formatPulseValue, filterInvalidNotes as _filterInvalid } from '../../libs/plano-fraccion/fraction-math.js';
-import { renderGhostPulseLines } from '../../libs/plano-fraccion/ghost-pulse.js';
+import {
+  calculateVariableLg as _calcLg,
+  getTotalSubdivisions as _getTotalSubdivs,
+  subdivToPosition as _subdivToPos,
+  filterInvalidNotes as _filterInvalid
+} from '../../libs/plano-fraccion/fraction-math.js';
 import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
+import { renderGhostPulseLines } from '../../libs/plano-fraccion/ghost-pulse.js';
+import { gcd } from '../../libs/app-common/number-utils.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONSTANTS ==========
-const BASE_LG = 12;              // Longitud màxima de referència
+const BASE_LG = 12;              // Reference length (max pulses)
 const DEFAULT_BPM = 60;
 const MIN_BPM = 50;
 const MAX_BPM = 150;
-const DEFAULT_NUMERATOR = 2;     // Per defecte 2/3
+const DEFAULT_NUMERATOR = 2;     // 2/3 by default
 const DEFAULT_DENOMINATOR = 3;
 const MIN_NUMERATOR = 2;
 const MAX_NUMERATOR = 6;
-const MIN_DENOMINATOR = 2;
+const MIN_DENOMINATOR = 2;       // min 2 for complex fractions
 const MAX_DENOMINATOR = 8;
 
 // Colors per rectangles iT
@@ -58,7 +64,7 @@ let isPlaying = false;
 let bpmController = null;
 let currentNumerator = DEFAULT_NUMERATOR;
 let currentDenominator = DEFAULT_DENOMINATOR;
-let currentLg = 12;  // Calculat dinàmicament
+let currentLg = BASE_LG;  // Computed dynamically via calculateVariableLg
 
 // Notes array: { note: 0-11, startSubdiv: number, duration: number }
 let notes = [];
@@ -69,17 +75,10 @@ let cellWidth = 40;
 let playheadController = null;
 
 // DOM elements
-let pulses = [];
-let bars = [];
-let cycleMarkers = [];
-let cycleLabels = [];
-let pulseNumberLabels = [];
-let intervalBars = []; // Rectangles iT (mantinguts per timeline)
-let noteBars = [];     // Rectangles notes al grid
-let gridPulseLabels = [];
-let matrixGhostLines = {};
+// Timeline-integer and fraction labels inside the plano grid (used for highlight during playback).
 let gridIntegerLabels = [];
 let gridFractionLabels = [];
+let noteBars = [];     // Rectangles notes al grid
 
 // Controllers
 let fractionEditorController = null;
@@ -137,7 +136,6 @@ window.addEventListener('sharedui:instrument', async (e) => {
 });
 
 // ========== DOM ELEMENTS ==========
-const timeline = document.getElementById('timeline');
 const timelineWrapper = document.getElementById('timelineWrapper');
 const playBtn = document.getElementById('playBtn');
 const randomBtn = document.getElementById('randomBtn');
@@ -147,14 +145,10 @@ const baseSoundSelect = document.getElementById('baseSoundSelect');
 const cycleSoundSelect = document.getElementById('cycleSoundSelect');
 const mixerMenu = document.getElementById('mixerMenu');
 
-// P row elements (created dynamically)
-let pzRow = null;
+// .middle layout elements (fraction slot + info pastilles in .middle).
 let fractionSlot = null;
-let infoColumn = null;
 let sumDisplay = null;
 let availableDisplay = null;
-let lgDisplay = null;
-let usedPulsesDisplay = null;
 
 // ========== HOVER TOOLTIPS ==========
 if (playBtn) attachHover(playBtn, { text: 'Play / Stop' });
@@ -234,25 +228,6 @@ if (typeof window !== 'undefined') {
 
 // ========== UTILITY FUNCTIONS ==========
 
-/**
- * Calcula la longitud (Lg) com el nombre de cicles complets
- * de la fracció que més s'aproximi a BASE_LG sense superar-lo MAI.
- *
- * Cada cicle té durada = numerador pulsos
- * Nombre de cicles = floor(BASE_LG / numerador)
- * Lg final = cicles * numerador
- *
- * Exemples:
- * - 5/7: cicle=5, floor(12/5)=2, Lg=10
- * - 2/3: cicle=2, floor(12/2)=6, Lg=12
- * - 3/4: cicle=3, floor(12/3)=4, Lg=12
- * - 4/5: cicle=4, floor(12/4)=3, Lg=12
- * - 6/7: cicle=6, floor(12/6)=2, Lg=12
- */
-function calculateVariableLg(numerator) {
-  return _calcLg(numerator, BASE_LG);
-}
-
 function getTotalSubdivisions() {
   return _getTotalSubdivs(currentLg, currentNumerator, currentDenominator);
 }
@@ -263,163 +238,126 @@ function subdivToPosition(subdiv) {
 
 // ========== GRID HELPERS ==========
 
+/**
+ * Compute current cell width by reading the actual rendered cell's offsetWidth.
+ * With columnSizing='fr' the grid fills all horizontal space, so cell width is
+ * dynamic and must be read from the DOM after render (not computed ahead).
+ * Returns 40 as fallback before first render.
+ */
 function calculateCellWidth() {
-  const container = gridElements?.matrixContainer;
-  if (!container) return 40;
-  const containerWidth = container.clientWidth || 600;
-  if (!Number.isFinite(currentLg) || currentLg <= 0) return 40;
-  // pulseWidth fix: 2.5x espai per puls (scroll si cal)
-  const pulseWidth = containerWidth / (currentLg / 2.5);
-  return pulseWidth / currentDenominator;
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+  const firstCell = matrix?.querySelector('.plano-cell');
+  return firstCell?.offsetWidth || 40;
 }
 
-// ========== PZ ROW + GRID CREATION ==========
-function createPzRow() {
-  pzRow = document.createElement('div');
-  pzRow.className = 'pz-row';
+// ========== MIDDLE LAYOUT (info pastilles + fraction) ==========
+// Three-column grid in `.middle`: [info pastilles | fraction centered | empty].
+// Same pattern as App30's 7q section.
+function buildMiddleLayout() {
+  const middle = document.querySelector('.middle');
+  if (!middle) return null;
 
-  // Info column (left side - iT disponibles i suma iT)
-  infoColumn = document.createElement('div');
-  infoColumn.className = 'info-column';
+  middle.innerHTML = '';
+  middle.classList.add('app33-middle');
 
-  // Available iT display (iT no col·locats)
-  const availableBox = document.createElement('div');
-  availableBox.className = 'it-info-box';
-  const availableLabel = document.createElement('span');
-  availableLabel.className = 'it-info-label';
-  availableLabel.innerHTML = 'iT<br>Disponibles';
-  availableDisplay = document.createElement('input');
-  availableDisplay.type = 'text';
-  availableDisplay.className = 'it-input';
-  availableDisplay.readOnly = true;
-  availableDisplay.value = '0';
-  availableBox.appendChild(availableLabel);
-  availableBox.appendChild(availableDisplay);
+  // Info pastilles group
+  const infoGroup = document.createElement('div');
+  infoGroup.className = 'itfr-info-group';
 
-  // Sum of iT display (iT col·locats = suma de durades)
   const sumBox = document.createElement('div');
-  sumBox.className = 'it-info-box';
-  const sumLabel = document.createElement('span');
-  sumLabel.className = 'it-info-label';
-  sumLabel.textContent = 'Suma iT';
-  sumDisplay = document.createElement('input');
-  sumDisplay.type = 'text';
-  sumDisplay.className = 'it-input';
-  sumDisplay.readOnly = true;
-  sumDisplay.value = '0';
-  sumBox.appendChild(sumLabel);
-  sumBox.appendChild(sumDisplay);
+  sumBox.className = 'bpm-inline visible param sum-it';
+  sumBox.innerHTML = `
+    <span class="abbr">Suma iT</span>
+    <div class="circle">
+      <input id="sumItDisplay" type="text" value="0" readonly />
+    </div>
+  `;
 
-  // Hide info boxes (keep for potential future use)
-  availableBox.style.display = 'none';
-  sumBox.style.display = 'none';
+  const dispBox = document.createElement('div');
+  dispBox.className = 'bpm-inline visible param it-disponibles';
+  dispBox.innerHTML = `
+    <span class="abbr">iT Disponibles</span>
+    <div class="circle">
+      <input id="itDisponiblesDisplay" type="text" value="0" readonly />
+    </div>
+  `;
 
-  infoColumn.appendChild(availableBox);
-  infoColumn.appendChild(sumBox);
+  infoGroup.appendChild(sumBox);
+  infoGroup.appendChild(dispBox);
+  middle.appendChild(infoGroup);
 
-  // Fraction section (center)
-  const fractionSection = document.createElement('div');
-  fractionSection.className = 'fraction-section';
+  // Fraction slot (center column)
+  fractionSlot = document.createElement('div');
+  fractionSlot.className = 'itfr-fraction-slot';
+  middle.appendChild(fractionSlot);
 
-  const labelSpan = document.createElement('span');
-  labelSpan.className = 'pz label';
-  labelSpan.textContent = 'P';
+  // Resolve info displays
+  sumDisplay = document.getElementById('sumItDisplay');
+  availableDisplay = document.getElementById('itDisponiblesDisplay');
 
-  fractionSlot = document.createElement('span');
-  fractionSlot.id = 'fractionInlineSlot';
-  fractionSlot.className = 'pz fraction-inline-container';
-
-  fractionSection.appendChild(labelSpan);
-  fractionSection.appendChild(fractionSlot);
-
-  // Ciclos display
-  const lgBox = document.createElement('div');
-  lgBox.className = 'it-info-box';
-  const lgLabel = document.createElement('span');
-  lgLabel.className = 'it-info-label';
-  lgLabel.textContent = 'Ciclos';
-  lgDisplay = document.createElement('input');
-  lgDisplay.type = 'text';
-  lgDisplay.className = 'it-input';
-  lgDisplay.readOnly = true;
-  lgDisplay.value = String(Math.floor(currentLg / currentNumerator));
-  lgBox.appendChild(lgLabel);
-  lgBox.appendChild(lgDisplay);
-
-  // Pulsos display (total pulses in full length)
-  const pulsesBox = document.createElement('div');
-  pulsesBox.className = 'it-info-box';
-  const pulsesLabel = document.createElement('span');
-  pulsesLabel.className = 'it-info-label';
-  pulsesLabel.textContent = 'Pulsos';
-  usedPulsesDisplay = document.createElement('input');
-  usedPulsesDisplay.type = 'text';
-  usedPulsesDisplay.className = 'it-input';
-  usedPulsesDisplay.readOnly = true;
-  usedPulsesDisplay.value = String(Math.floor(currentLg / currentNumerator) * currentNumerator);
-  pulsesBox.appendChild(pulsesLabel);
-  pulsesBox.appendChild(usedPulsesDisplay);
-
-  infoColumn.appendChild(lgBox);
-  infoColumn.appendChild(pulsesBox);
-
-  pzRow.appendChild(infoColumn);
-  pzRow.appendChild(fractionSection);
-
-  // Insert before timeline
-  if (timelineWrapper && timelineWrapper.parentNode) {
-    timelineWrapper.parentNode.insertBefore(pzRow, timelineWrapper);
-  }
+  return middle;
 }
 
 /**
- * Update info displays (Ciclos, Pulsos totals, iT disponibles i suma iT)
+ * Update info displays (iT disponibles i suma iT)
+ * - Suma iT: total de columnes ocupades (suma de durades de totes les notes)
+ * - iT Disponibles: columnes lliures (total - ocupades)
  */
 function updateInfoDisplays() {
   const totalColumns = getTotalSubdivisions();
 
   // Suma iT: sum of all note durations (each column = 1 iT)
   const usedColumns = notes.reduce((sum, n) => sum + n.duration, 0);
+
   // iT Disponibles: total - used
   const available = totalColumns - usedColumns;
 
-  // Ciclos: number of complete cycles of the fraction
-  const cycles = Math.floor(currentLg / currentNumerator);
-  const totalPulses = cycles * currentNumerator;
-
-  if (lgDisplay) {
-    lgDisplay.value = String(cycles);
-  }
   if (availableDisplay) {
     availableDisplay.value = String(available);
   }
   if (sumDisplay) {
     sumDisplay.value = String(usedColumns);
   }
-  if (usedPulsesDisplay) {
-    usedPulsesDisplay.value = formatPulseValue(totalPulses);
-  }
 }
 
 function createGrid() {
-  // Create grid container before timeline
+  // Create grid container AFTER timeline-wrapper (nuzic order: timeline →
+  // grid → editor → controls; here there's no editor so grid becomes the
+  // dominant visual element, replacing the timeline).
   let gridContainer = document.getElementById('gridContainer');
   if (!gridContainer) {
     gridContainer = document.createElement('div');
     gridContainer.id = 'gridContainer';
     gridContainer.className = 'grid-container';
     if (timelineWrapper && timelineWrapper.parentNode) {
-      timelineWrapper.parentNode.insertBefore(gridContainer, timelineWrapper);
+      timelineWrapper.parentNode.insertBefore(gridContainer, timelineWrapper.nextSibling);
     }
   }
 
   // Build grid DOM
   gridElements = buildGridDOM(gridContainer);
 
-  // Create playhead controller
+  // ResizeObserver: refresh cellWidth on viewport changes so note bars
+  // stay aligned with the dynamic 1fr columns. Debounced via rAF.
+  if (gridElements?.matrixContainer && typeof ResizeObserver !== 'undefined') {
+    let rafId = 0;
+    const ro = new ResizeObserver(() => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        cellWidth = calculateCellWidth();
+        renderGhostLines();
+        renderNotes();
+      });
+    });
+    ro.observe(gridElements.matrixContainer);
+  }
+
+  // Create playhead controller. With columnSizing='fr' we pass 0 so the
+  // controller uses DOM-based positioning (cell.offsetLeft) — see
+  // plano-playhead.js line 42-51.
   playheadController = createPlayheadController(
     gridElements.matrixContainer,
-    () => cellWidth,
+    () => 0,
     0
   );
 
@@ -431,33 +369,40 @@ function renderGrid() {
 
   const rows = buildSimple12Rows();
   const columns = getTotalSubdivisions();
-  cellWidth = calculateCellWidth();
 
   // Update soundline (Y-axis: notes 11 to 0)
   updateSoundline(gridElements.soundlineContainer, rows);
 
-  // Update matrix (cells)
+  // Update matrix with columnSizing='fr' — cells fill all horizontal space.
   updateMatrix(gridElements.matrixContainer, rows, columns, {
-    cellWidth,
+    columnSizing: 'fr',
     onCellClick: null
   });
 
-  // Mark pulse boundaries (cycle ends)
+  const n = currentNumerator;
   const d = currentDenominator;
+
+  // Mark integer-pulse cells. In complex fractions each cell is n/d pulses,
+  // so integer pulses occur where `(colIndex * n) % d === 0`. For n=1 this
+  // reduces to `colIndex % d === 0` — same as App32.
   const cells = gridElements.matrixContainer.querySelectorAll('.plano-cell');
   cells.forEach(cell => {
     const colIndex = parseInt(cell.dataset.colIndex, 10);
-    // Línia gruixuda al final de cada cicle de fracció
-    if ((colIndex + 1) % d === 0) {
+    if ((colIndex * n) % d === 0) {
       cell.classList.add('pulse-boundary');
     }
   });
 
-  // Add ghost pulse lines (integer pulses that fall between subdivisions)
-  _renderGhostPulseLines();
-
   // Render fractional timeline in grid
   renderGridTimeline();
+
+  // Read actual cell width from DOM now that grid is rendered.
+  cellWidth = calculateCellWidth();
+
+  // Ghost pulse lines: vertical markers for integer pulses that don't land
+  // on a grid cell boundary (they fall between cells because each cell is
+  // n/d pulses wide). E.g. with 2/3, pulses 1, 3, 5, ... are ghost.
+  renderGhostLines();
 
   // Attach drag handlers to cells
   attachGridDragHandlers();
@@ -465,96 +410,76 @@ function renderGrid() {
   // Sync scroll
   syncGridScrolls();
 
-  // Render existing notes
+  // Render existing notes (uses cellWidth for positioning bars).
   renderNotes();
 
   // Update info displays
   updateInfoDisplays();
 }
 
-function renderGridTimeline() {
-  const container = gridElements?.timelineContainer;
-  if (!container) return;
-
-  const n = currentNumerator;
-  const d = currentDenominator;
-  const lg = currentLg;
-
-  container.innerHTML = '';
-
-  // Usar gridFromOrigin per obtenir les subdivisions amb posicions correctes
-  const grid = gridFromOrigin({ lg, numerator: n, denominator: d });
-  const columns = grid.subdivisions.length;
-
-  const timelineRow = document.createElement('div');
-  timelineRow.className = 'plano-timeline-row';
-  timelineRow.style.gridTemplateColumns = `repeat(${columns}, ${cellWidth}px)`;
-
-  gridIntegerLabels = [];
-  gridFractionLabels = [];
-
-  // Crear una cel·la per cada subdivisió
-  grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex }, idx) => {
-    const numEl = document.createElement('div');
-    numEl.className = 'plano-timeline-number';
-    numEl.dataset.colIndex = idx;
-    numEl.dataset.cycleIndex = String(cycleIndex);
-    numEl.dataset.subdivision = String(subdivisionIndex);
-
-    if (subdivisionIndex === 0) {
-      const realPulse = cycleIndex * n;
-      numEl.classList.add('pulse-start');
-      numEl.textContent = String(realPulse);
-      gridIntegerLabels[realPulse] = numEl;
-    } else {
-      // Subdivisió fraccionada (.1, .2)
-      numEl.textContent = `.${subdivisionIndex}`;
-      gridFractionLabels.push(numEl);
-    }
-
-    timelineRow.appendChild(numEl);
-  });
-
-  container.appendChild(timelineRow);
-
-  // Overlay for ghost integer pulses (below the subdivisions row)
-  const overlay = document.createElement('div');
-  overlay.className = 'plano-timeline-overlay';
-  overlay.style.width = `${columns * cellWidth}px`;
-  gridPulseLabels = [];
-
-  for (let pulse = 0; pulse <= lg; pulse++) {
-    const isCycleStart = pulse % n === 0;
-    if (isCycleStart) continue;
-
-    const positionInColumns = pulse * d / n;
-    const leftPx = positionInColumns * cellWidth;
-
-    const label = document.createElement('div');
-    label.className = 'plano-timeline-pulse-label ghost';
-    label.style.left = `${leftPx}px`;
-    label.textContent = String(pulse);
-    label.dataset.pulse = String(pulse);
-    overlay.appendChild(label);
-    gridPulseLabels[pulse] = label;
-  }
-
-  container.appendChild(overlay);
-}
-
-/**
- * Render ghost pulse lines - vertical dashed lines in the grid matrix
- * for integer pulses that fall between subdivisions
- */
-function _renderGhostPulseLines() {
+function renderGhostLines() {
   const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
-  if (!matrix) return;
-  matrixGhostLines = renderGhostPulseLines(matrix, {
+  if (!matrix || !cellWidth) return;
+  renderGhostPulseLines(matrix, {
     lg: currentLg,
     numerator: currentNumerator,
     denominator: currentDenominator,
     cellWidth
   });
+}
+
+function renderGridTimeline() {
+  const container = gridElements?.timelineContainer;
+  if (!container) return;
+
+  const columns = getTotalSubdivisions();
+  const n = currentNumerator;
+  const d = currentDenominator;
+
+  container.innerHTML = '';
+  gridIntegerLabels = [];
+  gridFractionLabels = [];
+
+  const timelineRow = document.createElement('div');
+  timelineRow.className = 'plano-timeline-row';
+
+  // Each number is positioned by absolute percentage at `colIdx / columns * 100%`,
+  // matching the matrix cell's left edge (grid-template-columns: repeat(N, 1fr)).
+  //
+  // COMPLEX FRACTION LOGIC (App27-style): each cell of the grid represents
+  // a subdivision of the fraction = n/d pulses. So:
+  //   position_in_pulses = colIdx * n / d
+  // An integer pulse occurs where this is an integer, i.e. `(colIdx*n) % d === 0`.
+  // The pulse number at that cell is `(colIdx * n) / d`.
+  // For n=1 this reduces to the simple formula `pulseIndex = colIdx / d`.
+  for (let colIdx = 0; colIdx < columns; colIdx++) {
+    const numEl = document.createElement('div');
+    numEl.className = 'plano-timeline-number';
+    numEl.dataset.colIndex = colIdx;
+
+    const positionNumerator = colIdx * n;  // numerator of the d-based position
+    const isIntegerPulse = positionNumerator % d === 0;
+    const pulseIndex = positionNumerator / d;  // only meaningful when integer
+    const subdivIndex = colIdx % d;
+
+    const leftPercent = (colIdx / columns) * 100;
+    numEl.style.left = `${leftPercent}%`;
+
+    if (isIntegerPulse) {
+      numEl.classList.add('plano-cycle-start');
+      if (pulseIndex < 10) numEl.classList.add('plano-single-digit');
+      numEl.textContent = String(pulseIndex);
+      gridIntegerLabels[pulseIndex] = numEl;
+    } else {
+      numEl.classList.add('plano-subdivision');
+      numEl.textContent = `.${subdivIndex}`;
+      gridFractionLabels.push(numEl);
+    }
+
+    timelineRow.appendChild(numEl);
+  }
+
+  container.appendChild(timelineRow);
 }
 
 function syncGridScrolls() {
@@ -563,6 +488,8 @@ function syncGridScrolls() {
   const soundline = gridElements?.soundlineContainer;
   if (matrix) setupScrollSync(matrix, soundline, timeline);
 }
+
+// (pulse-start alignment handled via CSS `transform: translateX(-50%)`.)
 
 // ========== NOTE RENDERING ==========
 function renderNotes() {
@@ -588,14 +515,12 @@ function addNote(noteData) {
   notes.push(noteData);
   notes.sort((a, b) => a.startSubdiv - b.startSubdiv || a.note - b.note);
   renderNotes();
-  updateIntervalBars();
   updateInfoDisplays();
 }
 
 function removeNote(idx) {
   notes.splice(idx, 1);
   renderNotes();
-  updateIntervalBars();
   updateInfoDisplays();
 }
 
@@ -740,9 +665,10 @@ function initFractionEditorController() {
 
   currentNumerator = DEFAULT_NUMERATOR;
   currentDenominator = DEFAULT_DENOMINATOR;
+  currentLg = _calcLg(currentNumerator, BASE_LG);
 
   const controller = createFractionEditor({
-    mode: 'inline',
+    mode: 'block',
     host: fractionSlot,
     defaults: { numerator: DEFAULT_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
@@ -754,54 +680,67 @@ function initFractionEditorController() {
     storage: {},
     addRepeatPress,
     labels: {
-      numerator: { placeholder: 'n' },
-      denominator: { placeholder: 'd' }
+      numerator: {
+        placeholder: 'n',
+        ariaUp: 'Incrementar numerador',
+        ariaDown: 'Decrementar numerador'
+      },
+      denominator: {
+        placeholder: 'd',
+        ariaUp: 'Incrementar denominador',
+        ariaDown: 'Decrementar denominador'
+      }
     },
-    onChange: ({ cause, numerator, denominator }) => {
+    onChange: ({ cause }) => {
       if (cause !== 'init') {
-        handleFractionChange({ numerator, denominator });
+        handleFractionChange();
       }
     }
   });
 
   fractionEditorController = controller || null;
 
-  // Set complex mode (numerator editable)
+  // Complex mode — both numerator and denominator are user-editable.
   if (fractionEditorController && typeof fractionEditorController.setComplexMode === 'function') {
     fractionEditorController.setComplexMode();
   }
 }
 
-function handleFractionChange(nextFraction = null) {
+function handleFractionChange() {
   if (!fractionEditorController) return;
 
-  let newN = nextFraction?.numerator;
-  let newD = nextFraction?.denominator;
+  const fraction = fractionEditorController.getFraction();
+  let newN = fraction?.numerator;
+  let newD = fraction?.denominator;
 
-  if (!Number.isFinite(newN) || !Number.isFinite(newD)) {
-    const fraction = fractionEditorController.getFraction();
-    newN = fraction?.numerator;
-    newD = fraction?.denominator;
-  }
-
-  // Skip if values are not yet valid (user is typing)
+  // Skip if not yet valid numbers (user is typing)
   if (!Number.isFinite(newN) || !Number.isFinite(newD)) {
     return;
   }
 
+  // Clamp numerator and denominator
+  if (newN < MIN_NUMERATOR) newN = MIN_NUMERATOR;
+  else if (newN > MAX_NUMERATOR) newN = MAX_NUMERATOR;
+
+  if (newD < MIN_DENOMINATOR) newD = MIN_DENOMINATOR;
+  else if (newD > MAX_DENOMINATOR) newD = MAX_DENOMINATOR;
+
+  if (newN !== fraction?.numerator || newD !== fraction?.denominator) {
+    fractionEditorController.setFraction(
+      { numerator: newN, denominator: newD },
+      { cause: 'clamp', persist: true, silent: true }
+    );
+  }
+
   currentNumerator = newN;
   currentDenominator = newD;
-
-  // Recalcular longitud variable
-  currentLg = calculateVariableLg(currentNumerator);
+  currentLg = _calcLg(currentNumerator, BASE_LG);
 
   // Filter invalid notes
   filterInvalidNotes();
 
-  // Redraw timeline and grid
-  renderTimeline();
+  // Redraw grid (contains both the grid and the timeline row).
   renderGrid();
-  updateInfoDisplays();
 
   // Hot-reload audio if playing
   if (audio && isPlaying) {
@@ -820,16 +759,19 @@ function filterInvalidNotes() {
 function applyTransportConfig() {
   if (!audio || typeof audio.updateTransport !== 'function') return;
 
+  const lg = currentLg;
+  const bpm = (bpmController?.getValue() || DEFAULT_BPM);
   const n = currentNumerator;
   const d = currentDenominator;
-  const scaledTotal = currentLg * d;
-  const scaledBpm = (bpmController?.getValue() || DEFAULT_BPM) * d;
+
+  const scaledTotal = lg * d;
+  const scaledBpm = bpm * d;
 
   audio.updateTransport({
     totalPulses: scaledTotal,
     bpm: scaledBpm,
-    baseResolution: d,
-    patternBeats: currentLg * d,
+    baseResolution: d, // Match startPlayback — ticks every pulse (ghost incl.)
+    patternBeats: lg * d,
     cycle: {
       numerator: n * d,
       denominator: d,
@@ -839,182 +781,9 @@ function applyTransportConfig() {
 }
 
 // ========== TIMELINE RENDERING ==========
-function renderTimeline() {
-  if (!timeline) return;
-
-  timeline.classList.add('no-anim');
-
-  // Clear previous
-  pulses = [];
-  bars = [];
-  cycleMarkers = [];
-  cycleLabels = [];
-  pulseNumberLabels = [];
-  intervalBars = [];
-  timeline.innerHTML = '';
-
-  const lg = currentLg;
-  const n = currentNumerator;
-  const d = currentDenominator;
-
-  // Add timeline line
-  const line = document.createElement('div');
-  line.className = 'timeline-line';
-  timeline.appendChild(line);
-
-  // Create pulses (0 to lg inclusive)
-  for (let i = 0; i <= lg; i++) {
-    const pulse = document.createElement('div');
-    pulse.className = 'pulse';
-    pulse.dataset.index = i;
-    if (i === 0) pulse.classList.add('startpoint');
-    if (i === lg) pulse.classList.add('endpoint');
-    timeline.appendChild(pulse);
-
-
-    if (i === 0 || i === lg) {
-      const bar = document.createElement('div');
-      bar.className = 'bar';
-      timeline.appendChild(bar);
-      bars.push(bar);
-    }
-  }
-
-  // Create pulse numbers
-  for (let i = 0; i <= lg; i++) {
-    const num = document.createElement('div');
-    num.className = 'pulse-number';
-    if (i === 0) num.classList.add('startpoint');
-    if (i === lg) num.classList.add('endpoint');
-    num.dataset.index = i;
-    num.textContent = i;
-    timeline.appendChild(num);
-    pulseNumberLabels.push(num);
-    pulses.push(num);
-  }
-
-  // Create cycle markers
-  const grid = gridFromOrigin({ lg, numerator: n, denominator: d });
-
-  if (grid.cycles > 0 && grid.subdivisions.length) {
-    grid.subdivisions.forEach(({ cycleIndex, subdivisionIndex, position }) => {
-      if (subdivisionIndex === 0) return; // Skip integers
-
-      const globalSubdiv = cycleIndex * d + subdivisionIndex;
-
-      const marker = document.createElement('div');
-      marker.className = 'cycle-marker';
-      marker.dataset.cycleIndex = String(cycleIndex);
-      marker.dataset.subdivision = String(subdivisionIndex);
-      marker.dataset.globalSubdiv = String(globalSubdiv);
-      marker.dataset.position = String(position);
-      timeline.appendChild(marker);
-      cycleMarkers.push(marker);
-
-      const label = document.createElement('div');
-      label.className = 'cycle-label';
-      label.dataset.cycleIndex = String(cycleIndex);
-      label.dataset.subdivision = String(subdivisionIndex);
-      label.dataset.globalSubdiv = String(globalSubdiv);
-      label.dataset.position = String(position);
-      label.textContent = `.${subdivisionIndex}`;
-      timeline.appendChild(label);
-      cycleLabels.push(label);
-    });
-  }
-
-  layoutTimeline();
-  attachDragHandlers();
-  updateIntervalBars();
-
-  requestAnimationFrame(() => {
-    timeline.classList.remove('no-anim');
-  });
-}
-
-function layoutTimeline() {
-  const lg = currentLg;
-
-  pulses.forEach((p, i) => {
-    const pct = (i / lg) * 100;
-    p.style.left = pct + '%';
-    p.style.top = '50%';
-    p.style.transform = 'translate(-50%, -50%)';
-  });
-
-  bars.forEach((bar, idx) => {
-    const i = idx === 0 ? 0 : lg;
-    const pct = (i / lg) * 100;
-    bar.style.left = pct + '%';
-    bar.style.top = '30%';
-    bar.style.height = '40%';
-    bar.style.transform = 'translateX(-50%)';
-  });
-
-  pulseNumberLabels.forEach((num) => {
-    const idx = parseInt(num.dataset.index, 10);
-    const pct = (idx / lg) * 100;
-    num.style.left = pct + '%';
-    num.style.top = '0';
-    num.style.transform = 'translate(-50%, 0%)';
-  });
-
-  cycleMarkers.forEach((marker) => {
-    const pos = parseFloat(marker.dataset.position);
-    const pct = (pos / lg) * 100;
-    marker.style.left = pct + '%';
-    marker.style.top = '50%';
-  });
-
-  cycleLabels.forEach((label) => {
-    const pos = parseFloat(label.dataset.position);
-    const pct = (pos / lg) * 100;
-    label.style.left = pct + '%';
-    label.style.top = '75%';
-  });
-}
-
-// ========== INTERVAL BARS (now represents notes on timeline) ==========
-function updateIntervalBars() {
-  // Remove existing bars
-  intervalBars.forEach(bar => bar.remove());
-  intervalBars = [];
-
-  if (notes.length === 0) return;
-
-  const lg = currentLg;
-  const d = currentDenominator;
-  const n = currentNumerator;
-
-  notes.forEach((noteData, idx) => {
-    const startPos = noteData.startSubdiv * n / d;
-    const endPos = (noteData.startSubdiv + noteData.duration) * n / d;
-    const width = endPos - startPos;
-
-    const bar = document.createElement('div');
-    bar.className = 'interval-bar-visual';
-    bar.dataset.index = idx;
-    bar.style.left = `${(startPos / lg) * 100}%`;
-    bar.style.width = `${(width / lg) * 100}%`;
-
-    const color = VIBRANT_COLORS[idx % VIBRANT_COLORS.length];
-    bar.style.background = color;
-
-    const label = document.createElement('span');
-    label.className = 'interval-bar-visual__label';
-    label.textContent = noteData.note;
-    bar.appendChild(label);
-
-    timeline.appendChild(bar);
-    intervalBars.push(bar);
-  });
-}
-
-// ========== TIMELINE DRAG (removed - drag is now on grid) ==========
-function attachDragHandlers() {
-  // Timeline drag disabled - notes are created via grid drag
-  // Keep function for renderTimeline() compatibility
-}
+// Legacy timeline rendering removed — the plano-modular grid handles its own
+// timeline row, and notes are drawn as `.note-bar` elements inside the matrix
+// via renderNoteBars(). No external #timeline is needed.
 
 // ========== NOTE PREVIEW ==========
 /**
@@ -1025,9 +794,8 @@ async function playNotePreview(noteData) {
   if (!audioInstance) return;
 
   // Calculate note duration based on current BPM and denominator
-  // duration is in subdivisions, convert to pulses: duration / d
-  const n = currentNumerator;
   const d = currentDenominator;
+  const n = currentNumerator;
   const bpm = (bpmController?.getValue() || DEFAULT_BPM);
   const beatDuration = 60 / bpm;
   const durationPulses = noteData.duration * n / d;
@@ -1044,12 +812,12 @@ async function playNotePreview(noteData) {
 /**
  * Get note that starts at a given scaled index
  * Returns the note object or null if no note starts there
- * scaledIndex goes from 0 to lg*d (1/d steps)
  */
 function getNoteAtScaledStart(scaledIndex) {
   const n = currentNumerator;
+
   for (const noteData of notes) {
-    // startSubdiv is in column units; convert to scaledIndex (1/d steps)
+    // Convert note start (in subdivisions) to scaled index
     const noteScaledStart = noteData.startSubdiv * n;
     if (noteScaledStart === scaledIndex) {
       return noteData;
@@ -1066,9 +834,13 @@ async function startPlayback() {
   const n = currentNumerator;
   const d = currentDenominator;
 
-  // BASE 1/d scheduling (App4/App31 model)
-  // Each step = 1/d of a pulse; columns advance every n steps
-  const scaledInterval = (60 / bpm) / d; // Time per 1/d pulse
+  // Scale by denominator. `baseResolution = d` → metronome ticks every d
+  // scaled steps = every integer pulse of the user (including "ghost" pulses
+  // that don't land on a cycle boundary). With n>1, ghost pulses are integers
+  // between cycle boundaries (e.g. for 2/5, cycles start at 0, 2, 4 … and
+  // ghost pulses 1, 3, 5 … must still sound).
+  const baseResolution = d;
+  const scaledInterval = (60 / bpm) / d;
   const scaledTotal = lg * d;
 
   const audioInstance = await initAudio();
@@ -1087,12 +859,12 @@ async function startPlayback() {
 
   // Build play options
   const playOptions = {
-    baseResolution: d,
-    patternBeats: lg * d
+    baseResolution,
+    patternBeats: lg * d // Scaled pattern length
   };
 
   if (hasCycle) {
-    // Cycle fires every n pulses, subdivided by d (1/d steps)
+    // Scale numerator by d to match scaled timeline
     playOptions.cycle = {
       numerator: n * d,
       denominator: d,
@@ -1102,25 +874,29 @@ async function startPlayback() {
 
   // Declarative note provider: engine schedules notes automatically in tick()
   audioInstance.registerNoteProvider('melody', (scaledIndex) => {
-    const n = currentNumerator;
     const d = currentDenominator;
+    const n = currentNumerator;
 
     const noteData = getNoteAtScaledStart(scaledIndex);
     if (noteData) {
+      const bpm = bpmController?.getValue() || DEFAULT_BPM;
+      const beatDuration = 60 / bpm;
       const durationPulses = noteData.duration * n / d;
-      const durationSeconds = durationPulses * (60 / (bpmController?.getValue() || DEFAULT_BPM));
+      const durationSeconds = durationPulses * beatDuration;
       const midiNote = BASE_MIDI + noteData.note;
       return [{ midi: midiNote, duration: durationSeconds, velocity: 0.8 }];
     }
     return null;
   });
 
+  // Start playback with audio.play() - this handles metronome and subdivision sounds
+  // highlightPulse handles ONLY visual updates; note provider handles audio
   audioInstance.play(
     scaledTotal,
     scaledInterval,
     audioSelection,
     true,   // Loop ENABLED (1 cicle en bucle)
-    highlightSubdivision,
+    highlightPulse,
     onFinish,
     playOptions
   );
@@ -1158,12 +934,6 @@ async function playCycleSound() {
 
 // ========== HIGHLIGHTING ==========
 function clearHighlights() {
-  pulses.forEach(p => p.classList.remove('active'));
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
-  intervalBars.forEach(b => b.classList.remove('highlight'));
-  gridPulseLabels.forEach(label => label?.classList.remove('active'));
-  Object.values(matrixGhostLines).forEach(line => line?.classList.remove('active'));
   gridIntegerLabels.forEach(label => label?.classList.remove('active'));
   gridFractionLabels.forEach(label => label?.classList.remove('active'));
   // Hide playhead
@@ -1178,156 +948,110 @@ function clearHighlights() {
 }
 
 /**
- * Highlight subdivision - receives scaledIndex (1/d steps)
- * Columns advance every n steps; integer pulses every d steps
+ * Highlight pulse - receives scaledIndex from audio.play()
+ * Like App29: scaledIndex = pulseIndex * d for integer pulses
  * Audio scheduling moved to note provider; this handles ONLY visuals.
  */
-function highlightSubdivision(scaledIndex) {
+function highlightPulse(scaledIndex) {
   if (!isPlaying) return;
-
   const n = currentNumerator;
   const d = currentDenominator;
 
-  // Ghost pulse line highlight should only last until the next subdivision tick
-  Object.values(matrixGhostLines).forEach(line => line?.classList.remove('active'));
+  // Transport runs at `lg*d` ticks (so `noteData.startSubdiv * n === scaledIndex`
+  // works for note scheduling). The GRID has `lg*d/n` cells. Convert the
+  // scaled index to the actual cell index by dividing by n, otherwise the
+  // playhead visual advances n-times faster than the audio.
+  const cellIndex = Math.floor(scaledIndex / n);
 
-  // Update playhead on column boundaries (every n steps)
-  if (playheadController && scaledIndex % n === 0) {
-    const visualColumn = scaledIndex / n;
-    const totalColumns = getTotalSubdivisions();
-    if (visualColumn >= 0 && visualColumn < totalColumns) {
-      playheadController.update(visualColumn);
+  // Update playhead position at the correct cell
+  if (playheadController) {
+    playheadController.update(cellIndex);
 
-      // Autoscroll to keep playhead visible
-      const matrix = gridElements?.matrixContainer;
-      if (matrix) {
-        const playheadLeft = visualColumn * cellWidth;
-        const viewportWidth = matrix.clientWidth;
-        const scrollLeft = matrix.scrollLeft;
-        const margin = viewportWidth * 0.2;
+    // Autoscroll to keep playhead visible
+    const matrix = gridElements?.matrixContainer;
+    if (matrix) {
+      const playheadLeft = cellIndex * cellWidth;
+      const viewportWidth = matrix.clientWidth;
+      const scrollLeft = matrix.scrollLeft;
+      const margin = viewportWidth * 0.2;
 
-        if (playheadLeft > scrollLeft + viewportWidth - margin) {
-          matrix.scrollLeft = playheadLeft - margin;
-        }
-        if (playheadLeft < scrollLeft + margin) {
-          matrix.scrollLeft = Math.max(0, playheadLeft - margin);
-        }
+      if (playheadLeft > scrollLeft + viewportWidth - margin) {
+        matrix.scrollLeft = playheadLeft - margin;
+      }
+      if (playheadLeft < scrollLeft + margin) {
+        matrix.scrollLeft = Math.max(0, playheadLeft - margin);
       }
     }
   }
 
-  // Highlight integer pulses (every d steps)
-  if (scaledIndex % d === 0) {
-    const pulseIndex = scaledIndex / d;
-    pulses.forEach(p => p.classList.remove('active'));
-    gridPulseLabels.forEach(label => label?.classList.remove('active'));
-    Object.values(matrixGhostLines).forEach(line => line?.classList.remove('active'));
-    gridIntegerLabels.forEach(label => label?.classList.remove('active'));
-    if (pulseIndex >= 0 && pulseIndex < pulses.length) {
-      const pulse = pulses[pulseIndex];
-      if (pulse) {
-        void pulse.offsetWidth;
-        pulse.classList.add('active');
-      }
-    }
-    const integerLabel = gridIntegerLabels[pulseIndex];
-    if (integerLabel) {
-      integerLabel.classList.add('active');
-    }
-    const label = gridPulseLabels[pulseIndex];
-    if (label) {
-      label.classList.add('active');
-    }
-    const ghostLine = matrixGhostLines[pulseIndex];
-    if (ghostLine) {
-      void ghostLine.offsetWidth;
-      ghostLine.classList.add('active');
-    }
+  // Integer pulse highlight: in complex fractions, integer pulses occur at
+  // cells where `(cellIndex * n) % d === 0`. Pulse number at that cell is
+  // `(cellIndex * n) / d`.
+  if ((cellIndex * n) % d !== 0) return;
+
+  const pulseIndex = (cellIndex * n) / d;
+
+  gridIntegerLabels.forEach(label => label?.classList.remove('active'));
+  const integerLabel = gridIntegerLabels[pulseIndex];
+  if (integerLabel) {
+    void integerLabel.offsetWidth;
+    integerLabel.classList.add('active');
   }
 
-  // Highlight the note bar that contains this pulse position
-  const pulsePosition = scaledIndex / d;
-  highlightBarAtPosition(pulsePosition);
+  // Also highlight the note bar that contains this pulse
+  highlightBarAtPosition(pulseIndex);
 }
 
 /**
- * Highlight cycle - receives payload from audio.play() cycle callback
- * SUBDIVISION-BASED: fires every d subdivisions (= 1 fraction cycle)
- * Plays subdivision sound and highlights timeline markers
+ * Highlight cycle subdivision - receives payload from audio.play() cycle callback
+ * Like App29: { cycleIndex, subdivisionIndex }
  */
-function highlightCycle(payload = {}, scheduledTime) {
+function highlightCycle(payload = {}) {
   if (!isPlaying) return;
 
   const { cycleIndex: rawCycleIndex, subdivisionIndex: rawSubdivisionIndex } = payload;
   const cycleIndex = Number(rawCycleIndex);
   const subdivisionIndex = Number(rawSubdivisionIndex);
 
-  if (!Number.isFinite(cycleIndex)) return;
+  if (!Number.isFinite(cycleIndex) || !Number.isFinite(subdivisionIndex)) return;
 
-  // Highlight fractional timeline numbers
+  // Highlight fractional timeline numbers in the grid's timeline row.
   gridFractionLabels.forEach(label => label?.classList.remove('active'));
   if (subdivisionIndex > 0) {
-    const fractionalLabel = gridFractionLabels.find(label =>
-      Number(label?.dataset?.cycleIndex) === cycleIndex
-      && Number(label?.dataset?.subdivision) === subdivisionIndex
-    );
+    const fractionalIndex = cycleIndex * currentDenominator + subdivisionIndex - 1;
+    const fractionalLabel = gridFractionLabels[fractionalIndex];
     if (fractionalLabel) {
       fractionalLabel.classList.add('active');
     }
   }
 
-  // Clear previous highlights on timeline markers
-  cycleMarkers.forEach(m => m.classList.remove('active'));
-  cycleLabels.forEach(l => l.classList.remove('active'));
-
-  // Find and highlight matching marker/label
-  const marker = cycleMarkers.find(m =>
-    Number(m.dataset.cycleIndex) === cycleIndex &&
-    Number(m.dataset.subdivision) === subdivisionIndex
-  );
-  const label = cycleLabels.find(l =>
-    Number(l.dataset.cycleIndex) === cycleIndex &&
-    Number(l.dataset.subdivision) === subdivisionIndex
-  );
-
-  if (marker) {
-    void marker.offsetWidth;
-    marker.classList.add('active');
-  }
-  if (label) {
-    label.classList.add('active');
-  }
+  // Calculate position and highlight note bar in grid.
+  const n = currentNumerator;
+  const position = cycleIndex * n + subdivisionIndex * n / currentDenominator;
+  highlightBarAtPosition(position);
 }
 
 /**
- * Highlight the note bar that contains a given pulse position
- * PULSE-BASED: position is in integer pulses (0, 1, 2...)
- * Notes use startSubdiv in visual columns, convert: pulsePos * d / n = column
+ * Highlight the note bar (inside the grid matrix) that contains a given position.
  */
-function highlightBarAtPosition(pulsePosition) {
-  const n = currentNumerator;
+function highlightBarAtPosition(position) {
   const d = currentDenominator;
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+  const bars = matrix?.querySelectorAll('.note-bar');
+  if (!bars) return;
 
+  let activeIdx = -1;
   for (let i = 0; i < notes.length; i++) {
     const noteData = notes[i];
-    // Convert note's column range to pulse range
-    // startSubdiv is in columns, convert to pulses: col * n / d
-    const startPulse = noteData.startSubdiv * n / d;
-    const endPulse = (noteData.startSubdiv + noteData.duration) * n / d;
-
-    if (pulsePosition >= startPulse && pulsePosition < endPulse) {
-      intervalBars.forEach(b => b.classList.remove('highlight'));
-      const bar = intervalBars[i];
-      if (bar) {
-        void bar.offsetWidth;
-        bar.classList.add('highlight');
-      }
-      return;
+    const startPos = noteData.startSubdiv / d;
+    const endPos = (noteData.startSubdiv + noteData.duration) / d;
+    if (position >= startPos && position < endPos) {
+      activeIdx = i;
+      break;
     }
   }
 
-  // No note at this position - clear bar highlights
-  intervalBars.forEach(b => b.classList.remove('highlight'));
+  bars.forEach((b, i) => b.classList.toggle('highlight', i === activeIdx));
 }
 
 // ========== CONTROLS ==========
@@ -1356,14 +1080,12 @@ function handlePlay() {
 function handleRandom() {
   if (isPlaying) return;
 
-  // Random numerator (2-6) and denominator (2-8)
-  // Disallow simple fractions (n=1) and n === d
-  let newN;
-  let newD;
+  // Random reduced fraction n/d with n in [MIN..MAX_N], d in [MIN..MAX_D].
+  let newN, newD;
   do {
     newN = Math.floor(Math.random() * (MAX_NUMERATOR - MIN_NUMERATOR + 1)) + MIN_NUMERATOR;
     newD = Math.floor(Math.random() * (MAX_DENOMINATOR - MIN_DENOMINATOR + 1)) + MIN_DENOMINATOR;
-  } while (newN === newD);
+  } while (gcd(newN, newD) !== 1);
 
   if (fractionEditorController) {
     fractionEditorController.setFraction(
@@ -1373,9 +1095,7 @@ function handleRandom() {
   }
   currentNumerator = newN;
   currentDenominator = newD;
-
-  // Recalcular Lg
-  currentLg = calculateVariableLg(currentNumerator);
+  currentLg = _calcLg(currentNumerator, BASE_LG);
 
   // Generate random monophonic notes (consecutive, no overlap)
   const maxSubdivs = getTotalSubdivisions();
@@ -1388,7 +1108,7 @@ function handleRandom() {
 
     // Random duration (1 to min of remaining space or d*2)
     const remaining = maxSubdivs - currentPos;
-    const maxDur = Math.min(remaining, currentDenominator * 2);
+    const maxDur = Math.min(remaining, newD * 2);
     const duration = Math.floor(Math.random() * maxDur) + 1;
 
     newNotes.push({ note, startSubdiv: currentPos, duration });
@@ -1397,9 +1117,7 @@ function handleRandom() {
 
   notes = newNotes;
 
-  renderTimeline();
   renderGrid();
-  updateIntervalBars();
 }
 
 function handleReset() {
@@ -1407,14 +1125,21 @@ function handleReset() {
     stopPlayback();
   }
 
-  // Keep current fraction; only reset notes and visuals
-  currentLg = calculateVariableLg(currentNumerator);
+  // Reset to defaults
+  currentNumerator = DEFAULT_NUMERATOR;
+  currentDenominator = DEFAULT_DENOMINATOR;
+  currentLg = _calcLg(currentNumerator, BASE_LG);
+
+  if (fractionEditorController) {
+    fractionEditorController.setFraction(
+      { numerator: DEFAULT_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
+      { cause: 'reset', persist: true }
+    );
+  }
 
   clearNotes();
 
-  renderTimeline();
   renderGrid();
-  updateIntervalBars();
 }
 
 // ========== EVENT LISTENERS ==========
@@ -1453,29 +1178,44 @@ function init() {
     bpmController.attach();
   }
 
-  // Inicialitzar Lg amb els defaults
-  currentLg = calculateVariableLg(DEFAULT_NUMERATOR);
+  // Build .middle layout: info pastilles + fraction (creates fractionSlot).
+  buildMiddleLayout();
 
-  // Create P row with fraction
-  createPzRow();
-
-  // Initialize fraction editor
+  // Initialize fraction editor in block mode into fractionSlot.
   initFractionEditorController();
 
-  // Create grid
+  // Create grid (inserted AFTER timeline-wrapper).
   createGrid();
 
-  // Render timeline
-  renderTimeline();
+  // Reorder controls AFTER injectBpmAndSoundGroup has moved BPM into #gridContainer.
+  // The injector runs synchronously on page load, but on a slow grid-create it
+  // may defer via MutationObserver — so we re-fetch bpmParam right before reorder.
+  const bpmParam = document.getElementById('bpmParam');
+  const controls = document.querySelector('.controls');
+  const gridContainer = document.getElementById('gridContainer');
 
-  // Update interval bars
-  updateIntervalBars();
+  if (controls) {
+    const playEl = controls.querySelector('.play') || document.getElementById('playBtn');
+    const randomEl = controls.querySelector('.random');
+    const resetEl = controls.querySelector('.reset');
+    const randomMenuEl = controls.querySelector('.random-menu');
 
-  // Update info displays
-  updateInfoDisplays();
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
 
-  // Idle caret flash on fraction section
-  initIdleCaretFlash({ targets: [document.querySelector('.fraction-section')] });
+    if (playEl) controls.appendChild(playEl);
+    if (bpmParam) controls.appendChild(bpmParam);
+    if (randomEl) controls.appendChild(randomEl);
+    if (randomMenuEl) controls.appendChild(randomMenuEl);
+    if (resetEl) controls.appendChild(resetEl);
+
+    // Move .controls BELOW the grid (nuzic order: middle → grid → controls).
+    if (gridContainer?.parentNode) {
+      gridContainer.parentNode.insertBefore(controls, gridContainer.nextSibling);
+    }
+  }
+
+  // Idle caret flash on fraction slot (persistent across renders).
+  initIdleCaretFlash({ targets: [fractionSlot].filter(Boolean) });
 }
 
 // Run initialization
