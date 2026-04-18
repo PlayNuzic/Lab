@@ -475,12 +475,17 @@ function syncGridScrolls() {
 //   - No `validateNoteRegistry` — the range check is inline.
 //   - Auto-jump delay is 500 ms (covers "11" two-digit case without NrR).
 //
-// Validation rules (migrated from App20):
+// Validation rules (aligned with legacy createGridEditor behaviour):
 //   N      → 0..11 or 'S'            error "N: 0-11 o S"
-//   iT     → 1..8                     error "iT: 1-8"
-//   iT sum → ≤ getTotalSubdivisions() error "iT máx: N"
+//   iT     → ≥ 1                      error "iT debe ser ≥ 1"
+//   iT     → ≤ remaining (maxTotalPulse − currentSum) error "iT máximo: N"
 //   Full   → tooltip "Longitud completa" on the end marker
 //   Edit of a committed cell that breaks a rule → revert to original value.
+//
+// Note: App20 ships a hardcoded `iT: 1-8` upper bound because its pulse
+// range is fixed at 0-7. App34/App35 have variable `maxTotalPulse` (up to
+// 96 for Lg=12, d=8, n=1), so no hardcoded ceiling — the `remaining`
+// check is the only upper bound.
 function initZigzagEditor() {
   const container = document.getElementById('zigzagEditorContainer');
   if (!container) return;
@@ -608,15 +613,15 @@ function initZigzagEditor() {
         else { entry.isRest = false; entry.note = parsed; }
       } else {
         const num = parseInt(val, 10);
-        if (isNaN(num) || num < 1 || num > 8) {
-          showTooltip(cell, 'iT: 1-8');
+        if (isNaN(num) || num < 1) {
+          showTooltip(cell, 'iT debe ser ≥ 1');
           cell.value = originalValue;
           return;
         }
         const oldIT = entry.temporalInterval;
         const newSum = currentSum() - oldIT + num;
         if (newSum > maxTotalPulse) {
-          showTooltip(cell, `iT máx: ${maxTotalPulse - currentSum() + oldIT}`);
+          showTooltip(cell, `iT máximo: ${maxTotalPulse - currentSum() + oldIT}`);
           cell.value = originalValue;
           return;
         }
@@ -728,22 +733,47 @@ function initZigzagEditor() {
         // Anything else → invalid char.
         cell.value = '';
       } else {
-        // iT: must be digit 1..8 and fit remaining.
+        // iT: positive integer bounded by remaining subdivisions. No
+        // hardcoded upper limit — `remaining` (maxTotalPulse - currentSum)
+        // is the only ceiling, matching the legacy createGridEditor.
         if (!/^\d+$/.test(val)) { cell.value = ''; return; }
         const num = parseInt(val, 10);
-        if (num < 1 || num > 8) {
-          showTooltip(cell, 'iT: 1-8');
+        if (num < 1) {
+          showTooltip(cell, 'iT debe ser ≥ 1');
           cell.value = '';
           clearTimeout(autoJumpTimer);
           return;
         }
         const remaining = maxTotalPulse - currentSum();
         if (num > remaining) {
-          showTooltip(cell, `iT máx: ${remaining}`);
+          showTooltip(cell, `iT máximo: ${remaining}`);
           cell.value = '';
           clearTimeout(autoJumpTimer);
           return;
         }
+
+        // Single digit that could still extend to a valid 2-digit value:
+        // wait ~500ms before committing (same pattern as the N input).
+        // If a second digit arrives, the input handler re-fires with the
+        // 2-digit string and this branch is skipped.
+        if (/^\d$/.test(val) && remaining >= 10) {
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = setTimeout(() => {
+            const current = cell.value;
+            if (/^\d{2}$/.test(current)) return; // 2-digit will re-fire handler
+            const commitNum = parseInt(current, 10);
+            if (!Number.isFinite(commitNum) || commitNum < 1) return;
+            pendingIT = commitNum;
+            lastEnteredType = 'it';
+            if (pendingN !== null) commitEntry();
+            else {
+              const nInput = nCells.querySelector('.active-input');
+              if (nInput) nInput.focus();
+            }
+          }, 500);
+          return;
+        }
+
         pendingIT = num;
         lastEnteredType = 'it';
         clearTimeout(autoJumpTimer);

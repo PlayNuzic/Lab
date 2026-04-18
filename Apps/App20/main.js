@@ -616,15 +616,15 @@ function initGridEditor() {
         }
       } else {
         const num = parseInt(val);
-        if (isNaN(num) || num < 1 || num > 8) {
-          showTooltip(cell, 'iT: 1-8');
+        if (isNaN(num) || num < 1) {
+          showTooltip(cell, 'iT debe ser ≥ 1');
           cell.value = originalValue;
           return;
         }
         const oldIT = entry.temporalInterval;
         const newSum = getCurrentSum() - oldIT + num;
         if (newSum > getMaxPulses()) {
-          showTooltip(cell, `iT máx: ${getMaxPulses() - getCurrentSum() + oldIT}`);
+          showTooltip(cell, `iT máximo: ${getMaxPulses() - getCurrentSum() + oldIT}`);
           cell.value = originalValue;
           return;
         }
@@ -749,12 +749,15 @@ function initGridEditor() {
         }, 300);
 
       } else {
-        // iT input
+        // iT input: positive integer bounded by remaining pulses
+        // (getMaxPulses() - getCurrentSum()). App20 has variable
+        // `getTotalPulses() = compas * cycles` (up to 28), so no hardcoded
+        // upper bound — only the `remaining` check caps iT.
         if (!/^\d+$/.test(val)) { e.target.value = ''; return; }
         const num = parseInt(val);
 
-        if (num < 1 || num > 8) {
-          showTooltip(cell, 'iT: 1-8');
+        if (num < 1) {
+          showTooltip(cell, 'iT debe ser ≥ 1');
           e.target.value = '';
           clearTimeout(autoJumpTimer);
           return;
@@ -762,9 +765,30 @@ function initGridEditor() {
 
         const remaining = getMaxPulses() - getCurrentSum();
         if (num > remaining) {
-          showTooltip(cell, `iT máx: ${remaining}`);
+          showTooltip(cell, `iT máximo: ${remaining}`);
           e.target.value = '';
           clearTimeout(autoJumpTimer);
+          return;
+        }
+
+        // Single digit that could still extend to a valid 2-digit value:
+        // wait ~500ms before committing. If a second digit arrives, the
+        // input handler re-fires with the 2-digit string.
+        if (/^\d$/.test(val) && remaining >= 10) {
+          clearTimeout(autoJumpTimer);
+          autoJumpTimer = setTimeout(() => {
+            const current = cell.value;
+            if (/^\d{2}$/.test(current)) return; // 2-digit will re-fire handler
+            const commitNum = parseInt(current, 10);
+            if (!Number.isFinite(commitNum) || commitNum < 1) return;
+            pendingIT = commitNum;
+            lastEnteredType = 'it';
+            if (pendingN !== null) commitEntry();
+            else {
+              const nInput = nCells.querySelector('.active-input');
+              if (nInput) nInput.focus();
+            }
+          }, 500);
           return;
         }
 
