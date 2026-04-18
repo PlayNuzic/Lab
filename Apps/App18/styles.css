@@ -159,11 +159,16 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   color: var(--text-dark, #e0e0e0);
 }
 
-/* Superscript styling */
+/* Superscript styling.
+   `em` (not `rem`/`clamp`) keeps the superscript at a constant fraction of
+   the base number's size across viewports. With `rem`-clamp the sup capped
+   at 0.75rem while the base grew to 1.6rem on wide screens — the superscript
+   looked disproportionately small. `0.65em` holds the ratio at ~65% from
+   mobile to desktop. */
 .soundline-number sup {
-  font-size: clamp(0.6rem, 1.1vw, 0.75rem);
+  font-size: 0.65em;
   vertical-align: super;
-  margin-left: 1px;
+  margin-left: 0.0625em;
   opacity: 0.8;
 }
 
