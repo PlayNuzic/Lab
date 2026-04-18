@@ -1,44 +1,371 @@
-/* App32: Plano con Fracción Simple - Overrides */
+/* App32: Plano con Fracción Simple — Nuzic Theme */
 
-body.app32 {
-  --unit-label-offset: -20px;
-  --plano-timeline-height: 56px;
-  --bpm-left-distance: 160px;
-  --bpm-scale: 1;
-  /* BPM circle */
-  --bpm-circle-size: 66px;
-  --bpm-top: 10%;
-  /* Controls under BPM */
-  --controls-top: 50%;
-  --controls-gap: 6px;
-  --ctrl-secondary-gap: 14px;
-  /* Play button offset */
-  --play-offset-x: 12px;
-  --play-offset-y: -30px;
-  /* Secondary row (random + reset) offset */
-  --secondary-row-offset-x: 35px;
-  --secondary-row-offset-y: 0px;
+/* Hide legacy sound-toggle containers (managed via mixer now). */
+.control-sound-toggle-container--pulse,
+.control-sound-toggle-container--selected,
+.control-sound-toggle-container--cycle {
+  display: none;
 }
 
-/* Nuzic theme overrides (cal mateix selector que nuzic-theme.css) */
-body[data-visual="nuzic"] {
-  --nuzic-controls-offset-x: 0px;
-  --nuzic-controls-offset-y: 0px;
+/* Template's timeline-wrapper is not used (grid replaces timeline). */
+.timeline-wrapper {
+  display: none;
 }
 
-@media (max-width: 768px) {
-  body.app32 {
-    --unit-label-offset: -5px;
-    --bpm-left-distance: 118px;
-    --bpm-scale: 0.85;
-    --bpm-circle-size: 56px;
-  }
+/* ========== MIDDLE: info pastilles + fraction editor ==========
+   Three-column grid. The grid below fills full viewport width, so the
+   middle row also stretches full width and keeps its three columns
+   evenly balanced: info pastilles start, fraction centered, empty right. */
+body[data-visual="nuzic"] .middle.app32-middle {
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  padding: 1rem 1.5rem;
+  box-sizing: border-box;
 }
 
-@media (max-width: 480px) {
-  body.app32 {
-    --bpm-left-distance: 96px;
-    --bpm-scale: 0.75;
-    --bpm-circle-size: 50px;
-  }
+.itfr-info-group {
+  grid-column: 1;
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.itfr-info-group .param .circle {
+  min-width: 3rem;
+}
+
+.itfr-info-group .param.sum-it .circle input,
+.itfr-info-group .param.it-disponibles .circle input {
+  width: 2.5rem;
+  text-align: center;
+  padding-right: 0;
+  font-weight: 700;
+  cursor: default;
+}
+
+.itfr-fraction-slot {
+  grid-column: 2;
+  justify-self: center;
+}
+
+/* ========== FRACTION EDITOR (block mode) ========== */
+.fraction-editor-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.125rem;
+}
+
+.fraction-editor {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--nuzic-dark, #43433B);
+}
+
+.fraction-editor .top,
+.fraction-editor .bottom {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.fraction-editor .top {
+  border-bottom: 0.25rem solid var(--nuzic-dark, #43433B);
+  padding: 0 1.5rem;
+}
+
+.fraction-editor input {
+  width: 5rem;
+  text-align: center;
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  outline: none;
+}
+
+.fraction-editor input:focus {
+  border-bottom: 0.125rem solid var(--nuzic-yellow, #FFBB33);
+}
+
+.fraction-editor input:disabled,
+.fraction-editor input:read-only {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fraction-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.fraction-field input {
+  padding-right: 1.75rem;
+}
+
+.fraction-field .spinner {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  width: 1.5rem;
+  color: var(--nuzic-dark, #43433B);
+  transition: opacity 0.2s ease;
+}
+
+.fraction-field .spinner .spin {
+  width: 100%;
+  height: 0.75rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
+.fraction-field .spinner .spin::before {
+  content: '';
+  border-left: 0.25rem solid transparent;
+  border-right: 0.25rem solid transparent;
+}
+
+.fraction-field .spinner .spin.up::before {
+  border-bottom: 0.375rem solid currentColor;
+}
+
+.fraction-field .spinner .spin.down::before {
+  border-top: 0.375rem solid currentColor;
+}
+
+.fraction-field .spinner .spin:active {
+  color: var(--nuzic-yellow, #FFBB33);
+}
+
+.fraction-field--empty .spinner {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fraction-field-placeholder {
+  display: none !important;
+}
+
+/* ========== GRID (plano-modular full viewport width) ==========
+   With columnSizing='fr' the matrix columns fill all available horizontal
+   space. CRITICAL: the entire chain (main → grid-container → plano-container
+   → plano-matrix) must allow flexible sizing (min-width: 0) so 1fr tracks
+   don't collapse to their intrinsic min-content (S16 of the migration doc). */
+
+#gridContainer.grid-container {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.plano-container {
+  width: 100%;
+  background: var(--bg-light);
+}
+
+[data-theme="dark"] .plano-container {
+  background: var(--bg-dark);
+}
+
+/* CRITICAL: override plano-modular.css default `min-width: max-content` on
+   matrix rows so 1fr tracks always resolve against container width (not
+   intrinsic content). Without this, the matrix can expand to fit the
+   widest content (e.g. at high subdivision counts) while the timeline-row
+   shrinks to container width — resulting in column mismatch between them. */
+.plano-matrix-container,
+.plano-matrix,
+.plano-timeline-row {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.plano-matrix,
+.plano-timeline-row {
+  margin-left: 0 !important;
+}
+
+/* Matrix and soundline both have a `padding-bottom: cellHeight/2` that
+   reserves vertical space for:
+   - soundline: the `-0-` text centered on the last division line
+   - matrix:    note-bars for row 0 centered on the last division line
+   But the native `max-height` of the containers is only `visible-rows * cellHeight`
+   (excludes the padding), so with no scroll the last half-cell is cropped.
+   Override both max-heights to include the padding so everything fits. */
+.plano-container .plano-soundline-container,
+.plano-container .plano-matrix-container {
+  max-height: calc(
+    var(--plano-visible-rows, 12) * var(--plano-cell-height, 2rem)
+    + var(--plano-cell-height, 2rem) / 2
+  ) !important;
+}
+
+/* Pink soundline background stops at the -0- line.
+   The soundline-row natively has `padding-bottom: cellHeight/2` to keep
+   the last note's translateY(50%) text visible. We can't remove that padding
+   (would clip the `0`), but we can make the pink background transparent
+   from the -0- line down — via a linear-gradient that fades to transparent
+   for the last cellHeight/2 of the container. */
+/* Pink soundline background ends exactly at the `-0-` line.
+   Container height = 12.5 * cellHeight (12 rows + cellHeight/2 padding).
+   The `-0-` text is centered at y = 12 * cellHeight = 96% of container.
+   Gradient stops at 100% - cellHeight/2 = 96%. */
+body[data-visual="nuzic"] .plano-container .plano-soundline-container {
+  background:
+    linear-gradient(
+      to bottom,
+      var(--nuzic-pink-light) 0,
+      var(--nuzic-pink-light) calc(100% - var(--plano-cell-height, 2rem) / 0.78),
+      transparent calc(100% - var(--plano-cell-height, 2rem) / 0.78),
+      transparent 100%
+    );
+}
+
+/* Every cell has a LEFT vertical line aligned with the timeline numbers.
+   Subdivisions get a thin line, pulse-start cells a thicker darker line.
+   Dots (radial-gradient) are kept on top — their natural position at
+   bottom-left coincides with the same left edge as the border. */
+.plano-cell {
+  border-left: 0.0625rem solid rgba(67, 67, 59, 0.2) !important;
+}
+
+.plano-cell.pulse-boundary {
+  border-left: 0.125rem solid var(--nuzic-dark, #43433B) !important;
+}
+
+/* Subdivision dots at bottom-left of each cell, reinforcing the border-left
+   line. `background-origin: border-box` ensures the gradient's 0% 100%
+   anchor point sits on the cell's true left edge (not offset by the border
+   width), so the dot and the border line up perfectly. */
+body[data-visual="nuzic"] .plano-cell {
+  background-image: radial-gradient(
+    circle 0.25rem at 0% 100%,
+    var(--nuzic-dark) 45%,
+    transparent 46%
+  ) !important;
+  background-origin: border-box !important;
+  background-repeat: no-repeat !important;
+}
+
+/* ========== NOTE BARS (inside plano-matrix, positioned by JS in px) ========== */
+.note-bar {
+  position: absolute;
+  border-radius: 0.25rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2);
+}
+
+.note-bar:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0.1875rem 0.5rem rgba(0, 0, 0, 0.3);
+}
+
+.note-bar.highlight {
+  box-shadow: 0 0 0.75rem currentColor;
+}
+
+.note-bar__label {
+  font-size: clamp(0.75rem, 1.4vw, 1rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+  pointer-events: none;
+}
+
+.note-bar-preview {
+  position: absolute;
+  border-radius: 0.25rem;
+  z-index: 9;
+  background: var(--nuzic-yellow, #FFBB33);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+body.dragging-note {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+body.dragging-note * {
+  cursor: grabbing !important;
+}
+
+/* ========== TIMELINE INSIDE GRID ==========
+   Numbers are absolute-positioned by exact percentage. The timeline-row is
+   the relative anchor; each number's `left: (colIdx/columns*100)%` matches
+   the left edge of the corresponding matrix cell, and translateX(-50%)
+   centers the text on that line. No bearing compensation, no margin drift. */
+.plano-timeline-row {
+  min-height: 2.5rem;
+  position: relative;
+  display: block !important;
+  /* Override grid from plano-modular.css — we position children absolutely. */
+}
+
+.plano-timeline-number {
+  position: absolute !important;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: 600;
+  color: var(--nuzic-dark, #43433B);
+  white-space: nowrap;
+}
+
+/* Integer pulses: large yellow numbers. */
+.plano-timeline-number.plano-cycle-start {
+  font-size: clamp(0.8rem, 1.6vw, 1.3rem);
+  font-weight: 700;
+  color: var(--nuzic-yellow, #FFBB33);
+}
+
+/* Single-digit integer pulses (0-9): ticks at left: 4px so they sit under
+   the text center. Two-digit pulses (10, 11) keep the nuzic-theme default
+   of 7px which works better for wider numbers. */
+body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-start.plano-single-digit::before,
+body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-start.plano-single-digit::after {
+  left: 4px;
+}
+
+/* Subdivisions: small labels with the same font-size as soundline notes.
+   Uses higher specificity than nuzic-theme's `.plano-timeline-number` rule
+   so the clamp() here wins. Force dark color regardless of theme — the
+   timeline strip is cream in both light/dark modes, and `--nuzic-dark` in
+   dark mode is itself cream (invisible on cream bg). */
+body[data-visual="nuzic"] .plano-timeline-number.plano-subdivision {
+  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
+  color: #43433B !important;
+  opacity: 1;
+  font-weight: 500;
+}
+
+/* ========== CONTROLS ========== */
+.controls #tapTempoBtn,
+.controls #loopBtn {
+  display: none !important;
 }

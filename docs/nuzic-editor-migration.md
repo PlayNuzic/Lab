@@ -1076,3 +1076,158 @@ Si cridis `renderItfrEditor()` (o `updateInfoDisplays()`) abans de
 `initFractionEditorController()`, `sumDisplay` i `lengthDisplay` són `null`
 i no es pinta el valor inicial. El bug és silent — no crash, només displays
 buits al primer render.
+
+### S28: Plano 2D + fracció (App32-35) — causes arrel
+
+App32 ha estat la migració més llarga de totes — NO per complexitat conceptual
+sinó per una cadena de símptomes que tenien causes arrel NO evidents. Document
+minuciós aquí perquè App33-35 es migrin d'un sol cop.
+
+#### Causa arrel 1: `plano-fraccion.css` és purament legacy
+
+Aquest CSS compartit té:
+- `.grid-container { width: 90%; max-width: 1000px }` — **limita el grid a 1000px**,
+  fent impossible la petició "grid a tot l'espai horitzontal".
+- `.middle { display: none }` — **amaga la fila de fracció**.
+- Un munt de layout legacy de pz-row, info-column amb offset-y, etc.
+
+**Fix:** eliminar el `<link>` a plano-fraccion.css de l'index.html. Copiar
+només els estils de `.note-bar` que no viuen a plano-modular.css.
+
+#### Causa arrel 2: `injectBpmAndSoundGroup()` fa hijack via MutationObserver
+
+Aquest helper:
+1. Injecta BPM a `.inputs`.
+2. **Espera que aparegui `#gridContainer` via MutationObserver i llavors mou
+   el BPM dins del grid + empaca els controls dins de gridContainer**.
+
+Això és asíncron i s'executa DESPRÉS del `init()` de main.js. Qualsevol reorder
+de `.controls` al init queda anul·lat segons després.
+
+**Fix:** NO usar el helper. Inline-injectar BPM a index.html (com apps 26-31)
+i reordenar manualment al init.
+
+#### Causa arrel 3: `max-height` natiu dels containers NO inclou padding
+
+- `.plano-soundline-container { max-height: visible-rows * cellHeight }`
+- `.plano-matrix-container { max-height: visible-rows * cellHeight }`
+- PERÒ les seves files internes tenen `padding-bottom: cellHeight/2`
+
+Resultat: els últims `cellHeight/2` píxels (on es centra el `-0-` de la
+soundline i les note-bars de la fila 0) queden **retallats per l'overflow**.
+
+**Símptomes causats per això:**
+- "El rosa no arriba al -0-" — es talla abans.
+- "Les barres de la nota 0 es superposen a la timeline" — surten del container.
+- "La graella s'ha retallat verticalment".
+
+**Fix (3 línies de CSS):**
+
+```css
+.plano-container .plano-soundline-container,
+.plano-container .plano-matrix-container {
+  max-height: calc(
+    var(--plano-visible-rows, 12) * var(--plano-cell-height, 2rem)
+    + var(--plano-cell-height, 2rem) / 2
+  ) !important;
+}
+```
+
+#### Causa arrel 4: `min-width: max-content` natiu fa que el grid es desincronitzi
+
+Amb `columnSizing: 'fr'`, les `1fr` tracks haurien de respectar l'amplada del
+container. Però `plano-modular.css` posa `min-width: max-content` a
+`.plano-matrix` i `.plano-timeline-row`. Amb molts subdivisions, aquesta
+regla **expandeix el grid més enllà del viewport**, i matrix i timeline
+poden acabar desincronitzats.
+
+**Fix:** override amb `!important`:
+
+```css
+.plano-matrix-container,
+.plano-matrix,
+.plano-timeline-row {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+```
+
+#### Causa arrel 5: bearing tipogràfic intentat compensar de múltiples maneres fracassades
+
+Intents NO FUNCIONALS (documentats per no repetir):
+
+1. **`text-indent: -0.3em`**: inconsistent per diferents caràcters, és
+   aproximatiu.
+2. **`margin-left: -0.8rem` al timeline-container**: constant offset acumula
+   drift al llarg de les cel·les.
+3. **`::before { left: -4px }`**: crea doble línia al dark mode per z-index.
+4. **Phantom pulse (+d tracks extra)**: fa que `cellWidth = width/26` però
+   drag usa colIndex 0-23 → notes en posicions aleatòries.
+5. **`justify-content: center`** amb transforms als elements del grid: mou
+   text i línies junts, però resultat visual no és el que l'usuari vol.
+
+**Fix que FUNCIONA:** posicionar els timeline-numbers amb `position: absolute`
+i `left: (colIdx / columns) * 100%`, exactament el mateix càlcul que el
+grid del matrix fa per a les seves línies verticals. Sense transforms ni
+hacks. Via `display: block !important` al timeline-row per anul·lar el grid
+natiu.
+
+#### Causa arrel 6: dark mode trenca colors de text
+
+- `--nuzic-dark` en dark theme resolve a `#eee8d8` (cream).
+- La cinta crema timeline és `#ffeecc` (cream).
+- Text cream sobre cream = invisible.
+
+Passa SILENCIOSAMENT — no hi ha error, només textos que no es veuen.
+
+**Fix:** forçar un color fixe (`color: #43433B !important`) als textos que
+han de viure sobre superfícies crema, en lloc de confiar en les variables
+tematiques. Específicament als `plano-subdivision`.
+
+#### Causa arrel 7: dead code heretat d'App30
+
+Les apps plano hereten d'App30 (fracció-pulse lineal). App30 té `renderTimeline`,
+`updateIntervalBars`, `layoutTimeline`, `attachDragHandlers` + variables
+`pulses`, `bars`, `cycleMarkers`, etc. que dibuixen sobre `#timeline` extern.
+
+Al plano 2D, **no hi ha timeline extern** — la timeline viu dins del grid.
+Aquest codi:
+- No causa errors (el `#timeline` està amagat per CSS)
+- Confon la lectura del codi
+- Té variables que el highlighting playback intenta usar sense valor
+
+**Fix:** eliminar-ho tot. Adaptar highlighting per usar `gridIntegerLabels`,
+`gridFractionLabels`, i `.note-bar` dins del matrix.
+
+Net: ~150 línies menys.
+
+#### Receptari de migració per App33-35
+
+Si es respecten els patrons documentats a **§7r de l'skill**, la migració ha
+de ser aquesta seqüència:
+
+1. **index.html:**
+   - Eliminar `<link href=".../plano-fraccion.css">` i `<import injectBpmAndSoundGroup>`.
+   - Inline-injectar BPM a `.inputs`.
+   - Inline-injectar sound group overrides (Metrónomo + Subdivisión).
+
+2. **main.js:**
+   - Eliminar dead code d'App30 (`renderTimeline`, `updateIntervalBars`, etc.).
+   - `buildMiddleLayout()` en lloc de `createPzRow()`.
+   - `initFractionEditorController()` en mode `'block'` amb `setComplexMode()`
+     per fraccions complexes (App33), `setSimpleMode()` per simples (App32).
+   - `renderGridTimeline()` amb `position: absolute` per cada número.
+   - `calculateCellWidth()` llegeix `firstCell.offsetWidth`.
+   - `createPlayheadController(..., () => 0, 0)` per DOM-path.
+   - ResizeObserver al matrix.
+   - Per App33: `calculateVariableLg()` per calcular Lg dinàmic.
+
+3. **styles.css:**
+   - Copiar el bloc complet de la §7r de l'skill (plano 2D CSS).
+   - Adaptar `.middle.appNN-middle` amb el nom correcte.
+   - Copiar estils `.note-bar` perquè no vénen de plano-modular.
+
+Expectació d'hores: primera App32 va requerir ~15 iteracions. Amb la doc
+minuciosa, App33 hauria de ser 1-2 iteracions (configuració diferent de la
+fracció + Lg variable, res més).
