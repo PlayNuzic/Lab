@@ -559,11 +559,18 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   opacity: 1;
 }
 
-/* Dark theme */
+/* Dark theme — editable cells keep white bg + dark text (no flip).
+   Only the end marker uses the dark palette. */
 [data-theme="dark"] .nit-editor-cell:not(:placeholder-shown) {
-  background: var(--nuzic-white, #1e1e1e);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: var(--text-color, #eee);
+  background: white;
+  border-color: #ddd;
+  color: #43433b;
+}
+
+[data-theme="dark"] .nit-editor-cell.active-input {
+  background: white;
+  color: #43433b;
+  /* Yellow border still comes from the light-mode `.active-input` rule. */
 }
 
 [data-theme="dark"] .nit-editor-end {
