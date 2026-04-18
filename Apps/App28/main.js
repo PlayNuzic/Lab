@@ -634,10 +634,15 @@ function createPfrInputCell() {
       pfrCommitTimer = setTimeout(() => tryCommitFromInput(cell), 500);
       return;
     }
-    // "N." partial — wait for subdivision digit.
-    if (/^\d+\.$/.test(raw)) { clearTimeout(pfrCommitTimer); return; }
-    // "N.M" complete — commit immediately.
-    if (/^\d+\.\d+$/.test(raw)) {
+    // Partial "N." or lone "." — wait for subdivision digit. `.X` is the
+    // shorthand for "0.X" (base pulse zero is implicit) — normalizeToken
+    // expands it during commit.
+    if (/^\d+\.$/.test(raw) || /^\.$/.test(raw)) {
+      clearTimeout(pfrCommitTimer);
+      return;
+    }
+    // Complete "N.M" or ".M" — commit immediately.
+    if (/^\d+\.\d+$/.test(raw) || /^\.\d+$/.test(raw)) {
       clearTimeout(pfrCommitTimer);
       tryCommitFromInput(cell);
       return;

@@ -432,6 +432,14 @@ function isValidPulseToken(token) {
   const trimmed = token.trim();
   if (!trimmed) return false;
 
+  // Reject values beyond lg. App29 renders one cycle (lg = numerator), so
+  // the numeric value of any valid token must be ≤ lg. `isIntegerPulseSelectable`
+  // below would otherwise treat values > lg as "remainder" (they pass its
+  // `index > lastCycleStart` branch) and wrongly accept them. lg itself
+  // wraps to 0 via `parseAndValidateToken` before reaching this function,
+  // so strict `>` is enough.
+  if (pulseTokenValue(trimmed) > lg) return false;
+
   // Check if it's a subdivision (contains dot)
   if (trimmed.includes('.')) {
     const parts = trimmed.split('.');
@@ -641,13 +649,21 @@ function createPfrInputCell() {
     const raw = cell.value.trim();
     if (!raw) { clearTimeout(pfrCommitTimer); return; }
 
+    // Bare digit waiting for possible ".X" subdivision — wait.
     if (/^\d+$/.test(raw)) {
       clearTimeout(pfrCommitTimer);
       pfrCommitTimer = setTimeout(() => tryCommitFromInput(cell), 500);
       return;
     }
-    if (/^\d+\.$/.test(raw)) { clearTimeout(pfrCommitTimer); return; }
-    if (/^\d+\.\d+$/.test(raw)) {
+    // Partial "N." or lone "." — wait for subdivision digit. `.X` is the
+    // shorthand for "0.X" (base pulse zero is implicit) — normalizeToken
+    // expands it during commit.
+    if (/^\d+\.$/.test(raw) || /^\.$/.test(raw)) {
+      clearTimeout(pfrCommitTimer);
+      return;
+    }
+    // Complete "N.M" or ".M" — commit immediately.
+    if (/^\d+\.\d+$/.test(raw) || /^\.\d+$/.test(raw)) {
       clearTimeout(pfrCommitTimer);
       tryCommitFromInput(cell);
       return;

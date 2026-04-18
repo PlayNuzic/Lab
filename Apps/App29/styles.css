@@ -322,8 +322,8 @@
 
 .timeline .subdivision-label {
   position: absolute;
-  right: calc(100% + 0.5rem);
-  top: 3.8rem;
+  right: calc(100% + 2rem);
+  top: 2rem;
   font-size: clamp(1.1rem, 2vw, 1.5rem);
   font-weight: 700;
   color: var(--nuzic-dark, #43433B);
