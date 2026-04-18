@@ -1231,3 +1231,131 @@ de ser aquesta seqüència:
 Expectació d'hores: primera App32 va requerir ~15 iteracions. Amb la doc
 minuciosa, App33 hauria de ser 1-2 iteracions (configuració diferent de la
 fracció + Lg variable, res més).
+
+### S29: App33 — causes arrel de la sincronització complex fractions
+
+App33 (plano 2D amb fraccions complexes n/d on n>1) va funcionar a la primera
+visualment gràcies a la S28/§7r, però va tenir tres bugs de sincronització
+INDEPENDENTS en la reproducció. Documentats amb detall aquí perquè App35
+(també complex) es migri sense tornar-los a trobar.
+
+Totes tres causes tenen el mateix origen: amb fraccions complexes hi ha DUES
+resolucions coexistint.
+
+- **Resolució "scaled"** (transport auditiu): `lg * d` ticks. Un tick = 1/d de
+  beat = `(60/bpm)/d` segons. El note-provider rep `scaledIndex` aquí perquè
+  `noteData.startSubdiv * n === scaledIndex` pugui programar les notes
+  correctament.
+- **Resolució "logical"** (cel·les del grid): `lg * d / n` cel·les. Cada
+  cel·la val `n/d` pulsos.
+
+Els tres sistemes (playhead, note-bar highlight, metronome) usen una
+resolució DIFERENT per naturalesa, i cadascun cal adaptar-lo.
+
+#### Causa arrel 1: playhead a resolució scaled en comptes de logical
+
+Si `highlightPulse(scaledIndex)` fa `playheadController.update(scaledIndex)`,
+el playhead intenta anar a col 35 però només hi ha 18 cel·les (per lg=12,
+n=2, d=3) → avança **n vegades més ràpid** que l'àudio.
+
+**Fix:** conversió scaled → logical dividint per n:
+```javascript
+const cellIndex = Math.floor(scaledIndex / n);
+playheadController.update(cellIndex);
+```
+
+Amb n=1 es redueix a `scaledIndex` i funciona com App32.
+
+#### Causa arrel 2: highlightBarAtPosition mesura en cel·les, no pulsos
+
+La funció rep `position` en **pulsos d'usuari** (calculat a `highlightPulse` i
+`highlightCycle`), però compara contra `noteData.startSubdiv` que és en
+**cel·les del grid**. La conversió era `/d` (correcte per App32 n=1 però
+incorrecta per n>1).
+
+**Fix:**
+```javascript
+const startPos = (noteData.startSubdiv * n) / d;
+const endPos   = ((noteData.startSubdiv + noteData.duration) * n) / d;
+```
+
+Amb n=1: `startPos = startSubdiv / d` (fórmula antiga).
+Amb n=2: `startPos = startSubdiv * 2 / d` (converteix cel·les a pulsos).
+
+**Característica** d'aquest bug: el playhead i timeline van sincronitzats
+(causa 1 ja arreglada), però la barra de la nota "acaba" el seu highlight
+a la meitat de la seva durada visual. Senyal inequívoc: causa 2.
+
+#### Causa arrel 3: metronome + ghost pulses
+
+Aquest és el més subtil. Els pulses integers que **no són cycle-starts** (per
+fracció 2/3: pulses 1, 3, 5, 7, 9, 11) són "ghost" — cauen entre dues
+subdivisions. Per exemple, pulse 1 en 2/3 cau a subdivPos = 1.5 cel·les.
+
+**Els ghost pulses han de SONAR també** — són pulses reals del compositor.
+
+El transport té `baseResolution: d` (metronome cada `d` scaled ticks). Amb
+`scaledInterval = (60/bpm)/d`, `d` ticks = 1 beat = 1 pulse real. El metronome
+sona a scaledIndex 0, d, 2d, 3d, ... = a **cada pulse real**, incloent els
+ghost. Correcte.
+
+**Trampa que vaig caure jo**: vaig intentar arreglar un bug aparent de
+"metronome 2× més ràpid" canviant `baseResolution` a `n * d`. Això fa que
+el metronome soni cada `n` beats (és a dir, cada cycle-start) — **els ghost
+pulses deixen de sonar**. Reportat immediatament per l'usuari.
+
+**Regla**: `baseResolution = d` sempre, tant per fraccions simples (n=1) com
+complexes (n>1). Si sembla que el metronome va el doble de ràpid per
+comparació amb els cycle-starts, recorda que **els pulsos i els cycle-starts
+són coses diferents en fraccions complexes**.
+
+#### Ghost pulses al matrix (visual)
+
+Independentment de l'àudio, els ghost pulses han de tenir una **marca visual**
+al grid (línia vertical) per indicar on estan. La lib
+`libs/plano-fraccion/ghost-pulse.js` els dibuixa com a `.ghost-pulse-line` DOM
+elements absolute posicionats dins `.plano-matrix`:
+
+```javascript
+import { renderGhostPulseLines } from '../../libs/plano-fraccion/ghost-pulse.js';
+
+function renderGhostLines() {
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+  if (!matrix || !cellWidth) return;
+  renderGhostPulseLines(matrix, {
+    lg: currentLg, numerator: currentNumerator,
+    denominator: currentDenominator, cellWidth
+  });
+}
+```
+
+Cridar-la:
+1. Al `renderGrid` després de calcular `cellWidth`.
+2. Dins del `ResizeObserver` callback (per re-posicionar en viewport changes).
+
+CSS simple:
+```css
+.plano-matrix .ghost-pulse-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 0.125rem;
+  background: var(--nuzic-dark, #43433B);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 1;
+}
+```
+
+#### Receptari per App35 (el següent apps complex)
+
+Amb tot això documentat, la migració d'App35 hauria de ser:
+
+1. Copiar App33 main.js + styles.css com a base (no App32).
+2. Canviar prefix preferenceStorage, body class, middle class (`app35-middle`).
+3. Ajustar `currentNumerator` DEFAULT + MIN/MAX si diferents.
+4. Verificar que `hasCycle = n > 0 && d > 0 && Math.floor(lg/n) > 0` es compleix.
+5. Testear tota la suite de playback: play → playhead, note-bar highlight,
+   metronome en tots els pulsos (inclosos ghosts).
+
+Si algun dels 3 sistemes va desincronitzat, la causa és una de les 3 arrels
+documentades aquí.
