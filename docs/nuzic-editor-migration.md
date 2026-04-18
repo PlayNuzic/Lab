@@ -1359,3 +1359,183 @@ Amb tot això documentat, la migració d'App35 hauria de ser:
 
 Si algun dels 3 sistemes va desincronitzat, la causa és una de les 3 arrels
 documentades aquí.
+
+### S30: App34 — editor N-iT inline sota grid
+
+App34 ("Plano con Fracción Simple y sucesión N-iT") = App30 + editor N-iT
+sota el grid. Ja tenia migració nuzic parcial però l'editor usava
+`createGridEditor` de `libs/matrix-seq/` amb opcions `mode: 'n-it',
+showZigzag: true`. **Resultat visual**: cel·les ajustades al contingut, sense
+barres de color, aspecte molt diferent del pattern nuzic. L'skill §7j és
+explícit: **"ALWAYS replace the grid-editor with nuzic cell pattern"**.
+
+#### Causa arrel: dos editors diferents porten el mateix nom de funció
+
+- `libs/matrix-seq/grid-editor.js` (compartida) → renderitza amb classes
+  `.grid-zigzag-container`, `.zigzag-cell`, `.zigzag-input`, etc. Layout
+  "cel·les amb gaps" (cel·la = contingut). No és el pattern nuzic.
+- App20 (inline, ~500 línies) → renderitza amb classes `.nit-editor-bar`,
+  `.nit-editor-label`, `.nit-editor-cells`, `.nit-editor-cell`. Layout
+  "barres contínues" (etiquetes color + track uniforme + cel·les fixes amb
+  `width: 5%; aspect-ratio: 1`). Aquest és el pattern nuzic.
+
+Si App34 (o App35) encara importa `createGridEditor`, l'aspecte NO
+coincidirà amb App20 per molt que s'ajustin els estils.
+
+**Fix**: eliminar import de `matrix-seq`, eliminar `<link>` a
+`libs/matrix-seq/grid-editor.css`, i **portar el codi d'App20 inline** a
+main.js. La implementació és ~380 línies (vs ~500 d'App20) perquè pots
+treure les parts de registre (NrR notation) si només treballes amb notes
+0-11.
+
+#### Simplificacions inline (vs App20)
+
+App20 parseja NrR ("5r4" = nota 5 registre 4) i usa `validateNoteRegistry`
+importat. Apps com App34 que només necessiten nota 0-11 poden simplificar:
+
+- **Parser**: App20 fa regex `^(\d+)r(\d+)$` sobre "5r4"; App34 accepta
+  només integer 0-11 o `'S'` (silenci).
+- **State entries**: App20 porta `{ note, registry, temporalInterval, isRest }`;
+  App34 treu `registry` i queda `{ note, temporalInterval, isRest }`.
+- **Auto-jump delay**: App20 usa 800 ms (espera el `r` + dígit del registre);
+  App34 en té prou amb 500 ms (només per al segon dígit de "10"/"11") i
+  300 ms un cop té valor complet.
+- **Validation**: App20 importa `validateNoteRegistry(n, r)`; App34 fa
+  inline `0 ≤ n ≤ 11`.
+- **Format**: App20 mostra `formatN(entry) → "5r4"`; App34 mostra
+  `formatN(entry) → "5"` o `"S"`.
+
+Resta idèntic: zigzag render, cell factories, keyboard nav, tooltip DOM
+compartit, `commitEntry` / `entriesToPairs` / `renderCells`.
+
+#### Regles de validació a portar (totes inline, sense info-tooltip.js)
+
+- **N fora de rang o format invàlid** → tooltip `"N: 0-11 o S"`, netejar
+  cel·la i revert al valor anterior.
+- **iT < 1 o > 8** → tooltip `"iT: 1-8"`, netejar cel·la, cancel·lar timer
+  d'auto-jump.
+- **iT + suma actual > maxTotalPulse** (en cel·la input nova) → tooltip
+  `"iT máx: N"` on N és el romanent (`maxTotalPulse - currentSum`), netejar.
+- **Edició posterior que trenca la suma** (cel·la committed) → tooltip
+  `"iT máx: N"` amb **revert al valor original** (no netejar — la cel·la
+  estava ocupada, netejar deixaria buit un slot committed).
+- **Suma arriba exactament a maxTotalPulse al commit** → tooltip
+  `"Longitud completa"` mostrat al `.nit-editor-end`.
+
+**Clau**: les validacions viuen DINS dels handlers `blur`/`input`, no hi
+ha dependència externa. El tooltip és un DOM node únic a `body` (create-
+on-demand) amb classe `.nit-editor-tooltip.visible` que s'autoelimina als
+1500 ms.
+
+#### API compatibility — el punt crític del sync cap enrere
+
+`handleZigzagChange` i `syncGridToZigzag` d'App34 són simètrics:
+
+- Editor canvia → `handleZigzagChange(pairs)` → actualitza `notes[]` i
+  repinta el grid 2D.
+- Grid canvia (drag, remove) → `syncGridToZigzag()` → `editor.setPairs(pairs)`.
+
+**Trampa**: si `setPairs()` dispara internament `notifyChange()`, tens un
+loop infinit. Cal una flag `suppressNotify` al port:
+
+```javascript
+let suppressNotify = false;
+function notifyChange() {
+  if (suppressNotify) return;
+  handleZigzagChange(entriesToPairs());
+}
+setPairs: (pairs) => {
+  suppressNotify = true;
+  entries = ...;
+  renderCells();
+  suppressNotify = false;
+}
+```
+
+App20 evita això amb `dragHandler?.isFromDrag()` check; App34 ho fa més
+simple amb flag directa.
+
+#### Layout: editor FULL-WIDTH SOTA del grid (no dins `.middle`)
+
+App34 va passar per una primera versió on el contenidor de l'editor vivia
+com a columna 3 de `.middle` (al costat dret de la fracció). Resultat:
+editor aixafat vertical, ni s'assemblava a App20.
+
+**Ordre DOM correcte** (després del port):
+
+```text
+.middle (info pastilles | fracció | spacer)
+#gridContainer              ← grid 2D
+#zigzagEditorContainer      ← editor N-iT full-width
+.controls                   ← play/bpm/random/reset
+```
+
+Al `init()`:
+```javascript
+createGrid();                                      // insereix #gridContainer
+const grid = document.getElementById('gridContainer');
+const zig = document.createElement('div');
+zig.id = 'zigzagEditorContainer';
+zig.className = 'zigzag-editor-container';
+grid.parentNode.insertBefore(zig, grid.nextSibling);
+initZigzagEditor();                                // omple #zigzagEditorContainer
+
+// Més tard, quan es mouen els controls:
+const anchor = document.getElementById('zigzagEditorContainer') || grid;
+anchor.parentNode.insertBefore(controls, anchor.nextSibling);
+```
+
+`insertBefore(controls, grid.nextSibling)` SENSE tenir en compte l'editor
+posa els controls ENTRE grid i editor. Usa l'editor com a àncora si
+existeix.
+
+#### Middle layout: fracció centrada amb pastilles a esquerra
+
+La petició "centra la fracció horitzontalment" va arribar després. Pattern
+original: `grid-template-columns: auto auto 1fr` amb fracció a col 2 i
+zigzag a col 3. Després del port, col 3 és un spacer buit amb
+`visibility: hidden`, cosa que NO reserva espai (visibility oculta però no
+expandeix).
+
+**Fix elegant**: `1fr auto 1fr` amb pastilles a col 1 (`justify-self: start`),
+fracció a col 2 (`auto` = mida contingut), spacer a col 3 (`1fr` buida).
+Les dues `1fr` laterals es reparteixen l'espai per igual → fracció
+centrada en viewport independentment de l'ample de les pastilles.
+
+```css
+body[data-visual="nuzic"] .middle.app34-middle {
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr;
+  ...
+}
+.itfr-info-group { grid-column: 1; justify-self: start; }
+.itfr-fraction-slot { grid-column: 2; justify-self: center; }
+.itfr-spacer { grid-column: 3; visibility: hidden; }
+```
+
+#### Receptari per App35 (N-iT + complex fraction)
+
+App35 = App33 + sucesión N-iT (complex fraction versió d'App34). Recepta:
+
+1. **Base**: copiar App34 main.js + styles.css (ja té el pattern N-iT inline).
+2. **Afegir complex fraction**: aplicar les adaptacions de §S29 + §7r
+   complex-fraction al damunt:
+   - `setComplexMode()` en comptes de `setSimpleMode()`
+   - `MIN_NUMERATOR = 2`, `MAX_NUMERATOR = 6`
+   - `calculateVariableLg(n, BASE_LG)` per al Lg dinàmic
+   - Fórmules `* n / d` a `renderGridTimeline`, `highlightPulse`,
+     `highlightBarAtPosition`
+   - `renderGhostPulseLines` a `renderGrid` + ResizeObserver
+   - `baseResolution = d` (NO `n * d` — vegeu §S29 causa 3)
+3. **Canvis trivials**: body class `app35`, middle class `app35-middle`,
+   prefix preferenceStorage.
+4. **Verificar** que `zigzagEditor.setMaxTotalPulse(getTotalSubdivisions())`
+   es crida quan canvien n o d (ja ho fa en App34 als onChange de la
+   fracció).
+5. **Testing playback** complet: playhead, note-bar highlight, metronome
+   a tots els pulsos (ghost inclosos) — si algun desincronitza, revisar les
+   3 causes de §S29.
+
+Expectació: amb App34 + App33 com a base, App35 hauria de migrar en 1-2
+iteracions. Els problemes possibles són a la intersecció N-iT + complex
+(editor `setMaxTotalPulse` amb Lg variable).
