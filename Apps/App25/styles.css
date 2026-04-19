@@ -185,7 +185,7 @@ main {
   align-items: center;
   justify-content: center;
   color: white;
-  background: var(--nuzic-yellow, #FFBB33);
+  background: var(--nuzic-pink, #F28AAD);
 }
 
 .degree-editor-cells {
@@ -221,10 +221,11 @@ main {
   margin: 0;
 }
 
-/* Empty cells: yellow placeholder */
+/* Empty cells: pink placeholder — scale degree is a sonic dimension,
+   so it uses the same pink as the N/iS rows (per §7d/§7f of the skill). */
 .degree-editor-cell:placeholder-shown {
-  background: var(--nuzic-yellow-light, #ffeecc);
-  border: 2px solid var(--nuzic-yellow-light, #ffeecc);
+  background: var(--nuzic-pink-light, #ffe5ee);
+  border: 2px solid var(--nuzic-pink-light, #ffe5ee);
 }
 
 /* Value cells: white */
@@ -241,7 +242,7 @@ main {
 }
 
 .degree-editor-cell.active-input:focus {
-  box-shadow: inset 0 0 0 2px var(--nuzic-yellow, #FFBB33);
+  box-shadow: inset 0 0 0 2px var(--nuzic-pink, #F28AAD);
 }
 
 /* End marker */
