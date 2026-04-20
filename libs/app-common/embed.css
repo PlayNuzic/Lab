@@ -48,14 +48,16 @@ html[data-embed="true"] body .top-bar .sound-wrapper {
   display: none;
 }
 
-/* Main fills the iframe vertically — no reserved space for the bar.
-   Flex-center the content so apps whose natural height is shorter than
-   the iframe (soundline verticals, scale apps) sit centered instead of
-   pinned to the top with empty space below. Apps whose content fills
-   100vh aren't affected — justify-content has no room to act. */
+/* Main fills the iframe exactly. `height: 100vh` + `overflow: hidden`
+   pins main to the viewport and suppresses any stray body scroll when
+   an app's natural content slightly exceeds 100vh (e.g. App16, which
+   doesn't set `html/body { overflow: hidden }` of its own). Apps that
+   do want scroll for their grid/plano (App19, App20) keep it inside
+   their own container — this rule only blocks the outer scroll. */
 html[data-embed="true"] body main {
   padding-top: 0;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
