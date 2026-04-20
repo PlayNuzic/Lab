@@ -13,6 +13,15 @@
    hide the rest, and collapse the bar to a zero-footprint overlay.
    ========================================================================== */
 
+/* Suppress outer scroll at the document level. Some apps (App16, App28,
+   App30, App32, App34, App35) don't set `overflow: hidden` on html/body
+   themselves, so a slight content overflow would surface a scrollbar on
+   the iframe. Scoped to embed mode so direct app loads are unaffected. */
+html[data-embed="true"],
+html[data-embed="true"] body {
+  overflow: hidden;
+}
+
 /* Collapse the top-bar to an absolute overlay — zero vertical footprint.
    pointer-events: none so clicks fall through to the content underneath;
    children re-enable events selectively below. */
@@ -60,7 +69,27 @@ html[data-embed="true"] body main {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+}
+
+/* Hide .inputs section in embed — the Lg param (and T, if present) isn't
+   essential for the Sistema's viewing experience and its height steals
+   space from the main content area. Apps that need Lg editing outside
+   embed keep it; inside embed it's hidden regardless of nuzic's
+   existing `.inputs:has(.bpm-inline)` rule. */
+html[data-embed="true"] body main > .inputs {
+  display: none;
+}
+
+/* app10 (vertical soundline) and App18 (registro de octava) wrap their
+   main content in `.timeline-wrapper` with a naturally short height
+   (shorter than the iframe). Auto-margins center that block vertically
+   in the flex-column main. Scoped to the apps that need it via body
+   class so other apps with `.timeline-wrapper { flex: 1 }` (scale apps)
+   keep their stretch behaviour. */
+html[data-embed="true"] body.app10 main .timeline-wrapper,
+html[data-embed="true"] body.app18 main .timeline-wrapper {
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 /* Scale apps (App21-24, 25, 25B) use `.soundlines-area` with
