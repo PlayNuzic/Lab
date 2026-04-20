@@ -1,0 +1,74 @@
+/* ==========================================================================
+   Embed mode — reduce the app's top-bar to a discreet menu overlay when
+   the app is loaded inside a Sistema Interactivo iframe (?embed=true).
+
+   Activation: embed-mode.js sets data-embed="true" on <html> during head
+   parsing. All selectors below are gated by that attribute, so a normal
+   app load (no query string) is unaffected.
+
+   In nuzic-migrated apps (all 25 embed apps as of 2026-04), the volume
+   button has already been relocated out of .top-bar by header.js (into
+   .controls inline, or body-floating for scale apps). So the .top-bar
+   only hosts ☰ + <h1> + an empty .sound-wrapper → we keep the hamburger,
+   hide the rest, and collapse the bar to a zero-footprint overlay.
+   ========================================================================== */
+
+/* Collapse the top-bar to an absolute overlay — zero vertical footprint.
+   pointer-events: none so clicks fall through to the content underneath;
+   children re-enable events selectively below. */
+html[data-embed="true"] body .top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 0;
+  z-index: 100;
+  pointer-events: none;
+  background: transparent;
+}
+
+/* Hamburger: the only interactive element we keep. Discreet at rest,
+   full opacity on hover / when its <details> is open. */
+html[data-embed="true"] body .top-bar .menu {
+  pointer-events: auto;
+  opacity: 0.35;
+  transition: opacity 0.2s ease;
+}
+
+html[data-embed="true"] body .top-bar .menu:hover,
+html[data-embed="true"] body .top-bar .menu[open] {
+  opacity: 1;
+}
+
+/* Hide the title (provided by the Sistema's lateral column) and the
+   header's .sound-wrapper slot. In nuzic apps the slot is empty anyway;
+   in non-nuzic apps (none embedded today) it would hide the speaker. */
+html[data-embed="true"] body .top-bar h1,
+html[data-embed="true"] body .top-bar .sound-wrapper {
+  display: none;
+}
+
+/* Main fills the iframe vertically — no reserved space for the bar.
+   Flex-center the content so apps whose natural height is shorter than
+   the iframe (soundline verticals, scale apps) sit centered instead of
+   pinned to the top with empty space below. Apps whose content fills
+   100vh aren't affected — justify-content has no room to act. */
+html[data-embed="true"] body main {
+  padding-top: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Scale apps (App21-24, 25, 25B) use `.soundlines-area` with
+   `align-items: flex-start` — appropriate outside embed because the
+   top-bar's height visually pushes the soundline down. Inside embed the
+   bar is absolute (zero flow), so flex-start leaves a blank strip below
+   the soundline roughly equal to the bar's original height. `safe center`
+   centers vertically when the content fits (App21 etc.) and falls back
+   to flex-start when the content is taller than the iframe (App22 with
+   extra labels), preventing the top from being clipped. */
+html[data-embed="true"] body .soundlines-area {
+  align-items: safe center;
+}
