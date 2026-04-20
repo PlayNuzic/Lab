@@ -1,0 +1,92 @@
+/* Bottom navigation — 2 levels */
+
+.sistema-nav{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--rule);
+  z-index: 20;
+  padding: 0;
+}
+
+.sistema-nav__progress{
+  padding: 10px var(--slide-pad-x) 0;
+}
+.sistema-nav__progress-track{
+  display:flex;
+  gap: 4px;
+  height: 4px;
+}
+.progress-seg{
+  flex: 1;
+  background: var(--rule);
+  border-radius: 2px;
+  transition: background .2s;
+}
+.progress-seg.is-done{ background: var(--nuzic-dark); }
+.progress-seg.is-current{
+  background: var(--nuzic-green);
+}
+body[data-theme="dark"] .progress-seg.is-done{ background: var(--nuzic-light); }
+
+.sistema-nav__bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 12px var(--slide-pad-x);
+  gap: var(--sp-3);
+}
+
+.sistema-nav__btn{
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rule);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition: background .15s, border-color .15s;
+}
+.sistema-nav__btn:hover{
+  background: var(--nuzic-dark);
+  color: var(--nuzic-light);
+  border-color: var(--nuzic-dark);
+}
+.sistema-nav__btn:disabled{
+  opacity: 0.3; cursor: default;
+}
+.sistema-nav__btn:disabled:hover{
+  background: transparent; color: var(--fg); border-color: var(--rule);
+}
+
+.sistema-nav__title{
+  display:flex;
+  align-items:baseline;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: var(--fs-nav);
+  color: var(--fg);
+  flex: 1;
+  justify-content: center;
+  text-align: center;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sistema-nav__section{
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.sistema-nav__sep{ color: var(--muted); }
+.sistema-nav__step{
+  font-weight: 700;
+  color: var(--fg);
+}
+
+@media (max-width: 640px){
+  .sistema-nav__sep, .sistema-nav__section{ display:none; }
+}

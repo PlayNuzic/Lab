@@ -1,0 +1,84 @@
+/* Nuzic tokens — Sistema Interactivo */
+
+@font-face{
+  font-family:'Ubuntu'; font-style:normal; font-weight:400;
+  src:url('../fonts/ubuntu-regular.woff2') format('woff2');
+  font-display:swap;
+}
+@font-face{
+  font-family:'Ubuntu'; font-style:normal; font-weight:700;
+  src:url('../fonts/ubuntu-bold.ttf') format('truetype');
+  font-display:swap;
+}
+@font-face{
+  font-family:'Krub'; font-style:normal; font-weight:400;
+  src:url('../fonts/krub-regular.woff2') format('woff2');
+  font-display:swap;
+}
+
+:root{
+  --nuzic-white:#ffffff;
+  --nuzic-light:#eee8d8;
+  --nuzic-grey:#aaa699;
+  --nuzic-dark:#43433b;
+  --nuzic-red:#e76f68;       --nuzic-red-light:#f5c6c2;
+  --nuzic-pink:#f28aad;      --nuzic-pink-light:#ffe5ee;
+  --nuzic-yellow:#ffbb33;    --nuzic-yellow-light:#ffeecc;
+  --nuzic-green:#7cd6b3;     --nuzic-green-light:#cbefe1;
+  --nuzic-blue:#7bb4cd;      --nuzic-blue-light:#bdd9e6;
+
+  /* Tips box — FIXOS (no canvien amb dark mode) */
+  --tips-bg: rgba(124, 214, 179, 0.15);
+  --tips-border: #7cd6b3;
+  --tips-text: #43433b;
+
+  /* Typography */
+  --font-display:'Ubuntu', system-ui, sans-serif;
+  --font-body:'Krub', Georgia, serif;
+
+  /* Spacing (7px base) */
+  --sp-1:7px; --sp-2:14px; --sp-3:21px; --sp-4:28px; --sp-5:42px; --sp-6:56px;
+
+  /* Fluid scale (clamp) — coherent with apps up to 1440 CSS px */
+  --fs-body: clamp(15px, 1.05vw + 0.4rem, 18px);
+  --fs-small: clamp(13px, 0.75vw + 0.4rem, 15px);
+  --fs-h1:   clamp(26px, 2.2vw + 0.5rem, 42px);
+  --fs-h2:   clamp(20px, 1.4vw + 0.6rem, 26px);
+  --fs-nav:  clamp(14px, 0.9vw + 0.3rem, 17px);
+
+  /* Layout */
+  --content-gap: clamp(20px, 2vw, 36px);
+  --slide-pad-x: clamp(24px, 4vw, 72px);
+  --slide-pad-y: clamp(20px, 2.4vw, 44px);
+  --nav-h: clamp(78px, 7vh, 112px);
+
+  /* Tema — light */
+  --bg: var(--nuzic-white);
+  --fg: var(--nuzic-dark);
+  --fg-soft: #6b6b60;
+  --muted: var(--nuzic-grey);
+  --rule: rgba(67,67,59,0.12);
+}
+
+body[data-theme="dark"]{
+  --bg: #1e1e1e;
+  --fg: var(--nuzic-light);
+  --fg-soft: #bfb9a8;
+  --muted: #8a8578;
+  --rule: rgba(238,232,216,0.14);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--font-body);
+  font-size:var(--fs-body);
+  line-height:1.55;
+  color:var(--fg);
+  background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  min-height:100vh;
+  padding-bottom:var(--nav-h);
+}
+h1,h2,h3,.display{ font-family:var(--font-display); font-weight:700; color:var(--fg); }

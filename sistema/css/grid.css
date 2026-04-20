@@ -1,0 +1,89 @@
+/* Grid templates — Sistema Interactivo
+   Each slide fits exactly one viewport height (no scroll). */
+
+.slide-stage{
+  height: calc(100vh - var(--nav-h));
+  padding: var(--slide-pad-y) var(--slide-pad-x);
+  display:flex; flex-direction:column;
+  overflow: hidden;
+}
+
+.slide{
+  flex:1;
+  min-height: 0;
+  display:grid;
+  gap: var(--content-gap);
+  grid-template-rows: auto 1fr;
+}
+
+/* Template A — intro slides (1, 2, 11): title on top, image + 2-col body below */
+.slide[data-template="2-col"]{
+  grid-template-columns: minmax(280px, 0.9fr) 2fr;
+}
+.slide[data-template="2-col"] .slide__header{
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+.slide[data-template="2-col"] .slot-image{
+  grid-column: 1; grid-row: 2;
+  min-height: 0;
+  height: 100%;
+}
+.slide[data-template="2-col"] .slot-text{
+  grid-column: 2; grid-row: 2;
+  min-height: 0;
+}
+
+/* Template B — 3-col */
+.slide[data-template="3-col"]{
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* Layout: app spans cols 1+2, text col 3 */
+.slide[data-template="3-col"][data-layout="span-left"] .slide__header{
+  grid-column: 1 / -1; grid-row: 1;
+}
+.slide[data-template="3-col"][data-layout="span-left"] .slot-app{
+  grid-column: 1 / span 2; grid-row: 2;
+  min-height: 0;
+}
+.slide[data-template="3-col"][data-layout="span-left"] .slot-text{
+  grid-column: 3; grid-row: 2;
+  min-height: 0;
+}
+
+/* Layout: text col 1, app col 2 (vertical), col 3 empty — Paso 5 only */
+.slide[data-template="3-col"][data-layout="col-right"]{ grid-auto-flow: dense; }
+.slide[data-template="3-col"][data-layout="col-right"] .slide__header{
+  grid-column: 1 / -1; grid-row: 1;
+}
+.slide[data-template="3-col"][data-layout="col-right"] .slot-text{
+  grid-column: 1; grid-row: 2; min-height: 0;
+}
+.slide[data-template="3-col"][data-layout="col-right"] .slot-app{
+  grid-column: 2; grid-row: 2;
+  min-height: 0;
+  display:flex; align-items:flex-start; justify-content:center;
+}
+.slide[data-template="3-col"][data-layout="col-right"] .slot-empty{
+  grid-column: 3; grid-row: 2;
+}
+
+/* Responsive — single column, stacked, scroll allowed on mobile */
+@media (max-width: 820px){
+  .slide-stage{
+    height: auto;
+    overflow: visible;
+  }
+  body{ padding-bottom: calc(var(--nav-h) + 16px); }
+  .slide[data-template="2-col"],
+  .slide[data-template="3-col"]{
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+  .slide > *{ grid-column: 1 / -1 !important; grid-row: auto !important; }
+  .slide .slot-app{ order: 3; }
+  .slide .slot-text{ order: 1; }
+  .slide .slot-image{ order: 1; max-height: 40vh; }
+  .slide .slot-empty{ display:none; }
+}
