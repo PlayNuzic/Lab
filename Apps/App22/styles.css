@@ -11,7 +11,7 @@
   --note-highlight-color: #7BB4CD;
 
   /* Soundlines sizing */
-  --soundlines-height: clamp(25rem, 70vh, 37.5rem);
+  --soundlines-height: clamp(25rem, 80vh, 75rem);
   --soundline-container-width: 7.5rem;
 
   /* Interval bars */
