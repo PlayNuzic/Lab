@@ -34,7 +34,11 @@
   </nav>
 
   <aside class="tweaks" id="tweaks" hidden>
-    <div class="tweaks__head">Tweaks</div>
+    <div class="tweaks__head" id="tweaks-head">
+      <span class="tweaks__grip" aria-hidden="true">⋮⋮</span>
+      <span class="tweaks__title">Tweaks</span>
+      <button class="tweaks__collapse" id="tweaks-collapse" type="button" aria-label="Colapsar panel" title="Colapsar">–</button>
+    </div>
     <div class="tweaks__body">
       <label class="tweaks__row"><span>Ir a paso</span>
         <select id="tw-paso"></select>

@@ -1,98 +1,171 @@
-// Slide definitions — placeholders with realistic Spanish text density.
-// Only a few slides are filled out for the skeleton review (Priority: Paso 4, 5, 21).
-// Other slides show as stubs so nav works end-to-end.
+// Slide definitions — PDF-driven layout model.
+//
+// Each slide declares which *blocks* it has (title, text, image, iframe, tips)
+// and a named `layout` that maps them onto a CSS grid via `grid-template-areas`.
+// This mirrors the PDF precisely: each slide fits exactly one viewport, and the
+// positioning of each piece within the slide varies per paso.
+//
+// Currently wired: pasos 1-7 with real PDF content, 8-9 as filler, 10-27 as
+// generic filler (future batches).
 
 export const sections = [
-  { id:'introduccion', title:'Introducción', slides:[1,2,3,4,5,6] },
-  { id:'descubriendo', title:'Descubriendo', slides:[7,8,9] },
-  { id:'intervalos',   title:'Intervalos',   slides:[10] },
-  { id:'ampliando',    title:'Ampliando',    slides:[11,12,13,14,15,16] },
-  { id:'fraccionando', title:'Fraccionando', slides:[17,18,19,20,21] },
-  { id:'escalas',      title:'Escalas',      slides:[22,23,24,25,26,27] },
+  { id:'introduccion', title:'Introducción',       slides:[1,2,3,4,5,6] },
+  { id:'descubriendo', title:'Descubriendo',       slides:[7,8,9] },
+  { id:'intervalos',   title:'Intervalos',         slides:[10] },
+  { id:'ampliando',    title:'Ampliando',          slides:[11,12,13,14,15,16] },
+  { id:'fraccionando', title:'Fraccionando',       slides:[17,18,19,20,21] },
+  { id:'escalas',      title:'Escalas',            slides:[22,23,24,25,26,27] },
 ];
 
-// Condensed matrix: paso, title, template, layout, aspect, apps (array for toggle)
+// Grid layouts — the skeleton shared across pasos. Each defines the grid areas
+// and the row template. Inline `grid-template-*` is applied per-slide from
+// these values. Keep the area names ('image', 'title', 'text', 'app', 'tips')
+// stable: the renderer maps block types to area names by convention.
+// Layouts use a 3-column grid (1fr 1fr 1fr). Area strings span across columns
+// via repeated names per row. This matches the PDF proportions: most pasos
+// give the app 2/3 of the width with text/tips on the narrow right; Paso 5
+// is the inverse (vertical app at 1/3, text + tips at 2/3).
+export const layouts = {
+  // Intro slides (1, 2, 11): image left (2 cols), title + text right (1 col).
+  'A-intro': {
+    areas: '"image image title" "image image text"',
+    rows:  'auto 1fr',
+  },
+  // App left (2 cols) + title/text/tips stacked on right (1 col).
+  // Used by the majority of pasos (3, 4, 6, 7, 8, ...).
+  'B-app-left': {
+    areas: '"app app title" "app app text" "app app tips"',
+    rows:  'auto 1fr auto',
+  },
+  // App narrow left (1 col) + title/text/tips on right (2 cols).
+  // Used by Paso 5 (Línea Sonora) only — the vertical soundline is naturally
+  // narrow, and the text block benefits from the wider right side.
+  'D-app-narrow': {
+    areas: '"app title title" "app text text" "app tips tips"',
+    rows:  'auto 1fr auto',
+  },
+  // Title + text + app stacked on the left (2 cols), tips alone on the right
+  // (1 col spanning full height). Matches the PDF for Paso 4 (Línea Temporal),
+  // where the body copy is long and the timeline app is a short horizontal bar
+  // that fits naturally beneath the prose.
+  //
+  // The app row is clamped (min 180px, 32vh ideal, 340px max) so the text row
+  // (1fr) retains most of the vertical space. The iframe itself uses
+  // `max-height: 100%` + aspect-ratio, so it sizes to the row height and the
+  // horizontal width follows the aspect-ratio, centered by margin:auto.
+  'E-app-text-left': {
+    areas: '"title title tips" "text text tips" "app app tips"',
+    rows:  'auto 1fr clamp(180px, 32vh, 340px)',
+  },
+};
+
+// Slide matrix — one entry per paso. Blocks are referenced in `slideContent`
+// below; this matrix carries only structural info (section, layout, apps).
 export const slideMatrix = [
-  { paso:1, section:'introduccion', title:'¿Te gustaría saber qué movimientos se producen en la música?', template:'2-col' },
-  { paso:2, section:'introduccion', title:'Contar y Medir', template:'2-col' },
-  { paso:3, section:'introduccion', title:'Contar y Medir la Música', template:'3-col', layout:'span-left', aspect:'4/3', apps:['app11'] },
-  { paso:4, section:'introduccion', title:'Línea Temporal', template:'3-col', layout:'span-left', aspect:'2/1', apps:['app9'] },
-  { paso:5, section:'introduccion', title:'Línea Sonora', template:'3-col', layout:'col-right', aspect:'2/3', apps:['app10'] },
-  { paso:6, section:'introduccion', title:'El Plano Musical', template:'3-col', layout:'span-left', aspect:'4/3', apps:['App11A'] },
-  { paso:7, section:'descubriendo', title:'Descubriendo la Música', template:'3-col', layout:'span-left', aspect:'4/3', apps:['App12'] },
-  { paso:8, section:'descubriendo', title:'Midiendo el movimiento: Los Intervalos', template:'3-col', layout:'span-left', aspect:'2/1', apps:['app13'] },
-  { paso:9, section:'descubriendo', title:'Intervalo Sonoro', template:'3-col', layout:'span-left', aspect:'3/2', apps:['App14'] },
-  { paso:10, section:'intervalos', title:'Intervalos en el Plano Musical', template:'3-col', layout:'span-left', aspect:'4/3', apps:['App15'] },
-  { paso:11, section:'ampliando', title:'Ampliando el Mapa: Patrones, Ciclos y Módulos', template:'2-col' },
-  { paso:12, section:'ampliando', title:'El compás: el módulo temporal', template:'3-col', layout:'span-left', aspect:'2/1', apps:['App16'] },
-  { paso:13, section:'ampliando', title:'Línea temporal en círculo', template:'3-col', layout:'span-left', aspect:'1/1', apps:['App17'] },
-  { paso:14, section:'ampliando', title:'El registro de octava', template:'3-col', layout:'span-left', aspect:'3/2', apps:['App18'] },
-  { paso:15, section:'ampliando', title:'Plano Modular', template:'3-col', layout:'span-left', aspect:'4/3', apps:['App19'] },
-  { paso:16, section:'ampliando', title:'Plano y Sucesión N-iT', template:'3-col', layout:'span-left', aspect:'4/3', apps:['App20'] },
-  { paso:17, section:'fraccionando', title:'Fraccionando la Línea Temporal', template:'3-col', layout:'span-left', aspect:'2/1', apps:['App26'] },
-  { paso:18, section:'fraccionando', title:'Sucesión de Pulsos Fraccionados', template:'3-col', layout:'span-left', aspect:'2/1', apps:['App28'] },
-  { paso:19, section:'fraccionando', title:'Sucesión de iT Fraccionados Simples', template:'3-col', layout:'span-left', aspect:'2/1', apps:['App30'] },
-  { paso:20, section:'fraccionando', title:'Sucesión en Plano de Fracciones Simples', template:'3-col', layout:'span-left', aspect:'4/3', apps:['App32'] },
-  { paso:21, section:'fraccionando', title:'Fracciones Complejas', template:'3-col', layout:'span-left', aspect:'4/3', apps:['App34','App35'], variantLabels:['App34 · principal','App35 · extra'] },
-  { paso:22, section:'escalas', title:'Escalas: Escogiendo Notas', template:'3-col', layout:'span-left', aspect:'3/2', apps:['App21'] },
-  { paso:23, section:'escalas', title:'Estructura Escalar', template:'3-col', layout:'span-left', aspect:'3/2', apps:['App22'] },
-  { paso:24, section:'escalas', title:'Transposición', template:'3-col', layout:'span-left', aspect:'3/2', apps:['App23'] },
-  { paso:25, section:'escalas', title:'Probando diferentes Escalas', template:'3-col', layout:'span-left', aspect:'3/2', apps:['App24'] },
-  { paso:26, section:'escalas', title:'Melodías con Escalas', template:'3-col', layout:'span-left', aspect:'4/3', apps:['App25','App25B'], variantLabels:['App25 · principal','App25B · iS'] },
-  { paso:27, section:'escalas', title:'Intervalos con Escalas', template:'3-col', layout:'span-left', aspect:'4/3', apps:['App25B'] },
+  { paso:1,  section:'introduccion', title:'¿Te gustaría saber qué movimientos se producen en la música?', layout:'A-intro' },
+  { paso:2,  section:'introduccion', title:'Contar y Medir',                                               layout:'A-intro' },
+  { paso:3,  section:'introduccion', title:'Contar y Medir la Música',                                    layout:'B-app-left', apps:['app11'],  aspect:'4/3' },
+  { paso:4,  section:'introduccion', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1' },
+  { paso:5,  section:'introduccion', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'2/3' },
+  { paso:6,  section:'introduccion', title:'El Plano Musical',                                            layout:'B-app-left', apps:['App11A'], aspect:'4/3' },
+  { paso:7,  section:'descubriendo', title:'Descubriendo la Música',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3' },
+  { paso:8,  section:'descubriendo', title:'Midiendo el movimiento: Los Intervalos',                      layout:'B-app-left', apps:['app13'],  aspect:'2/1' },
+  { paso:9,  section:'descubriendo', title:'Intervalo Sonoro',                                            layout:'B-app-left', apps:['App14'],  aspect:'3/2' },
+  { paso:10, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3' },
+  { paso:11, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'A-intro' },
+  { paso:12, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'B-app-left', apps:['App16'],  aspect:'2/1' },
+  { paso:13, section:'ampliando',    title:'Línea temporal en círculo',                                   layout:'B-app-left', apps:['App17'],  aspect:'1/1' },
+  { paso:14, section:'ampliando',    title:'El registro de octava',                                       layout:'B-app-left', apps:['App18'],  aspect:'3/2' },
+  { paso:15, section:'ampliando',    title:'Plano Modular',                                               layout:'B-app-left', apps:['App19'],  aspect:'4/3' },
+  { paso:16, section:'ampliando',    title:'Plano y Sucesión N-iT',                                       layout:'B-app-left', apps:['App20'],  aspect:'4/3' },
+  { paso:17, section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'B-app-left', apps:['App26'],  aspect:'2/1' },
+  { paso:18, section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'B-app-left', apps:['App28'],  aspect:'2/1' },
+  { paso:19, section:'fraccionando', title:'Sucesión de iT Fraccionados Simples',                         layout:'B-app-left', apps:['App30'],  aspect:'2/1' },
+  { paso:20, section:'fraccionando', title:'Sucesión en Plano de Fracciones Simples',                     layout:'B-app-left', apps:['App32'],  aspect:'4/3' },
+  { paso:21, section:'fraccionando', title:'Fracciones Complejas',                                        layout:'B-app-left', apps:['App34','App35'], aspect:'4/3', variantLabels:['App34 · principal','App35 · extra'] },
+  { paso:22, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'3/2' },
+  { paso:23, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'3/2' },
+  { paso:24, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'3/2' },
+  { paso:25, section:'escalas',      title:'Probando diferentes Escalas',                                 layout:'B-app-left', apps:['App24'],  aspect:'3/2' },
+  { paso:26, section:'escalas',      title:'Melodías con Escalas',                                        layout:'B-app-left', apps:['App25','App25B'], aspect:'4/3', variantLabels:['App25 · principal','App25B · iS'] },
+  { paso:27, section:'escalas',      title:'Intervalos con Escalas',                                      layout:'B-app-left', apps:['App25B'], aspect:'4/3' },
 ];
 
-// Full content for the three priority slides (Paso 4, 5, 21) + representative fillers
-// for pasos 1 and 22 so the user can see intro + scale layouts too.
+// Content — real text for pasos 1-7 (from the PDF), filler for 8+.
+// Each entry declares the blocks present in the slide. The renderer picks
+// them up and places them into the layout's grid areas.
 export const slideContent = {
   1: {
-    image: { alt: 'Calle con peatones y coches — placeholder' },
-    text: `<p><strong>Imaginemos el seguimiento de una persona en un día.</strong> Para conocer sus movimientos hay que saber en qué puntos ha estado, en qué momento y cuánto tiempo se ha quedado. A partir de esa información puedes deducir y trazar en un mapa cómo se ha movido la persona.</p>
-<p>Las coordenadas de los puntos donde ha estado, la hora y el tiempo, incluso la velocidad para ir de un punto a otro, se pueden describir con números.</p>
-<p>¿Es aplicable a la música? <em>SI!…</em></p>`
+    image: { alt: 'Calle con peatones y coches — foto placeholder' },
+    text: `<p>Imaginemos el seguimiento de una persona en un día. Para conocer sus movimientos hay que saber en qué puntos ha estado, en qué momento y cuánto tiempo se ha quedado. A partir de esa información puedes deducir y trazar en un mapa cómo se ha movido la persona.</p>
+<p>Las coordenadas de los puntos donde ha estado, la hora y el tiempo, incluso la velocidad para ir de un punto a otro, se pueden describir con <strong>números</strong>.</p>
+<p>¿Es aplicable a la música? <em>SÍ!…</em></p>`,
+  },
+  2: {
+    image: { alt: 'Cintas métricas — foto placeholder' },
+    text: `<p><strong>Contar</strong> es calcular con números cuántas cosas hay. Empezamos a contar unidades con el 1; a continuación le siguen el 2, el 3, el 4, el 5… hasta el infinito.</p>
+<p><strong>Medir</strong> es usar números para calcular la magnitud de algo. Puede ser una longitud, un peso, una temperatura, un intervalo de tiempo…</p>
+<p>Para medir usamos herramientas con escalas numéricas: cintas métricas para medir longitudes, termómetros para medir temperaturas, balanzas para medir pesos, etc.</p>
+<p>Los instrumentos de medida tienen una línea con las unidades de medida marcadas y numeradas. La marca inicial es el número <strong>0</strong>, el punto de partida. Cada número marca el punto donde está y mide a qué distancia está del principio.</p>
+<p>Por ejemplo, en una cinta métrica, el número 15 indica que está a 15 unidades de distancia del principio.</p>`,
+  },
+  3: {
+    text: `<p>La música, como los movimientos de una persona en un día, podemos describirla y medirla con números.</p>
+<p>Si vas por una calle, escuchas unos pasos, un coche que pasa, una puerta que se cierra y, al fondo, alguien silbando una melodía. Todo esto se mueve en un tiempo y un espacio determinados, en un orden concreto.</p>
+<p><strong>¿Qué se mueve en la música?</strong></p>
+<p>Para empezar partimos de dos líneas numéricas donde poder visualizar la música. Una línea para los sonidos y otra línea para el paso del tiempo, sincronizadas para describir lo que suena y plasmarlo en un plano musical. Las dos líneas tienen marcas numeradas; la marca de inicio es el número <strong>0</strong>.</p>`,
+    tipsTitle: 'Prueba el Plano Nuzic',
+    tips: `<p>Haz clic en <strong>Play</strong> para generar una secuencia aleatoria.</p>
+<p><strong>Tip:</strong> El plano revela que la música tiene dos dimensiones inseparables: el sonido y el tiempo.</p>`,
   },
   4: {
     text: `<p>La <strong>línea temporal</strong> es horizontal y representa el movimiento en el tiempo. En ella marcamos unos puntos equidistantes que representan una velocidad constante, como si fueran los segundos de un reloj.</p>
 <p>Definimos esta velocidad con un número, que se conoce como <strong>BPM</strong> (Beats Per Minute).</p>
-<p>A los puntos de la línea temporal los llamamos <strong>pulsos</strong>, y los numeramos. Como buen instrumento de medición el pulso de partida es el 0.</p>
-<p>Los pulsos nos permiten marcar exactamente en qué instante se producen los sonidos. El tiempo en la música se tiene que medir con gran precisión.</p>
-<p>Como la pulsación del corazón, un <strong>paso temporal</strong> es el tiempo que pasa entre dos pulsos consecutivos. Este paso es la unidad temporal que usaremos para medir cuánto dura un sonido.</p>`,
+<p>A los puntos de la línea temporal los llamamos <strong>pulsos</strong>, y los numeramos. Como buen instrumento de medición, el pulso de partida es el <strong>0</strong>. Los pulsos nos permiten marcar exactamente en qué instante se producen los sonidos.</p>
+<p>Como la pulsación del corazón, un <strong>paso temporal</strong> es el tiempo que pasa entre dos pulsos consecutivos. Este paso es la unidad temporal que usaremos para medir cuánto dura un sonido.</p>
+<p>Cuando contamos pasos, es natural hacerlo desde el 1: el paso 1 va del pulso 0 al 1, el paso 2 va del 1 al 2, etc.</p>`,
     tipsTitle: 'Prueba la Línea Temporal',
     tips: `<p><strong>Uso básico:</strong> Pulsa ▶ y escucha. La app genera dos notas aleatorias en posiciones distintas de la línea temporal. Ajusta el BPM entre 50 y 150 para escuchar la línea más rápido o más lento.</p>
-<p><strong>Tip:</strong> En la línea temporal podemos visualizar el paso del tiempo marcado por los pulsos y oír un sonido que ocurre en un pulso y que dura una pulsación o paso.</p>`
+<p><strong>Tip:</strong> En la línea temporal podemos visualizar el paso del tiempo marcado por los pulsos y oír un sonido que ocurre en un pulso y que dura una pulsación o paso.</p>`,
   },
   5: {
     text: `<p>La <strong>línea sonora</strong> representa los sonidos que crean la música. Los sonidos que usamos para empezar son las notas musicales. Cada punto de la línea es una nota de la escala cromática con su sonido característico.</p>
 <p>A la primera nota le damos el número <strong>0</strong>. Es la nota de salida de la escala. Cada nota tiene su propio número para poder identificarla.</p>
 <p>La línea sonora la colocamos en <em>vertical</em> para formar el plano con la línea temporal, así se ve muy bien la altura de cada nota. Las notas están organizadas en orden ascendente, de más grave a más aguda.</p>
-<p>Las notas pueden seguir cualquier orden, pueden subir y bajar libremente creando así una <strong>melodía</strong>.</p>`,
+<p>Las notas pueden seguir cualquier orden, pueden subir y bajar libremente creando así una <strong>melodía</strong>. El paso entre dos notas consecutivas es la unidad de medida que nos permite medir los movimientos de una melodía.</p>`,
     tipsTitle: 'Prueba Práctica',
     tips: `<p>La app muestra la línea sonora con 12 notas (0–11) donde puedes escuchar melodías.</p>
-<p><strong>Uso:</strong> En la primera interacción, suena la escala cromática completa. A partir de la segunda, pulsa ▶ para reproducir melodías aleatorias de 6 notas.</p>`
+<p><strong>Uso básico:</strong> En la primera interacción, suena la escala cromática completa como introducción. A partir de la segunda, pulsa ▶ para reproducir melodías aleatorias de 6 notas.</p>
+<p><strong>Tip:</strong> La primera escucha es siempre la escala cromática ascendente; sirve para mostrar las 12 notas antes de escucharlas en melodías aleatorias.</p>`,
   },
-  21: {
-    text: `<p>Las <strong>fracciones complejas</strong> permiten dividir un paso temporal en partes desiguales. Mientras las fracciones simples dividen el pulso en partes iguales (en mitades, tercios, cuartos…), las complejas admiten relaciones como <strong>3:2</strong> o <strong>5:4</strong> sobre un mismo grupo de pulsos.</p>
-<p>Escribimos la fracción como <em>numerador / denominador</em>: el numerador indica cuántas divisiones hacemos y el denominador sobre cuántos pulsos. Así podemos notar tresillos, cinquillos, polirritmias y toda la familia de ritmos irracionales que aparece en la música contemporánea.</p>
-<p>Combina App34 para explorar el <strong>pulso fraccionado complejo</strong> y App35 para ver la <strong>sucesión iT</strong> equivalente — son dos ventanas sobre el mismo fenómeno rítmico.</p>`,
-    tipsTitle: 'Cómo practicar',
-    tips: `<p><strong>App34 (principal):</strong> Introduce una fracción (p.ej. 3/2) y pulsa ▶. Escucharás el pulso original y la división compleja a la vez.</p>
-<p><strong>App35 (extra):</strong> Misma fracción, ahora vista como sucesión de intervalos temporales (iT). Compara cómo se percibe la regularidad.</p>
-<p><strong>Tip:</strong> Empieza con 3:2 a 80 BPM; sube a 5:4 cuando el oído esté cómodo.</p>`
+  6: {
+    text: `<p>Si colocamos la línea temporal en horizontal y la línea sonora en vertical creamos un <strong>plano</strong> que representa el espacio donde va a sonar la música.</p>
+<p>Es un mapa donde podemos ver cómo las notas van ocurriendo en el tiempo, cada una en su instante preciso.</p>
+<p>A cada nota le corresponde un punto en el mapa. Cada punto tiene <strong>dos números</strong> que lo definen, como las coordenadas de un lugar en el mapa.</p>
+<p>El primer número es la <em>nota</em> escogida y el segundo es el <em>pulso</em> donde está ubicada. Un pulso no puede tener más de una nota, igual que al cantar solo podemos cantar una nota a la vez.</p>`,
+    tipsTitle: 'Prueba el Plano Nuzic',
+    tips: `<p>Haz clic en cualquier celda del plano para escuchar su nota y ver sus coordenadas (nota · pulso).</p>
+<p>Pulsa ▶ para escuchar de 4 a 8 notas aleatorias distribuidas en 8 pulsos.</p>
+<p><strong>Tip:</strong> Prueba a hacer clic en varias celdas seguidas para explorar la relación entre posición en el plano y sonido. Las coordenadas de las notas desaparecen suavemente tras 1 segundo.</p>`,
   },
-  22: {
-    text: `<p>Hasta ahora hemos trabajado con la <strong>escala cromática</strong> completa (12 notas). Una <strong>escala</strong> es un subconjunto ordenado de notas que da carácter a una melodía.</p>
-<p>Escogiendo menos notas de las 12 disponibles y repitiéndolas en octavas sucesivas, creamos el material melódico de una pieza. La escala mayor usa 7 notas; la pentatónica, 5.</p>
-<p>La app te permite activar o desactivar notas y escuchar cómo cambia el color de una melodía aleatoria con el mismo contorno.</p>`,
-    tipsTitle: 'Explora las escalas',
-    tips: `<p>Activa/desactiva notas y pulsa ▶. La melodía usa solo las notas activas.</p>
-<p><strong>Tip:</strong> Compara <em>Cromática</em> vs. <em>Mayor</em> — notarás la estabilidad tonal al restringir el material.</p>`
+  7: {
+    text: `<p>Ya tenemos el mapa para crear música moviéndonos a través de números.</p>
+<p>Cada nota tendrá dos números distintos, sincronizados e interdependientes: uno define la nota y otro la sitúa en el tiempo; uno lo elegimos en la línea sonora, otro en la línea temporal.</p>
+<p>Para distinguir los dos números les ponemos una letra delante, una <strong>N</strong> para la nota, <code>N(x)</code>, y una <strong>P</strong> para el pulso, <code>P(y)</code>.</p>
+<p>Para crear una melodía, escogemos y ordenamos sucesiones de números. A cada número de una nota le corresponderá un número de pulso. Estamos ordenando sonidos en el tiempo.</p>
+<p>Los números de la línea sonora pueden subir y bajar y se pueden repetir. También podemos usar un silencio en vez de una nota, escribiéndolo con <code>s</code>. Los números de la línea temporal solo pueden ir en una dirección y no se pueden repetir, como el paso del tiempo.</p>
+<p>Nos regimos por la estructura del plano: 12 números para las notas (0–11) y 8 para los pulsos (0–7).</p>`,
+    tipsTitle: 'Prueba el Plano Nuzic',
+    tips: `<p>Usa el <strong>editor N-P</strong> para introducir pares y crear una sucesión. O haz clic en celdas del plano para añadir o quitar notas.</p>
+<p>Pulsa ▶ para reproducir, 🎲 para generar una sucesión aleatoria, 🗑 para borrar.</p>
+<p><strong>Tip:</strong> Pasar del azar a la intención es el salto creativo fundamental. Es el primer paso hacia la composición consciente: decides tú qué nota suena en qué momento.</p>`,
   },
 };
 
-// Default filler for slides without explicit content
+// Default filler for pasos without explicit content yet (8–27).
 export const fillerContent = {
-  text: `<p>Este paso está pendiente de redactar. El esqueleto de la web está listo; solo falta el texto teórico específico de este apartado.</p>
-<p>La densidad aquí será similar a la de los pasos ya redactados: 3 a 5 párrafos de unos 40–70 palabras, con términos clave en <strong>negrita</strong> y referencias cruzadas a apps vecinas cuando aplique.</p>`,
+  text: `<p>Este paso está pendiente de redactar. El esqueleto del Sistema está listo; cuando tengamos el texto teórico final del PDF o el material equivalente, se integrará aquí sustituyendo este marcador.</p>
+<p>La densidad aquí será similar a la de los pasos ya redactados: 3 a 5 párrafos de 40–70 palabras, con términos clave en <strong>negrita</strong> y referencias cruzadas a apps vecinas cuando aplique.</p>`,
   tipsTitle: 'Tips de práctica',
-  tips: `<p>Un consejo concreto aparecerá aquí cuando se redacte el contenido — una pista para usar la app y una observación sobre lo que se está aprendiendo.</p>`
+  tips: `<p>Un consejo concreto aparecerá aquí cuando se redacte el contenido — una pista para usar la app y una observación sobre lo que se está aprendiendo.</p>`,
 };

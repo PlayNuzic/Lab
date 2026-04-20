@@ -1,4 +1,4 @@
-/* Tweaks panel */
+/* Tweaks panel — movable + collapsible */
 .tweaks{
   position: fixed;
   right: 20px;
@@ -11,24 +11,57 @@
   color: var(--fg);
   z-index: 30;
   box-shadow: 0 8px 24px rgba(67,67,59,0.18);
+  user-select: none;
 }
 body[data-theme="dark"] .tweaks{ border-color: var(--nuzic-light); }
 
 .tweaks__head{
   background: var(--nuzic-dark);
   color: var(--nuzic-light);
-  padding: 8px 14px;
+  padding: 8px 10px 8px 12px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: grab;
 }
+.tweaks__head:active{ cursor: grabbing; }
 body[data-theme="dark"] .tweaks__head{ background: var(--nuzic-light); color: #1e1e1e; }
 
-.tweaks__body{ padding: 12px 14px; display:flex; flex-direction:column; gap: 10px; }
+.tweaks__grip{
+  font-size: 14px;
+  letter-spacing: 0;
+  opacity: 0.5;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.tweaks__title{ flex: 1; }
+.tweaks__collapse{
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  width: 22px; height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  letter-spacing: 0;
+  opacity: 0.8;
+}
+.tweaks__collapse:hover{ background: rgba(255,255,255,0.15); opacity: 1; }
+body[data-theme="dark"] .tweaks__collapse:hover{ background: rgba(0,0,0,0.1); }
+
+.tweaks__body{ padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
 .tweaks__row{
-  display:flex; align-items:center; justify-content:space-between;
+  display: flex; align-items: center; justify-content: space-between;
   gap: 10px;
   font-size: 13px;
   font-weight: 400;
@@ -50,3 +83,9 @@ body[data-theme="dark"] .tweaks__head{ background: var(--nuzic-light); color: #1
   color: var(--muted);
   border-top: 1px solid var(--rule);
 }
+
+/* Collapsed state: hide body + foot, round the head's bottom corners. */
+.tweaks.is-collapsed .tweaks__body,
+.tweaks.is-collapsed .tweaks__foot{ display: none; }
+.tweaks.is-collapsed .tweaks__head{ border-radius: 6px; }
+.tweaks.is-collapsed .tweaks__collapse{ transform: rotate(180deg); }

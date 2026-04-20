@@ -1,6 +1,10 @@
 // Slides renderer + navigation
+//
+// Reads the named layout (A-intro / B-app-left / C-text-top) from slide-data,
+// applies its grid-template-areas/rows inline, and renders only the slots the
+// slide declares (image, title, text, app, tips).
 
-import { sections, slideMatrix, slideContent, fillerContent } from './slide-data.js';
+import { sections, slideMatrix, slideContent, fillerContent, layouts } from './slide-data.js';
 
 const STAGE = document.getElementById('slide-stage');
 const PROG  = document.getElementById('progress-track');
@@ -10,13 +14,12 @@ const BTN_PREV = document.getElementById('btn-prev');
 const BTN_NEXT = document.getElementById('btn-next');
 
 const STORAGE_KEY = 'sistema.paso';
-const TWEAKS_KEY  = 'sistema.tweaks';
 
 const state = {
   paso: Number(localStorage.getItem(STORAGE_KEY)) || 4,  // default to Paso 4 (priority)
   variant: 'a',
-  density: 'cozy',
-  showIframe: false,
+  density: 'compact',
+  showIframe: true,
 };
 
 // Expose for tweaks.js
@@ -26,13 +29,42 @@ window.__sistemaRender = render;
 function getSlide(paso){ return slideMatrix.find(s=>s.paso===paso); }
 function getSection(id){ return sections.find(s=>s.id===id); }
 
-function renderTips(c){
-  if (!c || !c.tips) return '';
+function escapeAttr(s){
+  return String(s).replace(/"/g, '&quot;');
+}
+
+function renderTitle(slide, section){
   return `
-    <aside class="tips" role="note">
-      ${c.tipsTitle ? `<div class="tips__label">${c.tipsTitle}</div>` : '<div class="tips__label">Tips</div>'}
-      ${c.tips}
+    <div class="slot-title">
+      <div class="paso-badge">Paso ${slide.paso} · ${section.title}</div>
+      <h1 class="slide__title">${slide.title}</h1>
+    </div>`;
+}
+
+function renderText(content){
+  return `
+    <div class="slot-text">
+      <div class="prose">${content.text || fillerContent.text}</div>
+    </div>`;
+}
+
+function renderTips(content){
+  if (!content || !content.tips) return '';
+  const label = content.tipsTitle || 'Tips';
+  return `
+    <aside class="slot-tips tips" role="note">
+      <div class="tips__label">${label}</div>
+      ${content.tips}
     </aside>`;
+}
+
+function renderImage(content){
+  const alt = content.image?.alt || 'Imagen ilustrativa';
+  const src = content.image?.src;
+  if (src) {
+    return `<div class="slot-image"><img src="${src}" alt="${escapeAttr(alt)}"></div>`;
+  }
+  return `<div class="slot-image" aria-label="${escapeAttr(alt)}">Imagen ilustrativa</div>`;
 }
 
 function renderPlaceholder(appNames, aspect, variant){
@@ -66,22 +98,35 @@ function renderVariantToggle(slide){
     </div>`;
 }
 
+function renderApp(slide){
+  if (!slide.apps || !slide.apps.length) return '';
+  const appName = slide.apps[state.variant === 'b' ? 1 : 0];
+  const body = state.showIframe
+    ? renderIframe(appName, slide.aspect)
+    : renderPlaceholder(slide.apps, slide.aspect, state.variant);
+  return `
+    <div class="slot-app">
+      ${renderVariantToggle(slide)}
+      ${body}
+    </div>`;
+}
+
 function render(){
   const slide = getSlide(state.paso);
   if (!slide) return;
   const section = getSection(slide.section);
   const content = slideContent[slide.paso] || fillerContent;
+  const layout = layouts[slide.layout] || layouts['B-app-left'];
 
-  // Headers
+  // Nav
   NAV_SECTION.textContent = section.title;
   NAV_STEP.textContent = `Paso ${slide.paso} — ${slide.title}`;
   BTN_PREV.disabled = state.paso <= 1;
   BTN_NEXT.disabled = state.paso >= 27;
 
-  // Progress bar — segments for the current section only
+  // Progress bar (current section only)
   PROG.innerHTML = '';
-  const slidesInSection = section.slides;
-  slidesInSection.forEach(p=>{
+  section.slides.forEach(p => {
     const seg = document.createElement('div');
     seg.className = 'progress-seg';
     if (p < state.paso) seg.classList.add('is-done');
@@ -89,71 +134,38 @@ function render(){
     PROG.appendChild(seg);
   });
 
-  // Show/hide variant row in tweaks
+  // Variant row visibility in tweaks
   const variantRow = document.getElementById('tw-variant-row');
   const hasVariant = slide.apps && slide.apps.length > 1;
   variantRow.hidden = !hasVariant;
   if (!hasVariant) state.variant = 'a';
 
-  // Build slide DOM
+  // Build slide
   const slideEl = document.createElement('article');
   slideEl.className = 'slide';
-  slideEl.dataset.template = slide.template;
-  if (slide.layout) slideEl.dataset.layout = slide.layout;
+  slideEl.dataset.layout = slide.layout;
   slideEl.dataset.density = state.density;
   slideEl.dataset.paso = slide.paso;
-  slideEl.setAttribute('data-screen-label', `${String(slide.paso).padStart(2,'0')} ${slide.title}`);
+  slideEl.style.gridTemplateAreas = layout.areas;
+  slideEl.style.gridTemplateRows  = layout.rows;
 
-  if (slide.template === '2-col'){
-    // intro slides (1, 2, 11): image left, text right
-    slideEl.innerHTML = `
-      <div class="slot-image" aria-label="Imagen ilustrativa — placeholder">
-        Imagen ilustrativa
-      </div>
-      <div class="slot-text">
-        <div class="paso-badge">Paso ${slide.paso} · ${section.title}</div>
-        <h1 class="slide__title">${slide.title}</h1>
-        <div class="prose">${content.text || fillerContent.text}</div>
-        ${renderTips(content)}
-      </div>
-    `;
-  } else {
-    // 3-col
-    const appName = slide.apps[state.variant === 'b' ? 1 : 0];
-    const appHtml = state.showIframe
-      ? renderIframe(appName, slide.aspect)
-      : renderPlaceholder(slide.apps, slide.aspect, state.variant);
+  // Render only the slots that the layout references. Unused slots are
+  // skipped automatically by checking which area names appear in `areas`.
+  const areasStr = layout.areas;
+  const parts = [];
+  if (areasStr.includes('title')) parts.push(renderTitle(slide, section));
+  if (areasStr.includes('text'))  parts.push(renderText(content));
+  if (areasStr.includes('image')) parts.push(renderImage(content));
+  if (areasStr.includes('app'))   parts.push(renderApp(slide));
+  if (areasStr.includes('tips'))  parts.push(renderTips(content));
 
-    const header = `
-      <header class="slide__header">
-        <div class="paso-badge">Paso ${slide.paso} · ${section.title}</div>
-        <h1 class="slide__title">${slide.title}</h1>
-      </header>`;
-    const appBlock = `
-      <div class="slot-app">
-        ${renderVariantToggle(slide)}
-        ${appHtml}
-      </div>`;
-    const textBlock = `
-      <div class="slot-text">
-        <div class="prose">${content.text || fillerContent.text}</div>
-        ${renderTips(content)}
-      </div>`;
-    // For col-right layout, emit text BEFORE app so grid auto-flow places
-    // text in col 1 and iframe in col 2 on the same row.
-    if (slide.layout === 'col-right') {
-      slideEl.innerHTML = header + textBlock + appBlock + '<div class="slot-empty" aria-hidden="true"></div>';
-    } else {
-      slideEl.innerHTML = header + appBlock + textBlock;
-    }
-  }
-
+  slideEl.innerHTML = parts.join('\n');
   STAGE.innerHTML = '';
   STAGE.appendChild(slideEl);
 
-  // Wire variant toggle
-  slideEl.querySelectorAll('.variant-toggle button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+  // Variant toggle wiring
+  slideEl.querySelectorAll('.variant-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
       state.variant = btn.dataset.variant;
       render();
     });
@@ -170,19 +182,20 @@ function go(delta){
   render();
 }
 
-BTN_PREV.addEventListener('click', ()=>go(-1));
-BTN_NEXT.addEventListener('click', ()=>go(+1));
-document.addEventListener('keydown', e=>{
+BTN_PREV.addEventListener('click', () => go(-1));
+BTN_NEXT.addEventListener('click', () => go(+1));
+document.addEventListener('keydown', e => {
   if (e.target.closest('input,select,textarea')) return;
-  if (e.key === 'ArrowLeft') go(-1);
+  if (e.key === 'ArrowLeft')  go(-1);
   if (e.key === 'ArrowRight') go(+1);
 });
 
-// Populate "Go to paso" select
+// Populate tweaks "Go to paso" select
 const sel = document.getElementById('tw-paso');
-slideMatrix.forEach(s=>{
+slideMatrix.forEach(s => {
   const o = document.createElement('option');
-  o.value = s.paso; o.textContent = `${s.paso}. ${s.title}`;
+  o.value = s.paso;
+  o.textContent = `${s.paso}. ${s.title}`;
   sel.appendChild(o);
 });
 sel.value = state.paso;

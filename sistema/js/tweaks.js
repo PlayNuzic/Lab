@@ -1,7 +1,86 @@
 // Tweaks panel wiring
 
 const PANEL = document.getElementById('tweaks');
+const HEAD  = document.getElementById('tweaks-head');
+const COLLAPSE_BTN = document.getElementById('tweaks-collapse');
 const selPaso = document.getElementById('tw-paso');
+
+// --- Persistent position + collapse state -------------------------------
+const POS_KEY = 'sistema.tweaks.pos';
+const COLLAPSED_KEY = 'sistema.tweaks.collapsed';
+
+// Restore saved position (x = left px, y = top px). If none, the CSS default
+// (right: 20px; bottom: nav+16px) kicks in. Stored values override via left/top.
+const savedPos = (() => {
+  try { return JSON.parse(localStorage.getItem(POS_KEY)) || null; } catch { return null; }
+})();
+if (savedPos && Number.isFinite(savedPos.x) && Number.isFinite(savedPos.y)) {
+  PANEL.style.left = `${savedPos.x}px`;
+  PANEL.style.top  = `${savedPos.y}px`;
+  PANEL.style.right = 'auto';
+  PANEL.style.bottom = 'auto';
+}
+
+// Restore collapsed state
+if (localStorage.getItem(COLLAPSED_KEY) === '1') {
+  PANEL.classList.add('is-collapsed');
+}
+
+// Collapse toggle
+COLLAPSE_BTN.addEventListener('click', (e) => {
+  e.stopPropagation();
+  PANEL.classList.toggle('is-collapsed');
+  localStorage.setItem(COLLAPSED_KEY, PANEL.classList.contains('is-collapsed') ? '1' : '0');
+});
+
+// Drag the panel by its header. Pointer-events API keeps it touch-friendly.
+(function wireDrag(){
+  let dragging = false;
+  let startX = 0, startY = 0;
+  let originX = 0, originY = 0;
+
+  HEAD.addEventListener('pointerdown', (e) => {
+    // Ignore drags that start on the collapse button.
+    if (e.target.closest('.tweaks__collapse')) return;
+    dragging = true;
+    HEAD.setPointerCapture(e.pointerId);
+    const rect = PANEL.getBoundingClientRect();
+    originX = rect.left;
+    originY = rect.top;
+    startX = e.clientX;
+    startY = e.clientY;
+    PANEL.style.left = `${originX}px`;
+    PANEL.style.top  = `${originY}px`;
+    PANEL.style.right = 'auto';
+    PANEL.style.bottom = 'auto';
+  });
+
+  HEAD.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const nx = originX + (e.clientX - startX);
+    const ny = originY + (e.clientY - startY);
+    // Clamp to viewport
+    const pr = PANEL.getBoundingClientRect();
+    const maxX = window.innerWidth - pr.width;
+    const maxY = window.innerHeight - pr.height;
+    const cx = Math.max(0, Math.min(maxX, nx));
+    const cy = Math.max(0, Math.min(maxY, ny));
+    PANEL.style.left = `${cx}px`;
+    PANEL.style.top  = `${cy}px`;
+  });
+
+  function endDrag(e){
+    if (!dragging) return;
+    dragging = false;
+    try { HEAD.releasePointerCapture(e.pointerId); } catch {}
+    const rect = PANEL.getBoundingClientRect();
+    localStorage.setItem(POS_KEY, JSON.stringify({ x: rect.left, y: rect.top }));
+  }
+  HEAD.addEventListener('pointerup', endDrag);
+  HEAD.addEventListener('pointercancel', endDrag);
+})();
+
+
 const selTheme = document.getElementById('tw-theme');
 const selDensity = document.getElementById('tw-density');
 const selVariant = document.getElementById('tw-variant');

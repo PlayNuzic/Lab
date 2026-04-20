@@ -1,38 +1,46 @@
-/* Bottom navigation — 2 levels */
+/* Bottom navigation — 2 levels, styled after the PDF:
+   - dark green-grey background (Nuzic dark)
+   - progress segments in green (done) / muted green-grey (pending)
+   - round pale-mint buttons with dark arrows
+   - centered title/section in cream
+*/
 
 .sistema-nav{
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  background: var(--bg);
-  border-top: 1px solid var(--rule);
+  background: var(--nuzic-dark);
+  color: var(--nuzic-light);
   z-index: 20;
   padding: 0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .sistema-nav__progress{
-  padding: 10px var(--slide-pad-x) 0;
+  padding: 12px var(--slide-pad-x) 0;
 }
 .sistema-nav__progress-track{
-  display:flex;
+  display: flex;
   gap: 4px;
-  height: 4px;
+  height: 5px;
 }
 .progress-seg{
   flex: 1;
-  background: var(--rule);
-  border-radius: 2px;
+  background: rgba(238, 232, 216, 0.18);  /* diluted cream on dark bg */
+  border-radius: 3px;
   transition: background .2s;
 }
-.progress-seg.is-done{ background: var(--nuzic-dark); }
-.progress-seg.is-current{
+.progress-seg.is-done{
   background: var(--nuzic-green);
 }
-body[data-theme="dark"] .progress-seg.is-done{ background: var(--nuzic-light); }
+.progress-seg.is-current{
+  background: var(--nuzic-green);
+  box-shadow: 0 0 0 2px rgba(124, 214, 179, 0.4);
+}
 
 .sistema-nav__bar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 12px var(--slide-pad-x);
   gap: var(--sp-3);
 }
@@ -40,32 +48,35 @@ body[data-theme="dark"] .progress-seg.is-done{ background: var(--nuzic-light); }
 .sistema-nav__btn{
   width: 44px; height: 44px;
   border-radius: 50%;
-  border: 1.5px solid var(--rule);
-  background: transparent;
-  color: var(--fg);
+  border: 0;
+  background: var(--nuzic-green-light);
+  color: var(--nuzic-dark);
   cursor: pointer;
-  display:flex; align-items:center; justify-content:center;
-  transition: background .15s, border-color .15s;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, transform .1s;
+  flex-shrink: 0;
 }
 .sistema-nav__btn:hover{
-  background: var(--nuzic-dark);
-  color: var(--nuzic-light);
-  border-color: var(--nuzic-dark);
+  background: var(--nuzic-green);
+}
+.sistema-nav__btn:active{
+  transform: scale(0.95);
 }
 .sistema-nav__btn:disabled{
-  opacity: 0.3; cursor: default;
+  opacity: 0.35;
+  cursor: default;
 }
 .sistema-nav__btn:disabled:hover{
-  background: transparent; color: var(--fg); border-color: var(--rule);
+  background: var(--nuzic-green-light);
 }
 
 .sistema-nav__title{
-  display:flex;
-  align-items:baseline;
+  display: flex;
+  align-items: baseline;
   gap: 10px;
   font-family: var(--font-display);
   font-size: var(--fs-nav);
-  color: var(--fg);
+  color: var(--nuzic-light);
   flex: 1;
   justify-content: center;
   text-align: center;
@@ -78,15 +89,15 @@ body[data-theme="dark"] .progress-seg.is-done{ background: var(--nuzic-light); }
   text-transform: uppercase;
   letter-spacing: 0.14em;
   font-size: 0.78em;
-  color: var(--muted);
+  color: rgba(238, 232, 216, 0.7);
   font-weight: 700;
 }
-.sistema-nav__sep{ color: var(--muted); }
+.sistema-nav__sep{ color: rgba(238, 232, 216, 0.5); }
 .sistema-nav__step{
   font-weight: 700;
-  color: var(--fg);
+  color: var(--nuzic-light);
 }
 
 @media (max-width: 640px){
-  .sistema-nav__sep, .sistema-nav__section{ display:none; }
+  .sistema-nav__sep, .sistema-nav__section{ display: none; }
 }
