@@ -458,8 +458,8 @@ async function togglePlayback() {
  * Start playback
  */
 async function startPlayback() {
-  // Check if current instrument is loaded (read from shared localStorage key)
-  const currentInstrument = localStorage.getItem('selectedInstrument') || 'piano';
+  // Check if current instrument is loaded (per-app key to match header writes)
+  const currentInstrument = localStorage.getItem('app19:selectedInstrument') || 'piano';
   const isInstrumentLoaded = currentInstrument === 'flute' ? isFluteLoaded() : isPianoLoaded();
 
   // Show loading indicator if instrument not yet loaded
@@ -1007,8 +1007,8 @@ function initApp() {
   // Mixer integration
   const mixerMenu = document.getElementById('mixerMenu');
   if (mixerMenu && elements.playBtn) {
-    // Get initial instrument label from shared localStorage
-    const initialInstrument = localStorage.getItem('selectedInstrument') || 'piano';
+    // Get initial instrument label (per-app key to match header writes)
+    const initialInstrument = localStorage.getItem('app19:selectedInstrument') || 'piano';
     const instrumentLabel = initialInstrument === 'flute' ? 'Flauta' : 'Piano';
 
     initMixerMenu({
