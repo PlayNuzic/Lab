@@ -912,6 +912,16 @@ function attachDragHandlers() {
     marker.addEventListener('touchstart', handleDragStart, { passive: false });
   });
 
+  // Fractional-pulse labels (e.g. ".1", ".2") share the same drag behaviour
+  // as the vertical markers — integer pulses were already draggable, so this
+  // makes the two selection targets consistent.
+  cycleLabels.forEach(label => {
+    if (label.classList.contains('non-selectable')) return;
+    label.addEventListener('mousedown', handleDragStart);
+    label.addEventListener('touchstart', handleDragStart, { passive: false });
+    label.style.cursor = 'grab';
+  });
+
   // Only selectable integer pulses (0 + cycle starts) are draggable.
   pulses.forEach(pulse => {
     if (pulse.classList.contains('non-selectable')) return;
