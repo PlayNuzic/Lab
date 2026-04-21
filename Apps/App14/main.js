@@ -420,7 +420,7 @@ function createInputCell() {
       else if (getValidIntervals().length >= MAX_IS) {
         showTooltip(endMarker, 'Seqüència completa');
       }
-    }, 300);
+    }, 500);
   });
 
   cell.addEventListener('keydown', (e) => {

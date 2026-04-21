@@ -1179,7 +1179,7 @@ function createNuzicIntervalEditor(gridContainer) {
             const itInput = itCells.querySelector('.editor-input');
             if (itInput) itInput.focus();
           }
-        }, 300);
+        }, 500);
 
       } else {
         // iT validation

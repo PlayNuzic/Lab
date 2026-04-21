@@ -533,7 +533,7 @@ function createNuzicEditor(timelineWrapper) {
         pendingNote = num;
         lastEnteredType = 'n';
 
-        // Rule 6: delay 300ms for 2-digit input (e.g. "11")
+        // Rule 6: delay 500ms for 2-digit input (e.g. "11")
         clearTimeout(autoJumpTimer);
         autoJumpTimer = setTimeout(() => {
           // If P already entered, commit pair
@@ -544,7 +544,7 @@ function createNuzicEditor(timelineWrapper) {
             const pInput = pCells.querySelector('.editor-input');
             if (pInput) pInput.focus();
           }
-        }, 300);
+        }, 500);
 
       } else {
         // Rule 2: Pulse 0-7

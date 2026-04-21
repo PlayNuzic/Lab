@@ -773,8 +773,8 @@ function initDegreeEditor() {
       if (parsed.modifier) {
         commitDegree(parsed);
       } else {
-        // Wait for possible modifier
-        autoJumpTimer = setTimeout(() => commitDegree(parsed), 500);
+        // Wait for possible modifier (+, -, r)
+        autoJumpTimer = setTimeout(() => commitDegree(parsed), 800);
       }
     });
 
