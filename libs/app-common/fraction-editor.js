@@ -1050,19 +1050,15 @@ export function createFractionEditor({
       numeratorInput.style.cursor = 'not-allowed';
       numeratorInput.title = 'Activar fracciones complejas en Opciones para editar';
 
-      // Deshabilitar spinners
+      // Ocultar spinners del numerador (no editables en modo simple)
       const numeratorUpBtn = elements.fields.numerator?.up;
       const numeratorDownBtn = elements.fields.numerator?.down;
-      if (numeratorUpBtn) {
-        numeratorUpBtn.disabled = true;
-        numeratorUpBtn.style.opacity = '0.5';
-        numeratorUpBtn.style.cursor = 'not-allowed';
+      const numeratorSpinner = numeratorUpBtn?.parentElement;
+      if (numeratorSpinner && numeratorSpinner.classList.contains('spinner')) {
+        numeratorSpinner.style.display = 'none';
       }
-      if (numeratorDownBtn) {
-        numeratorDownBtn.disabled = true;
-        numeratorDownBtn.style.opacity = '0.5';
-        numeratorDownBtn.style.cursor = 'not-allowed';
-      }
+      if (numeratorUpBtn) numeratorUpBtn.disabled = true;
+      if (numeratorDownBtn) numeratorDownBtn.disabled = true;
 
       // Siempre forzar numerador = 1 para actualizar currentValues
       setFraction({ numerator: 1 }, { cause: 'simple-mode' });
@@ -1084,9 +1080,13 @@ export function createFractionEditor({
       numeratorInput.style.cursor = '';
       numeratorInput.title = '';
 
-      // Habilitar spinners
+      // Restaurar spinners del numerador
       const numeratorUpBtn = elements.fields.numerator?.up;
       const numeratorDownBtn = elements.fields.numerator?.down;
+      const numeratorSpinner = numeratorUpBtn?.parentElement;
+      if (numeratorSpinner && numeratorSpinner.classList.contains('spinner')) {
+        numeratorSpinner.style.display = '';
+      }
       if (numeratorUpBtn) {
         numeratorUpBtn.disabled = false;
         numeratorUpBtn.style.opacity = '1';
