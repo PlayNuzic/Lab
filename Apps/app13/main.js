@@ -594,11 +594,10 @@ function createIntervalBar(startPulse, duration, color, animated = true) {
   bar.style.width = animated ? '0%' : `${widthPercent}%`;
   bar.style.background = color;
 
-  // Número de duració
+  // Número de duració (centrat dins la barra, color nuzic-dark per contrast)
   const label = document.createElement('span');
   label.className = 'interval-bar-visual__label';
   label.textContent = duration;
-  label.style.color = color;
   bar.appendChild(label);
 
   timeline.appendChild(bar);

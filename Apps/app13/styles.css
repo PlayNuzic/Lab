@@ -185,28 +185,27 @@ body[data-visual="nuzic"] {
 }
 
 
-/* ========== INTERVAL BARS ========== */
+/* ========== INTERVAL BARS (sobre la timeline, patró App30) ========== */
 .interval-bar-visual {
   position: absolute;
-  top: 50%;
-  height: 1.75rem;
-  border-radius: 6px;
+  top: -1.4rem;
+  height: 1.4rem;
+  border-radius: 0.3rem;
   z-index: 5;
-  transform: translateY(-50%);
+  transition: box-shadow 0.2s ease, width 0.3s ease;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .interval-bar-visual.highlight {
-  box-shadow: 0 0 12px currentColor;
+  box-shadow: 0 0 0.75rem currentColor;
+  transform: scale(1.05);
 }
 
-.interval-bar-visual .bar-duration {
-  position: absolute;
-  top: -1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
+.interval-bar-visual__label {
   font-size: clamp(0.85rem, 1.6vw, 1.1rem);
-  font-weight: 600;
-  color: inherit;
-  opacity: 0.9;
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
 }
