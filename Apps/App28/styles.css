@@ -290,8 +290,12 @@
   font-weight: 700;
 }
 
+/* Selected fractional pulse: same blue pill as integer pulses */
 .timeline .cycle-label.selected {
-  color: var(--nuzic-blue, #4A9EFF);
+  background: var(--nuzic-blue-light, #c8e4f2);
+  color: var(--nuzic-dark, #43433B);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
   opacity: 1;
   font-weight: 700;
 }
