@@ -725,14 +725,14 @@ function applyTransportConfig() {
   const n = FIXED_NUMERATOR;
   const d = currentDenominator;
 
-  const scaledTotal = lg * d;
+  const scaledTotal = lg * d + 1;  // +1 extra step for pulse Lg (endpoint) without adding its subdivisions
   const scaledBpm = bpm * d;
 
   audio.updateTransport({
     totalPulses: scaledTotal,
     bpm: scaledBpm,
     baseResolution: d,
-    patternBeats: lg * d,
+    patternBeats: scaledTotal,
     cycle: {
       numerator: n * d,
       denominator: d,
@@ -798,7 +798,7 @@ async function startPlayback() {
   // Scale by denominator to include subdivisions (like App29)
   const baseResolution = d;
   const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
-  const scaledTotal = lg * d;
+  const scaledTotal = lg * d + 1;  // +1 extra step for pulse Lg (endpoint) without adding its subdivisions
 
   const audioInstance = await initAudio();
 
@@ -811,13 +811,15 @@ async function startPlayback() {
     isPlaying = false;
     updateControlsState();
     clearHighlights();
-    audioInstance.stop();
+    // Delay stop() so the pre-scheduled sample for the last pulse (endpoint)
+    // has time to play instead of being cancelled by source.stop(0).
+    setTimeout(() => audioInstance.stop(), Math.max(200, scaledInterval * 1000 * 0.6));
   };
 
   // Build play options
   const playOptions = {
     baseResolution,
-    patternBeats: lg * d // Scaled pattern length
+    patternBeats: scaledTotal // Pattern length including endpoint
   };
 
   if (hasCycle) {
@@ -852,7 +854,7 @@ async function startPlayback() {
     scaledTotal,
     scaledInterval,
     audioSelection,
-    true,   // Loop ENABLED (1 cicle en bucle)
+    false,  // Loop DISABLED (one-shot)
     highlightPulse,
     onFinish,
     playOptions

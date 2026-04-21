@@ -429,11 +429,12 @@ function isValidPulseToken(token) {
     return true;
   }
 
-  // Integer pulse - accepta 0 a lg-1 (el pols lg NO és seleccionable, només s'il·lumina amb el 0)
+  // Integer pulse — amb loop desactivat, pulse Lg és un beat final propi,
+  // independent del pulse 0, així que també es pot seleccionar.
   const num = parseInt(trimmed, 10);
   if (!Number.isFinite(num)) return false;
 
-  return num >= 0 && num < lg;
+  return num >= 0 && num <= lg;
 }
 
 /**
@@ -709,24 +710,13 @@ function tryCommitFromInput(cell) {
  * Parse and validate a user-entered token. Returns:
  *   { token: normalizedString, warning?: string }  on success
  *   null  if the token can never be valid (format error)
- *
- * Special case: token "6" maps to "0" with a warning (pulse Lg == 0 loop).
  */
 function parseAndValidateToken(raw) {
-  let token = normalizeToken(raw);
-  let warning = null;
-
-  // Pulse 6 normalises to 0 (endpoint == start).
-  if (token === '6' || token === String(FIXED_LG)) {
-    token = '0';
-    warning = '6 es el mismo pulso que 0';
-  }
+  const token = normalizeToken(raw);
 
   if (!isValidPulseToken(token)) return null;
 
-  if (token !== raw && !warning) {
-    warning = `Corregido: ${raw}→${token}`;
-  }
+  const warning = token !== raw ? `Corregido: ${raw}→${token}` : null;
   return { token, warning };
 }
 
@@ -795,16 +785,11 @@ function syncTimelineFromSelection() {
       if (marker) marker.classList.add('selected');
       if (label) label.classList.add('selected');
     } else {
-      // Integer pulse (0 to lg-1, lg is not selectable)
+      // Integer pulse (0 to lg, both endpoints selectable independently)
       const idx = parseInt(token, 10);
       const pulse = pulses.find(p => parseInt(p.dataset.index, 10) === idx);
       if (pulse) {
         pulse.classList.add('selected');
-      }
-      // When pulse 0 is selected, also illuminate endpoint (lg=6)
-      if (idx === 0) {
-        const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
-        if (endpoint) endpoint.classList.add('selected');
       }
     }
   }
@@ -948,11 +933,10 @@ function renderTimeline() {
  * Attach click handlers to pulses and cycle markers for selection
  */
 function attachSelectionHandlers() {
-  // All integer pulses (0 to lg-1, skip endpoint lg which only illuminates with 0)
+  // All integer pulses (0 to lg) are selectable independently — with loop
+  // disabled, the endpoint is its own beat rather than a wrap of pulse 0.
   pulses.forEach((pulse) => {
     const idx = parseInt(pulse.dataset.index, 10);
-    // Skip endpoint (lg=6) - it's not selectable, only illuminates with pulse 0
-    if (idx === FIXED_LG) return;
 
     pulse.addEventListener('click', () => {
       const token = String(idx);
@@ -960,19 +944,9 @@ function attachSelectionHandlers() {
       if (wasSelected) {
         selectedPulses.delete(token);
         pulse.classList.remove('selected');
-        // If deselecting pulse 0, also remove visual from endpoint
-        if (idx === 0) {
-          const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
-          if (endpoint) endpoint.classList.remove('selected');
-        }
       } else {
         selectedPulses.add(token);
         pulse.classList.add('selected');
-        // If selecting pulse 0, also show visual on endpoint
-        if (idx === 0) {
-          const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
-          if (endpoint) endpoint.classList.add('selected');
-        }
       }
       // Scroll to token if it was just added
       syncPulseSeqFromSelection(wasSelected ? null : token);
@@ -1100,15 +1074,6 @@ function highlightPulse(scaledIndex) {
     pulse.classList.add('active');
   }
 
-  // In loop mode, pulse 0 and endpoint (FIXED_LG) illuminate together
-  if (pulseIndex === 0) {
-    const endpoint = pulses.find(p => parseInt(p.dataset.index, 10) === FIXED_LG);
-    if (endpoint) {
-      void endpoint.offsetWidth;
-      endpoint.classList.add('active');
-    }
-  }
-
   // Highlight and scroll pulseSeq token
   highlightPulseSeqToken(String(pulseIndex));
 }
@@ -1167,8 +1132,8 @@ function applyTransportConfig() {
   const n = FIXED_NUMERATOR;
   const hasCycle = d > 0 && Math.floor(lg / n) > 0;
 
-  // Scale values by denominator (same as startPlayback)
-  const scaledTotal = lg * d;
+  // Scale values by denominator (same as startPlayback) — include endpoint
+  const scaledTotal = lg * d + 1;  // +1 extra step for pulse Lg (endpoint) without adding its subdivisions
   // scaledBpm ensures interval = (60/bpm)/d
   const scaledBpm = bpm * d;
 
@@ -1210,9 +1175,9 @@ function getAudioSelection() {
         audioSet.add(scaledIndex);
       }
     } else {
-      // Integer pulse: idx → idx * d (only 0 to lg-1, lg is not selectable)
+      // Integer pulse: idx → idx * d (0 to lg, both endpoints valid)
       const idx = parseInt(token, 10);
-      if (Number.isFinite(idx) && idx >= 0 && idx < FIXED_LG) {
+      if (Number.isFinite(idx) && idx >= 0 && idx <= FIXED_LG) {
         const scaledIndex = idx * d;
         audioSet.add(scaledIndex);
       }
@@ -1232,7 +1197,7 @@ async function startPlayback() {
   // Scale by denominator to include subdivisions
   // Interval must be divided by d so that integer pulses maintain correct tempo
   const baseResolution = d;
-  const scaledTotal = lg * d; // Total steps (without endpoint, loop mode)
+  const scaledTotal = lg * d + 1;  // +1 extra step for pulse Lg (endpoint) without adding its subdivisions
   const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
 
   const audioInstance = await initAudio();
@@ -1254,13 +1219,15 @@ async function startPlayback() {
     }
 
     clearHighlights();
-    audioInstance.stop();
+    // Delay stop() so the pre-scheduled sample for the last pulse (endpoint)
+    // has time to play instead of being cancelled by source.stop(0).
+    setTimeout(() => audioInstance.stop(), Math.max(200, scaledInterval * 1000 * 0.6));
   };
 
   // Build play options
   const playOptions = {
     baseResolution,
-    patternBeats: lg * d // Scaled pattern length
+    patternBeats: scaledTotal // Pattern length including endpoint
   };
 
   if (hasCycle) {
@@ -1277,7 +1244,7 @@ async function startPlayback() {
     scaledTotal,
     scaledInterval,  // Interval divided by d so integer pulses maintain tempo
     audioSelection,  // Pass selection with scaled indices
-    true,            // Loop ENABLED (horizontal loop always)
+    false,           // Loop DISABLED (one-shot)
     highlightPulse,
     onFinish,
     playOptions

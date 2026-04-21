@@ -541,7 +541,7 @@ async function startPlayback() {
   const lg = FIXED_LG;
   const bpm = bpmController?.getValue() || DEFAULT_BPM;
   const interval = 60 / bpm;
-  const playbackTotal = lg; // Loop mode: lg pulses per cycle
+  const playbackTotal = lg + 1; // One-shot: include endpoint (pulse Lg) as final beat
 
   const audioInstance = await initAudio();
 
@@ -559,14 +559,16 @@ async function startPlayback() {
     }
 
     clearHighlights();
-    audioInstance.stop();
+    // Delay stop() so the pre-scheduled sample for the last pulse (endpoint)
+    // has time to play instead of being cancelled by source.stop(0).
+    setTimeout(() => audioInstance.stop(), Math.max(200, interval * 1000 * 0.6));
   };
 
   audioInstance.play(
     playbackTotal,
     interval,
     new Set(),       // No selection
-    true,            // Loop ENABLED (1 cicle en bucle)
+    false,           // Loop DISABLED (one-shot)
     highlightPulse,
     onFinish,
     hasCycle
