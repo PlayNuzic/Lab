@@ -84,6 +84,21 @@ body[data-theme="dark"] .tweaks__collapse:hover{ background: rgba(0,0,0,0.1); }
   border-top: 1px solid var(--rule);
 }
 
+.tweaks__row--actions{ justify-content: flex-end; gap: 6px; }
+.tweaks__btn{
+  appearance: none;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.tweaks__btn:hover{ background: var(--nuzic-light); }
+body[data-theme="dark"] .tweaks__btn:hover{ background: #2a2a25; }
+
 /* Collapsed state: hide body + foot, round the head's bottom corners. */
 .tweaks.is-collapsed .tweaks__body,
 .tweaks.is-collapsed .tweaks__foot{ display: none; }

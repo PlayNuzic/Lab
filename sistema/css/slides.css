@@ -1,5 +1,24 @@
 /* Slides — content blocks */
 
+/* Edit mode (tweaks > "Editar textos"): make text blocks contenteditable and
+   signal it visually with a subtle dashed outline. Hover intensifies. */
+body[data-editable="true"] [contenteditable="true"]{
+  outline: 1px dashed var(--rule);
+  outline-offset: 4px;
+  border-radius: 2px;
+  cursor: text;
+  transition: outline-color .15s ease, background .15s ease;
+}
+body[data-editable="true"] [contenteditable="true"]:hover{
+  outline-color: var(--nuzic-green);
+}
+body[data-editable="true"] [contenteditable="true"]:focus{
+  outline: 2px solid var(--nuzic-green);
+  outline-offset: 4px;
+  background: rgba(124, 214, 179, 0.06);
+}
+
+
 .slot-title{
   display: flex;
   flex-direction: column;

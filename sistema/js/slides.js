@@ -14,17 +14,32 @@ const BTN_PREV = document.getElementById('btn-prev');
 const BTN_NEXT = document.getElementById('btn-next');
 
 const STORAGE_KEY = 'sistema.paso';
+const OVERRIDES_KEY = 'sistema.overrides';
+
+// Text overrides (edit-mode persistence). Structure:
+//   { [paso]: { title?: string, text?: string, tipsTitle?: string, tips?: string } }
+// Each field stores the edited HTML (innerHTML for rich text, textContent for
+// plain fields like titles). Loaded once and kept in sync via `saveOverrides`.
+function loadOverrides(){
+  try { return JSON.parse(localStorage.getItem(OVERRIDES_KEY)) || {}; } catch { return {}; }
+}
+function saveOverrides(o){
+  localStorage.setItem(OVERRIDES_KEY, JSON.stringify(o));
+}
 
 const state = {
   paso: Number(localStorage.getItem(STORAGE_KEY)) || 4,  // default to Paso 4 (priority)
   variant: 'a',
   density: 'compact',
   showIframe: true,
+  editable: false,
+  overrides: loadOverrides(),
 };
 
 // Expose for tweaks.js
 window.__sistemaState = state;
 window.__sistemaRender = render;
+window.__sistemaSaveOverrides = () => saveOverrides(state.overrides);
 
 function getSlide(paso){ return slideMatrix.find(s=>s.paso===paso); }
 function getSection(id){ return sections.find(s=>s.id===id); }
@@ -33,28 +48,37 @@ function escapeAttr(s){
   return String(s).replace(/"/g, '&quot;');
 }
 
+function getOverride(paso, field){
+  return state.overrides[paso]?.[field];
+}
+
 function renderTitle(slide, section){
+  const title = getOverride(slide.paso, 'title') ?? slide.title;
   return `
     <div class="slot-title">
       <div class="paso-badge">Paso ${slide.paso} · ${section.title}</div>
-      <h1 class="slide__title">${slide.title}</h1>
+      <h1 class="slide__title" data-field="title">${title}</h1>
     </div>`;
 }
 
-function renderText(content){
+function renderText(content, paso){
+  const text = getOverride(paso, 'text') ?? (content.text || fillerContent.text);
   return `
     <div class="slot-text">
-      <div class="prose">${content.text || fillerContent.text}</div>
+      <div class="prose" data-field="text">${text}</div>
     </div>`;
 }
 
-function renderTips(content){
-  if (!content || !content.tips) return '';
-  const label = content.tipsTitle || 'Tips';
+function renderTips(content, paso){
+  const tipsOverride = getOverride(paso, 'tips');
+  const hasTips = tipsOverride != null || (content && content.tips);
+  if (!hasTips) return '';
+  const label = getOverride(paso, 'tipsTitle') ?? (content.tipsTitle || 'Tips');
+  const body = tipsOverride ?? content.tips;
   return `
     <aside class="slot-tips tips" role="note">
-      <div class="tips__label">${label}</div>
-      ${content.tips}
+      <div class="tips__label" data-field="tipsTitle">${label}</div>
+      <div class="tips__body" data-field="tips">${body}</div>
     </aside>`;
 }
 
@@ -155,10 +179,10 @@ function render(){
   const areasStr = layout.areas;
   const parts = [];
   if (areasStr.includes('title')) parts.push(renderTitle(slide, section));
-  if (areasStr.includes('text'))  parts.push(renderText(content));
+  if (areasStr.includes('text'))  parts.push(renderText(content, slide.paso));
   if (areasStr.includes('image')) parts.push(renderImage(content));
   if (areasStr.includes('app'))   parts.push(renderApp(slide));
-  if (areasStr.includes('tips'))  parts.push(renderTips(content));
+  if (areasStr.includes('tips'))  parts.push(renderTips(content, slide.paso));
 
   slideEl.innerHTML = parts.join('\n');
   STAGE.innerHTML = '';
@@ -172,7 +196,38 @@ function render(){
     });
   });
 
+  // Edit-mode wiring: toggle contenteditable on fields and persist on blur.
+  applyEditableState(slideEl, slide.paso);
+
   localStorage.setItem(STORAGE_KEY, state.paso);
+}
+
+// Apply/clear contenteditable on the editable fields of the current slide and
+// hook blur handlers that persist edits into state.overrides + localStorage.
+function applyEditableState(slideEl, paso){
+  const fields = slideEl.querySelectorAll('[data-field]');
+  fields.forEach(el => {
+    if (state.editable) {
+      el.setAttribute('contenteditable', 'true');
+      el.setAttribute('spellcheck', 'true');
+      if (!el.__editWired) {
+        el.addEventListener('blur', () => persistField(paso, el));
+        el.__editWired = true;
+      }
+    } else {
+      el.removeAttribute('contenteditable');
+    }
+  });
+}
+
+function persistField(paso, el){
+  const field = el.dataset.field;
+  // Titles are plain text; text/tips preserve HTML so bold/italic survive.
+  const isPlain = field === 'title' || field === 'tipsTitle';
+  const value = isPlain ? el.textContent.trim() : el.innerHTML.trim();
+  state.overrides[paso] ??= {};
+  state.overrides[paso][field] = value;
+  saveOverrides(state.overrides);
 }
 
 function go(delta){

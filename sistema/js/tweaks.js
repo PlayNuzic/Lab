@@ -85,6 +85,10 @@ const selTheme = document.getElementById('tw-theme');
 const selDensity = document.getElementById('tw-density');
 const selVariant = document.getElementById('tw-variant');
 const cbIframe = document.getElementById('tw-iframe');
+const cbEdit = document.getElementById('tw-edit');
+const editActions = document.getElementById('tw-edit-actions');
+const btnExport = document.getElementById('tw-export');
+const btnResetPaso = document.getElementById('tw-reset-paso');
 
 // Local dev: show the panel with ?tweaks=1 (Claude Design hides it by default
 // and reveals it via postMessage from its edit-mode parent).
@@ -128,6 +132,33 @@ selVariant.addEventListener('change', ()=>{
 });
 cbIframe.addEventListener('change', ()=>{
   S.showIframe = cbIframe.checked;
+  window.__sistemaRender();
+});
+cbEdit.addEventListener('change', ()=>{
+  S.editable = cbEdit.checked;
+  document.body.dataset.editable = cbEdit.checked ? 'true' : 'false';
+  editActions.hidden = !cbEdit.checked;
+  window.__sistemaRender();
+});
+btnExport.addEventListener('click', async ()=>{
+  const json = JSON.stringify(S.overrides, null, 2);
+  try {
+    await navigator.clipboard.writeText(json);
+    btnExport.textContent = '¡Copiado!';
+    setTimeout(()=>{ btnExport.textContent = 'Exportar'; }, 1500);
+  } catch {
+    // Fallback: open a window with the JSON.
+    const w = window.open('', '_blank');
+    if (w) { w.document.body.innerText = json; }
+  }
+  console.log('[sistema] overrides JSON:\n', json);
+});
+btnResetPaso.addEventListener('click', ()=>{
+  const p = S.paso;
+  if (!S.overrides[p]) return;
+  if (!confirm(`¿Descartar todos los cambios del paso ${p}?`)) return;
+  delete S.overrides[p];
+  window.__sistemaSaveOverrides();
   window.__sistemaRender();
 });
 
