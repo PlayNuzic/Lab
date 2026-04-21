@@ -1433,7 +1433,8 @@ async function startPlayback() {
     const n = currentNumerator;
 
     const noteData = getNoteAtScaledStart(scaledIndex);
-    if (noteData) {
+    // Skip rests — they have note:null, which would otherwise play as BASE_MIDI+null = N(0)
+    if (noteData && !noteData.isRest && noteData.note !== null) {
       const bpm = bpmController?.getValue() || DEFAULT_BPM;
       const beatDuration = 60 / bpm;
       const durationPulses = noteData.duration * n / d;
