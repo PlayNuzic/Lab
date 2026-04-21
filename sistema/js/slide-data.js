@@ -21,39 +21,39 @@ export const sections = [
 // and the row template. Inline `grid-template-*` is applied per-slide from
 // these values. Keep the area names ('image', 'title', 'text', 'app', 'tips')
 // stable: the renderer maps block types to area names by convention.
-// Layouts use a 3-column grid (1fr 1fr 1fr). Area strings span across columns
-// via repeated names per row. This matches the PDF proportions: most pasos
-// give the app 2/3 of the width with text/tips on the narrow right; Paso 5
-// is the inverse (vertical app at 1/3, text + tips at 2/3).
+// Each layout declares its own `cols`, `rows`, and `areas`. The renderer
+// applies them inline to the slide's grid. The default is a 3-column
+// grid (1fr 1fr 1fr); intro slides override to 50/50.
 export const layouts = {
-  // Intro slides (1, 2, 11): image left (2 cols), title + text right (1 col).
+  // Intro slides (1, 2, 11): image left 50% + title/text right 50%.
+  // 2-column grid (PDF pages 1-2): the image and the text area share the
+  // canvas equally.
   'A-intro': {
-    areas: '"image image title" "image image text"',
+    cols:  '1fr 1fr',
+    areas: '"image title" "image text"',
     rows:  'auto 1fr',
   },
   // App left (2 cols) + title/text/tips stacked on right (1 col).
-  // Used by the majority of pasos (3, 4, 6, 7, 8, ...).
+  // Used by the majority of pasos (3, 6, 7, 8, ...).
   'B-app-left': {
+    cols:  '1fr 1fr 1fr',
     areas: '"app app title" "app app text" "app app tips"',
     rows:  'auto 1fr auto',
   },
   // App narrow left (1 col) + title/text/tips on right (2 cols).
-  // Used by Paso 5 (Línea Sonora) only — the vertical soundline is naturally
+  // Used by Paso 5 (Línea Sonora) — the vertical soundline is naturally
   // narrow, and the text block benefits from the wider right side.
   'D-app-narrow': {
+    cols:  '1fr 1fr 1fr',
     areas: '"app title title" "app text text" "app tips tips"',
     rows:  'auto 1fr auto',
   },
   // Title + text + app stacked on the left (2 cols), tips alone on the right
-  // (1 col spanning full height). Matches the PDF for Paso 4 (Línea Temporal),
-  // where the body copy is long and the timeline app is a short horizontal bar
-  // that fits naturally beneath the prose.
-  //
+  // (1 col spanning full height). Matches the PDF for Paso 4 (Línea Temporal).
   // The app row is clamped (min 180px, 32vh ideal, 340px max) so the text row
-  // (1fr) retains most of the vertical space. The iframe itself uses
-  // `max-height: 100%` + aspect-ratio, so it sizes to the row height and the
-  // horizontal width follows the aspect-ratio, centered by margin:auto.
+  // (1fr) retains most of the vertical space.
   'E-app-text-left': {
+    cols:  '1fr 1fr 1fr',
     areas: '"title title tips" "text text tips" "app app tips"',
     rows:  'auto 1fr clamp(180px, 32vh, 340px)',
   },

@@ -27,8 +27,12 @@
   --nuzic-green:#7cd6b3;     --nuzic-green-light:#cbefe1;
   --nuzic-blue:#7bb4cd;      --nuzic-blue-light:#bdd9e6;
 
-  /* Tips box — FIXOS (no canvien amb dark mode) */
-  --tips-bg: rgba(124, 214, 179, 0.15);
+  /* Tips box — FIXOS (no canvien amb dark mode).
+     `--tips-bg` must be OPAQUE so dark mode shows the same pale mint as
+     light mode. Previous `rgba(124,214,179,0.15)` let the body background
+     bleed through and turned murky on dark backgrounds. The hex below is
+     the perceptual equivalent of 15% Nuzic green over white. */
+  --tips-bg: #ebf9f3;
   --tips-border: #7cd6b3;
   --tips-text: #43433b;
 

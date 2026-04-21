@@ -148,6 +148,7 @@ function render(){
   slideEl.dataset.paso = slide.paso;
   slideEl.style.gridTemplateAreas = layout.areas;
   slideEl.style.gridTemplateRows  = layout.rows;
+  if (layout.cols) slideEl.style.gridTemplateColumns = layout.cols;
 
   // Render only the slots that the layout references. Unused slots are
   // skipped automatically by checking which area names appear in `areas`.
