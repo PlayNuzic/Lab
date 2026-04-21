@@ -111,6 +111,11 @@ body[data-visual="nuzic"] {
   margin-right: 2px;
   width: calc(6.25% - 2px);
   min-width: calc(1.25rem - 2px);
+  cursor: text;
+}
+
+.it-cell.it-end:focus {
+  border-color: var(--nuzic-yellow);
 }
 
 .it-cell.it-input {

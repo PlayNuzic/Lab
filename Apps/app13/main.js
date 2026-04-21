@@ -50,6 +50,9 @@ let currentMetronomeSound = (() => {
 let timeline = null;
 let itEditor = null;
 let itInputs = [];
+let cellsContainer = null;
+let endMarker = null;
+let autoJumpTimer = null;
 let playBtn = null;
 let randomBtn = null;
 let resetBtn = null;
@@ -186,11 +189,11 @@ function createItEditor() {
   itEditor.appendChild(label);
 
   // Cells container (1 cell per pulse)
-  const cellsContainer = document.createElement('div');
+  cellsContainer = document.createElement('div');
   cellsContainer.className = 'it-cells';
 
   // End marker (always last child, cells inserted before it)
-  const endMarker = document.createElement('div');
+  endMarker = document.createElement('div');
   endMarker.className = 'it-end-marker';
   cellsContainer.appendChild(endMarker);
 
@@ -207,14 +210,217 @@ function createItEditor() {
   return itEditor;
 }
 
+function createReadonlyCell() {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.className = 'it-cell';
+  cell.placeholder = ' ';
+  cell.readOnly = true;
+  return cell;
+}
+
+function focusValueCellAt(index) {
+  const valueCells = cellsContainer.querySelectorAll('.it-end');
+  if (valueCells[index]) {
+    setTimeout(() => valueCells[index].focus(), 30);
+    return true;
+  }
+  return false;
+}
+
+function focusInputCell() {
+  const input = cellsContainer.querySelector('.it-input');
+  if (input) setTimeout(() => input.focus(), 30);
+}
+
+function createValueCell(value, intervalIndex) {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.inputMode = 'numeric';
+  cell.maxLength = 1;
+  cell.className = 'it-cell it-end';
+  cell.value = String(value);
+  cell.placeholder = ' ';
+  cell.readOnly = false;
+  cell.dataset.intervalIndex = intervalIndex;
+
+  let originalValue = cell.value;
+
+  cell.addEventListener('focus', () => {
+    originalValue = cell.value;
+    hideTooltip();
+    cell.select();
+  });
+
+  cell.addEventListener('keydown', (e) => {
+    const valueCells = Array.from(cellsContainer.querySelectorAll('.it-end'));
+    const myIdx = valueCells.indexOf(cell);
+
+    if (e.key === 'Enter') { cell.blur(); return; }
+
+    if (e.key === 'ArrowLeft' && myIdx > 0) {
+      e.preventDefault();
+      valueCells[myIdx - 1].focus();
+      return;
+    }
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (myIdx < valueCells.length - 1) {
+        valueCells[myIdx + 1].focus();
+      } else {
+        focusInputCell();
+      }
+      return;
+    }
+
+    // Delete interval: Backspace/Delete when cell empty OR text fully selected
+    const allSelected = cell.value && cell.selectionStart === 0 && cell.selectionEnd === cell.value.length;
+    if ((e.key === 'Backspace' || e.key === 'Delete') && (!cell.value || allSelected)) {
+      e.preventDefault();
+      const idx = parseInt(cell.dataset.intervalIndex);
+      currentIntervals.splice(idx, 1);
+      invalidateSoundAssignments();
+      renderEditorCells();
+      updateTimeline();
+      // Focus previous value cell, or the input if it was the first
+      if (idx > 0) {
+        focusValueCellAt(idx - 1);
+      } else {
+        focusInputCell();
+      }
+    }
+  });
+
+  cell.addEventListener('blur', () => {
+    const val = cell.value.trim();
+    const idx = parseInt(cell.dataset.intervalIndex);
+
+    // Empty or unchanged: restore
+    if (!val || val === originalValue) {
+      cell.value = originalValue;
+      return;
+    }
+
+    if (!/^[1-8]$/.test(val)) {
+      showTooltip(cell, 'iT: 1-8');
+      cell.value = originalValue;
+      return;
+    }
+
+    const num = parseInt(val);
+
+    // Cascade validation: sum must stay ≤ MAX_LENGTH
+    const oldVal = currentIntervals[idx];
+    const newSum = getCurrentSum() - oldVal + num;
+    if (newSum > MAX_LENGTH) {
+      const maxAllowed = MAX_LENGTH - (getCurrentSum() - oldVal);
+      showTooltip(cell, `iT máximo: ${maxAllowed}`);
+      cell.value = originalValue;
+      return;
+    }
+
+    currentIntervals[idx] = num;
+    invalidateSoundAssignments();
+    renderEditorCells();
+    updateTimeline();
+  });
+
+  return cell;
+}
+
+function createInputCell() {
+  const cell = document.createElement('input');
+  cell.type = 'text';
+  cell.inputMode = 'numeric';
+  cell.pattern = '[1-8]';
+  cell.maxLength = 1;
+  cell.className = 'it-cell it-input';
+  cell.readOnly = false;
+
+  cell.addEventListener('focus', () => hideTooltip());
+  cell.addEventListener('input', handleInputCellType);
+  cell.addEventListener('keydown', handleInputCellKeydown);
+
+  return cell;
+}
+
+function handleInputCellType(e) {
+  const input = e.target;
+  const value = input.value;
+
+  if (value === '') return;
+
+  if (value === '0') {
+    showTooltip(input, 'iT: 1-8');
+    input.value = '';
+    return;
+  }
+  if (!/^[1-8]$/.test(value)) {
+    showTooltip(input, 'iT: 1-8');
+    input.value = '';
+    return;
+  }
+
+  if (currentIntervals.length >= MAX_ITS) {
+    showTooltip(input, `Máximo ${MAX_ITS} intervalos`);
+    input.value = '';
+    return;
+  }
+
+  const numValue = parseInt(value);
+  const sum = getCurrentSum();
+  const maxAllowed = MAX_LENGTH - sum;
+
+  if (numValue > maxAllowed) {
+    showTooltip(input, `iT máximo: ${maxAllowed}`);
+    input.value = '';
+    return;
+  }
+
+  // Add interval
+  currentIntervals.push(numValue);
+  invalidateSoundAssignments();
+  renderEditorCells();
+  updateTimeline();
+
+  // Focus next active input (if any)
+  const nextInput = cellsContainer.querySelector('.it-input');
+  if (nextInput) {
+    setTimeout(() => nextInput.focus(), 30);
+  } else if (getCurrentSum() === MAX_LENGTH) {
+    showTooltip(input, 'Longitud completa', true);
+  } else if (currentIntervals.length >= MAX_ITS) {
+    showTooltip(input, `Máximo ${MAX_ITS} intervalos`, true);
+  }
+}
+
+function handleInputCellKeydown(e) {
+  if (e.key === 'Backspace' && !e.target.value) {
+    e.preventDefault();
+    if (currentIntervals.length > 0) {
+      currentIntervals.pop();
+      invalidateSoundAssignments();
+      renderEditorCells();
+      updateTimeline();
+      focusInputCell();
+    }
+    return;
+  }
+  if (e.key === 'ArrowLeft') {
+    const valueCells = cellsContainer.querySelectorAll('.it-end');
+    if (valueCells.length > 0) {
+      e.preventDefault();
+      valueCells[valueCells.length - 1].focus();
+    }
+  }
+}
+
 /**
  * Re-render editor cells based on currentIntervals state.
  * Cells with values show white bg, extension cells show cream,
  * the next empty cell is the active input.
  */
 function renderEditorCells() {
-  const cellsContainer = itEditor.querySelector('.it-cells');
-  const endMarker = itEditor.querySelector('.it-end-marker');
   itInputs = [];
 
   // Remove all existing cells (rebuild from scratch)
@@ -223,132 +429,32 @@ function renderEditorCells() {
   const sum = getCurrentSum();
 
   // First cell: cream P0 (always present, aligned with pulse 0)
-  const p0 = document.createElement('input');
-  p0.type = 'text';
-  p0.className = 'it-cell';
-  p0.placeholder = ' ';
-  p0.readOnly = true;
-  cellsContainer.insertBefore(p0, endMarker);
+  cellsContainer.insertBefore(createReadonlyCell(), endMarker);
 
   // Build cells for each entered interval
-  // Always 2 cells per interval: [value WHITE] + [1 cream separator]
-  for (const iT of currentIntervals) {
-    if (iT <= 0) break;
+  // Always 2 cells per interval: [value WHITE editable] + [1 cream separator]
+  currentIntervals.forEach((iT, idx) => {
+    if (iT <= 0) return;
+    const valCell = createValueCell(iT, idx);
+    cellsContainer.insertBefore(valCell, endMarker);
+    itInputs.push(valCell);
+    cellsContainer.insertBefore(createReadonlyCell(), endMarker);
+  });
 
-    // Value cell (white with number)
-    const val = document.createElement('input');
-    val.type = 'text';
-    val.className = 'it-cell it-end';
-    val.value = String(iT);
-    val.placeholder = ' ';
-    val.readOnly = true;
-    cellsContainer.insertBefore(val, endMarker);
-    itInputs.push(val);
-
-    // 1 cream separator cell (nuzic-light background fills the rest)
-    const ext = document.createElement('input');
-    ext.type = 'text';
-    ext.className = 'it-cell';
-    ext.placeholder = ' ';
-    ext.readOnly = true;
-    cellsContainer.insertBefore(ext, endMarker);
-  }
-
-  // If sequence not full: add white input (next value) + 1 cream after
-  if (sum < MAX_LENGTH) {
-    // White editable input (where user types)
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.inputMode = 'numeric';
-    input.pattern = '[1-8]';
-    input.maxLength = 1;
-    input.className = 'it-cell it-input';
-    input.readOnly = false;
-    input.addEventListener('input', handleCellInput);
-    input.addEventListener('keydown', handleCellKeydown);
-    input.addEventListener('focus', () => hideTooltip());
+  // If sequence not full AND not at MAX_ITS: add active input + cream after
+  const canAddMore = sum < MAX_LENGTH && currentIntervals.length < MAX_ITS;
+  if (canAddMore) {
+    const input = createInputCell();
     cellsContainer.insertBefore(input, endMarker);
     itInputs.push(input);
-
-    // Cream cell after input (pulse column placeholder)
-    const ext = document.createElement('input');
-    ext.type = 'text';
-    ext.className = 'it-cell';
-    ext.placeholder = ' ';
-    ext.readOnly = true;
-    cellsContainer.insertBefore(ext, endMarker);
+    cellsContainer.insertBefore(createReadonlyCell(), endMarker);
 
     // Auto-focus the input
     setTimeout(() => input.focus(), 30);
   }
 
-  // End marker: visible when sequence is full
-  if (endMarker) {
-    endMarker.style.display = sum >= MAX_LENGTH ? 'flex' : 'none';
-  }
-
-}
-
-function handleCellInput(e) {
-  const input = e.target;
-  const value = input.value;
-
-  // Validate
-  if (value === '0') {
-    showTooltip(input, 'iT debe ser ≥ 1', false);
-    input.value = '';
-    return;
-  }
-  if (value && !/^[1-8]$/.test(value)) {
-    input.value = '';
-    return;
-  }
-
-  const numValue = parseInt(value) || 0;
-  if (!numValue) return;
-
-  const sum = getCurrentSum();
-  const maxAllowed = MAX_LENGTH - sum;
-
-  if (numValue > maxAllowed) {
-    input.value = '';
-    showTooltip(input, `iT máximo: ${maxAllowed}`);
-    return;
-  }
-
-  // Add interval
-  currentIntervals.push(numValue);
-  invalidateSoundAssignments();
-
-  // Re-render cells
-  renderEditorCells();
-  updateTimeline();
-
-  // Focus next active input
-  const nextActive = itEditor.querySelector('.it-active');
-  if (nextActive) {
-    setTimeout(() => nextActive.focus(), 50);
-  } else {
-    const sum = getCurrentSum();
-    if (sum === MAX_LENGTH) {
-      showTooltip(input, 'Longitud completa', true);
-    }
-  }
-}
-
-function handleCellKeydown(e) {
-  if (e.key === 'Backspace') {
-    e.preventDefault();
-    if (currentIntervals.length > 0) {
-      currentIntervals.pop();
-      invalidateSoundAssignments();
-      renderEditorCells();
-      updateTimeline();
-      // Focus the active input
-      const activeCell = itEditor.querySelector('.it-active');
-      if (activeCell) setTimeout(() => activeCell.focus(), 50);
-    }
-  }
+  // End marker: visible when sequence is full (by sum or by count)
+  endMarker.style.display = !canAddMore ? 'flex' : 'none';
 }
 
 function showTooltip(input, message, isSuccess = false) {
