@@ -199,9 +199,9 @@ function createItEditor() {
 
   itEditor.appendChild(cellsContainer);
 
-  // Tooltip
+  // Tooltip (shared nuzic editor-tooltip style)
   tooltip = document.createElement('div');
-  tooltip.className = 'it-tooltip';
+  tooltip.className = 'editor-tooltip';
   document.body.appendChild(tooltip);
 
   // Initialize: first cell is the active input
@@ -388,9 +388,9 @@ function handleInputCellType(e) {
   if (nextInput) {
     setTimeout(() => nextInput.focus(), 30);
   } else if (getCurrentSum() === MAX_LENGTH) {
-    showTooltip(input, 'Longitud completa', true);
+    showTooltip(input, 'Longitud completa');
   } else if (currentIntervals.length >= MAX_ITS) {
-    showTooltip(input, `Máximo ${MAX_ITS} intervalos`, true);
+    showTooltip(input, `Máximo ${MAX_ITS} intervalos`);
   }
 }
 
@@ -457,19 +457,26 @@ function renderEditorCells() {
   endMarker.style.display = !canAddMore ? 'flex' : 'none';
 }
 
-function showTooltip(input, message, isSuccess = false) {
-  if (!tooltip) return;
+function showTooltip(input, message) {
+  if (!tooltip || !itEditor) return;
 
   tooltip.textContent = message;
-  tooltip.className = `it-tooltip ${isSuccess ? 'success' : 'error'} visible`;
+  tooltip.className = 'editor-tooltip visible';
 
-  // Posicionar sota l'input
-  const rect = input.getBoundingClientRect();
-  tooltip.style.left = `${rect.left + rect.width / 2}px`;
-  tooltip.style.top = `${rect.bottom + 8}px`;
-  tooltip.style.transform = 'translateX(-50%)';
+  // Posicionar sota l'editor sencer, aliniat amb la cel·la que l'ha disparat
+  const editorRect = itEditor.getBoundingClientRect();
+  const cellRect = input.getBoundingClientRect();
+  tooltip.style.top = `${editorRect.bottom + 6}px`;
+  tooltip.style.left = '0px';
 
-  // Auto-ocultar després de 2s
+  const tooltipWidth = tooltip.getBoundingClientRect().width;
+  const margin = 8;
+  const ideal = cellRect.left + cellRect.width / 2 - tooltipWidth / 2;
+  const minLeft = Math.max(margin, editorRect.left);
+  const maxLeft = Math.min(window.innerWidth - tooltipWidth - margin, editorRect.right - tooltipWidth);
+  const clamped = Math.max(minLeft, Math.min(ideal, Math.max(minLeft, maxLeft)));
+  tooltip.style.left = `${clamped}px`;
+
   clearTimeout(tooltipTimeout);
   tooltipTimeout = setTimeout(hideTooltip, 2000);
 }

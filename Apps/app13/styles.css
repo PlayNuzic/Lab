@@ -153,25 +153,27 @@ body[data-visual="nuzic"] {
   background: var(--nuzic-green-light);
 }
 
-/* ========== TOOLTIP ========== */
-.it-tooltip {
+/* ========== EDITOR TOOLTIP (shared nuzic pattern) ========== */
+.editor-tooltip {
   position: fixed;
   padding: 0.5rem 1rem;
   border-radius: 6px;
-  font-size: clamp(0.7rem, 1.3vw, 0.9rem);
-  font-weight: 500;
+  font-size: clamp(0.8rem, 1.5vw, 1rem);
+  font-weight: 600;
   z-index: 1000;
   pointer-events: none;
   opacity: 0;
   transform: translateY(-0.625rem);
   transition: opacity 0.2s ease, transform 0.2s ease;
+  background: #EF4444;
+  color: white;
   white-space: nowrap;
 }
 
-.it-tooltip.visible { opacity: 1; transform: translateY(0); }
-.it-tooltip.success { background: #7BB4CD; color: white; }
-.it-tooltip.error { background: #EF4444; color: white; }
-.it-tooltip.info { background: #7BB4CD; color: white; }
+.editor-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 /* ========== TIMELINE ========== */
 .timeline-wrapper {

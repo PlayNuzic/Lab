@@ -694,6 +694,9 @@ function initDegreeEditor() {
         return;
       }
 
+      const registerMsg = detectRegisterCorrection(val);
+      if (registerMsg) showTooltip(cell, registerMsg);
+
       entry.degree = parsed.degree;
       entry.modifier = parsed.modifier;
       notifyChange();
@@ -753,6 +756,8 @@ function initDegreeEditor() {
               cell.value = '';
               return;
             }
+            const registerMsg = detectRegisterCorrection(current);
+            if (registerMsg) showTooltip(cell, registerMsg);
             commitDegree(p);
           }, 800);
           return;
@@ -771,10 +776,17 @@ function initDegreeEditor() {
       clearTimeout(autoJumpTimer);
       // If modifier present, commit immediately
       if (parsed.modifier) {
+        const registerMsg = detectRegisterCorrection(val);
+        if (registerMsg) showTooltip(cell, registerMsg);
         commitDegree(parsed);
       } else {
         // Wait for possible modifier (+, -, r)
-        autoJumpTimer = setTimeout(() => commitDegree(parsed), 800);
+        autoJumpTimer = setTimeout(() => {
+          const current = cell.value;
+          const registerMsg = detectRegisterCorrection(current);
+          if (registerMsg) showTooltip(cell, registerMsg);
+          commitDegree(parsed);
+        }, 800);
       }
     });
 
@@ -785,7 +797,11 @@ function initDegreeEditor() {
         const val = cell.value.trim();
         if (val) {
           const parsed = parseDegreeInput(val);
-          if (parsed && validateDegree(parsed.degree)) commitDegree(parsed);
+          if (parsed && validateDegree(parsed.degree)) {
+            const registerMsg = detectRegisterCorrection(val);
+            if (registerMsg) showTooltip(cell, registerMsg);
+            commitDegree(parsed);
+          }
         }
         return;
       }
@@ -821,6 +837,15 @@ function initDegreeEditor() {
     const num = parseInt(val);
     if (!isNaN(num) && num >= 0) return { degree: num, modifier: null };
     return null;
+  }
+
+  // Detects when the user typed a register spec (e.g. "0r3", "5r4", "0r")
+  // that doesn't match a valid form (0r4, 0r5, Xr+). Valid forms mean no
+  // silent correction. Anything else gets normalised to register 4.
+  function detectRegisterCorrection(val) {
+    if (!/r/.test(val)) return null;
+    if (/^0r4$/.test(val) || /^0r5$/.test(val) || /^\d+r\+$/.test(val)) return null;
+    return 'Solo 0r4 y 0r5 son registros válidos';
   }
 
   function validateDegree(degree) {
