@@ -19,7 +19,7 @@ export function renderNoteBars({
   notes,
   cellWidth,
   noteCount = 12,
-  cellHeight = 32,
+  cellHeight,
   colors,
   onClickNote
 }) {
@@ -31,6 +31,14 @@ export function renderNoteBars({
 
   const matrix = matrixContainer?.querySelector('.plano-matrix');
   if (!matrix) return;
+
+  // Measure actual cell height from DOM if not provided — the --plano-cell-height
+  // CSS var shrinks on narrower viewports (32→28→24→18→16), so relying on the
+  // 32px default would push bars one row down on small screens.
+  if (cellHeight === undefined) {
+    const firstCell = matrix.querySelector('.plano-cell');
+    cellHeight = firstCell?.offsetHeight || 32;
+  }
 
   const defaultColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9', '#F1948A', '#82E0AA'];
 

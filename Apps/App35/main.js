@@ -1137,12 +1137,14 @@ function handleGridDragMove(e) {
 
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
 
-  const matrix = gridElements?.matrixContainer;
+  // Use .plano-matrix (not matrixContainer) so margin-left and scroll are
+  // already baked into the bounding rect. Using the outer container caused
+  // a fractional-column offset that became ~a whole column on small viewports.
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
   if (!matrix) return;
 
   const rect = matrix.getBoundingClientRect();
-  const scrollLeft = matrix.scrollLeft;
-  const relX = clientX - rect.left + scrollLeft;
+  const relX = clientX - rect.left;
   const colIndex = Math.floor(relX / cellWidth);
 
   const newSubdiv = Math.max(dragState.startSubdiv, Math.min(dragState.maxSubdiv, colIndex));
@@ -1195,7 +1197,9 @@ function createGridPreviewBar() {
 function updateGridPreviewBar() {
   if (!dragState.previewBar) return;
 
-  const cellHeight = 32;
+  // Read actual cell height from DOM (var(--plano-cell-height) shrinks on small viewports)
+  const firstCell = gridElements?.matrixContainer?.querySelector('.plano-cell');
+  const cellHeight = firstCell?.offsetHeight || 32;
   const rowIndex = (NOTE_COUNT - 1) - dragState.note;
   const left = dragState.startSubdiv * cellWidth;
   const width = (dragState.currentSubdiv - dragState.startSubdiv + 1) * cellWidth;
