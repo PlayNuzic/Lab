@@ -9,9 +9,13 @@ body[data-visual="nuzic"] {
   --nuzic-controls-offset-y: 0rem;
 }
 
-/* Desactivar hover de cel·les (App11A és visual-only) */
+/* App11A és visual-only: desactivar hover i cursor de mà sobre les cel·les */
 body[data-visual="nuzic"] .grid-container:not(.interval-mode) .musical-cell:hover::before {
   display: none !important;
+}
+
+body[data-visual="nuzic"] .grid-container .musical-cell {
+  cursor: default;
 }
 
 [data-theme="dark"] {
