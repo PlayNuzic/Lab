@@ -89,7 +89,7 @@ html, body {
 .np-editor {
   grid-column: 1 / -1;  /* ocupa tota l'amplada del grid-container */
   grid-row: 3;
-  margin-top: 5%;
+  margin-top: 2%;
 }
 
 .editor-bar {

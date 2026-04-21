@@ -190,6 +190,7 @@ main {
   grid-row: 3;
   display: grid;
   grid-template-columns: 60px 1fr;  /* matches .grid-container nuzic columns */
+  margin-top: 2%;  /* gap from timeline, matches App12/App15 */
 }
 
 .interval-editor-label {
