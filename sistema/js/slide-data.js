@@ -40,12 +40,13 @@ export const layouts = {
     areas: '"app app title" "app app text" "app app tips"',
     rows:  'auto 1fr auto',
   },
-  // App narrow left (1 col) + title/text/tips on right (2 cols).
+  // App narrow left (1 col) + title/text on cols 2-3, tips confined to col 2.
   // Used by Paso 5 (Línea Sonora) — the vertical soundline is naturally
-  // narrow, and the text block benefits from the wider right side.
+  // narrow, and the text block benefits from the wider right side while
+  // the tips box stays in the middle column only (PDF behaviour).
   'D-app-narrow': {
     cols:  '1fr 1fr 1fr',
-    areas: '"app title title" "app text text" "app tips tips"',
+    areas: '"app title title" "app text text" "app tips ."',
     rows:  'auto 1fr auto',
   },
   // Title + text + app stacked on the left (2 cols), tips alone on the right
@@ -64,10 +65,10 @@ export const layouts = {
 export const slideMatrix = [
   { paso:1,  section:'introduccion', title:'¿Te gustaría saber qué movimientos se producen en la música?', layout:'A-intro' },
   { paso:2,  section:'introduccion', title:'Contar y Medir',                                               layout:'A-intro' },
-  { paso:3,  section:'introduccion', title:'Contar y Medir la Música',                                    layout:'B-app-left', apps:['app11'],  aspect:'4/3' },
+  { paso:3,  section:'introduccion', title:'Contar y Medir la Música',                                    layout:'B-app-left', apps:['App11A'], aspect:'4/3' },
   { paso:4,  section:'introduccion', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1' },
   { paso:5,  section:'introduccion', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'2/3' },
-  { paso:6,  section:'introduccion', title:'El Plano Musical',                                            layout:'B-app-left', apps:['App11A'], aspect:'4/3' },
+  { paso:6,  section:'introduccion', title:'El Plano Musical',                                            layout:'B-app-left', apps:['app11'],  aspect:'4/3' },
   { paso:7,  section:'descubriendo', title:'Descubriendo la Música',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3' },
   { paso:8,  section:'descubriendo', title:'Midiendo el movimiento: Los Intervalos',                      layout:'B-app-left', apps:['app13'],  aspect:'2/1' },
   { paso:9,  section:'descubriendo', title:'Intervalo Sonoro',                                            layout:'B-app-left', apps:['App14'],  aspect:'3/2' },

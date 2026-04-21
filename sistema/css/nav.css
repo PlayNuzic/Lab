@@ -76,7 +76,7 @@
   gap: 10px;
   font-family: var(--font-display);
   font-size: var(--fs-nav);
-  color: var(--nuzic-light);
+  color: var(--nuzic-green-light);
   flex: 1;
   justify-content: center;
   text-align: center;
@@ -84,18 +84,23 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  font-weight: 700;
 }
 .sistema-nav__section{
   text-transform: uppercase;
   letter-spacing: 0.14em;
   font-size: 0.78em;
-  color: rgba(238, 232, 216, 0.7);
+  color: var(--nuzic-green-light);
+  opacity: 0.75;
   font-weight: 700;
 }
-.sistema-nav__sep{ color: rgba(238, 232, 216, 0.5); }
+.sistema-nav__sep{
+  color: var(--nuzic-green-light);
+  opacity: 0.55;
+}
 .sistema-nav__step{
   font-weight: 700;
-  color: var(--nuzic-light);
+  color: var(--nuzic-green-light);
 }
 
 @media (max-width: 640px){
