@@ -13,7 +13,7 @@
   /* Soundlines sizing */
   --soundlines-height: clamp(25rem, 85vh, 75rem);
   --soundline-container-width: 9.375rem;
-  --connection-area-width: 11.25rem;
+  --connection-area-width: clamp(4rem, 14vw, 11.25rem);
 
   /* Ajust fi horitzontal del contenidor de soundlines */
   --soundlines-offset-x: 0;
