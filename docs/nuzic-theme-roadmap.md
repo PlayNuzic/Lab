@@ -16,6 +16,7 @@ Adaptació visual de les Apps 9+ a l'estètica de nuzic_app.
 - [x] **Fase 10**: Dark mode complet — contrast per soundline, timeline, botons, labels
 - [x] **Fase 11**: Fluid font-sizes — `clamp(min, vw, max)` a nuzic-theme, plano-modular, soundlines, i totes les apps
 - [x] **Fase 12**: Pastilles d'input genèriques — `.param .circle` unificades amb el patró BPM per tota app nuzic
+- [x] **Fase 13**: Pastilla reforçada `.param--large` — control hero amb cercle gran + cèrcol blanc interior + spinners `−/+` flotants
 
 ## Com activar el tema
 
@@ -262,6 +263,65 @@ Les regles base de `index.css` tenen la mateixa especificitat i ordre de
 càrrega posterior; a més, algunes (`.unit { display: block }`,
 `.inputs .param .spin { border-radius: 50% }` d'App19) són pròpiament
 `!important`. El bloc de Fase 12 els neutralitza tots.
+
+### Fase 13: Pastilla reforçada (`.param--large`)
+
+**Fitxer**: `nuzic-theme.css` (bloc "FASE 13").
+
+Variant hero per controls destacats (App16/17 "Pulsos por Compás", possibles
+usos futurs a App18/19/20). S'activa afegint la classe `param--large` al
+`<div class="param">`. El CSS matcha `.param.param--large` i queda exclòs
+de Fase 12 via `:not(.param--large)` als selectors de Fase 12, evitant
+conflictes d'especificitat.
+
+#### Anatomia visual
+
+```text
+    Pulsos por Compás:          ← .abbr (Ubuntu 700, gran, fosc)
+
+  ┌───┐    ┌───────┐    ┌───┐
+  │ − │    │   ┌─┐ │    │ + │    ← spinners: mitges pastilles grogues
+  │   │    │   │4│ │    │   │       flotants, separades del cercle
+  └───┘    │   └─┘ │    └───┘
+            └───────┘
+             ↑
+             cercle groc gran + cèrcol blanc petit interior
+```
+
+#### Estructura DOM requerida
+
+```html
+<div class="param param--large compas" id="compasParam">
+  <span class="abbr">Pulsos por Compás:</span>
+  <div class="circle">
+    <input id="inputCompas" type="number" min="1" max="7" value="">
+    <div class="spinner">
+      <button id="compasUp" class="spin up">+</button>
+      <button id="compasDown" class="spin down">−</button>
+    </div>
+  </div>
+</div>
+```
+
+Els `−`/`+` són **caràcters de text** dins els botons, no triangles
+generats per `::before`. El tema neutralitza `::before` amb `content: none`
+per `.param--large`.
+
+#### Dimensions (totes relatives)
+
+- **Cercle exterior**: `clamp(4rem, 10vw, 7rem)` × `clamp(4rem, 10vw, 7rem)`, fons `var(--nuzic-yellow)`, `border-radius: 50%`.
+- **Cèrcol interior blanc** (`::before` del `.circle`): `clamp(1.8rem, 4.4vw, 3rem)` — just per als dígits.
+- **Input**: centrat sobre el cèrcol, Ubuntu 700 `clamp(1rem, 1.8vw, 1.35rem)`, fosc.
+- **Spinners**: `clamp(2.25rem, 4.5vw, 3rem)` × `clamp(2.6rem, 6vw, 4rem)`. `border-radius: 999px 0 0 999px` (`−`) o `0 999px 999px 0` (`+`) per forma pill completa.
+- **Gap cercle→spinner**: `clamp(0.25rem, 0.8vw, 0.6rem)`.
+- **Label `.abbr`**: Ubuntu 700 `clamp(1.1rem, 2.2vw, 1.75rem)` sobre el cercle.
+
+#### Posicionament dels spinners
+
+El `.spinner` és `position: absolute` sobre el `.circle` amb `pointer-events: none`
+(no intercepta clicks al centre). Els `.spin` són `position: absolute` respecte
+al `.spinner`, ancorats a `right: calc(100% + gap)` i `left: calc(100% + gap)` —
+així queden fora del cercle sense tocar el seu layout intern.
 
 ## Selectors de referència ràpida
 

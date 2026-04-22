@@ -1282,14 +1282,14 @@ body[data-visual="nuzic"][data-theme="dark"] .tap {
    -------------------------------------------------------------------------- */
 
 /* Contenidor: etiqueta `.abbr` a sobre, pastilla a sota */
-body[data-visual="nuzic"] .param:has(.circle > input) {
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) {
   flex-direction: column !important;
   align-items: center !important;
   gap: 0.25rem !important;
   font-size: inherit !important;
 }
 
-body[data-visual="nuzic"] .param:has(.circle > input) .abbr {
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .abbr {
   font-size: clamp(0.75rem, 1.1vw, 0.95rem) !important;
   font-weight: 600;
   order: 0;
@@ -1299,7 +1299,7 @@ body[data-visual="nuzic"] .param:has(.circle > input) .abbr {
 }
 
 /* Pastilla: alçada fixa tipus BPM, 3 segments enganxats, sense overflow */
-body[data-visual="nuzic"] .param:has(.circle > input) .circle {
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .circle {
   width: auto !important;
   height: clamp(2rem, 5vw, 3rem) !important;
   border-radius: 999px !important;
@@ -1316,7 +1316,7 @@ body[data-visual="nuzic"] .param:has(.circle > input) .circle {
 }
 
 /* Input central */
-body[data-visual="nuzic"] .param:has(.circle > input) .circle input {
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .circle input {
   font-size: clamp(1rem, 1.8vw, 1.35rem) !important;
   font-family: 'Ubuntu', sans-serif !important;
   font-weight: 700 !important;
@@ -1333,13 +1333,13 @@ body[data-visual="nuzic"] .param:has(.circle > input) .circle input {
 
 /* Amagar `.unit` i `.led` interiors — l'info la porta `.abbr` a sobre.
    El base té `display: block !important`, per això cal força. */
-body[data-visual="nuzic"] .param:has(.circle > input) .circle .unit,
-body[data-visual="nuzic"] .param:has(.circle > input) .circle .led {
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .circle .unit,
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .circle .led {
   display: none !important;
 }
 
 /* Spinner: els botons `+/−` participen al flex de `.circle` */
-body[data-visual="nuzic"] .param:has(.circle > input) .circle .spinner {
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .circle .spinner {
   position: static !important;
   display: contents !important;
   transform: none !important;
@@ -1354,7 +1354,7 @@ body[data-visual="nuzic"] .param:has(.circle > input) .circle .spinner {
 /* `−` meitat esquerra. Els selectors encadenats `.param.param` pugen
    l'especificitat per batre regles per-app com ara App19 que força
    `.inputs .param .spin { border-radius: 50% !important }`. */
-body[data-visual="nuzic"] .param.param:has(.circle > input) .circle .spin.down {
+body[data-visual="nuzic"] .param.param:not(.param--large):has(.circle > input) .circle .spin.down {
   order: 1 !important;
   flex: 0 0 clamp(2rem, 4vw, 2.75rem) !important;
   width: clamp(2rem, 4vw, 2.75rem) !important;
@@ -1371,7 +1371,7 @@ body[data-visual="nuzic"] .param.param:has(.circle > input) .circle .spin.down {
 }
 
 /* `+` meitat dreta */
-body[data-visual="nuzic"] .param.param:has(.circle > input) .circle .spin.up {
+body[data-visual="nuzic"] .param.param:not(.param--large):has(.circle > input) .circle .spin.up {
   order: 3 !important;
   flex: 0 0 clamp(2rem, 4vw, 2.75rem) !important;
   width: clamp(2rem, 4vw, 2.75rem) !important;
@@ -1387,29 +1387,29 @@ body[data-visual="nuzic"] .param.param:has(.circle > input) .circle .spin.up {
   padding: 0 !important;
 }
 
-body[data-visual="nuzic"] .param:has(.circle > input) .circle .spin:hover {
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .circle .spin:hover {
   background: #e6a82e !important;
 }
 
 /* Fletxes blanques */
-body[data-visual="nuzic"] .param:has(.circle > input) .circle .spin::before {
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .circle .spin::before {
   content: '';
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
 }
 
-body[data-visual="nuzic"] .param:has(.circle > input) .circle .spin.up::before {
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .circle .spin.up::before {
   border-bottom: 7px solid #ffffff !important;
   border-top: 0 !important;
 }
 
-body[data-visual="nuzic"] .param:has(.circle > input) .circle .spin.down::before {
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .circle .spin.down::before {
   border-top: 7px solid #ffffff !important;
   border-bottom: 0 !important;
 }
 
 /* Variant sense spinner (input sol dins el circle): pill buida */
-body[data-visual="nuzic"] .param:has(.circle > input):not(:has(.spinner)) .circle {
+body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input):not(:has(.spinner)) .circle {
   padding: 0 clamp(0.5rem, 1.5vw, 1rem) !important;
 }
 
@@ -1468,19 +1468,187 @@ body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > span):not(:has
 }
 
 /* Dark mode: colors idèntics als de light (pastilla invariant entre temes) */
-body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > input) .circle {
+body[data-visual="nuzic"][data-theme="dark"] .param:not(.param--large):has(.circle > input) .circle {
   background: var(--nuzic-white) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
-body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > input) .circle input {
+body[data-visual="nuzic"][data-theme="dark"] .param:not(.param--large):has(.circle > input) .circle input {
   color: var(--nuzic-dark) !important;
 }
-body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > input) .circle .spin {
+body[data-visual="nuzic"][data-theme="dark"] .param:not(.param--large):has(.circle > input) .circle .spin {
   background: var(--nuzic-yellow) !important;
 }
-body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > input) .circle .spin.up::before {
+body[data-visual="nuzic"][data-theme="dark"] .param:not(.param--large):has(.circle > input) .circle .spin.up::before {
   border-bottom-color: #ffffff !important;
 }
-body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > input) .circle .spin.down::before {
+body[data-visual="nuzic"][data-theme="dark"] .param:not(.param--large):has(.circle > input) .circle .spin.down::before {
   border-top-color: #ffffff !important;
+}
+
+/* --------------------------------------------------------------------------
+   FASE 13: Pastilla reforçada (`.param--large`)
+   Variant "hero" per controls destacats com "Pulsos por Compás" d'App16/17.
+   Estructura: cercle groc gruixut amb cèrcol blanc interior (petit, just per
+   als dígits), flanquejat per mitges pastilles grogues amb `−`/`+` textuals.
+   Activada afegint la classe `.param--large` al `<div class="param">`.
+   -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"] .param.param--large {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: clamp(0.5rem, 1.2vw, 1rem) !important;
+  font-size: inherit !important;
+  position: relative;
+}
+
+/* Label a sobre, gran i en el color normal del text */
+body[data-visual="nuzic"] .param.param--large .abbr {
+  font-family: 'Ubuntu', sans-serif !important;
+  font-size: clamp(1.1rem, 2.2vw, 1.75rem) !important;
+  font-weight: 700 !important;
+  color: var(--nuzic-dark) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
+  text-align: center;
+  position: static !important;
+  transform: none !important;
+  order: 0;
+}
+
+/* Contenidor del cercle: relatiu per ancorar els spinners als costats */
+body[data-visual="nuzic"] .param.param--large .circle {
+  position: relative !important;
+  width: clamp(4rem, 10vw, 7rem) !important;
+  height: clamp(4rem, 10vw, 7rem) !important;
+  aspect-ratio: 1 !important;
+  border-radius: 50% !important;
+  background: var(--nuzic-yellow) !important;
+  border: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  order: 1;
+}
+
+/* Cèrcol blanc interior — petit, just per als dígits */
+body[data-visual="nuzic"] .param.param--large .circle::before {
+  content: '';
+  position: absolute;
+  width: clamp(1.8rem, 4.4vw, 3rem);
+  height: clamp(1.8rem, 4.4vw, 3rem);
+  border-radius: 50%;
+  background: #ffffff;
+  z-index: 0;
+}
+
+/* Input centrat sobre el cèrcol blanc */
+body[data-visual="nuzic"] .param.param--large .circle input {
+  position: relative;
+  z-index: 1;
+  width: clamp(1.8rem, 4.4vw, 3rem) !important;
+  height: clamp(1.8rem, 4.4vw, 3rem) !important;
+  background: transparent !important;
+  border: 0 !important;
+  font-family: 'Ubuntu', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: clamp(1rem, 1.8vw, 1.35rem) !important;
+  color: var(--nuzic-dark) !important;
+  text-align: center !important;
+  padding: 0 !important;
+  outline: none;
+}
+
+body[data-visual="nuzic"] .param.param--large .circle input::-webkit-outer-spin-button,
+body[data-visual="nuzic"] .param.param--large .circle input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  margin: 0 !important;
+}
+body[data-visual="nuzic"] .param.param--large .circle input {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+/* Spinner: container neutralitzat; els botons fills es posicionen absoluts
+   respecte al `.circle` (que té `position: relative`). */
+body[data-visual="nuzic"] .param.param--large .circle .spinner {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  display: block !important;
+  transform: none !important;
+  pointer-events: none !important;
+  flex-direction: row !important;
+}
+
+/* Mides comunes dels spin (mitja pastilla) */
+body[data-visual="nuzic"] .param.param--large .circle .spin {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: clamp(2.25rem, 4.5vw, 3rem) !important;
+  height: clamp(2.6rem, 6vw, 4rem) !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: var(--nuzic-yellow) !important;
+  color: var(--nuzic-dark) !important;
+  font-family: 'Ubuntu', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: clamp(1rem, 1.8vw, 1.4rem) !important;
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+  aspect-ratio: auto !important;
+  pointer-events: auto !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* `−` a l'esquerra: cantons externs arrodonits com a mitja pastilla */
+body[data-visual="nuzic"] .param.param--large .circle .spin.down {
+  right: calc(100% + clamp(0.25rem, 0.8vw, 0.6rem)) !important;
+  left: auto !important;
+  border-radius: 999px 0 0 999px !important;
+}
+
+/* `+` a la dreta */
+body[data-visual="nuzic"] .param.param--large .circle .spin.up {
+  left: calc(100% + clamp(0.25rem, 0.8vw, 0.6rem)) !important;
+  right: auto !important;
+  border-radius: 0 999px 999px 0 !important;
+}
+
+/* Neutralitzar els triangles ::before de les spin de pastilla normal */
+body[data-visual="nuzic"] .param.param--large .circle .spin::before {
+  content: none !important;
+  border: 0 !important;
+}
+
+body[data-visual="nuzic"] .param.param--large .circle .spin:hover {
+  background: #e6a82e !important;
+}
+
+/* Dark mode: mateix palette groc/blanc (invariant) */
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large .abbr {
+  color: var(--nuzic-dark) !important;
+}
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle,
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle .spin {
+  background: var(--nuzic-yellow) !important;
+}
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle::before {
+  background: #ffffff !important;
+}
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle input {
+  color: var(--nuzic-dark) !important;
 }

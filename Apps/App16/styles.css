@@ -16,24 +16,8 @@ html, body {
   padding: 0.5rem 0;
 }
 
-/* Compás: bpm-inline pastilla, 1/3 larger than BPM */
-.param.compas.bpm-inline {
-  transform: scale(1.33);
-  transform-origin: center;
-}
-
-/* Ensure golden spinners (same as BPM via nuzic-theme) */
-.param.compas .spin {
-  background: var(--nuzic-yellow) !important;
-  border-radius: 50% !important;
-  aspect-ratio: 1 !important;
-}
-.param.compas .spin.up::before {
-  border-bottom-color: white !important;
-}
-.param.compas .spin.down::before {
-  border-top-color: white !important;
-}
+/* Compás: uses the shared `.param--large` variant defined in
+   libs/shared-ui/nuzic-theme.css — no per-app pill overrides. */
 
 /* ========== FADE-OUT EFFECT (post-jump pulses) ========== */
 .pulse.fade-out,
