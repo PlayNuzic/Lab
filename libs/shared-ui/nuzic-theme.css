@@ -696,17 +696,26 @@ body[data-visual="nuzic"] .controls:not([data-layout]) .reset {
   margin: 0 !important;
 }
 
+/* Ordre dins del grup .controls: volum · play · bpm · random · reset.
+   El `.sound-wrapper` viu al DOM després de `.reset` (append per header.js);
+   l'usem a l'esquerra de tot via `order`. */
+body[data-visual="nuzic"] .controls:not([data-layout]) .sound-wrapper.nuzic-inline { order: 1; }
+body[data-visual="nuzic"] .controls:not([data-layout]) .play     { order: 2; }
+body[data-visual="nuzic"] .controls:not([data-layout]) .bpm-inline { order: 3; }
+body[data-visual="nuzic"] .controls:not([data-layout]) .random   { order: 4; }
+body[data-visual="nuzic"] .controls:not([data-layout]) .reset    { order: 5; }
+
 body[data-visual="nuzic"] .controls:not([data-layout]) .loop,
 body[data-visual="nuzic"] .controls:not([data-layout]) .tap {
   display: none !important;
 }
 
-body[data-visual="nuzic"] .controls:not([data-layout]) .play {
+body[data-visual="nuzic"] .controls:not([data-layout]) .play,
+body[data-visual="nuzic"] .controls:not([data-layout]) .random {
   width: clamp(2rem, 5vw, 3rem) !important;
   height: clamp(2rem, 5vw, 3rem) !important;
 }
 
-body[data-visual="nuzic"] .controls:not([data-layout]) .random,
 body[data-visual="nuzic"] .controls:not([data-layout]) .reset {
   width: clamp(1.5rem, 3.5vw, 2.25rem) !important;
   height: clamp(1.5rem, 3.5vw, 2.25rem) !important;
@@ -815,19 +824,31 @@ body[data-visual="nuzic"] .loop.active {
   color: var(--nuzic-green);
 }
 
-/* Random i Reset: quadrat arrodonit, fons verd clar */
-body[data-visual="nuzic"] .random,
-body[data-visual="nuzic"] .reset {
+/* Random: cercle verd saturat (mateixa identitat que play). Reset: cercle
+   fosc amb icona clara. Hex hardcoded per no flipar en dark mode; el dark
+   override només intercanvia reset (clar/fosc). */
+body[data-visual="nuzic"] .random {
   border-radius: 50%;
-  background: var(--nuzic-green-light);
-  border-color: var(--nuzic-green-light);
-  color: var(--nuzic-dark);
+  background: #7cd6b3;
+  border-color: #7cd6b3;
+  color: #ffffff;
   opacity: 1;
 }
 
-body[data-visual="nuzic"] .random svg,
+body[data-visual="nuzic"] .reset {
+  border-radius: 50%;
+  background: #43433b;
+  border-color: #43433b;
+  color: #eee8d8;
+  opacity: 1;
+}
+
+body[data-visual="nuzic"] .random svg {
+  fill: #ffffff;
+}
+
 body[data-visual="nuzic"] .reset svg {
-  fill: var(--nuzic-dark);
+  fill: #eee8d8;
 }
 
 /* Tap: quadrat arrodonit coherent */
@@ -866,19 +887,24 @@ body[data-visual="nuzic"][data-theme="dark"] .play {
   color: white;
 }
 
-/* Random / Reset: keep the same pale-mint appearance in dark mode.
-   `--nuzic-green-light` and `--nuzic-dark` both flip in dark mode (to a
-   dark-green surface and cream text). Force the light-mode hex values
-   here so the buttons keep their identity across themes. The icon fill
-   is forced below in the shared svg rule. */
-body[data-visual="nuzic"][data-theme="dark"] .random,
+/* Random: invariant entre temes (verd saturat, icona blanca).
+   Reset: intercanvia colors en dark mode — fons clar, icona fosca. */
+body[data-visual="nuzic"][data-theme="dark"] .random {
+  background: #7cd6b3;
+  border-color: #7cd6b3;
+  color: #ffffff;
+}
+
 body[data-visual="nuzic"][data-theme="dark"] .reset {
-  background: #cbefe1;
-  border-color: #cbefe1;
+  background: #eee8d8;
+  border-color: #eee8d8;
   color: #43433b;
 }
 
-body[data-visual="nuzic"][data-theme="dark"] .random svg,
+body[data-visual="nuzic"][data-theme="dark"] .random svg {
+  fill: #ffffff;
+}
+
 body[data-visual="nuzic"][data-theme="dark"] .reset svg {
   fill: #43433b;
 }
@@ -910,15 +936,16 @@ body[data-visual="nuzic"] .sound-wrapper.nuzic-floating {
   transform: translate(-50%, -50%);
 }
 
-/* Round speaker button — same shape/size as .random and .reset. */
+/* Round speaker button — same shape/size as .reset (small). Dark circle
+   with light icon, hex hardcoded so it doesn't flip in dark mode. */
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline .sound {
   width: clamp(1.5rem, 3.5vw, 2.25rem);
   height: clamp(1.5rem, 3.5vw, 2.25rem);
   padding: 0;
   border-radius: 50%;
-  background: var(--nuzic-green-light);
-  border: 2px solid var(--nuzic-green-light);
-  color: var(--nuzic-dark);
+  background: #43433b;
+  border: 2px solid #43433b;
+  color: #eee8d8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -928,8 +955,8 @@ body[data-visual="nuzic"] .sound-wrapper.nuzic-inline .sound {
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline .sound svg {
   width: 60%;
   height: 60%;
-  fill: var(--nuzic-dark);
-  color: var(--nuzic-dark);
+  fill: #eee8d8;
+  color: #eee8d8;
 }
 
 /* Volume fader: floating popup above the button. `transform-origin: bottom
@@ -975,15 +1002,15 @@ body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-moz-range-
   border-radius: 0.125rem;
 }
 
-/* Thumb colors are hardcoded (not `var(--nuzic-*)`) so the ball stays the
-   same pale mint across light/dark themes. The border uses the dark nuzic
-   hex for visibility on both backgrounds. */
+/* Thumb colors reflect the speaker button's circle color: dark in light
+   mode (fosc com el botó), light in dark mode (clar com el botó invertit).
+   Hex hardcoded to avoid CSS-var flipping. */
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 1.125rem;
   height: 1.125rem;
-  background: #cbefe1;
+  background: #43433b;
   border-radius: 50%;
   cursor: grab;
   border: 2px solid #43433b;
@@ -994,11 +1021,21 @@ body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-webkit-sli
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-moz-range-thumb {
   width: 1.125rem;
   height: 1.125rem;
-  background: #cbefe1;
+  background: #43433b;
   border-radius: 50%;
   cursor: grab;
   border: 2px solid #43433b;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .sound-wrapper.nuzic-inline #volumeSlider::-webkit-slider-thumb {
+  background: #eee8d8;
+  border-color: #eee8d8;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .sound-wrapper.nuzic-inline #volumeSlider::-moz-range-thumb {
+  background: #eee8d8;
+  border-color: #eee8d8;
 }
 
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-webkit-slider-thumb:active,
@@ -1006,17 +1043,15 @@ body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-moz-range-
   cursor: grabbing;
 }
 
-/* Dark mode anti-flip: keep the pale-mint look across themes, same as
-   .random and .reset above. */
+/* Dark mode: intercanvia colors (fons clar, icona fosca), com el reset. */
 body[data-visual="nuzic"][data-theme="dark"] .sound-wrapper.nuzic-inline .sound {
-  background: #cbefe1;
-  border-color: #cbefe1;
+  background: #eee8d8;
+  border-color: #eee8d8;
   color: #43433b;
 }
 
-/* Icon color: the path uses `fill="currentColor"`, so the fill follows the
-   svg's `color`. Force both to the dark nuzic hex so the speaker stays dark
-   in dark mode (don't flip to cream like `--nuzic-dark` does). */
+/* Icon color: the path uses `fill="currentColor"`. In dark mode the circle
+   is light, so the icon becomes dark (intercanvi vs light mode). */
 body[data-visual="nuzic"][data-theme="dark"] .sound-wrapper.nuzic-inline .sound svg {
   color: #43433b;
   fill: #43433b;
@@ -1049,24 +1084,30 @@ body[data-visual="nuzic"] .bpm-inline {
   top: var(--nuzic-bpm-offset-y, 0px);
 }
 
-/* Circle → pastilla que conté [–] 120 [+] dins */
+/* Circle → pastilla única que conté [–] 120 [+] com a tres segments enganxats.
+   Mateixa alçada que play/random per coherència visual. */
 body[data-visual="nuzic"] .bpm-inline .circle {
   width: auto;
-  height: clamp(1.5rem, 3.5vw, 2rem);
-  border-radius: 1rem;
+  height: clamp(2rem, 5vw, 3rem);
+  border-radius: 999px;
   border: 1px solid var(--nuzic-grey);
   background: var(--nuzic-white);
   display: flex;
-  align-items: center;
-  padding: 0 0.25rem;
-  gap: 2px;
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
 }
 
 body[data-visual="nuzic"] .bpm-inline input {
-  font-size: clamp(0.8rem, 1.5vw, 1.1rem);
-  width: clamp(1.75rem, 4vw, 2.625rem);
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
+  width: clamp(3rem, 6vw, 4.5rem);
   height: 100%;
   font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  text-align: center;
+  background: transparent;
+  border: 0;
   order: 2;  /* Número al mig */
 }
 
@@ -1077,33 +1118,41 @@ body[data-visual="nuzic"] .bpm-inline .spinner {
   transform: none;
 }
 
-/* Botó down (–) a l'esquerra dins la pastilla */
+/* Botó down (–) ocupa la mitja pastilla esquerra */
 body[data-visual="nuzic"] .bpm-inline .spin.down {
   order: 1;
-  width: clamp(1rem, 2.5vw, 1.5rem);
-  height: clamp(1rem, 2.5vw, 1.5rem);
-  border-radius: 50%;
+  width: clamp(2rem, 4vw, 2.75rem);
+  height: 100%;
+  border-radius: 999px 0 0 999px;
+  border: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Botó up (+) a la dreta dins la pastilla */
+/* Botó up (+) ocupa la mitja pastilla dreta */
 body[data-visual="nuzic"] .bpm-inline .spin.up {
   order: 3;
-  width: clamp(1rem, 2.5vw, 1.5rem);
-  height: clamp(1rem, 2.5vw, 1.5rem);
-  border-radius: 50%;
+  width: clamp(2rem, 4vw, 2.75rem);
+  height: 100%;
+  border-radius: 0 999px 999px 0;
+  border: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Fletxes més petites per cabre als botons 24px */
+/* Fletxes proporcionades a la nova mida */
 body[data-visual="nuzic"] .bpm-inline .spin.up::before {
-  border-left-width: 4px;
-  border-right-width: 4px;
-  border-bottom-width: 6px;
+  border-left-width: 5px;
+  border-right-width: 5px;
+  border-bottom-width: 7px;
 }
 
 body[data-visual="nuzic"] .bpm-inline .spin.down::before {
-  border-left-width: 4px;
-  border-right-width: 4px;
-  border-top-width: 6px;
+  border-left-width: 5px;
+  border-right-width: 5px;
+  border-top-width: 7px;
 }
 
 /* Label BPM: queda fora de la pastilla, a l'esquerra */
@@ -1208,4 +1257,221 @@ body[data-visual="nuzic"][data-theme="dark"] .tap {
   background: var(--nuzic-light);
   border-color: var(--nuzic-light);
   color: var(--nuzic-dark);
+}
+
+/* --------------------------------------------------------------------------
+   FASE 11: Pastilles d'input genèriques (.param .circle)
+   Unifiquen el patró de la BPM pill a qualsevol `.param` que tingui input:
+   cercle fos en pastilla horitzontal de la mateixa alçada que play/random,
+   amb fletxes `[−]/[+]` grogues als laterals i l'etiqueta `.abbr` a sobre.
+   Pastilles info pura (amb `<span>`) conserven el seu tractament — les
+   excloem via `:has(.circle > input)`.
+
+   `!important` a algunes regles perquè les regles base de `index.css` tenen
+   la mateixa especificitat i precedeixen al load (i `.unit` té `!important`
+   al base).
+   -------------------------------------------------------------------------- */
+
+/* Contenidor: etiqueta `.abbr` a sobre, pastilla a sota */
+body[data-visual="nuzic"] .param:has(.circle > input) {
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  font-size: inherit !important;
+}
+
+body[data-visual="nuzic"] .param:has(.circle > input) .abbr {
+  font-size: clamp(0.75rem, 1.1vw, 0.95rem) !important;
+  font-weight: 600;
+  order: 0;
+  position: static !important;
+  transform: none !important;
+  text-align: center;
+}
+
+/* Pastilla: alçada fixa tipus BPM, 3 segments enganxats, sense overflow */
+body[data-visual="nuzic"] .param:has(.circle > input) .circle {
+  width: auto !important;
+  height: clamp(2rem, 5vw, 3rem) !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--nuzic-grey) !important;
+  background: var(--nuzic-white) !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: hidden !important;
+  order: 1;
+  position: relative;
+}
+
+/* Input central */
+body[data-visual="nuzic"] .param:has(.circle > input) .circle input {
+  font-size: clamp(1rem, 1.8vw, 1.35rem) !important;
+  font-family: 'Ubuntu', sans-serif !important;
+  font-weight: 700 !important;
+  width: clamp(3rem, 6vw, 4.5rem) !important;
+  height: 100% !important;
+  background: transparent !important;
+  border: 0 !important;
+  text-align: center !important;
+  color: var(--nuzic-dark) !important;
+  padding: 0 !important;
+  order: 2;
+  outline: none;
+}
+
+/* Amagar `.unit` i `.led` interiors — l'info la porta `.abbr` a sobre.
+   El base té `display: block !important`, per això cal força. */
+body[data-visual="nuzic"] .param:has(.circle > input) .circle .unit,
+body[data-visual="nuzic"] .param:has(.circle > input) .circle .led {
+  display: none !important;
+}
+
+/* Spinner: els botons `+/−` participen al flex de `.circle` */
+body[data-visual="nuzic"] .param:has(.circle > input) .circle .spinner {
+  position: static !important;
+  display: contents !important;
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+  top: auto !important;
+  right: auto !important;
+  flex-direction: row !important;
+  gap: 0 !important;
+}
+
+/* `−` meitat esquerra. Els selectors encadenats `.param.param` pugen
+   l'especificitat per batre regles per-app com ara App19 que força
+   `.inputs .param .spin { border-radius: 50% !important }`. */
+body[data-visual="nuzic"] .param.param:has(.circle > input) .circle .spin.down {
+  order: 1 !important;
+  flex: 0 0 clamp(2rem, 4vw, 2.75rem) !important;
+  width: clamp(2rem, 4vw, 2.75rem) !important;
+  height: 100% !important;
+  border-radius: 999px 0 0 999px !important;
+  border: 0 !important;
+  background: var(--nuzic-yellow) !important;
+  aspect-ratio: auto !important;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+/* `+` meitat dreta */
+body[data-visual="nuzic"] .param.param:has(.circle > input) .circle .spin.up {
+  order: 3 !important;
+  flex: 0 0 clamp(2rem, 4vw, 2.75rem) !important;
+  width: clamp(2rem, 4vw, 2.75rem) !important;
+  height: 100% !important;
+  border-radius: 0 999px 999px 0 !important;
+  border: 0 !important;
+  background: var(--nuzic-yellow) !important;
+  aspect-ratio: auto !important;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+body[data-visual="nuzic"] .param:has(.circle > input) .circle .spin:hover {
+  background: #e6a82e !important;
+}
+
+/* Fletxes blanques */
+body[data-visual="nuzic"] .param:has(.circle > input) .circle .spin::before {
+  content: '';
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+}
+
+body[data-visual="nuzic"] .param:has(.circle > input) .circle .spin.up::before {
+  border-bottom: 7px solid #ffffff !important;
+  border-top: 0 !important;
+}
+
+body[data-visual="nuzic"] .param:has(.circle > input) .circle .spin.down::before {
+  border-top: 7px solid #ffffff !important;
+  border-bottom: 0 !important;
+}
+
+/* Variant sense spinner (input sol dins el circle): pill buida */
+body[data-visual="nuzic"] .param:has(.circle > input):not(:has(.spinner)) .circle {
+  padding: 0 clamp(0.5rem, 1.5vw, 1rem) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Info pure (ex: "Longitud" d'App19): `.circle > span` sense `<input>`.
+   Mateixa pill horitzontal, contingut centrat, `.abbr` a sobre.
+   -------------------------------------------------------------------------- */
+
+/* Info-pure: abbr a l'esquerra, pill a la dreta (horitzontal, igual que l'adjunt
+   "LONGITUD 12"). El `.abbr` segueix el seu estil ja existent. */
+body[data-visual="nuzic"] .param:has(.circle > span):not(:has(.circle > input)) {
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: clamp(0.5rem, 1.2vw, 0.875rem) !important;
+  font-size: inherit !important;
+}
+
+body[data-visual="nuzic"] .param:has(.circle > span):not(:has(.circle > input)) .abbr {
+  font-size: clamp(0.75rem, 1.1vw, 0.95rem) !important;
+  font-weight: 600;
+  position: static !important;
+  transform: none !important;
+}
+
+body[data-visual="nuzic"] .param:has(.circle > span):not(:has(.circle > input)) .circle {
+  width: auto !important;
+  min-width: clamp(3rem, 6vw, 4.5rem);
+  height: clamp(2rem, 5vw, 3rem) !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--nuzic-grey) !important;
+  background: var(--nuzic-white) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 clamp(0.75rem, 2vw, 1.5rem) !important;
+  order: 1;
+}
+
+body[data-visual="nuzic"] .param:has(.circle > span):not(:has(.circle > input)) .circle > span {
+  font-family: 'Ubuntu', sans-serif !important;
+  font-size: clamp(1rem, 1.8vw, 1.35rem) !important;
+  font-weight: 700 !important;
+  color: var(--nuzic-dark) !important;
+  text-align: center;
+  line-height: 1;
+  position: static !important;
+  transform: none !important;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > span):not(:has(.circle > input)) .circle {
+  background: var(--nuzic-white) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > span):not(:has(.circle > input)) .circle > span {
+  color: var(--nuzic-dark) !important;
+}
+
+/* Dark mode: colors idèntics als de light (pastilla invariant entre temes) */
+body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > input) .circle {
+  background: var(--nuzic-white) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > input) .circle input {
+  color: var(--nuzic-dark) !important;
+}
+body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > input) .circle .spin {
+  background: var(--nuzic-yellow) !important;
+}
+body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > input) .circle .spin.up::before {
+  border-bottom-color: #ffffff !important;
+}
+body[data-visual="nuzic"][data-theme="dark"] .param:has(.circle > input) .circle .spin.down::before {
+  border-top-color: #ffffff !important;
 }
