@@ -41,7 +41,11 @@ let currentStep = -1;
 let p0Enabled = true;         // P0 toggle state (not persisted between sessions)
 
 // Fade-out state
-const FADE_OUT_PULSES = 3;    // Pulses 0, 1, 2 after the jump
+// Set FADE_OUT_PULSES to 0 to fully disable the post-cycle fade-out
+// (audio tail + visual cycle-shift). All downstream logic (highlighting,
+// measure-header applyFadeOut, volume ramp, totalSteps) collapses to a
+// no-op when the value is 0 and can be re-enabled by restoring 3.
+const FADE_OUT_PULSES = 0;
 
 // ============================================
 // DOM ELEMENTS
