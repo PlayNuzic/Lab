@@ -17,6 +17,7 @@ import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createMeasureHeader } from './measure-header.js';
 
 // ============================================
 // CONSTANTS
@@ -161,6 +162,7 @@ subscribeMixer((snapshot) => {
 
 let timelineController;
 let superscriptController;
+let measureHeader;
 
 /**
  * Get the total number of pulses based on compás (2 compases)
@@ -182,23 +184,25 @@ function renderPulseNumbers() {
   const totalPulses = getTotalPulses();
   if (totalPulses === 0) return;
 
-  // Create numbers for all visible pulses
+  // Create numbers for all visible pulses. The CSS shifts positions right
+  // by the yellow "Com." rectangle width, so we feed the pulse percentage
+  // into the `--pulse-left` custom property and let the stylesheet
+  // combine it with the band offset.
   for (let i = 0; i < totalPulses; i++) {
     const label = superscriptController.createNumberElement(i);
-    // Position linearly
     const percent = (i / totalPulses) * 100;
-    label.style.left = percent + '%';
-    // Mark downbeats (start of each compás) — thicker top tick via nuzic-theme
+    // Scale the pulse space to the visible track (100% - band width).
+    label.style.setProperty('--pulse-left', `calc((100% - var(--com-band-w)) * ${percent / 100})`);
     if (i % compas === 0) label.classList.add('cycle-start');
     timeline.appendChild(label);
   }
 
-  // Add 0³ at the end (shows continuation, will be hidden during fade-out)
+  // End marker: a centered dot at the far right of the visible track.
   const endLabel = document.createElement('div');
-  endLabel.className = 'pulse-number cycle-start';
-  endLabel.innerHTML = '0<sup>3</sup>';
-  endLabel.style.left = '100%';
-  endLabel.dataset.index = String(totalPulses); // Index after all pulses
+  endLabel.className = 'pulse-number cycle-start cycle-end';
+  endLabel.textContent = '·';
+  endLabel.style.setProperty('--pulse-left', 'calc(100% - var(--com-band-w))');
+  endLabel.dataset.index = String(totalPulses);
   timeline.appendChild(endLabel);
 }
 
@@ -225,6 +229,7 @@ function renderTimeline() {
     timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
     timeline.querySelectorAll('.bar').forEach(b => b.remove());
     pulses = [];
+    measureHeader?.render(null, 0);
     return;
   }
 
@@ -239,6 +244,9 @@ function renderTimeline() {
 
   // Render numbers
   renderPulseNumbers();
+
+  // Render the "Com." measure header for the same cycle count (2 compases)
+  measureHeader?.render(compas, 2);
 }
 
 
@@ -278,6 +286,8 @@ function highlightNumber(step, isFadeOut = false) {
 
     // On FIRST fade-out pulse (step 0): update ALL visible numbers at once
     if (step === 0) {
+      // Measure header: shift cycle labels 1,2 → 3,4 to match the timeline
+      measureHeader?.applyFadeOut(3);
       timeline.querySelectorAll('.pulse-number').forEach(n => {
         const idx = parseInt(n.dataset.index, 10);
         if (idx < FADE_OUT_PULSES) {
@@ -301,6 +311,7 @@ function clearHighlights(keepFadeOut = false) {
       n.classList.remove('fade-out', 'hidden');
     }
   });
+  if (!keepFadeOut) measureHeader?.clearFadeOut();
 }
 
 // ============================================
@@ -323,6 +334,7 @@ async function handlePlay() {
 
   // Reset timeline to original state (clear any fade-out classes from previous play)
   renderPulseNumbers();
+  measureHeader?.clearFadeOut();
   pulses.forEach(p => p.classList.remove('fade-out'));
 
   // Update play button state
@@ -608,6 +620,16 @@ async function initializeApp() {
     getPulsosPerCycle: () => compas || 1,
     mode: 'linear'
   });
+
+  // Insert the "Com." measure header above the timeline. Kept inside the
+  // timeline-wrapper so the layout flow stays intact.
+  if (timelineWrapper && timeline && !document.getElementById('measureHeader')) {
+    const headerEl = document.createElement('section');
+    headerEl.id = 'measureHeader';
+    headerEl.className = 'measure-header is-empty';
+    timelineWrapper.insertBefore(headerEl, timeline);
+    measureHeader = createMeasureHeader({ container: headerEl });
+  }
 
   // Load only randCompasMax (compás always starts empty)
   loadState();

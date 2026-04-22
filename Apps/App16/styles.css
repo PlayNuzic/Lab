@@ -47,9 +47,222 @@ html, body {
   opacity: 1 !important;
 }
 
+/* End-cap: centered dot instead of a number. Both ticks are *doubled*
+   (drawn as `||` via a box-shadow offset) to read as a closure bracket,
+   and keep the same vertical dimensions as the regular pulse ticks so
+   the closure lines up perfectly with the `.cycle-start` downbeats. */
+.timeline .pulse-number.cycle-end {
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+  line-height: 0;
+}
+
+/* Override the `.cycle-start` thicker-top inherited rule: keep the tick
+   the normal width but duplicate it with a horizontal shadow. */
+body[data-visual="nuzic"] .timeline .pulse-number.cycle-end::before,
+body[data-visual="nuzic"] .timeline .pulse-number.cycle-end::after {
+  width: 2.5px !important;
+  opacity: 1 !important;
+  box-shadow: 5px 0 0 0 var(--nuzic-dark);
+  transform: translateX(calc(-50% - 2.5px)) !important;
+}
+
 /* Timeline wrapper */
 .timeline-wrapper {
   position: relative;
   min-height: 25rem;
+}
+
+/* ==========================================================================
+   App16 measure-header + timeline left-band architecture
+   ----------------------------------------------------------------------
+   Both rows (Com. header, timeline) share a common left-band width
+   (`--com-band-w`) so the yellow "Com." label and the yellow band on
+   the timeline's left align automatically. The base `.timeline` renders
+   within `width: calc(100% - 40px)` centered (20px shadow each side),
+   so the track we overlay also reserves 20px of side padding on the
+   measure-header to keep its inner coordinates identical to `.timeline`.
+   ========================================================================== */
+.timeline-wrapper {
+  /* Common left-band width for "Com." label and the timeline's yellow
+     rectangle. Wide enough that "Com." never truncates, even at the
+     smallest clamp. */
+  --com-band-w: clamp(4rem, 7vw, 5.5rem);
+  --com-band-h: clamp(1.75rem, 3.2vw, 2.25rem);
+  --com-band-gap: 0.75rem;       /* space between measure-header and timeline */
+  --tl-side-pad: 20px;           /* mirrors `.timeline` margin auto of 20px each side */
+}
+
+/* Yellow rectangle at the timeline's left, aligned with the "Com." label
+   above. Lives INSIDE `.timeline` and sits `-1.25rem` to the left so its
+   leading edge coincides with the `.measure-header__label` offset above.
+   We ALSO remove the left half of the timeline's inherited `box-shadow`
+   (which would otherwise extend the cream-colored band past the yellow
+   block) — keeping only the right extension. */
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline {
+  box-shadow: 1.25rem 0 0 var(--nuzic-yellow-light);
+}
+
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline::before {
+  display: block;
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1.25rem;
+  width: var(--com-band-w);
+  height: 3.75rem;
+  background: var(--nuzic-yellow);
+  border-radius: 4px 0 0 4px;
+  z-index: 1;
+  pointer-events: none;
+  transform: none;
+}
+
+/* Pulse numbers are positioned by `left: N%` where 100% = the full
+   `.timeline` width. To make the pulses start AFTER the yellow "Com."
+   rectangle, we shift the whole number layer right by the band width
+   and shrink the visible track by the same amount. */
+.timeline {
+  padding-left: var(--com-band-w);
+  box-sizing: border-box;
+}
+.timeline .pulse-number {
+  left: calc(var(--com-band-w) + var(--pulse-left, 0%)) !important;
+}
+
+/* ==========================================================================
+   Compás header ("Com.") — overlay row that sits above the timeline.
+   The track shares the timeline's inner width (accounts for the 20px
+   side-pad of `.timeline`) so marker percentages align with pulses.
+   The "Com." label floats absolutely over the track's left edge,
+   occupying the same region as the timeline's yellow rectangle below.
+   ========================================================================== */
+.measure-header {
+  position: relative;
+  height: var(--com-band-h);
+  margin: 0 var(--tl-side-pad) var(--com-band-gap);
+  background: var(--nuzic-yellow-light);
+  border-radius: 4px;
+}
+
+.measure-header.is-empty {
+  visibility: hidden;
+}
+
+/* "Com." label: absolutely placed at the row's left, same width as the
+   yellow rectangle of the timeline below. */
+.measure-header__label {
+  position: absolute;
+  /* Mirrors the `.timeline::before` offset below (-1.25rem) so the
+     label and the yellow rectangle align perfectly on both edges,
+     at any viewport width. */
+  left: -1.25rem;
+  top: 0;
+  bottom: 0;
+  width: var(--com-band-w);
+  background: var(--nuzic-yellow);
+  color: var(--nuzic-dark);
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.6vw, 1.1rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px 0 0 4px;
+  z-index: 2;
+}
+
+/* Track: spans the row with the left edge after the "Com." label so
+   marker percentages (0%, 1/cycles, ...) align with the pulse-number
+   positions of the timeline (which also start after the yellow rectangle). */
+.measure-header__track {
+  position: absolute;
+  left: var(--com-band-w);
+  right: 0;
+  top: 0;
+  bottom: 0;
+  overflow: visible;
+}
+
+/* Vertical yellow bar at the right end of the track (inner coordinate,
+   aligned with the timeline's double-bar closure). Extends downward
+   into the gap + a small tail below the bar so the eye reads it as a
+   single stroke bridging into the timeline below. */
+.measure-header__end-bar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 3px;
+  height: calc(100% + var(--com-band-gap) + 0.625rem);
+  background: var(--nuzic-yellow);
+  border-radius: 1.5px;
+  z-index: 2;
+}
+
+/* Measure marker: circle with the cycle number, positioned at the pulse
+   percentage. Marker 1 also shows the beat value (pulsos per measure),
+   rendered to the right of the circle without pushing it off the pulse.
+   The circle is anchored at `--marker-left`; the value flows to its
+   right. Vertical centering via `top: 50%` + the circle's own height. */
+.measure-marker {
+  position: absolute;
+  left: var(--marker-left, 0%);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+/* Center the circle itself over --marker-left (the flex starts there,
+   so we shift the whole row left by half the circle's width). */
+.measure-marker__circle {
+  margin-left: calc(clamp(1.25rem, 2.4vw, 1.6rem) * -0.5);
+}
+
+/* Dropline: sits under the circle, not the whole flex row — otherwise
+   marker 1 (which also shows the beat value) would shift the line off
+   the circle's center because the value widens the flex box. Anchored
+   as a pseudo-element on the circle so it always tracks its center. */
+.measure-marker__circle {
+  position: relative;
+}
+
+.measure-marker__circle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: calc(100% + 0.75rem + 0.75rem);
+  background: var(--nuzic-yellow);
+  border-radius: 1px;
+  transform: translate(-50%, 0);
+  z-index: -1;
+}
+
+.measure-marker__circle {
+  width: clamp(1.25rem, 2.4vw, 1.6rem);
+  height: clamp(1.25rem, 2.4vw, 1.6rem);
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--nuzic-yellow);
+  color: var(--nuzic-dark);
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.7rem, 1.3vw, 0.9rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.measure-marker__value {
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.6vw, 1.1rem);
+  color: var(--nuzic-dark);
+  line-height: 1;
 }
 
