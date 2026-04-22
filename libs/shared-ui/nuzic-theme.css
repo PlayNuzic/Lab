@@ -727,6 +727,15 @@ body[data-visual="nuzic"] .inputs:has(.bpm-inline):not(:has(.param)) {
   display: none;
 }
 
+/* Centrat horitzontal del grup .inputs (.param pills) — coherent amb .controls.
+   El base té `left: -20px` heretat d'un disseny antic; el neutralitzem aquí. */
+body[data-visual="nuzic"] .inputs {
+  left: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  justify-content: center !important;
+}
+
 /* Controls amb data-layout (vertical/horizontal): offset posicional */
 body[data-visual="nuzic"] .controls[data-layout] {
   position: relative !important;
