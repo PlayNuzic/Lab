@@ -57,12 +57,16 @@ html, body {
 }
 
 /* Override the `.cycle-start` thicker-top inherited rule: keep the tick
-   the normal width but duplicate it with a horizontal shadow. */
+   the normal width but duplicate it with a horizontal shadow. Both
+   `background` (handled by nuzic-theme — dark in both themes because
+   the timeline is cream in light+dark) and `box-shadow` are pinned to
+   the same dark hex so the `||` renders identically across themes. */
 body[data-visual="nuzic"] .timeline .pulse-number.cycle-end::before,
 body[data-visual="nuzic"] .timeline .pulse-number.cycle-end::after {
   width: 2.5px !important;
   opacity: 1 !important;
-  box-shadow: 5px 0 0 0 var(--nuzic-dark);
+  background: #43433b !important;
+  box-shadow: 5px 0 0 0 #43433b !important;
   transform: translateX(calc(-50% - 2.5px)) !important;
 }
 
@@ -106,7 +110,7 @@ body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-c
   display: block;
   content: '';
   position: absolute;
-  top: -1px;
+  top: 0px;
   left: -1.25rem;
   width: var(--com-band-w);
   height: 3.75rem;
@@ -160,7 +164,9 @@ body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-c
   bottom: 0;
   width: var(--com-band-w);
   background: var(--nuzic-yellow);
-  color: var(--nuzic-dark);
+  /* Hardcoded dark hex (not `var(--nuzic-dark)`) so "Com." keeps its
+     dark color in both light and dark themes — identity invariant. */
+  color: #43433b;
   font-family: 'Ubuntu', sans-serif;
   font-weight: 700;
   font-size: clamp(0.85rem, 1.6vw, 1.1rem);
@@ -247,7 +253,9 @@ body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-c
   border-radius: 50%;
   background: #ffffff;
   border: 2px solid var(--nuzic-yellow);
-  color: var(--nuzic-dark);
+  /* Hardcoded dark hex (not `var(--nuzic-dark)`) so the number stays
+     dark on the white/yellow circle regardless of theme. */
+  color: #43433b;
   font-family: 'Ubuntu', sans-serif;
   font-weight: 700;
   font-size: clamp(0.7rem, 1.3vw, 0.9rem);
@@ -262,7 +270,8 @@ body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-c
   font-family: 'Ubuntu', sans-serif;
   font-weight: 700;
   font-size: clamp(0.85rem, 1.6vw, 1.1rem);
-  color: var(--nuzic-dark);
+  /* Same rationale as `.measure-marker__circle` — identity color. */
+  color: #43433b;
   line-height: 1;
 }
 

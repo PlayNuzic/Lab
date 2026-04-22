@@ -1638,9 +1638,11 @@ body[data-visual="nuzic"] .param.param--large .circle .spin:hover {
   background: #e6a82e !important;
 }
 
-/* Dark mode: mateix palette groc/blanc (invariant) */
+/* Dark mode: mateix palette groc/blanc/fosc (invariant — els colors estan
+   hardcoded amb hex per evitar que els tokens `--nuzic-dark`/`--nuzic-light`
+   flipin i canviïn la identitat de la pastilla). */
 body[data-visual="nuzic"][data-theme="dark"] .param.param--large .abbr {
-  color: var(--nuzic-dark) !important;
+  color: #43433b !important;
 }
 body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle,
 body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle .spin {
@@ -1650,5 +1652,8 @@ body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle::before
   background: #ffffff !important;
 }
 body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle input {
-  color: var(--nuzic-dark) !important;
+  color: #43433b !important;
+}
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle .spin {
+  color: #43433b !important;
 }

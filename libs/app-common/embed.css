@@ -71,15 +71,6 @@ html[data-embed="true"] body main {
   flex-direction: column;
 }
 
-/* Hide .inputs section in embed — the Lg param (and T, if present) isn't
-   essential for the Sistema's viewing experience and its height steals
-   space from the main content area. Apps that need Lg editing outside
-   embed keep it; inside embed it's hidden regardless of nuzic's
-   existing `.inputs:has(.bpm-inline)` rule. */
-html[data-embed="true"] body main > .inputs {
-  display: none;
-}
-
 /* app10 (vertical soundline) and App18 (registro de octava) wrap their
    main content in `.timeline-wrapper` with a naturally short height
    (shorter than the iframe). Auto-margins center that block vertically
@@ -88,6 +79,17 @@ html[data-embed="true"] body main > .inputs {
    keep their stretch behaviour. */
 html[data-embed="true"] body.app10 main .timeline-wrapper,
 html[data-embed="true"] body.app18 main .timeline-wrapper {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+/* App16 (módulo temporal lineal) — the measure-header + timeline pair is
+   naturally short (roughly 7-8rem combined). Its `min-height: 25rem` on
+   `.timeline-wrapper` is sized for standalone view, but in the 2:1 iframe
+   slot it leaves a large empty dark strip below the .controls row.
+   Override the min-height and center the wrapper vertically. */
+html[data-embed="true"] body.app16 main .timeline-wrapper {
+  min-height: 0;
   margin-top: auto;
   margin-bottom: auto;
 }
