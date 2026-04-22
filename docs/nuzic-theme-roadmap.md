@@ -8,13 +8,14 @@ Adaptació visual de les Apps 9+ a l'estètica de nuzic_app.
 - [x] **Fase 4**: Graella — dots negres visibles + rectangles blau sòlid (light + dark)
 - [x] **Fase 2**: Soundline — fons rosa, números centrats, `decorateLabels` a soundline.js
 - [x] **Fase 3**: Timeline — fons crema, sense línia horitzontal
-- [x] **Fase 5**: Botons — play verd, +/- pastilla daurada, reset/random quadrat verd
+- [x] **Fase 5**: Botons — ordre `[vol][play][bpm][random][reset]`, play i random verds, reset/vol foscos amb intercanvi en dark mode
 - [x] **Fase 6**: BPM inline horitzontal — pastilla [–] [120] [+]
 - [ ] Fase 7: Triangle decoratiu
 - [ ] Fase 8: Opt-in per app (27 apps)
 - [x] **Fase 9**: Plano-modular (integrat dins fases 2, 3, 4 i 10)
 - [x] **Fase 10**: Dark mode complet — contrast per soundline, timeline, botons, labels
 - [x] **Fase 11**: Fluid font-sizes — `clamp(min, vw, max)` a nuzic-theme, plano-modular, soundlines, i totes les apps
+- [x] **Fase 12**: Pastilles d'input genèriques — `.param .circle` unificades amb el patró BPM per tota app nuzic
 
 ## Com activar el tema
 
@@ -100,21 +101,39 @@ body[data-visual="nuzic"] .musical-cell {
 
 **Fitxer**: `nuzic-theme.css`
 
+Ordre fix dins `.controls:not([data-layout])`:
+`[volum · play · bpm · random · reset]` aconseguit amb `order` de flex.
+
+Mides:
+
+- Play i Random: `clamp(2rem, 5vw, 3rem)` (cercles grans).
+- Reset i Volum: `clamp(1.5rem, 3.5vw, 2.25rem)` (cercles petits).
+
+Colors:
+
+- **Play**: fons `#7cd6b3` (verd saturat), icona blanca. Invariant en dark.
+- **Random**: fons `#7cd6b3` (mateix verd que play), icona blanca. Invariant en dark.
+- **Reset**: light = fons `#43433b` fosc + icona `#eee8d8` clara. Dark = **intercanvi** (fons clar + icona fosca).
+- **Volum** (`.sound-wrapper.nuzic-inline .sound`): mateix patró que Reset (light fosc/clar, dark clar/fosc).
+- **Fader thumb**: light = `#43433b` (fosc, com el botó); dark = `#eee8d8` (clar).
+
 ```css
-/* Play: cercle verd petit */
+/* Exemples dels colors fixos (hex hardcoded per no flipar amb tokens) */
+body[data-visual="nuzic"] .random,
 body[data-visual="nuzic"] .play {
-  width: 36px; height: 36px;
-  background: var(--nuzic-green); border: none; color: white;
+  background: #7cd6b3;
+  border-color: #7cd6b3;
+  color: #ffffff;
 }
 
-/* +/- pastilla daurada */
-body[data-visual="nuzic"] .spin {
-  border-radius: 12px; background: var(--nuzic-yellow); color: white;
-}
-
-/* Reset: quadrat verd */
 body[data-visual="nuzic"] .reset {
-  border-radius: 4px; background: var(--nuzic-green-light);
+  background: #43433b;
+  color: #eee8d8;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .reset {
+  background: #eee8d8;
+  color: #43433b;
 }
 ```
 
@@ -122,18 +141,26 @@ body[data-visual="nuzic"] .reset {
 
 **Fitxers**: `nuzic-theme.css` + possible `libs/app-common/bpm-inline-injector.js`
 
+La pastilla BPM és una pill de 3 segments enganxats — **mateix patró que Fase 12**:
+
 ```css
-body[data-visual="nuzic"] .bpm-inline { flex-direction: row; align-items: center; gap: 8px; }
 body[data-visual="nuzic"] .bpm-inline .circle {
-  width: auto; height: 32px; border-radius: 16px;
-  border: 1px solid #ddd; background: white; padding: 0 16px;
+  width: auto;
+  height: clamp(2rem, 5vw, 3rem);   /* mateixa alçada que play/random */
+  border-radius: 999px;
+  border: 1px solid var(--nuzic-grey);
+  background: var(--nuzic-white);
+  display: flex; align-items: stretch;
+  padding: 0; gap: 0; overflow: hidden;
 }
-body[data-visual="nuzic"] .bpm-inline .spinner {
-  position: static; flex-direction: row;
-}
+/* `.spin.down` → meitat esquerra groga (border-radius: 999px 0 0 999px) */
+/* `.spin.up`   → meitat dreta groga   (border-radius: 0 999px 999px 0) */
+/* `input`      → fons transparent, flex centre */
 ```
 
-Si CSS no pot reordenar el DOM, caldrà tocar `bpm-inline-injector.js`.
+La `.abbr` queda amagada al BPM (a diferència dels `.param` genèrics, que la
+mostren a sobre — veure Fase 12). Motiu: el BPM viu dins `.controls` al
+costat del play, i el label "BPM" és redundant amb el valor visible.
 
 ### Fase 7: Triangle decoratiu (CSS only)
 
@@ -179,6 +206,62 @@ Selectors equivalents per al DOM de plano-modular:
 Repetir cada fase anterior amb selector `body[data-visual="nuzic"][data-theme="dark"]`.
 Tokens dark ja definits a la Fase 1.
 Cal afegir overrides específics per components (soundline, timeline, cells, buttons).
+
+### Fase 12: Pastilles d'input genèriques
+
+**Fitxer**: `nuzic-theme.css` (bloc "FASE 11: Pastilles d'input genèriques").
+
+Unifica `.param .circle` a **tota app nuzic** amb el mateix patró visual
+que la BPM pill. El tema detecta l'estructura DOM del `.circle` i aplica
+el format adequat — zero CSS per app.
+
+#### 4 variants
+
+| Variant | DOM | Selector | Layout |
+| --- | --- | --- | --- |
+| **BPM** | `.bpm-inline > .circle > input + .spinner` | `.bpm-inline` | Pill `[−] N [+]`, `.abbr` amagada |
+| **Input + spinner** | `.param > .circle > input + .spinner` | `.param:has(.circle > input)` amb `.spinner` | Pill `[−] N [+]`, `.abbr` **a sobre** |
+| **Input-only** | `.param > .circle > input` (sense spinner) | `.param:has(.circle > input):not(:has(.spinner))` | Pill amb input centrat, `.abbr` **a sobre** |
+| **Info-pure** | `.param > .circle > span` (sense input) | `.param:has(.circle > span):not(:has(.circle > input))` | Pill amb span centrat, `.abbr` **al costat esquerre** |
+
+#### Dimensions invariants
+
+- **Alçada**: `clamp(2rem, 5vw, 3rem)` (igual que play/random).
+- **`+/−`**: `clamp(2rem, 4vw, 2.75rem)` d'ample, mitges pastilles als laterals (`border-radius: 999px 0 0 999px` / `0 999px 999px 0`).
+- **Input/span**: `clamp(3rem, 6vw, 4.5rem)` d'ample, font Ubuntu 700 `clamp(1rem, 1.8vw, 1.35rem)`.
+
+#### Colors (invariants entre temes)
+
+- Fons pill: `var(--nuzic-white)`.
+- Border: `1px solid var(--nuzic-grey)`.
+- `.spin`: fons `var(--nuzic-yellow)`, hover `#e6a82e`.
+- Fletxes: `border-*-color: #ffffff`.
+
+#### `.unit` i `.led` interiors
+
+El tema els amaga amb `display: none !important` (el base de `index.css`
+els força amb `display: block !important`). La info la porta l'`.abbr`
+a sobre/al costat.
+
+#### `.inputs` centrat
+
+Regla addicional que neutralitza l'offset heretat `left: -20px` de `index.css`:
+
+```css
+body[data-visual="nuzic"] .inputs {
+  left: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  justify-content: center !important;
+}
+```
+
+#### `!important` justificat
+
+Les regles base de `index.css` tenen la mateixa especificitat i ordre de
+càrrega posterior; a més, algunes (`.unit { display: block }`,
+`.inputs .param .spin { border-radius: 50% }` d'App19) són pròpiament
+`!important`. El bloc de Fase 12 els neutralitza tots.
 
 ## Selectors de referència ràpida
 
