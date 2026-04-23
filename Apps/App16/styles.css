@@ -51,9 +51,19 @@ html, body {
    (drawn as `||` via a box-shadow offset) to read as a closure bracket,
    and keep the same vertical dimensions as the regular pulse ticks so
    the closure lines up perfectly with the `.cycle-start` downbeats. */
+/* cycle-end keeps the same font-size as the other pulse-numbers so the
+   ticks above/below stay aligned with the rest of the row. The `·` glyph
+   has a smaller bounding box than a digit (it sits only at the baseline),
+   so we pin a fixed height that matches the digits — this keeps the
+   `bottom:100%` / `top:100%` anchor points of the ::before/::after ticks
+   at the same vertical level as regular pulse-numbers. */
 .timeline .pulse-number.cycle-end {
-  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
-  line-height: 0;
+  /* "0"/"1" pulse-numbers get their height from the clamp() font-size and
+     a default line-height; replicate the same height here. */
+  height: 1.2em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Override the `.cycle-start` thicker-top inherited rule: keep the tick
