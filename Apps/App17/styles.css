@@ -42,7 +42,6 @@ html, body {
 }
 
 /* ========== CYCLE COUNTER (playback digit) ========== */
-/* When playing, hide input and show digit */
 .pl-secondary.cycle-circle.playing input {
   display: none;
 }
@@ -58,7 +57,6 @@ html, body {
   font-size: clamp(0.65rem, 1.3vw, 0.95rem);
   color: var(--nuzic-dark);
   line-height: 1;
-  transition: transform 0.15s ease, color 0.15s ease;
 }
 
 .pl-secondary.cycle-circle.playing .cycle-counter__digit {
@@ -66,105 +64,117 @@ html, body {
 }
 
 /* ========== CIRCULAR TIMELINE — nuzic theme ========== */
-/* Paint the circular track with a cream ring (donut) via a conic/radial combo
-   on the .timeline itself. The circular layout is applied by the
-   createCircularTimeline controller (adds class .circular). */
+
+/* The wrapper holds the circular timeline; controls live OUTSIDE the wrapper
+   (moved in JS), so the wrapper only sizes to the circle plus padding. */
 body[data-visual="nuzic"] .timeline-wrapper.circular {
-  min-height: clamp(16rem, 38vw, 24rem);
+  width: clamp(16rem, 34vw, 22rem) !important;
+  height: clamp(16rem, 34vw, 22rem) !important;
+  margin: 1.5rem auto !important;
   position: relative;
 }
 
+/* The timeline element is square, centered inside the wrapper. We paint the
+   cream donut ring here via a radial gradient — cream outside a central
+   transparent disc. No borders anywhere. */
 body[data-visual="nuzic"] .timeline.circular {
-  background: transparent !important;
+  background: radial-gradient(
+    circle,
+    transparent 0%,
+    transparent 55%,
+    var(--nuzic-yellow-light) 55.5%,
+    var(--nuzic-yellow-light) 100%
+  ) !important;
   box-shadow: none !important;
-  border-radius: 0 !important;
-  height: clamp(14rem, 30vw, 20rem) !important;
-  width: clamp(14rem, 30vw, 20rem) !important;
-  margin: 0 auto;
+  border: 0 !important;
+  border-radius: 50% !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
   position: relative;
   padding-left: 0 !important;
 }
 
-/* Donut-shaped cream ring behind pulse numbers */
+/* Kill the horizontal line / ::before pseudo inherited from linear timeline */
+body[data-visual="nuzic"] .timeline.circular::before,
 body[data-visual="nuzic"] .timeline.circular::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: var(--nuzic-yellow-light);
-  /* carve out the inner circle to form a ring */
-  mask: radial-gradient(circle, transparent 44%, #000 45%);
-  -webkit-mask: radial-gradient(circle, transparent 44%, #000 45%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Hide the horizontal line/pseudo from base .timeline */
-body[data-visual="nuzic"] .timeline.circular::before {
   display: none !important;
 }
 
-/* Hide circle-guide ring from controller (we draw our own ring) */
+/* Hide the helper circle-guide ring from the controller — we paint our own */
 body[data-visual="nuzic"] .timeline-wrapper.circular .circle-guide {
   display: none !important;
 }
 
-/* Pulse dots kept hidden (we render numbers only, like App16) */
+/* Pulse dots (legacy) and endpoint bars — hidden (we show only numbers) */
 body[data-visual="nuzic"] .timeline.circular .pulse {
   display: none !important;
 }
 
-/* Hide bars (endpoint rails) in circular mode — they overlap the ring */
 body[data-visual="nuzic"] .timeline.circular .bar {
   display: none !important;
 }
 
-/* Pulse-number positioning: controller sets absolute px; keep text styling */
+/* Pulse-number styling for circular layout.
+   JS sets `left`/`top`/`transform` in px with !important to override the
+   base nuzic rule (which centers every .pulse-number at 50%/50%). */
 body[data-visual="nuzic"] .timeline.circular .pulse-number {
   color: var(--nuzic-dark);
   font-weight: 700;
-  font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+  font-size: clamp(0.95rem, 2vw, 1.4rem);
   z-index: 10;
-  transition: transform 0.15s ease, background 0.1s ease;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  transition: background 0.1s ease, color 0.1s ease;
 }
 
-/* Controller places endpoint .pulse-number at start AND end; hide the end
-   duplicate since pulse 0 already occupies that position. */
-body[data-visual="nuzic"] .timeline.circular .pulse-number.endpoint:not([data-index="0"]) {
-  display: none !important;
-}
-
-/* Strip the tick marks from circular pulse-numbers (ticks only make sense
-   on the linear cream bar) */
+/* Radial ticks: the base nuzic rule draws a vertical tick above and below
+   each .pulse-number. In circular mode we rotate them so they point radially
+   (toward the center of the circle), matching the dashes in the reference.
+   The `--pulse-angle` var is set by JS per pulse number (in radians).
+   The tick "above" points toward the outer edge; the tick "below" points
+   toward the inner disc. We translate them to sit flush against the number. */
 body[data-visual="nuzic"] .timeline.circular .pulse-number::before,
 body[data-visual="nuzic"] .timeline.circular .pulse-number::after {
+  background: var(--nuzic-dark);
+  opacity: 0.7;
+  width: 2.5px;
+  height: 10px;
+}
+
+body[data-visual="nuzic"] .timeline.circular .pulse-number::before {
+  top: auto !important;
+  bottom: 100% !important;
+  margin-bottom: 4px;
+  transform: translateX(-50%) rotate(var(--pulse-angle, 0deg)) !important;
+  transform-origin: 50% calc(100% + 4px);
+}
+
+body[data-visual="nuzic"] .timeline.circular .pulse-number::after {
+  top: 100% !important;
+  margin-top: 4px;
+  transform: translateX(-50%) rotate(var(--pulse-angle, 0deg)) !important;
+  transform-origin: 50% -4px;
+}
+
+/* Cycle-start (pulse 0) thicker outer tick — like linear nuzic */
+body[data-visual="nuzic"] .timeline.circular .pulse-number.cycle-start::before {
+  width: 5px;
+  opacity: 1;
+}
+
+/* Hide the endpoint-duplicate at position = lg (overlaps with pulse 0) */
+body[data-visual="nuzic"] .timeline.circular .pulse-number.endpoint[data-index]:not([data-index="0"]) {
   display: none !important;
 }
 
-/* Active pulse highlight: golden ring-chip */
+/* Active pulse highlight — golden pill */
 body[data-visual="nuzic"] .timeline.circular .pulse-number.active,
 body[data-visual="nuzic"] .timeline.circular .pulse-number.active-zero {
-  color: var(--nuzic-dark);
   background: var(--nuzic-yellow);
-  border-radius: 999px;
-  padding: 0.15rem 0.45rem;
-}
-
-/* Cycle-start (position 0) — golden ring highlight */
-body[data-visual="nuzic"] .timeline.circular .pulse-number.cycle-start {
   color: var(--nuzic-dark);
 }
 
-body[data-visual="nuzic"] .timeline.circular .pulse-number.cycle-start::after {
-  content: '';
-  display: block;
-  position: absolute;
-  inset: -0.2rem -0.35rem;
-  border: 2px solid var(--nuzic-yellow);
-  border-radius: 999px;
-  pointer-events: none;
-  z-index: -1;
-}
 
 /* ========== TOTAL LENGTH — centered inside the ring ========== */
 .total-length-center {
@@ -175,14 +185,14 @@ body[data-visual="nuzic"] .timeline.circular .pulse-number.cycle-start::after {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
   pointer-events: none;
   z-index: 5;
 }
 
 .total-length-center .circle {
-  width: clamp(2.75rem, 6vw, 4rem);
-  height: clamp(2.75rem, 6vw, 4rem);
+  /* Same size as the App16 .measure-marker__circle */
+  width: clamp(1.25rem, 2.4vw, 1.6rem);
+  height: clamp(1.25rem, 2.4vw, 1.6rem);
   border: 2px solid var(--nuzic-yellow);
   border-radius: 50%;
   background: #ffffff;
@@ -194,27 +204,26 @@ body[data-visual="nuzic"] .timeline.circular .pulse-number.cycle-start::after {
 .total-length-center .total-length__digit {
   font-family: 'Ubuntu', sans-serif;
   font-weight: 700;
-  font-size: clamp(1rem, 2vw, 1.5rem);
+  font-size: clamp(0.7rem, 1.3vw, 0.9rem);
   color: var(--nuzic-dark);
   line-height: 1;
 }
 
-.total-length-center .abbr {
-  display: none; /* Label not needed inside the ring */
-}
+.total-length__digit.playing-zero { color: var(--nuzic-yellow); }
+.total-length__digit.playing-active { color: var(--nuzic-dark); }
 
-/* Playback colors for the total length digit */
-.total-length__digit.playing-zero {
-  color: var(--nuzic-yellow);
-}
-
-.total-length__digit.playing-active {
-  color: var(--nuzic-dark);
-}
-
-/* Flip animations (shared keyframes from cycle-counter.css) */
 .total-length__digit.flip-out { animation: flipOut 0.15s ease-in forwards; }
 .total-length__digit.flip-in { animation: flipIn 0.15s ease-out forwards; }
+
+@keyframes flipOut {
+  0% { transform: rotateX(0deg); }
+  100% { transform: rotateX(90deg); }
+}
+
+@keyframes flipIn {
+  0% { transform: rotateX(-90deg); }
+  100% { transform: rotateX(0deg); }
+}
 
 [data-theme="dark"] .total-length-center .circle {
   background: #2a2a28;

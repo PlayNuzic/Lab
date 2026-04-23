@@ -1667,15 +1667,16 @@ body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle .spin {
    Activada amb la classe addicional `.param--large--dual`.
    -------------------------------------------------------------------------- */
 
-/* Augmentem l'alçada del disc groc per acomodar els dos elements */
+/* Keep the disc perfectly round — make it slightly larger so the two
+   apilats pills (primary + secondary) fit inside without becoming elliptical. */
 body[data-visual="nuzic"] .param.param--large--dual .circle {
-  width: clamp(4rem, 10vw, 7rem) !important;
-  height: clamp(5.5rem, 13vw, 9rem) !important;
-  aspect-ratio: auto !important;
-  border-radius: clamp(2.75rem, 6.5vw, 4.5rem) !important;
+  width: clamp(5rem, 12vw, 8rem) !important;
+  height: clamp(5rem, 12vw, 8rem) !important;
+  aspect-ratio: 1 !important;
+  border-radius: 50% !important;
   flex-direction: column !important;
-  gap: clamp(0.2rem, 0.6vw, 0.4rem) !important;
-  padding: clamp(0.4rem, 1vw, 0.7rem) 0 !important;
+  gap: clamp(0.15rem, 0.5vw, 0.35rem) !important;
+  padding: 0 !important;
 }
 
 /* Desactivem el cèrcol blanc central de .param--large (el substitueix
@@ -1688,8 +1689,9 @@ body[data-visual="nuzic"] .param.param--large--dual .circle::before {
 body[data-visual="nuzic"] .param.param--large--dual .pl-primary {
   position: relative;
   z-index: 2;
-  width: clamp(1.8rem, 4.4vw, 3rem);
-  height: clamp(1.8rem, 4.4vw, 3rem);
+  margin-top: 8%;
+  width: clamp(1.6rem, 4vw, 2.6rem);
+  height: clamp(1.6rem, 4vw, 2.6rem);
   border-radius: 50%;
   background: #ffffff;
   display: flex;
@@ -1728,8 +1730,8 @@ body[data-visual="nuzic"] .param.param--large--dual .pl-primary input {
 body[data-visual="nuzic"] .param.param--large--dual .pl-secondary {
   position: relative;
   z-index: 2;
-  width: clamp(1.4rem, 3.5vw, 2.3rem);
-  height: clamp(0.9rem, 2.2vw, 1.4rem);
+  width: clamp(1.2rem, 3vw, 2rem);
+  height: clamp(0.8rem, 2vw, 1.2rem);
   border-radius: 999px;
   background: #ffffff;
   display: flex;

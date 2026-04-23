@@ -229,11 +229,10 @@ function renderEmptyTimeline() {
 }
 
 /**
- * Render pulse numbers on the timeline
- * Uses the timeline controller's built-in numbering with showNumber
- *
- * Shows numbers 0 to pulsosCompas-1. The endpoint number (pulsosCompas)
- * is hidden via CSS since it visually overlaps with position 0.
+ * Render pulse numbers on the circular timeline — positioned on the cream
+ * ring (midway between the outer yellow edge and the inner white disc).
+ * We place them via trigonometry on the .timeline's own bounding box after
+ * layout (rAF) so the positions track the actual rendered size.
  */
 function renderPulseNumbers() {
   if (!timeline || pulsosCompas === null) return;
@@ -241,23 +240,44 @@ function renderPulseNumbers() {
   // Remove existing numbers
   timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
 
-  // Show numbers 0 to pulsosCompas-1
-  // The endpoint (pulsosCompas) is hidden via CSS
-  for (let i = 0; i < pulsosCompas; i++) {
-    timelineController.showNumber(i);
+  const n = pulsosCompas;
+  // Create elements first so they are in DOM before measuring.
+  const numberEls = [];
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('div');
+    el.className = 'pulse-number';
+    el.dataset.index = String(i);
+    el.textContent = String(i);
+    if (i === 0) el.classList.add('cycle-start');
+    timeline.appendChild(el);
+    numberEls.push(el);
   }
 
-  // Add superscripts to all numbers (cycle 1 when stopped)
-  // Use requestAnimationFrame to ensure DOM is updated after showNumber
-  if (superscriptController) {
-    superscriptController.updateAfterRender(1, () => {
-      // Apply cycle-start class to pulse 0
-      const zeroNumber = timeline.querySelector('.pulse-number[data-index="0"]');
-      if (zeroNumber) {
-        zeroNumber.classList.add('cycle-start');
-      }
+  // Position after layout.
+  requestAnimationFrame(() => {
+    const rect = timeline.getBoundingClientRect();
+    if (rect.width === 0) return;
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    // Ring center radius: midway between the inner white disc (55% of radius)
+    // and the outer cream edge (100% of radius) → 77.5%.
+    const ringRadius = Math.min(rect.width, rect.height) / 2 * 0.775;
+
+    numberEls.forEach((el, i) => {
+      const angle = (i / n) * 2 * Math.PI - Math.PI / 2;  // pulse 0 at top
+      const x = cx + ringRadius * Math.cos(angle);
+      const y = cy + ringRadius * Math.sin(angle);
+      // Use setProperty+important to defeat nuzic-theme's base rule
+      // `.timeline .pulse-number { top: 50% !important; transform: translate(-50%,-50%) !important }`
+      el.style.setProperty('left', `${x}px`, 'important');
+      el.style.setProperty('top', `${y}px`, 'important');
+      el.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
+      // Radial tick rotation for the ::before/::after tick pseudo-elements.
+      // Expressed in degrees so the CSS can use it directly as an angle.
+      const tickDeg = ((angle + Math.PI / 2) * 180) / Math.PI;
+      el.style.setProperty('--pulse-angle', `${tickDeg}deg`);
     });
-  }
+  });
 }
 
 // ============================================
@@ -808,7 +828,10 @@ async function initializeApp() {
   }
   totalLengthDigit = document.getElementById('totalLengthDigit');
 
-  // Move BPM to controls row (Play | BPM | Random | Reset)
+  // Move BPM to controls row (Play | BPM | Random | Reset) and move the
+  // .controls element OUT of .timeline-wrapper so it doesn't inherit the
+  // circular wrapper's absolute positioning (which would stack the buttons
+  // at the center of the ring).
   const bpmParam = document.getElementById('bpmParam');
   const controls = document.querySelector('.controls');
   if (controls && bpmParam) {
@@ -824,6 +847,11 @@ async function initializeApp() {
     if (randomBtnEl) controls.appendChild(randomBtnEl);
     if (randomMenuEl) controls.appendChild(randomMenuEl);
     if (resetBtnEl) controls.appendChild(resetBtnEl);
+
+    // Move controls to be a sibling of timelineWrapper (below the ring).
+    if (timelineWrapper?.parentNode && controls.parentNode === timelineWrapper) {
+      timelineWrapper.parentNode.insertBefore(controls, timelineWrapper.nextSibling);
+    }
   }
 
   // Create BPM controller
