@@ -79,12 +79,19 @@ function drawTimeline() {
     timeline.appendChild(pulse);
   }
 
-  // Crear números de pulsos (0-8) — element principal amb tema nuzic
+  // Crear números de pulsos (0-8) — element principal amb tema nuzic.
+  // L'últim pols es dibuixa com a `·` amb dobles guions (classe cycle-end)
+  // i no sona a la seqüència.
   for (let i = 0; i <= 8; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
     num.dataset.index = i;
-    num.textContent = i;
+    if (i === 8) {
+      num.classList.add('cycle-end');
+      num.textContent = '·';
+    } else {
+      num.textContent = i;
+    }
     timeline.appendChild(num);
   }
 
@@ -251,9 +258,10 @@ async function handlePlay() {
     }
   });
 
-  // Iniciar reproducción con 9 pulsos (0-8)
+  // Iniciar reproducción con 8 pulsos (0-7). El pols 8 és l'endpoint visual
+  // (`·` amb dobles guions) — no sona.
   audio.play(
-    TOTAL_PULSES,      // 9 pasos para reproducir índices 0-8
+    TOTAL_PULSES - 1,  // 8 pasos per reproduir índexs 0-7
     intervalSec,       // Intervalo entre pulsos
     selectedPulses,    // Set con índices de pulsos que tienen nota
     false,             // Sin loop

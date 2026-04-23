@@ -522,12 +522,19 @@ function drawTimeline() {
     timeline.appendChild(pulse);
   }
 
-  // Números de pulsos (0-8) — element principal amb tema nuzic
+  // Números de pulsos (0-8) — element principal amb tema nuzic.
+  // L'últim pols es dibuixa com a `·` amb dobles guions (classe cycle-end)
+  // i no sona a la seqüència (el bucle del metrònom ja acaba a p=7).
   for (let i = 0; i <= 8; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
     num.dataset.index = i;
-    num.textContent = i;
+    if (i === 8) {
+      num.classList.add('cycle-end');
+      num.textContent = '·';
+    } else {
+      num.textContent = i;
+    }
     timeline.appendChild(num);
   }
 

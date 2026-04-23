@@ -78,7 +78,10 @@ body[data-visual="nuzic"] {
   text-align: center;
   font-size: 1.2rem;
   font-weight: 700;
-  color: var(--nuzic-dark, #43433b);
+  /* Hardcoded dark hex: the cell bg is white in both themes, so the digit
+     must stay dark in both themes (do NOT use `--nuzic-dark` — that token
+     flips to cream in dark mode and becomes illegible here). */
+  color: #43433b;
   padding: 0.3rem 0;
   background: white;
   border-right: 2px solid var(--nuzic-yellow, #FFBB33);
