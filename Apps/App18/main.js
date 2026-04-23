@@ -2,7 +2,8 @@
 // Visual melodic line with registry-based piano playback
 
 import { createSoundline } from '../../libs/app-common/soundline.js';
-import { loadPiano, setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
+import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 import { attachHover } from '../../libs/shared-ui/hover.js';
@@ -12,7 +13,7 @@ import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== STATE ==========
 let isPlaying = false;
-let piano = null;
+let audio = null;
 let soundline = null;
 let randomNotes = [];
 let currentBPM = 0;
@@ -61,9 +62,9 @@ async function handleNoteClick(noteIndex) {
   const registry = registryController.getRegistry();
   if (registry === null) return;
 
-  // Initialize piano if needed
-  if (!piano) {
-    await initPiano();
+  // Initialize audio if needed
+  if (!audio) {
+    await initAudio();
   }
 
   // Convert visual index to note-in-registry using controller
@@ -72,10 +73,9 @@ async function handleNoteClick(noteIndex) {
   // Get MIDI using controller (includes MIDI_OFFSET)
   const { midi } = registryController.getMidiForNote(noteInRegistry);
 
-  // Play the note
+  // Play the note through the shared mixer/FX chain.
   const Tone = window.Tone;
-  const note = Tone.Frequency(midi, 'midi').toNote();
-  piano.triggerAttackRelease(note, 0.5);
+  audio.playNote(midi, 0.5, Tone?.now?.() ?? 0);
 
   // Animate the number element
   animateNumberClick(noteIndex);
@@ -229,40 +229,22 @@ function clearHighlights() {
 }
 
 // ========== AUDIO FUNCTIONS ==========
-async function initPiano() {
-  if (!piano) {
-    console.log('Ensuring Tone.js is loaded...');
+// Route audio through the shared MelodicTimelineAudio engine so the piano
+// sampler lands on the mixer's `melodic` channel (which carries the FX
+// chain, including reverb). Volume/mute come from the header via
+// `sharedui:volume`/`sharedui:mute`, handled globally by the shared mixer
+// — no per-app listener needed.
+const _initAudio = createMelodicAudioInitializer({
+  defaultInstrument: 'piano'
+});
+
+async function initAudio() {
+  if (!audio) {
     await ensureToneLoaded();
-    console.log('Loading piano...');
-    piano = await loadPiano();
-    console.log('Piano loaded');
-
-    // Setup volume control after Tone.js is available
-    setupVolumeControl();
+    audio = await _initAudio();
+    if (typeof window !== 'undefined') window.__labAudio = audio;
   }
-  return piano;
-}
-
-/**
- * Connect header volume/mute controls to Tone.js Master
- */
-function setupVolumeControl() {
-  const Tone = window.Tone;
-  if (!Tone) return;
-
-  // Listen to volume changes from header slider
-  window.addEventListener('sharedui:volume', (e) => {
-    const volume = e.detail?.value ?? 0.75;
-    // Convert linear 0-1 to dB (-Infinity to 0)
-    const dB = volume > 0 ? 20 * Math.log10(volume) : -Infinity;
-    Tone.getDestination().volume.value = dB;
-  });
-
-  // Listen to mute toggle from header speaker icon
-  window.addEventListener('sharedui:mute', (e) => {
-    const muted = e.detail?.value ?? false;
-    Tone.getDestination().mute = muted;
-  });
+  return audio;
 }
 
 /**
@@ -296,9 +278,9 @@ async function handlePlay() {
     playIcon.style.opacity = '0.5';
   }
 
-  // Initialize piano if needed
-  if (!piano) {
-    await initPiano();
+  // Initialize audio if needed
+  if (!audio) {
+    await initAudio();
   }
 
   // Restore button opacity after loading
@@ -337,14 +319,13 @@ async function handlePlay() {
 
   randomNotes.forEach((noteInRegistry) => {
     const { midi, clampedNote } = registryController.getMidiForNote(noteInRegistry);
-    const note = Tone.Frequency(midi, 'midi').toNote();
     const noteDurationSec = intervalSec * 0.9;
     const highlightIndex = registryController.getHighlightIndex(clampedNote);
     const delayMs = currentTime * 1000;
 
     playbackTimeouts.push(setTimeout(() => {
       if (!isPlaying) return;
-      piano.triggerAttackRelease(note, noteDurationSec);
+      audio?.playNote(midi, noteDurationSec, Tone?.now?.() ?? 0);
       highlightNote(highlightIndex, noteDurationSec * 1000);
     }, delayMs));
 
@@ -360,10 +341,8 @@ function stopPlayback() {
   isPlaying = false;
   playbackTimeouts.forEach(id => clearTimeout(id));
   playbackTimeouts = [];
-  // Stop all scheduled/ringing notes in Tone.js sampler
-  if (piano && typeof piano.releaseAll === 'function') {
-    piano.releaseAll();
-  }
+  // Stop all scheduled/ringing notes via the shared engine.
+  audio?.stop?.();
   clearHighlights();
 
   if (playBtn) {

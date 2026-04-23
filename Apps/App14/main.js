@@ -1,7 +1,8 @@
 // App14: Intervalo Sonoro - Editor de seqüències d'iS amb visualització
 import { createSoundline } from '../../libs/app-common/soundline.js';
 import { createNoteHighlightController } from '../../libs/app-common/note-highlight.js';
-import { loadPiano, setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
+import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
+import { setupPianoPreload, isPianoLoaded } from '../../libs/sound/piano.js';
 import { ensureToneLoaded } from '../../libs/sound/tone-loader.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
@@ -17,7 +18,7 @@ const MAX_IS = 4; // Màxim 4 intervals
 // ========== ESTAT ==========
 let isPlaying = false;
 let userStopped = false; // Flag per indicar que l'usuari ha parat manualment
-let piano = null;
+let audio = null;
 let currentIntervals = []; // Array de valors iS entrats
 let currentHighlights = [];
 let currentIntervalElements = [];
@@ -503,35 +504,29 @@ function focusFirstInput() {
 }
 
 // ========== AUDIO ==========
-let pianoInitialized = false;
+// Route audio through the shared MelodicTimelineAudio engine so the piano
+// sampler lands on the mixer's `melodic` channel (which carries the FX
+// chain, including reverb). This keeps volume/mute consistent with every
+// other Lab app: the header dispatches `sharedui:volume`/`sharedui:mute`
+// and the shared mixer handles them globally — no per-app handler needed.
+const _initAudio = createMelodicAudioInitializer({
+  defaultInstrument: 'piano'
+});
 
-async function initializePiano() {
-  if (pianoInitialized) return;
-  pianoInitialized = true;
+let audioInitialized = false;
+
+async function initializeAudio() {
+  if (audioInitialized) return;
+  audioInitialized = true;
 
   try {
     await ensureToneLoaded();
-    piano = await loadPiano();
-    setupVolumeControl();
+    audio = await _initAudio();
+    // Expose so the header's volume/mute plumbing can locate this instance.
+    if (typeof window !== 'undefined') window.__labAudio = audio;
   } catch (error) {
-    console.error('Error initializing piano:', error);
+    console.error('Error initializing audio:', error);
   }
-}
-
-function setupVolumeControl() {
-  const Tone = window.Tone;
-  if (!Tone) return;
-
-  window.addEventListener('sharedui:volume', (e) => {
-    const volume = e.detail?.value ?? 0.75;
-    const dB = volume > 0 ? 20 * Math.log10(volume) : -Infinity;
-    Tone.getDestination().volume.value = dB;
-  });
-
-  window.addEventListener('sharedui:mute', (e) => {
-    const muted = e.detail?.value ?? false;
-    Tone.getDestination().mute = muted;
-  });
 }
 
 // ========== INPUT HIGHLIGHT ==========
@@ -572,14 +567,14 @@ async function handlePlay() {
     playIcon.style.opacity = '0.5';
   }
 
-  await initializePiano();
+  await initializeAudio();
 
   // Restore button opacity after loading
   if (playIcon) {
     playIcon.style.opacity = '1';
   }
 
-  if (!piano) return;
+  if (!audio) return;
 
   isPlaying = true;
   userStopped = false; // Reset flag per nova reproducció
@@ -626,16 +621,14 @@ async function handlePlay() {
 
       // Si NO és el primer parell, repetir la nota origen (1 beat)
       if (i > 0) {
-        const repeatNoteName = getNoteName(originNote);
-        piano.triggerAttackRelease(repeatNoteName, beatSec * 0.9, Tone.now());
+        audio.playNote(START_MIDI + originNote, beatSec * 0.9, Tone.now());
         highlightController.highlightNote(originNote, 999999);
         currentHighlights.push(originNote);
         await sleep(beatSec * 1000);
         if (!isPlaying) break;
       } else {
         // Primer parell: tocar nota origen (1 beat)
-        const originNoteName = getNoteName(originNote);
-        piano.triggerAttackRelease(originNoteName, beatSec * 0.9, Tone.now());
+        audio.playNote(START_MIDI + originNote, beatSec * 0.9, Tone.now());
         highlightController.highlightNote(originNote, 999999);
         currentHighlights.push(originNote);
         await sleep(beatSec * 1000);
@@ -649,8 +642,7 @@ async function handlePlay() {
       showIntervalNumber(originNote, destNote, 0); // delay 0
 
       // Tocar nota destí (2 beats)
-      const destNoteName = getNoteName(destNote);
-      piano.triggerAttackRelease(destNoteName, beatSec * 2 * 0.9, Tone.now());
+      audio.playNote(START_MIDI + destNote, beatSec * 2 * 0.9, Tone.now());
       highlightController.highlightNote(destNote, 999999);
       if (destNote !== originNote) {
         currentHighlights.push(destNote);
@@ -813,13 +805,8 @@ function initApp() {
   console.log('App14 inicialitzada');
 }
 
-// Cleanup
-window.addEventListener('beforeunload', () => {
-  if (piano && typeof piano.dispose === 'function') {
-    piano.dispose();
-    piano = null;
-  }
-});
+// Cleanup: the shared MelodicTimelineAudio instance manages its own
+// Tone.js resources (sampler + effects chain) — no explicit dispose needed.
 
 // Executar quan el DOM estigui llest
 if (document.readyState === 'loading') {
