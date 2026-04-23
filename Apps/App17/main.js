@@ -221,7 +221,8 @@ function renderPulseNumbers() {
     const el = document.createElement('div');
     el.className = 'pulse-number';
     el.dataset.index = String(i);
-    el.textContent = String(i);
+    // Superscript is always visible — cycle 1 at rest, updated during play.
+    el.innerHTML = `${i}<sup>1</sup>`;
     if (i === 0) el.classList.add('cycle-start');
     timeline.appendChild(el);
     numberEls.push(el);
@@ -273,8 +274,12 @@ function renderPulseNumbers() {
     const MIN_TEXT_GAP = 3;
     const slotOuter = Math.max(0, outerSpan - halfFont - MIN_TEXT_GAP);
     const slotInner = Math.max(0, innerSpan - halfFont - MIN_TEXT_GAP);
-    // Symmetric tick length, sized to the smaller slot so it fits both sides.
-    const tickLength = Math.max(3, Math.min(slotOuter, slotInner));
+    // Symmetric tick length, sized to the smaller slot so it fits both
+    // sides, then scaled down so ticks don't feel too long. Each tick's
+    // inner end sits near the text; the extra room on either side goes
+    // into `gap_*` below, which offsets the tick away from the number.
+    const TICK_SCALE = 0.5;
+    const tickLength = Math.max(3, Math.min(slotOuter, slotInner) * TICK_SCALE);
     // Gap from the text edge to the tick's near end.
     // The tick's far end sits on the donut edge by construction.
     const gapBefore = MIN_TEXT_GAP + Math.max(0, slotOuter - tickLength);
@@ -521,6 +526,9 @@ async function handlePlay() {
   currentStep = -1;
   updateCycleCounter(1);
 
+  // Show cycle-1 superscripts on every pulse number from the first beat.
+  if (superscriptController) superscriptController.updateAll(1);
+
   // Update play button state
   playBtn?.classList.add('active');
 
@@ -612,7 +620,7 @@ function stopPlayback(forceStop = true) {
 
   clearHighlights();
 
-  // Reset superscripts to cycle 1
+  // Reset superscripts back to cycle 1 (always visible).
   if (superscriptController) superscriptController.reset();
 
   // Reset total length display (clear playback colors)
