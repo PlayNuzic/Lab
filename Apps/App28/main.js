@@ -4,7 +4,7 @@
 // Bi-direccionalitat: timeline <-> pulseSeq
 // Playback one-shot (sense loop)
 
-import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { getMixer, subscribeMixer, setChannelMute } from '../../libs/sound/index.js';
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
@@ -1141,8 +1141,16 @@ function applyTransportConfig() {
   const n = FIXED_NUMERATOR;
   const hasCycle = d > 0 && Math.floor(lg / n) > 0;
 
-  // Scale values by denominator (same as startPlayback) — include endpoint
-  const scaledTotal = lg * d;  // Pulses 0..lg-1 sound; pulse Lg is the cycle-end marker (·) and doesn't sound
+  // Scale values by denominator (same as startPlayback).
+  //   scaledTotal = lg*d + 1: engine reaches the pulse-Lg step so the
+  //     subdivisions just before it (5.1, 5.2, …) emit cycle events.
+  //   patternBeats = lg*d    : cycle events stay within [0, lg*d) so no
+  //     subdivisions INSIDE pulse Lg get scheduled.
+  //   The pulse-Lg base sample is muted by the onSchedule hook in
+  //     startPlayback; this function only updates transport state and
+  //     does not alter that behaviour.
+  const endpointStep = lg * d;
+  const scaledTotal = endpointStep + 1;
   // scaledBpm ensures interval = (60/bpm)/d
   const scaledBpm = bpm * d;
 
@@ -1150,7 +1158,7 @@ function applyTransportConfig() {
     totalPulses: scaledTotal,
     bpm: scaledBpm,
     baseResolution: d,
-    patternBeats: scaledTotal,
+    patternBeats: endpointStep,
     cycle: hasCycle ? {
       numerator: n * d,
       denominator: d,
@@ -1203,11 +1211,20 @@ async function startPlayback() {
   const d = currentDenominator;
   const n = FIXED_NUMERATOR;
 
-  // Scale by denominator to include subdivisions
-  // Interval must be divided by d so that integer pulses maintain correct tempo
+  // Scale by denominator to include subdivisions. Each engine step =
+  // 1/d of a pulse. baseResolution=d makes only integer pulses sound as
+  // base beats; fractional subdivisions sound via the cycle engine.
+  //
+  // scaledTotal = lg*d + 1  → engine reaches the step at pulse Lg and
+  //   emits the cycle-subdivision events just before it (5.1, 5.2, …).
+  // patternBeats = lg*d     → cycle events only within [0, lg*d), so no
+  //   subdivisions INSIDE the cycle-end pulse (Lg) are scheduled.
+  // We then mute the `pulse` channel in onSchedule for stepIndex === lg*d
+  //   so the base pulse sample of pulse Lg (the `·` endpoint) stays silent.
   const baseResolution = d;
-  const scaledTotal = lg * d;  // Pulses 0..lg-1 sound; pulse Lg is the cycle-end marker (·) and doesn't sound
-  const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
+  const endpointStep = lg * d;
+  const scaledTotal = endpointStep + 1;
+  const scaledInterval = (60 / bpm) / d;
 
   const audioInstance = await initAudio();
 
@@ -1215,6 +1232,17 @@ async function startPlayback() {
 
   // Get audio selection with scaled indices
   const audioSelection = getAudioSelection();
+
+  // Remember current pulse-channel mute so we can restore it on finish.
+  const wasPulseMuted = !!getMixer()?.getChannelState?.('pulse')?.muted;
+  let pulseMutedForEndpoint = false;
+
+  const restorePulseChannel = () => {
+    if (pulseMutedForEndpoint) {
+      setChannelMute('pulse', wasPulseMuted);
+      pulseMutedForEndpoint = false;
+    }
+  };
 
   const onFinish = () => {
     isPlaying = false;
@@ -1228,6 +1256,7 @@ async function startPlayback() {
     }
 
     clearHighlights();
+    restorePulseChannel();
     // Delay stop() so the pre-scheduled sample for the last pulse (endpoint)
     // has time to play instead of being cancelled by source.stop(0).
     setTimeout(() => audioInstance.stop(), Math.max(200, scaledInterval * 1000 * 0.6));
@@ -1236,7 +1265,16 @@ async function startPlayback() {
   // Build play options
   const playOptions = {
     baseResolution,
-    patternBeats: scaledTotal // Pattern length including endpoint
+    patternBeats: endpointStep,  // cycle events only within [0, lg*d)
+    onSchedule: (stepIndex, _when) => {
+      // Mute the pulse channel just before the endpoint beat (pulse Lg =
+      // cycle-end `·`) so its base sample doesn't fire. Subdivisions
+      // already fired before this step; onFinish restores the channel.
+      if (stepIndex === endpointStep && !pulseMutedForEndpoint) {
+        setChannelMute('pulse', true);
+        pulseMutedForEndpoint = true;
+      }
+    }
   };
 
   if (hasCycle) {

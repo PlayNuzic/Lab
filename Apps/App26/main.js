@@ -3,7 +3,7 @@
 // Lg=6 fix, BPM=85 fix, numerador=1 fix, denominador editable (1-8)
 // Playback one-shot (sense loop)
 
-import { getMixer, subscribeMixer } from '../../libs/sound/index.js';
+import { getMixer, subscribeMixer, setChannelMute } from '../../libs/sound/index.js';
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initAudioToggles } from '../../libs/app-common/audio-toggles.js';
@@ -548,11 +548,29 @@ async function startPlayback() {
   const lg = FIXED_LG;
   const bpm = bpmController?.getValue() || DEFAULT_BPM;
   const interval = 60 / bpm;
-  const playbackTotal = lg; // One-shot: pulses 0..lg-1 sound; pulse Lg is the cycle-end marker (·) and doesn't sound
+  // playbackTotal = lg + 1 so the engine reaches the final beat and emits
+  // the cycle-subdivision events just before it (5.1, 5.2, … up to the
+  // last subdivision before pulse Lg). patternBeats = lg caps the cycle
+  // event generator to beats in [0, lg), so no subdivisions INSIDE the
+  // cycle-end pulse (Lg) are scheduled. The engine still fires a base
+  // pulse at step lg — we mute the `pulse` channel in onSchedule for
+  // that single step so pulse Lg stays silent (it's the `·` endpoint).
+  const playbackTotal = lg + 1;
 
   const audioInstance = await initAudio();
 
   const hasCycle = currentDenominator > 0 && Math.floor(lg / FIXED_NUMERATOR) > 0;
+
+  // Remember current pulse-channel mute so we can restore it on finish.
+  const wasPulseMuted = !!getMixer()?.getChannelState?.('pulse')?.muted;
+  let pulseMutedForEndpoint = false;
+
+  const restorePulseChannel = () => {
+    if (pulseMutedForEndpoint) {
+      setChannelMute('pulse', wasPulseMuted);
+      pulseMutedForEndpoint = false;
+    }
+  };
 
   const onFinish = () => {
     isPlaying = false;
@@ -566,10 +584,15 @@ async function startPlayback() {
     }
 
     clearHighlights();
-    // Delay stop() so the pre-scheduled sample for the last pulse (endpoint)
-    // has time to play instead of being cancelled by source.stop(0).
+    restorePulseChannel();
+    // Delay stop() so the pre-scheduled sample for the last fractional
+    // subdivision has time to play instead of being cancelled by source.stop(0).
     setTimeout(() => audioInstance.stop(), Math.max(200, interval * 1000 * 0.6));
   };
+
+  const cycleOptions = hasCycle
+    ? { cycle: { numerator: FIXED_NUMERATOR, denominator: currentDenominator, onTick: highlightCycle } }
+    : {};
 
   audioInstance.play(
     playbackTotal,
@@ -578,9 +601,20 @@ async function startPlayback() {
     false,           // Loop DISABLED (one-shot)
     highlightPulse,
     onFinish,
-    hasCycle
-      ? { cycle: { numerator: FIXED_NUMERATOR, denominator: currentDenominator, onTick: highlightCycle }, patternBeats: lg }
-      : { patternBeats: lg }
+    {
+      ...cycleOptions,
+      patternBeats: lg,   // cycle events only within [0, lg)
+      onSchedule: (stepIndex, _when) => {
+        // Mute the pulse channel just before the final beat (pulse Lg =
+        // cycle-end `·`) so its base sample doesn't fire. Subdivisions
+        // already fired before this step; the engine will emit `done`
+        // immediately after the pulse and onFinish restores the channel.
+        if (stepIndex === lg && !pulseMutedForEndpoint) {
+          setChannelMute('pulse', true);
+          pulseMutedForEndpoint = true;
+        }
+      }
+    }
   );
 
   isPlaying = true;

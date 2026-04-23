@@ -4,7 +4,7 @@
 // Grid 2D amb 12 notes (0-11) + soundline
 // Àudio melòdic amb selector d'instrument + so de cicle
 
-import { getMixer } from '../../libs/sound/index.js';
+import { getMixer, setChannelMute } from '../../libs/sound/index.js';
 import { createMelodicAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
@@ -83,6 +83,19 @@ let dragState = {
 
 // Playback state
 let playbackAbort = null;
+
+// Endpoint-mute state: we mute the `pulse` channel for a single engine
+// step at the end (pulse Lg) so the cycle-end pulse stays silent.
+// Both stopPlayback (user) and onFinish (auto) must restore it.
+let endpointPulseMuted = false;
+let endpointPulseMuteWasMuted = false;
+function restoreEndpointPulseMute() {
+  if (endpointPulseMuted) {
+    setChannelMute('pulse', endpointPulseMuteWasMuted);
+    endpointPulseMuted = false;
+  }
+}
+
 let currentMetronomeSound = (() => {
   try {
     const stored = localStorage.getItem('baseSound');
@@ -1279,14 +1292,18 @@ function applyTransportConfig() {
   const n = FIXED_NUMERATOR;
   const d = currentDenominator;
 
-  const scaledTotal = lg * d + 1;  // +1 extra step for pulse Lg (endpoint) without adding its subdivisions
+  // See startPlayback: scaledTotal = endpointStep + 1, patternBeats keeps
+  // cycle events within [0, endpointStep). Endpoint mute is managed by
+  // the onSchedule hook in startPlayback; not altered here.
+  const endpointStep = lg * d;
+  const scaledTotal = endpointStep + 1;
   const scaledBpm = bpm * d;
 
   audio.updateTransport({
     totalPulses: scaledTotal,
     bpm: scaledBpm,
     baseResolution: d,
-    patternBeats: scaledTotal,
+    patternBeats: endpointStep,
     cycle: {
       numerator: n * d,
       denominator: d,
@@ -1349,10 +1366,16 @@ async function startPlayback() {
   const n = FIXED_NUMERATOR;
   const d = currentDenominator;
 
-  // Scale by denominator to include subdivisions (like App29)
+  // Scale by denominator to include subdivisions.
+  //   scaledTotal = lg*d + 1  → engine reaches the pulse-Lg step so the
+  //     subdivisions just before it emit cycle events.
+  //   patternBeats = lg*d     → cycle events only within [0, lg*d).
+  //   We mute the `pulse` channel in onSchedule for stepIndex === lg*d
+  //     so pulse Lg stays silent.
   const baseResolution = d;
-  const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
-  const scaledTotal = lg * d + 1;  // +1 extra step for pulse Lg (endpoint) without adding its subdivisions
+  const scaledInterval = (60 / bpm) / d;
+  const endpointStep = lg * d;
+  const scaledTotal = endpointStep + 1;
 
   const audioInstance = await initAudio();
 
@@ -1361,10 +1384,16 @@ async function startPlayback() {
   // No accent selection - we use melodic notes from grid
   const audioSelection = { values: new Set(), resolution: 1 };
 
+  // Record pulse-channel mute so restoreEndpointPulseMute can put it
+  // back when playback ends (onFinish or stopPlayback).
+  endpointPulseMuteWasMuted = !!getMixer()?.getChannelState?.('pulse')?.muted;
+  endpointPulseMuted = false;
+
   const onFinish = () => {
     isPlaying = false;
     updateControlsState();
     clearHighlights();
+    restoreEndpointPulseMute();
     // Delay stop() so the pre-scheduled sample for the last pulse (endpoint)
     // has time to play instead of being cancelled by source.stop(0).
     setTimeout(() => audioInstance.stop(), Math.max(200, scaledInterval * 1000 * 0.6));
@@ -1373,7 +1402,16 @@ async function startPlayback() {
   // Build play options
   const playOptions = {
     baseResolution,
-    patternBeats: scaledTotal // Pattern length including endpoint
+    patternBeats: endpointStep,  // cycle events only within [0, lg*d)
+    onSchedule: (stepIndex, _when) => {
+      // Mute the pulse channel just before the endpoint beat (pulse Lg)
+      // so its base sample doesn't fire. Subdivisions already fired;
+      // onFinish / stopPlayback restores the channel.
+      if (stepIndex === endpointStep && !endpointPulseMuted) {
+        setChannelMute('pulse', true);
+        endpointPulseMuted = true;
+      }
+    }
   };
 
   if (hasCycle) {
@@ -1425,6 +1463,7 @@ async function stopPlayback() {
   audio.stop();
   isPlaying = false;
   clearHighlights();
+  restoreEndpointPulseMute();
   updateControlsState();
 }
 
