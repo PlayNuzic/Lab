@@ -679,6 +679,9 @@ async function init() {
     parent: mainGridWrapper || document.getElementById('app-root'), // Use grid wrapper if exists
     notes: TOTAL_NOTES,
     pulses: TOTAL_PULSES,
+    // The last pulse (index TOTAL_PULSES-1) renders as a `·` cycle-end
+    // marker — visual only, not clickable. Sequence spans 0..7.
+    showCycleEnd: true,
     startMidi: 60, // C4
     fillSpaces: true, // Cells between pulses (spaces 0-7)
     cellClassName: 'musical-cell',

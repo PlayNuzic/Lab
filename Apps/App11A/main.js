@@ -234,11 +234,14 @@ async function init() {
   // Load preferences
   const prefs = preferenceStorage.load() || {};
 
-  // Create musical grid (no cell interaction in App11A)
+  // Create musical grid (no cell interaction in App11A). The last pulse
+  // (index TOTAL_PULSES-1) renders as a `·` cycle-end marker — visual
+  // only, not playable. Playback already caps at SEQUENCE_PULSES (0..7).
   musicalGrid = createMusicalGrid({
     parent: gridContainer,
     notes: TOTAL_NOTES,
     pulses: TOTAL_PULSES,
+    showCycleEnd: true,
     noteFormatter: (index) => index.toString(),
     pulseFormatter: (index) => index.toString(),
     scrollEnabled: false,

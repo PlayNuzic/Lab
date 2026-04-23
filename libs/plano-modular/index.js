@@ -74,7 +74,8 @@ export function createPlanoModular(config) {
     onSelectionChange,
     showPlayhead = true,
     playheadOffset = 0,
-    columnSizing = 'px'  // 'px' (fixed width) or 'fr' (fill available space)
+    columnSizing = 'px',  // 'px' (fixed width) or 'fr' (fill available space)
+    showCycleEnd = false  // Last timeline column renders as `·` cycle-end
   } = config;
 
   // State
@@ -207,7 +208,8 @@ export function createPlanoModular(config) {
     updateTimeline(timelineContainer, columns, {
       cellWidth: columnSizing === 'fr' ? null : cellWidth,
       columnSizing,
-      cycleConfig
+      cycleConfig,
+      showCycleEnd
     });
 
     // Sync timeline scroll with matrix after both are updated

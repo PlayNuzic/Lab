@@ -991,11 +991,14 @@ async function init() {
     });
   }
 
-  // Create musical grid inside timeline-wrapper
+  // Create musical grid inside timeline-wrapper. The last pulse (index
+  // TOTAL_PULSES-1 = 12) renders as a `·` cycle-end marker — visual
+  // only, not clickable. Playback already caps at pulse 11.
   musicalGrid = createMusicalGrid({
     parent: gridWrapper,
     notes: TOTAL_NOTES,
     pulses: TOTAL_PULSES,
+    showCycleEnd: true,
     startMidi: 60,
     fillSpaces: true,
     cellClassName: 'musical-cell',

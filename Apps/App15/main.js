@@ -1336,6 +1336,9 @@ async function initializeApp() {
     parent: gridWrapper,
     notes: TOTAL_NOTES,
     pulses: TOTAL_PULSES,
+    // The last pulse (index TOTAL_PULSES-1) renders as a `·` cycle-end
+    // marker — visual only, not clickable. Sequence spans 0..7.
+    showCycleEnd: true,
     startMidi: 60,
     fillSpaces: true, // Align cells to the spaces between pulse markers
     cellClassName: 'musical-cell',

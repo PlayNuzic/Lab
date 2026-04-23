@@ -200,6 +200,9 @@ export function updateMatrix(container, rows, columns, options = {}) {
  * @param {number} options.cellWidth - Width of each cell in pixels
  * @param {Object} options.cycleConfig - Cycle configuration { compas, showCycle }
  * @param {Function} options.labelFormatter - Custom label formatter (colIndex, cycleConfig) => {label, cycle}
+ * @param {boolean} [options.showCycleEnd] - When true, the last column
+ *   renders as a `·` cycle-end marker (class `plano-cycle-end`). The
+ *   shared nuzic-theme rule supplies the double-dash tick pattern.
  */
 export function updateTimeline(container, columns, options = {}) {
   if (!container) return;
@@ -208,10 +211,12 @@ export function updateTimeline(container, columns, options = {}) {
     cellWidth = 50,
     columnSizing = 'px',
     cycleConfig = {},
-    labelFormatter
+    labelFormatter,
+    showCycleEnd = false
   } = options;
 
   const { compas = columns, showCycle = true } = cycleConfig;
+  const endpointIndex = columns - 1;
 
   // Preserve scroll position
   const savedScrollLeft = container.scrollLeft;
@@ -233,6 +238,20 @@ export function updateTimeline(container, columns, options = {}) {
     numEl.className = 'plano-timeline-number';
     numEl.dataset.colIndex = colIdx;
     numEl.style.marginLeft = '-4px';  // Align with grid cell borders
+
+    const isCycleEnd = showCycleEnd && colIdx === endpointIndex;
+
+    if (isCycleEnd) {
+      // Visual-only endpoint — `·` with double-dash ticks (handled by
+      // nuzic-theme rule .plano-timeline-number.plano-cycle-end::before/::after).
+      numEl.classList.add('plano-cycle-end');
+      const dotSpan = document.createElement('span');
+      dotSpan.className = 'plano-pulse-num';
+      dotSpan.textContent = '·';
+      numEl.appendChild(dotSpan);
+      timelineRow.appendChild(numEl);
+      continue;
+    }
 
     let pulseNum, cycleNum;
 

@@ -60,7 +60,12 @@ export function createMusicalGrid(config) {
     highlightClassName = 'highlight',
     insertBefore = null,
     showIntervals = false,
-    intervalColor = '#4A9EFF'
+    intervalColor = '#4A9EFF',
+    // When true, the last pulse marker (index `pulses - 1`) is rendered
+    // as a `·` cycle-end glyph instead of its numeric label. The shared
+    // nuzic-theme rule `.pulse-marker.cycle-end` supplies the double-dash
+    // tick pattern. The marker is NOT clickable (skipped in onPulseClick).
+    showCycleEnd = false
   } = config;
 
   // Normalize showIntervals to object {horizontal, vertical, cellLines}
@@ -342,6 +347,7 @@ export function createMusicalGrid(config) {
     line.style.right = 'auto'; // Cancel the default right: 0
 
     // Create pulse markers (0 to pulses-1) in PIXELS
+    const endpointIndex = pulses - 1;
     for (let i = 0; i < pulses; i++) {
       // Pulse marker (short vertical line)
       const marker = document.createElement('div');
@@ -362,10 +368,18 @@ export function createMusicalGrid(config) {
       }
 
       marker.style.left = `${markerLeft}px`;
-      marker.textContent = pulseFormatter ? pulseFormatter(i) : i;
 
-      // Click handler for pulse markers
-      if (onPulseClick) {
+      const isCycleEnd = showCycleEnd && i === endpointIndex;
+      if (isCycleEnd) {
+        marker.classList.add('cycle-end');
+        marker.textContent = '·';
+      } else {
+        marker.textContent = pulseFormatter ? pulseFormatter(i) : i;
+      }
+
+      // Click handler for pulse markers. Cycle-end markers are visual
+      // only — skip the handler so they can't be toggled.
+      if (onPulseClick && !isCycleEnd) {
         marker.style.cursor = 'pointer';
         marker.style.pointerEvents = 'auto';
         marker.style.zIndex = '30';

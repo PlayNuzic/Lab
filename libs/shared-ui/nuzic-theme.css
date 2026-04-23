@@ -462,6 +462,57 @@ body[data-visual="nuzic"] .grid-container .pulse-marker.highlighted::after {
   border-radius: 1px;
 }
 
+/* Cycle-end marker (`·` with double dashes `||` above and below) — the
+   last pulse of the sequence acts as a visual closure and doesn't sound.
+   The ticks project LEFT (box-shadow `-5px`) so they stay inside the
+   container's `overflow: hidden`; the `||` midpoint lands at `-5px`
+   from the marker centre. We shift the `·` text left by the same 5px
+   using `padding-right` so it aligns on the same vertical axis as the
+   `||`. The ticks keep their own offsets (unaffected by text padding). */
+body[data-visual="nuzic"] .grid-container .pulse-marker.cycle-end {
+  /* text-indent shifts the `·` text left WITHOUT resizing the bounding
+     box, so ::before/::after anchors stay put while the glyph aligns
+     with the midpoint of `||`. The extra 1.5px on top of the 5px
+     tick-shadow compensates for the Ubuntu `·` glyph not being perfectly
+     centred in its character cell. */
+  text-indent: -6.5px !important;
+}
+
+body[data-visual="nuzic"] .grid-container .pulse-marker.cycle-end::before,
+body[data-visual="nuzic"] .grid-container .pulse-marker.cycle-end::after {
+  width: 2.5px !important;
+  opacity: 1 !important;
+  background: var(--nuzic-dark) !important;
+  /* Duplicate tick projects LEFT so the `||` stays inside the container
+     (parent has overflow:hidden and the marker sits at the right edge). */
+  box-shadow: -5px 0 0 0 var(--nuzic-dark) !important;
+  transform: translateX(calc(-50% - 2.5px)) !important;
+}
+
+/* Upper tick: anchor to the top of the pulse-marker box with a fixed
+   offset, not `bottom: 100%` (which depends on the small `·` bounding
+   box and would float up). */
+body[data-visual="nuzic"] .grid-container .pulse-marker.cycle-end::before {
+  top: -14px !important;
+  bottom: auto !important;
+  margin-bottom: 0 !important;
+}
+
+/* Lower tick: same trick, anchored below the box with a fixed offset. */
+body[data-visual="nuzic"] .grid-container .pulse-marker.cycle-end::after {
+  top: auto !important;
+  bottom: -14px !important;
+  margin-top: 0 !important;
+}
+
+/* Dark mode: the grid bg is light in both themes; pin tick hex so `||`
+   stays identical across themes. */
+body[data-visual="nuzic"][data-theme="dark"] .grid-container .pulse-marker.cycle-end::before,
+body[data-visual="nuzic"][data-theme="dark"] .grid-container .pulse-marker.cycle-end::after {
+  background: #43433b !important;
+  box-shadow: -5px 0 0 0 #43433b !important;
+}
+
 /* Plano-modular timeline */
 body[data-visual="nuzic"] .plano-timeline-container {
   background: var(--nuzic-yellow-light);
@@ -531,6 +582,30 @@ body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-start.plano-highlig
   color: var(--nuzic-dark) !important;
   transform: none;
   text-shadow: none;
+}
+
+/* Cycle-end marker (`·` with double dashes `||` above and below) for
+   plano-modular grids. Mirrors the .pulse-marker.cycle-end pattern. */
+body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-end {
+  height: 1.2em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-end::before,
+body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-end::after {
+  width: 2.5px !important;
+  opacity: 1 !important;
+  background: var(--nuzic-dark) !important;
+  box-shadow: 5px 0 0 0 var(--nuzic-dark) !important;
+  transform: translateX(calc(-50% - 2.5px)) !important;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-number.plano-cycle-end::before,
+body[data-visual="nuzic"][data-theme="dark"] .plano-timeline-number.plano-cycle-end::after {
+  background: #43433b !important;
+  box-shadow: 5px 0 0 0 #43433b !important;
 }
 
 /* Timeline standalone (apps sense .grid-container: app9, app13, App16, App26-31)
