@@ -76,13 +76,14 @@ body[data-visual="nuzic"] .timeline-wrapper.circular {
 
 /* The timeline element is square, centered inside the wrapper. We paint the
    cream donut ring here via a radial gradient — cream outside a central
-   transparent disc. No borders anywhere. */
+   transparent disc. The ring is ~60% of the radius wide (one-third thicker
+   than the prior 45%). No borders anywhere. */
 body[data-visual="nuzic"] .timeline.circular {
   background: radial-gradient(
     circle,
     transparent 0%,
-    transparent 55%,
-    var(--nuzic-yellow-light) 55.5%,
+    transparent 40%,
+    var(--nuzic-yellow-light) 40.5%,
     var(--nuzic-yellow-light) 100%
   ) !important;
   box-shadow: none !important;
@@ -119,42 +120,24 @@ body[data-visual="nuzic"] .timeline.circular .bar {
    JS sets `left`/`top`/`transform` in px with !important to override the
    base nuzic rule (which centers every .pulse-number at 50%/50%). */
 body[data-visual="nuzic"] .timeline.circular .pulse-number {
-  color: var(--nuzic-dark);
-  font-weight: 700;
-  font-size: clamp(0.95rem, 2vw, 1.4rem);
+  /* Inherit font family/color/size from the base nuzic .pulse-number rule
+     (clamp(0.85rem, 1.6vw, 1.2rem), 700, --nuzic-dark) so linear + circular
+     timelines stay visually coherent. */
   z-index: 10;
   padding: 0.1rem 0.35rem;
   border-radius: 999px;
   transition: background 0.1s ease, color 0.1s ease;
 }
 
-/* Radial ticks: the base nuzic rule draws a vertical tick above and below
-   each .pulse-number. In circular mode we rotate them so they point radially
-   (toward the center of the circle), matching the dashes in the reference.
-   The `--pulse-angle` var is set by JS per pulse number (in radians).
-   The tick "above" points toward the outer edge; the tick "below" points
-   toward the inner disc. We translate them to sit flush against the number. */
+/* Ticks inherit from the base nuzic rule — since the .pulse-number is
+   rotated via inline `transform: ... rotate(<angle>)`, the pseudo elements
+   (absolutely positioned relative to their parent) are rotated along with
+   the parent and thus already point radially. Override only where the
+   base rule's `left/top` would place them wrong. */
 body[data-visual="nuzic"] .timeline.circular .pulse-number::before,
 body[data-visual="nuzic"] .timeline.circular .pulse-number::after {
-  background: var(--nuzic-dark);
-  opacity: 0.7;
-  width: 2.5px;
-  height: 10px;
-}
-
-body[data-visual="nuzic"] .timeline.circular .pulse-number::before {
-  top: auto !important;
-  bottom: 100% !important;
-  margin-bottom: 4px;
-  transform: translateX(-50%) rotate(var(--pulse-angle, 0deg)) !important;
-  transform-origin: 50% calc(100% + 4px);
-}
-
-body[data-visual="nuzic"] .timeline.circular .pulse-number::after {
-  top: 100% !important;
-  margin-top: 4px;
-  transform: translateX(-50%) rotate(var(--pulse-angle, 0deg)) !important;
-  transform-origin: 50% -4px;
+  /* Inherit background/opacity/size from the base nuzic rule. */
+  transform: translateX(-50%) !important;
 }
 
 /* Cycle-start (pulse 0) thicker outer tick — like linear nuzic */

@@ -8,7 +8,6 @@
 
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
 import { createSchedulingBridge, bindSharedSoundEvents } from '../../libs/app-common/audio.js';
-import { createCircularTimeline } from '../../libs/app-common/circular-timeline.js';
 import { initMixerMenu } from '../../libs/app-common/mixer-menu.js';
 import { initRandomMenu } from '../../libs/random/index.js';
 import { createPreferenceStorage, registerFactoryReset } from '../../libs/app-common/preferences.js';
@@ -173,59 +172,34 @@ subscribeMixer((snapshot) => {
 // TIMELINE CONTROLLER
 // ============================================
 
-let timelineController;
 
 /**
- * Render timeline with current pulsosCompas
+ * Render the circular timeline — fully self-contained, no controller.
+ * Sets the `.circular` class on timeline + wrapper, wipes any prior content,
+ * and paints the pulse-numbers on the cream ring.
  */
 function renderTimeline() {
-  if (!timelineController) return;
+  if (!timeline) return;
 
-  if (pulsosCompas === null) {
-    // Show empty circular timeline (just the circle, no pulses)
-    renderEmptyTimeline();
-    return;
-  }
+  // Ensure circular classes (so CSS geometry applies).
+  timeline.classList.add('circular');
+  timelineWrapper?.classList.add('circular');
 
-  // Render circular timeline with pulsosCompas pulses
-  // render(lg) creates lg+1 points (0 to lg inclusive)
-  // For a module of N pulses, pass N to create N+1 points where the last overlaps with 0
-  // The overlapping endpoint number is hidden via CSS
-  pulses = timelineController.render(pulsosCompas, {
-    isCircular: true,
-    silent: true
-  });
+  // Wipe prior pulse dots / numbers / bars.
+  timeline.innerHTML = '';
+  pulses = [];
 
-  // Render numbers
+  if (pulsosCompas === null) return;
+
   renderPulseNumbers();
 }
 
 /**
- * Render empty circular timeline (just the circle, no pulses or numbers)
- * Used on app initialization before user enters any values
+ * No-op empty state: renderTimeline above already clears everything when
+ * pulsosCompas is null. Kept for API parity with other apps.
  */
 function renderEmptyTimeline() {
-  if (!timelineController) return;
-
-  // Render with lg=1 to create the circular layout (render(0) is skipped due to lg <= 0 check)
-  // This creates 2 points (0 and 1) and applies circular geometry
-  timelineController.render(1, {
-    isCircular: true,
-    silent: true
-  });
-
-  // Clear any numbers
-  if (timeline) {
-    timeline.querySelectorAll('.pulse-number').forEach(n => n.remove());
-  }
-
-  // Hide all pulse dots and bars to show only the empty circle
-  if (timeline) {
-    timeline.querySelectorAll('.pulse').forEach(p => p.style.display = 'none');
-    timeline.querySelectorAll('.bar').forEach(b => b.style.display = 'none');
-  }
-
-  pulses = [];
+  renderTimeline();
 }
 
 /**
@@ -259,23 +233,29 @@ function renderPulseNumbers() {
     if (rect.width === 0) return;
     const cx = rect.width / 2;
     const cy = rect.height / 2;
-    // Ring center radius: midway between the inner white disc (55% of radius)
-    // and the outer cream edge (100% of radius) → 77.5%.
-    const ringRadius = Math.min(rect.width, rect.height) / 2 * 0.775;
+    // Ring center radius: midway between the inner white disc (40% of radius)
+    // and the outer cream edge (100% of radius) → 70%.
+    const ringRadius = Math.min(rect.width, rect.height) / 2 * 0.70;
 
     numberEls.forEach((el, i) => {
       const angle = (i / n) * 2 * Math.PI - Math.PI / 2;  // pulse 0 at top
       const x = cx + ringRadius * Math.cos(angle);
       const y = cy + ringRadius * Math.sin(angle);
-      // Use setProperty+important to defeat nuzic-theme's base rule
-      // `.timeline .pulse-number { top: 50% !important; transform: translate(-50%,-50%) !important }`
+      // Rotate each pulse-number so it follows the ring tangent (perpendicular
+      // to the radius pointing outward). Also translate(-50%,-50%) to center
+      // the element over its (x,y) point. setProperty+important defeats the
+      // base nuzic-theme rule `.timeline .pulse-number { top:50% !important;
+      // transform: translate(-50%,-50%) !important }`.
+      const rotDeg = ((angle + Math.PI / 2) * 180) / Math.PI;
       el.style.setProperty('left', `${x}px`, 'important');
       el.style.setProperty('top', `${y}px`, 'important');
-      el.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
-      // Radial tick rotation for the ::before/::after tick pseudo-elements.
-      // Expressed in degrees so the CSS can use it directly as an angle.
-      const tickDeg = ((angle + Math.PI / 2) * 180) / Math.PI;
-      el.style.setProperty('--pulse-angle', `${tickDeg}deg`);
+      el.style.setProperty(
+        'transform',
+        `translate(-50%, -50%) rotate(${rotDeg}deg)`,
+        'important'
+      );
+      // Same angle (in deg) feeds the ::before/::after tick pseudo-elements.
+      el.style.setProperty('--pulse-angle', `${rotDeg}deg`);
     });
   });
 }
@@ -865,14 +845,6 @@ async function initializeApp() {
     defaultValue: DEFAULT_BPM
   });
   bpmController.attach();
-
-  // Create timeline controller
-  timelineController = createCircularTimeline({
-    timeline,
-    timelineWrapper,
-    getPulses: () => pulses,
-    getNumberFontSize: () => 2.0
-  });
 
   // Create superscript controller (circular mode - all numbers share same superscript)
   superscriptController = createCycleSuperscript({
