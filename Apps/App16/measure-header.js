@@ -15,7 +15,7 @@ export function createMeasureHeader({ container }) {
 
   const labelEl = document.createElement('div');
   labelEl.className = 'measure-header__label';
-  labelEl.textContent = 'Com.';
+  labelEl.textContent = 'Compás';
 
   const trackEl = document.createElement('div');
   trackEl.className = 'measure-header__track';
