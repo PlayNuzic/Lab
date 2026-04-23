@@ -1,315 +1,226 @@
-/* App17 - Módulo Temporal - Circular */
+/* App17 - Módulo Temporal - Círculo - Nuzic Theme */
 
-/* ============================================
-   IFRAME COMPATIBILITY
-   ============================================ */
-/* Només reset de marges - NO canviem l'estructura flex del template */
 html, body {
   margin: 0;
   padding: 0;
 }
 
-/* ============================================
-   SHARED COMPONENT IMPORTS
-   ============================================ */
-@import '../../libs/shared-ui/cycle-counter.css';
-@import '../../libs/shared-ui/pulse-highlight.css';
-
-/* ============================================
-   APP-SPECIFIC CSS VARIABLES
-   ============================================ */
-
-:root {
-  --control-toggle-gap: -29px;
-  /* Total Length position fine-tuning */
-  --total-offset-x: -30px;
-  --total-offset-y: 0px;
-}
-
-/* ============================================
-   HIDE TEMPLATE ELEMENTS NOT NEEDED
-   ============================================ */
-
-/* Hide loop button */
-#loopBtn {
-  display: none !important;
-}
-
-/* Hide tap tempo button */
-#tapTempoBtn {
-  display: none !important;
-}
-
-/* Hide pulse toggle button */
+/* Hide unnecessary template elements */
+#loopBtn,
+#tapTempoBtn,
 #pulseToggleBtn,
 .control-sound-toggle-container--pulse {
   display: none !important;
 }
 
-/* Hide formula section */
-.middle {
-  display: none !important;
+.middle { display: none !important; }
+
+/* ========== INPUTS SECTION ========== */
+.inputs {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0.5rem 0;
 }
 
-/* Hide circle guide (not needed in this app) */
-.circle-guide {
-  display: none !important;
-}
+/* The BPM + Compás pastilla combo lives in .inputs; BPM moves to .controls
+   in JS. Compás uses the shared `.param--large--dual` variant defined in
+   libs/shared-ui/nuzic-theme.css — no per-app pill overrides. */
 
-/* ============================================
-   FLASH WARNING ANIMATION
-   ============================================ */
-
-.circle.flash-warning {
+/* ========== FLASH WARNING ========== */
+.param--large--dual .pl-primary.flash-warning,
+.param--large--dual .pl-secondary.flash-warning {
   animation: flashWarning 1s ease;
 }
 
 @keyframes flashWarning {
-  0%, 100% {
-    border-color: var(--circle-border, #333);
-    box-shadow: none;
-  }
+  0%, 100% { box-shadow: none; }
   10%, 30%, 50%, 70%, 90% {
-    border-color: var(--selection-color, #EA570C);
-    box-shadow: 0 0 12px var(--selection-color, #EA570C);
+    box-shadow: 0 0 0 3px var(--nuzic-yellow), 0 0 14px var(--nuzic-yellow);
   }
-  20%, 40%, 60%, 80% {
-    border-color: var(--circle-border, #333);
-    box-shadow: none;
-  }
+  20%, 40%, 60%, 80% { box-shadow: none; }
 }
 
-/* ============================================
-   BPM INLINE OVERRIDE
-   ============================================ */
-
-.inputs .bpm-inline {
-  position: relative;
-}
-
-/* ============================================
-   INPUTS SECTION: Pulsos Compás + Cycle + Counter
-   ============================================ */
-
-.inputs {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-}
-
-/* All param circles same size */
-.param.compas .circle,
-.param.cycle-display .circle {
-  width: 100px;
-  height: 100px;
-}
-
-/* Cycle circle: contains both input (when stopped) and digit (when playing) */
-.param.cycle-display .cycle-circle {
-  position: relative;
-}
-
-/* Cycle input - visible when stopped */
-.param.cycle-display .cycle-circle input {
-  font-size: clamp(1.5rem, 3.5vw, 2.5rem);
-  font-weight: 700;
-  text-align: center;
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-color, #333);
-  font-family: 'Courier New', Courier, monospace;
-}
-
-.param.cycle-display .cycle-circle input:focus {
-  outline: none;
-}
-
+/* ========== CYCLE COUNTER (playback digit) ========== */
 /* When playing, hide input and show digit */
-.param.cycle-display .cycle-circle.playing input {
+.pl-secondary.cycle-circle.playing input {
   display: none;
 }
 
-.param.cycle-display .cycle-circle .cycle-counter__digit {
+.pl-secondary.cycle-circle .cycle-counter__digit {
   display: none;
-  font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Ubuntu', sans-serif;
   font-weight: 700;
-  font-family: 'Courier New', Courier, monospace;
-  color: var(--text-color, #333);
+  font-size: clamp(0.65rem, 1.3vw, 0.95rem);
+  color: var(--nuzic-dark);
   line-height: 1;
   transition: transform 0.15s ease, color 0.15s ease;
 }
 
-.param.cycle-display .cycle-circle.playing .cycle-counter__digit {
+.pl-secondary.cycle-circle.playing .cycle-counter__digit {
   display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-/* Cycle digit playing states - override shared styles for App17 colors */
-.param.cycle-display .cycle-counter__digit.playing-zero {
-  color: var(--color-lg, #4A90D9);
-}
-
-.param.cycle-display .cycle-counter__digit.playing-active {
-  color: var(--selection-color, #EA570C);
-}
-
-.param.compas input {
-  font-size: clamp(1.5rem, 3.5vw, 2.5rem);
-  font-weight: 700;
-  text-align: center;
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-color, #333);
-}
-
-.param.compas input:focus {
-  outline: none;
-}
-
-/* ============================================
-   TOTAL LENGTH CIRCLE 2/3 size = 66px)
-   ============================================ */
-
-.total-length-inline {
+/* ========== CIRCULAR TIMELINE — nuzic theme ========== */
+/* Paint the circular track with a cream ring (donut) via a conic/radial combo
+   on the .timeline itself. The circular layout is applied by the
+   createCircularTimeline controller (adds class .circular). */
+body[data-visual="nuzic"] .timeline-wrapper.circular {
+  min-height: clamp(16rem, 38vw, 24rem);
   position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: calc(50px + var(--total-offset-x));
-  margin-top: var(--total-offset-y);
 }
 
-.total-length-inline .circle {
-  width: 66px;
-  height: 66px;
-  border: 2px solid var(--circle-border, #333);
+body[data-visual="nuzic"] .timeline.circular {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  height: clamp(14rem, 30vw, 20rem) !important;
+  width: clamp(14rem, 30vw, 20rem) !important;
+  margin: 0 auto;
+  position: relative;
+  padding-left: 0 !important;
+}
+
+/* Donut-shaped cream ring behind pulse numbers */
+body[data-visual="nuzic"] .timeline.circular::after {
+  content: '';
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: var(--nuzic-yellow-light);
+  /* carve out the inner circle to form a ring */
+  mask: radial-gradient(circle, transparent 44%, #000 45%);
+  -webkit-mask: radial-gradient(circle, transparent 44%, #000 45%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.total-length-inline .total-length__digit {
-  font-size: clamp(1.3rem, 2.8vw, 2rem);
-  font-weight: 700;
-  font-family: 'Courier New', Courier, monospace;
-  color: var(--text-color, #333);
-  line-height: 1;
-}
-
-.total-length-inline .abbr {
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
-   font-weight: 700;
-  color: var(--text-color, #333);
-  opacity: 1;
-}
-
-/* Flip animations (reuse keyframes from cycle-counter) */
-.total-length__digit.flip-out {
-  animation: flipOut 0.15s ease-in forwards;
-}
-
-.total-length__digit.flip-in {
-  animation: flipIn 0.15s ease-out forwards;
-}
-
-/* Playback colors */
-.total-length__digit.playing-zero {
-  color: var(--color-lg, #4A90D9);
-}
-
-.total-length__digit.playing-active {
-  color: var(--selection-color, #EA570C);
-}
-
-/* Dark theme */
-[data-theme="dark"] .total-length-inline .circle {
-  border-color: var(--text-color, #eee);
-}
-
-[data-theme="dark"] .total-length-inline .total-length__digit,
-[data-theme="dark"] .total-length-inline .abbr {
-  color: var(--text-color, #eee);
-}
-
-/* ============================================
-   TIMELINE - App-specific overrides
-   ============================================ */
-
-/* Cycle start color override */
-.pulse-number.cycle-start {
-  color: var(--color-lg, #4A90D9);
-  font-weight: 700;
-}
-
-/* Hide endpoint number in circular mode (overlaps with position 0) */
-.pulse-number.endpoint:not([data-index="0"]) {
+/* Hide the horizontal line/pseudo from base .timeline */
+body[data-visual="nuzic"] .timeline.circular::before {
   display: none !important;
 }
 
-/* Reposition the 0 number at bottom center of circle */
-.pulse-number[data-index="0"] {
-  left: 142px !important;
-  transform: translate(50%, 20%) !important;
+/* Hide circle-guide ring from controller (we draw our own ring) */
+body[data-visual="nuzic"] .timeline-wrapper.circular .circle-guide {
+  display: none !important;
 }
 
-/* ============================================
-   CIRCULAR MODE HIGHLIGHT OVERRIDES
-   Maintain circular positioning while adding scale effect
-   Scale from center outward (away from timeline circle)
-   ============================================ */
-
-/* Base: scale from inner edge so numbers move outward */
-.timeline.circular .pulse-number {
-  transform-origin: center center;
-  transition: transform 0.12s ease, color 0.12s ease;
+/* Pulse dots kept hidden (we render numbers only, like App16) */
+body[data-visual="nuzic"] .timeline.circular .pulse {
+  display: none !important;
 }
 
-/* Active pulse number - orange */
-.timeline.circular .pulse-number.active {
-  color: var(--selection-color, #EA570C) !important;
-  transform: translate(-50%, -50%) scale(1.2) !important;
+/* Hide bars (endpoint rails) in circular mode — they overlap the ring */
+body[data-visual="nuzic"] .timeline.circular .bar {
+  display: none !important;
 }
 
-/* Zero position - blue with glow */
-.timeline.circular .pulse-number.active-zero {
-  color: var(--color-lg, #4A90D9) !important;
-  transform: translate(-50%, -50%) scale(1.3) !important;
-  text-shadow: 0 0 12px var(--color-lg, #4A90D9);
+/* Pulse-number positioning: controller sets absolute px; keep text styling */
+body[data-visual="nuzic"] .timeline.circular .pulse-number {
+  color: var(--nuzic-dark);
+  font-weight: 700;
+  font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+  z-index: 10;
+  transition: transform 0.15s ease, background 0.1s ease;
 }
 
-/* Special case: pulse 0 at bottom has different positioning */
-.timeline.circular .pulse-number[data-index="0"].active-zero,
-.timeline.circular .pulse-number[data-index="0"].active {
-  transform: translate(50%, 30%) scale(1.3) !important;
+/* Controller places endpoint .pulse-number at start AND end; hide the end
+   duplicate since pulse 0 already occupies that position. */
+body[data-visual="nuzic"] .timeline.circular .pulse-number.endpoint:not([data-index="0"]) {
+  display: none !important;
 }
 
-/* ============================================
-   TIMELINE WRAPPER - Match circular timeline size
-   ============================================ */
-
-.timeline-wrapper {
-  position: relative;
-  /* Remove min-height so wrapper matches timeline size exactly */
+/* Strip the tick marks from circular pulse-numbers (ticks only make sense
+   on the linear cream bar) */
+body[data-visual="nuzic"] .timeline.circular .pulse-number::before,
+body[data-visual="nuzic"] .timeline.circular .pulse-number::after {
+  display: none !important;
 }
 
-/* ============================================
-   DARK THEME ADJUSTMENTS
-   ============================================ */
-
-[data-theme="dark"] .param.cycle-display .cycle-circle {
-  background: transparent;
+/* Active pulse highlight: golden ring-chip */
+body[data-visual="nuzic"] .timeline.circular .pulse-number.active,
+body[data-visual="nuzic"] .timeline.circular .pulse-number.active-zero {
+  color: var(--nuzic-dark);
+  background: var(--nuzic-yellow);
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
 }
 
-[data-theme="dark"] .param.compas input,
-[data-theme="dark"] .param.cycle-display input,
-[data-theme="dark"] .param.cycle-display .cycle-counter__digit {
-  color: var(--text-color, #eee);
+/* Cycle-start (position 0) — golden ring highlight */
+body[data-visual="nuzic"] .timeline.circular .pulse-number.cycle-start {
+  color: var(--nuzic-dark);
 }
 
+body[data-visual="nuzic"] .timeline.circular .pulse-number.cycle-start::after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: -0.2rem -0.35rem;
+  border: 2px solid var(--nuzic-yellow);
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ========== TOTAL LENGTH — centered inside the ring ========== */
+.total-length-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.total-length-center .circle {
+  width: clamp(2.75rem, 6vw, 4rem);
+  height: clamp(2.75rem, 6vw, 4rem);
+  border: 2px solid var(--nuzic-yellow);
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.total-length-center .total-length__digit {
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  color: var(--nuzic-dark);
+  line-height: 1;
+}
+
+.total-length-center .abbr {
+  display: none; /* Label not needed inside the ring */
+}
+
+/* Playback colors for the total length digit */
+.total-length__digit.playing-zero {
+  color: var(--nuzic-yellow);
+}
+
+.total-length__digit.playing-active {
+  color: var(--nuzic-dark);
+}
+
+/* Flip animations (shared keyframes from cycle-counter.css) */
+.total-length__digit.flip-out { animation: flipOut 0.15s ease-in forwards; }
+.total-length__digit.flip-in { animation: flipIn 0.15s ease-out forwards; }
+
+[data-theme="dark"] .total-length-center .circle {
+  background: #2a2a28;
+  border-color: var(--nuzic-yellow);
+}
+
+[data-theme="dark"] .total-length-center .total-length__digit {
+  color: #eee8d8;
+}

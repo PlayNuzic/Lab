@@ -59,8 +59,6 @@ let inputCompas;
 let compasUpBtn;
 let compasDownBtn;
 let inputCycle;
-let cycleUpBtn;
-let cycleDownBtn;
 let cycleDigit;
 let timeline;
 let timelineWrapper;
@@ -408,7 +406,7 @@ function highlightNumber(pulseIndex) {
 }
 
 function highlightCycleCircle(step) {
-  const cycleCircle = document.querySelector('.cycle-circle');
+  const cycleCircle = document.querySelector('.pl-secondary.cycle-circle');
   if (!cycleCircle) return;
 
   // Clear any pending timeout
@@ -442,7 +440,7 @@ function clearHighlights() {
     n.classList.remove('active', 'active-zero');
   });
   // Clear cycle circle highlight
-  const cycleCircle = document.querySelector('.cycle-circle');
+  const cycleCircle = document.querySelector('.pl-secondary.cycle-circle');
   cycleCircle?.classList.remove('active', 'active-zero');
 }
 
@@ -459,10 +457,10 @@ async function handlePlay() {
   // Flash missing inputs if trying to play without values
   if (pulsosCompas === null || cycles === null) {
     if (pulsosCompas === null) {
-      flashMissingInput(inputCompas?.closest('.circle'));
+      flashMissingInput(inputCompas?.closest('.pl-primary'));
     }
     if (cycles === null) {
-      flashMissingInput(document.querySelector('.cycle-circle'));
+      flashMissingInput(document.querySelector('.pl-secondary.cycle-circle'));
     }
     return;
   }
@@ -478,9 +476,11 @@ async function handlePlay() {
   // Update play button state
   playBtn?.classList.add('active');
 
-  // Show cycle digit instead of input
-  const cycleCircle = document.querySelector('.cycle-circle');
+  // Show cycle digit instead of input during playback
+  const cycleCircle = document.querySelector('.pl-secondary.cycle-circle');
   cycleCircle?.classList.add('playing');
+  // Prime the digit with the starting cycle
+  if (cycleDigit) cycleDigit.textContent = '1';
   const iconPlay = playBtn?.querySelector('.icon-play');
   const iconStop = playBtn?.querySelector('.icon-stop');
   if (iconPlay) iconPlay.style.display = 'none';
@@ -556,7 +556,7 @@ function stopPlayback(forceStop = true) {
   if (iconStop) iconStop.style.display = 'none';
 
   // Show input instead of cycle digit
-  const cycleCircle = document.querySelector('.cycle-circle');
+  const cycleCircle = document.querySelector('.pl-secondary.cycle-circle');
   cycleCircle?.classList.remove('playing');
 
   // Re-enable random button after playback
@@ -785,16 +785,46 @@ async function initializeApp() {
   compasUpBtn = document.getElementById('compasUp');
   compasDownBtn = document.getElementById('compasDown');
   inputCycle = document.getElementById('inputCycle');
-  cycleUpBtn = document.getElementById('cycleUp');
-  cycleDownBtn = document.getElementById('cycleDown');
   cycleDigit = document.getElementById('cycleDigit');
-  totalLengthDigit = document.getElementById('totalLengthDigit');
   timeline = document.getElementById('timeline');
   timelineWrapper = document.getElementById('timelineWrapper');
   playBtn = document.getElementById('playBtn');
   resetBtn = document.getElementById('resetBtn');
   randomBtn = document.getElementById('randomBtn');
   randomMenu = document.getElementById('randomMenu');
+
+  // Build the total-length center display inside the timeline wrapper
+  let totalLengthBlock = document.getElementById('totalLengthCenter');
+  if (timelineWrapper && !totalLengthBlock) {
+    totalLengthBlock = document.createElement('div');
+    totalLengthBlock.id = 'totalLengthCenter';
+    totalLengthBlock.className = 'total-length-center';
+    totalLengthBlock.innerHTML = `
+      <div class="circle">
+        <span class="total-length__digit" id="totalLengthDigit">--</span>
+      </div>
+    `;
+    timelineWrapper.appendChild(totalLengthBlock);
+  }
+  totalLengthDigit = document.getElementById('totalLengthDigit');
+
+  // Move BPM to controls row (Play | BPM | Random | Reset)
+  const bpmParam = document.getElementById('bpmParam');
+  const controls = document.querySelector('.controls');
+  if (controls && bpmParam) {
+    const playBtnEl = controls.querySelector('.play') || playBtn;
+    const randomBtnEl = controls.querySelector('.random');
+    const resetBtnEl = controls.querySelector('.reset');
+    const randomMenuEl = controls.querySelector('.random-menu');
+
+    while (controls.firstChild) controls.removeChild(controls.firstChild);
+
+    if (playBtnEl) controls.appendChild(playBtnEl);
+    controls.appendChild(bpmParam);
+    if (randomBtnEl) controls.appendChild(randomBtnEl);
+    if (randomMenuEl) controls.appendChild(randomMenuEl);
+    if (resetBtnEl) controls.appendChild(resetBtnEl);
+  }
 
   // Create BPM controller
   bpmController = createBpmController({
@@ -884,11 +914,9 @@ async function initializeApp() {
     handleCycleChange(inputCycle.value);
   });
 
-  // Spinner buttons with auto-repeat
+  // Spinner buttons with auto-repeat (Compás only — Cycle has no spinners)
   attachSpinnerRepeat(compasUpBtn, incrementCompas);
   attachSpinnerRepeat(compasDownBtn, decrementCompas);
-  attachSpinnerRepeat(cycleUpBtn, incrementCycle);
-  attachSpinnerRepeat(cycleDownBtn, decrementCycle);
 
   // Play button
   playBtn?.addEventListener('click', handlePlay);
@@ -958,8 +986,8 @@ async function initializeApp() {
   document.getElementById('randPulsosMax')?.addEventListener('change', saveState);
   document.getElementById('randCyclesMax')?.addEventListener('change', saveState);
 
-  // Idle caret flash on compás circle
-  initIdleCaretFlash({ targets: [document.getElementById('inputCompas')?.closest('.circle')] });
+  // Idle caret flash on compás primary pill
+  initIdleCaretFlash({ targets: [document.getElementById('inputCompas')?.closest('.pl-primary')] });
 }
 
 // Start initialization

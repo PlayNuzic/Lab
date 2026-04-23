@@ -1657,3 +1657,120 @@ body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle input {
 body[data-visual="nuzic"][data-theme="dark"] .param.param--large .circle .spin {
   color: #43433b !important;
 }
+
+/* --------------------------------------------------------------------------
+   FASE 14: Pastilla `.param--large--dual` — Compás amb cycle niat
+   Variant de `.param--large` on el disc groc conté DOS inputs apilats:
+   - cercle blanc a dalt amb input principal (Compás)
+   - mini-pastilla blanca a baix amb input secundari (Cycle)
+   Els spinners laterals actuen sobre l'input principal.
+   Activada amb la classe addicional `.param--large--dual`.
+   -------------------------------------------------------------------------- */
+
+/* Augmentem l'alçada del disc groc per acomodar els dos elements */
+body[data-visual="nuzic"] .param.param--large--dual .circle {
+  width: clamp(4rem, 10vw, 7rem) !important;
+  height: clamp(5.5rem, 13vw, 9rem) !important;
+  aspect-ratio: auto !important;
+  border-radius: clamp(2.75rem, 6.5vw, 4.5rem) !important;
+  flex-direction: column !important;
+  gap: clamp(0.2rem, 0.6vw, 0.4rem) !important;
+  padding: clamp(0.4rem, 1vw, 0.7rem) 0 !important;
+}
+
+/* Desactivem el cèrcol blanc central de .param--large (el substitueix
+   el `.pl-primary` extern) */
+body[data-visual="nuzic"] .param.param--large--dual .circle::before {
+  display: none !important;
+}
+
+/* Cèrcol blanc principal (contenidor de l'input Compás) */
+body[data-visual="nuzic"] .param.param--large--dual .pl-primary {
+  position: relative;
+  z-index: 2;
+  width: clamp(1.8rem, 4.4vw, 3rem);
+  height: clamp(1.8rem, 4.4vw, 3rem);
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+body[data-visual="nuzic"] .param.param--large--dual .pl-primary input {
+  width: 100% !important;
+  height: 100% !important;
+  background: transparent !important;
+  border: 0 !important;
+  font-family: 'Ubuntu', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: clamp(1rem, 1.8vw, 1.35rem) !important;
+  color: var(--nuzic-dark) !important;
+  text-align: center !important;
+  padding: 0 !important;
+  outline: none;
+}
+
+body[data-visual="nuzic"] .param.param--large--dual .pl-primary input::-webkit-outer-spin-button,
+body[data-visual="nuzic"] .param.param--large--dual .pl-primary input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  margin: 0 !important;
+}
+
+body[data-visual="nuzic"] .param.param--large--dual .pl-primary input {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+/* Mini-pastilla blanca (Cycle) */
+body[data-visual="nuzic"] .param.param--large--dual .pl-secondary {
+  position: relative;
+  z-index: 2;
+  width: clamp(1.4rem, 3.5vw, 2.3rem);
+  height: clamp(0.9rem, 2.2vw, 1.4rem);
+  border-radius: 999px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+body[data-visual="nuzic"] .param.param--large--dual .pl-secondary input {
+  width: 100% !important;
+  height: 100% !important;
+  background: transparent !important;
+  border: 0 !important;
+  font-family: 'Ubuntu', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: clamp(0.65rem, 1.3vw, 0.95rem) !important;
+  color: var(--nuzic-dark) !important;
+  text-align: center !important;
+  padding: 0 !important;
+  outline: none;
+}
+
+body[data-visual="nuzic"] .param.param--large--dual .pl-secondary input::-webkit-outer-spin-button,
+body[data-visual="nuzic"] .param.param--large--dual .pl-secondary input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  margin: 0 !important;
+}
+
+body[data-visual="nuzic"] .param.param--large--dual .pl-secondary input {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+/* Dark mode: pastilles internes blanques, input fosc invariant */
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large--dual .pl-primary,
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large--dual .pl-secondary {
+  background: #ffffff !important;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large--dual .pl-primary input,
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large--dual .pl-secondary input {
+  color: #43433b !important;
+}

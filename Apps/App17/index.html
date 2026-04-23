@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="../../libs/app-common/embed.css" />
   <link rel="icon" href="../../favicon.ico" />
 </head>
-<body data-theme="system" data-visual="nuzic">
+<body class="app17" data-theme="system" data-visual="nuzic">
   <div id="app-root"></div>
 
   <script type="module">
@@ -46,7 +46,7 @@
       `
     });
 
-    // Reemplazar inputs Lg/V por nuestro control de Compás + contador de ciclo
+    // Reemplazar inputs Lg/V por nuestro control BPM + Compás (amb cycle niat)
     const inputsSection = document.querySelector('.inputs');
     if (inputsSection) {
       inputsSection.innerHTML = `
@@ -60,32 +60,21 @@
             </div>
           </div>
         </div>
-        <div class="param compas">
-          <span class="abbr">Pulsos por<br>Compás</span>
+        <div class="param param--large param--large--dual compas" id="compasParam">
+          <span class="abbr">Pulsos por Compás:</span>
           <div class="circle">
-            <input id="inputCompas" type="number" min="1" max="12" value="" />
+            <div class="pl-primary">
+              <input id="inputCompas" type="number" min="1" max="12" value="" />
+            </div>
+            <div class="pl-secondary cycle-circle">
+              <input id="inputCycle" type="number" min="1" max="12" value="" />
+              <div class="cycle-counter__digit" id="cycleDigit"></div>
+            </div>
             <div class="spinner">
-              <button id="compasUp" class="spin up" type="button" aria-label="Incrementar Compás"></button>
-              <button id="compasDown" class="spin down" type="button" aria-label="Decrementar Compás"></button>
+              <button id="compasUp" class="spin up" type="button" aria-label="Incrementar Compás">+</button>
+              <button id="compasDown" class="spin down" type="button" aria-label="Decrementar Compás">−</button>
             </div>
           </div>
-        </div>
-        <div class="param cycle-display">
-          <span class="abbr">Número de<br>Compases</span>
-          <div class="circle cycle-circle">
-            <input id="inputCycle" type="number" min="1" max="12" value="4" />
-            <div class="cycle-counter__digit" id="cycleDigit"></div>
-            <div class="spinner">
-              <button id="cycleUp" class="spin up" type="button" aria-label="Incrementar Cycle"></button>
-              <button id="cycleDown" class="spin down" type="button" aria-label="Decrementar Cycle"></button>
-            </div>
-          </div>
-        </div>
-        <div class="total-length-inline" id="totalLengthParam">
-          <div class="circle">
-            <span class="total-length__digit" id="totalLengthDigit">--</span>
-          </div>
-          <span class="abbr">Longitud</span>
         </div>
       `;
     }
