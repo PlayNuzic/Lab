@@ -875,11 +875,18 @@ function renderTimeline() {
 
   // Pulse numbers — nuzic-theme renders ticks via ::before/::after and hides
   // legacy .pulse dots. The numbers themselves are the clickable targets.
+  // L'últim pols es dibuixa com a `·` amb dobles guions (classe cycle-end)
+  // i no sona ni és seleccionable.
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
     num.dataset.index = i;
-    num.textContent = i;
+    if (i === lg) {
+      num.classList.add('cycle-end');
+      num.textContent = '·';
+    } else {
+      num.textContent = i;
+    }
     timeline.appendChild(num);
     pulses.push(num);
   }
@@ -933,10 +940,12 @@ function renderTimeline() {
  * Attach click handlers to pulses and cycle markers for selection
  */
 function attachSelectionHandlers() {
-  // All integer pulses (0 to lg) are selectable independently — with loop
-  // disabled, the endpoint is its own beat rather than a wrap of pulse 0.
+  // Integer pulses 0..lg-1 are selectable. Pulse `lg` is the cycle-end
+  // marker (`·` with double dashes) — purely visual, not selectable and
+  // not played.
   pulses.forEach((pulse) => {
     const idx = parseInt(pulse.dataset.index, 10);
+    if (idx === FIXED_LG) return;
 
     pulse.addEventListener('click', () => {
       const token = String(idx);
@@ -1133,7 +1142,7 @@ function applyTransportConfig() {
   const hasCycle = d > 0 && Math.floor(lg / n) > 0;
 
   // Scale values by denominator (same as startPlayback) — include endpoint
-  const scaledTotal = lg * d + 1;  // +1 extra step for pulse Lg (endpoint) without adding its subdivisions
+  const scaledTotal = lg * d;  // Pulses 0..lg-1 sound; pulse Lg is the cycle-end marker (·) and doesn't sound
   // scaledBpm ensures interval = (60/bpm)/d
   const scaledBpm = bpm * d;
 
@@ -1197,7 +1206,7 @@ async function startPlayback() {
   // Scale by denominator to include subdivisions
   // Interval must be divided by d so that integer pulses maintain correct tempo
   const baseResolution = d;
-  const scaledTotal = lg * d + 1;  // +1 extra step for pulse Lg (endpoint) without adding its subdivisions
+  const scaledTotal = lg * d;  // Pulses 0..lg-1 sound; pulse Lg is the cycle-end marker (·) and doesn't sound
   const scaledInterval = (60 / bpm) / d; // Each step = 1/d of a beat
 
   const audioInstance = await initAudio();

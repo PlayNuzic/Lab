@@ -599,6 +599,38 @@ body[data-visual="nuzic"] .timeline .pulse-number.cycle-start::before {
   opacity: 1;
 }
 
+/* End-cap de la timeline (`cycle-end`): el darrer pols es dibuixa com un
+   `·` amb dobles guions `||` a dalt i a baix — lectura com a "tancament"
+   de la seqüència. L'últim pols ja no sona. El `·` és més petit que un
+   dígit (només baseline) així que pin-em height:1.2em + flex-center per
+   mantenir el bounding box idèntic al d'un pulse-number normal i que els
+   ticks s'alineïn amb la resta de la fila. El tick es duplica amb un
+   `box-shadow` horitzontal per fer `||` sense elements extra. */
+body[data-visual="nuzic"] .timeline .pulse-number.cycle-end {
+  height: 1.2em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body[data-visual="nuzic"] .timeline .pulse-number.cycle-end::before,
+body[data-visual="nuzic"] .timeline .pulse-number.cycle-end::after {
+  width: 2.5px !important;
+  opacity: 1 !important;
+  background: var(--nuzic-dark) !important;
+  box-shadow: 5px 0 0 0 var(--nuzic-dark) !important;
+  transform: translateX(calc(-50% - 2.5px)) !important;
+}
+
+/* Dark mode: mateix dark hex als dos elements (el bg de la timeline és
+   crema en ambdós modes, per tant el trazo s'ha de mantenir fosc).
+   Hardcode el hex per defugir flips de tokens. */
+body[data-visual="nuzic"][data-theme="dark"] .timeline .pulse-number.cycle-end::before,
+body[data-visual="nuzic"][data-theme="dark"] .timeline .pulse-number.cycle-end::after {
+  background: #43433b !important;
+  box-shadow: 5px 0 0 0 #43433b !important;
+}
+
 /* Highlight de playback: barra daurada que cobreix número + ticks */
 body[data-visual="nuzic"] .timeline .pulse-number.active {
   color: var(--nuzic-dark);

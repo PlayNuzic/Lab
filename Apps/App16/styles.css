@@ -47,39 +47,6 @@ html, body {
   opacity: 1 !important;
 }
 
-/* End-cap: centered dot instead of a number. Both ticks are *doubled*
-   (drawn as `||` via a box-shadow offset) to read as a closure bracket,
-   and keep the same vertical dimensions as the regular pulse ticks so
-   the closure lines up perfectly with the `.cycle-start` downbeats. */
-/* cycle-end keeps the same font-size as the other pulse-numbers so the
-   ticks above/below stay aligned with the rest of the row. The `·` glyph
-   has a smaller bounding box than a digit (it sits only at the baseline),
-   so we pin a fixed height that matches the digits — this keeps the
-   `bottom:100%` / `top:100%` anchor points of the ::before/::after ticks
-   at the same vertical level as regular pulse-numbers. */
-.timeline .pulse-number.cycle-end {
-  /* "0"/"1" pulse-numbers get their height from the clamp() font-size and
-     a default line-height; replicate the same height here. */
-  height: 1.2em;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Override the `.cycle-start` thicker-top inherited rule: keep the tick
-   the normal width but duplicate it with a horizontal shadow. Both
-   `background` (handled by nuzic-theme — dark in both themes because
-   the timeline is cream in light+dark) and `box-shadow` are pinned to
-   the same dark hex so the `||` renders identically across themes. */
-body[data-visual="nuzic"] .timeline .pulse-number.cycle-end::before,
-body[data-visual="nuzic"] .timeline .pulse-number.cycle-end::after {
-  width: 2.5px !important;
-  opacity: 1 !important;
-  background: #43433b !important;
-  box-shadow: 5px 0 0 0 #43433b !important;
-  transform: translateX(calc(-50% - 2.5px)) !important;
-}
-
 /* Timeline wrapper */
 .timeline-wrapper {
   position: relative;

@@ -389,11 +389,18 @@ function renderTimeline() {
 
   // Pulse numbers (nuzic-theme renders the ticks via ::before/::after).
   // No separate .pulse dots — nuzic-theme hides them anyway.
+  // L'últim pols es dibuixa com a `·` amb dobles guions (classe cycle-end)
+  // i no sona a la seqüència.
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
     num.dataset.index = i;
-    num.textContent = i;
+    if (i === lg) {
+      num.classList.add('cycle-end');
+      num.textContent = '·';
+    } else {
+      num.textContent = i;
+    }
     timeline.appendChild(num);
     pulses.push(num);
   }
@@ -541,7 +548,7 @@ async function startPlayback() {
   const lg = FIXED_LG;
   const bpm = bpmController?.getValue() || DEFAULT_BPM;
   const interval = 60 / bpm;
-  const playbackTotal = lg + 1; // One-shot: include endpoint (pulse Lg) as final beat
+  const playbackTotal = lg; // One-shot: pulses 0..lg-1 sound; pulse Lg is the cycle-end marker (·) and doesn't sound
 
   const audioInstance = await initAudio();
 

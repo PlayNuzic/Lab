@@ -806,13 +806,20 @@ function renderTimeline() {
   const d = currentDenominator;
 
   // Pulse numbers (nuzic-theme renders ticks via ::before/::after).
+  // L'últim pols es dibuixa com a `·` amb dobles guions (classe cycle-end).
+  // Només canvi visual — l'últim iT segueix sonant normalment.
   for (let i = 0; i <= lg; i++) {
     const num = document.createElement('div');
     num.className = 'pulse-number';
     if (i === 0) num.classList.add('startpoint');
     if (i === lg) num.classList.add('endpoint');
     num.dataset.index = i;
-    num.textContent = i;
+    if (i === lg) {
+      num.classList.add('cycle-end');
+      num.textContent = '·';
+    } else {
+      num.textContent = i;
+    }
     timeline.appendChild(num);
     pulseNumberLabels.push(num);
     pulses.push(num);
