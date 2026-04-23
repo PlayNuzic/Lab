@@ -79,8 +79,12 @@ body[data-visual="nuzic"] .timeline-wrapper.circular {
    transparent disc. The ring is ~60% of the radius wide (one-third thicker
    than the prior 45%). No borders anywhere. */
 body[data-visual="nuzic"] .timeline.circular {
+  /* closest-side: 100% resolves to min(width,height)/2 — matches the
+     JS fullRadius calculation so ring math stays in sync. Without this,
+     `circle` defaults to `farthest-corner` and 100% = radius*√2, pushing
+     the painted donut outward and misaligning ticks/numbers. */
   background: radial-gradient(
-    circle,
+    circle closest-side,
     transparent 0%,
     transparent 40%,
     var(--nuzic-yellow-light) 40.5%,
@@ -132,12 +136,29 @@ body[data-visual="nuzic"] .timeline.circular .pulse-number {
 /* Ticks inherit from the base nuzic rule — since the .pulse-number is
    rotated via inline `transform: ... rotate(<angle>)`, the pseudo elements
    (absolutely positioned relative to their parent) are rotated along with
-   the parent and thus already point radially. Override only where the
-   base rule's `left/top` would place them wrong. */
+   the parent and thus already point radially.
+   JS feeds `--pulse-tick-length` and `--pulse-tick-gap` per pulse so the
+   tip of each tick lines up with the donut edge regardless of the number
+   of pulses or viewport size. */
 body[data-visual="nuzic"] .timeline.circular .pulse-number::before,
 body[data-visual="nuzic"] .timeline.circular .pulse-number::after {
-  /* Inherit background/opacity/size from the base nuzic rule. */
+  height: var(--pulse-tick-length, 10px) !important;
+  width: 2.5px;
+  background: var(--nuzic-dark);
+  opacity: 0.7;
   transform: translateX(-50%) !important;
+}
+
+body[data-visual="nuzic"] .timeline.circular .pulse-number::before {
+  top: auto !important;
+  bottom: 100% !important;
+  margin-bottom: var(--pulse-tick-gap-before, 4px);
+}
+
+body[data-visual="nuzic"] .timeline.circular .pulse-number::after {
+  top: 100% !important;
+  bottom: auto !important;
+  margin-top: var(--pulse-tick-gap-after, 4px);
 }
 
 /* Cycle-start (pulse 0) thicker outer tick — like linear nuzic */

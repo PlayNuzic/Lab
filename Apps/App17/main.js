@@ -233,9 +233,52 @@ function renderPulseNumbers() {
     if (rect.width === 0) return;
     const cx = rect.width / 2;
     const cy = rect.height / 2;
-    // Ring center radius: midway between the inner white disc (40% of radius)
-    // and the outer cream edge (100% of radius) → 70%.
-    const ringRadius = Math.min(rect.width, rect.height) / 2 * 0.70;
+    const fullRadius = Math.min(rect.width, rect.height) / 2;
+
+    // Ring geometry — all values are relative to fullRadius.
+    //
+    // INNER/OUTER_R_RATIO: the painted cream donut edges (kept in sync
+    //   with the radial-gradient in styles.css: 40% → 100%).
+    //   EDGE_INSET shaves a couple of pixels off each edge so the tick's
+    //   rounded line cap does not cross the boundary.
+    // CENTER_R_RATIO: midpoint between the two edges — geometric center
+    //   of the ring, where the numbers sit visually centered.
+    const INNER_R_RATIO = 0.40;
+    const OUTER_R_RATIO = 1.00;
+    const EDGE_INSET_PX = 3;
+    const CENTER_R_RATIO = (INNER_R_RATIO + OUTER_R_RATIO) / 2;  // 0.70
+    const ringRadius = fullRadius * CENTER_R_RATIO;
+    // Dynamic font-size: 4 numbers → larger; 12 numbers → compact.
+    const fontPx = Math.max(
+      11,
+      Math.min(24, (fullRadius * 0.20) / Math.sqrt(n / 4))
+    );
+    // Radial distances from the number's center to each donut edge,
+    // shaved by EDGE_INSET_PX so the tick's tip sits just inside the edge
+    // and doesn't paint over the donut boundary.
+    const outerSpan = (OUTER_R_RATIO * fullRadius - ringRadius) - EDGE_INSET_PX;
+    const innerSpan = (ringRadius - INNER_R_RATIO * fullRadius) - EDGE_INSET_PX;
+    const halfFont = fontPx / 2;
+    // "Usable" slots: from the text edge to the donut edge on each side.
+    //   slotOuter = outerSpan − halfFont   (room past the top of the text)
+    //   slotInner = innerSpan − halfFont   (room past the bottom of the text)
+    // Each tick occupies: gap + tickLength, together filling its slot.
+    //   gap_before + tickLength = slotOuter   → gap_before = slotOuter − L
+    //   gap_after  + tickLength = slotInner   → gap_after  = slotInner  − L
+    // Ticks are the same length on both sides (user requested symmetric
+    // ticks), so L is driven by the *smaller* slot. Outer is typically
+    // smaller because CENTER_R_RATIO=0.79 puts the number closer to the
+    // outer edge than the inner one.
+    // Minimum breathing space between the text and the tick.
+    const MIN_TEXT_GAP = 3;
+    const slotOuter = Math.max(0, outerSpan - halfFont - MIN_TEXT_GAP);
+    const slotInner = Math.max(0, innerSpan - halfFont - MIN_TEXT_GAP);
+    // Symmetric tick length, sized to the smaller slot so it fits both sides.
+    const tickLength = Math.max(3, Math.min(slotOuter, slotInner));
+    // Gap from the text edge to the tick's near end.
+    // The tick's far end sits on the donut edge by construction.
+    const gapBefore = MIN_TEXT_GAP + Math.max(0, slotOuter - tickLength);
+    const gapAfter = MIN_TEXT_GAP + Math.max(0, slotInner - tickLength);
 
     numberEls.forEach((el, i) => {
       const angle = (i / n) * 2 * Math.PI - Math.PI / 2;  // pulse 0 at top
@@ -254,8 +297,13 @@ function renderPulseNumbers() {
         `translate(-50%, -50%) rotate(${rotDeg}deg)`,
         'important'
       );
-      // Same angle (in deg) feeds the ::before/::after tick pseudo-elements.
-      el.style.setProperty('--pulse-angle', `${rotDeg}deg`);
+      el.style.setProperty('font-size', `${fontPx}px`, 'important');
+      // Feed CSS custom props used by the ::before/::after tick pseudo-elements.
+      // Same length on both ticks, asymmetric gaps so each tip lands on
+      // its respective donut edge.
+      el.style.setProperty('--pulse-tick-length', `${tickLength}px`);
+      el.style.setProperty('--pulse-tick-gap-before', `${gapBefore}px`);
+      el.style.setProperty('--pulse-tick-gap-after', `${gapAfter}px`);
     });
   });
 }
