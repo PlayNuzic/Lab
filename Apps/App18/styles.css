@@ -50,24 +50,10 @@ html, body {
   margin-bottom: 0;
 }
 
-.param.registro.bpm-inline {
-  transform: scale(1.33);
-  transform-origin: center;
-}
-
-.param.registro .spin {
-  background: var(--nuzic-yellow) !important;
-  border-radius: 50% !important;
-  aspect-ratio: 1 !important;
-}
-
-.param.registro .spin.up::before {
-  border-bottom-color: white !important;
-}
-
-.param.registro .spin.down::before {
-  border-top-color: white !important;
-}
+/* Registro pill uses the shared `.param--large--pink` variant (FASE 15
+   in nuzic-theme.css): pink disc + pink side spinners + white inner
+   circle with the input. No per-app overrides needed here — keeping
+   them would fight the shared theme (wrong border-radius, wrong bg). */
 
 /* ========== FLASH WARNING ========== */
 .circle.flash-warning {
@@ -210,7 +196,6 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   100% { transform: translateY(-50%) scale(1); opacity: 0.8; }
 }
 
-/* ========== DARK THEME ========== */
-[data-theme="dark"] .param.registro input {
-  color: var(--text-color, #eee);
-}
+/* Dark theme for .param--large--pink input is handled by the shared
+   nuzic-theme rule (hardcoded #43433b so the digit stays legible on the
+   white inner circle in both themes). No per-app override needed. */

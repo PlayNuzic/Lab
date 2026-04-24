@@ -1883,3 +1883,33 @@ body[data-visual="nuzic"][data-theme="dark"] .param.param--large--dual .pl-prima
 body[data-visual="nuzic"][data-theme="dark"] .param.param--large--dual .pl-secondary input {
   color: #43433b !important;
 }
+
+/* --------------------------------------------------------------------------
+   FASE 15: Variant rosa de `.param--large` (`.param--large--pink`)
+   Mateixa estructura i geometria que la pastilla groga (FASE 13) però
+   amb el palette `--nuzic-pink` al disc i als spinners. Pensada per apps
+   on el control principal NO és un pols/compàs sinó un registre o
+   identitat que ha de visualitzar-se clarament diferent (p.ex. App18).
+   S'activa afegint la classe `.param--large--pink` al mateix `<div>` que
+   ja porta `.param--large`.
+   -------------------------------------------------------------------------- */
+
+body[data-visual="nuzic"] .param.param--large--pink .circle {
+  background: var(--nuzic-pink) !important;
+}
+
+body[data-visual="nuzic"] .param.param--large--pink .circle .spin {
+  background: var(--nuzic-pink) !important;
+}
+
+body[data-visual="nuzic"] .param.param--large--pink .circle .spin:hover {
+  /* Darker pink for hover — visually analogous to yellow's #e6a82e. */
+  background: #d96a93 !important;
+}
+
+/* Dark mode: keep the pink identity invariant (disc + spinners stay pink
+   in both themes, same approach as the yellow variant). */
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large--pink .circle,
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large--pink .circle .spin {
+  background: var(--nuzic-pink) !important;
+}
