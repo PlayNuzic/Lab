@@ -62,14 +62,20 @@ body[data-visual="nuzic"] {
   position: relative;
   white-space: nowrap;
   background: var(--nuzic-light);
-  overflow: hidden;
+  /* Editor grows up to 17 cells (1 P0 + 2×8 iT=1). Allow horizontal
+     overflow so the row doesn't break on tight viewports. */
+  overflow-x: auto;
+  overflow-y: hidden;
   /* Match timeline's right box-shadow so cream aligns with pulse 8 */
   box-shadow: 1.25rem 0 0 var(--nuzic-light);
 }
 
 .it-cell {
-  width: 6.25%;
+  /* 100/17 ≈ 5.88% — fits all 17 cells (1 P0 + 2×8 iT) side by side
+     inside the timeline width, matching pulse 8 (endpoint) on the right. */
+  width: 5.88%;
   min-width: 1.25rem;
+  flex: none;
   aspect-ratio: 1;
   text-align: center;
   color: var(--nuzic-dark);
@@ -134,8 +140,9 @@ body[data-visual="nuzic"] {
 }
 
 .it-end-marker {
-  width: 6.25%;
+  width: 5.88%;
   min-width: 1.25rem;
+  flex: none;
   aspect-ratio: 1;
   background: var(--nuzic-dark);
   display: flex;

@@ -7,8 +7,10 @@ import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 
 // ========== CONFIGURACIÓN ==========
 const TOTAL_PULSES = 9;  // Pulsos 0-8 (8 es endpoint visual)
-const MAX_LENGTH = 8;    // Suma total de iTs
-const MAX_ITS = 4;       // Máximo 4 inputs de iT
+const MAX_LENGTH = 8;    // Suma total de iTs (= longitud de la timeline).
+                         // Aquest és l'únic límit: els iTs es poden distribuir
+                         // entre 1 i 8 entries (1×8, 2×4, 8×1, …). L'editor
+                         // creix dinàmicament fins que la suma arriba a 8.
 const MIN_BPM = 75;
 const MAX_BPM = 150;
 const DEFAULT_BPM = 90;
@@ -361,12 +363,6 @@ function handleInputCellType(e) {
     return;
   }
 
-  if (currentIntervals.length >= MAX_ITS) {
-    showTooltip(input, `Máximo ${MAX_ITS} intervalos`);
-    input.value = '';
-    return;
-  }
-
   const numValue = parseInt(value);
   const sum = getCurrentSum();
   const maxAllowed = MAX_LENGTH - sum;
@@ -389,8 +385,6 @@ function handleInputCellType(e) {
     setTimeout(() => nextInput.focus(), 30);
   } else if (getCurrentSum() === MAX_LENGTH) {
     showTooltip(input, 'Longitud completa');
-  } else if (currentIntervals.length >= MAX_ITS) {
-    showTooltip(input, `Máximo ${MAX_ITS} intervalos`);
   }
 }
 
@@ -441,8 +435,8 @@ function renderEditorCells() {
     cellsContainer.insertBefore(createReadonlyCell(), endMarker);
   });
 
-  // If sequence not full AND not at MAX_ITS: add active input + cream after
-  const canAddMore = sum < MAX_LENGTH && currentIntervals.length < MAX_ITS;
+  // Editor grows until the timeline is full (suma dels iTs = MAX_LENGTH).
+  const canAddMore = sum < MAX_LENGTH;
   if (canAddMore) {
     const input = createInputCell();
     cellsContainer.insertBefore(input, endMarker);
@@ -755,8 +749,10 @@ function handleRandom() {
   // Invalidar sons al prémer random
   invalidateSoundAssignments();
 
-  // Generar entre 1 i 4 iTs aleatoris
-  const numIntervals = Math.floor(Math.random() * MAX_ITS) + 1;
+  // Generar entre 1 i MAX_LENGTH iTs aleatoris (límit real = suma ≤ MAX_LENGTH,
+  // i com que el valor mínim per iT és 1, també té sentit com a cap superior
+  // d'entries).
+  const numIntervals = Math.floor(Math.random() * MAX_LENGTH) + 1;
   const intervals = [];
   let remaining = MAX_LENGTH;
 
