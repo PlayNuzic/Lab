@@ -107,23 +107,19 @@
             </div>
           </div>
         </div>
-        <div class="bpm-inline visible param compas" id="compasParam">
-          <span class="abbr">Compás</span>
+        <div class="param param--large param--large--dual compas" id="compasParam">
+          <span class="abbr">Compás:</span>
           <div class="circle">
-            <input id="inputCompas" type="number" min="1" max="7" value="" />
-            <div class="spinner">
-              <button id="compasUp" class="spin up" type="button" aria-label="Incrementar Compás"></button>
-              <button id="compasDown" class="spin down" type="button" aria-label="Decrementar Compás"></button>
+            <div class="pl-primary">
+              <input id="inputCompas" type="number" min="1" max="7" value="" />
             </div>
-          </div>
-        </div>
-        <div class="bpm-inline visible param cycle-display" id="cycleParam">
-          <span class="abbr">Nº Compases</span>
-          <div class="circle">
-            <input id="inputCycle" type="number" min="1" max="4" value="" />
+            <div class="pl-secondary cycle-circle">
+              <input id="inputCycle" type="number" min="1" max="4" value="" />
+              <div class="cycle-counter__digit" id="cycleDigit"></div>
+            </div>
             <div class="spinner">
-              <button id="cycleUp" class="spin up" type="button" aria-label="Incrementar Nº Compases"></button>
-              <button id="cycleDown" class="spin down" type="button" aria-label="Decrementar Nº Compases"></button>
+              <button id="compasUp" class="spin up" type="button" aria-label="Incrementar Compás">+</button>
+              <button id="compasDown" class="spin down" type="button" aria-label="Decrementar Compás">−</button>
             </div>
           </div>
         </div>

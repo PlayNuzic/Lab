@@ -503,6 +503,10 @@ async function startPlayback() {
   isPlaying = true;
   elements.playBtn?.classList.add('playing');
 
+  // Swap the cycle mini-pill to "digit mode" (hides input, shows cycleDigit).
+  document.querySelector('.pl-secondary.cycle-circle')?.classList.add('playing');
+  if (elements.cycleDigit) elements.cycleDigit.textContent = '1';
+
   // Switch to stop icon (iconPlay and iconStop already declared above)
   if (iconPlay) iconPlay.style.display = 'none';
   if (iconStop) iconStop.style.display = 'block';
@@ -607,6 +611,9 @@ function stopPlayback() {
   // Clear highlights
   grid?.clearHighlights();
   grid?.hidePlayhead();
+
+  // Restore the cycle mini-pill to "input mode" (shows input, hides digit).
+  document.querySelector('.pl-secondary.cycle-circle')?.classList.remove('playing');
 
   // Clear playback animation classes
   elements.cycleDigit?.classList.remove('playing-zero', 'playing-active', 'flip-out', 'flip-in');
@@ -846,9 +853,8 @@ function setupEventHandlers() {
     }
   });
 
-  // Cycles spinners - correct API: attachSpinnerRepeat(element, callback)
-  attachSpinnerRepeat(elements.cycleUp, incrementCycles);
-  attachSpinnerRepeat(elements.cycleDown, decrementCycles);
+  // Cycles: no spinners — inputCycle is typed directly (App17 pattern:
+  // the mini-pill sits inside the `.param--large--dual` yellow disc).
 
   // Registro spinners (no input — display only with up/down navigation)
   attachSpinnerRepeat(elements.registroUp, incrementRegistro);
@@ -917,8 +923,6 @@ function bindElements() {
     // Spinners
     compasUp: document.getElementById('compasUp'),
     compasDown: document.getElementById('compasDown'),
-    cycleUp: document.getElementById('cycleUp'),
-    cycleDown: document.getElementById('cycleDown'),
     registroUp: document.getElementById('registroUp'),
     registroDown: document.getElementById('registroDown'),
     bpmUp: document.getElementById('bpmUp'),

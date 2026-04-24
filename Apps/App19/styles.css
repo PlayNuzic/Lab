@@ -89,11 +89,25 @@ main {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  gap: 2rem;
+  /* Bigger gap so the `.param--large--dual` Compás disc (with its side
+     spinners) doesn't overlap the Registro/Longitud pills. */
+  gap: clamp(3rem, 8vw, 7rem);
+  /* Shift the whole row up so the large Compás label doesn't crowd the
+     header, and the disc sits comfortably inside the frame. */
+  margin-top: clamp(-2rem, -3vw, -1rem);
   padding: 0 1rem;
   flex-shrink: 0;
   position: relative;
   z-index: 1;
+}
+
+/* The `.param--large--dual` disc has side spinners in `position: absolute`,
+   so flex-gap can't see them. Reserve extra horizontal space via margin
+   so Registro on the left and Longitud on the right don't slide under
+   the spinners. */
+.inputs .param.param--large--dual {
+  margin-left: clamp(2.5rem, 5vw, 4rem);
+  margin-right: clamp(2.5rem, 5vw, 4rem);
 }
 
 /* ============================================
@@ -447,11 +461,25 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   color: var(--select-color, #EA570C) !important;
 }
 
-/* ============================================
-   DARK THEME
-   ============================================ */
+/* Cycle mini-pill swap: while playing, hide the input and show the digit
+   (matches App17's `.pl-secondary.cycle-circle.playing` behaviour). */
+.pl-secondary.cycle-circle.playing input {
+  display: none;
+}
 
-[data-theme="dark"] .param.compas input,
-[data-theme="dark"] .param.cycle-display input {
-  color: var(--text-color, #eee);
+.pl-secondary.cycle-circle .cycle-counter__digit {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.65rem, 1.3vw, 0.95rem);
+  color: var(--nuzic-dark);
+  line-height: 1;
+}
+
+.pl-secondary.cycle-circle.playing .cycle-counter__digit {
+  display: flex;
 }
