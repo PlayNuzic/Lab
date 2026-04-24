@@ -629,10 +629,11 @@ function createPfrInputCell() {
     const raw = cell.value.trim();
     if (!raw) { clearTimeout(pfrCommitTimer); return; }
 
-    // Bare digit waiting for possible ".X" subdivision — wait.
+    // Bare digit waiting for possible ".X" subdivision — wait 1000ms to
+    // give the user time to type the dot + subdivision before auto-commit.
     if (/^\d+$/.test(raw)) {
       clearTimeout(pfrCommitTimer);
-      pfrCommitTimer = setTimeout(() => tryCommitFromInput(cell), 500);
+      pfrCommitTimer = setTimeout(() => tryCommitFromInput(cell), 1000);
       return;
     }
     // Partial "N." or lone "." — wait for subdivision digit. `.X` is the
