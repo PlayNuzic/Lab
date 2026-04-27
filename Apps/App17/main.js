@@ -249,9 +249,12 @@ function renderPulseNumbers() {
     const EDGE_INSET_PX = 3;
     const CENTER_R_RATIO = (INNER_R_RATIO + OUTER_R_RATIO) / 2;  // 0.70
     const ringRadius = fullRadius * CENTER_R_RATIO;
-    // Dynamic font-size: 4 numbers → larger; 12 numbers → compact.
+    // Dynamic font-size: scales with circle radius and pulse density.
+    // Floor 9 (enlloc de 11) deixa que els nombres es comprimeixin més en
+    // cercles petits — necessari quan el wrapper.circular cau al floor del
+    // seu propi clamp (16rem = 256px → fullRadius ~115px).
     const fontPx = Math.max(
-      11,
+      9,
       Math.min(24, (fullRadius * 0.20) / Math.sqrt(n / 4))
     );
     // Radial distances from the number's center to each donut edge,
@@ -863,6 +866,20 @@ async function initializeApp() {
     timelineWrapper.appendChild(totalLengthBlock);
   }
   totalLengthDigit = document.getElementById('totalLengthDigit');
+
+  // Re-render pulse numbers (positions + font-size) whenever the circular
+  // timeline canvia de mida — el wrapper té width/height: clamp(16rem, 34vw,
+  // 22rem), per tant es comprimeix amb la finestra. Sense aquest observer,
+  // els pulse-numbers queden posicionats i amb font-size del primer render.
+  if (timeline && typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => {
+      // renderPulseNumbers usa rAF internament i NO crea elements de flow
+      // (els .pulse-number són position: absolute), així que no dispara
+      // un loop d'observació.
+      if (pulsosCompas !== null) renderPulseNumbers();
+    });
+    ro.observe(timeline);
+  }
 
   // Move BPM to controls row (Play | BPM | Random | Reset) and move the
   // .controls element OUT of .timeline-wrapper so it doesn't inherit the

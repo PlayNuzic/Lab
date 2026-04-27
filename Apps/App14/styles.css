@@ -228,10 +228,10 @@ body[data-visual="nuzic"] {
   display: none !important;
 }
 
-/* Narrow soundline with pink background (like App10) */
+/* Narrow soundline — width i min-height venen de `nuzic-theme.css` via
+   variables (`--soundline-w`, `--soundline-min-h`). */
 .soundline {
   position: relative;
-  width: 3.75rem;
   height: 100%;
 }
 

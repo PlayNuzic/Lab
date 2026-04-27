@@ -121,12 +121,11 @@ body[data-visual="nuzic"] .timeline.circular .bar {
 }
 
 /* Pulse-number styling for circular layout.
-   JS sets `left`/`top`/`transform` in px with !important to override the
-   base nuzic rule (which centers every .pulse-number at 50%/50%). */
+   JS (main.js renderPulseNumbers) sets `left`/`top`/`transform`/`font-size`
+   in px with !important — el font-size es calcula proporcional a fullRadius
+   i nombre de pulsos. Un ResizeObserver al timeline recalcula tot quan el
+   wrapper canvia de mida amb la finestra. CSS només estilitza padding/radius. */
 body[data-visual="nuzic"] .timeline.circular .pulse-number {
-  /* Inherit font family/color/size from the base nuzic .pulse-number rule
-     (clamp(0.85rem, 1.6vw, 1.2rem), 700, --nuzic-dark) so linear + circular
-     timelines stay visually coherent. */
   z-index: 10;
   padding: 0.1rem 0.35rem;
   border-radius: 999px;
