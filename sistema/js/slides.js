@@ -4,7 +4,7 @@
 // applies its grid-template-areas/rows inline, and renders only the slots the
 // slide declares (image, title, text, app, tips).
 
-import { sections, slideMatrix, slideContent, fillerContent, layouts } from './slide-data.js';
+import { sections, slideMatrix, slideContent, fillerContent, layouts, groupMinSize } from './slide-data.js';
 
 const STAGE = document.getElementById('slide-stage');
 const PROG  = document.getElementById('progress-track');
@@ -199,7 +199,57 @@ function render(){
   // Edit-mode wiring: toggle contenteditable on fields and persist on blur.
   applyEditableState(slideEl, slide.paso);
 
+  // Per-slot vertical breakpoint: observe the .slot-app size and toggle
+  // `data-vertical` on the slide when the slot drops below the app's
+  // minW or minH (defined in slide-data.groupMinSize). This replaces the
+  // global `@media (max-width: 820px)` that triggered too aggressively.
+  observeSlotSize(slideEl, slide);
+
   localStorage.setItem(STORAGE_KEY, state.paso);
+}
+
+// ResizeObserver lifecycle: a single observer per render pass (cleaned up
+// when the next render replaces the slide). Disconnects on next render
+// because we recreate the slide element from scratch.
+let _slotObserver = null;
+function observeSlotSize(slideEl, slide){
+  if (_slotObserver) {
+    _slotObserver.disconnect();
+    _slotObserver = null;
+  }
+  if (!slide.group) {
+    // Slides sense app (intros 1, 2, 11) — sense breakpoint vertical.
+    slideEl.dataset.vertical = 'false';
+    return;
+  }
+  const min = groupMinSize[slide.group];
+  if (!min) return;
+  const slot = slideEl.querySelector('.slot-app');
+  if (!slot || typeof ResizeObserver === 'undefined') return;
+
+  // Expose the thresholds as CSS vars in case styles want to reference
+  // them (debug / future container queries with style queries support).
+  slideEl.style.setProperty('--slot-min-w', `${min.minW}px`);
+  slideEl.style.setProperty('--slot-min-h', `${min.minH}px`);
+
+  const update = (w, h) => {
+    const isVertical = w < min.minW || h < min.minH;
+    const next = isVertical ? 'true' : 'false';
+    if (slideEl.dataset.vertical !== next) slideEl.dataset.vertical = next;
+  };
+
+  // Initial measurement (observe fires asynchronously; render an initial
+  // pass synchronously so there's no flash of horizontal-then-vertical).
+  const r = slot.getBoundingClientRect();
+  update(r.width, r.height);
+
+  _slotObserver = new ResizeObserver(entries => {
+    for (const e of entries) {
+      const box = e.contentBoxSize?.[0] || { inlineSize: e.contentRect.width, blockSize: e.contentRect.height };
+      update(box.inlineSize, box.blockSize);
+    }
+  });
+  _slotObserver.observe(slot);
 }
 
 // Apply/clear contenteditable on the editable fields of the current slide and

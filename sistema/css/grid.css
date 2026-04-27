@@ -1,13 +1,18 @@
 /* Grid templates — Sistema Interactivo
-   Each slide fits exactly one viewport height (no scroll). Layouts are
-   per-slide via inline `grid-template-areas` set from slide-data.layouts. */
+   Layouts are per-slide via inline `grid-template-areas` set from
+   slide-data.layouts. The page scrolls globally; each slide can be
+   taller than the viewport (text + tips never get cut off). When the
+   `.slot-app` drops below the app's per-group `minW × minH` thresholds
+   (defined in slide-data.groupMinSize), `slides.js` flips the slide to
+   vertical layout via `data-vertical="true"` — see the rule below. */
 
 .slide-stage{
-  height: calc(100vh - var(--nav-h));
+  /* Reserva visual mínima d'una pantalla; els slides amb molt contingut
+     poden créixer i fer scrollejar la pàgina (no aquest contenidor). */
+  min-height: calc(100vh - var(--nav-h));
   padding: var(--slide-pad-y) var(--slide-pad-x);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 /* Each slide is a 3-column grid (1fr 1fr 1fr); area-map and rows come inline
@@ -37,15 +42,30 @@
   flex-shrink: 0;
 }
 
-/* Responsive — single column, stacked, scroll allowed on mobile */
-@media (max-width: 820px){
-  .slide-stage{
-    height: auto;
-    overflow: visible;
-  }
-  body{ padding-bottom: calc(var(--nav-h) + 16px); }
+/* Per-slot vertical fallback: triggered by slides.js when the .slot-app
+   measures below the app's `groupMinSize`. Replaces the previous global
+   `@media (max-width: 820px)` which fired too aggressively for apps that
+   would still fit at smaller viewports. Visual order: title → image/app →
+   text → tips. */
+.slide[data-vertical="true"]{
+  grid-template-columns: 1fr !important;
+  grid-template-areas:
+    "title"
+    "image"
+    "app"
+    "text"
+    "tips" !important;
+  grid-template-rows: auto !important;
+}
+
+.slide[data-vertical="true"] .slot-image{ max-height: 40vh; }
+.slide[data-vertical="true"] .slot-app  { max-height: 70vh; }
+
+/* Final mobile safety net: at extremely narrow viewports (typical phone
+   portrait) force vertical regardless of the JS observer — protects the
+   first paint before the observer's first measurement. */
+@media (max-width: 480px){
   .slide{
-    /* Drop into a single column, visual order: title → image/app → text → tips. */
     grid-template-columns: 1fr !important;
     grid-template-areas:
       "title"
@@ -56,5 +76,6 @@
     grid-template-rows: auto !important;
   }
   .slot-image{ max-height: 40vh; }
-  .slot-app  { max-height: 60vh; }
+  .slot-app  { max-height: 70vh; }
+  body{ padding-bottom: calc(var(--nav-h) + 16px); }
 }

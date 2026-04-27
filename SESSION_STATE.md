@@ -113,8 +113,15 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
      - `.sistema-nav__btn` width/height: `clamp(36px, 4vw, 44px)`.
      - `.sistema-nav__btn svg` size: `clamp(14px, 1.5vw, 18px)`.
      - `.sistema-nav__title` gap: `clamp(6px, 1vw, 10px)`.
-9. Re-mesurar mínims útils per app (post-wrap) i omplir taula `minW`/`minH`.
-10. **Scroll global + `fit` + `minW`/`minH` al Sistema**:
+9. **Mesura minW/minH per app (post-wrap)** ✅ FET (agent + validació usuari)
+   - Timeline-only senzill (app9/13/26/28/30): 340 × 320.
+   - Timeline curt vertical (app10/App18): 320 × 420.
+   - Timeline complex (App14/App16): 380 × 400.
+   - Plano simple (app11/A, App12, App15, App32, App34, App35): 420 × 380.
+   - Plano amb molts pills (App19/App20): 450 × 380.
+   - Scale apps (App21–25B): **480 × 512** (validat visualment per usuari).
+   - Circular (App17): 380 × 380.
+10. **Scroll global + `fit` + `minW`/`minH` al Sistema** ← ARA
     - Treure `height: calc(100vh - var(--nav-h))` + `overflow: hidden` del
       `.slide-stage` (`sistema/css/grid.css`).
     - `.slot-text .prose` → sense `overflow-y: auto`.
@@ -122,6 +129,19 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       des de `slide-data.js`.
     - Layouts amb `min-content` als rows perquè el grid creixi quan cal.
     - Breakpoint vertical per slot via container queries (no media query).
+
+### Tasques pendents (feina futura, fora del pla actual)
+
+- **App19/App20**: la timeline (groc) es superposa a les primeres files de
+  la graella en pantalles petites tot i el fix de commit `a76ba11`. Cal
+  revisar el `max-height` calc del `.plano-soundline-container` /
+  `.plano-matrix-container` perquè respecti el cas amb `flex-wrap`
+  disparat al header.
+- **App22**: redisseny de l'estructura Escalar (no tractat aquí).
+- **App24**: redisseny de les línies de connexió (no tractat aquí).
+- **App17**: 3 millores opcionals identificades pel revisor (cache de
+  last-size al ResizeObserver, comentaris consistents, `ro` al module
+  scope per facilitar futur teardown).
 
 ### Notes sobre files que NO es toquen
 

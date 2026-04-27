@@ -49,18 +49,17 @@ body[data-editable="true"] [contenteditable="true"]:focus{
   background: var(--muted);
 }
 
-/* Text slot: fills its cell exactly; text flows in 1 or 2 columns based on
-   layout. Wide cells (C-text-top's full-width text row) → 2 columns.
+/* Text slot: fills its cell; text flows in 1 or 2 columns based on layout.
+   Wide cells (C-text-top's full-width text row) → 2 columns.
    Narrow cells (B-app-left text col) → 1 column.
 
-   If prose overflows the cell, it scrolls internally. The scrollbar is
-   invisible at rest (thumb transparent) and fades in when the slot is
-   hovered or focused — same pattern as macOS/iOS overlay scrollbars. */
+   The page scrolls globally now (slide-stage is `min-height` instead of
+   `height: 100vh`), so the prose has no internal scroll: it grows as
+   tall as needed and the entire page accommodates with native scroll. */
 .slot-text{
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  overflow: hidden;
   min-height: 0;
 }
 .slot-text .prose{
@@ -70,35 +69,7 @@ body[data-editable="true"] [contenteditable="true"]:focus{
   font-size: var(--fs-body);
   line-height: 1.45;
   color: var(--fg);
-  overflow-y: auto;
-  overscroll-behavior: contain;
   column-gap: var(--sp-4);
-  /* Firefox: thin scrollbar, transparent at rest */
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color .2s ease;
-}
-.slot-text:hover .prose,
-.slot-text .prose:focus-within,
-.slot-text .prose:hover{
-  scrollbar-color: var(--rule) transparent;
-}
-/* WebKit (Safari/Chrome): overlay-style scrollbar, fades in on hover */
-.slot-text .prose::-webkit-scrollbar{
-  width: 6px;
-}
-.slot-text .prose::-webkit-scrollbar-track{
-  background: transparent;
-}
-.slot-text .prose::-webkit-scrollbar-thumb{
-  background: transparent;
-  border-radius: 3px;
-  transition: background .2s ease;
-}
-.slot-text:hover .prose::-webkit-scrollbar-thumb,
-.slot-text .prose:hover::-webkit-scrollbar-thumb,
-.slot-text .prose:focus-within::-webkit-scrollbar-thumb{
-  background: var(--rule);
 }
 .slot-text .prose p{
   margin: 0 0 0.65em;
