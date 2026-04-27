@@ -100,10 +100,20 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
      breakpoint vertical abans que arribi al cas de superposició. En
      standalone, opcional fer scroll global quan la finestra no compleix
      el mínim.
-7. Tipografia Ubuntu a `sistema/css/tokens.css` (1 línia).
-8. Nav inferior responsive a `sistema/css/nav.css`.
-9. Re-mesurar mínims útils per app (post-wrap + post-cqw) i omplir taula
-   `minW`/`minH`.
+7. **Tipografia Ubuntu a tot el text del Sistema** ✅ FET
+   - `sistema/css/tokens.css`: `--font-body` passa de Krub a Ubuntu (com
+     `--font-display`). Tot el text del Sistema usa la mateixa font ara.
+8. **Nav inferior responsive** ✅ FET
+   - `sistema/css/nav.css`: convertits a `clamp()` els valors fixos:
+     - `.sistema-nav__progress` padding superior: `clamp(8px, 1.2vh, 12px)`.
+     - `.sistema-nav__progress-track` gap+height: `clamp(2px, 0.4vw, 4px)` /
+       `clamp(3px, 0.5vh, 5px)`.
+     - `.sistema-nav__bar` padding+gap: `clamp(8px, 1.2vh, 12px)` /
+       `clamp(12px, 2vw, var(--sp-3))`.
+     - `.sistema-nav__btn` width/height: `clamp(36px, 4vw, 44px)`.
+     - `.sistema-nav__btn svg` size: `clamp(14px, 1.5vw, 18px)`.
+     - `.sistema-nav__title` gap: `clamp(6px, 1vw, 10px)`.
+9. Re-mesurar mínims útils per app (post-wrap) i omplir taula `minW`/`minH`.
 10. **Scroll global + `fit` + `minW`/`minH` al Sistema**:
     - Treure `height: calc(100vh - var(--nav-h))` + `overflow: hidden` del
       `.slide-stage` (`sistema/css/grid.css`).

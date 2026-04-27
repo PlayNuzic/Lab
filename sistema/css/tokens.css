@@ -34,9 +34,11 @@
   --tips-border: #7cd6b3;
   --tips-text: #43433b;
 
-  /* Typography */
+  /* Typography — tot el text del Sistema en Ubuntu (display + body).
+     Krub queda fora; mantenim el fallback a system-ui per si la font no
+     carrega. */
   --font-display:'Ubuntu', system-ui, sans-serif;
-  --font-body:'Krub', Georgia, serif;
+  --font-body:'Ubuntu', system-ui, sans-serif;
 
   /* Spacing (7px base) */
   --sp-1:7px; --sp-2:14px; --sp-3:21px; --sp-4:28px; --sp-5:42px; --sp-6:56px;

@@ -16,12 +16,12 @@
 }
 
 .sistema-nav__progress{
-  padding: 12px var(--slide-pad-x) 0;
+  padding: clamp(8px, 1.2vh, 12px) var(--slide-pad-x) 0;
 }
 .sistema-nav__progress-track{
   display: flex;
-  gap: 4px;
-  height: 5px;
+  gap: clamp(2px, 0.4vw, 4px);
+  height: clamp(3px, 0.5vh, 5px);
 }
 .progress-seg{
   flex: 1;
@@ -41,12 +41,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px var(--slide-pad-x);
-  gap: var(--sp-3);
+  padding: clamp(8px, 1.2vh, 12px) var(--slide-pad-x);
+  gap: clamp(12px, 2vw, var(--sp-3));
 }
 
 .sistema-nav__btn{
-  width: 44px; height: 44px;
+  width: clamp(36px, 4vw, 44px);
+  height: clamp(36px, 4vw, 44px);
   border-radius: 50%;
   border: 0;
   background: var(--nuzic-green-light);
@@ -55,6 +56,11 @@
   display: flex; align-items: center; justify-content: center;
   transition: background .15s, transform .1s;
   flex-shrink: 0;
+}
+
+.sistema-nav__btn svg{
+  width: clamp(14px, 1.5vw, 18px);
+  height: clamp(14px, 1.5vw, 18px);
 }
 .sistema-nav__btn:hover{
   background: var(--nuzic-green);
@@ -73,7 +79,7 @@
 .sistema-nav__title{
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: clamp(6px, 1vw, 10px);
   font-family: var(--font-display);
   font-size: var(--fs-nav);
   color: var(--nuzic-green-light);
