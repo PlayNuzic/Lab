@@ -90,10 +90,16 @@ body[data-editable="true"] [contenteditable="true"]:focus{
 body[data-theme="dark"] .slot-text code{ background: #2a2a25; color: var(--nuzic-light); }
 
 /* Paso 5 (D-app-narrow) gives the text 2 columns of width; flow the prose
-   in 2 sub-columns to keep line length readable. */
+   in 2 sub-columns to keep line length readable. In vertical (single-col)
+   layout the prose has full slide width — drop back to 1 column so the
+   line length stays readable on narrow viewports. */
 .slide[data-layout="D-app-narrow"] .slot-text .prose{
   column-count: 2;
   column-gap: var(--sp-4);
+}
+
+.slide[data-vertical="true"] .slot-text .prose{
+  column-count: 1;
 }
 
 /* Density modifier (tweaks panel) */

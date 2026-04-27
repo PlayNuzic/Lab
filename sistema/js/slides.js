@@ -199,57 +199,77 @@ function render(){
   // Edit-mode wiring: toggle contenteditable on fields and persist on blur.
   applyEditableState(slideEl, slide.paso);
 
-  // Per-slot vertical breakpoint: observe the .slot-app size and toggle
-  // `data-vertical` on the slide when the slot drops below the app's
-  // minW or minH (defined in slide-data.groupMinSize). This replaces the
-  // global `@media (max-width: 820px)` that triggered too aggressively.
-  observeSlotSize(slideEl, slide);
+  // Per-viewport vertical breakpoint: predict the slot.app size from the
+  // viewport and the slide's layout fraction (no observer on the slot
+  // itself — that would loop, since toggling `data-vertical` resizes the
+  // slot, which would re-trigger the observer back and forth).
+  applyVerticalBreakpoint(slideEl, slide);
 
   localStorage.setItem(STORAGE_KEY, state.paso);
 }
 
-// ResizeObserver lifecycle: a single observer per render pass (cleaned up
-// when the next render replaces the slide). Disconnects on next render
-// because we recreate the slide element from scratch.
-let _slotObserver = null;
-function observeSlotSize(slideEl, slide){
-  if (_slotObserver) {
-    _slotObserver.disconnect();
-    _slotObserver = null;
+// Approximate slot.app width as a fraction of the slide content area.
+// `B-app-left` and `E-app-text-left` give the app 2 of 3 columns;
+// `D-app-narrow` gives it 1 of 3. Intros (`A-intro`) have no app slot.
+const layoutAppWidthFraction = {
+  'A-intro':         null,
+  'B-app-left':      2/3,
+  'D-app-narrow':    1/3,
+  'E-app-text-left': 2/3,
+};
+
+// Vertical fallback driver: listens to `window.resize` (stable signal —
+// the viewport doesn't oscillate when we toggle `data-vertical`) and
+// predicts the slot size from the viewport + layout. Re-runs on each
+// render so a paso change picks up the right thresholds.
+let _resizeHandler = null;
+function applyVerticalBreakpoint(slideEl, slide){
+  if (_resizeHandler) {
+    window.removeEventListener('resize', _resizeHandler);
+    _resizeHandler = null;
   }
   if (!slide.group) {
-    // Slides sense app (intros 1, 2, 11) — sense breakpoint vertical.
+    // Slides sense app (intros 1, 2, 11) — never go vertical.
     slideEl.dataset.vertical = 'false';
     return;
   }
   const min = groupMinSize[slide.group];
   if (!min) return;
-  const slot = slideEl.querySelector('.slot-app');
-  if (!slot || typeof ResizeObserver === 'undefined') return;
+  const fraction = layoutAppWidthFraction[slide.layout] ?? 1;
 
-  // Expose the thresholds as CSS vars in case styles want to reference
-  // them (debug / future container queries with style queries support).
+  // Expose thresholds as CSS vars (debug / style queries when supported).
   slideEl.style.setProperty('--slot-min-w', `${min.minW}px`);
   slideEl.style.setProperty('--slot-min-h', `${min.minH}px`);
 
-  const update = (w, h) => {
-    const isVertical = w < min.minW || h < min.minH;
+  const compute = () => {
+    const styles = getComputedStyle(document.documentElement);
+    const padX = parseFloat(styles.getPropertyValue('--slide-pad-x')) || 48;
+    const navH = parseFloat(styles.getPropertyValue('--nav-h')) || 96;
+    const padY = parseFloat(styles.getPropertyValue('--slide-pad-y')) || 32;
+
+    const slideW = window.innerWidth - 2 * padX;
+    const slideH = window.innerHeight - navH - 2 * padY;
+
+    // Predicted slot width: a fraction of slide width (gaps ignored — the
+    // ~30px gap is small relative to the thresholds and falls in the
+    // user's favour: we under-estimate slot width slightly, so we trigger
+    // vertical a touch earlier than strictly necessary).
+    const predictedSlotW = slideW * fraction;
+    // Predicted slot height: most layouts give the app most of the
+    // vertical space (~80% after title/text/tips/gap). E-app-text-left
+    // pins the app row to ~clamp(180, 32vh, 340), much smaller — handle
+    // it as a special case.
+    const slotHFraction = slide.layout === 'E-app-text-left' ? 0.32 : 0.8;
+    const predictedSlotH = slideH * slotHFraction;
+
+    const isVertical = predictedSlotW < min.minW || predictedSlotH < min.minH;
     const next = isVertical ? 'true' : 'false';
     if (slideEl.dataset.vertical !== next) slideEl.dataset.vertical = next;
   };
 
-  // Initial measurement (observe fires asynchronously; render an initial
-  // pass synchronously so there's no flash of horizontal-then-vertical).
-  const r = slot.getBoundingClientRect();
-  update(r.width, r.height);
-
-  _slotObserver = new ResizeObserver(entries => {
-    for (const e of entries) {
-      const box = e.contentBoxSize?.[0] || { inlineSize: e.contentRect.width, blockSize: e.contentRect.height };
-      update(box.inlineSize, box.blockSize);
-    }
-  });
-  _slotObserver.observe(slot);
+  compute();
+  _resizeHandler = compute;
+  window.addEventListener('resize', _resizeHandler);
 }
 
 // Apply/clear contenteditable on the editable fields of the current slide and

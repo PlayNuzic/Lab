@@ -59,7 +59,14 @@
 }
 
 .slide[data-vertical="true"] .slot-image{ max-height: 40vh; }
-.slide[data-vertical="true"] .slot-app  { max-height: 70vh; }
+
+/* App slot in vertical: no fixed height cap. Apps respect their
+   `aspect-ratio` (set inline from `slide-data.aspect`) and the iframe
+   fills the resulting box. The page scrolls globally, so a tall app is
+   not a problem — it just pushes text/tips below.
+   Apps with extremely tall natural ratios (app10 vertical soundline 2/3)
+   would otherwise occupy 1.5× the slot width vertically, which is fine
+   on portrait viewports. */
 
 /* Final mobile safety net: at extremely narrow viewports (typical phone
    portrait) force vertical regardless of the JS observer — protects the
@@ -76,6 +83,5 @@
     grid-template-rows: auto !important;
   }
   .slot-image{ max-height: 40vh; }
-  .slot-app  { max-height: 70vh; }
   body{ padding-bottom: calc(var(--nav-h) + 16px); }
 }
