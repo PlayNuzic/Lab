@@ -367,6 +367,29 @@ body[data-visual="nuzic"] .soundline-container .soundline-number::after {
   flex-shrink: 0;
 }
 
+/* Scale apps (App21–24, App25, App25B) tenen `.soundline-container` dins de
+   `.soundlines-area` i un sistema visual diferent (múltiples soundlines en
+   paral·lel amb width pròpia via `--soundline-container-width`). Reverteix
+   les regles soundline-tradicionals que no aplicarien al seu cas:
+   - `container-type: size` → `normal` (no necessiten cqh; tenen el seu
+     propi `--soundline-number-size` definit a `soundlines.css`).
+   - `width` del `.soundline` → `100%` (el container ja té amplada via
+     `--soundline-container-width`).
+   - `font-size` del `.soundline-number` → `var(--soundline-number-size)`
+     ja és el fallback de la regla nuzic; aquí ho fem explícit per evitar
+     dependre del fallback. */
+body[data-visual="nuzic"] .soundlines-area .soundline-container {
+  container-type: normal;
+}
+
+body[data-visual="nuzic"] .soundlines-area .soundline-container .soundline {
+  width: 100%;
+}
+
+body[data-visual="nuzic"] .soundlines-area .soundline-container .soundline-number {
+  font-size: var(--soundline-number-size);
+}
+
 /* Note highlights: unificar a blau nuzic (substitueix verd/rosa) */
 body[data-visual="nuzic"] .note-highlight {
   --note-highlight-color: var(--nuzic-blue-light);
