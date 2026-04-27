@@ -309,25 +309,14 @@ body[data-visual="nuzic"] .plano-soundline-note::after {
   content: '\2002\2013';  /* en-space + en-dash */
 }
 
-/* Soundline standalone — width centralitzat al nuzic-theme; el `min-height`
-   es deixa individual per app perquè App14 marca el mínim natural (limitat
-   pel seu editor iS sota) i ha d'absorbir els canvis del viewport sense
-   un sòl artificial. Apps amb rosa estiratible (app10, sense res sota) o
-   amb component diferent (App18 Registre) defineixen el seu propi
-   `min-height` als seus styles.css.
-   `container-type: size` permet als descendents `.soundline-number`
-   (`position: absolute`) usar `cqh` per dimensionar la font. Segur respecte
-   al containing block: `.soundline` ja és `position: relative` i continua
-   sent el containing block dels números absolutes. */
-body[data-visual="nuzic"] .soundline-container {
-  container-type: size;
-  --soundline-w: clamp(2.5rem, 5vw, 3.75rem);
-}
-
+/* Soundline standalone (sense .grid-container ni .plano-container).
+   ⚠️ NO aplicar `container-type` aquí: trenca el containing block dels
+   `.soundline-number` (`position: absolute`) i els fa col·lapsar
+   horitzontalment. Per evitar el desbordament dels números en marcs
+   estrets, mantenim el sostre del clamp viewport conservador. */
 body[data-visual="nuzic"] .soundline-container .soundline {
   margin: 0 auto;
   transform: none;
-  width: var(--soundline-w);
 }
 
 body[data-visual="nuzic"] .soundline-container .soundline::before {
@@ -342,13 +331,11 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   left: 0;
   width: 100%;
   font-weight: 700;
-  /* Font-size proporcional a l'alçada del marc (`cqh` del `.soundline-container`).
-     Per a 12 nombres apilats verticalment, ~6cqh dóna un font que ocupa ~6%
-     de l'alçada total — visualment uniforme a app10 (alta), App14 (mitja)
-     i App18 (curta). Floor 0.6rem (9.6px) per llegibilitat en marcs molt
-     curts; sostre 1.4rem (22.4px) per evitar nombres exagerats en marcs
-     llargs. Apps poden override via `--soundline-number-size`. */
-  font-size: var(--soundline-number-size, clamp(0.6rem, 6cqh, 1.4rem));
+  /* Sostre conservador (1.15rem ≈ 18.4px) perquè el text + dashes laterals
+     (::before/::after distribuïts via `space-between`) no sobresurti del
+     marc rosa en finestres estretes. Apps amb soundline ample poden pujar
+     el sostre via `--soundline-number-size`. */
+  font-size: var(--soundline-number-size, clamp(0.85rem, 1.4vw, 1.15rem));
   opacity: 1;
   display: flex;
   justify-content: space-between;
@@ -365,29 +352,6 @@ body[data-visual="nuzic"] .soundline-container .soundline-number::before {
 body[data-visual="nuzic"] .soundline-container .soundline-number::after {
   content: '\2013';
   flex-shrink: 0;
-}
-
-/* Scale apps (App21–24, App25, App25B) tenen `.soundline-container` dins de
-   `.soundlines-area` i un sistema visual diferent (múltiples soundlines en
-   paral·lel amb width pròpia via `--soundline-container-width`). Reverteix
-   les regles soundline-tradicionals que no aplicarien al seu cas:
-   - `container-type: size` → `normal` (no necessiten cqh; tenen el seu
-     propi `--soundline-number-size` definit a `soundlines.css`).
-   - `width` del `.soundline` → `100%` (el container ja té amplada via
-     `--soundline-container-width`).
-   - `font-size` del `.soundline-number` → `var(--soundline-number-size)`
-     ja és el fallback de la regla nuzic; aquí ho fem explícit per evitar
-     dependre del fallback. */
-body[data-visual="nuzic"] .soundlines-area .soundline-container {
-  container-type: normal;
-}
-
-body[data-visual="nuzic"] .soundlines-area .soundline-container .soundline {
-  width: 100%;
-}
-
-body[data-visual="nuzic"] .soundlines-area .soundline-container .soundline-number {
-  font-size: var(--soundline-number-size);
 }
 
 /* Note highlights: unificar a blau nuzic (substitueix verd/rosa) */

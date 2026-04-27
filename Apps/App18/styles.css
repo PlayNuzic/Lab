@@ -122,15 +122,10 @@ html, body {
   height: 100%;
 }
 
-/* App18: el component Registro és més compacte que un soundline de 12
-   notes (només mostra l'octava activa). El `min-height` fluid (floor 0)
-   manté el rosa visible en finestres normals però el deixa col·lapsar en
-   finestres extremament petites perquè els controls no quedin tapats per
-   overflow. */
 .soundline {
   position: relative;
+  width: 3.75rem;
   height: 100%;
-  min-height: clamp(0px, 18vh, 11rem);
 }
 
 body[data-visual="nuzic"] .soundline-container .soundline {

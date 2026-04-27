@@ -76,17 +76,11 @@ body[data-visual="nuzic"] {
   display: none !important;
 }
 
-/* Soundline: necessita height explícit perquè els fills són position:absolute.
-   Width ve de `nuzic-theme.css` via `--soundline-w`. App10 és la única app
-   amb rosa estiratible sense element sota que el limiti — sense `max-height`
-   creixeria molt més que App14 (que té editor iS i un sostre natural). El
-   `max-height` fluïd manté app10 ≤ app14 a totes les mides de viewport;
-   sense `min-height`, deixa que el rosa baixi proporcionalment a app14 en
-   finestres petites. */
+/* Soundline: necessita height explícit perquè els fills són position:absolute */
 .soundline {
   position: relative;
+  width: 60px;
   height: 100%;
-  max-height: clamp(14rem, 35vh, 25rem);
 }
 
 /* Fons rosa continu al soundline */

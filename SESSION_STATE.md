@@ -58,33 +58,21 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
    - També revertit: `container-type: inline-size` al `.plano-soundline-container`
      — trencava el grid-layout intern d'App19/App20 (timeline supersposada
      a soundline). El comentari de prevenció queda al fitxer.
-4. **Soundline numbers — mides fluides relatives al viewport** ✅ FET
-   - **Diagnòstic**: les 3 apps tenen `.soundline { width: 60px; height: 100% }`
-     idèntic, però el `height: 100%` es resol contra pares amb alçada
-     diferent → rosa de 400px (app10), 280px (App14), 100px (App18 amb
-     component Registro compacte). La barreja `flex` + `100%` + `rem` fix
-     no donava coherència.
-   - **Iteracions descartades**: (a) `min-height` global al `.soundline` →
-     trencava App14/App18 inflant-los. (b) `min-height` fix a app10 →
-     app10 quedava el doble de gran que App14 en pantalles petites.
-   - **Solució aplicada (totes les mides fluides amb `clamp()` viewport-based)**:
-     - **A `nuzic-theme.css`**: variable `--soundline-w: clamp(2.5rem, 5vw,
-       3.75rem)` per width; `container-type: size` al `.soundline-container`
-       (permet `cqh` als nombres). Sense `min-height` global — App14 marca
-       el mínim natural via els seus elements interns.
-     - **App10 (`Apps/app10/styles.css`)**: `max-height: clamp(14rem, 35vh,
-       25rem)` al `.soundline` — limita al màxim natural d'App14, sense
-       min-height perquè baixi proporcionalment en finestres petites.
-     - **App14**: cap regla afegida; rosa heretat del flex pare.
-     - **App18 (`Apps/App18/styles.css`)**: `min-height: clamp(0, 18vh,
-       11rem)` — manté la mida compacta del Registre (~11rem) en finestres
-       normals, col·lapsa fluïdament en finestres extremament petites perquè
-       no overflowi i tapi els controls.
-     - **Font-size al `.soundline-number`**: `clamp(0.6rem, 6cqh, 1.4rem)`
-       — proporcional a l'alçada del marc via cqh.
-   - `.grid-container .soundline-number` (musical-grid): `clamp(0.6rem,
-     1.2vw, 0.75rem)` — sense canvi.
-   - `.plano-soundline-note` (plano-modular): sense canvi.
+4. **Soundline numbers — totes les iteracions de min/max revertides** ❌
+   - Es van provar múltiples estratègies (min-height global, max-height a
+     app10, container-type size + cqh, override a App18) i totes van
+     produir resultats visualment "ridículs" segons l'usuari.
+   - **Estat final**: tornat als valors originals d'app10/App14/App18
+     (`width: 60px / 3.75rem`, `height: 100%`, sense min/max-height).
+   - **Mantingut**: clamp del font conservador a `.soundline-container
+     .soundline-number` (`clamp(0.85rem, 1.4vw, 1.15rem)`) que evita
+     desbordament de text + dashes en finestres estretes. NO es pot usar
+     `container-type` als marcs (trenca containing block dels números
+     absoluts) — comentari ⚠️ documenta-ho.
+   - **Decisió diferida**: el problema de la diferència de mida del rosa
+     entre app10/App14/App18 ha de resoldre's al pas 10 (Sistema), no via
+     nuzic-theme. Els overrides individuals per-app amb mides fluides
+     no van produir resultats coherents en pantalles diverses.
 5. **App17 pulse-numbers — JS recalcula al resize** ✅ FET
    - **Diagnòstic real**: el CSS no tenia efecte perquè
      `Apps/App17/main.js:305` fa `el.style.setProperty('font-size',

@@ -228,11 +228,10 @@ body[data-visual="nuzic"] {
   display: none !important;
 }
 
-/* Narrow soundline — width ve de `nuzic-theme.css` via la variable
-   `--soundline-w`. App14 marca el mínim natural i no necessita min-height
-   (limitat pel seu editor iS sota via flex). */
+/* Narrow soundline with pink background (like App10) */
 .soundline {
   position: relative;
+  width: 3.75rem;
   height: 100%;
 }
 
