@@ -186,9 +186,10 @@ body.dragging-note * {
 }
 
 .it-bar-cell-layer .interval-label-bar__box {
-  font-size: clamp(0.6rem, 1vw, 0.85rem);
-  padding: 0 0.3rem;
-  min-width: 1.1rem;
+  font-size: clamp(0.75rem, 1.4vw, 1.1rem);
+  padding: 0.15rem 0.45rem;
+  min-width: 1.35rem;
+  line-height: 1;
 }
 
 .it-bar {
@@ -290,14 +291,17 @@ body.dragging-note * {
   display: none;
 }
 
-/* Caixa central amb el número (App15 posiciona via JS) */
+/* Caixa central amb el número (App15 posiciona via JS).
+   Mides igualades amb el halter d'iT a la grid (.it-bar-cell-layer __box). */
 .interval-number {
   background: var(--interval-sound-color, #F28AAD);
   color: var(--nuzic-dark, #43433B) !important;
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  font-size: clamp(0.75rem, 1.4vw, 1.1rem);
   font-weight: 700;
   line-height: 1;
-  padding: 0.2rem 0.6rem;
+  padding: 0.15rem 0.45rem;
+  min-width: 1.35rem;
+  text-align: center;
   text-shadow: none;
   pointer-events: none;
   white-space: nowrap;
