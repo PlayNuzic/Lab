@@ -9,12 +9,12 @@
 // generic filler (future batches).
 
 export const sections = [
-  { id:'introduccion', title:'Introducción',       slides:[1,2,3,4,5] },
-  { id:'descubriendo', title:'Descubriendo',       slides:[6,7,8] },
-  { id:'intervalos',   title:'Intervalos',         slides:[9] },
-  { id:'ampliando',    title:'Ampliando',          slides:[10,11,12,13,14,15] },
-  { id:'fraccionando', title:'Fraccionando',       slides:[16,17,18,19,20] },
-  { id:'escalas',      title:'Escalas',            slides:[21,22,23,24,25,26] },
+  { id:'introduccion', title:'Introducción',                       slides:[1] },
+  { id:'descubriendo', title:'Descubriendo la Música',              slides:[2,3,4,5,6] },
+  { id:'intervalos',   title:'Midiendo el movimiento: Los intervalos', slides:[7,8,9] },
+  { id:'ampliando',    title:'Ampliando',                          slides:[10,11,12,13,14,15] },
+  { id:'fraccionando', title:'Fraccionando',                       slides:[16,17,18,19,20] },
+  { id:'escalas',      title:'Escalas',                            slides:[21,22,23,24,25,26] },
 ];
 
 // Grid layouts — the skeleton shared across pasos. Each defines the grid areas
@@ -67,13 +67,13 @@ export const layouts = {
 // JS measurement is needed.
 export const slideMatrix = [
   { paso:1,  section:'introduccion', title:'¿Te gustaría saber qué movimientos se producen en la música?', layout:'A-intro' },
-  { paso:2,  section:'introduccion', title:'Contar y Medir Música',                                       layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple' },
-  { paso:3,  section:'introduccion', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1', group:'timeline-simple' },
-  { paso:4,  section:'introduccion', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'2/3', group:'timeline-vertical' },
-  { paso:5,  section:'introduccion', title:'El Plano Musical',                                            layout:'B-app-left', apps:['app11'],  aspect:'4/3', group:'plano-simple' },
+  { paso:2,  section:'descubriendo', title:'Contar y Medir Música',                                       layout:'B-app-left', apps:['App11A'], aspect:'4/3', group:'plano-simple' },
+  { paso:3,  section:'descubriendo', title:'Línea Temporal',                                              layout:'E-app-text-left', apps:['app9'],   aspect:'2/1', group:'timeline-simple' },
+  { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'2/3', group:'timeline-vertical' },
+  { paso:5,  section:'descubriendo', title:'El Plano Musical',                                            layout:'B-app-left', apps:['app11'],  aspect:'4/3', group:'plano-simple' },
   { paso:6,  section:'descubriendo', title:'Descubriendo la Música',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple' },
-  { paso:7,  section:'descubriendo', title:'Midiendo el movimiento: Los Intervalos',                      layout:'B-app-left', apps:['app13'],  aspect:'2/1', group:'timeline-simple' },
-  { paso:8,  section:'descubriendo', title:'Intervalo Sonoro',                                            layout:'B-app-left', apps:['App14'],  aspect:'3/2', group:'timeline-complex' },
+  { paso:7,  section:'intervalos',   title:'Midiendo el movimiento: Los Intervalos',                      layout:'B-app-left', apps:['app13'],  aspect:'2/1', group:'timeline-simple' },
+  { paso:8,  section:'intervalos',   title:'Intervalo Sonoro',                                            layout:'B-app-left', apps:['App14'],  aspect:'3/2', group:'timeline-complex' },
   { paso:9,  section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
   { paso:10, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'A-intro' },
   { paso:11, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'B-app-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex' },
@@ -133,7 +133,7 @@ export const slideContent = {
 <p>Los pulsos nos permiten marcar exactamente en qué instante se producen los sonidos. El tiempo en la música se tiene que medir con gran precisión.</p>
 <p>Como la pulsación del corazón, un <strong>paso</strong> temporal es el tiempo que pasa entre dos pulsos consecutivos. Este paso es la unidad temporal que usaremos para medir cuánto dura un sonido.<br></p>
 <p>Cuando contamos <strong>pasos</strong>, es natural hacerlo desde el 1: El paso 1 va del pulso 0 al 1, el paso 2 va del 1 al 2 etc…</p>`,
-    tipsTitle: 'Prueba el Plano Nuzic',
+    tipsTitle: 'Prueba la Línea Temporal',
     tips: `<p>Haz clic en <strong>Play</strong> y escucha dos notas aleatorias en posiciones distintas de la línea temporal.</p>
 <p>Ajusta el BPM entre 50 y 150 para escuchar la línea más rápido o más lento.</p>
 <p><strong>Tip:</strong> En la línea temporal podemos visualizar el paso del tiempo marcado por los pulsos y oír un sonido que ocurre en un pulso y que dura una pulsación o paso.</p>`,
