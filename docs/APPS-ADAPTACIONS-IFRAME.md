@@ -3,7 +3,15 @@
 Document complementari a `SISTEMA-INTERACTIVO-PLAN.md`.
 Descriu les modificacions necessaries a cada app de `Apps/` perque encaixin dins els iframes del Sistema Interactivo.
 
+> **Actualitzacio 2026-04-28** — overrides puntuals al `libs/app-common/embed.css` accumulats durant la integració al Sistema:
+>
+> - **app10 / App18** (vertical soundline): `.timeline-wrapper { margin-top: auto; margin-bottom: auto }` — centrat vertical de la soundline dins el slot.
+> - **app10** (Pas 5, soundline vertical): `body.app10 main { padding-right: clamp(0px, calc(350px - 100vw), 80px) }` — desplaçament progressiu cap a l'esquerra a iframes estrets per compensar el `.note-highlight` (extèn 80px a la dreta) + el `.start-overlay` text wrapping. A iframes ≥ 350px wide cap shift; a < 350px shift creix linealment fins a 80px màx.
+> - **App16** (módulo temporal lineal): override de `min-height: 25rem` perquè la wrapper no deixi una franja buida sota els controls.
+> - **Scale apps** (App21–25B): `.soundlines-area { align-items: safe center }` per evitar la franja buida que deixa el top-bar absolute.
+>
 > **Actualitzacio 2026-04-19** — Refactoring de nuzic-theme completat:
+>
 > - **25/25 apps embedides ja tenen `data-visual="nuzic"`** (Fase 2 feta).
 > - **Sizes relatives + `clamp()`**: tots els controls, numeros de timeline/soundline i botons escalen amb `clamp(min, Nvw, max)`. Les apps ja son responsives dins un iframe sense overrides per-viewport.
 > - **Boto volum relocalitzat**: ja no viu al `<header class="top-bar">`. Dos modes coexistents gestionats per `relocateSoundWrapperForNuzic()` a `libs/shared-ui/header.js`:

@@ -1,5 +1,21 @@
 # Sistema Interactivo — Pla d'implementacio
 
+> **Estat 2026-04-28** — l'esquelet del Sistema està implementat a [`sistema/`](../sistema/).
+> Aquest document es manté com a referència del pla original i el mapatge slide↔app↔layout (seccions 2-3).
+> La implementació real ha evolucionat respecte algunes seccions tècniques d'aquest pla.
+>
+> **Resum del que hi ha avui** (no cal llegir el pla sencer per saber com funciona):
+>
+> - **Layouts** definits a [`sistema/js/slide-data.js`](../sistema/js/slide-data.js): `A-intro`, `B-app-left`, `D-app-narrow`, `E-app-text-left`. No s'han fet servir els noms `2-col` / `3-col span-left` originals — s'han substituït per noms més descriptius.
+> - **Slide content-driven**: `.slide-stage` no té `min-height`, `.slide` no té `flex: 1`. Si el contingut és curt, l'stage és curt; si és llarg, la pàgina scrolla. Veure [`sistema/css/grid.css`](../sistema/css/grid.css).
+> - **Iframe sizing determinista**: `width: 100% + aspect-ratio (per slide) + max-height: 700px + margin: 0 auto`. Sense `flex: 1` per evitar conflictes amb aspect-ratio. Veure [`sistema/css/slides.css`](../sistema/css/slides.css).
+> - **Responsive**: una sola media query `@media (max-width: 900px)` col·lapsa a layout vertical. Mòbils i tablets en portrait → vertical; tablets en landscape i amunt → horitzontal.
+> - **Apps embed**: `?embed=true` activa [`libs/app-common/embed.css`](../libs/app-common/embed.css) que oculta el top-bar, fa el `<main>` flex column, i aplica overrides puntuals (app10/app18 vertical centering, app16 min-height, scale apps soundlines-area).
+> - **Edit mode**: `?tweaks=1` activa overrides en localStorage. Veure [SISTEMA-EDIT-MODE.md](SISTEMA-EDIT-MODE.md).
+> - **Navegació**: barra inferior amb segments de progrés clicables, prev/next, fletxes de teclat.
+>
+> **Procés històric** complet de canvis arquitecturals: vegeu `SESSION_STATE.md` (passos 10-15) durant el desenvolupament, o `docs/session-history/` un cop arxivat.
+
 ## 1. Visio general
 
 El Sistema Interactivo es la capa de presentacio que embolcalla les apps del Lab repo en un format educatiu navegable. Cada "slide" combina una app interactiva (o imatge) amb text explicatiu i consells practics, guiant l'usuari pel metode Nuzic.
