@@ -73,7 +73,7 @@ export const slideMatrix = [
   { paso:5,  section:'descubriendo', title:'El Plano Musical',                                            layout:'B-app-left', apps:['app11'],  aspect:'4/3', group:'plano-simple' },
   { paso:6,  section:'descubriendo', title:'El par Nota - Pulso',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple' },
   { paso:7,  section:'intervalos',   title:'Midiendo el movimiento de la Música: Los Intervalos',         layout:'A-intro' },
-  { paso:8,  section:'intervalos',   title:'Midiendo el movimiento: Los Intervalos',                      layout:'B-app-left', apps:['app13'],  aspect:'2/1', group:'timeline-simple' },
+  { paso:8,  section:'intervalos',   title:'El Intervalo Temporal',                                       layout:'E-app-text-left', apps:['app13'], aspect:'2/1', group:'timeline-simple' },
   { paso:9,  section:'intervalos',   title:'Intervalo Sonoro',                                            layout:'B-app-left', apps:['App14'],  aspect:'3/2', group:'timeline-complex' },
   { paso:10, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
   { paso:11, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'A-intro' },
@@ -180,6 +180,18 @@ export const slideContent = {
 <p>Los números que miden los movimientos se llaman <strong>intervalos</strong>.</p>
 <p>Cada línea del plano tiene su intervalo característico. Los de la línea temporal miden las duraciones, los de la línea sonora los saltos de las notas. Son muy diferentes pero la idea es la misma: medir movimientos.</p>
 <p>Los intervalos muestran los espacios que se van formando entre las notas, cómo se construye una melodía y permiten entender la esencia de su expresión.</p>`,
+  },
+  8: {
+    text: `<h3>El intervalo temporal iT(n) mide la distancia entre dos pulsos escogidos.</h3>
+<p>La unidad que usaremos para medir el tiempo que dura cada sonido es el paso temporal entre dos pulsos adyacentes. En el caso del iT(1) le corresponde una unidad de paso. El número del iT nos dice cuantas unidades, o sea, cuantos pasos dura un sonido.</p>
+<p>Para calcular el iT que hay entre dos pulsos cualquiera solo hay que restar el número del primer pulso del número del segundo pulso. iT= P2 - P1. El resultado es siempre positivo ya que el P2 es siempre mayor que el P1.</p>
+<p>Cada iT puede contener un sonido o un silencio; los silencios son muy importantes en la música.</p>
+<p>Los iT dividen el tiempo total en partes, la suma de todos los iT da la duración total, o sea, la longitud.</p>
+<p>Para definir un ritmo creamos una sucesión de iT.</p>`,
+    tipsTitle: 'Prueba los iT en la línea',
+    tips: `<p>Introduce tamaños de iT en los cuadros. La suma no puede superar 8.</p>
+<p>Pulsa ▶ para reproducir, el dado para generar una sucesión aleatoria, y la papelera para borrar.</p>
+<p><strong>Tip:</strong> Descubre cómo la distancia entre los sonidos crea el movimiento. Cambiar el orden de los iT cambia completamente el ritmo.</p>`,
   },
 };
 
