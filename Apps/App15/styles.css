@@ -142,15 +142,53 @@ body.dragging-note * {
   cursor: grabbing !important;
 }
 
-/* ========== iT BARS OVERLAY (timeline) ========== */
+/* ========== iT BARS OVERLAY (timeline) — DEPRECATED ==========
+   Capa antiga: el mecanisme JS continua actiu però queda ocult.
+   El nou layout pinta els halters sota cada cel·la (.it-bar-cell-layer). */
 .it-bars-layer {
+  display: none !important;
+}
+
+/* ========== iT HALTER LAYER (dins la matrix, sota cada cel·la activa) ========== */
+.it-bar-cell-layer {
   position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
+  inset: 0;
   pointer-events: none;
-  display: block;
-  z-index: 15;
+  z-index: 20; /* sobre cel·les actives (10) i ::before active (25-1) */
+}
+
+/* Halters dins la grid: més compactes que la versió de la timeline (App13).
+   Posicionament absolut basat en % del matrix container. */
+.it-bar-cell-layer .interval-label-bar {
+  height: 0.8rem;
+  margin-top: 0.15rem; /* petita separació de la cel·la activa */
+}
+
+.it-bar-cell-layer .interval-label-bar__dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  top: 0.075rem; /* centrat sobre la línia (height línia 0.15rem / 2) */
+}
+
+.it-bar-cell-layer .interval-label-bar::before {
+  height: 0.15rem;
+}
+
+.it-bar-cell-layer .interval-label-bar--dashed::before {
+  background-image: linear-gradient(
+    to right,
+    var(--nuzic-yellow, #ffbb33) 0,
+    var(--nuzic-yellow, #ffbb33) 0.25rem,
+    transparent 0.25rem,
+    transparent 0.5rem
+  );
+  background-size: 0.5rem 100%;
+}
+
+.it-bar-cell-layer .interval-label-bar__box {
+  font-size: clamp(0.6rem, 1vw, 0.85rem);
+  padding: 0 0.3rem;
+  min-width: 1.1rem;
 }
 
 .it-bar {

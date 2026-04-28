@@ -11,11 +11,14 @@
  * @param {number} opts.startPercent - Posició esquerra (0-100)
  * @param {number} opts.widthPercent - Amplada (0-100)
  * @param {string|number} opts.label - Número d'iT (duració)
+ * @param {'solid'|'dashed'} [opts.variant='solid'] - Tipus de línia central.
+ *   `dashed` per silencis (caixa i punts continuen massissos).
  * @returns {HTMLElement}
  */
-export function createIntervalLabelBar({ startPercent, widthPercent, label }) {
+export function createIntervalLabelBar({ startPercent, widthPercent, label, variant = 'solid' }) {
   const bar = document.createElement('div');
   bar.className = 'interval-label-bar';
+  if (variant === 'dashed') bar.classList.add('interval-label-bar--dashed');
   bar.style.left = `${startPercent}%`;
   bar.style.width = `${widthPercent}%`;
 

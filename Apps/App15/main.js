@@ -22,6 +22,7 @@ import {
   pairsToIntervals,
   createIntervalRenderer
 } from '../../libs/interval-sequencer/index.js';
+import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 9;   // Horizontal: 0-8
@@ -258,6 +259,74 @@ function renderTemporalBars(intervals = []) {
   intervalRenderer.render(intervals);
 }
 
+/**
+ * Render iT halters DINS la grid, sota cada cel·la activa (estil App13).
+ * Substitueix visualment el `it-bars-layer` antic (que queda ocultat per CSS).
+ *
+ * Cada parell { note, pulse, iT, isRest } produeix un halter amb:
+ *  - left/width en % del matrix container (basat en TOTAL_SPACES)
+ *  - top: just sota la fila de la nota corresponent
+ *  - variant 'dashed' per silencis
+ */
+function renderItHalterCellLayer(pairs) {
+  if (!musicalGrid) return;
+  const matrix = musicalGrid.getMatrixContainer?.();
+  if (!matrix) return;
+
+  // Capa pròpia ancorada al matrix container
+  let layer = matrix.querySelector('#it-bar-cell-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = 'it-bar-cell-layer';
+    layer.className = 'it-bar-cell-layer';
+    matrix.appendChild(layer);
+  }
+  layer.innerHTML = '';
+
+  const visible = (pairs || []).filter(p =>
+    p && p.note != null && p.pulse != null &&
+    p.pulse >= 0 && p.pulse <= TOTAL_SPACES - 1 &&
+    p.note >= 0 && p.note <= TOTAL_NOTES - 1
+  );
+
+  // Mesurem cada cel·la individualment per ancorar el halter exactament
+  // sota la seva vora inferior (= on acaba la fletxa rosa de la línia iS).
+  // Això evita errors d'arrodoniment quan les files no són uniformes.
+  const matrixRect = matrix.getBoundingClientRect();
+  if (!matrixRect.width || !matrixRect.height) return;
+
+  visible.forEach(p => {
+    const iT = Math.max(1, p.temporalInterval || 1);
+    const startSpace = p.pulse;
+    const widthSpaces = Math.min(iT, TOTAL_SPACES - startSpace);
+
+    const startCell = musicalGrid.getCellElement(p.note, startSpace);
+    const endCell = musicalGrid.getCellElement(p.note, startSpace + widthSpaces - 1);
+    if (!startCell || !endCell) return;
+
+    const startRect = startCell.getBoundingClientRect();
+    const endRect = endCell.getBoundingClientRect();
+
+    const halter = createIntervalLabelBar({
+      startPercent: 0,
+      widthPercent: 100,
+      label: iT,
+      variant: p.isRest ? 'dashed' : 'solid'
+    });
+
+    // Coordenades en % del matrix container
+    const leftPct = ((startRect.left - matrixRect.left) / matrixRect.width) * 100;
+    const rightPct = ((endRect.right - matrixRect.left) / matrixRect.width) * 100;
+    const bottomPct = ((startRect.bottom - matrixRect.top) / matrixRect.height) * 100;
+
+    halter.style.left = `${leftPct}%`;
+    halter.style.width = `${Math.max(0, rightPct - leftPct)}%`;
+    halter.style.top = `${bottomPct}%`;
+
+    layer.appendChild(halter);
+  });
+}
+
 function syncGridFromPairs(pairs) {
   if (!musicalGrid) return;
   currentPairs = pairs;
@@ -344,6 +413,9 @@ function syncGridFromPairs(pairs) {
 
   // Render temporal overlay based on iT
   renderTemporalBars(currentIntervals);
+
+  // Render halters d'iT sota cada cel·la activa (substitueix visualment la capa antiga)
+  renderItHalterCellLayer(validPairs);
 
   // Save to storage
   saveCurrentState();

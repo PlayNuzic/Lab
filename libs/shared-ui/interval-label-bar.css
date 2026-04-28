@@ -28,6 +28,21 @@
   z-index: 1;
 }
 
+/* Variant per silencis: línia central discontínua (caixa i punts intactes) */
+.interval-label-bar--dashed::before {
+  background: transparent;
+  /* Patró de guions horitzontal en color nuzic-yellow */
+  background-image: linear-gradient(
+    to right,
+    var(--nuzic-yellow, #ffbb33) 0,
+    var(--nuzic-yellow, #ffbb33) 0.35rem,
+    transparent 0.35rem,
+    transparent 0.7rem
+  );
+  background-repeat: repeat-x;
+  background-size: 0.7rem 100%;
+}
+
 /* Punts als extrems, alineats també amb la vora superior */
 .interval-label-bar__dot {
   position: absolute;
