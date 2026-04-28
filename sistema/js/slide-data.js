@@ -128,13 +128,14 @@ export const slideContent = {
 <p><strong>Tip:</strong> El plano revela que la música tiene dos dimensiones inseparables: el sonido y el tiempo.</p>`,
   },
   3: {
-    text: `<p>La <strong>línea temporal</strong> es horizontal y representa el movimiento en el tiempo. En ella marcamos unos puntos equidistantes que representan una velocidad constante, como si fueran los segundos de un reloj.</p>
-<p>Definimos esta velocidad con un número, que se conoce como <strong>BPM</strong> (Beats Per Minute).</p>
-<p>A los puntos de la línea temporal los llamamos <strong>pulsos</strong>, y los numeramos. Como buen instrumento de medición, el pulso de partida es el <strong>0</strong>. Los pulsos nos permiten marcar exactamente en qué instante se producen los sonidos.</p>
-<p>Como la pulsación del corazón, un <strong>paso temporal</strong> es el tiempo que pasa entre dos pulsos consecutivos. Este paso es la unidad temporal que usaremos para medir cuánto dura un sonido.</p>
-<p>Cuando contamos pasos, es natural hacerlo desde el 1: el paso 1 va del pulso 0 al 1, el paso 2 va del 1 al 2, etc.</p>`,
-    tipsTitle: 'Prueba la Línea Temporal',
-    tips: `<p><strong>Uso básico:</strong> Pulsa ▶ y escucha. La app genera dos notas aleatorias en posiciones distintas de la línea temporal. Ajusta el BPM entre 50 y 150 para escuchar la línea más rápido o más lento.</p>
+    text: `<p>La línea temporal es horizontal y representa el movimiento en el tiempo. <br>En ella marcamos unos puntos equidistantes que representan una velocidad constante, como si fueran los segundos de un reloj. <br>Definimos esta velocidad con un número, que se conoce como BPM (Beats Per Minute).</p>
+<p>A los puntos de la línea temporal los llamamos <strong>pulsos,</strong> y los numeramos. Como buen instrumento de medición el pulso de partida es el 0.</p>
+<p>Los pulsos nos permiten marcar exactamente en qué instante se producen los sonidos. El tiempo en la música se tiene que medir con gran precisión.</p>
+<p>Como la pulsación del corazón, un <strong>paso</strong> temporal es el tiempo que pasa entre dos pulsos consecutivos. Este paso es la unidad temporal que usaremos para medir cuánto dura un sonido.<br></p>
+<p>Cuando contamos <strong>pasos</strong>, es natural hacerlo desde el 1: El paso 1 va del pulso 0 al 1, el paso 2 va del 1 al 2 etc…</p>`,
+    tipsTitle: 'Prueba el Plano Nuzic',
+    tips: `<p>Haz clic en <strong>Play</strong> y escucha dos notas aleatorias en posiciones distintas de la línea temporal.</p>
+<p>Ajusta el BPM entre 50 y 150 para escuchar la línea más rápido o más lento.</p>
 <p><strong>Tip:</strong> En la línea temporal podemos visualizar el paso del tiempo marcado por los pulsos y oír un sonido que ocurre en un pulso y que dura una pulsación o paso.</p>`,
   },
   4: {
