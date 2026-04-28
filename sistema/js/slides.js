@@ -28,7 +28,7 @@ function saveOverrides(o){
 }
 
 const state = {
-  paso: Number(localStorage.getItem(STORAGE_KEY)) || 4,  // default to Paso 4 (priority)
+  paso: Math.min(Number(localStorage.getItem(STORAGE_KEY)) || 1, 26),  // clamp to valid range; default to Paso 1
   variant: 'a',
   density: 'compact',
   showIframe: true,
@@ -146,7 +146,7 @@ function render(){
   NAV_SECTION.textContent = section.title;
   NAV_STEP.textContent = `Paso ${slide.paso} — ${slide.title}`;
   BTN_PREV.disabled = state.paso <= 1;
-  BTN_NEXT.disabled = state.paso >= 27;
+  BTN_NEXT.disabled = state.paso >= 26;
 
   // Progress bar (current section only). Segments are <button>s so they're
   // keyboard-focusable and announce the target paso to assistive tech;
@@ -239,7 +239,7 @@ function persistField(paso, el){
 }
 
 function goTo(paso){
-  if (paso < 1 || paso > 27 || paso === state.paso) return;
+  if (paso < 1 || paso > 26 || paso === state.paso) return;
   state.paso = paso;
   state.variant = 'a';
   render();
