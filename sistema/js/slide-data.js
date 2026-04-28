@@ -174,7 +174,7 @@ export const slideContent = {
   7: {
     image: {
       alt: 'Foto introductoria — Midiendo el movimiento de la Música: Los Intervalos',
-      src: 'images/paso-2.jpg',
+      src: 'images/paso-7.png',
     },
     text: `<p>Ya sabemos dónde están situadas las notas y los pulsos. Vamos a fijarnos ahora en sus movimientos, usando nuevos números para medirlos.</p>
 <p>Los números que miden los movimientos se llaman <strong>intervalos</strong>.</p>
