@@ -97,6 +97,66 @@ function getStartingNote() {
   return 0;
 }
 
+/**
+ * Apply an adaptive change to currentIntervals[idx]:
+ * - Set intervals[idx] = newVal.
+ * - If a later interval exists, subtract the delta from intervals[idx+1]
+ *   so notes beyond idx+1 stay anchored. If that compensation pushes a
+ *   note out of [MIN_NOTE, MAX_NOTE], clamp the compensation and reject
+ *   if even the clamped result is invalid.
+ *
+ * @returns {{ok: boolean, message?: string, adjustedIndex?: number, adjustedDelta?: number}}
+ */
+function applyAdaptiveChange(idx, newVal) {
+  if (idx === 0 && newVal < 0) {
+    return { ok: false, message: 'Primer iS ≥ 0' };
+  }
+
+  const oldVal = currentIntervals[idx];
+  const delta = newVal - oldVal;
+
+  // Validate the note immediately after the changed interval
+  let noteBefore = 0;
+  for (let i = 0; i < idx; i++) noteBefore += currentIntervals[i];
+  const newNoteAtIdx = noteBefore + newVal;
+  if (newNoteAtIdx < MIN_NOTE || newNoteAtIdx > MAX_NOTE) {
+    return { ok: false, message: `iS fora de rang [${MIN_NOTE - noteBefore}, ${MAX_NOTE - noteBefore}]` };
+  }
+
+  const trial = currentIntervals.slice();
+  trial[idx] = newVal;
+
+  let adjustedIndex = null;
+  let adjustedDelta = 0;
+
+  // Try to absorb the delta in intervals[idx+1] so later notes are unchanged
+  if (idx + 1 < trial.length && delta !== 0) {
+    const targetVal = trial[idx + 1] - delta;
+    // Compute the note before idx+1 in the trial
+    const noteBeforeNext = newNoteAtIdx;
+    // Range for intervals[idx+1] so that the resulting note stays in [0,11]
+    const minAllowed = MIN_NOTE - noteBeforeNext;
+    const maxAllowed = MAX_NOTE - noteBeforeNext;
+    const clamped = Math.max(minAllowed, Math.min(maxAllowed, targetVal));
+    trial[idx + 1] = clamped;
+    adjustedIndex = idx + 1;
+    adjustedDelta = clamped - currentIntervals[idx + 1];
+  }
+
+  // Final cascade check on the trial sequence
+  let note = 0;
+  for (const iv of trial) {
+    note += iv;
+    if (note < MIN_NOTE || note > MAX_NOTE) {
+      return { ok: false, message: 'Valor invalida seqüència' };
+    }
+  }
+
+  // Commit
+  for (let i = 0; i < trial.length; i++) currentIntervals[i] = trial[i];
+  return { ok: true, adjustedIndex, adjustedDelta };
+}
+
 // ========== INTERVAL ELEMENTS ==========
 /**
  * Clear all interval elements (line and number)
@@ -116,9 +176,22 @@ function clearIntervalElements() {
 function clearHighlights() {
   currentHighlights.forEach(index => {
     const rect = soundline.element.querySelector(`.note-highlight[data-note="${index}"]`);
-    if (rect) rect.classList.remove('highlight');
+    if (rect) rect.classList.remove('highlight', 'latest');
   });
   currentHighlights = [];
+}
+
+/**
+ * Marca el rectangle d'una nota com a "latest" (blau fosc) i treu el flag
+ * a totes les altres notes destacades — així només la nota més recent
+ * queda fosca i les anteriors passen a blau clar.
+ */
+function markLatestNote(noteIndex) {
+  soundline.element.querySelectorAll('.note-highlight.latest').forEach(el => {
+    el.classList.remove('latest');
+  });
+  const rect = soundline.element.querySelector(`.note-highlight[data-note="${noteIndex}"]`);
+  if (rect) rect.classList.add('latest');
 }
 
 /**
@@ -326,21 +399,22 @@ function createValueCell(displayValue, intervalIndex) {
       return;
     }
 
-    // Cascade validation: check all notes stay in [0,11]
+    // Adaptive cascade: change at idx shifts every later note by delta.
+    // Compensate by subtracting that delta from intervals[idx+1] so notes
+    // beyond idx+1 stay anchored. Clamp if compensation would itself go
+    // out of range, and report the final adjustment to the user.
     const oldVal = currentIntervals[idx];
-    currentIntervals[idx] = num;
-    let note = 0;
-    let valid = true;
-    for (const iv of currentIntervals) {
-      if (iv === undefined) break;
-      note += iv;
-      if (note < MIN_NOTE || note > MAX_NOTE) { valid = false; break; }
-    }
-    if (!valid) {
+    const result = applyAdaptiveChange(idx, num);
+    if (!result.ok) {
       currentIntervals[idx] = oldVal;
-      showTooltip(cell, 'Valor invalida seqüència');
+      showTooltip(cell, result.message);
       cell.value = originalValue;
       return;
+    }
+
+    if (result.adjustedIndex != null && result.adjustedDelta !== 0) {
+      const sign = result.adjustedDelta > 0 ? '+' : '';
+      showTooltip(cell, `Ajustat iS₍${result.adjustedIndex + 1}₎: ${sign}${result.adjustedDelta}`);
     }
 
     renderEditorCells();
@@ -602,6 +676,7 @@ async function handlePlay() {
         audio.playNote(START_MIDI + originNote, beatSec * 0.9, Tone.now());
         highlightController.highlightNote(originNote, 999999);
         currentHighlights.push(originNote);
+        markLatestNote(originNote);
         await sleep(beatSec * 1000);
         if (!isPlaying) break;
       } else {
@@ -609,6 +684,7 @@ async function handlePlay() {
         audio.playNote(START_MIDI + originNote, beatSec * 0.9, Tone.now());
         highlightController.highlightNote(originNote, 999999);
         currentHighlights.push(originNote);
+        markLatestNote(originNote);
         await sleep(beatSec * 1000);
         if (!isPlaying) break;
       }
@@ -625,6 +701,7 @@ async function handlePlay() {
       if (destNote !== originNote) {
         currentHighlights.push(destNote);
       }
+      markLatestNote(destNote);
 
       await sleep(beatSec * 2 * 1000);
 

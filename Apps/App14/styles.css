@@ -272,8 +272,14 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
 }
 
 .note-highlight.highlight {
-  opacity: 0.8;
-  box-shadow: 0 0 7px var(--note-highlight-color, #7BB4CD), 0 0 10px currentColor;
+  opacity: 1;
+  background: var(--nuzic-blue-light, #bdd9e6);
+  box-shadow: none;
+}
+
+/* Última nota dibuixada: blau fosc, per destacar-la sobre les anteriors */
+.note-highlight.highlight.latest {
+  background: var(--nuzic-blue, #7bb4cd);
 }
 
 .note-highlight-label {
