@@ -180,6 +180,7 @@ body[data-visual="nuzic"] .plano-container {
   --plano-cell-bg: transparent;
   --plano-grid-line-color: transparent;
   --plano-bg-color: var(--nuzic-white);
+  --plano-soundline-bg: var(--nuzic-pink-light);
 }
 
 /* Dots a les interseccions (cantonada inferior-esquerra).
@@ -291,7 +292,7 @@ body[data-visual="nuzic"] .grid-container .soundline-number::after {
    superposi a la soundline rosa. Si en algun moment cal fer els números
    responsius al marc, fer-ho a un descendent que no participi del grid. */
 body[data-visual="nuzic"] .plano-soundline-container {
-  background: var(--nuzic-pink-light);
+  background: var(--plano-soundline-bg);
 }
 
 body[data-visual="nuzic"] .plano-soundline-note {

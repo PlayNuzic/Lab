@@ -227,7 +227,8 @@ main {
    - Parent grid `.plano-container { grid-template-rows: 1fr auto }`
    - `.plano-grid-area` at row 1 only (no spanning)
    - `.plano-timeline-container` at row 2 directly (sibling of .plano-grid-area)
-   - `.plano-soundline-container` spans rows 1+2 for the floor-cell effect
+   - `.plano-soundline-container` stays in row 1; `.plano-container::before`
+     paints the row-2 floor cell without affecting scroll measurements
    App19 only needs minor extras here (z-index for playhead overlap). */
 .plano-timeline-container {
   z-index: 2;

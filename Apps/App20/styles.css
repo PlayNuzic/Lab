@@ -211,12 +211,11 @@ main {
   margin-left: 0.437rem;
 }
 
-/* Architecture handled at the library level (plano-modular.css). App20 only
-   keeps a small bottom margin on the timeline to leave room for the N-iT
-   editor zigzag pattern below the grid. */
+/* Architecture handled at the library level (plano-modular.css): soundline,
+   matrix, and timeline use separate grid rows. */
 .plano-timeline-container {
   z-index: 2;
-  margin-bottom: 0.59rem;
+  margin-bottom: 0rem;
 }
 
 /* columnSizing:'fr' — fill available width */

@@ -224,7 +224,7 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       `.start-overlay` text wrapping left-aligned.
     - Tests: 1445/1445 OK.
 
-14. **App19/App20 — restructura DOM plano-modular** ⚠️ NO RESOLT (2026-04-28)
+14. **App19/App20 — timeline separada de la primera fila visible** ✅ FET (2026-04-28)
     - **Bug recurrent**: la timeline (banda groga amb números 0,1,2,3) es
       superposa visualment a les primeres files (les més baixes, 0r3, 1r3)
       del plano matrix a App19/App20, en qualsevol viewport.
@@ -240,7 +240,7 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
         directe de matrix dins un grid pare amb `1fr 50px auto`. App19
         (plano-modular, falla) tenia timeline atrapat dins `.plano-grid-area`
         que ocupava ambdues files.
-    - **Canvis aplicats** (cap va resoldre el bug segons l'usuari):
+    - **Canvis previs aplicats** (no van resoldre completament el bug):
       a. `libs/plano-modular/plano-grid.js`: canviada la DOM perquè la
          `timelineContainer` sigui fill directe de `.plano-container`
          (sibling de `.plano-grid-area`), no fill atrapat dins.
@@ -251,28 +251,36 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
            perquè es col·loqui directament al grid pare.
          - `.plano-soundline-container`: span `grid-row: 1 / 3` per cobrir
            el "floor cell" rosa sota l'última nota; eliminat `max-height`.
+           **Això era la causa restant**: el càlcul JS de scroll usa
+           `.plano-soundline-container.clientHeight`, de manera que comptava
+           la banda de timeline com a alçada visible i permetia que `0r3`
+           quedés dins la franja groga.
          - `.plano-matrix-container`: eliminat `max-height: calc(...)`
            legacy que no s'adaptava al flex-wrap del header.
       c. `Apps/App19/styles.css`, `Apps/App20/styles.css`: netejats els
          overrides redundants. Només queda `.plano-timeline-container
-         { z-index: 2 }` (App19) i `+ margin-bottom: 0.59rem` (App20
-         per al N-iT editor).
+         { z-index: 2 }` (App19/App20). App20 queda amb
+         `margin-bottom: 0rem`.
       d. `libs/plano-modular/__tests__/plano-grid.test.js`: actualitzat
          per esperar la nova jerarquia (timeline com a sibling de gridArea).
-    - **Estat**: tests 1445/1445 passen, però l'usuari reporta que el
-      bug visual persisteix tant al sistema (iframe) com a les apps
-      standalone. **Diferida la resolució** — possible que el problema
-      sigui browser cache, especificity CSS no resolta, o un factor
-      no diagnosticat. A reprendre amb fresh eyes / DevTools en una
-      sessió futura.
+    - **Solució final aplicada**:
+      a. `libs/plano-modular/plano-modular.css`: `.plano-soundline-container`
+         torna a `grid-row: 1` perquè la seva alçada coincideixi amb la
+         matriu, i el "floor cell" visual passa a `.plano-container::before`
+         a `grid-column: 1; grid-row: 2`.
+      b. `libs/plano-modular/plano-modular.css`: afegit
+         `--plano-soundline-bg` perquè la soundline i el floor cell
+         comparteixin color sense barrejar layout i scroll.
+      c. `libs/shared-ui/nuzic-theme.css`: `--plano-soundline-bg:
+         var(--nuzic-pink-light)` dins el tema Nuzic.
+      d. Comentaris d'App19/App20 actualitzats per reflectir que la
+         soundline, matrix i timeline són zones separades.
+    - Tests: directes plano-modular 89/89 OK; suite completa 1445/1445 OK
+      (Jest queda obert per handles async coneguts i s'ha aturat el procés
+      després de veure el resultat complet).
 
 ### Tasques pendents (feina futura, fora del pla actual)
 
-- **App19/App20**: la timeline (groc) es superposa a les primeres files de
-  la graella en pantalles petites tot i el fix de commit `a76ba11`. Cal
-  revisar el `max-height` calc del `.plano-soundline-container` /
-  `.plano-matrix-container` perquè respecti el cas amb `flex-wrap`
-  disparat al header.
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).
 - **App24**: redisseny de les línies de connexió (no tractat aquí).
 - **App17**: 3 millores opcionals identificades pel revisor (cache de
