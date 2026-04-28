@@ -90,16 +90,11 @@ body[data-editable="true"] [contenteditable="true"]:focus{
 body[data-theme="dark"] .slot-text code{ background: #2a2a25; color: var(--nuzic-light); }
 
 /* Paso 5 (D-app-narrow) gives the text 2 columns of width; flow the prose
-   in 2 sub-columns to keep line length readable. In vertical (single-col)
-   layout the prose has full slide width — drop back to 1 column so the
-   line length stays readable on narrow viewports. */
+   in 2 sub-columns to keep line length readable. The mobile media query
+   in grid.css drops back to 1 column when the slide stacks vertically. */
 .slide[data-layout="D-app-narrow"] .slot-text .prose{
   column-count: 2;
   column-gap: var(--sp-4);
-}
-
-.slide[data-vertical="true"] .slot-text .prose{
-  column-count: 1;
 }
 
 /* Density modifier (tweaks panel) */
@@ -156,7 +151,12 @@ body[data-theme="dark"] .slot-text code{ background: #2a2a25; color: var(--nuzic
   position: relative;
   overflow: hidden;
   aspect-ratio: var(--iframe-aspect, 4 / 3);
-  max-height: 100%;
+  /* Cap d'alçada: a pantalles grans evita que els apps de plànol
+     (4/3) i altres es desbordin a 1000+ px. La ràtio determina la
+     resta: plànol → 800×600, scale (3/2) → 900×600, timeline (2/1) →
+     1200×600, vertical (2/3) → 400×600. La iframe queda centrada al
+     slot via `margin: 0 auto`; l'espai sobrant es respecta. */
+  max-height: min(100%, 700px);
   max-width: 100%;
   margin: 0 auto;
 }

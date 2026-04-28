@@ -49,43 +49,21 @@ export const layouts = {
     areas: '"app title title" "app text text" "app tips ."',
     rows:  'auto 1fr auto',
   },
-  // Title + text + app stacked on the left (2 cols), tips alone on the right
-  // (1 col spanning full height). Matches the PDF for Paso 4 (Línea Temporal).
-  // The app row is clamped (min 180px, 32vh ideal, 340px max) so the text row
-  // (1fr) retains most of the vertical space.
+  // Title + text on the left (2 cols), tips top-right (1 col spanning the
+  // first two rows), and the app spanning the full width at the bottom.
+  // Matches the PDF design for Paso 4 (Línea Temporal): the timeline needs
+  // horizontal room to breathe, and tips sits as a short note at top-right.
   'E-app-text-left': {
     cols:  '1fr 1fr 1fr',
-    areas: '"title title tips" "text text tips" "app app tips"',
-    rows:  'auto 1fr clamp(180px, 32vh, 340px)',
+    areas: '"title title tips" "text text tips" "app app app"',
+    rows:  'auto 1fr auto',
   },
 };
 
-// Minimum useful viewport (CSS pixels) per app group.
-// Below `minW × minH` the slot triggers vertical fallback — the app is
-// stacked above the text/tips at full slot width. Values come from a CSS
-// audit + visual validation by the user (2026-04-27 session).
-//   timeline-simple : timeline horitzontal amb 3 pills (app9, app13, App26-30)
-//   timeline-vertical : soundline vertical (app10, App18)
-//   timeline-complex : amb measure-header o iS editor (App14, App16)
-//   plano-simple : grid 2D estàndard (app11/A, App12, App15, App32, App34, App35)
-//   plano-multi-pill : grid 2D amb 4-5 pills al header (App19, App20)
-//   scale : múltiples soundlines en paral·lel (App21–25B)
-//   circular : timeline circular (App17)
-export const groupMinSize = {
-  'timeline-simple':   { minW: 340, minH: 320 },
-  'timeline-vertical': { minW: 320, minH: 420 },
-  'timeline-complex':  { minW: 380, minH: 400 },
-  'plano-simple':      { minW: 420, minH: 380 },
-  'plano-multi-pill':  { minW: 450, minH: 380 },
-  'scale':             { minW: 480, minH: 512 },
-  'circular':          { minW: 380, minH: 380 },
-};
-
 // Slide matrix — one entry per paso. Blocks are referenced in `slideContent`
-// below; this matrix carries only structural info (section, layout, apps,
-// group). `group` references `groupMinSize` for the per-slot vertical
-// breakpoint. Slides without `group` (intro slides 1, 2, 11) never trigger
-// vertical fallback — they fit at any viewport.
+// below; this matrix carries only structural info (section, layout, apps).
+// Vertical fallback is now a pure CSS media query (`max-width: 900px`); no
+// JS measurement is needed.
 export const slideMatrix = [
   { paso:1,  section:'introduccion', title:'¿Te gustaría saber qué movimientos se producen en la música?', layout:'A-intro' },
   { paso:2,  section:'introduccion', title:'Contar y Medir',                                               layout:'A-intro' },

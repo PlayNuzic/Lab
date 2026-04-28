@@ -1,10 +1,9 @@
 /* Grid templates — Sistema Interactivo
    Layouts are per-slide via inline `grid-template-areas` set from
    slide-data.layouts. The page scrolls globally; each slide can be
-   taller than the viewport (text + tips never get cut off). When the
-   `.slot-app` drops below the app's per-group `minW × minH` thresholds
-   (defined in slide-data.groupMinSize), `slides.js` flips the slide to
-   vertical layout via `data-vertical="true"` — see the rule below. */
+   taller than the viewport (text + tips never get cut off). Below
+   900px viewport width (phones + tablets in portrait) every layout
+   collapses to a single column — see the media query at the bottom. */
 
 .slide-stage{
   /* Reserva visual mínima d'una pantalla; els slides amb molt contingut
@@ -33,45 +32,27 @@
 .slot-text { grid-area: text;  min-height: 0; }
 .slot-app  { grid-area: app;   min-height: 0; }
 
-/* Tips: sit at the bottom of its grid-area so the green rectangle only
-   covers the text (PDF behaviour). `align-self: end` shrinks the tips
-   element to its content height and anchors it to the bottom edge. */
+/* Tips: shrinks to its content height; default alignment is `end` (bottom
+   of the grid area) so the green rectangle only covers the text in
+   layouts where the app sits beside the text (PDF behaviour). When the
+   app spans the full bottom row (E-app-text-left), tips anchors to the
+   top-right instead — the layout already places it above the app row. */
 .slot-tips {
   grid-area: tips;
   align-self: end;
   flex-shrink: 0;
 }
-
-/* Per-slot vertical fallback: triggered by slides.js when the .slot-app
-   measures below the app's `groupMinSize`. Replaces the previous global
-   `@media (max-width: 820px)` which fired too aggressively for apps that
-   would still fit at smaller viewports. Visual order: title → image/app →
-   text → tips. */
-.slide[data-vertical="true"]{
-  grid-template-columns: 1fr !important;
-  grid-template-areas:
-    "title"
-    "image"
-    "app"
-    "text"
-    "tips" !important;
-  grid-template-rows: auto !important;
+.slide[data-layout="E-app-text-left"] .slot-tips {
+  align-self: start;
 }
 
-.slide[data-vertical="true"] .slot-image{ max-height: 40vh; }
-
-/* App slot in vertical: no fixed height cap. Apps respect their
+/* Vertical layout for narrow viewports: phones (any orientation) and
+   tablets in portrait. Above 900px, the inline grid-template from each
+   layout takes over (text + iframe side by side). Apps respect their
    `aspect-ratio` (set inline from `slide-data.aspect`) and the iframe
    fills the resulting box. The page scrolls globally, so a tall app is
-   not a problem — it just pushes text/tips below.
-   Apps with extremely tall natural ratios (app10 vertical soundline 2/3)
-   would otherwise occupy 1.5× the slot width vertically, which is fine
-   on portrait viewports. */
-
-/* Final mobile safety net: at extremely narrow viewports (typical phone
-   portrait) force vertical regardless of the JS observer — protects the
-   first paint before the observer's first measurement. */
-@media (max-width: 480px){
+   not a problem — it just pushes text/tips below. */
+@media (max-width: 900px){
   .slide{
     grid-template-columns: 1fr !important;
     grid-template-areas:
@@ -83,5 +64,14 @@
     grid-template-rows: auto !important;
   }
   .slot-image{ max-height: 40vh; }
+  .slot-text .prose{ column-count: 1 !important; }
+  /* Apps amb aspect curt (2/1 → app9/13/26-30) renderitzarien iframes de
+     ~195px d'alt a 391px d'ample, insuficient per encabir timeline +
+     controls. min-height força una alçada útil; els apps amb aspect alt
+     (app10 2/3, scale 3/2) ja superen aquest mínim per la seva ràtio. */
+  .iframe-frame{ min-height: 320px; }
+}
+
+@media (max-width: 480px){
   body{ padding-bottom: calc(var(--nav-h) + 16px); }
 }

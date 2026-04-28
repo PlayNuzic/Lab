@@ -121,14 +121,80 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
    - Plano amb molts pills (App19/App20): 450 × 380.
    - Scale apps (App21–25B): **480 × 512** (validat visualment per usuari).
    - Circular (App17): 380 × 380.
-10. **Scroll global + `fit` + `minW`/`minH` al Sistema** ← ARA
-    - Treure `height: calc(100vh - var(--nav-h))` + `overflow: hidden` del
-      `.slide-stage` (`sistema/css/grid.css`).
-    - `.slot-text .prose` → sense `overflow-y: auto`.
-    - `.iframe-frame` → llegir `data-fit` (`lock`/`fluid`) i `--min-w`/`--min-h`
-      des de `slide-data.js`.
-    - Layouts amb `min-content` als rows perquè el grid creixi quan cal.
-    - Breakpoint vertical per slot via container queries (no media query).
+10. **Simplificació arquitectural — vertical fallback per CSS pur** ✅ FET (2026-04-27)
+    - **Diagnòstic**: el bug del Pas 4 (espai lila enorme buit en pantalla
+      ampla) venia d'un mismatch entre la predicció JS de l'alçada del slot
+      i el CSS `clamp(180px, 32vh, 340px)` que capava la fila a 340px.
+      L'arquitectura tenia 3 capes redundants (taula `groupMinSize`, taula
+      `layoutAppWidthFraction`, listener de `resize` amb matemàtica de
+      predicció) que intentaven endevinar el que el CSS faria.
+    - **Decisió**: l'iframe ja "protegeix" cada app internament (cada app té
+      el seu propi `clamp()`/responsive); el Sistema només necessita decidir
+      horitzontal vs vertical segons l'amplada del viewport. Una sola media
+      query basta.
+    - **Canvis aplicats**:
+      a. `slide-data.js`: layout `E-app-text-left` rows passa de
+         `'auto 1fr clamp(180px, 32vh, 340px)'` a `'auto 2fr 1fr'` —
+         manté la jerarquia text > app sense cap rígid.
+      b. `slide-data.js`: eliminada taula `groupMinSize` (~20 línies) i
+         comentaris associats. El camp `group:` queda als entries com a
+         metadada descriptiva.
+      c. `slides.js`: eliminades funció `applyVerticalBreakpoint`, taula
+         `layoutAppWidthFraction`, listener de `window.resize` i la
+         crida a `applyVerticalBreakpoint()` des de `render()`. ~70
+         línies fora.
+      d. `grid.css`: regla `.slide[data-vertical="true"]` substituïda per
+         `@media (max-width: 900px)` que aplica el grid vertical
+         (title → image → app → text → tips). El safety net @480px queda
+         només per al `padding-bottom` extra.
+      e. `slides.css`: eliminada regla `.slide[data-vertical="true"]
+         .slot-text .prose { column-count: 1 }` — coberta per la media
+         query.
+    - Tests: 1445/1445 OK.
+
+11. **Refinament breakpoint + estructura E-app-text-left** ✅ FET (2026-04-27)
+    - **Breakpoint final**: `@media (max-width: 900px)`. Tornat a la
+      proposta original després d'haver provat `max-width: 600px,
+      max-height: 500px` (per mantenir iPad mini portrait en horitzontal).
+      L'intent va causar problemes a viewports mitjans (600-1000px) on el
+      grid horitzontal quedava massa apretat: soundline d'app10 desplaçat,
+      controls d'app9 tallats, plano apps comprimits. **Decisió**: és més
+      net que iPad mini portrait (744 wide) col·lapsi a vertical que no
+      pas mantenir un horitzontal cramped.
+    - **Layout E-app-text-left**: `areas` passa de
+      `'... "app app tips"'` a `'... "app app app"'` i `rows` de
+      `'auto 2fr 1fr'` a `'auto 1fr auto'`. El timeline (App9) ara ocupa
+      tota l'amplada de la fila inferior — coherent amb el disseny PDF.
+    - **Tips ancorat dalt**: regla específica per a aquest layout
+      (`.slide[data-layout="E-app-text-left"] .slot-tips { align-self:
+      start }`) — la caixa verda queda a dalt-dreta com al PDF, no a baix.
+    - Tests: 1445/1445 OK.
+
+12. **App9 controls tallats + App10 descentrada** ✅ FET (2026-04-27)
+    - **App9 (Pas 4 vertical)**: a viewport &lt;416px l'iframe quedava a
+      ~195px d'alt (aspect 2/1 × 391px) i els controls de baix (BPM +
+      play) sortien tallats per `overflow:hidden` del mode embed. Fix:
+      `.iframe-frame { min-height: 320px }` dins la media query vertical
+      a `sistema/css/grid.css`. Aspect-ratio cedeix davant min-height →
+      iframe creix verticalment fins a encabir tots els controls. Els
+      apps amb aspect alt (app10 2/3, scale 3/2) ja superen 320px per la
+      seva ràtio, no es veuen afectats.
+    - **App10 (Pas 5) — root cause i fix definitiu**: el `.note-highlight`
+      tenia `left: 100%` → apareixia 80px a la dreta del soundline durant
+      la reproducció. Això creava un desbalanç entre estat de repòs (només
+      soundline) i estat de reproducció (soundline + highlight). Fix a
+      sistema-side amb `padding-right: 80px` provat i revertit perquè
+      només arreglava un dels dos estats.
+    - **Fix definitiu app-side** (`Apps/app10/styles.css:97-112`):
+      `.note-highlight { left: 50%; transform: translateX(-50%); }` →
+      el highlight queda centrat damunt del soundline en tots dos estats.
+      Animation `noteFlash` actualitzada a `translate(-50%, -50%)` per
+      preservar el centratge horitzontal durant l'animació.
+    - **Iframe stretching** als plano apps (pasos 3, 6, 7): `.iframe-frame
+      { max-height: min(100%, 700px) }` a `sistema/css/slides.css` evita
+      que apps de plànol s'estirin a pantalles grans. Plànol queda a
+      ~933×700, scale ~1050×700, timeline ~1400×700, vertical ~467×700.
+    - Tests: 1445/1445 OK.
 
 ### Tasques pendents (feina futura, fora del pla actual)
 
