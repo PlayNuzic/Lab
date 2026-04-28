@@ -110,13 +110,9 @@ body[data-editable="true"] [contenteditable="true"]:focus{
 }
 body[data-theme="dark"] .slot-text code{ background: #2a2a25; color: var(--nuzic-light); }
 
-/* Paso 5 (D-app-narrow) gives the text 2 columns of width; flow the prose
-   in 2 sub-columns to keep line length readable. The mobile media query
-   in grid.css drops back to 1 column when the slide stacks vertically. */
-.slide[data-layout="D-app-narrow"] .slot-text .prose{
-  column-count: 2;
-  column-gap: var(--sp-4);
-}
+/* D-app-narrow (Pas 4 — Línea Sonora) gives the text 2 columns of width.
+   Prose flows in a single column for natural reading; sub-columns were
+   tried but felt cramped at narrow widths and unnecessary at wide ones. */
 
 /* Density modifier (tweaks panel) */
 .slide[data-density="compact"] .slot-text .prose{ font-size: calc(var(--fs-body) * 0.92); line-height: 1.38; }

@@ -49,13 +49,14 @@ export const layouts = {
     areas: '"app title title" "app text text" "app tips ."',
     rows:  'auto 1fr auto',
   },
-  // Title + text on the left (2 cols), tips top-right (1 col spanning the
-  // first two rows), and the app spanning the full width at the bottom.
-  // Matches the PDF design for Paso 4 (Línea Temporal): the timeline needs
-  // horizontal room to breathe, and tips sits as a short note at top-right.
+  // Title + text + app stacked on the left (2 cols), tips on the right
+  // (1 col spanning all 3 rows). Tips is anchored to the top via the
+  // layout-specific rule in grid.css (`.slide[data-layout="E-app-text-left"]
+  // .slot-tips { align-self: start }`), so the green box sits at top-right
+  // matching the PDF design.
   'E-app-text-left': {
     cols:  '1fr 1fr 1fr',
-    areas: '"title title tips" "text text tips" "app app app"',
+    areas: '"title title tips" "text text tips" "app app tips"',
     rows:  'auto 1fr auto',
   },
 };
