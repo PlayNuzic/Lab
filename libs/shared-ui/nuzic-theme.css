@@ -1113,48 +1113,51 @@ body[data-visual="nuzic"] .sound-wrapper.nuzic-inline .sound svg {
    center` means the scaleY(0→1) animation grows upward into view. The
    `show`/`hide` classes come from `wireControls()` in header.js. */
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider {
+  /* Slider horizontal, situat a l'ESQUERRA del botó (no a sobre).
+     Així no s'amaga sota la timeline ni el title quan el botó viu a
+     `.controls`. La hitbox de pas (entre botó i slider) és el gap de
+     0.5rem, que el `scheduleHide` 500ms cobreix. */
   position: absolute;
-  bottom: calc(100% + 0.5rem);
-  left: 50%;
-  width: 1.5rem;
-  height: 5rem;
-  writing-mode: vertical-lr;
-  direction: rtl;
+  right: calc(100% + 0.5rem);
+  top: 50%;
+  width: 5rem;
+  height: 1.5rem;
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
   display: none;
-  transform: translateX(-50%) scaleY(0);
-  transform-origin: bottom center;
+  transform: translateY(-50%) scaleX(0);
+  transform-origin: right center;
   transition: transform 0.3s ease-out;
   margin: 0;
 }
 
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider.show {
-  transform: translateX(-50%) scaleY(1);
+  transform: translateY(-50%) scaleX(1);
 }
 
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider.hide {
-  transform: translateX(-50%) scaleY(0);
+  transform: translateY(-50%) scaleX(0);
 }
 
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-webkit-slider-runnable-track {
-  width: 0.25rem;
-  height: 100%;
+  width: 100%;
+  height: 0.25rem;
   background: var(--nuzic-dark, #43433b);
   border-radius: 0.125rem;
 }
 
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-moz-range-track {
-  width: 0.25rem;
-  height: 100%;
+  width: 100%;
+  height: 0.25rem;
   background: var(--nuzic-dark, #43433b);
   border-radius: 0.125rem;
 }
 
 /* Thumb colors reflect the speaker button's circle color: dark in light
    mode (fosc com el botó), light in dark mode (clar com el botó invertit).
-   Hex hardcoded to avoid CSS-var flipping. */
+   Hex hardcoded to avoid CSS-var flipping. `margin-top` (negative half
+   of thumb-track height delta) centers the thumb on the horizontal track. */
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -1165,7 +1168,7 @@ body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-webkit-sli
   cursor: grab;
   border: 2px solid #43433b;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  margin-left: -0.4375rem;
+  margin-top: -0.4375rem;
 }
 
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline #volumeSlider::-moz-range-thumb {

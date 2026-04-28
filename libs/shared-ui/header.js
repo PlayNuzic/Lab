@@ -448,8 +448,16 @@ function wireControls(root) {
         setVolume(initial);
         previousVolume = initial;
 
+        // Delay before showing the slider on hover. Avoids the slider
+        // popping up every time the cursor brushes past the speaker button
+        // (e.g. when reaching for an adjacent control). The user has to
+        // hover-and-stay for HOVER_OPEN_DELAY ms for the slider to appear.
+        const HOVER_OPEN_DELAY = 500;
+        let showTimeout = null;
+
         function showSlider() {
             clearTimeout(hideTimeout);
+            clearTimeout(showTimeout);
             volumeSlider.style.display = 'block';
             // Forzar reflow antes de aplicar la animación
             volumeSlider.offsetHeight;
@@ -457,7 +465,17 @@ function wireControls(root) {
             volumeSlider.classList.add('show');
         }
 
+        function scheduleShow() {
+            clearTimeout(showTimeout);
+            showTimeout = setTimeout(showSlider, HOVER_OPEN_DELAY);
+        }
+
+        function cancelShow() {
+            clearTimeout(showTimeout);
+        }
+
         function hideSlider() {
+            cancelShow();
             volumeSlider.classList.remove('show');
             volumeSlider.classList.add('hide');
             setTimeout(() => {
@@ -469,12 +487,19 @@ function wireControls(root) {
 
         scheduleHide = function scheduleHide() {
             clearTimeout(hideTimeout);
+            cancelShow();
             hideTimeout = setTimeout(hideSlider, 500);
         };
 
         if (soundWrapper) {
-            soundWrapper.addEventListener('mouseenter', showSlider);
-            soundWrapper.addEventListener('mouseleave', scheduleHide);
+            // Hover: delayed show, immediate cancel + scheduled hide on leave.
+            soundWrapper.addEventListener('mouseenter', scheduleShow);
+            soundWrapper.addEventListener('mouseleave', () => {
+                cancelShow();
+                scheduleHide();
+            });
+            // Keyboard / programmatic focus shows immediately (no need to
+            // wait — focus is a deliberate action, not a passive flyover).
             soundWrapper.addEventListener('focusin', showSlider);
             soundWrapper.addEventListener('focusout', scheduleHide);
         }
