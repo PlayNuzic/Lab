@@ -48,7 +48,6 @@ body[data-visual="nuzic"] {
   height: 80vh;
   max-height: 1300px;
   margin: 0 auto;
-  align-self: center;
   position: relative;
   z-index: 1;
   padding: 20px 40px;

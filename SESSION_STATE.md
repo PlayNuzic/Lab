@@ -279,6 +279,24 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       (Jest queda obert per handles async coneguts i s'ha aturat el procés
       després de veure el resultat complet).
 
+15. **Neteja workarounds superflus al sistema** ✅ FET (2026-04-28)
+    - **Revertit**:
+      a. `libs/app-common/embed.css`: eliminat `align-self: center` extra
+         que s'havia afegit a `.timeline-wrapper` per app10/app18 — era
+         redundant amb el `margin: 0 auto` ja existent.
+      b. `Apps/app10/styles.css`: eliminat `align-self: center` afegit
+         a `.timeline-wrapper` — mateix motiu.
+      c. `sistema/css/slides.css`: eliminada la regla específica
+         `.slide[data-layout="D-app-narrow"] .iframe-frame { margin: auto }`.
+         Tots els layouts comparteixen ara `margin: 0 auto` (centrat
+         horizontal, top-aligned al slot). Esquelet més uniforme.
+    - **Mantingut a petició explícita de l'usuari** ("ens ha costat molt
+      que no es descentrés app10"):
+      `libs/app-common/embed.css`: `body.app10 main { padding-right:
+      clamp(0px, calc(350px - 100vw), 80px) }` per al centratge
+      progressiu del soundline a viewports estrets.
+    - Tests: 1445/1445 OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).

@@ -76,20 +76,11 @@ html[data-embed="true"] body main {
    (shorter than the iframe). Auto-margins center that block vertically
    in the flex-column main. Scoped to the apps that need it via body
    class so other apps with `.timeline-wrapper { flex: 1 }` (scale apps)
-   keep their stretch behaviour.
-
-   `align-self: center` explicitly centers the wrapper on the flex
-   cross-axis (horizontal). The wrapper's own `margin: 0 auto` tries to
-   center it via auto margins, but in flex containers with `align-items`
-   defaulting to `stretch`, the interaction between the wrapper's
-   `width: 100% + max-width: 300px` and the parent's stretch can
-   position the wrapper at flex-start at smaller iframe widths. Explicit
-   align-self avoids that browser-dependent quirk. */
+   keep their stretch behaviour. */
 html[data-embed="true"] body.app10 main .timeline-wrapper,
 html[data-embed="true"] body.app18 main .timeline-wrapper {
   margin-top: auto;
   margin-bottom: auto;
-  align-self: center;
 }
 
 /* app10 progressive left-shift at narrow iframe widths. The visual
