@@ -1,6 +1,6 @@
 # App Common Modules
 
-Módulos compartidos para aplicaciones de App4+.
+Capa middleware compartida per totes les apps del Lab. **43 mòduls** que centralitzen audio, DOM, controls de loop, fraction editor, visual sync, preferences i utilitats. Veure [CLAUDE.md](CLAUDE.md) per al mapa complet de mòduls per funcionalitat.
 
 ## Módulos de Pulse Sequence
 

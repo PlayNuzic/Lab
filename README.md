@@ -1,232 +1,136 @@
-# Lab
-Investigación y desarrollo del método Nuzic
+# Lab — PlayNuzic
 
-**Monorepo modular** para aplicaciones rítmicas y temporales con ~70% de código compartido.
+Investigació i desenvolupament del mètode Nuzic per al ritme i el temps musical.
+
+**Monorepo modular** d'aplicacions interactives + un sistema educatiu narratiu (Sistema Interactivo). ~70% del codi viu a `libs/` compartit. Sense build step — ES2022 modules s'executen directament al navegador.
 
 ## 🚀 Quick Start
 
 ```bash
-./setup.sh  # Configurar Git, instalar dependencias (Jest incluido)
-npm test    # Ejecutar 24 test suites, 109 tests
-npx http-server  # Servir apps localmente
+./setup.sh         # Configura Git i instal·la dependències (Jest)
+npm test           # Executa 73 test suites, 1445 tests
+npx http-server    # Serveix les apps i el Sistema localment
 ```
 
-## 📁 Estructura del Proyecto
+Obre [http://localhost:8080/sistema/](http://localhost:8080/sistema/) per al Sistema Interactivo, o [http://localhost:8080/Apps/](http://localhost:8080/Apps/) per al llistat d'apps.
 
-- **Apps/** - 4 aplicaciones rítmicas independientes (App1-App4)
-- **libs/** - 32+ módulos compartidos organizados por funcionalidad
-- **tests/** - Test suites con Jest (109 tests passing)
-- **setup.sh** - Script de inicialización del entorno
+## 📁 Estructura
 
-## 🎵 Aplicaciones
+```
+Apps/             — 35+ apps rítmiques i temporals (App1–App35)
+libs/             — 22 mòduls compartits (audio, UI, fracció, plano, scale, etc.)
+sistema/          — Sistema Interactivo: 27 slides educatius que embolcallen 25 apps
+docs/             — Documentació tècnica i specs
+tests/            — Tests d'integració + harness embed (73 suites, 1445 tests)
+```
 
-### App1: Temporal Formula
-Timeline básico con cálculo automático de parámetros rítmicos (Lg, V, T). Sistema de tres parámetros donde uno se calcula automáticamente a partir de los otros dos.
+## 🎵 Apps
 
-**Features**: Loop, tap tempo con resync, visualización circular/lineal, randomización de parámetros.
+35+ apps al directori `Apps/`, organitzades per categoria didàctica al Sistema Interactivo. Cada app té el seu README amb detalls. Algunes destacades:
 
-### App2: Pulse Sequence Editor
-Editor interactivo de patrones de pulsos con campo de secuencia editable y memoria persistente.
+- **App1–App4** — Bases temporals (timeline, pulse-seq editor, fraction editor, multi-fraction)
+- **app9 / app10 / App17** — Línies temporal/sonora i timeline circular
+- **app11 / App11A / App12** — Plano musical (graella 2D temps × notes)
+- **App19 / App20** — Plano modular amb registres i sucessions N-iT
+- **App21–App25B** — Apps d'escales musicals
+- **App26–App35** — Fraccions rítmiques i complexos
 
-**Features**: Drag selection, sincronización timeline/texto, mixer con canales pulse/accent, memoria de pulsos.
+Totes les apps embedides al Sistema usen tema visual `data-visual="nuzic"` amb `clamp()` responsive — escalen automàticament dins de qualsevol iframe.
 
-### App3: Fraction Editor
-Editor de fracciones rítmicas (n/d) con marcadores visuales de ciclos y subdivisiones.
+## 📚 Sistema Interactivo
 
-**Features**: Validación de fracciones, audio de ciclos, componente reutilizable de edición, visualización de subdivisiones.
+Capa de presentació narrativa que guia l'usuari pel mètode Nuzic mitjançant 27 slides combinant text teòric amb apps interactives embedides via iframe.
 
-### App4: Multi-Fraction Selection
-Gestión avanzada de múltiples fracciones con generación de patrones complejos.
+- **Implementació**: [`sistema/`](sistema/) (HTML + ES2022 + CSS pur, sense build).
+- **Layouts**: `A-intro`, `B-app-left`, `D-app-narrow`, `E-app-text-left` definits a [`sistema/js/slide-data.js`](sistema/js/slide-data.js).
+- **Responsive**: una sola media query `@media (max-width: 900px)` col·lapsa a vertical (mòbil + tablet portrait).
+- **Embed mode**: les apps reben `?embed=true` i el shared [`libs/app-common/embed.css`](libs/app-common/embed.css) oculta el top-bar i adapta visualment.
+- **Edit mode**: `?tweaks=1` activa edició inline dels textos amb persistència a localStorage. Veure [docs/SISTEMA-EDIT-MODE.md](docs/SISTEMA-EDIT-MODE.md).
+- **Documentació**:
+  - Pla i mapatge slide↔app: [docs/SISTEMA-INTERACTIVO-PLAN.md](docs/SISTEMA-INTERACTIVO-PLAN.md)
+  - Specs per app: [docs/SISTEMA-APP-SPECS.md](docs/SISTEMA-APP-SPECS.md)
+  - Adaptacions a iframe: [docs/APPS-ADAPTACIONS-IFRAME.md](docs/APPS-ADAPTACIONS-IFRAME.md)
 
-**Documentación**: Ver `Apps/App4/README.md`
+## 🧩 Llibreries (`libs/`)
 
-## 🧩 Arquitectura Modular
-
-### libs/app-common/ (32+ módulos)
-
-**Componentes de producción** ✅:
-- **Audio**: `audio-init.js`, `audio.js`, `audio-schedule.js`, `audio-toggles.js`
-- **UI**: `fraction-editor.js`, `pulse-seq.js`, `mixer-menu.js`, `timeline-layout.js`
-- **Notación**: `notation-utils.js` - Construcción de eventos para partituras rítmicas con VexFlow
-- **Gestión**: `dom.js`, `led-manager.js`, `preferences.js`, `loop-control.js`
-- **Utilidades**: `subdivision.js`, `number.js`, `range.js`, `utils.js`
-
-**Beneficios**:
-- ~70% reducción de código duplicado
-- Inicialización de audio sin warnings
-- Componentes UI reutilizables con tests
-- Gestión consistente de estado y preferencias
-- Renderizado preciso de fracciones rítmicas con tuplets y pulsos remainder
-
-### libs/sound/
-Motor de audio basado en Tone.js con clase `TimelineAudio`, mixer global y gestión de samples.
-
-### libs/shared-ui/
-Componentes UI compartidos: header, dropdowns de sonido, efectos hover, estilos base.
-
-### Otras bibliotecas
-- **notation/** - Integración VexFlow
-- **cards/** - Tarjetas interactivas nota-componente
-- **ear-training/** - Utilidades de entrenamiento auditivo
-- **vendor/** - Tone.js, VexFlow, chromatone-theory
+```
+app-common/          — Middleware: 43 mòduls (audio, DOM, loop, fraction-editor, ...)
+sound/               — Motor d'àudio sobre Tone.js (TimelineAudio, mixer, samples)
+shared-ui/           — Header, dropdowns, tema Nuzic, performance audio menu
+plano-modular/       — Grid 2D N×P amb soundline + timeline (App19, App20)
+musical-grid/        — Grid 2D simple (App11A, App12)
+pulse-seq/           — Editor de seqüència de pulsos amb parser
+matrix-seq/          — Editor 2D de parells N-P
+notation/            — Renderització de partitures via VexFlow
+random/              — Sistema de randomització amb menú UI
+gamification/        — Sistema d'achievements i scoring
+interval-sequencer/  — Seqüenciació basada en intervals
+temporal-intervals/  — Blocs visuals d'iT a la timeline
+scales/              — Definicions d'escales musicals
+scale-selector/      — Selector d'escales
+ear-training/        — Utilitats d'entrenament auditiu
+soundlines/          — Línies sonores especialitzades
+plano-fraccion/      — Plano amb fraccions
+audio-capture/       — Captura d'àudio
+cards/               — Targetes nota-component
+guide/               — Guia interactiva
+utils/               — Utilitats compartides
+vendor/              — Tone.js 15.x, VexFlow 5.0.0, chromatone-theory
+```
 
 ## 🧪 Testing
 
-**Cobertura actual**: 24 test suites, 280 tests pasados
+**73 test suites, 1445 tests** amb Jest 29.x. ES Modules amb Babel.
 
-**Suites principales**:
-```
-libs/app-common/__tests__/    # Componentes compartidos
-├── subdivision.test.js        # Cálculos temporales
-├── audio.test.js              # Bridges de scheduling
-├── fraction-editor.test.js    # Editor de fracciones
-├── audio-toggles.test.js      # Gestión de toggles
-├── loop-resize.test.js        # Comportamiento de loop
-├── tap-resync.test.js         # Resync de tap tempo
-└── notation-utils.test.js     # Construcción de eventos de notación
-
-libs/app-common/*.test.js      # Tests unitarios
-libs/sound/*.test.js           # Motor de audio
-tests/                         # Tests legacy e integración
-```
-
-**Ejecutar tests**:
 ```bash
-npm test                    # Todos los tests
-npm test -- subdivision     # Tests específicos
+npm test                                    # Tots els tests
+npm test -- --testPathPattern="loop"        # Tests específics
 ```
 
-## 🛠️ Componentes Destacados
+Suites principals a `libs/app-common/__tests__/`, `libs/plano-modular/__tests__/`, `libs/sound/`, `libs/pulse-seq/__tests__/`, etc.
 
-### Utilidades de Notación Rítmica
-**Ubicación**: `libs/app-common/notation-utils.js`
+## 🛠 Patró d'inicialització modern
 
-Construcción inteligente de eventos para partituras con VexFlow, optimizado para fracciones rítmicas y tuplets.
-
-**Características principales**:
-- **Pulso 0**: Siempre renderizado como nota (nunca silencio), marca el inicio del patrón
-- **Múltiplos del numerador**: Todos incluidos en la partitura para crear estructura de tuplets
-  - Seleccionados → aparecen como notas
-  - NO seleccionados → aparecen como silencios clickeables
-- **Pulsos remainder**: Sobrantes del último ciclo incompleto
-  - Siempre renderizados como negras (quarter notes)
-  - Sin puntillos, independientemente de la duración base del compás
-  - Protegidos contra sobrescritura por `fractionalSelections`
-- **Pulso Lg**: Excluido de la partitura (es marca final, no seleccionable)
-
-**Últimas mejoras** (Oct 2025):
-- Fix: Protección de duración de pulsos remainder contra sobrescritura
-- Fix: Pulsos remainder siempre como negras
-- Fix: Inclusión de TODOS los múltiplos en partitura (silencios si no están seleccionados)
-- Fix: Exclusión del pulso Lg de la partitura
-- Fix: Pulso 0 forzado como nota
-
-### Controladores de Loop
-**Ubicación**: `libs/app-common/loop-control.js`
-
-Tres variantes para diferentes necesidades:
-- `createLoopController()` - Loop básico
-- `createRhythmLoopController()` - Con sincronización de audio
-- `createPulseMemoryLoopController()` - Con memoria de pulsos
-
-**Uso**: App2 (pulse-memory), App3 (rhythm)
-
-### Editor de Fracciones
-**Ubicación**: `libs/app-common/fraction-editor.js` (25K líneas)
-
-Component CRUD completo con validación, persistencia y modos inline/block.
-
-**API**: `createFractionEditor(config)`
-**Uso**: App3
-
-### Controlador de Secuencia de Pulsos
-**Ubicación**: `libs/app-common/pulse-seq.js` (13K líneas)
-
-Editor interactivo con drag selection y memoria persistente.
-
-**API**: `createPulseSeqController()`
-**Uso**: App2
-
-### Inicialización de Audio
-**Ubicación**: `libs/app-common/audio-init.js`
-
-Suprime warnings de AudioContext y gestiona selección de sonidos.
-
-**API**: `createRhythmAudioInitializer(config)`
-**Beneficio**: Zero warnings en consola
-
-## 📚 Desarrollo
-
-### Principios de Código Compartido
-
-🚨 **SIEMPRE priorizar componentes compartidos**:
-
-1. **🔍 PRIMERO**: Verificar si existe un componente compartido en `libs/app-common/`
-2. **🛠️ SEGUNDO**: Si no existe, crear uno reutilizable
-3. **❌ ÚLTIMO RECURSO**: Código específico de app solo cuando sea necesario
-
-### Patrones Recomendados
-
-**Inicialización moderna** (recomendado):
 ```javascript
-import { bindAppRhythmElements } from '../../libs/app-common/dom.js';
+import { bindRhythmElements } from '../../libs/app-common/dom.js';
 import { createRhythmAudioInitializer } from '../../libs/app-common/audio-init.js';
-import { createPulseMemoryLoopController } from '../../libs/app-common/loop-control.js';
+import TimelineAudio from '../../libs/sound/index.js';
 
-// Bind DOM elements
-const { elements, leds, ledHelpers } = bindAppRhythmElements('app1');
-
-// Initialize audio
-const _baseInitAudio = createRhythmAudioInitializer({ /* config */ });
-const audio = await _baseInitAudio();
-
-// Attach loop controller
-const loopController = createPulseMemoryLoopController({ /* config */ });
-loopController.attach();
+const { elements, leds, ledHelpers } = bindRhythmElements({ /* config */ });
+const initAudio = createRhythmAudioInitializer({ /* config */ });
+const audio = await initAudio();
 ```
 
-**Patrón legacy** (en desuso):
-```javascript
-// initRhythmApp() - deprecated
-// createStandardElementMap() - deprecated
-// bindRhythmAppEvents() - deprecated
-```
+**Llegacy (no usar)**: `initRhythmApp()`, `createStandardElementMap()`, `bindRhythmAppEvents()`.
 
-### Crear Nueva App
+## 📖 Documentació
 
-1. Usar `bindAppRhythmElements('appN')` para DOM
-2. Usar `createRhythmAudioInitializer()` para audio
-3. Importar controladores especializados según necesidad
-4. Escribir tests en `libs/app-common/__tests__/` para componentes compartidos
+| Document | Descripció |
+| --- | --- |
+| [CLAUDE.md](CLAUDE.md) | Guia per Claude Code amb arquitectura i regles del repositori |
+| [docs/MODULES.md](docs/MODULES.md) | Index complet de mòduls amb patrons d'import |
+| [docs/LAB_SYSTEM_RULES.md](docs/LAB_SYSTEM_RULES.md) | Regles tècniques per timing, audio, loop, mixer |
+| [docs/agents-context.md](docs/agents-context.md) | Documentació de skills i agents |
+| [docs/SISTEMA-INTERACTIVO-PLAN.md](docs/SISTEMA-INTERACTIVO-PLAN.md) | Pla del Sistema Interactivo |
+| [SESSION_STATE.md](SESSION_STATE.md) | Estat de sessió actual (treball en curs) |
+| `Apps/*/README.md` | README per app (algunes amb cobertura completa) |
+| `libs/*/README.md` | README per llibreria |
 
-### Velocidad de Desarrollo
+## 🔧 Dependències principals
 
-- **App nueva**: 4-6 horas (con patrones maduros)
-- **Feature nueva**: 1-2 horas
-- **Refactor legacy**: 2-3 horas por app
-
-## 🔧 Dependencias
-
-- **Tone.js 15.x** - Síntesis y timing de audio
-- **VexFlow 5.0.0** - Renderizado de notación musical
-- **Jest 29.x** - Framework de testing
-- **ES2022** - Características modernas de JavaScript
-
-## 📖 Documentación
-
-- **CLAUDE.md** - Guía completa para Claude Code con arquitectura y patrones
-- **AGENTS.md** - Documentación en catalán con detalles de implementación
-- **Apps/App4/README.md** - Documentación específica de App4
-- **libs/app-common/AGENTS.md** - Estado de componentes compartidos (si existe)
+- **Tone.js 15.x** — Síntesi i timing precís d'àudio
+- **VexFlow 5.0.0** — Renderització de notació musical
+- **Jest 29.x** — Framework de testing
+- **ES2022** — Sense build step, mòduls natius del navegador
 
 ## 🤝 Contribuir
 
-1. Ejecutar `./setup.sh` para configurar el entorno
-2. Ejecutar `npm test` antes de hacer commits
-3. Priorizar componentes compartidos sobre código duplicado
-4. Documentar nuevos patrones en AGENTS.md
-5. Escribir tests para nuevos componentes compartidos
+1. Executar `./setup.sh` per configurar l'entorn.
+2. Executar `npm test` abans de fer commits — tots els tests han de passar.
+3. **Sempre buscar a `libs/` primer**, crear mòdul reutilitzable segon, codi específic d'app com a últim recurs.
+4. Mostrar codi abans de crear nous fitxers; esperar aprovació explícita.
+5. Mai trencar la funcionalitat existent — si un canvi en aquell sentit és necessari, comentar-ho i validar.
 
-## 📝 Licencia
+## 📝 Llicència
 
-Ver archivo LICENSE para detalles.
+Veure [LICENSE](LICENSE).
