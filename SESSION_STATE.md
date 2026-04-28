@@ -179,21 +179,49 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       iframe creix verticalment fins a encabir tots els controls. Els
       apps amb aspect alt (app10 2/3, scale 3/2) ja superen 320px per la
       seva ràtio, no es veuen afectats.
-    - **App10 (Pas 5) — root cause i fix definitiu**: el `.note-highlight`
-      tenia `left: 100%` → apareixia 80px a la dreta del soundline durant
-      la reproducció. Això creava un desbalanç entre estat de repòs (només
-      soundline) i estat de reproducció (soundline + highlight). Fix a
-      sistema-side amb `padding-right: 80px` provat i revertit perquè
-      només arreglava un dels dos estats.
-    - **Fix definitiu app-side** (`Apps/app10/styles.css:97-112`):
-      `.note-highlight { left: 50%; transform: translateX(-50%); }` →
-      el highlight queda centrat damunt del soundline en tots dos estats.
-      Animation `noteFlash` actualitzada a `translate(-50%, -50%)` per
-      preservar el centratge horitzontal durant l'animació.
+    - **App10 (Pas 5)**: el `.note-highlight` tenia `left: 100%` →
+      apareixia a la dreta del soundline durant la reproducció. La
+      hipòtesi inicial (descentratge causat pel highlight) va resultar
+      ser incorrecta — el highlight s'ha mantingut al disseny original
+      a `Apps/app10/styles.css` (`left: 100%`). El descentratge real
+      té una causa diferent (vegeu pas 13).
     - **Iframe stretching** als plano apps (pasos 3, 6, 7): `.iframe-frame
-      { max-height: min(100%, 700px) }` a `sistema/css/slides.css` evita
+      { max-height: 700px }` a `sistema/css/slides.css` evita
       que apps de plànol s'estirin a pantalles grans. Plànol queda a
       ~933×700, scale ~1050×700, timeline ~1400×700, vertical ~467×700.
+    - Tests: 1445/1445 OK.
+
+13. **Slide content-driven + iframe sense flex grow** ✅ FET (2026-04-28)
+    - **Bug 1 (Pas 4/5/altres)**: a viewports grans, el rectangle verd
+      de tips quedava lluny del text amb gran espai buit al mig. Causa:
+      `.slide-stage { min-height: calc(100vh - var(--nav-h)) }` + `.slide
+      { flex: 1 }` forçaven el slide a omplir 100vh, i la fila `1fr`
+      del text expandia l'espai buit quan el contingut era curt.
+    - **Bug 2 (Pas 5)**: la soundline d'app10 quedava desplaçada a la
+      dreta dins l'iframe a viewports intermedis (900-1100px). Causa:
+      `.iframe-frame { flex: 1 }` competia amb `aspect-ratio: 2/3` +
+      `max-height: 700px` produint un sizing no-determinista.
+    - **Fixes a `sistema/css/grid.css`**:
+      a. `.slide-stage`: eliminat `min-height: calc(100vh - var(--nav-h))`
+         → l'stage és content-driven, la pàgina scrolla naturalment si
+         cal.
+      b. `.slide`: eliminat `flex: 1` → el slide ja no s'estira; les
+         files `1fr` es comporten com `auto` quan no hi ha excés
+         d'espai vertical a distribuir.
+    - **Fixes a `sistema/css/slides.css`**:
+      c. `.iframe-frame`: eliminats `flex: 1` i `min-height: 0`. El
+         sizing ara és determinista: `width: 100% + aspect-ratio +
+         max-height: 700px`.
+      d. `margin: 0 auto` → `margin: auto` → centrat horitzontal **i**
+         vertical al slot.
+    - **Shift progressiu app10 a `libs/app-common/embed.css`** (a
+      petició de l'usuari):
+      `body.app10 main { padding-right: clamp(0px, calc(350px - 100vw),
+      80px) }`. A iframes ≥ 350px wide: cap shift. A iframes &lt; 350px:
+      shift creix linealment fins a 80px màx (= 40px d'efecte sobre el
+      centre del soundline). Compensa la sensació de desplaçament dret
+      causada pel `.note-highlight` extenent-se 80px a la dreta + el
+      `.start-overlay` text wrapping left-aligned.
     - Tests: 1445/1445 OK.
 
 ### Tasques pendents (feina futura, fora del pla actual)

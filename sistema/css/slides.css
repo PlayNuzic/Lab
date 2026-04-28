@@ -140,8 +140,6 @@ body[data-theme="dark"] .slot-text code{ background: #2a2a25; color: var(--nuzic
   height: 100%;
 }
 .iframe-frame{
-  flex: 1;
-  min-height: 0;
   width: 100%;
   border: 0;
   display: flex; align-items: center; justify-content: center;
@@ -153,12 +151,14 @@ body[data-theme="dark"] .slot-text code{ background: #2a2a25; color: var(--nuzic
   aspect-ratio: var(--iframe-aspect, 4 / 3);
   /* Cap d'alçada: a pantalles grans evita que els apps de plànol
      (4/3) i altres es desbordin a 1000+ px. La ràtio determina la
-     resta: plànol → 800×600, scale (3/2) → 900×600, timeline (2/1) →
-     1200×600, vertical (2/3) → 400×600. La iframe queda centrada al
-     slot via `margin: 0 auto`; l'espai sobrant es respecta. */
-  max-height: min(100%, 700px);
+     resta: plànol → ~933×700, scale (3/2) → ~1050×700, timeline (2/1)
+     → ~1400×700, vertical (2/3) → ~467×700. La iframe queda centrada
+     al slot via `margin: auto` (horitzontal i vertical en flex column).
+     Sense `flex: 1` per evitar que la regla competeixi amb aspect-ratio
+     a widths intermedis (causa de descentratge a paso 5). */
+  max-height: 700px;
   max-width: 100%;
-  margin: 0 auto;
+  margin: auto;
 }
 /* Placeholder background shown only when the iframe isn't loaded yet. */
 .iframe-frame:has(.iframe-placeholder){

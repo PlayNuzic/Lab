@@ -6,9 +6,11 @@
    collapses to a single column — see the media query at the bottom. */
 
 .slide-stage{
-  /* Reserva visual mínima d'una pantalla; els slides amb molt contingut
-     poden créixer i fer scrollejar la pàgina (no aquest contenidor). */
-  min-height: calc(100vh - var(--nav-h));
+  /* Stage is content-driven: no min-height. Slides that are taller than
+     the viewport scroll the page naturally; slides that are shorter
+     leave the page background visible below them. This eliminates the
+     "1fr text row creates empty space" problem when the text is short
+     and the slide is forced taller than its content. */
   padding: var(--slide-pad-y) var(--slide-pad-x);
   display: flex;
   flex-direction: column;
@@ -16,9 +18,10 @@
 
 /* Each slide is a 3-column grid (1fr 1fr 1fr); area-map and rows come inline
    from the layout. Most layouts span the app across 2 cols (span-left),
-   leaving the narrow right column for text+tips. Paso 5 inverts this. */
+   leaving the narrow right column for text+tips. Paso 5 inverts this.
+   Slide is content-driven (no `flex: 1`) so 1fr rows behave like auto
+   when there's no excess vertical space to distribute. */
 .slide{
-  flex: 1;
   min-height: 0;
   display: grid;
   gap: var(--content-gap);

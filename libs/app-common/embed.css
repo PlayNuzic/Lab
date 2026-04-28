@@ -92,6 +92,19 @@ html[data-embed="true"] body.app18 main .timeline-wrapper {
   align-self: center;
 }
 
+/* app10 progressive left-shift at narrow iframe widths. The visual
+   block (soundline + invisible note-highlight extending 80px right
+   + overlay text wrapping left-aligned) feels right-of-center as the
+   iframe narrows. `padding-right` on main reduces the cross-axis
+   centering area from the right, pulling the centered wrapper leftward
+   by half the padding. At iframe ≥ 350px width: 0px shift. As width
+   shrinks: shift grows linearly up to 80px max (= 40px effective shift
+   of soundline center). User's suggestion: "moure la soundline a
+   l'esquerra a mesura que es fa petita la pantalla". */
+html[data-embed="true"] body.app10 main {
+  padding-right: clamp(0px, calc(350px - 100vw), 80px);
+}
+
 
 /* App16 (módulo temporal lineal) — the measure-header + timeline pair is
    naturally short (roughly 7-8rem combined). Its `min-height: 25rem` on
