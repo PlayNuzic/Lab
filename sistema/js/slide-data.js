@@ -74,7 +74,7 @@ export const slideMatrix = [
   { paso:6,  section:'descubriendo', title:'El par Nota - Pulso',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple' },
   { paso:7,  section:'intervalos',   title:'Midiendo el movimiento de la Música: Los Intervalos',         layout:'A-intro' },
   { paso:8,  section:'intervalos',   title:'El Intervalo Temporal',                                       layout:'E-app-text-left', apps:['app13'], aspect:'2/1', group:'timeline-simple' },
-  { paso:9,  section:'intervalos',   title:'Intervalo Sonoro',                                            layout:'B-app-left', apps:['App14'],  aspect:'3/2', group:'timeline-complex' },
+  { paso:9,  section:'intervalos',   title:'El Intervalo Sonoro',                                         layout:'D-app-narrow', apps:['App14'], aspect:'2/3', group:'timeline-vertical' },
   { paso:10, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
   { paso:11, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'A-intro' },
   { paso:12, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'B-app-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex' },
@@ -190,8 +190,22 @@ export const slideContent = {
 <p>Para definir un ritmo creamos una sucesión de iT.</p>`,
     tipsTitle: 'Prueba los iT en la línea',
     tips: `<p>Introduce tamaños de iT en los cuadros. La suma no puede superar 8.</p>
-<p>Pulsa ▶ para reproducir, el dado para generar una sucesión aleatoria, y la papelera para borrar.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, y ❌ para borrar.</p>
 <p><strong>Tip:</strong> Descubre cómo la distancia entre los sonidos crea el movimiento. Cambiar el orden de los iT cambia completamente el ritmo.</p>`,
+  },
+  9: {
+    text: `<h3>El intervalo sonoro iS(n) mide la distancia entre dos notas consecutivas.</h3>
+<p>Cada distancia define un salto melódico.</p>
+<p>Usamos como unidad de medida una sola nota. Es el caso del iS(1). En el caso del iS(0) no hay salto y se repite la misma nota.</p>
+<p>Para calcular el iS que hay entre dos notas solo hay que restar el número de la primera nota del número de la segunda nota. iS= N2 - N1.</p>
+<p>El resultado puede ser positivo o negativo dependiendo del movimiento de las dos notas. Si N2 es mayor que N1 el resultado es positivo y el movimiento es ascendente. Si N2 es menor que N1 el resultado es negativo y el movimiento descendente.</p>
+<p>El primer iS define la distancia entre la nota 0 y la primera nota de la melodía. De esta manera queda definida la primera nota de la sucesión.</p>
+<p>La nota final de una sucesión es el resultado de ir sumando o restando los números de los iS consecutivos.</p>`,
+    tipsTitle: 'Prueba los iS en la línea',
+    tips: `<p>Escribe valores positivos o negativos de iS en el editor.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, ❌ para borrar.</p>
+<p><strong>Tip:</strong> El iS enseña que una melodía es movimiento: no solo importa dónde empieces, sino cuánto te mueves.</p>
+<p>Observa cómo la línea sonora destaca los iS con flechas durante la reproducción. Los valores positivos suben y los negativos bajan.</p>`,
   },
 };
 
