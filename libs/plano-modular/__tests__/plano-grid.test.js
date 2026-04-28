@@ -61,13 +61,18 @@ describe('plano-grid', () => {
     test('should have correct DOM hierarchy', () => {
       const elements = buildGridDOM(parent);
 
-      // Container contains soundline and gridArea
+      // Container contains soundline, gridArea, and timeline as direct children
       expect(elements.container.contains(elements.soundlineContainer)).toBe(true);
       expect(elements.container.contains(elements.gridArea)).toBe(true);
+      expect(elements.container.contains(elements.timelineContainer)).toBe(true);
 
-      // GridArea contains matrix and timeline
+      // GridArea contains only the matrix; the timeline is a sibling of
+      // gridArea inside the container so it can be a direct grid item of
+      // `.plano-container` (`grid-template-rows: 1fr auto`) and live in
+      // row 2 below the matrix without internal flex/max-height tricks.
       expect(elements.gridArea.contains(elements.matrixContainer)).toBe(true);
-      expect(elements.gridArea.contains(elements.timelineContainer)).toBe(true);
+      expect(elements.gridArea.contains(elements.timelineContainer)).toBe(false);
+      expect(elements.timelineContainer.parentElement).toBe(elements.container);
     });
   });
 

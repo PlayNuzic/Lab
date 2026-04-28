@@ -224,6 +224,48 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       `.start-overlay` text wrapping left-aligned.
     - Tests: 1445/1445 OK.
 
+14. **App19/App20 — restructura DOM plano-modular** ⚠️ NO RESOLT (2026-04-28)
+    - **Bug recurrent**: la timeline (banda groga amb números 0,1,2,3) es
+      superposa visualment a les primeres files (les més baixes, 0r3, 1r3)
+      del plano matrix a App19/App20, en qualsevol viewport.
+    - **Investigacions amb agents** (3 agents en paral·lel):
+      - Agent A: el `display: contents` provat anteriorment podria no
+        aplicar-se per cascada/specificity vs el base `display: flex` de
+        plano-modular.
+      - Agent B: els pseudo-elements `.plano-cell::before` i `::after`
+        amb `bottom: -50%` extenen visualment 13px sota cada cel·la. Per
+        a la fila inferior, aquests pseudo-elements podrien sortir del
+        matrix-container i superposar-se a la timeline.
+      - Agent C: App12 (musical-grid, funciona) té timeline com a sibling
+        directe de matrix dins un grid pare amb `1fr 50px auto`. App19
+        (plano-modular, falla) tenia timeline atrapat dins `.plano-grid-area`
+        que ocupava ambdues files.
+    - **Canvis aplicats** (cap va resoldre el bug segons l'usuari):
+      a. `libs/plano-modular/plano-grid.js`: canviada la DOM perquè la
+         `timelineContainer` sigui fill directe de `.plano-container`
+         (sibling de `.plano-grid-area`), no fill atrapat dins.
+      b. `libs/plano-modular/plano-modular.css`:
+         - `.plano-grid-area`: `grid-row: 1 / 3` → `grid-row: 1` (només
+           ocupa fila 1, la timeline ja no és fill seu).
+         - `.plano-timeline-container`: afegit `grid-column: 2; grid-row: 2`
+           perquè es col·loqui directament al grid pare.
+         - `.plano-soundline-container`: span `grid-row: 1 / 3` per cobrir
+           el "floor cell" rosa sota l'última nota; eliminat `max-height`.
+         - `.plano-matrix-container`: eliminat `max-height: calc(...)`
+           legacy que no s'adaptava al flex-wrap del header.
+      c. `Apps/App19/styles.css`, `Apps/App20/styles.css`: netejats els
+         overrides redundants. Només queda `.plano-timeline-container
+         { z-index: 2 }` (App19) i `+ margin-bottom: 0.59rem` (App20
+         per al N-iT editor).
+      d. `libs/plano-modular/__tests__/plano-grid.test.js`: actualitzat
+         per esperar la nova jerarquia (timeline com a sibling de gridArea).
+    - **Estat**: tests 1445/1445 passen, però l'usuari reporta que el
+      bug visual persisteix tant al sistema (iframe) com a les apps
+      standalone. **Diferida la resolució** — possible que el problema
+      sigui browser cache, especificity CSS no resolta, o un factor
+      no diagnosticat. A reprendre amb fresh eyes / DevTools en una
+      sessió futura.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App19/App20**: la timeline (groc) es superposa a les primeres files de

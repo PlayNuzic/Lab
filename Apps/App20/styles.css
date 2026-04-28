@@ -211,23 +211,12 @@ main {
   margin-left: 0.437rem;
 }
 
-/* Separate matrix from timeline in grid-area */
-.plano-grid-area {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  min-height: 0;
-}
-
-.plano-matrix-container {
-  grid-row: 1;
-  min-height: 0;
-}
-
+/* Architecture handled at the library level (plano-modular.css). App20 only
+   keeps a small bottom margin on the timeline to leave room for the N-iT
+   editor zigzag pattern below the grid. */
 .plano-timeline-container {
-  grid-row: 2;
-  position: relative;
   z-index: 2;
-  margin-bottom: 0.59rem
+  margin-bottom: 0.59rem;
 }
 
 /* columnSizing:'fr' — fill available width */
@@ -429,11 +418,14 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   pointer-events: auto;
 }
 
-/* Limit scroll containers so the timeline stays visible below. */
-.plano-soundline-container,
-.plano-matrix-container {
-  max-height: calc(var(--plano-visible-rows) * var(--plano-cell-height) - var(--plano-timeline-height, 40px) - var(--plano-cell-height) / 2);
-}
+/* Note: previous `max-height: calc(visible-rows × cell-height − timeline −
+   cell/2)` cap removed (was 575px hardcoded). It was a legacy workaround
+   from the flex-only layout era; with the current `.plano-grid-area`
+   using `grid-template-rows: minmax(0, 1fr) auto` (lines ~230-245), the
+   matrix already takes available height via `1fr` and the timeline gets
+   its natural 40px via `auto`. The hardcoded cap caused timeline-overlap
+   when `.inputs` flex-wrapped on narrow viewports — the cap claimed
+   575px even when parent space had shrunk below that. */
 
 /* ============================================
    N-iT EDITOR (zigzag pattern below grid)

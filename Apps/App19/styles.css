@@ -223,24 +223,13 @@ main {
   margin-left: 0.437rem;
 }
 
-/* Reserve independent rows for matrix and timeline in App19.
-   The generic plano-modular flex layout can make the timeline appear to sit
-   "inside" the last visible grid row once note labels / np-dots straddle the
-   bottom boundary. Explicit rows keep the timeline in its own band. */
-.plano-grid-area {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  min-height: 0;
-}
-
-.plano-matrix-container {
-  grid-row: 1;
-  min-height: 0;
-}
-
+/* Architecture handled at the library level (plano-modular.css):
+   - Parent grid `.plano-container { grid-template-rows: 1fr auto }`
+   - `.plano-grid-area` at row 1 only (no spanning)
+   - `.plano-timeline-container` at row 2 directly (sibling of .plano-grid-area)
+   - `.plano-soundline-container` spans rows 1+2 for the floor-cell effect
+   App19 only needs minor extras here (z-index for playhead overlap). */
 .plano-timeline-container {
-  grid-row: 2;
-  position: relative;
   z-index: 2;
 }
 
@@ -405,11 +394,14 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
   pointer-events: auto;
 }
 
-/* Limit scroll containers so the timeline stays visible below. */
-.plano-soundline-container,
-.plano-matrix-container {
-  max-height: calc(var(--plano-visible-rows) * var(--plano-cell-height) - var(--plano-timeline-height, 40px) - var(--plano-cell-height) / 2);
-}
+/* Note: previous `max-height: calc(visible-rows × cell-height − timeline −
+   cell/2)` cap removed (was 575px hardcoded). It was a legacy workaround
+   from the flex-only layout era; with the current `.plano-grid-area`
+   using `grid-template-rows: minmax(0, 1fr) auto` (lines ~230-245), the
+   matrix already takes available height via `1fr` and the timeline gets
+   its natural 40px via `auto`. The hardcoded cap caused timeline-overlap
+   when `.inputs` flex-wrapped on narrow viewports — the cap claimed
+   575px even when parent space had shrunk below that. */
 
 /* ============================================
    PLAYBACK ANIMATIONS

@@ -31,11 +31,19 @@ export function buildGridDOM(parent) {
   const timelineContainer = document.createElement('div');
   timelineContainer.className = 'plano-timeline-container';
 
-  // Assemble structure
+  // Assemble structure. The timeline is a DIRECT child of `.plano-container`
+  // (sibling of `.plano-grid-area`) rather than nested inside `.plano-grid-area`.
+  // This makes the timeline an independent grid item of the parent grid
+  // (`grid-template-rows: 1fr auto`), guaranteeing it lives in row 2 below
+  // the matrix without depending on internal flex/grid manipulations of
+  // `.plano-grid-area` or fragile `display: contents` overrides. The bug
+  // where the timeline visually overlapped the bottom matrix rows came from
+  // the timeline being trapped inside `.plano-grid-area` (which spanned both
+  // grid rows) and getting positioned via internal flex/max-height hacks.
   gridArea.appendChild(matrixContainer);
-  gridArea.appendChild(timelineContainer);
   container.appendChild(soundlineContainer);
   container.appendChild(gridArea);
+  container.appendChild(timelineContainer);
   parent.appendChild(container);
 
   return {

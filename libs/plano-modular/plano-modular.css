@@ -60,11 +60,13 @@
 
 .plano-soundline-container {
   grid-column: 1;
-  grid-row: 1;
+  /* Span both grid rows so the soundline's background visually extends
+     down to the timeline level (creates the "floor cell" beneath the
+     last note label, aligned with where the timeline begins in col 2). */
+  grid-row: 1 / 3;
   display: flex;
   flex-direction: column;
   min-width: var(--plano-soundline-width);
-  max-height: calc(var(--plano-visible-rows) * var(--plano-cell-height));
   overflow-y: scroll;
   overflow-x: hidden;
   scrollbar-width: none;
@@ -113,7 +115,7 @@
 
 .plano-grid-area {
   grid-column: 2;
-  grid-row: 1 / 3;
+  grid-row: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -129,7 +131,12 @@
   overflow-x: auto;
   overflow-y: scroll;
   min-height: 0;
-  max-height: calc(var(--plano-visible-rows) * var(--plano-cell-height));
+  /* No max-height: the parent grid (`grid-template-rows: 1fr auto`) already
+     allocates the matrix's row dynamically based on available space. The
+     previous `max-height: calc(visible-rows × cell-height)` cap was a
+     legacy constraint from a flex-only era; it didn't shrink when the
+     parent shrank (e.g., `.inputs` flex-wrapping reduces `.timeline-wrapper`
+     height) and pushed the timeline visually into matrix territory. */
   scrollbar-width: thin;
 }
 
@@ -286,6 +293,10 @@
    ============================================ */
 
 .plano-timeline-container {
+  /* Direct grid child of `.plano-container` (sibling of `.plano-grid-area`),
+     positioned in col 2 / row 2 so it sits below the matrix. */
+  grid-column: 2;
+  grid-row: 2;
   height: var(--plano-timeline-height);
   flex-shrink: 0;
   overflow-x: auto;
