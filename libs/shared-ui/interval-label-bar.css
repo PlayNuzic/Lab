@@ -1,0 +1,60 @@
+/* interval-label-bar.css
+   Indicador d'interval temporal (iT) sota una barra colorada.
+   Estructura tipus "halter":
+     ● ──────  N  ────── ●
+     punt — línia prima — caixa amb número — línia prima — punt
+   Tots els elements en color --nuzic-yellow. Cantonades rectes. */
+
+.interval-label-bar {
+  position: absolute;
+  height: 1.4rem;            /* mateixa alçada de referència que la barra colorada */
+  z-index: 5;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.3s ease, left 0.3s ease;
+}
+
+/* Línia prima horitzontal alineada amb la vora SUPERIOR del recuadre */
+.interval-label-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0.25rem;
+  background: var(--nuzic-yellow, #ffbb33);
+  z-index: 1;
+}
+
+/* Punts als extrems, alineats també amb la vora superior */
+.interval-label-bar__dot {
+  position: absolute;
+  top: 0.125rem; /* centrat sobre la línia (height línia / 2) */
+  width: 0.6rem;
+  height: 0.6rem;
+  background: var(--nuzic-yellow, #ffbb33);
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.interval-label-bar__dot--start { left: 0; transform: translate(-50%, -50%); }
+.interval-label-bar__dot--end   { right: 0; transform: translate(50%, -50%); }
+
+/* Caixa central amb el número */
+.interval-label-bar__box {
+  position: relative;
+  z-index: 3;
+  height: 100%;
+  min-width: 1.6rem;
+  padding: 0 0.4rem;
+  background: var(--nuzic-yellow, #ffbb33);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.85rem, 1.6vw, 1.1rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+  line-height: 1;
+}

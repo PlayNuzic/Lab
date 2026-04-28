@@ -4,6 +4,7 @@ import { bindSharedSoundEvents } from '../../libs/app-common/audio.js';
 import { registerFactoryReset, createPreferenceStorage } from '../../libs/app-common/preferences.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 
 // ========== CONFIGURACIÓN ==========
 const TOTAL_PULSES = 9;  // Pulsos 0-8 (8 es endpoint visual)
@@ -549,7 +550,7 @@ function layoutTimeline() {
 
 function updateTimeline() {
   // Netejar barres anteriors
-  const existingBars = timeline.querySelectorAll('.interval-bar-visual');
+  const existingBars = timeline.querySelectorAll('.interval-bar-visual, .interval-label-bar');
   existingBars.forEach(bar => bar.remove());
 
   // Dibuixar barres pels iT entrats
@@ -595,18 +596,21 @@ function createIntervalBar(startPulse, duration, color, animated = true) {
   bar.style.width = animated ? '0%' : `${widthPercent}%`;
   bar.style.background = color;
 
-  // Número de duració (centrat dins la barra, color nuzic-dark per contrast)
-  const label = document.createElement('span');
-  label.className = 'interval-bar-visual__label';
-  label.textContent = duration;
-  bar.appendChild(label);
-
   timeline.appendChild(bar);
+
+  // Yellow label bar with iT number, sits just below the colored bar
+  const labelBar = createIntervalLabelBar({
+    startPercent,
+    widthPercent: animated ? 0 : widthPercent,
+    label: duration
+  });
+  timeline.appendChild(labelBar);
 
   if (animated) {
     bar.offsetHeight; // Force reflow
     requestAnimationFrame(() => {
       bar.style.width = `${widthPercent}%`;
+      labelBar.style.width = `${widthPercent}%`;
     });
   }
 
@@ -614,7 +618,7 @@ function createIntervalBar(startPulse, duration, color, animated = true) {
 }
 
 function clearTimelineBars() {
-  const bars = timeline.querySelectorAll('.interval-bar-visual');
+  const bars = timeline.querySelectorAll('.interval-bar-visual, .interval-label-bar');
   bars.forEach(bar => bar.remove());
 }
 

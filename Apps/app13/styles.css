@@ -193,11 +193,12 @@ body[data-visual="nuzic"] {
 
 
 /* ========== INTERVAL BARS (sobre la timeline, patró App30) ========== */
+/* Pujades per deixar espai al label-bar groc (halter d'iT) just sota */
 .interval-bar-visual {
   position: absolute;
-  top: -1.4rem;
+  top: -3.3rem;
   height: 1.4rem;
-  border-radius: 0.3rem;
+  border-radius: 0;
   z-index: 5;
   transition: box-shadow 0.2s ease, width 0.3s ease;
   pointer-events: none;
@@ -211,8 +212,7 @@ body[data-visual="nuzic"] {
   transform: scale(1.05);
 }
 
-.interval-bar-visual__label {
-  font-size: clamp(0.85rem, 1.6vw, 1.1rem);
-  font-weight: 700;
-  color: var(--nuzic-dark, #43433B);
+/* Halter groc d'iT, sota la barra colorada amb separació respecte a la timeline */
+.interval-label-bar {
+  top: -1.9rem;
 }
