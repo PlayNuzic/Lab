@@ -190,7 +190,7 @@ export const slideContent = {
 <p>Para definir un ritmo creamos una sucesión de iT.</p>`,
     tipsTitle: 'Prueba los iT en la línea',
     tips: `<p>Introduce tamaños de iT en los cuadros. La suma no puede superar 8.</p>
-<p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, y ❌ para borrar.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, y 🗑 para borrar.</p>
 <p><strong>Tip:</strong> Descubre cómo la distancia entre los sonidos crea el movimiento. Cambiar el orden de los iT cambia completamente el ritmo.</p>`,
   },
   9: {
@@ -203,7 +203,7 @@ export const slideContent = {
 <p>La nota final de una sucesión es el resultado de ir sumando o restando los números de los iS consecutivos.</p>`,
     tipsTitle: 'Prueba los iS en la línea',
     tips: `<p>Escribe valores positivos o negativos de iS en el editor.</p>
-<p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, ❌ para borrar.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, 🗑 para borrar.</p>
 <p><strong>Tip:</strong> El iS enseña que una melodía es movimiento: no solo importa dónde empieces, sino cuánto te mueves.</p>
 <p>Observa cómo la línea sonora destaca los iS con flechas durante la reproducción. Los valores positivos suben y los negativos bajan.</p>`,
   },
