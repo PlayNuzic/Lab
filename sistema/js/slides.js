@@ -148,13 +148,21 @@ function render(){
   BTN_PREV.disabled = state.paso <= 1;
   BTN_NEXT.disabled = state.paso >= 27;
 
-  // Progress bar (current section only)
+  // Progress bar (current section only). Segments are <button>s so they're
+  // keyboard-focusable and announce the target paso to assistive tech;
+  // navigation is wired via delegation on PROG (see end of file).
   PROG.innerHTML = '';
   section.slides.forEach(p => {
-    const seg = document.createElement('div');
+    const seg = document.createElement('button');
+    seg.type = 'button';
     seg.className = 'progress-seg';
+    seg.dataset.paso = p;
+    seg.setAttribute('aria-label', `Anar al Paso ${p}`);
     if (p < state.paso) seg.classList.add('is-done');
-    if (p === state.paso) seg.classList.add('is-current');
+    if (p === state.paso) {
+      seg.classList.add('is-current');
+      seg.setAttribute('aria-current', 'step');
+    }
     PROG.appendChild(seg);
   });
 
@@ -230,16 +238,22 @@ function persistField(paso, el){
   saveOverrides(state.overrides);
 }
 
-function go(delta){
-  const next = state.paso + delta;
-  if (next < 1 || next > 27) return;
-  state.paso = next;
+function goTo(paso){
+  if (paso < 1 || paso > 27 || paso === state.paso) return;
+  state.paso = paso;
   state.variant = 'a';
   render();
 }
+function go(delta){ goTo(state.paso + delta); }
 
 BTN_PREV.addEventListener('click', () => go(-1));
 BTN_NEXT.addEventListener('click', () => go(+1));
+PROG.addEventListener('click', e => {
+  const seg = e.target.closest('.progress-seg');
+  if (!seg) return;
+  const paso = Number(seg.dataset.paso);
+  if (Number.isFinite(paso)) goTo(paso);
+});
 document.addEventListener('keydown', e => {
   if (e.target.closest('input,select,textarea')) return;
   if (e.key === 'ArrowLeft')  go(-1);
