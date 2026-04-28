@@ -186,7 +186,7 @@ body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2
 
 /* Paso 10 (Intervalos en el Plano Musical): el plànol iS-iT necessita
    una mica més d'alçada per mostrar bé la sucesión sense escurçar-se. */
-.slide[data-paso="10"] .iframe-frame{ max-height: 800px; }
+.slide[data-paso="10"] .iframe-frame{ max-height: 1200px; }
 
 .iframe-placeholder{
   position: absolute; inset: 0;
