@@ -209,27 +209,14 @@ function showIntervalNumber(note1Index, note2Index, delayBeats = 1) {
   const absInterval = Math.abs(interval);
   const direction = interval > 0 ? '+' : interval < 0 ? '-' : '';
 
-  const isAscending = interval > 0;
-  const cellHeight = 100 / 12;
-
   // Calculate positions directly (same formula as getNotePosition/layoutSoundline)
   const calcPos = (idx) => 100 - ((idx + 0.5) / 12) * 100;
   const pos1 = calcPos(note1Index);
   const pos2 = calcPos(note2Index);
 
-  // Vertical position depends on interval size and direction
-  let numberY;
-  if (absInterval === 0) {
-    numberY = pos1;
-  } else if (absInterval === 1) {
-    // ±1: shift towards destination to avoid overlap with short bar
-    numberY = isAscending
-      ? Math.min(pos1, pos2) + cellHeight * 0.3
-      : Math.max(pos1, pos2) - cellHeight * 0.3;
-  } else {
-    // Center between the two notes
-    numberY = (pos1 + pos2) / 2;
-  }
+  // Sempre centrat entre origen i destí (mig de la línia).
+  // Per iS(0) coincideix amb la posició de la nota.
+  const numberY = (pos1 + pos2) / 2;
 
   const delayMs = (60 / FIXED_BPM) * delayBeats * 1000;
 
@@ -238,19 +225,10 @@ function showIntervalNumber(note1Index, note2Index, delayBeats = 1) {
   intervalNum.textContent = `${direction}${absInterval}`;
   intervalNum.style.position = 'absolute';
   intervalNum.style.setProperty('top', `${numberY}%`, 'important');
-  intervalNum.style.transform = 'translateY(-50%)';
+  intervalNum.style.transform = 'translate(-50%, -50%)';
   intervalNum.style.opacity = '0';
-
-  // Horizontal: bar is at calc(100% + 5.5rem), number to its right
-  if (absInterval <= 1) {
-    intervalNum.style.left = 'calc(100% + 7rem)';
-  } else if (isAscending) {
-    // Ascending: number LEFT of bar
-    intervalNum.style.left = 'calc(100% + 3.5rem)';
-  } else {
-    // Descending: number RIGHT of bar
-    intervalNum.style.left = 'calc(100% + 7rem)';
-  }
+  // Centrat horitzontalment sobre la línia (la línia està a calc(100% + 5.5rem))
+  intervalNum.style.left = 'calc(100% + 5.5rem + 2px)';
 
   soundline.element.appendChild(intervalNum);
   currentIntervalElements.push(intervalNum);

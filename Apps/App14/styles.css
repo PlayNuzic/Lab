@@ -289,16 +289,19 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   opacity: 1;
 }
 
-/* ========== INTERVAL VISUALIZATION ========== */
+/* ========== INTERVAL VISUALIZATION ==========
+   Estil "halter vertical" coherent amb el halter d'iT (App13):
+   línia prima + caixa central amb número + extrem oposat amb punt rodó.
+   La fletxa marca la direcció (origen→destí). */
 .interval-bar-vertical {
   background: var(--interval-color);
-  border-radius: 2px;
-  opacity: 0.8;
+  border-radius: 0;
+  opacity: 1;
   z-index: 15;
-  box-shadow: 0 0 8px var(--interval-color);
   animation: intervalFadeIn 0.3s ease-out;
 }
 
+/* Fletxa a l'extrem destí (tamany invariant — no tocar) */
 .interval-bar-vertical.ascending::before {
   content: '';
   position: absolute;
@@ -310,7 +313,7 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   border-bottom: 0.625rem solid var(--interval-color);
 }
 
-.interval-bar-vertical.descending::after {
+.interval-bar-vertical.descending::before {
   content: '';
   position: absolute;
   bottom: -0.5rem;
@@ -321,17 +324,36 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
   border-top: 0.625rem solid var(--interval-color);
 }
 
-/* App14 positions interval-numbers via JS setProperty('top', ..., 'important') */
+/* Punt rodó a l'extrem ORIGEN (oposat a la fletxa) */
+.interval-bar-vertical::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 0.6rem;
+  height: 0.6rem;
+  background: var(--interval-color);
+  border-radius: 50%;
+  transform: translate(-50%, 0);
+}
+
+.interval-bar-vertical.ascending::after { bottom: -0.3rem; }
+.interval-bar-vertical.descending::after { top: -0.3rem; }
+
+/* Caixa central amb el número (App14 posiciona via JS amb top !important) */
 .interval-number {
-  color: var(--interval-color);
+  background: var(--interval-color);
+  color: var(--nuzic-dark, #43433B) !important;
   font-size: clamp(1.3rem, 2.8vw, 2rem);
-  font-weight: bold;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.2rem 0.6rem;
+  text-shadow: none;
   z-index: 16;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] .interval-number {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  color: var(--nuzic-dark, #43433B) !important;
+  text-shadow: none;
 }
 
 @keyframes intervalFadeIn {
