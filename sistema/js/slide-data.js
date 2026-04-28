@@ -207,6 +207,18 @@ export const slideContent = {
 <p><strong>Tip:</strong> El iS enseña que una melodía es movimiento: no solo importa dónde empieces, sino cuánto te mueves.</p>
 <p>Observa cómo la línea sonora destaca los iS con flechas durante la reproducción. Los valores positivos suben y los negativos bajan.</p>`,
   },
+  10: {
+    text: `<p>Para componer una pequeña melodía desde el punto de vista del movimiento, combinamos una sucesión de iS sincronizados con iT.</p>
+<p>El punto de salida es una nota situada en el par N(0)-P(0).</p>
+<p>Los pares iS-iT van dibujando la melodía.</p>
+<p>Podemos escoger silencios en vez de notas escribiendo una "s" en los iS y darle la duración que queramos con el iT asociado.</p>`,
+    tipsTitle: 'Prueba el Plano iS-iT',
+    tips: `<p>Entra un número de iS para definir la primera nota. A continuación entra el número del iT para definir su duración.</p>
+<p>Entra pares iS-iT hasta acabar la sucesión. Escribe "s" en la línea iS para introducir un silencio en el editor.</p>
+<p>También puedes introducir notas clicando en los puntos (en la esquina inferior de las celdas) del plano y arrastrarlas para crear el iT.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar una secuencia aleatoria, 🗑 para borrar.</p>
+<p><strong>Tip:</strong> En esta App se juega con distancias en lugar de posiciones fijas. Es como la diferencia entre decir "ve a la calle 5" y "avanza 3 calles" — el mismo destino, dos formas de pensarlo.</p>`,
+  },
 };
 
 // Default filler for pasos without explicit content yet.
