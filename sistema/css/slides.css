@@ -152,12 +152,21 @@ body[data-theme="dark"] .slot-text code{ background: #2a2a25; color: var(--nuzic
   /* Cap d'alçada: a pantalles grans evita que els apps de plànol
      (4/3) i altres es desbordin a 1000+ px. La ràtio determina la
      resta: plànol → ~933×700, scale (3/2) → ~1050×700, timeline (2/1)
-     → ~1400×700, vertical (2/3) → ~467×700. La iframe queda centrada
-     al slot via `margin: auto` (horitzontal i vertical en flex column).
-     Sense `flex: 1` per evitar que la regla competeixi amb aspect-ratio
-     a widths intermedis (causa de descentratge a paso 5). */
+     → ~1400×700, vertical (2/3) → ~467×700.
+     `margin: 0 auto` centra horitzontalment i deixa l'iframe a dalt
+     del slot — així s'alinea amb el títol al costat (B-app-left) i
+     mantém una posició consistent entre pasos amb text de longitud
+     diferent. Layouts específics (D-app-narrow per Pas 5) afegeixen
+     centratge vertical via regla pròpia. */
   max-height: 700px;
   max-width: 100%;
+  margin: 0 auto;
+}
+
+/* D-app-narrow (Pas 5 — soundline vertical): l'iframe vertical es
+   beneficia de centrat vertical perquè la soundline natural ocupa
+   l'alçada del slot. Sense això, queda al top amb empty espai sota. */
+.slide[data-layout="D-app-narrow"] .iframe-frame {
   margin: auto;
 }
 /* Placeholder background shown only when the iframe isn't loaded yet. */
