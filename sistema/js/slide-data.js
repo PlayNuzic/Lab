@@ -11,10 +11,10 @@
 export const sections = [
   { id:'introduccion', title:'Introducción',                       slides:[1] },
   { id:'descubriendo', title:'Descubriendo la Música',              slides:[2,3,4,5,6] },
-  { id:'intervalos',   title:'Midiendo el movimiento: Los intervalos', slides:[7,8,9] },
-  { id:'ampliando',    title:'Ampliando',                          slides:[10,11,12,13,14,15] },
-  { id:'fraccionando', title:'Fraccionando',                       slides:[16,17,18,19,20] },
-  { id:'escalas',      title:'Escalas',                            slides:[21,22,23,24,25,26] },
+  { id:'intervalos',   title:'Midiendo el movimiento: Los intervalos', slides:[7,8,9,10] },
+  { id:'ampliando',    title:'Ampliando',                          slides:[11,12,13,14,15,16] },
+  { id:'fraccionando', title:'Fraccionando',                       slides:[17,18,19,20,21] },
+  { id:'escalas',      title:'Escalas',                            slides:[22,23,24,25,26,27] },
 ];
 
 // Grid layouts — the skeleton shared across pasos. Each defines the grid areas
@@ -72,26 +72,27 @@ export const slideMatrix = [
   { paso:4,  section:'descubriendo', title:'Línea Sonora',                                                layout:'D-app-narrow',apps:['app10'],  aspect:'2/3', group:'timeline-vertical' },
   { paso:5,  section:'descubriendo', title:'El Plano Musical',                                            layout:'B-app-left', apps:['app11'],  aspect:'4/3', group:'plano-simple' },
   { paso:6,  section:'descubriendo', title:'El par Nota - Pulso',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple' },
-  { paso:7,  section:'intervalos',   title:'Midiendo el movimiento: Los Intervalos',                      layout:'B-app-left', apps:['app13'],  aspect:'2/1', group:'timeline-simple' },
-  { paso:8,  section:'intervalos',   title:'Intervalo Sonoro',                                            layout:'B-app-left', apps:['App14'],  aspect:'3/2', group:'timeline-complex' },
-  { paso:9,  section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
-  { paso:10, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'A-intro' },
-  { paso:11, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'B-app-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex' },
-  { paso:12, section:'ampliando',    title:'Línea temporal en círculo',                                   layout:'B-app-left', apps:['App17'],  aspect:'1/1', group:'circular' },
-  { paso:13, section:'ampliando',    title:'El registro de octava',                                       layout:'B-app-left', apps:['App18'],  aspect:'3/2', group:'timeline-vertical' },
-  { paso:14, section:'ampliando',    title:'Plano Modular',                                               layout:'B-app-left', apps:['App19'],  aspect:'4/3', group:'plano-multi-pill' },
-  { paso:15, section:'ampliando',    title:'Plano y Sucesión N-iT',                                       layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill' },
-  { paso:16, section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'B-app-left', apps:['App26'],  aspect:'2/1', group:'timeline-simple' },
-  { paso:17, section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'B-app-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
-  { paso:18, section:'fraccionando', title:'Sucesión de iT Fraccionados Simples',                         layout:'B-app-left', apps:['App30'],  aspect:'2/1', group:'timeline-simple' },
-  { paso:19, section:'fraccionando', title:'Sucesión en Plano de Fracciones Simples',                     layout:'B-app-left', apps:['App32'],  aspect:'4/3', group:'plano-simple' },
-  { paso:20, section:'fraccionando', title:'Fracciones Complejas',                                        layout:'B-app-left', apps:['App34','App35'], aspect:'4/3', variantLabels:['App34 · principal','App35 · extra'], group:'plano-simple' },
-  { paso:21, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'3/2', group:'scale' },
-  { paso:22, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'3/2', group:'scale' },
-  { paso:23, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'3/2', group:'scale' },
-  { paso:24, section:'escalas',      title:'Probando diferentes Escalas',                                 layout:'B-app-left', apps:['App24'],  aspect:'3/2', group:'scale' },
-  { paso:25, section:'escalas',      title:'Melodías con Escalas',                                        layout:'B-app-left', apps:['App25','App25B'], aspect:'4/3', variantLabels:['App25 · principal','App25B · iS'], group:'scale' },
-  { paso:26, section:'escalas',      title:'Intervalos con Escalas',                                      layout:'B-app-left', apps:['App25B'], aspect:'4/3', group:'scale' },
+  { paso:7,  section:'intervalos',   title:'Midiendo el movimiento de la Música: Los Intervalos',         layout:'A-intro' },
+  { paso:8,  section:'intervalos',   title:'Midiendo el movimiento: Los Intervalos',                      layout:'B-app-left', apps:['app13'],  aspect:'2/1', group:'timeline-simple' },
+  { paso:9,  section:'intervalos',   title:'Intervalo Sonoro',                                            layout:'B-app-left', apps:['App14'],  aspect:'3/2', group:'timeline-complex' },
+  { paso:10, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
+  { paso:11, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'A-intro' },
+  { paso:12, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'B-app-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex' },
+  { paso:13, section:'ampliando',    title:'Línea temporal en círculo',                                   layout:'B-app-left', apps:['App17'],  aspect:'1/1', group:'circular' },
+  { paso:14, section:'ampliando',    title:'El registro de octava',                                       layout:'B-app-left', apps:['App18'],  aspect:'3/2', group:'timeline-vertical' },
+  { paso:15, section:'ampliando',    title:'Plano Modular',                                               layout:'B-app-left', apps:['App19'],  aspect:'4/3', group:'plano-multi-pill' },
+  { paso:16, section:'ampliando',    title:'Plano y Sucesión N-iT',                                       layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill' },
+  { paso:17, section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'B-app-left', apps:['App26'],  aspect:'2/1', group:'timeline-simple' },
+  { paso:18, section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'B-app-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
+  { paso:19, section:'fraccionando', title:'Sucesión de iT Fraccionados Simples',                         layout:'B-app-left', apps:['App30'],  aspect:'2/1', group:'timeline-simple' },
+  { paso:20, section:'fraccionando', title:'Sucesión en Plano de Fracciones Simples',                     layout:'B-app-left', apps:['App32'],  aspect:'4/3', group:'plano-simple' },
+  { paso:21, section:'fraccionando', title:'Fracciones Complejas',                                        layout:'B-app-left', apps:['App34','App35'], aspect:'4/3', variantLabels:['App34 · principal','App35 · extra'], group:'plano-simple' },
+  { paso:22, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'3/2', group:'scale' },
+  { paso:23, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'3/2', group:'scale' },
+  { paso:24, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'3/2', group:'scale' },
+  { paso:25, section:'escalas',      title:'Probando diferentes Escalas',                                 layout:'B-app-left', apps:['App24'],  aspect:'3/2', group:'scale' },
+  { paso:26, section:'escalas',      title:'Melodías con Escalas',                                        layout:'B-app-left', apps:['App25','App25B'], aspect:'4/3', variantLabels:['App25 · principal','App25B · iS'], group:'scale' },
+  { paso:27, section:'escalas',      title:'Intervalos con Escalas',                                      layout:'B-app-left', apps:['App25B'], aspect:'4/3', group:'scale' },
 ];
 
 // Content — real text for pasos 1-6 (from the PDF), filler for 7+.
@@ -170,9 +171,19 @@ export const slideContent = {
 <p>Pulsa ▶ para reproducir, 🎲 para generar una sucesión aleatoria, 🗑 para borrar.</p>
 <p><strong>Tip:</strong> Pasar del azar a la intención es el salto creativo fundamental. Es el primer paso hacia la composición consciente: decides tú qué nota suena en qué momento.</p>`,
   },
+  7: {
+    image: {
+      alt: 'Foto introductoria — Midiendo el movimiento de la Música: Los Intervalos',
+      src: 'images/paso-2.jpg',
+    },
+    text: `<p>Ya sabemos dónde están situadas las notas y los pulsos. Vamos a fijarnos ahora en sus movimientos, usando nuevos números para medirlos.</p>
+<p>Los números que miden los movimientos se llaman <strong>intervalos</strong>.</p>
+<p>Cada línea del plano tiene su intervalo característico. Los de la línea temporal miden las duraciones, los de la línea sonora los saltos de las notas. Son muy diferentes pero la idea es la misma: medir movimientos.</p>
+<p>Los intervalos muestran los espacios que se van formando entre las notas, cómo se construye una melodía y permiten entender la esencia de su expresión.</p>`,
+  },
 };
 
-// Default filler for pasos without explicit content yet (7–26).
+// Default filler for pasos without explicit content yet.
 export const fillerContent = {
   text: `<p>Este paso está pendiente de redactar. El esqueleto del Sistema está listo; cuando tengamos el texto teórico final del PDF o el material equivalente, se integrará aquí sustituyendo este marcador.</p>
 <p>La densidad aquí será similar a la de los pasos ya redactados: 3 a 5 párrafos de 40–70 palabras, con términos clave en <strong>negrita</strong> y referencias cruzadas a apps vecinas cuando aplique.</p>`,
