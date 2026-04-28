@@ -74,7 +74,7 @@ export const slideMatrix = [
   { paso:6,  section:'descubriendo', title:'El par Nota - Pulso',                                      layout:'B-app-left', apps:['App12'],  aspect:'4/3', group:'plano-simple' },
   { paso:7,  section:'intervalos',   title:'Midiendo el movimiento de la Música: Los Intervalos',         layout:'A-intro' },
   { paso:8,  section:'intervalos',   title:'El Intervalo Temporal',                                       layout:'E-app-text-left', apps:['app13'], aspect:'2/1', group:'timeline-simple' },
-  { paso:9,  section:'intervalos',   title:'El Intervalo Sonoro',                                         layout:'D-app-narrow', apps:['App14'], aspect:'2/3', group:'timeline-vertical' },
+  { paso:9,  section:'intervalos',   title:'El Intervalo Sonoro',                                         layout:'B-app-left', apps:['App14'],  aspect:'2/3', group:'timeline-vertical' },
   { paso:10, section:'intervalos',   title:'Intervalos en el Plano Musical',                              layout:'B-app-left', apps:['App15'],  aspect:'4/3', group:'plano-simple' },
   { paso:11, section:'ampliando',    title:'Ampliando el Mapa: Patrones, Ciclos y Módulos',               layout:'A-intro' },
   { paso:12, section:'ampliando',    title:'El compás: el módulo temporal',                               layout:'B-app-left', apps:['App16'],  aspect:'2/1', group:'timeline-complex' },
