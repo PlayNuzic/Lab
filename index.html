@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PlayNuzic Lab</title>
+<link rel="icon" href="favicon.ico">
+<style>
+  /* Nuzic typography */
+  @font-face {
+    font-family: 'Ubuntu';
+    font-style: normal;
+    font-weight: 400;
+    src: url('sistema/fonts/ubuntu-regular.woff2') format('woff2');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Ubuntu';
+    font-style: normal;
+    font-weight: 700;
+    src: url('sistema/fonts/ubuntu-bold.ttf') format('truetype');
+    font-display: swap;
+  }
+
+  /* Nuzic color palette (mateixos tokens que libs/shared-ui/nuzic-theme.css) */
+  :root {
+    --nuzic-white: #ffffff;
+    --nuzic-light: #eee8d8;
+    --nuzic-dark: #43433b;
+    --nuzic-grey: #aaa699;
+    --nuzic-green: #7cd6b3;
+    --nuzic-green-light: #cbefe1;
+    --nuzic-yellow: #ffbb33;
+    --nuzic-pink: #f28aad;
+    --nuzic-pink-light: #ffe5ee;
+    --shadow-sm: 0 2px 8px rgba(67, 67, 59, 0.08);
+    --shadow-md: 0 8px 24px rgba(67, 67, 59, 0.14);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: 'Ubuntu', system-ui, sans-serif;
+    background: var(--nuzic-light);
+    color: var(--nuzic-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(1.5rem, 5vw, 4rem) clamp(1rem, 4vw, 2.5rem);
+    line-height: 1.5;
+  }
+
+  .hero {
+    text-align: center;
+    max-width: 640px;
+    margin-bottom: clamp(2rem, 6vh, 3.5rem);
+  }
+
+  .hero__brand {
+    font-size: clamp(11px, 1.4vw, 13px);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--nuzic-grey);
+    margin: 0 0 clamp(0.6rem, 1.5vh, 1rem);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .hero__brand::before {
+    content: "";
+    width: 18px;
+    height: 2px;
+    background: var(--nuzic-green);
+    display: inline-block;
+  }
+
+  .hero__title {
+    font-size: clamp(2.2rem, 6vw, 3.8rem);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 0 0 clamp(0.8rem, 2vh, 1.2rem);
+    line-height: 1.05;
+  }
+
+  .hero__subtitle {
+    font-size: clamp(1rem, 1.6vw, 1.15rem);
+    color: var(--nuzic-dark);
+    opacity: 0.78;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .cards {
+    display: grid;
+    gap: clamp(1rem, 2.5vw, 1.75rem);
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 880px;
+  }
+
+  @media (min-width: 720px) {
+    .cards { grid-template-columns: 1fr 1fr; }
+  }
+
+  .card {
+    background: var(--nuzic-white);
+    border-radius: 16px;
+    padding: clamp(1.5rem, 3.5vw, 2.5rem);
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.6rem, 1.4vh, 1rem);
+    box-shadow: var(--shadow-sm);
+    border: 2px solid transparent;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: var(--accent, var(--nuzic-green));
+    opacity: 0.85;
+  }
+
+  .card:hover,
+  .card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent, var(--nuzic-green));
+    outline: none;
+  }
+
+  .card--sistema { --accent: var(--nuzic-green); }
+  .card--apps    { --accent: var(--nuzic-yellow); }
+
+  .card__icon {
+    width: clamp(40px, 5vw, 56px);
+    height: clamp(40px, 5vw, 56px);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-light);
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .card--sistema .card__icon { --accent-light: var(--nuzic-green-light); }
+  .card--apps    .card__icon { --accent-light: #ffeecc; }
+
+  .card__icon svg {
+    width: 60%;
+    height: 60%;
+  }
+
+  .card__title {
+    font-size: clamp(1.3rem, 2.2vw, 1.65rem);
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .card__desc {
+    font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+    color: var(--nuzic-dark);
+    opacity: 0.78;
+    margin: 0;
+    flex: 1;
+  }
+
+  .card__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-top: clamp(0.4rem, 1vh, 0.7rem);
+  }
+
+  .card__cta svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.18s ease;
+  }
+
+  .card:hover .card__cta svg,
+  .card:focus-visible .card__cta svg {
+    transform: translateX(4px);
+  }
+
+  .footer {
+    margin-top: clamp(2rem, 6vh, 3.5rem);
+    font-size: 0.85rem;
+    color: var(--nuzic-grey);
+    text-align: center;
+  }
+
+  .footer a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+  }
+
+  .footer a:hover { color: var(--nuzic-dark); }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <p class="hero__brand">PlayNuzic</p>
+    <h1 class="hero__title">Lab</h1>
+    <p class="hero__subtitle">Investigació i desenvolupament del mètode Nuzic per al ritme i el temps musical.</p>
+  </header>
+
+  <main class="cards">
+    <a class="card card--sistema" href="sistema/">
+      <span class="card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 5h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H3z"/>
+          <path d="M21 5h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7z"/>
+        </svg>
+      </span>
+      <h2 class="card__title">Sistema Interactivo</h2>
+      <p class="card__desc">El curs guiat pas a pas: 27 slides educatius que combinen text teòric amb apps interactives. La porta d'entrada al mètode Nuzic.</p>
+      <span class="card__cta">
+        Comença el curs
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </span>
+    </a>
+
+    <a class="card card--apps" href="Apps/">
+      <span class="card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+        </svg>
+      </span>
+      <h2 class="card__title">Apps</h2>
+      <p class="card__desc">Galeria de 35+ apps rítmiques i temporals per explorar lliurement: línies temporals, planos musicals, fraccions, escales i més.</p>
+      <span class="card__cta">
+        Explora les apps
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </span>
+    </a>
+  </main>
+
+  <footer class="footer">
+    <a href="https://github.com/PlayNuzic/Lab">github.com/PlayNuzic/Lab</a>
+  </footer>
+</body>
+</html>
