@@ -109,11 +109,11 @@ export const slideContent = {
 <p>Las coordenadas de los puntos donde ha estado, la hora y el tiempo, incluso la velocidad para ir de un punto a otro, se pueden describir con <strong>números</strong>.</p>
 <p>¿Es aplicable a la música? <em>SÍ!…</em></p>
 <h3>Contar y Medir</h3>
-<p><strong>Contar</strong> es calcular con números cuántas cosas hay. Empezamos a contar unidades con el 1; a continuación le siguen el 2, el 3, el 4, el 5… hasta el infinito.</p>
+<p><strong>Contar</strong> es calcular con números cuántas cosas hay. Empezamos a contar unidades con el 1; a continuación le siguen el 2, el 3, el 4, el 5…hasta el infinito.</p>
 <p><strong>Medir</strong> es usar números para calcular la magnitud de algo. Puede ser una longitud, un peso, una temperatura, un intervalo de tiempo…</p>
-<p>Para medir usamos herramientas con escalas numéricas: cintas métricas para medir longitudes, termómetros para medir temperaturas, balanzas para medir pesos, etc.</p>
+<p>Para medir usamos herramientas con escalas numéricas: cintas métricas para medir longitudes, termómetros para medir temperaturas, balanzas para medir pesos y etc.</p>
 <p>Los instrumentos de medida tienen una línea con las unidades de medida marcadas y numeradas.</p>
-<p>La marca inicial es el número <strong>0</strong>, el punto de partida de la medición. Los números que siguen nos permiten contar a cuántos pasos está cada punto del inicio.</p>
+<p>La marca inicial es el número 0, el punto de partida de la medición. Los números que siguen nos permiten contar a cuantos pasos está cada punto del inicio.</p>
 <p>Cada número marca el punto donde está y mide a qué distancia está del principio.</p>
 <p>Por ejemplo, en una cinta métrica, el número 15 indica que está a 15 unidades de distancia del principio.</p>`,
   },
