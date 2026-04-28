@@ -37,12 +37,44 @@ Permet editar el contingut textual dels slides directament al navegador (títol,
 
 ## Camps editables
 
-| Camp        | On viu a `slide-data.js`         | Format      |
-|-------------|----------------------------------|-------------|
-| `title`     | `slideMatrix[paso].title`        | Text pla    |
-| `text`      | `slideContent[paso].text`        | HTML (`<p>`, `<strong>`, `<em>`, `<code>`) |
-| `tipsTitle` | `slideContent[paso].tipsTitle`   | Text pla    |
-| `tips`      | `slideContent[paso].tips`        | HTML        |
+| Camp | On viu a `slide-data.js` | Format |
+| --- | --- | --- |
+| `title` | `slideMatrix[paso].title` | Text pla |
+| `text` | `slideContent[paso].text` | HTML (`<p>`, `<h2>`/`<h3>`/`<h4>`, `<strong>`, `<em>`, `<code>`, `<ul>`/`<ol>`/`<li>`, `<blockquote>`) |
+| `tipsTitle` | `slideContent[paso].tipsTitle` | Text pla |
+| `tips` | `slideContent[paso].tips` | HTML (mateixos tags que `text`) |
+
+## Auto-sanitització de pastes
+
+Quan enganxes contingut des de Google Docs / Word / pàgines web, el navegador
+porta tot el format inline (`font-family: Arial`, `font-size: 11pt`,
+`color: #000`, `line-height: 1.38`, etc.). Això **trenca la coherència
+visual** del Sistema, que usa Ubuntu via `--font-body` i mides via
+`clamp()`.
+
+El paste és intervingut a [sistema/js/slides.js — `handlePaste`](../sistema/js/slides.js):
+
+- **Camps de text pla** (`title`, `tipsTitle`): s'enganxa només `text/plain`,
+  sense cap tag HTML.
+- **Camps rich** (`text`, `tips`):
+  1. S'agafa el `text/html` del clipboard.
+  2. Es passa per `sanitizeHtml()`:
+     - Es conserven només els tags semàntics (`p`, `h2`–`h4`, `strong`, `b`,
+       `em`, `i`, `code`, `br`, `ul`, `ol`, `li`, `blockquote`).
+     - Tot la resta s'unwrap (es mantenen els fills, es treu el wrapper).
+     - `<span>` amb `font-weight: bold` → `<strong>`. Amb `font-style:
+       italic` → `<em>`. Amb tots dos → `<strong><em>...</em></strong>`.
+     - Es treuen **tots** els atributs (`style`, `class`, `dir`, `id`, etc.).
+     - `&nbsp;` → espai normal. Múltiples espais → un sol. Paràgrafs buits → eliminats.
+  3. S'insereix l'HTML net al cursor.
+
+A més, **a `loadOverrides()`** el contingut existent al `localStorage`
+també es passa per `sanitizeHtml()` un cop a la càrrega — així les
+edicions antigues amb format brut es netegen automàticament la primera
+vegada que es recarrega la pàgina.
+
+I a **`persistField()`** (al `blur`) es torna a sanititzar com a defensa
+en profunditat per si el contingut va arribar via un camí no-paste.
 
 ## Detalls tècnics
 

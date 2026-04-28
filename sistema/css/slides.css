@@ -79,6 +79,27 @@ body[data-editable="true"] [contenteditable="true"]:focus{
 .slot-text .prose p:last-child{ margin-bottom: 0; }
 .slot-text strong{ font-weight: 700; color: var(--fg); }
 .slot-text em{ font-style: italic; }
+
+/* Subtítols dins el text. Ubuntu (heretat de --font-body), pes negreta,
+   mida lleugerament superior al cos. Marges curts perquè separin
+   bé seccions sense ocupar massa espai. */
+.slot-text .prose h2,
+.slot-text .prose h3,
+.slot-text .prose h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: var(--sp-3) 0 var(--sp-1);
+  break-after: avoid;
+}
+.slot-text .prose h2 { font-size: calc(var(--fs-body) * 1.4); }
+.slot-text .prose h3 { font-size: calc(var(--fs-body) * 1.2); }
+.slot-text .prose h4 { font-size: calc(var(--fs-body) * 1.05); }
+.slot-text .prose h2:first-child,
+.slot-text .prose h3:first-child,
+.slot-text .prose h4:first-child { margin-top: 0; }
 .slot-text code{
   font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   font-size: 0.92em;

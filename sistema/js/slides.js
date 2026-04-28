@@ -20,11 +20,96 @@ const OVERRIDES_KEY = 'sistema.overrides';
 //   { [paso]: { title?: string, text?: string, tipsTitle?: string, tips?: string } }
 // Each field stores the edited HTML (innerHTML for rich text, textContent for
 // plain fields like titles). Loaded once and kept in sync via `saveOverrides`.
+//
+// On load AND on every save, HTML fields (text, tips) pass through
+// `sanitizeHtml()` so pasted content from Google Docs / Word / etc. is
+// stripped of inline styles, foreign fonts and class attributes — leaving
+// only semantic tags (p, strong, em, h2/h3/h4, code, br, ul/ol/li). The
+// sistema's own typography (Ubuntu via --font-body) then applies uniformly.
 function loadOverrides(){
-  try { return JSON.parse(localStorage.getItem(OVERRIDES_KEY)) || {}; } catch { return {}; }
+  try {
+    const stored = JSON.parse(localStorage.getItem(OVERRIDES_KEY)) || {};
+    let dirty = false;
+    Object.values(stored).forEach(slide => {
+      if (typeof slide?.text === 'string') {
+        const clean = sanitizeHtml(slide.text);
+        if (clean !== slide.text) { slide.text = clean; dirty = true; }
+      }
+      if (typeof slide?.tips === 'string') {
+        const clean = sanitizeHtml(slide.tips);
+        if (clean !== slide.tips) { slide.tips = clean; dirty = true; }
+      }
+    });
+    if (dirty) localStorage.setItem(OVERRIDES_KEY, JSON.stringify(stored));
+    return stored;
+  } catch { return {}; }
 }
 function saveOverrides(o){
   localStorage.setItem(OVERRIDES_KEY, JSON.stringify(o));
+}
+
+// Allowed HTML tags inside rich-text fields. Anything else is unwrapped
+// (children kept, wrapper removed) or, in the case of <span> with bold/italic
+// inline styles, converted to <strong>/<em>.
+const ALLOWED_RICH_TAGS = new Set([
+  'p','h2','h3','h4','strong','b','em','i','code','br','ul','ol','li','blockquote'
+]);
+
+function sanitizeHtml(html){
+  if (!html || typeof html !== 'string') return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+
+  function processNode(node){
+    if (node.nodeType === Node.COMMENT_NODE) { node.remove(); return; }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    // Process children first (depth-first) so unwrapping doesn't lose them.
+    [...node.childNodes].forEach(processNode);
+
+    const tag = node.tagName.toLowerCase();
+    const style = node.getAttribute('style') || '';
+    const isBold   = /font-weight:\s*(bold|[6-9]\d{2})/i.test(style);
+    const isItalic = /font-style:\s*italic/i.test(style);
+
+    if (!ALLOWED_RICH_TAGS.has(tag)) {
+      // <span> (or other) carrying bold/italic styles → convert to semantic.
+      let replacement = null;
+      if (isBold) {
+        replacement = document.createElement('strong');
+        if (isItalic) {
+          const em = document.createElement('em');
+          while (node.firstChild) em.appendChild(node.firstChild);
+          replacement.appendChild(em);
+        } else {
+          while (node.firstChild) replacement.appendChild(node.firstChild);
+        }
+      } else if (isItalic) {
+        replacement = document.createElement('em');
+        while (node.firstChild) replacement.appendChild(node.firstChild);
+      }
+      if (replacement) {
+        node.parentNode.replaceChild(replacement, node);
+      } else {
+        // Unwrap: move children into parent, remove the wrapper.
+        while (node.firstChild) node.parentNode.insertBefore(node.firstChild, node);
+        node.remove();
+      }
+      return;
+    }
+
+    // Allowed tag: strip every attribute (including class, style, dir, id, ...).
+    [...node.attributes].forEach(a => node.removeAttribute(a.name));
+  }
+
+  [...tmp.childNodes].forEach(processNode);
+
+  let result = tmp.innerHTML
+    .replace(/&nbsp;/g, ' ')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/<p>\s*(?:<br\s*\/?>)?\s*<\/p>/gi, '')
+    .replace(/\n{3,}/g, '\n\n');
+  return result.trim();
 }
 
 const state = {
@@ -220,6 +305,7 @@ function applyEditableState(slideEl, paso){
       el.setAttribute('spellcheck', 'true');
       if (!el.__editWired) {
         el.addEventListener('blur', () => persistField(paso, el));
+        el.addEventListener('paste', handlePaste);
         el.__editWired = true;
       }
     } else {
@@ -228,11 +314,54 @@ function applyEditableState(slideEl, paso){
   });
 }
 
+// Paste handler — intercepts the browser's "paste with formatting" behavior
+// and inserts a sanitized version instead. For plain-text fields (title,
+// tipsTitle) we strip all HTML; for rich fields (text, tips) we keep
+// semantic tags only and force the sistema's typography (Ubuntu, sized
+// via `.slot-text .prose` rules in slides.css). Without this, pasting from
+// Google Docs / Word brought along Arial fonts, point sizes, line-heights,
+// etc. that fought the sistema's design.
+function handlePaste(e){
+  const el = e.currentTarget;
+  const field = el.dataset.field;
+  const isPlain = field === 'title' || field === 'tipsTitle';
+  const clip = e.clipboardData;
+  if (!clip) return;
+  e.preventDefault();
+
+  if (isPlain) {
+    const text = clip.getData('text/plain') || '';
+    document.execCommand('insertText', false, text);
+    return;
+  }
+
+  let html = clip.getData('text/html');
+  if (html) {
+    html = sanitizeHtml(html);
+  } else {
+    const text = clip.getData('text/plain') || '';
+    html = text.split(/\n{2,}/)
+      .map(p => `<p>${escapeHtml(p.trim())}</p>`)
+      .filter(p => p !== '<p></p>')
+      .join('');
+  }
+  document.execCommand('insertHTML', false, html);
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m => (
+    { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]
+  ));
+}
+
 function persistField(paso, el){
   const field = el.dataset.field;
   // Titles are plain text; text/tips preserve HTML so bold/italic survive.
+  // Rich fields pass through sanitizeHtml on save (defense in depth, in
+  // case content arrived via a non-paste path).
   const isPlain = field === 'title' || field === 'tipsTitle';
-  const value = isPlain ? el.textContent.trim() : el.innerHTML.trim();
+  let value = isPlain ? el.textContent.trim() : el.innerHTML.trim();
+  if (!isPlain) value = sanitizeHtml(value);
   state.overrides[paso] ??= {};
   state.overrides[paso][field] = value;
   saveOverrides(state.overrides);
