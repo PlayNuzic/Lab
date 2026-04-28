@@ -754,62 +754,19 @@ function createIntervalLine(note1Index, note2Index, pulseIndex, intervalIndex = 
   matrixContainer.appendChild(intervalBar);
   currentIntervalElements.push(intervalBar);
 
-  // Create interval number label (like App14)
-  // Ascending intervals: show + sign
-  // Descending intervals: show - sign
+  // Caixa central amb el número, sempre al mig de la línia (com a App14).
+  // Per iS(0) la lògica especial més amunt ja gestiona el cas; aquí mai entrem.
   const displayValue = interval > 0 ? `+${absInterval}` : `-${absInterval}`;
-
-  // Calculate vertical center of the interval bar
-  let centerY = (topEdge + bottomEdge) / 2;
+  const centerY = (topEdge + bottomEdge) / 2;
 
   const intervalNum = document.createElement('div');
   intervalNum.className = 'interval-number';
   intervalNum.textContent = displayValue;
   intervalNum.style.position = 'absolute';
   intervalNum.style.zIndex = '16';
-
-  // Positioning rules:
-  // - First interval (index 0): number always goes RIGHT
-  // - For ±1: number goes RIGHT of the bar (both ascending and descending)
-  // - For other ascending (+): number goes LEFT of the bar
-  // - For other descending (-): number goes RIGHT of the bar
-
-  // Bar is 4px wide centered at leftPos, so:
-  // - Left edge of bar: leftPos - 2px
-  // - Right edge of bar: leftPos + 2px
-  // 10px margin means:
-  // - Left number: leftPos - 12px (then offset for text width)
-  // - Right number: leftPos + 12px
-
-  const isFirstInterval = intervalIndex === 0;
-
-  if (absInterval === 1) {
-    // ±1: number always goes RIGHT of the bar
-    // Shift vertically to avoid overlap: down for ascending, up for descending
-    if (isAscending) {
-      centerY = bottomEdge - 2; // Move towards bottom
-    } else {
-      centerY = topEdge + 2; // Move towards top
-    }
-    intervalNum.style.top = `${centerY}%`;
-    intervalNum.style.left = `calc(${leftPos}% + 12px)`;
-    intervalNum.style.transform = 'translateY(-50%)';
-  } else if (isFirstInterval) {
-    // First interval: number always goes RIGHT
-    intervalNum.style.top = `${centerY}%`;
-    intervalNum.style.left = `calc(${leftPos}% + 12px)`;
-    intervalNum.style.transform = 'translateY(-50%)';
-  } else if (isAscending) {
-    // Ascending (except ±1 and first): number LEFT of the bar
-    intervalNum.style.top = `${centerY}%`;
-    intervalNum.style.left = `calc(${leftPos}% - 12px)`;
-    intervalNum.style.transform = 'translate(-100%, -50%)'; // Align right edge to the position
-  } else {
-    // Descending (except ±1): number RIGHT of the bar
-    intervalNum.style.top = `${centerY}%`;
-    intervalNum.style.left = `calc(${leftPos}% + 12px)`;
-    intervalNum.style.transform = 'translateY(-50%)';
-  }
+  intervalNum.style.top = `${centerY}%`;
+  intervalNum.style.left = `${leftPos}%`;
+  intervalNum.style.transform = 'translate(-50%, -50%)';
 
   matrixContainer.appendChild(intervalNum);
   currentIntervalElements.push(intervalNum);

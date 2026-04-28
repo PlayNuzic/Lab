@@ -235,20 +235,18 @@ body.dragging-note * {
   color: var(--interval-temporal-color, #4A9EFF);
 }
 
-/* ========== INTERVAL LINES (iS) - Vertical bars in matrix ========== */
+/* ========== INTERVAL LINES (iS) - Vertical bars in matrix ==========
+   Estil "halter vertical" coherent amb App14:
+   línia prima opaca + caixa central amb número + extrem oposat amb punt rodó.
+   La fletxa marca la direcció (origen → destí). */
 .interval-bar-vertical {
   background: var(--interval-sound-color, #F28AAD);
-  border-radius: 2px;
-  opacity: 0.8;
+  border-radius: 0;
+  opacity: 1;
   z-index: 15;
-  box-shadow: 0 0 8px var(--interval-sound-color, #F28AAD);
 }
 
-.interval-bar-vertical.interval-zero::before,
-.interval-bar-vertical.interval-zero::after {
-  display: none;
-}
-
+/* Fletxa a l'extrem destí (tamany invariant — no tocar) */
 .interval-bar-vertical.ascending::before {
   content: '';
   position: absolute;
@@ -260,7 +258,7 @@ body.dragging-note * {
   border-bottom: 0.625rem solid var(--interval-sound-color, #F28AAD);
 }
 
-.interval-bar-vertical.descending::after {
+.interval-bar-vertical.descending::before {
   content: '';
   position: absolute;
   bottom: -0.5rem;
@@ -271,17 +269,43 @@ body.dragging-note * {
   border-top: 0.625rem solid var(--interval-sound-color, #F28AAD);
 }
 
+/* Punt rodó a l'extrem ORIGEN (oposat a la fletxa) */
+.interval-bar-vertical::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 0.6rem;
+  height: 0.6rem;
+  background: var(--interval-sound-color, #F28AAD);
+  border-radius: 50%;
+  transform: translate(-50%, 0);
+}
+
+.interval-bar-vertical.ascending::after { bottom: -0.3rem; }
+.interval-bar-vertical.descending::after { top: -0.3rem; }
+
+/* iS=0: cap fletxa, cap punt (i normalment cap línia visible tampoc) */
+.interval-bar-vertical.interval-zero::before,
+.interval-bar-vertical.interval-zero::after {
+  display: none;
+}
+
+/* Caixa central amb el número (App15 posiciona via JS) */
 .interval-number {
-  color: var(--interval-sound-color, #F28AAD);
+  background: var(--interval-sound-color, #F28AAD);
+  color: var(--nuzic-dark, #43433B) !important;
   font-size: clamp(0.85rem, 1.8vw, 1.4rem);
-  font-weight: bold;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.2rem 0.6rem;
+  text-shadow: none;
   pointer-events: none;
   white-space: nowrap;
 }
 
 [data-theme="dark"] .interval-number {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  color: var(--nuzic-dark, #43433B) !important;
+  text-shadow: none;
 }
 
 /* ========== MUSICAL CELL STYLES ========== */
