@@ -113,11 +113,19 @@ main {
 }
 
 /* ============================================
-   NUZIC PARAM SPINNERS (golden circles)
+   NUZIC PARAM SPINNERS (pink — via theme var override)
    ============================================ */
 
+/* Sobreescrivim la var del tema perquè TOTS els spinners de l'app
+   (incloent els de la pastilla `.param--large--dual` Compás i les
+   bpm-inline de Registro/Longitud) quedin rosa. La definició del
+   default és a `nuzic-theme.css`. */
+body.app19 {
+  --nuzic-spin-bg: var(--nuzic-pink, #F28AAD);
+  --nuzic-spin-bg-hover: #d96a93;
+}
+
 .inputs .param .spin {
-  background: var(--nuzic-yellow) !important;
   border-radius: 50% !important;
   aspect-ratio: 1 !important;
   border: none !important;

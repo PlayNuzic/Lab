@@ -104,8 +104,15 @@ main {
    NUZIC PARAM SPINNERS (golden circles)
    ============================================ */
 
+/* Override del color base dels spinners (FASE 5 nuzic-theme) — rosa
+   en lloc de groc per a tota l'app. La var es defineix a
+   `nuzic-theme.css` i s'aplica a `.bpm-inline .spin` i `.param .spin`. */
+body.app20 {
+  --nuzic-spin-bg: var(--nuzic-pink, #F28AAD);
+  --nuzic-spin-bg-hover: #d96a93;
+}
+
 .inputs .param .spin {
-  background: var(--nuzic-yellow) !important;
   border-radius: 50% !important;
   aspect-ratio: 1 !important;
   border: none !important;

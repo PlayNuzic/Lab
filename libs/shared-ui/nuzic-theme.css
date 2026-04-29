@@ -37,6 +37,12 @@ body[data-visual="nuzic"] {
   --nuzic-pink: #f28aad;
   --nuzic-pink-light: #ffe5ee;
 
+  /* Color base dels spinners (`.spin.up` / `.spin.down`) i el seu hover.
+     Default: groc nuzic. Apps que vulguin spinners d'un altre color
+     (App18/19/20 → rosa) sobreescriuen aquestes vars al seu `body`. */
+  --nuzic-spin-bg: var(--nuzic-yellow);
+  --nuzic-spin-bg-hover: #e6a82e;
+
   /* Override dels tokens compartits del Lab */
   --bg-light: white;
   --selection-color: var(--nuzic-blue-light);
@@ -1009,14 +1015,15 @@ body[data-visual="nuzic"] .tap {
   color: var(--nuzic-dark);
 }
 
-/* BPM spinner: pastilla daurada */
+/* BPM spinner: pastilla daurada (color via `--nuzic-spin-bg`, override
+   al `body` de l'app per altres colors) */
 body[data-visual="nuzic"] .bpm-inline .spin {
-  background: var(--nuzic-yellow);
+  background: var(--nuzic-spin-bg, var(--nuzic-yellow));
   border-radius: 6px;
 }
 
 body[data-visual="nuzic"] .bpm-inline .spin:hover {
-  background: #e6a82e;  /* daurat lleugerament més fosc */
+  background: var(--nuzic-spin-bg-hover, #e6a82e);
 }
 
 body[data-visual="nuzic"] .bpm-inline .spin.up::before {
@@ -1211,7 +1218,7 @@ body[data-visual="nuzic"][data-theme="dark"] .sound-wrapper.nuzic-inline .sound 
 }
 
 body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .spin {
-  background: var(--nuzic-yellow);
+  background: var(--nuzic-spin-bg, var(--nuzic-yellow));
 }
 
 body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .spin.up::before {
@@ -1505,7 +1512,7 @@ body[data-visual="nuzic"] .param.param:not(.param--large):has(.circle > input) .
   height: 100% !important;
   border-radius: 999px 0 0 999px !important;
   border: 0 !important;
-  background: var(--nuzic-yellow) !important;
+  background: var(--nuzic-spin-bg, var(--nuzic-yellow)) !important;
   aspect-ratio: auto !important;
   cursor: pointer;
   display: flex !important;
@@ -1522,7 +1529,7 @@ body[data-visual="nuzic"] .param.param:not(.param--large):has(.circle > input) .
   height: 100% !important;
   border-radius: 0 999px 999px 0 !important;
   border: 0 !important;
-  background: var(--nuzic-yellow) !important;
+  background: var(--nuzic-spin-bg, var(--nuzic-yellow)) !important;
   aspect-ratio: auto !important;
   cursor: pointer;
   display: flex !important;
@@ -1532,7 +1539,7 @@ body[data-visual="nuzic"] .param.param:not(.param--large):has(.circle > input) .
 }
 
 body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .circle .spin:hover {
-  background: #e6a82e !important;
+  background: var(--nuzic-spin-bg-hover, #e6a82e) !important;
 }
 
 /* Fletxes blanques */
@@ -1620,7 +1627,7 @@ body[data-visual="nuzic"][data-theme="dark"] .param:not(.param--large):has(.circ
   color: var(--nuzic-dark) !important;
 }
 body[data-visual="nuzic"][data-theme="dark"] .param:not(.param--large):has(.circle > input) .circle .spin {
-  background: var(--nuzic-yellow) !important;
+  background: var(--nuzic-spin-bg, var(--nuzic-yellow)) !important;
 }
 body[data-visual="nuzic"][data-theme="dark"] .param:not(.param--large):has(.circle > input) .circle .spin.up::before {
   border-bottom-color: #ffffff !important;
@@ -1981,3 +1988,4 @@ body[data-visual="nuzic"][data-theme="dark"] .param.param--large--pink .circle,
 body[data-visual="nuzic"][data-theme="dark"] .param.param--large--pink .circle .spin {
   background: var(--nuzic-pink) !important;
 }
+

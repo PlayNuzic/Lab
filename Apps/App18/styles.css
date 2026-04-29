@@ -50,18 +50,71 @@ html, body {
   margin-bottom: 0;
 }
 
-/* Registro pill uses the shared `.param--large--pink` variant (FASE 15
-   in nuzic-theme.css): pink disc + pink side spinners + white inner
-   circle with the input. No per-app overrides needed here — keeping
-   them would fight the shared theme (wrong border-radius, wrong bg). */
+/* Registro pill — usem el mateix patró que App19/App20 (capsule shape):
+   `.bpm-inline.visible.param.registro` amb estil `.param.registro` definit
+   localment. Spinners en color rosa via `.inputs .param .spin`. */
 
-/* Petit shift horitzontal del Registro per centrar-lo visualment amb
-   la soundline vertical (que viu desplaçada lleugerament a la dreta
-   pels seus números laterals). El valor (8% relatiu al `.inputs`)
-   és aproximadament la meitat de l'amplada visual extra que la
-   soundline reserva pels seus números a la dreta. Scope app18-only
-   per no contaminar App16/17/19/20 (mateixa classe `.param--large`). */
-.param.param--large--pink#registroParam {
+.param.registro .circle {
+  width: auto !important;
+  height: clamp(2rem, 5vw, 3rem);
+  padding: 0 0.5rem;
+  border: 2px solid var(--nuzic-pink, #F28AAD);
+  border-radius: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  position: relative;
+}
+
+.param.registro .circle input {
+  width: clamp(2.5rem, 5vw, 3.5rem) !important;
+  height: 100% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
+  font-weight: 700;
+  text-align: center;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  outline: none;
+}
+
+[data-theme="dark"] .param.registro .circle {
+  border-color: var(--nuzic-pink, #F28AAD);
+}
+
+[data-theme="dark"] .param.registro .circle input {
+  color: var(--text-color, #eee);
+}
+
+[data-theme="dark"] .param.registro .abbr {
+  color: var(--text-color, #eee);
+}
+
+/* Spinners en rosa: override de la var del tema (FASE 5 nuzic-theme).
+   La var es defineix per defecte a groc; aquí la passem a rosa per a
+   tota App18 — afecta `.bpm-inline .spin` (Registro pill) i qualsevol
+   altre `.param .spin`. */
+body.app18 {
+  --nuzic-spin-bg: var(--nuzic-pink, #F28AAD);
+  --nuzic-spin-bg-hover: #d96a93;
+}
+
+.inputs .param .spin {
+  border-radius: 50% !important;
+  aspect-ratio: 1 !important;
+  border: none !important;
+}
+
+.inputs .param .spin.up::before { border-bottom-color: white !important; }
+.inputs .param .spin.down::before { border-top-color: white !important; }
+
+/* Petit shift horitzontal del Registro per centrar-lo amb la soundline
+   vertical (lleugerament desplaçada a la dreta pels seus números). */
+#registroParam {
   position: relative;
   left: 8%;
 }
