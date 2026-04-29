@@ -207,37 +207,7 @@ function initGrid() {
   // Free vertical scroll — native scroll with sync handled by setupScrollSync
   // (no quantization, no cooldown, no blocked wheel events)
 
-  addDotsToAllCells();
-
   console.log('Grid initialized with plano-modular');
-}
-
-/**
- * Add np-dot elements to all grid cells (bottom-left corner)
- * Dots are the clickable targets; cells have pointer-events: none
- */
-function addDotsToAllCells() {
-  const gridContainer = document.querySelector('.timeline-wrapper');
-  if (!gridContainer) return;
-
-  const matrixContainer = gridContainer.querySelector('.plano-matrix-container');
-  if (!matrixContainer) return;
-
-  const cells = matrixContainer.querySelectorAll('.plano-cell');
-  cells.forEach(cell => {
-    if (cell.querySelector('.np-dot')) return;
-
-    const dot = document.createElement('div');
-    dot.className = 'np-dot np-dot-clickable';
-
-    // Click on dot → dispatch click on parent cell (triggers selection)
-    dot.addEventListener('click', (e) => {
-      e.stopPropagation();
-      cell.click();
-    });
-
-    cell.appendChild(dot);
-  });
 }
 
 /**

@@ -307,7 +307,7 @@ body.app19 {
   width: 12px;
   height: 12px;
   z-index: 30;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .np-dot::after {
@@ -329,32 +329,19 @@ body.app19 {
   border-color: rgba(153, 153, 153, 0.5);
 }
 
-.plano-cell.plano-selected .np-dot::after,
-.plano-cell.duration-highlight .np-dot::after {
-  background: var(--plano-select-color, #FFBB33);
-  border-color: var(--plano-select-color, #FFBB33);
-  border-width: 2px;
-  opacity: 1;
-  width: 10px;
-  height: 10px;
-  box-shadow:
-    0 0 8px var(--plano-select-color, #FFBB33),
-    0 0 16px var(--plano-select-color, #FFBB33);
-}
+/* (Antic highlight sobre el np-dot quan la cel·la està seleccionada
+   eliminat: ara la selecció es mostra al fons de la cel·la mateixa,
+   com a App11/App12. El dot queda purament decoratiu.) */
 
-.np-dot-clickable {
-  cursor: pointer;
-  pointer-events: auto !important;
-  z-index: 25 !important;
-}
-
-/* Hide gradient — np-dot elements provide full circles at division lines */
+/* Hide gradient — np-dot elements show only the small dot at the bottom-left
+   corner as a positional reference (no longer the click target). */
 body[data-visual="nuzic"] .plano-cell {
   background-image: none !important;
 }
 
 /* np-dot at division line (bottom of cell = aligned with soundline marks).
-   translate(−50%, 50%) centers the element ON the bottom edge. */
+   translate(−50%, 50%) centers the element ON the bottom edge. Decorative
+   only: clicks happen on the cell, not on the dot. */
 body[data-visual="nuzic"] .plano-cell .np-dot {
   bottom: 0;
   left: 4px;
@@ -362,6 +349,7 @@ body[data-visual="nuzic"] .plano-cell .np-dot {
   width: 16px;
   height: 16px;
   transform: translate(-50%, 50%);
+  pointer-events: none;
 }
 
 /* Filled dark circle (replaces gradient) */
@@ -372,37 +360,6 @@ body[data-visual="nuzic"] .plano-cell .np-dot::after {
   border: none;
   border-radius: 50%;
   opacity: 1;
-}
-
-/* Hover: orange glow */
-body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
-  width: 10px;
-  height: 10px;
-  background: rgba(255, 187, 51, 0.6);
-  border: 2px solid var(--nuzic-yellow, #FFBB33);
-  box-shadow: 0 0 6px var(--nuzic-yellow, #FFBB33);
-}
-
-/* ============================================
-   DISABLE CELL CLICK - Only dots are interactive
-   ============================================ */
-
-.plano-matrix-container {
-  pointer-events: auto;
-}
-
-.plano-matrix {
-  pointer-events: auto;
-}
-
-.plano-cell {
-  pointer-events: none;
-  cursor: default;
-  position: relative;
-}
-
-.plano-cell .np-dot {
-  pointer-events: auto;
 }
 
 /* Note: previous `max-height: calc(visible-rows × cell-height − timeline −
