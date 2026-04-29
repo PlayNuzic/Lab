@@ -60,12 +60,25 @@ export function createCycleSuperscript({
   function updateAll(cycleNumber = 1) {
     const pulseNumbers = timeline.querySelectorAll(numberSelector);
 
+    // Si l'app utilitza un wrapper intern `.pulse-number__text` (App17,
+    // perquè la caixa pare es rota i el text es contra-rota), escrivim
+    // el contingut allà per no destruir el span. Si no, escrivim
+    // directament al `.pulse-number` com abans.
+    const writeContent = (el, html) => {
+      const wrapper = el.querySelector('.pulse-number__text');
+      if (wrapper) {
+        wrapper.innerHTML = html;
+      } else {
+        el.innerHTML = html;
+      }
+    };
+
     if (mode === 'circular') {
       // Circular: all numbers show same superscript
       pulseNumbers.forEach((el) => {
         const index = parseInt(el.dataset.index, 10);
         if (!isNaN(index)) {
-          el.innerHTML = `${index}<sup>${cycleNumber}</sup>`;
+          writeContent(el, `${index}<sup>${cycleNumber}</sup>`);
         }
       });
     } else {
@@ -78,7 +91,7 @@ export function createCycleSuperscript({
         if (!isNaN(index)) {
           const cycle = Math.floor(index / pulsosPerCycle) + 1;
           const posInCycle = index % pulsosPerCycle;
-          el.innerHTML = `${posInCycle}<sup>${cycle}</sup>`;
+          writeContent(el, `${posInCycle}<sup>${cycle}</sup>`);
         }
       });
     }

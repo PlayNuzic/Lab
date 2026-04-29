@@ -221,8 +221,10 @@ function renderPulseNumbers() {
     const el = document.createElement('div');
     el.className = 'pulse-number';
     el.dataset.index = String(i);
-    // Superscript is always visible — cycle 1 at rest, updated during play.
-    el.innerHTML = `${i}<sup>1</sup>`;
+    // Wrapper intern: el `.pulse-number` continua rotat radialment (per
+    // alinear els ticks `::before/::after`), però el text d'aquest span
+    // es contra-rota per quedar sempre dret (mira cap avall, com el 0).
+    el.innerHTML = `<span class="pulse-number__text">${i}<sup>1</sup></span>`;
     if (i === 0) el.classList.add('cycle-start');
     timeline.appendChild(el);
     numberEls.push(el);
@@ -312,6 +314,10 @@ function renderPulseNumbers() {
       el.style.setProperty('--pulse-tick-length', `${tickLength}px`);
       el.style.setProperty('--pulse-tick-gap-before', `${gapBefore}px`);
       el.style.setProperty('--pulse-tick-gap-after', `${gapAfter}px`);
+      // Contra-rotació pel text intern: la caixa pare està rotada per
+      // alinear els ticks; el `.pulse-number__text` torna a 0° absolut
+      // perquè el número visualment quedi dret (sempre mira cap avall).
+      el.style.setProperty('--pulse-number-counter-rot', `${-rotDeg}deg`);
     });
   });
 }
@@ -975,10 +981,14 @@ async function initializeApp() {
   // Cycle input events
   inputCycle?.addEventListener('input', (e) => {
     handleCycleChange(e.target.value);
-    // Auto-blur after entering a digit
+    // Auto-blur after entering a digit, then auto-play if both inputs
+    // are valid and we're not already playing.
     if (e.inputType === 'insertText' && /^[0-9]$/.test(e.data)) {
       setTimeout(() => {
         inputCycle.blur();
+        if (!isPlaying && pulsosCompas !== null && cycles !== null) {
+          handlePlay();
+        }
       }, AUTO_JUMP_DELAY);
     }
   });

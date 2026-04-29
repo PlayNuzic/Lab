@@ -1900,7 +1900,7 @@ body[data-visual="nuzic"] .param.param--large--dual .pl-secondary .abbr--seconda
      `translateX(-50%)`. */
   transform: translateX(0%) !important;
   font-family: 'Ubuntu', sans-serif !important;
-  font-size: clamp(0.7rem, 1vw, 0.85rem) !important;
+  font-size: clamp(0.77rem, 1.1vw, 0.94rem) !important;
   font-weight: 700 !important;
   color: var(--nuzic-dark) !important;
   text-transform: none !important;

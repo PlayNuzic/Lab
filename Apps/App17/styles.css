@@ -70,7 +70,7 @@ html, body {
 body[data-visual="nuzic"] .timeline-wrapper.circular {
   width: clamp(16rem, 34vw, 22rem) !important;
   height: clamp(16rem, 34vw, 22rem) !important;
-  margin: 1.5rem auto !important;
+  margin: 3.5rem auto !important;
   position: relative;
 }
 
@@ -166,6 +166,15 @@ body[data-visual="nuzic"] .timeline.circular .pulse-number.cycle-start::before {
   opacity: 1;
 }
 
+/* Contra-rotació del text intern: el `.pulse-number` pare segueix la
+   tangent del cercle (per alinear els ticks ::before/::after radialment),
+   però el text mateix es manté dret (com el "0" inicial a 12h). */
+body[data-visual="nuzic"] .timeline.circular .pulse-number .pulse-number__text {
+  display: inline-block;
+  transform: rotate(var(--pulse-number-counter-rot, 0deg));
+  transform-origin: center center;
+}
+
 /* Hide the endpoint-duplicate at position = lg (overlaps with pulse 0) */
 body[data-visual="nuzic"] .timeline.circular .pulse-number.endpoint[data-index]:not([data-index="0"]) {
   display: none !important;
@@ -193,12 +202,12 @@ body[data-visual="nuzic"] .timeline.circular .pulse-number.active-zero {
 }
 
 .total-length-center .circle {
-  /* Same size as the App16 .measure-marker__circle */
-  width: clamp(1.25rem, 2.4vw, 1.6rem);
-  height: clamp(1.25rem, 2.4vw, 1.6rem);
-  border: 2px solid var(--nuzic-yellow);
-  border-radius: 50%;
-  background: #ffffff;
+  /* Cercle visual eliminat: només actua com a wrapper transparent
+     perquè els dígits queden centrats al centre del cercle gran. */
+  width: auto;
+  height: auto;
+  border: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,7 +216,7 @@ body[data-visual="nuzic"] .timeline.circular .pulse-number.active-zero {
 .total-length-center .total-length__digit {
   font-family: 'Ubuntu', sans-serif;
   font-weight: 700;
-  font-size: clamp(0.7rem, 1.3vw, 0.9rem);
+  font-size: clamp(1.4rem, 2.6vw, 1.8rem);
   color: var(--nuzic-dark);
   line-height: 1;
 }
@@ -229,8 +238,8 @@ body[data-visual="nuzic"] .timeline.circular .pulse-number.active-zero {
 }
 
 [data-theme="dark"] .total-length-center .circle {
-  background: #2a2a28;
-  border-color: var(--nuzic-yellow);
+  background: transparent;
+  border-color: transparent;
 }
 
 [data-theme="dark"] .total-length-center .total-length__digit {
