@@ -52,11 +52,22 @@ function saveOverrides(o){
 // (children kept, wrapper removed) or, in the case of <span> with bold/italic
 // inline styles, converted to <strong>/<em>.
 const ALLOWED_RICH_TAGS = new Set([
-  'p','h2','h3','h4','strong','b','em','i','code','br','ul','ol','li','blockquote'
+  'p','h2','h3','h4','strong','b','em','i','code','br','ul','ol','li','blockquote','sup','sub'
 ]);
+
+// Convert plain ASCII superscript notation `N^M` (e.g. `P(3^1)`) into
+// real <sup> markup. Only digits on either side, so `2^16` → `2<sup>16</sup>`
+// without disturbing other `^` uses (regex, math expressions in code blocks
+// are already escaped or wrapped in <code>).
+function expandSuperscriptNotation(html){
+  if (!html || typeof html !== 'string') return html;
+  return html.replace(/(\d)\^(\d+)/g, '$1<sup>$2</sup>');
+}
 
 function sanitizeHtml(html){
   if (!html || typeof html !== 'string') return html;
+  // Pre-process plain `N^M` notation into real <sup> tags before tokenizing.
+  html = expandSuperscriptNotation(html);
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
 
@@ -147,7 +158,8 @@ function renderTitle(slide, section){
 }
 
 function renderText(content, paso){
-  const text = getOverride(paso, 'text') ?? (content.text || fillerContent.text);
+  const raw = getOverride(paso, 'text') ?? (content.text || fillerContent.text);
+  const text = expandSuperscriptNotation(raw);
   return `
     <div class="slot-text">
       <div class="prose" data-field="text">${text}</div>
@@ -159,7 +171,7 @@ function renderTips(content, paso){
   const hasTips = tipsOverride != null || (content && content.tips);
   if (!hasTips) return '';
   const label = getOverride(paso, 'tipsTitle') ?? (content.tipsTitle || 'Tips');
-  const body = tipsOverride ?? content.tips;
+  const body = expandSuperscriptNotation(tipsOverride ?? content.tips);
   return `
     <aside class="slot-tips tips" role="note">
       <div class="tips__label" data-field="tipsTitle">${label}</div>
