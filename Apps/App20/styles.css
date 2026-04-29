@@ -343,8 +343,11 @@ body.app20 {
   right: 0;
 }
 
+/* Cel·les amb duració iT (les que vénen després de la inicial) tenen la
+   mateixa opacitat que la primera per coherència visual amb App15 — el
+   conjunt es llegeix com una única barra contínua de la mateixa intensitat. */
 .plano-cell.duration-highlight { z-index: 2; }
-.plano-cell.duration-highlight::before { opacity: 0.7; }
+.plano-cell.duration-highlight::before { opacity: 1; }
 
 /* Drag preview: lighter, no rounding needed (ephemeral) */
 .plano-cell.drag-highlight { z-index: 3; }
