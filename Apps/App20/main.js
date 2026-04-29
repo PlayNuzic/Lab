@@ -27,6 +27,7 @@ import { fillGapsWithSilences } from '../../libs/interval-sequencer/index.js';
 import { createGrid2DSyncController } from '../../libs/app-common/grid-2d-sync-controller.js';
 import { createIntervalNoteDragHandler } from '../../libs/app-common/interval-note-drag.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
@@ -398,7 +399,14 @@ function initGrid() {
     },
     playNotePreview,
     fillGapsWithSilences: pairsWithSilencesForEditor,
-    onDragComplete: () => { _lastDragEndTime = Date.now(); }
+    onDragComplete: (pairs) => {
+      _lastDragEndTime = Date.now();
+      // El drag handler crida `syncController.syncGridFromPairs(pairs)`
+      // directament i salta la nostra `syncGridFromPairs` (que afegeix
+      // els halters). Repintem la capa d'iT aquí perquè reflecteixi el
+      // nou iT després del drag.
+      renderItHalterCellLayer(pairs);
+    }
   });
 
   // Attach drag listeners
@@ -432,6 +440,93 @@ function syncGridFromPairs(pairs) {
   if (syncController) {
     syncController.syncGridFromPairs(pairs);
   }
+  // Després de la sincronització de cel·les, repintem els halters d'iT
+  // sota cada nota (estil App15).
+  renderItHalterCellLayer(pairs);
+}
+
+/**
+ * Render iT halters DINS la grid, sota cada cel·la activa (estil App15/App13).
+ * Cada parell { note, registry, pulse, temporalInterval, isRest } produeix un
+ * halter ancorat a la vora inferior de la cel·la inicial, ocupant les iT
+ * cel·les contigües. Variant 'dashed' per silencis.
+ *
+ * Aquesta capa es crea dins el `.plano-matrix-container` perquè el seu
+ * inset:0 cobreixi exactament la matriu (sense desbordar al timeline).
+ */
+function renderItHalterCellLayer(pairs) {
+  const gridContainer = document.querySelector('.timeline-wrapper');
+  if (!gridContainer) return;
+  const matrixContainer = gridContainer.querySelector('.plano-matrix-container');
+  if (!matrixContainer) return;
+  // L'ancoratge va a `.plano-matrix` (NO al `.plano-matrix-container`):
+  // - `.plano-matrix` ja té `position: relative` (és el grid de cel·les).
+  // - La seva amplada (`min-width: max-content`) inclou tots els compassos
+  //   amb el `margin-left: var(--plano-margin-left)` aplicat. Ancorar el
+  //   layer aquí garanteix que els % coincideixen amb les cel·les.
+  // - El container és el que fa scroll horitzontal; com el layer viu dins
+  //   la matrix, scrolleja amb les cel·les automàticament.
+  const matrix = matrixContainer.querySelector('.plano-matrix');
+  if (!matrix) return;
+
+  let layer = matrix.querySelector('#it-bar-cell-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = 'it-bar-cell-layer';
+    layer.className = 'it-bar-cell-layer';
+    matrix.appendChild(layer);
+  }
+  layer.innerHTML = '';
+
+  const visible = (pairs || []).filter(p =>
+    p && p.note != null && p.pulse != null && p.registry != null
+  );
+  if (visible.length === 0) return;
+
+  const matrixRect = matrix.getBoundingClientRect();
+  if (!matrixRect.width || !matrixRect.height) return;
+
+  visible.forEach(p => {
+    const iT = Math.max(1, p.temporalInterval || 1);
+    const startCol = p.pulse;
+    const endCol = startCol + iT - 1;
+    const rowId = `${p.note}r${p.registry}`;
+
+    const startCell = matrix.querySelector(
+      `.plano-cell[data-row-id="${rowId}"][data-col-index="${startCol}"]`
+    );
+    const endCell = matrix.querySelector(
+      `.plano-cell[data-row-id="${rowId}"][data-col-index="${endCol}"]`
+    );
+    if (!startCell || !endCell) return;
+
+    const startRect = startCell.getBoundingClientRect();
+    const endRect = endCell.getBoundingClientRect();
+
+    const halter = createIntervalLabelBar({
+      startPercent: 0,
+      widthPercent: 100,
+      label: iT,
+      variant: p.isRest ? 'dashed' : 'solid'
+    });
+
+    const leftPct = ((startRect.left - matrixRect.left) / matrixRect.width) * 100;
+    const rightPct = ((endRect.right - matrixRect.left) / matrixRect.width) * 100;
+    // A plano-modular les cel·les actives renderitzen la barra blava amb
+    // `::before { bottom: -50%; height: 100% }`, així que la vora inferior
+    // VISUAL de la barra cau a `cell.bottom + cell.height/2`, no a
+    // `cell.bottom`. Sumem mig cell-height perquè el halter s'enganxi
+    // a la vora real de la barra (com a App15 amb la fletxa rosa).
+    const cellH = startRect.height;
+    const visualBottom = startRect.bottom + cellH / 2;
+    const bottomPct = ((visualBottom - matrixRect.top) / matrixRect.height) * 100;
+
+    halter.style.left = `${leftPct}%`;
+    halter.style.width = `${Math.max(0, rightPct - leftPct)}%`;
+    halter.style.top = `${bottomPct}%`;
+
+    layer.appendChild(halter);
+  });
 }
 
 /**

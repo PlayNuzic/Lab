@@ -350,6 +350,50 @@ body.app20 {
 .plano-cell.duration-highlight { z-index: 2; }
 .plano-cell.duration-highlight::before { opacity: 1; }
 
+/* ========== iT HALTER LAYER (dins la matrix, sota cada cel·la activa) ==========
+   Mateix patró que App15: capa absoluta sobre el `.plano-matrix-container`,
+   els halters es posicionen via `getBoundingClientRect()` per ancorar a la
+   vora inferior de cada cel·la. */
+.it-bar-cell-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.it-bar-cell-layer .interval-label-bar {
+  height: 0.8rem;
+  margin-top: 0.15rem;
+}
+
+.it-bar-cell-layer .interval-label-bar__dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  top: 0.075rem;
+}
+
+.it-bar-cell-layer .interval-label-bar::before {
+  height: 0.15rem;
+}
+
+.it-bar-cell-layer .interval-label-bar--dashed::before {
+  background-image: linear-gradient(
+    to right,
+    var(--nuzic-yellow, #ffbb33) 0,
+    var(--nuzic-yellow, #ffbb33) 0.25rem,
+    transparent 0.25rem,
+    transparent 0.5rem
+  );
+  background-size: 0.5rem 100%;
+}
+
+.it-bar-cell-layer .interval-label-bar__box {
+  font-size: clamp(0.75rem, 1.4vw, 1.1rem);
+  padding: 0.15rem 0.45rem;
+  min-width: 1.35rem;
+  line-height: 1;
+}
+
 /* Drag preview: lighter, no rounding needed (ephemeral) */
 .plano-cell.drag-highlight { z-index: 3; }
 .plano-cell.drag-highlight::before { opacity: 0.35; }
