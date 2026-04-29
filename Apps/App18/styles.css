@@ -55,6 +55,17 @@ html, body {
    circle with the input. No per-app overrides needed here — keeping
    them would fight the shared theme (wrong border-radius, wrong bg). */
 
+/* Petit shift horitzontal del Registro per centrar-lo visualment amb
+   la soundline vertical (que viu desplaçada lleugerament a la dreta
+   pels seus números laterals). El valor (8% relatiu al `.inputs`)
+   és aproximadament la meitat de l'amplada visual extra que la
+   soundline reserva pels seus números a la dreta. Scope app18-only
+   per no contaminar App16/17/19/20 (mateixa classe `.param--large`). */
+.param.param--large--pink#registroParam {
+  position: relative;
+  left: 8%;
+}
+
 /* ========== FLASH WARNING ========== */
 .circle.flash-warning {
   animation: flashWarning 1s ease;
