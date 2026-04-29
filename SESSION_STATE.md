@@ -339,7 +339,28 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       cal en el futur suportar variables (`x^n`, `Pulso^N`), cal estendre
       el regex.
 
-19. **Pasos 11 i 12 — contingut nou** ✅ FET (2026-04-29)
+19. **`.param--large` abbr label — nou tamany + label secundari Cycle** ✅ FET (2026-04-29)
+    - **Mida del label**: la regla `body[data-visual="nuzic"]
+      .param.param--large .abbr` baixa de hero (`clamp(1.1, 2.2vw, 1.75rem)`)
+      a `clamp(0.9rem, 1.4vw, 1.2rem)` — coherent amb la resta de pills
+      `.param`. Afecta App16, App17, App18, App19, App20.
+    - **Label secundària "Nº de compases"**: nou
+      `<span class="abbr abbr--secondary">Nº de compases</span>` afegit
+      dins de `.pl-secondary` a App17/19/20. CSS al tema nuzic posiciona
+      el label `position: absolute; top: calc(100% + clamp(0.9rem,
+      2.5vw, 2.1rem))` sota el cercle groc gran, amb `transform:
+      translateX(0%)` (la mini-pastilla ja queda centrada al cercle).
+    - **App19 / App20 — text + ajust de layout**:
+      a. Abbr canviat de `Compás:` → `Pulsos por Compás` (sense
+         dos-punts). Coherent amb App17.
+      b. Eliminat `margin-top: clamp(-2rem, -3vw, -1rem)` de `.inputs`.
+         Era una compensació per la mida hero del label antic; amb la
+         mida nova (~1.2rem) ja no calia i, en iframe, l'abbr quedava
+         tapat pel header.
+      c. Trets els dos punts del label "Pulsos por Compás:" als 4 apps
+         (16/17/19/20).
+
+20. **Pasos 11 i 12 — contingut nou** ✅ FET (2026-04-29)
     - Paso 11: nou `slideContent[11]` amb image `paso-11.jpg` i text
       sobre patrons, cicles i mòduls. Layout segueix `A-intro`.
     - Paso 12: layout canviat de `B-app-left` a `E-app-text-left` (com
