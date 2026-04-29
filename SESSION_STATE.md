@@ -369,6 +369,39 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
     - Paso 10: petita actualització del text — clarifica que "El primer
       iS situa la primera nota en el plano".
 
+21. **Auto-play en input + alineament Registro + pastilla Registro App18** ✅ FET (2026-04-29)
+    - **App17 — auto-play en escriure Nº de compases**: després del
+      auto-blur, si tenim `pulsosCompas` i `cycles` definits i no estem
+      reproduint, es crida `handlePlay()` automàticament.
+    - **App18 — auto-play en escriure Registro**: mateix patró aplicat al
+      `inputRegistro`. ~250ms després del `insertText` d'un dígit, si el
+      registry queda vàlid i no estem ja reproduint, dispara play.
+    - **App18 — Registro alineat amb la soundline**: `#registroParam`
+      desplaçat amb `left: 8%` perquè quedi centrat horitzontalment amb
+      la soundline vertical (que viu lleugerament a la dreta pels
+      números laterals).
+    - **App18 — pastilla Registro al patró `.bpm-inline.visible.param.registro`**:
+      eliminades les classes `.param--large*` i reescrit l'HTML al
+      mateix patró que App19/App20. CSS app-específic copia el
+      `.param.registro .circle` (capsule shape, border rosa).
+
+22. **Spinners rosa via theme var (App18/19/20)** ✅ FET (2026-04-29)
+    - **Nova var de tema** a `libs/shared-ui/nuzic-theme.css`:
+      `--nuzic-spin-bg` (default `var(--nuzic-yellow)`) i
+      `--nuzic-spin-bg-hover` (default `#e6a82e`). Les 5 regles que
+      pintaven els spinners en groc fix (`.bpm-inline .spin`,
+      `.param:not(.param--large):has(.circle > input) .circle .spin.up/.down`,
+      i les variants dark mode + hover) ara llegeixen la var.
+    - **Override per app**: `body.app18 { --nuzic-spin-bg: var(--nuzic-pink); ... }`,
+      mateix per App19 i App20. Bodies han rebut `class="app18/19/20"`
+      perquè el selector pugui apuntar només a aquestes apps.
+    - **Patró reutilitzable**: qualsevol app futura pot canviar el
+      color dels spinners definint la var al seu `body`, sense haver
+      d'escriure regles `!important` que competeixin amb el tema.
+    - **Eliminada FASE 16 (`.param--large--pill`)**: variant intentada
+      i descartada — no la fa servir cap app després de la reescriptura
+      d'App18 al patró `.bpm-inline`.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).
