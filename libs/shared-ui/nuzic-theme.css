@@ -1646,10 +1646,12 @@ body[data-visual="nuzic"] .param.param--large {
   position: relative;
 }
 
-/* Label a sobre, gran i en el color normal del text */
+/* Label a sobre — mateix tamany que els títols estàndard de les altres
+   pastilles `.param` (no la mida hero original). Aplica a App16, App17,
+   App18, App19, App20 (totes les apps que utilitzen `.param--large`). */
 body[data-visual="nuzic"] .param.param--large .abbr {
   font-family: 'Ubuntu', sans-serif !important;
-  font-size: clamp(1.1rem, 2.2vw, 1.75rem) !important;
+  font-size: clamp(0.75rem, 1.1vw, 0.95rem) !important;
   font-weight: 700 !important;
   color: var(--nuzic-dark) !important;
   text-transform: none !important;

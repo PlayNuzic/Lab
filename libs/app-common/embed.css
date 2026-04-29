@@ -100,11 +100,12 @@ html[data-embed="true"] body.app10 main {
 /* App16 (módulo temporal lineal) — the measure-header + timeline pair is
    naturally short (roughly 7-8rem combined). Its `min-height: 25rem` on
    `.timeline-wrapper` is sized for standalone view, but in the 2:1 iframe
-   slot it leaves a large empty dark strip below the .controls row.
-   Override the min-height and center the wrapper vertically. */
+   slot it leaves a large empty strip. Override the min-height and anchor
+   the wrapper to the TOP of the iframe (was `auto/auto` which centered
+   it and left blank space above + below). */
 html[data-embed="true"] body.app16 main .timeline-wrapper {
   min-height: 0;
-  margin-top: auto;
+  margin-top: 0;
   margin-bottom: auto;
 }
 

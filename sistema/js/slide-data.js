@@ -231,16 +231,15 @@ export const slideContent = {
 <p>Los módulos nos permiten trabajar con una cantidad reducida de números que se repiten. Esto es muy útil para entender y analizar estructuras musicales.</p>`,
   },
   12: {
-    text: `<p>El módulo temporal es el <strong>compás</strong>. El compás se repite las veces que queramos.</p>
-<p>Organiza los pulsos de la línea temporal en grupos.</p>
-<p>Es una nueva unidad de medida que agrupa varios números en su interior, añadiendo estructura al grupo de números y facilitando crear estructuras mayores.</p>
-<p>La cantidad de pulsos por compás es libre y hay que <b>decidirla a priori</b>. Aunque a partir de un cierto número de pulsos, la unidad del compás no se percibe claramente y deja de tener sentido.</p>
-<p>Cuando usamos el compás, la numeración de los pulsos en la línea temporal es <b>modular</b>, o sea que vuelve a empezar en el <b>número 0</b> de cada nuevo compás.</p>
-<p>Para indicar en qué compás está un pulso, le añadimos el número de compás como superíndice. Por ejemplo, para el Pulso 3 del compás 1, escribimos: P(3^1).</p>`,
+    text: `<p>El módulo temporal es el <strong>compás</strong>. El compás se repite las veces que queramos. Organiza los pulsos de la línea temporal en grupos.</p>
+<p>El compás es una nueva "unidad de medida" que agrupa varios números en su interior, añadiendo estructura al grupo de números y facilitando ordenar estructuras mayores.</p>
+<p>La cantidad de pulsos por compás es libre y hay que <b>decidirla a priori</b>. Aunque a partir de un cierto número de pulsos, la idea de compás no se percibe claramente y deja de tener sentido.</p>
+<p>Cuando usamos compás, la numeración de los pulsos en la línea temporal es <b>modular</b>, o sea que vuelve a empezar en el <b>número 0</b> de cada nuevo compás.</p>
+<p>Para indicar en qué compás está un pulso, le añadimos el número de compás como superíndice. Por ejemplo, para el Pulso 3 del compás 1, escribimos: P(3<sup>1</sup>).</p>`,
     tipsTitle: 'Prueba los Intervalos Temporales',
     tips: `<p>Esta app representa la línea de tiempo organizada con compases. Muestra 2 compases completos con un efecto para visualizar la repetición.</p>
 <p>Entra un número en "Pulsos por Compás" y pulsa ▶️. Observa cómo la numeración de la línea temporal se repite mostrando la estructura del compás.</p>
-<p><strong>Tip:</strong> La app muestra que el compás es un ciclo de números que se repiten.</p>`,
+<p><strong>Tip:</strong> La app muestra que el compás es un ciclo de números que se repiten. Usa + y − para cambiar el número de pulsos y observa como se adapta la línea sonora.</p>`,
   },
 };
 
