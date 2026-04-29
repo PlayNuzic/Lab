@@ -204,8 +204,11 @@ body[data-visual="nuzic"] .plano-cell:hover::after {
   opacity: 0.35;
 }
 
-/* Rectangles seleccionats: blau cel sòlid amb vora, sense glow */
-body[data-visual="nuzic"] .plano-cell.plano-selected::before {
+/* Rectangles seleccionats: blau cel sòlid amb vora, sense glow.
+   Inclou les cel·les de continuació iT (`.duration-highlight`) perquè
+   tot el run es vegi com una sola barra del mateix to. */
+body[data-visual="nuzic"] .plano-cell.plano-selected::before,
+body[data-visual="nuzic"] .plano-cell.duration-highlight::before {
   background: var(--nuzic-blue-light);
   border: 1px solid var(--nuzic-blue);
 }
@@ -232,7 +235,8 @@ body[data-visual="nuzic"][data-theme="dark"] .plano-cell {
   background-image: radial-gradient(circle 4px at 0% 100%, var(--nuzic-grey) 45%, transparent 46%);
 }
 
-body[data-visual="nuzic"][data-theme="dark"] .plano-cell.plano-selected::before {
+body[data-visual="nuzic"][data-theme="dark"] .plano-cell.plano-selected::before,
+body[data-visual="nuzic"][data-theme="dark"] .plano-cell.duration-highlight::before {
   background: var(--nuzic-blue-light);
   border-color: var(--nuzic-blue);
 }

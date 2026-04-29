@@ -326,20 +326,21 @@ body.app20 {
   pointer-events: none;
 }
 
-/* First cell (note start): round left */
+/* First cell (note start): round left. `2px` per coherència amb App15
+   (`.musical-cell.active::before` també 2px). */
 .plano-cell.plano-selected::before {
-  border-radius: 4px 0 0 4px;
+  border-radius: 2px 0 0 2px;
 }
 
 /* Single-cell note (no duration extension): round all corners */
 .plano-cell.plano-selected:not(.has-duration)::before {
-  border-radius: 4px;
+  border-radius: 2px;
   right: 0;
 }
 
 /* Last cell of duration run: round right, no overflow */
 .plano-cell.duration-highlight.duration-last::before {
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 2px 2px 0;
   right: 0;
 }
 
