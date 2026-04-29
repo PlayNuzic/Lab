@@ -241,6 +241,16 @@ export const slideContent = {
 <p>Entra un número en "Pulsos por Compás" y pulsa ▶️. Observa cómo la numeración de la línea temporal se repite mostrando la estructura del compás.</p>
 <p><strong>Tip:</strong> La app muestra que el compás es un ciclo de números que se repiten. Usa + y − para cambiar el número de pulsos y observa como se adapta la línea sonora.</p>`,
   },
+  13: {
+    text: `<p>La visualización como círculo es muy útil para entender la <b>línea temporal con compás</b>.</p>
+<p>La longitud total de la línea dependerá de cuántos pulsos tenga el compás y de cuantas repeticiones del compás definamos.</p>
+<p>Al multiplicar los dos números se obtiene la <em>Longitud Total</em>. Por ejemplo, con compás de 3 Pulsos y 5 repeticiones nos da una <em>Longitud total</em> de 15 pulsos.</p>
+<p>Además, organizar los Pulsos en un compás y repetirlo produce un carácter en la organización. Por ejemplo, el P(0) suele sonar más fuerte que el resto, indicando el principio del ciclo.</p>
+<p>También es muy útil para definir un estilo rítmico: si acentuamos los Pulsos 1 i 3 en un compás de 4 creamos un ritmo popular.</p>`,
+    tipsTitle: 'Prueba la Línea Temporal Circular',
+    tips: `<p>Entra un número en "Pulsos por Compás" y otro en "Nº de Compases". La app reproduce el ejemplo. Observa como cambia el superíndice en los mismos pulsos.</p>
+<p>Compara esta representación circular con la lineal del paso 12. Mismo concepto, dos visualizaciones. El círculo hace evidente lo que la línea sugiere. La música no avanza solo en línea sino que <b>gira</b> para volver al siguiente <b>punto de partida</b>, creando espirales en el tiempo.</p>`,
+  },
 };
 
 // Default filler for pasos without explicit content yet.
