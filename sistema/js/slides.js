@@ -384,7 +384,8 @@ PROG.addEventListener('click', e => {
   if (Number.isFinite(paso)) goTo(paso);
 });
 document.addEventListener('keydown', e => {
-  if (e.target.closest('input,select,textarea')) return;
+  // No capturar fletxes mentre s'està editant un camp o element contenteditable.
+  if (e.target.closest('input,select,textarea,[contenteditable="true"],[contenteditable=""]')) return;
   if (e.key === 'ArrowLeft')  go(-1);
   if (e.key === 'ArrowRight') go(+1);
 });
