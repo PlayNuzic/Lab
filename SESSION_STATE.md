@@ -297,6 +297,57 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       progressiu del soundline a viewports estrets.
     - Tests: 1445/1445 OK.
 
+16. **E-app-text-left — alineació caixa tips amb h1** ✅ FET (2026-04-29)
+    - **Bug**: a pasos 3, 8, 12 (layout `E-app-text-left`) la caixa verda
+      `.slot-tips` quedava visualment al mateix top que el `.paso-badge`
+      ("Paso 12 · Ampliando"), no amb el títol h1 "El compás: el módulo
+      temporal". L'usuari vol que la caixa s'alineï amb el TÍTOL del text
+      teòric, no amb el pretítol.
+    - **Diagnòstic**: el `.slot-tips` ocupa rows 1-3 amb `align-self: start`
+      → top de la caixa = top de la fila 1 = top del paso-badge. El
+      `.slot-title` té `display: flex; justify-content: flex-end; gap: 6px`
+      i conté `paso-badge` (font 11px, line-height ~1.3 = ~14px) + h1.
+      L'h1 està a `top + paso-badge.height + gap`.
+    - **Fix a `sistema/css/grid.css`**: afegit `margin-top: calc(11px *
+      1.3 + 6px)` (~20px) a `.slide[data-layout="E-app-text-left"]
+      .slot-tips`. Manté `align-self: start` però desplaça la caixa cap
+      avall l'altura exacta del badge + gap.
+    - Si en el futur canvia el font-size del `.paso-badge` o el `gap` del
+      `.slot-title`, cal recalcular aquest valor (o substituir-lo per una
+      variable CSS comuna).
+
+17. **Tweaks — fletxes per editar text contenteditable** ✅ FET (2026-04-29)
+    - **Bug**: a `sistema/js/slides.js`, el listener global de keydown
+      capturava ArrowLeft/ArrowRight per navegar entre slides fins i tot
+      quan l'usuari editava un camp `contenteditable` a Tweaks edit mode
+      → no es podia moure el cursor.
+    - **Fix**: extès el filtre d'ignore al listener perquè inclogui també
+      `[contenteditable="true"], [contenteditable=""]`, no només
+      `input,select,textarea`.
+
+18. **Sanititzador Tweaks — superíndex `N^M`** ✅ FET (2026-04-29)
+    - **Necessitat**: el text de paso 12 inclou notació `P(3^1)` per
+      indicar superíndex. Sense pre-procés, es renderitza com a text literal.
+    - **Canvis a `sistema/js/slides.js`**:
+      a. Afegits `<sup>` i `<sub>` a `ALLOWED_RICH_TAGS`.
+      b. Nou helper `expandSuperscriptNotation(html)` que converteix
+         `(\d)\^(\d+)` a `$1<sup>$2</sup>`.
+      c. Cridat des de `sanitizeHtml()` (cobreix overrides editats al
+         Tweaks) i des de `renderText()` / `renderTips()` (cobreix
+         contingut estàtic de `slide-data.js`).
+    - **Limitació**: només funciona quan els dos costats són dígits. Si
+      cal en el futur suportar variables (`x^n`, `Pulso^N`), cal estendre
+      el regex.
+
+19. **Pasos 11 i 12 — contingut nou** ✅ FET (2026-04-29)
+    - Paso 11: nou `slideContent[11]` amb image `paso-11.jpg` i text
+      sobre patrons, cicles i mòduls. Layout segueix `A-intro`.
+    - Paso 12: layout canviat de `B-app-left` a `E-app-text-left` (com
+      paso 8). Nou text amb exemple `P(3^1)` i tips per a l'app de Pulsos
+      por Compás (App16).
+    - Paso 10: petita actualització del text — clarifica que "El primer
+      iS situa la primera nota en el plano".
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).
