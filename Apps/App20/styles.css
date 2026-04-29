@@ -80,9 +80,11 @@ main {
   /* Bigger gap so the `.param--large--dual` Compás disc (with its side
      spinners) doesn't overlap the Registro/Longitud pills. */
   gap: clamp(3rem, 8vw, 7rem);
-  /* Shift the whole row up so the large Compás label doesn't crowd the
-     header, and the disc sits comfortably inside the frame. */
-  margin-top: clamp(-2rem, -3vw, -1rem);
+  /* (Antic margin-top negatiu eliminat: era necessari quan l'abbr
+     "Pulsos por Compás" feia la mida hero (1.75rem) i sobresortia per
+     dalt; amb la nova mida estàndard (~1.2rem) ja no cal i, de fet,
+     amagava l'abbr darrere del header de l'iframe.) */
+  margin-top: 0;
   padding: 0 1rem;
   flex-shrink: 0;
   position: relative;

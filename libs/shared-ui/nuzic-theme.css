@@ -1893,9 +1893,12 @@ body[data-visual="nuzic"] .param.param--large--dual .pl-secondary {
    cap al fons del cercle, així que un offset moderat ja la treu). */
 body[data-visual="nuzic"] .param.param--large--dual .pl-secondary .abbr--secondary {
   position: absolute !important;
-  top: calc(100% + clamp(0.6rem, 1.5vw, 1.1rem)) !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
+  top: calc(100% + clamp(0.9rem, 2.5vw, 2.1rem)) !important;
+  /* La mini-pastilla `.pl-secondary` està horitzontalment centrada al
+     cercle groc (flex-direction: column al .circle), així que el seu
+     `left: 0` ja queda alineat amb el centre del conjunt. No cal
+     `translateX(-50%)`. */
+  transform: translateX(0%) !important;
   font-family: 'Ubuntu', sans-serif !important;
   font-size: clamp(0.7rem, 1vw, 0.85rem) !important;
   font-weight: 700 !important;
