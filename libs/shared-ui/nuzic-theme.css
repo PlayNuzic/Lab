@@ -1609,7 +1609,7 @@ body[data-visual="nuzic"] .param:has(.circle > span):not(:has(.circle > input)) 
   min-width: clamp(3rem, 6vw, 4.5rem);
   height: clamp(2rem, 5vw, 3rem) !important;
   border-radius: 999px !important;
-  border: 1px solid var(--nuzic-grey) !important;
+  border: 1px solid var(--nuzic-yellow) !important;
   background: var(--nuzic-white) !important;
   display: flex !important;
   align-items: center !important;
