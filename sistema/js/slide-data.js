@@ -35,10 +35,14 @@ export const layouts = {
   },
   // App left (2 cols) + title/text/tips stacked on right (1 col).
   // Used by the majority of pasos (3, 6, 7, 8, ...).
+  // Rows: title=auto, text=auto, tips=1fr — el row de tips absorbeix
+  // l'espai vertical sobrant quan l'app és més alta que title+text+tips,
+  // i amb `align-self: start` (regla específica B-app-left a grid.css)
+  // la caixa verda queda enganxada just sota el text teòric, no al fons.
   'B-app-left': {
     cols:  '1fr 1fr 1fr',
     areas: '"app app title" "app app text" "app app tips"',
-    rows:  'auto 1fr auto',
+    rows:  'auto auto 1fr',
   },
   // App narrow left (1 col) + title/text on cols 2-3, tips confined to col 2.
   // Used by Paso 5 (Línea Sonora) — the vertical soundline is naturally
@@ -261,6 +265,16 @@ export const slideContent = {
     tips: `<p>Introduce un número de registro o cambialo con las flechas. La app reproduce una secuencia aleatoria de 6 notas.</p>
 <p>Clica en las notas de la línea sonora para reproducirlas individualmente. Pulsa ▶️ para reproducir la secuencia otra vez.</p>
 <p>La nota 0 está resaltada en rosa para marcar el inicio de cada registro. El registro 4 corresponde al Do central del piano (nota C4).</p>`,
+  },
+  15: {
+    text: `<p>Al plano musical podemos añadirle los módulos registro y compás en las líneas para crear música más variada o compleja.</p>
+<p>En el plano queda representado el registro de cada nota y el compás de cada pulso. Cada par Nota-Pulso lleva los superíndices que especifican el registro y el compás.</p>
+<p>Por ejemplo, podemos repetir una misma idea melódica en diferentes registros y/o modificar las repeticiones cambiando el pulso en que suenan.</p>`,
+    tipsTitle: 'Prueba el Plano Modular',
+    tips: `<p>Introduce un Compás y Nº Compases para modificar el plano modular, que calcula automáticamente la longitud total de pulsos. Los registros de salida inicial son 3 y 4.</p>
+<p>Haz clic en las celdas del plano para crear notas. Usa el scroll o los spinners para moverte entre los registros.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para borrar.</p>
+<p>Usa el scroll vertical para moverte entre registros y el horizontal para moverte por los compases.</p>`,
   },
 };
 

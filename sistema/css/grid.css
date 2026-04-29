@@ -45,6 +45,14 @@
   align-self: end;
   flex-shrink: 0;
 }
+
+/* B-app-left: el row de tips és `1fr` (absorbeix l'espai sobrant) i la
+   caixa verda s'enganxa al TOP del row → just sota el text teòric.
+   Sense això, `align-self: end` la deixa al fons del slide quan l'app
+   és gran (pasos 15/16 amb iframe alt). */
+.slide[data-layout="B-app-left"] .slot-tips {
+  align-self: start;
+}
 /* Alineem la vora superior de la caixa verda amb el TÍTOL del text
    teòric (h1), no amb el paso-badge. El `.slot-title` és `flex-end` amb
    `paso-badge` (font 11px, line-height ~1.3 = ~14px) + gap 6px sobre
