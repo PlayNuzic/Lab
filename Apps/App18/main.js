@@ -398,10 +398,24 @@ function handleReset() {
 }
 
 // ========== REGISTRY INPUT HANDLERS ==========
-function handleRegistroChange() {
+const AUTO_PLAY_DELAY = 250; // ms after typing a digit before auto-firing play
+
+function handleRegistroChange(e) {
   const value = inputRegistro.value.trim();
   registryController.setRegistry(value === '' ? null : value);
   console.log('Registry changed to:', registryController.getRegistry());
+
+  // Auto-play després d'escriure un dígit, si no estem ja reproduint i
+  // tenim un registre vàlid. Aplica només a `insertText` (typing real),
+  // no a paste, increment per fletxa, etc.
+  if (e && e.inputType === 'insertText' && /^[0-9]$/.test(e.data)) {
+    setTimeout(() => {
+      if (!isPlaying && registryController.getRegistry() !== null) {
+        inputRegistro.blur();
+        handlePlay();
+      }
+    }, AUTO_PLAY_DELAY);
+  }
 }
 
 function handleRegistroUp() {
