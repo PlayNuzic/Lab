@@ -70,8 +70,16 @@ html, body {
 body[data-visual="nuzic"] .timeline-wrapper.circular {
   width: clamp(16rem, 34vw, 22rem) !important;
   height: clamp(16rem, 34vw, 22rem) !important;
+  /* `aspect-ratio: 1` blinda el cercle contra deformacions causades per
+     pares amb `flex: 1`, `align-items: stretch`, o iframes amb proporcions
+     no-quadrades: encara que un dels eixos canviï, l'altre s'ajustarà per
+     mantenir la proporció 1:1 i el dount (i els ticks) seguiran correctes. */
+  aspect-ratio: 1 !important;
+  max-width: 100%;
+  max-height: 100%;
   margin: 3.5rem auto !important;
   position: relative;
+  flex-shrink: 0;
 }
 
 /* The timeline element is square, centered inside the wrapper. We paint the
@@ -95,6 +103,7 @@ body[data-visual="nuzic"] .timeline.circular {
   border-radius: 50% !important;
   width: 100% !important;
   height: 100% !important;
+  aspect-ratio: 1 !important;
   margin: 0 !important;
   position: relative;
   padding-left: 0 !important;
