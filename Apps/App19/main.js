@@ -207,7 +207,32 @@ function initGrid() {
   // Free vertical scroll — native scroll with sync handled by setupScrollSync
   // (no quantization, no cooldown, no blocked wheel events)
 
+  addDotsToAllCells();
+
   console.log('Grid initialized with plano-modular');
+}
+
+/**
+ * Add decorative np-dot elements to all grid cells (bottom-left corner).
+ * Plano-modular doesn't render dots itself, so we inject them here as a
+ * positional reference (they sit on the soundline division line). They
+ * are NOT click targets — `.np-dot { pointer-events: none }` in CSS lets
+ * clicks pass through to the underlying cell, matching App11/App12.
+ */
+function addDotsToAllCells() {
+  const gridContainer = document.querySelector('.timeline-wrapper');
+  if (!gridContainer) return;
+
+  const matrixContainer = gridContainer.querySelector('.plano-matrix-container');
+  if (!matrixContainer) return;
+
+  const cells = matrixContainer.querySelectorAll('.plano-cell');
+  cells.forEach(cell => {
+    if (cell.querySelector('.np-dot')) return;
+    const dot = document.createElement('div');
+    dot.className = 'np-dot';
+    cell.appendChild(dot);
+  });
 }
 
 /**
