@@ -251,6 +251,17 @@ export const slideContent = {
     tips: `<p>Entra un número en "Pulsos por Compás" y otro en "Nº de Compases". La app reproduce el ejemplo. Observa como cambia el superíndice en los mismos pulsos.</p>
 <p>Compara esta representación circular con la lineal del paso 12. Mismo concepto, dos visualizaciones. El círculo hace evidente lo que la línea sugiere. La música no avanza solo en línea sino que <b>gira</b> para volver al siguiente <b>punto de partida</b>, creando espirales en el tiempo.</p>`,
   },
+  14: {
+    text: `<h2>El <b>módulo</b> de las notas</h2>
+<p>La totalidad de las notas usadas se organizan en módulos de 12 notas que se repiten. Se numeran del 0 al 11. El 0 corresponde a la nota Do.</p>
+<p>Esta estructura de 12 notas es fija, y se llama <strong>registro de octava</strong>.</p>
+<p>Hay ocho registros básicos numerados del 0 al 7. Del 0 al 2 son los registros graves, del 3 al 5 registros medios y el 6 y 7 los registros agudos.</p>
+<p>El registro en el que está una nota se puede escribir de dos maneras: como superíndice N(6^2) o después de la letra r N(6r2).</p>`,
+    tipsTitle: 'Prueba el registro sonoro',
+    tips: `<p>Introduce un número de registro o cambialo con las flechas. La app reproduce una secuencia aleatoria de 6 notas.</p>
+<p>Clica en las notas de la línea sonora para reproducirlas individualmente. Pulsa ▶️ para reproducir la secuencia otra vez.</p>
+<p>La nota 0 está resaltada en rosa para marcar el inicio de cada registro. El registro 4 corresponde al Do central del piano (nota C4).</p>`,
+  },
 };
 
 // Default filler for pasos without explicit content yet.
