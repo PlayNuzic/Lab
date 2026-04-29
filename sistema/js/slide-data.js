@@ -268,8 +268,9 @@ export const slideContent = {
   },
   15: {
     text: `<p>Al plano musical podemos añadirle los módulos registro y compás en las líneas para crear música más variada o compleja.</p>
-<p>En el plano queda representado el registro de cada nota y el compás de cada pulso. Cada par Nota-Pulso lleva los superíndices que especifican el registro y el compás.</p>
-<p>Por ejemplo, podemos repetir una misma idea melódica en diferentes registros y/o modificar las repeticiones cambiando el pulso en que suenan.</p>`,
+<p>En el plano queda representado el registro de cada nota y el compás de cada pulso.</p>
+<p>Cada par Nota-Pulso lleva los superíndices que especifican el registro y el compás.</p>
+<p>Podemos repetir una misma idea melódica en diferentes registros y/o modificar las repeticiones cambiando el pulso en que suenan.</p>`,
     tipsTitle: 'Prueba el Plano Modular',
     tips: `<p>Introduce un Compás y Nº Compases para modificar el plano modular, que calcula automáticamente la longitud total de pulsos. Los registros de salida inicial son 3 y 4.</p>
 <p>Haz clic en las celdas del plano para crear notas. Usa el scroll o los spinners para moverte entre los registros.</p>
