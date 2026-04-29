@@ -1651,7 +1651,7 @@ body[data-visual="nuzic"] .param.param--large {
    App18, App19, App20 (totes les apps que utilitzen `.param--large`). */
 body[data-visual="nuzic"] .param.param--large .abbr {
   font-family: 'Ubuntu', sans-serif !important;
-  font-size: clamp(0.75rem, 1.1vw, 0.95rem) !important;
+  font-size: clamp(0.9rem, 1.4vw, 1.2rem) !important;
   font-weight: 700 !important;
   color: var(--nuzic-dark) !important;
   text-transform: none !important;
@@ -1884,6 +1884,32 @@ body[data-visual="nuzic"] .param.param--large--dual .pl-secondary {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+/* Etiqueta secundària "Nº de compases" sota el cercle groc gran.
+   Apunta al `inputCycle` (mini-pastilla blanca dins del cercle groc).
+   `.pl-secondary` ja té `position: relative` — l'offset `top: 100% + N`
+   col·loca la label fora del cercle (la mini-pastilla està situada
+   cap al fons del cercle, així que un offset moderat ja la treu). */
+body[data-visual="nuzic"] .param.param--large--dual .pl-secondary .abbr--secondary {
+  position: absolute !important;
+  top: calc(100% + clamp(0.6rem, 1.5vw, 1.1rem)) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  font-family: 'Ubuntu', sans-serif !important;
+  font-size: clamp(0.7rem, 1vw, 0.85rem) !important;
+  font-weight: 700 !important;
+  color: var(--nuzic-dark) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  pointer-events: none;
+  text-align: center;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .param.param--large--dual .pl-secondary .abbr--secondary {
+  color: var(--nuzic-dark) !important;
 }
 
 body[data-visual="nuzic"] .param.param--large--dual .pl-secondary input {
