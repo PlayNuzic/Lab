@@ -1015,14 +1015,29 @@ body[data-visual="nuzic"] .tap {
   color: var(--nuzic-dark);
 }
 
-/* BPM spinner: pastilla daurada (color via `--nuzic-spin-bg`, override
-   al `body` de l'app per altres colors) */
-body[data-visual="nuzic"] .bpm-inline .spin {
+/* BPM spinner: pastilla daurada — INVARIANT, sempre groc.
+   El BPM és la mateixa pastilla a totes les apps i no ha d'heretar el
+   color de la var `--nuzic-spin-bg` (que les apps poden override per
+   altres pills com Registro/Longitud). Per això usem `.bpm-inline:not(.param)`
+   (BPM pur) amb groc fix, i la versió genèrica `.bpm-inline.param` (les
+   altres pills) llegeix la var. */
+body[data-visual="nuzic"] .bpm-inline:not(.param) .spin {
+  background: var(--nuzic-yellow);
+  border-radius: 6px;
+}
+
+body[data-visual="nuzic"] .bpm-inline:not(.param) .spin:hover {
+  background: #e6a82e;
+}
+
+/* Pastilles `.bpm-inline.param.*` (Registro/Longitud/etc): color via var,
+   el default segueix sent el groc del BPM. */
+body[data-visual="nuzic"] .bpm-inline.param .spin {
   background: var(--nuzic-spin-bg, var(--nuzic-yellow));
   border-radius: 6px;
 }
 
-body[data-visual="nuzic"] .bpm-inline .spin:hover {
+body[data-visual="nuzic"] .bpm-inline.param .spin:hover {
   background: var(--nuzic-spin-bg-hover, #e6a82e);
 }
 
@@ -1217,7 +1232,11 @@ body[data-visual="nuzic"][data-theme="dark"] .sound-wrapper.nuzic-inline .sound 
   fill: #43433b;
 }
 
-body[data-visual="nuzic"][data-theme="dark"] .bpm-inline .spin {
+body[data-visual="nuzic"][data-theme="dark"] .bpm-inline:not(.param) .spin {
+  background: var(--nuzic-yellow);
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .bpm-inline.param .spin {
   background: var(--nuzic-spin-bg, var(--nuzic-yellow));
 }
 
