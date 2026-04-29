@@ -210,7 +210,7 @@ export const slideContent = {
   10: {
     text: `<p>Para componer una pequeña melodía desde el punto de vista del movimiento, combinamos una sucesión de iS sincronizados con iT.</p>
 <p>El punto de salida es una nota situada en el par N(0)-P(0).</p>
-<p>Los pares iS-iT van dibujando la melodía.</p>
+<p>Los pares iS-iT van dibujando la melodía. El primer iS situa la primera nota en el plano.</p>
 <p>Podemos escoger silencios en vez de notas escribiendo una "s" en los iS y darle la duración que queramos con el iT asociado.</p>`,
     tipsTitle: 'Prueba el Plano iS-iT',
     tips: `<p>Entra un número de iS para definir la primera nota. A continuación entra el número del iT para definir su duración.</p>
@@ -218,6 +218,17 @@ export const slideContent = {
 <p>También puedes introducir notas clicando en los puntos (en la esquina inferior de las celdas) del plano y arrastrarlas para crear el iT.</p>
 <p>Pulsa ▶️ para reproducir, 🎲 para generar una secuencia aleatoria, 🗑 para borrar.</p>
 <p><strong>Tip:</strong> En esta App se juega con distancias en lugar de posiciones fijas. Es como la diferencia entre decir "ve a la calle 5" y "avanza 3 calles" — el mismo destino, dos formas de pensarlo.</p>`,
+  },
+  11: {
+    image: {
+      alt: 'Ilustración — Patrones, ciclos y módulos',
+      src: 'images/paso-11.jpg',
+    },
+    text: `<p>La realidad está llena de ciclos: patrones que se repiten infinitamente o un cierto número de veces. Están en todas partes. En la naturaleza (estaciones del año, ciclos lunares, órbitas planetarias) y en la cultura humana, que crea los suyos propios (horas, días, meses, años, etapas de la vida, etc).</p>
+<p>En matemáticas estos ciclos se llaman <b>módulos</b> y crean la aritmética modular, que es la base de muchas técnicas de cálculo.</p>
+<p>En la música los <b>módulos</b> estructuran tanto el tiempo como el sonido. Ayudan a pensar en estructuras y a ordenar ideas musicales.</p>
+<p>Por ejemplo, para contar todos los pulsos de una pieza, es más útil usar un módulo como el <b>compás</b>. Decimos que una canción tiene 40 compases de 4 en vez de 160 pulsos.</p>
+<p>Los módulos nos permiten trabajar con una cantidad reducida de números que se repiten. Esto es muy útil para entender y analizar estructuras musicales.</p>`,
   },
 };
 
