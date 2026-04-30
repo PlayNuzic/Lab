@@ -618,6 +618,9 @@ function renderItHalterCellLayer(pairs) {
 
     const startRect = startCell.getBoundingClientRect();
     const endRect = endCell.getBoundingClientRect();
+    const nextCell = matrix.querySelector(
+      `.plano-cell[data-row-id="${rowId}"][data-col-index="${endCol + 1}"]`
+    );
 
     const halter = createIntervalLabelBar({
       startPercent: 0,
@@ -626,8 +629,11 @@ function renderItHalterCellLayer(pairs) {
       variant: p.isRest ? 'dashed' : 'solid'
     });
 
-    const leftPct = ((startRect.left - matrixRect.left) / matrixRect.width) * 100;
-    const rightPct = ((endRect.right - matrixRect.left) / matrixRect.width) * 100;
+    const dotOffset = getCellDotCenterOffset(startCell, startRect);
+    const startX = getCellDotCenterX(startCell, startRect, matrixRect, dotOffset);
+    const endX = nextCell
+      ? getCellDotCenterX(nextCell, nextCell.getBoundingClientRect(), matrixRect, dotOffset)
+      : endRect.right + dotOffset - matrixRect.left;
     // A plano-modular les cel·les actives renderitzen la barra blava amb
     // `::before { bottom: -50%; height: 100% }`, així que la vora inferior
     // VISUAL de la barra cau a `cell.bottom + cell.height/2`, no a
@@ -637,12 +643,33 @@ function renderItHalterCellLayer(pairs) {
     const visualBottom = startRect.bottom + cellH / 2;
     const bottomPct = ((visualBottom - matrixRect.top) / matrixRect.height) * 100;
 
-    halter.style.left = `${leftPct}%`;
-    halter.style.width = `${Math.max(0, rightPct - leftPct)}%`;
+    halter.style.left = `${startX}px`;
+    halter.style.width = `${Math.max(0, endX - startX)}px`;
     halter.style.top = `${bottomPct}%`;
 
     layer.appendChild(halter);
   });
+}
+
+function getCellDotCenterOffset(cell, cellRect) {
+  const dot = cell.querySelector('.np-dot');
+  if (dot) {
+    const dotRect = dot.getBoundingClientRect();
+    return dotRect.left + dotRect.width / 2 - cellRect.left;
+  }
+
+  const raw = getComputedStyle(cell).getPropertyValue('--plano-dot-center-x').trim();
+  const parsed = parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : 4;
+}
+
+function getCellDotCenterX(cell, cellRect, matrixRect, fallbackOffset) {
+  const dot = cell.querySelector('.np-dot');
+  if (dot) {
+    const dotRect = dot.getBoundingClientRect();
+    return dotRect.left + dotRect.width / 2 - matrixRect.left;
+  }
+  return cellRect.left + fallbackOffset - matrixRect.left;
 }
 
 /**

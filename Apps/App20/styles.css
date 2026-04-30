@@ -224,6 +224,7 @@ body.app20 {
 .plano-container {
   --plano-cell-height: 26px;
   --plano-visible-rows: 21;  /* 24 in App19 but App20 needs room for N-iT editor below */
+  --plano-dot-center-x: 4px;
   width: 100%;
   background: var(--bg-light);
 }
@@ -334,8 +335,8 @@ body.app20 {
 .plano-cell.drag-highlight::before {
   content: '';
   position: absolute;
-  left: 0;
-  right: -1px;           /* overlap into next cell to hide seam */
+  left: var(--plano-dot-center-x, 4px);
+  right: calc(var(--plano-dot-center-x, 4px) * -1);
   bottom: -50%;
   height: 100%;
   background: var(--plano-select-color, #FFBB33);
@@ -353,13 +354,13 @@ body.app20 {
 /* Single-cell note (no duration extension): round all corners */
 .plano-cell.plano-selected:not(.has-duration)::before {
   border-radius: 2px;
-  right: 0;
+  right: calc(var(--plano-dot-center-x, 4px) * -1);
 }
 
 /* Last cell of duration run: round right, no overflow */
 .plano-cell.duration-highlight.duration-last::before {
   border-radius: 0 2px 2px 0;
-  right: 0;
+  right: calc(var(--plano-dot-center-x, 4px) * -1);
 }
 
 /* Cel·les amb duració iT (les que vénen després de la inicial) tenen la
@@ -446,7 +447,7 @@ body[data-visual="nuzic"] .plano-cell {
 
 body[data-visual="nuzic"] .plano-cell .np-dot {
   bottom: 0;
-  left: 4px;
+  left: var(--plano-dot-center-x, 4px);
   top: auto;
   width: 16px;
   height: 16px;

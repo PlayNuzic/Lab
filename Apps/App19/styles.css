@@ -245,6 +245,10 @@ body.app19 {
 .plano-container {
   --plano-cell-height: 26px;
   --plano-visible-rows: 24;
+  /* Offset horitzontal del centre del dot dins la cel·la. Centralitzat
+     aquí perquè el `.np-dot` i la barra de highlight l'usin per estar
+     alineats sobre els mateixos punts. */
+  --plano-dot-center-x: 4px;
   width: 100%;
   background: var(--bg-light);
 }
@@ -310,8 +314,11 @@ body.app19 {
 .plano-cell.plano-highlight::before {
   content: '';
   position: absolute;
-  left: 0;
-  right: 0;
+  /* Desplacem la barra perquè quedi centrada sobre els np-dots
+     (que viuen a `left: var(--plano-dot-center-x)` de la cel·la), no a
+     la vora esquerra. */
+  left: var(--plano-dot-center-x, 4px);
+  right: calc(var(--plano-dot-center-x, 4px) * -1);
   bottom: -50%;
   height: 100%;
   background: #FFBB33;
@@ -320,6 +327,14 @@ body.app19 {
   pointer-events: none;
   transform: scale(1.05);
   box-shadow: 0 0 8px #FFBB33;
+}
+
+/* Override de la regla base de plano-modular (`left: 0; right: 0`).
+   La barra de selecció es desplaça el mateix offset que el np-dot
+   perquè quedi centrada sobre els punts. Mateix patró que App20. */
+.plano-cell.plano-selected::before {
+  left: var(--plano-dot-center-x, 4px);
+  right: calc(var(--plano-dot-center-x, 4px) * -1);
 }
 
 /* ============================================
@@ -370,7 +385,7 @@ body[data-visual="nuzic"] .plano-cell {
    only: clicks happen on the cell, not on the dot. */
 body[data-visual="nuzic"] .plano-cell .np-dot {
   bottom: 0;
-  left: 4px;
+  left: var(--plano-dot-center-x, 4px);
   top: auto;
   width: 16px;
   height: 16px;
