@@ -67,15 +67,15 @@
 }
 
 /* Vertical yellow bar at the right end of the track (inner coordinate,
-   aligned with the timeline's double-bar closure). Extends downward
-   into the gap + a small tail so the eye reads it as a single stroke
-   bridging into the timeline below. */
+   aligned with the timeline's double-bar closure). Per defecte cobreix
+   el header i el gap fins arribar a la timeline/grid de sota; les apps
+   poden ajustar amb un `height` propi. */
 .measure-header__end-bar {
   position: absolute;
   right: 0;
   top: 0;
   width: 3px;
-  height: calc(100% + var(--com-band-gap) + 0.625rem);
+  height: calc(100% + var(--com-band-gap) - 0.5rem);
   background: var(--nuzic-yellow);
   border-radius: 1.5px;
   z-index: 2;
@@ -118,20 +118,9 @@
   flex-shrink: 0;
 }
 
-/* Dropline: pseudo-element on the circle so it always tracks the
-   circle's center, not the whole flex row. */
-.measure-marker__circle::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 2px;
-  height: calc(100% + 0.75rem + 0.75rem);
-  background: var(--nuzic-yellow);
-  border-radius: 1px;
-  transform: translate(-50%, 0);
-  z-index: -1;
-}
+/* Per defecte, els marcadors NO porten línia vertical baixant del
+   cercle. Les apps que la vulguin (App16) l'activen amb un override
+   sobre `.measure-marker__circle::after`. */
 
 .measure-marker__value {
   font-family: 'Ubuntu', sans-serif;

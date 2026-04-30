@@ -112,5 +112,29 @@ body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-c
 
 /* Estils del component compartit a `libs/shared-ui/measure-header.css`.
    Aquí només queden les vars contextuals declarades a `.timeline-wrapper`
-   més amunt en aquest fitxer. */
+   més amunt en aquest fitxer.
+
+   App16 vol una línia vertical baixant de cada marcador del header fins
+   creuar la timeline (estil "PMC"). El component compartit ja no la pinta
+   per defecte (App19/App20 no la volen), així que l'activem aquí com
+   a override local. */
+.timeline-wrapper .measure-marker__circle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: calc(100% + 0.75rem + 0.75rem);
+  background: var(--nuzic-yellow);
+  border-radius: 1px;
+  transform: translate(-50%, 0);
+  z-index: -1;
+}
+
+/* App16-specific end-bar height: arriba just al límit superior de la
+   timeline (no la creua), una mica menys que el default del component
+   compartit per ajustar-se a la geometria de la timeline lineal. */
+.timeline-wrapper .measure-header__end-bar {
+  height: calc(100% + var(--com-band-gap) - 0.7rem);
+}
 
