@@ -19,6 +19,7 @@ import { initP1ToggleUI } from '../../libs/shared-ui/sound-dropdown.js';
 import { createApp19Grid } from '../../libs/plano-modular/index.js';
 import { smoothScrollTo } from '../../libs/plano-modular/plano-scroll.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createMeasureHeader } from '../../libs/shared-ui/measure-header.js';
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
@@ -72,6 +73,7 @@ let cycles = null;      // null = empty, 1-4 = value
 
 // Grid instance (plano-modular)
 let grid = null;
+let measureHeader = null;
 
 // Mixer storage key
 const MIXER_STORAGE_KEY = 'app19-mixer';
@@ -209,6 +211,25 @@ function initGrid() {
 
   addDotsToAllCells();
 
+  // Insertem el "Compás" header just abans del .plano-container, dins del
+  // mateix .timeline-wrapper. Així queda a sobre de la graella i, gràcies
+  // a les vars CSS (--com-band-w, --com-band-gap) declarades al wrapper,
+  // s'alinea amb la columna soundline a l'esquerra i la matriu a la dreta.
+  if (gridContainer && !document.getElementById('measureHeader')) {
+    const planoContainer = gridContainer.querySelector('.plano-container');
+    if (planoContainer) {
+      const headerEl = document.createElement('section');
+      headerEl.id = 'measureHeader';
+      headerEl.className = 'measure-header is-empty';
+      gridContainer.insertBefore(headerEl, planoContainer);
+      measureHeader = createMeasureHeader({ container: headerEl });
+      // Render inicial si ja tenim valors.
+      if (compas != null && cycles != null) {
+        measureHeader.render(compas, cycles);
+      }
+    }
+  }
+
   console.log('Grid initialized with plano-modular');
 }
 
@@ -267,6 +288,11 @@ function updateGrid() {
     addDotsToAllCells();
 
     // Apply initial scroll once the grid has real content
+  }
+
+  // Mantenim el measure-header sincronitzat amb compas + cycles.
+  if (measureHeader) {
+    measureHeader.render(compas, cycles);
   }
 }
 

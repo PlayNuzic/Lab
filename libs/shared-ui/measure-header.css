@@ -1,0 +1,139 @@
+/* libs/shared-ui/measure-header.css
+ * Reusable "Compás" header (the yellow band with circle markers).
+ * Visual identity ve del tema nuzic — colors són `--nuzic-yellow*`.
+ *
+ * L'app contenidora ha de definir aquestes vars al wrapper del header:
+ *   --com-band-w   amplada del label esquerre ("Compás")
+ *   --com-band-h   alçada de la barra del header
+ *   --com-band-gap separació entre header i graella/timeline
+ *   --tl-side-pad  padding lateral perquè els marcadors s'alineïn amb
+ *                  les coordenades internes de la timeline/grid
+ *
+ * App16 declara aquestes vars al `.timeline-wrapper`. App19 les declara
+ * al `.plano-container`. Així cada app pot ajustar la geometria sense
+ * tocar el component compartit.
+ */
+
+.measure-header {
+  position: relative;
+  height: var(--com-band-h);
+  margin: 0 var(--tl-side-pad) var(--com-band-gap);
+  background: var(--nuzic-yellow-light);
+  border-radius: 4px;
+}
+
+.measure-header.is-empty {
+  visibility: hidden;
+}
+
+/* "Compás" label: absolutely placed at the row's left, same width as the
+   yellow rectangle of the timeline below. */
+.measure-header__label {
+  position: absolute;
+  /* Mirrors the timeline-side yellow rectangle offset (-1.25rem) so the
+     label and the rectangle align perfectly on both edges. */
+  left: -1.25rem;
+  top: 0;
+  bottom: 0;
+  width: var(--com-band-w);
+  background: var(--nuzic-yellow);
+  /* Hardcoded dark hex (not `var(--nuzic-dark)`) so "Compás" keeps its
+     dark color in both light and dark themes — identity invariant. */
+  color: #43433b;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.6vw, 1.1rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px 0 0 4px;
+  z-index: 2;
+}
+
+/* Track: spans the row with the left edge after the "Compás" label so
+   marker percentages (0%, 1/cycles, ...) align with the pulse positions
+   of the timeline/grid. */
+.measure-header__track {
+  position: absolute;
+  left: var(--com-band-w);
+  right: 0;
+  top: 0;
+  bottom: 0;
+  overflow: visible;
+}
+
+/* Vertical yellow bar at the right end of the track (inner coordinate,
+   aligned with the timeline's double-bar closure). Extends downward
+   into the gap + a small tail so the eye reads it as a single stroke
+   bridging into the timeline below. */
+.measure-header__end-bar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 3px;
+  height: calc(100% + var(--com-band-gap) + 0.625rem);
+  background: var(--nuzic-yellow);
+  border-radius: 1.5px;
+  z-index: 2;
+}
+
+/* Measure marker: circle with the cycle number, positioned at the pulse
+   percentage. Marker 1 also shows the beat value (pulsos per measure),
+   rendered to the right of the circle without pushing it off the pulse. */
+.measure-marker {
+  position: absolute;
+  left: var(--marker-left, 0%);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+/* Center the circle itself over --marker-left (the flex starts there,
+   so we shift the whole row left by half the circle's width). */
+.measure-marker__circle {
+  margin-left: calc(clamp(1.25rem, 2.4vw, 1.6rem) * -0.5);
+  position: relative;
+  width: clamp(1.25rem, 2.4vw, 1.6rem);
+  height: clamp(1.25rem, 2.4vw, 1.6rem);
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--nuzic-yellow);
+  /* Hardcoded dark hex (not `var(--nuzic-dark)`) so the number stays
+     dark on the white/yellow circle regardless of theme. */
+  color: #43433b;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.7rem, 1.3vw, 0.9rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Dropline: pseudo-element on the circle so it always tracks the
+   circle's center, not the whole flex row. */
+.measure-marker__circle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: calc(100% + 0.75rem + 0.75rem);
+  background: var(--nuzic-yellow);
+  border-radius: 1px;
+  transform: translate(-50%, 0);
+  z-index: -1;
+}
+
+.measure-marker__value {
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.6vw, 1.1rem);
+  /* Same rationale as the circle — identity color invariant. */
+  color: #43433b;
+  line-height: 1;
+}

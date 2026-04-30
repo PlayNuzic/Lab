@@ -17,7 +17,7 @@ import { attachSpinnerRepeat } from '../../libs/app-common/spinner-repeat.js';
 import { createCycleSuperscript } from '../../libs/app-common/cycle-superscript.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
-import { createMeasureHeader } from './measure-header.js';
+import { createMeasureHeader } from '../../libs/shared-ui/measure-header.js';
 
 // ============================================
 // CONSTANTS

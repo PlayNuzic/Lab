@@ -204,6 +204,31 @@ body.app19 {
   overflow: hidden;
   position: relative;
   z-index: 2;
+
+  /* Vars del measure-header compartit (libs/shared-ui/measure-header.css).
+     - --com-band-w: amplada de la columna soundline (50px) MÉS el
+       `margin-left: 15px` que la `.plano-matrix` reserva entre el límit
+       de la columna i la primera cel·la. Sense aquest extra, el primer
+       marcador (0%) cau sobre el final de la soundline en lloc de sobre
+       la primera columna real de la matriu.
+     - --tl-side-pad: 0 — el header ocupa exactament l'amplada del wrapper. */
+  --com-band-w: calc(var(--plano-soundline-width, 50px) + var(--plano-margin-left, 15px));
+  --com-band-h: clamp(1.75rem, 3.2vw, 2.25rem);
+  --com-band-gap: 0.5rem;
+  --tl-side-pad: 0;
+}
+
+/* A App19 el label "Compás" viu DINS la columna soundline (no hi ha el
+   shift de -1.25rem que fa servir App16, on el label sobresurt cap a
+   l'esquerra del timeline). */
+.timeline-wrapper .measure-header__label {
+  left: 0;
+  /* Estretem el label uns píxels respecte el `--com-band-w` perquè el
+     cercle del marcador 1 (a 0% del track) no quedi tapat pel rectangle
+     groc. El track comença on acaba el `--com-band-w` complet, així
+     que mantenim l'alineació horitzontal dels marcadors amb les columnes
+     de la matriu. */
+  width: calc(var(--com-band-w) - 0.75rem);
 }
 
 /* Plano grid fills available space, controls stay below */

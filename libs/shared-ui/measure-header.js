@@ -1,21 +1,24 @@
-// Compás header ("Com.") — specific to App16.
+// Compás header ("Com.") — reusable measure-bar widget.
 //
 // Visually mirrors the measure bar of the Nuzic main app: a yellow label
-// on the left with "Com.", a track that spans the timeline, and circle
+// on the left with "Compás", a track that spans the timeline, and circle
 // markers above the first pulse of each measure (1, 2, ...). Marker 1
 // also shows the beat value (pulsos-per-measure). A vertical yellow bar
 // at the end connects with the timeline's double-bar closure.
 //
-// Alignment: the track width matches the timeline's inner area, and each
-// marker is positioned by percentage using the same formula as the
-// pulse-number elements (`(cycleIndex * compas / totalPulses) * 100`).
+// Alignment: the track width matches the host timeline/grid's inner area,
+// and each marker is positioned by percentage `(cycleIndex / cycles) * 100`.
+// Used by App16 (linear timeline) and App19 (plano-modular grid).
 
 export function createMeasureHeader({ container }) {
   if (!container) return null;
 
+  // Label visual a l'esquerra (rectangle groc): es deixa SENSE text per
+  // mantenir el bloc com a element decoratiu/identitatiu, alineat amb la
+  // banda groga de la timeline. El context (la presència del header) ja
+  // comunica que estem parlant del compàs.
   const labelEl = document.createElement('div');
   labelEl.className = 'measure-header__label';
-  labelEl.textContent = 'Compás';
 
   const trackEl = document.createElement('div');
   trackEl.className = 'measure-header__track';
