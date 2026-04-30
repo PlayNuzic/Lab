@@ -49,15 +49,21 @@ const CONFIG = {
   MIDI_OFFSET: 12
 };
 
-// Screen definitions: 3 snap positions (bottom registry of each pair)
-// Screen 0: "3 y 4" (bottom), Screen 1: "4 y 5", Screen 2: "5 y 6" (top)
-// lastRow = last row index that must be visible at the bottom of the screen
+// Screen definitions: 4 snap positions, una per registre (3, 4, 5, 6).
+// Cada pantalla mostra les 12 notes (0-11) d'un sol registre amb el `0rN`
+// (la base) ancorat a la part inferior de la finestra.
+// Mapeig de files (de dalt a baix, 12 notes per registre):
+//   r6: rows 0-11   (11r6 dalt, 0r6 baix)
+//   r5: rows 12-23  (11r5 dalt, 0r5 baix)
+//   r4: rows 24-35  (11r4 dalt, 0r4 baix)
+//   r3: rows 36-47  (11r3 dalt, 0r3 baix)
 const CELL_H = 26;  // Must match --plano-cell-height in styles.css
 const HALF_CELL = CELL_H / 2;
 const SCREENS = [
-  { label: '3 y 4', firstRow: 27, lastRow: 47 },  // 0r3 (row 47) to 8r4 (row 27)
-  { label: '4 y 5', firstRow: 12, lastRow: 35 },  // 0r4 (row 35) to 0r5 (row 23)
-  { label: '5 y 6', firstRow: 0,  lastRow: 23 }   // 0r5 (row 23) to 11r6 (row 0)
+  { label: '3', registro: 3, firstRow: 36, lastRow: 47 },  // 0r3 a baix
+  { label: '4', registro: 4, firstRow: 24, lastRow: 35 },  // 0r4 a baix
+  { label: '5', registro: 5, firstRow: 12, lastRow: 23 },  // 0r5 a baix
+  { label: '6', registro: 6, firstRow: 0,  lastRow: 11 }   // 0r6 a baix
 ];
 
 // ========== STATE ==========
@@ -65,7 +71,7 @@ let isPlaying = false;
 let audio = null;
 let tapTempoHandler = null;
 let mixerSaveTimeout = null;
-let currentScreen = 0;  // Index into SCREENS array (starts at "3 y 4")
+let currentScreen = 0;  // Index into SCREENS array (starts at "3")
 
 // Input values
 let compas = null;      // null = empty, 1-7 = value
@@ -343,7 +349,7 @@ function updateGrid() {
 
 /**
  * Scroll to a specific screen (quantized snap position).
- * @param {number} screenIndex - 0="3 y 4", 1="4 y 5", 2="5 y 6"
+ * @param {number} screenIndex - 0="3", 1="4", 2="5", 3="6"
  * @param {boolean} animated - Use smooth scroll
  */
 /**
@@ -937,7 +943,7 @@ function setupEventHandlers() {
 function setupHovers() {
   attachHover(elements.inputCompas, 'Compás (pulsos por ciclo)');
   attachHover(elements.inputCycle, 'Nº de compases a tocar');
-  attachHover(elements.registroText, 'Registros visibles (octavas)');
+  attachHover(elements.registroText, 'Registro visible (octava)');
   attachHover(elements.inputBpm, 'Tempo en pulsos por minuto');
   attachHover(elements.playBtn, 'Reproducir / Detener');
   attachHover(elements.randomBtn, 'Valores aleatorios');
@@ -956,7 +962,7 @@ registerFactoryReset({
     // Reset UI
     if (elements.inputCompas) elements.inputCompas.value = compas;
     if (elements.inputCycle) elements.inputCycle.value = cycles;
-    if (elements.registroText) elements.registroText.value = '3 y 4';
+    if (elements.registroText) elements.registroText.value = String(CONFIG.DEFAULT_REGISTRO);
     if (elements.cycleDigit) elements.cycleDigit.textContent = String(cycles);
 
     // Reset BPM
@@ -1157,11 +1163,13 @@ function initApp() {
   updateLongitud();
   updateGridVisibility();
 
-  // Position to screen "3 y 4" AFTER the preset's setRegistry(4) has completed.
-  // The preset uses setTimeout(0)+rAF, so we use a longer delay to run after it.
+  // Position to screen "4" (CONFIG.DEFAULT_REGISTRO) AFTER the preset's
+  // setRegistry has completed. The preset uses setTimeout(0)+rAF, so we
+  // use a longer delay to run after it.
   setTimeout(() => {
     requestAnimationFrame(() => {
-      scrollToScreen(0, false);
+      const defaultIdx = SCREENS.findIndex(s => s.registro === CONFIG.DEFAULT_REGISTRO);
+      scrollToScreen(defaultIdx >= 0 ? defaultIdx : 0, false);
     });
   }, 100);
 
