@@ -376,6 +376,11 @@ export function createPlanoModular(config) {
       return playheadController ? playheadController.isVisible() : false;
     },
 
+    /** @returns {number} Última columna assignada al playhead, o -1 si no n'hi ha. */
+    getPlayheadColumn() {
+      return playheadController ? playheadController.getCurrentColumn() : -1;
+    },
+
     // Highlight API (for playback)
     highlightCell(rowId, colIndex, duration = 0, options = {}) {
       // Include cycleConfig.compas for modular pulse calculation

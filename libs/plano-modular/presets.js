@@ -344,7 +344,8 @@ export function createApp19Grid(config) {
     onCellClick,
     onSelectionChange,
     defaultRegistry = 4,
-    registryConfig: customRegistryConfig = {}
+    registryConfig: customRegistryConfig = {},
+    playheadOffset = 0
   } = config;
 
   // Create with App19 defaults, allowing overrides via customRegistryConfig
@@ -363,6 +364,7 @@ export function createApp19Grid(config) {
     cycleConfig,
     bpm,
     selectionMode: 'monophonic',
+    playheadOffset,
     onCellClick,
     onSelectionChange,
     showPlayhead: true

@@ -198,7 +198,16 @@ function initGrid() {
   grid = createApp19Grid({
     parent: gridContainer,
     columns: getTotalPulses() || 1,
-    columnSizing: 'fr',
+    // 'px' = cel·les amb amplada fixa basada en `visibleColumns` (12).
+    // Quan totalPulses excedeix les visibles, la matriu activa scroll
+    // horitzontal en lloc de comprimir les cel·les. Vegeu
+    // `getCellWidthDynamic` a libs/plano-modular/index.js.
+    columnSizing: 'px',
+    // Compensa el `marginLeft: -4px` que el component aplica al playhead
+    // (libs/plano-modular/plano-playhead.js, createPlayhead) més 3px de
+    // fine-tune visual perquè caigui exactament sobre el centre del
+    // np-dot. Verificat visualment.
+    playheadOffset: 7,
     cycleConfig: {
       compas: compas || 1,
       showCycle: true
@@ -232,7 +241,16 @@ function initGrid() {
       // Render inicial si ja tenim valors.
       if (compas != null && cycles != null) {
         measureHeader.render(compas, cycles);
-        requestAnimationFrame(() => syncMeasureHeaderBandWidth());
+        requestAnimationFrame(() => requestAnimationFrame(() => syncMeasureHeaderBandWidth()));
+      }
+      // Quan l'usuari fa scroll horitzontal a la matriu (compassos > 12),
+      // les cel·les es desplacen però el header és fora del scroll: cal
+      // recalcular les posicions dels marcadors a cada scroll.
+      const matrixContainer = gridContainer.querySelector('.plano-matrix-container');
+      if (matrixContainer) {
+        matrixContainer.addEventListener('scroll', () => {
+          syncMeasureHeaderBandWidth();
+        }, { passive: true });
       }
     }
   }
@@ -271,6 +289,25 @@ function syncMeasureHeaderBandWidth() {
   const rightOffset = headerRect.right - matrixRect.right;
   headerEl.style.setProperty('--com-band-w', `${Math.max(0, left)}px`);
   headerEl.style.setProperty('--com-band-track-right', `${rightOffset}px`);
+
+  // Reposiciona cada marcador del header sobre el P(0) real del seu
+  // compàs (mateix patró que App20). El render base del component
+  // utilitza percentatges sobre el track, que NO coincideixen amb les
+  // columnes quan `columnSizing: 'px'` deixa franja buida. Mesurem la
+  // cel·la `colIndex = i * compas` i traduïm la seva x al track-space.
+  const trackEl = headerEl.querySelector('.measure-header__track');
+  if (!trackEl || compas == null || cycles == null) return;
+  const trackRect = trackEl.getBoundingClientRect();
+  if (!trackRect.width) return;
+  const markers = headerEl.querySelectorAll('.measure-marker');
+  markers.forEach((marker, i) => {
+    const colIndex = i * compas;
+    const cell = matrix.querySelector(`.plano-cell[data-col-index="${colIndex}"]`);
+    if (!cell) return;
+    const cellRect = cell.getBoundingClientRect();
+    const px = cellRect.left - trackRect.left;
+    marker.style.setProperty('--marker-left', `${px}px`);
+  });
 }
 
 // Resincronitza l'amplada del label en redimensionar la finestra (la
@@ -278,6 +315,15 @@ function syncMeasureHeaderBandWidth() {
 // labels arrodoneixin diferent).
 window.addEventListener('resize', () => {
   if (measureHeader) syncMeasureHeaderBandWidth();
+  // El playhead usa `cellWidth = matrixContainer.clientWidth / 12`, així
+  // que canvia amb el resize. Si està visible, repintem-lo a la columna
+  // actual perquè se reposicioni amb la nova mida de cel·la.
+  if (grid && grid.isPlayheadVisible && grid.isPlayheadVisible()) {
+    const col = grid.getPlayheadColumn?.();
+    if (typeof col === 'number' && col >= 0) {
+      grid.updatePlayhead(col);
+    }
+  }
 });
 
 /**
@@ -338,11 +384,13 @@ function updateGrid() {
   }
 
   // Mantenim el measure-header sincronitzat amb compas + cycles.
+  // Amb `columnSizing: 'px'`, l'amplada total de la matriu canvia amb
+  // cada canvi de compas/cycles. Doble rAF perquè el grid apliqui la
+  // nova `grid-template-columns: repeat(N, Wpx)` abans de mesurar amb
+  // getBoundingClientRect.
   if (measureHeader) {
     measureHeader.render(compas, cycles);
-    // Esperem un frame perquè el grid hagi aplicat les noves columnes
-    // abans de mesurar amb getBoundingClientRect.
-    requestAnimationFrame(() => syncMeasureHeaderBandWidth());
+    requestAnimationFrame(() => requestAnimationFrame(() => syncMeasureHeaderBandWidth()));
   }
 }
 
