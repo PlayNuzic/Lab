@@ -402,6 +402,26 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       i descartada — no la fa servir cap app després de la reescriptura
       d'App18 al patró `.bpm-inline`.
 
+23. **App19 — measure-header reusable + alineament parcial** ⚠️ PARCIAL (2026-04-30)
+    - Mòdul `Apps/App16/measure-header.js` mogut a
+      `libs/shared-ui/measure-header.{js,css}`. App16 segueix funcionant
+      idèntic; App19 l'utilitza ara per mostrar la barra de compassos
+      sobre la graella plano-modular.
+    - Eliminat el text "Compás" del label esquerre (afecta App16 i App19;
+      el rectangle groc queda com a element decoratiu).
+    - El track del header llegeix `--com-band-track-right` (default 0)
+      per permetre que l'app contenidora retalli el track des de la
+      dreta. App19 calcula `--com-band-w` i `--com-band-track-right`
+      mesurant `.plano-matrix` vs. `.measure-header` via
+      `getBoundingClientRect`.
+    - **❌ NO RESOLT**: els marcadors del header es desplacen
+      progressivament cap a l'esquerra a mesura que augmenta el cycle
+      index (cercle 1 ok, cercle 2 lleument off, cercle 3 visiblement
+      off). El track JS calculat encara no quadra exactament amb la
+      zona de cel·les. Pendent: identificar si la matriu té algun
+      padding intern que escapa al `getBoundingClientRect`, o si cal
+      mesurar després d'un altre layout pass. Veure commit `3cedb39`.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).
