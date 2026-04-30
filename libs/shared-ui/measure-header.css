@@ -52,11 +52,14 @@
 
 /* Track: spans the row with the left edge after the "Compás" label so
    marker percentages (0%, 1/cycles, ...) align with the pulse positions
-   of the timeline/grid. */
+   of the timeline/grid. `--com-band-track-right` (default 0) permet a
+   l'app contenidora reduir el track des de la dreta perquè coincideixi
+   amb el final real de les cel·les (necessari quan la matriu no arriba
+   exactament al límit dret del header). */
 .measure-header__track {
   position: absolute;
   left: var(--com-band-w);
-  right: 0;
+  right: var(--com-band-track-right, 0);
   top: 0;
   bottom: 0;
   overflow: visible;

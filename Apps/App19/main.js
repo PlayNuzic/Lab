@@ -226,12 +226,49 @@ function initGrid() {
       // Render inicial si ja tenim valors.
       if (compas != null && cycles != null) {
         measureHeader.render(compas, cycles);
+        requestAnimationFrame(() => syncMeasureHeaderBandWidth());
       }
     }
   }
 
   console.log('Grid initialized with plano-modular');
 }
+
+/**
+ * Sincronitza el track del measure-header amb la zona real de cel·les
+ * de la matriu. Mesurem la posició de la primera i l'última cel·la i
+ * apliquem `--com-band-w` (esquerra) i `--com-band-track-right`
+ * (offset des de la dreta del header) com inline-styles. Així el track
+ * arriba al mateix pixel on acaben les cel·les, independentment de
+ * gaps, padding o overflow horitzontal de la matriu.
+ */
+function syncMeasureHeaderBandWidth() {
+  const headerEl = document.getElementById('measureHeader');
+  if (!headerEl) return;
+
+  const matrix = document.querySelector('.plano-matrix');
+  if (!matrix) return;
+
+  // Mesurem el `.plano-matrix` complet (que inclou només les cel·les; no
+  // soundline ni timeline). Així la zona del track del header coincideix
+  // exactament amb la zona ocupada per les columnes 1fr de la matriu —
+  // sigui quina sigui l'amplada real de la soundline o el margin-left.
+  const headerRect = headerEl.getBoundingClientRect();
+  const matrixRect = matrix.getBoundingClientRect();
+  if (!headerRect.width) return;
+
+  const left = matrixRect.left - headerRect.left;
+  const rightOffset = headerRect.right - matrixRect.right;
+  headerEl.style.setProperty('--com-band-w', `${Math.max(0, left)}px`);
+  headerEl.style.setProperty('--com-band-track-right', `${Math.max(0, rightOffset)}px`);
+}
+
+// Resincronitza l'amplada del label en redimensionar la finestra (la
+// soundline pot canviar de mida quan el viewport canvia i fa que els
+// labels arrodoneixin diferent).
+window.addEventListener('resize', () => {
+  if (measureHeader) syncMeasureHeaderBandWidth();
+});
 
 /**
  * Add decorative np-dot elements to all grid cells (bottom-left corner).
@@ -293,6 +330,9 @@ function updateGrid() {
   // Mantenim el measure-header sincronitzat amb compas + cycles.
   if (measureHeader) {
     measureHeader.render(compas, cycles);
+    // Esperem un frame perquè el grid hagi aplicat les noves columnes
+    // abans de mesurar amb getBoundingClientRect.
+    requestAnimationFrame(() => syncMeasureHeaderBandWidth());
   }
 }
 
