@@ -191,6 +191,24 @@ body.app20 {
   overflow: hidden;
   position: relative;
   z-index: 2;
+
+  /* Vars del measure-header compartit (mateix patró que App19).
+     `--com-band-w` i `--com-band-track-right` són overrides via JS al
+     mount (syncMeasureHeaderBandWidth) — el valor inicial aquí serveix
+     com a fallback abans del primer requestAnimationFrame. */
+  --com-band-w: calc(var(--plano-soundline-width, 50px) + var(--plano-margin-left, 15px));
+  --com-band-h: clamp(1.75rem, 3.2vw, 2.25rem);
+  --com-band-gap: 0.5rem;
+  --tl-side-pad: 0;
+  --measure-marker-x-offset: 2px;
+}
+
+/* Label "Compás" enganxat al límit esquerre del wrapper, lleugerament
+   estret perquè el cercle del marcador 1 (a 0% del track) no quedi
+   tapat pel rectangle groc. */
+.timeline-wrapper .measure-header__label {
+  left: 0;
+  width: calc(var(--com-band-w) - 0.75rem);
 }
 
 /* Plano grid fills available space, editor + controls stay below */

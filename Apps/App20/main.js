@@ -28,6 +28,7 @@ import { createGrid2DSyncController } from '../../libs/app-common/grid-2d-sync-c
 import { createIntervalNoteDragHandler } from '../../libs/app-common/interval-note-drag.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
 import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
+import { createMeasureHeader } from '../../libs/shared-ui/measure-header.js';
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
@@ -106,6 +107,7 @@ let cycles = null;      // null = empty, 1-4 = value
 
 // Grid instance (plano-modular)
 let grid = null;
+let measureHeader = null;
 
 // Grid editor instance (NrX-iT zigzag)
 let gridEditor = null;
@@ -412,8 +414,57 @@ function initGrid() {
   // Attach drag listeners
   dragHandler.attach();
 
+  // Insertem el "Compás" header just abans del .plano-container, dins del
+  // mateix .timeline-wrapper. Mateix patró que App19 (vegeu SESSION_STATE
+  // entrada 23). L'amplada del label esquerre i del track es sincronitzen
+  // dinàmicament amb la geometria real del .plano-matrix via
+  // syncMeasureHeaderBandWidth().
+  if (gridContainer && !document.getElementById('measureHeader')) {
+    const planoContainer = gridContainer.querySelector('.plano-container');
+    if (planoContainer) {
+      const headerEl = document.createElement('section');
+      headerEl.id = 'measureHeader';
+      headerEl.className = 'measure-header is-empty';
+      gridContainer.insertBefore(headerEl, planoContainer);
+      measureHeader = createMeasureHeader({ container: headerEl });
+      if (compas != null && cycles != null) {
+        measureHeader.render(compas, cycles);
+        requestAnimationFrame(() => syncMeasureHeaderBandWidth());
+      }
+    }
+  }
+
   console.log('Grid initialized with plano-modular + modular controllers');
 }
+
+/**
+ * Sincronitza el track del measure-header amb la zona real de cel·les
+ * de la matriu (mateix patró que App19). El `--com-band-track-right`
+ * conserva el signe perquè a App20 la matriu té width:100% + un petit
+ * margin-left, i el seu costat dret pot sobresortir uns píxels del
+ * header. Sense això, el clamp a 0 produiria desplaçament progressiu
+ * dels marcadors.
+ */
+function syncMeasureHeaderBandWidth() {
+  const headerEl = document.getElementById('measureHeader');
+  if (!headerEl) return;
+
+  const matrix = document.querySelector('.plano-matrix');
+  if (!matrix) return;
+
+  const headerRect = headerEl.getBoundingClientRect();
+  const matrixRect = matrix.getBoundingClientRect();
+  if (!headerRect.width) return;
+
+  const left = matrixRect.left - headerRect.left;
+  const rightOffset = headerRect.right - matrixRect.right;
+  headerEl.style.setProperty('--com-band-w', `${Math.max(0, left)}px`);
+  headerEl.style.setProperty('--com-band-track-right', `${rightOffset}px`);
+}
+
+window.addEventListener('resize', () => {
+  if (measureHeader) syncMeasureHeaderBandWidth();
+});
 
 /**
  * Update grid when parameters change
@@ -430,6 +481,12 @@ function updateGrid() {
     if (syncController) {
       syncController.refreshDots();
     }
+  }
+
+  // Mantenim el measure-header sincronitzat amb compas + cycles.
+  if (measureHeader) {
+    measureHeader.render(compas, cycles);
+    requestAnimationFrame(() => syncMeasureHeaderBandWidth());
   }
 }
 
