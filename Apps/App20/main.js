@@ -83,23 +83,31 @@ function validateNoteRegistry(note, registry) {
   return { valid: true };
 }
 
-// Screen definitions: 3 snap positions
-// 21 visible rows → 0rX to 6r(X+1) visible per screen
+// Screen definitions: 4 snap positions, una per registre (3, 4, 5, 6).
+// Cada pantalla mostra les 12 notes (0-11) d'un sol registre amb el `0rN`
+// (la base) ancorat a la part inferior de la finestra.
 // Grid rows: 11r6=0, 10r6=1, ... 0r6=11, 11r5=12, ... 0r3=47
 const CELL_H = 26;  // Must match --plano-cell-height in styles.css
 const HALF_CELL = CELL_H / 2;
 const SCREENS = [
-  { label: '3 y 4', bottomReg: 3, firstRow: 29, lastRow: 47 },  // 0r3(47) to 6r4(29)
-  { label: '4 y 5', bottomReg: 4, firstRow: 17, lastRow: 35 },  // 0r4(35) to 6r5(17)
-  { label: '5 y 6', bottomReg: 5, firstRow: 5,  lastRow: 23 }   // 0r5(23) to 6r6(5)
+  { label: '3', registro: 3, firstRow: 36, lastRow: 47 },  // 0r3 a baix
+  { label: '4', registro: 4, firstRow: 24, lastRow: 35 },  // 0r4 a baix
+  { label: '5', registro: 5, firstRow: 12, lastRow: 23 },  // 0r5 a baix
+  { label: '6', registro: 6, firstRow: 0,  lastRow: 11 }   // 0r6 a baix
 ];
+
+/** Index dins SCREENS del registre per defecte (CONFIG.DEFAULT_REGISTRO). */
+function getDefaultScreenIndex() {
+  const idx = SCREENS.findIndex(s => s.registro === CONFIG.DEFAULT_REGISTRO);
+  return idx >= 0 ? idx : 0;
+}
 
 // ========== STATE ==========
 let isPlaying = false;
 let audio = null;
 let tapTempoHandler = null;
 let mixerSaveTimeout = null;
-let currentScreen = 0;  // Index into SCREENS array (starts at "3 y 4")
+let currentScreen = 0;  // Index into SCREENS array (starts at registre 3)
 
 // Input values
 let compas = null;      // null = empty, 1-7 = value
@@ -1716,8 +1724,8 @@ function handleReset() {
   updateGrid();
   updateGridEditorMaxPulse();
 
-  // Reset registry AFTER updateGrid so the grid exists
-  scrollToScreen(0, false);
+  // Reset registry AFTER updateGrid so the grid exists.
+  scrollToScreen(getDefaultScreenIndex(), false);
 
   elements.inputCompas?.focus();
   console.log('Reset complete');
@@ -1845,7 +1853,7 @@ function setupEventHandlers() {
 function setupHovers() {
   attachHover(elements.inputCompas, 'Compás (pulsos por ciclo)');
   attachHover(elements.inputCycle, 'Nº de compases a tocar');
-  attachHover(elements.registroText, 'Registros visibles (octavas)');
+  attachHover(elements.registroText, 'Registro visible (octava)');
   attachHover(elements.inputBpm, 'Tempo en pulsos por minuto');
   attachHover(elements.playBtn, 'Reproducir / Detener');
   attachHover(elements.randomBtn, 'Valores aleatorios');
@@ -1864,14 +1872,14 @@ registerFactoryReset({
     // Reset UI
     if (elements.inputCompas) elements.inputCompas.value = compas;
     if (elements.inputCycle) elements.inputCycle.value = cycles;
-    if (elements.registroText) elements.registroText.value = '3 y 4';
+    if (elements.registroText) elements.registroText.value = String(CONFIG.DEFAULT_REGISTRO);
     if (elements.cycleDigit) elements.cycleDigit.textContent = String(cycles);
 
     // Reset BPM
     bpmController?.setValue(CONFIG.DEFAULT_BPM);
 
-    // Reset registry (show registries 3 and 4)
-    scrollToScreen(0, false);
+    // Reset registry (show DEFAULT_REGISTRO)
+    scrollToScreen(getDefaultScreenIndex(), false);
 
     // Clear grid-editor
     gridEditor?.clear();
@@ -2106,10 +2114,11 @@ function initApp() {
   updateLongitud();
   updateGridVisibility();
 
-  // Position to screen "3 y 4" AFTER the preset's setRegistry(4) has completed
+  // Position to default registry's screen AFTER the preset's setRegistry
+  // has completed (uses setTimeout(0)+rAF, so we run after).
   setTimeout(() => {
     requestAnimationFrame(() => {
-      scrollToScreen(0, false);
+      scrollToScreen(getDefaultScreenIndex(), false);
     });
   }, 100);
 
