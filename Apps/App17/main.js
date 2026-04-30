@@ -770,6 +770,23 @@ function decrementCycle() {
 // RANDOM
 // ============================================
 
+// Debounced auto-play comú per a canvis de pulsos/cycles via random.
+// Si ja estem reproduint, atura i recomença amb el nou estat.
+const AUTO_PLAY_DELAY = 250;
+let autoPlayTimer = null;
+function scheduleAutoPlay() {
+  clearTimeout(autoPlayTimer);
+  autoPlayTimer = setTimeout(() => {
+    if (pulsosCompas == null || cycles == null) return;
+    if (isPlaying) {
+      stopPlayback();
+      requestAnimationFrame(() => handlePlay());
+    } else {
+      handlePlay();
+    }
+  }, AUTO_PLAY_DELAY);
+}
+
 function handleRandom() {
   const maxPulsos = parseInt(document.getElementById('randPulsosMax')?.value || '12', 10);
   const maxCycles = parseInt(document.getElementById('randCyclesMax')?.value || '8', 10);
@@ -779,6 +796,7 @@ function handleRandom() {
 
   handleCompasChange(newPulsos);
   handleCycleChange(newCycles);
+  scheduleAutoPlay();
 }
 
 // ============================================

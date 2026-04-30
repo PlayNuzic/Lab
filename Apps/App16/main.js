@@ -515,6 +515,25 @@ function decrementCompas() {
 // RANDOM
 // ============================================
 
+// Debounced auto-play comú per als canvis de `compas` (input, spinners,
+// random). Si ja estem reproduint, atura i recomença amb el nou valor;
+// si no, simplement inicia. El debounce evita stop+play en cascada
+// quan l'usuari clica spinners ràpid o escriu múltiples dígits.
+const AUTO_PLAY_DELAY = 250;
+let autoPlayTimer = null;
+function scheduleAutoPlay() {
+  clearTimeout(autoPlayTimer);
+  autoPlayTimer = setTimeout(() => {
+    if (compas == null) return;
+    if (isPlaying) {
+      stopPlayback();
+      requestAnimationFrame(() => handlePlay());
+    } else {
+      handlePlay();
+    }
+  }, AUTO_PLAY_DELAY);
+}
+
 function handleRandom() {
   const maxCompas = parseInt(document.getElementById('randCompasMax')?.value || String(MAX_COMPAS), 10);
   const min = 1;
@@ -522,6 +541,7 @@ function handleRandom() {
   const newCompas = Math.floor(Math.random() * (max - min + 1)) + min;
 
   handleCompasChange(newCompas);
+  scheduleAutoPlay();
 }
 
 // ============================================
@@ -650,18 +670,26 @@ async function initializeApp() {
   // Give focus to input so user can start typing
   inputCompas?.focus();
 
-  // Compás input events
+  // Compás input events. Després d'un canvi vàlid, `scheduleAutoPlay`
+  // (a l'scope de mòdul, més amunt) dispara play amb un petit debounce.
   inputCompas?.addEventListener('input', (e) => {
     handleCompasChange(e.target.value);
+    if (e.inputType === 'insertText' && /^[0-9]$/.test(e.data)) {
+      scheduleAutoPlay();
+    }
   });
 
   inputCompas?.addEventListener('blur', () => {
     handleCompasChange(inputCompas.value);
   });
 
-  // Spinner buttons with auto-repeat
-  attachSpinnerRepeat(compasUpBtn, incrementCompas);
-  attachSpinnerRepeat(compasDownBtn, decrementCompas);
+  // Spinner buttons with auto-repeat. També disparen auto-play quan
+  // l'usuari canvia el valor amb +/− (després d'un debounce perquè els
+  // clicks consecutius no facin spam de stop+play).
+  const compasUpWithAutoPlay = () => { incrementCompas(); scheduleAutoPlay(); };
+  const compasDownWithAutoPlay = () => { decrementCompas(); scheduleAutoPlay(); };
+  attachSpinnerRepeat(compasUpBtn, compasUpWithAutoPlay);
+  attachSpinnerRepeat(compasDownBtn, compasDownWithAutoPlay);
 
   // Play button
   playBtn?.addEventListener('click', handlePlay);

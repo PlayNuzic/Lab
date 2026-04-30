@@ -378,6 +378,10 @@ function handleRandom() {
   currentBPM = getRandomBPM(MIN_BPM, MAX_BPM);
 
   console.log(`New random: BPM=${currentBPM}, Notes=${randomNotes.join(',')}`);
+
+  // Auto-play: si ja estem reproduint, atura i recomença amb la nova
+  // seqüència. Si no, dispara play.
+  scheduleAutoPlay();
 }
 
 function handleReset() {
@@ -398,23 +402,39 @@ function handleReset() {
 }
 
 // ========== REGISTRY INPUT HANDLERS ==========
-const AUTO_PLAY_DELAY = 250; // ms after typing a digit before auto-firing play
+const AUTO_PLAY_DELAY = 250; // ms after a registry change before auto-firing play
+let autoPlayTimer = null;
+
+/**
+ * Programa una represa de play quan canvia el registre. Si ja s'està
+ * reproduint, atura primer i recomença amb el nou registre — així cada
+ * canvi de registre s'escolta immediatament. Debounced per evitar
+ * stop+play en cascada quan l'usuari clica spinners ràpid o escriu
+ * múltiples dígits.
+ */
+function scheduleAutoPlay() {
+  clearTimeout(autoPlayTimer);
+  autoPlayTimer = setTimeout(() => {
+    if (registryController.getRegistry() == null) return;
+    if (isPlaying) {
+      stopPlayback();
+      requestAnimationFrame(() => handlePlay());
+    } else {
+      handlePlay();
+    }
+  }, AUTO_PLAY_DELAY);
+}
 
 function handleRegistroChange(e) {
   const value = inputRegistro.value.trim();
   registryController.setRegistry(value === '' ? null : value);
   console.log('Registry changed to:', registryController.getRegistry());
 
-  // Auto-play després d'escriure un dígit, si no estem ja reproduint i
-  // tenim un registre vàlid. Aplica només a `insertText` (typing real),
-  // no a paste, increment per fletxa, etc.
+  // Auto-play després d'escriure un dígit. Inclou el cas en què ja
+  // s'està reproduint (atura i recomença amb el nou registre).
   if (e && e.inputType === 'insertText' && /^[0-9]$/.test(e.data)) {
-    setTimeout(() => {
-      if (!isPlaying && registryController.getRegistry() !== null) {
-        inputRegistro.blur();
-        handlePlay();
-      }
-    }, AUTO_PLAY_DELAY);
+    if (!isPlaying) inputRegistro.blur();
+    scheduleAutoPlay();
   }
 }
 
@@ -422,12 +442,14 @@ function handleRegistroUp() {
   registryController.increment();
   inputRegistro.value = registryController.getRegistry() ?? '';
   console.log('Registry changed to:', registryController.getRegistry());
+  scheduleAutoPlay();
 }
 
 function handleRegistroDown() {
   registryController.decrement();
   inputRegistro.value = registryController.getRegistry() ?? '';
   console.log('Registry changed to:', registryController.getRegistry());
+  scheduleAutoPlay();
 }
 
 // ========== EVENT HANDLERS ==========
