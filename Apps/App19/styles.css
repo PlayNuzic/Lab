@@ -216,6 +216,7 @@ body.app19 {
   --com-band-h: clamp(1.75rem, 3.2vw, 2.25rem);
   --com-band-gap: 0.5rem;
   --tl-side-pad: 0;
+  --measure-marker-x-offset: 2px;
 }
 
 /* A App19 el label "Compás" viu DINS la columna soundline (no hi ha el

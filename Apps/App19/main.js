@@ -258,9 +258,13 @@ function syncMeasureHeaderBandWidth() {
   if (!headerRect.width) return;
 
   const left = matrixRect.left - headerRect.left;
+  // Keep the signed offset. In App19 the matrix uses width:100% plus a
+  // small left margin, so its right edge can legitimately overflow the
+  // header by that same margin; clamping to 0 made the header track too
+  // short and produced progressive marker drift.
   const rightOffset = headerRect.right - matrixRect.right;
   headerEl.style.setProperty('--com-band-w', `${Math.max(0, left)}px`);
-  headerEl.style.setProperty('--com-band-track-right', `${Math.max(0, rightOffset)}px`);
+  headerEl.style.setProperty('--com-band-track-right', `${rightOffset}px`);
 }
 
 // Resincronitza l'amplada del label en redimensionar la finestra (la

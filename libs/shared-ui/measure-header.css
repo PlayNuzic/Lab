@@ -8,6 +8,8 @@
  *   --com-band-gap separació entre header i graella/timeline
  *   --tl-side-pad  padding lateral perquè els marcadors s'alineïn amb
  *                  les coordenades internes de la timeline/grid
+ *   --measure-marker-x-offset
+ *                  ajust horitzontal fi dels marcadors (default 0)
  *
  * App16 declara aquestes vars al `.timeline-wrapper`. App19 les declara
  * al `.plano-container`. Així cada app pot ajustar la geometria sense
@@ -52,10 +54,9 @@
 
 /* Track: spans the row with the left edge after the "Compás" label so
    marker percentages (0%, 1/cycles, ...) align with the pulse positions
-   of the timeline/grid. `--com-band-track-right` (default 0) permet a
-   l'app contenidora reduir el track des de la dreta perquè coincideixi
-   amb el final real de les cel·les (necessari quan la matriu no arriba
-   exactament al límit dret del header). */
+   of the timeline/grid. `--com-band-track-right` (default 0) lets the
+   host app match the real cell area; positive values trim the track and
+   negative values extend it when the matrix intentionally overflows. */
 .measure-header__track {
   position: absolute;
   left: var(--com-band-w);
@@ -85,7 +86,7 @@
    rendered to the right of the circle without pushing it off the pulse. */
 .measure-marker {
   position: absolute;
-  left: var(--marker-left, 0%);
+  left: calc(var(--marker-left, 0%) + var(--measure-marker-x-offset, 0px));
   top: 50%;
   transform: translateY(-50%);
   display: flex;

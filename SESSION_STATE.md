@@ -402,7 +402,7 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       i descartada — no la fa servir cap app després de la reescriptura
       d'App18 al patró `.bpm-inline`.
 
-23. **App19 — measure-header reusable + alineament parcial** ⚠️ PARCIAL (2026-04-30)
+23. **App19 — measure-header reusable + alineament resolt** ✅ RESOLT (2026-04-30)
     - Mòdul `Apps/App16/measure-header.js` mogut a
       `libs/shared-ui/measure-header.{js,css}`. App16 segueix funcionant
       idèntic; App19 l'utilitza ara per mostrar la barra de compassos
@@ -414,13 +414,26 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       dreta. App19 calcula `--com-band-w` i `--com-band-track-right`
       mesurant `.plano-matrix` vs. `.measure-header` via
       `getBoundingClientRect`.
-    - **❌ NO RESOLT**: els marcadors del header es desplacen
-      progressivament cap a l'esquerra a mesura que augmenta el cycle
-      index (cercle 1 ok, cercle 2 lleument off, cercle 3 visiblement
-      off). El track JS calculat encara no quadra exactament amb la
-      zona de cel·les. Pendent: identificar si la matriu té algun
-      padding intern que escapa al `getBoundingClientRect`, o si cal
-      mesurar després d'un altre layout pass. Veure commit `3cedb39`.
+    - **Resolució**: el drift progressiu venia del clamp
+      `Math.max(0, rightOffset)`. A App19 la `.plano-matrix` fa
+      `width: 100%` i també té `margin-left: 0.437rem`, de manera que
+      el seu costat dret pot sobresortir uns píxels del header. Ara
+      `--com-band-track-right` conserva el valor signat; si és negatiu,
+      el track s'estén fins al mateix `right` real de la matriu. Verificat
+      amb Chrome headless: track i matrix queden amb el mateix
+      `left/right/width`, i els deltes dels marcadors passen de
+      progressius a constants. Ajust final: App19 declara
+      `--measure-marker-x-offset: 2px` perquè el centre visual dels
+      cercles/línies del header coincideixi exactament amb els `np-dot`
+      de la graella (`markerMinusDot: [0, 0, 0]`).
+    - **Patró futur**: per alinear `measure-header` amb una graella
+      plano-modular, mesura `headerRect` i `matrixRect`, posa
+      `--com-band-w = matrix.left - header.left`, i conserva
+      `--com-band-track-right = header.right - matrix.right` amb signe
+      (pot ser negatiu si la matriu sobresurt). Si després queda un
+      desplaçament constant per diferència entre vora de cel·la i centre
+      visual del punt, ajusta només l'app amb
+      `--measure-marker-x-offset` en lloc de tocar els percentatges.
 
 ### Tasques pendents (feina futura, fora del pla actual)
 
