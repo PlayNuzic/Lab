@@ -85,7 +85,7 @@ export const slideMatrix = [
   { paso:13, section:'ampliando',    title:'Línea temporal en círculo',                                   layout:'B-app-left', apps:['App17'],  aspect:'1/1', group:'circular' },
   { paso:14, section:'ampliando',    title:'El registro de octava',                                       layout:'B-app-left', apps:['App18'],  aspect:'6/5', group:'timeline-vertical' },
   { paso:15, section:'ampliando',    title:'Plano Modular',                                               layout:'B-app-left', apps:['App19'],  aspect:'4/3', group:'plano-multi-pill' },
-  { paso:16, section:'ampliando',    title:'Plano y Sucesión N-iT',                                       layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill' },
+  { paso:16, section:'ampliando',    title:'Sucesión N-iT en Plano Modular',                              layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill' },
   { paso:17, section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'B-app-left', apps:['App26'],  aspect:'2/1', group:'timeline-simple' },
   { paso:18, section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'B-app-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
   { paso:19, section:'fraccionando', title:'Sucesión de iT Fraccionados Simples',                         layout:'B-app-left', apps:['App30'],  aspect:'2/1', group:'timeline-simple' },
@@ -276,6 +276,16 @@ export const slideContent = {
 <p>Haz clic en las celdas del plano para crear notas. Usa el scroll o los spinners para moverte entre los registros.</p>
 <p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para borrar.</p>
 <p>Usa el scroll vertical para moverte entre registros y el horizontal para moverte por los compases.</p>`,
+  },
+  16: {
+    text: `<p>Podemos crear melodías desde las <b>posiciones</b> (par N-P), como en el paso 6, o desde los <b>movimientos</b> (par iS-iT), como en el paso 10. Ahora vamos a crear melodías usando <strong>posiciones</strong> y <strong>distancias</strong>: escogiendo directamente la nota y asignándole una duración.</p>
+<p>La <strong>sucesión N-iT</strong> define cada nota y cuánto tiempo suena. El número de la <strong>N</strong> nos dice qué nota es, y el número del <strong>iT</strong> nos dice cuántos pasos dura. Juntos crean el par usado en la notación tradicional.</p>
+<p>Observa cómo la misma sucesión de N suena muy diferente si cambias los iT: alargar o acortar las duraciones transforma completamente el carácter de la melodía sin cambiar ninguna nota.</p>
+<p>En el plano modular, las notas llevan su <strong>registro</strong> y los pulsos su <strong>compás</strong>. Así podemos crear melodías que se extiendan por varios registros y varios compases, acercándonos a una composición real.</p>`,
+    tipsTitle: 'Prueba la Sucesión N-iT',
+    tips: `<p>Ajusta Compás, Nº y Compases. El plano se adapta. Usa el editor para crear sucesiones N-iT. O haz clic y arrastra en las celdas del plano.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para borrar.</p>
+<p><strong>Tip:</strong> Esta app combina el par N-iT, que es conceptualmente el par usado al escribir con notación musical.</p>`,
   },
 };
 
