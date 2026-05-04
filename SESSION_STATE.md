@@ -640,6 +640,40 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       depurar amb DevTools al navegador real.
     - Tests: 1445/1445 OK.
 
+30. **App18 — fix clipping de l'animació de notes amb slide de registre** ✅ FET (2026-05-04)
+    - **Diagnòstic real**: la versió 3 retallava el `.soundline-block`
+      amb `overflow: hidden` per amagar la sortida/entrada vertical dels
+      números. Però el `.note-highlight` d'App18 és fill del `.soundline`
+      i surt cap a la dreta amb `left: 100%`; per tant quedava dins d'un
+      ancestre retallat i l'animació blava de nota deixava de ser visible.
+      El problema no era l'àudio ni el timing de samples, sinó el clipping
+      aplicat massa amunt en l'arbre DOM.
+    - **Solució aplicada**:
+      a. `Apps/App18/main.js`: després de `createSoundline()`, els
+         `.soundline-number` es mouen a una capa interna
+         `.soundline-number-window > .soundline-numbers-track`.
+      b. `animateRegistrySlide()` ja no transforma el `.soundline` sencer:
+         clona només la pista de números antiga, redibuixa, i anima old/new
+         tracks dins la finestra de números.
+      c. `Apps/App18/styles.css`: `.soundline-block` torna a
+         `overflow: visible`; el clipping queda restringit a
+         `.soundline-number-window { overflow: hidden }`. Això manté el
+         fons rosa fix i el scroll vertical dels números, però deixa que
+         `.note-highlight` s'estengui fora de la barra.
+      d. Ajust de sensació visual: transició de números alentida de
+         220ms a 620ms i `AUTO_PLAY_DELAY` pujat a 700ms perquè el so
+         entri després que el scroll s'hagi assentat.
+    - **Criteri professional**: correcte separar capes per responsabilitat:
+      fons fix + superfície interactiva estable + finestra retallada només
+      pels números. És més robust que transformar el contenidor complet
+      perquè no barreja animació decorativa amb elements de playback/click.
+    - Tests: `npm test -- --runInBand` → 73 suites / 1445 tests OK.
+      Jest continua mostrant l'open-handle conegut després del resum i s'ha
+      aturat manualment el procés.
+    - Retest després de pujar a 620ms:
+      `npm test -- --runInBand libs/sound/__tests__/registry-controller.test.js libs/sound/__tests__/melodic-sequence.test.js`
+      → 2 suites / 60 tests OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).

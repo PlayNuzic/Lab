@@ -64,60 +64,82 @@ const registryController = createRegistryController({
 });
 
 // Slide duration must match the CSS transition; kept in JS so we can
-// schedule the cleanup of the old numbers track at the end. Stay under
-// `AUTO_PLAY_DELAY` (250ms) so the slide finishes — and the new numbers
-// are hoisted back as direct `.soundline` children — before auto-play
-// starts spawning `.note-highlight` rectangles.
-const REGISTRY_SLIDE_MS = 220;
+// schedule cleanup of the outgoing numbers track. `AUTO_PLAY_DELAY` is
+// slightly longer so playback starts after the registry-scroll settles.
+const REGISTRY_SLIDE_MS = 620;
 
 /**
- * Octave-scroll animation. The pink background lives on the
- * `.soundline-block` (added in CSS) so the inner `.soundline` itself
- * can ride one full registry up or down. We clone the current
- * `.soundline` as an out-going overlay, then slide both the original
- * (now rebuilt with the new registry's labels) and the overlay in
- * sync.
+ * Move the number labels into their own clipped layer. The soundline
+ * remains untransformed and overflow-visible, so note highlights can
+ * extend to the right without being clipped by the registry-scroll effect.
+ */
+function createNumbersTrack(soundlineEl) {
+  const labels = Array.from(soundlineEl.querySelectorAll(':scope > .soundline-number'));
+  if (labels.length === 0) return null;
+
+  const windowEl = document.createElement('div');
+  windowEl.className = 'soundline-number-window';
+
+  const track = document.createElement('div');
+  track.className = 'soundline-numbers-track';
+
+  labels.forEach(label => track.appendChild(label));
+  windowEl.appendChild(track);
+  soundlineEl.appendChild(windowEl);
+
+  return { windowEl, track };
+}
+
+/**
+ * Octave-scroll animation. Only the label track rides one full registry
+ * up or down over the fixed pink background. We clone the current numbers
+ * track as an outgoing overlay, redraw the soundline with the new labels,
+ * then slide both tracks in sync.
  *
  * @param {'up'|'down'} direction - 'up' if the registry increased.
  */
 function animateRegistrySlide(direction) {
   const oldSoundline = soundline?.element;
-  const block = oldSoundline?.parentElement;
-  if (!oldSoundline || !block) {
+  const oldTrack = oldSoundline?.querySelector('.soundline-numbers-track');
+  if (!oldSoundline || !oldTrack) {
     drawSoundline();
     return;
   }
 
-  // 1) Clone the current soundline as an absolutely-positioned overlay
-  //    that will slide off in the chosen direction.
-  const overlay = oldSoundline.cloneNode(true);
-  overlay.classList.add('soundline-slide-overlay');
+  // 1) Clone the current labels as an absolutely-positioned overlay that
+  //    will slide off in the chosen direction.
+  const overlay = oldTrack.cloneNode(true);
+  overlay.classList.add('soundline-numbers-track--overlay');
 
   // 2) Redraw the real soundline with the new registry's labels.
   drawSoundline();
   const newSoundline = soundline?.element;
-  const newBlock = newSoundline?.parentElement;
-  if (!newSoundline || !newBlock) return;
+  const newWindow = newSoundline?.querySelector('.soundline-number-window');
+  const newTrack = newSoundline?.querySelector('.soundline-numbers-track');
+  if (!newSoundline || !newWindow || !newTrack) return;
 
-  // 3) Mount the overlay over the new soundline.
-  newBlock.appendChild(overlay);
+  // 3) Mount the old labels over the new label track, inside the clipped
+  //    numbers window only.
+  newWindow.appendChild(overlay);
 
-  // 4) Set initial transforms: overlay at home (0), new soundline
-  //    pre-shifted offscreen on the opposite side. Direction 'up'
-  //    (registry increased) ⇒ overlay leaves through the top, new
-  //    soundline arrives from the bottom.
+  // 4) Set initial transforms: overlay at home (0), new labels pre-shifted
+  //    offscreen on the opposite side. Direction 'up' (registry increased)
+  //    means old labels leave through the top and new labels arrive from
+  //    the bottom.
   const overlayEndY = direction === 'up' ? -100 : 100;
   const newStartY = direction === 'up' ? 100 : -100;
-  newSoundline.style.transition = 'none';
-  newSoundline.style.transform = `translateY(${newStartY}%)`;
+  newTrack.style.transition = 'none';
+  newTrack.style.transform = `translateY(${newStartY}%)`;
+  overlay.style.transform = 'translateY(0)';
+  overlay.style.opacity = '1';
 
   // Force layout so the initial offsets stick before we transition.
-  void newSoundline.offsetHeight;
+  void newTrack.offsetHeight;
 
-  // 5) Kick off the scroll: overlay slides off, new soundline rides home.
+  // 5) Kick off the scroll: overlay slides off, new labels ride home.
   requestAnimationFrame(() => {
-    newSoundline.style.transition = '';
-    newSoundline.style.transform = 'translateY(0)';
+    newTrack.style.transition = '';
+    newTrack.style.transform = 'translateY(0)';
     overlay.style.transform = `translateY(${overlayEndY}%)`;
     overlay.style.opacity = '0';
   });
@@ -125,8 +147,8 @@ function animateRegistrySlide(direction) {
   // 6) Cleanup once the slide finishes.
   setTimeout(() => {
     overlay.remove();
-    newSoundline.style.transition = '';
-    newSoundline.style.transform = '';
+    newTrack.style.transition = '';
+    newTrack.style.transform = '';
   }, REGISTRY_SLIDE_MS + 50);
 }
 
@@ -211,6 +233,7 @@ function drawSoundline() {
     labelFormatter: (noteIndex) => registryController.formatLabel(noteIndex),
     onNoteClick: handleNoteClick
   });
+  createNumbersTrack(soundline.element);
 
   // Wrap the soundline in a `.soundline-block` and prepend the abbr
   // pill (`N`) — same header pattern als App21-24.
@@ -492,7 +515,7 @@ function handleReset() {
 }
 
 // ========== REGISTRY INPUT HANDLERS ==========
-const AUTO_PLAY_DELAY = 250; // ms after a registry change before auto-firing play
+const AUTO_PLAY_DELAY = 700; // ms after a registry change before auto-firing play
 let autoPlayTimer = null;
 
 /**

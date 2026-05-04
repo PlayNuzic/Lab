@@ -202,7 +202,7 @@ body.app18 {
   flex-direction: column;
   align-items: stretch;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .soundline-block .soundline {
@@ -212,22 +212,28 @@ body.app18 {
   margin: 0;
 }
 
-/* Octave-scroll animation: the `.soundline` itself transitions one full
-   registry (12 positions = 100%) over the fixed pink background that
-   the `.soundline-block` paints. The outgoing overlay is a clone of
-   the previous `.soundline`, absolutely stacked on top of the new one.
-   The `body[data-visual="nuzic"]` prefix wins specificity against the
-   theme's `transform: none`. Duration must match `REGISTRY_SLIDE_MS`
-   in main.js. */
-body[data-visual="nuzic"] .soundline-block .soundline {
-  transition: transform 0.22s ease;
+/* Octave-scroll animation: only the number labels live in a clipped
+   window. The `.soundline` itself stays stable and overflow-visible so
+   `.note-highlight` can extend to the right while playback is active.
+   Duration must match `REGISTRY_SLIDE_MS` in main.js. */
+.soundline-number-window {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 2;
 }
 
-body[data-visual="nuzic"] .soundline-block .soundline-slide-overlay {
+.soundline-numbers-track {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.62s ease;
+}
+
+.soundline-numbers-track--overlay {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  transition: transform 0.22s ease, opacity 0.22s ease;
+  transition: transform 0.62s ease, opacity 0.62s ease;
 }
 
 .soundline-abbr-pill {
