@@ -136,9 +136,19 @@ html[data-embed="true"] body.app24 {
 /* App23 lives in a two-column layout (left: soundlines, right: pill +
    step bars + pentagram). The soundline column no longer shares its
    vertical real estate with the pentagram below, so it can claim
-   nearly the full iframe height. The min/max bounds widen with the
-   preferred 97vh so the clamp doesn't kick in at typical iframe sizes
-   (~776px @ 800px viewport). */
+   nearly the full iframe height — capped at 600px so the soundline
+   numbers don't get over-stretched on tall viewports. */
 html[data-embed="true"] body.app23 {
-  --soundlines-height: clamp(20rem, 97vh, 70rem);
+  --soundlines-height: clamp(20rem, 97vh, 600px);
+}
+
+/* App23 vertical mode: when the iframe is narrow (≤600px wide, e.g.
+   paso 24 in the sistema's narrow-viewport mode) the right column
+   drops below the left, so the total content height exceeds the
+   iframe. The default `overflow: hidden` on `main` would clip the
+   bottom; allow scroll so the user can reach the pentagram. */
+@media (max-width: 600px) {
+  html[data-embed="true"] body.app23 main {
+    overflow-y: auto;
+  }
 }

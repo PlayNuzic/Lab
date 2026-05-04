@@ -57,6 +57,48 @@
 }
 
 /* ============================================================================
+   LAYOUT VERTICAL — quan l'iframe és estret (≤600px d'amplada)
+   El sistema (slides.css) força aspect 3/2 al pas 24 quan el viewport
+   del navegador és ≥901px, garantint que l'iframe rebi una amplada
+   prou gran per al layout horitzontal. Per sota d'aquest llindar el
+   sistema apila el text sota l'app, l'iframe rep l'amplada completa
+   del viewport i només cau a vertical quan és realment estret.
+   ============================================================================ */
+
+@media (max-width: 600px) {
+  .timeline-wrapper {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 1rem !important;
+  }
+
+  .app23-left,
+  .app23-right {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  /* Mode vertical: la pastilla viu al seu propi espai, sense
+     posicionament absolut ni transform a les bars. */
+  .app23-right > .bpm-inline.outputnote {
+    position: static;
+    transform: none;
+  }
+
+  .interval-bars-step {
+    transform: none;
+  }
+
+  /* Soundlines més curtes per deixar espai a la columna dreta sota.
+     L'iframe vertical (~533×800) reparteix l'alçada entre les dues
+     columnes apilades; sense aquest cap, la d'esquerra es menjaria
+     tot el viewport i la dreta sortiria del overflow. */
+  body {
+    --soundlines-height: clamp(15rem, 55vh, 30rem);
+  }
+}
+
+/* ============================================================================
    PASTILLA NOTA DE SALIDA (clon del patró bpm-inline d'App18)
    ============================================================================ */
 
