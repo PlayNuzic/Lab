@@ -558,6 +558,30 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       en cap dels casos.
     - Tests: 1445/1445 OK.
 
+27. **App21 — soundlines fins al 0 agut (octava superior)** ✅ FET (2026-05-04)
+    - **Bug**: App21 mostrava la cromàtica 0..11 i la Mayor 0..6, parant
+      al SI (semitò 11) sense incloure el DO agut. App22/23/24 ja
+      arriben al 0 agut (semitò 12 = grau 0 superior).
+    - **Canvis a `Apps/App21/main.js`**:
+      a. Nova constant `MAJOR_SCALE_NOTES_WITH_OCTAVE = [...MAJOR_SCALE_
+         NOTES, 12]` (paral·lela a App23).
+      b. `TOTAL_CHROMATIC: 12 → 13` (notes 0..12).
+      c. `createChromaticLabelFormatter`: `noteIndex === 12 → 0`
+         (mostra "0" agut al top del soundline cromàtic).
+      d. `createScaleLabelFormatter`: `noteIndex === 12 → 0`
+         (grau 0 a la cima de l'escala).
+      e. `applyHighlightColors` rep `MAJOR_SCALE_NOTES_WITH_OCTAVE` →
+         el 0 agut a la cromàtica també queda en selectcolor.
+      f. `initScaleSoundline.visibleNotes`: `MAJOR_SCALE_NOTES →
+         MAJOR_SCALE_NOTES_WITH_OCTAVE` (8 punts visibles).
+      g. `redrawConnectionLines.scaleNotes`: idem.
+      h. `playChromatic`: bucle ara recorre 13 notes (0..12) i
+         comprova `MAJOR_SCALE_NOTES_WITH_OCTAVE.includes(i)` per
+         disparar el highlight a la columna Mayor.
+      i. `playScale`: bucle recorre `MAJOR_SCALE_NOTES_WITH_OCTAVE`
+         (8 notes, DO RE MI FA SOL LA SI DO).
+    - Tests: 1445/1445 OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).

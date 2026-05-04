@@ -28,6 +28,9 @@ let audio = null; // MelodicTimelineAudio instance
 
 // Escala Mayor fija (DIAT modo 0)
 const MAJOR_SCALE_NOTES = scaleSemis('DIAT'); // [0, 2, 4, 5, 7, 9, 11]
+// Versió amb octava (grau 0 superior, semitò 12) per a la visualització
+// completa de l'escala fins al 0 agut.
+const MAJOR_SCALE_NOTES_WITH_OCTAVE = [...MAJOR_SCALE_NOTES, 12];
 
 // Referencias DOM
 let timelineWrapper = null;
@@ -51,7 +54,7 @@ const preferenceStorage = createPreferenceStorage('app21');
 // CONFIGURACIÓN
 // ============================================================================
 
-const TOTAL_CHROMATIC = 12;
+const TOTAL_CHROMATIC = 13; // 0-12 (inclou octava aguda = grau 0 superior)
 const BPM = 75;
 const BASE_MIDI = 60; // C4
 
@@ -93,10 +96,10 @@ function setupInstrumentListener() {
 // ============================================================================
 
 /**
- * Formateador de etiquetas para cromática
+ * Formateador de etiquetas para cromática (nota 12 = 0 agut)
  */
 function createChromaticLabelFormatter() {
-  return (noteIndex) => noteIndex;
+  return (noteIndex) => noteIndex === 12 ? 0 : noteIndex;
 }
 
 function initChromaticSoundline() {
@@ -110,7 +113,8 @@ function initChromaticSoundline() {
   });
 
   // Colorar en selectcolor els números que coincideixen amb la Mayor
-  highlightManager.applyHighlightColors(chromaticSoundline.element, MAJOR_SCALE_NOTES);
+  // (incloent el 0 agut a la nota 12).
+  highlightManager.applyHighlightColors(chromaticSoundline.element, MAJOR_SCALE_NOTES_WITH_OCTAVE);
 }
 
 // ============================================================================
@@ -118,10 +122,12 @@ function initChromaticSoundline() {
 // ============================================================================
 
 /**
- * Formateador de etiquetas para escala: muestra el grado (0-6)
+ * Formateador de etiquetas para escala: muestra el grado (0-6, y 0 para
+ * la octava superior).
  */
 function createScaleLabelFormatter() {
   return (noteIndex) => {
+    if (noteIndex === 12) return 0;
     const degreeIndex = MAJOR_SCALE_NOTES.indexOf(noteIndex);
     return degreeIndex !== -1 ? degreeIndex : '';
   };
@@ -134,7 +140,7 @@ function initScaleSoundline() {
     container: scaleContainer,
     totalNotes: TOTAL_CHROMATIC,
     startMidi: BASE_MIDI,
-    visibleNotes: MAJOR_SCALE_NOTES,
+    visibleNotes: MAJOR_SCALE_NOTES_WITH_OCTAVE,
     labelFormatter: createScaleLabelFormatter()
   });
 
@@ -151,7 +157,7 @@ function redrawConnectionLines() {
     svg: connectionSvg,
     chromaticContainer,
     chromaticSoundline,
-    scaleNotes: MAJOR_SCALE_NOTES
+    scaleNotes: MAJOR_SCALE_NOTES_WITH_OCTAVE
   });
 }
 
@@ -160,7 +166,7 @@ function redrawConnectionLines() {
 // ============================================================================
 
 /**
- * Reproduce la escala cromática (12 notas)
+ * Reproduce la escala cromática (13 notas: 0..12, fins al 0 agut).
  */
 async function playChromatic() {
   if (isPlayingChromatic) {
@@ -195,7 +201,8 @@ async function playChromatic() {
     highlightManager.highlightNote(chromaticSoundline, i, intervalMs * 0.9, 'chromatic');
 
     // També highlight en escala i línia de connexió si la nota està a la Mayor
-    if (MAJOR_SCALE_NOTES.includes(i)) {
+    // (incloent el 0 agut a l'índex 12).
+    if (MAJOR_SCALE_NOTES_WITH_OCTAVE.includes(i)) {
       highlightManager.highlightNote(scaleSoundline, i, intervalMs * 0.9, 'scale');
       highlightManager.highlightConnectionLine(i, intervalMs * 0.9);
     }
@@ -235,10 +242,10 @@ async function playMajorScale() {
   const intervalMs = (60 / BPM) * 1000;
   const noteDuration = intervalMs * 0.9 / 1000;
 
-  for (let i = 0; i < MAJOR_SCALE_NOTES.length; i++) {
+  for (let i = 0; i < MAJOR_SCALE_NOTES_WITH_OCTAVE.length; i++) {
     if (stopScaleRequested) break;
 
-    const semitone = MAJOR_SCALE_NOTES[i];
+    const semitone = MAJOR_SCALE_NOTES_WITH_OCTAVE[i];
     const midi = BASE_MIDI + semitone;
     playNote(midi, noteDuration);
 
