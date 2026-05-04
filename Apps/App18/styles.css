@@ -192,6 +192,38 @@ body.app18 {
   height: 100%;
 }
 
+/* `.soundline-block` agrupa la pastilla abbr i el `.soundline` en una
+   sola "barra" rosa contínua (mateix patró que App21-24). */
+.soundline-block {
+  width: 3.75rem;
+  height: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.soundline-block .soundline {
+  width: 100%;
+  flex: 1 1 auto;
+  height: auto;
+  margin: 0;
+}
+
+.soundline-abbr-pill {
+  width: 100%;
+  height: clamp(2.4rem, 4vw, 3rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--nuzic-pink, #F28AAD);
+  color: var(--nuzic-dark, #43433B);
+  font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 body[data-visual="nuzic"] .soundline-container .soundline {
   background: var(--nuzic-pink-light);
   border-radius: 4px;

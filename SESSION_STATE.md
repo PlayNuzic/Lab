@@ -582,6 +582,23 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
          (8 notes, DO RE MI FA SOL LA SI DO).
     - Tests: 1445/1445 OK.
 
+28. **App18 — pastilla `N` al capçal de la soundline** ✅ FET (2026-05-04)
+    - Mateix patró que App21-24 (punt 25): el `.soundline` queda
+      embolcallat per un nou `.soundline-block` (creat al `drawSoundline`
+      després de `createSoundline`) que conté la pastilla
+      `<div class="soundline-abbr-pill">N</div>` damunt el rectangle
+      pink-light.
+    - **CSS local a `Apps/App18/styles.css`**: `.soundline-block`
+      (`width: 3.75rem; margin: 0 auto`; flex-column) reemplaça el
+      `.soundline` com a element centrat dins del `.soundline-container`
+      ample. `.soundline-block .soundline { flex: 1 1 auto; height:
+      auto }` perquè ompli la resta. `.soundline-abbr-pill` mateix estil
+      que a App21-24 (rosa saturada, lletra negre weight 700).
+    - **Nota**: App14 va començar amb el mateix canvi però es va
+      revertir (l'usuari va decidir mantenir App14 sense pastilla per
+      no complicar el layout amb la columna virtual d'intervals).
+    - Tests: 1445/1445 OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).

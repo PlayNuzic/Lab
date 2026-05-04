@@ -133,6 +133,17 @@ function drawSoundline() {
     onNoteClick: handleNoteClick
   });
 
+  // Wrap the soundline in a `.soundline-block` and prepend the abbr
+  // pill (`N`) — same header pattern als App21-24.
+  const block = document.createElement('div');
+  block.className = 'soundline-block';
+  const pill = document.createElement('div');
+  pill.className = 'soundline-abbr-pill';
+  pill.textContent = 'N';
+  soundlineWrapper.insertBefore(block, soundline.element);
+  block.appendChild(pill);
+  block.appendChild(soundline.element);
+
   // Add CSS classes for styling registry boundaries and note-zero
   if (registry !== null) {
     const numbers = soundlineWrapper.querySelectorAll('.soundline-number');
