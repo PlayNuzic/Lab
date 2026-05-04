@@ -155,14 +155,17 @@ html:not([data-embed="true"]) body {
 
 /* `.soundline-block` agrupa la pastilla abbr i la columna de números
    en una sola "barra" rosa contínua: mateixa amplada, sense gap intern.
-   La pastilla queda enganxada al top del container. */
+   La pastilla queda enganxada al top del container. Dins del
+   `.soundline-column` (flex-column amb header dalt i play button a
+   baix), el block ha de **prendre l'espai sobrant** sense empènyer
+   els germans fora — d'aquí `flex: 1 1 auto` enlloc d'un `height: 100%`
+   que ignoraria el flex-shrink. */
 .soundline-block {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   width: var(--soundline-container-width);
-  flex-shrink: 0;
-  height: 100%;
+  flex: 1 1 auto;
   min-height: 0;
 }
 
