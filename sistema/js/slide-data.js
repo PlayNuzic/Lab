@@ -299,6 +299,15 @@ export const slideContent = {
 <p>Pulsa ▶️ en la escala mayor para escuchar la escala mayor.<br></p>
 <p><b><strong>Tips:</strong> </b>Fíjate en cómo cambia la numeración para la misma nota en la escala mayor o en la cromática. Observa las líneas de conexión entre ambas escalas — las 12 notas de la escala cromática son el conjunto base para el resto de escalas.</p>`,
   },
+  23: {
+    text: `<p>Como acabamos de ver en el paso anterior, las distancias entre las Nº de una escala no son siempre las mismas. Este hecho es precisamente lo que le da carácter sonoro a una escala.</p>
+<p>Si ordenamos estas distancias, obtenemos la <strong>estructura escalar (eE)</strong>, es decir, las distancias entre notas de una escala en orden ascendente y medidas en <strong>iS</strong> (intervalos Sonoros).</p>
+<p>Cada escala tiene su <b>eE</b> propia. En la app ejemplo se muestra la de la escala Mayor.</p>`,
+    tipsTitle: 'Prueba la Estructura Escalar',
+    tips: `<p>Visualiza la estructura Escalar (eE) de la escala Mayor mediante barras de intervalos que muestran los <b>iS</b> entre cada grado de la escala.</p>
+<p>Pulsa ▶️ para escuchar la escala mayor con una animación que destaca la eE.</p>
+<p><strong>Tips:</strong> En la linea sonora, a la izquierda, se muestran los grados de la escala mayor (Nº). A la derecha se muestraLa estructura de la escala mayor: <b>eE(2 2 1 2 2 2 1)</b>.</p>`,
+  },
 };
 
 // Default filler for pasos without explicit content yet.
