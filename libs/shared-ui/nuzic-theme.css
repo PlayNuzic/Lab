@@ -37,6 +37,16 @@ body[data-visual="nuzic"] {
   --nuzic-pink: #f28aad;
   --nuzic-pink-light: #ffe5ee;
 
+  /* Step colors per a les barres d'estructura escalar (eE):
+     Compartits per App22, App23 i App24 perquè el mateix valor d'interval
+     mantingui el mateix color a totes les apps d'escales.
+       step-1 (semitò)         → blau pàl·lid
+       step-2 (to)              → groc nuzic
+       step-3 (to i mig)        → vermell nuzic */
+  --scale-step-1: var(--nuzic-blue-light);
+  --scale-step-2: var(--nuzic-yellow);
+  --scale-step-3: var(--nuzic-red);
+
   /* Color base dels spinners (`.spin.up` / `.spin.down`) i el seu hover.
      Default: groc nuzic. Apps que vulguin spinners d'un altre color
      (App18/19/20 → rosa) sobreescriuen aquestes vars al seu `body`. */

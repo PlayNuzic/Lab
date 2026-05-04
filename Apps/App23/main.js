@@ -14,8 +14,7 @@ import {
   drawConnectionLines,
   sleep,
   setPlayIcon,
-  createPlayButtonHTML,
-  createEEDisplayHTML
+  createPlayButtonHTML
 } from '../../libs/soundlines/index.js';
 
 // ============================================================================
@@ -45,7 +44,11 @@ let connectionSvg = null;
 let playChromaticBtn = null;
 let playScaleBtn = null;
 let pentagramContainer = null;
-let outputNoteButtons = [];
+let outputNoteInput = null;
+let outputNoteUp = null;
+let outputNoteDown = null;
+let intervalBarsContainer = null;
+const intervalBars = [];
 
 // Soundline APIs
 let chromaticSoundline = null;
@@ -119,41 +122,57 @@ function setupInstrumentListener() {
 }
 
 // ============================================================================
-// SELECTOR DE NOTA DE SALIDA
+// PASTILLA NOTA DE SALIDA (mateix patró que `bpm-inline.visible.param` d'App18)
 // ============================================================================
 
-function createOutputNoteSelector() {
+function createOutputNotePill() {
   return `
-    <div class="output-note-selector">
-      <h3 class="selector-title">Nota de Salida</h3>
-      <div class="note-buttons-grid">
-        ${[0,1,2,3,4,5,6,7,8,9,10,11].map(n => `
-          <button class="note-btn${n === outputNote ? ' active' : ''}" data-note="${n}">${n}</button>
-        `).join('')}
+    <div class="bpm-inline visible param outputnote" id="outputNoteParam">
+      <span class="abbr">Nota de salida</span>
+      <div class="circle">
+        <input id="inputOutputNote" type="number" min="0" max="11" value="${outputNote}" />
+        <div class="spinner">
+          <button id="outputNoteUp" class="spin up" type="button" aria-label="Incrementar nota de salida"></button>
+          <button id="outputNoteDown" class="spin down" type="button" aria-label="Decrementar nota de salida"></button>
+        </div>
       </div>
     </div>
   `;
 }
 
-function setupOutputNoteListeners() {
-  outputNoteButtons = document.querySelectorAll('.note-btn');
-  outputNoteButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const newNote = parseInt(btn.dataset.note, 10);
-      if (newNote !== outputNote) {
-        outputNote = newNote;
-        updateOutputNoteUI();
-        updateForOutputNote();
-      }
-    });
-  });
+function setOutputNote(value) {
+  // Cíclic 0-11 (mod 12) — la pastilla és visualment un comptador rotatori.
+  const next = ((value % 12) + 12) % 12;
+  if (next === outputNote) return;
+  outputNote = next;
+  if (outputNoteInput) outputNoteInput.value = outputNote;
+  updateForOutputNote();
 }
 
-function updateOutputNoteUI() {
-  outputNoteButtons.forEach(btn => {
-    const note = parseInt(btn.dataset.note, 10);
-    btn.classList.toggle('active', note === outputNote);
-  });
+function setupOutputNoteListeners() {
+  outputNoteInput = document.getElementById('inputOutputNote');
+  outputNoteUp = document.getElementById('outputNoteUp');
+  outputNoteDown = document.getElementById('outputNoteDown');
+
+  if (outputNoteInput) {
+    outputNoteInput.addEventListener('input', () => {
+      const value = outputNoteInput.value.trim();
+      if (value === '') return;
+      const num = parseInt(value, 10);
+      if (!Number.isNaN(num)) setOutputNote(num);
+    });
+    outputNoteInput.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setOutputNote(outputNote + 1);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setOutputNote(outputNote - 1);
+      }
+    });
+  }
+  if (outputNoteUp) outputNoteUp.addEventListener('click', () => setOutputNote(outputNote + 1));
+  if (outputNoteDown) outputNoteDown.addEventListener('click', () => setOutputNote(outputNote - 1));
 }
 
 function updateForOutputNote() {
@@ -165,6 +184,33 @@ function updateForOutputNote() {
 
   // Re-renderitzar pentagrama
   renderPentagram();
+}
+
+// ============================================================================
+// INTERVAL BARS HORIZONTALS (estil App22 però en flex-row)
+// ============================================================================
+
+function createIntervalBarsHTML() {
+  // Cada barra mostra el valor de l'interval (1 o 2). Els d'1 (semitons)
+  // reben la classe step-1 que els pinta en taronja com a l'adjunt.
+  const bars = MAJOR_EE.map((step, i) =>
+    `<div class="interval-bar interval-bar--step-${step}" data-bar-index="${i}">
+       <span class="interval-number">${step}</span>
+     </div>`
+  ).join('');
+  return `
+    <div class="interval-bars-step">
+      <h3 class="interval-bars-label">Estructura Escalar (eE):</h3>
+      <div class="interval-bars-row" id="intervalBarsRow">${bars}</div>
+    </div>
+  `;
+}
+
+function highlightIntervalBar(index, durationMs) {
+  const bar = intervalBars[index];
+  if (!bar) return;
+  bar.classList.add('active');
+  setTimeout(() => bar.classList.remove('active'), durationMs);
 }
 
 // ============================================================================
@@ -399,6 +445,15 @@ async function playMajorScale() {
     highlightManager.highlightConnectionLine(originalSemitone, intervalMs * 0.9);
     highlightManager.highlightPentagramNote(pentagramContainer, i, intervalMs * 0.9);
 
+    // Interval bar entre nota i-1 i nota i (mateix patró que App22):
+    // grau 0 sense barra; grau N>0 il·lumina la barra N-1.
+    if (i > 0 && i - 1 < MAJOR_EE.length) {
+      const barIndex = i - 1;
+      const isLastBar = barIndex === MAJOR_EE.length - 1;
+      const duration = isLastBar ? intervalMs * 1.9 : intervalMs * 0.9;
+      highlightIntervalBar(barIndex, duration);
+    }
+
     await sleep(intervalMs);
   }
 
@@ -421,47 +476,47 @@ function createAppLayout() {
 
   timelineWrapper.innerHTML = '';
 
+  // Layout de dues columnes (val per iframe i standalone):
+  //   • Esquerra: àrea de soundlines (cromàtica + Mayor amb les línies de
+  //     connexió i els play btns sota cada soundline).
+  //   • Dreta: pastilla `Nota de salida`, label + interval-bars-step
+  //     horitzontals, i el pentagrama — apilats verticalment.
   timelineWrapper.innerHTML = `
-    <!-- Selector de nota de salida (izquierda) -->
-    ${createOutputNoteSelector()}
+    <div class="app23-left">
+      <div class="soundlines-area">
+        <div class="soundlines-wrapper">
+          <div class="soundline-column">
+            <div class="soundline-header">
+              <h3 class="soundline-title">Escala Cromática</h3>
+            </div>
+            <div class="soundline-block">
+              <div class="soundline-abbr-pill">N</div>
+              <div id="chromaticSoundline" class="soundline-container"></div>
+            </div>
+            ${createPlayButtonHTML('playChromaticBtn', 'Reproducir escala cromática')}
+          </div>
 
-    <!-- Area de soundlines (centro) -->
-    <div class="soundlines-area">
-      <div class="soundlines-wrapper">
-        <!-- Soundline cromática -->
-        <div class="soundline-column">
-          <div class="soundline-header">
-            <h3 class="soundline-title">Escala Cromática</h3>
+          <div class="connection-area">
+            <svg id="connectionLines" class="connection-lines"></svg>
           </div>
-          <div class="soundline-block">
-            <div class="soundline-abbr-pill">N</div>
-            <div id="chromaticSoundline" class="soundline-container"></div>
-          </div>
-          ${createPlayButtonHTML('playChromaticBtn', 'Reproducir escala cromática')}
-        </div>
 
-        <!-- Líneas de conexión -->
-        <div class="connection-area">
-          <svg id="connectionLines" class="connection-lines"></svg>
-        </div>
-
-        <!-- Soundline de escala Mayor -->
-        <div class="soundline-column">
-          <div class="soundline-header">
-            <h3 class="soundline-title">Escala Mayor</h3>
+          <div class="soundline-column">
+            <div class="soundline-header">
+              <h3 class="soundline-title">Escala Mayor</h3>
+            </div>
+            <div class="soundline-block">
+              <div class="soundline-abbr-pill">Nº</div>
+              <div id="scaleSoundline" class="soundline-container"></div>
+            </div>
+            ${createPlayButtonHTML('playScaleBtn', 'Reproducir escala Mayor')}
           </div>
-          <div class="soundline-block">
-            <div class="soundline-abbr-pill">Nº</div>
-            <div id="scaleSoundline" class="soundline-container"></div>
-          </div>
-          ${createPlayButtonHTML('playScaleBtn', 'Reproducir escala Mayor')}
         </div>
       </div>
     </div>
 
-    <!-- Pentagrama (derecha) -->
-    <div class="pentagram-area">
-      ${createEEDisplayHTML(MAJOR_EE)}
+    <div class="app23-right">
+      ${createOutputNotePill()}
+      ${createIntervalBarsHTML()}
       <div id="pentagramContainer" class="pentagram-container"></div>
     </div>
   `;
@@ -494,6 +549,13 @@ function initApp() {
   playChromaticBtn = document.getElementById('playChromaticBtn');
   playScaleBtn = document.getElementById('playScaleBtn');
   pentagramContainer = document.getElementById('pentagramContainer');
+  intervalBarsContainer = document.getElementById('intervalBarsRow');
+
+  // Cache de les barres d'interval per als highlights de playback
+  intervalBars.length = 0;
+  if (intervalBarsContainer) {
+    intervalBarsContainer.querySelectorAll('.interval-bar').forEach(el => intervalBars.push(el));
+  }
 
   // Crear highlight manager (ara que tenim connectionSvg)
   highlightManager = createHighlightManager({
@@ -532,7 +594,7 @@ function initApp() {
   setupPianoPreload({ delay: 300 });
 
   console.log('App23 inicializada correctamente');
-  initIdleCaretFlash({ targets: [document.querySelector('.output-note-selector')] });
+  initIdleCaretFlash({ targets: [document.getElementById('outputNoteParam')] });
 }
 
 // Ejecutar cuando el DOM esté listo

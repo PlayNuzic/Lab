@@ -482,25 +482,26 @@ body[data-visual="nuzic"] .note-highlight {
   width: 100%;
 }
 
-/* Interval bars: nuzic pink when active */
+/* Interval bars: colors compartits via tokens `--scale-step-N` definits a
+   nuzic-theme.css perquè App22/23/24 usin la mateixa paleta. */
 body[data-visual="nuzic"] .interval-bar {
-  background: var(--nuzic-pink, #F28AAD);
+  background: var(--scale-step-2);
   border: none;
   color: var(--nuzic-dark, #43433B);
   opacity: 1;
 }
 
 body[data-visual="nuzic"] .interval-bar--step-1 {
-  background: #ef6f64;
+  background: var(--scale-step-1);
+}
+
+body[data-visual="nuzic"] .interval-bar--step-3 {
+  background: var(--scale-step-3);
 }
 
 body[data-visual="nuzic"] .interval-bar.active {
   background: var(--nuzic-blue, #7BB4CD);
   box-shadow: 0 0 0 0.2rem rgba(123, 180, 205, 0.35);
-}
-
-body[data-visual="nuzic"] .interval-bar--step-1.active {
-  background: var(--nuzic-blue, #7BB4CD);
 }
 
 body[data-visual="nuzic"] .interval-number {

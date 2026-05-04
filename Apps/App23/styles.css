@@ -6,94 +6,200 @@
 @import '../../libs/soundlines/soundlines-responsive.css';
 
 /* ============================================================================
-   APP23-SPECIFIC: EE-DISPLAY MÉS GRAN (igual que App24)
+   APP23 LAYOUT — DUES COLUMNES (iframe i standalone)
+   Esquerra:  àrea de soundlines (Cromàtica + Mayor + connexions + plays).
+   Dreta:     pastilla `Nota de salida`, label + interval-bars horitzontals
+              i el pentagrama, apilats verticalment.
+   El layout viu dins `.timeline-wrapper`, que el CSS compartit de
+   soundlines.css ja configura com a flex-row. Aquí només distribueix
+   els dos fills (.app23-left / .app23-right) i defineix com creixen.
    ============================================================================ */
 
-/* eE 15% larger than base — applied only to container to avoid cascade */
-.ee-display {
-  font-size: 1.15em;
+.timeline-wrapper {
+  gap: clamp(1rem, 4vw, 4rem) !important;
+  align-items: stretch !important;
 }
 
-/* ============================================================================
-   APP23-SPECIFIC: OUTPUT NOTE SELECTOR (esquerra, centrat verticalment)
-   ============================================================================ */
+.app23-left {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 0;
+}
 
-.output-note-selector {
+.app23-right {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  padding-right: 6rem;
-  flex-shrink: 0;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.5rem 0;
+  /* La pastilla `outputnote` es posiciona absolutament a l'alçada de les
+     `soundline-abbr-pill` de l'esquerra, sense desplaçar els germans
+     (interval-bars + pentagrama segueixen centrats verticalment). */
+  position: relative;
 }
 
-.selector-title {
-  font-size: clamp(0.8rem, 1.3vw, 1.1rem);
-  font-weight: 500;
-  color: var(--text-color, #333);
-  margin: 0 0 0.75rem 0;
-  text-align: center;
-  white-space: nowrap;
+.app23-right > .bpm-inline.outputnote {
+  position: absolute;
+  top: calc(var(--soundline-title-size, 1.4rem) * 1.15);
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-[data-theme="dark"] .selector-title {
-  color: var(--text-dark, #e0e0e0);
-}
-
-.note-buttons-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.4rem;
-}
-
-.note-btn {
-  width: 2.25rem;
-  height: 2.25rem;
-  border: 2px solid var(--line-color, #666);
-  border-radius: 6px;
-  background: var(--bg-secondary, rgba(0, 0, 0, 0.05));
-  color: var(--text-color, #333);
-  font-size: clamp(0.75rem, 1.2vw, 1rem);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.note-btn:hover {
-  background: var(--selection-color, #FFBB33);
-  border-color: var(--selection-color, #FFBB33);
-  color: #000;
-}
-
-.note-btn.active {
-  background: var(--selection-color, #FFBB33);
-  border-color: var(--selection-color, #FFBB33);
-  color: #000;
-  font-weight: 600;
-  box-shadow: 0 0 8px var(--selection-color, #FFBB33);
-}
-
-[data-theme="dark"] .note-btn {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-dark, #e0e0e0);
-}
-
-[data-theme="dark"] .note-btn:hover,
-[data-theme="dark"] .note-btn.active {
-  color: #000;
+/* L'àrea de soundlines (l'esquerra) ja no necessita ocupar tot l'ample;
+   manté el seu tamany natural perquè la columna dreta s'expandeixi. */
+.soundlines-area {
+  flex: 0 0 auto;
 }
 
 /* ============================================================================
-   APP23-SPECIFIC: SOUNDLINES NO FLEX (per no empènyer pentagrama)
+   PASTILLA NOTA DE SALIDA (clon del patró bpm-inline d'App18)
    ============================================================================ */
 
-.soundlines-area {
-  /* NO flex: 1 - mantenir tamany natural per no empènyer el pentagrama */
-  flex: none;
+.bpm-inline.visible.param.outputnote {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.param.outputnote .abbr {
+  font-size: clamp(0.95rem, 1.6vw, 1.25rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+  white-space: nowrap;
+}
+
+.param.outputnote .circle {
+  width: auto !important;
+  height: clamp(2rem, 5vw, 3rem);
+  padding: 0 0.5rem;
+  border: 2px solid var(--nuzic-pink, #F28AAD);
+  border-radius: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  position: relative;
+}
+
+.param.outputnote .circle input {
+  width: clamp(2.5rem, 5vw, 3.5rem) !important;
+  height: 100% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
+  font-weight: 700;
+  text-align: center;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.param.outputnote .circle input::-webkit-outer-spin-button,
+.param.outputnote .circle input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+[data-theme="dark"] .param.outputnote .circle input,
+[data-theme="dark"] .param.outputnote .abbr {
+  color: var(--text-color, #eee);
+}
+
+/* Spinners en rosa, com App18 */
+body.app23 {
+  --nuzic-spin-bg: var(--nuzic-pink, #F28AAD);
+  --nuzic-spin-bg-hover: #d96a93;
+}
+
+.param.outputnote .spin {
+  border-radius: 50% !important;
+  aspect-ratio: 1 !important;
+  border: none !important;
+}
+
+.param.outputnote .spin.up::before { border-bottom-color: white !important; }
+.param.outputnote .spin.down::before { border-top-color: white !important; }
+
+/* ============================================================================
+   INTERVAL BARS HORITZONTALS (mateix concepte que App22, fila enlloc de columna)
+   ============================================================================ */
+
+.interval-bars-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.interval-bars-label {
+  font-size: clamp(0.95rem, 1.6vw, 1.25rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+  margin: 0;
+}
+
+[data-theme="dark"] .interval-bars-label {
+  color: var(--text-dark, #e0e0e0);
+}
+
+.interval-bars-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  --bar-h: clamp(2rem, 4vw, 2.6rem);
+  --bar-w-step2: clamp(2.6rem, 5vw, 3.4rem);
+  --bar-w-step1: var(--bar-h);
+}
+
+.interval-bars-row .interval-bar {
+  position: relative;
+  height: var(--bar-h);
+  width: var(--bar-w-step2);
+  background: var(--scale-step-2);
+  border: none;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  box-shadow: none;
+  transition: background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-sizing: border-box;
+}
+
+/* Step 1 (semitò): cercle blau pàl·lid */
+.interval-bars-row .interval-bar--step-1 {
+  width: var(--bar-w-step1);
+  background: var(--scale-step-1);
+}
+
+/* Step 3 (to i mig): càpsula vermella (apareix en escales harmòniques etc.) */
+.interval-bars-row .interval-bar--step-3 {
+  background: var(--scale-step-3);
+}
+
+.interval-bars-row .interval-bar.active {
+  box-shadow: 0 0 12px var(--nuzic-blue, #7BB4CD);
+  outline: 2px solid var(--nuzic-blue, #7BB4CD);
+}
+
+.interval-bars-row .interval-number {
+  font-size: clamp(0.9rem, 1.6vw, 1.2rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+}
+
+.interval-bars-row .interval-bar--step-1 .interval-number {
+  color: var(--nuzic-dark, #43433B);
 }
 
 /* Responsive breakpoints removed — nuzic theme uses rem units that scale naturally */

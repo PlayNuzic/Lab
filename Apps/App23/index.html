@@ -41,7 +41,10 @@
       randomMenuContent: ''
     });
 
-    // Remove default template sections we don't need
+    // Remove default template sections we don't need.
+    // `.inputs` is kept hidden — the output-note pill lives inside the
+    // app's right column so it sits on top of the pentagram (see main.js
+    // createAppLayout).
     document.querySelector('.inputs')?.remove();
     document.querySelector('.middle')?.remove();
 
