@@ -120,3 +120,16 @@ html[data-embed="true"] body.app16 main .timeline-wrapper {
 html[data-embed="true"] body .soundlines-area {
   align-items: safe center;
 }
+
+/* Scale apps (App21, App23, App24) — the soundline column contains
+   header + pink bar + play button. The shared `--soundlines-height`
+   default of `clamp(25rem, 85vh, 75rem)` consumes nearly the whole
+   iframe, leaving the play button below the `overflow:hidden` cut.
+   Reduce the height in embed so the column (header + bar + play)
+   fits comfortably within the iframe. App22 has its own value tuned
+   for its interval-bars layout, so it's excluded. */
+html[data-embed="true"] body.app21,
+html[data-embed="true"] body.app23,
+html[data-embed="true"] body.app24 {
+  --soundlines-height: clamp(15rem, 70vh, 55rem);
+}

@@ -518,6 +518,46 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       `currentScaleConfig.id === 'CROM'` o a `Nº` per la resta.
     - Tests: 1445/1445 OK.
 
+26. **App21-24 — accessibilitat dels controls (standalone i embed)** ✅ FET (2026-05-04)
+    - **Bugs trobats** auditant App21-24 contra el patró baseline
+      d'App10/16-20 (apps amb `class="appNN"` al `<body>` + embed
+      overrides per app):
+      a. Cap dels 4 tenia `class="appNN"` al `<body>` → no era possible
+         escriure overrides per-app a `embed.css` o nuzic-theme.
+      b. **Embed**: els play buttons d'App21/23/24 queien fora del
+         iframe (clipped per `overflow:hidden` al `main`) perquè el
+         `--soundlines-height` default `clamp(25rem, 85vh, 75rem)`
+         consumeix gairebé tot el viewport.
+      c. **Standalone**: `libs/soundlines/soundlines.css` aplicava
+         `html, body { height: 100%; overflow: hidden }` globalment.
+         En finestres &lt;~830px d'alt, els play queien sota el viewport
+         i no hi havia scroll. A més, `.sound-wrapper.nuzic-floating`
+         (botó volum) tenia `position: fixed`, així que tampoc
+         scrollejava amb la pàgina i quedava inaccessible.
+    - **Canvis aplicats**:
+      a. `Apps/App21..App24/index.html`: afegit `class="appNN"` al `<body>`.
+      b. `libs/app-common/embed.css`: nou bloc
+         `html[data-embed="true"] body.app21, body.app23, body.app24
+         { --soundlines-height: clamp(15rem, 70vh, 55rem) }` — només
+         en embed, redueix l'alçada perquè header + soundline + play
+         càpiguen al iframe. App22 té layout amb intervals i s'exclou.
+      c. `libs/soundlines/soundlines.css`: el `html, body { height:
+         100%; overflow: hidden }` passa a un bloc gated per
+         `html[data-embed="true"]`. En standalone `html, body { min-
+         height: 100% }` deixa que el document creixi i el browser
+         ofereixi scroll natural.
+      d. `libs/shared-ui/nuzic-theme.css`:
+         `.sound-wrapper.nuzic-floating` passa de `position: fixed` a
+         `position: absolute`, amb override `fixed` només sota
+         `html[data-embed="true"]`. Standalone → el botó volum scrolla
+         amb la pàgina i és accessible. Embed → segueix ancorat al
+         viewport (l'iframe no fa scroll).
+    - Verificat amb headless puppeteer a 1024×768, 1280×800, 1440×900
+      (standalone) i 480×512, 700×700, 1050×700 (embed):
+      `.soundline-play` i `.sound-wrapper` ja no queden inaccessibles
+      en cap dels casos.
+    - Tests: 1445/1445 OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).

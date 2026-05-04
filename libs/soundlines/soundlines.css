@@ -46,8 +46,21 @@ html, body {
   margin: 0;
   padding: 0;
   width: 100%;
+}
+
+/* Embed (Sistema iframe): pin viewport exacte i suprimeix scroll
+   exterior; `embed.css` també aplica `overflow:hidden` al main. */
+html[data-embed="true"], html[data-embed="true"] body {
   height: 100%;
   overflow: hidden;
+}
+
+/* Standalone: body fa almenys el viewport (perquè `#app-root { height:
+   100% }` tingui referència) però pot créixer si el contingut sobreïx,
+   oferint scroll vertical natural pel browser. */
+html:not([data-embed="true"]),
+html:not([data-embed="true"]) body {
+  min-height: 100%;
 }
 
 #app-root {
