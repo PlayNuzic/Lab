@@ -287,6 +287,18 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para borrar.</p>
 <p><strong>Tip:</strong> Esta app combina el par N-iT, que es conceptualmente el par usado al escribir con notación musical.</p>`,
   },
+  22: {
+    text: `<p>Históricamente la música se ha estudiado a partir de las siete notas de la escala Mayor Diatónica. La escala cromática llega después, como resultado de siglos de desarrollo. </p>
+<p>El sistema Nuzic parte con la escala cromática <b>como módulo</b> para el resto de escalas.</p>
+<p>Entonces, una <b>escala</b> es un grupo de <b>notas</b> que escogemos entre las 12 disponibles de la escala cromática.</p>
+<p>Estas <b>notas</b> escogidas las llamamos <strong>Notas de Grado</strong> (<strong>Nº</strong>), y les damos su propia numeración, empezando siempre desde el número 0:<strong> Nº(0).</strong></p>
+<p>A cada <b>Nº</b> le corresponde una <b>N</b> de la escala cromática. En la app ejemplo vemos el caso de la escala mayor y cómo las N escogidas de la escala cromática se enumeran en Nº en orden ascendente en la escala Mayor.</p>`,
+    tipsTitle: 'Prueba la Numeración de grado',
+    tips: `<p>Prueba en el ejemplo con la escala mayor: la más usada y un buen punto de partida.<br></p>
+<p>Pulsa ▶️ en la escala cromática para escuchar la escala cromática. </p>
+<p>Pulsa ▶️ en la escala mayor para escuchar la escala mayor.<br></p>
+<p><b><strong>Tips:</strong> </b>Fíjate en cómo cambia la numeración para la misma nota en la escala mayor o en la cromática. Observa las líneas de conexión entre ambas escalas — las 12 notas de la escala cromática son el conjunto base para el resto de escalas.</p>`,
+  },
 };
 
 // Default filler for pasos without explicit content yet.
