@@ -435,6 +435,30 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       visual del punt, ajusta només l'app amb
       `--measure-marker-x-offset` en lloc de tocar els percentatges.
 
+24. **Paso 13 (App17 circular) — `.controls` retallats en embed** ✅ FET (2026-05-04)
+    - **Bug**: a viewports del Sistema petits (≲600px wide) i molt grans
+      (≳1700px wide), els botons `.controls` (play, loop, tap, random) no
+      es veien al iframe del Paso 13. Reproduït amb headless puppeteer:
+      a 500×700 → iframe 452×452, controls a y=547 (clip de 129px); a
+      1920×1080 → iframe 1172×700, controls a y=712 (clip de 12px).
+    - **Causa**: `.timeline-wrapper.circular` a `Apps/App17/styles.css`
+      tenia `width/height: clamp(16rem, 34vw, 22rem) !important` +
+      `margin: 3.5rem auto !important`. El cercle no s'encongia per
+      alçada (el clamp només mira `vw`); en iframes baixos, header
+      `.inputs` (~120-180px) + cercle 256-352px + marges 56+56 + controls
+      excedien l'alçada disponible i `embed.css` `main { overflow:hidden }`
+      retallava els controls.
+    - **Fix a `Apps/App17/styles.css`**: nou bloc gated per
+      `html[data-embed="true"]` que sobreescriu el wrapper:
+      - `width/height: min(clamp(12rem, 34vw, 22rem), 60vh)` — afegeix la
+        cota per `vh` perquè el cercle s'encongeixi quan l'alçada mana.
+        `aspect-ratio: 1` ja existent garanteix el quadrat.
+      - `margin: auto` — elimina els 3.5rem fixos; el `display:flex
+        flex-direction:column` del `main` (a `embed.css`) centra el
+        wrapper verticalment sense empènyer els controls fora.
+    - Verificat: 8 viewports de 500×700 a 1920×1080 → tots `clipped=false`.
+    - Tests: 1445/1445 OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).

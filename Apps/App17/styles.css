@@ -82,6 +82,19 @@ body[data-visual="nuzic"] .timeline-wrapper.circular {
   flex-shrink: 0;
 }
 
+/* Embed mode (Sistema Interactivo, iframe quadrat 1/1):
+   l'iframe sovint cau a 450-600px d'alt; el header `.inputs` + cercle 256px
+   + marges 3.5rem×2 + controls excedeixen aquesta alçada i `overflow:hidden`
+   retalla els `.controls`. En embed:
+   - eliminem el marge vertical fix (centrat per `margin:auto` del flex pare).
+   - lliguem la mida del cercle també a `vh` per encongir-se quan l'alçada
+     manda. Es manté `aspect-ratio: 1` → quadrat sempre. */
+html[data-embed="true"] body[data-visual="nuzic"] .timeline-wrapper.circular {
+  width: min(clamp(12rem, 34vw, 22rem), 60vh) !important;
+  height: min(clamp(12rem, 34vw, 22rem), 60vh) !important;
+  margin: auto !important;
+}
+
 /* The timeline element is square, centered inside the wrapper. We paint the
    cream donut ring here via a radial gradient — cream outside a central
    transparent disc. The ring is ~60% of the radius wide (one-third thicker
