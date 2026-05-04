@@ -527,6 +527,18 @@ function wireControls(root) {
         volumeSlider.addEventListener('mouseup', scheduleHide);
         volumeSlider.addEventListener('touchend', scheduleHide);
 
+        // Hover sobre el propi slider: cancel·la el `scheduleHide`
+        // disparat pel `mouseleave` del `soundWrapper` (el slider viu
+        // visualment fora del botó en mode nuzic floating/inline, així
+        // que el ratolí surt del wrapper en arribar al fader).
+        // Tornar a programar la desaparició només quan també es deixi
+        // el slider.
+        volumeSlider.addEventListener('mouseenter', () => {
+            clearTimeout(hideTimeout);
+            cancelShow();
+        });
+        volumeSlider.addEventListener('mouseleave', scheduleHide);
+
         const handleVolumeEvent = (event) => {
             const detail = event?.detail;
             if (!detail || typeof detail.value !== 'number') return;
