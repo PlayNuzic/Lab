@@ -23,8 +23,9 @@
 
   /* Header sizing — fluid with clamp(min, preferred, max) */
   --soundline-header-offset: -1.4375rem;
-  --soundline-title-size: clamp(0.9rem, 1.5vw, 1.25rem);
-  --soundline-subtitle-size: clamp(0.75rem, 1.2vw, 1.1rem);
+  --soundline-title-size: clamp(1.1rem, 2vw, 1.6rem);
+  --soundline-abbr-pill-size: clamp(2.4rem, 4vw, 3rem);
+  --soundline-abbr-pill-font: clamp(1.1rem, 1.8vw, 1.4rem);
   --soundline-number-size: clamp(0.9rem, 1.8vw, 1.6rem);
 
   /* EE display sizing — fluid */
@@ -123,31 +124,49 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0;
   text-align: center;
-  min-width: 6.25rem;
-  transform: translateX(var(--soundline-header-offset));
+  min-width: var(--soundline-container-width);
   flex-shrink: 0;
   overflow: visible;
 }
 
 .soundline-title {
   font-size: var(--soundline-title-size);
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
   color: var(--color-lg, #7BB4CD);
-  line-height: 1.2;
-  white-space: nowrap;
+  line-height: 1.15;
   overflow: visible;
 }
 
-.soundline-subtitle {
-  font-size: var(--soundline-subtitle-size);
-  font-weight: 400;
-  color: var(--line-color, #666);
-  opacity: 0.8;
-  white-space: nowrap;
-  overflow: visible;
+/* `.soundline-block` agrupa la pastilla abbr i la columna de números
+   en una sola "barra" rosa contínua: mateixa amplada, sense gap intern.
+   La pastilla queda enganxada al top del container. */
+.soundline-block {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: var(--soundline-container-width);
+  flex-shrink: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Pastilla rosa: capçal de la soundline-block, amb fons `nuzic-pink`
+   saturat i lletra negre weight 700 centrada. */
+.soundline-abbr-pill {
+  width: 100%;
+  height: var(--soundline-abbr-pill-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--nuzic-pink, #F28AAD);
+  color: var(--nuzic-dark, #43433B);
+  font-size: var(--soundline-abbr-pill-font);
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .soundline-container {
@@ -155,6 +174,13 @@ html, body {
   width: var(--soundline-container-width);
   height: 100%;
   min-height: 0;
+}
+
+/* Quan viu dins d'un `.soundline-block`, ompli l'amplada del bloc i
+   l'alçada restant sota la pastilla. */
+.soundline-block .soundline-container {
+  width: 100%;
+  flex: 1 1 auto;
 }
 
 /* ============================================================================
@@ -426,6 +452,13 @@ body[data-visual="nuzic"] .soundline-container {
   overflow: hidden;
 }
 
+/* Pastilla i container comparteixen amplada: el block s'ajusta a la
+   amplada visible de la soundline rosa (4.5rem), no al token ample
+   `--soundline-container-width`. */
+body[data-visual="nuzic"] .soundline-block {
+  width: 4.5rem;
+}
+
 /* Numbers: flex centered with dashes, override legacy absolute positioning */
 body[data-visual="nuzic"] .soundline-number {
   position: absolute;
@@ -521,10 +554,6 @@ body[data-visual="nuzic"] .soundline-title {
   color: var(--nuzic-dark, #43433B);
 }
 
-body[data-visual="nuzic"] .soundline-subtitle {
-  color: var(--nuzic-grey, #AAA699);
-}
-
 /* EE display: nuzic colors */
 body[data-visual="nuzic"] .ee-label {
   color: var(--nuzic-dark, #43433B);
@@ -541,10 +570,6 @@ body[data-visual="nuzic"][data-theme="dark"] .soundline-container {
 
 body[data-visual="nuzic"][data-theme="dark"] .soundline-title {
   color: var(--text-dark, #e0e0e0);
-}
-
-body[data-visual="nuzic"][data-theme="dark"] .soundline-subtitle {
-  color: var(--nuzic-grey, #AAA699);
 }
 
 body[data-visual="nuzic"][data-theme="dark"] .ee-label,

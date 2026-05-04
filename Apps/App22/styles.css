@@ -11,7 +11,7 @@
   --note-highlight-color: #7BB4CD;
 
   /* Soundlines sizing */
-  --soundlines-height: clamp(25rem, 80vh, 75rem);
+  --soundlines-height: clamp(20rem, 65vh, 60rem);
   --soundline-container-width: 7.5rem;
 
   /* Interval bars */
@@ -20,8 +20,9 @@
 
   /* Header sizing */
   --soundline-header-offset: -1.25rem;
-  --soundline-title-size: 1.4rem;
-  --soundline-subtitle-size: 1.1rem;
+  --soundline-title-size: clamp(1.1rem, 2vw, 1.6rem);
+  --soundline-abbr-pill-size: clamp(2.4rem, 4vw, 3rem);
+  --soundline-abbr-pill-font: clamp(1.1rem, 1.8vw, 1.4rem);
   --soundline-number-size: clamp(0.9rem, 1.8vw, 1.6rem);
 }
 
@@ -107,31 +108,52 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0;
   text-align: center;
-  min-width: 6.25rem;
-  transform: translateX(var(--soundline-header-offset));
+  min-width: var(--soundline-container-width);
   flex-shrink: 0;
   overflow: visible;
 }
 
 .soundline-title {
   font-size: var(--soundline-title-size);
-  font-weight: 600;
-  margin: -0.625rem;
+  font-weight: 700;
+  margin: 0;
   color: var(--color-lg, #7BB4CD);
-  line-height: 1.2;
-  white-space: nowrap;
+  line-height: 1.15;
   overflow: visible;
 }
 
-.soundline-subtitle {
-  font-size: var(--soundline-subtitle-size);
-  font-weight: 400;
-  color: var(--line-color, #666);
-  opacity: 0.8;
-  white-space: nowrap;
-  overflow: visible;
+/* `.soundline-block` agrupa la pastilla abbr i la columna de números
+   en una sola "barra" rosa contínua. */
+.soundline-block {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: var(--soundline-container-width);
+  flex-shrink: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Pastilla rosa amb la lletra abbr (Nº). Capçal de la soundline-block. */
+.soundline-abbr-pill {
+  width: 100%;
+  height: var(--soundline-abbr-pill-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--nuzic-pink, #F28AAD);
+  color: var(--nuzic-dark, #43433B);
+  font-size: var(--soundline-abbr-pill-font);
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.soundline-block .soundline-container {
+  width: 100%;
+  flex: 1 1 auto;
 }
 
 /* ============================================================================
@@ -360,6 +382,11 @@ body[data-visual="nuzic"] .soundline-container {
   overflow: hidden;
 }
 
+/* Pastilla i container comparteixen amplada (4.5rem). */
+body[data-visual="nuzic"] .soundline-block {
+  width: 4.5rem;
+}
+
 /* Hide legacy line + divisions */
 body[data-visual="nuzic"] .soundline::before { display: none; }
 body[data-visual="nuzic"] .soundline-division { display: none; }
@@ -465,10 +492,6 @@ body[data-visual="nuzic"] .soundline-title {
   color: var(--nuzic-dark, #43433B);
 }
 
-body[data-visual="nuzic"] .soundline-subtitle {
-  color: var(--nuzic-grey, #AAA699);
-}
-
 body[data-visual="nuzic"] .ee-label {
   color: var(--nuzic-dark, #43433B);
 }
@@ -484,8 +507,4 @@ body[data-visual="nuzic"][data-theme="dark"] .soundline-number {
 
 body[data-visual="nuzic"][data-theme="dark"] .soundline-title {
   color: var(--text-dark, #e0e0e0);
-}
-
-body[data-visual="nuzic"][data-theme="dark"] .soundline-subtitle {
-  color: var(--nuzic-grey, #AAA699);
 }

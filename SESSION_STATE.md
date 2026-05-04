@@ -459,6 +459,65 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
     - Verificat: 8 viewports de 500×700 a 1920×1080 → tots `clipped=false`.
     - Tests: 1445/1445 OK.
 
+25. **App21-24 — capçaleres soundlines unificades** ✅ FET (2026-05-04)
+    - **Bug**: capçaleres incoherents entre les 4 scale-apps. App21 i App24
+      usaven `<h3>N/Nm/Nº</h3>` + `<span>Escala …</span>` (símbol gran +
+      nom petit, tot a fora del soundline). App22 només `<h3>Escala
+      Mayor</h3>` sense pastilla. App23 invertit (`<h3>Escala …</h3>` +
+      `<span>Nm/Nº</span>`). I la imatge objectiu de l'usuari demanava un
+      patró nou: títol "Escala …" gran negre weight 700 a sobre, i
+      pastilla rosa quadrada amb `N` o `Nº` enganxada al top de la
+      columna soundline com a capçal continu.
+    - **Patró final** (per cada soundline column):
+
+      ```html
+      <div class="soundline-column">
+        <div class="soundline-header">
+          <h3 class="soundline-title">Escala Cromática</h3>
+        </div>
+        <div class="soundline-block">
+          <div class="soundline-abbr-pill">N</div>
+          <div class="soundline-container">…números…</div>
+        </div>
+        <button class="soundline-play">…</button>
+      </div>
+      ```
+
+    - **Canvis a `libs/soundlines/soundlines.css`**:
+      a. `.soundline-title`: font passa de `clamp(0.9rem, 1.5vw, 1.25rem)`
+         weight 600 a `clamp(1.1rem, 2vw, 1.6rem)` weight 700, sense
+         `white-space: nowrap` (permet wrap a 2 línies si l'amplada és
+         estreta).
+      b. Eliminades les regles de `.soundline-subtitle` (selector ja no
+         s'usa al markup).
+      c. Nou `.soundline-block`: flex-column amb `width:
+         var(--soundline-container-width)` que agrupa pastilla i
+         container; en tema nuzic s'ajusta a `4.5rem` per coincidir amb
+         l'amplada visible de la columna rosa (override
+         `body[data-visual="nuzic"] .soundline-block { width: 4.5rem }`).
+      d. Nou `.soundline-abbr-pill`: `width: 100%; height:
+         clamp(2.4rem, 4vw, 3rem); background: var(--nuzic-pink);
+         color: var(--nuzic-dark); font-weight: 700;` — pastilla rosa
+         saturada amb la lletra negre weight 700, mateixa amplada que el
+         container rosa light que conté els números.
+      e. `.soundline-header { gap: 0; min-width: var(--soundline-
+         container-width); }` (eliminat `transform: translateX(...)` que
+         desplaçava el header).
+    - **Mateixes regles duplicades a `Apps/App22/styles.css`** (App22 no
+      importa el CSS compartit, té la seva pròpia còpia).
+    - **App22 — `--soundlines-height`** reduït de `clamp(25rem, 80vh,
+      75rem)` a `clamp(20rem, 65vh, 60rem)` perquè la nova pastilla
+      ocupa ~50px addicionals al header i el botó play queia fora del
+      viewport en finestres de 900px d'alt.
+    - **Markup actualitzat** a `Apps/App21/main.js`, `Apps/App22/main.js`,
+      `Apps/App23/main.js`, `Apps/App24/main.js`. Lletra unificada a
+      `N` (cromàtica) / `Nº` (qualsevol altra escala).
+    - **App24 — pastilla dinàmica**: `updateScaleTitle()` ara escriu
+      "Escala {name}" al `<h3 id="scaleSoundlineTitle">` i actualitza
+      el text de `<div id="scaleSoundlineAbbr">` a `N` quan
+      `currentScaleConfig.id === 'CROM'` o a `Nº` per la resta.
+    - Tests: 1445/1445 OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).

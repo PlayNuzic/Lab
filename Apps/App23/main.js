@@ -432,9 +432,11 @@ function createAppLayout() {
         <div class="soundline-column">
           <div class="soundline-header">
             <h3 class="soundline-title">Escala Cromática</h3>
-            <span class="soundline-subtitle">Nm</span>
           </div>
-          <div id="chromaticSoundline" class="soundline-container"></div>
+          <div class="soundline-block">
+            <div class="soundline-abbr-pill">N</div>
+            <div id="chromaticSoundline" class="soundline-container"></div>
+          </div>
           ${createPlayButtonHTML('playChromaticBtn', 'Reproducir escala cromática')}
         </div>
 
@@ -447,9 +449,11 @@ function createAppLayout() {
         <div class="soundline-column">
           <div class="soundline-header">
             <h3 class="soundline-title">Escala Mayor</h3>
-            <span class="soundline-subtitle">Nº</span>
           </div>
-          <div id="scaleSoundline" class="soundline-container"></div>
+          <div class="soundline-block">
+            <div class="soundline-abbr-pill">Nº</div>
+            <div id="scaleSoundline" class="soundline-container"></div>
+          </div>
           ${createPlayButtonHTML('playScaleBtn', 'Reproducir escala Mayor')}
         </div>
       </div>

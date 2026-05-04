@@ -83,6 +83,7 @@ let scaleSoundline = null;
 // Scale selector
 let scaleSelector = null;
 let scaleTitleElement = null;
+let scaleAbbrElement = null;
 
 // Highlight manager
 let highlightManager = null;
@@ -210,7 +211,12 @@ function updateScaleTitle() {
     s => s.id === currentScaleId && s.rotation === currentRotation
   );
   const scaleName = currentScaleConfig ? currentScaleConfig.name : 'Escala';
-  scaleTitleElement.textContent = scaleName;
+  scaleTitleElement.textContent = `Escala ${scaleName}`;
+
+  // Pastilla abbr: només la cromàtica usa `N`; qualsevol altra escala usa `Nº`.
+  if (scaleAbbrElement) {
+    scaleAbbrElement.textContent = currentScaleConfig?.id === 'CROM' ? 'N' : 'Nº';
+  }
 }
 
 function updateForScaleChange() {
@@ -497,10 +503,12 @@ function createAppLayout() {
         <!-- Soundline cromàtica -->
         <div class="soundline-column">
           <div class="soundline-header">
-            <h3 class="soundline-title">Nm</h3>
-            <span class="soundline-subtitle">Escala Cromática</span>
+            <h3 class="soundline-title">Escala Cromática</h3>
           </div>
-          <div id="chromaticSoundline" class="soundline-container"></div>
+          <div class="soundline-block">
+            <div class="soundline-abbr-pill">N</div>
+            <div id="chromaticSoundline" class="soundline-container"></div>
+          </div>
           ${createPlayButtonHTML('playChromaticBtn', 'Reproducir escala cromática')}
         </div>
 
@@ -512,10 +520,12 @@ function createAppLayout() {
         <!-- Soundline d'escala -->
         <div class="soundline-column">
           <div class="soundline-header">
-            <h3 class="soundline-title">Nº</h3>
-            <span id="scaleSoundlineTitle" class="soundline-subtitle">Major</span>
+            <h3 id="scaleSoundlineTitle" class="soundline-title">Escala Major</h3>
           </div>
-          <div id="scaleSoundline" class="soundline-container"></div>
+          <div class="soundline-block">
+            <div id="scaleSoundlineAbbr" class="soundline-abbr-pill">Nº</div>
+            <div id="scaleSoundline" class="soundline-container"></div>
+          </div>
           ${createPlayButtonHTML('playScaleBtn', 'Reproducir escala')}
         </div>
       </div>
@@ -610,6 +620,7 @@ function initApp() {
   pentagramContainer = document.getElementById('pentagramContainer');
   eeDisplayContainer = document.getElementById('eeDisplay');
   scaleTitleElement = document.getElementById('scaleSoundlineTitle');
+  scaleAbbrElement = document.getElementById('scaleSoundlineAbbr');
 
   // Crear highlight manager (ara que tenim connectionSvg)
   highlightManager = createHighlightManager({

@@ -288,7 +288,10 @@ function createAppLayout() {
           <h3 class="soundline-title">Escala Mayor</h3>
         </div>
         <div class="soundline-with-intervals">
-          <div id="scaleSoundline" class="soundline-container"></div>
+          <div class="soundline-block">
+            <div class="soundline-abbr-pill">Nº</div>
+            <div id="scaleSoundline" class="soundline-container"></div>
+          </div>
           <div id="intervalContainer" class="interval-container"></div>
         </div>
         <div class="ee-display">
