@@ -129,7 +129,15 @@ html[data-embed="true"] body .soundlines-area {
    fits comfortably within the iframe. App22 has its own value tuned
    for its interval-bars layout, so it's excluded. */
 html[data-embed="true"] body.app21,
-html[data-embed="true"] body.app23,
 html[data-embed="true"] body.app24 {
   --soundlines-height: clamp(15rem, 70vh, 55rem);
+}
+
+/* App23 lives in a two-column layout (left: soundlines, right: pill +
+   step bars + pentagram). The soundline column no longer shares its
+   vertical real estate with the pentagram below, so it can claim more
+   of the iframe's height. Bump the cap so the soundline numbers
+   breathe while still leaving room for the play button. */
+html[data-embed="true"] body.app23 {
+  --soundlines-height: clamp(18rem, 82vh, 60rem);
 }

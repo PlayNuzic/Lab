@@ -542,7 +542,7 @@ body[data-visual="nuzic"] .connection-line {
 }
 
 body[data-visual="nuzic"] .connection-line.active {
-  stroke: var(--nuzic-yellow, #FFBB33);
+  stroke: var(--nuzic-blue, #7BB4CD);
 }
 
 /* Play buttons: nuzic green circles */

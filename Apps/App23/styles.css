@@ -187,10 +187,14 @@ body.app23 {
   background: var(--scale-step-3);
 }
 
+/* Active highlight: same treatment as App22 (background swap to nuzic
+   blue + soft halo). Keep the visual language consistent across all
+   the escala apps. */
 .interval-bars-row .interval-bar.active {
-  box-shadow: 0 0 12px var(--nuzic-blue, #7BB4CD);
-  outline: 2px solid var(--nuzic-blue, #7BB4CD);
+  background: var(--nuzic-blue, #7BB4CD);
+  box-shadow: 0 0 0 0.2rem rgba(123, 180, 205, 0.35);
 }
+
 
 .interval-bars-row .interval-number {
   font-size: clamp(0.9rem, 1.6vw, 1.2rem);
