@@ -306,7 +306,7 @@ export const slideContent = {
     tipsTitle: 'Prueba la Estructura Escalar',
     tips: `<p>Visualiza la estructura Escalar (eE) de la escala Mayor mediante barras de intervalos que muestran los <b>iS</b> entre cada grado de la escala.</p>
 <p>Pulsa ▶️ para escuchar la escala mayor con una animación que destaca la eE.</p>
-<p><strong>Tips:</strong> En la linea sonora, a la izquierda, se muestran los grados de la escala mayor (Nº). A la derecha se muestraLa estructura de la escala mayor: <b>eE(2 2 1 2 2 2 1)</b>.</p>`,
+<p><strong>Tips:</strong> En la linea sonora, a la izquierda, se muestran los grados de la escala mayor (Nº). A la derecha se muestra la estructura Escalar de la escala mayor: <b>eE(2 2 1 2 2 2 1)</b>.</p>`,
   },
 };
 
