@@ -137,6 +137,11 @@ body.app23 {
   flex-direction: column;
   align-items: center;
   gap: 0.4rem;
+  /* Acostar les barres al pentagrama sense moure el pentagrama: el
+     `transform` no afecta el flow del flex-column, així que el seu
+     germà inferior conserva la seva posició centrada. Ajusta el valor
+     si vols més o menys distància entre les barres i el pentagrama. */
+  transform: translateY(clamp(2rem, 6vh, 5rem));
 }
 
 .interval-bars-label {
