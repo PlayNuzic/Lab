@@ -304,7 +304,9 @@ function createAppLayout() {
             <div id="intervalContainer" class="interval-container"></div>
           </div>
         </div>
-        ${createPlayButton('playBtn', 'Reproducir escala')}
+        <div class="controls">
+          ${createPlayButton('playBtn', 'Reproducir escala')}
+        </div>
       </div>
     </div>
   `;
