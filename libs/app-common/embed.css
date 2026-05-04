@@ -135,9 +135,10 @@ html[data-embed="true"] body.app24 {
 
 /* App23 lives in a two-column layout (left: soundlines, right: pill +
    step bars + pentagram). The soundline column no longer shares its
-   vertical real estate with the pentagram below, so it can claim more
-   of the iframe's height. Bump the cap so the soundline numbers
-   breathe while still leaving room for the play button. */
+   vertical real estate with the pentagram below, so it can claim
+   nearly the full iframe height. The min/max bounds widen with the
+   preferred 97vh so the clamp doesn't kick in at typical iframe sizes
+   (~776px @ 800px viewport). */
 html[data-embed="true"] body.app23 {
-  --soundlines-height: clamp(18rem, 82vh, 60rem);
+  --soundlines-height: clamp(20rem, 97vh, 70rem);
 }
