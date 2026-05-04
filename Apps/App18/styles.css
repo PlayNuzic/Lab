@@ -201,6 +201,8 @@ body.app18 {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  position: relative;
+  overflow: hidden;
 }
 
 .soundline-block .soundline {
@@ -208,6 +210,24 @@ body.app18 {
   flex: 1 1 auto;
   height: auto;
   margin: 0;
+}
+
+/* Octave-scroll animation: the `.soundline` itself transitions one full
+   registry (12 positions = 100%) over the fixed pink background that
+   the `.soundline-block` paints. The outgoing overlay is a clone of
+   the previous `.soundline`, absolutely stacked on top of the new one.
+   The `body[data-visual="nuzic"]` prefix wins specificity against the
+   theme's `transform: none`. Duration must match `REGISTRY_SLIDE_MS`
+   in main.js. */
+body[data-visual="nuzic"] .soundline-block .soundline {
+  transition: transform 0.22s ease;
+}
+
+body[data-visual="nuzic"] .soundline-block .soundline-slide-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: transform 0.22s ease, opacity 0.22s ease;
 }
 
 .soundline-abbr-pill {
@@ -224,9 +244,17 @@ body.app18 {
   flex-shrink: 0;
 }
 
-body[data-visual="nuzic"] .soundline-container .soundline {
+/* Pink background lives on the BLOCK so the inner `.soundline` can be
+   freely transformed during the registry slide animation without the
+   background sliding with it. */
+body[data-visual="nuzic"] .soundline-container .soundline-block {
   background: var(--nuzic-pink-light);
   border-radius: 4px;
+}
+
+body[data-visual="nuzic"] .soundline-container .soundline {
+  background: transparent;
+  border-radius: 0;
 }
 
 body[data-visual="nuzic"] .soundline-container .soundline-number {

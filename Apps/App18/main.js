@@ -42,14 +42,93 @@ const MAX_BPM = 150;
 const preferenceStorage = createPreferenceStorage('app18');
 
 // Registry controller (shared module)
+let lastRegistry = null;
 const registryController = createRegistryController({
   min: MIN_REGISTRO,
   max: MAX_REGISTRO,
   midiOffset: 12,
   onRegistryChange: () => {
-    drawSoundline();
+    const next = registryController.getRegistry();
+    // Direction: registry up → notes appear from below (slide up).
+    // First render or null → no animation.
+    const direction = (lastRegistry == null || next == null)
+      ? null
+      : (next > lastRegistry ? 'up' : 'down');
+    lastRegistry = next;
+    if (direction) {
+      animateRegistrySlide(direction);
+    } else {
+      drawSoundline();
+    }
   }
 });
+
+// Slide duration must match the CSS transition; kept in JS so we can
+// schedule the cleanup of the old numbers track at the end. Stay under
+// `AUTO_PLAY_DELAY` (250ms) so the slide finishes — and the new numbers
+// are hoisted back as direct `.soundline` children — before auto-play
+// starts spawning `.note-highlight` rectangles.
+const REGISTRY_SLIDE_MS = 220;
+
+/**
+ * Octave-scroll animation. The pink background lives on the
+ * `.soundline-block` (added in CSS) so the inner `.soundline` itself
+ * can ride one full registry up or down. We clone the current
+ * `.soundline` as an out-going overlay, then slide both the original
+ * (now rebuilt with the new registry's labels) and the overlay in
+ * sync.
+ *
+ * @param {'up'|'down'} direction - 'up' if the registry increased.
+ */
+function animateRegistrySlide(direction) {
+  const oldSoundline = soundline?.element;
+  const block = oldSoundline?.parentElement;
+  if (!oldSoundline || !block) {
+    drawSoundline();
+    return;
+  }
+
+  // 1) Clone the current soundline as an absolutely-positioned overlay
+  //    that will slide off in the chosen direction.
+  const overlay = oldSoundline.cloneNode(true);
+  overlay.classList.add('soundline-slide-overlay');
+
+  // 2) Redraw the real soundline with the new registry's labels.
+  drawSoundline();
+  const newSoundline = soundline?.element;
+  const newBlock = newSoundline?.parentElement;
+  if (!newSoundline || !newBlock) return;
+
+  // 3) Mount the overlay over the new soundline.
+  newBlock.appendChild(overlay);
+
+  // 4) Set initial transforms: overlay at home (0), new soundline
+  //    pre-shifted offscreen on the opposite side. Direction 'up'
+  //    (registry increased) ⇒ overlay leaves through the top, new
+  //    soundline arrives from the bottom.
+  const overlayEndY = direction === 'up' ? -100 : 100;
+  const newStartY = direction === 'up' ? 100 : -100;
+  newSoundline.style.transition = 'none';
+  newSoundline.style.transform = `translateY(${newStartY}%)`;
+
+  // Force layout so the initial offsets stick before we transition.
+  void newSoundline.offsetHeight;
+
+  // 5) Kick off the scroll: overlay slides off, new soundline rides home.
+  requestAnimationFrame(() => {
+    newSoundline.style.transition = '';
+    newSoundline.style.transform = 'translateY(0)';
+    overlay.style.transform = `translateY(${overlayEndY}%)`;
+    overlay.style.opacity = '0';
+  });
+
+  // 6) Cleanup once the slide finishes.
+  setTimeout(() => {
+    overlay.remove();
+    newSoundline.style.transition = '';
+    newSoundline.style.transform = '';
+  }, REGISTRY_SLIDE_MS + 50);
+}
 
 // ========== NOTE CLICK HANDLER ==========
 const ZERO_POSITION = 0; // Note 0 of current registry is at index 0 (bottom)

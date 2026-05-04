@@ -599,6 +599,47 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       no complicar el layout amb la columna virtual d'intervals).
     - Tests: 1445/1445 OK.
 
+29. **App18 — slide d'octava al canviar registre** ⚠️ NO RESOLT (2026-05-04)
+    - **Objectiu**: que els números de la soundline facin "scroll" sobre
+      el fons rosa fix cada cop que es canvia el registre, com si tota
+      la columna pugés/baixés una octava sencera.
+    - **Implementació actual**:
+      a. `Apps/App18/main.js`: `onRegistryChange` calcula la direcció
+         (`up`/`down`) comparant amb `lastRegistry` i crida
+         `animateRegistrySlide(direction)`. Aquesta funció clona el
+         `.soundline` actual com a overlay absolut, crida
+         `drawSoundline()` (que reemplaça el `.soundline` amb els nous
+         números), pre-posiciona el nou amb `translateY(±100%)` i, al
+         següent `requestAnimationFrame`, transiciona a `translateY(0)`
+         mentre l'overlay surt amb `translateY(∓100%)` + opacity 0.
+         Cleanup després de `REGISTRY_SLIDE_MS + 50` (270ms).
+         `REGISTRY_SLIDE_MS = 220` (sota `AUTO_PLAY_DELAY = 250` per
+         evitar que els nous `.note-highlight` apareguin abans del
+         cleanup).
+      b. `Apps/App18/styles.css`: el fons `nuzic-pink-light` passa del
+         `.soundline` al `.soundline-block` (perquè el `.soundline` es
+         pugui transformar lliurement). `.soundline-block` rep
+         `position: relative; overflow: hidden` per ancorar l'overlay
+         absolut i retallar el moviment dins el rectangle rosa. Nova
+         classe `.soundline-slide-overlay` per a l'overlay.
+    - **Estat**: l'usuari reporta que el comportament continua
+      "exactament igual" malgrat múltiples iteracions:
+      - Versió 1 (slide del `.soundline` sencer amb `transform`): el
+        fons rosa també es desplaçava — incorrecte.
+      - Versió 2 (dos `.soundline-scroll-track` separats per old/new
+        numbers): apareixia una "columna vertical" que tapava notes
+        — confirmat per l'usuari amb captura encerclada.
+      - Versió 3 (overlay clone + fons al `.soundline-block`): el
+        headless puppeteer no reprodueix el bug que l'usuari segueix
+        veient.
+    - **Pista potser útil per futures iteracions**: al headless les
+      captures es veuen netes; el bug només es manifesta amb àudio
+      real (samples de piano que carreguen, primer beat real cap a
+      1-2s després del play). No el podem reproduir sense àudio
+      activat. Cal provar amb una eina que sí reprodueixi àudio o
+      depurar amb DevTools al navegador real.
+    - Tests: 1445/1445 OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App22**: redisseny de l'estructura Escalar (no tractat aquí).
