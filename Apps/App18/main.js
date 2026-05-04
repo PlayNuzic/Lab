@@ -401,10 +401,18 @@ async function handlePlay() {
     playIcon.style.opacity = '1';
   }
 
-  // Generate random sequence only if we don't have one yet
+  // Generate random sequence only if we don't have one yet.
+  // Use the side-effect-free generator so we don't re-arm scheduleAutoPlay
+  // mid-handlePlay (that would restart the sequence ~AUTO_PLAY_DELAY in,
+  // truncating it to its first couple of notes).
   if (randomNotes.length === 0) {
-    handleRandom();
+    generateRandomSequence();
   }
+
+  // Cancel any pending auto-play timer — we're starting now, and any
+  // queued timer would re-enter handlePlay and restart the sequence.
+  clearTimeout(autoPlayTimer);
+  autoPlayTimer = null;
 
   console.log(`BPM: ${currentBPM}`);
   console.log(`Registry: ${registry}`);
@@ -467,8 +475,7 @@ function stopPlayback() {
   }
 }
 
-function handleRandom() {
-  // Can be called during playback to prepare next sequence
+function generateRandomSequence() {
   const registry = registryController.getRegistry();
 
   // If no registry, randomize both registry and sequence
@@ -491,7 +498,10 @@ function handleRandom() {
   currentBPM = getRandomBPM(MIN_BPM, MAX_BPM);
 
   console.log(`New random: BPM=${currentBPM}, Notes=${randomNotes.join(',')}`);
+}
 
+function handleRandom() {
+  generateRandomSequence();
   // Auto-play: si ja estem reproduint, atura i recomença amb la nova
   // seqüència. Si no, dispara play.
   scheduleAutoPlay();
