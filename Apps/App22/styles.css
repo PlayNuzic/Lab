@@ -15,8 +15,9 @@
   --soundline-container-width: 7.5rem;
 
   /* Interval bars */
-  --interval-container-width: 3.75rem;
-  --interval-bar-width: 2.5rem;
+  --interval-container-width: clamp(3.75rem, 7vw, 5rem);
+  --interval-bar-width: clamp(2.3rem, 4.2vw, 3.2rem);
+  --scale-structure-gap: clamp(3rem, 7vw, 5.25rem);
 
   /* Header sizing */
   --soundline-header-offset: -1.25rem;
@@ -162,8 +163,9 @@ html, body {
 
 .soundline-with-intervals {
   display: flex;
-  gap: 0;
+  gap: var(--scale-structure-gap);
   height: var(--soundlines-height);
+  align-items: stretch;
 }
 
 .soundline-container {
@@ -251,13 +253,53 @@ html, body {
 .interval-container {
   position: relative;
   width: var(--interval-container-width);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.interval-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--interval-container-width);
   height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+.interval-abbr-pill {
+  width: 100%;
+  height: var(--soundline-abbr-pill-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--nuzic-pink, #F28AAD);
+  color: var(--nuzic-dark, #43433B);
+  font-size: var(--soundline-abbr-pill-font);
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.interval-guide-line {
+  position: absolute;
+  left: calc(-1 * var(--scale-structure-gap));
+  width: calc(var(--scale-structure-gap) + (var(--interval-bar-width) / 2));
+  height: 0.22rem;
+  background: var(--nuzic-pink-light, #ffe5ee);
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.interval-guide-line--edge {
+  background: var(--nuzic-pink, #F28AAD);
 }
 
 .interval-bar {
   position: absolute;
-  left: 0%;
-  transform: translateY(-50%);
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: var(--interval-bar-width);
   background: transparent;
   border: 2px solid var(--line-color);
@@ -268,6 +310,18 @@ html, body {
   opacity: 0.6;
   transition: all 0.15s ease;
   box-sizing: border-box;
+  z-index: 2;
+}
+
+.interval-bar--step-1 {
+  width: var(--interval-bar-width);
+  border-radius: 999px;
+  z-index: 4;
+}
+
+.interval-bar--step-2 {
+  border-radius: 999px;
+  z-index: 3;
 }
 
 .interval-bar.active {
@@ -329,27 +383,6 @@ html, body {
     transform: translateY(-50%) scale(1);
   }
 }
-
-/* ============================================================================
-   EE DISPLAY - Estructura Escalar horitzontal
-   ============================================================================ */
-
-.ee-display {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--bg-secondary, rgba(0, 0, 0, 0.05));
-  border-radius: 6px;
-  transform: translateX(var(--soundline-header-offset, -10px));
-}
-
-[data-theme="dark"] .ee-display {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-/* eE uses shared fluid variables from soundlines.css */
 
 /* ============================================================================
    BOTÓ PLAY
@@ -420,15 +453,17 @@ body[data-visual="nuzic"] .soundline-number::after {
   color: var(--nuzic-dark, #43433B);
 }
 
-/* Active numbers during playback: nuzic yellow */
+/* Active numbers during playback: strong nuzic blue */
 body[data-visual="nuzic"] .soundline-number.active {
-  color: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-blue, #7BB4CD);
+  background: rgba(123, 180, 205, 0.24);
+  border-radius: 999px;
   text-shadow: none;
 }
 
 body[data-visual="nuzic"] .soundline-number.active::before,
 body[data-visual="nuzic"] .soundline-number.active::after {
-  color: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-blue, #7BB4CD);
 }
 
 /* Dots: centered */
@@ -449,23 +484,33 @@ body[data-visual="nuzic"] .note-highlight {
 
 /* Interval bars: nuzic pink when active */
 body[data-visual="nuzic"] .interval-bar {
-  border-color: var(--nuzic-grey, #AAA699);
+  background: var(--nuzic-pink, #F28AAD);
+  border: none;
+  color: var(--nuzic-dark, #43433B);
+  opacity: 1;
+}
+
+body[data-visual="nuzic"] .interval-bar--step-1 {
+  background: #ef6f64;
 }
 
 body[data-visual="nuzic"] .interval-bar.active {
-  background: var(--nuzic-pink, #F28AAD);
-  border-color: var(--nuzic-pink, #F28AAD);
-  box-shadow: 0 0 0.5rem var(--nuzic-pink, #F28AAD);
+  background: var(--nuzic-blue, #7BB4CD);
+  box-shadow: 0 0 0 0.2rem rgba(123, 180, 205, 0.35);
 }
 
-body[data-visual="nuzic"] .interval-bar.active .interval-number {
-  color: white;
+body[data-visual="nuzic"] .interval-bar--step-1.active {
+  background: var(--nuzic-blue, #7BB4CD);
 }
 
-/* Header + play + ee-display: center (remove legacy offset) */
+body[data-visual="nuzic"] .interval-number {
+  color: var(--nuzic-dark, #43433B);
+  font-weight: 700;
+}
+
+/* Header + play: center (remove legacy offset) */
 body[data-visual="nuzic"] .soundline-header { transform: none; }
 body[data-visual="nuzic"] .soundline-play { transform: none; }
-body[data-visual="nuzic"] .ee-display { transform: none; }
 
 /* Play button: nuzic green circle */
 body[data-visual="nuzic"] .soundline-play {
@@ -489,10 +534,6 @@ body[data-visual="nuzic"] .soundline-play.playing {
 
 /* Titles: nuzic colors */
 body[data-visual="nuzic"] .soundline-title {
-  color: var(--nuzic-dark, #43433B);
-}
-
-body[data-visual="nuzic"] .ee-label {
   color: var(--nuzic-dark, #43433B);
 }
 

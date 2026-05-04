@@ -140,7 +140,9 @@ function createIntervalBars() {
 
     const bar = document.createElement('div');
     bar.className = 'interval-bar';
+    bar.classList.add(`interval-bar--step-${interval}`);
     bar.dataset.intervalIndex = index;
+    bar.dataset.intervalValue = interval;
     bar.style.top = `${centerY}%`;
     bar.style.height = `${height}%`;
 
@@ -151,6 +153,14 @@ function createIntervalBars() {
 
     intervalContainer.appendChild(bar);
     intervalBars.push(bar);
+  });
+
+  MAJOR_SCALE_SEMITONES.forEach((semitone, index) => {
+    const line = document.createElement('div');
+    line.className = 'interval-guide-line';
+    line.classList.toggle('interval-guide-line--edge', index === 0 || index === MAJOR_SCALE_SEMITONES.length - 1);
+    line.style.top = `${scaleSoundline.getNotePosition(semitone)}%`;
+    intervalContainer.appendChild(line);
   });
 }
 
@@ -277,9 +287,6 @@ function createAppLayout() {
 
   timelineWrapper.innerHTML = '';
 
-  // Crear el display EE amb els intervals en format iS( ... )
-  const eeNumbers = SCALE_STRUCTURE.map(n => `<span class="ee-number">${n}</span>`).join(' ');
-
   timelineWrapper.innerHTML = `
     <!-- Area de soundlines -->
     <div class="soundlines-area">
@@ -292,11 +299,10 @@ function createAppLayout() {
             <div class="soundline-abbr-pill">Nº</div>
             <div id="scaleSoundline" class="soundline-container"></div>
           </div>
-          <div id="intervalContainer" class="interval-container"></div>
-        </div>
-        <div class="ee-display">
-          <span class="ee-label">eE:</span>
-          <span class="ee-function">iS(</span>${eeNumbers}<span class="ee-function">)</span>
+          <div class="interval-block">
+            <div class="interval-abbr-pill">iS</div>
+            <div id="intervalContainer" class="interval-container"></div>
+          </div>
         </div>
         ${createPlayButton('playBtn', 'Reproducir escala')}
       </div>

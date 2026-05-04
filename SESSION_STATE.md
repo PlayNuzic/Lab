@@ -674,9 +674,42 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       `npm test -- --runInBand libs/sound/__tests__/registry-controller.test.js libs/sound/__tests__/melodic-sequence.test.js`
       → 2 suites / 60 tests OK.
 
+31. **App22 — representació vertical de l'estructura escalar iS** ✅ FET (2026-05-04)
+    - **Objectiu**: acostar la columna d'estructura escalar al mockup de
+      referència de l'usuari, sense modificar la soundline existent.
+    - **Canvis a `Apps/App22/main.js`**:
+      a. L'àrea d'iS passa a ser un `.interval-block` paral·lel a la
+         `.soundline-block`, amb capçal propi `.interval-abbr-pill` (`iS`).
+      b. Les barres d'interval reben classe per valor
+         (`.interval-bar--step-1` / `.interval-bar--step-2`) i
+         `data-interval-value`.
+      c. Afegides `.interval-guide-line` a les posicions de les notes de
+         l'escala per dibuixar les línies horitzontals pàl·lides entre la
+         soundline i la columna iS.
+    - **Canvis a `Apps/App22/styles.css`**:
+      a. Separació visual entre soundline i iS amb
+         `--scale-structure-gap`.
+      b. Capçal `iS` rosa, píndoles roses per intervals de 2 semitons i
+         cercles coral per intervals d'1 semitò.
+      c. Les línies guia queden darrere de les píndoles; la soundline
+         conserva la seva construcció i estil actual.
+      d. Refinament visual posterior: cap step se solapa amb un altre.
+         Els steps `1` respecten l'alçada musical calculada pel JS i els
+         steps `2` queden més estrets que el capçal `iS`, llegint com a
+         pastilles verticals en lloc de globus.
+      e. Highlight de reproducció reforçat: els steps actius passen a
+         blau fort nuzic (`--nuzic-blue`) i els números actius de la
+         soundline reben el mateix blau amb fons suau per fer clara la
+         correspondència.
+      f. Eliminat l'`ee-display` horitzontal inferior (`eE: iS(...)`)
+         perquè la nova columna vertical `iS` ja representa la mateixa
+         informació i evita redundància visual.
+    - Tests:
+      `npm test -- --runInBand libs/soundlines/__tests__/playback-utils.test.js libs/soundlines/__tests__/highlight-system.test.js libs/soundlines/__tests__/connection-renderer.test.js libs/sound/__tests__/melodic-sequence.test.js`
+      → 4 suites / 87 tests OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
-- **App22**: redisseny de l'estructura Escalar (no tractat aquí).
 - **App24**: redisseny de les línies de connexió (no tractat aquí).
 - **App17**: 3 millores opcionals identificades pel revisor (cache de
   last-size al ResizeObserver, comentaris consistents, `ro` al module
