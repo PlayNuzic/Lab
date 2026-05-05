@@ -947,6 +947,26 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       sistema i app.
     - Tests: 73 suites / 1445 tests OK.
 
+38. **Sistema — hardening final del text teòric en vertical** ✅ FET (2026-05-05)
+    - L'usuari encara veia el text teòric desbordant lateralment en
+      responsive vertical, tot i que la caixa verda ja quedava alineada.
+    - Reproducció local a Live Server `:5500` amb Chrome headless,
+      viewport `632×847`, paso 24 i el text real de la captura com a
+      override: `documentElement.scrollWidth = body.scrollWidth = 632`
+      i `.slot-text .prose` queda dins 581px. Això apunta a cache/scroll
+      lateral residual o a contingut editat amb càlcul transitori de
+      min-content, no a un overflow estructural reproduïble amb CSS actual.
+    - Canvis defensius:
+      a. `sistema/css/tokens.css`: `overflow-x: clip` a `html` i `body`
+         (`hidden` com a fallback) perquè el Sistema no tingui mai pan
+         horitzontal accidental.
+      b. `sistema/css/slides.css`: `.slot-text` amb `max-width: 100%` i
+         `overflow-x: clip`; `.slot-text .prose` amb `width/max-width:
+         100%`; fills directes de `.prose` limitats a `max-width: 100%`.
+    - Mantingut el fix arrel del punt 37 (`min-width: 0` als grid/flex
+      items + `overflow-wrap: anywhere`). El nou canvi és una xarxa de
+      seguretat per contingut editat/cachejat i scroll lateral residual.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App24**: redisseny de les línies de connexió (no tractat aquí —

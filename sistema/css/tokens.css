@@ -74,6 +74,12 @@ body[data-theme="dark"]{
 
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;padding:0}
+html {
+  /* El Sistema no té cap cas legítim de scroll horitzontal. Si un iframe,
+     text editat o element absolut produeix overflow transitori, evitem que
+     el viewport quedi desplaçat lateralment i talli els blocs de lectura. */
+  overflow-x: clip;
+}
 body{
   font-family:var(--font-body);
   font-size:var(--fs-body);
@@ -84,5 +90,12 @@ body{
   text-rendering:optimizeLegibility;
   min-height:100vh;
   padding-bottom:var(--nav-h);
+  overflow-x: clip;
+}
+@supports not (overflow: clip) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
 }
 h1,h2,h3,.display{ font-family:var(--font-display); font-weight:700; color:var(--fg); }

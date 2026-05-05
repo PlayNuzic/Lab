@@ -64,11 +64,15 @@ body[data-editable="true"] [contenteditable="true"]:focus{
   flex-direction: column;
   gap: var(--sp-2);
   min-height: 0;
+  max-width: 100%;
+  overflow-x: clip;
 }
 .slot-text .prose{
   flex: 1;
   min-height: 0;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
   font-family: var(--font-body);
   font-size: var(--fs-body);
   line-height: 1.45;
@@ -77,6 +81,9 @@ body[data-editable="true"] [contenteditable="true"]:focus{
   /* Una URL o paraula llarga no ha de fer créixer el track del grid pare
      (min-content) per sobre del viewport. */
   overflow-wrap: anywhere;
+}
+.slot-text .prose > *{
+  max-width: 100%;
 }
 .slot-text .prose p{
   margin: 0 0 0.65em;
