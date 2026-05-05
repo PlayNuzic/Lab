@@ -39,11 +39,16 @@ let useKeySig = true; // Armadura activada per defecte
 // Escales disponibles per App24
 // rootOffset: compensació per obtenir l'armadura correcta en rotacions
 // Per rotacions, l'armadura de rot 0 a root X és la mateixa que rot N a root X+offset
+// `name` és el nom curt visible dins el selector (etiqueta natural).
+// `titleName` és la versió que apareix al títol "Escala …" sobre la
+// soundline. Per algunes escales abreviem perquè el títol càpiga sempre
+// en exactament 2 línies (les soundlines han d'estar connectades
+// visualment, mateixa Y de partida) — vegeu updateScaleTitle().
 const APP24_SCALES = [
   { id: 'DIAT', rotation: 0, value: 'DIAT-0', name: 'Major', rootOffset: 0 },
-  { id: 'DIAT', rotation: 5, value: 'DIAT-5', name: 'Menor Natural', rootOffset: 3 },  // Eolia: +3 semitons
-  { id: 'ARMme', rotation: 0, value: 'ARMme-0', name: 'Menor Harmónica', rootOffset: 0 },
-  { id: 'ARMma', rotation: 0, value: 'ARMma-0', name: 'Mayor Harmónica', rootOffset: 0 },
+  { id: 'DIAT', rotation: 5, value: 'DIAT-5', name: 'Menor Natural', titleName: 'm. Natural', rootOffset: 3 },  // Eolia: +3 semitons
+  { id: 'ARMme', rotation: 0, value: 'ARMme-0', name: 'Menor Harmónica', titleName: 'm. Harmónica', rootOffset: 0 },
+  { id: 'ARMma', rotation: 0, value: 'ARMma-0', name: 'Mayor Harmónica', titleName: 'M. Harmónica', rootOffset: 0 },
   { id: 'ACUS', rotation: 0, value: 'ACUS-0', name: 'Acústica', rootOffset: 0 },
   { id: 'PENT', rotation: 0, value: 'PENT-0', name: 'Pentatónica', rootOffset: 0 },
   { id: 'TON', rotation: 0, value: 'TON-0', name: 'Tonos', rootOffset: 0 },
@@ -287,6 +292,100 @@ function initScaleSelector() {
   // Inicialitzar estat amb l'escala per defecte
   currentScaleNotes = getRotatedScaleNotes('DIAT', 0);
   currentEE = getRotatedEE('DIAT', 0);
+
+  // Capa visual sobre el <select> natiu — aquí canviem només l'aparença,
+  // no la lògica: la selecció acaba escrivint a `selectEl.value` i
+  // disparant un `change`, així tota la cadena onScaleChange/updateForScaleChange
+  // segueix funcionant exactament com abans.
+  enhanceScaleSelectorVisual();
+}
+
+/**
+ * Decora el selector d'escales amb una llista visual (fons crema, miniatures
+ * de l'estructura escalar sense números). El `<select>` natiu segueix existint
+ * com a font de veritat, només queda ocult.
+ */
+function enhanceScaleSelectorVisual() {
+  const selectEl = selectorContainer.querySelector('.scale-select');
+  if (!selectEl) return;
+
+  // Amaga el select natiu sense treure'l del DOM (manté la lògica intacta).
+  selectEl.classList.add('scale-select--hidden');
+
+  // Construeix la llista visual a partir de les opcions del <select>.
+  const list = document.createElement('ul');
+  list.className = 'scale-list';
+  list.setAttribute('role', 'listbox');
+  list.setAttribute('aria-label', 'Escalas disponibles');
+
+  Array.from(selectEl.options).forEach((opt) => {
+    const scale = APP24_SCALES.find(s => s.value === opt.value);
+    const ee = scale ? getRotatedEE(scale.id, scale.rotation) : [];
+    const miniature = ee.map(step =>
+      `<span class="scale-mini__bar scale-mini__bar--step-${step}"></span>`
+    ).join('');
+
+    const li = document.createElement('li');
+    li.className = 'scale-list__item';
+    li.setAttribute('role', 'option');
+    li.dataset.scaleValue = opt.value;
+    li.tabIndex = 0;
+    li.innerHTML = `
+      <span class="scale-list__name">${opt.textContent}</span>
+      <span class="scale-list__mini" aria-hidden="true">${miniature}</span>
+    `;
+    list.appendChild(li);
+  });
+
+  selectorContainer.appendChild(list);
+
+  function syncSelected() {
+    list.querySelectorAll('.scale-list__item.is-selected')
+      .forEach(el => el.classList.remove('is-selected'));
+    const current = list.querySelector(
+      `.scale-list__item[data-scale-value="${selectEl.value}"]`
+    );
+    if (current) current.classList.add('is-selected');
+  }
+
+  function pickValue(value) {
+    if (selectEl.value === value) return;
+    selectEl.value = value;
+    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    syncSelected();
+  }
+
+  list.addEventListener('click', (e) => {
+    const item = e.target.closest('.scale-list__item');
+    if (!item || !list.contains(item)) return;
+    pickValue(item.dataset.scaleValue);
+  });
+
+  list.addEventListener('keydown', (e) => {
+    const item = e.target.closest('.scale-list__item');
+    if (!item) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      pickValue(item.dataset.scaleValue);
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const items = Array.from(list.querySelectorAll('.scale-list__item'));
+      const idx = items.indexOf(item);
+      const next = items[e.key === 'ArrowDown'
+        ? Math.min(items.length - 1, idx + 1)
+        : Math.max(0, idx - 1)];
+      if (next) {
+        next.focus();
+        pickValue(next.dataset.scaleValue);
+      }
+    }
+  });
+
+  // Manté la llista alineada si una altra part del codi fa
+  // `scaleSelector.setScale(...)` (escriu al <select> i dispara change).
+  selectEl.addEventListener('change', syncSelected);
+
+  syncSelected();
 }
 
 function updateScaleTitle() {
@@ -296,8 +395,14 @@ function updateScaleTitle() {
   const currentScaleConfig = APP24_SCALES.find(
     s => s.id === currentScaleId && s.rotation === currentRotation
   );
-  const scaleName = currentScaleConfig ? currentScaleConfig.name : 'Escala';
-  scaleTitleElement.textContent = `Escala ${scaleName}`;
+  // El títol sempre ocupa exactament 2 línies — "Escala" a la primera,
+  // nom (curtit si cal) a la segona — perquè la columna esquerra
+  // ("Escala Cromática") i aquesta restin alineades verticalment i
+  // les dues soundlines arrenquin al mateix Y.
+  const scaleName = currentScaleConfig
+    ? (currentScaleConfig.titleName || currentScaleConfig.name)
+    : 'Escala';
+  scaleTitleElement.innerHTML = `Escala<br>${scaleName}`;
 
   // Pastilla abbr: només la cromàtica usa `N`; qualsevol altra escala usa `Nº`.
   if (scaleAbbrElement) {
@@ -600,7 +705,7 @@ function createAppLayout() {
         <!-- Soundline cromàtica -->
         <div class="soundline-column">
           <div class="soundline-header">
-            <h3 class="soundline-title">Escala Cromática</h3>
+            <h3 class="soundline-title">Escala<br>Cromática</h3>
           </div>
           <div class="soundline-block">
             <div class="soundline-abbr-pill">N</div>

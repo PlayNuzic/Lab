@@ -13,6 +13,11 @@
                              + interval-bars (eE) + pentagrama.
    ============================================================================ */
 
+/* Defensa contra scroll horitzontal: cap fill d'App24 hauria d'excedir
+   l'amplada del viewport, però alguns clamps amb `vw` poden causar
+   overshoots de 1-2px en certes finestres. */
+body.app24 { overflow-x: hidden; }
+
 .timeline-wrapper {
   gap: clamp(1rem, 4vw, 4rem) !important;
   align-items: stretch !important;
@@ -29,6 +34,66 @@
   padding: 0.5rem 0;
 }
 
+/* Treu el gap entre eE i pentagrama (cancel·la el `gap` flex amb un
+   `margin-top` negatiu equivalent) i deixa el pentagrama sense padding
+   vertical perquè quedi enganxat a la franja eE de sobre. */
+.app24-right .pentagram-container {
+  margin-top: calc(-1 * clamp(0.75rem, 2vw, 1.5rem));
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* ----------------------------------------------------------------------------
+   Bug fix — soundline d'escala desplaçant-se al canviar d'escala
+   ----------------------------------------------------------------------------
+   Causa: `.soundline-title` (`<h3>` amb el text "Escala {nom}") no tenia
+   límit d'amplada. Títols llargs ("Escala Menor Harmónica") feien créixer
+   `.soundline-column` per damunt del seu `min-width`, desplaçant la columna
+   sencera (i, per tant, la soundline absoluta dins) cap a la dreta.
+   Solució: forçar el header a l'amplada del `--soundline-container-width`
+   i deixar que el títol faci wrap si cal.
+   ---------------------------------------------------------------------------- */
+/* El header reserva l'alçada de 2 línies de títol al flux per no empènyer
+   la barra rosa cap avall, però a la pràctica fa de "centrador" per al
+   títol que es renderitza absolut (i pot ser una mica més ample que la
+   barra rosa sense afectar la mida del layout). */
+body.app24 .soundline-header {
+  position: relative;
+  width: var(--soundline-container-width);
+  max-width: var(--soundline-container-width);
+  --title-line-height: 1.15;
+  height: calc(var(--soundline-title-size) * var(--title-line-height) * 2);
+  min-height: calc(var(--soundline-title-size) * var(--title-line-height) * 2);
+}
+
+/* Títol sempre a 2 línies exactes:
+   - posició absoluta amb amplada superior a la barra rosa per encabir
+     títols llargs ("Escala m. Harmónica"); no contribueix al sizing
+     del flux, així que les soundlines no es desplacen.
+   - line-height fix + min/max-height = 2× line-height reserva
+     l'alçada per a 2 línies encara que el text en tingui menys.
+   - line-clamp retalla a 2 línies si un títol futur fos més llarg
+     del previst. */
+body.app24 .soundline-title {
+  --title-line-height: 1.15;
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: calc(var(--soundline-container-width) + 4rem);
+  max-width: calc(var(--soundline-container-width) + 4rem);
+  white-space: normal;
+  word-wrap: break-word;
+  text-align: center;
+  line-height: var(--title-line-height);
+  min-height: calc(var(--soundline-title-size) * var(--title-line-height) * 2);
+  max-height: calc(var(--soundline-title-size) * var(--title-line-height) * 2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* L'àrea de soundlines (esquerra) manté el seu tamany natural perquè
    la columna dreta s'expandeixi segons calgui. */
 .soundlines-area {
@@ -36,7 +101,7 @@
 }
 
 /* ============================================================================
-   APP24-SPECIFIC: SCALE SELECTOR AREA — selector compacte (10 files)
+   APP24-SPECIFIC: SCALE SELECTOR AREA — alineat amb el pentagrama
    ============================================================================ */
 
 .scale-selector-area {
@@ -45,7 +110,9 @@
   align-items: center;
   flex-shrink: 0;
   min-width: 11.25rem;
-  max-width: 15rem;
+  /* El pentagrama es renderitza a 400px en escriptori (25rem) — el selector
+     el segueix per quedar-hi alineat verticalment a la columna dreta. */
+  max-width: 25rem;
   width: 100%;
 }
 
@@ -62,12 +129,132 @@
   align-items: center;
 }
 
-/* Llista d'escales: alçada governada pel nombre d'opcions (selectSize=10),
-   no per `flex: 1`, perquè la columna no s'estiri verticalment quan hi ha
-   espai sobrant. */
-.scale-selector-area .scale-select[size] {
-  flex: 0 0 auto;
+/* ----------------------------------------------------------------------------
+   Overlay visual del selector (només estètic):
+   - Amaga el `<select>` natiu sense treure'l del DOM (segueix sent la font
+     de veritat per a `change`/`onScaleChange`).
+   - Renderitza una llista crema amb miniatura horizontal de l'eE (sense
+     números) per a cada escala. 5 files visibles, scroll vertical dins.
+   ---------------------------------------------------------------------------- */
+
+.scale-select.scale-select--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  border: 0;
+  pointer-events: none;
+}
+
+.scale-list {
+  --scale-list-row-h: clamp(2.4rem, 4.4vw, 2.9rem);
+  --scale-list-row-gap: 0.3rem;
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--scale-list-row-gap);
+  background: var(--nuzic-light, #eee8d8);
+  border: 1px solid rgba(67, 67, 59, 0.12);
+  border-radius: 0.75rem;
+  max-height: calc(var(--scale-list-row-h) * 5 + var(--scale-list-row-gap) * 4 + 1rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(67, 67, 59, 0.35) transparent;
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .scale-list {
+  background: var(--nuzic-dark, #43433b);
+  border-color: rgba(238, 232, 216, 0.15);
+}
+
+.scale-list::-webkit-scrollbar { width: 6px; }
+.scale-list::-webkit-scrollbar-thumb {
+  background: rgba(67, 67, 59, 0.35);
+  border-radius: 3px;
+}
+
+.scale-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  height: var(--scale-list-row-h);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--nuzic-dark, #43433b);
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.12s ease;
+}
+
+[data-theme="dark"] .scale-list__item {
+  color: var(--nuzic-light, #eee8d8);
+}
+
+.scale-list__item:hover,
+.scale-list__item:focus-visible {
+  background: rgba(67, 67, 59, 0.08);
+}
+
+[data-theme="dark"] .scale-list__item:hover,
+[data-theme="dark"] .scale-list__item:focus-visible {
+  background: rgba(238, 232, 216, 0.1);
+}
+
+.scale-list__item.is-selected {
+  background: rgba(255, 187, 51, 0.32);
+}
+
+.scale-list__name {
+  font-weight: 600;
+  font-size: clamp(0.85rem, 1.4vw, 1rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Miniatura eE per fila — clon visual reduit de les interval-bars d'App23,
+   sense números. Reaprofita `--scale-step-{1,2,3}` per coherència de color. */
+.scale-list__mini {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  --mini-h: clamp(0.5rem, 1vw, 0.7rem);
+  --mini-w-step1: var(--mini-h);
+  --mini-w-step2: calc(var(--mini-h) * 1.6);
+  --mini-w-step3: calc(var(--mini-h) * 2.4);
+}
+
+.scale-mini__bar {
+  display: inline-block;
+  height: var(--mini-h);
+  width: var(--mini-w-step2);
+  background: var(--scale-step-2, #ffbb33);
+  border-radius: 999px;
+  margin-right: 1px;
+}
+
+.scale-mini__bar:last-child { margin-right: 0; }
+
+.scale-mini__bar--step-1 {
+  width: var(--mini-w-step1);
+  background: var(--scale-step-1, #7bb4cd);
+}
+
+.scale-mini__bar--step-3 {
+  width: var(--mini-w-step3);
+  background: var(--scale-step-3, #e76f68);
 }
 
 /* ============================================================================
