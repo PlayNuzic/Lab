@@ -128,12 +128,12 @@ function setupInstrumentListener() {
 function createOutputNotePill() {
   return `
     <div class="bpm-inline visible param outputnote" id="outputNoteParam">
-      <span class="abbr">Nota de salida</span>
+      <span class="abbr">Transposición</span>
       <div class="circle">
         <input id="inputOutputNote" type="number" min="0" max="11" value="${outputNote}" />
         <div class="spinner">
-          <button id="outputNoteUp" class="spin up" type="button" aria-label="Incrementar nota de salida"></button>
-          <button id="outputNoteDown" class="spin down" type="button" aria-label="Decrementar nota de salida"></button>
+          <button id="outputNoteUp" class="spin up" type="button" aria-label="Incrementar transposición"></button>
+          <button id="outputNoteDown" class="spin down" type="button" aria-label="Decrementar transposición"></button>
         </div>
       </div>
     </div>
