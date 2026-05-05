@@ -730,3 +730,22 @@ body[data-visual="nuzic"] .plano-cell .np-dot-clickable:hover::after {
 .pl-secondary.cycle-circle.playing .cycle-counter__digit {
   display: flex;
 }
+
+/* ============================================================================
+   VERTICAL MODE — alineat amb el breakpoint del sistema (`max-width: 900px`)
+   ----------------------------------------------------------------------------
+   Mateix patró que App19 (paso 15): el plànol modular d'App20 (paso 16)
+   apila contingut sota i necessita scroll dins l'app per arribar als
+   controls quan l'iframe és curt. Vegeu el comentari paral·lel a
+   `Apps/App19/styles.css`.
+   ============================================================================ */
+@media (max-width: 900px) {
+  html[data-embed="true"] body.app20 #app-root > main {
+    overflow-y: auto;
+  }
+
+  body.app20 .inputs {
+    gap: clamp(1rem, 4vw, 3rem);
+    padding: 0.25rem 0.5rem;
+  }
+}

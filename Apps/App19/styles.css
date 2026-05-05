@@ -484,3 +484,27 @@ body[data-visual="nuzic"] .plano-cell .np-dot::after {
 .pl-secondary.cycle-circle.playing .cycle-counter__digit {
   display: flex;
 }
+
+/* ============================================================================
+   VERTICAL MODE — alineat amb el breakpoint del sistema (`max-width: 900px`)
+   ----------------------------------------------------------------------------
+   Quan el sistema apila app + text al pas 15, l'iframe del plànol
+   modular pot quedar-se sense alçada per al `.plano-matrix-container`
+   (~9 files visibles és el mínim útil per editar patrons rítmics).
+   • `#app-root > main { overflow-y: auto }`: cal el selector amb
+     `#id` per superar el `main { overflow: hidden }` de la línia 81
+     (specificity 0,1,0,1 vs el (0,0,3,3) de l'override en `embed.css`).
+     Mateix patró d'App18.
+   • Compactació del header `.inputs`: `gap` i padding reduïts perquè
+     les pastilles deixin més vh al plànol.
+   ============================================================================ */
+@media (max-width: 900px) {
+  html[data-embed="true"] body.app19 #app-root > main {
+    overflow-y: auto;
+  }
+
+  body.app19 .inputs {
+    gap: clamp(1rem, 4vw, 3rem);
+    padding: 0.25rem 0.5rem;
+  }
+}

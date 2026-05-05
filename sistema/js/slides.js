@@ -123,6 +123,16 @@ function sanitizeHtml(html){
   return result.trim();
 }
 
+// Apps que demanen landscape (paso 15 i 16, plano-modular d'App19/App20)
+// són impossibles d'usar en pantalles ≤599px d'amplada perquè el plànol
+// 2D necessita una amplada mínima per editar patrons rítmics. En aquests
+// casos, en lloc de carregar l'iframe, mostrem un prompt amb un ícon
+// SVG de gir i un missatge "Gira el dispositivo …". Així estalviem
+// recursos (no carreguem l'app + samples + fonts) i comuniquem clarament
+// què cal fer per veure-la. El listener avall re-renderitza quan canvia
+// el viewport.
+const NARROW_VIEWPORT_QUERY = '(max-width: 599px)';
+
 const state = {
   paso: Math.min(Number(localStorage.getItem(STORAGE_KEY)) || 1, 26),  // clamp to valid range; default to Paso 1
   variant: 'a',
@@ -130,6 +140,7 @@ const state = {
   showIframe: true,
   editable: false,
   overrides: loadOverrides(),
+  narrowViewport: window.matchMedia(NARROW_VIEWPORT_QUERY).matches,
 };
 
 // Expose for tweaks.js
@@ -209,6 +220,29 @@ function renderIframe(appName, aspect){
     </div>`;
 }
 
+/**
+ * Prompt mostrat en lloc de l'iframe quan el viewport és estret i el paso
+ * està marcat amb `requiresLandscape: true` a slide-data. SVG inline d'un
+ * mòbil amb fletxes circulars (pictograma estàndard de "gira el dispositiu").
+ * No carreguem l'iframe en aquest mode — així estalviem la càrrega de
+ * l'app sencera (samples d'àudio, fonts, JS) en pantalles on no és usable.
+ */
+function renderRotatePrompt(aspect){
+  return `
+    <div class="iframe-frame iframe-frame--rotate" style="--iframe-aspect:${aspect||'4/3'}">
+      <div class="rotate-prompt" role="status" aria-live="polite">
+        <svg class="rotate-prompt__icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="22" y="10" width="20" height="34" rx="3"/>
+          <line x1="32" y1="40" x2="32" y2="40.01"/>
+          <path d="M14 50 Q14 56 20 56 L44 56 Q50 56 50 50"/>
+          <polyline points="10,46 14,50 18,46"/>
+          <polyline points="46,54 50,50 54,54"/>
+        </svg>
+        <p class="rotate-prompt__text">Gira el dispositivo<br>para ver esta app</p>
+      </div>
+    </div>`;
+}
+
 function renderVariantToggle(slide){
   if (!slide.apps || slide.apps.length < 2) return '';
   const [la, lb] = slide.variantLabels || slide.apps;
@@ -222,9 +256,18 @@ function renderVariantToggle(slide){
 function renderApp(slide){
   if (!slide.apps || !slide.apps.length) return '';
   const appName = slide.apps[state.variant === 'b' ? 1 : 0];
-  const body = state.showIframe
-    ? renderIframe(appName, slide.aspect)
-    : renderPlaceholder(slide.apps, slide.aspect, state.variant);
+  // Pasos com el 15/16 (plànol modular) demanen un mínim d'amplada per
+  // ser usables. A viewports ≤599px substituïm l'iframe pel prompt de
+  // rotació en lloc de carregar l'app inutilitzablement.
+  const needsRotate = slide.requiresLandscape && state.narrowViewport;
+  let body;
+  if (needsRotate) {
+    body = renderRotatePrompt(slide.aspect);
+  } else if (state.showIframe) {
+    body = renderIframe(appName, slide.aspect);
+  } else {
+    body = renderPlaceholder(slide.apps, slide.aspect, state.variant);
+  }
   return `
     <div class="slot-app">
       ${renderVariantToggle(slide)}
@@ -411,5 +454,19 @@ slideMatrix.forEach(s => {
   sel.appendChild(o);
 });
 sel.value = state.paso;
+
+// Re-render quan el viewport creui el llindar del prompt de rotació, així
+// la persona que gira el dispositiu (o redimensiona la finestra) veu
+// l'iframe carregar-se sense haver de tornar a entrar al paso. Fem servir
+// l'API moderna `addEventListener` (caure a `addListener` només si el
+// browser és antic — Safari ≤14).
+const narrowMQ = window.matchMedia(NARROW_VIEWPORT_QUERY);
+const onNarrowChange = (e) => {
+  if (state.narrowViewport === e.matches) return;
+  state.narrowViewport = e.matches;
+  render();
+};
+if (narrowMQ.addEventListener) narrowMQ.addEventListener('change', onNarrowChange);
+else narrowMQ.addListener(onNarrowChange);
 
 render();

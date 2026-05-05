@@ -140,7 +140,14 @@
   flex: 1;
   overflow-x: auto;
   overflow-y: scroll;
-  min-height: 0;
+  /* `min-height` mínim útil: garantim que el plànol mostri com a mínim
+     `--plano-visible-rows` files, encara que el seu pare sigui curt. Amb
+     scroll intern, l'usuari pot navegar més enllà; sense aquest mínim, el
+     plànol col·lapsa a zero quan l'iframe és curt en mode vertical i
+     l'app queda inutilitzable. La mida cau en cascada amb els media
+     queries que rebaixen `--plano-cell-height` i `--plano-visible-rows`
+     a viewports estrets. */
+  min-height: calc(var(--plano-cell-height) * var(--plano-visible-rows));
   /* No max-height: the parent grid (`grid-template-rows: 1fr auto`) already
      allocates the matrix's row dynamically based on available space. The
      previous `max-height: calc(visible-rows × cell-height)` cap was a
@@ -411,6 +418,13 @@
 /* Font-sizes removed from breakpoints — clamp() handles fluid scaling.
    Only CSS variables (cell-height, soundline-width) remain for grid layout. */
 
+/* Responsive: pugem progressivament la densitat baixant cell-height i
+   reduint soundline-width perquè el plànol càpiga en iframes estrets.
+   `--plano-visible-rows` defineix la mida mínima útil del matrix
+   (sempre hi ha scroll intern, no és la quantitat total de files).
+   Mantenim 8-9 files visibles fins als breakpoints més estrets perquè
+   l'app segueixi sent útil per editar patrons rítmics. */
+
 @media (max-width: 900px) {
   .plano-container {
     --plano-visible-rows: 12;
@@ -429,7 +443,10 @@
 
 @media (max-width: 600px) {
   .plano-container {
-    --plano-visible-rows: 39;
+    /* Era 39 (typo del commit fundacional) — corregit a 9 perquè la sèrie
+       creixent (15 → 12 → 10 → 9 → 8) tingui sentit i el plànol es
+       compacti gradualment en lloc de saltar a un valor absurd. */
+    --plano-visible-rows: 9;
     --plano-cell-height: 18px;
     --plano-soundline-width: 35px;
     --plano-timeline-height: 30px;
@@ -438,6 +455,9 @@
 
 @media (max-width: 500px) {
   .plano-container {
+    /* Mínim útil: 8 files. Sota d'aquesta densitat el plànol perd
+       legibilitat per editar patrons. */
+    --plano-visible-rows: 8;
     --plano-cell-height: 16px;
     --plano-soundline-width: 30px;
   }

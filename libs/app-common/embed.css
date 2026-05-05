@@ -156,6 +156,8 @@ html[data-embed="true"] body.app24 {
 @media (max-width: 900px) {
   html[data-embed="true"] body.app17 main,
   html[data-embed="true"] body.app18 main,
+  html[data-embed="true"] body.app19 main,
+  html[data-embed="true"] body.app20 main,
   html[data-embed="true"] body.app23 main,
   html[data-embed="true"] body.app24 main {
     overflow-y: auto;
