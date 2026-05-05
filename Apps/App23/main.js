@@ -314,17 +314,24 @@ function renderPentagram() {
   // Calcular notes MIDI de l'escala transposada
   const scaleMidis = getScaleMidis(outputNote);
 
-  // Mida responsive: ajusta el pentagrama a l'amplada real del seu
-  // contenidor, no a `window.innerWidth` (que és el viewport top quan
-  // l'app viu en un iframe del sistema). El pentagrama mai serà més
-  // ample que el seu slot; si el slot és estret, encongim. Les alçades
-  // pugen per encabir-hi les plicas i ledger lines sense que les talli
-  // el viewBox del SVG.
-  const containerWidth = pentagramContainer.getBoundingClientRect().width
+  // Mida responsive: el pentagrama es dibuixa exactament a la mateixa
+  // amplada que la fila d'`interval-bars` (eE) que té just a sobre, així
+  // tots dos blocs s'alineen visualment i s'encongeixen junts en
+  // pantalles petites. El `.pentagram-container` és `display: block`
+  // sense width fixat → fallar a mesurar-lo donaria 0 al primer render
+  // (el SVG encara no hi és); per això mesurem el `intervalBarsContainer`,
+  // que sí té amplada estable definida pel seu propi contingut clamp().
+  // L'amplada efectiva inclou els cercles/càpsules + 1px gaps, així que
+  // cobreix el rang típic ~225-285px en escriptori i ~190-220px en
+  // viewports estrets.
+  const referenceWidth = intervalBarsContainer
+    ? intervalBarsContainer.getBoundingClientRect().width
+    : 0;
+  const fallback = pentagramContainer.getBoundingClientRect().width
     || document.documentElement.clientWidth
     || window.innerWidth;
   // Reservem ~16px de padding intern (border-radius/padding del container).
-  const available = Math.max(180, Math.floor(containerWidth - 16));
+  const available = Math.max(180, Math.floor((referenceWidth || fallback) - 0));
   let pentagramWidth = Math.min(400, available);
   let pentagramHeight = 180;
   if (pentagramWidth <= 220) pentagramHeight = 140;
