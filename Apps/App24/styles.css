@@ -137,7 +137,8 @@ body.app24 .soundline-title {
      números) per a cada escala. 5 files visibles, scroll vertical dins.
    ---------------------------------------------------------------------------- */
 
-.scale-select.scale-select--hidden {
+.scale-select.scale-select--hidden,
+.scale-selector-title.scale-selector-title--hidden {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -152,9 +153,13 @@ body.app24 .soundline-title {
 .scale-list {
   --scale-list-row-h: clamp(2.4rem, 4.4vw, 2.9rem);
   --scale-list-row-gap: 0.3rem;
+  --scale-list-header-h: clamp(2.2rem, 3.6vw, 2.6rem);
+  --scale-list-side-pad: 0.5rem;
   list-style: none;
   margin: 0;
-  padding: 0.5rem;
+  /* Padding lateral 0 perquè la capçalera fosca ocupi tota l'amplada
+     (de costat a costat); els items reben el seu padding propi. */
+  padding: 0 0 var(--scale-list-side-pad);
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -162,7 +167,12 @@ body.app24 .soundline-title {
   background: var(--nuzic-light, #eee8d8);
   border: 1px solid rgba(67, 67, 59, 0.12);
   border-radius: 0.75rem;
-  max-height: calc(var(--scale-list-row-h) * 5 + var(--scale-list-row-gap) * 4 + 1rem);
+  max-height: calc(
+    var(--scale-list-header-h) +
+    var(--scale-list-row-h) * 5 +
+    var(--scale-list-row-gap) * 5 +
+    var(--scale-list-side-pad)
+  );
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
@@ -180,6 +190,43 @@ body.app24 .soundline-title {
   background: rgba(67, 67, 59, 0.35);
   border-radius: 3px;
 }
+
+/* Capçalera fosca embeguda dins el panell crema. Sticky perquè es mantingui
+   visible mentre l'usuari fa scroll dins de la llista. */
+.scale-list__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  height: var(--scale-list-header-h);
+  padding: 0 0.85rem;
+  background: var(--nuzic-dark, #43433b);
+  color: var(--nuzic-light, #eee8d8);
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  /* Arrodoniments només a sobre per encaixar amb el border-radius del panell. */
+  border-top-left-radius: calc(0.75rem - 1px);
+  border-top-right-radius: calc(0.75rem - 1px);
+  margin-bottom: calc(var(--scale-list-side-pad) - var(--scale-list-row-gap));
+  cursor: default;
+  user-select: none;
+}
+
+[data-theme="dark"] .scale-list__header {
+  background: var(--nuzic-light, #eee8d8);
+  color: var(--nuzic-dark, #43433b);
+}
+
+/* Padding lateral als items (substitueix el padding del .scale-list). */
+.scale-list__item {
+  margin-left: var(--scale-list-side-pad);
+  margin-right: var(--scale-list-side-pad);
+}
+
+/* La regla `.scale-list__item:hover` etc. ja existeix més avall — només
+   afegim aquest marge sense duplicar la resta. */
 
 .scale-list__item {
   display: flex;

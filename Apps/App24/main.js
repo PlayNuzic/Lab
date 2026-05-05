@@ -312,11 +312,24 @@ function enhanceScaleSelectorVisual() {
   // Amaga el select natiu sense treure'l del DOM (manté la lògica intacta).
   selectEl.classList.add('scale-select--hidden');
 
+  // Amaga també el títol antic <h2 class="scale-selector-title">: la nova
+  // llista té la seva pròpia capçalera fosca embeguda al panell crema.
+  const oldTitle = selectorContainer.querySelector('.scale-selector-title');
+  if (oldTitle) oldTitle.classList.add('scale-selector-title--hidden');
+
   // Construeix la llista visual a partir de les opcions del <select>.
   const list = document.createElement('ul');
   list.className = 'scale-list';
   list.setAttribute('role', 'listbox');
   list.setAttribute('aria-label', 'Escalas disponibles');
+
+  // Capçalera fosca dins la pròpia llista (sticky perquè es mantingui
+  // visible mentre l'usuari fa scroll dins del panell).
+  const header = document.createElement('li');
+  header.className = 'scale-list__header';
+  header.setAttribute('role', 'presentation');
+  header.textContent = 'Escalas';
+  list.appendChild(header);
 
   Array.from(selectEl.options).forEach((opt) => {
     const scale = APP24_SCALES.find(s => s.value === opt.value);
