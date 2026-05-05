@@ -708,6 +708,37 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       `npm test -- --runInBand libs/soundlines/__tests__/playback-utils.test.js libs/soundlines/__tests__/highlight-system.test.js libs/soundlines/__tests__/connection-renderer.test.js libs/sound/__tests__/melodic-sequence.test.js`
       → 4 suites / 87 tests OK.
 
+32. **App24 — refactor a layout de 2 columnes** ✅ FET (2026-05-05)
+    - **Bug**: l'app tenia 3 columnes visuals (esquerra: pastilla
+      Transposición + selector d'escales; centre: soundlines; dreta:
+      eE + pentagrama). L'usuari demana 2 columnes per simplificar.
+    - **Disseny final**:
+      - Esquerra: àrea de soundlines (cromàtica, escala, connexions i
+        play btns).
+      - Dreta (apilat dalt→baix): pastilla `Transposición` + selector
+        d'escales + interval-bars (eE) + pentagrama.
+    - **Canvis a `Apps/App24/main.js`**: dins `createAppLayout()` la
+      `<div class="app24-left">` desapareix; la pastilla i el
+      `#scaleSelectorContainer` passen com a fills directes de
+      `<div class="app24-right">`, abans de l'eE i el pentagrama.
+      `selectSize: APP24_SCALES.length` (10) al `createScaleSelector` per
+      evitar el `selectSize: 14` per defecte (que mostrava files buides).
+    - **Canvis a `Apps/App24/styles.css`**:
+      a. Eliminat el bloc `.app24-left { … }` i el comentari "TRES COLUMNES".
+         Capçalera reemplaçada per "DUES COLUMNES" amb el nou ordre.
+      b. `.scale-selector-area`: `width: 100%`, `max-width: 15rem`
+         (lleugerament més ample que el `13.75rem` previ — la columna
+         dreta ja no té veí a la dreta).
+      c. `.scale-selector-area .scale-selector`: `gap: 0.4rem` per
+         compactar la separació títol↔llista (era `1.5rem` per defecte).
+      d. `.scale-selector-area .scale-select[size]`: `flex: 0 0 auto` —
+         la llista ja no s'estira a tota l'alçada disponible; queda
+         dimensionada pel `selectSize=10`, així el pentagrama de sota
+         pot pujar quan hi ha espai vertical sobrant.
+      e. Media query `@media (max-width: 600px)`: substituït
+         `.app24-left, .app24-right` per `.soundlines-area, .app24-right`.
+    - Tests: 73 suites / 1445 tests OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App24**: redisseny de les línies de connexió (no tractat aquí).

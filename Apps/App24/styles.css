@@ -7,61 +7,236 @@
 @import '../../libs/scale-selector/scale-selector.css';
 
 /* ============================================================================
-   APP24-SPECIFIC: EE-DISPLAY 15% MÉS GRAN
+   APP24 LAYOUT — DUES COLUMNES
+   Esquerra: àrea de soundlines (Cromàtica + Escala + connexions + plays).
+   Dreta (apilat dalt→baix): pastilla `Transposición` + selector d'escales
+                             + interval-bars (eE) + pentagrama.
    ============================================================================ */
 
-/* eE 15% larger than base — applied only to container to avoid cascade */
-.ee-display {
-  font-size: 1.15em;
+.timeline-wrapper {
+  gap: clamp(1rem, 4vw, 4rem) !important;
+  align-items: stretch !important;
+}
+
+.app24-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.5rem 0;
+}
+
+/* L'àrea de soundlines (esquerra) manté el seu tamany natural perquè
+   la columna dreta s'expandeixi segons calgui. */
+.soundlines-area {
+  flex: 0 0 auto;
 }
 
 /* ============================================================================
-   APP24-SPECIFIC: SCALE SELECTOR AREA (esquerra, centrat verticalment)
+   APP24-SPECIFIC: SCALE SELECTOR AREA — selector compacte (10 files)
    ============================================================================ */
 
 .scale-selector-area {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 0.5rem;
-  padding-right: 1rem;
   flex-shrink: 0;
   min-width: 11.25rem;
-  max-width: 13.75rem;
-  margin-left: 0.625rem;
+  max-width: 15rem;
+  width: 100%;
 }
 
-/* Override scale-selector defaults for App24 */
+/* Override scale-selector defaults for App24:
+   - sense border-right (ja no hi ha columna a la dreta del selector)
+   - padding compacte i gap reduït (l'àrea dreta ja gestiona els seus gaps)
+   - títol "Escalas" més proper a la llista */
 .scale-selector-area .scale-selector {
   border-right: none;
   width: 100%;
   max-width: none;
   padding: 0;
+  gap: 0.4rem;
   align-items: center;
 }
 
-/* Transpose buttons: 2 rows (0-5 and 6-11) */
-.scale-selector-area .transpose-buttons {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.1875rem;
-  justify-content: center;
-  max-width: 12.5rem;
-}
-
-.scale-selector-area .transpose-btn {
-  width: 1.75rem;
-  height: 1.75rem;
+/* Llista d'escales: alçada governada pel nombre d'opcions (selectSize=10),
+   no per `flex: 1`, perquè la columna no s'estiri verticalment quan hi ha
+   espai sobrant. */
+.scale-selector-area .scale-select[size] {
+  flex: 0 0 auto;
+  width: 100%;
 }
 
 /* ============================================================================
-   APP24-SPECIFIC: SOUNDLINES AMB MARGIN PER CENTRAR
+   PASTILLA TRANSPOSICIÓN (clon del patró d'App23 / App18)
    ============================================================================ */
 
-.soundlines-area {
-  /* NO flex: 1 - mantenir tamany natural per no empènyer el pentagrama */
-  flex: none;
+.bpm-inline.visible.param.outputnote {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-/* Responsive breakpoints removed — nuzic theme uses rem units that scale naturally */
+.param.outputnote .abbr {
+  font-size: clamp(0.95rem, 1.6vw, 1.25rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+  white-space: nowrap;
+}
+
+.param.outputnote .circle {
+  width: auto !important;
+  height: clamp(2rem, 5vw, 3rem);
+  padding: 0 0.5rem;
+  border: 2px solid var(--nuzic-pink, #F28AAD);
+  border-radius: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  position: relative;
+}
+
+.param.outputnote .circle input {
+  width: clamp(2.5rem, 5vw, 3.5rem) !important;
+  height: 100% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
+  font-weight: 700;
+  text-align: center;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.param.outputnote .circle input::-webkit-outer-spin-button,
+.param.outputnote .circle input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+[data-theme="dark"] .param.outputnote .circle input,
+[data-theme="dark"] .param.outputnote .abbr {
+  color: var(--text-color, #eee);
+}
+
+/* Spinners en rosa, com App18/App23 */
+body.app24 {
+  --nuzic-spin-bg: var(--nuzic-pink, #F28AAD);
+  --nuzic-spin-bg-hover: #d96a93;
+}
+
+.param.outputnote .spin {
+  border-radius: 50% !important;
+  aspect-ratio: 1 !important;
+  border: none !important;
+}
+
+.param.outputnote .spin.up::before { border-bottom-color: white !important; }
+.param.outputnote .spin.down::before { border-top-color: white !important; }
+
+/* ============================================================================
+   INTERVAL BARS HORITZONTALS — Estructura Escalar (eE) — clon App23
+   ============================================================================ */
+
+.interval-bars-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.interval-bars-label {
+  font-size: clamp(0.95rem, 1.6vw, 1.25rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+  margin: 0;
+}
+
+[data-theme="dark"] .interval-bars-label {
+  color: var(--text-dark, #e0e0e0);
+}
+
+.interval-bars-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  --bar-h: clamp(2rem, 4vw, 2.6rem);
+  --bar-w-step2: clamp(2.6rem, 5vw, 3.4rem);
+  --bar-w-step1: var(--bar-h);
+}
+
+.interval-bars-row .interval-bar {
+  position: relative;
+  height: var(--bar-h);
+  width: var(--bar-w-step2);
+  background: var(--scale-step-2);
+  border: none;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  box-shadow: none;
+  transition: background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-sizing: border-box;
+}
+
+/* Step 1 (semitò): cercle */
+.interval-bars-row .interval-bar--step-1 {
+  width: var(--bar-w-step1);
+  background: var(--scale-step-1);
+}
+
+/* Step 3 (to i mig): càpsula vermella (escales harmòniques etc.) */
+.interval-bars-row .interval-bar--step-3 {
+  background: var(--scale-step-3);
+}
+
+/* Active highlight (mateix tractament que App23) */
+.interval-bars-row .interval-bar.active {
+  background: var(--nuzic-blue, #7BB4CD);
+  box-shadow: 0 0 0 0.2rem rgba(123, 180, 205, 0.35);
+}
+
+.interval-bars-row .interval-number {
+  font-size: clamp(0.9rem, 1.6vw, 1.2rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+}
+
+.interval-bars-row .interval-bar--step-1 .interval-number {
+  color: var(--nuzic-dark, #43433B);
+}
+
+/* ============================================================================
+   LAYOUT VERTICAL — quan l'iframe és estret (≤600px d'amplada)
+   ============================================================================ */
+
+@media (max-width: 600px) {
+  .timeline-wrapper {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 1rem !important;
+  }
+
+  .soundlines-area,
+  .app24-right {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  /* Soundlines més curtes per deixar espai a la columna dreta quan
+     l'iframe és vertical i estret. */
+  body {
+    --soundlines-height: clamp(15rem, 55vh, 30rem);
+  }
+}

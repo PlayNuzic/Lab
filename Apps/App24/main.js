@@ -15,8 +15,7 @@ import {
   drawConnectionLines,
   sleep,
   setPlayIcon,
-  createPlayButtonHTML,
-  updateEEDisplay
+  createPlayButtonHTML
 } from '../../libs/soundlines/index.js';
 
 // ============================================================================
@@ -74,7 +73,11 @@ let playChromaticBtn = null;
 let playScaleBtn = null;
 let pentagramContainer = null;
 let selectorContainer = null;
-let eeDisplayContainer = null;
+let outputNoteInput = null;
+let outputNoteUp = null;
+let outputNoteDown = null;
+let intervalBarsContainer = null;
+const intervalBars = [];
 
 // Soundline APIs
 let chromaticSoundline = null;
@@ -171,6 +174,93 @@ function setupInstrumentListener() {
 }
 
 // ============================================================================
+// PASTILLA TRANSPOSICIÓN (clon del patró d'App23)
+// ============================================================================
+
+function createOutputNotePill() {
+  return `
+    <div class="bpm-inline visible param outputnote" id="outputNoteParam">
+      <span class="abbr">Transposición</span>
+      <div class="circle">
+        <input id="inputOutputNote" type="number" min="0" max="11" value="${outputNote}" />
+        <div class="spinner">
+          <button id="outputNoteUp" class="spin up" type="button" aria-label="Incrementar transposición"></button>
+          <button id="outputNoteDown" class="spin down" type="button" aria-label="Decrementar transposición"></button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function setOutputNote(value) {
+  // Cíclic 0-11 (mod 12) — la pastilla és visualment un comptador rotatori.
+  const next = ((value % 12) + 12) % 12;
+  if (next === outputNote) return;
+  outputNote = next;
+  if (outputNoteInput) outputNoteInput.value = outputNote;
+  updateForTransposeChange();
+}
+
+function setupOutputNoteListeners() {
+  outputNoteInput = document.getElementById('inputOutputNote');
+  outputNoteUp = document.getElementById('outputNoteUp');
+  outputNoteDown = document.getElementById('outputNoteDown');
+
+  if (outputNoteInput) {
+    outputNoteInput.addEventListener('input', () => {
+      const value = outputNoteInput.value.trim();
+      if (value === '') return;
+      const num = parseInt(value, 10);
+      if (!Number.isNaN(num)) setOutputNote(num);
+    });
+    outputNoteInput.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setOutputNote(outputNote + 1);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setOutputNote(outputNote - 1);
+      }
+    });
+  }
+  if (outputNoteUp) outputNoteUp.addEventListener('click', () => setOutputNote(outputNote + 1));
+  if (outputNoteDown) outputNoteDown.addEventListener('click', () => setOutputNote(outputNote - 1));
+}
+
+// ============================================================================
+// INTERVAL BARS HORITZONTALS (estil App23) — Estructura Escalar (eE)
+// ============================================================================
+
+function createIntervalBarsHTML() {
+  // Es renderitza inicialment buit i es repinta a `renderIntervalBars()`
+  // un cop tenim `currentEE` (depèn de l'escala seleccionada).
+  return `
+    <div class="interval-bars-step">
+      <h3 class="interval-bars-label">Estructura Escalar (eE):</h3>
+      <div class="interval-bars-row" id="intervalBarsRow"></div>
+    </div>
+  `;
+}
+
+function renderIntervalBars() {
+  if (!intervalBarsContainer) return;
+  intervalBarsContainer.innerHTML = currentEE.map((step, i) =>
+    `<div class="interval-bar interval-bar--step-${step}" data-bar-index="${i}">
+       <span class="interval-number">${step}</span>
+     </div>`
+  ).join('');
+  intervalBars.length = 0;
+  intervalBarsContainer.querySelectorAll('.interval-bar').forEach(el => intervalBars.push(el));
+}
+
+function highlightIntervalBar(index, durationMs) {
+  const bar = intervalBars[index];
+  if (!bar) return;
+  bar.classList.add('active');
+  setTimeout(() => bar.classList.remove('active'), durationMs);
+}
+
+// ============================================================================
 // SCALE SELECTOR
 // ============================================================================
 
@@ -180,19 +270,15 @@ function initScaleSelector() {
     appId: 'app24',
     scales: APP24_SCALES,
     initialScale: 'DIAT-0',
-    enableTranspose: true,
-    transposeHiddenByDefault: false,
-    title: 'Escala',
+    enableTranspose: false,
+    title: 'Escalas',
+    selectSize: APP24_SCALES.length,
     onScaleChange: ({ scaleNotes, scaleId, rotation }) => {
       currentScaleId = scaleId;
       currentRotation = rotation;
       currentScaleNotes = scaleNotes;
       currentEE = getRotatedEE(scaleId, rotation);
       updateForScaleChange();
-    },
-    onTransposeChange: (transpose) => {
-      outputNote = transpose;
-      updateForTransposeChange();
     }
   });
 
@@ -232,8 +318,8 @@ function updateForScaleChange() {
   // Re-dibuixar línies de connexió
   redrawConnectionLines();
 
-  // Actualitzar ee-display
-  updateEEDisplay(eeDisplayContainer, currentEE);
+  // Re-pintar les barres d'interval (eE) per la nova escala
+  renderIntervalBars();
 
   // Re-renderitzar pentagrama
   renderPentagram();
@@ -471,6 +557,15 @@ async function playScale() {
     highlightManager.highlightConnectionLine(originalSemitone, intervalMs * 0.9);
     highlightManager.highlightPentagramNote(pentagramContainer, i, intervalMs * 0.9);
 
+    // Interval bar entre nota i-1 i nota i (mateix patró que App23):
+    // grau 0 sense barra; grau N>0 il·lumina la barra N-1.
+    if (i > 0 && i - 1 < currentEE.length) {
+      const barIndex = i - 1;
+      const isLastBar = barIndex === currentEE.length - 1;
+      const duration = isLastBar ? intervalMs * 1.9 : intervalMs * 0.9;
+      highlightIntervalBar(barIndex, duration);
+    }
+
     await sleep(intervalMs);
   }
 
@@ -493,11 +588,13 @@ function createAppLayout() {
 
   timelineWrapper.innerHTML = '';
 
+  // Layout de dues columnes (val per iframe i standalone):
+  //   • Esquerra: àrea de soundlines (cromàtica + escala amb línies de
+  //     connexió i els play btns sota cada soundline).
+  //   • Dreta (apilat de dalt a baix): pastilla "Transposición" +
+  //     selector d'escales + interval-bars-step (eE) + pentagrama.
   timelineWrapper.innerHTML = `
-    <!-- Selector d'escala (esquerra) -->
-    <div id="scaleSelectorContainer" class="scale-selector-area"></div>
-
-    <!-- Area de soundlines (centre) -->
+    <!-- Columna esquerra: àrea de soundlines -->
     <div class="soundlines-area">
       <div class="soundlines-wrapper">
         <!-- Soundline cromàtica -->
@@ -531,9 +628,11 @@ function createAppLayout() {
       </div>
     </div>
 
-    <!-- Pentagrama (dreta) -->
-    <div class="pentagram-area">
-      <div id="eeDisplay" class="ee-display"></div>
+    <!-- Columna dreta: Transposición + selector + eE + pentagrama -->
+    <div class="app24-right">
+      ${createOutputNotePill()}
+      <div id="scaleSelectorContainer" class="scale-selector-area"></div>
+      ${createIntervalBarsHTML()}
       <div id="pentagramContainer" class="pentagram-container"></div>
     </div>
   `;
@@ -618,7 +717,7 @@ function initApp() {
   playChromaticBtn = document.getElementById('playChromaticBtn');
   playScaleBtn = document.getElementById('playScaleBtn');
   pentagramContainer = document.getElementById('pentagramContainer');
-  eeDisplayContainer = document.getElementById('eeDisplay');
+  intervalBarsContainer = document.getElementById('intervalBarsRow');
   scaleTitleElement = document.getElementById('scaleSoundlineTitle');
   scaleAbbrElement = document.getElementById('scaleSoundlineAbbr');
 
@@ -630,6 +729,9 @@ function initApp() {
   // Inicialitzar scale selector
   initScaleSelector();
 
+  // Listeners pastilla Transposición
+  setupOutputNoteListeners();
+
   // Crear soundlines
   initChromaticSoundline();
   initScaleSoundline();
@@ -637,8 +739,8 @@ function initApp() {
   // Dibuixar línies de connexió
   redrawConnectionLines();
 
-  // Actualitzar ee-display
-  updateEEDisplay(eeDisplayContainer, currentEE);
+  // Pintar barres d'interval (eE) inicials
+  renderIntervalBars();
 
   // Renderitzar pentagrama inicial (esperar fonts VexFlow + DOM llest)
   fontsReady.then(() => {
