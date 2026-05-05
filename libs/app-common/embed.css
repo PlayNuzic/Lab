@@ -69,6 +69,11 @@ html[data-embed="true"] body main {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* Containing block per al `.sound-wrapper.nuzic-floating` que header.js
+     mou aquí dins en embed. Així el botó es posiciona relatiu al `main`
+     (i scrolleja amb ell quan `overflow-y: auto` està actiu en mode
+     vertical). */
+  position: relative;
 }
 
 /* app10 (vertical soundline) and App18 (registro de octava) wrap their
@@ -143,12 +148,12 @@ html[data-embed="true"] body.app24 {
   --soundlines-height: clamp(20rem, 97vh, 600px);
 }
 
-/* Vertical mode (App23/App24): when the iframe is narrow (≤600px wide,
-   e.g. paso 24/25 in the sistema's narrow-viewport mode) the right
-   column drops below the left, so the total content height exceeds
-   the iframe. The default `overflow: hidden` on `main` would clip the
-   bottom; allow scroll so the user can reach the pentagram. */
-@media (max-width: 600px) {
+/* Vertical mode (App23/App24): when the iframe is narrow enough that the
+   app's own breakpoint apila la columna dreta sota les soundlines, el
+   total content height excedeix l'iframe. Permetem scroll vertical al
+   `main` perquè l'usuari pugui arribar al pentagrama. Mateix valor que
+   el breakpoint intern de les apps i del sistema. */
+@media (max-width: 900px) {
   html[data-embed="true"] body.app23 main,
   html[data-embed="true"] body.app24 main {
     overflow-y: auto;

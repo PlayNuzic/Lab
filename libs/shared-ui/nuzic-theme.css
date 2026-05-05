@@ -1130,6 +1130,19 @@ html[data-embed="true"] body[data-visual="nuzic"] .sound-wrapper.nuzic-floating 
   position: fixed;
 }
 
+/* En embed vertical (App23/App24 al pas 24/25 del sistema) el `main`
+   passa a `overflow-y: auto`. Si el botó volum està `position: fixed`
+   queda ancorat al viewport mentre el contingut scrolleja → el botó
+   acaba flotant per sobre del pentagrama. Tornem a `absolute` perquè
+   scrolli amb la pàgina, que és el que cal en aquest mode. Mateix
+   breakpoint que el del sistema i el de les apps. */
+@media (max-width: 900px) {
+  html[data-embed="true"] body[data-visual="nuzic"].app23 .sound-wrapper.nuzic-floating,
+  html[data-embed="true"] body[data-visual="nuzic"].app24 .sound-wrapper.nuzic-floating {
+    position: absolute;
+  }
+}
+
 /* Round speaker button — same shape/size as .reset (small). Dark circle
    with light icon, hex hardcoded so it doesn't flip in dark mode. */
 body[data-visual="nuzic"] .sound-wrapper.nuzic-inline .sound {

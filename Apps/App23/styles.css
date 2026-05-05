@@ -79,10 +79,24 @@ body.app23 .soundline-title {
    del viewport i només cau a vertical quan és realment estret.
    ============================================================================ */
 
-@media (max-width: 600px) {
+/* Breakpoint intern alineat amb el del sistema (`@media (max-width: 900px)`
+   a `sistema/css/grid.css`). Així, sempre que el sistema apila text sota
+   l'app, l'app també apila la seva columna dreta sota les soundlines. Si
+   no, entre 601-900px l'iframe rep ~530px d'amplada (suficient per a
+   `> 600px`) i mantindria les dues columnes a banda i banda mentre el
+   sistema ja l'està apilant verticalment al slide. */
+@media (max-width: 900px) {
   .timeline-wrapper {
     flex-direction: column !important;
     align-items: center !important;
+    /* En column-mode, `justify-content` és l'eix vertical. La regla
+       compartida `.timeline-wrapper { justify-content: center !important }`
+       de `libs/soundlines/soundlines.css` centraria el contingut
+       verticalment, deixant la part de dalt fora del scroll i retallant
+       la pastilla N + els números alts. Ancorem a `flex-start` perquè
+       l'overflow caigui a sota, on `main { overflow-y: auto }` permet
+       scrollar. */
+    justify-content: flex-start !important;
     gap: 1rem !important;
   }
 
@@ -110,6 +124,7 @@ body.app23 .soundline-title {
   body {
     --soundlines-height: clamp(15rem, 55vh, 30rem);
   }
+
 }
 
 /* ============================================================================

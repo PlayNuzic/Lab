@@ -549,19 +549,22 @@ function renderPentagram() {
 
   const scaleMidis = getScaleMidis();
 
-  const screenWidth = window.innerWidth;
-  let pentagramWidth = 400;
-  let pentagramHeight = 140;
-  if (screenWidth <= 480) {
-    pentagramWidth = 200;
-    pentagramHeight = 100;
-  } else if (screenWidth <= 600) {
-    pentagramWidth = 250;
-    pentagramHeight = 110;
-  } else if (screenWidth <= 768) {
-    pentagramWidth = 300;
-    pentagramHeight = 120;
-  }
+  // Mida responsive: ajusta el pentagrama a l'amplada real del seu
+  // contenidor, no a `window.innerWidth` (que és el viewport top quan
+  // l'app viu en un iframe del sistema). El pentagrama mai serà més
+  // ample que el seu slot; si el slot és estret, encongim. Les alçades
+  // pugen per encabir-hi les plicas i ledger lines sense que les talli
+  // el viewBox del SVG.
+  const containerWidth = pentagramContainer.getBoundingClientRect().width
+    || document.documentElement.clientWidth
+    || window.innerWidth;
+  // Reservem ~16px de padding intern (border-radius/padding del container).
+  const available = Math.max(180, Math.floor(containerWidth - 16));
+  let pentagramWidth = Math.min(400, available);
+  let pentagramHeight = 180;
+  if (pentagramWidth <= 220) pentagramHeight = 140;
+  else if (pentagramWidth <= 280) pentagramHeight = 150;
+  else if (pentagramWidth <= 340) pentagramHeight = 160;
 
   // Usar root compensat per a l'armadura (rotacions requereixen ajust)
   const keySignatureRoot = getKeySignatureRoot();
@@ -735,7 +738,7 @@ function createAppLayout() {
         <!-- Soundline d'escala -->
         <div class="soundline-column">
           <div class="soundline-header">
-            <h3 id="scaleSoundlineTitle" class="soundline-title">Escala Major</h3>
+            <h3 id="scaleSoundlineTitle" class="soundline-title">Escala<br>Major</h3>
           </div>
           <div class="soundline-block">
             <div id="scaleSoundlineAbbr" class="soundline-abbr-pill">Nº</div>

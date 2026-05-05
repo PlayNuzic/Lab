@@ -14,6 +14,12 @@
   padding: var(--slide-pad-y) var(--slide-pad-x);
   display: flex;
   flex-direction: column;
+  /* Sense `min-width: 0`, els fills flex (cada `.slide`) hereten
+     `min-width: auto` = la seva pròpia min-content, que pot ser més
+     ample que el viewport (per culpa d'iframes amb aspect-ratio o
+     paraules llargues). Això produeix scroll horitzontal a tot el body
+     en pantalles estretes. */
+  min-width: 0;
 }
 
 /* Each slide is a 3-column grid (1fr 1fr 1fr); area-map and rows come inline
@@ -23,6 +29,11 @@
    when there's no excess vertical space to distribute. */
 .slide{
   min-height: 0;
+  /* Mateixa raó que `.slide-stage`: el `.slide` és flex item del seu
+     pare (slide-stage), i amb `min-width: auto` heretat, el seu
+     min-content (= la suma intrínseca dels grid tracks) podria
+     superar el viewport en pantalles estretes. */
+  min-width: 0;
   display: grid;
   gap: var(--content-gap);
   grid-template-columns: 1fr 1fr 1fr;
@@ -30,10 +41,15 @@
      so each paso can use its own layout (A-intro, B-app-left, D-app-narrow). */
 }
 
-.slot-image{ grid-area: image; min-height: 0; height: 100%; }
-.slot-title{ grid-area: title; }
-.slot-text { grid-area: text;  min-height: 0; }
-.slot-app  { grid-area: app;   min-height: 0; }
+/* `min-width: 0` és imprescindible: per defecte els grid items tenen
+   `min-width: auto` = mida min-content del fill, així que un fragment
+   indivisible (paraula llarga, iframe amb aspect-ratio, taula) pot fer
+   créixer el track `1fr` per sobre del viewport i provocar scroll
+   horitzontal a la pàgina. Ho fem als 5 slots. */
+.slot-image{ grid-area: image; min-height: 0; min-width: 0; height: 100%; }
+.slot-title{ grid-area: title; min-width: 0; }
+.slot-text { grid-area: text;  min-height: 0; min-width: 0; }
+.slot-app  { grid-area: app;   min-height: 0; min-width: 0; }
 
 /* Tips: shrinks to its content height; default alignment is `end` (bottom
    of the grid area) so the green rectangle only covers the text in
@@ -44,6 +60,7 @@
   grid-area: tips;
   align-self: end;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 /* B-app-left: el row de tips és `1fr` (absorbeix l'espai sobrant) i la

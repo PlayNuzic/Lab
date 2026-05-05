@@ -455,11 +455,43 @@ body.app24 {
    LAYOUT VERTICAL — quan l'iframe és estret (≤600px d'amplada)
    ============================================================================ */
 
-@media (max-width: 600px) {
+/* Breakpoint intern alineat amb el del sistema (`@media (max-width: 900px)`
+   a `sistema/css/grid.css`). Així, sempre que el sistema apila text sota
+   l'app, l'app també apila la seva columna dreta sota les soundlines. Si
+   no, entre 601-900px l'iframe rep ~530px d'amplada (suficient per a
+   `> 600px`) i mantindria les dues columnes a banda i banda mentre el
+   sistema ja l'està apilant verticalment al slide. */
+@media (max-width: 900px) {
   .timeline-wrapper {
     flex-direction: column !important;
     align-items: center !important;
+    /* En column-mode, `justify-content` és l'eix vertical. La regla
+       compartida `.timeline-wrapper { justify-content: center !important }`
+       de `libs/soundlines/soundlines.css` centraria el contingut
+       verticalment, deixant la part de dalt fora del scroll i retallant
+       la pastilla N + els números alts. Ancorem a `flex-start` perquè
+       l'overflow caigui a sota, on `main { overflow-y: auto }` permet
+       scrollar. */
+    justify-content: flex-start !important;
     gap: 1rem !important;
+  }
+
+  /* En vertical, la simetria de capçaleres entre les dues soundlines ja
+     no és crítica (estan apilades, no banda a banda). Alliberem l'alçada
+     forçada a 2 línies del header per recuperar ~1.84rem que aniran al
+     `.soundline-block` (els números). El títol absolut continua existint
+     però amb `position: static` i sense reserva fixa d'alçada. */
+  body.app24 .soundline-header {
+    height: auto;
+    min-height: 0;
+  }
+  body.app24 .soundline-title {
+    position: static;
+    transform: none;
+    width: auto;
+    max-width: 100%;
+    min-height: 0;
+    max-height: none;
   }
 
   .soundlines-area,
@@ -468,9 +500,16 @@ body.app24 {
     width: 100%;
   }
 
-  /* Soundlines més curtes per deixar espai a la columna dreta quan
-     l'iframe és vertical i estret. */
-  body {
-    --soundlines-height: clamp(15rem, 55vh, 30rem);
+  /* En vertical, la columna dreta cau sota les soundlines i tot el
+     contingut s'apila. Comprimim el selector a 3 files perquè la
+     columna dreta sigui curta. La capçalera fosca és sticky, així que
+     les escales no visibles es veuen scrollejant la llista. */
+  .scale-list {
+    max-height: calc(
+      var(--scale-list-header-h) +
+      var(--scale-list-row-h) * 3 +
+      var(--scale-list-row-gap) * 3 +
+      var(--scale-list-side-pad)
+    );
   }
 }

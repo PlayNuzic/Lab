@@ -757,6 +757,16 @@ function relocateSoundWrapperForNuzic(header) {
             cx = (firstCenter + lastCenter) / 2;
             cy = (rects[0].top + rects[0].bottom) / 2;
         }
+        // Si el wrapper viu dins un parent posicionat (per exemple `<main>`
+        // amb `position: relative` quan estem en embed), passem les coords
+        // al sistema d'aquest parent — així el botó scrolleja amb el
+        // contingut del parent enlloc de quedar fix al viewport.
+        const parent = soundWrapper.offsetParent;
+        if (parent && parent !== document.body && parent !== document.documentElement) {
+            const parentRect = parent.getBoundingClientRect();
+            cx -= parentRect.left - parent.scrollLeft;
+            cy -= parentRect.top - parent.scrollTop;
+        }
         soundWrapper.style.left = `${cx}px`;
         soundWrapper.style.top = `${cy}px`;
     };
@@ -781,8 +791,18 @@ function relocateSoundWrapperForNuzic(header) {
         const plays = document.querySelectorAll('.soundline-play');
         if (plays.length > 0) {
             // Floating mode: attach to body + position via inline left/top.
-            if (soundWrapper.parentElement !== document.body) {
-                document.body.appendChild(soundWrapper);
+            // Excepció: dins d'iframe (`data-embed="true"`) ancorem-lo a
+            // `<main>`, que pot tenir `overflow-y: auto` per a apps verticals
+            // (App23/App24 al pas 24/25 del sistema). Així el botó volum
+            // scrolleja amb la pàgina enlloc de quedar enganxat al viewport
+            // del body (que en aquests casos no scrolleja). El càlcul de
+            // `left/top` ja és en coordenades de viewport (getBoundingClientRect)
+            // i `repositionFloating()` les passa actualitzades a cada
+            // canvi/scroll, així que canviar el parent no trenca res.
+            const isEmbed = document.documentElement.getAttribute('data-embed') === 'true';
+            const targetParent = (isEmbed && document.querySelector('main')) || document.body;
+            if (soundWrapper.parentElement !== targetParent) {
+                targetParent.appendChild(soundWrapper);
             }
             soundWrapper.classList.add('nuzic-inline');
             soundWrapper.classList.add('nuzic-floating');

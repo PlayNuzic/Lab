@@ -34,6 +34,9 @@ body[data-editable="true"] [contenteditable="true"]:focus{
   letter-spacing: -0.01em;
   margin: 0;
   text-wrap: balance;
+  /* Paraules llargues no han d'expandir el track del grid (min-content) i
+     desbordar el viewport en pantalles estretes. */
+  overflow-wrap: anywhere;
   color: var(--fg);
 }
 
@@ -65,11 +68,15 @@ body[data-editable="true"] [contenteditable="true"]:focus{
 .slot-text .prose{
   flex: 1;
   min-height: 0;
+  min-width: 0;
   font-family: var(--font-body);
   font-size: var(--fs-body);
   line-height: 1.45;
   color: var(--fg);
   column-gap: var(--sp-4);
+  /* Una URL o paraula llarga no ha de fer créixer el track del grid pare
+     (min-content) per sobre del viewport. */
+  overflow-wrap: anywhere;
 }
 .slot-text .prose p{
   margin: 0 0 0.65em;
