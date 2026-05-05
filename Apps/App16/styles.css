@@ -138,3 +138,30 @@ body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-c
   height: calc(100% + var(--com-band-gap) - 0.7rem);
 }
 
+/* ============================================================================
+   VERTICAL MODE — alineat amb el breakpoint del sistema (`max-width: 900px`)
+   ----------------------------------------------------------------------------
+   Quan el sistema apila app + text en pantalles estretes, l'iframe del
+   pas 12 (aspect 2/1) rep amplades petites i alçades curtes. Compactem
+   l'app perquè càpiga al iframe vertical estret:
+     • `--com-band-w/h`: bandes de "Com." més estretes per estalviar
+       amplada per als pulse-numbers de la timeline.
+     • `.timeline-wrapper { min-height: 0 }`: sense aquest override (que
+       complementa el d'`embed.css`), el layout demana 25rem que pot
+       superar l'alçada disponible quan el sistema apila contingut.
+     • Pad del `.inputs`: reduit perquè el header de pastilles ocupi
+       menys vertical, deixant més espai a la timeline.
+   ============================================================================ */
+@media (max-width: 900px) {
+  .timeline-wrapper {
+    min-height: 0;
+    --com-band-w: clamp(3rem, 7vw, 5rem);
+    --com-band-h: clamp(1.5rem, 3vw, 2rem);
+    --com-band-gap: 0.5rem;
+  }
+
+  .inputs {
+    padding: 0.25rem 0;
+  }
+}
+

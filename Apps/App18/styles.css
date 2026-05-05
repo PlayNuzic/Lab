@@ -329,3 +329,49 @@ body[data-visual="nuzic"] .soundline-container .soundline-number {
 /* Dark theme for .param--large--pink input is handled by the shared
    nuzic-theme rule (hardcoded #43433b so the digit stays legible on the
    white inner circle in both themes). No per-app override needed. */
+
+/* ============================================================================
+   VERTICAL MODE — alineat amb el breakpoint del sistema (`max-width: 900px`)
+   ----------------------------------------------------------------------------
+   Quan el sistema apila app + text en pantalles estretes, el `main` rep
+   `overflow-y: auto` (vegeu `libs/app-common/embed.css`). Llavors:
+     • L'auto-margin del `.timeline-wrapper` (definit a `embed.css` per a
+       App18/App10) centra verticalment el wrapper al `main`. Si el wrapper
+       creix més que el `main` (el cas en vertical: pastilla `Registro` +
+       12 números + pastilla N + pad), el centratge l'empeny per dalt fora
+       del rang d'scroll, retallant els números alts. Igual que el bug
+       resolt per App23/App24 al punt 37 del SESSION_STATE.
+     • Solució: ancorar el wrapper a dalt (`margin-top: 0`); el desbordament
+       cau cap avall on `overflow-y: auto` el deixa scrollable.
+   ============================================================================ */
+@media (max-width: 900px) {
+  html[data-embed="true"] body.app18 main .timeline-wrapper {
+    /* `!important` perquè guanyem la regla d'`embed.css`
+       (`margin-top: auto; margin-bottom: auto`) que es carrega després
+       d'aquest fitxer i té la mateixa specificity. Mateix patró que
+       App17 vertical. */
+    margin-top: 0 !important;
+    margin-bottom: auto !important;
+    /* La soundline d'App18 viu dins el `.timeline-wrapper` amb `flex: 1`,
+       que en vertical rep només l'espai sobrant del `main` (després del
+       header `.inputs` i dels `.controls`). Si l'iframe és curt, queden
+       ~200px que comprimeixen els 13 números (0..12) un sobre l'altre.
+       Forcem una alçada mínima útil perquè els números puguin separar-se;
+       el `main { overflow-y: auto }` (override d'aquesta mateixa media
+       query, just sota) permet scroll si el total excedeix l'iframe —
+       l'usuari pot arribar als controls fent scroll dins l'app, igual
+       que a App17. */
+    min-height: 22rem;
+  }
+
+  /* Override del `#app-root > main { overflow: hidden }` de la línia 30:
+     aquell selector té specificity (0,1,0,1) per l'`#id`, que guanya el
+     `body.app18 main { overflow-y: auto }` afegit a `embed.css` (sense
+     id, specificity 0,0,3,3). Aquí pugem la specificity tornant a usar
+     l'`#app-root > main` per superar-lo. Així App18 vertical permet
+     scroll dins l'app per arribar als controls quan el contingut excedeix
+     l'alçada de l'iframe (mateix patró d'App17/App23/App24). */
+  html[data-embed="true"] body.app18 #app-root > main {
+    overflow-y: auto;
+  }
+}

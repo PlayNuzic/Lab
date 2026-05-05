@@ -95,6 +95,36 @@ html[data-embed="true"] body[data-visual="nuzic"] .timeline-wrapper.circular {
   margin: auto !important;
 }
 
+/* ============================================================================
+   VERTICAL MODE — alineat amb el breakpoint del sistema (`max-width: 900px`)
+   ----------------------------------------------------------------------------
+   Quan el sistema apila app + text al paso 13, l'iframe pot rebre amplades
+   600-900px però alçades modestes (~aspect 1/1 → 600-900px). El header
+   `.inputs` (BPM + Compás) + cercle + controls (play/loop/tap/random)
+   excedeixen el `100vh` del `main` (`overflow: hidden` retalla els
+   controls). Estretem encara més la cota d'alçada del cercle (50vh) i
+   compactem els paddings perquè càpiga sense scroll.
+   ============================================================================ */
+@media (max-width: 900px) {
+  html[data-embed="true"] body[data-visual="nuzic"] .timeline-wrapper.circular {
+    width: min(clamp(10rem, 34vw, 18rem), 50vh) !important;
+    height: min(clamp(10rem, 34vw, 18rem), 50vh) !important;
+    /* Ancorem el cercle a dalt enlloc del centre vertical del `main`.
+       Amb scroll vertical actiu (`overflow-y: auto` a `main`, vegeu
+       `embed.css`), si centrem el cercle quan el contingut total
+       (header + cercle + controls) supera l'alçada, la part de dalt
+       quedaria fora del rang d'scroll. Mateix patró que App18/23/24. */
+    margin-top: 0 !important;
+    margin-bottom: auto !important;
+  }
+
+  /* Compacta el header de pastilles + reset al sistema vertical. Allibera
+     vh per al cercle i els controls. */
+  html[data-embed="true"] body[data-visual="nuzic"].app17 .inputs {
+    padding: 0.25rem 0;
+  }
+}
+
 /* The timeline element is square, centered inside the wrapper. We paint the
    cream donut ring here via a radial gradient — cream outside a central
    transparent disc. The ring is ~60% of the radius wide (one-third thicker
