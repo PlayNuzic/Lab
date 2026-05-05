@@ -121,34 +121,36 @@ html[data-embed="true"] body .soundlines-area {
   align-items: safe center;
 }
 
-/* Scale apps (App21, App23, App24) — the soundline column contains
+/* App21 (single-column scale app) — the soundline column contains
    header + pink bar + play button. The shared `--soundlines-height`
    default of `clamp(25rem, 85vh, 75rem)` consumes nearly the whole
    iframe, leaving the play button below the `overflow:hidden` cut.
    Reduce the height in embed so the column (header + bar + play)
    fits comfortably within the iframe. App22 has its own value tuned
    for its interval-bars layout, so it's excluded. */
-html[data-embed="true"] body.app21,
-html[data-embed="true"] body.app24 {
+html[data-embed="true"] body.app21 {
   --soundlines-height: clamp(15rem, 70vh, 55rem);
 }
 
-/* App23 lives in a two-column layout (left: soundlines, right: pill +
-   step bars + pentagram). The soundline column no longer shares its
-   vertical real estate with the pentagram below, so it can claim
-   nearly the full iframe height — capped at 600px so the soundline
-   numbers don't get over-stretched on tall viewports. */
-html[data-embed="true"] body.app23 {
+/* App23 and App24 share the same two-column layout (left: soundlines,
+   right: transposition pill + scale chooser/step bars + pentagram).
+   The soundline column no longer shares its vertical real estate with
+   the pentagram below, so it can claim nearly the full iframe height —
+   capped at 600px so the soundline numbers don't get over-stretched on
+   tall viewports. */
+html[data-embed="true"] body.app23,
+html[data-embed="true"] body.app24 {
   --soundlines-height: clamp(20rem, 97vh, 600px);
 }
 
-/* App23 vertical mode: when the iframe is narrow (≤600px wide, e.g.
-   paso 24 in the sistema's narrow-viewport mode) the right column
-   drops below the left, so the total content height exceeds the
-   iframe. The default `overflow: hidden` on `main` would clip the
+/* Vertical mode (App23/App24): when the iframe is narrow (≤600px wide,
+   e.g. paso 24/25 in the sistema's narrow-viewport mode) the right
+   column drops below the left, so the total content height exceeds
+   the iframe. The default `overflow: hidden` on `main` would clip the
    bottom; allow scroll so the user can reach the pentagram. */
 @media (max-width: 600px) {
-  html[data-embed="true"] body.app23 main {
+  html[data-embed="true"] body.app23 main,
+  html[data-embed="true"] body.app24 main {
     overflow-y: auto;
   }
 }
