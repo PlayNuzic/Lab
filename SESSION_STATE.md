@@ -862,6 +862,91 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
          estesa també a App24.
     - Tests: 73 suites / 1445 tests OK.
 
+37. **App23/App24 — vertical mode al sistema (paso 24/25)** ✅ FET (2026-05-05)
+    Múltiples bugs corregits en una mateixa tanda després d'auditories
+    amb agents Explore. Origen comú: el sistema apila app+text en mode
+    vertical a `≤900px` però les apps (i les regles d'embed) usaven
+    `≤600px` com a breakpoint propi. Entre 601-900px hi havia
+    incoherències estructurals.
+    - **Breakpoint alineat**: pujats 4 media queries de `≤600px` →
+      `≤900px` perquè coincideixin amb el del sistema:
+      `Apps/App23/styles.css:82`, `Apps/App24/styles.css:458`,
+      `libs/app-common/embed.css:156` (`overflow-y: auto` al `main`),
+      `libs/shared-ui/nuzic-theme.css:1138` (botó volum
+      `position: absolute`). Sense aquest fix, entre 601-900px l'app
+      mantenia 2 columnes internes mentre el sistema apilava text
+      sota — la columna dreta de l'app quedava al costat amb tot
+      apilat per fora.
+    - **Soundlines tallades per dalt** en mode vertical: causa real
+      diagnosticada per agent — `.timeline-wrapper { justify-content:
+      center !important }` de `libs/soundlines/soundlines.css:82` es
+      mantenia actiu en column-mode (eix vertical), centrant el
+      contingut. Quan el contingut superava l'alçada del wrapper, la
+      part de dalt anava a posició negativa fora del rang d'scroll.
+      Fix: `justify-content: flex-start !important` al media query
+      vertical d'`Apps/App23/styles.css` i `Apps/App24/styles.css`.
+    - **App24 — header forçat a 2 línies en horitzontal robava 1.84rem
+      al `.soundline-block`** en vertical (apilades, no banda a banda,
+      la simetria no calia). Fix: `body.app24 .soundline-header
+      { height: auto; min-height: 0 }` + `body.app24 .soundline-title
+      { position: static; transform: none; ... }` dins el media query
+      vertical.
+    - **App24 — "Escala Major" en 1 línia al primer render**: el
+      markup inicial (`<h3>Escala Major</h3>`) no tenia el `<br>`. El
+      `<br>` només es posava al `updateScaleTitle()` que no es crida
+      fins que canvies d'escala. Fix: `<h3>Escala<br>Major</h3>` ja
+      al markup inicial (`Apps/App24/main.js:741`).
+    - **Botó volum estàtic mentre l'app/text scrolleja**: el
+      `.sound-wrapper.nuzic-floating` era `position: fixed` ancorat
+      al `<body>` i no scrollejava amb el contingut del `<main>`
+      (que té `overflow-y: auto` en vertical). Fix:
+      a. `libs/shared-ui/header.js`: en embed, append a `<main>` en
+         lloc de `<body>`. `repositionFloating()` converteix coords
+         del viewport a coords de l'`offsetParent` quan no és el body.
+      b. `libs/app-common/embed.css`: `main { position: relative }`
+         perquè actuï com a containing block del wrapper absolut.
+      c. `libs/shared-ui/nuzic-theme.css`: en `@media (max-width:
+         900px)` el wrapper passa a `position: absolute` (no
+         fixed) per scrollar amb el contingut.
+    - **Pentagrama d'App23 al pas 24 retallat** (a App24 no): causa
+      diagnosticada per agent — App23 no esperava `fontsReady` abans
+      del primer `requestAnimationFrame`, així que VexFlow usava
+      mètriques fallback i les plicas/clau de sol sortien fora del
+      viewBox. Fix: `import { fontsReady }` + `fontsReady.then(() =>
+      requestAnimationFrame(...))` (mateix patró que App24).
+    - **Pentagrama no s'encongia amb iframe estret** (afecta App23 i
+      App24): els breakpoints estaven lligats a `window.innerWidth`
+      (viewport top, no de l'iframe). Fix: substituïts per
+      `pentagramContainer.getBoundingClientRect().width` — l'amplada
+      real del slot — amb `Math.min(400, available)` i alçades
+      escalades per encabir plicas/ledger lines sense ser tallades
+      pel viewBox del SVG.
+    - **Sistema — text desbordant l'amplada del viewport en vertical**:
+      causa arrel diagnosticada per agent — els grid items (`.slot-*`),
+      el `.slide` (grid item del stage flex) i el `.slide-stage`
+      (flex container) tenien `min-width: auto` per defecte. Aleshores
+      el contingut intrínsec d'algun fill (iframe amb aspect-ratio,
+      paraula llarga) podia eixamplar el track `1fr` per sobre del
+      viewport, generant scroll horitzontal. Fix:
+      a. `sistema/css/grid.css`: `min-width: 0` afegit al `.slide-stage`,
+         `.slide`, `.slot-image`, `.slot-title`, `.slot-text`,
+         `.slot-app`, `.slot-tips`. Els grid items ara poden
+         col·lapsar al viewport.
+      b. `sistema/css/slides.css`: `overflow-wrap: anywhere` al
+         `.slide__title` i `.slot-text .prose` perquè una paraula
+         llarga no arrosegui el min-content gran.
+      c. Tret el patch defensiu `html, body { overflow-x: hidden }` i
+         `body { max-width: 100vw }` de `sistema/css/tokens.css` —
+         ja no cal perquè el contingut ara cap per construcció.
+    - **Auditoria d'altres apps amb el mateix patró**: cap altra app
+      al sistema (App9-App35) té `@media (max-width: 600px)` propi
+      que col·lapsi 2 columnes a 1. Les regles compartides amb
+      breakpoint 600px (`libs/shared-ui/two-column-layout.css`,
+      `libs/app-common/styles.css` etc.) compacten mides però no
+      apilen, així que no produeixen el bug d'incoherència entre
+      sistema i app.
+    - Tests: 73 suites / 1445 tests OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App24**: redisseny de les línies de connexió (no tractat aquí —
