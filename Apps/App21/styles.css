@@ -15,3 +15,17 @@
 .soundlines-area {
   flex: 1;
 }
+
+/* Fixa el header al mateix ample que el container per evitar que un títol
+   més llarg ("Escala Cromática" vs "Escala Mayor") empenyi la columna i
+   trenqui la simetria del bloc soundlines + connection-area. */
+body.app21 .soundline-header {
+  width: var(--soundline-container-width);
+  max-width: var(--soundline-container-width);
+}
+
+body.app21 .soundline-title {
+  max-width: 100%;
+  white-space: normal;
+  word-wrap: break-word;
+}

@@ -202,8 +202,10 @@ describe('drawConnectionLines', () => {
       cssLengthVar: '--custom-length'
     });
 
+    // La línia es centra dins l'SVG: x1 = (100-60)/2 = 20%, x2 = 20+60 = 80%.
     const line = svg.querySelector('.connection-line');
-    expect(line.getAttribute('x2')).toBe('60%');
+    expect(line.getAttribute('x1')).toBe('20%');
+    expect(line.getAttribute('x2')).toBe('80%');
   });
 
   test('retorna true en èxit', () => {

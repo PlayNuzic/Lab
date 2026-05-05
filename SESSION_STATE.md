@@ -739,9 +739,134 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
          `.app24-left, .app24-right` per `.soundlines-area, .app24-right`.
     - Tests: 73 suites / 1445 tests OK.
 
+33. **App24 — selector d'escales custom (overlay sobre `<select>` natiu)** ✅ FET (2026-05-05)
+    - **Bug**: el `<select size>` natiu ocupava molt vertical sense pintar
+      la informació útil (l'estructura escalar). Mockup de l'usuari:
+      càpsula crema amb 5 files visibles, capçalera fosca "Escalas",
+      cada fila = nom + miniatura horizontal de l'eE (sense números).
+    - **Lliçó del primer intent (revertit amb `git reset --hard HEAD~1`)**:
+      eliminar `createScaleSelector` per renderitzar tot des de zero
+      perdia el `<select>` font de veritat i el flux d'esdeveniments,
+      trencant soundlines, plays, eE i pentagrama. **Patró net**: no
+      tocar el mòdul; afegir una capa visual a sobre.
+    - **Solució aplicada — `Apps/App24/main.js`**:
+      a. Manté `createScaleSelector(...)` i `scaleSelector.render()`
+         exactament com era. Després crida una nova
+         `enhanceScaleSelectorVisual()`.
+      b. `enhanceScaleSelectorVisual()` amaga el `<select>` (classe
+         `scale-select--hidden`, visualment ocult però accessible) i
+         construeix `<ul class="scale-list" role="listbox">` paral·lela
+         amb una `<li class="scale-list__header">Escalas</li>` sticky
+         a dalt + un `<li class="scale-list__item">` per opció. En
+         clicar/teclar (ArrowUp/Down/Enter), fa
+         `selectEl.value = ...; dispatchEvent('change')` → tota la
+         cadena `onScaleChange → updateForScaleChange` segueix funcionant
+         exactament com abans.
+      c. `<h2 class="scale-selector-title">` original també queda amagat
+         amb la classe `--hidden` perquè la capçalera fosca embeguda
+         dins la llista el substitueix.
+    - **CSS — `Apps/App24/styles.css`**:
+      a. `.scale-selector-area { max-width: 25rem }` perquè s'alineï
+         amb el pentagrama (~400px = 25rem).
+      b. `.scale-list` és el panell crema (`--nuzic-light` + border 1px
+         `rgba(67,67,59,0.12)` + radius 0.75rem). Padding lateral 0
+         perquè la capçalera fosca arribi de costat a costat; els items
+         reben `margin-left/right` propi per recuperar el respiratge.
+      c. `max-height: header-h + row-h × 5 + gaps` perquè exactament 5
+         files siguin visibles. `overflow-y: auto`, scrollbar fina.
+      d. `.scale-list__header` amb fons `--nuzic-dark`, text light bold,
+         `position: sticky; top: 0` per quedar visible al fer scroll.
+      e. `.scale-list__item.is-selected { background:
+         rgba(255,187,51,0.32) }`. Hover/focus amb fons translúcid.
+      f. `.scale-mini__bar.--step-{1,2,3}` reaprofita
+         `--scale-step-{1,2,3}` per coherència amb les barres grans.
+    - Tests: 73 suites / 1445 tests OK.
+
+34. **App24 — fix desplaçament de la soundline d'escala al canviar
+    d'escala + alineació vertical entre les dues soundlines** ✅ FET (2026-05-05)
+    - **Bug**: quan l'usuari canviava d'escala (Major → m. Harmónica
+      → M. Harmónica…), la soundline de la dreta es desplaçava
+      progressivament cap a la dreta. Causa: el `<h3 class="soundline-title">`
+      sense límit d'amplada → títols llargs feien créixer la columna
+      per sobre del seu `min-width`, empenyent la soundline (absoluta
+      dins) cap a la dreta.
+    - **Bug paral·lel**: amb les dues columnes "Escala Cromática" (2
+      línies) i "Escala Major" (1 línia), les pastilles roses i les
+      soundlines arrencaven a Y diferents. Han d'estar **connectades
+      visualment**.
+    - **Solució a `APP24_SCALES`**: cada escala pot tenir un `titleName`
+      curt usat només al títol "Escala …" sobre la soundline:
+        - Menor Natural → m. Natural
+        - Menor Harmónica → m. Harmónica
+        - Mayor Harmónica → M. Harmónica
+      El `name` complet segueix usant-se al selector lateral.
+    - **`updateScaleTitle()`**: escriu `'Escala<br>${titleName}'`
+      perquè el títol sempre tingui exactament 2 línies. Mateixa
+      partició al markup de la cromàtica (`'Escala<br>Cromática'`).
+    - **CSS — `Apps/App24/styles.css`**:
+      a. `body.app24 .soundline-header { position: relative; width:
+         var(--soundline-container-width); height: title-size × 1.15
+         × 2 }` — reserva l'alçada de 2 línies; el títol es renderitza
+         absolut perquè pugui ser una mica més ample que la barra
+         rosa sense afectar el flow.
+      b. `body.app24 .soundline-title { position: absolute; left: 50%;
+         transform: translateX(-50%); width: container-width + 4rem;
+         line-height: 1.15; min/max-height: 2× line-height;
+         -webkit-line-clamp: 2 }` — títol centrat damunt la columna,
+         amplada superior a la barra rosa per encabir noms llargs,
+         retallat a 2 línies sempre.
+    - Tests: 73 suites / 1445 tests OK.
+
+35. **App21/App23 — header fixat per simetria del bloc soundlines + connection** ✅ FET (2026-05-05)
+    - **Bug**: l'usuari va detectar que a App21 i App23 hi havia 1-2px
+      més d'aire a l'esquerra del SVG `.connection-area` que a la dreta
+      (la línia es veia desplaçada). A App24 (ja amb header fixat al
+      pas 34) era simètric.
+    - **Diagnòstic**: el títol esquerre ("Escala Cromática", més llarg)
+      feia el header més ample que el dret ("Escala Mayor"). Amb
+      `align-items: center` al `.soundline-column`, l'expansió empenyia
+      la columna esquerra cap a la dreta i el SVG entre les columnes
+      es desplaçava — d'aquí l'asimetria.
+    - **Canvi** a `Apps/App21/styles.css` i `Apps/App23/styles.css`:
+      `body.app{21,23} .soundline-header { width: var(--soundline-
+      container-width); max-width: ... }` + `.soundline-title { max-
+      width: 100%; white-space: normal; word-wrap: break-word }`. Si
+      un títol no hi cap, fa wrap dins el container; mai el desborda
+      ni empeny la columna.
+    - **Bonus a `libs/soundlines/connection-renderer.js`**: les línies
+      ara es centren dins l'SVG (`startPct = (100 - lengthPct) / 2;
+      endPct = startPct + lengthPct`). Abans començaven a 0% i acabaven
+      al 70/80% deixant tot l'aire residual a la dreta. Test
+      `connection-renderer.test.js` actualitzat (`x1 = '20%'` i
+      `x2 = '80%'` per a `lengthPct = 60`).
+    - Apps afectades: App21, App23, App24. App25/App25B són plànol-
+      modular i no usen `drawConnectionLines`.
+    - Tests: 73 suites / 1445 tests OK.
+
+36. **Sistema — paso 25 alineat amb paso 24 (mateix iframe i alçada de
+    soundlines per App24)** ✅ FET (2026-05-05)
+    - **Bug**: al sistema, el paso 25 (App24) tenia les soundlines
+      visiblement curtes vs el paso 24 (App23), tot i que post-refactor
+      les dues apps comparteixen layout (2 columnes). Causes:
+      a. `slide-data.js` paso 25 tenia `aspect: '3/2'` (apaisat) mentre
+         que la resta d'escalas (paso 22-24) usaven `'2/3'` (vertical).
+      b. `embed.css` agrupava `body.app24` amb `body.app21` →
+         `--soundlines-height: clamp(15rem, 70vh, 55rem)`, més curt
+         que el d'App23 (`clamp(20rem, 97vh, 600px)`).
+    - **Canvis**:
+      a. `sistema/js/slide-data.js`: paso 25 `aspect '3/2' → '2/3'`.
+      b. `libs/app-common/embed.css`: `body.app24` mogut del bloc
+         d'App21 al d'App23. Comentari actualitzat per reflectir que
+         ara comparteixen layout. Media query `@media (max-width:
+         600px) { body.app23 main, body.app24 main { overflow-y: auto } }`
+         estesa també a App24.
+    - Tests: 73 suites / 1445 tests OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
-- **App24**: redisseny de les línies de connexió (no tractat aquí).
+- **App24**: redisseny de les línies de connexió (no tractat aquí —
+  pendent confirmar amb l'usuari si encara vol-ho ara que les línies
+  ja s'han centrat dins l'SVG al pas 35).
 - **App17**: 3 millores opcionals identificades pel revisor (cache de
   last-size al ResizeObserver, comentaris consistents, `ro` al module
   scope per facilitar futur teardown).

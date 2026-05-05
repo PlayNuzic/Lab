@@ -56,6 +56,20 @@
   flex: 0 0 auto;
 }
 
+/* Fixa el header al mateix ample que el container per evitar que un títol
+   més llarg ("Escala Cromática" vs "Escala Mayor") empenyi la columna i
+   trenqui la simetria del bloc soundlines + connection-area. */
+body.app23 .soundline-header {
+  width: var(--soundline-container-width);
+  max-width: var(--soundline-container-width);
+}
+
+body.app23 .soundline-title {
+  max-width: 100%;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
 /* ============================================================================
    LAYOUT VERTICAL — quan l'iframe és estret (≤600px d'amplada)
    El sistema (slides.css) força aspect 3/2 al pas 24 quan el viewport

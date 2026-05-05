@@ -33,6 +33,10 @@ export function drawConnectionLines(options) {
   const styles = getComputedStyle(document.documentElement);
   const lengthRaw = styles.getPropertyValue(cssLengthVar).trim() || '80%';
   const lengthPct = parseFloat(lengthRaw) || 80;
+  // Centrem la línia dins l'SVG perquè l'aire entre la cromàtica i la
+  // línia (esquerra) sigui igual al d'entre la línia i l'escala (dreta).
+  const startPct = (100 - lengthPct) / 2;
+  const endPct = startPct + lengthPct;
 
   // Obtenir dimensions reals per alinear SVG amb soundline-container
   const containerRect = chromaticContainer.getBoundingClientRect();
@@ -61,9 +65,9 @@ export function drawConnectionLines(options) {
     const yPct = (svgY / svgHeight) * 100;
 
     const line = document.createElementNS(svgNS, 'line');
-    line.setAttribute('x1', '0%');
+    line.setAttribute('x1', `${startPct}%`);
     line.setAttribute('y1', `${yPct}%`);
-    line.setAttribute('x2', `${lengthPct}%`);
+    line.setAttribute('x2', `${endPct}%`);
     line.setAttribute('y2', `${yPct}%`);
     line.setAttribute('class', 'connection-line');
     line.setAttribute('data-semitone', semitone);
