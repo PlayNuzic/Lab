@@ -15,6 +15,31 @@ const BTN_NEXT = document.getElementById('btn-next');
 
 const STORAGE_KEY = 'sistema.paso';
 const OVERRIDES_KEY = 'sistema.overrides';
+const OVERRIDES_VERSION_KEY = 'sistema.overrides.version';
+const OVERRIDES_VERSION = 2;  // bumped when paso 21 was merged into 20
+
+// One-time migration of saved overrides after the renumbering that
+// merged the old paso 21 (Fracciones Complejas) into paso 20.
+// Mapping: old → new
+//   20 → discarded (App32 left the system)
+//   21 → 20  (Fracciones Complejas, App34/App35)
+//   22 → 21  (Escalas Escogiendo Notas, App21)
+//   23 → 22  (Estructura Escalar, App22)
+//   24 → 23  (Transposición, App23)
+//   25 → 24  (Probando diferentes Escalas, App24)
+//   26 → 25  (Melodías con Escalas, App25)
+//   27 → 26  (Intervalos con Escalas, App25B)
+function migrateOverridesV2(stored) {
+  const remap = { 21: 20, 22: 21, 23: 22, 24: 23, 25: 24, 26: 25, 27: 26 };
+  const out = {};
+  for (const [k, v] of Object.entries(stored)) {
+    const n = Number(k);
+    if (n === 20) continue;  // App32 disappeared; nothing to map to.
+    const target = remap[n] ?? n;
+    out[target] = v;
+  }
+  return out;
+}
 
 // Text overrides (edit-mode persistence). Structure:
 //   { [paso]: { title?: string, text?: string, tipsTitle?: string, tips?: string } }
@@ -28,8 +53,17 @@ const OVERRIDES_KEY = 'sistema.overrides';
 // sistema's own typography (Ubuntu via --font-body) then applies uniformly.
 function loadOverrides(){
   try {
-    const stored = JSON.parse(localStorage.getItem(OVERRIDES_KEY)) || {};
+    let stored = JSON.parse(localStorage.getItem(OVERRIDES_KEY)) || {};
     let dirty = false;
+
+    // One-time renumbering migration (see migrateOverridesV2 above).
+    const ver = Number(localStorage.getItem(OVERRIDES_VERSION_KEY)) || 1;
+    if (ver < OVERRIDES_VERSION) {
+      stored = migrateOverridesV2(stored);
+      localStorage.setItem(OVERRIDES_VERSION_KEY, String(OVERRIDES_VERSION));
+      dirty = true;
+    }
+
     Object.values(stored).forEach(slide => {
       if (typeof slide?.text === 'string') {
         const clean = sanitizeHtml(slide.text);
