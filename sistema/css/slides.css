@@ -202,17 +202,17 @@ body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2
    una mica més d'alçada per mostrar bé la sucesión sense escurçar-se. */
 .slide[data-paso="10"] .iframe-frame{ max-height: 1200px; }
 
-/* Pasos 21-23 (apps d'escala App21-App23) — pugem el cap a 800px
+/* Pasos 22-24 (apps d'escala App21-App23) — pugem el cap a 800px
    perquè a pantalles altes les soundlines tinguin més alçada útil.
    App21/App22 són aspect 2/3 (vertical) amb una sola columna; App23
    és aspect 2/3 amb la columna dreta (pastilla + steps + pentagrama)
    apilada sota la d'esquerra dins l'iframe via media query. App24
    manté aspect 3/2 fins que es migri al patró de dues columnes. */
-.slide[data-paso="21"] .iframe-frame,
 .slide[data-paso="22"] .iframe-frame,
-.slide[data-paso="23"] .iframe-frame{ max-height: 800px; }
+.slide[data-paso="23"] .iframe-frame,
+.slide[data-paso="24"] .iframe-frame{ max-height: 800px; }
 
-/* Paso 23 (App23) — aspect adaptatiu al viewport del sistema:
+/* Paso 24 (App23) — aspect adaptatiu al viewport del sistema:
    • Per sobre del breakpoint del sistema (≥901px) el slot d'app és
      prou ample per cabir el layout horitzontal de dues columnes;
      forcem aspect 3/2 (horitzontal) sobreescrivint la var inline.
@@ -226,7 +226,7 @@ body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2
      guanyar-li specificitat des d'un stylesheet extern cal `!important`
      sobre la custom property. Sense això, l'inline guanya i el ratio
      2/3 declarat a slide-data es manté també a viewports amples. */
-  .slide[data-paso="23"] .iframe-frame { --iframe-aspect: 3 / 2 !important; }
+  .slide[data-paso="24"] .iframe-frame { --iframe-aspect: 3 / 2 !important; }
 }
 
 .iframe-placeholder{
