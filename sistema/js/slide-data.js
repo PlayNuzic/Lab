@@ -309,12 +309,23 @@ export const slideContent = {
   },
   23: {
     text: `<p>Las escalas pueden empezar en cualquiera de las doce notas del registro. Decimos entonces que la escala se <b>transporta</b>. Es decir, la eE se mantiene pero la Nº(0) cambia.</p>
-<p>Cuando transportamos una escala cambiamos la Nota de salida correspondiente a la Nº(0). Toda la estructura escalar se desplaza y a las mismas Nº le corresponden otras N.</p>
-<p>Cuando cambiamos de escala cambiamos las distancias entre las notas, es decir, la <b>eE</b>. La misma Nota de salida pero distintas distancias entre Nº.</p>`,
+<p>Cuando transportamos una escala cambiamos la Nota de salida correspondiente a la Nº(0). Toda la estructura escalar se desplaza y a las mismas Nº le corresponden otras N.</p>`,
     tipsTitle: 'Prueba el cambio de escala',
     tips: `<p>Permite transportar la escala mayor a cualquiera de las 12 notas del registro. Incluye visualización en pentagrama y líneas de conexión entre la escala cromática y la escala transportada.</p>
 <p>Selecciona una nota de salida. Pulsa ▶️ en la escala cromática o ▶️ en la escala escogida para escuchar. Verás que el pentagrama se actualiza automáticamente.</p>
 <p><strong>Tips: </strong>Transportar es aplicar la misma receta (eE) desde un punto de partida diferente. La escala suena "igual pero distinta" — conserva su carácter pero cambia de altura. Es como cantar la misma canción más aguda o más grave.</p>`,
+  },
+  24: {
+    text: `<p>Hay muchas escalas posibles combinando 12 notas. Cada <b>escala</b> tiene su propia <strong>eE</strong> y se puede <b>transportar</b> a cualquiera de las N del registro (escala cromática). Las combinaciones son enormes.</p>
+<p>Hemos visto en el paso anterior que cuando transportamos una escala cambiamos la Nota de salida correspondiente a la Nº(0).</p>
+<p>Cuando cambiamos de escala cambiamos las distancias entre las notas, es decir, la <b>eE</b>. La misma Nota de salida pero distintas distancias entre Nº.</p>
+<p>Las posibilidades creativas se expanden al combinar diferentes escalas con diferente transposición.</p>
+<p>En la teoría tradicional cada combinación de escala y transposición tiene su propia <b>armadura</b>. La app acompañante las muestra en el pentagrama, junto con las Nº escogidas.</p>`,
+    tipsTitle: 'Prueba las escalas',
+    tips: `<p>Selecciona una escala del cuadro y una nota de salida en el selector.</p>
+<p>Pulsa ▶️ en la escala cromática o ▶️ en la escala mayor para escuchar.</p>
+<p><strong>Tips:</strong> Al elegir escala y nota de salida, las líneas de conexión, el pentagrama y la estructura escalar (eE) se actualizan en tiempo real.</p>
+<p>Compara la eE de diferentes escalas para entender sus diferentes distancias. Cada escala es un mundo sonoro distinto. Tómate tiempo para descubrirlas.</p>`,
   },
 };
 
