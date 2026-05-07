@@ -89,7 +89,7 @@ export const slideMatrix = [
   { paso:17, section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'B-app-left', apps:['App26'],  aspect:'2/1', group:'timeline-simple' },
   { paso:18, section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'B-app-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
   { paso:19, section:'fraccionando', title:'Sucesión de iT Fraccionados Simples',                         layout:'B-app-left', apps:['App30'],  aspect:'2/1', group:'timeline-simple' },
-  { paso:20, section:'fraccionando', title:'Sucesión en Plano de Fracciones Simples',                     layout:'B-app-left', apps:['App32'],  aspect:'4/3', group:'plano-simple' },
+  { paso:20, section:'fraccionando', title:'Sucesión N-iT con Fracciones Simples',                        layout:'B-app-left', apps:['App32'],  aspect:'4/3', group:'plano-simple' },
   { paso:21, section:'fraccionando', title:'Fracciones Complejas',                                        layout:'B-app-left', apps:['App34','App35'], aspect:'4/3', variantLabels:['App34 · principal','App35 · extra'], group:'plano-simple' },
   { paso:22, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'2/3', group:'scale' },
   { paso:23, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'2/3', group:'scale' },
@@ -307,6 +307,15 @@ export const slideContent = {
     tips: `<p>Visualiza la estructura Escalar (eE) de la escala Mayor mediante barras de intervalos que muestran los <b>iS</b> entre cada grado de la escala.</p>
 <p>Pulsa ▶️ para escuchar la escala mayor con una animación que destaca la eE.</p>
 <p><strong>Tips:</strong> En la linea sonora, a la izquierda, se muestran los grados de la escala mayor (Nº). A la derecha se muestra la estructura Escalar de la escala mayor: <b>eE(2 2 1 2 2 2 1)</b>.</p>`,
+  },
+  24: {
+    text: `<p>Las escalas pueden empezar en cualquiera de las doce notas del registro. Decimos entonces que la escala se <b>transporta</b>. Es decir, la eE se mantiene pero la Nº(0) cambia.</p>
+<p>Cuando transportamos una escala cambiamos la Nota de salida correspondiente a la Nº(0). Toda la estructura escalar se desplaza y a las mismas Nº le corresponden otras N.</p>
+<p>Cuando cambiamos de escala cambiamos las distancias entre las notas, es decir, la <b>eE</b>. La misma Nota de salida pero distintas distancias entre Nº.</p>`,
+    tipsTitle: 'Prueba el cambio de escala',
+    tips: `<p>Permite transportar la escala mayor a cualquiera de las 12 notas del registro. Incluye visualización en pentagrama y líneas de conexión entre la escala cromática y la escala transportada.</p>
+<p>Selecciona una nota de salida. Pulsa ▶️ en la escala cromática o ▶️ en la escala escogida para escuchar. Verás que el pentagrama se actualiza automáticamente.</p>
+<p><strong>Tips: </strong>Transportar es aplicar la misma receta (eE) desde un punto de partida diferente. La escala suena "igual pero distinta" — conserva su carácter pero cambia de altura. Es como cantar la misma canción más aguda o más grave.</p>`,
   },
 };
 
