@@ -5,7 +5,7 @@
 // This mirrors the PDF precisely: each slide fits exactly one viewport, and the
 // positioning of each piece within the slide varies per paso.
 //
-// Currently wired: pasos 1-7 with real PDF content, 8-9 as filler, 10-27 as
+// Currently wired: pasos 1-7 with real PDF content, 8-9 as filler, 10-26 as
 // generic filler (future batches).
 
 export const sections = [
@@ -13,8 +13,8 @@ export const sections = [
   { id:'descubriendo', title:'Descubriendo la Música',              slides:[2,3,4,5,6] },
   { id:'intervalos',   title:'Midiendo el movimiento: Los intervalos', slides:[7,8,9,10] },
   { id:'ampliando',    title:'Ampliando',                          slides:[11,12,13,14,15,16] },
-  { id:'fraccionando', title:'Fraccionando',                       slides:[17,18,19,20,21] },
-  { id:'escalas',      title:'Escalas',                            slides:[22,23,24,25,26,27] },
+  { id:'fraccionando', title:'Fraccionando',                       slides:[17,18,19,20] },
+  { id:'escalas',      title:'Escalas',                            slides:[21,22,23,24,25,26] },
 ];
 
 // Grid layouts — the skeleton shared across pasos. Each defines the grid areas
@@ -89,14 +89,13 @@ export const slideMatrix = [
   { paso:17, section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'B-app-left', apps:['App26'],  aspect:'2/1', group:'timeline-simple' },
   { paso:18, section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'B-app-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
   { paso:19, section:'fraccionando', title:'Sucesión de iT Fraccionados Simples',                         layout:'B-app-left', apps:['App30'],  aspect:'2/1', group:'timeline-simple' },
-  { paso:20, section:'fraccionando', title:'Sucesión en Plano de Fracciones Simples',                     layout:'B-app-left', apps:['App32'],  aspect:'4/3', group:'plano-simple' },
-  { paso:21, section:'fraccionando', title:'Fracciones Complejas',                                        layout:'B-app-left', apps:['App34','App35'], aspect:'4/3', variantLabels:['App34 · principal','App35 · extra'], group:'plano-simple' },
-  { paso:22, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'2/3', group:'scale' },
-  { paso:23, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'2/3', group:'scale' },
-  { paso:24, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'2/3', group:'scale' },
-  { paso:25, section:'escalas',      title:'Probando diferentes Escalas',                                 layout:'B-app-left', apps:['App24'],  aspect:'2/3', group:'scale' },
-  { paso:26, section:'escalas',      title:'Melodías con Escalas',                                        layout:'B-app-left', apps:['App25','App25B'], aspect:'4/3', variantLabels:['App25 · principal','App25B · iS'], group:'scale' },
-  { paso:27, section:'escalas',      title:'Intervalos con Escalas',                                      layout:'B-app-left', apps:['App25B'], aspect:'4/3', group:'scale' },
+  { paso:20, section:'fraccionando', title:'Fracciones Complejas',                                        layout:'B-app-left', apps:['App34','App35'], aspect:'4/3', variantLabels:['App34 · principal','App35 · extra'], group:'plano-simple' },
+  { paso:21, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'2/3', group:'scale' },
+  { paso:22, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'2/3', group:'scale' },
+  { paso:23, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'2/3', group:'scale' },
+  { paso:24, section:'escalas',      title:'Probando diferentes Escalas',                                 layout:'B-app-left', apps:['App24'],  aspect:'2/3', group:'scale' },
+  { paso:25, section:'escalas',      title:'Melodías con Escalas',                                        layout:'B-app-left', apps:['App25'],  aspect:'4/3', group:'scale' },
+  { paso:26, section:'escalas',      title:'Intervalos con Escalas',                                      layout:'B-app-left', apps:['App25B'], aspect:'4/3', group:'scale' },
 ];
 
 // Content — real text for pasos 1-6 (from the PDF), filler for 7+.
@@ -287,7 +286,7 @@ export const slideContent = {
 <p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para borrar.</p>
 <p><strong>Tip:</strong> Esta app combina el par N-iT, que es conceptualmente el par usado al escribir con notación musical.</p>`,
   },
-  22: {
+  21: {
     text: `<p>Históricamente la música se ha estudiado a partir de las siete notas de la escala Mayor Diatónica. La escala cromática llega después, como resultado de siglos de desarrollo. </p>
 <p>El sistema Nuzic parte con la escala cromática <b>como módulo</b> para el resto de escalas.</p>
 <p>Entonces, una <b>escala</b> es un grupo de <b>notas</b> que escogemos entre las 12 disponibles de la escala cromática.</p>
@@ -299,7 +298,7 @@ export const slideContent = {
 <p>Pulsa ▶️ en la escala mayor para escuchar la escala mayor.<br></p>
 <p><b><strong>Tips:</strong> </b>Fíjate en cómo cambia la numeración para la misma nota en la escala mayor o en la cromática. Observa las líneas de conexión entre ambas escalas — las 12 notas de la escala cromática son el conjunto base para el resto de escalas.</p>`,
   },
-  23: {
+  22: {
     text: `<p>Como acabamos de ver en el paso anterior, las distancias entre las Nº de una escala no son siempre las mismas. Este hecho es precisamente lo que le da carácter sonoro a una escala.</p>
 <p>Si ordenamos estas distancias, obtenemos la <strong>estructura escalar (eE)</strong>, es decir, las distancias entre notas de una escala en orden ascendente y medidas en <strong>iS</strong> (intervalos Sonoros).</p>
 <p>Cada escala tiene su <b>eE</b> propia. En la app ejemplo se muestra la de la escala Mayor.</p>`,
