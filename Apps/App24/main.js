@@ -177,10 +177,13 @@ function setupInstrumentListener() {
 }
 
 // ============================================================================
-// PASTILLA TRANSPOSICIÓN (clon del patró d'App23)
+// PASTILLA TRANSPOSICIÓN — MARKUP
+// El cableig (input/spinners/ArrowUp/Down) viu al mòdul `createOutputNotePill`
+// importat a dalt. Aquí només generem el HTML perquè la columna dreta
+// l'incrusti al lloc correcte.
 // ============================================================================
 
-function createOutputNotePill() {
+function createOutputNoteMarkup() {
   return `
     <div class="bpm-inline visible param outputnote" id="outputNoteParam">
       <span class="abbr">Transposición</span>
@@ -738,7 +741,7 @@ function createAppLayout() {
 
     <!-- Columna dreta: Transposición + selector + eE + pentagrama -->
     <div class="app24-right">
-      ${createOutputNotePill()}
+      ${createOutputNoteMarkup()}
       <div id="scaleSelectorContainer" class="scale-selector-area"></div>
       ${createIntervalBarsHTML()}
       <div id="pentagramContainer" class="pentagram-container"></div>

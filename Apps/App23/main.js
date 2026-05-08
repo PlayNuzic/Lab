@@ -120,10 +120,13 @@ function setupInstrumentListener() {
 }
 
 // ============================================================================
-// PASTILLA NOTA DE SALIDA (mateix patró que `bpm-inline.visible.param` d'App18)
+// PASTILLA NOTA DE SALIDA — MARKUP
+// El cableig (input/spinners/ArrowUp/Down) viu al mòdul `createOutputNotePill`
+// importat a dalt. Aquí només generem el HTML perquè el wrapper `.timeline-wrapper`
+// l'incrusti al lloc correcte.
 // ============================================================================
 
-function createOutputNotePill() {
+function createOutputNoteMarkup() {
   return `
     <div class="bpm-inline visible param outputnote" id="outputNoteParam">
       <span class="abbr">Transposición</span>
@@ -508,7 +511,7 @@ function createAppLayout() {
     </div>
 
     <div class="app23-right">
-      ${createOutputNotePill()}
+      ${createOutputNoteMarkup()}
       ${createIntervalBarsHTML()}
       <div id="pentagramContainer" class="pentagram-container"></div>
     </div>
