@@ -95,7 +95,7 @@ export const slideMatrix = [
   { paso:23, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'2/3', group:'scale' },
   { paso:24, section:'escalas',      title:'Probando diferentes Escalas',                                 layout:'B-app-left', apps:['App24'],  aspect:'2/3', group:'scale' },
   { paso:25, section:'escalas',      title:'Melodías con Escalas',                                        layout:'B-app-left', apps:['App25'],  aspect:'4/3', group:'scale' },
-  { paso:26, section:'escalas',      title:'Intervalos con Escalas',                                      layout:'B-app-left', apps:['App25B'], aspect:'4/3', group:'scale' },
+  { paso:26, section:'escalas',      title:'Intervalos con Escalas: el iSº',                              layout:'B-app-left', apps:['App25B'], aspect:'4/3', group:'scale' },
 ];
 
 // Content — real text for pasos 1-6 (from the PDF), filler for 7+.
@@ -322,6 +322,7 @@ export const slideContent = {
     text: `<p>Hay muchas escalas posibles combinando 12 notas. Cada <b>escala</b> tiene su propia <strong>eE</strong> y se puede <b>transportar</b> a cualquiera de las N del registro (escala cromática).</p>
 <p>Hemos visto en el paso anterior que cuando transportamos una escala cambiamos la Nota de salida correspondiente a la Nº(0).</p>
 <p>Y cuando cambiamos de escala cambiamos las distancias entre las notas, es decir, la <b>eE</b>. La misma Nota de salida pero distintas distancias entre <b>Nº</b>.</p>
+<p>Hay eE simétricas y eE asimétricas. Puedes observarlo en el cuadro de escalas.</p>
 <p>Las posibilidades creativas se expanden al combinar diferentes escalas con diferente transposición.</p>
 <p>En la teoría tradicional cada combinación de escala y transposición tiene su propia <b>armadura</b>. La app acompañante las muestra en el pentagrama, junto con las Nº escogidas.</p>`,
     tipsTitle: 'Prueba las escalas',
@@ -339,7 +340,20 @@ export const slideContent = {
     tips: `<p>Plano basado en grados de escala. Las melodías se adaptan sonoramente al cambiar de escala: los grados se mantienen, las notas cambian.</p>
 <p>Selecciona una escala y una transposición.</p>
 <p>Usa el editor de Nº para entrar una sucesión. O haz clic en celdas del plano para los grados de la melodía.</p>
-<p>Pulsa ▶️ para reproducir, 🎲 para generar melodías aleatoriamente, 🗑 para reiniciar.</p>`,
+<p>Pulsa ▶️ para reproducir, 🎲 para generar melodías aleatoriamente, 🗑 para reiniciar.</p>
+<p><b>Tips</b>: Esta app demuestra que la melodía no son las notas concretas sino las relaciones entre Nº de la escala. Por ejemplo, crea una melodía en una escala "mayor" y después cambia a una "menor" — los grados se mantienen pero el carácter cambia completamente.<br>Si una escala tiene menos grados que la anterior, los grados "perdidos" se recuerdan internamente y reaparecen al volver a una escala más larga.</p>`,
+  },
+  26: {
+    text: `<p>Como ya hemos visto, el <strong>intervalo sonoro de grado</strong> (<b>iSº</b>) mide la distancia entre dos Nº de una escala.</p>
+<p>En el paso anterior hemos definido una melodía con Nº. Proponemos ahora definir una melodía creando una sucesión de iSº.</p>
+<p>Al cambiar de escala los <b>iSº</b> de la melodía se mantienen, pero al usar una estructura escalar (<b>eE</b>) diferente, las distancias reales de la melodía cambian.</p>
+<p>Además podemos cambiar la <b>transposición</b> y escuchar la melodía en diferentes tonos.</p>`,
+    tipsTitle: 'Piensa melodías desde distancias',
+    tips: `<p>Muestra una melodía hecha con iSº. El primer iSº determina la primera nota de la sucesión.</p>
+<p>Permite cambiar de escala. Las melodías se adaptan sonoramente: las distancias de grados se mantienen, algunas notas cambian.</p>
+<p>Selecciona una escala y transposición. Introduce una sucesión de iSº para crear una melodía. También puedes hacer clic en los puntos del plano.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar melodías aleatoriamente, 🗑 para reiniciar.</p>
+<p><b>Tips:</b> Crea una sucesión en una escala "mayor" y después cambia a una "menor" — los intervalos de grado se mantienen pero el carácter cambia completamente.<br>Si una escala tiene menos grados que la anterior, los grados "perdidos" se recuerdan internamente y reaparecen al volver a una escala más larga.</p>`,
   },
 };
 
