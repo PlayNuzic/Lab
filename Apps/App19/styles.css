@@ -10,37 +10,8 @@ body[data-visual="nuzic"] {
   --nuzic-controls-offset-y: 0px;
 }
 
-/* ============================================
-   GLOBAL SCROLL OVERRIDE
-   ============================================ */
-
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-#app-root {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-#app-root > header,
-.app-scale-wrapper > header {
-  flex-shrink: 0;
-}
-
-.app-scale-wrapper {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
+/* Boilerplate de viewport (html/body/#app-root/header/.app-scale-wrapper)
+   viu a `libs/shared-ui/app-viewport.css`. */
 
 /* ============================================
    SHARED COMPONENT IMPORTS
@@ -71,14 +42,10 @@ html, body {
 /* ============================================
    MAIN LAYOUT
    ============================================ */
-
+/* `flex: 1; display: flex; flex-direction: column; overflow: hidden`
+   ve d'`app-viewport.css`. Aquí només l'`padding: 0`. */
 main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
   padding: 0;
-  overflow: hidden;
 }
 
 /* ============================================

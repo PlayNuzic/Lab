@@ -1,0 +1,64 @@
+/* App Viewport — flex-column boilerplate per a apps nuzic full-screen
+   ----------------------------------------------------------------------------
+   Cada app del Lab té el seu propi `<body>` que viu dins d'un iframe del
+   sistema interactiu (o standalone). El layout natural és:
+
+     html, body            → 100vh × 100vw, sense margin/padding, no scroll
+     #app-root             → flex column, fills viewport
+     header (top-bar)      → flex-shrink: 0 (alçada natural)
+     main                  → flex: 1, fills remaining space, no overflow
+
+   Aquest patró és **idèntic** entre App18, App19, App20, App25 i App25B
+   (i potencialment altres apps futures). Abans cada app duplicava aquest
+   bloc al seu `styles.css`. Ara s'importa com a mòdul compartit.
+
+   El selector `#app-root > main, .app-scale-wrapper > main` cobreix les
+   dues estructures DOM utilitzades:
+     • Apps amb `<div id="app-root"> ... <main> ...` (la majoria)
+     • Apps amb `<div class="app-scale-wrapper"> ... <main> ...`
+       (variant amb wrapper escalable, App18 històricament).
+
+   Specificity: l'ús d'`#app-root` (id) dóna (0,1,0,1) i guanya regles
+   genèriques; era el mateix patró que App18 ja usava. Apps que necessitin
+   sobreescriure `overflow: hidden` (per ex. permetre scroll dins el `main`
+   en mode vertical d'iframe — vegeu `Apps/App18/styles.css` paso 14)
+   poden afegir un override amb el mateix selector i `!important` o més
+   specificity.
+   --------------------------------------------------------------------------- */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#app-root > header,
+.app-scale-wrapper > header {
+  flex-shrink: 0;
+}
+
+#app-root > main,
+.app-scale-wrapper > main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-scale-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}

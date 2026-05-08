@@ -1,50 +1,19 @@
 /* App25: Melodias con Escalas - Nuzic Theme */
+/* Boilerplate de viewport viu a `libs/shared-ui/app-viewport.css`.
+   musical-grid.css ja es carrega via <link> a index.html. */
 
-@import url('../../libs/musical-grid/musical-grid.css');
-
-/* ========== VIEWPORT FILL ========== */
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-#app-root {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-#app-root > header,
-.app-scale-wrapper > header {
-  flex-shrink: 0;
-}
-
-.app-scale-wrapper {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ========== MAIN LAYOUT ========== */
+/* `padding: 0` al main: l'app-viewport el deixa intacte i alguns layouts
+   compartits afegeixen padding via `index.css`. Aquí l'anul·lem perquè la
+   musical-grid pugui omplir tot el `main`. */
 main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
   padding: 0;
-  overflow: hidden;
 }
 
-/* ========== INPUTS: Scale dropdown + BPM ========== */
+/* ========== INPUTS: Scale dropdown + Transposición + BPM ==========
+   `display: flex` ve d'`index.css:535` i `justify-content: center` /
+   `flex-wrap: wrap` venen de `nuzic-theme.css:891`. Aquí només afegim
+   l'específic d'App25 (gap, padding, alineació base de pills, z-index). */
 .inputs {
-  display: flex;
-  justify-content: center;
   align-items: flex-end;
   gap: 2rem;
   padding: 0 1rem;
@@ -225,25 +194,8 @@ main {
   content: '\25CF';
 }
 
-/* Tooltip */
-.degree-editor-tooltip {
-  position: fixed;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
-  font-weight: 600;
-  z-index: 1000;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  background: #EF4444;
-  color: white;
-  white-space: nowrap;
-}
-
-.degree-editor-tooltip.visible {
-  opacity: 1;
-}
+/* Tooltip de validació delegat al `createInfoTooltip` compartit
+   (vegeu `main.js → showTooltip` i `libs/app-common/info-tooltip.js`). */
 
 /* Editor stays light in both themes (nuzic standard — matches App12/15) */
 

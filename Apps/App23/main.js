@@ -7,6 +7,7 @@ import { drawPentagram, fontsReady } from '../../libs/notation/index.js';
 import { setupPianoPreload } from '../../libs/sound/piano.js';
 
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createOutputNotePill } from '../../libs/app-common/output-note-pill.js';
 
 // Imports del mòdul soundlines compartit
 import {
@@ -44,9 +45,6 @@ let connectionSvg = null;
 let playChromaticBtn = null;
 let playScaleBtn = null;
 let pentagramContainer = null;
-let outputNoteInput = null;
-let outputNoteUp = null;
-let outputNoteDown = null;
 let intervalBarsContainer = null;
 const intervalBars = [];
 
@@ -140,39 +138,25 @@ function createOutputNotePill() {
   `;
 }
 
+// `outputNotePill` (assignat a `setupOutputNoteListeners()`) gestiona l'input
+// + spinners + ArrowUp/Down via `createOutputNotePill` del mòdul comú.
+let outputNotePill = null;
+
 function setOutputNote(value) {
-  // Cíclic 0-11 (mod 12) — la pastilla és visualment un comptador rotatori.
-  const next = ((value % 12) + 12) % 12;
-  if (next === outputNote) return;
-  outputNote = next;
-  if (outputNoteInput) outputNoteInput.value = outputNote;
-  updateForOutputNote();
+  // Programàticament canvia el valor a la pastilla; la pastilla mateixa
+  // crida `onChange` (= `updateForOutputNote`) si el valor canvia.
+  outputNotePill?.set(value);
 }
 
 function setupOutputNoteListeners() {
-  outputNoteInput = document.getElementById('inputOutputNote');
-  outputNoteUp = document.getElementById('outputNoteUp');
-  outputNoteDown = document.getElementById('outputNoteDown');
-
-  if (outputNoteInput) {
-    outputNoteInput.addEventListener('input', () => {
-      const value = outputNoteInput.value.trim();
-      if (value === '') return;
-      const num = parseInt(value, 10);
-      if (!Number.isNaN(num)) setOutputNote(num);
-    });
-    outputNoteInput.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setOutputNote(outputNote + 1);
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setOutputNote(outputNote - 1);
-      }
-    });
-  }
-  if (outputNoteUp) outputNoteUp.addEventListener('click', () => setOutputNote(outputNote + 1));
-  if (outputNoteDown) outputNoteDown.addEventListener('click', () => setOutputNote(outputNote - 1));
+  outputNotePill = createOutputNotePill({
+    initial: outputNote,
+    range: { min: 0, max: 11, cyclic: true },
+    onChange: (value) => {
+      outputNote = value;
+      updateForOutputNote();
+    },
+  });
 }
 
 function updateForOutputNote() {

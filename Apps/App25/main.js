@@ -660,19 +660,10 @@ function initDegreeEditor() {
   let autoJumpTimer = null;
 
   function showTooltip(cell, message) {
-    let tooltip = document.querySelector('.degree-editor-tooltip');
-    if (!tooltip) {
-      tooltip = document.createElement('div');
-      tooltip.className = 'degree-editor-tooltip';
-      document.body.appendChild(tooltip);
-    }
-    tooltip.textContent = message;
-    const rect = cell.getBoundingClientRect();
-    tooltip.style.left = `${rect.left + rect.width / 2}px`;
-    tooltip.style.top = `${rect.top - 8}px`;
-    tooltip.style.transform = 'translate(-50%, -100%)';
-    tooltip.classList.add('visible');
-    setTimeout(() => tooltip.classList.remove('visible'), 1500);
+    // Delega al `infoTooltip` compartit (mateix patró que App25B). El
+    // tooltip antic vivia en `.degree-editor-tooltip` amb estils locals;
+    // ara reutilitza el wrapper genèric `createInfoTooltip`.
+    infoTooltip.show(message, cell);
   }
 
   function formatDegree(entry) {

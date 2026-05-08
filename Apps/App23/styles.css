@@ -128,76 +128,14 @@ body.app23 .soundline-title {
 }
 
 /* ============================================================================
-   PASTILLA NOTA DE SALIDA (clon del patró bpm-inline d'App18)
+   PASTILLA TRANSPOSICIÓN
+   Estil visual al mòdul `libs/shared-ui/output-note-pill.css`. Aquí
+   només l'override del color dels spinners (rosa per defecte d'App23).
    ============================================================================ */
-
-.bpm-inline.visible.param.outputnote {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.param.outputnote .abbr {
-  font-size: clamp(0.95rem, 1.6vw, 1.25rem);
-  font-weight: 700;
-  color: var(--nuzic-dark, #43433B);
-  white-space: nowrap;
-}
-
-.param.outputnote .circle {
-  width: auto !important;
-  height: clamp(2rem, 5vw, 3rem);
-  padding: 0 0.5rem;
-  border: 2px solid var(--nuzic-pink, #F28AAD);
-  border-radius: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  position: relative;
-}
-
-.param.outputnote .circle input {
-  width: clamp(2.5rem, 5vw, 3.5rem) !important;
-  height: 100% !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: clamp(1rem, 1.8vw, 1.35rem);
-  font-weight: 700;
-  text-align: center;
-  border: none;
-  background: transparent;
-  color: var(--text-color, #333);
-  outline: none;
-  -moz-appearance: textfield;
-}
-
-.param.outputnote .circle input::-webkit-outer-spin-button,
-.param.outputnote .circle input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-[data-theme="dark"] .param.outputnote .circle input,
-[data-theme="dark"] .param.outputnote .abbr {
-  color: var(--text-color, #eee);
-}
-
-/* Spinners en rosa, com App18 */
 body.app23 {
   --nuzic-spin-bg: var(--nuzic-pink, #F28AAD);
   --nuzic-spin-bg-hover: #d96a93;
 }
-
-.param.outputnote .spin {
-  border-radius: 50% !important;
-  aspect-ratio: 1 !important;
-  border: none !important;
-}
-
-.param.outputnote .spin.up::before { border-bottom-color: white !important; }
-.param.outputnote .spin.down::before { border-top-color: white !important; }
 
 /* ============================================================================
    INTERVAL BARS HORITZONTALS (mateix concepte que App22, fila enlloc de columna)

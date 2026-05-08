@@ -1,14 +1,21 @@
-/* Output-Note Pill — pastilla "Transposición" (input numèric 0-11)
+/* Output-Note Pill — pastilla d'input numèric 0-N (transposició / registre)
    ----------------------------------------------------------------------------
-   Patró visual reutilitzable per a apps que necessiten un input de
-   transposició/nota de sortida amb el patró nuzic. La fan servir App18
-   ("Registro"), App23, App24, App25 i App25B ("Transposición").
+   Patró visual reutilitzable per a apps que necessiten un input numèric
+   amb spinners +/- circulars dins l'estètica nuzic. La fan servir:
+     • App18 ("Registro" → 0-7)
+     • App23, App24, App25, App25B ("Transposición" → 0-11)
 
-   Estructura HTML:
+   Hi ha dues classes d'entrada acceptades:
+     • `.outputnote` — usada per "Transposición" (App23/24/25/25B)
+     • `.registro`   — usada per "Registro" (App18)
+   Tots dos comparteixen exactament el mateix tractament visual; la
+   diferenciació semàntica viu al markup i als labels.
+
+   Estructura HTML (vàlida amb `.outputnote` o `.registro`):
      <div class="bpm-inline visible param outputnote" id="outputNoteParam">
        <span class="abbr">Transposición</span>
        <div class="circle">
-         <input id="..." type="number" min="0" max="11" value="0" />
+         <input id="..." type="number" min="0" max="N" value="0" />
          <div class="spinner">
            <button class="spin up" type="button" aria-label="..."></button>
            <button class="spin down" type="button" aria-label="..."></button>
@@ -20,7 +27,8 @@
    `--nuzic-spin-bg` / `--nuzic-spin-bg-hover` (vegeu nuzic-theme.css).
    --------------------------------------------------------------------------- */
 
-.bpm-inline.visible.param.outputnote {
+.bpm-inline.visible.param.outputnote,
+.bpm-inline.visible.param.registro {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -38,7 +46,9 @@
      aquí:        body[data-visual="nuzic"] .bpm-inline.visible.param.outputnote:has(.circle > input) .abbr
                   → (0, 7, 3) — guanya. */
 body[data-visual="nuzic"] .bpm-inline.visible.param.outputnote:has(.circle > input) .abbr,
-body[data-visual="nuzic"] .bpm-inline.visible.param.outputnote .abbr {
+body[data-visual="nuzic"] .bpm-inline.visible.param.outputnote .abbr,
+body[data-visual="nuzic"] .bpm-inline.visible.param.registro:has(.circle > input) .abbr,
+body[data-visual="nuzic"] .bpm-inline.visible.param.registro .abbr {
   font-size: clamp(0.95rem, 1.6vw, 1.25rem) !important;
   font-weight: 700 !important;
   letter-spacing: 0.05em !important;
@@ -47,7 +57,8 @@ body[data-visual="nuzic"] .bpm-inline.visible.param.outputnote .abbr {
   white-space: nowrap !important;
 }
 
-.param.outputnote .circle {
+.param.outputnote .circle,
+.param.registro .circle {
   width: auto !important;
   height: clamp(2rem, 5vw, 3rem);
   padding: 0 0.5rem;
@@ -60,7 +71,8 @@ body[data-visual="nuzic"] .bpm-inline.visible.param.outputnote .abbr {
   position: relative;
 }
 
-.param.outputnote .circle input {
+.param.outputnote .circle input,
+.param.registro .circle input {
   width: clamp(2.5rem, 5vw, 3.5rem) !important;
   height: 100% !important;
   display: flex;
@@ -77,21 +89,32 @@ body[data-visual="nuzic"] .bpm-inline.visible.param.outputnote .abbr {
 }
 
 .param.outputnote .circle input::-webkit-outer-spin-button,
-.param.outputnote .circle input::-webkit-inner-spin-button {
+.param.outputnote .circle input::-webkit-inner-spin-button,
+.param.registro .circle input::-webkit-outer-spin-button,
+.param.registro .circle input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
 [data-theme="dark"] .param.outputnote .circle input,
-[data-theme="dark"] .param.outputnote .abbr {
+[data-theme="dark"] .param.outputnote .abbr,
+[data-theme="dark"] .param.registro .circle input,
+[data-theme="dark"] .param.registro .abbr {
   color: var(--text-color, #eee);
 }
 
-.param.outputnote .spin {
+.param.outputnote .spin,
+.param.registro .spin {
   border-radius: 50% !important;
   aspect-ratio: 1 !important;
   border: none !important;
 }
 
-.param.outputnote .spin.up::before { border-bottom-color: white !important; }
-.param.outputnote .spin.down::before { border-top-color: white !important; }
+.param.outputnote .spin.up::before,
+.param.registro .spin.up::before {
+  border-bottom-color: white !important;
+}
+.param.outputnote .spin.down::before,
+.param.registro .spin.down::before {
+  border-top-color: white !important;
+}
