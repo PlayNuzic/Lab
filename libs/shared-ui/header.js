@@ -578,6 +578,14 @@ function wireControls(root) {
     }
 
     if (themeSelect) {
+        // Honor the body's `data-theme` attribute as the initial preference
+        // when it's an explicit value (`light` / `dark`). The template's
+        // default is `system`, so apps that want a fixed theme just declare
+        // it on `<body data-theme="light">` and the select syncs to match.
+        const bodyTheme = document.body?.dataset?.theme;
+        if (bodyTheme === 'light' || bodyTheme === 'dark') {
+            themeSelect.value = bodyTheme;
+        }
         applyTheme(themeSelect.value);
         themeSelect.addEventListener('change', (e) => applyTheme(e.target.value));
     } else {
