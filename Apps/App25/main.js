@@ -18,6 +18,8 @@ import { degToSemi, scaleSemis, motherScalesData } from '../../libs/scales/index
 import { createInfoTooltip } from '../../libs/app-common/info-tooltip.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createOutputNotePill } from '../../libs/app-common/output-note-pill.js';
+import { createScalePill } from '../../libs/app-common/scale-pill.js';
 
 // ========== CONFIGURATION ==========
 const TOTAL_PULSES = 13;   // Horizontal: 0-12 (creates 12 spaces)
@@ -603,6 +605,31 @@ function handleScaleChange({ scaleId, rotation, value }) {
   }
 }
 
+// ========== TRANSPOSITION (output note) ==========
+
+/** Clampa un valor entrant a 0..11 cíclic. */
+function clampOutputNote(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return ((Math.round(num) % 12) + 12) % 12;
+}
+
+/**
+ * Handle transposition change — la pastilla "Transposición" mou la nota
+ * real que sona al grau 0 sense canviar la disposició visual (el grau 0
+ * queda sempre a la posició inferior de la soundline). Només canvien els
+ * MIDI disparats per `degreeToMidi()` via `scaleState.root`. No cal
+ * re-renderitzar el grid: les cel·les estan vinculades a graus, no a
+ * notes absolutes.
+ */
+function handleTransposeChange(value) {
+  scaleState.root = clampOutputNote(value);
+  // Persistim per a sessions futures (patró JSON: load → spread → save).
+  const currentPrefs = preferenceStorage.load() || {};
+  currentPrefs.outputNote = scaleState.root;
+  preferenceStorage.save(currentPrefs);
+}
+
 // ========== NUZIC DEGREE EDITOR (single row) ==========
 
 function initDegreeEditor() {
@@ -974,22 +1001,33 @@ async function init() {
     currentScaleLength = motherScalesData['DIAT']?.ee?.length || 7;
   }
 
-  // Create musical grid - NO SCROLL, fits all 12 notes
-  // Initialize scale dropdown
-  const escalaSelect = document.getElementById('escalaSelect');
-  if (escalaSelect) {
-    APP25_SCALES.forEach((sc, i) => {
-      const opt = document.createElement('option');
-      opt.value = sc.value;
-      opt.textContent = sc.name;
-      escalaSelect.appendChild(opt);
-    });
-    escalaSelect.value = initialScaleValue;
-    escalaSelect.addEventListener('change', () => {
-      const sc = APP25_SCALES.find(s => s.value === escalaSelect.value);
-      if (sc) handleScaleChange({ scaleId: sc.id, rotation: sc.rotation, value: sc.value });
-    });
-  }
+  // Initial transposition (scaleState.root) from preferences. La nota real
+  // que sona al grau 0 és `60 (C4) + scaleState.root`; la resta de l'escala
+  // s'hi aplica a partir d'aquí seguint l'eE de l'escala escollida. El
+  // visual del grid no rota (el grau 0 sempre queda a baix de la
+  // soundline) — només canvien els MIDI que es disparen.
+  const initialOutputNote = clampOutputNote(prefs.outputNote);
+  scaleState.root = initialOutputNote;
+
+  // Pastilla "Escala" — desplegable nadiu poblat amb APP25_SCALES.
+  // Vegeu `libs/shared-ui/scale-pill.css` per l'estètica i
+  // `libs/app-common/scale-pill.js` per la lògica.
+  createScalePill({
+    scales: APP25_SCALES,
+    initial: initialScaleValue,
+    onChange: (sc) => handleScaleChange({
+      scaleId: sc.id,
+      rotation: sc.rotation,
+      value: sc.value,
+    }),
+  });
+
+  // Pastilla "Transposición" — input cíclic 0-11 a la dreta de Escala.
+  // Vegeu `handleTransposeChange()` per la lògica de transposició MIDI.
+  createOutputNotePill({
+    initial: scaleState.root,
+    onChange: (value) => handleTransposeChange(value),
+  });
 
   // Create musical grid inside timeline-wrapper. The last pulse (index
   // TOTAL_PULSES-1 = 12) renders as a `·` cycle-end marker — visual

@@ -1,0 +1,97 @@
+/* Output-Note Pill — pastilla "Transposición" (input numèric 0-11)
+   ----------------------------------------------------------------------------
+   Patró visual reutilitzable per a apps que necessiten un input de
+   transposició/nota de sortida amb el patró nuzic. La fan servir App18
+   ("Registro"), App23, App24, App25 i App25B ("Transposición").
+
+   Estructura HTML:
+     <div class="bpm-inline visible param outputnote" id="outputNoteParam">
+       <span class="abbr">Transposición</span>
+       <div class="circle">
+         <input id="..." type="number" min="0" max="11" value="0" />
+         <div class="spinner">
+           <button class="spin up" type="button" aria-label="..."></button>
+           <button class="spin down" type="button" aria-label="..."></button>
+         </div>
+       </div>
+     </div>
+
+   El color rosa dels spinners es controla per app via les vars
+   `--nuzic-spin-bg` / `--nuzic-spin-bg-hover` (vegeu nuzic-theme.css).
+   --------------------------------------------------------------------------- */
+
+.bpm-inline.visible.param.outputnote {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Abbr "Transposición" / "Registro" — tipografia uniforme per a la
+   fila d'inputs. Mantenim el `text-transform: uppercase` heretat de
+   `.bpm-inline .abbr`. Cal pujar specificity per sobre de la regla
+   agressiva del nuzic-theme (mateix nivell d'specificity però com que
+   `nuzic-theme.css` es carrega DESPRÉS d'aquest fitxer, guanyaria per
+   ordre). Afegim `.bpm-inline.visible` per pujar specificity (+2
+   classes) i mantenir-nos per damunt:
+     nuzic-theme: body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input) .abbr
+                  → (0, 5, 3)
+     aquí:        body[data-visual="nuzic"] .bpm-inline.visible.param.outputnote:has(.circle > input) .abbr
+                  → (0, 7, 3) — guanya. */
+body[data-visual="nuzic"] .bpm-inline.visible.param.outputnote:has(.circle > input) .abbr,
+body[data-visual="nuzic"] .bpm-inline.visible.param.outputnote .abbr {
+  font-size: clamp(0.95rem, 1.6vw, 1.25rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  color: var(--nuzic-dark, #43433B) !important;
+  opacity: 1 !important;
+  white-space: nowrap !important;
+}
+
+.param.outputnote .circle {
+  width: auto !important;
+  height: clamp(2rem, 5vw, 3rem);
+  padding: 0 0.5rem;
+  border: 2px solid var(--nuzic-pink, #F28AAD);
+  border-radius: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  position: relative;
+}
+
+.param.outputnote .circle input {
+  width: clamp(2.5rem, 5vw, 3.5rem) !important;
+  height: 100% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
+  font-weight: 700;
+  text-align: center;
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.param.outputnote .circle input::-webkit-outer-spin-button,
+.param.outputnote .circle input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+[data-theme="dark"] .param.outputnote .circle input,
+[data-theme="dark"] .param.outputnote .abbr {
+  color: var(--text-color, #eee);
+}
+
+.param.outputnote .spin {
+  border-radius: 50% !important;
+  aspect-ratio: 1 !important;
+  border: none !important;
+}
+
+.param.outputnote .spin.up::before { border-bottom-color: white !important; }
+.param.outputnote .spin.down::before { border-top-color: white !important; }

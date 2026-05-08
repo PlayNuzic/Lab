@@ -1,0 +1,114 @@
+/* Scale Pill — pastilla "Escala" amb dropdown nadiu d'opcions
+   ----------------------------------------------------------------------------
+   Component visual reutilitzable per a apps que necessiten un
+   <select> d'escales musicals dins l'estètica nuzic. La fan servir
+   App25, App25B i potencialment qualsevol app futura que hagi de
+   triar entre N escales sense necessitar el panell complet de
+   `libs/scale-selector/` (que és la llista vertical amb miniatures
+   d'eE — un component diferent).
+
+   Estructura HTML:
+     <div class="bpm-inline visible param escala" id="escalaParam">
+       <span class="abbr">Escala</span>
+       <div class="circle escala-circle">
+         <select id="escalaSelect" class="escala-select">
+           <option value="DIAT-0">Mayor</option>
+           ...
+         </select>
+       </div>
+     </div>
+
+   El cableig (poblar opcions, listener `change`) viu a
+   `libs/app-common/scale-pill.js`. El color de la vora i del caret
+   ve via `--nuzic-pink`. La font és Ubuntu (família display nuzic).
+
+   Notes d'specificity:
+   --------------------
+   El nuzic-theme aplica regles agressives a `.bpm-inline .abbr` i a
+   `.param:not(.param--large):has(.circle > input) .abbr` amb
+   `!important`. Per garantir que els estils d'aquest mòdul guanyin,
+   els selectors estan ancorats a `body[data-visual="nuzic"]` i les
+   declaracions porten `!important` només on competeixen amb
+   nuzic-theme.
+   --------------------------------------------------------------------------- */
+
+/* === Wrapper de la pastilla — abbr a SOBRE, capsule a SOTA ===
+   La regla del nuzic-theme `body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input)`
+   aplica `flex-direction: column` només si la pastilla conté un `<input>`.
+   La pastilla d'Escala té un `<select>` → no entra en aquella regla i
+   queda amb `flex-direction: row` (abbr a l'esquerra). Repliquem el
+   mateix layout aquí perquè s'alinï visualment amb `.param.outputnote`.
+
+   Selectors amb `.bpm-inline.visible` davant per pujar specificity per
+   sobre de regles competides del nuzic-theme (vegeu `output-note-pill.css`
+   per al càlcul). */
+body[data-visual="nuzic"] .bpm-inline.visible.param.escala {
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+}
+
+/* === Abbr "Escala" — mateix tractament que `.param.outputnote .abbr`. ===
+   Mantenim `text-transform: uppercase` heretat de `.bpm-inline .abbr`
+   perquè coincideixi amb la pastilla de Transposición. Specificity
+   pujada amb `.bpm-inline.visible` per superar les regles del
+   nuzic-theme que es carreguen després. */
+body[data-visual="nuzic"] .bpm-inline.visible.param.escala .abbr {
+  font-size: clamp(0.95rem, 1.6vw, 1.25rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  color: var(--nuzic-dark, #43433B) !important;
+  opacity: 1 !important;
+  white-space: nowrap !important;
+  order: 0 !important;
+}
+
+body[data-visual="nuzic"][data-theme="dark"] .bpm-inline.visible.param.escala .abbr {
+  color: var(--text-color, #eee) !important;
+}
+
+/* === Capsule contenidor del <select> === */
+.param.escala .escala-circle {
+  width: auto !important;
+  height: clamp(2rem, 5vw, 3rem);
+  padding: 0 0.5rem;
+  border: 2px solid var(--nuzic-pink, #F28AAD);
+  border-radius: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+[data-theme="dark"] .param.escala .escala-circle {
+  border-color: var(--nuzic-pink, #F28AAD);
+}
+
+/* === <select> nadiu personalitzat ===
+   Removed default appearance + caret reemplaçat per un SVG inline
+   visualment idèntic al `.spin.down` de la pastilla de transposició:
+   cercle rosa farcit amb una fletxa blanca cap avall. Mides 26px (igual
+   que el `.spin`). */
+.escala-select {
+  border: none;
+  background: transparent;
+  font-size: clamp(0.85rem, 1.8vw, 1.2rem);
+  font-weight: 700;
+  color: var(--text-color, #333);
+  font-family: 'Ubuntu', system-ui, sans-serif;
+  cursor: pointer;
+  outline: none;
+  padding: 0 0.25rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Ccircle cx='13' cy='13' r='13' fill='%23F28AAD'/%3E%3Cpath d='M7 10 L19 10 L13 18 Z' fill='white'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.25rem center;
+  background-size: 26px 26px;
+  padding-right: 2rem;
+}
+
+[data-theme="dark"] .escala-select {
+  color: var(--text-color, #eee);
+}

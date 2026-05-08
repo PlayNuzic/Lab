@@ -9,12 +9,14 @@
   <link rel="stylesheet" href="../../libs/app-common/styles.css" />
   <link rel="stylesheet" href="../../libs/musical-grid/musical-grid.css" />
   <link rel="stylesheet" href="../../libs/shared-ui/bpm-inline.css" />
+  <link rel="stylesheet" href="../../libs/shared-ui/output-note-pill.css" />
+  <link rel="stylesheet" href="../../libs/shared-ui/scale-pill.css" />
   <link rel="stylesheet" href="../../libs/shared-ui/nuzic-theme.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="../../libs/app-common/embed.css" />
   <link rel="icon" href="../../favicon.ico" />
 </head>
-<body data-theme="system" data-visual="nuzic">
+<body class="app25b" data-theme="system" data-visual="nuzic">
   <div id="app-root"></div>
   <script type="module">
     import { initHeader } from '../../libs/shared-ui/header.js';
@@ -78,6 +80,16 @@
           <span class="abbr">Escala</span>
           <div class="circle escala-circle">
             <select id="escalaSelect" class="escala-select"></select>
+          </div>
+        </div>
+        <div class="bpm-inline visible param outputnote" id="outputNoteParam">
+          <span class="abbr">Transposición</span>
+          <div class="circle">
+            <input id="inputOutputNote" type="number" min="0" max="11" value="0" />
+            <div class="spinner">
+              <button id="outputNoteUp" class="spin up" type="button" aria-label="Incrementar transposición"></button>
+              <button id="outputNoteDown" class="spin down" type="button" aria-label="Decrementar transposición"></button>
+            </div>
           </div>
         </div>
         <div class="bpm-inline visible" id="bpmParam">

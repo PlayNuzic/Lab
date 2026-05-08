@@ -58,45 +58,7 @@ main {
   z-index: 1;
 }
 
-/* Scale dropdown param: capsule with pink border */
-.param.escala .escala-circle {
-  width: auto !important;
-  height: 2.75rem;
-  padding: 0 0.5rem;
-  border: 2px solid var(--nuzic-pink, #F28AAD);
-  border-radius: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-}
-
-.escala-select {
-  border: none;
-  background: transparent;
-  font-size: clamp(0.85rem, 1.8vw, 1.2rem);
-  font-weight: 700;
-  color: var(--text-color, #333);
-  font-family: 'Courier New', Courier, monospace;
-  cursor: pointer;
-  outline: none;
-  padding: 0 0.25rem;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23F28AAD'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.25rem center;
-  padding-right: 1.25rem;
-}
-
-[data-theme="dark"] .param.escala .escala-circle {
-  border-color: var(--nuzic-pink, #F28AAD);
-}
-
-[data-theme="dark"] .escala-select {
-  color: var(--text-color, #eee);
-}
+/* Pastilla "Escala" — estils complets a `libs/shared-ui/scale-pill.css`. */
 
 /* Hide loop button */
 #loopBtn { display: none !important; }
@@ -339,4 +301,14 @@ main {
 
 [data-theme="dark"] .musical-grid .matrix-container .interval-number {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================================
+   PASTILLA TRANSPOSICIÓN (estils visuals via libs/shared-ui/output-note-pill.css;
+   ací només pintem els spinners en rosa per coherència amb la resta d'apps
+   d'escala — App18/App23/App24/App25).
+   ============================================================================ */
+body.app25b {
+  --nuzic-spin-bg: var(--nuzic-pink, #F28AAD);
+  --nuzic-spin-bg-hover: #d96a93;
 }
