@@ -138,7 +138,7 @@ export const slideContent = {
 <p>Como la pulsación del corazón, un <strong>paso</strong> temporal es el tiempo que pasa entre dos pulsos consecutivos. Este paso es la unidad temporal que usaremos para medir cuánto dura un sonido.<br></p>
 <p>Cuando contamos <strong>pasos</strong>, es natural hacerlo desde el 1: El paso 1 va del pulso 0 al 1, el paso 2 va del 1 al 2 etc…</p>`,
     tipsTitle: 'Prueba la Línea Temporal',
-    tips: `<p>Haz clic en <strong>Play</strong> y escucha dos notas aleatorias en posiciones distintas de la línea temporal.</p>
+    tips: `<p>Haz clic en ▶️ y escucha dos notas aleatorias en posiciones distintas de la línea temporal.</p>
 <p>Ajusta el BPM entre 50 y 150 para escuchar la línea más rápido o más lento.</p>
 <p><strong>Tip:</strong> En la línea temporal podemos visualizar el paso del tiempo marcado por los pulsos y oír un sonido que ocurre en un pulso y que dura una pulsación o paso.</p>`,
   },
@@ -149,7 +149,7 @@ export const slideContent = {
 <p>Las notas pueden seguir cualquier orden, pueden subir y bajar libremente creando así una <strong>melodía</strong>. El paso entre dos notas consecutivas es la unidad de medida que nos permite medir los movimientos de una melodía.</p>`,
     tipsTitle: 'Prueba Práctica',
     tips: `<p>La app muestra la línea sonora con 12 notas (0–11) donde puedes escuchar melodías.</p>
-<p><strong>Uso básico:</strong> En la primera interacción, suena la escala cromática completa como introducción. A partir de la segunda, pulsa ▶ para reproducir melodías aleatorias de 6 notas.</p>
+<p><strong>Uso básico:</strong> En la primera interacción, suena la escala cromática completa como introducción. A partir de la segunda, pulsa ▶️ para reproducir melodías aleatorias de 6 notas.</p>
 <p><strong>Tip:</strong> La primera escucha es siempre la escala cromática ascendente; sirve para mostrar las 12 notas antes de escucharlas en melodías aleatorias.</p>`,
   },
   5: {
@@ -159,7 +159,7 @@ export const slideContent = {
 <p>El primer número es la <em>nota</em> escogida y el segundo es el <em>pulso</em> donde está ubicada. Un pulso no puede tener más de una nota, igual que al cantar solo podemos cantar una nota a la vez.</p>`,
     tipsTitle: 'Prueba el Plano Nuzic',
     tips: `<p>Haz clic en cualquier celda del plano para escuchar su nota y ver sus coordenadas (nota · pulso).</p>
-<p>Pulsa ▶ para escuchar de 4 a 8 notas aleatorias distribuidas en 8 pulsos.</p>
+<p>Pulsa ▶️ para escuchar de 4 a 8 notas aleatorias distribuidas en 8 pulsos.</p>
 <p><strong>Tip:</strong> Prueba a hacer clic en varias celdas seguidas para explorar la relación entre posición en el plano y sonido. Las coordenadas de las notas desaparecen suavemente tras 1 segundo.</p>`,
   },
   6: {
@@ -171,7 +171,7 @@ export const slideContent = {
 <p>Nos regimos por la estructura del plano: 12 números para las notas (0–11) y 8 para los pulsos (0–7).</p>`,
     tipsTitle: 'Prueba el Plano Nuzic',
     tips: `<p>Usa el <strong>editor N-P</strong> para introducir pares y crear una sucesión. O haz clic en celdas del plano para añadir o quitar notas.</p>
-<p>Pulsa ▶ para reproducir, 🎲 para generar una sucesión aleatoria, 🗑 para borrar.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> Pasar del azar a la intención es el salto creativo fundamental. Es el primer paso hacia la composición consciente: decides tú qué nota suena en qué momento.</p>`,
   },
   7: {
@@ -193,7 +193,7 @@ export const slideContent = {
 <p>Para definir un ritmo creamos una sucesión de iT.</p>`,
     tipsTitle: 'Prueba los iT en la línea',
     tips: `<p>Introduce tamaños de iT en los cuadros. La suma no puede superar 8.</p>
-<p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, y 🗑 para borrar.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, y 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> Descubre cómo la distancia entre los sonidos crea el movimiento. Cambiar el orden de los iT cambia completamente el ritmo.</p>`,
   },
   9: {
@@ -206,7 +206,7 @@ export const slideContent = {
 <p>La nota final de una sucesión es el resultado de ir sumando o restando los números de los iS consecutivos.</p>`,
     tipsTitle: 'Prueba los iS en la línea',
     tips: `<p>Escribe valores positivos o negativos de iS en el editor.</p>
-<p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, 🗑 para borrar.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar una sucesión aleatoria, 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> El iS enseña que una melodía es movimiento: no solo importa dónde empieces, sino cuánto te mueves.</p>
 <p>Observa cómo la línea sonora destaca los iS con flechas durante la reproducción. Los valores positivos suben y los negativos bajan.</p>`,
   },
@@ -219,7 +219,7 @@ export const slideContent = {
     tips: `<p>Entra un número de iS para definir la primera nota. A continuación entra el número del iT para definir su duración.</p>
 <p>Entra pares iS-iT hasta acabar la sucesión. Escribe "s" en la línea iS para introducir un silencio en el editor.</p>
 <p>También puedes introducir notas clicando en los puntos (en la esquina inferior de las celdas) del plano y arrastrarlas para crear el iT.</p>
-<p>Pulsa ▶️ para reproducir, 🎲 para generar una secuencia aleatoria, 🗑 para borrar.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar una secuencia aleatoria, 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> En esta App se juega con distancias en lugar de posiciones fijas. Es como la diferencia entre decir "ve a la calle 5" y "avanza 3 calles" — el mismo destino, dos formas de pensarlo.</p>`,
   },
   11: {
@@ -241,7 +241,8 @@ export const slideContent = {
 <p>Para indicar en qué compás está un pulso, le añadimos el número de compás como superíndice. Por ejemplo, para el Pulso 3 del compás 1, escribimos: P(3<sup>1</sup>).</p>`,
     tipsTitle: 'Prueba los Intervalos Temporales',
     tips: `<p>Esta app representa la línea de tiempo organizada con compases. Muestra 2 compases completos con un efecto para visualizar la repetición.</p>
-<p>Entra un número en "Pulsos por Compás" y pulsa ▶️. Observa cómo la numeración de la línea temporal se repite mostrando la estructura del compás.</p>
+<p>Entra un número en "Pulsos por Compás". Observa cómo la numeración de la línea temporal se repite mostrando la estructura del compás.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar una secuencia aleatoria, 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> La app muestra que el compás es un ciclo de números que se repiten. Usa + y − para cambiar el número de pulsos y observa como se adapta la línea sonora.</p>`,
   },
   13: {
@@ -252,7 +253,8 @@ export const slideContent = {
 <p>También es muy útil para definir un estilo rítmico: si acentuamos los Pulsos 1 i 3 en un compás de 4 creamos un ritmo popular.</p>`,
     tipsTitle: 'Prueba la Línea Temporal Circular',
     tips: `<p>Entra un número en "Pulsos por Compás" y otro en "Nº de Compases". La app reproduce el ejemplo. Observa como cambia el superíndice en los mismos pulsos.</p>
-<p>Compara esta representación circular con la lineal del paso 12. Mismo concepto, dos visualizaciones. El círculo hace evidente lo que la línea sugiere. La música no avanza solo en línea sino que <b>gira</b> para volver al siguiente <b>punto de partida</b>, creando espirales en el tiempo.</p>`,
+<p>Pulsa ▶️ para reproducir, 🎲 para generar una secuencia aleatoria, 🗑 para reiniciar.</p>
+<p><b>Tips:</b> Compara esta representación circular con la lineal del paso 12. Mismo concepto, dos visualizaciones. El círculo hace evidente lo que la línea sugiere. La música no avanza solo en línea sino que <b>gira</b> para volver al siguiente <b>punto de partida</b>, creando espirales en el tiempo.</p>`,
   },
   14: {
     text: `<h2>El <b>módulo</b> de las notas</h2>
@@ -262,7 +264,8 @@ export const slideContent = {
 <p>El registro en el que está una nota se puede escribir de dos maneras: como superíndice N(6^2) o después de la letra r N(6r2).</p>`,
     tipsTitle: 'Prueba el registro sonoro',
     tips: `<p>Introduce un número de registro o cambialo con las flechas. La app reproduce una secuencia aleatoria de 6 notas.</p>
-<p>Clica en las notas de la línea sonora para reproducirlas individualmente. Pulsa ▶️ para reproducir la secuencia otra vez.</p>
+<p>Clica en las notas de la línea sonora para reproducirlas individualmente.</p>
+<p>Pulsa ▶️ para reproducir la secuencia otra vez, 🎲 para generar melodías y registro aleatoriamente, 🗑 para reiniciar.</p>
 <p>La nota 0 está resaltada en rosa para marcar el inicio de cada registro. El registro 4 corresponde al Do central del piano (nota C4).</p>`,
   },
   15: {
@@ -273,7 +276,7 @@ export const slideContent = {
     tipsTitle: 'Prueba el Plano Modular',
     tips: `<p>Introduce un Compás y Nº Compases para modificar el plano modular, que calcula automáticamente la longitud total de pulsos. Los registros de salida inicial son 3 y 4.</p>
 <p>Haz clic en las celdas del plano para crear notas. Usa el scroll o los spinners para moverte entre los registros.</p>
-<p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para borrar.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar melodías aleatoriamente, 🗑 para reiniciar.</p>
 <p>Usa el scroll vertical para moverte entre registros y el horizontal para moverte por los compases.</p>`,
   },
   16: {
@@ -283,7 +286,7 @@ export const slideContent = {
 <p>En el plano modular, las notas llevan su <strong>registro</strong> y los pulsos su <strong>compás</strong>. Así podemos crear melodías que se extiendan por varios registros y varios compases, acercándonos a una composición real.</p>`,
     tipsTitle: 'Prueba la Sucesión N-iT',
     tips: `<p>Ajusta Compás, Nº y Compases. El plano se adapta. Usa el editor para crear sucesiones N-iT. O haz clic y arrastra en las celdas del plano.</p>
-<p>Pulsa ▶️ para reproducir, 🎲 para generar aleatoriamente, 🗑 para borrar.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar melodías aleatoriamente, 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> Esta app combina el par N-iT, que es conceptualmente el par usado al escribir con notación musical.</p>`,
   },
   21: {
@@ -316,9 +319,9 @@ export const slideContent = {
 <p><strong>Tips: </strong>Transportar es aplicar la misma receta (eE) desde un punto de partida diferente. La escala suena "igual pero distinta" — conserva su carácter pero cambia de altura. Es como cantar la misma canción más aguda o más grave.</p>`,
   },
   24: {
-    text: `<p>Hay muchas escalas posibles combinando 12 notas. Cada <b>escala</b> tiene su propia <strong>eE</strong> y se puede <b>transportar</b> a cualquiera de las N del registro (escala cromática). Las combinaciones son enormes.</p>
+    text: `<p>Hay muchas escalas posibles combinando 12 notas. Cada <b>escala</b> tiene su propia <strong>eE</strong> y se puede <b>transportar</b> a cualquiera de las N del registro (escala cromática).</p>
 <p>Hemos visto en el paso anterior que cuando transportamos una escala cambiamos la Nota de salida correspondiente a la Nº(0).</p>
-<p>Cuando cambiamos de escala cambiamos las distancias entre las notas, es decir, la <b>eE</b>. La misma Nota de salida pero distintas distancias entre Nº.</p>
+<p>Y cuando cambiamos de escala cambiamos las distancias entre las notas, es decir, la <b>eE</b>. La misma Nota de salida pero distintas distancias entre <b>Nº</b>.</p>
 <p>Las posibilidades creativas se expanden al combinar diferentes escalas con diferente transposición.</p>
 <p>En la teoría tradicional cada combinación de escala y transposición tiene su propia <b>armadura</b>. La app acompañante las muestra en el pentagrama, junto con las Nº escogidas.</p>`,
     tipsTitle: 'Prueba las escalas',
@@ -326,6 +329,17 @@ export const slideContent = {
 <p>Pulsa ▶️ en la escala cromática o ▶️ en la escala mayor para escuchar.</p>
 <p><strong>Tips:</strong> Al elegir escala y nota de salida, las líneas de conexión, el pentagrama y la estructura escalar (eE) se actualizan en tiempo real.</p>
 <p>Compara la eE de diferentes escalas para entender sus diferentes distancias. Cada escala es un mundo sonoro distinto. Tómate tiempo para descubrirlas.</p>`,
+  },
+  25: {
+    text: `<p>Podemos definir una melodía creando una sucesión de <b>Nº</b>.</p>
+<p>Entonces, cambiar de escala y escuchar la diferencia. Las Notas de la melodía pueden cambiar, aunque las Nº son las mismas. Comprobamos así como la <b>eE</b> cambia el carácter de la melodía.</p>
+<p>También podemos cambiar la <b>transposición</b> y escuchar la melodía en diferentes tonos.</p>
+<p>Combinar las dos técnicas anteriores abre un abanico de posibilidades compositivas.</p>`,
+    tipsTitle: 'Prueba tus melodías en diferentes escalas',
+    tips: `<p>Plano basado en grados de escala. Las melodías se adaptan sonoramente al cambiar de escala: los grados se mantienen, las notas cambian.</p>
+<p>Selecciona una escala y una transposición.</p>
+<p>Usa el editor de Nº para entrar una sucesión. O haz clic en celdas del plano para los grados de la melodía.</p>
+<p>Pulsa ▶️ para reproducir, 🎲 para generar melodías aleatoriamente, 🗑 para reiniciar.</p>`,
   },
 };
 
