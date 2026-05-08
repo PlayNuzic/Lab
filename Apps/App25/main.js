@@ -706,7 +706,23 @@ function initDegreeEditor() {
       if (!entry) { cell.value = originalValue; return; }
 
       const parsed = parseDegreeInput(val);
-      if (!parsed || !validateDegree(parsed.degree)) {
+      if (!parsed) {
+        showTooltip(cell, `Grado: 0-${currentScaleLength - 1}`);
+        cell.value = originalValue;
+        return;
+      }
+
+      // Conversió a silenci ("s", ".", "·"): netegem grau/modificador.
+      if (parsed.isRest) {
+        entry.degree = null;
+        entry.modifier = null;
+        entry.isRest = true;
+        notifyChange();
+        renderCells();
+        return;
+      }
+
+      if (!validateDegree(parsed.degree)) {
         showTooltip(cell, `Grado: 0-${currentScaleLength - 1}`);
         cell.value = originalValue;
         return;
@@ -717,6 +733,7 @@ function initDegreeEditor() {
 
       entry.degree = parsed.degree;
       entry.modifier = parsed.modifier;
+      entry.isRest = false;
       notifyChange();
       renderCells();
     });
@@ -753,6 +770,15 @@ function initDegreeEditor() {
     cell.addEventListener('input', (e) => {
       const val = e.target.value;
       if (val === '') return;
+
+      // Silenci: si l'usuari tecleja "s", "·" o "." (un sol caràcter),
+      // commitem un silenci immediatament — patró importat d'App25B.
+      const trimmedLower = val.trim().toLowerCase();
+      if (/^[s.·]$/.test(trimmedLower)) {
+        clearTimeout(autoJumpTimer);
+        commitDegree({ isRest: true });
+        return;
+      }
 
       // Partial: "0r" — waiting for "+" to complete "0r+"
       if (/^\d+r$/.test(val)) {
@@ -815,7 +841,9 @@ function initDegreeEditor() {
         const val = cell.value.trim();
         if (val) {
           const parsed = parseDegreeInput(val);
-          if (parsed && validateDegree(parsed.degree)) {
+          if (parsed?.isRest) {
+            commitDegree({ isRest: true });
+          } else if (parsed && validateDegree(parsed.degree)) {
             const registerMsg = detectRegisterCorrection(val);
             if (registerMsg) showTooltip(cell, registerMsg);
             commitDegree(parsed);
@@ -839,6 +867,10 @@ function initDegreeEditor() {
   }
 
   function parseDegreeInput(val) {
+    // Silenci: "s" (legacy d'App25B) o àlies de conveniència ".", "r", "·".
+    // Cas-insensitive, perquè l'usuari pot teclejar "S" o "s" indistintament.
+    const lower = val.trim().toLowerCase();
+    if (lower === 's' || lower === '.' || lower === '·') return { isRest: true };
     // "0r5" → upper octave (degree 0, modifier r+)
     if (/^0r5$/.test(val)) return { degree: 0, modifier: 'r+' };
     // "0r4" → base octave (degree 0, no modifier — explicit)
@@ -874,7 +906,11 @@ function initDegreeEditor() {
     const pulse = entries.length;
     if (pulse >= TOTAL_SPACES) return;
 
-    entries.push({ degree: parsed.degree, modifier: parsed.modifier, pulse, isRest: false });
+    if (parsed.isRest) {
+      entries.push({ degree: null, modifier: null, pulse, isRest: true });
+    } else {
+      entries.push({ degree: parsed.degree, modifier: parsed.modifier, pulse, isRest: false });
+    }
     lostDegreesMemory.delete(pulse);
     notifyChange();
     renderCells();
