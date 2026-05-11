@@ -1009,6 +1009,104 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       del template tornaria a forçar el tema del SO.
     - Tests: 73 suites / 1445 tests OK.
 
+40. **Transposició a App25/App25B + modularització pastilles + neteja
+    cross-app** ✅ FET (2026-05-11)
+    Pas 1 — **Pastilla Transposición a App25/App25B**:
+    - Inicialment es va construir HTML+CSS+JS local a cada app per a
+      una pastilla `.outputnote` (input numèric 0-11 cíclic) a la dreta
+      del selector d'escales. La transposició es connecta a
+      `scaleState.root` (que ja existia a App25/App25B com a part del
+      sistema de graus), de manera que la nota MIDI tocada al grau 0
+      canvia segons la transposició però el grau 0 visual queda sempre
+      a la posició inferior de la soundline.
+    - Persistència: `prefs.outputNote` desat amb el patró JSON
+      `preferenceStorage.load() → spread → save()`.
+
+    Pas 2 — **Modularització a `libs/shared-ui` + `libs/app-common`**:
+    - **`libs/shared-ui/scale-pill.css`** — estils del selector `<select>`
+      d'escala. Inclou el caret SVG inline (cercle rosa farcit + fletxa
+      blanca cap avall, idèntic al `.spin.down` de la pastilla de
+      transposició). Selectors amb specificity prou alta
+      (`body[data-visual="nuzic"] .bpm-inline.visible.param.escala`) i
+      `!important` per superar les regles del nuzic-theme.
+    - **`libs/app-common/scale-pill.js`** — `createScalePill({ selectId,
+      scales, initial, onChange })`. Pobla el `<select>` i lliga el
+      `change` listener. Suporta canvi programàtic via `pill.set(value)`.
+    - **`libs/shared-ui/output-note-pill.css`** — estils de la pastilla
+      `.outputnote` / `.registro`. Un sol fitxer cobreix totes dues
+      classes via selectors duals (App18 fa servir `.registro` per la
+      pastilla "Registro"; App23/24/25/25B fan servir `.outputnote` per
+      "Transposición"). El comportament és idèntic.
+    - **`libs/app-common/output-note-pill.js`** — `createOutputNotePill({
+      inputId, upId, downId, initial, range, onChange })`. Behaviour
+      cíclic 0-N (amb `range.cyclic: true`) o clamp linear (default
+      0-11). Inclou listeners d'input, spinners i ArrowUp/Down.
+
+    Pas 3 — **Auditoria `nuzic-migrate` d'App25/App25B**:
+    Trobats 4 punts de neteja al codi residual:
+    a. `@import musical-grid.css` duplicat al `styles.css` (ja
+       carregat via `<link>` al `index.html`).
+    b. App25 tenia dos sistemes de tooltip: `createInfoTooltip` del
+       mòdul comú (1 sol punt d'ús) + funció local `showTooltip()` amb
+       classe `.degree-editor-tooltip` (8 punts d'ús). Refactor:
+       `showTooltip()` delega a `infoTooltip.show()` (com a App25B);
+       CSS local de la classe eliminat.
+    c. `.inputs { display: flex; justify-content: center }` redundant
+       — ja venen d'`index.css` i `nuzic-theme.css`.
+    d. Boilerplate viewport (`html, body / #app-root / main /
+       app-scale-wrapper`) duplicat a App18/App19/App20/App25/App25B.
+
+    Pas 4 — **Nou mòdul `libs/shared-ui/app-viewport.css`**:
+    Reemplaça el bloc duplicat de viewport-fill a 5 apps. Selector
+    `#app-root > main, .app-scale-wrapper > main` cobreix els dos
+    layouts DOM. Apps que necessiten override (ex. App18 vertical) ho
+    fan amb `html[data-embed="true"] body.appNN #app-root > main` per
+    pujar specificity per sobre del `#id`.
+
+    Pas 5 — **Migració d'App18/App23/App24 al mòdul output-note-pill**:
+    - HTML: nou `<link rel="stylesheet" href="output-note-pill.css">`.
+    - CSS: blocs locals eliminats (~70 línies × app), només queden els
+      overrides de color (`body.app18/23/24 { --nuzic-spin-bg: pink }`).
+    - JS (App23/App24): substituït el `setOutputNote` + listeners
+      manuals per `createOutputNotePill({ initial, range, onChange })`.
+      App18 manté la seva pròpia lògica perquè la pastilla "Registro"
+      té validació pròpia, slide d'octava i estat connectat a
+      `registryController` — no encaixa amb el helper generic.
+
+    Pas 6 — **Bug crític post-refactor (commit `128b32d`)**:
+    L'import `import { createOutputNotePill } from '...'` a App23/App24
+    xocava amb una funció local `function createOutputNotePill()` que
+    ja existia (la que generava el HTML del template). ESM falla al
+    parse:
+        Uncaught SyntaxError: Identifier 'createOutputNotePill' has
+        already been declared.
+    Apps no carreguen. Fix: renombrada la funció local a
+    `createOutputNoteMarkup()` (descriu millor el que fa: només emet
+    HTML). Llição apresa: quan importes un nou mòdul amb un nom
+    qualsevol, busca primer al fitxer si existeix la mateixa
+    declaració local — `grep -nE "function NAME|const NAME"` abans
+    d'aplicar el patch. Els tests jest no proven la càrrega real del
+    bundle al navegador, així que aquesta classe de col·lisió només es
+    detecta visualment a l'app.
+
+    Pas 7 — **Aprenentatges sobre specificity**:
+    Al refactor de la pastilla d'Escala vam descobrir el patró:
+    - `nuzic-theme.css` aplica regles a `.param:not(.param--large):has(.circle > input) .abbr`
+      amb `!important` (specificity ~0,5,3).
+    - El mòdul ha de pujar a `body[data-visual="nuzic"] .bpm-inline.visible.param.<kind> .abbr`
+      (specificity 0,7,3) per guanyar regardless de l'ordre de càrrega
+      dels stylesheets. **Sempre afegir `.bpm-inline.visible` al
+      selector + `!important` a totes les declaracions** quan competeix
+      amb el nuzic-theme.
+
+    Pas 8 — **Bonus**: App25 ara accepta `s`/`S`/`.`/`·` com a silenci
+    a l'editor de graus (paritat amb App25B). El parser
+    `parseDegreeInput` retorna `{ isRest: true }` per a aquests
+    caràcters; `commitDegree`, l'`input` event, el `keydown` (Enter/Tab)
+    i el `blur` event s'han adaptat. `r` NO és àlies de silenci perquè
+    `0r4/0r5/Nr+` ja l'usen per a notació de registre.
+    - Tests: 73 suites / 1445 tests OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App24**: redisseny de les línies de connexió (no tractat aquí —
