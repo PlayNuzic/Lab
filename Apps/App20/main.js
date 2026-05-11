@@ -1764,6 +1764,9 @@ function handleRandom() {
 
   // Sync Grid 2D from pairs (including silences for dotted line visualization)
   syncGridFromPairs(filledPairs);
+
+  // Auto-play after randomizing (consistent across apps 9+).
+  if (!isPlaying) togglePlayback();
 }
 
 // ========== RESET ==========

@@ -664,6 +664,12 @@ function randomize() {
     newD = randomInt(2, MAX_DENOMINATOR);
   } while (gcd(newN, newD) !== 1);
   setFraction(newN, newD);
+
+  // Auto-play after randomizing (consistent across apps 9+).
+  if (!isPlaying) {
+    clearHighlights();
+    startPlayback();
+  }
 }
 
 function handleReset() {

@@ -1105,6 +1105,9 @@ function handleRandom() {
   notes = newNotes;
 
   renderGrid();
+
+  // Auto-play after randomizing (consistent across apps 9+).
+  if (!isPlaying) handlePlay();
 }
 
 function handleReset() {

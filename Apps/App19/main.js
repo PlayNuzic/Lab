@@ -798,6 +798,9 @@ function handleRandom() {
     grid?.selectCell(rowId, pulse);
     notesInCurrentReg++;
   }
+
+  // Auto-play after randomizing (consistent across apps 9+).
+  if (!isPlaying) togglePlayback();
 }
 
 // ========== RESET ==========

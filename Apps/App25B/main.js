@@ -631,6 +631,9 @@ function handleRandom() {
 
   const absoluteDegrees = degreeIntervalsToAbsoluteDegrees(intervals);
   syncGridFromDegreeIntervals(absoluteDegrees);
+
+  // Auto-play after randomizing (consistent across apps 9+).
+  if (!isPlaying) handlePlay();
 }
 
 // ========== SCALE CHANGE HANDLERS ==========

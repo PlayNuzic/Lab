@@ -268,6 +268,9 @@ function handleRandom() {
   syncGridFromPairs(pairs);
 
   console.log('Random generation:', { bpm: currentBPM, pairs, numPairs, selectedPulses });
+
+  // Auto-play after randomizing (consistent across apps 9+).
+  if (!isPlaying) handlePlay();
 }
 
 // ========== SYNCHRONIZATION ==========

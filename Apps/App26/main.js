@@ -654,6 +654,12 @@ function randomize() {
   // Random denominator between 2 and MAX_DENOMINATOR
   const newD = randomInt(2, MAX_DENOMINATOR);
   setDenominator(newD);
+
+  // Auto-play after randomizing (consistent across apps 9+).
+  if (!isPlaying) {
+    clearHighlights();
+    startPlayback();
+  }
 }
 
 function handleReset() {

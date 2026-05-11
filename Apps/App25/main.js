@@ -422,6 +422,9 @@ function handleRandom() {
 
   gridEditor?.setPairs(pairs);
   syncGridFromDegrees(pairs);
+
+  // Auto-play after randomizing (consistent across apps 9+).
+  if (!isPlaying) handlePlay();
 }
 
 // ========== SYNCHRONIZATION ==========

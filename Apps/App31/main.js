@@ -1400,6 +1400,9 @@ function handleRandom() {
   renderTimeline();
   updateInfoDisplays();
   renderItfrEditor();
+
+  // Auto-play after randomizing (consistent across apps 9+).
+  if (!isPlaying) handlePlay();
 }
 
 function handleReset() {
