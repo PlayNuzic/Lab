@@ -71,6 +71,12 @@ html, body {
   --com-band-h: clamp(1.75rem, 3.2vw, 2.25rem);
   --com-band-gap: 0.75rem;       /* space between measure-header and timeline */
   --tl-side-pad: 20px;           /* mirrors `.timeline` margin auto of 20px each side */
+  /* Reserva espai a la dreta perquè l'endcap dret (`.timeline::after`,
+     projectat amb translateX(100% + 1.25rem) passat del cream) no es
+     talli al viewport. Math: amb `.timeline.margin auto` de 1.25rem +
+     `wrapper.margin-right = W`, l'endcap acaba exactament al
+     `parent.right` edge. */
+  margin-right: var(--com-band-w);
 }
 
 /* Yellow rectangle at the timeline's left, aligned with the "Com." label
@@ -96,6 +102,29 @@ body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-c
   z-index: 1;
   pointer-events: none;
   transform: none;
+}
+
+/* Endcap DRET — patró Step 7s.2 (App13/26/27): block groc projectat
+   FORA del `box-shadow` crema dret (1.25rem) del nuzic-theme. Width =
+   `var(--com-band-w)` per simetria visual amb el block "Com." de
+   l'esquerra. Cal cancel·lar `inset: 0 / opacity: 0 / border: 2px`
+   heretats de `libs/app-common/styles.css:328`. */
+body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline::after {
+  display: block;
+  content: '';
+  position: absolute;
+  inset: auto;
+  opacity: 1;
+  border: 0;
+  top: 0px;
+  right: 0;
+  width: var(--com-band-w);
+  height: 3.75rem;
+  background: var(--nuzic-yellow);
+  border-radius: 0 4px 4px 0;
+  z-index: 1;
+  pointer-events: none;
+  transform: translateX(calc(100% + 1.25rem));
 }
 
 /* Pulse numbers are positioned by `left: N%` where 100% = the full
