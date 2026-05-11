@@ -191,6 +191,54 @@ body[data-visual="nuzic"] {
   overflow: visible;                /* allow label to sit in left margin area */
 }
 
+/* ========== ENDCAPS GROCS ALS EXTREMS DE LA TIMELINE ==========
+   Patró Step 7s.2 (App26/27). Pseudo-elements del propi `.timeline`,
+   flush amb el `box-shadow` crema del nuzic-theme (1.25rem a cada
+   costat). Cal cancel·lar `inset: 0` heretat de
+   libs/app-common/styles.css:328 (cercle del mode circular). Variables
+   a `body.app13`. */
+body.app13 {
+  --app13-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
+  --app13-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
+}
+
+body[data-visual="nuzic"].app13
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::before,
+body[data-visual="nuzic"].app13
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: auto;
+  opacity: 1;
+  border: 0;
+  top: 0%;
+  width: var(--app13-endcap-w);
+  height: var(--app13-endcap-h);
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 4px;
+  /* z-index: 0 — per sota del .interval-bar-visual (z-index: 5) i
+     dels pulse-numbers (z-index: 10 al nuzic-theme). */
+  z-index: 0;
+  pointer-events: none;
+}
+
+body[data-visual="nuzic"].app13
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::before {
+  left: 0;
+  transform: translateX(calc(-100% - 1.25rem));
+}
+
+body[data-visual="nuzic"].app13
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::after {
+  right: 0;
+  transform: translateX(calc(100% + 1.25rem));
+}
+
 
 /* ========== INTERVAL BARS (sobre la timeline, patró App30) ========== */
 /* Pujades per deixar espai al label-bar groc (halter d'iT) just sota */
