@@ -52,7 +52,7 @@ body.app26 {
   gap: 0.2rem;
   width: var(--app26-endcap-w);
   box-sizing: border-box;
-  padding: 0.85rem 0;          /* només vertical: l'amplada ja és fixa */
+  padding: 0.5rem 0;          /* només vertical: l'amplada ja és fixa */
   border: 3px solid var(--nuzic-yellow, #FFBB33);
   border-radius: 0.4rem;
   color: #000;                 /* numerador/denominador negres */
@@ -79,14 +79,17 @@ body.app26 {
 .fraction-editor input {
   width: 100%;
   text-align: center;
-  font-size: clamp(1.35rem, 3vw, 2.1rem);
+  /* Font més gran perquè omplli millor el rectangle (era 1.35-2.1rem). */
+  font-size: clamp(1.75rem, 3.8vw, 2.7rem);
   background: none;
   border: none;
   /* `!important` per assegurar que el denominador (editable, no read-only)
      no rebi un color heretat d'altra regla CSS — alguna regla externa
      el pinta de cian-blau per defecte. */
   color: #000 !important;
-  font-family: inherit;
+  /* Ubuntu via cascada (body[data-theme='light']) — `inherit` explícit
+     per superar qualsevol default de `<input>` als navegadors. */
+  font-family: 'Ubuntu', sans-serif;
   outline: none;
   font-weight: 900;            /* més gruixut */
   line-height: 1;
@@ -137,10 +140,11 @@ body.app26 {
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  /* Gap visible entre + i − */
-  gap: 3px;
+  /* Gap visible entre + i − (no s'arriben a tocar). */
+  gap: 4px;
   width: 1.3rem;
-  height: 2rem;
+  /* Spinner una mica més llarg (era 2rem). */
+  height: 2.8rem;
   /* Fons transparent perquè el gap entre buttons es vegi */
   background: transparent;
   overflow: visible;
