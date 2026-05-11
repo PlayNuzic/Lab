@@ -967,6 +967,48 @@ Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
       items + `overflow-wrap: anywhere`). El nou canvi és una xarxa de
       seguretat per contingut editat/cachejat i scroll lateral residual.
 
+39. **Sistema — renumeració passos d'escalas (paso 21 fusionat al 20),
+    contingut pasos 21-26, i apps 9-35 en tema clar** ✅ FET (2026-05-11)
+    - **Renumeració**: l'antic paso 20 (App32) es retira; tots els
+      passos baixen un número:
+        21 (Fracciones Complejas, App34/App35 + variant) → 20
+        22 (Escalas Escogiendo Notas, App21) → 21
+        23 (Estructura Escalar, App22) → 22
+        24 (Transposición, App23) → 23
+        25 (Probando diferentes Escalas, App24) → 24
+        26 (Melodías con Escalas) → 25 — variant-toggle eliminat,
+                                          només queda App25
+        27 (Intervalos con Escalas, App25B) → 26 — passa a ser
+                                              accessible al menú (clamp ja
+                                              estava a 26).
+      Claus de `slideContent` movent-se amb la seva app (22→21, 23→22,
+      24→23) — un primer intent va deixar-les descol·locades; aquest
+      pass tracta el número com a pur índex i mou matrix + content
+      junts. Selectors `data-paso="22|23|24"` a `slides.css` també
+      reubicats a `21|22|23` per al cap de 800px i l'override 901px
+      d'aspecte 3/2 d'App23.
+    - **Migració de localStorage**: `migrateOverridesV2` a
+      `sistema/js/slides.js` renumera els overrides desats una
+      sola vegada per browser (controlat per `OVERRIDES_VERSION`).
+      Els overrides de l'antic 20 (App32) es descarten; la resta
+      mapegen amb la mateixa taula de dalt.
+    - **Contingut pasos 21-26**: text + tipsTitle + tips per a cada
+      pas, incloent-hi els nous Tips finals dels pasos 25 i 26 sobre
+      l'experiment major↔menor i la memòria interna de grados perduts.
+      Pas 24 amb paràgraf nou sobre eE simétricas/asimétricas. Pas 26
+      retitulat a "Intervalos con Escalas: el iSº".
+    - **Tips polish global** (pasos 3-16): `▶`/`Play` → `▶️`,
+      `borrar` → `reiniciar`, afegit el triplet ▶️/🎲/🗑 estàndard
+      on faltava (pasos 12, 13, 14).
+    - **Apps 9-35 en tema clar per defecte**: canviat
+      `<body data-theme="system">` per `light` a 29 apps (app9 fins a
+      App35). Apps 1-8 conserven `system`. `wireControls()` a
+      `libs/shared-ui/header.js` ara llegeix el `data-theme` inicial
+      del body i sincronitza el `themeSelect` abans de cridar
+      `applyTheme()` — sense això, el `<option value="system" selected>`
+      del template tornaria a forçar el tema del SO.
+    - Tests: 73 suites / 1445 tests OK.
+
 ### Tasques pendents (feina futura, fora del pla actual)
 
 - **App24**: redisseny de les línies de connexió (no tractat aquí —
