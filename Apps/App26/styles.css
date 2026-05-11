@@ -39,12 +39,16 @@ body.app26 {
 }
 
 /* Rectangle vertical: amplada igual al endcap (::before del timeline) i
-   alçada més gran (vertical). Reposicionat al mateix x que l'endcap
-   (mateixa fórmula: `-W - 1.25rem` des de la vora esquerra de `.middle`,
-   que coincideix amb la del `.timeline`). */
+   alçada més gran (vertical). Reposicionat al mateix x que el endcap:
+   - Vora esquerra del endcap (en coord de `.timeline`): `-W - 1.25rem`
+   - `.timeline` té `width: calc(100% - 40px); margin: 20px auto` (a
+     `libs/app-common/styles.css`), per tant la seva vora esquerra està
+     20px (=1.25rem) a la DRETA de la vora esquerra de `.middle`.
+   - Per tant la fracció (en coord de `.middle`) ha d'anar a:
+     `(-W - 1.25rem) + 1.25rem = -W` */
 .fraction-editor {
   position: relative;
-  left: calc(0px - var(--app26-endcap-w) - 1.25rem);
+  left: calc(0px - var(--app26-endcap-w));
   display: flex;
   flex-direction: column;
   align-items: stretch;       /* .top/.bottom omplen tota l'amplada interior */

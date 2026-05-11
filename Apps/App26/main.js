@@ -242,6 +242,10 @@ function initFractionEditorController() {
     defaults: { numerator: FIXED_NUMERATOR, denominator: currentDenominator },
     startEmpty: false,
     maxDenominator: MAX_DENOMINATOR,
+    // App26 té el numerador fixat a 1 (simple mode) — la fracció mai no
+    // és reductible (gcd(1, d) = 1), per tant la ghost-fraction i la seva
+    // animació no s'utilitzen mai. Skip-em la creació del DOM per estalvi.
+    enableGhost: false,
     storage: {
       load: loadOpt,
       save: saveOpt,

@@ -106,7 +106,11 @@ export function createFractionEditor({
   minDenominator = 1, // Minimum denominator for user input (auto-reduce can go below this)
   minNumerator = 1, // Minimum numerator for user input (auto-reduce can go below this)
   maxDenominator = Infinity, // Maximum denominator for user input
-  maxNumerator = Infinity // Maximum numerator for user input
+  maxNumerator = Infinity, // Maximum numerator for user input
+  // Opt-out de la ghost-fraction (DOM + animació de reducció). Apps que
+  // no auto-redueixen mai (ex. App26 amb numerador fixat a 1) poden
+  // passar `enableGhost: false` per evitar crear el DOM mort.
+  enableGhost = true
 } = {}) {
   const safeHost = host ?? null;
   if (!safeHost) return null;
@@ -830,30 +834,33 @@ export function createFractionEditor({
     elements.wrapper = wrapper;
     safeHost.appendChild(wrapper);
 
-    const ghostContainer = document.createElement('div');
-    ghostContainer.className = 'fraction-ghost fraction-ghost--hidden';
-    ghostContainer.setAttribute('aria-hidden', 'true');
-    const ghostNumeratorWrapper = document.createElement('div');
-    ghostNumeratorWrapper.className = 'fraction-ghost__numerator';
-    const ghostNumeratorText = document.createElement('span');
-    ghostNumeratorText.className = 'fraction-ghost__number';
-    ghostNumeratorWrapper.appendChild(ghostNumeratorText);
-    const ghostBar = document.createElement('div');
-    ghostBar.className = 'fraction-ghost__bar';
-    const ghostDenominatorWrapper = document.createElement('div');
-    ghostDenominatorWrapper.className = 'fraction-ghost__denominator';
-    const ghostDenominatorText = document.createElement('span');
-    ghostDenominatorText.className = 'fraction-ghost__number';
-    ghostDenominatorWrapper.appendChild(ghostDenominatorText);
-    ghostContainer.append(ghostNumeratorWrapper, ghostBar, ghostDenominatorWrapper);
-    elements.ghost.container = ghostContainer;
-    elements.ghost.numerator = ghostNumeratorText;
-    elements.ghost.denominator = ghostDenominatorText;
+    let ghostContainer = null;
+    if (enableGhost) {
+      ghostContainer = document.createElement('div');
+      ghostContainer.className = 'fraction-ghost fraction-ghost--hidden';
+      ghostContainer.setAttribute('aria-hidden', 'true');
+      const ghostNumeratorWrapper = document.createElement('div');
+      ghostNumeratorWrapper.className = 'fraction-ghost__numerator';
+      const ghostNumeratorText = document.createElement('span');
+      ghostNumeratorText.className = 'fraction-ghost__number';
+      ghostNumeratorWrapper.appendChild(ghostNumeratorText);
+      const ghostBar = document.createElement('div');
+      ghostBar.className = 'fraction-ghost__bar';
+      const ghostDenominatorWrapper = document.createElement('div');
+      ghostDenominatorWrapper.className = 'fraction-ghost__denominator';
+      const ghostDenominatorText = document.createElement('span');
+      ghostDenominatorText.className = 'fraction-ghost__number';
+      ghostDenominatorWrapper.appendChild(ghostDenominatorText);
+      ghostContainer.append(ghostNumeratorWrapper, ghostBar, ghostDenominatorWrapper);
+      elements.ghost.container = ghostContainer;
+      elements.ghost.numerator = ghostNumeratorText;
+      elements.ghost.denominator = ghostDenominatorText;
+    }
 
     const container = document.createElement('div');
     container.className = 'fraction-editor fraction-editor--inline';
     container.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
-    wrapper.append(ghostContainer);
+    if (ghostContainer) wrapper.append(ghostContainer);
     wrapper.append(container);
     elements.container = container;
 
@@ -908,30 +915,33 @@ export function createFractionEditor({
     elements.wrapper = wrapper;
     safeHost.appendChild(wrapper);
 
-    const ghostContainer = document.createElement('div');
-    ghostContainer.className = 'fraction-ghost fraction-ghost--hidden';
-    ghostContainer.setAttribute('aria-hidden', 'true');
-    const ghostNumeratorWrapper = document.createElement('div');
-    ghostNumeratorWrapper.className = 'fraction-ghost__numerator';
-    const ghostNumeratorText = document.createElement('span');
-    ghostNumeratorText.className = 'fraction-ghost__number';
-    ghostNumeratorWrapper.appendChild(ghostNumeratorText);
-    const ghostBar = document.createElement('div');
-    ghostBar.className = 'fraction-ghost__bar';
-    const ghostDenominatorWrapper = document.createElement('div');
-    ghostDenominatorWrapper.className = 'fraction-ghost__denominator';
-    const ghostDenominatorText = document.createElement('span');
-    ghostDenominatorText.className = 'fraction-ghost__number';
-    ghostDenominatorWrapper.appendChild(ghostDenominatorText);
-    ghostContainer.append(ghostNumeratorWrapper, ghostBar, ghostDenominatorWrapper);
-    elements.ghost.container = ghostContainer;
-    elements.ghost.numerator = ghostNumeratorText;
-    elements.ghost.denominator = ghostDenominatorText;
+    let ghostContainer = null;
+    if (enableGhost) {
+      ghostContainer = document.createElement('div');
+      ghostContainer.className = 'fraction-ghost fraction-ghost--hidden';
+      ghostContainer.setAttribute('aria-hidden', 'true');
+      const ghostNumeratorWrapper = document.createElement('div');
+      ghostNumeratorWrapper.className = 'fraction-ghost__numerator';
+      const ghostNumeratorText = document.createElement('span');
+      ghostNumeratorText.className = 'fraction-ghost__number';
+      ghostNumeratorWrapper.appendChild(ghostNumeratorText);
+      const ghostBar = document.createElement('div');
+      ghostBar.className = 'fraction-ghost__bar';
+      const ghostDenominatorWrapper = document.createElement('div');
+      ghostDenominatorWrapper.className = 'fraction-ghost__denominator';
+      const ghostDenominatorText = document.createElement('span');
+      ghostDenominatorText.className = 'fraction-ghost__number';
+      ghostDenominatorWrapper.appendChild(ghostDenominatorText);
+      ghostContainer.append(ghostNumeratorWrapper, ghostBar, ghostDenominatorWrapper);
+      elements.ghost.container = ghostContainer;
+      elements.ghost.numerator = ghostNumeratorText;
+      elements.ghost.denominator = ghostDenominatorText;
+    }
 
     const container = document.createElement('div');
     container.className = 'fraction-editor';
     container.dataset.fractionHoverType = FRACTION_HOVER_NUMERATOR_TYPE;
-    wrapper.append(ghostContainer);
+    if (ghostContainer) wrapper.append(ghostContainer);
     wrapper.append(container);
     elements.container = container;
 
