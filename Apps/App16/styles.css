@@ -104,27 +104,35 @@ body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-c
   transform: none;
 }
 
-/* Endcap DRET — patró Step 7s.2 (App13/26/27): block groc projectat
-   FORA del `box-shadow` crema dret (1.25rem) del nuzic-theme. Width =
-   `var(--com-band-w)` per simetria visual amb el block "Com." de
-   l'esquerra. Cal cancel·lar `inset: 0 / opacity: 0 / border: 2px`
-   heretats de `libs/app-common/styles.css:328`. */
+/* Endcap DRET — block groc projectat FORA del `box-shadow` crema dret
+   (1.25rem) del nuzic-theme. Width = `var(--com-band-w)` per simetria
+   visual amb el block "Com." de l'esquerra.
+
+   PATRÓ MIRROR del `.timeline::before` ja existent: igual que `::before`
+   usa `left: -1.25rem` (posició explícita sense transform), `::after`
+   usa `left: calc(100% + 1.25rem)` (posició explícita past cream). El
+   transform-based approach d'App13/26/27 tenia problemes a App16 per
+   alguna interacció amb `padding-left` + `box-sizing: border-box`. */
 body[data-visual="nuzic"] .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline::after {
   display: block;
   content: '';
   position: absolute;
+  /* `inset: auto` cancel·la inset: 0 heretat de
+     libs/app-common/styles.css:328 + el `top: 0; left: ...` explícits
+     que segueixen són els que valen. */
   inset: auto;
   opacity: 1;
   border: 0;
-  top: 0px;
-  right: 0;
+  top: 0;
+  left: calc(100% + 1.25rem);   /* past cream box-shadow */
+  right: auto;
   width: var(--com-band-w);
   height: 3.75rem;
   background: var(--nuzic-yellow);
   border-radius: 0 4px 4px 0;
   z-index: 1;
   pointer-events: none;
-  transform: translateX(calc(100% + 1.25rem));
+  transform: none;
 }
 
 /* Pulse numbers are positioned by `left: N%` where 100% = the full
