@@ -1,9 +1,171 @@
 # SESSION_STATE
 
-## Tasca activa: Sistema Interactivo — esquelet i mides d'iframe
+> **Com navegar aquest fitxer**
+>
+> El fitxer és gran (~1.2k línies). Estructura ràpida:
+>
+> 1. **Tasca activa** — què s'està fent ARA i què queda pendent immediat.
+> 2. **Coneixement consolidat** — referències ràpides a patrons reutilitzables que viuen al codi i als docs (amb link al punt detallat).
+> 3. **⚠️ Bugs deferits / no resolts** — coses que sabem que estan trencades o pendents de decisió.
+> 4. **Tasques pendents fora del refactor** — feina futura no urgent.
+> 5. **Història cronològica (punts 1-40)** — registre detallat de tot el que s'ha fet, de més antic a més nou. NO es perd informació; aquí trobaràs el «per què» i el «com» de cada decisió.
+>
+> **Si comences fred per a un refactor nou** (ex. apps de fraccions):
+> - Llegeix Tasca activa + Coneixement consolidat (les dues primeres seccions).
+> - Salta directament als punts numerats indicats al "Coneixement consolidat" que t'interessin.
+> - El registre cronològic és per consulta sota demanda, no lectura lineal.
 
-Inici: 2026-04-27. Document de referència: `docs/APPS-ADAPTACIONS-IFRAME.md`,
-`docs/SISTEMA-INTERACTIVO-PLAN.md`.
+---
+
+## Tasca activa: Refactor cross-app a tema nuzic
+
+Inici: 2026-04-27. Documents de referència:
+[`docs/APPS-ADAPTACIONS-IFRAME.md`](docs/APPS-ADAPTACIONS-IFRAME.md),
+[`docs/SISTEMA-INTERACTIVO-PLAN.md`](docs/SISTEMA-INTERACTIVO-PLAN.md),
+[`docs/nuzic-editor-migration.md`](docs/nuzic-editor-migration.md), i la
+skill [`.claude/skills/nuzic-migrate/SKILL.md`](.claude/skills/nuzic-migrate/SKILL.md).
+
+### Estat actual (2026-05-11)
+
+- **Sistema Interactivo + mides d'iframe**: ✅ FET (punts 1-15).
+- **Apps d'escales (App21-25B)**: ✅ FET (punts 25-37, 40).
+- **Modularització de pastilles** (`scale-pill`, `output-note-pill`,
+  `app-viewport`): ✅ FET (punt 40).
+- **Apps de fraccions** (App26-31): apps "simples" (n=1) ✅ FETES
+  (App26, App28, App30). Variants **complexes (n>1)** PENDENTS:
+  **App27**, **App29**, **App31**.
+- **Plano-2D + fracció** (App32-35): App32-34 ✅ FETES, **App35** PENDENT.
+
+### Pendent immediat: refactor App27, App29, App31 (i App35)
+
+Patrons aplicables ja documentats:
+- **App27** és el paral·lel d'App26 amb fracció complexa → veure punt 40
+  i la skill (Step 7n + fórmules de Step 7r).
+- **App29** és el paral·lel d'App28 amb fracció complexa → punt 40 i
+  Step 7o + adaptacions de Step 7r.
+- **App31** és el paral·lel d'App30 amb fracció complexa → punt 40,
+  Step 7q i els tres bugs de timing del Step 7r.
+- **App35** és el paral·lel d'App34 amb fracció complexa → punt 40
+  (lliçó: revisió previa de col·lisions d'imports) i Step 7r.
+
+⚠️ Avís per al Claude que comenci aquest refactor: les fórmules per a
+fraccions complexes (`(colIdx * n) % d === 0`, bugs 1/2/3 de timing,
+ghost-pulse) viuen actualment al **Step 7r** de la skill tot i que aquell
+Step parla de plano-2D. Aplica les mateixes fórmules per a apps de fracció
+standalone — vegeu el punt 40 del registre cronològic per al patró
+d'extracció de mòduls i la convenció `createXxxMarkup` vs import.
+
+---
+
+## Coneixement consolidat (referències ràpides)
+
+Decisions arquitectòniques i patrons reutilitzables que s'han d'aplicar
+a qualsevol refactor futur. Cada entrada inclou un link al detall.
+
+### Patrons cross-app
+
+| Patró | Resum | Detall |
+|---|---|---|
+| **Famílies A i B** | Família A (timeline/soundline/scale): `fit: 'lock'`. Família B (plano + fraction): `fit: 'fluid'`. | [Decisió de fons (header)](#decisió-de-fons-acordada-amb-lusuari) |
+| **Breakpoint vertical sistema = `≤900px`** | Tots els media queries d'apps verticals al sistema han d'usar `≤900px`, no `≤600px`. Sense això hi ha incoherències estructurals entre app i sistema. | [Punt 37](#37-app23app24--vertical-mode-al-sistema-paso-2425) |
+| **`min-width: 0` als grid items** | A `sistema/css/grid.css`, els slots `.slot-*` necessiten `min-width: 0` per evitar que iframes o paraules llargues empenyin el track 1fr per sobre del viewport. | [Punt 37](#37-app23app24--vertical-mode-al-sistema-paso-2425) + [Punt 38](#38-sistema--hardening-final-del-text-teòric-en-vertical) |
+| **`overflow-wrap: anywhere` a textos** | `.slide__title` i `.slot-text .prose` perquè paraules llargues no expandeixin el min-content. | [Punt 37](#37-app23app24--vertical-mode-al-sistema-paso-2425) |
+| **Tema clar per defecte** | Apps 9-35 amb `<body data-theme="light">`. Apps 1-8 conserven `system`. `wireControls()` ja respecta el `data-theme` inicial. | [Punt 39](#39-sistema--renumeració-passos-descalas-paso-21-fusionat-al-20-contingut-pasos-21-26-i-apps-9-35-en-tema-clar) |
+
+### Mòduls compartits (CSS + JS)
+
+| Mòdul | Funció | Apps que el fan servir |
+|---|---|---|
+| `libs/shared-ui/app-viewport.css` | Boilerplate `html/body/#app-root/main/.app-scale-wrapper` flex-column. Substitueix ~30 línies per app. | App18, App19, App20, App25, App25B |
+| `libs/shared-ui/scale-pill.css` + `libs/app-common/scale-pill.js` | Pastilla `<select>` d'escala amb caret SVG inline (cercle rosa + fletxa blanca). `createScalePill({scales, initial, onChange})`. | App25, App25B |
+| `libs/shared-ui/output-note-pill.css` + `libs/app-common/output-note-pill.js` | Pastilla input numèric cíclic (`.outputnote` per Transposición / `.registro` per Registro). `createOutputNotePill({initial, range, onChange})`. | App18 (només CSS), App23, App24, App25, App25B |
+| `libs/app-common/info-tooltip.js` | Tooltip de validació per editors. Una sola implementació; les apps deleguen amb wrapper local `showError(cell, msg)` → `infoTooltip.show(msg, cell)`. | App18, App23, App24, App25, App25B |
+| `libs/shared-ui/measure-header.{js,css}` | Capçalera de compassos reutilitzable (App16 + App19). Patró d'alineament amb `--com-band-w` i `--com-band-track-right` signat. | App16, App19 |
+
+Detall complet a [Punt 40](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app).
+
+### Specificity wars amb el nuzic-theme
+
+`nuzic-theme.css` aplica regles agressives a `.bpm-inline .abbr` i
+`.param:not(.param--large):has(.circle > input) .abbr` amb `!important`
+(specificity ~0,5,3). Per superar-les:
+
+```css
+body[data-visual="nuzic"] .bpm-inline.visible.param.<kind> .abbr {
+  /* (0, 7, 3) — guanya per specificity, no per ordre */
+  font-size: ... !important;
+  /* ... */
+}
+```
+
+Sempre incloure `.bpm-inline.visible` + `!important` a totes les
+declaracions que competeixen amb el tema. Detall al [Punt 40](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app).
+
+### Traps coneguts (cal evitar)
+
+| Trap | Símptoma | Mitigació | Detall |
+|---|---|---|---|
+| **Import collision** | `Uncaught SyntaxError: Identifier 'X' has already been declared` | `grep "function NAME\|const NAME"` ABANS d'afegir un nou import. Renombrar local a `createXxxMarkup` si només emet HTML. | [Punt 40 pas 6](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app) |
+| **`@import` duplicat amb `<link>`** | CSS carregat dos cops, cascada confusa | `grep -l "X.css" Apps/AppNN/{index.html,styles.css}` | [Punt 40 pas 3a](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app) |
+| **`container-type` dins de marc amb fills `position:absolute`** | Numbers col·lapsen, grid intern es trenca | NO posar `container-type` als marcs; queda comentari `// ⚠️` al CSS | [Punt 3](#3-layout-vertical-robust-fase-14--revertit) + [Punt 4](#4-soundline-numbers--totes-les-iteracions-de-minmax-revertides) |
+| **`#app-root > main` (id) vs `body.appNN main`** | Override `overflow-y: auto` no aplica perquè `#id` té més specificity | Usar `html[data-embed="true"] body.appNN #app-root > main { ... }` al media query | [Punt 37](#37-app23app24--vertical-mode-al-sistema-paso-2425) |
+| **`justify-content: center !important` heretat** | Contingut centrat verticalment en column-mode → la part de dalt queda fora del rang d'scroll i es retalla | Override `justify-content: flex-start !important` al media query d'app | [Punt 37](#37-app23app24--vertical-mode-al-sistema-paso-2425) |
+| **VexFlow abans de `fontsReady`** | Pentagrama amb mètriques fallback → plicas/clau de sol surten fora del viewBox | `fontsReady.then(() => requestAnimationFrame(renderPentagram))` | [Punt 37](#37-app23app24--vertical-mode-al-sistema-paso-2425) |
+| **Tooltips dobles** | Una app usa `infoTooltip` + funció local `showTooltip` amb classe CSS pròpia | Refactor: `showTooltip` delega a `infoTooltip.show()`, CSS local eliminat | [Punt 40 pas 3b](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app) |
+
+### Patrons d'editor cell-based
+
+| Patró | App referent | Detall |
+|---|---|---|
+| **Editor N-P (graella de notes)** | App12 | [Punt històric: editor migration al doc nuzic-editor-migration.md S1-S6](docs/nuzic-editor-migration.md) |
+| **Editor iS-iT zigzag** | App15 | docs/nuzic-editor-migration.md S7+ |
+| **Editor de graus (escala)** | App25 (graus) / App25B (intervals iSº) | [Punt 40 pas 8](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app) per la paritat `'s'` com a silenci. |
+| **Subdivision row sota timeline** | App26 (fracció simple) | docs/nuzic-editor-migration.md S19 |
+| **Pfr editor (cell-based pulse selection)** | App28 | docs/nuzic-editor-migration.md S22 |
+| **iTfr editor (cell-based duration)** | App30 | docs/nuzic-editor-migration.md S29 |
+| **Plano-2D + fracció (complexa)** | App33 | docs/nuzic-editor-migration.md S30 i Step 7r de la skill |
+
+---
+
+## ⚠️ Bugs deferits / no resolts
+
+### Bug 1: App18 — slide d'octava al canviar registre
+
+**Estat**: ⚠️ NO RESOLT (2026-05-04). Iteracions múltiples sense èxit;
+no reproduïble amb Chrome headless (només es manifesta amb àudio
+real). Detall complet al [Punt 29](#29-app18--slide-doctava-al-canviar-registre).
+
+### Bug 2: App19/App20 — timeline supersposant graella en pantalles petites
+
+**Estat**: ⚠️ DEFERIT al pas 8 del pla del Sistema (`minH` per app +
+breakpoint vertical). Workaround vigent. Detall complet al
+[Punt 6](#6-app19app20--timeline-supersposant-graella-en-pantalles-petites).
+
+---
+
+## Tasques pendents (feina futura, fora del refactor actiu)
+
+- **App17**: 3 millores opcionals identificades pel revisor (cache de
+  last-size al ResizeObserver, comentaris consistents, `ro` al module
+  scope per facilitar futur teardown).
+- **App24**: redisseny de les línies de connexió — pendent confirmar
+  amb l'usuari si encara vol-ho ara que les línies ja s'han centrat
+  dins l'SVG al [Punt 35](#35-app21app23--header-fixat-per-simetria-del-bloc-soundlines--connection).
+
+---
+
+## Història cronològica (punts 1-40)
+
+> El registre que segueix és **complet i no abreujat**. Cada punt té la
+> seva data, contingut detallat, fitxers tocats i lliçons apreses.
+> No es perd cap informació; aquesta secció és la font de veritat
+> sobre què s'ha fet i per què.
+
+### Header original — Tasca antiga del Sistema Interactivo
+
+> *Aquest header descrivia el pla original quan es va començar el
+> refactor (2026-04-27). El pla està complet (punts 1-15) però es
+> manté per context arquitectònic.*
 
 ### Decisió de fons (acordada amb l'usuari)
 
