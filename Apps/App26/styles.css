@@ -23,9 +23,16 @@ body.app26 {
 }
 
 .middle {
-  width: 90%;
+  /* Margins iguals a l'amplada de l'endcap (a cada costat) perquè la
+     fracció (a `left: -W` del `.middle`) i el endcap dret (a
+     `translateX(100% + 1.25rem)` del `.timeline`) no s'escapin del
+     viewport en contextos amb amplada limitada (iframe del sistema).
+     Mateix patró que App13 va aplicar al `.timeline-wrapper` (commit
+     5ac4a0f). Standalone visualment quasi idèntic a `margin: 0 auto`
+     a viewports amples; a viewports estrets ajusta exacta l'alineació. */
+  width: auto;
   max-width: 75rem;
-  margin: 0 auto 5px;
+  margin: 0 var(--app26-endcap-w) 5px var(--app26-endcap-w);
   justify-content: flex-start;
 }
 
@@ -227,11 +234,20 @@ body.app26 {
    additions here: the subdivision row and its "1/N" label. */
 
 .timeline-wrapper {
-  width: 90%;
+  /* Mateix patró que `.middle`: margins iguals a `--app26-endcap-w` a
+     cada costat per garantir que l'endcap dret (projectat `1.25rem + W`
+     passat de `.timeline.right`) acabi exactament al `parent.right` edge,
+     i l'endcap esquerre simètricament. Sense això, en context d'iframe
+     estret (ex. pas 17 del sistema), els endcaps queden tallats.
+     `width: auto` cal perquè el `width: 100%` heretat de
+     `libs/app-common/styles.css:300` fa que els margins causin overflow
+     en lloc de reduir el content (vegeu Trap "width: 100% + margin").
+     Mateix patró que App13 (commit 5ac4a0f). */
+  width: auto !important;
   max-width: 75rem;
   /* Reduit el margin-top per acostar la banda al rectangle de la fracció
      (originalment 3.75rem). */
-  margin: 1.5rem auto 1.875rem;
+  margin: 1.5rem var(--app26-endcap-w) 1.875rem var(--app26-endcap-w);
   position: relative;
 }
 
