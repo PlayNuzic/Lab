@@ -86,7 +86,7 @@ export const slideMatrix = [
   { paso:14, section:'ampliando',    title:'El registro de octava',                                       layout:'B-app-left', apps:['App18'],  aspect:'6/5', group:'timeline-vertical' },
   { paso:15, section:'ampliando',    title:'Plano Modular',                                               layout:'B-app-left', apps:['App19'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true },
   { paso:16, section:'ampliando',    title:'Sucesión N-iT en Plano Modular',                              layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true },
-  { paso:17, section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'B-app-left', apps:['App26'],  aspect:'2/1', group:'timeline-simple' },
+  { paso:17, section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'E-app-text-left', apps:['App26'],  aspect:'3/1', group:'timeline-simple' },
   { paso:18, section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'B-app-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
   { paso:19, section:'fraccionando', title:'Sucesión de iT Fraccionados Simples',                         layout:'B-app-left', apps:['App30'],  aspect:'2/1', group:'timeline-simple' },
   { paso:20, section:'fraccionando', title:'Fracciones Complejas',                                        layout:'B-app-left', apps:['App34','App35'], aspect:'4/3', variantLabels:['App34 · principal','App35 · extra'], group:'plano-simple' },
@@ -288,6 +288,17 @@ export const slideContent = {
     tips: `<p>Ajusta Compás, Nº y Compases. El plano se adapta. Usa el editor para crear sucesiones N-iT. O haz clic y arrastra en las celdas del plano.</p>
 <p>Pulsa ▶️ para reproducir, 🎲 para generar melodías aleatoriamente, 🗑 para reiniciar.</p>
 <p><strong>Tip:</strong> Esta app combina el par N-iT, que es conceptualmente el par usado al escribir con notación musical.</p>`,
+  },
+  17: {
+    text: `<p>Hasta ahora hemos medido el tiempo en pulsos enteros: el pulso 0, el pulso 1, el pulso 2… Cada paso entre dos pulsos consecutivos es la unidad temporal mínima que hemos usado.</p>
+<p>Pero la música también vive <strong>entre</strong> los pulsos. Para representar sonidos que ocurren dentro de un paso, dividimos cada paso en partes iguales. A esto lo llamamos <strong>fraccionar</strong> la línea temporal.</p>
+<p>Una fracción <strong>1/d</strong> divide cada paso en <em>d</em> partes iguales. Por ejemplo, 1/2 divide el paso por la mitad (dos partes), 1/3 lo divide en tercios (tres partes), 1/4 en cuartos, etc.</p>
+<p>Cada subdivisión se identifica con un punto decimal: dentro del pulso 0 con fracción 1/3 tenemos <strong>0.1</strong> y <strong>0.2</strong> antes de llegar al pulso 1; dentro del pulso 1 tenemos <strong>1.1</strong> y <strong>1.2</strong>; y así sucesivamente.</p>
+<p>Las fracciones simples siempre tienen el numerador fijado en 1 — son la manera más directa de subdividir el tiempo.</p>`,
+    tipsTitle: 'Prueba las fracciones simples',
+    tips: `<p>Cambia el denominador de la fracción (1-8) con los botones <strong>+</strong> y <strong>-</strong> y observa cómo se divide cada paso en más o menos partes.</p>
+<p>Pulsa ▶️ para escuchar la sucesión completa: primero los pulsos enteros, luego las subdivisiones intermedias.</p>
+<p><strong>Tip:</strong> La fracción 1/1 equivale a no dividir — solo se oyen los pulsos enteros. A medida que aumentas el denominador, aparecen más subdivisiones audibles entre los pulsos.</p>`,
   },
   21: {
     text: `<p>Históricamente la música se ha estudiado a partir de las siete notas de la escala Mayor Diatónica. La escala cromática llega después, como resultado de siglos de desarrollo. </p>
