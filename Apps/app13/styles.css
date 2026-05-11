@@ -39,12 +39,16 @@ body[data-visual="nuzic"] {
   margin-top: 0.25rem;
 }
 
-/* Label outside the editor, in the left margin area */
+/* Label outside the editor, in the left margin area.
+   `width: var(--app13-endcap-w)` perquè escali amb el viewport
+   exactament com l'endcap esquerre de la timeline. La variable es
+   defineix més avall a `body.app13`. Fallback fix per si la regla del
+   `body.app13` no s'ha aplicat per algun motiu. */
 .it-label {
   position: absolute;
   right: 100%;
   top: 0;
-  width: 3.75rem;
+  width: var(--app13-endcap-w, 3.75rem);
   height: 100%;
   font-weight: 700;
   font-size: clamp(0.85rem, 1.8vw, 1.4rem);
@@ -186,7 +190,17 @@ body[data-visual="nuzic"] {
 .timeline-wrapper {
   width: auto !important;             /* override base width:100% — let margins work */
   max-width: none !important;
-  margin: 1rem 1.25rem 0 3.75rem;  /* left: label space, right: pulse 8 */
+  /* Margins coincidents amb l'amplada de l'endcap (var --app13-endcap-w
+     definit a body.app13). Així:
+     - Esquerre: reserva espai per al `.it-label` (que ara escala amb la
+       variable) i l'endcap esquerre.
+     - Dret: reserva espai equivalent perquè l'endcap dret no quedi
+       tallat al viewport.
+     Càlcul: endcap projecta `1.25rem + W` passat de `.timeline.right`
+     (per la translació). Amb wrapper.margin-right = W i la margin auto
+     interna del `.timeline` de 1.25rem, l'endcap acaba exactament al
+     parent's right edge (sense overflow). */
+  margin: 1rem var(--app13-endcap-w, 3.75rem) 0 var(--app13-endcap-w, 3.75rem);
   padding: 0 !important;           /* remove base padding — margins handle spacing */
   overflow: visible;                /* allow label to sit in left margin area */
 }
