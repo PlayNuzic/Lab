@@ -360,8 +360,14 @@ body[data-visual="nuzic"].app26
   transition: color 0.3s ease, opacity 0.3s ease;
 }
 
+/* Rectangle groc com el `.pulse-number.active` (vegeu nuzic-theme.css:749).
+   Text fosc sobre fons groc, padding lleugerament més petit perquè el
+   ".1" cap dins sense fer-se massa visual. */
 .timeline .cycle-label.active {
-  color: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-dark, #43433B);
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 2px;
+  padding: 1px 4px;
   opacity: 1;
   font-weight: 700;
 }

@@ -35,7 +35,16 @@ body.app27 {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 1.125rem;
+  /* IMPORTANT: gap: 0 — el wrapper té com a fills (1) `.fraction-ghost`
+     (creat per createFractionEditor amb autoReduce: true, sense CSS de
+     plano-fraccion.css té width ≈ 0 però segueix sent un flex-item que
+     captura el `gap`), (2) `.fraction-editor`, (3) `.fraction-info-bubble`
+     (tooltip, position: absolute, no afecta layout).
+     Amb `gap: 1.125rem` el wrapper empeny la fracció 1.125rem a la
+     dreta per al gap entre ghost i editor, desalineant la fracció
+     respecte al `::before` del timeline.
+     `gap: 0` no afecta el tooltip (és absolute) i alinea correctament. */
+  gap: 0;
 }
 
 /* Rectangle vertical: amplada igual al endcap (::before del timeline) i
@@ -328,8 +337,8 @@ body[data-visual="nuzic"].app27
 
 .timeline .cycle-marker.active {
   opacity: 1;
-  background: var(--nuzic-dark, #43433B);
-  box-shadow: 0 0 6px var(--nuzic-dark, #43433B);
+  background: var(--nuzic-yellow, #FFBB33);
+  box-shadow: 0 0 6px var(--nuzic-yellow, #FFBB33);
 }
 
 .timeline .cycle-label {
@@ -345,8 +354,13 @@ body[data-visual="nuzic"].app27
   transition: color 0.3s ease, opacity 0.3s ease;
 }
 
+/* Rectangle groc com el `.pulse-number.active` (vegeu nuzic-theme.css:749).
+   Mateix patró i colors que App26 — text fosc sobre fons groc. */
 .timeline .cycle-label.active {
   color: var(--nuzic-dark, #43433B);
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 2px;
+  padding: 1px 4px;
   opacity: 1;
   font-weight: 700;
 }
