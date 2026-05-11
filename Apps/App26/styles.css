@@ -6,6 +6,16 @@
   display: none;
 }
 
+/* `.inputs` queda buida a App26: la pastilla BPM creada al template
+   es mou a `.controls` per `init()` (compact row Play/BPM/Random/Reset).
+   La secció `.inputs` original (de `libs/app-common/template.js:260`)
+   no es removeix del DOM però queda sense fills. Per defecte té
+   padding-vertical i causa espai en blanc innecessari (visible a
+   l'iframe del sistema). Amaguem amb display:none. */
+.inputs {
+  display: none !important;
+}
+
 /* ========== .middle: bloc de la fracció dalt-esquerra ==========
    Per defecte `.middle` (a libs/app-common/styles.css) és `display: flex;
    justify-content: center` — això centra el fraction-editor sobre el
