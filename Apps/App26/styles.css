@@ -309,18 +309,35 @@ body[data-visual="nuzic"].app26
   display: none;
 }
 
-/* "1/N" label anchored to the LEFT, on the SAME line as the ".1 .2" cycle-labels. */
+/* "1/N" label ANCORAT al BOTTOM dins del endcap esquerre (::before).
+   L'endcap té `width: clamp(1.875rem, 5.25vw, 5rem)`, `height: clamp(3.8rem, 4vw, 4.75rem)`
+   i `transform: translateX(-135%)`, així que:
+     - Centre horitzontal: `-0.85 × W` de la vora esquerra del .timeline
+     - Bottom vertical: `endcap_height` del top del .timeline
+   Posicionem el label amb `left: 0`, `top: 0` i el transformem perquè el
+   seu centre horitzontal coincideixi amb el centre del endcap i el seu
+   BOTTOM coincideixi amb el bottom del endcap. Variables CSS eviten
+   repetir els clamps. */
 .timeline .subdivision-label {
+  --app26-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
+  --app26-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
   position: absolute;
-  right: calc(100% + 2rem);
-  top: 2rem;
-  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  left: 0;
+  top: 0;
+  /* X: centra horitzontalment sobre el centre de l'endcap
+     Y: porta el bottom del label al bottom del endcap (menys un xic
+        de padding intern per respirar) */
+  transform:
+    translateX(calc(-0.85 * var(--app26-endcap-w) - 50%))
+    translateY(calc(var(--app26-endcap-h) - 100% - 0.25rem));
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
   font-weight: 700;
   color: var(--nuzic-dark, #43433B);
-  opacity: 0.75;
+  opacity: 0.85;
   pointer-events: none;
   white-space: nowrap;
   line-height: 1;
+  z-index: 1;  /* per sobre del endcap ::before (z-index 0) */
 }
 
 /* Disable transitions during render */
