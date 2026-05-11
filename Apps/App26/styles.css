@@ -186,11 +186,10 @@
 }
 
 /* ========== ENDCAPS: quadrats grocs (groc intens) als extrems ==========
-   Pseudo-elements del propi `.timeline` (posició relativa). Es col·loquen
-   FORA del box-shadow crema (que estén `--nuzic-yellow-light` 1.25rem a
-   cada costat) — així els || del cycle-end queden coberts pel crema i els
-   quadrats grocs intens fan de "tapadors" simètrics. Cal sobreescriure el
-   `display: none` que nuzic-theme aplica sobre `.timeline::before`. */
+   Mides + `translateX(-135%)` esquerre testat per l'usuari a l'inspector.
+   El `::after` és el mirall (`translateX(135%)`). `z-index: 0` perquè
+   quedi PER SOTA de la `.fraction-info-bubble` del fraction-editor (que
+   pot saltar damunt del timeline en algunes posicions). */
 body[data-visual="nuzic"].app26
   .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
   .timeline::before,
@@ -200,28 +199,50 @@ body[data-visual="nuzic"].app26
   content: '';
   display: block;
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: clamp(1.5rem, 2.5vw, 2rem);
-  height: clamp(4rem, 5.5vw, 4.75rem);
+  top: 0%;
+  width: clamp(1.5rem, 4.2vw, 4rem);
+  height: clamp(3.8rem, 4vw, 4.75rem);
   background: var(--nuzic-yellow, #FFBB33);
   border-radius: 4px;
-  z-index: 2;
+  z-index: 0;
   pointer-events: none;
 }
 
-/* Endcap esquerre: enganxat a l'extrem esquerre del box-shadow crema. */
+/* Endcap esquerre: surt a l'esquerra del `.timeline` per `translateX(-135%)`. */
 body[data-visual="nuzic"].app26
   .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
   .timeline::before {
-  right: calc(100% + 1.25rem);
+  transform: translateX(-135%);
 }
 
-/* Endcap dret: enganxat a l'extrem dret del box-shadow crema. */
+/* Endcap dret: mirror — ancorat a la dreta del `.timeline` i empès cap a fora. */
 body[data-visual="nuzic"].app26
   .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
   .timeline::after {
-  left: calc(100% + 1.25rem);
+  right: 0;
+  transform: translateX(135%);
+}
+
+/* ========== FRANJA GROC INTENS sobre la línia dels ::after ticks ==========
+   Sobre el background `--nuzic-yellow-light` (que es manté) afegim un
+   linear-gradient amb una franja `--nuzic-yellow` aproximadament al 65–88%
+   d'alçada — coincideix amb la fila dels ticks `::after` dels pulse-number
+   (que viuen entre ~72% i ~88% del timeline de 60px). Calculem amb
+   pixels per ser robustos al canvi d'unit. */
+body[data-visual="nuzic"].app26
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline {
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 42px,           /* fins ~70% del timeline (60px) */
+      var(--nuzic-yellow) 42px,
+      var(--nuzic-yellow) 56px,   /* franja groc intens fins ~93% */
+      transparent 56px,
+      transparent 100%
+    ),
+    var(--nuzic-yellow-light);
 }
 
 /* ========== SUBDIVISION ROW (BELOW the timeline, nuzic-main style) ========== */
