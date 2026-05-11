@@ -13,6 +13,15 @@
    l'esquerra, alineada amb la zona inicial del timeline-wrapper. Per
    tant, igualem amplada amb el `.timeline-wrapper` (90% / 75rem) i
    left-alineem el contingut. */
+/* Variables compartides per fraction-editor, endcaps i subdivision-label.
+   Definides al body perquè les vegin tant `.middle` (fracció) com
+   `.timeline-wrapper` (endcaps + label) — són siblings, no relacionats
+   per descendència. */
+body.app26 {
+  --app26-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
+  --app26-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
+}
+
 .middle {
   width: 90%;
   max-width: 75rem;
@@ -20,25 +29,33 @@
   justify-content: flex-start;
 }
 
-/* ========== FRACTION EDITOR (1/d input, stays in .middle above timeline) ========== */
+/* ========== FRACTION EDITOR (caixa groga, rectangle vertical, alineada amb ::before) ========== */
 .fraction-editor-wrapper {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 1.125rem;
 }
 
+/* Rectangle vertical: amplada igual al endcap (::before del timeline) i
+   alçada més gran (vertical). Reposicionat al mateix x que l'endcap
+   (mateixa fórmula: `-W - 1.25rem` des de la vora esquerra de `.middle`,
+   que coincideix amb la del `.timeline`). */
 .fraction-editor {
-  display: inline-flex;
+  position: relative;
+  left: calc(0px - var(--app26-endcap-w) - 1.25rem);
+  display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--nuzic-dark, #43433B);
-  /* Caixa de la fracció: vora groga compacta */
+  align-items: stretch;       /* .top/.bottom omplen tota l'amplada interior */
+  justify-content: center;
+  gap: 0.2rem;
+  width: var(--app26-endcap-w);
+  box-sizing: border-box;
+  padding: 0.85rem 0;          /* només vertical: l'amplada ja és fixa */
   border: 3px solid var(--nuzic-yellow, #FFBB33);
   border-radius: 0.4rem;
-  padding: 0.35rem 1rem;
+  color: #000;                 /* numerador/denominador negres */
 }
 
 .fraction-editor .top,
@@ -46,67 +63,87 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  margin: 0;
+  padding: 0;
 }
 
+/* Barra de la fracció: més estreta que l'amplada interior i més
+   gruixuda. La barra és el `border-bottom` del `.top`, així que
+   redueix-ne l'amplada amb `width` i centra-la amb `margin: 0 auto`. */
 .fraction-editor .top {
-  border-bottom: 3px solid var(--nuzic-dark, #43433B);
-  padding: 0 0.5rem;
+  border-bottom: 4px solid #000;
+  width: 65%;                  /* barra estreta (no plena fins els marges) */
+  margin: 0 auto;
 }
 
 .fraction-editor input {
-  width: 2.5rem;
+  width: 100%;
   text-align: center;
-  font-size: clamp(1.4rem, 3vw, 2.2rem);
+  font-size: clamp(1.35rem, 3vw, 2.1rem);
   background: none;
   border: none;
-  color: inherit;
+  /* `!important` per assegurar que el denominador (editable, no read-only)
+     no rebi un color heretat d'altra regla CSS — alguna regla externa
+     el pinta de cian-blau per defecte. */
+  color: #000 !important;
   font-family: inherit;
   outline: none;
-  font-weight: 700;
-  line-height: 1.1;
+  font-weight: 900;            /* més gruixut */
+  line-height: 1;
+  padding: 0;
 }
 
 .fraction-editor input:focus {
-  border-bottom: 2px solid var(--nuzic-yellow, #FFBB33);
+  border: none;
+  outline: none;
 }
 
+/* `setSimpleMode()` aplica inline `opacity: 0.5; cursor: not-allowed`
+   sobre el numerador (readOnly). Al mockup el "1" es veu igual que el
+   denominador, sense fade. Override amb !important per beat-ho. */
 .fraction-editor input:disabled,
 .fraction-editor input:read-only {
-  opacity: 0.6;
-  cursor: not-allowed;
+  opacity: 1 !important;
+  cursor: default !important;
+  color: #000 !important;
 }
 
 .fraction-field {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .fraction-field input {
-  padding-right: 1.75rem;
+  padding-right: 0;
 }
 
-/* Spinner del denominador: pill petit groc amb +/− blancs.
-   Mantenim la posició original (`right: 0` dins `.fraction-field`,
-   sense projecció fora de la caixa) — el setSimpleMode() amaga el
-   spinner del numerador via inline `display: none`, per tant aquí
-   només es veurà el del denominador. */
+/* Spinner del denominador OUTSIDE la caixa, a la dreta. Projecció
+   relativa a `.fraction-field` (que té `width: 100%`, per tant la
+   seva vora dreta = vora interior dreta del `.fraction-editor`).
+   `setSimpleMode()` amaga el spinner del numerador via inline
+   `display: none` — només es veurà el del denominador. */
 .fraction-field .spinner {
   position: absolute;
-  right: 0;
+  /* Projecta el pill 0.4rem més enllà de la vora interior dreta del
+     `.fraction-editor` (la border 3px queda inclosa). */
+  left: calc(100% + 0.45rem);
+  right: auto;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  gap: 0;
+  /* Gap visible entre + i − */
+  gap: 3px;
   width: 1.3rem;
   height: 2rem;
-  border-radius: 999px;
-  overflow: hidden;
-  background: var(--nuzic-yellow, #FFBB33);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  /* Fons transparent perquè el gap entre buttons es vegi */
+  background: transparent;
+  overflow: visible;
   transition: opacity 0.2s ease;
 }
 
@@ -121,14 +158,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #fff;
   font-family: 'Ubuntu', sans-serif;
   font-weight: 700;
   font-size: 0.8rem;
   line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
-/* Substituïm els triangles ::before per caràcters `+` / `−` (::after) */
+/* Mitja-pastilla: rodons als extrems exteriors, rectes a la cara
+   interior (on miren l'altre botó). */
+.fraction-field .spinner .spin.up {
+  border-radius: 999px 999px 0 0;   /* només cantonades de dalt */
+}
+
+.fraction-field .spinner .spin.down {
+  border-radius: 0 0 999px 999px;   /* només cantonades de baix */
+}
+
 .fraction-field .spinner .spin::before { content: none; border: 0; }
 
 .fraction-field .spinner .spin.up::after  { content: '+'; }
@@ -174,7 +221,9 @@
 .timeline-wrapper {
   width: 90%;
   max-width: 75rem;
-  margin: 3.75rem auto 1.875rem;
+  /* Reduit el margin-top per acostar la banda al rectangle de la fracció
+     (originalment 3.75rem). */
+  margin: 1.5rem auto 1.875rem;
   position: relative;
 }
 
@@ -324,8 +373,7 @@ body[data-visual="nuzic"].app26
    BOTTOM coincideixi amb el bottom del endcap. Variables CSS eviten
    repetir els clamps. */
 .timeline .subdivision-label {
-  --app26-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
-  --app26-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
+  /* --app26-endcap-w i --app26-endcap-h definides a body.app26. */
   position: absolute;
   left: 0;
   top: 0;
