@@ -220,21 +220,26 @@ body[data-visual="nuzic"].app26
   pointer-events: none;
 }
 
-/* Endcap esquerre: ancorat a l'esquerra (left: 0 ja heretat) i empès cap
-   a fora amb translateX(-135%). */
+/* Endcaps FLUSH amb el `box-shadow` crema del nuzic-theme (que estén
+   `--nuzic-yellow-light` 1.25rem a cada costat del `.timeline`).
+   Sense això, la translació `-135%` deixava un gap variable depenent
+   del viewport (1.25rem - 0.35W: gap petit a pantalles petites, overlap
+   a pantalles grans). Fent servir `calc(-100% - 1.25rem)` la translació
+   és sempre igual a l'amplada del propi endcap més els 1.25rem del
+   box-shadow → vora interior de l'endcap toca exactament la vora
+   exterior del crema. */
 body[data-visual="nuzic"].app26
   .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
   .timeline::before {
   left: 0;
-  transform: translateX(-135%);
+  transform: translateX(calc(-100% - 1.25rem));
 }
 
-/* Endcap dret: ancorat a la dreta (right: 0) i empès cap a fora. */
 body[data-visual="nuzic"].app26
   .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
   .timeline::after {
   right: 0;
-  transform: translateX(135%);
+  transform: translateX(calc(100% + 1.25rem));
 }
 
 /* ========== FRANJA GROC INTENS sobre la línia dels ::after ticks ==========
@@ -324,11 +329,12 @@ body[data-visual="nuzic"].app26
   position: absolute;
   left: 0;
   top: 0;
-  /* X: centra horitzontalment sobre el centre de l'endcap
+  /* X: centra horitzontalment sobre el centre del endcap
+        (centre = `-W/2 - 1.25rem` amb la nova translació flush).
      Y: porta el bottom del label al bottom del endcap (menys un xic
-        de padding intern per respirar) */
+        de padding intern per respirar). */
   transform:
-    translateX(calc(-0.85 * var(--app26-endcap-w) - 50%))
+    translateX(calc(-0.5 * var(--app26-endcap-w) - 1.25rem - 50%))
     translateY(calc(var(--app26-endcap-h) - 100% - 0.25rem));
   font-size: clamp(0.95rem, 1.6vw, 1.15rem);
   font-weight: 700;
