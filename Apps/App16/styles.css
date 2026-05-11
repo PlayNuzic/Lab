@@ -71,11 +71,14 @@ html, body {
   --com-band-h: clamp(1.75rem, 3.2vw, 2.25rem);
   --com-band-gap: 0.75rem;       /* space between measure-header and timeline */
   --tl-side-pad: 20px;           /* mirrors `.timeline` margin auto of 20px each side */
-  /* Reserva espai a la dreta perquè l'endcap dret (`.timeline::after`,
-     projectat amb translateX(100% + 1.25rem) passat del cream) no es
-     talli al viewport. Math: amb `.timeline.margin auto` de 1.25rem +
-     `wrapper.margin-right = W`, l'endcap acaba exactament al
-     `parent.right` edge. */
+  /* `width: auto` (override `width: 100%` heretat de
+     libs/app-common/styles.css:300) + `margin-right: W` perquè el
+     wrapper redueixi efectivament la seva amplada (en width:auto, els
+     margins SI redueixen l'available content). Mateix patró que App13.
+     Math: amb wrapper.margin-right = W + .timeline.margin auto = 1.25rem,
+     l'endcap (projectat 1.25rem + W passat de .timeline.right) acaba
+     exactament al parent.right edge. */
+  width: auto !important;
   margin-right: var(--com-band-w);
 }
 
