@@ -10,15 +10,16 @@
 // and each marker is positioned by percentage `(cycleIndex / cycles) * 100`.
 // Used by App16 (linear timeline) and App19 (plano-modular grid).
 
-export function createMeasureHeader({ container }) {
+export function createMeasureHeader({ container, labelText = '' } = {}) {
   if (!container) return null;
 
-  // Label visual a l'esquerra (rectangle groc): es deixa SENSE text per
-  // mantenir el bloc com a element decoratiu/identitatiu, alineat amb la
-  // banda groga de la timeline. El context (la presència del header) ja
-  // comunica que estem parlant del compàs.
+  // Label visual a l'esquerra (rectangle groc). Per defecte queda SENSE
+  // text (decoratiu/identitatiu), però l'app pot passar `labelText` per
+  // mostrar text explícit (ex. App16 amb "Compàs"). App19/App20 segueixen
+  // sense text per retro-compat.
   const labelEl = document.createElement('div');
   labelEl.className = 'measure-header__label';
+  if (labelText) labelEl.textContent = labelText;
 
   const trackEl = document.createElement('div');
   trackEl.className = 'measure-header__track';

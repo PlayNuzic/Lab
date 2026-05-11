@@ -652,7 +652,7 @@ async function initializeApp() {
     headerEl.id = 'measureHeader';
     headerEl.className = 'measure-header is-empty';
     timelineWrapper.insertBefore(headerEl, timeline);
-    measureHeader = createMeasureHeader({ container: headerEl });
+    measureHeader = createMeasureHeader({ container: headerEl, labelText: 'Compás' });
   }
 
   // Load only randCompasMax (compás always starts empty)
