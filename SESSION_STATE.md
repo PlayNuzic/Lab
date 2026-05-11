@@ -34,12 +34,14 @@ skill [`.claude/skills/nuzic-migrate/SKILL.md`](.claude/skills/nuzic-migrate/SKI
 - **Apps de fraccions** (App26-31):
   - App26 ✅ FETA amb refactor UI complet (caixa fracció vertical,
     endcaps grocs, franja groga sobre after-ticks, ghost-fraction
-    eliminat) → **patró base per a App27/28/29/30/31** (punt 41).
+    eliminat) → **patró base** (punt 41).
+  - App27 ✅ FETA — adaptació del patró d'App26 amb numerador editable
+    (punt 42). Patró validat per fraccions complexes.
   - App28, App30 (n=1): PENDENTS d'aplicar el patró d'App26.
-  - App27, App29, App31 (n>1 complexes): PENDENTS.
+  - App29, App31 (n>1 complexes): PENDENTS d'aplicar el patró d'App27.
 - **Plano-2D + fracció** (App32-35): App32-34 ✅ FETES, **App35** PENDENT.
 
-### Pendent immediat: aplicar patró App26 a App28/App30, després App27/App29/App31, després App35
+### Pendent immediat: aplicar patró App26 a App28/App30, després App29/App31, després App35
 
 **Per a App28 i App30 (n=1, simple)** — replicar el patró d'App26 (punt
 41): caixa de fracció vertical alineada amb endcap, endcaps grocs,
@@ -51,15 +53,19 @@ respecte App26:
 - App30 usa **iTfr editor** (interval-temporal-fractional) → mateix
   enfocament: refactor visual sense tocar l'editor de fons.
 
-**Per a App27/App29/App31 (n>1, complexa)** — paral·lel a App26/28/30
-amb numerador editable. Diferències:
+**Per a App29/App31 (n>1, complexa)** — paral·lel a App27 (punt 42).
+Diferències respecte App26:
 
 - **NO passar `enableGhost: false`** — la ghost-fraction es fa servir
-  per previsualitzar la reducció (`autoReduce: true`). En aquestes
-  apps SÍ pot disparar-se `animateReduction` (ex. 2/4 → 1/2).
-- Numerador té el seu propi spinner (en mode complex `setComplexMode()`
-  no l'amaga). El patró del pill OUTSIDE la caixa s'ha d'aplicar
-  també al numerador o, alternativa, mantenir-lo dins.
+  per previsualitzar la reducció (`autoReduce: true`).
+- **`gap: 0` al `.fraction-editor-wrapper`** — el ghost ocupa el gap
+  flex i desalinea la fracció del endcap (vegeu punt 42 pas 3).
+- **Bar de la fracció com a pseudo-element `.top::after`** (no
+  `border-bottom` de `.top`) — perquè els 2 spinners (numerator +
+  denominator) puguin projectar fora del rectangle a la mateixa x.
+- Numerador té el seu propi spinner visible (mode complex
+  `setComplexMode()`) — el patró del pill OUTSIDE s'aplica a tots dos
+  camps automàticament gràcies a la barra pseudo-element.
 - Fórmules de validació complexa (`(colIdx * n) % d === 0`, bugs 1/2/3
   de timing, ghost-pulse) al **Step 7r** de la skill.
 
@@ -129,6 +135,8 @@ declaracions que competeixen amb el tema. Detall al [Punt 40](#40-transposició-
 | **`inset: 0` heretat a `.timeline::after`** | `libs/app-common/styles.css:328` aplica `inset: 0; opacity: 0; border: 2px solid; border-radius: 50%` per al cercle invisible del mode circular. Si reusem `.timeline::after`, el `right: 0` queda ignorat (over-constraining amb `left: 0`) i l'element és invisible (`opacity: 0`). | Override amb `inset: auto; opacity: 1; border: 0` al common rule de l'app. | Punt 41 pas 2 |
 | **`nuzic-theme.css` aplica `display: none` a `.timeline::before`** | El pseudo-element existeix però està amagat (per amagar la línia legacy del timeline). | Override amb selector més específic: `body[data-visual="nuzic"].appNN .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline::before { display: block; ... }`. | Punt 41 pas 2 |
 | **Ghost-fraction DOM mort en apps simples** | Apps amb numerador fixat a 1 (App26/App28/App30) creen ~7 elements DOM del ghost que mai s'utilitzen (`gcd(1,d)=1` → mai reductible). | Passar `enableGhost: false` a `createFractionEditor` (default true). Disponible des de 2026-05-12. | Punt 41 pas 9 |
+| **Ghost-fraction captura `gap` del flex wrapper** | Apps de fracció COMPLEXA (`autoReduce: true`): el ghost és flex-item invisible (width≈0) però captura el `gap: 1.125rem` del `.fraction-editor-wrapper`, empenyent la fracció 1.125rem a la dreta. La caixa apareix desalineada respecte al `::before` del timeline. | `.fraction-editor-wrapper { gap: 0 }` quan el ghost existeix (apps amb `autoReduce: true`). La `.fraction-info-bubble` és absolute → no afectada. | Punt 42 pas 3 |
+| **Bar de la fracció com a `border-bottom` constreny els camps** | Si el `.top` té `border-bottom` amb `width` parcial (ex. 65%), el `.fraction-field.numerator` està constret al mateix 65%. El spinner pill del numerador no pot projectar correctament fora del rectangle exterior → queda dins el editor i no s'alinea verticalment amb el del denominador. | Substituir per pseudo-element `.top::after { left: 17.5%; right: 17.5% }` amb `.top { width: 100% }` i `.fraction-field { width: 100% }`. | Punt 42 pas 2 |
 
 ### Patrons d'editor cell-based
 
@@ -1469,6 +1477,125 @@ breakpoint vertical). Workaround vigent. Detall complet al
 
     **Commits**: c8fd16f, bc249cc, 090db74, a497094, 35e316d,
     5d00488, c68fc16, 6b23d3d (8 commits incrementals).
+
+42. **Refactor UI d'App27 (fracció complexa) — adaptació del patró d'App26
+    amb numerador editable** ✅ FET (2026-05-12)
+
+    App27 = "Fracciones Complejas": paral·lel exacte d'App26 amb
+    numerador editable (`setComplexMode()` + `autoReduce: true`). El
+    refactor reaprofita el patró 7s d'App26 amb 3 adaptacions específiques
+    per fracció complexa.
+
+    **Pas 1 — Aplicar 7s** (sense `enableGhost: false`):
+    - Variables `--app27-endcap-w` i `--app27-endcap-h` a `body.app27`.
+    - Caixa de la fracció vertical, alineada amb el `::before` mateix
+      que App26 (`left: calc(0px - var(--app27-endcap-w))`).
+    - Endcaps grocs `::before/::after` flush amb el `box-shadow` crema.
+    - Subdivision-label "N/D" dins del endcap esquerre.
+    - Franja groc intens sobre la fila dels `::after` ticks.
+    - `.timeline-wrapper { margin: 1.5rem auto 1.875rem }`.
+    - `color: #000 !important` als inputs (numerator + denominator
+      ambdós negres).
+    - `font-family: 'Ubuntu', sans-serif` explícit als inputs.
+
+    **Pas 2 — Barra de la fracció com a pseudo-element (no border-bottom)**:
+    A App26, `.top { border-bottom: 4px solid #000; width: 65% }`
+    funcionava perquè només hi havia spinner al denominador. A App27
+    el numerador també té spinner, i el seu pill ha de projectar
+    `calc(100% + 0.45rem)` fora del `.fraction-field`. Si el `.top`
+    constrenyés el field al 65%, el spinner del numerador apareixeria
+    a la zona interior dreta del editor (a 82.5%) i no quedaria
+    alineat verticalment amb el del denominador (a 100%).
+
+    **Solució**: bar visual com a pseudo-element `.top::after` amb
+    amplada parcial, mantenint `.top { width: 100% }` i
+    `.fraction-field { width: 100% }`:
+
+    ```css
+    .fraction-editor .top {
+      position: relative;
+      border-bottom: none;
+      padding-bottom: 4px;       /* reserva espai vertical */
+    }
+    .fraction-editor .top::after {
+      content: '';
+      position: absolute;
+      left: 17.5%;
+      right: 17.5%;
+      bottom: 0;
+      height: 4px;
+      background: #000;
+    }
+    ```
+
+    Ara els dos spinners queden alineats verticalment a la mateixa x.
+
+    **Pas 3 — `gap: 0` al `.fraction-editor-wrapper` (CRÍTIC)**:
+
+    A App27, `createFractionEditor` amb `autoReduce: true` crea el
+    `.fraction-ghost` (DOM mort visualment, però **flex-item** al
+    wrapper). Amb el `gap: 1.125rem` per defecte, el ghost-item
+    invisible captura el gap entre ell i el `.fraction-editor`,
+    empenyent la fracció **1.125rem a la dreta** del seu posicionament
+    calculat. La fracció apareixia desalineada respecte al `::before`
+    encara que `left: -W` fos numèricament correcte.
+
+    **Símptoma**: la caixa de fracció quedava 18px a la dreta del
+    endcap esquerre.
+
+    **Solució**: `.fraction-editor-wrapper { gap: 0 }`. La
+    `.fraction-info-bubble` (tooltip) és `position: absolute`, no es
+    veu afectada.
+
+    **NO és problema a App26** perquè allà passem `enableGhost: false`
+    i el ghost no es crea, per tant no és flex-item, per tant no
+    captura el gap.
+
+    **Pas 4 — Highlights dels pulsos fraccionats com a rectanglets grocs**:
+
+    Coherència visual: si els pulsos enters (`.pulse-number.active`)
+    es destaquen amb un rectangle groc (`nuzic-theme.css:749` —
+    background yellow + border-radius 2px + padding 2px 5px), els
+    pulsos fraccionats (`.cycle-label.active` = ".1 .2 .3") han de
+    seguir el mateix patró:
+
+    ```css
+    .timeline .cycle-label.active {
+      color: var(--nuzic-dark);
+      background: var(--nuzic-yellow);
+      border-radius: 2px;
+      padding: 1px 4px;
+      opacity: 1;
+      font-weight: 700;
+    }
+    ```
+
+    Aplicat a **App26 + App27** per consistència (abans App26 només
+    canviava el `color: yellow` del text, no era un rectangle).
+
+    **Decisions de fons aplicables a App29, App31, App33, App35**:
+    - **NO passar `enableGhost: false`** — totes les apps de fracció
+      complexa amb `autoReduce: true` usen el ghost per la
+      previsualització de reducció.
+    - **Sempre `gap: 0` al wrapper** quan el ghost existeix (= sempre
+      que `autoReduce: true`).
+    - **Bar com a pseudo-element** quan els dos camps (numerator +
+      denominator) tinguin spinners visibles (mode complex).
+
+    **Lliçons claus per a apps següents**:
+    1. El ghost-fraction NO té width visible, però SÍ ocupa lloc al
+       flex layout via el `gap`. Sempre `gap: 0` al wrapper d'apps
+       amb `autoReduce: true`.
+    2. Si tots dos camps de la fracció tenen spinner visible, el bar
+       no pot ser `border-bottom` del `.top` amb width parcial —
+       cal pseudo-element o equivalent.
+    3. Highlights de subdivision com rectanglets és UI standard,
+       aplicable a totes les apps amb subdivisions visibles (App26-31).
+    4. App27 va estar a punt commit-ready en una sola iteració del
+       patró 7s. Les iteracions extra van ser de polish (alineament
+       gap, rectanglets) — bon signe de què el patró és correcte.
+
+    **Commits**: f59b1f5 (refactor base), 88dea64 (gap: 0 + rectanglets).
 
 ### Tasques pendents (feina futura, fora del pla actual)
 
