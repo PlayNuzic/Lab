@@ -98,7 +98,7 @@ a qualsevol refactor futur. Cada entrada inclou un link al detall.
 | `libs/shared-ui/scale-pill.css` + `libs/app-common/scale-pill.js` | Pastilla `<select>` d'escala amb caret SVG inline (cercle rosa + fletxa blanca). `createScalePill({scales, initial, onChange})`. | App25, App25B |
 | `libs/shared-ui/output-note-pill.css` + `libs/app-common/output-note-pill.js` | Pastilla input numèric cíclic (`.outputnote` per Transposición / `.registro` per Registro). `createOutputNotePill({initial, range, onChange})`. | App18 (només CSS), App23, App24, App25, App25B |
 | `libs/app-common/info-tooltip.js` | Tooltip de validació per editors. Una sola implementació; les apps deleguen amb wrapper local `showError(cell, msg)` → `infoTooltip.show(msg, cell)`. | App18, App23, App24, App25, App25B |
-| `libs/shared-ui/measure-header.{js,css}` | Capçalera de compassos reutilitzable (App16 + App19). Patró d'alineament amb `--com-band-w` i `--com-band-track-right` signat. | App16, App19 |
+| `libs/shared-ui/measure-header.{js,css}` | Capçalera de compassos reutilitzable (App16 + App19). Patró d'alineament amb `--com-band-w` i `--com-band-track-right` signat. Opció `labelText` per posar text al rectangle esquerre (default '' = retro-compat). | App16 (`labelText: 'Compás'`), App19/App20 (sense text) |
 | `libs/app-common/fraction-editor.js` — opció `enableGhost` | Opt-out de la ghost-fraction (DOM mort en runtime per apps que mai redueixen). Default `true` per retro-compat. Passar `enableGhost: false` a apps de fracció simple (n=1 fixat). | App26 (i futurament App28, App30) |
 
 Detall complet a [Punt 40](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app) (mòduls) i Punt 41 (`enableGhost` + patró App26).
@@ -137,6 +137,8 @@ declaracions que competeixen amb el tema. Detall al [Punt 40](#40-transposició-
 | **Ghost-fraction DOM mort en apps simples** | Apps amb numerador fixat a 1 (App26/App28/App30) creen ~7 elements DOM del ghost que mai s'utilitzen (`gcd(1,d)=1` → mai reductible). | Passar `enableGhost: false` a `createFractionEditor` (default true). Disponible des de 2026-05-12. | Punt 41 pas 9 |
 | **Ghost-fraction captura `gap` del flex wrapper** | Apps de fracció COMPLEXA (`autoReduce: true`): el ghost és flex-item invisible (width≈0) però captura el `gap: 1.125rem` del `.fraction-editor-wrapper`, empenyent la fracció 1.125rem a la dreta. La caixa apareix desalineada respecte al `::before` del timeline. | `.fraction-editor-wrapper { gap: 0 }` quan el ghost existeix (apps amb `autoReduce: true`). La `.fraction-info-bubble` és absolute → no afectada. | Punt 42 pas 3 |
 | **Bar de la fracció com a `border-bottom` constreny els camps** | Si el `.top` té `border-bottom` amb `width` parcial (ex. 65%), el `.fraction-field.numerator` està constret al mateix 65%. El spinner pill del numerador no pot projectar correctament fora del rectangle exterior → queda dins el editor i no s'alinea verticalment amb el del denominador. | Substituir per pseudo-element `.top::after { left: 17.5%; right: 17.5% }` amb `.top { width: 100% }` i `.fraction-field { width: 100% }`. | Punt 42 pas 2 |
+| **`width: 100%` (heretat de app-common) + `margin-right` causa overflow** | El `.timeline-wrapper` hereta `width: 100%` de `libs/app-common/styles.css:300`. Amb width:100%, els margins ADDICIONEN al box (overflow del parent) en lloc de reduir el content area. Resultat: endcap dret es talla al viewport perquè el `.timeline.right` segueix al `parent.right`. | Override amb `width: auto !important; margin-right: var(--endcap-w)`. Amb width:auto, els margins SÍ redueixen l'available content (patró App13 i App16). | Punt 43 (App16) |
+| **`transform: translateX(...)` falla amb `padding-left + box-sizing: border-box`** | En App16, l'endcap dret amb `right: 0; transform: translateX(100% + 1.25rem)` quedava tapat per la timeline. Causa probable: interacció del transform amb el `padding-left: var(--com-band-w); box-sizing: border-box` del `.timeline`. | Posicionament directe amb `left: calc(100% + 1.25rem); right: auto; transform: none`. Matemàticament equivalent però sense la interacció. | Punt 43 (App16) |
 
 ### Patrons d'editor cell-based
 
@@ -1596,6 +1598,93 @@ breakpoint vertical). Workaround vigent. Detall complet al
        gap, rectanglets) — bon signe de què el patró és correcte.
 
     **Commits**: f59b1f5 (refactor base), 88dea64 (gap: 0 + rectanglets).
+
+43. **Endcaps grocs a App13 i App16 — adaptació del patró Step 7s.2 a
+    apps que NO són de fracció** ✅ FET (2026-05-12)
+
+    Aplicació del patró d'endcaps (`.timeline::before/::after` grocs)
+    a App13 ("Intervalos Temporales") i App16 ("Módulo Temporal - Línea")
+    per consistència visual amb les apps de fracció (App26/27). Els
+    detalls de cada app difereixen perquè cap és una app de fracció
+    pura, però el patró base és el mateix.
+
+    **App13** (commits cc121c4, 5ac4a0f):
+
+    Estructura: timeline standalone + interval-bars + iT editor sota.
+    Té un `.it-label` groc fix de 3.75rem a l'esquerra del `.it-cells`
+    (el block "iT" del editor).
+
+    - Afegit `class="app13"` al `<body>` (faltava — necessari per a
+      overrides locals tipus `body.app13`).
+    - Variables `--app13-endcap-w/h` a `body.app13`.
+    - Endcaps `.timeline::before/::after` flush amb cream box-shadow
+      (patró Step 7s.2 estàndard).
+    - **`.it-label` responsive**: width `var(--app13-endcap-w, 3.75rem)`
+      (era fix 3.75rem) → escala amb viewport igual que l'endcap esquerre.
+    - **`.timeline-wrapper` margins responsives**: era
+      `1rem 1.25rem 0 3.75rem` (asimètric), ara
+      `1rem var(--app13-endcap-w) 0 var(--app13-endcap-w)` (simètric, escala).
+    - Math de la margin-right: amb wrapper.margin-right = W +
+      timeline.margin auto = 1.25rem, l'endcap acaba exactament al
+      parent.right edge sense clipping al viewport.
+
+    **App16** (commits e48a57a, 1f172cf, e6c1454, 62aba63):
+
+    Estructura: timeline + measure-header (compassos) sobre. Ja tenia
+    `.timeline::before` com a block groc "Com." (esquerra de la
+    timeline, OVERLAPPING la zona on aniria el cream esquerre — el
+    cream esquerre està ELIMINAT amb `box-shadow: 1.25rem 0 0 cream`
+    només a la dreta).
+
+    - Afegit només `.timeline::after` per simetria amb el block "Com."
+      ja existent. Width = `var(--com-band-w)` (per coincidir amb la
+      mida del "Com." label).
+    - **Trap: transform falla amb padding-left + box-sizing: border-box**:
+      el patró estàndard d'App13/26/27 (`right: 0; transform:
+      translateX(100% + 1.25rem)`) deixava l'endcap tapat per la
+      timeline en App16. Causa probable: interacció del transform amb
+      el `padding-left: var(--com-band-w); box-sizing: border-box` que
+      té el `.timeline` d'App16. **Fix**: posicionament directe amb
+      `left: calc(100% + 1.25rem); right: auto; transform: none`
+      (mirror del `.timeline::before` ja existent que també usa
+      posició explícita).
+    - **Trap: width: 100% + margin-right causa overflow, no redueix
+      content**: el primer intent de fix amb `margin-right: var(--com-band-w)`
+      al wrapper feia overflow perquè el wrapper hereta `width: 100%`
+      de libs/app-common/styles.css:300. Amb `width: 100%`, els margins
+      addicionen al box (overflow), no redueixen el content. **Fix**:
+      `width: auto !important; margin-right: var(--com-band-w)`. Amb
+      width:auto, els margins SI redueixen l'available content. Mateix
+      patró que App13.
+    - **Trap previ documentat (no aplicat aquí, però rellevant)**: un
+      intent intermedi amb `width: calc(100% - var(--com-band-w))`
+      feia desaparèixer el `.timeline::before` i la measure-header.
+      Probablement perquè el width literal aplicava abans que els
+      hereters el resolguessin (cf. width:auto que sí permet la
+      cascada normal).
+    - Afegit text "Compás" al `.measure-header__label` (era empty per
+      decisió decorativa anterior). Nova opció `labelText` a
+      `createMeasureHeader` (default '' = retro-compat amb App19/App20
+      que segueixen sense text). App16 passa `labelText: 'Compás'`
+      (castellà — l'app és en castellà).
+
+    **Decisions per a App10, App11, App17 i altres apps amb timeline standalone**:
+    - Apps **sense `.it-label` o block groc esquerre propi** (ex. App10
+      circular, App11) → aplicar Step 7s.2 estàndard amb endcaps
+      `.timeline::before/::after`.
+    - Apps **amb block groc esquerre propi** (com App16 amb "Com.") →
+      mantenir el block existent, afegir només `.timeline::after`
+      amb posició explícita (no transform).
+    - Apps **amb `.timeline { padding-left + box-sizing: border-box }`**
+      → preferir `left: calc(100% + 1.25rem)` sobre el patró transform.
+    - Apps amb wrapper que ja té margins explícits (App13 abans del
+      meu canvi) → pot mantenir margins explícits però fer-los
+      responsives via `var(...)`.
+
+    **Commits**: cc121c4 (App13 base), 5ac4a0f (App13 viewport fix +
+    iT-label responsive), e48a57a (App16 base, transform-based),
+    1f172cf (App16 transform → left explicit), e6c1454 (App16
+    width:auto + margin-right), 62aba63 (App16 Compás text).
 
 ### Tasques pendents (feina futura, fora del pla actual)
 
