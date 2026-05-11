@@ -31,29 +31,41 @@ skill [`.claude/skills/nuzic-migrate/SKILL.md`](.claude/skills/nuzic-migrate/SKI
 - **Apps d'escales (App21-25B)**: ✅ FET (punts 25-37, 40).
 - **Modularització de pastilles** (`scale-pill`, `output-note-pill`,
   `app-viewport`): ✅ FET (punt 40).
-- **Apps de fraccions** (App26-31): apps "simples" (n=1) ✅ FETES
-  (App26, App28, App30). Variants **complexes (n>1)** PENDENTS:
-  **App27**, **App29**, **App31**.
+- **Apps de fraccions** (App26-31):
+  - App26 ✅ FETA amb refactor UI complet (caixa fracció vertical,
+    endcaps grocs, franja groga sobre after-ticks, ghost-fraction
+    eliminat) → **patró base per a App27/28/29/30/31** (punt 41).
+  - App28, App30 (n=1): PENDENTS d'aplicar el patró d'App26.
+  - App27, App29, App31 (n>1 complexes): PENDENTS.
 - **Plano-2D + fracció** (App32-35): App32-34 ✅ FETES, **App35** PENDENT.
 
-### Pendent immediat: refactor App27, App29, App31 (i App35)
+### Pendent immediat: aplicar patró App26 a App28/App30, després App27/App29/App31, després App35
 
-Patrons aplicables ja documentats:
-- **App27** és el paral·lel d'App26 amb fracció complexa → veure punt 40
-  i la skill (Step 7n + fórmules de Step 7r).
-- **App29** és el paral·lel d'App28 amb fracció complexa → punt 40 i
-  Step 7o + adaptacions de Step 7r.
-- **App31** és el paral·lel d'App30 amb fracció complexa → punt 40,
-  Step 7q i els tres bugs de timing del Step 7r.
-- **App35** és el paral·lel d'App34 amb fracció complexa → punt 40
-  (lliçó: revisió previa de col·lisions d'imports) i Step 7r.
+**Per a App28 i App30 (n=1, simple)** — replicar el patró d'App26 (punt
+41): caixa de fracció vertical alineada amb endcap, endcaps grocs,
+franja groga sobre after-ticks, `enableGhost: false`. Diferències
+respecte App26:
 
-⚠️ Avís per al Claude que comenci aquest refactor: les fórmules per a
-fraccions complexes (`(colIdx * n) % d === 0`, bugs 1/2/3 de timing,
-ghost-pulse) viuen actualment al **Step 7r** de la skill tot i que aquell
-Step parla de plano-2D. Aplica les mateixes fórmules per a apps de fracció
-standalone — vegeu el punt 40 del registre cronològic per al patró
-d'extracció de mòduls i la convenció `createXxxMarkup` vs import.
+- App28 usa **Pfr editor** (pulse-fractional cell-based) → mantenir
+  l'editor existent, només refactor visual del fraction-editor + timeline.
+- App30 usa **iTfr editor** (interval-temporal-fractional) → mateix
+  enfocament: refactor visual sense tocar l'editor de fons.
+
+**Per a App27/App29/App31 (n>1, complexa)** — paral·lel a App26/28/30
+amb numerador editable. Diferències:
+
+- **NO passar `enableGhost: false`** — la ghost-fraction es fa servir
+  per previsualitzar la reducció (`autoReduce: true`). En aquestes
+  apps SÍ pot disparar-se `animateReduction` (ex. 2/4 → 1/2).
+- Numerador té el seu propi spinner (en mode complex `setComplexMode()`
+  no l'amaga). El patró del pill OUTSIDE la caixa s'ha d'aplicar
+  també al numerador o, alternativa, mantenir-lo dins.
+- Fórmules de validació complexa (`(colIdx * n) % d === 0`, bugs 1/2/3
+  de timing, ghost-pulse) al **Step 7r** de la skill.
+
+**Per a App35** (paral·lel d'App34 amb fracció complexa) — punt 40 +
+Step 7r. **Atenció**: trap de col·lisions d'imports si es modulariza
+res del fraction-editor (vegeu punt 40 pas 6).
 
 ---
 
@@ -81,8 +93,9 @@ a qualsevol refactor futur. Cada entrada inclou un link al detall.
 | `libs/shared-ui/output-note-pill.css` + `libs/app-common/output-note-pill.js` | Pastilla input numèric cíclic (`.outputnote` per Transposición / `.registro` per Registro). `createOutputNotePill({initial, range, onChange})`. | App18 (només CSS), App23, App24, App25, App25B |
 | `libs/app-common/info-tooltip.js` | Tooltip de validació per editors. Una sola implementació; les apps deleguen amb wrapper local `showError(cell, msg)` → `infoTooltip.show(msg, cell)`. | App18, App23, App24, App25, App25B |
 | `libs/shared-ui/measure-header.{js,css}` | Capçalera de compassos reutilitzable (App16 + App19). Patró d'alineament amb `--com-band-w` i `--com-band-track-right` signat. | App16, App19 |
+| `libs/app-common/fraction-editor.js` — opció `enableGhost` | Opt-out de la ghost-fraction (DOM mort en runtime per apps que mai redueixen). Default `true` per retro-compat. Passar `enableGhost: false` a apps de fracció simple (n=1 fixat). | App26 (i futurament App28, App30) |
 
-Detall complet a [Punt 40](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app).
+Detall complet a [Punt 40](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app) (mòduls) i Punt 41 (`enableGhost` + patró App26).
 
 ### Specificity wars amb el nuzic-theme
 
@@ -112,6 +125,10 @@ declaracions que competeixen amb el tema. Detall al [Punt 40](#40-transposició-
 | **`justify-content: center !important` heretat** | Contingut centrat verticalment en column-mode → la part de dalt queda fora del rang d'scroll i es retalla | Override `justify-content: flex-start !important` al media query d'app | [Punt 37](#37-app23app24--vertical-mode-al-sistema-paso-2425) |
 | **VexFlow abans de `fontsReady`** | Pentagrama amb mètriques fallback → plicas/clau de sol surten fora del viewBox | `fontsReady.then(() => requestAnimationFrame(renderPentagram))` | [Punt 37](#37-app23app24--vertical-mode-al-sistema-paso-2425) |
 | **Tooltips dobles** | Una app usa `infoTooltip` + funció local `showTooltip` amb classe CSS pròpia | Refactor: `showTooltip` delega a `infoTooltip.show()`, CSS local eliminat | [Punt 40 pas 3b](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app) |
+| **`.timeline` margin: 20px auto** | Vora esquerra del `.timeline` està 1.25rem (20px) a la dreta del `.timeline-wrapper`/`.middle`. Causa misalignment d'elements col·locats relativament a `.middle` quan es vol alinear amb elements dins `.timeline`. | Restar/afegir 1.25rem en passar de coord-`.middle` a coord-`.timeline`. Vegeu `libs/app-common/styles.css:305`. | Punt 41 pas 3 |
+| **`inset: 0` heretat a `.timeline::after`** | `libs/app-common/styles.css:328` aplica `inset: 0; opacity: 0; border: 2px solid; border-radius: 50%` per al cercle invisible del mode circular. Si reusem `.timeline::after`, el `right: 0` queda ignorat (over-constraining amb `left: 0`) i l'element és invisible (`opacity: 0`). | Override amb `inset: auto; opacity: 1; border: 0` al common rule de l'app. | Punt 41 pas 2 |
+| **`nuzic-theme.css` aplica `display: none` a `.timeline::before`** | El pseudo-element existeix però està amagat (per amagar la línia legacy del timeline). | Override amb selector més específic: `body[data-visual="nuzic"].appNN .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline::before { display: block; ... }`. | Punt 41 pas 2 |
+| **Ghost-fraction DOM mort en apps simples** | Apps amb numerador fixat a 1 (App26/App28/App30) creen ~7 elements DOM del ghost que mai s'utilitzen (`gcd(1,d)=1` → mai reductible). | Passar `enableGhost: false` a `createFractionEditor` (default true). Disponible des de 2026-05-12. | Punt 41 pas 9 |
 
 ### Patrons d'editor cell-based
 
@@ -1268,6 +1285,190 @@ breakpoint vertical). Workaround vigent. Detall complet al
     i el `blur` event s'han adaptat. `r` NO és àlies de silenci perquè
     `0r4/0r5/Nr+` ja l'usen per a notació de registre.
     - Tests: 73 suites / 1445 tests OK.
+
+41. **Refactor UI d'App26 (fracció simple) — patró base per a les apps
+    de fraccions** ✅ FET (2026-05-12)
+
+    Refactor visual quirúrgic d'App26 sense tocar la lògica
+    (`main.js` només re-paranta el spinner del denominador i passa
+    `enableGhost: false`). El resultat és la base visual que han d'aplicar
+    **App27, App28, App29, App30, App31** (i, amb adaptacions, App32-35).
+
+    **Pas 1 — Caixa de la fracció (`.fraction-editor`) com a rectangle vertical**:
+    - `position: relative; left: calc(0px - var(--app26-endcap-w))`
+      (alineada x amb la vora esquerra del `::before` del timeline).
+    - `width: var(--app26-endcap-w); box-sizing: border-box;
+      padding: 0.5rem 0` (només vertical — l'amplada és l'amplada de
+      l'endcap).
+    - `align-items: stretch` → `.top`/`.bottom` omplen tota l'amplada
+      interior.
+    - `border: 3px solid var(--nuzic-yellow); border-radius: 0.4rem`.
+
+    **Pas 2 — Endcaps grocs als extrems del timeline (`.timeline::before/::after`)**:
+    - Variables a `body.app26`:
+
+      ```css
+      --app26-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
+      --app26-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
+      ```
+
+    - `::before` esquerre: `left: 0; transform: translateX(calc(-100% - 1.25rem))`
+      → vora dreta del endcap toca exactament la vora esquerra del
+      `box-shadow` crema (1.25rem) del nuzic-theme. **Zero gaps,
+      invariant amb el viewport.**
+    - `::after` dret: `right: 0; transform: translateX(calc(100% + 1.25rem))`
+      (mirror).
+    - **Trap crític**: el `nuzic-theme.css` aplica `display: none` al
+      `.timeline::before` (per amagar la línia legacy). L'app override
+      amb `body[data-visual="nuzic"].app26 .timeline-wrapper:has(.timeline):not(:has(.soundline-container)) .timeline::before`
+      té més specificity i guanya.
+    - **Trap crític 2**: `libs/app-common/styles.css:328` aplica
+      `inset: 0; opacity: 0; border: 2px solid; border-radius: 50%`
+      al `.timeline::after` (per al cercle invisible del mode circular).
+      Cal cancel·lar amb `inset: auto; opacity: 1; border: 0` al common
+      rule de l'app. Sense això, el `right: 0` del mirror s'ignora per
+      over-constraining (left: 0 ja heretat de `inset: 0`).
+    - `z-index: 0` perquè els endcaps quedin **per sota** de la
+      `.fraction-info-bubble` del fraction-editor (que pot saltar
+      damunt segons posició).
+
+    **Pas 3 — `.timeline` margin trap (alineament fracció ↔ endcap)**:
+    - **`libs/app-common/styles.css:305`** declara
+      `.timeline { width: calc(100% - 40px); margin: 20px auto }`. Per
+      tant la vora esquerra del `.timeline` està **1.25rem (20px) a la
+      DRETA** de la vora esquerra del `.timeline-wrapper` (i de `.middle`,
+      que comparteix amplada).
+    - Endcap visual a `-W - 1.25rem` en coord de `.timeline` =
+      `-W - 1.25rem + 1.25rem = -W` en coord de `.middle`.
+    - Per tant la fracció (dins `.middle`) ha d'usar `left: -W`,
+      **no** `left: -W - 1.25rem` com semblaria intuïtiu.
+    - **Símptoma**: si poses `-W - 1.25rem`, la fracció queda 1.25rem
+      a l'esquerra del endcap. Aquest bug pot quedar emmascarat per
+      altres shifts (gap del wrapper, etc.) i fer-ho difícil de
+      detectar a ull.
+
+    **Pas 4 — Subdivision label "1/N" ancorat dins del endcap esquerre**:
+    - `.timeline .subdivision-label` a `position: absolute; left: 0; top: 0`
+      i un `transform` compost que el centra horitzontalment i el
+      bottom-alinea verticalment a l'endcap:
+
+      ```css
+      transform:
+        translateX(calc(-0.5 * var(--app26-endcap-w) - 1.25rem - 50%))
+        translateY(calc(var(--app26-endcap-h) - 100% - 0.25rem));
+      ```
+
+    - `-0.5W - 1.25rem` (centre del endcap en coord `.timeline`) `- 50%`
+      (meitat del propi label per centrar-lo).
+    - `endcap_h - 100% - 0.25rem` (bottom del endcap menys l'alçada
+      del label, menys 0.25rem de padding intern).
+    - `z-index: 1` per quedar sobre el endcap (z-index 0).
+    - Mateixes variables CSS que l'endcap (definides a `body.app26`)
+      → el label es mou amb el endcap a qualsevol viewport.
+
+    **Pas 5 — Franja groc intens dins de la banda crema (línia dels `::after` ticks dels pulse-numbers)**:
+    - El `nuzic-theme` pinta `.timeline { background: var(--nuzic-yellow-light) }`.
+    - Override amb `linear-gradient` amb una franja `--nuzic-yellow`
+      damunt el cream a y=42-56px de 60px de timeline:
+
+      ```css
+      background:
+        linear-gradient(
+          to bottom,
+          transparent 0, transparent 42px,
+          var(--nuzic-yellow) 42px,
+          var(--nuzic-yellow) 56px,
+          transparent 56px, transparent 100%
+        ),
+        var(--nuzic-yellow-light);
+      ```
+
+    - Les pulse-number `::after` ticks viuen entre y ≈ 42-56px (de
+      60px = `.timeline.height` al nuzic-theme).
+    - **No tocar el box-shadow crema** (continua estenent
+      `--nuzic-yellow-light` 1.25rem a cada costat) — els endcaps
+      grocs queden separats del cream per zero gaps però el gradient
+      només pinta el `.timeline` mateix, no el box-shadow.
+
+    **Pas 6 — Spinner del denominador en mitja-pastilla, FORA de la caixa**:
+    - `.fraction-field { width: 100% }` → la vora dreta del field
+      coincideix amb la vora interior dreta del `.fraction-editor`.
+    - Spinner: `position: absolute; left: calc(100% + 0.45rem); right: auto`
+      → projecta 0.45rem fora de la caixa, més enllà de la border 3px.
+    - `.spin.up`: `border-radius: 999px 999px 0 0` (només cantonades
+      de dalt).
+    - `.spin.down`: `border-radius: 0 0 999px 999px` (només cantonades
+      de baix).
+    - Amb `gap: 4px` entre les meitats, queden com dos domes encarats
+      sense tocar-se.
+    - `.spinner { background: transparent; overflow: visible }` perquè
+      el gap entre buttons sigui visible.
+
+    **Pas 7 — Color negre `!important` als inputs**:
+    - Alguna regla externa pintava el denominador d'un color diferent
+      del numerador (read-only). `color: #000 !important` a
+      `.fraction-editor input` força negre per als dos.
+    - Override addicional per inputs `:disabled, :read-only` amb
+      `opacity: 1 !important; cursor: default !important` per
+      neutralitzar el `setSimpleMode()` que els pinta opacs.
+
+    **Pas 8 — Distància vertical fracció ↔ banda timeline**:
+    - `.timeline-wrapper { margin: 1.5rem auto 1.875rem }` (era
+      `3.75rem auto 1.875rem` per defecte). 1.5rem dóna espai just
+      perquè el spinner outside no toqui el endcap.
+
+    **Pas 9 — Opt-out de la ghost-fraction**:
+    - **Nova opció a `libs/app-common/fraction-editor.js`**:
+      `enableGhost = true` (default true — sense canvi per cap app
+      existent). Quan `false`, el ghost DOM (7 sub-elements per editor)
+      no es crea en cap dels dos modes (inline/block). Els null guards
+      existents a `updateGhost()` fan la resta.
+    - **App26 passa `enableGhost: false`**: numerador fixat a 1 →
+      gcd(1, d) = 1 → mai reductible → `animateReduction` mai es
+      dispara. El ghost era DOM mort en runtime.
+    - **Aplicable a totes les apps de fracció simple** (n=1 fixat):
+      App26, App28, App30. **NO aplicar a apps de fracció complexa**
+      (App27, App29, App31, App33, App35) — allà el ghost s'usa per
+      mostrar la reducció previsualitzada.
+
+    **Decisions de fons importants per refactors paral·lels**:
+    - El refactor és **local a `body.app26`** — no toca `nuzic-theme.css`
+      ni cap altra app. Per App28/30/27/29/31, **copiar el patró,
+      no extraure mòdul** (encara). Primer fer-ho 2-3 cops per
+      detectar les variacions reals; després modularitzar (regla
+      `2 cops = duplicat OK, 3 cops = mòdul`).
+    - Els valors numèrics (clamp ranges, gradient stops, padding)
+      són afinats per App26 amb timeline-wrapper 90% / 75rem màx i
+      timeline height 60px (nuzic-theme default). Si una altra app
+      té height diferent, **reescalar els gradient stops** (no fixar
+      a 42/56px sense verificar).
+    - **No moure** la posició original del `.middle` ni del
+      `.timeline-wrapper`; **no canviar** els `box-shadow` cream del
+      nuzic-theme.
+    - Els endcaps usen el `::before/::after` del propi `.timeline`,
+      no del wrapper — això reaprofita la coordenada del timeline
+      per al positioning.
+
+    **Lliçons claus per al Claude que segueixi**:
+    1. Sempre validar visualment al navegador després de canvis CSS
+       de positioning — els tests no detecten alineaments off-by-1rem.
+    2. **Trap del `.timeline.margin: 20px auto`**: la `.timeline` no
+       comparteix vora esquerra amb el seu wrapper. Restar 1.25rem
+       sempre que es passi de coord-`.middle` a coord-`.timeline` (o
+       afegir, segons direcció).
+    3. **Trap de l'`inset: 0` heretat a `.timeline::after`**: cancel·la
+       amb `inset: auto` abans de fer servir `right: 0`. Vegeu
+       `libs/app-common/styles.css:328`.
+    4. Compartir variables CSS via `body.app26` (no `.middle` ni
+       `.timeline-wrapper`) si elements de tots dos arbres en
+       depenen — el `.middle` i `.timeline-wrapper` són siblings.
+    5. **Ghost-fraction opt-out**: passar `enableGhost: false` a
+       totes les apps de fracció SIMPLE (n=1 fixat). Aquesta opció
+       NO existia abans; ara existeix com a paràmetre default-true
+       de `createFractionEditor`.
+
+    **Commits**: c8fd16f, bc249cc, 090db74, a497094, 35e316d,
+    5d00488, c68fc16, 6b23d3d (8 commits incrementals).
 
 ### Tasques pendents (feina futura, fora del pla actual)
 
