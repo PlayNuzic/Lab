@@ -86,7 +86,7 @@ export const slideMatrix = [
   { paso:14, section:'ampliando',    title:'El registro de octava',                                       layout:'B-app-left', apps:['App18'],  aspect:'6/5', group:'timeline-vertical' },
   { paso:15, section:'ampliando',    title:'Plano Modular',                                               layout:'B-app-left', apps:['App19'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true },
   { paso:16, section:'ampliando',    title:'Sucesión N-iT en Plano Modular',                              layout:'B-app-left', apps:['App20'],  aspect:'4/3', group:'plano-multi-pill', requiresLandscape:true },
-  { paso:17, section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'E-app-text-left', apps:['App26'],  aspect:'2/1', group:'timeline-simple' },
+  { paso:17, section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'E-app-text-left', apps:['App26'],  aspect:'5/2', group:'timeline-simple' },
   { paso:18, section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'B-app-left', apps:['App28'],  aspect:'2/1', group:'timeline-simple' },
   { paso:19, section:'fraccionando', title:'Sucesión de iT Fraccionados Simples',                         layout:'B-app-left', apps:['App30'],  aspect:'2/1', group:'timeline-simple' },
   { paso:20, section:'fraccionando', title:'Fracciones Complejas',                                        layout:'B-app-left', apps:['App34','App35'], aspect:'4/3', variantLabels:['App34 · principal','App35 · extra'], group:'plano-simple' },

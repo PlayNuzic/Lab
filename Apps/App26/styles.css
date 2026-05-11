@@ -245,17 +245,18 @@ body.app26 {
      Mateix patró que App13 (commit 5ac4a0f). */
   width: auto !important;
   max-width: 75rem;
-  /* Reduit el margin-top per acostar la banda al rectangle de la fracció
-     (originalment 3.75rem). */
-  margin: 1.5rem var(--app26-endcap-w) 1.875rem var(--app26-endcap-w);
+  /* Margin-top petit (era 1.5rem) per compactar App26 verticalment.
+     L'iframe del sistema vol més ajustament i el standalone tampoc
+     necessita gaire espai entre fraccio i banda. */
+  margin: 0.5rem var(--app26-endcap-w) 0.75rem var(--app26-endcap-w);
   position: relative;
 }
 
 .timeline {
   position: relative;
-  /* nuzic-theme sets height: 60px. Extend upward via padding so
-     subdivision ticks have room above the pulse-numbers. */
-  margin-top: 1.75rem;
+  /* nuzic-theme sets height: 60px. Margin-top reduit (era 1.75rem) per
+     compactar App26 — la banda no necessita tant d'espai sobre. */
+  margin-top: 0.75rem;
 }
 
 /* ========== ENDCAPS: quadrats grocs (groc intens) als extrems ==========
