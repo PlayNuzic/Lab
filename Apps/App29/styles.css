@@ -1,4 +1,4 @@
-/* App29: Sucesion de Pulsos Fraccionados Complejos — Nuzic Theme */
+/* App29: Sucesion de Pulsos Fraccionados Simples — Nuzic Theme */
 
 /* Hide legacy sound-toggle containers (managed via mixer now). */
 .control-sound-toggle-container--pulse,
@@ -7,116 +7,60 @@
   display: none;
 }
 
-/* ========== Pfr EDITOR (cell-based, App12 P-row pattern) ========== */
-.pfr-row {
-  width: 90%;
-  max-width: 75rem;
-  margin: 0.25rem auto 0;
-  padding: 0 1.25rem;
-  box-sizing: border-box;
-}
-
-.pfr-editor {
-  position: relative;
-  display: grid;
-  grid-template-columns: 3.75rem 1fr;
-}
-
-/* Yellow "Pfr" label on the left, matching App12's .editor-label--p. */
-.pfr-editor .editor-label {
-  font-weight: 700;
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  user-select: none;
-}
-
-.pfr-editor .editor-label--p { background: var(--nuzic-yellow, #FFBB33); }
-
-/* Cream strip behind the cells (single line, NO wrap). */
-.pfr-editor .editor-cells {
-  display: flex;
-  justify-content: flex-start;
-  align-items: stretch;
-  flex-wrap: nowrap;
-  gap: 0;
-  background: var(--nuzic-light, #EEE8D8);
-  overflow-x: auto;
-  overflow-y: hidden;
-  min-height: 2.5rem;
-}
-
-/* Square cells (App13 pattern: percent width + aspect-ratio). */
-.pfr-editor .editor-cell {
-  width: 4%;
-  min-width: 1.875rem;
-  flex: none;
-  aspect-ratio: 1;
-  padding: 0;
-  margin: 0;
-  text-align: center;
-  color: #43433b;
-  font-size: clamp(0.75rem, 1.5vw, 1.1rem);
-  font-weight: 700;
-  border: none;
-  outline: none;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0;
-}
-
-/* Yellow separator (empty, readonly — shows placeholder color). */
-.pfr-editor .editor-cell--p:placeholder-shown {
-  background: var(--nuzic-yellow-light, #ffeecc);
-}
-
-/* Committed / value cells (have value): white. */
-.pfr-editor .editor-cell--p:not(:placeholder-shown) {
-  background: white;
-  z-index: 1;
-}
-
-/* Active input cell: white with caret. */
-.pfr-editor .editor-cell.editor-input {
-  background: white !important;
-  cursor: text;
-  z-index: 2;
-}
-
-.pfr-editor .editor-cell.editor-input:focus {
-  box-shadow: inset 0 0 0 2px var(--nuzic-yellow, #FFBB33);
-}
-
-/* Playback highlight. */
-.pfr-editor .editor-cell.active {
-  background: var(--nuzic-yellow, #FFBB33) !important;
-  color: white;
-}
-
-/* End marker (hidden for Pfr — no fixed maximum). */
-.pfr-editor .editor-end-marker {
+/* `.inputs` queda buida a App29 (la pastilla BPM es mou a `.controls` per
+   `init()`). El padding-vertical heretat de app-common ocuparia espai mort
+   al damunt — l'amaguem. */
+.inputs {
   display: none !important;
 }
 
-/* ========== FRACTION EDITOR (block mode, lives in .middle above timeline) ========== */
+/* Variables compartides per fraction-editor, endcaps, subdivision-label,
+   editor Pfr label width — al body perquè les vegin `.middle`,
+   `.timeline-wrapper` i `.pfr-row` (siblings). */
+body.app29 {
+  --app29-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
+  --app29-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
+}
+
+/* ========== .middle: bloc de la fracció dalt-esquerra (App26 pattern) ==========
+   Margins iguals a `--app29-endcap-w` a cada costat perquè la fracció
+   (a `left: -W` del `.middle`) i l'endcap dret (a `translateX(100% + 1.25rem)`
+   del `.timeline`) no s'escapin del viewport (iframe del sistema). */
+.middle {
+  width: auto;
+  max-width: 75rem;
+  margin: 0 var(--app29-endcap-w) 5px var(--app29-endcap-w);
+  justify-content: flex-start;
+}
+
+/* ========== FRACTION EDITOR (caixa groga, rectangle vertical, alineada amb ::before) ========== */
 .fraction-editor-wrapper {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1.125rem;
+  justify-content: flex-start;
+  /* Step 7s.9a — `gap: 0` CRITIC. App29 = complex fraction + autoReduce:
+     true → ghost-fraction DOM creat. El ghost és flex-item invisible
+     però capturaria el `gap: 1.125rem` default i empenyaria la fracció
+     1.125rem a la dreta, desalineant-la del endcap esquerre. */
+  gap: 0;
 }
 
+/* Rectangle vertical alineat amb `::before` endcap esquerre. */
 .fraction-editor {
-  display: inline-flex;
+  position: relative;
+  left: calc(0px - var(--app29-endcap-w));
+  display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.375rem;
-  color: var(--nuzic-dark, #43433B);
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.2rem;
+  width: var(--app29-endcap-w);
+  box-sizing: border-box;
+  padding: 0.5rem 0;
+  border: 3px solid var(--nuzic-yellow, #FFBB33);
+  border-radius: 0.4rem;
+  color: #000;
 }
 
 .fraction-editor .top,
@@ -124,88 +68,142 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
+/* Step 7s.9b — Barra de la fracció com a PSEUDO-ELEMENT (no
+   border-bottom directe). Cal perquè en complex mode els DOS spinners
+   (numerator + denominator) projectin a la mateixa x. Si la barra fos
+   border-bottom amb `.top { width: 65% }`, el `.fraction-field.numerator`
+   quedaria constret al 65% i el seu spinner es projectaria 17.5% més
+   a l'esquerra que el del denominador (que té width: 100%).
+
+   Solució: `.top { width: 100% }` + bar visual via `.top::after`
+   amb amplada parcial (insets 17.5% cada costat). Ambdós camps
+   full-width → ambdós spinners alineats verticalment. */
 .fraction-editor .top {
-  border-bottom: 4px solid var(--nuzic-dark, #43433B);
-  padding: 0 1.5rem;
+  position: relative;
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+.fraction-editor .top::after {
+  content: '';
+  position: absolute;
+  left: 17.5%;
+  right: 17.5%;
+  bottom: 0;
+  height: 4px;
+  background: #000;
+  pointer-events: none;
 }
 
 .fraction-editor input {
-  width: 5rem;
+  width: 100%;
   text-align: center;
-  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-size: clamp(1.75rem, 3.8vw, 2.7rem);
   background: none;
   border: none;
-  color: inherit;
-  font-family: inherit;
+  color: #000 !important;
+  font-family: 'Ubuntu', sans-serif;
   outline: none;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0;
 }
 
 .fraction-editor input:focus {
-  border-bottom: 2px solid var(--nuzic-yellow, #FFBB33);
+  border: none;
+  outline: none;
 }
 
+/* En complex mode (App29) els dos camps són editables; aquesta regla
+   queda preventiva per si en algun moment es desactiva algun input.
+   Mantenim color negre i opacity 1 per coherència visual amb la resta. */
 .fraction-editor input:disabled,
 .fraction-editor input:read-only {
-  opacity: 0.6;
-  cursor: not-allowed;
+  opacity: 1 !important;
+  cursor: default !important;
+  color: #000 !important;
 }
 
 .fraction-field {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .fraction-field input {
-  padding-right: 1.75rem;
+  padding-right: 0;
 }
 
+/* Spinner pill OUTSIDE la caixa, a la dreta. Half-pill shape (rodons
+   als extrems exteriors, rectes a la cara interior). `setSimpleMode()`
+   amaga el spinner del numerador via inline `display: none`. */
 .fraction-field .spinner {
   position: absolute;
-  right: 0;
+  left: calc(100% + 0.45rem);
+  right: auto;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 0.125rem;
-  width: 1.5rem;
-  color: var(--nuzic-dark, #43433B);
+  gap: 4px;
+  width: 1.3rem;
+  height: 2.8rem;
+  background: transparent;
+  overflow: visible;
   transition: opacity 0.2s ease;
 }
 
 .fraction-field .spinner .spin {
+  flex: 1 1 50%;
   width: 100%;
-  height: 0.75rem;
+  height: auto;
   border: none;
-  background: transparent;
+  background: var(--nuzic-yellow, #FFBB33);
   padding: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: inherit;
+  color: #fff;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.fraction-field .spinner .spin.up {
+  border-radius: 999px 999px 0 0;
+}
+
+.fraction-field .spinner .spin.down {
+  border-radius: 0 0 999px 999px;
 }
 
 .fraction-field .spinner .spin::before {
-  content: '';
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
+  content: none;
+  border: 0;
 }
 
-.fraction-field .spinner .spin.up::before {
-  border-bottom: 6px solid currentColor;
-}
+.fraction-field .spinner .spin.up::after  { content: '+'; }
+.fraction-field .spinner .spin.down::after { content: '−'; }
 
-.fraction-field .spinner .spin.down::before {
-  border-top: 6px solid currentColor;
+.fraction-field .spinner .spin:hover {
+  background: #e6a82e;
 }
 
 .fraction-field .spinner .spin:active {
-  color: var(--nuzic-yellow, #FFBB33);
+  background: #d9991a;
 }
 
 .fraction-field--empty .spinner {
@@ -217,19 +215,132 @@
   display: none !important;
 }
 
-/* ========== TIMELINE ========== */
-/* nuzic-theme handles timeline/pulse-number styling. App29-specific: selection
-   states on clickable pulses + the subdivision row below. */
-.timeline-wrapper {
-  width: 90%;
+/* ========== Pfr EDITOR (cell-based, App13 visual + App12 P-row mechanics) ========== */
+
+/* Wrapper row: `margin-left: 0` perquè la row comenci a `parent.left`,
+   alineant el label "Pfr" verticalment amb l'endcap esquerre de la
+   timeline (que també està a `parent.left`). `margin-right: var(...)`
+   manté la simetria amb el wrapper. El `padding-left/right: 1.25rem`
+   al .editor-cells alinea les cel·les amb el cream del timeline
+   (que té `margin: 20px auto` = 1.25rem cada costat). */
+.pfr-row {
+  width: auto;
   max-width: 75rem;
-  margin: 2.5rem auto 1.875rem;
+  margin: 0.25rem var(--app29-endcap-w) 0 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Editor grid: label esquerra (width = --app29-endcap-w per coincidir
+   amb el endcap groc esquerre) + cells. */
+.pfr-editor {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--app29-endcap-w) 1fr;
+}
+
+/* Yellow "Pfr" label on the left — proporcions del .it-label d'App13. */
+.pfr-editor .editor-label {
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  user-select: none;
+}
+
+.pfr-editor .editor-label--p {
+  background: var(--nuzic-yellow, #FFBB33);
+}
+
+/* Cream strip darrere les cel·les. Padding-horizontal de 1.25rem per
+   alinear les cel·les amb el cream del .timeline (que té margin auto
+   de 1.25rem). Sense `min-height` perquè la strip s'ajusti a l'alçada
+   de les cel·les (cel·les més grans => strip més alta automàticament). */
+.pfr-editor .editor-cells {
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 0;
+  background: var(--nuzic-light, #EEE8D8);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 1.25rem;
+  box-sizing: border-box;
+}
+
+/* Cel·les quadrades, més grans (App13 5.88% pattern). `min-width`
+   augmentat a 2.5rem perquè en viewports estrets segueixin sent
+   quadrades visibles. `aspect-ratio: 1` garanteix square en tots
+   els casos. */
+.pfr-editor .editor-cell {
+  width: 5%;
+  min-width: 2.5rem;
+  flex: none;
+  aspect-ratio: 1;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+  color: #43433b;
+  font-size: clamp(0.85rem, 1.6vw, 1.2rem);
+  font-weight: 700;
+  border: none;
+  outline: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+}
+
+/* Yellow-light placeholder (cream-ish), white when has value. */
+.pfr-editor .editor-cell--p:placeholder-shown {
+  background: var(--nuzic-yellow-light, #ffeecc);
+}
+
+.pfr-editor .editor-cell--p:not(:placeholder-shown) {
+  background: white;
+  z-index: 1;
+}
+
+.pfr-editor .editor-cell.editor-input {
+  background: white !important;
+  cursor: text;
+  z-index: 2;
+}
+
+.pfr-editor .editor-cell.editor-input:focus {
+  box-shadow: inset 0 0 0 2px var(--nuzic-yellow, #FFBB33);
+}
+
+.pfr-editor .editor-cell.active {
+  background: var(--nuzic-yellow, #FFBB33) !important;
+  color: white;
+}
+
+.pfr-editor .editor-end-marker {
+  display: none !important;
+}
+
+/* ========== TIMELINE ==========
+   Margins responsives amb `--app29-endcap-w` perquè els endcaps grocs
+   no surtin del viewport. Width: auto !important override del width: 100%
+   heretat de app-common. */
+.timeline-wrapper {
+  width: auto !important;
+  max-width: 75rem;
+  /* Reduit el margin-top per acostar la banda a la fracció (era 2.5rem).
+     Margin-bottom també reduit. */
+  margin: 0.5rem var(--app29-endcap-w) 0.75rem var(--app29-endcap-w);
   position: relative;
 }
 
 .timeline {
   position: relative;
-  margin-top: 1.75rem;
+  /* margin-top reduit (era 1.75rem). */
+  margin-top: 0.75rem;
 }
 
 /* Selected pulse-number: blue pill (nuzic selection color). */
@@ -244,27 +355,67 @@
   cursor: pointer;
 }
 
-/* App29-specific: pulses that don't align with the numerator cycle are
-   non-selectable (clicks ignored in attachSelectionHandlers). Render dim
-   so the user sees which integers are musically meaningful. */
-.timeline .pulse-number.non-selectable {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.timeline .pulse-number.non-selectable::before,
-.timeline .pulse-number.non-selectable::after {
-  opacity: 0.35;
-}
-
-.timeline .cycle-marker.non-selectable,
-.timeline .cycle-label.non-selectable {
-  opacity: 0.3;
-  cursor: not-allowed;
+/* ========== ENDCAPS: quadrats grocs (groc intens) als extrems ==========
+   Patró Step 7s.2 (App26). Flush amb el `box-shadow` crema del
+   nuzic-theme via `translateX(±100% ∓ 1.25rem)`. Cal cancel·lar
+   `inset: 0 / opacity: 0 / border: 2px` heretats de
+   `libs/app-common/styles.css:328`. */
+body[data-visual="nuzic"].app29
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::before,
+body[data-visual="nuzic"].app29
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: auto;
+  opacity: 1;
+  border: 0;
+  top: 0%;
+  width: var(--app29-endcap-w);
+  height: var(--app29-endcap-h);
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 4px;
+  z-index: 0;
   pointer-events: none;
 }
 
-/* ========== SUBDIVISION ROW (BELOW timeline, nuzic-main style) ========== */
+body[data-visual="nuzic"].app29
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::before {
+  left: 0;
+  transform: translateX(calc(-100% - 1.25rem));
+}
+
+body[data-visual="nuzic"].app29
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::after {
+  right: 0;
+  transform: translateX(calc(100% + 1.25rem));
+}
+
+/* ========== FRANJA GROC INTENS sobre la línia dels ::after ticks ==========
+   Override el background `--nuzic-yellow-light` sòlid del nuzic-theme:
+   linear-gradient amb franja `--nuzic-yellow` a y=42-56px de 60px de
+   timeline (zona dels ::after ticks dels pulse-numbers). */
+body[data-visual="nuzic"].app29
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline {
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 42px,
+      var(--nuzic-yellow) 42px,
+      var(--nuzic-yellow) 56px,
+      transparent 56px,
+      transparent 100%
+    ),
+    var(--nuzic-yellow-light);
+}
+
+/* ========== SUBDIVISION ROW (sota la banda) ========== */
 .timeline .cycle-marker {
   position: absolute;
   top: 2.95rem;
@@ -281,8 +432,8 @@
 
 .timeline .cycle-marker.active {
   opacity: 1;
-  background: var(--nuzic-yellow, #FFBB33);
-  box-shadow: 0 0 6px var(--nuzic-yellow, #FFBB33);
+  background: var(--nuzic-dark, #43433B);
+  box-shadow: 0 0 6px var(--nuzic-dark, #43433B);
 }
 
 .timeline .cycle-marker.selected {
@@ -304,13 +455,18 @@
   transition: color 0.3s ease, opacity 0.3s ease;
 }
 
+/* Rectangle groc com el `.pulse-number.active` (coherència visual amb
+   els pulsos enters quan estan actius). Step 7s.9d (App26/27). */
 .timeline .cycle-label.active {
-  color: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-dark, #43433B);
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 2px;
+  padding: 1px 4px;
   opacity: 1;
   font-weight: 700;
 }
 
-/* Selected fractional pulse: same blue pill as integer pulses */
+/* Selected fractional pulse: same blue pill as integer pulses. */
 .timeline .cycle-label.selected {
   background: var(--nuzic-blue-light, #c8e4f2);
   color: var(--nuzic-dark, #43433B);
@@ -324,23 +480,71 @@
   display: none;
 }
 
+/* Subdivision label "1/N" ANCORAT al BOTTOM dins de l'endcap esquerre
+   (mateix patró que App26 — variables compartides via body.app29). */
 .timeline .subdivision-label {
   position: absolute;
-  right: calc(100% + 2rem);
-  top: 2rem;
-  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  left: 0;
+  top: 0;
+  transform:
+    translateX(calc(-0.5 * var(--app29-endcap-w) - 1.25rem - 50%))
+    translateY(calc(var(--app29-endcap-h) - 100% - 0.25rem));
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
   font-weight: 700;
   color: var(--nuzic-dark, #43433B);
-  opacity: 0.75;
+  opacity: 0.85;
   pointer-events: none;
   white-space: nowrap;
   line-height: 1;
+  z-index: 1;
 }
 
 .timeline.no-anim .cycle-marker,
 .timeline.no-anim .cycle-label,
 .timeline.no-anim .pulse-number {
   transition: none;
+}
+
+/* ========== ACTIVE STATE WINS OVER SELECTED (per cascade + specificity) ==========
+   Durant playback, qualsevol pols (sel·leccionat o no) rep `.active`
+   transitòriament. Si un pols ja està `.selected` (pill blau), el
+   highlight de playback (groc) HA DE GUANYAR perquè es vegi el progrés
+   visual de la reproducció.
+
+   Les regles `.selected.active` (compound) tenen specificity (0,3,0) i
+   estan declarades DESPRÉS de `.selected` (0,2,0) → guanyen sempre. */
+
+.timeline .pulse-number.selected.active,
+.timeline .pulse-number.active {
+  background: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-dark, #43433B);
+  border-radius: 2px;
+  padding: 0.1rem 0.3rem;
+}
+
+.timeline .pulse-number.selected.active::before,
+.timeline .pulse-number.selected.active::after,
+.timeline .pulse-number.active::before,
+.timeline .pulse-number.active::after {
+  background: var(--nuzic-yellow, #FFBB33) !important;
+  opacity: 1 !important;
+}
+
+.timeline .cycle-marker.selected.active,
+.timeline .cycle-marker.active {
+  opacity: 1;
+  background: var(--nuzic-yellow, #FFBB33);
+  box-shadow: 0 0 6px var(--nuzic-yellow, #FFBB33);
+}
+
+.timeline .cycle-label.selected.active,
+.timeline .cycle-label.active {
+  color: var(--nuzic-dark, #43433B);
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 2px;
+  padding: 1px 4px;
+  opacity: 1;
+  font-weight: 700;
 }
 
 /* ========== CONTROLS ========== */
