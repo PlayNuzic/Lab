@@ -193,25 +193,29 @@ body.app28 {
 
 /* ========== Pfr EDITOR (cell-based, App13 visual + App12 P-row mechanics) ========== */
 
-/* Wrapper row: full-width amb mateixos margins que .timeline-wrapper per
-   alineament amb la timeline a sobre. */
+/* Wrapper row: `margin-left: 0` perquè la row comenci a `parent.left`,
+   alineant el label "Pfr" verticalment amb l'endcap esquerre de la
+   timeline (que també està a `parent.left`). `margin-right: var(...)`
+   manté la simetria amb el wrapper. El `padding-left/right: 1.25rem`
+   al .editor-cells alinea les cel·les amb el cream del timeline
+   (que té `margin: 20px auto` = 1.25rem cada costat). */
 .pfr-row {
   width: auto;
   max-width: 75rem;
-  margin: 0.25rem var(--app28-endcap-w) 0;
+  margin: 0.25rem var(--app28-endcap-w) 0 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Editor grid: label esquerra (width = --app28-endcap-w per coherència
-   amb el `.it-label` d'App13 i amb l'endcap groc esquerre) + cells. */
+/* Editor grid: label esquerra (width = --app28-endcap-w per coincidir
+   amb el endcap groc esquerre) + cells. */
 .pfr-editor {
   position: relative;
   display: grid;
   grid-template-columns: var(--app28-endcap-w) 1fr;
 }
 
-/* Yellow "Pfr" label on the left — same proportions as App13's .it-label. */
+/* Yellow "Pfr" label on the left — proporcions del .it-label d'App13. */
 .pfr-editor .editor-label {
   font-weight: 700;
   font-size: clamp(0.85rem, 1.8vw, 1.4rem);
@@ -226,8 +230,10 @@ body.app28 {
   background: var(--nuzic-yellow, #FFBB33);
 }
 
-/* Cream strip behind the cells (single line, no wrap, horizontal scroll
-   on overflow — App13 pattern). */
+/* Cream strip darrere les cel·les. Padding-horizontal de 1.25rem per
+   alinear les cel·les amb el cream del .timeline (que té margin auto
+   de 1.25rem). Sense `min-height` perquè la strip s'ajusti a l'alçada
+   de les cel·les (cel·les més grans => strip més alta automàticament). */
 .pfr-editor .editor-cells {
   display: flex;
   justify-content: flex-start;
@@ -237,20 +243,24 @@ body.app28 {
   background: var(--nuzic-light, #EEE8D8);
   overflow-x: auto;
   overflow-y: hidden;
-  min-height: 2.5rem;
+  padding: 0 1.25rem;
+  box-sizing: border-box;
 }
 
-/* Square cells (App13 pattern: percent width + aspect-ratio). */
+/* Cel·les quadrades, més grans (App13 5.88% pattern). `min-width`
+   augmentat a 2.5rem perquè en viewports estrets segueixin sent
+   quadrades visibles. `aspect-ratio: 1` garanteix square en tots
+   els casos. */
 .pfr-editor .editor-cell {
-  width: 4%;
-  min-width: 1.875rem;
+  width: 5%;
+  min-width: 2.5rem;
   flex: none;
   aspect-ratio: 1;
   padding: 0;
   margin: 0;
   text-align: center;
   color: #43433b;
-  font-size: clamp(0.75rem, 1.5vw, 1.1rem);
+  font-size: clamp(0.85rem, 1.6vw, 1.2rem);
   font-weight: 700;
   border: none;
   outline: none;
