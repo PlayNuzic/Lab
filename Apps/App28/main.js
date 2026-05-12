@@ -327,6 +327,10 @@ function initFractionEditorController() {
     defaults: { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
     maxDenominator: MAX_DENOMINATOR,
+    // App28 té numerador fixat a 1 — gcd(1, d) = 1 sempre, mai
+    // reductible, `animateReduction` mai es dispara → ghost DOM és
+    // codi mort. Saltem la creació.
+    enableGhost: false,
     storage: {},
     addRepeatPress,
     labels: {
