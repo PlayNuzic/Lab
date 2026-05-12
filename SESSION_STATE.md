@@ -37,8 +37,12 @@ skill [`.claude/skills/nuzic-migrate/SKILL.md`](.claude/skills/nuzic-migrate/SKI
     eliminat) → **patró base** (punt 41).
   - App27 ✅ FETA — adaptació del patró d'App26 amb numerador editable
     (punt 42). Patró validat per fraccions complexes.
-  - App28, App30 (n=1): PENDENTS d'aplicar el patró d'App26.
-  - App29, App31 (n>1 complexes): PENDENTS d'aplicar el patró d'App27.
+  - App28 ✅ FETA — patró d'App26 + Pfr editor cell-based amb label
+    alineat amb endcap esquerre, cel·les quadrades, active-over-selected
+    cascade fix (punt 44). Patró validat per apps amb editor extra.
+  - App30 (n=1, iTfr editor): PENDENT d'aplicar el patró d'App28 (Pfr → iTfr).
+  - App29 (n>1 complex + Pfr editor): PENDENT d'aplicar App28 + Step 7s.9 (complex).
+  - App31 (n>1 complex + iTfr editor): PENDENT d'aplicar App30 + Step 7s.9 (complex).
 - **Plano-2D + fracció** (App32-35): App32-34 ✅ FETES, **App35** PENDENT.
 
 ### Pendent immediat: aplicar patró App26 a App28/App30, després App29/App31, després App35
@@ -139,6 +143,9 @@ declaracions que competeixen amb el tema. Detall al [Punt 40](#40-transposició-
 | **Bar de la fracció com a `border-bottom` constreny els camps** | Si el `.top` té `border-bottom` amb `width` parcial (ex. 65%), el `.fraction-field.numerator` està constret al mateix 65%. El spinner pill del numerador no pot projectar correctament fora del rectangle exterior → queda dins el editor i no s'alinea verticalment amb el del denominador. | Substituir per pseudo-element `.top::after { left: 17.5%; right: 17.5% }` amb `.top { width: 100% }` i `.fraction-field { width: 100% }`. | Punt 42 pas 2 |
 | **`width: 100%` (heretat de app-common) + `margin-right` causa overflow** | El `.timeline-wrapper` hereta `width: 100%` de `libs/app-common/styles.css:300`. Amb width:100%, els margins ADDICIONEN al box (overflow del parent) en lloc de reduir el content area. Resultat: endcap dret es talla al viewport perquè el `.timeline.right` segueix al `parent.right`. | Override amb `width: auto !important; margin-right: var(--endcap-w)`. Amb width:auto, els margins SÍ redueixen l'available content (patró App13 i App16). | Punt 43 (App16) |
 | **`transform: translateX(...)` falla amb `padding-left + box-sizing: border-box`** | En App16, l'endcap dret amb `right: 0; transform: translateX(100% + 1.25rem)` quedava tapat per la timeline. Causa probable: interacció del transform amb el `padding-left: var(--com-band-w); box-sizing: border-box` del `.timeline`. | Posicionament directe amb `left: calc(100% + 1.25rem); right: auto; transform: none`. Matemàticament equivalent però sense la interacció. | Punt 43 (App16) |
+| **`.selected` declarat DESPRÉS de `.active` → blue tapa playback** | Cascade order: `.cycle-label.selected` declarat després de `.cycle-label.active` (o `.pulse-number.selected` en app's CSS post nuzic-theme). Cel·les `.selected` no rebien highlight visible durant playback. | Regles compostes `.selected.active` (specificity (0,3,0) vs `.selected` (0,2,0)) al FINAL del fitxer. Garanteix cascade + specificity → `.active` sempre guanya. | Punt 44 (App28) |
+| **Label d'editor extra desalineat amb endcap esquerre** | `.pfr-row` (o `.editor-row`) amb `margin: ... var(--endcap-w) ...` igual al `.timeline-wrapper` posa el label a `parent.left + W`, però l'endcap està a `parent.left`. Offset visible de 1×W. | `.pfr-row { margin-left: 0; margin-right: var(--endcap-w) }` + grid first column = `var(--endcap-w)` + `.editor-cells { padding: 0 1.25rem }` per alinear cel·les amb cream del timeline. | Punt 44 (App28) |
+| **Cel·les `aspect-ratio: 1` apareixen rectangulars dins strip alta** | Container amb `min-height: 2.5rem` + cel·les `width: 4%; aspect-ratio: 1; min-width: 1.875rem`. A viewports estrets, min-width guanya → cel·les ~30×30, però strip 40px tall → buit dalt/baix → aparença de strip rectangular. | Treure `min-height` del container (strip s'ajusta a cell-height). Augmentar `min-width` ≥ desired-size. `aspect-ratio: 1` garanteix square. | Punt 44 (App28) |
 
 ### Patrons d'editor cell-based
 
@@ -1685,6 +1692,132 @@ breakpoint vertical). Workaround vigent. Detall complet al
     iT-label responsive), e48a57a (App16 base, transform-based),
     1f172cf (App16 transform → left explicit), e6c1454 (App16
     width:auto + margin-right), 62aba63 (App16 Compás text).
+
+44. **Refactor UI d'App28 (fracció simple + Pfr editor) — patró per
+    apps amb editor cell-based** ✅ FET (2026-05-12)
+
+    App28 = "Sucesion de Pulsos Fraccionados Simples". Estructura idèntica
+    a App26 (fracció simple n=1, timeline + endcaps + franja groga) PLUS
+    un editor Pfr cell-based sota la timeline (label "Pfr" + cream strip
+    amb cel·les de tokens "N" o "N.M"). Reaprofitament del patró 7s amb
+    3 ajustos específics per al Pfr editor.
+
+    **Pas 1 — Step 7s estàndard aplicat** (com App26):
+    - Variables `--app28-endcap-w/h` a `body.app28`.
+    - Fracció vertical amb caixa groga (`left: -W`, width = W).
+    - Endcaps `::before/::after` flush amb cream box-shadow.
+    - Franja groc intens linear-gradient (y=42-56px de 60px).
+    - `.cycle-label.active` rectanglet groc.
+    - `.subdivision-label` ancorat dins endcap esquerre.
+    - `.inputs { display: none }`.
+    - `.timeline-wrapper { width: auto !important; margin: ... var(--W) ... }`.
+    - `enableGhost: false` (n=1 fix → mai reductible).
+
+    **Pas 2 — Pfr editor: label alineat verticalment amb endcap esquerre**:
+
+    Inicialment el label "Pfr" apareixia OFFSET 1×W respecte de l'endcap
+    esquerre (label.x = `parent.left + W`, endcap.x = `parent.left`).
+    Causa: `.pfr-row { margin: 0.25rem var(--endcap-w) 0 }` igual al
+    `.timeline-wrapper` → row començava a `wrapper.left = parent.left + W`,
+    i la primera columna grid de W posava el label encara més a la dreta.
+
+    **Fix**: `.pfr-row { margin-left: 0 }` + cells padding compensatori:
+
+    ```css
+    .pfr-row {
+      margin: 0.25rem var(--app28-endcap-w) 0 0;  /* left: 0, right: W */
+    }
+    .pfr-editor {
+      grid-template-columns: var(--app28-endcap-w) 1fr;
+    }
+    .pfr-editor .editor-cells {
+      padding: 0 1.25rem;  /* alineament amb timeline.margin auto */
+    }
+    ```
+
+    Resultat:
+    - Label spans `parent.left` a `parent.left + W` ✓ (mateix x que endcap)
+    - Cells container des de `parent.left + W` fins `parent.right - W`.
+    - Padding-left 1.25rem fa que les cel·les comencin a
+      `parent.left + W + 1.25rem` = `.timeline.left` ✓ (alineades amb
+      cream del timeline).
+    - Padding-right 1.25rem simètric a la dreta.
+
+    **Pas 3 — Cel·les visiblement quadrades**:
+
+    Inicialment: `.editor-cells { min-height: 2.5rem }` + `.editor-cell
+    { width: 4%; aspect-ratio: 1; min-width: 1.875rem }`. A viewports
+    estrets, `min-width` (1.875rem = 30px) guanyava a `width: 4%`,
+    cel·les eren 30×30, però strip era 2.5rem (40px) tall → buit
+    dalt/baix → cel·les apareixien dins una strip rectangular més alta.
+
+    **Fix**:
+    - Treure `min-height` de `.editor-cells`. Strip s'ajusta a l'alçada
+      de les cel·les.
+    - Augmentar mides: `width: 5%; min-width: 2.5rem`.
+    - `aspect-ratio: 1` garanteix square.
+    - Font augmentada a `clamp(0.85rem, 1.6vw, 1.2rem)`.
+
+    **Pas 4 — Active highlight ha de sobreescriure selected**:
+
+    JS d'App28 afegeix `.active` a tots els polsos durant playback
+    (incloent els `.selected`). Però el CSS:
+    - `.cycle-label.selected` declarat DESPRÉS de `.cycle-label.active`
+      → blue guanyava per cascade.
+    - `.pulse-number.selected` a App28's CSS (post nuzic-theme) →
+      blue guanyava sobre el `.active` del nuzic-theme.
+
+    Resultat erroni: polsos seleccionats no rebien highlight visible
+    durant playback (blue tapava groc).
+
+    **Fix**: regles compostes `.selected.active` (specificity `(0,3,0)`
+    vs `.selected` `(0,2,0)`) al FINAL del fitxer:
+
+    ```css
+    .timeline .pulse-number.selected.active,
+    .timeline .pulse-number.active {
+      background: var(--nuzic-yellow);
+      color: var(--nuzic-dark);
+      border-radius: 2px;
+      padding: 0.1rem 0.3rem;
+    }
+    /* Idem per .cycle-marker i .cycle-label */
+    ```
+
+    Garanteix cascade + specificity → groc sempre guanya. Aplicat a
+    `.pulse-number`, `.cycle-marker`, `.cycle-label`.
+
+    **Decisions per a App29 (complex-fraction + Pfr editor)**:
+    - **Aplicar el patró d'App28** (Pfr editor styling, label alignment,
+      cells quadrades, active-over-selected).
+    - **+ Step 7s.9** (complex-fraction adaptations d'App27):
+      - NO `enableGhost: false` (autoReduce: true usa el ghost)
+      - `gap: 0` al `.fraction-editor-wrapper` (ghost captura gap si no)
+      - Bar de la fracció com a pseudo-element `.top::after` (no
+        border-bottom) perquè els dos spinners (numerator + denominator)
+        s'alineïn a la mateixa x.
+      - `setComplexMode()` en lloc de `setSimpleMode()`.
+    - **+ Step 7r math patterns** si calen ghost-pulse lines o timing
+      bugs específics (probablement no per al Pfr editor, que no és 2D).
+
+    **Lliçons claus**:
+    1. El patró 7s s'aplica IDÈNTIC a apps amb editor extra (App28) o
+       sense (App26). El Pfr editor és separat.
+    2. Per labels d'editor que han de coincidir x amb l'endcap esquerre:
+       `margin-left: 0` al row + grid first column = `var(--endcap-w)`.
+    3. Per alineament del contingut del editor amb el cream del
+       timeline: `padding: 0 1.25rem` al cells container (compensa el
+       `.timeline.margin auto` de 1.25rem).
+    4. `min-height` en un container amb fills `aspect-ratio: 1` causa
+       quadrats apareixent "rectangulars" (espai buit). Eliminar
+       `min-height` perquè container s'ajusti.
+    5. Compound class selectors `.selected.active` són la forma neta de
+       forçar que un estat guanyi sobre un altre quan ambdós poden
+       coexistir, evitant `!important` excessiu.
+
+    **Commits**: 19acb5b (Step 7s base + Pfr editor responsive),
+    e39b36e (label alignment + bigger square cells),
+    6b36e33 (active wins over selected).
 
 ### Tasques pendents (feina futura, fora del pla actual)
 
