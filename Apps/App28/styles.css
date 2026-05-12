@@ -481,6 +481,48 @@ body[data-visual="nuzic"].app28
   transition: none;
 }
 
+/* ========== ACTIVE STATE WINS OVER SELECTED (per cascade + specificity) ==========
+   Durant playback, qualsevol pols (sel·leccionat o no) rep `.active`
+   transitòriament. Si un pols ja està `.selected` (pill blau), el
+   highlight de playback (groc) HA DE GUANYAR perquè es vegi el progrés
+   visual de la reproducció.
+
+   Les regles `.selected.active` (compound) tenen specificity (0,3,0) i
+   estan declarades DESPRÉS de `.selected` (0,2,0) → guanyen sempre. */
+
+.timeline .pulse-number.selected.active,
+.timeline .pulse-number.active {
+  background: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-dark, #43433B);
+  border-radius: 2px;
+  padding: 0.1rem 0.3rem;
+}
+
+.timeline .pulse-number.selected.active::before,
+.timeline .pulse-number.selected.active::after,
+.timeline .pulse-number.active::before,
+.timeline .pulse-number.active::after {
+  background: var(--nuzic-yellow, #FFBB33) !important;
+  opacity: 1 !important;
+}
+
+.timeline .cycle-marker.selected.active,
+.timeline .cycle-marker.active {
+  opacity: 1;
+  background: var(--nuzic-yellow, #FFBB33);
+  box-shadow: 0 0 6px var(--nuzic-yellow, #FFBB33);
+}
+
+.timeline .cycle-label.selected.active,
+.timeline .cycle-label.active {
+  color: var(--nuzic-dark, #43433B);
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 2px;
+  padding: 1px 4px;
+  opacity: 1;
+  font-weight: 700;
+}
+
 /* ========== CONTROLS ========== */
 .controls #tapTempoBtn,
 .controls #loopBtn {
