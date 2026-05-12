@@ -39,9 +39,10 @@ skill [`.claude/skills/nuzic-migrate/SKILL.md`](.claude/skills/nuzic-migrate/SKI
     (punt 42). Patró validat per fraccions complexes.
   - App28 ✅ FETA — patró d'App26 + Pfr editor cell-based amb label
     alineat amb endcap esquerre, cel·les quadrades, active-over-selected
-    cascade fix (punt 44). Patró validat per apps amb editor extra.
+    cascade fix (punt 44).
+  - App29 ✅ FETA — port d'App28 + adaptacions complex (gap: 0, bar
+    pseudo-element) seguint Step 7s.9 (punt 45). Port en 1 iteració.
   - App30 (n=1, iTfr editor): PENDENT d'aplicar el patró d'App28 (Pfr → iTfr).
-  - App29 (n>1 complex + Pfr editor): PENDENT d'aplicar App28 + Step 7s.9 (complex).
   - App31 (n>1 complex + iTfr editor): PENDENT d'aplicar App30 + Step 7s.9 (complex).
 - **Plano-2D + fracció** (App32-35): App32-34 ✅ FETES, **App35** PENDENT.
 
@@ -1818,6 +1819,90 @@ breakpoint vertical). Workaround vigent. Detall complet al
     **Commits**: 19acb5b (Step 7s base + Pfr editor responsive),
     e39b36e (label alignment + bigger square cells),
     6b36e33 (active wins over selected).
+
+45. **Refactor UI d'App29 (Pfr editor + fracció complexa) — port d'App28
+    + adaptacions complex** ✅ FET (2026-05-12)
+
+    App29 = "Sucesion de Pulsos Fraccionados Complejos". Estructura
+    idèntica a App28 (timeline + endcaps + Pfr editor + active-over-
+    selected) PLUS fracció complexa amb numerador editable (com App27).
+    Reaprofitament directe del refactor d'App28 + adaptacions Step 7s.9.
+
+    **Estratègia**:
+
+    ```bash
+    sed 's/app28/app29/g; s/App28/App29/g' \
+        Apps/App28/styles.css > Apps/App29/styles.css
+    ```
+
+    Port directe de tot el patró ja validat. Després, aplicar 2
+    adaptacions complex sobre el resultat.
+
+    **Adaptacions complex (Step 7s.9, d'App27)**:
+
+    1. **`.fraction-editor-wrapper { gap: 0 }`** — Ja heretat d'App28
+       com a "preventiu" amb comentari ambiguous. **A App29 és CRÍTIC**:
+       App29 té `autoReduce: true` → ghost-fraction DOM creat. Sense
+       gap: 0, el ghost captura el `gap: 1.125rem` default i empeny la
+       fracció a la dreta, desalineant-la del endcap esquerre.
+       Comentari actualitzat per reflectir aquesta criticitat.
+
+    2. **Bar de la fracció com a `.top::after` pseudo-element**, NO
+       `border-bottom`:
+
+       ```css
+       .fraction-editor .top {
+         position: relative;
+         border-bottom: none;
+         padding-bottom: 4px;       /* reserva pel bar */
+         width: 100%;               /* full-width (NO 65%) */
+       }
+       .fraction-editor .top::after {
+         content: '';
+         position: absolute;
+         left: 17.5%;
+         right: 17.5%;
+         bottom: 0;
+         height: 4px;
+         background: #000;
+       }
+       ```
+
+       En App28 (simple mode) només era visible el spinner del
+       denominador (numerator ocult per `setSimpleMode()`). A App29
+       els DOS spinners són visibles → cal que els camps siguin
+       full-width perquè els spinners projectin a la mateixa x. La
+       barra visualment "narrow" la dibuixem amb pseudo amb insets.
+
+    **main.js INALTERAT**:
+    - `createFractionEditor` amb `autoReduce: true; minNumerator: 2;
+      minDenominator: 2` ja correcte.
+    - `setComplexMode()` cridat → numerator + denominator editables.
+    - **NO** afegir `enableGhost: false` (App29 usa el ghost per la
+      previsualització de la reducció).
+    - Comentari del input:disabled actualitzat (era "setSimpleMode
+      aplica opacity 0.5" — a App29 cap input està disabled per defecte).
+
+    **Decisions per a App31** (Pfr → iTfr + complex):
+    - **App30 (Pfr → iTfr simple)** és el següent pas: port d'App28 amb
+      adaptació iTfr (1 cell per iT, no per subdivisió). Cap canvi
+      complex.
+    - **App31 (iTfr + complex)** = App30 + Step 7s.9 (port d'App29):
+      mateixos gap:0 i bar pseudo-element.
+
+    **Lliçó clau**:
+    Quan dues apps consecutives són variants simple/complex d'un
+    mateix editor (App26↔App27, App28↔App29, App30↔App31), el patró
+    és:
+    1. Refactor simple-fraction app primer (App28).
+    2. Port literal a la complex-fraction app amb `sed` (App29).
+    3. Aplicar Step 7s.9: gap:0 + bar pseudo-element + setComplexMode.
+    4. NO enableGhost: false a complex.
+
+    Refactor d'App29 en 1 iteració (vs App28 que va requerir 3
+    iteracions). El patró ja està madur.
+
+    **Commit**: 7c96e29.
 
 ### Tasques pendents (feina futura, fora del pla actual)
 
