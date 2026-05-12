@@ -610,12 +610,8 @@ function createPfrValueCell(token, entryIndex) {
       return;
     }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      const atStart = cell.selectionStart === 0 && cell.selectionEnd === 0;
-      const atEnd = cell.selectionStart === cell.value.length && cell.selectionEnd === cell.value.length;
-      if (e.key === 'ArrowLeft' && !atStart) return;
-      if (e.key === 'ArrowRight' && !atEnd) return;
       const target = e.key === 'ArrowRight' ? nextEditableCell(cell) : prevEditableCell(cell);
-      if (target) { e.preventDefault(); target.focus(); }
+      if (target) { e.preventDefault(); target.focus(); target.select?.(); }
     }
   });
 
@@ -662,7 +658,17 @@ function createPfrInputCell() {
     if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault();
       clearTimeout(pfrCommitTimer);
-      if (cell.value.trim()) tryCommitFromInput(cell);
+      if (cell.value.trim()) {
+        tryCommitFromInput(cell);
+      } else {
+        const target = e.shiftKey ? prevEditableCell(cell) : nextEditableCell(cell);
+        if (target) { target.focus(); target.select?.(); }
+      }
+      return;
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const target = e.key === 'ArrowRight' ? nextEditableCell(cell) : prevEditableCell(cell);
+      if (target) { e.preventDefault(); target.focus(); target.select?.(); }
       return;
     }
     if (e.key === 'Backspace' && !cell.value) {
