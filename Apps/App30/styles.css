@@ -47,19 +47,23 @@ body[data-visual="nuzic"] .middle.app30-middle {
   align-self: stretch;
 }
 
-/* Grup d'infos a la dreta: ocupa tota l'alçada del row (= caixa de
-   fracció). `space-between` posa Suma iT al top i iT Disponibles al
-   bottom, alineats amb el top/bottom de la fracció. */
+/* Grup d'infos a la dreta: grid intern 2 files iguals (igual que la
+   fracció es divideix en numerador/denominador). Suma iT al centre
+   del row 1 (= centre del numerador). iT Disponibles al centre del
+   row 2 (= centre del denominador). */
 .itfr-info-group {
   grid-column: 3;
   grid-row: 1;
   justify-self: end;
   align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-end;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  justify-items: end;
+  align-items: center;
 }
+
+.itfr-info-group .param.sum-it { grid-row: 1; }
+.itfr-info-group .param.it-disponibles { grid-row: 2; }
 
 /* Info displays: label negre gruixut + caixa quadrada amb número.
    NO pill — format de l'adjunt. Specificity boost per guanyar contra
@@ -392,8 +396,9 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   width: auto !important;
   max-width: 75rem;
   /* margin-top ampliat perquè les barres iT (top: -3.3rem) + halter
-     groc (top: -1.9rem) sobre la timeline NO trepitgin el .middle. */
-  margin: 4rem var(--app30-endcap-w) 0.75rem var(--app30-endcap-w);
+     groc (top: -1.9rem) sobre la timeline NO trepitgin el .middle.
+     ~5.5rem permet veure les barres + halter sense col·lisió. */
+  margin: 5.5rem var(--app30-endcap-w) 0.75rem var(--app30-endcap-w);
   position: relative;
 }
 
