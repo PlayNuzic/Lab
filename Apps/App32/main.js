@@ -458,6 +458,12 @@ function renderGridTimeline() {
   }
 
   container.appendChild(timelineRow);
+
+  // Subdivision label "1/d" dins de l'endcap esquerre del timeline-container.
+  const subdivisionLabel = document.createElement('div');
+  subdivisionLabel.className = 'plano-subdivision-label';
+  subdivisionLabel.textContent = `${FIXED_NUMERATOR}/${d}`;
+  container.appendChild(subdivisionLabel);
 }
 
 function syncGridScrolls() {
@@ -653,6 +659,7 @@ function initFractionEditorController() {
     defaults: { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
     maxDenominator: MAX_DENOMINATOR,
+    enableGhost: false,  // numerador fix a 1 → autoReduce mai s'activa, ghost mort
     storage: {},
     addRepeatPress,
     labels: {
