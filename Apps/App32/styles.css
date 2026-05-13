@@ -542,16 +542,17 @@ body[data-visual="nuzic"].app32 .plano-timeline-container {
   min-height: var(--app32-endcap-h) !important;
   overflow-y: visible !important;
   /* Stops en % perquè la franja groga escali proporcionalment amb
-     l'alçada de la timeline. 60-78% deixa la franja centrada-baixa,
-     alineada amb els ticks ::after dels pulse-numbers. */
+     l'alçada de la timeline. 55-74% correspon visualment als 42-56px
+     originals quan endcap-h = 76px (max), i manté la franja sobre els
+     ticks ::after a qualsevol viewport. */
   background:
     linear-gradient(
       to bottom,
       var(--nuzic-yellow-light) 0,
-      var(--nuzic-yellow-light) 60%,
-      var(--nuzic-yellow) 60%,
-      var(--nuzic-yellow) 78%,
-      var(--nuzic-yellow-light) 78%,
+      var(--nuzic-yellow-light) 55%,
+      var(--nuzic-yellow) 55%,
+      var(--nuzic-yellow) 74%,
+      var(--nuzic-yellow-light) 74%,
       var(--nuzic-yellow-light) 100%
     ) !important;
 }
