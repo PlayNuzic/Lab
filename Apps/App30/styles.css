@@ -71,14 +71,19 @@ body[data-visual="nuzic"] .middle.app30-middle {
    (0,5,3) del nuzic-theme. */
 body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.sum-it,
 body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-disponibles {
+  display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
+  justify-content: flex-end !important;
   gap: 0.75rem !important;
   background: transparent !important;
   border-radius: 0 !important;
   padding: 0 !important;
   width: auto !important;
-  height: auto !important;
+  /* Mitja alçada de la caixa de fracció — cadascuna ocupa numerador o
+     denominador respectivament. */
+  height: calc(var(--app30-endcap-h) / 2) !important;
+  overflow: visible !important;
 }
 
 body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.sum-it .abbr,
