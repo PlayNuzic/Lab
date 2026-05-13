@@ -478,21 +478,12 @@ body.dragging-note * {
   height: var(--app32-endcap-h);
   position: relative;
   display: block !important;
-  /* Fons cream + franja groga intensa sobre la línia dels ::after ticks,
-     equivalent a les timelines d'App26/App28/App30. */
-  /* Stops en % perquè la franja groga escali proporcionalment amb
-     l'alçada de la timeline. 60-78% deixa la franja centrada-baixa,
-     alineada amb els ticks ::after dels pulse-numbers. */
-  background:
-    linear-gradient(
-      to bottom,
-      var(--nuzic-yellow-light) 0,
-      var(--nuzic-yellow-light) 60%,
-      var(--nuzic-yellow) 60%,
-      var(--nuzic-yellow) 78%,
-      var(--nuzic-yellow-light) 78%,
-      var(--nuzic-yellow-light) 100%
-    ) !important;
+  /* El background gradient (cream + franja groga) ve del
+     `.plano-timeline-container` parent. NO el dupliquem aquí perquè
+     el container té `margin-top: -cellHeight/2` i el row no — si
+     ambdós tenen background, el del row queda desplaçat respecte el
+     del container i es veu una doble franja desalineada. */
+  background: transparent !important;
 }
 
 /* ========== GAP a `.plano-container` entre rows = 0 ==========
