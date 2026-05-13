@@ -22,6 +22,7 @@
 body.app32 {
   --app32-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
   --app32-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
+  --app32-timeline-left-label-inset: clamp(0.2rem, 0.7vw, 0.45rem);
 }
 
 /* ========== .middle: fracció a l'esquerra + info pills a la dreta ==========
@@ -305,6 +306,10 @@ body[data-visual="nuzic"].app32 .itfr-info-group .bpm-inline.visible.param.it-di
 .plano-container {
   width: 100%;
   background: var(--bg-light);
+  /* App32 always renders 12 note rows (11..0). The plano-modular default
+     reserves 15 visible rows, which leaves empty soundline/matrix space
+     between note 0 and the timeline on desktop widths. */
+  --plano-visible-rows: 12;
 }
 
 [data-theme="dark"] .plano-container {
@@ -344,16 +349,11 @@ body[data-visual="nuzic"].app32 .itfr-info-group .bpm-inline.visible.param.it-di
   ) !important;
 }
 
-/* Pink soundline background stops at the -0- line. */
+/* The soundline owns the extra half-cell below note 0 so row-0 note bars
+   can fit. Keep that whole soundline area pink; the left endcap triangle
+   handles the yellow transition into the timeline. */
 body[data-visual="nuzic"] .plano-container .plano-soundline-container {
-  background:
-    linear-gradient(
-      to bottom,
-      var(--nuzic-pink-light) 0,
-      var(--nuzic-pink-light) calc(100% - var(--plano-cell-height, 2rem) / 0.78),
-      transparent calc(100% - var(--plano-cell-height, 2rem) / 0.78),
-      transparent 100%
-    );
+  background: var(--nuzic-pink-light);
 }
 
 /* SENSE border-left a les cel·les: només els dots radial-gradient marquen
@@ -472,6 +472,24 @@ body[data-visual="nuzic"].app32 .plano-container {
   position: relative;
 }
 
+@media (max-width: 768px) {
+  body[data-visual="nuzic"].app32 .plano-container {
+    --plano-visible-rows: 10;
+  }
+}
+
+@media (max-width: 600px) {
+  body[data-visual="nuzic"].app32 .plano-container {
+    --plano-visible-rows: 9;
+  }
+}
+
+@media (max-width: 500px) {
+  body[data-visual="nuzic"].app32 .plano-container {
+    --plano-visible-rows: 8;
+  }
+}
+
 /* ========== ENDCAP ESQUERRE de la timeline = cantonada inferior-
    esquerra del plànol (col 1, row 2) ==========
    `.plano-container::before` ocupa naturalment aquesta cel·la amb
@@ -485,25 +503,17 @@ body[data-visual="nuzic"].app32 .plano-container {
 body[data-visual="nuzic"].app32 .plano-container::before {
   background: linear-gradient(
     to bottom right,
-    var(--nuzic-pink-light, #ffd6e8) 0%,
-    var(--nuzic-pink-light, #ffd6e8) 49.5%,
+    var(--nuzic-pink, #f28aad) 0%,
+    var(--nuzic-pink, #f28aad) 49.5%,
     var(--nuzic-yellow, #FFBB33) 50.5%,
     var(--nuzic-yellow, #FFBB33) 100%
   ) !important;
-  /* Estendre cap amunt per cobrir el `padding-bottom: cellHeight/2`
-     de la `.plano-soundline-row`. Sense això queda un espai visual
-     entre el `-0-` text de la soundline i la base de la cantonada. */
-  margin-top: calc(-1 * var(--plano-cell-height, 32px) / 2) !important;
 }
 
 /* ========== ENDCAP DRET de la timeline ==========
    Overlay groc sobre els últims W px del timeline-container. */
 body[data-visual="nuzic"].app32 .plano-timeline-container {
   position: relative;
-  /* Estendre cap amunt per cobrir el `padding-bottom: cellHeight/2`
-     de la `.plano-matrix`. Mateix patró que `.plano-container::before`
-     amb la soundline. */
-  margin-top: calc(-1 * var(--plano-cell-height, 32px) / 2) !important;
 }
 
 body[data-visual="nuzic"].app32 .plano-timeline-container::after {
@@ -542,8 +552,8 @@ body[data-visual="nuzic"].app32 .plano-timeline-container {
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
-  padding: 0 0.25rem 0.15rem 0;
-  font-size: clamp(0.85rem, 1.4vw, 1rem);
+  padding: 0 0.18rem 0.12rem 0;
+  font-size: clamp(0.65rem, 1vw, 0.82rem);
   font-weight: 700;
   color: #fff;
   pointer-events: none;
@@ -562,6 +572,11 @@ body[data-visual="nuzic"].app32 .plano-timeline-container {
   color: var(--nuzic-dark, #43433B);
   white-space: nowrap;
   z-index: 1;
+}
+
+.plano-timeline-number[data-col-index="0"] {
+  left: var(--app32-timeline-left-label-inset) !important;
+  transform: translate(0, -50%);
 }
 
 /* Integer pulses: large yellow numbers. */
