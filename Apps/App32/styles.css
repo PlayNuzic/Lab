@@ -395,13 +395,13 @@ body[data-visual="nuzic"].app32 .plano-cell.pulse-boundary {
 body[data-visual="nuzic"].app32 .plano-cell.pulse-boundary::before {
   content: '';
   position: absolute;
-  /* Cantonada bottom-left de la cel·la. Mida 4px (com el dot original
-     del radial-gradient, abans del refactor — el pseudo complet té la
-     mateixa àrea visual que el quart-de-cercle anterior). */
+  /* Cantonada bottom-left de la cel·la. Mida en clamp() perquè escali
+     proporcionalment amb el viewport (~4px com el radial-gradient
+     original a la mida default). */
   left: 0;
   bottom: 0;
-  width: 4px;
-  height: 4px;
+  width: clamp(3px, 0.4vw, 6px);
+  height: clamp(3px, 0.4vw, 6px);
   background: var(--nuzic-dark, #43433B);
   border-radius: 50%;
   transform: translate(-50%, 50%);
@@ -480,14 +480,17 @@ body.dragging-note * {
   display: block !important;
   /* Fons cream + franja groga intensa sobre la línia dels ::after ticks,
      equivalent a les timelines d'App26/App28/App30. */
+  /* Stops en % perquè la franja groga escali proporcionalment amb
+     l'alçada de la timeline. 60-78% deixa la franja centrada-baixa,
+     alineada amb els ticks ::after dels pulse-numbers. */
   background:
     linear-gradient(
       to bottom,
       var(--nuzic-yellow-light) 0,
-      var(--nuzic-yellow-light) 42px,
-      var(--nuzic-yellow) 42px,
-      var(--nuzic-yellow) 56px,
-      var(--nuzic-yellow-light) 56px,
+      var(--nuzic-yellow-light) 60%,
+      var(--nuzic-yellow) 60%,
+      var(--nuzic-yellow) 78%,
+      var(--nuzic-yellow-light) 78%,
       var(--nuzic-yellow-light) 100%
     ) !important;
 }
@@ -547,14 +550,17 @@ body[data-visual="nuzic"].app32 .plano-timeline-container {
   height: var(--app32-endcap-h) !important;
   min-height: var(--app32-endcap-h) !important;
   overflow-y: visible !important;
+  /* Stops en % perquè la franja groga escali proporcionalment amb
+     l'alçada de la timeline. 60-78% deixa la franja centrada-baixa,
+     alineada amb els ticks ::after dels pulse-numbers. */
   background:
     linear-gradient(
       to bottom,
       var(--nuzic-yellow-light) 0,
-      var(--nuzic-yellow-light) 42px,
-      var(--nuzic-yellow) 42px,
-      var(--nuzic-yellow) 56px,
-      var(--nuzic-yellow-light) 56px,
+      var(--nuzic-yellow-light) 60%,
+      var(--nuzic-yellow) 60%,
+      var(--nuzic-yellow) 78%,
+      var(--nuzic-yellow-light) 78%,
       var(--nuzic-yellow-light) 100%
     ) !important;
 }
@@ -626,18 +632,18 @@ body[data-visual="nuzic"].app32 .plano-timeline-number::before {
   top: auto;
   bottom: 100%;
   left: 50%;
-  height: 10px;
+  height: clamp(0.5rem, 1vw, 0.75rem);
   transform: translateX(-50%);
-  margin-bottom: 4px;
+  margin-bottom: clamp(0.2rem, 0.5vw, 0.35rem);
 }
 
 body[data-visual="nuzic"].app32 .plano-timeline-number::after {
   top: 100%;
   bottom: auto;
   left: 50%;
-  height: 10px;
+  height: clamp(0.5rem, 1vw, 0.75rem);
   transform: translateX(-50%);
-  margin-top: 4px;
+  margin-top: clamp(0.2rem, 0.5vw, 0.35rem);
 }
 
 .plano-timeline-number[data-col-index="0"] {
