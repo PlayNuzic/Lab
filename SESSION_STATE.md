@@ -25,7 +25,7 @@ Inici: 2026-04-27. Documents de referència:
 [`docs/nuzic-editor-migration.md`](docs/nuzic-editor-migration.md), i la
 skill [`.claude/skills/nuzic-migrate/SKILL.md`](.claude/skills/nuzic-migrate/SKILL.md).
 
-### Estat actual (2026-05-11)
+### Estat actual (2026-05-13)
 
 - **Sistema Interactivo + mides d'iframe**: ✅ FET (punts 1-15).
 - **Apps d'escales (App21-25B)**: ✅ FET (punts 25-37, 40).
@@ -42,24 +42,34 @@ skill [`.claude/skills/nuzic-migrate/SKILL.md`](.claude/skills/nuzic-migrate/SKI
     cascade fix (punt 44).
   - App29 ✅ FETA — port d'App28 + adaptacions complex (gap: 0, bar
     pseudo-element) seguint Step 7s.9 (punt 45). Port en 1 iteració.
-  - App30 (n=1, iTfr editor): PENDENT d'aplicar el patró d'App28 (Pfr → iTfr).
+  - App30 ✅ FETA — patró d'App28 + iTfr editor + info pills quadrades
+    alineades amb endcap dret + halter iT (createIntervalLabelBar)
+    sota la barra colorada. Step 7q complet (punt 46).
   - App31 (n>1 complex + iTfr editor): PENDENT d'aplicar App30 + Step 7s.9 (complex).
 - **Plano-2D + fracció** (App32-35): App32-34 ✅ FETES, **App35** PENDENT.
 
-### Pendent immediat: aplicar patró App26 a App28/App30, després App29/App31, després App35
+### Pendent immediat: App31 (port d'App30 + complex) i App35
 
-**Per a App28 i App30 (n=1, simple)** — replicar el patró d'App26 (punt
-41): caixa de fracció vertical alineada amb endcap, endcaps grocs,
-franja groga sobre after-ticks, `enableGhost: false`. Diferències
-respecte App26:
+**Per a App31 (n>1, complexa)** — port literal d'App30 + adaptacions
+complex (paral·lel a com App29 va portar d'App28). Receta minimum:
 
-- App28 usa **Pfr editor** (pulse-fractional cell-based) → mantenir
-  l'editor existent, només refactor visual del fraction-editor + timeline.
-- App30 usa **iTfr editor** (interval-temporal-fractional) → mateix
-  enfocament: refactor visual sense tocar l'editor de fons.
+1. `sed 's/app30/app31/g; s/App30/App31/g' Apps/App30/{main.js,styles.css,index.html}`
+   sobre còpies inicials d'App31. Ajustar `<title>` i `<body class>`.
+2. **Treure `enableGhost: false`** de `createFractionEditor` — App31
+   té numerador editable i autoReduce.
+3. **`setComplexMode()` enlloc de `setSimpleMode()`** — fa visible el
+   spinner del numerador i el deixa editable.
+4. **`.fraction-editor-wrapper { gap: 0 }`** — el ghost flex-item
+   captura el gap default i desalinea la fracció del endcap (Trap +
+   punt 42 pas 3).
+5. **Bar com a pseudo-element `.top::after`** enlloc de `border-bottom`
+   — perquè els dos spinners projectin la mateixa x (Step 7s.9b).
+6. **Math complex** del Step 7r aplicat (NO és plano-2D, però les
+   fórmules són grid-agnostic): `(colIdx * n) % d === 0`,
+   `(startSubdiv * n) / d`, bugs 1/2/3 timing, ghost-pulse lines si
+   els pulsos enters no cauen sobre cel·les del subdivision-row.
 
-**Per a App29/App31 (n>1, complexa)** — paral·lel a App27 (punt 42).
-Diferències respecte App26:
+**Per a App29/App31/App33/App35 (n>1, complexa) — referència general**:
 
 - **NO passar `enableGhost: false`** — la ghost-fraction es fa servir
   per previsualitzar la reducció (`autoReduce: true`).
@@ -104,7 +114,8 @@ a qualsevol refactor futur. Cada entrada inclou un link al detall.
 | `libs/shared-ui/output-note-pill.css` + `libs/app-common/output-note-pill.js` | Pastilla input numèric cíclic (`.outputnote` per Transposición / `.registro` per Registro). `createOutputNotePill({initial, range, onChange})`. | App18 (només CSS), App23, App24, App25, App25B |
 | `libs/app-common/info-tooltip.js` | Tooltip de validació per editors. Una sola implementació; les apps deleguen amb wrapper local `showError(cell, msg)` → `infoTooltip.show(msg, cell)`. | App18, App23, App24, App25, App25B |
 | `libs/shared-ui/measure-header.{js,css}` | Capçalera de compassos reutilitzable (App16 + App19). Patró d'alineament amb `--com-band-w` i `--com-band-track-right` signat. Opció `labelText` per posar text al rectangle esquerre (default '' = retro-compat). | App16 (`labelText: 'Compás'`), App19/App20 (sense text) |
-| `libs/app-common/fraction-editor.js` — opció `enableGhost` | Opt-out de la ghost-fraction (DOM mort en runtime per apps que mai redueixen). Default `true` per retro-compat. Passar `enableGhost: false` a apps de fracció simple (n=1 fixat). | App26 (i futurament App28, App30) |
+| `libs/app-common/fraction-editor.js` — opció `enableGhost` | Opt-out de la ghost-fraction (DOM mort en runtime per apps que mai redueixen). Default `true` per retro-compat. Passar `enableGhost: false` a apps de fracció simple (n=1 fixat). | App26, App28, App30 |
+| `libs/shared-ui/interval-label-bar.{js,css}` — `createIntervalLabelBar({startPercent, widthPercent, label, variant})` | Halter groc d'iT (dot-line-box-line-dot) usat sota una barra colorada per indicar la duració d'un interval temporal. Variant `dashed` per silencis. | App13 (interval-row), App30 (interval-bar) |
 
 Detall complet a [Punt 40](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app) (mòduls) i Punt 41 (`enableGhost` + patró App26).
 
@@ -147,6 +158,8 @@ declaracions que competeixen amb el tema. Detall al [Punt 40](#40-transposició-
 | **`.selected` declarat DESPRÉS de `.active` → blue tapa playback** | Cascade order: `.cycle-label.selected` declarat després de `.cycle-label.active` (o `.pulse-number.selected` en app's CSS post nuzic-theme). Cel·les `.selected` no rebien highlight visible durant playback. | Regles compostes `.selected.active` (specificity (0,3,0) vs `.selected` (0,2,0)) al FINAL del fitxer. Garanteix cascade + specificity → `.active` sempre guanya. | Punt 44 (App28) |
 | **Label d'editor extra desalineat amb endcap esquerre** | `.pfr-row` (o `.editor-row`) amb `margin: ... var(--endcap-w) ...` igual al `.timeline-wrapper` posa el label a `parent.left + W`, però l'endcap està a `parent.left`. Offset visible de 1×W. | `.pfr-row { margin-left: 0; margin-right: var(--endcap-w) }` + grid first column = `var(--endcap-w)` + `.editor-cells { padding: 0 1.25rem }` per alinear cel·les amb cream del timeline. | Punt 44 (App28) |
 | **Cel·les `aspect-ratio: 1` apareixen rectangulars dins strip alta** | Container amb `min-height: 2.5rem` + cel·les `width: 4%; aspect-ratio: 1; min-width: 1.875rem`. A viewports estrets, min-width guanya → cel·les ~30×30, però strip 40px tall → buit dalt/baix → aparença de strip rectangular. | Treure `min-height` del container (strip s'ajusta a cell-height). Augmentar `min-width` ≥ desired-size. `aspect-ratio: 1` garanteix square. | Punt 44 (App28) |
+| **`grid-template-rows: 1fr 1fr` + contingut intrínsec overflow** | Intent d'alinear Suma iT amb numerador i iT Disponibles amb denominador via grid 2 rows iguals. Però `.bpm-inline.visible.param` hereta `height: clamp(2rem, 5vw, 3rem) !important` del nuzic-theme → cada pill ~48px, dues sumen ~96px > 76px del row → overflow → pills es centren visualment al mig del grup, NO al top/bottom. | NO usar grid amb `1fr 1fr` per partir. Usar `position: absolute; top: 0; bottom: 0` al grup + flex column. Si vols caixes quadrades alineades amb endcap, forçar `width = height = var(--endcap-w)` a les `.circle` amb specificity boost `!important` per sobreescriure el `clamp(2rem,5vw,3rem)` heretat. | Punt 46 (App30) |
+| **Info group alineat amb endcap dret** | Volem que les caixes Suma iT / iT Disponibles quedin verticalment sobre l'endcap dret de la timeline. El `.middle` té els mateixos margins que el `.timeline-wrapper` (`0 var(--endcap-w)`). L'endcap dret projecta `+W` respecte `.timeline.right` (= `wrapper.right - 1.25rem`) → endcap.right = `parent.right`. | `.itfr-info-group { position: absolute; right: calc(0 - var(--endcap-w)) }`: surt fora del `.middle` cap a la dreta fins a `parent.right`. Caixes amb `width: var(--endcap-w)` → bord dret a la mateixa x que endcap. | Punt 46 (App30) |
 
 ### Patrons d'editor cell-based
 
@@ -1903,6 +1916,101 @@ breakpoint vertical). Workaround vigent. Detall complet al
     iteracions). El patró ja està madur.
 
     **Commit**: 7c96e29.
+
+46. **Refactor UI d'App30 (fracció simple + iTfr editor + halter iT)
+    — patró per a App31** ✅ FET (2026-05-13)
+
+    App30 = "Sucesion de iT Fraccionados Simples". Patró d'App28 sobre
+    el `.middle` + timeline + endcaps, PLUS info pills quadrades a la
+    dreta + halter groc d'iT (de l'App13) sota cada barra colorada.
+
+    **Tres canvis principals respecte al baseline d'App30 abans del
+    refactor (Step 7q sense visual layer)**:
+
+    1. **Timeline com App26/App28 (Step 7s complet)** — port literal:
+       - `--app30-endcap-w/h` a `body.app30`.
+       - Endcaps `::before`/`::after` flush amb cream box-shadow.
+       - Franja groc intens sobre after-ticks (linear-gradient).
+       - Subdivision-label `1/N` ancorada al bottom de l'endcap esquerre.
+       - Fracció vertical groga a `.middle` alineada amb `::before`
+         endcap (`left: -W`).
+       - `enableGhost: false` al `createFractionEditor`.
+
+    2. **Info pills "Suma iT" / "iT Disponibles" reformatejades**:
+       - Label negre gruixut + caixa quadrada (NO pill ovalada).
+       - Suma iT amb vora groga intensa; iT Disponibles amb vora cream.
+       - Posicionament `.itfr-info-group { position: absolute;
+         right: calc(0 - var(--app30-endcap-w)) }` → projectat fora
+         del `.middle` cap a la dreta fins a la mateixa x de l'endcap
+         dret de la timeline. Caixes amb `width = height =
+         var(--app30-endcap-w)` (quadrades, alineades verticalment
+         amb l'endcap). Gap: 0.4rem entre les dues.
+       - Specificity boost contra `nuzic-theme.css` (`.param:has(
+         .circle > input)` amb `!important`): selectors
+         `body[data-visual="nuzic"].app30 .itfr-info-group
+         .bpm-inline.visible.param.* .circle` + `!important` a totes
+         les declaracions.
+
+    3. **Barres iT estil App13** — substituir `.interval-bar-visual__label`
+       intern per `createIntervalLabelBar` (`libs/shared-ui/interval-
+       label-bar.js`):
+       - `interval-bar-visual` (barra colorada) puja a `top: -3.3rem`.
+       - `.interval-label-bar` (halter groc dot-line-box-line-dot)
+         a `top: -1.9rem`, just sota la barra colorada.
+       - Import `<link>` afegit a `interval-label-bar.css` a `index.html`.
+       - `updateIntervalBars` emet barra + halter per cada interval iT.
+       - `timeline.querySelectorAll('.interval-label-bar')` esborra
+         halters obsolets quan canvia la sequència.
+
+    **`.middle` reorganitzat**: `display: block; position: relative;
+    min-height: calc(2 * var(--app30-endcap-w) + 0.4rem)`. La fracció
+    flueix natural a l'esquerra (slot inline-block); el grup d'infos
+    flota a la dreta (position absolute).
+
+    **Lliçons noves** (afegides a la taula de traps):
+
+    - **`grid-template-rows: 1fr 1fr` no parteix els flex-children**:
+      Provar de partir el grup d'infos en 2 files iguals (1fr/1fr) per
+      alinear Suma iT amb el numerador i iT Disponibles amb el
+      denominador falla. La `.bpm-inline.visible.param` hereta
+      `height: clamp(2rem, 5vw, 3rem)` del nuzic-theme → cada pill ~48px
+      → dues sumen ~96px > 76px del row → overflow → es centren al mig
+      visual. Solució: position absolute + flex column space-between
+      (o gap petit + caixes quadrades amb height forçada explícitament).
+
+    - **Info pills alineades amb endcap dret de la timeline**: els
+      mateixos margins del `.middle` i del `.timeline-wrapper` (`0
+      var(--endcap-w)`) fan que `parent.right - endcap.right == 0`.
+      Per que les info pills (a dins del `.middle`) arribin a la
+      mateixa x, cal `right: calc(0 - var(--endcap-w))` (projectar W
+      cap a la dreta).
+
+    **Decisions per a App31** (iTfr + complex, anàleg App28→App29):
+
+    1. **Port literal d'App30** amb `sed app30 → app31` sobre tots tres
+       fitxers (main.js, styles.css, index.html).
+    2. **Treure `enableGhost: false`** (App31 té autoReduce).
+    3. **`setComplexMode()`** enlloc de `setSimpleMode()` (numerator
+       editable).
+    4. **Step 7s.9 adaptacions complex** (les mateixes que App29):
+       - `.fraction-editor-wrapper { gap: 0 }` (ja heretat d'App30).
+       - Bar de la fracció com a `.top::after` pseudo-element enlloc
+         de `border-bottom` (perquè els dos spinners projectin a la
+         mateixa x).
+    5. **Math complex (Step 7r — grid-agnostic)**: `(colIdx * n) % d
+       === 0` per detectar polsos enters, `(startSubdiv * n) / d` per
+       posicions de note-bar, bugs 1/2/3 de timing, `renderGhostPulseLines`
+       per polsos enters que no cauen sobre cel·les del subdivision-row.
+
+    **Commits**: d4329e8 (base Step 7s), 9b52d81 (info-displays format
+    i gap), cb8e192 (`.middle` 1 row), d8b0afe (alineació numerador i
+    denominador), 2cdfa1b (height pills), 99db3af (position absolute),
+    e19dd4f (alineament endcap dret), 32462f1 (caixes quadrades).
+
+    Refactor d'App30 en 8 iteracions (la complexitat va venir de
+    l'alineació del grup d'infos amb la fracció, no del Step 7s ni del
+    halter iT, que van anar a la primera). El patró final per App31
+    serà 1-2 iteracions.
 
 ### Tasques pendents (feina futura, fora del pla actual)
 
