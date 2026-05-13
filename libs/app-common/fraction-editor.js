@@ -216,16 +216,38 @@ export function createFractionEditor({
   }
 
   /**
-   * Positions the tooltip below the fraction editor (fixed position)
+   * Positions the simplification tooltip relative to the fraction editor.
+   *
+   * Strategy: centered BELOW the fraction by default, but if the fraction is
+   * close enough to the left viewport edge that centering would clip the
+   * tooltip, project it to the RIGHT of the fraction (vertically aligned)
+   * where there's typically empty space (App26-31 standalone layouts).
    */
   function positionTooltipBelow() {
     const bubble = elements.infoBubble;
     const container = elements.container;
     if (!bubble || !container) return;
     const rect = container.getBoundingClientRect();
-    bubble.style.left = (rect.left + rect.width / 2) + 'px';
-    bubble.style.top = (rect.bottom + window.scrollY + 8) + 'px';
-    bubble.style.transform = 'translateX(-50%)';
+    const bubbleWidth = bubble.offsetWidth || 280;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const centerX = rect.left + rect.width / 2;
+    const halfBubble = bubbleWidth / 2;
+    const wouldClipLeft = (centerX - halfBubble) < 8;
+    const wouldClipRight = (centerX + halfBubble) > (viewportWidth - 8);
+
+    if (wouldClipLeft && !wouldClipRight) {
+      // Fracció prop del límit esquerre → tooltip a la dreta de la fracció,
+      // alineat verticalment. `transform: none` sobreescriu el `translateX(-50%)`
+      // que aplica la classe `.fraction-info-bubble--reduction`.
+      bubble.style.left = (rect.right + 12) + 'px';
+      bubble.style.top = (rect.top + window.scrollY) + 'px';
+      bubble.style.transform = 'none';
+    } else {
+      // Default: sota la fracció, centrat horitzontalment.
+      bubble.style.left = centerX + 'px';
+      bubble.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+      bubble.style.transform = 'translateX(-50%)';
+    }
   }
 
   /**
