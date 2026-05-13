@@ -368,10 +368,14 @@ body[data-visual="nuzic"] .plano-container .plano-soundline-container {
   border-left: none !important;
 }
 
-/* Subdivision dots a bottom-left de cada cel·la. `background-origin:
-   border-box` ja no és necessari sense border, però el mantenim per
-   consistència visual al límit-zero. */
-body[data-visual="nuzic"] .plano-cell {
+/* Dots NOMÉS a les cel·les de pols enter (`.pulse-boundary`).
+   Les cel·les de subdivisió fraccionària queden sense dots.
+   Override del nuzic-theme que els aplica a totes les `.plano-cell`. */
+body[data-visual="nuzic"].app32 .plano-cell {
+  background-image: none !important;
+}
+
+body[data-visual="nuzic"].app32 .plano-cell.pulse-boundary {
   background-image: radial-gradient(
     circle 0.25rem at 0% 100%,
     var(--nuzic-dark) 45%,
@@ -400,14 +404,16 @@ body[data-visual="nuzic"] .plano-cell {
 }
 
 .note-bar.highlight {
-  box-shadow: 0 0 0.75rem currentColor;
+  /* Highlight durant playback: el blau intens d'App19/App20
+     (`--nuzic-blue`) com a glow, sense canviar el background light. */
+  background: var(--nuzic-blue, #7bb4cd) !important;
+  box-shadow: 0 0 0.75rem var(--nuzic-blue, #7bb4cd);
 }
 
+/* L'iT ja el porta el halter groc sota el bar — l'amaguem aquí
+   per no duplicar la informació. */
 .note-bar__label {
-  font-size: clamp(0.75rem, 1.4vw, 1rem);
-  font-weight: 700;
-  color: var(--nuzic-dark, #43433B);
-  pointer-events: none;
+  display: none;
 }
 
 .note-bar-preview {

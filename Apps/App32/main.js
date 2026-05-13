@@ -26,6 +26,7 @@ import { buildSimple12Rows } from '../../libs/app-common/plano-grid-rows.js';
 import { getTotalSubdivisions as _getTotalSubdivs, subdivToPosition as _subdivToPos, filterInvalidNotes as _filterInvalid } from '../../libs/plano-fraccion/fraction-math.js';
 import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 12;             // 12 pulsos (0-11)
@@ -37,13 +38,10 @@ const DEFAULT_DENOMINATOR = 2;   // Per defecte 1/2
 const MIN_DENOMINATOR = 1;
 const MAX_DENOMINATOR = 8;
 
-// Colors per rectangles iT
-const VIBRANT_COLORS = [
-  '#7CD6B3', // verd
-  '#F5C6C2', // rosa clar
-  '#7CD6B3', // verd
-  '#F5C6C2'  // rosa clar
-];
+// Color únic per als note-bars: blau clar (`--nuzic-blue-light`) com a
+// apps de plànol anteriors (App19/App20). El highlight durant playback
+// usa el blau intens (`--nuzic-blue`) via CSS box-shadow.
+const VIBRANT_COLORS = ['#bdd9e6'];
 
 // Notes per àudio
 const NOTE_COUNT = 12;       // 12 notes (0-11)
@@ -355,11 +353,21 @@ function createGrid() {
   // Create playhead controller. With columnSizing='fr' we pass 0 so the
   // controller uses DOM-based positioning (cell.offsetLeft) — see
   // plano-playhead.js line 42-51.
+  // `domOffset: 0` perquè el playhead caigui exactament a
+  // `cell.offsetLeft` (alineat amb el pulse-number). El default (7)
+  // és per retro-compat amb App19/App20.
   playheadController = createPlayheadController(
     gridElements.matrixContainer,
     () => 0,
-    0
+    0,
+    0  // domOffset
   );
+
+  // Cancel·lar el `marginLeft: -4px` heretat de createPlayhead (legacy
+  // d'App19/App20). A App32 el playhead ha de quedar exactament a
+  // `cell.offsetLeft`.
+  const playheadEl = gridElements.matrixContainer.querySelector('.plano-playhead');
+  if (playheadEl) playheadEl.style.marginLeft = '0';
 
   renderGrid();
 }
@@ -501,6 +509,56 @@ function renderNotes() {
     noteCount: NOTE_COUNT,
     colors: VIBRANT_COLORS,
     onClickNote: removeNote
+  });
+  renderNoteHalters();
+}
+
+// Halter groc d'iT sota cada note-bar (patró App13/App20/App30).
+// El halter es posiciona horitzontalment EXACTAMENT com el note-bar i
+// verticalment JUST SOTA d'aquest (pegat a la seva vora inferior).
+function renderNoteHalters() {
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+  if (!matrix) return;
+
+  // Netejar halters anteriors.
+  matrix.querySelectorAll('.note-halter').forEach(el => el.remove());
+
+  if (!notes || notes.length === 0 || !cellWidth) return;
+
+  // Mesurar cell height per calcular la posició vertical del halter
+  // (mateixa fórmula que renderNoteBars).
+  const firstCell = matrix.querySelector('.plano-cell');
+  const cellH = firstCell?.offsetHeight || 32;
+  const matrixWidth = matrix.offsetWidth;
+  if (!matrixWidth) return;
+
+  notes.forEach((noteData) => {
+    if (noteData.isRest) return;
+
+    const startPx = noteData.startSubdiv * cellWidth;
+    const widthPx = noteData.duration * cellWidth;
+    const startPercent = (startPx / matrixWidth) * 100;
+    const widthPercent = (widthPx / matrixWidth) * 100;
+
+    // Posició vertical del bar (= renderNoteBars):
+    //   rowIndex = NOTE_COUNT-1 - noteData.note  (notes 0..11 mapped 11..0 from top)
+    //   barTop = (rowIndex + 1) * cellH - barHeight/2
+    //   barHeight = cellH - 2 → bottom = barTop + barHeight = (rowIndex+1)*cellH + cellH/2 - 1
+    // El halter va just sota: top_halter = bottom_bar.
+    const rowIndex = (NOTE_COUNT - 1) - noteData.note;
+    const barHeight = cellH - 2;
+    const barTop = (rowIndex + 1) * cellH - barHeight / 2;
+    const halterTop = barTop + barHeight;
+
+    const halter = createIntervalLabelBar({
+      startPercent,
+      widthPercent,
+      label: noteData.duration,
+      variant: 'solid'
+    });
+    halter.classList.add('note-halter');
+    halter.style.top = `${halterTop}px`;
+    matrix.appendChild(halter);
   });
 }
 

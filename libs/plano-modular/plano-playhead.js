@@ -34,8 +34,13 @@ export function createPlayhead(container) {
  * @param {number} colIndex - Current column index
  * @param {number} cellWidth - Width of each cell
  * @param {number} offset - Optional horizontal offset (default 0)
+ * @param {number} domOffset - Extra offset applied ONLY in DOM-based mode
+ *   (`cellWidth = 0`, i.e. 1fr columns). Defaults to 7 for retro-compat
+ *   with App19/App20 which depend on this legacy offset. Apps that align
+ *   the playhead with cell.offsetLeft (e.g. App32+) should pass 0 to
+ *   `createPlayheadController`.
  */
-export function updatePlayhead(playhead, colIndex, cellWidth, offset = 0) {
+export function updatePlayhead(playhead, colIndex, cellWidth, offset = 0, domOffset = 7) {
   if (!playhead) return;
 
   // When cellWidth is falsy (0 or null), use DOM-based positioning for flexible layouts (1fr columns)
@@ -44,7 +49,7 @@ export function updatePlayhead(playhead, colIndex, cellWidth, offset = 0) {
     if (matrix) {
       const cell = matrix.querySelector(`.plano-cell[data-col-index="${colIndex}"]`);
       if (cell) {
-        playhead.style.left = `${cell.offsetLeft + offset + 7}px`;
+        playhead.style.left = `${cell.offsetLeft + offset + domOffset}px`;
         playhead.classList.remove('plano-playhead--hidden');
         return;
       }
@@ -89,9 +94,12 @@ export function removePlayhead(playhead) {
  * @param {HTMLElement} matrix - Matrix container element
  * @param {Function} getCellWidth - Function to get current cell width
  * @param {number} offset - Horizontal offset for playhead alignment
+ * @param {number} domOffset - Extra offset for DOM-based mode (default 7
+ *   per retro-compat amb App19/App20; passar 0 a apps que volen el
+ *   playhead exactament a `cell.offsetLeft`).
  * @returns {Object} Playhead controller API
  */
-export function createPlayheadController(matrix, getCellWidth, offset = 0) {
+export function createPlayheadController(matrix, getCellWidth, offset = 0, domOffset = 7) {
   const playhead = createPlayhead(matrix);
   let currentCol = -1;
   let isVisible = false;
@@ -105,7 +113,7 @@ export function createPlayheadController(matrix, getCellWidth, offset = 0) {
       if (!playhead) return;
       currentCol = colIndex;
       const cellWidth = typeof getCellWidth === 'function' ? getCellWidth() : getCellWidth;
-      updatePlayhead(playhead, colIndex, cellWidth, offset);
+      updatePlayhead(playhead, colIndex, cellWidth, offset, domOffset);
       isVisible = true;
     },
 
