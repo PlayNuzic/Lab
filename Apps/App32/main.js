@@ -457,6 +457,14 @@ function renderGridTimeline() {
     timelineRow.appendChild(numEl);
   }
 
+  const endpointEl = document.createElement('div');
+  endpointEl.className = 'plano-timeline-number plano-cycle-end';
+  endpointEl.dataset.colIndex = columns;
+  endpointEl.style.left = '100%';
+  endpointEl.textContent = '·';
+  timelineRow.appendChild(endpointEl);
+  gridIntegerLabels[FIXED_LG] = endpointEl;
+
   container.appendChild(timelineRow);
 
   // Subdivision label "1/d" a la cantonada inferior-esquerra del

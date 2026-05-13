@@ -23,6 +23,7 @@ body.app32 {
   --app32-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
   --app32-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
   --app32-timeline-left-label-inset: clamp(0.2rem, 0.7vw, 0.45rem);
+  --app32-timeline-right-label-inset: clamp(0.45rem, 1.1vw, 0.85rem);
 }
 
 /* ========== .middle: fracció a l'esquerra + info pills a la dreta ==========
@@ -445,21 +446,18 @@ body.dragging-note * {
   height: var(--app32-endcap-h);
   position: relative;
   display: block !important;
-  /* Fons cream + franja groga centrada (zona dels ticks). NO posem
-     endcaps amb pseudo-elements sobre aquest fons: els endcaps són
-     a `.plano-timeline-container::before/::after` (que té position:
-     relative i abasta tot el row). */
+  /* Fons cream + franja groga intensa sobre la línia dels ::after ticks,
+     equivalent a les timelines d'App26/App28/App30. */
   background:
     linear-gradient(
       to bottom,
-      transparent 0,
-      transparent 42px,
+      var(--nuzic-yellow-light) 0,
+      var(--nuzic-yellow-light) 42px,
       var(--nuzic-yellow) 42px,
       var(--nuzic-yellow) 56px,
-      transparent 56px,
-      transparent 100%
-    ),
-    var(--nuzic-yellow-light);
+      var(--nuzic-yellow-light) 56px,
+      var(--nuzic-yellow-light) 100%
+    ) !important;
 }
 
 /* ========== GAP a `.plano-container` entre rows = 0 ==========
@@ -514,6 +512,19 @@ body[data-visual="nuzic"].app32 .plano-container::before {
    Overlay groc sobre els últims W px del timeline-container. */
 body[data-visual="nuzic"].app32 .plano-timeline-container {
   position: relative;
+  height: var(--app32-endcap-h) !important;
+  min-height: var(--app32-endcap-h) !important;
+  overflow-y: visible !important;
+  background:
+    linear-gradient(
+      to bottom,
+      var(--nuzic-yellow-light) 0,
+      var(--nuzic-yellow-light) 42px,
+      var(--nuzic-yellow) 42px,
+      var(--nuzic-yellow) 56px,
+      var(--nuzic-yellow-light) 56px,
+      var(--nuzic-yellow-light) 100%
+    ) !important;
 }
 
 body[data-visual="nuzic"].app32 .plano-timeline-container::after {
@@ -568,10 +579,28 @@ body[data-visual="nuzic"].app32 .plano-timeline-container {
   position: absolute !important;
   top: 50%;
   transform: translate(-50%, -50%);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--nuzic-dark, #43433B);
   white-space: nowrap;
   z-index: 1;
+}
+
+body[data-visual="nuzic"].app32 .plano-timeline-number::before {
+  top: auto;
+  bottom: 100%;
+  left: 50%;
+  height: 10px;
+  transform: translateX(-50%);
+  margin-bottom: 4px;
+}
+
+body[data-visual="nuzic"].app32 .plano-timeline-number::after {
+  top: 100%;
+  bottom: auto;
+  left: 50%;
+  height: 10px;
+  transform: translateX(-50%);
+  margin-top: 4px;
 }
 
 .plano-timeline-number[data-col-index="0"] {
@@ -579,24 +608,38 @@ body[data-visual="nuzic"].app32 .plano-timeline-container {
   transform: translate(0, -50%);
 }
 
-/* Integer pulses: large yellow numbers. */
+/* Integer pulses: same weight and color as App26/App28/App30 timelines. */
 .plano-timeline-number.plano-cycle-start {
-  font-size: clamp(0.8rem, 1.6vw, 1.3rem);
+  font-size: clamp(0.85rem, 1.6vw, 1.2rem);
   font-weight: 700;
-  color: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-dark, #43433B);
 }
 
 body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-start.plano-single-digit::before,
 body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-start.plano-single-digit::after {
-  left: 4px;
+  left: 50%;
 }
 
 /* Subdivisions: small dark labels. */
 body[data-visual="nuzic"] .plano-timeline-number.plano-subdivision {
-  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
+  font-size: clamp(0.85rem, 1.6vw, 1rem);
   color: #43433B !important;
-  opacity: 1;
-  font-weight: 500;
+  opacity: 0.55;
+  font-weight: 600;
+}
+
+body[data-visual="nuzic"] .plano-timeline-number.plano-subdivision::before {
+  display: none;
+  content: none;
+}
+
+body[data-visual="nuzic"] .plano-timeline-number.plano-subdivision::after {
+  opacity: 0.55;
+}
+
+body[data-visual="nuzic"].app32 .plano-timeline-number.plano-cycle-end {
+  left: calc(100% - var(--app32-timeline-right-label-inset)) !important;
+  z-index: 6;
 }
 
 /* ========== CONTROLS ========== */
