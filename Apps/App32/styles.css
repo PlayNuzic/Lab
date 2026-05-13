@@ -541,18 +541,25 @@ body[data-visual="nuzic"].app32 .plano-timeline-container {
   height: var(--app32-endcap-h) !important;
   min-height: var(--app32-endcap-h) !important;
   overflow-y: visible !important;
-  /* Stops en % perquè la franja groga escali proporcionalment amb
-     l'alçada de la timeline. 55-74% correspon visualment als 42-56px
-     originals quan endcap-h = 76px (max), i manté la franja sobre els
-     ticks ::after a qualsevol viewport. */
+  /* Stops en % calculats sobre l'àrea VISIBLE del container.
+     Recordem: el container té `height: endcap-h` (76px) però els
+     primers cellHeight/2 (16px) queden tapats per la matrix per
+     sobre (via margin-top negatiu). L'àrea visible és ~60px.
+
+     Per que la franja groga aparegui a y=42-56 de l'àrea VISIBLE
+     (com a App30 amb timeline de 60px), els stops sobre la height
+     total del container són:
+       (16 + 42) / 76 = 76.3%
+       (16 + 56) / 76 = 94.7%
+     Arrodonim a 76% / 95%. */
   background:
     linear-gradient(
       to bottom,
       var(--nuzic-yellow-light) 0,
-      var(--nuzic-yellow-light) 55%,
-      var(--nuzic-yellow) 55%,
-      var(--nuzic-yellow) 74%,
-      var(--nuzic-yellow-light) 74%,
+      var(--nuzic-yellow-light) 76%,
+      var(--nuzic-yellow) 76%,
+      var(--nuzic-yellow) 95%,
+      var(--nuzic-yellow-light) 95%,
       var(--nuzic-yellow-light) 100%
     ) !important;
 }
