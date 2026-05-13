@@ -341,13 +341,24 @@ body[data-visual="nuzic"].app32 .itfr-info-group .bpm-inline.visible.param.it-di
    - matrix:    note-bars for row 0 centered on the last division line
    But the native `max-height` of the containers is only `visible-rows * cellHeight`
    (excludes the padding), so with no scroll the last half-cell is cropped.
-   Override both max-heights to include the padding so everything fits. */
+   Override both max-heights to include the padding + halter height
+   (`1.4rem`) perquè el halter d'iT de la fila 0 (notes 0, la més
+   inferior) hi càpiga sense overflow visual. */
 .plano-container .plano-soundline-container,
 .plano-container .plano-matrix-container {
   max-height: calc(
     var(--plano-visible-rows, 12) * var(--plano-cell-height, 2rem)
     + var(--plano-cell-height, 2rem) / 2
+    + 1.4rem
   ) !important;
+}
+
+/* Ampliar també el `padding-bottom` de la matrix perquè el halter
+   d'una nota a la fila 0 quedi DINS de l'àrea scrollable. El default
+   `cellHeight/2` només reserva espai per a la mitja-cel·la del
+   note-bar, no per al halter sota. */
+body[data-visual="nuzic"].app32 .plano-matrix {
+  padding-bottom: calc(var(--plano-cell-height, 2rem) / 2 + 1.4rem) !important;
 }
 
 /* The soundline owns the extra half-cell below note 0 so row-0 note bars
@@ -369,20 +380,36 @@ body[data-visual="nuzic"] .plano-container .plano-soundline-container {
 }
 
 /* Dots NOMÉS a les cel·les de pols enter (`.pulse-boundary`).
-   Les cel·les de subdivisió fraccionària queden sense dots.
-   Override del nuzic-theme que els aplica a totes les `.plano-cell`. */
+   Patró: pseudo-element ::before com a cercle COMPLET centrat a la
+   cantonada bottom-left, sense vores rectes (el radial-gradient
+   anterior es retallava pels límits de la cel·la i produia un quart
+   de cercle amb dos "fils" a 90°). */
 body[data-visual="nuzic"].app32 .plano-cell {
   background-image: none !important;
 }
 
 body[data-visual="nuzic"].app32 .plano-cell.pulse-boundary {
-  background-image: radial-gradient(
-    circle 0.25rem at 0% 100%,
-    var(--nuzic-dark) 45%,
-    transparent 46%
-  ) !important;
-  background-origin: border-box !important;
-  background-repeat: no-repeat !important;
+  background-image: none !important;
+}
+
+body[data-visual="nuzic"].app32 .plano-cell.pulse-boundary::before {
+  content: '';
+  position: absolute;
+  /* Cantonada bottom-left de la cel·la, amb el cercle complet centrat
+     en aquest punt. Aquesta y coincideix amb el centre del text de la
+     `.plano-soundline-note` (que també està centrat al `cell.bottom`
+     via `align-items: center + translateY(50%)`). Petits offsets
+     visuals respecte els ticks són per baseline metrics de la font,
+     no per un mismatch geomètric. */
+  left: 0;
+  bottom: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--nuzic-dark, #43433B);
+  border-radius: 50%;
+  transform: translate(-50%, 50%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* ========== NOTE BARS (inside plano-matrix, positioned by JS in px) ========== */
