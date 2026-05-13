@@ -578,6 +578,11 @@ body[data-visual="nuzic"].app32 .plano-timeline-container {
 .plano-timeline-number {
   position: absolute !important;
   top: 50%;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  height: auto !important;
+  line-height: 1;
   transform: translate(-50%, -50%);
   font-weight: 700;
   color: var(--nuzic-dark, #43433B);
