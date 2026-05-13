@@ -32,10 +32,9 @@ body[data-visual="nuzic"] .middle.app30-middle {
   margin: 0 var(--app30-endcap-w) 5px var(--app30-endcap-w);
   box-sizing: border-box;
   padding: 0;
-  /* L'alçada del .middle és la de la fracció (que pot ser una mica
-     més alta que --app30-endcap-h per padding/border). Deixem-ho
-     auto perquè s'ajusti naturalment a la fracció. */
-  min-height: var(--app30-endcap-h);
+  /* Alçada mínima = 2 caixes quadrades de W + gap entre elles, perquè
+     el grup d'infos absolute hi càpiga sense desbordar. */
+  min-height: calc(var(--app30-endcap-w) * 2 + 0.4rem);
 }
 
 /* La fracció flueix natural a l'esquerra (left: -W al .fraction-editor
@@ -51,15 +50,17 @@ body[data-visual="nuzic"] .middle.app30-middle {
    amb el bottom (denominador). */
 .itfr-info-group {
   position: absolute;
+  /* Alineat vertical amb la fracció: top: 0 i deixem que l'alçada
+     natural de les caixes (2W + gap petit) determini la mida del
+     grup. Suma iT a sobre, iT Disponibles just sota, ben juntes. */
   top: 0;
-  bottom: 0;
   /* Projectat fora del .middle a la dreta perquè les caixes d'info
      quedin alineades verticalment amb l'endcap dret de la timeline
      (`.timeline::after`, també a `wrapper.right + W = parent.right`). */
   right: calc(0px - var(--app30-endcap-w));
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 0.4rem;
   align-items: flex-end;
 }
 
@@ -102,11 +103,10 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  /* Mateixa AMPLADA que l'endcap de la timeline (alineades verticalment
-     just damunt l'endcap dret). Alçada = mig endcap-h perquè les dues
-     caixes encaixin a la mateixa banda vertical que la fracció. */
+  /* Caixes QUADRADES, amplada = endcap-w (alineades verticalment
+     amb l'endcap dret de la timeline). */
   width: var(--app30-endcap-w) !important;
-  height: calc(var(--app30-endcap-h) / 2) !important;
+  height: var(--app30-endcap-w) !important;
   min-width: 0 !important;
   padding: 0 !important;
   border-radius: 4px !important;
