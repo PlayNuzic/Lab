@@ -15,6 +15,7 @@ import { attachHover } from '../../libs/shared-ui/hover.js';
 import { showValidationWarning } from '../../libs/app-common/info-tooltip.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 6;              // 6 pulsos (0-5) + endpoint (6)
@@ -613,6 +614,7 @@ function initFractionEditorController() {
     defaults: { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
     maxDenominator: MAX_DENOMINATOR,
+    enableGhost: false,  // numerador fix a 1 → autoReduce mai s'activa, ghost mort
     storage: {},
     addRepeatPress,
     labels: {
@@ -893,9 +895,10 @@ function layoutTimeline() {
 
 // ========== INTERVAL BARS ==========
 function updateIntervalBars(previewSequence = null) {
-  // Remove existing bars
+  // Remove existing bars + halter labels (patró App13)
   intervalBars.forEach(bar => bar.remove());
   intervalBars = [];
+  timeline.querySelectorAll('.interval-label-bar').forEach(el => el.remove());
 
   const sequence = previewSequence || itSequence;
   if (sequence.length === 0) return;
@@ -909,24 +912,30 @@ function updateIntervalBars(previewSequence = null) {
     const startPos = subdivToPosition(item.start);
     const endPos = subdivToPosition(item.start + item.it);
     const width = endPos - startPos;
+    const startPercent = (startPos / lg) * 100;
+    const widthPercent = (width / lg) * 100;
 
+    // Barra colorada amunt (sense label dins — el halter porta el número).
     const bar = document.createElement('div');
     bar.className = 'interval-bar-visual';
     bar.dataset.index = idx;
-    bar.style.left = `${(startPos / lg) * 100}%`;
-    bar.style.width = `${(width / lg) * 100}%`;
+    bar.style.left = `${startPercent}%`;
+    bar.style.width = `${widthPercent}%`;
 
     const color = VIBRANT_COLORS[colorIndex % VIBRANT_COLORS.length];
     bar.style.background = color;
     colorIndex++;
 
-    const label = document.createElement('span');
-    label.className = 'interval-bar-visual__label';
-    label.textContent = item.it;
-    bar.appendChild(label);
-
     timeline.appendChild(bar);
     intervalBars.push(bar);
+
+    // Halter groc amb el número d'iT, just sota la barra colorada (patró App13).
+    const labelBar = createIntervalLabelBar({
+      startPercent,
+      widthPercent,
+      label: item.it
+    });
+    timeline.appendChild(labelBar);
   });
 }
 

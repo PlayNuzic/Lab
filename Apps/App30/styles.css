@@ -7,45 +7,95 @@
   display: none;
 }
 
-/* ========== MIDDLE: info pastilles + fraction editor ==========
-   Layout mirrors the timeline grid: left column aligned with timeline start,
-   center column holds the fraction (same horizontal extent as the timeline),
-   right column stays empty for symmetry. */
-body[data-visual="nuzic"] .middle.app30-middle {
-  display: grid !important;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  width: 90%;
-  max-width: 75rem;
-  margin: 0 auto;
-  padding: 1rem 1.25rem;
-  box-sizing: border-box;
+/* `.inputs` queda buida a App30 (BPM es mou a `.controls` per `init()`). */
+.inputs {
+  display: none !important;
 }
 
-.itfr-info-group {
-  grid-column: 1;
-  justify-self: start;
-  display: flex;
+/* Variables compartides per fraction-editor, endcaps, subdivision-label,
+   iTfr editor i info pills — al body perquè `.middle`,
+   `.timeline-wrapper` i `.itfr-row` les vegin (siblings). */
+body.app30 {
+  --app30-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
+  --app30-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
+}
+
+/* ========== .middle: fracció a l'esquerra + info pills a la dreta ==========
+   Mateixos margins que App28 perquè la fracció (a `left: -W` del .middle)
+   i l'endcap dret (a `translateX(100% + 1.25rem)` del .timeline) quedin
+   simètrics sense sortir del viewport (iframe del sistema). */
+body[data-visual="nuzic"] .middle.app30-middle {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 1rem;
+  width: auto;
+  max-width: 75rem;
+  margin: 0 var(--app30-endcap-w) 5px var(--app30-endcap-w);
+  box-sizing: border-box;
+  padding: 0;
+  justify-content: flex-start;
 }
 
 .itfr-fraction-slot {
-  grid-column: 2;
-  justify-self: center;
+  grid-column: 1;
+  justify-self: start;
 }
 
-.itfr-info-group .param .circle {
-  min-width: 3rem;
+.itfr-info-group {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+/* Info pills info-pure (label esquerra + cercle groc-bordejat amb número).
+   Apilades verticalment, una sota l'altra. */
+.itfr-info-group .param.sum-it,
+.itfr-info-group .param.it-disponibles {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.itfr-info-group .param.sum-it .abbr,
+.itfr-info-group .param.it-disponibles .abbr {
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+  color: var(--nuzic-dark, #43433B);
+  white-space: nowrap;
+  text-transform: none;
+}
+
+.itfr-info-group .param.sum-it .circle,
+.itfr-info-group .param.it-disponibles .circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  height: clamp(1.75rem, 3.5vw, 2.25rem);
+  padding: 0 0.5rem;
+  border: 3px solid var(--nuzic-yellow, #FFBB33);
+  border-radius: 0.3rem;
+  background: white;
+  box-sizing: border-box;
 }
 
 .itfr-info-group .param.sum-it .circle input,
 .itfr-info-group .param.it-disponibles .circle input {
-  width: 2.5rem;
+  width: 1.5rem;
+  background: transparent;
+  border: none;
+  outline: none;
   text-align: center;
-  padding-right: 0;
+  padding: 0;
   font-weight: 700;
+  font-size: clamp(0.95rem, 1.8vw, 1.2rem);
+  color: var(--nuzic-dark, #43433B);
   cursor: default;
+  font-family: 'Ubuntu', sans-serif;
 }
 
 .itfr-info-group .param.sum-it .circle input.complete,
@@ -53,109 +103,34 @@ body[data-visual="nuzic"] .middle.app30-middle {
   color: var(--nuzic-yellow, #FFBB33);
 }
 
-/* ========== iTfr EDITOR (cell-based, App28 pattern: 1 cell per iT + separator) ========== */
-.itfr-row {
-  width: 90%;
-  max-width: 75rem;
-  margin: 0.75rem auto 0;
-  padding: 0 1.25rem;
-  box-sizing: border-box;
-}
-
-.itfr-editor {
-  position: relative;
-  display: grid;
-  grid-template-columns: 3.75rem 1fr;
-}
-
-/* Yellow "iT" label on the left. */
-.itfr-editor .itfr-label {
-  font-weight: 700;
-  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  background: var(--nuzic-yellow, #FFBB33);
-  user-select: none;
-}
-
-/* Cream strip behind the cells (single line, NO wrap). */
-.itfr-editor .itfr-cells {
-  display: flex;
-  justify-content: flex-start;
-  align-items: stretch;
-  flex-wrap: nowrap;
-  gap: 0;
-  background: var(--nuzic-light, #EEE8D8);
-  overflow-x: auto;
-  overflow-y: hidden;
-  min-height: 2.5rem;
-}
-
-/* Square cells (App28 pattern: percent width + aspect-ratio). */
-.itfr-editor .itfr-cell {
-  width: 4%;
-  min-width: 1.875rem;
-  flex: none;
-  aspect-ratio: 1;
-  padding: 0;
-  margin: 0;
-  text-align: center;
-  color: var(--nuzic-dark, #43433B);
-  font-size: clamp(0.75rem, 1.5vw, 1.1rem);
-  font-weight: 700;
-  border: none;
-  outline: none;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0;
-}
-
-/* Yellow-light separator between value cells. */
-.itfr-editor .itfr-cell.itfr-separator {
-  background: var(--nuzic-yellow-light, #ffeecc);
-}
-
-/* Value cell (white, has number) — editable */
-.itfr-editor .itfr-cell.itfr-value {
-  background: white;
-  z-index: 1;
-  cursor: text;
-}
-
-.itfr-editor .itfr-cell.itfr-value:focus {
-  box-shadow: inset 0 0 0 2px var(--nuzic-yellow, #FFBB33);
-}
-
-/* Active editable input (trailing) */
-.itfr-editor .itfr-cell.itfr-input {
-  background: white !important;
-  cursor: text;
-  z-index: 2;
-}
-
-.itfr-editor .itfr-cell.itfr-input:focus {
-  box-shadow: inset 0 0 0 2px var(--nuzic-yellow, #FFBB33);
-}
-
-/* ========== FRACTION EDITOR (block mode, lives in .middle above timeline) ========== */
+/* ========== FRACTION EDITOR (caixa groga vertical alineada amb ::before endcap) ========== */
 .fraction-editor-wrapper {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1.125rem;
+  justify-content: flex-start;
+  /* `gap: 0` perquè el ghost-fraction (si es crea) no capturi espai del flex.
+     Amb `enableGhost: false` (App30) això és no-op però segur. */
+  gap: 0;
 }
 
 .fraction-editor {
-  display: inline-flex;
+  position: relative;
+  /* En .middle coords: -W. El .timeline té `margin: 20px auto` (1.25rem)
+     dins el wrapper, però el wrapper té el mateix margin que .middle,
+     així que en coords del .middle l'endcap esquerre està a -W. */
+  left: calc(0px - var(--app30-endcap-w));
+  display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.375rem;
-  color: var(--nuzic-dark, #43433B);
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.2rem;
+  width: var(--app30-endcap-w);
+  box-sizing: border-box;
+  padding: 0.5rem 0;
+  border: 3px solid var(--nuzic-yellow, #FFBB33);
+  border-radius: 0.4rem;
+  color: #000;
 }
 
 .fraction-editor .top,
@@ -163,88 +138,114 @@ body[data-visual="nuzic"] .middle.app30-middle {
   display: flex;
   justify-content: center;
   align-items: center;
+  margin: 0;
+  padding: 0;
 }
 
 .fraction-editor .top {
-  border-bottom: 4px solid var(--nuzic-dark, #43433B);
-  padding: 0 1.5rem;
+  border-bottom: 4px solid #000;
+  width: 65%;
+  margin: 0 auto;
 }
 
 .fraction-editor input {
-  width: 5rem;
+  width: 100%;
   text-align: center;
-  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-size: clamp(1.75rem, 3.8vw, 2.7rem);
   background: none;
   border: none;
-  color: inherit;
-  font-family: inherit;
+  color: #000 !important;
+  font-family: 'Ubuntu', sans-serif;
   outline: none;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0;
 }
 
 .fraction-editor input:focus {
-  border-bottom: 2px solid var(--nuzic-yellow, #FFBB33);
+  border: none;
+  outline: none;
 }
 
 .fraction-editor input:disabled,
 .fraction-editor input:read-only {
-  opacity: 0.6;
-  cursor: not-allowed;
+  opacity: 1 !important;
+  cursor: default !important;
+  color: #000 !important;
 }
 
 .fraction-field {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .fraction-field input {
-  padding-right: 1.75rem;
+  padding-right: 0;
 }
 
+/* Spinner pill FORA la caixa, half-pill shape. */
 .fraction-field .spinner {
   position: absolute;
-  right: 0;
+  left: calc(100% + 0.45rem);
+  right: auto;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 0.125rem;
-  width: 1.5rem;
-  color: var(--nuzic-dark, #43433B);
+  gap: 4px;
+  width: 1.3rem;
+  height: 2.8rem;
+  background: transparent;
+  overflow: visible;
   transition: opacity 0.2s ease;
 }
 
 .fraction-field .spinner .spin {
+  flex: 1 1 50%;
   width: 100%;
-  height: 0.75rem;
+  height: auto;
   border: none;
-  background: transparent;
+  background: var(--nuzic-yellow, #FFBB33);
   padding: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: inherit;
+  color: #fff;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.fraction-field .spinner .spin.up {
+  border-radius: 999px 999px 0 0;
+}
+
+.fraction-field .spinner .spin.down {
+  border-radius: 0 0 999px 999px;
 }
 
 .fraction-field .spinner .spin::before {
-  content: '';
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
+  content: none;
+  border: 0;
 }
 
-.fraction-field .spinner .spin.up::before {
-  border-bottom: 6px solid currentColor;
-}
+.fraction-field .spinner .spin.up::after  { content: '+'; }
+.fraction-field .spinner .spin.down::after { content: '−'; }
 
-.fraction-field .spinner .spin.down::before {
-  border-top: 6px solid currentColor;
+.fraction-field .spinner .spin:hover {
+  background: #e6a82e;
 }
 
 .fraction-field .spinner .spin:active {
-  color: var(--nuzic-yellow, #FFBB33);
+  background: #d9991a;
 }
 
 .fraction-field--empty .spinner {
@@ -256,20 +257,110 @@ body[data-visual="nuzic"] .middle.app30-middle {
   display: none !important;
 }
 
-/* ========== TIMELINE ========== */
-.timeline-wrapper {
-  width: 90%;
+/* ========== iTfr EDITOR (cell-based, App28 P-row visual) ==========
+   Patró 7o.visual: row sense margin-left (label alineat amb endcap),
+   padding-left/right: 1.25rem a .editor-cells per alinear amb cream. */
+.itfr-row {
+  width: auto;
   max-width: 75rem;
-  margin: 2.5rem auto 1.875rem;
+  /* margin-left: 0 perquè el label "iT" quedi a la mateixa x que l'endcap
+     esquerre (parent.left). margin-right: W manté simetria. */
+  margin: 0.25rem var(--app30-endcap-w) 0 0;
+  box-sizing: border-box;
+}
+
+.itfr-editor {
+  position: relative;
+  display: grid;
+  /* Col 1 = W (= mateixa amplada de l'endcap esquerre). Col 2 = cells. */
+  grid-template-columns: var(--app30-endcap-w) 1fr;
+}
+
+.itfr-editor .itfr-label {
+  font-weight: 700;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  background: var(--nuzic-yellow, #FFBB33);
+  user-select: none;
+}
+
+/* Cream strip darrere les cel·les. */
+.itfr-editor .itfr-cells {
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 0;
+  background: var(--nuzic-light, #EEE8D8);
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Padding-left/right 1.25rem alinea les cel·les amb el cream del
+     `.timeline` (que té margin: 20px auto dins el wrapper). */
+  padding: 0 1.25rem;
+}
+
+/* Square cells (App28 7o.visual: 5% + min-width 2.5rem). */
+.itfr-editor .itfr-cell {
+  width: 5%;
+  min-width: 2.5rem;
+  flex: none;
+  aspect-ratio: 1;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+  color: var(--nuzic-dark, #43433B);
+  font-size: clamp(0.85rem, 1.6vw, 1.2rem);
+  font-weight: 700;
+  border: none;
+  outline: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+}
+
+.itfr-editor .itfr-cell.itfr-separator {
+  background: var(--nuzic-yellow-light, #ffeecc);
+}
+
+.itfr-editor .itfr-cell.itfr-value {
+  background: white;
+  z-index: 1;
+  cursor: text;
+}
+
+.itfr-editor .itfr-cell.itfr-value:focus {
+  box-shadow: inset 0 0 0 2px var(--nuzic-yellow, #FFBB33);
+}
+
+.itfr-editor .itfr-cell.itfr-input {
+  background: white !important;
+  cursor: text;
+  z-index: 2;
+}
+
+.itfr-editor .itfr-cell.itfr-input:focus {
+  box-shadow: inset 0 0 0 2px var(--nuzic-yellow, #FFBB33);
+}
+
+/* ========== TIMELINE ==========
+   Margins responsius amb `--app30-endcap-w` (Step 7s). */
+.timeline-wrapper {
+  width: auto !important;
+  max-width: 75rem;
+  margin: 0.5rem var(--app30-endcap-w) 0.75rem var(--app30-endcap-w);
   position: relative;
 }
 
 .timeline {
   position: relative;
-  margin-top: 1.75rem;
+  margin-top: 0.75rem;
 }
 
-/* Pulse-numbers: draggable to create iTs. */
 .timeline .pulse-number {
   cursor: grab;
 }
@@ -278,17 +369,65 @@ body[data-visual="nuzic"] .middle.app30-middle {
   cursor: default;
 }
 
-.timeline .pulse-number.active {
-  color: var(--nuzic-yellow, #FFBB33);
-  font-weight: 700;
-}
-
 .timeline .pulse-number.drag-start {
   color: var(--nuzic-yellow, #FFBB33);
   font-weight: 700;
 }
 
-/* ========== SUBDIVISION ROW (BELOW timeline, nuzic-main style) ========== */
+/* ========== ENDCAPS: quadrats grocs als extrems (Step 7s.2) ========== */
+body[data-visual="nuzic"].app30
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::before,
+body[data-visual="nuzic"].app30
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: auto;
+  opacity: 1;
+  border: 0;
+  top: 0%;
+  width: var(--app30-endcap-w);
+  height: var(--app30-endcap-h);
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 4px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+body[data-visual="nuzic"].app30
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::before {
+  left: 0;
+  transform: translateX(calc(-100% - 1.25rem));
+}
+
+body[data-visual="nuzic"].app30
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline::after {
+  right: 0;
+  transform: translateX(calc(100% + 1.25rem));
+}
+
+/* Franja groc intens sobre la línia dels ::after ticks. */
+body[data-visual="nuzic"].app30
+  .timeline-wrapper:has(.timeline):not(:has(.soundline-container))
+  .timeline {
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 42px,
+      var(--nuzic-yellow) 42px,
+      var(--nuzic-yellow) 56px,
+      transparent 56px,
+      transparent 100%
+    ),
+    var(--nuzic-yellow-light);
+}
+
+/* ========== SUBDIVISION ROW (sota la banda) ========== */
 .timeline .cycle-marker {
   position: absolute;
   top: 2.95rem;
@@ -328,8 +467,12 @@ body[data-visual="nuzic"] .middle.app30-middle {
   transition: color 0.3s ease, opacity 0.3s ease;
 }
 
+/* Rectangle groc per coherència amb `.pulse-number.active` (Step 7s.9d). */
 .timeline .cycle-label.active {
-  color: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-dark, #43433B);
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 2px;
+  padding: 1px 4px;
   opacity: 1;
   font-weight: 700;
 }
@@ -338,32 +481,41 @@ body[data-visual="nuzic"] .middle.app30-middle {
   display: none;
 }
 
+/* Subdivision label "1/N" ancorat al bottom dins de l'endcap esquerre. */
 .timeline .subdivision-label {
   position: absolute;
-  right: calc(100% + 2rem);
-  top: 2rem;
-  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  left: 0;
+  top: 0;
+  transform:
+    translateX(calc(-0.5 * var(--app30-endcap-w) - 1.25rem - 50%))
+    translateY(calc(var(--app30-endcap-h) - 100% - 0.25rem));
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
   font-weight: 700;
   color: var(--nuzic-dark, #43433B);
-  opacity: 0.75;
+  opacity: 0.85;
   pointer-events: none;
   white-space: nowrap;
   line-height: 1;
+  z-index: 1;
 }
 
 .timeline.no-anim .cycle-marker,
 .timeline.no-anim .cycle-label,
 .timeline.no-anim .pulse-number,
-.timeline.no-anim .interval-bar-visual {
+.timeline.no-anim .interval-bar-visual,
+.timeline.no-anim .interval-label-bar {
   transition: none;
 }
 
-/* ========== INTERVAL BARS (iT rectangles on the timeline) ========== */
+/* ========== INTERVAL BARS (rectangles d'iT sobre la timeline) ==========
+   Patró App13: barra colorada + halter groc (createIntervalLabelBar) sota. */
+
+/* Barra colorada amunt — deixa espai per al halter groc just sota. */
 .interval-bar-visual {
   position: absolute;
-  top: -1.4rem;
+  top: -3.3rem;
   height: 1.4rem;
-  border-radius: 0.3rem;
+  border-radius: 0;
   z-index: 5;
   transition: box-shadow 0.2s ease, width 0.3s ease;
   pointer-events: none;
@@ -383,11 +535,16 @@ body[data-visual="nuzic"] .middle.app30-middle {
   color: var(--nuzic-dark, #43433B);
 }
 
+/* Halter groc d'iT, sota la barra colorada (mateix patró que App13). */
+.interval-label-bar {
+  top: -1.9rem;
+}
+
 .interval-bar-preview {
   position: absolute;
-  top: 1.4rem;
+  top: -3.3rem;
   height: 1.4rem;
-  border-radius: 0.3rem;
+  border-radius: 0;
   z-index: 4;
   background: var(--nuzic-yellow, #FFBB33);
   opacity: 0.4;
@@ -407,4 +564,41 @@ body.dragging-it * {
 .controls #tapTempoBtn,
 .controls #loopBtn {
   display: none !important;
+}
+
+/* ========== ACTIVE WINS OVER SELECTED (Step 7o.visual C) ==========
+   Compound selectors amb specificity (0,3,0) > (0,2,0) → groc guanya
+   sobre blau durant playback. */
+
+.timeline .pulse-number.selected.active,
+.timeline .pulse-number.active {
+  background: var(--nuzic-yellow, #FFBB33);
+  color: var(--nuzic-dark, #43433B);
+  border-radius: 2px;
+  padding: 0.1rem 0.3rem;
+}
+
+.timeline .pulse-number.selected.active::before,
+.timeline .pulse-number.selected.active::after,
+.timeline .pulse-number.active::before,
+.timeline .pulse-number.active::after {
+  background: var(--nuzic-yellow, #FFBB33) !important;
+  opacity: 1 !important;
+}
+
+.timeline .cycle-marker.selected.active,
+.timeline .cycle-marker.active {
+  opacity: 1;
+  background: var(--nuzic-yellow, #FFBB33);
+  box-shadow: 0 0 6px var(--nuzic-yellow, #FFBB33);
+}
+
+.timeline .cycle-label.selected.active,
+.timeline .cycle-label.active {
+  color: var(--nuzic-dark, #43433B);
+  background: var(--nuzic-yellow, #FFBB33);
+  border-radius: 2px;
+  padding: 1px 4px;
+  opacity: 1;
+  font-weight: 700;
 }
