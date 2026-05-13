@@ -53,7 +53,10 @@ body[data-visual="nuzic"] .middle.app30-middle {
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 0;
+  /* Projectat fora del .middle a la dreta perquè les caixes d'info
+     quedin alineades verticalment amb l'endcap dret de la timeline
+     (`.timeline::after`, també a `wrapper.right + W = parent.right`). */
+  right: calc(0px - var(--app30-endcap-w));
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -99,13 +102,14 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  /* Quadrades, prou petites perquè les dues encaixin verticalment
-     dins de `--app30-endcap-h` (~76px màx). */
-  width: clamp(1.8rem, 3.5vw, 2.2rem) !important;
-  height: clamp(1.8rem, 3.5vw, 2.2rem) !important;
+  /* Mateixa AMPLADA que l'endcap de la timeline (alineades verticalment
+     just damunt l'endcap dret). Alçada = mig endcap-h perquè les dues
+     caixes encaixin a la mateixa banda vertical que la fracció. */
+  width: var(--app30-endcap-w) !important;
+  height: calc(var(--app30-endcap-h) / 2) !important;
   min-width: 0 !important;
   padding: 0 !important;
-  border-radius: 0.25rem !important;
+  border-radius: 4px !important;
   background: white !important;
   overflow: visible !important;
   order: 1 !important;
