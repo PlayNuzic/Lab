@@ -490,12 +490,20 @@ body[data-visual="nuzic"].app32 .plano-container::before {
     var(--nuzic-yellow, #FFBB33) 50.5%,
     var(--nuzic-yellow, #FFBB33) 100%
   ) !important;
+  /* Estendre cap amunt per cobrir el `padding-bottom: cellHeight/2`
+     de la `.plano-soundline-row`. Sense això queda un espai visual
+     entre el `-0-` text de la soundline i la base de la cantonada. */
+  margin-top: calc(-1 * var(--plano-cell-height, 32px) / 2) !important;
 }
 
 /* ========== ENDCAP DRET de la timeline ==========
    Overlay groc sobre els últims W px del timeline-container. */
 body[data-visual="nuzic"].app32 .plano-timeline-container {
   position: relative;
+  /* Estendre cap amunt per cobrir el `padding-bottom: cellHeight/2`
+     de la `.plano-matrix`. Mateix patró que `.plano-container::before`
+     amb la soundline. */
+  margin-top: calc(-1 * var(--plano-cell-height, 32px) / 2) !important;
 }
 
 body[data-visual="nuzic"].app32 .plano-timeline-container::after {
