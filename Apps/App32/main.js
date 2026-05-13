@@ -459,11 +459,20 @@ function renderGridTimeline() {
 
   container.appendChild(timelineRow);
 
-  // Subdivision label "1/d" dins de l'endcap esquerre del timeline-container.
-  const subdivisionLabel = document.createElement('div');
-  subdivisionLabel.className = 'plano-subdivision-label';
-  subdivisionLabel.textContent = `${FIXED_NUMERATOR}/${d}`;
-  container.appendChild(subdivisionLabel);
+  // Subdivision label "1/d" a la cantonada inferior-esquerra del
+  // `.plano-container` (zona del triangle groc, dins de la cel·la
+  // col 1 row 2 del grid). El parent és el `.plano-container`, no
+  // el timeline-container.
+  const planoContainer = gridElements?.container;
+  if (planoContainer) {
+    let subdivisionLabel = planoContainer.querySelector('.plano-subdivision-label');
+    if (!subdivisionLabel) {
+      subdivisionLabel = document.createElement('div');
+      subdivisionLabel.className = 'plano-subdivision-label';
+      planoContainer.appendChild(subdivisionLabel);
+    }
+    subdivisionLabel.textContent = `${FIXED_NUMERATOR}/${d}`;
+  }
 }
 
 function syncGridScrolls() {

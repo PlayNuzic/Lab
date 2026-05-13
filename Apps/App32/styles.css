@@ -462,23 +462,48 @@ body.dragging-note * {
     var(--nuzic-yellow-light);
 }
 
-/* ========== ENDCAPS GROCS — overlays sobre el TIMELINE-CONTAINER ==========
-   `.plano-timeline-container` és el sibling inferior de `.plano-grid-area`,
-   al row 2 col 2 del `.plano-container` grid. Té `position: relative` (al
-   plano-modular.css) → els pseudo-elements absolute s'hi ancoren.
+/* ========== GAP a `.plano-container` entre rows = 0 ==========
+   Sense aquest override, la timeline queda separada de la matrix pel
+   `--plano-grid-gap`. Volem el continu visual: matrix → timeline sense
+   espai entremig. També afegim `position: relative` perquè el
+   `.plano-subdivision-label` absolute s'hi ancori. */
+body[data-visual="nuzic"].app32 .plano-container {
+  gap: 0 !important;
+  position: relative;
+}
 
-   Estratègia: pseudo-elements `::before` / `::after` ocupen els primers W
-   i últims W px del row, projectats per sobre dels números via z-index.
-   El padding-left/right de `.plano-timeline-container` redueix l'àrea
-   útil interna; el mateix padding s'aplica a `.plano-matrix-container`
-   perquè les divisions verticals (cel·les) coincideixin amb les dels
-   números de la timeline. */
-body[data-visual="nuzic"].app32 .plano-timeline-container::before,
+/* ========== ENDCAP ESQUERRE de la timeline = cantonada inferior-
+   esquerra del plànol (col 1, row 2) ==========
+   `.plano-container::before` ocupa naturalment aquesta cel·la amb
+   `--plano-soundline-bg` (rosa). El sobreescrivim amb un linear-gradient
+   diagonal: meitat triangle superior-esquerra rosa (continua la
+   soundline) + meitat triangle inferior-dreta groga (continua la
+   franja groga sobre els ticks de la timeline).
+
+   La diagonal va de top-right a bottom-left, deixant el rosa per damunt
+   i el groc per sota. */
+body[data-visual="nuzic"].app32 .plano-container::before {
+  background: linear-gradient(
+    to bottom right,
+    var(--nuzic-pink-light, #ffd6e8) 0%,
+    var(--nuzic-pink-light, #ffd6e8) 49.5%,
+    var(--nuzic-yellow, #FFBB33) 50.5%,
+    var(--nuzic-yellow, #FFBB33) 100%
+  ) !important;
+}
+
+/* ========== ENDCAP DRET de la timeline ==========
+   Overlay groc sobre els últims W px del timeline-container. */
+body[data-visual="nuzic"].app32 .plano-timeline-container {
+  position: relative;
+}
+
 body[data-visual="nuzic"].app32 .plano-timeline-container::after {
   content: '';
   display: block;
   position: absolute;
   top: 0;
+  right: 0;
   width: var(--app32-endcap-w);
   height: 100%;
   background: var(--nuzic-yellow, #FFBB33);
@@ -486,40 +511,38 @@ body[data-visual="nuzic"].app32 .plano-timeline-container::after {
   pointer-events: none;
 }
 
-body[data-visual="nuzic"].app32 .plano-timeline-container::before {
-  left: 0;
-}
-
-body[data-visual="nuzic"].app32 .plano-timeline-container::after {
-  right: 0;
-}
-
-/* Reduir l'amplada útil del matrix + timeline-container perquè la col 0
-   quedi a la dreta de l'endcap esquerre i la darrera col abans de
-   l'endcap dret. */
+/* Reduir l'amplada útil del matrix + timeline-container per la DRETA
+   (deixar W d'espai per l'endcap dret). L'esquerra ja la fa el
+   `.plano-container::before` (col 1 del grid, fora del matrix). */
 body[data-visual="nuzic"].app32 .plano-matrix-container,
 body[data-visual="nuzic"].app32 .plano-timeline-container {
-  padding-left: var(--app32-endcap-w) !important;
   padding-right: var(--app32-endcap-w) !important;
   box-sizing: border-box;
 }
 
-/* Subdivision-label "1/d" ANCORAT al BOTTOM-CENTER dins de l'endcap
-   esquerre del timeline-container. */
-.plano-timeline-container > .plano-subdivision-label {
+/* Subdivision-label "1/d" al BOTTOM-RIGHT del triangle groc (cantonada
+   inferior-dreta del `.plano-container::before` ≡ col 1, row 2).
+   Com que `::before` és pseudo-element, no podem afegir-hi text amb
+   `content`. El JS posa `.plano-subdivision-label` com a fill del
+   `.plano-container`, posicionat absolute sobre aquesta cel·la. */
+.plano-container > .plano-subdivision-label {
   position: absolute;
   left: 0;
-  bottom: 0.25rem;
-  width: var(--app32-endcap-w);
-  text-align: center;
-  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  bottom: 0;
+  width: var(--plano-soundline-width, 50px);
+  height: var(--app32-endcap-h);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0 0.25rem 0.15rem 0;
+  font-size: clamp(0.85rem, 1.4vw, 1rem);
   font-weight: 700;
   color: #fff;
-  opacity: 1;
   pointer-events: none;
   white-space: nowrap;
   line-height: 1;
   z-index: 6;
+  box-sizing: border-box;
 }
 
 /* Numbers within the timeline-row. Posicionats per percentatge absolut. */
