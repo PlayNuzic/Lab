@@ -27,7 +27,11 @@ body.app30 {
 body[data-visual="nuzic"] .middle.app30-middle {
   display: grid !important;
   grid-template-columns: auto 1fr auto;
-  align-items: center;
+  /* UNA sola fila d'alçada explícita (= alçada de la caixa de fracció).
+     `grid-template-rows` evita que els flex-children dels infos forcin
+     l'auto-row a expandir-se. */
+  grid-template-rows: var(--app30-endcap-h);
+  align-items: stretch;
   width: auto;
   max-width: 75rem;
   margin: 0 var(--app30-endcap-w) 5px var(--app30-endcap-w);
@@ -38,18 +42,19 @@ body[data-visual="nuzic"] .middle.app30-middle {
 
 .itfr-fraction-slot {
   grid-column: 1;
+  grid-row: 1;
   justify-self: start;
+  align-self: stretch;
 }
 
+/* Grup d'infos a la dreta: ocupa tota l'alçada del row (= caixa de
+   fracció). `space-between` posa Suma iT al top i iT Disponibles al
+   bottom, alineats amb el top/bottom de la fracció. */
 .itfr-info-group {
   grid-column: 3;
+  grid-row: 1;
   justify-self: end;
-  /* Mateixa alçada que la fracció (`--app30-endcap-h`) perquè Suma iT i
-     iT Disponibles quedin alineats verticalment amb el top i bottom de
-     la caixa groga. `space-between` distribueix les dues pills a dalt
-     i a baix. */
   align-self: stretch;
-  height: var(--app30-endcap-h);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -92,8 +97,10 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: clamp(2.2rem, 4.5vw, 3rem) !important;
-  height: clamp(2.2rem, 4.5vw, 3rem) !important;
+  /* Quadrades, prou petites perquè les dues encaixin verticalment
+     dins de `--app30-endcap-h` (~76px màx). */
+  width: clamp(1.8rem, 3.5vw, 2.2rem) !important;
+  height: clamp(1.8rem, 3.5vw, 2.2rem) !important;
   min-width: 0 !important;
   padding: 0 !important;
   border-radius: 0.25rem !important;
@@ -101,6 +108,7 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
   overflow: visible !important;
   order: 1 !important;
   box-sizing: border-box !important;
+  flex-shrink: 0 !important;
 }
 
 /* Suma iT: vora groga intensa. */
