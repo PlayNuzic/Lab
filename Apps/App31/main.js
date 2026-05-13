@@ -17,6 +17,7 @@ import { isIntegerPulseSelectable } from '../../libs/app-common/pulse-selectabil
 import { gcd } from '../../libs/app-common/number-utils.js';
 import { createBpmController } from '../../libs/app-common/bpm-controller.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 
 // ========== CONSTANTS ==========
 // Lg = currentNumerator (dynamic) — recomputed every render.
@@ -866,9 +867,10 @@ function layoutTimeline() {
 
 // ========== INTERVAL BARS ==========
 function updateIntervalBars(previewSequence = null) {
-  // Remove existing bars
+  // Remove existing bars + halter labels (patró App13/App30)
   intervalBars.forEach(bar => bar.remove());
   intervalBars = [];
+  timeline.querySelectorAll('.interval-label-bar').forEach(el => el.remove());
 
   const sequence = previewSequence || itSequence;
   if (sequence.length === 0) return;
@@ -882,24 +884,30 @@ function updateIntervalBars(previewSequence = null) {
     const startPos = subdivToPosition(item.start);
     const endPos = subdivToPosition(item.start + item.it);
     const width = endPos - startPos;
+    const startPercent = (startPos / lg) * 100;
+    const widthPercent = (width / lg) * 100;
 
+    // Barra colorada amunt (sense label dins — el halter porta el número).
     const bar = document.createElement('div');
     bar.className = 'interval-bar-visual';
     bar.dataset.index = idx;
-    bar.style.left = `${(startPos / lg) * 100}%`;
-    bar.style.width = `${(width / lg) * 100}%`;
+    bar.style.left = `${startPercent}%`;
+    bar.style.width = `${widthPercent}%`;
 
     const color = VIBRANT_COLORS[colorIndex % VIBRANT_COLORS.length];
     bar.style.background = color;
     colorIndex++;
 
-    const label = document.createElement('span');
-    label.className = 'interval-bar-visual__label';
-    label.textContent = item.it;
-    bar.appendChild(label);
-
     timeline.appendChild(bar);
     intervalBars.push(bar);
+
+    // Halter groc amb el número d'iT, just sota la barra colorada (patró App13).
+    const labelBar = createIntervalLabelBar({
+      startPercent,
+      widthPercent,
+      label: item.it
+    });
+    timeline.appendChild(labelBar);
   });
 }
 
