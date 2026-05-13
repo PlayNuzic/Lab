@@ -31,43 +31,43 @@ skill [`.claude/skills/nuzic-migrate/SKILL.md`](.claude/skills/nuzic-migrate/SKI
 - **Apps d'escales (App21-25B)**: ✅ FET (punts 25-37, 40).
 - **Modularització de pastilles** (`scale-pill`, `output-note-pill`,
   `app-viewport`): ✅ FET (punt 40).
-- **Apps de fraccions** (App26-31):
-  - App26 ✅ FETA amb refactor UI complet (caixa fracció vertical,
-    endcaps grocs, franja groga sobre after-ticks, ghost-fraction
-    eliminat) → **patró base** (punt 41).
-  - App27 ✅ FETA — adaptació del patró d'App26 amb numerador editable
-    (punt 42). Patró validat per fraccions complexes.
-  - App28 ✅ FETA — patró d'App26 + Pfr editor cell-based amb label
-    alineat amb endcap esquerre, cel·les quadrades, active-over-selected
-    cascade fix (punt 44).
-  - App29 ✅ FETA — port d'App28 + adaptacions complex (gap: 0, bar
-    pseudo-element) seguint Step 7s.9 (punt 45). Port en 1 iteració.
-  - App30 ✅ FETA — patró d'App28 + iTfr editor + info pills quadrades
-    alineades amb endcap dret + halter iT (createIntervalLabelBar)
-    sota la barra colorada. Step 7q complet (punt 46).
-  - App31 (n>1 complex + iTfr editor): PENDENT d'aplicar App30 + Step 7s.9 (complex).
-- **Plano-2D + fracció** (App32-35): App32-34 ✅ FETES, **App35** PENDENT.
+- **Apps de fraccions** (App26-31): ✅ TOTES FETES (visual + mecànica).
+  - App26 ✅ — patró base (punt 41).
+  - App27 ✅ — port d'App26 + complex (punt 42).
+  - App28 ✅ — App26 + Pfr editor (punt 44).
+  - App29 ✅ — port d'App28 + complex (punt 45).
+  - App30 ✅ — App28 + iTfr editor + halter iT (punt 46).
+  - App31 ✅ — port d'App30 + complex (punt 46, comparteix patró).
+- **Plano-2D + fracció** (App32-35):
+  - App32 ✅ FETA — visual refactor adaptat a plano-2D: triangle a la
+    cantonada inferior-esquerra (Step 7r.visual A), continuïtat
+    visual matrix↔timeline via margin-top negatiu (Step 7r.visual B),
+    timeline-container amb height fixa + endcap dret + cream-yellow
+    gradient continuat amb la timeline-row, ticks ::before/::after a
+    pulse-numbers, `.plano-cycle-end` afegit al final. Punt 47.
+  - App33 PENDENT — port d'App32 + adaptacions complex (Step 7s.9 +
+    math complex del Step 7r).
+  - App34/App35 PENDENT — App32 + N-iT editor sota grid.
 
-### Pendent immediat: App31 (port d'App30 + complex) i App35
+### Pendent immediat: App33, App34 i App35
 
-**Per a App31 (n>1, complexa)** — port literal d'App30 + adaptacions
-complex (paral·lel a com App29 va portar d'App28). Receta minimum:
+**Per a App33 (plano-2D, fracció complexa)** — port d'App32 +
+adaptacions complex (paral·lel a com App29 va portar d'App28). Receta:
 
-1. `sed 's/app30/app31/g; s/App30/App31/g' Apps/App30/{main.js,styles.css,index.html}`
-   sobre còpies inicials d'App31. Ajustar `<title>` i `<body class>`.
-2. **Treure `enableGhost: false`** de `createFractionEditor` — App31
-   té numerador editable i autoReduce.
-3. **`setComplexMode()` enlloc de `setSimpleMode()`** — fa visible el
-   spinner del numerador i el deixa editable.
-4. **`.fraction-editor-wrapper { gap: 0 }`** — el ghost flex-item
-   captura el gap default i desalinea la fracció del endcap (Trap +
-   punt 42 pas 3).
-5. **Bar com a pseudo-element `.top::after`** enlloc de `border-bottom`
-   — perquè els dos spinners projectin la mateixa x (Step 7s.9b).
-6. **Math complex** del Step 7r aplicat (NO és plano-2D, però les
-   fórmules són grid-agnostic): `(colIdx * n) % d === 0`,
-   `(startSubdiv * n) / d`, bugs 1/2/3 timing, ghost-pulse lines si
-   els pulsos enters no cauen sobre cel·les del subdivision-row.
+1. `sed 's/app32/app33/g; s/App32/App33/g'` sobre `Apps/App32/{main.js,
+   styles.css,index.html}` com a baseline.
+2. **Treure `enableGhost: false`** — App33 té autoReduce.
+3. **`setComplexMode()`** — numerator editable.
+4. **`.fraction-editor-wrapper { gap: 0 }`** — Trap (punt 42 pas 3).
+5. **Bar com a pseudo-element `.top::after`** — Step 7s.9b.
+6. **Math complex (Step 7r — apartat "Complex-fraction adaptations")**:
+   `(colIdx * n) % d === 0`, `(startSubdiv * n) / d`, bugs 1/2/3 timing,
+   `renderGhostPulseLines` per polsos enters fora de cel·les.
+
+**Per a App34 (plano-2D simple + N-iT editor)** i **App35** (mateix +
+complex): App32 + editor N-iT inline-port d'App20, posicionat full-width
+SOTA el grid (NO dins el `.middle`). Vegeu Step 7r § Plano 2D + N-iT
+editor (App34, App35).
 
 **Per a App29/App31/App33/App35 (n>1, complexa) — referència general**:
 
@@ -114,7 +114,8 @@ a qualsevol refactor futur. Cada entrada inclou un link al detall.
 | `libs/shared-ui/output-note-pill.css` + `libs/app-common/output-note-pill.js` | Pastilla input numèric cíclic (`.outputnote` per Transposición / `.registro` per Registro). `createOutputNotePill({initial, range, onChange})`. | App18 (només CSS), App23, App24, App25, App25B |
 | `libs/app-common/info-tooltip.js` | Tooltip de validació per editors. Una sola implementació; les apps deleguen amb wrapper local `showError(cell, msg)` → `infoTooltip.show(msg, cell)`. | App18, App23, App24, App25, App25B |
 | `libs/shared-ui/measure-header.{js,css}` | Capçalera de compassos reutilitzable (App16 + App19). Patró d'alineament amb `--com-band-w` i `--com-band-track-right` signat. Opció `labelText` per posar text al rectangle esquerre (default '' = retro-compat). | App16 (`labelText: 'Compás'`), App19/App20 (sense text) |
-| `libs/app-common/fraction-editor.js` — opció `enableGhost` | Opt-out de la ghost-fraction (DOM mort en runtime per apps que mai redueixen). Default `true` per retro-compat. Passar `enableGhost: false` a apps de fracció simple (n=1 fixat). | App26, App28, App30 |
+| `libs/app-common/fraction-editor.js` — opció `enableGhost` | Opt-out de la ghost-fraction (DOM mort en runtime per apps que mai redueixen). Default `true` per retro-compat. Passar `enableGhost: false` a apps de fracció simple (n=1 fixat). | App26, App28, App30, App32 |
+| `libs/app-common/fraction-editor.js` — `positionTooltipBelow` smart positioning | El tooltip de simplificació (`"3/3 Simplificando..."`) ara comprova si centrar-lo sota la fracció el retallaria pel límit esquerre del viewport. Si sí, el projecta a la DRETA de la fracció. Aplica a totes les apps (App26-35) on la fracció està a l'extrem esquerre del `.middle`. | App26-31 (i App32-35 quan es migrin) |
 | `libs/shared-ui/interval-label-bar.{js,css}` — `createIntervalLabelBar({startPercent, widthPercent, label, variant})` | Halter groc d'iT (dot-line-box-line-dot) usat sota una barra colorada per indicar la duració d'un interval temporal. Variant `dashed` per silencis. | App13 (interval-row), App30 (interval-bar) |
 
 Detall complet a [Punt 40](#40-transposició-a-app25app25b--modularització-pastilles--neteja-cross-app) (mòduls) i Punt 41 (`enableGhost` + patró App26).
@@ -160,6 +161,10 @@ declaracions que competeixen amb el tema. Detall al [Punt 40](#40-transposició-
 | **Cel·les `aspect-ratio: 1` apareixen rectangulars dins strip alta** | Container amb `min-height: 2.5rem` + cel·les `width: 4%; aspect-ratio: 1; min-width: 1.875rem`. A viewports estrets, min-width guanya → cel·les ~30×30, però strip 40px tall → buit dalt/baix → aparença de strip rectangular. | Treure `min-height` del container (strip s'ajusta a cell-height). Augmentar `min-width` ≥ desired-size. `aspect-ratio: 1` garanteix square. | Punt 44 (App28) |
 | **`grid-template-rows: 1fr 1fr` + contingut intrínsec overflow** | Intent d'alinear Suma iT amb numerador i iT Disponibles amb denominador via grid 2 rows iguals. Però `.bpm-inline.visible.param` hereta `height: clamp(2rem, 5vw, 3rem) !important` del nuzic-theme → cada pill ~48px, dues sumen ~96px > 76px del row → overflow → pills es centren visualment al mig del grup, NO al top/bottom. | NO usar grid amb `1fr 1fr` per partir. Usar `position: absolute; top: 0; bottom: 0` al grup + flex column. Si vols caixes quadrades alineades amb endcap, forçar `width = height = var(--endcap-w)` a les `.circle` amb specificity boost `!important` per sobreescriure el `clamp(2rem,5vw,3rem)` heretat. | Punt 46 (App30) |
 | **Info group alineat amb endcap dret** | Volem que les caixes Suma iT / iT Disponibles quedin verticalment sobre l'endcap dret de la timeline. El `.middle` té els mateixos margins que el `.timeline-wrapper` (`0 var(--endcap-w)`). L'endcap dret projecta `+W` respecte `.timeline.right` (= `wrapper.right - 1.25rem`) → endcap.right = `parent.right`. | `.itfr-info-group { position: absolute; right: calc(0 - var(--endcap-w)) }`: surt fora del `.middle` cap a la dreta fins a `parent.right`. Caixes amb `width: var(--endcap-w)` → bord dret a la mateixa x que endcap. | Punt 46 (App30) |
+| **Plano-2D: gap visible entre matrix/soundline i timeline** | `.plano-soundline-row` i `.plano-matrix` tenen `padding-bottom: cellHeight/2` per reservar espai al text `-0-` (translateY(50%)) i als note-bars de la fila 0. Aquest padding deixa un buit visual entre el contingut i la timeline-row, encara que `--plano-grid-gap = 0`. | `margin-top: calc(-1 * var(--plano-cell-height) / 2)` a `.plano-container::before` (cantonada inferior-esquerra) i a `.plano-timeline-container`. Així aquestes peces s'estenen cap amunt cobrint el padding-bottom. | Punt 47 (App32) |
+| **Plano-2D: endcap esquerre de la timeline = cantonada inferior-esquerra del grid** | A apps de plànol l'endcap esquerre NO és un overlay groc nou; és la cel·la col 1 row 2 del `.plano-container` grid (sota la soundline). Aquesta cel·la ja existeix com a `.plano-container::before` (background `--plano-soundline-bg` = rosa). | Sobreescriure el `::before` amb `linear-gradient(to bottom right, rosa 0-49.5%, groc 50.5-100%)`. Patró triangle: meitat superior-esquerra rosa (continua soundline) + meitat inferior-dreta groga (continua endcap timeline). | Punt 47 (App32) |
+| **Plano-2D: pulse-numbers handlers heretats de plano-modular sense ticks** | `.plano-timeline-number` ve sense `::before`/`::after` ticks per defecte a plano-modular. Apps standalone (App26-31) els tenen heretats de nuzic-theme amb `top: 20%` (per timeline-wrapper estàndard). A plano-2D cal redefinir-los explícitament. | Override amb `::before { bottom: 100%; height: 10px; margin-bottom: 4px }` (tick superior) i `::after { top: 100%; height: 10px; margin-top: 4px }` (tick inferior). Aplicat només a `.plano-cycle-start` per coherència amb App26-31. | Punt 47 (App32) |
+| **Plano-2D: col 0 i Lg-end queden tapats per endcaps** | Si el matrix té `padding-right: W` i la timeline conté un endcap dret `::after`, el número `Lg/d-1` (última subdivisió) queda just abans del padding i pot quedar mig-tapat per l'endcap. Anàlogament, el `0` del col 0 cau abans de la zona útil. | Variables d'inset (`--app32-timeline-left-label-inset`, `--app32-timeline-right-label-inset`) + selectors específics: `.plano-timeline-number[data-col-index="0"] { left: var(--...left-inset) }` i `.plano-cycle-end { left: calc(100% - var(--...right-inset)) }`. Afegir un `.plano-cycle-end` (text `·`) al final de la timeline-row via JS, anàleg a apps standalone. | Punt 47 (App32) |
 
 ### Patrons d'editor cell-based
 
@@ -2011,6 +2016,150 @@ breakpoint vertical). Workaround vigent. Detall complet al
     l'alineació del grup d'infos amb la fracció, no del Step 7s ni del
     halter iT, que van anar a la primera). El patró final per App31
     serà 1-2 iteracions.
+
+47. **Refactor UI d'App32 (plano-2D + fracció simple) — patró visual
+    per a App33/34/35** ✅ FET (2026-05-13)
+
+    App32 = "Plano con Fracción Simple". Plano-2D (grid 12 notes ×
+    Lg×d subdivisions) amb soundline + matrix + timeline. El refactor
+    visual va requerir adaptar el patró d'App30 a una estructura
+    completament diferent (grid amb 2 rows × 2 cols a `.plano-container`).
+
+    **Tres característiques úniques de l'adaptació plano-2D**:
+
+    1. **Endcap esquerre = cantonada inferior-esquerra del grid**.
+       A apps standalone (App26-31), els endcaps són pseudo-elements
+       `.timeline::before/::after` que projecten via `translateX`.
+       A plano-2D, l'endcap esquerre coincideix VISUALMENT amb la
+       cel·la col 1 row 2 del `.plano-container` grid (sota la
+       soundline, on plano-modular ja té un `::before` per cobrir
+       aquesta zona amb el color de la soundline). El refactor
+       sobreescriu aquest `::before` amb un linear-gradient diagonal
+       **triangle** rosa-groc:
+
+       ```css
+       body[data-visual="nuzic"].app32 .plano-container::before {
+         background: linear-gradient(
+           to bottom right,
+           var(--nuzic-pink) 0%,
+           var(--nuzic-pink) 49.5%,
+           var(--nuzic-yellow) 50.5%,
+           var(--nuzic-yellow) 100%
+         ) !important;
+       }
+       ```
+
+       Resultat: cantonada amb meitat superior-esquerra rosa (continua
+       soundline) i meitat inferior-dreta groga (continua endcap timeline).
+
+    2. **Continuïtat visual matrix↔timeline via margin-top negatiu**.
+       `.plano-soundline-row` i `.plano-matrix` tenen
+       `padding-bottom: cellHeight/2` per fer espai al text `-0-`
+       (`translateY(50%)`) i als note-bars de la fila 0. Aquest padding
+       deixa un buit visual de ~16px entre `-0-` / row 0 i la
+       timeline-row de sota, encara que `--plano-grid-gap = 0`. Fix:
+
+       ```css
+       body[data-visual="nuzic"].app32 .plano-container::before,
+       body[data-visual="nuzic"].app32 .plano-timeline-container {
+         margin-top: calc(-1 * var(--plano-cell-height, 32px) / 2) !important;
+       }
+       ```
+
+       La cantonada i el timeline-container s'estenen cap amunt cobrint
+       el padding-bottom de la soundline i del matrix respectivament.
+
+    3. **Timeline cream + franja groga reproduïdes a plano-modular**.
+       A apps standalone, la timeline és un únic `.timeline` amb
+       background-gradient cream/groc i pulse-numbers amb ticks via
+       `::before/::after`. A plano-2D, l'estructura és `.plano-timeline-
+       container > .plano-timeline-row > .plano-timeline-number*`. El
+       patró visual s'aplica a **dos nivells**:
+
+       - **Background gradient**: aplicat **tant** a `.plano-timeline-row`
+         (background) **com** a `.plano-timeline-container` (background)
+         amb idèntics colors. Així la franja groga és contínua encara
+         que es vegin sobreposats.
+       - **Ticks**: redefinits explícitament per al plano-2D (NO heretats
+         del nuzic-theme, que usen `top: 20%`):
+
+         ```css
+         body[data-visual="nuzic"].app32 .plano-timeline-number::before {
+           bottom: 100%; left: 50%; height: 10px;
+           transform: translateX(-50%); margin-bottom: 4px;
+         }
+         body[data-visual="nuzic"].app32 .plano-timeline-number::after {
+           top: 100%; left: 50%; height: 10px;
+           transform: translateX(-50%); margin-top: 4px;
+         }
+         ```
+
+         Només `.plano-cycle-start` (pulsos enters) mostra ticks (el
+         `::before` de `.plano-subdivision` està hide).
+
+    **Altres adaptacions importants**:
+
+    - **`--plano-visible-rows: 12`** (era 15 default) perquè la
+      soundline mostri exactament les 12 notes 0-11 sense espai mort.
+      Breakpoints responsius `10/9/8` per a viewports estrets.
+    - **Padding-right W al `.plano-matrix-container` i
+      `.plano-timeline-container`** per deixar espai a l'endcap dret
+      sense tocar el padding-left (la soundline ja ocupa col 1).
+    - **`.plano-cycle-end` amb text `·`** afegit a `renderGridTimeline`
+      via JS, anàleg a apps standalone. Posicionament via
+      `--app32-timeline-right-label-inset` perquè caigui dins la cream,
+      no sobre l'endcap dret.
+    - **`.plano-timeline-number[data-col-index="0"]`** amb inset
+      especial (`--app32-timeline-left-label-inset`) perquè el `0` no
+      caigui sobre la cantonada-triangle.
+    - **Subdivision-label "1/d"** com a fill de `.plano-container`
+      (no del timeline-container), posicionat absolute al bottom-right
+      de la cantonada inferior-esquerra (dins la zona groga del
+      triangle), color blanc per contrast.
+    - **`enableGhost: false`** al `createFractionEditor` (numerador
+      fix a 1).
+    - **`.plano-cell { border-left: none }`** — només dots
+      radial-gradient marquen les divisions verticals (decisió usuari).
+    - **Soundline background** simplificat a color sòlid
+      `--nuzic-pink-light` (no gradient).
+    - **Pulse-numbers color** = `--nuzic-dark` (negre), no groc, per
+      coherència amb App26-31.
+
+    **Lliçons noves**:
+
+    - **Plano-2D NO és standalone**: aplicar Step 7s literal és impossible.
+      Cal mapejar cada peça a l'estructura del grid (cantonada,
+      timeline-container, soundline) i compensar els padding-bottom
+      heretats de plano-modular.
+    - **El triangle de la cantonada** funciona perquè el grid ja té un
+      `::before` que ocupa aquesta cel·la — el sobreescrivim, no en
+      creem un de nou.
+    - **`margin-top` negatiu = solució universal** per "menjar" el
+      padding-bottom de qualsevol fila plano-modular.
+
+    **Decisions per a App33** (plano-2D + complex):
+    1. **Port literal d'App32** amb `sed` sobre els tres fitxers.
+    2. **Treure `enableGhost: false`** (App33 té autoReduce).
+    3. **`setComplexMode()`** enlloc de `setSimpleMode()`.
+    4. **Step 7s.9 adaptacions**: `.fraction-editor-wrapper { gap: 0 }`
+       (ja heretat) + bar com a `.top::after` pseudo-element.
+    5. **Math complex (Step 7r — apartat "Complex-fraction adaptations")**:
+       `(colIdx * n) % d === 0`, `(startSubdiv * n) / d`, bugs 1/2/3
+       timing, `renderGhostPulseLines` per polsos enters fora cel·les.
+
+    **Decisions per a App34** (plano-2D simple + N-iT editor):
+    - Port d'App32 + editor N-iT inline-port d'App20 (vegeu Step 7r
+      § Plano 2D + N-iT editor). Editor full-width SOTA el grid (no
+      dins `.middle`).
+
+    **Decisions per a App35** (plano-2D complex + N-iT editor):
+    - Port d'App34 + adaptacions complex (com App33↔App32).
+
+    **Commits**: 44eae90 (refactor base Step 7r.visual), fcfedda
+    (endcap esquerre = cantonada triangle + gap:0), 8c67347
+    (margin-top negatiu per padding-bottom), 2f15be9 (ajustos soundline
+    i cantonada), 8fd1417 (alineació amb patró fraccions), 0512661
+    (restaurar ticks de timeline).
 
 ### Tasques pendents (feina futura, fora del pla actual)
 
