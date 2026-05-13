@@ -44,63 +44,94 @@ body[data-visual="nuzic"] .middle.app30-middle {
 .itfr-info-group {
   grid-column: 3;
   justify-self: end;
+  /* Mateixa alçada que la fracció (`--app30-endcap-h`) perquè Suma iT i
+     iT Disponibles quedin alineats verticalment amb el top i bottom de
+     la caixa groga. `space-between` distribueix les dues pills a dalt
+     i a baix. */
+  align-self: stretch;
+  height: var(--app30-endcap-h);
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   align-items: flex-end;
-  gap: 0.5rem;
 }
 
-/* Info pills info-pure (label esquerra + cercle groc-bordejat amb número).
-   Apilades verticalment, una sota l'altra. */
-.itfr-info-group .param.sum-it,
-.itfr-info-group .param.it-disponibles {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
+/* Info displays: label negre gruixut + caixa quadrada amb número.
+   NO pill — format de l'adjunt. Specificity boost per guanyar contra
+   `body[data-visual="nuzic"] .param:not(.param--large):has(.circle > input)`
+   (0,5,3) del nuzic-theme. */
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.sum-it,
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-disponibles {
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
 }
 
-.itfr-info-group .param.sum-it .abbr,
-.itfr-info-group .param.it-disponibles .abbr {
-  font-weight: 700;
-  font-size: clamp(0.85rem, 1.6vw, 1.05rem);
-  color: var(--nuzic-dark, #43433B);
-  white-space: nowrap;
-  text-transform: none;
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.sum-it .abbr,
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-disponibles .abbr {
+  position: static !important;
+  transform: none !important;
+  font-family: 'Ubuntu', sans-serif !important;
+  font-weight: 900 !important;
+  font-size: clamp(1rem, 2vw, 1.4rem) !important;
+  color: #000 !important;
+  white-space: nowrap !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  text-align: right !important;
+  order: 0 !important;
 }
 
-.itfr-info-group .param.sum-it .circle,
-.itfr-info-group .param.it-disponibles .circle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2.5rem;
-  height: clamp(1.75rem, 3.5vw, 2.25rem);
-  padding: 0 0.5rem;
-  border: 3px solid var(--nuzic-yellow, #FFBB33);
-  border-radius: 0.3rem;
-  background: white;
-  box-sizing: border-box;
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.sum-it .circle,
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-disponibles .circle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: clamp(2.2rem, 4.5vw, 3rem) !important;
+  height: clamp(2.2rem, 4.5vw, 3rem) !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border-radius: 0.25rem !important;
+  background: white !important;
+  overflow: visible !important;
+  order: 1 !important;
+  box-sizing: border-box !important;
 }
 
-.itfr-info-group .param.sum-it .circle input,
-.itfr-info-group .param.it-disponibles .circle input {
-  width: 1.5rem;
-  background: transparent;
-  border: none;
-  outline: none;
-  text-align: center;
-  padding: 0;
-  font-weight: 700;
-  font-size: clamp(0.95rem, 1.8vw, 1.2rem);
-  color: var(--nuzic-dark, #43433B);
-  cursor: default;
-  font-family: 'Ubuntu', sans-serif;
+/* Suma iT: vora groga intensa. */
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.sum-it .circle {
+  border: 3px solid var(--nuzic-yellow, #FFBB33) !important;
 }
 
-.itfr-info-group .param.sum-it .circle input.complete,
-.itfr-info-group .param.it-disponibles .circle input.complete {
-  color: var(--nuzic-yellow, #FFBB33);
+/* iT Disponibles: vora groga clara. */
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-disponibles .circle {
+  border: 3px solid var(--nuzic-yellow-light, #ffeecc) !important;
+}
+
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.sum-it .circle input,
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-disponibles .circle input {
+  width: 100% !important;
+  height: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  text-align: center !important;
+  padding: 0 !important;
+  font-weight: 900 !important;
+  font-size: clamp(1.1rem, 2.4vw, 1.6rem) !important;
+  color: #000 !important;
+  cursor: default !important;
+  font-family: 'Ubuntu', sans-serif !important;
+}
+
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.sum-it .circle input.complete,
+body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-disponibles .circle input.complete {
+  color: var(--nuzic-yellow, #FFBB33) !important;
 }
 
 /* ========== FRACTION EDITOR (caixa groga vertical alineada amb ::before endcap) ========== */
@@ -352,7 +383,9 @@ body[data-visual="nuzic"] .middle.app30-middle {
 .timeline-wrapper {
   width: auto !important;
   max-width: 75rem;
-  margin: 0.5rem var(--app30-endcap-w) 0.75rem var(--app30-endcap-w);
+  /* margin-top ampliat perquè les barres iT (top: -3.3rem) + halter
+     groc (top: -1.9rem) sobre la timeline NO trepitgin el .middle. */
+  margin: 4rem var(--app30-endcap-w) 0.75rem var(--app30-endcap-w);
   position: relative;
 }
 
