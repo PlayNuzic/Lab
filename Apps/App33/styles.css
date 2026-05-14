@@ -441,9 +441,10 @@ body[data-visual="nuzic"].app33 .plano-cell.pulse-boundary::before {
    consistència visual amb els dots de `.pulse-boundary`.
 
    Tècnica: `background: radial-gradient(circle, gray, transparent)
-   repetit verticalment cada `--plano-cell-height`. El radius (0.2vw
-   clamp) i el gris més clar (rgba 0.35) fan que es vegin discrets
-   sense competir amb els dots de pulse-boundary. */
+   repetit verticalment cada `--plano-cell-height`. Els ghost dots són
+   una mica més grans i foscos que el primer intent: han de llegir-se
+   clarament sobre el fons blanc, però seguir per sota dels dots de
+   pulse-boundary en jerarquia visual. */
 body[data-visual="nuzic"].app33 .ghost-pulse-line {
   position: absolute;
   top: 0;
@@ -454,25 +455,28 @@ body[data-visual="nuzic"].app33 .ghost-pulse-line {
   border-left: none !important;
   opacity: 1 !important;
   pointer-events: none;
-  z-index: 1;
-  /* Columna de dots: cercles 3×3 px individuals, repetits cada
-     `cellHeight` verticalment. Width de la línia mateix 3px (just
-     l'amplada del dot); transform -50% centra la columna a la x
-     del ghost-pulse. */
+  /* Mateix pla que els dots normals de `.pulse-boundary::before` i per
+     sobre de les note-bars (z-index: 10); si queda a z-index 1, el fons
+     opac de les `.plano-cell` el pot tapar completament. */
+  z-index: 11;
+  /* Columna de dots: cercles 3px individuals, repetits cada
+     `cellHeight`; transform -50% centra la columna a la x del
+     ghost-pulse. */
   /* La línia és AMPLA (~12px) perquè el cercle (3px diameter) tingui
      espai al seu voltant; sense això el cercle ocupava tot el width
      del background i quedava retallat als costats, fent-lo invisible. */
   width: 12px;
-  /* Cada tile fa `12px × cellHeight`. El cercle es posiciona al CENTRE
-     horitzontal (50%) i a la base (100%) de la tile → cau exactament
-     a la divisió línia entre files (= bottom de cada cel·la,
-     mateixa y que els dots de `.pulse-boundary`). */
+  /* Cada tile fa `12px × cellHeight`. El cercle es posiciona al centre
+     de la tile i l'origen es desplaça mitja cel·la; així els centres
+     cauen a y = cellHeight, 2*cellHeight, ... sense quedar retallats
+     al límit del background. */
   background-image: radial-gradient(
-    circle 1.5px at 50% 100%,
-    rgba(67, 67, 59, 0.35) 50%,
+    circle 2px at 50% 50%,
+    rgba(67, 67, 59, 0.68) 50%,
     transparent 51%
   );
   background-size: 100% var(--plano-cell-height, 2rem);
+  background-position: 0 calc(var(--plano-cell-height, 2rem) / 2);
   background-repeat: repeat-y;
   transform: translateX(-50%);
 }
