@@ -33,6 +33,7 @@ import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '..
 import { renderGhostPulseLines } from '../../libs/plano-fraccion/ghost-pulse.js';
 import { gcd } from '../../libs/app-common/number-utils.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 
 // ========== CONSTANTS ==========
 const BASE_LG = 12;              // Reference length (max pulses)
@@ -46,13 +47,10 @@ const MAX_NUMERATOR = 6;
 const MIN_DENOMINATOR = 2;       // min 2 for complex fractions
 const MAX_DENOMINATOR = 8;
 
-// Colors per rectangles iT
-const VIBRANT_COLORS = [
-  '#7CD6B3', // verd
-  '#F5C6C2', // rosa clar
-  '#7CD6B3', // verd
-  '#F5C6C2'  // rosa clar
-];
+// Color únic per als note-bars: blau clar (`--nuzic-blue-light`) com a
+// apps de plànol anteriors (App19/App20/App32). El highlight durant
+// playback usa el blau intens (`--nuzic-blue`) via CSS box-shadow.
+const VIBRANT_COLORS = ['#bdd9e6'];
 
 // Notes per àudio
 const NOTE_COUNT = 12;       // 12 notes (0-11)
@@ -355,11 +353,18 @@ function createGrid() {
   // Create playhead controller. With columnSizing='fr' we pass 0 so the
   // controller uses DOM-based positioning (cell.offsetLeft) — see
   // plano-playhead.js line 42-51.
+  // `domOffset: 0` perquè el playhead caigui exactament a
+  // `cell.offsetLeft` (alineat amb el pulse-number).
   playheadController = createPlayheadController(
     gridElements.matrixContainer,
     () => 0,
-    0
+    0,
+    0  // domOffset
   );
+
+  // Cancel·lar `marginLeft: -4px` heretat de createPlayhead.
+  const playheadEl = gridElements.matrixContainer.querySelector('.plano-playhead');
+  if (playheadEl) playheadEl.style.marginLeft = '0';
 
   renderGrid();
 }
@@ -479,7 +484,31 @@ function renderGridTimeline() {
     timelineRow.appendChild(numEl);
   }
 
+  // Endpoint marker `·` al final de la timeline (col `columns`,
+  // pulse `currentLg`). Mateix patró que App32.
+  const endpointEl = document.createElement('div');
+  endpointEl.className = 'plano-timeline-number plano-cycle-end';
+  endpointEl.dataset.colIndex = columns;
+  endpointEl.style.left = '100%';
+  endpointEl.textContent = '·';
+  timelineRow.appendChild(endpointEl);
+  gridIntegerLabels[currentLg] = endpointEl;
+
   container.appendChild(timelineRow);
+
+  // Subdivision label "n/d" a la cantonada inferior-esquerra del
+  // `.plano-container` (zona del triangle groc). El parent és el
+  // `.plano-container`, no el timeline-container.
+  const planoContainer = gridElements?.container;
+  if (planoContainer) {
+    let subdivisionLabel = planoContainer.querySelector('.plano-subdivision-label');
+    if (!subdivisionLabel) {
+      subdivisionLabel = document.createElement('div');
+      subdivisionLabel.className = 'plano-subdivision-label';
+      planoContainer.appendChild(subdivisionLabel);
+    }
+    subdivisionLabel.textContent = `${n}/${d}`;
+  }
 }
 
 function syncGridScrolls() {
@@ -500,6 +529,50 @@ function renderNotes() {
     noteCount: NOTE_COUNT,
     colors: VIBRANT_COLORS,
     onClickNote: removeNote
+  });
+  renderNoteHalters();
+}
+
+// Halter groc d'iT sota cada note-bar (patró App13/App20/App30/App32).
+// El halter es posiciona horitzontalment EXACTAMENT com el note-bar i
+// verticalment JUST SOTA d'aquest (pegat a la seva vora inferior).
+function renderNoteHalters() {
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+  if (!matrix) return;
+
+  // Netejar halters anteriors.
+  matrix.querySelectorAll('.note-halter').forEach(el => el.remove());
+
+  if (!notes || notes.length === 0 || !cellWidth) return;
+
+  const firstCell = matrix.querySelector('.plano-cell');
+  const cellH = firstCell?.offsetHeight || 32;
+  const matrixWidth = matrix.offsetWidth;
+  if (!matrixWidth) return;
+
+  notes.forEach((noteData) => {
+    if (noteData.isRest) return;
+
+    const startPx = noteData.startSubdiv * cellWidth;
+    const widthPx = noteData.duration * cellWidth;
+    const startPercent = (startPx / matrixWidth) * 100;
+    const widthPercent = (widthPx / matrixWidth) * 100;
+
+    // Posició vertical = bottom del bar (mateixa fórmula que renderNoteBars).
+    const rowIndex = (NOTE_COUNT - 1) - noteData.note;
+    const barHeight = cellH - 2;
+    const barTop = (rowIndex + 1) * cellH - barHeight / 2;
+    const halterTop = barTop + barHeight;
+
+    const halter = createIntervalLabelBar({
+      startPercent,
+      widthPercent,
+      label: noteData.duration,
+      variant: 'solid'
+    });
+    halter.classList.add('note-halter');
+    halter.style.top = `${halterTop}px`;
+    matrix.appendChild(halter);
   });
 }
 
