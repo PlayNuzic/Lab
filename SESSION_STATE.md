@@ -25,7 +25,7 @@ Inici: 2026-04-27. Documents de referència:
 [`docs/nuzic-editor-migration.md`](docs/nuzic-editor-migration.md), i la
 skill [`.claude/skills/nuzic-migrate/SKILL.md`](.claude/skills/nuzic-migrate/SKILL.md).
 
-### Estat actual (2026-05-13)
+### Estat actual (2026-05-14)
 
 - **Sistema Interactivo + mides d'iframe**: ✅ FET (punts 1-15).
 - **Apps d'escales (App21-25B)**: ✅ FET (punts 25-37, 40).
@@ -45,29 +45,43 @@ skill [`.claude/skills/nuzic-migrate/SKILL.md`](.claude/skills/nuzic-migrate/SKI
     timeline-container amb height fixa + endcap dret + cream-yellow
     gradient continuat amb la timeline-row, ticks ::before/::after a
     pulse-numbers, `.plano-cycle-end` afegit al final. Punt 47.
-  - App33 PENDENT — port d'App32 + adaptacions complex (Step 7s.9 +
-    math complex del Step 7r).
-  - App34/App35 PENDENT — App32 + N-iT editor sota grid.
+  - App33 ✅ FETA — port d'App32 + Step 7s.9 (gap:0 + bar
+    pseudo-element) + ghost-pulse dots a cada divisió de fila +
+    null-safe audio init. Punt 48.
+  - App34 PENDENT — App32 + N-iT editor sota grid.
+  - App35 PENDENT — App33 + N-iT editor sota grid (complex).
 
-### Pendent immediat: App33, App34 i App35
+### Pendent immediat: App34 i App35
 
-**Per a App33 (plano-2D, fracció complexa)** — port d'App32 +
-adaptacions complex (paral·lel a com App29 va portar d'App28). Receta:
+**Per a App34 (plano-2D simple + N-iT editor)**: port d'App32 + editor
+N-iT inline-port d'App20, posicionat full-width SOTA el grid (NO dins
+el `.middle`). Vegeu Step 7r § Plano 2D + N-iT editor (App34, App35).
 
-1. `sed 's/app32/app33/g; s/App32/App33/g'` sobre `Apps/App32/{main.js,
-   styles.css,index.html}` com a baseline.
-2. **Treure `enableGhost: false`** — App33 té autoReduce.
-3. **`setComplexMode()`** — numerator editable.
-4. **`.fraction-editor-wrapper { gap: 0 }`** — Trap (punt 42 pas 3).
-5. **Bar com a pseudo-element `.top::after`** — Step 7s.9b.
-6. **Math complex (Step 7r — apartat "Complex-fraction adaptations")**:
-   `(colIdx * n) % d === 0`, `(startSubdiv * n) / d`, bugs 1/2/3 timing,
-   `renderGhostPulseLines` per polsos enters fora de cel·les.
+**Per a App35** (paral·lel d'App34 amb fracció complexa) — combina:
+1. **Visual base**: port d'App33 via `sed s/app33/app35/g` (heretarà
+   triangle, margin-top, ghost-pulse dots, gradient cream-yellow,
+   info pills, etc.).
+2. **N-iT editor inline**: port d'App20 (sota el grid, full-width).
+3. **Step 7s.9** (gap: 0 + bar pseudo-element) — ja heretat via port
+   d'App33.
+4. **Math complex** (Step 7r): `(colIdx * n) % d === 0`,
+   `renderGhostPulseLines`, etc. — ja heretat d'App33.
+5. **Null-safe audio init** — ja heretat (vegeu Trap a la taula).
 
-**Per a App34 (plano-2D simple + N-iT editor)** i **App35** (mateix +
-complex): App32 + editor N-iT inline-port d'App20, posicionat full-width
-SOTA el grid (NO dins el `.middle`). Vegeu Step 7r § Plano 2D + N-iT
-editor (App34, App35).
+**Per a App29/App31/App33/App35 (n>1, complexa) — referència general**:
+
+- **NO passar `enableGhost: false`** — la ghost-fraction es fa servir
+  per previsualitzar la reducció (`autoReduce: true`).
+- **`gap: 0` al `.fraction-editor-wrapper`** — el ghost ocupa el gap
+  flex i desalinea la fracció del endcap (vegeu punt 42 pas 3).
+- **Bar de la fracció com a pseudo-element `.top::after`** (no
+  `border-bottom` de `.top`) — perquè els 2 spinners (numerator +
+  denominator) puguin projectar fora del rectangle a la mateixa x.
+- Numerador té el seu propi spinner visible (mode complex
+  `setComplexMode()`) — el patró del pill OUTSIDE s'aplica a tots dos
+  camps automàticament gràcies a la barra pseudo-element.
+- Fórmules de validació complexa (`(colIdx * n) % d === 0`, bugs 1/2/3
+  de timing, ghost-pulse) al **Step 7r** de la skill.
 
 **Per a App29/App31/App33/App35 (n>1, complexa) — referència general**:
 
@@ -165,6 +179,8 @@ declaracions que competeixen amb el tema. Detall al [Punt 40](#40-transposició-
 | **Plano-2D: endcap esquerre de la timeline = cantonada inferior-esquerra del grid** | A apps de plànol l'endcap esquerre NO és un overlay groc nou; és la cel·la col 1 row 2 del `.plano-container` grid (sota la soundline). Aquesta cel·la ja existeix com a `.plano-container::before` (background `--plano-soundline-bg` = rosa). | Sobreescriure el `::before` amb `linear-gradient(to bottom right, rosa 0-49.5%, groc 50.5-100%)`. Patró triangle: meitat superior-esquerra rosa (continua soundline) + meitat inferior-dreta groga (continua endcap timeline). | Punt 47 (App32) |
 | **Plano-2D: pulse-numbers handlers heretats de plano-modular sense ticks** | `.plano-timeline-number` ve sense `::before`/`::after` ticks per defecte a plano-modular. Apps standalone (App26-31) els tenen heretats de nuzic-theme amb `top: 20%` (per timeline-wrapper estàndard). A plano-2D cal redefinir-los explícitament. | Override amb `::before { bottom: 100%; height: 10px; margin-bottom: 4px }` (tick superior) i `::after { top: 100%; height: 10px; margin-top: 4px }` (tick inferior). Aplicat només a `.plano-cycle-start` per coherència amb App26-31. | Punt 47 (App32) |
 | **Plano-2D: col 0 i Lg-end queden tapats per endcaps** | Si el matrix té `padding-right: W` i la timeline conté un endcap dret `::after`, el número `Lg/d-1` (última subdivisió) queda just abans del padding i pot quedar mig-tapat per l'endcap. Anàlogament, el `0` del col 0 cau abans de la zona útil. | Variables d'inset (`--app32-timeline-left-label-inset`, `--app32-timeline-right-label-inset`) + selectors específics: `.plano-timeline-number[data-col-index="0"] { left: var(--...left-inset) }` i `.plano-cycle-end { left: calc(100% - var(--...right-inset)) }`. Afegir un `.plano-cycle-end` (text `·`) al final de la timeline-row via JS, anàleg a apps standalone. | Punt 47 (App32) |
+| **Ghost-pulse dots tapats per .plano-cell (App33/App35)** | El `renderGhostPulseLines` crea `<div class="ghost-pulse-line">` dins de `.plano-matrix`. Sense un z-index explícit alt, el fons opac de les `.plano-cell` (que apareix a sobre per stacking-order del DOM) tapava els dots — semblava que el CSS no s'aplicava. | `z-index: 11` (mateix que els dots de `.pulse-boundary::before`) garanteix que els ghost dots queden a sobre. La línia ha de tenir `width: 12px` (no 3) perquè el cercle del background-image (4px diameter) tingui marge a banda i banda; sense això, el cercle ocupa tot el background-width i es retalla pels costats. Cercle a `at 50% 50%` + `background-position: 0 calc(cellHeight/2)` desplaça l'origen perquè els dots caiguin a les divisions de fila (y = cellHeight, 2*cellHeight, ...). Color `rgba(67,67,59,0.68)` + radius 2px per llegibilitat sobre fons blanc. | Punt 48 (App33) |
+| **Audio null-safe init (App32-35)** | `await _baseInitAudio()` pot retornar `null` silenciosament si `melodic-audio.js` falla en càrrega dinàmica o si Tone.js no està disponible. Llavors el `typeof audio.setMute === 'function'` llança `TypeError: Cannot read properties of null` perquè el `typeof` no protegeix contra `null.X`. | Afegir guard `audio &&` abans de cada `typeof audio.X === 'function'` als blocs post-init (`setMute`, `setBase`, `setCycle`). Aplicat a App32-35 al commit `5fffccf`. App35 ha de tenir el patró ja en port via sed. | Punt 48 (App33) |
 
 ### Patrons d'editor cell-based
 
@@ -2160,6 +2176,132 @@ breakpoint vertical). Workaround vigent. Detall complet al
     (margin-top negatiu per padding-bottom), 2f15be9 (ajustos soundline
     i cantonada), 8fd1417 (alineació amb patró fraccions), 0512661
     (restaurar ticks de timeline).
+
+48. **Refactor UI d'App33 (plano-2D + fracció complexa) — patró per
+    a App35** ✅ FET (2026-05-14)
+
+    App33 = "Plano con Fracción Compleja". Port literal d'App32 amb
+    adaptacions complex (paral·lel a App30→App31). Estructura:
+
+    1. **Port literal d'App32 via `sed app32 → app33`** sobre
+       `styles.css` (heretat tot el Step 7r.visual: triangle a la
+       cantonada, margin-top negatiu, gradient cream-yellow, ticks,
+       dots pulse-boundary, halters note-bar, color blau).
+
+    2. **Step 7s.9a** — `.fraction-editor-wrapper { gap: 0 }`. CRÍTIC
+       a App33 perquè `autoReduce: true` crea sempre el ghost-fraction
+       i sense `gap: 0` el ghost capturava el `gap: 1.125rem` default,
+       desalineant la fracció del límit esquerre del plànol.
+
+    3. **Step 7s.9b** — bar de la fracció com a `.top::after`
+       pseudo-element en lloc de `border-bottom`. App33 té els dos
+       spinners (numerator + denominator) visibles → els camps han
+       de ser full-width perquè els dos projectin a la mateixa x.
+
+    4. **`index.html`** — `<link>` a `interval-label-bar.css`.
+
+    5. **`main.js`** — patch JS (no es porta amb sed perquè la
+       lògica matemàtica complex és diferent):
+       - Import `createIntervalLabelBar`.
+       - `VIBRANT_COLORS = ['#bdd9e6']` (blau clar nuzic).
+       - Nova `renderNoteHalters()` cridada després de `renderNoteBars`.
+       - Playhead amb `domOffset: 0` + cancel·lar `marginLeft: -4px`
+         heretat de `createPlayhead`.
+       - `.plano-cycle-end` (text `·`) afegit a `renderGridTimeline`
+         amb `gridIntegerLabels[currentLg] = endpointEl` (Lg dinàmic
+         en complex).
+       - `.plano-subdivision-label` ("n/d") com a fill de
+         `.plano-container` (a App32 era "1/d"; a App33 és "n/d"
+         dinàmic).
+
+    **Ghost-pulse dots** (Punt 2 del feedback usuari):
+
+    Inicialment intentava posar `::before` puntual al `.ghost-pulse-line`
+    però quedava un dot sol a la fila 0. Refactor a **column de dots
+    repetida** via `background-image: radial-gradient`. **Tres iteracions
+    fallides** abans del fix definitiu (per culpa de retalls per
+    z-index, dimensions estretes, i origen de tile mal calculat):
+
+    1. `width: 3px` + `circle 1.5px` → cercle ocupava tot el width,
+       retallat pels costats. **Invisible.**
+    2. `circle at 50% 100%` (bottom) + `background-position: 0` →
+       cercle a la cantonada inferior tallat pels límits de la tile.
+    3. `z-index: 1` → **les `.plano-cell` opaques tapaven els dots**
+       (causa principal!).
+
+    **Fix definitiu** (commit 87e0a62, fet per l'usuari):
+
+    ```css
+    body[data-visual="nuzic"].app33 .ghost-pulse-line {
+      position: absolute;
+      top: 0;
+      bottom: calc(var(--plano-cell-height, 2rem) / 2 + 1.4rem);
+      width: 12px;       /* espai al voltant del dot, no retallat */
+      z-index: 11;       /* per sobre del background opac de .plano-cell */
+      background-image: radial-gradient(
+        circle 2px at 50% 50%,
+        rgba(67, 67, 59, 0.68) 50%,
+        transparent 51%
+      );
+      background-size: 100% var(--plano-cell-height, 2rem);
+      background-position: 0 calc(var(--plano-cell-height, 2rem) / 2);
+      background-repeat: repeat-y;
+      transform: translateX(-50%);
+    }
+    ```
+
+    Quatre claus del fix:
+    - **`z-index: 11`** (mateix que `.pulse-boundary::before`) — per
+      sobre del background opac de `.plano-cell`.
+    - **`width: 12px`** (no 3px) — el dot (4px diameter) té marge
+      lateral, no retallat.
+    - **`circle 2px at 50% 50%`** — radius 2px (diameter 4px),
+      cercle al centre de la tile (no a la cantonada que retallaria).
+    - **`background-position: 0 calc(cellHeight/2)`** — desplaça
+      l'origen de repetició perquè el primer cercle caigui a
+      y = cellHeight (= primera divisió línia entre files) i els
+      següents a 2*cellHeight, 3*cellHeight, etc.
+
+    **Null-safe audio init** (Punt 3 del feedback):
+
+    `await _baseInitAudio()` pot retornar `null` silenciosament. El
+    següent `typeof audio.setMute === 'function'` llança `TypeError:
+    Cannot read properties of null` perquè `typeof` NO protegeix
+    contra `null.X`. Fix: afegir guard `audio &&` abans de cada
+    check (`setMute`, `setBase`, `setCycle`). Aplicat a App32, App33,
+    App34, App35 al commit `5fffccf`.
+
+    **Decisions per a App35** (plano-2D complex + N-iT editor):
+
+    Estratègia paral·lel a App34: combinar visual base d'App33 + N-iT
+    editor d'App20.
+
+    1. **Visual base via `sed s/app33/app35/g`** sobre
+       `Apps/App33/{main.js,styles.css,index.html}`. Heretarà:
+       - Tot el Step 7r.visual (triangle, margin-top, gradient,
+         ticks, dots).
+       - Step 7s.9 (gap:0 + bar pseudo-element).
+       - Ghost-pulse dots fix complet.
+       - Null-safe audio init guards.
+       - Math complex (`(colIdx*n) % d === 0`, ghost-pulse-lines,
+         timing bugs).
+    2. **N-iT editor inline-port d'App20** posicionat full-width
+       SOTA el grid (NO dins el `.middle`). Vegeu Step 7r §
+       "Plano 2D + N-iT editor".
+    3. Ajustar `subdivision-label` perquè mostri `n/d` (ja heretat
+       d'App33).
+    4. Verificar `setMaxTotalPulse` amb Lg variable (`lg*d/n`
+       grid-cells).
+
+    Expected effort: 1-2 iteracions si App34 i App33 són references
+    sòlides.
+
+    **Commits**: 7955082 (refactor base — port App32 + Step 7s.9 +
+    JS adaptacions), ecf6fbd (primer intent ghost-dots), eead695
+    (gris més clar + repetit), 21b3c3d (dots at bottom-center),
+    197f28f (recuperar dots — at 50%50% + offset), 5fffccf
+    (null-safe audio + ghost width), 87e0a62 (fix definitiu ghost
+    dots — z-index + dimensions correctes).
 
 ### Tasques pendents (feina futura, fora del pla actual)
 
