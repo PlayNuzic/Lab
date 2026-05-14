@@ -26,6 +26,7 @@ import { buildSimple12Rows } from '../../libs/app-common/plano-grid-rows.js';
 import { getTotalSubdivisions as _getTotalSubdivs, subdivToPosition as _subdivToPos, filterInvalidNotes as _filterInvalid } from '../../libs/plano-fraccion/fraction-math.js';
 import { renderNoteBars, removeOverlappingNotes as _removeOverlapping } from '../../libs/app-common/plano-note-renderer.js';
 import { initIdleCaretFlash } from '../../libs/app-common/idle-caret-flash.js';
+import { createIntervalLabelBar } from '../../libs/shared-ui/interval-label-bar.js';
 
 // ========== CONSTANTS ==========
 const FIXED_LG = 12;             // 12 pulsos (0-11)
@@ -37,13 +38,10 @@ const DEFAULT_DENOMINATOR = 2;   // Per defecte 1/2
 const MIN_DENOMINATOR = 1;
 const MAX_DENOMINATOR = 8;
 
-// Colors per rectangles iT
-const VIBRANT_COLORS = [
-  '#7CD6B3', // verd
-  '#F5C6C2', // rosa clar
-  '#7CD6B3', // verd
-  '#F5C6C2'  // rosa clar
-];
+// Color únic per als note-bars: blau clar (`--nuzic-blue-light`) com
+// a apps de plànol anteriors (App19/App20/App32/App33). El highlight
+// durant playback usa el blau intens via CSS box-shadow.
+const VIBRANT_COLORS = ['#bdd9e6'];
 
 // Notes per àudio
 const NOTE_COUNT = 12;       // 12 notes (0-11)
@@ -364,11 +362,18 @@ function createGrid() {
   // Create playhead controller. With columnSizing='fr' we pass 0 so the
   // controller uses DOM-based positioning (cell.offsetLeft) — see
   // plano-playhead.js line 42-51.
+  // `domOffset: -1` perquè el playhead caigui exactament a
+  // `cell.offsetLeft` (alineat amb el pulse-number, same as App32/33).
   playheadController = createPlayheadController(
     gridElements.matrixContainer,
     () => 0,
-    0
+    0,
+    -1  // domOffset
   );
+
+  // Cancel·lar `marginLeft: -4px` heretat de createPlayhead.
+  const playheadEl = gridElements.matrixContainer.querySelector('.plano-playhead');
+  if (playheadEl) playheadEl.style.marginLeft = '0';
 
   renderGrid();
 }
@@ -466,7 +471,30 @@ function renderGridTimeline() {
     timelineRow.appendChild(numEl);
   }
 
+  // Endpoint marker `·` al final de la timeline (col `columns`,
+  // pulse `FIXED_LG`). Mateix patró que App32/App33.
+  const endpointEl = document.createElement('div');
+  endpointEl.className = 'plano-timeline-number plano-cycle-end';
+  endpointEl.dataset.colIndex = columns;
+  endpointEl.style.left = '100%';
+  endpointEl.textContent = '·';
+  timelineRow.appendChild(endpointEl);
+  gridIntegerLabels[FIXED_LG] = endpointEl;
+
   container.appendChild(timelineRow);
+
+  // Subdivision label "1/d" a la cantonada inferior-esquerra del
+  // `.plano-container` (zona del triangle groc).
+  const planoContainer = gridElements?.container;
+  if (planoContainer) {
+    let subdivisionLabel = planoContainer.querySelector('.plano-subdivision-label');
+    if (!subdivisionLabel) {
+      subdivisionLabel = document.createElement('div');
+      subdivisionLabel.className = 'plano-subdivision-label';
+      planoContainer.appendChild(subdivisionLabel);
+    }
+    subdivisionLabel.textContent = `${FIXED_NUMERATOR}/${d}`;
+  }
 }
 
 function syncGridScrolls() {
@@ -1025,6 +1053,46 @@ function renderNotes() {
     colors: VIBRANT_COLORS,
     onClickNote: removeNote
   });
+  renderNoteHalters();
+}
+
+// Halter groc d'iT sota cada note-bar (patró App13/App20/App30/App32).
+function renderNoteHalters() {
+  const matrix = gridElements?.matrixContainer?.querySelector('.plano-matrix');
+  if (!matrix) return;
+
+  matrix.querySelectorAll('.note-halter').forEach(el => el.remove());
+
+  if (!notes || notes.length === 0 || !cellWidth) return;
+
+  const firstCell = matrix.querySelector('.plano-cell');
+  const cellH = firstCell?.offsetHeight || 32;
+  const matrixWidth = matrix.offsetWidth;
+  if (!matrixWidth) return;
+
+  notes.forEach((noteData) => {
+    if (noteData.isRest) return;
+
+    const startPx = noteData.startSubdiv * cellWidth;
+    const widthPx = noteData.duration * cellWidth;
+    const startPercent = (startPx / matrixWidth) * 100;
+    const widthPercent = (widthPx / matrixWidth) * 100;
+
+    const rowIndex = (NOTE_COUNT - 1) - noteData.note;
+    const barHeight = cellH - 2;
+    const barTop = (rowIndex + 1) * cellH - barHeight / 2;
+    const halterTop = barTop + barHeight;
+
+    const halter = createIntervalLabelBar({
+      startPercent,
+      widthPercent,
+      label: noteData.duration,
+      variant: 'solid'
+    });
+    halter.classList.add('note-halter');
+    halter.style.top = `${halterTop}px`;
+    matrix.appendChild(halter);
+  });
 }
 
 // ========== NOTE MANAGEMENT ==========
@@ -1203,6 +1271,7 @@ function initFractionEditorController() {
     defaults: { numerator: FIXED_NUMERATOR, denominator: DEFAULT_DENOMINATOR },
     startEmpty: false,
     maxDenominator: MAX_DENOMINATOR,
+    enableGhost: false,  // numerador fix a 1 → autoReduce mai s'activa, ghost mort
     storage: {},
     addRepeatPress,
     labels: {

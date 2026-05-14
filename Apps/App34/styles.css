@@ -7,60 +7,688 @@
   display: none;
 }
 
-/* Template's timeline-wrapper is not used (grid replaces timeline). */
+/* Template's timeline-wrapper is not used (the grid contains its own timeline). */
 .timeline-wrapper {
   display: none;
 }
 
-/* ========== MIDDLE: info pastilles | fraction centered | spacer ==========
-   3-col grid. Outer columns are `1fr` (equal share of surplus), center is
-   `auto` (sized to the fraction's own width). Result: fraction is centered
-   in the viewport regardless of pastilles width. The zigzag N-iT editor
-   sits full-width BELOW the grid (not in this row). */
+/* `.inputs` queda buida a App34 (BPM es mou a `.controls` per `init()`). */
+.inputs {
+  display: none !important;
+}
+
+/* Variables compartides per fraction-editor, endcaps, subdivision-label,
+   info pills — al body perquè `.middle` i `.plano-timeline-row` les vegin. */
+body.app34 {
+  --app34-endcap-w: clamp(1.875rem, 5.25vw, 5rem);
+  --app34-endcap-h: clamp(3.8rem, 4vw, 4.75rem);
+  --app34-timeline-left-label-inset: clamp(0.2rem, 0.7vw, 0.45rem);
+  --app34-timeline-right-label-inset: clamp(0.45rem, 1.1vw, 0.85rem);
+}
+
+/* ========== .middle: fracció a l'esquerra + info pills a la dreta ==========
+   Patró App30. `position: relative` perquè el grup d'infos absolute pugui
+   ancorar-se. `min-height` mínim per allotjar 2 caixes quadrades + gap. */
 body[data-visual="nuzic"] .middle.app34-middle {
-  display: grid !important;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  display: block !important;
+  position: relative;
   width: 100%;
   margin: 0;
-  padding: 0rem 1.5rem;
-  gap: 2rem;
+  padding: 1rem 0;
   box-sizing: border-box;
-}
-
-.itfr-info-group {
-  grid-column: 1;
-  justify-self: start;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.itfr-info-group .param .circle {
-  min-width: 3rem;
-}
-
-.itfr-info-group .param.sum-it .circle input,
-.itfr-info-group .param.it-disponibles .circle input {
-  width: 2.5rem;
-  text-align: center;
-  padding-right: 0;
-  font-weight: 700;
-  cursor: default;
+  min-height: calc(var(--app34-endcap-w) * 2 + 0.4rem);
 }
 
 .itfr-fraction-slot {
-  grid-column: 2;
-  justify-self: center;
+  display: inline-block;
+  vertical-align: top;
+  /* La fracció dins (`.fraction-editor`) té `left: 0` relatiu al slot —
+     a App34 el plànol és full-width, així que la fracció s'alinea
+     amb el límit esquerre del viewport (col 0 del plànol). */
+  margin-left: 0;
 }
 
-.itfr-spacer {
-  grid-column: 3;
-  justify-self: end;
-  visibility: hidden;
-  /* Width auto-tracks pastilles column via same column pair being `auto`. */
+.itfr-info-group {
+  position: absolute;
+  top: 0;
+  /* Right: 0 → caixes alineades amb el límit dret del .middle (full-width).
+     Per encabir-les dins el viewport NO les projectem fora. */
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-end;
 }
 
+/* Info displays: label negre + caixa quadrada amb número (patró App30). */
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.sum-it,
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.it-disponibles {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 0.75rem !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.sum-it .abbr,
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.it-disponibles .abbr {
+  position: static !important;
+  transform: none !important;
+  font-family: 'Ubuntu', sans-serif !important;
+  font-weight: 900 !important;
+  font-size: clamp(1rem, 2vw, 1.4rem) !important;
+  color: #000 !important;
+  white-space: nowrap !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  text-align: right !important;
+  order: 0 !important;
+}
+
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.sum-it .circle,
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.it-disponibles .circle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: var(--app34-endcap-w) !important;
+  height: var(--app34-endcap-w) !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  background: white !important;
+  overflow: visible !important;
+  order: 1 !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+}
+
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.sum-it .circle {
+  border: 3px solid var(--nuzic-yellow, #FFBB33) !important;
+}
+
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.it-disponibles .circle {
+  border: 3px solid var(--nuzic-yellow-light, #ffeecc) !important;
+}
+
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.sum-it .circle input,
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.it-disponibles .circle input {
+  width: 100% !important;
+  height: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  text-align: center !important;
+  padding: 0 !important;
+  font-weight: 900 !important;
+  font-size: clamp(1.1rem, 2.4vw, 1.6rem) !important;
+  color: #000 !important;
+  cursor: default !important;
+  font-family: 'Ubuntu', sans-serif !important;
+}
+
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.sum-it .circle input.complete,
+body[data-visual="nuzic"].app34 .itfr-info-group .bpm-inline.visible.param.it-disponibles .circle input.complete {
+  color: var(--nuzic-yellow, #FFBB33) !important;
+}
+
+/* ========== FRACTION EDITOR (caixa groga vertical alineada amb endcap esquerre) ========== */
+.fraction-editor-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  /* `gap: 0` per evitar que el ghost-fraction capturi espai del flex.
+     A App34 amb `enableGhost: false` és no-op, però segur. */
+  gap: 0;
+}
+
+/* Rectangle vertical. A App34 el `.middle` és full-width, així que `left: 0`
+   posiciona la fracció flush amb el límit esquerre del viewport (= col 0
+   del plànol). L'endcap esquerre de la timeline-row coincidirà a aquesta
+   mateixa x. */
+.fraction-editor {
+  position: relative;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.2rem;
+  width: var(--app34-endcap-w);
+  box-sizing: border-box;
+  padding: 0.5rem 0;
+  border: 3px solid var(--nuzic-yellow, #FFBB33);
+  border-radius: 0.4rem;
+  color: #000;
+}
+
+.fraction-editor .top,
+.fraction-editor .bottom {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.fraction-editor .top {
+  border-bottom: 4px solid #000;
+  width: 65%;
+  margin: 0 auto;
+}
+
+.fraction-editor input {
+  width: 100%;
+  text-align: center;
+  font-size: clamp(1.75rem, 3.8vw, 2.7rem);
+  background: none;
+  border: none;
+  color: #000 !important;
+  font-family: 'Ubuntu', sans-serif;
+  outline: none;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0;
+}
+
+.fraction-editor input:focus {
+  border: none;
+  outline: none;
+}
+
+.fraction-editor input:disabled,
+.fraction-editor input:read-only {
+  opacity: 1 !important;
+  cursor: default !important;
+  color: #000 !important;
+}
+
+.fraction-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.fraction-field input {
+  padding-right: 0;
+}
+
+.fraction-field .spinner {
+  position: absolute;
+  left: calc(100% + 0.45rem);
+  right: auto;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 4px;
+  width: 1.3rem;
+  height: 2.8rem;
+  background: transparent;
+  overflow: visible;
+  transition: opacity 0.2s ease;
+}
+
+.fraction-field .spinner .spin {
+  flex: 1 1 50%;
+  width: 100%;
+  height: auto;
+  border: none;
+  background: var(--nuzic-yellow, #FFBB33);
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.fraction-field .spinner .spin.up {
+  border-radius: 999px 999px 0 0;
+}
+
+.fraction-field .spinner .spin.down {
+  border-radius: 0 0 999px 999px;
+}
+
+.fraction-field .spinner .spin::before {
+  content: none;
+  border: 0;
+}
+
+.fraction-field .spinner .spin.up::after  { content: '+'; }
+.fraction-field .spinner .spin.down::after { content: '−'; }
+
+.fraction-field .spinner .spin:hover {
+  background: #e6a82e;
+}
+
+.fraction-field .spinner .spin:active {
+  background: #d9991a;
+}
+
+.fraction-field--empty .spinner {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fraction-field-placeholder {
+  display: none !important;
+}
+
+/* ========== GRID (plano-modular full viewport width) ==========
+   With columnSizing='fr' the matrix columns fill all available horizontal
+   space. CRITICAL: the entire chain (main → grid-container → plano-container
+   → plano-matrix) must allow flexible sizing (min-width: 0) so 1fr tracks
+   don't collapse to their intrinsic min-content (S16 of the migration doc). */
+
+#gridContainer.grid-container {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.plano-container {
+  width: 100%;
+  background: var(--bg-light);
+  /* App34 always renders 12 note rows (11..0). The plano-modular default
+     reserves 15 visible rows, which leaves empty soundline/matrix space
+     between note 0 and the timeline on desktop widths. */
+  --plano-visible-rows: 12;
+}
+
+[data-theme="dark"] .plano-container {
+  background: var(--bg-dark);
+}
+
+/* CRITICAL: override plano-modular.css default `min-width: max-content` on
+   matrix rows so 1fr tracks always resolve against container width (not
+   intrinsic content). Without this, the matrix can expand to fit the
+   widest content (e.g. at high subdivision counts) while the timeline-row
+   shrinks to container width — resulting in column mismatch between them. */
+.plano-matrix-container,
+.plano-matrix,
+.plano-timeline-row {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.plano-matrix,
+.plano-timeline-row {
+  margin-left: 0 !important;
+}
+
+/* Matrix and soundline both have a `padding-bottom: cellHeight/2` that
+   reserves vertical space for:
+   - soundline: the `-0-` text centered on the last division line
+   - matrix:    note-bars for row 0 centered on the last division line
+   But the native `max-height` of the containers is only `visible-rows * cellHeight`
+   (excludes the padding), so with no scroll the last half-cell is cropped.
+   Override both max-heights to include the padding + halter height
+   (`1.4rem`) perquè el halter d'iT de la fila 0 (notes 0, la més
+   inferior) hi càpiga sense overflow visual. */
+.plano-container .plano-soundline-container,
+.plano-container .plano-matrix-container {
+  max-height: calc(
+    var(--plano-visible-rows, 12) * var(--plano-cell-height, 2rem)
+    + var(--plano-cell-height, 2rem) / 2
+    + 1.4rem
+  ) !important;
+}
+
+/* Ampliar també el `padding-bottom` de la matrix perquè el halter
+   d'una nota a la fila 0 quedi DINS de l'àrea scrollable. El default
+   `cellHeight/2` només reserva espai per a la mitja-cel·la del
+   note-bar, no per al halter sota. */
+body[data-visual="nuzic"].app34 .plano-matrix {
+  padding-bottom: calc(var(--plano-cell-height, 2rem) / 2 + 1.4rem) !important;
+}
+
+/* The soundline owns the extra half-cell below note 0 so row-0 note bars
+   can fit. Keep that whole soundline area pink; the left endcap triangle
+   handles the yellow transition into the timeline. */
+body[data-visual="nuzic"] .plano-container .plano-soundline-container {
+  background: var(--nuzic-pink-light);
+}
+
+/* SENSE border-left a les cel·les: només els dots radial-gradient marquen
+   les divisions verticals. Patró demanat per l'usuari (sense ratlles
+   verticals dins el plànol). */
+.plano-cell {
+  border-left: none !important;
+}
+
+.plano-cell.pulse-boundary {
+  border-left: none !important;
+}
+
+/* Dots NOMÉS a les cel·les de pols enter (`.pulse-boundary`).
+   Patró: pseudo-element ::before com a cercle COMPLET centrat a la
+   cantonada bottom-left, sense vores rectes (el radial-gradient
+   anterior es retallava pels límits de la cel·la i produia un quart
+   de cercle amb dos "fils" a 90°). */
+body[data-visual="nuzic"].app34 .plano-cell {
+  background-image: none !important;
+}
+
+body[data-visual="nuzic"].app34 .plano-cell.pulse-boundary {
+  background-image: none !important;
+}
+
+body[data-visual="nuzic"].app34 .plano-cell.pulse-boundary::before {
+  content: '';
+  position: absolute;
+  /* Cantonada bottom-left de la cel·la. Mida en clamp() perquè escali
+     proporcionalment amb el viewport (~4px com el radial-gradient
+     original a la mida default). */
+  left: 0;
+  bottom: 0;
+  width: clamp(1.5px, 0.2vw, 3px);
+  height: clamp(1.5px, 0.2vw, 3px);
+  background: var(--nuzic-dark, #43433B);
+  border-radius: 50%;
+  transform: translate(-50%, 50%);
+  pointer-events: none;
+  /* z-index 11 perquè els dots quedin SOBRE les note-bars (z-index: 10).
+     Sense això les barres tapen el dot a partir del seu colIdx. */
+  z-index: 11;
+}
+
+/* ========== NOTE BARS (inside plano-matrix, positioned by JS in px) ========== */
+.note-bar {
+  position: absolute;
+  border-radius: 0.25rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2);
+}
+
+.note-bar:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0.1875rem 0.5rem rgba(0, 0, 0, 0.3);
+}
+
+.note-bar.highlight {
+  /* Highlight durant playback: el blau intens d'App19/App20
+     (`--nuzic-blue`) com a glow, sense canviar el background light. */
+  background: var(--nuzic-blue, #7bb4cd) !important;
+  box-shadow: 0 0 0.75rem var(--nuzic-blue, #7bb4cd);
+}
+
+/* L'iT ja el porta el halter groc sota el bar — l'amaguem aquí
+   per no duplicar la informació. */
+.note-bar__label {
+  display: none;
+}
+
+.note-bar-preview {
+  position: absolute;
+  border-radius: 0.25rem;
+  z-index: 9;
+  background: var(--nuzic-yellow, #FFBB33);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+body.dragging-note {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+body.dragging-note * {
+  cursor: grabbing !important;
+}
+
+/* ========== TIMELINE-ROW INSIDE GRID (format apps de fracció) ==========
+   Patró Step 7s adaptat. La timeline-row és la fila inferior del
+   `.plano-container` grid (sota la matrix). Té `position: relative`
+   perquè els pseudo-elements endcaps siguin absolute respecte ella.
+
+   `padding: 0 W` redueix l'àrea útil interna (entre els endcaps). Els
+   `.plano-timeline-number` són absolute amb `left: %` calculat per JS,
+   relatius al row → cal RECALCULAR aquesta x perquè caigui dins l'àrea
+   útil. Solució via JS: passar la width effective al renderer i
+   adjustar (vegeu main.js).
+
+   AVÍS: la matrix també té `margin: 0 W` (vegeu sota) perquè els seus
+   números coincideixin amb les divisions verticals de la timeline. */
+.plano-timeline-row {
+  min-height: var(--app34-endcap-h);
+  height: var(--app34-endcap-h);
+  position: relative;
+  display: block !important;
+  /* El background gradient (cream + franja groga) ve del
+     `.plano-timeline-container` parent. NO el dupliquem aquí perquè
+     el container té `margin-top: -cellHeight/2` i el row no — si
+     ambdós tenen background, el del row queda desplaçat respecte el
+     del container i es veu una doble franja desalineada. */
+  background: transparent !important;
+}
+
+/* ========== GAP a `.plano-container` entre rows = 0 ==========
+   Sense aquest override, la timeline queda separada de la matrix pel
+   `--plano-grid-gap`. Volem el continu visual: matrix → timeline sense
+   espai entremig. També afegim `position: relative` perquè el
+   `.plano-subdivision-label` absolute s'hi ancori. */
+body[data-visual="nuzic"].app34 .plano-container {
+  gap: 0 !important;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  body[data-visual="nuzic"].app34 .plano-container {
+    --plano-visible-rows: 10;
+  }
+}
+
+@media (max-width: 600px) {
+  body[data-visual="nuzic"].app34 .plano-container {
+    --plano-visible-rows: 9;
+  }
+}
+
+@media (max-width: 500px) {
+  body[data-visual="nuzic"].app34 .plano-container {
+    --plano-visible-rows: 8;
+  }
+}
+
+/* ========== ENDCAP ESQUERRE de la timeline = cantonada inferior-
+   esquerra del plànol (col 1, row 2) ==========
+   `.plano-container::before` ocupa naturalment aquesta cel·la amb
+   `--plano-soundline-bg` (rosa). El sobreescrivim amb un linear-gradient
+   diagonal: meitat triangle superior-esquerra rosa (continua la
+   soundline) + meitat triangle inferior-dreta groga (continua la
+   franja groga sobre els ticks de la timeline).
+
+   La diagonal va de top-right a bottom-left, deixant el rosa per damunt
+   i el groc per sota. */
+body[data-visual="nuzic"].app34 .plano-container::before {
+  background: linear-gradient(
+    to bottom right,
+    var(--nuzic-pink, #f28aad) 0%,
+    var(--nuzic-pink, #f28aad) 49.5%,
+    var(--nuzic-yellow, #FFBB33) 50.5%,
+    var(--nuzic-yellow, #FFBB33) 100%
+  ) !important;
+}
+
+/* ========== ENDCAP DRET de la timeline ==========
+   Overlay groc sobre els últims W px del timeline-container. */
+body[data-visual="nuzic"].app34 .plano-timeline-container {
+  position: relative;
+  height: var(--app34-endcap-h) !important;
+  min-height: var(--app34-endcap-h) !important;
+  overflow-y: visible !important;
+  /* Stops en % calculats sobre l'àrea VISIBLE del container.
+     Recordem: el container té `height: endcap-h` (76px) però els
+     primers cellHeight/2 (16px) queden tapats per la matrix per
+     sobre (via margin-top negatiu). L'àrea visible és ~60px.
+
+     Per que la franja groga aparegui a y=42-56 de l'àrea VISIBLE
+     (com a App30 amb timeline de 60px), els stops sobre la height
+     total del container són:
+       (16 + 42) / 76 = 76.3%
+       (16 + 56) / 76 = 94.7%
+     Arrodonim a 76% / 95%. */
+  background:
+    linear-gradient(
+      to bottom,
+      var(--nuzic-yellow-light) 0,
+      var(--nuzic-yellow-light) 76%,
+      var(--nuzic-yellow) 76%,
+      var(--nuzic-yellow) 95%,
+      var(--nuzic-yellow-light) 95%,
+      var(--nuzic-yellow-light) 100%
+    ) !important;
+}
+
+body[data-visual="nuzic"].app34 .plano-timeline-container::after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--app34-endcap-w);
+  height: 100%;
+  background: var(--nuzic-yellow, #FFBB33);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Reduir l'amplada útil del matrix + timeline-container per la DRETA
+   (deixar W d'espai per l'endcap dret). L'esquerra ja la fa el
+   `.plano-container::before` (col 1 del grid, fora del matrix). */
+body[data-visual="nuzic"].app34 .plano-matrix-container,
+body[data-visual="nuzic"].app34 .plano-timeline-container {
+  padding-right: var(--app34-endcap-w) !important;
+  box-sizing: border-box;
+}
+
+/* Subdivision-label "1/d" al BOTTOM-RIGHT del triangle groc (cantonada
+   inferior-dreta del `.plano-container::before` ≡ col 1, row 2).
+   Com que `::before` és pseudo-element, no podem afegir-hi text amb
+   `content`. El JS posa `.plano-subdivision-label` com a fill del
+   `.plano-container`, posicionat absolute sobre aquesta cel·la. */
+.plano-container > .plano-subdivision-label {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--plano-soundline-width, 50px);
+  height: var(--app34-endcap-h);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0 0.18rem 0.12rem 0;
+  font-size: clamp(0.65rem, 1vw, 0.82rem);
+  font-weight: 700;
+  color: #fff;
+  pointer-events: none;
+  white-space: nowrap;
+  line-height: 1;
+  z-index: 6;
+  box-sizing: border-box;
+}
+
+/* Numbers within the timeline-row. Posicionats per percentatge absolut. */
+.plano-timeline-number {
+  position: absolute !important;
+  top: 50%;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  height: auto !important;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+body[data-visual="nuzic"].app34 .plano-timeline-number::before {
+  top: auto;
+  bottom: 100%;
+  left: 50%;
+  height: clamp(0.5rem, 1vw, 0.75rem);
+  transform: translateX(-50%);
+  margin-bottom: clamp(0.2rem, 0.5vw, 0.35rem);
+}
+
+body[data-visual="nuzic"].app34 .plano-timeline-number::after {
+  top: 100%;
+  bottom: auto;
+  left: 50%;
+  height: clamp(0.5rem, 1vw, 0.75rem);
+  transform: translateX(-50%);
+  margin-top: clamp(0.2rem, 0.5vw, 0.35rem);
+}
+
+.plano-timeline-number[data-col-index="0"] {
+  left: var(--app34-timeline-left-label-inset) !important;
+  transform: translate(0, -50%);
+}
+
+/* Integer pulses: same weight and color as App26/App28/App30 timelines. */
+.plano-timeline-number.plano-cycle-start {
+  font-size: clamp(0.85rem, 1.6vw, 1.2rem);
+  font-weight: 700;
+  color: var(--nuzic-dark, #43433B);
+}
+
+body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-start.plano-single-digit::before,
+body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-start.plano-single-digit::after {
+  left: 50%;
+}
+
+/* Subdivisions: small dark labels. */
+body[data-visual="nuzic"] .plano-timeline-number.plano-subdivision {
+  font-size: clamp(0.85rem, 1.6vw, 1rem);
+  color: #43433B !important;
+  opacity: 0.55;
+  font-weight: 600;
+}
+
+body[data-visual="nuzic"] .plano-timeline-number.plano-subdivision::before {
+  display: none;
+  content: none;
+}
+
+body[data-visual="nuzic"] .plano-timeline-number.plano-subdivision::after {
+  opacity: 0.55;
+}
+
+body[data-visual="nuzic"].app34 .plano-timeline-number.plano-cycle-end {
+  left: calc(100% - var(--app34-timeline-right-label-inset)) !important;
+  z-index: 6;
+}
+
+/* ========== CONTROLS ========== */
+.controls #tapTempoBtn,
+.controls #loopBtn {
+  display: none !important;
+}
 /* ========== NUZIC N-iT EDITOR (full-width block below grid) ==========
    Inline implementation ported from App20 (nit-editor). Sits directly after
    #gridContainer in DOM order so labels align with the plano soundline.
@@ -218,322 +846,3 @@ body[data-visual="nuzic"] .middle.app34-middle {
 
 [data-theme="dark"] .nit-editor-end {
   background: var(--nuzic-grey, #AAA699);
-}
-
-/* ========== FRACTION EDITOR (block mode) ========== */
-.fraction-editor-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.125rem;
-}
-
-.fraction-editor {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.375rem;
-  color: var(--nuzic-dark, #43433B);
-}
-
-.fraction-editor .top,
-.fraction-editor .bottom {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.fraction-editor .top {
-  border-bottom: 0.25rem solid var(--nuzic-dark, #43433B);
-  padding: 0 1.5rem;
-}
-
-.fraction-editor input {
-  width: 5rem;
-  text-align: center;
-  font-size: clamp(1.75rem, 4vw, 3rem);
-  background: none;
-  border: none;
-  color: inherit;
-  font-family: inherit;
-  outline: none;
-}
-
-.fraction-editor input:focus {
-  border-bottom: 0.125rem solid var(--nuzic-yellow, #FFBB33);
-}
-
-.fraction-editor input:disabled,
-.fraction-editor input:read-only {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.fraction-field {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.fraction-field input {
-  padding-right: 1.75rem;
-}
-
-.fraction-field .spinner {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.125rem;
-  width: 1.5rem;
-  color: var(--nuzic-dark, #43433B);
-  transition: opacity 0.2s ease;
-}
-
-.fraction-field .spinner .spin {
-  width: 100%;
-  height: 0.75rem;
-  border: none;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: inherit;
-}
-
-.fraction-field .spinner .spin::before {
-  content: '';
-  border-left: 0.25rem solid transparent;
-  border-right: 0.25rem solid transparent;
-}
-
-.fraction-field .spinner .spin.up::before {
-  border-bottom: 0.375rem solid currentColor;
-}
-
-.fraction-field .spinner .spin.down::before {
-  border-top: 0.375rem solid currentColor;
-}
-
-.fraction-field .spinner .spin:active {
-  color: var(--nuzic-yellow, #FFBB33);
-}
-
-.fraction-field--empty .spinner {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.fraction-field-placeholder {
-  display: none !important;
-}
-
-/* ========== GRID (plano-modular full viewport width) ==========
-   With columnSizing='fr' the matrix columns fill all available horizontal
-   space. CRITICAL: the entire chain (main → grid-container → plano-container
-   → plano-matrix) must allow flexible sizing (min-width: 0) so 1fr tracks
-   don't collapse to their intrinsic min-content (S16 of the migration doc). */
-
-#gridContainer.grid-container {
-  width: 100%;
-  padding: 0;
-  margin: 0;
-  box-sizing: border-box;
-}
-
-.plano-container {
-  width: 100%;
-  background: var(--bg-light);
-}
-
-[data-theme="dark"] .plano-container {
-  background: var(--bg-dark);
-}
-
-/* CRITICAL: override plano-modular.css default `min-width: max-content` on
-   matrix rows so 1fr tracks always resolve against container width (not
-   intrinsic content). Without this, the matrix can expand to fit the
-   widest content (e.g. at high subdivision counts) while the timeline-row
-   shrinks to container width — resulting in column mismatch between them. */
-.plano-matrix-container,
-.plano-matrix,
-.plano-timeline-row {
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-}
-
-.plano-matrix,
-.plano-timeline-row {
-  margin-left: 0 !important;
-}
-
-/* Matrix and soundline both have a `padding-bottom: cellHeight/2` that
-   reserves vertical space for:
-   - soundline: the `-0-` text centered on the last division line
-   - matrix:    note-bars for row 0 centered on the last division line
-   But the native `max-height` of the containers is only `visible-rows * cellHeight`
-   (excludes the padding), so with no scroll the last half-cell is cropped.
-   Override both max-heights to include the padding so everything fits. */
-.plano-container .plano-soundline-container,
-.plano-container .plano-matrix-container {
-  max-height: calc(
-    var(--plano-visible-rows, 12) * var(--plano-cell-height, 2rem)
-    + var(--plano-cell-height, 2rem) / 2
-  ) !important;
-}
-
-/* Pink soundline background stops at the -0- line.
-   The soundline-row natively has `padding-bottom: cellHeight/2` to keep
-   the last note's translateY(50%) text visible. We can't remove that padding
-   (would clip the `0`), but we can make the pink background transparent
-   from the -0- line down — via a linear-gradient that fades to transparent
-   for the last cellHeight/2 of the container. */
-/* Pink soundline background ends exactly at the `-0-` line.
-   Container height = 12.5 * cellHeight (12 rows + cellHeight/2 padding).
-   The `-0-` text is centered at y = 12 * cellHeight = 96% of container.
-   Gradient stops at 100% - cellHeight/2 = 96%. */
-body[data-visual="nuzic"] .plano-container .plano-soundline-container {
-  background:
-    linear-gradient(
-      to bottom,
-      var(--nuzic-pink-light) 0,
-      var(--nuzic-pink-light) calc(100% - var(--plano-cell-height, 2rem) / 0.78),
-      transparent calc(100% - var(--plano-cell-height, 2rem) / 0.78),
-      transparent 100%
-    );
-}
-
-/* Every cell has a LEFT vertical line aligned with the timeline numbers.
-   Subdivisions get a thin line, pulse-start cells a thicker darker line.
-   Dots (radial-gradient) are kept on top — their natural position at
-   bottom-left coincides with the same left edge as the border. */
-.plano-cell {
-  border-left: 0.0625rem solid rgba(67, 67, 59, 0.2) !important;
-}
-
-.plano-cell.pulse-boundary {
-  border-left: 0.125rem solid var(--nuzic-dark, #43433B) !important;
-}
-
-/* Subdivision dots at bottom-left of each cell, reinforcing the border-left
-   line. `background-origin: border-box` ensures the gradient's 0% 100%
-   anchor point sits on the cell's true left edge (not offset by the border
-   width), so the dot and the border line up perfectly. */
-body[data-visual="nuzic"] .plano-cell {
-  background-image: radial-gradient(
-    circle 0.25rem at 0% 100%,
-    var(--nuzic-dark) 45%,
-    transparent 46%
-  ) !important;
-  background-origin: border-box !important;
-  background-repeat: no-repeat !important;
-}
-
-/* ========== NOTE BARS (inside plano-matrix, positioned by JS in px) ========== */
-.note-bar {
-  position: absolute;
-  border-radius: 0.25rem;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2);
-}
-
-.note-bar:hover {
-  transform: scale(1.02);
-  box-shadow: 0 0.1875rem 0.5rem rgba(0, 0, 0, 0.3);
-}
-
-.note-bar.highlight {
-  box-shadow: 0 0 0.75rem currentColor;
-}
-
-.note-bar__label {
-  font-size: clamp(0.75rem, 1.4vw, 1rem);
-  font-weight: 700;
-  color: var(--nuzic-dark, #43433B);
-  pointer-events: none;
-}
-
-.note-bar-preview {
-  position: absolute;
-  border-radius: 0.25rem;
-  z-index: 9;
-  background: var(--nuzic-yellow, #FFBB33);
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-body.dragging-note {
-  cursor: grabbing !important;
-  user-select: none;
-}
-
-body.dragging-note * {
-  cursor: grabbing !important;
-}
-
-/* ========== TIMELINE INSIDE GRID ==========
-   Numbers are absolute-positioned by exact percentage. The timeline-row is
-   the relative anchor; each number's `left: (colIdx/columns*100)%` matches
-   the left edge of the corresponding matrix cell, and translateX(-50%)
-   centers the text on that line. No bearing compensation, no margin drift. */
-.plano-timeline-row {
-  min-height: 2.5rem;
-  position: relative;
-  display: block !important;
-  /* Override grid from plano-modular.css — we position children absolutely. */
-}
-
-.plano-timeline-number {
-  position: absolute !important;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-weight: 600;
-  color: var(--nuzic-dark, #43433B);
-  white-space: nowrap;
-}
-
-/* Integer pulses: large yellow numbers. */
-.plano-timeline-number.plano-cycle-start {
-  font-size: clamp(0.8rem, 1.6vw, 1.3rem);
-  font-weight: 700;
-  color: var(--nuzic-yellow, #FFBB33);
-}
-
-/* Single-digit integer pulses (0-9): ticks at left: 4px so they sit under
-   the text center. Two-digit pulses (10, 11) keep the nuzic-theme default
-   of 7px which works better for wider numbers. */
-body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-start.plano-single-digit::before,
-body[data-visual="nuzic"] .plano-timeline-number.plano-cycle-start.plano-single-digit::after {
-  left: 4px;
-}
-
-/* Subdivisions: small labels with the same font-size as soundline notes.
-   Uses higher specificity than nuzic-theme's `.plano-timeline-number` rule
-   so the clamp() here wins. Force dark color regardless of theme — the
-   timeline strip is cream in both light/dark modes, and `--nuzic-dark` in
-   dark mode is itself cream (invisible on cream bg). */
-body[data-visual="nuzic"] .plano-timeline-number.plano-subdivision {
-  font-size: clamp(0.7rem, 1.4vw, 0.875rem);
-  color: #43433B !important;
-  opacity: 1;
-  font-weight: 500;
-}
-
-/* ========== CONTROLS ========== */
-.controls #tapTempoBtn,
-.controls #loopBtn {
-  display: none !important;
-}
