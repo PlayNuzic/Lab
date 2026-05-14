@@ -193,18 +193,19 @@ async function initAudio() {
   if (!audio) {
     audio = await _baseInitAudio();
 
-    // Apply saved mute state
+    // Apply saved mute state (defensiu: `audio` pot ser null si l'init
+    // melòdic falla silenciosament).
     const savedMute = loadOpt('mute');
-    if (savedMute === '1' && typeof audio.setMute === 'function') {
+    if (audio && savedMute === '1' && typeof audio.setMute === 'function') {
       audio.setMute(true);
     }
 
     // Configure sounds from dropdowns (like createRhythmAudioInitializer does)
     // This ensures the metronome and cycle sounds are properly initialized
-    if (baseSoundSelect?.dataset?.value && typeof audio.setBase === 'function') {
+    if (audio && baseSoundSelect?.dataset?.value && typeof audio.setBase === 'function') {
       await audio.setBase(baseSoundSelect.dataset.value);
     }
-    if (cycleSoundSelect?.dataset?.value && typeof audio.setCycle === 'function') {
+    if (audio && cycleSoundSelect?.dataset?.value && typeof audio.setCycle === 'function') {
       await audio.setCycle(cycleSoundSelect.dataset.value);
     }
 
@@ -359,7 +360,7 @@ function createGrid() {
     gridElements.matrixContainer,
     () => 0,
     0,
-    0  // domOffset
+    -1  // domOffset
   );
 
   // Cancel·lar `marginLeft: -4px` heretat de createPlayhead.

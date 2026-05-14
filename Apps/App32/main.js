@@ -196,16 +196,16 @@ async function initAudio() {
 
     // Apply saved mute state
     const savedMute = loadOpt('mute');
-    if (savedMute === '1' && typeof audio.setMute === 'function') {
+    if (audio && savedMute === '1' && typeof audio.setMute === 'function') {
       audio.setMute(true);
     }
 
     // Configure sounds from dropdowns (like createRhythmAudioInitializer does)
     // This ensures the metronome and cycle sounds are properly initialized
-    if (baseSoundSelect?.dataset?.value && typeof audio.setBase === 'function') {
+    if (audio && baseSoundSelect?.dataset?.value && typeof audio.setBase === 'function') {
       await audio.setBase(baseSoundSelect.dataset.value);
     }
-    if (cycleSoundSelect?.dataset?.value && typeof audio.setCycle === 'function') {
+    if (audio && cycleSoundSelect?.dataset?.value && typeof audio.setCycle === 'function') {
       await audio.setCycle(cycleSoundSelect.dataset.value);
     }
 
