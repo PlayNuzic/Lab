@@ -432,6 +432,42 @@ body[data-visual="nuzic"].app33 .plano-cell.pulse-boundary::before {
   z-index: 11;
 }
 
+/* ========== GHOST-PULSE DOTS (només App33 — fracció complexa) ==========
+   A fraccions complexes (n > 1) hi ha pulses sencers que NO cauen sobre
+   cap cel·la de la graella (les divisions són n/d, no 1/d). Aquests
+   "ghost pulses" els dibuixa `renderGhostPulseLines` com a línies
+   verticals dashed al `.plano-matrix`. Aquí substituim el `border-left`
+   per un DOT idèntic al de `.pulse-boundary`, per consistència visual
+   amb els pulses sencers que sí cauen a cel·les. */
+body[data-visual="nuzic"].app33 .ghost-pulse-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: none !important;
+  opacity: 1 !important;
+  pointer-events: none;
+  z-index: 1;
+}
+
+body[data-visual="nuzic"].app33 .ghost-pulse-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  /* El `.ghost-pulse-line` ocupa `top: 0 → bottom: 0` del matrix
+     (incloent el seu `padding-bottom: cellHeight/2 + 1.4rem` que
+     reserva espai per als halters de la fila 0). Per que el dot caigui
+     al BOTTOM de la fila 0 (mateixa y que els dots de `.pulse-boundary`),
+     l'ofset cap amunt és el padding-bottom complet. */
+  bottom: calc(var(--plano-cell-height, 2rem) / 2 + 1.4rem);
+  width: clamp(1.5px, 0.2vw, 3px);
+  height: clamp(1.5px, 0.2vw, 3px);
+  background: var(--nuzic-dark, #43433B);
+  border-radius: 50%;
+  transform: translate(-50%, 50%);
+  pointer-events: none;
+  z-index: 11;
+}
+
 /* ========== NOTE BARS (inside plano-matrix, positioned by JS in px) ========== */
 .note-bar {
   position: absolute;
