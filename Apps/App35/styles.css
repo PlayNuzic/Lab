@@ -776,8 +776,10 @@ body[data-visual="nuzic"].app35 .plano-timeline-number.plano-cycle-end {
 
 .nit-editor-bar {
   display: flex;
+  /* `align-items: stretch` (default flex) + sense `height` fix → les
+     cel·les determinen l'alçada via `aspect-ratio: 1` (quadrades), i
+     el label s'estira a la mateixa alçada. */
   align-items: stretch;
-  height: 2rem;
 }
 
 /* N / iT label — matches .plano-soundline-container width so the label sits
