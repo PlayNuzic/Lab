@@ -89,7 +89,7 @@ export const slideMatrix = [
   { paso:17, section:'fraccionando', title:'Fraccionando la Línea Temporal',                              layout:'E-app-text-left', apps:['App26'],  aspect:'5/2', group:'timeline-simple' },
   { paso:18, section:'fraccionando', title:'Sucesión de Pulsos Fraccionados',                             layout:'E-app-text-left', apps:['App28'],  aspect:'5/2', group:'timeline-simple' },
   { paso:19, section:'fraccionando', title:'Sucesión de iT Fraccionados Simples',                         layout:'E-app-text-left', apps:['App30'],  aspect:'2/1', group:'timeline-simple' },
-  { paso:20, section:'fraccionando', title:'Fracciones Complejas',                                        layout:'B-app-left', apps:['App34','App35'], aspect:'1/1', variantLabels:['App34 · principal','App35 · extra'], group:'plano-simple' },
+  { paso:20, section:'fraccionando', title:'Fracciones Complejas',                                        layout:'B-app-left', apps:['App34','App35'], aspect:'3/4', variantLabels:['App34 · principal','App35 · extra'], group:'plano-simple' },
   { paso:21, section:'escalas',      title:'Escalas: Escogiendo Notas',                                   layout:'B-app-left', apps:['App21'],  aspect:'2/3', group:'scale' },
   { paso:22, section:'escalas',      title:'Estructura Escalar',                                          layout:'B-app-left', apps:['App22'],  aspect:'2/3', group:'scale' },
   { paso:23, section:'escalas',      title:'Transposición',                                               layout:'B-app-left', apps:['App23'],  aspect:'2/3', group:'scale' },
