@@ -460,16 +460,18 @@ body[data-visual="nuzic"].app33 .ghost-pulse-line {
      l'amplada del dot); transform -50% centra la columna a la x
      del ghost-pulse. */
   width: clamp(1.5px, 0.2vw, 3px);
-  /* Cada tile fa `width × cellHeight`. El cercle es posiciona a
-     `50% 100%` = bottom-center de la tile → cau exactament a la
-     divisió línia entre files (= bottom de cada cel·la). Mateixa y
-     que els dots de `.pulse-boundary`. */
+  /* Cada tile fa `width × cellHeight`. El cercle es posiciona al CENTRE
+     de la tile (50% 50%) — visible complet, no es retalla. Després,
+     `background-position-y: cellHeight/2` desplaça l'origen de
+     repetició perquè el primer dot caigui a y = cellHeight (= primera
+     divisió línia entre files), el segon a 2*cellHeight, etc. */
   background-image: radial-gradient(
-    circle 1.5px at 50% 100%,
+    circle 1.5px at 50% 50%,
     rgba(67, 67, 59, 0.35) 50%,
     transparent 51%
   );
   background-size: 100% var(--plano-cell-height, 2rem);
+  background-position: 0 calc(var(--plano-cell-height, 2rem) / 2);
   background-repeat: repeat-y;
   transform: translateX(-50%);
 }
