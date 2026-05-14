@@ -436,36 +436,39 @@ body[data-visual="nuzic"].app33 .plano-cell.pulse-boundary::before {
    A fraccions complexes (n > 1) hi ha pulses sencers que NO cauen sobre
    cap cel·la de la graella (les divisions són n/d, no 1/d). Aquests
    "ghost pulses" els dibuixa `renderGhostPulseLines` com a línies
-   verticals dashed al `.plano-matrix`. Aquí substituim el `border-left`
-   per un DOT idèntic al de `.pulse-boundary`, per consistència visual
-   amb els pulses sencers que sí cauen a cel·les. */
+   verticals al `.plano-matrix`. Aquí substituïm la línia per una
+   COLUMNA DE DOTS REPETITS, un a cada divisió de fila, per
+   consistència visual amb els dots de `.pulse-boundary`.
+
+   Tècnica: `background: radial-gradient(circle, gray, transparent)
+   repetit verticalment cada `--plano-cell-height`. El radius (0.2vw
+   clamp) i el gris més clar (rgba 0.35) fan que es vegin discrets
+   sense competir amb els dots de pulse-boundary. */
 body[data-visual="nuzic"].app33 .ghost-pulse-line {
   position: absolute;
   top: 0;
-  bottom: 0;
+  /* Reduir bottom per compensar el `padding-bottom` del matrix
+     (espai reservat per halters fila 0) — així el patró de dots
+     coincideix verticalment amb les divisions de cel·les. */
+  bottom: calc(var(--plano-cell-height, 2rem) / 2 + 1.4rem);
   border-left: none !important;
   opacity: 1 !important;
   pointer-events: none;
   z-index: 1;
-}
-
-body[data-visual="nuzic"].app33 .ghost-pulse-line::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  /* El `.ghost-pulse-line` ocupa `top: 0 → bottom: 0` del matrix
-     (incloent el seu `padding-bottom: cellHeight/2 + 1.4rem` que
-     reserva espai per als halters de la fila 0). Per que el dot caigui
-     al BOTTOM de la fila 0 (mateixa y que els dots de `.pulse-boundary`),
-     l'ofset cap amunt és el padding-bottom complet. */
-  bottom: calc(var(--plano-cell-height, 2rem) / 2 + 1.4rem);
+  /* Columna de dots: un dot a cada cellHeight (que és la y de cada
+     divisió línia entre files). Mida del dot 3px diameter (radius 1.5px),
+     centrada al lloc del background-position. */
   width: clamp(1.5px, 0.2vw, 3px);
-  height: clamp(1.5px, 0.2vw, 3px);
-  background: var(--nuzic-dark, #43433B);
-  border-radius: 50%;
-  transform: translate(-50%, 50%);
-  pointer-events: none;
-  z-index: 11;
+  background-image: radial-gradient(
+    circle,
+    rgba(67, 67, 59, 0.35) 50%,
+    transparent 51%
+  );
+  background-size: 100% var(--plano-cell-height, 2rem);
+  background-position: 0 var(--plano-cell-height, 2rem);
+  background-repeat: repeat-y;
+  /* Translate -50% perquè la columna estigui centrada a la x de la línia. */
+  transform: translateX(-50%);
 }
 
 /* ========== NOTE BARS (inside plano-matrix, positioned by JS in px) ========== */
