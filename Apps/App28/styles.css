@@ -28,7 +28,7 @@ body.app28 {
    del `.timeline`) no s'escapin del viewport (iframe del sistema). */
 .middle {
   width: auto;
-  max-width: 75rem;
+  /* `max-width` eliminat — l'app s'estén a tot l'amplada del viewport. */
   margin: 0 var(--app28-endcap-w) 5px var(--app28-endcap-w);
   justify-content: flex-start;
 }
@@ -201,7 +201,8 @@ body.app28 {
    (que té `margin: 20px auto` = 1.25rem cada costat). */
 .pfr-row {
   width: auto;
-  max-width: 75rem;
+  /* `max-width` eliminat perquè el editor s'estengui a tota l'amplada
+     del viewport (consistent amb el patró d'App34/App35 plano-2D). */
   margin: 0.25rem var(--app28-endcap-w) 0 0;
   padding: 0;
   box-sizing: border-box;
@@ -253,7 +254,7 @@ body.app28 {
    els casos. */
 .pfr-editor .editor-cell {
   width: 5%;
-  min-width: 2.5rem;
+  min-width: 3rem;
   flex: none;
   aspect-ratio: 1;
   padding: 0;
@@ -306,9 +307,7 @@ body.app28 {
    heretat de app-common. */
 .timeline-wrapper {
   width: auto !important;
-  max-width: 75rem;
-  /* Reduit el margin-top per acostar la banda a la fracció (era 2.5rem).
-     Margin-bottom també reduit. */
+  /* `max-width` eliminat — la timeline s'estén a tot l'amplada del viewport. */
   margin: 0.5rem var(--app28-endcap-w) 0.75rem var(--app28-endcap-w);
   position: relative;
 }

@@ -28,7 +28,7 @@ body[data-visual="nuzic"] .middle.app30-middle {
   display: block !important;
   position: relative;
   width: auto;
-  max-width: 75rem;
+  /* `max-width` eliminat — l'app s'estén a tot l'amplada. */
   margin: 0 var(--app30-endcap-w) 5px var(--app30-endcap-w);
   box-sizing: border-box;
   padding: 0;
@@ -307,7 +307,7 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
    padding-left/right: 1.25rem a .editor-cells per alinear amb cream. */
 .itfr-row {
   width: auto;
-  max-width: 75rem;
+  /* `max-width` eliminat — l'app s'estén a tot l'amplada. */
   /* margin-left: 0 perquè el label "iT" quedi a la mateixa x que l'endcap
      esquerre (parent.left). margin-right: W manté simetria. */
   margin: 0.25rem var(--app30-endcap-w) 0 0;
@@ -350,7 +350,7 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
 /* Square cells (App28 7o.visual: 5% + min-width 2.5rem). */
 .itfr-editor .itfr-cell {
   width: 5%;
-  min-width: 2.5rem;
+  min-width: 3rem;
   flex: none;
   aspect-ratio: 1;
   padding: 0;
@@ -396,7 +396,7 @@ body[data-visual="nuzic"].app30 .itfr-info-group .bpm-inline.visible.param.it-di
    Margins responsius amb `--app30-endcap-w` (Step 7s). */
 .timeline-wrapper {
   width: auto !important;
-  max-width: 75rem;
+  /* `max-width` eliminat — l'app s'estén a tot l'amplada. */
   /* margin-top ampliat perquè les barres iT (top: -3.3rem) + halter
      groc (top: -1.9rem) sobre la timeline NO trepitgin el .middle.
      ~5.5rem permet veure les barres + halter sense col·lisió. */

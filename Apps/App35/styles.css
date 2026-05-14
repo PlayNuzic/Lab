@@ -816,7 +816,7 @@ body[data-visual="nuzic"].app35 .plano-timeline-number.plano-cycle-end {
    means ~20 cells fit per row before horizontal scroll kicks in. */
 .nit-editor-cell {
   width: 5%;
-  min-width: 1.25rem;
+  min-width: 3rem;
   aspect-ratio: 1;
   border: none;
   text-align: center;
