@@ -212,6 +212,11 @@ body[data-theme="dark"] .iframe-frame:has(.iframe-placeholder){ background: #2a2
 .slide[data-paso="22"] .iframe-frame,
 .slide[data-paso="23"] .iframe-frame{ max-height: 800px; }
 
+/* Paso 20 (App34/App35 — plano-2D 12 files + fracció + nit-editor) —
+   aspect 3/4 amb max-height 900px perquè el matrix sencer + .middle +
+   nit-editor + controls hi càpiguen sense retallar. */
+.slide[data-paso="20"] .iframe-frame{ max-height: 900px; }
+
 /* Paso 23 (App23) — aspect adaptatiu al viewport del sistema:
    • Per sobre del breakpoint del sistema (≥901px) el slot d'app és
      prou ample per cabir el layout horitzontal de dues columnes;
